@@ -175,6 +175,43 @@ struct stlink_backend_s {
 	int (*read_trace)(void *handle, const uint8_t *buf, int size);
 };
 
+/* TODO: make queue size dynamic */
+/* TODO: don't allocate queue for HLA */
+#define MAX_QUEUE_DEPTH (4096)
+
+enum queue_cmd {
+	CMD_DP_READ = 1,
+	CMD_DP_WRITE,
+	CMD_AP_READ,
+	CMD_AP_WRITE,
+};
+
+struct dap_queue {
+	enum queue_cmd cmd;
+	union {
+		struct dp_r {
+			unsigned int reg;
+			struct adiv5_dap *dap;
+			uint32_t *p_data;
+		} dp_r;
+		struct dp_w {
+			unsigned int reg;
+			struct adiv5_dap *dap;
+			uint32_t data;
+		} dp_w;
+		struct ap_r {
+			unsigned int reg;
+			struct adiv5_ap *ap;
+			uint32_t *p_data;
+		} ap_r;
+		struct ap_w {
+			unsigned int reg;
+			struct adiv5_ap *ap;
+			uint32_t data;
+		} ap_w;
+	};
+};
+
 /** */
 struct stlink_usb_handle_s {
 	/** */
@@ -218,6 +255,10 @@ struct stlink_usb_handle_s {
 	/** reconnect is needed next time we try to query the
 	 * status */
 	bool reconnect_pending;
+	/** queue of dap_direct operations */
+	struct dap_queue queue[MAX_QUEUE_DEPTH];
+	/** first element available in the queue */
+	unsigned int queue_index;
 };
 
 /** */
@@ -3750,9 +3791,6 @@ static struct hl_interface_param_s stlink_dap_param;
 static DECLARE_BITMAP(opened_ap, DP_APSEL_MAX + 1);
 static int stlink_dap_error = ERROR_OK;
 
-static int stlink_dap_op_queue_dp_read(struct adiv5_dap *dap, unsigned reg,
-		uint32_t *data);
-
 /** */
 static int stlink_dap_record_error(int error)
 {
@@ -3767,6 +3805,11 @@ static int stlink_dap_get_and_clear_error(void)
 	int retval = stlink_dap_error;
 	stlink_dap_error = ERROR_OK;
 	return retval;
+}
+
+static int stlink_dap_get_error(void)
+{
+	return stlink_dap_error;
 }
 
 static int stlink_usb_open_ap(void *handle, unsigned short apsel)
@@ -3914,8 +3957,7 @@ static int stlink_dap_op_send_sequence(struct adiv5_dap *dap, enum swd_special_s
 }
 
 /** */
-static int stlink_dap_op_queue_dp_read(struct adiv5_dap *dap, unsigned reg,
-		uint32_t *data)
+static int stlink_dap_dp_read(struct adiv5_dap *dap, unsigned int reg, uint32_t *data)
 {
 	uint32_t dummy;
 	int retval;
@@ -3925,10 +3967,6 @@ static int stlink_dap_op_queue_dp_read(struct adiv5_dap *dap, unsigned reg,
 			LOG_ERROR("Banked DP registers not supported in current STLink FW");
 			return ERROR_COMMAND_NOTFOUND;
 		}
-
-	retval = stlink_dap_check_reconnect(dap);
-	if (retval != ERROR_OK)
-		return retval;
 
 	data = data ? data : &dummy;
 	if (stlink_dap_handle->version.flags & STLINK_F_QUIRK_JTAG_DP_READ
@@ -3944,12 +3982,11 @@ static int stlink_dap_op_queue_dp_read(struct adiv5_dap *dap, unsigned reg,
 					STLINK_DEBUG_PORT_ACCESS, reg, data);
 	}
 
-	return stlink_dap_record_error(retval);
+	return retval;
 }
 
 /** */
-static int stlink_dap_op_queue_dp_write(struct adiv5_dap *dap, unsigned reg,
-		uint32_t data)
+static int stlink_dap_dp_write(struct adiv5_dap *dap, unsigned int reg, uint32_t data)
 {
 	int retval;
 
@@ -3965,30 +4002,21 @@ static int stlink_dap_op_queue_dp_write(struct adiv5_dap *dap, unsigned reg,
 		data &= ~DP_SELECT_DPBANK;
 	}
 
-	retval = stlink_dap_check_reconnect(dap);
-	if (retval != ERROR_OK)
-		return retval;
-
 	/* ST-Link does not like that we set CORUNDETECT */
 	if (reg == DP_CTRL_STAT)
 		data &= ~CORUNDETECT;
 
 	retval = stlink_write_dap_register(stlink_dap_handle,
 				STLINK_DEBUG_PORT_ACCESS, reg, data);
-	return stlink_dap_record_error(retval);
+	return retval;
 }
 
 /** */
-static int stlink_dap_op_queue_ap_read(struct adiv5_ap *ap, unsigned reg,
-		uint32_t *data)
+static int stlink_dap_ap_read(struct adiv5_ap *ap, unsigned int reg, uint32_t *data)
 {
 	struct adiv5_dap *dap = ap->dap;
 	uint32_t dummy;
 	int retval;
-
-	retval = stlink_dap_check_reconnect(dap);
-	if (retval != ERROR_OK)
-		return retval;
 
 	if (reg != AP_REG_IDR) {
 		retval = stlink_dap_open_ap(ap->ap_num);
@@ -3999,19 +4027,14 @@ static int stlink_dap_op_queue_ap_read(struct adiv5_ap *ap, unsigned reg,
 	retval = stlink_read_dap_register(stlink_dap_handle, ap->ap_num, reg,
 				 data);
 	dap->stlink_flush_ap_write = false;
-	return stlink_dap_record_error(retval);
+	return retval;
 }
 
 /** */
-static int stlink_dap_op_queue_ap_write(struct adiv5_ap *ap, unsigned reg,
-		uint32_t data)
+static int stlink_dap_ap_write(struct adiv5_ap *ap, unsigned int reg, uint32_t data)
 {
 	struct adiv5_dap *dap = ap->dap;
 	int retval;
-
-	retval = stlink_dap_check_reconnect(dap);
-	if (retval != ERROR_OK)
-		return retval;
 
 	retval = stlink_dap_open_ap(ap->ap_num);
 	if (retval != ERROR_OK)
@@ -4020,7 +4043,7 @@ static int stlink_dap_op_queue_ap_write(struct adiv5_ap *ap, unsigned reg,
 	retval = stlink_write_dap_register(stlink_dap_handle, ap->ap_num, reg,
 				data);
 	dap->stlink_flush_ap_write = true;
-	return stlink_dap_record_error(retval);
+	return retval;
 }
 
 /** */
@@ -4030,8 +4053,47 @@ static int stlink_dap_op_queue_ap_abort(struct adiv5_dap *dap, uint8_t *ack)
 	return ERROR_OK;
 }
 
+static void stlink_dap_run_internal(struct adiv5_dap *dap)
+{
+	int retval = stlink_dap_check_reconnect(dap);
+	if (retval != ERROR_OK) {
+		stlink_dap_handle->queue_index = 0;
+		stlink_dap_record_error(retval);
+		return;
+	}
+
+	unsigned int i = stlink_dap_handle->queue_index;
+	struct dap_queue *q = &stlink_dap_handle->queue[0];
+
+	while (i && stlink_dap_get_error() == ERROR_OK) {
+		switch (q->cmd) {
+		case CMD_DP_READ:
+			retval = stlink_dap_dp_read(q->dp_r.dap, q->dp_r.reg, q->dp_r.p_data);
+			break;
+		case CMD_DP_WRITE:
+			retval = stlink_dap_dp_write(q->dp_w.dap, q->dp_w.reg, q->dp_w.data);
+			break;
+		case CMD_AP_READ:
+			retval = stlink_dap_ap_read(q->ap_r.ap, q->ap_r.reg, q->ap_r.p_data);
+			break;
+		case CMD_AP_WRITE:
+			retval = stlink_dap_ap_write(q->ap_w.ap, q->ap_w.reg, q->ap_w.data);
+			break;
+		default:
+			LOG_ERROR("ST-Link: Unknown queue command %d", q->cmd);
+			retval = ERROR_FAIL;
+			break;
+		}
+		stlink_dap_record_error(retval);
+		q++;
+		i--;
+	}
+
+	stlink_dap_handle->queue_index = 0;
+}
+
 /** */
-static int stlink_dap_op_run(struct adiv5_dap *dap)
+static int stlink_dap_run_finalize(struct adiv5_dap *dap)
 {
 	uint32_t ctrlstat, pwrmask;
 	int retval, saved_retval;
@@ -4046,7 +4108,7 @@ static int stlink_dap_op_run(struct adiv5_dap *dap)
 	 */
 	if (dap->stlink_flush_ap_write) {
 		dap->stlink_flush_ap_write = false;
-		retval = stlink_dap_op_queue_dp_read(dap, DP_RDBUFF, NULL);
+		retval = stlink_dap_dp_read(dap, DP_RDBUFF, NULL);
 		if (retval != ERROR_OK) {
 			dap->do_reconnect = true;
 			return retval;
@@ -4055,12 +4117,7 @@ static int stlink_dap_op_run(struct adiv5_dap *dap)
 
 	saved_retval = stlink_dap_get_and_clear_error();
 
-	retval = stlink_dap_op_queue_dp_read(dap, DP_CTRL_STAT, &ctrlstat);
-	if (retval != ERROR_OK) {
-		dap->do_reconnect = true;
-		return retval;
-	}
-	retval = stlink_dap_get_and_clear_error();
+	retval = stlink_dap_dp_read(dap, DP_CTRL_STAT, &ctrlstat);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Fail reading CTRL/STAT register. Force reconnect");
 		dap->do_reconnect = true;
@@ -4069,15 +4126,10 @@ static int stlink_dap_op_run(struct adiv5_dap *dap)
 
 	if (ctrlstat & SSTICKYERR) {
 		if (stlink_dap_handle->st_mode == STLINK_MODE_DEBUG_JTAG)
-			retval = stlink_dap_op_queue_dp_write(dap, DP_CTRL_STAT,
+			retval = stlink_dap_dp_write(dap, DP_CTRL_STAT,
 					ctrlstat & (dap->dp_ctrl_stat | SSTICKYERR));
 		else
-			retval = stlink_dap_op_queue_dp_write(dap, DP_ABORT, STKERRCLR);
-		if (retval != ERROR_OK) {
-			dap->do_reconnect = true;
-			return retval;
-		}
-		retval = stlink_dap_get_and_clear_error();
+			retval = stlink_dap_dp_write(dap, DP_ABORT, STKERRCLR);
 		if (retval != ERROR_OK) {
 			dap->do_reconnect = true;
 			return retval;
@@ -4092,6 +4144,12 @@ static int stlink_dap_op_run(struct adiv5_dap *dap)
 	return saved_retval;
 }
 
+static int stlink_dap_op_queue_run(struct adiv5_dap *dap)
+{
+	stlink_dap_run_internal(dap);
+	return stlink_dap_run_finalize(dap);
+}
+
 /** */
 static void stlink_dap_op_quit(struct adiv5_dap *dap)
 {
@@ -4100,6 +4158,82 @@ static void stlink_dap_op_quit(struct adiv5_dap *dap)
 	retval = stlink_dap_closeall_ap();
 	if (retval != ERROR_OK)
 		LOG_ERROR("Error closing APs");
+}
+
+static int stlink_dap_op_queue_dp_read(struct adiv5_dap *dap, unsigned int reg,
+	uint32_t *data)
+{
+	if (stlink_dap_get_error() != ERROR_OK)
+		return ERROR_OK;
+
+	unsigned int i = stlink_dap_handle->queue_index++;
+	struct dap_queue *q = &stlink_dap_handle->queue[i];
+	q->cmd = CMD_DP_READ;
+	q->dp_r.reg = reg;
+	q->dp_r.dap = dap;
+	q->dp_r.p_data = data;
+
+	if (i == MAX_QUEUE_DEPTH - 1)
+		stlink_dap_run_internal(dap);
+
+	return ERROR_OK;
+}
+
+static int stlink_dap_op_queue_dp_write(struct adiv5_dap *dap, unsigned int reg,
+	uint32_t data)
+{
+	if (stlink_dap_get_error() != ERROR_OK)
+		return ERROR_OK;
+
+	unsigned int i = stlink_dap_handle->queue_index++;
+	struct dap_queue *q = &stlink_dap_handle->queue[i];
+	q->cmd = CMD_DP_WRITE;
+	q->dp_w.reg = reg;
+	q->dp_w.dap = dap;
+	q->dp_w.data = data;
+
+	if (i == MAX_QUEUE_DEPTH - 1)
+		stlink_dap_run_internal(dap);
+
+	return ERROR_OK;
+}
+
+static int stlink_dap_op_queue_ap_read(struct adiv5_ap *ap, unsigned int reg,
+	uint32_t *data)
+{
+	if (stlink_dap_get_error() != ERROR_OK)
+		return ERROR_OK;
+
+	unsigned int i = stlink_dap_handle->queue_index++;
+	struct dap_queue *q = &stlink_dap_handle->queue[i];
+	q->cmd = CMD_AP_READ;
+	q->ap_r.reg = reg;
+	q->ap_r.ap = ap;
+	q->ap_r.p_data = data;
+
+	if (i == MAX_QUEUE_DEPTH - 1)
+		stlink_dap_run_internal(ap->dap);
+
+	return ERROR_OK;
+}
+
+static int stlink_dap_op_queue_ap_write(struct adiv5_ap *ap, unsigned int reg,
+	uint32_t data)
+{
+	if (stlink_dap_get_error() != ERROR_OK)
+		return ERROR_OK;
+
+	unsigned int i = stlink_dap_handle->queue_index++;
+	struct dap_queue *q = &stlink_dap_handle->queue[i];
+	q->cmd = CMD_AP_WRITE;
+	q->ap_w.reg = reg;
+	q->ap_w.ap = ap;
+	q->ap_w.data = data;
+
+	if (i == MAX_QUEUE_DEPTH - 1)
+		stlink_dap_run_internal(ap->dap);
+
+	return ERROR_OK;
 }
 
 static int stlink_swim_op_srst(void)
@@ -4430,7 +4564,7 @@ static const struct dap_ops stlink_dap_ops = {
 	.queue_ap_read = stlink_dap_op_queue_ap_read,
 	.queue_ap_write = stlink_dap_op_queue_ap_write,
 	.queue_ap_abort = stlink_dap_op_queue_ap_abort,
-	.run = stlink_dap_op_run,
+	.run = stlink_dap_op_queue_run,
 	.sync = NULL, /* optional */
 	.quit = stlink_dap_op_quit, /* optional */
 };
