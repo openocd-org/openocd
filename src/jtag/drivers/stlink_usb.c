@@ -186,9 +186,24 @@ struct stlink_backend_s {
 enum queue_cmd {
 	CMD_DP_READ = 1,
 	CMD_DP_WRITE,
+
 	CMD_AP_READ,
 	CMD_AP_WRITE,
+
+	/*
+	 * encode the bytes size in the enum's value. This makes easy to extract it
+	 * with a simple logic AND, by using the macro CMD_MEM_AP_2_SIZE() below
+	 */
+	CMD_MEM_AP_READ8   = 0x10 + 1,
+	CMD_MEM_AP_READ16  = 0x10 + 2,
+	CMD_MEM_AP_READ32  = 0x10 + 4,
+
+	CMD_MEM_AP_WRITE8  = 0x20 + 1,
+	CMD_MEM_AP_WRITE16 = 0x20 + 2,
+	CMD_MEM_AP_WRITE32 = 0x20 + 4,
 };
+
+#define CMD_MEM_AP_2_SIZE(cmd) ((cmd) & 7)
 
 struct dap_queue {
 	enum queue_cmd cmd;
@@ -213,6 +228,15 @@ struct dap_queue {
 			struct adiv5_ap *ap;
 			uint32_t data;
 		} ap_w;
+		struct mem_ap {
+			uint32_t addr;
+			struct adiv5_ap *ap;
+			union {
+				uint32_t *p_data;
+				uint32_t data;
+			};
+			uint32_t csw;
+		} mem_ap;
 	};
 };
 
@@ -4119,6 +4143,7 @@ static void stlink_dap_run_internal(struct adiv5_dap *dap)
 
 	unsigned int i = stlink_dap_handle->queue_index;
 	struct dap_queue *q = &stlink_dap_handle->queue[0];
+	uint8_t buf[4];
 
 	while (i && stlink_dap_get_error() == ERROR_OK) {
 		switch (q->cmd) {
@@ -4132,8 +4157,59 @@ static void stlink_dap_run_internal(struct adiv5_dap *dap)
 			retval = stlink_dap_ap_read(q->ap_r.ap, q->ap_r.reg, q->ap_r.p_data);
 			break;
 		case CMD_AP_WRITE:
+			/* ignore increment packed, not supported */
+			if (q->ap_w.reg == MEM_AP_REG_CSW)
+				q->ap_w.data &= ~CSW_ADDRINC_PACKED;
 			retval = stlink_dap_ap_write(q->ap_w.ap, q->ap_w.reg, q->ap_w.data);
 			break;
+
+		case CMD_MEM_AP_READ8:
+			retval = stlink_dap_open_ap(q->mem_ap.ap->ap_num);
+			if (retval == ERROR_OK)
+				retval = stlink_usb_read_mem8(stlink_dap_handle, q->mem_ap.ap->ap_num, q->mem_ap.csw, q->mem_ap.addr,
+											  1, buf);
+			if (retval == ERROR_OK)
+				*q->mem_ap.p_data = *buf << 8 * (q->mem_ap.addr & 3);
+			break;
+		case CMD_MEM_AP_READ16:
+			retval = stlink_dap_open_ap(q->mem_ap.ap->ap_num);
+			if (retval == ERROR_OK)
+				retval = stlink_usb_read_mem16(stlink_dap_handle, q->mem_ap.ap->ap_num, q->mem_ap.csw, q->mem_ap.addr,
+											   2, buf);
+			if (retval == ERROR_OK)
+				*q->mem_ap.p_data = le_to_h_u16(buf) << 8 * (q->mem_ap.addr & 2);
+			break;
+		case CMD_MEM_AP_READ32:
+			retval = stlink_dap_open_ap(q->mem_ap.ap->ap_num);
+			if (retval == ERROR_OK)
+				retval = stlink_usb_read_mem32(stlink_dap_handle, q->mem_ap.ap->ap_num, q->mem_ap.csw, q->mem_ap.addr,
+											   4, buf);
+			if (retval == ERROR_OK)
+				*q->mem_ap.p_data = le_to_h_u32(buf);
+			break;
+
+		case CMD_MEM_AP_WRITE8:
+			*buf = q->mem_ap.data >> 8 * (q->mem_ap.addr & 3);
+			retval = stlink_dap_open_ap(q->mem_ap.ap->ap_num);
+			if (retval == ERROR_OK)
+				retval = stlink_usb_write_mem8(stlink_dap_handle, q->mem_ap.ap->ap_num, q->mem_ap.csw, q->mem_ap.addr,
+											   1, buf);
+			break;
+		case CMD_MEM_AP_WRITE16:
+			h_u16_to_le(buf, q->mem_ap.data >> 8 * (q->mem_ap.addr & 2));
+			retval = stlink_dap_open_ap(q->mem_ap.ap->ap_num);
+			if (retval == ERROR_OK)
+				retval = stlink_usb_write_mem16(stlink_dap_handle, q->mem_ap.ap->ap_num, q->mem_ap.csw, q->mem_ap.addr,
+												2, buf);
+			break;
+		case CMD_MEM_AP_WRITE32:
+			h_u32_to_le(buf, q->mem_ap.data);
+			retval = stlink_dap_open_ap(q->mem_ap.ap->ap_num);
+			if (retval == ERROR_OK)
+				retval = stlink_usb_write_mem32(stlink_dap_handle, q->mem_ap.ap->ap_num, q->mem_ap.csw, q->mem_ap.addr,
+												4, buf);
+			break;
+
 		default:
 			LOG_ERROR("ST-Link: Unknown queue command %d", q->cmd);
 			retval = ERROR_FAIL;
@@ -4261,10 +4337,54 @@ static int stlink_dap_op_queue_ap_read(struct adiv5_ap *ap, unsigned int reg,
 
 	unsigned int i = stlink_dap_handle->queue_index++;
 	struct dap_queue *q = &stlink_dap_handle->queue[i];
-	q->cmd = CMD_AP_READ;
-	q->ap_r.reg = reg;
-	q->ap_r.ap = ap;
-	q->ap_r.p_data = data;
+
+	if ((stlink_dap_handle->version.flags & STLINK_F_HAS_CSW) &&
+			(reg == MEM_AP_REG_DRW || reg == MEM_AP_REG_BD0 || reg == MEM_AP_REG_BD1 ||
+			 reg == MEM_AP_REG_BD2 || reg == MEM_AP_REG_BD3)) {
+		/* de-queue previous write-TAR */
+		struct dap_queue *prev_q = q - 1;
+		if (i && prev_q->cmd == CMD_AP_WRITE && prev_q->ap_w.ap == ap && prev_q->ap_w.reg == MEM_AP_REG_TAR) {
+			stlink_dap_handle->queue_index = i;
+			i--;
+			q = prev_q;
+			prev_q--;
+		}
+		/* de-queue previous write-CSW */
+		if (i && prev_q->cmd == CMD_AP_WRITE && prev_q->ap_w.ap == ap && prev_q->ap_w.reg == MEM_AP_REG_CSW) {
+			stlink_dap_handle->queue_index = i;
+			q = prev_q;
+		}
+
+		switch (ap->csw_value & CSW_SIZE_MASK) {
+		case CSW_8BIT:
+			q->cmd = CMD_MEM_AP_READ8;
+			break;
+		case CSW_16BIT:
+			q->cmd = CMD_MEM_AP_READ16;
+			break;
+		case CSW_32BIT:
+			q->cmd = CMD_MEM_AP_READ32;
+			break;
+		default:
+			LOG_ERROR("ST-Link: Unsupported CSW size %d", ap->csw_value & CSW_SIZE_MASK);
+			stlink_dap_record_error(ERROR_FAIL);
+			return ERROR_FAIL;
+		}
+
+		q->mem_ap.addr = (reg == MEM_AP_REG_DRW) ? ap->tar_value : ((ap->tar_value & ~0x0f) | (reg & 0x0c));
+		q->mem_ap.ap = ap;
+		q->mem_ap.p_data = data;
+		q->mem_ap.csw = ap->csw_default;
+
+		/* force TAR and CSW update */
+		ap->tar_valid = false;
+		ap->csw_value = 0;
+	} else {
+		q->cmd = CMD_AP_READ;
+		q->ap_r.reg = reg;
+		q->ap_r.ap = ap;
+		q->ap_r.p_data = data;
+	}
 
 	if (i == MAX_QUEUE_DEPTH - 1)
 		stlink_dap_run_internal(ap->dap);
@@ -4280,10 +4400,54 @@ static int stlink_dap_op_queue_ap_write(struct adiv5_ap *ap, unsigned int reg,
 
 	unsigned int i = stlink_dap_handle->queue_index++;
 	struct dap_queue *q = &stlink_dap_handle->queue[i];
-	q->cmd = CMD_AP_WRITE;
-	q->ap_w.reg = reg;
-	q->ap_w.ap = ap;
-	q->ap_w.data = data;
+
+	if ((stlink_dap_handle->version.flags & STLINK_F_HAS_CSW) &&
+			(reg == MEM_AP_REG_DRW || reg == MEM_AP_REG_BD0 || reg == MEM_AP_REG_BD1 ||
+			 reg == MEM_AP_REG_BD2 || reg == MEM_AP_REG_BD3)) {
+		/* de-queue previous write-TAR */
+		struct dap_queue *prev_q = q - 1;
+		if (i && prev_q->cmd == CMD_AP_WRITE && prev_q->ap_w.ap == ap && prev_q->ap_w.reg == MEM_AP_REG_TAR) {
+			stlink_dap_handle->queue_index = i;
+			i--;
+			q = prev_q;
+			prev_q--;
+		}
+		/* de-queue previous write-CSW */
+		if (i && prev_q->cmd == CMD_AP_WRITE && prev_q->ap_w.ap == ap && prev_q->ap_w.reg == MEM_AP_REG_CSW) {
+			stlink_dap_handle->queue_index = i;
+			q = prev_q;
+		}
+
+		switch (ap->csw_value & CSW_SIZE_MASK) {
+		case CSW_8BIT:
+			q->cmd = CMD_MEM_AP_WRITE8;
+			break;
+		case CSW_16BIT:
+			q->cmd = CMD_MEM_AP_WRITE16;
+			break;
+		case CSW_32BIT:
+			q->cmd = CMD_MEM_AP_WRITE32;
+			break;
+		default:
+			LOG_ERROR("ST-Link: Unsupported CSW size %d", ap->csw_value & CSW_SIZE_MASK);
+			stlink_dap_record_error(ERROR_FAIL);
+			return ERROR_FAIL;
+		}
+
+		q->mem_ap.addr = (reg == MEM_AP_REG_DRW) ? ap->tar_value : ((ap->tar_value & ~0x0f) | (reg & 0x0c));
+		q->mem_ap.ap = ap;
+		q->mem_ap.data = data;
+		q->mem_ap.csw = ap->csw_default;
+
+		/* force TAR and CSW update */
+		ap->tar_valid = false;
+		ap->csw_value = 0;
+	} else {
+		q->cmd = CMD_AP_WRITE;
+		q->ap_w.reg = reg;
+		q->ap_w.ap = ap;
+		q->ap_w.data = data;
+	}
 
 	if (i == MAX_QUEUE_DEPTH - 1)
 		stlink_dap_run_internal(ap->dap);
