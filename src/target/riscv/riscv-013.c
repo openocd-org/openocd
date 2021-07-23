@@ -29,9 +29,6 @@
 #include "asm.h"
 #include "batch.h"
 
-#define DM_DATA1 (DM_DATA0 + 1)
-#define DM_PROGBUF1 (DM_PROGBUF0 + 1)
-
 static int riscv013_on_step_or_resume(struct target *target, bool step);
 static int riscv013_step_or_resume_current_hart(struct target *target,
 		bool step, bool use_hasel);
@@ -4088,7 +4085,8 @@ static int riscv013_get_register(struct target *target,
 		uint64_t dcsr;
 		/* TODO: move this into riscv.c. */
 		result = register_read(target, &dcsr, GDB_REGNO_DCSR);
-		*value = get_field(dcsr, CSR_DCSR_PRV);
+		*value = set_field(0, VIRT_PRIV_V, get_field(dcsr, CSR_DCSR_V));
+		*value = set_field(*value, VIRT_PRIV_PRV, get_field(dcsr, CSR_DCSR_PRV));
 	} else {
 		result = register_read(target, value, rid);
 		if (result != ERROR_OK)
@@ -4120,7 +4118,8 @@ static int riscv013_set_register(struct target *target, int rid, uint64_t value)
 	} else if (rid == GDB_REGNO_PRIV) {
 		uint64_t dcsr;
 		register_read(target, &dcsr, GDB_REGNO_DCSR);
-		dcsr = set_field(dcsr, CSR_DCSR_PRV, value);
+		dcsr = set_field(dcsr, CSR_DCSR_PRV, get_field(value, VIRT_PRIV_PRV));
+		dcsr = set_field(dcsr, CSR_DCSR_V, get_field(value, VIRT_PRIV_V));
 		return register_write_direct(target, GDB_REGNO_DCSR, dcsr);
 	} else {
 		return register_write_direct(target, rid, value);

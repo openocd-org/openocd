@@ -20,6 +20,7 @@
 #include "riscv.h"
 #include "gdb_regs.h"
 #include "rtos/rtos.h"
+#include "debug_defines.h"
 
 #define get_field(reg, mask) (((reg) & (mask)) / ((mask) & ~((mask) << 1)))
 #define set_field(reg, mask, val) (((reg) & ~(mask)) | (((val) * ((mask) & ~((mask) << 1))) & (mask)))
@@ -591,8 +592,6 @@ static int maybe_add_trigger_t2(struct target *target,
 			MCONTROL_ACTION_DEBUG_MODE);
 	tdata1 = set_field(tdata1, MCONTROL_MATCH, MCONTROL_MATCH_EQUAL);
 	tdata1 |= MCONTROL_M;
-	if (r->misa & (1 << ('H' - 'A')))
-		tdata1 |= MCONTROL_H;
 	if (r->misa & (1 << ('S' - 'A')))
 		tdata1 |= MCONTROL_S;
 	if (r->misa & (1 << ('U' - 'A')))
@@ -604,6 +603,58 @@ static int maybe_add_trigger_t2(struct target *target,
 		tdata1 |= MCONTROL_LOAD;
 	if (trigger->write)
 		tdata1 |= MCONTROL_STORE;
+
+	riscv_set_register(target, GDB_REGNO_TDATA1, tdata1);
+
+	uint64_t tdata1_rb;
+	int result = riscv_get_register(target, &tdata1_rb, GDB_REGNO_TDATA1);
+	if (result != ERROR_OK)
+		return result;
+	LOG_DEBUG("tdata1=0x%" PRIx64, tdata1_rb);
+
+	if (tdata1 != tdata1_rb) {
+		LOG_DEBUG("Trigger doesn't support what we need; After writing 0x%"
+				PRIx64 " to tdata1 it contains 0x%" PRIx64,
+				tdata1, tdata1_rb);
+		riscv_set_register(target, GDB_REGNO_TDATA1, 0);
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+
+	riscv_set_register(target, GDB_REGNO_TDATA2, trigger->address);
+
+	return ERROR_OK;
+}
+
+static int maybe_add_trigger_t6(struct target *target,
+		struct trigger *trigger, uint64_t tdata1)
+{
+	RISCV_INFO(r);
+
+	/* tselect is already set */
+	if (tdata1 & (CSR_MCONTROL6_EXECUTE | CSR_MCONTROL6_STORE | CSR_MCONTROL6_LOAD)) {
+		/* Trigger is already in use, presumably by user code. */
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+
+	/* address/data match trigger */
+	tdata1 |= MCONTROL_DMODE(riscv_xlen(target));
+	tdata1 = set_field(tdata1, CSR_MCONTROL6_ACTION,
+			MCONTROL_ACTION_DEBUG_MODE);
+	tdata1 = set_field(tdata1, CSR_MCONTROL6_MATCH, MCONTROL_MATCH_EQUAL);
+	tdata1 |= CSR_MCONTROL6_M;
+	if (r->misa & (1 << ('H' - 'A')))
+		tdata1 |= CSR_MCONTROL6_VS | CSR_MCONTROL6_VU;
+	if (r->misa & (1 << ('S' - 'A')))
+		tdata1 |= CSR_MCONTROL6_S;
+	if (r->misa & (1 << ('U' - 'A')))
+		tdata1 |= CSR_MCONTROL6_U;
+
+	if (trigger->execute)
+		tdata1 |= CSR_MCONTROL6_EXECUTE;
+	if (trigger->read)
+		tdata1 |= CSR_MCONTROL6_LOAD;
+	if (trigger->write)
+		tdata1 |= CSR_MCONTROL6_STORE;
 
 	riscv_set_register(target, GDB_REGNO_TDATA1, tdata1);
 
@@ -657,6 +708,9 @@ static int add_trigger(struct target *target, struct trigger *trigger)
 				break;
 			case 2:
 				result = maybe_add_trigger_t2(target, trigger, tdata1);
+				break;
+			case 6:
+				result = maybe_add_trigger_t6(target, trigger, tdata1);
 				break;
 			default:
 				LOG_DEBUG("trigger %d has unknown type %d", i, type);
