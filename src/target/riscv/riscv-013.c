@@ -3457,7 +3457,7 @@ static int read_memory_progbuf(struct target *target, target_addr_t address,
 		return ERROR_FAIL;
 	if (register_read(target, &s1, GDB_REGNO_S1) != ERROR_OK)
 		return ERROR_FAIL;
-	if (increment == 0 && register_read(target, &s2, GDB_REGNO_S1) != ERROR_OK)
+	if (increment == 0 && register_read(target, &s2, GDB_REGNO_S2) != ERROR_OK)
 		return ERROR_FAIL;
 
 	/* Write the program (load, increment) */
