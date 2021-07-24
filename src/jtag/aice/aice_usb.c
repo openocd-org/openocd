@@ -583,7 +583,7 @@ static int aice_scan_chain(uint32_t *id_codes, uint8_t *num_of_ids)
 		if (cmd_ack_code != AICE_CMD_SCAN_CHAIN) {
 
 			if (retry_times > aice_max_retry_times) {
-				LOG_ERROR("aice command timeout (command=0x%" PRIx8 ", response=0x%" PRIx8 ")",
+				LOG_ERROR("aice command timeout (command=0x%x, response=0x%" PRIx8 ")",
 						AICE_CMD_SCAN_CHAIN, cmd_ack_code);
 				return ERROR_FAIL;
 			}
@@ -638,8 +638,8 @@ int aice_read_ctrl(uint32_t address, uint32_t *data)
 	LOG_DEBUG("READ_CTRL response, data: 0x%" PRIx32, *data);
 
 	if (cmd_ack_code != AICE_CMD_READ_CTRL) {
-		LOG_ERROR("aice command error (command=0x%" PRIx32 ", response=0x%" PRIx8 ")",
-				(uint32_t)AICE_CMD_READ_CTRL, cmd_ack_code);
+		LOG_ERROR("aice command error (command=0x%x, response=0x%" PRIx8 ")",
+				AICE_CMD_READ_CTRL, cmd_ack_code);
 		return ERROR_FAIL;
 	}
 
@@ -676,7 +676,7 @@ int aice_write_ctrl(uint32_t address, uint32_t data)
 	LOG_DEBUG("WRITE_CTRL response");
 
 	if (cmd_ack_code != AICE_CMD_WRITE_CTRL) {
-		LOG_ERROR("aice command error (command=0x%" PRIx8 ", response=0x%" PRIx8 ")",
+		LOG_ERROR("aice command error (command=0x%x, response=0x%" PRIx8 ")",
 				AICE_CMD_WRITE_CTRL, cmd_ack_code);
 		return ERROR_FAIL;
 	}
@@ -718,7 +718,7 @@ static int aice_read_dtr(uint8_t target_id, uint32_t *data)
 		} else {
 
 			if (retry_times > aice_max_retry_times) {
-				LOG_ERROR("aice command timeout (command=0x%" PRIx8 ", response=0x%" PRIx8 ")",
+				LOG_ERROR("aice command timeout (command=0x%x, response=0x%" PRIx8 ")",
 						AICE_CMD_T_READ_DTR, cmd_ack_code);
 				return ERROR_FAIL;
 			}
@@ -768,7 +768,7 @@ static int aice_read_dtr_to_buffer(uint8_t target_id, uint32_t buffer_idx)
 			break;
 		} else {
 			if (retry_times > aice_max_retry_times) {
-				LOG_ERROR("aice command timeout (command=0x%" PRIx8 ", response=0x%" PRIx8 ")",
+				LOG_ERROR("aice command timeout (command=0x%x, response=0x%" PRIx8 ")",
 						AICE_CMD_READ_DTR_TO_BUFFER, cmd_ack_code);
 
 				return ERROR_FAIL;
@@ -820,7 +820,7 @@ static int aice_write_dtr(uint8_t target_id, uint32_t data)
 			break;
 		} else {
 			if (retry_times > aice_max_retry_times) {
-				LOG_ERROR("aice command timeout (command=0x%" PRIx8 ", response=0x%" PRIx8 ")",
+				LOG_ERROR("aice command timeout (command=0x%x, response=0x%" PRIx8 ")",
 						AICE_CMD_T_WRITE_DTR, cmd_ack_code);
 
 				return ERROR_FAIL;
@@ -871,7 +871,7 @@ static int aice_write_dtr_from_buffer(uint8_t target_id, uint32_t buffer_idx)
 			break;
 		} else {
 			if (retry_times > aice_max_retry_times) {
-				LOG_ERROR("aice command timeout (command=0x%" PRIx8 ", response=0x%" PRIx8 ")",
+				LOG_ERROR("aice command timeout (command=0x%x, response=0x%" PRIx8 ")",
 						AICE_CMD_WRITE_DTR_FROM_BUFFER, cmd_ack_code);
 
 				return ERROR_FAIL;
@@ -921,7 +921,7 @@ static int aice_read_misc(uint8_t target_id, uint32_t address, uint32_t *data)
 			break;
 		} else {
 			if (retry_times > aice_max_retry_times) {
-				LOG_ERROR("aice command timeout (command=0x%" PRIx8 ", response=0x%" PRIx8 ")",
+				LOG_ERROR("aice command timeout (command=0x%x, response=0x%" PRIx8 ")",
 						AICE_CMD_T_READ_MISC, cmd_ack_code);
 				return ERROR_FAIL;
 			}
@@ -976,7 +976,7 @@ static int aice_write_misc(uint8_t target_id, uint32_t address, uint32_t data)
 			break;
 		} else {
 			if (retry_times > aice_max_retry_times) {
-				LOG_ERROR("aice command timeout (command=0x%" PRIx8 ", response=0x%" PRIx8 ")",
+				LOG_ERROR("aice command timeout (command=0x%x, response=0x%" PRIx8 ")",
 						AICE_CMD_T_WRITE_MISC, cmd_ack_code);
 
 				return ERROR_FAIL;
@@ -1026,7 +1026,7 @@ static int aice_read_edmsr(uint8_t target_id, uint32_t address, uint32_t *data)
 			break;
 		} else {
 			if (retry_times > aice_max_retry_times) {
-				LOG_ERROR("aice command timeout (command=0x%" PRIx8 ", response=0x%" PRIx8 ")",
+				LOG_ERROR("aice command timeout (command=0x%x, response=0x%" PRIx8 ")",
 						AICE_CMD_T_READ_EDMSR, cmd_ack_code);
 
 				return ERROR_FAIL;
@@ -1082,7 +1082,7 @@ static int aice_write_edmsr(uint8_t target_id, uint32_t address, uint32_t data)
 			break;
 		} else {
 			if (retry_times > aice_max_retry_times) {
-				LOG_ERROR("aice command timeout (command=0x%" PRIx8 ", response=0x%" PRIx8 ")",
+				LOG_ERROR("aice command timeout (command=0x%x, response=0x%" PRIx8 ")",
 						AICE_CMD_T_WRITE_EDMSR, cmd_ack_code);
 
 				return ERROR_FAIL;
@@ -1165,8 +1165,7 @@ static int aice_write_dim(uint8_t target_id, uint32_t *word, uint8_t num_of_word
 			break;
 		} else {
 			if (retry_times > aice_max_retry_times) {
-				LOG_ERROR("aice command timeout (command=0x%" PRIx8
-						", response=0x%" PRIx8 ")",
+				LOG_ERROR("aice command timeout (command=0x%x, response=0x%" PRIx8 ")",
 						AICE_CMD_T_WRITE_DIM, cmd_ack_code);
 
 				return ERROR_FAIL;
@@ -1220,7 +1219,7 @@ static int aice_do_execute(uint8_t target_id)
 			break;
 		} else {
 			if (retry_times > aice_max_retry_times) {
-				LOG_ERROR("aice command timeout (command=0x%" PRIx8 ", response=0x%" PRIx8 ")",
+				LOG_ERROR("aice command timeout (command=0x%x, response=0x%" PRIx8 ")",
 						AICE_CMD_T_EXECUTE, cmd_ack_code);
 
 				return ERROR_FAIL;
@@ -1273,7 +1272,7 @@ static int aice_write_mem_b(uint8_t target_id, uint32_t address, uint32_t data)
 				break;
 			} else {
 				if (retry_times > aice_max_retry_times) {
-					LOG_ERROR("aice command timeout (command=0x%" PRIx8 ", response=0x%" PRIx8 ")",
+					LOG_ERROR("aice command timeout (command=0x%x, response=0x%" PRIx8 ")",
 							AICE_CMD_T_WRITE_MEM_B, cmd_ack_code);
 
 					return ERROR_FAIL;
@@ -1328,7 +1327,7 @@ static int aice_write_mem_h(uint8_t target_id, uint32_t address, uint32_t data)
 				break;
 			} else {
 				if (retry_times > aice_max_retry_times) {
-					LOG_ERROR("aice command timeout (command=0x%" PRIx8 ", response=0x%" PRIx8 ")",
+					LOG_ERROR("aice command timeout (command=0x%x, response=0x%" PRIx8 ")",
 							AICE_CMD_T_WRITE_MEM_H, cmd_ack_code);
 
 					return ERROR_FAIL;
@@ -1383,7 +1382,7 @@ static int aice_write_mem(uint8_t target_id, uint32_t address, uint32_t data)
 				break;
 			} else {
 				if (retry_times > aice_max_retry_times) {
-					LOG_ERROR("aice command timeout (command=0x%" PRIx8 ", response=0x%" PRIx8 ")",
+					LOG_ERROR("aice command timeout (command=0x%x, response=0x%" PRIx8 ")",
 							AICE_CMD_T_WRITE_MEM, cmd_ack_code);
 
 					return ERROR_FAIL;
@@ -1434,7 +1433,7 @@ static int aice_fastread_mem(uint8_t target_id, uint8_t *word, uint32_t num_of_w
 			break;
 		} else {
 			if (retry_times > aice_max_retry_times) {
-				LOG_ERROR("aice command timeout (command=0x%" PRIx8 ", response=0x%" PRIx8 ")",
+				LOG_ERROR("aice command timeout (command=0x%x, response=0x%" PRIx8 ")",
 						AICE_CMD_T_FASTREAD_MEM, cmd_ack_code);
 
 				return ERROR_FAIL;
@@ -1490,7 +1489,7 @@ static int aice_fastwrite_mem(uint8_t target_id, const uint8_t *word, uint32_t n
 			break;
 		} else {
 			if (retry_times > aice_max_retry_times) {
-				LOG_ERROR("aice command timeout (command=0x%" PRIx8 ", response=0x%" PRIx8 ")",
+				LOG_ERROR("aice command timeout (command=0x%x, response=0x%" PRIx8 ")",
 						AICE_CMD_T_FASTWRITE_MEM, cmd_ack_code);
 
 				return ERROR_FAIL;
@@ -1540,7 +1539,7 @@ static int aice_read_mem_b(uint8_t target_id, uint32_t address, uint32_t *data)
 			break;
 		} else {
 			if (retry_times > aice_max_retry_times) {
-				LOG_ERROR("aice command timeout (command=0x%" PRIx8 ", response=0x%" PRIx8 ")",
+				LOG_ERROR("aice command timeout (command=0x%x, response=0x%" PRIx8 ")",
 						AICE_CMD_T_READ_MEM_B, cmd_ack_code);
 
 				return ERROR_FAIL;
@@ -1590,7 +1589,7 @@ static int aice_read_mem_h(uint8_t target_id, uint32_t address, uint32_t *data)
 			break;
 		} else {
 			if (retry_times > aice_max_retry_times) {
-				LOG_ERROR("aice command timeout (command=0x%" PRIx8 ", response=0x%" PRIx8 ")",
+				LOG_ERROR("aice command timeout (command=0x%x, response=0x%" PRIx8 ")",
 						AICE_CMD_T_READ_MEM_H, cmd_ack_code);
 
 				return ERROR_FAIL;
@@ -1641,7 +1640,7 @@ static int aice_read_mem(uint8_t target_id, uint32_t address, uint32_t *data)
 			break;
 		} else {
 			if (retry_times > aice_max_retry_times) {
-				LOG_ERROR("aice command timeout (command=0x%" PRIx8 ", response=0x%" PRIx8 ")",
+				LOG_ERROR("aice command timeout (command=0x%x, response=0x%" PRIx8 ")",
 						AICE_CMD_T_READ_MEM, cmd_ack_code);
 
 				return ERROR_FAIL;
@@ -1686,7 +1685,7 @@ static int aice_batch_buffer_read(uint8_t buf_index, uint32_t *word, uint32_t nu
 			break;
 		} else {
 			if (retry_times > aice_max_retry_times) {
-				LOG_ERROR("aice command timeout (command=0x%" PRIx8 ", response=0x%" PRIx8 ")",
+				LOG_ERROR("aice command timeout (command=0x%x, response=0x%" PRIx8 ")",
 						AICE_CMD_BATCH_BUFFER_READ, cmd_ack_code);
 
 				return ERROR_FAIL;
@@ -1738,7 +1737,7 @@ int aice_batch_buffer_write(uint8_t buf_index, const uint8_t *word, uint32_t num
 			break;
 		} else {
 			if (retry_times > aice_max_retry_times) {
-				LOG_ERROR("aice command timeout (command=0x%" PRIx8 ", response=0x%" PRIx8 ")",
+				LOG_ERROR("aice command timeout (command=0x%x, response=0x%" PRIx8 ")",
 						AICE_CMD_BATCH_BUFFER_WRITE, cmd_ack_code);
 
 				return ERROR_FAIL;
