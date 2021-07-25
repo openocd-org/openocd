@@ -4132,6 +4132,95 @@ static int stlink_dap_op_queue_ap_abort(struct adiv5_dap *dap, uint8_t *ack)
 	return ERROR_OK;
 }
 
+static int stlink_usb_buf_rw_segment(void *handle, const struct dap_queue *q, unsigned int count)
+{
+	uint32_t bufsize = count * CMD_MEM_AP_2_SIZE(q[0].cmd);
+	uint8_t buf[bufsize];
+	uint8_t ap_num = q[0].mem_ap.ap->ap_num;
+	uint32_t addr = q[0].mem_ap.addr;
+	uint32_t csw = q[0].mem_ap.csw;
+
+	int retval = stlink_dap_open_ap(ap_num);
+	if (retval != ERROR_OK)
+		return retval;
+
+	switch (q[0].cmd) {
+	case CMD_MEM_AP_WRITE8:
+		for (unsigned int i = 0; i < count; i++)
+			buf[i] = q[i].mem_ap.data >> 8 * (q[i].mem_ap.addr & 3);
+		return stlink_usb_write_mem8(stlink_dap_handle, ap_num, csw, addr, bufsize, buf);
+
+	case CMD_MEM_AP_WRITE16:
+		for (unsigned int i = 0; i < count; i++)
+			h_u16_to_le(&buf[2 * i], q[i].mem_ap.data >> 8 * (q[i].mem_ap.addr & 2));
+		return stlink_usb_write_mem16(stlink_dap_handle, ap_num, csw, addr, bufsize, buf);
+
+	case CMD_MEM_AP_WRITE32:
+		for (unsigned int i = 0; i < count; i++)
+			h_u32_to_le(&buf[4 * i], q[i].mem_ap.data);
+		return stlink_usb_write_mem32(stlink_dap_handle, ap_num, csw, addr, bufsize, buf);
+
+	case CMD_MEM_AP_READ8:
+		retval = stlink_usb_read_mem8(stlink_dap_handle, ap_num, csw, addr, bufsize, buf);
+		if (retval == ERROR_OK)
+			for (unsigned int i = 0; i < count; i++)
+				*q[i].mem_ap.p_data = buf[i] << 8 * (q[i].mem_ap.addr & 3);
+		return retval;
+
+	case CMD_MEM_AP_READ16:
+		retval = stlink_usb_read_mem16(stlink_dap_handle, ap_num, csw, addr, bufsize, buf);
+		if (retval == ERROR_OK)
+			for (unsigned int i = 0; i < count; i++)
+				*q[i].mem_ap.p_data = le_to_h_u16(&buf[2 * i]) << 8 * (q[i].mem_ap.addr & 2);
+		return retval;
+
+	case CMD_MEM_AP_READ32:
+		retval = stlink_usb_read_mem32(stlink_dap_handle, ap_num, csw, addr, bufsize, buf);
+		if (retval == ERROR_OK)
+			for (unsigned int i = 0; i < count; i++)
+				*q[i].mem_ap.p_data = le_to_h_u32(&buf[4 * i]);
+		return retval;
+
+	default:
+		return ERROR_FAIL;
+	};
+}
+
+static int stlink_usb_count_buf_rw_queue(const struct dap_queue *q, unsigned int len)
+{
+	uint32_t incr = CMD_MEM_AP_2_SIZE(q[0].cmd);
+	unsigned int len_max;
+
+	if (incr == 1)
+		len_max = stlink_usb_block(stlink_dap_handle);
+	else
+		len_max = STLINK_MAX_RW16_32 / incr;
+
+	if (len > len_max)
+		len = len_max;
+
+	for (unsigned int i = 1; i < len; i++)
+		if (q[i].cmd != q[0].cmd ||
+			q[i].mem_ap.ap != q[0].mem_ap.ap ||
+			q[i].mem_ap.csw != q[0].mem_ap.csw ||
+			q[i].mem_ap.addr != q[i - 1].mem_ap.addr + incr)
+			return i;
+
+	return len;
+}
+
+static int stlink_usb_mem_rw_queue(void *handle, const struct dap_queue *q, unsigned int len, unsigned int *skip)
+{
+	unsigned int count = stlink_usb_count_buf_rw_queue(q, len);
+
+	int retval = stlink_usb_buf_rw_segment(handle, q, count);
+	if (retval != ERROR_OK)
+		return retval;
+
+	*skip = count;
+	return ERROR_OK;
+}
+
 static void stlink_dap_run_internal(struct adiv5_dap *dap)
 {
 	int retval = stlink_dap_check_reconnect(dap);
@@ -4143,9 +4232,10 @@ static void stlink_dap_run_internal(struct adiv5_dap *dap)
 
 	unsigned int i = stlink_dap_handle->queue_index;
 	struct dap_queue *q = &stlink_dap_handle->queue[0];
-	uint8_t buf[4];
 
 	while (i && stlink_dap_get_error() == ERROR_OK) {
+		unsigned int skip = 1;
+
 		switch (q->cmd) {
 		case CMD_DP_READ:
 			retval = stlink_dap_dp_read(q->dp_r.dap, q->dp_r.reg, q->dp_r.p_data);
@@ -4164,50 +4254,12 @@ static void stlink_dap_run_internal(struct adiv5_dap *dap)
 			break;
 
 		case CMD_MEM_AP_READ8:
-			retval = stlink_dap_open_ap(q->mem_ap.ap->ap_num);
-			if (retval == ERROR_OK)
-				retval = stlink_usb_read_mem8(stlink_dap_handle, q->mem_ap.ap->ap_num, q->mem_ap.csw, q->mem_ap.addr,
-											  1, buf);
-			if (retval == ERROR_OK)
-				*q->mem_ap.p_data = *buf << 8 * (q->mem_ap.addr & 3);
-			break;
 		case CMD_MEM_AP_READ16:
-			retval = stlink_dap_open_ap(q->mem_ap.ap->ap_num);
-			if (retval == ERROR_OK)
-				retval = stlink_usb_read_mem16(stlink_dap_handle, q->mem_ap.ap->ap_num, q->mem_ap.csw, q->mem_ap.addr,
-											   2, buf);
-			if (retval == ERROR_OK)
-				*q->mem_ap.p_data = le_to_h_u16(buf) << 8 * (q->mem_ap.addr & 2);
-			break;
 		case CMD_MEM_AP_READ32:
-			retval = stlink_dap_open_ap(q->mem_ap.ap->ap_num);
-			if (retval == ERROR_OK)
-				retval = stlink_usb_read_mem32(stlink_dap_handle, q->mem_ap.ap->ap_num, q->mem_ap.csw, q->mem_ap.addr,
-											   4, buf);
-			if (retval == ERROR_OK)
-				*q->mem_ap.p_data = le_to_h_u32(buf);
-			break;
-
 		case CMD_MEM_AP_WRITE8:
-			*buf = q->mem_ap.data >> 8 * (q->mem_ap.addr & 3);
-			retval = stlink_dap_open_ap(q->mem_ap.ap->ap_num);
-			if (retval == ERROR_OK)
-				retval = stlink_usb_write_mem8(stlink_dap_handle, q->mem_ap.ap->ap_num, q->mem_ap.csw, q->mem_ap.addr,
-											   1, buf);
-			break;
 		case CMD_MEM_AP_WRITE16:
-			h_u16_to_le(buf, q->mem_ap.data >> 8 * (q->mem_ap.addr & 2));
-			retval = stlink_dap_open_ap(q->mem_ap.ap->ap_num);
-			if (retval == ERROR_OK)
-				retval = stlink_usb_write_mem16(stlink_dap_handle, q->mem_ap.ap->ap_num, q->mem_ap.csw, q->mem_ap.addr,
-												2, buf);
-			break;
 		case CMD_MEM_AP_WRITE32:
-			h_u32_to_le(buf, q->mem_ap.data);
-			retval = stlink_dap_open_ap(q->mem_ap.ap->ap_num);
-			if (retval == ERROR_OK)
-				retval = stlink_usb_write_mem32(stlink_dap_handle, q->mem_ap.ap->ap_num, q->mem_ap.csw, q->mem_ap.addr,
-												4, buf);
+			retval = stlink_usb_mem_rw_queue(stlink_dap_handle, q, i, &skip);
 			break;
 
 		default:
@@ -4216,8 +4268,8 @@ static void stlink_dap_run_internal(struct adiv5_dap *dap)
 			break;
 		}
 		stlink_dap_record_error(retval);
-		q++;
-		i--;
+		q += skip;
+		i -= skip;
 	}
 
 	stlink_dap_handle->queue_index = 0;
