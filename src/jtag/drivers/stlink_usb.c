@@ -79,7 +79,7 @@
 #define STLINK_V2_1_TRACE_EP  (2|ENDPOINT_IN)
 
 #define STLINK_SG_SIZE        (31)
-#define STLINK_DATA_SIZE      (4096)
+#define STLINK_DATA_SIZE      (6144)
 #define STLINK_CMD_SIZE_V2    (16)
 #define STLINK_CMD_SIZE_V1    (10)
 
@@ -97,9 +97,16 @@
  * ST-Link/V1, ST-Link/V2 and ST-Link/V2.1 are full-speed USB devices and
  * this limits the bulk packet size and the 8bit read/writes to max 64 bytes.
  * STLINK-V3 is a high speed USB 2.0 and the limit is 512 bytes from FW V3J6.
+ *
+ * For 16 and 32bit read/writes stlink handles USB packet split and the limit
+ * is the internal buffer size of 6144 bytes.
+ * TODO: override ADIv5 layer's tar_autoincr_block that limits the transfer
+ * to 1024 or 4096 bytes
  */
-#define STLINK_MAX_RW8		(64)
-#define STLINKV3_MAX_RW8	(512)
+#define STLINK_MAX_RW8          (64)
+#define STLINKV3_MAX_RW8        (512)
+#define STLINK_MAX_RW16_32      STLINK_DATA_SIZE
+#define STLINK_SWIM_DATA_SIZE   STLINK_DATA_SIZE
 
 /* "WAIT" responses will be retried (with exponential backoff) at
  * most this many times before failing to caller.
@@ -1807,7 +1814,7 @@ static int stlink_swim_writebytes(void *handle, uint32_t addr, uint32_t len, con
 	unsigned int datalen = 0;
 	int cmdsize = STLINK_CMD_SIZE_V2;
 
-	if (len > STLINK_DATA_SIZE)
+	if (len > STLINK_SWIM_DATA_SIZE)
 		return ERROR_FAIL;
 
 	if (h->version.stlink == 1)
@@ -1840,7 +1847,7 @@ static int stlink_swim_readbytes(void *handle, uint32_t addr, uint32_t len, uint
 	struct stlink_usb_handle_s *h = handle;
 	int res;
 
-	if (len > STLINK_DATA_SIZE)
+	if (len > STLINK_SWIM_DATA_SIZE)
 		return ERROR_FAIL;
 
 	stlink_usb_init_buffer(handle, h->rx_ep, 0);
@@ -2411,6 +2418,11 @@ static int stlink_usb_read_mem16(void *handle, uint32_t addr, uint16_t len,
 	if (!(h->version.flags & STLINK_F_HAS_MEM_16BIT))
 		return ERROR_COMMAND_NOTFOUND;
 
+	if (len > STLINK_MAX_RW16_32) {
+		LOG_DEBUG("max buffer (%d) length exceeded", STLINK_MAX_RW16_32);
+		return ERROR_FAIL;
+	}
+
 	/* data must be a multiple of 2 and half-word aligned */
 	if (len % 2 || addr % 2) {
 		LOG_DEBUG("Invalid data alignment");
@@ -2448,6 +2460,11 @@ static int stlink_usb_write_mem16(void *handle, uint32_t addr, uint16_t len,
 	if (!(h->version.flags & STLINK_F_HAS_MEM_16BIT))
 		return ERROR_COMMAND_NOTFOUND;
 
+	if (len > STLINK_MAX_RW16_32) {
+		LOG_DEBUG("max buffer (%d) length exceeded", STLINK_MAX_RW16_32);
+		return ERROR_FAIL;
+	}
+
 	/* data must be a multiple of 2 and half-word aligned */
 	if (len % 2 || addr % 2) {
 		LOG_DEBUG("Invalid data alignment");
@@ -2479,6 +2496,11 @@ static int stlink_usb_read_mem32(void *handle, uint32_t addr, uint16_t len,
 	struct stlink_usb_handle_s *h = handle;
 
 	assert(handle);
+
+	if (len > STLINK_MAX_RW16_32) {
+		LOG_DEBUG("max buffer (%d) length exceeded", STLINK_MAX_RW16_32);
+		return ERROR_FAIL;
+	}
 
 	/* data must be a multiple of 4 and word aligned */
 	if (len % 4 || addr % 4) {
@@ -2513,6 +2535,11 @@ static int stlink_usb_write_mem32(void *handle, uint32_t addr, uint16_t len,
 	struct stlink_usb_handle_s *h = handle;
 
 	assert(handle);
+
+	if (len > STLINK_MAX_RW16_32) {
+		LOG_DEBUG("max buffer (%d) length exceeded", STLINK_MAX_RW16_32);
+		return ERROR_FAIL;
+	}
 
 	/* data must be a multiple of 4 and word aligned */
 	if (len % 4 || addr % 4) {
@@ -3482,7 +3509,7 @@ static int stlink_open(struct hl_interface_param_s *param, enum stlink_mode mode
 			goto error_open;
 		}
 		*fd = h;
-		h->max_mem_packet = STLINK_DATA_SIZE;
+		h->max_mem_packet = STLINK_SWIM_DATA_SIZE;
 		return ERROR_OK;
 	}
 
@@ -4090,7 +4117,7 @@ static int stlink_swim_op_read_mem(uint32_t addr, uint32_t size,
 	count *= size;
 
 	while (count) {
-		bytes_remaining = (count > STLINK_DATA_SIZE) ? STLINK_DATA_SIZE : count;
+		bytes_remaining = (count > STLINK_SWIM_DATA_SIZE) ? STLINK_SWIM_DATA_SIZE : count;
 		retval = stlink_swim_readbytes(stlink_dap_handle, addr, bytes_remaining, buffer);
 		if (retval != ERROR_OK)
 			return retval;
@@ -4113,7 +4140,7 @@ static int stlink_swim_op_write_mem(uint32_t addr, uint32_t size,
 	count *= size;
 
 	while (count) {
-		bytes_remaining = (count > STLINK_DATA_SIZE) ? STLINK_DATA_SIZE : count;
+		bytes_remaining = (count > STLINK_SWIM_DATA_SIZE) ? STLINK_SWIM_DATA_SIZE : count;
 		retval = stlink_swim_writebytes(stlink_dap_handle, addr, bytes_remaining, buffer);
 		if (retval != ERROR_OK)
 			return retval;
