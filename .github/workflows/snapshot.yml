@@ -2,7 +2,7 @@
 
 # Copyright (C) 2020 by Tarek BOUCHKATI <tarek.bouchkati@gmail.com>
 
-on: push
+on: pull_request
 
 name: OpenOCD Snapshot
 
