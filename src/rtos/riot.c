@@ -118,7 +118,7 @@ const struct rtos_type riot_rtos = {
 static int riot_update_threads(struct rtos *rtos)
 {
 	int retval;
-	unsigned int tasks_found = 0;
+	int tasks_found = 0;
 	const struct riot_params *param;
 
 	if (!rtos)
@@ -170,7 +170,6 @@ static int riot_update_threads(struct rtos *rtos)
 			riot_symbol_list[RIOT_NUM_THREADS].name);
 		return retval;
 	}
-	rtos->thread_count = thread_count;
 
 	/* read the maximum number of threads */
 	uint8_t max_threads = 0;
@@ -182,6 +181,11 @@ static int riot_update_threads(struct rtos *rtos)
 			riot_symbol_list[RIOT_MAX_THREADS].name);
 		return retval;
 	}
+	if (thread_count > max_threads) {
+		LOG_ERROR("Thread count is invalid");
+		return ERROR_FAIL;
+	}
+	rtos->thread_count = thread_count;
 
 	/* Base address of thread array */
 	uint32_t threads_base = rtos->symbols[RIOT_THREADS_BASE].address;
@@ -211,6 +215,9 @@ static int riot_update_threads(struct rtos *rtos)
 	char buffer[32];
 
 	for (unsigned int i = 0; i < max_threads; i++) {
+		if (tasks_found == rtos->thread_count)
+			break;
+
 		/* get pointer to tcb_t */
 		uint32_t tcb_pointer = 0;
 		retval = target_read_u32(rtos->target,
