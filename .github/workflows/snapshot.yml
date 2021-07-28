@@ -22,7 +22,7 @@ jobs:
       - run: ./bootstrap
       - name: Prepare libusb1
         env:
-          LIBUSB1_VER: 1.0.23
+          LIBUSB1_VER: 1.0.24
         run: |
           mkdir -p $DL_DIR && cd $DL_DIR
           wget "https://github.com/libusb/libusb/releases/download/v${LIBUSB1_VER}/libusb-${LIBUSB1_VER}.tar.bz2"
@@ -30,7 +30,7 @@ jobs:
           echo "LIBUSB1_SRC=$PWD/libusb-${LIBUSB1_VER}" >> $GITHUB_ENV
       - name: Prepare hidapi
         env:
-          HIDAPI_VER: 0.9.0
+          HIDAPI_VER: 0.10.1
         run: |
           mkdir -p $DL_DIR && cd $DL_DIR
           wget "https://github.com/libusb/hidapi/archive/hidapi-${HIDAPI_VER}.tar.gz"
@@ -40,7 +40,7 @@ jobs:
           echo "HIDAPI_SRC=$PWD" >> $GITHUB_ENV
       - name: Prepare libftdi
         env:
-          LIBFTDI_VER: 1.4
+          LIBFTDI_VER: 1.5
         run: |
           mkdir -p $DL_DIR && cd $DL_DIR
           wget "http://www.intra2net.com/en/developer/libftdi/download/libftdi1-${LIBFTDI_VER}.tar.bz2"
