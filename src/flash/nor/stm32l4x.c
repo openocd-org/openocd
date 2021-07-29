@@ -1734,7 +1734,7 @@ COMMAND_HANDLER(stm32l4_handle_option_read_command)
 	uint32_t reg_offset, reg_addr;
 	uint32_t value = 0;
 
-	reg_offset = strtoul(CMD_ARGV[1], NULL, 16);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], reg_offset);
 	reg_addr = stm32l4_get_flash_reg(bank, reg_offset);
 
 	retval = stm32l4_read_flash_reg(bank, reg_offset, &value);
@@ -1762,10 +1762,11 @@ COMMAND_HANDLER(stm32l4_handle_option_write_command)
 	uint32_t value = 0;
 	uint32_t mask = 0xFFFFFFFF;
 
-	reg_offset = strtoul(CMD_ARGV[1], NULL, 16);
-	value = strtoul(CMD_ARGV[2], NULL, 16);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], reg_offset);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], value);
+
 	if (CMD_ARGC > 3)
-		mask = strtoul(CMD_ARGV[3], NULL, 16);
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[3], mask);
 
 	command_print(CMD, "%s Option written.\n"
 				"INFO: a reset or power cycle is required "
