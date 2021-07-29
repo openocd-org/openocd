@@ -1350,6 +1350,8 @@ static int jim_flash_list(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
 		Jim_Obj *elem = Jim_NewListObj(interp, NULL, 0);
 
 		Jim_ListAppendElement(interp, elem, Jim_NewStringObj(interp, "name", -1));
+		Jim_ListAppendElement(interp, elem, Jim_NewStringObj(interp, p->name, -1));
+		Jim_ListAppendElement(interp, elem, Jim_NewStringObj(interp, "driver", -1));
 		Jim_ListAppendElement(interp, elem, Jim_NewStringObj(interp, p->driver->name, -1));
 		Jim_ListAppendElement(interp, elem, Jim_NewStringObj(interp, "base", -1));
 		Jim_ListAppendElement(interp, elem, Jim_NewIntObj(interp, p->base));
