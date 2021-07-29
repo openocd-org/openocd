@@ -2890,7 +2890,7 @@ COMMAND_HANDLER(kinetis_nvm_partition)
 		else if (strcmp(CMD_ARGV[0], "eebkp") == 0)
 			sz_type = EEBKP_SIZE;
 
-		par = strtoul(CMD_ARGV[1], NULL, 10);
+		COMMAND_PARSE_NUMBER(ulong, CMD_ARGV[1], par);
 		while (par >> (log2 + 3))
 			log2++;
 	}
@@ -2945,11 +2945,13 @@ COMMAND_HANDLER(kinetis_nvm_partition)
 		break;
 	}
 
-	if (CMD_ARGC == 3)
-		ee1 = ee2 = strtoul(CMD_ARGV[2], NULL, 10) / 2;
-	else if (CMD_ARGC >= 4) {
-		ee1 = strtoul(CMD_ARGV[2], NULL, 10);
-		ee2 = strtoul(CMD_ARGV[3], NULL, 10);
+	if (CMD_ARGC == 3) {
+		unsigned long eex;
+		COMMAND_PARSE_NUMBER(ulong, CMD_ARGV[2], eex);
+		ee1 = ee2 = eex / 2;
+	} else if (CMD_ARGC >= 4) {
+		COMMAND_PARSE_NUMBER(ulong, CMD_ARGV[2], ee1);
+		COMMAND_PARSE_NUMBER(ulong, CMD_ARGV[3], ee2);
 	}
 
 	enable = ee1 + ee2 > 0;
@@ -3044,7 +3046,7 @@ COMMAND_HANDLER(kinetis_fopt_handler)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	if (CMD_ARGC == 1) {
-		fcf_fopt = (uint8_t)strtoul(CMD_ARGV[0], NULL, 0);
+		COMMAND_PARSE_NUMBER(u8, CMD_ARGV[0], fcf_fopt);
 	} else {
 		command_print(CMD, "FCF_FOPT 0x%02" PRIx8, fcf_fopt);
 	}
