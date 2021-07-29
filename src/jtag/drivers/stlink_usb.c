@@ -227,6 +227,7 @@ struct dap_queue {
 			unsigned int reg;
 			struct adiv5_ap *ap;
 			uint32_t data;
+			bool changes_csw_default;
 		} ap_w;
 		struct mem_ap {
 			uint32_t addr;
@@ -3960,6 +3961,7 @@ struct hl_layout_api_s stlink_usb_layout_api = {
 static struct stlink_usb_handle_s *stlink_dap_handle;
 static struct hl_interface_param_s stlink_dap_param;
 static DECLARE_BITMAP(opened_ap, DP_APSEL_MAX + 1);
+static uint32_t last_csw_default[DP_APSEL_MAX + 1];
 static int stlink_dap_error = ERROR_OK;
 
 /** */
@@ -4004,6 +4006,7 @@ static int stlink_usb_open_ap(void *handle, unsigned short apsel)
 
 	LOG_DEBUG("AP %d enabled", apsel);
 	set_bit(apsel, opened_ap);
+	last_csw_default[apsel] = 0;
 	return ERROR_OK;
 }
 
@@ -4087,6 +4090,8 @@ static int stlink_dap_op_connect(struct adiv5_dap *dap)
 
 	dap->do_reconnect = false;
 	dap_invalidate_cache(dap);
+	for (unsigned int i = 0; i <= DP_APSEL_MAX; i++)
+		last_csw_default[i] = 0;
 
 	retval = dap_dp_init(dap);
 	if (retval != ERROR_OK) {
@@ -4504,8 +4509,9 @@ static int stlink_dap_op_queue_ap_read(struct adiv5_ap *ap, unsigned int reg,
 			q = prev_q;
 			prev_q--;
 		}
-		/* de-queue previous write-CSW */
-		if (i && prev_q->cmd == CMD_AP_WRITE && prev_q->ap_w.ap == ap && prev_q->ap_w.reg == MEM_AP_REG_CSW) {
+		/* de-queue previous write-CSW if it didn't changed ap->csw_default */
+		if (i && prev_q->cmd == CMD_AP_WRITE && prev_q->ap_w.ap == ap && prev_q->ap_w.reg == MEM_AP_REG_CSW &&
+				!prev_q->ap_w.changes_csw_default) {
 			stlink_dap_handle->queue_index = i;
 			q = prev_q;
 		}
@@ -4568,8 +4574,9 @@ static int stlink_dap_op_queue_ap_write(struct adiv5_ap *ap, unsigned int reg,
 			q = prev_q;
 			prev_q--;
 		}
-		/* de-queue previous write-CSW */
-		if (i && prev_q->cmd == CMD_AP_WRITE && prev_q->ap_w.ap == ap && prev_q->ap_w.reg == MEM_AP_REG_CSW) {
+		/* de-queue previous write-CSW if it didn't changed ap->csw_default */
+		if (i && prev_q->cmd == CMD_AP_WRITE && prev_q->ap_w.ap == ap && prev_q->ap_w.reg == MEM_AP_REG_CSW &&
+				!prev_q->ap_w.changes_csw_default) {
 			stlink_dap_handle->queue_index = i;
 			q = prev_q;
 		}
@@ -4603,6 +4610,12 @@ static int stlink_dap_op_queue_ap_write(struct adiv5_ap *ap, unsigned int reg,
 		q->ap_w.reg = reg;
 		q->ap_w.ap = ap;
 		q->ap_w.data = data;
+		if (reg == MEM_AP_REG_CSW && ap->csw_default != last_csw_default[ap->ap_num]) {
+			q->ap_w.changes_csw_default = true;
+			last_csw_default[ap->ap_num] = ap->csw_default;
+		} else {
+			q->ap_w.changes_csw_default = false;
+		}
 	}
 
 	if (i == MAX_QUEUE_DEPTH - 1)
