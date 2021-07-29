@@ -2004,7 +2004,7 @@ COMMAND_HANDLER(cmsis_dap_handle_cmd_command)
 	uint8_t *command = cmsis_dap_handle->command;
 
 	for (unsigned i = 0; i < CMD_ARGC; i++)
-		command[i] = strtoul(CMD_ARGV[i], NULL, 16);
+		COMMAND_PARSE_NUMBER(u8, CMD_ARGV[i], command[i]);
 
 	int retval = cmsis_dap_xfer(cmsis_dap_handle, CMD_ARGC);
 

@@ -464,7 +464,7 @@ static int cmsis_dap_usb_alloc(struct cmsis_dap *dap, unsigned int pkt_sz)
 COMMAND_HANDLER(cmsis_dap_handle_usb_interface_command)
 {
 	if (CMD_ARGC == 1)
-		cmsis_dap_usb_interface = strtoul(CMD_ARGV[0], NULL, 10);
+		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], cmsis_dap_usb_interface);
 	else
 		LOG_ERROR("expected exactly one argument to cmsis_dap_usb_interface <interface_number>");
 
