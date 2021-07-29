@@ -1387,9 +1387,8 @@ static int stm32l4_probe(struct flash_bank *bank)
 	const char *rev_str = get_stm32l4_rev_str(bank);
 	const uint16_t rev_id = stm32l4_info->idcode >> 16;
 
-	LOG_INFO("device idcode = 0x%08" PRIx32 " (%s - Rev %s : 0x%04x - %s-bank)",
-			stm32l4_info->idcode, part_info->device_str, rev_str, rev_id,
-			get_stm32l4_bank_type_str(bank));
+	LOG_INFO("device idcode = 0x%08" PRIx32 " (%s - Rev %s : 0x%04x)",
+			stm32l4_info->idcode, part_info->device_str, rev_str, rev_id);
 
 	stm32l4_info->flash_regs = stm32l4_info->part_info->default_flash_regs;
 
