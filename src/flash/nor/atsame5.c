@@ -797,11 +797,12 @@ COMMAND_HANDLER(same5_handle_userpage_command)
 	}
 
 	if (CMD_ARGC >= 1) {
-		uint64_t mask = NVMUSERROW_SAM_E5_D5_MASK;
-		uint64_t value = strtoull(CMD_ARGV[0], NULL, 0);
+		uint64_t value, mask = NVMUSERROW_SAM_E5_D5_MASK;
+		COMMAND_PARSE_NUMBER(u64, CMD_ARGV[0], value);
 
 		if (CMD_ARGC == 2) {
-			uint64_t mask_temp = strtoull(CMD_ARGV[1], NULL, 0);
+			uint64_t mask_temp;
+			COMMAND_PARSE_NUMBER(u64, CMD_ARGV[1], mask_temp);
 			mask &= mask_temp;
 		}
 
@@ -837,7 +838,9 @@ COMMAND_HANDLER(same5_handle_bootloader_command)
 		return ERROR_FAIL;
 
 	if (CMD_ARGC >= 1) {
-		unsigned long size = strtoul(CMD_ARGV[0], NULL, 0);
+		unsigned long size;
+
+		COMMAND_PARSE_NUMBER(ulong, CMD_ARGV[0], size);
 		uint32_t code = (size + 8191) / 8192;
 		if (code > 15) {
 			command_print(CMD, "Invalid bootloader size.  Please "
