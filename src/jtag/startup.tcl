@@ -309,6 +309,18 @@ proc parport_toggling_time args {
 	eval parport toggling_time $args
 }
 
+lappend _telnet_autocomplete_skip jtag_dpi_set_port
+proc jtag_dpi_set_port args {
+	echo "DEPRECATED! use 'jtag_dpi set_port' not 'jtag_dpi_set_port'"
+	eval jtag_dpi set_port $args
+}
+
+lappend _telnet_autocomplete_skip jtag_dpi_set_address
+proc jtag_dpi_set_address args {
+	echo "DEPRECATED! use 'jtag_dpi set_address' not 'jtag_dpi_set_address'"
+	eval jtag_dpi set_address $args
+}
+
 lappend _telnet_autocomplete_skip presto_serial
 proc presto_serial args {
 	echo "DEPRECATED! use 'presto serial' not 'presto_serial'"

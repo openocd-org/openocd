@@ -373,20 +373,31 @@ COMMAND_HANDLER(jtag_dpi_set_address)
 	return ERROR_OK;
 }
 
-static const struct command_registration jtag_dpi_command_handlers[] = {
+static const struct command_registration jtag_dpi_subcommand_handlers[] = {
 	{
-		.name = "jtag_dpi_set_port",
+		.name = "set_port",
 		.handler = &jtag_dpi_set_port,
 		.mode = COMMAND_CONFIG,
 		.help = "set the port of the DPI server",
 		.usage = "[port]",
 	},
 	{
-		.name = "jtag_dpi_set_address",
+		.name = "set_address",
 		.handler = &jtag_dpi_set_address,
 		.mode = COMMAND_CONFIG,
 		.help = "set the address of the DPI server",
 		.usage = "[address]",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+static const struct command_registration jtag_dpi_command_handlers[] = {
+	{
+		.name = "jtag_dpi",
+		.mode = COMMAND_ANY,
+		.help = "perform jtag_dpi management",
+		.chain = jtag_dpi_subcommand_handlers,
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };
