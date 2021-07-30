@@ -2694,14 +2694,14 @@ instead of directly driving JTAG.
 The remote_bitbang driver is useful for debugging software running on
 processors which are being simulated.
 
-@deffn {Config Command} {remote_bitbang_port} number
+@deffn {Config Command} {remote_bitbang port} number
 Specifies the TCP port of the remote process to connect to or 0 to use UNIX
 sockets instead of TCP.
 @end deffn
 
-@deffn {Config Command} {remote_bitbang_host} hostname
+@deffn {Config Command} {remote_bitbang host} hostname
 Specifies the hostname of the remote process to connect to using TCP, or the
-name of the UNIX socket to use if remote_bitbang_port is 0.
+name of the UNIX socket to use if remote_bitbang port is 0.
 @end deffn
 
 For example, to connect remotely via TCP to the host foobar you might have
@@ -2709,8 +2709,8 @@ something like:
 
 @example
 adapter driver remote_bitbang
-remote_bitbang_port 3335
-remote_bitbang_host foobar
+remote_bitbang port 3335
+remote_bitbang host foobar
 @end example
 
 To connect to another process running locally via UNIX sockets with socket
@@ -2718,8 +2718,8 @@ named mysocket:
 
 @example
 adapter driver remote_bitbang
-remote_bitbang_port 0
-remote_bitbang_host mysocket
+remote_bitbang port 0
+remote_bitbang host mysocket
 @end example
 @end deffn
 

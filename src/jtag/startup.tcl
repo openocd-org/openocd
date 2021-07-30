@@ -261,6 +261,18 @@ proc ftdi_tdo_sample_edge args {
 	eval ftdi tdo_sample_edge $args
 }
 
+lappend _telnet_autocomplete_skip remote_bitbang_host
+proc remote_bitbang_host args {
+	echo "DEPRECATED! use 'remote_bitbang host' not 'remote_bitbang_host'"
+	eval remote_bitbang host $args
+}
+
+lappend _telnet_autocomplete_skip remote_bitbang_port
+proc remote_bitbang_port args {
+	echo "DEPRECATED! use 'remote_bitbang port' not 'remote_bitbang_port'"
+	eval remote_bitbang port $args
+}
+
 lappend _telnet_autocomplete_skip openjtag_device_desc
 proc openjtag_device_desc args {
 	echo "DEPRECATED! use 'openjtag device_desc' not 'openjtag_device_desc'"

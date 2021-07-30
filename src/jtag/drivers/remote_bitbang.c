@@ -340,9 +340,9 @@ COMMAND_HANDLER(remote_bitbang_handle_remote_bitbang_host_command)
 	return ERROR_COMMAND_SYNTAX_ERROR;
 }
 
-static const struct command_registration remote_bitbang_command_handlers[] = {
+static const struct command_registration remote_bitbang_subcommand_handlers[] = {
 	{
-		.name = "remote_bitbang_port",
+		.name = "port",
 		.handler = remote_bitbang_handle_remote_bitbang_port_command,
 		.mode = COMMAND_CONFIG,
 		.help = "Set the port to use to connect to the remote jtag.\n"
@@ -350,7 +350,7 @@ static const struct command_registration remote_bitbang_command_handlers[] = {
 		.usage = "port_number",
 	},
 	{
-		.name = "remote_bitbang_host",
+		.name = "host",
 		.handler = remote_bitbang_handle_remote_bitbang_host_command,
 		.mode = COMMAND_CONFIG,
 		.help = "Set the host to use to connect to the remote jtag.\n"
@@ -358,6 +358,17 @@ static const struct command_registration remote_bitbang_command_handlers[] = {
 		.usage = "host_name",
 	},
 	COMMAND_REGISTRATION_DONE,
+};
+
+static const struct command_registration remote_bitbang_command_handlers[] = {
+	{
+		.name = "remote_bitbang",
+		.mode = COMMAND_ANY,
+		.help = "perform remote_bitbang management",
+		.chain = remote_bitbang_subcommand_handlers,
+		.usage = "",
+	},
+	COMMAND_REGISTRATION_DONE
 };
 
 static int remote_bitbang_execute_queue(void)
