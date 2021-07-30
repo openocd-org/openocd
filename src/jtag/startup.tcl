@@ -309,4 +309,10 @@ proc parport_toggling_time args {
 	eval parport toggling_time $args
 }
 
+lappend _telnet_autocomplete_skip presto_serial
+proc presto_serial args {
+	echo "DEPRECATED! use 'presto serial' not 'presto_serial'"
+	eval presto serial $args
+}
+
 # END MIGRATION AIDS

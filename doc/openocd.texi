@@ -3033,7 +3033,7 @@ parport cable wiggler
 
 @deffn {Interface Driver} {presto}
 ASIX PRESTO USB JTAG programmer.
-@deffn {Config Command} {presto_serial} serial_string
+@deffn {Config Command} {presto serial} serial_string
 Configures the USB serial number of the Presto device to use.
 @end deffn
 @end deffn

@@ -519,13 +519,24 @@ COMMAND_HANDLER(presto_handle_serial_command)
 	return ERROR_OK;
 }
 
-static const struct command_registration presto_command_handlers[] = {
+static const struct command_registration presto_subcommand_handlers[] = {
 	{
-		.name = "presto_serial",
+		.name = "serial",
 		.handler = presto_handle_serial_command,
 		.mode = COMMAND_CONFIG,
 		.help = "Configure USB serial number of Presto device.",
 		.usage = "serial_string",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+static const struct command_registration presto_command_handlers[] = {
+	{
+		.name = "presto",
+		.mode = COMMAND_ANY,
+		.help = "perform presto management",
+		.chain = presto_subcommand_handlers,
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };
