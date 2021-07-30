@@ -887,48 +887,59 @@ static void vsllink_debug_buffer(uint8_t *buffer, int length)
 	}
 }
 
-static const struct command_registration vsllink_command_handlers[] = {
+static const struct command_registration vsllink_subcommand_handlers[] = {
 	{
-		.name = "vsllink_usb_vid",
+		.name = "usb_vid",
 		.handler = &vsllink_handle_usb_vid_command,
 		.mode = COMMAND_CONFIG,
 		.help = "Set USB VID",
 		.usage = "<vid>",
 	},
 	{
-		.name = "vsllink_usb_pid",
+		.name = "usb_pid",
 		.handler = &vsllink_handle_usb_pid_command,
 		.mode = COMMAND_CONFIG,
 		.help = "Set USB PID",
 		.usage = "<pid>",
 	},
 	{
-		.name = "vsllink_usb_serial",
+		.name = "usb_serial",
 		.handler = &vsllink_handle_usb_serial_command,
 		.mode = COMMAND_CONFIG,
 		.help = "Set or disable check for USB serial",
 		.usage = "[<serial>]",
 	},
 	{
-		.name = "vsllink_usb_bulkin",
+		.name = "usb_bulkin",
 		.handler = &vsllink_handle_usb_bulkin_command,
 		.mode = COMMAND_CONFIG,
 		.help = "Set USB input endpoint",
 		.usage = "<ep_in>",
 	},
 	{
-		.name = "vsllink_usb_bulkout",
+		.name = "usb_bulkout",
 		.handler = &vsllink_handle_usb_bulkout_command,
 		.mode = COMMAND_CONFIG,
 		.help = "Set USB output endpoint",
 		.usage = "<ep_out>",
 	},
 	{
-		.name = "vsllink_usb_interface",
+		.name = "usb_interface",
 		.handler = &vsllink_handle_usb_interface_command,
 		.mode = COMMAND_CONFIG,
 		.help = "Set USB output interface",
 		.usage = "<interface>",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+static const struct command_registration vsllink_command_handlers[] = {
+	{
+		.name = "vsllink",
+		.mode = COMMAND_ANY,
+		.help = "perform vsllink management",
+		.chain = vsllink_subcommand_handlers,
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };

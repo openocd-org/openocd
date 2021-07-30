@@ -327,4 +327,40 @@ proc ulink_download_firmware args {
 	eval ulink download_firmware $args
 }
 
+lappend _telnet_autocomplete_skip vsllink_usb_vid
+proc vsllink_usb_vid args {
+	echo "DEPRECATED! use 'vsllink usb_vid' not 'vsllink_usb_vid'"
+	eval vsllink usb_vid $args
+}
+
+lappend _telnet_autocomplete_skip vsllink_usb_pid
+proc vsllink_usb_pid args {
+	echo "DEPRECATED! use 'vsllink usb_pid' not 'vsllink_usb_pid'"
+	eval vsllink usb_pid $args
+}
+
+lappend _telnet_autocomplete_skip vsllink_usb_serial
+proc vsllink_usb_serial args {
+	echo "DEPRECATED! use 'vsllink usb_serial' not 'vsllink_usb_serial'"
+	eval vsllink usb_serial $args
+}
+
+lappend _telnet_autocomplete_skip vsllink_usb_bulkin
+proc vsllink_usb_bulkin args {
+	echo "DEPRECATED! use 'vsllink usb_bulkin' not 'vsllink_usb_bulkin'"
+	eval vsllink usb_bulkin $args
+}
+
+lappend _telnet_autocomplete_skip vsllink_usb_bulkout
+proc vsllink_usb_bulkout args {
+	echo "DEPRECATED! use 'vsllink usb_bulkout' not 'vsllink_usb_bulkout'"
+	eval vsllink usb_bulkout $args
+}
+
+lappend _telnet_autocomplete_skip vsllink_usb_interface
+proc vsllink_usb_interface args {
+	echo "DEPRECATED! use 'vsllink usb_interface' not 'vsllink_usb_interface'"
+	eval vsllink usb_interface $args
+}
+
 # END MIGRATION AIDS
