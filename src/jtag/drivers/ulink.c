@@ -2258,15 +2258,26 @@ COMMAND_HANDLER(ulink_download_firmware_handler)
 
 /*************************** Command Registration **************************/
 
-static const struct command_registration ulink_command_handlers[] = {
+static const struct command_registration ulink_subcommand_handlers[] = {
 	{
-		.name = "ulink_download_firmware",
+		.name = "download_firmware",
 		.handler = &ulink_download_firmware_handler,
 		.mode = COMMAND_EXEC,
 		.help = "download firmware image to ULINK device",
 		.usage = "path/to/ulink_firmware.hex",
 	},
 	COMMAND_REGISTRATION_DONE,
+};
+
+static const struct command_registration ulink_command_handlers[] = {
+	{
+		.name = "ulink",
+		.mode = COMMAND_ANY,
+		.help = "perform ulink management",
+		.chain = ulink_subcommand_handlers,
+		.usage = "",
+	},
+	COMMAND_REGISTRATION_DONE
 };
 
 static struct jtag_interface ulink_interface = {
