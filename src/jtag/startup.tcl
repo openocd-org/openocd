@@ -321,6 +321,24 @@ proc jtag_dpi_set_address args {
 	eval jtag_dpi set_address $args
 }
 
+lappend _telnet_autocomplete_skip jtag_vpi_set_port
+proc jtag_vpi_set_port args {
+	echo "DEPRECATED! use 'jtag_vpi set_port' not 'jtag_vpi_set_port'"
+	eval jtag_vpi set_port $args
+}
+
+lappend _telnet_autocomplete_skip jtag_vpi_set_address
+proc jtag_vpi_set_address args {
+	echo "DEPRECATED! use 'jtag_vpi set_address' not 'jtag_vpi_set_address'"
+	eval jtag_vpi set_address $args
+}
+
+lappend _telnet_autocomplete_skip jtag_vpi_stop_sim_on_exit
+proc jtag_vpi_stop_sim_on_exit args {
+	echo "DEPRECATED! use 'jtag_vpi stop_sim_on_exit' not 'jtag_vpi_stop_sim_on_exit'"
+	eval jtag_vpi stop_sim_on_exit $args
+}
+
 lappend _telnet_autocomplete_skip presto_serial
 proc presto_serial args {
 	echo "DEPRECATED! use 'presto serial' not 'presto_serial'"

@@ -640,28 +640,39 @@ COMMAND_HANDLER(jtag_vpi_stop_sim_on_exit_handler)
 	return ERROR_OK;
 }
 
-static const struct command_registration jtag_vpi_command_handlers[] = {
+static const struct command_registration jtag_vpi_subcommand_handlers[] = {
 	{
-		.name = "jtag_vpi_set_port",
+		.name = "set_port",
 		.handler = &jtag_vpi_set_port,
 		.mode = COMMAND_CONFIG,
 		.help = "set the port of the VPI server",
 		.usage = "tcp_port_num",
 	},
 	{
-		.name = "jtag_vpi_set_address",
+		.name = "set_address",
 		.handler = &jtag_vpi_set_address,
 		.mode = COMMAND_CONFIG,
 		.help = "set the address of the VPI server",
 		.usage = "ipv4_addr",
 	},
 	{
-		.name = "jtag_vpi_stop_sim_on_exit",
+		.name = "stop_sim_on_exit",
 		.handler = &jtag_vpi_stop_sim_on_exit_handler,
 		.mode = COMMAND_CONFIG,
 		.help = "Configure if simulation stop command shall be sent "
 			"before OpenOCD exits (default: off)",
 		.usage = "<on|off>",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+static const struct command_registration jtag_vpi_command_handlers[] = {
+	{
+		.name = "jtag_vpi",
+		.mode = COMMAND_ANY,
+		.help = "perform jtag_vpi management",
+		.chain = jtag_vpi_subcommand_handlers,
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };
