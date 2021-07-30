@@ -261,4 +261,28 @@ proc ftdi_tdo_sample_edge args {
 	eval ftdi tdo_sample_edge $args
 }
 
+lappend _telnet_autocomplete_skip parport_port
+proc parport_port args {
+	echo "DEPRECATED! use 'parport port' not 'parport_port'"
+	eval parport port $args
+}
+
+lappend _telnet_autocomplete_skip parport_cable
+proc parport_cable args {
+	echo "DEPRECATED! use 'parport cable' not 'parport_cable'"
+	eval parport cable $args
+}
+
+lappend _telnet_autocomplete_skip parport_write_on_exit
+proc parport_write_on_exit args {
+	echo "DEPRECATED! use 'parport write_on_exit' not 'parport_write_on_exit'"
+	eval parport write_on_exit $args
+}
+
+lappend _telnet_autocomplete_skip parport_toggling_time
+proc parport_toggling_time args {
+	echo "DEPRECATED! use 'parport toggling_time' not 'parport_toggling_time'"
+	eval parport toggling_time $args
+}
+
 # END MIGRATION AIDS

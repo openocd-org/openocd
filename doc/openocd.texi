@@ -2378,7 +2378,7 @@ Amontec Chameleon in its JTAG Accelerator configuration,
 connected to a PC's EPP mode parallel port.
 This defines some driver-specific commands:
 
-@deffn {Config Command} {parport_port} number
+@deffn {Config Command} {parport port} number
 Specifies either the address of the I/O port (default: 0x378 for LPT1) or
 the number of the @file{/dev/parport} device.
 @end deffn
@@ -2779,7 +2779,7 @@ image. To be used with USB-Blaster II only.
 Gateworks GW16012 JTAG programmer.
 This has one driver-specific command:
 
-@deffn {Config Command} {parport_port} [port_number]
+@deffn {Config Command} {parport port} [port_number]
 Display either the address of the I/O port
 (default: 0x378 for LPT1) or the number of the @file{/dev/parport} device.
 If a parameter is provided, first switch to use that port.
@@ -2938,7 +2938,7 @@ Wigglers, PLD download cable, and more.
 These interfaces have several commands, used to configure the driver
 before initializing the JTAG scan chain:
 
-@deffn {Config Command} {parport_cable} name
+@deffn {Config Command} {parport cable} name
 Set the layout of the parallel port cable used to connect to the target.
 This is a write-once setting.
 Currently valid cable @var{name} values include:
@@ -2968,18 +2968,18 @@ several clones, such as the Olimex ARM-JTAG
 @end itemize
 @end deffn
 
-@deffn {Config Command} {parport_port} [port_number]
+@deffn {Config Command} {parport port} [port_number]
 Display either the address of the I/O port
 (default: 0x378 for LPT1) or the number of the @file{/dev/parport} device.
 If a parameter is provided, first switch to use that port.
 This is a write-once setting.
 
 When using PPDEV to access the parallel port, use the number of the parallel port:
-@option{parport_port 0} (the default). If @option{parport_port 0x378} is specified
+@option{parport port 0} (the default). If @option{parport port 0x378} is specified
 you may encounter a problem.
 @end deffn
 
-@deffn {Config Command} {parport_toggling_time} [nanoseconds]
+@deffn {Config Command} {parport toggling_time} [nanoseconds]
 Displays how many nanoseconds the hardware needs to toggle TCK;
 the parport driver uses this value to obey the
 @command{adapter speed} configuration.
@@ -2992,7 +2992,7 @@ However, you may want to calibrate for your specific hardware.
 To measure the toggling time with a logic analyzer or a digital storage
 oscilloscope, follow the procedure below:
 @example
-> parport_toggling_time 1000
+> parport toggling_time 1000
 > adapter speed 500
 @end example
 This sets the maximum JTAG clock speed of the hardware, but
@@ -3002,7 +3002,7 @@ You can use @command{runtest 1000} or something similar to generate a
 large set of samples.
 Update the setting to match your measurement:
 @example
-> parport_toggling_time <measured nanoseconds>
+> parport toggling_time <measured nanoseconds>
 @end example
 Now the clock speed will be a better match for @command{adapter speed}
 command given in OpenOCD scripts and event handlers.
@@ -3016,7 +3016,7 @@ be conservative.
 @end quotation
 @end deffn
 
-@deffn {Config Command} {parport_write_on_exit} (@option{on}|@option{off})
+@deffn {Config Command} {parport write_on_exit} (@option{on}|@option{off})
 This will configure the parallel driver to write a known
 cable-specific value to the parallel interface on exiting OpenOCD.
 @end deffn
@@ -3026,8 +3026,8 @@ classic ``Wiggler'' cable on LPT2 might look something like this:
 
 @example
 adapter driver parport
-parport_port 0x278
-parport_cable wiggler
+parport port 0x278
+parport cable wiggler
 @end example
 @end deffn
 

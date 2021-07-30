@@ -473,9 +473,9 @@ COMMAND_HANDLER(parport_handle_parport_toggling_time_command)
 	return ERROR_OK;
 }
 
-static const struct command_registration parport_command_handlers[] = {
+static const struct command_registration parport_subcommand_handlers[] = {
 	{
-		.name = "parport_port",
+		.name = "port",
 		.handler = parport_handle_parport_port_command,
 		.mode = COMMAND_CONFIG,
 		.help = "Display the address of the I/O port (e.g. 0x378) "
@@ -484,7 +484,7 @@ static const struct command_registration parport_command_handlers[] = {
 		.usage = "[port_number]",
 	},
 	{
-		.name = "parport_cable",
+		.name = "cable",
 		.handler = parport_handle_parport_cable_command,
 		.mode = COMMAND_CONFIG,
 		.help = "Set the layout of the parallel port cable "
@@ -493,7 +493,7 @@ static const struct command_registration parport_command_handlers[] = {
 		.usage = "[layout]",
 	},
 	{
-		.name = "parport_write_on_exit",
+		.name = "write_on_exit",
 		.handler = parport_handle_write_on_exit_command,
 		.mode = COMMAND_CONFIG,
 		.help = "Configure the parallel driver to write "
@@ -501,12 +501,23 @@ static const struct command_registration parport_command_handlers[] = {
 		.usage = "('on'|'off')",
 	},
 	{
-		.name = "parport_toggling_time",
+		.name = "toggling_time",
 		.handler = parport_handle_parport_toggling_time_command,
 		.mode = COMMAND_CONFIG,
 		.help = "Displays or assigns how many nanoseconds it "
 			"takes for the hardware to toggle TCK.",
 		.usage = "[nanoseconds]",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+static const struct command_registration parport_command_handlers[] = {
+	{
+		.name = "parport",
+		.mode = COMMAND_ANY,
+		.help = "perform parport management",
+		.chain = parport_subcommand_handlers,
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };
