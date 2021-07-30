@@ -375,4 +375,82 @@ proc vsllink_usb_interface args {
 	eval vsllink usb_interface $args
 }
 
+lappend _telnet_autocomplete_skip bcm2835gpio_jtag_nums
+proc bcm2835gpio_jtag_nums args {
+	echo "DEPRECATED! use 'bcm2835gpio jtag_nums' not 'bcm2835gpio_jtag_nums'"
+	eval bcm2835gpio jtag_nums $args
+}
+
+lappend _telnet_autocomplete_skip bcm2835gpio_tck_num
+proc bcm2835gpio_tck_num args {
+	echo "DEPRECATED! use 'bcm2835gpio tck_num' not 'bcm2835gpio_tck_num'"
+	eval bcm2835gpio tck_num $args
+}
+
+lappend _telnet_autocomplete_skip bcm2835gpio_tms_num
+proc bcm2835gpio_tms_num args {
+	echo "DEPRECATED! use 'bcm2835gpio tms_num' not 'bcm2835gpio_tms_num'"
+	eval bcm2835gpio tms_num $args
+}
+
+lappend _telnet_autocomplete_skip bcm2835gpio_tdo_num
+proc bcm2835gpio_tdo_num args {
+	echo "DEPRECATED! use 'bcm2835gpio tdo_num' not 'bcm2835gpio_tdo_num'"
+	eval bcm2835gpio tdo_num $args
+}
+
+lappend _telnet_autocomplete_skip bcm2835gpio_tdi_num
+proc bcm2835gpio_tdi_num args {
+	echo "DEPRECATED! use 'bcm2835gpio tdi_num' not 'bcm2835gpio_tdi_num'"
+	eval bcm2835gpio tdi_num $args
+}
+
+lappend _telnet_autocomplete_skip bcm2835gpio_swd_nums
+proc bcm2835gpio_swd_nums args {
+	echo "DEPRECATED! use 'bcm2835gpio swd_nums' not 'bcm2835gpio_swd_nums'"
+	eval bcm2835gpio swd_nums $args
+}
+
+lappend _telnet_autocomplete_skip bcm2835gpio_swclk_num
+proc bcm2835gpio_swclk_num args {
+	echo "DEPRECATED! use 'bcm2835gpio swclk_num' not 'bcm2835gpio_swclk_num'"
+	eval bcm2835gpio swclk_num $args
+}
+
+lappend _telnet_autocomplete_skip bcm2835gpio_swdio_num
+proc bcm2835gpio_swdio_num args {
+	echo "DEPRECATED! use 'bcm2835gpio swdio_num' not 'bcm2835gpio_swdio_num'"
+	eval bcm2835gpio swdio_num $args
+}
+
+lappend _telnet_autocomplete_skip bcm2835gpio_swdio_dir_num
+proc bcm2835gpio_swdio_dir_num args {
+	echo "DEPRECATED! use 'bcm2835gpio swdio_dir_num' not 'bcm2835gpio_swdio_dir_num'"
+	eval bcm2835gpio swdio_dir_num $args
+}
+
+lappend _telnet_autocomplete_skip bcm2835gpio_srst_num
+proc bcm2835gpio_srst_num args {
+	echo "DEPRECATED! use 'bcm2835gpio srst_num' not 'bcm2835gpio_srst_num'"
+	eval bcm2835gpio srst_num $args
+}
+
+lappend _telnet_autocomplete_skip bcm2835gpio_trst_num
+proc bcm2835gpio_trst_num args {
+	echo "DEPRECATED! use 'bcm2835gpio trst_num' not 'bcm2835gpio_trst_num'"
+	eval bcm2835gpio trst_num $args
+}
+
+lappend _telnet_autocomplete_skip bcm2835gpio_speed_coeffs
+proc bcm2835gpio_speed_coeffs args {
+	echo "DEPRECATED! use 'bcm2835gpio speed_coeffs' not 'bcm2835gpio_speed_coeffs'"
+	eval bcm2835gpio speed_coeffs $args
+}
+
+lappend _telnet_autocomplete_skip bcm2835gpio_peripheral_base
+proc bcm2835gpio_peripheral_base args {
+	echo "DEPRECATED! use 'bcm2835gpio peripheral_base' not 'bcm2835gpio_peripheral_base'"
+	eval bcm2835gpio peripheral_base $args
+}
+
 # END MIGRATION AIDS

@@ -338,99 +338,110 @@ COMMAND_HANDLER(bcm2835gpio_handle_peripheral_base)
 	return ERROR_OK;
 }
 
-static const struct command_registration bcm2835gpio_command_handlers[] = {
+static const struct command_registration bcm2835gpio_subcommand_handlers[] = {
 	{
-		.name = "bcm2835gpio_jtag_nums",
+		.name = "jtag_nums",
 		.handler = &bcm2835gpio_handle_jtag_gpionums,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio numbers for tck, tms, tdi, tdo. (in that order)",
 		.usage = "[tck tms tdi tdo]",
 	},
 	{
-		.name = "bcm2835gpio_tck_num",
+		.name = "tck_num",
 		.handler = &bcm2835gpio_handle_jtag_gpionum_tck,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for tck.",
 		.usage = "[tck]",
 	},
 	{
-		.name = "bcm2835gpio_tms_num",
+		.name = "tms_num",
 		.handler = &bcm2835gpio_handle_jtag_gpionum_tms,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for tms.",
 		.usage = "[tms]",
 	},
 	{
-		.name = "bcm2835gpio_tdo_num",
+		.name = "tdo_num",
 		.handler = &bcm2835gpio_handle_jtag_gpionum_tdo,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for tdo.",
 		.usage = "[tdo]",
 	},
 	{
-		.name = "bcm2835gpio_tdi_num",
+		.name = "tdi_num",
 		.handler = &bcm2835gpio_handle_jtag_gpionum_tdi,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for tdi.",
 		.usage = "[tdi]",
 	},
 	{
-		.name = "bcm2835gpio_swd_nums",
+		.name = "swd_nums",
 		.handler = &bcm2835gpio_handle_swd_gpionums,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio numbers for swclk, swdio. (in that order)",
 		.usage = "[swclk swdio]",
 	},
 	{
-		.name = "bcm2835gpio_swclk_num",
+		.name = "swclk_num",
 		.handler = &bcm2835gpio_handle_swd_gpionum_swclk,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for swclk.",
 		.usage = "[swclk]",
 	},
 	{
-		.name = "bcm2835gpio_swdio_num",
+		.name = "swdio_num",
 		.handler = &bcm2835gpio_handle_swd_gpionum_swdio,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for swdio.",
 		.usage = "[swdio]",
 	},
 	{
-		.name = "bcm2835gpio_swdio_dir_num",
+		.name = "swdio_dir_num",
 		.handler = &bcm2835gpio_handle_swd_dir_gpionum_swdio,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for swdio direction control pin (set=output mode, clear=input mode)",
 		.usage = "[swdio_dir]",
 	},
 	{
-		.name = "bcm2835gpio_srst_num",
+		.name = "srst_num",
 		.handler = &bcm2835gpio_handle_jtag_gpionum_srst,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for srst.",
 		.usage = "[srst]",
 	},
 	{
-		.name = "bcm2835gpio_trst_num",
+		.name = "trst_num",
 		.handler = &bcm2835gpio_handle_jtag_gpionum_trst,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for trst.",
 		.usage = "[trst]",
 	},
 	{
-		.name = "bcm2835gpio_speed_coeffs",
+		.name = "speed_coeffs",
 		.handler = &bcm2835gpio_handle_speed_coeffs,
 		.mode = COMMAND_CONFIG,
 		.help = "SPEED_COEFF and SPEED_OFFSET for delay calculations.",
 		.usage = "[SPEED_COEFF SPEED_OFFSET]",
 	},
 	{
-		.name = "bcm2835gpio_peripheral_base",
+		.name = "peripheral_base",
 		.handler = &bcm2835gpio_handle_peripheral_base,
 		.mode = COMMAND_CONFIG,
 		.help = "peripheral base to access GPIOs (RPi1 0x20000000, RPi2 0x3F000000).",
 		.usage = "[base]",
 	},
 
+	COMMAND_REGISTRATION_DONE
+};
+
+static const struct command_registration bcm2835gpio_command_handlers[] = {
+	{
+		.name = "bcm2835gpio",
+		.mode = COMMAND_ANY,
+		.help = "perform bcm2835gpio management",
+		.chain = bcm2835gpio_subcommand_handlers,
+		.usage = "",
+	},
 	COMMAND_REGISTRATION_DONE
 };
 
