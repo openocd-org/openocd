@@ -3298,7 +3298,7 @@ See @file{interface/sysfsgpio-raspberrypi.cfg} for a sample config.
 OpenJTAG compatible USB adapter.
 This defines some driver-specific commands:
 
-@deffn {Config Command} {openjtag_variant} variant
+@deffn {Config Command} {openjtag variant} variant
 Specifies the variant of the OpenJTAG adapter (see @uref{http://www.openjtag.org/}).
 Currently valid @var{variant} values include:
 
@@ -3309,7 +3309,7 @@ Currently valid @var{variant} values include:
 @end itemize
 @end deffn
 
-@deffn {Config Command} {openjtag_device_desc} string
+@deffn {Config Command} {openjtag device_desc} string
 The USB device description string of the adapter.
 This value is only used with the standard variant.
 @end deffn

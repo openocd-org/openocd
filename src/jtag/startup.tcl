@@ -261,6 +261,18 @@ proc ftdi_tdo_sample_edge args {
 	eval ftdi tdo_sample_edge $args
 }
 
+lappend _telnet_autocomplete_skip openjtag_device_desc
+proc openjtag_device_desc args {
+	echo "DEPRECATED! use 'openjtag device_desc' not 'openjtag_device_desc'"
+	eval openjtag device_desc $args
+}
+
+lappend _telnet_autocomplete_skip openjtag_variant
+proc openjtag_variant args {
+	echo "DEPRECATED! use 'openjtag variant' not 'openjtag_variant'"
+	eval openjtag variant $args
+}
+
 lappend _telnet_autocomplete_skip parport_port
 proc parport_port args {
 	echo "DEPRECATED! use 'parport port' not 'parport_port'"
