@@ -460,13 +460,24 @@ COMMAND_HANDLER(xlnx_pcie_xvc_handle_config_command)
 	return ERROR_OK;
 }
 
-static const struct command_registration xlnx_pcie_xvc_command_handlers[] = {
+static const struct command_registration xlnx_pcie_xvc_subcommand_handlers[] = {
 	{
-		.name = "xlnx_pcie_xvc_config",
+		.name = "config",
 		.handler = xlnx_pcie_xvc_handle_config_command,
 		.mode = COMMAND_CONFIG,
 		.help = "Configure XVC/PCIe JTAG adapter",
 		.usage = "device",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+static const struct command_registration xlnx_pcie_xvc_command_handlers[] = {
+	{
+		.name = "xlnx_pcie_xvc",
+		.mode = COMMAND_ANY,
+		.help = "perform xlnx_pcie_xvc management",
+		.chain = xlnx_pcie_xvc_subcommand_handlers,
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };

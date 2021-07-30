@@ -3172,7 +3172,7 @@ exposed via extended capability registers in the PCI Express configuration space
 
 For more information see Xilinx PG245 (Section on From_PCIE_to_JTAG mode).
 
-@deffn {Config Command} {xlnx_pcie_xvc_config} device
+@deffn {Config Command} {xlnx_pcie_xvc config} device
 Specifies the PCI Express device via parameter @var{device} to use.
 
 The correct value for @var{device} can be obtained by looking at the output

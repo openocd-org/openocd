@@ -315,4 +315,11 @@ proc presto_serial args {
 	eval presto serial $args
 }
 
+lappend _telnet_autocomplete_skip xlnx_pcie_xvc_config
+proc xlnx_pcie_xvc_config args {
+	echo "DEPRECATED! use 'xlnx_pcie_xvc config' not 'xlnx_pcie_xvc_config'"
+	eval xlnx_pcie_xvc config $args
+}
+
+
 # END MIGRATION AIDS
