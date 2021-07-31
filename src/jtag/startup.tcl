@@ -471,4 +471,76 @@ proc bcm2835gpio_peripheral_base args {
 	eval bcm2835gpio peripheral_base $args
 }
 
+lappend _telnet_autocomplete_skip linuxgpiod_jtag_nums
+proc linuxgpiod_jtag_nums args {
+	echo "DEPRECATED! use 'linuxgpiod jtag_nums' not 'linuxgpiod_jtag_nums'"
+	eval linuxgpiod jtag_nums $args
+}
+
+lappend _telnet_autocomplete_skip linuxgpiod_tck_num
+proc linuxgpiod_tck_num args {
+	echo "DEPRECATED! use 'linuxgpiod tck_num' not 'linuxgpiod_tck_num'"
+	eval linuxgpiod tck_num $args
+}
+
+lappend _telnet_autocomplete_skip linuxgpiod_tms_num
+proc linuxgpiod_tms_num args {
+	echo "DEPRECATED! use 'linuxgpiod tms_num' not 'linuxgpiod_tms_num'"
+	eval linuxgpiod tms_num $args
+}
+
+lappend _telnet_autocomplete_skip linuxgpiod_tdo_num
+proc linuxgpiod_tdo_num args {
+	echo "DEPRECATED! use 'linuxgpiod tdo_num' not 'linuxgpiod_tdo_num'"
+	eval linuxgpiod tdo_num $args
+}
+
+lappend _telnet_autocomplete_skip linuxgpiod_tdi_num
+proc linuxgpiod_tdi_num args {
+	echo "DEPRECATED! use 'linuxgpiod tdi_num' not 'linuxgpiod_tdi_num'"
+	eval linuxgpiod tdi_num $args
+}
+
+lappend _telnet_autocomplete_skip linuxgpiod_srst_num
+proc linuxgpiod_srst_num args {
+	echo "DEPRECATED! use 'linuxgpiod srst_num' not 'linuxgpiod_srst_num'"
+	eval linuxgpiod srst_num $args
+}
+
+lappend _telnet_autocomplete_skip linuxgpiod_trst_num
+proc linuxgpiod_trst_num args {
+	echo "DEPRECATED! use 'linuxgpiod trst_num' not 'linuxgpiod_trst_num'"
+	eval linuxgpiod trst_num $args
+}
+
+lappend _telnet_autocomplete_skip linuxgpiod_swd_nums
+proc linuxgpiod_swd_nums args {
+	echo "DEPRECATED! use 'linuxgpiod swd_nums' not 'linuxgpiod_swd_nums'"
+	eval linuxgpiod swd_nums $args
+}
+
+lappend _telnet_autocomplete_skip linuxgpiod_swclk_num
+proc linuxgpiod_swclk_num args {
+	echo "DEPRECATED! use 'linuxgpiod swclk_num' not 'linuxgpiod_swclk_num'"
+	eval linuxgpiod swclk_num $args
+}
+
+lappend _telnet_autocomplete_skip linuxgpiod_swdio_num
+proc linuxgpiod_swdio_num args {
+	echo "DEPRECATED! use 'linuxgpiod swdio_num' not 'linuxgpiod_swdio_num'"
+	eval linuxgpiod swdio_num $args
+}
+
+lappend _telnet_autocomplete_skip linuxgpiod_led_num
+proc linuxgpiod_led_num args {
+	echo "DEPRECATED! use 'linuxgpiod led_num' not 'linuxgpiod_led_num'"
+	eval linuxgpiod led_num $args
+}
+
+lappend _telnet_autocomplete_skip linuxgpiod_gpiochip
+proc linuxgpiod_gpiochip args {
+	echo "DEPRECATED! use 'linuxgpiod gpiochip' not 'linuxgpiod_gpiochip'"
+	eval linuxgpiod gpiochip $args
+}
+
 # END MIGRATION AIDS

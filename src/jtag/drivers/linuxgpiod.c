@@ -524,90 +524,101 @@ COMMAND_HANDLER(linuxgpiod_handle_gpiochip)
 	return ERROR_OK;
 }
 
-static const struct command_registration linuxgpiod_command_handlers[] = {
+static const struct command_registration linuxgpiod_subcommand_handlers[] = {
 	{
-		.name = "linuxgpiod_jtag_nums",
+		.name = "jtag_nums",
 		.handler = linuxgpiod_handle_jtag_gpionums,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio numbers for tck, tms, tdi, tdo. (in that order)",
 		.usage = "tck tms tdi tdo",
 	},
 	{
-		.name = "linuxgpiod_tck_num",
+		.name = "tck_num",
 		.handler = linuxgpiod_handle_jtag_gpionum_tck,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for tck.",
 		.usage = "tck",
 	},
 	{
-		.name = "linuxgpiod_tms_num",
+		.name = "tms_num",
 		.handler = linuxgpiod_handle_jtag_gpionum_tms,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for tms.",
 		.usage = "tms",
 	},
 	{
-		.name = "linuxgpiod_tdo_num",
+		.name = "tdo_num",
 		.handler = linuxgpiod_handle_jtag_gpionum_tdo,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for tdo.",
 		.usage = "tdo",
 	},
 	{
-		.name = "linuxgpiod_tdi_num",
+		.name = "tdi_num",
 		.handler = linuxgpiod_handle_jtag_gpionum_tdi,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for tdi.",
 		.usage = "tdi",
 	},
 	{
-		.name = "linuxgpiod_srst_num",
+		.name = "srst_num",
 		.handler = linuxgpiod_handle_jtag_gpionum_srst,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for srst.",
 		.usage = "srst",
 	},
 	{
-		.name = "linuxgpiod_trst_num",
+		.name = "trst_num",
 		.handler = linuxgpiod_handle_jtag_gpionum_trst,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for trst.",
 		.usage = "trst",
 	},
 	{
-		.name = "linuxgpiod_swd_nums",
+		.name = "swd_nums",
 		.handler = linuxgpiod_handle_swd_gpionums,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio numbers for swclk, swdio. (in that order)",
 		.usage = "swclk swdio",
 	},
 	{
-		.name = "linuxgpiod_swclk_num",
+		.name = "swclk_num",
 		.handler = linuxgpiod_handle_swd_gpionum_swclk,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for swclk.",
 		.usage = "swclk",
 	},
 	{
-		.name = "linuxgpiod_swdio_num",
+		.name = "swdio_num",
 		.handler = linuxgpiod_handle_swd_gpionum_swdio,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for swdio.",
 		.usage = "swdio",
 	},
 	{
-		.name = "linuxgpiod_led_num",
+		.name = "led_num",
 		.handler = linuxgpiod_handle_gpionum_led,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for LED.",
 		.usage = "led",
 	},
 	{
-		.name = "linuxgpiod_gpiochip",
+		.name = "gpiochip",
 		.handler = linuxgpiod_handle_gpiochip,
 		.mode = COMMAND_CONFIG,
 		.help = "number of the gpiochip.",
 		.usage = "gpiochip",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+static const struct command_registration linuxgpiod_command_handlers[] = {
+	{
+		.name = "linuxgpiod",
+		.mode = COMMAND_ANY,
+		.help = "perform linuxgpiod management",
+		.chain = linuxgpiod_subcommand_handlers,
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };
