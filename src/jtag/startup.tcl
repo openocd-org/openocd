@@ -543,4 +543,64 @@ proc linuxgpiod_gpiochip args {
 	eval linuxgpiod gpiochip $args
 }
 
+lappend _telnet_autocomplete_skip sysfsgpio_jtag_nums
+proc sysfsgpio_jtag_nums args {
+	echo "DEPRECATED! use 'sysfsgpio jtag_nums' not 'sysfsgpio_jtag_nums'"
+	eval sysfsgpio jtag_nums $args
+}
+
+lappend _telnet_autocomplete_skip sysfsgpio_tck_num
+proc sysfsgpio_tck_num args {
+	echo "DEPRECATED! use 'sysfsgpio tck_num' not 'sysfsgpio_tck_num'"
+	eval sysfsgpio tck_num $args
+}
+
+lappend _telnet_autocomplete_skip sysfsgpio_tms_num
+proc sysfsgpio_tms_num args {
+	echo "DEPRECATED! use 'sysfsgpio tms_num' not 'sysfsgpio_tms_num'"
+	eval sysfsgpio tms_num $args
+}
+
+lappend _telnet_autocomplete_skip sysfsgpio_tdo_num
+proc sysfsgpio_tdo_num args {
+	echo "DEPRECATED! use 'sysfsgpio tdo_num' not 'sysfsgpio_tdo_num'"
+	eval sysfsgpio tdo_num $args
+}
+
+lappend _telnet_autocomplete_skip sysfsgpio_tdi_num
+proc sysfsgpio_tdi_num args {
+	echo "DEPRECATED! use 'sysfsgpio tdi_num' not 'sysfsgpio_tdi_num'"
+	eval sysfsgpio tdi_num $args
+}
+
+lappend _telnet_autocomplete_skip sysfsgpio_srst_num
+proc sysfsgpio_srst_num args {
+	echo "DEPRECATED! use 'sysfsgpio srst_num' not 'sysfsgpio_srst_num'"
+	eval sysfsgpio srst_num $args
+}
+
+lappend _telnet_autocomplete_skip sysfsgpio_trst_num
+proc sysfsgpio_trst_num args {
+	echo "DEPRECATED! use 'sysfsgpio trst_num' not 'sysfsgpio_trst_num'"
+	eval sysfsgpio trst_num $args
+}
+
+lappend _telnet_autocomplete_skip sysfsgpio_swd_nums
+proc sysfsgpio_swd_nums args {
+	echo "DEPRECATED! use 'sysfsgpio swd_nums' not 'sysfsgpio_swd_nums'"
+	eval sysfsgpio swd_nums $args
+}
+
+lappend _telnet_autocomplete_skip sysfsgpio_swclk_num
+proc sysfsgpio_swclk_num args {
+	echo "DEPRECATED! use 'sysfsgpio swclk_num' not 'sysfsgpio_swclk_num'"
+	eval sysfsgpio swclk_num $args
+}
+
+lappend _telnet_autocomplete_skip sysfsgpio_swdio_num
+proc sysfsgpio_swdio_num args {
+	echo "DEPRECATED! use 'sysfsgpio swdio_num' not 'sysfsgpio_swdio_num'"
+	eval sysfsgpio swdio_num $args
+}
+
 # END MIGRATION AIDS
