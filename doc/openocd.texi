@@ -3349,7 +3349,7 @@ buspirate port /dev/ttyUSB0
 @deffn {Config Command} {buspirate speed} (normal|fast)
 Set the communication speed to 115k (normal) or 1M (fast). For example:
 @example
-buspirate mode normal
+buspirate speed normal
 @end example
 @end deffn
 
