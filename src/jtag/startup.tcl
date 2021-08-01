@@ -603,4 +603,46 @@ proc sysfsgpio_swdio_num args {
 	eval sysfsgpio swdio_num $args
 }
 
+lappend _telnet_autocomplete_skip buspirate_adc
+proc buspirate_adc args {
+	echo "DEPRECATED! use 'buspirate adc' not 'buspirate_adc'"
+	eval buspirate adc $args
+}
+
+lappend _telnet_autocomplete_skip buspirate_vreg
+proc buspirate_vreg args {
+	echo "DEPRECATED! use 'buspirate vreg' not 'buspirate_vreg'"
+	eval buspirate vreg $args
+}
+
+lappend _telnet_autocomplete_skip buspirate_pullup
+proc buspirate_pullup args {
+	echo "DEPRECATED! use 'buspirate pullup' not 'buspirate_pullup'"
+	eval buspirate pullup $args
+}
+
+lappend _telnet_autocomplete_skip buspirate_led
+proc buspirate_led args {
+	echo "DEPRECATED! use 'buspirate led' not 'buspirate_led'"
+	eval buspirate led $args
+}
+
+lappend _telnet_autocomplete_skip buspirate_speed
+proc buspirate_speed args {
+	echo "DEPRECATED! use 'buspirate speed' not 'buspirate_speed'"
+	eval buspirate speed $args
+}
+
+lappend _telnet_autocomplete_skip buspirate_mode
+proc buspirate_mode args {
+	echo "DEPRECATED! use 'buspirate mode' not 'buspirate_mode'"
+	eval buspirate mode $args
+}
+
+lappend _telnet_autocomplete_skip buspirate_port
+proc buspirate_port args {
+	echo "DEPRECATED! use 'buspirate port' not 'buspirate_port'"
+	eval buspirate port $args
+}
+
 # END MIGRATION AIDS

@@ -473,55 +473,66 @@ COMMAND_HANDLER(buspirate_handle_port_command)
 
 }
 
-static const struct command_registration buspirate_command_handlers[] = {
+static const struct command_registration buspirate_subcommand_handlers[] = {
 	{
-		.name = "buspirate_adc",
+		.name = "adc",
 		.handler = &buspirate_handle_adc_command,
 		.mode = COMMAND_EXEC,
 		.help = "reads voltages on adc pins",
 		.usage = "",
 	},
 	{
-		.name = "buspirate_vreg",
+		.name = "vreg",
 		.usage = "<1|0>",
 		.handler = &buspirate_handle_vreg_command,
 		.mode = COMMAND_CONFIG,
 		.help = "changes the state of voltage regulators",
 	},
 	{
-		.name = "buspirate_pullup",
+		.name = "pullup",
 		.usage = "<1|0>",
 		.handler = &buspirate_handle_pullup_command,
 		.mode = COMMAND_CONFIG,
 		.help = "changes the state of pullup",
 	},
 	{
-		.name = "buspirate_led",
+		.name = "led",
 		.usage = "<1|0>",
 		.handler = &buspirate_handle_led_command,
 		.mode = COMMAND_EXEC,
 		.help = "changes the state of led",
 	},
 	{
-		.name = "buspirate_speed",
+		.name = "speed",
 		.usage = "<normal|fast>",
 		.handler = &buspirate_handle_speed_command,
 		.mode = COMMAND_CONFIG,
 		.help = "speed of the interface",
 	},
 	{
-		.name = "buspirate_mode",
+		.name = "mode",
 		.usage = "<normal|open-drain>",
 		.handler = &buspirate_handle_mode_command,
 		.mode = COMMAND_CONFIG,
 		.help = "pin mode of the interface",
 	},
 	{
-		.name = "buspirate_port",
+		.name = "port",
 		.usage = "/dev/ttyUSB0",
 		.handler = &buspirate_handle_port_command,
 		.mode =	COMMAND_CONFIG,
 		.help = "name of the serial port to open",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+static const struct command_registration buspirate_command_handlers[] = {
+	{
+		.name = "buspirate",
+		.mode = COMMAND_ANY,
+		.help = "perform buspirate management",
+		.chain = buspirate_subcommand_handlers,
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };
