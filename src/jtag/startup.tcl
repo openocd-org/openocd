@@ -645,4 +645,34 @@ proc buspirate_port args {
 	eval buspirate port $args
 }
 
+lappend _telnet_autocomplete_skip usb_blaster_device_desc
+proc usb_blaster_device_desc args {
+	echo "DEPRECATED! use 'usb_blaster device_desc' not 'usb_blaster_device_desc'"
+	eval usb_blaster device_desc $args
+}
+
+lappend _telnet_autocomplete_skip usb_blaster_vid_pid
+proc usb_blaster_vid_pid args {
+	echo "DEPRECATED! use 'usb_blaster vid_pid' not 'usb_blaster_vid_pid'"
+	eval usb_blaster vid_pid $args
+}
+
+lappend _telnet_autocomplete_skip usb_blaster_lowlevel_driver
+proc usb_blaster_lowlevel_driver args {
+	echo "DEPRECATED! use 'usb_blaster lowlevel_driver' not 'usb_blaster_lowlevel_driver'"
+	eval usb_blaster lowlevel_driver $args
+}
+
+lappend _telnet_autocomplete_skip usb_blaster_pin
+proc usb_blaster_pin args {
+	echo "DEPRECATED! use 'usb_blaster pin' not 'usb_blaster_pin'"
+	eval usb_blaster pin $args
+}
+
+lappend _telnet_autocomplete_skip usb_blaster_firmware
+proc usb_blaster_firmware args {
+	echo "DEPRECATED! use 'usb_blaster firmware' not 'usb_blaster_firmware'"
+	eval usb_blaster firmware $args
+}
+
 # END MIGRATION AIDS

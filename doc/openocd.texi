@@ -2728,28 +2728,28 @@ USB JTAG/USB-Blaster compatibles over one of the userspace libraries
 for FTDI chips. These interfaces have several commands, used to
 configure the driver before initializing the JTAG scan chain:
 
-@deffn {Config Command} {usb_blaster_device_desc} description
+@deffn {Config Command} {usb_blaster device_desc} description
 Provides the USB device description (the @emph{iProduct string})
 of the FTDI FT245 device. If not
 specified, the FTDI default value is used. This setting is only valid
 if compiled with FTD2XX support.
 @end deffn
 
-@deffn {Config Command} {usb_blaster_vid_pid} vid pid
+@deffn {Config Command} {usb_blaster vid_pid} vid pid
 The vendor ID and product ID of the FTDI FT245 device. If not specified,
 default values are used.
 Currently, only one @var{vid}, @var{pid} pair may be given, e.g. for
 Altera USB-Blaster (default):
 @example
-usb_blaster_vid_pid 0x09FB 0x6001
+usb_blaster vid_pid 0x09FB 0x6001
 @end example
 The following VID/PID is for Kolja Waschk's USB JTAG:
 @example
-usb_blaster_vid_pid 0x16C0 0x06AD
+usb_blaster vid_pid 0x16C0 0x06AD
 @end example
 @end deffn
 
-@deffn {Command} {usb_blaster_pin} (@option{pin6}|@option{pin8}) (@option{0}|@option{1}|@option{s}|@option{t})
+@deffn {Command} {usb_blaster pin} (@option{pin6}|@option{pin8}) (@option{0}|@option{1}|@option{s}|@option{t})
 Sets the state or function of the unused GPIO pins on USB-Blasters
 (pins 6 and 8 on the female JTAG header). These pins can be used as
 SRST and/or TRST provided the appropriate connections are made on the
@@ -2757,18 +2757,18 @@ target board.
 
 For example, to use pin 6 as SRST:
 @example
-usb_blaster_pin pin6 s
+usb_blaster pin pin6 s
 reset_config srst_only
 @end example
 @end deffn
 
-@deffn {Config Command} {usb_blaster_lowlevel_driver} (@option{ftdi}|@option{ublast2})
+@deffn {Config Command} {usb_blaster lowlevel_driver} (@option{ftdi}|@option{ublast2})
 Chooses the low level access method for the adapter. If not specified,
 @option{ftdi} is selected unless it wasn't enabled during the
 configure stage. USB-Blaster II needs @option{ublast2}.
 @end deffn
 
-@deffn {Config Command} {usb_blaster_firmware} @var{path}
+@deffn {Config Command} {usb_blaster firmware} @var{path}
 This command specifies @var{path} to access USB-Blaster II firmware
 image. To be used with USB-Blaster II only.
 @end deffn
