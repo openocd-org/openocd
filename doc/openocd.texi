@@ -2632,47 +2632,47 @@ FT232R
 These interfaces have several commands, used to configure the driver
 before initializing the JTAG scan chain:
 
-@deffn {Config Command} {ft232r_vid_pid} @var{vid} @var{pid}
+@deffn {Config Command} {ft232r vid_pid} @var{vid} @var{pid}
 The vendor ID and product ID of the adapter. If not specified, default
 0x0403:0x6001 is used.
 @end deffn
 
-@deffn {Config Command} {ft232r_serial_desc} @var{serial}
+@deffn {Config Command} {ft232r serial_desc} @var{serial}
 Specifies the @var{serial} of the adapter to use, in case the
 vendor provides unique IDs and more than one adapter is connected to
 the host. If not specified, serial numbers are not considered.
 @end deffn
 
-@deffn {Config Command} {ft232r_jtag_nums} @var{tck} @var{tms} @var{tdi} @var{tdo}
+@deffn {Config Command} {ft232r jtag_nums} @var{tck} @var{tms} @var{tdi} @var{tdo}
 Set four JTAG GPIO numbers at once.
 If not specified, default 0 3 1 2 or TXD CTS RXD RTS is used.
 @end deffn
 
-@deffn {Config Command} {ft232r_tck_num} @var{tck}
+@deffn {Config Command} {ft232r tck_num} @var{tck}
 Set TCK GPIO number. If not specified, default 0 or TXD is used.
 @end deffn
 
-@deffn {Config Command} {ft232r_tms_num} @var{tms}
+@deffn {Config Command} {ft232r tms_num} @var{tms}
 Set TMS GPIO number. If not specified, default 3 or CTS is used.
 @end deffn
 
-@deffn {Config Command} {ft232r_tdi_num} @var{tdi}
+@deffn {Config Command} {ft232r tdi_num} @var{tdi}
 Set TDI GPIO number. If not specified, default 1 or RXD is used.
 @end deffn
 
-@deffn {Config Command} {ft232r_tdo_num} @var{tdo}
+@deffn {Config Command} {ft232r tdo_num} @var{tdo}
 Set TDO GPIO number. If not specified, default 2 or RTS is used.
 @end deffn
 
-@deffn {Config Command} {ft232r_trst_num} @var{trst}
+@deffn {Config Command} {ft232r trst_num} @var{trst}
 Set TRST GPIO number. If not specified, default 4 or DTR is used.
 @end deffn
 
-@deffn {Config Command} {ft232r_srst_num} @var{srst}
+@deffn {Config Command} {ft232r srst_num} @var{srst}
 Set SRST GPIO number. If not specified, default 6 or DCD is used.
 @end deffn
 
-@deffn {Config Command} {ft232r_restore_serial} @var{word}
+@deffn {Config Command} {ft232r restore_serial} @var{word}
 Restore serial port after JTAG. This USB bitmode control word
 (16-bit) will be sent before quit. Lower byte should
 set GPIO direction register to a "sane" state:

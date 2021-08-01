@@ -675,4 +675,64 @@ proc usb_blaster_firmware args {
 	eval usb_blaster firmware $args
 }
 
+lappend _telnet_autocomplete_skip ft232r_serial_desc
+proc ft232r_serial_desc args {
+	echo "DEPRECATED! use 'ft232r serial_desc' not 'ft232r_serial_desc'"
+	eval ft232r serial_desc $args
+}
+
+lappend _telnet_autocomplete_skip ft232r_vid_pid
+proc ft232r_vid_pid args {
+	echo "DEPRECATED! use 'ft232r vid_pid' not 'ft232r_vid_pid'"
+	eval ft232r vid_pid $args
+}
+
+lappend _telnet_autocomplete_skip ft232r_jtag_nums
+proc ft232r_jtag_nums args {
+	echo "DEPRECATED! use 'ft232r jtag_nums' not 'ft232r_jtag_nums'"
+	eval ft232r jtag_nums $args
+}
+
+lappend _telnet_autocomplete_skip ft232r_tck_num
+proc ft232r_tck_num args {
+	echo "DEPRECATED! use 'ft232r tck_num' not 'ft232r_tck_num'"
+	eval ft232r tck_num $args
+}
+
+lappend _telnet_autocomplete_skip ft232r_tms_num
+proc ft232r_tms_num args {
+	echo "DEPRECATED! use 'ft232r tms_num' not 'ft232r_tms_num'"
+	eval ft232r tms_num $args
+}
+
+lappend _telnet_autocomplete_skip ft232r_tdo_num
+proc ft232r_tdo_num args {
+	echo "DEPRECATED! use 'ft232r tdo_num' not 'ft232r_tdo_num'"
+	eval ft232r tdo_num $args
+}
+
+lappend _telnet_autocomplete_skip ft232r_tdi_num
+proc ft232r_tdi_num args {
+	echo "DEPRECATED! use 'ft232r tdi_num' not 'ft232r_tdi_num'"
+	eval ft232r tdi_num $args
+}
+
+lappend _telnet_autocomplete_skip ft232r_srst_num
+proc ft232r_srst_num args {
+	echo "DEPRECATED! use 'ft232r srst_num' not 'ft232r_srst_num'"
+	eval ft232r srst_num $args
+}
+
+lappend _telnet_autocomplete_skip ft232r_trst_num
+proc ft232r_trst_num args {
+	echo "DEPRECATED! use 'ft232r trst_num' not 'ft232r_trst_num'"
+	eval ft232r trst_num $args
+}
+
+lappend _telnet_autocomplete_skip ft232r_restore_serial
+proc ft232r_restore_serial args {
+	echo "DEPRECATED! use 'ft232r restore_serial' not 'ft232r_restore_serial'"
+	eval ft232r restore_serial $args
+}
+
 # END MIGRATION AIDS
