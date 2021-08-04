@@ -2886,16 +2886,21 @@ static int cortex_a_examine_first(struct target *target)
 	struct cortex_a_common *cortex_a = target_to_cortex_a(target);
 	struct armv7a_common *armv7a = &cortex_a->armv7a_common;
 	struct adiv5_dap *swjdp = armv7a->arm.dap;
+	struct adiv5_private_config *pc = target->private_config;
 
 	int i;
 	int retval = ERROR_OK;
 	uint32_t didr, cpuid, dbg_osreg, dbg_idpfr1;
 
-	/* Search for the APB-AP - it is needed for access to debug registers */
-	retval = dap_find_ap(swjdp, AP_TYPE_APB_AP, &armv7a->debug_ap);
-	if (retval != ERROR_OK) {
-		LOG_ERROR("Could not find APB-AP for debug access");
-		return retval;
+	if (pc->ap_num == DP_APSEL_INVALID) {
+		/* Search for the APB-AP - it is needed for access to debug registers */
+		retval = dap_find_ap(swjdp, AP_TYPE_APB_AP, &armv7a->debug_ap);
+		if (retval != ERROR_OK) {
+			LOG_ERROR("Could not find APB-AP for debug access");
+			return retval;
+		}
+	} else {
+		armv7a->debug_ap = dap_ap(swjdp, pc->ap_num);
 	}
 
 	retval = mem_ap_init(armv7a->debug_ap);
