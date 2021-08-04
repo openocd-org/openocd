@@ -1310,8 +1310,8 @@ static int dap_rom_display(struct command_invocation *cmd,
 			command_print(cmd, "\t%sROMTABLE[0x%x] = 0x%" PRIx32 "",
 					tabs, entry_offset, romentry);
 			if (romentry & 0x01) {
-				/* Recurse */
-				retval = dap_rom_display(cmd, ap, base_addr + (romentry & 0xFFFFF000), depth + 1);
+				/* Recurse. "romentry" is signed */
+				retval = dap_rom_display(cmd, ap, base_addr + (int32_t)(romentry & 0xFFFFF000), depth + 1);
 				if (retval != ERROR_OK)
 					return retval;
 			} else if (romentry != 0) {
