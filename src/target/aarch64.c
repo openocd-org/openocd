@@ -2558,15 +2558,24 @@ static int aarch64_examine_first(struct target *target)
 	if (!pc)
 		return ERROR_FAIL;
 
+	if (armv8->debug_ap) {
+		dap_put_ap(armv8->debug_ap);
+		armv8->debug_ap = NULL;
+	}
+
 	if (pc->adiv5_config.ap_num == DP_APSEL_INVALID) {
 		/* Search for the APB-AB */
-		retval = dap_find_ap(swjdp, AP_TYPE_APB_AP, &armv8->debug_ap);
+		retval = dap_find_get_ap(swjdp, AP_TYPE_APB_AP, &armv8->debug_ap);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("Could not find APB-AP for debug access");
 			return retval;
 		}
 	} else {
-		armv8->debug_ap = dap_ap(swjdp, pc->adiv5_config.ap_num);
+		armv8->debug_ap = dap_get_ap(swjdp, pc->adiv5_config.ap_num);
+		if (!armv8->debug_ap) {
+			LOG_ERROR("Cannot get AP");
+			return ERROR_FAIL;
+		}
 	}
 
 	retval = mem_ap_init(armv8->debug_ap);
@@ -2754,6 +2763,9 @@ static void aarch64_deinit_target(struct target *target)
 	struct aarch64_common *aarch64 = target_to_aarch64(target);
 	struct armv8_common *armv8 = &aarch64->armv8_common;
 	struct arm_dpm *dpm = &armv8->dpm;
+
+	if (armv8->debug_ap)
+		dap_put_ap(armv8->debug_ap);
 
 	armv8_free_reg_cache(target);
 	free(aarch64->brp_list);

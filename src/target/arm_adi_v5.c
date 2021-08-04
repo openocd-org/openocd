@@ -968,20 +968,26 @@ static const char *ap_type_to_description(enum ap_type type)
 
 /*
  * This function checks the ID for each access port to find the requested Access Port type
+ * It also calls dap_get_ap() to increment the AP refcount
  */
-int dap_find_ap(struct adiv5_dap *dap, enum ap_type type_to_find, struct adiv5_ap **ap_out)
+int dap_find_get_ap(struct adiv5_dap *dap, enum ap_type type_to_find, struct adiv5_ap **ap_out)
 {
 	int ap_num;
 
 	/* Maximum AP number is 255 since the SELECT register is 8 bits */
 	for (ap_num = 0; ap_num <= DP_APSEL_MAX; ap_num++) {
+		struct adiv5_ap *ap = dap_get_ap(dap, ap_num);
+		if (!ap)
+			continue;
 
 		/* read the IDR register of the Access Port */
 		uint32_t id_val = 0;
 
-		int retval = dap_queue_ap_read(dap_ap(dap, ap_num), AP_REG_IDR, &id_val);
-		if (retval != ERROR_OK)
+		int retval = dap_queue_ap_read(ap, AP_REG_IDR, &id_val);
+		if (retval != ERROR_OK) {
+			dap_put_ap(ap);
 			return retval;
+		}
 
 		retval = dap_run(dap);
 
@@ -993,13 +999,71 @@ int dap_find_ap(struct adiv5_dap *dap, enum ap_type type_to_find, struct adiv5_a
 						ap_type_to_description(type_to_find),
 						ap_num, id_val);
 
-			*ap_out = &dap->ap[ap_num];
+			*ap_out = ap;
 			return ERROR_OK;
 		}
+		dap_put_ap(ap);
 	}
 
 	LOG_DEBUG("No %s found", ap_type_to_description(type_to_find));
 	return ERROR_FAIL;
+}
+
+static inline bool is_ap_in_use(struct adiv5_ap *ap)
+{
+	return ap->refcount > 0 || ap->config_ap_never_release;
+}
+
+static struct adiv5_ap *_dap_get_ap(struct adiv5_dap *dap, unsigned int ap_num)
+{
+	if (ap_num > DP_APSEL_MAX) {
+		LOG_ERROR("Invalid AP#%u", ap_num);
+		return NULL;
+	}
+	struct adiv5_ap *ap = &dap->ap[ap_num];
+	++ap->refcount;
+	return ap;
+}
+
+/* Return AP with specified ap_num. Increment AP refcount */
+struct adiv5_ap *dap_get_ap(struct adiv5_dap *dap, unsigned int ap_num)
+{
+	struct adiv5_ap *ap = _dap_get_ap(dap, ap_num);
+	if (ap)
+		LOG_DEBUG("refcount AP#%u get %u", ap_num, ap->refcount);
+	return ap;
+}
+
+/* Return AP with specified ap_num. Increment AP refcount and keep it non-zero */
+struct adiv5_ap *dap_get_config_ap(struct adiv5_dap *dap, unsigned int ap_num)
+{
+	struct adiv5_ap *ap = _dap_get_ap(dap, ap_num);
+	if (ap) {
+		ap->config_ap_never_release = true;
+		LOG_DEBUG("refcount AP#%u get_config %u", ap_num, ap->refcount);
+	}
+	return ap;
+}
+
+/* Decrement AP refcount and release the AP when refcount reaches zero */
+int dap_put_ap(struct adiv5_ap *ap)
+{
+	if (ap->refcount == 0) {
+		LOG_ERROR("BUG: refcount AP#%" PRIu8 " put underflow", ap->ap_num);
+		return ERROR_FAIL;
+	}
+
+	--ap->refcount;
+
+	LOG_DEBUG("refcount AP#%" PRIu8 " put %u", ap->ap_num, ap->refcount);
+	if (!is_ap_in_use(ap)) {
+		/* defaults from dap_instance_init() */
+		ap->memaccess_tck = 255;
+		ap->tar_autoincr_block = (1 << 10);
+		ap->csw_default = CSW_AHB_DEFAULT;
+		ap->cfg_reg = MEM_AP_REG_CFG_INVALID;
+	}
+	return ERROR_OK;
 }
 
 static int dap_get_debugbase(struct adiv5_ap *ap,
@@ -2117,7 +2181,15 @@ COMMAND_HANDLER(handle_dap_info_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	return dap_info_command(CMD, &dap->ap[apsel]);
+	struct adiv5_ap *ap = dap_get_ap(dap, apsel);
+	if (!ap) {
+		command_print(CMD, "Cannot get AP");
+		return ERROR_FAIL;
+	}
+
+	int retval = dap_info_command(CMD, ap);
+	dap_put_ap(ap);
+	return retval;
 }
 
 COMMAND_HANDLER(dap_baseaddr_command)
@@ -2152,7 +2224,12 @@ COMMAND_HANDLER(dap_baseaddr_command)
 	 * use the ID register to verify it's a MEM-AP.
 	 */
 
-	ap = dap_ap(dap, apsel);
+	ap = dap_get_ap(dap, apsel);
+	if (!ap) {
+		command_print(CMD, "Cannot get AP");
+		return ERROR_FAIL;
+	}
+
 	retval = dap_queue_ap_read(ap, MEM_AP_REG_BASE, &baseaddr_lower);
 
 	if (retval == ERROR_OK && ap->cfg_reg == MEM_AP_REG_CFG_INVALID)
@@ -2165,6 +2242,7 @@ COMMAND_HANDLER(dap_baseaddr_command)
 
 	if (retval == ERROR_OK)
 		retval = dap_run(dap);
+	dap_put_ap(ap);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -2180,22 +2258,35 @@ COMMAND_HANDLER(dap_baseaddr_command)
 COMMAND_HANDLER(dap_memaccess_command)
 {
 	struct adiv5_dap *dap = adiv5_get_dap(CMD_DATA);
+	struct adiv5_ap *ap;
 	uint32_t memaccess_tck;
 
 	switch (CMD_ARGC) {
 	case 0:
-		memaccess_tck = dap->ap[dap->apsel].memaccess_tck;
+		ap = dap_get_ap(dap, dap->apsel);
+		if (!ap) {
+			command_print(CMD, "Cannot get AP");
+			return ERROR_FAIL;
+		}
+		memaccess_tck = ap->memaccess_tck;
 		break;
 	case 1:
+		ap = dap_get_config_ap(dap, dap->apsel);
+		if (!ap) {
+			command_print(CMD, "Cannot get AP");
+			return ERROR_FAIL;
+		}
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], memaccess_tck);
+		ap->memaccess_tck = memaccess_tck;
 		break;
 	default:
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
-	dap->ap[dap->apsel].memaccess_tck = memaccess_tck;
+
+	dap_put_ap(ap);
 
 	command_print(CMD, "memory bus access delay set to %" PRIu32 " tck",
-			dap->ap[dap->apsel].memaccess_tck);
+			memaccess_tck);
 
 	return ERROR_OK;
 }
@@ -2228,14 +2319,19 @@ COMMAND_HANDLER(dap_apsel_command)
 COMMAND_HANDLER(dap_apcsw_command)
 {
 	struct adiv5_dap *dap = adiv5_get_dap(CMD_DATA);
-	uint32_t apcsw = dap->ap[dap->apsel].csw_default;
+	struct adiv5_ap *ap;
 	uint32_t csw_val, csw_mask;
 
 	switch (CMD_ARGC) {
 	case 0:
+		ap = dap_get_ap(dap, dap->apsel);
+		if (!ap) {
+			command_print(CMD, "Cannot get AP");
+			return ERROR_FAIL;
+		}
 		command_print(CMD, "ap %" PRIu32 " selected, csw 0x%8.8" PRIx32,
-			dap->apsel, apcsw);
-		return ERROR_OK;
+			dap->apsel, ap->csw_default);
+		break;
 	case 1:
 		if (strcmp(CMD_ARGV[0], "default") == 0)
 			csw_val = CSW_AHB_DEFAULT;
@@ -2246,7 +2342,12 @@ COMMAND_HANDLER(dap_apcsw_command)
 			LOG_ERROR("CSW value cannot include 'Size' and 'AddrInc' bit-fields");
 			return ERROR_COMMAND_ARGUMENT_INVALID;
 		}
-		apcsw = csw_val;
+		ap = dap_get_config_ap(dap, dap->apsel);
+		if (!ap) {
+			command_print(CMD, "Cannot get AP");
+			return ERROR_FAIL;
+		}
+		ap->csw_default = csw_val;
 		break;
 	case 2:
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], csw_val);
@@ -2255,14 +2356,19 @@ COMMAND_HANDLER(dap_apcsw_command)
 			LOG_ERROR("CSW mask cannot include 'Size' and 'AddrInc' bit-fields");
 			return ERROR_COMMAND_ARGUMENT_INVALID;
 		}
-		apcsw = (apcsw & ~csw_mask) | (csw_val & csw_mask);
+		ap = dap_get_config_ap(dap, dap->apsel);
+		if (!ap) {
+			command_print(CMD, "Cannot get AP");
+			return ERROR_FAIL;
+		}
+		ap->csw_default = (ap->csw_default & ~csw_mask) | (csw_val & csw_mask);
 		break;
 	default:
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
-	dap->ap[dap->apsel].csw_default = apcsw;
+	dap_put_ap(ap);
 
-	return 0;
+	return ERROR_OK;
 }
 
 
@@ -2289,10 +2395,18 @@ COMMAND_HANDLER(dap_apid_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	retval = dap_queue_ap_read(dap_ap(dap, apsel), AP_REG_IDR, &apid);
-	if (retval != ERROR_OK)
+	struct adiv5_ap *ap = dap_get_ap(dap, apsel);
+	if (!ap) {
+		command_print(CMD, "Cannot get AP");
+		return ERROR_FAIL;
+	}
+	retval = dap_queue_ap_read(ap, AP_REG_IDR, &apid);
+	if (retval != ERROR_OK) {
+		dap_put_ap(ap);
 		return retval;
+	}
 	retval = dap_run(dap);
+	dap_put_ap(ap);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -2305,7 +2419,6 @@ COMMAND_HANDLER(dap_apreg_command)
 {
 	struct adiv5_dap *dap = adiv5_get_dap(CMD_DATA);
 	uint32_t apsel, reg, value;
-	struct adiv5_ap *ap;
 	int retval;
 
 	if (CMD_ARGC < 2 || CMD_ARGC > 3)
@@ -2318,12 +2431,16 @@ COMMAND_HANDLER(dap_apreg_command)
 		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
-	ap = dap_ap(dap, apsel);
-
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], reg);
 	if (reg >= 256 || (reg & 3)) {
 		command_print(CMD, "Invalid reg value (should be less than 256 and 4 bytes aligned)");
 		return ERROR_COMMAND_ARGUMENT_INVALID;
+	}
+
+	struct adiv5_ap *ap = dap_get_ap(dap, apsel);
+	if (!ap) {
+		command_print(CMD, "Cannot get AP");
+		return ERROR_FAIL;
 	}
 
 	if (CMD_ARGC == 3) {
@@ -2365,6 +2482,8 @@ COMMAND_HANDLER(dap_apreg_command)
 	}
 	if (retval == ERROR_OK)
 		retval = dap_run(dap);
+
+	dap_put_ap(ap);
 
 	if (retval != ERROR_OK)
 		return retval;

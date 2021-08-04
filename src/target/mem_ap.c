@@ -74,7 +74,12 @@ static int mem_ap_init_target(struct command_context *cmd_ctx, struct target *ta
 
 static void mem_ap_deinit_target(struct target *target)
 {
+	struct mem_ap *mem_ap = target->arch_info;
+
 	LOG_DEBUG("%s", __func__);
+
+	if (mem_ap->ap)
+		dap_put_ap(mem_ap->ap);
 
 	free(target->private_config);
 	free(target->arch_info);
@@ -139,7 +144,16 @@ static int mem_ap_examine(struct target *target)
 	struct mem_ap *mem_ap = target->arch_info;
 
 	if (!target_was_examined(target)) {
-		mem_ap->ap = dap_ap(mem_ap->dap, mem_ap->ap_num);
+		if (mem_ap->ap) {
+			dap_put_ap(mem_ap->ap);
+			mem_ap->ap = NULL;
+		}
+
+		mem_ap->ap = dap_get_ap(mem_ap->dap, mem_ap->ap_num);
+		if (!mem_ap->ap) {
+			LOG_ERROR("Cannot get AP");
+			return ERROR_FAIL;
+		}
 		target_set_examined(target);
 		target->state = TARGET_UNKNOWN;
 		target->debug_reason = DBG_REASON_UNDEFINED;

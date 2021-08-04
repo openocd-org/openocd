@@ -58,6 +58,8 @@ static void dap_instance_init(struct adiv5_dap *dap)
 		/* default CSW value */
 		dap->ap[i].csw_default = CSW_AHB_DEFAULT;
 		dap->ap[i].cfg_reg = MEM_AP_REG_CFG_INVALID; /* mem_ap configuration reg (large physical addr, etc.) */
+		dap->ap[i].refcount = 0;
+		dap->ap[i].config_ap_never_release = false;
 	}
 	INIT_LIST_HEAD(&dap->cmd_journal);
 	INIT_LIST_HEAD(&dap->cmd_pool);
@@ -142,6 +144,10 @@ int dap_cleanup_all(void)
 
 	list_for_each_entry_safe(obj, tmp, &all_dap, lh) {
 		dap = &obj->dap;
+		for (unsigned int i = 0; i <= DP_APSEL_MAX; i++) {
+			if (dap->ap[i].refcount != 0)
+				LOG_ERROR("BUG: refcount AP#%u still %u at exit", i, dap->ap[i].refcount);
+		}
 		if (dap->ops && dap->ops->quit)
 			dap->ops->quit(dap);
 
@@ -438,7 +444,14 @@ COMMAND_HANDLER(handle_dap_info_command)
 			return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	return dap_info_command(CMD, &dap->ap[apsel]);
+	struct adiv5_ap *ap = dap_get_ap(dap, apsel);
+	if (!ap) {
+		command_print(CMD, "Cannot get AP");
+		return ERROR_FAIL;
+	}
+	int retval = dap_info_command(CMD, ap);
+	dap_put_ap(ap);
+	return retval;
 }
 
 static const struct command_registration dap_subcommand_handlers[] = {

@@ -402,16 +402,23 @@ static int kinetis_auto_probe(struct flash_bank *bank);
 
 static int kinetis_mdm_write_register(struct adiv5_dap *dap, unsigned reg, uint32_t value)
 {
-	int retval;
 	LOG_DEBUG("MDM_REG[0x%02x] <- %08" PRIX32, reg, value);
 
-	retval = dap_queue_ap_write(dap_ap(dap, MDM_AP), reg, value);
+	struct adiv5_ap *ap = dap_get_ap(dap, MDM_AP);
+	if (!ap) {
+		LOG_DEBUG("MDM: failed to get AP");
+		return ERROR_FAIL;
+	}
+
+	int retval = dap_queue_ap_write(ap, reg, value);
 	if (retval != ERROR_OK) {
 		LOG_DEBUG("MDM: failed to queue a write request");
+		dap_put_ap(ap);
 		return retval;
 	}
 
 	retval = dap_run(dap);
+	dap_put_ap(ap);
 	if (retval != ERROR_OK) {
 		LOG_DEBUG("MDM: dap_run failed");
 		return retval;
@@ -423,15 +430,21 @@ static int kinetis_mdm_write_register(struct adiv5_dap *dap, unsigned reg, uint3
 
 static int kinetis_mdm_read_register(struct adiv5_dap *dap, unsigned reg, uint32_t *result)
 {
-	int retval;
+	struct adiv5_ap *ap = dap_get_ap(dap, MDM_AP);
+	if (!ap) {
+		LOG_DEBUG("MDM: failed to get AP");
+		return ERROR_FAIL;
+	}
 
-	retval = dap_queue_ap_read(dap_ap(dap, MDM_AP), reg, result);
+	int retval = dap_queue_ap_read(ap, reg, result);
 	if (retval != ERROR_OK) {
 		LOG_DEBUG("MDM: failed to queue a read request");
+		dap_put_ap(ap);
 		return retval;
 	}
 
 	retval = dap_run(dap);
+	dap_put_ap(ap);
 	if (retval != ERROR_OK) {
 		LOG_DEBUG("MDM: dap_run failed");
 		return retval;
@@ -787,12 +800,18 @@ COMMAND_HANDLER(kinetis_check_flash_security_status)
 
 	if ((val & (MDM_STAT_SYSSEC | MDM_STAT_FREADY)) != MDM_STAT_FREADY) {
 		uint32_t stats[32];
+		struct adiv5_ap *ap = dap_get_ap(dap, MDM_AP);
+		if (!ap) {
+			LOG_ERROR("MDM: failed to get AP");
+			return ERROR_OK;
+		}
 
 		for (unsigned int i = 0; i < 32; i++) {
 			stats[i] = MDM_STAT_FREADY;
-			dap_queue_ap_read(dap_ap(dap, MDM_AP), MDM_REG_STAT, &stats[i]);
+			dap_queue_ap_read(ap, MDM_REG_STAT, &stats[i]);
 		}
 		retval = dap_run(dap);
+		dap_put_ap(ap);
 		if (retval != ERROR_OK) {
 			LOG_DEBUG("MDM: dap_run failed when validating secured state");
 			return ERROR_OK;

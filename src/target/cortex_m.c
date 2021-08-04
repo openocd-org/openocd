@@ -1984,6 +1984,10 @@ static int cortex_m_init_target(struct command_context *cmd_ctx,
 void cortex_m_deinit_target(struct target *target)
 {
 	struct cortex_m_common *cortex_m = target_to_cm(target);
+	struct armv7m_common *armv7m = target_to_armv7m(target);
+
+	if (!armv7m->is_hla_target && armv7m->debug_ap)
+		dap_put_ap(armv7m->debug_ap);
 
 	free(cortex_m->fp_comparator_list);
 
@@ -2262,10 +2266,10 @@ static void cortex_m_dwt_free(struct target *target)
 static int cortex_m_find_mem_ap(struct adiv5_dap *swjdp,
 		struct adiv5_ap **debug_ap)
 {
-	if (dap_find_ap(swjdp, AP_TYPE_AHB3_AP, debug_ap) == ERROR_OK)
+	if (dap_find_get_ap(swjdp, AP_TYPE_AHB3_AP, debug_ap) == ERROR_OK)
 		return ERROR_OK;
 
-	return dap_find_ap(swjdp, AP_TYPE_AHB5_AP, debug_ap);
+	return dap_find_get_ap(swjdp, AP_TYPE_AHB5_AP, debug_ap);
 }
 
 int cortex_m_examine(struct target *target)
@@ -2279,6 +2283,11 @@ int cortex_m_examine(struct target *target)
 	/* hla_target shares the examine handler but does not support
 	 * all its calls */
 	if (!armv7m->is_hla_target) {
+		if (armv7m->debug_ap) {
+			dap_put_ap(armv7m->debug_ap);
+			armv7m->debug_ap = NULL;
+		}
+
 		if (cortex_m->apsel == DP_APSEL_INVALID) {
 			/* Search for the MEM-AP */
 			retval = cortex_m_find_mem_ap(swjdp, &armv7m->debug_ap);
@@ -2287,7 +2296,11 @@ int cortex_m_examine(struct target *target)
 				return retval;
 			}
 		} else {
-			armv7m->debug_ap = dap_ap(swjdp, cortex_m->apsel);
+			armv7m->debug_ap = dap_get_ap(swjdp, cortex_m->apsel);
+			if (!armv7m->debug_ap) {
+				LOG_ERROR("Cannot get AP");
+				return ERROR_FAIL;
+			}
 		}
 
 		armv7m->debug_ap->memaccess_tck = 8;

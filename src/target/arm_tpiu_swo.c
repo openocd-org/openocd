@@ -90,6 +90,7 @@ struct arm_tpiu_swo_event_action {
 struct arm_tpiu_swo_object {
 	struct list_head lh;
 	struct adiv5_mem_ap_spot spot;
+	struct adiv5_ap *ap;
 	char *name;
 	struct arm_tpiu_swo_event_action *event_action;
 	/* record enable before init */
@@ -232,6 +233,9 @@ int arm_tpiu_swo_cleanup_all(void)
 			free(ea);
 			ea = next;
 		}
+
+		if (obj->ap)
+			dap_put_ap(obj->ap);
 
 		free(obj->name);
 		free(obj->out_filename);
@@ -596,7 +600,6 @@ static int jim_arm_tpiu_swo_enable(Jim_Interp *interp, int argc, Jim_Obj *const 
 	struct command *c = jim_to_command(interp);
 	struct arm_tpiu_swo_object *obj = c->jim_handler_data;
 	struct command_context *cmd_ctx = current_command_context(interp);
-	struct adiv5_ap *tpiu_ap = dap_ap(obj->spot.dap, obj->spot.ap_num);
 	uint32_t value;
 	int retval;
 
@@ -644,7 +647,6 @@ static int jim_arm_tpiu_swo_enable(Jim_Interp *interp, int argc, Jim_Obj *const 
 		struct cortex_m_common *cm = target_to_cm(target);
 		obj->recheck_ap_cur_target = false;
 		obj->spot.ap_num = cm->armv7m.debug_ap->ap_num;
-		tpiu_ap = dap_ap(obj->spot.dap, obj->spot.ap_num);
 		if (obj->spot.ap_num == 0)
 			LOG_INFO(MSG "Confirmed TPIU %s is on AP 0", obj->name);
 		else
@@ -655,10 +657,18 @@ static int jim_arm_tpiu_swo_enable(Jim_Interp *interp, int argc, Jim_Obj *const 
 	}
 	/* END_DEPRECATED_TPIU */
 
+	if (!obj->ap) {
+		obj->ap = dap_get_ap(obj->spot.dap, obj->spot.ap_num);
+		if (!obj->ap) {
+			LOG_ERROR("Cannot get AP");
+			return JIM_ERR;
+		}
+	}
+
 	/* trigger the event before any attempt to R/W in the TPIU/SWO */
 	arm_tpiu_swo_handle_event(obj, TPIU_SWO_EVENT_PRE_ENABLE);
 
-	retval = wrap_read_u32(target, tpiu_ap, obj->spot.base + TPIU_DEVID_OFFSET, &value);
+	retval = wrap_read_u32(target, obj->ap, obj->spot.base + TPIU_DEVID_OFFSET, &value);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Unable to read %s", obj->name);
 		return JIM_ERR;
@@ -684,7 +694,7 @@ static int jim_arm_tpiu_swo_enable(Jim_Interp *interp, int argc, Jim_Obj *const 
 	}
 
 	if (obj->pin_protocol == TPIU_SPPR_PROTOCOL_SYNC) {
-		retval = wrap_read_u32(target, tpiu_ap, obj->spot.base + TPIU_SSPSR_OFFSET, &value);
+		retval = wrap_read_u32(target, obj->ap, obj->spot.base + TPIU_SSPSR_OFFSET, &value);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("Cannot read TPIU register SSPSR");
 			return JIM_ERR;
@@ -759,26 +769,26 @@ static int jim_arm_tpiu_swo_enable(Jim_Interp *interp, int argc, Jim_Obj *const 
 		obj->swo_pin_freq = swo_pin_freq;
 	}
 
-	retval = wrap_write_u32(target, tpiu_ap, obj->spot.base + TPIU_CSPSR_OFFSET, BIT(obj->port_width - 1));
+	retval = wrap_write_u32(target, obj->ap, obj->spot.base + TPIU_CSPSR_OFFSET, BIT(obj->port_width - 1));
 	if (retval != ERROR_OK)
 		goto error_exit;
 
-	retval = wrap_write_u32(target, tpiu_ap, obj->spot.base + TPIU_ACPR_OFFSET, prescaler - 1);
+	retval = wrap_write_u32(target, obj->ap, obj->spot.base + TPIU_ACPR_OFFSET, prescaler - 1);
 	if (retval != ERROR_OK)
 		goto error_exit;
 
-	retval = wrap_write_u32(target, tpiu_ap, obj->spot.base + TPIU_SPPR_OFFSET, obj->pin_protocol);
+	retval = wrap_write_u32(target, obj->ap, obj->spot.base + TPIU_SPPR_OFFSET, obj->pin_protocol);
 	if (retval != ERROR_OK)
 		goto error_exit;
 
-	retval = wrap_read_u32(target, tpiu_ap, obj->spot.base + TPIU_FFCR_OFFSET, &value);
+	retval = wrap_read_u32(target, obj->ap, obj->spot.base + TPIU_FFCR_OFFSET, &value);
 	if (retval != ERROR_OK)
 		goto error_exit;
 	if (obj->en_formatter)
 		value |= BIT(1);
 	else
 		value &= ~BIT(1);
-	retval = wrap_write_u32(target, tpiu_ap, obj->spot.base + TPIU_FFCR_OFFSET, value);
+	retval = wrap_write_u32(target, obj->ap, obj->spot.base + TPIU_FFCR_OFFSET, value);
 	if (retval != ERROR_OK)
 		goto error_exit;
 

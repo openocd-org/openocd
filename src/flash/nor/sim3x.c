@@ -872,16 +872,23 @@ static int sim3x_flash_info(struct flash_bank *bank, struct command_invocation *
  */
 static int ap_write_register(struct adiv5_dap *dap, unsigned reg, uint32_t value)
 {
-	int retval;
 	LOG_DEBUG("DAP_REG[0x%02x] <- %08" PRIX32, reg, value);
 
-	retval = dap_queue_ap_write(dap_ap(dap, SIM3X_AP), reg, value);
+	struct adiv5_ap *ap = dap_get_ap(dap, SIM3X_AP);
+	if (!ap) {
+		LOG_DEBUG("DAP: failed to get AP");
+		return ERROR_FAIL;
+	}
+
+	int retval = dap_queue_ap_write(ap, reg, value);
 	if (retval != ERROR_OK) {
 		LOG_DEBUG("DAP: failed to queue a write request");
+		dap_put_ap(ap);
 		return retval;
 	}
 
 	retval = dap_run(dap);
+	dap_put_ap(ap);
 	if (retval != ERROR_OK) {
 		LOG_DEBUG("DAP: dap_run failed");
 		return retval;
@@ -892,15 +899,21 @@ static int ap_write_register(struct adiv5_dap *dap, unsigned reg, uint32_t value
 
 static int ap_read_register(struct adiv5_dap *dap, unsigned reg, uint32_t *result)
 {
-	int retval;
+	struct adiv5_ap *ap = dap_get_ap(dap, SIM3X_AP);
+	if (!ap) {
+		LOG_DEBUG("DAP: failed to get AP");
+		return ERROR_FAIL;
+	}
 
-	retval = dap_queue_ap_read(dap_ap(dap, SIM3X_AP), reg, result);
+	int retval = dap_queue_ap_read(ap, reg, result);
 	if (retval != ERROR_OK) {
 		LOG_DEBUG("DAP: failed to queue a read request");
+		dap_put_ap(ap);
 		return retval;
 	}
 
 	retval = dap_run(dap);
+	dap_put_ap(ap);
 	if (retval != ERROR_OK) {
 		LOG_DEBUG("DAP: dap_run failed");
 		return retval;
