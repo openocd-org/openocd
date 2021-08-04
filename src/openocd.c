@@ -364,8 +364,8 @@ int openocd_main(int argc, char *argv[])
 	help_del_all_commands(cmd_ctx);
 
 	/* free all DAP and CTI objects */
-	dap_cleanup_all();
 	arm_cti_cleanup_all();
+	dap_cleanup_all();
 
 	adapter_quit();
 
