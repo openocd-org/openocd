@@ -648,7 +648,7 @@ void dap_invalidate_cache(struct adiv5_dap *dap)
 	dap->last_read = NULL;
 
 	int i;
-	for (i = 0; i <= 255; i++) {
+	for (i = 0; i <= DP_APSEL_MAX; i++) {
 		/* force csw and tar write on the next mem-ap access */
 		dap->ap[i].tar_valid = false;
 		dap->ap[i].csw_value = 0;
