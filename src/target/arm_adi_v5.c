@@ -946,25 +946,30 @@ int dap_get_debugbase(struct adiv5_ap *ap,
 	int retval;
 	uint32_t baseptr_upper, baseptr_lower;
 
-	baseptr_upper = 0;
-
-	if (is_64bit_ap(ap)) {
-		/* Read higher order 32-bits of base address */
-		retval = dap_queue_ap_read(ap, MEM_AP_REG_BASE64, &baseptr_upper);
+	if (ap->cfg_reg == MEM_AP_REG_CFG_INVALID) {
+		retval = dap_queue_ap_read(ap, MEM_AP_REG_CFG, &ap->cfg_reg);
 		if (retval != ERROR_OK)
 			return retval;
 	}
-
 	retval = dap_queue_ap_read(ap, MEM_AP_REG_BASE, &baseptr_lower);
 	if (retval != ERROR_OK)
 		return retval;
 	retval = dap_queue_ap_read(ap, AP_REG_IDR, apid);
 	if (retval != ERROR_OK)
 		return retval;
+	/* MEM_AP_REG_BASE64 is defined as 'RES0'; can be read and then ignored on 32 bits AP */
+	if (ap->cfg_reg == MEM_AP_REG_CFG_INVALID || is_64bit_ap(ap)) {
+		retval = dap_queue_ap_read(ap, MEM_AP_REG_BASE64, &baseptr_upper);
+		if (retval != ERROR_OK)
+			return retval;
+	}
+
 	retval = dap_run(dap);
 	if (retval != ERROR_OK)
 		return retval;
 
+	if (!is_64bit_ap(ap))
+		baseptr_upper = 0;
 	*dbgbase = (((target_addr_t)baseptr_upper) << 32) | baseptr_lower;
 
 	return ERROR_OK;
@@ -1768,20 +1773,26 @@ COMMAND_HANDLER(dap_baseaddr_command)
 	ap = dap_ap(dap, apsel);
 	retval = dap_queue_ap_read(ap, MEM_AP_REG_BASE, &baseaddr_lower);
 
-	if (is_64bit_ap(ap) && retval == ERROR_OK)
+	if (retval == ERROR_OK && ap->cfg_reg == MEM_AP_REG_CFG_INVALID)
+		retval = dap_queue_ap_read(ap, MEM_AP_REG_CFG, &ap->cfg_reg);
+
+	if (retval == ERROR_OK && (ap->cfg_reg == MEM_AP_REG_CFG_INVALID || is_64bit_ap(ap))) {
+		/* MEM_AP_REG_BASE64 is defined as 'RES0'; can be read and then ignored on 32 bits AP */
 		retval = dap_queue_ap_read(ap, MEM_AP_REG_BASE64, &baseaddr_upper);
+	}
+
+	if (retval == ERROR_OK)
+		retval = dap_run(dap);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = dap_run(dap);
-	if (retval != ERROR_OK)
-		return retval;
+
 	if (is_64bit_ap(ap)) {
 		baseaddr = (((target_addr_t)baseaddr_upper) << 32) | baseaddr_lower;
 		command_print(CMD, "0x%016" PRIx64, baseaddr);
 	} else
 		command_print(CMD, "0x%08" PRIx32, baseaddr_lower);
 
-	return retval;
+	return ERROR_OK;
 }
 
 COMMAND_HANDLER(dap_memaccess_command)

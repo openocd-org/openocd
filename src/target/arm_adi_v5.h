@@ -151,9 +151,10 @@
 #define CSW_APB_DEFAULT         (CSW_DBGSWENABLE)
 
 /* Fields of the MEM-AP's CFG register */
-#define MEM_AP_REG_CFG_BE   BIT(0)
-#define MEM_AP_REG_CFG_LA   BIT(1)
-#define MEM_AP_REG_CFG_LD   BIT(2)
+#define MEM_AP_REG_CFG_BE       BIT(0)
+#define MEM_AP_REG_CFG_LA       BIT(1)
+#define MEM_AP_REG_CFG_LD       BIT(2)
+#define MEM_AP_REG_CFG_INVALID  0xFFFFFFF8
 
 /* Fields of the MEM-AP's IDR register */
 #define IDR_REV     (0xFUL << 28)
