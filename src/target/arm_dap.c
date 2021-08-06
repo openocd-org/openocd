@@ -129,6 +129,14 @@ static int dap_init_all(void)
 		} else
 			dap->ops = &jtag_dp_ops;
 
+		if (dap->adi_version == 0) {
+			LOG_DEBUG("DAP %s configured by default to use ADIv5 protocol", jtag_tap_name(dap->tap));
+			dap->adi_version = 5;
+		} else {
+			LOG_DEBUG("DAP %s configured to use %s protocol by user cfg file", jtag_tap_name(dap->tap),
+				is_adiv6(dap) ? "ADIv6" : "ADIv5");
+		}
+
 		retval = dap->ops->connect(dap);
 		if (retval != ERROR_OK)
 			return retval;
@@ -163,6 +171,8 @@ enum dap_cfg_param {
 	CFG_IGNORE_SYSPWRUPACK,
 	CFG_DP_ID,
 	CFG_INSTANCE_ID,
+	CFG_ADIV6,
+	CFG_ADIV5,
 };
 
 static const struct jim_nvp nvp_config_opts[] = {
@@ -170,6 +180,8 @@ static const struct jim_nvp nvp_config_opts[] = {
 	{ .name = "-ignore-syspwrupack", .value = CFG_IGNORE_SYSPWRUPACK },
 	{ .name = "-dp-id",              .value = CFG_DP_ID },
 	{ .name = "-instance-id",        .value = CFG_INSTANCE_ID },
+	{ .name = "-adiv6",              .value = CFG_ADIV6 },
+	{ .name = "-adiv5",              .value = CFG_ADIV5 },
 	{ .name = NULL, .value = -1 }
 };
 
@@ -249,6 +261,12 @@ static int dap_configure(struct jim_getopt_info *goi, struct arm_dap_object *dap
 			dap->dap.multidrop_instance_id_valid = true;
 			break;
 		}
+		case CFG_ADIV6:
+			dap->dap.adi_version = 6;
+			break;
+		case CFG_ADIV5:
+			dap->dap.adi_version = 5;
+			break;
 		default:
 			break;
 		}

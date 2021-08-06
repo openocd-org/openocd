@@ -353,6 +353,9 @@ struct adiv5_dap {
 	 * Record if enter in SWD required passing through DORMANT
 	 */
 	bool switch_through_dormant;
+
+	/** Indicates ADI version (5, 6 or 0 for unknown) being used */
+	unsigned int adi_version;
 };
 
 /**
@@ -424,6 +427,18 @@ enum ap_type {
 static inline bool is_64bit_ap(struct adiv5_ap *ap)
 {
 	return (ap->cfg_reg & MEM_AP_REG_CFG_LA) != 0;
+}
+
+/**
+ * Check if DAP is ADIv6
+ *
+ * @param dap The DAP to test
+ *
+ * @return true for ADIv6, false for either ADIv5 or unknown version
+ */
+static inline bool is_adiv6(const struct adiv5_dap *dap)
+{
+	return dap->adi_version == 6;
 }
 
 /**

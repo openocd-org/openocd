@@ -4646,8 +4646,12 @@ There can only be one DAP for each JTAG tap in the system.
 A DAP may also provide optional @var{configparams}:
 
 @itemize @bullet
+@item @code{-adiv5}
+Specify that it's an ADIv5 DAP. This is the default if not specified.
+@item @code{-adiv6}
+Specify that it's an ADIv6 DAP.
 @item @code{-ignore-syspwrupack}
-@*Specify this to ignore the CSYSPWRUPACK bit in the ARM DAP DP CTRL/STAT
+Specify this to ignore the CSYSPWRUPACK bit in the ARM DAP DP CTRL/STAT
 register during initial examination and when checking the sticky error bit.
 This bit is normally checked after setting the CSYSPWRUPREQ bit, but some
 devices do not set the ack bit until sometime later.
