@@ -29,7 +29,7 @@
 /**
  * @file
  * This file implements JTAG transport support for cores implementing
- the ARM Debug Interface version 5 (ADIv5).
+ the ARM Debug Interface version 5 (ADIv5) and version 6 (ADIv6).
  */
 
 #ifdef HAVE_CONFIG_H
@@ -51,8 +51,10 @@
 #define JTAG_DP_IDCODE		0xFE
 
 /* three-bit ACK values for DPACC and APACC reads */
-#define JTAG_ACK_OK_FAULT	0x2
-#define JTAG_ACK_WAIT		0x1
+#define JTAG_ACK_WAIT       0x1     /* ADIv5 and ADIv6 */
+#define JTAG_ACK_OK_FAULT   0x2     /* ADIv5 */
+#define JTAG_ACK_FAULT      0x2     /* ADIv6 */
+#define JTAG_ACK_OK         0x4     /* ADIV6 */
 
 static int jtag_ap_q_abort(struct adiv5_dap *dap, uint8_t *ack);
 
@@ -125,7 +127,7 @@ struct dap_cmd {
 	uint8_t *invalue;
 	uint8_t ack;
 	uint32_t memaccess_tck;
-	uint32_t dp_select;
+	uint64_t dp_select;
 
 	struct scan_field fields[2];
 	uint8_t out_addr_buf;
@@ -143,14 +145,35 @@ struct dap_cmd_pool {
 static void log_dap_cmd(struct adiv5_dap *dap, const char *header, struct dap_cmd *el)
 {
 #ifdef DEBUG_WAIT
+	const char *ack;
+	switch (el->ack) {
+	case JTAG_ACK_WAIT:         /* ADIv5 and ADIv6 */
+		ack = "WAIT";
+		break;
+	case JTAG_ACK_OK_FAULT:     /* ADIv5, same value as JTAG_ACK_FAULT */
+	/* case JTAG_ACK_FAULT: */  /* ADIv6 */
+		if (is_adiv6(dap))
+			ack = "FAULT";
+		else
+			ack = "OK";
+		break;
+	case JTAG_ACK_OK:           /* ADIv6 */
+		if (is_adiv6(dap)) {
+			ack = "OK";
+			break;
+		}
+		/* fall-through */
+	default:
+		ack = "INVAL";
+		break;
+	}
 	LOG_DEBUG("%s: %2s %6s %5s 0x%08x 0x%08x %2s", header,
 		el->instr == JTAG_DP_APACC ? "AP" : "DP",
 		dap_reg_name(dap, el->instr, el->reg_addr),
 		el->rnw == DPAP_READ ? "READ" : "WRITE",
 		buf_get_u32(el->outvalue_buf, 0, 32),
 		buf_get_u32(el->invalue, 0, 32),
-		el->ack == JTAG_ACK_OK_FAULT ? "OK" :
-			(el->ack == JTAG_ACK_WAIT ? "WAIT" : "INVAL"));
+		ack);
 #endif
 }
 
@@ -264,7 +287,7 @@ static int adi_jtag_dp_scan_cmd(struct adiv5_dap *dap, struct dap_cmd *cmd, uint
 	/* Add specified number of tck clocks after starting memory bus
 	 * access, giving the hardware time to complete the access.
 	 * They provide more time for the (MEM) AP to complete the read ...
-	 * See "Minimum Response Time" for JTAG-DP, in the ADIv5 spec.
+	 * See "Minimum Response Time" for JTAG-DP, in the ADIv5/ADIv6 spec.
 	 */
 	if (cmd->instr == JTAG_DP_APACC) {
 		if ((cmd->reg_addr == MEM_AP_REG_DRW(dap) ||
@@ -289,7 +312,7 @@ static int adi_jtag_dp_scan_cmd_sync(struct adiv5_dap *dap, struct dap_cmd *cmd,
 
 /**
  * Scan DPACC or APACC using target ordered uint8_t buffers.  No endianness
- * conversions are performed.  See section 4.4.3 of the ADIv5 spec, which
+ * conversions are performed.  See section 4.4.3 of the ADIv5/ADIv6 spec, which
  * discusses operations which access these registers.
  *
  * Note that only one scan is performed.  If rnw is set, a separate scan
@@ -335,13 +358,27 @@ static int adi_jtag_dp_scan(struct adiv5_dap *dap,
  * must be different).
  */
 static int adi_jtag_dp_scan_u32(struct adiv5_dap *dap,
-		uint8_t instr, uint8_t reg_addr, uint8_t rnw,
+		uint8_t instr, uint16_t reg_addr, uint8_t rnw,
 		uint32_t outvalue, uint32_t *invalue,
 		uint32_t memaccess_tck, uint8_t *ack)
 {
 	uint8_t out_value_buf[4];
 	int retval;
+	uint64_t sel = (reg_addr >> 4) & 0xf;
 
+	/* No need to change SELECT or RDBUFF as they are not banked */
+	if (instr == JTAG_DP_DPACC && reg_addr != DP_SELECT && reg_addr != DP_RDBUFF &&
+			sel != (dap->select & 0xf)) {
+		if (dap->select != DP_SELECT_INVALID)
+			sel |= dap->select & ~0xfull;
+		dap->select = sel;
+		LOG_DEBUG("DP BANKSEL: %x", (uint32_t)sel);
+		buf_set_u32(out_value_buf, 0, 32, (uint32_t)sel);
+		retval = adi_jtag_dp_scan(dap, JTAG_DP_DPACC,
+				DP_SELECT, DPAP_WRITE, out_value_buf, NULL, 0, NULL);
+		if (retval != ERROR_OK)
+			return retval;
+	}
 	buf_set_u32(out_value_buf, 0, 32, outvalue);
 
 	retval = adi_jtag_dp_scan(dap, instr, reg_addr, rnw,
@@ -409,7 +446,12 @@ static int jtagdp_overrun_check(struct adiv5_dap *dap)
 
 	/* skip all completed transactions up to the first WAIT */
 	list_for_each_entry(el, &dap->cmd_journal, lh) {
-		if (el->ack == JTAG_ACK_OK_FAULT) {
+		/*
+		 * JTAG_ACK_OK_FAULT (ADIv5) and JTAG_ACK_FAULT (ADIv6) are equal so
+		 * the following statement is checking to see if an acknowledgment of
+		 * OK or FAULT is generated for ADIv5 or ADIv6
+		 */
+		if (el->ack == JTAG_ACK_OK_FAULT || (is_adiv6(dap) && el->ack == JTAG_ACK_OK)) {
 			log_dap_cmd(dap, "LOG", el);
 		} else if (el->ack == JTAG_ACK_WAIT) {
 			found_wait = 1;
@@ -434,7 +476,8 @@ static int jtagdp_overrun_check(struct adiv5_dap *dap)
 			 * the result of the previous READ */
 			tmp = el;
 			list_for_each_entry_from(tmp, &dap->cmd_journal, lh) {
-				if (tmp->ack == JTAG_ACK_OK_FAULT) {
+				/* The following check covers OK and FAULT ACKs for both ADIv5 and ADIv6 */
+				if (tmp->ack == JTAG_ACK_OK_FAULT || (is_adiv6(dap) && tmp->ack == JTAG_ACK_OK)) {
 					/* recover the read value */
 					log_dap_cmd(dap, "FND", tmp);
 					if (el->invalue != el->invalue_buf) {
@@ -469,7 +512,8 @@ static int jtagdp_overrun_check(struct adiv5_dap *dap)
 					retval = adi_jtag_dp_scan_cmd_sync(dap, tmp, NULL);
 					if (retval != ERROR_OK)
 						break;
-					if (tmp->ack == JTAG_ACK_OK_FAULT) {
+					/* The following check covers OK and FAULT ACKs for both ADIv5 and ADIv6 */
+					if (tmp->ack == JTAG_ACK_OK_FAULT || (is_adiv6(dap) && tmp->ack == JTAG_ACK_OK)) {
 						log_dap_cmd(dap, "FND", tmp);
 						if (el->invalue != el->invalue_buf) {
 							uint32_t invalue = le_to_h_u32(tmp->invalue);
@@ -488,7 +532,7 @@ static int jtagdp_overrun_check(struct adiv5_dap *dap)
 
 				if (retval == ERROR_OK) {
 					/* timeout happened */
-					if (tmp->ack != JTAG_ACK_OK_FAULT) {
+					if (tmp->ack == JTAG_ACK_WAIT) {
 						LOG_ERROR("Timeout during WAIT recovery");
 						dap->select = DP_SELECT_INVALID;
 						jtag_ap_q_abort(dap, NULL);
@@ -554,7 +598,7 @@ static int jtagdp_overrun_check(struct adiv5_dap *dap)
 				if (retval != ERROR_OK)
 					break;
 				log_dap_cmd(dap, "REC", el);
-				if (el->ack == JTAG_ACK_OK_FAULT) {
+				if (el->ack == JTAG_ACK_OK_FAULT || (is_adiv6(dap) && el->ack == JTAG_ACK_OK)) {
 					if (el->invalue != el->invalue_buf) {
 						uint32_t invalue = le_to_h_u32(el->invalue);
 						memcpy(el->invalue, &invalue, sizeof(uint32_t));
@@ -577,7 +621,7 @@ static int jtagdp_overrun_check(struct adiv5_dap *dap)
 			} while (timeval_ms() - time_now < 1000);
 
 			if (retval == ERROR_OK) {
-				if (el->ack != JTAG_ACK_OK_FAULT) {
+				if (el->ack == JTAG_ACK_WAIT) {
 					LOG_ERROR("Timeout during WAIT recovery");
 					dap->select = DP_SELECT_INVALID;
 					jtag_ap_q_abort(dap, NULL);
@@ -715,15 +759,38 @@ static int jtag_dp_q_write(struct adiv5_dap *dap, unsigned reg,
 /** Select the AP register bank matching bits 7:4 of reg. */
 static int jtag_ap_q_bankselect(struct adiv5_ap *ap, unsigned reg)
 {
+	int retval;
 	struct adiv5_dap *dap = ap->dap;
-	uint32_t sel = ((uint32_t)ap->ap_num << 24) | (reg & 0x000000F0);
+	uint64_t sel;
+
+	if (is_adiv6(dap)) {
+		sel = ap->ap_num | (reg & 0x00000FF0);
+		if (sel == (dap->select & ~0xfull))
+			return ERROR_OK;
+
+		if (dap->select != DP_SELECT_INVALID)
+			sel |= dap->select & 0xf;
+		dap->select = sel;
+		LOG_DEBUG("AP BANKSEL: %" PRIx64, sel);
+
+		retval = jtag_dp_q_write(dap, DP_SELECT, (uint32_t)sel);
+		if (retval != ERROR_OK)
+			return retval;
+
+		if (dap->asize > 32)
+			return jtag_dp_q_write(dap, DP_SELECT1, (uint32_t)(sel >> 32));
+		return ERROR_OK;
+	}
+
+	/* ADIv5 */
+	sel = (ap->ap_num << 24) | (reg & 0x000000F0);
 
 	if (sel == dap->select)
 		return ERROR_OK;
 
 	dap->select = sel;
 
-	return jtag_dp_q_write(dap, DP_SELECT, sel);
+	return jtag_dp_q_write(dap, DP_SELECT, (uint32_t)sel);
 }
 
 static int jtag_ap_q_read(struct adiv5_ap *ap, unsigned reg,

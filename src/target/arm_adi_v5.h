@@ -348,7 +348,7 @@ struct adiv5_dap {
 	 * Cache for DP_SELECT register. A value of DP_SELECT_INVALID
 	 * indicates no cached value and forces rewrite of the register.
 	 */
-	uint32_t select;
+	uint64_t select;
 
 	/* information about current pending SWjDP-AHBAP transaction */
 	uint8_t  ack;

@@ -497,6 +497,14 @@ static int swd_queue_ap_read(struct adiv5_ap *ap, unsigned reg,
 	const struct swd_driver *swd = adiv5_dap_swd_driver(dap);
 	assert(swd);
 
+	if (is_adiv6(dap)) {
+		static bool error_flagged;
+		if (!error_flagged)
+			LOG_ERROR("ADIv6 dap not supported in SWD mode");
+		error_flagged = true;
+		return ERROR_FAIL;
+	}
+
 	int retval = swd_check_reconnect(dap);
 	if (retval != ERROR_OK)
 		return retval;
@@ -521,6 +529,14 @@ static int swd_queue_ap_write(struct adiv5_ap *ap, unsigned reg,
 	struct adiv5_dap *dap = ap->dap;
 	const struct swd_driver *swd = adiv5_dap_swd_driver(dap);
 	assert(swd);
+
+	if (is_adiv6(dap)) {
+		static bool error_flagged;
+		if (!error_flagged)
+			LOG_ERROR("ADIv6 dap not supported in SWD mode");
+		error_flagged = true;
+		return ERROR_FAIL;
+	}
 
 	int retval = swd_check_reconnect(dap);
 	if (retval != ERROR_OK)

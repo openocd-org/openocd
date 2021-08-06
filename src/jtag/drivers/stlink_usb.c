@@ -4286,6 +4286,14 @@ static int stlink_dap_ap_read(struct adiv5_ap *ap, unsigned int reg, uint32_t *d
 	uint32_t dummy;
 	int retval;
 
+	if (is_adiv6(dap)) {
+		static bool error_flagged;
+		if (!error_flagged)
+			LOG_ERROR("ADIv6 dap not supported by stlink dap-direct mode");
+		error_flagged = true;
+		return ERROR_FAIL;
+	}
+
 	if (reg != ADIV5_AP_REG_IDR) {
 		retval = stlink_dap_open_ap(ap->ap_num);
 		if (retval != ERROR_OK)
@@ -4303,6 +4311,14 @@ static int stlink_dap_ap_write(struct adiv5_ap *ap, unsigned int reg, uint32_t d
 {
 	struct adiv5_dap *dap = ap->dap;
 	int retval;
+
+	if (is_adiv6(dap)) {
+		static bool error_flagged;
+		if (!error_flagged)
+			LOG_ERROR("ADIv6 dap not supported by stlink dap-direct mode");
+		error_flagged = true;
+		return ERROR_FAIL;
+	}
 
 	retval = stlink_dap_open_ap(ap->ap_num);
 	if (retval != ERROR_OK)

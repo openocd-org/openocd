@@ -282,6 +282,14 @@ static int rshim_ap_q_read(struct adiv5_ap *ap, unsigned int reg,
 	uint32_t addr;
 	int rc = ERROR_OK, tile;
 
+	if (is_adiv6(ap->dap)) {
+		static bool error_flagged;
+		if (!error_flagged)
+			LOG_ERROR("ADIv6 dap not supported by rshim dap-direct mode");
+		error_flagged = true;
+		return ERROR_FAIL;
+	}
+
 	switch (reg) {
 	case ADIV5_MEM_AP_REG_CSW:
 		*data = ap_csw;
@@ -337,6 +345,14 @@ static int rshim_ap_q_write(struct adiv5_ap *ap, unsigned int reg,
 {
 	int rc = ERROR_OK, tile;
 	uint32_t addr;
+
+	if (is_adiv6(ap->dap)) {
+		static bool error_flagged;
+		if (!error_flagged)
+			LOG_ERROR("ADIv6 dap not supported by rshim dap-direct mode");
+		error_flagged = true;
+		return ERROR_FAIL;
+	}
 
 	if (ap_bank != 0) {
 		rshim_dap_retval = ERROR_FAIL;
