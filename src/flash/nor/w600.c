@@ -312,7 +312,7 @@ static int w600_probe(struct flash_bank *bank)
 		flash_size = 1 << flash_size;
 	}
 
-	LOG_INFO("flash size = %" PRIu32 "kbytes", flash_size / 1024);
+	LOG_INFO("flash size = %" PRIu32 " KiB", flash_size / 1024);
 
 	/* calculate numbers of pages */
 	size_t num_pages = flash_size / W600_FLASH_SECSIZE;

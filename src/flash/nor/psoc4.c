@@ -774,7 +774,7 @@ static int psoc4_probe(struct flash_bank *bank)
 		num_macros++;
 	}
 
-	LOG_DEBUG("SPCIF geometry: %" PRIu32 " kb flash, row %" PRIu32 " bytes.",
+	LOG_DEBUG("SPCIF geometry: %" PRIu32 " KiB flash, row %" PRIu32 " bytes.",
 		 flash_size_in_kb, row_size);
 
 	/* if the user sets the size manually then ignore the probed value
@@ -788,7 +788,7 @@ static int psoc4_probe(struct flash_bank *bank)
 	if (num_macros > 1)
 		snprintf(macros_txt, sizeof(macros_txt), " in %" PRIu32 " macros", num_macros);
 
-	LOG_INFO("flash size = %" PRIu32 " kbytes%s", flash_size_in_kb, macros_txt);
+	LOG_INFO("flash size = %" PRIu32 " KiB%s", flash_size_in_kb, macros_txt);
 
 	/* calculate number of pages */
 	uint32_t num_rows = flash_size_in_kb * 1024 / row_size;

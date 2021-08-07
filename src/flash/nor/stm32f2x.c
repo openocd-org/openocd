@@ -1125,7 +1125,7 @@ static int stm32x_probe(struct flash_bank *bank)
 		flash_size_in_kb = stm32x_info->user_bank_size / 1024;
 	}
 
-	LOG_INFO("flash size = %" PRIu16 " kbytes", flash_size_in_kb);
+	LOG_INFO("flash size = %" PRIu16 " KiB", flash_size_in_kb);
 
 	/* did we assign flash size? */
 	assert(flash_size_in_kb != 0xffff);

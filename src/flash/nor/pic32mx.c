@@ -759,7 +759,7 @@ static int pic32mx_probe(struct flash_bank *bank)
 		}
 	}
 
-	LOG_INFO("flash size = %" PRIu32 "kbytes", num_pages / 1024);
+	LOG_INFO("flash size = %" PRIu32 " KiB", num_pages / 1024);
 
 	free(bank->sectors);
 

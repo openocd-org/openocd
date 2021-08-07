@@ -1816,7 +1816,7 @@ static int stm32l4_probe(struct flash_bank *bank)
 		flash_size_kb = stm32l4_info->user_bank_size / 1024;
 	}
 
-	LOG_INFO("flash size = %dkbytes", flash_size_kb);
+	LOG_INFO("flash size = %d KiB", flash_size_kb);
 
 	/* did we assign a flash size? */
 	assert((flash_size_kb != 0xffff) && flash_size_kb);
