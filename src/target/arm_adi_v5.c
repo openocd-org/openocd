@@ -1123,7 +1123,7 @@ static int dap_read_part_id(struct adiv5_ap *ap, target_addr_t component_base, u
 
 #define ANY_ID 0x1000
 
-#define ARM_ID 0x4BB
+#define ARM_ID 0x23B
 
 static const struct {
 	uint16_t designer_id;
@@ -1216,22 +1216,22 @@ static const struct {
 	{ ARM_ID, 0xd07, "Cortex-A57 Debug",           "(Debug Unit)", },
 	{ ARM_ID, 0xd08, "Cortex-A72 Debug",           "(Debug Unit)", },
 	{ ARM_ID, 0xd0b, "Cortex-A76 Debug",           "(Debug Unit)", },
-	{ 0x097,  0x9af, "MSP432 ROM",                 "(ROM Table)" },
-	{ 0x09f,  0xcd0, "Atmel CPU with DSU",         "(CPU)" },
-	{ 0x0c1,  0x1db, "XMC4500 ROM",                "(ROM Table)" },
-	{ 0x0c1,  0x1df, "XMC4700/4800 ROM",           "(ROM Table)" },
-	{ 0x0c1,  0x1ed, "XMC1000 ROM",                "(ROM Table)" },
-	{ 0x0E5,  0x000, "SHARC+/Blackfin+",           "", },
-	{ 0x0F0,  0x440, "Qualcomm QDSS Component v1", "(Qualcomm Designed CoreSight Component v1)", },
-	{ 0x1bf,  0x100, "Brahma-B53 Debug",           "(Debug Unit)", },
-	{ 0x1bf,  0x9d3, "Brahma-B53 PMU",             "(Performance Monitor Unit)", },
-	{ 0x1bf,  0x4a1, "Brahma-B53 ROM",             "(ROM Table)", },
-	{ 0x1bf,  0x721, "Brahma-B53 ROM",             "(ROM Table)", },
-	{ 0x3eb,  0x181, "Tegra 186 ROM",              "(ROM Table)", },
-	{ 0x3eb,  0x202, "Denver ETM",                 "(Denver Embedded Trace)", },
-	{ 0x3eb,  0x211, "Tegra 210 ROM",              "(ROM Table)", },
-	{ 0x3eb,  0x302, "Denver Debug",               "(Debug Unit)", },
-	{ 0x3eb,  0x402, "Denver PMU",                 "(Performance Monitor Unit)", },
+	{ 0x017,  0x9af, "MSP432 ROM",                 "(ROM Table)" },
+	{ 0x01f,  0xcd0, "Atmel CPU with DSU",         "(CPU)" },
+	{ 0x041,  0x1db, "XMC4500 ROM",                "(ROM Table)" },
+	{ 0x041,  0x1df, "XMC4700/4800 ROM",           "(ROM Table)" },
+	{ 0x041,  0x1ed, "XMC1000 ROM",                "(ROM Table)" },
+	{ 0x065,  0x000, "SHARC+/Blackfin+",           "", },
+	{ 0x070,  0x440, "Qualcomm QDSS Component v1", "(Qualcomm Designed CoreSight Component v1)", },
+	{ 0x0bf,  0x100, "Brahma-B53 Debug",           "(Debug Unit)", },
+	{ 0x0bf,  0x9d3, "Brahma-B53 PMU",             "(Performance Monitor Unit)", },
+	{ 0x0bf,  0x4a1, "Brahma-B53 ROM",             "(ROM Table)", },
+	{ 0x0bf,  0x721, "Brahma-B53 ROM",             "(ROM Table)", },
+	{ 0x1eb,  0x181, "Tegra 186 ROM",              "(ROM Table)", },
+	{ 0x1eb,  0x202, "Denver ETM",                 "(Denver Embedded Trace)", },
+	{ 0x1eb,  0x211, "Tegra 210 ROM",              "(ROM Table)", },
+	{ 0x1eb,  0x302, "Denver Debug",               "(Debug Unit)", },
+	{ 0x1eb,  0x402, "Denver PMU",                 "(Performance Monitor Unit)", },
 	/* legacy comment: 0x113: what? */
 	{ ANY_ID, 0x120, "TI SDTI",                    "(System Debug Trace Interface)", }, /* from OMAP3 memmap */
 	{ ANY_ID, 0x343, "TI DAPCTL",                  "", }, /* from OMAP3 memmap */
@@ -1276,12 +1276,12 @@ static int dap_rom_display(struct command_invocation *cmd,
 
 	uint8_t class = (cid >> 12) & 0xf;
 	uint16_t part_num = pid & 0xfff;
-	uint16_t designer_id = ((pid >> 32) & 0xf) << 8 | ((pid >> 12) & 0xff);
+	uint16_t designer_id = ((pid >> 32) & 0xf) << 7 | ((pid >> 12) & 0x7f);
 
-	if (designer_id & 0x80) {
+	if (pid & 0x00080000) {
 		/* JEP106 code */
 		command_print(cmd, "\t\tDesigner is 0x%03" PRIx16 ", %s",
-				designer_id, jep106_manufacturer(designer_id >> 8, designer_id & 0x7f));
+				designer_id, jep106_manufacturer(designer_id));
 	} else {
 		/* Legacy ASCII ID, clear invalid bits */
 		designer_id &= 0x7f;

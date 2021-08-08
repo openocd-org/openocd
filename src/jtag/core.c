@@ -1072,8 +1072,6 @@ void jtag_sleep(uint32_t us)
 
 #define JTAG_MAX_AUTO_TAPS 20
 
-#define EXTRACT_JEP106_BANK(X) (((X) & 0xf00) >> 8)
-#define EXTRACT_JEP106_ID(X)   (((X) & 0xfe) >> 1)
 #define EXTRACT_MFG(X)  (((X) & 0xffe) >> 1)
 #define EXTRACT_PART(X) (((X) & 0xffff000) >> 12)
 #define EXTRACT_VER(X)  (((X) & 0xf0000000) >> 28)
@@ -1141,7 +1139,7 @@ static void jtag_examine_chain_display(enum log_levels level, const char *msg,
 		name, msg,
 		(unsigned int)idcode,
 		(unsigned int)EXTRACT_MFG(idcode),
-		jep106_manufacturer(EXTRACT_JEP106_BANK(idcode), EXTRACT_JEP106_ID(idcode)),
+		jep106_manufacturer(EXTRACT_MFG(idcode)),
 		(unsigned int)EXTRACT_PART(idcode),
 		(unsigned int)EXTRACT_VER(idcode));
 }
