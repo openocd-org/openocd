@@ -29,6 +29,7 @@
 #include "target_type.h"
 #include "armv8_opcodes.h"
 #include "armv8_cache.h"
+#include "arm_coresight.h"
 #include "arm_semihosting.h"
 #include "jtag/interface.h"
 #include "smp.h"
@@ -2578,8 +2579,8 @@ static int aarch64_examine_first(struct target *target)
 		retval = dap_get_debugbase(armv8->debug_ap, &dbgbase, &apid);
 		if (retval != ERROR_OK)
 			return retval;
-		/* Lookup 0x15 -- Processor DAP */
-		retval = dap_lookup_cs_component(armv8->debug_ap, dbgbase, 0x15,
+		/* Lookup Processor DAP */
+		retval = dap_lookup_cs_component(armv8->debug_ap, dbgbase, ARM_CS_C9_DEVTYPE_CORE_DEBUG,
 				&armv8->debug_base, &coreidx);
 		if (retval != ERROR_OK)
 			return retval;

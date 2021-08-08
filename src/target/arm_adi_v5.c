@@ -75,8 +75,10 @@
 #include "jtag/interface.h"
 #include "arm.h"
 #include "arm_adi_v5.h"
+#include "arm_coresight.h"
 #include "jtag/swd.h"
 #include "transport/transport.h"
+#include <helper/align.h>
 #include <helper/jep106.h>
 #include <helper/time_support.h>
 #include <helper/list.h>
@@ -891,11 +893,6 @@ static const char *class_description[16] = {
 	[0xF] = "CoreLink, PrimeCell or System component",
 };
 
-static bool is_dap_cid_ok(uint32_t cid)
-{
-	return (cid & 0xffff0fff) == 0xb105000d;
-}
-
 /*
  * This function checks the ID for each access port to find the requested Access Port type
  */
@@ -1006,17 +1003,18 @@ int dap_lookup_cs_component(struct adiv5_ap *ap,
 		if (retval != ERROR_OK)
 			return retval;
 
-		component_base = dbgbase + (target_addr_t)(romentry & 0xFFFFF000);
+		component_base = dbgbase + (target_addr_t)(romentry & ARM_CS_ROMENTRY_OFFSET_MASK);
 
-		if (romentry & 0x1) {
+		if (romentry & ARM_CS_ROMENTRY_PRESENT) {
 			uint32_t c_cid1;
-			retval = mem_ap_read_atomic_u32(ap, component_base | 0xff4, &c_cid1);
+			retval = mem_ap_read_atomic_u32(ap, component_base + ARM_CS_CIDR1, &c_cid1);
 			if (retval != ERROR_OK) {
 				LOG_ERROR("Can't read component with base address " TARGET_ADDR_FMT
 					  ", the corresponding core might be turned off", component_base);
 				return retval;
 			}
-			if (((c_cid1 >> 4) & 0x0f) == 1) {
+			unsigned int class = (c_cid1 & ARM_CS_CIDR1_CLASS_MASK) >> ARM_CS_CIDR1_CLASS_SHIFT;
+			if (class == ARM_CS_CLASS_0X1_ROM_TABLE) {
 				retval = dap_lookup_cs_component(ap, component_base,
 							type, addr, idx);
 				if (retval == ERROR_OK)
@@ -1025,10 +1023,10 @@ int dap_lookup_cs_component(struct adiv5_ap *ap,
 					return retval;
 			}
 
-			retval = mem_ap_read_atomic_u32(ap, component_base | 0xfcc, &devtype);
+			retval = mem_ap_read_atomic_u32(ap, component_base + ARM_CS_C9_DEVTYPE, &devtype);
 			if (retval != ERROR_OK)
 				return retval;
-			if ((devtype & 0xff) == type) {
+			if ((devtype & ARM_CS_C9_DEVTYPE_MASK) == type) {
 				if (!*idx) {
 					*addr = component_base;
 					break;
@@ -1047,7 +1045,7 @@ int dap_lookup_cs_component(struct adiv5_ap *ap,
 
 static int dap_read_part_id(struct adiv5_ap *ap, target_addr_t component_base, uint32_t *cid, uint64_t *pid)
 {
-	assert((component_base & 0xFFF) == 0);
+	assert(IS_ALIGNED(component_base, ARM_CS_ALIGN));
 	assert(ap && cid && pid);
 
 	uint32_t cid0, cid1, cid2, cid3;
@@ -1055,31 +1053,31 @@ static int dap_read_part_id(struct adiv5_ap *ap, target_addr_t component_base, u
 	int retval;
 
 	/* IDs are in last 4K section */
-	retval = mem_ap_read_u32(ap, component_base + 0xFE0, &pid0);
+	retval = mem_ap_read_u32(ap, component_base + ARM_CS_PIDR0, &pid0);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = mem_ap_read_u32(ap, component_base + 0xFE4, &pid1);
+	retval = mem_ap_read_u32(ap, component_base + ARM_CS_PIDR1, &pid1);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = mem_ap_read_u32(ap, component_base + 0xFE8, &pid2);
+	retval = mem_ap_read_u32(ap, component_base + ARM_CS_PIDR2, &pid2);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = mem_ap_read_u32(ap, component_base + 0xFEC, &pid3);
+	retval = mem_ap_read_u32(ap, component_base + ARM_CS_PIDR3, &pid3);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = mem_ap_read_u32(ap, component_base + 0xFD0, &pid4);
+	retval = mem_ap_read_u32(ap, component_base + ARM_CS_PIDR4, &pid4);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = mem_ap_read_u32(ap, component_base + 0xFF0, &cid0);
+	retval = mem_ap_read_u32(ap, component_base + ARM_CS_CIDR0, &cid0);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = mem_ap_read_u32(ap, component_base + 0xFF4, &cid1);
+	retval = mem_ap_read_u32(ap, component_base + ARM_CS_CIDR1, &cid1);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = mem_ap_read_u32(ap, component_base + 0xFF8, &cid2);
+	retval = mem_ap_read_u32(ap, component_base + ARM_CS_CIDR2, &cid2);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = mem_ap_read_u32(ap, component_base + 0xFFC, &cid3);
+	retval = mem_ap_read_u32(ap, component_base + ARM_CS_CIDR3, &cid3);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -1099,14 +1097,6 @@ static int dap_read_part_id(struct adiv5_ap *ap, target_addr_t component_base, u
 
 	return ERROR_OK;
 }
-
-/* The designer identity code is encoded as:
- * bits 11:8 : JEP106 Bank (number of continuation codes), only valid when bit 7 is 1.
- * bit 7     : Set when bits 6:0 represent a JEP106 ID and cleared when bits 6:0 represent
- *             a legacy ASCII Identity Code.
- * bits 6:0  : JEP106 Identity Code (without parity) or legacy ASCII code according to bit 7.
- * JEP106 is a standard available from jedec.org
- */
 
 /* Part number interpretations are from Cortex
  * core specs, the CoreSight components TRM
@@ -1262,23 +1252,23 @@ static int dap_rom_display(struct command_invocation *cmd,
 		return ERROR_OK; /* Don't abort recursion */
 	}
 
-	if (!is_dap_cid_ok(cid)) {
+	if (!is_valid_arm_cs_cidr(cid)) {
 		command_print(cmd, "\t\tInvalid CID 0x%08" PRIx32, cid);
 		return ERROR_OK; /* Don't abort recursion */
 	}
 
 	/* component may take multiple 4K pages */
-	uint32_t size = (pid >> 36) & 0xf;
+	uint32_t size = ARM_CS_PIDR_SIZE(pid);
 	if (size > 0)
 		command_print(cmd, "\t\tStart address " TARGET_ADDR_FMT, base_addr - 0x1000 * size);
 
 	command_print(cmd, "\t\tPeripheral ID 0x%010" PRIx64, pid);
 
-	uint8_t class = (cid >> 12) & 0xf;
-	uint16_t part_num = pid & 0xfff;
-	uint16_t designer_id = ((pid >> 32) & 0xf) << 7 | ((pid >> 12) & 0x7f);
+	uint8_t class = (cid & ARM_CS_CIDR_CLASS_MASK) >> ARM_CS_CIDR_CLASS_SHIFT;
+	uint16_t part_num = ARM_CS_PIDR_PART(pid);
+	uint16_t designer_id = ARM_CS_PIDR_DESIGNER(pid);
 
-	if (pid & 0x00080000) {
+	if (pid & ARM_CS_PIDR_JEDEC) {
 		/* JEP106 code */
 		command_print(cmd, "\t\tDesigner is 0x%03" PRIx16 ", %s",
 				designer_id, jep106_manufacturer(designer_id));
@@ -1310,13 +1300,13 @@ static int dap_rom_display(struct command_invocation *cmd,
 	command_print(cmd, "\t\tPart is 0x%" PRIx16", %s %s", part_num, type, full);
 	command_print(cmd, "\t\tComponent class is 0x%" PRIx8 ", %s", class, class_description[class]);
 
-	if (class == 1) { /* ROM Table */
+	if (class == ARM_CS_CLASS_0X1_ROM_TABLE) {
 		uint32_t memtype;
-		retval = mem_ap_read_atomic_u32(ap, base_addr | 0xFCC, &memtype);
+		retval = mem_ap_read_atomic_u32(ap, base_addr + ARM_CS_C1_MEMTYPE, &memtype);
 		if (retval != ERROR_OK)
 			return retval;
 
-		if (memtype & 0x01)
+		if (memtype & ARM_CS_C1_MEMTYPE_SYSMEM_MASK)
 			command_print(cmd, "\t\tMEMTYPE system memory present on bus");
 		else
 			command_print(cmd, "\t\tMEMTYPE system memory not present: dedicated debug bus");
@@ -1329,9 +1319,10 @@ static int dap_rom_display(struct command_invocation *cmd,
 				return retval;
 			command_print(cmd, "\t%sROMTABLE[0x%x] = 0x%" PRIx32 "",
 					tabs, entry_offset, romentry);
-			if (romentry & 0x01) {
+			if (romentry & ARM_CS_ROMENTRY_PRESENT) {
 				/* Recurse. "romentry" is signed */
-				retval = dap_rom_display(cmd, ap, base_addr + (int32_t)(romentry & 0xFFFFF000), depth + 1);
+				retval = dap_rom_display(cmd, ap, base_addr + (int32_t)(romentry & ARM_CS_ROMENTRY_OFFSET_MASK),
+										 depth + 1);
 				if (retval != ERROR_OK)
 					return retval;
 			} else if (romentry != 0) {
@@ -1341,15 +1332,16 @@ static int dap_rom_display(struct command_invocation *cmd,
 				break;
 			}
 		}
-	} else if (class == 9) { /* CoreSight component */
+	} else if (class == ARM_CS_CLASS_0X9_CS_COMPONENT) {
 		const char *major = "Reserved", *subtype = "Reserved";
 
 		uint32_t devtype;
-		retval = mem_ap_read_atomic_u32(ap, base_addr | 0xFCC, &devtype);
+		retval = mem_ap_read_atomic_u32(ap, base_addr + ARM_CS_C9_DEVTYPE, &devtype);
 		if (retval != ERROR_OK)
 			return retval;
-		unsigned minor = (devtype >> 4) & 0x0f;
-		switch (devtype & 0x0f) {
+		unsigned int minor = (devtype & ARM_CS_C9_DEVTYPE_SUB_MASK) >> ARM_CS_C9_DEVTYPE_SUB_SHIFT;
+		unsigned int devtype_major = (devtype & ARM_CS_C9_DEVTYPE_MAJOR_MASK) >> ARM_CS_C9_DEVTYPE_MAJOR_SHIFT;
+		switch (devtype_major) {
 		case 0:
 			major = "Miscellaneous";
 			switch (minor) {
@@ -1482,10 +1474,10 @@ static int dap_rom_display(struct command_invocation *cmd,
 			}
 			break;
 		}
-		command_print(cmd, "\t\tType is 0x%02" PRIx8 ", %s, %s",
-				(uint8_t)(devtype & 0xff),
+		command_print(cmd, "\t\tType is 0x%02x, %s, %s",
+				devtype & ARM_CS_C9_DEVTYPE_MASK,
 				major, subtype);
-		/* REVISIT also show 0xfc8 DevId */
+		/* REVISIT also show ARM_CS_C9_DEVID */
 	}
 
 	return ERROR_OK;

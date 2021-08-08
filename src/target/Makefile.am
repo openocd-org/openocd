@@ -165,6 +165,7 @@ ARC_SRC = \
 %C%_libtarget_la_SOURCES += \
 	%D%/algorithm.h \
 	%D%/arm.h \
+	%D%/arm_coresight.h \
 	%D%/arm_dpm.h \
 	%D%/arm_jtag.h \
 	%D%/arm_adi_v5.h \
