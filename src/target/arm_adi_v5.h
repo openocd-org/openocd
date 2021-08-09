@@ -86,6 +86,9 @@
 #define DP_DPIDR1_ASIZE_MASK    (0x7F)
 #define DP_DPIDR1_ERRMODE       BIT(7)
 
+/* Fields of register DP_BASEPTR0 */
+#define DP_BASEPTR0_VALID       BIT(0)
+
 /* Fields of the DP's CTRL/STAT register */
 #define CORUNDETECT     (1UL << 0)
 #define SSTICKYORUN     (1UL << 1)
@@ -691,6 +694,9 @@ int mem_ap_init(struct adiv5_ap *ap);
 
 /* Invalidate cached DP select and cached TAR and CSW of all APs */
 void dap_invalidate_cache(struct adiv5_dap *dap);
+
+/* read ADIv6 baseptr register */
+int adiv6_dap_read_baseptr(struct command_invocation *cmd, struct adiv5_dap *dap, target_addr_t *baseptr);
 
 /* test if ap_num is valid, based on current knowledge of dap */
 bool is_ap_num_valid(struct adiv5_dap *dap, uint64_t ap_num);

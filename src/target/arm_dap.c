@@ -471,6 +471,18 @@ COMMAND_HANDLER(handle_dap_info_command)
 			apsel = dap->apsel;
 			break;
 		case 1:
+			if (!strcmp(CMD_ARGV[0], "root")) {
+				if (!is_adiv6(dap)) {
+					command_print(CMD, "Option \"root\" not allowed with ADIv5 DAP");
+					return ERROR_COMMAND_ARGUMENT_INVALID;
+				}
+				int retval = adiv6_dap_read_baseptr(CMD, dap, &apsel);
+				if (retval != ERROR_OK) {
+					command_print(CMD, "Failed reading DAP baseptr");
+					return retval;
+				}
+				break;
+			}
 			COMMAND_PARSE_NUMBER(u64, CMD_ARGV[0], apsel);
 			if (!is_ap_num_valid(dap, apsel))
 				return ERROR_COMMAND_SYNTAX_ERROR;
@@ -515,9 +527,9 @@ static const struct command_registration dap_subcommand_handlers[] = {
 		.name = "info",
 		.handler = handle_dap_info_command,
 		.mode = COMMAND_EXEC,
-		.help = "display ROM table for MEM-AP of current target "
-		"(default currently selected AP)",
-		.usage = "[ap_num]",
+		.help = "display ROM table for specified MEM-AP (default MEM-AP of current target) "
+			"or the ADIv6 root ROM table of current target's DAP",
+		.usage = "[ap_num | 'root']",
 	},
 	COMMAND_REGISTRATION_DONE
 };

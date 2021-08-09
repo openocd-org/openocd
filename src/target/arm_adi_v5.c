@@ -1154,6 +1154,32 @@ static int dap_get_debugbase(struct adiv5_ap *ap,
 	return ERROR_OK;
 }
 
+int adiv6_dap_read_baseptr(struct command_invocation *cmd, struct adiv5_dap *dap, uint64_t *baseptr)
+{
+	uint32_t baseptr_lower, baseptr_upper = 0;
+	int retval;
+
+	if (dap->asize > 32) {
+		retval = dap_queue_dp_read(dap, DP_BASEPTR1, &baseptr_upper);
+		if (retval != ERROR_OK)
+			return retval;
+	}
+
+	retval = dap_dp_read_atomic(dap, DP_BASEPTR0, &baseptr_lower);
+	if (retval != ERROR_OK)
+		return retval;
+
+	if ((baseptr_lower & DP_BASEPTR0_VALID) != DP_BASEPTR0_VALID) {
+		command_print(cmd, "System root table not present");
+		return ERROR_FAIL;
+	}
+
+	baseptr_lower &= ~0x0fff;
+	*baseptr = (((uint64_t)baseptr_upper) << 32) | baseptr_lower;
+
+	return ERROR_OK;
+}
+
 /** Holds registers and coordinates of a CoreSight component */
 struct cs_component_vals {
 	struct adiv5_ap *ap;
@@ -2225,6 +2251,18 @@ COMMAND_HANDLER(handle_dap_info_command)
 		apsel = dap->apsel;
 		break;
 	case 1:
+		if (!strcmp(CMD_ARGV[0], "root")) {
+			if (!is_adiv6(dap)) {
+				command_print(CMD, "Option \"root\" not allowed with ADIv5 DAP");
+				return ERROR_COMMAND_ARGUMENT_INVALID;
+			}
+			int retval = adiv6_dap_read_baseptr(CMD, dap, &apsel);
+			if (retval != ERROR_OK) {
+				command_print(CMD, "Failed reading DAP baseptr");
+				return retval;
+			}
+			break;
+		}
 		COMMAND_PARSE_NUMBER(u64, CMD_ARGV[0], apsel);
 		if (!is_ap_num_valid(dap, apsel)) {
 			command_print(CMD, "Invalid AP number");
@@ -2595,9 +2633,9 @@ const struct command_registration dap_instance_commands[] = {
 		.name = "info",
 		.handler = handle_dap_info_command,
 		.mode = COMMAND_EXEC,
-		.help = "display ROM table for MEM-AP "
-			"(default currently selected AP)",
-		.usage = "[ap_num]",
+		.help = "display ROM table for specified MEM-AP (default currently selected AP) "
+			"or the ADIv6 root ROM table",
+		.usage = "[ap_num | 'root']",
 	},
 	{
 		.name = "apsel",

@@ -4677,11 +4677,12 @@ This command returns a list of all registered DAP objects. It it useful mainly
 for TCL scripting.
 @end deffn
 
-@deffn {Command} {dap info} [num]
+@deffn {Command} {dap info} [@var{num}|@option{root}]
 Displays the ROM table for MEM-AP @var{num},
 defaulting to the currently selected AP of the currently selected target.
 On ADIv5 DAP @var{num} is the numeric index of the AP.
 On ADIv6 DAP @var{num} is the base address of the AP.
+With ADIv6 only, @option{root} specifies the root ROM table.
 @end deffn
 
 @deffn {Command} {dap init}
@@ -4692,11 +4693,12 @@ initialization, too.
 
 The following commands exist as subcommands of DAP instances:
 
-@deffn {Command} {$dap_name info} [num]
+@deffn {Command} {$dap_name info} [@var{num}|@option{root}]
 Displays the ROM table for MEM-AP @var{num},
 defaulting to the currently selected AP.
 On ADIv5 DAP @var{num} is the numeric index of the AP.
 On ADIv6 DAP @var{num} is the base address of the AP.
+With ADIv6 only, @option{root} specifies the root ROM table.
 @end deffn
 
 @deffn {Command} {$dap_name apid} [num]
