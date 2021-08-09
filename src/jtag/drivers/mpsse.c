@@ -945,12 +945,12 @@ error_check:
 		retval = ERROR_OK;
 	}
 
+	if (retval != ERROR_OK)
+		mpsse_purge(ctx);
+
 	libusb_free_transfer(write_transfer);
 	if (read_transfer)
 		libusb_free_transfer(read_transfer);
-
-	if (retval != ERROR_OK)
-		mpsse_purge(ctx);
 
 	return retval;
 }
