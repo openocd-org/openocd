@@ -1227,6 +1227,150 @@ static const struct {
 	{ ANY_ID, 0x343, "TI DAPCTL",                  "", }, /* from OMAP3 memmap */
 };
 
+static int dap_devtype_display(struct command_invocation *cmd, uint32_t devtype)
+{
+	const char *major = "Reserved", *subtype = "Reserved";
+	const unsigned int minor = (devtype & ARM_CS_C9_DEVTYPE_SUB_MASK) >> ARM_CS_C9_DEVTYPE_SUB_SHIFT;
+	const unsigned int devtype_major = (devtype & ARM_CS_C9_DEVTYPE_MAJOR_MASK) >> ARM_CS_C9_DEVTYPE_MAJOR_SHIFT;
+	switch (devtype_major) {
+	case 0:
+		major = "Miscellaneous";
+		switch (minor) {
+		case 0:
+			subtype = "other";
+			break;
+		case 4:
+			subtype = "Validation component";
+			break;
+		}
+		break;
+	case 1:
+		major = "Trace Sink";
+		switch (minor) {
+		case 0:
+			subtype = "other";
+			break;
+		case 1:
+			subtype = "Port";
+			break;
+		case 2:
+			subtype = "Buffer";
+			break;
+		case 3:
+			subtype = "Router";
+			break;
+		}
+		break;
+	case 2:
+		major = "Trace Link";
+		switch (minor) {
+		case 0:
+			subtype = "other";
+			break;
+		case 1:
+			subtype = "Funnel, router";
+			break;
+		case 2:
+			subtype = "Filter";
+			break;
+		case 3:
+			subtype = "FIFO, buffer";
+			break;
+		}
+		break;
+	case 3:
+		major = "Trace Source";
+		switch (minor) {
+		case 0:
+			subtype = "other";
+			break;
+		case 1:
+			subtype = "Processor";
+			break;
+		case 2:
+			subtype = "DSP";
+			break;
+		case 3:
+			subtype = "Engine/Coprocessor";
+			break;
+		case 4:
+			subtype = "Bus";
+			break;
+		case 6:
+			subtype = "Software";
+			break;
+		}
+		break;
+	case 4:
+		major = "Debug Control";
+		switch (minor) {
+		case 0:
+			subtype = "other";
+			break;
+		case 1:
+			subtype = "Trigger Matrix";
+			break;
+		case 2:
+			subtype = "Debug Auth";
+			break;
+		case 3:
+			subtype = "Power Requestor";
+			break;
+		}
+		break;
+	case 5:
+		major = "Debug Logic";
+		switch (minor) {
+		case 0:
+			subtype = "other";
+			break;
+		case 1:
+			subtype = "Processor";
+			break;
+		case 2:
+			subtype = "DSP";
+			break;
+		case 3:
+			subtype = "Engine/Coprocessor";
+			break;
+		case 4:
+			subtype = "Bus";
+			break;
+		case 5:
+			subtype = "Memory";
+			break;
+		}
+		break;
+	case 6:
+		major = "Performance Monitor";
+		switch (minor) {
+		case 0:
+			subtype = "other";
+			break;
+		case 1:
+			subtype = "Processor";
+			break;
+		case 2:
+			subtype = "DSP";
+			break;
+		case 3:
+			subtype = "Engine/Coprocessor";
+			break;
+		case 4:
+			subtype = "Bus";
+			break;
+		case 5:
+			subtype = "Memory";
+			break;
+		}
+		break;
+	}
+	command_print(cmd, "\t\tType is 0x%02x, %s, %s",
+			devtype & ARM_CS_C9_DEVTYPE_MASK,
+			major, subtype);
+	return ERROR_OK;
+}
+
 static int dap_rom_display(struct command_invocation *cmd,
 				struct adiv5_ap *ap, target_addr_t dbgbase, int depth)
 {
@@ -1333,150 +1477,15 @@ static int dap_rom_display(struct command_invocation *cmd,
 			}
 		}
 	} else if (class == ARM_CS_CLASS_0X9_CS_COMPONENT) {
-		const char *major = "Reserved", *subtype = "Reserved";
-
 		uint32_t devtype;
 		retval = mem_ap_read_atomic_u32(ap, base_addr + ARM_CS_C9_DEVTYPE, &devtype);
 		if (retval != ERROR_OK)
 			return retval;
-		unsigned int minor = (devtype & ARM_CS_C9_DEVTYPE_SUB_MASK) >> ARM_CS_C9_DEVTYPE_SUB_SHIFT;
-		unsigned int devtype_major = (devtype & ARM_CS_C9_DEVTYPE_MAJOR_MASK) >> ARM_CS_C9_DEVTYPE_MAJOR_SHIFT;
-		switch (devtype_major) {
-		case 0:
-			major = "Miscellaneous";
-			switch (minor) {
-			case 0:
-				subtype = "other";
-				break;
-			case 4:
-				subtype = "Validation component";
-				break;
-			}
-			break;
-		case 1:
-			major = "Trace Sink";
-			switch (minor) {
-			case 0:
-				subtype = "other";
-				break;
-			case 1:
-				subtype = "Port";
-				break;
-			case 2:
-				subtype = "Buffer";
-				break;
-			case 3:
-				subtype = "Router";
-				break;
-			}
-			break;
-		case 2:
-			major = "Trace Link";
-			switch (minor) {
-			case 0:
-				subtype = "other";
-				break;
-			case 1:
-				subtype = "Funnel, router";
-				break;
-			case 2:
-				subtype = "Filter";
-				break;
-			case 3:
-				subtype = "FIFO, buffer";
-				break;
-			}
-			break;
-		case 3:
-			major = "Trace Source";
-			switch (minor) {
-			case 0:
-				subtype = "other";
-				break;
-			case 1:
-				subtype = "Processor";
-				break;
-			case 2:
-				subtype = "DSP";
-				break;
-			case 3:
-				subtype = "Engine/Coprocessor";
-				break;
-			case 4:
-				subtype = "Bus";
-				break;
-			case 6:
-				subtype = "Software";
-				break;
-			}
-			break;
-		case 4:
-			major = "Debug Control";
-			switch (minor) {
-			case 0:
-				subtype = "other";
-				break;
-			case 1:
-				subtype = "Trigger Matrix";
-				break;
-			case 2:
-				subtype = "Debug Auth";
-				break;
-			case 3:
-				subtype = "Power Requestor";
-				break;
-			}
-			break;
-		case 5:
-			major = "Debug Logic";
-			switch (minor) {
-			case 0:
-				subtype = "other";
-				break;
-			case 1:
-				subtype = "Processor";
-				break;
-			case 2:
-				subtype = "DSP";
-				break;
-			case 3:
-				subtype = "Engine/Coprocessor";
-				break;
-			case 4:
-				subtype = "Bus";
-				break;
-			case 5:
-				subtype = "Memory";
-				break;
-			}
-			break;
-		case 6:
-			major = "Performance Monitor";
-			switch (minor) {
-			case 0:
-				subtype = "other";
-				break;
-			case 1:
-				subtype = "Processor";
-				break;
-			case 2:
-				subtype = "DSP";
-				break;
-			case 3:
-				subtype = "Engine/Coprocessor";
-				break;
-			case 4:
-				subtype = "Bus";
-				break;
-			case 5:
-				subtype = "Memory";
-				break;
-			}
-			break;
-		}
-		command_print(cmd, "\t\tType is 0x%02x, %s, %s",
-				devtype & ARM_CS_C9_DEVTYPE_MASK,
-				major, subtype);
+
+		retval = dap_devtype_display(cmd, devtype);
+		if (retval != ERROR_OK)
+			return retval;
+
 		/* REVISIT also show ARM_CS_C9_DEVID */
 	}
 
