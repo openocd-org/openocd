@@ -893,6 +893,30 @@ static const char *class_description[16] = {
 	[0xF] = "CoreLink, PrimeCell or System component",
 };
 
+static const struct {
+	enum ap_type type;
+	const char *description;
+} ap_types[] = {
+	{ AP_TYPE_JTAG_AP,  "JTAG-AP" },
+	{ AP_TYPE_COM_AP,   "COM-AP" },
+	{ AP_TYPE_AHB3_AP,  "MEM-AP AHB3" },
+	{ AP_TYPE_APB_AP,   "MEM-AP APB2 or APB3" },
+	{ AP_TYPE_AXI_AP,   "MEM-AP AXI3 or AXI4" },
+	{ AP_TYPE_AHB5_AP,  "MEM-AP AHB5" },
+	{ AP_TYPE_APB4_AP,  "MEM-AP APB4" },
+	{ AP_TYPE_AXI5_AP,  "MEM-AP AXI5" },
+	{ AP_TYPE_AHB5H_AP, "MEM-AP AHB5 with enhanced HPROT" },
+};
+
+static const char *ap_type_to_description(enum ap_type type)
+{
+	for (unsigned int i = 0; i < ARRAY_SIZE(ap_types); i++)
+		if (type == ap_types[i].type)
+			return ap_types[i].description;
+
+	return "Unknown";
+}
+
 /*
  * This function checks the ID for each access port to find the requested Access Port type
  */
@@ -912,29 +936,12 @@ int dap_find_ap(struct adiv5_dap *dap, enum ap_type type_to_find, struct adiv5_a
 
 		retval = dap_run(dap);
 
-		/* IDR bits:
-		 * 31-28 : Revision
-		 * 27-24 : JEDEC bank (0x4 for ARM)
-		 * 23-17 : JEDEC code (0x3B for ARM)
-		 * 16-13 : Class (0b1000=Mem-AP)
-		 * 12-8  : Reserved
-		 *  7-4  : AP Variant (non-zero for JTAG-AP)
-		 *  3-0  : AP Type (0=JTAG-AP 1=AHB-AP 2=APB-AP 4=AXI-AP)
-		 */
-
 		/* Reading register for a non-existent AP should not cause an error,
 		 * but just to be sure, try to continue searching if an error does happen.
 		 */
-		if ((retval == ERROR_OK) &&                  /* Register read success */
-			((id_val & IDR_JEP106) == IDR_JEP106_ARM) && /* Jedec codes match */
-			((id_val & IDR_TYPE) == type_to_find)) {      /* type matches*/
-
+		if (retval == ERROR_OK && (id_val & AP_TYPE_MASK) == type_to_find) {
 			LOG_DEBUG("Found %s at AP index: %d (IDR=0x%08" PRIX32 ")",
-						(type_to_find == AP_TYPE_AHB3_AP)  ? "AHB3-AP"  :
-						(type_to_find == AP_TYPE_AHB5_AP)  ? "AHB5-AP"  :
-						(type_to_find == AP_TYPE_APB_AP)  ? "APB-AP"  :
-						(type_to_find == AP_TYPE_AXI_AP)  ? "AXI-AP"  :
-						(type_to_find == AP_TYPE_JTAG_AP) ? "JTAG-AP" : "Unknown",
+						ap_type_to_description(type_to_find),
 						ap_num, id_val);
 
 			*ap_out = &dap->ap[ap_num];
@@ -942,12 +949,7 @@ int dap_find_ap(struct adiv5_dap *dap, enum ap_type type_to_find, struct adiv5_a
 		}
 	}
 
-	LOG_DEBUG("No %s found",
-				(type_to_find == AP_TYPE_AHB3_AP)  ? "AHB3-AP"  :
-				(type_to_find == AP_TYPE_AHB5_AP)  ? "AHB5-AP"  :
-				(type_to_find == AP_TYPE_APB_AP)  ? "APB-AP"  :
-				(type_to_find == AP_TYPE_AXI_AP)  ? "AXI-AP"  :
-				(type_to_find == AP_TYPE_JTAG_AP) ? "JTAG-AP" : "Unknown");
+	LOG_DEBUG("No %s found", ap_type_to_description(type_to_find));
 	return ERROR_FAIL;
 }
 
@@ -1112,8 +1114,6 @@ static int dap_read_part_id(struct adiv5_ap *ap, target_addr_t component_base, u
  */
 
 #define ANY_ID 0x1000
-
-#define ARM_ID 0x23B
 
 static const struct {
 	uint16_t designer_id;
@@ -1490,7 +1490,6 @@ int dap_info_command(struct command_invocation *cmd,
 	uint32_t apid;
 	target_addr_t dbgbase;
 	target_addr_t dbgaddr;
-	uint8_t mem_ap;
 
 	/* Now we read ROM table ID registers, ref. ARM IHI 0029B sec  */
 	retval = dap_get_debugbase(ap, &dbgbase, &apid);
@@ -1503,32 +1502,14 @@ int dap_info_command(struct command_invocation *cmd,
 		return ERROR_FAIL;
 	}
 
-	switch (apid & (IDR_JEP106 | IDR_TYPE)) {
-	case IDR_JEP106_ARM | AP_TYPE_JTAG_AP:
-		command_print(cmd, "\tType is JTAG-AP");
-		break;
-	case IDR_JEP106_ARM | AP_TYPE_AHB3_AP:
-		command_print(cmd, "\tType is MEM-AP AHB3");
-		break;
-	case IDR_JEP106_ARM | AP_TYPE_AHB5_AP:
-		command_print(cmd, "\tType is MEM-AP AHB5");
-		break;
-	case IDR_JEP106_ARM | AP_TYPE_APB_AP:
-		command_print(cmd, "\tType is MEM-AP APB");
-		break;
-	case IDR_JEP106_ARM | AP_TYPE_AXI_AP:
-		command_print(cmd, "\tType is MEM-AP AXI");
-		break;
-	default:
-		command_print(cmd, "\tUnknown AP type");
-		break;
-	}
+	command_print(cmd, "\tType is %s", ap_type_to_description(apid & AP_TYPE_MASK));
 
 	/* NOTE: a MEM-AP may have a single CoreSight component that's
 	 * not a ROM table ... or have no such components at all.
 	 */
-	mem_ap = (apid & IDR_CLASS) == AP_CLASS_MEM_AP;
-	if (mem_ap) {
+	const unsigned int class = (apid & AP_REG_IDR_CLASS_MASK) >> AP_REG_IDR_CLASS_SHIFT;
+
+	if (class == AP_REG_IDR_CLASS_MEM_AP) {
 		if (is_64bit_ap(ap))
 			dbgaddr = 0xFFFFFFFFFFFFFFFFull;
 		else
