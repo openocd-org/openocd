@@ -1361,6 +1361,8 @@ static int jim_flash_list(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
 		Jim_ListAppendElement(interp, elem, Jim_NewIntObj(interp, p->bus_width));
 		Jim_ListAppendElement(interp, elem, Jim_NewStringObj(interp, "chip_width", -1));
 		Jim_ListAppendElement(interp, elem, Jim_NewIntObj(interp, p->chip_width));
+		Jim_ListAppendElement(interp, elem, Jim_NewStringObj(interp, "target", -1));
+		Jim_ListAppendElement(interp, elem, Jim_NewStringObj(interp, target_name(p->target), -1));
 
 		Jim_ListAppendElement(interp, list, elem);
 	}
