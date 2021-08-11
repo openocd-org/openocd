@@ -865,15 +865,30 @@ int dap_to_jtag(struct adiv5_dap *dap)
 	return dap_send_sequence(dap, SWD_TO_JTAG);
 }
 
-/* CID interpretation -- see ARM IHI 0029B section 3
- * and ARM IHI 0031A table 13-3.
+/* CID interpretation -- see ARM IHI 0029E table B2-7
+ * and ARM IHI 0031E table D1-2.
+ *
+ * From 2009/11/25 commit 21378f58b604:
+ *   "OptimoDE DESS" is ARM's semicustom DSPish stuff.
+ * Let's keep it as is, for the time being
  */
 static const char *class_description[16] = {
-	"Reserved", "ROM table", "Reserved", "Reserved",
-	"Reserved", "Reserved", "Reserved", "Reserved",
-	"Reserved", "CoreSight component", "Reserved", "Peripheral Test Block",
-	"Reserved", "OptimoDE DESS",
-	"Generic IP component", "PrimeCell or System component"
+	[0x0] = "Generic verification component",
+	[0x1] = "ROM table",
+	[0x2] = "Reserved",
+	[0x3] = "Reserved",
+	[0x4] = "Reserved",
+	[0x5] = "Reserved",
+	[0x6] = "Reserved",
+	[0x7] = "Reserved",
+	[0x8] = "Reserved",
+	[0x9] = "CoreSight component",
+	[0xA] = "Reserved",
+	[0xB] = "Peripheral Test Block",
+	[0xC] = "Reserved",
+	[0xD] = "OptimoDE DESS", /* see above */
+	[0xE] = "Generic IP component",
+	[0xF] = "CoreLink, PrimeCell or System component",
 };
 
 static bool is_dap_cid_ok(uint32_t cid)
