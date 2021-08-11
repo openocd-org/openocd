@@ -1578,11 +1578,12 @@ struct rtp_ops {
 	 * @param ap        Pointer to AP.
 	 * @param dbgbase   Value of MEM-AP Debug Base Address register.
 	 * @param apid      Value of MEM-AP IDR Identification Register.
+	 * @param depth     The current depth level of ROM table.
 	 * @param priv      Pointer to private data.
 	 * @return          ERROR_OK on success, else a fault code.
 	 */
 	int (*mem_ap_header)(int retval, struct adiv5_ap *ap, uint64_t dbgbase,
-			uint32_t apid, void *priv);
+			uint32_t apid, int depth, void *priv);
 	/**
 	 * Executed when a CoreSight component is parsed, typically to print
 	 * information on the component.
@@ -1616,12 +1617,12 @@ struct rtp_ops {
  * Input parameter @a retval is propagated.
  */
 static int rtp_ops_mem_ap_header(const struct rtp_ops *ops,
-		int retval, struct adiv5_ap *ap, uint64_t dbgbase, uint32_t apid)
+		int retval, struct adiv5_ap *ap, uint64_t dbgbase, uint32_t apid, int depth)
 {
 	if (!ops->mem_ap_header)
 		return retval;
 
-	int retval1 = ops->mem_ap_header(retval, ap, dbgbase, apid, ops->priv);
+	int retval1 = ops->mem_ap_header(retval, ap, dbgbase, apid, depth, ops->priv);
 	if (retval != ERROR_OK)
 		return retval;
 	return retval1;
@@ -1781,7 +1782,7 @@ static int rtp_cs_component(const struct rtp_ops *ops,
 	return ERROR_OK;
 }
 
-static int rtp_ap(const struct rtp_ops *ops, struct adiv5_ap *ap)
+static int rtp_ap(const struct rtp_ops *ops, struct adiv5_ap *ap, int depth)
 {
 	int retval;
 	uint32_t apid;
@@ -1791,7 +1792,7 @@ static int rtp_ap(const struct rtp_ops *ops, struct adiv5_ap *ap)
 	retval = dap_get_debugbase(ap, &dbgbase, &apid);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = rtp_ops_mem_ap_header(ops, retval, ap, dbgbase, apid);
+	retval = rtp_ops_mem_ap_header(ops, retval, ap, dbgbase, apid, depth);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -1810,7 +1811,7 @@ static int rtp_ap(const struct rtp_ops *ops, struct adiv5_ap *ap)
 			invalid_entry = 0xFFFFFFFFul;
 
 		if (dbgbase != invalid_entry && (dbgbase & 0x3) != 0x2) {
-			retval = rtp_cs_component(ops, ap, dbgbase & 0xFFFFFFFFFFFFF000ull, 0);
+			retval = rtp_cs_component(ops, ap, dbgbase & 0xFFFFFFFFFFFFF000ull, depth);
 			if (retval == CORESIGHT_COMPONENT_FOUND)
 				return CORESIGHT_COMPONENT_FOUND;
 		}
@@ -1822,23 +1823,34 @@ static int rtp_ap(const struct rtp_ops *ops, struct adiv5_ap *ap)
 /* Actions for command "dap info" */
 
 static int dap_info_mem_ap_header(int retval, struct adiv5_ap *ap,
-		target_addr_t dbgbase, uint32_t apid, void *priv)
+		target_addr_t dbgbase, uint32_t apid, int depth, void *priv)
 {
 	struct command_invocation *cmd = priv;
 	target_addr_t invalid_entry;
+	char tabs[17] = "";
 
 	if (retval != ERROR_OK) {
 		command_print(cmd, "\t\tCan't read MEM-AP, the corresponding core might be turned off");
 		return retval;
 	}
 
-	command_print(cmd, "AP ID register 0x%8.8" PRIx32, apid);
-	if (apid == 0) {
-		command_print(cmd, "No AP found at this AP#0x%" PRIx64, ap->ap_num);
+	if (depth > ROM_TABLE_MAX_DEPTH) {
+		command_print(cmd, "\tTables too deep");
 		return ERROR_FAIL;
 	}
 
-	command_print(cmd, "\tType is %s", ap_type_to_description(apid & AP_TYPE_MASK));
+	if (depth)
+		snprintf(tabs, sizeof(tabs), "\t[L%02d] ", depth);
+
+	command_print(cmd, "%sAP # 0x%" PRIx64, tabs, ap->ap_num);
+
+	command_print(cmd, "\t\tAP ID register 0x%8.8" PRIx32, apid);
+	if (apid == 0) {
+		command_print(cmd, "\t\tNo AP found at this AP#0x%" PRIx64, ap->ap_num);
+		return ERROR_FAIL;
+	}
+
+	command_print(cmd, "\t\tType is %s", ap_type_to_description(apid & AP_TYPE_MASK));
 
 	/* NOTE: a MEM-AP may have a single CoreSight component that's
 	 * not a ROM table ... or have no such components at all.
@@ -1851,15 +1863,15 @@ static int dap_info_mem_ap_header(int retval, struct adiv5_ap *ap,
 		else
 			invalid_entry = 0xFFFFFFFFul;
 
-		command_print(cmd, "MEM-AP BASE " TARGET_ADDR_FMT, dbgbase);
+		command_print(cmd, "%sMEM-AP BASE " TARGET_ADDR_FMT, tabs, dbgbase);
 
 		if (dbgbase == invalid_entry || (dbgbase & 0x3) == 0x2) {
-			command_print(cmd, "\tNo ROM table present");
+			command_print(cmd, "\t\tNo ROM table present");
 		} else {
 			if (dbgbase & 0x01)
-				command_print(cmd, "\tValid ROM table present");
+				command_print(cmd, "\t\tValid ROM table present");
 			else
-				command_print(cmd, "\tROM table in legacy format");
+				command_print(cmd, "\t\tROM table in legacy format");
 		}
 	}
 
@@ -1992,7 +2004,7 @@ int dap_info_command(struct command_invocation *cmd, struct adiv5_ap *ap)
 		.priv            = cmd,
 	};
 
-	return rtp_ap(&dap_info_ops, ap);
+	return rtp_ap(&dap_info_ops, ap, 0);
 }
 
 /* Actions for dap_lookup_cs_component() */
@@ -2048,7 +2060,7 @@ int dap_lookup_cs_component(struct adiv5_ap *ap, uint8_t type,
 		.priv            = &lookup,
 	};
 
-	int retval = rtp_ap(&dap_lookup_cs_component_ops, ap);
+	int retval = rtp_ap(&dap_lookup_cs_component_ops, ap, 0);
 	if (retval == CORESIGHT_COMPONENT_FOUND) {
 		LOG_DEBUG("CS lookup found at 0x%" PRIx64, lookup.component_base);
 		*addr = lookup.component_base;
