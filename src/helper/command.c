@@ -954,8 +954,6 @@ static int exec_command(Jim_Interp *interp, struct command_context *cmd_ctx,
 
 static int jim_command_dispatch(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
 {
-	script_debug(interp, argc, argv);
-
 	/* check subcommands */
 	if (argc > 1) {
 		char *s = alloc_printf("%s %s", Jim_GetString(argv[0], NULL), Jim_GetString(argv[1], NULL));
@@ -970,6 +968,8 @@ static int jim_command_dispatch(Jim_Interp *interp, int argc, Jim_Obj * const *a
 		}
 		Jim_DecrRefCount(interp, js);
 	}
+
+	script_debug(interp, argc, argv);
 
 	struct command *c = jim_to_command(interp);
 	if (!c->jim_handler && !c->handler) {
