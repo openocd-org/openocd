@@ -928,6 +928,7 @@ static const struct {
 };
 
 #define DEVARCH_ID_MASK         (ARM_CS_C9_DEVARCH_ARCHITECT_MASK | ARM_CS_C9_DEVARCH_ARCHID_MASK)
+#define DEVARCH_MEM_AP          ARCH_ID(ARM_ID, 0x0A17)
 #define DEVARCH_ROM_C_0X9       ARCH_ID(ARM_ID, 0x0AF7)
 
 static const char *class0x9_devarch_description(uint32_t devarch)
@@ -1180,6 +1181,17 @@ int adiv6_dap_read_baseptr(struct command_invocation *cmd, struct adiv5_dap *dap
 	return ERROR_OK;
 }
 
+/**
+ * Method to access the CoreSight component.
+ * On ADIv5, CoreSight components are on the bus behind a MEM-AP.
+ * On ADIv6, CoreSight components can either be on the bus behind a MEM-AP
+ * or directly in the AP.
+ */
+enum coresight_access_mode {
+	CS_ACCESS_AP,
+	CS_ACCESS_MEM_AP,
+};
+
 /** Holds registers and coordinates of a CoreSight component */
 struct cs_component_vals {
 	struct adiv5_ap *ap;
@@ -1189,19 +1201,43 @@ struct cs_component_vals {
 	uint32_t devarch;
 	uint32_t devid;
 	uint32_t devtype_memtype;
+	enum coresight_access_mode mode;
 };
+
+/**
+ * Helper to read CoreSight component's registers, either on the bus
+ * behind a MEM-AP or directly in the AP.
+ *
+ * @param mode           Method to access the component (AP or MEM-AP).
+ * @param ap             Pointer to AP containing the component.
+ * @param component_base On MEM-AP access method, base address of the component.
+ * @param reg            Offset of the component's register to read.
+ * @param value          Pointer to the store the read value.
+ *
+ * @return ERROR_OK on success, else a fault code.
+ */
+static int dap_queue_read_reg(enum coresight_access_mode mode, struct adiv5_ap *ap,
+		uint64_t component_base, unsigned int reg, uint32_t *value)
+{
+	if (mode == CS_ACCESS_AP)
+		return dap_queue_ap_read(ap, reg, value);
+
+	/* mode == CS_ACCESS_MEM_AP */
+	return mem_ap_read_u32(ap, component_base + reg, value);
+}
 
 /**
  * Read the CoreSight registers needed during ROM Table Parsing (RTP).
  *
+ * @param mode           Method to access the component (AP or MEM-AP).
  * @param ap             Pointer to AP containing the component.
  * @param component_base On MEM-AP access method, base address of the component.
  * @param v              Pointer to the struct holding the value of registers.
  *
  * @return ERROR_OK on success, else a fault code.
  */
-static int rtp_read_cs_regs(struct adiv5_ap *ap, target_addr_t component_base,
-		struct cs_component_vals *v)
+static int rtp_read_cs_regs(enum coresight_access_mode mode, struct adiv5_ap *ap,
+		target_addr_t component_base, struct cs_component_vals *v)
 {
 	assert(IS_ALIGNED(component_base, ARM_CS_ALIGN));
 	assert(ap && v);
@@ -1212,6 +1248,7 @@ static int rtp_read_cs_regs(struct adiv5_ap *ap, target_addr_t component_base,
 
 	v->ap = ap;
 	v->component_base = component_base;
+	v->mode = mode;
 
 	/* sort by offset to gain speed */
 
@@ -1221,35 +1258,35 @@ static int rtp_read_cs_regs(struct adiv5_ap *ap, target_addr_t component_base,
 	 * without triggering error. Read them for eventual use on Class 0x9.
 	 */
 	if (retval == ERROR_OK)
-		retval = mem_ap_read_u32(ap, component_base + ARM_CS_C9_DEVARCH, &v->devarch);
+		retval = dap_queue_read_reg(mode, ap, component_base, ARM_CS_C9_DEVARCH, &v->devarch);
 
 	if (retval == ERROR_OK)
-		retval = mem_ap_read_u32(ap, component_base + ARM_CS_C9_DEVID, &v->devid);
+		retval = dap_queue_read_reg(mode, ap, component_base, ARM_CS_C9_DEVID, &v->devid);
 
 	/* Same address as ARM_CS_C1_MEMTYPE */
 	if (retval == ERROR_OK)
-		retval = mem_ap_read_u32(ap, component_base + ARM_CS_C9_DEVTYPE, &v->devtype_memtype);
+		retval = dap_queue_read_reg(mode, ap, component_base, ARM_CS_C9_DEVTYPE, &v->devtype_memtype);
 
 	if (retval == ERROR_OK)
-		retval = mem_ap_read_u32(ap, component_base + ARM_CS_PIDR4, &pid4);
+		retval = dap_queue_read_reg(mode, ap, component_base, ARM_CS_PIDR4, &pid4);
 
 	if (retval == ERROR_OK)
-		retval = mem_ap_read_u32(ap, component_base + ARM_CS_PIDR0, &pid0);
+		retval = dap_queue_read_reg(mode, ap, component_base, ARM_CS_PIDR0, &pid0);
 	if (retval == ERROR_OK)
-		retval = mem_ap_read_u32(ap, component_base + ARM_CS_PIDR1, &pid1);
+		retval = dap_queue_read_reg(mode, ap, component_base, ARM_CS_PIDR1, &pid1);
 	if (retval == ERROR_OK)
-		retval = mem_ap_read_u32(ap, component_base + ARM_CS_PIDR2, &pid2);
+		retval = dap_queue_read_reg(mode, ap, component_base, ARM_CS_PIDR2, &pid2);
 	if (retval == ERROR_OK)
-		retval = mem_ap_read_u32(ap, component_base + ARM_CS_PIDR3, &pid3);
+		retval = dap_queue_read_reg(mode, ap, component_base, ARM_CS_PIDR3, &pid3);
 
 	if (retval == ERROR_OK)
-		retval = mem_ap_read_u32(ap, component_base + ARM_CS_CIDR0, &cid0);
+		retval = dap_queue_read_reg(mode, ap, component_base, ARM_CS_CIDR0, &cid0);
 	if (retval == ERROR_OK)
-		retval = mem_ap_read_u32(ap, component_base + ARM_CS_CIDR1, &cid1);
+		retval = dap_queue_read_reg(mode, ap, component_base, ARM_CS_CIDR1, &cid1);
 	if (retval == ERROR_OK)
-		retval = mem_ap_read_u32(ap, component_base + ARM_CS_CIDR2, &cid2);
+		retval = dap_queue_read_reg(mode, ap, component_base, ARM_CS_CIDR2, &cid2);
 	if (retval == ERROR_OK)
-		retval = mem_ap_read_u32(ap, component_base + ARM_CS_CIDR3, &cid3);
+		retval = dap_queue_read_reg(mode, ap, component_base, ARM_CS_CIDR3, &cid3);
 
 	if (retval == ERROR_OK)
 		retval = dap_run(ap->dap);
@@ -1573,6 +1610,14 @@ static int dap_devtype_display(struct command_invocation *cmd, uint32_t devtype)
  */
 struct rtp_ops {
 	/**
+	 * Executed at the start of a new AP, typically to print the AP header.
+	 * @param ap        Pointer to AP.
+	 * @param depth     The current depth level of ROM table.
+	 * @param priv      Pointer to private data.
+	 * @return          ERROR_OK on success, else a fault code.
+	 */
+	int (*ap_header)(struct adiv5_ap *ap, int depth, void *priv);
+	/**
 	 * Executed at the start of a new MEM-AP, typically to print the MEM-AP header.
 	 * @param retval    Error encountered while reading AP.
 	 * @param ap        Pointer to AP.
@@ -1611,6 +1656,18 @@ struct rtp_ops {
 	 */
 	void *priv;
 };
+
+/**
+ * Wrapper around struct rtp_ops::ap_header.
+ */
+static int rtp_ops_ap_header(const struct rtp_ops *ops,
+		struct adiv5_ap *ap, int depth)
+{
+	if (ops->ap_header)
+		return ops->ap_header(ap, depth, ops->priv);
+
+	return ERROR_OK;
+}
 
 /**
  * Wrapper around struct rtp_ops::mem_ap_header.
@@ -1671,13 +1728,18 @@ static int rtp_ops_rom_table_entry(const struct rtp_ops *ops,
  */
 #define CORESIGHT_COMPONENT_FOUND (1)
 
-static int rtp_cs_component(const struct rtp_ops *ops,
-		struct adiv5_ap *ap, target_addr_t dbgbase, int depth);
+static int rtp_ap(const struct rtp_ops *ops, struct adiv5_ap *ap, int depth);
+static int rtp_cs_component(enum coresight_access_mode mode, const struct rtp_ops *ops,
+		struct adiv5_ap *ap, target_addr_t dbgbase, bool *is_mem_ap, int depth);
 
-static int rtp_rom_loop(const struct rtp_ops *ops,
+static int rtp_rom_loop(enum coresight_access_mode mode, const struct rtp_ops *ops,
 		struct adiv5_ap *ap, target_addr_t base_address, int depth,
 		unsigned int width, unsigned int max_entries)
 {
+	/* ADIv6 AP ROM table provide offset from current AP */
+	if (mode == CS_ACCESS_AP)
+		base_address = ap->ap_num;
+
 	assert(IS_ALIGNED(base_address, ARM_CS_ALIGN));
 
 	unsigned int offset = 0;
@@ -1687,10 +1749,10 @@ static int rtp_rom_loop(const struct rtp_ops *ops,
 		target_addr_t component_base;
 		unsigned int saved_offset = offset;
 
-		int retval = mem_ap_read_u32(ap, base_address + offset, &romentry_low);
+		int retval = dap_queue_read_reg(mode, ap, base_address, offset, &romentry_low);
 		offset += 4;
 		if (retval == ERROR_OK && width == 64) {
-			retval = mem_ap_read_u32(ap, base_address + offset, &romentry_high);
+			retval = dap_queue_read_reg(mode, ap, base_address, offset, &romentry_high);
 			offset += 4;
 		}
 		if (retval == ERROR_OK)
@@ -1724,7 +1786,18 @@ static int rtp_rom_loop(const struct rtp_ops *ops,
 			continue;
 
 		/* Recurse */
-		retval = rtp_cs_component(ops, ap, component_base, depth + 1);
+		if (mode == CS_ACCESS_AP) {
+			struct adiv5_ap *next_ap = dap_get_ap(ap->dap, component_base);
+			if (!next_ap) {
+				LOG_DEBUG("Wrong AP # 0x%" PRIx64, component_base);
+				continue;
+			}
+			retval = rtp_ap(ops, next_ap, depth + 1);
+			dap_put_ap(next_ap);
+		} else {
+			/* mode == CS_ACCESS_MEM_AP */
+			retval = rtp_cs_component(mode, ops, ap, component_base, NULL, depth + 1);
+		}
 		if (retval == CORESIGHT_COMPONENT_FOUND)
 			return CORESIGHT_COMPONENT_FOUND;
 		if (retval != ERROR_OK) {
@@ -1737,18 +1810,21 @@ static int rtp_rom_loop(const struct rtp_ops *ops,
 	return ERROR_OK;
 }
 
-static int rtp_cs_component(const struct rtp_ops *ops,
-		struct adiv5_ap *ap, target_addr_t base_address, int depth)
+static int rtp_cs_component(enum coresight_access_mode mode, const struct rtp_ops *ops,
+		struct adiv5_ap *ap, target_addr_t base_address, bool *is_mem_ap, int depth)
 {
 	struct cs_component_vals v;
 	int retval;
 
 	assert(IS_ALIGNED(base_address, ARM_CS_ALIGN));
 
+	if (is_mem_ap)
+		*is_mem_ap = false;
+
 	if (depth > ROM_TABLE_MAX_DEPTH)
 		retval = ERROR_FAIL;
 	else
-		retval = rtp_read_cs_regs(ap, base_address, &v);
+		retval = rtp_read_cs_regs(mode, ap, base_address, &v);
 
 	retval = rtp_ops_cs_component(ops, retval, &v, depth);
 	if (retval == CORESIGHT_COMPONENT_FOUND)
@@ -1762,20 +1838,23 @@ static int rtp_cs_component(const struct rtp_ops *ops,
 	const unsigned int class = ARM_CS_CIDR_CLASS(v.cid);
 
 	if (class == ARM_CS_CLASS_0X1_ROM_TABLE)
-		return rtp_rom_loop(ops, ap, base_address, depth, 32, 960);
+		return rtp_rom_loop(mode, ops, ap, base_address, depth, 32, 960);
 
 	if (class == ARM_CS_CLASS_0X9_CS_COMPONENT) {
 		if ((v.devarch & ARM_CS_C9_DEVARCH_PRESENT) == 0)
 			return ERROR_OK;
+
+		if (is_mem_ap && (v.devarch & DEVARCH_ID_MASK) == DEVARCH_MEM_AP)
+			*is_mem_ap = true;
 
 		/* quit if not ROM table */
 		if ((v.devarch & DEVARCH_ID_MASK) != DEVARCH_ROM_C_0X9)
 			return ERROR_OK;
 
 		if ((v.devid & ARM_CS_C9_DEVID_FORMAT_MASK) == ARM_CS_C9_DEVID_FORMAT_64BIT)
-			return rtp_rom_loop(ops, ap, base_address, depth, 64, 256);
+			return rtp_rom_loop(mode, ops, ap, base_address, depth, 64, 256);
 		else
-			return rtp_rom_loop(ops, ap, base_address, depth, 32, 512);
+			return rtp_rom_loop(mode, ops, ap, base_address, depth, 32, 512);
 	}
 
 	/* Class other than 0x1 and 0x9 */
@@ -1784,9 +1863,25 @@ static int rtp_cs_component(const struct rtp_ops *ops,
 
 static int rtp_ap(const struct rtp_ops *ops, struct adiv5_ap *ap, int depth)
 {
-	int retval;
 	uint32_t apid;
 	target_addr_t dbgbase, invalid_entry;
+
+	int retval = rtp_ops_ap_header(ops, ap, depth);
+	if (retval != ERROR_OK || depth > ROM_TABLE_MAX_DEPTH)
+		return ERROR_OK; /* Don't abort recursion */
+
+	if (is_adiv6(ap->dap)) {
+		bool is_mem_ap;
+		retval = rtp_cs_component(CS_ACCESS_AP, ops, ap, 0, &is_mem_ap, depth);
+		if (retval == CORESIGHT_COMPONENT_FOUND)
+			return CORESIGHT_COMPONENT_FOUND;
+		if (retval != ERROR_OK)
+			return ERROR_OK; /* Don't abort recursion */
+
+		if (!is_mem_ap)
+			return ERROR_OK;
+		/* Continue for an ADIv6 MEM-AP */
+	}
 
 	/* Now we read ROM table ID registers, ref. ARM IHI 0029B sec  */
 	retval = dap_get_debugbase(ap, &dbgbase, &apid);
@@ -1811,7 +1906,8 @@ static int rtp_ap(const struct rtp_ops *ops, struct adiv5_ap *ap, int depth)
 			invalid_entry = 0xFFFFFFFFul;
 
 		if (dbgbase != invalid_entry && (dbgbase & 0x3) != 0x2) {
-			retval = rtp_cs_component(ops, ap, dbgbase & 0xFFFFFFFFFFFFF000ull, depth);
+			retval = rtp_cs_component(CS_ACCESS_MEM_AP, ops, ap,
+					dbgbase & 0xFFFFFFFFFFFFF000ull, NULL, depth);
 			if (retval == CORESIGHT_COMPONENT_FOUND)
 				return CORESIGHT_COMPONENT_FOUND;
 		}
@@ -1821,6 +1917,19 @@ static int rtp_ap(const struct rtp_ops *ops, struct adiv5_ap *ap, int depth)
 }
 
 /* Actions for command "dap info" */
+
+static int dap_info_ap_header(struct adiv5_ap *ap, int depth, void *priv)
+{
+	struct command_invocation *cmd = priv;
+
+	if (depth > ROM_TABLE_MAX_DEPTH) {
+		command_print(cmd, "\tTables too deep");
+		return ERROR_FAIL;
+	}
+
+	command_print(cmd, "%sAP # 0x%" PRIx64, (depth) ? "\t\t" : "", ap->ap_num);
+	return ERROR_OK;
+}
 
 static int dap_info_mem_ap_header(int retval, struct adiv5_ap *ap,
 		target_addr_t dbgbase, uint32_t apid, int depth, void *priv)
@@ -1841,8 +1950,6 @@ static int dap_info_mem_ap_header(int retval, struct adiv5_ap *ap,
 
 	if (depth)
 		snprintf(tabs, sizeof(tabs), "\t[L%02d] ", depth);
-
-	command_print(cmd, "%sAP # 0x%" PRIx64, tabs, ap->ap_num);
 
 	command_print(cmd, "\t\tAP ID register 0x%8.8" PRIx32, apid);
 	if (apid == 0) {
@@ -1887,7 +1994,8 @@ static int dap_info_cs_component(int retval, struct cs_component_vals *v, int de
 		return ERROR_FAIL;
 	}
 
-	command_print(cmd, "\t\tComponent base address " TARGET_ADDR_FMT, v->component_base);
+	if (v->mode == CS_ACCESS_MEM_AP)
+		command_print(cmd, "\t\tComponent base address " TARGET_ADDR_FMT, v->component_base);
 
 	if (retval != ERROR_OK) {
 		command_print(cmd, "\t\tCan't read component, the corresponding core might be turned off");
@@ -1998,6 +2106,7 @@ static int dap_info_rom_table_entry(int retval, int depth,
 int dap_info_command(struct command_invocation *cmd, struct adiv5_ap *ap)
 {
 	struct rtp_ops dap_info_ops = {
+		.ap_header       = dap_info_ap_header,
 		.mem_ap_header   = dap_info_mem_ap_header,
 		.cs_component    = dap_info_cs_component,
 		.rom_table_entry = dap_info_rom_table_entry,
@@ -2054,6 +2163,7 @@ int dap_lookup_cs_component(struct adiv5_ap *ap, uint8_t type,
 		.idx  = core_id,
 	};
 	struct rtp_ops dap_lookup_cs_component_ops = {
+		.ap_header       = NULL,
 		.mem_ap_header   = NULL,
 		.cs_component    = dap_lookup_cs_component_cs_component,
 		.rom_table_entry = NULL,
