@@ -91,19 +91,19 @@ enum riot_symbol_values {
 	RIOT_NAME_OFFSET,
 };
 
-/* refer RIOT core/sched.c */
-static const char *const riot_symbol_list[] = {
-	"sched_threads",
-	"sched_num_threads",
-	"sched_active_pid",
-	"max_threads",
-	"_tcb_name_offset",
-	NULL
+struct riot_symbol {
+	const char *const name;
+	bool optional;
 };
 
-/* Define which symbols are not mandatory */
-static const enum riot_symbol_values riot_optional_symbols[] = {
-	RIOT_NAME_OFFSET,
+/* refer RIOT core/sched.c */
+static struct riot_symbol const riot_symbol_list[] = {
+	{"sched_threads", false},
+	{"sched_num_threads", false},
+	{"sched_active_pid", false},
+	{"max_threads", false},
+	{"_tcb_name_offset", true},
+	{NULL, false}
 };
 
 const struct rtos_type riot_rtos = {
@@ -136,7 +136,7 @@ static int riot_update_threads(struct rtos *rtos)
 
 	if (rtos->symbols[RIOT_THREADS_BASE].address == 0) {
 		LOG_ERROR("Can't find symbol `%s`",
-			riot_symbol_list[RIOT_THREADS_BASE]);
+			riot_symbol_list[RIOT_THREADS_BASE].name);
 		return ERROR_FAIL;
 	}
 
@@ -154,7 +154,7 @@ static int riot_update_threads(struct rtos *rtos)
 			(uint16_t *)&active_pid);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Can't read symbol `%s`",
-			riot_symbol_list[RIOT_ACTIVE_PID]);
+			riot_symbol_list[RIOT_ACTIVE_PID].name);
 		return retval;
 	}
 	rtos->current_thread = active_pid;
@@ -167,7 +167,7 @@ static int riot_update_threads(struct rtos *rtos)
 			(uint16_t *)&thread_count);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Can't read symbol `%s`",
-			riot_symbol_list[RIOT_NUM_THREADS]);
+			riot_symbol_list[RIOT_NUM_THREADS].name);
 		return retval;
 	}
 	rtos->thread_count = thread_count;
@@ -179,7 +179,7 @@ static int riot_update_threads(struct rtos *rtos)
 			&max_threads);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Can't read symbol `%s`",
-			riot_symbol_list[RIOT_MAX_THREADS]);
+			riot_symbol_list[RIOT_MAX_THREADS].name);
 		return retval;
 	}
 
@@ -195,7 +195,7 @@ static int riot_update_threads(struct rtos *rtos)
 				&name_offset);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("Can't read symbol `%s`",
-				riot_symbol_list[RIOT_NAME_OFFSET]);
+				riot_symbol_list[RIOT_NAME_OFFSET].name);
 			return retval;
 		}
 	}
@@ -217,7 +217,8 @@ static int riot_update_threads(struct rtos *rtos)
 				threads_base + (i * 4),
 				&tcb_pointer);
 		if (retval != ERROR_OK) {
-			LOG_ERROR("Can't parse `%s`", riot_symbol_list[RIOT_THREADS_BASE]);
+			LOG_ERROR("Can't parse `%s`",
+				riot_symbol_list[RIOT_THREADS_BASE].name);
 			goto error;
 		}
 
@@ -235,7 +236,8 @@ static int riot_update_threads(struct rtos *rtos)
 				tcb_pointer + param->thread_status_offset,
 				&status);
 		if (retval != ERROR_OK) {
-			LOG_ERROR("Can't parse `%s`", riot_symbol_list[RIOT_THREADS_BASE]);
+			LOG_ERROR("Can't parse `%s`",
+				riot_symbol_list[RIOT_THREADS_BASE].name);
 			goto error;
 		}
 
@@ -269,7 +271,7 @@ static int riot_update_threads(struct rtos *rtos)
 					&name_pointer);
 			if (retval != ERROR_OK) {
 				LOG_ERROR("Can't parse `%s`",
-					riot_symbol_list[RIOT_THREADS_BASE]);
+					riot_symbol_list[RIOT_THREADS_BASE].name);
 				goto error;
 			}
 
@@ -280,7 +282,7 @@ static int riot_update_threads(struct rtos *rtos)
 					(uint8_t *)&buffer);
 			if (retval != ERROR_OK) {
 				LOG_ERROR("Can't parse `%s`",
-					riot_symbol_list[RIOT_THREADS_BASE]);
+					riot_symbol_list[RIOT_THREADS_BASE].name);
 				goto error;
 			}
 
@@ -339,7 +341,7 @@ static int riot_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
 			threads_base + (thread_id * 4),
 			&tcb_pointer);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("Can't parse `%s`", riot_symbol_list[RIOT_THREADS_BASE]);
+		LOG_ERROR("Can't parse `%s`", riot_symbol_list[RIOT_THREADS_BASE].name);
 		return retval;
 	}
 
@@ -349,7 +351,7 @@ static int riot_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
 			tcb_pointer + param->thread_sp_offset,
 			&stackptr);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("Can't parse `%s`", riot_symbol_list[RIOT_THREADS_BASE]);
+		LOG_ERROR("Can't parse `%s`", riot_symbol_list[RIOT_THREADS_BASE].name);
 		return retval;
 	}
 
@@ -370,16 +372,8 @@ static int riot_get_symbol_list_to_lookup(struct symbol_table_elem *symbol_list[
 	}
 
 	for (unsigned int i = 0; i < ARRAY_SIZE(riot_symbol_list); i++) {
-		(*symbol_list)[i].symbol_name = riot_symbol_list[i];
-		(*symbol_list)[i].optional = false;
-
-		/* Lookup if symbol is optional */
-		for (unsigned int k = 0; k < sizeof(riot_optional_symbols); k++) {
-			if (i == riot_optional_symbols[k]) {
-				(*symbol_list)[i].optional = true;
-				break;
-			}
-		}
+		(*symbol_list)[i].symbol_name = riot_symbol_list[i].name;
+		(*symbol_list)[i].optional = riot_symbol_list[i].optional;
 	}
 
 	return ERROR_OK;
