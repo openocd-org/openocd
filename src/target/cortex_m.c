@@ -975,8 +975,11 @@ static int cortex_m_step(struct target *target, int current,
 	}
 
 	/* current = 1: continue on current pc, otherwise continue at <address> */
-	if (!current)
+	if (!current) {
 		buf_set_u32(pc->value, 0, 32, address);
+		pc->dirty = true;
+		pc->valid = true;
+	}
 
 	uint32_t pc_value = buf_get_u32(pc->value, 0, 32);
 
