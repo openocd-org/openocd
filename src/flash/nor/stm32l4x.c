@@ -206,7 +206,6 @@ struct stm32l4_part_info {
 	const uint16_t max_flash_size_kb;
 	const uint32_t flags; /* one bit per feature, see STM32L4 flags: macros F_XXX */
 	const uint32_t flash_regs_base;
-	const uint32_t *default_flash_regs;
 	const uint32_t fsize_addr;
 	const uint32_t otp_base;
 	const uint32_t otp_size;
@@ -321,7 +320,6 @@ static const struct stm32l4_part_info stm32l4_parts[] = {
 	  .max_flash_size_kb     = 1024,
 	  .flags                 = F_HAS_DUAL_BANK,
 	  .flash_regs_base       = 0x40022000,
-	  .default_flash_regs    = stm32l4_flash_regs,
 	  .fsize_addr            = 0x1FFF75E0,
 	  .otp_base              = 0x1FFF7000,
 	  .otp_size              = 1024,
@@ -334,7 +332,6 @@ static const struct stm32l4_part_info stm32l4_parts[] = {
 	  .max_flash_size_kb     = 256,
 	  .flags                 = F_NONE,
 	  .flash_regs_base       = 0x40022000,
-	  .default_flash_regs    = stm32l4_flash_regs,
 	  .fsize_addr            = 0x1FFF75E0,
 	  .otp_base              = 0x1FFF7000,
 	  .otp_size              = 1024,
@@ -347,7 +344,6 @@ static const struct stm32l4_part_info stm32l4_parts[] = {
 	  .max_flash_size_kb     = 128,
 	  .flags                 = F_NONE,
 	  .flash_regs_base       = 0x40022000,
-	  .default_flash_regs    = stm32l4_flash_regs,
 	  .fsize_addr            = 0x1FFF75E0,
 	  .otp_base              = 0x1FFF7000,
 	  .otp_size              = 1024,
@@ -360,7 +356,6 @@ static const struct stm32l4_part_info stm32l4_parts[] = {
 	  .max_flash_size_kb     = 1024,
 	  .flags                 = F_HAS_DUAL_BANK,
 	  .flash_regs_base       = 0x40022000,
-	  .default_flash_regs    = stm32l4_flash_regs,
 	  .fsize_addr            = 0x1FFF75E0,
 	  .otp_base              = 0x1FFF7000,
 	  .otp_size              = 1024,
@@ -373,7 +368,6 @@ static const struct stm32l4_part_info stm32l4_parts[] = {
 	  .max_flash_size_kb     = 512,
 	  .flags                 = F_NONE,
 	  .flash_regs_base       = 0x40022000,
-	  .default_flash_regs    = stm32l4_flash_regs,
 	  .fsize_addr            = 0x1FFF75E0,
 	  .otp_base              = 0x1FFF7000,
 	  .otp_size              = 1024,
@@ -386,7 +380,6 @@ static const struct stm32l4_part_info stm32l4_parts[] = {
 	  .max_flash_size_kb     = 128,
 	  .flags                 = F_NONE,
 	  .flash_regs_base       = 0x40022000,
-	  .default_flash_regs    = stm32l4_flash_regs,
 	  .fsize_addr            = 0x1FFF75E0,
 	  .otp_base              = 0x1FFF7000,
 	  .otp_size              = 1024,
@@ -399,7 +392,6 @@ static const struct stm32l4_part_info stm32l4_parts[] = {
 	  .max_flash_size_kb     = 64,
 	  .flags                 = F_NONE,
 	  .flash_regs_base       = 0x40022000,
-	  .default_flash_regs    = stm32l4_flash_regs,
 	  .fsize_addr            = 0x1FFF75E0,
 	  .otp_base              = 0x1FFF7000,
 	  .otp_size              = 1024,
@@ -412,7 +404,6 @@ static const struct stm32l4_part_info stm32l4_parts[] = {
 	  .max_flash_size_kb     = 128,
 	  .flags                 = F_NONE,
 	  .flash_regs_base       = 0x40022000,
-	  .default_flash_regs    = stm32l4_flash_regs,
 	  .fsize_addr            = 0x1FFF75E0,
 	  .otp_base              = 0x1FFF7000,
 	  .otp_size              = 1024,
@@ -425,7 +416,6 @@ static const struct stm32l4_part_info stm32l4_parts[] = {
 	  .max_flash_size_kb     = 512,
 	  .flags                 = F_HAS_DUAL_BANK | F_USE_ALL_WRPXX,
 	  .flash_regs_base       = 0x40022000,
-	  .default_flash_regs    = stm32l4_flash_regs,
 	  .fsize_addr            = 0x1FFF75E0,
 	  .otp_base              = 0x1FFF7000,
 	  .otp_size              = 1024,
@@ -438,7 +428,6 @@ static const struct stm32l4_part_info stm32l4_parts[] = {
 	  .max_flash_size_kb     = 2048,
 	  .flags                 = F_HAS_DUAL_BANK | F_USE_ALL_WRPXX,
 	  .flash_regs_base       = 0x40022000,
-	  .default_flash_regs    = stm32l4_flash_regs,
 	  .fsize_addr            = 0x1FFF75E0,
 	  .otp_base              = 0x1FFF7000,
 	  .otp_size              = 1024,
@@ -451,7 +440,6 @@ static const struct stm32l4_part_info stm32l4_parts[] = {
 	  .max_flash_size_kb     = 1024,
 	  .flags                 = F_HAS_DUAL_BANK | F_USE_ALL_WRPXX,
 	  .flash_regs_base       = 0x40022000,
-	  .default_flash_regs    = stm32l4_flash_regs,
 	  .fsize_addr            = 0x1FFF75E0,
 	  .otp_base              = 0x1FFF7000,
 	  .otp_size              = 1024,
@@ -464,7 +452,6 @@ static const struct stm32l4_part_info stm32l4_parts[] = {
 	  .max_flash_size_kb     = 512,
 	  .flags                 = F_HAS_DUAL_BANK | F_USE_ALL_WRPXX | F_HAS_TZ | F_HAS_L5_FLASH_REGS,
 	  .flash_regs_base       = 0x40022000,
-	  .default_flash_regs    = stm32l5_ns_flash_regs,
 	  .fsize_addr            = 0x0BFA05E0,
 	  .otp_base              = 0x0BFA0000,
 	  .otp_size              = 512,
@@ -477,7 +464,6 @@ static const struct stm32l4_part_info stm32l4_parts[] = {
 	  .max_flash_size_kb     = 512,
 	  .flags                 = F_NONE,
 	  .flash_regs_base       = 0x40022000,
-	  .default_flash_regs    = stm32l4_flash_regs,
 	  .fsize_addr            = 0x1FFF75E0,
 	  .otp_base              = 0x1FFF7000,
 	  .otp_size              = 1024,
@@ -490,7 +476,6 @@ static const struct stm32l4_part_info stm32l4_parts[] = {
 	  .max_flash_size_kb     = 1024,
 	  .flags                 = F_NONE,
 	  .flash_regs_base       = 0x58004000,
-	  .default_flash_regs    = stm32l4_flash_regs,
 	  .fsize_addr            = 0x1FFF75E0,
 	  .otp_base              = 0x1FFF7000,
 	  .otp_size              = 1024,
@@ -503,7 +488,6 @@ static const struct stm32l4_part_info stm32l4_parts[] = {
 	  .max_flash_size_kb     = 512,
 	  .flags                 = F_NONE,
 	  .flash_regs_base       = 0x58004000,
-	  .default_flash_regs    = stm32l4_flash_regs,
 	  .fsize_addr            = 0x1FFF75E0,
 	  .otp_base              = 0x1FFF7000,
 	  .otp_size              = 1024,
@@ -516,7 +500,6 @@ static const struct stm32l4_part_info stm32l4_parts[] = {
 	  .max_flash_size_kb     = 256,
 	  .flags                 = F_NONE,
 	  .flash_regs_base       = 0x58004000,
-	  .default_flash_regs    = stm32l4_flash_regs,
 	  .fsize_addr            = 0x1FFF75E0,
 	  .otp_base              = 0x1FFF7000,
 	  .otp_size              = 1024,
@@ -1590,7 +1573,12 @@ static int stm32l4_probe(struct flash_bank *bank)
 			stm32l4_info->idcode, part_info->device_str, rev_str, rev_id);
 
 	stm32l4_info->flash_regs_base = stm32l4_info->part_info->flash_regs_base;
-	stm32l4_info->flash_regs = stm32l4_info->part_info->default_flash_regs;
+
+	/* initialise the flash registers layout */
+	if (part_info->flags & F_HAS_L5_FLASH_REGS)
+		stm32l4_info->flash_regs = stm32l5_ns_flash_regs;
+	else
+		stm32l4_info->flash_regs = stm32l4_flash_regs;
 
 	/* read flash option register */
 	retval = stm32l4_read_flash_reg_by_index(bank, STM32_FLASH_OPTR_INDEX, &stm32l4_info->optr);
@@ -1598,6 +1586,17 @@ static int stm32l4_probe(struct flash_bank *bank)
 		return retval;
 
 	stm32l4_sync_rdp_tzen(bank);
+
+	/* for devices with trustzone, use flash secure registers when TZEN=1 and RDP is LEVEL_0 */
+	if (stm32l4_info->tzen && (stm32l4_info->rdp == RDP_LEVEL_0)) {
+		if (part_info->flags & F_HAS_L5_FLASH_REGS) {
+			stm32l4_info->flash_regs_base |= STM32L5_REGS_SEC_OFFSET;
+			stm32l4_info->flash_regs = stm32l5_s_flash_regs;
+		} else {
+			LOG_ERROR("BUG: device supported incomplete");
+			return ERROR_NOT_IMPLEMENTED;
+		}
+	}
 
 	if (part_info->flags & F_HAS_TZ)
 		LOG_INFO("TZEN = %d : TrustZone %s by option bytes",
@@ -1752,15 +1751,6 @@ static int stm32l4_probe(struct flash_bank *bank)
 			page_size_kb = 2;
 			num_pages = flash_size_kb / page_size_kb;
 			stm32l4_info->bank1_sectors = num_pages / 2;
-		}
-
-		/**
-		 * by default use the non-secure registers,
-		 * switch secure registers if TZ is enabled and RDP is LEVEL_0
-		 */
-		if (stm32l4_info->tzen && (stm32l4_info->rdp == RDP_LEVEL_0)) {
-			stm32l4_info->flash_regs_base |= 0x10000000;
-			stm32l4_info->flash_regs = stm32l5_s_flash_regs;
 		}
 		break;
 	case 0x495: /* STM32WB5x */
