@@ -284,17 +284,14 @@ static int adi_jtag_dp_scan_cmd(struct adiv5_dap *dap, struct dap_cmd *cmd, uint
 
 	jtag_add_dr_scan(tap, 2, cmd->fields, TAP_IDLE);
 
-	/* Add specified number of tck clocks after starting memory bus
-	 * access, giving the hardware time to complete the access.
+	/* Add specified number of tck clocks after starting AP register
+	 * access or memory bus access, giving the hardware time to complete
+	 * the access.
 	 * They provide more time for the (MEM) AP to complete the read ...
 	 * See "Minimum Response Time" for JTAG-DP, in the ADIv5/ADIv6 spec.
 	 */
-	if (cmd->instr == JTAG_DP_APACC) {
-		if ((cmd->reg_addr == MEM_AP_REG_DRW(dap) ||
-			 (cmd->reg_addr & 0xFF0) == MEM_AP_REG_BD0(dap)) &&
-			cmd->memaccess_tck != 0)
-			jtag_add_runtest(cmd->memaccess_tck, TAP_IDLE);
-	}
+	if (cmd->instr == JTAG_DP_APACC && cmd->memaccess_tck != 0)
+		jtag_add_runtest(cmd->memaccess_tck, TAP_IDLE);
 
 	return ERROR_OK;
 }
