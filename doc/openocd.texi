@@ -4680,6 +4680,8 @@ for TCL scripting.
 @deffn {Command} {dap info} [num]
 Displays the ROM table for MEM-AP @var{num},
 defaulting to the currently selected AP of the currently selected target.
+On ADIv5 DAP @var{num} is the numeric index of the AP.
+On ADIv6 DAP @var{num} is the base address of the AP.
 @end deffn
 
 @deffn {Command} {dap init}
@@ -4693,21 +4695,29 @@ The following commands exist as subcommands of DAP instances:
 @deffn {Command} {$dap_name info} [num]
 Displays the ROM table for MEM-AP @var{num},
 defaulting to the currently selected AP.
+On ADIv5 DAP @var{num} is the numeric index of the AP.
+On ADIv6 DAP @var{num} is the base address of the AP.
 @end deffn
 
 @deffn {Command} {$dap_name apid} [num]
 Displays ID register from AP @var{num}, defaulting to the currently selected AP.
+On ADIv5 DAP @var{num} is the numeric index of the AP.
+On ADIv6 DAP @var{num} is the base address of the AP.
 @end deffn
 
 @anchor{DAP subcommand apreg}
 @deffn {Command} {$dap_name apreg} ap_num reg [value]
 Displays content of a register @var{reg} from AP @var{ap_num}
 or set a new value @var{value}.
+On ADIv5 DAP @var{ap_num} is the numeric index of the AP.
+On ADIv6 DAP @var{ap_num} is the base address of the AP.
 @var{reg} is byte address of a word register, 0, 4, 8 ... 0xfc.
 @end deffn
 
 @deffn {Command} {$dap_name apsel} [num]
 Select AP @var{num}, defaulting to 0.
+On ADIv5 DAP @var{num} is the numeric index of the AP.
+On ADIv6 DAP @var{num} is the base address of the AP.
 @end deffn
 
 @deffn {Command} {$dap_name dpreg} reg [value]
@@ -4725,6 +4735,8 @@ background activity by OpenOCD while you are operating at such low-level.
 @deffn {Command} {$dap_name baseaddr} [num]
 Displays debug base address from MEM-AP @var{num},
 defaulting to the currently selected AP.
+On ADIv5 DAP @var{num} is the numeric index of the AP.
+On ADIv6 DAP @var{num} is the base address of the AP.
 @end deffn
 
 @deffn {Command} {$dap_name memaccess} [value]
@@ -5098,8 +5110,9 @@ The value should normally correspond to a static mapping for the
 scan and after a reset. A manual call to arp_examine is required to
 access the target for debugging.
 
-@item @code{-ap-num} @var{ap_number} -- set DAP access port for target,
-@var{ap_number} is the numeric index of the DAP AP the target is connected to.
+@item @code{-ap-num} @var{ap_number} -- set DAP access port for target.
+On ADIv5 DAP @var{ap_number} is the numeric index of the DAP AP the target is connected to.
+On ADIv6 DAP @var{ap_number} is the base address of the DAP AP the target is connected to.
 Use this option with systems where multiple, independent cores are connected
 to separate access ports of the same DAP.
 
@@ -9449,7 +9462,10 @@ the @emph{cti} group of commands.
 
 @deffn {Command} {cti create} cti_name @option{-dap} dap_name @option{-ap-num} apn @option{-baseaddr} base_address
 Creates a CTI instance @var{cti_name} on the DAP instance @var{dap_name} on MEM-AP
-@var{apn}. The @var{base_address} must match the base address of the CTI
+@var{apn}.
+On ADIv5 DAP @var{apn} is the numeric index of the DAP AP the CTI is connected to.
+On ADIv6 DAP @var{apn} is the base address of the DAP AP the CTI is connected to.
+The @var{base_address} must match the base address of the CTI
 on the respective MEM-AP. All arguments are mandatory. This creates a
 new command @command{$cti_name} which is used for various purposes
 including additional configuration.
@@ -10114,8 +10130,9 @@ using the @command{$tpiu_name cget} command.
 @item @code{-dap} @var{dap_name} -- names the DAP used to access this
 TPIU. @xref{dapdeclaration,,DAP declaration}, on how to create and manage DAP instances.
 
-@item @code{-ap-num} @var{ap_number} -- sets DAP access port for TPIU,
-@var{ap_number} is the numeric index of the DAP AP the TPIU is connected to.
+@item @code{-ap-num} @var{ap_number} -- sets DAP access port for TPIU.
+On ADIv5 DAP @var{ap_number} is the numeric index of the DAP AP the TPIU is connected to.
+On ADIv6 DAP @var{ap_number} is the base address of the DAP AP the TPIU is connected to.
 
 @item @code{-baseaddr} @var{base_address} -- sets the TPIU @var{base_address} where
 to access the TPIU in the DAP AP memory space.

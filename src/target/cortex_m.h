@@ -241,7 +241,7 @@ struct cortex_m_common {
 
 	bool slow_register_read;	/* A register has not been ready, poll S_REGRDY */
 
-	int apsel;
+	uint64_t apsel;
 
 	/* Whether this target has the erratum that makes C_MASKINTS not apply to
 	 * already pending interrupts */

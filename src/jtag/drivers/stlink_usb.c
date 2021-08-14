@@ -4152,7 +4152,7 @@ static int stlink_dap_reinit_interface(void)
 	stlink_dap_handle->reconnect_pending = false;
 	/* on new FW, calling mode-leave closes all the opened AP; reopen them! */
 	if (stlink_dap_handle->version.flags & STLINK_F_HAS_AP_INIT)
-		for (int apsel = 0; apsel <= DP_APSEL_MAX; apsel++)
+		for (unsigned int apsel = 0; apsel <= DP_APSEL_MAX; apsel++)
 			if (test_bit(apsel, opened_ap)) {
 				clear_bit(apsel, opened_ap);
 				stlink_dap_open_ap(apsel);
@@ -4348,7 +4348,7 @@ static int stlink_usb_misc_rw_segment(void *handle, const struct dap_queue *q, u
 
 	LOG_DEBUG("Queue: %u commands in %u items", len, items);
 
-	int ap_num = DP_APSEL_INVALID;
+	uint32_t ap_num = DP_APSEL_INVALID;
 	unsigned int cmd_index = 0;
 	unsigned int val_index = ALIGN_UP(items, 4);
 	for (unsigned int i = 0; i < len; i++) {
@@ -4497,7 +4497,7 @@ static int stlink_usb_count_misc_rw_queue(void *handle, const struct dap_queue *
 {
 	struct stlink_usb_handle_s *h = handle;
 	unsigned int i, items = 0;
-	int ap_num = DP_APSEL_INVALID;
+	uint32_t ap_num = DP_APSEL_INVALID;
 	unsigned int misc_max_items = (h->version.stlink == 2) ? STLINK_V2_RW_MISC_SIZE : STLINK_V3_RW_MISC_SIZE;
 
 	if (!(h->version.flags & STLINK_F_HAS_RW_MISC))
@@ -4864,9 +4864,10 @@ static int stlink_dap_op_queue_ap_write(struct adiv5_ap *ap, unsigned int reg,
 		q->ap_w.reg = reg;
 		q->ap_w.ap = ap;
 		q->ap_w.data = data;
-		if (reg == ADIV5_MEM_AP_REG_CSW && ap->csw_default != last_csw_default[ap->ap_num]) {
+		uint8_t ap_num = ap->ap_num;
+		if (reg == ADIV5_MEM_AP_REG_CSW && ap->csw_default != last_csw_default[ap_num]) {
 			q->ap_w.changes_csw_default = true;
-			last_csw_default[ap->ap_num] = ap->csw_default;
+			last_csw_default[ap_num] = ap->csw_default;
 		} else {
 			q->ap_w.changes_csw_default = false;
 		}

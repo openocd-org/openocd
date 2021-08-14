@@ -203,7 +203,7 @@ static int adapter_target_create(struct target *target,
 {
 	LOG_DEBUG("%s", __func__);
 	struct adiv5_private_config *pc = target->private_config;
-	if (pc && pc->ap_num > 0) {
+	if (pc && pc->ap_num != DP_APSEL_INVALID && pc->ap_num != 0) {
 		LOG_ERROR("hla_target: invalid parameter -ap-num (> 0)");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}

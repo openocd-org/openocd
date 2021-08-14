@@ -50,7 +50,7 @@ static void dap_instance_init(struct adiv5_dap *dap)
 	/* Set up with safe defaults */
 	for (i = 0; i <= DP_APSEL_MAX; i++) {
 		dap->ap[i].dap = dap;
-		dap->ap[i].ap_num = i;
+		dap->ap[i].ap_num = DP_APSEL_INVALID;
 		/* memaccess_tck max is 255 */
 		dap->ap[i].memaccess_tck = 255;
 		/* Number of bits for tar autoincrement, impl. dep. at least 10 */
@@ -459,7 +459,7 @@ COMMAND_HANDLER(handle_dap_info_command)
 	struct target *target = get_current_target(CMD_CTX);
 	struct arm *arm = target_to_arm(target);
 	struct adiv5_dap *dap = arm->dap;
-	uint32_t apsel;
+	uint64_t apsel;
 
 	if (!dap) {
 		LOG_ERROR("DAP instance not available. Probably a HLA target...");
@@ -471,8 +471,8 @@ COMMAND_HANDLER(handle_dap_info_command)
 			apsel = dap->apsel;
 			break;
 		case 1:
-			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], apsel);
-			if (apsel > DP_APSEL_MAX)
+			COMMAND_PARSE_NUMBER(u64, CMD_ARGV[0], apsel);
+			if (!is_ap_num_valid(dap, apsel))
 				return ERROR_COMMAND_SYNTAX_ERROR;
 			break;
 		default:

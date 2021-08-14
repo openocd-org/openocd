@@ -110,8 +110,8 @@
 #define DP_SELECT_DPBANK 0x0000000F
 #define DP_SELECT_INVALID 0x00FFFF00 /* Reserved bits one */
 
-#define DP_APSEL_MAX        (255)
-#define DP_APSEL_INVALID    (-1)
+#define DP_APSEL_MAX        (255) /* for ADIv5 only */
+#define DP_APSEL_INVALID    0xF00 /* more than DP_APSEL_MAX and not ADIv6 aligned 4k */
 
 #define DP_TARGETSEL_INVALID 0xFFFFFFFFU
 #define DP_TARGETSEL_DPID_MASK 0x0FFFFFFFU
@@ -255,9 +255,11 @@ struct adiv5_ap {
 	struct adiv5_dap *dap;
 
 	/**
-	 * Number of this AP.
+	 * ADIv5: Number of this AP (0~255)
+	 * ADIv6: Base address of this AP (4k aligned)
+	 * TODO: to be more coherent, it should be renamed apsel
 	 */
-	uint8_t ap_num;
+	uint64_t ap_num;
 
 	/**
 	 * Default value for (MEM-AP) AP_REG_CSW register.
@@ -342,7 +344,7 @@ struct adiv5_dap {
 	struct adiv5_ap ap[DP_APSEL_MAX + 1];
 
 	/* The current manually selected AP by the "dap apsel" command */
-	uint32_t apsel;
+	uint64_t apsel;
 
 	/**
 	 * Cache for DP_SELECT register. A value of DP_SELECT_INVALID
@@ -551,7 +553,7 @@ static inline int dap_queue_ap_read(struct adiv5_ap *ap,
 	assert(ap->dap->ops);
 	if (ap->refcount == 0) {
 		ap->refcount = 1;
-		LOG_ERROR("BUG: refcount AP#%" PRIu8 " used without get", ap->ap_num);
+		LOG_ERROR("BUG: refcount AP#0x%" PRIx64 " used without get", ap->ap_num);
 	}
 	return ap->dap->ops->queue_ap_read(ap, reg, data);
 }
@@ -571,7 +573,7 @@ static inline int dap_queue_ap_write(struct adiv5_ap *ap,
 	assert(ap->dap->ops);
 	if (ap->refcount == 0) {
 		ap->refcount = 1;
-		LOG_ERROR("BUG: refcount AP#%" PRIu8 " used without get", ap->ap_num);
+		LOG_ERROR("BUG: refcount AP#0x%" PRIx64 " used without get", ap->ap_num);
 	}
 	return ap->dap->ops->queue_ap_write(ap, reg, data);
 }
@@ -690,16 +692,19 @@ int mem_ap_init(struct adiv5_ap *ap);
 /* Invalidate cached DP select and cached TAR and CSW of all APs */
 void dap_invalidate_cache(struct adiv5_dap *dap);
 
+/* test if ap_num is valid, based on current knowledge of dap */
+bool is_ap_num_valid(struct adiv5_dap *dap, uint64_t ap_num);
+
 /* Probe Access Ports to find a particular type. Increment AP refcount */
 int dap_find_get_ap(struct adiv5_dap *dap,
 			enum ap_type type_to_find,
 			struct adiv5_ap **ap_out);
 
 /* Return AP with specified ap_num. Increment AP refcount */
-struct adiv5_ap *dap_get_ap(struct adiv5_dap *dap, unsigned int ap_num);
+struct adiv5_ap *dap_get_ap(struct adiv5_dap *dap, uint64_t ap_num);
 
 /* Return AP with specified ap_num. Increment AP refcount and keep it non-zero */
-struct adiv5_ap *dap_get_config_ap(struct adiv5_dap *dap, unsigned int ap_num);
+struct adiv5_ap *dap_get_config_ap(struct adiv5_dap *dap, uint64_t ap_num);
 
 /* Decrement AP refcount and release the AP when refcount reaches zero */
 int dap_put_ap(struct adiv5_ap *ap);
@@ -735,7 +740,7 @@ extern const struct swd_driver *adiv5_dap_swd_driver(struct adiv5_dap *self);
 extern int dap_cleanup_all(void);
 
 struct adiv5_private_config {
-	int ap_num;
+	uint64_t ap_num;
 	struct adiv5_dap *dap;
 };
 
@@ -744,7 +749,7 @@ extern int adiv5_jim_configure(struct target *target, struct jim_getopt_info *go
 
 struct adiv5_mem_ap_spot {
 	struct adiv5_dap *dap;
-	int ap_num;
+	uint64_t ap_num;
 	uint32_t base;
 };
 

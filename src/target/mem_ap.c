@@ -29,7 +29,7 @@ struct mem_ap {
 	int common_magic;
 	struct adiv5_dap *dap;
 	struct adiv5_ap *ap;
-	int ap_num;
+	uint64_t ap_num;
 };
 
 static int mem_ap_target_create(struct target *target, Jim_Interp *interp)

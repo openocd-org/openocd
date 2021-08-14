@@ -617,8 +617,8 @@ static int jim_arm_tpiu_swo_enable(Jim_Interp *interp, int argc, Jim_Obj *const 
 	if (obj->enabled)
 		return JIM_OK;
 
-	if (transport_is_hla() && obj->spot.ap_num > 0) {
-		LOG_ERROR("Invalid access port %d. Only AP#0 allowed with hla transport", obj->spot.ap_num);
+	if (transport_is_hla() && obj->spot.ap_num != 0) {
+		LOG_ERROR("Invalid access port 0x%" PRIx64 ". Only AP#0 allowed with hla transport", obj->spot.ap_num);
 		return JIM_ERR;
 	}
 
@@ -650,8 +650,8 @@ static int jim_arm_tpiu_swo_enable(Jim_Interp *interp, int argc, Jim_Obj *const 
 		if (obj->spot.ap_num == 0)
 			LOG_INFO(MSG "Confirmed TPIU %s is on AP 0", obj->name);
 		else
-			LOG_INFO(MSG "Target %s is on AP %d. Revised command is "
-				"\'tpiu create %s -dap %s -ap-num %d\'",
+			LOG_INFO(MSG "Target %s is on AP#0x%" PRIx64 ". Revised command is "
+				"\'tpiu create %s -dap %s -ap-num 0x%" PRIx64 "\'",
 				target_name(target), obj->spot.ap_num,
 				obj->name, adiv5_dap_name(obj->spot.dap), obj->spot.ap_num);
 	}
@@ -1047,7 +1047,7 @@ COMMAND_HANDLER(handle_tpiu_deprecated_config_command)
 		struct cortex_m_common *cm = target_to_cm(target);
 		struct adiv5_private_config *pc = target->private_config;
 		struct adiv5_dap *dap = pc->dap;
-		int ap_num = pc->ap_num;
+		uint64_t ap_num = pc->ap_num;
 		bool set_recheck_ap_cur_target = false;
 
 		LOG_INFO(MSG "Adding a TPIU \'%s.tpiu\' in the configuration", target_name(target));
@@ -1065,10 +1065,10 @@ COMMAND_HANDLER(handle_tpiu_deprecated_config_command)
 			set_recheck_ap_cur_target = true;
 		}
 
-		LOG_INFO(MSG "Running: \'tpiu create %s.tpiu -dap %s -ap-num %d\'",
+		LOG_INFO(MSG "Running: \'tpiu create %s.tpiu -dap %s -ap-num 0x%" PRIx64 "\'",
 			target_name(target), adiv5_dap_name(dap), ap_num);
 
-		retval = command_run_linef(CMD_CTX, "tpiu create %s.tpiu -dap %s -ap-num %d",
+		retval = command_run_linef(CMD_CTX, "tpiu create %s.tpiu -dap %s -ap-num 0x%" PRIx64,
 			target_name(target), adiv5_dap_name(dap), ap_num);
 		if (retval != ERROR_OK)
 			return retval;
