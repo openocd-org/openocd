@@ -79,7 +79,7 @@
 #define FLASH_SECBB_SECURE      0xFFFFFFFF
 #define FLASH_SECBB_NON_SECURE  0
 
-/* other registers */
+/* IDCODE register possible addresses */
 #define DBGMCU_IDCODE_G0		0x40015800
 #define DBGMCU_IDCODE_L4_G4		0xE0042000
 #define DBGMCU_IDCODE_L5		0xE0044000
@@ -87,9 +87,33 @@
 #define UID64_IDS				0x1FFF7584
 #define UID64_IDS_STM32WL		0x0080E115
 
+/* Supported device IDs */
+#define DEVID_STM32L47_L48XX	0x415
+#define DEVID_STM32L43_L44XX	0x435
+#define DEVID_STM32G05_G06XX	0x456
+#define DEVID_STM32G07_G08XX	0x460
+#define DEVID_STM32L49_L4AXX	0x461
+#define DEVID_STM32L45_L46XX	0x462
+#define DEVID_STM32L41_L42XX	0x464
+#define DEVID_STM32G03_G04XX	0x466
+#define DEVID_STM32G0B_G0CXX	0x467
+#define DEVID_STM32G43_G44XX	0x468
+#define DEVID_STM32G47_G48XX	0x469
+#define DEVID_STM32L4R_L4SXX	0x470
+#define DEVID_STM32L4P_L4QXX	0x471
+#define DEVID_STM32L55_L56XX	0x472
+#define DEVID_STM32G49_G4AXX	0x479
+#define DEVID_STM32U57_U58XX	0x482
+#define DEVID_STM32WB1XX		0x494
+#define DEVID_STM32WB5XX		0x495
+#define DEVID_STM32WB3XX		0x496
+#define DEVID_STM32WLE_WL5XX	0x497
+
+/* known Flash base addresses */
 #define STM32_FLASH_BANK_BASE	0x08000000
 #define STM32_FLASH_S_BANK_BASE	0x0C000000
 
+/* offset between non-secure and secure flash registers */
 #define STM32L5_REGS_SEC_OFFSET 0x10000000
 
 /* 100 bytes as loader stack should be large enough for the loader to operate */
