@@ -893,6 +893,55 @@ static const char *class_description[16] = {
 	[0xF] = "CoreLink, PrimeCell or System component",
 };
 
+#define ARCH_ID(architect, archid) ( \
+	(((architect) << ARM_CS_C9_DEVARCH_ARCHITECT_SHIFT) & ARM_CS_C9_DEVARCH_ARCHITECT_MASK) | \
+	(((archid) << ARM_CS_C9_DEVARCH_ARCHID_SHIFT) & ARM_CS_C9_DEVARCH_ARCHID_MASK) \
+)
+
+static const struct {
+	uint32_t arch_id;
+	const char *description;
+} class0x9_devarch[] = {
+	/* keep same unsorted order as in ARM IHI0029E */
+	{ ARCH_ID(ARM_ID, 0x0A00), "RAS architecture" },
+	{ ARCH_ID(ARM_ID, 0x1A01), "Instrumentation Trace Macrocell (ITM) architecture" },
+	{ ARCH_ID(ARM_ID, 0x1A02), "DWT architecture" },
+	{ ARCH_ID(ARM_ID, 0x1A03), "Flash Patch and Breakpoint unit (FPB) architecture" },
+	{ ARCH_ID(ARM_ID, 0x2A04), "Processor debug architecture (ARMv8-M)" },
+	{ ARCH_ID(ARM_ID, 0x6A05), "Processor debug architecture (ARMv8-R)" },
+	{ ARCH_ID(ARM_ID, 0x0A10), "PC sample-based profiling" },
+	{ ARCH_ID(ARM_ID, 0x4A13), "Embedded Trace Macrocell (ETM) architecture" },
+	{ ARCH_ID(ARM_ID, 0x1A14), "Cross Trigger Interface (CTI) architecture" },
+	{ ARCH_ID(ARM_ID, 0x6A15), "Processor debug architecture (v8.0-A)" },
+	{ ARCH_ID(ARM_ID, 0x7A15), "Processor debug architecture (v8.1-A)" },
+	{ ARCH_ID(ARM_ID, 0x8A15), "Processor debug architecture (v8.2-A)" },
+	{ ARCH_ID(ARM_ID, 0x2A16), "Processor Performance Monitor (PMU) architecture" },
+	{ ARCH_ID(ARM_ID, 0x0A17), "Memory Access Port v2 architecture" },
+	{ ARCH_ID(ARM_ID, 0x0A27), "JTAG Access Port v2 architecture" },
+	{ ARCH_ID(ARM_ID, 0x0A31), "Basic trace router" },
+	{ ARCH_ID(ARM_ID, 0x0A37), "Power requestor" },
+	{ ARCH_ID(ARM_ID, 0x0A47), "Unknown Access Port v2 architecture" },
+	{ ARCH_ID(ARM_ID, 0x0A50), "HSSTP architecture" },
+	{ ARCH_ID(ARM_ID, 0x0A63), "System Trace Macrocell (STM) architecture" },
+	{ ARCH_ID(ARM_ID, 0x0A75), "CoreSight ELA architecture" },
+	{ ARCH_ID(ARM_ID, 0x0AF7), "CoreSight ROM architecture" },
+};
+
+#define DEVARCH_ID_MASK         (ARM_CS_C9_DEVARCH_ARCHITECT_MASK | ARM_CS_C9_DEVARCH_ARCHID_MASK)
+
+__attribute__((unused))
+static const char *class0x9_devarch_description(uint32_t devarch)
+{
+	if (!(devarch & ARM_CS_C9_DEVARCH_PRESENT))
+		return "not present";
+
+	for (unsigned int i = 0; i < ARRAY_SIZE(class0x9_devarch); i++)
+		if ((devarch & DEVARCH_ID_MASK) == class0x9_devarch[i].arch_id)
+			return class0x9_devarch[i].description;
+
+	return "unknown";
+}
+
 static const struct {
 	enum ap_type type;
 	const char *description;
