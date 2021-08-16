@@ -1115,12 +1115,12 @@ static int dap_read_part_id(struct adiv5_ap *ap, target_addr_t component_base, u
 
 #define ANY_ID 0x1000
 
-static const struct {
+static const struct dap_part_nums {
 	uint16_t designer_id;
 	uint16_t part_num;
 	const char *type;
 	const char *full;
-} dap_partnums[] = {
+} dap_part_nums[] = {
 	{ ARM_ID, 0x000, "Cortex-M3 SCS",              "(System Control Space)", },
 	{ ARM_ID, 0x001, "Cortex-M3 ITM",              "(Instrumentation Trace Module)", },
 	{ ARM_ID, 0x002, "Cortex-M3 DWT",              "(Data Watchpoint and Trace)", },
@@ -1226,6 +1226,22 @@ static const struct {
 	{ ANY_ID, 0x120, "TI SDTI",                    "(System Debug Trace Interface)", }, /* from OMAP3 memmap */
 	{ ANY_ID, 0x343, "TI DAPCTL",                  "", }, /* from OMAP3 memmap */
 };
+
+static const struct dap_part_nums *pidr_to_part_num(unsigned int designer_id, unsigned int part_num)
+{
+	static const struct dap_part_nums unknown = {
+		.type = "Unrecognized",
+		.full = "",
+	};
+
+	for (unsigned int i = 0; i < ARRAY_SIZE(dap_part_nums); i++) {
+		if (dap_part_nums[i].designer_id != designer_id && dap_part_nums[i].designer_id != ANY_ID)
+			continue;
+		if (dap_part_nums[i].part_num == part_num)
+			return &dap_part_nums[i];
+	}
+	return &unknown;
+}
 
 static int dap_devtype_display(struct command_invocation *cmd, uint32_t devtype)
 {
@@ -1408,41 +1424,24 @@ static int dap_rom_display(struct command_invocation *cmd,
 
 	command_print(cmd, "\t\tPeripheral ID 0x%010" PRIx64, pid);
 
-	uint8_t class = (cid & ARM_CS_CIDR_CLASS_MASK) >> ARM_CS_CIDR_CLASS_SHIFT;
-	uint16_t part_num = ARM_CS_PIDR_PART(pid);
-	uint16_t designer_id = ARM_CS_PIDR_DESIGNER(pid);
+	const unsigned int class = (cid & ARM_CS_CIDR_CLASS_MASK) >> ARM_CS_CIDR_CLASS_SHIFT;
+	const unsigned int part_num = ARM_CS_PIDR_PART(pid);
+	unsigned int designer_id = ARM_CS_PIDR_DESIGNER(pid);
 
 	if (pid & ARM_CS_PIDR_JEDEC) {
 		/* JEP106 code */
-		command_print(cmd, "\t\tDesigner is 0x%03" PRIx16 ", %s",
+		command_print(cmd, "\t\tDesigner is 0x%03x, %s",
 				designer_id, jep106_manufacturer(designer_id));
 	} else {
 		/* Legacy ASCII ID, clear invalid bits */
 		designer_id &= 0x7f;
-		command_print(cmd, "\t\tDesigner ASCII code 0x%02" PRIx16 ", %s",
+		command_print(cmd, "\t\tDesigner ASCII code 0x%02x, %s",
 				designer_id, designer_id == 0x41 ? "ARM" : "<unknown>");
 	}
 
-	/* default values to be overwritten upon finding a match */
-	const char *type = "Unrecognized";
-	const char *full = "";
-
-	/* search dap_partnums[] array for a match */
-	for (unsigned entry = 0; entry < ARRAY_SIZE(dap_partnums); entry++) {
-
-		if ((dap_partnums[entry].designer_id != designer_id) && (dap_partnums[entry].designer_id != ANY_ID))
-			continue;
-
-		if (dap_partnums[entry].part_num != part_num)
-			continue;
-
-		type = dap_partnums[entry].type;
-		full = dap_partnums[entry].full;
-		break;
-	}
-
-	command_print(cmd, "\t\tPart is 0x%" PRIx16", %s %s", part_num, type, full);
-	command_print(cmd, "\t\tComponent class is 0x%" PRIx8 ", %s", class, class_description[class]);
+	const struct dap_part_nums *partnum = pidr_to_part_num(designer_id, part_num);
+	command_print(cmd, "\t\tPart is 0x%03x, %s %s", part_num, partnum->type, partnum->full);
+	command_print(cmd, "\t\tComponent class is 0x%x, %s", class, class_description[class]);
 
 	if (class == ARM_CS_CLASS_0X1_ROM_TABLE) {
 		uint32_t memtype;
