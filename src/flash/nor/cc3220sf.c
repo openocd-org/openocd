@@ -21,6 +21,7 @@
 
 #include "imp.h"
 #include "cc3220sf.h"
+#include <helper/binarybuffer.h>
 #include <helper/time_support.h>
 #include <target/algorithm.h>
 #include <target/armv7m.h>

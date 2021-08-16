@@ -28,6 +28,7 @@
 #include "helper/binarybuffer.h"
 
 #include <helper/time_support.h>
+#include <jtag/jtag.h>
 #include <target/cortex_m.h>
 
 /* A note to prefixing.

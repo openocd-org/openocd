@@ -21,6 +21,7 @@
 #endif
 
 #include "imp.h"
+#include <helper/binarybuffer.h>
 #include <target/algorithm.h>
 #include <target/armv7m.h>
 

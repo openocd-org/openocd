@@ -27,6 +27,7 @@
 #include <helper/align.h>
 #include <helper/binarybuffer.h>
 #include <target/algorithm.h>
+#include <target/arm_adi_v5.h>
 #include <target/cortex_m.h>
 #include "bits.h"
 #include "stm32l4x.h"

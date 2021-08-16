@@ -41,6 +41,7 @@
 #include <jtag/hla/hla_transport.h>
 #include <jtag/hla/hla_interface.h>
 #include <jtag/swim.h>
+#include <target/arm_adi_v5.h>
 #include <target/target.h>
 #include <transport/transport.h>
 

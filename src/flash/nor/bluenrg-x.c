@@ -20,6 +20,7 @@
 #include "config.h"
 #endif
 
+#include <helper/binarybuffer.h>
 #include "helper/types.h"
 #include <target/algorithm.h>
 #include <target/armv7m.h>

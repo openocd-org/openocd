@@ -38,6 +38,7 @@
 #include <helper/time_support.h>
 #include <target/target_type.h>
 #include <target/algorithm.h>
+#include <target/arm_adi_v5.h>
 #include <target/armv7m.h>
 #include <target/cortex_m.h>
 
