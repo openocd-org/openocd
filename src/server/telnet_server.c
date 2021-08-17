@@ -718,6 +718,13 @@ static int telnet_input(struct connection *connection)
 								t_con->line_cursor--;
 							}
 							t_con->state = TELNET_STATE_DATA;
+						} else if (*buf_p == CTRL('C')) {	/* interrupt */
+							/* print '^C' at line end, and display a new command prompt */
+							telnet_move_cursor(connection, t_con->line_size);
+							telnet_write(connection, "^C\n\r", 4);
+							t_con->line_cursor = 0;
+							t_con->line_size = 0;
+							telnet_prompt(connection);
 						} else if (*buf_p == CTRL('F')) {	/* cursor right */
 							if (t_con->line_cursor < t_con->line_size)
 								telnet_write(connection, t_con->line + t_con->line_cursor++, 1);
