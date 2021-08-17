@@ -602,16 +602,16 @@ static int telnet_input(struct connection *connection)
 	while (bytes_read) {
 		switch (t_con->state) {
 			case TELNET_STATE_DATA:
-				if (*buf_p == 0xff)
+				if (*buf_p == 0xff) {
 					t_con->state = TELNET_STATE_IAC;
-				else {
+				} else {
 					if (isprint(*buf_p)) {	/* printable character */
 						telnet_insert(connection, buf_p, 1);
-					} else {	/* non-printable */
+					} else { /* non-printable */
 						if (*buf_p == 0x1b) {	/* escape */
 							t_con->state = TELNET_STATE_ESCAPE;
 							t_con->last_escape = '\x00';
-						} else if ((*buf_p == 0xd) || (*buf_p == 0xa)) {	/* CR/LF */
+						} else if ((*buf_p == 0xd) || (*buf_p == 0xa)) { /* CR/LF */
 							int retval;
 
 							/* skip over combinations with CR/LF and NUL characters */
@@ -710,9 +710,9 @@ static int telnet_input(struct connection *connection)
 									telnet_write(connection, "\b \b", 3);
 								}
 							}
-						} else if (*buf_p == 0x15) /* clear line */
+						} else if (*buf_p == 0x15) {	/* clear line */
 							telnet_clear_line(connection, t_con);
-						else if (*buf_p == CTRL('B')) {	/* cursor left */
+						} else if (*buf_p == CTRL('B')) {	/* cursor left */
 							if (t_con->line_cursor > 0) {
 								telnet_write(connection, "\b", 1);
 								t_con->line_cursor--;
@@ -722,15 +722,15 @@ static int telnet_input(struct connection *connection)
 							if (t_con->line_cursor < t_con->line_size)
 								telnet_write(connection, t_con->line + t_con->line_cursor++, 1);
 							t_con->state = TELNET_STATE_DATA;
-						} else if (*buf_p == CTRL('P'))		/* cursor up */
+						} else if (*buf_p == CTRL('P')) {	/* cursor up */
 							telnet_history_up(connection);
-						else if (*buf_p == CTRL('N'))		/* cursor down */
+						} else if (*buf_p == CTRL('N')) {	/* cursor down */
 							telnet_history_down(connection);
-						else if (*buf_p == CTRL('A'))
+						} else if (*buf_p == CTRL('A')) {	/* move the cursor to the beginning of the line */
 							telnet_move_cursor(connection, 0);
-						else if (*buf_p == CTRL('E'))
+						} else if (*buf_p == CTRL('E')) {	/* move the cursor to the end of the line */
 							telnet_move_cursor(connection, t_con->line_size);
-						else if (*buf_p == CTRL('K')) {         /* kill line to end */
+						} else if (*buf_p == CTRL('K')) {	/* kill line to end */
 							if (t_con->line_cursor < t_con->line_size) {
 								/* overwrite with space, until end of line, move back */
 								for (size_t i = t_con->line_cursor; i < t_con->line_size; i++)
@@ -740,10 +740,11 @@ static int telnet_input(struct connection *connection)
 								t_con->line[t_con->line_cursor] = '\0';
 								t_con->line_size = t_con->line_cursor;
 							}
-						} else if (*buf_p == '\t')
+						} else if (*buf_p == '\t') {
 							telnet_auto_complete(connection);
-						else
+						} else {
 							LOG_DEBUG("unhandled nonprintable: %2.2x", *buf_p);
+						}
 					}
 				}
 				break;
@@ -796,10 +797,11 @@ static int telnet_input(struct connection *connection)
 					} else if (*buf_p == 'H') { /* home key */
 						telnet_move_cursor(connection, 0);
 						t_con->state = TELNET_STATE_DATA;
-					} else if (*buf_p == '3')
+					} else if (*buf_p == '3') {
 						t_con->last_escape = *buf_p;
-					else
+					} else {
 						t_con->state = TELNET_STATE_DATA;
+					}
 				} else if (t_con->last_escape == '3') {
 					/* Remove character */
 					if (*buf_p == '~') {
