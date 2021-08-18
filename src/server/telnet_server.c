@@ -352,10 +352,14 @@ static int telnet_history_print(struct connection *connection)
 
 static void telnet_move_cursor(struct connection *connection, size_t pos)
 {
-	struct telnet_connection *tc;
+	struct telnet_connection *tc = connection->priv;
 	size_t tmp;
 
-	tc = connection->priv;
+	if (pos == tc->line_cursor) /* nothing to do */
+		return;
+
+	if (pos > tc->line_size) /* out of bounds */
+		return;
 
 	if (pos < tc->line_cursor) {
 		tmp = tc->line_cursor - pos;
