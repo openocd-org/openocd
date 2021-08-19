@@ -592,15 +592,29 @@ static void telnet_auto_complete(struct connection *connection)
 
 	LIST_HEAD(matches);
 
-	/* user command sequence, either at line beginning
-	 * or we start over after these characters ';', '[', '{' */
+	/* - user command sequence, either at line beginning
+	 *   or we start over after these characters ';', '[', '{'
+	 * - user variable sequence, start after the character '$'
+	 *   and do not contain white spaces */
+	bool is_variable_auto_completion = false;
+	bool have_spaces = false;
 	size_t seq_start = (t_con->line_cursor == 0) ? 0 : (t_con->line_cursor - 1);
-	while (seq_start > 0) {
+	while (1) {
 		char c = t_con->line[seq_start];
+
 		if (c == ';' || c == '[' || c == '{') {
 			seq_start++;
 			break;
+		} else if (c == ' ') {
+			have_spaces = true;
+		} else if (c == '$' && !have_spaces) {
+			is_variable_auto_completion = true;
+			seq_start++;
+			break;
 		}
+
+		if (seq_start == 0)
+			break;
 
 		seq_start--;
 	}
@@ -631,7 +645,12 @@ static void telnet_auto_complete(struct connection *connection)
 	query[usr_cmd_len] = '\0';
 
 	/* filter commands */
-	char *query_cmd = alloc_printf("_telnet_autocomplete_helper {%s*}", query);
+	char *query_cmd;
+
+	if (is_variable_auto_completion)
+		query_cmd = alloc_printf("lsort [info vars {%s*}]", query);
+	else
+		query_cmd = alloc_printf("_telnet_autocomplete_helper {%s*}", query);
 
 	if (!query_cmd) {
 		LOG_ERROR("Out of memory");
@@ -659,20 +678,22 @@ static void telnet_auto_complete(struct connection *connection)
 
 		/* validate the command */
 		bool ignore_cmd = false;
-		Jim_Cmd *jim_cmd = Jim_GetCommand(command_context->interp, elem, JIM_NONE);
+		if (!is_variable_auto_completion) {
+			Jim_Cmd *jim_cmd = Jim_GetCommand(command_context->interp, elem, JIM_NONE);
 
-		if (!jim_cmd) {
-			/* Why we are here? Let's ignore it! */
-			ignore_cmd = true;
-		} else if (jimcmd_is_oocd_command(jim_cmd)) {
-			struct command *cmd = jimcmd_privdata(jim_cmd);
+			if (!jim_cmd) {
+				/* Why we are here? Let's ignore it! */
+				ignore_cmd = true;
+			} else if (jimcmd_is_oocd_command(jim_cmd)) {
+				struct command *cmd = jimcmd_privdata(jim_cmd);
 
-			if (cmd && !cmd->handler && !cmd->jim_handler) {
-				/* Initial part of a multi-word command. Ignore it! */
-				ignore_cmd = true;
-			} else if (cmd && cmd->mode == COMMAND_CONFIG) {
-				/* Not executable after config phase. Ignore it! */
-				ignore_cmd = true;
+				if (cmd && !cmd->handler && !cmd->jim_handler) {
+					/* Initial part of a multi-word command. Ignore it! */
+					ignore_cmd = true;
+				} else if (cmd && cmd->mode == COMMAND_CONFIG) {
+					/* Not executable after config phase. Ignore it! */
+					ignore_cmd = true;
+				}
 			}
 		}
 
