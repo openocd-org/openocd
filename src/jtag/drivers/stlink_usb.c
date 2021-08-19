@@ -1626,7 +1626,8 @@ static int stlink_usb_init_mode(void *handle, bool connect_under_reset, int init
 		}
 	}
 
-	if (h->version.jtag_api == STLINK_JTAG_API_V3) {
+	if (h->version.jtag_api == STLINK_JTAG_API_V3 &&
+			(emode == STLINK_MODE_DEBUG_JTAG || emode == STLINK_MODE_DEBUG_SWD)) {
 		struct speed_map map[STLINK_V3_MAX_FREQ_NB];
 
 		stlink_get_com_freq(h, (emode == STLINK_MODE_DEBUG_JTAG), map);
