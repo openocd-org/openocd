@@ -1224,6 +1224,7 @@ static const struct dap_part_nums {
 	{ ARM_ID, 0xd07, "Cortex-A57 Debug",           "(Debug Unit)", },
 	{ ARM_ID, 0xd08, "Cortex-A72 Debug",           "(Debug Unit)", },
 	{ ARM_ID, 0xd0b, "Cortex-A76 Debug",           "(Debug Unit)", },
+	{ ARM_ID, 0xd0c, "Neoverse N1",                "(Debug Unit)", },
 	{ ARM_ID, 0xd13, "Cortex-R52 Debug",           "(Debug Unit)", },
 	{ 0x017,  0x9af, "MSP432 ROM",                 "(ROM Table)" },
 	{ 0x01f,  0xcd0, "Atmel CPU with DSU",         "(CPU)" },
