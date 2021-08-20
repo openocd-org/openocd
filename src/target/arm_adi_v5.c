@@ -1107,14 +1107,6 @@ static int dap_read_part_id(struct adiv5_ap *ap, target_addr_t component_base, u
  * from chip observation (e.g. TI SDTI).
  */
 
-/* The legacy code only used the part number field to identify CoreSight peripherals.
- * This meant that the same part number from two different manufacturers looked the same.
- * It is desirable for all future additions to identify with both part number and JEP106.
- * "ANY_ID" is a wildcard (any JEP106) only to preserve legacy behavior for legacy entries.
- */
-
-#define ANY_ID 0x1000
-
 static const struct dap_part_nums {
 	uint16_t designer_id;
 	uint16_t part_num;
@@ -1227,6 +1219,8 @@ static const struct dap_part_nums {
 	{ ARM_ID, 0xd0c, "Neoverse N1",                "(Debug Unit)", },
 	{ ARM_ID, 0xd13, "Cortex-R52 Debug",           "(Debug Unit)", },
 	{ ARM_ID, 0xd49, "Neoverse N2",                "(Debug Unit)", },
+	{ 0x017,  0x120, "TI SDTI",                    "(System Debug Trace Interface)", }, /* from OMAP3 memmap */
+	{ 0x017,  0x343, "TI DAPCTL",                  "", }, /* from OMAP3 memmap */
 	{ 0x017,  0x9af, "MSP432 ROM",                 "(ROM Table)" },
 	{ 0x01f,  0xcd0, "Atmel CPU with DSU",         "(CPU)" },
 	{ 0x041,  0x1db, "XMC4500 ROM",                "(ROM Table)" },
@@ -1243,9 +1237,6 @@ static const struct dap_part_nums {
 	{ 0x1eb,  0x211, "Tegra 210 ROM",              "(ROM Table)", },
 	{ 0x1eb,  0x302, "Denver Debug",               "(Debug Unit)", },
 	{ 0x1eb,  0x402, "Denver PMU",                 "(Performance Monitor Unit)", },
-	/* legacy comment: 0x113: what? */
-	{ ANY_ID, 0x120, "TI SDTI",                    "(System Debug Trace Interface)", }, /* from OMAP3 memmap */
-	{ ANY_ID, 0x343, "TI DAPCTL",                  "", }, /* from OMAP3 memmap */
 };
 
 static const struct dap_part_nums *pidr_to_part_num(unsigned int designer_id, unsigned int part_num)
@@ -1255,12 +1246,10 @@ static const struct dap_part_nums *pidr_to_part_num(unsigned int designer_id, un
 		.full = "",
 	};
 
-	for (unsigned int i = 0; i < ARRAY_SIZE(dap_part_nums); i++) {
-		if (dap_part_nums[i].designer_id != designer_id && dap_part_nums[i].designer_id != ANY_ID)
-			continue;
-		if (dap_part_nums[i].part_num == part_num)
+	for (unsigned int i = 0; i < ARRAY_SIZE(dap_part_nums); i++)
+		if (dap_part_nums[i].designer_id == designer_id && dap_part_nums[i].part_num == part_num)
 			return &dap_part_nums[i];
-	}
+
 	return &unknown;
 }
 
