@@ -140,6 +140,23 @@ static int dap_init_all(void)
 		retval = dap->ops->connect(dap);
 		if (retval != ERROR_OK)
 			return retval;
+
+		/* see if address size of ROM Table is greater than 32-bits */
+		if (is_adiv6(dap)) {
+			uint32_t dpidr1;
+
+			retval = dap->ops->queue_dp_read(dap, DP_DPIDR1, &dpidr1);
+			if (retval != ERROR_OK) {
+				LOG_ERROR("DAP read of DPIDR1 failed...");
+				return retval;
+			}
+			retval = dap_run(dap);
+			if (retval != ERROR_OK) {
+				LOG_ERROR("DAP read of DPIDR1 failed...");
+				return retval;
+			}
+			dap->asize = dpidr1 & DP_DPIDR1_ASIZE_MASK;
+		}
 	}
 
 	return ERROR_OK;

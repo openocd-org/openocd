@@ -395,6 +395,9 @@ struct adiv5_dap {
 
 	/** Indicates ADI version (5, 6 or 0 for unknown) being used */
 	unsigned int adi_version;
+
+	/* ADIv6 only field indicating ROM Table address size */
+	unsigned int asize;
 };
 
 /**
