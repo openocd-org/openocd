@@ -107,7 +107,7 @@ static int mem_ap_setup_csw(struct adiv5_ap *ap, uint32_t csw)
 
 	if (csw != ap->csw_value) {
 		/* LOG_DEBUG("DAP: Set CSW %x",csw); */
-		int retval = dap_queue_ap_write(ap, MEM_AP_REG_CSW, csw);
+		int retval = dap_queue_ap_write(ap, MEM_AP_REG_CSW(ap->dap), csw);
 		if (retval != ERROR_OK) {
 			ap->csw_value = 0;
 			return retval;
@@ -121,11 +121,11 @@ static int mem_ap_setup_tar(struct adiv5_ap *ap, target_addr_t tar)
 {
 	if (!ap->tar_valid || tar != ap->tar_value) {
 		/* LOG_DEBUG("DAP: Set TAR %x",tar); */
-		int retval = dap_queue_ap_write(ap, MEM_AP_REG_TAR, (uint32_t)(tar & 0xffffffffUL));
+		int retval = dap_queue_ap_write(ap, MEM_AP_REG_TAR(ap->dap), (uint32_t)(tar & 0xffffffffUL));
 		if (retval == ERROR_OK && is_64bit_ap(ap)) {
 			/* See if bits 63:32 of tar is different from last setting */
 			if ((ap->tar_value >> 32) != (tar >> 32))
-				retval = dap_queue_ap_write(ap, MEM_AP_REG_TAR64, (uint32_t)(tar >> 32));
+				retval = dap_queue_ap_write(ap, MEM_AP_REG_TAR64(ap->dap), (uint32_t)(tar >> 32));
 		}
 		if (retval != ERROR_OK) {
 			ap->tar_valid = false;
@@ -142,9 +142,9 @@ static int mem_ap_read_tar(struct adiv5_ap *ap, target_addr_t *tar)
 	uint32_t lower;
 	uint32_t upper = 0;
 
-	int retval = dap_queue_ap_read(ap, MEM_AP_REG_TAR, &lower);
+	int retval = dap_queue_ap_read(ap, MEM_AP_REG_TAR(ap->dap), &lower);
 	if (retval == ERROR_OK && is_64bit_ap(ap))
-		retval = dap_queue_ap_read(ap, MEM_AP_REG_TAR64, &upper);
+		retval = dap_queue_ap_read(ap, MEM_AP_REG_TAR64(ap->dap), &upper);
 
 	if (retval != ERROR_OK) {
 		ap->tar_valid = false;
@@ -252,7 +252,7 @@ int mem_ap_read_u32(struct adiv5_ap *ap, target_addr_t address,
 	if (retval != ERROR_OK)
 		return retval;
 
-	return dap_queue_ap_read(ap, MEM_AP_REG_BD0 | (address & 0xC), value);
+	return dap_queue_ap_read(ap, MEM_AP_REG_BD0(ap->dap) | (address & 0xC), value);
 }
 
 /**
@@ -304,7 +304,7 @@ int mem_ap_write_u32(struct adiv5_ap *ap, target_addr_t address,
 	if (retval != ERROR_OK)
 		return retval;
 
-	return dap_queue_ap_write(ap, MEM_AP_REG_BD0 | (address & 0xC),
+	return dap_queue_ap_write(ap, MEM_AP_REG_BD0(ap->dap) | (address & 0xC),
 			value);
 }
 
@@ -436,7 +436,7 @@ static int mem_ap_write(struct adiv5_ap *ap, const uint8_t *buffer, uint32_t siz
 
 		nbytes -= this_size;
 
-		retval = dap_queue_ap_write(ap, MEM_AP_REG_DRW, outvalue);
+		retval = dap_queue_ap_write(ap, MEM_AP_REG_DRW(dap), outvalue);
 		if (retval != ERROR_OK)
 			break;
 
@@ -533,7 +533,7 @@ static int mem_ap_read(struct adiv5_ap *ap, uint8_t *buffer, uint32_t size, uint
 		if (retval != ERROR_OK)
 			break;
 
-		retval = dap_queue_ap_read(ap, MEM_AP_REG_DRW, read_ptr++);
+		retval = dap_queue_ap_read(ap, MEM_AP_REG_DRW(dap), read_ptr++);
 		if (retval != ERROR_OK)
 			break;
 
@@ -780,7 +780,7 @@ int mem_ap_init(struct adiv5_ap *ap)
 
 	/* Set ap->cfg_reg before calling mem_ap_setup_transfer(). */
 	/* mem_ap_setup_transfer() needs to know if the MEM_AP supports LPAE. */
-	retval = dap_queue_ap_read(ap, MEM_AP_REG_CFG, &cfg);
+	retval = dap_queue_ap_read(ap, MEM_AP_REG_CFG(dap), &cfg);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -795,7 +795,7 @@ int mem_ap_init(struct adiv5_ap *ap)
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = dap_queue_ap_read(ap, MEM_AP_REG_CSW, &csw);
+	retval = dap_queue_ap_read(ap, MEM_AP_REG_CSW(dap), &csw);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -983,7 +983,7 @@ int dap_find_get_ap(struct adiv5_dap *dap, enum ap_type type_to_find, struct adi
 		/* read the IDR register of the Access Port */
 		uint32_t id_val = 0;
 
-		int retval = dap_queue_ap_read(ap, AP_REG_IDR, &id_val);
+		int retval = dap_queue_ap_read(ap, AP_REG_IDR(dap), &id_val);
 		if (retval != ERROR_OK) {
 			dap_put_ap(ap);
 			return retval;
@@ -1074,19 +1074,19 @@ static int dap_get_debugbase(struct adiv5_ap *ap,
 	uint32_t baseptr_upper, baseptr_lower;
 
 	if (ap->cfg_reg == MEM_AP_REG_CFG_INVALID) {
-		retval = dap_queue_ap_read(ap, MEM_AP_REG_CFG, &ap->cfg_reg);
+		retval = dap_queue_ap_read(ap, MEM_AP_REG_CFG(dap), &ap->cfg_reg);
 		if (retval != ERROR_OK)
 			return retval;
 	}
-	retval = dap_queue_ap_read(ap, MEM_AP_REG_BASE, &baseptr_lower);
+	retval = dap_queue_ap_read(ap, MEM_AP_REG_BASE(dap), &baseptr_lower);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = dap_queue_ap_read(ap, AP_REG_IDR, apid);
+	retval = dap_queue_ap_read(ap, AP_REG_IDR(dap), apid);
 	if (retval != ERROR_OK)
 		return retval;
 	/* MEM_AP_REG_BASE64 is defined as 'RES0'; can be read and then ignored on 32 bits AP */
 	if (ap->cfg_reg == MEM_AP_REG_CFG_INVALID || is_64bit_ap(ap)) {
-		retval = dap_queue_ap_read(ap, MEM_AP_REG_BASE64, &baseptr_upper);
+		retval = dap_queue_ap_read(ap, MEM_AP_REG_BASE64(dap), &baseptr_upper);
 		if (retval != ERROR_OK)
 			return retval;
 	}
@@ -2230,14 +2230,14 @@ COMMAND_HANDLER(dap_baseaddr_command)
 		return ERROR_FAIL;
 	}
 
-	retval = dap_queue_ap_read(ap, MEM_AP_REG_BASE, &baseaddr_lower);
+	retval = dap_queue_ap_read(ap, MEM_AP_REG_BASE(dap), &baseaddr_lower);
 
 	if (retval == ERROR_OK && ap->cfg_reg == MEM_AP_REG_CFG_INVALID)
-		retval = dap_queue_ap_read(ap, MEM_AP_REG_CFG, &ap->cfg_reg);
+		retval = dap_queue_ap_read(ap, MEM_AP_REG_CFG(dap), &ap->cfg_reg);
 
 	if (retval == ERROR_OK && (ap->cfg_reg == MEM_AP_REG_CFG_INVALID || is_64bit_ap(ap))) {
 		/* MEM_AP_REG_BASE64 is defined as 'RES0'; can be read and then ignored on 32 bits AP */
-		retval = dap_queue_ap_read(ap, MEM_AP_REG_BASE64, &baseaddr_upper);
+		retval = dap_queue_ap_read(ap, MEM_AP_REG_BASE64(dap), &baseaddr_upper);
 	}
 
 	if (retval == ERROR_OK)
@@ -2400,7 +2400,7 @@ COMMAND_HANDLER(dap_apid_command)
 		command_print(CMD, "Cannot get AP");
 		return ERROR_FAIL;
 	}
-	retval = dap_queue_ap_read(ap, AP_REG_IDR, &apid);
+	retval = dap_queue_ap_read(ap, AP_REG_IDR(dap), &apid);
 	if (retval != ERROR_OK) {
 		dap_put_ap(ap);
 		return retval;
@@ -2445,14 +2445,13 @@ COMMAND_HANDLER(dap_apreg_command)
 
 	if (CMD_ARGC == 3) {
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], value);
-		switch (reg) {
-		case MEM_AP_REG_CSW:
+		/* see if user supplied register address is a match for the CSW or TAR register */
+		if (reg == MEM_AP_REG_CSW(dap)) {
 			ap->csw_value = 0;  /* invalid, in case write fails */
 			retval = dap_queue_ap_write(ap, reg, value);
 			if (retval == ERROR_OK)
 				ap->csw_value = value;
-			break;
-		case MEM_AP_REG_TAR:
+		} else if (reg == MEM_AP_REG_TAR(dap)) {
 			retval = dap_queue_ap_write(ap, reg, value);
 			if (retval == ERROR_OK)
 				ap->tar_value = (ap->tar_value & ~0xFFFFFFFFull) | value;
@@ -2463,8 +2462,7 @@ COMMAND_HANDLER(dap_apreg_command)
 				/* if tar_valid is false. */
 				ap->tar_valid = false;
 			}
-			break;
-		case MEM_AP_REG_TAR64:
+		} else if (reg == MEM_AP_REG_TAR64(dap)) {
 			retval = dap_queue_ap_write(ap, reg, value);
 			if (retval == ERROR_OK)
 				ap->tar_value = (ap->tar_value & 0xFFFFFFFFull) | (((target_addr_t)value) << 32);
@@ -2472,10 +2470,8 @@ COMMAND_HANDLER(dap_apreg_command)
 				/* See above comment for the MEM_AP_REG_TAR failed write case */
 				ap->tar_valid = false;
 			}
-			break;
-		default:
+		} else {
 			retval = dap_queue_ap_write(ap, reg, value);
-			break;
 		}
 	} else {
 		retval = dap_queue_ap_read(ap, reg, &value);

@@ -5,6 +5,8 @@
  *   Copyright (C) 2008 by Spencer Oliver                                  *
  *   spen@spen-soft.co.uk                                                  *
  *                                                                         *
+ *   Copyright (C) 2019-2021, Ampere Computing LLC                         *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -53,11 +55,15 @@
  */
 #define DP_DPIDR        BANK_REG(0x0, 0x0) /* DPv1+: ro */
 #define DP_ABORT        BANK_REG(0x0, 0x0) /* DPv1+: SWD: wo */
+#define DP_DPIDR1       BANK_REG(0x1, 0x0) /* DPv3: ro */
+#define DP_BASEPTR0     BANK_REG(0x2, 0x0) /* DPv3: ro */
+#define DP_BASEPTR1     BANK_REG(0x3, 0x0) /* DPv3: ro */
 #define DP_CTRL_STAT    BANK_REG(0x0, 0x4) /* DPv0+: rw */
 #define DP_DLCR         BANK_REG(0x1, 0x4) /* DPv1+: SWD: rw */
 #define DP_TARGETID     BANK_REG(0x2, 0x4) /* DPv2: ro */
 #define DP_DLPIDR       BANK_REG(0x3, 0x4) /* DPv2: ro */
 #define DP_EVENTSTAT    BANK_REG(0x4, 0x4) /* DPv2: ro */
+#define DP_SELECT1      BANK_REG(0x5, 0x4) /* DPv3: ro */
 #define DP_RESEND       BANK_REG(0x0, 0x8) /* DPv1+: SWD: ro */
 #define DP_SELECT       BANK_REG(0x0, 0x8) /* DPv0+: JTAG: rw; SWD: wo */
 #define DP_RDBUFF       BANK_REG(0x0, 0xC) /* DPv0+: ro */
@@ -75,6 +81,10 @@
 #define STKERRCLR       (1UL << 2) /* SWD-only */
 #define WDERRCLR        (1UL << 3) /* SWD-only */
 #define ORUNERRCLR      (1UL << 4) /* SWD-only */
+
+/* Fields of register DP_DPIDR1 */
+#define DP_DPIDR1_ASIZE_MASK    (0x7F)
+#define DP_DPIDR1_ERRMODE       BIT(7)
 
 /* Fields of the DP's CTRL/STAT register */
 #define CORUNDETECT     (1UL << 0)
@@ -110,20 +120,49 @@
 
 
 /* MEM-AP register addresses */
-#define MEM_AP_REG_CSW		0x00
-#define MEM_AP_REG_TAR		0x04
-#define MEM_AP_REG_TAR64	0x08		/* RW: Large Physical Address Extension */
-#define MEM_AP_REG_DRW		0x0C		/* RW: Data Read/Write register */
-#define MEM_AP_REG_BD0		0x10		/* RW: Banked Data register 0-3 */
-#define MEM_AP_REG_BD1		0x14
-#define MEM_AP_REG_BD2		0x18
-#define MEM_AP_REG_BD3		0x1C
-#define MEM_AP_REG_MBT		0x20		/* --: Memory Barrier Transfer register */
-#define MEM_AP_REG_BASE64	0xF0		/* RO: Debug Base Address (LA) register */
-#define MEM_AP_REG_CFG		0xF4		/* RO: Configuration register */
-#define MEM_AP_REG_BASE		0xF8		/* RO: Debug Base Address register */
+#define ADIV5_MEM_AP_REG_CSW    (0x00)
+#define ADIV5_MEM_AP_REG_TAR    (0x04)
+#define ADIV5_MEM_AP_REG_TAR64  (0x08)		/* RW: Large Physical Address Extension */
+#define ADIV5_MEM_AP_REG_DRW    (0x0C)		/* RW: Data Read/Write register */
+#define ADIV5_MEM_AP_REG_BD0    (0x10)		/* RW: Banked Data register 0-3 */
+#define ADIV5_MEM_AP_REG_BD1    (0x14)
+#define ADIV5_MEM_AP_REG_BD2    (0x18)
+#define ADIV5_MEM_AP_REG_BD3    (0x1C)
+#define ADIV5_MEM_AP_REG_MBT    (0x20)		/* --: Memory Barrier Transfer register */
+#define ADIV5_MEM_AP_REG_BASE64 (0xF0)		/* RO: Debug Base Address (LA) register */
+#define ADIV5_MEM_AP_REG_CFG    (0xF4)		/* RO: Configuration register */
+#define ADIV5_MEM_AP_REG_BASE   (0xF8)		/* RO: Debug Base Address register */
+
+#define ADIV6_MEM_AP_REG_CSW    (0xD00 + ADIV5_MEM_AP_REG_CSW)
+#define ADIV6_MEM_AP_REG_TAR    (0xD00 + ADIV5_MEM_AP_REG_TAR)
+#define ADIV6_MEM_AP_REG_TAR64  (0xD00 + ADIV5_MEM_AP_REG_TAR64)
+#define ADIV6_MEM_AP_REG_DRW    (0xD00 + ADIV5_MEM_AP_REG_DRW)
+#define ADIV6_MEM_AP_REG_BD0    (0xD00 + ADIV5_MEM_AP_REG_BD0)
+#define ADIV6_MEM_AP_REG_BD1    (0xD00 + ADIV5_MEM_AP_REG_BD1)
+#define ADIV6_MEM_AP_REG_BD2    (0xD00 + ADIV5_MEM_AP_REG_BD2)
+#define ADIV6_MEM_AP_REG_BD3    (0xD00 + ADIV5_MEM_AP_REG_BD3)
+#define ADIV6_MEM_AP_REG_MBT    (0xD00 + ADIV5_MEM_AP_REG_MBT)
+#define ADIV6_MEM_AP_REG_BASE64 (0xD00 + ADIV5_MEM_AP_REG_BASE64)
+#define ADIV6_MEM_AP_REG_CFG    (0xD00 + ADIV5_MEM_AP_REG_CFG)
+#define ADIV6_MEM_AP_REG_BASE   (0xD00 + ADIV5_MEM_AP_REG_BASE)
+
+#define MEM_AP_REG_CSW(dap)     (is_adiv6(dap) ? ADIV6_MEM_AP_REG_CSW    : ADIV5_MEM_AP_REG_CSW)
+#define MEM_AP_REG_TAR(dap)     (is_adiv6(dap) ? ADIV6_MEM_AP_REG_TAR    : ADIV5_MEM_AP_REG_TAR)
+#define MEM_AP_REG_TAR64(dap)   (is_adiv6(dap) ? ADIV6_MEM_AP_REG_TAR64  : ADIV5_MEM_AP_REG_TAR64)
+#define MEM_AP_REG_DRW(dap)     (is_adiv6(dap) ? ADIV6_MEM_AP_REG_DRW    : ADIV5_MEM_AP_REG_DRW)
+#define MEM_AP_REG_BD0(dap)     (is_adiv6(dap) ? ADIV6_MEM_AP_REG_BD0    : ADIV5_MEM_AP_REG_BD0)
+#define MEM_AP_REG_BD1(dap)     (is_adiv6(dap) ? ADIV6_MEM_AP_REG_BD1    : ADIV5_MEM_AP_REG_BD1)
+#define MEM_AP_REG_BD2(dap)     (is_adiv6(dap) ? ADIV6_MEM_AP_REG_BD2    : ADIV5_MEM_AP_REG_BD2)
+#define MEM_AP_REG_BD3(dap)     (is_adiv6(dap) ? ADIV6_MEM_AP_REG_BD3    : ADIV5_MEM_AP_REG_BD3)
+#define MEM_AP_REG_MBT(dap)     (is_adiv6(dap) ? ADIV6_MEM_AP_REG_MBT    : ADIV5_MEM_AP_REG_MBT)
+#define MEM_AP_REG_BASE64(dap)  (is_adiv6(dap) ? ADIV6_MEM_AP_REG_BASE64 : ADIV5_MEM_AP_REG_BASE64)
+#define MEM_AP_REG_CFG(dap)     (is_adiv6(dap) ? ADIV6_MEM_AP_REG_CFG    : ADIV5_MEM_AP_REG_CFG)
+#define MEM_AP_REG_BASE(dap)    (is_adiv6(dap) ? ADIV6_MEM_AP_REG_BASE   : ADIV5_MEM_AP_REG_BASE)
+
 /* Generic AP register address */
-#define AP_REG_IDR			0xFC		/* RO: Identification Register */
+#define ADIV5_AP_REG_IDR        (0xFC)		/* RO: Identification Register */
+#define ADIV6_AP_REG_IDR        (0xD00 + ADIV5_AP_REG_IDR)
+#define AP_REG_IDR(dap)         (is_adiv6(dap) ? ADIV6_AP_REG_IDR : ADIV5_AP_REG_IDR)
 
 /* Fields of the MEM-AP's CSW register */
 #define CSW_SIZE_MASK		7

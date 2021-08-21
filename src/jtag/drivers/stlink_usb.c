@@ -4286,7 +4286,7 @@ static int stlink_dap_ap_read(struct adiv5_ap *ap, unsigned int reg, uint32_t *d
 	uint32_t dummy;
 	int retval;
 
-	if (reg != AP_REG_IDR) {
+	if (reg != ADIV5_AP_REG_IDR) {
 		retval = stlink_dap_open_ap(ap->ap_num);
 		if (retval != ERROR_OK)
 			return retval;
@@ -4591,7 +4591,7 @@ static void stlink_dap_run_internal(struct adiv5_dap *dap)
 			break;
 		case CMD_AP_WRITE:
 			/* ignore increment packed, not supported */
-			if (q->ap_w.reg == MEM_AP_REG_CSW)
+			if (q->ap_w.reg == ADIV5_MEM_AP_REG_CSW)
 				q->ap_w.data &= ~CSW_ADDRINC_PACKED;
 			retval = stlink_dap_ap_write(q->ap_w.ap, q->ap_w.reg, q->ap_w.data);
 			break;
@@ -4736,18 +4736,18 @@ static int stlink_dap_op_queue_ap_read(struct adiv5_ap *ap, unsigned int reg,
 	/* test STLINK_F_HAS_CSW implicitly tests STLINK_F_HAS_MEM_16BIT, STLINK_F_HAS_MEM_RD_NO_INC
 	 * and STLINK_F_HAS_RW_MISC */
 	if ((stlink_dap_handle->version.flags & STLINK_F_HAS_CSW) &&
-			(reg == MEM_AP_REG_DRW || reg == MEM_AP_REG_BD0 || reg == MEM_AP_REG_BD1 ||
-			 reg == MEM_AP_REG_BD2 || reg == MEM_AP_REG_BD3)) {
+			(reg == ADIV5_MEM_AP_REG_DRW || reg == ADIV5_MEM_AP_REG_BD0 || reg == ADIV5_MEM_AP_REG_BD1 ||
+			 reg == ADIV5_MEM_AP_REG_BD2 || reg == ADIV5_MEM_AP_REG_BD3)) {
 		/* de-queue previous write-TAR */
 		struct dap_queue *prev_q = q - 1;
-		if (i && prev_q->cmd == CMD_AP_WRITE && prev_q->ap_w.ap == ap && prev_q->ap_w.reg == MEM_AP_REG_TAR) {
+		if (i && prev_q->cmd == CMD_AP_WRITE && prev_q->ap_w.ap == ap && prev_q->ap_w.reg == ADIV5_MEM_AP_REG_TAR) {
 			stlink_dap_handle->queue_index = i;
 			i--;
 			q = prev_q;
 			prev_q--;
 		}
 		/* de-queue previous write-CSW if it didn't changed ap->csw_default */
-		if (i && prev_q->cmd == CMD_AP_WRITE && prev_q->ap_w.ap == ap && prev_q->ap_w.reg == MEM_AP_REG_CSW &&
+		if (i && prev_q->cmd == CMD_AP_WRITE && prev_q->ap_w.ap == ap && prev_q->ap_w.reg == ADIV5_MEM_AP_REG_CSW &&
 				!prev_q->ap_w.changes_csw_default) {
 			stlink_dap_handle->queue_index = i;
 			q = prev_q;
@@ -4769,7 +4769,7 @@ static int stlink_dap_op_queue_ap_read(struct adiv5_ap *ap, unsigned int reg,
 			return ERROR_FAIL;
 		}
 
-		q->mem_ap.addr = (reg == MEM_AP_REG_DRW) ? ap->tar_value : ((ap->tar_value & ~0x0f) | (reg & 0x0c));
+		q->mem_ap.addr = (reg == ADIV5_MEM_AP_REG_DRW) ? ap->tar_value : ((ap->tar_value & ~0x0f) | (reg & 0x0c));
 		q->mem_ap.ap = ap;
 		q->mem_ap.p_data = data;
 		q->mem_ap.csw = ap->csw_default;
@@ -4802,18 +4802,18 @@ static int stlink_dap_op_queue_ap_write(struct adiv5_ap *ap, unsigned int reg,
 	/* test STLINK_F_HAS_CSW implicitly tests STLINK_F_HAS_MEM_16BIT, STLINK_F_HAS_MEM_WR_NO_INC
 	 * and STLINK_F_HAS_RW_MISC */
 	if ((stlink_dap_handle->version.flags & STLINK_F_HAS_CSW) &&
-			(reg == MEM_AP_REG_DRW || reg == MEM_AP_REG_BD0 || reg == MEM_AP_REG_BD1 ||
-			 reg == MEM_AP_REG_BD2 || reg == MEM_AP_REG_BD3)) {
+			(reg == ADIV5_MEM_AP_REG_DRW || reg == ADIV5_MEM_AP_REG_BD0 || reg == ADIV5_MEM_AP_REG_BD1 ||
+			 reg == ADIV5_MEM_AP_REG_BD2 || reg == ADIV5_MEM_AP_REG_BD3)) {
 		/* de-queue previous write-TAR */
 		struct dap_queue *prev_q = q - 1;
-		if (i && prev_q->cmd == CMD_AP_WRITE && prev_q->ap_w.ap == ap && prev_q->ap_w.reg == MEM_AP_REG_TAR) {
+		if (i && prev_q->cmd == CMD_AP_WRITE && prev_q->ap_w.ap == ap && prev_q->ap_w.reg == ADIV5_MEM_AP_REG_TAR) {
 			stlink_dap_handle->queue_index = i;
 			i--;
 			q = prev_q;
 			prev_q--;
 		}
 		/* de-queue previous write-CSW if it didn't changed ap->csw_default */
-		if (i && prev_q->cmd == CMD_AP_WRITE && prev_q->ap_w.ap == ap && prev_q->ap_w.reg == MEM_AP_REG_CSW &&
+		if (i && prev_q->cmd == CMD_AP_WRITE && prev_q->ap_w.ap == ap && prev_q->ap_w.reg == ADIV5_MEM_AP_REG_CSW &&
 				!prev_q->ap_w.changes_csw_default) {
 			stlink_dap_handle->queue_index = i;
 			q = prev_q;
@@ -4835,7 +4835,7 @@ static int stlink_dap_op_queue_ap_write(struct adiv5_ap *ap, unsigned int reg,
 			return ERROR_FAIL;
 		}
 
-		q->mem_ap.addr = (reg == MEM_AP_REG_DRW) ? ap->tar_value : ((ap->tar_value & ~0x0f) | (reg & 0x0c));
+		q->mem_ap.addr = (reg == ADIV5_MEM_AP_REG_DRW) ? ap->tar_value : ((ap->tar_value & ~0x0f) | (reg & 0x0c));
 		q->mem_ap.ap = ap;
 		q->mem_ap.data = data;
 		q->mem_ap.csw = ap->csw_default;
@@ -4848,7 +4848,7 @@ static int stlink_dap_op_queue_ap_write(struct adiv5_ap *ap, unsigned int reg,
 		q->ap_w.reg = reg;
 		q->ap_w.ap = ap;
 		q->ap_w.data = data;
-		if (reg == MEM_AP_REG_CSW && ap->csw_default != last_csw_default[ap->ap_num]) {
+		if (reg == ADIV5_MEM_AP_REG_CSW && ap->csw_default != last_csw_default[ap->ap_num]) {
 			q->ap_w.changes_csw_default = true;
 			last_csw_default[ap->ap_num] = ap->csw_default;
 		} else {

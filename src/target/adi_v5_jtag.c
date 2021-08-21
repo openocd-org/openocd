@@ -10,6 +10,8 @@
  *
  *   Copyright (C) 2009-2010 by David Brownell
  *
+ *   Copyright (C) 2020-2021, Ampere Computing LLC                              *
+ *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
  *   the Free Software Foundation; either version 2 of the License, or
@@ -55,7 +57,7 @@
 static int jtag_ap_q_abort(struct adiv5_dap *dap, uint8_t *ack);
 
 #ifdef DEBUG_WAIT
-static const char *dap_reg_name(int instr, int reg_addr)
+static const char *dap_reg_name(struct adiv5_dap *dap, uint8_t instr, uint16_t reg_addr)
 {
 	char *reg_name = "UNK";
 
@@ -83,41 +85,32 @@ static const char *dap_reg_name(int instr, int reg_addr)
 	}
 
 	if (instr == JTAG_DP_APACC) {
-		switch (reg_addr) {
-		case MEM_AP_REG_CSW:
+		if (reg_addr == MEM_AP_REG_CSW(dap))
 			reg_name = "CSW";
-			break;
-		case MEM_AP_REG_TAR:
+		else if (reg_addr == MEM_AP_REG_TAR(dap))
 			reg_name = "TAR";
-			break;
-		case MEM_AP_REG_DRW:
+		else if (reg_addr == MEM_AP_REG_TAR64(dap))
+			reg_name = "TAR64";
+		else if (reg_addr == MEM_AP_REG_DRW(dap))
 			reg_name = "DRW";
-			break;
-		case MEM_AP_REG_BD0:
+		else if (reg_addr == MEM_AP_REG_BD0(dap))
 			reg_name = "BD0";
-			break;
-		case MEM_AP_REG_BD1:
+		else if (reg_addr == MEM_AP_REG_BD1(dap))
 			reg_name = "BD1";
-			break;
-		case MEM_AP_REG_BD2:
+		else if (reg_addr == MEM_AP_REG_BD2(dap))
 			reg_name = "BD2";
-			break;
-		case MEM_AP_REG_BD3:
+		else if (reg_addr == MEM_AP_REG_BD3(dap))
 			reg_name = "BD3";
-			break;
-		case MEM_AP_REG_CFG:
+		else if (reg_addr == MEM_AP_REG_CFG(dap))
 			reg_name = "CFG";
-			break;
-		case MEM_AP_REG_BASE:
+		else if (reg_addr == MEM_AP_REG_BASE(dap))
 			reg_name = "BASE";
-			break;
-		case AP_REG_IDR:
+		else if (reg_addr == MEM_AP_REG_BASE64(dap))
+			reg_name = "BASE64";
+		else if (reg_addr == AP_REG_IDR(dap))
 			reg_name = "IDR";
-			break;
-		default:
+		else
 			reg_name = "UNK";
-			break;
-		}
 	}
 
 	return reg_name;
@@ -127,7 +120,7 @@ static const char *dap_reg_name(int instr, int reg_addr)
 struct dap_cmd {
 	struct list_head lh;
 	uint8_t instr;
-	uint8_t reg_addr;
+	uint16_t reg_addr;
 	uint8_t rnw;
 	uint8_t *invalue;
 	uint8_t ack;
@@ -147,12 +140,12 @@ struct dap_cmd_pool {
 	struct dap_cmd cmd;
 };
 
-static void log_dap_cmd(const char *header, struct dap_cmd *el)
+static void log_dap_cmd(struct adiv5_dap *dap, const char *header, struct dap_cmd *el)
 {
 #ifdef DEBUG_WAIT
 	LOG_DEBUG("%s: %2s %6s %5s 0x%08x 0x%08x %2s", header,
 		el->instr == JTAG_DP_APACC ? "AP" : "DP",
-		dap_reg_name(el->instr, el->reg_addr),
+		dap_reg_name(dap, el->instr, el->reg_addr),
 		el->rnw == DPAP_READ ? "READ" : "WRITE",
 		buf_get_u32(el->outvalue_buf, 0, 32),
 		buf_get_u32(el->invalue, 0, 32),
@@ -170,7 +163,7 @@ static int jtag_limit_queue_size(struct adiv5_dap *dap)
 }
 
 static struct dap_cmd *dap_cmd_new(struct adiv5_dap *dap, uint8_t instr,
-		uint8_t reg_addr, uint8_t rnw,
+		uint16_t reg_addr, uint8_t rnw,
 		uint8_t *outvalue, uint8_t *invalue,
 		uint32_t memaccess_tck)
 {
@@ -274,9 +267,9 @@ static int adi_jtag_dp_scan_cmd(struct adiv5_dap *dap, struct dap_cmd *cmd, uint
 	 * See "Minimum Response Time" for JTAG-DP, in the ADIv5 spec.
 	 */
 	if (cmd->instr == JTAG_DP_APACC) {
-		if (((cmd->reg_addr == MEM_AP_REG_DRW)
-			|| ((cmd->reg_addr & 0xF0) == MEM_AP_REG_BD0))
-			&& (cmd->memaccess_tck != 0))
+		if ((cmd->reg_addr == MEM_AP_REG_DRW(dap) ||
+			 (cmd->reg_addr & 0xFF0) == MEM_AP_REG_BD0(dap)) &&
+			cmd->memaccess_tck != 0)
 			jtag_add_runtest(cmd->memaccess_tck, TAP_IDLE);
 	}
 
@@ -315,7 +308,7 @@ static int adi_jtag_dp_scan_cmd_sync(struct adiv5_dap *dap, struct dap_cmd *cmd,
  */
 
 static int adi_jtag_dp_scan(struct adiv5_dap *dap,
-		uint8_t instr, uint8_t reg_addr, uint8_t rnw,
+		uint8_t instr, uint16_t reg_addr, uint8_t rnw,
 		uint8_t *outvalue, uint8_t *invalue,
 		uint32_t memaccess_tck, uint8_t *ack)
 {
@@ -377,7 +370,7 @@ static int adi_jtag_finish_read(struct adiv5_dap *dap)
 }
 
 static int adi_jtag_scan_inout_check_u32(struct adiv5_dap *dap,
-		uint8_t instr, uint8_t reg_addr, uint8_t rnw,
+		uint8_t instr, uint16_t reg_addr, uint8_t rnw,
 		uint32_t outvalue, uint32_t *invalue, uint32_t memaccess_tck)
 {
 	int retval;
@@ -417,13 +410,13 @@ static int jtagdp_overrun_check(struct adiv5_dap *dap)
 	/* skip all completed transactions up to the first WAIT */
 	list_for_each_entry(el, &dap->cmd_journal, lh) {
 		if (el->ack == JTAG_ACK_OK_FAULT) {
-			log_dap_cmd("LOG", el);
+			log_dap_cmd(dap, "LOG", el);
 		} else if (el->ack == JTAG_ACK_WAIT) {
 			found_wait = 1;
 			break;
 		} else {
 			LOG_ERROR("Invalid ACK (%1x) in DAP response", el->ack);
-			log_dap_cmd("ERR", el);
+			log_dap_cmd(dap, "ERR", el);
 			retval = ERROR_JTAG_DEVICE_ERROR;
 			goto done;
 		}
@@ -436,14 +429,14 @@ static int jtagdp_overrun_check(struct adiv5_dap *dap)
 	if (found_wait && el != list_first_entry(&dap->cmd_journal, struct dap_cmd, lh)) {
 		prev = list_entry(el->lh.prev, struct dap_cmd, lh);
 		if (prev->rnw == DPAP_READ) {
-			log_dap_cmd("PND", prev);
+			log_dap_cmd(dap, "PND", prev);
 			/* search for the next OK transaction, it contains
 			 * the result of the previous READ */
 			tmp = el;
 			list_for_each_entry_from(tmp, &dap->cmd_journal, lh) {
 				if (tmp->ack == JTAG_ACK_OK_FAULT) {
 					/* recover the read value */
-					log_dap_cmd("FND", tmp);
+					log_dap_cmd(dap, "FND", tmp);
 					if (el->invalue != el->invalue_buf) {
 						uint32_t invalue = le_to_h_u32(tmp->invalue);
 						memcpy(el->invalue, &invalue, sizeof(uint32_t));
@@ -454,7 +447,7 @@ static int jtagdp_overrun_check(struct adiv5_dap *dap)
 			}
 
 			if (prev) {
-				log_dap_cmd("LST", el);
+				log_dap_cmd(dap, "LST", el);
 
 				/*
 				* At this point we're sure that no previous
@@ -477,7 +470,7 @@ static int jtagdp_overrun_check(struct adiv5_dap *dap)
 					if (retval != ERROR_OK)
 						break;
 					if (tmp->ack == JTAG_ACK_OK_FAULT) {
-						log_dap_cmd("FND", tmp);
+						log_dap_cmd(dap, "FND", tmp);
 						if (el->invalue != el->invalue_buf) {
 							uint32_t invalue = le_to_h_u32(tmp->invalue);
 							memcpy(el->invalue, &invalue, sizeof(uint32_t));
@@ -486,7 +479,7 @@ static int jtagdp_overrun_check(struct adiv5_dap *dap)
 					}
 					if (tmp->ack != JTAG_ACK_WAIT) {
 						LOG_ERROR("Invalid ACK (%1x) in DAP response", tmp->ack);
-						log_dap_cmd("ERR", tmp);
+						log_dap_cmd(dap, "ERR", tmp);
 						retval = ERROR_JTAG_DEVICE_ERROR;
 						break;
 					}
@@ -523,7 +516,7 @@ static int jtagdp_overrun_check(struct adiv5_dap *dap)
 
 	/* move all remaining transactions over to the replay list */
 	list_for_each_entry_safe_from(el, tmp, &dap->cmd_journal, lh) {
-		log_dap_cmd("REP", el);
+		log_dap_cmd(dap, "REP", el);
 		list_move_tail(&el->lh, &replay_list);
 	}
 
@@ -560,7 +553,7 @@ static int jtagdp_overrun_check(struct adiv5_dap *dap)
 				retval = adi_jtag_dp_scan_cmd_sync(dap, el, NULL);
 				if (retval != ERROR_OK)
 					break;
-				log_dap_cmd("REC", el);
+				log_dap_cmd(dap, "REC", el);
 				if (el->ack == JTAG_ACK_OK_FAULT) {
 					if (el->invalue != el->invalue_buf) {
 						uint32_t invalue = le_to_h_u32(el->invalue);
@@ -570,7 +563,7 @@ static int jtagdp_overrun_check(struct adiv5_dap *dap)
 				}
 				if (el->ack != JTAG_ACK_WAIT) {
 					LOG_ERROR("Invalid ACK (%1x) in DAP response", el->ack);
-					log_dap_cmd("ERR", el);
+					log_dap_cmd(dap, "ERR", el);
 					retval = ERROR_JTAG_DEVICE_ERROR;
 					break;
 				}
