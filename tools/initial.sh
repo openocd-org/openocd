@@ -11,7 +11,7 @@ add_remote()
 {
 	remote_exist=`grep remote .git/config | grep review	| wc -l`
 	if [ "x$remote_exist" = "x0" ] ; then
-		git remote add review ssh://$USERNAME@openocd.zylin.com:29418/openocd.git
+		git remote add review ssh://$USERNAME@review.openocd.org:29418/openocd.git
 		git config remote.review.push HEAD:refs/for/master
 	else
 		echo "Remote review exists"
@@ -25,7 +25,7 @@ update_commit_msg()
 	mv commit-msg $save_file
 	printf "%-30s"	"Updating commit-msg"
 	status="OK"
-	wget -o log	http://openocd.zylin.com/tools/hooks/commit-msg	|| status="FAIL"
+	wget -o log	https://review.openocd.org/tools/hooks/commit-msg	|| status="FAIL"
 	echo $status
 	if [ $status = "FAIL" ] ; then
 		mv	$save_file	commit-msg

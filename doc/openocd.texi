@@ -265,7 +265,7 @@ listed in the Doxyfile configuration at the top of the source tree.
 All changes in the OpenOCD Git repository go through the web-based Gerrit
 Code Review System:
 
-@uref{http://openocd.zylin.com/}
+@uref{https://review.openocd.org/}
 
 After a one-time registration and repository setup, anyone can push commits
 from their local Git repository directly into Gerrit.

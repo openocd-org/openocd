@@ -91,7 +91,7 @@ Add yourself to the GPL copyright for non-trivial changes.
 
 @section stepbystep Step by step procedure
 
--# Create a Gerrit account at: http://openocd.zylin.com
+-# Create a Gerrit account at: https://review.openocd.org
   - On subsequent sign ins, use the full URL prefaced with 'http://'
     For example: http://user_identifier.open_id_provider.com
   -# Add a username to your profile.
@@ -121,18 +121,18 @@ Add yourself to the GPL copyright for non-trivial changes.
 to instruct git locally how to send off the changes.
   -# Add a new remote to git using Gerrit username:
 @code
-git remote add review ssh://USERNAME@openocd.zylin.com:29418/openocd.git
+git remote add review ssh://USERNAME@review.openocd.org:29418/openocd.git
 git config remote.review.push HEAD:refs/for/master
 @endcode
   Or with http only:
 @code
-git remote add review http://USERNAME@openocd.zylin.com/p/openocd.git
+git remote add review https://USERNAME@review.openocd.org/p/openocd.git
 git config remote.review.push HEAD:refs/for/master
 @endcode
-  The http password is configured from your gerrit settings - http://openocd.zylin.com/#/settings/http-password.
+  The http password is configured from your gerrit settings - https://review.openocd.org/#/settings/http-password.
   \note If you want to simplify http access you can also add your http password to the url as follows:
 @code
-git remote add review http://USERNAME:PASSWORD@openocd.zylin.com/p/openocd.git
+git remote add review https://USERNAME:PASSWORD@review.openocd.org/p/openocd.git
 @endcode
   \note All contributions should be pushed to @c refs/for/master on the
 Gerrit server, even if you plan to use several local branches for different
@@ -140,11 +140,11 @@ topics. It is possible because @c for/master is not a traditional Git
 branch.
   -# You will need to install this hook, we will look into a better solution:
 @code
-scp -p -P 29418 USERNAME@openocd.zylin.com:hooks/commit-msg .git/hooks/
+scp -p -P 29418 USERNAME@review.openocd.org:hooks/commit-msg .git/hooks/
 @endcode
   Or with http only:
 @code
-wget http://openocd.zylin.com/tools/hooks/commit-msg
+wget https://review.openocd.org/tools/hooks/commit-msg
 mv commit-msg .git/hooks
 chmod +x .git/hooks/commit-msg
 @endcode
@@ -228,10 +228,10 @@ not have to) be disregarded if all conditions listed below are met:
 - reviewer does not answer e-mails for another month.
 
 @section browsing Browsing Patches
-All OpenOCD patches can be reviewed <a href="http://openocd.zylin.com/">here</a>.
+All OpenOCD patches can be reviewed <a href="https://review.openocd.org/">here</a>.
 
 @section reviewing Reviewing Patches
-From the main <a href="http://openocd.zylin.com/#/q/status:open,n,z">Review
+From the main <a href="https://review.openocd.org/#/q/status:open,n,z">Review
 page</a> select the patch you want to review and click on that patch. On the
 appearing page select the download method (top right). Apply the
 patch. After building and testing you can leave a note with the "Reply"
