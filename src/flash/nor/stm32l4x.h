@@ -70,6 +70,14 @@
 
 /* FLASH_OPTR register bits */
 #define FLASH_RDP_MASK			0xFF
+#define FLASH_G0_DUAL_BANK		BIT(21)
+#define FLASH_G4_DUAL_BANK		BIT(22)
+#define FLASH_L4_DUAL_BANK		BIT(21)
+#define FLASH_L4R_DBANK			BIT(22)
+#define FLASH_LRR_DB1M			BIT(21)
+#define FLASH_L5_DBANK			BIT(22)
+#define FLASH_L5_DB256			BIT(21)
+#define FLASH_U5_DUALBANK		BIT(21)
 #define FLASH_TZEN				BIT(31)
 
 /* FLASH secure block based bank 1/2 register offsets */
