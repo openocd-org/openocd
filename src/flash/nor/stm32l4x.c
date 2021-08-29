@@ -1353,6 +1353,7 @@ static int stm32l4_write_block(struct flash_bank *bank, const uint8_t *buffer,
 	buffer_size = target_get_working_area_avail(target) & ~(2 * sizeof(uint32_t) - 1);
 	if (buffer_size < 256) {
 		LOG_WARNING("large enough working area not available, can't do block memory writes");
+		target_free_working_area(target, write_algorithm);
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	} else if (buffer_size > 16384) {
 		/* probably won't benefit from more than 16k ... */
