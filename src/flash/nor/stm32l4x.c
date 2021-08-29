@@ -1818,6 +1818,8 @@ static int stm32l4_probe(struct flash_bank *bank)
 	/* did we assign a flash size? */
 	assert((flash_size_kb != 0xffff) && flash_size_kb);
 
+	const bool is_max_flash_size = flash_size_kb == stm32l4_info->part_info->max_flash_size_kb;
+
 	stm32l4_info->bank1_sectors = 0;
 	stm32l4_info->hole_sectors = 0;
 
@@ -1825,7 +1827,6 @@ static int stm32l4_probe(struct flash_bank *bank)
 	int page_size_kb = 0;
 
 	stm32l4_info->dual_bank_mode = false;
-	bool use_dbank_bit = false;
 
 	switch (device_id) {
 	case DEVID_STM32L47_L48XX:
@@ -1843,7 +1844,7 @@ static int stm32l4_probe(struct flash_bank *bank)
 		stm32l4_info->bank1_sectors = num_pages;
 
 		/* check DUAL_BANK bit[21] if the flash is less than 1M */
-		if (flash_size_kb == 1024 || (stm32l4_info->optr & BIT(21))) {
+		if (is_max_flash_size || (stm32l4_info->optr & BIT(21))) {
 			stm32l4_info->dual_bank_mode = true;
 			stm32l4_info->bank1_sectors = num_pages / 2;
 		}
@@ -1907,9 +1908,8 @@ static int stm32l4_probe(struct flash_bank *bank)
 		page_size_kb = 8;
 		num_pages = flash_size_kb / page_size_kb;
 		stm32l4_info->bank1_sectors = num_pages;
-		use_dbank_bit = flash_size_kb == part_info->max_flash_size_kb;
-		if ((use_dbank_bit && (stm32l4_info->optr & BIT(22))) ||
-			(!use_dbank_bit && (stm32l4_info->optr & BIT(21)))) {
+		if ((is_max_flash_size && (stm32l4_info->optr & BIT(22))) ||
+			(!is_max_flash_size && (stm32l4_info->optr & BIT(21)))) {
 			stm32l4_info->dual_bank_mode = true;
 			page_size_kb = 4;
 			num_pages = flash_size_kb / page_size_kb;
@@ -1924,9 +1924,8 @@ static int stm32l4_probe(struct flash_bank *bank)
 		page_size_kb = 4;
 		num_pages = flash_size_kb / page_size_kb;
 		stm32l4_info->bank1_sectors = num_pages;
-		use_dbank_bit = flash_size_kb == part_info->max_flash_size_kb;
-		if ((use_dbank_bit && (stm32l4_info->optr & BIT(22))) ||
-			(!use_dbank_bit && (stm32l4_info->optr & BIT(21)))) {
+		if ((is_max_flash_size && (stm32l4_info->optr & BIT(22))) ||
+			(!is_max_flash_size && (stm32l4_info->optr & BIT(21)))) {
 			stm32l4_info->dual_bank_mode = true;
 			page_size_kb = 2;
 			num_pages = flash_size_kb / page_size_kb;
@@ -1940,7 +1939,7 @@ static int stm32l4_probe(struct flash_bank *bank)
 		page_size_kb = 8;
 		num_pages = flash_size_kb / page_size_kb;
 		stm32l4_info->bank1_sectors = num_pages;
-		if ((flash_size_kb == part_info->max_flash_size_kb) || (stm32l4_info->optr & BIT(21))) {
+		if (is_max_flash_size || (stm32l4_info->optr & BIT(21))) {
 			stm32l4_info->dual_bank_mode = true;
 			stm32l4_info->bank1_sectors = num_pages / 2;
 		}
