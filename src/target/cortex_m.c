@@ -1243,7 +1243,7 @@ static int cortex_m_assert_reset(struct target *target)
 		retval = ERROR_OK;
 	} else {
 		/* Use a standard Cortex-M3 software reset mechanism.
-		 * We default to using VECRESET as it is supported on all current cores
+		 * We default to using VECTRESET as it is supported on all current cores
 		 * (except Cortex-M0, M0+ and M1 which support SYSRESETREQ only!)
 		 * This has the disadvantage of not resetting the peripherals, so a
 		 * reset-init event handler is needed to perform any peripheral resets.
