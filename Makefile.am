@@ -36,7 +36,6 @@ AM_CFLAGS = $(GCC_WARNINGS)
 AM_CPPFLAGS = $(HOST_CPPFLAGS)\
 			  -I$(top_srcdir)/src \
 			  -I$(top_builddir)/src \
-			  -I$(top_srcdir)/src/helper \
 			  -DPKGDATADIR=\"$(pkgdatadir)\" \
 			  -DBINDIR=\"$(bindir)\"
 

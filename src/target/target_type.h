@@ -25,7 +25,7 @@
 #ifndef OPENOCD_TARGET_TARGET_TYPE_H
 #define OPENOCD_TARGET_TARGET_TYPE_H
 
-#include <jim-nvp.h>
+#include <helper/jim-nvp.h>
 
 struct target;
 

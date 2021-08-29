@@ -18,8 +18,8 @@
 #ifndef OPENOCD_TARGET_ARMV7M_TRACE_H
 #define OPENOCD_TARGET_ARMV7M_TRACE_H
 
+#include <helper/command.h>
 #include <target/target.h>
-#include <command.h>
 
 /**
  * @file

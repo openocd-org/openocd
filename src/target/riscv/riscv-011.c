@@ -16,7 +16,7 @@
 #include "target/target.h"
 #include "target/algorithm.h"
 #include "target/target_type.h"
-#include "log.h"
+#include <helper/log.h>
 #include "jtag/jtag.h"
 #include "target/register.h"
 #include "target/breakpoints.h"
