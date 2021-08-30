@@ -25,14 +25,14 @@
 unsigned get_flash_name_index(const char *name)
 {
 	const char *name_index = strrchr(name, '.');
-	if (NULL == name_index)
+	if (!name_index)
 		return 0;
 	if (name_index[1] < '0' || name_index[1] > '9')
 		return ~0U;
 	unsigned requested;
 	int retval = parse_uint(name_index + 1, &requested);
 	/* detect parsing error by forcing past end of bank list */
-	return (ERROR_OK == retval) ? requested : ~0U;
+	return (retval == ERROR_OK) ? requested : ~0U;
 }
 
 bool flash_driver_name_matches(const char *name, const char *expected)

@@ -231,7 +231,7 @@ retok:
 
 static bool nuttx_detect_rtos(struct target *target)
 {
-	if ((target->rtos->symbols != NULL) &&
+	if ((target->rtos->symbols) &&
 			(target->rtos->symbols[0].address != 0) &&
 			(target->rtos->symbols[1].address != 0)) {
 		return true;
@@ -257,7 +257,7 @@ static int nuttx_update_threads(struct rtos *rtos)
 	uint32_t i;
 	uint8_t state;
 
-	if (rtos->symbols == NULL) {
+	if (!rtos->symbols) {
 		LOG_ERROR("No symbols for NuttX");
 		return -3;
 	}

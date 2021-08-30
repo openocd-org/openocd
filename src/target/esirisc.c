@@ -56,38 +56,38 @@ static const char * const esirisc_exception_strings[] = {
 	[EID_SYSTEM_CALL]			= "SystemCall",
 	[EID_MEMORY_MANAGEMENT]		= "MemoryManagement",
 	[EID_UNRECOVERABLE]			= "Unrecoverable",
-	[EID_INTERRUPTn+0]			= "Interrupt0",
-	[EID_INTERRUPTn+1]			= "Interrupt1",
-	[EID_INTERRUPTn+2]			= "Interrupt2",
-	[EID_INTERRUPTn+3]			= "Interrupt3",
-	[EID_INTERRUPTn+4]			= "Interrupt4",
-	[EID_INTERRUPTn+5]			= "Interrupt5",
-	[EID_INTERRUPTn+6]			= "Interrupt6",
-	[EID_INTERRUPTn+7]			= "Interrupt7",
-	[EID_INTERRUPTn+8]			= "Interrupt8",
-	[EID_INTERRUPTn+9]			= "Interrupt9",
-	[EID_INTERRUPTn+10]			= "Interrupt10",
-	[EID_INTERRUPTn+11]			= "Interrupt11",
-	[EID_INTERRUPTn+12]			= "Interrupt12",
-	[EID_INTERRUPTn+13]			= "Interrupt13",
-	[EID_INTERRUPTn+14]			= "Interrupt14",
-	[EID_INTERRUPTn+15]			= "Interrupt15",
-	[EID_INTERRUPTn+16]			= "Interrupt16",
-	[EID_INTERRUPTn+17]			= "Interrupt17",
-	[EID_INTERRUPTn+18]			= "Interrupt18",
-	[EID_INTERRUPTn+19]			= "Interrupt19",
-	[EID_INTERRUPTn+20]			= "Interrupt20",
-	[EID_INTERRUPTn+21]			= "Interrupt21",
-	[EID_INTERRUPTn+22]			= "Interrupt22",
-	[EID_INTERRUPTn+23]			= "Interrupt23",
-	[EID_INTERRUPTn+24]			= "Interrupt24",
-	[EID_INTERRUPTn+25]			= "Interrupt25",
-	[EID_INTERRUPTn+26]			= "Interrupt26",
-	[EID_INTERRUPTn+27]			= "Interrupt27",
-	[EID_INTERRUPTn+28]			= "Interrupt28",
-	[EID_INTERRUPTn+29]			= "Interrupt29",
-	[EID_INTERRUPTn+30]			= "Interrupt30",
-	[EID_INTERRUPTn+31]			= "Interrupt31",
+	[EID_INTERRUPT_N+0]			= "Interrupt0",
+	[EID_INTERRUPT_N+1]			= "Interrupt1",
+	[EID_INTERRUPT_N+2]			= "Interrupt2",
+	[EID_INTERRUPT_N+3]			= "Interrupt3",
+	[EID_INTERRUPT_N+4]			= "Interrupt4",
+	[EID_INTERRUPT_N+5]			= "Interrupt5",
+	[EID_INTERRUPT_N+6]			= "Interrupt6",
+	[EID_INTERRUPT_N+7]			= "Interrupt7",
+	[EID_INTERRUPT_N+8]			= "Interrupt8",
+	[EID_INTERRUPT_N+9]			= "Interrupt9",
+	[EID_INTERRUPT_N+10]			= "Interrupt10",
+	[EID_INTERRUPT_N+11]			= "Interrupt11",
+	[EID_INTERRUPT_N+12]			= "Interrupt12",
+	[EID_INTERRUPT_N+13]			= "Interrupt13",
+	[EID_INTERRUPT_N+14]			= "Interrupt14",
+	[EID_INTERRUPT_N+15]			= "Interrupt15",
+	[EID_INTERRUPT_N+16]			= "Interrupt16",
+	[EID_INTERRUPT_N+17]			= "Interrupt17",
+	[EID_INTERRUPT_N+18]			= "Interrupt18",
+	[EID_INTERRUPT_N+19]			= "Interrupt19",
+	[EID_INTERRUPT_N+20]			= "Interrupt20",
+	[EID_INTERRUPT_N+21]			= "Interrupt21",
+	[EID_INTERRUPT_N+22]			= "Interrupt22",
+	[EID_INTERRUPT_N+23]			= "Interrupt23",
+	[EID_INTERRUPT_N+24]			= "Interrupt24",
+	[EID_INTERRUPT_N+25]			= "Interrupt25",
+	[EID_INTERRUPT_N+26]			= "Interrupt26",
+	[EID_INTERRUPT_N+27]			= "Interrupt27",
+	[EID_INTERRUPT_N+28]			= "Interrupt28",
+	[EID_INTERRUPT_N+29]			= "Interrupt29",
+	[EID_INTERRUPT_N+30]			= "Interrupt30",
+	[EID_INTERRUPT_N+31]			= "Interrupt31",
 };
 
 /*
@@ -472,7 +472,7 @@ static int esirisc_next_breakpoint(struct target *target)
 	LOG_DEBUG("-");
 
 	for (int bp_index = 0; breakpoints_p < breakpoints_e; ++breakpoints_p, ++bp_index)
-		if (*breakpoints_p == NULL)
+		if (!*breakpoints_p)
 			return bp_index;
 
 	return -1;
@@ -508,7 +508,7 @@ static int esirisc_add_breakpoint(struct target *target, struct breakpoint *brea
 	esirisc->breakpoints_p[bp_index] = breakpoint;
 
 	/* specify instruction breakpoint address */
-	retval = esirisc_jtag_write_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_IBAn + bp_index,
+	retval = esirisc_jtag_write_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_IBA_N + bp_index,
 			breakpoint->address);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("%s: failed to write Debug CSR: IBA", target_name(target));
@@ -539,7 +539,7 @@ static int esirisc_add_breakpoints(struct target *target)
 
 	LOG_DEBUG("-");
 
-	while (breakpoint != NULL) {
+	while (breakpoint) {
 		if (breakpoint->set == 0)
 			esirisc_add_breakpoint(target, breakpoint);
 
@@ -608,7 +608,7 @@ static int esirisc_next_watchpoint(struct target *target)
 	LOG_DEBUG("-");
 
 	for (int wp_index = 0; watchpoints_p < watchpoints_e; ++watchpoints_p, ++wp_index)
-		if (*watchpoints_p == NULL)
+		if (!*watchpoints_p)
 			return wp_index;
 
 	return -1;
@@ -634,7 +634,7 @@ static int esirisc_add_watchpoint(struct target *target, struct watchpoint *watc
 	esirisc->watchpoints_p[wp_index] = watchpoint;
 
 	/* specify data breakpoint address */
-	retval = esirisc_jtag_write_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_DBAn + wp_index,
+	retval = esirisc_jtag_write_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_DBA_N + wp_index,
 			watchpoint->address);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("%s: failed to write Debug CSR: DBA", target_name(target));
@@ -723,7 +723,7 @@ static int esirisc_add_watchpoints(struct target *target)
 
 	LOG_DEBUG("-");
 
-	while (watchpoint != NULL) {
+	while (watchpoint) {
 		if (watchpoint->set == 0)
 			esirisc_add_watchpoint(target, watchpoint);
 
@@ -890,7 +890,7 @@ static int esirisc_resume_or_step(struct target *target, int current, target_add
 
 	if (handle_breakpoints) {
 		breakpoint = breakpoint_find(target, address);
-		if (breakpoint != NULL)
+		if (breakpoint)
 			esirisc_remove_breakpoint(target, breakpoint);
 	}
 
@@ -1061,7 +1061,7 @@ static int esirisc_debug_entry(struct target *target)
 			case EID_INST_BREAKPOINT:
 				breakpoint = breakpoint_find(target,
 						buf_get_u32(esirisc->epc->value, 0, esirisc->epc->size));
-				target->debug_reason = (breakpoint != NULL) ?
+				target->debug_reason = (breakpoint) ?
 						DBG_REASON_BREAKPOINT : DBG_REASON_DBGRQ;
 				break;
 
@@ -1267,7 +1267,7 @@ static const char *esirisc_get_gdb_arch(struct target *target)
 	 * requires additional configuration to properly interact with these
 	 * targets in GDB (also see: `esirisc cache_arch`).
 	 */
-	if (esirisc->gdb_arch == NULL && target_was_examined(target))
+	if (!esirisc->gdb_arch && target_was_examined(target))
 		esirisc->gdb_arch = alloc_printf("esirisc:%d_bit_%d_reg_%s",
 				esirisc->num_bits, esirisc->num_regs, esirisc_cache_arch_name(esirisc));
 
@@ -1284,7 +1284,7 @@ static int esirisc_get_gdb_reg_list(struct target *target, struct reg **reg_list
 	*reg_list_size = ESIRISC_NUM_REGS;
 
 	*reg_list = calloc(*reg_list_size, sizeof(struct reg *));
-	if (*reg_list == NULL)
+	if (!*reg_list)
 		return ERROR_FAIL;
 
 	if (reg_class == REG_CLASS_ALL)
@@ -1561,7 +1561,7 @@ static int esirisc_target_create(struct target *target, Jim_Interp *interp)
 	struct jtag_tap *tap = target->tap;
 	struct esirisc_common *esirisc;
 
-	if (tap == NULL)
+	if (!tap)
 		return ERROR_FAIL;
 
 	if (tap->ir_length != INSTR_LENGTH) {
@@ -1571,7 +1571,7 @@ static int esirisc_target_create(struct target *target, Jim_Interp *interp)
 	}
 
 	esirisc = calloc(1, sizeof(struct esirisc_common));
-	if (esirisc == NULL)
+	if (!esirisc)
 		return ERROR_FAIL;
 
 	esirisc->target = target;

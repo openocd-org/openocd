@@ -406,7 +406,12 @@ int target_call_timer_callbacks(int64_t *next_event);
  * Invoke this to ensure that e.g. polling timer callbacks happen before
  * a synchronous command completes.
  */
-int target_call_timer_callbacks_now(int64_t *next_event);
+int target_call_timer_callbacks_now(void);
+/**
+ * Returns when the next registered event will take place. Callers can use this
+ * to go to sleep until that time occurs.
+ */
+int64_t target_timer_next_event(void);
 
 struct target *get_target_by_num(int num);
 struct target *get_current_target(struct command_context *cmd_ctx);

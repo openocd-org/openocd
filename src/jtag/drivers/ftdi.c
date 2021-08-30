@@ -185,11 +185,11 @@ static struct signal *create_signal(const char *name)
 		psig = &(*psig)->next;
 
 	*psig = calloc(1, sizeof(**psig));
-	if (*psig == NULL)
+	if (!*psig)
 		return NULL;
 
 	(*psig)->name = strdup(name);
-	if ((*psig)->name == NULL) {
+	if (!(*psig)->name) {
 		free(*psig);
 		*psig = NULL;
 	}
@@ -353,7 +353,7 @@ static int ftdi_speed(int speed)
 
 	if (!swd_mode && speed >= 10000000 && ftdi_jtag_mode != JTAG_MODE_ALT)
 		LOG_INFO("ftdi: if you experience problems at higher adapter clocks, try "
-			 "the command \"ftdi_tdo_sample_edge falling\"");
+			 "the command \"ftdi tdo_sample_edge falling\"");
 	return ERROR_OK;
 }
 
@@ -734,7 +734,7 @@ static int ftdi_initialize(void)
 		LOG_DEBUG("ftdi interface using shortest path jtag state transitions");
 
 	if (!ftdi_vid[0] && !ftdi_pid[0]) {
-		LOG_ERROR("Please specify ftdi_vid_pid");
+		LOG_ERROR("Please specify ftdi vid_pid");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
@@ -1057,7 +1057,7 @@ COMMAND_HANDLER(ftdi_handle_device_desc_command)
 		free(ftdi_device_desc);
 		ftdi_device_desc = strdup(CMD_ARGV[0]);
 	} else {
-		LOG_ERROR("expected exactly one argument to ftdi_device_desc <description>");
+		LOG_ERROR("expected exactly one argument to ftdi device_desc <description>");
 	}
 
 	return ERROR_OK;
@@ -1224,12 +1224,12 @@ COMMAND_HANDLER(ftdi_handle_get_signal_command)
 COMMAND_HANDLER(ftdi_handle_vid_pid_command)
 {
 	if (CMD_ARGC > MAX_USB_IDS * 2) {
-		LOG_WARNING("ignoring extra IDs in ftdi_vid_pid "
+		LOG_WARNING("ignoring extra IDs in ftdi vid_pid "
 			"(maximum is %d pairs)", MAX_USB_IDS);
 		CMD_ARGC = MAX_USB_IDS * 2;
 	}
 	if (CMD_ARGC < 2 || (CMD_ARGC & 1)) {
-		LOG_WARNING("incomplete ftdi_vid_pid configuration directive");
+		LOG_WARNING("incomplete ftdi vid_pid configuration directive");
 		if (CMD_ARGC < 2)
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		/* remove the incomplete trailing id */
@@ -1244,7 +1244,7 @@ COMMAND_HANDLER(ftdi_handle_vid_pid_command)
 
 	/*
 	 * Explicitly terminate, in case there are multiples instances of
-	 * ftdi_vid_pid.
+	 * ftdi vid_pid.
 	 */
 	ftdi_vid[i >> 1] = ftdi_pid[i >> 1] = 0;
 
@@ -1262,7 +1262,7 @@ COMMAND_HANDLER(ftdi_handle_tdo_sample_edge_command)
 
 	if (CMD_ARGC > 0) {
 		n = jim_nvp_name2value_simple(nvp_ftdi_jtag_modes, CMD_ARGV[0]);
-		if (n->name == NULL)
+		if (!n->name)
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		ftdi_jtag_mode = n->value;
 
@@ -1288,30 +1288,30 @@ COMMAND_HANDLER(ftdi_handle_oscan1_mode_command)
 }
 #endif
 
-static const struct command_registration ftdi_command_handlers[] = {
+static const struct command_registration ftdi_subcommand_handlers[] = {
 	{
-		.name = "ftdi_device_desc",
+		.name = "device_desc",
 		.handler = &ftdi_handle_device_desc_command,
 		.mode = COMMAND_CONFIG,
 		.help = "set the USB device description of the FTDI device",
 		.usage = "description_string",
 	},
 	{
-		.name = "ftdi_serial",
+		.name = "serial",
 		.handler = &ftdi_handle_serial_command,
 		.mode = COMMAND_CONFIG,
 		.help = "set the serial number of the FTDI device",
 		.usage = "serial_string",
 	},
 	{
-		.name = "ftdi_channel",
+		.name = "channel",
 		.handler = &ftdi_handle_channel_command,
 		.mode = COMMAND_CONFIG,
 		.help = "set the channel of the FTDI device that is used as JTAG",
 		.usage = "(0-3)",
 	},
 	{
-		.name = "ftdi_layout_init",
+		.name = "layout_init",
 		.handler = &ftdi_handle_layout_init_command,
 		.mode = COMMAND_CONFIG,
 		.help = "initialize the FTDI GPIO signals used "
@@ -1319,7 +1319,7 @@ static const struct command_registration ftdi_command_handlers[] = {
 		.usage = "data direction",
 	},
 	{
-		.name = "ftdi_layout_signal",
+		.name = "layout_signal",
 		.handler = &ftdi_handle_layout_signal_command,
 		.mode = COMMAND_ANY,
 		.help = "define a signal controlled by one or more FTDI GPIO as data "
@@ -1327,28 +1327,28 @@ static const struct command_registration ftdi_command_handlers[] = {
 		.usage = "name [-data mask|-ndata mask] [-oe mask|-noe mask] [-alias|-nalias name]",
 	},
 	{
-		.name = "ftdi_set_signal",
+		.name = "set_signal",
 		.handler = &ftdi_handle_set_signal_command,
 		.mode = COMMAND_EXEC,
 		.help = "control a layout-specific signal",
 		.usage = "name (1|0|z)",
 	},
 	{
-		.name = "ftdi_get_signal",
+		.name = "get_signal",
 		.handler = &ftdi_handle_get_signal_command,
 		.mode = COMMAND_EXEC,
 		.help = "read the value of a layout-specific signal",
 		.usage = "name",
 	},
 	{
-		.name = "ftdi_vid_pid",
+		.name = "vid_pid",
 		.handler = &ftdi_handle_vid_pid_command,
 		.mode = COMMAND_CONFIG,
 		.help = "the vendor ID and product ID of the FTDI device",
 		.usage = "(vid pid)*",
 	},
 	{
-		.name = "ftdi_tdo_sample_edge",
+		.name = "tdo_sample_edge",
 		.handler = &ftdi_handle_tdo_sample_edge_command,
 		.mode = COMMAND_ANY,
 		.help = "set which TCK clock edge is used for sampling TDO "
@@ -1365,6 +1365,17 @@ static const struct command_registration ftdi_command_handlers[] = {
 		.usage = "(on|off)",
 	},
 #endif
+	COMMAND_REGISTRATION_DONE
+};
+
+static const struct command_registration ftdi_command_handlers[] = {
+	{
+		.name = "ftdi",
+		.mode = COMMAND_ANY,
+		.help = "perform ftdi management",
+		.chain = ftdi_subcommand_handlers,
+		.usage = "",
+	},
 	COMMAND_REGISTRATION_DONE
 };
 
@@ -1407,7 +1418,7 @@ static int ftdi_swd_init(void)
 	swd_cmd_queue_alloced = 10;
 	swd_cmd_queue = malloc(swd_cmd_queue_alloced * sizeof(*swd_cmd_queue));
 
-	return swd_cmd_queue != NULL ? ERROR_OK : ERROR_FAIL;
+	return swd_cmd_queue ? ERROR_OK : ERROR_FAIL;
 }
 
 static void ftdi_swd_swdio_en(bool enable)
@@ -1462,17 +1473,17 @@ static int ftdi_swd_run_queue(void)
 
 		LOG_DEBUG_IO("%s %s %s reg %X = %08"PRIx32,
 				ack == SWD_ACK_OK ? "OK" : ack == SWD_ACK_WAIT ? "WAIT" : ack == SWD_ACK_FAULT ? "FAULT" : "JUNK",
-				swd_cmd_queue[i].cmd & SWD_CMD_APnDP ? "AP" : "DP",
-				swd_cmd_queue[i].cmd & SWD_CMD_RnW ? "read" : "write",
+				swd_cmd_queue[i].cmd & SWD_CMD_APNDP ? "AP" : "DP",
+				swd_cmd_queue[i].cmd & SWD_CMD_RNW ? "read" : "write",
 				(swd_cmd_queue[i].cmd & SWD_CMD_A32) >> 1,
 				buf_get_u32(swd_cmd_queue[i].trn_ack_data_parity_trn,
-						1 + 3 + (swd_cmd_queue[i].cmd & SWD_CMD_RnW ? 0 : 1), 32));
+						1 + 3 + (swd_cmd_queue[i].cmd & SWD_CMD_RNW ? 0 : 1), 32));
 
 		if (ack != SWD_ACK_OK) {
 			queued_retval = ack == SWD_ACK_WAIT ? ERROR_WAIT : ERROR_FAIL;
 			goto skip;
 
-		} else if (swd_cmd_queue[i].cmd & SWD_CMD_RnW) {
+		} else if (swd_cmd_queue[i].cmd & SWD_CMD_RNW) {
 			uint32_t data = buf_get_u32(swd_cmd_queue[i].trn_ack_data_parity_trn, 1 + 3, 32);
 			int parity = buf_get_u32(swd_cmd_queue[i].trn_ack_data_parity_trn, 1 + 3 + 32, 1);
 
@@ -1482,7 +1493,7 @@ static int ftdi_swd_run_queue(void)
 				goto skip;
 			}
 
-			if (swd_cmd_queue[i].dst != NULL)
+			if (swd_cmd_queue[i].dst)
 				*swd_cmd_queue[i].dst = data;
 		}
 	}
@@ -1507,7 +1518,7 @@ static void ftdi_swd_queue_cmd(uint8_t cmd, uint32_t *dst, uint32_t data, uint32
 		 * pointers into the queue which may be invalid after the realloc. */
 		queued_retval = ftdi_swd_run_queue();
 		struct swd_cmd_queue_entry *q = realloc(swd_cmd_queue, swd_cmd_queue_alloced * 2 * sizeof(*swd_cmd_queue));
-		if (q != NULL) {
+		if (q) {
 			swd_cmd_queue = q;
 			swd_cmd_queue_alloced *= 2;
 			LOG_DEBUG("Increased SWD command queue to %zu elements", swd_cmd_queue_alloced);
@@ -1522,7 +1533,7 @@ static void ftdi_swd_queue_cmd(uint8_t cmd, uint32_t *dst, uint32_t data, uint32
 
 	mpsse_clock_data_out(mpsse_ctx, &swd_cmd_queue[i].cmd, 0, 8, SWD_MODE);
 
-	if (swd_cmd_queue[i].cmd & SWD_CMD_RnW) {
+	if (swd_cmd_queue[i].cmd & SWD_CMD_RNW) {
 		/* Queue a read transaction */
 		swd_cmd_queue[i].dst = dst;
 
@@ -1547,20 +1558,20 @@ static void ftdi_swd_queue_cmd(uint8_t cmd, uint32_t *dst, uint32_t data, uint32
 	}
 
 	/* Insert idle cycles after AP accesses to avoid WAIT */
-	if (cmd & SWD_CMD_APnDP)
+	if (cmd & SWD_CMD_APNDP)
 		mpsse_clock_data_out(mpsse_ctx, NULL, 0, ap_delay_clk, SWD_MODE);
 
 }
 
 static void ftdi_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_delay_clk)
 {
-	assert(cmd & SWD_CMD_RnW);
+	assert(cmd & SWD_CMD_RNW);
 	ftdi_swd_queue_cmd(cmd, value, 0, ap_delay_clk);
 }
 
 static void ftdi_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay_clk)
 {
-	assert(!(cmd & SWD_CMD_RnW));
+	assert(!(cmd & SWD_CMD_RNW));
 	ftdi_swd_queue_cmd(cmd, NULL, value, ap_delay_clk);
 }
 

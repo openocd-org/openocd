@@ -87,7 +87,7 @@ COMMAND_HANDLER(handle_adapter_list_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	command_print(CMD, "The following debug adapters are available:");
-	for (unsigned i = 0; NULL != adapter_drivers[i]; i++) {
+	for (unsigned i = 0; adapter_drivers[i]; i++) {
 		const char *name = adapter_drivers[i]->name;
 		command_print(CMD, "%u: %s", i + 1, name);
 	}
@@ -109,14 +109,14 @@ COMMAND_HANDLER(handle_adapter_driver_command)
 	if (CMD_ARGC != 1 || CMD_ARGV[0][0] == '\0')
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	for (unsigned i = 0; NULL != adapter_drivers[i]; i++) {
+	for (unsigned i = 0; adapter_drivers[i]; i++) {
 		if (strcmp(CMD_ARGV[0], adapter_drivers[i]->name) != 0)
 			continue;
 
-		if (NULL != adapter_drivers[i]->commands) {
+		if (adapter_drivers[i]->commands) {
 			retval = register_commands(CMD_CTX, NULL,
 					adapter_drivers[i]->commands);
-			if (ERROR_OK != retval)
+			if (retval != ERROR_OK)
 				return retval;
 		}
 
@@ -390,13 +390,13 @@ COMMAND_HANDLER(handle_adapter_speed_command)
 		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], khz);
 
 		retval = jtag_config_khz(khz);
-		if (ERROR_OK != retval)
+		if (retval != ERROR_OK)
 			return retval;
 	}
 
 	int cur_speed = jtag_get_speed_khz();
 	retval = jtag_get_speed_readable(&cur_speed);
-	if (ERROR_OK != retval)
+	if (retval != ERROR_OK)
 		return retval;
 
 	if (cur_speed)

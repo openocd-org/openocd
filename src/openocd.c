@@ -131,7 +131,7 @@ COMMAND_HANDLER(handle_init_command)
 	initialized = 1;
 
 	retval = command_run_line(CMD_CTX, "target init");
-	if (ERROR_OK != retval)
+	if (retval != ERROR_OK)
 		return ERROR_FAIL;
 
 	retval = adapter_init(CMD_CTX);
@@ -150,11 +150,11 @@ COMMAND_HANDLER(handle_init_command)
 	command_context_mode(CMD_CTX, COMMAND_EXEC);
 
 	retval = command_run_line(CMD_CTX, "transport init");
-	if (ERROR_OK != retval)
+	if (retval != ERROR_OK)
 		return ERROR_FAIL;
 
 	retval = command_run_line(CMD_CTX, "dap init");
-	if (ERROR_OK != retval)
+	if (retval != ERROR_OK)
 		return ERROR_FAIL;
 
 	LOG_DEBUG("Examining targets...");
@@ -262,9 +262,9 @@ static struct command_context *setup_command_handler(Jim_Interp *interp)
 		&arm_tpiu_swo_register_commands,
 		NULL
 	};
-	for (unsigned i = 0; NULL != command_registrants[i]; i++) {
+	for (unsigned i = 0; command_registrants[i]; i++) {
 		int retval = (*command_registrants[i])(cmd_ctx);
-		if (ERROR_OK != retval) {
+		if (retval != ERROR_OK) {
 			command_done(cmd_ctx);
 			return NULL;
 		}
@@ -303,12 +303,12 @@ static int openocd_thread(int argc, char *argv[], struct command_context *cmd_ct
 	}
 
 	ret = server_init(cmd_ctx);
-	if (ERROR_OK != ret)
+	if (ret != ERROR_OK)
 		return ERROR_FAIL;
 
 	if (init_at_startup) {
 		ret = command_run_line(cmd_ctx, "init");
-		if (ERROR_OK != ret) {
+		if (ret != ERROR_OK) {
 			server_quit();
 			return ERROR_FAIL;
 		}
@@ -364,8 +364,8 @@ int openocd_main(int argc, char *argv[])
 	help_del_all_commands(cmd_ctx);
 
 	/* free all DAP and CTI objects */
-	dap_cleanup_all();
 	arm_cti_cleanup_all();
+	dap_cleanup_all();
 
 	adapter_quit();
 
@@ -377,9 +377,9 @@ int openocd_main(int argc, char *argv[])
 	rtt_exit();
 	free_config();
 
-	if (ERROR_FAIL == ret)
+	if (ret == ERROR_FAIL)
 		return EXIT_FAILURE;
-	else if (ERROR_OK != ret)
+	else if (ret != ERROR_OK)
 		exit_on_signal(ret);
 
 	return ret;

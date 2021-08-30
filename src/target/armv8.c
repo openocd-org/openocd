@@ -204,7 +204,7 @@ static int armv8_read_reg(struct armv8_common *armv8, int regnum, uint64_t *regv
 		break;
 	}
 
-	if (retval == ERROR_OK && regval != NULL)
+	if (retval == ERROR_OK && regval)
 		*regval = value_64;
 	else
 		retval = ERROR_FAIL;
@@ -430,7 +430,7 @@ static int armv8_read_reg32(struct armv8_common *armv8, int regnum, uint64_t *re
 		break;
 	}
 
-	if (retval == ERROR_OK && regval != NULL)
+	if (retval == ERROR_OK && regval)
 		*regval = value;
 
 	return retval;
@@ -727,7 +727,7 @@ static void armv8_show_fault_registers32(struct armv8_common *armv8)
 	if (retval != ERROR_OK)
 		return;
 
-	/* ARMV4_5_MRC(cpnum, op1, r0, CRn, CRm, op2) */
+	/* ARMV4_5_MRC(cpnum, op1, r0, crn, crm, op2) */
 
 	/* c5/c0 - {data, instruction} fault status registers */
 	retval = dpm->instr_read_data_r0(dpm,
@@ -1046,14 +1046,14 @@ COMMAND_HANDLER(armv8_handle_exception_catch_command)
 			return retval;
 
 		n = jim_nvp_value2name_simple(nvp_ecatch_modes, edeccr & 0x0f);
-		if (n->name != NULL)
+		if (n->name)
 			sec = n->name;
 
 		n = jim_nvp_value2name_simple(nvp_ecatch_modes, edeccr & 0xf0);
-		if (n->name != NULL)
+		if (n->name)
 			nsec = n->name;
 
-		if (sec == NULL || nsec == NULL) {
+		if (!sec || !nsec) {
 			LOG_WARNING("Exception Catch: unknown exception catch configuration: EDECCR = %02" PRIx32, edeccr & 0xff);
 			return ERROR_FAIL;
 		}
@@ -1062,9 +1062,9 @@ COMMAND_HANDLER(armv8_handle_exception_catch_command)
 		return ERROR_OK;
 	}
 
-	while (CMD_ARGC > argp) {
+	while (argp < CMD_ARGC) {
 		n = jim_nvp_name2value_simple(nvp_ecatch_modes, CMD_ARGV[argp]);
-		if (n->name == NULL) {
+		if (!n->name) {
 			LOG_ERROR("Unknown option: %s", CMD_ARGV[argp]);
 			return ERROR_FAIL;
 		}
@@ -1644,7 +1644,7 @@ struct reg_cache *armv8_build_reg_cache(struct target *target)
 
 		reg_list[i].reg_data_type = calloc(1, sizeof(struct reg_data_type));
 		if (reg_list[i].reg_data_type) {
-			if (armv8_regs[i].data_type == NULL)
+			if (!armv8_regs[i].data_type)
 				reg_list[i].reg_data_type->type = armv8_regs[i].type;
 			else
 				*reg_list[i].reg_data_type = *armv8_regs[i].data_type;
@@ -1730,7 +1730,7 @@ void armv8_free_reg_cache(struct target *target)
 	struct reg_cache *cache = NULL, *cache32 = NULL;
 
 	cache = arm->core_cache;
-	if (cache != NULL)
+	if (cache)
 		cache32 = cache->next;
 	armv8_free_cache(cache32, true);
 	armv8_free_cache(cache, false);
@@ -1823,7 +1823,7 @@ int armv8_set_dbgreg_bits(struct armv8_common *armv8, unsigned int reg, unsigned
 	/* Read register */
 	int retval = mem_ap_read_atomic_u32(armv8->debug_ap,
 			armv8->debug_base + reg, &tmp);
-	if (ERROR_OK != retval)
+	if (retval != ERROR_OK)
 		return retval;
 
 	/* clear bitfield */

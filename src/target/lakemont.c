@@ -227,7 +227,7 @@ static int irscan(struct target *t, uint8_t *out,
 {
 	int retval = ERROR_OK;
 	struct x86_32_common *x86_32 = target_to_x86_32(t);
-	if (NULL == t->tap) {
+	if (!t->tap) {
 		retval = ERROR_FAIL;
 		LOG_ERROR("%s invalid target tap", __func__);
 		return retval;
@@ -260,7 +260,7 @@ static int drscan(struct target *t, uint8_t *out, uint8_t *in, uint8_t len)
 	int retval = ERROR_OK;
 	uint64_t data = 0;
 	struct x86_32_common *x86_32 = target_to_x86_32(t);
-	if (NULL == t->tap) {
+	if (!t->tap) {
 		retval = ERROR_FAIL;
 		LOG_ERROR("%s invalid target tap", __func__);
 		return retval;
@@ -283,7 +283,7 @@ static int drscan(struct target *t, uint8_t *out, uint8_t *in, uint8_t len)
 			return retval;
 		}
 	}
-	if (in != NULL) {
+	if (in) {
 		if (len >= 8) {
 			for (int n = (len / 8) - 1 ; n >= 0; n--)
 				data = (data << 8) + *(in+n);
@@ -381,7 +381,7 @@ struct reg_cache *lakemont_build_reg_cache(struct target *t)
 	struct reg_feature *feature;
 	int i;
 
-	if (cache == NULL || reg_list == NULL || arch_info == NULL) {
+	if (!cache || !reg_list || !arch_info) {
 		free(cache);
 		free(reg_list);
 		free(arch_info);
@@ -611,7 +611,7 @@ static int read_all_core_hw_regs(struct target *t)
 	unsigned i;
 	struct x86_32_common *x86_32 = target_to_x86_32(t);
 	for (i = 0; i < (x86_32->cache->num_regs); i++) {
-		if (NOT_AVAIL_REG == regs[i].pm_idx)
+		if (regs[i].pm_idx == NOT_AVAIL_REG)
 			continue;
 		err = read_hw_reg(t, regs[i].id, &regval, 1);
 		if (err != ERROR_OK) {
@@ -630,7 +630,7 @@ static int write_all_core_hw_regs(struct target *t)
 	unsigned i;
 	struct x86_32_common *x86_32 = target_to_x86_32(t);
 	for (i = 0; i < (x86_32->cache->num_regs); i++) {
-		if (NOT_AVAIL_REG == regs[i].pm_idx)
+		if (regs[i].pm_idx == NOT_AVAIL_REG)
 			continue;
 		err = write_hw_reg(t, i, 0, 1);
 		if (err != ERROR_OK) {
@@ -940,7 +940,7 @@ int lakemont_poll(struct target *t)
 				 */
 				struct breakpoint *bp = NULL;
 				bp = breakpoint_find(t, eip-1);
-				if (bp != NULL) {
+				if (bp) {
 					t->debug_reason = DBG_REASON_BREAKPOINT;
 					if (bp->type == BKPT_SOFT) {
 						/* The EIP is now pointing the next byte after the
@@ -1013,7 +1013,7 @@ int lakemont_resume(struct target *t, int current, target_addr_t address,
 		/* running away for a software breakpoint needs some special handling */
 		uint32_t eip = buf_get_u32(x86_32->cache->reg_list[EIP].value, 0, 32);
 		bp = breakpoint_find(t, eip);
-		if (bp != NULL /*&& bp->type == BKPT_SOFT*/) {
+		if (bp /*&& bp->type == BKPT_SOFT*/) {
 			/* the step will step over the breakpoint */
 			if (lakemont_step(t, 0, 0, 1) != ERROR_OK) {
 				LOG_ERROR("%s stepping over a software breakpoint at 0x%08" PRIx32 " "
@@ -1024,12 +1024,12 @@ int lakemont_resume(struct target *t, int current, target_addr_t address,
 
 		/* if breakpoints are enabled, we need to redirect these into probe mode */
 		struct breakpoint *activeswbp = t->breakpoints;
-		while (activeswbp != NULL && activeswbp->set == 0)
+		while (activeswbp && activeswbp->set == 0)
 			activeswbp = activeswbp->next;
 		struct watchpoint *activehwbp = t->watchpoints;
-		while (activehwbp != NULL && activehwbp->set == 0)
+		while (activehwbp && activehwbp->set == 0)
 			activehwbp = activehwbp->next;
-		if (activeswbp != NULL || activehwbp != NULL)
+		if (activeswbp || activehwbp)
 			buf_set_u32(x86_32->cache->reg_list[PMCR].value, 0, 32, 1);
 		if (do_resume(t) != ERROR_OK)
 			return ERROR_FAIL;
@@ -1054,7 +1054,7 @@ int lakemont_step(struct target *t, int current,
 	if (check_not_halted(t))
 		return ERROR_TARGET_NOT_HALTED;
 	bp = breakpoint_find(t, eip);
-	if (retval == ERROR_OK && bp != NULL/*&& bp->type == BKPT_SOFT*/) {
+	if (retval == ERROR_OK && bp/*&& bp->type == BKPT_SOFT*/) {
 		/* TODO: This should only be done for software breakpoints.
 		 * Stepping from hardware breakpoints should be possible with the resume flag
 		 * Needs testing.
@@ -1105,7 +1105,7 @@ int lakemont_step(struct target *t, int current,
 	/* try to re-apply the breakpoint, even of step failed
 	 * TODO: When a bp was set, we should try to stop the target - fix the return above
 	 */
-	if (bp != NULL/*&& bp->type == BKPT_SOFT*/) {
+	if (bp/*&& bp->type == BKPT_SOFT*/) {
 		/* TODO: This should only be done for software breakpoints.
 		 * Stepping from hardware breakpoints should be possible with the resume flag
 		 * Needs testing.
@@ -1128,7 +1128,7 @@ static int lakemont_reset_break(struct target *t)
 
 	/* prepare resetbreak setting the proper bits in CLTAPC_CPU_VPREQ */
 	x86_32->curr_tap = jtag_tap_by_position(1);
-	if (x86_32->curr_tap == NULL) {
+	if (!x86_32->curr_tap) {
 		x86_32->curr_tap = saved_tap;
 		LOG_ERROR("%s could not select quark_x10xx.cltap", __func__);
 		return ERROR_FAIL;

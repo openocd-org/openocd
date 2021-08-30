@@ -231,13 +231,13 @@ struct arm {
 	/** Read coprocessor register.  */
 	int (*mrc)(struct target *target, int cpnum,
 			uint32_t op1, uint32_t op2,
-			uint32_t CRn, uint32_t CRm,
+			uint32_t crn, uint32_t crm,
 			uint32_t *value);
 
 	/** Write coprocessor register.  */
 	int (*mcr)(struct target *target, int cpnum,
 			uint32_t op1, uint32_t op2,
-			uint32_t CRn, uint32_t CRm,
+			uint32_t crn, uint32_t crm,
 			uint32_t value);
 
 	void *arch_info;
@@ -252,13 +252,13 @@ struct arm {
 /** Convert target handle to generic ARM target state handle. */
 static inline struct arm *target_to_arm(struct target *target)
 {
-	assert(target != NULL);
+	assert(target);
 	return target->arch_info;
 }
 
 static inline bool is_arm(struct arm *arm)
 {
-	assert(arm != NULL);
+	assert(arm);
 	return arm->common_magic == ARM_COMMON_MAGIC;
 }
 

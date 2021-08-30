@@ -118,7 +118,7 @@ static struct log_capture_state *command_log_capture_start(Jim_Interp *interp)
  */
 static void command_log_capture_finish(struct log_capture_state *state)
 {
-	if (NULL == state)
+	if (!state)
 		return;
 
 	log_remove_callback(tcl_output, state);
@@ -175,7 +175,7 @@ static int workaround_createcommand(Jim_Interp *interp, const char *cmdName,
 static int command_retval_set(Jim_Interp *interp, int retval)
 {
 	int *return_retval = Jim_GetAssocData(interp, "retval");
-	if (return_retval != NULL)
+	if (return_retval)
 		*return_retval = retval;
 
 	return (retval == ERROR_OK) ? JIM_OK : retval;
@@ -213,7 +213,7 @@ static char **script_command_args_alloc(
 	unsigned argc, Jim_Obj * const *argv, unsigned *nwords)
 {
 	char **words = malloc(argc * sizeof(char *));
-	if (NULL == words)
+	if (!words)
 		return NULL;
 
 	unsigned i;
@@ -221,7 +221,7 @@ static char **script_command_args_alloc(
 		int len;
 		const char *w = Jim_GetString(argv[i], &len);
 		words[i] = strdup(w);
-		if (words[i] == NULL) {
+		if (!words[i]) {
 			script_command_args_free(words, i);
 			return NULL;
 		}
@@ -234,7 +234,7 @@ struct command_context *current_command_context(Jim_Interp *interp)
 {
 	/* grab the command context from the associated data */
 	struct command_context *cmd_ctx = Jim_GetAssocData(interp, "context");
-	if (NULL == cmd_ctx) {
+	if (!cmd_ctx) {
 		/* Tcl can invoke commands directly instead of via command_run_line(). This would
 		 * happen when the Jim Tcl interpreter is provided by eCos or if we are running
 		 * commands in a startup script.
@@ -285,7 +285,7 @@ static struct command *command_new(struct command_context *cmd_ctx,
 			full_name);
 
 	struct command *c = calloc(1, sizeof(struct command));
-	if (NULL == c)
+	if (!c)
 		return NULL;
 
 	c->name = strdup(cr->name);
@@ -369,16 +369,16 @@ int __register_commands(struct command_context *cmd_ctx, const char *cmd_prefix,
 		const struct command_registration *cr = cmds + i;
 
 		struct command *c = NULL;
-		if (NULL != cr->name) {
+		if (cr->name) {
 			c = register_command(cmd_ctx, cmd_prefix, cr);
-			if (NULL == c) {
+			if (!c) {
 				retval = ERROR_FAIL;
 				break;
 			}
 			c->jim_handler_data = data;
 			c->jim_override_target = override_target;
 		}
-		if (NULL != cr->chain) {
+		if (cr->chain) {
 			if (cr->name) {
 				if (cmd_prefix) {
 					char *new_prefix = alloc_printf("%s %s", cmd_prefix, cr->name);
@@ -394,11 +394,11 @@ int __register_commands(struct command_context *cmd_ctx, const char *cmd_prefix,
 			} else {
 				retval = __register_commands(cmd_ctx, cmd_prefix, cr->chain, data, override_target);
 			}
-			if (ERROR_OK != retval)
+			if (retval != ERROR_OK)
 				break;
 		}
 	}
-	if (ERROR_OK != retval) {
+	if (retval != ERROR_OK) {
 		for (unsigned j = 0; j < i; j++)
 			unregister_command(cmd_ctx, cmd_prefix, cmds[j].name);
 	}
@@ -501,7 +501,7 @@ void command_print_sameline(struct command_invocation *cmd, const char *format, 
 	va_start(ap, format);
 
 	string = alloc_vprintf(format, ap);
-	if (string != NULL && cmd) {
+	if (string && cmd) {
 		/* we want this collected in the log + we also want to pick it up as a tcl return
 		 * value.
 		 *
@@ -524,7 +524,7 @@ void command_print(struct command_invocation *cmd, const char *format, ...)
 	va_start(ap, format);
 
 	string = alloc_vprintf(format, ap);
-	if (string != NULL && cmd) {
+	if (string && cmd) {
 		strcat(string, "\n");	/* alloc_vprintf guaranteed the buffer to be at least one
 					 *char longer */
 		/* we want this collected in the log + we also want to pick it up as a tcl return
@@ -670,7 +670,7 @@ int command_run_linef(struct command_context *context, const char *format, ...)
 	va_list ap;
 	va_start(ap, format);
 	string = alloc_vprintf(format, ap);
-	if (string != NULL) {
+	if (string) {
 		retval = command_run_line(context, string);
 		free(string);
 	}
@@ -696,7 +696,7 @@ struct command_context *copy_command_context(struct command_context *context)
 
 void command_done(struct command_context *cmd_ctx)
 {
-	if (NULL == cmd_ctx)
+	if (!cmd_ctx)
 		return;
 
 	free(cmd_ctx);
@@ -709,7 +709,7 @@ static int jim_find(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		return JIM_ERR;
 	const char *file = Jim_GetString(argv[1], NULL);
 	char *full_path = find_file(file);
-	if (full_path == NULL)
+	if (!full_path)
 		return JIM_ERR;
 	Jim_Obj *result = Jim_NewStringObj(interp, full_path, strlen(full_path));
 	free(full_path);
@@ -815,9 +815,9 @@ static COMMAND_HELPER(command_help_show, struct help_entry *c,
 
 	/* If the match string occurs anywhere, we print out
 	 * stuff for this command. */
-	bool is_match = (strstr(c->cmd_name, cmd_match) != NULL) ||
-		((c->usage != NULL) && (strstr(c->usage, cmd_match) != NULL)) ||
-		((c->help != NULL) && (strstr(c->help, cmd_match) != NULL));
+	bool is_match = strstr(c->cmd_name, cmd_match) ||
+		(c->usage && strstr(c->usage, cmd_match)) ||
+		(c->help && strstr(c->help, cmd_match));
 
 	if (is_match) {
 		if (c->usage && strlen(c->usage) > 0) {
@@ -870,7 +870,7 @@ static COMMAND_HELPER(command_help_show, struct help_entry *c,
 		} else
 			msg = alloc_printf("%s", c->help ? c->help : "");
 
-		if (NULL != msg) {
+		if (msg) {
 			command_help_show_wrap(msg, n + 3, n + 3);
 			free(msg);
 		} else
@@ -899,7 +899,7 @@ COMMAND_HANDLER(handle_help_command)
 		}
 	}
 
-	if (cmd_match == NULL) {
+	if (!cmd_match) {
 		LOG_ERROR("unable to build search string");
 		return -ENOMEM;
 	}
@@ -954,8 +954,6 @@ static int exec_command(Jim_Interp *interp, struct command_context *cmd_ctx,
 
 static int jim_command_dispatch(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
 {
-	script_debug(interp, argc, argv);
-
 	/* check subcommands */
 	if (argc > 1) {
 		char *s = alloc_printf("%s %s", Jim_GetString(argv[0], NULL), Jim_GetString(argv[1], NULL));
@@ -970,6 +968,8 @@ static int jim_command_dispatch(Jim_Interp *interp, int argc, Jim_Obj * const *a
 		}
 		Jim_DecrRefCount(interp, js);
 	}
+
+	script_debug(interp, argc, argv);
 
 	struct command *c = jim_to_command(interp);
 	if (!c->jim_handler && !c->handler) {
@@ -1171,7 +1171,7 @@ COMMAND_HANDLER(handle_sleep_command)
 
 	unsigned long duration = 0;
 	int retval = parse_ulong(CMD_ARGV[0], &duration);
-	if (ERROR_OK != retval)
+	if (retval != ERROR_OK)
 		return retval;
 
 	if (!busy) {
@@ -1286,7 +1286,7 @@ struct command_context *command_init(const char *startup_tcl, Jim_Interp *interp
 	INIT_LIST_HEAD(context->help_list);
 
 	/* Create a jim interpreter if we were not handed one */
-	if (interp == NULL) {
+	if (!interp) {
 		/* Create an interpreter */
 		interp = Jim_CreateInterp();
 		/* Add all the Jim core commands */
@@ -1354,11 +1354,11 @@ void process_jim_events(struct command_context *cmd_ctx)
 			LOG_ERROR("Invalid command argument"); \
 			return ERROR_COMMAND_ARGUMENT_INVALID; \
 		} \
-		if ((max == *ul) && (ERANGE == errno)) { \
+		if ((max == *ul) && (errno == ERANGE)) { \
 			LOG_ERROR("Argument overflow");	\
 			return ERROR_COMMAND_ARGUMENT_OVERFLOW;	\
 		} \
-		if (min && (min == *ul) && (ERANGE == errno)) { \
+		if (min && (min == *ul) && (errno == ERANGE)) { \
 			LOG_ERROR("Argument underflow"); \
 			return ERROR_COMMAND_ARGUMENT_UNDERFLOW; \
 		} \
@@ -1374,7 +1374,7 @@ DEFINE_PARSE_NUM_TYPE(_llong, long long, strtoll, LLONG_MIN, LLONG_MAX)
 	{ \
 		functype n; \
 		int retval = parse ## funcname(str, &n); \
-		if (ERROR_OK != retval)	\
+		if (retval != ERROR_OK)	\
 			return retval; \
 		if (n > max) \
 			return ERROR_COMMAND_ARGUMENT_OVERFLOW;	\

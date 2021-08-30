@@ -320,7 +320,7 @@ static int psoc4_sysreq(struct flash_bank *bank, uint8_t cmd,
 		    sysreq_wait_algorithm->address + sysreq_wait_algorithm->size);
 
 	struct armv7m_common *armv7m = target_to_armv7m(target);
-	if (armv7m == NULL) {
+	if (!armv7m) {
 		/* something is very wrong if armv7m is NULL */
 		LOG_ERROR("unable to get armv7m target");
 		retval = ERROR_FAIL;
@@ -520,16 +520,9 @@ static int psoc4_mass_erase(struct flash_bank *bank)
 
 	/* Call "Erase All" system ROM API */
 	uint32_t param = 0;
-	retval = psoc4_sysreq(bank, PSOC4_CMD_ERASE_ALL,
+	return psoc4_sysreq(bank, PSOC4_CMD_ERASE_ALL,
 			0,
 			&param, sizeof(param), NULL);
-
-	if (retval == ERROR_OK)
-		/* set all sectors as erased */
-		for (unsigned int i = 0; i < bank->num_sectors; i++)
-			bank->sectors[i].is_erased = 1;
-
-	return retval;
 }
 
 
@@ -576,7 +569,7 @@ static int psoc4_protect(struct flash_bank *bank, int set, unsigned int first,
 	int prot_sz = num_bits / 8;
 
 	sysrq_buffer = malloc(param_sz + prot_sz);
-	if (sysrq_buffer == NULL) {
+	if (!sysrq_buffer) {
 		LOG_ERROR("no memory for row buffer");
 		return ERROR_FAIL;
 	}
@@ -624,7 +617,7 @@ COMMAND_HANDLER(psoc4_handle_flash_autoerase_command)
 
 	struct flash_bank *bank;
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
-	if (ERROR_OK != retval)
+	if (retval != ERROR_OK)
 		return retval;
 
 	struct psoc4_flash_bank *psoc4_info = bank->driver_priv;
@@ -658,7 +651,7 @@ static int psoc4_write(struct flash_bank *bank, const uint8_t *buffer,
 		return retval;
 
 	sysrq_buffer = malloc(param_sz + psoc4_info->row_size);
-	if (sysrq_buffer == NULL) {
+	if (!sysrq_buffer) {
 		LOG_ERROR("no memory for row buffer");
 		return ERROR_FAIL;
 	}
@@ -833,7 +826,7 @@ static int psoc4_probe(struct flash_bank *bank)
 	bank->size = num_rows * row_size;
 	bank->num_sectors = num_rows;
 	bank->sectors = alloc_block_array(0, row_size, num_rows);
-	if (bank->sectors == NULL)
+	if (!bank->sectors)
 		return ERROR_FAIL;
 
 	LOG_DEBUG("flash bank set %" PRIu32 " rows", num_rows);
@@ -898,7 +891,7 @@ COMMAND_HANDLER(psoc4_handle_mass_erase_command)
 
 	struct flash_bank *bank;
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
-	if (ERROR_OK != retval)
+	if (retval != ERROR_OK)
 		return retval;
 
 	retval = psoc4_mass_erase(bank);

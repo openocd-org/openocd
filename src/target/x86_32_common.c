@@ -75,7 +75,7 @@ int x86_32_get_gdb_reg_list(struct target *t,
 	*reg_list_size = x86_32->cache->num_regs;
 	LOG_DEBUG("num_regs=%d, reg_class=%d", (*reg_list_size), reg_class);
 	*reg_list = malloc(sizeof(struct reg *) * (*reg_list_size));
-	if (*reg_list == NULL) {
+	if (!*reg_list) {
 		LOG_ERROR("%s out of memory", __func__);
 		return ERROR_FAIL;
 	}
@@ -95,7 +95,7 @@ int x86_32_common_init_arch_info(struct target *t, struct x86_32_common *x86_32)
 	x86_32->num_hw_bpoints = MAX_DEBUG_REGS;
 	x86_32->hw_break_list = calloc(x86_32->num_hw_bpoints,
 				sizeof(struct x86_32_dbg_reg));
-	if (x86_32->hw_break_list == NULL) {
+	if (!x86_32->hw_break_list) {
 		LOG_ERROR("%s out of memory", __func__);
 		return ERROR_FAIL;
 	}
@@ -157,7 +157,7 @@ int x86_32_common_read_phys_mem(struct target *t, target_addr_t phys_address,
 	 * with the original instructions again.
 	 */
 	struct swbp_mem_patch *iter = x86_32->swbbp_mem_patch_list;
-	while (iter != NULL) {
+	while (iter) {
 		if (iter->physaddr >= phys_address && iter->physaddr < phys_address+(size*count)) {
 			uint32_t offset = iter->physaddr - phys_address;
 			buffer[offset] = iter->orig_byte;
@@ -245,20 +245,20 @@ int x86_32_common_write_phys_mem(struct target *t, target_addr_t phys_address,
 	 * breakpoint instruction.
 	 */
 	newbuffer = malloc(size*count);
-	if (newbuffer == NULL) {
+	if (!newbuffer) {
 		LOG_ERROR("%s out of memory", __func__);
 		return ERROR_FAIL;
 	}
 	memcpy(newbuffer, buffer, size*count);
 	struct swbp_mem_patch *iter = x86_32->swbbp_mem_patch_list;
-	while (iter != NULL) {
+	while (iter) {
 		if (iter->physaddr >= phys_address && iter->physaddr < phys_address+(size*count)) {
 			uint32_t offset = iter->physaddr - phys_address;
 			newbuffer[offset] = SW_BP_OPCODE;
 
 			/* update the breakpoint */
 			struct breakpoint *pbiter = t->breakpoints;
-			while (pbiter != NULL && pbiter->unique_id != iter->swbp_unique_id)
+			while (pbiter && pbiter->unique_id != iter->swbp_unique_id)
 				pbiter = pbiter->next;
 			if (pbiter)
 				pbiter->orig_instr[0] = buffer[offset];
@@ -456,7 +456,7 @@ int calcaddr_physfromlin(struct target *t, target_addr_t addr, target_addr_t *ph
 {
 	uint8_t entry_buffer[8];
 
-	if (physaddr == NULL || t == NULL)
+	if (!physaddr || !t)
 		return ERROR_FAIL;
 
 	struct x86_32_common *x86_32 = target_to_x86_32(t);
@@ -472,10 +472,10 @@ int calcaddr_physfromlin(struct target *t, target_addr_t addr, target_addr_t *ph
 	}
 
 	uint32_t cr4 = buf_get_u32(x86_32->cache->reg_list[CR4].value, 0, 32);
-	bool isPAE = cr4 & 0x00000020; /* PAE - Physical Address Extension */
+	bool is_pae = cr4 & 0x00000020; /* PAE - Physical Address Extension */
 
 	uint32_t cr3 = buf_get_u32(x86_32->cache->reg_list[CR3].value, 0, 32);
-	if (isPAE) {
+	if (is_pae) {
 		uint32_t pdpt_base = cr3 & 0xFFFFF000; /* lower 12 bits of CR3 must always be 0 */
 		uint32_t pdpt_index = (addr & 0xC0000000) >> 30; /* A[31:30] index to PDPT */
 		uint32_t pdpt_addr = pdpt_base + (8 * pdpt_index);
@@ -1059,7 +1059,7 @@ static int set_swbp(struct target *t, struct breakpoint *bp)
 
 	/* add the memory patch */
 	struct swbp_mem_patch *new_patch = malloc(sizeof(struct swbp_mem_patch));
-	if (new_patch == NULL) {
+	if (!new_patch) {
 		LOG_ERROR("%s out of memory", __func__);
 		return ERROR_FAIL;
 	}
@@ -1069,10 +1069,10 @@ static int set_swbp(struct target *t, struct breakpoint *bp)
 	new_patch->swbp_unique_id = bp->unique_id;
 
 	struct swbp_mem_patch *addto = x86_32->swbbp_mem_patch_list;
-	if (addto == NULL)
+	if (!addto)
 		x86_32->swbbp_mem_patch_list = new_patch;
 	else {
-		while (addto->next != NULL)
+		while (addto->next)
 			addto = addto->next;
 		addto->next = new_patch;
 	}
@@ -1107,15 +1107,15 @@ static int unset_swbp(struct target *t, struct breakpoint *bp)
 
 	/* remove from patch */
 	struct swbp_mem_patch *iter = x86_32->swbbp_mem_patch_list;
-	if (iter != NULL) {
+	if (iter) {
 		if (iter->swbp_unique_id == bp->unique_id) {
 			/* it's the first item */
 			x86_32->swbbp_mem_patch_list = iter->next;
 			free(iter);
 		} else {
-			while (iter->next != NULL && iter->next->swbp_unique_id != bp->unique_id)
+			while (iter->next && iter->next->swbp_unique_id != bp->unique_id)
 				iter = iter->next;
-			if (iter->next != NULL) {
+			if (iter->next) {
 				/* it's the next one */
 				struct swbp_mem_patch *freeme = iter->next;
 				iter->next = iter->next->next;
@@ -1428,7 +1428,7 @@ COMMAND_HANDLER(handle_iod_command)
 	uint8_t *buffer = calloc(count, size);
 	struct target *target = get_current_target(CMD_CTX);
 	int retval = x86_32_common_read_io(target, address, size, buffer);
-	if (ERROR_OK == retval)
+	if (retval == ERROR_OK)
 		handle_iod_output(CMD, target, address, size, count, buffer);
 	free(buffer);
 	return retval;

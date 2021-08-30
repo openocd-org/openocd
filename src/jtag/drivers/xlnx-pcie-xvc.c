@@ -31,7 +31,7 @@
 #define XLNX_XVC_VSEC_HDR	0x04
 #define XLNX_XVC_LEN_REG	0x0C
 #define XLNX_XVC_TMS_REG	0x10
-#define XLNX_XVC_TDx_REG	0x14
+#define XLNX_XVC_TDX_REG	0x14
 
 #define XLNX_XVC_CAP_SIZE	0x20
 #define XLNX_XVC_VSEC_ID	0x8
@@ -103,11 +103,11 @@ static int xlnx_pcie_xvc_transact(size_t num_bits, uint32_t tms, uint32_t tdi,
 	if (err != ERROR_OK)
 		return err;
 
-	err = xlnx_pcie_xvc_write_reg(XLNX_XVC_TDx_REG, tdi);
+	err = xlnx_pcie_xvc_write_reg(XLNX_XVC_TDX_REG, tdi);
 	if (err != ERROR_OK)
 		return err;
 
-	err = xlnx_pcie_xvc_read_reg(XLNX_XVC_TDx_REG, tdo);
+	err = xlnx_pcie_xvc_read_reg(XLNX_XVC_TDX_REG, tdo);
 	if (err != ERROR_OK)
 		return err;
 
@@ -460,13 +460,24 @@ COMMAND_HANDLER(xlnx_pcie_xvc_handle_config_command)
 	return ERROR_OK;
 }
 
-static const struct command_registration xlnx_pcie_xvc_command_handlers[] = {
+static const struct command_registration xlnx_pcie_xvc_subcommand_handlers[] = {
 	{
-		.name = "xlnx_pcie_xvc_config",
+		.name = "config",
 		.handler = xlnx_pcie_xvc_handle_config_command,
 		.mode = COMMAND_CONFIG,
 		.help = "Configure XVC/PCIe JTAG adapter",
 		.usage = "device",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+static const struct command_registration xlnx_pcie_xvc_command_handlers[] = {
+	{
+		.name = "xlnx_pcie_xvc",
+		.mode = COMMAND_ANY,
+		.help = "perform xlnx_pcie_xvc management",
+		.chain = xlnx_pcie_xvc_subcommand_handlers,
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -535,7 +546,7 @@ static void xlnx_pcie_xvc_swd_read_reg(uint8_t cmd, uint32_t *value,
 	uint32_t res, ack, rpar;
 	int err;
 
-	assert(cmd & SWD_CMD_RnW);
+	assert(cmd & SWD_CMD_RNW);
 
 	cmd |= SWD_CMD_START | SWD_CMD_PARK;
 	/* cmd + ack */
@@ -558,8 +569,8 @@ static void xlnx_pcie_xvc_swd_read_reg(uint8_t cmd, uint32_t *value,
 	LOG_DEBUG("%s %s %s reg %X = %08"PRIx32,
 		  ack == SWD_ACK_OK ? "OK" : ack == SWD_ACK_WAIT ?
 		  "WAIT" : ack == SWD_ACK_FAULT ? "FAULT" : "JUNK",
-		  cmd & SWD_CMD_APnDP ? "AP" : "DP",
-		  cmd & SWD_CMD_RnW ? "read" : "write",
+		  cmd & SWD_CMD_APNDP ? "AP" : "DP",
+		  cmd & SWD_CMD_RNW ? "read" : "write",
 		  (cmd & SWD_CMD_A32) >> 1,
 		  res);
 	switch (ack) {
@@ -571,7 +582,7 @@ static void xlnx_pcie_xvc_swd_read_reg(uint8_t cmd, uint32_t *value,
 		}
 		if (value)
 			*value = res;
-		if (cmd & SWD_CMD_APnDP)
+		if (cmd & SWD_CMD_APNDP)
 			err = xlnx_pcie_xvc_transact(ap_delay_clk, 0, 0, NULL);
 		queued_retval = err;
 		return;
@@ -598,7 +609,7 @@ static void xlnx_pcie_xvc_swd_write_reg(uint8_t cmd, uint32_t value,
 	uint32_t res, ack;
 	int err;
 
-	assert(!(cmd & SWD_CMD_RnW));
+	assert(!(cmd & SWD_CMD_RNW));
 
 	cmd |= SWD_CMD_START | SWD_CMD_PARK;
 	/* cmd + trn + ack */
@@ -621,14 +632,14 @@ static void xlnx_pcie_xvc_swd_write_reg(uint8_t cmd, uint32_t value,
 	LOG_DEBUG("%s %s %s reg %X = %08"PRIx32,
 		  ack == SWD_ACK_OK ? "OK" : ack == SWD_ACK_WAIT ?
 		  "WAIT" : ack == SWD_ACK_FAULT ? "FAULT" : "JUNK",
-		  cmd & SWD_CMD_APnDP ? "AP" : "DP",
-		  cmd & SWD_CMD_RnW ? "read" : "write",
+		  cmd & SWD_CMD_APNDP ? "AP" : "DP",
+		  cmd & SWD_CMD_RNW ? "read" : "write",
 		  (cmd & SWD_CMD_A32) >> 1,
 		  value);
 
 	switch (ack) {
 	case SWD_ACK_OK:
-		if (cmd & SWD_CMD_APnDP)
+		if (cmd & SWD_CMD_APNDP)
 			err = xlnx_pcie_xvc_transact(ap_delay_clk, 0, 0, NULL);
 		queued_retval = err;
 		return;

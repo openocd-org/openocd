@@ -397,7 +397,7 @@ static int openjtag_init_standard(void)
 	uint8_t latency_timer;
 
 	/* Open by device description */
-	if (openjtag_device_desc == NULL) {
+	if (!openjtag_device_desc) {
 		LOG_WARNING("no openjtag device description specified, "
 				"using default 'Open JTAG Project'");
 		openjtag_device_desc = "Open JTAG Project";
@@ -475,7 +475,7 @@ static int openjtag_init_cy7c65215(void)
 	return ERROR_OK;
 
 err:
-	if (usbh != NULL)
+	if (usbh)
 		jtag_libusb_close(usbh);
 	return ERROR_JTAG_INIT_FAILED;
 }
@@ -803,7 +803,7 @@ static int openjtag_execute_queue(void)
 {
 	struct jtag_command *cmd = jtag_command_queue;
 
-	while (cmd != NULL) {
+	while (cmd) {
 		openjtag_execute_command(cmd);
 		cmd = cmd->next;
 	}
@@ -870,20 +870,31 @@ COMMAND_HANDLER(openjtag_handle_variant_command)
 	return ERROR_OK;
 }
 
-static const struct command_registration openjtag_command_handlers[] = {
+static const struct command_registration openjtag_subcommand_handlers[] = {
 	{
-		.name = "openjtag_device_desc",
+		.name = "device_desc",
 		.handler = openjtag_handle_device_desc_command,
 		.mode = COMMAND_CONFIG,
 		.help = "set the USB device description of the OpenJTAG",
 		.usage = "description-string",
 	},
 	{
-		.name = "openjtag_variant",
+		.name = "variant",
 		.handler = openjtag_handle_variant_command,
 		.mode = COMMAND_CONFIG,
 		.help = "set the OpenJTAG variant",
 		.usage = "variant-string",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+static const struct command_registration openjtag_command_handlers[] = {
+	{
+		.name = "openjtag",
+		.mode = COMMAND_ANY,
+		.help = "perform openjtag management",
+		.chain = openjtag_subcommand_handlers,
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };

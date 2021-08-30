@@ -788,7 +788,7 @@ static int ublast_execute_queue(void)
 		ublast_initial_wipeout();
 	}
 
-	for (cmd = jtag_command_queue; ret == ERROR_OK && cmd != NULL;
+	for (cmd = jtag_command_queue; ret == ERROR_OK && cmd;
 	     cmd = cmd->next) {
 		switch (cmd->type) {
 		case JTAG_RESET:
@@ -1030,16 +1030,16 @@ COMMAND_HANDLER(ublast_firmware_command)
 }
 
 
-static const struct command_registration ublast_command_handlers[] = {
+static const struct command_registration ublast_subcommand_handlers[] = {
 	{
-		.name = "usb_blaster_device_desc",
+		.name = "device_desc",
 		.handler = ublast_handle_device_desc_command,
 		.mode = COMMAND_CONFIG,
 		.help = "set the USB device description of the USB-Blaster",
 		.usage = "description-string",
 	},
 	{
-		.name = "usb_blaster_vid_pid",
+		.name = "vid_pid",
 		.handler = ublast_handle_vid_pid_command,
 		.mode = COMMAND_CONFIG,
 		.help = "the vendor ID and product ID of the USB-Blaster and "
@@ -1048,25 +1048,36 @@ static const struct command_registration ublast_command_handlers[] = {
 		.usage = "vid pid vid_uninit pid_uninit",
 	},
 	{
-		.name = "usb_blaster_lowlevel_driver",
+		.name = "lowlevel_driver",
 		.handler = ublast_handle_lowlevel_drv_command,
 		.mode = COMMAND_CONFIG,
 		.help = "set the lowlevel access for the USB Blaster (ftdi, ublast2)",
 		.usage = "(ftdi|ublast2)",
 	},
 	{
-		.name = "usb_blaster_pin",
+		.name = "pin",
 		.handler = ublast_handle_pin_command,
 		.mode = COMMAND_ANY,
 		.help = "show or set pin state for the unused GPIO pins",
 		.usage = "(pin6|pin8) (0|1|s|t)",
 	},
 		{
-		.name = "usb_blaster_firmware",
+		.name = "firmware",
 		.handler = &ublast_firmware_command,
 		.mode = COMMAND_CONFIG,
 		.help = "configure the USB-Blaster II firmware location",
 		.usage = "path/to/blaster_xxxx.hex",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+static const struct command_registration ublast_command_handlers[] = {
+	{
+		.name = "usb_blaster",
+		.mode = COMMAND_ANY,
+		.help = "perform usb_blaster management",
+		.chain = ublast_subcommand_handlers,
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };

@@ -426,7 +426,7 @@ static int cfi_read_intel_pri_ext(struct flash_bank *bank)
 	free(cfi_info->pri_ext);
 
 	pri_ext = malloc(sizeof(struct cfi_intel_pri_ext));
-	if (pri_ext == NULL) {
+	if (!pri_ext) {
 		LOG_ERROR("Out of memory");
 		return ERROR_FAIL;
 	}
@@ -522,7 +522,7 @@ static int cfi_read_spansion_pri_ext(struct flash_bank *bank)
 	free(cfi_info->pri_ext);
 
 	pri_ext = malloc(sizeof(struct cfi_spansion_pri_ext));
-	if (pri_ext == NULL) {
+	if (!pri_ext) {
 		LOG_ERROR("Out of memory");
 		return ERROR_FAIL;
 	}
@@ -561,55 +561,55 @@ static int cfi_read_spansion_pri_ext(struct flash_bank *bank)
 	LOG_DEBUG("pri: '%c%c%c', version: %c.%c", pri_ext->pri[0], pri_ext->pri[1],
 		pri_ext->pri[2], pri_ext->major_version, pri_ext->minor_version);
 
-	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 5, &pri_ext->SiliconRevision);
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 5, &pri_ext->silicon_revision);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 6, &pri_ext->EraseSuspend);
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 6, &pri_ext->erase_suspend);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 7, &pri_ext->BlkProt);
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 7, &pri_ext->blk_prot);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 8, &pri_ext->TmpBlkUnprotect);
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 8, &pri_ext->tmp_blk_unprotected);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 9, &pri_ext->BlkProtUnprot);
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 9, &pri_ext->blk_prot_unprot);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 10, &pri_ext->SimultaneousOps);
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 10, &pri_ext->simultaneous_ops);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 11, &pri_ext->BurstMode);
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 11, &pri_ext->burst_mode);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 12, &pri_ext->PageMode);
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 12, &pri_ext->page_mode);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 13, &pri_ext->VppMin);
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 13, &pri_ext->vpp_min);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 14, &pri_ext->VppMax);
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 14, &pri_ext->vpp_max);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 15, &pri_ext->TopBottom);
+	retval = cfi_query_u8(bank, 0, cfi_info->pri_addr + 15, &pri_ext->top_bottom);
 	if (retval != ERROR_OK)
 		return retval;
 
 	LOG_DEBUG("Silicon Revision: 0x%x, Erase Suspend: 0x%x, Block protect: 0x%x",
-		pri_ext->SiliconRevision, pri_ext->EraseSuspend, pri_ext->BlkProt);
+		pri_ext->silicon_revision, pri_ext->erase_suspend, pri_ext->blk_prot);
 
 	LOG_DEBUG("Temporary Unprotect: 0x%x, Block Protect Scheme: 0x%x, "
-		"Simultaneous Ops: 0x%x", pri_ext->TmpBlkUnprotect,
-		pri_ext->BlkProtUnprot, pri_ext->SimultaneousOps);
+		"Simultaneous Ops: 0x%x", pri_ext->tmp_blk_unprotected,
+		pri_ext->blk_prot_unprot, pri_ext->simultaneous_ops);
 
-	LOG_DEBUG("Burst Mode: 0x%x, Page Mode: 0x%x, ", pri_ext->BurstMode, pri_ext->PageMode);
+	LOG_DEBUG("Burst Mode: 0x%x, Page Mode: 0x%x, ", pri_ext->burst_mode, pri_ext->page_mode);
 
 
 	LOG_DEBUG("Vpp min: %u.%x, Vpp max: %u.%x",
-		(pri_ext->VppMin & 0xf0) >> 4, pri_ext->VppMin & 0x0f,
-		(pri_ext->VppMax & 0xf0) >> 4, pri_ext->VppMax & 0x0f);
+		(pri_ext->vpp_min & 0xf0) >> 4, pri_ext->vpp_min & 0x0f,
+		(pri_ext->vpp_max & 0xf0) >> 4, pri_ext->vpp_max & 0x0f);
 
-	LOG_DEBUG("WP# protection 0x%x", pri_ext->TopBottom);
+	LOG_DEBUG("WP# protection 0x%x", pri_ext->top_bottom);
 
 	return ERROR_OK;
 }
@@ -624,7 +624,7 @@ static int cfi_read_atmel_pri_ext(struct flash_bank *bank)
 	free(cfi_info->pri_ext);
 
 	pri_ext = malloc(sizeof(struct cfi_spansion_pri_ext));
-	if (pri_ext == NULL) {
+	if (!pri_ext) {
 		LOG_ERROR("Out of memory");
 		return ERROR_FAIL;
 	}
@@ -696,20 +696,20 @@ static int cfi_read_atmel_pri_ext(struct flash_bank *bank)
 		atmel_pri_ext.page_mode);
 
 	if (atmel_pri_ext.features & 0x02)
-		pri_ext->EraseSuspend = 2;
+		pri_ext->erase_suspend = 2;
 
 	/* some chips got it backwards... */
 	if (cfi_info->device_id == AT49BV6416 ||
 			cfi_info->device_id == AT49BV6416T) {
 		if (atmel_pri_ext.bottom_boot)
-			pri_ext->TopBottom = 3;
+			pri_ext->top_bottom = 3;
 		else
-			pri_ext->TopBottom = 2;
+			pri_ext->top_bottom = 2;
 	} else {
 		if (atmel_pri_ext.bottom_boot)
-			pri_ext->TopBottom = 2;
+			pri_ext->top_bottom = 2;
 		else
-			pri_ext->TopBottom = 3;
+			pri_ext->top_bottom = 3;
 	}
 
 	pri_ext->_unlock1 = cfi_unlock_addresses[CFI_UNLOCK_555_2AA].unlock1;
@@ -740,16 +740,16 @@ static int cfi_spansion_info(struct flash_bank *bank, struct command_invocation 
 			pri_ext->major_version, pri_ext->minor_version);
 
 	command_print_sameline(cmd, "Silicon Rev.: 0x%x, Address Sensitive unlock: 0x%x\n",
-			(pri_ext->SiliconRevision) >> 2,
-			(pri_ext->SiliconRevision) & 0x03);
+			(pri_ext->silicon_revision) >> 2,
+			(pri_ext->silicon_revision) & 0x03);
 
 	command_print_sameline(cmd, "Erase Suspend: 0x%x, Sector Protect: 0x%x\n",
-			pri_ext->EraseSuspend,
-			pri_ext->BlkProt);
+			pri_ext->erase_suspend,
+			pri_ext->blk_prot);
 
 	command_print_sameline(cmd, "VppMin: %u.%x, VppMax: %u.%x\n",
-		(pri_ext->VppMin & 0xf0) >> 4, pri_ext->VppMin & 0x0f,
-		(pri_ext->VppMax & 0xf0) >> 4, pri_ext->VppMax & 0x0f);
+		(pri_ext->vpp_min & 0xf0) >> 4, pri_ext->vpp_min & 0x0f,
+		(pri_ext->vpp_max & 0xf0) >> 4, pri_ext->vpp_max & 0x0f);
 
 	return ERROR_OK;
 }
@@ -811,7 +811,7 @@ int cfi_flash_bank_cmd(struct flash_bank *bank, unsigned int argc, const char **
 	}
 
 	cfi_info = calloc(1, sizeof(struct cfi_flash_bank));
-	if (cfi_info == NULL) {
+	if (!cfi_info) {
 		LOG_ERROR("No memory for flash bank info");
 		return ERROR_FAIL;
 	}
@@ -870,9 +870,7 @@ static int cfi_intel_erase(struct flash_bank *bank, unsigned int first,
 		if (retval != ERROR_OK)
 			return retval;
 
-		if (status == 0x80)
-			bank->sectors[i].is_erased = 1;
-		else {
+		if (status != 0x80) {
 			retval = cfi_send_command(bank, 0xff, cfi_flash_address(bank, 0, 0x0));
 			if (retval != ERROR_OK)
 				return retval;
@@ -927,9 +925,7 @@ static int cfi_spansion_erase(struct flash_bank *bank, unsigned int first,
 		if (retval != ERROR_OK)
 			return retval;
 
-		if (cfi_spansion_wait_status_busy(bank, cfi_info->block_erase_timeout) == ERROR_OK)
-			bank->sectors[i].is_erased = 1;
-		else {
+		if (cfi_spansion_wait_status_busy(bank, cfi_info->block_erase_timeout) != ERROR_OK) {
 			retval = cfi_send_command(bank, 0xf0, cfi_flash_address(bank, 0, 0x0));
 			if (retval != ERROR_OK)
 				return retval;
@@ -1488,7 +1484,7 @@ static int cfi_spansion_write_block_mips(struct flash_bank *bank, const uint8_t 
 
 	/* convert bus-width dependent algorithm code to correct endianness */
 	target_code = malloc(target_code_size);
-	if (target_code == NULL) {
+	if (!target_code) {
 		LOG_ERROR("Out of memory");
 		return ERROR_FAIL;
 	}
@@ -1867,7 +1863,7 @@ static int cfi_spansion_write_block(struct flash_bank *bank, const uint8_t *buff
 
 	/* convert bus-width dependent algorithm code to correct endianness */
 	target_code = malloc(target_code_size);
-	if (target_code == NULL) {
+	if (!target_code) {
 		LOG_ERROR("Out of memory");
 		return ERROR_FAIL;
 	}
@@ -2480,7 +2476,7 @@ static void cfi_fixup_0002_erase_regions(struct flash_bank *bank, const void *pa
 	struct cfi_spansion_pri_ext *pri_ext = cfi_info->pri_ext;
 	(void) param;
 
-	if ((pri_ext->_reversed_geometry) || (pri_ext->TopBottom == 3)) {
+	if ((pri_ext->_reversed_geometry) || (pri_ext->top_bottom == 3)) {
 		LOG_DEBUG("swapping reversed erase region information on cmdset 0002 device");
 
 		for (unsigned int i = 0; i < cfi_info->num_erase_regions / 2; i++) {

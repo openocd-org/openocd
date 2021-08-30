@@ -99,14 +99,14 @@ static int hwthread_update_threads(struct rtos *rtos)
 	int64_t current_thread = 0;
 	enum target_debug_reason current_reason = DBG_REASON_UNDEFINED;
 
-	if (rtos == NULL)
+	if (!rtos)
 		return ERROR_FAIL;
 
 	target = rtos->target;
 
 	/* determine the number of "threads" */
 	if (target->smp) {
-		for (head = target->head; head != NULL; head = head->next) {
+		for (head = target->head; head; head = head->next) {
 			struct target *curr = head->target;
 
 			if (!target_was_examined(curr))
@@ -127,7 +127,7 @@ static int hwthread_update_threads(struct rtos *rtos)
 
 	if (target->smp) {
 		/* loop over all threads */
-		for (head = target->head; head != NULL; head = head->next) {
+		for (head = target->head; head; head = head->next) {
 			struct target *curr = head->target;
 
 			if (!target_was_examined(curr))
@@ -219,10 +219,10 @@ static int hwthread_smp_init(struct target *target)
 static struct target *hwthread_find_thread(struct target *target, int64_t thread_id)
 {
 	/* Find the thread with that thread_id */
-	if (target == NULL)
+	if (!target)
 		return NULL;
 	if (target->smp) {
-		for (struct target_list *head = target->head; head != NULL; head = head->next) {
+		for (struct target_list *head = target->head; head; head = head->next) {
 			if (thread_id == threadid_from_target(head->target))
 				return head->target;
 		}
@@ -235,13 +235,13 @@ static struct target *hwthread_find_thread(struct target *target, int64_t thread
 static int hwthread_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
 		struct rtos_reg **rtos_reg_list, int *rtos_reg_list_size)
 {
-	if (rtos == NULL)
+	if (!rtos)
 		return ERROR_FAIL;
 
 	struct target *target = rtos->target;
 
 	struct target *curr = hwthread_find_thread(target, thread_id);
-	if (curr == NULL)
+	if (!curr)
 		return ERROR_FAIL;
 
 	if (!target_was_examined(curr))
@@ -256,20 +256,20 @@ static int hwthread_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
 
 	int j = 0;
 	for (int i = 0; i < reg_list_size; i++) {
-		if (reg_list[i] == NULL || reg_list[i]->exist == false || reg_list[i]->hidden)
+		if (!reg_list[i] || reg_list[i]->exist == false || reg_list[i]->hidden)
 			continue;
 		j++;
 	}
 	*rtos_reg_list_size = j;
 	*rtos_reg_list = calloc(*rtos_reg_list_size, sizeof(struct rtos_reg));
-	if (*rtos_reg_list == NULL) {
+	if (!*rtos_reg_list) {
 		free(reg_list);
 		return ERROR_FAIL;
 	}
 
 	j = 0;
 	for (int i = 0; i < reg_list_size; i++) {
-		if (reg_list[i] == NULL || reg_list[i]->exist == false || reg_list[i]->hidden)
+		if (!reg_list[i] || reg_list[i]->exist == false || reg_list[i]->hidden)
 			continue;
 		(*rtos_reg_list)[j].number = (*reg_list)[i].number;
 		(*rtos_reg_list)[j].size = (*reg_list)[i].size;
@@ -285,13 +285,13 @@ static int hwthread_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
 static int hwthread_get_thread_reg(struct rtos *rtos, int64_t thread_id,
 		uint32_t reg_num, struct rtos_reg *rtos_reg)
 {
-	if (rtos == NULL)
+	if (!rtos)
 		return ERROR_FAIL;
 
 	struct target *target = rtos->target;
 
 	struct target *curr = hwthread_find_thread(target, thread_id);
-	if (curr == NULL) {
+	if (!curr) {
 		LOG_ERROR("Couldn't find RTOS thread for id %" PRId64 ".", thread_id);
 		return ERROR_FAIL;
 	}
@@ -322,13 +322,13 @@ static int hwthread_get_thread_reg(struct rtos *rtos, int64_t thread_id,
 
 static int hwthread_set_reg(struct rtos *rtos, uint32_t reg_num, uint8_t *reg_value)
 {
-	if (rtos == NULL)
+	if (!rtos)
 		return ERROR_FAIL;
 
 	struct target *target = rtos->target;
 
 	struct target *curr = hwthread_find_thread(target, rtos->current_thread);
-	if (curr == NULL)
+	if (!curr)
 		return ERROR_FAIL;
 
 	struct reg *reg = register_get_by_number(curr->reg_cache, reg_num, true);
@@ -351,7 +351,7 @@ static int hwthread_target_for_threadid(struct connection *connection, int64_t t
 	struct target *target = get_target_from_connection(connection);
 
 	struct target *curr = hwthread_find_thread(target, thread_id);
-	if (curr == NULL)
+	if (!curr)
 		return ERROR_FAIL;
 
 	*p_target = curr;
@@ -415,13 +415,13 @@ static bool hwthread_needs_fake_step(struct target *target, int64_t thread_id)
 static int hwthread_read_buffer(struct rtos *rtos, target_addr_t address,
 		uint32_t size, uint8_t *buffer)
 {
-	if (rtos == NULL)
+	if (!rtos)
 		return ERROR_FAIL;
 
 	struct target *target = rtos->target;
 
 	struct target *curr = hwthread_find_thread(target, rtos->current_thread);
-	if (curr == NULL)
+	if (!curr)
 		return ERROR_FAIL;
 
 	return target_read_buffer(curr, address, size, buffer);
@@ -430,13 +430,13 @@ static int hwthread_read_buffer(struct rtos *rtos, target_addr_t address,
 static int hwthread_write_buffer(struct rtos *rtos, target_addr_t address,
 		uint32_t size, const uint8_t *buffer)
 {
-	if (rtos == NULL)
+	if (!rtos)
 		return ERROR_FAIL;
 
 	struct target *target = rtos->target;
 
 	struct target *curr = hwthread_find_thread(target, rtos->current_thread);
-	if (curr == NULL)
+	if (!curr)
 		return ERROR_FAIL;
 
 	return target_write_buffer(curr, address, size, buffer);

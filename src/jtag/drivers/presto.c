@@ -519,9 +519,9 @@ COMMAND_HANDLER(presto_handle_serial_command)
 	return ERROR_OK;
 }
 
-static const struct command_registration presto_command_handlers[] = {
+static const struct command_registration presto_subcommand_handlers[] = {
 	{
-		.name = "presto_serial",
+		.name = "serial",
 		.handler = presto_handle_serial_command,
 		.mode = COMMAND_CONFIG,
 		.help = "Configure USB serial number of Presto device.",
@@ -530,11 +530,22 @@ static const struct command_registration presto_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
+static const struct command_registration presto_command_handlers[] = {
+	{
+		.name = "presto",
+		.mode = COMMAND_ANY,
+		.help = "perform presto management",
+		.chain = presto_subcommand_handlers,
+		.usage = "",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 static int presto_jtag_init(void)
 {
 	if (presto_open(presto_serial) != ERROR_OK) {
 		presto_close();
-		if (presto_serial != NULL)
+		if (presto_serial)
 			LOG_ERROR("Cannot open PRESTO, serial number '%s'", presto_serial);
 		else
 			LOG_ERROR("Cannot open PRESTO");

@@ -468,76 +468,87 @@ COMMAND_HANDLER(sysfsgpio_handle_swd_gpionum_swdio)
 	return ERROR_OK;
 }
 
-static const struct command_registration sysfsgpio_command_handlers[] = {
+static const struct command_registration sysfsgpio_subcommand_handlers[] = {
 	{
-		.name = "sysfsgpio_jtag_nums",
+		.name = "jtag_nums",
 		.handler = &sysfsgpio_handle_jtag_gpionums,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio numbers for tck, tms, tdi, tdo. (in that order)",
 		.usage = "[tck tms tdi tdo]",
 	},
 	{
-		.name = "sysfsgpio_tck_num",
+		.name = "tck_num",
 		.handler = &sysfsgpio_handle_jtag_gpionum_tck,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for tck.",
 		.usage = "[tck]",
 	},
 	{
-		.name = "sysfsgpio_tms_num",
+		.name = "tms_num",
 		.handler = &sysfsgpio_handle_jtag_gpionum_tms,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for tms.",
 		.usage = "[tms]",
 	},
 	{
-		.name = "sysfsgpio_tdo_num",
+		.name = "tdo_num",
 		.handler = &sysfsgpio_handle_jtag_gpionum_tdo,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for tdo.",
 		.usage = "[tdo]",
 	},
 	{
-		.name = "sysfsgpio_tdi_num",
+		.name = "tdi_num",
 		.handler = &sysfsgpio_handle_jtag_gpionum_tdi,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for tdi.",
 		.usage = "[tdi]",
 	},
 	{
-		.name = "sysfsgpio_srst_num",
+		.name = "srst_num",
 		.handler = &sysfsgpio_handle_jtag_gpionum_srst,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for srst.",
 		.usage = "[srst]",
 	},
 	{
-		.name = "sysfsgpio_trst_num",
+		.name = "trst_num",
 		.handler = &sysfsgpio_handle_jtag_gpionum_trst,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for trst.",
 		.usage = "[trst]",
 	},
 	{
-		.name = "sysfsgpio_swd_nums",
+		.name = "swd_nums",
 		.handler = &sysfsgpio_handle_swd_gpionums,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio numbers for swclk, swdio. (in that order)",
 		.usage = "[swclk swdio]",
 	},
 	{
-		.name = "sysfsgpio_swclk_num",
+		.name = "swclk_num",
 		.handler = &sysfsgpio_handle_swd_gpionum_swclk,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for swclk.",
 		.usage = "[swclk]",
 	},
 	{
-		.name = "sysfsgpio_swdio_num",
+		.name = "swdio_num",
 		.handler = &sysfsgpio_handle_swd_gpionum_swdio,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for swdio.",
 		.usage = "[swdio]",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+static const struct command_registration sysfsgpio_command_handlers[] = {
+	{
+		.name = "sysfsgpio",
+		.mode = COMMAND_ANY,
+		.help = "perform sysfsgpio management",
+		.chain = sysfsgpio_subcommand_handlers,
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };

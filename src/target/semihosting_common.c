@@ -99,7 +99,7 @@ int semihosting_common_init(struct target *target, void *setup,
 	LOG_DEBUG(" ");
 
 	target->fileio_info = malloc(sizeof(*target->fileio_info));
-	if (target->fileio_info == NULL) {
+	if (!target->fileio_info) {
 		LOG_ERROR("out of memory");
 		return ERROR_FAIL;
 	}
@@ -107,7 +107,7 @@ int semihosting_common_init(struct target *target, void *setup,
 
 	struct semihosting *semihosting;
 	semihosting = malloc(sizeof(*target->semihosting));
-	if (semihosting == NULL) {
+	if (!semihosting) {
 		LOG_ERROR("out of memory");
 		return ERROR_FAIL;
 	}
@@ -226,18 +226,28 @@ int semihosting_common(struct target *target)
 				return retval;
 			else {
 				int fd = semihosting_get_field(target, 0, fields);
-				if (semihosting->is_fileio) {
-					if (fd == 0 || fd == 1 || fd == 2) {
+				/* Do not allow to close OpenOCD's own standard streams */
+				if (fd == 0 || fd == 1 || fd == 2) {
+					LOG_DEBUG("ignoring semihosting attempt to close %s",
+							(fd == 0) ? "stdin" :
+							(fd == 1) ? "stdout" : "stderr");
+					/* Just pretend success */
+					if (semihosting->is_fileio) {
 						semihosting->result = 0;
-						break;
+					} else {
+						semihosting->result = 0;
+						semihosting->sys_errno = 0;
 					}
+					break;
+				}
+				/* Close the descriptor */
+				if (semihosting->is_fileio) {
 					semihosting->hit_fileio = true;
 					fileio_info->identifier = "close";
 					fileio_info->param_1 = fd;
 				} else {
 					semihosting->result = close(fd);
 					semihosting->sys_errno = errno;
-
 					LOG_DEBUG("close(%d)=%d", fd, (int)semihosting->result);
 				}
 			}
@@ -506,7 +516,7 @@ int semihosting_common(struct target *target)
 				uint64_t addr = semihosting_get_field(target, 0, fields);
 				size_t size = semihosting_get_field(target, 1, fields);
 
-				char *arg = semihosting->cmdline != NULL ?
+				char *arg = semihosting->cmdline ?
 					semihosting->cmdline : "";
 				uint32_t len = strlen(arg) + 1;
 				if (len > size)
@@ -615,6 +625,7 @@ int semihosting_common(struct target *target)
 					return retval;
 				int fd = semihosting_get_field(target, 0, fields);
 				semihosting->result = isatty(fd);
+				semihosting->sys_errno = errno;
 				LOG_DEBUG("isatty(%d)=%d", fd, (int)semihosting->result);
 			}
 			break;
@@ -1467,7 +1478,7 @@ static __COMMAND_HANDLER(handle_common_semihosting_command)
 {
 	struct target *target = get_current_target(CMD_CTX);
 
-	if (target == NULL) {
+	if (!target) {
 		LOG_ERROR("No target selected");
 		return ERROR_FAIL;
 	}
@@ -1508,7 +1519,7 @@ static __COMMAND_HANDLER(handle_common_semihosting_fileio_command)
 {
 	struct target *target = get_current_target(CMD_CTX);
 
-	if (target == NULL) {
+	if (!target) {
 		LOG_ERROR("No target selected");
 		return ERROR_FAIL;
 	}
@@ -1539,7 +1550,7 @@ static __COMMAND_HANDLER(handle_common_semihosting_cmdline)
 	struct target *target = get_current_target(CMD_CTX);
 	unsigned int i;
 
-	if (target == NULL) {
+	if (!target) {
 		LOG_ERROR("No target selected");
 		return ERROR_FAIL;
 	}
@@ -1555,7 +1566,7 @@ static __COMMAND_HANDLER(handle_common_semihosting_cmdline)
 
 	for (i = 1; i < CMD_ARGC; i++) {
 		char *cmdline = alloc_printf("%s %s", semihosting->cmdline, CMD_ARGV[i]);
-		if (cmdline == NULL)
+		if (!cmdline)
 			break;
 		free(semihosting->cmdline);
 		semihosting->cmdline = cmdline;
@@ -1571,7 +1582,7 @@ static __COMMAND_HANDLER(handle_common_semihosting_resumable_exit_command)
 {
 	struct target *target = get_current_target(CMD_CTX);
 
-	if (target == NULL) {
+	if (!target) {
 		LOG_ERROR("No target selected");
 		return ERROR_FAIL;
 	}
