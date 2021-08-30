@@ -401,7 +401,7 @@ int target_call_trace_callbacks(struct target *target, size_t len, uint8_t *data
 int target_register_timer_callback(int (*callback)(void *priv),
 		unsigned int time_ms, enum target_timer_type type, void *priv);
 int target_unregister_timer_callback(int (*callback)(void *priv), void *priv);
-int target_call_timer_callbacks(int64_t *next_event);
+int target_call_timer_callbacks(void);
 /**
  * Invoke this to ensure that e.g. polling timer callbacks happen before
  * a synchronous command completes.

@@ -67,7 +67,7 @@ static const struct stack_register_offset rtos_ucos_iii_esi_risc_stack_offsets[]
 	{ ESIRISC_CAS, 0x08, 32 },	/* CAS  */
 };
 
-const struct rtos_register_stacking rtos_uCOS_III_Cortex_M_stacking = {
+const struct rtos_register_stacking rtos_ucos_iii_cortex_m_stacking = {
 	.stack_registers_size = 0x40,
 	.stack_growth_direction = -1,
 	.num_output_registers = ARRAY_SIZE(rtos_ucos_iii_cortex_m_stack_offsets),
@@ -75,7 +75,7 @@ const struct rtos_register_stacking rtos_uCOS_III_Cortex_M_stacking = {
 	.register_offsets = rtos_ucos_iii_cortex_m_stack_offsets
 };
 
-const struct rtos_register_stacking rtos_uCOS_III_eSi_RISC_stacking = {
+const struct rtos_register_stacking rtos_ucos_iii_esi_risc_stacking = {
 	.stack_registers_size = 0x4c,
 	.stack_growth_direction = -1,
 	.num_output_registers = ARRAY_SIZE(rtos_ucos_iii_esi_risc_stack_offsets),

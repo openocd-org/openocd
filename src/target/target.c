@@ -694,7 +694,7 @@ static int target_process_reset(struct command_invocation *cmd, enum target_rese
 	}
 
 	/* We want any events to be processed before the prompt */
-	retval = target_call_timer_callbacks_now(NULL);
+	retval = target_call_timer_callbacks_now();
 
 	for (target = all_targets; target; target = target->next) {
 		target->type->check_reset(target);
@@ -1887,7 +1887,7 @@ static int target_call_timer_callback(struct target_timer_callback *cb,
 	return target_unregister_timer_callback(cb->callback, cb->priv);
 }
 
-static int target_call_timer_callbacks_check_time(int64_t *next_event, int checktime)
+static int target_call_timer_callbacks_check_time(int checktime)
 {
 	static bool callback_processing;
 
@@ -1937,13 +1937,13 @@ static int target_call_timer_callbacks_check_time(int64_t *next_event, int check
 
 int target_call_timer_callbacks()
 {
-	return target_call_timer_callbacks_check_time(next_event, 1);
+	return target_call_timer_callbacks_check_time(1);
 }
 
 /* invoke periodic callbacks immediately */
 int target_call_timer_callbacks_now()
 {
-	return target_call_timer_callbacks_check_time(next_event, 0);
+	return target_call_timer_callbacks_check_time(0);
 }
 
 int64_t target_timer_next_event(void)
@@ -3163,7 +3163,7 @@ COMMAND_HANDLER(handle_reg_command)
 			reg->valid = 0;
 
 		if (reg->valid == 0) {
-			retval = reg->type->get(reg);
+			int retval = reg->type->get(reg);
 			if (retval != ERROR_OK) {
 			    LOG_DEBUG("Couldn't get register %s.", reg->name);
 			    return retval;

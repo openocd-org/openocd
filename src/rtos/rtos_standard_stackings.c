@@ -153,7 +153,7 @@ static const struct stack_register_offset rtos_standard_nds32_n1068_stack_offset
 	{ 35, 0x10, 32 },		/* IFC_LP */
 };
 
-static const struct stack_register_offset rtos_metal_RV32_stack_offsets[] = {
+static const struct stack_register_offset rtos_metal_rv32_stack_offsets[] = {
 	/* zero isn't on the stack. By making its offset -1 we leave the value at 0
 	 * inside rtos_generic_stack_read(). */
 	{ GDB_REGNO_ZERO,  -1, 32 },
@@ -194,7 +194,7 @@ static const struct stack_register_offset rtos_metal_RV32_stack_offsets[] = {
 	{ GDB_REGNO_MSTATUS, 0x84, 32 },
 };
 
-static const struct stack_register_offset rtos_metal_RV64_stack_offsets[] = {
+static const struct stack_register_offset rtos_metal_rv64_stack_offsets[] = {
 	/* zero isn't on the stack. By making its offset -1 we leave the value at 0
 	 * inside rtos_generic_stack_read(). */
 	{ GDB_REGNO_ZERO,  -1, 64 },
@@ -235,7 +235,7 @@ static const struct stack_register_offset rtos_metal_RV64_stack_offsets[] = {
 	{ GDB_REGNO_MSTATUS, 2 * 0x84, 64 },
 };
 
-static const struct stack_register_offset rtos_standard_RV32_stack_offsets[] = {
+static const struct stack_register_offset rtos_standard_rv32_stack_offsets[] = {
 	/* zero isn't on the stack. By making its offset -1 we leave the value at 0
 	 * inside rtos_generic_stack_read(). */
 	{ GDB_REGNO_ZERO,  -1, 32 },
@@ -276,7 +276,7 @@ static const struct stack_register_offset rtos_standard_RV32_stack_offsets[] = {
 	{ GDB_REGNO_MSTATUS, 29 * 4, 32 },
 };
 
-static const struct stack_register_offset rtos_standard_RV64_stack_offsets[] = {
+static const struct stack_register_offset rtos_standard_rv64_stack_offsets[] = {
 	/* zero isn't on the stack. By making its offset -1 we leave the value at 0
 	 * inside rtos_generic_stack_read(). */
 	{ GDB_REGNO_ZERO,  -1, 64 },
@@ -463,7 +463,7 @@ const struct rtos_register_stacking rtos_metal_rv32_stacking = {
 	.total_register_count = ARRAY_SIZE(rtos_metal_rv32_stack_offsets)
 };
 
-const struct rtos_register_stacking rtos_standard_RV32_stacking = {
+const struct rtos_register_stacking rtos_standard_rv32_stacking = {
 	.stack_registers_size = (32 + 2) * 4,
 	.stack_growth_direction = -1,
 	.num_output_registers = 33,
@@ -472,7 +472,7 @@ const struct rtos_register_stacking rtos_standard_RV32_stacking = {
 	.total_register_count = ARRAY_SIZE(rtos_standard_rv32_stack_offsets)
 };
 
-const struct rtos_register_stacking rtos_metal_RV64_stacking = {
+const struct rtos_register_stacking rtos_metal_rv64_stacking = {
 	.stack_registers_size = (32 + 2) * 8,
 	.stack_growth_direction = -1,
 	.num_output_registers = 33,

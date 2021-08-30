@@ -110,11 +110,11 @@ static int cortex_m_stacking(struct rtos *rtos, const struct rtos_register_stack
 			return retval;
 		}
 		if ((LR_svc & 0x10) == 0)
-			*stacking = &rtos_standard_Cortex_M4F_FPU_stacking;
+			*stacking = &rtos_standard_cortex_m4f_fpu_stacking;
 		else
-			*stacking = &rtos_standard_Cortex_M4F_stacking;
+			*stacking = &rtos_standard_cortex_m4f_stacking;
 	} else {
-		*stacking = &rtos_standard_Cortex_M3_stacking;
+		*stacking = &rtos_standard_cortex_m3_stacking;
 	}
 
 	return ERROR_OK;
@@ -123,7 +123,7 @@ static int cortex_m_stacking(struct rtos *rtos, const struct rtos_register_stack
 static int nds32_stacking(struct rtos *rtos, const struct rtos_register_stacking **stacking,
 							 target_addr_t stack_ptr)
 {
-	*stacking = &rtos_standard_NDS32_N1068_stacking;
+	*stacking = &rtos_standard_nds32_n1068_stacking;
 	return ERROR_OK;
 }
 
