@@ -152,6 +152,9 @@ typedef enum slot {
 #define DMINFO_AUTHTYPE			(3<<2)
 #define DMINFO_VERSION			3
 
+#define DMAUTHDATA0				0x12
+#define DMAUTHDATA1				0x13
+
 /*** Info about the core being debugged. ***/
 
 #define DBUS_ADDRESS_UNKNOWN	0xffff
@@ -216,8 +219,7 @@ typedef struct {
 
 static int poll_target(struct target *target, bool announce);
 static int riscv011_poll(struct target *target);
-static int get_register(struct target *target, riscv_reg_t *value, int hartid,
-		int regid);
+static int get_register(struct target *target, riscv_reg_t *value, int regid);
 
 /*** Utility functions. ***/
 
@@ -226,6 +228,8 @@ static int get_register(struct target *target, riscv_reg_t *value, int hartid,
 static riscv011_info_t *get_info(const struct target *target)
 {
 	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+	assert(info);
+	assert(info->version_specific);
 	return (riscv011_info_t *) info->version_specific;
 }
 
@@ -1230,7 +1234,7 @@ static int update_mstatus_actual(struct target *target)
 	/* Force reading the register. In that process mstatus_actual will be
 	 * updated. */
 	riscv_reg_t mstatus;
-	return get_register(target, &mstatus, 0, GDB_REGNO_MSTATUS);
+	return get_register(target, &mstatus, GDB_REGNO_MSTATUS);
 }
 
 /*** OpenOCD target functions. ***/
@@ -1334,10 +1338,8 @@ static int register_write(struct target *target, unsigned int number,
 	return ERROR_OK;
 }
 
-static int get_register(struct target *target, riscv_reg_t *value, int hartid,
-		int regid)
+static int get_register(struct target *target, riscv_reg_t *value, int regid)
 {
-	assert(hartid == 0);
 	riscv011_info_t *info = get_info(target);
 
 	maybe_write_tselect(target);
@@ -1380,10 +1382,8 @@ static int get_register(struct target *target, riscv_reg_t *value, int hartid,
 	return ERROR_OK;
 }
 
-static int set_register(struct target *target, int hartid, int regid,
-		uint64_t value)
+static int set_register(struct target *target, int regid, uint64_t value)
 {
-	assert(hartid == 0);
 	return register_write(target, regid, value);
 }
 
@@ -1523,7 +1523,7 @@ static int examine(struct target *target)
 	}
 
 	/* Pretend this is a 32-bit system until we have found out the true value. */
-	r->xlen[0] = 32;
+	r->xlen = 32;
 
 	/* Figure out XLEN, and test writing all of Debug RAM while we're at it. */
 	cache_set32(target, 0, xori(S1, ZERO, -1));
@@ -1551,11 +1551,11 @@ static int examine(struct target *target)
 	uint32_t word1 = cache_get32(target, 1);
 	riscv_info_t *generic_info = (riscv_info_t *) target->arch_info;
 	if (word0 == 1 && word1 == 0) {
-		generic_info->xlen[0] = 32;
+		generic_info->xlen = 32;
 	} else if (word0 == 0xffffffff && word1 == 3) {
-		generic_info->xlen[0] = 64;
+		generic_info->xlen = 64;
 	} else if (word0 == 0xffffffff && word1 == 0xffffffff) {
-		generic_info->xlen[0] = 128;
+		generic_info->xlen = 128;
 	} else {
 		uint32_t exception = cache_get32(target, info->dramsize-1);
 		LOG_ERROR("Failed to discover xlen; word0=0x%x, word1=0x%x, exception=0x%x",
@@ -1565,11 +1565,11 @@ static int examine(struct target *target)
 	}
 	LOG_DEBUG("Discovered XLEN is %d", riscv_xlen(target));
 
-	if (read_remote_csr(target, &r->misa[0], CSR_MISA) != ERROR_OK) {
+	if (read_remote_csr(target, &r->misa, CSR_MISA) != ERROR_OK) {
 		const unsigned old_csr_misa = 0xf10;
 		LOG_WARNING("Failed to read misa at 0x%x; trying 0x%x.", CSR_MISA,
 				old_csr_misa);
-		if (read_remote_csr(target, &r->misa[0], old_csr_misa) != ERROR_OK) {
+		if (read_remote_csr(target, &r->misa, old_csr_misa) != ERROR_OK) {
 			/* Maybe this is an old core that still has $misa at the old
 			 * address. */
 			LOG_ERROR("Failed to read misa at 0x%x.", old_csr_misa);
@@ -1591,7 +1591,7 @@ static int examine(struct target *target)
 	for (size_t i = 0; i < 32; ++i)
 		reg_cache_set(target, i, -1);
 	LOG_INFO("Examined RISCV core; XLEN=%d, misa=0x%" PRIx64,
-			riscv_xlen(target), r->misa[0]);
+			riscv_xlen(target), r->misa);
 
 	return ERROR_OK;
 }
@@ -2294,21 +2294,95 @@ static int arch_state(struct target *target)
 	return ERROR_OK;
 }
 
+COMMAND_HELPER(riscv011_print_info, struct target *target)
+{
+	/* Abstract description. */
+	riscv_print_info_line(CMD, "target", "memory.read_while_running8", 0);
+	riscv_print_info_line(CMD, "target", "memory.write_while_running8", 0);
+	riscv_print_info_line(CMD, "target", "memory.read_while_running16", 0);
+	riscv_print_info_line(CMD, "target", "memory.write_while_running16", 0);
+	riscv_print_info_line(CMD, "target", "memory.read_while_running32", 0);
+	riscv_print_info_line(CMD, "target", "memory.write_while_running32", 0);
+	riscv_print_info_line(CMD, "target", "memory.read_while_running64", 0);
+	riscv_print_info_line(CMD, "target", "memory.write_while_running64", 0);
+	riscv_print_info_line(CMD, "target", "memory.read_while_running128", 0);
+	riscv_print_info_line(CMD, "target", "memory.write_while_running128", 0);
+
+	uint32_t dminfo = dbus_read(target, DMINFO);
+	riscv_print_info_line(CMD, "dm", "authenticated", get_field(dminfo, DMINFO_AUTHENTICATED));
+
+	return 0;
+}
+
+static int wait_for_authbusy(struct target *target)
+{
+	time_t start = time(NULL);
+	while (1) {
+		uint32_t dminfo = dbus_read(target, DMINFO);
+		if (!get_field(dminfo, DMINFO_AUTHBUSY))
+			break;
+		if (time(NULL) - start > riscv_command_timeout_sec) {
+			LOG_ERROR("Timed out after %ds waiting for authbusy to go low (dminfo=0x%x). "
+					"Increase the timeout with riscv set_command_timeout_sec.",
+					riscv_command_timeout_sec,
+					dminfo);
+			return ERROR_FAIL;
+		}
+	}
+
+	return ERROR_OK;
+}
+
+static int riscv011_authdata_read(struct target *target, uint32_t *value, unsigned int index)
+{
+	if (index > 1) {
+		LOG_ERROR("Spec 0.11 only has a two authdata registers.");
+		return ERROR_FAIL;
+	}
+
+	if (wait_for_authbusy(target) != ERROR_OK)
+		return ERROR_FAIL;
+
+	uint16_t authdata_address = index ? DMAUTHDATA1 : DMAUTHDATA0;
+	*value = dbus_read(target, authdata_address);
+
+	return ERROR_OK;
+}
+
+static int riscv011_authdata_write(struct target *target, uint32_t value, unsigned int index)
+{
+	if (index > 1) {
+		LOG_ERROR("Spec 0.11 only has a two authdata registers.");
+		return ERROR_FAIL;
+	}
+
+	if (wait_for_authbusy(target) != ERROR_OK)
+		return ERROR_FAIL;
+
+	uint16_t authdata_address = index ? DMAUTHDATA1 : DMAUTHDATA0;
+	dbus_write(target, authdata_address, value);
+
+	return ERROR_OK;
+}
+
 static int init_target(struct command_context *cmd_ctx,
 		struct target *target)
 {
 	LOG_DEBUG("init");
-	riscv_info_t *generic_info = (riscv_info_t *)target->arch_info;
+	RISCV_INFO(generic_info);
 	generic_info->get_register = get_register;
 	generic_info->set_register = set_register;
 	generic_info->read_memory = read_memory;
+	generic_info->authdata_read = &riscv011_authdata_read;
+	generic_info->authdata_write = &riscv011_authdata_write;
+	generic_info->print_info = &riscv011_print_info;
 
 	generic_info->version_specific = calloc(1, sizeof(riscv011_info_t));
 	if (!generic_info->version_specific)
 		return ERROR_FAIL;
 
 	/* Assume 32-bit until we discover the real value in examine(). */
-	generic_info->xlen[0] = 32;
+	generic_info->xlen = 32;
 	riscv_init_registers(target);
 
 	return ERROR_OK;

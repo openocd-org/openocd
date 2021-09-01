@@ -27,23 +27,33 @@ struct riscv_batch *riscv_batch_alloc(struct target *target, size_t scans, size_
 	out->allocated_scans = scans;
 	out->idle_count = idle;
 	out->data_out = malloc(sizeof(*out->data_out) * (scans) * DMI_SCAN_BUF_SIZE);
-	if (!out->data_out)
+	if (!out->data_out) {
+		LOG_ERROR("Failed to allocate data_out in RISC-V batch.");
 		goto error1;
+	};
 	out->data_in = malloc(sizeof(*out->data_in) * (scans) * DMI_SCAN_BUF_SIZE);
-	if (!out->data_in)
+	if (!out->data_in) {
+		LOG_ERROR("Failed to allocate data_in in RISC-V batch.");
 		goto error2;
+	}
 	out->fields = malloc(sizeof(*out->fields) * (scans));
-	if (!out->fields)
+	if (!out->fields) {
+		LOG_ERROR("Failed to allocate fields in RISC-V batch.");
 		goto error3;
+	}
 	if (bscan_tunnel_ir_width != 0) {
 		out->bscan_ctxt = malloc(sizeof(*out->bscan_ctxt) * (scans));
-		if (!out->bscan_ctxt)
+		if (!out->bscan_ctxt) {
+			LOG_ERROR("Failed to allocate bscan_ctxt in RISC-V batch.");
 			goto error4;
+		}
 	}
 	out->last_scan = RISCV_SCAN_TYPE_INVALID;
 	out->read_keys = malloc(sizeof(*out->read_keys) * (scans));
-	if (!out->read_keys)
+	if (!out->read_keys) {
+		LOG_ERROR("Failed to allocate read_keys in RISC-V batch.");
 		goto error5;
+	}
 	return out;
 
 error5:
@@ -82,8 +92,6 @@ int riscv_batch_run(struct riscv_batch *batch)
 		return ERROR_OK;
 	}
 
-	keep_alive();
-
 	riscv_batch_add_nop(batch);
 
 	for (size_t i = 0; i < batch->used_scans; ++i) {
@@ -96,10 +104,14 @@ int riscv_batch_run(struct riscv_batch *batch)
 			jtag_add_runtest(batch->idle_count, TAP_IDLE);
 	}
 
+	keep_alive();
+
 	if (jtag_execute_queue() != ERROR_OK) {
 		LOG_ERROR("Unable to execute JTAG queue");
 		return ERROR_FAIL;
 	}
+
+	keep_alive();
 
 	if (bscan_tunnel_ir_width != 0) {
 		/* need to right-shift "in" by one bit, because of clock skew between BSCAN TAP and DM TAP */
