@@ -866,7 +866,7 @@ static int arc_save_context(struct target *target)
 	/* Read data from target. */
 	if (core_cnt > 0) {
 		retval = arc_jtag_read_core_reg(&arc->jtag_info, core_addrs, core_cnt, core_values);
-		if (ERROR_OK != retval) {
+		if (retval != ERROR_OK) {
 			LOG_ERROR("Attempt to read core registers failed.");
 			retval = ERROR_FAIL;
 			goto exit;
@@ -874,7 +874,7 @@ static int arc_save_context(struct target *target)
 	}
 	if (aux_cnt > 0) {
 		retval = arc_jtag_read_aux_reg(&arc->jtag_info, aux_addrs, aux_cnt, aux_values);
-		if (ERROR_OK != retval) {
+		if (retval != ERROR_OK) {
 			LOG_ERROR("Attempt to read aux registers failed.");
 			retval = ERROR_FAIL;
 			goto exit;
@@ -931,8 +931,8 @@ exit:
 static int get_current_actionpoint(struct target *target,
 		struct arc_actionpoint **actionpoint)
 {
-	assert(target != NULL);
-	assert(actionpoint != NULL);
+	assert(target);
+	assert(actionpoint);
 
 	uint32_t debug_ah;
 	/* Check if actionpoint caused halt */
@@ -981,7 +981,7 @@ static int arc_examine_debug_reason(struct target *target)
 		struct arc_actionpoint *actionpoint = NULL;
 		CHECK_RETVAL(get_current_actionpoint(target, &actionpoint));
 
-		if (actionpoint != NULL) {
+		if (actionpoint) {
 			if (!actionpoint->used)
 				LOG_WARNING("Target halted by an unused actionpoint.");
 
@@ -1197,7 +1197,7 @@ static int arc_restore_context(struct target *target)
 	 * Check before write, if aux and core count is greater than 0. */
 	if (core_cnt > 0) {
 		retval = arc_jtag_write_core_reg(&arc->jtag_info, core_addrs, core_cnt, core_values);
-		if (ERROR_OK != retval) {
+		if (retval != ERROR_OK) {
 			LOG_ERROR("Attempt to write to core registers failed.");
 			retval = ERROR_FAIL;
 			goto exit;
@@ -1206,7 +1206,7 @@ static int arc_restore_context(struct target *target)
 
 	if (aux_cnt > 0) {
 		retval = arc_jtag_write_aux_reg(&arc->jtag_info, aux_addrs, aux_cnt, aux_values);
-		if (ERROR_OK != retval) {
+		if (retval != ERROR_OK) {
 			LOG_ERROR("Attempt to write to aux registers failed.");
 			retval = ERROR_FAIL;
 			goto exit;
@@ -1940,7 +1940,7 @@ static int arc_hit_watchpoint(struct target *target, struct watchpoint **hit_wat
 	struct arc_actionpoint *actionpoint = NULL;
 	CHECK_RETVAL(get_current_actionpoint(target, &actionpoint));
 
-	if (actionpoint != NULL) {
+	if (actionpoint) {
 		if (!actionpoint->used)
 			LOG_WARNING("Target halted by unused actionpoint.");
 
@@ -1949,7 +1949,7 @@ static int arc_hit_watchpoint(struct target *target, struct watchpoint **hit_wat
 			LOG_WARNING("Target halted by breakpoint, but is treated as a watchpoint.");
 
 		for (struct watchpoint *watchpoint = target->watchpoints;
-				watchpoint != NULL;
+				watchpoint;
 				watchpoint = watchpoint->next) {
 			if (actionpoint->bp_value == watchpoint->address) {
 				*hit_watchpoint = watchpoint;

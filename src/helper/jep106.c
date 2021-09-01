@@ -27,7 +27,7 @@ static const char * const jep106[][126] = {
 #include "jep106.inc"
 };
 
-const char *jep106_manufacturer(unsigned bank, unsigned id)
+const char *jep106_table_manufacturer(unsigned int bank, unsigned int id)
 {
 	if (id < 1 || id > 126) {
 		LOG_DEBUG("BUG: Caller passed out-of-range JEP106 ID!");

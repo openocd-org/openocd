@@ -46,11 +46,11 @@
  * Note: These macros only work for KSEG0/KSEG1 addresses.
  */
 
-#define Virt2Phys(v)	((v) & 0x1FFFFFFF)
+#define virt2phys(v)	((v) & 0x1FFFFFFF)
 
 /* pic32mx configuration register locations */
 
-#define PIC32MX_DEVCFG0_1xx_2xx	0xBFC00BFC
+#define PIC32MX_DEVCFG0_1XX_2XX	0xBFC00BFC
 #define PIC32MX_DEVCFG0		0xBFC02FFC
 #define PIC32MX_DEVCFG1		0xBFC02FF8
 #define PIC32MX_DEVCFG2		0xBFC02FF4
@@ -91,8 +91,8 @@
 #define NVMKEY1			0xAA996655
 #define NVMKEY2			0x556699AA
 
-#define MX_1xx_2xx			1	/* PIC32mx1xx/2xx */
-#define MX_17x_27x			2	/* PIC32mx17x/27x */
+#define MX_1XX_2XX			1	/* PIC32mx1xx/2xx */
+#define MX_17X_27X			2	/* PIC32mx17x/27x */
 
 struct pic32mx_flash_bank {
 	bool probed;
@@ -279,9 +279,9 @@ static int pic32mx_protect_check(struct flash_bank *bank)
 	}
 
 	switch (pic32mx_info->dev_type) {
-	case	MX_1xx_2xx:
-	case	MX_17x_27x:
-		config0_address = PIC32MX_DEVCFG0_1xx_2xx;
+	case	MX_1XX_2XX:
+	case	MX_17X_27X:
+		config0_address = PIC32MX_DEVCFG0_1XX_2XX;
 		break;
 	default:
 		config0_address = PIC32MX_DEVCFG0;
@@ -292,7 +292,7 @@ static int pic32mx_protect_check(struct flash_bank *bank)
 
 	if ((devcfg0 & (1 << 28)) == 0) /* code protect bit */
 		num_pages = 0xffff;			/* All pages protected */
-	else if (Virt2Phys(bank->base) == PIC32MX_PHYS_BOOT_FLASH) {
+	else if (virt2phys(bank->base) == PIC32MX_PHYS_BOOT_FLASH) {
 		if (devcfg0 & (1 << 24))
 			num_pages = 0;			/* All pages unprotected */
 		else
@@ -300,10 +300,10 @@ static int pic32mx_protect_check(struct flash_bank *bank)
 	} else {
 		/* pgm flash */
 		switch (pic32mx_info->dev_type) {
-		case	MX_1xx_2xx:
+		case	MX_1XX_2XX:
 			num_pages = (~devcfg0 >> 10) & 0x7f;
 			break;
-		case	MX_17x_27x:
+		case	MX_17X_27X:
 			num_pages = (~devcfg0 >> 10) & 0x1ff;
 			break;
 		default:
@@ -332,7 +332,7 @@ static int pic32mx_erase(struct flash_bank *bank, unsigned int first,
 	}
 
 	if ((first == 0) && (last == (bank->num_sectors - 1))
-		&& (Virt2Phys(bank->base) == PIC32MX_PHYS_PGM_FLASH)) {
+		&& (virt2phys(bank->base) == PIC32MX_PHYS_PGM_FLASH)) {
 		/* this will only erase the Program Flash (PFM), not the Boot Flash (BFM)
 		 * we need to use the MTAP to perform a full erase */
 		LOG_DEBUG("Erasing entire program flash");
@@ -345,7 +345,7 @@ static int pic32mx_erase(struct flash_bank *bank, unsigned int first,
 	}
 
 	for (unsigned int i = first; i <= last; i++) {
-		target_write_u32(target, PIC32MX_NVMADDR, Virt2Phys(bank->base + bank->sectors[i].offset));
+		target_write_u32(target, PIC32MX_NVMADDR, virt2phys(bank->base + bank->sectors[i].offset));
 
 		status = pic32mx_nvm_exec(bank, NVMCON_OP_PAGE_ERASE, 10);
 
@@ -353,7 +353,6 @@ static int pic32mx_erase(struct flash_bank *bank, unsigned int first,
 			return ERROR_FLASH_OPERATION_FAILED;
 		if (status & NVMCON_LVDERR)
 			return ERROR_FLASH_OPERATION_FAILED;
-		bank->sectors[i].is_erased = 1;
 	}
 
 	return ERROR_OK;
@@ -465,8 +464,8 @@ static int pic32mx_write_block(struct flash_bank *bank, const uint8_t *buffer,
 
 	/* Change values for counters and row size, depending on variant */
 	switch (pic32mx_info->dev_type) {
-	case	MX_1xx_2xx:
-	case	MX_17x_27x:
+	case	MX_1XX_2XX:
+	case	MX_17X_27X:
 		/* 128 byte row */
 		pic32mx_flash_write_code[8] = 0x2CD30020;
 		pic32mx_flash_write_code[14] = 0x24840080;
@@ -515,7 +514,7 @@ static int pic32mx_write_block(struct flash_bank *bank, const uint8_t *buffer,
 	uint8_t *new_buffer = NULL;
 	if (row_offset && (count >= (row_size / 4))) {
 		new_buffer = malloc(buffer_size);
-		if (new_buffer == NULL) {
+		if (!new_buffer) {
 			LOG_ERROR("Out of memory");
 			return ERROR_FAIL;
 		}
@@ -548,8 +547,8 @@ static int pic32mx_write_block(struct flash_bank *bank, const uint8_t *buffer,
 				break;
 		}
 
-		buf_set_u32(reg_params[0].value, 0, 32, Virt2Phys(source->address));
-		buf_set_u32(reg_params[1].value, 0, 32, Virt2Phys(address));
+		buf_set_u32(reg_params[0].value, 0, 32, virt2phys(source->address));
+		buf_set_u32(reg_params[1].value, 0, 32, virt2phys(address));
 		buf_set_u32(reg_params[2].value, 0, 32, thisrun_count + row_offset / 4);
 
 		retval = target_run_algorithm(target, 0, NULL, 3, reg_params,
@@ -599,7 +598,7 @@ static int pic32mx_write_word(struct flash_bank *bank, uint32_t address, uint32_
 {
 	struct target *target = bank->target;
 
-	target_write_u32(target, PIC32MX_NVMADDR, Virt2Phys(address));
+	target_write_u32(target, PIC32MX_NVMADDR, virt2phys(address));
 	target_write_u32(target, PIC32MX_NVMDATA, word);
 
 	return pic32mx_nvm_exec(bank, NVMCON_OP_WORD_PROG, 5);
@@ -714,17 +713,17 @@ static int pic32mx_probe(struct flash_bank *bank)
 	}
 
 	/* Check for PIC32mx1xx/2xx */
-	for (i = 0; pic32mx_devs[i].name != NULL; i++) {
+	for (i = 0; pic32mx_devs[i].name; i++) {
 		if (pic32mx_devs[i].devid == (device_id & 0x0fffffff)) {
 			if ((pic32mx_devs[i].name[0] == '1') || (pic32mx_devs[i].name[0] == '2'))
-				pic32mx_info->dev_type = (pic32mx_devs[i].name[1] == '7') ? MX_17x_27x : MX_1xx_2xx;
+				pic32mx_info->dev_type = (pic32mx_devs[i].name[1] == '7') ? MX_17X_27X : MX_1XX_2XX;
 			break;
 		}
 	}
 
 	switch (pic32mx_info->dev_type) {
-	case	MX_1xx_2xx:
-	case	MX_17x_27x:
+	case	MX_1XX_2XX:
+	case	MX_17X_27X:
 		page_size = 1024;
 		break;
 	default:
@@ -732,7 +731,7 @@ static int pic32mx_probe(struct flash_bank *bank)
 		break;
 	}
 
-	if (Virt2Phys(bank->base) == PIC32MX_PHYS_BOOT_FLASH) {
+	if (virt2phys(bank->base) == PIC32MX_PHYS_BOOT_FLASH) {
 		/* 0x1FC00000: Boot flash size */
 #if 0
 		/* for some reason this register returns 8k for the boot bank size
@@ -745,8 +744,8 @@ static int pic32mx_probe(struct flash_bank *bank)
 #else
 		/* fixed 12k boot bank - see comments above */
 		switch (pic32mx_info->dev_type) {
-		case	MX_1xx_2xx:
-		case	MX_17x_27x:
+		case	MX_1XX_2XX:
+		case	MX_17X_27X:
 			num_pages = (3 * 1024);
 			break;
 		default:
@@ -758,8 +757,8 @@ static int pic32mx_probe(struct flash_bank *bank)
 		/* read the flash size from the device */
 		if (target_read_u32(target, PIC32MX_BMXPFMSZ, &num_pages) != ERROR_OK) {
 			switch (pic32mx_info->dev_type) {
-			case	MX_1xx_2xx:
-			case	MX_17x_27x:
+			case	MX_1XX_2XX:
+			case	MX_17X_27X:
 				LOG_WARNING("PIC32MX flash size failed, probe inaccurate - assuming 32k flash");
 				num_pages = (32 * 1024);
 				break;
@@ -819,14 +818,14 @@ static int pic32mx_info(struct flash_bank *bank, struct command_invocation *cmd)
 	}
 
 	int i;
-	for (i = 0; pic32mx_devs[i].name != NULL; i++) {
+	for (i = 0; pic32mx_devs[i].name; i++) {
 		if (pic32mx_devs[i].devid == (device_id & 0x0fffffff)) {
 			command_print_sameline(cmd, "PIC32MX%s", pic32mx_devs[i].name);
 			break;
 		}
 	}
 
-	if (pic32mx_devs[i].name == NULL)
+	if (!pic32mx_devs[i].name)
 		command_print_sameline(cmd, "Unknown");
 
 	command_print_sameline(cmd, " Ver: 0x%02x",
@@ -848,7 +847,7 @@ COMMAND_HANDLER(pic32mx_handle_pgm_word_command)
 
 	struct flash_bank *bank;
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 2, &bank);
-	if (ERROR_OK != retval)
+	if (retval != ERROR_OK)
 		return retval;
 
 	if (address < bank->base || address >= (bank->base + bank->size)) {
@@ -885,7 +884,7 @@ COMMAND_HANDLER(pic32mx_handle_unlock_command)
 
 	struct flash_bank *bank;
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
-	if (ERROR_OK != retval)
+	if (retval != ERROR_OK)
 		return retval;
 
 	target = bank->target;

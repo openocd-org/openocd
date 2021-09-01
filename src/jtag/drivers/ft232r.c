@@ -176,7 +176,7 @@ static void ft232r_increase_buf_size(size_t new_buf_size)
 	if (new_buf_size >= ft232r_buf_size) {
 		new_buf_size += FT232R_BUF_SIZE_EXTRA;
 		new_buf_ptr = realloc(ft232r_output, new_buf_size);
-		if (new_buf_ptr != NULL) {
+		if (new_buf_ptr) {
 			ft232r_output = new_buf_ptr;
 			ft232r_buf_size = new_buf_size;
 		}
@@ -259,7 +259,7 @@ static int ft232r_init(void)
 	uint16_t apids[] = {ft232r_pid, 0};
 	if (jtag_libusb_open(avids, apids, ft232r_serial_desc, &adapter, NULL)) {
 		LOG_ERROR("ft232r not found: vid=%04x, pid=%04x, serial=%s\n",
-			ft232r_vid, ft232r_pid, (ft232r_serial_desc == NULL) ? "[any]" : ft232r_serial_desc);
+			ft232r_vid, ft232r_pid, (!ft232r_serial_desc) ? "[any]" : ft232r_serial_desc);
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
@@ -310,7 +310,7 @@ static int ft232r_init(void)
 	}
 
 	ft232r_output = malloc(ft232r_buf_size);
-	if (ft232r_output == NULL) {
+	if (!ft232r_output) {
 		LOG_ERROR("Unable to allocate memory for the buffer");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -560,76 +560,87 @@ COMMAND_HANDLER(ft232r_handle_restore_serial_command)
 	return ERROR_OK;
 }
 
-static const struct command_registration ft232r_command_handlers[] = {
+static const struct command_registration ft232r_subcommand_handlers[] = {
 	{
-		.name = "ft232r_serial_desc",
+		.name = "serial_desc",
 		.handler = ft232r_handle_serial_desc_command,
 		.mode = COMMAND_CONFIG,
 		.help = "USB serial descriptor of the adapter",
 		.usage = "serial string",
 	},
 	{
-		.name = "ft232r_vid_pid",
+		.name = "vid_pid",
 		.handler = ft232r_handle_vid_pid_command,
 		.mode = COMMAND_CONFIG,
 		.help = "USB VID and PID of the adapter",
 		.usage = "vid pid",
 	},
 	{
-		.name = "ft232r_jtag_nums",
+		.name = "jtag_nums",
 		.handler = ft232r_handle_jtag_nums_command,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio numbers for tck, tms, tdi, tdo. (in that order)",
 		.usage = "<0-7|TXD-RI> <0-7|TXD-RI> <0-7|TXD-RI> <0-7|TXD-RI>",
 	},
 	{
-		.name = "ft232r_tck_num",
+		.name = "tck_num",
 		.handler = ft232r_handle_tck_num_command,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for tck.",
 		.usage = "<0-7|TXD|RXD|RTS|CTS|DTR|DSR|DCD|RI>",
 	},
 	{
-		.name = "ft232r_tms_num",
+		.name = "tms_num",
 		.handler = ft232r_handle_tms_num_command,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for tms.",
 		.usage = "<0-7|TXD|RXD|RTS|CTS|DTR|DSR|DCD|RI>",
 	},
 	{
-		.name = "ft232r_tdo_num",
+		.name = "tdo_num",
 		.handler = ft232r_handle_tdo_num_command,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for tdo.",
 		.usage = "<0-7|TXD|RXD|RTS|CTS|DTR|DSR|DCD|RI>",
 	},
 	{
-		.name = "ft232r_tdi_num",
+		.name = "tdi_num",
 		.handler = ft232r_handle_tdi_num_command,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for tdi.",
 		.usage = "<0-7|TXD|RXD|RTS|CTS|DTR|DSR|DCD|RI>",
 	},
 	{
-		.name = "ft232r_srst_num",
+		.name = "srst_num",
 		.handler = ft232r_handle_srst_num_command,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for srst.",
 		.usage = "<0-7|TXD|RXD|RTS|CTS|DTR|DSR|DCD|RI>",
 	},
 	{
-		.name = "ft232r_trst_num",
+		.name = "trst_num",
 		.handler = ft232r_handle_trst_num_command,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for trst.",
 		.usage = "<0-7|TXD|RXD|RTS|CTS|DTR|DSR|DCD|RI>",
 	},
 	{
-		.name = "ft232r_restore_serial",
+		.name = "restore_serial",
 		.handler = ft232r_handle_restore_serial_command,
 		.mode = COMMAND_CONFIG,
 		.help = "bitmode control word that restores serial port.",
 		.usage = "bitmode_control_word",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+static const struct command_registration ft232r_command_handlers[] = {
+	{
+		.name = "ft232r",
+		.mode = COMMAND_ANY,
+		.help = "perform ft232r management",
+		.chain = ft232r_subcommand_handlers,
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };

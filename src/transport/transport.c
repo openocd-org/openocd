@@ -106,7 +106,7 @@ int allow_transports(struct command_context *ctx, const char * const *vector)
 	 * of one transport; C code should be definitive about what
 	 * can be used when all goes well.
 	 */
-	if (allowed_transports != NULL || session) {
+	if (allowed_transports || session) {
 		LOG_ERROR("Can't modify the set of allowed transports.");
 		return ERROR_FAIL;
 	}
@@ -197,7 +197,7 @@ COMMAND_HELPER(transport_list_parse, char ***vector)
 
 	/* our return vector must be NULL terminated */
 	argv = calloc(n + 1, sizeof(char *));
-	if (argv == NULL)
+	if (!argv)
 		return ERROR_FAIL;
 
 	for (unsigned i = 0; i < n; i++) {

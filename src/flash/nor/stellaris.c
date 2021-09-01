@@ -126,7 +126,7 @@ static const struct {
 	uint8_t class;
 	uint8_t partno;
 	const char *partname;
-} StellarisParts[] = {
+} stellaris_parts[] = {
 	{0x00, 0x01, "LM3S101"},
 	{0x00, 0x02, "LM3S102"},
 	{0x01, 0xBF, "LM3S1110"},
@@ -436,7 +436,7 @@ static const struct {
 	{0xFF, 0x00, "Unknown Part"}
 };
 
-static const char * const StellarisClassname[] = {
+static const char * const stellaris_classname[] = {
 	"Sandstorm",
 	"Fury",
 	"Unknown",
@@ -493,7 +493,7 @@ static int get_stellaris_info(struct flash_bank *bank, struct command_invocation
 			"\nTI/LMI Stellaris information: Chip is "
 			"class %i (%s) %s rev %c%i\n",
 			stellaris_info->target_class,
-			StellarisClassname[stellaris_info->target_class],
+			stellaris_classname[stellaris_info->target_class],
 			stellaris_info->target_name,
 			(int)('A' + ((stellaris_info->did0 >> 8) & 0xFF)),
 			(int)((stellaris_info->did0) & 0xFF));
@@ -743,13 +743,13 @@ static int stellaris_read_part_info(struct flash_bank *bank)
 			LOG_WARNING("Unknown did0 class");
 	}
 
-	for (i = 0; StellarisParts[i].partno; i++) {
-		if ((StellarisParts[i].partno == ((did1 >> 16) & 0xFF)) &&
-				(StellarisParts[i].class == stellaris_info->target_class))
+	for (i = 0; stellaris_parts[i].partno; i++) {
+		if ((stellaris_parts[i].partno == ((did1 >> 16) & 0xFF)) &&
+				(stellaris_parts[i].class == stellaris_info->target_class))
 			break;
 	}
 
-	stellaris_info->target_name = StellarisParts[i].partname;
+	stellaris_info->target_name = stellaris_parts[i].partname;
 
 	stellaris_info->did0 = did0;
 	stellaris_info->did1 = did1;
@@ -886,8 +886,6 @@ static int stellaris_erase(struct flash_bank *bank, unsigned int first,
 			target_write_u32(target, FLASH_CRIS, 0);
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
-
-		bank->sectors[banknr].is_erased = 1;
 	}
 
 	return ERROR_OK;
@@ -1315,16 +1313,12 @@ COMMAND_HANDLER(stellaris_handle_mass_erase_command)
 
 	struct flash_bank *bank;
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
-	if (ERROR_OK != retval)
+	if (retval != ERROR_OK)
 		return retval;
 
-	if (stellaris_mass_erase(bank) == ERROR_OK) {
-		/* set all sectors as erased */
-		for (unsigned int i = 0; i < bank->num_sectors; i++)
-			bank->sectors[i].is_erased = 1;
-
+	if (stellaris_mass_erase(bank) == ERROR_OK)
 		command_print(CMD, "stellaris mass erase complete");
-	} else
+	else
 		command_print(CMD, "stellaris mass erase failed");
 
 	return ERROR_OK;

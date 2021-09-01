@@ -261,7 +261,7 @@ static int remote_bitbang_init_tcp(void)
 	 If socket(2) (or connect(2)) fails, we (close the socket
 	 and) try the next address. */
 
-	for (rp = result; rp != NULL ; rp = rp->ai_next) {
+	for (rp = result; rp ; rp = rp->ai_next) {
 		fd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
 		if (fd == -1)
 			continue;
@@ -281,7 +281,7 @@ static int remote_bitbang_init_tcp(void)
 
 	freeaddrinfo(result); /* No longer needed */
 
-	if (rp == NULL) { /* No address succeeded */
+	if (!rp) { /* No address succeeded */
 		log_socket_error("Failed to connect");
 		return ERROR_FAIL;
 	}
@@ -291,7 +291,7 @@ static int remote_bitbang_init_tcp(void)
 
 static int remote_bitbang_init_unix(void)
 {
-	if (remote_bitbang_host == NULL) {
+	if (!remote_bitbang_host) {
 		LOG_ERROR("host/socket not specified");
 		return ERROR_FAIL;
 	}
@@ -324,7 +324,7 @@ static int remote_bitbang_init(void)
 	remote_bitbang_recv_buf_end = 0;
 
 	LOG_INFO("Initializing remote_bitbang driver");
-	if (remote_bitbang_port == NULL)
+	if (!remote_bitbang_port)
 		remote_bitbang_fd = remote_bitbang_init_unix();
 	else
 		remote_bitbang_fd = remote_bitbang_init_tcp();
@@ -360,9 +360,9 @@ COMMAND_HANDLER(remote_bitbang_handle_remote_bitbang_host_command)
 	return ERROR_COMMAND_SYNTAX_ERROR;
 }
 
-static const struct command_registration remote_bitbang_command_handlers[] = {
+static const struct command_registration remote_bitbang_subcommand_handlers[] = {
 	{
-		.name = "remote_bitbang_port",
+		.name = "port",
 		.handler = remote_bitbang_handle_remote_bitbang_port_command,
 		.mode = COMMAND_CONFIG,
 		.help = "Set the port to use to connect to the remote jtag.\n"
@@ -370,7 +370,7 @@ static const struct command_registration remote_bitbang_command_handlers[] = {
 		.usage = "port_number",
 	},
 	{
-		.name = "remote_bitbang_host",
+		.name = "host",
 		.handler = remote_bitbang_handle_remote_bitbang_host_command,
 		.mode = COMMAND_CONFIG,
 		.help = "Set the host to use to connect to the remote jtag.\n"
@@ -378,6 +378,17 @@ static const struct command_registration remote_bitbang_command_handlers[] = {
 		.usage = "host_name",
 	},
 	COMMAND_REGISTRATION_DONE,
+};
+
+static const struct command_registration remote_bitbang_command_handlers[] = {
+	{
+		.name = "remote_bitbang",
+		.mode = COMMAND_ANY,
+		.help = "perform remote_bitbang management",
+		.chain = remote_bitbang_subcommand_handlers,
+		.usage = "",
+	},
+	COMMAND_REGISTRATION_DONE
 };
 
 static int remote_bitbang_execute_queue(void)

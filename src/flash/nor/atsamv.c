@@ -612,7 +612,7 @@ static int samv_get_info(struct flash_bank *bank, struct command_invocation *cmd
 	struct samv_flash_bank *samv_info = bank->driver_priv;
 	if (!samv_info->probed) {
 		int r = samv_probe(bank);
-		if (ERROR_OK != r)
+		if (r != ERROR_OK)
 			return r;
 	}
 	command_print_sameline(cmd, "Cortex-M7 detected with %" PRIu32 " kB flash\n",
@@ -661,7 +661,7 @@ COMMAND_HANDLER(samv_handle_gpnvm_command)
 			return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	unsigned v;
+	unsigned v = 0;
 	if (!strcmp("show", CMD_ARGV[0])) {
 		if (who == -1) {
 showall:

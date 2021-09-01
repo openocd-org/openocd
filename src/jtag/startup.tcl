@@ -207,4 +207,532 @@ proc "hla newtap" {args} {
 	eval swj_newdap $args
 }
 
+lappend _telnet_autocomplete_skip ftdi_device_desc
+proc ftdi_device_desc args {
+	echo "DEPRECATED! use 'ftdi device_desc' not 'ftdi_device_desc'"
+	eval ftdi device_desc $args
+}
+
+lappend _telnet_autocomplete_skip ftdi_serial
+proc ftdi_serial args {
+	echo "DEPRECATED! use 'ftdi serial' not 'ftdi_serial'"
+	eval ftdi serial $args
+}
+
+lappend _telnet_autocomplete_skip ftdi_channel
+proc ftdi_channel args {
+	echo "DEPRECATED! use 'ftdi channel' not 'ftdi_channel'"
+	eval ftdi channel $args
+}
+
+lappend _telnet_autocomplete_skip ftdi_layout_init
+proc ftdi_layout_init args {
+	echo "DEPRECATED! use 'ftdi layout_init' not 'ftdi_layout_init'"
+	eval ftdi layout_init $args
+}
+
+lappend _telnet_autocomplete_skip ftdi_layout_signal
+proc ftdi_layout_signal args {
+	echo "DEPRECATED! use 'ftdi layout_signal' not 'ftdi_layout_signal'"
+	eval ftdi layout_signal $args
+}
+
+lappend _telnet_autocomplete_skip ftdi_set_signal
+proc ftdi_set_signal args {
+	echo "DEPRECATED! use 'ftdi set_signal' not 'ftdi_set_signal'"
+	eval ftdi set_signal $args
+}
+
+lappend _telnet_autocomplete_skip ftdi_get_signal
+proc ftdi_get_signal args {
+	echo "DEPRECATED! use 'ftdi get_signal' not 'ftdi_get_signal'"
+	eval ftdi get_signal $args
+}
+
+lappend _telnet_autocomplete_skip ftdi_vid_pid
+proc ftdi_vid_pid args {
+	echo "DEPRECATED! use 'ftdi vid_pid' not 'ftdi_vid_pid'"
+	eval ftdi vid_pid $args
+}
+
+lappend _telnet_autocomplete_skip ftdi_tdo_sample_edge
+proc ftdi_tdo_sample_edge args {
+	echo "DEPRECATED! use 'ftdi tdo_sample_edge' not 'ftdi_tdo_sample_edge'"
+	eval ftdi tdo_sample_edge $args
+}
+
+lappend _telnet_autocomplete_skip remote_bitbang_host
+proc remote_bitbang_host args {
+	echo "DEPRECATED! use 'remote_bitbang host' not 'remote_bitbang_host'"
+	eval remote_bitbang host $args
+}
+
+lappend _telnet_autocomplete_skip remote_bitbang_port
+proc remote_bitbang_port args {
+	echo "DEPRECATED! use 'remote_bitbang port' not 'remote_bitbang_port'"
+	eval remote_bitbang port $args
+}
+
+lappend _telnet_autocomplete_skip openjtag_device_desc
+proc openjtag_device_desc args {
+	echo "DEPRECATED! use 'openjtag device_desc' not 'openjtag_device_desc'"
+	eval openjtag device_desc $args
+}
+
+lappend _telnet_autocomplete_skip openjtag_variant
+proc openjtag_variant args {
+	echo "DEPRECATED! use 'openjtag variant' not 'openjtag_variant'"
+	eval openjtag variant $args
+}
+
+lappend _telnet_autocomplete_skip parport_port
+proc parport_port args {
+	echo "DEPRECATED! use 'parport port' not 'parport_port'"
+	eval parport port $args
+}
+
+lappend _telnet_autocomplete_skip parport_cable
+proc parport_cable args {
+	echo "DEPRECATED! use 'parport cable' not 'parport_cable'"
+	eval parport cable $args
+}
+
+lappend _telnet_autocomplete_skip parport_write_on_exit
+proc parport_write_on_exit args {
+	echo "DEPRECATED! use 'parport write_on_exit' not 'parport_write_on_exit'"
+	eval parport write_on_exit $args
+}
+
+lappend _telnet_autocomplete_skip parport_toggling_time
+proc parport_toggling_time args {
+	echo "DEPRECATED! use 'parport toggling_time' not 'parport_toggling_time'"
+	eval parport toggling_time $args
+}
+
+lappend _telnet_autocomplete_skip jtag_dpi_set_port
+proc jtag_dpi_set_port args {
+	echo "DEPRECATED! use 'jtag_dpi set_port' not 'jtag_dpi_set_port'"
+	eval jtag_dpi set_port $args
+}
+
+lappend _telnet_autocomplete_skip jtag_dpi_set_address
+proc jtag_dpi_set_address args {
+	echo "DEPRECATED! use 'jtag_dpi set_address' not 'jtag_dpi_set_address'"
+	eval jtag_dpi set_address $args
+}
+
+lappend _telnet_autocomplete_skip jtag_vpi_set_port
+proc jtag_vpi_set_port args {
+	echo "DEPRECATED! use 'jtag_vpi set_port' not 'jtag_vpi_set_port'"
+	eval jtag_vpi set_port $args
+}
+
+lappend _telnet_autocomplete_skip jtag_vpi_set_address
+proc jtag_vpi_set_address args {
+	echo "DEPRECATED! use 'jtag_vpi set_address' not 'jtag_vpi_set_address'"
+	eval jtag_vpi set_address $args
+}
+
+lappend _telnet_autocomplete_skip jtag_vpi_stop_sim_on_exit
+proc jtag_vpi_stop_sim_on_exit args {
+	echo "DEPRECATED! use 'jtag_vpi stop_sim_on_exit' not 'jtag_vpi_stop_sim_on_exit'"
+	eval jtag_vpi stop_sim_on_exit $args
+}
+
+lappend _telnet_autocomplete_skip presto_serial
+proc presto_serial args {
+	echo "DEPRECATED! use 'presto serial' not 'presto_serial'"
+	eval presto serial $args
+}
+
+lappend _telnet_autocomplete_skip xlnx_pcie_xvc_config
+proc xlnx_pcie_xvc_config args {
+	echo "DEPRECATED! use 'xlnx_pcie_xvc config' not 'xlnx_pcie_xvc_config'"
+	eval xlnx_pcie_xvc config $args
+}
+
+lappend _telnet_autocomplete_skip ulink_download_firmware
+proc ulink_download_firmware args {
+	echo "DEPRECATED! use 'ulink download_firmware' not 'ulink_download_firmware'"
+	eval ulink download_firmware $args
+}
+
+lappend _telnet_autocomplete_skip vsllink_usb_vid
+proc vsllink_usb_vid args {
+	echo "DEPRECATED! use 'vsllink usb_vid' not 'vsllink_usb_vid'"
+	eval vsllink usb_vid $args
+}
+
+lappend _telnet_autocomplete_skip vsllink_usb_pid
+proc vsllink_usb_pid args {
+	echo "DEPRECATED! use 'vsllink usb_pid' not 'vsllink_usb_pid'"
+	eval vsllink usb_pid $args
+}
+
+lappend _telnet_autocomplete_skip vsllink_usb_serial
+proc vsllink_usb_serial args {
+	echo "DEPRECATED! use 'vsllink usb_serial' not 'vsllink_usb_serial'"
+	eval vsllink usb_serial $args
+}
+
+lappend _telnet_autocomplete_skip vsllink_usb_bulkin
+proc vsllink_usb_bulkin args {
+	echo "DEPRECATED! use 'vsllink usb_bulkin' not 'vsllink_usb_bulkin'"
+	eval vsllink usb_bulkin $args
+}
+
+lappend _telnet_autocomplete_skip vsllink_usb_bulkout
+proc vsllink_usb_bulkout args {
+	echo "DEPRECATED! use 'vsllink usb_bulkout' not 'vsllink_usb_bulkout'"
+	eval vsllink usb_bulkout $args
+}
+
+lappend _telnet_autocomplete_skip vsllink_usb_interface
+proc vsllink_usb_interface args {
+	echo "DEPRECATED! use 'vsllink usb_interface' not 'vsllink_usb_interface'"
+	eval vsllink usb_interface $args
+}
+
+lappend _telnet_autocomplete_skip bcm2835gpio_jtag_nums
+proc bcm2835gpio_jtag_nums args {
+	echo "DEPRECATED! use 'bcm2835gpio jtag_nums' not 'bcm2835gpio_jtag_nums'"
+	eval bcm2835gpio jtag_nums $args
+}
+
+lappend _telnet_autocomplete_skip bcm2835gpio_tck_num
+proc bcm2835gpio_tck_num args {
+	echo "DEPRECATED! use 'bcm2835gpio tck_num' not 'bcm2835gpio_tck_num'"
+	eval bcm2835gpio tck_num $args
+}
+
+lappend _telnet_autocomplete_skip bcm2835gpio_tms_num
+proc bcm2835gpio_tms_num args {
+	echo "DEPRECATED! use 'bcm2835gpio tms_num' not 'bcm2835gpio_tms_num'"
+	eval bcm2835gpio tms_num $args
+}
+
+lappend _telnet_autocomplete_skip bcm2835gpio_tdo_num
+proc bcm2835gpio_tdo_num args {
+	echo "DEPRECATED! use 'bcm2835gpio tdo_num' not 'bcm2835gpio_tdo_num'"
+	eval bcm2835gpio tdo_num $args
+}
+
+lappend _telnet_autocomplete_skip bcm2835gpio_tdi_num
+proc bcm2835gpio_tdi_num args {
+	echo "DEPRECATED! use 'bcm2835gpio tdi_num' not 'bcm2835gpio_tdi_num'"
+	eval bcm2835gpio tdi_num $args
+}
+
+lappend _telnet_autocomplete_skip bcm2835gpio_swd_nums
+proc bcm2835gpio_swd_nums args {
+	echo "DEPRECATED! use 'bcm2835gpio swd_nums' not 'bcm2835gpio_swd_nums'"
+	eval bcm2835gpio swd_nums $args
+}
+
+lappend _telnet_autocomplete_skip bcm2835gpio_swclk_num
+proc bcm2835gpio_swclk_num args {
+	echo "DEPRECATED! use 'bcm2835gpio swclk_num' not 'bcm2835gpio_swclk_num'"
+	eval bcm2835gpio swclk_num $args
+}
+
+lappend _telnet_autocomplete_skip bcm2835gpio_swdio_num
+proc bcm2835gpio_swdio_num args {
+	echo "DEPRECATED! use 'bcm2835gpio swdio_num' not 'bcm2835gpio_swdio_num'"
+	eval bcm2835gpio swdio_num $args
+}
+
+lappend _telnet_autocomplete_skip bcm2835gpio_swdio_dir_num
+proc bcm2835gpio_swdio_dir_num args {
+	echo "DEPRECATED! use 'bcm2835gpio swdio_dir_num' not 'bcm2835gpio_swdio_dir_num'"
+	eval bcm2835gpio swdio_dir_num $args
+}
+
+lappend _telnet_autocomplete_skip bcm2835gpio_srst_num
+proc bcm2835gpio_srst_num args {
+	echo "DEPRECATED! use 'bcm2835gpio srst_num' not 'bcm2835gpio_srst_num'"
+	eval bcm2835gpio srst_num $args
+}
+
+lappend _telnet_autocomplete_skip bcm2835gpio_trst_num
+proc bcm2835gpio_trst_num args {
+	echo "DEPRECATED! use 'bcm2835gpio trst_num' not 'bcm2835gpio_trst_num'"
+	eval bcm2835gpio trst_num $args
+}
+
+lappend _telnet_autocomplete_skip bcm2835gpio_speed_coeffs
+proc bcm2835gpio_speed_coeffs args {
+	echo "DEPRECATED! use 'bcm2835gpio speed_coeffs' not 'bcm2835gpio_speed_coeffs'"
+	eval bcm2835gpio speed_coeffs $args
+}
+
+lappend _telnet_autocomplete_skip bcm2835gpio_peripheral_base
+proc bcm2835gpio_peripheral_base args {
+	echo "DEPRECATED! use 'bcm2835gpio peripheral_base' not 'bcm2835gpio_peripheral_base'"
+	eval bcm2835gpio peripheral_base $args
+}
+
+lappend _telnet_autocomplete_skip linuxgpiod_jtag_nums
+proc linuxgpiod_jtag_nums args {
+	echo "DEPRECATED! use 'linuxgpiod jtag_nums' not 'linuxgpiod_jtag_nums'"
+	eval linuxgpiod jtag_nums $args
+}
+
+lappend _telnet_autocomplete_skip linuxgpiod_tck_num
+proc linuxgpiod_tck_num args {
+	echo "DEPRECATED! use 'linuxgpiod tck_num' not 'linuxgpiod_tck_num'"
+	eval linuxgpiod tck_num $args
+}
+
+lappend _telnet_autocomplete_skip linuxgpiod_tms_num
+proc linuxgpiod_tms_num args {
+	echo "DEPRECATED! use 'linuxgpiod tms_num' not 'linuxgpiod_tms_num'"
+	eval linuxgpiod tms_num $args
+}
+
+lappend _telnet_autocomplete_skip linuxgpiod_tdo_num
+proc linuxgpiod_tdo_num args {
+	echo "DEPRECATED! use 'linuxgpiod tdo_num' not 'linuxgpiod_tdo_num'"
+	eval linuxgpiod tdo_num $args
+}
+
+lappend _telnet_autocomplete_skip linuxgpiod_tdi_num
+proc linuxgpiod_tdi_num args {
+	echo "DEPRECATED! use 'linuxgpiod tdi_num' not 'linuxgpiod_tdi_num'"
+	eval linuxgpiod tdi_num $args
+}
+
+lappend _telnet_autocomplete_skip linuxgpiod_srst_num
+proc linuxgpiod_srst_num args {
+	echo "DEPRECATED! use 'linuxgpiod srst_num' not 'linuxgpiod_srst_num'"
+	eval linuxgpiod srst_num $args
+}
+
+lappend _telnet_autocomplete_skip linuxgpiod_trst_num
+proc linuxgpiod_trst_num args {
+	echo "DEPRECATED! use 'linuxgpiod trst_num' not 'linuxgpiod_trst_num'"
+	eval linuxgpiod trst_num $args
+}
+
+lappend _telnet_autocomplete_skip linuxgpiod_swd_nums
+proc linuxgpiod_swd_nums args {
+	echo "DEPRECATED! use 'linuxgpiod swd_nums' not 'linuxgpiod_swd_nums'"
+	eval linuxgpiod swd_nums $args
+}
+
+lappend _telnet_autocomplete_skip linuxgpiod_swclk_num
+proc linuxgpiod_swclk_num args {
+	echo "DEPRECATED! use 'linuxgpiod swclk_num' not 'linuxgpiod_swclk_num'"
+	eval linuxgpiod swclk_num $args
+}
+
+lappend _telnet_autocomplete_skip linuxgpiod_swdio_num
+proc linuxgpiod_swdio_num args {
+	echo "DEPRECATED! use 'linuxgpiod swdio_num' not 'linuxgpiod_swdio_num'"
+	eval linuxgpiod swdio_num $args
+}
+
+lappend _telnet_autocomplete_skip linuxgpiod_led_num
+proc linuxgpiod_led_num args {
+	echo "DEPRECATED! use 'linuxgpiod led_num' not 'linuxgpiod_led_num'"
+	eval linuxgpiod led_num $args
+}
+
+lappend _telnet_autocomplete_skip linuxgpiod_gpiochip
+proc linuxgpiod_gpiochip args {
+	echo "DEPRECATED! use 'linuxgpiod gpiochip' not 'linuxgpiod_gpiochip'"
+	eval linuxgpiod gpiochip $args
+}
+
+lappend _telnet_autocomplete_skip sysfsgpio_jtag_nums
+proc sysfsgpio_jtag_nums args {
+	echo "DEPRECATED! use 'sysfsgpio jtag_nums' not 'sysfsgpio_jtag_nums'"
+	eval sysfsgpio jtag_nums $args
+}
+
+lappend _telnet_autocomplete_skip sysfsgpio_tck_num
+proc sysfsgpio_tck_num args {
+	echo "DEPRECATED! use 'sysfsgpio tck_num' not 'sysfsgpio_tck_num'"
+	eval sysfsgpio tck_num $args
+}
+
+lappend _telnet_autocomplete_skip sysfsgpio_tms_num
+proc sysfsgpio_tms_num args {
+	echo "DEPRECATED! use 'sysfsgpio tms_num' not 'sysfsgpio_tms_num'"
+	eval sysfsgpio tms_num $args
+}
+
+lappend _telnet_autocomplete_skip sysfsgpio_tdo_num
+proc sysfsgpio_tdo_num args {
+	echo "DEPRECATED! use 'sysfsgpio tdo_num' not 'sysfsgpio_tdo_num'"
+	eval sysfsgpio tdo_num $args
+}
+
+lappend _telnet_autocomplete_skip sysfsgpio_tdi_num
+proc sysfsgpio_tdi_num args {
+	echo "DEPRECATED! use 'sysfsgpio tdi_num' not 'sysfsgpio_tdi_num'"
+	eval sysfsgpio tdi_num $args
+}
+
+lappend _telnet_autocomplete_skip sysfsgpio_srst_num
+proc sysfsgpio_srst_num args {
+	echo "DEPRECATED! use 'sysfsgpio srst_num' not 'sysfsgpio_srst_num'"
+	eval sysfsgpio srst_num $args
+}
+
+lappend _telnet_autocomplete_skip sysfsgpio_trst_num
+proc sysfsgpio_trst_num args {
+	echo "DEPRECATED! use 'sysfsgpio trst_num' not 'sysfsgpio_trst_num'"
+	eval sysfsgpio trst_num $args
+}
+
+lappend _telnet_autocomplete_skip sysfsgpio_swd_nums
+proc sysfsgpio_swd_nums args {
+	echo "DEPRECATED! use 'sysfsgpio swd_nums' not 'sysfsgpio_swd_nums'"
+	eval sysfsgpio swd_nums $args
+}
+
+lappend _telnet_autocomplete_skip sysfsgpio_swclk_num
+proc sysfsgpio_swclk_num args {
+	echo "DEPRECATED! use 'sysfsgpio swclk_num' not 'sysfsgpio_swclk_num'"
+	eval sysfsgpio swclk_num $args
+}
+
+lappend _telnet_autocomplete_skip sysfsgpio_swdio_num
+proc sysfsgpio_swdio_num args {
+	echo "DEPRECATED! use 'sysfsgpio swdio_num' not 'sysfsgpio_swdio_num'"
+	eval sysfsgpio swdio_num $args
+}
+
+lappend _telnet_autocomplete_skip buspirate_adc
+proc buspirate_adc args {
+	echo "DEPRECATED! use 'buspirate adc' not 'buspirate_adc'"
+	eval buspirate adc $args
+}
+
+lappend _telnet_autocomplete_skip buspirate_vreg
+proc buspirate_vreg args {
+	echo "DEPRECATED! use 'buspirate vreg' not 'buspirate_vreg'"
+	eval buspirate vreg $args
+}
+
+lappend _telnet_autocomplete_skip buspirate_pullup
+proc buspirate_pullup args {
+	echo "DEPRECATED! use 'buspirate pullup' not 'buspirate_pullup'"
+	eval buspirate pullup $args
+}
+
+lappend _telnet_autocomplete_skip buspirate_led
+proc buspirate_led args {
+	echo "DEPRECATED! use 'buspirate led' not 'buspirate_led'"
+	eval buspirate led $args
+}
+
+lappend _telnet_autocomplete_skip buspirate_speed
+proc buspirate_speed args {
+	echo "DEPRECATED! use 'buspirate speed' not 'buspirate_speed'"
+	eval buspirate speed $args
+}
+
+lappend _telnet_autocomplete_skip buspirate_mode
+proc buspirate_mode args {
+	echo "DEPRECATED! use 'buspirate mode' not 'buspirate_mode'"
+	eval buspirate mode $args
+}
+
+lappend _telnet_autocomplete_skip buspirate_port
+proc buspirate_port args {
+	echo "DEPRECATED! use 'buspirate port' not 'buspirate_port'"
+	eval buspirate port $args
+}
+
+lappend _telnet_autocomplete_skip usb_blaster_device_desc
+proc usb_blaster_device_desc args {
+	echo "DEPRECATED! use 'usb_blaster device_desc' not 'usb_blaster_device_desc'"
+	eval usb_blaster device_desc $args
+}
+
+lappend _telnet_autocomplete_skip usb_blaster_vid_pid
+proc usb_blaster_vid_pid args {
+	echo "DEPRECATED! use 'usb_blaster vid_pid' not 'usb_blaster_vid_pid'"
+	eval usb_blaster vid_pid $args
+}
+
+lappend _telnet_autocomplete_skip usb_blaster_lowlevel_driver
+proc usb_blaster_lowlevel_driver args {
+	echo "DEPRECATED! use 'usb_blaster lowlevel_driver' not 'usb_blaster_lowlevel_driver'"
+	eval usb_blaster lowlevel_driver $args
+}
+
+lappend _telnet_autocomplete_skip usb_blaster_pin
+proc usb_blaster_pin args {
+	echo "DEPRECATED! use 'usb_blaster pin' not 'usb_blaster_pin'"
+	eval usb_blaster pin $args
+}
+
+lappend _telnet_autocomplete_skip usb_blaster_firmware
+proc usb_blaster_firmware args {
+	echo "DEPRECATED! use 'usb_blaster firmware' not 'usb_blaster_firmware'"
+	eval usb_blaster firmware $args
+}
+
+lappend _telnet_autocomplete_skip ft232r_serial_desc
+proc ft232r_serial_desc args {
+	echo "DEPRECATED! use 'ft232r serial_desc' not 'ft232r_serial_desc'"
+	eval ft232r serial_desc $args
+}
+
+lappend _telnet_autocomplete_skip ft232r_vid_pid
+proc ft232r_vid_pid args {
+	echo "DEPRECATED! use 'ft232r vid_pid' not 'ft232r_vid_pid'"
+	eval ft232r vid_pid $args
+}
+
+lappend _telnet_autocomplete_skip ft232r_jtag_nums
+proc ft232r_jtag_nums args {
+	echo "DEPRECATED! use 'ft232r jtag_nums' not 'ft232r_jtag_nums'"
+	eval ft232r jtag_nums $args
+}
+
+lappend _telnet_autocomplete_skip ft232r_tck_num
+proc ft232r_tck_num args {
+	echo "DEPRECATED! use 'ft232r tck_num' not 'ft232r_tck_num'"
+	eval ft232r tck_num $args
+}
+
+lappend _telnet_autocomplete_skip ft232r_tms_num
+proc ft232r_tms_num args {
+	echo "DEPRECATED! use 'ft232r tms_num' not 'ft232r_tms_num'"
+	eval ft232r tms_num $args
+}
+
+lappend _telnet_autocomplete_skip ft232r_tdo_num
+proc ft232r_tdo_num args {
+	echo "DEPRECATED! use 'ft232r tdo_num' not 'ft232r_tdo_num'"
+	eval ft232r tdo_num $args
+}
+
+lappend _telnet_autocomplete_skip ft232r_tdi_num
+proc ft232r_tdi_num args {
+	echo "DEPRECATED! use 'ft232r tdi_num' not 'ft232r_tdi_num'"
+	eval ft232r tdi_num $args
+}
+
+lappend _telnet_autocomplete_skip ft232r_srst_num
+proc ft232r_srst_num args {
+	echo "DEPRECATED! use 'ft232r srst_num' not 'ft232r_srst_num'"
+	eval ft232r srst_num $args
+}
+
+lappend _telnet_autocomplete_skip ft232r_trst_num
+proc ft232r_trst_num args {
+	echo "DEPRECATED! use 'ft232r trst_num' not 'ft232r_trst_num'"
+	eval ft232r trst_num $args
+}
+
+lappend _telnet_autocomplete_skip ft232r_restore_serial
+proc ft232r_restore_serial args {
+	echo "DEPRECATED! use 'ft232r restore_serial' not 'ft232r_restore_serial'"
+	eval ft232r restore_serial $args
+}
+
 # END MIGRATION AIDS

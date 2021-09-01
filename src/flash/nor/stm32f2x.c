@@ -649,8 +649,6 @@ static int stm32x_erase(struct flash_bank *bank, unsigned int first,
 		retval = stm32x_wait_status_busy(bank, FLASH_ERASE_TIMEOUT);
 		if (retval != ERROR_OK)
 			return retval;
-
-		bank->sectors[i].is_erased = 1;
 	}
 
 	retval = target_write_u32(target, stm32x_get_flash_reg(bank, STM32_FLASH_CR), FLASH_LOCK);
@@ -1412,7 +1410,7 @@ static int get_stm32x_info(struct flash_bank *bank, struct command_invocation *c
 		return ERROR_FAIL;
 	}
 
-	if (rev_str != NULL)
+	if (rev_str)
 		command_print_sameline(cmd, "%s - Rev: %s", device_str, rev_str);
 	else
 		command_print_sameline(cmd, "%s - Rev: unknown (0x%04" PRIx16 ")", device_str, rev_id);
@@ -1430,7 +1428,7 @@ COMMAND_HANDLER(stm32x_handle_lock_command)
 
 	struct flash_bank *bank;
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
-	if (ERROR_OK != retval)
+	if (retval != ERROR_OK)
 		return retval;
 
 	stm32x_info = bank->driver_priv;
@@ -1469,7 +1467,7 @@ COMMAND_HANDLER(stm32x_handle_unlock_command)
 
 	struct flash_bank *bank;
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
-	if (ERROR_OK != retval)
+	if (retval != ERROR_OK)
 		return retval;
 
 	stm32x_info = bank->driver_priv;
@@ -1556,15 +1554,11 @@ COMMAND_HANDLER(stm32x_handle_mass_erase_command)
 
 	struct flash_bank *bank;
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
-	if (ERROR_OK != retval)
+	if (retval != ERROR_OK)
 		return retval;
 
 	retval = stm32x_mass_erase(bank);
 	if (retval == ERROR_OK) {
-		/* set all sectors as erased */
-		for (unsigned int i = 0; i < bank->num_sectors; i++)
-			bank->sectors[i].is_erased = 1;
-
 		command_print(CMD, "stm32x mass erase complete");
 	} else {
 		command_print(CMD, "stm32x mass erase failed");
@@ -1585,11 +1579,11 @@ COMMAND_HANDLER(stm32f2x_handle_options_read_command)
 	}
 
 	retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
-	if (ERROR_OK != retval)
+	if (retval != ERROR_OK)
 		return retval;
 
 	retval = stm32x_read_options(bank);
-	if (ERROR_OK != retval)
+	if (retval != ERROR_OK)
 		return retval;
 
 	stm32x_info = bank->driver_priv;
@@ -1631,11 +1625,11 @@ COMMAND_HANDLER(stm32f2x_handle_options_write_command)
 	}
 
 	retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
-	if (ERROR_OK != retval)
+	if (retval != ERROR_OK)
 		return retval;
 
 	retval = stm32x_read_options(bank);
-	if (ERROR_OK != retval)
+	if (retval != ERROR_OK)
 		return retval;
 
 	stm32x_info = bank->driver_priv;
@@ -1693,7 +1687,7 @@ COMMAND_HANDLER(stm32f2x_handle_optcr2_write_command)
 	}
 
 	retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
-	if (ERROR_OK != retval)
+	if (retval != ERROR_OK)
 		return retval;
 
 	stm32x_info = bank->driver_priv;
@@ -1707,7 +1701,7 @@ COMMAND_HANDLER(stm32f2x_handle_optcr2_write_command)
 				" finally unlock it. Clears PCROP and mass erases flash.");
 
 	retval = stm32x_read_options(bank);
-	if (ERROR_OK != retval)
+	if (retval != ERROR_OK)
 		return retval;
 
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], optcr2_pcrop);
@@ -1731,7 +1725,7 @@ COMMAND_HANDLER(stm32x_handle_otp_command)
 
 	struct flash_bank *bank;
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
-	if (ERROR_OK != retval)
+	if (retval != ERROR_OK)
 		return retval;
 	if (stm32x_is_otp(bank)) {
 		if (strcmp(CMD_ARGV[1], "enable") == 0) {

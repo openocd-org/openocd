@@ -341,7 +341,7 @@ static bool usb_connect(void)
 	/* Initialize libusb context */
 	result = libusb_init(&ctx);
 
-	if (0 == result) {
+	if (result == 0) {
 		/* Get list of USB devices attached to system */
 		count = libusb_get_device_list(ctx, &list);
 		if (count <= 0) {
@@ -350,7 +350,7 @@ static bool usb_connect(void)
 		}
 	}
 
-	if (0 == result) {
+	if (result == 0) {
 		/* Scan through list of devices for any XDS110s */
 		for (i = 0; i < count; i++) {
 			/* Check for device vid/pid match */
@@ -365,13 +365,13 @@ static bool usb_connect(void)
 			}
 			if (match) {
 				result = libusb_open(list[i], &dev);
-				if (0 == result) {
+				if (result == 0) {
 					const int max_data = 256;
 					unsigned char data[max_data + 1];
 					*data = '\0';
 
 					/* May be the requested device if serial number matches */
-					if (0 == xds110.serial[0]) {
+					if (xds110.serial[0] == 0) {
 						/* No serial number given; match first XDS110 found */
 						found = true;
 						break;
@@ -379,8 +379,8 @@ static bool usb_connect(void)
 						/* Get the device's serial number string */
 						result = libusb_get_string_descriptor_ascii(dev,
 									desc.iSerialNumber, data, max_data);
-						if (0 < result &&
-							0 == strcmp((char *)data, (char *)xds110.serial)) {
+						if (result > 0 &&
+							strcmp((char *)data, (char *)xds110.serial) == 0) {
 							found = true;
 							break;
 						}
@@ -400,7 +400,7 @@ static bool usb_connect(void)
 	 * 2) didn't find the XDS110, and no devices are currently open
 	 */
 
-	if (NULL != list) {
+	if (list) {
 		/* Free the device list, we're done with it */
 		libusb_free_device_list(list, 1);
 	}
@@ -430,36 +430,36 @@ static bool usb_connect(void)
 	}
 
 	/* On an error, clean up what we can */
-	if (0 != result) {
-		if (NULL != dev) {
+	if (result != 0) {
+		if (dev) {
 			/* Release the debug and data interface on the XDS110 */
 			(void)libusb_release_interface(dev, xds110.interface);
 			libusb_close(dev);
 		}
-		if (NULL != ctx)
+		if (ctx)
 			libusb_exit(ctx);
 		xds110.ctx = NULL;
 		xds110.dev = NULL;
 	}
 
 	/* Log the results */
-	if (0 == result)
+	if (result == 0)
 		LOG_INFO("XDS110: connected");
 	else
 		LOG_ERROR("XDS110: failed to connect");
 
-	return (0 == result) ? true : false;
+	return (result == 0) ? true : false;
 }
 
 static void usb_disconnect(void)
 {
-	if (NULL != xds110.dev) {
+	if (xds110.dev) {
 		/* Release the debug and data interface on the XDS110 */
 		(void)libusb_release_interface(xds110.dev, xds110.interface);
 		libusb_close(xds110.dev);
 		xds110.dev = NULL;
 	}
-	if (NULL != xds110.ctx) {
+	if (xds110.ctx) {
 		libusb_exit(xds110.ctx);
 		xds110.ctx = NULL;
 	}
@@ -472,17 +472,17 @@ static bool usb_read(unsigned char *buffer, int size, int *bytes_read,
 {
 	int result;
 
-	if (NULL == xds110.dev || NULL == buffer || NULL == bytes_read)
+	if (!xds110.dev || !buffer || !bytes_read)
 		return false;
 
 	/* Force a non-zero timeout to prevent blocking */
-	if (0 == timeout)
+	if (timeout == 0)
 		timeout = DEFAULT_TIMEOUT;
 
 	result = libusb_bulk_transfer(xds110.dev, xds110.endpoint_in, buffer, size,
 				bytes_read, timeout);
 
-	return (0 == result) ? true : false;
+	return (result == 0) ? true : false;
 }
 
 static bool usb_write(unsigned char *buffer, int size, int *written)
@@ -491,13 +491,13 @@ static bool usb_write(unsigned char *buffer, int size, int *written)
 	int result = LIBUSB_SUCCESS;
 	int retries = 0;
 
-	if (NULL == xds110.dev || NULL == buffer)
+	if (!xds110.dev || !buffer)
 		return false;
 
 	result = libusb_bulk_transfer(xds110.dev, xds110.endpoint_out, buffer,
 				size, &bytes_written, 0);
 
-	while (LIBUSB_ERROR_PIPE == result && retries < 3) {
+	while (result == LIBUSB_ERROR_PIPE && retries < 3) {
 		/* Try clearing the pipe stall and retry transfer */
 		libusb_clear_halt(xds110.dev, xds110.endpoint_out);
 		result = libusb_bulk_transfer(xds110.dev, xds110.endpoint_out, buffer,
@@ -505,10 +505,10 @@ static bool usb_write(unsigned char *buffer, int size, int *written)
 		retries++;
 	}
 
-	if (NULL != written)
+	if (written)
 		*written = bytes_written;
 
-	return (0 == result && size == bytes_written) ? true : false;
+	return (result == 0 && size == bytes_written) ? true : false;
 }
 
 static bool usb_get_response(uint32_t *total_bytes_read, uint32_t timeout)
@@ -550,7 +550,7 @@ static bool usb_get_response(uint32_t *total_bytes_read, uint32_t timeout)
 
 	/* Abort now if we didn't receive a valid response */
 	if (!success) {
-		if (NULL != total_bytes_read)
+		if (total_bytes_read)
 			*total_bytes_read = 0;
 		return false;
 	}
@@ -587,7 +587,7 @@ static bool usb_get_response(uint32_t *total_bytes_read, uint32_t timeout)
 
 	if (!success)
 		count = 0;
-	if (NULL != total_bytes_read)
+	if (total_bytes_read)
 		*total_bytes_read = count;
 
 	return success;
@@ -636,7 +636,7 @@ static bool xds_execute(uint32_t out_length, uint32_t in_length,
 	int error = 0;
 	uint32_t bytes_read = 0;
 
-	if (NULL == xds110.dev)
+	if (!xds110.dev)
 		return false;
 
 	while (!done && attempts > 0) {
@@ -661,7 +661,7 @@ static bool xds_execute(uint32_t out_length, uint32_t in_length,
 				/* Extract error code from return packet */
 				error = (int)xds110_get_u32(&xds110.read_payload[0]);
 				done = true;
-				if (SC_ERR_NONE != error)
+				if (error != SC_ERR_NONE)
 					LOG_DEBUG("XDS110: command 0x%02x returned error %d",
 						xds110.write_payload[0], error);
 			}
@@ -671,7 +671,7 @@ static bool xds_execute(uint32_t out_length, uint32_t in_length,
 	if (!success)
 		error = SC_ERR_XDS110_FAIL;
 
-	if (0 != error)
+	if (error != 0)
 		success = false;
 
 	return success;
@@ -714,9 +714,9 @@ static bool xds_version(uint32_t *firmware_id, uint16_t *hardware_id)
 				DEFAULT_TIMEOUT);
 
 	if (success) {
-		if (NULL != firmware_id)
+		if (firmware_id)
 			*firmware_id = xds110_get_u32(fw_id_pntr);
-		if (NULL != hardware_id)
+		if (hardware_id)
 			*hardware_id = xds110_get_u16(hw_id_pntr);
 	}
 
@@ -863,7 +863,7 @@ static bool cmapi_connect(uint32_t *idcode)
 				DEFAULT_TIMEOUT);
 
 	if (success) {
-		if (NULL != idcode)
+		if (idcode)
 			*idcode = xds110_get_u32(idcode_pntr);
 	}
 
@@ -926,7 +926,7 @@ static bool cmapi_read_dap_reg(uint32_t type, uint32_t ap_num,
 				DEFAULT_TIMEOUT);
 
 	if (success) {
-		if (NULL != value)
+		if (value)
 			*value = xds110_get_u32(value_pntr);
 	}
 
@@ -943,7 +943,7 @@ static bool cmapi_write_dap_reg(uint32_t type, uint32_t ap_num,
 
 	bool success;
 
-	if (NULL == value)
+	if (!value)
 		return false;
 
 	xds110.write_payload[0] = CMAPI_REG_WRITE;
@@ -1021,7 +1021,7 @@ static bool xds_set_supply(uint32_t voltage)
 	xds110.write_payload[0] = XDS_SET_SUPPLY;
 
 	xds110_set_u32(volts_pntr, voltage);
-	*source_pntr = (uint8_t)(0 != voltage ? 1 : 0);
+	*source_pntr = (uint8_t)(voltage != 0 ? 1 : 0);
 
 	success = xds_execute(XDS_OUT_LEN + 5, XDS_IN_LEN, DEFAULT_ATTEMPTS,
 				DEFAULT_TIMEOUT);
@@ -1037,7 +1037,7 @@ static bool ocd_dap_request(uint8_t *dap_requests, uint32_t request_size,
 
 	bool success;
 
-	if (NULL == dap_requests || NULL == dap_results)
+	if (!dap_requests || !dap_results)
 		return false;
 
 	xds110.write_payload[0] = OCD_DAP_REQUEST;
@@ -1062,7 +1062,7 @@ static bool ocd_scan_request(uint8_t *scan_requests, uint32_t request_size,
 
 	bool success;
 
-	if (NULL == scan_requests || NULL == scan_results)
+	if (!scan_requests || !scan_results)
 		return false;
 
 	xds110.write_payload[0] = OCD_SCAN_REQUEST;
@@ -1086,7 +1086,7 @@ static bool ocd_pathmove(uint32_t num_states, uint8_t *path)
 
 	bool success;
 
-	if (NULL == path)
+	if (!path)
 		return false;
 
 	xds110.write_payload[0] = OCD_PATHMOVE;
@@ -1165,9 +1165,9 @@ static int xds110_swd_switch_seq(enum swd_special_seq seq)
 static bool xds110_legacy_read_reg(uint8_t cmd, uint32_t *value)
 {
 	/* Make sure this is a read request */
-	bool is_read_request = (0 != (SWD_CMD_RnW & cmd));
+	bool is_read_request = (0 != (SWD_CMD_RNW & cmd));
 	/* Determine whether this is a DP or AP register access */
-	uint32_t type = (0 != (SWD_CMD_APnDP & cmd)) ? DAP_AP : DAP_DP;
+	uint32_t type = (0 != (SWD_CMD_APNDP & cmd)) ? DAP_AP : DAP_DP;
 	/* Determine the AP number from cached SELECT value */
 	uint32_t ap_num = (xds110.select & 0xff000000) >> 24;
 	/* Extract register address from command */
@@ -1183,7 +1183,7 @@ static bool xds110_legacy_read_reg(uint8_t cmd, uint32_t *value)
 	if (!is_read_request)
 		return false;
 
-	if (DAP_AP == type) {
+	if (type == DAP_AP) {
 		/* Add bank address to register address for CMAPI call */
 		address |= bank;
 	}
@@ -1209,7 +1209,7 @@ static bool xds110_legacy_read_reg(uint8_t cmd, uint32_t *value)
 	/* Handle result of read attempt */
 	if (!success)
 		LOG_ERROR("XDS110: failed to read DAP register");
-	else if (NULL != value)
+	else if (value)
 		*value = reg_value;
 
 	if (success && DAP_AP == type) {
@@ -1227,9 +1227,9 @@ static bool xds110_legacy_read_reg(uint8_t cmd, uint32_t *value)
 static bool xds110_legacy_write_reg(uint8_t cmd, uint32_t value)
 {
 	/* Make sure this isn't a read request */
-	bool is_read_request = (0 != (SWD_CMD_RnW & cmd));
+	bool is_read_request = (0 != (SWD_CMD_RNW & cmd));
 	/* Determine whether this is a DP or AP register access */
-	uint32_t type = (0 != (SWD_CMD_APnDP & cmd)) ? DAP_AP : DAP_DP;
+	uint32_t type = (0 != (SWD_CMD_APNDP & cmd)) ? DAP_AP : DAP_DP;
 	/* Determine the AP number from cached SELECT value */
 	uint32_t ap_num = (xds110.select & 0xff000000) >> 24;
 	/* Extract register address from command */
@@ -1245,12 +1245,12 @@ static bool xds110_legacy_write_reg(uint8_t cmd, uint32_t value)
 	/* Invalidate the RDBUFF cache */
 	xds110.use_rdbuff = false;
 
-	if (DAP_AP == type) {
+	if (type == DAP_AP) {
 		/* Add bank address to register address for CMAPI call */
 		address |= bank;
 		/* Any write to an AP register invalidates the firmware's cache */
 		xds110.is_ap_dirty = true;
-	} else if (DAP_DP_SELECT == address) {
+	} else if (address == DAP_DP_SELECT) {
 		/* Any write to the SELECT register invalidates the firmware's cache */
 		xds110.is_ap_dirty = true;
 	}
@@ -1264,7 +1264,7 @@ static bool xds110_legacy_write_reg(uint8_t cmd, uint32_t value)
 		 * If the debugger wrote to SELECT, cache the value
 		 * to use to build the apNum and address values above
 		 */
-		if ((DAP_DP == type) && (DAP_DP_SELECT == address))
+		if ((type == DAP_DP) && (address == DAP_DP_SELECT))
 			xds110.select = value;
 	}
 
@@ -1280,7 +1280,7 @@ static int xds110_swd_run_queue(void)
 	uint32_t value;
 	bool success = true;
 
-	if (0 == xds110.txn_request_size)
+	if (xds110.txn_request_size == 0)
 		return ERROR_OK;
 
 	/* Terminate request queue */
@@ -1296,7 +1296,7 @@ static int xds110_swd_run_queue(void)
 		result = 0;
 		while (xds110.txn_requests[request] != 0) {
 			cmd = xds110.txn_requests[request++];
-			if (0 == (SWD_CMD_RnW & cmd)) {
+			if (0 == (SWD_CMD_RNW & cmd)) {
 				/* DAP register write command */
 				value  = (uint32_t)(xds110.txn_requests[request++]) <<  0;
 				value |= (uint32_t)(xds110.txn_requests[request++]) <<  8;
@@ -1316,7 +1316,7 @@ static int xds110_swd_run_queue(void)
 
 	/* Transfer results into caller's buffers */
 	for (result = 0; result < xds110.txn_result_count; result++)
-		if (0 != xds110.txn_dap_results[result])
+		if (xds110.txn_dap_results[result] != 0)
 			*xds110.txn_dap_results[result] = dap_results[result];
 
 	xds110.txn_request_size = 0;
@@ -1329,9 +1329,9 @@ static int xds110_swd_run_queue(void)
 static void xds110_swd_queue_cmd(uint8_t cmd, uint32_t *value)
 {
 	/* Check if this is a read or write request */
-	bool is_read_request = (0 != (SWD_CMD_RnW & cmd));
+	bool is_read_request = (0 != (SWD_CMD_RNW & cmd));
 	/* Determine whether this is a DP or AP register access */
-	uint32_t type = (0 != (SWD_CMD_APnDP & cmd)) ? DAP_AP : DAP_DP;
+	uint32_t type = (0 != (SWD_CMD_APNDP & cmd)) ? DAP_AP : DAP_DP;
 	/* Extract register address from command */
 	uint32_t address = ((cmd & SWD_CMD_A32) >> 1);
 	uint32_t request_size = (is_read_request) ? 1 : 5;
@@ -1395,7 +1395,7 @@ static void xds110_show_info(void)
 		(((firmware >> 12) & 0xf) * 10) + ((firmware >>  8) & 0xf),
 		(((firmware >>  4) & 0xf) * 10) + ((firmware >>  0) & 0xf));
 	LOG_INFO("XDS110: hardware version = 0x%04x", xds110.hardware);
-	if (0 != xds110.serial[0])
+	if (xds110.serial[0] != 0)
 		LOG_INFO("XDS110: serial number = %s", xds110.serial);
 	if (xds110.is_swd_mode) {
 		LOG_INFO("XDS110: connected to target via SWD");
@@ -1470,12 +1470,12 @@ static int xds110_init(void)
 
 	if (success) {
 		/* Set supply voltage for stand-alone probes */
-		if (XDS110_STAND_ALONE_ID == xds110.hardware) {
+		if (xds110.hardware == XDS110_STAND_ALONE_ID) {
 			success = xds_set_supply(xds110.voltage);
 			/* Allow time for target device to power up */
 			/* (CC32xx takes up to 1300 ms before debug is enabled) */
 			alive_sleep(1500);
-		} else if (0 != xds110.voltage) {
+		} else if (xds110.voltage != 0) {
 			/* Voltage supply not a feature of embedded probes */
 			LOG_WARNING(
 				"XDS110: ignoring supply voltage, not supported on this probe");
@@ -1557,7 +1557,7 @@ static void xds110_flush(void)
 	uint8_t data_in[MAX_DATA_BLOCK];
 	uint8_t *data_pntr;
 
-	if (0 == xds110.txn_request_size)
+	if (xds110.txn_request_size == 0)
 		return;
 
 	/* Terminate request queue */
@@ -1867,7 +1867,7 @@ static int xds110_execute_queue(void)
 {
 	struct jtag_command *cmd = jtag_command_queue;
 
-	while (cmd != NULL) {
+	while (cmd) {
 		xds110_execute_command(cmd);
 		cmd = cmd->next;
 	}

@@ -27,6 +27,11 @@
  *         manufacturer associated with bank and id, or one of the strings
  *         "<invalid>" and "<unknown>".
  */
-const char *jep106_manufacturer(unsigned bank, unsigned id);
+const char *jep106_table_manufacturer(unsigned int bank, unsigned int id);
+
+static inline const char *jep106_manufacturer(unsigned int manufacturer)
+{
+	return jep106_table_manufacturer(manufacturer >> 7, manufacturer & 0x7f);
+}
 
 #endif /* OPENOCD_HELPER_JEP106_H */

@@ -82,7 +82,7 @@ int interface_jtag_add_ir_scan(struct jtag_tap *active,
 
 	/* loop over all enabled TAPs */
 
-	for (struct jtag_tap *tap = jtag_tap_next_enabled(NULL); tap != NULL; tap = jtag_tap_next_enabled(tap)) {
+	for (struct jtag_tap *tap = jtag_tap_next_enabled(NULL); tap; tap = jtag_tap_next_enabled(tap)) {
 		/* search the input field list for fields for the current TAP */
 
 		if (tap == active) {
@@ -122,7 +122,7 @@ int interface_jtag_add_dr_scan(struct jtag_tap *active, int in_num_fields,
 
 	size_t bypass_devices = 0;
 
-	for (struct jtag_tap *tap = jtag_tap_next_enabled(NULL); tap != NULL; tap = jtag_tap_next_enabled(tap)) {
+	for (struct jtag_tap *tap = jtag_tap_next_enabled(NULL); tap; tap = jtag_tap_next_enabled(tap)) {
 		if (tap->bypass)
 			bypass_devices++;
 	}
@@ -145,7 +145,7 @@ int interface_jtag_add_dr_scan(struct jtag_tap *active, int in_num_fields,
 
 	/* loop over all enabled TAPs */
 
-	for (struct jtag_tap *tap = jtag_tap_next_enabled(NULL); tap != NULL; tap = jtag_tap_next_enabled(tap)) {
+	for (struct jtag_tap *tap = jtag_tap_next_enabled(NULL); tap; tap = jtag_tap_next_enabled(tap)) {
 		/* if TAP is not bypassed insert matching input fields */
 
 		if (!tap->bypass) {
@@ -235,7 +235,7 @@ int interface_add_tms_seq(unsigned num_bits, const uint8_t *seq, enum tap_state 
 	struct jtag_command *cmd;
 
 	cmd = cmd_queue_alloc(sizeof(struct jtag_command));
-	if (cmd == NULL)
+	if (!cmd)
 		return ERROR_FAIL;
 
 	cmd->type = JTAG_TMS;
@@ -350,7 +350,7 @@ void interface_jtag_add_callback4(jtag_callback_t callback,
 	entry->data2 = data2;
 	entry->data3 = data3;
 
-	if (jtag_callback_queue_head == NULL) {
+	if (!jtag_callback_queue_head) {
 		jtag_callback_queue_head = entry;
 		jtag_callback_queue_tail = entry;
 	} else {
@@ -369,7 +369,7 @@ int interface_jtag_execute_queue(void)
 	int retval = default_interface_jtag_execute_queue();
 	if (retval == ERROR_OK) {
 		struct jtag_callback_entry *entry;
-		for (entry = jtag_callback_queue_head; entry != NULL; entry = entry->next) {
+		for (entry = jtag_callback_queue_head; entry; entry = entry->next) {
 			retval = entry->callback(entry->data0, entry->data1, entry->data2, entry->data3);
 			if (retval != ERROR_OK)
 				break;

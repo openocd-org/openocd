@@ -30,12 +30,12 @@
   socat TCP6-LISTEN:7777,fork EXEC:"sudo ./remote_bitbang_sysfsgpio tck 11 tms 25 tdo 9 tdi 10"
 
   On host run:
-  openocd -c "interface remote_bitbang; remote_bitbang_host raspberrypi; remote_bitbang_port 7777" \
+  openocd -c "interface remote_bitbang; remote_bitbang host raspberrypi; remote_bitbang port 7777" \
 	  -f target/stm32f1x.cfg
 
   Or if you want to test UNIX sockets, run both on Raspberry Pi:
   socat UNIX-LISTEN:/tmp/remotebitbang-socket,fork EXEC:"sudo ./remote_bitbang_sysfsgpio tck 11 tms 25 tdo 9 tdi 10"
-  openocd -c "interface remote_bitbang; remote_bitbang_host /tmp/remotebitbang-socket" -f target/stm32f1x.cfg
+  openocd -c "interface remote_bitbang; remote_bitbang host /tmp/remotebitbang-socket" -f target/stm32f1x.cfg
 */
 
 #include <sys/types.h>

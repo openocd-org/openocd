@@ -77,7 +77,7 @@ struct cortex_m_part_info {
 #define DCB_DEMCR	0xE000EDFC
 #define DCB_DSCSR	0xE000EE08
 
-#define DCRSR_WnR	BIT(16)
+#define DCRSR_WNR	BIT(16)
 
 #define DWT_CTRL	0xE0001000
 #define DWT_CYCCNT	0xE0001004
@@ -150,9 +150,9 @@ struct cortex_m_part_info {
 #define NVIC_AIRCR		0xE000ED0C
 #define NVIC_SHCSR		0xE000ED24
 #define NVIC_CFSR		0xE000ED28
-#define NVIC_MMFSRb		0xE000ED28
-#define NVIC_BFSRb		0xE000ED29
-#define NVIC_USFSRh		0xE000ED2A
+#define NVIC_MMFSRB		0xE000ED28
+#define NVIC_BFSRB		0xE000ED29
+#define NVIC_USFSRH		0xE000ED2A
 #define NVIC_HFSR		0xE000ED2C
 #define NVIC_DFSR		0xE000ED30
 #define NVIC_MMFAR		0xE000ED34

@@ -31,6 +31,7 @@
 
 #include <helper/list.h>
 #include "arm_jtag.h"
+#include "helper/bits.h"
 
 /* three-bit ACK values for SWD access (sent LSB first) */
 #define SWD_ACK_OK    0x1
@@ -149,6 +150,11 @@
 /* APB: initial value of csw_default */
 #define CSW_APB_DEFAULT         (CSW_DBGSWENABLE)
 
+/* Fields of the MEM-AP's CFG register */
+#define MEM_AP_REG_CFG_BE       BIT(0)
+#define MEM_AP_REG_CFG_LA       BIT(1)
+#define MEM_AP_REG_CFG_LD       BIT(2)
+#define MEM_AP_REG_CFG_INVALID  0xFFFFFFF8
 
 /* Fields of the MEM-AP's IDR register */
 #define IDR_REV     (0xFUL << 28)
@@ -201,7 +207,7 @@ struct adiv5_ap {
 	 * configure the address being read or written
 	 * "-1" indicates no cached value.
 	 */
-	uint32_t tar_value;
+	target_addr_t tar_value;
 
 	/**
 	 * Configures how many extra tck clocks are added after starting a
@@ -220,6 +226,9 @@ struct adiv5_ap {
 
 	/* true if tar_value is in sync with TAR register */
 	bool tar_valid;
+
+	/* MEM AP configuration register indicating LPAE support */
+	uint32_t cfg_reg;
 };
 
 
@@ -359,6 +368,20 @@ enum ap_type {
 	AP_TYPE_AHB5_AP = 0x5,  /* AHB5 Memory-AP. */
 };
 
+/* Check the ap->cfg_reg Long Address field (bit 1)
+ *
+ * 0b0: The AP only supports physical addresses 32 bits or smaller
+ * 0b1: The AP supports physical addresses larger than 32 bits
+ *
+ * @param ap The AP used for reading.
+ *
+ * @return true for 64 bit, false for 32 bit
+ */
+static inline bool is_64bit_ap(struct adiv5_ap *ap)
+{
+	return (ap->cfg_reg & MEM_AP_REG_CFG_LA) != 0;
+}
+
 /**
  * Send an adi-v5 sequence to the DAP.
  *
@@ -370,7 +393,7 @@ enum ap_type {
 static inline int dap_send_sequence(struct adiv5_dap *dap,
 		enum swd_special_seq seq)
 {
-	assert(dap->ops != NULL);
+	assert(dap->ops);
 	return dap->ops->send_sequence(dap, seq);
 }
 
@@ -389,7 +412,7 @@ static inline int dap_send_sequence(struct adiv5_dap *dap,
 static inline int dap_queue_dp_read(struct adiv5_dap *dap,
 		unsigned reg, uint32_t *data)
 {
-	assert(dap->ops != NULL);
+	assert(dap->ops);
 	return dap->ops->queue_dp_read(dap, reg, data);
 }
 
@@ -407,7 +430,7 @@ static inline int dap_queue_dp_read(struct adiv5_dap *dap,
 static inline int dap_queue_dp_write(struct adiv5_dap *dap,
 		unsigned reg, uint32_t data)
 {
-	assert(dap->ops != NULL);
+	assert(dap->ops);
 	return dap->ops->queue_dp_write(dap, reg, data);
 }
 
@@ -424,7 +447,7 @@ static inline int dap_queue_dp_write(struct adiv5_dap *dap,
 static inline int dap_queue_ap_read(struct adiv5_ap *ap,
 		unsigned reg, uint32_t *data)
 {
-	assert(ap->dap->ops != NULL);
+	assert(ap->dap->ops);
 	return ap->dap->ops->queue_ap_read(ap, reg, data);
 }
 
@@ -440,7 +463,7 @@ static inline int dap_queue_ap_read(struct adiv5_ap *ap,
 static inline int dap_queue_ap_write(struct adiv5_ap *ap,
 		unsigned reg, uint32_t data)
 {
-	assert(ap->dap->ops != NULL);
+	assert(ap->dap->ops);
 	return ap->dap->ops->queue_ap_write(ap, reg, data);
 }
 
@@ -457,7 +480,7 @@ static inline int dap_queue_ap_write(struct adiv5_ap *ap,
  */
 static inline int dap_queue_ap_abort(struct adiv5_dap *dap, uint8_t *ack)
 {
-	assert(dap->ops != NULL);
+	assert(dap->ops);
 	return dap->ops->queue_ap_abort(dap, ack);
 }
 
@@ -473,13 +496,13 @@ static inline int dap_queue_ap_abort(struct adiv5_dap *dap, uint8_t *ack)
  */
 static inline int dap_run(struct adiv5_dap *dap)
 {
-	assert(dap->ops != NULL);
+	assert(dap->ops);
 	return dap->ops->run(dap);
 }
 
 static inline int dap_sync(struct adiv5_dap *dap)
 {
-	assert(dap->ops != NULL);
+	assert(dap->ops);
 	if (dap->ops->sync)
 		return dap->ops->sync(dap);
 	return ERROR_OK;
@@ -528,27 +551,27 @@ static inline int dap_dp_poll_register(struct adiv5_dap *dap, unsigned reg,
 
 /* Queued MEM-AP memory mapped single word transfers. */
 int mem_ap_read_u32(struct adiv5_ap *ap,
-		uint32_t address, uint32_t *value);
+		target_addr_t address, uint32_t *value);
 int mem_ap_write_u32(struct adiv5_ap *ap,
-		uint32_t address, uint32_t value);
+		target_addr_t address, uint32_t value);
 
 /* Synchronous MEM-AP memory mapped single word transfers. */
 int mem_ap_read_atomic_u32(struct adiv5_ap *ap,
-		uint32_t address, uint32_t *value);
+		target_addr_t address, uint32_t *value);
 int mem_ap_write_atomic_u32(struct adiv5_ap *ap,
-		uint32_t address, uint32_t value);
+		target_addr_t address, uint32_t value);
 
 /* Synchronous MEM-AP memory mapped bus block transfers. */
 int mem_ap_read_buf(struct adiv5_ap *ap,
-		uint8_t *buffer, uint32_t size, uint32_t count, uint32_t address);
+		uint8_t *buffer, uint32_t size, uint32_t count, target_addr_t address);
 int mem_ap_write_buf(struct adiv5_ap *ap,
-		const uint8_t *buffer, uint32_t size, uint32_t count, uint32_t address);
+		const uint8_t *buffer, uint32_t size, uint32_t count, target_addr_t address);
 
 /* Synchronous, non-incrementing buffer functions for accessing fifos. */
 int mem_ap_read_buf_noincr(struct adiv5_ap *ap,
-		uint8_t *buffer, uint32_t size, uint32_t count, uint32_t address);
+		uint8_t *buffer, uint32_t size, uint32_t count, target_addr_t address);
 int mem_ap_write_buf_noincr(struct adiv5_ap *ap,
-		const uint8_t *buffer, uint32_t size, uint32_t count, uint32_t address);
+		const uint8_t *buffer, uint32_t size, uint32_t count, target_addr_t address);
 
 /* Initialisation of the debug system, power domains and registers */
 int dap_dp_init(struct adiv5_dap *dap);
@@ -560,7 +583,7 @@ void dap_invalidate_cache(struct adiv5_dap *dap);
 
 /* Probe the AP for ROM Table location */
 int dap_get_debugbase(struct adiv5_ap *ap,
-			uint32_t *dbgbase, uint32_t *apid);
+			target_addr_t *dbgbase, uint32_t *apid);
 
 /* Probe Access Ports to find a particular type */
 int dap_find_ap(struct adiv5_dap *dap,
@@ -574,7 +597,7 @@ static inline struct adiv5_ap *dap_ap(struct adiv5_dap *dap, uint8_t ap_num)
 
 /* Lookup CoreSight component */
 int dap_lookup_cs_component(struct adiv5_ap *ap,
-			uint32_t dbgbase, uint8_t type, uint32_t *addr, int32_t *idx);
+			target_addr_t dbgbase, uint8_t type, target_addr_t *addr, int32_t *idx);
 
 struct target;
 

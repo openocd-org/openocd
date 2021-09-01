@@ -169,7 +169,7 @@ static int cortex_m_store_core_reg_u32(struct target *target,
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = mem_ap_write_atomic_u32(armv7m->debug_ap, DCB_DCRSR, regsel | DCRSR_WnR);
+	retval = mem_ap_write_atomic_u32(armv7m->debug_ap, DCB_DCRSR, regsel | DCRSR_WNR);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -975,8 +975,11 @@ static int cortex_m_step(struct target *target, int current,
 	}
 
 	/* current = 1: continue on current pc, otherwise continue at <address> */
-	if (!current)
+	if (!current) {
 		buf_set_u32(pc->value, 0, 32, address);
+		pc->dirty = true;
+		pc->valid = true;
+	}
 
 	uint32_t pc_value = buf_get_u32(pc->value, 0, 32);
 
@@ -2318,7 +2321,7 @@ static int cortex_m_target_create(struct target *target, Jim_Interp *interp)
 		return ERROR_FAIL;
 
 	struct cortex_m_common *cortex_m = calloc(1, sizeof(struct cortex_m_common));
-	if (cortex_m == NULL) {
+	if (!cortex_m) {
 		LOG_ERROR("No memory creating target");
 		return ERROR_FAIL;
 	}
@@ -2465,7 +2468,7 @@ COMMAND_HANDLER(handle_cortex_m_mask_interrupts_command)
 
 	if (CMD_ARGC > 0) {
 		n = jim_nvp_name2value_simple(nvp_maskisr_modes, CMD_ARGV[0]);
-		if (n->name == NULL)
+		if (!n->name)
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		cortex_m->isrmasking_mode = n->value;
 		cortex_m_set_maskints_for_halt(target);

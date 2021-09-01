@@ -86,6 +86,8 @@ static int swclk_gpio = -1;
 static int swclk_gpio_mode;
 static int swdio_gpio = -1;
 static int swdio_gpio_mode;
+static int swdio_dir_gpio = -1;
+static int swdio_dir_gpio_mode;
 
 /* Transition delay coefficients */
 static int speed_coeff = 113714;
@@ -149,10 +151,20 @@ static int bcm2835gpio_reset(int trst, int srst)
 
 static void bcm2835_swdio_drive(bool is_output)
 {
-	if (is_output)
-		OUT_GPIO(swdio_gpio);
-	else
-		INP_GPIO(swdio_gpio);
+	if (swdio_dir_gpio > 0) {
+		if (is_output) {
+			GPIO_SET = 1 << swdio_dir_gpio;
+			OUT_GPIO(swdio_gpio);
+		} else {
+			INP_GPIO(swdio_gpio);
+			GPIO_CLR = 1 << swdio_dir_gpio;
+		}
+	} else {
+		if (is_output)
+			OUT_GPIO(swdio_gpio);
+		else
+			INP_GPIO(swdio_gpio);
+	}
 }
 
 static int bcm2835_swdio_read(void)
@@ -295,6 +307,15 @@ COMMAND_HANDLER(bcm2835gpio_handle_swd_gpionum_swdio)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(bcm2835gpio_handle_swd_dir_gpionum_swdio)
+{
+	if (CMD_ARGC == 1)
+		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], swdio_dir_gpio);
+
+	command_print(CMD, "BCM2835 num: swdio_dir = %d", swdio_dir_gpio);
+	return ERROR_OK;
+}
+
 COMMAND_HANDLER(bcm2835gpio_handle_speed_coeffs)
 {
 	if (CMD_ARGC == 2) {
@@ -317,92 +338,110 @@ COMMAND_HANDLER(bcm2835gpio_handle_peripheral_base)
 	return ERROR_OK;
 }
 
-static const struct command_registration bcm2835gpio_command_handlers[] = {
+static const struct command_registration bcm2835gpio_subcommand_handlers[] = {
 	{
-		.name = "bcm2835gpio_jtag_nums",
+		.name = "jtag_nums",
 		.handler = &bcm2835gpio_handle_jtag_gpionums,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio numbers for tck, tms, tdi, tdo. (in that order)",
 		.usage = "[tck tms tdi tdo]",
 	},
 	{
-		.name = "bcm2835gpio_tck_num",
+		.name = "tck_num",
 		.handler = &bcm2835gpio_handle_jtag_gpionum_tck,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for tck.",
 		.usage = "[tck]",
 	},
 	{
-		.name = "bcm2835gpio_tms_num",
+		.name = "tms_num",
 		.handler = &bcm2835gpio_handle_jtag_gpionum_tms,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for tms.",
 		.usage = "[tms]",
 	},
 	{
-		.name = "bcm2835gpio_tdo_num",
+		.name = "tdo_num",
 		.handler = &bcm2835gpio_handle_jtag_gpionum_tdo,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for tdo.",
 		.usage = "[tdo]",
 	},
 	{
-		.name = "bcm2835gpio_tdi_num",
+		.name = "tdi_num",
 		.handler = &bcm2835gpio_handle_jtag_gpionum_tdi,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for tdi.",
 		.usage = "[tdi]",
 	},
 	{
-		.name = "bcm2835gpio_swd_nums",
+		.name = "swd_nums",
 		.handler = &bcm2835gpio_handle_swd_gpionums,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio numbers for swclk, swdio. (in that order)",
 		.usage = "[swclk swdio]",
 	},
 	{
-		.name = "bcm2835gpio_swclk_num",
+		.name = "swclk_num",
 		.handler = &bcm2835gpio_handle_swd_gpionum_swclk,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for swclk.",
 		.usage = "[swclk]",
 	},
 	{
-		.name = "bcm2835gpio_swdio_num",
+		.name = "swdio_num",
 		.handler = &bcm2835gpio_handle_swd_gpionum_swdio,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for swdio.",
 		.usage = "[swdio]",
 	},
 	{
-		.name = "bcm2835gpio_srst_num",
+		.name = "swdio_dir_num",
+		.handler = &bcm2835gpio_handle_swd_dir_gpionum_swdio,
+		.mode = COMMAND_CONFIG,
+		.help = "gpio number for swdio direction control pin (set=output mode, clear=input mode)",
+		.usage = "[swdio_dir]",
+	},
+	{
+		.name = "srst_num",
 		.handler = &bcm2835gpio_handle_jtag_gpionum_srst,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for srst.",
 		.usage = "[srst]",
 	},
 	{
-		.name = "bcm2835gpio_trst_num",
+		.name = "trst_num",
 		.handler = &bcm2835gpio_handle_jtag_gpionum_trst,
 		.mode = COMMAND_CONFIG,
 		.help = "gpio number for trst.",
 		.usage = "[trst]",
 	},
 	{
-		.name = "bcm2835gpio_speed_coeffs",
+		.name = "speed_coeffs",
 		.handler = &bcm2835gpio_handle_speed_coeffs,
 		.mode = COMMAND_CONFIG,
 		.help = "SPEED_COEFF and SPEED_OFFSET for delay calculations.",
 		.usage = "[SPEED_COEFF SPEED_OFFSET]",
 	},
 	{
-		.name = "bcm2835gpio_peripheral_base",
+		.name = "peripheral_base",
 		.handler = &bcm2835gpio_handle_peripheral_base,
 		.mode = COMMAND_CONFIG,
 		.help = "peripheral base to access GPIOs (RPi1 0x20000000, RPi2 0x3F000000).",
 		.usage = "[base]",
 	},
 
+	COMMAND_REGISTRATION_DONE
+};
+
+static const struct command_registration bcm2835gpio_command_handlers[] = {
+	{
+		.name = "bcm2835gpio",
+		.mode = COMMAND_ANY,
+		.help = "perform bcm2835gpio management",
+		.chain = bcm2835gpio_subcommand_handlers,
+		.usage = "",
+	},
 	COMMAND_REGISTRATION_DONE
 };
 
@@ -541,6 +580,12 @@ static int bcm2835gpio_init(void)
 		OUT_GPIO(srst_gpio);
 	}
 
+	if (swdio_dir_gpio != -1) {
+		swdio_dir_gpio_mode = MODE_GPIO(swdio_dir_gpio);
+		GPIO_SET = 1 << swdio_dir_gpio;
+		OUT_GPIO(swdio_dir_gpio);
+	}
+
 	LOG_DEBUG("saved pinmux settings: tck %d tms %d tdi %d "
 		  "tdo %d trst %d srst %d", tck_gpio_mode, tms_gpio_mode,
 		  tdi_gpio_mode, tdo_gpio_mode, trst_gpio_mode, srst_gpio_mode);
@@ -566,6 +611,9 @@ static int bcm2835gpio_quit(void)
 
 	if (srst_gpio != -1)
 		SET_MODE_GPIO(srst_gpio, srst_gpio_mode);
+
+	if (swdio_dir_gpio != -1)
+		SET_MODE_GPIO(swdio_dir_gpio, swdio_dir_gpio_mode);
 
 	return ERROR_OK;
 }

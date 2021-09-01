@@ -186,7 +186,7 @@ static int mips_m4k_poll(struct target *target)
 	/*  the next polling trigger an halt event sent to gdb */
 	if ((target->state == TARGET_HALTED) && (target->smp) &&
 		(target->gdb_service) &&
-		(target->gdb_service->target == NULL)) {
+		(!target->gdb_service->target)) {
 		target->gdb_service->target =
 			get_mips_m4k(target, target->gdb_service->core[1]);
 		target_call_event_callbacks(target, TARGET_EVENT_HALTED);
@@ -880,8 +880,8 @@ static int mips_m4k_set_watchpoint(struct target *target,
 	 * and exclude both load and store accesses from  watchpoint
 	 * condition evaluation
 	*/
-	int enable = EJTAG_DBCn_NOSB | EJTAG_DBCn_NOLB | EJTAG_DBCn_BE |
-			(0xff << EJTAG_DBCn_BLM_SHIFT);
+	int enable = EJTAG_DBCN_NOSB | EJTAG_DBCN_NOLB | EJTAG_DBCN_BE |
+			(0xff << EJTAG_DBCN_BLM_SHIFT);
 
 	if (watchpoint->set) {
 		LOG_WARNING("watchpoint already set");
@@ -907,13 +907,13 @@ static int mips_m4k_set_watchpoint(struct target *target,
 
 	switch (watchpoint->rw) {
 		case WPT_READ:
-			enable &= ~EJTAG_DBCn_NOLB;
+			enable &= ~EJTAG_DBCN_NOLB;
 			break;
 		case WPT_WRITE:
-			enable &= ~EJTAG_DBCn_NOSB;
+			enable &= ~EJTAG_DBCN_NOSB;
 			break;
 		case WPT_ACCESS:
-			enable &= ~(EJTAG_DBCn_NOLB | EJTAG_DBCn_NOSB);
+			enable &= ~(EJTAG_DBCN_NOLB | EJTAG_DBCN_NOSB);
 			break;
 		default:
 			LOG_ERROR("BUG: watchpoint->rw neither read, write nor access");
@@ -1045,7 +1045,7 @@ static int mips_m4k_read_memory(struct target *target, target_addr_t address,
 
 	if (size > 1) {
 		t = malloc(count * size * sizeof(uint8_t));
-		if (t == NULL) {
+		if (!t) {
 			LOG_ERROR("Out of memory");
 			return ERROR_FAIL;
 		}
@@ -1061,7 +1061,7 @@ static int mips_m4k_read_memory(struct target *target, target_addr_t address,
 
 	/* mips32_..._read_mem with size 4/2 returns uint32_t/uint16_t in host */
 	/* endianness, but byte array should represent target endianness       */
-	if (ERROR_OK == retval) {
+	if (retval == ERROR_OK) {
 		switch (size) {
 		case 4:
 			target_buffer_set_u32_array(target, buffer, count, t);
@@ -1112,7 +1112,7 @@ static int mips_m4k_write_memory(struct target *target, target_addr_t address,
 		/* mips32_..._write_mem with size 4/2 requires uint32_t/uint16_t in host */
 		/* endianness, but byte array represents target endianness               */
 		t = malloc(count * size * sizeof(uint8_t));
-		if (t == NULL) {
+		if (!t) {
 			LOG_ERROR("Out of memory");
 			return ERROR_FAIL;
 		}
@@ -1137,7 +1137,7 @@ static int mips_m4k_write_memory(struct target *target, target_addr_t address,
 
 	free(t);
 
-	if (ERROR_OK != retval)
+	if (retval != ERROR_OK)
 		return retval;
 
 	return ERROR_OK;
@@ -1218,7 +1218,7 @@ static int mips_m4k_bulk_write_memory(struct target *target, target_addr_t addre
 	if (address & 0x3u)
 		return ERROR_TARGET_UNALIGNED_ACCESS;
 
-	if (mips32->fast_data_area == NULL) {
+	if (!mips32->fast_data_area) {
 		/* Get memory for block write handler
 		 * we preserve this area between calls and gain a speed increase
 		 * of about 3kb/sec when writing flash
@@ -1250,7 +1250,7 @@ static int mips_m4k_bulk_write_memory(struct target *target, target_addr_t addre
 	/* but byte array represents target endianness                      */
 	uint32_t *t = NULL;
 	t = malloc(count * sizeof(uint32_t));
-	if (t == NULL) {
+	if (!t) {
 		LOG_ERROR("Out of memory");
 		return ERROR_FAIL;
 	}

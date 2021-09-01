@@ -22,7 +22,7 @@ jobs:
       - run: ./bootstrap
       - name: Prepare libusb1
         env:
-          LIBUSB1_VER: 1.0.23
+          LIBUSB1_VER: 1.0.24
         run: |
           mkdir -p $DL_DIR && cd $DL_DIR
           wget "https://github.com/libusb/libusb/releases/download/v${LIBUSB1_VER}/libusb-${LIBUSB1_VER}.tar.bz2"
@@ -30,7 +30,7 @@ jobs:
           echo "LIBUSB1_SRC=$PWD/libusb-${LIBUSB1_VER}" >> $GITHUB_ENV
       - name: Prepare hidapi
         env:
-          HIDAPI_VER: 0.9.0
+          HIDAPI_VER: 0.10.1
         run: |
           mkdir -p $DL_DIR && cd $DL_DIR
           wget "https://github.com/libusb/hidapi/archive/hidapi-${HIDAPI_VER}.tar.gz"
@@ -38,14 +38,6 @@ jobs:
           cd hidapi-hidapi-${HIDAPI_VER}
           ./bootstrap
           echo "HIDAPI_SRC=$PWD" >> $GITHUB_ENV
-      - name: Prepare libftdi
-        env:
-          LIBFTDI_VER: 1.4
-        run: |
-          mkdir -p $DL_DIR && cd $DL_DIR
-          wget "http://www.intra2net.com/en/developer/libftdi/download/libftdi1-${LIBFTDI_VER}.tar.bz2"
-          tar -xjf libftdi1-${LIBFTDI_VER}.tar.bz2
-          echo "LIBFTDI_SRC=$PWD/libftdi1-${LIBFTDI_VER}" >> $GITHUB_ENV
       - name: Prepare capstone
         env:
           CAPSTONE_VER: 4.0.2
@@ -60,9 +52,8 @@ jobs:
         env:
           MAKE_JOBS: 2
           HOST: i686-w64-mingw32
-          LIBUSB1_CONFIG: --enable-shared --enable-static
+          LIBUSB1_CONFIG: --enable-shared --disable-static
           HIDAPI_CONFIG: --enable-shared --disable-static --disable-testgui
-          LIBFTDI_CONFIG: "-DCMAKE_TOOLCHAIN_FILE='${{ env.LIBFTDI_SRC }}/cmake/Toolchain-i686-w64-mingw32.cmake' -DBUILD_TESTS:BOOL=off -DFTDIPP:BOOL=off -DPYTHON_BINDINGS:BOOL=off -DEXAMPLES:BOOL=off -DDOCUMENTATION:BOOL=off -DFTDI_EEPROM:BOOL=off"
           CAPSTONE_CONFIG: "CAPSTONE_BUILD_CORE_ONLY=yes CAPSTONE_STATIC=yes CAPSTONE_SHARED=no"
         run: |
           # check if there is tag pointing at HEAD, otherwise take the HEAD SHA-1 as OPENOCD_TAG

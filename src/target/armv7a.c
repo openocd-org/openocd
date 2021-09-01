@@ -50,7 +50,7 @@ static void armv7a_show_fault_registers(struct target *target)
 	if (retval != ERROR_OK)
 		return;
 
-	/* ARMV4_5_MRC(cpnum, op1, r0, CRn, CRm, op2) */
+	/* ARMV4_5_MRC(cpnum, op1, r0, crn, crm, op2) */
 
 	/* c5/c0 - {data, instruction} fault status registers */
 	retval = dpm->instr_read_data_r0(dpm,
@@ -282,7 +282,7 @@ int armv7a_handle_cache_info_command(struct command_invocation *cmd,
 		}
 	}
 
-	if (l2x_cache != NULL)
+	if (l2x_cache)
 		command_print(cmd, "Outer unified cache Base Address 0x%" PRIx32 ", %" PRIu32 " ways",
 			l2x_cache->base, l2x_cache->way);
 
@@ -483,7 +483,7 @@ int armv7a_identify_cache(struct target *target)
 		goto done;
 
 	/*  if no l2 cache initialize l1 data cache flush function function */
-	if (armv7a->armv7a_mmu.armv7a_cache.flush_all_data_cache == NULL) {
+	if (!armv7a->armv7a_mmu.armv7a_cache.flush_all_data_cache) {
 		armv7a->armv7a_mmu.armv7a_cache.flush_all_data_cache =
 			armv7a_cache_auto_flush_all_data;
 	}

@@ -202,7 +202,7 @@ communication between users:
 @section OpenOCD IRC
 
 Support can also be found on irc:
-@uref{irc://irc.freenode.net/openocd}
+@uref{irc://irc.libera.chat/openocd}
 
 @node Developers
 @chapter OpenOCD Developer Resources
@@ -2378,7 +2378,7 @@ Amontec Chameleon in its JTAG Accelerator configuration,
 connected to a PC's EPP mode parallel port.
 This defines some driver-specific commands:
 
-@deffn {Config Command} {parport_port} number
+@deffn {Config Command} {parport port} number
 Specifies either the address of the I/O port (default: 0x378 for LPT1) or
 the number of the @file{/dev/parport} device.
 @end deffn
@@ -2466,10 +2466,10 @@ configuration files, without the need to patch and rebuild OpenOCD.
 
 The driver uses a signal abstraction to enable Tcl configuration files to
 define outputs for one or several FTDI GPIO. These outputs can then be
-controlled using the @command{ftdi_set_signal} command. Special signal names
+controlled using the @command{ftdi set_signal} command. Special signal names
 are reserved for nTRST, nSRST and LED (for blink) so that they, if defined,
 will be used for their customary purpose. Inputs can be read using the
-@command{ftdi_get_signal} command.
+@command{ftdi get_signal} command.
 
 To support SWD, a signal named SWD_EN must be defined. It is set to 1 when the
 SWD protocol is selected. When set, the adapter should route the SWDIO pin to
@@ -2494,21 +2494,21 @@ signal. The following output buffer configurations are supported:
 These interfaces have several commands, used to configure the driver
 before initializing the JTAG scan chain:
 
-@deffn {Config Command} {ftdi_vid_pid} [vid pid]+
+@deffn {Config Command} {ftdi vid_pid} [vid pid]+
 The vendor ID and product ID of the adapter. Up to eight
 [@var{vid}, @var{pid}] pairs may be given, e.g.
 @example
-ftdi_vid_pid 0x0403 0xcff8 0x15ba 0x0003
+ftdi vid_pid 0x0403 0xcff8 0x15ba 0x0003
 @end example
 @end deffn
 
-@deffn {Config Command} {ftdi_device_desc} description
+@deffn {Config Command} {ftdi device_desc} description
 Provides the USB device description (the @emph{iProduct string})
 of the adapter. If not specified, the device description is ignored
 during device selection.
 @end deffn
 
-@deffn {Config Command} {ftdi_serial} serial-number
+@deffn {Config Command} {ftdi serial} serial-number
 Specifies the @var{serial-number} of the adapter to use,
 in case the vendor provides unique IDs and more than one adapter
 is connected to the host.
@@ -2517,12 +2517,12 @@ If not specified, serial numbers are not considered.
 and are not restricted to containing only decimal digits.)
 @end deffn
 
-@deffn {Config Command} {ftdi_channel} channel
+@deffn {Config Command} {ftdi channel} channel
 Selects the channel of the FTDI device to use for MPSSE operations. Most
 adapters use the default, channel 0, but there are exceptions.
 @end deffn
 
-@deffn {Config Command} {ftdi_layout_init} data direction
+@deffn {Config Command} {ftdi layout_init} data direction
 Specifies the initial values of the FTDI GPIO data and direction registers.
 Each value is a 16-bit number corresponding to the concatenation of the high
 and low FTDI GPIO registers. The values should be selected based on the
@@ -2531,7 +2531,7 @@ minimal impact on the target system. Avoid floating inputs, conflicting outputs
 and initially asserted reset signals.
 @end deffn
 
-@deffn {Command} {ftdi_layout_signal} name [@option{-data}|@option{-ndata} data_mask] [@option{-input}|@option{-ninput} input_mask] [@option{-oe}|@option{-noe} oe_mask] [@option{-alias}|@option{-nalias} name]
+@deffn {Command} {ftdi layout_signal} name [@option{-data}|@option{-ndata} data_mask] [@option{-input}|@option{-ninput} input_mask] [@option{-oe}|@option{-noe} oe_mask] [@option{-alias}|@option{-nalias} name]
 Creates a signal with the specified @var{name}, controlled by one or more FTDI
 GPIO pins via a range of possible buffer connections. The masks are FTDI GPIO
 register bitmasks to tell the driver the connection and type of the output
@@ -2541,7 +2541,7 @@ used with inverting data inputs and @option{-data} with non-inverting inputs.
 The @option{-oe} (or @option{-noe}) option tells where the output-enable (or
 not-output-enable) input to the output buffer is connected. The options
 @option{-input} and @option{-ninput} specify the bitmask for pins to be read
-with the method @command{ftdi_get_signal}.
+with the method @command{ftdi get_signal}.
 
 Both @var{data_mask} and @var{oe_mask} need not be specified. For example, a
 simple open-collector transistor driver would be specified with @option{-oe}
@@ -2562,7 +2562,7 @@ identical (or with data inverted) to an already specified signal
 @var{name}.
 @end deffn
 
-@deffn {Command} {ftdi_set_signal} name @option{0}|@option{1}|@option{z}
+@deffn {Command} {ftdi set_signal} name @option{0}|@option{1}|@option{z}
 Set a previously defined signal to the specified level.
 @itemize @minus
 @item @option{0}, drive low
@@ -2571,11 +2571,11 @@ Set a previously defined signal to the specified level.
 @end itemize
 @end deffn
 
-@deffn {Command} {ftdi_get_signal} name
+@deffn {Command} {ftdi get_signal} name
 Get the value of a previously defined signal.
 @end deffn
 
-@deffn {Command} {ftdi_tdo_sample_edge} @option{rising}|@option{falling}
+@deffn {Command} {ftdi tdo_sample_edge} @option{rising}|@option{falling}
 Configure TCK edge at which the adapter samples the value of the TDO signal
 
 Due to signal propagation delays, sampling TDO on rising TCK can become quite
@@ -2632,47 +2632,47 @@ FT232R
 These interfaces have several commands, used to configure the driver
 before initializing the JTAG scan chain:
 
-@deffn {Config Command} {ft232r_vid_pid} @var{vid} @var{pid}
+@deffn {Config Command} {ft232r vid_pid} @var{vid} @var{pid}
 The vendor ID and product ID of the adapter. If not specified, default
 0x0403:0x6001 is used.
 @end deffn
 
-@deffn {Config Command} {ft232r_serial_desc} @var{serial}
+@deffn {Config Command} {ft232r serial_desc} @var{serial}
 Specifies the @var{serial} of the adapter to use, in case the
 vendor provides unique IDs and more than one adapter is connected to
 the host. If not specified, serial numbers are not considered.
 @end deffn
 
-@deffn {Config Command} {ft232r_jtag_nums} @var{tck} @var{tms} @var{tdi} @var{tdo}
+@deffn {Config Command} {ft232r jtag_nums} @var{tck} @var{tms} @var{tdi} @var{tdo}
 Set four JTAG GPIO numbers at once.
 If not specified, default 0 3 1 2 or TXD CTS RXD RTS is used.
 @end deffn
 
-@deffn {Config Command} {ft232r_tck_num} @var{tck}
+@deffn {Config Command} {ft232r tck_num} @var{tck}
 Set TCK GPIO number. If not specified, default 0 or TXD is used.
 @end deffn
 
-@deffn {Config Command} {ft232r_tms_num} @var{tms}
+@deffn {Config Command} {ft232r tms_num} @var{tms}
 Set TMS GPIO number. If not specified, default 3 or CTS is used.
 @end deffn
 
-@deffn {Config Command} {ft232r_tdi_num} @var{tdi}
+@deffn {Config Command} {ft232r tdi_num} @var{tdi}
 Set TDI GPIO number. If not specified, default 1 or RXD is used.
 @end deffn
 
-@deffn {Config Command} {ft232r_tdo_num} @var{tdo}
+@deffn {Config Command} {ft232r tdo_num} @var{tdo}
 Set TDO GPIO number. If not specified, default 2 or RTS is used.
 @end deffn
 
-@deffn {Config Command} {ft232r_trst_num} @var{trst}
+@deffn {Config Command} {ft232r trst_num} @var{trst}
 Set TRST GPIO number. If not specified, default 4 or DTR is used.
 @end deffn
 
-@deffn {Config Command} {ft232r_srst_num} @var{srst}
+@deffn {Config Command} {ft232r srst_num} @var{srst}
 Set SRST GPIO number. If not specified, default 6 or DCD is used.
 @end deffn
 
-@deffn {Config Command} {ft232r_restore_serial} @var{word}
+@deffn {Config Command} {ft232r restore_serial} @var{word}
 Restore serial port after JTAG. This USB bitmode control word
 (16-bit) will be sent before quit. Lower byte should
 set GPIO direction register to a "sane" state:
@@ -2694,14 +2694,14 @@ instead of directly driving JTAG.
 The remote_bitbang driver is useful for debugging software running on
 processors which are being simulated.
 
-@deffn {Config Command} {remote_bitbang_port} number
+@deffn {Config Command} {remote_bitbang port} number
 Specifies the TCP port of the remote process to connect to or 0 to use UNIX
 sockets instead of TCP.
 @end deffn
 
-@deffn {Config Command} {remote_bitbang_host} hostname
+@deffn {Config Command} {remote_bitbang host} hostname
 Specifies the hostname of the remote process to connect to using TCP, or the
-name of the UNIX socket to use if remote_bitbang_port is 0.
+name of the UNIX socket to use if remote_bitbang port is 0.
 @end deffn
 
 For example, to connect remotely via TCP to the host foobar you might have
@@ -2709,8 +2709,8 @@ something like:
 
 @example
 adapter driver remote_bitbang
-remote_bitbang_port 3335
-remote_bitbang_host foobar
+remote_bitbang port 3335
+remote_bitbang host foobar
 @end example
 
 To connect to another process running locally via UNIX sockets with socket
@@ -2718,8 +2718,8 @@ named mysocket:
 
 @example
 adapter driver remote_bitbang
-remote_bitbang_port 0
-remote_bitbang_host mysocket
+remote_bitbang port 0
+remote_bitbang host mysocket
 @end example
 @end deffn
 
@@ -2728,28 +2728,28 @@ USB JTAG/USB-Blaster compatibles over one of the userspace libraries
 for FTDI chips. These interfaces have several commands, used to
 configure the driver before initializing the JTAG scan chain:
 
-@deffn {Config Command} {usb_blaster_device_desc} description
+@deffn {Config Command} {usb_blaster device_desc} description
 Provides the USB device description (the @emph{iProduct string})
 of the FTDI FT245 device. If not
 specified, the FTDI default value is used. This setting is only valid
 if compiled with FTD2XX support.
 @end deffn
 
-@deffn {Config Command} {usb_blaster_vid_pid} vid pid
+@deffn {Config Command} {usb_blaster vid_pid} vid pid
 The vendor ID and product ID of the FTDI FT245 device. If not specified,
 default values are used.
 Currently, only one @var{vid}, @var{pid} pair may be given, e.g. for
 Altera USB-Blaster (default):
 @example
-usb_blaster_vid_pid 0x09FB 0x6001
+usb_blaster vid_pid 0x09FB 0x6001
 @end example
 The following VID/PID is for Kolja Waschk's USB JTAG:
 @example
-usb_blaster_vid_pid 0x16C0 0x06AD
+usb_blaster vid_pid 0x16C0 0x06AD
 @end example
 @end deffn
 
-@deffn {Command} {usb_blaster_pin} (@option{pin6}|@option{pin8}) (@option{0}|@option{1}|@option{s}|@option{t})
+@deffn {Command} {usb_blaster pin} (@option{pin6}|@option{pin8}) (@option{0}|@option{1}|@option{s}|@option{t})
 Sets the state or function of the unused GPIO pins on USB-Blasters
 (pins 6 and 8 on the female JTAG header). These pins can be used as
 SRST and/or TRST provided the appropriate connections are made on the
@@ -2757,18 +2757,18 @@ target board.
 
 For example, to use pin 6 as SRST:
 @example
-usb_blaster_pin pin6 s
+usb_blaster pin pin6 s
 reset_config srst_only
 @end example
 @end deffn
 
-@deffn {Config Command} {usb_blaster_lowlevel_driver} (@option{ftdi}|@option{ublast2})
+@deffn {Config Command} {usb_blaster lowlevel_driver} (@option{ftdi}|@option{ublast2})
 Chooses the low level access method for the adapter. If not specified,
 @option{ftdi} is selected unless it wasn't enabled during the
 configure stage. USB-Blaster II needs @option{ublast2}.
 @end deffn
 
-@deffn {Config Command} {usb_blaster_firmware} @var{path}
+@deffn {Config Command} {usb_blaster firmware} @var{path}
 This command specifies @var{path} to access USB-Blaster II firmware
 image. To be used with USB-Blaster II only.
 @end deffn
@@ -2779,7 +2779,7 @@ image. To be used with USB-Blaster II only.
 Gateworks GW16012 JTAG programmer.
 This has one driver-specific command:
 
-@deffn {Config Command} {parport_port} [port_number]
+@deffn {Config Command} {parport port} [port_number]
 Display either the address of the I/O port
 (default: 0x378 for LPT1) or the number of the @file{/dev/parport} device.
 If a parameter is provided, first switch to use that port.
@@ -2938,7 +2938,7 @@ Wigglers, PLD download cable, and more.
 These interfaces have several commands, used to configure the driver
 before initializing the JTAG scan chain:
 
-@deffn {Config Command} {parport_cable} name
+@deffn {Config Command} {parport cable} name
 Set the layout of the parallel port cable used to connect to the target.
 This is a write-once setting.
 Currently valid cable @var{name} values include:
@@ -2968,18 +2968,18 @@ several clones, such as the Olimex ARM-JTAG
 @end itemize
 @end deffn
 
-@deffn {Config Command} {parport_port} [port_number]
+@deffn {Config Command} {parport port} [port_number]
 Display either the address of the I/O port
 (default: 0x378 for LPT1) or the number of the @file{/dev/parport} device.
 If a parameter is provided, first switch to use that port.
 This is a write-once setting.
 
 When using PPDEV to access the parallel port, use the number of the parallel port:
-@option{parport_port 0} (the default). If @option{parport_port 0x378} is specified
+@option{parport port 0} (the default). If @option{parport port 0x378} is specified
 you may encounter a problem.
 @end deffn
 
-@deffn {Config Command} {parport_toggling_time} [nanoseconds]
+@deffn {Config Command} {parport toggling_time} [nanoseconds]
 Displays how many nanoseconds the hardware needs to toggle TCK;
 the parport driver uses this value to obey the
 @command{adapter speed} configuration.
@@ -2992,7 +2992,7 @@ However, you may want to calibrate for your specific hardware.
 To measure the toggling time with a logic analyzer or a digital storage
 oscilloscope, follow the procedure below:
 @example
-> parport_toggling_time 1000
+> parport toggling_time 1000
 > adapter speed 500
 @end example
 This sets the maximum JTAG clock speed of the hardware, but
@@ -3002,7 +3002,7 @@ You can use @command{runtest 1000} or something similar to generate a
 large set of samples.
 Update the setting to match your measurement:
 @example
-> parport_toggling_time <measured nanoseconds>
+> parport toggling_time <measured nanoseconds>
 @end example
 Now the clock speed will be a better match for @command{adapter speed}
 command given in OpenOCD scripts and event handlers.
@@ -3016,7 +3016,7 @@ be conservative.
 @end quotation
 @end deffn
 
-@deffn {Config Command} {parport_write_on_exit} (@option{on}|@option{off})
+@deffn {Config Command} {parport write_on_exit} (@option{on}|@option{off})
 This will configure the parallel driver to write a known
 cable-specific value to the parallel interface on exiting OpenOCD.
 @end deffn
@@ -3026,14 +3026,14 @@ classic ``Wiggler'' cable on LPT2 might look something like this:
 
 @example
 adapter driver parport
-parport_port 0x278
-parport_cable wiggler
+parport port 0x278
+parport cable wiggler
 @end example
 @end deffn
 
 @deffn {Interface Driver} {presto}
 ASIX PRESTO USB JTAG programmer.
-@deffn {Config Command} {presto_serial} serial_string
+@deffn {Config Command} {presto serial} serial_string
 Configures the USB serial number of the Presto device to use.
 @end deffn
 @end deffn
@@ -3172,7 +3172,7 @@ exposed via extended capability registers in the PCI Express configuration space
 
 For more information see Xilinx PG245 (Section on From_PCIE_to_JTAG mode).
 
-@deffn {Config Command} {xlnx_pcie_xvc_config} device
+@deffn {Config Command} {xlnx_pcie_xvc config} device
 Specifies the PCI Express device via parameter @var{device} to use.
 
 The correct value for @var{device} can be obtained by looking at the output
@@ -3196,6 +3196,73 @@ configuration on exit.
 
 See @file{interface/raspberrypi-native.cfg} for a sample config and
 pinout.
+
+@deffn {Config Command} {bcm2835gpio jtag_nums} @var{tck} @var{tms} @var{tdi} @var{tdo}
+Set JTAG transport GPIO numbers for TCK, TMS, TDI, and TDO (in that order).
+Must be specified to enable JTAG transport. These pins can also be specified
+individually.
+@end deffn
+
+@deffn {Config Command} {bcm2835gpio tck_num} @var{tck}
+Set TCK GPIO number. Must be specified to enable JTAG transport. Can also be
+specified using the configuration command @command{bcm2835gpio jtag_nums}.
+@end deffn
+
+@deffn {Config Command} {bcm2835gpio tms_num} @var{tms}
+Set TMS GPIO number. Must be specified to enable JTAG transport. Can also be
+specified using the configuration command @command{bcm2835gpio jtag_nums}.
+@end deffn
+
+@deffn {Config Command} {bcm2835gpio tdo_num} @var{tdo}
+Set TDO GPIO number. Must be specified to enable JTAG transport. Can also be
+specified using the configuration command @command{bcm2835gpio jtag_nums}.
+@end deffn
+
+@deffn {Config Command} {bcm2835gpio tdi_num} @var{tdi}
+Set TDI GPIO number. Must be specified to enable JTAG transport. Can also be
+specified using the configuration command @command{bcm2835gpio jtag_nums}.
+@end deffn
+
+@deffn {Config Command} {bcm2835gpio swd_nums} @var{swclk} @var{swdio}
+Set SWD transport GPIO numbers for SWCLK and SWDIO (in that order). Must be
+specified to enable SWD transport. These pins can also be specified individually.
+@end deffn
+
+@deffn {Config Command} {bcm2835gpio swclk_num} @var{swclk}
+Set SWCLK GPIO number. Must be specified to enable SWD transport. Can also be
+specified using the configuration command @command{bcm2835gpio swd_nums}.
+@end deffn
+
+@deffn {Config Command} {bcm2835gpio swdio_num} @var{swdio}
+Set SWDIO GPIO number. Must be specified to enable SWD transport. Can also be
+specified using the configuration command @command{bcm2835gpio swd_nums}.
+@end deffn
+
+@deffn {Config Command} {bcm2835gpio swdio_dir_num} @var{swdio} @var{dir}
+Set SWDIO direction control pin GPIO number. If specified, this pin can be used
+to control the direction of an external buffer on the SWDIO pin (set=output
+mode, clear=input mode). If not specified, this feature is disabled.
+@end deffn
+
+@deffn {Config Command} {bcm2835gpio srst_num} @var{srst}
+Set SRST GPIO number. Must be specified to enable SRST.
+@end deffn
+
+@deffn {Config Command} {bcm2835gpio trst_num} @var{trst}
+Set TRST GPIO number. Must be specified to enable TRST.
+@end deffn
+
+@deffn {Config Command} {bcm2835gpio speed_coeffs} @var{speed_coeff} @var{speed_offset}
+Set SPEED_COEFF and SPEED_OFFSET for delay calculations. If unspecified,
+speed_coeff defaults to 113714, and speed_offset defaults to 28.
+@end deffn
+
+@deffn {Config Command} {bcm2835gpio peripheral_base} @var{base}
+Set the peripheral base register address to access GPIOs. For the RPi1, use
+0x20000000. For RPi2 and RPi3, use 0x3F000000. For RPi4, use 0xFE000000. A full
+list can be found in the
+@uref{https://www.raspberrypi.org/documentation/hardware/raspberrypi/peripheral_addresses.md, official guide}.
+@end deffn
 
 @end deffn
 
@@ -3231,7 +3298,7 @@ See @file{interface/sysfsgpio-raspberrypi.cfg} for a sample config.
 OpenJTAG compatible USB adapter.
 This defines some driver-specific commands:
 
-@deffn {Config Command} {openjtag_variant} variant
+@deffn {Config Command} {openjtag variant} variant
 Specifies the variant of the OpenJTAG adapter (see @uref{http://www.openjtag.org/}).
 Currently valid @var{variant} values include:
 
@@ -3242,7 +3309,7 @@ Currently valid @var{variant} values include:
 @end itemize
 @end deffn
 
-@deffn {Config Command} {openjtag_device_desc} string
+@deffn {Config Command} {openjtag device_desc} string
 The USB device description string of the adapter.
 This value is only used with the standard variant.
 @end deffn
@@ -3254,11 +3321,11 @@ SystemVerilog Direct Programming Interface (DPI) compatible driver for
 JTAG devices in emulation. The driver acts as a client for the SystemVerilog
 DPI server interface.
 
-@deffn {Config Command} {jtag_dpi_set_port} port
+@deffn {Config Command} {jtag_dpi set_port} port
 Specifies the TCP/IP port number of the SystemVerilog DPI server interface.
 @end deffn
 
-@deffn {Config Command} {jtag_dpi_set_address} address
+@deffn {Config Command} {jtag_dpi set_address} address
 Specifies the TCP/IP address of the SystemVerilog DPI server interface.
 @end deffn
 @end deffn
@@ -3272,21 +3339,21 @@ It uses a simple data protocol over a serial port connection.
 Most hardware development boards have a UART, a real serial port, or a virtual USB serial device, so this driver
 allows you to start building your own JTAG adapter without the complexity of a custom USB connection.
 
-@deffn {Config Command} {buspirate_port} serial_port
+@deffn {Config Command} {buspirate port} serial_port
 Specify the serial port's filename. For example:
 @example
-buspirate_port /dev/ttyUSB0
+buspirate port /dev/ttyUSB0
 @end example
 @end deffn
 
-@deffn {Config Command} {buspirate_speed} (normal|fast)
+@deffn {Config Command} {buspirate speed} (normal|fast)
 Set the communication speed to 115k (normal) or 1M (fast). For example:
 @example
-buspirate_mode normal
+buspirate speed normal
 @end example
 @end deffn
 
-@deffn {Config Command} {buspirate_mode} (normal|open-drain)
+@deffn {Config Command} {buspirate mode} (normal|open-drain)
 Set the Bus Pirate output mode.
 @itemize @minus
 @item In normal mode (push/pull), do not enable the pull-ups, and do not connect I/O header pin VPU to JTAG VREF.
@@ -3294,33 +3361,33 @@ Set the Bus Pirate output mode.
 @end itemize
 For example:
 @example
-buspirate_mode normal
+buspirate mode normal
 @end example
 @end deffn
 
-@deffn {Config Command} {buspirate_pullup} (0|1)
+@deffn {Config Command} {buspirate pullup} (0|1)
 Whether to connect (1) or not (0) the I/O header pin VPU (JTAG VREF)
 to the pull-up/pull-down resistors on MOSI (JTAG TDI), CLK (JTAG TCK), MISO (JTAG TDO) and CS (JTAG TMS).
 For example:
 @example
-buspirate_pullup 0
+buspirate pullup 0
 @end example
 @end deffn
 
-@deffn {Config Command} {buspirate_vreg} (0|1)
+@deffn {Config Command} {buspirate vreg} (0|1)
 Whether to enable (1) or disable (0) the built-in voltage regulator,
 which can be used to supply power to a test circuit through
 I/O header pins +3V3 and +5V. For example:
 @example
-buspirate_vreg 0
+buspirate vreg 0
 @end example
 @end deffn
 
-@deffn {Command} {buspirate_led} (0|1)
+@deffn {Command} {buspirate led} (0|1)
 Turns the Bus Pirate's LED on (1) or off (0). For example:
 @end deffn
 @example
-buspirate_led 1
+buspirate led 1
 @end example
 
 @end deffn
@@ -4821,8 +4888,8 @@ They are not otherwise documented here.
 @deffn {Command} {$target_name array2mem} arrayname width address count
 @deffnx {Command} {$target_name mem2array} arrayname width address count
 These provide an efficient script-oriented interface to memory.
-The @code{array2mem} primitive writes bytes, halfwords, or words;
-while @code{mem2array} reads them.
+The @code{array2mem} primitive writes bytes, halfwords, words
+or double-words; while @code{mem2array} reads them.
 In both cases, the TCL side uses an array, and
 the target side uses raw memory.
 
@@ -4835,7 +4902,7 @@ and neither store nor return those values.
 
 @itemize
 @item @var{arrayname} ... is the name of an array variable
-@item @var{width} ... is 8/16/32 - indicating the memory access size
+@item @var{width} ... is 8/16/32/64 - indicating the memory access size
 @item @var{address} ... is the target memory address
 @item @var{count} ... is the number of elements to process
 @end itemize
@@ -7235,7 +7302,7 @@ The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
 @deffn {Flash Driver} {stm32l4x}
-All members of the STM32 G0, G4, L4, L4+, L5, WB and WL
+All members of the STM32 G0, G4, L4, L4+, L5, U5, WB and WL
 microcontroller families from STMicroelectronics include internal flash
 and use ARM Cortex-M0+, M4 and M33 cores.
 The driver automatically recognizes a number of these chips using
@@ -7275,6 +7342,13 @@ The @var{num} parameter is a value shown by @command{flash banks}.
 @deffn {Command} {stm32l4x unlock} num
 Unlocks the entire stm32 device.
 The @var{num} parameter is a value shown by @command{flash banks}.
+@end deffn
+
+@deffn Command {stm32l4x flashloader} num [@option{enable} | @option{disable}]
+Enables or disables the flashloader usage (enabled by default),
+when disabled it will fall back to direct memory access to program the Flash or OTP memories.
+if neither @option{enabled} nor @option{disable} are specified, the command will display
+the current configuration.
 @end deffn
 
 @deffn {Command} {stm32l4x mass_erase} num
@@ -7332,6 +7406,14 @@ write protected areas in a specific @var{device_bank}
 @deffn {Command} {stm32l4x option_load} num
 Forces a re-load of the option byte registers. Will cause a system reset of the device.
 The @var{num} parameter is a value shown by @command{flash banks}.
+@end deffn
+
+@deffn Command {stm32l4x trustzone} num [@option{enable} | @option{disable}]
+Enables or disables Global TrustZone Security, using the TZEN option bit.
+If neither @option{enabled} nor @option{disable} are specified, the command will display
+the TrustZone status.
+@emph{Note:} This command works only with devices with TrustZone, eg. STM32L5.
+@emph{Note:} This command will perform an OBL_Launch after modifying the TZEN.
 @end deffn
 @end deffn
 

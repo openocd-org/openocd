@@ -93,7 +93,7 @@ static int nds32_v3_debug_entry(struct nds32 *nds32, bool enable_watchpoint)
 		}
 	}
 
-	if (ERROR_OK != nds32_examine_debug_reason(nds32)) {
+	if (nds32_examine_debug_reason(nds32) != ERROR_OK) {
 		nds32->target->state = backup_state;
 
 		/* re-activate all hardware breakpoints & watchpoints */
@@ -268,8 +268,8 @@ static int nds32_v3_get_exception_address(struct nds32 *nds32,
 
 		nds32_get_mapped_reg(nds32, PC, &val_pc);
 
-		if ((NDS32_DEBUG_DATA_ADDR_WATCHPOINT_NEXT_PRECISE == reason) ||
-				(NDS32_DEBUG_DATA_VALUE_WATCHPOINT_NEXT_PRECISE == reason)) {
+		if ((reason == NDS32_DEBUG_DATA_ADDR_WATCHPOINT_NEXT_PRECISE) ||
+				(reason == NDS32_DEBUG_DATA_VALUE_WATCHPOINT_NEXT_PRECISE)) {
 			if (edmsw & 0x4) /* check EDMSW.IS_16BIT */
 				val_pc -= 2;
 			else
@@ -320,7 +320,7 @@ static int nds32_v3_get_exception_address(struct nds32 *nds32,
 			return ERROR_FAIL;
 	} else if (match_count == 0) {
 		/* global stop is precise exception */
-		if ((NDS32_DEBUG_LOAD_STORE_GLOBAL_STOP == reason) && nds32->global_stop) {
+		if ((reason == NDS32_DEBUG_LOAD_STORE_GLOBAL_STOP) && nds32->global_stop) {
 			/* parse instruction to get correct access address */
 			uint32_t val_pc;
 			uint32_t opcode;
@@ -450,7 +450,7 @@ int nds32_v3_read_buffer(struct target *target, target_addr_t address,
 	struct nds32 *nds32 = target_to_nds32(target);
 	struct nds32_memory *memory = &(nds32->memory);
 
-	if ((NDS_MEMORY_ACC_CPU == memory->access_channel) &&
+	if ((memory->access_channel == NDS_MEMORY_ACC_CPU) &&
 			(target->state != TARGET_HALTED)) {
 		LOG_WARNING("target was not halted");
 		return ERROR_TARGET_NOT_HALTED;
@@ -474,7 +474,7 @@ int nds32_v3_read_buffer(struct target *target, target_addr_t address,
 	 * Because hardware will turn off IT/DT by default, it MUST translate virtual address
 	 * to physical address.
 	 */
-	if (ERROR_OK == target->type->virt2phys(target, address, &physical_address))
+	if (target->type->virt2phys(target, address, &physical_address) == ERROR_OK)
 		address = physical_address;
 	else
 		return ERROR_FAIL;
@@ -508,7 +508,7 @@ int nds32_v3_write_buffer(struct target *target, target_addr_t address,
 	struct nds32 *nds32 = target_to_nds32(target);
 	struct nds32_memory *memory = &(nds32->memory);
 
-	if ((NDS_MEMORY_ACC_CPU == memory->access_channel) &&
+	if ((memory->access_channel == NDS_MEMORY_ACC_CPU) &&
 			(target->state != TARGET_HALTED)) {
 		LOG_WARNING("target was not halted");
 		return ERROR_TARGET_NOT_HALTED;
@@ -532,7 +532,7 @@ int nds32_v3_write_buffer(struct target *target, target_addr_t address,
 	 * Because hardware will turn off IT/DT by default, it MUST translate virtual address
 	 * to physical address.
 	 */
-	if (ERROR_OK == target->type->virt2phys(target, address, &physical_address))
+	if (target->type->virt2phys(target, address, &physical_address) == ERROR_OK)
 		address = physical_address;
 	else
 		return ERROR_FAIL;
@@ -553,7 +553,7 @@ int nds32_v3_write_buffer(struct target *target, target_addr_t address,
 		int result;
 		result = nds32_gdb_fileio_write_memory(nds32, address, size, buffer);
 
-		if (NDS_MEMORY_ACC_CPU == origin_access_channel) {
+		if (origin_access_channel == NDS_MEMORY_ACC_CPU) {
 			memory->access_channel = NDS_MEMORY_ACC_CPU;
 			aice_memory_access(aice, NDS_MEMORY_ACC_CPU);
 		}
@@ -570,7 +570,7 @@ int nds32_v3_read_memory(struct target *target, target_addr_t address,
 	struct nds32 *nds32 = target_to_nds32(target);
 	struct nds32_memory *memory = &(nds32->memory);
 
-	if ((NDS_MEMORY_ACC_CPU == memory->access_channel) &&
+	if ((memory->access_channel == NDS_MEMORY_ACC_CPU) &&
 			(target->state != TARGET_HALTED)) {
 		LOG_WARNING("target was not halted");
 		return ERROR_TARGET_NOT_HALTED;
@@ -594,7 +594,7 @@ int nds32_v3_read_memory(struct target *target, target_addr_t address,
 	 * Because hardware will turn off IT/DT by default, it MUST translate virtual address
 	 * to physical address.
 	 */
-	if (ERROR_OK == target->type->virt2phys(target, address, &physical_address))
+	if (target->type->virt2phys(target, address, &physical_address) == ERROR_OK)
 		address = physical_address;
 	else
 		return ERROR_FAIL;
@@ -628,7 +628,7 @@ int nds32_v3_write_memory(struct target *target, target_addr_t address,
 	struct nds32 *nds32 = target_to_nds32(target);
 	struct nds32_memory *memory = &(nds32->memory);
 
-	if ((NDS_MEMORY_ACC_CPU == memory->access_channel) &&
+	if ((memory->access_channel == NDS_MEMORY_ACC_CPU) &&
 			(target->state != TARGET_HALTED)) {
 		LOG_WARNING("target was not halted");
 		return ERROR_TARGET_NOT_HALTED;
@@ -652,7 +652,7 @@ int nds32_v3_write_memory(struct target *target, target_addr_t address,
 	 * Because hardware will turn off IT/DT by default, it MUST translate virtual address
 	 * to physical address.
 	 */
-	if (ERROR_OK == target->type->virt2phys(target, address, &physical_address))
+	if (target->type->virt2phys(target, address, &physical_address) == ERROR_OK)
 		address = physical_address;
 	else
 		return ERROR_FAIL;

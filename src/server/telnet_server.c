@@ -150,7 +150,7 @@ static void telnet_load_history(struct telnet_connection *t_con)
 
 	char *history = get_home_dir(TELNET_HISTORY);
 
-	if (history == NULL) {
+	if (!history) {
 		LOG_INFO("unable to get user home directory, telnet history will be disabled");
 		return;
 	}
@@ -159,7 +159,7 @@ static void telnet_load_history(struct telnet_connection *t_con)
 
 	if (histfp) {
 
-		while (fgets(buffer, sizeof(buffer), histfp) != NULL) {
+		while (fgets(buffer, sizeof(buffer), histfp)) {
 
 			char *p = strchr(buffer, '\n');
 			if (p)
@@ -186,7 +186,7 @@ static void telnet_save_history(struct telnet_connection *t_con)
 
 	char *history = get_home_dir(TELNET_HISTORY);
 
-	if (history == NULL) {
+	if (!history) {
 		LOG_INFO("unable to get user home directory, telnet history will be disabled");
 		return;
 	}
@@ -199,7 +199,7 @@ static void telnet_save_history(struct telnet_connection *t_con)
 		i = t_con->current_history + 1;
 		i %= TELNET_LINE_HISTORY_SIZE;
 
-		while (t_con->history[i] == NULL && num > 0) {
+		while (!t_con->history[i] && num > 0) {
 			i++;
 			i %= TELNET_LINE_HISTORY_SIZE;
 			num--;
@@ -352,10 +352,14 @@ static int telnet_history_print(struct connection *connection)
 
 static void telnet_move_cursor(struct connection *connection, size_t pos)
 {
-	struct telnet_connection *tc;
+	struct telnet_connection *tc = connection->priv;
 	size_t tmp;
 
-	tc = connection->priv;
+	if (pos == tc->line_cursor) /* nothing to do */
+		return;
+
+	if (pos > tc->line_size) /* out of bounds */
+		return;
 
 	if (pos < tc->line_cursor) {
 		tmp = tc->line_cursor - pos;
@@ -602,16 +606,16 @@ static int telnet_input(struct connection *connection)
 	while (bytes_read) {
 		switch (t_con->state) {
 			case TELNET_STATE_DATA:
-				if (*buf_p == 0xff)
+				if (*buf_p == 0xff) {
 					t_con->state = TELNET_STATE_IAC;
-				else {
+				} else {
 					if (isprint(*buf_p)) {	/* printable character */
 						telnet_insert(connection, buf_p, 1);
-					} else {	/* non-printable */
+					} else { /* non-printable */
 						if (*buf_p == 0x1b) {	/* escape */
 							t_con->state = TELNET_STATE_ESCAPE;
 							t_con->last_escape = '\x00';
-						} else if ((*buf_p == 0xd) || (*buf_p == 0xa)) {	/* CR/LF */
+						} else if ((*buf_p == 0xd) || (*buf_p == 0xa)) { /* CR/LF */
 							int retval;
 
 							/* skip over combinations with CR/LF and NUL characters */
@@ -640,7 +644,7 @@ static int telnet_input(struct connection *connection)
 							/* save only non-blank not repeating lines in the history */
 							char *prev_line = t_con->history[(t_con->current_history > 0) ?
 									t_con->current_history - 1 : TELNET_LINE_HISTORY_SIZE-1];
-							if (*t_con->line && (prev_line == NULL ||
+							if (*t_con->line && (!prev_line ||
 									strcmp(t_con->line, prev_line))) {
 								/* if the history slot is already taken, free it */
 								free(t_con->history[t_con->next_history]);
@@ -710,27 +714,34 @@ static int telnet_input(struct connection *connection)
 									telnet_write(connection, "\b \b", 3);
 								}
 							}
-						} else if (*buf_p == 0x15) /* clear line */
+						} else if (*buf_p == 0x15) {	/* clear line */
 							telnet_clear_line(connection, t_con);
-						else if (*buf_p == CTRL('B')) {	/* cursor left */
+						} else if (*buf_p == CTRL('B')) {	/* cursor left */
 							if (t_con->line_cursor > 0) {
 								telnet_write(connection, "\b", 1);
 								t_con->line_cursor--;
 							}
 							t_con->state = TELNET_STATE_DATA;
+						} else if (*buf_p == CTRL('C')) {	/* interrupt */
+							/* print '^C' at line end, and display a new command prompt */
+							telnet_move_cursor(connection, t_con->line_size);
+							telnet_write(connection, "^C\n\r", 4);
+							t_con->line_cursor = 0;
+							t_con->line_size = 0;
+							telnet_prompt(connection);
 						} else if (*buf_p == CTRL('F')) {	/* cursor right */
 							if (t_con->line_cursor < t_con->line_size)
 								telnet_write(connection, t_con->line + t_con->line_cursor++, 1);
 							t_con->state = TELNET_STATE_DATA;
-						} else if (*buf_p == CTRL('P'))		/* cursor up */
+						} else if (*buf_p == CTRL('P')) {	/* cursor up */
 							telnet_history_up(connection);
-						else if (*buf_p == CTRL('N'))		/* cursor down */
+						} else if (*buf_p == CTRL('N')) {	/* cursor down */
 							telnet_history_down(connection);
-						else if (*buf_p == CTRL('A'))
+						} else if (*buf_p == CTRL('A')) {	/* move the cursor to the beginning of the line */
 							telnet_move_cursor(connection, 0);
-						else if (*buf_p == CTRL('E'))
+						} else if (*buf_p == CTRL('E')) {	/* move the cursor to the end of the line */
 							telnet_move_cursor(connection, t_con->line_size);
-						else if (*buf_p == CTRL('K')) {         /* kill line to end */
+						} else if (*buf_p == CTRL('K')) {	/* kill line to end */
 							if (t_con->line_cursor < t_con->line_size) {
 								/* overwrite with space, until end of line, move back */
 								for (size_t i = t_con->line_cursor; i < t_con->line_size; i++)
@@ -740,10 +751,11 @@ static int telnet_input(struct connection *connection)
 								t_con->line[t_con->line_cursor] = '\0';
 								t_con->line_size = t_con->line_cursor;
 							}
-						} else if (*buf_p == '\t')
+						} else if (*buf_p == '\t') {
 							telnet_auto_complete(connection);
-						else
+						} else {
 							LOG_DEBUG("unhandled nonprintable: %2.2x", *buf_p);
+						}
 					}
 				}
 				break;
@@ -796,10 +808,11 @@ static int telnet_input(struct connection *connection)
 					} else if (*buf_p == 'H') { /* home key */
 						telnet_move_cursor(connection, 0);
 						t_con->state = TELNET_STATE_DATA;
-					} else if (*buf_p == '3')
+					} else if (*buf_p == '3') {
 						t_con->last_escape = *buf_p;
-					else
+					} else {
 						t_con->state = TELNET_STATE_DATA;
+					}
 				} else if (t_con->last_escape == '3') {
 					/* Remove character */
 					if (*buf_p == '~') {

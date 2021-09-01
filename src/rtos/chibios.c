@@ -62,9 +62,9 @@ struct chibios_chdebug {
 	uint8_t   cf_off_time;            /**< @brief Offset of @p p_time field.  */
 };
 
-#define GET_CH_KERNEL_MAJOR(codedVersion) ((codedVersion >> 11) & 0x1f)
-#define GET_CH_KERNEL_MINOR(codedVersion) ((codedVersion >> 6) & 0x1f)
-#define GET_CH_KERNEL_PATCH(codedVersion) ((codedVersion >> 0) & 0x3f)
+#define GET_CH_KERNEL_MAJOR(coded_version) ((coded_version >> 11) & 0x1f)
+#define GET_CH_KERNEL_MINOR(coded_version) ((coded_version >> 6) & 0x1f)
+#define GET_CH_KERNEL_PATCH(coded_version) ((coded_version >> 0) & 0x3f)
 
 /**
  * @brief ChibiOS thread states.
@@ -184,10 +184,10 @@ static int chibios_update_memory_signature(struct rtos *rtos)
 	}
 
 	/* Convert endianness of version field */
-	const uint8_t *versionTarget = (const uint8_t *)
+	const uint8_t *versiontarget = (const uint8_t *)
 										&signature->ch_version;
 	signature->ch_version = rtos->target->endianness == TARGET_LITTLE_ENDIAN ?
-			le_to_h_u32(versionTarget) : be_to_h_u32(versionTarget);
+			le_to_h_u32(versiontarget) : be_to_h_u32(versiontarget);
 
 	const uint16_t ch_version = signature->ch_version;
 	LOG_INFO("Successfully loaded memory map of ChibiOS/RT target "
@@ -469,8 +469,8 @@ static int chibios_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
 	const struct chibios_params *param;
 	uint32_t stack_ptr = 0;
 
-	if ((rtos == NULL) || (thread_id == 0) ||
-			(rtos->rtos_specific_params == NULL))
+	if ((!rtos) || (thread_id == 0) ||
+			(!rtos->rtos_specific_params))
 		return -1;
 
 	param = (const struct chibios_params *) rtos->rtos_specific_params;
@@ -500,7 +500,7 @@ static int chibios_get_symbol_list_to_lookup(struct symbol_table_elem *symbol_li
 {
 	*symbol_list = malloc(sizeof(chibios_symbol_list));
 
-	if (*symbol_list == NULL)
+	if (!*symbol_list)
 		return ERROR_FAIL;
 
 	memcpy(*symbol_list, chibios_symbol_list, sizeof(chibios_symbol_list));
@@ -509,7 +509,7 @@ static int chibios_get_symbol_list_to_lookup(struct symbol_table_elem *symbol_li
 
 static bool chibios_detect_rtos(struct target *target)
 {
-	if ((target->rtos->symbols != NULL) &&
+	if ((target->rtos->symbols) &&
 			((target->rtos->symbols[CHIBIOS_VAL_RLIST].address != 0) ||
 			 (target->rtos->symbols[CHIBIOS_VAL_CH].address != 0))) {
 

@@ -1101,7 +1101,7 @@ static int old_or_new_riscv_step(struct target *target, int current,
 {
 	RISCV_INFO(r);
 	LOG_DEBUG("handle_breakpoints=%d", handle_breakpoints);
-	if (r->is_halted == NULL)
+	if (!r->is_halted)
 		return oldriscv_step(target, current, address, handle_breakpoints);
 	else
 		return riscv_openocd_step(target, current, address, handle_breakpoints);
@@ -1125,7 +1125,7 @@ static int riscv_examine(struct target *target)
 	LOG_DEBUG("  version=0x%x", info->dtm_version);
 
 	struct target_type *tt = get_target_type(target);
-	if (tt == NULL)
+	if (!tt)
 		return ERROR_FAIL;
 
 	int result = tt->init_target(info->cmd_ctx, target);
@@ -1144,7 +1144,7 @@ static int oldriscv_poll(struct target *target)
 static int old_or_new_riscv_poll(struct target *target)
 {
 	RISCV_INFO(r);
-	if (r->is_halted == NULL)
+	if (!r->is_halted)
 		return oldriscv_poll(target);
 	else
 		return riscv_openocd_poll(target);
@@ -1197,7 +1197,7 @@ int halt_go(struct target *target)
 {
 	riscv_info_t *r = riscv_info(target);
 	int result;
-	if (r->is_halted == NULL) {
+	if (!r->is_halted) {
 		struct target_type *tt = get_target_type(target);
 		result = tt->halt(target);
 	} else {
@@ -1219,7 +1219,7 @@ int riscv_halt(struct target *target)
 {
 	RISCV_INFO(r);
 
-	if (r->is_halted == NULL) {
+	if (!r->is_halted) {
 		struct target_type *tt = get_target_type(target);
 		return tt->halt(target);
 	}
@@ -1430,7 +1430,7 @@ static int resume_go(struct target *target, int current,
 {
 	riscv_info_t *r = riscv_info(target);
 	int result;
-	if (r->is_halted == NULL) {
+	if (!r->is_halted) {
 		struct target_type *tt = get_target_type(target);
 		result = tt->resume(target, current, address, handle_breakpoints,
 				debug_execution);
@@ -2177,7 +2177,7 @@ int riscv_openocd_poll(struct target *target)
 		unsigned should_remain_halted = 0;
 		unsigned should_resume = 0;
 		unsigned i = 0;
-		for (struct target_list *list = target->head; list != NULL;
+		for (struct target_list *list = target->head; list;
 				list = list->next, i++) {
 			struct target *t = list->target;
 			riscv_info_t *r = riscv_info(t);
@@ -3508,10 +3508,10 @@ int riscv_current_hartid(const struct target *target)
 
 int riscv_count_harts(struct target *target)
 {
-	if (target == NULL)
+	if (!target)
 		return 1;
 	RISCV_INFO(r);
-	if (r == NULL || r->hart_count == NULL)
+	if (!r || !r->hart_count)
 		return 1;
 	return r->hart_count(target);
 }

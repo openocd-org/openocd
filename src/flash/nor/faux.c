@@ -30,7 +30,7 @@ struct faux_flash_bank {
 	uint32_t start_address;
 };
 
-static const int sectorSize = 0x10000;
+static const int sector_size = 0x10000;
 
 
 /* flash bank faux <base> <size> <chip_width> <bus_width> <target#> <driverPath>
@@ -43,12 +43,12 @@ FLASH_BANK_COMMAND_HANDLER(faux_flash_bank_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	info = malloc(sizeof(struct faux_flash_bank));
-	if (info == NULL) {
+	if (!info) {
 		LOG_ERROR("no memory for flash bank info");
 		return ERROR_FAIL;
 	}
 	info->memory = malloc(bank->size);
-	if (info->memory == NULL) {
+	if (!info->memory) {
 		free(info);
 		LOG_ERROR("no memory for flash bank info");
 		return ERROR_FAIL;
@@ -57,18 +57,18 @@ FLASH_BANK_COMMAND_HANDLER(faux_flash_bank_command)
 
 	/* Use 0x10000 as a fixed sector size. */
 	uint32_t offset = 0;
-	bank->num_sectors = bank->size/sectorSize;
+	bank->num_sectors = bank->size/sector_size;
 	bank->sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
 	for (unsigned int i = 0; i < bank->num_sectors; i++) {
 		bank->sectors[i].offset = offset;
-		bank->sectors[i].size = sectorSize;
+		bank->sectors[i].size = sector_size;
 		offset += bank->sectors[i].size;
 		bank->sectors[i].is_erased = -1;
 		bank->sectors[i].is_protected = 0;
 	}
 
 	info->target = get_target(CMD_ARGV[5]);
-	if (info->target == NULL) {
+	if (!info->target) {
 		LOG_ERROR("target '%s' not defined", CMD_ARGV[5]);
 		free(info->memory);
 		free(info);
@@ -81,7 +81,7 @@ static int faux_erase(struct flash_bank *bank, unsigned int first,
 		unsigned int last)
 {
 	struct faux_flash_bank *info = bank->driver_priv;
-	memset(info->memory + first*sectorSize, 0xff, sectorSize*(last-first + 1));
+	memset(info->memory + first*sector_size, 0xff, sector_size*(last-first + 1));
 	return ERROR_OK;
 }
 

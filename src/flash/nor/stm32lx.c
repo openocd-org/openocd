@@ -290,7 +290,7 @@ FLASH_BANK_COMMAND_HANDLER(stm32lx_flash_bank_command)
 	stm32lx_info = calloc(1, sizeof(*stm32lx_info));
 
 	/* Check allocation */
-	if (stm32lx_info == NULL) {
+	if (!stm32lx_info) {
 		LOG_ERROR("failed to allocate bank structure");
 		return ERROR_FAIL;
 	}
@@ -313,19 +313,14 @@ COMMAND_HANDLER(stm32lx_handle_mass_erase_command)
 
 	struct flash_bank *bank;
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
-	if (ERROR_OK != retval)
+	if (retval != ERROR_OK)
 		return retval;
 
 	retval = stm32lx_mass_erase(bank);
-	if (retval == ERROR_OK) {
-		/* set all sectors as erased */
-		for (unsigned int i = 0; i < bank->num_sectors; i++)
-			bank->sectors[i].is_erased = 1;
-
+	if (retval == ERROR_OK)
 		command_print(CMD, "stm32lx mass erase complete");
-	} else {
+	else
 		command_print(CMD, "stm32lx mass erase failed");
-	}
 
 	return retval;
 }
@@ -337,7 +332,7 @@ COMMAND_HANDLER(stm32lx_handle_lock_command)
 
 	struct flash_bank *bank;
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
-	if (ERROR_OK != retval)
+	if (retval != ERROR_OK)
 		return retval;
 
 	retval = stm32lx_lock(bank);
@@ -357,7 +352,7 @@ COMMAND_HANDLER(stm32lx_handle_unlock_command)
 
 	struct flash_bank *bank;
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
-	if (ERROR_OK != retval)
+	if (retval != ERROR_OK)
 		return retval;
 
 	retval = stm32lx_unlock(bank);
@@ -503,7 +498,7 @@ static int stm32lx_write_half_pages(struct flash_bank *bank, const uint8_t *buff
 	}
 
 	struct armv7m_common *armv7m = target_to_armv7m(target);
-	if (armv7m == NULL) {
+	if (!armv7m) {
 
 		/* something is very wrong if armv7m is NULL */
 		LOG_ERROR("unable to get armv7m target");
@@ -842,7 +837,7 @@ static int stm32lx_probe(struct flash_bank *bank)
 	bank->base = base_address;
 	bank->num_sectors = num_sectors;
 	bank->sectors = malloc(sizeof(struct flash_sector) * num_sectors);
-	if (bank->sectors == NULL) {
+	if (!bank->sectors) {
 		LOG_ERROR("failed to allocate bank sectors");
 		return ERROR_FAIL;
 	}
@@ -889,7 +884,7 @@ static int stm32lx_get_info(struct flash_bank *bank, struct command_invocation *
 		if (rev_id == info->revs[i].rev)
 			rev_str = info->revs[i].str;
 
-	if (rev_str != NULL) {
+	if (rev_str) {
 		command_print_sameline(cmd, "%s - Rev: %s", info->device_str, rev_str);
 	} else {
 		command_print_sameline(cmd, "%s - Rev: unknown (0x%04x)", info->device_str, rev_id);

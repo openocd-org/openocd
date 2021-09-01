@@ -81,7 +81,7 @@ static int str9xpec_write_options(struct flash_bank *bank);
 
 static int str9xpec_set_instr(struct jtag_tap *tap, uint32_t new_instr, tap_state_t end_state)
 {
-	if (tap == NULL)
+	if (!tap)
 		return ERROR_TARGET_INVALID;
 
 	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) != new_instr) {
@@ -727,7 +727,7 @@ COMMAND_HANDLER(str9xpec_handle_part_id_command)
 
 	struct flash_bank *bank;
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
-	if (ERROR_OK != retval)
+	if (retval != ERROR_OK)
 		return retval;
 
 	str9xpec_info = bank->driver_priv;
@@ -768,7 +768,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_read_command)
 
 	struct flash_bank *bank;
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
-	if (ERROR_OK != retval)
+	if (retval != ERROR_OK)
 		return retval;
 
 	str9xpec_info = bank->driver_priv;
@@ -877,7 +877,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_write_command)
 
 	struct flash_bank *bank;
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
-	if (ERROR_OK != retval)
+	if (retval != ERROR_OK)
 		return retval;
 
 	status = str9xpec_write_options(bank);
@@ -901,7 +901,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_cmap_command)
 
 	struct flash_bank *bank;
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
-	if (ERROR_OK != retval)
+	if (retval != ERROR_OK)
 		return retval;
 
 	str9xpec_info = bank->driver_priv;
@@ -923,7 +923,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_lvdthd_command)
 
 	struct flash_bank *bank;
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
-	if (ERROR_OK != retval)
+	if (retval != ERROR_OK)
 		return retval;
 
 	str9xpec_info = bank->driver_priv;
@@ -945,7 +945,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_lvdsel_command)
 
 	struct flash_bank *bank;
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
-	if (ERROR_OK != retval)
+	if (retval != ERROR_OK)
 		return retval;
 
 	str9xpec_info = bank->driver_priv;
@@ -967,7 +967,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_options_lvdwarn_command)
 
 	struct flash_bank *bank;
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
-	if (ERROR_OK != retval)
+	if (retval != ERROR_OK)
 		return retval;
 
 	str9xpec_info = bank->driver_priv;
@@ -989,7 +989,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_lock_command)
 
 	struct flash_bank *bank;
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
-	if (ERROR_OK != retval)
+	if (retval != ERROR_OK)
 		return retval;
 
 	status = str9xpec_lock_device(bank);
@@ -1009,7 +1009,7 @@ COMMAND_HANDLER(str9xpec_handle_flash_unlock_command)
 
 	struct flash_bank *bank;
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
-	if (ERROR_OK != retval)
+	if (retval != ERROR_OK)
 		return retval;
 
 	status = str9xpec_unlock_device(bank);
@@ -1036,26 +1036,26 @@ COMMAND_HANDLER(str9xpec_handle_flash_enable_turbo_command)
 
 	struct flash_bank *bank;
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
-	if (ERROR_OK != retval)
+	if (retval != ERROR_OK)
 		return retval;
 
 	str9xpec_info = bank->driver_priv;
 
 	/* remove arm core from chain - enter turbo mode */
 	tap0 = str9xpec_info->tap;
-	if (tap0 == NULL) {
+	if (!tap0) {
 		/* things are *WRONG* */
 		command_print(CMD, "**STR9FLASH** (tap0) invalid chain?");
 		return ERROR_FAIL;
 	}
 	tap1 = tap0->next_tap;
-	if (tap1 == NULL) {
+	if (!tap1) {
 		/* things are *WRONG* */
 		command_print(CMD, "**STR9FLASH** (tap1) invalid chain?");
 		return ERROR_FAIL;
 	}
 	tap2 = tap1->next_tap;
-	if (tap2 == NULL) {
+	if (!tap2) {
 		/* things are *WRONG* */
 		command_print(CMD, "**STR9FLASH** (tap2) invalid chain?");
 		return ERROR_FAIL;
@@ -1083,13 +1083,13 @@ COMMAND_HANDLER(str9xpec_handle_flash_disable_turbo_command)
 
 	struct flash_bank *bank;
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
-	if (ERROR_OK != retval)
+	if (retval != ERROR_OK)
 		return retval;
 
 	str9xpec_info = bank->driver_priv;
 	tap = str9xpec_info->tap;
 
-	if (tap == NULL)
+	if (!tap)
 		return ERROR_FAIL;
 
 	/* exit turbo mode via RESET */

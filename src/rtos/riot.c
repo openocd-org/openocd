@@ -91,19 +91,19 @@ enum riot_symbol_values {
 	RIOT_NAME_OFFSET,
 };
 
-/* refer RIOT core/sched.c */
-static const char *const riot_symbol_list[] = {
-	"sched_threads",
-	"sched_num_threads",
-	"sched_active_pid",
-	"max_threads",
-	"_tcb_name_offset",
-	NULL
+struct riot_symbol {
+	const char *const name;
+	bool optional;
 };
 
-/* Define which symbols are not mandatory */
-static const enum riot_symbol_values riot_optional_symbols[] = {
-	RIOT_NAME_OFFSET,
+/* refer RIOT core/sched.c */
+static struct riot_symbol const riot_symbol_list[] = {
+	{"sched_threads", false},
+	{"sched_num_threads", false},
+	{"sched_active_pid", false},
+	{"max_threads", false},
+	{"_tcb_name_offset", true},
+	{NULL, false}
 };
 
 const struct rtos_type riot_rtos = {
@@ -118,25 +118,25 @@ const struct rtos_type riot_rtos = {
 static int riot_update_threads(struct rtos *rtos)
 {
 	int retval;
-	unsigned int tasks_found = 0;
+	int tasks_found = 0;
 	const struct riot_params *param;
 
-	if (rtos == NULL)
+	if (!rtos)
 		return ERROR_FAIL;
 
-	if (rtos->rtos_specific_params == NULL)
+	if (!rtos->rtos_specific_params)
 		return ERROR_FAIL;
 
 	param = (const struct riot_params *)rtos->rtos_specific_params;
 
-	if (rtos->symbols == NULL) {
+	if (!rtos->symbols) {
 		LOG_ERROR("No symbols for RIOT");
 		return ERROR_FAIL;
 	}
 
 	if (rtos->symbols[RIOT_THREADS_BASE].address == 0) {
 		LOG_ERROR("Can't find symbol `%s`",
-			riot_symbol_list[RIOT_THREADS_BASE]);
+			riot_symbol_list[RIOT_THREADS_BASE].name);
 		return ERROR_FAIL;
 	}
 
@@ -154,7 +154,7 @@ static int riot_update_threads(struct rtos *rtos)
 			(uint16_t *)&active_pid);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Can't read symbol `%s`",
-			riot_symbol_list[RIOT_ACTIVE_PID]);
+			riot_symbol_list[RIOT_ACTIVE_PID].name);
 		return retval;
 	}
 	rtos->current_thread = active_pid;
@@ -167,10 +167,9 @@ static int riot_update_threads(struct rtos *rtos)
 			(uint16_t *)&thread_count);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Can't read symbol `%s`",
-			riot_symbol_list[RIOT_NUM_THREADS]);
+			riot_symbol_list[RIOT_NUM_THREADS].name);
 		return retval;
 	}
-	rtos->thread_count = thread_count;
 
 	/* read the maximum number of threads */
 	uint8_t max_threads = 0;
@@ -179,9 +178,14 @@ static int riot_update_threads(struct rtos *rtos)
 			&max_threads);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Can't read symbol `%s`",
-			riot_symbol_list[RIOT_MAX_THREADS]);
+			riot_symbol_list[RIOT_MAX_THREADS].name);
 		return retval;
 	}
+	if (thread_count > max_threads) {
+		LOG_ERROR("Thread count is invalid");
+		return ERROR_FAIL;
+	}
+	rtos->thread_count = thread_count;
 
 	/* Base address of thread array */
 	uint32_t threads_base = rtos->symbols[RIOT_THREADS_BASE].address;
@@ -195,14 +199,14 @@ static int riot_update_threads(struct rtos *rtos)
 				&name_offset);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("Can't read symbol `%s`",
-				riot_symbol_list[RIOT_NAME_OFFSET]);
+				riot_symbol_list[RIOT_NAME_OFFSET].name);
 			return retval;
 		}
 	}
 
 	/* Allocate memory for thread description */
 	rtos->thread_details = calloc(thread_count, sizeof(struct thread_detail));
-	if (rtos->thread_details == NULL) {
+	if (!rtos->thread_details) {
 		LOG_ERROR("RIOT: out of memory");
 		return ERROR_FAIL;
 	}
@@ -211,13 +215,17 @@ static int riot_update_threads(struct rtos *rtos)
 	char buffer[32];
 
 	for (unsigned int i = 0; i < max_threads; i++) {
+		if (tasks_found == rtos->thread_count)
+			break;
+
 		/* get pointer to tcb_t */
 		uint32_t tcb_pointer = 0;
 		retval = target_read_u32(rtos->target,
 				threads_base + (i * 4),
 				&tcb_pointer);
 		if (retval != ERROR_OK) {
-			LOG_ERROR("Can't parse `%s`", riot_symbol_list[RIOT_THREADS_BASE]);
+			LOG_ERROR("Can't parse `%s`",
+				riot_symbol_list[RIOT_THREADS_BASE].name);
 			goto error;
 		}
 
@@ -235,7 +243,8 @@ static int riot_update_threads(struct rtos *rtos)
 				tcb_pointer + param->thread_status_offset,
 				&status);
 		if (retval != ERROR_OK) {
-			LOG_ERROR("Can't parse `%s`", riot_symbol_list[RIOT_THREADS_BASE]);
+			LOG_ERROR("Can't parse `%s`",
+				riot_symbol_list[RIOT_THREADS_BASE].name);
 			goto error;
 		}
 
@@ -255,7 +264,7 @@ static int riot_update_threads(struct rtos *rtos)
 			strdup(riot_thread_states[k].desc);
 		}
 
-		if (rtos->thread_details[tasks_found].extra_info_str == NULL) {
+		if (!rtos->thread_details[tasks_found].extra_info_str) {
 			LOG_ERROR("RIOT: out of memory");
 			retval = ERROR_FAIL;
 			goto error;
@@ -269,7 +278,7 @@ static int riot_update_threads(struct rtos *rtos)
 					&name_pointer);
 			if (retval != ERROR_OK) {
 				LOG_ERROR("Can't parse `%s`",
-					riot_symbol_list[RIOT_THREADS_BASE]);
+					riot_symbol_list[RIOT_THREADS_BASE].name);
 				goto error;
 			}
 
@@ -280,7 +289,7 @@ static int riot_update_threads(struct rtos *rtos)
 					(uint8_t *)&buffer);
 			if (retval != ERROR_OK) {
 				LOG_ERROR("Can't parse `%s`",
-					riot_symbol_list[RIOT_THREADS_BASE]);
+					riot_symbol_list[RIOT_THREADS_BASE].name);
 				goto error;
 			}
 
@@ -297,7 +306,7 @@ static int riot_update_threads(struct rtos *rtos)
 			strdup("Enable DEVELHELP to see task names");
 		}
 
-		if (rtos->thread_details[tasks_found].thread_name_str == NULL) {
+		if (!rtos->thread_details[tasks_found].thread_name_str) {
 			LOG_ERROR("RIOT: out of memory");
 			retval = ERROR_FAIL;
 			goto error;
@@ -321,13 +330,13 @@ static int riot_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
 	int retval;
 	const struct riot_params *param;
 
-	if (rtos == NULL)
+	if (!rtos)
 		return ERROR_FAIL;
 
 	if (thread_id == 0)
 		return ERROR_FAIL;
 
-	if (rtos->rtos_specific_params == NULL)
+	if (!rtos->rtos_specific_params)
 		return ERROR_FAIL;
 
 	param = (const struct riot_params *)rtos->rtos_specific_params;
@@ -339,7 +348,7 @@ static int riot_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
 			threads_base + (thread_id * 4),
 			&tcb_pointer);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("Can't parse `%s`", riot_symbol_list[RIOT_THREADS_BASE]);
+		LOG_ERROR("Can't parse `%s`", riot_symbol_list[RIOT_THREADS_BASE].name);
 		return retval;
 	}
 
@@ -349,7 +358,7 @@ static int riot_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
 			tcb_pointer + param->thread_sp_offset,
 			&stackptr);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("Can't parse `%s`", riot_symbol_list[RIOT_THREADS_BASE]);
+		LOG_ERROR("Can't parse `%s`", riot_symbol_list[RIOT_THREADS_BASE].name);
 		return retval;
 	}
 
@@ -364,22 +373,14 @@ static int riot_get_symbol_list_to_lookup(struct symbol_table_elem *symbol_list[
 {
 	*symbol_list = calloc(ARRAY_SIZE(riot_symbol_list), sizeof(struct symbol_table_elem));
 
-	if (*symbol_list == NULL) {
+	if (!*symbol_list) {
 		LOG_ERROR("RIOT: out of memory");
 		return ERROR_FAIL;
 	}
 
 	for (unsigned int i = 0; i < ARRAY_SIZE(riot_symbol_list); i++) {
-		(*symbol_list)[i].symbol_name = riot_symbol_list[i];
-		(*symbol_list)[i].optional = false;
-
-		/* Lookup if symbol is optional */
-		for (unsigned int k = 0; k < sizeof(riot_optional_symbols); k++) {
-			if (i == riot_optional_symbols[k]) {
-				(*symbol_list)[i].optional = true;
-				break;
-			}
-		}
+		(*symbol_list)[i].symbol_name = riot_symbol_list[i].name;
+		(*symbol_list)[i].optional = riot_symbol_list[i].optional;
 	}
 
 	return ERROR_OK;
@@ -387,7 +388,7 @@ static int riot_get_symbol_list_to_lookup(struct symbol_table_elem *symbol_list[
 
 static bool riot_detect_rtos(struct target *target)
 {
-	if ((target->rtos->symbols != NULL) &&
+	if ((target->rtos->symbols) &&
 		(target->rtos->symbols[RIOT_THREADS_BASE].address != 0)) {
 		/* looks like RIOT */
 		return true;
@@ -401,7 +402,7 @@ static int riot_create(struct target *target)
 
 	/* lookup if target is supported by RIOT */
 	while ((i < RIOT_NUM_PARAMS) &&
-		(0 != strcmp(riot_params_list[i].target_name, target->type->name))) {
+		(strcmp(riot_params_list[i].target_name, target->type->name) != 0)) {
 		i++;
 	}
 	if (i >= RIOT_NUM_PARAMS) {

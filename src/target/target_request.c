@@ -158,7 +158,7 @@ static int add_debug_msg_receiver(struct command_context *cmd_ctx, struct target
 {
 	struct debug_msg_receiver **p = &target->dbgmsg;
 
-	if (target == NULL)
+	if (!target)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	/* see if there's already a list */
@@ -186,9 +186,9 @@ static struct debug_msg_receiver *find_debug_msg_receiver(struct command_context
 	int do_all_targets = 0;
 
 	/* if no target has been specified search all of them */
-	if (target == NULL) {
+	if (!target) {
 		/* if no targets haven been specified */
-		if (all_targets == NULL)
+		if (!all_targets)
 			return NULL;
 
 		target = all_targets;
@@ -217,9 +217,9 @@ int delete_debug_msg_receiver(struct command_context *cmd_ctx, struct target *ta
 	int do_all_targets = 0;
 
 	/* if no target has been specified search all of them */
-	if (target == NULL) {
+	if (!target) {
 		/* if no targets haven been specified */
-		if (all_targets == NULL)
+		if (!all_targets)
 			return ERROR_OK;
 
 		target = all_targets;
@@ -234,7 +234,7 @@ int delete_debug_msg_receiver(struct command_context *cmd_ctx, struct target *ta
 			if (c->cmd_ctx == cmd_ctx) {
 				*p = next;
 				free(c);
-				if (*p == NULL) {
+				if (!*p) {
 					/* disable callback */
 					target->dbg_msg_enabled = 0;
 				}
@@ -256,13 +256,13 @@ COMMAND_HANDLER(handle_target_request_debugmsgs_command)
 
 	int receiving = 0;
 
-	if (target->type->target_request_data == NULL) {
+	if (!target->type->target_request_data) {
 		LOG_ERROR("Target %s does not support target requests", target_name(target));
 		return ERROR_OK;
 	}
 
 	/* see if receiver is already registered */
-	if (find_debug_msg_receiver(CMD_CTX, target) != NULL)
+	if (find_debug_msg_receiver(CMD_CTX, target))
 		receiving = 1;
 
 	if (CMD_ARGC > 0) {

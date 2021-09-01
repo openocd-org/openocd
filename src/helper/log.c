@@ -108,7 +108,7 @@ static void log_puts(enum log_levels level,
 	}
 
 	f = strrchr(file, '/');
-	if (f != NULL)
+	if (f)
 		file = f + 1;
 
 	if (strlen(string) > 0) {
@@ -163,7 +163,7 @@ void log_printf(enum log_levels level,
 	va_start(ap, format);
 
 	string = alloc_vprintf(format, ap);
-	if (string != NULL) {
+	if (string) {
 		log_puts(level, file, line, function, string);
 		free(string);
 	}
@@ -230,7 +230,7 @@ COMMAND_HANDLER(handle_debug_level_command)
 COMMAND_HANDLER(handle_log_output_command)
 {
 	if (CMD_ARGC == 0 || (CMD_ARGC == 1 && strcmp(CMD_ARGV[0], "default") == 0)) {
-		if (log_output != stderr && log_output != NULL) {
+		if (log_output != stderr && log_output) {
 			/* Close previous log file, if it was open and wasn't stderr. */
 			fclose(log_output);
 		}
@@ -240,11 +240,11 @@ COMMAND_HANDLER(handle_log_output_command)
 	}
 	if (CMD_ARGC == 1) {
 		FILE *file = fopen(CMD_ARGV[0], "w");
-		if (file == NULL) {
+		if (!file) {
 			LOG_ERROR("failed to open output log '%s'", CMD_ARGV[0]);
 			return ERROR_FAIL;
 		}
-		if (log_output != stderr && log_output != NULL) {
+		if (log_output != stderr && log_output) {
 			/* Close previous log file, if it was open and wasn't stderr. */
 			fclose(log_output);
 		}
@@ -287,16 +287,16 @@ void log_init(void)
 	/* set defaults for daemon configuration,
 	 * if not set by cmdline or cfgfile */
 	char *debug_env = getenv("OPENOCD_DEBUG_LEVEL");
-	if (NULL != debug_env) {
+	if (debug_env) {
 		int value;
 		int retval = parse_int(debug_env, &value);
-		if (ERROR_OK == retval &&
+		if (retval == ERROR_OK &&
 				debug_level >= LOG_LVL_SILENT &&
 				debug_level <= LOG_LVL_DEBUG_IO)
 				debug_level = value;
 	}
 
-	if (log_output == NULL)
+	if (!log_output)
 		log_output = stderr;
 
 	start = last_time = timeval_ms();
@@ -322,7 +322,7 @@ int log_add_callback(log_callback_fn fn, void *priv)
 	/* alloc memory, it is safe just to return in case of an error, no need for the caller to
 	 *check this */
 	cb = malloc(sizeof(struct log_callback));
-	if (cb == NULL)
+	if (!cb)
 		return ERROR_BUF_TOO_SMALL;
 
 	/* add item to the beginning of the linked list */
@@ -367,7 +367,7 @@ char *alloc_vprintf(const char *fmt, va_list ap)
 	 * other code depend on that. They should be probably be fixed, but for
 	 * now reserve the extra byte. */
 	string = malloc(len + 2);
-	if (string == NULL)
+	if (!string)
 		return NULL;
 
 	/* do the real work */
@@ -473,11 +473,11 @@ void kept_alive(void)
 /* if we sleep for extended periods of time, we must invoke keep_alive() intermittently */
 void alive_sleep(uint64_t ms)
 {
-	uint64_t napTime = 10;
-	for (uint64_t i = 0; i < ms; i += napTime) {
+	uint64_t nap_time = 10;
+	for (uint64_t i = 0; i < ms; i += nap_time) {
 		uint64_t sleep_a_bit = ms - i;
-		if (sleep_a_bit > napTime)
-			sleep_a_bit = napTime;
+		if (sleep_a_bit > nap_time)
+			sleep_a_bit = nap_time;
 
 		usleep(sleep_a_bit * 1000);
 		keep_alive();
