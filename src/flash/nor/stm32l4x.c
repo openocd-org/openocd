@@ -1923,15 +1923,17 @@ static int stm32l4_probe(struct flash_bank *bank)
 		/* STM32L55/L56xx can be single/dual bank:
 		 *   if size = 512K check DBANK bit
 		 *   if size = 256K check DB256K bit
+		 *
+		 * default page size is 4kb, if DBANK = 1, the page size is 2kb.
 		 */
-		page_size_kb = 4;
+
+		page_size_kb = (stm32l4_info->optr & FLASH_L5_DBANK) ? 2 : 4;
 		num_pages = flash_size_kb / page_size_kb;
 		stm32l4_info->bank1_sectors = num_pages;
+
 		if ((is_max_flash_size && (stm32l4_info->optr & FLASH_L5_DBANK)) ||
 			(!is_max_flash_size && (stm32l4_info->optr & FLASH_L5_DB256))) {
 			stm32l4_info->dual_bank_mode = true;
-			page_size_kb = 2;
-			num_pages = flash_size_kb / page_size_kb;
 			stm32l4_info->bank1_sectors = num_pages / 2;
 		}
 		break;
