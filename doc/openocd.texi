@@ -7348,11 +7348,15 @@ Some stm32l4x-specific commands are defined:
 @deffn {Command} {stm32l4x lock} num
 Locks the entire stm32 device.
 The @var{num} parameter is a value shown by @command{flash banks}.
+
+@emph{Note:} To apply the protection change immediately, use @command{stm32l4x option_load}.
 @end deffn
 
 @deffn {Command} {stm32l4x unlock} num
 Unlocks the entire stm32 device.
 The @var{num} parameter is a value shown by @command{flash banks}.
+
+@emph{Note:} To apply the protection change immediately, use @command{stm32l4x option_load}.
 @end deffn
 
 @deffn Command {stm32l4x flashloader} num [@option{enable} | @option{disable}]
@@ -7389,6 +7393,8 @@ Write an option byte register of the stm32l4x device.
 The @var{num} parameter is a value shown by @command{flash banks}, @var{reg_offset}
 is the register offset of the Option byte to write, and @var{reg_mask} is the mask
 to apply when writing the register (only bits with a '1' will be touched).
+
+@emph{Note:} To apply the option bytes change immediately, use @command{stm32l4x option_load}.
 
 For example to write the WRP1AR option bytes:
 @example
