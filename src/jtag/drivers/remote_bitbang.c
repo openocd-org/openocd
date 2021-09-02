@@ -23,6 +23,7 @@
 #ifndef _WIN32
 #include <sys/un.h>
 #include <netdb.h>
+#include <netinet/tcp.h>
 #endif
 #include "helper/system.h"
 #include "helper/replacements.h"
@@ -40,35 +41,87 @@ static uint8_t remote_bitbang_send_buf[512];
 static unsigned int remote_bitbang_send_buf_used;
 
 /* Circular buffer. When start == end, the buffer is empty. */
-static char remote_bitbang_recv_buf[64];
+static char remote_bitbang_recv_buf[256];
 static unsigned int remote_bitbang_recv_buf_start;
 static unsigned int remote_bitbang_recv_buf_end;
 
-static bool remote_bitbang_buf_full(void)
+static bool remote_bitbang_recv_buf_full(void)
 {
 	return remote_bitbang_recv_buf_end ==
 		((remote_bitbang_recv_buf_start + sizeof(remote_bitbang_recv_buf) - 1) %
 		 sizeof(remote_bitbang_recv_buf));
 }
 
-/* Read any incoming data, placing it into the buffer. */
-static int remote_bitbang_fill_buf(void)
+static bool remote_bitbang_recv_buf_empty(void)
 {
-	socket_nonblock(remote_bitbang_fd);
-	while (!remote_bitbang_buf_full()) {
-		unsigned int contiguous_available_space;
-		if (remote_bitbang_recv_buf_end >= remote_bitbang_recv_buf_start) {
-			contiguous_available_space = sizeof(remote_bitbang_recv_buf) -
-				remote_bitbang_recv_buf_end;
-			if (remote_bitbang_recv_buf_start == 0)
-				contiguous_available_space -= 1;
-		} else {
-			contiguous_available_space = remote_bitbang_recv_buf_start -
-				remote_bitbang_recv_buf_end - 1;
+	return remote_bitbang_recv_buf_start == remote_bitbang_recv_buf_end;
+}
+
+static unsigned int remote_bitbang_recv_buf_contiguous_available_space(void)
+{
+	if (remote_bitbang_recv_buf_end >= remote_bitbang_recv_buf_start) {
+		unsigned int space = sizeof(remote_bitbang_recv_buf) -
+				     remote_bitbang_recv_buf_end;
+		if (remote_bitbang_recv_buf_start == 0)
+			space -= 1;
+		return space;
+	} else {
+		return remote_bitbang_recv_buf_start -
+		       remote_bitbang_recv_buf_end - 1;
+	}
+}
+
+static int remote_bitbang_flush(void)
+{
+	if (remote_bitbang_send_buf_used <= 0)
+		return ERROR_OK;
+
+	unsigned int offset = 0;
+	while (offset < remote_bitbang_send_buf_used) {
+		ssize_t written = write_socket(remote_bitbang_fd, remote_bitbang_send_buf + offset,
+									   remote_bitbang_send_buf_used - offset);
+		if (written < 0) {
+			log_socket_error("remote_bitbang_putc");
+			remote_bitbang_send_buf_used = 0;
+			return ERROR_FAIL;
 		}
+		offset += written;
+	}
+	remote_bitbang_send_buf_used = 0;
+	return ERROR_OK;
+}
+
+enum block_bool {
+	NO_BLOCK,
+	BLOCK
+};
+
+/* Read any incoming data, placing it into the buffer. */
+static int remote_bitbang_fill_buf(enum block_bool block)
+{
+	if (remote_bitbang_recv_buf_empty()) {
+		/* If the buffer is empty, reset it to 0 so we get more
+		 * contiguous space. */
+		remote_bitbang_recv_buf_start = 0;
+		remote_bitbang_recv_buf_end = 0;
+	}
+
+	if (block == BLOCK) {
+		if (remote_bitbang_flush() != ERROR_OK)
+			return ERROR_FAIL;
+		socket_block(remote_bitbang_fd);
+	}
+
+	bool first = true;
+	while (!remote_bitbang_recv_buf_full()) {
+		unsigned int contiguous_available_space =
+				remote_bitbang_recv_buf_contiguous_available_space();
 		ssize_t count = read_socket(remote_bitbang_fd,
 				remote_bitbang_recv_buf + remote_bitbang_recv_buf_end,
 				contiguous_available_space);
+		if (first && block == BLOCK)
+			socket_nonblock(remote_bitbang_fd);
+		first = false;
 		if (count > 0) {
 			remote_bitbang_recv_buf_end += count;
 			if (remote_bitbang_recv_buf_end == sizeof(remote_bitbang_recv_buf))
@@ -89,26 +142,6 @@ static int remote_bitbang_fill_buf(void)
 		}
 	}
 
-	return ERROR_OK;
-}
-
-static int remote_bitbang_flush(void)
-{
-	if (remote_bitbang_send_buf_used <= 0)
-		return ERROR_OK;
-
-	unsigned int offset = 0;
-	while (offset < remote_bitbang_send_buf_used) {
-		ssize_t written = write_socket(remote_bitbang_fd, remote_bitbang_send_buf + offset,
-									   remote_bitbang_send_buf_used - offset);
-		if (written < 0) {
-			log_socket_error("remote_bitbang_putc");
-			remote_bitbang_send_buf_used = 0;
-			return ERROR_FAIL;
-		}
-		offset += written;
-	}
-	remote_bitbang_send_buf_used = 0;
 	return ERROR_OK;
 }
 
@@ -157,47 +190,25 @@ static bb_value_t char_to_int(int c)
 	}
 }
 
-/* Get the next read response. */
-static bb_value_t remote_bitbang_rread(void)
-{
-	if (remote_bitbang_flush() != ERROR_OK)
-		return ERROR_FAIL;
-
-	/* Enable blocking access. */
-	socket_block(remote_bitbang_fd);
-	char c;
-	ssize_t count = read_socket(remote_bitbang_fd, &c, 1);
-	if (count == 1) {
-		return char_to_int(c);
-	} else {
-		remote_bitbang_quit();
-		LOG_ERROR("read_socket: count=%d", (int) count);
-		log_socket_error("read_socket");
-		return BB_ERROR;
-	}
-}
-
 static int remote_bitbang_sample(void)
 {
-	if (remote_bitbang_fill_buf() != ERROR_OK)
+	if (remote_bitbang_fill_buf(NO_BLOCK) != ERROR_OK)
 		return ERROR_FAIL;
-	assert(!remote_bitbang_buf_full());
+	assert(!remote_bitbang_recv_buf_full());
 	return remote_bitbang_queue('R', NO_FLUSH);
 }
 
 static bb_value_t remote_bitbang_read_sample(void)
 {
-	if (remote_bitbang_recv_buf_start == remote_bitbang_recv_buf_end) {
-		if (remote_bitbang_fill_buf() != ERROR_OK)
-			return ERROR_FAIL;
+	if (remote_bitbang_recv_buf_empty()) {
+		if (remote_bitbang_fill_buf(BLOCK) != ERROR_OK)
+			return BB_ERROR;
 	}
-	if (remote_bitbang_recv_buf_start != remote_bitbang_recv_buf_end) {
-		int c = remote_bitbang_recv_buf[remote_bitbang_recv_buf_start];
-		remote_bitbang_recv_buf_start =
-			(remote_bitbang_recv_buf_start + 1) % sizeof(remote_bitbang_recv_buf);
-		return char_to_int(c);
-	}
-	return remote_bitbang_rread();
+	assert(!remote_bitbang_recv_buf_empty());
+	int c = remote_bitbang_recv_buf[remote_bitbang_recv_buf_start];
+	remote_bitbang_recv_buf_start =
+		(remote_bitbang_recv_buf_start + 1) % sizeof(remote_bitbang_recv_buf);
+	return char_to_int(c);
 }
 
 static int remote_bitbang_write(int tck, int tms, int tdi)
@@ -261,6 +272,13 @@ static int remote_bitbang_init_tcp(void)
 		close(fd);
 	}
 
+	/* We work hard to collapse the writes into the minimum number, so when
+	 * we write something we want to get it to the other end of the
+	 * connection as fast as possible. */
+	int one = 1;
+	/* On Windows optval has to be a const char *. */
+	setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char *)&one, sizeof(one));
+
 	freeaddrinfo(result); /* No longer needed */
 
 	if (!rp) { /* No address succeeded */
@@ -313,6 +331,8 @@ static int remote_bitbang_init(void)
 
 	if (remote_bitbang_fd < 0)
 		return remote_bitbang_fd;
+
+	socket_nonblock(remote_bitbang_fd);
 
 	LOG_INFO("remote_bitbang driver initialized");
 	return ERROR_OK;
