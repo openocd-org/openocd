@@ -137,7 +137,7 @@ COMMAND_HANDLER(handle_smp_gdb_command)
 	int retval = ERROR_OK;
 	struct target_list *head;
 	head = target->head;
-	if (head != (struct target_list *)NULL) {
+	if (head) {
 		if (CMD_ARGC == 1) {
 			int coreid = 0;
 			COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], coreid);

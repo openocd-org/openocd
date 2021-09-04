@@ -224,7 +224,7 @@ int breakpoint_add(struct target *target,
 		if (type == BKPT_SOFT)
 			return breakpoint_add_internal(head->target, address, length, type);
 
-		while (head != (struct target_list *)NULL) {
+		while (head) {
 			curr = head->target;
 			retval = breakpoint_add_internal(curr, address, length, type);
 			if (retval != ERROR_OK)
@@ -247,7 +247,7 @@ int context_breakpoint_add(struct target *target,
 		struct target_list *head;
 		struct target *curr;
 		head = target->head;
-		while (head != (struct target_list *)NULL) {
+		while (head) {
 			curr = head->target;
 			retval = context_breakpoint_add_internal(curr, asid, length, type);
 			if (retval != ERROR_OK)
@@ -271,7 +271,7 @@ int hybrid_breakpoint_add(struct target *target,
 		struct target_list *head;
 		struct target *curr;
 		head = target->head;
-		while (head != (struct target_list *)NULL) {
+		while (head) {
 			curr = head->target;
 			retval = hybrid_breakpoint_add_internal(curr, address, asid, length, type);
 			if (retval != ERROR_OK)
@@ -347,7 +347,7 @@ void breakpoint_remove(struct target *target, target_addr_t address)
 		struct target_list *head;
 		struct target *curr;
 		head = target->head;
-		while (head != (struct target_list *)NULL) {
+		while (head) {
 			curr = head->target;
 			num_breakpoints += breakpoint_remove_internal(curr, address);
 			head = head->next;
@@ -365,7 +365,7 @@ void breakpoint_remove_all(struct target *target)
 		struct target_list *head;
 		struct target *curr;
 		head = target->head;
-		while (head != (struct target_list *)NULL) {
+		while (head) {
 			curr = head->target;
 			breakpoint_remove_all_internal(curr);
 			head = head->next;
@@ -389,7 +389,7 @@ void breakpoint_clear_target(struct target *target)
 		struct target_list *head;
 		struct target *curr;
 		head = target->head;
-		while (head != (struct target_list *)NULL) {
+		while (head) {
 			curr = head->target;
 			breakpoint_clear_target_internal(curr);
 			head = head->next;

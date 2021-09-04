@@ -641,7 +641,7 @@ static struct target *get_cortex_a(struct target *target, int32_t coreid)
 	struct target *curr;
 
 	head = target->head;
-	while (head != (struct target_list *)NULL) {
+	while (head) {
 		curr = head->target;
 		if ((curr->coreid == coreid) && (curr->state == TARGET_HALTED))
 			return curr;
@@ -657,7 +657,7 @@ static int cortex_a_halt_smp(struct target *target)
 	struct target_list *head;
 	struct target *curr;
 	head = target->head;
-	while (head != (struct target_list *)NULL) {
+	while (head) {
 		curr = head->target;
 		if ((curr != target) && (curr->state != TARGET_HALTED)
 			&& target_was_examined(curr))
@@ -953,7 +953,7 @@ static int cortex_a_restore_smp(struct target *target, int handle_breakpoints)
 	struct target *curr;
 	target_addr_t address;
 	head = target->head;
-	while (head != (struct target_list *)NULL) {
+	while (head) {
 		curr = head->target;
 		if ((curr != target) && (curr->state != TARGET_RUNNING)
 			&& target_was_examined(curr)) {

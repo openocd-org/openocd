@@ -252,7 +252,7 @@ static int  armv8_flush_all_data(struct target *target)
 		struct target_list *head;
 		struct target *curr;
 		head = target->head;
-		while (head != (struct target_list *)NULL) {
+		while (head) {
 			curr = head->target;
 			if (curr->state == TARGET_HALTED) {
 				LOG_INFO("Wait flushing data l1 on core %" PRId32, curr->coreid);

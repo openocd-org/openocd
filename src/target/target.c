@@ -5999,7 +5999,7 @@ static int jim_target_smp(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 			new = malloc(sizeof(struct target_list));
 			new->target = target;
 			new->next = (struct target_list *)NULL;
-			if (head == (struct target_list *)NULL) {
+			if (!head) {
 				head = new;
 				curr = head;
 			} else {
@@ -6011,7 +6011,7 @@ static int jim_target_smp(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	/*  now parse the list of cpu and put the target in smp mode*/
 	curr = head;
 
-	while (curr != (struct target_list *)NULL) {
+	while (curr) {
 		target = curr->target;
 		target->smp = 1;
 		target->head = head;

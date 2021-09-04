@@ -573,7 +573,7 @@ static int jlink_open_device(uint32_t ifaces, bool *found_device)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	use_usb_location = (jtag_usb_get_location() != NULL);
+	use_usb_location = !!jtag_usb_get_location();
 
 	if (!use_serial_number && !use_usb_address && !use_usb_location && num_devices > 1) {
 		LOG_ERROR("Multiple devices found, specify the desired device");
