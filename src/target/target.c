@@ -5978,10 +5978,10 @@ static int jim_target_smp(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	int i;
 	const char *targetname;
 	int retval, len;
-	struct target *target = (struct target *) NULL;
+	struct target *target = NULL;
 	struct target_list *head, *curr, *new;
-	curr = (struct target_list *) NULL;
-	head = (struct target_list *) NULL;
+	curr = NULL;
+	head = NULL;
 
 	retval = 0;
 	LOG_DEBUG("%d", argc);
@@ -5998,7 +5998,7 @@ static int jim_target_smp(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		if (target) {
 			new = malloc(sizeof(struct target_list));
 			new->target = target;
-			new->next = (struct target_list *)NULL;
+			new->next = NULL;
 			if (!head) {
 				head = new;
 				curr = head;
