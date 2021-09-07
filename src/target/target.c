@@ -717,6 +717,15 @@ static int no_mmu(struct target *target, int *enabled)
 	return ERROR_OK;
 }
 
+/**
+ * Reset the @c examined flag for the given target.
+ * Pure paranoia -- targets are zeroed on allocation.
+ */
+static inline void target_reset_examined(struct target *target)
+{
+	target->examined = false;
+}
+
 static int default_examine(struct target *target)
 {
 	target_set_examined(target);
@@ -737,10 +746,12 @@ int target_examine_one(struct target *target)
 
 	int retval = target->type->examine(target);
 	if (retval != ERROR_OK) {
+		target_reset_examined(target);
 		target_call_event_callbacks(target, TARGET_EVENT_EXAMINE_FAIL);
 		return retval;
 	}
 
+	target_set_examined(target);
 	target_call_event_callbacks(target, TARGET_EVENT_EXAMINE_END);
 
 	return ERROR_OK;
@@ -1520,15 +1531,6 @@ static int target_profiling(struct target *target, uint32_t *samples,
 {
 	return target->type->profiling(target, samples, max_num_samples,
 			num_samples, seconds);
-}
-
-/**
- * Reset the @c examined flag for the given target.
- * Pure paranoia -- targets are zeroed on allocation.
- */
-static void target_reset_examined(struct target *target)
-{
-	target->examined = false;
 }
 
 static int handle_target(void *priv);
@@ -3055,7 +3057,7 @@ static int handle_target(void *priv)
 				/* Target examination could have failed due to unstable connection,
 				 * but we set the examined flag anyway to repoll it later */
 				if (retval != ERROR_OK) {
-					target->examined = true;
+					target_set_examined(target);
 					LOG_USER("Examination failed, GDB will be halted. Polling again in %dms",
 						 target->backoff.times * polling_interval);
 					return retval;
@@ -5308,8 +5310,13 @@ static int jim_target_examine(Jim_Interp *interp, int argc, Jim_Obj *const *argv
 	}
 
 	int e = target->type->examine(target);
-	if (e != ERROR_OK)
+	if (e != ERROR_OK) {
+		target_reset_examined(target);
 		return JIM_ERR;
+	}
+
+	target_set_examined(target);
+
 	return JIM_OK;
 }
 
