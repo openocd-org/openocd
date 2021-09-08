@@ -2082,8 +2082,12 @@ int cortex_m_examine(struct target *target)
 
 		armv7m->arm.arch = cortex_m->core_info->arch;
 
-		LOG_DEBUG("%s r%" PRId8 "p%" PRId8 " processor detected",
-				cortex_m->core_info->name, (uint8_t)((cpuid >> 20) & 0xf), (uint8_t)((cpuid >> 0) & 0xf));
+		LOG_INFO("%s: %s r%" PRId8 "p%" PRId8 " processor detected",
+				target_name(target),
+				cortex_m->core_info->name,
+				(uint8_t)((cpuid >> 20) & 0xf),
+				(uint8_t)((cpuid >> 0) & 0xf));
+
 		cortex_m->maskints_erratum = false;
 		if (core_partno == CORTEX_M7_PARTNO) {
 			uint8_t rev, patch;
@@ -2192,7 +2196,7 @@ int cortex_m_examine(struct target *target)
 		cortex_m_dwt_setup(cortex_m, target);
 
 		/* These hardware breakpoints only work for code in flash! */
-		LOG_INFO("%s: hardware has %d breakpoints, %d watchpoints",
+		LOG_INFO("%s: target has %d breakpoints, %d watchpoints",
 			target_name(target),
 			cortex_m->fp_num_code,
 			cortex_m->dwt_num_comp);
