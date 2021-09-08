@@ -90,6 +90,7 @@
 #define STLINK_V3E_PID          (0x374E)
 #define STLINK_V3S_PID          (0x374F)
 #define STLINK_V3_2VCP_PID      (0x3753)
+#define STLINK_V3E_NO_MSD_PID   (0x3754)
 
 /*
  * ST-Link/V1, ST-Link/V2 and ST-Link/V2.1 are full-speed USB devices and
@@ -3130,6 +3131,7 @@ static int stlink_usb_usb_open(void *handle, struct hl_interface_param_s *param)
 			case STLINK_V3E_PID:
 			case STLINK_V3S_PID:
 			case STLINK_V3_2VCP_PID:
+			case STLINK_V3E_NO_MSD_PID:
 				h->version.stlink = 3;
 				h->tx_ep = STLINK_V2_1_TX_EP;
 				h->trace_ep = STLINK_V2_1_TRACE_EP;
