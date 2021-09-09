@@ -5,6 +5,8 @@
  *   tarek.bouchkati@st.com
  */
 
+#define OPENOCD_CONTRIB_LOADERS_FLASH_STM32_STM32L4X
+
 #include <stdint.h>
 #include "../../../../src/flash/nor/stm32l4x.h"
 

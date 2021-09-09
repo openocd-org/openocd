@@ -136,9 +136,24 @@ struct stm32l4_work_area {
 	} params;
 	uint8_t stack[LDR_STACK_SIZE];
 	struct flash_async_algorithm_circbuf {
+		/* note: stm32l4_work_area struct is shared between the loader
+		 * and stm32l4x flash driver.
+		 *
+		 * '*wp' and '*rp' pointers' size is 4 bytes each since stm32l4x
+		 * devices have 32-bit processors.
+		 * however when used in openocd code, their size depends on the host
+		 *   if the host is 32-bit, then the size is 4 bytes each.
+		 *   if the host is 64-bit, then the size is 8 bytes each.
+		 * to avoid this size difference, change their types depending on the
+		 * usage (pointers for the loader, and 32-bit integers in openocd code).
+		 */
+#ifdef OPENOCD_CONTRIB_LOADERS_FLASH_STM32_STM32L4X
 		uint8_t *wp;
 		uint8_t *rp;
-		uint8_t *buf;
+#else
+		uint32_t wp;
+		uint32_t rp;
+#endif /* OPENOCD_CONTRIB_LOADERS_FLASH_STM32_STM32L4X */
 	} fifo;
 };
 

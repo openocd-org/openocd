@@ -1405,16 +1405,19 @@ static int stm32l4_write_block(struct flash_bank *bank, const uint8_t *buffer,
 	armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
 	armv7m_info.core_mode = ARM_MODE_THREAD;
 
-	init_reg_param(&reg_params[0], "r0", 32, PARAM_IN_OUT);	/* buffer start, status (out) */
+	/* contrib/loaders/flash/stm32/stm32l4x.c:write() arguments */
+	init_reg_param(&reg_params[0], "r0", 32, PARAM_IN_OUT);	/* stm32l4_work_area ptr , status (out) */
 	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);	/* buffer end */
 	init_reg_param(&reg_params[2], "r2", 32, PARAM_OUT);	/* target address */
 	init_reg_param(&reg_params[3], "r3", 32, PARAM_OUT);	/* count (of stm32l4_info->data_width) */
-	init_reg_param(&reg_params[4], "sp", 32, PARAM_OUT);	/* write algo stack pointer */
 
 	buf_set_u32(reg_params[0].value, 0, 32, source->address);
 	buf_set_u32(reg_params[1].value, 0, 32, source->address + source->size);
 	buf_set_u32(reg_params[2].value, 0, 32, address);
 	buf_set_u32(reg_params[3].value, 0, 32, count);
+
+	/* write algo stack pointer */
+	init_reg_param(&reg_params[4], "sp", 32, PARAM_OUT);
 	buf_set_u32(reg_params[4].value, 0, 32, source->address +
 			offsetof(struct stm32l4_work_area, stack) + LDR_STACK_SIZE);
 
