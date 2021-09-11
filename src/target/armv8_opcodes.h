@@ -155,6 +155,7 @@
 #define ARMV8_LDRB_IP(rd, rn) (0x38401400 | (rn << 5) | rd)
 #define ARMV8_LDRH_IP(rd, rn) (0x78402400 | (rn << 5) | rd)
 #define ARMV8_LDRW_IP(rd, rn) (0xb8404400 | (rn << 5) | rd)
+#define ARMV8_LDRD_IP(rd, rn) (0xf8408400 | (rn << 5) | rd)
 
 #define ARMV8_LDRB_IP_T3(rd, rn) (0xf8100b01 | (rn << 16) | (rd << 12))
 #define ARMV8_LDRH_IP_T3(rd, rn) (0xf8300b02 | (rn << 16) | (rd << 12))
@@ -163,6 +164,7 @@
 #define ARMV8_STRB_IP(rd, rn) (0x38001400 | (rn << 5) | rd)
 #define ARMV8_STRH_IP(rd, rn) (0x78002400 | (rn << 5) | rd)
 #define ARMV8_STRW_IP(rd, rn) (0xb8004400 | (rn << 5) | rd)
+#define ARMV8_STRD_IP(rd, rn) (0xf8008400 | (rn << 5) | rd)
 
 #define ARMV8_STRB_IP_T3(rd, rn) (0xf8000b01 | (rn << 16) | (rd << 12))
 #define ARMV8_STRH_IP_T3(rd, rn) (0xf8200b02 | (rn << 16) | (rd << 12))
@@ -200,9 +202,11 @@ enum armv8_opcode {
 	ARMV8_OPC_STRB_IP,
 	ARMV8_OPC_STRH_IP,
 	ARMV8_OPC_STRW_IP,
+	ARMV8_OPC_STRD_IP,
 	ARMV8_OPC_LDRB_IP,
 	ARMV8_OPC_LDRH_IP,
 	ARMV8_OPC_LDRW_IP,
+	ARMV8_OPC_LDRD_IP,
 	ARMV8_OPC_NUM,
 };
 

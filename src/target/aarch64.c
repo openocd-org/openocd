@@ -2047,6 +2047,11 @@ static int aarch64_write_cpu_memory_slow(struct target *target,
 	struct arm *arm = &armv8->arm;
 	int retval;
 
+	if (size > 4 && arm->core_state != ARM_STATE_AARCH64) {
+		LOG_ERROR("memory write sizes greater than 4 bytes is only supported for AArch64 state");
+		return ERROR_FAIL;
+	}
+
 	armv8_reg_current(arm, 1)->dirty = true;
 
 	/* change DCC to normal mode if necessary */
@@ -2059,22 +2064,32 @@ static int aarch64_write_cpu_memory_slow(struct target *target,
 	}
 
 	while (count) {
-		uint32_t data, opcode;
+		uint32_t opcode;
+		uint64_t data;
 
-		/* write the data to store into DTRRX */
+		/* write the data to store into DTRRX (and DTRTX for 64-bit) */
 		if (size == 1)
 			data = *buffer;
 		else if (size == 2)
 			data = target_buffer_get_u16(target, buffer);
-		else
+		else if (size == 4)
 			data = target_buffer_get_u32(target, buffer);
+		else
+			data = target_buffer_get_u64(target, buffer);
+
 		retval = mem_ap_write_atomic_u32(armv8->debug_ap,
-				armv8->debug_base + CPUV8_DBG_DTRRX, data);
+				armv8->debug_base + CPUV8_DBG_DTRRX, (uint32_t)data);
+		if (retval == ERROR_OK && size > 4)
+			retval = mem_ap_write_atomic_u32(armv8->debug_ap,
+					armv8->debug_base + CPUV8_DBG_DTRTX, (uint32_t)(data >> 32));
 		if (retval != ERROR_OK)
 			return retval;
 
 		if (arm->core_state == ARM_STATE_AARCH64)
-			retval = dpm->instr_execute(dpm, ARMV8_MRS(SYSTEM_DBG_DTRRX_EL0, 1));
+			if (size <= 4)
+				retval = dpm->instr_execute(dpm, ARMV8_MRS(SYSTEM_DBG_DTRRX_EL0, 1));
+			else
+				retval = dpm->instr_execute(dpm, ARMV8_MRS(SYSTEM_DBG_DBGDTR_EL0, 1));
 		else
 			retval = dpm->instr_execute(dpm, ARMV4_5_MRC(14, 0, 1, 0, 5, 0));
 		if (retval != ERROR_OK)
@@ -2084,8 +2099,11 @@ static int aarch64_write_cpu_memory_slow(struct target *target,
 			opcode = armv8_opcode(armv8, ARMV8_OPC_STRB_IP);
 		else if (size == 2)
 			opcode = armv8_opcode(armv8, ARMV8_OPC_STRH_IP);
-		else
+		else if (size == 4)
 			opcode = armv8_opcode(armv8, ARMV8_OPC_STRW_IP);
+		else
+			opcode = armv8_opcode(armv8, ARMV8_OPC_STRD_IP);
+
 		retval = dpm->instr_execute(dpm, opcode);
 		if (retval != ERROR_OK)
 			return retval;
@@ -2226,6 +2244,11 @@ static int aarch64_read_cpu_memory_slow(struct target *target,
 	struct arm *arm = &armv8->arm;
 	int retval;
 
+	if (size > 4 && arm->core_state != ARM_STATE_AARCH64) {
+		LOG_ERROR("memory read sizes greater than 4 bytes is only supported for AArch64 state");
+		return ERROR_FAIL;
+	}
+
 	armv8_reg_current(arm, 1)->dirty = true;
 
 	/* change DCC to normal mode (if necessary) */
@@ -2238,36 +2261,56 @@ static int aarch64_read_cpu_memory_slow(struct target *target,
 	}
 
 	while (count) {
-		uint32_t opcode, data;
+		uint32_t opcode;
+		uint32_t lower;
+		uint32_t higher;
+		uint64_t data;
 
 		if (size == 1)
 			opcode = armv8_opcode(armv8, ARMV8_OPC_LDRB_IP);
 		else if (size == 2)
 			opcode = armv8_opcode(armv8, ARMV8_OPC_LDRH_IP);
-		else
+		else if (size == 4)
 			opcode = armv8_opcode(armv8, ARMV8_OPC_LDRW_IP);
+		else
+			opcode = armv8_opcode(armv8, ARMV8_OPC_LDRD_IP);
+
 		retval = dpm->instr_execute(dpm, opcode);
 		if (retval != ERROR_OK)
 			return retval;
 
 		if (arm->core_state == ARM_STATE_AARCH64)
-			retval = dpm->instr_execute(dpm, ARMV8_MSR_GP(SYSTEM_DBG_DTRTX_EL0, 1));
+			if (size <= 4)
+				retval = dpm->instr_execute(dpm, ARMV8_MSR_GP(SYSTEM_DBG_DTRTX_EL0, 1));
+			else
+				retval = dpm->instr_execute(dpm, ARMV8_MSR_GP(SYSTEM_DBG_DBGDTR_EL0, 1));
 		else
 			retval = dpm->instr_execute(dpm, ARMV4_5_MCR(14, 0, 1, 0, 5, 0));
 		if (retval != ERROR_OK)
 			return retval;
 
 		retval = mem_ap_read_atomic_u32(armv8->debug_ap,
-				armv8->debug_base + CPUV8_DBG_DTRTX, &data);
+				armv8->debug_base + CPUV8_DBG_DTRTX, &lower);
+		if (retval == ERROR_OK) {
+			if (size > 4)
+				retval = mem_ap_read_atomic_u32(armv8->debug_ap,
+						armv8->debug_base + CPUV8_DBG_DTRRX, &higher);
+			else
+				higher = 0;
+		}
 		if (retval != ERROR_OK)
 			return retval;
+
+		data = (uint64_t)lower | (uint64_t)higher << 32;
 
 		if (size == 1)
 			*buffer = (uint8_t)data;
 		else if (size == 2)
 			target_buffer_set_u16(target, buffer, (uint16_t)data);
+		else if (size == 4)
+			target_buffer_set_u32(target, buffer, (uint32_t)data);
 		else
-			target_buffer_set_u32(target, buffer, data);
+			target_buffer_set_u64(target, buffer, data);
 
 		/* Advance */
 		buffer += size;
