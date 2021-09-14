@@ -31,14 +31,16 @@ DIST_SUBDIRS += jimtcl
 endif
 
 # common flags used in openocd build
-AM_CFLAGS = $(GCC_WARNINGS)
+AM_CFLAGS = $(GCC_WARNINGS)\
+			  -DFD_SETSIZE=128
 
 AM_CPPFLAGS = $(HOST_CPPFLAGS)\
 			  -I$(top_srcdir)/src \
 			  -I$(top_builddir)/src \
 			  -I$(top_srcdir)/src/helper \
 			  -DPKGDATADIR=\"$(pkgdatadir)\" \
-			  -DBINDIR=\"$(bindir)\"
+			  -DBINDIR=\"$(bindir)\"\
+			  -DFD_SETSIZE=128
 
 if INTERNAL_JIMTCL
 AM_CPPFLAGS += -I$(top_srcdir)/jimtcl \
