@@ -4983,7 +4983,7 @@ no_params:
 				if (goi->isconfigure) {
 					/* START_DEPRECATED_TPIU */
 					if (n->value == TARGET_EVENT_TRACE_CONFIG)
-						LOG_INFO("DEPRECATED target event %s", n->name);
+						LOG_INFO("DEPRECATED target event %s; use TPIU events {pre,post}-{enable,disable}", n->name);
 					/* END_DEPRECATED_TPIU */
 
 					bool replace = true;

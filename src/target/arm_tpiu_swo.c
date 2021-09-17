@@ -764,6 +764,10 @@ static int jim_arm_tpiu_swo_enable(Jim_Interp *interp, int argc, Jim_Obj *const 
 
 	arm_tpiu_swo_handle_event(obj, TPIU_SWO_EVENT_POST_ENABLE);
 
+	/* START_DEPRECATED_TPIU */
+	target_handle_event(target, TARGET_EVENT_TRACE_CONFIG);
+	/* END_DEPRECATED_TPIU */
+
 	obj->enabled = true;
 	return JIM_OK;
 
@@ -817,6 +821,13 @@ static int jim_arm_tpiu_swo_disable(Jim_Interp *interp, int argc, Jim_Obj *const
 	}
 
 	arm_tpiu_swo_handle_event(obj, TPIU_SWO_EVENT_POST_DISABLE);
+
+	/* START_DEPRECATED_TPIU */
+	struct command_context *cmd_ctx = current_command_context(interp);
+	struct target *target = get_current_target(cmd_ctx);
+	target_handle_event(target, TARGET_EVENT_TRACE_CONFIG);
+	/* END_DEPRECATED_TPIU */
+
 	return JIM_OK;
 }
 
@@ -1112,7 +1123,6 @@ COMMAND_HANDLER(handle_tpiu_deprecated_config_command)
 	if (retval != ERROR_OK)
 		return retval;
 
-	target_handle_event(target, TARGET_EVENT_TRACE_CONFIG);
 	return ERROR_OK;
 }
 
