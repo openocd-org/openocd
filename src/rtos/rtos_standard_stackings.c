@@ -152,29 +152,29 @@ static const struct stack_register_offset rtos_standard_nds32_n1068_stack_offset
 	{ 35, 0x10, 32 },		/* IFC_LP */
 };
 
-static int64_t rtos_generic_stack_align(struct target *target,
+static target_addr_t rtos_generic_stack_align(struct target *target,
 	const uint8_t *stack_data, const struct rtos_register_stacking *stacking,
-	int64_t stack_ptr, int align)
+	target_addr_t stack_ptr, int align)
 {
-	int64_t new_stack_ptr;
-	int64_t aligned_stack_ptr;
+	target_addr_t new_stack_ptr;
+	target_addr_t aligned_stack_ptr;
 	new_stack_ptr = stack_ptr - stacking->stack_growth_direction *
 		stacking->stack_registers_size;
-	aligned_stack_ptr = new_stack_ptr & ~((int64_t)align - 1);
+	aligned_stack_ptr = new_stack_ptr & ~((target_addr_t)align - 1);
 	if (aligned_stack_ptr != new_stack_ptr &&
 		stacking->stack_growth_direction == -1) {
 		/* If we have a downward growing stack, the simple alignment code
 		 * above results in a wrong result (since it rounds down to nearest
 		 * alignment).  We want to round up so add an extra align.
 		 */
-		aligned_stack_ptr += (int64_t)align;
+		aligned_stack_ptr += (target_addr_t)align;
 	}
 	return aligned_stack_ptr;
 }
 
-int64_t rtos_generic_stack_align8(struct target *target,
+target_addr_t rtos_generic_stack_align8(struct target *target,
 	const uint8_t *stack_data, const struct rtos_register_stacking *stacking,
-	int64_t stack_ptr)
+	target_addr_t stack_ptr)
 {
 	return rtos_generic_stack_align(target, stack_data,
 			stacking, stack_ptr, 8);
@@ -199,13 +199,13 @@ int64_t rtos_generic_stack_align8(struct target *target,
  * This is just a helper function for use in the calculate_process_stack
  * function for a given architecture/rtos.
  */
-int64_t rtos_cortex_m_stack_align(struct target *target,
+target_addr_t rtos_cortex_m_stack_align(struct target *target,
 	const uint8_t *stack_data, const struct rtos_register_stacking *stacking,
-	int64_t stack_ptr, size_t xpsr_offset)
+	target_addr_t stack_ptr, size_t xpsr_offset)
 {
 	const uint32_t ALIGN_NEEDED = (1 << 9);
 	uint32_t xpsr;
-	int64_t new_stack_ptr;
+	target_addr_t new_stack_ptr;
 
 	new_stack_ptr = stack_ptr - stacking->stack_growth_direction *
 		stacking->stack_registers_size;
@@ -220,27 +220,27 @@ int64_t rtos_cortex_m_stack_align(struct target *target,
 	return new_stack_ptr;
 }
 
-static int64_t rtos_standard_cortex_m3_stack_align(struct target *target,
+static target_addr_t rtos_standard_cortex_m3_stack_align(struct target *target,
 	const uint8_t *stack_data, const struct rtos_register_stacking *stacking,
-	int64_t stack_ptr)
+	target_addr_t stack_ptr)
 {
 	const int XPSR_OFFSET = 0x3c;
 	return rtos_cortex_m_stack_align(target, stack_data, stacking,
 		stack_ptr, XPSR_OFFSET);
 }
 
-static int64_t rtos_standard_cortex_m4f_stack_align(struct target *target,
+static target_addr_t rtos_standard_cortex_m4f_stack_align(struct target *target,
 	const uint8_t *stack_data, const struct rtos_register_stacking *stacking,
-	int64_t stack_ptr)
+	target_addr_t stack_ptr)
 {
 	const int XPSR_OFFSET = 0x40;
 	return rtos_cortex_m_stack_align(target, stack_data, stacking,
 		stack_ptr, XPSR_OFFSET);
 }
 
-static int64_t rtos_standard_cortex_m4f_fpu_stack_align(struct target *target,
+static target_addr_t rtos_standard_cortex_m4f_fpu_stack_align(struct target *target,
 	const uint8_t *stack_data, const struct rtos_register_stacking *stacking,
-	int64_t stack_ptr)
+	target_addr_t stack_ptr)
 {
 	const int XPSR_OFFSET = 0x80;
 	return rtos_cortex_m_stack_align(target, stack_data, stacking,

@@ -108,10 +108,10 @@ struct rtos_register_stacking {
 	 * just use stacking->stack_registers_size * stack_growth_direction
 	 * to calculate adjustment.
 	 */
-	int64_t (*calculate_process_stack)(struct target *target,
+	target_addr_t (*calculate_process_stack)(struct target *target,
 		const uint8_t *stack_data,
 		const struct rtos_register_stacking *stacking,
-		int64_t stack_ptr);
+		target_addr_t stack_ptr);
 	const struct stack_register_offset *register_offsets;
 };
 

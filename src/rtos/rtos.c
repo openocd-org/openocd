@@ -616,7 +616,7 @@ int rtos_generic_stack_read(struct target *target,
 		LOG_OUTPUT("\r\n");
 #endif
 
-	int64_t new_stack_ptr;
+	target_addr_t new_stack_ptr;
 	if (stacking->calculate_process_stack) {
 		new_stack_ptr = stacking->calculate_process_stack(target,
 				stack_data, stacking, stack_ptr);
