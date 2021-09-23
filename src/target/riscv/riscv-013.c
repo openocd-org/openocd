@@ -57,7 +57,6 @@ static void riscv013_fill_dmi_write_u64(struct target *target, char *buf, int a,
 static void riscv013_fill_dmi_read_u64(struct target *target, char *buf, int a);
 static int riscv013_dmi_write_u64_bits(struct target *target);
 static void riscv013_fill_dmi_nop_u64(struct target *target, char *buf);
-static int register_read(struct target *target, uint64_t *value, uint32_t number);
 static int register_read_direct(struct target *target, uint64_t *value, uint32_t number);
 static int register_write_direct(struct target *target, unsigned number,
 		uint64_t value);
@@ -1022,8 +1021,7 @@ static int examine_progbuf(struct target *target)
 		return ERROR_OK;
 	}
 
-	uint64_t s0;
-	if (register_read(target, &s0, GDB_REGNO_S0) != ERROR_OK)
+	if (riscv_save_register(target, GDB_REGNO_S0) != ERROR_OK)
 		return ERROR_FAIL;
 
 	struct riscv_program program;
@@ -1038,9 +1036,6 @@ static int examine_progbuf(struct target *target)
 	riscv_program_init(&program, target);
 	riscv_program_insert(&program, sw(S0, S0, 0));
 	int result = riscv_program_exec(&program, target);
-
-	if (register_write_direct(target, GDB_REGNO_S0, s0) != ERROR_OK)
-		return ERROR_FAIL;
 
 	if (result != ERROR_OK) {
 		/* This program might have failed if the program buffer is not
@@ -1089,7 +1084,7 @@ static int prep_for_register_access(struct target *target, uint64_t *mstatus,
 		int regno)
 {
 	if (is_fpu_reg(regno) || is_vector_reg(regno)) {
-		if (register_read(target, mstatus, GDB_REGNO_MSTATUS) != ERROR_OK)
+		if (register_read_direct(target, mstatus, GDB_REGNO_MSTATUS) != ERROR_OK)
 			return ERROR_FAIL;
 		if (is_fpu_reg(regno) && (*mstatus & MSTATUS_FS) == 0) {
 			if (register_write_direct(target, GDB_REGNO_MSTATUS,
@@ -1315,8 +1310,7 @@ static int register_write_direct(struct target *target, unsigned number,
 	struct riscv_program program;
 	riscv_program_init(&program, target);
 
-	uint64_t s0;
-	if (register_read(target, &s0, GDB_REGNO_S0) != ERROR_OK)
+	if (riscv_save_register(target, GDB_REGNO_S0) != ERROR_OK)
 		return ERROR_FAIL;
 
 	uint64_t mstatus;
@@ -1352,9 +1346,6 @@ static int register_write_direct(struct target *target, unsigned number,
 		riscv_program_insert(&program, vsetvli(ZERO, S0, value));
 
 	} else {
-		if (register_write_direct(target, GDB_REGNO_S0, value) != ERROR_OK)
-			return ERROR_FAIL;
-
 		if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
 			if (riscv_supports_extension(target, 'D'))
 				riscv_program_insert(&program, fmv_d_x(number - GDB_REGNO_FPR0, S0));
@@ -1365,7 +1356,7 @@ static int register_write_direct(struct target *target, unsigned number,
 			 * vsetvli and vsetvl instructions, and the fault-only-rst vector
 			 * load instruction variants." */
 			riscv_reg_t vtype;
-			if (register_read(target, &vtype, GDB_REGNO_VTYPE) != ERROR_OK)
+			if (register_read_direct(target, &vtype, GDB_REGNO_VTYPE) != ERROR_OK)
 				return ERROR_FAIL;
 			if (riscv_program_insert(&program, vsetvli(ZERO, S0, vtype)) != ERROR_OK)
 				return ERROR_FAIL;
@@ -1375,6 +1366,8 @@ static int register_write_direct(struct target *target, unsigned number,
 			LOG_ERROR("Unsupported register (enum gdb_regno)(%d)", number);
 			return ERROR_FAIL;
 		}
+		if (register_write_direct(target, GDB_REGNO_S0, value) != ERROR_OK)
+			return ERROR_FAIL;
 	}
 
 	int exec_out = riscv_program_exec(&program, target);
@@ -1390,28 +1383,7 @@ static int register_write_direct(struct target *target, unsigned number,
 	if (cleanup_after_register_access(target, mstatus, number) != ERROR_OK)
 		return ERROR_FAIL;
 
-	/* Restore S0. */
-	if (register_write_direct(target, GDB_REGNO_S0, s0) != ERROR_OK)
-		return ERROR_FAIL;
-
 	return exec_out;
-}
-
-/** Read register value from the target. Also update the cached value. */
-static int register_read(struct target *target, uint64_t *value, uint32_t number)
-{
-	if (number == GDB_REGNO_ZERO) {
-		*value = 0;
-		return ERROR_OK;
-	}
-	int result = register_read_direct(target, value, number);
-	if (result != ERROR_OK)
-		return ERROR_FAIL;
-	if (target->reg_cache) {
-		struct reg *reg = &target->reg_cache->reg_list[number];
-		buf_set_u64(reg->value, 0, reg->size, *value);
-	}
-	return ERROR_OK;
 }
 
 /** Actually read registers from the target right now. */
@@ -1429,8 +1401,7 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 		scratch_mem_t scratch;
 		bool use_scratch = false;
 
-		riscv_reg_t s0;
-		if (register_read(target, &s0, GDB_REGNO_S0) != ERROR_OK)
+		if (riscv_save_register(target, GDB_REGNO_S0) != ERROR_OK)
 			return ERROR_FAIL;
 
 		/* Write program to move data into s0. */
@@ -1484,10 +1455,6 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 		}
 
 		if (cleanup_after_register_access(target, mstatus, number) != ERROR_OK)
-			return ERROR_FAIL;
-
-		/* Restore S0. */
-		if (register_write_direct(target, GDB_REGNO_S0, s0) != ERROR_OK)
 			return ERROR_FAIL;
 	}
 
@@ -1550,7 +1517,7 @@ static int discover_vlenb(struct target *target)
 	RISCV_INFO(r);
 	riscv_reg_t vlenb;
 
-	if (register_read(target, &vlenb, GDB_REGNO_VLENB) != ERROR_OK) {
+	if (register_read_direct(target, &vlenb, GDB_REGNO_VLENB) != ERROR_OK) {
 		LOG_WARNING("Couldn't read vlenb for %s; vector register access won't work.",
 				target_name(target));
 		r->vlenb = 0;
@@ -1737,7 +1704,19 @@ static int examine(struct target *target)
 	else
 		r->xlen = 32;
 
-	if (register_read(target, &r->misa, GDB_REGNO_MISA)) {
+	/* Save s0 and s1. The register cache hasn't be initialized yet so we
+	 * need to take care of this manually. */
+	uint64_t s0, s1;
+	if (register_read_direct(target, &s0, GDB_REGNO_S0) != ERROR_OK) {
+		LOG_ERROR("Fatal: Failed to read s0 from hart %d.", r->current_hartid);
+		return ERROR_FAIL;
+	}
+	if (register_read_direct(target, &s1, GDB_REGNO_S1) != ERROR_OK) {
+		LOG_ERROR("Fatal: Failed to read s1 from hart %d.", r->current_hartid);
+		return ERROR_FAIL;
+	}
+
+	if (register_read_direct(target, &r->misa, GDB_REGNO_MISA)) {
 		LOG_ERROR("Fatal: Failed to read MISA from hart %d.", r->current_hartid);
 		return ERROR_FAIL;
 	}
@@ -1755,6 +1734,16 @@ static int examine(struct target *target)
 		* really slow simulators. */
 	LOG_DEBUG(" hart %d: XLEN=%d, misa=0x%" PRIx64, r->current_hartid, r->xlen,
 			r->misa);
+
+	/* Restore s0 and s1. */
+	if (register_write_direct(target, GDB_REGNO_S0, s0) != ERROR_OK) {
+		LOG_ERROR("Fatal: Failed to write s0 back to hart %d.", r->current_hartid);
+		return ERROR_FAIL;
+	}
+	if (register_write_direct(target, GDB_REGNO_S1, s1) != ERROR_OK) {
+		LOG_ERROR("Fatal: Failed to write s1 back to hart %d.", r->current_hartid);
+		return ERROR_FAIL;
+	}
 
 	if (!halted)
 		riscv013_step_or_resume_current_hart(target, false, false);
@@ -1927,9 +1916,9 @@ static int prep_for_vector_access(struct target *target, uint64_t *vtype,
 	}
 
 	/* Save vtype and vl. */
-	if (register_read(target, vtype, GDB_REGNO_VTYPE) != ERROR_OK)
+	if (register_read_direct(target, vtype, GDB_REGNO_VTYPE) != ERROR_OK)
 		return ERROR_FAIL;
-	if (register_read(target, vl, GDB_REGNO_VL) != ERROR_OK)
+	if (register_read_direct(target, vl, GDB_REGNO_VL) != ERROR_OK)
 		return ERROR_FAIL;
 
 	if (register_write_direct(target, GDB_REGNO_VTYPE, encoded_vsew << 3) != ERROR_OK)
@@ -1960,8 +1949,7 @@ static int riscv013_get_register_buf(struct target *target,
 	if (riscv_select_current_hart(target) != ERROR_OK)
 		return ERROR_FAIL;
 
-	riscv_reg_t s0;
-	if (register_read(target, &s0, GDB_REGNO_S0) != ERROR_OK)
+	if (riscv_save_register(target, GDB_REGNO_S0) != ERROR_OK)
 		return ERROR_FAIL;
 
 	uint64_t mstatus;
@@ -2005,8 +1993,6 @@ static int riscv013_get_register_buf(struct target *target,
 
 	if (cleanup_after_register_access(target, mstatus, regno) != ERROR_OK)
 		return ERROR_FAIL;
-	if (register_write_direct(target, GDB_REGNO_S0, s0) != ERROR_OK)
-		return ERROR_FAIL;
 
 	return result;
 }
@@ -2019,8 +2005,7 @@ static int riscv013_set_register_buf(struct target *target,
 	if (riscv_select_current_hart(target) != ERROR_OK)
 		return ERROR_FAIL;
 
-	riscv_reg_t s0;
-	if (register_read(target, &s0, GDB_REGNO_S0) != ERROR_OK)
+	if (riscv_save_register(target, GDB_REGNO_S0) != ERROR_OK)
 		return ERROR_FAIL;
 
 	uint64_t mstatus;
@@ -2052,8 +2037,6 @@ static int riscv013_set_register_buf(struct target *target,
 		return ERROR_FAIL;
 
 	if (cleanup_after_register_access(target, mstatus, regno) != ERROR_OK)
-		return ERROR_FAIL;
-	if (register_write_direct(target, GDB_REGNO_S0, s0) != ERROR_OK)
 		return ERROR_FAIL;
 
 	return result;
@@ -2562,11 +2545,11 @@ static int modify_privilege(struct target *target, uint64_t *mstatus, uint64_t *
 	if (riscv_enable_virtual && has_sufficient_progbuf(target, 5)) {
 		/* Read DCSR */
 		uint64_t dcsr;
-		if (register_read(target, &dcsr, GDB_REGNO_DCSR) != ERROR_OK)
+		if (register_read_direct(target, &dcsr, GDB_REGNO_DCSR) != ERROR_OK)
 			return ERROR_FAIL;
 
 		/* Read and save MSTATUS */
-		if (register_read(target, mstatus, GDB_REGNO_MSTATUS) != ERROR_OK)
+		if (register_read_direct(target, mstatus, GDB_REGNO_MSTATUS) != ERROR_OK)
 			return ERROR_FAIL;
 		*mstatus_old = *mstatus;
 
@@ -3349,10 +3332,9 @@ static int read_memory_progbuf_one(struct target *target, target_addr_t address,
 	if (modify_privilege(target, &mstatus, &mstatus_old) != ERROR_OK)
 		return ERROR_FAIL;
 
-	uint64_t s0;
 	int result = ERROR_FAIL;
 
-	if (register_read(target, &s0, GDB_REGNO_S0) != ERROR_OK)
+	if (riscv_save_register(target, GDB_REGNO_S0) != ERROR_OK)
 		goto restore_mstatus;
 
 	/* Write the program (load, increment) */
@@ -3392,18 +3374,14 @@ static int read_memory_progbuf_one(struct target *target, target_addr_t address,
 			riscv_xlen(target), AC_ACCESS_REGISTER_WRITE |
 			AC_ACCESS_REGISTER_TRANSFER | AC_ACCESS_REGISTER_POSTEXEC);
 	if (execute_abstract_command(target, command) != ERROR_OK)
-		goto restore_s0;
+		goto restore_mstatus;
 
 	uint64_t value;
-	if (register_read(target, &value, GDB_REGNO_S0) != ERROR_OK)
-		goto restore_s0;
+	if (register_read_direct(target, &value, GDB_REGNO_S0) != ERROR_OK)
+		goto restore_mstatus;
 	buf_set_u64(buffer, 0, 8 * size, value);
 	log_memory_access(address, value, size, true);
 	result = ERROR_OK;
-
-restore_s0:
-	if (riscv_set_register(target, GDB_REGNO_S0, s0) != ERROR_OK)
-		result = ERROR_FAIL;
 
 restore_mstatus:
 	if (mstatus != mstatus_old)
@@ -3449,12 +3427,11 @@ static int read_memory_progbuf(struct target *target, target_addr_t address,
 	 * s1 holds the next data value read
 	 * s2 is a counter in case increment is 0
 	 */
-	uint64_t s0, s1, s2;
-	if (register_read(target, &s0, GDB_REGNO_S0) != ERROR_OK)
+	if (riscv_save_register(target, GDB_REGNO_S0) != ERROR_OK)
 		return ERROR_FAIL;
-	if (register_read(target, &s1, GDB_REGNO_S1) != ERROR_OK)
+	if (riscv_save_register(target, GDB_REGNO_S1) != ERROR_OK)
 		return ERROR_FAIL;
-	if (increment == 0 && register_read(target, &s2, GDB_REGNO_S2) != ERROR_OK)
+	if (increment == 0 && riscv_save_register(target, GDB_REGNO_S2) != ERROR_OK)
 		return ERROR_FAIL;
 
 	/* Write the program (load, increment) */
@@ -3518,11 +3495,6 @@ static int read_memory_progbuf(struct target *target, target_addr_t address,
 		}
 		result = ERROR_OK;
 	}
-
-	riscv_set_register(target, GDB_REGNO_S0, s0);
-	riscv_set_register(target, GDB_REGNO_S1, s1);
-	if (increment == 0)
-		riscv_set_register(target, GDB_REGNO_S2, s2);
 
 	/* Restore MSTATUS */
 	if (mstatus != mstatus_old)
@@ -3814,10 +3786,9 @@ static int write_memory_progbuf(struct target *target, target_addr_t address,
 	 */
 
 	int result = ERROR_OK;
-	uint64_t s0, s1;
-	if (register_read(target, &s0, GDB_REGNO_S0) != ERROR_OK)
+	if (riscv_save_register(target, GDB_REGNO_S0) != ERROR_OK)
 		return ERROR_FAIL;
-	if (register_read(target, &s1, GDB_REGNO_S1) != ERROR_OK)
+	if (riscv_save_register(target, GDB_REGNO_S1) != ERROR_OK)
 		return ERROR_FAIL;
 
 	/* Write the program (store, increment) */
@@ -3965,11 +3936,6 @@ static int write_memory_progbuf(struct target *target, target_addr_t address,
 error:
 	dmi_write(target, DM_ABSTRACTAUTO, 0);
 
-	if (register_write_direct(target, GDB_REGNO_S1, s1) != ERROR_OK)
-		return ERROR_FAIL;
-	if (register_write_direct(target, GDB_REGNO_S0, s0) != ERROR_OK)
-		return ERROR_FAIL;
-
 	/* Restore MSTATUS */
 	if (mstatus != mstatus_old)
 		if (register_write_direct(target, GDB_REGNO_MSTATUS, mstatus_old))
@@ -4079,16 +4045,16 @@ static int riscv013_get_register(struct target *target,
 	int result = ERROR_OK;
 	if (rid == GDB_REGNO_PC) {
 		/* TODO: move this into riscv.c. */
-		result = register_read(target, value, GDB_REGNO_DPC);
+		result = register_read_direct(target, value, GDB_REGNO_DPC);
 		LOG_DEBUG("[%d] read PC from DPC: 0x%" PRIx64, target->coreid, *value);
 	} else if (rid == GDB_REGNO_PRIV) {
 		uint64_t dcsr;
 		/* TODO: move this into riscv.c. */
-		result = register_read(target, &dcsr, GDB_REGNO_DCSR);
+		result = register_read_direct(target, &dcsr, GDB_REGNO_DCSR);
 		*value = set_field(0, VIRT_PRIV_V, get_field(dcsr, CSR_DCSR_V));
 		*value = set_field(*value, VIRT_PRIV_PRV, get_field(dcsr, CSR_DCSR_PRV));
 	} else {
-		result = register_read(target, value, rid);
+		result = register_read_direct(target, value, rid);
 		if (result != ERROR_OK)
 			*value = -1;
 	}
@@ -4117,7 +4083,7 @@ static int riscv013_set_register(struct target *target, int rid, uint64_t value)
 		}
 	} else if (rid == GDB_REGNO_PRIV) {
 		uint64_t dcsr;
-		register_read(target, &dcsr, GDB_REGNO_DCSR);
+		register_read_direct(target, &dcsr, GDB_REGNO_DCSR);
 		dcsr = set_field(dcsr, CSR_DCSR_PRV, get_field(value, VIRT_PRIV_PRV));
 		dcsr = set_field(dcsr, CSR_DCSR_V, get_field(value, VIRT_PRIV_V));
 		return register_write_direct(target, GDB_REGNO_DCSR, dcsr);
@@ -4319,7 +4285,7 @@ static bool riscv013_is_halted(struct target *target)
 static enum riscv_halt_reason riscv013_halt_reason(struct target *target)
 {
 	riscv_reg_t dcsr;
-	int result = register_read(target, &dcsr, GDB_REGNO_DCSR);
+	int result = register_read_direct(target, &dcsr, GDB_REGNO_DCSR);
 	if (result != ERROR_OK)
 		return RISCV_HALT_UNKNOWN;
 
@@ -4779,14 +4745,18 @@ static int riscv013_on_step_or_resume(struct target *target, bool step)
 
 	/* We want to twiddle some bits in the debug CSR so debugging works. */
 	riscv_reg_t dcsr;
-	int result = register_read(target, &dcsr, GDB_REGNO_DCSR);
+	int result = register_read_direct(target, &dcsr, GDB_REGNO_DCSR);
 	if (result != ERROR_OK)
 		return result;
 	dcsr = set_field(dcsr, CSR_DCSR_STEP, step);
 	dcsr = set_field(dcsr, CSR_DCSR_EBREAKM, riscv_ebreakm);
 	dcsr = set_field(dcsr, CSR_DCSR_EBREAKS, riscv_ebreaks);
 	dcsr = set_field(dcsr, CSR_DCSR_EBREAKU, riscv_ebreaku);
-	return riscv_set_register(target, GDB_REGNO_DCSR, dcsr);
+	if (riscv_set_register(target, GDB_REGNO_DCSR, dcsr) != ERROR_OK)
+		return ERROR_FAIL;
+	if (riscv_flush_registers(target) != ERROR_OK)
+		return ERROR_FAIL;
+	return ERROR_OK;
 }
 
 static int riscv013_step_or_resume_current_hart(struct target *target,
@@ -4798,6 +4768,9 @@ static int riscv013_step_or_resume_current_hart(struct target *target,
 		LOG_ERROR("Hart %d is not halted!", r->current_hartid);
 		return ERROR_FAIL;
 	}
+
+	if (riscv_flush_registers(target) != ERROR_OK)
+		return ERROR_FAIL;
 
 	/* Issue the resume command, and then wait for the current hart to resume. */
 	uint32_t dmcontrol = DM_DMCONTROL_DMACTIVE | DM_DMCONTROL_RESUMEREQ;

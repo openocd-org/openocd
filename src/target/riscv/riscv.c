@@ -1155,6 +1155,29 @@ int riscv_select_current_hart(struct target *target)
 	return riscv_set_current_hartid(target, target->coreid);
 }
 
+int riscv_flush_registers(struct target *target)
+{
+	RISCV_INFO(r);
+
+	if (!target->reg_cache)
+		return ERROR_OK;
+
+	for (uint32_t number = 0; number < target->reg_cache->num_regs; number++) {
+		struct reg *reg = &target->reg_cache->reg_list[number];
+		if (reg->valid && reg->dirty) {
+			uint64_t value = buf_get_u64(reg->value, 0, reg->size);
+			LOG_DEBUG("[%s] %s is dirty; write back 0x%" PRIx64,
+				  target_name(target), reg->name, value);
+			int result = r->set_register(target, number, value);
+			if (result != ERROR_OK)
+				return ERROR_FAIL;
+			reg->dirty = false;
+		}
+	}
+
+	return ERROR_OK;
+}
+
 int halt_prep(struct target *target)
 {
 	RISCV_INFO(r);
@@ -1276,27 +1299,6 @@ static int riscv_deassert_reset(struct target *target)
 	return tt->deassert_reset(target);
 }
 
-int riscv_resume_prep_all_harts(struct target *target)
-{
-	RISCV_INFO(r);
-
-	LOG_DEBUG("[%s] prep hart", target_name(target));
-	if (riscv_select_current_hart(target) != ERROR_OK)
-		return ERROR_FAIL;
-	if (riscv_is_halted(target)) {
-		if (r->resume_prep(target) != ERROR_OK)
-			return ERROR_FAIL;
-	} else {
-		LOG_DEBUG("[%s] hart requested resume, but was already resumed",
-				target_name(target));
-	}
-
-	LOG_DEBUG("[%s] mark as prepped", target_name(target));
-	r->prepped = true;
-
-	return ERROR_OK;
-}
-
 /* state must be riscv_reg_t state[RISCV_MAX_HWBPS] = {0}; */
 static int disable_triggers(struct target *target, riscv_reg_t *state)
 {
@@ -1411,7 +1413,9 @@ static int resume_prep(struct target *target, int current,
 	}
 
 	if (r->is_halted) {
-		if (riscv_resume_prep_all_harts(target) != ERROR_OK)
+		if (riscv_select_current_hart(target) != ERROR_OK)
+			return ERROR_FAIL;
+		if (r->resume_prep(target) != ERROR_OK)
 			return ERROR_FAIL;
 	}
 
@@ -3439,11 +3443,9 @@ int riscv_step_rtos_hart(struct target *target)
 		LOG_ERROR("Hart isn't halted before single step!");
 		return ERROR_FAIL;
 	}
-	riscv_invalidate_register_cache(target);
 	r->on_step(target);
 	if (r->step_current_hart(target) != ERROR_OK)
 		return ERROR_FAIL;
-	riscv_invalidate_register_cache(target);
 	r->on_halt(target);
 	if (!riscv_is_halted(target)) {
 		LOG_ERROR("Hart was not halted after single step!");
@@ -3585,22 +3587,23 @@ int riscv_set_register(struct target *target, enum gdb_regno regid, riscv_reg_t 
 	struct reg *reg = &target->reg_cache->reg_list[regid];
 	buf_set_u64(reg->value, 0, reg->size, value);
 
-	int result = r->set_register(target, regid, value);
-	if (result == ERROR_OK)
-		reg->valid = gdb_regno_cacheable(regid, true);
-	else
-		reg->valid = false;
+	if (gdb_regno_cacheable(regid, true)) {
+		reg->valid = true;
+		reg->dirty = true;
+	} else {
+		if (r->set_register(target, regid, value) != ERROR_OK)
+			return ERROR_FAIL;
+	}
+
 	LOG_DEBUG("[%s] wrote 0x%" PRIx64 " to %s valid=%d",
 			  target_name(target), value, reg->name, reg->valid);
-	return result;
+	return ERROR_OK;
 }
 
 int riscv_get_register(struct target *target, riscv_reg_t *value,
 		enum gdb_regno regid)
 {
 	RISCV_INFO(r);
-
-	keep_alive();
 
 	struct reg *reg = &target->reg_cache->reg_list[regid];
 	if (!reg->exist) {
@@ -3625,12 +3628,38 @@ int riscv_get_register(struct target *target, riscv_reg_t *value,
 
 	int result = r->get_register(target, value, regid);
 
-	if (result == ERROR_OK)
+	if (result == ERROR_OK) {
+		/* Update the cache in case we're called from
+		 * riscv_save_register(). */
+		buf_set_u64(reg->value, 0, reg->size, *value);
 		reg->valid = gdb_regno_cacheable(regid, false);
+	}
 
 	LOG_DEBUG("[%s] %s: %" PRIx64, target_name(target),
 			gdb_regno_name(regid), *value);
 	return result;
+}
+
+int riscv_save_register(struct target *target, enum gdb_regno regid)
+{
+	riscv_reg_t value;
+	if (!target->reg_cache) {
+		assert(!target_was_examined(target));
+		return ERROR_OK;
+	}
+
+	struct reg *reg = &target->reg_cache->reg_list[regid];
+	LOG_DEBUG("[%s] save %s", target_name(target), reg->name);
+	if (riscv_get_register(target, &value, regid) != ERROR_OK)
+		return ERROR_FAIL;
+
+	if (!reg->valid)
+		return ERROR_FAIL;
+	/* Mark the register dirty. We assume that this function is called
+	 * because the caller is about to mess with the underlying value of the
+	 * register. */
+	reg->dirty = true;
+	return ERROR_OK;
 }
 
 bool riscv_is_halted(struct target *target)
