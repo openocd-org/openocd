@@ -53,10 +53,22 @@ struct arm_cti *cti_instance_by_jim_obj(Jim_Interp *interp, Jim_Obj *o)
 	return NULL;
 }
 
+static void arm_cti_unlock(struct arm_cti *self)
+{
+	/* while the LAR /shouldn't/ affect "accesses that use the external
+	 * debugger interface" according to ARM's docs, it certainly does so,
+	 * at least on NXP's LX2160A
+	 */
+	mem_ap_write_atomic_u32(self->ap, self->spot.base + ARM_CS_LAR,
+				ARM_CS_LAR_UNLOCK_KEY);
+}
+
 static int arm_cti_mod_reg_bits(struct arm_cti *self, unsigned int reg, uint32_t mask, uint32_t value)
 {
 	struct adiv5_ap *ap = self->ap;
 	uint32_t tmp;
+
+	arm_cti_unlock(self);
 
 	/* Read register */
 	int retval = mem_ap_read_atomic_u32(ap, self->spot.base + reg, &tmp);
@@ -76,6 +88,8 @@ int arm_cti_enable(struct arm_cti *self, bool enable)
 {
 	uint32_t val = enable ? 1 : 0;
 
+	arm_cti_unlock(self);
+
 	return mem_ap_write_atomic_u32(self->ap, self->spot.base + CTI_CTR, val);
 }
 
@@ -84,6 +98,8 @@ int arm_cti_ack_events(struct arm_cti *self, uint32_t event)
 	struct adiv5_ap *ap = self->ap;
 	int retval;
 	uint32_t tmp;
+
+	arm_cti_unlock(self);
 
 	retval = mem_ap_write_atomic_u32(ap, self->spot.base + CTI_INACK, event);
 	if (retval == ERROR_OK) {
@@ -123,6 +139,8 @@ int arm_cti_ungate_channel(struct arm_cti *self, uint32_t channel)
 
 int arm_cti_write_reg(struct arm_cti *self, unsigned int reg, uint32_t value)
 {
+	arm_cti_unlock(self);
+
 	return mem_ap_write_atomic_u32(self->ap, self->spot.base + reg, value);
 }
 
