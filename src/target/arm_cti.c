@@ -11,6 +11,7 @@
 
 #include <stdlib.h>
 #include <stdint.h>
+#include "target/arm_coresight.h"
 #include "target/arm_adi_v5.h"
 #include "target/arm_cti.h"
 #include "target/target.h"
@@ -190,6 +191,9 @@ static const struct {
 	{ CTI_APPPULSE,	"APPPULSE" },
 	{ CTI_INACK,	"INACK" },
 	{ CTI_DEVCTL,	"DEVCTL" },
+	{ ARM_CS_LAR,	"LAR" },
+	{ ARM_CS_LSR,	"LSR" },
+	{ ARM_CS_AUTHSTATUS,	"AUTHSTATUS" },
 };
 
 static int cti_find_reg_offset(const char *name)
