@@ -28,6 +28,8 @@
 /* lock/unlock registers on most(?) CS devices */
 #define ARM_CS_LAR                              (0xFB0)
 #define ARM_CS_LSR                              (0xFB4)
+#define ARM_CS_LSR_SLI                          BIT(0)
+#define ARM_CS_LSR_SLK                          BIT(1)
 #define ARM_CS_AUTHSTATUS                       (0xFB8)
 
 #define ARM_CS_LAR_UNLOCK_KEY                   (0xC5ACCE55)

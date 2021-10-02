@@ -216,8 +216,27 @@ static int aarch64_init_debug_access(struct target *target)
 	struct armv8_common *armv8 = target_to_armv8(target);
 	int retval;
 	uint32_t dummy;
+	uint32_t lsr;
 
 	LOG_DEBUG("%s", target_name(target));
+
+	/* while the LAR shouldn't even be visible on the external debugger
+	 * interface, this unlock is needed on at least NXP's LX2160A
+	 */
+	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
+			armv8->debug_base + ARM_CS_LAR, ARM_CS_LAR_UNLOCK_KEY);
+	if (retval != ERROR_OK) {
+		LOG_WARNING("debug unit unlock write failed - register may not be implemented");
+	} else {
+		retval = mem_ap_read_atomic_u32(armv8->debug_ap,
+				armv8->debug_base + ARM_CS_LSR, &lsr);
+		if (retval != ERROR_OK)
+			LOG_WARNING("debug unit unlock write OK but status read failed.");
+		else if ((lsr & (ARM_CS_LSR_SLI | ARM_CS_LSR_SLK))
+			 == (ARM_CS_LSR_SLI | ARM_CS_LSR_SLK))
+			/* try to continue anyway, at least read accesses still work */
+			LOG_WARNING("debug unit locked, may cause further failures.");
+	}
 
 	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
 			armv8->debug_base + CPUV8_DBG_OSLAR, 0);
