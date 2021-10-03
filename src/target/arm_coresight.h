@@ -25,6 +25,13 @@
 #define ARM_CS_PIDR6                            (0xFD8)
 #define ARM_CS_PIDR7                            (0xFDC)
 
+/* lock/unlock registers on most(?) CS devices */
+#define ARM_CS_LAR                              (0xFB0)
+#define ARM_CS_LSR                              (0xFB4)
+#define ARM_CS_AUTHSTATUS                       (0xFB8)
+
+#define ARM_CS_LAR_UNLOCK_KEY                   (0xC5ACCE55)
+
 /*
  * When PIDR bit JEDEC is zero, only the lowers 7 bits of DESIGNER are valid
  * and represent a legacy ASCII Identity Code.

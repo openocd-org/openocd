@@ -14,6 +14,7 @@
 #ifndef OPENOCD_TARGET_CORTEX_M_H
 #define OPENOCD_TARGET_CORTEX_M_H
 
+#include "arm_coresight.h"
 #include "armv7m.h"
 #include "helper/bitfield.h"
 #include "helper/bits.h"
@@ -22,13 +23,13 @@
 
 #define SYSTEM_CONTROL_BASE 0x400FE000
 
+#define ITM_BASE	0xE0000000
 #define ITM_TER0	0xE0000E00
 #define ITM_TPR		0xE0000E40
 #define ITM_TCR		0xE0000E80
 #define ITM_TCR_ITMENA_BIT	BIT(0)
 #define ITM_TCR_BUSY_BIT	BIT(23)
-#define ITM_LAR		0xE0000FB0
-#define ITM_LAR_KEY	0xC5ACCE55
+#define ITM_LAR		(ITM_BASE + ARM_CS_LAR)
 
 #define CPUID		0xE000ED00
 

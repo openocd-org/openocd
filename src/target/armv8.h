@@ -247,9 +247,6 @@ static inline bool is_armv8(struct armv8_common *armv8)
 #define CPUV8_DBG_DBGFEATURE0	0xD28
 #define CPUV8_DBG_MEMFEATURE0	0xD38
 
-#define CPUV8_DBG_LOCKACCESS 0xFB0
-#define CPUV8_DBG_LOCKSTATUS 0xFB4
-
 #define CPUV8_DBG_EDESR		0x20
 #define CPUV8_DBG_EDECR		0x24
 #define CPUV8_DBG_EDWAR0	0x30
@@ -272,8 +269,6 @@ static inline bool is_armv8(struct armv8_common *armv8)
 #define CPUV8_DBG_VCR		0x01C
 
 #define CPUV8_DBG_OSLAR		0x300
-
-#define CPUV8_DBG_AUTHSTATUS	0xFB8
 
 #define PAGE_SIZE_4KB				0x1000
 #define PAGE_SIZE_4KB_LEVEL0_BITS	39

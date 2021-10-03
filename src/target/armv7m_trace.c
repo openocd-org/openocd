@@ -21,7 +21,7 @@ int armv7m_trace_itm_config(struct target *target)
 	struct armv7m_trace_config *trace_config = &armv7m->trace_config;
 	int retval;
 
-	retval = target_write_u32(target, ITM_LAR, ITM_LAR_KEY);
+	retval = target_write_u32(target, ITM_LAR, ARM_CS_LAR_UNLOCK_KEY);
 	if (retval != ERROR_OK)
 		return retval;
 

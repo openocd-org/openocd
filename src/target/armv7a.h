@@ -163,9 +163,6 @@ static inline bool is_armv7a(struct armv7a_common *armv7a)
 #define CPUDBG_DSCCR		0x028
 #define CPUDBG_DSMCR		0x02C
 
-/* See ARMv7a arch spec section C10.8 */
-#define CPUDBG_AUTHSTATUS	0xFB8
-
 /* See ARMv7a arch spec DDI 0406C C11.10 */
 #define CPUDBG_ID_PFR1		0xD24
 

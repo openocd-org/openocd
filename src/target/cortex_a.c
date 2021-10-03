@@ -216,7 +216,7 @@ static int cortex_a_init_debug_access(struct target *target)
 	/* lock memory-mapped access to debug registers to prevent
 	 * software interference */
 	retval = mem_ap_write_u32(armv7a->debug_ap,
-			armv7a->debug_base + CPUDBG_LOCKACCESS, 0);
+			armv7a->debug_base + ARM_CS_LAR, 0);
 	if (retval != ERROR_OK)
 		return retval;
 
