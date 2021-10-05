@@ -1113,6 +1113,9 @@ static int execute_resume(struct target *target, bool step)
 
 	LOG_DEBUG("step=%d", step);
 
+	if (riscv_flush_registers(target) != ERROR_OK)
+		return ERROR_FAIL;
+
 	maybe_write_tselect(target);
 
 	/* TODO: check if dpc is dirty (which also is true if an exception was hit
