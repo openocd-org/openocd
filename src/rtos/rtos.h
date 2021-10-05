@@ -68,6 +68,8 @@ struct rtos_reg {
 	uint32_t number;
 	uint32_t size;
 	uint8_t value[16];
+	/* WARNING: rtos_get_gdb_reg() relies on the fact that value is the last
+	 * element of this struct. Any new fields should be added *before* value. */
 };
 
 struct rtos_type {
@@ -79,8 +81,10 @@ struct rtos_type {
 	/** Return a list of general registers, with their values filled out. */
 	int (*get_thread_reg_list)(struct rtos *rtos, threadid_t thread_id,
 			struct rtos_reg **reg_list, int *num_regs);
-	int (*get_thread_reg)(struct rtos *rtos, threadid_t thread_id,
-			uint32_t reg_num, struct rtos_reg *reg);
+	/** Return the size and value of the specified reg_num. The value is
+	 * allocated by the callee and freed by the caller. */
+	int (*get_thread_reg_value)(struct rtos *rtos, threadid_t thread_id,
+			uint32_t reg_num, uint32_t *size, uint8_t **value);
 	int (*get_symbol_list_to_lookup)(struct symbol_table_elem *symbol_list[]);
 	int (*clean)(struct target *target);
 	char * (*ps_command)(struct target *target);

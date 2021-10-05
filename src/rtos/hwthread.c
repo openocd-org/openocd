@@ -31,8 +31,8 @@
 static bool hwthread_detect_rtos(struct target *target);
 static int hwthread_create(struct target *target);
 static int hwthread_update_threads(struct rtos *rtos);
-static int hwthread_get_thread_reg(struct rtos *rtos, int64_t thread_id,
-		uint32_t reg_num, struct rtos_reg *rtos_reg);
+static int hwthread_get_thread_reg_value(struct rtos *rtos, int64_t thread_id,
+		uint32_t reg_num, uint32_t *size, uint8_t **value);
 static int hwthread_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
 		struct rtos_reg **reg_list, int *num_regs);
 static int hwthread_get_symbol_list_to_lookup(struct symbol_table_elem *symbol_list[]);
@@ -59,7 +59,7 @@ const struct rtos_type hwthread_rtos = {
 	.create = hwthread_create,
 	.update_threads = hwthread_update_threads,
 	.get_thread_reg_list = hwthread_get_thread_reg_list,
-	.get_thread_reg = hwthread_get_thread_reg,
+	.get_thread_reg_value = hwthread_get_thread_reg_value,
 	.get_symbol_list_to_lookup = hwthread_get_symbol_list_to_lookup,
 	.smp_init = hwthread_smp_init,
 	.set_reg = hwthread_set_reg,
@@ -282,8 +282,8 @@ static int hwthread_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
 	return ERROR_OK;
 }
 
-static int hwthread_get_thread_reg(struct rtos *rtos, int64_t thread_id,
-		uint32_t reg_num, struct rtos_reg *rtos_reg)
+static int hwthread_get_thread_reg_value(struct rtos *rtos, int64_t thread_id,
+		uint32_t reg_num, uint32_t *size, uint8_t **value)
 {
 	if (!rtos)
 		return ERROR_FAIL;
@@ -311,11 +311,14 @@ static int hwthread_get_thread_reg(struct rtos *rtos, int64_t thread_id,
 	if (reg->type->get(reg) != ERROR_OK)
 		return ERROR_FAIL;
 
-	rtos_reg->number = reg->number;
-	rtos_reg->size = reg->size;
-	unsigned bytes = (reg->size + 7) / 8;
-	assert(bytes <= sizeof(rtos_reg->value));
-	memcpy(rtos_reg->value, reg->value, bytes);
+	*size = reg->size;
+	unsigned bytes = DIV_ROUND_UP(reg->size, 8);
+	*value = malloc(bytes);
+	if (!*value) {
+		LOG_ERROR("Failed to allocate memory for %d-bit register.", reg->size);
+		return ERROR_FAIL;
+	}
+	memcpy(*value, reg->value, bytes);
 
 	return ERROR_OK;
 }

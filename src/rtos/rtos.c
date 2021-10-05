@@ -510,16 +510,33 @@ int rtos_get_gdb_reg(struct connection *connection, int reg_num)
 										target->rtos->current_thread);
 
 		int retval;
-		if (target->rtos->type->get_thread_reg) {
-			reg_list = calloc(1, sizeof(*reg_list));
-			reg_list[0].number = reg_num;
-			num_regs = 1;
-			retval = target->rtos->type->get_thread_reg(target->rtos,
-					current_threadid, reg_num, &reg_list[0]);
+		if (target->rtos->type->get_thread_reg_value) {
+			uint32_t reg_size;
+			uint8_t *reg_value;
+			retval = target->rtos->type->get_thread_reg_value(target->rtos,
+					current_threadid, reg_num, &reg_size, &reg_value);
 			if (retval != ERROR_OK) {
 				LOG_ERROR("RTOS: failed to get register %d", reg_num);
 				return retval;
 			}
+
+			/* Create a reg_list with one register that can
+			 * accommodate the full size of the one we just got the
+			 * value for. To do that we allocate extra space off the
+			 * end of the struct, relying on the fact that
+			 * rtos_reg.value is the last element in the struct. */
+			reg_list = calloc(1, sizeof(*reg_list) + DIV_ROUND_UP(reg_size, 8));
+			if (!reg_list) {
+				free(reg_value);
+				LOG_ERROR("Failed to allocated reg_list for %d-byte register.",
+					  reg_size);
+				return ERROR_FAIL;
+			}
+			reg_list[0].number = reg_num;
+			reg_list[0].size = reg_size;
+			memcpy(&reg_list[0].value, reg_value, DIV_ROUND_UP(reg_size, 8));
+			free(reg_value);
+			num_regs = 1;
 		} else {
 			retval = target->rtos->type->get_thread_reg_list(target->rtos,
 					current_threadid,

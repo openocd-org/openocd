@@ -210,8 +210,8 @@ static int freertos_create(struct target *target);
 static int freertos_update_threads(struct rtos *rtos);
 static int freertos_get_thread_reg_list(struct rtos *rtos, threadid_t thread_id,
 		struct rtos_reg **reg_list, int *num_regs);
-static int freertos_get_thread_reg(struct rtos *rtos, threadid_t thread_id,
-		uint32_t reg_num, struct rtos_reg *reg);
+static int freertos_get_thread_reg_value(struct rtos *rtos, threadid_t thread_id,
+		uint32_t reg_num, uint32_t *size, uint8_t **value);
 static int freertos_set_reg(struct rtos *rtos, uint32_t reg_num, uint8_t *reg_value);
 static int freertos_get_symbol_list_to_lookup(struct symbol_table_elem *symbol_list[]);
 
@@ -222,7 +222,7 @@ struct rtos_type freertos_rtos = {
 	.create = freertos_create,
 	.update_threads = freertos_update_threads,
 	.get_thread_reg_list = freertos_get_thread_reg_list,
-	.get_thread_reg = freertos_get_thread_reg,
+	.get_thread_reg_value = freertos_get_thread_reg_value,
 	.set_reg = freertos_set_reg,
 	.get_symbol_list_to_lookup = freertos_get_symbol_list_to_lookup,
 };
@@ -769,8 +769,8 @@ static int freertos_get_thread_reg_list(struct rtos *rtos, threadid_t thread_id,
 	return rtos_generic_stack_read(rtos->target, stacking_info, stack_ptr, reg_list, num_regs);
 }
 
-static int freertos_get_thread_reg(struct rtos *rtos, threadid_t thread_id,
-		uint32_t reg_num, struct rtos_reg *reg)
+static int freertos_get_thread_reg_value(struct rtos *rtos, threadid_t thread_id,
+		uint32_t reg_num, uint32_t *size, uint8_t **value)
 {
 	LOG_DEBUG("reg_num=%d", reg_num);
 	/* Let the caller read registers directly for the current thread. */
@@ -782,7 +782,18 @@ static int freertos_get_thread_reg(struct rtos *rtos, threadid_t thread_id,
 	if (freertos_get_stacking_info(rtos, thread_id, &stacking_info, &stack_ptr) != ERROR_OK)
 		return ERROR_FAIL;
 
-	return rtos_generic_stack_read_reg(rtos->target, stacking_info, stack_ptr, reg_num, reg);
+	struct rtos_reg reg;
+	reg.number = reg_num;
+	int result = rtos_generic_stack_read_reg(rtos->target, stacking_info,
+						 stack_ptr, reg_num, &reg);
+	*size = reg.size;
+	*value = malloc(DIV_ROUND_UP(reg.size, 8));
+	if (!*value) {
+		LOG_ERROR("Failed to allocate memory for %d-bit register.", reg.size);
+		return ERROR_FAIL;
+	}
+	memcpy(*value, reg.value, DIV_ROUND_UP(reg.size, 8));
+	return result;
 }
 
 static int freertos_set_reg(struct rtos *rtos, uint32_t reg_num, uint8_t *reg_value)
