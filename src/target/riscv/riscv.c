@@ -3791,6 +3791,10 @@ int riscv_enumerate_triggers(struct target *target)
 				if (tdata1 & MCONTROL_DMODE(riscv_xlen(target)))
 					riscv_set_register(target, GDB_REGNO_TDATA1, 0);
 				break;
+			case 6:
+				if (tdata1 & MCONTROL_DMODE(riscv_xlen(target)))
+					riscv_set_register(target, GDB_REGNO_TDATA1, 0);
+				break;
 		}
 	}
 
