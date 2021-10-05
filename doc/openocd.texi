@@ -4836,6 +4836,10 @@ Set/get quirks mode for TI TMS450/TMS570 processors
 Disabled by default
 @end deffn
 
+@deffn {Config Command} {$dap_name nu_npcx_quirks} [@option{enable}]
+Set/get quirks mode for Nuvoton NPCX/NPCD MCU families
+Disabled by default
+@end deffn
 
 @node CPU Configuration
 @chapter CPU Configuration
