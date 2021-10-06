@@ -38,7 +38,7 @@
 #include <jtag/interface.h>
 #include <jtag/swd.h>
 #include <jtag/commands.h>
-#include <jtag/drivers/jtag_usb_common.h>
+#include <jtag/adapter.h>
 #include <helper/replacements.h>
 #include <target/cortex_m.h>
 
@@ -547,7 +547,7 @@ static bool jlink_usb_location_equal(struct jaylink_device *dev)
 		return false;
 	}
 
-	equal = jtag_usb_location_equal(bus, ports,	num_ports);
+	equal = adapter_usb_location_equal(bus, ports, num_ports);
 	free(ports);
 
 	return equal;
@@ -573,7 +573,7 @@ static int jlink_open_device(uint32_t ifaces, bool *found_device)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	use_usb_location = !!jtag_usb_get_location();
+	use_usb_location = !!adapter_usb_get_location();
 
 	if (!use_serial_number && !use_usb_address && !use_usb_location && num_devices > 1) {
 		LOG_ERROR("Multiple devices found, specify the desired device");

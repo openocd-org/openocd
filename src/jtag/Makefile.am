@@ -1,6 +1,5 @@
 noinst_LTLIBRARIES += %D%/libjtag.la
 
-JTAG_SRCS = %D%/commands.c
 %C%_libjtag_la_LIBADD =
 
 if HLADAPTER
@@ -18,6 +17,8 @@ include %D%/drivers/Makefile.am
 
 %C%_libjtag_la_SOURCES = \
 	%D%/adapter.c \
+	%D%/adapter.h \
+	%D%/commands.c \
 	%D%/core.c \
 	%D%/interface.c \
 	%D%/interfaces.c \
@@ -31,7 +32,6 @@ include %D%/drivers/Makefile.am
 	%D%/jtag.h \
 	%D%/swd.h \
 	%D%/swim.h \
-	%D%/tcl.h \
-	$(JTAG_SRCS)
+	%D%/tcl.h
 
 STARTUP_TCL_SRCS += %D%/startup.tcl

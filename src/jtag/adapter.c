@@ -1,41 +1,22 @@
-/***************************************************************************
- *   Copyright (C) 2005 by Dominic Rath                                    *
- *   Dominic.Rath@gmx.de                                                   *
- *                                                                         *
- *   Copyright (C) 2007-2010 Øyvind Harboe                                 *
- *   oyvind.harboe@zylin.com                                               *
- *                                                                         *
- *   Copyright (C) 2009 SoftPLC Corporation                                *
- *       http://softplc.com                                                *
- *   dick@softplc.com                                                      *
- *                                                                         *
- *   Copyright (C) 2009 Zachary T Welch                                    *
- *   zw@superlucidity.net                                                  *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
- ***************************************************************************/
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+/*
+ * Copyright (C) 2005 by Dominic Rath <Dominic.Rath@gmx.de>
+ * Copyright (C) 2007-2010 Øyvind Harboe <oyvind.harboe@zylin.com>
+ * Copyright (C) 2009 SoftPLC Corporation, http://softplc.com, Dick Hollenbeck <dick@softplc.com>
+ * Copyright (C) 2009 Zachary T Welch <zw@superlucidity.net>
+ * Copyright (C) 2018 Pengutronix, Oleksij Rempel <kernel@pengutronix.de>
+ */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
+#include "adapter.h"
 #include "jtag.h"
 #include "minidriver.h"
 #include "interface.h"
 #include "interfaces.h"
 #include <transport/transport.h>
-#include <jtag/drivers/jtag_usb_common.h>
 
 #ifdef HAVE_STRINGS_H
 #include <strings.h>
@@ -48,6 +29,88 @@
 
 struct adapter_driver *adapter_driver;
 const char * const jtag_only[] = { "jtag", NULL };
+
+/**
+ * Adapter configuration
+ */
+static struct {
+	char *usb_location;
+} adapter_config;
+
+/*
+ * 1 char: bus
+ * 2 * 7 chars: max 7 ports
+ * 1 char: test for overflow
+ * ------
+ * 16 chars
+ */
+#define USB_MAX_LOCATION_LENGTH         16
+
+#ifdef HAVE_LIBUSB_GET_PORT_NUMBERS
+static void adapter_usb_set_location(const char *location)
+{
+	if (strnlen(location, USB_MAX_LOCATION_LENGTH) == USB_MAX_LOCATION_LENGTH)
+		LOG_WARNING("usb location string is too long!!");
+
+	free(adapter_config.usb_location);
+
+	adapter_config.usb_location = strndup(location, USB_MAX_LOCATION_LENGTH);
+}
+#endif /* HAVE_LIBUSB_GET_PORT_NUMBERS */
+
+const char *adapter_usb_get_location(void)
+{
+	return adapter_config.usb_location;
+}
+
+bool adapter_usb_location_equal(uint8_t dev_bus, uint8_t *port_path, size_t path_len)
+{
+	size_t path_step, string_length;
+	char *ptr, *loc;
+	bool equal = false;
+
+	if (!adapter_usb_get_location())
+		return equal;
+
+	/* strtok need non const char */
+	loc = strndup(adapter_usb_get_location(), USB_MAX_LOCATION_LENGTH);
+	string_length = strnlen(loc, USB_MAX_LOCATION_LENGTH);
+
+	ptr = strtok(loc, "-");
+	if (!ptr) {
+		LOG_WARNING("no '-' in usb path\n");
+		goto done;
+	}
+
+	string_length -= strnlen(ptr, string_length);
+	/* check bus mismatch */
+	if (atoi(ptr) != dev_bus)
+		goto done;
+
+	path_step = 0;
+	while (path_step < path_len) {
+		ptr = strtok(NULL, ".");
+
+		/* no more tokens in path */
+		if (!ptr)
+			break;
+
+		/* path mismatch at some step */
+		if (path_step < path_len && atoi(ptr) != port_path[path_step])
+			break;
+
+		path_step++;
+		string_length -= strnlen(ptr, string_length) + 1;
+	};
+
+	/* walked the full path, all elements match */
+	if (path_step == path_len && !string_length)
+		equal = true;
+
+done:
+	free(loc);
+	return equal;
+}
 
 static int jim_adapter_name(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
 {
@@ -501,9 +564,9 @@ COMMAND_HANDLER(handle_adapter_reset_de_assert)
 COMMAND_HANDLER(handle_usb_location_command)
 {
 	if (CMD_ARGC == 1)
-		jtag_usb_set_location(CMD_ARGV[0]);
+		adapter_usb_set_location(CMD_ARGV[0]);
 
-	command_print(CMD, "adapter usb location: %s", jtag_usb_get_location());
+	command_print(CMD, "adapter usb location: %s", adapter_usb_get_location());
 
 	return ERROR_OK;
 }
