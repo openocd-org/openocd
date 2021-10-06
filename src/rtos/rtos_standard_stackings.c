@@ -321,11 +321,13 @@ static target_addr_t rtos_generic_stack_align(struct target *target,
 	const uint8_t *stack_data, const struct rtos_register_stacking *stacking,
 	target_addr_t stack_ptr, int align)
 {
-	target_addr_t new_stack_ptr;
-	target_addr_t aligned_stack_ptr;
-	new_stack_ptr = stack_ptr - stacking->stack_growth_direction *
-		stacking->stack_registers_size;
-	aligned_stack_ptr = new_stack_ptr & ~((target_addr_t)align - 1);
+	target_addr_t new_stack_ptr = stack_ptr;
+	if (stacking->stack_growth_direction > 0)
+		new_stack_ptr -= stacking->stack_registers_size;
+	else
+		new_stack_ptr += stacking->stack_registers_size;
+	target_addr_t aligned_stack_ptr = new_stack_ptr & ~((int64_t)align - 1);
+
 	if (aligned_stack_ptr != new_stack_ptr &&
 		stacking->stack_growth_direction == -1) {
 		/* If we have a downward growing stack, the simple alignment code
