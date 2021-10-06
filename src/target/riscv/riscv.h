@@ -10,7 +10,7 @@ struct riscv_program;
 #include "gdb_regs.h"
 #include "jtag/jtag.h"
 #include "target/register.h"
-#include "command.h"
+#include <helper/command.h>
 
 /* The register cache is statically allocated. */
 #define RISCV_MAX_HARTS 1024
