@@ -1615,11 +1615,7 @@ static int examine(struct target *target)
 		LOG_ERROR("Debugger is not authenticated to target Debug Module. "
 				"(dmstatus=0x%x). Use `riscv authdata_read` and "
 				"`riscv authdata_write` commands to authenticate.", dmstatus);
-		/* If we return ERROR_FAIL here, then in a multicore setup the next
-		 * core won't be examined, which means we won't set up the
-		 * authentication commands for them, which means the config script
-		 * needs to be a lot more complex. */
-		return ERROR_OK;
+		return ERROR_FAIL;
 	}
 
 	if (dmi_read(target, &info->sbcs, DM_SBCS) != ERROR_OK)
@@ -1748,8 +1744,6 @@ static int examine(struct target *target)
 	if (!halted)
 		riscv013_step_or_resume_current_hart(target, false, false);
 
-	target_set_examined(target);
-
 	if (target->smp) {
 		bool haltgroup_supported;
 		if (set_haltgroup(target, &haltgroup_supported) != ERROR_OK)
@@ -1810,7 +1804,7 @@ static int riscv013_authdata_write(struct target *target, uint32_t value, unsign
 			return ERROR_FAIL;
 		target_list_t *entry;
 		list_for_each_entry(entry, &dm->target_list, list) {
-			if (examine(entry->target) != ERROR_OK)
+			if (target_examine_one(entry->target) != ERROR_OK)
 				result = ERROR_FAIL;
 		}
 		return result;
