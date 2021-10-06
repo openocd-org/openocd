@@ -717,6 +717,15 @@ static int no_mmu(struct target *target, int *enabled)
 	return ERROR_OK;
 }
 
+/**
+ * Reset the @c examined flag for the given target.
+ * Pure paranoia -- targets are zeroed on allocation.
+ */
+static inline void target_reset_examined(struct target *target)
+{
+	target->examined = false;
+}
+
 static int default_examine(struct target *target)
 {
 	target_set_examined(target);
@@ -737,10 +746,12 @@ int target_examine_one(struct target *target)
 
 	int retval = target->type->examine(target);
 	if (retval != ERROR_OK) {
+		target_reset_examined(target);
 		target_call_event_callbacks(target, TARGET_EVENT_EXAMINE_FAIL);
 		return retval;
 	}
 
+	target_set_examined(target);
 	target_call_event_callbacks(target, TARGET_EVENT_EXAMINE_END);
 
 	return ERROR_OK;
@@ -1520,15 +1531,6 @@ static int target_profiling(struct target *target, uint32_t *samples,
 {
 	return target->type->profiling(target, samples, max_num_samples,
 			num_samples, seconds);
-}
-
-/**
- * Reset the @c examined flag for the given target.
- * Pure paranoia -- targets are zeroed on allocation.
- */
-static void target_reset_examined(struct target *target)
-{
-	target->examined = false;
 }
 
 static int handle_target(void *priv);
@@ -3055,7 +3057,7 @@ static int handle_target(void *priv)
 				/* Target examination could have failed due to unstable connection,
 				 * but we set the examined flag anyway to repoll it later */
 				if (retval != ERROR_OK) {
-					target->examined = true;
+					target_set_examined(target);
 					LOG_USER("Examination failed, GDB will be halted. Polling again in %dms",
 						 target->backoff.times * polling_interval);
 					return retval;
@@ -4986,7 +4988,7 @@ no_params:
 				if (goi->isconfigure) {
 					/* START_DEPRECATED_TPIU */
 					if (n->value == TARGET_EVENT_TRACE_CONFIG)
-						LOG_INFO("DEPRECATED target event %s", n->name);
+						LOG_INFO("DEPRECATED target event %s; use TPIU events {pre,post}-{enable,disable}", n->name);
 					/* END_DEPRECATED_TPIU */
 
 					bool replace = true;
@@ -5311,8 +5313,13 @@ static int jim_target_examine(Jim_Interp *interp, int argc, Jim_Obj *const *argv
 	}
 
 	int e = target->type->examine(target);
-	if (e != ERROR_OK)
+	if (e != ERROR_OK) {
+		target_reset_examined(target);
 		return JIM_ERR;
+	}
+
+	target_set_examined(target);
+
 	return JIM_OK;
 }
 
@@ -5718,7 +5725,7 @@ static int target_create(struct jim_getopt_info *goi)
 	/* COMMAND */
 	jim_getopt_obj(goi, &new_cmd);
 	/* does this command exist? */
-	cmd = Jim_GetCommand(goi->interp, new_cmd, JIM_ERRMSG);
+	cmd = Jim_GetCommand(goi->interp, new_cmd, JIM_NONE);
 	if (cmd) {
 		cp = Jim_GetString(new_cmd, NULL);
 		Jim_SetResultFormatted(goi->interp, "Command/target: %s Exists", cp);
@@ -5982,10 +5989,10 @@ static int jim_target_smp(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	const char *targetname;
 	int retval, len;
 	static int smp_group = 1;
-	struct target *target = (struct target *) NULL;
+	struct target *target = NULL;
 	struct target_list *head, *curr, *new;
-	curr = (struct target_list *) NULL;
-	head = (struct target_list *) NULL;
+	curr = NULL;
+	head = NULL;
 
 	retval = 0;
 	LOG_DEBUG("%d", argc);
@@ -6002,8 +6009,8 @@ static int jim_target_smp(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		if (target) {
 			new = malloc(sizeof(struct target_list));
 			new->target = target;
-			new->next = (struct target_list *)NULL;
-			if (head == (struct target_list *)NULL) {
+			new->next = NULL;
+			if (!head) {
 				head = new;
 				curr = head;
 			} else {
@@ -6015,7 +6022,7 @@ static int jim_target_smp(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	/*  now parse the list of cpu and put the target in smp mode*/
 	curr = head;
 
-	while (curr != (struct target_list *)NULL) {
+	while (curr) {
 		target = curr->target;
 		target->smp = smp_group;
 		target->head = head;

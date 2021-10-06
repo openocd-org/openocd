@@ -95,3 +95,8 @@ TAGS
 
 # ctags tag files
 tags
+
+# GNU Global tag files
+GPATH
+GRTAGS
+GTAGS

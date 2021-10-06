@@ -20,7 +20,7 @@
 #include "mips64.h"
 #include "mips64_pracc.h"
 
-#include "time_support.h"
+#include <helper/time_support.h>
 
 #define STACK_DEPTH	32
 

@@ -40,6 +40,7 @@
 #endif
 
 #include "imp.h"
+#include <helper/binarybuffer.h>
 #include <helper/bits.h>
 #include <helper/time_support.h>
 #include <target/algorithm.h>

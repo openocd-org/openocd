@@ -24,11 +24,12 @@
 #include <time.h>
 
 #include "imp.h"
+#include "helper/time_support.h"
+#include "target/arm_adi_v5.h"
 #include "target/target.h"
 #include "target/cortex_m.h"
 #include "target/breakpoints.h"
 #include "target/target_type.h"
-#include "time_support.h"
 #include "target/algorithm.h"
 
 /**************************************************************************************************

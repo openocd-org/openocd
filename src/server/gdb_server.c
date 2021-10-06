@@ -3093,8 +3093,10 @@ static bool gdb_handle_vrun_packet(struct connection *connection, const char *pa
 	free(next_hex_encoded_field(&parse, ';'));
 
 	char *cmdline = next_hex_encoded_field(&parse, ';');
-	char *arg;
-	while (cmdline && (arg = next_hex_encoded_field(&parse, ';')) != NULL) {
+	while (cmdline) {
+		char *arg = next_hex_encoded_field(&parse, ';');
+		if (!arg)
+			break;
 		char *new_cmdline = alloc_printf("%s %s", cmdline, arg);
 		free(cmdline);
 		free(arg);
@@ -3641,7 +3643,7 @@ static int gdb_target_start(struct target *target, const char *port)
 		struct target_list *head;
 		struct target *curr;
 		head = target->head;
-		while (head != (struct target_list *)NULL) {
+		while (head) {
 			curr = head->target;
 			if (curr != target)
 				curr->gdb_service = gdb_service;

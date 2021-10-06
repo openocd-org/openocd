@@ -21,7 +21,7 @@
 
 #include "server/server.h"
 #include "target/target.h"
-#include <jim-nvp.h>
+#include <helper/jim-nvp.h>
 
 typedef int64_t threadid_t;
 typedef int64_t symbol_address_t;

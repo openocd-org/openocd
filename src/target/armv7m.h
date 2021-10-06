@@ -25,9 +25,10 @@
 #ifndef OPENOCD_TARGET_ARMV7M_H
 #define OPENOCD_TARGET_ARMV7M_H
 
-#include "arm_adi_v5.h"
 #include "arm.h"
 #include "armv7m_trace.h"
+
+struct adiv5_ap;
 
 extern const int armv7m_psp_reg_map[];
 extern const int armv7m_msp_reg_map[];

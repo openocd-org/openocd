@@ -56,6 +56,7 @@
 #include "armv7a_mmu.h"
 #include "target_request.h"
 #include "target_type.h"
+#include "arm_coresight.h"
 #include "arm_opcodes.h"
 #include "arm_semihosting.h"
 #include "jtag/interface.h"
@@ -641,7 +642,7 @@ static struct target *get_cortex_a(struct target *target, int32_t coreid)
 	struct target *curr;
 
 	head = target->head;
-	while (head != (struct target_list *)NULL) {
+	while (head) {
 		curr = head->target;
 		if ((curr->coreid == coreid) && (curr->state == TARGET_HALTED))
 			return curr;
@@ -657,7 +658,7 @@ static int cortex_a_halt_smp(struct target *target)
 	struct target_list *head;
 	struct target *curr;
 	head = target->head;
-	while (head != (struct target_list *)NULL) {
+	while (head) {
 		curr = head->target;
 		if ((curr != target) && (curr->state != TARGET_HALTED)
 			&& target_was_examined(curr))
@@ -953,7 +954,7 @@ static int cortex_a_restore_smp(struct target *target, int handle_breakpoints)
 	struct target *curr;
 	target_addr_t address;
 	head = target->head;
-	while (head != (struct target_list *)NULL) {
+	while (head) {
 		curr = head->target;
 		if ((curr != target) && (curr->state != TARGET_RUNNING)
 			&& target_was_examined(curr)) {
@@ -2921,8 +2922,8 @@ static int cortex_a_examine_first(struct target *target)
 		retval = dap_get_debugbase(armv7a->debug_ap, &dbgbase, &apid);
 		if (retval != ERROR_OK)
 			return retval;
-		/* Lookup 0x15 -- Processor DAP */
-		retval = dap_lookup_cs_component(armv7a->debug_ap, dbgbase, 0x15,
+		/* Lookup Processor DAP */
+		retval = dap_lookup_cs_component(armv7a->debug_ap, dbgbase, ARM_CS_C9_DEVTYPE_CORE_DEBUG,
 				&armv7a->debug_base, &coreidx);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("Can't detect %s's dbgbase from the ROM table; you need to specify it explicitly.",

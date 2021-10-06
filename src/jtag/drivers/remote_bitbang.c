@@ -91,13 +91,13 @@ static int remote_bitbang_flush(void)
 	return ERROR_OK;
 }
 
-typedef enum {
+enum block_bool {
 	NO_BLOCK,
 	BLOCK
-} block_bool_t;
+};
 
 /* Read any incoming data, placing it into the buffer. */
-static int remote_bitbang_fill_buf(block_bool_t block)
+static int remote_bitbang_fill_buf(enum block_bool block)
 {
 	if (remote_bitbang_recv_buf_empty()) {
 		/* If the buffer is empty, reset it to 0 so we get more
@@ -277,7 +277,7 @@ static int remote_bitbang_init_tcp(void)
 	 * connection as fast as possible. */
 	int one = 1;
 	/* On Windows optval has to be a const char *. */
-	setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char *) &one, sizeof(one));
+	setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char *)&one, sizeof(one));
 
 	freeaddrinfo(result); /* No longer needed */
 

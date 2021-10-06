@@ -20,9 +20,9 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#include <helper/log.h>
 #include <jtag/drivers/jtag_usb_common.h>
 #include "libusb_helper.h"
-#include "log.h"
 
 /*
  * comment from libusb:

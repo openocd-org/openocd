@@ -8,10 +8,11 @@
 #include "config.h"
 #endif
 
+#include <helper/log.h>
+#include <helper/time_support.h>
 #include "target/target.h"
 #include "target/algorithm.h"
 #include "target/target_type.h"
-#include "log.h"
 #include "jtag/jtag.h"
 #include "target/register.h"
 #include "target/breakpoints.h"
@@ -1989,10 +1990,10 @@ static int riscv_checksum_memory(struct target *target,
 	LOG_DEBUG("address=0x%" TARGET_PRIxADDR "; count=0x%" PRIx32, address, count);
 
 	static const uint8_t riscv32_crc_code[] = {
-#include "../../contrib/loaders/checksum/riscv32_crc.inc"
+#include "contrib/loaders/checksum/riscv32_crc.inc"
 	};
 	static const uint8_t riscv64_crc_code[] = {
-#include "../../contrib/loaders/checksum/riscv64_crc.inc"
+#include "contrib/loaders/checksum/riscv64_crc.inc"
 	};
 
 	static const uint8_t *crc_code;

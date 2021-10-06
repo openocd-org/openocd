@@ -70,6 +70,14 @@
 
 /* FLASH_OPTR register bits */
 #define FLASH_RDP_MASK			0xFF
+#define FLASH_G0_DUAL_BANK		BIT(21)
+#define FLASH_G4_DUAL_BANK		BIT(22)
+#define FLASH_L4_DUAL_BANK		BIT(21)
+#define FLASH_L4R_DBANK			BIT(22)
+#define FLASH_LRR_DB1M			BIT(21)
+#define FLASH_L5_DBANK			BIT(22)
+#define FLASH_L5_DB256			BIT(21)
+#define FLASH_U5_DUALBANK		BIT(21)
 #define FLASH_TZEN				BIT(31)
 
 /* FLASH secure block based bank 1/2 register offsets */
@@ -79,7 +87,7 @@
 #define FLASH_SECBB_SECURE      0xFFFFFFFF
 #define FLASH_SECBB_NON_SECURE  0
 
-/* other registers */
+/* IDCODE register possible addresses */
 #define DBGMCU_IDCODE_G0		0x40015800
 #define DBGMCU_IDCODE_L4_G4		0xE0042000
 #define DBGMCU_IDCODE_L5		0xE0044000
@@ -87,9 +95,66 @@
 #define UID64_IDS				0x1FFF7584
 #define UID64_IDS_STM32WL		0x0080E115
 
+/* Supported device IDs */
+#define DEVID_STM32L47_L48XX	0x415
+#define DEVID_STM32L43_L44XX	0x435
+#define DEVID_STM32G05_G06XX	0x456
+#define DEVID_STM32G07_G08XX	0x460
+#define DEVID_STM32L49_L4AXX	0x461
+#define DEVID_STM32L45_L46XX	0x462
+#define DEVID_STM32L41_L42XX	0x464
+#define DEVID_STM32G03_G04XX	0x466
+#define DEVID_STM32G0B_G0CXX	0x467
+#define DEVID_STM32G43_G44XX	0x468
+#define DEVID_STM32G47_G48XX	0x469
+#define DEVID_STM32L4R_L4SXX	0x470
+#define DEVID_STM32L4P_L4QXX	0x471
+#define DEVID_STM32L55_L56XX	0x472
+#define DEVID_STM32G49_G4AXX	0x479
+#define DEVID_STM32U57_U58XX	0x482
+#define DEVID_STM32WB1XX		0x494
+#define DEVID_STM32WB5XX		0x495
+#define DEVID_STM32WB3XX		0x496
+#define DEVID_STM32WLE_WL5XX	0x497
+
+/* known Flash base addresses */
 #define STM32_FLASH_BANK_BASE	0x08000000
 #define STM32_FLASH_S_BANK_BASE	0x0C000000
 
+/* offset between non-secure and secure flash registers */
 #define STM32L5_REGS_SEC_OFFSET 0x10000000
+
+/* 100 bytes as loader stack should be large enough for the loader to operate */
+#define LDR_STACK_SIZE			100
+
+struct stm32l4_work_area {
+	struct stm32l4_loader_params {
+		uint32_t flash_sr_addr;
+		uint32_t flash_cr_addr;
+		uint32_t flash_word_size;
+		uint32_t flash_sr_bsy_mask;
+	} params;
+	uint8_t stack[LDR_STACK_SIZE];
+	struct flash_async_algorithm_circbuf {
+		/* note: stm32l4_work_area struct is shared between the loader
+		 * and stm32l4x flash driver.
+		 *
+		 * '*wp' and '*rp' pointers' size is 4 bytes each since stm32l4x
+		 * devices have 32-bit processors.
+		 * however when used in openocd code, their size depends on the host
+		 *   if the host is 32-bit, then the size is 4 bytes each.
+		 *   if the host is 64-bit, then the size is 8 bytes each.
+		 * to avoid this size difference, change their types depending on the
+		 * usage (pointers for the loader, and 32-bit integers in openocd code).
+		 */
+#ifdef OPENOCD_CONTRIB_LOADERS_FLASH_STM32_STM32L4X
+		uint8_t *wp;
+		uint8_t *rp;
+#else
+		uint32_t wp;
+		uint32_t rp;
+#endif /* OPENOCD_CONTRIB_LOADERS_FLASH_STM32_STM32L4X */
+	} fifo;
+};
 
 #endif

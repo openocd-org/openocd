@@ -44,6 +44,8 @@
 #include "algorithm.h"
 #include "register.h"
 #include "semihosting_common.h"
+#include <helper/log.h>
+#include <helper/binarybuffer.h>
 
 #if 0
 #define _DEBUG_INSTRUCTION_EXECUTION_

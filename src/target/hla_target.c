@@ -37,6 +37,7 @@
 #include "target_type.h"
 #include "armv7m.h"
 #include "cortex_m.h"
+#include "arm_adi_v5.h"
 #include "arm_semihosting.h"
 #include "target_request.h"
 #include <rtt/rtt.h>

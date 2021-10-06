@@ -24,8 +24,8 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <jim-nvp.h>
 
+#include <helper/jim-nvp.h>
 #include <helper/list.h>
 #include <helper/types.h>
 
