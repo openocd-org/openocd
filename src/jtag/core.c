@@ -128,7 +128,6 @@ static int speed_khz;
 /* speed to fallback to when RCLK is requested but not supported */
 static int rclk_fallback_speed_khz;
 static enum {CLOCK_MODE_UNSELECTED, CLOCK_MODE_KHZ, CLOCK_MODE_RCLK} clock_mode;
-static int jtag_speed;
 
 /* FIXME: change name to this variable, it is not anymore JTAG only */
 static struct adapter_driver *jtag;
@@ -1804,7 +1803,6 @@ static int jtag_rclk_to_speed(unsigned fallback_speed_khz, int *speed)
 
 static int jtag_set_speed(int speed)
 {
-	jtag_speed = speed;
 	/* this command can be called during CONFIG,
 	 * in which case jtag isn't initialized */
 	return jtag ? jtag->speed(speed) : ERROR_OK;
