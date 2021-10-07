@@ -87,7 +87,6 @@ struct versaloon_interface_t versaloon_interface = {
 		.ep_out			= VERSALOON_OUTP,
 		.ep_in			= VERSALOON_INP,
 		.interface		= VERSALOON_IFACE,
-		.serialstring	= NULL,
 		.buf_size		= 256,
 	}
 };

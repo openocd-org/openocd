@@ -371,8 +371,8 @@ proc vsllink_usb_pid args {
 
 lappend _telnet_autocomplete_skip vsllink_usb_serial
 proc vsllink_usb_serial args {
-	echo "DEPRECATED! use 'vsllink usb_serial' not 'vsllink_usb_serial'"
-	eval vsllink usb_serial $args
+	echo "DEPRECATED! use 'adapter serial' not 'vsllink_usb_serial'"
+	eval adapter serial $args
 }
 
 lappend _telnet_autocomplete_skip vsllink_usb_bulkin
@@ -768,6 +768,12 @@ proc kitprog_serial args {
 lappend _telnet_autocomplete_skip "presto serial"
 proc "presto serial" {args} {
 	echo "DEPRECATED! use 'adapter serial' not 'presto serial'"
+	eval adapter serial $args
+}
+
+lappend _telnet_autocomplete_skip "vsllink usb_serial"
+proc "vsllink usb_serial" {args} {
+	echo "DEPRECATED! use 'adapter serial' not 'vsllink usb_serial'"
 	eval adapter serial $args
 }
 

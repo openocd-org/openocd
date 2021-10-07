@@ -499,21 +499,6 @@ COMMAND_HANDLER(vsllink_handle_usb_pid_command)
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(vsllink_handle_usb_serial_command)
-{
-	if (CMD_ARGC > 1)
-		return ERROR_COMMAND_SYNTAX_ERROR;
-
-	free(versaloon_interface.usb_setting.serialstring);
-
-	if (CMD_ARGC == 1)
-		versaloon_interface.usb_setting.serialstring = strdup(CMD_ARGV[0]);
-	else
-		versaloon_interface.usb_setting.serialstring = NULL;
-
-	return ERROR_OK;
-}
-
 COMMAND_HANDLER(vsllink_handle_usb_bulkin_command)
 {
 	if (CMD_ARGC != 1)
@@ -786,14 +771,14 @@ static int vsllink_check_usb_strings(
 	char desc_string[256];
 	int retval;
 
-	if (versaloon_interface.usb_setting.serialstring) {
+	if (adapter_get_required_serial()) {
 		retval = libusb_get_string_descriptor_ascii(usb_device_handle,
 			usb_desc->iSerialNumber, (unsigned char *)desc_string,
 			sizeof(desc_string));
 		if (retval < 0)
 			return ERROR_FAIL;
 
-		if (strncmp(desc_string, versaloon_interface.usb_setting.serialstring,
+		if (strncmp(desc_string, adapter_get_required_serial(),
 				sizeof(desc_string)))
 			return ERROR_FAIL;
 	}
@@ -902,13 +887,6 @@ static const struct command_registration vsllink_subcommand_handlers[] = {
 		.mode = COMMAND_CONFIG,
 		.help = "Set USB PID",
 		.usage = "<pid>",
-	},
-	{
-		.name = "usb_serial",
-		.handler = &vsllink_handle_usb_serial_command,
-		.mode = COMMAND_CONFIG,
-		.help = "Set or disable check for USB serial",
-		.usage = "[<serial>]",
 	},
 	{
 		.name = "usb_bulkin",
