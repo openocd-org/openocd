@@ -55,4 +55,7 @@ int adapter_config_rclk(unsigned int fallback_speed_khz);
 /** Retrieves the clock speed of the adapter in kHz. */
 unsigned int adapter_get_speed_khz(void);
 
+/** Retrieves the serial number set with command 'adapter serial' */
+const char *adapter_get_required_serial(void);
+
 #endif /* OPENOCD_JTAG_ADAPTER_H */

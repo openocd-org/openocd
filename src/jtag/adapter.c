@@ -42,6 +42,7 @@ enum adapter_clk_mode {
 static struct {
 	bool adapter_initialized;
 	char *usb_location;
+	char *serial;
 	enum adapter_clk_mode clock_mode;
 	int speed_khz;
 	int rclk_fallback_speed_khz;
@@ -120,6 +121,7 @@ int adapter_quit(void)
 			LOG_ERROR("failed: %d", result);
 	}
 
+	free(adapter_config.serial);
 	free(adapter_config.usb_location);
 
 	struct jtag_tap *t = jtag_all_taps();
@@ -221,6 +223,11 @@ int adapter_get_speed_readable(int *khz)
 		return ERROR_FAIL;
 	}
 	return adapter_driver->speed_div(speed_var, khz);
+}
+
+const char *adapter_get_required_serial(void)
+{
+	return adapter_config.serial;
 }
 
 /*
@@ -659,6 +666,16 @@ COMMAND_HANDLER(handle_adapter_speed_command)
 	return retval;
 }
 
+COMMAND_HANDLER(handle_adapter_serial_command)
+{
+	if (CMD_ARGC != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	free(adapter_config.serial);
+	adapter_config.serial = strdup(CMD_ARGV[0]);
+	return ERROR_OK;
+}
+
 COMMAND_HANDLER(handle_adapter_reset_de_assert)
 {
 	enum values {
@@ -805,6 +822,13 @@ static const struct command_registration adapter_command_handlers[] = {
 			"clocking. "
 			"With or without argument, display current setting.",
 		.usage = "[khz]",
+	},
+	{
+		.name = "serial",
+		.handler = handle_adapter_serial_command,
+		.mode = COMMAND_CONFIG,
+		.help = "Set the serial number of the adapter",
+		.usage = "serial_string",
 	},
 	{
 		.name = "list",

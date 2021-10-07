@@ -2367,6 +2367,14 @@ The USB bus topology can be queried with the command @emph{lsusb -t} or @emph{dm
 This command is only available if your libusb1 is at least version 1.0.16.
 @end deffn
 
+@deffn {Config Command} {adapter serial} serial_string
+Specifies the @var{serial_string} of the adapter to use.
+If this command is not specified, serial strings are not checked.
+No adapter uses this command, so far.
+The following adapters have their own command to specify the serial string:
+cmsis_dap, ft232r, ftdi, hla, jlink, kitprog, presto, st-link, vsllink, xds110.
+@end deffn
+
 @section Interface Drivers
 
 Each of the interface drivers listed here must be explicitly
