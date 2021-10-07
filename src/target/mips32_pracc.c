@@ -70,6 +70,7 @@
 
 #include <helper/align.h>
 #include <helper/time_support.h>
+#include <jtag/adapter.h>
 
 #include "mips32.h"
 #include "mips32_pracc.h"

@@ -40,6 +40,7 @@
 
 #include <transport/transport.h>
 #include "helper/replacements.h"
+#include <jtag/adapter.h>
 #include <jtag/swd.h>
 #include <jtag/interface.h>
 #include <jtag/commands.h>

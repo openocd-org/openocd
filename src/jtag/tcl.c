@@ -30,6 +30,7 @@
 #include "config.h"
 #endif
 
+#include "adapter.h"
 #include "jtag.h"
 #include "swd.h"
 #include "minidriver.h"

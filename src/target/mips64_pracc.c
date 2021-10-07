@@ -21,6 +21,7 @@
 #include "mips64_pracc.h"
 
 #include <helper/time_support.h>
+#include <jtag/adapter.h>
 
 #define STACK_DEPTH	32
 

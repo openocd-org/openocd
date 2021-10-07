@@ -27,6 +27,7 @@
 #endif
 
 #include "openocd.h"
+#include <jtag/adapter.h>
 #include <jtag/driver.h>
 #include <jtag/jtag.h>
 #include <transport/transport.h>

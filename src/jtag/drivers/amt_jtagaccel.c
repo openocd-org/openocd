@@ -20,6 +20,7 @@
 #include "config.h"
 #endif
 
+#include <jtag/adapter.h>
 #include <jtag/interface.h>
 
 #if PARPORT_USE_PPDEV == 1
