@@ -187,8 +187,8 @@ proc ftdi_location args {
 
 lappend _telnet_autocomplete_skip xds110_serial
 proc xds110_serial args {
-	echo "DEPRECATED! use 'xds110 serial' not 'xds110_serial'"
-	eval xds110 serial $args
+	echo "DEPRECATED! use 'adapter serial' not 'xds110_serial'"
+	eval adapter serial $args
 }
 
 lappend _telnet_autocomplete_skip xds110_supply_voltage
@@ -774,6 +774,12 @@ proc "presto serial" {args} {
 lappend _telnet_autocomplete_skip "vsllink usb_serial"
 proc "vsllink usb_serial" {args} {
 	echo "DEPRECATED! use 'adapter serial' not 'vsllink usb_serial'"
+	eval adapter serial $args
+}
+
+lappend _telnet_autocomplete_skip "xds110 serial"
+proc "xds110 serial" {args} {
+	echo "DEPRECATED! use 'adapter serial' not 'xds110 serial'"
 	eval adapter serial $args
 }
 

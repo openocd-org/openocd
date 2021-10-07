@@ -2371,9 +2371,9 @@ This command is only available if your libusb1 is at least version 1.0.16.
 Specifies the @var{serial_string} of the adapter to use.
 If this command is not specified, serial strings are not checked.
 Only the following adapter drivers use the serial string from this command:
-cmsis_dap, ft232r, ftdi, kitprog, presto, vsllink.
+cmsis_dap, ft232r, ftdi, kitprog, presto, vsllink, xds110.
 The following adapters have their own command to specify the serial string:
-hla, jlink, st-link, xds110.
+hla, jlink, st-link.
 @end deffn
 
 @section Interface Drivers
@@ -3140,11 +3140,6 @@ The XDS110 is included as the embedded debug probe on many Texas Instruments
 LaunchPad evaluation boards. The XDS110 is also available as a stand-alone USB
 debug probe with the added capability to supply power to the target board. The
 following commands are supported by the XDS110 driver:
-
-@deffn {Config Command} {xds110 serial} serial_string
-Specifies the serial number of which XDS110 probe to use. Otherwise, the first
-XDS110 found will be used.
-@end deffn
 
 @deffn {Config Command} {xds110 supply} voltage_in_millivolts
 Available only on the XDS110 stand-alone probe. Sets the voltage level of the
