@@ -765,4 +765,10 @@ proc kitprog_serial args {
 	eval adapter serial $args
 }
 
+lappend _telnet_autocomplete_skip "presto serial"
+proc "presto serial" {args} {
+	echo "DEPRECATED! use 'adapter serial' not 'presto serial'"
+	eval adapter serial $args
+}
+
 # END MIGRATION AIDS
