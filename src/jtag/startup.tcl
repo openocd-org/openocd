@@ -759,4 +759,10 @@ proc "ftdi serial" {args} {
 	eval adapter serial $args
 }
 
+lappend _telnet_autocomplete_skip kitprog_serial
+proc kitprog_serial args {
+	echo "DEPRECATED! use 'adapter serial' not 'kitprog_serial'"
+	eval adapter serial $args
+}
+
 # END MIGRATION AIDS

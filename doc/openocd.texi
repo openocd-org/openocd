@@ -2371,9 +2371,9 @@ This command is only available if your libusb1 is at least version 1.0.16.
 Specifies the @var{serial_string} of the adapter to use.
 If this command is not specified, serial strings are not checked.
 Only the following adapter drivers use the serial string from this command:
-cmsis_dap, ft232r, ftdi.
+cmsis_dap, ft232r, ftdi, kitprog.
 The following adapters have their own command to specify the serial string:
-hla, jlink, kitprog, presto, st-link, vsllink, xds110.
+hla, jlink, presto, st-link, vsllink, xds110.
 @end deffn
 
 @section Interface Drivers
@@ -2894,11 +2894,6 @@ could only be sent with an acquisition sequence.
 @deffn {Config Command} {kitprog_init_acquire_psoc}
 Indicate that a PSoC acquisition sequence needs to be run during adapter init.
 Please be aware that the acquisition sequence hard-resets the target.
-@end deffn
-
-@deffn {Config Command} {kitprog_serial} serial
-Select a KitProg device by its @var{serial}. If left unspecified, the first
-device detected by OpenOCD will be used.
 @end deffn
 
 @deffn {Command} {kitprog acquire_psoc}
