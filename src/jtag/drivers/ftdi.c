@@ -90,7 +90,6 @@
 #define SWD_MODE (LSB_FIRST | POS_EDGE_IN | NEG_EDGE_OUT)
 
 static char *ftdi_device_desc;
-static char *ftdi_serial;
 static uint8_t ftdi_channel;
 static uint8_t ftdi_jtag_mode = JTAG_MODE;
 
@@ -672,7 +671,7 @@ static int ftdi_initialize(void)
 
 	for (int i = 0; ftdi_vid[i] || ftdi_pid[i]; i++) {
 		mpsse_ctx = mpsse_open(&ftdi_vid[i], &ftdi_pid[i], ftdi_device_desc,
-				ftdi_serial, adapter_usb_get_location(), ftdi_channel);
+				adapter_get_required_serial(), adapter_usb_get_location(), ftdi_channel);
 		if (mpsse_ctx)
 			break;
 	}
@@ -717,7 +716,6 @@ static int ftdi_quit(void)
 	}
 
 	free(ftdi_device_desc);
-	free(ftdi_serial);
 
 	free(swd_cmd_queue);
 
@@ -731,18 +729,6 @@ COMMAND_HANDLER(ftdi_handle_device_desc_command)
 		ftdi_device_desc = strdup(CMD_ARGV[0]);
 	} else {
 		LOG_ERROR("expected exactly one argument to ftdi device_desc <description>");
-	}
-
-	return ERROR_OK;
-}
-
-COMMAND_HANDLER(ftdi_handle_serial_command)
-{
-	if (CMD_ARGC == 1) {
-		free(ftdi_serial);
-		ftdi_serial = strdup(CMD_ARGV[0]);
-	} else {
-		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	return ERROR_OK;
@@ -954,13 +940,6 @@ static const struct command_registration ftdi_subcommand_handlers[] = {
 		.mode = COMMAND_CONFIG,
 		.help = "set the USB device description of the FTDI device",
 		.usage = "description_string",
-	},
-	{
-		.name = "serial",
-		.handler = &ftdi_handle_serial_command,
-		.mode = COMMAND_CONFIG,
-		.help = "set the serial number of the FTDI device",
-		.usage = "serial_string",
 	},
 	{
 		.name = "channel",

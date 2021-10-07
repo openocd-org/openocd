@@ -215,8 +215,8 @@ proc ftdi_device_desc args {
 
 lappend _telnet_autocomplete_skip ftdi_serial
 proc ftdi_serial args {
-	echo "DEPRECATED! use 'ftdi serial' not 'ftdi_serial'"
-	eval ftdi serial $args
+	echo "DEPRECATED! use 'adapter serial' not 'ftdi_serial'"
+	eval adapter serial $args
 }
 
 lappend _telnet_autocomplete_skip ftdi_channel
@@ -750,6 +750,12 @@ proc cmsis_dap_serial args {
 lappend _telnet_autocomplete_skip "ft232r serial_desc"
 proc "ft232r serial_desc" {args} {
 	echo "DEPRECATED! use 'adapter serial' not 'ft232r serial_desc'"
+	eval adapter serial $args
+}
+
+lappend _telnet_autocomplete_skip "ftdi serial"
+proc "ftdi serial" {args} {
+	echo "DEPRECATED! use 'adapter serial' not 'ftdi serial'"
 	eval adapter serial $args
 }
 

@@ -2371,9 +2371,9 @@ This command is only available if your libusb1 is at least version 1.0.16.
 Specifies the @var{serial_string} of the adapter to use.
 If this command is not specified, serial strings are not checked.
 Only the following adapter drivers use the serial string from this command:
-cmsis_dap, ft232r.
+cmsis_dap, ft232r, ftdi.
 The following adapters have their own command to specify the serial string:
-ftdi, hla, jlink, kitprog, presto, st-link, vsllink, xds110.
+hla, jlink, kitprog, presto, st-link, vsllink, xds110.
 @end deffn
 
 @section Interface Drivers
@@ -2510,15 +2510,6 @@ ftdi vid_pid 0x0403 0xcff8 0x15ba 0x0003
 Provides the USB device description (the @emph{iProduct string})
 of the adapter. If not specified, the device description is ignored
 during device selection.
-@end deffn
-
-@deffn {Config Command} {ftdi serial} serial-number
-Specifies the @var{serial-number} of the adapter to use,
-in case the vendor provides unique IDs and more than one adapter
-is connected to the host.
-If not specified, serial numbers are not considered.
-(Note that USB serial numbers can be arbitrary Unicode strings,
-and are not restricted to containing only decimal digits.)
 @end deffn
 
 @deffn {Config Command} {ftdi channel} channel
