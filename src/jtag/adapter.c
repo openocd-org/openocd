@@ -120,6 +120,8 @@ int adapter_quit(void)
 			LOG_ERROR("failed: %d", result);
 	}
 
+	free(adapter_config.usb_location);
+
 	struct jtag_tap *t = jtag_all_taps();
 	while (t) {
 		struct jtag_tap *n = t->next_tap;
