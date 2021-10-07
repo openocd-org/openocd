@@ -107,8 +107,6 @@ struct aice_port_param_s {
 	/** */
 	const char *device_desc;
 	/** */
-	const char *serial;
-	/** */
 	uint16_t vid;
 	/** */
 	uint16_t pid;
