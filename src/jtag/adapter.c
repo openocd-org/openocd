@@ -30,24 +30,26 @@
 struct adapter_driver *adapter_driver;
 const char * const jtag_only[] = { "jtag", NULL };
 
+enum adapter_clk_mode {
+	CLOCK_MODE_UNSELECTED = 0,
+	CLOCK_MODE_KHZ,
+	CLOCK_MODE_RCLK
+};
+
 /**
  * Adapter configuration
  */
 static struct {
+	bool adapter_initialized;
 	char *usb_location;
+	enum adapter_clk_mode clock_mode;
+	int speed_khz;
+	int rclk_fallback_speed_khz;
 } adapter_config;
-
-/* speed in kHz*/
-static int speed_khz;
-/* speed to fallback to when RCLK is requested but not supported */
-static int rclk_fallback_speed_khz;
-static enum {CLOCK_MODE_UNSELECTED, CLOCK_MODE_KHZ, CLOCK_MODE_RCLK} clock_mode;
-
-static bool adapter_initialized;
 
 bool is_adapter_initialized(void)
 {
-	return adapter_initialized;
+	return adapter_config.adapter_initialized;
 }
 
 /**
@@ -70,14 +72,14 @@ int adapter_init(struct command_context *cmd_ctx)
 	retval = adapter_driver->init();
 	if (retval != ERROR_OK)
 		return retval;
-	adapter_initialized = true;
+	adapter_config.adapter_initialized = true;
 
 	if (!adapter_driver->speed) {
 		LOG_INFO("This adapter doesn't support configurable speed");
 		return ERROR_OK;
 	}
 
-	if (clock_mode == CLOCK_MODE_UNSELECTED) {
+	if (adapter_config.clock_mode == CLOCK_MODE_UNSELECTED) {
 		LOG_ERROR("An adapter speed is not selected in the init script."
 			" Insert a call to \"adapter speed\" or \"jtag_rclk\" to proceed.");
 		return ERROR_JTAG_INIT_FAILED;
@@ -97,8 +99,8 @@ int adapter_init(struct command_context *cmd_ctx)
 		LOG_INFO("adapter-specific clock speed value %d", jtag_speed_var);
 	else if (actual_khz) {
 		/* Adaptive clocking -- JTAG-specific */
-		if ((clock_mode == CLOCK_MODE_RCLK)
-				|| ((clock_mode == CLOCK_MODE_KHZ) && !requested_khz)) {
+		if ((adapter_config.clock_mode == CLOCK_MODE_RCLK)
+				|| ((adapter_config.clock_mode == CLOCK_MODE_KHZ) && !requested_khz)) {
 			LOG_INFO("RCLK (adaptive clock speed) not supported - fallback to %d kHz"
 			, actual_khz);
 		} else
@@ -130,13 +132,13 @@ int adapter_quit(void)
 
 unsigned jtag_get_speed_khz(void)
 {
-	return speed_khz;
+	return adapter_config.speed_khz;
 }
 
 static int adapter_khz_to_speed(unsigned khz, int *speed)
 {
 	LOG_DEBUG("convert khz to interface specific speed value");
-	speed_khz = khz;
+	adapter_config.speed_khz = khz;
 	if (!is_adapter_initialized())
 		return ERROR_OK;
 	LOG_DEBUG("have interface set up");
@@ -172,7 +174,7 @@ static int jtag_set_speed(int speed)
 int jtag_config_khz(unsigned khz)
 {
 	LOG_DEBUG("handle jtag khz");
-	clock_mode = CLOCK_MODE_KHZ;
+	adapter_config.clock_mode = CLOCK_MODE_KHZ;
 	int speed = 0;
 	int retval = adapter_khz_to_speed(khz, &speed);
 	return (retval != ERROR_OK) ? retval : jtag_set_speed(speed);
@@ -181,8 +183,8 @@ int jtag_config_khz(unsigned khz)
 int jtag_config_rclk(unsigned fallback_speed_khz)
 {
 	LOG_DEBUG("handle jtag rclk");
-	clock_mode = CLOCK_MODE_RCLK;
-	rclk_fallback_speed_khz = fallback_speed_khz;
+	adapter_config.clock_mode = CLOCK_MODE_RCLK;
+	adapter_config.rclk_fallback_speed_khz = fallback_speed_khz;
 	int speed = 0;
 	int retval = jtag_rclk_to_speed(fallback_speed_khz, &speed);
 	return (retval != ERROR_OK) ? retval : jtag_set_speed(speed);
@@ -190,12 +192,12 @@ int jtag_config_rclk(unsigned fallback_speed_khz)
 
 int jtag_get_speed(int *speed)
 {
-	switch (clock_mode) {
+	switch (adapter_config.clock_mode) {
 		case CLOCK_MODE_KHZ:
 			adapter_khz_to_speed(jtag_get_speed_khz(), speed);
 			break;
 		case CLOCK_MODE_RCLK:
-			jtag_rclk_to_speed(rclk_fallback_speed_khz, speed);
+			jtag_rclk_to_speed(adapter_config.rclk_fallback_speed_khz, speed);
 			break;
 		default:
 			LOG_ERROR("BUG: unknown jtag clock mode");
