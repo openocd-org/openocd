@@ -10,6 +10,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
+/** @returns true if adapter has been initialized */
+bool is_adapter_initialized(void);
+
 /** @returns USB location string set with command 'adapter usb location' */
 const char *adapter_usb_get_location(void);
 
