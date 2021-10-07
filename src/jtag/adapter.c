@@ -886,7 +886,7 @@ static const struct command_registration interface_command_handlers[] = {
  * @todo Remove internal assumptions that all debug adapters use JTAG for
  * transport.  Various types and data structures are not named generically.
  */
-int interface_register_commands(struct command_context *ctx)
+int adapter_register_commands(struct command_context *ctx)
 {
 	return register_commands(ctx, NULL, interface_command_handlers);
 }

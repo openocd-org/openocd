@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
 /*
+ * Copyright (C) 2005 by Dominic Rath <Dominic.Rath@gmx.de>
  * Copyright (c) 2018 Pengutronix, Oleksij Rempel <kernel@pengutronix.de>
  */
 
@@ -11,6 +12,9 @@
 #include <stdint.h>
 
 struct command_context;
+
+/** Register the adapter's commands */
+int adapter_register_commands(struct command_context *ctx);
 
 /** Initialize debug adapter upon startup.  */
 int adapter_init(struct command_context *cmd_ctx);

@@ -25,7 +25,6 @@ include %D%/drivers/Makefile.am
 	%D%/tcl.c \
 	%D%/swim.c \
 	%D%/commands.h \
-	%D%/driver.h \
 	%D%/interface.h \
 	%D%/interfaces.h \
 	%D%/minidriver.h \
