@@ -741,4 +741,10 @@ proc "aice serial" {args} {
 	eval adapter serial $args
 }
 
+lappend _telnet_autocomplete_skip cmsis_dap_serial
+proc cmsis_dap_serial args {
+	echo "DEPRECATED! use 'adapter serial' not 'cmsis_dap_serial'"
+	eval adapter serial $args
+}
+
 # END MIGRATION AIDS
