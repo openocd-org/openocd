@@ -699,7 +699,7 @@ static int ftdi_initialize(void)
 
 	mpsse_loopback_config(mpsse_ctx, false);
 
-	freq = mpsse_set_frequency(mpsse_ctx, jtag_get_speed_khz() * 1000);
+	freq = mpsse_set_frequency(mpsse_ctx, adapter_get_speed_khz() * 1000);
 
 	return mpsse_flush(mpsse_ctx);
 }

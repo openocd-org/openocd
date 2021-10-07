@@ -1145,7 +1145,7 @@ static int cmsis_dap_swd_switch_seq(enum swd_special_seq seq)
 
 	/* Atmel EDBG needs renew clock setting after SWJ_Sequence
 	 * otherwise default frequency is used */
-	return cmsis_dap_cmd_dap_swj_clock(jtag_get_speed_khz());
+	return cmsis_dap_cmd_dap_swj_clock(adapter_get_speed_khz());
 }
 
 static int cmsis_dap_swd_open(void)
@@ -1262,7 +1262,7 @@ static int cmsis_dap_init(void)
 
 	/* Now try to connect to the target
 	 * TODO: This is all SWD only @ present */
-	retval = cmsis_dap_cmd_dap_swj_clock(jtag_get_speed_khz());
+	retval = cmsis_dap_cmd_dap_swj_clock(adapter_get_speed_khz());
 	if (retval != ERROR_OK)
 		goto init_err;
 

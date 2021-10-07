@@ -27,28 +27,28 @@ const char *adapter_usb_get_location(void);
 /** @returns true if USB location string is "<dev_bus>-<port_path[0]>[.<port_path[1]>[...]]" */
 bool adapter_usb_location_equal(uint8_t dev_bus, uint8_t *port_path, size_t path_len);
 
-/** @returns The current JTAG speed setting. */
-int jtag_get_speed(int *speed);
+/** @returns The current adapter speed setting. */
+int adapter_get_speed(int *speed);
 
 /**
  * Given a @a speed setting, use the interface @c speed_div callback to
  * adjust the setting.
- * @param speed The speed setting to convert back to readable KHz.
+ * @param speed The speed setting to convert back to readable kHz.
  * @returns ERROR_OK if the interface has not been initialized or on success;
  *  otherwise, the error code produced by the @c speed_div callback.
  */
-int jtag_get_speed_readable(int *speed);
+int adapter_get_speed_readable(int *speed);
 
-/** Attempt to configure the interface for the specified KHz. */
-int jtag_config_khz(unsigned khz);
+/** Attempt to configure the adapter for the specified kHz. */
+int adapter_config_khz(unsigned int khz);
 
 /**
  * Attempt to enable RTCK/RCLK. If that fails, fallback to the
  * specified frequency.
  */
-int jtag_config_rclk(unsigned fallback_speed_khz);
+int adapter_config_rclk(unsigned int fallback_speed_khz);
 
-/** Retrieves the clock speed of the JTAG interface in KHz. */
-unsigned jtag_get_speed_khz(void);
+/** Retrieves the clock speed of the adapter in kHz. */
+unsigned int adapter_get_speed_khz(void);
 
 #endif /* OPENOCD_JTAG_ADAPTER_H */

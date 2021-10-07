@@ -324,7 +324,7 @@ static int vsllink_init(void)
 		versaloon_interface.adaptors.gpio.config(0, GPIO_TRST, 0,
 			GPIO_TRST, GPIO_TRST);
 		versaloon_interface.adaptors.swd.init(0);
-		vsllink_swd_frequency(jtag_get_speed_khz() * 1000);
+		vsllink_swd_frequency(adapter_get_speed_khz() * 1000);
 		vsllink_swd_switch_seq(JTAG_TO_SWD);
 
 	} else {
@@ -340,7 +340,7 @@ static int vsllink_init(void)
 		}
 
 		versaloon_interface.adaptors.jtag_raw.init(0);
-		versaloon_interface.adaptors.jtag_raw.config(0, jtag_get_speed_khz());
+		versaloon_interface.adaptors.jtag_raw.config(0, adapter_get_speed_khz());
 		versaloon_interface.adaptors.gpio.config(0, GPIO_SRST | GPIO_TRST,
 			GPIO_TRST, GPIO_SRST, GPIO_SRST);
 	}

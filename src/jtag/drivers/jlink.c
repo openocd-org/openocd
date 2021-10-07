@@ -811,7 +811,7 @@ static int jlink_init(void)
 	jtag_sleep(3000);
 	jlink_tap_init();
 
-	jlink_speed(jtag_get_speed_khz());
+	jlink_speed(adapter_get_speed_khz());
 
 	if (iface == JAYLINK_TIF_JTAG) {
 		/*

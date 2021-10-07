@@ -85,18 +85,18 @@ int adapter_init(struct command_context *cmd_ctx)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	int requested_khz = jtag_get_speed_khz();
+	int requested_khz = adapter_get_speed_khz();
 	int actual_khz = requested_khz;
-	int jtag_speed_var = 0;
-	retval = jtag_get_speed(&jtag_speed_var);
+	int speed_var = 0;
+	retval = adapter_get_speed(&speed_var);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = adapter_driver->speed(jtag_speed_var);
+	retval = adapter_driver->speed(speed_var);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = jtag_get_speed_readable(&actual_khz);
+	retval = adapter_get_speed_readable(&actual_khz);
 	if (retval != ERROR_OK)
-		LOG_INFO("adapter-specific clock speed value %d", jtag_speed_var);
+		LOG_INFO("adapter-specific clock speed value %d", speed_var);
 	else if (actual_khz) {
 		/* Adaptive clocking -- JTAG-specific */
 		if ((adapter_config.clock_mode == CLOCK_MODE_RCLK)
@@ -130,31 +130,31 @@ int adapter_quit(void)
 	return ERROR_OK;
 }
 
-unsigned jtag_get_speed_khz(void)
+unsigned int adapter_get_speed_khz(void)
 {
 	return adapter_config.speed_khz;
 }
 
-static int adapter_khz_to_speed(unsigned khz, int *speed)
+static int adapter_khz_to_speed(unsigned int khz, int *speed)
 {
-	LOG_DEBUG("convert khz to interface specific speed value");
+	LOG_DEBUG("convert khz to adapter specific speed value");
 	adapter_config.speed_khz = khz;
 	if (!is_adapter_initialized())
 		return ERROR_OK;
-	LOG_DEBUG("have interface set up");
+	LOG_DEBUG("have adapter set up");
 	if (!adapter_driver->khz) {
-		LOG_ERROR("Translation from khz to jtag_speed not implemented");
+		LOG_ERROR("Translation from khz to adapter speed not implemented");
 		return ERROR_FAIL;
 	}
 	int speed_div1;
-	int retval = adapter_driver->khz(jtag_get_speed_khz(), &speed_div1);
+	int retval = adapter_driver->khz(adapter_get_speed_khz(), &speed_div1);
 	if (retval != ERROR_OK)
 		return retval;
 	*speed = speed_div1;
 	return ERROR_OK;
 }
 
-static int jtag_rclk_to_speed(unsigned fallback_speed_khz, int *speed)
+static int adapter_rclk_to_speed(unsigned int fallback_speed_khz, int *speed)
 {
 	int retval = adapter_khz_to_speed(0, speed);
 	if ((retval != ERROR_OK) && fallback_speed_khz) {
@@ -164,61 +164,61 @@ static int jtag_rclk_to_speed(unsigned fallback_speed_khz, int *speed)
 	return retval;
 }
 
-static int jtag_set_speed(int speed)
+static int adapter_set_speed(int speed)
 {
 	/* this command can be called during CONFIG,
-	 * in which case jtag isn't initialized */
+	 * in which case adapter isn't initialized */
 	return is_adapter_initialized() ? adapter_driver->speed(speed) : ERROR_OK;
 }
 
-int jtag_config_khz(unsigned khz)
+int adapter_config_khz(unsigned int khz)
 {
-	LOG_DEBUG("handle jtag khz");
+	LOG_DEBUG("handle adapter khz");
 	adapter_config.clock_mode = CLOCK_MODE_KHZ;
 	int speed = 0;
 	int retval = adapter_khz_to_speed(khz, &speed);
-	return (retval != ERROR_OK) ? retval : jtag_set_speed(speed);
+	return (retval != ERROR_OK) ? retval : adapter_set_speed(speed);
 }
 
-int jtag_config_rclk(unsigned fallback_speed_khz)
+int adapter_config_rclk(unsigned int fallback_speed_khz)
 {
-	LOG_DEBUG("handle jtag rclk");
+	LOG_DEBUG("handle adapter rclk");
 	adapter_config.clock_mode = CLOCK_MODE_RCLK;
 	adapter_config.rclk_fallback_speed_khz = fallback_speed_khz;
 	int speed = 0;
-	int retval = jtag_rclk_to_speed(fallback_speed_khz, &speed);
-	return (retval != ERROR_OK) ? retval : jtag_set_speed(speed);
+	int retval = adapter_rclk_to_speed(fallback_speed_khz, &speed);
+	return (retval != ERROR_OK) ? retval : adapter_set_speed(speed);
 }
 
-int jtag_get_speed(int *speed)
+int adapter_get_speed(int *speed)
 {
 	switch (adapter_config.clock_mode) {
 		case CLOCK_MODE_KHZ:
-			adapter_khz_to_speed(jtag_get_speed_khz(), speed);
+			adapter_khz_to_speed(adapter_get_speed_khz(), speed);
 			break;
 		case CLOCK_MODE_RCLK:
-			jtag_rclk_to_speed(adapter_config.rclk_fallback_speed_khz, speed);
+			adapter_rclk_to_speed(adapter_config.rclk_fallback_speed_khz, speed);
 			break;
 		default:
-			LOG_ERROR("BUG: unknown jtag clock mode");
+			LOG_ERROR("BUG: unknown adapter clock mode");
 			return ERROR_FAIL;
 	}
 	return ERROR_OK;
 }
 
-int jtag_get_speed_readable(int *khz)
+int adapter_get_speed_readable(int *khz)
 {
-	int jtag_speed_var = 0;
-	int retval = jtag_get_speed(&jtag_speed_var);
+	int speed_var = 0;
+	int retval = adapter_get_speed(&speed_var);
 	if (retval != ERROR_OK)
 		return retval;
 	if (!is_adapter_initialized())
 		return ERROR_OK;
 	if (!adapter_driver->speed_div) {
-		LOG_ERROR("Translation from jtag_speed to khz not implemented");
+		LOG_ERROR("Translation from adapter speed to khz not implemented");
 		return ERROR_FAIL;
 	}
-	return adapter_driver->speed_div(jtag_speed_var, khz);
+	return adapter_driver->speed_div(speed_var, khz);
 }
 
 /*
@@ -640,13 +640,13 @@ COMMAND_HANDLER(handle_adapter_speed_command)
 		unsigned khz = 0;
 		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], khz);
 
-		retval = jtag_config_khz(khz);
+		retval = adapter_config_khz(khz);
 		if (retval != ERROR_OK)
 			return retval;
 	}
 
-	int cur_speed = jtag_get_speed_khz();
-	retval = jtag_get_speed_readable(&cur_speed);
+	int cur_speed = adapter_get_speed_khz();
+	retval = adapter_get_speed_readable(&cur_speed);
 	if (retval != ERROR_OK)
 		return retval;
 

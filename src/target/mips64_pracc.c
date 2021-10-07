@@ -1387,7 +1387,7 @@ int mips64_pracc_fastdata_xfer(struct mips_ejtag *ejtag_info,
 	/* like in legacy code */
 	unsigned num_clocks = 0;
 	if (ejtag_info->mode != 0)
-		num_clocks = ((uint64_t)(ejtag_info->scan_delay) * jtag_get_speed_khz() + 500000) / 1000000;
+		num_clocks = ((uint64_t)(ejtag_info->scan_delay) * adapter_get_speed_khz() + 500000) / 1000000;
 	LOG_DEBUG("num_clocks=%d", num_clocks);
 	for (i = 0; i < count; i++) {
 		jtag_add_clocks(num_clocks);
