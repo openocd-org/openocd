@@ -677,8 +677,8 @@ proc usb_blaster_firmware args {
 
 lappend _telnet_autocomplete_skip ft232r_serial_desc
 proc ft232r_serial_desc args {
-	echo "DEPRECATED! use 'ft232r serial_desc' not 'ft232r_serial_desc'"
-	eval ft232r serial_desc $args
+	echo "DEPRECATED! use 'adapter serial_desc' not 'ft232r_serial_desc'"
+	eval adapter serial_desc $args
 }
 
 lappend _telnet_autocomplete_skip ft232r_vid_pid
@@ -744,6 +744,12 @@ proc "aice serial" {args} {
 lappend _telnet_autocomplete_skip cmsis_dap_serial
 proc cmsis_dap_serial args {
 	echo "DEPRECATED! use 'adapter serial' not 'cmsis_dap_serial'"
+	eval adapter serial $args
+}
+
+lappend _telnet_autocomplete_skip "ft232r serial_desc"
+proc "ft232r serial_desc" {args} {
+	echo "DEPRECATED! use 'adapter serial' not 'ft232r serial_desc'"
 	eval adapter serial $args
 }
 

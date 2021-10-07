@@ -2371,9 +2371,9 @@ This command is only available if your libusb1 is at least version 1.0.16.
 Specifies the @var{serial_string} of the adapter to use.
 If this command is not specified, serial strings are not checked.
 Only the following adapter drivers use the serial string from this command:
-cmsis_dap.
+cmsis_dap, ft232r.
 The following adapters have their own command to specify the serial string:
-ft232r, ftdi, hla, jlink, kitprog, presto, st-link, vsllink, xds110.
+ftdi, hla, jlink, kitprog, presto, st-link, vsllink, xds110.
 @end deffn
 
 @section Interface Drivers
@@ -2639,12 +2639,6 @@ before initializing the JTAG scan chain:
 @deffn {Config Command} {ft232r vid_pid} @var{vid} @var{pid}
 The vendor ID and product ID of the adapter. If not specified, default
 0x0403:0x6001 is used.
-@end deffn
-
-@deffn {Config Command} {ft232r serial_desc} @var{serial}
-Specifies the @var{serial} of the adapter to use, in case the
-vendor provides unique IDs and more than one adapter is connected to
-the host. If not specified, serial numbers are not considered.
 @end deffn
 
 @deffn {Config Command} {ft232r jtag_nums} @var{tck} @var{tms} @var{tdi} @var{tdo}
