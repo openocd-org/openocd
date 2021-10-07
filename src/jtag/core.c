@@ -129,10 +129,14 @@ static int speed_khz;
 static int rclk_fallback_speed_khz;
 static enum {CLOCK_MODE_UNSELECTED, CLOCK_MODE_KHZ, CLOCK_MODE_RCLK} clock_mode;
 
-/* FIXME: change name to this variable, it is not anymore JTAG only */
-static struct adapter_driver *jtag;
-
 extern struct adapter_driver *adapter_driver;
+
+static bool adapter_initialized;
+
+static bool is_adapter_initialized(void)
+{
+	return adapter_initialized;
+}
 
 void jtag_set_flush_queue_sleep(int ms)
 {
@@ -505,7 +509,7 @@ int jtag_add_tms_seq(unsigned nbits, const uint8_t *seq, enum tap_state state)
 {
 	int retval;
 
-	if (!(jtag->jtag_ops->supported & DEBUG_CAP_TMS_SEQ))
+	if (!(adapter_driver->jtag_ops->supported & DEBUG_CAP_TMS_SEQ))
 		return ERROR_JTAG_NOT_IMPLEMENTED;
 
 	jtag_checks();
@@ -627,7 +631,7 @@ static int adapter_system_reset(int req_srst)
 
 	/* Maybe change SRST signal state */
 	if (jtag_srst != req_srst) {
-		retval = jtag->reset(0, req_srst);
+		retval = adapter_driver->reset(0, req_srst);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("SRST error");
 			return ERROR_FAIL;
@@ -764,7 +768,7 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 	int new_srst = 0;
 	int new_trst = 0;
 
-	if (!jtag->reset) {
+	if (!adapter_driver->reset) {
 		legacy_jtag_add_reset(req_tlr_or_trst, req_srst);
 		return;
 	}
@@ -813,7 +817,7 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 		/* guarantee jtag queue empty before changing reset status */
 		jtag_execute_queue();
 
-		retval = jtag->reset(new_trst, new_srst);
+		retval = adapter_driver->reset(new_trst, new_srst);
 		if (retval != ERROR_OK) {
 			jtag_set_error(retval);
 			LOG_ERROR("TRST/SRST error");
@@ -933,7 +937,7 @@ void jtag_check_value_mask(struct scan_field *field, uint8_t *value, uint8_t *ma
 
 int default_interface_jtag_execute_queue(void)
 {
-	if (!jtag) {
+	if (!is_adapter_initialized()) {
 		LOG_ERROR("No JTAG interface configured yet.  "
 			"Issue 'init' command in startup scripts "
 			"before communicating with targets.");
@@ -949,11 +953,11 @@ int default_interface_jtag_execute_queue(void)
 		 * The fix can be applied immediately after next release (v0.11.0 ?)
 		 */
 		LOG_ERROR("JTAG API jtag_execute_queue() called on non JTAG interface");
-		if (!jtag->jtag_ops || !jtag->jtag_ops->execute_queue)
+		if (!adapter_driver->jtag_ops || !adapter_driver->jtag_ops->execute_queue)
 			return ERROR_OK;
 	}
 
-	int result = jtag->jtag_ops->execute_queue();
+	int result = adapter_driver->jtag_ops->execute_queue();
 
 	struct jtag_command *cmd = jtag_command_queue;
 	while (debug_level >= LOG_LVL_DEBUG_IO && cmd) {
@@ -1508,7 +1512,7 @@ void jtag_tap_free(struct jtag_tap *tap)
  */
 int adapter_init(struct command_context *cmd_ctx)
 {
-	if (jtag)
+	if (is_adapter_initialized())
 		return ERROR_OK;
 
 	if (!adapter_driver) {
@@ -1522,9 +1526,9 @@ int adapter_init(struct command_context *cmd_ctx)
 	retval = adapter_driver->init();
 	if (retval != ERROR_OK)
 		return retval;
-	jtag = adapter_driver;
+	adapter_initialized = true;
 
-	if (!jtag->speed) {
+	if (!adapter_driver->speed) {
 		LOG_INFO("This adapter doesn't support configurable speed");
 		return ERROR_OK;
 	}
@@ -1541,7 +1545,7 @@ int adapter_init(struct command_context *cmd_ctx)
 	retval = jtag_get_speed(&jtag_speed_var);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = jtag->speed(jtag_speed_var);
+	retval = adapter_driver->speed(jtag_speed_var);
 	if (retval != ERROR_OK)
 		return retval;
 	retval = jtag_get_speed_readable(&actual_khz);
@@ -1643,9 +1647,9 @@ int jtag_init_inner(struct command_context *cmd_ctx)
 
 int adapter_quit(void)
 {
-	if (jtag && jtag->quit) {
+	if (is_adapter_initialized() && adapter_driver->quit) {
 		/* close the JTAG interface */
-		int result = jtag->quit();
+		int result = adapter_driver->quit();
 		if (result != ERROR_OK)
 			LOG_ERROR("failed: %d", result);
 	}
@@ -1776,15 +1780,15 @@ static int adapter_khz_to_speed(unsigned khz, int *speed)
 {
 	LOG_DEBUG("convert khz to interface specific speed value");
 	speed_khz = khz;
-	if (!jtag)
+	if (!is_adapter_initialized())
 		return ERROR_OK;
 	LOG_DEBUG("have interface set up");
-	if (!jtag->khz) {
+	if (!adapter_driver->khz) {
 		LOG_ERROR("Translation from khz to jtag_speed not implemented");
 		return ERROR_FAIL;
 	}
 	int speed_div1;
-	int retval = jtag->khz(jtag_get_speed_khz(), &speed_div1);
+	int retval = adapter_driver->khz(jtag_get_speed_khz(), &speed_div1);
 	if (retval != ERROR_OK)
 		return retval;
 	*speed = speed_div1;
@@ -1805,7 +1809,7 @@ static int jtag_set_speed(int speed)
 {
 	/* this command can be called during CONFIG,
 	 * in which case jtag isn't initialized */
-	return jtag ? jtag->speed(speed) : ERROR_OK;
+	return is_adapter_initialized() ? adapter_driver->speed(speed) : ERROR_OK;
 }
 
 int jtag_config_khz(unsigned khz)
@@ -1849,13 +1853,13 @@ int jtag_get_speed_readable(int *khz)
 	int retval = jtag_get_speed(&jtag_speed_var);
 	if (retval != ERROR_OK)
 		return retval;
-	if (!jtag)
+	if (!is_adapter_initialized())
 		return ERROR_OK;
-	if (!jtag->speed_div) {
+	if (!adapter_driver->speed_div) {
 		LOG_ERROR("Translation from jtag_speed to khz not implemented");
 		return ERROR_FAIL;
 	}
-	return jtag->speed_div(jtag_speed_var, khz);
+	return adapter_driver->speed_div(jtag_speed_var, khz);
 }
 
 void jtag_set_verify(bool enable)
@@ -1880,14 +1884,14 @@ bool jtag_will_verify_capture_ir(void)
 
 int jtag_power_dropout(int *dropout)
 {
-	if (!jtag) {
+	if (!is_adapter_initialized()) {
 		/* TODO: as the jtag interface is not valid all
 		 * we can do at the moment is exit OpenOCD */
 		LOG_ERROR("No Valid JTAG Interface Configured.");
 		exit(-1);
 	}
-	if (jtag->power_dropout)
-		return jtag->power_dropout(dropout);
+	if (adapter_driver->power_dropout)
+		return adapter_driver->power_dropout(dropout);
 
 	*dropout = 0; /* by default we can't detect power dropout */
 	return ERROR_OK;
@@ -1895,8 +1899,8 @@ int jtag_power_dropout(int *dropout)
 
 int jtag_srst_asserted(int *srst_asserted)
 {
-	if (jtag->srst_asserted)
-		return jtag->srst_asserted(srst_asserted);
+	if (adapter_driver->srst_asserted)
+		return adapter_driver->srst_asserted(srst_asserted);
 
 	*srst_asserted = 0; /* by default we can't detect srst asserted */
 	return ERROR_OK;
@@ -2089,8 +2093,8 @@ int adapter_config_trace(bool enabled, enum tpiu_pin_protocol pin_protocol,
 		uint32_t port_size, unsigned int *trace_freq,
 		unsigned int traceclkin_freq, uint16_t *prescaler)
 {
-	if (jtag->config_trace) {
-		return jtag->config_trace(enabled, pin_protocol, port_size, trace_freq,
+	if (adapter_driver->config_trace) {
+		return adapter_driver->config_trace(enabled, pin_protocol, port_size, trace_freq,
 			traceclkin_freq, prescaler);
 	} else if (enabled) {
 		LOG_ERROR("The selected interface does not support tracing");
@@ -2102,8 +2106,8 @@ int adapter_config_trace(bool enabled, enum tpiu_pin_protocol pin_protocol,
 
 int adapter_poll_trace(uint8_t *buf, size_t *size)
 {
-	if (jtag->poll_trace)
-		return jtag->poll_trace(buf, size);
+	if (adapter_driver->poll_trace)
+		return adapter_driver->poll_trace(buf, size);
 
 	return ERROR_FAIL;
 }
