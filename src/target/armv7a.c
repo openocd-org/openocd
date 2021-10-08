@@ -207,7 +207,7 @@ static int armv7a_l2x_cache_init(struct target *target, uint32_t base, uint32_t 
 	armv7a->armv7a_mmu.armv7a_cache.outer_cache = l2x_cache;
 	/*  initialize all target in this cluster (smp target)
 	 *  l2 cache must be configured after smp declaration */
-	while (head != (struct target_list *)NULL) {
+	while (head) {
 		curr = head->target;
 		if (curr != target) {
 			armv7a = target_to_armv7a(curr);

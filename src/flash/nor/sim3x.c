@@ -27,6 +27,7 @@
 #include <helper/binarybuffer.h>
 #include <helper/time_support.h>
 #include <target/algorithm.h>
+#include <target/arm_adi_v5.h>
 #include <target/cortex_m.h>
 
 /* SI32_DEVICEID0 */

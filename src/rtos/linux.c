@@ -195,13 +195,12 @@ static int linux_os_thread_reg_list(struct rtos *rtos,
 	found = 0;
 	do {
 		if (head->target->coreid == next->core_id) {
-
 			target = head->target;
 			found = 1;
-		} else
-			head = head->next;
-
-	} while ((head != (struct target_list *)NULL) && (found == 0));
+			break;
+		}
+		head = head->next;
+	} while (head);
 
 	if (found == 0) {
 		LOG_ERROR
@@ -414,7 +413,7 @@ static int get_current(struct target *target, int create)
 		ctt = ctt->next;
 	}
 
-	while (head != (struct target_list *)NULL) {
+	while (head) {
 		struct reg **reg_list;
 		int reg_list_size;
 		int retval;
@@ -1397,7 +1396,7 @@ static int linux_os_smp_init(struct target *target)
 	struct current_thread *ct;
 	head = target->head;
 
-	while (head != (struct target_list *)NULL) {
+	while (head) {
 		if (head->target->rtos != rtos) {
 			struct linux_os *smp_os_linux =
 				(struct linux_os *)head->target->rtos->rtos_specific_params;

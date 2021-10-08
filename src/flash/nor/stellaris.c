@@ -30,6 +30,7 @@
 #include "jtag/interface.h"
 #include "imp.h"
 #include <target/algorithm.h>
+#include <target/arm_adi_v5.h>
 #include <target/armv7m.h>
 
 #define DID0_VER(did0) ((did0 >> 28)&0x07)

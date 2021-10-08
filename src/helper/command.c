@@ -718,16 +718,18 @@ static int jim_find(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	return JIM_OK;
 }
 
-COMMAND_HANDLER(jim_echo)
+COMMAND_HANDLER(handle_echo)
 {
 	if (CMD_ARGC == 2 && !strcmp(CMD_ARGV[0], "-n")) {
 		LOG_USER_N("%s", CMD_ARGV[1]);
-		return JIM_OK;
+		return ERROR_OK;
 	}
+
 	if (CMD_ARGC != 1)
-		return JIM_ERR;
+		return ERROR_FAIL;
+
 	LOG_USER("%s", CMD_ARGV[0]);
-	return JIM_OK;
+	return ERROR_OK;
 }
 
 /* Capture progress output and return as tcl return value. If the
@@ -1219,7 +1221,7 @@ static const struct command_registration command_builtin_handlers[] = {
 	},
 	{
 		.name = "echo",
-		.handler = jim_echo,
+		.handler = handle_echo,
 		.mode = COMMAND_ANY,
 		.help = "Logs a message at \"user\" priority. "
 			"Option \"-n\" suppresses trailing newline",

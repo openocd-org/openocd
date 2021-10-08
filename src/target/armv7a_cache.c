@@ -140,7 +140,7 @@ int armv7a_cache_auto_flush_all_data(struct target *target)
 		struct target_list *head;
 		struct target *curr;
 		head = target->head;
-		while (head != (struct target_list *)NULL) {
+		while (head) {
 			curr = head->target;
 			if (curr->state == TARGET_HALTED)
 				retval = armv7a_l1_d_cache_clean_inval_all(curr);

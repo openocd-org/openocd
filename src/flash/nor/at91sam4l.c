@@ -22,6 +22,7 @@
 
 #include "imp.h"
 
+#include <jtag/jtag.h>
 #include <target/cortex_m.h>
 
 /* At this time, the SAM4L Flash is available in these capacities:

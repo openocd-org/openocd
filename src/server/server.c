@@ -27,13 +27,13 @@
 #endif
 
 #include "server.h"
+#include <helper/time_support.h>
 #include <target/target.h>
 #include <target/target_request.h>
 #include <target/openrisc/jsp_server.h>
 #include "openocd.h"
 #include "tcl_server.h"
 #include "telnet_server.h"
-#include "time_support.h"
 
 #include <signal.h>
 

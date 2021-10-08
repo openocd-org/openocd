@@ -41,8 +41,8 @@
  * official policies, either expressed or implied, of the Jim Tcl Project.
  */
 
+#include "jim-nvp.h"
 #include <string.h>
-#include <jim-nvp.h>
 
 int jim_get_nvp(Jim_Interp *interp,
 	Jim_Obj *objptr, const struct jim_nvp *nvp_table, const struct jim_nvp **result)

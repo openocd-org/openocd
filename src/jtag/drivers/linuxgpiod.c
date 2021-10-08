@@ -278,7 +278,7 @@ static int linuxgpiod_quit(void)
 	return ERROR_OK;
 }
 
-static struct gpiod_line *helper_get_input_line(const char *label, unsigned int offset)
+static struct gpiod_line *helper_get_line(const char *label, unsigned int offset, int val, int dir, int flags)
 {
 	struct gpiod_line *line;
 	int retval;
@@ -289,33 +289,34 @@ static struct gpiod_line *helper_get_input_line(const char *label, unsigned int 
 		return NULL;
 	}
 
-	retval = gpiod_line_request_input(line, "OpenOCD");
+	struct gpiod_line_request_config config = {
+		.consumer = "OpenOCD",
+		.request_type = dir,
+		.flags = flags,
+	};
+
+	retval = gpiod_line_request(line, &config, val);
 	if (retval < 0) {
-		LOG_ERROR("Error request_input line %s", label);
+		LOG_ERROR("Error requesting gpio line %s", label);
 		return NULL;
 	}
 
 	return line;
 }
 
+static struct gpiod_line *helper_get_input_line(const char *label, unsigned int offset)
+{
+	return helper_get_line(label, offset, 0, GPIOD_LINE_REQUEST_DIRECTION_INPUT, 0);
+}
+
 static struct gpiod_line *helper_get_output_line(const char *label, unsigned int offset, int val)
 {
-	struct gpiod_line *line;
-	int retval;
+	return helper_get_line(label, offset, val, GPIOD_LINE_REQUEST_DIRECTION_OUTPUT, 0);
+}
 
-	line = gpiod_chip_get_line(gpiod_chip, offset);
-	if (!line) {
-		LOG_ERROR("Error get line %s", label);
-		return NULL;
-	}
-
-	retval = gpiod_line_request_output(line, "OpenOCD", val);
-	if (retval < 0) {
-		LOG_ERROR("Error request_output line %s", label);
-		return NULL;
-	}
-
-	return line;
+static struct gpiod_line *helper_get_open_drain_output_line(const char *label, unsigned int offset, int val)
+{
+	return helper_get_line(label, offset, val, GPIOD_LINE_REQUEST_DIRECTION_OUTPUT, GPIOD_LINE_REQUEST_FLAG_OPEN_DRAIN);
 }
 
 static int linuxgpiod_init(void)
@@ -381,7 +382,11 @@ static int linuxgpiod_init(void)
 	}
 
 	if (is_gpio_valid(srst_gpio)) {
-		gpiod_srst = helper_get_output_line("srst", srst_gpio, 1);
+		if (jtag_get_reset_config() & RESET_SRST_PUSH_PULL)
+			gpiod_srst = helper_get_output_line("srst", srst_gpio, 1);
+		else
+			gpiod_srst = helper_get_open_drain_output_line("srst", srst_gpio, 1);
+
 		if (!gpiod_srst)
 			goto out_error;
 	}

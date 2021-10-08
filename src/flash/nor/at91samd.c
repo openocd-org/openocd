@@ -23,6 +23,7 @@
 #include "imp.h"
 #include "helper/binarybuffer.h"
 
+#include <jtag/jtag.h>
 #include <target/cortex_m.h>
 
 #define SAMD_NUM_PROT_BLOCKS	16

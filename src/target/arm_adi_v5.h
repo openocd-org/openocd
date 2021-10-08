@@ -33,6 +33,9 @@
 #include "arm_jtag.h"
 #include "helper/bits.h"
 
+/* JEP106 ID for ARM */
+#define ARM_ID 0x23B
+
 /* three-bit ACK values for SWD access (sent LSB first) */
 #define SWD_ACK_OK    0x1
 #define SWD_ACK_WAIT  0x2
@@ -157,13 +160,28 @@
 #define MEM_AP_REG_CFG_INVALID  0xFFFFFFF8
 
 /* Fields of the MEM-AP's IDR register */
-#define IDR_REV     (0xFUL << 28)
-#define IDR_JEP106  (0x7FFUL << 17)
-#define IDR_CLASS   (0xFUL << 13)
-#define IDR_VARIANT (0xFUL << 4)
-#define IDR_TYPE    (0xFUL << 0)
+#define AP_REG_IDR_REVISION_MASK        (0xF0000000)
+#define AP_REG_IDR_REVISION_SHIFT       (28)
+#define AP_REG_IDR_DESIGNER_MASK        (0x0FFE0000)
+#define AP_REG_IDR_DESIGNER_SHIFT       (17)
+#define AP_REG_IDR_CLASS_MASK           (0x0001E000)
+#define AP_REG_IDR_CLASS_SHIFT          (13)
+#define AP_REG_IDR_VARIANT_MASK         (0x000000F0)
+#define AP_REG_IDR_VARIANT_SHIFT        (4)
+#define AP_REG_IDR_TYPE_MASK            (0x0000000F)
+#define AP_REG_IDR_TYPE_SHIFT           (0)
 
-#define IDR_JEP106_ARM 0x04760000
+#define AP_REG_IDR_CLASS_NONE           (0x0)
+#define AP_REG_IDR_CLASS_COM            (0x1)
+#define AP_REG_IDR_CLASS_MEM_AP         (0x8)
+
+#define AP_REG_IDR_VALUE(d, c, t) (\
+	(((d) << AP_REG_IDR_DESIGNER_SHIFT) & AP_REG_IDR_DESIGNER_MASK) | \
+	(((c) << AP_REG_IDR_CLASS_SHIFT) & AP_REG_IDR_CLASS_MASK) | \
+	(((t) << AP_REG_IDR_TYPE_SHIFT) & AP_REG_IDR_TYPE_MASK) \
+)
+
+#define AP_TYPE_MASK (AP_REG_IDR_DESIGNER_MASK | AP_REG_IDR_CLASS_MASK | AP_REG_IDR_TYPE_MASK)
 
 /* FIXME: not SWD specific; should be renamed, e.g. adiv5_special_seq */
 enum swd_special_seq {
@@ -350,22 +368,18 @@ struct dap_ops {
 };
 
 /*
- * Access Port classes
- */
-enum ap_class {
-	AP_CLASS_NONE   = 0x00000,  /* No class defined */
-	AP_CLASS_MEM_AP = 0x10000,  /* MEM-AP */
-};
-
-/*
  * Access Port types
  */
 enum ap_type {
-	AP_TYPE_JTAG_AP = 0x0,  /* JTAG-AP - JTAG master for controlling other JTAG devices */
-	AP_TYPE_AHB3_AP = 0x1,  /* AHB3 Memory-AP */
-	AP_TYPE_APB_AP  = 0x2,  /* APB Memory-AP */
-	AP_TYPE_AXI_AP  = 0x4,  /* AXI Memory-AP */
-	AP_TYPE_AHB5_AP = 0x5,  /* AHB5 Memory-AP. */
+	AP_TYPE_JTAG_AP  = AP_REG_IDR_VALUE(ARM_ID, AP_REG_IDR_CLASS_NONE,   0),  /* JTAG-AP */
+	AP_TYPE_COM_AP   = AP_REG_IDR_VALUE(ARM_ID, AP_REG_IDR_CLASS_COM,    0),  /* COM-AP */
+	AP_TYPE_AHB3_AP  = AP_REG_IDR_VALUE(ARM_ID, AP_REG_IDR_CLASS_MEM_AP, 1),  /* AHB3 Memory-AP */
+	AP_TYPE_APB_AP   = AP_REG_IDR_VALUE(ARM_ID, AP_REG_IDR_CLASS_MEM_AP, 2),  /* APB2 or APB3 Memory-AP */
+	AP_TYPE_AXI_AP   = AP_REG_IDR_VALUE(ARM_ID, AP_REG_IDR_CLASS_MEM_AP, 4),  /* AXI3 or AXI4 Memory-AP */
+	AP_TYPE_AHB5_AP  = AP_REG_IDR_VALUE(ARM_ID, AP_REG_IDR_CLASS_MEM_AP, 5),  /* AHB5 Memory-AP */
+	AP_TYPE_APB4_AP  = AP_REG_IDR_VALUE(ARM_ID, AP_REG_IDR_CLASS_MEM_AP, 6),  /* APB4 Memory-AP */
+	AP_TYPE_AXI5_AP  = AP_REG_IDR_VALUE(ARM_ID, AP_REG_IDR_CLASS_MEM_AP, 7),  /* AXI5 Memory-AP */
+	AP_TYPE_AHB5H_AP = AP_REG_IDR_VALUE(ARM_ID, AP_REG_IDR_CLASS_MEM_AP, 8),  /* AHB5 with enhanced HPROT Memory-AP */
 };
 
 /* Check the ap->cfg_reg Long Address field (bit 1)

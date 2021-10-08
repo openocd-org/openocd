@@ -41,6 +41,7 @@
 #include <jtag/hla/hla_transport.h>
 #include <jtag/hla/hla_interface.h>
 #include <jtag/swim.h>
+#include <target/arm_adi_v5.h>
 #include <target/target.h>
 #include <transport/transport.h>
 
@@ -90,6 +91,7 @@
 #define STLINK_V3E_PID          (0x374E)
 #define STLINK_V3S_PID          (0x374F)
 #define STLINK_V3_2VCP_PID      (0x3753)
+#define STLINK_V3E_NO_MSD_PID   (0x3754)
 
 /*
  * ST-Link/V1, ST-Link/V2 and ST-Link/V2.1 are full-speed USB devices and
@@ -3130,6 +3132,7 @@ static int stlink_usb_usb_open(void *handle, struct hl_interface_param_s *param)
 			case STLINK_V3E_PID:
 			case STLINK_V3S_PID:
 			case STLINK_V3_2VCP_PID:
+			case STLINK_V3E_NO_MSD_PID:
 				h->version.stlink = 3;
 				h->tx_ep = STLINK_V2_1_TX_EP;
 				h->trace_ep = STLINK_V2_1_TRACE_EP;
@@ -4219,6 +4222,43 @@ COMMAND_HANDLER(stlink_dap_backend_command)
 	return ERROR_OK;
 }
 
+#define BYTES_PER_LINE 16
+COMMAND_HANDLER(stlink_dap_cmd_command)
+{
+	unsigned int rx_n, tx_n;
+	struct stlink_usb_handle_s *h = stlink_dap_handle;
+
+	if (CMD_ARGC < 2)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], rx_n);
+	tx_n = CMD_ARGC - 1;
+	if (tx_n > STLINK_SG_SIZE || rx_n > STLINK_DATA_SIZE) {
+		LOG_ERROR("max %x byte sent and %d received", STLINK_SG_SIZE, STLINK_DATA_SIZE);
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	stlink_usb_init_buffer(h, h->rx_ep, rx_n);
+
+	for (unsigned int i = 0; i < tx_n; i++) {
+		uint8_t byte;
+		COMMAND_PARSE_NUMBER(u8, CMD_ARGV[i + 1], byte);
+		h->cmdbuf[h->cmdidx++] = byte;
+	}
+
+	int retval = stlink_usb_xfer_noerrcheck(h, h->databuf, rx_n);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("Error %d", retval);
+		return retval;
+	}
+
+	for (unsigned int i = 0; i < rx_n; i++)
+		command_print_sameline(CMD, "0x%02x%c", h->databuf[i],
+			((i == (rx_n - 1)) || ((i % BYTES_PER_LINE) == (BYTES_PER_LINE - 1))) ? '\n' : ' ');
+
+	return ERROR_OK;
+}
+
 /** */
 static const struct command_registration stlink_dap_subcommand_handlers[] = {
 	{
@@ -4241,6 +4281,13 @@ static const struct command_registration stlink_dap_subcommand_handlers[] = {
 		.mode = COMMAND_CONFIG,
 		.help = "select which ST-Link backend to use",
 		.usage = "usb | tcp [port]",
+	},
+	{
+		.name = "cmd",
+		.handler = stlink_dap_cmd_command,
+		.mode = COMMAND_EXEC,
+		.help = "send arbitrary command",
+		.usage = "rx_n (tx_byte)+",
 	},
 	COMMAND_REGISTRATION_DONE
 };

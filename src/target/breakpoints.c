@@ -224,7 +224,7 @@ int breakpoint_add(struct target *target,
 		if (type == BKPT_SOFT)
 			return breakpoint_add_internal(head->target, address, length, type);
 
-		while (head != (struct target_list *)NULL) {
+		while (head) {
 			curr = head->target;
 			retval = breakpoint_add_internal(curr, address, length, type);
 			if (retval != ERROR_OK)
@@ -247,7 +247,7 @@ int context_breakpoint_add(struct target *target,
 		struct target_list *head;
 		struct target *curr;
 		head = target->head;
-		while (head != (struct target_list *)NULL) {
+		while (head) {
 			curr = head->target;
 			retval = context_breakpoint_add_internal(curr, asid, length, type);
 			if (retval != ERROR_OK)
@@ -271,7 +271,7 @@ int hybrid_breakpoint_add(struct target *target,
 		struct target_list *head;
 		struct target *curr;
 		head = target->head;
-		while (head != (struct target_list *)NULL) {
+		while (head) {
 			curr = head->target;
 			retval = hybrid_breakpoint_add_internal(curr, address, asid, length, type);
 			if (retval != ERROR_OK)
@@ -347,7 +347,7 @@ void breakpoint_remove(struct target *target, target_addr_t address)
 		struct target_list *head;
 		struct target *curr;
 		head = target->head;
-		while (head != (struct target_list *)NULL) {
+		while (head) {
 			curr = head->target;
 			num_breakpoints += breakpoint_remove_internal(curr, address);
 			head = head->next;
@@ -365,7 +365,7 @@ void breakpoint_remove_all(struct target *target)
 		struct target_list *head;
 		struct target *curr;
 		head = target->head;
-		while (head != (struct target_list *)NULL) {
+		while (head) {
 			curr = head->target;
 			breakpoint_remove_all_internal(curr);
 			head = head->next;
@@ -389,7 +389,7 @@ void breakpoint_clear_target(struct target *target)
 		struct target_list *head;
 		struct target *curr;
 		head = target->head;
-		while (head != (struct target_list *)NULL) {
+		while (head) {
 			curr = head->target;
 			breakpoint_clear_target_internal(curr);
 			head = head->next;
@@ -468,8 +468,9 @@ bye:
 			return retval;
 	}
 
-	LOG_DEBUG("added %s watchpoint at " TARGET_ADDR_FMT
-		" of length 0x%8.8" PRIx32 " (WPID: %d)",
+	LOG_DEBUG("[%d] added %s watchpoint at " TARGET_ADDR_FMT
+			" of length 0x%8.8" PRIx32 " (WPID: %d)",
+		target->coreid,
 		watchpoint_rw_strings[(*watchpoint_p)->rw],
 		(*watchpoint_p)->address,
 		(*watchpoint_p)->length,
@@ -496,9 +497,10 @@ int watchpoint_add(struct target *target, target_addr_t address,
 			head = head->next;
 		}
 		return retval;
-	} else
+	} else {
 		return watchpoint_add_internal(target, address, length, rw, value,
 				mask);
+	}
 }
 
 static void watchpoint_free(struct target *target, struct watchpoint *watchpoint_to_remove)
@@ -544,20 +546,21 @@ int watchpoint_remove_internal(struct target *target, target_addr_t address)
 
 void watchpoint_remove(struct target *target, target_addr_t address)
 {
-	int found = 0;
 	if (target->smp) {
+		unsigned int num_watchpoints = 0;
 		struct target_list *head;
 		struct target *curr;
 		head = target->head;
-		while (head != (struct target_list *)NULL) {
+		while (head) {
 			curr = head->target;
-			found += watchpoint_remove_internal(curr, address);
+			num_watchpoints += watchpoint_remove_internal(curr, address);
 			head = head->next;
 		}
-		if (found == 0)
-			LOG_ERROR("no watchpoint at address " TARGET_ADDR_FMT " found", address);
-	} else
+		if (num_watchpoints == 0)
+			LOG_ERROR("no watchpoint at address " TARGET_ADDR_FMT " num_watchpoints", address);
+	} else {
 		watchpoint_remove_internal(target, address);
+	}
 }
 
 void watchpoint_clear_target(struct target *target)
