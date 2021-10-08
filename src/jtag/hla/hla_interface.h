@@ -34,8 +34,6 @@ extern const char *hl_transports[];
 struct hl_interface_param_s {
 	/** */
 	const char *device_desc;
-	/** */
-	const char *serial;
 	/** List of recognised VIDs */
 	uint16_t vid[HLA_MAX_USB_IDS + 1];
 	/** List of recognised PIDs */

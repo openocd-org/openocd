@@ -759,6 +759,12 @@ proc "ftdi serial" {args} {
 	eval adapter serial $args
 }
 
+lappend _telnet_autocomplete_skip hla_serial
+proc hla_serial args {
+	echo "DEPRECATED! use 'adapter serial' not 'hla_serial'"
+	eval adapter serial $args
+}
+
 lappend _telnet_autocomplete_skip "jlink serial"
 proc "jlink serial" {args} {
 	echo "DEPRECATED! use 'adapter serial' not 'jlink serial'"
@@ -774,6 +780,12 @@ proc kitprog_serial args {
 lappend _telnet_autocomplete_skip "presto serial"
 proc "presto serial" {args} {
 	echo "DEPRECATED! use 'adapter serial' not 'presto serial'"
+	eval adapter serial $args
+}
+
+lappend _telnet_autocomplete_skip "st-link serial"
+proc "st-link serial" {args} {
+	echo "DEPRECATED! use 'adapter serial' not 'st-link serial'"
 	eval adapter serial $args
 }
 

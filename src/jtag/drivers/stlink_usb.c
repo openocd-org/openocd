@@ -38,6 +38,7 @@
 #include <helper/bits.h>
 #include <helper/system.h>
 #include <helper/time_support.h>
+#include <jtag/adapter.h>
 #include <jtag/interface.h>
 #include <jtag/hla/hla_layout.h>
 #include <jtag/hla/hla_transport.h>
@@ -3363,7 +3364,7 @@ static int stlink_usb_usb_open(void *handle, struct hl_interface_param_s *param)
 	  in order to become operational.
 	 */
 	do {
-		if (jtag_libusb_open(param->vid, param->pid, param->serial,
+		if (jtag_libusb_open(param->vid, param->pid, adapter_get_required_serial(),
 				&h->usb_backend_priv.fd, stlink_usb_get_alternate_serial) != ERROR_OK) {
 			LOG_ERROR("open failed");
 			return ERROR_FAIL;
@@ -3574,7 +3575,8 @@ static int stlink_tcp_open(void *handle, struct hl_interface_param_s *param)
 	char serial[STLINK_TCP_SERIAL_SIZE + 1] = {0};
 	uint8_t stlink_used;
 	bool stlink_id_matched = false;
-	bool stlink_serial_matched = (!param->serial);
+	const char *adapter_serial = adapter_get_required_serial();
+	bool stlink_serial_matched = !adapter_serial;
 
 	for (uint32_t stlink_id = 0; stlink_id < connected_stlinks; stlink_id++) {
 		/* get the stlink info */
@@ -3604,27 +3606,28 @@ static int stlink_tcp_open(void *handle, struct hl_interface_param_s *param)
 			continue;
 
 		/* check the serial if specified */
-		if (param->serial) {
+		if (adapter_serial) {
 			/* ST-Link server fixes the buggy serial returned by old ST-Link DFU
 			 * for further details refer to stlink_usb_get_alternate_serial
 			 * so if the user passes the buggy serial, we need to fix it before
 			 * comparing with the serial returned by ST-Link server */
-			if (strlen(param->serial) == STLINK_SERIAL_LEN / 2) {
+			if (strlen(adapter_serial) == STLINK_SERIAL_LEN / 2) {
 				char fixed_serial[STLINK_SERIAL_LEN + 1];
 
 				for (unsigned int i = 0; i < STLINK_SERIAL_LEN; i += 2)
-					sprintf(fixed_serial + i, "%02X", param->serial[i / 2]);
+					sprintf(fixed_serial + i, "%02X", adapter_serial[i / 2]);
 
 				fixed_serial[STLINK_SERIAL_LEN] = '\0';
 
 				stlink_serial_matched = strcmp(fixed_serial, serial) == 0;
-			} else
-				stlink_serial_matched = strcmp(param->serial, serial) == 0;
+			} else {
+				stlink_serial_matched = strcmp(adapter_serial, serial) == 0;
+			}
 		}
 
 		if (!stlink_serial_matched)
 			LOG_DEBUG("Device serial number '%s' doesn't match requested serial '%s'",
-					serial, param->serial);
+					serial, adapter_serial);
 		else /* exit the search loop if there is match */
 			break;
 	}
@@ -3693,7 +3696,7 @@ static int stlink_open(struct hl_interface_param_s *param, enum stlink_mode mode
 	for (unsigned i = 0; param->vid[i]; i++) {
 		LOG_DEBUG("transport: %d vid: 0x%04x pid: 0x%04x serial: %s",
 			  h->st_mode, param->vid[i], param->pid[i],
-			  param->serial ? param->serial : "");
+			  adapter_get_required_serial() ? adapter_get_required_serial() : "");
 	}
 
 	if (param->use_stlink_tcp)
@@ -4917,25 +4920,6 @@ static int stlink_dap_trace_read(uint8_t *buf, size_t *size)
 }
 
 /** */
-COMMAND_HANDLER(stlink_dap_serial_command)
-{
-	LOG_DEBUG("stlink_dap_serial_command");
-
-	if (CMD_ARGC != 1) {
-		LOG_ERROR("Expected exactly one argument for \"st-link serial <serial-number>\".");
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
-	if (stlink_dap_param.serial) {
-		LOG_WARNING("Command \"st-link serial\" already used. Replacing previous value");
-		free((void *)stlink_dap_param.serial);
-	}
-
-	stlink_dap_param.serial = strdup(CMD_ARGV[0]);
-	return ERROR_OK;
-}
-
-/** */
 COMMAND_HANDLER(stlink_dap_vid_pid)
 {
 	unsigned int i, max_usb_ids = HLA_MAX_USB_IDS;
@@ -5026,13 +5010,6 @@ COMMAND_HANDLER(stlink_dap_cmd_command)
 /** */
 static const struct command_registration stlink_dap_subcommand_handlers[] = {
 	{
-		.name = "serial",
-		.handler = stlink_dap_serial_command,
-		.mode = COMMAND_CONFIG,
-		.help = "set the serial number of the adapter",
-		.usage = "<serial_number>",
-	},
-	{
 		.name = "vid_pid",
 		.handler = stlink_dap_vid_pid,
 		.mode = COMMAND_CONFIG,
@@ -5111,9 +5088,6 @@ static int stlink_dap_init(void)
 static int stlink_dap_quit(void)
 {
 	LOG_DEBUG("stlink_dap_quit()");
-
-	free((void *)stlink_dap_param.serial);
-	stlink_dap_param.serial = NULL;
 
 	return stlink_close(stlink_dap_handle);
 }
