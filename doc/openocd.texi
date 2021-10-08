@@ -2371,9 +2371,9 @@ This command is only available if your libusb1 is at least version 1.0.16.
 Specifies the @var{serial_string} of the adapter to use.
 If this command is not specified, serial strings are not checked.
 Only the following adapter drivers use the serial string from this command:
-cmsis_dap, ft232r, ftdi, kitprog, presto, vsllink, xds110.
+cmsis_dap, ft232r, ftdi, jlink, kitprog, presto, vsllink, xds110.
 The following adapters have their own command to specify the serial string:
-hla, jlink, st-link.
+hla, st-link.
 @end deffn
 
 @section Interface Drivers
@@ -2847,12 +2847,6 @@ Set the USB address of the interface, in case more than one adapter is connected
 to the host. If not specified, USB addresses are not considered. Device
 selection via USB address is not always unambiguous. It is recommended to use
 the serial number instead, if possible.
-
-As a configuration command, it can be used only before 'init'.
-@end deffn
-@deffn {Config Command} {jlink serial} <serial number>
-Set the serial number of the interface, in case more than one adapter is
-connected to the host. If not specified, serial numbers are not considered.
 
 As a configuration command, it can be used only before 'init'.
 @end deffn

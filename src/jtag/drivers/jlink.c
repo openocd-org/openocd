@@ -669,6 +669,23 @@ static int jlink_init(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
+	const char *serial = adapter_get_required_serial();
+	if (serial) {
+		ret = jaylink_parse_serial_number(serial, &serial_number);
+		if (ret == JAYLINK_ERR) {
+			LOG_ERROR("Invalid serial number: %s", serial);
+			jaylink_exit(jayctx);
+			return ERROR_JTAG_INIT_FAILED;
+		}
+		if (ret != JAYLINK_OK) {
+			LOG_ERROR("jaylink_parse_serial_number() failed: %s", jaylink_strerror(ret));
+			jaylink_exit(jayctx);
+			return ERROR_JTAG_INIT_FAILED;
+		}
+		use_serial_number = true;
+		use_usb_address = false;
+	}
+
 	bool found_device;
 	ret = jlink_open_device(JAYLINK_HIF_USB, &found_device);
 	if (ret != ERROR_OK)
@@ -979,34 +996,7 @@ COMMAND_HANDLER(jlink_usb_command)
 
 	usb_address = tmp;
 
-	use_serial_number = false;
 	use_usb_address = true;
-
-	return ERROR_OK;
-}
-
-COMMAND_HANDLER(jlink_serial_command)
-{
-	int ret;
-
-	if (CMD_ARGC != 1) {
-		command_print(CMD, "Need exactly one argument for jlink serial");
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
-	ret = jaylink_parse_serial_number(CMD_ARGV[0], &serial_number);
-
-	if (ret == JAYLINK_ERR) {
-		command_print(CMD, "Invalid serial number: %s", CMD_ARGV[0]);
-		return ERROR_FAIL;
-	} else if (ret != JAYLINK_OK) {
-		command_print(CMD, "jaylink_parse_serial_number() failed: %s",
-			jaylink_strerror(ret));
-		return ERROR_FAIL;
-	}
-
-	use_serial_number = true;
-	use_usb_address = false;
 
 	return ERROR_OK;
 }
@@ -1931,13 +1921,6 @@ static const struct command_registration jlink_subcommand_handlers[] = {
 		.mode = COMMAND_CONFIG,
 		.help = "set the USB address of the device that should be used",
 		.usage = "<0-3>"
-	},
-	{
-		.name = "serial",
-		.handler = &jlink_serial_command,
-		.mode = COMMAND_CONFIG,
-		.help = "set the serial number of the device that should be used",
-		.usage = "<serial number>"
 	},
 	{
 		.name = "config",
