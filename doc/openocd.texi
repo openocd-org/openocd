@@ -3207,6 +3207,8 @@ able to coexist nicely with both sysfs bitbanging and various
 peripherals' kernel drivers. The driver restores the previous
 configuration on exit.
 
+GPIO numbers >= 32 can't be used for performance reasons.
+
 See @file{interface/raspberrypi-native.cfg} for a sample config and
 pinout.
 
