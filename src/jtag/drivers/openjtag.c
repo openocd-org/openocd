@@ -1,6 +1,6 @@
 /*******************************************************************************
  *   Driver for OpenJTAG Project (www.openjtag.org)                            *
- *   Compatible with libftdi and ftd2xx drivers.                               *
+ *   Compatible with libftdi drivers.                                          *
  *                                                                             *
  *   Cypress CY7C65215 support                                                 *
  *   Copyright (C) 2015 Vianney le Clément de Saint-Marcq, Essensium NV        *

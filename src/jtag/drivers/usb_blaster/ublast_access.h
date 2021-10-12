@@ -36,7 +36,6 @@ struct ublast_lowlevel {
 	uint16_t ublast_pid;
 	uint16_t ublast_vid_uninit;
 	uint16_t ublast_pid_uninit;
-	char *ublast_device_desc;
 	struct libusb_device_handle *libusb_dev;
 	char *firmware_path;
 

@@ -2459,7 +2459,7 @@ This driver is for adapters using the MPSSE (Multi-Protocol Synchronous Serial
 Engine) mode built into many FTDI chips, such as the FT2232, FT4232 and FT232H.
 
 The driver is using libusb-1.0 in asynchronous mode to talk to the FTDI device,
-bypassing intermediate libraries like libftdi or D2XX.
+bypassing intermediate libraries like libftdi.
 
 Support for new FTDI based adapters can be added completely through
 configuration files, without the need to patch and rebuild OpenOCD.
@@ -2727,13 +2727,6 @@ remote_bitbang host mysocket
 USB JTAG/USB-Blaster compatibles over one of the userspace libraries
 for FTDI chips. These interfaces have several commands, used to
 configure the driver before initializing the JTAG scan chain:
-
-@deffn {Config Command} {usb_blaster device_desc} description
-Provides the USB device description (the @emph{iProduct string})
-of the FTDI FT245 device. If not
-specified, the FTDI default value is used. This setting is only valid
-if compiled with FTD2XX support.
-@end deffn
 
 @deffn {Config Command} {usb_blaster vid_pid} vid pid
 The vendor ID and product ID of the FTDI FT245 device. If not specified,
