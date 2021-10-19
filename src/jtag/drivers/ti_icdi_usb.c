@@ -686,7 +686,7 @@ static int icdi_usb_open(struct hl_interface_param_s *param, void **fd)
 
 	/* TI (Stellaris) ICDI provides its serial number in the USB descriptor;
 	   no need to provide a callback here. */
-	jtag_libusb_open(param->vid, param->pid, adapter_get_required_serial(), &h->usb_dev, NULL);
+	jtag_libusb_open(param->vid, param->pid, &h->usb_dev, NULL);
 
 	if (!h->usb_dev) {
 		LOG_ERROR("open failed");

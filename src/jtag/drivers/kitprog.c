@@ -39,7 +39,6 @@
 
 #include <hidapi.h>
 
-#include <jtag/adapter.h>
 #include <jtag/interface.h>
 #include <jtag/swd.h>
 #include <jtag/commands.h>
@@ -271,8 +270,7 @@ static int kitprog_usb_open(void)
 	const uint16_t vids[] = { VID, 0 };
 	const uint16_t pids[] = { PID, 0 };
 
-	if (jtag_libusb_open(vids, pids, adapter_get_required_serial(),
-			&kitprog_handle->usb_handle, NULL) != ERROR_OK) {
+	if (jtag_libusb_open(vids, pids, &kitprog_handle->usb_handle, NULL) != ERROR_OK) {
 		LOG_ERROR("Failed to open or find the device");
 		return ERROR_FAIL;
 	}
