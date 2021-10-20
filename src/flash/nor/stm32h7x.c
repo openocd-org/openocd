@@ -21,7 +21,7 @@
 #include "imp.h"
 #include <helper/binarybuffer.h>
 #include <target/algorithm.h>
-#include <target/armv7m.h>
+#include <target/cortex_m.h>
 
 
 /* Erase time can be as high as 1000ms, 10x this and it's toast... */
@@ -759,6 +759,7 @@ static int stm32x_read_id_code(struct flash_bank *bank, uint32_t *id)
 static int stm32x_probe(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
+	struct cortex_m_common *cortex_m = target_to_cm(target);
 	struct stm32h7x_flash_bank *stm32x_info = bank->driver_priv;
 	uint16_t flash_size_in_kb;
 	uint32_t device_id;
@@ -797,15 +798,19 @@ static int stm32x_probe(struct flash_bank *bank)
 	LOG_DEBUG("flash_regs_base: 0x%" PRIx32, stm32x_info->flash_regs_base);
 
 	/* get flash size from target */
-	retval = target_read_u16(target, stm32x_info->part_info->fsize_addr, &flash_size_in_kb);
+	/* STM32H74x/H75x, the second core (Cortex-M4) cannot read the flash size */
+	retval = ERROR_FAIL;
+	if (device_id == DEVID_STM32H74_H75XX && cortex_m->core_info->partno == CORTEX_M4_PARTNO)
+		LOG_WARNING("%s cannot read the flash size register", target_name(target));
+	else
+		retval = target_read_u16(target, stm32x_info->part_info->fsize_addr, &flash_size_in_kb);
+
 	if (retval != ERROR_OK) {
 		/* read error when device has invalid value, set max flash size */
 		flash_size_in_kb = stm32x_info->part_info->max_flash_size_kb;
+		LOG_INFO("assuming %" PRIu16 "k flash", flash_size_in_kb);
 	} else
-		LOG_INFO("flash size probed value %" PRIu16, flash_size_in_kb);
-
-
-
+		LOG_INFO("flash size probed value %" PRIu16 "k", flash_size_in_kb);
 
 	/* setup bank size */
 	const uint32_t bank1_base = FLASH_BANK0_ADDRESS;
