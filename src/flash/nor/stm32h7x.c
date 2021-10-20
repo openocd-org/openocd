@@ -100,6 +100,11 @@
 #define FLASH_REG_BASE_B0       0x52002000
 #define FLASH_REG_BASE_B1       0x52002100
 
+/* Supported device IDs */
+#define DEVID_STM32H74_H75XX    0x450
+#define DEVID_STM32H7A_H7BXX    0x480
+#define DEVID_STM32H72_H73XX    0x483
+
 struct stm32h7x_rev {
 	uint16_t rev;
 	const char *str;
@@ -139,24 +144,24 @@ enum stm32h7x_opt_rdp {
 	OPT_RDP_L2 = 0xcc
 };
 
-static const struct stm32h7x_rev stm32_450_revs[] = {
+static const struct stm32h7x_rev stm32h74_h75xx_revs[] = {
 	{ 0x1000, "A" }, { 0x1001, "Z" }, { 0x1003, "Y" }, { 0x2001, "X"  }, { 0x2003, "V"  },
 };
 
-static const struct stm32h7x_rev stm32_480_revs[] = {
+static const struct stm32h7x_rev stm32h7a_h7bxx_revs[] = {
 	{ 0x1000, "A"},
 };
 
-static const struct stm32h7x_rev stm32_483_revs[] = {
+static const struct stm32h7x_rev stm32h72_h73xx_revs[] = {
 	{ 0x1000, "A" }, { 0x1001, "Z" },
 };
 
-static uint32_t stm32x_compute_flash_cr_450_483(uint32_t cmd, int snb)
+static uint32_t stm32h74_h75xx_compute_flash_cr(uint32_t cmd, int snb)
 {
 	return cmd | (snb << 8);
 }
 
-static uint32_t stm32x_compute_flash_cr_480(uint32_t cmd, int snb)
+static uint32_t stm32h7a_h7bxx_compute_flash_cr(uint32_t cmd, int snb)
 {
 	/* save FW and START bits, to be right shifted by 2 bits later */
 	const uint32_t tmp = cmd & (FLASH_FW | FLASH_START);
@@ -169,9 +174,9 @@ static uint32_t stm32x_compute_flash_cr_480(uint32_t cmd, int snb)
 
 static const struct stm32h7x_part_info stm32h7x_parts[] = {
 	{
-	.id					= 0x450,
-	.revs				= stm32_450_revs,
-	.num_revs			= ARRAY_SIZE(stm32_450_revs),
+	.id					= DEVID_STM32H74_H75XX,
+	.revs				= stm32h74_h75xx_revs,
+	.num_revs			= ARRAY_SIZE(stm32h74_h75xx_revs),
 	.device_str			= "STM32H74x/75x",
 	.page_size_kb		= 128,
 	.block_size			= 32,
@@ -181,12 +186,12 @@ static const struct stm32h7x_part_info stm32h7x_parts[] = {
 	.fsize_addr			= 0x1FF1E880,
 	.wps_group_size		= 1,
 	.wps_mask			= 0xFF,
-	.compute_flash_cr	= stm32x_compute_flash_cr_450_483,
+	.compute_flash_cr	= stm32h74_h75xx_compute_flash_cr,
 	},
 	{
-	.id					= 0x480,
-	.revs				= stm32_480_revs,
-	.num_revs			= ARRAY_SIZE(stm32_480_revs),
+	.id					= DEVID_STM32H7A_H7BXX,
+	.revs				= stm32h7a_h7bxx_revs,
+	.num_revs			= ARRAY_SIZE(stm32h7a_h7bxx_revs),
 	.device_str			= "STM32H7Ax/7Bx",
 	.page_size_kb		= 8,
 	.block_size			= 16,
@@ -196,12 +201,12 @@ static const struct stm32h7x_part_info stm32h7x_parts[] = {
 	.fsize_addr			= 0x08FFF80C,
 	.wps_group_size		= 4,
 	.wps_mask			= 0xFFFFFFFF,
-	.compute_flash_cr	= stm32x_compute_flash_cr_480,
+	.compute_flash_cr	= stm32h7a_h7bxx_compute_flash_cr,
 	},
 	{
-	.id					= 0x483,
-	.revs				= stm32_483_revs,
-	.num_revs			= ARRAY_SIZE(stm32_483_revs),
+	.id					= DEVID_STM32H72_H73XX,
+	.revs				= stm32h72_h73xx_revs,
+	.num_revs			= ARRAY_SIZE(stm32h72_h73xx_revs),
 	.device_str			= "STM32H72x/73x",
 	.page_size_kb		= 128,
 	.block_size			= 32,
@@ -211,7 +216,7 @@ static const struct stm32h7x_part_info stm32h7x_parts[] = {
 	.fsize_addr			= 0x1FF1E880,
 	.wps_group_size		= 1,
 	.wps_mask			= 0xFF,
-	.compute_flash_cr   = stm32x_compute_flash_cr_450_483,
+	.compute_flash_cr   = stm32h74_h75xx_compute_flash_cr,
 	},
 };
 
@@ -808,8 +813,8 @@ static int stm32x_probe(struct flash_bank *bank)
 	bool has_dual_bank = stm32x_info->part_info->has_dual_bank;
 
 	switch (device_id) {
-	case 0x450:
-	case 0x480:
+	case DEVID_STM32H74_H75XX:
+	case DEVID_STM32H7A_H7BXX:
 		/* For STM32H74x/75x and STM32H7Ax/Bx
 		 *  - STM32H7xxxI devices contains dual bank, 1 Mbyte each
 		 *  - STM32H7xxxG devices contains dual bank, 512 Kbyte each
@@ -822,7 +827,7 @@ static int stm32x_probe(struct flash_bank *bank)
 			/* flash size is 2M or 1M */
 			flash_size_in_kb /= 2;
 		break;
-	case 0x483:
+	case DEVID_STM32H72_H73XX:
 		break;
 	default:
 		LOG_ERROR("unsupported device");
