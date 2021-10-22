@@ -106,7 +106,7 @@ def main(args):
             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('file', nargs='*', help='input file')
     parser.add_argument('-o', '--output', help='output file', default=sys.stdout)
-    parser.add_argument('-w', '--window', type=int, default=100,
+    parser.add_argument('-w', '--window', type=int, default=400,
             help='number of lines to consider when looking for repetitions')
     args = parser.parse_args(args)
 
