@@ -118,7 +118,7 @@ static struct target_timer_callback *target_timer_callbacks;
 static int64_t target_timer_next_event_value;
 static OOCD_LIST_HEAD(target_reset_callback_list);
 static OOCD_LIST_HEAD(target_trace_callback_list);
-static const int polling_interval = TARGET_DEFAULT_POLLING_INTERVAL;
+static const unsigned int polling_interval = TARGET_DEFAULT_POLLING_INTERVAL;
 static OOCD_LIST_HEAD(empty_smp_targets);
 
 enum nvp_assert {
@@ -2869,11 +2869,24 @@ static int sense_handler(void)
 	return ERROR_OK;
 }
 
+static int handle_one_target(struct target *target)
+{
+	if (!target_active_polled(target) || !target->tap->enabled)
+		return ERROR_OK;
+
+	int res = target_poll(target);
+	if (res == ERROR_OK)
+		return res;
+
+	LOG_TARGET_ERROR(target, "Polling failed, trying to reexamine");
+	target_reset_examined(target);
+	return target_examine_one(target);
+}
+
 /* process target state changes */
 static int handle_target(void *priv)
 {
 	Jim_Interp *interp = (Jim_Interp *)priv;
-	int retval = ERROR_OK;
 
 	if (!is_jtag_poll_safe()) {
 		/* polling is disabled currently */
@@ -2924,56 +2937,34 @@ static int handle_target(void *priv)
 		recursive = 0;
 	}
 
+	if (power_dropout || srst_asserted)
+		return ERROR_OK;
+
+	int retval = ERROR_OK;
 	/* Poll targets for state changes unless that's globally disabled.
 	 * Skip targets that are currently disabled.
 	 */
 	for (struct target *target = all_targets;
 			is_jtag_poll_safe() && target;
 			target = target->next) {
-
-		if (!target_active_polled(target))
+		/* This function only gets called every polling_interval, so
+		 * allow some slack in the time comparison. Otherwise, if we
+		 * schedule for now+polling_interval, the next poll won't
+		 * actually happen until a polling_interval later. */
+		if (timeval_ms() + polling_interval / 2 < target->backoff.next_attempt)
 			continue;
 
-		if (!target->tap->enabled)
-			continue;
-
-		if (target->backoff.times > target->backoff.count) {
-			/* do not poll this time as we failed previously */
-			target->backoff.count++;
-			continue;
+		int tgt_res = handle_one_target(target);
+		if (tgt_res != ERROR_OK) {
+			retval = tgt_res;
+			target->backoff.interval = MAX(polling_interval,
+					MIN(target->backoff.interval * 2u + 1u, TARGET_MAX_POLLING_INTERVAL_MS));
+		} else {
+			target->backoff.interval = polling_interval;
 		}
-		target->backoff.count = 0;
-
-		/* only poll target if we've got power and srst isn't asserted */
-		if (!power_dropout && !srst_asserted) {
-			/* polling may fail silently until the target has been examined */
-			retval = target_poll(target);
-			if (retval != ERROR_OK) {
-				/* 100ms polling interval. Increase interval between polling up to 5000ms */
-				if (target->backoff.times * polling_interval < 5000) {
-					target->backoff.times *= 2;
-					target->backoff.times++;
-				}
-
-				/* Tell GDB to halt the debugger. This allows the user to
-				 * run monitor commands to handle the situation.
-				 */
-				target_call_event_callbacks(target, TARGET_EVENT_GDB_HALT);
-			}
-			if (target->backoff.times > 0) {
-				LOG_TARGET_ERROR(target, "Polling failed, trying to reexamine");
-				target_reset_examined(target);
-				retval = target_examine_one(target);
-				if (retval != ERROR_OK) {
-					LOG_TARGET_ERROR(target, "Examination failed, GDB will be halted. Polling again in %dms",
-						 target->backoff.times * polling_interval);
-					return retval;
-				}
-			}
-
-			/* Since we succeeded, we reset backoff count */
-			target->backoff.times = 0;
-		}
+		target->backoff.next_attempt = timeval_ms() + target->backoff.interval;
+		LOG_TARGET_DEBUG_IO(target, "target_poll() -> %d, next attempt in %ums",
+				 tgt_res, target->backoff.interval);
 	}
 
 	return retval;

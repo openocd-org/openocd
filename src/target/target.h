@@ -105,8 +105,8 @@ struct gdb_service {
 
 /* target back off timer */
 struct backoff_timer {
-	int times;
-	int count;
+	int64_t next_attempt;
+	unsigned int interval;
 };
 
 /* split target registers into multiple class */
@@ -193,6 +193,9 @@ struct target {
 	struct rtos *rtos;					/* Instance of Real Time Operating System support */
 	bool rtos_auto_detect;				/* A flag that indicates that the RTOS has been specified as "auto"
 										 * and must be detected when symbols are offered */
+	/* Track when next to poll(). If polling is failing, we don't want to
+	 * poll too quickly because we'll just overwhelm the user with error
+	 * messages. */
 	struct backoff_timer backoff;
 	unsigned int smp;					/* Unique non-zero number for each SMP group */
 	struct list_head *smp_targets;		/* list all targets in this smp group/cluster
@@ -826,7 +829,8 @@ int target_profiling_default(struct target *target, uint32_t *samples, uint32_t
 
 extern bool get_target_reset_nag(void);
 
-#define TARGET_DEFAULT_POLLING_INTERVAL		100
+#define TARGET_DEFAULT_POLLING_INTERVAL 100u
+#define TARGET_MAX_POLLING_INTERVAL_MS 5000u
 
 const char *target_debug_reason_str(enum target_debug_reason reason);
 
