@@ -6351,13 +6351,22 @@ flash bank $_FLASHNAME cc3220sf 0 0 0 0 $_TARGETNAME
 @end deffn
 
 @deffn {Flash Driver} {efm32}
-All members of the EFM32 microcontroller family from Energy Micro include
-internal flash and use ARM Cortex-M3 cores. The driver automatically recognizes
-a number of these chips using the chip identification register, and
+All members of the EFM32/EFR32 microcontroller family from Energy Micro (now Silicon Labs)
+include internal flash and use Arm Cortex-M3 or Cortex-M4 cores. The driver automatically
+recognizes a number of these chips using the chip identification register, and
 autoconfigures itself.
 @example
 flash bank $_FLASHNAME efm32 0 0 0 0 $_TARGETNAME
 @end example
+It supports writing to the user data page, as well as the portion of the lockbits page
+past 512 bytes on chips with larger page sizes. The latter is used by the SiLabs
+bootloader/AppLoader system for encryption keys. Setting protection on these pages is
+currently not supported.
+@example
+flash bank userdata.flash efm32 0x0FE00000 0 0 0 $_TARGETNAME
+flash bank lockbits.flash efm32 0x0FE04000 0 0 0 $_TARGETNAME
+@end example
+
 A special feature of efm32 controllers is that it is possible to completely disable the
 debug interface by writing the correct values to the 'Debug Lock Word'. OpenOCD supports
 this via the following command:
