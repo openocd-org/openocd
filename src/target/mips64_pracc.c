@@ -213,7 +213,7 @@ int mips64_pracc_exec(struct mips_ejtag *ejtag_info,
 		      unsigned num_param_out, uint64_t *param_out)
 {
 	uint32_t ejtag_ctrl;
-	uint64_t address = 0, address_prev = 0, data;
+	uint64_t address = 0, address_prev = 0;
 	struct mips64_pracc_context ctx;
 	int retval;
 	int pass = 0;
@@ -243,7 +243,7 @@ int mips64_pracc_exec(struct mips_ejtag *ejtag_info,
 			address_prev = address;
 		else
 			address_prev = 0;
-		address32 = data = 0;
+		address32 = 0;
 
 		mips_ejtag_set_instr(ejtag_info, EJTAG_INST_ADDRESS);
 		mips_ejtag_drscan_32(ejtag_info, &address32);
@@ -1358,8 +1358,6 @@ int mips64_pracc_fastdata_xfer(struct mips_ejtag *ejtag_info,
 			  0, NULL, 0, NULL);
 
 	/* next fetch to dmseg should be in FASTDATA_AREA, check */
-	address = 0;
-
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_ADDRESS);
 	retval = mips_ejtag_drscan_32(ejtag_info, &address32);
 	if (retval != ERROR_OK)
@@ -1411,7 +1409,6 @@ int mips64_pracc_fastdata_xfer(struct mips_ejtag *ejtag_info,
 		return retval;
 	}
 
-	address = 0;
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_ADDRESS);
 	retval = mips_ejtag_drscan_32(ejtag_info, &address32);
 	if (retval != ERROR_OK) {

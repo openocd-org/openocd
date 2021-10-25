@@ -155,7 +155,7 @@ static int arm_tpiu_swo_poll_trace(void *priv)
 	if (obj->out_filename && obj->out_filename[0] == ':')
 		list_for_each_entry(c, &obj->connections, lh)
 			if (connection_write(c->connection, buf, size) != (int)size)
-				retval = ERROR_FAIL;
+				LOG_ERROR("Error writing to connection"); /* FIXME: which connection? */
 
 	return ERROR_OK;
 }
@@ -678,6 +678,10 @@ static int jim_arm_tpiu_swo_enable(Jim_Interp *interp, int argc, Jim_Obj *const 
 
 	if (obj->pin_protocol == TPIU_SPPR_PROTOCOL_SYNC) {
 		retval = wrap_read_u32(target, tpiu_ap, obj->spot.base + TPIU_SSPSR_OFFSET, &value);
+		if (retval != ERROR_OK) {
+			LOG_ERROR("Cannot read TPIU register SSPSR");
+			return JIM_ERR;
+		}
 		if (!(value & BIT(obj->port_width - 1))) {
 			LOG_ERROR("TPIU does not support port-width of %d bits", obj->port_width);
 			return JIM_ERR;

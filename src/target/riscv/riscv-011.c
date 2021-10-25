@@ -2336,7 +2336,7 @@ static int wait_for_authbusy(struct target *target)
 	return ERROR_OK;
 }
 
-static int riscv011_authdata_read(struct target *target, uint32_t *value, unsigned index)
+static int riscv011_authdata_read(struct target *target, uint32_t *value, unsigned int index)
 {
 	if (index > 1) {
 		LOG_ERROR("Spec 0.11 only has a two authdata registers.");
@@ -2352,7 +2352,7 @@ static int riscv011_authdata_read(struct target *target, uint32_t *value, unsign
 	return ERROR_OK;
 }
 
-static int riscv011_authdata_write(struct target *target, uint32_t value, unsigned index)
+static int riscv011_authdata_write(struct target *target, uint32_t value, unsigned int index)
 {
 	if (index > 1) {
 		LOG_ERROR("Spec 0.11 only has a two authdata registers.");

@@ -11,7 +11,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include <src/helper/bits.h>
+#include <helper/bits.h>
 
 #define ARM_CS_ALIGN                            (0x1000)
 

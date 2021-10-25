@@ -63,11 +63,11 @@ typedef struct {
 
 #define RISCV_SAMPLE_BUF_TIMESTAMP_BEFORE	0x80
 #define RISCV_SAMPLE_BUF_TIMESTAMP_AFTER	0x81
-typedef struct {
+struct riscv_sample_buf {
 	uint8_t *buf;
-	unsigned used;
-	unsigned size;
-} riscv_sample_buf_t;
+	unsigned int used;
+	unsigned int size;
+};
 
 typedef struct {
 	bool enabled;
@@ -109,10 +109,10 @@ typedef struct {
 	int xlen;
 	riscv_reg_t misa;
 	/* Cached value of vlenb. 0 if vlenb is not readable for some reason. */
-	unsigned vlenb;
+	unsigned int vlenb;
 
 	/* The number of triggers per hart. */
-	unsigned trigger_count;
+	unsigned int trigger_count;
 
 	/* For each physical trigger, contains -1 if the hwbp is available, or the
 	 * unique_id of the breakpoint/watchpoint that is using it.
@@ -171,8 +171,8 @@ typedef struct {
 	void (*fill_dmi_read_u64)(struct target *target, char *buf, int a);
 	void (*fill_dmi_nop_u64)(struct target *target, char *buf);
 
-	int (*authdata_read)(struct target *target, uint32_t *value, unsigned index);
-	int (*authdata_write)(struct target *target, uint32_t value, unsigned index);
+	int (*authdata_read)(struct target *target, uint32_t *value, unsigned int index);
+	int (*authdata_write)(struct target *target, uint32_t value, unsigned int index);
 
 	int (*dmi_read)(struct target *target, uint32_t *value, uint32_t address);
 	int (*dmi_write)(struct target *target, uint32_t address, uint32_t value);
@@ -181,7 +181,7 @@ typedef struct {
 			uint32_t num_words, target_addr_t illegal_address, bool run_sbbusyerror_test);
 
 	int (*sample_memory)(struct target *target,
-						 riscv_sample_buf_t *buf,
+						 struct riscv_sample_buf *buf,
 						 riscv_sample_config_t *config,
 						 int64_t until_ms);
 
@@ -231,11 +231,11 @@ typedef struct {
 	struct list_head expose_custom;
 
 	riscv_sample_config_t sample_config;
-	riscv_sample_buf_t sample_buf;
+	struct riscv_sample_buf sample_buf;
 } riscv_info_t;
 
 COMMAND_HELPER(riscv_print_info_line, const char *section, const char *key,
-			   unsigned value);
+			   unsigned int value);
 
 typedef struct {
 	uint8_t tunneled_dr_width;

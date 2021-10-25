@@ -128,7 +128,6 @@ static int speed_khz;
 /* speed to fallback to when RCLK is requested but not supported */
 static int rclk_fallback_speed_khz;
 static enum {CLOCK_MODE_UNSELECTED, CLOCK_MODE_KHZ, CLOCK_MODE_RCLK} clock_mode;
-static int jtag_speed;
 
 /* FIXME: change name to this variable, it is not anymore JTAG only */
 static struct adapter_driver *jtag;
@@ -1336,7 +1335,6 @@ static int jtag_validate_ircapture(void)
 	struct jtag_tap *tap;
 	uint8_t *ir_test = NULL;
 	struct scan_field field;
-	uint64_t val;
 	int chain_pos = 0;
 	int retval;
 
@@ -1396,7 +1394,7 @@ static int jtag_validate_ircapture(void)
 		 */
 		if (tap->ir_length == 0) {
 			tap->ir_length = 2;
-			while ((val = buf_get_u64(ir_test, chain_pos, tap->ir_length + 1)) == 1
+			while (buf_get_u64(ir_test, chain_pos, tap->ir_length + 1) == 1
 					&& tap->ir_length < JTAG_IRLEN_MAX) {
 				tap->ir_length++;
 			}
@@ -1412,7 +1410,7 @@ static int jtag_validate_ircapture(void)
 		 * this part of the JTAG spec, so their capture mask/value
 		 * attributes might disable this test.
 		 */
-		val = buf_get_u64(ir_test, chain_pos, tap->ir_length);
+		uint64_t val = buf_get_u64(ir_test, chain_pos, tap->ir_length);
 		if ((val & tap->ir_capture_mask) != tap->ir_capture_value) {
 			LOG_ERROR("%s: IR capture error; saw 0x%0*" PRIx64 " not 0x%0*" PRIx32,
 				jtag_tap_name(tap),
@@ -1428,7 +1426,7 @@ static int jtag_validate_ircapture(void)
 	}
 
 	/* verify the '11' sentinel we wrote is returned at the end */
-	val = buf_get_u64(ir_test, chain_pos, 2);
+	uint64_t val = buf_get_u64(ir_test, chain_pos, 2);
 	if (val != 0x3) {
 		char *cbuf = buf_to_hex_str(ir_test, total_ir_length);
 
@@ -1805,7 +1803,6 @@ static int jtag_rclk_to_speed(unsigned fallback_speed_khz, int *speed)
 
 static int jtag_set_speed(int speed)
 {
-	jtag_speed = speed;
 	/* this command can be called during CONFIG,
 	 * in which case jtag isn't initialized */
 	return jtag ? jtag->speed(speed) : ERROR_OK;

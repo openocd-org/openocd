@@ -22,6 +22,7 @@
 #include "gdb_regs.h"
 #include "rtos/rtos.h"
 #include "debug_defines.h"
+#include <helper/bits.h>
 
 #define get_field(reg, mask) (((reg) & (mask)) / ((mask) & ~((mask) << 1)))
 #define set_field(reg, mask, val) (((reg) & ~(mask)) | (((val) * ((mask) & ~((mask) << 1))) & (mask)))
@@ -428,8 +429,10 @@ static int riscv_create_target(struct target *target, Jim_Interp *interp)
 {
 	LOG_DEBUG("riscv_create_target()");
 	target->arch_info = calloc(1, sizeof(riscv_info_t));
-	if (!target->arch_info)
+	if (!target->arch_info) {
+		LOG_ERROR("Failed to allocate RISC-V target structure.");
 		return ERROR_FAIL;
+	}
 	riscv_info_init(target, target->arch_info);
 	return ERROR_OK;
 }
@@ -486,7 +489,7 @@ static void riscv_deinit_target(struct target *target)
 {
 	LOG_DEBUG("riscv_deinit_target()");
 
-	riscv_info_t *info = (riscv_info_t *) target->arch_info;
+	riscv_info_t *info = target->arch_info;
 	struct target_type *tt = get_target_type(target);
 
 	if (tt && info->version_specific)
@@ -548,11 +551,11 @@ static int maybe_add_trigger_t1(struct target *target,
 	tdata1 = set_field(tdata1, bpcontrol_w, trigger->write);
 	tdata1 = set_field(tdata1, bpcontrol_x, trigger->execute);
 	tdata1 = set_field(tdata1, bpcontrol_u,
-			!!(r->misa & (1 << ('U' - 'A'))));
+			!!(r->misa & BIT('U' - 'A')));
 	tdata1 = set_field(tdata1, bpcontrol_s,
-			!!(r->misa & (1 << ('S' - 'A'))));
+			!!(r->misa & BIT('S' - 'A')));
 	tdata1 = set_field(tdata1, bpcontrol_h,
-			!!(r->misa & (1 << ('H' - 'A'))));
+			!!(r->misa & BIT('H' - 'A')));
 	tdata1 |= bpcontrol_m;
 	tdata1 = set_field(tdata1, bpcontrol_bpmatch, 0); /* exact match */
 	tdata1 = set_field(tdata1, bpcontrol_bpaction, 0); /* cause bp exception */
@@ -752,8 +755,8 @@ static int write_by_given_size(struct target *target, target_addr_t address,
 		/* Can do the memory access directly without a helper buffer. */
 		return target_write_memory(target, address, access_size, size / access_size, buffer);
 
-	unsigned offset_head = address % access_size;
-	unsigned n_blocks = ((size + offset_head) <= access_size) ? 1 : 2;
+	unsigned int offset_head = address % access_size;
+	unsigned int n_blocks = ((size + offset_head) <= access_size) ? 1 : 2;
 	uint8_t helper_buf[n_blocks * access_size];
 
 	/* Read from memory */
@@ -779,8 +782,8 @@ static int read_by_given_size(struct target *target, target_addr_t address,
 		/* Can do the memory access directly without a helper buffer. */
 		return target_read_memory(target, address, access_size, size / access_size, buffer);
 
-	unsigned offset_head = address % access_size;
-	unsigned n_blocks = ((size + offset_head) <= access_size) ? 1 : 2;
+	unsigned int offset_head = address % access_size;
+	unsigned int n_blocks = ((size + offset_head) <= access_size) ? 1 : 2;
 	uint8_t helper_buf[n_blocks * access_size];
 
 	/* Read from memory */
@@ -801,7 +804,7 @@ int riscv_write_by_any_size(struct target *target, target_addr_t address, uint32
 	assert(size == 1 || size == 2 ||  size == 4 || size == 8);
 
 	/* Find access size that correspond to data size and the alignment. */
-	unsigned preferred_size = size;
+	unsigned int preferred_size = size;
 	while (address % preferred_size != 0)
 		preferred_size /= 2;
 
@@ -811,7 +814,7 @@ int riscv_write_by_any_size(struct target *target, target_addr_t address, uint32
 
 	/* On failure, try other access sizes.
 	   Minimize the number of accesses by trying first the largest size. */
-	for (unsigned access_size = 8; access_size > 0; access_size /= 2) {
+	for (unsigned int access_size = 8; access_size > 0; access_size /= 2) {
 		if (access_size == preferred_size)
 			/* Already tried this size. */
 			continue;
@@ -833,17 +836,17 @@ int riscv_read_by_any_size(struct target *target, target_addr_t address, uint32_
 	assert(size == 1 || size == 2 ||  size == 4 || size == 8);
 
 	/* Find access size that correspond to data size and the alignment. */
-	unsigned preferred_size = size;
+	unsigned int preferred_size = size;
 	while (address % preferred_size != 0)
 		preferred_size /= 2;
 
 	/* First try the preferred (most natural) access size. */
 	if (read_by_given_size(target, address, size, buffer, preferred_size) == ERROR_OK)
-			return ERROR_OK;
+		return ERROR_OK;
 
 	/* On failure, try other access sizes.
 	   Minimize the number of accesses by trying first the largest size. */
-	for (unsigned access_size = 8; access_size > 0; access_size /= 2) {
+	for (unsigned int access_size = 8; access_size > 0; access_size /= 2) {
 		if (access_size == preferred_size)
 			/* Already tried this size. */
 			continue;
@@ -1315,7 +1318,7 @@ static int disable_triggers(struct target *target, riscv_reg_t *state)
 		riscv_reg_t tselect;
 		if (riscv_get_register(target, &tselect, GDB_REGNO_TSELECT) != ERROR_OK)
 			return ERROR_FAIL;
-		for (unsigned t = 0; t < r->trigger_count; t++) {
+		for (unsigned int t = 0; t < r->trigger_count; t++) {
 			if (riscv_set_register(target, GDB_REGNO_TSELECT, t) != ERROR_OK)
 				return ERROR_FAIL;
 			riscv_reg_t tdata1;
@@ -1358,7 +1361,7 @@ static int enable_triggers(struct target *target, riscv_reg_t *state)
 		riscv_reg_t tselect;
 		if (riscv_get_register(target, &tselect, GDB_REGNO_TSELECT) != ERROR_OK)
 			return ERROR_FAIL;
-		for (unsigned t = 0; t < r->trigger_count; t++) {
+		for (unsigned int t = 0; t < r->trigger_count; t++) {
 			if (state[t] != 0) {
 				if (riscv_set_register(target, GDB_REGNO_TSELECT, t) != ERROR_OK)
 					return ERROR_FAIL;
@@ -1990,10 +1993,10 @@ static int riscv_checksum_memory(struct target *target,
 	LOG_DEBUG("address=0x%" TARGET_PRIxADDR "; count=0x%" PRIx32, address, count);
 
 	static const uint8_t riscv32_crc_code[] = {
-#include "contrib/loaders/checksum/riscv32_crc.inc"
+#include "../../../contrib/loaders/checksum/riscv32_crc.inc"
 	};
 	static const uint8_t riscv64_crc_code[] = {
-#include "contrib/loaders/checksum/riscv64_crc.inc"
+#include "../../../contrib/loaders/checksum/riscv64_crc.inc"
 	};
 
 	static const uint8_t *crc_code;
@@ -2146,7 +2149,7 @@ int sample_memory(struct target *target)
 
 	/* Default slow path. */
 	while (timeval_ms() - start < TARGET_DEFAULT_POLLING_INTERVAL) {
-		for (unsigned i = 0; i < ARRAY_SIZE(r->sample_config.bucket); i++) {
+		for (unsigned int i = 0; i < ARRAY_SIZE(r->sample_config.bucket); i++) {
 			if (r->sample_config.bucket[i].enabled &&
 					r->sample_buf.used + 1 + r->sample_config.bucket[i].size_bytes < r->sample_buf.size) {
 				assert(i < RISCV_SAMPLE_BUF_TIMESTAMP_BEFORE);
@@ -2246,7 +2249,7 @@ int riscv_openocd_poll(struct target *target)
 		}
 
 		/* Sample memory if any target is running. */
-		for (struct target_list *list = target->head; list != NULL;
+		for (struct target_list *list = target->head; list;
 				list = list->next, i++) {
 			struct target *t = list->target;
 			if (t->state == TARGET_RUNNING) {
@@ -2264,9 +2267,9 @@ int riscv_openocd_poll(struct target *target)
 			if (target->state == TARGET_RUNNING)
 				sample_memory(target);
 			return ERROR_OK;
-		}
-		else if (out == RPH_ERROR)
+		} else if (out == RPH_ERROR) {
 			return ERROR_FAIL;
+		}
 
 		halted_hart = riscv_current_hartid(target);
 		LOG_DEBUG("  hart %d halted", halted_hart);
@@ -2408,14 +2411,14 @@ COMMAND_HANDLER(riscv_set_mem_access)
 	}
 
 	/* Check argument validity */
-	for (unsigned i = 0; i < CMD_ARGC; i++) {
-		if (strcmp("progbuf", CMD_ARGV[i]) == 0)
+	for (unsigned int i = 0; i < CMD_ARGC; i++) {
+		if (strcmp("progbuf", CMD_ARGV[i]) == 0) {
 			progbuf_cnt++;
-		else if (strcmp("sysbus", CMD_ARGV[i]) == 0)
+		} else if (strcmp("sysbus", CMD_ARGV[i]) == 0) {
 			sysbus_cnt++;
-		else if (strcmp("abstract", CMD_ARGV[i]) == 0)
+		} else if (strcmp("abstract", CMD_ARGV[i]) == 0) {
 			abstract_cnt++;
-		else {
+		} else {
 			LOG_ERROR("Unknown argument '%s'. "
 				"Must be one of: 'progbuf', 'sysbus' or 'abstract'.", CMD_ARGV[i]);
 			return ERROR_COMMAND_SYNTAX_ERROR;
@@ -2427,9 +2430,9 @@ COMMAND_HANDLER(riscv_set_mem_access)
 	}
 
 	/* Args are valid, store them */
-	for (unsigned i = 0; i < RISCV_NUM_MEM_ACCESS_METHODS; i++)
+	for (unsigned int i = 0; i < RISCV_NUM_MEM_ACCESS_METHODS; i++)
 		r->mem_access_methods[i] = RISCV_MEM_ACCESS_UNSPECIFIED;
-	for (unsigned i = 0; i < CMD_ARGC; i++) {
+	for (unsigned int i = 0; i < CMD_ARGC; i++) {
 		if (strcmp("progbuf", CMD_ARGV[i]) == 0)
 			r->mem_access_methods[i] = RISCV_MEM_ACCESS_PROGBUF;
 		else if (strcmp("sysbus", CMD_ARGV[i]) == 0)
@@ -2456,7 +2459,7 @@ COMMAND_HANDLER(riscv_set_enable_virtual)
 	return ERROR_OK;
 }
 
-int parse_ranges(struct list_head *ranges, const char *tcl_arg, const char *reg_type, unsigned max_val)
+int parse_ranges(struct list_head *ranges, const char *tcl_arg, const char *reg_type, unsigned int max_val)
 {
 	char *args = strdup(tcl_arg);
 	if (!args)
@@ -2471,7 +2474,7 @@ int parse_ranges(struct list_head *ranges, const char *tcl_arg, const char *reg_
 
 		char *dash = strchr(arg, '-');
 		char *equals = strchr(arg, '=');
-		unsigned pos;
+		unsigned int pos;
 
 		if (!dash && !equals) {
 			/* Expecting single register number. */
@@ -2511,6 +2514,7 @@ int parse_ranges(struct list_head *ranges, const char *tcl_arg, const char *reg_
 
 			name = calloc(1, strlen(equals) + strlen(reg_type) + 2);
 			if (!name) {
+				LOG_ERROR("Failed to allocate register name.");
 				free(args);
 				return ERROR_FAIL;
 			}
@@ -2562,6 +2566,7 @@ int parse_ranges(struct list_head *ranges, const char *tcl_arg, const char *reg_
 
 		range_list_t *range = calloc(1, sizeof(range_list_t));
 		if (!range) {
+			LOG_ERROR("Failed to allocate range list.");
 			free(name);
 			free(args);
 			return ERROR_FAIL;
@@ -2590,7 +2595,7 @@ COMMAND_HANDLER(riscv_set_expose_csrs)
 	RISCV_INFO(info);
 	int ret = ERROR_OK;
 
-	for (unsigned i = 0; i < CMD_ARGC; i++) {
+	for (unsigned int i = 0; i < CMD_ARGC; i++) {
 		ret = parse_ranges(&info->expose_csr, CMD_ARGV[i], "csr", 0xfff);
 		if (ret != ERROR_OK)
 			break;
@@ -2610,7 +2615,7 @@ COMMAND_HANDLER(riscv_set_expose_custom)
 	RISCV_INFO(info);
 	int ret = ERROR_OK;
 
-	for (unsigned i = 0; i < CMD_ARGC; i++) {
+	for (unsigned int i = 0; i < CMD_ARGC; i++) {
 		ret = parse_ranges(&info->expose_custom, CMD_ARGV[i], "custom", 0x3fff);
 		if (ret != ERROR_OK)
 			break;
@@ -2621,7 +2626,7 @@ COMMAND_HANDLER(riscv_set_expose_custom)
 
 COMMAND_HANDLER(riscv_authdata_read)
 {
-	unsigned index = 0;
+	unsigned int index = 0;
 	if (CMD_ARGC == 0) {
 		/* nop */
 	} else if (CMD_ARGC == 1) {
@@ -2658,7 +2663,7 @@ COMMAND_HANDLER(riscv_authdata_read)
 COMMAND_HANDLER(riscv_authdata_write)
 {
 	uint32_t value;
-	unsigned index = 0;
+	unsigned int index = 0;
 
 	if (CMD_ARGC == 0) {
 		/* nop */
@@ -3100,21 +3105,21 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.name = "dump_sample_buf",
 		.handler = handle_dump_sample_buf_command,
 		.mode = COMMAND_ANY,
-		.usage = "riscv dump_sample_buf [base64]",
+		.usage = "[base64]",
 		.help = "Print the contents of the sample buffer, and clear the buffer."
 	},
 	{
 		.name = "info",
 		.handler = handle_info,
 		.mode = COMMAND_ANY,
-		.usage = "riscv info",
+		.usage = "",
 		.help = "Displays some information OpenOCD detected about the target."
 	},
 	{
 		.name = "memory_sample",
 		.handler = handle_memory_sample_command,
 		.mode = COMMAND_ANY,
-		.usage = "riscv memory_sample bucket address|clear [size=4]",
+		.usage = "bucket address|clear [size=4]",
 		.help = "Causes OpenOCD to frequently read size bytes at the given address."
 	},
 	{
@@ -3468,7 +3473,7 @@ bool riscv_supports_extension(struct target *target, char letter)
 		num = letter - 'A';
 	else
 		return false;
-	return r->misa & (1 << num);
+	return r->misa & BIT(num);
 }
 
 unsigned riscv_xlen(const struct target *target)
@@ -3608,6 +3613,8 @@ int riscv_get_register(struct target *target, riscv_reg_t *value,
 		enum gdb_regno regid)
 {
 	RISCV_INFO(r);
+
+	keep_alive();
 
 	struct reg *reg = &target->reg_cache->reg_list[regid];
 	if (!reg->exist) {
@@ -3762,7 +3769,7 @@ int riscv_enumerate_triggers(struct target *target)
 		return ERROR_OK;
 	}
 
-	for (unsigned t = 0; t < RISCV_MAX_TRIGGERS; ++t) {
+	for (unsigned int t = 0; t < RISCV_MAX_TRIGGERS; ++t) {
 		r->trigger_count = t;
 
 		/* If we can't write tselect, then this hart does not support triggers. */
@@ -3774,7 +3781,7 @@ int riscv_enumerate_triggers(struct target *target)
 			return result;
 		/* Mask off the top bit, which is used as tdrmode in old
 			* implementations. */
-		tselect_rb &= ~(1ULL << (riscv_xlen(target)-1));
+		tselect_rb &= ~(1ULL << (riscv_xlen(target) - 1));
 		if (tselect_rb != t)
 			break;
 		uint64_t tdata1;
