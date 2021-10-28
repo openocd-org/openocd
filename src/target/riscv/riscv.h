@@ -232,6 +232,9 @@ typedef struct {
 
 	riscv_sample_config_t sample_config;
 	riscv_sample_buf_t sample_buf;
+
+	/* Track when we were last asked to do something substantial. */
+	int64_t last_activity;
 } riscv_info_t;
 
 COMMAND_HELPER(riscv_print_info_line, const char *section, const char *key,
