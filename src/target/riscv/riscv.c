@@ -1166,6 +1166,8 @@ int riscv_flush_registers(struct target *target)
 	if (!target->reg_cache)
 		return ERROR_OK;
 
+	LOG_DEBUG("[%s]", target_name(target));
+
 	for (uint32_t number = 0; number < target->reg_cache->num_regs; number++) {
 		struct reg *reg = &target->reg_cache->reg_list[number];
 		if (reg->valid && reg->dirty) {
@@ -1213,9 +1215,9 @@ int riscv_halt_go_all_harts(struct target *target)
 	} else {
 		if (r->halt_go(target) != ERROR_OK)
 			return ERROR_FAIL;
-	}
 
-	riscv_invalidate_register_cache(target);
+		riscv_invalidate_register_cache(target);
+	}
 
 	return ERROR_OK;
 }
