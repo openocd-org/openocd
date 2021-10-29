@@ -492,6 +492,9 @@ static void riscv_deinit_target(struct target *target)
 	riscv_info_t *info = target->arch_info;
 	struct target_type *tt = get_target_type(target);
 
+	if (riscv_flush_registers(target) != ERROR_OK)
+		LOG_ERROR("[%s] Failed to flush registers. Ignoring this error.", target_name(target));
+
 	if (tt && info->version_specific)
 		tt->deinit_target(target);
 
@@ -2088,6 +2091,14 @@ static enum riscv_poll_hart riscv_poll_hart(struct target *target, int hartid)
 	/* If OpenOCD thinks we're running but this hart is halted then it's time
 	 * to raise an event. */
 	bool halted = riscv_is_halted(target);
+
+	if (halted && timeval_ms() - r->last_activity > 100) {
+		/* If we've been idle for a while, flush the register cache. Just in case
+		 * OpenOCD is going to be disconnected without shutting down cleanly. */
+		if (riscv_flush_registers(target) != ERROR_OK)
+			return ERROR_FAIL;
+	}
+
 	if (target->state != TARGET_HALTED && halted) {
 		LOG_DEBUG("  triggered a halt");
 		r->on_halt(target);
@@ -3653,6 +3664,7 @@ int riscv_get_register(struct target *target, riscv_reg_t *value,
 
 int riscv_save_register(struct target *target, enum gdb_regno regid)
 {
+	RISCV_INFO(r);
 	riscv_reg_t value;
 	if (!target->reg_cache) {
 		assert(!target_was_examined(target));
@@ -3670,6 +3682,9 @@ int riscv_save_register(struct target *target, enum gdb_regno regid)
 	 * because the caller is about to mess with the underlying value of the
 	 * register. */
 	reg->dirty = true;
+
+	r->last_activity = timeval_ms();
+
 	return ERROR_OK;
 }
 
