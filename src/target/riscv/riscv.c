@@ -476,6 +476,8 @@ static void riscv_free_registers(struct target *target)
 			/* Free the ones we allocated separately. */
 			for (unsigned i = GDB_REGNO_COUNT; i < target->reg_cache->num_regs; i++)
 				free(target->reg_cache->reg_list[i].arch_info);
+			for (unsigned int i = 0; i < target->reg_cache->num_regs; i++)
+				free(target->reg_cache->reg_list[i].value);
 			free(target->reg_cache->reg_list);
 		}
 		free(target->reg_cache);
@@ -1757,8 +1759,8 @@ static int riscv_get_gdb_reg_list_internal(struct target *target,
 		enum target_register_class reg_class, bool read)
 {
 	RISCV_INFO(r);
-	LOG_DEBUG("current_hartid=%d, reg_class=%d, read=%d",
-			r->current_hartid, reg_class, read);
+	LOG_DEBUG("[%s] {%d} reg_class=%d, read=%d",
+			target_name(target), r->current_hartid, reg_class, read);
 
 	if (!target->reg_cache) {
 		LOG_ERROR("Target not initialized. Return ERROR_FAIL.");
@@ -4722,7 +4724,7 @@ int riscv_init_registers(struct target *target)
 			assert(reg_name < info->reg_names + target->reg_cache->num_regs *
 					max_reg_name_len);
 		}
-		r->value = info->reg_cache_values[number];
+		r->value = calloc(1, DIV_ROUND_UP(r->size, 8));
 	}
 
 	return ERROR_OK;
