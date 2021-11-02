@@ -1768,7 +1768,7 @@ static int examine(struct target *target)
 	return ERROR_OK;
 }
 
-static int riscv013_authdata_read(struct target *target, uint32_t *value, unsigned index)
+static int riscv013_authdata_read(struct target *target, uint32_t *value, unsigned int index)
 {
 	if (index > 0) {
 		LOG_ERROR("Spec 0.13 only has a single authdata register.");
@@ -1781,7 +1781,7 @@ static int riscv013_authdata_read(struct target *target, uint32_t *value, unsign
 	return dmi_read(target, value, DM_AUTHDATA);
 }
 
-static int riscv013_authdata_write(struct target *target, uint32_t value, unsigned index)
+static int riscv013_authdata_write(struct target *target, uint32_t value, unsigned int index)
 {
 	if (index > 0) {
 		LOG_ERROR("Spec 0.13 only has a single authdata register.");
@@ -1828,7 +1828,7 @@ static unsigned riscv013_data_bits(struct target *target)
 	RISCV013_INFO(info);
 	RISCV_INFO(r);
 
-	for (unsigned i = 0; i < RISCV_NUM_MEM_ACCESS_METHODS; i++) {
+	for (unsigned int i = 0; i < RISCV_NUM_MEM_ACCESS_METHODS; i++) {
 		int method = r->mem_access_methods[i];
 
 		if (method == RISCV_MEM_ACCESS_PROGBUF) {
@@ -2038,7 +2038,7 @@ static int riscv013_set_register_buf(struct target *target,
 	return result;
 }
 
-static uint32_t sb_sbaccess(unsigned size_bytes)
+static uint32_t sb_sbaccess(unsigned int size_bytes)
 {
 	switch (size_bytes) {
 		case 1:
@@ -2053,14 +2053,14 @@ static uint32_t sb_sbaccess(unsigned size_bytes)
 			return set_field(0, DM_SBCS_SBACCESS, 4);
 	}
 	assert(0);
-	return 0;	/* Make mingw happy. */
+	return 0;
 }
 
 static int sb_write_address(struct target *target, target_addr_t address,
 							bool ensure_success)
 {
 	RISCV013_INFO(info);
-	unsigned sbasize = get_field(info->sbcs, DM_SBCS_SBASIZE);
+	unsigned int sbasize = get_field(info->sbcs, DM_SBCS_SBASIZE);
 	/* There currently is no support for >64-bit addresses in OpenOCD. */
 	if (sbasize > 96)
 		dmi_op(target, NULL, NULL, DMI_OP_WRITE, DM_SBADDRESS3, 0, false, false);
@@ -2087,7 +2087,7 @@ static int batch_run(const struct target *target, struct riscv_batch *batch)
 	return riscv_batch_run(batch);
 }
 
-static int sba_supports_access(struct target *target, unsigned size_bytes)
+static int sba_supports_access(struct target *target, unsigned int size_bytes)
 {
 	RISCV013_INFO(info);
 	switch (size_bytes) {
@@ -2107,12 +2107,12 @@ static int sba_supports_access(struct target *target, unsigned size_bytes)
 }
 
 static int sample_memory_bus_v1(struct target *target,
-								riscv_sample_buf_t *buf,
+								struct riscv_sample_buf *buf,
 								const riscv_sample_config_t *config,
 								int64_t until_ms)
 {
 	RISCV013_INFO(info);
-	unsigned sbasize = get_field(info->sbcs, DM_SBCS_SBASIZE);
+	unsigned int sbasize = get_field(info->sbcs, DM_SBCS_SBASIZE);
 	if (sbasize > 64) {
 		LOG_ERROR("Memory sampling is only implemented for sbasize <= 64.");
 		return ERROR_NOT_IMPLEMENTED;
@@ -2132,10 +2132,10 @@ static int sample_memory_bus_v1(struct target *target,
 	bool sbaddress1_valid = false;
 
 	/* How often to read each value in a batch. */
-	const unsigned repeat = 5;
+	const unsigned int repeat = 5;
 
-	unsigned enabled_count = 0;
-	for (unsigned i = 0; i < ARRAY_SIZE(config->bucket); i++) {
+	unsigned int enabled_count = 0;
+	for (unsigned int i = 0; i < ARRAY_SIZE(config->bucket); i++) {
 		if (config->bucket[i].enabled)
 			enabled_count++;
 	}
@@ -2149,10 +2149,12 @@ static int sample_memory_bus_v1(struct target *target,
 		struct riscv_batch *batch = riscv_batch_alloc(
 			target, 1 + enabled_count * 5 * repeat,
 			info->dmi_busy_delay + info->bus_master_read_delay);
+		if (!batch)
+			return ERROR_FAIL;
 
-		unsigned result_bytes = 0;
-		for (unsigned n = 0; n < repeat; n++) {
-			for (unsigned i = 0; i < ARRAY_SIZE(config->bucket); i++) {
+		unsigned int result_bytes = 0;
+		for (unsigned int n = 0; n < repeat; n++) {
+			for (unsigned int i = 0; i < ARRAY_SIZE(config->bucket); i++) {
 				if (config->bucket[i].enabled) {
 					if (!sba_supports_access(target, config->bucket[i].size_bytes)) {
 						LOG_ERROR("Hardware does not support SBA access for %d-byte memory sampling.",
@@ -2218,14 +2220,14 @@ static int sample_memory_bus_v1(struct target *target,
 			return ERROR_FAIL;
 		}
 
-		unsigned read = 0;
-		for (unsigned n = 0; n < repeat; n++) {
-			for (unsigned i = 0; i < ARRAY_SIZE(config->bucket); i++) {
+		unsigned int read = 0;
+		for (unsigned int n = 0; n < repeat; n++) {
+			for (unsigned int i = 0; i < ARRAY_SIZE(config->bucket); i++) {
 				if (config->bucket[i].enabled) {
 					assert(i < RISCV_SAMPLE_BUF_TIMESTAMP_BEFORE);
 					uint64_t value = 0;
 					if (config->bucket[i].size_bytes > 4)
-						value = ((uint64_t) riscv_batch_get_dmi_read_data(batch, read++)) << 32;
+						value = ((uint64_t)riscv_batch_get_dmi_read_data(batch, read++)) << 32;
 					value |= riscv_batch_get_dmi_read_data(batch, read++);
 
 					buf->buf[buf->used] = i;
@@ -2242,7 +2244,7 @@ static int sample_memory_bus_v1(struct target *target,
 }
 
 static int sample_memory(struct target *target,
-						 riscv_sample_buf_t *buf,
+						 struct riscv_sample_buf *buf,
 						 riscv_sample_config_t *config,
 						 int64_t until_ms)
 {
@@ -2876,7 +2878,7 @@ static bool mem_should_skip_sysbus(struct target *target, target_addr_t address,
 		*skip_reason = "skipped (unsupported size)";
 		return true;
 	}
-	unsigned sbasize = get_field(info->sbcs, DM_SBCS_SBASIZE);
+	unsigned int sbasize = get_field(info->sbcs, DM_SBCS_SBASIZE);
 	if ((sizeof(address) * 8 > sbasize) && (address >> sbasize)) {
 		LOG_DEBUG("Skipping mem %s via system bus - sba only supports %u-bit address.",
 				read ? "read" : "write", sbasize);
@@ -2949,7 +2951,7 @@ static int read_memory_abstract(struct target *target, target_addr_t address,
 	/* Execute the reads */
 	uint8_t *p = buffer;
 	bool updateaddr = true;
-	unsigned width32 = (width < 32) ? 32 : width;
+	unsigned int width32 = (width < 32) ? 32 : width;
 	for (uint32_t c = 0; c < count; c++) {
 		/* Update the address if it is the first time or aampostincrement is not supported by the target. */
 		if (updateaddr) {
@@ -3519,7 +3521,7 @@ static int read_memory(struct target *target, target_addr_t address,
 	char *sysbus_result = "disabled";
 	char *abstract_result = "disabled";
 
-	for (unsigned i = 0; i < RISCV_NUM_MEM_ACCESS_METHODS; i++) {
+	for (unsigned int i = 0; i < RISCV_NUM_MEM_ACCESS_METHODS; i++) {
 		int method = r->mem_access_methods[i];
 
 		if (method == RISCV_MEM_ACCESS_PROGBUF) {
@@ -3732,7 +3734,7 @@ static int write_memory_bus_v1(struct target *target, target_addr_t address,
 			continue;
 		}
 
-		unsigned sberror = get_field(sbcs, DM_SBCS_SBERROR);
+		unsigned int sberror = get_field(sbcs, DM_SBCS_SBERROR);
 		if (sberror != 0) {
 			/* Sberror indicates the bus access failed, but not because we issued the writes
 			 * too fast. Cannot recover. Sbaddress holds the address where the error occurred
@@ -3959,7 +3961,7 @@ static int write_memory(struct target *target, target_addr_t address,
 	char *sysbus_result = "disabled";
 	char *abstract_result = "disabled";
 
-	for (unsigned i = 0; i < RISCV_NUM_MEM_ACCESS_METHODS; i++) {
+	for (unsigned int i = 0; i < RISCV_NUM_MEM_ACCESS_METHODS; i++) {
 		int method = r->mem_access_methods[i];
 
 		if (method == RISCV_MEM_ACCESS_PROGBUF) {
@@ -4284,7 +4286,7 @@ static enum riscv_halt_reason riscv013_halt_reason(struct target *target)
 	if (result != ERROR_OK)
 		return RISCV_HALT_UNKNOWN;
 
-	LOG_DEBUG("dcsr.cause: 0x%x", (unsigned int)get_field(dcsr, CSR_DCSR_CAUSE));
+	LOG_DEBUG("dcsr.cause: 0x%" PRIx64, get_field(dcsr, CSR_DCSR_CAUSE));
 
 	switch (get_field(dcsr, CSR_DCSR_CAUSE)) {
 	case CSR_DCSR_CAUSE_SWBP:
@@ -4305,8 +4307,8 @@ static enum riscv_halt_reason riscv013_halt_reason(struct target *target)
 		return RISCV_HALT_GROUP;
 	}
 
-	LOG_ERROR("Unknown DCSR cause field: 0x%x", (unsigned int)get_field(dcsr, CSR_DCSR_CAUSE));
-	LOG_ERROR("  dcsr=0x%016lx", (long)dcsr);
+	LOG_ERROR("Unknown DCSR cause field: 0x%" PRIx64, get_field(dcsr, CSR_DCSR_CAUSE));
+	LOG_ERROR("  dcsr=0x%" PRIx32, (uint32_t) dcsr);
 	return RISCV_HALT_UNKNOWN;
 }
 

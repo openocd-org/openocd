@@ -38,6 +38,15 @@
 #define PRINTF_ATTRIBUTE_FORMAT printf
 #endif
 
+/**
+ * OpenOCD command mode is COMMAND_CONFIG at start, then switches to COMMAND_EXEC
+ * during the execution of command 'init'.
+ * The field 'mode' in struct command_registration specifies in which command mode
+ * the command can be executed:
+ * - during COMMAND_CONFIG only,
+ * - during COMMAND_EXEC only,
+ * - in both modes (COMMAND_ANY).
+ */
 enum command_mode {
 	COMMAND_EXEC,
 	COMMAND_CONFIG,

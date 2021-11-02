@@ -19,17 +19,6 @@
 #ifndef OPENOCD_JTAG_AICE_AICE_INTERFACE_H
 #define OPENOCD_JTAG_AICE_AICE_INTERFACE_H
 
-struct aice_interface_param_s {
-	/** */
-	const char *device_desc;
-	/** */
-	const char *serial;
-	/** */
-	uint16_t vid;
-	/** */
-	uint16_t pid;
-};
-
 int aice_init_targets(void);
 int aice_scan_jtag_chain(void);
 

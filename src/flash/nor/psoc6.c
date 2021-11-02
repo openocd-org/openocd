@@ -492,8 +492,7 @@ static const char *protection_to_str(uint8_t protection)
 /** ***********************************************************************************************
  * @brief psoc6_get_info Displays human-readable information about acquired device
  * @param bank current flash bank
- * @param buf pointer to buffer for human-readable text
- * @param buf_size size of the buffer
+ * @param cmd pointer to command invocation instance
  * @return ERROR_OK in case of success, ERROR_XXX code otherwise
  *************************************************************************************************/
 static int psoc6_get_info(struct flash_bank *bank, struct command_invocation *cmd)

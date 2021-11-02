@@ -44,7 +44,7 @@ static uint32_t imm_i(uint32_t imm)
 static uint32_t imm_s(uint32_t imm) __attribute__ ((unused));
 static uint32_t imm_s(uint32_t imm)
 {
-	return (bits(imm, 4, 0) << 7) | (bits(imm, 11 , 5) << 25);
+	return (bits(imm, 4, 0) << 7) | (bits(imm, 11, 5) << 25);
 }
 
 static uint32_t imm_b(uint32_t imm) __attribute__ ((unused));
