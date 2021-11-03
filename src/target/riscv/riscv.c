@@ -1465,6 +1465,32 @@ static int resume_finish(struct target *target)
 	return target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
 }
 
+/* Return a newly allocated target list, that contains the same targets as in
+ * tlist bit in the opposite order. */
+static struct target_list *tlist_reverse(struct target_list *tlist)
+{
+	struct target_list *previous = NULL;
+	struct target_list *reversed = NULL;
+	for (struct target_list *node = tlist; node; node = node->next) {
+		reversed = calloc(1, sizeof(struct target_list));
+		reversed->target = node->target;
+		reversed->next = previous;
+		previous = reversed;
+	}
+	return reversed;
+}
+
+/* Free a target list, but not the targets that are referenced. */
+static void tlist_free(struct target_list *tlist)
+{
+	struct target_list *node = tlist;
+	while (node) {
+		struct target_list *previous = node;
+		node = node->next;
+		free(previous);
+	}
+}
+
 /**
  * @par single_hart When true, only resume a single hart even if SMP is
  * configured.  This is used to run algorithms on just one hart.
@@ -1480,14 +1506,21 @@ int riscv_resume(
 	LOG_DEBUG("handle_breakpoints=%d", handle_breakpoints);
 	int result = ERROR_OK;
 	if (target->smp && !single_hart) {
-		for (struct target_list *tlist = target->head; tlist; tlist = tlist->next) {
+		struct target_list *ordered_tlist;
+
+		if (resume_order == RO_REVERSED)
+			ordered_tlist = tlist_reverse(target->head);
+		else
+			ordered_tlist = target->head;
+
+		for (struct target_list *tlist = ordered_tlist; tlist; tlist = tlist->next) {
 			struct target *t = tlist->target;
 			if (resume_prep(t, current, address, handle_breakpoints,
 						debug_execution) != ERROR_OK)
 				result = ERROR_FAIL;
 		}
 
-		for (struct target_list *tlist = target->head; tlist; tlist = tlist->next) {
+		for (struct target_list *tlist = ordered_tlist; tlist; tlist = tlist->next) {
 			struct target *t = tlist->target;
 			riscv_info_t *i = riscv_info(t);
 			if (i->prepped) {
@@ -1497,11 +1530,14 @@ int riscv_resume(
 			}
 		}
 
-		for (struct target_list *tlist = target->head; tlist; tlist = tlist->next) {
+		for (struct target_list *tlist = ordered_tlist; tlist; tlist = tlist->next) {
 			struct target *t = tlist->target;
 			if (resume_finish(t) != ERROR_OK)
-				return ERROR_FAIL;
+				result = ERROR_FAIL;
 		}
+
+		if (resume_order == RO_REVERSED)
+			tlist_free(ordered_tlist);
 
 	} else {
 		if (resume_prep(target, current, address, handle_breakpoints,
