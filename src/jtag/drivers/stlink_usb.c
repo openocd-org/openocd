@@ -37,6 +37,7 @@
 #include <helper/binarybuffer.h>
 #include <helper/bits.h>
 #include <helper/system.h>
+#include <helper/time_support.h>
 #include <jtag/interface.h>
 #include <jtag/hla/hla_layout.h>
 #include <jtag/hla/hla_transport.h>
@@ -926,17 +927,35 @@ static int stlink_tcp_send_cmd(void *handle, int send_size, int recv_size, bool 
 		return ERROR_FAIL;
 	}
 
-	keep_alive();
-
 	/* read the TCP response */
-	int received_size = recv(h->tcp_backend_priv.fd, (void *)h->tcp_backend_priv.recv_buf, recv_size, 0);
-	if (received_size != recv_size) {
-		LOG_ERROR("failed to receive USB CMD response");
-		if (received_size == -1)
+	int retval = ERROR_OK;
+	int remaining_bytes = recv_size;
+	uint8_t *recv_buf = h->tcp_backend_priv.recv_buf;
+	const int64_t timeout = timeval_ms() + 1000; /* 1 second */
+
+	while (remaining_bytes > 0) {
+		if (timeval_ms() > timeout) {
+			LOG_DEBUG("received size %d (expected %d)", recv_size - remaining_bytes, recv_size);
+			retval = ERROR_TIMEOUT_REACHED;
+			break;
+		}
+
+		keep_alive();
+		int received = recv(h->tcp_backend_priv.fd, (void *)recv_buf, remaining_bytes, 0);
+
+		if (received == -1) {
 			LOG_DEBUG("socket recv error: %s (errno %d)", strerror(errno), errno);
-		else
-			LOG_DEBUG("received size %d (expected %d)", received_size, recv_size);
-		return ERROR_FAIL;
+			retval = ERROR_FAIL;
+			break;
+		}
+
+		recv_buf += received;
+		remaining_bytes -= received;
+	}
+
+	if (retval != ERROR_OK) {
+		LOG_ERROR("failed to receive USB CMD response");
+		return retval;
 	}
 
 	if (check_tcp_status) {
