@@ -785,7 +785,7 @@ static int zephyr_get_symbol_list_to_lookup(struct symbol_table_elem **symbol_li
 	return ERROR_OK;
 }
 
-struct rtos_type zephyr_rtos = {
+const struct rtos_type zephyr_rtos = {
 	.name = "Zephyr",
 
 	.detect_rtos = zephyr_detect_rtos,

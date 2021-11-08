@@ -324,7 +324,7 @@ static int nuttx_get_symbol_list_to_lookup(struct symbol_table_elem *symbol_list
 	return 0;
 }
 
-struct rtos_type nuttx_rtos = {
+const struct rtos_type nuttx_rtos = {
 	.name = "nuttx",
 	.detect_rtos = nuttx_detect_rtos,
 	.create = nuttx_create,
