@@ -1284,8 +1284,7 @@ COMMAND_HANDLER(handle_flash_bank_command)
 
 	/* register flash specific commands */
 	if (driver->commands) {
-		int retval = register_commands(CMD_CTX, NULL,
-				driver->commands);
+		int retval = register_commands(CMD_CTX, NULL, driver->commands);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("couldn't register '%s' commands",
 				driver_name);

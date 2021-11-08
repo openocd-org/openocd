@@ -387,8 +387,7 @@ static const struct command_registration aice_transport_command_handlers[] = {
 /* */
 static int aice_transport_register_commands(struct command_context *cmd_ctx)
 {
-	return register_commands(cmd_ctx, NULL,
-			aice_transport_command_handlers);
+	return register_commands(cmd_ctx, NULL, aice_transport_command_handlers);
 }
 
 /* */

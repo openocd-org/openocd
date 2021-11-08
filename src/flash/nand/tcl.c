@@ -528,8 +528,7 @@ static COMMAND_HELPER(create_nand_device, const char *bank_name,
 	}
 
 	if (controller->commands) {
-		retval = register_commands(CMD_CTX, NULL,
-				controller->commands);
+		retval = register_commands(CMD_CTX, NULL, controller->commands);
 		if (retval != ERROR_OK)
 			return retval;
 	}

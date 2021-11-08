@@ -367,8 +367,7 @@ COMMAND_HANDLER(handle_adapter_driver_command)
 			continue;
 
 		if (adapter_drivers[i]->commands) {
-			retval = register_commands(CMD_CTX, NULL,
-					adapter_drivers[i]->commands);
+			retval = register_commands(CMD_CTX, NULL, adapter_drivers[i]->commands);
 			if (retval != ERROR_OK)
 				return retval;
 		}
