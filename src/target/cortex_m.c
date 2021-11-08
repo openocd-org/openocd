@@ -301,7 +301,6 @@ static int cortex_m_clear_halt(struct target *target)
 static int cortex_m_single_step_core(struct target *target)
 {
 	struct cortex_m_common *cortex_m = target_to_cm(target);
-	struct armv7m_common *armv7m = &cortex_m->armv7m;
 	int retval;
 
 	/* Mask interrupts before clearing halt, if not done already.  This avoids
@@ -309,13 +308,11 @@ static int cortex_m_single_step_core(struct target *target)
 	 * HALT can put the core into an unknown state.
 	 */
 	if (!(cortex_m->dcb_dhcsr & C_MASKINTS)) {
-		retval = mem_ap_write_atomic_u32(armv7m->debug_ap, DCB_DHCSR,
-				DBGKEY | C_MASKINTS | C_HALT | C_DEBUGEN);
+		retval = cortex_m_write_debug_halt_mask(target, C_MASKINTS, 0);
 		if (retval != ERROR_OK)
 			return retval;
 	}
-	retval = mem_ap_write_atomic_u32(armv7m->debug_ap, DCB_DHCSR,
-			DBGKEY | C_MASKINTS | C_STEP | C_DEBUGEN);
+	retval = cortex_m_write_debug_halt_mask(target, C_STEP, C_HALT);
 	if (retval != ERROR_OK)
 		return retval;
 	LOG_DEBUG(" ");
