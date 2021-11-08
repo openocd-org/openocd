@@ -183,6 +183,7 @@ static int cortex_m_load_core_reg_u32(struct target *target,
 		cortex_m_cumulate_dhcsr_sticky(cortex_m, cortex_m->dcb_dhcsr);
 		if (cortex_m->dcb_dhcsr & S_REGRDY)
 			break;
+		cortex_m->slow_register_read = true; /* Polling (still) needed. */
 		if (timeval_ms() > then + DHCSR_S_REGRDY_TIMEOUT) {
 			LOG_ERROR("Timeout waiting for DCRDR transfer ready");
 			return ERROR_TIMEOUT_REACHED;
@@ -204,8 +205,13 @@ static int cortex_m_load_core_reg_u32(struct target *target,
 
 static int cortex_m_slow_read_all_regs(struct target *target)
 {
+	struct cortex_m_common *cortex_m = target_to_cm(target);
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	const unsigned int num_regs = armv7m->arm.core_cache->num_regs;
+
+	/* Opportunistically restore fast read, it'll revert to slow
+	 * if any register needed polling in cortex_m_load_core_reg_u32(). */
+	cortex_m->slow_register_read = false;
 
 	for (unsigned int reg_id = 0; reg_id < num_regs; reg_id++) {
 		struct reg *r = &armv7m->arm.core_cache->reg_list[reg_id];
@@ -215,6 +221,10 @@ static int cortex_m_slow_read_all_regs(struct target *target)
 				return retval;
 		}
 	}
+
+	if (!cortex_m->slow_register_read)
+		LOG_DEBUG("Switching back to fast register reads");
+
 	return ERROR_OK;
 }
 
