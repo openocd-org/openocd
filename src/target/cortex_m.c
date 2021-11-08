@@ -776,7 +776,6 @@ static int cortex_m_soft_reset_halt(struct target *target)
 {
 	struct cortex_m_common *cortex_m = target_to_cm(target);
 	struct armv7m_common *armv7m = &cortex_m->armv7m;
-	uint32_t dcb_dhcsr = 0;
 	int retval, timeout = 0;
 
 	/* on single cortex_m MCU soft_reset_halt should be avoided as same functionality
@@ -812,25 +811,23 @@ static int cortex_m_soft_reset_halt(struct target *target)
 	register_cache_invalidate(cortex_m->armv7m.arm.core_cache);
 
 	while (timeout < 100) {
-		retval = mem_ap_read_atomic_u32(armv7m->debug_ap, DCB_DHCSR, &dcb_dhcsr);
+		retval = mem_ap_read_atomic_u32(armv7m->debug_ap, DCB_DHCSR, &cortex_m->dcb_dhcsr);
 		if (retval == ERROR_OK) {
 			retval = mem_ap_read_atomic_u32(armv7m->debug_ap, NVIC_DFSR,
 					&cortex_m->nvic_dfsr);
 			if (retval != ERROR_OK)
 				return retval;
-			if ((dcb_dhcsr & S_HALT)
+			if ((cortex_m->dcb_dhcsr & S_HALT)
 				&& (cortex_m->nvic_dfsr & DFSR_VCATCH)) {
-				LOG_DEBUG("system reset-halted, DHCSR 0x%08x, "
-					"DFSR 0x%08x",
-					(unsigned) dcb_dhcsr,
-					(unsigned) cortex_m->nvic_dfsr);
+				LOG_DEBUG("system reset-halted, DHCSR 0x%08" PRIx32 ", DFSR 0x%08" PRIx32,
+					cortex_m->dcb_dhcsr, cortex_m->nvic_dfsr);
 				cortex_m_poll(target);
 				/* FIXME restore user's vector catch config */
 				return ERROR_OK;
 			} else
 				LOG_DEBUG("waiting for system reset-halt, "
-					"DHCSR 0x%08x, %d ms",
-					(unsigned) dcb_dhcsr, timeout);
+					"DHCSR 0x%08" PRIx32 ", %d ms",
+					cortex_m->dcb_dhcsr, timeout);
 		}
 		timeout++;
 		alive_sleep(1);
