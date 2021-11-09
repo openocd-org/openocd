@@ -171,11 +171,11 @@ while(!done) {
 @endcode
    \note use "git add ." before commit to add new files.
 
-   Comment template, notice the short first line w/topic. The topic field
-   should identify the main part or subsystem the patch touches. Check
-   git log for examples.
-@code
-topic: Short comment
+   Commit message template, notice the short first line.
+   The field '<c>specify touched area</c>'
+   should identify the main part or subsystem the patch touches.
+@code{.unparsed}
+specify touched area: short comment
 <blank line>
 Longer comments over several lines, explaining (where applicable) the
 reason for the patch and the general idea the solution is based on,
@@ -183,6 +183,32 @@ any major design decisions, etc...
 <blank line>
 Signed-off-by: ...
 @endcode
+   Examples:
+@code{.unparsed}
+flash/nor/atsame5: add SAME59 support
+
+Add new device ID
+@endcode
+@code{.unparsed}
+flash/nor: flash driver for XYZ123
+
+Add new flash driver for internal flash of ...
+@endcode
+@code{.unparsed}
+target/cortex_m: fix segmentation fault in cmd 'soft_reset_halt'
+
+soft_reset_halt command failed reproducibly under following conditions: ...
+Test for NULL pointer and return error ...
+
+Reported-by: John Reporter <rep9876@gmail.com>
+Fixes: 123456789abc ("target: the commit where the problem started")
+BugLink: https://sourceforge.net/p/openocd/tickets/999/
+@endcode
+@code{.unparsed}
+doc: fix typos
+@endcode
+   See "git log" for more examples.
+
 -# Next you need to make sure that your patches
    are on top of the latest stuff on the server and
    that there are no conflicts:
