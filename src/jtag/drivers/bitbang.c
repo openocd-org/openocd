@@ -434,9 +434,25 @@ static int bitbang_swd_switch_seq(enum swd_special_seq seq)
 		LOG_DEBUG("JTAG-to-SWD");
 		bitbang_swd_exchange(false, (uint8_t *)swd_seq_jtag_to_swd, 0, swd_seq_jtag_to_swd_len);
 		break;
+	case JTAG_TO_DORMANT:
+		LOG_DEBUG("JTAG-to-DORMANT");
+		bitbang_swd_exchange(false, (uint8_t *)swd_seq_jtag_to_dormant, 0, swd_seq_jtag_to_dormant_len);
+		break;
 	case SWD_TO_JTAG:
 		LOG_DEBUG("SWD-to-JTAG");
 		bitbang_swd_exchange(false, (uint8_t *)swd_seq_swd_to_jtag, 0, swd_seq_swd_to_jtag_len);
+		break;
+	case SWD_TO_DORMANT:
+		LOG_DEBUG("SWD-to-DORMANT");
+		bitbang_swd_exchange(false, (uint8_t *)swd_seq_swd_to_dormant, 0, swd_seq_swd_to_dormant_len);
+		break;
+	case DORMANT_TO_SWD:
+		LOG_DEBUG("DORMANT-to-SWD");
+		bitbang_swd_exchange(false, (uint8_t *)swd_seq_dormant_to_swd, 0, swd_seq_dormant_to_swd_len);
+		break;
+	case DORMANT_TO_JTAG:
+		LOG_DEBUG("DORMANT-to-JTAG");
+		bitbang_swd_exchange(false, (uint8_t *)swd_seq_dormant_to_jtag, 0, swd_seq_dormant_to_jtag_len);
 		break;
 	default:
 		LOG_ERROR("Sequence %d not supported", seq);
@@ -465,7 +481,7 @@ static void bitbang_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_delay
 	for (;;) {
 		uint8_t trn_ack_data_parity_trn[DIV_ROUND_UP(4 + 3 + 32 + 1 + 4, 8)];
 
-		cmd |= SWD_CMD_START | (1 << 7);
+		cmd |= SWD_CMD_START | SWD_CMD_PARK;
 		bitbang_swd_exchange(false, &cmd, 0, 8);
 
 		bitbang_interface->swdio_drive(false);
@@ -526,7 +542,7 @@ static void bitbang_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay
 		buf_set_u32(trn_ack_data_parity_trn, 1 + 3 + 1, 32, value);
 		buf_set_u32(trn_ack_data_parity_trn, 1 + 3 + 1 + 32, 1, parity_u32(value));
 
-		cmd |= SWD_CMD_START | (1 << 7);
+		cmd |= SWD_CMD_START | SWD_CMD_PARK;
 		bitbang_swd_exchange(false, &cmd, 0, 8);
 
 		bitbang_interface->swdio_drive(false);
