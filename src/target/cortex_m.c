@@ -2292,7 +2292,6 @@ int cortex_m_examine(struct target *target)
 			armv7m->debug_ap = dap_ap(swjdp, cortex_m->apsel);
 		}
 
-		/* Leave (only) generic DAP stuff for debugport_init(); */
 		armv7m->debug_ap->memaccess_tck = 8;
 
 		retval = mem_ap_init(armv7m->debug_ap);
