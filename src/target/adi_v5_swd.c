@@ -53,6 +53,7 @@
 
 #include <jtag/swd.h>
 
+/* for debug, set do_sync to true to force synchronous transfers */
 static bool do_sync;
 
 static void swd_finish_read(struct adiv5_dap *dap)
