@@ -342,6 +342,11 @@ struct adiv5_dap {
 	bool multidrop_dp_id_valid;
 	/** TINSTANCE field of multidrop_targetsel has been configured */
 	bool multidrop_instance_id_valid;
+
+	/**
+	 * Record if enter in SWD required passing through DORMANT
+	 */
+	bool switch_through_dormant;
 };
 
 /**
