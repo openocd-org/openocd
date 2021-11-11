@@ -1238,10 +1238,30 @@ static int ftdi_swd_switch_seq(enum swd_special_seq seq)
 		ftdi_swd_swdio_en(true);
 		mpsse_clock_data_out(mpsse_ctx, swd_seq_jtag_to_swd, 0, swd_seq_jtag_to_swd_len, SWD_MODE);
 		break;
+	case JTAG_TO_DORMANT:
+		LOG_DEBUG("JTAG-to-DORMANT");
+		ftdi_swd_swdio_en(true);
+		mpsse_clock_data_out(mpsse_ctx, swd_seq_jtag_to_dormant, 0, swd_seq_jtag_to_dormant_len, SWD_MODE);
+		break;
 	case SWD_TO_JTAG:
 		LOG_DEBUG("SWD-to-JTAG");
 		ftdi_swd_swdio_en(true);
 		mpsse_clock_data_out(mpsse_ctx, swd_seq_swd_to_jtag, 0, swd_seq_swd_to_jtag_len, SWD_MODE);
+		break;
+	case SWD_TO_DORMANT:
+		LOG_DEBUG("SWD-to-DORMANT");
+		ftdi_swd_swdio_en(true);
+		mpsse_clock_data_out(mpsse_ctx, swd_seq_swd_to_dormant, 0, swd_seq_swd_to_dormant_len, SWD_MODE);
+		break;
+	case DORMANT_TO_SWD:
+		LOG_DEBUG("DORMANT-to-SWD");
+		ftdi_swd_swdio_en(true);
+		mpsse_clock_data_out(mpsse_ctx, swd_seq_dormant_to_swd, 0, swd_seq_dormant_to_swd_len, SWD_MODE);
+		break;
+	case DORMANT_TO_JTAG:
+		LOG_DEBUG("DORMANT-to-JTAG");
+		ftdi_swd_swdio_en(true);
+		mpsse_clock_data_out(mpsse_ctx, swd_seq_dormant_to_jtag, 0, swd_seq_dormant_to_jtag_len, SWD_MODE);
 		break;
 	default:
 		LOG_ERROR("Sequence %d not supported", seq);
