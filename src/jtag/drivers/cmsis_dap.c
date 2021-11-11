@@ -1134,6 +1134,11 @@ static int cmsis_dap_swd_switch_seq(enum swd_special_seq seq)
 		s = swd_seq_dormant_to_swd;
 		s_len = swd_seq_dormant_to_swd_len;
 		break;
+	case DORMANT_TO_JTAG:
+		LOG_DEBUG("DORMANT-to-JTAG");
+		s = swd_seq_dormant_to_jtag;
+		s_len = swd_seq_dormant_to_jtag_len;
+		break;
 	default:
 		LOG_ERROR("Sequence %d not supported", seq);
 		return ERROR_FAIL;
