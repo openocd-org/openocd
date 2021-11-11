@@ -23,6 +23,7 @@
 #define OPENOCD_JTAG_HLA_HLA_LAYOUT_H
 
 #include <target/armv7m_trace.h>
+#include <target/arm_tpiu_swo.h>
 
 /** */
 struct hl_interface_s;
