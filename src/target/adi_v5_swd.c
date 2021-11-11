@@ -29,6 +29,7 @@
  * for details, see "ARM IHI 0031A"
  * ARM Debug Interface v5 Architecture Specification
  * especially section 5.3 for SWD protocol
+ * and "ARM IHI 0074C" ARM Debug Interface Architecture Specification ADIv6.0
  *
  * On many chips (most current Cortex-M3 parts) SWD is a run-time alternative
  * to JTAG.  Boards may support one or both.  There are also SWD-only chips,
@@ -112,20 +113,20 @@ static inline int check_sync(struct adiv5_dap *dap)
 /** Select the DP register bank matching bits 7:4 of reg. */
 static int swd_queue_dp_bankselect(struct adiv5_dap *dap, unsigned int reg)
 {
-	/* Only register address 4 is banked. */
-	if ((reg & 0xf) != 4)
+	/* Only register address 0 and 4 are banked. */
+	if ((reg & 0xf) > 4)
 		return ERROR_OK;
 
-	uint32_t select_dp_bank = (reg & 0x000000F0) >> 4;
-	uint32_t sel = select_dp_bank
-			| (dap->select & (DP_SELECT_APSEL | DP_SELECT_APBANK));
+	uint64_t sel = (reg & 0x000000F0) >> 4;
+	if (dap->select != DP_SELECT_INVALID)
+		sel |= dap->select & ~0xfULL;
 
 	if (sel == dap->select)
 		return ERROR_OK;
 
 	dap->select = sel;
 
-	int retval = swd_queue_dp_write_inner(dap, DP_SELECT, sel);
+	int retval = swd_queue_dp_write_inner(dap, DP_SELECT, (uint32_t)sel);
 	if (retval != ERROR_OK)
 		dap->select = DP_SELECT_INVALID;
 
@@ -326,6 +327,21 @@ static int swd_connect_single(struct adiv5_dap *dap)
 		dap->do_reconnect = false;
 		dap_invalidate_cache(dap);
 
+		/* The sequences to enter in SWD (JTAG_TO_SWD and DORMANT_TO_SWD) end
+		 * with a SWD line reset sequence (50 clk with SWDIO high).
+		 * From ARM IHI 0074C ADIv6.0, chapter B4.3.3 "Connection and line reset
+		 * sequence":
+		 * - line reset sets DP_SELECT_DPBANK to zero;
+		 * - read of DP_DPIDR takes the connection out of reset;
+		 * - write of DP_TARGETSEL keeps the connection in reset;
+		 * - other accesses return protocol error (SWDIO not driven by target).
+		 *
+		 * Read DP_DPIDR to get out of reset. Initialize dap->select to zero to
+		 * skip the write to DP_SELECT, avoiding the protocol error. Set again
+		 * dap->select to DP_SELECT_INVALID because the rest of the register is
+		 * unknown after line reset.
+		 */
+		dap->select = 0;
 		retval = swd_queue_dp_read_inner(dap, DP_DPIDR, &dpidr);
 		if (retval == ERROR_OK) {
 			retval = swd_run_inner(dap);
@@ -337,6 +353,7 @@ static int swd_connect_single(struct adiv5_dap *dap)
 
 		dap->switch_through_dormant = !dap->switch_through_dormant;
 	} while (timeval_ms() < timeout);
+	dap->select = DP_SELECT_INVALID;
 
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Error connecting DP: cannot read IDR");
@@ -473,17 +490,42 @@ static int swd_queue_dp_write(struct adiv5_dap *dap, unsigned reg,
 /** Select the AP register bank matching bits 7:4 of reg. */
 static int swd_queue_ap_bankselect(struct adiv5_ap *ap, unsigned reg)
 {
+	int retval;
 	struct adiv5_dap *dap = ap->dap;
-	uint32_t sel = ((uint32_t)ap->ap_num << 24)
-			| (reg & 0x000000F0)
-			| (dap->select & DP_SELECT_DPBANK);
+	uint64_t sel;
+
+	if (is_adiv6(dap)) {
+		sel = ap->ap_num | (reg & 0x00000FF0);
+		if (sel == (dap->select & ~0xfULL))
+			return ERROR_OK;
+
+		if (dap->select != DP_SELECT_INVALID)
+			sel |= dap->select & 0xf;
+		dap->select = sel;
+		LOG_DEBUG("AP BANKSEL: %" PRIx64, sel);
+
+		retval = swd_queue_dp_write(dap, DP_SELECT, (uint32_t)sel);
+
+		if (retval == ERROR_OK && dap->asize > 32)
+			retval = swd_queue_dp_write(dap, DP_SELECT1, (uint32_t)(sel >> 32));
+
+		if (retval != ERROR_OK)
+			dap->select = DP_SELECT_INVALID;
+
+		return retval;
+	}
+
+	/* ADIv5 */
+	sel = (ap->ap_num << 24) | (reg & 0x000000F0);
+	if (dap->select != DP_SELECT_INVALID)
+		sel |= dap->select & DP_SELECT_DPBANK;
 
 	if (sel == dap->select)
 		return ERROR_OK;
 
 	dap->select = sel;
 
-	int retval = swd_queue_dp_write_inner(dap, DP_SELECT, sel);
+	retval = swd_queue_dp_write_inner(dap, DP_SELECT, sel);
 	if (retval != ERROR_OK)
 		dap->select = DP_SELECT_INVALID;
 
@@ -496,14 +538,6 @@ static int swd_queue_ap_read(struct adiv5_ap *ap, unsigned reg,
 	struct adiv5_dap *dap = ap->dap;
 	const struct swd_driver *swd = adiv5_dap_swd_driver(dap);
 	assert(swd);
-
-	if (is_adiv6(dap)) {
-		static bool error_flagged;
-		if (!error_flagged)
-			LOG_ERROR("ADIv6 dap not supported in SWD mode");
-		error_flagged = true;
-		return ERROR_FAIL;
-	}
 
 	int retval = swd_check_reconnect(dap);
 	if (retval != ERROR_OK)
@@ -529,14 +563,6 @@ static int swd_queue_ap_write(struct adiv5_ap *ap, unsigned reg,
 	struct adiv5_dap *dap = ap->dap;
 	const struct swd_driver *swd = adiv5_dap_swd_driver(dap);
 	assert(swd);
-
-	if (is_adiv6(dap)) {
-		static bool error_flagged;
-		if (!error_flagged)
-			LOG_ERROR("ADIv6 dap not supported in SWD mode");
-		error_flagged = true;
-		return ERROR_FAIL;
-	}
 
 	int retval = swd_check_reconnect(dap);
 	if (retval != ERROR_OK)
