@@ -1121,7 +1121,11 @@ static int ftdi_swd_run_queue(void)
 	for (size_t i = 0; i < swd_cmd_queue_length; i++) {
 		int ack = buf_get_u32(swd_cmd_queue[i].trn_ack_data_parity_trn, 1, 3);
 
-		LOG_DEBUG_IO("%s %s %s reg %X = %08"PRIx32,
+		/* Devices do not reply to DP_TARGETSEL write cmd, ignore received ack */
+		bool check_ack = swd_cmd_returns_ack(swd_cmd_queue[i].cmd);
+
+		LOG_DEBUG_IO("%s%s %s %s reg %X = %08"PRIx32,
+				check_ack ? "" : "ack ignored ",
 				ack == SWD_ACK_OK ? "OK" : ack == SWD_ACK_WAIT ? "WAIT" : ack == SWD_ACK_FAULT ? "FAULT" : "JUNK",
 				swd_cmd_queue[i].cmd & SWD_CMD_APNDP ? "AP" : "DP",
 				swd_cmd_queue[i].cmd & SWD_CMD_RNW ? "read" : "write",
@@ -1129,8 +1133,8 @@ static int ftdi_swd_run_queue(void)
 				buf_get_u32(swd_cmd_queue[i].trn_ack_data_parity_trn,
 						1 + 3 + (swd_cmd_queue[i].cmd & SWD_CMD_RNW ? 0 : 1), 32));
 
-		if (ack != SWD_ACK_OK) {
-			queued_retval = ack == SWD_ACK_WAIT ? ERROR_WAIT : ERROR_FAIL;
+		if (ack != SWD_ACK_OK && check_ack) {
+			queued_retval = swd_ack_to_error_code(ack);
 			goto skip;
 
 		} else if (swd_cmd_queue[i].cmd & SWD_CMD_RNW) {
