@@ -312,6 +312,12 @@ static uint32_t vsetvli(unsigned int dest, unsigned int src, uint16_t imm)
 	return (bits(imm, 10, 0) << 20) | inst_rs1(src) | inst_rd(dest) | MATCH_VSETVLI;
 }
 
+static uint32_t vsetvl(unsigned int rd, unsigned int rs1, unsigned int rs2) __attribute__((unused));
+static uint32_t vsetvl(unsigned int rd, unsigned int rs1, unsigned int rs2)
+{
+	return inst_rd(rd) | inst_rs1(rs1) | inst_rs2(rs2) | MATCH_VSETVL;
+}
+
 static uint32_t vmv_x_s(unsigned int rd, unsigned int vs2) __attribute__((unused));
 static uint32_t vmv_x_s(unsigned int rd, unsigned int vs2)
 {

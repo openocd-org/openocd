@@ -1341,24 +1341,28 @@ static int register_write_direct(struct target *target, unsigned number,
 			return ERROR_FAIL;
 		}
 
-	} else if (number == GDB_REGNO_VTYPE) {
-		riscv_program_insert(&program, csrr(S0, CSR_VL));
-		riscv_program_insert(&program, vsetvli(ZERO, S0, value));
-
 	} else {
 		if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
 			if (riscv_supports_extension(target, 'D'))
 				riscv_program_insert(&program, fmv_d_x(number - GDB_REGNO_FPR0, S0));
 			else
 				riscv_program_insert(&program, fmv_w_x(number - GDB_REGNO_FPR0, S0));
+		} else if (number == GDB_REGNO_VTYPE) {
+			if (riscv_save_register(target, GDB_REGNO_S1) != ERROR_OK)
+				return ERROR_FAIL;
+			if (riscv_program_insert(&program, csrr(S1, CSR_VL)) != ERROR_OK)
+				return ERROR_FAIL;
+			if (riscv_program_insert(&program, vsetvl(ZERO, S1, S0)) != ERROR_OK)
+				return ERROR_FAIL;
 		} else if (number == GDB_REGNO_VL) {
 			/* "The XLEN-bit-wide read-only vl CSR can only be updated by the
 			 * vsetvli and vsetvl instructions, and the fault-only-rst vector
 			 * load instruction variants." */
-			riscv_reg_t vtype;
-			if (register_read_direct(target, &vtype, GDB_REGNO_VTYPE) != ERROR_OK)
+			if (riscv_save_register(target, GDB_REGNO_S1) != ERROR_OK)
 				return ERROR_FAIL;
-			if (riscv_program_insert(&program, vsetvli(ZERO, S0, vtype)) != ERROR_OK)
+			if (riscv_program_insert(&program, csrr(S1, CSR_VTYPE)) != ERROR_OK)
+				return ERROR_FAIL;
+			if (riscv_program_insert(&program, vsetvl(ZERO, S0, S1)) != ERROR_OK)
 				return ERROR_FAIL;
 		} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
 			riscv_program_csrw(&program, S0, number);
