@@ -492,38 +492,30 @@ static void bitbang_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_delay
 		uint32_t data = buf_get_u32(trn_ack_data_parity_trn, 1 + 3, 32);
 		int parity = buf_get_u32(trn_ack_data_parity_trn, 1 + 3 + 32, 1);
 
-		LOG_DEBUG("%s %s %s reg %X = %08"PRIx32,
+		LOG_DEBUG("%s %s read reg %X = %08"PRIx32,
 			  ack == SWD_ACK_OK ? "OK" : ack == SWD_ACK_WAIT ? "WAIT" : ack == SWD_ACK_FAULT ? "FAULT" : "JUNK",
 			  cmd & SWD_CMD_APNDP ? "AP" : "DP",
-			  cmd & SWD_CMD_RNW ? "read" : "write",
 			  (cmd & SWD_CMD_A32) >> 1,
 			  data);
 
-		switch (ack) {
-		 case SWD_ACK_OK:
-			if (parity != parity_u32(data)) {
-				LOG_DEBUG("Wrong parity detected");
-				queued_retval = ERROR_FAIL;
-				return;
-			}
-			if (value)
-				*value = data;
-			if (cmd & SWD_CMD_APNDP)
-				bitbang_swd_exchange(true, NULL, 0, ap_delay_clk);
-			return;
-		 case SWD_ACK_WAIT:
-			LOG_DEBUG("SWD_ACK_WAIT");
+		if (ack == SWD_ACK_WAIT) {
 			swd_clear_sticky_errors();
-			break;
-		 case SWD_ACK_FAULT:
-			LOG_DEBUG("SWD_ACK_FAULT");
-			queued_retval = ack;
-			return;
-		 default:
-			LOG_DEBUG("No valid acknowledge: ack=%d", ack);
-			queued_retval = ack;
+			continue;
+		} else if (ack != SWD_ACK_OK) {
+			queued_retval = swd_ack_to_error_code(ack);
 			return;
 		}
+
+		if (parity != parity_u32(data)) {
+			LOG_ERROR("Wrong parity detected");
+			queued_retval = ERROR_FAIL;
+			return;
+		}
+		if (value)
+			*value = data;
+		if (cmd & SWD_CMD_APNDP)
+			bitbang_swd_exchange(true, NULL, 0, ap_delay_clk);
+		return;
 	}
 }
 
@@ -536,6 +528,9 @@ static void bitbang_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay
 		LOG_DEBUG("Skip bitbang_swd_write_reg because queued_retval=%d", queued_retval);
 		return;
 	}
+
+	/* Devices do not reply to DP_TARGETSEL write cmd, ignore received ack */
+	bool check_ack = swd_cmd_returns_ack(cmd);
 
 	for (;;) {
 		uint8_t trn_ack_data_parity_trn[DIV_ROUND_UP(4 + 3 + 32 + 1 + 4, 8)];
@@ -551,31 +546,27 @@ static void bitbang_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay
 		bitbang_swd_exchange(false, trn_ack_data_parity_trn, 1 + 3 + 1, 32 + 1);
 
 		int ack = buf_get_u32(trn_ack_data_parity_trn, 1, 3);
-		LOG_DEBUG("%s %s %s reg %X = %08"PRIx32,
+
+		LOG_DEBUG("%s%s %s write reg %X = %08"PRIx32,
+			  check_ack ? "" : "ack ignored ",
 			  ack == SWD_ACK_OK ? "OK" : ack == SWD_ACK_WAIT ? "WAIT" : ack == SWD_ACK_FAULT ? "FAULT" : "JUNK",
 			  cmd & SWD_CMD_APNDP ? "AP" : "DP",
-			  cmd & SWD_CMD_RNW ? "read" : "write",
 			  (cmd & SWD_CMD_A32) >> 1,
 			  buf_get_u32(trn_ack_data_parity_trn, 1 + 3 + 1, 32));
 
-		switch (ack) {
-		 case SWD_ACK_OK:
-			if (cmd & SWD_CMD_APNDP)
-				bitbang_swd_exchange(true, NULL, 0, ap_delay_clk);
-			return;
-		 case SWD_ACK_WAIT:
-			LOG_DEBUG("SWD_ACK_WAIT");
-			swd_clear_sticky_errors();
-			break;
-		 case SWD_ACK_FAULT:
-			LOG_DEBUG("SWD_ACK_FAULT");
-			queued_retval = ack;
-			return;
-		 default:
-			LOG_DEBUG("No valid acknowledge: ack=%d", ack);
-			queued_retval = ack;
-			return;
+		if (check_ack) {
+			if (ack == SWD_ACK_WAIT) {
+				swd_clear_sticky_errors();
+				continue;
+			} else if (ack != SWD_ACK_OK) {
+				queued_retval = swd_ack_to_error_code(ack);
+				return;
+			}
 		}
+
+		if (cmd & SWD_CMD_APNDP)
+			bitbang_swd_exchange(true, NULL, 0, ap_delay_clk);
+		return;
 	}
 }
 
