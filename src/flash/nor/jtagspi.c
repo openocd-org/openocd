@@ -471,7 +471,7 @@ static int jtagspi_read_status(struct flash_bank *bank, uint32_t *status)
 	int err = jtagspi_cmd(bank, SPIFLASH_READ_STATUS, NULL, 0, &buf, -1);
 	if (err == ERROR_OK) {
 		*status = buf;
-		LOG_DEBUG("status=0x%02" PRIx8, *status);
+		LOG_DEBUG("status=0x%02" PRIx32, *status);
 	}
 	return err;
 }
@@ -510,7 +510,7 @@ static int jtagspi_write_enable(struct flash_bank *bank)
 		return retval;
 
 	if ((status & SPIFLASH_WE_BIT) == 0) {
-		LOG_ERROR("Cannot enable write to flash. Status=0x%02" PRIx8, status);
+		LOG_ERROR("Cannot enable write to flash. Status=0x%02" PRIx32, status);
 		return ERROR_FAIL;
 	}
 	return ERROR_OK;
