@@ -165,11 +165,10 @@ static const struct jim_nvp nvp_config_opts[] = {
 
 static int dap_configure(struct jim_getopt_info *goi, struct arm_dap_object *dap)
 {
-	struct jtag_tap *tap = NULL;
 	struct jim_nvp *n;
 	int e;
 
-	/* parse config or cget options ... */
+	/* parse config ... */
 	while (goi->argc > 0) {
 		Jim_SetEmptyResult(goi->interp);
 
@@ -184,11 +183,14 @@ static int dap_configure(struct jim_getopt_info *goi, struct arm_dap_object *dap
 			e = jim_getopt_obj(goi, &o_t);
 			if (e != JIM_OK)
 				return e;
+
+			struct jtag_tap *tap;
 			tap = jtag_tap_by_jim_obj(goi->interp, o_t);
 			if (!tap) {
 				Jim_SetResultString(goi->interp, "-chain-position is invalid", -1);
 				return JIM_ERR;
 			}
+			dap->dap.tap = tap;
 			/* loop for more */
 			break;
 		}
@@ -199,14 +201,6 @@ static int dap_configure(struct jim_getopt_info *goi, struct arm_dap_object *dap
 			break;
 		}
 	}
-
-	if (!tap) {
-		Jim_SetResultString(goi->interp, "-chain-position required when creating DAP", -1);
-		return JIM_ERR;
-	}
-
-	dap_instance_init(&dap->dap);
-	dap->dap.tap = tap;
 
 	return JIM_OK;
 }
@@ -242,14 +236,20 @@ static int dap_create(struct jim_getopt_info *goi)
 	if (!dap)
 		return JIM_ERR;
 
-	e = dap_configure(goi, dap);
-	if (e != JIM_OK) {
-		free(dap);
-		return e;
-	}
+	dap_instance_init(&dap->dap);
 
 	cp = Jim_GetString(new_cmd, NULL);
 	dap->name = strdup(cp);
+
+	e = dap_configure(goi, dap);
+	if (e != JIM_OK)
+		goto err;
+
+	if (!dap->dap.tap) {
+		Jim_SetResultString(goi->interp, "-chain-position required when creating DAP", -1);
+		e = JIM_ERR;
+		goto err;
+	}
 
 	struct command_registration dap_commands[] = {
 		{
@@ -268,14 +268,18 @@ static int dap_create(struct jim_getopt_info *goi)
 
 	e = register_commands_with_data(cmd_ctx, NULL, dap_commands, dap);
 	if (e != ERROR_OK) {
-		free(dap->name);
-		free(dap);
-		return JIM_ERR;
+		e = JIM_ERR;
+		goto err;
 	}
 
 	list_add_tail(&dap->lh, &all_dap);
 
 	return JIM_OK;
+
+err:
+	free(dap->name);
+	free(dap);
+	return e;
 }
 
 static int jim_dap_create(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
