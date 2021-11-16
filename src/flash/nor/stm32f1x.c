@@ -452,12 +452,11 @@ static int stm32x_write_block_async(struct flash_bank *bank, const uint8_t *buff
 {
 	struct stm32x_flash_bank *stm32x_info = bank->driver_priv;
 	struct target *target = bank->target;
-	uint32_t buffer_size = 16384;
+	uint32_t buffer_size;
 	struct working_area *write_algorithm;
 	struct working_area *source;
-	struct reg_param reg_params[5];
 	struct armv7m_algorithm armv7m_info;
-	int retval = ERROR_OK;
+	int retval;
 
 	static const uint8_t stm32x_flash_write_code[] = {
 #include "../../../contrib/loaders/flash/stm32/stm32f1x.inc"
@@ -478,18 +477,27 @@ static int stm32x_write_block_async(struct flash_bank *bank, const uint8_t *buff
 	}
 
 	/* memory buffer */
-	while (target_alloc_working_area_try(target, buffer_size, &source) != ERROR_OK) {
-		buffer_size /= 2;
-		buffer_size &= ~3UL; /* Make sure it's 4 byte aligned */
-		if (buffer_size <= 256) {
-			/* we already allocated the writing code, but failed to get a
-			 * buffer, free the algorithm */
-			target_free_working_area(target, write_algorithm);
+	buffer_size = target_get_working_area_avail(target);
+	buffer_size = MIN(hwords_count * 2, MAX(buffer_size, 256));
+	/* Normally we allocate all available working area.
+	 * MIN shrinks buffer_size if the size of the written block is smaller.
+	 * MAX prevents using async algo if the available working area is smaller
+	 * than 256, the following allocation fails with
+	 * ERROR_TARGET_RESOURCE_NOT_AVAILABLE and slow flashing takes place.
+	 */
 
-			LOG_WARNING("no large enough working area available, can't do block memory writes");
-			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-		}
+	retval = target_alloc_working_area(target, buffer_size, &source);
+	/* Allocated size is always 32-bit word aligned */
+	if (retval != ERROR_OK) {
+		target_free_working_area(target, write_algorithm);
+		LOG_WARNING("no large enough working area available, can't do block memory writes");
+		/* target_alloc_working_area() may return ERROR_FAIL if area backup fails:
+		 * convert any error to ERROR_TARGET_RESOURCE_NOT_AVAILABLE
+		 */
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
+
+	struct reg_param reg_params[5];
 
 	init_reg_param(&reg_params[0], "r0", 32, PARAM_IN_OUT);	/* flash base (in), status (out) */
 	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);	/* count (halfword-16bit) */
@@ -508,7 +516,7 @@ static int stm32x_write_block_async(struct flash_bank *bank, const uint8_t *buff
 
 	retval = target_run_flash_async_algorithm(target, buffer, hwords_count, 2,
 			0, NULL,
-			5, reg_params,
+			ARRAY_SIZE(reg_params), reg_params,
 			source->address, source->size,
 			write_algorithm->address, 0,
 			&armv7m_info);
@@ -530,14 +538,11 @@ static int stm32x_write_block_async(struct flash_bank *bank, const uint8_t *buff
 		}
 	}
 
+	for (unsigned int i = 0; i < ARRAY_SIZE(reg_params); i++)
+		destroy_reg_param(&reg_params[i]);
+
 	target_free_working_area(target, source);
 	target_free_working_area(target, write_algorithm);
-
-	destroy_reg_param(&reg_params[0]);
-	destroy_reg_param(&reg_params[1]);
-	destroy_reg_param(&reg_params[2]);
-	destroy_reg_param(&reg_params[3]);
-	destroy_reg_param(&reg_params[4]);
 
 	return retval;
 }
