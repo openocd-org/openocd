@@ -26,6 +26,8 @@
 #include "config.h"
 #endif
 
+#include <string.h>
+
 #include "imp.h"
 #include <helper/binarybuffer.h>
 #include <target/algorithm.h>
@@ -129,7 +131,6 @@ struct stm32x_flash_bank {
 };
 
 static int stm32x_mass_erase(struct flash_bank *bank);
-static int stm32x_get_device_id(struct flash_bank *bank, uint32_t *device_id);
 static int stm32x_write_block(struct flash_bank *bank, const uint8_t *buffer,
 		uint32_t address, uint32_t hwords_count);
 
@@ -550,6 +551,109 @@ static int stm32x_write_block_async(struct flash_bank *bank, const uint8_t *buff
 	return retval;
 }
 
+static int stm32x_write_block_riscv(struct flash_bank *bank, const uint8_t *buffer,
+		uint32_t address, uint32_t hwords_count)
+{
+	struct target *target = bank->target;
+	uint32_t buffer_size;
+	struct working_area *write_algorithm;
+	struct working_area *source;
+	static const uint8_t gd32vf103_flash_write_code[] = {
+#include "../../../contrib/loaders/flash/gd32vf103/gd32vf103.inc"
+	};
+
+	/* flash write code */
+	if (target_alloc_working_area(target, sizeof(gd32vf103_flash_write_code),
+			&write_algorithm) != ERROR_OK) {
+		LOG_WARNING("no working area available, can't do block memory writes");
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+
+	int retval = target_write_buffer(target, write_algorithm->address,
+			sizeof(gd32vf103_flash_write_code), gd32vf103_flash_write_code);
+	if (retval != ERROR_OK) {
+		target_free_working_area(target, write_algorithm);
+		return retval;
+	}
+
+	/* memory buffer */
+	buffer_size = target_get_working_area_avail(target);
+	buffer_size = MIN(hwords_count * 2, MAX(buffer_size, 256));
+
+	retval = target_alloc_working_area(target, buffer_size, &source);
+	/* Allocated size is always word aligned */
+	if (retval != ERROR_OK) {
+		target_free_working_area(target, write_algorithm);
+		LOG_WARNING("no large enough working area available, can't do block memory writes");
+		/* target_alloc_working_area() may return ERROR_FAIL if area backup fails:
+		 * convert any error to ERROR_TARGET_RESOURCE_NOT_AVAILABLE
+		 */
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+
+	struct reg_param reg_params[4];
+
+	init_reg_param(&reg_params[0], "a0", 32, PARAM_OUT);	/* poiner to FLASH_SR */
+	init_reg_param(&reg_params[1], "a1", 32, PARAM_OUT);	/* count (halfword-16bit) */
+	init_reg_param(&reg_params[2], "a2", 32, PARAM_OUT);	/* buffer start */
+	init_reg_param(&reg_params[3], "a3", 32, PARAM_IN_OUT);	/* target address */
+
+	while (hwords_count > 0) {
+		uint32_t thisrun_hwords = source->size / 2;
+
+		/* Limit to the amount of data we actually want to write */
+		if (thisrun_hwords > hwords_count)
+			thisrun_hwords = hwords_count;
+
+		/* Write data to buffer */
+		retval = target_write_buffer(target, source->address,
+					thisrun_hwords * 2, buffer);
+		if (retval != ERROR_OK)
+			break;
+
+		buf_set_u32(reg_params[0].value, 0, 32, stm32x_get_flash_reg(bank, STM32_FLASH_SR));
+		buf_set_u32(reg_params[1].value, 0, 32, thisrun_hwords);
+		buf_set_u32(reg_params[2].value, 0, 32, source->address);
+		buf_set_u32(reg_params[3].value, 0, 32, address);
+
+		retval = target_run_algorithm(target,
+				0, NULL,
+				ARRAY_SIZE(reg_params), reg_params,
+				write_algorithm->address,
+				write_algorithm->address + sizeof(gd32vf103_flash_write_code) - 4,
+				10000, NULL);
+
+		if (retval != ERROR_OK) {
+			LOG_ERROR("Failed to execute algorithm at 0x%" TARGET_PRIxADDR ": %d",
+					write_algorithm->address, retval);
+			break;
+		}
+
+		/* Actually we just need to check for programming errors
+		 * stm32x_wait_status_busy also reports error and clears status bits
+		 */
+		retval = stm32x_wait_status_busy(bank, 5);
+		if (retval != ERROR_OK) {
+			LOG_ERROR("flash write failed at address 0x%"PRIx32,
+					buf_get_u32(reg_params[3].value, 0, 32));
+			break;
+		}
+
+		/* Update counters */
+		buffer += thisrun_hwords * 2;
+		address += thisrun_hwords * 2;
+		hwords_count -= thisrun_hwords;
+	}
+
+	for (unsigned int i = 0; i < ARRAY_SIZE(reg_params); i++)
+		destroy_reg_param(&reg_params[i]);
+
+	target_free_working_area(target, source);
+	target_free_working_area(target, write_algorithm);
+
+	return retval;
+}
+
 /** Writes a block to flash either using target algorithm
  *  or use fallback, host controlled halfword-by-halfword access.
  *  Flash controller must be unlocked before this call.
@@ -564,8 +668,15 @@ static int stm32x_write_block(struct flash_bank *bank,
 	 */
 	assert(address % 2 == 0);
 
-	/* try using a block write - on ARM architecture or... */
-	int retval = stm32x_write_block_async(bank, buffer, address, hwords_count);
+	int retval;
+	struct arm *arm = target_to_arm(target);
+	if (is_arm(arm)) {
+		/* try using a block write - on ARM architecture or... */
+		retval = stm32x_write_block_async(bank, buffer, address, hwords_count);
+	} else {
+		/* ... RISC-V architecture */
+		retval = stm32x_write_block_riscv(bank, buffer, address, hwords_count);
+	}
 
 	if (retval == ERROR_TARGET_RESOURCE_NOT_AVAILABLE) {
 		/* if block write failed (no sufficient working area),
@@ -631,11 +742,13 @@ reset_pg_and_lock:
 	return retval;
 }
 
-static int stm32x_get_device_id(struct flash_bank *bank, uint32_t *device_id)
-{
-	struct target *target = bank->target;
-	uint32_t device_id_register = 0;
+struct stm32x_property_addr {
+	uint32_t device_id;
+	uint32_t flash_size;
+};
 
+static int stm32x_get_property_addr(struct target *target, struct stm32x_property_addr *addr)
+{
 	if (!target_was_examined(target)) {
 		LOG_ERROR("Target not examined yet");
 		return ERROR_TARGET_NOT_EXAMINED;
@@ -643,63 +756,61 @@ static int stm32x_get_device_id(struct flash_bank *bank, uint32_t *device_id)
 
 	switch (cortex_m_get_partno_safe(target)) {
 	case CORTEX_M0_PARTNO: /* STM32F0x devices */
-		device_id_register = 0x40015800;
-		break;
+		addr->device_id = 0x40015800;
+		addr->flash_size = 0x1FFFF7CC;
+		return ERROR_OK;
 	case CORTEX_M3_PARTNO: /* STM32F1x devices */
-		device_id_register = 0xE0042000;
-		break;
+		addr->device_id = 0xE0042000;
+		addr->flash_size = 0x1FFFF7E0;
+		return ERROR_OK;
 	case CORTEX_M4_PARTNO: /* STM32F3x devices */
-		device_id_register = 0xE0042000;
-		break;
+		addr->device_id = 0xE0042000;
+		addr->flash_size = 0x1FFFF7CC;
+		return ERROR_OK;
 	case CORTEX_M23_PARTNO: /* GD32E23x devices */
-		device_id_register = 0x40015800;
-		break;
+		addr->device_id = 0x40015800;
+		addr->flash_size = 0x1FFFF7E0;
+		return ERROR_OK;
+	case CORTEX_M_PARTNO_INVALID:
+		/* Check for GD32VF103 with RISC-V CPU */
+		if (strcmp(target_type_name(target), "riscv") == 0
+				&& target_address_bits(target) == 32) {
+			/* There is nothing like arm common_magic in riscv_info_t
+			 * check text name of target and if target is 32-bit
+			 */
+			addr->device_id = 0xE0042000;
+			addr->flash_size = 0x1FFFF7E0;
+			return ERROR_OK;
+		}
+		/* fallthrough */
 	default:
 		LOG_ERROR("Cannot identify target as a stm32x");
 		return ERROR_FAIL;
 	}
+}
 
-	/* read stm32 device id register */
-	int retval = target_read_u32(target, device_id_register, device_id);
+static int stm32x_get_device_id(struct flash_bank *bank, uint32_t *device_id)
+{
+	struct target *target = bank->target;
+	struct stm32x_property_addr addr;
+
+	int retval = stm32x_get_property_addr(target, &addr);
 	if (retval != ERROR_OK)
 		return retval;
 
-	return retval;
+	return target_read_u32(target, addr.device_id, device_id);
 }
 
 static int stm32x_get_flash_size(struct flash_bank *bank, uint16_t *flash_size_in_kb)
 {
 	struct target *target = bank->target;
-	uint32_t flash_size_reg;
+	struct stm32x_property_addr addr;
 
-	if (!target_was_examined(target)) {
-		LOG_ERROR("Target not examined yet");
-		return ERROR_TARGET_NOT_EXAMINED;
-	}
-
-	switch (cortex_m_get_partno_safe(target)) {
-	case CORTEX_M0_PARTNO: /* STM32F0x devices */
-		flash_size_reg = 0x1FFFF7CC;
-		break;
-	case CORTEX_M3_PARTNO: /* STM32F1x devices */
-		flash_size_reg = 0x1FFFF7E0;
-		break;
-	case CORTEX_M4_PARTNO: /* STM32F3x devices */
-		flash_size_reg = 0x1FFFF7CC;
-		break;
-	case CORTEX_M23_PARTNO: /* GD32E23x devices */
-		flash_size_reg = 0x1FFFF7E0;
-		break;
-	default:
-		LOG_ERROR("Cannot identify target as a stm32x");
-		return ERROR_FAIL;
-	}
-
-	int retval = target_read_u16(target, flash_size_reg, flash_size_in_kb);
+	int retval = stm32x_get_property_addr(target, &addr);
 	if (retval != ERROR_OK)
 		return retval;
 
-	return retval;
+	return target_read_u16(target, addr.flash_size, flash_size_in_kb);
 }
 
 static int stm32x_probe(struct flash_bank *bank)
@@ -789,6 +900,8 @@ static int stm32x_probe(struct flash_bank *bank)
 		case 0x1704: /* gd32f3x0 */
 			stm32x_info->user_data_offset = 16;
 			stm32x_info->option_offset = 6;
+			break;
+		case 0x1906: /* gd32vf103 */
 			break;
 		case 0x1909: /* gd32e23x */
 			stm32x_info->user_data_offset = 16;
@@ -1003,6 +1116,10 @@ static int get_stm32x_info(struct flash_bank *bank, struct command_invocation *c
 
 		case 0x1704: /* gd32f3x0 */
 			device_str = "GD32F3x0";
+			break;
+
+		case 0x1906:
+			device_str = "GD32VF103";
 			break;
 
 		case 0x1909: /* gd32e23x */
