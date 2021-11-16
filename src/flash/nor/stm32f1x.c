@@ -185,19 +185,19 @@ static int stm32x_wait_status_busy(struct flash_bank *bank, int timeout)
 			break;
 		if (timeout-- <= 0) {
 			LOG_ERROR("timed out waiting for flash");
-			return ERROR_FAIL;
+			return ERROR_FLASH_BUSY;
 		}
 		alive_sleep(1);
 	}
 
 	if (status & FLASH_WRPRTERR) {
 		LOG_ERROR("stm32x device protected");
-		retval = ERROR_FAIL;
+		retval = ERROR_FLASH_PROTECTED;
 	}
 
 	if (status & FLASH_PGERR) {
-		LOG_ERROR("stm32x device programming failed");
-		retval = ERROR_FAIL;
+		LOG_ERROR("stm32x device programming failed / flash not erased");
+		retval = ERROR_FLASH_OPERATION_FAILED;
 	}
 
 	/* Clear but report errors */
@@ -522,20 +522,18 @@ static int stm32x_write_block_async(struct flash_bank *bank, const uint8_t *buff
 			&armv7m_info);
 
 	if (retval == ERROR_FLASH_OPERATION_FAILED) {
-		LOG_ERROR("flash write failed at address 0x%"PRIx32,
+		/* Actually we just need to check for programming errors
+		 * stm32x_wait_status_busy also reports error and clears status bits.
+		 *
+		 * Target algo returns flash status in r0 only if properly finished.
+		 * It is safer to re-read status register.
+		 */
+		int retval2 = stm32x_wait_status_busy(bank, 5);
+		if (retval2 != ERROR_OK)
+			retval = retval2;
+
+		LOG_ERROR("flash write failed just before address 0x%"PRIx32,
 				buf_get_u32(reg_params[4].value, 0, 32));
-
-		if (buf_get_u32(reg_params[0].value, 0, 32) & FLASH_PGERR) {
-			LOG_ERROR("flash memory not erased before writing");
-			/* Clear but report errors */
-			target_write_u32(target, stm32x_get_flash_reg(bank, STM32_FLASH_SR), FLASH_PGERR);
-		}
-
-		if (buf_get_u32(reg_params[0].value, 0, 32) & FLASH_WRPRTERR) {
-			LOG_ERROR("flash memory write protected");
-			/* Clear but report errors */
-			target_write_u32(target, stm32x_get_flash_reg(bank, STM32_FLASH_SR), FLASH_WRPRTERR);
-		}
 	}
 
 	for (unsigned int i = 0; i < ARRAY_SIZE(reg_params); i++)
