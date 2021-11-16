@@ -131,7 +131,7 @@ struct stm32x_flash_bank {
 static int stm32x_mass_erase(struct flash_bank *bank);
 static int stm32x_get_device_id(struct flash_bank *bank, uint32_t *device_id);
 static int stm32x_write_block(struct flash_bank *bank, const uint8_t *buffer,
-		uint32_t address, uint32_t count);
+		uint32_t address, uint32_t hwords_count);
 
 /* flash bank stm32x <base> <size> 0 0 <target#>
  */
@@ -329,12 +329,14 @@ static int stm32x_write_options(struct flash_bank *bank)
 	target_buffer_set_u16(target, opt_bytes + 12, (stm32x_info->option_bytes.protection >> 16) & 0xff);
 	target_buffer_set_u16(target, opt_bytes + 14, (stm32x_info->option_bytes.protection >> 24) & 0xff);
 
+	/* Block write is preferred in favour of operation with ancient ST-Link
+	 * firmwares without 16-bit memory access. See
+	 * 480: flash: stm32f1x: write option bytes using the loader
+	 * https://review.openocd.org/c/openocd/+/480
+	 */
 	retval = stm32x_write_block(bank, opt_bytes, STM32_OB_RDP, sizeof(opt_bytes) / 2);
-	if (retval != ERROR_OK) {
-		if (retval == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
-			LOG_ERROR("working area required to erase options bytes");
+	if (retval != ERROR_OK)
 		return retval;
-	}
 
 	retval = target_write_u32(target, STM32_FLASH_CR_B0, FLASH_LOCK);
 	if (retval != ERROR_OK)
@@ -442,8 +444,8 @@ static int stm32x_protect(struct flash_bank *bank, int set, unsigned int first,
 	return stm32x_write_options(bank);
 }
 
-static int stm32x_write_block(struct flash_bank *bank, const uint8_t *buffer,
-		uint32_t address, uint32_t count)
+static int stm32x_write_block_async(struct flash_bank *bank, const uint8_t *buffer,
+		uint32_t address, uint32_t hwords_count)
 {
 	struct stm32x_flash_bank *stm32x_info = bank->driver_priv;
 	struct target *target = bank->target;
@@ -493,7 +495,7 @@ static int stm32x_write_block(struct flash_bank *bank, const uint8_t *buffer,
 	init_reg_param(&reg_params[4], "r4", 32, PARAM_IN_OUT);	/* target address */
 
 	buf_set_u32(reg_params[0].value, 0, 32, stm32x_info->register_base);
-	buf_set_u32(reg_params[1].value, 0, 32, count);
+	buf_set_u32(reg_params[1].value, 0, 32, hwords_count);
 	buf_set_u32(reg_params[2].value, 0, 32, source->address);
 	buf_set_u32(reg_params[3].value, 0, 32, source->address + source->size);
 	buf_set_u32(reg_params[4].value, 0, 32, address);
@@ -501,7 +503,7 @@ static int stm32x_write_block(struct flash_bank *bank, const uint8_t *buffer,
 	armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
 	armv7m_info.core_mode = ARM_MODE_THREAD;
 
-	retval = target_run_flash_async_algorithm(target, buffer, count, 2,
+	retval = target_run_flash_async_algorithm(target, buffer, hwords_count, 2,
 			0, NULL,
 			5, reg_params,
 			source->address, source->size,
@@ -537,6 +539,40 @@ static int stm32x_write_block(struct flash_bank *bank, const uint8_t *buffer,
 	return retval;
 }
 
+/** Writes a block to flash either using target algorithm
+ *  or use fallback, host controlled halfword-by-halfword access.
+ *  Flash controller must be unlocked before this call.
+ */
+static int stm32x_write_block(struct flash_bank *bank,
+		const uint8_t *buffer, uint32_t address, uint32_t hwords_count)
+{
+	struct target *target = bank->target;
+
+	/* try using a block write - on ARM architecture or... */
+	int retval = stm32x_write_block_async(bank, buffer, address, hwords_count);
+
+	if (retval == ERROR_TARGET_RESOURCE_NOT_AVAILABLE) {
+		/* if block write failed (no sufficient working area),
+		 * we use normal (slow) single halfword accesses */
+		LOG_WARNING("couldn't use block writes, falling back to single memory accesses");
+
+		while (hwords_count > 0) {
+			retval = target_write_memory(target, address, 2, 1, buffer);
+			if (retval != ERROR_OK)
+				return retval;
+
+			retval = stm32x_wait_status_busy(bank, 5);
+			if (retval != ERROR_OK)
+				return retval;
+
+			hwords_count--;
+			buffer += 2;
+			address += 2;
+		}
+	}
+	return retval;
+}
+
 static int stm32x_write(struct flash_bank *bank, const uint8_t *buffer,
 		uint32_t offset, uint32_t count)
 {
@@ -568,7 +604,6 @@ static int stm32x_write(struct flash_bank *bank, const uint8_t *buffer,
 		new_buffer[count++] = 0xff;
 	}
 
-	uint32_t words_remaining = count / 2;
 	int retval, retval2;
 
 	/* unlock flash registers */
@@ -577,34 +612,15 @@ static int stm32x_write(struct flash_bank *bank, const uint8_t *buffer,
 		goto cleanup;
 	retval = target_write_u32(target, stm32x_get_flash_reg(bank, STM32_FLASH_KEYR), KEY2);
 	if (retval != ERROR_OK)
-		goto cleanup;
+		goto reset_pg_and_lock;
 
+	/* enable flash programming */
 	retval = target_write_u32(target, stm32x_get_flash_reg(bank, STM32_FLASH_CR), FLASH_PG);
 	if (retval != ERROR_OK)
-		goto cleanup;
+		goto reset_pg_and_lock;
 
-	/* try using a block write */
-	retval = stm32x_write_block(bank, buffer, bank->base + offset, words_remaining);
-
-	if (retval == ERROR_TARGET_RESOURCE_NOT_AVAILABLE) {
-		/* if block write failed (no sufficient working area),
-		 * we use normal (slow) single halfword accesses */
-		LOG_WARNING("couldn't use block writes, falling back to single memory accesses");
-
-		while (words_remaining > 0) {
-			retval = target_write_memory(target, bank->base + offset, 2, 1, buffer);
-			if (retval != ERROR_OK)
-				goto reset_pg_and_lock;
-
-			retval = stm32x_wait_status_busy(bank, 5);
-			if (retval != ERROR_OK)
-				goto reset_pg_and_lock;
-
-			words_remaining--;
-			buffer += 2;
-			offset += 2;
-		}
-	}
+	/* write to flash */
+	retval = stm32x_write_block(bank, buffer, bank->base + offset, count / 2);
 
 reset_pg_and_lock:
 	retval2 = target_write_u32(target, stm32x_get_flash_reg(bank, STM32_FLASH_CR), FLASH_LOCK);
