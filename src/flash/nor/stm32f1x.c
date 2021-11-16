@@ -151,6 +151,9 @@ FLASH_BANK_COMMAND_HANDLER(stm32x_flash_bank_command)
 	stm32x_info->register_base = FLASH_REG_BASE_B0;
 	stm32x_info->user_bank_size = bank->size;
 
+	/* The flash write must be aligned to a halfword boundary */
+	bank->write_start_alignment = bank->write_end_alignment = 2;
+
 	return ERROR_OK;
 }
 
@@ -548,6 +551,11 @@ static int stm32x_write_block(struct flash_bank *bank,
 {
 	struct target *target = bank->target;
 
+	/* The flash write must be aligned to a halfword boundary.
+	 * The flash infrastructure ensures it, do just a security check
+	 */
+	assert(address % 2 == 0);
+
 	/* try using a block write - on ARM architecture or... */
 	int retval = stm32x_write_block_async(bank, buffer, address, hwords_count);
 
@@ -577,39 +585,24 @@ static int stm32x_write(struct flash_bank *bank, const uint8_t *buffer,
 		uint32_t offset, uint32_t count)
 {
 	struct target *target = bank->target;
-	uint8_t *new_buffer = NULL;
 
 	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if (offset & 0x1) {
-		LOG_ERROR("offset 0x%" PRIx32 " breaks required 2-byte alignment", offset);
-		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
-	}
-
-	/* If there's an odd number of bytes, the data has to be padded. Duplicate
-	 * the buffer and use the normal code path with a single block write since
-	 * it's probably cheaper than to special case the last odd write using
-	 * discrete accesses. */
-	if (count & 1) {
-		new_buffer = malloc(count + 1);
-		if (!new_buffer) {
-			LOG_ERROR("odd number of bytes to write and no memory for padding buffer");
-			return ERROR_FAIL;
-		}
-		LOG_INFO("odd number of bytes to write, padding with 0xff");
-		buffer = memcpy(new_buffer, buffer, count);
-		new_buffer[count++] = 0xff;
-	}
+	/* The flash write must be aligned to a halfword boundary.
+	 * The flash infrastructure ensures it, do just a security check
+	 */
+	assert(offset % 2 == 0);
+	assert(count % 2 == 0);
 
 	int retval, retval2;
 
 	/* unlock flash registers */
 	retval = target_write_u32(target, stm32x_get_flash_reg(bank, STM32_FLASH_KEYR), KEY1);
 	if (retval != ERROR_OK)
-		goto cleanup;
+		return retval;
 	retval = target_write_u32(target, stm32x_get_flash_reg(bank, STM32_FLASH_KEYR), KEY2);
 	if (retval != ERROR_OK)
 		goto reset_pg_and_lock;
@@ -627,8 +620,6 @@ reset_pg_and_lock:
 	if (retval == ERROR_OK)
 		retval = retval2;
 
-cleanup:
-	free(new_buffer);
 	return retval;
 }
 
