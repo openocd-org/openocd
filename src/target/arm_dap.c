@@ -349,7 +349,7 @@ static int dap_create(struct jim_getopt_info *goi)
 		goto err;
 	}
 
-	struct command_registration dap_commands[] = {
+	struct command_registration dap_create_commands[] = {
 		{
 			.name = cp,
 			.mode = COMMAND_ANY,
@@ -362,9 +362,9 @@ static int dap_create(struct jim_getopt_info *goi)
 
 	/* don't expose the instance commands when using hla */
 	if (transport_is_hla())
-		dap_commands[0].chain = NULL;
+		dap_create_commands[0].chain = NULL;
 
-	e = register_commands_with_data(cmd_ctx, NULL, dap_commands, dap);
+	e = register_commands_with_data(cmd_ctx, NULL, dap_create_commands, dap);
 	if (e != ERROR_OK) {
 		e = JIM_ERR;
 		goto err;

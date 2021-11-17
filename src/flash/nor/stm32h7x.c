@@ -1151,7 +1151,7 @@ COMMAND_HANDLER(stm32x_handle_option_write_command)
 	return stm32x_modify_option(bank, reg_offset, value, mask);
 }
 
-static const struct command_registration stm32x_exec_command_handlers[] = {
+static const struct command_registration stm32h7x_exec_command_handlers[] = {
 	{
 		.name = "lock",
 		.handler = stm32x_handle_lock_command,
@@ -1190,20 +1190,20 @@ static const struct command_registration stm32x_exec_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-static const struct command_registration stm32x_command_handlers[] = {
+static const struct command_registration stm32h7x_command_handlers[] = {
 	{
 		.name = "stm32h7x",
 		.mode = COMMAND_ANY,
 		.help = "stm32h7x flash command group",
 		.usage = "",
-		.chain = stm32x_exec_command_handlers,
+		.chain = stm32h7x_exec_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE
 };
 
 const struct flash_driver stm32h7x_flash = {
 	.name = "stm32h7x",
-	.commands = stm32x_command_handlers,
+	.commands = stm32h7x_command_handlers,
 	.flash_bank_command = stm32x_flash_bank_command,
 	.erase = stm32x_erase,
 	.protect = stm32x_protect,

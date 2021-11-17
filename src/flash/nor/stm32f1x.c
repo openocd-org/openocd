@@ -1545,7 +1545,7 @@ COMMAND_HANDLER(stm32x_handle_mass_erase_command)
 	return retval;
 }
 
-static const struct command_registration stm32x_exec_command_handlers[] = {
+static const struct command_registration stm32f1x_exec_command_handlers[] = {
 	{
 		.name = "lock",
 		.handler = stm32x_handle_lock_command,
@@ -1593,20 +1593,20 @@ static const struct command_registration stm32x_exec_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-static const struct command_registration stm32x_command_handlers[] = {
+static const struct command_registration stm32f1x_command_handlers[] = {
 	{
 		.name = "stm32f1x",
 		.mode = COMMAND_ANY,
 		.help = "stm32f1x flash command group",
 		.usage = "",
-		.chain = stm32x_exec_command_handlers,
+		.chain = stm32f1x_exec_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE
 };
 
 const struct flash_driver stm32f1x_flash = {
 	.name = "stm32f1x",
-	.commands = stm32x_command_handlers,
+	.commands = stm32f1x_command_handlers,
 	.flash_bank_command = stm32x_flash_bank_command,
 	.erase = stm32x_erase,
 	.protect = stm32x_protect,
