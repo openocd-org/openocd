@@ -703,11 +703,14 @@ static int sh_qspi_upload_helper(struct flash_bank *bank)
 	};
 	int ret;
 
-	if (info->source)
-		target_free_working_area(target, info->source);
-	if (info->io_algorithm)
-		target_free_working_area(target, info->io_algorithm);
+	target_free_working_area(target, info->source);
+	target_free_working_area(target, info->io_algorithm);
 
+	/* FIXME: Working areas are allocated during flash probe
+	 * and eventual target_free_all_working_areas() called in case
+	 * of target reset or run is not handled at all.
+	 * Not a big problem if area backp is off.
+	 */
 	/* flash write code */
 	if (target_alloc_working_area(target, sizeof(sh_qspi_io_code),
 			&info->io_algorithm) != ERROR_OK) {

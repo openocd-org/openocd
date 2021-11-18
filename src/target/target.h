@@ -726,6 +726,13 @@ int target_alloc_working_area(struct target *target,
  */
 int target_alloc_working_area_try(struct target *target,
 		uint32_t size, struct working_area **area);
+/**
+ * Free a working area.
+ * Restore target data if area backup is configured.
+ * @param target
+ * @param area Pointer to the area to be freed or NULL
+ * @returns ERROR_OK if successful; error code if restore failed
+ */
 int target_free_working_area(struct target *target, struct working_area *area);
 void target_free_all_working_areas(struct target *target);
 uint32_t target_get_working_area_avail(struct target *target);

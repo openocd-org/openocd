@@ -1359,9 +1359,7 @@ static int cfi_intel_write_block(struct flash_bank *bank, const uint8_t *buffer,
 
 	/* free up resources */
 cleanup:
-	if (source)
-		target_free_working_area(target, source);
-
+	target_free_working_area(target, source);
 	target_free_working_area(target, write_algorithm);
 
 	destroy_reg_param(&reg_params[0]);

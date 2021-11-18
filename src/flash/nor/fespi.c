@@ -661,10 +661,8 @@ static int fespi_write(struct flash_bank *bank, const uint8_t *buffer,
 	return ERROR_OK;
 
 err:
-	if (algorithm_wa) {
-		target_free_working_area(target, data_wa);
-		target_free_working_area(target, algorithm_wa);
-	}
+	target_free_working_area(target, data_wa);
+	target_free_working_area(target, algorithm_wa);
 
 	/* Switch to HW mode before return to prompt */
 	if (fespi_enable_hw_mode(bank) != ERROR_OK)

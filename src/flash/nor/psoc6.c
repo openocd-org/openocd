@@ -182,10 +182,8 @@ destroy_rp_free_wa:
 	/* Something went wrong, do some cleanup */
 	destroy_reg_param(&reg_params);
 
-	if (g_stack_area) {
-		target_free_working_area(target, g_stack_area);
-		g_stack_area = NULL;
-	}
+	target_free_working_area(target, g_stack_area);
+	g_stack_area = NULL;
 
 	return hr;
 }

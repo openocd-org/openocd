@@ -1199,10 +1199,7 @@ static int scratch_reserve(struct target *target,
 static int scratch_release(struct target *target,
 		scratch_mem_t *scratch)
 {
-	if (scratch->area)
-		return target_free_working_area(target, scratch->area);
-
-	return ERROR_OK;
+	return target_free_working_area(target, scratch->area);
 }
 
 static int scratch_read64(struct target *target, scratch_mem_t *scratch,
