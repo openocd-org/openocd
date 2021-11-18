@@ -3471,11 +3471,6 @@ Declares a single DAP which uses SWD transport.
 Parameters are currently the same as "jtag newtap" but this is
 expected to change.
 @end deffn
-@deffn {Command} {swd wcr trn prescale}
-Updates TRN (turnaround delay) and prescaling.fields of the
-Wire Control Register (WCR).
-No parameters: displays current settings.
-@end deffn
 
 @subsection SPI Transport
 @cindex SPI
