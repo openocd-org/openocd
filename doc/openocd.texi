@@ -10139,14 +10139,6 @@ included in the generated target descriptor file.
 addreg rtest 0x1234 org.gnu.gdb.or1k.group0 system
 @end example
 
-
-@end deffn
-@deffn {Command} {readgroup} (@option{group})
-Display all registers in @emph{group}.
-
-@emph{group} can be "system",
- "dmmu", "immu", "dcache", "icache", "mac", "debug", "perf", "power", "pic",
- "timer" or any new group created with addreg command.
 @end deffn
 
 @section RISC-V Architecture
