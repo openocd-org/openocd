@@ -2590,7 +2590,7 @@ int target_blank_check_memory(struct target *target,
 	}
 
 	if (!target->type->blank_check_memory)
-		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+		return ERROR_NOT_IMPLEMENTED;
 
 	return target->type->blank_check_memory(target, blocks, num_blocks, erased_value);
 }
