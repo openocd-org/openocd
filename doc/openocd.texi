@@ -6184,6 +6184,21 @@ USER PAGE: 0xAEECFF80FE9A9239
 All members of the ATSAMV7x, ATSAMS70, and ATSAME70 families from
 Atmel include internal flash and use ARM's Cortex-M7 core.
 This driver uses the same command names/syntax as @xref{at91sam3}.
+
+@example
+flash bank $_FLASHNAME atsamv 0x00400000 0 0 0 $_TARGETNAME
+@end example
+
+@deffn {Command} {atsamv gpnvm} [@option{show} [@option{all}|number]]
+@deffnx {Command} {atsamv gpnvm} (@option{clr}|@option{set}) number
+With no parameters, @option{show} or @option{show all},
+shows the status of all GPNVM bits.
+With @option{show} @var{number}, displays that bit.
+
+With @option{set} @var{number} or @option{clear} @var{number},
+modifies that GPNVM bit.
+@end deffn
+
 @end deffn
 
 @deffn {Flash Driver} {at91sam7}
