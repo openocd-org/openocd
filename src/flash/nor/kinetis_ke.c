@@ -1241,14 +1241,14 @@ static const struct command_registration kinetis_ke_security_command_handlers[] 
 	{
 		.name = "check_security",
 		.mode = COMMAND_EXEC,
-		.help = "",
+		.help = "Check status of device security lock",
 		.usage = "",
 		.handler = kinetis_ke_check_flash_security_status,
 	},
 	{
 		.name = "mass_erase",
 		.mode = COMMAND_EXEC,
-		.help = "",
+		.help = "Issue a complete flash erase via the MDM-AP",
 		.usage = "",
 		.handler = kinetis_ke_mdm_mass_erase,
 	},
@@ -1266,7 +1266,7 @@ static const struct command_registration kinetis_ke_exec_command_handlers[] = {
 	{
 		.name = "mdm",
 		.mode = COMMAND_ANY,
-		.help = "",
+		.help = "MDM-AP command group",
 		.usage = "",
 		.chain = kinetis_ke_security_command_handlers,
 	},
@@ -1284,7 +1284,7 @@ static const struct command_registration kinetis_ke_command_handler[] = {
 	{
 		.name = "kinetis_ke",
 		.mode = COMMAND_ANY,
-		.help = "Kinetis KE NAND flash controller commands",
+		.help = "Kinetis KE flash controller commands",
 		.usage = "",
 		.chain = kinetis_ke_exec_command_handlers,
 	},
