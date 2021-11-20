@@ -2447,6 +2447,16 @@ interface string or for user class interface.
 @deffn {Command} {cmsis-dap info}
 Display various device information, like hardware version, firmware version, current bus status.
 @end deffn
+
+@deffn {Command} {cmsis-dap cmd} number number ...
+Execute an arbitrary CMSIS-DAP command. Use for adapter testing or for handling
+of an adapter vendor specific command from a Tcl script.
+
+Take given numbers as bytes, assemble a CMSIS-DAP protocol command packet
+from them and send it to the adapter. The first 4 bytes of the adapter response
+are logged.
+See @url{https://arm-software.github.io/CMSIS_5/DAP/html/group__DAP__Commands__gr.html}
+@end deffn
 @end deffn
 
 @deffn {Interface Driver} {dummy}
