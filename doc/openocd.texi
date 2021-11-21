@@ -8250,6 +8250,13 @@ In most cases, no such restriction is listed; this indicates commands
 which are only available after the configuration stage has completed.
 @end deffn
 
+@deffn {Command} {usage} [string]
+With no parameters, prints usage text for all commands.  Otherwise,
+prints all usage text of which command, help text, and usage text
+containing @var{string}.
+Not every command provides helptext.
+@end deffn
+
 @deffn {Command} {sleep} msec [@option{busy}]
 Wait for at least @var{msec} milliseconds before resuming.
 If @option{busy} is passed, busy-wait instead of sleeping.
