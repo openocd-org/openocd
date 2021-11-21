@@ -2040,6 +2040,19 @@ may access or activate TAPs.
 After it leaves this stage, configuration commands may no
 longer be issued.
 
+@deffn {Command} {command mode} [command_name]
+Returns the command modes allowed by a command: 'any', 'config', or
+'exec'. If no command is specified, returns the current command
+mode. Returns 'unknown' if an unknown command is given. Command can be
+multiple tokens. (command valid any time)
+
+In this document, the modes are described as stages, 'config' and
+'exec' mode correspond configuration stage and run stage. 'any' means
+the command can be executed in either
+stages. @xref{configurationstage,,Configuration Stage}, and
+@xref{enteringtherunstage,,Entering the Run Stage}.
+@end deffn
+
 @anchor{enteringtherunstage}
 @section Entering the Run Stage
 
