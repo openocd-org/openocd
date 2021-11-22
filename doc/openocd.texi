@@ -10272,9 +10272,27 @@ Set the maximum time to wait for a hart to come out of reset after reset is
 deasserted.
 @end deffn
 
-@deffn {Command} {riscv set_prefer_sba} on|off
-When on, prefer to use System Bus Access to access memory.  When off (default),
-prefer to use the Program Buffer to access memory.
+@deffn {Command} {riscv set_scratch_ram} none|[address]
+Set the address of 16 bytes of scratch RAM the debugger can use, or 'none'.
+This is used to access 64-bit floating point registers on 32-bit targets.
+@end deffn
+
+@deffn Command {riscv set_mem_access} method1 [method2] [method3]
+Specify which RISC-V memory access method(s) shall be used, and in which order
+of priority. At least one method must be specified.
+
+Available methods are:
+@itemize
+@item @code{progbuf} - Use RISC-V Debug Program Buffer to access memory.
+@item @code{sysbus} - Access memory via RISC-V Debug System Bus interface.
+@item @code{abstract} - Access memory via RISC-V Debug abstract commands.
+@end itemize
+
+By default, all memory access methods are enabled in the following order:
+@code{progbuf sysbus abstract}.
+
+This command can be used to change the memory access methods if the default
+behavior is not suitable for a particular target.
 @end deffn
 
 @deffn {Command} {riscv set_enable_virtual} on|off
