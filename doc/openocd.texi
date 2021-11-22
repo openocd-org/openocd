@@ -10214,22 +10214,52 @@ OpenOCD exposes each hart as a separate core.
 
 @subsection RISC-V Debug Configuration Commands
 
-@deffn {Command} {riscv expose_csrs} n0[-m0][,n1[-m1]]...
-Configure a list of inclusive ranges for CSRs to expose in addition to the
-standard ones. This must be executed before `init`.
+@deffn {Config Command} {riscv expose_csrs} n[-m|=name] [...]
+Configure which CSRs to expose in addition to the standard ones. The CSRs to expose
+can be specified as individual register numbers or register ranges (inclusive). For the
+individually listed CSRs, a human-readable name can optionally be set using the @code{n=name}
+syntax, which will get @code{csr_} prepended to it. If no name is provided, the register will be
+named @code{csr<n>}.
 
 By default OpenOCD attempts to expose only CSRs that are mentioned in a spec,
 and then only if the corresponding extension appears to be implemented. This
-command can be used if OpenOCD gets this wrong, or a target implements custom
+command can be used if OpenOCD gets this wrong, or if the target implements custom
 CSRs.
+
+@example
+# Expose a single RISC-V CSR number 128 under the name "csr128":
+$_TARGETNAME expose_csrs 128
+
+# Expose multiple RISC-V CSRs 128..132 under names "csr128" through "csr132":
+$_TARGETNAME expose_csrs 128-132
+
+# Expose a single RISC-V CSR number 1996 under custom name "csr_myregister":
+$_TARGETNAME expose_csrs 1996=myregister
+@end example
 @end deffn
 
-@deffn {Command} {riscv expose_custom} n0[-m0][,n1[-m1]]...
+@deffn {Config Command} {riscv expose_custom} n[-m|=name] [...]
 The RISC-V Debug Specification allows targets to expose custom registers
 through abstract commands. (See Section 3.5.1.1 in that document.) This command
-configures a list of inclusive ranges of those registers to expose. Number 0
-indicates the first custom register, whose abstract command number is 0xc000.
-This command must be executed before `init`.
+configures individual registers or register ranges (inclusive) that shall be exposed.
+Number 0 indicates the first custom register, whose abstract command number is 0xc000.
+For individually listed registers, a human-readable name can be optionally provided
+using the @code{n=name} syntax, which will get @code{custom_} prepended to it. If no
+name is provided, the register will be named @code{custom<n>}.
+
+@example
+# Expose one RISC-V custom register with number 0xc010 (0xc000 + 16)
+# under the name "custom16":
+$_TARGETNAME expose_custom 16
+
+# Expose a range of RISC-V custom registers with numbers 0xc010 .. 0xc018
+# (0xc000+16 .. 0xc000+24) under the names "custom16" through "custom24":
+$_TARGETNAME expose_custom 16-24
+
+# Expose one RISC-V custom register with number 0xc020 (0xc000 + 32) under
+# user-defined name "custom_myregister":
+$_TARGETNAME expose_custom 32=myregister
+@end example
 @end deffn
 
 @deffn {Command} {riscv set_command_timeout_sec} [seconds]
