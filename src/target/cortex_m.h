@@ -254,6 +254,19 @@ target_to_cm(struct target *target)
 			struct cortex_m_common, armv7m);
 }
 
+static inline bool is_cortex_m_or_hla(const struct cortex_m_common *cortex_m)
+{
+	return cortex_m->common_magic == CORTEX_M_COMMON_MAGIC;
+}
+
+static inline bool is_cortex_m_with_dap_access(const struct cortex_m_common *cortex_m)
+{
+	if (!is_cortex_m_or_hla(cortex_m))
+		return false;
+
+	return !cortex_m->armv7m.is_hla_target;
+}
+
 int cortex_m_examine(struct target *target);
 int cortex_m_set_breakpoint(struct target *target, struct breakpoint *breakpoint);
 int cortex_m_unset_breakpoint(struct target *target, struct breakpoint *breakpoint);

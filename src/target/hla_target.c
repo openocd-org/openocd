@@ -214,6 +214,8 @@ static int adapter_target_create(struct target *target,
 		return ERROR_FAIL;
 	}
 
+	cortex_m->common_magic = CORTEX_M_COMMON_MAGIC;
+
 	adapter_init_arch_info(target, cortex_m, target->tap);
 
 	return ERROR_OK;

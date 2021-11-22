@@ -2589,7 +2589,7 @@ static int cortex_m_target_create(struct target *target, Jim_Interp *interp)
 static int cortex_m_verify_pointer(struct command_invocation *cmd,
 	struct cortex_m_common *cm)
 {
-	if (cm->common_magic != CORTEX_M_COMMON_MAGIC) {
+	if (!is_cortex_m_with_dap_access(cm)) {
 		command_print(cmd, "target is not a Cortex-M");
 		return ERROR_TARGET_INVALID;
 	}
