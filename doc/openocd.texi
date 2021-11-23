@@ -3433,6 +3433,17 @@ Parameters are currently the same as "jtag newtap" but this is
 expected to change.
 @end deffn
 
+@cindex SWD multi-drop
+The newer SWD devices (SW-DP v2 or SWJ-DP v2) support the multi-drop extension
+of SWD protocol: two or more devices can be connected to one SWD adapter.
+SWD transport works in multi-drop mode if @ref{dap_create,DAP} is configured
+with both @code{-dp-id} and @code{-instance-id} parameters regardless how many
+DAPs are created.
+
+Not all adapters and adapter drivers support SWD multi-drop. Only the following
+adapter drivers are SWD multi-drop capable:
+cmsis_dap (use an adapter with CMSIS-DAP version 2.0), ftdi, all bitbang based.
+
 @subsection SPI Transport
 @cindex SPI
 @cindex Serial Peripheral Interface
@@ -4346,6 +4357,7 @@ instead of "@option{-chain-position} @var{dotted.name}" when the target is creat
 
 The @command{dap} command group supports the following sub-commands:
 
+@anchor{dap_create}
 @deffn {Command} {dap create} dap_name @option{-chain-position} dotted.name configparams...
 Declare a DAP instance named @var{dap_name} linked to the JTAG tap
 @var{dotted.name}. This also creates a new command (@command{dap_name})
