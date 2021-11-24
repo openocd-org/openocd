@@ -5185,6 +5185,22 @@ when reset disables PLLs needed to use a fast clock.
 @* After single-step has completed
 @item @b{trace-config}
 @* After target hardware trace configuration was changed
+@item @b{semihosting-user-cmd-0x100}
+@* The target made a semihosting call with user-defined operation number 0x100
+@item @b{semihosting-user-cmd-0x101}
+@* The target made a semihosting call with user-defined operation number 0x101
+@item @b{semihosting-user-cmd-0x102}
+@* The target made a semihosting call with user-defined operation number 0x102
+@item @b{semihosting-user-cmd-0x103}
+@* The target made a semihosting call with user-defined operation number 0x103
+@item @b{semihosting-user-cmd-0x104}
+@* The target made a semihosting call with user-defined operation number 0x104
+@item @b{semihosting-user-cmd-0x105}
+@* The target made a semihosting call with user-defined operation number 0x105
+@item @b{semihosting-user-cmd-0x106}
+@* The target made a semihosting call with user-defined operation number 0x106
+@item @b{semihosting-user-cmd-0x107}
+@* The target made a semihosting call with user-defined operation number 0x107
 @end itemize
 
 @quotation Note
@@ -9239,6 +9255,17 @@ request or equivalent").
 
 To make the SEMIHOSTING_SYS_EXIT call return normally, enable
 this option (default: disabled).
+@end deffn
+
+@deffn {Command} {arm semihosting_read_user_param}
+@cindex ARM semihosting
+Read parameter of the semihosting call from the target. Usable in
+semihosting-user-cmd-0x10* event handlers, returning a string.
+
+When the target makes semihosting call with operation number from range 0x100-
+0x107, an optional string parameter can be passed to the server. This parameter
+is valid during the run of the event handlers and is accessible with this
+command.
 @end deffn
 
 @section ARMv4 and ARMv5 Architecture
