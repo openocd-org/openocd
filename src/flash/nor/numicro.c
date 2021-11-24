@@ -1385,13 +1385,6 @@ static int numicro_writeblock(struct flash_bank *bank, const uint8_t *buffer,
 	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);    /* faddr */
 	init_reg_param(&reg_params[2], "r2", 32, PARAM_OUT);    /* number of words to program */
 
-	struct armv7m_common *armv7m = target_to_armv7m(target);
-	if (!armv7m) {
-		/* something is very wrong if armv7m is NULL */
-		LOG_ERROR("unable to get armv7m target");
-		return retval;
-	}
-
 	/* write code buffer and use Flash programming code within NuMicro     */
 	/* Set breakpoint to 0 with time-out of 1000 ms                        */
 	while (count > 0) {
