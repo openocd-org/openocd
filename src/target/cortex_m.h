@@ -251,7 +251,7 @@ static inline struct cortex_m_common *
 target_to_cm(struct target *target)
 {
 	return container_of(target->arch_info,
-			struct cortex_m_common, armv7m);
+			struct cortex_m_common, armv7m.arm);
 }
 
 static inline bool is_cortex_m_or_hla(const struct cortex_m_common *cortex_m)
