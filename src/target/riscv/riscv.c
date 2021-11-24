@@ -1189,6 +1189,34 @@ int riscv_flush_registers(struct target *target)
 	return ERROR_OK;
 }
 
+/* Convert: RISC-V hart's halt reason --> OpenOCD's generic debug reason */
+int set_debug_reason(struct target *target, enum riscv_halt_reason halt_reason)
+{
+	switch (halt_reason) {
+		case RISCV_HALT_BREAKPOINT:
+			target->debug_reason = DBG_REASON_BREAKPOINT;
+			break;
+		case RISCV_HALT_TRIGGER:
+			target->debug_reason = DBG_REASON_WATCHPOINT;
+			break;
+		case RISCV_HALT_INTERRUPT:
+		case RISCV_HALT_GROUP:
+			target->debug_reason = DBG_REASON_DBGRQ;
+			break;
+		case RISCV_HALT_SINGLESTEP:
+			target->debug_reason = DBG_REASON_SINGLESTEP;
+			break;
+		case RISCV_HALT_UNKNOWN:
+			target->debug_reason = DBG_REASON_UNDEFINED;
+			break;
+		case RISCV_HALT_ERROR:
+			return ERROR_FAIL;
+	}
+	LOG_DEBUG("[%s] debug_reason=%d", target_name(target), target->debug_reason);
+
+	return ERROR_OK;
+}
+
 int halt_prep(struct target *target)
 {
 	RISCV_INFO(r);
@@ -1198,8 +1226,14 @@ int halt_prep(struct target *target)
 	if (riscv_select_current_hart(target) != ERROR_OK)
 		return ERROR_FAIL;
 	if (riscv_is_halted(target)) {
-		LOG_DEBUG("[%s] Hart is already halted (reason=%d).",
+		LOG_DEBUG("[%s] Hart is already halted (debug_reason=%d).",
 				target_name(target), target->debug_reason);
+		if (target->debug_reason == DBG_REASON_NOTHALTED) {
+			enum riscv_halt_reason halt_reason =
+				riscv_halt_reason(target, r->current_hartid);
+			if (set_debug_reason(target, halt_reason) != ERROR_OK)
+				return ERROR_FAIL;
+		}
 	} else {
 		if (r->halt_prep(target) != ERROR_OK)
 			return ERROR_FAIL;
@@ -2151,32 +2185,6 @@ static enum riscv_poll_hart riscv_poll_hart(struct target *target, int hartid)
 	}
 
 	return RPH_NO_CHANGE;
-}
-
-int set_debug_reason(struct target *target, enum riscv_halt_reason halt_reason)
-{
-	switch (halt_reason) {
-		case RISCV_HALT_BREAKPOINT:
-			target->debug_reason = DBG_REASON_BREAKPOINT;
-			break;
-		case RISCV_HALT_TRIGGER:
-			target->debug_reason = DBG_REASON_WATCHPOINT;
-			break;
-		case RISCV_HALT_INTERRUPT:
-		case RISCV_HALT_GROUP:
-			target->debug_reason = DBG_REASON_DBGRQ;
-			break;
-		case RISCV_HALT_SINGLESTEP:
-			target->debug_reason = DBG_REASON_SINGLESTEP;
-			break;
-		case RISCV_HALT_UNKNOWN:
-			target->debug_reason = DBG_REASON_UNDEFINED;
-			break;
-		case RISCV_HALT_ERROR:
-			return ERROR_FAIL;
-	}
-	LOG_DEBUG("[%s] debug_reason=%d", target_name(target), target->debug_reason);
-	return ERROR_OK;
 }
 
 int sample_memory(struct target *target)
