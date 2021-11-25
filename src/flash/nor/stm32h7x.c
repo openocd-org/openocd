@@ -759,13 +759,17 @@ static int stm32x_read_id_code(struct flash_bank *bank, uint32_t *id)
 static int stm32x_probe(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
-	struct cortex_m_common *cortex_m = target_to_cm(target);
 	struct stm32h7x_flash_bank *stm32x_info = bank->driver_priv;
 	uint16_t flash_size_in_kb;
 	uint32_t device_id;
 
 	stm32x_info->probed = false;
 	stm32x_info->part_info = NULL;
+
+	if (!target_was_examined(target)) {
+		LOG_ERROR("Target not examined yet");
+		return ERROR_TARGET_NOT_EXAMINED;
+	}
 
 	int retval = stm32x_read_id_code(bank, &stm32x_info->idcode);
 	if (retval != ERROR_OK)
@@ -800,7 +804,8 @@ static int stm32x_probe(struct flash_bank *bank)
 	/* get flash size from target */
 	/* STM32H74x/H75x, the second core (Cortex-M4) cannot read the flash size */
 	retval = ERROR_FAIL;
-	if (device_id == DEVID_STM32H74_H75XX && cortex_m->core_info->partno == CORTEX_M4_PARTNO)
+	if (device_id == DEVID_STM32H74_H75XX
+			&& cortex_m_get_partno_safe(target) == CORTEX_M4_PARTNO)
 		LOG_WARNING("%s cannot read the flash size register", target_name(target));
 	else
 		retval = target_read_u16(target, stm32x_info->part_info->fsize_addr, &flash_size_in_kb);

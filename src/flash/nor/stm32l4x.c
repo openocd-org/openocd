@@ -1633,12 +1633,13 @@ err_lock:
 static int stm32l4_read_idcode(struct flash_bank *bank, uint32_t *id)
 {
 	int retval;
+	struct target *target = bank->target;
 
 	/* try reading possible IDCODE registers, in the following order */
 	uint32_t dbgmcu_idcode[] = {DBGMCU_IDCODE_L4_G4, DBGMCU_IDCODE_G0, DBGMCU_IDCODE_L5};
 
 	for (unsigned int i = 0; i < ARRAY_SIZE(dbgmcu_idcode); i++) {
-		retval = target_read_u32(bank->target, dbgmcu_idcode[i], id);
+		retval = target_read_u32(target, dbgmcu_idcode[i], id);
 		if ((retval == ERROR_OK) && ((*id & 0xfff) != 0) && ((*id & 0xfff) != 0xfff))
 			return ERROR_OK;
 	}
@@ -1647,12 +1648,16 @@ static int stm32l4_read_idcode(struct flash_bank *bank, uint32_t *id)
 	 * DBGMCU_IDCODE cannot be read using CPU1 (Cortex-M0+) at AP1,
 	 * to solve this read the UID64 (IEEE 64-bit unique device ID register) */
 
-	struct cortex_m_common *cortex_m = target_to_cm(bank->target);
+	struct armv7m_common *armv7m = target_to_armv7m_safe(target);
+	if (!armv7m) {
+		LOG_ERROR("Flash requires Cortex-M target");
+		return ERROR_TARGET_INVALID;
+	}
 
 	/* CPU2 (Cortex-M0+) is supported only with non-hla adapters because it is on AP1.
 	 * Using HLA adapters armv7m.debug_ap is null, and checking ap_num triggers a segfault */
-	if (cortex_m->core_info->partno == CORTEX_M0P_PARTNO &&
-			cortex_m->armv7m.debug_ap && cortex_m->armv7m.debug_ap->ap_num == 1) {
+	if (cortex_m_get_partno_safe(target) == CORTEX_M0P_PARTNO &&
+			armv7m->debug_ap && armv7m->debug_ap->ap_num == 1) {
 		uint32_t uid64_ids;
 
 		/* UID64 is contains
@@ -1662,7 +1667,7 @@ static int stm32l4_read_idcode(struct flash_bank *bank, uint32_t *id)
 		 *
 		 *  read only the fixed values {STID,DEVID} from UID64_IDS to identify the device as STM32WLx
 		 */
-		retval = target_read_u32(bank->target, UID64_IDS, &uid64_ids);
+		retval = target_read_u32(target, UID64_IDS, &uid64_ids);
 		if (retval == ERROR_OK && uid64_ids == UID64_IDS_STM32WL) {
 			/* force the DEV_ID to DEVID_STM32WLE_WL5XX and the REV_ID to unknown */
 			*id = DEVID_STM32WLE_WL5XX;
@@ -1700,10 +1705,20 @@ static const char *get_stm32l4_bank_type_str(struct flash_bank *bank)
 static int stm32l4_probe(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
-	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct stm32l4_flash_bank *stm32l4_info = bank->driver_priv;
 	const struct stm32l4_part_info *part_info;
 	uint16_t flash_size_kb = 0xffff;
+
+	if (!target_was_examined(target)) {
+		LOG_ERROR("Target not examined yet");
+		return ERROR_TARGET_NOT_EXAMINED;
+	}
+
+	struct armv7m_common *armv7m = target_to_armv7m_safe(target);
+	if (!armv7m) {
+		LOG_ERROR("Flash requires Cortex-M target");
+		return ERROR_TARGET_INVALID;
+	}
 
 	stm32l4_info->probed = false;
 
