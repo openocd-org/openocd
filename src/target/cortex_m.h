@@ -46,6 +46,7 @@
 #define ARM_CPUID_PARTNO_MASK	(0xFFF << ARM_CPUID_PARTNO_POS)
 
 enum cortex_m_partno {
+	CORTEX_M_PARTNO_INVALID,
 	CORTEX_M0_PARTNO   = 0xC20,
 	CORTEX_M1_PARTNO   = 0xC21,
 	CORTEX_M3_PARTNO   = 0xC23,
@@ -292,6 +293,23 @@ target_to_cortex_m_safe(struct target *target)
 		return NULL;
 
 	return cortex_m;
+}
+
+/**
+ * @returns cached value of Cortex-M part number
+ * or CORTEX_M_PARTNO_INVALID if the magic number does not match
+ * or core_info is not initialised.
+ */
+static inline enum cortex_m_partno cortex_m_get_partno_safe(struct target *target)
+{
+	struct cortex_m_common *cortex_m = target_to_cortex_m_safe(target);
+	if (!cortex_m)
+		return CORTEX_M_PARTNO_INVALID;
+
+	if (!cortex_m->core_info)
+		return CORTEX_M_PARTNO_INVALID;
+
+	return cortex_m->core_info->partno;
 }
 
 int cortex_m_examine(struct target *target);
