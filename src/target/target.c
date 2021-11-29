@@ -2530,6 +2530,10 @@ int target_checksum_memory(struct target *target, target_addr_t address, uint32_
 		LOG_ERROR("Target not examined yet");
 		return ERROR_FAIL;
 	}
+	if (!target->type->checksum_memory) {
+		LOG_ERROR("Target %s doesn't support checksum_memory", target_name(target));
+		return ERROR_FAIL;
+	}
 
 	retval = target->type->checksum_memory(target, address, size, &checksum);
 	if (retval != ERROR_OK) {
