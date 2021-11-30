@@ -40,6 +40,7 @@
 
 #include <transport/transport.h>
 #include "helper/replacements.h"
+#include <jtag/adapter.h>
 #include <jtag/swd.h>
 #include <jtag/interface.h>
 #include <jtag/commands.h>
@@ -75,7 +76,6 @@ static const struct cmsis_dap_backend *const cmsis_dap_backends[] = {
 /* vid = pid = 0 marks the end of the list */
 static uint16_t cmsis_dap_vid[MAX_USB_IDS + 1] = { 0 };
 static uint16_t cmsis_dap_pid[MAX_USB_IDS + 1] = { 0 };
-static char *cmsis_dap_serial;
 static int cmsis_dap_backend = -1;
 static bool swd_mode;
 
@@ -288,13 +288,13 @@ static int cmsis_dap_open(void)
 	if (cmsis_dap_backend >= 0) {
 		/* Use forced backend */
 		backend = cmsis_dap_backends[cmsis_dap_backend];
-		if (backend->open(dap, cmsis_dap_vid, cmsis_dap_pid, cmsis_dap_serial) != ERROR_OK)
+		if (backend->open(dap, cmsis_dap_vid, cmsis_dap_pid, adapter_get_required_serial()) != ERROR_OK)
 			backend = NULL;
 	} else {
 		/* Try all backends */
 		for (unsigned int i = 0; i < ARRAY_SIZE(cmsis_dap_backends); i++) {
 			backend = cmsis_dap_backends[i];
-			if (backend->open(dap, cmsis_dap_vid, cmsis_dap_pid, cmsis_dap_serial) == ERROR_OK)
+			if (backend->open(dap, cmsis_dap_vid, cmsis_dap_pid, adapter_get_required_serial()) == ERROR_OK)
 				break;
 			else
 				backend = NULL;
@@ -324,8 +324,6 @@ static void cmsis_dap_close(struct cmsis_dap *dap)
 	free(cmsis_dap_handle->packet_buffer);
 	free(cmsis_dap_handle);
 	cmsis_dap_handle = NULL;
-	free(cmsis_dap_serial);
-	cmsis_dap_serial = NULL;
 
 	for (int i = 0; i < MAX_PENDING_REQUESTS; i++) {
 		free(pending_fifo[i].transfers);
@@ -1133,6 +1131,11 @@ static int cmsis_dap_swd_switch_seq(enum swd_special_seq seq)
 		s = swd_seq_dormant_to_swd;
 		s_len = swd_seq_dormant_to_swd_len;
 		break;
+	case DORMANT_TO_JTAG:
+		LOG_DEBUG("DORMANT-to-JTAG");
+		s = swd_seq_dormant_to_jtag;
+		s_len = swd_seq_dormant_to_jtag_len;
+		break;
 	default:
 		LOG_ERROR("Sequence %d not supported", seq);
 		return ERROR_FAIL;
@@ -1144,7 +1147,7 @@ static int cmsis_dap_swd_switch_seq(enum swd_special_seq seq)
 
 	/* Atmel EDBG needs renew clock setting after SWJ_Sequence
 	 * otherwise default frequency is used */
-	return cmsis_dap_cmd_dap_swj_clock(jtag_get_speed_khz());
+	return cmsis_dap_cmd_dap_swj_clock(adapter_get_speed_khz());
 }
 
 static int cmsis_dap_swd_open(void)
@@ -1261,7 +1264,7 @@ static int cmsis_dap_init(void)
 
 	/* Now try to connect to the target
 	 * TODO: This is all SWD only @ present */
-	retval = cmsis_dap_cmd_dap_swj_clock(jtag_get_speed_khz());
+	retval = cmsis_dap_cmd_dap_swj_clock(adapter_get_speed_khz());
 	if (retval != ERROR_OK)
 		goto init_err;
 
@@ -2050,16 +2053,6 @@ COMMAND_HANDLER(cmsis_dap_handle_vid_pid_command)
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(cmsis_dap_handle_serial_command)
-{
-	if (CMD_ARGC == 1)
-		cmsis_dap_serial = strdup(CMD_ARGV[0]);
-	else
-		LOG_ERROR("expected exactly one argument to cmsis_dap_serial <serial-number>");
-
-	return ERROR_OK;
-}
-
 COMMAND_HANDLER(cmsis_dap_handle_backend_command)
 {
 	if (CMD_ARGC == 1) {
@@ -2115,13 +2108,6 @@ static const struct command_registration cmsis_dap_command_handlers[] = {
 		.mode = COMMAND_CONFIG,
 		.help = "the vendor ID and product ID of the CMSIS-DAP device",
 		.usage = "(vid pid)*",
-	},
-	{
-		.name = "cmsis_dap_serial",
-		.handler = &cmsis_dap_handle_serial_command,
-		.mode = COMMAND_CONFIG,
-		.help = "set the serial number of the adapter",
-		.usage = "serial_string",
 	},
 	{
 		.name = "cmsis_dap_backend",

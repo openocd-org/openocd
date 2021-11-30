@@ -1015,7 +1015,7 @@ static const struct command_registration psoc6_exec_command_handlers[] = {
 		.name = "reset_halt",
 		.handler = psoc6_handle_reset_halt,
 		.mode = COMMAND_EXEC,
-		.usage = NULL,
+		.usage = "",
 		.help = "Tries to simulate broken Vector Catch",
 	},
 	COMMAND_REGISTRATION_DONE

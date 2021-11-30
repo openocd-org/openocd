@@ -65,6 +65,10 @@
 
 #define DLCR_TO_TRN(dlcr) ((uint32_t)(1 + ((3 & (dlcr)) >> 8))) /* 1..4 clocks */
 
+/* Fields of DP_DPIDR register */
+#define DP_DPIDR_VERSION_SHIFT	12
+#define DP_DPIDR_VERSION_MASK	(0xFUL << DP_DPIDR_VERSION_SHIFT)
+
 /* Fields of the DP's AP ABORT register */
 #define DAPABORT        (1UL << 0)
 #define STKCMPCLR       (1UL << 1) /* SWD-only */
@@ -89,6 +93,8 @@
 #define CSYSPWRUPREQ    (1UL << 30)
 #define CSYSPWRUPACK    (1UL << 31)
 
+#define DP_DLPIDR_PROTVSN	1u
+
 #define DP_SELECT_APSEL 0xFF000000
 #define DP_SELECT_APBANK 0x000000F0
 #define DP_SELECT_DPBANK 0x0000000F
@@ -96,6 +102,11 @@
 
 #define DP_APSEL_MAX        (255)
 #define DP_APSEL_INVALID    (-1)
+
+#define DP_TARGETSEL_INVALID 0xFFFFFFFFU
+#define DP_TARGETSEL_DPID_MASK 0x0FFFFFFFU
+#define DP_TARGETSEL_INSTANCEID_MASK 0xF0000000U
+#define DP_TARGETSEL_INSTANCEID_SHIFT 28
 
 
 /* MEM-AP register addresses */
@@ -191,6 +202,7 @@ enum swd_special_seq {
 	SWD_TO_JTAG,
 	SWD_TO_DORMANT,
 	DORMANT_TO_SWD,
+	DORMANT_TO_JTAG,
 };
 
 /**
@@ -323,6 +335,13 @@ struct adiv5_dap {
 	/** Flag saying whether to ignore the syspwrupack flag in DAP. Some devices
 	 *  do not set this bit until later in the bringup sequence */
 	bool ignore_syspwrupack;
+
+	/** Value to select DP in SWD multidrop mode or DP_TARGETSEL_INVALID */
+	uint32_t multidrop_targetsel;
+	/** TPARTNO and TDESIGNER fields of multidrop_targetsel have been configured */
+	bool multidrop_dp_id_valid;
+	/** TINSTANCE field of multidrop_targetsel has been configured */
+	bool multidrop_instance_id_valid;
 };
 
 /**
@@ -607,6 +626,12 @@ int dap_find_ap(struct adiv5_dap *dap,
 static inline struct adiv5_ap *dap_ap(struct adiv5_dap *dap, uint8_t ap_num)
 {
 	return &dap->ap[ap_num];
+}
+
+/** Check if SWD multidrop configuration is valid */
+static inline bool dap_is_multidrop(struct adiv5_dap *dap)
+{
+	return dap->multidrop_dp_id_valid && dap->multidrop_instance_id_valid;
 }
 
 /* Lookup CoreSight component */

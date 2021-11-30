@@ -2367,6 +2367,14 @@ The USB bus topology can be queried with the command @emph{lsusb -t} or @emph{dm
 This command is only available if your libusb1 is at least version 1.0.16.
 @end deffn
 
+@deffn {Config Command} {adapter serial} serial_string
+Specifies the @var{serial_string} of the adapter to use.
+If this command is not specified, serial strings are not checked.
+Only the following adapter drivers use the serial string from this command:
+aice (aice_usb), arm-jtag-ew, cmsis_dap, ft232r, ftdi, hla (stlink, ti-icdi), jlink, kitprog, opendus,
+openjtag, osbdm, presto, rlink, st-link, usb_blaster (ublast2), usbprog, vsllink, xds110.
+@end deffn
+
 @section Interface Drivers
 
 Each of the interface drivers listed here must be explicitly
@@ -2419,11 +2427,6 @@ cmsis_dap_vid_pid 0xc251 0xf001 0x0d28 0x0204
 @end example
 @end deffn
 
-@deffn {Config Command} {cmsis_dap_serial} [serial]
-Specifies the @var{serial} of the CMSIS-DAP device to use.
-If not specified, serial numbers are not considered.
-@end deffn
-
 @deffn {Config Command} {cmsis_dap_backend} [@option{auto}|@option{usb_bulk}|@option{hid}]
 Specifies how to communicate with the adapter:
 
@@ -2459,7 +2462,7 @@ This driver is for adapters using the MPSSE (Multi-Protocol Synchronous Serial
 Engine) mode built into many FTDI chips, such as the FT2232, FT4232 and FT232H.
 
 The driver is using libusb-1.0 in asynchronous mode to talk to the FTDI device,
-bypassing intermediate libraries like libftdi or D2XX.
+bypassing intermediate libraries like libftdi.
 
 Support for new FTDI based adapters can be added completely through
 configuration files, without the need to patch and rebuild OpenOCD.
@@ -2506,15 +2509,6 @@ ftdi vid_pid 0x0403 0xcff8 0x15ba 0x0003
 Provides the USB device description (the @emph{iProduct string})
 of the adapter. If not specified, the device description is ignored
 during device selection.
-@end deffn
-
-@deffn {Config Command} {ftdi serial} serial-number
-Specifies the @var{serial-number} of the adapter to use,
-in case the vendor provides unique IDs and more than one adapter
-is connected to the host.
-If not specified, serial numbers are not considered.
-(Note that USB serial numbers can be arbitrary Unicode strings,
-and are not restricted to containing only decimal digits.)
 @end deffn
 
 @deffn {Config Command} {ftdi channel} channel
@@ -2637,12 +2631,6 @@ The vendor ID and product ID of the adapter. If not specified, default
 0x0403:0x6001 is used.
 @end deffn
 
-@deffn {Config Command} {ft232r serial_desc} @var{serial}
-Specifies the @var{serial} of the adapter to use, in case the
-vendor provides unique IDs and more than one adapter is connected to
-the host. If not specified, serial numbers are not considered.
-@end deffn
-
 @deffn {Config Command} {ft232r jtag_nums} @var{tck} @var{tms} @var{tdi} @var{tdo}
 Set four JTAG GPIO numbers at once.
 If not specified, default 0 3 1 2 or TXD CTS RXD RTS is used.
@@ -2727,13 +2715,6 @@ remote_bitbang host mysocket
 USB JTAG/USB-Blaster compatibles over one of the userspace libraries
 for FTDI chips. These interfaces have several commands, used to
 configure the driver before initializing the JTAG scan chain:
-
-@deffn {Config Command} {usb_blaster device_desc} description
-Provides the USB device description (the @emph{iProduct string})
-of the FTDI FT245 device. If not
-specified, the FTDI default value is used. This setting is only valid
-if compiled with FTD2XX support.
-@end deffn
 
 @deffn {Config Command} {usb_blaster vid_pid} vid pid
 The vendor ID and product ID of the FTDI FT245 device. If not specified,
@@ -2840,7 +2821,7 @@ Reset the current configuration.
 @deffn {Command} {jlink config write}
 Write the current configuration to the internal persistent storage.
 @end deffn
-@deffn {Command} {jlink emucom write <channel> <data>}
+@deffn {Command} {jlink emucom write} <channel> <data>
 Write data to an EMUCOM channel. The data needs to be encoded as hexadecimal
 pairs.
 
@@ -2850,7 +2831,7 @@ the EMUCOM channel 0x10:
 > jlink emucom write 0x10 aa0b23
 @end example
 @end deffn
-@deffn {Command} {jlink emucom read <channel> <length>}
+@deffn {Command} {jlink emucom read} <channel> <length>
 Read data from an EMUCOM channel. The read data is encoded as hexadecimal
 pairs.
 
@@ -2865,12 +2846,6 @@ Set the USB address of the interface, in case more than one adapter is connected
 to the host. If not specified, USB addresses are not considered. Device
 selection via USB address is not always unambiguous. It is recommended to use
 the serial number instead, if possible.
-
-As a configuration command, it can be used only before 'init'.
-@end deffn
-@deffn {Config Command} {jlink serial} <serial number>
-Set the serial number of the interface, in case more than one adapter is
-connected to the host. If not specified, serial numbers are not considered.
 
 As a configuration command, it can be used only before 'init'.
 @end deffn
@@ -2912,11 +2887,6 @@ could only be sent with an acquisition sequence.
 @deffn {Config Command} {kitprog_init_acquire_psoc}
 Indicate that a PSoC acquisition sequence needs to be run during adapter init.
 Please be aware that the acquisition sequence hard-resets the target.
-@end deffn
-
-@deffn {Config Command} {kitprog_serial} serial
-Select a KitProg device by its @var{serial}. If left unspecified, the first
-device detected by OpenOCD will be used.
 @end deffn
 
 @deffn {Command} {kitprog acquire_psoc}
@@ -3033,9 +3003,6 @@ parport cable wiggler
 
 @deffn {Interface Driver} {presto}
 ASIX PRESTO USB JTAG programmer.
-@deffn {Config Command} {presto serial} serial_string
-Configures the USB serial number of the Presto device to use.
-@end deffn
 @end deffn
 
 @deffn {Interface Driver} {rlink}
@@ -3070,10 +3037,6 @@ version reported is V2.J21.S4.
 
 @deffn {Config Command} {hla_device_desc} description
 Currently Not Supported.
-@end deffn
-
-@deffn {Config Command} {hla_serial} serial
-Specifies the serial number of the adapter.
 @end deffn
 
 @deffn {Config Command} {hla_layout} (@option{stlink}|@option{icdi}|@option{nulink})
@@ -3124,10 +3087,6 @@ ST-LINK server software module}.
 @emph{Note:} ST-Link TCP server does not support the SWIM transport.
 @end deffn
 
-@deffn {Config Command} {st-link serial} serial
-Specifies the serial number of the adapter.
-@end deffn
-
 @deffn {Config Command} {st-link vid_pid} [vid pid]+
 Pairs of vendor IDs and product IDs of the device.
 @end deffn
@@ -3166,11 +3125,6 @@ The XDS110 is included as the embedded debug probe on many Texas Instruments
 LaunchPad evaluation boards. The XDS110 is also available as a stand-alone USB
 debug probe with the added capability to supply power to the target board. The
 following commands are supported by the XDS110 driver:
-
-@deffn {Config Command} {xds110 serial} serial_string
-Specifies the serial number of which XDS110 probe to use. Otherwise, the first
-XDS110 found will be used.
-@end deffn
 
 @deffn {Config Command} {xds110 supply} voltage_in_millivolts
 Available only on the XDS110 stand-alone probe. Sets the voltage level of the
@@ -3213,6 +3167,8 @@ the pins' modes/muxing (which is highly unlikely), so it should be
 able to coexist nicely with both sysfs bitbanging and various
 peripherals' kernel drivers. The driver restores the previous
 configuration on exit.
+
+GPIO numbers >= 32 can't be used for performance reasons.
 
 See @file{interface/raspberrypi-native.cfg} for a sample config and
 pinout.
@@ -3475,11 +3431,6 @@ the command is @command{transport select dapdirect_swd}).
 Declares a single DAP which uses SWD transport.
 Parameters are currently the same as "jtag newtap" but this is
 expected to change.
-@end deffn
-@deffn {Command} {swd wcr trn prescale}
-Updates TRN (turnaround delay) and prescaling.fields of the
-Wire Control Register (WCR).
-No parameters: displays current settings.
 @end deffn
 
 @subsection SPI Transport
@@ -4409,6 +4360,20 @@ A DAP may also provide optional @var{configparams}:
 register during initial examination and when checking the sticky error bit.
 This bit is normally checked after setting the CSYSPWRUPREQ bit, but some
 devices do not set the ack bit until sometime later.
+
+@item @code{-dp-id} @var{number}
+@*Debug port identification number for SWD DPv2 multidrop.
+The @var{number} is written to bits 0..27 of DP TARGETSEL during DP selection.
+To find the id number of a single connected device read DP TARGETID:
+@code{device.dap dpreg 0x24}
+Use bits 0..27 of TARGETID.
+
+@item @code{-instance-id} @var{number}
+@*Instance identification number for SWD DPv2 multidrop.
+The @var{number} is written to bits 28..31 of DP TARGETSEL during DP selection.
+To find the instance number of a single connected device read DP DLPIDR:
+@code{device.dap dpreg 0x34}
+The instance number is in bits 28..31 of DLPIDR value.
 @end itemize
 @end deffn
 
@@ -5585,6 +5550,10 @@ will not work. These include all @command{*_image} and
 functionality is available through the @command{flash write_bank},
 @command{flash read_bank}, and @command{flash verify_bank} commands.
 
+According to device size, 1- to 4-byte addresses are sent. However, some
+flash chips additionally have to be switched to 4-byte addresses by an extra
+command, see below.
+
 @itemize
 @item @var{ir} ... is loaded into the JTAG IR to map the flash as the JTAG DR.
 For the bitstreams generated from @file{xilinx_bscan_spi.py} this is the
@@ -5597,6 +5566,29 @@ set _XILINX_USER1 0x02
 flash bank $_FLASHNAME spi 0x0 0 0 0 \
            $_TARGETNAME $_XILINX_USER1
 @end example
+
+@deffn Command {jtagspi set} bank_id name total_size page_size read_cmd unused pprg_cmd mass_erase_cmd sector_size sector_erase_cmd
+Sets flash parameters: @var{name} human readable string, @var{total_size}
+size in bytes, @var{page_size} is write page size. @var{read_cmd} and @var{pprg_cmd}
+are commands for read and page program, respectively. @var{mass_erase_cmd},
+@var{sector_size} and @var{sector_erase_cmd} are optional.
+@example
+jtagspi set 0 w25q128 0x1000000 0x100 0x03 0 0x02 0xC7 0x10000 0xD8
+@end example
+@end deffn
+
+@deffn Command {jtagspi cmd} bank_id resp_num cmd_byte ...
+Sends command @var{cmd_byte} and at most 20 following bytes and reads
+@var{resp_num} bytes afterwards. E.g. for 'Enter 4-byte address mode'
+@example
+jtagspi cmd 0 0 0xB7
+@end example
+@end deffn
+
+@deffn Command {jtagspi always_4byte} bank_id [ on | off ]
+Some devices use 4-byte addresses for all commands except the legacy 0x03 read
+regardless of device size. This command controls the corresponding hack.
+@end deffn
 @end deffn
 
 @deffn {Flash Driver} {xcf}
@@ -7098,8 +7090,8 @@ applied to all of them.
 
 @deffn {Flash Driver} {stm32f1x}
 All members of the STM32F0, STM32F1 and STM32F3 microcontroller families
-from STMicroelectronics and all members of the GD32F1x0 and GD32F3x0 microcontroller
-families from GigaDevice include internal flash and use ARM Cortex-M0/M3/M4 cores.
+from STMicroelectronics and all members of the GD32F1x0, GD32F3x0 and GD32E23x microcontroller
+families from GigaDevice include internal flash and use ARM Cortex-M0/M3/M4/M23 cores.
 The driver automatically recognizes a number of these chips using
 the chip identification register, and autoconfigures itself.
 
@@ -7175,7 +7167,7 @@ as per the following example.
 flash bank $_FLASHNAME stm32f2x 0x1FFF7800 0 0 0 $_TARGETNAME
 @end example
 
-@deffn {Command} {stm32f2x otp } num (@option{enable}|@option{disable}|@option{show})
+@deffn {Command} {stm32f2x otp} num (@option{enable}|@option{disable}|@option{show})
 Enables or disables OTP write commands for bank @var{num}.
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
@@ -7612,7 +7604,7 @@ Some tms470-specific commands are defined:
 Saves programming keys in a register, to enable flash erase and write commands.
 @end deffn
 
-@deffn {Command} {tms470 osc_mhz} clock_mhz
+@deffn {Command} {tms470 osc_megahertz} clock_mhz
 Reports the clock speed, which is used to calculate timings.
 @end deffn
 
@@ -8647,7 +8639,7 @@ If the control block location is not known, OpenOCD starts searching for it.
 Stop RTT.
 @end deffn
 
-@deffn {Command} {rtt polling_interval [interval]}
+@deffn {Command} {rtt polling_interval} [interval]
 Display the polling interval.
 If @var{interval} is provided, set the polling interval.
 The polling interval determines (in milliseconds) how often the up-channels are
@@ -8995,7 +8987,7 @@ Enable (@option{on}) or disable (@option{off}) the CTI.
 Displays a register dump of the CTI.
 @end deffn
 
-@deffn {Command} {$cti_name write } @var{reg_name} @var{value}
+@deffn {Command} {$cti_name write} @var{reg_name} @var{value}
 Write @var{value} to the CTI register with the symbolic name @var{reg_name}.
 @end deffn
 
@@ -9502,7 +9494,7 @@ cores @emph{except the ARM1176} use the same six bits.
 display information about target caches
 @end deffn
 
-@deffn {Command} {cortex_a dacrfixup [@option{on}|@option{off}]}
+@deffn {Command} {cortex_a dacrfixup} [@option{on}|@option{off}]
 Work around issues with software breakpoints when the program text is
 mapped read-only by the operating system. This option sets the CP15 DACR
 to "all-manager" to bypass MMU permission checks on memory access.
@@ -9540,12 +9532,12 @@ possible (4096) entries are printed.
 @subsection ARMv7-R specific commands
 @cindex Cortex-R
 
-@deffn {Command} {cortex_r dbginit}
+@deffn {Command} {cortex_r4 dbginit}
 Initialize core debug
 Enables debug by unlocking the Software Lock and clearing sticky powerdown indications
 @end deffn
 
-@deffn {Command} {cortex_r maskisr} [@option{on}|@option{off}]
+@deffn {Command} {cortex_r4 maskisr} [@option{on}|@option{off}]
 Selects whether interrupts will be processed when single stepping
 @end deffn
 
@@ -10108,14 +10100,6 @@ included in the generated target descriptor file.
 addreg rtest 0x1234 org.gnu.gdb.or1k.group0 system
 @end example
 
-
-@end deffn
-@deffn {Command} {readgroup} (@option{group})
-Display all registers in @emph{group}.
-
-@emph{group} can be "system",
- "dmmu", "immu", "dcache", "icache", "mac", "debug", "perf", "power", "pic",
- "timer" or any new group created with addreg command.
 @end deffn
 
 @section RISC-V Architecture
@@ -10230,11 +10214,6 @@ should work fine for all but the slowest targets (eg. simulators).
 @deffn {Command} {riscv set_reset_timeout_sec} [seconds]
 Set the maximum time to wait for a hart to come out of reset after reset is
 deasserted.
-@end deffn
-
-@deffn {Command} {riscv set_scratch_ram} none|[address]
-Set the address of 16 bytes of scratch RAM the debugger can use, or 'none'.
-This is used to access 64-bit floating point registers on 32-bit targets.
 @end deffn
 
 @deffn {Command} {riscv set_prefer_sba} on|off

@@ -187,8 +187,8 @@ proc ftdi_location args {
 
 lappend _telnet_autocomplete_skip xds110_serial
 proc xds110_serial args {
-	echo "DEPRECATED! use 'xds110 serial' not 'xds110_serial'"
-	eval xds110 serial $args
+	echo "DEPRECATED! use 'adapter serial' not 'xds110_serial'"
+	eval adapter serial $args
 }
 
 lappend _telnet_autocomplete_skip xds110_supply_voltage
@@ -215,8 +215,8 @@ proc ftdi_device_desc args {
 
 lappend _telnet_autocomplete_skip ftdi_serial
 proc ftdi_serial args {
-	echo "DEPRECATED! use 'ftdi serial' not 'ftdi_serial'"
-	eval ftdi serial $args
+	echo "DEPRECATED! use 'adapter serial' not 'ftdi_serial'"
+	eval adapter serial $args
 }
 
 lappend _telnet_autocomplete_skip ftdi_channel
@@ -371,8 +371,8 @@ proc vsllink_usb_pid args {
 
 lappend _telnet_autocomplete_skip vsllink_usb_serial
 proc vsllink_usb_serial args {
-	echo "DEPRECATED! use 'vsllink usb_serial' not 'vsllink_usb_serial'"
-	eval vsllink usb_serial $args
+	echo "DEPRECATED! use 'adapter serial' not 'vsllink_usb_serial'"
+	eval adapter serial $args
 }
 
 lappend _telnet_autocomplete_skip vsllink_usb_bulkin
@@ -677,8 +677,8 @@ proc usb_blaster_firmware args {
 
 lappend _telnet_autocomplete_skip ft232r_serial_desc
 proc ft232r_serial_desc args {
-	echo "DEPRECATED! use 'ft232r serial_desc' not 'ft232r_serial_desc'"
-	eval ft232r serial_desc $args
+	echo "DEPRECATED! use 'adapter serial_desc' not 'ft232r_serial_desc'"
+	eval adapter serial_desc $args
 }
 
 lappend _telnet_autocomplete_skip ft232r_vid_pid
@@ -733,6 +733,72 @@ lappend _telnet_autocomplete_skip ft232r_restore_serial
 proc ft232r_restore_serial args {
 	echo "DEPRECATED! use 'ft232r restore_serial' not 'ft232r_restore_serial'"
 	eval ft232r restore_serial $args
+}
+
+lappend _telnet_autocomplete_skip "aice serial"
+proc "aice serial" {args} {
+	echo "DEPRECATED! use 'adapter serial' not 'aice serial'"
+	eval adapter serial $args
+}
+
+lappend _telnet_autocomplete_skip cmsis_dap_serial
+proc cmsis_dap_serial args {
+	echo "DEPRECATED! use 'adapter serial' not 'cmsis_dap_serial'"
+	eval adapter serial $args
+}
+
+lappend _telnet_autocomplete_skip "ft232r serial_desc"
+proc "ft232r serial_desc" {args} {
+	echo "DEPRECATED! use 'adapter serial' not 'ft232r serial_desc'"
+	eval adapter serial $args
+}
+
+lappend _telnet_autocomplete_skip "ftdi serial"
+proc "ftdi serial" {args} {
+	echo "DEPRECATED! use 'adapter serial' not 'ftdi serial'"
+	eval adapter serial $args
+}
+
+lappend _telnet_autocomplete_skip hla_serial
+proc hla_serial args {
+	echo "DEPRECATED! use 'adapter serial' not 'hla_serial'"
+	eval adapter serial $args
+}
+
+lappend _telnet_autocomplete_skip "jlink serial"
+proc "jlink serial" {args} {
+	echo "DEPRECATED! use 'adapter serial' not 'jlink serial'"
+	eval adapter serial $args
+}
+
+lappend _telnet_autocomplete_skip kitprog_serial
+proc kitprog_serial args {
+	echo "DEPRECATED! use 'adapter serial' not 'kitprog_serial'"
+	eval adapter serial $args
+}
+
+lappend _telnet_autocomplete_skip "presto serial"
+proc "presto serial" {args} {
+	echo "DEPRECATED! use 'adapter serial' not 'presto serial'"
+	eval adapter serial $args
+}
+
+lappend _telnet_autocomplete_skip "st-link serial"
+proc "st-link serial" {args} {
+	echo "DEPRECATED! use 'adapter serial' not 'st-link serial'"
+	eval adapter serial $args
+}
+
+lappend _telnet_autocomplete_skip "vsllink usb_serial"
+proc "vsllink usb_serial" {args} {
+	echo "DEPRECATED! use 'adapter serial' not 'vsllink usb_serial'"
+	eval adapter serial $args
+}
+
+lappend _telnet_autocomplete_skip "xds110 serial"
+proc "xds110 serial" {args} {
+	echo "DEPRECATED! use 'adapter serial' not 'xds110 serial'"
+	eval adapter serial $args
 }
 
 # END MIGRATION AIDS

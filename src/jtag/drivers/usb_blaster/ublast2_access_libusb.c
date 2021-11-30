@@ -210,7 +210,7 @@ static int ublast2_libusb_init(struct ublast_lowlevel *low)
 	bool renumeration = false;
 	int ret;
 
-	if (jtag_libusb_open(vids, pids, NULL, &temp, NULL) == ERROR_OK) {
+	if (jtag_libusb_open(vids, pids, &temp, NULL) == ERROR_OK) {
 		LOG_INFO("Altera USB-Blaster II (uninitialized) found");
 		LOG_INFO("Loading firmware...");
 		ret = load_usb_blaster_firmware(temp, low);
@@ -224,15 +224,13 @@ static int ublast2_libusb_init(struct ublast_lowlevel *low)
 	const uint16_t pids_renum[] = { low->ublast_pid, 0 };
 
 	if (renumeration == false) {
-		if (jtag_libusb_open(vids_renum, pids_renum, NULL,
-				&low->libusb_dev, NULL) != ERROR_OK) {
+		if (jtag_libusb_open(vids_renum, pids_renum, &low->libusb_dev, NULL) != ERROR_OK) {
 			LOG_ERROR("Altera USB-Blaster II not found");
 			return ERROR_FAIL;
 		}
 	} else {
 		int retry = 10;
-		while (jtag_libusb_open(vids_renum, pids_renum, NULL,
-				&low->libusb_dev, NULL) != ERROR_OK && retry--) {
+		while (jtag_libusb_open(vids_renum, pids_renum, &low->libusb_dev, NULL) != ERROR_OK && retry--) {
 			usleep(1000000);
 			LOG_INFO("Waiting for reenumerate...");
 		}

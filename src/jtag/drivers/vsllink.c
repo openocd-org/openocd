@@ -24,6 +24,7 @@
 #include "config.h"
 #endif
 
+#include <jtag/adapter.h>
 #include <jtag/interface.h>
 #include <jtag/commands.h>
 #include <jtag/swd.h>
@@ -323,7 +324,7 @@ static int vsllink_init(void)
 		versaloon_interface.adaptors.gpio.config(0, GPIO_TRST, 0,
 			GPIO_TRST, GPIO_TRST);
 		versaloon_interface.adaptors.swd.init(0);
-		vsllink_swd_frequency(jtag_get_speed_khz() * 1000);
+		vsllink_swd_frequency(adapter_get_speed_khz() * 1000);
 		vsllink_swd_switch_seq(JTAG_TO_SWD);
 
 	} else {
@@ -339,7 +340,7 @@ static int vsllink_init(void)
 		}
 
 		versaloon_interface.adaptors.jtag_raw.init(0);
-		versaloon_interface.adaptors.jtag_raw.config(0, jtag_get_speed_khz());
+		versaloon_interface.adaptors.jtag_raw.config(0, adapter_get_speed_khz());
 		versaloon_interface.adaptors.gpio.config(0, GPIO_SRST | GPIO_TRST,
 			GPIO_TRST, GPIO_SRST, GPIO_SRST);
 	}
@@ -495,21 +496,6 @@ COMMAND_HANDLER(vsllink_handle_usb_pid_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	COMMAND_PARSE_NUMBER(u16, CMD_ARGV[0],
 		versaloon_interface.usb_setting.pid);
-	return ERROR_OK;
-}
-
-COMMAND_HANDLER(vsllink_handle_usb_serial_command)
-{
-	if (CMD_ARGC > 1)
-		return ERROR_COMMAND_SYNTAX_ERROR;
-
-	free(versaloon_interface.usb_setting.serialstring);
-
-	if (CMD_ARGC == 1)
-		versaloon_interface.usb_setting.serialstring = strdup(CMD_ARGV[0]);
-	else
-		versaloon_interface.usb_setting.serialstring = NULL;
-
 	return ERROR_OK;
 }
 
@@ -785,14 +771,14 @@ static int vsllink_check_usb_strings(
 	char desc_string[256];
 	int retval;
 
-	if (versaloon_interface.usb_setting.serialstring) {
+	if (adapter_get_required_serial()) {
 		retval = libusb_get_string_descriptor_ascii(usb_device_handle,
 			usb_desc->iSerialNumber, (unsigned char *)desc_string,
 			sizeof(desc_string));
 		if (retval < 0)
 			return ERROR_FAIL;
 
-		if (strncmp(desc_string, versaloon_interface.usb_setting.serialstring,
+		if (strncmp(desc_string, adapter_get_required_serial(),
 				sizeof(desc_string)))
 			return ERROR_FAIL;
 	}
@@ -901,13 +887,6 @@ static const struct command_registration vsllink_subcommand_handlers[] = {
 		.mode = COMMAND_CONFIG,
 		.help = "Set USB PID",
 		.usage = "<pid>",
-	},
-	{
-		.name = "usb_serial",
-		.handler = &vsllink_handle_usb_serial_command,
-		.mode = COMMAND_CONFIG,
-		.help = "Set or disable check for USB serial",
-		.usage = "[<serial>]",
 	},
 	{
 		.name = "usb_bulkin",

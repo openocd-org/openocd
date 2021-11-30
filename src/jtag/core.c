@@ -30,6 +30,7 @@
 #include "config.h"
 #endif
 
+#include "adapter.h"
 #include "jtag.h"
 #include "swd.h"
 #include "interface.h"
@@ -122,15 +123,6 @@ struct jtag_event_callback {
 
 /* callbacks to inform high-level handlers about JTAG state changes */
 static struct jtag_event_callback *jtag_event_callbacks;
-
-/* speed in kHz*/
-static int speed_khz;
-/* speed to fallback to when RCLK is requested but not supported */
-static int rclk_fallback_speed_khz;
-static enum {CLOCK_MODE_UNSELECTED, CLOCK_MODE_KHZ, CLOCK_MODE_RCLK} clock_mode;
-
-/* FIXME: change name to this variable, it is not anymore JTAG only */
-static struct adapter_driver *jtag;
 
 extern struct adapter_driver *adapter_driver;
 
@@ -505,7 +497,7 @@ int jtag_add_tms_seq(unsigned nbits, const uint8_t *seq, enum tap_state state)
 {
 	int retval;
 
-	if (!(jtag->jtag_ops->supported & DEBUG_CAP_TMS_SEQ))
+	if (!(adapter_driver->jtag_ops->supported & DEBUG_CAP_TMS_SEQ))
 		return ERROR_JTAG_NOT_IMPLEMENTED;
 
 	jtag_checks();
@@ -627,7 +619,7 @@ static int adapter_system_reset(int req_srst)
 
 	/* Maybe change SRST signal state */
 	if (jtag_srst != req_srst) {
-		retval = jtag->reset(0, req_srst);
+		retval = adapter_driver->reset(0, req_srst);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("SRST error");
 			return ERROR_FAIL;
@@ -764,7 +756,7 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 	int new_srst = 0;
 	int new_trst = 0;
 
-	if (!jtag->reset) {
+	if (!adapter_driver->reset) {
 		legacy_jtag_add_reset(req_tlr_or_trst, req_srst);
 		return;
 	}
@@ -813,7 +805,7 @@ void jtag_add_reset(int req_tlr_or_trst, int req_srst)
 		/* guarantee jtag queue empty before changing reset status */
 		jtag_execute_queue();
 
-		retval = jtag->reset(new_trst, new_srst);
+		retval = adapter_driver->reset(new_trst, new_srst);
 		if (retval != ERROR_OK) {
 			jtag_set_error(retval);
 			LOG_ERROR("TRST/SRST error");
@@ -933,7 +925,7 @@ void jtag_check_value_mask(struct scan_field *field, uint8_t *value, uint8_t *ma
 
 int default_interface_jtag_execute_queue(void)
 {
-	if (!jtag) {
+	if (!is_adapter_initialized()) {
 		LOG_ERROR("No JTAG interface configured yet.  "
 			"Issue 'init' command in startup scripts "
 			"before communicating with targets.");
@@ -949,11 +941,11 @@ int default_interface_jtag_execute_queue(void)
 		 * The fix can be applied immediately after next release (v0.11.0 ?)
 		 */
 		LOG_ERROR("JTAG API jtag_execute_queue() called on non JTAG interface");
-		if (!jtag->jtag_ops || !jtag->jtag_ops->execute_queue)
+		if (!adapter_driver->jtag_ops || !adapter_driver->jtag_ops->execute_queue)
 			return ERROR_OK;
 	}
 
-	int result = jtag->jtag_ops->execute_queue();
+	int result = adapter_driver->jtag_ops->execute_queue();
 
 	struct jtag_command *cmd = jtag_command_queue;
 	while (debug_level >= LOG_LVL_DEBUG_IO && cmd) {
@@ -1502,65 +1494,6 @@ void jtag_tap_free(struct jtag_tap *tap)
 	free(tap);
 }
 
-/**
- * Do low-level setup like initializing registers, output signals,
- * and clocking.
- */
-int adapter_init(struct command_context *cmd_ctx)
-{
-	if (jtag)
-		return ERROR_OK;
-
-	if (!adapter_driver) {
-		/* nothing was previously specified by "adapter driver" command */
-		LOG_ERROR("Debug Adapter has to be specified, "
-			"see \"adapter driver\" command");
-		return ERROR_JTAG_INVALID_INTERFACE;
-	}
-
-	int retval;
-	retval = adapter_driver->init();
-	if (retval != ERROR_OK)
-		return retval;
-	jtag = adapter_driver;
-
-	if (!jtag->speed) {
-		LOG_INFO("This adapter doesn't support configurable speed");
-		return ERROR_OK;
-	}
-
-	if (clock_mode == CLOCK_MODE_UNSELECTED) {
-		LOG_ERROR("An adapter speed is not selected in the init script."
-			" Insert a call to \"adapter speed\" or \"jtag_rclk\" to proceed.");
-		return ERROR_JTAG_INIT_FAILED;
-	}
-
-	int requested_khz = jtag_get_speed_khz();
-	int actual_khz = requested_khz;
-	int jtag_speed_var = 0;
-	retval = jtag_get_speed(&jtag_speed_var);
-	if (retval != ERROR_OK)
-		return retval;
-	retval = jtag->speed(jtag_speed_var);
-	if (retval != ERROR_OK)
-		return retval;
-	retval = jtag_get_speed_readable(&actual_khz);
-	if (retval != ERROR_OK)
-		LOG_INFO("adapter-specific clock speed value %d", jtag_speed_var);
-	else if (actual_khz) {
-		/* Adaptive clocking -- JTAG-specific */
-		if ((clock_mode == CLOCK_MODE_RCLK)
-				|| ((clock_mode == CLOCK_MODE_KHZ) && !requested_khz)) {
-			LOG_INFO("RCLK (adaptive clock speed) not supported - fallback to %d kHz"
-			, actual_khz);
-		} else
-			LOG_INFO("clock speed %d kHz", actual_khz);
-	} else
-		LOG_INFO("RCLK (adaptive clock speed)");
-
-	return ERROR_OK;
-}
-
 int jtag_init_inner(struct command_context *cmd_ctx)
 {
 	struct jtag_tap *tap;
@@ -1637,25 +1570,6 @@ int jtag_init_inner(struct command_context *cmd_ctx)
 	else
 		LOG_WARNING("Bypassing JTAG setup events due to errors");
 
-
-	return ERROR_OK;
-}
-
-int adapter_quit(void)
-{
-	if (jtag && jtag->quit) {
-		/* close the JTAG interface */
-		int result = jtag->quit();
-		if (result != ERROR_OK)
-			LOG_ERROR("failed: %d", result);
-	}
-
-	struct jtag_tap *t = jtag_all_taps();
-	while (t) {
-		struct jtag_tap *n = t->next_tap;
-		jtag_tap_free(t);
-		t = n;
-	}
 
 	return ERROR_OK;
 }
@@ -1767,97 +1681,6 @@ int jtag_init(struct command_context *cmd_ctx)
 	return ERROR_OK;
 }
 
-unsigned jtag_get_speed_khz(void)
-{
-	return speed_khz;
-}
-
-static int adapter_khz_to_speed(unsigned khz, int *speed)
-{
-	LOG_DEBUG("convert khz to interface specific speed value");
-	speed_khz = khz;
-	if (!jtag)
-		return ERROR_OK;
-	LOG_DEBUG("have interface set up");
-	if (!jtag->khz) {
-		LOG_ERROR("Translation from khz to jtag_speed not implemented");
-		return ERROR_FAIL;
-	}
-	int speed_div1;
-	int retval = jtag->khz(jtag_get_speed_khz(), &speed_div1);
-	if (retval != ERROR_OK)
-		return retval;
-	*speed = speed_div1;
-	return ERROR_OK;
-}
-
-static int jtag_rclk_to_speed(unsigned fallback_speed_khz, int *speed)
-{
-	int retval = adapter_khz_to_speed(0, speed);
-	if ((retval != ERROR_OK) && fallback_speed_khz) {
-		LOG_DEBUG("trying fallback speed...");
-		retval = adapter_khz_to_speed(fallback_speed_khz, speed);
-	}
-	return retval;
-}
-
-static int jtag_set_speed(int speed)
-{
-	/* this command can be called during CONFIG,
-	 * in which case jtag isn't initialized */
-	return jtag ? jtag->speed(speed) : ERROR_OK;
-}
-
-int jtag_config_khz(unsigned khz)
-{
-	LOG_DEBUG("handle jtag khz");
-	clock_mode = CLOCK_MODE_KHZ;
-	int speed = 0;
-	int retval = adapter_khz_to_speed(khz, &speed);
-	return (retval != ERROR_OK) ? retval : jtag_set_speed(speed);
-}
-
-int jtag_config_rclk(unsigned fallback_speed_khz)
-{
-	LOG_DEBUG("handle jtag rclk");
-	clock_mode = CLOCK_MODE_RCLK;
-	rclk_fallback_speed_khz = fallback_speed_khz;
-	int speed = 0;
-	int retval = jtag_rclk_to_speed(fallback_speed_khz, &speed);
-	return (retval != ERROR_OK) ? retval : jtag_set_speed(speed);
-}
-
-int jtag_get_speed(int *speed)
-{
-	switch (clock_mode) {
-		case CLOCK_MODE_KHZ:
-			adapter_khz_to_speed(jtag_get_speed_khz(), speed);
-			break;
-		case CLOCK_MODE_RCLK:
-			jtag_rclk_to_speed(rclk_fallback_speed_khz, speed);
-			break;
-		default:
-			LOG_ERROR("BUG: unknown jtag clock mode");
-			return ERROR_FAIL;
-	}
-	return ERROR_OK;
-}
-
-int jtag_get_speed_readable(int *khz)
-{
-	int jtag_speed_var = 0;
-	int retval = jtag_get_speed(&jtag_speed_var);
-	if (retval != ERROR_OK)
-		return retval;
-	if (!jtag)
-		return ERROR_OK;
-	if (!jtag->speed_div) {
-		LOG_ERROR("Translation from jtag_speed to khz not implemented");
-		return ERROR_FAIL;
-	}
-	return jtag->speed_div(jtag_speed_var, khz);
-}
-
 void jtag_set_verify(bool enable)
 {
 	jtag_verify = enable;
@@ -1880,14 +1703,14 @@ bool jtag_will_verify_capture_ir(void)
 
 int jtag_power_dropout(int *dropout)
 {
-	if (!jtag) {
+	if (!is_adapter_initialized()) {
 		/* TODO: as the jtag interface is not valid all
 		 * we can do at the moment is exit OpenOCD */
 		LOG_ERROR("No Valid JTAG Interface Configured.");
 		exit(-1);
 	}
-	if (jtag->power_dropout)
-		return jtag->power_dropout(dropout);
+	if (adapter_driver->power_dropout)
+		return adapter_driver->power_dropout(dropout);
 
 	*dropout = 0; /* by default we can't detect power dropout */
 	return ERROR_OK;
@@ -1895,8 +1718,8 @@ int jtag_power_dropout(int *dropout)
 
 int jtag_srst_asserted(int *srst_asserted)
 {
-	if (jtag->srst_asserted)
-		return jtag->srst_asserted(srst_asserted);
+	if (adapter_driver->srst_asserted)
+		return adapter_driver->srst_asserted(srst_asserted);
 
 	*srst_asserted = 0; /* by default we can't detect srst asserted */
 	return ERROR_OK;
@@ -2089,8 +1912,8 @@ int adapter_config_trace(bool enabled, enum tpiu_pin_protocol pin_protocol,
 		uint32_t port_size, unsigned int *trace_freq,
 		unsigned int traceclkin_freq, uint16_t *prescaler)
 {
-	if (jtag->config_trace) {
-		return jtag->config_trace(enabled, pin_protocol, port_size, trace_freq,
+	if (adapter_driver->config_trace) {
+		return adapter_driver->config_trace(enabled, pin_protocol, port_size, trace_freq,
 			traceclkin_freq, prescaler);
 	} else if (enabled) {
 		LOG_ERROR("The selected interface does not support tracing");
@@ -2102,8 +1925,8 @@ int adapter_config_trace(bool enabled, enum tpiu_pin_protocol pin_protocol,
 
 int adapter_poll_trace(uint8_t *buf, size_t *size)
 {
-	if (jtag->poll_trace)
-		return jtag->poll_trace(buf, size);
+	if (adapter_driver->poll_trace)
+		return adapter_driver->poll_trace(buf, size);
 
 	return ERROR_FAIL;
 }

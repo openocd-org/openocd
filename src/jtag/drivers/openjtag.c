@@ -1,6 +1,6 @@
 /*******************************************************************************
  *   Driver for OpenJTAG Project (www.openjtag.org)                            *
- *   Compatible with libftdi and ftd2xx drivers.                               *
+ *   Compatible with libftdi drivers.                                          *
  *                                                                             *
  *   Cypress CY7C65215 support                                                 *
  *   Copyright (C) 2015 Vianney le Clément de Saint-Marcq, Essensium NV        *
@@ -449,7 +449,7 @@ static int openjtag_init_cy7c65215(void)
 	int ret;
 
 	usbh = NULL;
-	ret = jtag_libusb_open(cy7c65215_vids, cy7c65215_pids, NULL, &usbh, NULL);
+	ret = jtag_libusb_open(cy7c65215_vids, cy7c65215_pids, &usbh, NULL);
 	if (ret != ERROR_OK) {
 		LOG_ERROR("unable to open cy7c65215 device");
 		goto err;

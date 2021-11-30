@@ -38,7 +38,7 @@
 #include <jtag/interface.h>
 #include <jtag/swd.h>
 #include <jtag/commands.h>
-#include <jtag/drivers/jtag_usb_common.h>
+#include <jtag/adapter.h>
 #include <helper/replacements.h>
 #include <target/cortex_m.h>
 
@@ -547,7 +547,7 @@ static bool jlink_usb_location_equal(struct jaylink_device *dev)
 		return false;
 	}
 
-	equal = jtag_usb_location_equal(bus, ports,	num_ports);
+	equal = adapter_usb_location_equal(bus, ports, num_ports);
 	free(ports);
 
 	return equal;
@@ -573,7 +573,7 @@ static int jlink_open_device(uint32_t ifaces, bool *found_device)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	use_usb_location = !!jtag_usb_get_location();
+	use_usb_location = !!adapter_usb_get_location();
 
 	if (!use_serial_number && !use_usb_address && !use_usb_location && num_devices > 1) {
 		LOG_ERROR("Multiple devices found, specify the desired device");
@@ -667,6 +667,23 @@ static int jlink_init(void)
 			jaylink_strerror(ret));
 		jaylink_exit(jayctx);
 		return ERROR_JTAG_INIT_FAILED;
+	}
+
+	const char *serial = adapter_get_required_serial();
+	if (serial) {
+		ret = jaylink_parse_serial_number(serial, &serial_number);
+		if (ret == JAYLINK_ERR) {
+			LOG_ERROR("Invalid serial number: %s", serial);
+			jaylink_exit(jayctx);
+			return ERROR_JTAG_INIT_FAILED;
+		}
+		if (ret != JAYLINK_OK) {
+			LOG_ERROR("jaylink_parse_serial_number() failed: %s", jaylink_strerror(ret));
+			jaylink_exit(jayctx);
+			return ERROR_JTAG_INIT_FAILED;
+		}
+		use_serial_number = true;
+		use_usb_address = false;
 	}
 
 	bool found_device;
@@ -811,7 +828,7 @@ static int jlink_init(void)
 	jtag_sleep(3000);
 	jlink_tap_init();
 
-	jlink_speed(jtag_get_speed_khz());
+	jlink_speed(adapter_get_speed_khz());
 
 	if (iface == JAYLINK_TIF_JTAG) {
 		/*
@@ -979,34 +996,7 @@ COMMAND_HANDLER(jlink_usb_command)
 
 	usb_address = tmp;
 
-	use_serial_number = false;
 	use_usb_address = true;
-
-	return ERROR_OK;
-}
-
-COMMAND_HANDLER(jlink_serial_command)
-{
-	int ret;
-
-	if (CMD_ARGC != 1) {
-		command_print(CMD, "Need exactly one argument for jlink serial");
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
-	ret = jaylink_parse_serial_number(CMD_ARGV[0], &serial_number);
-
-	if (ret == JAYLINK_ERR) {
-		command_print(CMD, "Invalid serial number: %s", CMD_ARGV[0]);
-		return ERROR_FAIL;
-	} else if (ret != JAYLINK_OK) {
-		command_print(CMD, "jaylink_parse_serial_number() failed: %s",
-			jaylink_strerror(ret));
-		return ERROR_FAIL;
-	}
-
-	use_serial_number = true;
-	use_usb_address = false;
 
 	return ERROR_OK;
 }
@@ -1933,13 +1923,6 @@ static const struct command_registration jlink_subcommand_handlers[] = {
 		.usage = "<0-3>"
 	},
 	{
-		.name = "serial",
-		.handler = &jlink_serial_command,
-		.mode = COMMAND_CONFIG,
-		.help = "set the serial number of the device that should be used",
-		.usage = "<serial number>"
-	},
-	{
 		.name = "config",
 		.handler = &jlink_handle_config_command,
 		.mode = COMMAND_EXEC,
@@ -2148,10 +2131,30 @@ static int jlink_swd_switch_seq(enum swd_special_seq seq)
 			s = swd_seq_jtag_to_swd;
 			s_len = swd_seq_jtag_to_swd_len;
 			break;
+		case JTAG_TO_DORMANT:
+			LOG_DEBUG("JTAG-to-DORMANT");
+			s = swd_seq_jtag_to_dormant;
+			s_len = swd_seq_jtag_to_dormant_len;
+			break;
 		case SWD_TO_JTAG:
 			LOG_DEBUG("SWD-to-JTAG");
 			s = swd_seq_swd_to_jtag;
 			s_len = swd_seq_swd_to_jtag_len;
+			break;
+		case SWD_TO_DORMANT:
+			LOG_DEBUG("SWD-to-DORMANT");
+			s = swd_seq_swd_to_dormant;
+			s_len = swd_seq_swd_to_dormant_len;
+			break;
+		case DORMANT_TO_SWD:
+			LOG_DEBUG("DORMANT-to-SWD");
+			s = swd_seq_dormant_to_swd;
+			s_len = swd_seq_dormant_to_swd_len;
+			break;
+		case DORMANT_TO_JTAG:
+			LOG_DEBUG("DORMANT-to-JTAG");
+			s = swd_seq_dormant_to_jtag;
+			s_len = swd_seq_dormant_to_jtag_len;
 			break;
 		default:
 			LOG_ERROR("Sequence %d not supported", seq);

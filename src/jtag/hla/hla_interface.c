@@ -38,7 +38,6 @@
 static struct hl_interface_s hl_if = {
 	.param = {
 		.device_desc = NULL,
-		.serial = NULL,
 		.vid = { 0 },
 		.pid = { 0 },
 		.transport = HL_TRANSPORT_UNKNOWN,
@@ -136,7 +135,6 @@ static int hl_interface_quit(void)
 	jtag_command_queue_reset();
 
 	free((void *)hl_if.param.device_desc);
-	free((void *)hl_if.param.serial);
 
 	return ERROR_OK;
 }
@@ -233,19 +231,6 @@ COMMAND_HANDLER(hl_interface_handle_device_desc_command)
 		hl_if.param.device_desc = strdup(CMD_ARGV[0]);
 	} else {
 		LOG_ERROR("expected exactly one argument to hl_device_desc <description>");
-	}
-
-	return ERROR_OK;
-}
-
-COMMAND_HANDLER(hl_interface_handle_serial_command)
-{
-	LOG_DEBUG("hl_interface_handle_serial_command");
-
-	if (CMD_ARGC == 1) {
-		hl_if.param.serial = strdup(CMD_ARGV[0]);
-	} else {
-		LOG_ERROR("expected exactly one argument to hl_serial <serial-number>");
 	}
 
 	return ERROR_OK;
@@ -353,13 +338,6 @@ static const struct command_registration hl_interface_command_handlers[] = {
 	 .mode = COMMAND_CONFIG,
 	 .help = "set the device description of the adapter",
 	 .usage = "description_string",
-	 },
-	{
-	 .name = "hla_serial",
-	 .handler = &hl_interface_handle_serial_command,
-	 .mode = COMMAND_CONFIG,
-	 .help = "set the serial number of the adapter",
-	 .usage = "serial_string",
 	 },
 	{
 	 .name = "hla_layout",

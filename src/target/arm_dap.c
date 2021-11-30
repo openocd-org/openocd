@@ -155,21 +155,24 @@ int dap_cleanup_all(void)
 enum dap_cfg_param {
 	CFG_CHAIN_POSITION,
 	CFG_IGNORE_SYSPWRUPACK,
+	CFG_DP_ID,
+	CFG_INSTANCE_ID,
 };
 
 static const struct jim_nvp nvp_config_opts[] = {
-	{ .name = "-chain-position",   .value = CFG_CHAIN_POSITION },
+	{ .name = "-chain-position",     .value = CFG_CHAIN_POSITION },
 	{ .name = "-ignore-syspwrupack", .value = CFG_IGNORE_SYSPWRUPACK },
+	{ .name = "-dp-id",              .value = CFG_DP_ID },
+	{ .name = "-instance-id",        .value = CFG_INSTANCE_ID },
 	{ .name = NULL, .value = -1 }
 };
 
 static int dap_configure(struct jim_getopt_info *goi, struct arm_dap_object *dap)
 {
-	struct jtag_tap *tap = NULL;
 	struct jim_nvp *n;
 	int e;
 
-	/* parse config or cget options ... */
+	/* parse config ... */
 	while (goi->argc > 0) {
 		Jim_SetEmptyResult(goi->interp);
 
@@ -184,31 +187,114 @@ static int dap_configure(struct jim_getopt_info *goi, struct arm_dap_object *dap
 			e = jim_getopt_obj(goi, &o_t);
 			if (e != JIM_OK)
 				return e;
+
+			struct jtag_tap *tap;
 			tap = jtag_tap_by_jim_obj(goi->interp, o_t);
 			if (!tap) {
 				Jim_SetResultString(goi->interp, "-chain-position is invalid", -1);
 				return JIM_ERR;
 			}
+			dap->dap.tap = tap;
 			/* loop for more */
 			break;
 		}
 		case CFG_IGNORE_SYSPWRUPACK:
 			dap->dap.ignore_syspwrupack = true;
 			break;
+		case CFG_DP_ID: {
+			jim_wide w;
+			e = jim_getopt_wide(goi, &w);
+			if (e != JIM_OK) {
+				Jim_SetResultFormatted(goi->interp,
+						"create %s: bad parameter %s",
+						dap->name, n->name);
+				return JIM_ERR;
+			}
+			if (w < 0 || w > DP_TARGETSEL_DPID_MASK) {
+				Jim_SetResultFormatted(goi->interp,
+						"create %s: %s out of range",
+						dap->name, n->name);
+				return JIM_ERR;
+			}
+			dap->dap.multidrop_targetsel =
+				(dap->dap.multidrop_targetsel & DP_TARGETSEL_INSTANCEID_MASK)
+				| (w & DP_TARGETSEL_DPID_MASK);
+			dap->dap.multidrop_dp_id_valid = true;
+			break;
+		}
+		case CFG_INSTANCE_ID: {
+			jim_wide w;
+			e = jim_getopt_wide(goi, &w);
+			if (e != JIM_OK) {
+				Jim_SetResultFormatted(goi->interp,
+						"create %s: bad parameter %s",
+						dap->name, n->name);
+				return JIM_ERR;
+			}
+			if (w < 0 || w > 15) {
+				Jim_SetResultFormatted(goi->interp,
+						"create %s: %s out of range",
+						dap->name, n->name);
+				return JIM_ERR;
+			}
+			dap->dap.multidrop_targetsel =
+				(dap->dap.multidrop_targetsel & DP_TARGETSEL_DPID_MASK)
+				| ((w << DP_TARGETSEL_INSTANCEID_SHIFT) & DP_TARGETSEL_INSTANCEID_MASK);
+			dap->dap.multidrop_instance_id_valid = true;
+			break;
+		}
 		default:
 			break;
 		}
 	}
 
-	if (!tap) {
-		Jim_SetResultString(goi->interp, "-chain-position required when creating DAP", -1);
-		return JIM_ERR;
+	return JIM_OK;
+}
+
+static int dap_check_config(struct adiv5_dap *dap)
+{
+	if (transport_is_jtag() || transport_is_dapdirect_jtag() || transport_is_hla())
+		return ERROR_OK;
+
+	struct arm_dap_object *obj;
+	bool new_multidrop = dap_is_multidrop(dap);
+	bool had_multidrop = new_multidrop;
+	uint32_t targetsel = dap->multidrop_targetsel;
+	unsigned int non_multidrop_count = had_multidrop ? 0 : 1;
+
+	list_for_each_entry(obj, &all_dap, lh) {
+		struct adiv5_dap *dap_it = &obj->dap;
+
+		if (transport_is_swd()) {
+			if (dap_is_multidrop(dap_it)) {
+				had_multidrop = true;
+				if (new_multidrop && dap_it->multidrop_targetsel == targetsel) {
+					uint32_t dp_id = targetsel & DP_TARGETSEL_DPID_MASK;
+					uint32_t instance_id = targetsel >> DP_TARGETSEL_INSTANCEID_SHIFT;
+					LOG_ERROR("%s and %s have the same multidrop selectors -dp-id 0x%08"
+							  PRIx32 " and -instance-id 0x%" PRIx32,
+							  obj->name, adiv5_dap_name(dap),
+							  dp_id, instance_id);
+					return ERROR_FAIL;
+				}
+			} else {
+				non_multidrop_count++;
+			}
+		} else if (transport_is_dapdirect_swd()) {
+			non_multidrop_count++;
+		}
 	}
 
-	dap_instance_init(&dap->dap);
-	dap->dap.tap = tap;
+	if (non_multidrop_count > 1) {
+		LOG_ERROR("Two or more SWD non multidrop DAPs are not supported");
+		return ERROR_FAIL;
+	}
+	if (had_multidrop && non_multidrop_count) {
+		LOG_ERROR("Mixing of SWD multidrop DAPs and non multidrop DAPs is not supported");
+		return ERROR_FAIL;
+	}
 
-	return JIM_OK;
+	return ERROR_OK;
 }
 
 static int dap_create(struct jim_getopt_info *goi)
@@ -242,16 +328,28 @@ static int dap_create(struct jim_getopt_info *goi)
 	if (!dap)
 		return JIM_ERR;
 
-	e = dap_configure(goi, dap);
-	if (e != JIM_OK) {
-		free(dap);
-		return e;
-	}
+	dap_instance_init(&dap->dap);
 
 	cp = Jim_GetString(new_cmd, NULL);
 	dap->name = strdup(cp);
 
-	struct command_registration dap_commands[] = {
+	e = dap_configure(goi, dap);
+	if (e != JIM_OK)
+		goto err;
+
+	if (!dap->dap.tap) {
+		Jim_SetResultString(goi->interp, "-chain-position required when creating DAP", -1);
+		e = JIM_ERR;
+		goto err;
+	}
+
+	e = dap_check_config(&dap->dap);
+	if (e != ERROR_OK) {
+		e = JIM_ERR;
+		goto err;
+	}
+
+	struct command_registration dap_create_commands[] = {
 		{
 			.name = cp,
 			.mode = COMMAND_ANY,
@@ -264,15 +362,22 @@ static int dap_create(struct jim_getopt_info *goi)
 
 	/* don't expose the instance commands when using hla */
 	if (transport_is_hla())
-		dap_commands[0].chain = NULL;
+		dap_create_commands[0].chain = NULL;
 
-	e = register_commands_with_data(cmd_ctx, NULL, dap_commands, dap);
-	if (e != ERROR_OK)
-		return JIM_ERR;
+	e = register_commands_with_data(cmd_ctx, NULL, dap_create_commands, dap);
+	if (e != ERROR_OK) {
+		e = JIM_ERR;
+		goto err;
+	}
 
 	list_add_tail(&dap->lh, &all_dap);
 
 	return JIM_OK;
+
+err:
+	free(dap->name);
+	free(dap);
+	return e;
 }
 
 static int jim_dap_create(Jim_Interp *interp, int argc, Jim_Obj *const *argv)

@@ -213,6 +213,7 @@ struct cortex_m_common {
 
 	/* Context information */
 	uint32_t dcb_dhcsr;
+	uint32_t dcb_dhcsr_cumulated_sticky;
 	uint32_t nvic_dfsr;  /* Debug Fault Status Register - shows reason for debug halt */
 	uint32_t nvic_icsr;  /* Interrupt Control State Register - shows active and pending IRQ */
 
@@ -237,6 +238,8 @@ struct cortex_m_common {
 	const struct cortex_m_part_info *core_info;
 	struct armv7m_common armv7m;
 
+	bool slow_register_read;	/* A register has not been ready, poll S_REGRDY */
+
 	int apsel;
 
 	/* Whether this target has the erratum that makes C_MASKINTS not apply to
@@ -249,6 +252,19 @@ target_to_cm(struct target *target)
 {
 	return container_of(target->arch_info,
 			struct cortex_m_common, armv7m);
+}
+
+static inline bool is_cortex_m_or_hla(const struct cortex_m_common *cortex_m)
+{
+	return cortex_m->common_magic == CORTEX_M_COMMON_MAGIC;
+}
+
+static inline bool is_cortex_m_with_dap_access(const struct cortex_m_common *cortex_m)
+{
+	if (!is_cortex_m_or_hla(cortex_m))
+		return false;
+
+	return !cortex_m->armv7m.is_hla_target;
 }
 
 int cortex_m_examine(struct target *target);

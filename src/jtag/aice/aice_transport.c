@@ -284,8 +284,7 @@ static int jim_aice_names(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 }
 
 /* */
-static const struct command_registration
-aice_transport_jtag_subcommand_handlers[] = {
+static const struct command_registration aice_transport_jtag_subcommand_handlers[] = {
 	{
 		.name = "init",
 		.mode = COMMAND_ANY,
@@ -387,8 +386,7 @@ static const struct command_registration aice_transport_command_handlers[] = {
 /* */
 static int aice_transport_register_commands(struct command_context *cmd_ctx)
 {
-	return register_commands(cmd_ctx, NULL,
-			aice_transport_command_handlers);
+	return register_commands(cmd_ctx, NULL, aice_transport_command_handlers);
 }
 
 /* */

@@ -159,7 +159,7 @@ retry_write:
 		/* This means we could not send all data, which is most likely fatal
 		   for the jtag_vpi connection (the underlying TCP connection likely not
 		   usable anymore) */
-		LOG_ERROR("Could not send all data through jtag_vpi connection.");
+		LOG_ERROR("jtag_vpi: Could not send all data through jtag_vpi connection.");
 		exit(-1);
 	}
 
@@ -541,7 +541,7 @@ static int jtag_vpi_init(void)
 
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (sockfd < 0) {
-		LOG_ERROR("Could not create socket");
+		LOG_ERROR("jtag_vpi: Could not create client socket");
 		return ERROR_FAIL;
 	}
 
@@ -556,13 +556,13 @@ static int jtag_vpi_init(void)
 	serv_addr.sin_addr.s_addr = inet_addr(server_address);
 
 	if (serv_addr.sin_addr.s_addr == INADDR_NONE) {
-		LOG_ERROR("inet_addr error occurred");
+		LOG_ERROR("jtag_vpi: inet_addr error occurred");
 		return ERROR_FAIL;
 	}
 
 	if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
 		close(sockfd);
-		LOG_ERROR("Can't connect to %s : %u", server_address, server_port);
+		LOG_ERROR("jtag_vpi: Can't connect to %s : %u", server_address, server_port);
 		return ERROR_COMMAND_CLOSE_CONNECTION;
 	}
 
@@ -573,7 +573,7 @@ static int jtag_vpi_init(void)
 		setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(int));
 	}
 
-	LOG_INFO("Connection to %s : %u succeed", server_address, server_port);
+	LOG_INFO("jtag_vpi: Connection to %s : %u successful", server_address, server_port);
 
 	return ERROR_OK;
 }

@@ -127,8 +127,6 @@ uninstall-hook:
 distclean-local:
 	rm -rf Doxyfile doxygen
 	rm -f $(srcdir)/jimtcl/configure.gnu
-# FIXME: workaround for jimtcl 0.80 only. Remove from jimtcl 0.81
-	rm -f jimtcl/examples.api/Makefile
 
 # We want every change to have Signed-off-by. This is tricky to enforce in
 # Travis, because it automatically makes temporary commits when merging. So

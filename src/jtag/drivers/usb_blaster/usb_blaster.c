@@ -119,7 +119,6 @@ struct ublast_info {
 
 	char *lowlevel_name;
 	struct ublast_lowlevel *drv;
-	char *ublast_device_desc;
 	uint16_t ublast_vid, ublast_pid;
 	uint16_t ublast_vid_uninit, ublast_pid_uninit;
 	int flags;
@@ -140,7 +139,7 @@ static struct ublast_info info = {
 };
 
 /*
- * Available lowlevel drivers (FTDI, FTD2xx, ...)
+ * Available lowlevel drivers (FTDI, libusb, ...)
  */
 struct drvs_map {
 	char *name;
@@ -874,7 +873,6 @@ static int ublast_init(void)
 	info.drv->ublast_pid = info.ublast_pid;
 	info.drv->ublast_vid_uninit = info.ublast_vid_uninit;
 	info.drv->ublast_pid_uninit = info.ublast_pid_uninit;
-	info.drv->ublast_device_desc = info.ublast_device_desc;
 	info.drv->firmware_path = info.firmware_path;
 
 	info.flags |= info.drv->flags;
@@ -906,16 +904,6 @@ static int ublast_quit(void)
 
 	ublast_buf_write(&byte0, 1, &retlen);
 	return info.drv->close(info.drv);
-}
-
-COMMAND_HANDLER(ublast_handle_device_desc_command)
-{
-	if (CMD_ARGC != 1)
-		return ERROR_COMMAND_SYNTAX_ERROR;
-
-	info.ublast_device_desc = strdup(CMD_ARGV[0]);
-
-	return ERROR_OK;
 }
 
 COMMAND_HANDLER(ublast_handle_vid_pid_command)
@@ -1031,13 +1019,6 @@ COMMAND_HANDLER(ublast_firmware_command)
 
 
 static const struct command_registration ublast_subcommand_handlers[] = {
-	{
-		.name = "device_desc",
-		.handler = ublast_handle_device_desc_command,
-		.mode = COMMAND_CONFIG,
-		.help = "set the USB device description of the USB-Blaster",
-		.usage = "description-string",
-	},
 	{
 		.name = "vid_pid",
 		.handler = ublast_handle_vid_pid_command,

@@ -198,7 +198,7 @@ static int bcm2835gpio_speed(int speed)
 
 static int is_gpio_valid(int gpio)
 {
-	return gpio >= 0 && gpio <= 53;
+	return gpio >= 0 && gpio <= 31;
 }
 
 COMMAND_HANDLER(bcm2835gpio_handle_jtag_gpionums)
