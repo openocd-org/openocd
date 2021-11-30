@@ -896,10 +896,12 @@ static int stm32x_probe(struct flash_bank *bank)
 			stm32x_info->user_data_offset = 16;
 			stm32x_info->option_offset = 6;
 			max_flash_size_in_kb = 64;
+			stm32x_info->can_load_options = true;
 			break;
 		case 0x1704: /* gd32f3x0 */
 			stm32x_info->user_data_offset = 16;
 			stm32x_info->option_offset = 6;
+			stm32x_info->can_load_options = true;
 			break;
 		case 0x1906: /* gd32vf103 */
 			break;
@@ -907,6 +909,7 @@ static int stm32x_probe(struct flash_bank *bank)
 			stm32x_info->user_data_offset = 16;
 			stm32x_info->option_offset = 6;
 			max_flash_size_in_kb = 64;
+			stm32x_info->can_load_options = true;
 			break;
 		}
 		break;
