@@ -23,6 +23,7 @@
 
 /* project specific includes */
 #include <helper/binarybuffer.h>
+#include <jtag/adapter.h>
 #include <jtag/interface.h>
 #include <jtag/hla/hla_layout.h>
 #include <jtag/hla/hla_transport.h>
@@ -681,11 +682,11 @@ static int icdi_usb_open(struct hl_interface_param_s *param, void **fd)
 
 	for (uint8_t i = 0; param->vid[i] && param->pid[i]; ++i)
 		LOG_DEBUG("transport: %d vid: 0x%04x pid: 0x%04x serial: %s", param->transport,
-			param->vid[i], param->pid[i], param->serial ? param->serial : "");
+			param->vid[i], param->pid[i], adapter_get_required_serial() ? adapter_get_required_serial() : "");
 
 	/* TI (Stellaris) ICDI provides its serial number in the USB descriptor;
 	   no need to provide a callback here. */
-	jtag_libusb_open(param->vid, param->pid, param->serial, &h->usb_dev, NULL);
+	jtag_libusb_open(param->vid, param->pid, &h->usb_dev, NULL);
 
 	if (!h->usb_dev) {
 		LOG_ERROR("open failed");

@@ -94,8 +94,6 @@ struct versaloon_usb_setting_t {
 	uint8_t ep_out;
 	uint8_t ep_in;
 	uint8_t interface;
-	char *serialstring;
-
 	uint16_t buf_size;
 };
 

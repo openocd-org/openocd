@@ -27,7 +27,7 @@
 #endif
 
 #include "openocd.h"
-#include <jtag/driver.h>
+#include <jtag/adapter.h>
 #include <jtag/jtag.h>
 #include <transport/transport.h>
 #include <helper/util.h>
@@ -312,7 +312,7 @@ static struct command_context *setup_command_handler(Jim_Interp *interp)
 		&log_register_commands,
 		&rtt_server_register_commands,
 		&transport_register_commands,
-		&interface_register_commands,
+		&adapter_register_commands,
 		&target_register_commands,
 		&flash_register_commands,
 		&nand_register_commands,

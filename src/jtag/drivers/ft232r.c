@@ -26,6 +26,7 @@
 #endif
 
 /* project specific includes */
+#include <jtag/adapter.h>
 #include <jtag/interface.h>
 #include <jtag/commands.h>
 #include <helper/time_support.h>
@@ -68,7 +69,6 @@
 
 #define FT232R_BUF_SIZE_EXTRA	4096
 
-static char *ft232r_serial_desc;
 static uint16_t ft232r_vid = 0x0403; /* FTDI */
 static uint16_t ft232r_pid = 0x6001; /* FT232R */
 static struct libusb_device_handle *adapter;
@@ -257,7 +257,8 @@ static int ft232r_init(void)
 {
 	uint16_t avids[] = {ft232r_vid, 0};
 	uint16_t apids[] = {ft232r_pid, 0};
-	if (jtag_libusb_open(avids, apids, ft232r_serial_desc, &adapter, NULL)) {
+	if (jtag_libusb_open(avids, apids, &adapter, NULL)) {
+		const char *ft232r_serial_desc = adapter_get_required_serial();
 		LOG_ERROR("ft232r not found: vid=%04x, pid=%04x, serial=%s\n",
 			ft232r_vid, ft232r_pid, (!ft232r_serial_desc) ? "[any]" : ft232r_serial_desc);
 		return ERROR_JTAG_INIT_FAILED;
@@ -393,16 +394,6 @@ static int ft232r_bit_name_to_number(const char *name)
 		if (strcasecmp(name, ft232r_bit_name_array[i]) == 0)
 			return i;
 	return -1;
-}
-
-COMMAND_HANDLER(ft232r_handle_serial_desc_command)
-{
-	if (CMD_ARGC == 1)
-		ft232r_serial_desc = strdup(CMD_ARGV[0]);
-	else
-		LOG_ERROR("require exactly one argument to "
-				  "ft232r_serial_desc <serial>");
-	return ERROR_OK;
 }
 
 COMMAND_HANDLER(ft232r_handle_vid_pid_command)
@@ -561,13 +552,6 @@ COMMAND_HANDLER(ft232r_handle_restore_serial_command)
 }
 
 static const struct command_registration ft232r_subcommand_handlers[] = {
-	{
-		.name = "serial_desc",
-		.handler = ft232r_handle_serial_desc_command,
-		.mode = COMMAND_CONFIG,
-		.help = "USB serial descriptor of the adapter",
-		.usage = "serial string",
-	},
 	{
 		.name = "vid_pid",
 		.handler = ft232r_handle_vid_pid_command,

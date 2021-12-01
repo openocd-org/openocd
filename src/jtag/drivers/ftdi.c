@@ -69,7 +69,7 @@
 #endif
 
 /* project specific includes */
-#include <jtag/drivers/jtag_usb_common.h>
+#include <jtag/adapter.h>
 #include <jtag/interface.h>
 #include <jtag/swd.h>
 #include <transport/transport.h>
@@ -100,7 +100,6 @@
 #define SWD_MODE (LSB_FIRST | POS_EDGE_IN | NEG_EDGE_OUT)
 
 static char *ftdi_device_desc;
-static char *ftdi_serial;
 static uint8_t ftdi_channel;
 static uint8_t ftdi_jtag_mode = JTAG_MODE;
 
@@ -740,7 +739,7 @@ static int ftdi_initialize(void)
 
 	for (int i = 0; ftdi_vid[i] || ftdi_pid[i]; i++) {
 		mpsse_ctx = mpsse_open(&ftdi_vid[i], &ftdi_pid[i], ftdi_device_desc,
-				ftdi_serial, jtag_usb_get_location(), ftdi_channel);
+				adapter_get_required_serial(), adapter_usb_get_location(), ftdi_channel);
 		if (mpsse_ctx)
 			break;
 	}
@@ -778,7 +777,7 @@ static int ftdi_initialize(void)
 
 	mpsse_loopback_config(mpsse_ctx, false);
 
-	freq = mpsse_set_frequency(mpsse_ctx, jtag_get_speed_khz() * 1000);
+	freq = mpsse_set_frequency(mpsse_ctx, adapter_get_speed_khz() * 1000);
 
 	return mpsse_flush(mpsse_ctx);
 }
@@ -796,7 +795,6 @@ static int ftdi_quit(void)
 	}
 
 	free(ftdi_device_desc);
-	free(ftdi_serial);
 
 	free(swd_cmd_queue);
 
@@ -1063,18 +1061,6 @@ COMMAND_HANDLER(ftdi_handle_device_desc_command)
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(ftdi_handle_serial_command)
-{
-	if (CMD_ARGC == 1) {
-		free(ftdi_serial);
-		ftdi_serial = strdup(CMD_ARGV[0]);
-	} else {
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
-	return ERROR_OK;
-}
-
 COMMAND_HANDLER(ftdi_handle_channel_command)
 {
 	if (CMD_ARGC == 1)
@@ -1297,13 +1283,6 @@ static const struct command_registration ftdi_subcommand_handlers[] = {
 		.usage = "description_string",
 	},
 	{
-		.name = "serial",
-		.handler = &ftdi_handle_serial_command,
-		.mode = COMMAND_CONFIG,
-		.help = "set the serial number of the FTDI device",
-		.usage = "serial_string",
-	},
-	{
 		.name = "channel",
 		.handler = &ftdi_handle_channel_command,
 		.mode = COMMAND_CONFIG,
@@ -1471,7 +1450,11 @@ static int ftdi_swd_run_queue(void)
 	for (size_t i = 0; i < swd_cmd_queue_length; i++) {
 		int ack = buf_get_u32(swd_cmd_queue[i].trn_ack_data_parity_trn, 1, 3);
 
-		LOG_DEBUG_IO("%s %s %s reg %X = %08"PRIx32,
+		/* Devices do not reply to DP_TARGETSEL write cmd, ignore received ack */
+		bool check_ack = swd_cmd_returns_ack(swd_cmd_queue[i].cmd);
+
+		LOG_DEBUG_IO("%s%s %s %s reg %X = %08"PRIx32,
+				check_ack ? "" : "ack ignored ",
 				ack == SWD_ACK_OK ? "OK" : ack == SWD_ACK_WAIT ? "WAIT" : ack == SWD_ACK_FAULT ? "FAULT" : "JUNK",
 				swd_cmd_queue[i].cmd & SWD_CMD_APNDP ? "AP" : "DP",
 				swd_cmd_queue[i].cmd & SWD_CMD_RNW ? "read" : "write",
@@ -1479,8 +1462,8 @@ static int ftdi_swd_run_queue(void)
 				buf_get_u32(swd_cmd_queue[i].trn_ack_data_parity_trn,
 						1 + 3 + (swd_cmd_queue[i].cmd & SWD_CMD_RNW ? 0 : 1), 32));
 
-		if (ack != SWD_ACK_OK) {
-			queued_retval = ack == SWD_ACK_WAIT ? ERROR_WAIT : ERROR_FAIL;
+		if (ack != SWD_ACK_OK && check_ack) {
+			queued_retval = swd_ack_to_error_code(ack);
 			goto skip;
 
 		} else if (swd_cmd_queue[i].cmd & SWD_CMD_RNW) {
@@ -1588,10 +1571,30 @@ static int ftdi_swd_switch_seq(enum swd_special_seq seq)
 		ftdi_swd_swdio_en(true);
 		mpsse_clock_data_out(mpsse_ctx, swd_seq_jtag_to_swd, 0, swd_seq_jtag_to_swd_len, SWD_MODE);
 		break;
+	case JTAG_TO_DORMANT:
+		LOG_DEBUG("JTAG-to-DORMANT");
+		ftdi_swd_swdio_en(true);
+		mpsse_clock_data_out(mpsse_ctx, swd_seq_jtag_to_dormant, 0, swd_seq_jtag_to_dormant_len, SWD_MODE);
+		break;
 	case SWD_TO_JTAG:
 		LOG_DEBUG("SWD-to-JTAG");
 		ftdi_swd_swdio_en(true);
 		mpsse_clock_data_out(mpsse_ctx, swd_seq_swd_to_jtag, 0, swd_seq_swd_to_jtag_len, SWD_MODE);
+		break;
+	case SWD_TO_DORMANT:
+		LOG_DEBUG("SWD-to-DORMANT");
+		ftdi_swd_swdio_en(true);
+		mpsse_clock_data_out(mpsse_ctx, swd_seq_swd_to_dormant, 0, swd_seq_swd_to_dormant_len, SWD_MODE);
+		break;
+	case DORMANT_TO_SWD:
+		LOG_DEBUG("DORMANT-to-SWD");
+		ftdi_swd_swdio_en(true);
+		mpsse_clock_data_out(mpsse_ctx, swd_seq_dormant_to_swd, 0, swd_seq_dormant_to_swd_len, SWD_MODE);
+		break;
+	case DORMANT_TO_JTAG:
+		LOG_DEBUG("DORMANT-to-JTAG");
+		ftdi_swd_swdio_en(true);
+		mpsse_clock_data_out(mpsse_ctx, swd_seq_dormant_to_jtag, 0, swd_seq_dormant_to_jtag_len, SWD_MODE);
 		break;
 	default:
 		LOG_ERROR("Sequence %d not supported", seq);

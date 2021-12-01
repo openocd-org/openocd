@@ -360,7 +360,11 @@ static int linuxgpiod_init(void)
 			goto out_error;
 
 		if (is_gpio_valid(trst_gpio)) {
-			gpiod_trst = helper_get_output_line("trst", trst_gpio, 1);
+			if (jtag_get_reset_config() & RESET_TRST_OPEN_DRAIN)
+				gpiod_trst = helper_get_open_drain_output_line("trst", trst_gpio, 1);
+			else
+				gpiod_trst = helper_get_output_line("trst", trst_gpio, 1);
+
 			if (!gpiod_trst)
 				goto out_error;
 		}

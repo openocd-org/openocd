@@ -30,6 +30,7 @@
 #include "config.h"
 #endif
 
+#include "adapter.h"
 #include "jtag.h"
 #include "swd.h"
 #include "minidriver.h"
@@ -1040,13 +1041,13 @@ COMMAND_HANDLER(handle_jtag_rclk_command)
 		unsigned khz = 0;
 		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], khz);
 
-		retval = jtag_config_rclk(khz);
+		retval = adapter_config_rclk(khz);
 		if (retval != ERROR_OK)
 			return retval;
 	}
 
-	int cur_khz = jtag_get_speed_khz();
-	retval = jtag_get_speed_readable(&cur_khz);
+	int cur_khz = adapter_get_speed_khz();
+	retval = adapter_get_speed_readable(&cur_khz);
 	if (retval != ERROR_OK)
 		return retval;
 

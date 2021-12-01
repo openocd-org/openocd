@@ -22,6 +22,7 @@
 
 /* project specific includes */
 #include <helper/binarybuffer.h>
+#include <jtag/adapter.h>
 #include <jtag/interface.h>
 #include <jtag/hla/hla_layout.h>
 #include <jtag/hla/hla_transport.h>
@@ -1054,8 +1055,9 @@ static int nulink_usb_open(struct hl_interface_param_s *param, void **fd)
 		goto error_open;
 	}
 
-	if (param->serial) {
-		size_t len = mbstowcs(NULL, param->serial, 0);
+	const char *serial = adapter_get_required_serial();
+	if (serial) {
+		size_t len = mbstowcs(NULL, serial, 0);
 
 		target_serial = calloc(len + 1, sizeof(wchar_t));
 		if (!target_serial) {
@@ -1063,7 +1065,7 @@ static int nulink_usb_open(struct hl_interface_param_s *param, void **fd)
 			goto error_open;
 		}
 
-		if (mbstowcs(target_serial, param->serial, len + 1) == (size_t)(-1)) {
+		if (mbstowcs(target_serial, serial, len + 1) == (size_t)(-1)) {
 			LOG_WARNING("unable to convert serial");
 			free(target_serial);
 			target_serial = NULL;

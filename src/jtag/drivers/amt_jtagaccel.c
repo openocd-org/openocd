@@ -20,6 +20,7 @@
 #include "config.h"
 #endif
 
+#include <jtag/adapter.h>
 #include <jtag/interface.h>
 
 #if PARPORT_USE_PPDEV == 1
@@ -198,7 +199,7 @@ static void amt_jtagaccel_state_move(void)
 	aw_scan_tms_5 = 0x40 | (tms_scan[0] & 0x1f);
 	AMT_AW(aw_scan_tms_5);
 	int jtag_speed = 0;
-	int retval = jtag_get_speed(&jtag_speed);
+	int retval = adapter_get_speed(&jtag_speed);
 	assert(retval == ERROR_OK);
 	if (jtag_speed > 3 || rtck_enabled)
 		amt_wait_scan_busy();
@@ -254,7 +255,7 @@ static void amt_jtagaccel_scan(bool ir_scan, enum scan_type type, uint8_t *buffe
 	uint8_t aw_tms_scan;
 	uint8_t tms_scan[2];
 	int jtag_speed_var;
-	int retval = jtag_get_speed(&jtag_speed_var);
+	int retval = adapter_get_speed(&jtag_speed_var);
 	assert(retval == ERROR_OK);
 
 	if (ir_scan)

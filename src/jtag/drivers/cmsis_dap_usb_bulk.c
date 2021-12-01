@@ -55,7 +55,7 @@ static int cmsis_dap_usb_interface = -1;
 static void cmsis_dap_usb_close(struct cmsis_dap *dap);
 static int cmsis_dap_usb_alloc(struct cmsis_dap *dap, unsigned int pkt_sz);
 
-static int cmsis_dap_usb_open(struct cmsis_dap *dap, uint16_t vids[], uint16_t pids[], char *serial)
+static int cmsis_dap_usb_open(struct cmsis_dap *dap, uint16_t vids[], uint16_t pids[], const char *serial)
 {
 	int err;
 	struct libusb_context *ctx;

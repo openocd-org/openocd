@@ -19,7 +19,6 @@ DRIVERFILES =
 
 # Standard Driver: common files
 DRIVERFILES += %D%/driver.c
-DRIVERFILES += %D%/jtag_usb_common.c
 
 if USE_LIBUSB1
 DRIVERFILES += %D%/libusb_helper.c
@@ -187,7 +186,6 @@ endif
 DRIVERHEADERS = \
 	%D%/bitbang.h \
 	%D%/bitq.h \
-	%D%/jtag_usb_common.h \
 	%D%/libftdi_helper.h \
 	%D%/libusb_helper.h \
 	%D%/cmsis_dap.h \

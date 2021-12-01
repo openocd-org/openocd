@@ -1,41 +1,22 @@
-/***************************************************************************
- *   Copyright (C) 2005 by Dominic Rath                                    *
- *   Dominic.Rath@gmx.de                                                   *
- *                                                                         *
- *   Copyright (C) 2007-2010 Øyvind Harboe                                 *
- *   oyvind.harboe@zylin.com                                               *
- *                                                                         *
- *   Copyright (C) 2009 SoftPLC Corporation                                *
- *       http://softplc.com                                                *
- *   dick@softplc.com                                                      *
- *                                                                         *
- *   Copyright (C) 2009 Zachary T Welch                                    *
- *   zw@superlucidity.net                                                  *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
- ***************************************************************************/
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+/*
+ * Copyright (C) 2005 by Dominic Rath <Dominic.Rath@gmx.de>
+ * Copyright (C) 2007-2010 Øyvind Harboe <oyvind.harboe@zylin.com>
+ * Copyright (C) 2009 SoftPLC Corporation, http://softplc.com, Dick Hollenbeck <dick@softplc.com>
+ * Copyright (C) 2009 Zachary T Welch <zw@superlucidity.net>
+ * Copyright (C) 2018 Pengutronix, Oleksij Rempel <kernel@pengutronix.de>
+ */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
+#include "adapter.h"
 #include "jtag.h"
 #include "minidriver.h"
 #include "interface.h"
 #include "interfaces.h"
 #include <transport/transport.h>
-#include <jtag/drivers/jtag_usb_common.h>
 
 /**
  * @file
@@ -44,6 +25,281 @@
 
 struct adapter_driver *adapter_driver;
 const char * const jtag_only[] = { "jtag", NULL };
+
+enum adapter_clk_mode {
+	CLOCK_MODE_UNSELECTED = 0,
+	CLOCK_MODE_KHZ,
+	CLOCK_MODE_RCLK
+};
+
+/**
+ * Adapter configuration
+ */
+static struct {
+	bool adapter_initialized;
+	char *usb_location;
+	char *serial;
+	enum adapter_clk_mode clock_mode;
+	int speed_khz;
+	int rclk_fallback_speed_khz;
+} adapter_config;
+
+bool is_adapter_initialized(void)
+{
+	return adapter_config.adapter_initialized;
+}
+
+/**
+ * Do low-level setup like initializing registers, output signals,
+ * and clocking.
+ */
+int adapter_init(struct command_context *cmd_ctx)
+{
+	if (is_adapter_initialized())
+		return ERROR_OK;
+
+	if (!adapter_driver) {
+		/* nothing was previously specified by "adapter driver" command */
+		LOG_ERROR("Debug Adapter has to be specified, "
+			"see \"adapter driver\" command");
+		return ERROR_JTAG_INVALID_INTERFACE;
+	}
+
+	int retval;
+	retval = adapter_driver->init();
+	if (retval != ERROR_OK)
+		return retval;
+	adapter_config.adapter_initialized = true;
+
+	if (!adapter_driver->speed) {
+		LOG_INFO("This adapter doesn't support configurable speed");
+		return ERROR_OK;
+	}
+
+	if (adapter_config.clock_mode == CLOCK_MODE_UNSELECTED) {
+		LOG_ERROR("An adapter speed is not selected in the init script."
+			" Insert a call to \"adapter speed\" or \"jtag_rclk\" to proceed.");
+		return ERROR_JTAG_INIT_FAILED;
+	}
+
+	int requested_khz = adapter_get_speed_khz();
+	int actual_khz = requested_khz;
+	int speed_var = 0;
+	retval = adapter_get_speed(&speed_var);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = adapter_driver->speed(speed_var);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = adapter_get_speed_readable(&actual_khz);
+	if (retval != ERROR_OK)
+		LOG_INFO("adapter-specific clock speed value %d", speed_var);
+	else if (actual_khz) {
+		/* Adaptive clocking -- JTAG-specific */
+		if ((adapter_config.clock_mode == CLOCK_MODE_RCLK)
+				|| ((adapter_config.clock_mode == CLOCK_MODE_KHZ) && !requested_khz)) {
+			LOG_INFO("RCLK (adaptive clock speed) not supported - fallback to %d kHz"
+			, actual_khz);
+		} else
+			LOG_INFO("clock speed %d kHz", actual_khz);
+	} else
+		LOG_INFO("RCLK (adaptive clock speed)");
+
+	return ERROR_OK;
+}
+
+int adapter_quit(void)
+{
+	if (is_adapter_initialized() && adapter_driver->quit) {
+		/* close the JTAG interface */
+		int result = adapter_driver->quit();
+		if (result != ERROR_OK)
+			LOG_ERROR("failed: %d", result);
+	}
+
+	free(adapter_config.serial);
+	free(adapter_config.usb_location);
+
+	struct jtag_tap *t = jtag_all_taps();
+	while (t) {
+		struct jtag_tap *n = t->next_tap;
+		jtag_tap_free(t);
+		t = n;
+	}
+
+	return ERROR_OK;
+}
+
+unsigned int adapter_get_speed_khz(void)
+{
+	return adapter_config.speed_khz;
+}
+
+static int adapter_khz_to_speed(unsigned int khz, int *speed)
+{
+	LOG_DEBUG("convert khz to adapter specific speed value");
+	adapter_config.speed_khz = khz;
+	if (!is_adapter_initialized())
+		return ERROR_OK;
+	LOG_DEBUG("have adapter set up");
+	if (!adapter_driver->khz) {
+		LOG_ERROR("Translation from khz to adapter speed not implemented");
+		return ERROR_FAIL;
+	}
+	int speed_div1;
+	int retval = adapter_driver->khz(adapter_get_speed_khz(), &speed_div1);
+	if (retval != ERROR_OK)
+		return retval;
+	*speed = speed_div1;
+	return ERROR_OK;
+}
+
+static int adapter_rclk_to_speed(unsigned int fallback_speed_khz, int *speed)
+{
+	int retval = adapter_khz_to_speed(0, speed);
+	if ((retval != ERROR_OK) && fallback_speed_khz) {
+		LOG_DEBUG("trying fallback speed...");
+		retval = adapter_khz_to_speed(fallback_speed_khz, speed);
+	}
+	return retval;
+}
+
+static int adapter_set_speed(int speed)
+{
+	/* this command can be called during CONFIG,
+	 * in which case adapter isn't initialized */
+	return is_adapter_initialized() ? adapter_driver->speed(speed) : ERROR_OK;
+}
+
+int adapter_config_khz(unsigned int khz)
+{
+	LOG_DEBUG("handle adapter khz");
+	adapter_config.clock_mode = CLOCK_MODE_KHZ;
+	int speed = 0;
+	int retval = adapter_khz_to_speed(khz, &speed);
+	return (retval != ERROR_OK) ? retval : adapter_set_speed(speed);
+}
+
+int adapter_config_rclk(unsigned int fallback_speed_khz)
+{
+	LOG_DEBUG("handle adapter rclk");
+	adapter_config.clock_mode = CLOCK_MODE_RCLK;
+	adapter_config.rclk_fallback_speed_khz = fallback_speed_khz;
+	int speed = 0;
+	int retval = adapter_rclk_to_speed(fallback_speed_khz, &speed);
+	return (retval != ERROR_OK) ? retval : adapter_set_speed(speed);
+}
+
+int adapter_get_speed(int *speed)
+{
+	switch (adapter_config.clock_mode) {
+		case CLOCK_MODE_KHZ:
+			adapter_khz_to_speed(adapter_get_speed_khz(), speed);
+			break;
+		case CLOCK_MODE_RCLK:
+			adapter_rclk_to_speed(adapter_config.rclk_fallback_speed_khz, speed);
+			break;
+		default:
+			LOG_ERROR("BUG: unknown adapter clock mode");
+			return ERROR_FAIL;
+	}
+	return ERROR_OK;
+}
+
+int adapter_get_speed_readable(int *khz)
+{
+	int speed_var = 0;
+	int retval = adapter_get_speed(&speed_var);
+	if (retval != ERROR_OK)
+		return retval;
+	if (!is_adapter_initialized())
+		return ERROR_OK;
+	if (!adapter_driver->speed_div) {
+		LOG_ERROR("Translation from adapter speed to khz not implemented");
+		return ERROR_FAIL;
+	}
+	return adapter_driver->speed_div(speed_var, khz);
+}
+
+const char *adapter_get_required_serial(void)
+{
+	return adapter_config.serial;
+}
+
+/*
+ * 1 char: bus
+ * 2 * 7 chars: max 7 ports
+ * 1 char: test for overflow
+ * ------
+ * 16 chars
+ */
+#define USB_MAX_LOCATION_LENGTH         16
+
+#ifdef HAVE_LIBUSB_GET_PORT_NUMBERS
+static void adapter_usb_set_location(const char *location)
+{
+	if (strnlen(location, USB_MAX_LOCATION_LENGTH) == USB_MAX_LOCATION_LENGTH)
+		LOG_WARNING("usb location string is too long!!");
+
+	free(adapter_config.usb_location);
+
+	adapter_config.usb_location = strndup(location, USB_MAX_LOCATION_LENGTH);
+}
+#endif /* HAVE_LIBUSB_GET_PORT_NUMBERS */
+
+const char *adapter_usb_get_location(void)
+{
+	return adapter_config.usb_location;
+}
+
+bool adapter_usb_location_equal(uint8_t dev_bus, uint8_t *port_path, size_t path_len)
+{
+	size_t path_step, string_length;
+	char *ptr, *loc;
+	bool equal = false;
+
+	if (!adapter_usb_get_location())
+		return equal;
+
+	/* strtok need non const char */
+	loc = strndup(adapter_usb_get_location(), USB_MAX_LOCATION_LENGTH);
+	string_length = strnlen(loc, USB_MAX_LOCATION_LENGTH);
+
+	ptr = strtok(loc, "-");
+	if (!ptr) {
+		LOG_WARNING("no '-' in usb path\n");
+		goto done;
+	}
+
+	string_length -= strnlen(ptr, string_length);
+	/* check bus mismatch */
+	if (atoi(ptr) != dev_bus)
+		goto done;
+
+	path_step = 0;
+	while (path_step < path_len) {
+		ptr = strtok(NULL, ".");
+
+		/* no more tokens in path */
+		if (!ptr)
+			break;
+
+		/* path mismatch at some step */
+		if (path_step < path_len && atoi(ptr) != port_path[path_step])
+			break;
+
+		path_step++;
+		string_length -= strnlen(ptr, string_length) + 1;
+	};
+
+	/* walked the full path, all elements match */
+	if (path_step == path_len && !string_length)
+		equal = true;
+
+done:
+	free(loc);
+	return equal;
+}
 
 static int jim_adapter_name(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
 {
@@ -114,8 +370,7 @@ COMMAND_HANDLER(handle_adapter_driver_command)
 			continue;
 
 		if (adapter_drivers[i]->commands) {
-			retval = register_commands(CMD_CTX, NULL,
-					adapter_drivers[i]->commands);
+			retval = register_commands(CMD_CTX, NULL, adapter_drivers[i]->commands);
 			if (retval != ERROR_OK)
 				return retval;
 		}
@@ -389,13 +644,13 @@ COMMAND_HANDLER(handle_adapter_speed_command)
 		unsigned khz = 0;
 		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], khz);
 
-		retval = jtag_config_khz(khz);
+		retval = adapter_config_khz(khz);
 		if (retval != ERROR_OK)
 			return retval;
 	}
 
-	int cur_speed = jtag_get_speed_khz();
-	retval = jtag_get_speed_readable(&cur_speed);
+	int cur_speed = adapter_get_speed_khz();
+	retval = adapter_get_speed_readable(&cur_speed);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -405,6 +660,16 @@ COMMAND_HANDLER(handle_adapter_speed_command)
 		command_print(CMD, "adapter speed: RCLK - adaptive");
 
 	return retval;
+}
+
+COMMAND_HANDLER(handle_adapter_serial_command)
+{
+	if (CMD_ARGC != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	free(adapter_config.serial);
+	adapter_config.serial = strdup(CMD_ARGV[0]);
+	return ERROR_OK;
 }
 
 COMMAND_HANDLER(handle_adapter_reset_de_assert)
@@ -497,9 +762,9 @@ COMMAND_HANDLER(handle_adapter_reset_de_assert)
 COMMAND_HANDLER(handle_usb_location_command)
 {
 	if (CMD_ARGC == 1)
-		jtag_usb_set_location(CMD_ARGV[0]);
+		adapter_usb_set_location(CMD_ARGV[0]);
 
-	command_print(CMD, "adapter usb location: %s", jtag_usb_get_location());
+	command_print(CMD, "adapter usb location: %s", adapter_usb_get_location());
 
 	return ERROR_OK;
 }
@@ -553,6 +818,13 @@ static const struct command_registration adapter_command_handlers[] = {
 			"clocking. "
 			"With or without argument, display current setting.",
 		.usage = "[khz]",
+	},
+	{
+		.name = "serial",
+		.handler = handle_adapter_serial_command,
+		.mode = COMMAND_CONFIG,
+		.help = "Set the serial number of the adapter",
+		.usage = "serial_string",
 	},
 	{
 		.name = "list",
@@ -635,7 +907,7 @@ static const struct command_registration interface_command_handlers[] = {
  * @todo Remove internal assumptions that all debug adapters use JTAG for
  * transport.  Various types and data structures are not named generically.
  */
-int interface_register_commands(struct command_context *ctx)
+int adapter_register_commands(struct command_context *ctx)
 {
 	return register_commands(ctx, NULL, interface_command_handlers);
 }

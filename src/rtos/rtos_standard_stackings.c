@@ -424,7 +424,7 @@ const struct rtos_register_stacking rtos_standard_cortex_m3_stacking = {
 };
 
 const struct rtos_register_stacking rtos_standard_cortex_m4f_stacking = {
-	.stack_registers_size = 0x44,					/* 4 more for LR*/
+	.stack_registers_size = 0x44,
 	.stack_growth_direction = -1,
 	.num_output_registers = ARMV7M_NUM_CORE_REGS,
 	.calculate_process_stack = rtos_standard_cortex_m4f_stack_align,
@@ -432,7 +432,7 @@ const struct rtos_register_stacking rtos_standard_cortex_m4f_stacking = {
 };
 
 const struct rtos_register_stacking rtos_standard_cortex_m4f_fpu_stacking = {
-	.stack_registers_size = 0xcc,	/* 4 more for LR + 48 more for FPU S0-S15 register*/
+	.stack_registers_size = 0xcc,
 	.stack_growth_direction = -1,
 	.num_output_registers = ARMV7M_NUM_CORE_REGS,
 	.calculate_process_stack = rtos_standard_cortex_m4f_fpu_stack_align,
