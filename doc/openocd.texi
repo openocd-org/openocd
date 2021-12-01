@@ -2093,6 +2093,13 @@ corresponding subsystems:
 @end deffn
 @end deffn
 
+@deffn {Config Command} {noinit}
+Prevent OpenOCD from implicit @command{init} call at the end of startup.
+Allows issuing configuration commands over telnet or Tcl connection.
+When you are done with configuration use @command{init} to enter
+the run stage.
+@end deffn
+
 @deffn {Overridable Procedure} {jtag_init}
 This is invoked at server startup to verify that it can talk
 to the scan chain (list of TAPs) which has been configured.
