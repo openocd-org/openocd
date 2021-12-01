@@ -2075,11 +2075,22 @@ If this command does not appear in any startup/configuration file
 OpenOCD executes the command for you after processing all
 configuration files and/or command line options.
 
-@b{NOTE:} This command normally occurs at or near the end of your
+@b{NOTE:} This command normally occurs near the end of your
 openocd.cfg file to force OpenOCD to ``initialize'' and make the
 targets ready. For example: If your openocd.cfg file needs to
 read/write memory on your target, @command{init} must occur before
 the memory read/write commands. This includes @command{nand probe}.
+
+@command{init} calls the following internal OpenOCD commands to initialize
+corresponding subsystems:
+@deffn {Config Command} {target init}
+@deffnx {Command} {transport init}
+@deffnx {Command} {dap init}
+@deffnx {Config Command} {flash init}
+@deffnx {Config Command} {nand init}
+@deffnx {Config Command} {pld init}
+@deffnx {Command} {tpiu init}
+@end deffn
 @end deffn
 
 @deffn {Overridable Procedure} {jtag_init}
