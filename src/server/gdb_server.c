@@ -1001,9 +1001,6 @@ static int gdb_new_connection(struct connection *connection)
 	gdb_connection->output_flag = GDB_OUTPUT_NO;
 	gdb_connection->unique_index = next_unique_id++;
 
-	/* send ACK to GDB for debug request */
-	gdb_write(connection, "+", 1);
-
 	/* output goes through gdb connection */
 	command_set_output_handler(connection->cmd_ctx, gdb_output, connection);
 
