@@ -80,6 +80,12 @@
  * http://www.st.com/resource/en/reference_manual/dm00451556.pdf
  */
 
+/* STM32C0xxx series for reference.
+ *
+ * RM0490 (STM32C0x1)
+ * http://www.st.com/resource/en/reference_manual/dm00781702.pdf
+ */
+
 /* STM32G0xxx series for reference.
  *
  * RM0444 (STM32G0x1)
@@ -263,7 +269,7 @@ struct stm32l4_wrp {
 };
 
 /* human readable list of families this drivers supports (sorted alphabetically) */
-static const char *device_families = "STM32G0/G4/L4/L4+/L5/U5/WB/WL";
+static const char *device_families = "STM32C0/G0/G4/L4/L4+/L5/U5/WB/WL";
 
 static const struct stm32l4_rev stm32l47_l48xx_revs[] = {
 	{ 0x1000, "1" }, { 0x1001, "2" }, { 0x1003, "3" }, { 0x1007, "4" }
@@ -271,6 +277,15 @@ static const struct stm32l4_rev stm32l47_l48xx_revs[] = {
 
 static const struct stm32l4_rev stm32l43_l44xx_revs[] = {
 	{ 0x1000, "A" }, { 0x1001, "Z" }, { 0x2001, "Y" },
+};
+
+
+static const struct stm32l4_rev stm32c01xx_revs[] = {
+	{ 0x1000, "A" }, { 0x1001, "Z" },
+};
+
+static const struct stm32l4_rev stm32c03xx_revs[] = {
+	{ 0x1000, "A" }, { 0x1001, "Z" },
 };
 
 static const struct stm32l4_rev stm32g05_g06xx_revs[] = {
@@ -368,6 +383,30 @@ static const struct stm32l4_part_info stm32l4_parts[] = {
 	  .flags                 = F_NONE,
 	  .flash_regs_base       = 0x40022000,
 	  .fsize_addr            = 0x1FFF75E0,
+	  .otp_base              = 0x1FFF7000,
+	  .otp_size              = 1024,
+	},
+	{
+	  .id                    = DEVID_STM32C01XX,
+	  .revs                  = stm32c01xx_revs,
+	  .num_revs              = ARRAY_SIZE(stm32c01xx_revs),
+	  .device_str            = "STM32C01xx",
+	  .max_flash_size_kb     = 32,
+	  .flags                 = F_NONE,
+	  .flash_regs_base       = 0x40022000,
+	  .fsize_addr            = 0x1FFF75A0,
+	  .otp_base              = 0x1FFF7000,
+	  .otp_size              = 1024,
+	},
+	{
+	  .id                    = DEVID_STM32C03XX,
+	  .revs                  = stm32c03xx_revs,
+	  .num_revs              = ARRAY_SIZE(stm32c03xx_revs),
+	  .device_str            = "STM32C03xx",
+	  .max_flash_size_kb     = 32,
+	  .flags                 = F_NONE,
+	  .flash_regs_base       = 0x40022000,
+	  .fsize_addr            = 0x1FFF75A0,
 	  .otp_base              = 0x1FFF7000,
 	  .otp_size              = 1024,
 	},
@@ -1855,6 +1894,8 @@ static int stm32l4_probe(struct flash_bank *bank)
 		}
 		break;
 	case DEVID_STM32L43_L44XX:
+	case DEVID_STM32C01XX:
+	case DEVID_STM32C03XX:
 	case DEVID_STM32G05_G06XX:
 	case DEVID_STM32G07_G08XX:
 	case DEVID_STM32L45_L46XX:
