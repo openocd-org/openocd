@@ -770,6 +770,12 @@ static int jtag_enable_callback(enum jtag_event event, void *priv)
 	return target_examine_one(target);
 }
 
+/* When this is true, it's OK to call examine() again in the hopes that this time
+ * it will work.  Earlier than that there is probably other initialization that
+ * needs to happen (like scanning the JTAG chain) before examine should be
+ * called. */
+static bool examine_attempted;
+
 /* Targets that correctly implement init + examine, i.e.
  * no communication with target during init:
  *
@@ -779,6 +785,8 @@ int target_examine(void)
 {
 	int retval = ERROR_OK;
 	struct target *target;
+
+	examine_attempted = true;
 
 	for (target = all_targets; target; target = target->next) {
 		/* defer examination, but don't skip it */
@@ -3047,7 +3055,7 @@ static int handle_target(void *priv)
 				 */
 				target_call_event_callbacks(target, TARGET_EVENT_GDB_HALT);
 			}
-			if (target->backoff.times > 0) {
+			if (target->backoff.times > 0 && examine_attempted) {
 				LOG_DEBUG("[%s] Polling failed, trying to reexamine", target_name(target));
 				target_reset_examined(target);
 				retval = target_examine_one(target);
