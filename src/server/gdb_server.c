@@ -1006,16 +1006,19 @@ static int gdb_new_connection(struct connection *connection)
 	breakpoint_clear_target(target);
 	watchpoint_clear_target(target);
 
-	/* remove the initial ACK from the incoming buffer */
+	/* Since version 3.95 (gdb-19990504), with the exclusion of 6.5~6.8, GDB
+	 * sends an ACK at connection with the following comment in its source code:
+	 * "Ack any packet which the remote side has already sent."
+	 * LLDB does the same since the first gdb-remote implementation.
+	 * Remove the initial ACK from the incoming buffer.
+	 */
 	retval = gdb_get_char(connection, &initial_ack);
 	if (retval != ERROR_OK)
 		return retval;
 
-	/* FIX!!!??? would we actually ever receive a + here???
-	 * Not observed.
-	 */
 	if (initial_ack != '+')
 		gdb_putback_char(connection, initial_ack);
+
 	target_call_event_callbacks(target, TARGET_EVENT_GDB_ATTACH);
 
 	if (target->rtos) {
