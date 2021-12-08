@@ -397,11 +397,9 @@ static int cortex_m_store_core_reg_u32(struct target *target,
 	/* check if value is written into register */
 	then = timeval_ms();
 	while (1) {
-		retval = mem_ap_read_atomic_u32(armv7m->debug_ap, DCB_DHCSR,
-										&cortex_m->dcb_dhcsr);
+		retval = cortex_m_read_dhcsr_atomic_sticky(target);
 		if (retval != ERROR_OK)
 			return retval;
-		cortex_m_cumulate_dhcsr_sticky(cortex_m, cortex_m->dcb_dhcsr);
 		if (cortex_m->dcb_dhcsr & S_REGRDY)
 			break;
 		if (timeval_ms() > then + DHCSR_S_REGRDY_TIMEOUT) {
