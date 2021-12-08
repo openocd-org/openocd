@@ -273,6 +273,7 @@ static int vsllink_quit(void)
 	vsllink_free_buffer();
 	vsllink_usb_close(vsllink_handle);
 
+	libusb_exit(vsllink_handle->libusb_ctx);
 	free(vsllink_handle);
 
 	return ERROR_OK;
