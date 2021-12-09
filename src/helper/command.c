@@ -1145,6 +1145,7 @@ COMMAND_HANDLER(handle_sleep_command)
 		int64_t then = timeval_ms();
 		while (timeval_ms() - then < (int64_t)duration) {
 			target_call_timer_callbacks_now();
+			keep_alive();
 			usleep(1000);
 		}
 	} else
