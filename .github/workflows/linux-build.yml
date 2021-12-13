@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
-      - run: sudo apt-get install clang gcc-multilib
+      - run: sudo apt-get install clang gcc-multilib libusb-1.0-0-dev
       - run: ./bootstrap
       - run: ./configure --enable-remote-bitbang --enable-jtag_vpi --disable-target64 --enable-ftdi-oscan1
       - run: make
@@ -28,6 +28,7 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
+      - run: sudo apt-get install libusb-1.0-0-dev
       - run: ./bootstrap
       - run: ./configure --enable-remote-bitbang --enable-jtag_vpi --enable-ftdi-oscan1
       - run: make
