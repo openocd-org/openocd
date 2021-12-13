@@ -28,7 +28,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
+      - run: sudo apt-get install libusb-1.0-0 libusb-1.0-0-dev
       - run: ./bootstrap
-      - run: ./configure --enable-remote-bitbang --enable-jtag_vpi
+      - run: ./configure --enable-remote-bitbang --enable-jtag_vpi --enable-ftdi-oscan1
       - run: make
       - run: file src/openocd | grep 64-bit
