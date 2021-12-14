@@ -1337,7 +1337,7 @@ static const struct command_registration ftdi_subcommand_handlers[] = {
 	},
 #if BUILD_FTDI_OSCAN1 == 1
 	{
-		.name = "ftdi_oscan1_mode",
+		.name = "oscan1_mode",
 		.handler = &ftdi_handle_oscan1_mode_command,
 		.mode = COMMAND_ANY,
 		.help = "set to 'on' to use OSCAN1 mode for signaling, otherwise 'off' (default is 'off')",
