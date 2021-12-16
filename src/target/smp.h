@@ -25,6 +25,9 @@
 #define foreach_smp_target(pos, head) \
 	list_for_each_entry(pos, head, lh)
 
+#define foreach_smp_target_direction(forward, pos, head) \
+	list_for_each_entry_direction(forward, pos, head, lh)
+
 extern const struct command_registration smp_command_handlers[];
 
 int gdb_read_smp_packet(struct connection *connection,
