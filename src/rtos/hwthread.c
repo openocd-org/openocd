@@ -23,6 +23,7 @@
 #include "target/target.h"
 #include "target/target_type.h"
 #include "target/register.h"
+#include <target/smp.h>
 #include "rtos.h"
 #include "helper/log.h"
 #include "helper/types.h"
@@ -107,7 +108,7 @@ static int hwthread_update_threads(struct rtos *rtos)
 
 	/* determine the number of "threads" */
 	if (target->smp) {
-		for (head = target->head; head; head = head->next) {
+		foreach_smp_target(head, target->smp_targets) {
 			struct target *curr = head->target;
 
 			if (!target_was_examined(curr))
@@ -123,7 +124,7 @@ static int hwthread_update_threads(struct rtos *rtos)
 
 	if (target->smp) {
 		/* loop over all threads */
-		for (head = target->head; head; head = head->next) {
+		foreach_smp_target(head, target->smp_targets) {
 			struct target *curr = head->target;
 
 			if (!target_was_examined(curr))
@@ -218,7 +219,8 @@ static struct target *hwthread_find_thread(struct target *target, int64_t thread
 	if (!target)
 		return NULL;
 	if (target->smp) {
-		for (struct target_list *head = target->head; head; head = head->next) {
+		struct target_list *head;
+		foreach_smp_target(head, target->smp_targets) {
 			if (thread_id == threadid_from_target(head->target))
 				return head->target;
 		}

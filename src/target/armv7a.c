@@ -38,6 +38,7 @@
 #include "arm_opcodes.h"
 #include "target.h"
 #include "target_type.h"
+#include "smp.h"
 
 static void armv7a_show_fault_registers(struct target *target)
 {
@@ -193,8 +194,7 @@ done:
 static int armv7a_l2x_cache_init(struct target *target, uint32_t base, uint32_t way)
 {
 	struct armv7a_l2x_cache *l2x_cache;
-	struct target_list *head = target->head;
-	struct target *curr;
+	struct target_list *head;
 
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	l2x_cache = calloc(1, sizeof(struct armv7a_l2x_cache));
@@ -207,15 +207,14 @@ static int armv7a_l2x_cache_init(struct target *target, uint32_t base, uint32_t 
 	armv7a->armv7a_mmu.armv7a_cache.outer_cache = l2x_cache;
 	/*  initialize all target in this cluster (smp target)
 	 *  l2 cache must be configured after smp declaration */
-	while (head) {
-		curr = head->target;
+	foreach_smp_target(head, target->smp_targets) {
+		struct target *curr = head->target;
 		if (curr != target) {
 			armv7a = target_to_armv7a(curr);
 			if (armv7a->armv7a_mmu.armv7a_cache.outer_cache)
 				LOG_ERROR("smp target : outer cache already initialized\n");
 			armv7a->armv7a_mmu.armv7a_cache.outer_cache = l2x_cache;
 		}
-		head = head->next;
 	}
 	return JIM_OK;
 }

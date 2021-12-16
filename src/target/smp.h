@@ -19,10 +19,11 @@
 #ifndef OPENOCD_TARGET_SMP_H
 #define OPENOCD_TARGET_SMP_H
 
+#include <helper/list.h>
 #include "server/server.h"
 
 #define foreach_smp_target(pos, head) \
-	for (pos = head; (pos); pos = pos->next)
+	list_for_each_entry(pos, head, lh)
 
 extern const struct command_registration smp_command_handlers[];
 

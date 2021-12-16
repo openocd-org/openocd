@@ -23,6 +23,7 @@
 #include "armv8_cache.h"
 #include "armv8_dpm.h"
 #include "armv8_opcodes.h"
+#include "smp.h"
 
 /* CLIDR cache types */
 #define CACHE_LEVEL_HAS_UNIFIED_CACHE	0x4
@@ -250,15 +251,12 @@ static int  armv8_flush_all_data(struct target *target)
 		/*  look if all the other target have been flushed in order to flush level
 		 *  2 */
 		struct target_list *head;
-		struct target *curr;
-		head = target->head;
-		while (head) {
-			curr = head->target;
+		foreach_smp_target(head, target->smp_targets) {
+			struct target *curr = head->target;
 			if (curr->state == TARGET_HALTED) {
 				LOG_INFO("Wait flushing data l1 on core %" PRId32, curr->coreid);
 				retval = _armv8_flush_all_data(curr);
 			}
-			head = head->next;
 		}
 	} else
 		retval = _armv8_flush_all_data(target);

@@ -2280,7 +2280,7 @@ static int smp_reg_list_noread(struct target *target,
 	*combined_list_size = 0;
 
 	struct target_list *head;
-	foreach_smp_target(head, target->head) {
+	foreach_smp_target(head, target->smp_targets) {
 		struct reg **reg_list = NULL;
 		int reg_list_size;
 		int result = target_get_gdb_reg_list_noread(head->target, &reg_list,
@@ -2330,7 +2330,7 @@ static int smp_reg_list_noread(struct target *target,
 	}
 
 	/* Now warn the user about any registers that weren't found in every target. */
-	foreach_smp_target(head, target->head) {
+	foreach_smp_target(head, target->smp_targets) {
 		struct reg **reg_list = NULL;
 		int reg_list_size;
 		int result = target_get_gdb_reg_list_noread(head->target, &reg_list,
@@ -3659,13 +3659,10 @@ static int gdb_target_start(struct target *target, const char *port)
 	/* initialize all targets gdb service with the same pointer */
 	{
 		struct target_list *head;
-		struct target *curr;
-		head = target->head;
-		while (head) {
-			curr = head->target;
+		foreach_smp_target(head, target->smp_targets) {
+			struct target *curr = head->target;
 			if (curr != target)
 				curr->gdb_service = gdb_service;
-			head = head->next;
 		}
 	}
 	return ret;

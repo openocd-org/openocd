@@ -30,6 +30,7 @@
 #include "rtos.h"
 #include "rtos_standard_stackings.h"
 #include <target/register.h>
+#include <target/smp.h>
 #include "server/gdb_server.h"
 
 #define LINUX_USER_KERNEL_BORDER 0xc0000000
@@ -191,16 +192,14 @@ static int linux_os_thread_reg_list(struct rtos *rtos,
 	/*  search target to perform the access  */
 	struct reg **gdb_reg_list;
 	struct target_list *head;
-	head = target->head;
 	found = 0;
-	do {
+	foreach_smp_target(head, target->smp_targets) {
 		if (head->target->coreid == next->core_id) {
 			target = head->target;
 			found = 1;
 			break;
 		}
-		head = head->next;
-	} while (head);
+	}
 
 	if (found == 0) {
 		LOG_ERROR
@@ -397,7 +396,6 @@ static int get_name(struct target *target, struct threads *t)
 static int get_current(struct target *target, int create)
 {
 	struct target_list *head;
-	head = target->head;
 	uint8_t *buf;
 	uint32_t val;
 	uint32_t ti_addr;
@@ -413,7 +411,7 @@ static int get_current(struct target *target, int create)
 		ctt = ctt->next;
 	}
 
-	while (head) {
+	foreach_smp_target(head, target->smp_targets) {
 		struct reg **reg_list;
 		int reg_list_size;
 		int retval;
@@ -474,7 +472,6 @@ static int get_current(struct target *target, int create)
 		}
 
 		free(reg_list);
-		head = head->next;
 	}
 
 	free(buffer);
@@ -1394,9 +1391,8 @@ static int linux_os_smp_init(struct target *target)
 	struct linux_os *os_linux =
 		(struct linux_os *)rtos->rtos_specific_params;
 	struct current_thread *ct;
-	head = target->head;
 
-	while (head) {
+	foreach_smp_target(head, target->smp_targets) {
 		if (head->target->rtos != rtos) {
 			struct linux_os *smp_os_linux =
 				(struct linux_os *)head->target->rtos->rtos_specific_params;
@@ -1413,8 +1409,6 @@ static int linux_os_smp_init(struct target *target)
 			os_linux->nr_cpus++;
 			free(smp_os_linux);
 		}
-
-		head = head->next;
 	}
 
 	return ERROR_OK;
