@@ -1474,7 +1474,7 @@ static void semihosting_set_field(struct target *target, uint64_t value,
 /* -------------------------------------------------------------------------
  * Common semihosting commands handlers. */
 
-static __COMMAND_HANDLER(handle_common_semihosting_command)
+COMMAND_HANDLER(handle_common_semihosting_command)
 {
 	struct target *target = get_current_target(CMD_CTX);
 
@@ -1515,7 +1515,7 @@ static __COMMAND_HANDLER(handle_common_semihosting_command)
 	return ERROR_OK;
 }
 
-static __COMMAND_HANDLER(handle_common_semihosting_fileio_command)
+COMMAND_HANDLER(handle_common_semihosting_fileio_command)
 {
 	struct target *target = get_current_target(CMD_CTX);
 
@@ -1545,7 +1545,7 @@ static __COMMAND_HANDLER(handle_common_semihosting_fileio_command)
 	return ERROR_OK;
 }
 
-static __COMMAND_HANDLER(handle_common_semihosting_cmdline)
+COMMAND_HANDLER(handle_common_semihosting_cmdline)
 {
 	struct target *target = get_current_target(CMD_CTX);
 	unsigned int i;
@@ -1578,7 +1578,7 @@ static __COMMAND_HANDLER(handle_common_semihosting_cmdline)
 	return ERROR_OK;
 }
 
-static __COMMAND_HANDLER(handle_common_semihosting_resumable_exit_command)
+COMMAND_HANDLER(handle_common_semihosting_resumable_exit_command)
 {
 	struct target *target = get_current_target(CMD_CTX);
 
