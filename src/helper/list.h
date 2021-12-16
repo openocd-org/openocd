@@ -657,6 +657,20 @@ static inline void list_splice_tail_init(struct list_head *list,
 	     pos = list_prev_entry(pos, member))
 
 /**
+ * list_for_each_entry_direction - iterate forward/backward over list of given type
+ * @param forward the iterate direction, true for forward, false for backward.
+ * @param pos     the type * to use as a loop cursor.
+ * @param head    the head for your list.
+ * @param member  the name of the list_head within the struct.
+ */
+#define list_for_each_entry_direction(forward, pos, head, member)		\
+	for (pos = forward ? list_first_entry(head, typeof(*pos), member)	\
+					   : list_last_entry(head, typeof(*pos), member);	\
+		 !list_entry_is_head(pos, head, member);						\
+		 pos = forward ? list_next_entry(pos, member)					\
+					   : list_prev_entry(pos, member))
+
+/**
  * list_prepare_entry - prepare a pos entry for use in list_for_each_entry_continue()
  * @param pos    the type * to use as a start point
  * @param head   the head of the list
