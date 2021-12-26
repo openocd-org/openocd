@@ -738,15 +738,16 @@ static int stm32x_probe(struct flash_bank *bank)
 		break;
 	case 0x444: /* stm32f03x, gd32e50x */
 	case 0x445: /* stm32f04x */
-		/* explicitly for our gd32e503 case! */
+		/* explicitly for our gd32e503 case */
 		if (device_id == 0x444 && rev_id == 0x2003) {
 			page_size = 8192; /* flash page size is 8Kbyte */
-			stm32x_info->ppage_size = 1; /* 1 page per protection block */
+			stm32x_info->ppage_size = 1; /* 1 page per protection block, except for pages 31-63 */
 			max_flash_size_in_kb = 512;
-			stm32x_info->user_data_offset = 2; //to the right of user_data there are only 2 bits (SPC, OBERR)
-			stm32x_info->option_offset = 10; //to the right of DATA, the are 10 bits.
+			stm32x_info->user_data_offset = 2; /* to the right of user_data there are only 2 bits (SPC, OBERR) */
+			stm32x_info->option_offset = 10; /* to the right of DATA, the are 10 bits */
 			break;
-		} else { 
+		} else {
+			/* stm32f03x, stm32f04x */
 			page_size = 1024;
 			stm32x_info->ppage_size = 4;
 			max_flash_size_in_kb = 32;
@@ -934,8 +935,8 @@ static int stm32x_probe(struct flash_bank *bank)
 
 	/* calculate number of write protection blocks */
 	int num_prot_blocks = num_pages / stm32x_info->ppage_size;
-	if (num_prot_blocks > 64)
-		num_prot_blocks = 64;
+	if (num_prot_blocks > 32)
+		num_prot_blocks = 32;
 
 	bank->num_prot_blocks = num_prot_blocks;
 	bank->prot_blocks = alloc_block_array(0, stm32x_info->ppage_size * page_size, num_prot_blocks);
