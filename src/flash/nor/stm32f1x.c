@@ -643,6 +643,9 @@ static int stm32x_get_device_id(struct flash_bank *bank, uint32_t *device_id)
 	case CORTEX_M23_PARTNO: /* GD32E23x devices */
 		device_id_register = 0x40015800;
 		break;
+	case CORTEX_M33_PARTNO: /* GD32E50x devices */
+		device_id_register = 0xE0044000;
+		break;
 	default:
 		LOG_ERROR("Cannot identify target as a stm32x");
 		return ERROR_FAIL;
@@ -678,6 +681,9 @@ static int stm32x_get_flash_size(struct flash_bank *bank, uint16_t *flash_size_i
 		flash_size_reg = 0x1FFFF7CC;
 		break;
 	case CORTEX_M23_PARTNO: /* GD32E23x devices */
+		flash_size_reg = 0x1FFFF7E0;
+		break;
+	case CORTEX_M33_PARTNO: /* GD32E50x devices */
 		flash_size_reg = 0x1FFFF7E0;
 		break;
 	default:
@@ -730,15 +736,25 @@ static int stm32x_probe(struct flash_bank *bank)
 		stm32x_info->default_rdp = 0xAA;
 		stm32x_info->can_load_options = true;
 		break;
-	case 0x444: /* stm32f03x */
+	case 0x444: /* stm32f03x, gd32e50x */
 	case 0x445: /* stm32f04x */
-		page_size = 1024;
-		stm32x_info->ppage_size = 4;
-		max_flash_size_in_kb = 32;
-		stm32x_info->user_data_offset = 16;
-		stm32x_info->option_offset = 6;
-		stm32x_info->default_rdp = 0xAA;
-		stm32x_info->can_load_options = true;
+		/* explicitly for our gd32e503 case! */
+		if (device_id == 0x444 && rev_id == 0x2003) {
+			page_size = 8192; /* flash page size is 8Kbyte */
+			stm32x_info->ppage_size = 1; /* 1 page per protection block */
+			max_flash_size_in_kb = 512;
+			stm32x_info->user_data_offset = 2; //to the right of user_data there are only 2 bits (SPC, OBERR)
+			stm32x_info->option_offset = 10; //to the right of DATA, the are 10 bits.
+			break;
+		} else { 
+			page_size = 1024;
+			stm32x_info->ppage_size = 4;
+			max_flash_size_in_kb = 32;
+			stm32x_info->user_data_offset = 16;
+			stm32x_info->option_offset = 6;
+			stm32x_info->default_rdp = 0xAA;
+			stm32x_info->can_load_options = true;
+		}
 		break;
 	case 0x448: /* stm32f07x */
 		page_size = 2048;
@@ -918,8 +934,8 @@ static int stm32x_probe(struct flash_bank *bank)
 
 	/* calculate number of write protection blocks */
 	int num_prot_blocks = num_pages / stm32x_info->ppage_size;
-	if (num_prot_blocks > 32)
-		num_prot_blocks = 32;
+	if (num_prot_blocks > 64)
+		num_prot_blocks = 64;
 
 	bank->num_prot_blocks = num_prot_blocks;
 	bank->prot_blocks = alloc_block_array(0, stm32x_info->ppage_size * page_size, num_prot_blocks);
@@ -1154,8 +1170,13 @@ static int get_stm32x_info(struct flash_bank *bank, struct command_invocation *c
 		break;
 
 	case 0x444:
-		device_str = "STM32F03x";
-		rev_str = get_stm32f0_revision(rev_id);
+		/* GD32E50x */
+		if (rev_id == 0x2003) {
+			device_str = "GD32E50x";
+		} else {
+			device_str = "STM32F03x";
+			rev_str = get_stm32f0_revision(rev_id);
+		}
 		break;
 
 	case 0x440:
