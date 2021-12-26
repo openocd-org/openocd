@@ -122,5 +122,6 @@ proc stm32u5x args { eval stm32l4x $args }
 proc stm32wbx args { eval stm32l4x $args }
 proc stm32wlx args { eval stm32l4x $args }
 
-# gd32e23x uses the same flash driver as the stm32f1x
+# gd32e23x and gd32e50x use the same flash driver as the stm32f1x
 proc gd32e23x args { eval stm32f1x $args }
+proc gd32e50x args { eval stm32f1x $args }
