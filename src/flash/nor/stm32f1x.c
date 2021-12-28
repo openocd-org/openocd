@@ -743,9 +743,8 @@ static int stm32x_probe(struct flash_bank *bank)
 			page_size = 8192; /* flash page size is 8Kbyte */
 			stm32x_info->ppage_size = 1; /* 1 page per protection block, except for pages 31-63 */
 			max_flash_size_in_kb = 512;
-			stm32x_info->user_data_offset = 2; /* to the right of user_data there are only 2 bits (SPC, OBERR) */
-			stm32x_info->option_offset = 10; /* to the right of DATA, the are 10 bits */
-			break;
+			stm32x_info->user_data_offset = 10; /* same as in GD32F103 */
+			stm32x_info->option_offset = 0;
 		} else {
 			/* stm32f03x, stm32f04x */
 			page_size = 1024;
