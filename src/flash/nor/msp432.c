@@ -335,8 +335,9 @@ static int msp432_init(struct flash_bank *bank)
 	}
 
 	/* Check for working area to use for flash helper algorithm */
-	if (msp432_bank->working_area)
-		target_free_working_area(target, msp432_bank->working_area);
+	target_free_working_area(target, msp432_bank->working_area);
+	msp432_bank->working_area = NULL;
+
 	retval = target_alloc_working_area(target, ALGO_WORKING_SIZE,
 				&msp432_bank->working_area);
 	if (retval != ERROR_OK)

@@ -140,8 +140,9 @@ static int cc26xx_init(struct flash_bank *bank)
 		return retval;
 
 	/* Check for working area to use for flash helper algorithm */
-	if (cc26xx_bank->working_area)
-		target_free_working_area(target, cc26xx_bank->working_area);
+	target_free_working_area(target, cc26xx_bank->working_area);
+	cc26xx_bank->working_area = NULL;
+
 	retval = target_alloc_working_area(target, cc26xx_bank->algo_working_size,
 				&cc26xx_bank->working_area);
 	if (retval != ERROR_OK)
@@ -158,6 +159,7 @@ static int cc26xx_init(struct flash_bank *bank)
 		LOG_ERROR("%s: Failed to load flash helper algorithm",
 			cc26xx_bank->family_name);
 		target_free_working_area(target, cc26xx_bank->working_area);
+		cc26xx_bank->working_area = NULL;
 		return retval;
 	}
 
@@ -172,6 +174,7 @@ static int cc26xx_init(struct flash_bank *bank)
 		LOG_ERROR("%s: Failed to start flash helper algorithm",
 			cc26xx_bank->family_name);
 		target_free_working_area(target, cc26xx_bank->working_area);
+		cc26xx_bank->working_area = NULL;
 		return retval;
 	}
 

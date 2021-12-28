@@ -523,7 +523,7 @@ static int fespi_write(struct flash_bank *bank, const uint8_t *buffer,
 		}
 	}
 
-	int xlen = riscv_xlen(target);
+	unsigned int xlen = riscv_xlen(target);
 	struct working_area *algorithm_wa = NULL;
 	struct working_area *data_wa = NULL;
 	const uint8_t *bin;
@@ -547,19 +547,14 @@ static int fespi_write(struct flash_bank *bank, const uint8_t *buffer,
 			algorithm_wa = NULL;
 
 		} else {
-			data_wa_size = MIN(target->working_area_size - algorithm_wa->size, count);
-			while (1) {
-				if (data_wa_size < 128) {
-					LOG_WARNING("Couldn't allocate data working area.");
-					target_free_working_area(target, algorithm_wa);
-					algorithm_wa = NULL;
-				}
-				if (target_alloc_working_area_try(target, data_wa_size, &data_wa) ==
-						ERROR_OK) {
-					break;
-				}
-
-				data_wa_size = data_wa_size * 3 / 4;
+			data_wa_size = MIN(target_get_working_area_avail(target), count);
+			if (data_wa_size < 128) {
+				LOG_WARNING("Couldn't allocate data working area.");
+				target_free_working_area(target, algorithm_wa);
+				algorithm_wa = NULL;
+			} else if (target_alloc_working_area(target, data_wa_size, &data_wa) != ERROR_OK) {
+				target_free_working_area(target, algorithm_wa);
+				algorithm_wa = NULL;
 			}
 		}
 	} else {
@@ -612,9 +607,9 @@ static int fespi_write(struct flash_bank *bank, const uint8_t *buffer,
 				goto err;
 			}
 
-			int algorithm_result = buf_get_u64(reg_params[0].value, 0, xlen);
+			uint64_t algorithm_result = buf_get_u64(reg_params[0].value, 0, xlen);
 			if (algorithm_result != 0) {
-				LOG_ERROR("Algorithm returned error %d", algorithm_result);
+				LOG_ERROR("Algorithm returned error %" PRId64, algorithm_result);
 				retval = ERROR_FAIL;
 				goto err;
 			}
@@ -666,10 +661,8 @@ static int fespi_write(struct flash_bank *bank, const uint8_t *buffer,
 	return ERROR_OK;
 
 err:
-	if (algorithm_wa) {
-		target_free_working_area(target, data_wa);
-		target_free_working_area(target, algorithm_wa);
-	}
+	target_free_working_area(target, data_wa);
+	target_free_working_area(target, algorithm_wa);
 
 	/* Switch to HW mode before return to prompt */
 	if (fespi_enable_hw_mode(bank) != ERROR_OK)

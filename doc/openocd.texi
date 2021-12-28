@@ -1359,6 +1359,16 @@ Read the OpenOCD source code (and Developer's Guide)
 if you have a new kind of hardware interface
 and need to provide a driver for it.
 
+@deffn {Command} {find} 'filename'
+Prints full path to @var{filename} according to OpenOCD search rules.
+@end deffn
+
+@deffn {Command} {ocd_find} 'filename'
+Prints full path to @var{filename} according to OpenOCD search rules. This
+is a low level function used by the @command{find}. Usually you want
+to use @command{find}, instead.
+@end deffn
+
 @section Board Config Files
 @cindex config file, board
 @cindex board config file
@@ -2040,6 +2050,19 @@ may access or activate TAPs.
 After it leaves this stage, configuration commands may no
 longer be issued.
 
+@deffn {Command} {command mode} [command_name]
+Returns the command modes allowed by a command: 'any', 'config', or
+'exec'. If no command is specified, returns the current command
+mode. Returns 'unknown' if an unknown command is given. Command can be
+multiple tokens. (command valid any time)
+
+In this document, the modes are described as stages, 'config' and
+'exec' mode correspond configuration stage and run stage. 'any' means
+the command can be executed in either
+stages. @xref{configurationstage,,Configuration Stage}, and
+@xref{enteringtherunstage,,Entering the Run Stage}.
+@end deffn
+
 @anchor{enteringtherunstage}
 @section Entering the Run Stage
 
@@ -2075,11 +2098,29 @@ If this command does not appear in any startup/configuration file
 OpenOCD executes the command for you after processing all
 configuration files and/or command line options.
 
-@b{NOTE:} This command normally occurs at or near the end of your
+@b{NOTE:} This command normally occurs near the end of your
 openocd.cfg file to force OpenOCD to ``initialize'' and make the
 targets ready. For example: If your openocd.cfg file needs to
 read/write memory on your target, @command{init} must occur before
 the memory read/write commands. This includes @command{nand probe}.
+
+@command{init} calls the following internal OpenOCD commands to initialize
+corresponding subsystems:
+@deffn {Config Command} {target init}
+@deffnx {Command} {transport init}
+@deffnx {Command} {dap init}
+@deffnx {Config Command} {flash init}
+@deffnx {Config Command} {nand init}
+@deffnx {Config Command} {pld init}
+@deffnx {Command} {tpiu init}
+@end deffn
+@end deffn
+
+@deffn {Config Command} {noinit}
+Prevent OpenOCD from implicit @command{init} call at the end of startup.
+Allows issuing configuration commands over telnet or Tcl connection.
+When you are done with configuration use @command{init} to enter
+the run stage.
 @end deffn
 
 @deffn {Overridable Procedure} {jtag_init}
@@ -2446,6 +2487,16 @@ interface string or for user class interface.
 
 @deffn {Command} {cmsis-dap info}
 Display various device information, like hardware version, firmware version, current bus status.
+@end deffn
+
+@deffn {Command} {cmsis-dap cmd} number number ...
+Execute an arbitrary CMSIS-DAP command. Use for adapter testing or for handling
+of an adapter vendor specific command from a Tcl script.
+
+Take given numbers as bytes, assemble a CMSIS-DAP protocol command packet
+from them and send it to the adapter. The first 4 bytes of the adapter response
+are logged.
+See @url{https://arm-software.github.io/CMSIS_5/DAP/html/group__DAP__Commands__gr.html}
 @end deffn
 @end deffn
 
@@ -3433,6 +3484,17 @@ Parameters are currently the same as "jtag newtap" but this is
 expected to change.
 @end deffn
 
+@cindex SWD multi-drop
+The newer SWD devices (SW-DP v2 or SWJ-DP v2) support the multi-drop extension
+of SWD protocol: two or more devices can be connected to one SWD adapter.
+SWD transport works in multi-drop mode if @ref{dap_create,DAP} is configured
+with both @code{-dp-id} and @code{-instance-id} parameters regardless how many
+DAPs are created.
+
+Not all adapters and adapter drivers support SWD multi-drop. Only the following
+adapter drivers are SWD multi-drop capable:
+cmsis_dap (use an adapter with CMSIS-DAP version 2.0), ftdi, all bitbang based.
+
 @subsection SPI Transport
 @cindex SPI
 @cindex Serial Peripheral Interface
@@ -4346,6 +4408,7 @@ instead of "@option{-chain-position} @var{dotted.name}" when the target is creat
 
 The @command{dap} command group supports the following sub-commands:
 
+@anchor{dap_create}
 @deffn {Command} {dap create} dap_name @option{-chain-position} dotted.name configparams...
 Declare a DAP instance named @var{dap_name} linked to the JTAG tap
 @var{dotted.name}. This also creates a new command (@command{dap_name})
@@ -6172,6 +6235,21 @@ USER PAGE: 0xAEECFF80FE9A9239
 All members of the ATSAMV7x, ATSAMS70, and ATSAME70 families from
 Atmel include internal flash and use ARM's Cortex-M7 core.
 This driver uses the same command names/syntax as @xref{at91sam3}.
+
+@example
+flash bank $_FLASHNAME atsamv 0x00400000 0 0 0 $_TARGETNAME
+@end example
+
+@deffn {Command} {atsamv gpnvm} [@option{show} [@option{all}|number]]
+@deffnx {Command} {atsamv gpnvm} (@option{clr}|@option{set}) number
+With no parameters, @option{show} or @option{show all},
+shows the status of all GPNVM bits.
+With @option{show} @var{number}, displays that bit.
+
+With @option{set} @var{number} or @option{clear} @var{number},
+modifies that GPNVM bit.
+@end deffn
+
 @end deffn
 
 @deffn {Flash Driver} {at91sam7}
@@ -6802,9 +6880,11 @@ flash bank $_FLASHNAME npcx 0x64000000 0 0 0 $_TARGETNAME
 
 @deffn {Flash Driver} {nrf5}
 All members of the nRF51 microcontroller families from Nordic Semiconductor
-include internal flash and use ARM Cortex-M0 core.
-Also, the nRF52832 microcontroller from Nordic Semiconductor, which include
-internal flash and use an ARM Cortex-M4F core.
+include internal flash and use ARM Cortex-M0 core. nRF52 family powered
+by ARM Cortex-M4 or M4F core is supported too. nRF52832 is fully supported
+including BPROT flash protection scheme. nRF52833 and nRF52840 devices are
+supported with the exception of security extensions (flash access control list
+- ACL).
 
 @example
 flash bank $_FLASHNAME nrf5 0 0x00000000 0 0 $_TARGETNAME
@@ -8211,6 +8291,13 @@ In most cases, no such restriction is listed; this indicates commands
 which are only available after the configuration stage has completed.
 @end deffn
 
+@deffn {Command} {usage} [string]
+With no parameters, prints usage text for all commands.  Otherwise,
+prints all usage text of which command, help text, and usage text
+containing @var{string}.
+Not every command provides helptext.
+@end deffn
+
 @deffn {Command} {sleep} msec [@option{busy}]
 Wait for at least @var{msec} milliseconds before resuming.
 If @option{busy} is passed, busy-wait instead of sleeping.
@@ -8698,6 +8785,14 @@ Displays a string identifying the version of this OpenOCD server.
 @deffn {Command} {virt2phys} virtual_address
 Requests the current target to map the specified @var{virtual_address}
 to its corresponding physical address, and displays the result.
+@end deffn
+
+@deffn {Command} {add_help_text} 'command_name' 'help-string'
+Add or replace help text on the given @var{command_name}.
+@end deffn
+
+@deffn {Command} {add_usage_text} 'command_name' 'help-string'
+Add or replace usage text on the given @var{command_name}.
 @end deffn
 
 @node Architecture and Core Commands
@@ -10163,31 +10258,52 @@ argument is passed, the raw buffer is dumped in base64 format, so that
 external tools can gather the data efficiently.
 @end deffn
 
-@deffn {Command} {riscv expose_csrs} n[-m|=name] [...]
+@deffn {Config Command} {riscv expose_csrs} n[-m|=name] [...]
 Configure which CSRs to expose in addition to the standard ones. The CSRs to expose
 can be specified as individual register numbers or register ranges (inclusive). For the
-individually listed CSRs, a human-readable name can optionally be set, which
-will get csr_ prepended to it. If no name is provided, the register will be
-named csr<n>.
-
-This command must be executed before `init`.
+individually listed CSRs, a human-readable name can optionally be set using the @code{n=name}
+syntax, which will get @code{csr_} prepended to it. If no name is provided, the register will be
+named @code{csr<n>}.
 
 By default OpenOCD attempts to expose only CSRs that are mentioned in a spec,
 and then only if the corresponding extension appears to be implemented. This
-command can be used if OpenOCD gets this wrong, or a target implements custom
+command can be used if OpenOCD gets this wrong, or if the target implements custom
 CSRs.
+
+@example
+# Expose a single RISC-V CSR number 128 under the name "csr128":
+$_TARGETNAME expose_csrs 128
+
+# Expose multiple RISC-V CSRs 128..132 under names "csr128" through "csr132":
+$_TARGETNAME expose_csrs 128-132
+
+# Expose a single RISC-V CSR number 1996 under custom name "csr_myregister":
+$_TARGETNAME expose_csrs 1996=myregister
+@end example
 @end deffn
 
-@deffn {Command} {riscv expose_custom} n[-m|=name] [...]
+@deffn {Config Command} {riscv expose_custom} n[-m|=name] [...]
 The RISC-V Debug Specification allows targets to expose custom registers
 through abstract commands. (See Section 3.5.1.1 in that document.) This command
 configures individual registers or register ranges (inclusive) that shall be exposed.
 Number 0 indicates the first custom register, whose abstract command number is 0xc000.
-For individually listed registers, a human-readable name can be optionally provided,
-which will get custom_ prepended to it. If no name is provided, the register will
-be named custom<n>.
+For individually listed registers, a human-readable name can be optionally provided
+using the @code{n=name} syntax, which will get @code{custom_} prepended to it. If no
+name is provided, the register will be named @code{custom<n>}.
 
-This command must be executed before `init`.
+@example
+# Expose one RISC-V custom register with number 0xc010 (0xc000 + 16)
+# under the name "custom16":
+$_TARGETNAME expose_custom 16
+
+# Expose a range of RISC-V custom registers with numbers 0xc010 .. 0xc018
+# (0xc000+16 .. 0xc000+24) under the names "custom16" through "custom24":
+$_TARGETNAME expose_custom 16-24
+
+# Expose one RISC-V custom register with number 0xc020 (0xc000 + 32) under
+# user-defined name "custom_myregister":
+$_TARGETNAME expose_custom 32=myregister
+@end example
 @end deffn
 
 @deffn {Command} {riscv memory_sample} bucket address|clear [size=4]
@@ -10216,18 +10332,27 @@ Set the maximum time to wait for a hart to come out of reset after reset is
 deasserted.
 @end deffn
 
-@deffn {Command} {riscv set_prefer_sba} on|off
-@emph{DEPRECATED -- avoid using this.
-Use the command @command{riscv set_mem_access} instead.}
-
-When on, prefer to use System Bus Access to access memory.  When off (default),
-prefer to use the Program Buffer to access memory.
-Abstract Memory Access will be used with the lowest priority.
+@deffn {Command} {riscv set_scratch_ram} none|[address]
+Set the address of 16 bytes of scratch RAM the debugger can use, or 'none'.
+This is used to access 64-bit floating point registers on 32-bit targets.
 @end deffn
 
 @deffn Command {riscv set_mem_access} method1 [method2] [method3]
-Specify which memory access methods shall be used, and in which order of priority.
-Method can be one of: 'progbuf', 'sysbus' or 'abstract'. Default: all methods enabled, and in this order.
+Specify which RISC-V memory access method(s) shall be used, and in which order
+of priority. At least one method must be specified.
+
+Available methods are:
+@itemize
+@item @code{progbuf} - Use RISC-V Debug Program Buffer to access memory.
+@item @code{sysbus} - Access memory via RISC-V Debug System Bus interface.
+@item @code{abstract} - Access memory via RISC-V Debug abstract commands.
+@end itemize
+
+By default, all memory access methods are enabled in the following order:
+@code{progbuf sysbus abstract}.
+
+This command can be used to change the memory access methods if the default
+behavior is not suitable for a particular target.
 @end deffn
 
 @deffn {Command} {riscv set_enable_virtual} on|off

@@ -315,7 +315,12 @@ static int swd_connect_single(struct adiv5_dap *dap)
 	int64_t timeout = timeval_ms() + 500;
 
 	do {
-		swd_send_sequence(dap, JTAG_TO_SWD);
+		if (dap->switch_through_dormant) {
+			swd_send_sequence(dap, JTAG_TO_DORMANT);
+			swd_send_sequence(dap, DORMANT_TO_SWD);
+		} else {
+			swd_send_sequence(dap, JTAG_TO_SWD);
+		}
 
 		/* Clear link state, including the SELECT cache. */
 		dap->do_reconnect = false;
@@ -330,6 +335,7 @@ static int swd_connect_single(struct adiv5_dap *dap)
 
 		alive_sleep(1);
 
+		dap->switch_through_dormant = !dap->switch_through_dormant;
 	} while (timeval_ms() < timeout);
 
 	if (retval != ERROR_OK) {
@@ -568,7 +574,12 @@ static void swd_quit(struct adiv5_dap *dap)
 		 * swd->switch_seq(DORMANT_TO_JTAG);
 		 */
 	} else {
-		swd->switch_seq(SWD_TO_JTAG);
+		if (dap->switch_through_dormant) {
+			swd->switch_seq(SWD_TO_DORMANT);
+			swd->switch_seq(DORMANT_TO_JTAG);
+		} else {
+			swd->switch_seq(SWD_TO_JTAG);
+		}
 	}
 
 	/* flush the queue to shift out the sequence before exit */

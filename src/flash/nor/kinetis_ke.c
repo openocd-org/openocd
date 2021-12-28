@@ -933,39 +933,6 @@ static int kinetis_ke_ftmrx_command(struct flash_bank *bank, uint8_t count,
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(kinetis_ke_securing_test)
-{
-	int result;
-	struct target *target = get_current_target(CMD_CTX);
-	struct flash_bank *bank = NULL;
-	uint32_t address;
-
-	uint8_t FCCOBIX[2], FCCOBHI[2], FCCOBLO[2], fstat;
-
-	result = get_flash_bank_by_addr(target, 0x00000000, true, &bank);
-	if (result != ERROR_OK)
-		return result;
-
-	assert(bank);
-
-	if (target->state != TARGET_HALTED) {
-		LOG_ERROR("Target not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
-
-	address = bank->base + 0x00000400;
-
-	FCCOBIX[0] = 0;
-	FCCOBHI[0] = FTMRX_CMD_ERASESECTOR;
-	FCCOBLO[0] = address >> 16;
-
-	FCCOBIX[1] = 1;
-	FCCOBHI[1] = address >> 8;
-	FCCOBLO[1] = address;
-
-	return kinetis_ke_ftmrx_command(bank, 2, FCCOBIX, FCCOBHI, FCCOBLO, &fstat);
-}
-
 static int kinetis_ke_erase(struct flash_bank *bank, unsigned int first,
 		unsigned int last)
 {
@@ -1241,23 +1208,16 @@ static const struct command_registration kinetis_ke_security_command_handlers[] 
 	{
 		.name = "check_security",
 		.mode = COMMAND_EXEC,
-		.help = "",
+		.help = "Check status of device security lock",
 		.usage = "",
 		.handler = kinetis_ke_check_flash_security_status,
 	},
 	{
 		.name = "mass_erase",
 		.mode = COMMAND_EXEC,
-		.help = "",
+		.help = "Issue a complete flash erase via the MDM-AP",
 		.usage = "",
 		.handler = kinetis_ke_mdm_mass_erase,
-	},
-	{
-		.name = "test_securing",
-		.mode = COMMAND_EXEC,
-		.help = "",
-		.usage = "",
-		.handler = kinetis_ke_securing_test,
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -1266,7 +1226,7 @@ static const struct command_registration kinetis_ke_exec_command_handlers[] = {
 	{
 		.name = "mdm",
 		.mode = COMMAND_ANY,
-		.help = "",
+		.help = "MDM-AP command group",
 		.usage = "",
 		.chain = kinetis_ke_security_command_handlers,
 	},
@@ -1284,7 +1244,7 @@ static const struct command_registration kinetis_ke_command_handler[] = {
 	{
 		.name = "kinetis_ke",
 		.mode = COMMAND_ANY,
-		.help = "Kinetis KE NAND flash controller commands",
+		.help = "Kinetis KE flash controller commands",
 		.usage = "",
 		.chain = kinetis_ke_exec_command_handlers,
 	},
