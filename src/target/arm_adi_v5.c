@@ -930,6 +930,7 @@ static const struct {
 #define DEVARCH_ID_MASK         (ARM_CS_C9_DEVARCH_ARCHITECT_MASK | ARM_CS_C9_DEVARCH_ARCHID_MASK)
 #define DEVARCH_MEM_AP          ARCH_ID(ARM_ID, 0x0A17)
 #define DEVARCH_ROM_C_0X9       ARCH_ID(ARM_ID, 0x0AF7)
+#define DEVARCH_UNKNOWN_V2      ARCH_ID(ARM_ID, 0x0A47)
 
 static const char *class0x9_devarch_description(uint32_t devarch)
 {
@@ -1844,8 +1845,16 @@ static int rtp_cs_component(enum coresight_access_mode mode, const struct rtp_op
 		if ((v.devarch & ARM_CS_C9_DEVARCH_PRESENT) == 0)
 			return ERROR_OK;
 
-		if (is_mem_ap && (v.devarch & DEVARCH_ID_MASK) == DEVARCH_MEM_AP)
-			*is_mem_ap = true;
+		if (is_mem_ap) {
+			if ((v.devarch & DEVARCH_ID_MASK) == DEVARCH_MEM_AP)
+				*is_mem_ap = true;
+
+			/* SoC-600 APv1 Adapter */
+			if ((v.devarch & DEVARCH_ID_MASK) == DEVARCH_UNKNOWN_V2 &&
+					ARM_CS_PIDR_DESIGNER(v.pid) == ARM_ID &&
+					ARM_CS_PIDR_PART(v.pid) == 0x9e5)
+				*is_mem_ap = true;
+		}
 
 		/* quit if not ROM table */
 		if ((v.devarch & DEVARCH_ID_MASK) != DEVARCH_ROM_C_0X9)
@@ -1880,7 +1889,7 @@ static int rtp_ap(const struct rtp_ops *ops, struct adiv5_ap *ap, int depth)
 
 		if (!is_mem_ap)
 			return ERROR_OK;
-		/* Continue for an ADIv6 MEM-AP */
+		/* Continue for an ADIv6 MEM-AP or SoC-600 APv1 Adapter */
 	}
 
 	/* Now we read ROM table ID registers, ref. ARM IHI 0029B sec  */
