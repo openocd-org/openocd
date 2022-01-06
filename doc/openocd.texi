@@ -4153,6 +4153,10 @@ option. When vendors put out multiple versions of a chip, or use the same
 JTAG-level ID for several largely-compatible chips, it may be more practical
 to ignore the version field than to update config files to handle all of
 the various chip IDs. The version field is defined as bit 28-31 of the IDCODE.
+@item @code{-ignore-bypass}
+@*Specify this to ignore the 'bypass' bit of the idcode. Some vendor put
+an invalid idcode regarding this bit. Specify this to ignore this bit and
+to not consider this tap in bypass mode.
 @item @code{-ircapture} @var{NUMBER}
 @*The bit pattern loaded by the TAP into the JTAG shift register
 on entry to the @sc{ircapture} state, such as 0x01.
