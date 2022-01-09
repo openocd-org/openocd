@@ -1641,17 +1641,11 @@ static int semihosting_common_fileio_end(struct target *target, int result,
 	 */
 	switch (semihosting->op) {
 		case SEMIHOSTING_SYS_WRITE:	/* 0x05 */
-			if (result < 0)
-				semihosting->result = fileio_info->param_3;
-			else
-				semihosting->result = 0;
-			break;
-
 		case SEMIHOSTING_SYS_READ:	/* 0x06 */
-			if (result == (int)fileio_info->param_3)
-				semihosting->result = 0;
-			if (result <= 0)
-				semihosting->result = fileio_info->param_3;
+			if (result < 0)
+				semihosting->result = fileio_info->param_3;  /* Zero bytes read/written. */
+			else
+				semihosting->result = (int64_t)fileio_info->param_3 - result;
 			break;
 
 		case SEMIHOSTING_SYS_SEEK:	/* 0x0a */
