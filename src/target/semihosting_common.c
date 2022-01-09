@@ -52,19 +52,35 @@
 #include <helper/log.h>
 #include <sys/stat.h>
 
+/**
+ * It is not possible to use O_... flags defined in sys/stat.h because they
+ * are not guaranteed to match the values defined by the GDB Remote Protocol.
+ * See https://sourceware.org/gdb/onlinedocs/gdb/Open-Flags.html#Open-Flags
+ */
+enum {
+	TARGET_O_RDONLY = 0x000,
+	TARGET_O_WRONLY = 0x001,
+	TARGET_O_RDWR   = 0x002,
+	TARGET_O_APPEND = 0x008,
+	TARGET_O_CREAT  = 0x200,
+	TARGET_O_TRUNC  = 0x400,
+	/* O_EXCL=0x800 is not required in this implementation. */
+};
+
+/* GDB remote protocol does not differentiate between text and binary open modes. */
 static const int open_modeflags[12] = {
-	O_RDONLY,
-	O_RDONLY | O_BINARY,
-	O_RDWR,
-	O_RDWR | O_BINARY,
-	O_WRONLY | O_CREAT | O_TRUNC,
-	O_WRONLY | O_CREAT | O_TRUNC | O_BINARY,
-	O_RDWR | O_CREAT | O_TRUNC,
-	O_RDWR | O_CREAT | O_TRUNC | O_BINARY,
-	O_WRONLY | O_CREAT | O_APPEND,
-	O_WRONLY | O_CREAT | O_APPEND | O_BINARY,
-	O_RDWR | O_CREAT | O_APPEND,
-	O_RDWR | O_CREAT | O_APPEND | O_BINARY
+	TARGET_O_RDONLY,
+	TARGET_O_RDONLY,
+	TARGET_O_RDWR,
+	TARGET_O_RDWR,
+	TARGET_O_WRONLY | TARGET_O_CREAT | TARGET_O_TRUNC,
+	TARGET_O_WRONLY | TARGET_O_CREAT | TARGET_O_TRUNC,
+	TARGET_O_RDWR   | TARGET_O_CREAT | TARGET_O_TRUNC,
+	TARGET_O_RDWR   | TARGET_O_CREAT | TARGET_O_TRUNC,
+	TARGET_O_WRONLY | TARGET_O_CREAT | TARGET_O_APPEND,
+	TARGET_O_WRONLY | TARGET_O_CREAT | TARGET_O_APPEND,
+	TARGET_O_RDWR   | TARGET_O_CREAT | TARGET_O_APPEND,
+	TARGET_O_RDWR   | TARGET_O_CREAT | TARGET_O_APPEND
 };
 
 static int semihosting_common_fileio_info(struct target *target,
