@@ -174,7 +174,7 @@ them. It is similar to this bash statement.
        EXPORT vn=`date`
 
 LINE 2 & 3
-       set $vn [expr (1024 * $x)]
+       set $vn [expr {1024 * $x}]
        global $vn
 
 In line 1, we dynamically created a variable name.  Here, we are
