@@ -587,6 +587,9 @@ int armv8_dpm_modeswitch(struct arm_dpm *dpm, enum arm_mode mode)
 	}
 
 	LOG_DEBUG("target_el = %i, last_el = %i", target_el, dpm->last_el);
+	if (dpm->last_el == target_el)
+		return ERROR_OK; /* nothing to do */
+
 	if (target_el > dpm->last_el) {
 		retval = dpm->instr_execute(dpm,
 				armv8_opcode(armv8, ARMV8_OPC_DCPS) | target_el);
