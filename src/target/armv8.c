@@ -78,6 +78,10 @@ static const struct {
 		.psr = ARM_MODE_HYP,
 	},
 	{
+		.name = "UND",
+		.psr = ARM_MODE_UND,
+	},
+	{
 		.name = "SYS",
 		.psr = ARM_MODE_SYS,
 	},

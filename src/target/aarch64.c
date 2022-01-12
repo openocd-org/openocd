@@ -102,6 +102,7 @@ static int aarch64_restore_system_control_reg(struct target *target)
 		case ARM_MODE_FIQ:
 		case ARM_MODE_IRQ:
 		case ARM_MODE_HYP:
+		case ARM_MODE_UND:
 		case ARM_MODE_SYS:
 			instr = ARMV4_5_MCR(15, 0, 0, 1, 0, 0);
 			break;
@@ -180,6 +181,7 @@ static int aarch64_mmu_modify(struct target *target, int enable)
 	case ARM_MODE_FIQ:
 	case ARM_MODE_IRQ:
 	case ARM_MODE_HYP:
+	case ARM_MODE_UND:
 	case ARM_MODE_SYS:
 		instr = ARMV4_5_MCR(15, 0, 0, 1, 0, 0);
 		break;
@@ -1049,6 +1051,7 @@ static int aarch64_post_debug_entry(struct target *target)
 	case ARM_MODE_FIQ:
 	case ARM_MODE_IRQ:
 	case ARM_MODE_HYP:
+	case ARM_MODE_UND:
 	case ARM_MODE_SYS:
 		instr = ARMV4_5_MRC(15, 0, 0, 1, 0, 0);
 		break;
