@@ -1094,53 +1094,80 @@ int dap_lookup_cs_component(struct adiv5_ap *ap,
 	return ERROR_OK;
 }
 
-static int dap_read_part_id(struct adiv5_ap *ap, target_addr_t component_base, uint32_t *cid, uint64_t *pid)
+/** Holds registers of a CoreSight component */
+struct cs_component_vals {
+	uint64_t pid;
+	uint32_t cid;
+	uint32_t devarch;
+	uint32_t devtype_memtype;
+};
+
+/**
+ * Read the CoreSight registers needed during ROM Table Parsing (RTP).
+ *
+ * @param ap             Pointer to AP containing the component.
+ * @param component_base On MEM-AP access method, base address of the component.
+ * @param v              Pointer to the struct holding the value of registers.
+ *
+ * @return ERROR_OK on success, else a fault code.
+ */
+static int rtp_read_cs_regs(struct adiv5_ap *ap, target_addr_t component_base,
+		struct cs_component_vals *v)
 {
 	assert(IS_ALIGNED(component_base, ARM_CS_ALIGN));
-	assert(ap && cid && pid);
+	assert(ap && v);
 
 	uint32_t cid0, cid1, cid2, cid3;
 	uint32_t pid0, pid1, pid2, pid3, pid4;
-	int retval;
+	int retval = ERROR_OK;
 
-	/* IDs are in last 4K section */
-	retval = mem_ap_read_u32(ap, component_base + ARM_CS_PIDR0, &pid0);
-	if (retval != ERROR_OK)
-		return retval;
-	retval = mem_ap_read_u32(ap, component_base + ARM_CS_PIDR1, &pid1);
-	if (retval != ERROR_OK)
-		return retval;
-	retval = mem_ap_read_u32(ap, component_base + ARM_CS_PIDR2, &pid2);
-	if (retval != ERROR_OK)
-		return retval;
-	retval = mem_ap_read_u32(ap, component_base + ARM_CS_PIDR3, &pid3);
-	if (retval != ERROR_OK)
-		return retval;
-	retval = mem_ap_read_u32(ap, component_base + ARM_CS_PIDR4, &pid4);
-	if (retval != ERROR_OK)
-		return retval;
-	retval = mem_ap_read_u32(ap, component_base + ARM_CS_CIDR0, &cid0);
-	if (retval != ERROR_OK)
-		return retval;
-	retval = mem_ap_read_u32(ap, component_base + ARM_CS_CIDR1, &cid1);
-	if (retval != ERROR_OK)
-		return retval;
-	retval = mem_ap_read_u32(ap, component_base + ARM_CS_CIDR2, &cid2);
-	if (retval != ERROR_OK)
-		return retval;
-	retval = mem_ap_read_u32(ap, component_base + ARM_CS_CIDR3, &cid3);
-	if (retval != ERROR_OK)
-		return retval;
+	/* sort by offset to gain speed */
 
-	retval = dap_run(ap->dap);
-	if (retval != ERROR_OK)
-		return retval;
+	/*
+	 * Registers DEVARCH and DEVTYPE are valid on Class 0x9 devices
+	 * only, but are at offset above 0xf00, so can be read on any device
+	 * without triggering error. Read them for eventual use on Class 0x9.
+	 */
+	if (retval == ERROR_OK)
+		retval = mem_ap_read_u32(ap, component_base + ARM_CS_C9_DEVARCH, &v->devarch);
 
-	*cid = (cid3 & 0xff) << 24
+	/* Same address as ARM_CS_C1_MEMTYPE */
+	if (retval == ERROR_OK)
+		retval = mem_ap_read_u32(ap, component_base + ARM_CS_C9_DEVTYPE, &v->devtype_memtype);
+
+	if (retval == ERROR_OK)
+		retval = mem_ap_read_u32(ap, component_base + ARM_CS_PIDR4, &pid4);
+
+	if (retval == ERROR_OK)
+		retval = mem_ap_read_u32(ap, component_base + ARM_CS_PIDR0, &pid0);
+	if (retval == ERROR_OK)
+		retval = mem_ap_read_u32(ap, component_base + ARM_CS_PIDR1, &pid1);
+	if (retval == ERROR_OK)
+		retval = mem_ap_read_u32(ap, component_base + ARM_CS_PIDR2, &pid2);
+	if (retval == ERROR_OK)
+		retval = mem_ap_read_u32(ap, component_base + ARM_CS_PIDR3, &pid3);
+
+	if (retval == ERROR_OK)
+		retval = mem_ap_read_u32(ap, component_base + ARM_CS_CIDR0, &cid0);
+	if (retval == ERROR_OK)
+		retval = mem_ap_read_u32(ap, component_base + ARM_CS_CIDR1, &cid1);
+	if (retval == ERROR_OK)
+		retval = mem_ap_read_u32(ap, component_base + ARM_CS_CIDR2, &cid2);
+	if (retval == ERROR_OK)
+		retval = mem_ap_read_u32(ap, component_base + ARM_CS_CIDR3, &cid3);
+
+	if (retval == ERROR_OK)
+		retval = dap_run(ap->dap);
+	if (retval != ERROR_OK) {
+		LOG_DEBUG("Failed read CoreSight registers");
+		return retval;
+	}
+
+	v->cid = (cid3 & 0xff) << 24
 			| (cid2 & 0xff) << 16
 			| (cid1 & 0xff) << 8
 			| (cid0 & 0xff);
-	*pid = (uint64_t)(pid4 & 0xff) << 32
+	v->pid = (uint64_t)(pid4 & 0xff) << 32
 			| (pid3 & 0xff) << 24
 			| (pid2 & 0xff) << 16
 			| (pid1 & 0xff) << 8
@@ -1449,10 +1476,9 @@ static int dap_devtype_display(struct command_invocation *cmd, uint32_t devtype)
 static int dap_rom_display(struct command_invocation *cmd,
 				struct adiv5_ap *ap, target_addr_t dbgbase, int depth)
 {
+	struct cs_component_vals v;
 	unsigned int rom_num_entries;
 	int retval;
-	uint64_t pid;
-	uint32_t cid;
 	char tabs[16] = "";
 
 	if (depth > 16) {
@@ -1466,29 +1492,29 @@ static int dap_rom_display(struct command_invocation *cmd,
 	target_addr_t base_addr = dbgbase & 0xFFFFFFFFFFFFF000ull;
 	command_print(cmd, "\t\tComponent base address " TARGET_ADDR_FMT, base_addr);
 
-	retval = dap_read_part_id(ap, base_addr, &cid, &pid);
+	retval = rtp_read_cs_regs(ap, base_addr, &v);
 	if (retval != ERROR_OK) {
 		command_print(cmd, "\t\tCan't read component, the corresponding core might be turned off");
 		return ERROR_OK; /* Don't abort recursion */
 	}
 
-	if (!is_valid_arm_cs_cidr(cid)) {
-		command_print(cmd, "\t\tInvalid CID 0x%08" PRIx32, cid);
+	if (!is_valid_arm_cs_cidr(v.cid)) {
+		command_print(cmd, "\t\tInvalid CID 0x%08" PRIx32, v.cid);
 		return ERROR_OK; /* Don't abort recursion */
 	}
 
 	/* component may take multiple 4K pages */
-	uint32_t size = ARM_CS_PIDR_SIZE(pid);
+	uint32_t size = ARM_CS_PIDR_SIZE(v.pid);
 	if (size > 0)
 		command_print(cmd, "\t\tStart address " TARGET_ADDR_FMT, base_addr - 0x1000 * size);
 
-	command_print(cmd, "\t\tPeripheral ID 0x%010" PRIx64, pid);
+	command_print(cmd, "\t\tPeripheral ID 0x%010" PRIx64, v.pid);
 
-	const unsigned int class = ARM_CS_CIDR_CLASS(cid);
-	const unsigned int part_num = ARM_CS_PIDR_PART(pid);
-	unsigned int designer_id = ARM_CS_PIDR_DESIGNER(pid);
+	const unsigned int class = ARM_CS_CIDR_CLASS(v.cid);
+	const unsigned int part_num = ARM_CS_PIDR_PART(v.pid);
+	unsigned int designer_id = ARM_CS_PIDR_DESIGNER(v.pid);
 
-	if (pid & ARM_CS_PIDR_JEDEC) {
+	if (v.pid & ARM_CS_PIDR_JEDEC) {
 		/* JEP106 code */
 		command_print(cmd, "\t\tDesigner is 0x%03x, %s",
 				designer_id, jep106_manufacturer(designer_id));
@@ -1504,44 +1530,29 @@ static int dap_rom_display(struct command_invocation *cmd,
 	command_print(cmd, "\t\tComponent class is 0x%x, %s", class, class_description[class]);
 
 	if (class == ARM_CS_CLASS_0X1_ROM_TABLE) {
-		uint32_t memtype;
-		retval = mem_ap_read_atomic_u32(ap, base_addr + ARM_CS_C1_MEMTYPE, &memtype);
-		if (retval != ERROR_OK)
-			return retval;
-
-		if (memtype & ARM_CS_C1_MEMTYPE_SYSMEM_MASK)
+		if (v.devtype_memtype & ARM_CS_C1_MEMTYPE_SYSMEM_MASK)
 			command_print(cmd, "\t\tMEMTYPE system memory present on bus");
 		else
 			command_print(cmd, "\t\tMEMTYPE system memory not present: dedicated debug bus");
 
 		rom_num_entries = 960;
 	} else if (class == ARM_CS_CLASS_0X9_CS_COMPONENT) {
-		uint32_t devtype;
-		retval = mem_ap_read_atomic_u32(ap, base_addr + ARM_CS_C9_DEVTYPE, &devtype);
-		if (retval != ERROR_OK)
-			return retval;
-
-		retval = dap_devtype_display(cmd, devtype);
+		retval = dap_devtype_display(cmd, v.devtype_memtype);
 		if (retval != ERROR_OK)
 			return retval;
 
 		/* REVISIT also show ARM_CS_C9_DEVID */
 
-		uint32_t devarch;
-		retval = mem_ap_read_atomic_u32(ap, base_addr + ARM_CS_C9_DEVARCH, &devarch);
-		if (retval != ERROR_OK)
-			return retval;
-
-		if ((devarch & ARM_CS_C9_DEVARCH_PRESENT) == 0)
+		if ((v.devarch & ARM_CS_C9_DEVARCH_PRESENT) == 0)
 			return ERROR_OK;
 
-		unsigned int architect_id = (devarch & ARM_CS_C9_DEVARCH_ARCHITECT_MASK) >> ARM_CS_C9_DEVARCH_ARCHITECT_SHIFT;
-		unsigned int revision = (devarch & ARM_CS_C9_DEVARCH_REVISION_MASK) >> ARM_CS_C9_DEVARCH_REVISION_SHIFT;
-		command_print(cmd, "\t\tDev Arch is 0x%08" PRIx32 ", %s \"%s\" rev.%u", devarch,
-				jep106_manufacturer(architect_id), class0x9_devarch_description(devarch),
+		unsigned int architect_id = (v.devarch & ARM_CS_C9_DEVARCH_ARCHITECT_MASK) >> ARM_CS_C9_DEVARCH_ARCHITECT_SHIFT;
+		unsigned int revision = (v.devarch & ARM_CS_C9_DEVARCH_REVISION_MASK) >> ARM_CS_C9_DEVARCH_REVISION_SHIFT;
+		command_print(cmd, "\t\tDev Arch is 0x%08" PRIx32 ", %s \"%s\" rev.%u", v.devarch,
+				jep106_manufacturer(architect_id), class0x9_devarch_description(v.devarch),
 				revision);
 		/* quit if not ROM table */
-		if ((devarch & DEVARCH_ID_MASK) != DEVARCH_ROM_C_0X9)
+		if ((v.devarch & DEVARCH_ID_MASK) != DEVARCH_ROM_C_0X9)
 			return ERROR_OK;
 
 		rom_num_entries = 512;
