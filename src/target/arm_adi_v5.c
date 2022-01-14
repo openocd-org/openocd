@@ -1473,13 +1473,66 @@ static int dap_devtype_display(struct command_invocation *cmd, uint32_t devtype)
 	return ERROR_OK;
 }
 
-static int dap_rom_display(struct command_invocation *cmd,
-				struct adiv5_ap *ap, target_addr_t dbgbase, int depth)
+static int rtp_cs_component(struct command_invocation *cmd,
+		struct adiv5_ap *ap, target_addr_t dbgbase, int depth);
+
+static int rtp_rom_loop(struct command_invocation *cmd,
+		struct adiv5_ap *ap, target_addr_t base_address, int depth,
+		unsigned int max_entries)
+{
+	assert(IS_ALIGNED(base_address, ARM_CS_ALIGN));
+
+	char tabs[16] = "";
+
+	if (depth)
+		snprintf(tabs, sizeof(tabs), "[L%02d] ", depth);
+
+	unsigned int offset = 0;
+	while (max_entries--) {
+		uint32_t romentry;
+		unsigned int saved_offset = offset;
+
+		int retval = mem_ap_read_atomic_u32(ap, base_address + offset, &romentry);
+		offset += 4;
+		if (retval != ERROR_OK) {
+			LOG_DEBUG("Failed read ROM table entry");
+			command_print(cmd, "\t%sROMTABLE[0x%x] Read error", tabs, saved_offset);
+			command_print(cmd, "\t\tUnable to continue");
+			command_print(cmd, "\t%s\tStop parsing of ROM table", tabs);
+			return retval;
+		}
+
+		command_print(cmd, "\t%sROMTABLE[0x%x] = 0x%08" PRIx32,
+				tabs, saved_offset, romentry);
+
+		if (romentry == 0) {
+			command_print(cmd, "\t%s\tEnd of ROM table", tabs);
+			break;
+		}
+
+		if (!(romentry & ARM_CS_ROMENTRY_PRESENT)) {
+			command_print(cmd, "\t\tComponent not present");
+			continue;
+		}
+
+		/* Recurse. "romentry" is signed */
+		target_addr_t component_base = base_address + (int32_t)(romentry & ARM_CS_ROMENTRY_OFFSET_MASK);
+		retval = rtp_cs_component(cmd, ap, component_base, depth + 1);
+		if (retval != ERROR_OK)
+			return retval;
+	}
+
+	return ERROR_OK;
+}
+
+static int rtp_cs_component(struct command_invocation *cmd,
+		struct adiv5_ap *ap, target_addr_t base_address, int depth)
 {
 	struct cs_component_vals v;
-	unsigned int rom_num_entries;
 	int retval;
 	char tabs[16] = "";
+
+	assert(IS_ALIGNED(base_address, ARM_CS_ALIGN));
 
 	if (depth > 16) {
 		command_print(cmd, "\tTables too deep");
@@ -1489,10 +1542,9 @@ static int dap_rom_display(struct command_invocation *cmd,
 	if (depth)
 		snprintf(tabs, sizeof(tabs), "[L%02d] ", depth);
 
-	target_addr_t base_addr = dbgbase & 0xFFFFFFFFFFFFF000ull;
-	command_print(cmd, "\t\tComponent base address " TARGET_ADDR_FMT, base_addr);
+	command_print(cmd, "\t\tComponent base address " TARGET_ADDR_FMT, base_address);
 
-	retval = rtp_read_cs_regs(ap, base_addr, &v);
+	retval = rtp_read_cs_regs(ap, base_address, &v);
 	if (retval != ERROR_OK) {
 		command_print(cmd, "\t\tCan't read component, the corresponding core might be turned off");
 		return ERROR_OK; /* Don't abort recursion */
@@ -1506,7 +1558,7 @@ static int dap_rom_display(struct command_invocation *cmd,
 	/* component may take multiple 4K pages */
 	uint32_t size = ARM_CS_PIDR_SIZE(v.pid);
 	if (size > 0)
-		command_print(cmd, "\t\tStart address " TARGET_ADDR_FMT, base_addr - 0x1000 * size);
+		command_print(cmd, "\t\tStart address " TARGET_ADDR_FMT, base_address - 0x1000 * size);
 
 	command_print(cmd, "\t\tPeripheral ID 0x%010" PRIx64, v.pid);
 
@@ -1535,8 +1587,10 @@ static int dap_rom_display(struct command_invocation *cmd,
 		else
 			command_print(cmd, "\t\tMEMTYPE system memory not present: dedicated debug bus");
 
-		rom_num_entries = 960;
-	} else if (class == ARM_CS_CLASS_0X9_CS_COMPONENT) {
+		return rtp_rom_loop(cmd, ap, base_address, depth, 960);
+	}
+
+	if (class == ARM_CS_CLASS_0X9_CS_COMPONENT) {
 		retval = dap_devtype_display(cmd, v.devtype_memtype);
 		if (retval != ERROR_OK)
 			return retval;
@@ -1555,34 +1609,10 @@ static int dap_rom_display(struct command_invocation *cmd,
 		if ((v.devarch & DEVARCH_ID_MASK) != DEVARCH_ROM_C_0X9)
 			return ERROR_OK;
 
-		rom_num_entries = 512;
-	} else {
-		/* Class other than 0x1 and 0x9 */
-		return ERROR_OK;
+		return rtp_rom_loop(cmd, ap, base_address, depth, 512);
 	}
 
-	/* Read ROM table entries from base address until we get 0x00000000 or reach the reserved area */
-	for (unsigned int entry_offset = 0; entry_offset < 4 * rom_num_entries; entry_offset += 4) {
-		uint32_t romentry;
-		retval = mem_ap_read_atomic_u32(ap, base_addr + entry_offset, &romentry);
-		if (retval != ERROR_OK)
-			return retval;
-		command_print(cmd, "\t%sROMTABLE[0x%x] = 0x%08" PRIx32 "",
-				tabs, entry_offset, romentry);
-		if (romentry & ARM_CS_ROMENTRY_PRESENT) {
-			/* Recurse. "romentry" is signed */
-			retval = dap_rom_display(cmd, ap, base_addr + (int32_t)(romentry & ARM_CS_ROMENTRY_OFFSET_MASK),
-									 depth + 1);
-			if (retval != ERROR_OK)
-				return retval;
-		} else if (romentry != 0) {
-			command_print(cmd, "\t\tComponent not present");
-		} else {
-			command_print(cmd, "\t%s\tEnd of ROM table", tabs);
-			break;
-		}
-	}
-
+	/* Class other than 0x1 and 0x9 */
 	return ERROR_OK;
 }
 
@@ -1628,7 +1658,7 @@ int dap_info_command(struct command_invocation *cmd,
 			else
 				command_print(cmd, "\tROM table in legacy format");
 
-			dap_rom_display(cmd, ap, dbgbase & 0xFFFFFFFFFFFFF000ull, 0);
+			rtp_cs_component(cmd, ap, dbgbase & 0xFFFFFFFFFFFFF000ull, 0);
 		}
 	}
 
