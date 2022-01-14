@@ -1522,8 +1522,11 @@ static int rtp_rom_loop(struct command_invocation *cmd,
 		/* Recurse. "romentry" is signed */
 		target_addr_t component_base = base_address + (int32_t)(romentry & ARM_CS_ROMENTRY_OFFSET_MASK);
 		retval = rtp_cs_component(cmd, ap, component_base, depth + 1);
-		if (retval != ERROR_OK)
-			return retval;
+		if (retval != ERROR_OK) {
+			/* TODO: do we need to send an ABORT before continuing? */
+			LOG_DEBUG("Ignore error parsing CoreSight component");
+			continue;
+		}
 	}
 
 	return ERROR_OK;
