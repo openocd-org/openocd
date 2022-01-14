@@ -1477,6 +1477,11 @@ static int dap_devtype_display(struct command_invocation *cmd, uint32_t devtype)
 	return ERROR_OK;
 }
 
+/* TODO: these prototypes will be removed in a following patch */
+static int dap_info_mem_ap_header(struct command_invocation *cmd,
+		int retval, struct adiv5_ap *ap,
+		target_addr_t dbgbase, uint32_t apid);
+
 static int rtp_cs_component(struct command_invocation *cmd,
 		struct adiv5_ap *ap, target_addr_t dbgbase, int depth);
 
@@ -1634,12 +1639,47 @@ int dap_info_command(struct command_invocation *cmd,
 	int retval;
 	uint32_t apid;
 	target_addr_t dbgbase;
-	target_addr_t dbgaddr;
+	target_addr_t invalid_entry;
 
 	/* Now we read ROM table ID registers, ref. ARM IHI 0029B sec  */
 	retval = dap_get_debugbase(ap, &dbgbase, &apid);
+	retval = dap_info_mem_ap_header(cmd, retval, ap, dbgbase, apid);
 	if (retval != ERROR_OK)
 		return retval;
+
+	if (apid == 0)
+		return ERROR_FAIL;
+
+	/* NOTE: a MEM-AP may have a single CoreSight component that's
+	 * not a ROM table ... or have no such components at all.
+	 */
+	const unsigned int class = (apid & AP_REG_IDR_CLASS_MASK) >> AP_REG_IDR_CLASS_SHIFT;
+
+	if (class == AP_REG_IDR_CLASS_MEM_AP) {
+		if (is_64bit_ap(ap))
+			invalid_entry = 0xFFFFFFFFFFFFFFFFull;
+		else
+			invalid_entry = 0xFFFFFFFFul;
+
+		if (dbgbase != invalid_entry && (dbgbase & 0x3) != 0x2)
+			rtp_cs_component(cmd, ap, dbgbase & 0xFFFFFFFFFFFFF000ull, 0);
+	}
+
+	return ERROR_OK;
+}
+
+/* Actions for command "dap info" */
+
+static int dap_info_mem_ap_header(struct command_invocation *cmd,
+		int retval, struct adiv5_ap *ap,
+		target_addr_t dbgbase, uint32_t apid)
+{
+	target_addr_t invalid_entry;
+
+	if (retval != ERROR_OK) {
+		command_print(cmd, "\t\tCan't read MEM-AP, the corresponding core might be turned off");
+		return retval;
+	}
 
 	command_print(cmd, "AP ID register 0x%8.8" PRIx32, apid);
 	if (apid == 0) {
@@ -1656,21 +1696,19 @@ int dap_info_command(struct command_invocation *cmd,
 
 	if (class == AP_REG_IDR_CLASS_MEM_AP) {
 		if (is_64bit_ap(ap))
-			dbgaddr = 0xFFFFFFFFFFFFFFFFull;
+			invalid_entry = 0xFFFFFFFFFFFFFFFFull;
 		else
-			dbgaddr = 0xFFFFFFFFul;
+			invalid_entry = 0xFFFFFFFFul;
 
 		command_print(cmd, "MEM-AP BASE " TARGET_ADDR_FMT, dbgbase);
 
-		if (dbgbase == dbgaddr || (dbgbase & 0x3) == 0x2) {
+		if (dbgbase == invalid_entry || (dbgbase & 0x3) == 0x2) {
 			command_print(cmd, "\tNo ROM table present");
 		} else {
 			if (dbgbase & 0x01)
 				command_print(cmd, "\tValid ROM table present");
 			else
 				command_print(cmd, "\tROM table in legacy format");
-
-			rtp_cs_component(cmd, ap, dbgbase & 0xFFFFFFFFFFFFF000ull, 0);
 		}
 	}
 
