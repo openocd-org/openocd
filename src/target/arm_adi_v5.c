@@ -1461,7 +1461,7 @@ struct rtp_ops {
 	 * @param priv      Pointer to private data.
 	 * @return          ERROR_OK on success, else a fault code.
 	 */
-	int (*rom_table_entry)(int retval, int depth, unsigned int offset, uint32_t romentry,
+	int (*rom_table_entry)(int retval, int depth, unsigned int offset, uint64_t romentry,
 			void *priv);
 	/**
 	 * Private data
@@ -1506,7 +1506,7 @@ static int rtp_ops_cs_component(const struct rtp_ops *ops,
  * Input parameter @a retval is propagated.
  */
 static int rtp_ops_rom_table_entry(const struct rtp_ops *ops,
-		int retval, int depth, unsigned int offset, uint32_t romentry)
+		int retval, int depth, unsigned int offset, uint64_t romentry)
 {
 	if (!ops->rom_table_entry)
 		return retval;
@@ -1533,20 +1533,39 @@ static int rtp_cs_component(const struct rtp_ops *ops,
 
 static int rtp_rom_loop(const struct rtp_ops *ops,
 		struct adiv5_ap *ap, target_addr_t base_address, int depth,
-		unsigned int max_entries)
+		unsigned int width, unsigned int max_entries)
 {
 	assert(IS_ALIGNED(base_address, ARM_CS_ALIGN));
 
 	unsigned int offset = 0;
 	while (max_entries--) {
-		uint32_t romentry;
+		uint64_t romentry;
+		uint32_t romentry_low, romentry_high;
+		target_addr_t component_base;
 		unsigned int saved_offset = offset;
 
-		int retval = mem_ap_read_atomic_u32(ap, base_address + offset, &romentry);
+		int retval = mem_ap_read_u32(ap, base_address + offset, &romentry_low);
 		offset += 4;
+		if (retval == ERROR_OK && width == 64) {
+			retval = mem_ap_read_u32(ap, base_address + offset, &romentry_high);
+			offset += 4;
+		}
+		if (retval == ERROR_OK)
+			retval = dap_run(ap->dap);
 		if (retval != ERROR_OK)
 			LOG_DEBUG("Failed read ROM table entry");
 
+		if (width == 64) {
+			romentry = (((uint64_t)romentry_high) << 32) | romentry_low;
+			component_base = base_address +
+				((((uint64_t)romentry_high) << 32) | (romentry_low & ARM_CS_ROMENTRY_OFFSET_MASK));
+		} else {
+			romentry = romentry_low;
+			/* "romentry" is signed */
+			component_base = base_address + (int32_t)(romentry_low & ARM_CS_ROMENTRY_OFFSET_MASK);
+			if (!is_64bit_ap(ap))
+				component_base = (uint32_t)component_base;
+		}
 		retval = rtp_ops_rom_table_entry(ops, retval, depth, saved_offset, romentry);
 		if (retval != ERROR_OK)
 			return retval;
@@ -1559,8 +1578,7 @@ static int rtp_rom_loop(const struct rtp_ops *ops,
 		if (!(romentry & ARM_CS_ROMENTRY_PRESENT))
 			continue;
 
-		/* Recurse. "romentry" is signed */
-		target_addr_t component_base = base_address + (int32_t)(romentry & ARM_CS_ROMENTRY_OFFSET_MASK);
+		/* Recurse */
 		retval = rtp_cs_component(ops, ap, component_base, depth + 1);
 		if (retval == CORESIGHT_COMPONENT_FOUND)
 			return CORESIGHT_COMPONENT_FOUND;
@@ -1599,7 +1617,7 @@ static int rtp_cs_component(const struct rtp_ops *ops,
 	const unsigned int class = ARM_CS_CIDR_CLASS(v.cid);
 
 	if (class == ARM_CS_CLASS_0X1_ROM_TABLE)
-		return rtp_rom_loop(ops, ap, base_address, depth, 960);
+		return rtp_rom_loop(ops, ap, base_address, depth, 32, 960);
 
 	if (class == ARM_CS_CLASS_0X9_CS_COMPONENT) {
 		if ((v.devarch & ARM_CS_C9_DEVARCH_PRESENT) == 0)
@@ -1609,7 +1627,10 @@ static int rtp_cs_component(const struct rtp_ops *ops,
 		if ((v.devarch & DEVARCH_ID_MASK) != DEVARCH_ROM_C_0X9)
 			return ERROR_OK;
 
-		return rtp_rom_loop(ops, ap, base_address, depth, 512);
+		if ((v.devid & ARM_CS_C9_DEVID_FORMAT_MASK) == ARM_CS_C9_DEVID_FORMAT_64BIT)
+			return rtp_rom_loop(ops, ap, base_address, depth, 64, 256);
+		else
+			return rtp_rom_loop(ops, ap, base_address, depth, 32, 512);
 	}
 
 	/* Class other than 0x1 and 0x9 */
@@ -1786,7 +1807,7 @@ static int dap_info_cs_component(int retval, struct cs_component_vals *v, int de
 }
 
 static int dap_info_rom_table_entry(int retval, int depth,
-		unsigned int offset, uint32_t romentry, void *priv)
+		unsigned int offset, uint64_t romentry, void *priv)
 {
 	struct command_invocation *cmd = priv;
 	char tabs[16] = "";
@@ -1801,7 +1822,7 @@ static int dap_info_rom_table_entry(int retval, int depth,
 		return retval;
 	}
 
-	command_print(cmd, "\t%sROMTABLE[0x%x] = 0x%08" PRIx32,
+	command_print(cmd, "\t%sROMTABLE[0x%x] = 0x%08" PRIx64,
 			tabs, offset, romentry);
 
 	if (romentry == 0) {
