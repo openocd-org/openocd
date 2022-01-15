@@ -1038,76 +1038,6 @@ static int dap_get_debugbase(struct adiv5_ap *ap,
 	return ERROR_OK;
 }
 
-static int _dap_lookup_cs_component(struct adiv5_ap *ap,
-			target_addr_t dbgbase, uint8_t type, target_addr_t *addr, int32_t *idx)
-{
-	uint32_t romentry, entry_offset = 0, devtype;
-	target_addr_t component_base;
-	int retval;
-
-	dbgbase &= 0xFFFFFFFFFFFFF000ull;
-	*addr = 0;
-
-	do {
-		retval = mem_ap_read_atomic_u32(ap, dbgbase |
-						entry_offset, &romentry);
-		if (retval != ERROR_OK)
-			return retval;
-
-		component_base = dbgbase + (target_addr_t)(romentry & ARM_CS_ROMENTRY_OFFSET_MASK);
-
-		if (romentry & ARM_CS_ROMENTRY_PRESENT) {
-			uint32_t c_cid1;
-			retval = mem_ap_read_atomic_u32(ap, component_base + ARM_CS_CIDR1, &c_cid1);
-			if (retval != ERROR_OK) {
-				LOG_ERROR("Can't read component with base address " TARGET_ADDR_FMT
-					  ", the corresponding core might be turned off", component_base);
-				return retval;
-			}
-			unsigned int class = (c_cid1 & ARM_CS_CIDR1_CLASS_MASK) >> ARM_CS_CIDR1_CLASS_SHIFT;
-			if (class == ARM_CS_CLASS_0X1_ROM_TABLE) {
-				retval = _dap_lookup_cs_component(ap, component_base,
-							type, addr, idx);
-				if (retval == ERROR_OK)
-					break;
-				if (retval != ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
-					return retval;
-			}
-
-			retval = mem_ap_read_atomic_u32(ap, component_base + ARM_CS_C9_DEVTYPE, &devtype);
-			if (retval != ERROR_OK)
-				return retval;
-			if ((devtype & ARM_CS_C9_DEVTYPE_MASK) == type) {
-				if (!*idx) {
-					*addr = component_base;
-					break;
-				} else
-					(*idx)--;
-			}
-		}
-		entry_offset += 4;
-	} while ((romentry > 0) && (entry_offset < 0xf00));
-
-	if (!*addr)
-		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-
-	return ERROR_OK;
-}
-
-int dap_lookup_cs_component(struct adiv5_ap *ap, uint8_t type,
-		target_addr_t *addr, int32_t core_id)
-{
-	int32_t idx = core_id;
-	target_addr_t dbgbase;
-	uint32_t apid;
-
-	int retval = dap_get_debugbase(ap, &dbgbase, &apid);
-	if (retval != ERROR_OK)
-		return retval;
-
-	return _dap_lookup_cs_component(ap, dbgbase, type, addr, &idx);
-}
-
 /** Holds registers and coordinates of a CoreSight component */
 struct cs_component_vals {
 	struct adiv5_ap *ap;
@@ -1590,6 +1520,14 @@ static int rtp_ops_rom_table_entry(const struct rtp_ops *ops,
 /* Broken ROM tables can have circular references. Stop after a while */
 #define ROM_TABLE_MAX_DEPTH (16)
 
+/**
+ * Value used only during lookup of a CoreSight component in ROM table.
+ * Return CORESIGHT_COMPONENT_FOUND when component is found.
+ * Return ERROR_OK when component is not found yet.
+ * Return any other ERROR_* in case of error.
+ */
+#define CORESIGHT_COMPONENT_FOUND (1)
+
 static int rtp_cs_component(const struct rtp_ops *ops,
 		struct adiv5_ap *ap, target_addr_t dbgbase, int depth);
 
@@ -1624,6 +1562,8 @@ static int rtp_rom_loop(const struct rtp_ops *ops,
 		/* Recurse. "romentry" is signed */
 		target_addr_t component_base = base_address + (int32_t)(romentry & ARM_CS_ROMENTRY_OFFSET_MASK);
 		retval = rtp_cs_component(ops, ap, component_base, depth + 1);
+		if (retval == CORESIGHT_COMPONENT_FOUND)
+			return CORESIGHT_COMPONENT_FOUND;
 		if (retval != ERROR_OK) {
 			/* TODO: do we need to send an ABORT before continuing? */
 			LOG_DEBUG("Ignore error parsing CoreSight component");
@@ -1648,6 +1588,8 @@ static int rtp_cs_component(const struct rtp_ops *ops,
 		retval = rtp_read_cs_regs(ap, base_address, &v);
 
 	retval = rtp_ops_cs_component(ops, retval, &v, depth);
+	if (retval == CORESIGHT_COMPONENT_FOUND)
+		return CORESIGHT_COMPONENT_FOUND;
 	if (retval != ERROR_OK)
 		return ERROR_OK; /* Don't abort recursion */
 
@@ -1678,7 +1620,7 @@ static int rtp_ap(const struct rtp_ops *ops, struct adiv5_ap *ap)
 {
 	int retval;
 	uint32_t apid;
-	target_addr_t dbgbase;
+	target_addr_t dbgbase = 0; /* GCC complains can be used uninitialized */
 	target_addr_t invalid_entry;
 
 	/* Now we read ROM table ID registers, ref. ARM IHI 0029B sec  */
@@ -1701,8 +1643,11 @@ static int rtp_ap(const struct rtp_ops *ops, struct adiv5_ap *ap)
 		else
 			invalid_entry = 0xFFFFFFFFul;
 
-		if (dbgbase != invalid_entry && (dbgbase & 0x3) != 0x2)
-			rtp_cs_component(ops, ap, dbgbase & 0xFFFFFFFFFFFFF000ull, 0);
+		if (dbgbase != invalid_entry && (dbgbase & 0x3) != 0x2) {
+			retval = rtp_cs_component(ops, ap, dbgbase & 0xFFFFFFFFFFFFF000ull, 0);
+			if (retval == CORESIGHT_COMPONENT_FOUND)
+				return CORESIGHT_COMPONENT_FOUND;
+		}
 	}
 
 	return ERROR_OK;
@@ -1882,6 +1827,73 @@ int dap_info_command(struct command_invocation *cmd, struct adiv5_ap *ap)
 	};
 
 	return rtp_ap(&dap_info_ops, ap);
+}
+
+/* Actions for dap_lookup_cs_component() */
+
+struct dap_lookup_data {
+	/* input */
+	unsigned int idx;
+	unsigned int type;
+	/* output */
+	uint64_t component_base;
+};
+
+static int dap_lookup_cs_component_cs_component(int retval,
+		struct cs_component_vals *v, int depth, void *priv)
+{
+	struct dap_lookup_data *lookup = priv;
+
+	if (retval != ERROR_OK)
+		return retval;
+
+	if (!is_valid_arm_cs_cidr(v->cid))
+		return ERROR_OK;
+
+	const unsigned int class = ARM_CS_CIDR_CLASS(v->cid);
+	if (class != ARM_CS_CLASS_0X9_CS_COMPONENT)
+		return ERROR_OK;
+
+	if ((v->devtype_memtype & ARM_CS_C9_DEVTYPE_MASK) != lookup->type)
+		return ERROR_OK;
+
+	if (lookup->idx) {
+		/* search for next one */
+		--lookup->idx;
+		return ERROR_OK;
+	}
+
+	/* Found! */
+	lookup->component_base = v->component_base;
+	return CORESIGHT_COMPONENT_FOUND;
+}
+
+int dap_lookup_cs_component(struct adiv5_ap *ap, uint8_t type,
+		target_addr_t *addr, int32_t core_id)
+{
+	struct dap_lookup_data lookup = {
+		.type = type,
+		.idx  = core_id,
+	};
+	struct rtp_ops dap_lookup_cs_component_ops = {
+		.mem_ap_header   = NULL,
+		.cs_component    = dap_lookup_cs_component_cs_component,
+		.rom_table_entry = NULL,
+		.priv            = &lookup,
+	};
+
+	int retval = rtp_ap(&dap_lookup_cs_component_ops, ap);
+	if (retval == CORESIGHT_COMPONENT_FOUND) {
+		LOG_DEBUG("CS lookup found at 0x%" PRIx64, lookup.component_base);
+		*addr = lookup.component_base;
+		return ERROR_OK;
+	}
+	if (retval != ERROR_OK) {
+		LOG_DEBUG("CS lookup error %d", retval);
+		return retval;
+	}
+	LOG_DEBUG("CS lookup not found");
+	return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 }
 
 enum adiv5_cfg_param {

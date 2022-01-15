@@ -48,9 +48,6 @@
 #define ARM_CS_CLASS_0X1_ROM_TABLE              (0x1)
 #define ARM_CS_CLASS_0X9_CS_COMPONENT           (0x9)
 
-#define ARM_CS_CIDR1_CLASS_MASK                 (0x000000F0)
-#define ARM_CS_CIDR1_CLASS_SHIFT                (4)
-
 static inline bool is_valid_arm_cs_cidr(uint32_t cidr)
 {
 	return (cidr & ~ARM_CS_CIDR_CLASS_MASK) == 0xB105000D;
