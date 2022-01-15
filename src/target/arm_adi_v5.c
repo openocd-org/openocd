@@ -1002,7 +1002,7 @@ int dap_find_ap(struct adiv5_dap *dap, enum ap_type type_to_find, struct adiv5_a
 	return ERROR_FAIL;
 }
 
-int dap_get_debugbase(struct adiv5_ap *ap,
+static int dap_get_debugbase(struct adiv5_ap *ap,
 			target_addr_t *dbgbase, uint32_t *apid)
 {
 	struct adiv5_dap *dap = ap->dap;
@@ -1038,7 +1038,7 @@ int dap_get_debugbase(struct adiv5_ap *ap,
 	return ERROR_OK;
 }
 
-int dap_lookup_cs_component(struct adiv5_ap *ap,
+static int _dap_lookup_cs_component(struct adiv5_ap *ap,
 			target_addr_t dbgbase, uint8_t type, target_addr_t *addr, int32_t *idx)
 {
 	uint32_t romentry, entry_offset = 0, devtype;
@@ -1066,7 +1066,7 @@ int dap_lookup_cs_component(struct adiv5_ap *ap,
 			}
 			unsigned int class = (c_cid1 & ARM_CS_CIDR1_CLASS_MASK) >> ARM_CS_CIDR1_CLASS_SHIFT;
 			if (class == ARM_CS_CLASS_0X1_ROM_TABLE) {
-				retval = dap_lookup_cs_component(ap, component_base,
+				retval = _dap_lookup_cs_component(ap, component_base,
 							type, addr, idx);
 				if (retval == ERROR_OK)
 					break;
@@ -1092,6 +1092,20 @@ int dap_lookup_cs_component(struct adiv5_ap *ap,
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 
 	return ERROR_OK;
+}
+
+int dap_lookup_cs_component(struct adiv5_ap *ap, uint8_t type,
+		target_addr_t *addr, int32_t core_id)
+{
+	int32_t idx = core_id;
+	target_addr_t dbgbase;
+	uint32_t apid;
+
+	int retval = dap_get_debugbase(ap, &dbgbase, &apid);
+	if (retval != ERROR_OK)
+		return retval;
+
+	return _dap_lookup_cs_component(ap, dbgbase, type, addr, &idx);
 }
 
 /** Holds registers and coordinates of a CoreSight component */
