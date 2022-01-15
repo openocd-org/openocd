@@ -1099,6 +1099,7 @@ struct cs_component_vals {
 	uint64_t pid;
 	uint32_t cid;
 	uint32_t devarch;
+	uint32_t devid;
 	uint32_t devtype_memtype;
 };
 
@@ -1124,12 +1125,15 @@ static int rtp_read_cs_regs(struct adiv5_ap *ap, target_addr_t component_base,
 	/* sort by offset to gain speed */
 
 	/*
-	 * Registers DEVARCH and DEVTYPE are valid on Class 0x9 devices
+	 * Registers DEVARCH, DEVID and DEVTYPE are valid on Class 0x9 devices
 	 * only, but are at offset above 0xf00, so can be read on any device
 	 * without triggering error. Read them for eventual use on Class 0x9.
 	 */
 	if (retval == ERROR_OK)
 		retval = mem_ap_read_u32(ap, component_base + ARM_CS_C9_DEVARCH, &v->devarch);
+
+	if (retval == ERROR_OK)
+		retval = mem_ap_read_u32(ap, component_base + ARM_CS_C9_DEVID, &v->devid);
 
 	/* Same address as ARM_CS_C1_MEMTYPE */
 	if (retval == ERROR_OK)
@@ -1608,6 +1612,11 @@ static int rtp_cs_component(struct command_invocation *cmd,
 		/* quit if not ROM table */
 		if ((v.devarch & DEVARCH_ID_MASK) != DEVARCH_ROM_C_0X9)
 			return ERROR_OK;
+
+		if (v.devid & ARM_CS_C9_DEVID_SYSMEM_MASK)
+			command_print(cmd, "\t\tMEMTYPE system memory present on bus");
+		else
+			command_print(cmd, "\t\tMEMTYPE system memory not present: dedicated debug bus");
 
 		return rtp_rom_loop(cmd, ap, base_address, depth, 512);
 	}
