@@ -1491,6 +1491,9 @@ static int dap_info_mem_ap_header(struct command_invocation *cmd,
 		target_addr_t dbgbase, uint32_t apid);
 static int dap_info_cs_component(struct command_invocation *cmd,
 		int retval, struct cs_component_vals *v, int depth);
+static int dap_info_rom_table_entry(struct command_invocation *cmd,
+		int retval, int depth,
+		unsigned int offset, uint32_t romentry);
 
 static int rtp_cs_component(struct command_invocation *cmd,
 		struct adiv5_ap *ap, target_addr_t dbgbase, int depth);
@@ -1501,11 +1504,6 @@ static int rtp_rom_loop(struct command_invocation *cmd,
 {
 	assert(IS_ALIGNED(base_address, ARM_CS_ALIGN));
 
-	char tabs[16] = "";
-
-	if (depth)
-		snprintf(tabs, sizeof(tabs), "[L%02d] ", depth);
-
 	unsigned int offset = 0;
 	while (max_entries--) {
 		uint32_t romentry;
@@ -1513,26 +1511,20 @@ static int rtp_rom_loop(struct command_invocation *cmd,
 
 		int retval = mem_ap_read_atomic_u32(ap, base_address + offset, &romentry);
 		offset += 4;
-		if (retval != ERROR_OK) {
+		if (retval != ERROR_OK)
 			LOG_DEBUG("Failed read ROM table entry");
-			command_print(cmd, "\t%sROMTABLE[0x%x] Read error", tabs, saved_offset);
-			command_print(cmd, "\t\tUnable to continue");
-			command_print(cmd, "\t%s\tStop parsing of ROM table", tabs);
-			return retval;
-		}
 
-		command_print(cmd, "\t%sROMTABLE[0x%x] = 0x%08" PRIx32,
-				tabs, saved_offset, romentry);
+		retval = dap_info_rom_table_entry(cmd, retval, depth, saved_offset, romentry);
+		if (retval != ERROR_OK)
+			return retval;
 
 		if (romentry == 0) {
-			command_print(cmd, "\t%s\tEnd of ROM table", tabs);
+			/* End of ROM table */
 			break;
 		}
 
-		if (!(romentry & ARM_CS_ROMENTRY_PRESENT)) {
-			command_print(cmd, "\t\tComponent not present");
+		if (!(romentry & ARM_CS_ROMENTRY_PRESENT))
 			continue;
-		}
 
 		/* Recurse. "romentry" is signed */
 		target_addr_t component_base = base_address + (int32_t)(romentry & ARM_CS_ROMENTRY_OFFSET_MASK);
@@ -1750,6 +1742,38 @@ static int dap_info_cs_component(struct command_invocation *cmd,
 	}
 
 	/* Class other than 0x1 and 0x9 */
+	return ERROR_OK;
+}
+
+static int dap_info_rom_table_entry(struct command_invocation *cmd,
+		int retval, int depth,
+		unsigned int offset, uint32_t romentry)
+{
+	char tabs[16] = "";
+
+	if (depth)
+		snprintf(tabs, sizeof(tabs), "[L%02d] ", depth);
+
+	if (retval != ERROR_OK) {
+		command_print(cmd, "\t%sROMTABLE[0x%x] Read error", tabs, offset);
+		command_print(cmd, "\t\tUnable to continue");
+		command_print(cmd, "\t%s\tStop parsing of ROM table", tabs);
+		return retval;
+	}
+
+	command_print(cmd, "\t%sROMTABLE[0x%x] = 0x%08" PRIx32,
+			tabs, offset, romentry);
+
+	if (romentry == 0) {
+		command_print(cmd, "\t%s\tEnd of ROM table", tabs);
+		return ERROR_OK;
+	}
+
+	if (!(romentry & ARM_CS_ROMENTRY_PRESENT)) {
+		command_print(cmd, "\t\tComponent not present");
+		return ERROR_OK;
+	}
+
 	return ERROR_OK;
 }
 
