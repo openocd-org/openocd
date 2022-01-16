@@ -1482,23 +1482,104 @@ static int dap_devtype_display(struct command_invocation *cmd, uint32_t devtype)
 	return ERROR_OK;
 }
 
+/**
+ * Actions/operations to be executed while parsing ROM tables.
+ */
+struct rtp_ops {
+	/**
+	 * Executed at the start of a new MEM-AP, typically to print the MEM-AP header.
+	 * @param retval    Error encountered while reading AP.
+	 * @param ap        Pointer to AP.
+	 * @param dbgbase   Value of MEM-AP Debug Base Address register.
+	 * @param apid      Value of MEM-AP IDR Identification Register.
+	 * @param priv      Pointer to private data.
+	 * @return          ERROR_OK on success, else a fault code.
+	 */
+	int (*mem_ap_header)(int retval, struct adiv5_ap *ap, uint64_t dbgbase,
+			uint32_t apid, void *priv);
+	/**
+	 * Executed when a CoreSight component is parsed, typically to print
+	 * information on the component.
+	 * @param retval    Error encountered while reading component's registers.
+	 * @param v         Pointer to a container of the component's registers.
+	 * @param depth     The current depth level of ROM table.
+	 * @param priv      Pointer to private data.
+	 * @return          ERROR_OK on success, else a fault code.
+	 */
+	int (*cs_component)(int retval, struct cs_component_vals *v, int depth, void *priv);
+	/**
+	 * Executed for each entry of a ROM table, typically to print the entry
+	 * and information about validity or end-of-table mark.
+	 * @param retval    Error encountered while reading the ROM table entry.
+	 * @param depth     The current depth level of ROM table.
+	 * @param offset    The offset of the entry in the ROM table.
+	 * @param romentry  The value of the ROM table entry.
+	 * @param priv      Pointer to private data.
+	 * @return          ERROR_OK on success, else a fault code.
+	 */
+	int (*rom_table_entry)(int retval, int depth, unsigned int offset, uint32_t romentry,
+			void *priv);
+	/**
+	 * Private data
+	 */
+	void *priv;
+};
+
+/**
+ * Wrapper around struct rtp_ops::mem_ap_header.
+ * Input parameter @a retval is propagated.
+ */
+static int rtp_ops_mem_ap_header(const struct rtp_ops *ops,
+		int retval, struct adiv5_ap *ap, uint64_t dbgbase, uint32_t apid)
+{
+	if (!ops->mem_ap_header)
+		return retval;
+
+	int retval1 = ops->mem_ap_header(retval, ap, dbgbase, apid, ops->priv);
+	if (retval != ERROR_OK)
+		return retval;
+	return retval1;
+}
+
+/**
+ * Wrapper around struct rtp_ops::cs_component.
+ * Input parameter @a retval is propagated.
+ */
+static int rtp_ops_cs_component(const struct rtp_ops *ops,
+		int retval, struct cs_component_vals *v, int depth)
+{
+	if (!ops->cs_component)
+		return retval;
+
+	int retval1 = ops->cs_component(retval, v, depth, ops->priv);
+	if (retval != ERROR_OK)
+		return retval;
+	return retval1;
+}
+
+/**
+ * Wrapper around struct rtp_ops::rom_table_entry.
+ * Input parameter @a retval is propagated.
+ */
+static int rtp_ops_rom_table_entry(const struct rtp_ops *ops,
+		int retval, int depth, unsigned int offset, uint32_t romentry)
+{
+	if (!ops->rom_table_entry)
+		return retval;
+
+	int retval1 = ops->rom_table_entry(retval, depth, offset, romentry, ops->priv);
+	if (retval != ERROR_OK)
+		return retval;
+	return retval1;
+}
+
 /* Broken ROM tables can have circular references. Stop after a while */
 #define ROM_TABLE_MAX_DEPTH (16)
 
-/* TODO: these prototypes will be removed in a following patch */
-static int dap_info_mem_ap_header(struct command_invocation *cmd,
-		int retval, struct adiv5_ap *ap,
-		target_addr_t dbgbase, uint32_t apid);
-static int dap_info_cs_component(struct command_invocation *cmd,
-		int retval, struct cs_component_vals *v, int depth);
-static int dap_info_rom_table_entry(struct command_invocation *cmd,
-		int retval, int depth,
-		unsigned int offset, uint32_t romentry);
-
-static int rtp_cs_component(struct command_invocation *cmd,
+static int rtp_cs_component(const struct rtp_ops *ops,
 		struct adiv5_ap *ap, target_addr_t dbgbase, int depth);
 
-static int rtp_rom_loop(struct command_invocation *cmd,
+static int rtp_rom_loop(const struct rtp_ops *ops,
 		struct adiv5_ap *ap, target_addr_t base_address, int depth,
 		unsigned int max_entries)
 {
@@ -1514,7 +1595,7 @@ static int rtp_rom_loop(struct command_invocation *cmd,
 		if (retval != ERROR_OK)
 			LOG_DEBUG("Failed read ROM table entry");
 
-		retval = dap_info_rom_table_entry(cmd, retval, depth, saved_offset, romentry);
+		retval = rtp_ops_rom_table_entry(ops, retval, depth, saved_offset, romentry);
 		if (retval != ERROR_OK)
 			return retval;
 
@@ -1528,7 +1609,7 @@ static int rtp_rom_loop(struct command_invocation *cmd,
 
 		/* Recurse. "romentry" is signed */
 		target_addr_t component_base = base_address + (int32_t)(romentry & ARM_CS_ROMENTRY_OFFSET_MASK);
-		retval = rtp_cs_component(cmd, ap, component_base, depth + 1);
+		retval = rtp_cs_component(ops, ap, component_base, depth + 1);
 		if (retval != ERROR_OK) {
 			/* TODO: do we need to send an ABORT before continuing? */
 			LOG_DEBUG("Ignore error parsing CoreSight component");
@@ -1539,7 +1620,7 @@ static int rtp_rom_loop(struct command_invocation *cmd,
 	return ERROR_OK;
 }
 
-static int rtp_cs_component(struct command_invocation *cmd,
+static int rtp_cs_component(const struct rtp_ops *ops,
 		struct adiv5_ap *ap, target_addr_t base_address, int depth)
 {
 	struct cs_component_vals v;
@@ -1552,7 +1633,7 @@ static int rtp_cs_component(struct command_invocation *cmd,
 	else
 		retval = rtp_read_cs_regs(ap, base_address, &v);
 
-	retval = dap_info_cs_component(cmd, retval, &v, depth);
+	retval = rtp_ops_cs_component(ops, retval, &v, depth);
 	if (retval != ERROR_OK)
 		return ERROR_OK; /* Don't abort recursion */
 
@@ -1562,7 +1643,7 @@ static int rtp_cs_component(struct command_invocation *cmd,
 	const unsigned int class = ARM_CS_CIDR_CLASS(v.cid);
 
 	if (class == ARM_CS_CLASS_0X1_ROM_TABLE)
-		return rtp_rom_loop(cmd, ap, base_address, depth, 960);
+		return rtp_rom_loop(ops, ap, base_address, depth, 960);
 
 	if (class == ARM_CS_CLASS_0X9_CS_COMPONENT) {
 		if ((v.devarch & ARM_CS_C9_DEVARCH_PRESENT) == 0)
@@ -1572,15 +1653,14 @@ static int rtp_cs_component(struct command_invocation *cmd,
 		if ((v.devarch & DEVARCH_ID_MASK) != DEVARCH_ROM_C_0X9)
 			return ERROR_OK;
 
-		return rtp_rom_loop(cmd, ap, base_address, depth, 512);
+		return rtp_rom_loop(ops, ap, base_address, depth, 512);
 	}
 
 	/* Class other than 0x1 and 0x9 */
 	return ERROR_OK;
 }
 
-int dap_info_command(struct command_invocation *cmd,
-		struct adiv5_ap *ap)
+static int rtp_ap(const struct rtp_ops *ops, struct adiv5_ap *ap)
 {
 	int retval;
 	uint32_t apid;
@@ -1589,7 +1669,7 @@ int dap_info_command(struct command_invocation *cmd,
 
 	/* Now we read ROM table ID registers, ref. ARM IHI 0029B sec  */
 	retval = dap_get_debugbase(ap, &dbgbase, &apid);
-	retval = dap_info_mem_ap_header(cmd, retval, ap, dbgbase, apid);
+	retval = rtp_ops_mem_ap_header(ops, retval, ap, dbgbase, apid);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -1608,7 +1688,7 @@ int dap_info_command(struct command_invocation *cmd,
 			invalid_entry = 0xFFFFFFFFul;
 
 		if (dbgbase != invalid_entry && (dbgbase & 0x3) != 0x2)
-			rtp_cs_component(cmd, ap, dbgbase & 0xFFFFFFFFFFFFF000ull, 0);
+			rtp_cs_component(ops, ap, dbgbase & 0xFFFFFFFFFFFFF000ull, 0);
 	}
 
 	return ERROR_OK;
@@ -1616,10 +1696,10 @@ int dap_info_command(struct command_invocation *cmd,
 
 /* Actions for command "dap info" */
 
-static int dap_info_mem_ap_header(struct command_invocation *cmd,
-		int retval, struct adiv5_ap *ap,
-		target_addr_t dbgbase, uint32_t apid)
+static int dap_info_mem_ap_header(int retval, struct adiv5_ap *ap,
+		target_addr_t dbgbase, uint32_t apid, void *priv)
 {
+	struct command_invocation *cmd = priv;
 	target_addr_t invalid_entry;
 
 	if (retval != ERROR_OK) {
@@ -1661,9 +1741,10 @@ static int dap_info_mem_ap_header(struct command_invocation *cmd,
 	return ERROR_OK;
 }
 
-static int dap_info_cs_component(struct command_invocation *cmd,
-		int retval, struct cs_component_vals *v, int depth)
+static int dap_info_cs_component(int retval, struct cs_component_vals *v, int depth, void *priv)
 {
+	struct command_invocation *cmd = priv;
+
 	if (depth > ROM_TABLE_MAX_DEPTH) {
 		command_print(cmd, "\tTables too deep");
 		return ERROR_FAIL;
@@ -1745,10 +1826,10 @@ static int dap_info_cs_component(struct command_invocation *cmd,
 	return ERROR_OK;
 }
 
-static int dap_info_rom_table_entry(struct command_invocation *cmd,
-		int retval, int depth,
-		unsigned int offset, uint32_t romentry)
+static int dap_info_rom_table_entry(int retval, int depth,
+		unsigned int offset, uint32_t romentry, void *priv)
 {
+	struct command_invocation *cmd = priv;
 	char tabs[16] = "";
 
 	if (depth)
@@ -1775,6 +1856,18 @@ static int dap_info_rom_table_entry(struct command_invocation *cmd,
 	}
 
 	return ERROR_OK;
+}
+
+int dap_info_command(struct command_invocation *cmd, struct adiv5_ap *ap)
+{
+	struct rtp_ops dap_info_ops = {
+		.mem_ap_header   = dap_info_mem_ap_header,
+		.cs_component    = dap_info_cs_component,
+		.rom_table_entry = dap_info_rom_table_entry,
+		.priv            = cmd,
+	};
+
+	return rtp_ap(&dap_info_ops, ap);
 }
 
 enum adiv5_cfg_param {
