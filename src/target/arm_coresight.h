@@ -66,6 +66,10 @@ static inline bool is_valid_arm_cs_cidr(uint32_t cidr)
 #define ARM_CS_C9_DEVARCH_PRESENT               BIT(20)
 #define ARM_CS_C9_DEVARCH_ARCHITECT_MASK        (0xFFE00000)
 #define ARM_CS_C9_DEVARCH_ARCHITECT_SHIFT       (21)
+#define ARM_CS_C9_DEVARCH_REVISION(devarch)     \
+	(((devarch) & ARM_CS_C9_DEVARCH_REVISION_MASK) >> ARM_CS_C9_DEVARCH_REVISION_SHIFT)
+#define ARM_CS_C9_DEVARCH_ARCHITECT(devarch)    \
+	(((devarch) & ARM_CS_C9_DEVARCH_ARCHITECT_MASK) >> ARM_CS_C9_DEVARCH_ARCHITECT_SHIFT)
 
 #define ARM_CS_C9_DEVID                         (0xFC8)
 

@@ -1094,8 +1094,10 @@ int dap_lookup_cs_component(struct adiv5_ap *ap,
 	return ERROR_OK;
 }
 
-/** Holds registers of a CoreSight component */
+/** Holds registers and coordinates of a CoreSight component */
 struct cs_component_vals {
+	struct adiv5_ap *ap;
+	target_addr_t component_base;
 	uint64_t pid;
 	uint32_t cid;
 	uint32_t devarch;
@@ -1121,6 +1123,9 @@ static int rtp_read_cs_regs(struct adiv5_ap *ap, target_addr_t component_base,
 	uint32_t cid0, cid1, cid2, cid3;
 	uint32_t pid0, pid1, pid2, pid3, pid4;
 	int retval = ERROR_OK;
+
+	v->ap = ap;
+	v->component_base = component_base;
 
 	/* sort by offset to gain speed */
 
@@ -1477,10 +1482,15 @@ static int dap_devtype_display(struct command_invocation *cmd, uint32_t devtype)
 	return ERROR_OK;
 }
 
+/* Broken ROM tables can have circular references. Stop after a while */
+#define ROM_TABLE_MAX_DEPTH (16)
+
 /* TODO: these prototypes will be removed in a following patch */
 static int dap_info_mem_ap_header(struct command_invocation *cmd,
 		int retval, struct adiv5_ap *ap,
 		target_addr_t dbgbase, uint32_t apid);
+static int dap_info_cs_component(struct command_invocation *cmd,
+		int retval, struct cs_component_vals *v, int depth);
 
 static int rtp_cs_component(struct command_invocation *cmd,
 		struct adiv5_ap *ap, target_addr_t dbgbase, int depth);
@@ -1542,89 +1552,33 @@ static int rtp_cs_component(struct command_invocation *cmd,
 {
 	struct cs_component_vals v;
 	int retval;
-	char tabs[16] = "";
 
 	assert(IS_ALIGNED(base_address, ARM_CS_ALIGN));
 
-	if (depth > 16) {
-		command_print(cmd, "\tTables too deep");
-		return ERROR_FAIL;
-	}
+	if (depth > ROM_TABLE_MAX_DEPTH)
+		retval = ERROR_FAIL;
+	else
+		retval = rtp_read_cs_regs(ap, base_address, &v);
 
-	if (depth)
-		snprintf(tabs, sizeof(tabs), "[L%02d] ", depth);
-
-	command_print(cmd, "\t\tComponent base address " TARGET_ADDR_FMT, base_address);
-
-	retval = rtp_read_cs_regs(ap, base_address, &v);
-	if (retval != ERROR_OK) {
-		command_print(cmd, "\t\tCan't read component, the corresponding core might be turned off");
+	retval = dap_info_cs_component(cmd, retval, &v, depth);
+	if (retval != ERROR_OK)
 		return ERROR_OK; /* Don't abort recursion */
-	}
 
-	if (!is_valid_arm_cs_cidr(v.cid)) {
-		command_print(cmd, "\t\tInvalid CID 0x%08" PRIx32, v.cid);
+	if (!is_valid_arm_cs_cidr(v.cid))
 		return ERROR_OK; /* Don't abort recursion */
-	}
-
-	/* component may take multiple 4K pages */
-	uint32_t size = ARM_CS_PIDR_SIZE(v.pid);
-	if (size > 0)
-		command_print(cmd, "\t\tStart address " TARGET_ADDR_FMT, base_address - 0x1000 * size);
-
-	command_print(cmd, "\t\tPeripheral ID 0x%010" PRIx64, v.pid);
 
 	const unsigned int class = ARM_CS_CIDR_CLASS(v.cid);
-	const unsigned int part_num = ARM_CS_PIDR_PART(v.pid);
-	unsigned int designer_id = ARM_CS_PIDR_DESIGNER(v.pid);
 
-	if (v.pid & ARM_CS_PIDR_JEDEC) {
-		/* JEP106 code */
-		command_print(cmd, "\t\tDesigner is 0x%03x, %s",
-				designer_id, jep106_manufacturer(designer_id));
-	} else {
-		/* Legacy ASCII ID, clear invalid bits */
-		designer_id &= 0x7f;
-		command_print(cmd, "\t\tDesigner ASCII code 0x%02x, %s",
-				designer_id, designer_id == 0x41 ? "ARM" : "<unknown>");
-	}
-
-	const struct dap_part_nums *partnum = pidr_to_part_num(designer_id, part_num);
-	command_print(cmd, "\t\tPart is 0x%03x, %s %s", part_num, partnum->type, partnum->full);
-	command_print(cmd, "\t\tComponent class is 0x%x, %s", class, class_description[class]);
-
-	if (class == ARM_CS_CLASS_0X1_ROM_TABLE) {
-		if (v.devtype_memtype & ARM_CS_C1_MEMTYPE_SYSMEM_MASK)
-			command_print(cmd, "\t\tMEMTYPE system memory present on bus");
-		else
-			command_print(cmd, "\t\tMEMTYPE system memory not present: dedicated debug bus");
-
+	if (class == ARM_CS_CLASS_0X1_ROM_TABLE)
 		return rtp_rom_loop(cmd, ap, base_address, depth, 960);
-	}
 
 	if (class == ARM_CS_CLASS_0X9_CS_COMPONENT) {
-		retval = dap_devtype_display(cmd, v.devtype_memtype);
-		if (retval != ERROR_OK)
-			return retval;
-
-		/* REVISIT also show ARM_CS_C9_DEVID */
-
 		if ((v.devarch & ARM_CS_C9_DEVARCH_PRESENT) == 0)
 			return ERROR_OK;
 
-		unsigned int architect_id = (v.devarch & ARM_CS_C9_DEVARCH_ARCHITECT_MASK) >> ARM_CS_C9_DEVARCH_ARCHITECT_SHIFT;
-		unsigned int revision = (v.devarch & ARM_CS_C9_DEVARCH_REVISION_MASK) >> ARM_CS_C9_DEVARCH_REVISION_SHIFT;
-		command_print(cmd, "\t\tDev Arch is 0x%08" PRIx32 ", %s \"%s\" rev.%u", v.devarch,
-				jep106_manufacturer(architect_id), class0x9_devarch_description(v.devarch),
-				revision);
 		/* quit if not ROM table */
 		if ((v.devarch & DEVARCH_ID_MASK) != DEVARCH_ROM_C_0X9)
 			return ERROR_OK;
-
-		if (v.devid & ARM_CS_C9_DEVID_SYSMEM_MASK)
-			command_print(cmd, "\t\tMEMTYPE system memory present on bus");
-		else
-			command_print(cmd, "\t\tMEMTYPE system memory not present: dedicated debug bus");
 
 		return rtp_rom_loop(cmd, ap, base_address, depth, 512);
 	}
@@ -1712,6 +1666,90 @@ static int dap_info_mem_ap_header(struct command_invocation *cmd,
 		}
 	}
 
+	return ERROR_OK;
+}
+
+static int dap_info_cs_component(struct command_invocation *cmd,
+		int retval, struct cs_component_vals *v, int depth)
+{
+	if (depth > ROM_TABLE_MAX_DEPTH) {
+		command_print(cmd, "\tTables too deep");
+		return ERROR_FAIL;
+	}
+
+	command_print(cmd, "\t\tComponent base address " TARGET_ADDR_FMT, v->component_base);
+
+	if (retval != ERROR_OK) {
+		command_print(cmd, "\t\tCan't read component, the corresponding core might be turned off");
+		return retval;
+	}
+
+	if (!is_valid_arm_cs_cidr(v->cid)) {
+		command_print(cmd, "\t\tInvalid CID 0x%08" PRIx32, v->cid);
+		return ERROR_OK; /* Don't abort recursion */
+	}
+
+	/* component may take multiple 4K pages */
+	uint32_t size = ARM_CS_PIDR_SIZE(v->pid);
+	if (size > 0)
+		command_print(cmd, "\t\tStart address " TARGET_ADDR_FMT, v->component_base - 0x1000 * size);
+
+	command_print(cmd, "\t\tPeripheral ID 0x%010" PRIx64, v->pid);
+
+	const unsigned int part_num = ARM_CS_PIDR_PART(v->pid);
+	unsigned int designer_id = ARM_CS_PIDR_DESIGNER(v->pid);
+
+	if (v->pid & ARM_CS_PIDR_JEDEC) {
+		/* JEP106 code */
+		command_print(cmd, "\t\tDesigner is 0x%03x, %s",
+				designer_id, jep106_manufacturer(designer_id));
+	} else {
+		/* Legacy ASCII ID, clear invalid bits */
+		designer_id &= 0x7f;
+		command_print(cmd, "\t\tDesigner ASCII code 0x%02x, %s",
+				designer_id, designer_id == 0x41 ? "ARM" : "<unknown>");
+	}
+
+	const struct dap_part_nums *partnum = pidr_to_part_num(designer_id, part_num);
+	command_print(cmd, "\t\tPart is 0x%03x, %s %s", part_num, partnum->type, partnum->full);
+
+	const unsigned int class = ARM_CS_CIDR_CLASS(v->cid);
+	command_print(cmd, "\t\tComponent class is 0x%x, %s", class, class_description[class]);
+
+	if (class == ARM_CS_CLASS_0X1_ROM_TABLE) {
+		if (v->devtype_memtype & ARM_CS_C1_MEMTYPE_SYSMEM_MASK)
+			command_print(cmd, "\t\tMEMTYPE system memory present on bus");
+		else
+			command_print(cmd, "\t\tMEMTYPE system memory not present: dedicated debug bus");
+		return ERROR_OK;
+	}
+
+	if (class == ARM_CS_CLASS_0X9_CS_COMPONENT) {
+		dap_devtype_display(cmd, v->devtype_memtype);
+
+		/* REVISIT also show ARM_CS_C9_DEVID */
+
+		if ((v->devarch & ARM_CS_C9_DEVARCH_PRESENT) == 0)
+			return ERROR_OK;
+
+		unsigned int architect_id = ARM_CS_C9_DEVARCH_ARCHITECT(v->devarch);
+		unsigned int revision = ARM_CS_C9_DEVARCH_REVISION(v->devarch);
+		command_print(cmd, "\t\tDev Arch is 0x%08" PRIx32 ", %s \"%s\" rev.%u", v->devarch,
+				jep106_manufacturer(architect_id), class0x9_devarch_description(v->devarch),
+				revision);
+
+		if ((v->devarch & DEVARCH_ID_MASK) == DEVARCH_ROM_C_0X9) {
+			command_print(cmd, "\t\tType is ROM table");
+
+			if (v->devid & ARM_CS_C9_DEVID_SYSMEM_MASK)
+				command_print(cmd, "\t\tMEMTYPE system memory present on bus");
+			else
+				command_print(cmd, "\t\tMEMTYPE system memory not present: dedicated debug bus");
+		}
+		return ERROR_OK;
+	}
+
+	/* Class other than 0x1 and 0x9 */
 	return ERROR_OK;
 }
 
