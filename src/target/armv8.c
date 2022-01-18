@@ -883,11 +883,26 @@ int armv8_read_mpidr(struct armv8_common *armv8)
 	int retval = ERROR_FAIL;
 	struct arm *arm = &armv8->arm;
 	struct arm_dpm *dpm = armv8->arm.dpm;
-	uint32_t mpidr;
+	uint64_t mpidr;
+	uint8_t multi_processor_system;
+	uint8_t aff3;
+	uint8_t aff2;
+	uint8_t aff1;
+	uint8_t aff0;
+	uint8_t mt;
 
 	retval = dpm->prepare(dpm);
 	if (retval != ERROR_OK)
 		goto done;
+
+	/*
+	 * TODO: BUG - routine armv8_dpm_modeswitch() doesn't re-evaluate 'arm->dpm->core_state'.
+	 * If the core is halted in EL0 AArch32 while EL1 is in AArch64, the modeswitch moves the core
+	 * to EL1, but there is no re-evaluation of dpm->arm->core_state. As a result, while the core
+	 * is in AArch64, the code considers the system still in AArch32. The read of MPIDR would
+	 * select the instruction based on the old core_state. The call to 'armv8_dpm_get_core_state()'
+	 * below could also potentially return the incorrect execution state for the current EL.
+	 */
 
 	/* check if we're in an unprivileged mode */
 	if (armv8_curel_from_core_mode(arm->core_mode) < SYSTEM_CUREL_EL1) {
@@ -896,17 +911,39 @@ int armv8_read_mpidr(struct armv8_common *armv8)
 			return retval;
 	}
 
-	retval = dpm->instr_read_data_r0(dpm, armv8_opcode(armv8, READ_REG_MPIDR), &mpidr);
+	retval = dpm->instr_read_data_r0_64(dpm, armv8_opcode(armv8, READ_REG_MPIDR), &mpidr);
 	if (retval != ERROR_OK)
 		goto done;
 	if (mpidr & 1U<<31) {
-		armv8->multi_processor_system = (mpidr >> 30) & 1;
-		armv8->cluster_id = (mpidr >> 8) & 0xf;
-		armv8->cpu_id = mpidr & 0x3;
-		LOG_INFO("%s cluster %x core %x %s", target_name(armv8->arm.target),
-			armv8->cluster_id,
-			armv8->cpu_id,
-			armv8->multi_processor_system == 0 ? "multi core" : "single core");
+		multi_processor_system = (mpidr >> 30) & 1;
+		aff3 = (mpidr >> 32) & 0xff;
+		aff2 = (mpidr >> 16) & 0xff;
+		aff1 = (mpidr >> 8) & 0xff;
+		aff0 = mpidr & 0xff;
+		mt = (mpidr >> 24) & 0x1;
+		if (armv8_dpm_get_core_state(&armv8->dpm) == ARM_STATE_AARCH64) {
+			if (mt)
+				LOG_INFO("%s socket %" PRIu32 " cluster %" PRIu32 " core %" PRIu32 " thread %" PRIu32 " %s",
+					target_name(armv8->arm.target),
+					aff3, aff2, aff1, aff0,
+					multi_processor_system == 0 ? "multi core" : "single core");
+			else
+				LOG_INFO("%s socket %" PRIu32 " cluster %" PRIu32 " core %" PRIu32 " %s",
+					target_name(armv8->arm.target),
+					aff3, aff1, aff0,
+					multi_processor_system == 0 ? "multi core" : "single core");
+		} else {
+			if (mt)
+				LOG_INFO("%s cluster %" PRIu32 " core %" PRIu32 " thread %" PRIu32 " %s",
+					target_name(armv8->arm.target),
+					aff2, aff1, aff0,
+					multi_processor_system == 0 ? "multi core" : "single core");
+			else
+				LOG_INFO("%s cluster %" PRIu32 " core %" PRIu32 " %s",
+					target_name(armv8->arm.target),
+					aff1, aff0,
+					multi_processor_system == 0 ? "multi core" : "single core");
+		}
 	} else
 		LOG_ERROR("mpidr not in multiprocessor format");
 
