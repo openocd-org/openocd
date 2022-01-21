@@ -146,6 +146,9 @@ static const struct samd_part same53_parts[] = {
 	{ 0x04, "SAME53J20A", 1024, 256 },
 	{ 0x05, "SAME53J19A", 512, 192 },
 	{ 0x06, "SAME53J18A", 256, 128 },
+	{ 0x55, "LAN9255/ZMX020", 1024, 256 },
+	{ 0x56, "LAN9255/ZMX019", 512, 192 },
+	{ 0x57, "LAN9255/ZMX018", 256, 128 },
 };
 
 /* Known SAME54 parts. */
