@@ -604,8 +604,6 @@ static int ulink_get_queue_size(struct ulink *device,
  * Clear the OpenULINK command queue.
  *
  * @param device pointer to struct ulink identifying ULINK driver instance.
- * @return on success: ERROR_OK
- * @return on failure: ERROR_FAIL
  */
 static void ulink_clear_queue(struct ulink *device)
 {
