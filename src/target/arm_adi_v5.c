@@ -2124,6 +2124,7 @@ struct dap_lookup_data {
 	unsigned int type;
 	/* output */
 	uint64_t component_base;
+	uint64_t ap_num;
 };
 
 static int dap_lookup_cs_component_cs_component(int retval,
@@ -2152,6 +2153,7 @@ static int dap_lookup_cs_component_cs_component(int retval,
 
 	/* Found! */
 	lookup->component_base = v->component_base;
+	lookup->ap_num = v->ap->ap_num;
 	return CORESIGHT_COMPONENT_FOUND;
 }
 
@@ -2172,6 +2174,11 @@ int dap_lookup_cs_component(struct adiv5_ap *ap, uint8_t type,
 
 	int retval = rtp_ap(&dap_lookup_cs_component_ops, ap, 0);
 	if (retval == CORESIGHT_COMPONENT_FOUND) {
+		if (lookup.ap_num != ap->ap_num) {
+			/* TODO: handle search from root ROM table */
+			LOG_DEBUG("CS lookup ended in AP # 0x%" PRIx64 ". Ignore it", lookup.ap_num);
+			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+		}
 		LOG_DEBUG("CS lookup found at 0x%" PRIx64, lookup.component_base);
 		*addr = lookup.component_base;
 		return ERROR_OK;
