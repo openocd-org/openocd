@@ -44,7 +44,7 @@
 #define ARM_CS_CIDR3                            (0xFFC)
 
 #define ARM_CS_CIDR_CLASS_MASK                  (0x0000F000)
-#define ARM_CS_CIDR_CLASS_SHIFT                 (12)
+#define ARM_CS_CIDR_CLASS(cidr)                 (((cidr) >> 12) & 0x000F)
 #define ARM_CS_CLASS_0X1_ROM_TABLE              (0x1)
 #define ARM_CS_CLASS_0X9_CS_COMPONENT           (0x9)
 

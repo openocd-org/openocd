@@ -1434,7 +1434,7 @@ static int dap_rom_display(struct command_invocation *cmd,
 
 	command_print(cmd, "\t\tPeripheral ID 0x%010" PRIx64, pid);
 
-	const unsigned int class = (cid & ARM_CS_CIDR_CLASS_MASK) >> ARM_CS_CIDR_CLASS_SHIFT;
+	const unsigned int class = ARM_CS_CIDR_CLASS(cid);
 	const unsigned int part_num = ARM_CS_PIDR_PART(pid);
 	unsigned int designer_id = ARM_CS_PIDR_DESIGNER(pid);
 
