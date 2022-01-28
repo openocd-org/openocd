@@ -437,6 +437,8 @@ int openocd_main(int argc, char *argv[])
 	rtt_exit();
 	free_config();
 
+	log_exit();
+
 	if (ret == ERROR_FAIL)
 		return EXIT_FAILURE;
 	else if (ret != ERROR_OK)

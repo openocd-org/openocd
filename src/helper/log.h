@@ -72,6 +72,7 @@ __attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 5, 6)));
  * Initialize logging module.  Call during program startup.
  */
 void log_init(void);
+void log_exit(void);
 int set_log_output(struct command_context *cmd_ctx, FILE *output);
 
 int log_register_commands(struct command_context *cmd_ctx);

@@ -302,6 +302,15 @@ void log_init(void)
 	start = last_time = timeval_ms();
 }
 
+void log_exit(void)
+{
+	if (log_output && log_output != stderr) {
+		/* Close log file, if it was open and wasn't stderr. */
+		fclose(log_output);
+	}
+	log_output = NULL;
+}
+
 int set_log_output(struct command_context *cmd_ctx, FILE *output)
 {
 	log_output = output;

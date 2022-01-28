@@ -2009,9 +2009,9 @@ proc setc15 @{regs value@} @{
 
     echo [format "set p15 0x%04x, 0x%08x" $regs $value]
 
-    arm mcr 15 [expr ($regs>>12)&0x7] \
-        [expr ($regs>>0)&0xf] [expr ($regs>>4)&0xf] \
-        [expr ($regs>>8)&0x7] $value
+    arm mcr 15 [expr @{($regs >> 12) & 0x7@}] \
+        [expr @{($regs >> 0) & 0xf@}] [expr @{($regs >> 4) & 0xf@}] \
+        [expr @{($regs >> 8) & 0x7@}] $value
 @}
 @end example
 
@@ -3157,7 +3157,9 @@ the target's supply voltage.
 The result can be converted to Volts (ignoring the most significant bytes, always zero)
 @example
 > set a [st-link cmd 8 0xf7 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
-> echo [expr 2*1.2*([lindex $a 4]+256*[lindex $a 5])/([lindex $a 0]+256*[lindex $a 1])]
+> set n [expr @{[lindex $a 4] + 256 * [lindex $a 5]@}]
+> set d [expr @{[lindex $a 0] + 256 * [lindex $a 1]@}]
+> echo [expr @{2 * 1.2 * $n / $d@}]
 3.24891518738
 @end example
 @end deffn
@@ -4151,6 +4153,10 @@ option. When vendors put out multiple versions of a chip, or use the same
 JTAG-level ID for several largely-compatible chips, it may be more practical
 to ignore the version field than to update config files to handle all of
 the various chip IDs. The version field is defined as bit 28-31 of the IDCODE.
+@item @code{-ignore-bypass}
+@*Specify this to ignore the 'bypass' bit of the idcode. Some vendor put
+an invalid idcode regarding this bit. Specify this to ignore this bit and
+to not consider this tap in bypass mode.
 @item @code{-ircapture} @var{NUMBER}
 @*The bit pattern loaded by the TAP into the JTAG shift register
 on entry to the @sc{ircapture} state, such as 0x01.
@@ -4523,13 +4529,13 @@ where the mask bit is 1. The following example sets HPROT3 (cacheable)
 and leaves the rest of the pattern intact. It configures memory access through
 DCache on Cortex-M7.
 @example
-set CSW_HPROT3_CACHEABLE [expr 1 << 27]
+set CSW_HPROT3_CACHEABLE [expr @{1 << 27@}]
 samv.dap apcsw $CSW_HPROT3_CACHEABLE $CSW_HPROT3_CACHEABLE
 @end example
 
 Another example clears SPROT bit and leaves the rest of pattern intact:
 @example
-set CSW_SPROT [expr 1 << 30]
+set CSW_SPROT [expr @{1 << 30@}]
 samv.dap apcsw 0 $CSW_SPROT
 @end example
 
@@ -6351,13 +6357,22 @@ flash bank $_FLASHNAME cc3220sf 0 0 0 0 $_TARGETNAME
 @end deffn
 
 @deffn {Flash Driver} {efm32}
-All members of the EFM32 microcontroller family from Energy Micro include
-internal flash and use ARM Cortex-M3 cores. The driver automatically recognizes
-a number of these chips using the chip identification register, and
+All members of the EFM32/EFR32 microcontroller family from Energy Micro (now Silicon Labs)
+include internal flash and use Arm Cortex-M3 or Cortex-M4 cores. The driver automatically
+recognizes a number of these chips using the chip identification register, and
 autoconfigures itself.
 @example
 flash bank $_FLASHNAME efm32 0 0 0 0 $_TARGETNAME
 @end example
+It supports writing to the user data page, as well as the portion of the lockbits page
+past 512 bytes on chips with larger page sizes. The latter is used by the SiLabs
+bootloader/AppLoader system for encryption keys. Setting protection on these pages is
+currently not supported.
+@example
+flash bank userdata.flash efm32 0x0FE00000 0 0 0 $_TARGETNAME
+flash bank lockbits.flash efm32 0x0FE04000 0 0 0 $_TARGETNAME
+@end example
+
 A special feature of efm32 controllers is that it is possible to completely disable the
 debug interface by writing the correct values to the 'Debug Lock Word'. OpenOCD supports
 this via the following command:
@@ -8611,7 +8626,7 @@ In addition the following arguments may be specified:
 proc load_image_bin @{fname foffset address length @} @{
     # Load data from fname filename at foffset offset to
     # target at address. Load at most length bytes.
-    load_image $fname [expr $address - $foffset] bin \
+    load_image $fname [expr @{$address - $foffset@}] bin \
                $address $length
 @}
 @end example
@@ -10431,7 +10446,7 @@ trivial challenge-response protocol could be implemented as follows in a
 configuration file, immediately following @command{init}:
 @example
 set challenge [riscv authdata_read]
-riscv authdata_write [expr $challenge + 1]
+riscv authdata_write [expr @{$challenge + 1@}]
 @end example
 
 @deffn {Command} {riscv authdata_read} [index=0]
@@ -12142,7 +12157,7 @@ it reads a file and executes as a script.
 @example
     set x 6
     set y 7
-    puts [format "The answer: %d" [expr $x * $y]]
+    puts [format "The answer: %d" [expr @{$x * $y@}]]
 @end example
 @enumerate
 @item The SET command creates 2 variables, X and Y.
@@ -12213,13 +12228,13 @@ proc myproc @{ @} @{
 @b{Dynamic variable creation}
 @example
 # Dynamically create a bunch of variables.
-for @{ set x 0 @} @{ $x < 32 @} @{ set x [expr $x + 1]@} @{
+for @{ set x 0 @} @{ $x < 32 @} @{ set x [expr @{$x + 1@}]@} @{
     # Create var name
     set vn [format "BIT%d" $x]
     # Make it a global
     global $vn
     # Set it.
-    set $vn [expr (1 << $x)]
+    set $vn [expr @{1 << $x@}]
 @}
 @end example
 @b{Dynamic proc/command creation}

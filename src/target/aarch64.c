@@ -2635,8 +2635,10 @@ static int aarch64_examine_first(struct target *target)
 	LOG_DEBUG("ttypr = 0x%08" PRIx64, ttypr);
 	LOG_DEBUG("debug = 0x%08" PRIx64, debug);
 
-	if (!pc->cti)
+	if (!pc->cti) {
+		LOG_TARGET_ERROR(target, "CTI not specified");
 		return ERROR_FAIL;
+	}
 
 	armv8->cti = pc->cti;
 

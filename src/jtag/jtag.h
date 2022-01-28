@@ -135,6 +135,9 @@ struct jtag_tap {
 	/** Flag saying whether to ignore version field in expected_ids[] */
 	bool ignore_version;
 
+	/** Flag saying whether to ignore the bypass bit in the code */
+	bool ignore_bypass;
+
 	/** current instruction */
 	uint8_t *cur_instr;
 	/** Bypass register selected */
