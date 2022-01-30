@@ -3657,6 +3657,15 @@ static int gdb_input(struct connection *connection)
 	return ERROR_OK;
 }
 
+static const struct service_driver gdb_service_driver = {
+	.name = "gdb",
+	.new_connection_during_keep_alive_handler = NULL,
+	.new_connection_handler = gdb_new_connection,
+	.input_handler = gdb_input,
+	.connection_closed_handler = gdb_connection_closed,
+	.keep_client_alive_handler = NULL,
+};
+
 static int gdb_target_start(struct target *target, const char *port)
 {
 	struct gdb_service *gdb_service;
@@ -3673,9 +3682,7 @@ static int gdb_target_start(struct target *target, const char *port)
 	gdb_service->core[1] = -1;
 	target->gdb_service = gdb_service;
 
-	ret = add_service("gdb",
-			port, target->gdb_max_connections, &gdb_new_connection, &gdb_input,
-			&gdb_connection_closed, gdb_service);
+	ret = add_service(&gdb_service_driver, port, target->gdb_max_connections, gdb_service);
 	/* initialize all targets gdb service with the same pointer */
 	{
 		struct target_list *head;

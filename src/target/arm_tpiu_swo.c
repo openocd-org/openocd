@@ -582,6 +582,15 @@ static int wrap_read_u32(struct target *target, struct adiv5_ap *tpiu_ap,
 		return mem_ap_read_atomic_u32(tpiu_ap, address, value);
 }
 
+static const struct service_driver arm_tpiu_swo_service_driver = {
+	.name = "tpiu_swo_trace",
+	.new_connection_during_keep_alive_handler = NULL,
+	.new_connection_handler = arm_tpiu_swo_service_new_connection,
+	.input_handler = arm_tpiu_swo_service_input,
+	.connection_closed_handler = arm_tpiu_swo_service_connection_closed,
+	.keep_client_alive_handler = NULL,
+};
+
 static int jim_arm_tpiu_swo_enable(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	struct command *c = jim_to_command(interp);
@@ -700,10 +709,8 @@ static int jim_arm_tpiu_swo_enable(Jim_Interp *interp, int argc, Jim_Obj *const 
 			}
 			priv->obj = obj;
 			LOG_INFO("starting trace server for %s on %s", obj->name, &obj->out_filename[1]);
-			retval = add_service("tpiu_swo_trace", &obj->out_filename[1],
-				CONNECTION_LIMIT_UNLIMITED, arm_tpiu_swo_service_new_connection,
-				arm_tpiu_swo_service_input, arm_tpiu_swo_service_connection_closed,
-				priv);
+			retval = add_service(&arm_tpiu_swo_service_driver, &obj->out_filename[1],
+				CONNECTION_LIMIT_UNLIMITED, priv);
 			if (retval != ERROR_OK) {
 				LOG_ERROR("Can't configure trace TCP port %s", &obj->out_filename[1]);
 				return JIM_ERR;
