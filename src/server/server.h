@@ -106,6 +106,8 @@ int server_quit(void);
 void server_free(void);
 void exit_on_signal(int sig);
 
+void server_keep_clients_alive(void);
+
 int server_loop(struct command_context *command_context);
 
 int server_register_commands(struct command_context *context);

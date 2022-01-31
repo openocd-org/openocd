@@ -30,6 +30,7 @@
 #include "command.h"
 #include "replacements.h"
 #include "time_support.h"
+#include <server/server.h>
 
 #include <stdarg.h>
 
@@ -110,32 +111,27 @@ static void log_puts(enum log_levels level,
 	if (f)
 		file = f + 1;
 
-	if (strlen(string) > 0) {
-		if (debug_level >= LOG_LVL_DEBUG) {
-			/* print with count and time information */
-			int64_t t = timeval_ms() - start;
+	if (debug_level >= LOG_LVL_DEBUG) {
+		/* print with count and time information */
+		int64_t t = timeval_ms() - start;
 #ifdef _DEBUG_FREE_SPACE_
-			struct mallinfo info;
-			info = mallinfo();
+		struct mallinfo info;
+		info = mallinfo();
 #endif
-			fprintf(log_output, "%s%d %" PRId64 " %s:%d %s()"
+		fprintf(log_output, "%s%d %" PRId64 " %s:%d %s()"
 #ifdef _DEBUG_FREE_SPACE_
-				" %d"
+			" %d"
 #endif
-				": %s", log_strings[level + 1], count, t, file, line, function,
+			": %s", log_strings[level + 1], count, t, file, line, function,
 #ifdef _DEBUG_FREE_SPACE_
-				info.fordblks,
+			info.fordblks,
 #endif
-				string);
-		} else {
-			/* if we are using gdb through pipes then we do not want any output
-			 * to the pipe otherwise we get repeated strings */
-			fprintf(log_output, "%s%s",
-				(level > LOG_LVL_USER) ? log_strings[level + 1] : "", string);
-		}
+			string);
 	} else {
-		/* Empty strings are sent to log callbacks to keep e.g. gdbserver alive, here we do
-		 *nothing. */
+		/* if we are using gdb through pipes then we do not want any output
+		 * to the pipe otherwise we get repeated strings */
+		fprintf(log_output, "%s%s",
+			(level > LOG_LVL_USER) ? log_strings[level + 1] : "", string);
 	}
 
 	fflush(log_output);
@@ -452,7 +448,7 @@ void keep_alive(void)
 		last_time = current_time;
 
 		/* this will keep the GDB connection alive */
-		LOG_USER_N("%s", "");
+		server_keep_clients_alive();
 
 		/* DANGER!!!! do not add code to invoke e.g. target event processing,
 		 * jim timer processing, etc. it can cause infinite recursion +

@@ -3673,13 +3673,35 @@ static int gdb_input(struct connection *connection)
 	return ERROR_OK;
 }
 
+static void gdb_keep_client_alive(struct connection *connection)
+{
+	struct gdb_connection *gdb_con = connection->priv;
+
+	if (gdb_con->busy) {
+		/* do not send packets, retry asap */
+		return;
+	}
+
+	switch (gdb_con->output_flag) {
+	case GDB_OUTPUT_NO:
+		/* no need for keep-alive */
+		break;
+	case GDB_OUTPUT_ALL:
+		/* send an empty O packet */
+		gdb_output_con(connection, "");
+		break;
+	default:
+		break;
+	}
+}
+
 static const struct service_driver gdb_service_driver = {
 	.name = "gdb",
 	.new_connection_during_keep_alive_handler = NULL,
 	.new_connection_handler = gdb_new_connection,
 	.input_handler = gdb_input,
 	.connection_closed_handler = gdb_connection_closed,
-	.keep_client_alive_handler = NULL,
+	.keep_client_alive_handler = gdb_keep_client_alive,
 };
 
 static int gdb_target_start(struct target *target, const char *port)

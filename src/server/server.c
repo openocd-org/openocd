@@ -421,6 +421,14 @@ static int remove_services(void)
 	return ERROR_OK;
 }
 
+void server_keep_clients_alive(void)
+{
+	for (struct service *s = services; s; s = s->next)
+		if (s->keep_client_alive)
+			for (struct connection *c = s->connections; c; c = c->next)
+				s->keep_client_alive(c);
+}
+
 int server_loop(struct command_context *command_context)
 {
 	struct service *service;
