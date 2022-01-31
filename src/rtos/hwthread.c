@@ -43,6 +43,8 @@ static int hwthread_read_buffer(struct rtos *rtos, target_addr_t address,
 		uint32_t size, uint8_t *buffer);
 static int hwthread_write_buffer(struct rtos *rtos, target_addr_t address,
 		uint32_t size, const uint8_t *buffer);
+struct target *hwthread_swbp_target(struct rtos *rtos, target_addr_t address,
+				    uint32_t length, enum breakpoint_type type);
 
 #define HW_THREAD_NAME_STR_SIZE (32)
 
@@ -66,6 +68,7 @@ const struct rtos_type hwthread_rtos = {
 	.needs_fake_step = hwthread_needs_fake_step,
 	.read_buffer = hwthread_read_buffer,
 	.write_buffer = hwthread_write_buffer,
+	.swbp_target = hwthread_swbp_target
 };
 
 struct hwthread_params {
@@ -443,4 +446,10 @@ static int hwthread_write_buffer(struct rtos *rtos, target_addr_t address,
 		return ERROR_FAIL;
 
 	return target_write_buffer(curr, address, size, buffer);
+}
+
+struct target *hwthread_swbp_target(struct rtos *rtos, target_addr_t address,
+				    uint32_t length, enum breakpoint_type type)
+{
+	return hwthread_find_thread(rtos->target, rtos->current_thread);
 }

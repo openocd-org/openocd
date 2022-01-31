@@ -26,6 +26,7 @@
 #include "target.h"
 #include <helper/log.h>
 #include "breakpoints.h"
+#include "rtos/rtos.h"
 
 static const char * const breakpoint_type_strings[] = {
 	"hardware",
@@ -218,14 +219,16 @@ int breakpoint_add(struct target *target,
 {
 	int retval = ERROR_OK;
 	if (target->smp) {
-		struct target_list *head;
-		struct target *curr;
-		head = target->head;
-		if (type == BKPT_SOFT)
-			return breakpoint_add_internal(head->target, address, length, type);
+		struct target_list *head = target->head;
+		if (type == BKPT_SOFT) {
+			struct target *curr = head->target;
+			if (target->rtos)
+				curr = rtos_swbp_target(target, address, length, type);
+			return breakpoint_add_internal(curr, address, length, type);
+		}
 
 		while (head) {
-			curr = head->target;
+			struct target *curr = head->target;
 			retval = breakpoint_add_internal(curr, address, length, type);
 			if (retval != ERROR_OK)
 				return retval;
