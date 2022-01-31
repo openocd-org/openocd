@@ -9,6 +9,7 @@
 #define OPENOCD_RTOS_RTOS_H
 
 #include "server/server.h"
+#include "target/breakpoints.h"
 #include "target/target.h"
 
 typedef int64_t threadid_t;
@@ -86,6 +87,12 @@ struct rtos_type {
 	 * target running a multi-threading OS. If an RTOS can do this, override
 	 * needs_fake_step(). */
 	bool (*needs_fake_step)(struct target *target, int64_t thread_id);
+	/* When a software breakpoint is set, it is set on only one target,
+	 * because we assume memory is shared across them. By default this is the
+	 * first target in the SMP group. Override this function to have
+	 * breakpoint_add() use a different target. */
+	struct target * (*swbp_target)(struct rtos *rtos, target_addr_t address,
+				     uint32_t length, enum breakpoint_type type);
 };
 
 struct stack_register_offset {
@@ -145,6 +152,8 @@ int rtos_read_buffer(struct target *target, target_addr_t address,
 int rtos_write_buffer(struct target *target, target_addr_t address,
 		uint32_t size, const uint8_t *buffer);
 bool rtos_needs_fake_step(struct target *target, int64_t thread_id);
+struct target *rtos_swbp_target(struct target *target, target_addr_t address,
+				uint32_t length, enum breakpoint_type type);
 
 // Keep in alphabetic order this list of rtos
 extern const struct rtos_type chibios_rtos;

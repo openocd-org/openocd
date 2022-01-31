@@ -762,3 +762,11 @@ bool rtos_needs_fake_step(struct target *target, int64_t thread_id)
 		return target->rtos->type->needs_fake_step(target, thread_id);
 	return target->rtos->current_thread != thread_id;
 }
+
+struct target *rtos_swbp_target(struct target *target, target_addr_t address,
+				uint32_t length, enum breakpoint_type type)
+{
+	if (target->rtos->type->swbp_target)
+		return target->rtos->type->swbp_target(target->rtos, address, length, type);
+	return target;
+}

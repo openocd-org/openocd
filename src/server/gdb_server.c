@@ -1814,7 +1814,15 @@ static int gdb_breakpoint_watchpoint_packet(struct connection *connection,
 		case 0:
 		case 1:
 			if (packet[0] == 'Z') {
-				retval = breakpoint_add(target, address, size, bp_type);
+				struct target *bp_target = target;
+				if (target->rtos && bp_type == BKPT_SOFT) {
+					bp_target = rtos_swbp_target(target, address, size, bp_type);
+					if (!bp_target) {
+						retval = ERROR_FAIL;
+						break;
+					}
+				}
+				retval = breakpoint_add(bp_target, address, size, bp_type);
 			} else {
 				assert(packet[0] == 'z');
 				retval = breakpoint_remove(target, address);
