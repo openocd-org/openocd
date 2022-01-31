@@ -47,7 +47,6 @@ static FILE *log_output;
 static struct log_callback *log_callbacks;
 
 static int64_t last_time;
-static int64_t current_time;
 
 static int64_t start;
 
@@ -440,8 +439,7 @@ static void gdb_timeout_warning(int64_t delta_time)
 
 void keep_alive(void)
 {
-	current_time = timeval_ms();
-
+	int64_t current_time = timeval_ms();
 	int64_t delta_time = current_time - last_time;
 
 	if (delta_time > KEEP_ALIVE_TIMEOUT_MS) {
@@ -469,7 +467,7 @@ void keep_alive(void)
 /* reset keep alive timer without sending message */
 void kept_alive(void)
 {
-	current_time = timeval_ms();
+	int64_t current_time = timeval_ms();
 
 	int64_t delta_time = current_time - last_time;
 
