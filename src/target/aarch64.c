@@ -1066,9 +1066,12 @@ static int aarch64_post_debug_entry(struct target *target)
 		armv8_identify_cache(armv8);
 		armv8_read_mpidr(armv8);
 	}
-
-	armv8->armv8_mmu.mmu_enabled =
+	if (armv8->is_armv8r) {
+		armv8->armv8_mmu.mmu_enabled = 0;
+	} else {
+		armv8->armv8_mmu.mmu_enabled =
 			(aarch64->system_control_reg & 0x1U) ? 1 : 0;
+	}
 	armv8->armv8_mmu.armv8_cache.d_u_cache_enabled =
 		(aarch64->system_control_reg & 0x4U) ? 1 : 0;
 	armv8->armv8_mmu.armv8_cache.i_cache_enabled =
@@ -2726,6 +2729,25 @@ static int aarch64_init_arch_info(struct target *target,
 	return ERROR_OK;
 }
 
+static int armv8r_target_create(struct target *target, Jim_Interp *interp)
+{
+	struct aarch64_private_config *pc = target->private_config;
+	struct aarch64_common *aarch64;
+
+	if (adiv5_verify_config(&pc->adiv5_config) != ERROR_OK)
+		return ERROR_FAIL;
+
+	aarch64 = calloc(1, sizeof(struct aarch64_common));
+	if (!aarch64) {
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
+	}
+
+	aarch64->armv8_common.is_armv8r = true;
+
+	return aarch64_init_arch_info(target, aarch64, pc->adiv5_config.dap);
+}
+
 static int aarch64_target_create(struct target *target, Jim_Interp *interp)
 {
 	struct aarch64_private_config *pc = target->private_config;
@@ -2739,6 +2761,8 @@ static int aarch64_target_create(struct target *target, Jim_Interp *interp)
 		LOG_ERROR("Out of memory");
 		return ERROR_FAIL;
 	}
+
+	aarch64->armv8_common.is_armv8r = false;
 
 	return aarch64_init_arch_info(target, aarch64, pc->adiv5_config.dap);
 }
@@ -2762,12 +2786,16 @@ static void aarch64_deinit_target(struct target *target)
 
 static int aarch64_mmu(struct target *target, int *enabled)
 {
+	struct aarch64_common *aarch64 = target_to_aarch64(target);
+	struct armv8_common *armv8 = &aarch64->armv8_common;
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("%s: target %s not halted", __func__, target_name(target));
 		return ERROR_TARGET_INVALID;
 	}
-
-	*enabled = target_to_aarch64(target)->armv8_common.armv8_mmu.mmu_enabled;
+	if (armv8->is_armv8r)
+		*enabled = 0;
+	else
+		*enabled = target_to_aarch64(target)->armv8_common.armv8_mmu.mmu_enabled;
 	return ERROR_OK;
 }
 
@@ -3164,4 +3192,40 @@ struct target_type aarch64_target = {
 	.write_phys_memory = aarch64_write_phys_memory,
 	.mmu = aarch64_mmu,
 	.virt2phys = aarch64_virt2phys,
+};
+
+struct target_type armv8r_target = {
+	.name = "armv8r",
+
+	.poll = aarch64_poll,
+	.arch_state = armv8_arch_state,
+
+	.halt = aarch64_halt,
+	.resume = aarch64_resume,
+	.step = aarch64_step,
+
+	.assert_reset = aarch64_assert_reset,
+	.deassert_reset = aarch64_deassert_reset,
+
+	/* REVISIT allow exporting VFP3 registers ... */
+	.get_gdb_arch = armv8_get_gdb_arch,
+	.get_gdb_reg_list = armv8_get_gdb_reg_list,
+
+	.read_memory = aarch64_read_phys_memory,
+	.write_memory = aarch64_write_phys_memory,
+
+	.add_breakpoint = aarch64_add_breakpoint,
+	.add_context_breakpoint = aarch64_add_context_breakpoint,
+	.add_hybrid_breakpoint = aarch64_add_hybrid_breakpoint,
+	.remove_breakpoint = aarch64_remove_breakpoint,
+	.add_watchpoint = aarch64_add_watchpoint,
+	.remove_watchpoint = aarch64_remove_watchpoint,
+	.hit_watchpoint = aarch64_hit_watchpoint,
+
+	.commands = aarch64_command_handlers,
+	.target_create = armv8r_target_create,
+	.target_jim_configure = aarch64_jim_configure,
+	.init_target = aarch64_init_target,
+	.deinit_target = aarch64_deinit_target,
+	.examine = aarch64_examine,
 };
