@@ -156,6 +156,13 @@ struct stlink_usb_priv_s {
 	struct libusb_transfer *trans;
 };
 
+struct stlink_tcp_version {
+	uint32_t api;
+	uint32_t major;
+	uint32_t minor;
+	uint32_t build;
+};
+
 struct stlink_tcp_priv_s {
 	/** */
 	int fd;
@@ -169,6 +176,8 @@ struct stlink_tcp_priv_s {
 	uint8_t *send_buf;
 	/** */
 	uint8_t *recv_buf;
+	/** */
+	struct stlink_tcp_version version;
 };
 
 struct stlink_backend_s {
@@ -3532,16 +3541,19 @@ static int stlink_tcp_open(void *handle, struct hl_interface_param_s *param)
 		return ERROR_FAIL;
 	}
 
-	uint32_t api_ver = le_to_h_u32(&h->tcp_backend_priv.recv_buf[0]);
-	uint32_t ver_major = le_to_h_u32(&h->tcp_backend_priv.recv_buf[4]);
-	uint32_t ver_minor = le_to_h_u32(&h->tcp_backend_priv.recv_buf[8]);
-	uint32_t ver_build = le_to_h_u32(&h->tcp_backend_priv.recv_buf[12]);
+	h->tcp_backend_priv.version.api = le_to_h_u32(&h->tcp_backend_priv.recv_buf[0]);
+	h->tcp_backend_priv.version.major = le_to_h_u32(&h->tcp_backend_priv.recv_buf[4]);
+	h->tcp_backend_priv.version.minor = le_to_h_u32(&h->tcp_backend_priv.recv_buf[8]);
+	h->tcp_backend_priv.version.build = le_to_h_u32(&h->tcp_backend_priv.recv_buf[12]);
 	LOG_INFO("stlink-server API v%d, version %d.%d.%d",
-			api_ver, ver_major, ver_minor, ver_build);
+			h->tcp_backend_priv.version.api,
+			h->tcp_backend_priv.version.major,
+			h->tcp_backend_priv.version.minor,
+			h->tcp_backend_priv.version.build);
 
 	/* in stlink-server API v1 sending more than 1428 bytes will cause stlink-server
 	 * to crash in windows: select a safe default value (1K) */
-	if (api_ver < 2)
+	if (h->tcp_backend_priv.version.api < 2)
 		h->max_mem_packet = (1 << 10);
 
 	/* refresh stlink list (re-enumerate) */
@@ -4468,11 +4480,12 @@ static int stlink_usb_count_misc_rw_queue(void *handle, const struct dap_queue *
 	if (!(h->version.flags & STLINK_F_HAS_RW_MISC))
 		return 0;
 	/*
-	 * RW_MISC sequence doesn't lock the st-link, so are not safe in shared mode.
+	 * Before stlink-server API v3, RW_MISC sequence doesn't lock the st-link,
+	 * so are not safe in shared mode.
 	 * Don't use it with TCP backend to prevent any issue in case of sharing.
 	 * This further degrades the performance, on top of TCP server overhead.
 	 */
-	if (h->backend == &stlink_tcp_backend)
+	if (h->backend == &stlink_tcp_backend && h->tcp_backend_priv.version.api < 3)
 		return 0;
 
 	for (i = 0; i < len; i++) {
