@@ -1843,7 +1843,7 @@ int target_call_event_callbacks(struct target *target, enum target_event event)
 	}
 
 	LOG_DEBUG("target event %i (%s) for core %s", event,
-			jim_nvp_value2name_simple(nvp_target_event, event)->name,
+			target_event_name(event),
 			target_name(target));
 
 	target_handle_event(target, event);
@@ -4821,7 +4821,7 @@ void target_handle_event(struct target *target, enum target_event e)
 					   target_name(target),
 					   target_type_name(target),
 					   e,
-					   jim_nvp_value2name_simple(nvp_target_event, e)->name,
+					   target_event_name(e),
 					   Jim_GetString(teap->body, NULL));
 
 			/* Override current target by the target an event
@@ -4845,7 +4845,7 @@ void target_handle_event(struct target *target, enum target_event e)
 			if (retval != JIM_OK) {
 				Jim_MakeErrorMessage(teap->interp);
 				LOG_USER("Error executing event %s on target %s:\n%s",
-						  jim_nvp_value2name_simple(nvp_target_event, e)->name,
+						  target_event_name(e),
 						  target_name(target),
 						  Jim_GetString(Jim_GetResult(teap->interp), NULL));
 				/* clean both error code and stacktrace before return */
@@ -5508,9 +5508,9 @@ COMMAND_HANDLER(handle_target_event_list)
 	command_print(CMD, "------------------------- | "
 			"----------------------------------------");
 	while (teap) {
-		struct jim_nvp *opt = jim_nvp_value2name_simple(nvp_target_event, teap->event);
 		command_print(CMD, "%-25s | %s",
-				opt->name, Jim_GetString(teap->body, NULL));
+				target_event_name(teap->event),
+				Jim_GetString(teap->body, NULL));
 		teap = teap->next;
 	}
 	command_print(CMD, "***END***");

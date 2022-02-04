@@ -1273,7 +1273,7 @@ static int jtag_examine_chain(void)
 			jtag_tap_init(tap);
 		}
 
-		if ((idcode & 1) == 0) {
+		if ((idcode & 1) == 0 && !tap->ignore_bypass) {
 			/* Zero for LSB indicates a device in bypass */
 			LOG_INFO("TAP %s does not have valid IDCODE (idcode=0x%" PRIx32 ")",
 					tap->dotted_name, idcode);
