@@ -154,6 +154,11 @@ int rtos_write_buffer(struct target *target, target_addr_t address,
 bool rtos_needs_fake_step(struct target *target, int64_t thread_id);
 struct target *rtos_swbp_target(struct target *target, target_addr_t address,
 				uint32_t length, enum breakpoint_type type);
+/**
+ * Get the RTOS from the target itself, or from one of the targets in
+ * the same SMP node, or NULL when no RTOS is set.
+ */
+struct rtos *rtos_from_target(struct target *target);
 
 // Keep in alphabetic order this list of rtos
 extern const struct rtos_type chibios_rtos;
