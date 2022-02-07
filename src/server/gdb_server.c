@@ -778,9 +778,12 @@ static void gdb_signal_reply(struct target *target, struct connection *connectio
 		sig_reply_len = snprintf(sig_reply, sizeof(sig_reply), "W00");
 	} else {
 		struct target *ct;
-		if (target->rtos) {
-			target->rtos->current_threadid = target->rtos->current_thread;
-			target->rtos->gdb_target_for_threadid(connection, target->rtos->current_threadid, &ct);
+		struct rtos *rtos;
+
+		rtos = rtos_of_target(target);
+		if (rtos) {
+			rtos->current_threadid = rtos->current_thread;
+			rtos->gdb_target_for_threadid(connection, rtos->current_threadid, &ct);
 		} else {
 			ct = target;
 		}
@@ -817,9 +820,9 @@ static void gdb_signal_reply(struct target *target, struct connection *connectio
 		}
 
 		current_thread[0] = '\0';
-		if (target->rtos)
+		if (rtos)
 			snprintf(current_thread, sizeof(current_thread), "thread:%" PRIx64 ";",
-					target->rtos->current_thread);
+					rtos->current_thread);
 
 		sig_reply_len = snprintf(sig_reply, sizeof(sig_reply), "T%2.2x%s%s",
 				signal_var, stop_reason, current_thread);

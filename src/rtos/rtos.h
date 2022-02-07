@@ -175,5 +175,6 @@ int rtos_write_buffer(struct target *target, target_addr_t address,
 		uint32_t size, const uint8_t *buffer);
 struct target *rtos_swbp_target(struct target *target, target_addr_t address,
 				uint32_t length, enum breakpoint_type type);
+struct rtos *rtos_of_target(struct target *target);
 
 #endif /* OPENOCD_RTOS_RTOS_H */
