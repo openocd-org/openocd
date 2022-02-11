@@ -2795,11 +2795,21 @@ COMMAND_HANDLER(riscv_dmi_write)
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], value);
 
 	if (r->dmi_write) {
-		return r->dmi_write(target, address, value);
-	} else {
-		LOG_ERROR("dmi_write is not implemented for this target.");
-		return ERROR_FAIL;
+		/* Perform the DMI write */
+		int retval = r->dmi_write(target, address, value);
+
+		/* If the user tinkered with progbuf registers, we need to
+		   drop our cached copy of the progbuf */
+		if (address >= DM_PROGBUF0 && address <= DM_PROGBUF15) {
+			if (r->invalidate_cached_debug_buffer)
+				r->invalidate_cached_debug_buffer(target);
+		}
+
+		return retval;
 	}
+
+	LOG_ERROR("dmi_write is not implemented for this target.");
+	return ERROR_FAIL;
 }
 
 COMMAND_HANDLER(riscv_test_sba_config_reg)
