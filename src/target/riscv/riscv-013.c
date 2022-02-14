@@ -1568,6 +1568,9 @@ static int examine(struct target *target)
 		dmi_write(target, DM_DMCONTROL, 0);
 		dmi_write(target, DM_DMCONTROL, DM_DMCONTROL_DMACTIVE);
 		dm->was_reset = true;
+
+		/* The DM gets reset, so forget any cached progbuf entries. */
+		riscv013_invalidate_cached_debug_buffer(target);
 	}
 
 	dmi_write(target, DM_DMCONTROL, DM_DMCONTROL_HARTSELLO |
@@ -2371,7 +2374,7 @@ static int assert_reset(struct target *target)
 	/* The DM might have gotten reset if OpenOCD called us in some reset that
 	 * involves SRST being toggled. So clear our cache which may be out of
 	 * date. */
-	memset(dm->progbuf_cache, 0, sizeof(dm->progbuf_cache));
+	riscv013_invalidate_cached_debug_buffer(target);
 
 	return ERROR_OK;
 }

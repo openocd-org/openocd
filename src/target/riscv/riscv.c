@@ -2798,9 +2798,14 @@ COMMAND_HANDLER(riscv_dmi_write)
 		/* Perform the DMI write */
 		int retval = r->dmi_write(target, address, value);
 
-		/* If the user tinkered with progbuf registers, we need to
-		   drop our cached copy of the progbuf */
-		if (address >= DM_PROGBUF0 && address <= DM_PROGBUF15) {
+		/* Invalidate our cached progbuf copy:
+		   - if the user tinkered directly with a progbuf register
+		   - if debug module was reset, in which case progbuf registers
+		     may not retain their value.
+		*/
+		bool progbufTouched = (address >= DM_PROGBUF0 && address <= DM_PROGBUF15);
+		bool dmDeactivated = (address == DM_DMCONTROL && (value & DM_DMCONTROL_DMACTIVE) == 0);
+		if (progbufTouched || dmDeactivated) {
 			if (r->invalidate_cached_debug_buffer)
 				r->invalidate_cached_debug_buffer(target);
 		}
