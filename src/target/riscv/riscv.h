@@ -161,6 +161,7 @@ typedef struct {
 			riscv_insn_t d);
 	riscv_insn_t (*read_debug_buffer)(struct target *target, unsigned index);
 	int (*execute_debug_buffer)(struct target *target);
+	int (*invalidate_cached_debug_buffer)(struct target *target);
 	int (*dmi_write_u64_bits)(struct target *target);
 	void (*fill_dmi_write_u64)(struct target *target, char *buf, int a, uint64_t d);
 	void (*fill_dmi_read_u64)(struct target *target, char *buf, int a);

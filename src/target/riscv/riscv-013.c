@@ -52,6 +52,7 @@ static int riscv013_write_debug_buffer(struct target *target, unsigned index,
 		riscv_insn_t d);
 static riscv_insn_t riscv013_read_debug_buffer(struct target *target, unsigned
 		index);
+static int riscv013_invalidate_cached_debug_buffer(struct target *target);
 static int riscv013_execute_debug_buffer(struct target *target);
 static void riscv013_fill_dmi_write_u64(struct target *target, char *buf, int a, uint64_t d);
 static void riscv013_fill_dmi_read_u64(struct target *target, char *buf, int a);
@@ -1248,6 +1249,7 @@ static int scratch_write64(struct target *target, scratch_mem_t *scratch,
 		case SPACE_DMI_PROGBUF:
 			dmi_write(target, DM_PROGBUF0 + scratch->debug_address, value);
 			dmi_write(target, DM_PROGBUF1 + scratch->debug_address, value >> 32);
+			riscv013_invalidate_cached_debug_buffer(target);
 			break;
 		case SPACE_DMI_RAM:
 			{
@@ -1566,6 +1568,9 @@ static int examine(struct target *target)
 		dmi_write(target, DM_DMCONTROL, 0);
 		dmi_write(target, DM_DMCONTROL, DM_DMCONTROL_DMACTIVE);
 		dm->was_reset = true;
+
+		/* The DM gets reset, so forget any cached progbuf entries. */
+		riscv013_invalidate_cached_debug_buffer(target);
 	}
 
 	dmi_write(target, DM_DMCONTROL, DM_DMCONTROL_HARTSELLO |
@@ -2278,6 +2283,7 @@ static int init_target(struct command_context *cmd_ctx,
 	generic_info->read_debug_buffer = &riscv013_read_debug_buffer;
 	generic_info->write_debug_buffer = &riscv013_write_debug_buffer;
 	generic_info->execute_debug_buffer = &riscv013_execute_debug_buffer;
+	generic_info->invalidate_cached_debug_buffer = &riscv013_invalidate_cached_debug_buffer;
 	generic_info->fill_dmi_write_u64 = &riscv013_fill_dmi_write_u64;
 	generic_info->fill_dmi_read_u64 = &riscv013_fill_dmi_read_u64;
 	generic_info->fill_dmi_nop_u64 = &riscv013_fill_dmi_nop_u64;
@@ -2368,7 +2374,7 @@ static int assert_reset(struct target *target)
 	/* The DM might have gotten reset if OpenOCD called us in some reset that
 	 * involves SRST being toggled. So clear our cache which may be out of
 	 * date. */
-	memset(dm->progbuf_cache, 0, sizeof(dm->progbuf_cache));
+	riscv013_invalidate_cached_debug_buffer(target);
 
 	return ERROR_OK;
 }
@@ -4335,6 +4341,18 @@ riscv_insn_t riscv013_read_debug_buffer(struct target *target, unsigned index)
 	uint32_t value;
 	dmi_read(target, &value, DM_PROGBUF0 + index);
 	return value;
+}
+
+int riscv013_invalidate_cached_debug_buffer(struct target *target)
+{
+	dm013_info_t *dm = get_dm(target);
+	if (!dm)
+		return ERROR_FAIL;
+
+	LOG_TARGET_DEBUG(target, "Invalidating progbuf cache");
+	for (unsigned int i = 0; i < 15; i++)
+		dm->progbuf_cache[i] = 0;
+	return ERROR_OK;
 }
 
 int riscv013_execute_debug_buffer(struct target *target)
