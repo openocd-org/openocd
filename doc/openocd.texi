@@ -2120,6 +2120,15 @@ corresponding subsystems:
 @deffnx {Config Command} {pld init}
 @deffnx {Command} {tpiu init}
 @end deffn
+
+At last, @command{init} executes all the commands that are specified in
+the TCL list @var{post_init_commands}. The commands are executed in the
+same order they occupy in the list. If one of the commands fails, then
+the error is propagated and OpenOCD fails too.
+@example
+lappend post_init_commands @{echo "OpenOCD successfully initialized."@}
+lappend post_init_commands @{echo "Have fun with OpenOCD !"@}
+@end example
 @end deffn
 
 @deffn {Config Command} {noinit}
@@ -8433,18 +8442,19 @@ Close the OpenOCD server, disconnecting all clients (GDB, telnet,
 other). If option @option{error} is used, OpenOCD will return a
 non-zero exit code to the parent process.
 
-Like any TCL commands, also @command{shutdown} can be redefined, e.g.:
+If user types CTRL-C or kills OpenOCD, the command @command{shutdown}
+will be automatically executed to cause OpenOCD to exit.
+
+It is possible to specify, in the TCL list @var{pre_shutdown_commands} , a
+set of commands to be automatically executed before @command{shutdown} , e.g.:
 @example
-# redefine shutdown
-rename shutdown original_shutdown
-proc shutdown @{@} @{
-    puts "This is my implementation of shutdown"
-    # my own stuff before exit OpenOCD
-    original_shutdown
-@}
+lappend pre_shutdown_commands @{echo "Goodbye, my friend ..."@}
+lappend pre_shutdown_commands @{echo "see you soon !"@}
 @end example
-If user types CTRL-C or kills OpenOCD, either the command @command{shutdown}
-or its replacement will be automatically executed before OpenOCD exits.
+The commands in the list will be executed (in the same order they occupy
+in the list) before OpenOCD exits. If one of the commands in the list
+fails, then the remaining commands are not executed anymore while OpenOCD
+will proceed to quit.
 @end deffn
 
 @anchor{debuglevel}

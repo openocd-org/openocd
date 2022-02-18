@@ -762,6 +762,8 @@ COMMAND_HANDLER(handle_shutdown_command)
 
 	shutdown_openocd = SHUTDOWN_REQUESTED;
 
+	command_run_line(CMD_CTX, "_run_pre_shutdown_commands");
+
 	if (CMD_ARGC == 1) {
 		if (!strcmp(CMD_ARGV[0], "error")) {
 			shutdown_openocd = SHUTDOWN_WITH_ERROR_CODE;
