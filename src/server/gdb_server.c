@@ -2281,6 +2281,9 @@ static int smp_reg_list_noread(struct target *target,
 
 	struct target_list *head;
 	foreach_smp_target(head, target->smp_targets) {
+		if (!target_was_examined(head->target))
+			continue;
+
 		struct reg **reg_list = NULL;
 		int reg_list_size;
 		int result = target_get_gdb_reg_list_noread(head->target, &reg_list,
@@ -2329,8 +2332,17 @@ static int smp_reg_list_noread(struct target *target,
 		free(reg_list);
 	}
 
+	if (local_list_size == 0) {
+		LOG_ERROR("Unable to get register list");
+		free(local_list);
+		return ERROR_FAIL;
+	}
+
 	/* Now warn the user about any registers that weren't found in every target. */
 	foreach_smp_target(head, target->smp_targets) {
+		if (!target_was_examined(head->target))
+			continue;
+
 		struct reg **reg_list = NULL;
 		int reg_list_size;
 		int result = target_get_gdb_reg_list_noread(head->target, &reg_list,
