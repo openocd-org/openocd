@@ -7,6 +7,10 @@
  * Chromium-EC RTOS Task Awareness
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <rtos/rtos.h>
 #include <target/target.h>
 #include <target/target_type.h>
