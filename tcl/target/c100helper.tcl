@@ -29,9 +29,7 @@ source [find mem_helper.tcl]
 
 # read a 64-bit register (memory mapped)
 proc mr64bit {reg} {
-    set value ""
-    mem2array value 32 $reg 2
-    return $value
+    return [read_memory $reg 32 2]
 }
 
 
@@ -117,19 +115,19 @@ proc showAmbaClk {} {
     set PLL_CLK_BYPASS	             [regs PLL_CLK_BYPASS]
 
     echo [format "CLKCORE_AHB_CLK_CNTRL       (0x%x): 0x%x" $CLKCORE_AHB_CLK_CNTRL [mrw $CLKCORE_AHB_CLK_CNTRL]]
-    mem2array value 32 $CLKCORE_AHB_CLK_CNTRL 1
+    set value [read_memory $CLKCORE_AHB_CLK_CNTRL 32 1]
     # see if the PLL is in bypass mode
-    set bypass [expr {($value(0) & $PLL_CLK_BYPASS) >> 24}]
+    set bypass [expr {($value & $PLL_CLK_BYPASS) >> 24}]
     echo [format "PLL bypass bit: %d" $bypass]
     if {$bypass == 1} {
 	echo [format "Amba Clk is set to REFCLK: %d (MHz)" [expr {$CFG_REFCLKFREQ/1000000}]]
     } else {
 	# nope, extract x,y,w and compute the PLL output freq.
-	set x [expr {($value(0) & 0x0001F0000) >> 16}]
+	set x [expr {($value & 0x0001F0000) >> 16}]
 	echo [format "x: %d" $x]
-	set y [expr {($value(0) & 0x00000007F)}]
+	set y [expr {($value & 0x00000007F)}]
 	echo [format "y: %d" $y]
-	set w [expr {($value(0) & 0x000000300) >> 8}]
+	set w [expr {($value & 0x000000300) >> 8}]
 	echo [format "w: %d" $w]
 	echo [format "Amba PLL Clk: %d (MHz)" [expr {($CFG_REFCLKFREQ * $y / (($w + 1) * ($x + 1) * 2))/1000000}]]
     }
@@ -192,19 +190,19 @@ proc showArmClk {} {
     set PLL_CLK_BYPASS	        [regs PLL_CLK_BYPASS]
 
     echo [format "CLKCORE_ARM_CLK_CNTRL       (0x%x): 0x%x" $CLKCORE_ARM_CLK_CNTRL [mrw $CLKCORE_ARM_CLK_CNTRL]]
-    mem2array value 32 $CLKCORE_ARM_CLK_CNTRL 1
+    set value [read_memory $CLKCORE_ARM_CLK_CNTRL 32 1]
     # see if the PLL is in bypass mode
-    set bypass [expr {($value(0) & $PLL_CLK_BYPASS) >> 24}]
+    set bypass [expr {($value & $PLL_CLK_BYPASS) >> 24}]
     echo [format "PLL bypass bit: %d" $bypass]
     if {$bypass == 1} {
 	echo [format "Amba Clk is set to REFCLK: %d (MHz)" [expr {$CFG_REFCLKFREQ/1000000}]]
     } else {
 	# nope, extract x,y,w and compute the PLL output freq.
-	set x [expr {($value(0) & 0x0001F0000) >> 16}]
+	set x [expr {($value & 0x0001F0000) >> 16}]
 	echo [format "x: %d" $x]
-	set y [expr {($value(0) & 0x00000007F)}]
+	set y [expr {($value & 0x00000007F)}]
 	echo [format "y: %d" $y]
-	set w [expr {($value(0) & 0x000000300) >> 8}]
+	set w [expr {($value & 0x000000300) >> 8}]
 	echo [format "w: %d" $w]
 	echo [format "Arm PLL Clk: %d (MHz)" [expr {($CFG_REFCLKFREQ * $y / (($w + 1) * ($x + 1) * 2))/1000000}]]
     }
