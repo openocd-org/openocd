@@ -1161,7 +1161,7 @@ static const struct command_registration arm_tpiu_swo_subcommand_handlers[] = {
 		.name = "create",
 		.mode = COMMAND_ANY,
 		.jim_handler = jim_arm_tpiu_swo_create,
-		.usage = "name [-dap dap] [-ap-num num] [-address baseaddr]",
+		.usage = "name [-dap dap] [-ap-num num] [-baseaddr baseaddr]",
 		.help = "Creates a new TPIU or SWO object",
 	},
 	{
