@@ -11568,57 +11568,6 @@ The @command{step} and @command{stepi} commands can be used to step a specific c
 while other cores are free-running or remain halted, depending on the
 scheduler-locking mode configured in GDB.
 
-@section Legacy SMP core switching support
-@quotation Note
-This method is deprecated in favor of the @emph{hwthread} pseudo RTOS.
-@end quotation
-
-For SMP support following GDB serial protocol packet have been defined :
-@itemize @bullet
-@item j - smp status request
-@item J - smp set request
-@end itemize
-
-OpenOCD implements :
-@itemize @bullet
-@item @option{jc} packet for reading core id displayed by
-GDB connection. Reply is @option{XXXXXXXX} (8 hex digits giving core id) or
- @option{E01} for target not smp.
-@item @option{JcXXXXXXXX} (8 hex digits) packet for setting core id displayed at next GDB continue
-(core id -1 is reserved for returning to normal resume mode). Reply @option{E01}
-for target not smp or @option{OK} on success.
-@end itemize
-
-Handling of this packet within GDB can be done :
-@itemize @bullet
-@item by the creation of an internal variable (i.e @option{_core}) by mean
-of function allocate_computed_value allowing following GDB command.
-@example
-set $_core 1
-#Jc01 packet is sent
-print $_core
-#jc packet is sent and result is affected in $
-@end example
-
-@item by the usage of GDB maintenance command as described in following example (2 cpus in SMP with
-core id 0 and 1 @pxref{definecputargetsworkinginsmp,,Define CPU targets working in SMP}).
-
-@example
-# toggle0 : force display of coreid 0
-define toggle0
-maint packet Jc0
-continue
-main packet Jc-1
-end
-# toggle1 : force display of coreid 1
-define toggle1
-maint packet Jc1
-continue
-main packet Jc-1
-end
-@end example
-@end itemize
-
 @node Tcl Scripting API
 @chapter Tcl Scripting API
 @cindex Tcl Scripting API
