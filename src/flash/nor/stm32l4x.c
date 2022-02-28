@@ -1632,7 +1632,7 @@ err_lock:
 
 static int stm32l4_read_idcode(struct flash_bank *bank, uint32_t *id)
 {
-	int retval;
+	int retval = ERROR_OK;
 	struct target *target = bank->target;
 
 	/* try reading possible IDCODE registers, in the following order */
