@@ -56,6 +56,13 @@ enum riscv_halt_reason {
 	RISCV_HALT_ERROR
 };
 
+enum riscv_isrmasking_mode {
+	/* RISCV_ISRMASK_AUTO,	*/ /* not supported yet */
+	RISCV_ISRMASK_OFF,
+	/* RISCV_ISRMASK_ON,	*/ /* not supported yet */
+	RISCV_ISRMASK_STEPONLY,
+};
+
 typedef struct {
 	struct target *target;
 	unsigned custom_number;
@@ -134,6 +141,8 @@ typedef struct {
 	bool prepped;
 	/* This target was selected using hasel. */
 	bool selected;
+
+	enum riscv_isrmasking_mode isrmask_mode;
 
 	/* Helper functions that target the various RISC-V debug spec
 	 * implementations. */
@@ -402,5 +411,8 @@ void riscv_add_bscan_tunneled_scan(struct target *target, struct scan_field *fie
 
 int riscv_read_by_any_size(struct target *target, target_addr_t address, uint32_t size, uint8_t *buffer);
 int riscv_write_by_any_size(struct target *target, target_addr_t address, uint32_t size, uint8_t *buffer);
+
+int riscv_interrupts_disable(struct target *target, uint64_t ie_mask, uint64_t *old_mstatus);
+int riscv_interrupts_restore(struct target *target, uint64_t old_mstatus);
 
 #endif
