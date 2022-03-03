@@ -111,18 +111,18 @@ COMMAND_HANDLER(default_handle_smp_command)
 	}
 
 	if (!strcmp(CMD_ARGV[0], "on")) {
-		foreach_smp_target(head, target->head)
+		foreach_smp_target(head, target->smp_targets)
 			head->target->smp = 1;
 
 		return ERROR_OK;
 	}
 
 	if (!strcmp(CMD_ARGV[0], "off")) {
-		foreach_smp_target(head, target->head)
+		foreach_smp_target(head, target->smp_targets)
 			head->target->smp = 0;
 
 		/* fixes the target display to the debugger */
-		if (target->head)
+		if (!list_empty(target->smp_targets))
 			target->gdb_service->target = target;
 
 		return ERROR_OK;
@@ -135,9 +135,7 @@ COMMAND_HANDLER(handle_smp_gdb_command)
 {
 	struct target *target = get_current_target(CMD_CTX);
 	int retval = ERROR_OK;
-	struct target_list *head;
-	head = target->head;
-	if (head) {
+	if (!list_empty(target->smp_targets)) {
 		if (CMD_ARGC == 1) {
 			int coreid = 0;
 			COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], coreid);

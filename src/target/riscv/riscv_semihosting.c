@@ -140,7 +140,9 @@ semihosting_result_t riscv_semihosting(struct target *target, int *retval)
 		semihosting->word_size_bytes = riscv_xlen(target) / 8;
 
 		/* Check for ARM operation numbers. */
-		if (semihosting->op >= 0 && semihosting->op <= 0x31) {
+		if ((semihosting->op >= 0 && semihosting->op <= 0x31) ||
+			(semihosting->op >= 0x100 && semihosting->op <= 0x107)) {
+
 			*retval = semihosting_common(target);
 			if (*retval != ERROR_OK) {
 				LOG_ERROR("Failed semihosting operation (0x%02X)", semihosting->op);

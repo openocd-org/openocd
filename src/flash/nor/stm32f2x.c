@@ -636,8 +636,8 @@ static int stm32x_erase(struct flash_bank *bank, unsigned int first,
 
 	for (unsigned int i = first; i <= last; i++) {
 		unsigned int snb;
-		if (stm32x_info->has_large_mem && i >= 12)
-			snb = (i - 12) | 0x10;
+		if (stm32x_info->has_large_mem && i >= (bank->num_sectors / 2))
+			snb = (i - (bank->num_sectors / 2)) | 0x10;
 		else
 			snb = i;
 
@@ -966,14 +966,14 @@ static int stm32x_get_device_id(struct flash_bank *bank, uint32_t *device_id)
 	 * Only effects Rev A silicon */
 
 	struct target *target = bank->target;
-	struct cortex_m_common *cortex_m = target_to_cm(target);
 
 	/* read stm32 device id register */
 	int retval = target_read_u32(target, 0xE0042000, device_id);
 	if (retval != ERROR_OK)
 		return retval;
 
-	if ((*device_id & 0xfff) == 0x411 && cortex_m->core_info->partno == CORTEX_M4_PARTNO) {
+	if ((*device_id & 0xfff) == 0x411
+			&& cortex_m_get_partno_safe(target) == CORTEX_M4_PARTNO) {
 		*device_id &= ~((0xFFFF << 16) | 0xfff);
 		*device_id |= (0x1000 << 16) | 0x413;
 		LOG_INFO("stm32f4x errata detected - fixing incorrect MCU_IDCODE");
@@ -1010,6 +1010,11 @@ static int stm32x_probe(struct flash_bank *bank)
 	free(bank->prot_blocks);
 	bank->num_prot_blocks = 0;
 	bank->prot_blocks = NULL;
+
+	if (!target_was_examined(target)) {
+		LOG_ERROR("Target not examined yet");
+		return ERROR_TARGET_NOT_EXAMINED;
+	}
 
 	/* if explicitly called out as OTP bank, short circuit probe */
 	if (stm32x_is_otp(bank)) {

@@ -75,7 +75,13 @@ enum semihosting_operation_numbers {
 	SEMIHOSTING_SYS_WRITE = 0x05,
 	SEMIHOSTING_SYS_WRITEC = 0x03,
 	SEMIHOSTING_SYS_WRITE0 = 0x04,
+	SEMIHOSTING_USER_CMD_0x100 = 0x100, /* First user cmd op code */
+	SEMIHOSTING_USER_CMD_0x107 = 0x107, /* Last supported user cmd op code */
+	SEMIHOSTING_USER_CMD_0x1FF = 0x1FF, /* Last user cmd op code */
 };
+
+/** Maximum allowed Tcl command segment length in bytes*/
+#define SEMIHOSTING_MAX_TCL_COMMAND_FIELD_LENGTH (1024 * 1024)
 
 /*
  * Codes used by SEMIHOSTING_SYS_EXIT (formerly

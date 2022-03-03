@@ -801,7 +801,7 @@ struct rtos *rtos_of_target(struct target *target)
 	if ((target->rtos) && (target->rtos->type))
 		return target->rtos;
 
-	foreach_smp_target(pos, target->head)
+	foreach_smp_target(pos, target->smp_targets)
 		if ((pos->target->rtos) && (pos->target->rtos->type))
 			return pos->target->rtos;
 

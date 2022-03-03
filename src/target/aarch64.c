@@ -102,6 +102,7 @@ static int aarch64_restore_system_control_reg(struct target *target)
 		case ARM_MODE_FIQ:
 		case ARM_MODE_IRQ:
 		case ARM_MODE_HYP:
+		case ARM_MODE_UND:
 		case ARM_MODE_SYS:
 			instr = ARMV4_5_MCR(15, 0, 0, 1, 0, 0);
 			break;
@@ -180,6 +181,7 @@ static int aarch64_mmu_modify(struct target *target, int enable)
 	case ARM_MODE_FIQ:
 	case ARM_MODE_IRQ:
 	case ARM_MODE_HYP:
+	case ARM_MODE_UND:
 	case ARM_MODE_SYS:
 		instr = ARMV4_5_MCR(15, 0, 0, 1, 0, 0);
 		break;
@@ -331,15 +333,14 @@ static int aarch64_wait_halt_one(struct target *target)
 static int aarch64_prepare_halt_smp(struct target *target, bool exc_target, struct target **p_first)
 {
 	int retval = ERROR_OK;
-	struct target_list *head = target->head;
+	struct target_list *head;
 	struct target *first = NULL;
 
 	LOG_DEBUG("target %s exc %i", target_name(target), exc_target);
 
-	while (head) {
+	foreach_smp_target(head, target->smp_targets) {
 		struct target *curr = head->target;
 		struct armv8_common *armv8 = target_to_armv8(curr);
-		head = head->next;
 
 		if (exc_target && curr == target)
 			continue;
@@ -428,7 +429,7 @@ static int aarch64_halt_smp(struct target *target, bool exc_target)
 		struct target_list *head;
 		struct target *curr;
 
-		foreach_smp_target(head, target->head) {
+		foreach_smp_target(head, target->smp_targets) {
 			int halted;
 
 			curr = head->target;
@@ -478,7 +479,7 @@ static int update_halt_gdb(struct target *target, enum target_debug_reason debug
 	}
 
 	/* poll all targets in the group, but skip the target that serves GDB */
-	foreach_smp_target(head, target->head) {
+	foreach_smp_target(head, target->smp_targets) {
 		curr = head->target;
 		/* skip calling context */
 		if (curr == target)
@@ -743,7 +744,7 @@ static int aarch64_prep_restart_smp(struct target *target, int handle_breakpoint
 	struct target *first = NULL;
 	uint64_t address;
 
-	foreach_smp_target(head, target->head) {
+	foreach_smp_target(head, target->smp_targets) {
 		struct target *curr = head->target;
 
 		/* skip calling target */
@@ -798,7 +799,7 @@ static int aarch64_step_restart_smp(struct target *target)
 		struct target *curr = target;
 		bool all_resumed = true;
 
-		foreach_smp_target(head, target->head) {
+		foreach_smp_target(head, target->smp_targets) {
 			uint32_t prsr;
 			int resumed;
 
@@ -886,7 +887,7 @@ static int aarch64_resume(struct target *target, int current,
 			struct target_list *head;
 			bool all_resumed = true;
 
-			foreach_smp_target(head, target->head) {
+			foreach_smp_target(head, target->smp_targets) {
 				uint32_t prsr;
 				int resumed;
 
@@ -1049,6 +1050,7 @@ static int aarch64_post_debug_entry(struct target *target)
 	case ARM_MODE_FIQ:
 	case ARM_MODE_IRQ:
 	case ARM_MODE_HYP:
+	case ARM_MODE_UND:
 	case ARM_MODE_SYS:
 		instr = ARMV4_5_MRC(15, 0, 0, 1, 0, 0);
 		break;

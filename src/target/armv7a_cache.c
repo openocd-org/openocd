@@ -26,6 +26,7 @@
 #include "armv7a_cache.h"
 #include <helper/time_support.h>
 #include "arm_opcodes.h"
+#include "smp.h"
 
 static int armv7a_l1_d_cache_sanity_check(struct target *target)
 {
@@ -138,14 +139,10 @@ int armv7a_cache_auto_flush_all_data(struct target *target)
 
 	if (target->smp) {
 		struct target_list *head;
-		struct target *curr;
-		head = target->head;
-		while (head) {
-			curr = head->target;
+		foreach_smp_target(head, target->smp_targets) {
+			struct target *curr = head->target;
 			if (curr->state == TARGET_HALTED)
 				retval = armv7a_l1_d_cache_clean_inval_all(curr);
-
-			head = head->next;
 		}
 	} else
 		retval = armv7a_l1_d_cache_clean_inval_all(target);

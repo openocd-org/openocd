@@ -114,8 +114,6 @@ static int jlink_flush(void);
  * @param in A pointer to store TDO data to, if NULL the data will be discarded.
  * @param in_offset A bit offset for TDO data.
  * @param length Amount of bits to transfer out and in.
- *
- * @retval This function doesn't return any value.
  */
 static void jlink_clock_data(const uint8_t *out, unsigned out_offset,
 			     const uint8_t *tms_out, unsigned tms_offset,

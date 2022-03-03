@@ -2276,21 +2276,25 @@ static int smp_reg_list_noread(struct target *target,
 		return target_get_gdb_reg_list_noread(target, combined_list,
 				combined_list_size, REG_CLASS_ALL);
 
-	int combined_allocated = 256;
-	*combined_list = malloc(combined_allocated * sizeof(struct reg *));
-	if (*combined_list == NULL) {
-		LOG_ERROR("malloc(%d) failed", (int) (combined_allocated * sizeof(struct reg *)));
+	unsigned int combined_allocated = 256;
+	struct reg **local_list = malloc(combined_allocated * sizeof(struct reg *));
+	if (!local_list) {
+		LOG_ERROR("malloc(%zu) failed", combined_allocated * sizeof(struct reg *));
 		return ERROR_FAIL;
 	}
-	*combined_list_size = 0;
+	unsigned int local_list_size = 0;
+
 	struct target_list *head;
-	foreach_smp_target(head, target->head) {
+	foreach_smp_target(head, target->smp_targets) {
+		if (!target_was_examined(head->target))
+			continue;
+
 		struct reg **reg_list = NULL;
 		int reg_list_size;
 		int result = target_get_gdb_reg_list_noread(head->target, &reg_list,
 				&reg_list_size, reg_class);
 		if (result != ERROR_OK) {
-			free(*combined_list);
+			free(local_list);
 			return result;
 		}
 		for (int i = 0; i < reg_list_size; i++) {
@@ -2300,8 +2304,8 @@ static int smp_reg_list_noread(struct target *target,
 				/* Nested loop makes this O(n^2), but this entire function with
 				 * 5 RISC-V targets takes just 2ms on my computer. Fast enough
 				 * for me. */
-				for (int j = 0; j < *combined_list_size; j++) {
-					struct reg *b = (*combined_list)[j];
+				for (unsigned int j = 0; j < local_list_size; j++) {
+					struct reg *b = local_list[j];
 					if (!strcmp(a->name, b->name)) {
 						found = true;
 						if (a->size != b->size) {
@@ -2309,7 +2313,7 @@ static int smp_reg_list_noread(struct target *target,
 									"target, but %d bits on another target.",
 									a->name, a->size, b->size);
 							free(reg_list);
-							free(*combined_list);
+							free(local_list);
 							return ERROR_FAIL;
 						}
 						break;
@@ -2317,22 +2321,62 @@ static int smp_reg_list_noread(struct target *target,
 				}
 				if (!found) {
 					LOG_DEBUG("[%s] %s not found in combined list", target_name(target), a->name);
-					if (*combined_list_size >= combined_allocated) {
+					if (local_list_size >= combined_allocated) {
 						combined_allocated *= 2;
-						*combined_list = realloc(*combined_list, combined_allocated * sizeof(struct reg *));
-						if (*combined_list == NULL) {
-							LOG_ERROR("realloc(%d) failed", (int) (combined_allocated * sizeof(struct reg *)));
+						local_list = realloc(local_list, combined_allocated * sizeof(struct reg *));
+						if (!local_list) {
+							LOG_ERROR("realloc(%zu) failed", combined_allocated * sizeof(struct reg *));
 							return ERROR_FAIL;
 						}
 					}
-					(*combined_list)[*combined_list_size] = a;
-					(*combined_list_size)++;
+					local_list[local_list_size] = a;
+					local_list_size++;
 				}
 			}
 		}
 		free(reg_list);
 	}
 
+	if (local_list_size == 0) {
+		LOG_ERROR("Unable to get register list");
+		free(local_list);
+		return ERROR_FAIL;
+	}
+
+	/* Now warn the user about any registers that weren't found in every target. */
+	foreach_smp_target(head, target->smp_targets) {
+		if (!target_was_examined(head->target))
+			continue;
+
+		struct reg **reg_list = NULL;
+		int reg_list_size;
+		int result = target_get_gdb_reg_list_noread(head->target, &reg_list,
+				&reg_list_size, reg_class);
+		if (result != ERROR_OK) {
+			free(local_list);
+			return result;
+		}
+		for (unsigned int i = 0; i < local_list_size; i++) {
+			bool found = false;
+			struct reg *a = local_list[i];
+			for (int j = 0; j < reg_list_size; j++) {
+				struct reg *b = reg_list[j];
+				if (b->exist && !strcmp(a->name, b->name)) {
+					found = true;
+					break;
+				}
+			}
+			if (!found) {
+				LOG_WARNING("Register %s does not exist in %s, which is part of an SMP group where "
+					    "this register does exist.",
+					    a->name, target_name(head->target));
+			}
+		}
+		free(reg_list);
+	}
+
+	*combined_list = local_list;
+	*combined_list_size = local_list_size;
 	return ERROR_OK;
 }
 
@@ -2595,8 +2639,14 @@ static int gdb_generate_thread_list(struct target *target, char **thread_list_ou
 			if (!thread_detail->exists)
 				continue;
 
-			xml_printf(&retval, &thread_list, &pos, &size,
-				   "<thread id=\"%" PRIx64 "\">", thread_detail->threadid);
+			if (thread_detail->thread_name_str)
+				xml_printf(&retval, &thread_list, &pos, &size,
+					   "<thread id=\"%" PRIx64 "\" name=\"%s\">",
+					   thread_detail->threadid,
+					   thread_detail->thread_name_str);
+			else
+				xml_printf(&retval, &thread_list, &pos, &size,
+					   "<thread id=\"%" PRIx64 "\">", thread_detail->threadid);
 
 			if (thread_detail->thread_name_str)
 				xml_printf(&retval, &thread_list, &pos, &size,
@@ -3652,13 +3702,10 @@ static int gdb_target_start(struct target *target, const char *port)
 	/* initialize all targets gdb service with the same pointer */
 	{
 		struct target_list *head;
-		struct target *curr;
-		head = target->head;
-		while (head) {
-			curr = head->target;
+		foreach_smp_target(head, target->smp_targets) {
+			struct target *curr = head->target;
 			if (curr != target)
 				curr->gdb_service = gdb_service;
-			head = head->next;
 		}
 	}
 	return ret;

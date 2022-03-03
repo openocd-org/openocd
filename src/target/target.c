@@ -56,6 +56,7 @@
 #include "rtos/rtos.h"
 #include "transport/transport.h"
 #include "arm_cti.h"
+#include "smp.h"
 
 /* default halt wait timeout (ms) */
 #define DEFAULT_HALT_TIMEOUT 5000
@@ -159,6 +160,7 @@ static int64_t target_timer_next_event_value;
 static LIST_HEAD(target_reset_callback_list);
 static LIST_HEAD(target_trace_callback_list);
 static const int polling_interval = TARGET_DEFAULT_POLLING_INTERVAL;
+static LIST_HEAD(empty_smp_targets);
 
 static const struct jim_nvp nvp_assert[] = {
 	{ .name = "assert", NVP_ASSERT },
@@ -235,6 +237,15 @@ static const struct jim_nvp nvp_target_event[] = {
 	{ .value = TARGET_EVENT_GDB_FLASH_ERASE_END,   .name = "gdb-flash-erase-end" },
 
 	{ .value = TARGET_EVENT_TRACE_CONFIG, .name = "trace-config" },
+
+	{ .value = TARGET_EVENT_SEMIHOSTING_USER_CMD_0x100, .name = "semihosting-user-cmd-0x100" },
+	{ .value = TARGET_EVENT_SEMIHOSTING_USER_CMD_0x101, .name = "semihosting-user-cmd-0x101" },
+	{ .value = TARGET_EVENT_SEMIHOSTING_USER_CMD_0x102, .name = "semihosting-user-cmd-0x102" },
+	{ .value = TARGET_EVENT_SEMIHOSTING_USER_CMD_0x103, .name = "semihosting-user-cmd-0x103" },
+	{ .value = TARGET_EVENT_SEMIHOSTING_USER_CMD_0x104, .name = "semihosting-user-cmd-0x104" },
+	{ .value = TARGET_EVENT_SEMIHOSTING_USER_CMD_0x105, .name = "semihosting-user-cmd-0x105" },
+	{ .value = TARGET_EVENT_SEMIHOSTING_USER_CMD_0x106, .name = "semihosting-user-cmd-0x106" },
+	{ .value = TARGET_EVENT_SEMIHOSTING_USER_CMD_0x107, .name = "semihosting-user-cmd-0x107" },
 
 	{ .name = NULL, .value = -1 }
 };
@@ -2272,13 +2283,15 @@ static void target_destroy(struct target *target)
 
 	/* release the targets SMP list */
 	if (target->smp) {
-		struct target_list *head = target->head;
-		while (head) {
-			struct target_list *pos = head->next;
+		struct target_list *head, *tmp;
+
+		list_for_each_entry_safe(head, tmp, target->smp_targets, lh) {
+			list_del(&head->lh);
 			head->target->smp = 0;
 			free(head);
-			head = pos;
 		}
+		if (target->smp_targets != &empty_smp_targets)
+			free(target->smp_targets);
 		target->smp = 0;
 	}
 
@@ -5782,6 +5795,9 @@ static int target_create(struct jim_getopt_info *goi)
 		return JIM_ERR;
 	}
 
+	/* set empty smp cluster */
+	target->smp_targets = &empty_smp_targets;
+
 	/* set target number */
 	target->target_number = new_target_number();
 
@@ -5995,9 +6011,7 @@ static int jim_target_smp(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	int retval, len;
 	static int smp_group = 1;
 	struct target *target = NULL;
-	struct target_list *head, *curr, *new;
-	curr = NULL;
-	head = NULL;
+	struct target_list *head, *new;
 
 	retval = 0;
 	LOG_DEBUG("%d", argc);
@@ -6005,6 +6019,13 @@ static int jim_target_smp(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	 * argv[2] = target to associate in smp
 	 * argv[3] ...
 	 */
+
+	struct list_head *lh = malloc(sizeof(*lh));
+	if (!lh) {
+		LOG_ERROR("Out of memory");
+		return JIM_ERR;
+	}
+	INIT_LIST_HEAD(lh);
 
 	for (i = 1; i < argc; i++) {
 
@@ -6014,24 +6035,15 @@ static int jim_target_smp(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		if (target) {
 			new = malloc(sizeof(struct target_list));
 			new->target = target;
-			new->next = NULL;
-			if (!head) {
-				head = new;
-				curr = head;
-			} else {
-				curr->next = new;
-				curr = new;
-			}
+			list_add_tail(&new->lh, lh);
 		}
 	}
 	/*  now parse the list of cpu and put the target in smp mode*/
-	curr = head;
-
-	while (curr) {
-		target = curr->target;
+	foreach_smp_target(head, lh) {
+		target = head->target;
 		target->smp = smp_group;
-		target->head = head;
-		curr = curr->next;
+		target->smp = 1;
+		target->smp_targets = lh;
 	}
 	smp_group++;
 

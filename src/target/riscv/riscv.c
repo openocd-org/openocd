@@ -13,6 +13,7 @@
 #include "target/target.h"
 #include "target/algorithm.h"
 #include "target/target_type.h"
+#include <target/smp.h>
 #include "jtag/jtag.h"
 #include "target/register.h"
 #include "target/breakpoints.h"
@@ -1296,13 +1297,14 @@ int riscv_halt(struct target *target)
 
 	int result = ERROR_OK;
 	if (target->smp) {
-		for (struct target_list *tlist = target->head; tlist; tlist = tlist->next) {
+		struct target_list *tlist;
+		foreach_smp_target(tlist, target->smp_targets) {
 			struct target *t = tlist->target;
 			if (halt_prep(t) != ERROR_OK)
 				result = ERROR_FAIL;
 		}
 
-		for (struct target_list *tlist = target->head; tlist; tlist = tlist->next) {
+		foreach_smp_target(tlist, target->smp_targets) {
 			struct target *t = tlist->target;
 			riscv_info_t *i = riscv_info(t);
 			if (i->prepped) {
@@ -1311,7 +1313,7 @@ int riscv_halt(struct target *target)
 			}
 		}
 
-		for (struct target_list *tlist = target->head; tlist; tlist = tlist->next) {
+		foreach_smp_target(tlist, target->smp_targets) {
 			struct target *t = tlist->target;
 			if (halt_finish(t) != ERROR_OK)
 				return ERROR_FAIL;
@@ -1500,32 +1502,6 @@ static int resume_finish(struct target *target, int debug_execution)
 		debug_execution ? TARGET_EVENT_DEBUG_RESUMED : TARGET_EVENT_RESUMED);
 }
 
-/* Return a newly allocated target list, that contains the same targets as in
- * tlist bit in the opposite order. */
-static struct target_list *tlist_reverse(struct target_list *tlist)
-{
-	struct target_list *previous = NULL;
-	struct target_list *reversed = NULL;
-	for (struct target_list *node = tlist; node; node = node->next) {
-		reversed = calloc(1, sizeof(struct target_list));
-		reversed->target = node->target;
-		reversed->next = previous;
-		previous = reversed;
-	}
-	return reversed;
-}
-
-/* Free a target list, but not the targets that are referenced. */
-static void tlist_free(struct target_list *tlist)
-{
-	struct target_list *node = tlist;
-	while (node) {
-		struct target_list *previous = node;
-		node = node->next;
-		free(previous);
-	}
-}
-
 /**
  * @par single_hart When true, only resume a single hart even if SMP is
  * configured.  This is used to run algorithms on just one hart.
@@ -1541,21 +1517,17 @@ int riscv_resume(
 	LOG_DEBUG("handle_breakpoints=%d", handle_breakpoints);
 	int result = ERROR_OK;
 	if (target->smp && !single_hart) {
-		struct target_list *ordered_tlist;
-
-		if (resume_order == RO_REVERSED)
-			ordered_tlist = tlist_reverse(target->head);
-		else
-			ordered_tlist = target->head;
-
-		for (struct target_list *tlist = ordered_tlist; tlist; tlist = tlist->next) {
+		struct target_list *tlist;
+		foreach_smp_target_direction(resume_order == RO_NORMAL,
+									 tlist, target->smp_targets) {
 			struct target *t = tlist->target;
 			if (resume_prep(t, current, address, handle_breakpoints,
 						debug_execution) != ERROR_OK)
 				result = ERROR_FAIL;
 		}
 
-		for (struct target_list *tlist = ordered_tlist; tlist; tlist = tlist->next) {
+		foreach_smp_target_direction(resume_order == RO_NORMAL,
+									 tlist, target->smp_targets) {
 			struct target *t = tlist->target;
 			riscv_info_t *i = riscv_info(t);
 			if (i->prepped) {
@@ -1565,14 +1537,12 @@ int riscv_resume(
 			}
 		}
 
-		for (struct target_list *tlist = ordered_tlist; tlist; tlist = tlist->next) {
+		foreach_smp_target_direction(resume_order == RO_NORMAL,
+									 tlist, target->smp_targets) {
 			struct target *t = tlist->target;
 			if (resume_finish(t, debug_execution) != ERROR_OK)
 				result = ERROR_FAIL;
 		}
-
-		if (resume_order == RO_REVERSED)
-			tlist_free(ordered_tlist);
 
 	} else {
 		if (resume_prep(target, current, address, handle_breakpoints,
@@ -2230,9 +2200,8 @@ int riscv_openocd_poll(struct target *target)
 		unsigned halts_discovered = 0;
 		unsigned should_remain_halted = 0;
 		unsigned should_resume = 0;
-		unsigned i = 0;
-		for (struct target_list *list = target->head; list;
-				list = list->next, i++) {
+		struct target_list *list;
+		foreach_smp_target(list, target->smp_targets) {
 			struct target *t = list->target;
 			if (!target_was_examined(t))
 				continue;
@@ -2294,8 +2263,7 @@ int riscv_openocd_poll(struct target *target)
 		}
 
 		/* Sample memory if any target is running. */
-		for (struct target_list *list = target->head; list;
-				list = list->next, i++) {
+		foreach_smp_target(list, target->smp_targets) {
 			struct target *t = list->target;
 			if (t->state == TARGET_RUNNING) {
 				sample_memory(target);

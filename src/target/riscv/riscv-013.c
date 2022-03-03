@@ -2297,7 +2297,7 @@ static int init_target(struct command_context *cmd_ctx,
 	generic_info->hart_count = &riscv013_hart_count;
 	generic_info->data_bits = &riscv013_data_bits;
 	generic_info->print_info = &riscv013_print_info;
-	if (generic_info->version_specific == NULL) {
+	if (!generic_info->version_specific) {
 		generic_info->version_specific = calloc(1, sizeof(riscv013_info_t));
 		if (!generic_info->version_specific)
 			return ERROR_FAIL;

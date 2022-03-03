@@ -98,15 +98,6 @@ int connection_write(struct connection *connection, const void *data, int len);
 int connection_read(struct connection *connection, void *data, int len);
 
 /**
- * Used by server_loop(), defined in server_stubs.c
- */
-void openocd_sleep_prelude(void);
-/**
- * Used by server_loop(), defined in server_stubs.c
- */
-void openocd_sleep_postlude(void);
-
-/**
  * Defines an extended command handler function declaration to enable
  * access to (and manipulation of) the server port number.
  * Call server_port like a normal COMMAND_HANDLER with an extra @a out parameter

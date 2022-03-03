@@ -255,15 +255,48 @@ struct armv7m_common {
 	void (*pre_restore_context)(struct target *target);
 };
 
+static inline bool is_armv7m(const struct armv7m_common *armv7m)
+{
+	return armv7m->common_magic == ARMV7M_COMMON_MAGIC;
+}
+
+/**
+ * @returns the pointer to the target specific struct
+ * without matching a magic number.
+ * Use in target specific service routines, where the correct
+ * type of arch_info is certain.
+ */
 static inline struct armv7m_common *
 target_to_armv7m(struct target *target)
 {
 	return container_of(target->arch_info, struct armv7m_common, arm);
 }
 
-static inline bool is_armv7m(const struct armv7m_common *armv7m)
+/**
+ * @returns the pointer to the target specific struct
+ * or NULL if the magic number does not match.
+ * Use in a flash driver or any place where mismatch of the arch_info
+ * type can happen.
+ */
+static inline struct armv7m_common *
+target_to_armv7m_safe(struct target *target)
 {
-	return armv7m->common_magic == ARMV7M_COMMON_MAGIC;
+	if (!target)
+		return NULL;
+
+	if (!target->arch_info)
+		return NULL;
+
+	/* Check the parent type first to prevent peeking memory too far
+	 * from arch_info pointer */
+	if (!is_arm(target_to_arm(target)))
+		return NULL;
+
+	struct armv7m_common *armv7m = target_to_armv7m(target);
+	if (!is_armv7m(armv7m))
+		return NULL;
+
+	return armv7m;
 }
 
 struct armv7m_algorithm {

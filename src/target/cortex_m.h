@@ -46,6 +46,7 @@
 #define ARM_CPUID_PARTNO_MASK	(0xFFF << ARM_CPUID_PARTNO_POS)
 
 enum cortex_m_partno {
+	CORTEX_M_PARTNO_INVALID,
 	CORTEX_M0_PARTNO   = 0xC20,
 	CORTEX_M1_PARTNO   = 0xC21,
 	CORTEX_M3_PARTNO   = 0xC23,
@@ -247,13 +248,6 @@ struct cortex_m_common {
 	bool maskints_erratum;
 };
 
-static inline struct cortex_m_common *
-target_to_cm(struct target *target)
-{
-	return container_of(target->arch_info,
-			struct cortex_m_common, armv7m);
-}
-
 static inline bool is_cortex_m_or_hla(const struct cortex_m_common *cortex_m)
 {
 	return cortex_m->common_magic == CORTEX_M_COMMON_MAGIC;
@@ -265,6 +259,57 @@ static inline bool is_cortex_m_with_dap_access(const struct cortex_m_common *cor
 		return false;
 
 	return !cortex_m->armv7m.is_hla_target;
+}
+
+/**
+ * @returns the pointer to the target specific struct
+ * without matching a magic number.
+ * Use in target specific service routines, where the correct
+ * type of arch_info is certain.
+ */
+static inline struct cortex_m_common *
+target_to_cm(struct target *target)
+{
+	return container_of(target->arch_info,
+			struct cortex_m_common, armv7m.arm);
+}
+
+/**
+ * @returns the pointer to the target specific struct
+ * or NULL if the magic number does not match.
+ * Use in a flash driver or any place where mismatch of the arch_info
+ * type can happen.
+ */
+static inline struct cortex_m_common *
+target_to_cortex_m_safe(struct target *target)
+{
+	/* Check the parent types first to prevent peeking memory too far
+	 * from arch_info pointer */
+	if (!target_to_armv7m_safe(target))
+		return NULL;
+
+	struct cortex_m_common *cortex_m = target_to_cm(target);
+	if (!is_cortex_m_or_hla(cortex_m))
+		return NULL;
+
+	return cortex_m;
+}
+
+/**
+ * @returns cached value of Cortex-M part number
+ * or CORTEX_M_PARTNO_INVALID if the magic number does not match
+ * or core_info is not initialised.
+ */
+static inline enum cortex_m_partno cortex_m_get_partno_safe(struct target *target)
+{
+	struct cortex_m_common *cortex_m = target_to_cortex_m_safe(target);
+	if (!cortex_m)
+		return CORTEX_M_PARTNO_INVALID;
+
+	if (!cortex_m->core_info)
+		return CORTEX_M_PARTNO_INVALID;
+
+	return cortex_m->core_info->partno;
 }
 
 int cortex_m_examine(struct target *target);
