@@ -68,7 +68,7 @@ enum {
 };
 
 /* GDB remote protocol does not differentiate between text and binary open modes. */
-static const int open_modeflags[12] = {
+static const int open_gdb_modeflags[12] = {
 	TARGET_O_RDONLY,
 	TARGET_O_RDONLY,
 	TARGET_O_RDWR,
@@ -81,6 +81,21 @@ static const int open_modeflags[12] = {
 	TARGET_O_WRONLY | TARGET_O_CREAT | TARGET_O_APPEND,
 	TARGET_O_RDWR   | TARGET_O_CREAT | TARGET_O_APPEND,
 	TARGET_O_RDWR   | TARGET_O_CREAT | TARGET_O_APPEND
+};
+
+static const int open_host_modeflags[12] = {
+	O_RDONLY,
+	O_RDONLY | O_BINARY,
+	O_RDWR,
+	O_RDWR   | O_BINARY,
+	O_WRONLY | O_CREAT | O_TRUNC,
+	O_WRONLY | O_CREAT | O_TRUNC  | O_BINARY,
+	O_RDWR   | O_CREAT | O_TRUNC,
+	O_RDWR   | O_CREAT | O_TRUNC  | O_BINARY,
+	O_WRONLY | O_CREAT | O_APPEND,
+	O_WRONLY | O_CREAT | O_APPEND | O_BINARY,
+	O_RDWR   | O_CREAT | O_APPEND,
+	O_RDWR   | O_CREAT | O_APPEND | O_BINARY
 };
 
 static int semihosting_common_fileio_info(struct target *target,
@@ -886,7 +901,7 @@ int semihosting_common(struct target *target)
 							fileio_info->identifier = "open";
 							fileio_info->param_1 = addr;
 							fileio_info->param_2 = len;
-							fileio_info->param_3 = open_modeflags[mode];
+							fileio_info->param_3 = open_gdb_modeflags[mode];
 							fileio_info->param_4 = 0644;
 						}
 					} else {
@@ -922,7 +937,7 @@ int semihosting_common(struct target *target)
 							 * otherwise it will fail to reopen a previously
 							 * written file */
 							semihosting->result = open((char *)fn,
-									open_modeflags[mode],
+									open_host_modeflags[mode],
 									0644);
 							semihosting->sys_errno = errno;
 							LOG_DEBUG("open('%s')=%d", fn,
