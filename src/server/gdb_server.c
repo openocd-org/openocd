@@ -371,10 +371,12 @@ static int gdb_write(struct connection *connection, void *data, int len)
 	return ERROR_SERVER_REMOTE_CLOSED;
 }
 
-static void gdb_log_incoming_packet(char *packet)
+static void gdb_log_incoming_packet(struct connection *connection, char *packet)
 {
 	if (!LOG_LEVEL_IS(LOG_LVL_DEBUG))
 		return;
+
+	struct target *target = get_target_from_connection(connection);
 
 	/* Avoid dumping non-printable characters to the terminal */
 	const unsigned packet_len = strlen(packet);
@@ -389,25 +391,31 @@ static void gdb_log_incoming_packet(char *packet)
 		if (packet_prefix_printable) {
 			const unsigned int prefix_len = colon - packet + 1;  /* + 1 to include the ':' */
 			const unsigned int payload_len = packet_len - prefix_len;
-			LOG_DEBUG("received packet: %.*s<binary-data-%u-bytes>", prefix_len, packet, payload_len);
+			LOG_TARGET_DEBUG(target, "received packet: %.*s<binary-data-%u-bytes>", prefix_len,
+				packet, payload_len);
 		} else {
-			LOG_DEBUG("received packet: <binary-data-%u-bytes>", packet_len);
+			LOG_TARGET_DEBUG(target, "received packet: <binary-data-%u-bytes>", packet_len);
 		}
 	} else {
 		/* All chars printable, dump the packet as is */
-		LOG_DEBUG("received packet: %s", packet);
+		LOG_TARGET_DEBUG(target, "received packet: %s", packet);
 	}
 }
 
-static void gdb_log_outgoing_packet(char *packet_buf, unsigned int packet_len, unsigned char checksum)
+static void gdb_log_outgoing_packet(struct connection *connection, char *packet_buf,
+	unsigned int packet_len, unsigned char checksum)
 {
 	if (!LOG_LEVEL_IS(LOG_LVL_DEBUG))
 		return;
 
+	struct target *target = get_target_from_connection(connection);
+
 	if (find_nonprint_char(packet_buf, packet_len))
-		LOG_DEBUG("sending packet: $<binary-data-%u-bytes>#%2.2x", packet_len, checksum);
+		LOG_TARGET_DEBUG(target, "sending packet: $<binary-data-%u-bytes>#%2.2x",
+			packet_len, checksum);
 	else
-		LOG_DEBUG("sending packet: $%.*s#%2.2x'", packet_len, packet_buf, checksum);
+		LOG_TARGET_DEBUG(target, "sending packet: $%.*s#%2.2x", packet_len, packet_buf,
+			checksum);
 }
 
 static int gdb_put_packet_inner(struct connection *connection,
@@ -450,7 +458,7 @@ static int gdb_put_packet_inner(struct connection *connection,
 #endif
 
 	while (1) {
-		gdb_log_outgoing_packet(buffer, len, my_checksum);
+		gdb_log_outgoing_packet(connection, buffer, len, my_checksum);
 
 		char local_buffer[1024];
 		local_buffer[0] = '$';
@@ -483,22 +491,27 @@ static int gdb_put_packet_inner(struct connection *connection,
 		if (retval != ERROR_OK)
 			return retval;
 
-		if (reply == '+')
+		if (reply == '+') {
+			gdb_log_incoming_packet(connection, "+");
 			break;
-		else if (reply == '-') {
+		} else if (reply == '-') {
 			/* Stop sending output packets for now */
 			gdb_con->output_flag = GDB_OUTPUT_NO;
+			gdb_log_incoming_packet(connection, "-");
 			LOG_WARNING("negative reply, retrying");
 		} else if (reply == 0x3) {
 			gdb_con->ctrl_c = true;
+			gdb_log_incoming_packet(connection, "<Ctrl-C>");
 			retval = gdb_get_char(connection, &reply);
 			if (retval != ERROR_OK)
 				return retval;
-			if (reply == '+')
+			if (reply == '+') {
+				gdb_log_incoming_packet(connection, "+");
 				break;
-			else if (reply == '-') {
+			} else if (reply == '-') {
 				/* Stop sending output packets for now */
 				gdb_con->output_flag = GDB_OUTPUT_NO;
+				gdb_log_incoming_packet(connection, "-");
 				LOG_WARNING("negative reply, retrying");
 			} else if (reply == '$') {
 				LOG_ERROR("GDB missing ack(1) - assumed good");
@@ -675,6 +688,7 @@ static int gdb_get_packet_inner(struct connection *connection,
 				case '$':
 					break;
 				case '+':
+					gdb_log_incoming_packet(connection, "+");
 					/* According to the GDB documentation
 					 * (https://sourceware.org/gdb/onlinedocs/gdb/Packet-Acknowledgment.html):
 					 * "gdb sends a final `+` acknowledgment of the stub's `OK`
@@ -692,9 +706,11 @@ static int gdb_get_packet_inner(struct connection *connection,
 					}
 					break;
 				case '-':
+					gdb_log_incoming_packet(connection, "-");
 					LOG_WARNING("negative acknowledgment, but no packet pending");
 					break;
 				case 0x3:
+					gdb_log_incoming_packet(connection, "<Ctrl-C>");
 					gdb_con->ctrl_c = true;
 					*len = 0;
 					return ERROR_OK;
@@ -3452,9 +3468,10 @@ static int gdb_input_inner(struct connection *connection)
 		/* terminate with zero */
 		gdb_packet_buffer[packet_size] = '\0';
 
-		gdb_log_incoming_packet(gdb_packet_buffer);
-
 		if (packet_size > 0) {
+
+			gdb_log_incoming_packet(connection, gdb_packet_buffer);
+
 			retval = ERROR_OK;
 			switch (packet[0]) {
 				case 'T':	/* Is thread alive? */
