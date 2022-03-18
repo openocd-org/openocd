@@ -56,9 +56,6 @@
 /** USB interface number */
 #define USB_INTERFACE            0
 
-/** libusb timeout in ms */
-#define USB_TIMEOUT              5000
-
 /** Delay (in microseconds) to wait while EZ-USB performs ReNumeration. */
 #define ULINK_RENUMERATION_DELAY 1500000
 
@@ -335,7 +332,7 @@ static int ulink_cpu_reset(struct ulink *device, unsigned char reset_bit)
 
 	ret = libusb_control_transfer(device->usb_device_handle,
 			(LIBUSB_ENDPOINT_OUT | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE),
-			REQUEST_FIRMWARE_LOAD, CPUCS_REG, 0, &reset_bit, 1, USB_TIMEOUT);
+			REQUEST_FIRMWARE_LOAD, CPUCS_REG, 0, &reset_bit, 1, LIBUSB_TIMEOUT_MS);
 
 	/* usb_control_msg() returns the number of bytes transferred during the
 	 * DATA stage of the control transfer - must be exactly 1 in this case! */
@@ -478,7 +475,7 @@ static int ulink_write_firmware_section(struct ulink *device,
 		ret = libusb_control_transfer(device->usb_device_handle,
 				(LIBUSB_ENDPOINT_OUT | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE),
 				REQUEST_FIRMWARE_LOAD, addr, FIRMWARE_ADDR, (unsigned char *)data_ptr,
-				chunk_size, USB_TIMEOUT);
+				chunk_size, LIBUSB_TIMEOUT_MS);
 
 		if (ret != (int)chunk_size) {
 			/* Abort if libusb sent less data than requested */
@@ -662,7 +659,7 @@ static int ulink_append_queue(struct ulink *device, struct ulink_cmd *ulink_cmd)
 	if ((newsize_out > 64) || (newsize_in > 64)) {
 		/* New command does not fit. Execute all commands in queue before starting
 		 * new queue with the current command as first entry. */
-		ret = ulink_execute_queued_commands(device, USB_TIMEOUT);
+		ret = ulink_execute_queued_commands(device, LIBUSB_TIMEOUT_MS);
 
 		if (ret == ERROR_OK)
 			ret = ulink_post_process_queue(device);
@@ -1960,7 +1957,7 @@ static int ulink_execute_queue(void)
 	}
 
 	if (ulink_handle->commands_in_queue > 0) {
-		ret = ulink_execute_queued_commands(ulink_handle, USB_TIMEOUT);
+		ret = ulink_execute_queued_commands(ulink_handle, LIBUSB_TIMEOUT_MS);
 		if (ret != ERROR_OK)
 			return ret;
 

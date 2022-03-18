@@ -33,7 +33,9 @@
 
 #include <hidapi.h>
 
-#define NULINK_READ_TIMEOUT  1000
+#include "libusb_helper.h"
+
+#define NULINK_READ_TIMEOUT  LIBUSB_TIMEOUT_MS
 
 #define NULINK_HID_MAX_SIZE   (64)
 #define NULINK2_HID_MAX_SIZE   (1024)
