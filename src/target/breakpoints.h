@@ -71,7 +71,7 @@ void breakpoint_remove_all(struct target *target);
 
 struct breakpoint *breakpoint_find(struct target *target, target_addr_t address);
 
-inline void breakpoint_hw_set(struct breakpoint *breakpoint, unsigned int hw_number)
+static inline void breakpoint_hw_set(struct breakpoint *breakpoint, unsigned int hw_number)
 {
 	breakpoint->is_set = true;
 	breakpoint->number = hw_number;
@@ -87,7 +87,7 @@ void watchpoint_remove(struct target *target, target_addr_t address);
 int watchpoint_hit(struct target *target, enum watchpoint_rw *rw,
 		target_addr_t *address);
 
-inline void watchpoint_set(struct watchpoint *watchpoint, unsigned int number)
+static inline void watchpoint_set(struct watchpoint *watchpoint, unsigned int number)
 {
 	watchpoint->is_set = true;
 	watchpoint->number = number;
