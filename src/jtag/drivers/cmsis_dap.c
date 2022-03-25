@@ -209,7 +209,7 @@ static bool swd_mode;
  * None as yet... */
 
 static const char * const info_caps_str[INFO_CAPS__NUM_CAPS] = {
-	"SWD  supported",
+	"SWD supported",
 	"JTAG supported",
 	"SWO-UART supported",
 	"SWO-MANCHESTER supported",
