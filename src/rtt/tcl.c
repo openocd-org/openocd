@@ -17,7 +17,7 @@
 
 COMMAND_HANDLER(handle_rtt_setup_command)
 {
-struct rtt_source source;
+	struct rtt_source source;
 
 	if (CMD_ARGC != 3)
 		return ERROR_COMMAND_SYNTAX_ERROR;
