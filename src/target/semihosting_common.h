@@ -179,6 +179,13 @@ struct semihosting {
 	/** Base directory for semihosting I/O operations. */
 	char *basedir;
 
+	/**
+	 * Target's extension of semihosting user commands.
+	 * @returns ERROR_NOT_IMPLEMENTED when user command is not handled, otherwise
+	 * sets semihosting->result and semihosting->sys_errno and returns ERROR_OK.
+	 */
+	int (*user_command_extension)(struct target *target);
+
 	int (*setup)(struct target *target, int enable);
 	int (*post_result)(struct target *target);
 };
@@ -186,5 +193,16 @@ struct semihosting {
 int semihosting_common_init(struct target *target, void *setup,
 	void *post_result);
 int semihosting_common(struct target *target);
+
+/* utility functions which may also be used by semihosting extensions (custom vendor-defined syscalls) */
+int semihosting_read_fields(struct target *target, size_t number,
+	uint8_t *fields);
+int semihosting_write_fields(struct target *target, size_t number,
+	uint8_t *fields);
+uint64_t semihosting_get_field(struct target *target, size_t index,
+	uint8_t *fields);
+void semihosting_set_field(struct target *target, uint64_t value,
+	size_t index,
+	uint8_t *fields);
 
 #endif	/* OPENOCD_TARGET_SEMIHOSTING_COMMON_H */
