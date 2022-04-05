@@ -9624,6 +9624,12 @@ is valid during the run of the event handlers and is accessible with this
 command.
 @end deffn
 
+@deffn {Command} {arm semihosting_basedir} [dir]
+@cindex ARM semihosting
+Set the base directory for semihosting I/O, either an absolute path or a path relative to OpenOCD working directory.
+Use "." for the current directory.
+@end deffn
+
 @section ARMv4 and ARMv5 Architecture
 @cindex ARMv4
 @cindex ARMv5
