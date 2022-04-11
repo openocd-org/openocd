@@ -29,6 +29,8 @@ struct riscv_program;
 
 #define RISCV_NUM_MEM_ACCESS_METHODS  3
 
+#define RISCV_BATCH_ALLOC_SIZE 128
+
 extern struct target_type riscv011_target;
 extern struct target_type riscv013_target;
 
