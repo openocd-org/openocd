@@ -531,6 +531,7 @@ static int stm32x_protect(struct flash_bank *bank, int set, unsigned int first,
 		unsigned int last)
 {
 	struct target *target = bank->target;
+	struct stm32h7x_flash_bank *stm32x_info = bank->driver_priv;
 	uint32_t protection;
 
 	if (target->state != TARGET_HALTED) {
@@ -553,7 +554,7 @@ static int stm32x_protect(struct flash_bank *bank, int set, unsigned int first,
 	}
 
 	/* apply WRPSN mask */
-	protection &= 0xff;
+	protection &= stm32x_info->part_info->wps_mask;
 
 	LOG_DEBUG("stm32x_protect, option_bytes written WPSN 0x%" PRIx32, protection);
 

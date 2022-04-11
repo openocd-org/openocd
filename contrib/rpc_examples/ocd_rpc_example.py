@@ -95,24 +95,16 @@ class OpenOcd:
         return None if (len(raw) < 2) else strToHex(raw[1])
 
     def readMemory(self, wordLen, address, n):
-        self.send("array unset output") # better to clear the array before
-        self.send("mem2array output %d 0x%x %d" % (wordLen, address, n))
-
-        output = [*map(int, self.send("return $output").split(" "))]
-        d = dict([tuple(output[i:i + 2]) for i in range(0, len(output), 2)])
-
-        return [d[k] for k in sorted(d.keys())]
+        output = self.send("read_memory 0x%x %d %d" % (address, wordLen, n))
+        return [*map(lambda x: int(x, 16), output.split(" "))]
 
     def writeVariable(self, address, value):
         assert value is not None
         self.send("mww 0x%x 0x%x" % (address, value))
 
-    def writeMemory(self, wordLen, address, n, data):
-        array = " ".join(["%d 0x%x" % (a, b) for a, b in enumerate(data)])
-
-        self.send("array unset 1986ве1т") # better to clear the array before
-        self.send("array set 1986ве1т { %s }" % array)
-        self.send("array2mem 1986ве1т 0x%x %s %d" % (wordLen, address, n))
+    def writeMemory(self, wordLen, address, data):
+        data = "{" + ' '.join(['0x%x' % x for x in data]) + "}"
+        self.send("write_memory 0x%x %d %s" % (address, wordLen, data))
 
 if __name__ == "__main__":
 

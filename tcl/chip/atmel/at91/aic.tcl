@@ -54,36 +54,36 @@ proc show_AIC_IMR_helper { NAME ADDR VAL } {
 
 proc show_AIC { } {
     global AIC_SMR
-    if [catch { mem2array aaa 32 $AIC_SMR [expr {32 * 4}] } msg ] {
+    if [catch { set aaa [read_memory $AIC_SMR 32 [expr {32 * 4}]] } msg ] {
 	error [format "%s (%s)" $msg AIC_SMR]
     }
     echo "AIC_SMR: Mode & Type"
     global AT91C_ID
     for { set x 0 } { $x < 32 } {  } {
 	echo -n "   "
-	echo -n [format "%2d: %5s 0x%08x | " $x $AT91C_ID($x) $aaa($x)]
+	echo -n [format "%2d: %5s 0x%08x | " $x $AT91C_ID($x) [lindex $aaa $x]]
 	incr x
-	echo -n [format "%2d: %5s 0x%08x | " $x $AT91C_ID($x) $aaa($x)]
+	echo -n [format "%2d: %5s 0x%08x | " $x $AT91C_ID($x) [lindex $aaa $x]]
 	incr x
-	echo -n [format "%2d: %5s 0x%08x | " $x $AT91C_ID($x) $aaa($x)]
+	echo -n [format "%2d: %5s 0x%08x | " $x $AT91C_ID($x) [lindex $aaa $x]]
 	incr x
-	echo  [format "%2d: %5s 0x%08x"  $x $AT91C_ID($x) $aaa($x)]
+	echo  [format "%2d: %5s 0x%08x"  $x $AT91C_ID($x) [lindex $aaa $x]]
 	incr x
     }
     global AIC_SVR
-    if [catch { mem2array aaa 32 $AIC_SVR [expr {32 * 4}] } msg ] {
+    if [catch { set aaa [read_memory $AIC_SVR 32 [expr {32 * 4}]] } msg ] {
 	error [format "%s (%s)" $msg AIC_SVR]
     }
     echo "AIC_SVR: Vectors"
     for { set x 0 } { $x < 32 } {  } {
 	echo -n "   "
-	echo -n [format "%2d: %5s 0x%08x | " $x $AT91C_ID($x) $aaa($x)]
+	echo -n [format "%2d: %5s 0x%08x | " $x $AT91C_ID($x) [lindex $aaa $x]]
 	incr x
-	echo -n [format "%2d: %5s 0x%08x | " $x $AT91C_ID($x) $aaa($x)]
+	echo -n [format "%2d: %5s 0x%08x | " $x $AT91C_ID($x) [lindex $aaa $x]]
 	incr x
-	echo -n [format "%2d: %5s 0x%08x | " $x $AT91C_ID($x) $aaa($x)]
+	echo -n [format "%2d: %5s 0x%08x | " $x $AT91C_ID($x) [lindex $aaa $x]]
 	incr x
-	echo [format "%2d: %5s 0x%08x" $x $AT91C_ID($x) $aaa($x)]
+	echo [format "%2d: %5s 0x%08x" $x $AT91C_ID($x) [lindex $aaa $x]]
 	incr x
     }
 

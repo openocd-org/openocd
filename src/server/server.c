@@ -205,13 +205,8 @@ static void free_service(struct service *c)
 	free(c);
 }
 
-int add_service(char *name,
-	const char *port,
-	int max_connections,
-	new_connection_handler_t new_connection_handler,
-	input_handler_t input_handler,
-	connection_closed_handler_t connection_closed_handler,
-	void *priv)
+int add_service(const struct service_driver *driver, const char *port,
+		int max_connections, void *priv)
 {
 	struct service *c, **p;
 	struct hostent *hp;
@@ -219,14 +214,16 @@ int add_service(char *name,
 
 	c = malloc(sizeof(struct service));
 
-	c->name = strdup(name);
+	c->name = strdup(driver->name);
 	c->port = strdup(port);
 	c->max_connections = 1;	/* Only TCP/IP ports can support more than one connection */
 	c->fd = -1;
 	c->connections = NULL;
-	c->new_connection = new_connection_handler;
-	c->input = input_handler;
-	c->connection_closed = connection_closed_handler;
+	c->new_connection_during_keep_alive = driver->new_connection_during_keep_alive_handler;
+	c->new_connection = driver->new_connection_handler;
+	c->input = driver->input_handler;
+	c->connection_closed = driver->connection_closed_handler;
+	c->keep_client_alive = driver->keep_client_alive_handler;
 	c->priv = priv;
 	c->next = NULL;
 	long portnumber;
@@ -278,7 +275,7 @@ int add_service(char *name,
 		c->sin.sin_port = htons(c->portnumber);
 
 		if (bind(c->fd, (struct sockaddr *)&c->sin, sizeof(c->sin)) == -1) {
-			LOG_ERROR("couldn't bind %s to socket on port %d: %s", name, c->portnumber, strerror(errno));
+			LOG_ERROR("couldn't bind %s to socket on port %d: %s", c->name, c->portnumber, strerror(errno));
 			close_socket(c->fd);
 			free_service(c);
 			return ERROR_FAIL;
@@ -309,7 +306,7 @@ int add_service(char *name,
 		socklen_t addr_in_size = sizeof(addr_in);
 		if (getsockname(c->fd, (struct sockaddr *)&addr_in, &addr_in_size) == 0)
 			LOG_INFO("Listening on port %hu for %s connections",
-				 ntohs(addr_in.sin_port), name);
+				 ntohs(addr_in.sin_port), c->name);
 	} else if (c->type == CONNECTION_STDINOUT) {
 		c->fd = fileno(stdin);
 
@@ -422,6 +419,14 @@ static int remove_services(void)
 	services = NULL;
 
 	return ERROR_OK;
+}
+
+void server_keep_clients_alive(void)
+{
+	for (struct service *s = services; s; s = s->next)
+		if (s->keep_client_alive)
+			for (struct connection *c = s->connections; c; c = c->next)
+				s->keep_client_alive(c);
 }
 
 int server_loop(struct command_context *command_context)

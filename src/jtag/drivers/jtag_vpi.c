@@ -38,8 +38,8 @@
 #define NO_TAP_SHIFT	0
 #define TAP_SHIFT	1
 
-#define SERVER_ADDRESS	"127.0.0.1"
-#define SERVER_PORT	5555
+#define DEFAULT_SERVER_ADDRESS	"127.0.0.1"
+#define DEFAULT_SERVER_PORT	5555
 
 #define	XFERT_MAX_SIZE		512
 
@@ -50,7 +50,7 @@
 #define CMD_STOP_SIMU		4
 
 /* jtag_vpi server port and address to connect to */
-static int server_port = SERVER_PORT;
+static int server_port = DEFAULT_SERVER_PORT;
 static char *server_address;
 
 /* Send CMD_STOP_SIMU to server when OpenOCD exits? */
@@ -551,7 +551,7 @@ static int jtag_vpi_init(void)
 	serv_addr.sin_port = htons(server_port);
 
 	if (!server_address)
-		server_address = strdup(SERVER_ADDRESS);
+		server_address = strdup(DEFAULT_SERVER_ADDRESS);
 
 	serv_addr.sin_addr.s_addr = inet_addr(server_address);
 
@@ -604,27 +604,28 @@ static int jtag_vpi_quit(void)
 
 COMMAND_HANDLER(jtag_vpi_set_port)
 {
-	if (CMD_ARGC == 0)
-		LOG_WARNING("You need to set a port number");
-	else
-		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], server_port);
+	if (CMD_ARGC == 0) {
+		LOG_ERROR("Command \"jtag_vpi set_port\" expects 1 argument (TCP port number)");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
 
-	LOG_INFO("Set server port to %u", server_port);
+	COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], server_port);
+	LOG_INFO("jtag_vpi: server port set to %u", server_port);
 
 	return ERROR_OK;
 }
 
 COMMAND_HANDLER(jtag_vpi_set_address)
 {
-	free(server_address);
 
 	if (CMD_ARGC == 0) {
-		LOG_WARNING("You need to set an address");
-		server_address = strdup(SERVER_ADDRESS);
-	} else
-		server_address = strdup(CMD_ARGV[0]);
+		LOG_ERROR("Command \"jtag_vpi set_address\" expects 1 argument (IP address)");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
 
-	LOG_INFO("Set server address to %s", server_address);
+	free(server_address);
+	server_address = strdup(CMD_ARGV[0]);
+	LOG_INFO("jtag_vpi: server address set to %s", server_address);
 
 	return ERROR_OK;
 }
@@ -632,11 +633,11 @@ COMMAND_HANDLER(jtag_vpi_set_address)
 COMMAND_HANDLER(jtag_vpi_stop_sim_on_exit_handler)
 {
 	if (CMD_ARGC != 1) {
-		LOG_ERROR("jtag_vpi_stop_sim_on_exit expects 1 argument (on|off)");
+		LOG_ERROR("Command \"jtag_vpi stop_sim_on_exit\" expects 1 argument (on|off)");
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	} else {
-		COMMAND_PARSE_ON_OFF(CMD_ARGV[0], stop_sim_on_exit);
 	}
+
+	COMMAND_PARSE_ON_OFF(CMD_ARGV[0], stop_sim_on_exit);
 	return ERROR_OK;
 }
 
@@ -645,14 +646,14 @@ static const struct command_registration jtag_vpi_subcommand_handlers[] = {
 		.name = "set_port",
 		.handler = &jtag_vpi_set_port,
 		.mode = COMMAND_CONFIG,
-		.help = "set the port of the VPI server",
+		.help = "set the TCP port number of the jtag_vpi server (default: 5555)",
 		.usage = "tcp_port_num",
 	},
 	{
 		.name = "set_address",
 		.handler = &jtag_vpi_set_address,
 		.mode = COMMAND_CONFIG,
-		.help = "set the address of the VPI server",
+		.help = "set the IP address of the jtag_vpi server (default: 127.0.0.1)",
 		.usage = "ipv4_addr",
 	},
 	{

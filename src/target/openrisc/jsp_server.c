@@ -195,19 +195,22 @@ static int jsp_connection_closed(struct connection *connection)
 	return ERROR_OK;
 }
 
+static const struct service_driver jsp_service_driver = {
+	.name = "jsp",
+	.new_connection_during_keep_alive_handler = NULL,
+	.new_connection_handler = jsp_new_connection,
+	.input_handler = jsp_input,
+	.connection_closed_handler = jsp_connection_closed,
+	.keep_client_alive_handler = NULL,
+};
+
 int jsp_init(struct or1k_jtag *jtag_info, char *banner)
 {
 	struct jsp_service *jsp_service = malloc(sizeof(struct jsp_service));
 	jsp_service->banner = banner;
 	jsp_service->jtag_info = jtag_info;
 
-	return add_service("jsp",
-		jsp_port,
-		1,
-		jsp_new_connection,
-		jsp_input,
-		jsp_connection_closed,
-		jsp_service);
+	return add_service(&jsp_service_driver, jsp_port, 1, jsp_service);
 }
 
 COMMAND_HANDLER(handle_jsp_port_command)

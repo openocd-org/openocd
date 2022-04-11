@@ -39,7 +39,8 @@ struct breakpoint {
 	uint32_t asid;
 	int length;
 	enum breakpoint_type type;
-	int set;
+	bool is_set;
+	unsigned int number;
 	uint8_t *orig_instr;
 	struct breakpoint *next;
 	uint32_t unique_id;
@@ -52,7 +53,8 @@ struct watchpoint {
 	uint32_t mask;
 	uint32_t value;
 	enum watchpoint_rw rw;
-	int set;
+	bool is_set;
+	unsigned int number;
 	struct watchpoint *next;
 	int unique_id;
 };
@@ -69,6 +71,12 @@ void breakpoint_remove_all(struct target *target);
 
 struct breakpoint *breakpoint_find(struct target *target, target_addr_t address);
 
+static inline void breakpoint_hw_set(struct breakpoint *breakpoint, unsigned int hw_number)
+{
+	breakpoint->is_set = true;
+	breakpoint->number = hw_number;
+}
+
 void watchpoint_clear_target(struct target *target);
 int watchpoint_add(struct target *target,
 		target_addr_t address, uint32_t length,
@@ -78,5 +86,11 @@ void watchpoint_remove(struct target *target, target_addr_t address);
 /* report type and address of just hit watchpoint */
 int watchpoint_hit(struct target *target, enum watchpoint_rw *rw,
 		target_addr_t *address);
+
+static inline void watchpoint_set(struct watchpoint *watchpoint, unsigned int number)
+{
+	watchpoint->is_set = true;
+	watchpoint->number = number;
+}
 
 #endif /* OPENOCD_TARGET_BREAKPOINTS_H */

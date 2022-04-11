@@ -29,9 +29,8 @@ proc arc_common_reset { {target ""} } {
         # vector located at the interrupt vector base address, which is the first
         # entry (offset 0x00) in the vector table.
         set int_vector_base [arc jtag get-aux-reg 0x25]
-        set start_pc ""
-        mem2array start_pc 32 $int_vector_base 1
-        arc jtag set-aux-reg 0x6 $start_pc(0)
+        set start_pc [read_memory $int_vector_base 32 1]
+        arc jtag set-aux-reg 0x6 $start_pc
 
         # It is OK to do uncached writes - register cache will be invalidated by
         # the reset_assert() function.

@@ -55,9 +55,25 @@ struct connection {
 	struct connection *next;
 };
 
-typedef int (*new_connection_handler_t)(struct connection *connection);
-typedef int (*input_handler_t)(struct connection *connection);
-typedef int (*connection_closed_handler_t)(struct connection *connection);
+struct service_driver {
+	/** the name of the server */
+	const char *name;
+	/** optional minimal setup to accept a connection during keep-alive */
+	int (*new_connection_during_keep_alive_handler)(struct connection *connection);
+	/**
+	 * complete code to accept a new connection.
+	 * If 'new_connection_during_keep_alive_handler' above is present, this can be
+	 * either called alone during the server_loop, or after the function above.
+	 * Check the implementation in gdb_server.
+	 * */
+	int (*new_connection_handler)(struct connection *connection);
+	/** callback to handle incoming data */
+	int (*input_handler)(struct connection *connection);
+	/** callback to tear down the connection */
+	int (*connection_closed_handler)(struct connection *connection);
+	/** called periodically to send keep-alive messages on the connection */
+	void (*keep_client_alive_handler)(struct connection *connection);
+};
 
 struct service {
 	char *name;
@@ -68,17 +84,17 @@ struct service {
 	struct sockaddr_in sin;
 	int max_connections;
 	struct connection *connections;
-	new_connection_handler_t new_connection;
-	input_handler_t input;
-	connection_closed_handler_t connection_closed;
+	int (*new_connection_during_keep_alive)(struct connection *connection);
+	int (*new_connection)(struct connection *connection);
+	int (*input)(struct connection *connection);
+	int (*connection_closed)(struct connection *connection);
+	void (*keep_client_alive)(struct connection *connection);
 	void *priv;
 	struct service *next;
 };
 
-int add_service(char *name, const char *port,
-		int max_connections, new_connection_handler_t new_connection_handler,
-		input_handler_t in_handler, connection_closed_handler_t close_handler,
-		void *priv);
+int add_service(const struct service_driver *driver, const char *port,
+		int max_connections, void *priv);
 int remove_service(const char *name, const char *port);
 
 int server_host_os_entry(void);
@@ -89,6 +105,8 @@ int server_init(struct command_context *cmd_ctx);
 int server_quit(void);
 void server_free(void);
 void exit_on_signal(int sig);
+
+void server_keep_clients_alive(void);
 
 int server_loop(struct command_context *command_context);
 

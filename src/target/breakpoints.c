@@ -72,7 +72,7 @@ static int breakpoint_add_internal(struct target *target,
 	(*breakpoint_p)->asid = 0;
 	(*breakpoint_p)->length = length;
 	(*breakpoint_p)->type = type;
-	(*breakpoint_p)->set = 0;
+	(*breakpoint_p)->is_set = false;
 	(*breakpoint_p)->orig_instr = malloc(length);
 	(*breakpoint_p)->next = NULL;
 	(*breakpoint_p)->unique_id = bpwp_unique_id++;
@@ -135,7 +135,7 @@ static int context_breakpoint_add_internal(struct target *target,
 	(*breakpoint_p)->asid = asid;
 	(*breakpoint_p)->length = length;
 	(*breakpoint_p)->type = type;
-	(*breakpoint_p)->set = 0;
+	(*breakpoint_p)->is_set = false;
 	(*breakpoint_p)->orig_instr = malloc(length);
 	(*breakpoint_p)->next = NULL;
 	(*breakpoint_p)->unique_id = bpwp_unique_id++;
@@ -189,7 +189,7 @@ static int hybrid_breakpoint_add_internal(struct target *target,
 	(*breakpoint_p)->asid = asid;
 	(*breakpoint_p)->length = length;
 	(*breakpoint_p)->type = type;
-	(*breakpoint_p)->set = 0;
+	(*breakpoint_p)->is_set = false;
 	(*breakpoint_p)->orig_instr = malloc(length);
 	(*breakpoint_p)->next = NULL;
 	(*breakpoint_p)->unique_id = bpwp_unique_id++;

@@ -1757,7 +1757,7 @@ static int stm32l4_probe(struct flash_bank *bank)
 	 * Ask the flash infrastructure to ensure required alignment */
 	bank->write_start_alignment = bank->write_end_alignment = stm32l4_info->data_width;
 
-	/* initialise the flash registers layout */
+	/* Initialize the flash registers layout */
 	if (part_info->flags & F_HAS_L5_FLASH_REGS)
 		stm32l4_info->flash_regs = stm32l5_ns_flash_regs;
 	else
@@ -1770,7 +1770,7 @@ static int stm32l4_probe(struct flash_bank *bank)
 
 	stm32l4_sync_rdp_tzen(bank);
 
-	/* for devices with trustzone, use flash secure registers when TZEN=1 and RDP is LEVEL_0 */
+	/* for devices with TrustZone, use flash secure registers when TZEN=1 and RDP is LEVEL_0 */
 	if (stm32l4_info->tzen && (stm32l4_info->rdp == RDP_LEVEL_0)) {
 		if (part_info->flags & F_HAS_L5_FLASH_REGS) {
 			stm32l4_info->flash_regs_base |= STM32L5_REGS_SEC_OFFSET;
@@ -2046,8 +2046,19 @@ static int stm32l4_auto_probe(struct flash_bank *bank)
 	if (stm32l4_info->probed) {
 		uint32_t optr_cur;
 
+		/* save flash_regs_base */
+		uint32_t saved_flash_regs_base = stm32l4_info->flash_regs_base;
+
+		/* for devices with TrustZone, use NS flash registers to read OPTR */
+		if (stm32l4_info->part_info->flags & F_HAS_L5_FLASH_REGS)
+			stm32l4_info->flash_regs_base &= ~STM32L5_REGS_SEC_OFFSET;
+
 		/* read flash option register and re-probe if optr value is changed */
 		int retval = stm32l4_read_flash_reg_by_index(bank, STM32_FLASH_OPTR_INDEX, &optr_cur);
+
+		/* restore saved flash_regs_base */
+		stm32l4_info->flash_regs_base = saved_flash_regs_base;
+
 		if (retval != ERROR_OK)
 			return retval;
 

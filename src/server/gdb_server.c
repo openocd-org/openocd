@@ -61,6 +61,13 @@
  * found in most modern embedded processors.
  */
 
+enum gdb_output_flag {
+	/* GDB doesn't accept 'O' packets */
+	GDB_OUTPUT_NO,
+	/* GDB accepts 'O' packets */
+	GDB_OUTPUT_ALL,
+};
+
 struct target_desc_format {
 	char *tdesc;
 	uint32_t tdesc_length;
@@ -97,6 +104,8 @@ struct gdb_connection {
 	struct target_desc_format target_desc;
 	/* temporarily used for thread list support */
 	char *thread_list;
+	/* flag to mask the output from gdb_log_callback() */
+	enum gdb_output_flag output_flag;
 };
 
 #if 0
@@ -362,10 +371,12 @@ static int gdb_write(struct connection *connection, void *data, int len)
 	return ERROR_SERVER_REMOTE_CLOSED;
 }
 
-static void gdb_log_incoming_packet(char *packet)
+static void gdb_log_incoming_packet(struct connection *connection, char *packet)
 {
 	if (!LOG_LEVEL_IS(LOG_LVL_DEBUG))
 		return;
+
+	struct target *target = get_target_from_connection(connection);
 
 	/* Avoid dumping non-printable characters to the terminal */
 	const unsigned packet_len = strlen(packet);
@@ -380,25 +391,31 @@ static void gdb_log_incoming_packet(char *packet)
 		if (packet_prefix_printable) {
 			const unsigned int prefix_len = colon - packet + 1;  /* + 1 to include the ':' */
 			const unsigned int payload_len = packet_len - prefix_len;
-			LOG_DEBUG("received packet: %.*s<binary-data-%u-bytes>", prefix_len, packet, payload_len);
+			LOG_TARGET_DEBUG(target, "received packet: %.*s<binary-data-%u-bytes>", prefix_len,
+				packet, payload_len);
 		} else {
-			LOG_DEBUG("received packet: <binary-data-%u-bytes>", packet_len);
+			LOG_TARGET_DEBUG(target, "received packet: <binary-data-%u-bytes>", packet_len);
 		}
 	} else {
 		/* All chars printable, dump the packet as is */
-		LOG_DEBUG("received packet: %s", packet);
+		LOG_TARGET_DEBUG(target, "received packet: %s", packet);
 	}
 }
 
-static void gdb_log_outgoing_packet(char *packet_buf, unsigned int packet_len, unsigned char checksum)
+static void gdb_log_outgoing_packet(struct connection *connection, char *packet_buf,
+	unsigned int packet_len, unsigned char checksum)
 {
 	if (!LOG_LEVEL_IS(LOG_LVL_DEBUG))
 		return;
 
+	struct target *target = get_target_from_connection(connection);
+
 	if (find_nonprint_char(packet_buf, packet_len))
-		LOG_DEBUG("sending packet: $<binary-data-%u-bytes>#%2.2x", packet_len, checksum);
+		LOG_TARGET_DEBUG(target, "sending packet: $<binary-data-%u-bytes>#%2.2x",
+			packet_len, checksum);
 	else
-		LOG_DEBUG("sending packet: $%.*s#%2.2x'", packet_len, packet_buf, checksum);
+		LOG_TARGET_DEBUG(target, "sending packet: $%.*s#%2.2x", packet_len, packet_buf,
+			checksum);
 }
 
 static int gdb_put_packet_inner(struct connection *connection,
@@ -443,7 +460,7 @@ static int gdb_put_packet_inner(struct connection *connection,
 #endif
 
 	while (1) {
-		gdb_log_outgoing_packet(buffer, len, my_checksum);
+		gdb_log_outgoing_packet(connection, buffer, len, my_checksum);
 
 		char local_buffer[1024];
 		local_buffer[0] = '$';
@@ -476,22 +493,27 @@ static int gdb_put_packet_inner(struct connection *connection,
 		if (retval != ERROR_OK)
 			return retval;
 
-		if (reply == '+')
+		if (reply == '+') {
+			gdb_log_incoming_packet(connection, "+");
 			break;
-		else if (reply == '-') {
+		} else if (reply == '-') {
 			/* Stop sending output packets for now */
-			log_remove_callback(gdb_log_callback, connection);
+			gdb_con->output_flag = GDB_OUTPUT_NO;
+			gdb_log_incoming_packet(connection, "-");
 			LOG_WARNING("negative reply, retrying");
 		} else if (reply == 0x3) {
 			gdb_con->ctrl_c = true;
+			gdb_log_incoming_packet(connection, "<Ctrl-C>");
 			retval = gdb_get_char(connection, &reply);
 			if (retval != ERROR_OK)
 				return retval;
-			if (reply == '+')
+			if (reply == '+') {
+				gdb_log_incoming_packet(connection, "+");
 				break;
-			else if (reply == '-') {
+			} else if (reply == '-') {
 				/* Stop sending output packets for now */
-				log_remove_callback(gdb_log_callback, connection);
+				gdb_con->output_flag = GDB_OUTPUT_NO;
+				gdb_log_incoming_packet(connection, "-");
 				LOG_WARNING("negative reply, retrying");
 			} else if (reply == '$') {
 				LOG_ERROR("GDB missing ack(1) - assumed good");
@@ -668,6 +690,7 @@ static int gdb_get_packet_inner(struct connection *connection,
 				case '$':
 					break;
 				case '+':
+					gdb_log_incoming_packet(connection, "+");
 					/* According to the GDB documentation
 					 * (https://sourceware.org/gdb/onlinedocs/gdb/Packet-Acknowledgment.html):
 					 * "gdb sends a final `+` acknowledgment of the stub's `OK`
@@ -685,9 +708,11 @@ static int gdb_get_packet_inner(struct connection *connection,
 					}
 					break;
 				case '-':
+					gdb_log_incoming_packet(connection, "-");
 					LOG_WARNING("negative acknowledgment, but no packet pending");
 					break;
 				case 0x3:
+					gdb_log_incoming_packet(connection, "<Ctrl-C>");
 					gdb_con->ctrl_c = true;
 					*len = 0;
 					return ERROR_OK;
@@ -937,7 +962,7 @@ static void gdb_frontend_halted(struct target *target, struct connection *connec
 	 */
 	if (gdb_connection->frontend_state == TARGET_RUNNING) {
 		/* stop forwarding log packets! */
-		log_remove_callback(gdb_log_callback, connection);
+		gdb_connection->output_flag = GDB_OUTPUT_NO;
 
 		/* check fileio first */
 		if (target_get_gdb_fileio_info(target, target->fileio_info) == ERROR_OK)
@@ -997,6 +1022,7 @@ static int gdb_new_connection(struct connection *connection)
 	gdb_connection->target_desc.tdesc = NULL;
 	gdb_connection->target_desc.tdesc_length = 0;
 	gdb_connection->thread_list = NULL;
+	gdb_connection->output_flag = GDB_OUTPUT_NO;
 
 	/* send ACK to GDB for debug request */
 	gdb_write(connection, "+", 1);
@@ -1080,6 +1106,8 @@ static int gdb_new_connection(struct connection *connection)
 	 *
 	 * register callback to be informed about target events */
 	target_register_event_callback(gdb_target_callback_event_handler, connection);
+
+	log_add_callback(gdb_log_callback, connection);
 
 	return ERROR_OK;
 }
@@ -2735,7 +2763,7 @@ static int gdb_query_packet(struct connection *connection,
 			LOG_DEBUG("qRcmd: %s", cmd);
 
 			/* We want to print all debug output to GDB connection */
-			log_add_callback(gdb_log_callback, connection);
+			gdb_connection->output_flag = GDB_OUTPUT_ALL;
 			target_call_timer_callbacks_now();
 			/* some commands need to know the GDB connection, make note of current
 			 * GDB connection. */
@@ -2743,7 +2771,7 @@ static int gdb_query_packet(struct connection *connection,
 			command_run_line(cmd_ctx, cmd);
 			current_gdb_connection = NULL;
 			target_call_timer_callbacks_now();
-			log_remove_callback(gdb_log_callback, connection);
+			gdb_connection->output_flag = GDB_OUTPUT_NO;
 			free(cmd);
 		}
 		gdb_put_packet(connection, "OK", 2);
@@ -2924,7 +2952,7 @@ static bool gdb_handle_vcont_packet(struct connection *connection, const char *p
 	if (parse[0] == 'c') {
 		gdb_running_type = 'c';
 		LOG_DEBUG("target %s continue", target_name(target));
-		log_add_callback(gdb_log_callback, connection);
+		gdb_connection->output_flag = GDB_OUTPUT_ALL;
 		retval = target_resume(target, 1, 0, 0, 0);
 		if (retval == ERROR_TARGET_NOT_HALTED)
 			LOG_INFO("target %s was not halted when resume was requested", target_name(target));
@@ -3028,7 +3056,7 @@ static bool gdb_handle_vcont_packet(struct connection *connection, const char *p
 			}
 
 			LOG_DEBUG("target %s single-step thread %"PRIx64, target_name(ct), thread_id);
-			log_add_callback(gdb_log_callback, connection);
+			gdb_connection->output_flag = GDB_OUTPUT_ALL;
 			target_call_event_callbacks(ct, TARGET_EVENT_GDB_START);
 
 			if (fake_step) {
@@ -3045,7 +3073,7 @@ static bool gdb_handle_vcont_packet(struct connection *connection, const char *p
 										 "T05thread:%016"PRIx64";", thread_id);
 
 				gdb_put_packet(connection, sig_reply, sig_reply_len);
-				log_remove_callback(gdb_log_callback, connection);
+				gdb_connection->output_flag = GDB_OUTPUT_NO;
 
 				return true;
 			}
@@ -3057,7 +3085,7 @@ static bool gdb_handle_vcont_packet(struct connection *connection, const char *p
 					LOG_DEBUG("stepi ignored. GDB will now fetch the register state "
 									"from the target.");
 					gdb_sig_halted(connection);
-					log_remove_callback(gdb_log_callback, connection);
+					gdb_connection->output_flag = GDB_OUTPUT_NO;
 				} else
 					gdb_connection->frontend_state = TARGET_RUNNING;
 				return true;
@@ -3075,7 +3103,7 @@ static bool gdb_handle_vcont_packet(struct connection *connection, const char *p
 				/* send back signal information */
 				gdb_signal_reply(ct, connection);
 				/* stop forwarding log packets! */
-				log_remove_callback(gdb_log_callback, connection);
+				gdb_connection->output_flag = GDB_OUTPUT_NO;
 			} else
 				gdb_connection->frontend_state = TARGET_RUNNING;
 		} else {
@@ -3410,6 +3438,10 @@ static void gdb_log_callback(void *priv, const char *file, unsigned line,
 	struct connection *connection = priv;
 	struct gdb_connection *gdb_con = connection->priv;
 
+	if (gdb_con->output_flag == GDB_OUTPUT_NO)
+		/* No out allowed */
+		return;
+
 	if (gdb_con->busy) {
 		/* do not reply this using the O packet */
 		return;
@@ -3459,9 +3491,10 @@ static int gdb_input_inner(struct connection *connection)
 		/* terminate with zero */
 		gdb_packet_buffer[packet_size] = '\0';
 
-		gdb_log_incoming_packet(gdb_packet_buffer);
-
 		if (packet_size > 0) {
+
+			gdb_log_incoming_packet(connection, gdb_packet_buffer);
+
 			retval = ERROR_OK;
 			switch (packet[0]) {
 				case 'T':	/* Is thread alive? */
@@ -3512,7 +3545,7 @@ static int gdb_input_inner(struct connection *connection)
 				case 's':
 				{
 					gdb_thread_packet(connection, packet, packet_size);
-					log_add_callback(gdb_log_callback, connection);
+					gdb_con->output_flag = GDB_OUTPUT_ALL;
 
 					if (gdb_con->mem_write_error) {
 						LOG_ERROR("Memory write failure!");
@@ -3555,7 +3588,7 @@ static int gdb_input_inner(struct connection *connection)
 						gdb_sig_halted(connection);
 
 						/* stop forwarding log packets! */
-						log_remove_callback(gdb_log_callback, connection);
+						gdb_con->output_flag = GDB_OUTPUT_NO;
 					} else {
 						/* We're running/stepping, in which case we can
 						 * forward log output until the target is halted
@@ -3627,7 +3660,7 @@ static int gdb_input_inner(struct connection *connection)
 					 * Fretcode,errno,Ctrl-C flag;call-specific attachment
 					 */
 					gdb_con->frontend_state = TARGET_RUNNING;
-					log_add_callback(gdb_log_callback, connection);
+					gdb_con->output_flag = GDB_OUTPUT_ALL;
 					gdb_fileio_response_packet(connection, packet, packet_size);
 					break;
 
@@ -3680,6 +3713,37 @@ static int gdb_input(struct connection *connection)
 	return ERROR_OK;
 }
 
+static void gdb_keep_client_alive(struct connection *connection)
+{
+	struct gdb_connection *gdb_con = connection->priv;
+
+	if (gdb_con->busy) {
+		/* do not send packets, retry asap */
+		return;
+	}
+
+	switch (gdb_con->output_flag) {
+	case GDB_OUTPUT_NO:
+		/* no need for keep-alive */
+		break;
+	case GDB_OUTPUT_ALL:
+		/* send an empty O packet */
+		gdb_output_con(connection, "");
+		break;
+	default:
+		break;
+	}
+}
+
+static const struct service_driver gdb_service_driver = {
+	.name = "gdb",
+	.new_connection_during_keep_alive_handler = NULL,
+	.new_connection_handler = gdb_new_connection,
+	.input_handler = gdb_input,
+	.connection_closed_handler = gdb_connection_closed,
+	.keep_client_alive_handler = gdb_keep_client_alive,
+};
+
 static int gdb_target_start(struct target *target, const char *port)
 {
 	struct gdb_service *gdb_service;
@@ -3696,9 +3760,7 @@ static int gdb_target_start(struct target *target, const char *port)
 	gdb_service->core[1] = -1;
 	target->gdb_service = gdb_service;
 
-	ret = add_service("gdb",
-			port, target->gdb_max_connections, &gdb_new_connection, &gdb_input,
-			&gdb_connection_closed, gdb_service);
+	ret = add_service(&gdb_service_driver, port, target->gdb_max_connections, gdb_service);
 	/* initialize all targets gdb service with the same pointer */
 	{
 		struct target_list *head;

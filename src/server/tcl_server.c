@@ -276,6 +276,15 @@ static int tcl_closed(struct connection *connection)
 	return ERROR_OK;
 }
 
+static const struct service_driver tcl_service_driver = {
+	.name = "tcl",
+	.new_connection_during_keep_alive_handler = NULL,
+	.new_connection_handler = tcl_new_connection,
+	.input_handler = tcl_input,
+	.connection_closed_handler = tcl_closed,
+	.keep_client_alive_handler = NULL,
+};
+
 int tcl_init(void)
 {
 	if (strcmp(tcl_port, "disabled") == 0) {
@@ -283,9 +292,7 @@ int tcl_init(void)
 		return ERROR_OK;
 	}
 
-	return add_service("tcl", tcl_port, CONNECTION_LIMIT_UNLIMITED,
-		&tcl_new_connection, &tcl_input,
-		&tcl_closed, NULL);
+	return add_service(&tcl_service_driver, tcl_port, CONNECTION_LIMIT_UNLIMITED, NULL);
 }
 
 COMMAND_HANDLER(handle_tcl_port_command)

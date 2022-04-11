@@ -22,6 +22,20 @@
 
 #include <libusb.h>
 
+/* When we debug a target that works as a USB device, halting the target causes the
+ * USB communication with the USB host to become unresponsive. The host will try
+ * to reconnect/reset/setup the unresponsive device during which communication
+ * with other devices on the same USB bus can get stalled for several seconds.
+ * If the JTAG adapter is on the same bus, we need to make sure openOCD will wait
+ * for packets at least as long as the host USB stack. Otherwise the USB stack
+ * might deliver a valid packet, but openOCD would ignore it due to the timeout.
+ * The xHCI spec uses 5 sec timeouts, so let's use that in openOCD with some margin.
+ *
+ * Use this value in all libusb calls. HID API might have a libusb backend and
+ * would probably be victim to the same bug, so it should use this timeout, too.
+ */
+#define LIBUSB_TIMEOUT_MS	(6000)
+
 /* this callback should return a non NULL value only when the serial could not
  * be retrieved by the standard 'libusb_get_string_descriptor_ascii' */
 typedef char * (*adapter_get_alternate_serial_fn)(struct libusb_device_handle *device,

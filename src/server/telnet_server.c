@@ -946,6 +946,15 @@ static int telnet_connection_closed(struct connection *connection)
 	return ERROR_OK;
 }
 
+static const struct service_driver telnet_service_driver = {
+	.name = "telnet",
+	.new_connection_during_keep_alive_handler = NULL,
+	.new_connection_handler = telnet_new_connection,
+	.input_handler = telnet_input,
+	.connection_closed_handler = telnet_connection_closed,
+	.keep_client_alive_handler = NULL,
+};
+
 int telnet_init(char *banner)
 {
 	if (strcmp(telnet_port, "disabled") == 0) {
@@ -963,8 +972,7 @@ int telnet_init(char *banner)
 
 	telnet_service->banner = banner;
 
-	int ret = add_service("telnet", telnet_port, CONNECTION_LIMIT_UNLIMITED,
-		telnet_new_connection, telnet_input, telnet_connection_closed,
+	int ret = add_service(&telnet_service_driver, telnet_port, CONNECTION_LIMIT_UNLIMITED,
 		telnet_service);
 
 	if (ret != ERROR_OK) {
