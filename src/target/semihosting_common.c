@@ -316,12 +316,6 @@ static inline int semihosting_getchar(struct semihosting *semihosting, int fd)
 static char *semihosting_user_op_params;
 
 /**
- * User operation parameter string storage buffer. Contains valid data when the
- * TARGET_EVENT_SEMIHOSTING_USER_CMD_xxxxx event callbacks are running.
- */
-static char *semihosting_user_op_params;
-
-/**
  * Portable implementation of ARM semihosting calls.
  * Performs the currently pending semihosting operation
  * encoded in target->semihosting.
