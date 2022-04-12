@@ -206,6 +206,32 @@ proc init_target_events {} {
 proc init_board {} {
 }
 
+proc mem2array {arrayname bitwidth address count {phys ""}} {
+	echo "DEPRECATED! use 'read_memory' not 'mem2array'"
+
+	upvar $arrayname $arrayname
+	set $arrayname ""
+	set i 0
+
+	foreach elem [read_memory $address $bitwidth $count {*}$phys] {
+		set ${arrayname}($i) $elem
+		incr i
+	}
+}
+
+proc array2mem {arrayname bitwidth address count {phys ""}} {
+	echo "DEPRECATED! use 'write_memory' not 'array2mem'"
+
+	upvar $arrayname $arrayname
+	set data ""
+
+	for {set i 0} {$i < $count} {incr i} {
+		lappend data [expr $${arrayname}($i)]
+	}
+
+	write_memory $address $bitwidth $data {*}$phys
+}
+
 # smp_on/smp_off were already DEPRECATED in v0.11.0 through http://openocd.zylin.com/4615
 lappend _telnet_autocomplete_skip "aarch64 smp_on"
 proc "aarch64 smp_on" {args} {

@@ -79,108 +79,96 @@ proc address_info { ADDRESS } {
 }
 
 proc memread32 {ADDR} {
-    set foo(0) 0
-    if ![ catch { mem2array foo 32 $ADDR 1  } msg ] {
-	return $foo(0)
+    if ![ catch { set foo [read_memory $ADDR 32 1] } msg ] {
+	return $foo
     } else {
 	error "memread32: $msg"
     }
 }
 
 proc memread16 {ADDR} {
-    set foo(0) 0
-    if ![ catch { mem2array foo 16 $ADDR 1  } msg ] {
-	return $foo(0)
+    if ![ catch { set foo [read_memory $ADDR 16 1] } msg ] {
+	return $foo
     } else {
 	error "memread16: $msg"
     }
 }
 
 proc memread8 {ADDR} {
-    set foo(0) 0
-    if ![ catch { mem2array foo 8 $ADDR 1  } msg ] {
-	return $foo(0)
+    if ![ catch { set foo [read_memory $ADDR 8 1] } msg ] {
+	return $foo
     } else {
 	error "memread8: $msg"
     }
 }
 
 proc memwrite32 {ADDR DATA} {
-    set foo(0) $DATA
-    if ![ catch { array2mem foo 32 $ADDR 1  } msg ] {
-	return $foo(0)
+    if ![ catch { write_memory $ADDR 32 $DATA } msg ] {
+	return $DATA
     } else {
 	error "memwrite32: $msg"
     }
 }
 
 proc memwrite16 {ADDR DATA} {
-    set foo(0) $DATA
-    if ![ catch { array2mem foo 16 $ADDR 1  } msg ] {
-	return $foo(0)
+    if ![ catch { write_memory $ADDR 16 $DATA } msg ] {
+	return $DATA
     } else {
 	error "memwrite16: $msg"
     }
 }
 
 proc memwrite8 {ADDR DATA} {
-    set foo(0) $DATA
-    if ![ catch { array2mem foo 8 $ADDR 1  } msg ] {
-	return $foo(0)
+    if ![ catch { write_memory $ADDR 8 $DATA } msg ] {
+	return $DATA
     } else {
 	error "memwrite8: $msg"
     }
 }
 
 proc memread32_phys {ADDR} {
-    set foo(0) 0
-    if ![ catch { mem2array foo 32 $ADDR 1 phys } msg ] {
-	return $foo(0)
+    if ![ catch { set foo [read_memory $ADDR 32 1 phys] } msg ] {
+	return $foo
     } else {
 	error "memread32: $msg"
     }
 }
 
 proc memread16_phys {ADDR} {
-    set foo(0) 0
-    if ![ catch { mem2array foo 16 $ADDR 1 phys } msg ] {
-	return $foo(0)
+    if ![ catch { set foo [read_memory $ADDR 16 1 phys] } msg ] {
+	return $foo
     } else {
 	error "memread16: $msg"
     }
 }
 
 proc memread8_phys {ADDR} {
-    set foo(0) 0
-    if ![ catch { mem2array foo 8 $ADDR 1 phys } msg ] {
-	return $foo(0)
+    if ![ catch { set foo [read_memory $ADDR 8 1 phys] } msg ] {
+	return $foo
     } else {
 	error "memread8: $msg"
     }
 }
 
 proc memwrite32_phys {ADDR DATA} {
-    set foo(0) $DATA
-    if ![ catch { array2mem foo 32 $ADDR 1 phys } msg ] {
-	return $foo(0)
+    if ![ catch { write_memory $ADDR 32 $DATA phys } msg ] {
+	return $DATA
     } else {
 	error "memwrite32: $msg"
     }
 }
 
 proc memwrite16_phys {ADDR DATA} {
-    set foo(0) $DATA
-    if ![ catch { array2mem foo 16 $ADDR 1 phys } msg ] {
-	return $foo(0)
+    if ![ catch { write_memory $ADDR 16 $DATA phys } msg ] {
+	return $DATA
     } else {
 	error "memwrite16: $msg"
     }
 }
 
 proc memwrite8_phys {ADDR DATA} {
-    set foo(0) $DATA
-    if ![ catch { array2mem foo 8 $ADDR 1 phys } msg ] {
-	return $foo(0)
+    if ![ catch { write_memory $ADDR 8 $DATA phys } msg ] {
+	return $DATA
     } else {
 	error "memwrite8: $msg"
     }

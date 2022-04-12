@@ -856,15 +856,12 @@ static int stm32x_write(struct flash_bank *bank, const uint8_t *buffer,
 	Wait for the BSY bit to be cleared
 	*/
 	while (words_remaining > 0) {
-		uint16_t value;
-		memcpy(&value, buffer + bytes_written, sizeof(uint16_t));
-
 		retval = target_write_u32(target, stm32x_get_flash_reg(bank, STM32_FLASH_CR),
 				FLASH_PG | FLASH_PSIZE_16);
 		if (retval != ERROR_OK)
 			return retval;
 
-		retval = target_write_u16(target, address, value);
+		retval = target_write_memory(target, address, 2, 1, buffer + bytes_written);
 		if (retval != ERROR_OK)
 			return retval;
 

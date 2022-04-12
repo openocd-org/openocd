@@ -587,6 +587,15 @@ static int ipdbg_on_connection_closed(struct connection *connection)
 	return ipdbg_stop_polling(connection->service->priv);
 }
 
+static const struct service_driver ipdbg_service_driver = {
+	.name = "ipdbg",
+	.new_connection_during_keep_alive_handler = NULL,
+	.new_connection_handler = ipdbg_on_new_connection,
+	.input_handler = ipdbg_on_connection_input,
+	.connection_closed_handler = ipdbg_on_connection_closed,
+	.keep_client_alive_handler = NULL,
+};
+
 static int ipdbg_start(uint16_t port, struct jtag_tap *tap, uint32_t user_instruction,
 					uint8_t data_register_length, struct ipdbg_virtual_ir_info *virtual_ir, uint8_t tool)
 {
@@ -618,8 +627,7 @@ static int ipdbg_start(uint16_t port, struct jtag_tap *tap, uint32_t user_instru
 
 	char port_str_buffer[IPDBG_TCP_PORT_STR_MAX_LENGTH];
 	snprintf(port_str_buffer, IPDBG_TCP_PORT_STR_MAX_LENGTH, "%u", port);
-	retval = add_service("ipdbg", port_str_buffer, 1, &ipdbg_on_new_connection,
-		&ipdbg_on_connection_input, &ipdbg_on_connection_closed, service);
+	retval = add_service(&ipdbg_service_driver, port_str_buffer, 1, service);
 	if (retval == ERROR_OK) {
 		ipdbg_add_service(service);
 		if (hub->active_services == 0 && hub->active_connections == 0)

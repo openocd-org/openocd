@@ -593,7 +593,7 @@ static void mips_m4k_enable_breakpoints(struct target *target)
 
 	/* set any pending breakpoints */
 	while (breakpoint) {
-		if (breakpoint->set == 0)
+		if (!breakpoint->is_set)
 			mips_m4k_set_breakpoint(target, breakpoint);
 		breakpoint = breakpoint->next;
 	}
@@ -607,7 +607,7 @@ static int mips_m4k_set_breakpoint(struct target *target,
 	struct mips32_comparator *comparator_list = mips32->inst_break_list;
 	int retval;
 
-	if (breakpoint->set) {
+	if (breakpoint->is_set) {
 		LOG_WARNING("breakpoint already set");
 		return ERROR_OK;
 	}
@@ -622,7 +622,7 @@ static int mips_m4k_set_breakpoint(struct target *target,
 					breakpoint->unique_id);
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
-		breakpoint->set = bp_num + 1;
+		breakpoint_hw_set(breakpoint, bp_num);
 		comparator_list[bp_num].used = 1;
 		comparator_list[bp_num].bp_value = breakpoint->address;
 
@@ -724,7 +724,7 @@ static int mips_m4k_set_breakpoint(struct target *target,
 			}
 		}
 
-		breakpoint->set = 20; /* Any nice value but 0 */
+		breakpoint->is_set = true;
 	}
 
 	return ERROR_OK;
@@ -739,14 +739,14 @@ static int mips_m4k_unset_breakpoint(struct target *target,
 	struct mips32_comparator *comparator_list = mips32->inst_break_list;
 	int retval;
 
-	if (!breakpoint->set) {
+	if (!breakpoint->is_set) {
 		LOG_WARNING("breakpoint not set");
 		return ERROR_OK;
 	}
 
 	if (breakpoint->type == BKPT_HARD) {
-		int bp_num = breakpoint->set - 1;
-		if ((bp_num < 0) || (bp_num >= mips32->num_inst_bpoints)) {
+		int bp_num = breakpoint->number;
+		if (bp_num >= mips32->num_inst_bpoints) {
 			LOG_DEBUG("Invalid FP Comparator number in breakpoint (bpid: %" PRIu32 ")",
 					  breakpoint->unique_id);
 			return ERROR_OK;
@@ -813,7 +813,7 @@ static int mips_m4k_unset_breakpoint(struct target *target,
 		}
 	}
 
-	breakpoint->set = 0;
+	breakpoint->is_set = false;
 
 	return ERROR_OK;
 }
@@ -851,7 +851,7 @@ static int mips_m4k_remove_breakpoint(struct target *target,
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if (breakpoint->set)
+	if (breakpoint->is_set)
 		mips_m4k_unset_breakpoint(target, breakpoint);
 
 	if (breakpoint->type == BKPT_HARD)
@@ -875,7 +875,7 @@ static int mips_m4k_set_watchpoint(struct target *target,
 	int enable = EJTAG_DBCN_NOSB | EJTAG_DBCN_NOLB | EJTAG_DBCN_BE |
 			(0xff << EJTAG_DBCN_BLM_SHIFT);
 
-	if (watchpoint->set) {
+	if (watchpoint->is_set) {
 		LOG_WARNING("watchpoint already set");
 		return ERROR_OK;
 	}
@@ -911,7 +911,7 @@ static int mips_m4k_set_watchpoint(struct target *target,
 			LOG_ERROR("BUG: watchpoint->rw neither read, write nor access");
 	}
 
-	watchpoint->set = wp_num + 1;
+	watchpoint->number = wp_num;
 	comparator_list[wp_num].used = 1;
 	comparator_list[wp_num].bp_value = watchpoint->address;
 
@@ -946,13 +946,13 @@ static int mips_m4k_unset_watchpoint(struct target *target,
 	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
 	struct mips32_comparator *comparator_list = mips32->data_break_list;
 
-	if (!watchpoint->set) {
+	if (!watchpoint->is_set) {
 		LOG_WARNING("watchpoint not set");
 		return ERROR_OK;
 	}
 
-	int wp_num = watchpoint->set - 1;
-	if ((wp_num < 0) || (wp_num >= mips32->num_data_bpoints)) {
+	int wp_num = watchpoint->number;
+	if (wp_num >= mips32->num_data_bpoints) {
 		LOG_DEBUG("Invalid FP Comparator number in watchpoint");
 		return ERROR_OK;
 	}
@@ -960,7 +960,7 @@ static int mips_m4k_unset_watchpoint(struct target *target,
 	comparator_list[wp_num].bp_value = 0;
 	target_write_u32(target, comparator_list[wp_num].reg_address +
 			 ejtag_info->ejtag_dbc_offs, 0);
-	watchpoint->set = 0;
+	watchpoint->is_set = false;
 
 	return ERROR_OK;
 }
@@ -991,7 +991,7 @@ static int mips_m4k_remove_watchpoint(struct target *target,
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if (watchpoint->set)
+	if (watchpoint->is_set)
 		mips_m4k_unset_watchpoint(target, watchpoint);
 
 	mips32->num_data_bpoints_avail++;
@@ -1005,7 +1005,7 @@ static void mips_m4k_enable_watchpoints(struct target *target)
 
 	/* set any pending watchpoints */
 	while (watchpoint) {
-		if (watchpoint->set == 0)
+		if (!watchpoint->is_set)
 			mips_m4k_set_watchpoint(target, watchpoint);
 		watchpoint = watchpoint->next;
 	}

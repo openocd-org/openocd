@@ -4980,27 +4980,76 @@ use these to deal with specific reset cases.
 They are not otherwise documented here.
 @end deffn
 
-@deffn {Command} {$target_name array2mem} arrayname width address count
-@deffnx {Command} {$target_name mem2array} arrayname width address count
-These provide an efficient script-oriented interface to memory.
-The @code{array2mem} primitive writes bytes, halfwords, words
-or double-words; while @code{mem2array} reads them.
-In both cases, the TCL side uses an array, and
-the target side uses raw memory.
-
-The efficiency comes from enabling the use of
-bulk JTAG data transfer operations.
-The script orientation comes from working with data
-values that are packaged for use by TCL scripts;
-@command{mdw} type primitives only print data they retrieve,
-and neither store nor return those values.
+@deffn {Command} {$target_name set_reg} dict
+Set register values of the target.
 
 @itemize
-@item @var{arrayname} ... is the name of an array variable
-@item @var{width} ... is 8/16/32/64 - indicating the memory access size
-@item @var{address} ... is the target memory address
-@item @var{count} ... is the number of elements to process
+@item @var{dict} ... Tcl dictionary with pairs of register names and values.
 @end itemize
+
+For example, the following command sets the value 0 to the program counter (pc)
+register and 0x1000 to the stack pointer (sp) register:
+
+@example
+set_reg @{pc 0 sp 0x1000@}
+@end example
+@end deffn
+
+@deffn {Command} {$target_name get_reg} [-force] list
+Get register values from the target and return them as Tcl dictionary with pairs
+of register names and values.
+If option "-force" is set, the register values are read directly from the
+target, bypassing any caching.
+
+@itemize
+@item @var{list} ... List of register names
+@end itemize
+
+For example, the following command retrieves the values from the program
+counter (pc) and stack pointer (sp) register:
+
+@example
+get_reg @{pc sp@}
+@end example
+@end deffn
+
+@deffn {Command} {$target_name write_memory} address width data ['phys']
+This function provides an efficient way to write to the target memory from a Tcl
+script.
+
+@itemize
+@item @var{address} ... target memory address
+@item @var{width} ... memory access bit size, can be 8, 16, 32 or 64
+@item @var{data} ... Tcl list with the elements to write
+@item ['phys'] ... treat the memory address as physical instead of virtual address
+@end itemize
+
+For example, the following command writes two 32 bit words into the target
+memory at address 0x20000000:
+
+@example
+write_memory 0x20000000 32 @{0xdeadbeef 0x00230500@}
+@end example
+@end deffn
+
+@deffn {Command} {$target_name read_memory} address width count ['phys']
+This function provides an efficient way to read the target memory from a Tcl
+script.
+A Tcl list containing the requested memory elements is returned by this function.
+
+@itemize
+@item @var{address} ... target memory address
+@item @var{width} ... memory access bit size, can be 8, 16, 32 or 64
+@item @var{count} ... number of elements to read
+@item ['phys'] ... treat the memory address as physical instead of virtual address
+@end itemize
+
+For example, the following command reads two 32 bit words from the target
+memory at address 0x20000000:
+
+@example
+read_memory 0x20000000 32 2
+@end example
 @end deffn
 
 @deffn {Command} {$target_name cget} queryparm
@@ -5070,8 +5119,8 @@ When the current target has an MMU which is present and active,
 Otherwise, or if the optional @var{phys} flag is specified,
 @var{addr} is interpreted as a physical address.
 If @var{count} is specified, displays that many units.
-(If you want to manipulate the data instead of displaying it,
-see the @code{mem2array} primitives.)
+(If you want to process the data instead of displaying it,
+see the @code{read_memory} primitives.)
 @end deffn
 
 @deffn {Command} {$target_name mwd} [phys] addr doubleword [count]
@@ -8491,6 +8540,78 @@ Debug and trace infrastructure:
 @end example
 @end deffn
 
+@deffn {Command} {set_reg} dict
+Set register values of the target.
+
+@itemize
+@item @var{dict} ... Tcl dictionary with pairs of register names and values.
+@end itemize
+
+For example, the following command sets the value 0 to the program counter (pc)
+register and 0x1000 to the stack pointer (sp) register:
+
+@example
+set_reg @{pc 0 sp 0x1000@}
+@end example
+@end deffn
+
+@deffn {Command} {get_reg} [-force] list
+Get register values from the target and return them as Tcl dictionary with pairs
+of register names and values.
+If option "-force" is set, the register values are read directly from the
+target, bypassing any caching.
+
+@itemize
+@item @var{list} ... List of register names
+@end itemize
+
+For example, the following command retrieves the values from the program
+counter (pc) and stack pointer (sp) register:
+
+@example
+get_reg @{pc sp@}
+@end example
+@end deffn
+
+@deffn {Command} {write_memory} address width data ['phys']
+This function provides an efficient way to write to the target memory from a Tcl
+script.
+
+@itemize
+@item @var{address} ... target memory address
+@item @var{width} ... memory access bit size, can be 8, 16, 32 or 64
+@item @var{data} ... Tcl list with the elements to write
+@item ['phys'] ... treat the memory address as physical instead of virtual address
+@end itemize
+
+For example, the following command writes two 32 bit words into the target
+memory at address 0x20000000:
+
+@example
+write_memory 0x20000000 32 @{0xdeadbeef 0x00230500@}
+@end example
+@end deffn
+
+@deffn {Command} {read_memory} address width count ['phys']
+This function provides an efficient way to read the target memory from a Tcl
+script.
+A Tcl list containing the requested memory elements is returned by this function.
+
+@itemize
+@item @var{address} ... target memory address
+@item @var{width} ... memory access bit size, can be 8, 16, 32 or 64
+@item @var{count} ... number of elements to read
+@item ['phys'] ... treat the memory address as physical instead of virtual address
+@end itemize
+
+For example, the following command reads two 32 bit words from the target
+memory at address 0x20000000:
+
+@example
+read_memory 0x20000000 32 2
+@end example
+@end deffn
+
 @deffn {Command} {halt} [ms]
 @deffnx {Command} {wait_halt} [ms]
 The @command{halt} command first sends a halt request to the target,
@@ -8628,8 +8749,8 @@ When the current target has an MMU which is present and active,
 Otherwise, or if the optional @var{phys} flag is specified,
 @var{addr} is interpreted as a physical address.
 If @var{count} is specified, displays that many units.
-(If you want to manipulate the data instead of displaying it,
-see the @code{mem2array} primitives.)
+(If you want to process the data instead of displaying it,
+see the @code{read_memory} primitives.)
 @end deffn
 
 @deffn {Command} {mwd} [phys] addr doubleword [count]
@@ -9247,6 +9368,17 @@ is running. The target application must be linked against a library
 implementing the ARM semihosting convention that forwards operation
 requests by using a special SVC instruction that is trapped at the
 Supervisor Call vector by OpenOCD.
+@end deffn
+
+@deffn {Command} {arm semihosting_redirect} (@option{disable} | @option{tcp} <port>
+[@option{debug}|@option{stdio}|@option{all})
+@cindex ARM semihosting
+Redirect semihosting messages to a specified TCP port.
+
+This command redirects debug (READC, WRITEC and WRITE0) and stdio (READ, WRITE)
+semihosting operations to the specified TCP port.
+The command allows to select which type of operations to redirect (debug, stdio, all (default)).
+Note: for stdio operations, only I/O from/to ':tt' file descriptors are redirected.
 @end deffn
 
 @deffn {Command} {arm semihosting_cmdline} [@option{enable}|@option{disable}]
@@ -11584,13 +11716,7 @@ should be passed in to the proc in question.
 By "low-level", we mean commands that a human would typically not
 invoke directly.
 
-@itemize @bullet
-@item @b{mem2array} <@var{varname}> <@var{width}> <@var{addr}> <@var{nelems}>
-
-Read memory and return as a Tcl array for script processing
-@item @b{array2mem} <@var{varname}> <@var{width}> <@var{addr}> <@var{nelems}>
-
-Convert a Tcl array to memory locations and write the values
+@itemize
 @item @b{flash banks} <@var{driver}> <@var{base}> <@var{size}> <@var{chip_width}> <@var{bus_width}> <@var{target}> [@option{driver options} ...]
 
 Return information about the flash banks

@@ -2,9 +2,7 @@
 
 # mrw: "memory read word", returns value of $reg
 proc mrw {reg} {
-	set value ""
-	mem2array value 32 $reg 1
-	return $value(0)
+	return [read_memory $reg 32 1]
 }
 
 add_usage_text mrw "address"
@@ -12,9 +10,7 @@ add_help_text mrw "Returns value of word in memory."
 
 # mrh: "memory read halfword", returns value of $reg
 proc mrh {reg} {
-	set value ""
-	mem2array value 16 $reg 1
-	return $value(0)
+	return [read_memory $reg 16 1]
 }
 
 add_usage_text mrh "address"
@@ -22,9 +18,7 @@ add_help_text mrh "Returns value of halfword in memory."
 
 # mrb: "memory read byte", returns value of $reg
 proc mrb {reg} {
-	set value ""
-	mem2array value 8 $reg 1
-	return $value(0)
+	return [read_memory $reg 8 1]
 }
 
 add_usage_text mrb "address"

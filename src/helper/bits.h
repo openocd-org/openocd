@@ -28,8 +28,12 @@
 #include <helper/types.h>
 
 #define BIT(nr)                     (1UL << (nr))
+#define BIT_ULL(nr)                 (1ULL << (nr))
 #define BITS_PER_BYTE               8
 #define BITS_PER_LONG               (BITS_PER_BYTE * sizeof(long))
+#define BITS_PER_LONG_LONG          (BITS_PER_BYTE * sizeof(long long))
+#define GENMASK(h, l)               (((~0UL) - (1UL << (l)) + 1) & (~0UL >> (BITS_PER_LONG - 1 - (h))))
+#define GENMASK_ULL(h, l)           (((~0ULL) - (1ULL << (l)) + 1) & (~0ULL >> (BITS_PER_LONG_LONG - 1 - (h))))
 #define BITS_TO_LONGS(nr)           DIV_ROUND_UP(nr, BITS_PER_BYTE * sizeof(long))
 #define BIT_MASK(nr)                (1UL << ((nr) % BITS_PER_LONG))
 #define BIT_WORD(nr)                ((nr) / BITS_PER_LONG)

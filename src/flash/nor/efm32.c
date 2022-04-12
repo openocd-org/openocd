@@ -257,23 +257,19 @@ static int efm32x_write_reg_u32(struct flash_bank *bank, target_addr_t offset,
 static int efm32x_read_info(struct flash_bank *bank)
 {
 	int ret;
-	uint32_t cpuid = 0;
 	struct efm32x_flash_chip *efm32x_info = bank->driver_priv;
 	struct efm32_info *efm32_info = &(efm32x_info->info);
 
 	memset(efm32_info, 0, sizeof(struct efm32_info));
 
-	ret = target_read_u32(bank->target, CPUID, &cpuid);
-	if (ret != ERROR_OK)
-		return ret;
+	const struct cortex_m_common *cortex_m = target_to_cm(bank->target);
 
-	if (((cpuid >> 4) & 0xfff) == 0xc23) {
-		/* Cortex-M3 device */
-	} else if (((cpuid >> 4) & 0xfff) == 0xc24) {
-		/* Cortex-M4 device (WONDER GECKO) */
-	} else if (((cpuid >> 4) & 0xfff) == 0xc60) {
-		/* Cortex-M0+ device */
-	} else {
+	switch (cortex_m->core_info->partno) {
+	case CORTEX_M3_PARTNO:
+	case CORTEX_M4_PARTNO:
+	case CORTEX_M0P_PARTNO:
+		break;
+	default:
 		LOG_ERROR("Target is not Cortex-Mx Device");
 		return ERROR_FAIL;
 	}

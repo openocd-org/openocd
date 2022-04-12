@@ -1236,7 +1236,7 @@ static int aarch64_set_breakpoint(struct target *target,
 	struct armv8_common *armv8 = &aarch64->armv8_common;
 	struct aarch64_brp *brp_list = aarch64->brp_list;
 
-	if (breakpoint->set) {
+	if (breakpoint->is_set) {
 		LOG_WARNING("breakpoint already set");
 		return ERROR_OK;
 	}
@@ -1249,7 +1249,7 @@ static int aarch64_set_breakpoint(struct target *target,
 			LOG_ERROR("ERROR Can not find free Breakpoint Register Pair");
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
-		breakpoint->set = brp_i + 1;
+		breakpoint_hw_set(breakpoint, brp_i);
 		if (breakpoint->length == 2)
 			byte_addr_select = (3 << (breakpoint->address & 0x02));
 		control = ((matchmode & 0x7) << 20)
@@ -1333,7 +1333,7 @@ static int aarch64_set_breakpoint(struct target *target,
 				breakpoint->address & 0xFFFFFFFFFFFFFFFE,
 				breakpoint->length);
 
-		breakpoint->set = 0x11;	/* Any nice value but 0 */
+		breakpoint->is_set = true;
 	}
 
 	/* Ensure that halting debug mode is enable */
@@ -1357,7 +1357,7 @@ static int aarch64_set_context_breakpoint(struct target *target,
 	struct armv8_common *armv8 = &aarch64->armv8_common;
 	struct aarch64_brp *brp_list = aarch64->brp_list;
 
-	if (breakpoint->set) {
+	if (breakpoint->is_set) {
 		LOG_WARNING("breakpoint already set");
 		return retval;
 	}
@@ -1371,7 +1371,7 @@ static int aarch64_set_context_breakpoint(struct target *target,
 		return ERROR_FAIL;
 	}
 
-	breakpoint->set = brp_i + 1;
+	breakpoint_hw_set(breakpoint, brp_i);
 	control = ((matchmode & 0x7) << 20)
 		| (1 << 13)
 		| (byte_addr_select << 5)
@@ -1410,7 +1410,7 @@ static int aarch64_set_hybrid_breakpoint(struct target *target, struct breakpoin
 	struct armv8_common *armv8 = &aarch64->armv8_common;
 	struct aarch64_brp *brp_list = aarch64->brp_list;
 
-	if (breakpoint->set) {
+	if (breakpoint->is_set) {
 		LOG_WARNING("breakpoint already set");
 		return retval;
 	}
@@ -1435,7 +1435,7 @@ static int aarch64_set_hybrid_breakpoint(struct target *target, struct breakpoin
 		return ERROR_FAIL;
 	}
 
-	breakpoint->set = brp_1 + 1;
+	breakpoint_hw_set(breakpoint, brp_1);
 	breakpoint->linked_brp = brp_2;
 	control_ctx = ((ctx_machmode & 0x7) << 20)
 		| (brp_2 << 16)
@@ -1490,16 +1490,16 @@ static int aarch64_unset_breakpoint(struct target *target, struct breakpoint *br
 	struct armv8_common *armv8 = &aarch64->armv8_common;
 	struct aarch64_brp *brp_list = aarch64->brp_list;
 
-	if (!breakpoint->set) {
+	if (!breakpoint->is_set) {
 		LOG_WARNING("breakpoint not set");
 		return ERROR_OK;
 	}
 
 	if (breakpoint->type == BKPT_HARD) {
 		if ((breakpoint->address != 0) && (breakpoint->asid != 0)) {
-			int brp_i = breakpoint->set - 1;
+			int brp_i = breakpoint->number;
 			int brp_j = breakpoint->linked_brp;
-			if ((brp_i < 0) || (brp_i >= aarch64->brp_num)) {
+			if (brp_i >= aarch64->brp_num) {
 				LOG_DEBUG("Invalid BRP number in breakpoint");
 				return ERROR_OK;
 			}
@@ -1549,12 +1549,12 @@ static int aarch64_unset_breakpoint(struct target *target, struct breakpoint *br
 				return retval;
 
 			breakpoint->linked_brp = 0;
-			breakpoint->set = 0;
+			breakpoint->is_set = false;
 			return ERROR_OK;
 
 		} else {
-			int brp_i = breakpoint->set - 1;
-			if ((brp_i < 0) || (brp_i >= aarch64->brp_num)) {
+			int brp_i = breakpoint->number;
+			if (brp_i >= aarch64->brp_num) {
 				LOG_DEBUG("Invalid BRP number in breakpoint");
 				return ERROR_OK;
 			}
@@ -1579,7 +1579,7 @@ static int aarch64_unset_breakpoint(struct target *target, struct breakpoint *br
 					(uint32_t)brp_list[brp_i].value);
 			if (retval != ERROR_OK)
 				return retval;
-			breakpoint->set = 0;
+			breakpoint->is_set = false;
 			return ERROR_OK;
 		}
 	} else {
@@ -1611,7 +1611,7 @@ static int aarch64_unset_breakpoint(struct target *target, struct breakpoint *br
 				breakpoint->address & 0xFFFFFFFFFFFFFFFE,
 				breakpoint->length);
 	}
-	breakpoint->set = 0;
+	breakpoint->is_set = false;
 
 	return ERROR_OK;
 }
@@ -1676,7 +1676,7 @@ static int aarch64_remove_breakpoint(struct target *target, struct breakpoint *b
 	}
 #endif
 
-	if (breakpoint->set) {
+	if (breakpoint->is_set) {
 		aarch64_unset_breakpoint(target, breakpoint);
 		if (breakpoint->type == BKPT_HARD)
 			aarch64->brp_num_available++;
@@ -1696,7 +1696,7 @@ static int aarch64_set_watchpoint(struct target *target,
 	struct armv8_common *armv8 = &aarch64->armv8_common;
 	struct aarch64_brp *wp_list = aarch64->wp_list;
 
-	if (watchpoint->set) {
+	if (watchpoint->is_set) {
 		LOG_WARNING("watchpoint already set");
 		return ERROR_OK;
 	}
@@ -1764,7 +1764,7 @@ static int aarch64_set_watchpoint(struct target *target,
 	}
 
 	wp_list[wp_i].used = 1;
-	watchpoint->set = wp_i + 1;
+	watchpoint_set(watchpoint, wp_i);
 
 	return ERROR_OK;
 }
@@ -1773,18 +1773,18 @@ static int aarch64_set_watchpoint(struct target *target,
 static int aarch64_unset_watchpoint(struct target *target,
 	struct watchpoint *watchpoint)
 {
-	int retval, wp_i;
+	int retval;
 	struct aarch64_common *aarch64 = target_to_aarch64(target);
 	struct armv8_common *armv8 = &aarch64->armv8_common;
 	struct aarch64_brp *wp_list = aarch64->wp_list;
 
-	if (!watchpoint->set) {
+	if (!watchpoint->is_set) {
 		LOG_WARNING("watchpoint not set");
 		return ERROR_OK;
 	}
 
-	wp_i = watchpoint->set - 1;
-	if ((wp_i < 0) || (wp_i >= aarch64->wp_num)) {
+	int wp_i = watchpoint->number;
+	if (wp_i >= aarch64->wp_num) {
 		LOG_DEBUG("Invalid WP number in watchpoint");
 		return ERROR_OK;
 	}
@@ -1809,7 +1809,7 @@ static int aarch64_unset_watchpoint(struct target *target,
 			(uint32_t)wp_list[wp_i].value);
 	if (retval != ERROR_OK)
 		return retval;
-	watchpoint->set = 0;
+	watchpoint->is_set = false;
 
 	return ERROR_OK;
 }
@@ -1837,7 +1837,7 @@ static int aarch64_remove_watchpoint(struct target *target,
 {
 	struct aarch64_common *aarch64 = target_to_aarch64(target);
 
-	if (watchpoint->set) {
+	if (watchpoint->is_set) {
 		aarch64_unset_watchpoint(target, watchpoint);
 		aarch64->wp_num_available++;
 	}

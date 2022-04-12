@@ -7,6 +7,11 @@
  * Chromium-EC RTOS Task Awareness
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include <helper/bits.h>
 #include <rtos/rtos.h>
 #include <target/target.h>
 #include <target/target_type.h>
@@ -16,7 +21,6 @@
 #define CROS_EC_MAX_TASKS 32
 #define CROS_EC_MAX_NAME 200
 #define CROS_EC_IDLE_STRING "<< idle >>"
-#define BIT(x) (1 << (x))
 
 struct chromium_ec_params {
 	const char *target_name;

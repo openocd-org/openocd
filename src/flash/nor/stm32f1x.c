@@ -592,10 +592,7 @@ static int stm32x_write(struct flash_bank *bank, const uint8_t *buffer,
 		LOG_WARNING("couldn't use block writes, falling back to single memory accesses");
 
 		while (words_remaining > 0) {
-			uint16_t value;
-			memcpy(&value, buffer, sizeof(uint16_t));
-
-			retval = target_write_u16(target, bank->base + offset, value);
+			retval = target_write_memory(target, bank->base + offset, 2, 1, buffer);
 			if (retval != ERROR_OK)
 				goto reset_pg_and_lock;
 

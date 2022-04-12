@@ -59,8 +59,6 @@
 #define USB_EP2IN_SIZE          (USB_EP2OUT_SIZE)
 #define USB_EP2BANK_SIZE        (512)
 
-#define USB_TIMEOUT_MS          (3 * 1000)
-
 #define DTC_STATUS_POLL_BYTE    (ST7_USB_BUF_EP0OUT + 0xff)
 
 #define ST7_PD_NBUSY_LED                ST7_PD0
@@ -133,7 +131,7 @@ static int ep1_generic_commandl(struct libusb_device_handle *hdev_param, size_t 
 			hdev_param,
 			USB_EP1OUT_ADDR,
 			(char *)usb_buffer, sizeof(usb_buffer),
-			USB_TIMEOUT_MS,
+			LIBUSB_TIMEOUT_MS,
 			&transferred
 			);
 
@@ -176,7 +174,7 @@ static ssize_t ep1_memory_read(
 		usb_ret = jtag_libusb_bulk_write(
 				hdev_param, USB_EP1OUT_ADDR,
 				(char *)usb_buffer, sizeof(usb_buffer),
-				USB_TIMEOUT_MS,
+				LIBUSB_TIMEOUT_MS,
 				&transferred
 				);
 
@@ -186,7 +184,7 @@ static ssize_t ep1_memory_read(
 		usb_ret = jtag_libusb_bulk_read(
 				hdev_param, USB_EP1IN_ADDR,
 				(char *)buffer, length,
-				USB_TIMEOUT_MS,
+				LIBUSB_TIMEOUT_MS,
 				&transferred
 				);
 
@@ -241,7 +239,7 @@ static ssize_t ep1_memory_write(struct libusb_device_handle *hdev_param, uint16_
 		usb_ret = jtag_libusb_bulk_write(
 				hdev_param, USB_EP1OUT_ADDR,
 				(char *)usb_buffer, sizeof(usb_buffer),
-				USB_TIMEOUT_MS,
+				LIBUSB_TIMEOUT_MS,
 				&transferred
 				);
 
@@ -432,7 +430,7 @@ static int dtc_start_download(void)
 	usb_err = jtag_libusb_bulk_read(
 			hdev, USB_EP1IN_ADDR,
 			(char *)&ep2txr, 1,
-			USB_TIMEOUT_MS,
+			LIBUSB_TIMEOUT_MS,
 			&transferred
 			);
 	if (usb_err != ERROR_OK)
@@ -462,7 +460,7 @@ static int dtc_start_download(void)
 	usb_err = jtag_libusb_bulk_read(
 			hdev, USB_EP1IN_ADDR,
 			(char *)&ep2txr, 1,
-			USB_TIMEOUT_MS,
+			LIBUSB_TIMEOUT_MS,
 			&transferred
 			);
 
@@ -488,7 +486,7 @@ static int dtc_run_download(
 			hdev_param,
 			USB_EP2OUT_ADDR,
 			(char *)command_buffer, USB_EP2BANK_SIZE,
-			USB_TIMEOUT_MS,
+			LIBUSB_TIMEOUT_MS,
 			&transferred
 			);
 	if (usb_err < 0)
@@ -512,7 +510,7 @@ static int dtc_run_download(
 				hdev_param,
 				USB_EP1IN_ADDR,
 				&dtc_status, 1,
-				USB_TIMEOUT_MS,
+				LIBUSB_TIMEOUT_MS,
 				&transferred
 				);
 		if (usb_err < 0)
@@ -533,7 +531,7 @@ static int dtc_run_download(
 				hdev_param,
 				USB_EP2IN_ADDR,
 				(char *)reply_buffer, reply_buffer_size,
-				USB_TIMEOUT_MS,
+				LIBUSB_TIMEOUT_MS,
 				&transferred
 				);
 
@@ -954,7 +952,7 @@ static void rlink_reset(int trst, int srst)
 	usb_err = jtag_libusb_bulk_read(
 			hdev, USB_EP1IN_ADDR,
 			(char *)&bitmap, 1,
-			USB_TIMEOUT_MS,
+			LIBUSB_TIMEOUT_MS,
 			&transferred
 			);
 	if (usb_err != ERROR_OK || transferred < 1) {
@@ -990,7 +988,7 @@ static void rlink_reset(int trst, int srst)
 	usb_err = jtag_libusb_bulk_read(
 			hdev, USB_EP1IN_ADDR,
 			(char *)&bitmap, 1,
-			USB_TIMEOUT_MS,
+			LIBUSB_TIMEOUT_MS,
 			&transferred
 			);
 	if (usb_err != ERROR_OK || transferred < 1) {
@@ -1021,7 +1019,7 @@ static void rlink_reset(int trst, int srst)
 	usb_err = jtag_libusb_bulk_read(
 			hdev, USB_EP1IN_ADDR,
 			(char *)&bitmap, 1,
-			USB_TIMEOUT_MS,
+			LIBUSB_TIMEOUT_MS,
 			&transferred
 			);
 	if (usb_err != ERROR_OK || transferred < 1) {
@@ -1576,7 +1574,7 @@ static int rlink_init(void)
 	jtag_libusb_bulk_read(
 		hdev, USB_EP1IN_ADDR,
 		(char *)reply_buffer, 1,
-		USB_TIMEOUT_MS,
+		LIBUSB_TIMEOUT_MS,
 		&transferred
 		);
 
@@ -1601,7 +1599,7 @@ static int rlink_init(void)
 	jtag_libusb_bulk_read(
 		hdev, USB_EP1IN_ADDR,
 		(char *)reply_buffer, 1,
-		USB_TIMEOUT_MS,
+		LIBUSB_TIMEOUT_MS,
 		&transferred
 		);
 

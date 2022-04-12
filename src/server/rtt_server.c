@@ -15,6 +15,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <stdint.h>
 #include <rtt/rtt.h>
 
@@ -110,6 +114,15 @@ static int rtt_input(struct connection *connection)
 	return ERROR_OK;
 }
 
+static const struct service_driver rtt_service_driver = {
+	.name = "rtt",
+	.new_connection_during_keep_alive_handler = NULL,
+	.new_connection_handler = rtt_new_connection,
+	.input_handler = rtt_input,
+	.connection_closed_handler = rtt_connection_closed,
+	.keep_client_alive_handler = NULL,
+};
+
 COMMAND_HANDLER(handle_rtt_start_command)
 {
 	int ret;
@@ -125,8 +138,7 @@ COMMAND_HANDLER(handle_rtt_start_command)
 
 	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[1], service->channel);
 
-	ret = add_service("rtt", CMD_ARGV[0], CONNECTION_LIMIT_UNLIMITED,
-		rtt_new_connection, rtt_input, rtt_connection_closed, service);
+	ret = add_service(&rtt_service_driver, CMD_ARGV[0], CONNECTION_LIMIT_UNLIMITED, service);
 
 	if (ret != ERROR_OK) {
 		free(service);

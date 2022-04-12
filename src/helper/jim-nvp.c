@@ -41,6 +41,10 @@
  * official policies, either expressed or implied, of the Jim Tcl Project.
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "jim-nvp.h"
 #include <string.h>
 
