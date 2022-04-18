@@ -298,10 +298,14 @@ AS_CASE(["${host_cpu}"],
     AC_ARG_ENABLE([imx_gpio],
       AS_HELP_STRING([--enable-imx_gpio], [Enable building support for bitbanging on NXP IMX processors]),
       [build_imx_gpio=$enableval], [build_imx_gpio=no])
+    AC_ARG_ENABLE([am335xgpio],
+      AS_HELP_STRING([--enable-am335xgpio], [Enable building support for bitbanging on AM335x (as found in Beaglebones)]),
+      [build_am335xgpio=$enableval], [build_am335xgpio=no])
   ],
   [
     build_bcm2835gpio=no
     build_imx_gpio=no
+    build_am335xgpio=no
 ])
 
 AS_CASE(["${host_cpu}"],
@@ -505,6 +509,13 @@ AS_IF([test "x$build_imx_gpio" = "xyes"], [
   AC_DEFINE([BUILD_IMX_GPIO], [1], [1 if you want imx_gpio.])
 ], [
   AC_DEFINE([BUILD_IMX_GPIO], [0], [0 if you don't want imx_gpio.])
+])
+
+AS_IF([test "x$build_am335xgpio" = "xyes"], [
+  build_bitbang=yes
+  AC_DEFINE([BUILD_AM335XGPIO], [1], [1 if you want am335xgpio.])
+], [
+  AC_DEFINE([BUILD_AM335XGPIO], [0], [0 if you don't want am335xgpio.])
 ])
 
 AS_IF([test "x$parport_use_ppdev" = "xyes"], [
@@ -711,6 +722,7 @@ AM_CONDITIONAL([EP93XX], [test "x$build_ep93xx" = "xyes"])
 AM_CONDITIONAL([AT91RM9200], [test "x$build_at91rm9200" = "xyes"])
 AM_CONDITIONAL([BCM2835GPIO], [test "x$build_bcm2835gpio" = "xyes"])
 AM_CONDITIONAL([IMX_GPIO], [test "x$build_imx_gpio" = "xyes"])
+AM_CONDITIONAL([AM335XGPIO], [test "x$build_am335xgpio" = "xyes"])
 AM_CONDITIONAL([BITBANG], [test "x$build_bitbang" = "xyes"])
 AM_CONDITIONAL([JTAG_VPI], [test "x$build_jtag_vpi" = "xyes"])
 AM_CONDITIONAL([VDEBUG], [test "x$build_vdebug" = "xyes"])

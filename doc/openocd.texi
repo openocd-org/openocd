@@ -584,6 +584,9 @@ produced, PDF schematics are easily found and it is easy to make.
 @item @b{imx_gpio}
 @* A NXP i.MX-based board (e.g. Wandboard) using the GPIO pins (should work on any i.MX processor).
 
+@item @b{am335xgpio}
+@* A Texas Instruments AM335x-based board (e.g. BeagleBone Black) using the GPIO pins of the expansion headers.
+
 @item @b{jtag_vpi}
 @* A JTAG driver acting as a client for the JTAG VPI server interface.
 @* Link: @url{http://github.com/fjullien/jtag_vpi}
@@ -3318,6 +3321,98 @@ This driver is mostly the same as bcm2835gpio.
 
 See @file{interface/imx-native.cfg} for a sample config and
 pinout.
+
+@end deffn
+
+
+@deffn {Interface Driver} {am335xgpio} The AM335x SoC is present in BeagleBone
+Black and BeagleBone Green single-board computers which expose some of the GPIOs
+on the two expansion headers.
+
+For maximum performance the driver accesses memory-mapped GPIO peripheral
+registers directly. The memory mapping requires read and write permission to
+kernel memory; if /dev/gpiomem exists it will be used, otherwise /dev/mem will
+be used. The driver restores the GPIO state on exit.
+
+All four GPIO ports are available. GPIOs numbered 0 to 31 are mapped to GPIO port
+0, GPIO numbers 32 to 63 are mapped to GPIO port 1 and so on.
+
+See @file{interface/beaglebone-swd-native.cfg} for a sample configuration file.
+
+@deffn {Config Command} {am335xgpio jtag_nums} @var{tck} @var{tms} @var{tdi} @var{tdo}
+Set JTAG transport GPIO numbers for TCK, TMS, TDI, and TDO (in that order).
+Must be specified to enable JTAG transport. These pins can also be specified
+individually.
+@end deffn
+
+@deffn {Config Command} {am335xgpio tck_num} @var{tck}
+Set TCK GPIO number. Must be specified to enable JTAG transport. Can also be
+specified using the configuration command @command{am335xgpio jtag_nums}.
+@end deffn
+
+@deffn {Config Command} {am335xgpio tms_num} @var{tms}
+Set TMS GPIO number. Must be specified to enable JTAG transport. Can also be
+specified using the configuration command @command{am335xgpio jtag_nums}.
+@end deffn
+
+@deffn {Config Command} {am335xgpio tdo_num} @var{tdo}
+Set TDO GPIO number. Must be specified to enable JTAG transport. Can also be
+specified using the configuration command @command{am335xgpio jtag_nums}.
+@end deffn
+
+@deffn {Config Command} {am335xgpio tdi_num} @var{tdi}
+Set TDI GPIO number. Must be specified to enable JTAG transport. Can also be
+specified using the configuration command @command{am335xgpio jtag_nums}.
+@end deffn
+
+@deffn {Config Command} {am335xgpio swd_nums} @var{swclk} @var{swdio}
+Set SWD transport GPIO numbers for SWCLK and SWDIO (in that order). Must be
+specified to enable SWD transport. These pins can also be specified individually.
+@end deffn
+
+@deffn {Config Command} {am335xgpio swclk_num} @var{swclk}
+Set SWCLK GPIO number. Must be specified to enable SWD transport. Can also be
+specified using the configuration command @command{am335xgpio swd_nums}.
+@end deffn
+
+@deffn {Config Command} {am335xgpio swdio_num} @var{swdio}
+Set SWDIO GPIO number. Must be specified to enable SWD transport. Can also be
+specified using the configuration command @command{am335xgpio swd_nums}.
+@end deffn
+
+@deffn {Config Command} {am335xgpio swdio_dir_num} @var{swdio_dir}
+Set SWDIO direction control pin GPIO number. If specified, this pin can be used
+to control the direction of an external buffer on the SWDIO pin. The direction
+control state can be set with the command @command{am335xgpio
+swdio_dir_output_state}. If not specified this feature is disabled.
+@end deffn
+
+@deffn {Config Command} {am335xgpio swdio_dir_output_state} @var{output_state}
+Set the state required for an external SWDIO buffer to be an output. Valid
+values are @option{on} (default) and @option{off}.
+@end deffn
+
+@deffn {Config Command} {am335xgpio srst_num} @var{srst}
+Set SRST GPIO number. Must be specified to enable SRST.
+@end deffn
+
+@deffn {Config Command} {am335xgpio trst_num} @var{trst}
+Set TRST GPIO number. Must be specified to enable TRST.
+@end deffn
+
+@deffn {Config Command} {am335xgpio led_num} @var{led}
+Set activity LED GPIO number. If not specified an activity LED is not enabled.
+@end deffn
+
+@deffn {Config Command} {am335xgpio led_on_state} @var{on_state}
+Set required logic level for the LED to be on. Valid values are @option{on}
+(default) and @option{off}.
+@end deffn
+
+@deffn {Config Command} {am335xgpio speed_coeffs} @var{speed_coeff} @var{speed_offset}
+Set SPEED_COEFF and SPEED_OFFSET for delay calculations. If unspecified
+speed_coeff defaults to 600000 and speed_offset defaults to 575.
+@end deffn
 
 @end deffn
 
