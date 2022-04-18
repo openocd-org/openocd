@@ -116,6 +116,7 @@ enum freertos_symbol_values {
 	FREERTOS_VAL_X_SUSPENDED_TASK_LIST = 8,
 	FREERTOS_VAL_UX_CURRENT_NUMBER_OF_TASKS = 9,
 	FREERTOS_VAL_UX_TOP_USED_PRIORITY = 10,
+	FREERTOS_VAL_X_SCHEDULER_RUNNING = 11,
 };
 
 struct symbols {
@@ -135,6 +136,7 @@ static const struct symbols freertos_symbol_list[] = {
 	{ "xSuspendedTaskList", true }, /* Only if INCLUDE_vTaskSuspend */
 	{ "uxCurrentNumberOfTasks", false },
 	{ "uxTopUsedPriority", true }, /* Unavailable since v7.5.3 */
+	{ "xSchedulerRunning", false },
 	{ NULL, false }
 };
 
@@ -194,7 +196,20 @@ static int freertos_update_threads(struct rtos *rtos)
 										rtos->symbols[FREERTOS_VAL_PX_CURRENT_TCB].address,
 										rtos->current_thread);
 
-	if ((thread_list_size  == 0) || (rtos->current_thread == 0)) {
+	/* read scheduler running */
+	uint32_t scheduler_running;
+	retval = target_read_u32(rtos->target,
+			rtos->symbols[FREERTOS_VAL_X_SCHEDULER_RUNNING].address,
+			&scheduler_running);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("Error reading FreeRTOS scheduler state");
+		return retval;
+	}
+	LOG_DEBUG("FreeRTOS: Read xSchedulerRunning at 0x%" PRIx64 ", value 0x%" PRIx32,
+										rtos->symbols[FREERTOS_VAL_X_SCHEDULER_RUNNING].address,
+										scheduler_running);
+
+	if ((thread_list_size  == 0) || (rtos->current_thread == 0) || (scheduler_running != 1)) {
 		/* Either : No RTOS threads - there is always at least the current execution though */
 		/* OR     : No current thread - all threads suspended - show the current execution
 		 * of idling */
