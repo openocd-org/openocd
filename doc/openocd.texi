@@ -10624,6 +10624,11 @@ tunneled DR scan consists of:
 
 @end deffn
 
+@deffn {Command} {riscv set_bscan_tunnel_ir} value
+Allows the use_bscan_tunnel feature to target non Xilinx device by
+specifying the JTAG TAP IR used to access the bscan tunnel.
+@end deffn
+
 @deffn {Command} {riscv set_maskisr} [@option{off}|@option{steponly}]
 Selects whether interrupts will be disabled when single stepping. The default configuration is @option{off}.
 This feature is only useful on hardware that always steps into interrupts and doesn't support dcsr.stepie=0.

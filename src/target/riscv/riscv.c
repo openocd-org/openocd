@@ -129,6 +129,7 @@ struct scan_field select_idcode = {
 
 bscan_tunnel_type_t bscan_tunnel_type;
 int bscan_tunnel_ir_width; /* if zero, then tunneling is not present/active */
+static int bscan_tunnel_ir_id; /* IR ID of the JTAG TAP to access the tunnel. Valid when not 0 */
 
 static const uint8_t bscan_zero[4] = {0};
 static const uint8_t bscan_one[4] = {1};
@@ -450,8 +451,12 @@ static int riscv_init_target(struct command_context *cmd_ctx,
 	select_idcode.num_bits = target->tap->ir_length;
 
 	if (bscan_tunnel_ir_width != 0) {
-		assert(target->tap->ir_length >= 6);
-		uint32_t ir_user4_raw = 0x23 << (target->tap->ir_length - 6);
+		uint32_t ir_user4_raw = bscan_tunnel_ir_id;
+		/* Provide a default value which target some Xilinx FPGA USER4 IR */
+		if (ir_user4_raw == 0) {
+			assert(target->tap->ir_length >= 6);
+			ir_user4_raw = 0x23 << (target->tap->ir_length - 6);
+		}
 		ir_user4[0] = (uint8_t)ir_user4_raw;
 		ir_user4[1] = (uint8_t)(ir_user4_raw >>= 8);
 		ir_user4[2] = (uint8_t)(ir_user4_raw >>= 8);
@@ -2913,6 +2918,24 @@ COMMAND_HANDLER(riscv_use_bscan_tunnel)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(riscv_set_bscan_tunnel_ir)
+{
+	int ir_id = 0;
+
+	if (CMD_ARGC > 1) {
+		LOG_ERROR("Command takes at most one arguments");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	} else if (CMD_ARGC == 1) {
+		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], ir_id);
+	}
+
+	LOG_INFO("Bscan tunnel IR 0x%x selected", ir_id);
+
+	bscan_tunnel_ir_id = ir_id;
+	return ERROR_OK;
+}
+
+
 COMMAND_HANDLER(riscv_set_maskisr)
 {
 	struct target *target = get_current_target(CMD_CTX);
@@ -3346,6 +3369,15 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 			"enable.  Supply a value of 0 to disable. Pass A second argument "
 			"(optional) to indicate Bscan Tunnel Type {0:(default) NESTED_TAP , "
 			"1: DATA_REGISTER}"
+	},
+	{
+		.name = "set_bscan_tunnel_ir",
+		.handler = riscv_set_bscan_tunnel_ir,
+		.mode = COMMAND_ANY,
+		.usage = "value",
+		.help = "Specify the JTAG TAP IR used to access the bscan tunnel. "
+			"By default it is 0x23 << (ir_length - 6), which map some "
+			"Xilinx FPGA (IR USER4)"
 	},
 	{
 		.name = "set_maskisr",
