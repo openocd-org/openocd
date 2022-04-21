@@ -613,6 +613,9 @@ emulation model of target hardware.
 @* A bitbang JTAG driver using Linux legacy sysfs GPIO.
 This is deprecated from Linux v5.3; prefer using @b{linuxgpiod}.
 
+@item @b{esp_usb_jtag}
+@* A JTAG driver to communicate with builtin debug modules of Espressif ESP32-C3 and ESP32-S3 chips using OpenOCD.
+
 @end itemize
 
 @node About Jim-Tcl
@@ -3643,6 +3646,44 @@ buspirate led 1
 
 @end deffn
 
+@deffn {Interface Driver} {esp_usb_jtag}
+Espressif JTAG driver to communicate with ESP32-C3, ESP32-S3 chips and ESP USB Bridge board using OpenOCD.
+These chips have built-in JTAG circuitry and can be debugged without any additional hardware.
+Only an USB cable connected to the D+/D- pins is necessary.
+
+@deffn {Config Command} {espusbjtag tdo}
+Returns the current state of the TDO line
+@end deffn
+
+@deffn {Config Command} {espusbjtag setio} setio
+Manually set the status of the output lines with the order of (tdi tms tck trst srst)
+@example
+espusbjtag setio 0 1 0 1 0
+@end example
+@end deffn
+
+@deffn {Config Command} {espusbjtag vid_pid} vid_pid
+Set vendor ID and product ID for the ESP usb jtag driver
+@example
+espusbjtag vid_pid 0x303a 0x1001
+@end example
+@end deffn
+
+@deffn {Config Command} {espusbjtag caps_descriptor} caps_descriptor
+Set the jtag descriptor to read capabilities of ESP usb jtag driver
+@example
+espusbjtag caps_descriptor 0x2000
+@end example
+@end deffn
+
+@deffn {Config Command} {espusbjtag chip_id} chip_id
+Set chip id to transfer to the ESP USB bridge board
+@example
+espusbjtag chip_id 1
+@end example
+@end deffn
+
+@end deffn
 
 @section Transport Configuration
 @cindex Transport

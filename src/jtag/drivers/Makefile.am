@@ -106,6 +106,9 @@ endif
 if PRESTO
 DRIVERFILES += %D%/presto.c
 endif
+if ESP_USB_JTAG
+DRIVERFILES += %D%/esp_usb_jtag.c
+endif
 if USBPROG
 DRIVERFILES += %D%/usbprog.c
 endif
