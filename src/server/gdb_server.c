@@ -2973,16 +2973,26 @@ static bool gdb_handle_vcont_packet(struct connection *connection, const char *p
 		gdb_running_type = 's';
 		bool fake_step = false;
 
-		if (strncmp(parse, "s:", 2) == 0) {
+		if (parse[0] == 's') {
 			struct target *ct = target;
 			int current_pc = 1;
 			int64_t thread_id;
 			char *endp;
+      parse++;
+      packet_size -= 1;
 
-			parse += 2;
-			packet_size -= 2;
+      if (parse[0] == ':')
+      {
+        parse++;
+        packet_size -= 1;
+        thread_id = strtoll(parse, &endp, 16);
+      }
+      else
+      {
+        thread_id = 0;
+      }
 
-			thread_id = strtoll(parse, &endp, 16);
+
 			if (endp) {
 				packet_size -= endp - parse;
 				parse = endp;
