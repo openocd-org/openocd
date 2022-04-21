@@ -437,7 +437,8 @@ static int freertos_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
 	int cm4_fpu_enabled = 0;
 	struct armv7m_common *armv7m_target = target_to_armv7m(rtos->target);
 	if (is_armv7m(armv7m_target)) {
-		if (armv7m_target->fp_feature == FPV4_SP) {
+		if ((armv7m_target->fp_feature == FPV4_SP) || (armv7m_target->fp_feature == FPV5_SP) ||
+				(armv7m_target->fp_feature == FPV5_DP)) {
 			/* Found ARM v7m target which includes a FPU */
 			uint32_t cpacr;
 
