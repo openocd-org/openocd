@@ -4895,6 +4895,7 @@ compact Thumb2 instruction set. Supports also ARMv6-M and ARMv8-M cores
 @item @code{dsp5680xx} -- implements Freescale's 5680x DSP.
 @item @code{esirisc} -- this is an EnSilica eSi-RISC core.
 The current implementation supports eSi-32xx cores.
+@item @code{esp32s2} -- this is an Espressif SoC with single Xtensa core.
 @item @code{fa526} -- resembles arm920 (w/o Thumb).
 @item @code{feroceon} -- resembles arm926.
 @item @code{hla_target} -- a Cortex-M alternative to work with HL adapters like ST-Link.
@@ -10955,6 +10956,94 @@ STMicroelectronics, based on a proprietary 8-bit core architecture.
 
 OpenOCD supports debugging STM8 through the STMicroelectronics debug
 protocol SWIM, @pxref{swimtransport,,SWIM}.
+
+@section Xtensa Architecture
+Xtensa processors are based on a modular, highly flexible 32-bit RISC architecture
+that can easily scale from a tiny, cache-less controller or task engine to a high-performance
+SIMD/VLIW DSP provided by Cadence.
+@url{https://www.cadence.com/en_US/home/tools/ip/tensilica-ip/tensilica-xtensa-controllers-and-extensible-processors.html}.
+
+OpenOCD supports generic Xtensa processors implementation which can be customized by
+simply providing vendor-specific core configuration which controls every configurable
+Xtensa architecture option, e.g. number of address registers, exceptions, reduced
+size instructions support, memory banks configuration etc. Also OpenOCD supports SMP
+configurations for Xtensa processors with any number of cores and allows to configure
+their debug signals interconnection (so-called "break/stall networks") which control how
+debug signals are distributed among cores. Xtensa "break networks" are compatible with
+ARM's Cross Trigger Interface (CTI). For debugging code on Xtensa chips OpenOCD
+uses JTAG protocol. Currently OpenOCD implements several Epsressif Xtensa-based chips of
+@uref{https://www.espressif.com/en/products/socs, ESP32 family}.
+
+@subsection General Xtensa Commands
+
+@deffn {Command} {xtensa set_permissive} (0|1)
+By default accessing memory beyond defined regions is forbidden. This commnd controls memory access address check.
+When set to (1), skips access controls and address range check before read/write memory.
+@end deffn
+
+@deffn {Command} {xtensa maskisr} (on|off)
+Selects whether interrupts will be disabled during stepping over single instruction. The default configuration is (off).
+@end deffn
+
+@deffn {Command} {xtensa smpbreak} [none|breakinout|runstall] | [BreakIn] [BreakOut] [RunStallIn] [DebugModeOut]
+Configures debug signals connection ("break network") for currently selected core.
+@itemize @bullet
+@item @code{none} - Core's "break/stall network" is disconnected. Core is not affected by any debug
+signal from other cores.
+@item @code{breakinout} - Core's "break network" is fully connected (break inputs and outputs are enabled).
+Core will receive debug break signals from other cores and send such signals to them. For example when another core
+is stopped due to breakpoint hit this core will be stopped too and vice versa.
+@item @code{runstall} - Core's "stall network" is fully connected (stall inputs and outputs are enabled).
+This feature is not well implemented and tested yet.
+@item @code{BreakIn} - Core's "break-in" signal is enabled.
+Core will receive debug break signals from other cores. For example when another core is
+stopped due to breakpoint hit this core will be stopped too.
+@item @code{BreakOut} - Core's "break-out" signal is enabled.
+Core will send debug break signal to other cores. For example when this core is
+stopped due to breakpoint hit other cores with enabled break-in signals will be stopped too.
+@item @code{RunStallIn} - Core's "runstall-in" signal is enabled.
+This feature is not well implemented and tested yet.
+@item @code{DebugModeOut} - Core's "debugmode-out" signal is enabled.
+This feature is not well implemented and tested yet.
+@end itemize
+@end deffn
+
+@deffn {Command} {xtensa perfmon_enable} <counter_id> <select> [mask] [kernelcnt] [tracelevel]
+Enable and start performance counter.
+@itemize @bullet
+@item @code{counter_id} - Counter ID (0-1).
+@item @code{select} - Selects performance metric to be counted by the counter,
+e.g. 0 - CPU cycles, 2 - retired instructions.
+@item @code{mask} - Selects input subsets to be counted (counter will
+increment only once even if more than one condition corresponding to a mask bit occurs).
+@item @code{kernelcnt} - 0 - count events with "CINTLEVEL <= tracelevel",
+1 - count events with "CINTLEVEL > tracelevel".
+@item @code{tracelevel} - Compares this value to "CINTLEVEL" when deciding
+whether to count.
+@end itemize
+@end deffn
+
+@deffn {Command} {xtensa perfmon_dump} (counter_id)
+Dump performance counter value. If no argument specified, dumps all counters.
+@end deffn
+
+@deffn {Command} {xtensa tracestart} [pc <pcval>/[<maskbitcount>]] [after <n> [ins|words]]
+Set up and start a HW trace. Optionally set PC address range to trigger tracing stop when reached during program execution.
+This command also allows to specify the amount of data to capture after stop trigger activation.
+@itemize @bullet
+@item @code{pcval} - PC value which will trigger trace data collection stop.
+@item @code{maskbitcount} - PC value mask.
+@item @code{n} - Maximum number of instructions/words to capture after trace stop trigger.
+@end itemize
+@end deffn
+
+@deffn {Command} {xtensa tracestop}
+Stop current trace as started by the tracestart command.
+@end deffn
+
+@deffn {Command} {xtensa tracedump} <outfile>
+Dump trace memory to a file.
+@end deffn
 
 @anchor{softwaredebugmessagesandtracing}
 @section Software Debug Messages and Tracing
