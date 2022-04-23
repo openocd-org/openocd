@@ -435,8 +435,13 @@ static int cti_configure(struct jim_getopt_info *goi, struct arm_cti *cti)
 	/* parse config or cget options ... */
 	while (goi->argc > 0) {
 		int e = adiv5_jim_mem_ap_spot_configure(&cti->spot, goi);
+
+		if (e == JIM_CONTINUE)
+			Jim_SetResultFormatted(goi->interp, "unknown option '%s'",
+				Jim_String(goi->argv[0]));
+
 		if (e != JIM_OK)
-			return e;
+			return JIM_ERR;
 	}
 
 	if (!cti->spot.dap) {
