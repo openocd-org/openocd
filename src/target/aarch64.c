@@ -2026,9 +2026,13 @@ static int aarch64_deassert_reset(struct target *target)
 		if (target->state != TARGET_HALTED) {
 			LOG_WARNING("%s: ran after reset and before halt ...",
 				target_name(target));
-			retval = target_halt(target);
-			if (retval != ERROR_OK)
-				return retval;
+			if (target_was_examined(target)) {
+				retval = aarch64_halt_one(target, HALT_LAZY);
+				if (retval != ERROR_OK)
+					return retval;
+			} else {
+				target->state = TARGET_UNKNOWN;
+			}
 		}
 	}
 
