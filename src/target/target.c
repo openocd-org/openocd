@@ -5222,10 +5222,18 @@ static int target_jim_set_reg(Jim_Interp *interp, int argc,
 	}
 
 	int tmp;
+#if JIM_VERSION >= 80
 	Jim_Obj **dict = Jim_DictPairs(interp, argv[1], &tmp);
 
 	if (!dict)
 		return JIM_ERR;
+#else
+	Jim_Obj **dict;
+	int ret = Jim_DictPairs(interp, argv[1], &dict, &tmp);
+
+	if (ret != JIM_OK)
+		return ret;
+#endif
 
 	const unsigned int length = tmp;
 	struct command_context *cmd_ctx = current_command_context(interp);
