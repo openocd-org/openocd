@@ -6824,16 +6824,23 @@ nor is Chip Erase (only Sector Erase is implemented).}
 
 @deffn {Flash Driver} {kinetis}
 @cindex kinetis
-Kx, KLx, KVx and KE1x members of the Kinetis microcontroller family
-from NXP (former Freescale) include
-internal flash and use ARM Cortex-M0+ or M4 cores. The driver automatically
+Several microcontrollers from NXP (former Freescale), including
+Kx, KLx, KVx and KE1x members of the Kinetis family,
+and S32K11x/S32K14x microcontrollers, include
+internal flash and use ARM Cortex-M0+ or M4 cores.
+Kinetis and S32K1 families use incompatible
+identification registers, so the driver assumes Kinetis and requires
+a driver option to indicate S32K1 is to be used.
+Within the familiy, the driver automatically
 recognizes flash size and a number of flash banks (1-4) using the chip
 identification register, and autoconfigures itself.
 Use kinetis_ke driver for KE0x and KEAx devices.
 
 The @var{kinetis} driver defines option:
 @itemize
-@item -sim-base @var{addr} ... base of System Integration Module where chip identification resides. Driver tries two known locations if option is omitted.
+@item -s32k select S32K11x/S32K14x microcontroller flash support.
+
+@item -sim-base @var{addr} ... base of System Integration Module where chip identification resides. Driver tries known locations if option is omitted.
 @end itemize
 
 @example
@@ -6882,6 +6889,7 @@ command completes.
 
 @deffn {Command} {kinetis nvm_partition}
 For FlexNVM devices only (KxxDX and KxxFX).
+Not supported (yet) on S32K1 devices.
 Command shows or sets data flash or EEPROM backup size in kilobytes,
 sets two EEPROM blocks sizes in bytes and enables/disables loading
 of EEPROM contents to FlexRAM during reset.
