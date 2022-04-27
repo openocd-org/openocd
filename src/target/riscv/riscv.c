@@ -1262,6 +1262,11 @@ int set_debug_reason(struct target *target, enum riscv_halt_reason halt_reason)
 			if (riscv_hit_trigger_hit_bit(target, &r->trigger_hit) != ERROR_OK)
 				return ERROR_FAIL;
 			target->debug_reason = DBG_REASON_WATCHPOINT;
+			/* Check if we hit a hardware breakpoint. */
+			for (struct breakpoint *bp = target->breakpoints; bp; bp = bp->next) {
+				if (bp->unique_id == r->trigger_hit)
+					target->debug_reason = DBG_REASON_BREAKPOINT;
+			}
 			break;
 		case RISCV_HALT_INTERRUPT:
 		case RISCV_HALT_GROUP:
