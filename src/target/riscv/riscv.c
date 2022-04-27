@@ -1159,7 +1159,6 @@ int riscv_hit_watchpoint(struct target *target, struct watchpoint **hit_watchpoi
 	return ERROR_FAIL;
 }
 
-
 static int oldriscv_step(struct target *target, int current, uint32_t address,
 		int handle_breakpoints)
 {
