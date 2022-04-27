@@ -1025,8 +1025,6 @@ int riscv_remove_watchpoint(struct target *target,
  * and new value. */
 int riscv_hit_watchpoint(struct target *target, struct watchpoint **hit_watchpoint)
 {
-	struct watchpoint *wp = target->watchpoints;
-
 	LOG_DEBUG("Current hartid = %d", riscv_current_hartid(target));
 
 	/*TODO instead of disassembling the instruction that we think caused the
@@ -1081,6 +1079,7 @@ int riscv_hit_watchpoint(struct target *target, struct watchpoint **hit_watchpoi
 		return ERROR_FAIL;
 	}
 
+	struct watchpoint *wp = target->watchpoints;
 	while (wp) {
 		/*TODO support length/mask */
 		if (wp->address == mem_addr) {
