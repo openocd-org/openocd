@@ -1017,6 +1017,67 @@ int riscv_remove_watchpoint(struct target *target,
 	return ERROR_OK;
 }
 
+/**
+ * Look at the trigger hit bits to find out which trigger is the reason we're
+ * halted.  Sets *unique_id to the unique ID of that trigger. If *unique_id is
+ * ~0, no match was found.
+ */
+static int riscv_hit_trigger_hit_bit(struct target *target, uint32_t *unique_id)
+{
+	RISCV_INFO(r);
+
+	riscv_reg_t tselect;
+	if (riscv_get_register(target, &tselect, GDB_REGNO_TSELECT) != ERROR_OK)
+		return ERROR_FAIL;
+
+	*unique_id = ~0;
+	for (unsigned int i = 0; i < r->trigger_count; i++) {
+		if (r->trigger_unique_id[i] == -1)
+			continue;
+
+		if (riscv_set_register(target, GDB_REGNO_TSELECT, i) != ERROR_OK)
+			return ERROR_FAIL;
+
+		uint64_t tdata1;
+		if (riscv_get_register(target, &tdata1, GDB_REGNO_TDATA1) != ERROR_OK)
+			return ERROR_FAIL;
+		int type = get_field(tdata1, MCONTROL_TYPE(riscv_xlen(target)));
+
+		uint64_t hit_mask = 0;
+		switch (type) {
+			case 1:
+				/* Doesn't support hit bit. */
+				break;
+			case 2:
+				hit_mask = CSR_MCONTROL_HIT;
+				break;
+			case 6:
+				hit_mask = CSR_MCONTROL6_HIT;
+				break;
+			default:
+				LOG_DEBUG("trigger %d has unknown type %d", i, type);
+				continue;
+		}
+
+		/* Note: If we ever use chained triggers, then this logic needs
+		 * to be changed to ignore triggers that are not the last one in
+		 * the chain. */
+		if (tdata1 & hit_mask) {
+			LOG_DEBUG("Trigger %d (unique_id=%d) has hit bit set.", i, r->trigger_unique_id[i]);
+			if (riscv_set_register(target, GDB_REGNO_TDATA1, tdata1 & ~hit_mask) != ERROR_OK)
+				return ERROR_FAIL;
+
+			*unique_id = r->trigger_unique_id[i];
+			break;
+		}
+	}
+
+	if (riscv_set_register(target, GDB_REGNO_TSELECT, tselect) != ERROR_OK)
+		return ERROR_FAIL;
+
+	return ERROR_OK;
+}
+
 /* Sets *hit_watchpoint to the first watchpoint identified as causing the
  * current halt.
  *
