@@ -242,6 +242,17 @@ struct target_type {
 	/**
 	 * Free all the resources allocated by the target.
 	 *
+	 * WARNING: deinit_target is called unconditionally regardless the target has
+	 * ever been examined/initialised or not.
+	 * If a problem has prevented establishing JTAG/SWD/... communication
+	 *  or
+	 * if the target was created with -defer-examine flag and has never been
+	 *  examined
+	 * then it is not possible to communicate with the target.
+	 *
+	 * If you need to talk to the target during deinit, first check if
+	 * target_was_examined()!
+	 *
 	 * @param target The target to deinit
 	 */
 	void (*deinit_target)(struct target *target);
