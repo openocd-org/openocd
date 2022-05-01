@@ -2397,11 +2397,11 @@ static int deassert_reset(struct target *target)
 	select_dmi(target);
 
 	/* Clear the reset, but make sure haltreq is still set */
-	uint32_t control = 0;
-	control = set_field(control, DM_DMCONTROL_HALTREQ, target->reset_halt ? 1 : 0);
+	uint32_t control = 0, control_haltreq;
 	control = set_field(control, DM_DMCONTROL_DMACTIVE, 1);
+	control_haltreq = set_field(control, DM_DMCONTROL_HALTREQ, target->reset_halt ? 1 : 0);
 	dmi_write(target, DM_DMCONTROL,
-			set_hartsel(control, r->current_hartid));
+			set_hartsel(control_haltreq, r->current_hartid));
 
 	uint32_t dmstatus;
 	int dmi_busy_delay = info->dmi_busy_delay;
@@ -2413,7 +2413,7 @@ static int deassert_reset(struct target *target)
 			if (index != target->coreid)
 				continue;
 			dmi_write(target, DM_DMCONTROL,
-					set_hartsel(control, index));
+					set_hartsel(control_haltreq, index));
 		} else {
 			index = r->current_hartid;
 		}
@@ -2449,7 +2449,7 @@ static int deassert_reset(struct target *target)
 		target->state = TARGET_HALTED;
 
 		if (get_field(dmstatus, DM_DMSTATUS_ALLHAVERESET)) {
-			/* Ack reset. */
+			/* Ack reset and clear DM_DMCONTROL_HALTREQ if previously set */
 			dmi_write(target, DM_DMCONTROL,
 					set_hartsel(control, index) |
 					DM_DMCONTROL_ACKHAVERESET);
