@@ -124,6 +124,10 @@ typedef struct {
 	 * target controls, while otherwise only a single hart is controlled. */
 	int trigger_unique_id[RISCV_MAX_HWBPS];
 
+	/* The unique id of the trigger that caused the most recent halt. If the
+	 * most recent halt was not caused by a trigger, then this is -1. */
+	uint32_t trigger_hit;
+
 	/* The number of entries in the debug buffer. */
 	int debug_buffer_size;
 
@@ -216,7 +220,7 @@ typedef struct {
 	struct reg_data_type_union vector_union;
 	struct reg_data_type type_vector;
 
-	/* Set when trigger registers are changed by the user. This indicates we eed
+	/* Set when trigger registers are changed by the user. This indicates we need
 	 * to beware that we may hit a trigger that we didn't realize had been set. */
 	bool manual_hwbp_set;
 

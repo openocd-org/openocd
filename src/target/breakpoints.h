@@ -56,7 +56,7 @@ struct watchpoint {
 	bool is_set;
 	unsigned int number;
 	struct watchpoint *next;
-	int unique_id;
+	uint32_t unique_id;
 };
 
 void breakpoint_clear_target(struct target *target);
