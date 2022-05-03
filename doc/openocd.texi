@@ -12135,7 +12135,7 @@ It sort of works like this:
 When the command ``proc'' is parsed (which creates a procedure
 function) it gets 3 parameters on the command line. @b{1} the name of
 the proc (function), @b{2} the list of parameters, and @b{3} the body
-of the function. Not the choice of words: LIST and BODY. The PROC
+of the function. Note the choice of words: LIST and BODY. The PROC
 command stores these items in a table somewhere so it can be found by
 ``LookupCommand()''
 
