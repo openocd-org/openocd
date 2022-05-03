@@ -375,15 +375,15 @@ static const struct symbol_table_elem zephyr_symbol_list[] = {
 		.optional = false
 	},
 	{
-		.symbol_name = "_kernel_openocd_offsets",
+		.symbol_name = "_kernel_thread_info_offsets",
 		.optional = false
 	},
 	{
-		.symbol_name = "_kernel_openocd_size_t_size",
+		.symbol_name = "_kernel_thread_info_size_t_size",
 		.optional = false
 	},
 	{
-		.symbol_name = "_kernel_openocd_num_offsets",
+		.symbol_name = "_kernel_thread_info_num_offsets",
 		.optional = true
 	},
 	{

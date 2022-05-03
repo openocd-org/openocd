@@ -596,7 +596,7 @@ static int image_elf64_read_headers(struct image *image)
 				image->sections[j].base_address = field64(elf,
 						elf->segments64[i].p_paddr);
 			image->sections[j].private = &elf->segments64[i];
-			image->sections[j].flags = field32(elf, elf->segments64[i].p_flags);
+			image->sections[j].flags = field64(elf, elf->segments64[i].p_flags);
 			j++;
 		}
 	}
@@ -1168,7 +1168,7 @@ int image_read_section(struct image *image,
 	return ERROR_OK;
 }
 
-int image_add_section(struct image *image, target_addr_t base, uint32_t size, int flags, uint8_t const *data)
+int image_add_section(struct image *image, target_addr_t base, uint32_t size, uint64_t flags, uint8_t const *data)
 {
 	struct imagesection *section;
 

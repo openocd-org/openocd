@@ -52,7 +52,7 @@ enum image_type {
 struct imagesection {
 	target_addr_t base_address;
 	uint32_t size;
-	int flags;
+	uint64_t flags;
 	void *private;		/* private data */
 };
 
@@ -108,7 +108,7 @@ int image_read_section(struct image *image, int section, target_addr_t offset,
 void image_close(struct image *image);
 
 int image_add_section(struct image *image, target_addr_t base, uint32_t size,
-		int flags, uint8_t const *data);
+		uint64_t flags, uint8_t const *data);
 
 int image_calculate_checksum(const uint8_t *buffer, uint32_t nbytes,
 		uint32_t *checksum);

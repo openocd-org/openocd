@@ -27,7 +27,7 @@
 #include <helper/log.h>
 
 #if HAVE_CAPSTONE
-#include <capstone/capstone.h>
+#include <capstone.h>
 #endif
 
 /*
