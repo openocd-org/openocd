@@ -55,6 +55,7 @@ jobs:
           LIBUSB1_CONFIG: --enable-shared --disable-static
           HIDAPI_CONFIG: --enable-shared --disable-static --disable-testgui
           CAPSTONE_CONFIG: "CAPSTONE_BUILD_CORE_ONLY=yes CAPSTONE_STATIC=yes CAPSTONE_SHARED=no"
+          CAPSTONE_CFLAGS: -I$(CAPSTONE_SRC)/include/capstone
         run: |
           # check if there is tag pointing at HEAD, otherwise take the HEAD SHA-1 as OPENOCD_TAG
           OPENOCD_TAG="`git tag --points-at HEAD`"
