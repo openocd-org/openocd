@@ -2756,6 +2756,7 @@ static int gdb_query_packet(struct connection *connection,
 
 	if (strncmp(packet, "qRcmd,", 6) == 0) {
 		if (packet_size > 6) {
+			Jim_Interp *interp = cmd_ctx->interp;
 			char *cmd;
 			cmd = malloc((packet_size - 6) / 2 + 1);
 			size_t len = unhexify((uint8_t *)cmd, packet + 6, (packet_size - 6) / 2);
@@ -2768,20 +2769,31 @@ static int gdb_query_packet(struct connection *connection,
 			/* some commands need to know the GDB connection, make note of current
 			 * GDB connection. */
 			current_gdb_connection = gdb_connection;
-			struct target *saved_target_override = cmd_ctx->current_target_override;
-			cmd_ctx->current_target_override = target;
 
-			int retval = Jim_EvalObj(cmd_ctx->interp, Jim_NewStringObj(cmd_ctx->interp, cmd, -1));
+			struct target *saved_target_override = cmd_ctx->current_target_override;
+			cmd_ctx->current_target_override = NULL;
+
+			struct command_context *old_context = Jim_GetAssocData(interp, "context");
+			Jim_DeleteAssocData(interp, "context");
+			int retval = Jim_SetAssocData(interp, "context", NULL, cmd_ctx);
+			if (retval == JIM_OK) {
+				retval = Jim_EvalObj(interp, Jim_NewStringObj(interp, cmd, -1));
+				Jim_DeleteAssocData(interp, "context");
+			}
+			int inner_retval = Jim_SetAssocData(interp, "context", NULL, old_context);
+			if (retval == JIM_OK)
+				retval = inner_retval;
 
 			cmd_ctx->current_target_override = saved_target_override;
+
 			current_gdb_connection = NULL;
 			target_call_timer_callbacks_now();
 			gdb_connection->output_flag = GDB_OUTPUT_NO;
 			free(cmd);
 			if (retval == JIM_RETURN)
-				retval = cmd_ctx->interp->returnCode;
+				retval = interp->returnCode;
 			int lenmsg;
-			const char *cretmsg = Jim_GetString(Jim_GetResult(cmd_ctx->interp), &lenmsg);
+			const char *cretmsg = Jim_GetString(Jim_GetResult(interp), &lenmsg);
 			char *retmsg;
 			if (lenmsg && cretmsg[lenmsg - 1] != '\n') {
 				retmsg = alloc_printf("%s\n", cretmsg);
