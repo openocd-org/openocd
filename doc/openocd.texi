@@ -594,8 +594,8 @@ produced, PDF schematics are easily found and it is easy to make.
 @item @b{vdebug}
 @* A driver for Cadence virtual Debug Interface to emulated or simulated targets.
 It implements a client connecting to the vdebug server, which in turn communicates
-with the emulated or simulated RTL model through a transactor. The current version
-supports only JTAG as a transport, but other virtual transports, like DAP are planned.
+with the emulated or simulated RTL model through a transactor. The driver supports
+JTAG and DAP-level transports.
 
 @item @b{jtag_dpi}
 @* A JTAG driver acting as a client for the SystemVerilog Direct Programming
