@@ -122,6 +122,66 @@ proc jtag_ntrst_assert_width args {
 #
 # FIXME phase these aids out after some releases
 #
+lappend _telnet_autocomplete_skip adapter_gpio_helper_with_caller
+# Helper for deprecated driver functions that should call "adapter gpio XXX".
+
+# Call this function as:
+#               adapter_gpio_helper_with_caller caller sig_name
+#               adapter_gpio_helper_with_caller caller sig_name gpio_num
+#               adapter_gpio_helper_with_caller caller sig_name chip_num gpio_num
+proc adapter_gpio_helper_with_caller {caller sig_name args} {
+	echo "DEPRECATED! use 'adapter gpio $sig_name' not '$caller'"
+	switch [llength $args] {
+		0 {}
+		1 {eval adapter gpio $sig_name $args}
+		2 {eval adapter gpio $sig_name [lindex $args 1] -chip [lindex $args 0]}
+		default {return -code 1 -level 1 "$caller: syntax error"}
+	}
+	eval adapter gpio $sig_name
+}
+
+lappend _telnet_autocomplete_skip adapter_gpio_helper
+# Call this function as:
+#               adapter_gpio_helper sig_name
+#               adapter_gpio_helper sig_name gpio_num
+#               adapter_gpio_helper sig_name chip_num gpio_num
+proc adapter_gpio_helper {sig_name args} {
+	set caller [lindex [info level -1] 0]
+	eval adapter_gpio_helper_with_caller {"$caller"} $sig_name $args
+}
+
+lappend _telnet_autocomplete_skip adapter_gpio_jtag_nums_with_caller
+# Helper for deprecated driver functions that implemented jtag_nums
+proc adapter_gpio_jtag_nums_with_caller {caller tck_num tms_num tdi_num tdo_num} {
+	echo "DEPRECATED! use 'adapter gpio tck; adapter gpio tms; adapter gpio tdi; adapter gpio tdo' not '$caller'"
+	eval adapter gpio tck $tck_num
+	eval adapter gpio tms $tms_num
+	eval adapter gpio tdi $tdi_num
+	eval adapter gpio tdo $tdo_num
+}
+
+lappend _telnet_autocomplete_skip adapter_gpio_jtag_nums
+# Helper for deprecated driver functions that implemented jtag_nums
+proc adapter_gpio_jtag_nums {args} {
+	set caller [lindex [info level -1] 0]
+	eval adapter_gpio_jtag_nums_with_caller {"$caller"} $args
+}
+
+lappend _telnet_autocomplete_skip adapter_gpio_swd_nums_with_caller
+# Helper for deprecated driver functions that implemented swd_nums
+proc adapter_gpio_swd_nums_with_caller {caller swclk_num swdio_num} {
+	echo "DEPRECATED! use 'adapter gpio swclk; adapter gpio swdio' not '$caller'"
+	eval adapter gpio swclk $swclk_num
+	eval adapter gpio swdio $swdio_num
+}
+
+lappend _telnet_autocomplete_skip adapter_gpio_swd_nums
+# Helper for deprecated driver functions that implemented jtag_nums
+proc adapter_gpio_swd_nums {args} {
+	set caller [lindex [info level -1] 0]
+	eval adapter_gpio_swd_nums_with_caller {"$caller"} $args
+}
+
 lappend _telnet_autocomplete_skip jtag_reset
 proc jtag_reset args {
 	echo "DEPRECATED! use 'adapter \[de\]assert' not 'jtag_reset'"

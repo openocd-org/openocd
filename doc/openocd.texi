@@ -2412,7 +2412,57 @@ when external configuration (such as jumpering) changes what
 the hardware can support.
 @end deffn
 
+@anchor{adapter gpio}
+@deffn {Config Command} {adapter gpio [ @
+    @option{tdo} | @option{tdi} | @option{tms} | @option{tck} | @option{trst} | @
+    @option{swdio} | @option{swdio_dir} | @option{swclk} | @option{srst} | @
+    @option{led} @
+    [ @
+        gpio_number | @option{-chip} chip_number | @
+        @option{-active-high} | @option{-active-low} | @
+        @option{-push-pull} | @option{-open-drain} | @option{-open-source} | @
+        @option{-pull-none} | @option{-pull-up} | @option{-pull-down} | @
+        @option{-init-inactive} | @option{-init-active} | @option{-init-input} @
+    ] ]}
 
+Define the GPIO mapping that the adapter will use. The following signals can be
+defined:
+
+@itemize @minus
+@item @option{tdo}, @option{tdi}, @option{tms}, @option{tck}, @option{trst}:
+JTAG transport signals
+@item @option{swdio}, @option{swclk}: SWD transport signals
+@item @option{swdio_dir}: optional swdio buffer control signal
+@item @option{srst}: system reset signal
+@item @option{led}: optional activity led
+
+@end itemize
+
+Some adapters require that the GPIO chip number is set in addition to the GPIO
+number. The configuration options enable signals to be defined as active-high or
+active-low. The output drive mode can be set to push-pull, open-drain or
+open-source. Most adapters will have to emulate open-drain or open-source drive
+modes by switching between an input and output. Input and output signals can be
+instructed to use a pull-up or pull-down resistor, assuming it is supported by
+the adaptor driver and hardware. The initial state of outputs may also be set,
+"active" state means 1 for active-high outputs and 0 for active-low outputs.
+Bidirectional signals may also be initialized as an input. If the swdio signal
+is buffered the buffer direction can be controlled with the swdio_dir signal;
+the active state means that the buffer should be set as an output with respect
+to the adapter. The command options are cumulative with later commands able to
+override settings defined by earlier ones. The two commands @command{gpio led 7
+-active-high} and @command{gpio led -chip 1 -active-low} sent sequentially are
+equivalent to issuing the single command @command{gpio led 7 -chip 1
+-active-low}. It is not permissible to set the drive mode or initial state for
+signals which are inputs. The drive mode for the srst and trst signals must be
+set with the @command{adapter reset_config} command. It is not permissible to
+set the initial state of swdio_dir as it is derived from the initial state of
+swdio. The command @command{adapter gpio} prints the current configuration for
+all GPIOs while the command @command{adapter gpio gpio_name} prints the current
+configuration for gpio_name. Not all adapters support this generic GPIO mapping,
+some require their own commands to define the GPIOs used. Adapters that support
+the generic mapping may not support all of the listed options.
+@end deffn
 
 @deffn {Command} {adapter name}
 Returns the name of the debug adapter driver being used.
