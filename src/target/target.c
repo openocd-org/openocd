@@ -6477,7 +6477,7 @@ static int jim_target_smp(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	}
 
 	if (target && target->rtos)
-		retval = rtos_smp_init(head->target);
+		retval = rtos_smp_init(target);
 
 	return retval;
 }
