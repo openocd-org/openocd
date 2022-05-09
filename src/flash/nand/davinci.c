@@ -605,8 +605,6 @@ static int davinci_write_page_ecc4infix(struct nand_device *nand, uint32_t page,
 		/* write this "out-of-band" data -- infix */
 		davinci_write_block_data(nand, oob, 16);
 		oob += 16;
-		oob_size -= 16;
-
 	} while (data_size);
 
 	/* the last data and OOB writes included the spare area */
