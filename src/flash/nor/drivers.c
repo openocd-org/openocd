@@ -44,7 +44,6 @@ extern const struct flash_driver faux_flash;
 extern const struct flash_driver fm3_flash;
 extern const struct flash_driver fm4_flash;
 extern const struct flash_driver fespi_flash;
-extern const struct flash_driver gd32vf103_flash;
 extern const struct flash_driver jtagspi_flash;
 extern const struct flash_driver kinetis_flash;
 extern const struct flash_driver kinetis_ke_flash;
@@ -153,7 +152,6 @@ static const struct flash_driver * const flash_drivers[] = {
 	&stm32lx_flash,
 	&stm32l4x_flash,
 	&stm32h7x_flash,
-	&gd32vf103_flash,
 	&stmsmi_flash,
 	&stmqspi_flash,
 	&str7x_flash,
