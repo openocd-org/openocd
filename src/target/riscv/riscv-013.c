@@ -1503,15 +1503,22 @@ static void deinit_target(struct target *target)
 	info->version_specific = NULL;
 }
 
-static int set_haltgroup(struct target *target, bool *supported)
+typedef enum {
+	HALTGROUP,
+	RESUMEGROUP
+} grouptype_t;
+static int set_group(struct target *target, bool *supported, unsigned group, grouptype_t grouptype)
 {
-	uint32_t write = set_field(DM_DMCS2_HGWRITE, DM_DMCS2_GROUP, target->smp);
-	if (dmi_write(target, DM_DMCS2, write) != ERROR_OK)
+	uint32_t write_val = DM_DMCS2_HGWRITE;
+	assert(group <= 31);
+	write_val = set_field(write_val, DM_DMCS2_GROUP, group);
+	write_val = set_field(write_val, DM_DMCS2_GROUPTYPE, (grouptype == HALTGROUP) ? 1 : 0);
+	if (dmi_write(target, DM_DMCS2, write_val) != ERROR_OK)
 		return ERROR_FAIL;
-	uint32_t read;
-	if (dmi_read(target, &read, DM_DMCS2) != ERROR_OK)
+	uint32_t read_val;
+	if (dmi_read(target, &read_val, DM_DMCS2) != ERROR_OK)
 		return ERROR_FAIL;
-	*supported = get_field(read, DM_DMCS2_GROUP) == (unsigned)target->smp;
+	*supported = get_field(read_val, DM_DMCS2_GROUP) == group;
 	return ERROR_OK;
 }
 
@@ -1754,7 +1761,7 @@ static int examine(struct target *target)
 
 	if (target->smp) {
 		bool haltgroup_supported;
-		if (set_haltgroup(target, &haltgroup_supported) != ERROR_OK)
+		if (set_group(target, &haltgroup_supported, target->smp, HALTGROUP) != ERROR_OK)
 			return ERROR_FAIL;
 		if (haltgroup_supported)
 			LOG_INFO("Core %d made part of halt group %d.", target->coreid,
