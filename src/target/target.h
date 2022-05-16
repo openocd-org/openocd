@@ -200,7 +200,7 @@ struct target {
 	bool rtos_auto_detect;				/* A flag that indicates that the RTOS has been specified as "auto"
 										 * and must be detected when symbols are offered */
 	struct backoff_timer backoff;
-	int smp;							/* add some target attributes for smp support */
+	int smp;							/* Unique non-zero number for each SMP group */
 	struct list_head *smp_targets;		/* list all targets in this smp group/cluster
 										 * The head of the list is shared between the
 										 * cluster, thus here there is a pointer */

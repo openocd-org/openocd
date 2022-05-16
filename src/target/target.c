@@ -6444,6 +6444,7 @@ static int jim_target_smp(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	int i;
 	const char *targetname;
 	int retval, len;
+	static int smp_group = 1;
 	struct target *target = NULL;
 	struct target_list *head, *new;
 
@@ -6475,9 +6476,10 @@ static int jim_target_smp(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	/*  now parse the list of cpu and put the target in smp mode*/
 	foreach_smp_target(head, lh) {
 		target = head->target;
-		target->smp = 1;
+		target->smp = smp_group;
 		target->smp_targets = lh;
 	}
+	smp_group++;
 
 	if (target && target->rtos)
 		retval = rtos_smp_init(target);
