@@ -863,4 +863,106 @@ proc "xds110 serial" {args} {
 	eval adapter serial $args
 }
 
+lappend _telnet_autocomplete_skip "am335xgpio jtag_nums"
+proc "am335xgpio jtag_nums" {tck_num tms_num tdi_num tdo_num} {
+	echo "DEPRECATED! use 'adapter gpio tck; adapter gpio tms; adapter gpio tdi; adapter gpio tdo' not 'am335xgpio jtag_nums'"
+	eval adapter gpio tck [expr {$tck_num % 32}] -chip [expr {$tck_num / 32}]
+	eval adapter gpio tms [expr {$tms_num % 32}] -chip [expr {$tms_num / 32}]
+	eval adapter gpio tdi [expr {$tdi_num % 32}] -chip [expr {$tdi_num / 32}]
+	eval adapter gpio tdo [expr {$tdo_num % 32}] -chip [expr {$tdo_num / 32}]
+}
+
+lappend _telnet_autocomplete_skip "am335xgpio tck_num"
+proc "am335xgpio tck_num" {num} {
+	echo "DEPRECATED! use 'adapter gpio tck' not 'am335xgpio tck_num'"
+	eval adapter gpio tck [expr {$num % 32}] -chip [expr {$num / 32}]
+}
+
+lappend _telnet_autocomplete_skip "am335xgpio tms_num"
+proc "am335xgpio tms_num" {num} {
+	echo "DEPRECATED! use 'adapter gpio tms' not 'am335xgpio tms_num'"
+	eval adapter gpio tms [expr {$num % 32}] -chip [expr {$num / 32}]
+}
+
+lappend _telnet_autocomplete_skip "am335xgpio tdi_num"
+proc "am335xgpio tdi_num" {num} {
+	echo "DEPRECATED! use 'adapter gpio tdi' not 'am335xgpio tdi_num'"
+	eval adapter gpio tdi [expr {$num % 32}] -chip [expr {$num / 32}]
+}
+
+lappend _telnet_autocomplete_skip "am335xgpio tdo_num"
+proc "am335xgpio tdo_num" {num} {
+	echo "DEPRECATED! use 'adapter gpio tdo' not 'am335xgpio tdo_num'"
+	eval adapter gpio tdo [expr {$num % 32}] -chip [expr {$num / 32}]
+}
+
+lappend _telnet_autocomplete_skip "am335xgpio swd_nums"
+proc "am335xgpio swd_nums" {swclk swdio} {
+	echo "DEPRECATED! use 'adapter gpio swclk; adapter gpio swdio' not 'am335xgpio jtag_nums'"
+	eval adapter gpio swclk [expr {$swclk % 32}] -chip [expr {$swclk / 32}]
+	eval adapter gpio swdio [expr {$swdio % 32}] -chip [expr {$swdio / 32}]
+}
+
+lappend _telnet_autocomplete_skip "am335xgpio swclk_num"
+proc "am335xgpio swclk_num" {num} {
+	echo "DEPRECATED! use 'adapter gpio swclk' not 'am335xgpio swclk_num'"
+	eval adapter gpio swclk [expr {$num % 32}] -chip [expr {$num / 32}]
+}
+
+lappend _telnet_autocomplete_skip "am335xgpio swdio_num"
+proc "am335xgpio swdio_num" {num} {
+	echo "DEPRECATED! use 'adapter gpio swdio' not 'am335xgpio swdio_num'"
+	eval adapter gpio swdio [expr {$num % 32}] -chip [expr {$num / 32}]
+}
+
+lappend _telnet_autocomplete_skip "am335xgpio swdio_dir_num"
+proc "am335xgpio swdio_dir_num" {num} {
+	echo "DEPRECATED! use 'adapter gpio swdio_dir' not 'am335xgpio swdio_dir_num'"
+	eval adapter gpio swdio_dir [expr {$num % 32}] -chip [expr {$num / 32}]
+}
+
+lappend _telnet_autocomplete_skip "am335xgpio swdio_dir_output_state"
+proc "am335xgpio swdio_dir_output_state" {state} {
+	echo "DEPRECATED! use 'adapter gpio swdio_dir -active-high' or 'adapter gpio swdio_dir -active-low', not 'am335xgpio swdio_dir_output_state'"
+	switch $state {
+		"high"
+			{eval adapter gpio swdio_dir -active-high}
+		"low"
+			{eval adapter gpio swdio_dir -active-low}
+		default
+			{return -code 1 -level 1 "am335xgpio swdio_dir_output_state: syntax error"}
+	}
+}
+
+lappend _telnet_autocomplete_skip "am335xgpio srst_num"
+proc "am335xgpio srst_num" {num} {
+	echo "DEPRECATED! use 'adapter gpio srst' not 'am335xgpio srst_num'"
+	eval adapter gpio srst [expr {$num % 32}] -chip [expr {$num / 32}]
+}
+
+lappend _telnet_autocomplete_skip "am335xgpio trst_num"
+proc "am335xgpio trst_num" {num} {
+	echo "DEPRECATED! use 'adapter gpio trst' not 'am335xgpio trst_num'"
+	eval adapter gpio trst [expr {$num % 32}] -chip [expr {$num / 32}]
+}
+
+lappend _telnet_autocomplete_skip "am335xgpio led_num"
+proc "am335xgpio led_num" {num} {
+	echo "DEPRECATED! use 'adapter gpio led' not 'am335xgpio led_num'"
+	eval adapter gpio led [expr {$num % 32}] -chip [expr {$num / 32}]
+}
+
+lappend _telnet_autocomplete_skip "am335xgpio led_on_state"
+proc "am335xgpio led_on_state" {state} {
+	echo "DEPRECATED! use 'adapter gpio led -active-high' or 'adapter gpio led -active-low', not 'am335xgpio led_on_state'"
+	switch $state {
+		"high"
+			{eval adapter gpio led -active-high}
+		"low"
+			{eval adapter gpio led -active-low}
+		default
+			{return -code 1 -level 1 "am335xgpio led_on_state: syntax error"}
+	}
+}
+
 # END MIGRATION AIDS

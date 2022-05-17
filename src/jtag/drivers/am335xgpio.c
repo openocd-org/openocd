@@ -10,23 +10,24 @@
 #include "config.h"
 #endif
 
+#include <jtag/adapter.h>
 #include <jtag/interface.h>
 #include <transport/transport.h>
 #include "bitbang.h"
 
 #include <sys/mman.h>
 
-/*
- * GPIO register base addresses. Values taken from "AM335x and AMIC110 Sitara
+/* GPIO register base addresses. Values taken from "AM335x and AMIC110 Sitara
  * Processors Technical Reference Manual", Chapter 2 Memory Map.
  */
-#define AM335XGPIO_NUM_GPIO_PORTS 4
+#define AM335XGPIO_NUM_GPIO_PER_CHIP 32
+#define AM335XGPIO_NUM_GPIO_CHIPS 4
 #define AM335XGPIO_GPIO0_HW_ADDR 0x44E07000
 #define AM335XGPIO_GPIO1_HW_ADDR 0x4804C000
 #define AM335XGPIO_GPIO2_HW_ADDR 0x481AC000
 #define AM335XGPIO_GPIO3_HW_ADDR 0x481AE000
 
-/* 32-bit offsets from GPIO port base address. Values taken from "AM335x and
+/* 32-bit offsets from GPIO chip base address. Values taken from "AM335x and
  * AMIC110 Sitara Processors Technical Reference Manual", Chapter 25
  * General-Purpose Input/Output.
  */
@@ -36,34 +37,34 @@
 #define AM335XGPIO_GPIO_CLEARDATAOUT_OFFSET (0x190 / 4)
 #define AM335XGPIO_GPIO_SETDATAOUT_OFFSET (0x194 / 4)
 
-/* GPIOs are integer values; need to map to a port module, and the pin within
- * that module. GPIOs 0 to 31 map to GPIO0, 32 to 63 to GPIO1 etc. This scheme
- * matches that used by Linux on the BeagleBone.
- */
-#define AM335XGPIO_PORT_NUM(gpio_num) ((gpio_num) / 32)
-#define AM335XGPIO_BIT_NUM(gpio_num) ((gpio_num) % 32)
-#define AM335XGPIO_BIT_MASK(gpio_num) BIT(AM335XGPIO_BIT_NUM(gpio_num))
+#define AM335XGPIO_READ_REG(chip_num, offset) \
+	(*(am335xgpio_gpio_chip_mmap_addr[(chip_num)] + (offset)))
 
-#define AM335XGPIO_READ_REG(gpio_num, offset) \
-	(*(am335xgpio_gpio_port_mmap_addr[AM335XGPIO_PORT_NUM(gpio_num)] + (offset)))
+#define AM335XGPIO_WRITE_REG(chip_num, offset, value) \
+	(*(am335xgpio_gpio_chip_mmap_addr[(chip_num)] + (offset)) = (value))
 
-#define AM335XGPIO_WRITE_REG(gpio_num, offset, value) \
-	(*(am335xgpio_gpio_port_mmap_addr[AM335XGPIO_PORT_NUM(gpio_num)] + (offset)) = (value))
+#define AM335XGPIO_SET_REG_BITS(chip_num, offset, bit_mask) \
+	(*(am335xgpio_gpio_chip_mmap_addr[(chip_num)] + (offset)) |= (bit_mask))
 
-#define AM335XGPIO_SET_REG_BITS(gpio_num, offset, bit_mask) \
-	(*(am335xgpio_gpio_port_mmap_addr[AM335XGPIO_PORT_NUM(gpio_num)] + (offset)) |= (bit_mask))
+#define AM335XGPIO_CLEAR_REG_BITS(chip_num, offset, bit_mask) \
+	(*(am335xgpio_gpio_chip_mmap_addr[(chip_num)] + (offset)) &= ~(bit_mask))
 
-#define AM335XGPIO_CLEAR_REG_BITS(gpio_num, offset, bit_mask) \
-	(*(am335xgpio_gpio_port_mmap_addr[AM335XGPIO_PORT_NUM(gpio_num)] + (offset)) &= ~(bit_mask))
+#define AM335XGPIO_SET_INPUT(gpio_config) \
+	AM335XGPIO_SET_REG_BITS((gpio_config)->chip_num, AM335XGPIO_GPIO_OE_OFFSET, BIT((gpio_config)->gpio_num))
+#define AM335XGPIO_SET_OUTPUT(gpio_config) \
+	AM335XGPIO_CLEAR_REG_BITS((gpio_config)->chip_num, AM335XGPIO_GPIO_OE_OFFSET, BIT((gpio_config)->gpio_num))
+#define AM335XGPIO_SET_HIGH(gpio_config) \
+	AM335XGPIO_WRITE_REG((gpio_config)->chip_num, AM335XGPIO_GPIO_SETDATAOUT_OFFSET, BIT((gpio_config)->gpio_num))
+#define AM335XGPIO_SET_LOW(gpio_config) \
+	AM335XGPIO_WRITE_REG((gpio_config)->chip_num, AM335XGPIO_GPIO_CLEARDATAOUT_OFFSET, BIT((gpio_config)->gpio_num))
 
-enum amx335gpio_gpio_mode {
+enum amx335gpio_initial_gpio_mode {
 	AM335XGPIO_GPIO_MODE_INPUT,
-	AM335XGPIO_GPIO_MODE_OUTPUT, /* To set output mode but not state */
 	AM335XGPIO_GPIO_MODE_OUTPUT_LOW,
 	AM335XGPIO_GPIO_MODE_OUTPUT_HIGH,
 };
 
-static const uint32_t am335xgpio_gpio_port_hw_addr[AM335XGPIO_NUM_GPIO_PORTS] = {
+static const uint32_t am335xgpio_gpio_chip_hw_addr[AM335XGPIO_NUM_GPIO_CHIPS] = {
 	AM335XGPIO_GPIO0_HW_ADDR,
 	AM335XGPIO_GPIO1_HW_ADDR,
 	AM335XGPIO_GPIO2_HW_ADDR,
@@ -71,117 +72,151 @@ static const uint32_t am335xgpio_gpio_port_hw_addr[AM335XGPIO_NUM_GPIO_PORTS] = 
 };
 
 /* Memory-mapped address pointers */
-static volatile uint32_t *am335xgpio_gpio_port_mmap_addr[AM335XGPIO_NUM_GPIO_PORTS];
+static volatile uint32_t *am335xgpio_gpio_chip_mmap_addr[AM335XGPIO_NUM_GPIO_CHIPS];
 
 static int dev_mem_fd;
-
-/* GPIO numbers for each signal. Negative values are invalid */
-static int tck_gpio = -1;
-static enum amx335gpio_gpio_mode tck_gpio_mode;
-static int tms_gpio = -1;
-static enum amx335gpio_gpio_mode tms_gpio_mode;
-static int tdi_gpio = -1;
-static enum amx335gpio_gpio_mode tdi_gpio_mode;
-static int tdo_gpio = -1;
-static enum amx335gpio_gpio_mode tdo_gpio_mode;
-static int trst_gpio = -1;
-static enum amx335gpio_gpio_mode trst_gpio_mode;
-static int srst_gpio = -1;
-static enum amx335gpio_gpio_mode srst_gpio_mode;
-static int swclk_gpio = -1;
-static enum amx335gpio_gpio_mode swclk_gpio_mode;
-static int swdio_gpio = -1;
-static enum amx335gpio_gpio_mode swdio_gpio_mode;
-static int swdio_dir_gpio = -1;
-static enum amx335gpio_gpio_mode swdio_dir_gpio_mode;
-static int led_gpio = -1;
-static enum amx335gpio_gpio_mode led_gpio_mode = -1;
-
-static bool swdio_dir_is_active_high = true; /* Active state means output */
-static bool led_is_active_high = true;
+static enum amx335gpio_initial_gpio_mode initial_gpio_mode[ADAPTER_GPIO_IDX_NUM];
 
 /* Transition delay coefficients */
 static int speed_coeff = 600000;
 static int speed_offset = 575;
 static unsigned int jtag_delay;
 
-static int is_gpio_valid(int gpio_num)
+static const struct adapter_gpio_config *adapter_gpio_config;
+
+static bool is_gpio_config_valid(const struct adapter_gpio_config *gpio_config)
 {
-	return gpio_num >= 0 && gpio_num < (32 * AM335XGPIO_NUM_GPIO_PORTS);
+	return gpio_config->chip_num >= 0
+		&& gpio_config->chip_num < AM335XGPIO_NUM_GPIO_CHIPS
+		&& gpio_config->gpio_num >= 0
+		&& gpio_config->gpio_num < AM335XGPIO_NUM_GPIO_PER_CHIP;
 }
 
-static int get_gpio_value(int gpio_num)
+static int get_gpio_value(const struct adapter_gpio_config *gpio_config)
 {
-	unsigned int shift = AM335XGPIO_BIT_NUM(gpio_num);
-	return (AM335XGPIO_READ_REG(gpio_num, AM335XGPIO_GPIO_DATAIN_OFFSET) >> shift) & 1;
+	unsigned int shift = gpio_config->gpio_num;
+	uint32_t value = AM335XGPIO_READ_REG(gpio_config->chip_num, AM335XGPIO_GPIO_DATAIN_OFFSET);
+	value = (value >> shift) & 1;
+	return value ^ (gpio_config->active_low ? 1 : 0);
 }
 
-static void set_gpio_value(int gpio_num, int value)
+static void set_gpio_value(const struct adapter_gpio_config *gpio_config, int value)
 {
-	if (value)
-		AM335XGPIO_WRITE_REG(gpio_num, AM335XGPIO_GPIO_SETDATAOUT_OFFSET, AM335XGPIO_BIT_MASK(gpio_num));
-	else
-		AM335XGPIO_WRITE_REG(gpio_num, AM335XGPIO_GPIO_CLEARDATAOUT_OFFSET, AM335XGPIO_BIT_MASK(gpio_num));
-}
-
-static enum amx335gpio_gpio_mode get_gpio_mode(int gpio_num)
-{
-	if (AM335XGPIO_READ_REG(gpio_num, AM335XGPIO_GPIO_OE_OFFSET) & AM335XGPIO_BIT_MASK(gpio_num)) {
-		return AM335XGPIO_GPIO_MODE_INPUT;
-	} else {
-		/* Return output level too so that pin mode can be fully restored */
-		if (AM335XGPIO_READ_REG(gpio_num, AM335XGPIO_GPIO_DATAOUT_OFFSET) & AM335XGPIO_BIT_MASK(gpio_num))
-			return AM335XGPIO_GPIO_MODE_OUTPUT_HIGH;
+	value = value ^ (gpio_config->active_low ? 1 : 0);
+	switch (gpio_config->drive) {
+	case ADAPTER_GPIO_DRIVE_MODE_PUSH_PULL:
+		if (value)
+			AM335XGPIO_SET_HIGH(gpio_config);
 		else
-			return AM335XGPIO_GPIO_MODE_OUTPUT_LOW;
+			AM335XGPIO_SET_LOW(gpio_config);
+		/* For performance reasons assume the GPIO is already set as an output
+		 * and therefore the call can be omitted here.
+		 */
+		break;
+	case ADAPTER_GPIO_DRIVE_MODE_OPEN_DRAIN:
+		if (value) {
+			AM335XGPIO_SET_INPUT(gpio_config);
+		} else {
+			AM335XGPIO_SET_LOW(gpio_config);
+			AM335XGPIO_SET_OUTPUT(gpio_config);
+		}
+		break;
+	case ADAPTER_GPIO_DRIVE_MODE_OPEN_SOURCE:
+		if (value) {
+			AM335XGPIO_SET_HIGH(gpio_config);
+			AM335XGPIO_SET_OUTPUT(gpio_config);
+		} else {
+			AM335XGPIO_SET_INPUT(gpio_config);
+		}
+		break;
 	}
 }
 
-static void set_gpio_mode(int gpio_num, enum amx335gpio_gpio_mode gpio_mode)
+static enum amx335gpio_initial_gpio_mode get_gpio_mode(const struct adapter_gpio_config *gpio_config)
 {
-	if (gpio_mode == AM335XGPIO_GPIO_MODE_INPUT) {
-		AM335XGPIO_SET_REG_BITS(gpio_num, AM335XGPIO_GPIO_OE_OFFSET, AM335XGPIO_BIT_MASK(gpio_num));
-		return;
-	}
+	if (AM335XGPIO_READ_REG(gpio_config->chip_num, AM335XGPIO_GPIO_OE_OFFSET) & BIT(gpio_config->gpio_num))
+		return AM335XGPIO_GPIO_MODE_INPUT;
 
-	if (gpio_mode == AM335XGPIO_GPIO_MODE_OUTPUT_LOW)
-		set_gpio_value(gpio_num, 0);
-	if (gpio_mode == AM335XGPIO_GPIO_MODE_OUTPUT_HIGH)
-		set_gpio_value(gpio_num, 1);
-
-	if (gpio_mode == AM335XGPIO_GPIO_MODE_OUTPUT ||
-		gpio_mode == AM335XGPIO_GPIO_MODE_OUTPUT_LOW ||
-		gpio_mode == AM335XGPIO_GPIO_MODE_OUTPUT_HIGH) {
-			AM335XGPIO_CLEAR_REG_BITS(gpio_num, AM335XGPIO_GPIO_OE_OFFSET, AM335XGPIO_BIT_MASK(gpio_num));
-	}
+	/* Return output level too so that pin mode can be fully restored */
+	if (AM335XGPIO_READ_REG(gpio_config->chip_num, AM335XGPIO_GPIO_DATAOUT_OFFSET) & BIT(gpio_config->gpio_num))
+		return AM335XGPIO_GPIO_MODE_OUTPUT_HIGH;
+	return AM335XGPIO_GPIO_MODE_OUTPUT_LOW;
 }
 
-static const char *get_gpio_mode_name(enum amx335gpio_gpio_mode gpio_mode)
+static const char *get_gpio_mode_name(enum amx335gpio_initial_gpio_mode gpio_mode)
 {
 	switch (gpio_mode) {
 	case AM335XGPIO_GPIO_MODE_INPUT:
 		return "input";
-	case AM335XGPIO_GPIO_MODE_OUTPUT:
-		return "output";
 	case AM335XGPIO_GPIO_MODE_OUTPUT_LOW:
 		return "output (low)";
 	case AM335XGPIO_GPIO_MODE_OUTPUT_HIGH:
 		return "output (high)";
-	default:
-		return "unknown";
+	}
+	return "unknown";
+}
+
+static void initialize_gpio(enum adapter_gpio_config_index idx)
+{
+	if (!is_gpio_config_valid(&adapter_gpio_config[idx]))
+		return;
+
+	initial_gpio_mode[idx] = get_gpio_mode(&adapter_gpio_config[idx]);
+	LOG_DEBUG("saved GPIO mode for %s (GPIO %d %d): %s",
+			adapter_gpio_get_name(idx), adapter_gpio_config[idx].chip_num, adapter_gpio_config[idx].gpio_num,
+			get_gpio_mode_name(initial_gpio_mode[idx]));
+
+	if (adapter_gpio_config[idx].pull != ADAPTER_GPIO_PULL_NONE) {
+		LOG_WARNING("am335xgpio does not support pull-up or pull-down settings (signal %s)",
+			adapter_gpio_get_name(idx));
+	}
+
+	switch (adapter_gpio_config[idx].init_state) {
+	case ADAPTER_GPIO_INIT_STATE_INACTIVE:
+		set_gpio_value(&adapter_gpio_config[idx], 0);
+		break;
+	case ADAPTER_GPIO_INIT_STATE_ACTIVE:
+		set_gpio_value(&adapter_gpio_config[idx], 1);
+		break;
+	case ADAPTER_GPIO_INIT_STATE_INPUT:
+		AM335XGPIO_SET_INPUT(&adapter_gpio_config[idx]);
+		break;
+	}
+
+	/* Direction for non push-pull is already set by set_gpio_value() */
+	if (adapter_gpio_config[idx].drive == ADAPTER_GPIO_DRIVE_MODE_PUSH_PULL)
+		AM335XGPIO_SET_OUTPUT(&adapter_gpio_config[idx]);
+}
+
+static void restore_gpio(enum adapter_gpio_config_index idx)
+{
+	if (is_gpio_config_valid(&adapter_gpio_config[idx])) {
+		switch (initial_gpio_mode[idx]) {
+		case AM335XGPIO_GPIO_MODE_INPUT:
+			AM335XGPIO_SET_INPUT(&adapter_gpio_config[idx]);
+			break;
+		case AM335XGPIO_GPIO_MODE_OUTPUT_LOW:
+			AM335XGPIO_SET_LOW(&adapter_gpio_config[idx]);
+			AM335XGPIO_SET_OUTPUT(&adapter_gpio_config[idx]);
+			break;
+		case AM335XGPIO_GPIO_MODE_OUTPUT_HIGH:
+			AM335XGPIO_SET_HIGH(&adapter_gpio_config[idx]);
+			AM335XGPIO_SET_OUTPUT(&adapter_gpio_config[idx]);
+			break;
+		}
 	}
 }
 
 static bb_value_t am335xgpio_read(void)
 {
-	return get_gpio_value(tdo_gpio) ? BB_HIGH : BB_LOW;
+	return get_gpio_value(&adapter_gpio_config[ADAPTER_GPIO_IDX_TDO]) ? BB_HIGH : BB_LOW;
 }
 
 static int am335xgpio_write(int tck, int tms, int tdi)
 {
-	set_gpio_value(tdi_gpio, tdi);
-	set_gpio_value(tms_gpio, tms);
-	set_gpio_value(tck_gpio, tck); /* Write clock last */
+	set_gpio_value(&adapter_gpio_config[ADAPTER_GPIO_IDX_TDI], tdi);
+	set_gpio_value(&adapter_gpio_config[ADAPTER_GPIO_IDX_TMS], tms);
+	set_gpio_value(&adapter_gpio_config[ADAPTER_GPIO_IDX_TCK], tck); /* Write clock last */
 
 	for (unsigned int i = 0; i < jtag_delay; ++i)
 		asm volatile ("");
@@ -191,8 +226,8 @@ static int am335xgpio_write(int tck, int tms, int tdi)
 
 static int am335xgpio_swd_write(int swclk, int swdio)
 {
-	set_gpio_value(swdio_gpio, swdio);
-	set_gpio_value(swclk_gpio, swclk); /* Write clock last */
+	set_gpio_value(&adapter_gpio_config[ADAPTER_GPIO_IDX_SWDIO], swdio);
+	set_gpio_value(&adapter_gpio_config[ADAPTER_GPIO_IDX_SWCLK], swclk); /* Write clock last */
 
 	for (unsigned int i = 0; i < jtag_delay; ++i)
 		asm volatile ("");
@@ -203,49 +238,45 @@ static int am335xgpio_swd_write(int swclk, int swdio)
 /* (1) assert or (0) deassert reset lines */
 static int am335xgpio_reset(int trst, int srst)
 {
-	/* assume active low */
-	if (is_gpio_valid(srst_gpio)) {
-		if (jtag_get_reset_config() & RESET_SRST_PUSH_PULL)
-			set_gpio_mode(srst_gpio, srst ? AM335XGPIO_GPIO_MODE_OUTPUT_LOW : AM335XGPIO_GPIO_MODE_OUTPUT_HIGH);
-		else
-			set_gpio_mode(srst_gpio, srst ? AM335XGPIO_GPIO_MODE_OUTPUT_LOW : AM335XGPIO_GPIO_MODE_INPUT);
-	}
+	/* As the "adapter reset_config" command keeps the srst and trst gpio drive
+	 * mode settings in sync we can use our standard set_gpio_value() function
+	 * that honours drive mode and active low.
+	 */
+	if (is_gpio_config_valid(&adapter_gpio_config[ADAPTER_GPIO_IDX_SRST]))
+		set_gpio_value(&adapter_gpio_config[ADAPTER_GPIO_IDX_SRST], srst);
 
-	/* assume active low */
-	if (is_gpio_valid(trst_gpio)) {
-		if (jtag_get_reset_config() & RESET_TRST_OPEN_DRAIN)
-			set_gpio_mode(trst_gpio, trst ? AM335XGPIO_GPIO_MODE_OUTPUT_LOW : AM335XGPIO_GPIO_MODE_INPUT);
-		else
-			set_gpio_mode(trst_gpio, trst ? AM335XGPIO_GPIO_MODE_OUTPUT_LOW : AM335XGPIO_GPIO_MODE_OUTPUT_HIGH);
-	}
+	if (is_gpio_config_valid(&adapter_gpio_config[ADAPTER_GPIO_IDX_TRST]))
+		set_gpio_value(&adapter_gpio_config[ADAPTER_GPIO_IDX_TRST], trst);
 
-	LOG_DEBUG("am335xgpio_reset(%d, %d), trst_gpio: %d (%s), srst_gpio: %d (%s)",
+	LOG_DEBUG("am335xgpio_reset(%d, %d), trst_gpio: %d %d, srst_gpio: %d %d",
 		trst, srst,
-		trst_gpio, get_gpio_mode_name(get_gpio_mode(trst_gpio)),
-		srst_gpio, get_gpio_mode_name(get_gpio_mode(srst_gpio)));
+		adapter_gpio_config[ADAPTER_GPIO_IDX_TRST].chip_num, adapter_gpio_config[ADAPTER_GPIO_IDX_TRST].gpio_num,
+		adapter_gpio_config[ADAPTER_GPIO_IDX_SRST].chip_num, adapter_gpio_config[ADAPTER_GPIO_IDX_SRST].gpio_num);
 	return ERROR_OK;
 }
 
 static void am335xgpio_swdio_drive(bool is_output)
 {
 	if (is_output) {
-		set_gpio_value(swdio_dir_gpio, swdio_dir_is_active_high ? 1 : 0);
-		set_gpio_mode(swdio_gpio, AM335XGPIO_GPIO_MODE_OUTPUT);
+		if (is_gpio_config_valid(&adapter_gpio_config[ADAPTER_GPIO_IDX_SWDIO_DIR]))
+			set_gpio_value(&adapter_gpio_config[ADAPTER_GPIO_IDX_SWDIO_DIR], 1);
+		AM335XGPIO_SET_OUTPUT(&adapter_gpio_config[ADAPTER_GPIO_IDX_SWDIO]);
 	} else {
-		set_gpio_mode(swdio_gpio, AM335XGPIO_GPIO_MODE_INPUT);
-		set_gpio_value(swdio_dir_gpio, swdio_dir_is_active_high ? 0 : 1);
+		AM335XGPIO_SET_INPUT(&adapter_gpio_config[ADAPTER_GPIO_IDX_SWDIO]);
+		if (is_gpio_config_valid(&adapter_gpio_config[ADAPTER_GPIO_IDX_SWDIO_DIR]))
+			set_gpio_value(&adapter_gpio_config[ADAPTER_GPIO_IDX_SWDIO_DIR], 0);
 	}
 }
 
 static int am335xgpio_swdio_read(void)
 {
-	return get_gpio_value(swdio_gpio);
+	return get_gpio_value(&adapter_gpio_config[ADAPTER_GPIO_IDX_SWDIO]);
 }
 
 static int am335xgpio_blink(int on)
 {
-	if (is_gpio_valid(led_gpio))
-		set_gpio_value(led_gpio, (!on ^ led_is_active_high) ? 1 : 0);
+	if (is_gpio_config_valid(&adapter_gpio_config[ADAPTER_GPIO_IDX_LED]))
+		set_gpio_value(&adapter_gpio_config[ADAPTER_GPIO_IDX_LED], on);
 
 	return ERROR_OK;
 }
@@ -283,144 +314,6 @@ static int am335xgpio_speed(int speed)
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(am335xgpio_handle_jtag_gpionums)
-{
-	if (CMD_ARGC == 4) {
-		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], tck_gpio);
-		COMMAND_PARSE_NUMBER(int, CMD_ARGV[1], tms_gpio);
-		COMMAND_PARSE_NUMBER(int, CMD_ARGV[2], tdi_gpio);
-		COMMAND_PARSE_NUMBER(int, CMD_ARGV[3], tdo_gpio);
-	} else if (CMD_ARGC != 0) {
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
-	command_print(CMD, "AM335x GPIO config: tck = %d, tms = %d, tdi = %d, tdo = %d",
-			tck_gpio, tms_gpio, tdi_gpio, tdo_gpio);
-	return ERROR_OK;
-}
-
-COMMAND_HANDLER(am335xgpio_handle_jtag_gpionum_tck)
-{
-	if (CMD_ARGC == 1)
-		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], tck_gpio);
-
-	command_print(CMD, "AM335x GPIO config: tck = %d", tck_gpio);
-	return ERROR_OK;
-}
-
-COMMAND_HANDLER(am335xgpio_handle_jtag_gpionum_tms)
-{
-	if (CMD_ARGC == 1)
-		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], tms_gpio);
-
-	command_print(CMD, "AM335x GPIO config: tms = %d", tms_gpio);
-	return ERROR_OK;
-}
-
-COMMAND_HANDLER(am335xgpio_handle_jtag_gpionum_tdo)
-{
-	if (CMD_ARGC == 1)
-		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], tdo_gpio);
-
-	command_print(CMD, "AM335x GPIO config: tdo = %d", tdo_gpio);
-	return ERROR_OK;
-}
-
-COMMAND_HANDLER(am335xgpio_handle_jtag_gpionum_tdi)
-{
-	if (CMD_ARGC == 1)
-		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], tdi_gpio);
-
-	command_print(CMD, "AM335x GPIO config: tdi = %d", tdi_gpio);
-	return ERROR_OK;
-}
-
-COMMAND_HANDLER(am335xgpio_handle_jtag_gpionum_srst)
-{
-	if (CMD_ARGC == 1)
-		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], srst_gpio);
-
-	command_print(CMD, "AM335x GPIO config: srst = %d", srst_gpio);
-	return ERROR_OK;
-}
-
-COMMAND_HANDLER(am335xgpio_handle_jtag_gpionum_trst)
-{
-	if (CMD_ARGC == 1)
-		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], trst_gpio);
-
-	command_print(CMD, "AM335x GPIO config: trst = %d", trst_gpio);
-	return ERROR_OK;
-}
-
-COMMAND_HANDLER(am335xgpio_handle_swd_gpionums)
-{
-	if (CMD_ARGC == 2) {
-		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], swclk_gpio);
-		COMMAND_PARSE_NUMBER(int, CMD_ARGV[1], swdio_gpio);
-	} else if (CMD_ARGC != 0) {
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
-	command_print(CMD, "AM335x GPIO config: swclk = %d, swdio = %d", swclk_gpio, swdio_gpio);
-
-	return ERROR_OK;
-}
-
-COMMAND_HANDLER(am335xgpio_handle_swd_gpionum_swclk)
-{
-	if (CMD_ARGC == 1)
-		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], swclk_gpio);
-
-	command_print(CMD, "AM335x GPIO config: swclk = %d", swclk_gpio);
-	return ERROR_OK;
-}
-
-COMMAND_HANDLER(am335xgpio_handle_swd_gpionum_swdio)
-{
-	if (CMD_ARGC == 1)
-		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], swdio_gpio);
-
-	command_print(CMD, "AM335x GPIO config: swdio = %d", swdio_gpio);
-	return ERROR_OK;
-}
-
-COMMAND_HANDLER(am335xgpio_handle_swd_gpionum_swdio_dir)
-{
-	if (CMD_ARGC == 1)
-		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], swdio_dir_gpio);
-
-	command_print(CMD, "AM335x GPIO config: swdio_dir = %d", swdio_dir_gpio);
-	return ERROR_OK;
-}
-
-COMMAND_HANDLER(am335xgpio_handle_swd_dir_output_state)
-{
-	if (CMD_ARGC == 1)
-		COMMAND_PARSE_BOOL(CMD_ARGV[0], swdio_dir_is_active_high, "high", "low");
-
-	command_print(CMD, "AM335x GPIO config: swdio_dir_output_state = %s", swdio_dir_is_active_high ? "high" : "low");
-	return ERROR_OK;
-}
-
-COMMAND_HANDLER(am335xgpio_handle_gpionum_led)
-{
-	if (CMD_ARGC == 1)
-		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], led_gpio);
-
-	command_print(CMD, "AM335x GPIO config: led = %d", led_gpio);
-	return ERROR_OK;
-}
-
-COMMAND_HANDLER(am335xgpio_handle_led_on_state)
-{
-	if (CMD_ARGC == 1)
-		COMMAND_PARSE_BOOL(CMD_ARGV[0], led_is_active_high, "high", "low");
-
-	command_print(CMD, "AM335x GPIO config: led_on_state = %s", led_is_active_high ? "high" : "low");
-	return ERROR_OK;
-}
-
 COMMAND_HANDLER(am335xgpio_handle_speed_coeffs)
 {
 	if (CMD_ARGC == 2) {
@@ -434,104 +327,6 @@ COMMAND_HANDLER(am335xgpio_handle_speed_coeffs)
 }
 
 static const struct command_registration am335xgpio_subcommand_handlers[] = {
-	{
-		.name = "jtag_nums",
-		.handler = am335xgpio_handle_jtag_gpionums,
-		.mode = COMMAND_CONFIG,
-		.help = "gpio numbers for tck, tms, tdi, tdo (in that order).",
-		.usage = "[tck tms tdi tdo]",
-	},
-	{
-		.name = "tck_num",
-		.handler = am335xgpio_handle_jtag_gpionum_tck,
-		.mode = COMMAND_CONFIG,
-		.help = "gpio number for tck.",
-		.usage = "[tck]",
-	},
-	{
-		.name = "tms_num",
-		.handler = am335xgpio_handle_jtag_gpionum_tms,
-		.mode = COMMAND_CONFIG,
-		.help = "gpio number for tms.",
-		.usage = "[tms]",
-	},
-	{
-		.name = "tdo_num",
-		.handler = am335xgpio_handle_jtag_gpionum_tdo,
-		.mode = COMMAND_CONFIG,
-		.help = "gpio number for tdo.",
-		.usage = "[tdo]",
-	},
-	{
-		.name = "tdi_num",
-		.handler = am335xgpio_handle_jtag_gpionum_tdi,
-		.mode = COMMAND_CONFIG,
-		.help = "gpio number for tdi.",
-		.usage = "[tdi]",
-	},
-	{
-		.name = "swd_nums",
-		.handler = am335xgpio_handle_swd_gpionums,
-		.mode = COMMAND_CONFIG,
-		.help = "gpio numbers for swclk, swdio (in that order).",
-		.usage = "[swclk swdio]",
-	},
-	{
-		.name = "swclk_num",
-		.handler = am335xgpio_handle_swd_gpionum_swclk,
-		.mode = COMMAND_CONFIG,
-		.help = "gpio number for swclk.",
-		.usage = "[swclk]",
-	},
-	{
-		.name = "swdio_num",
-		.handler = am335xgpio_handle_swd_gpionum_swdio,
-		.mode = COMMAND_CONFIG,
-		.help = "gpio number for swdio.",
-		.usage = "[swdio]",
-	},
-	{
-		.name = "swdio_dir_num",
-		.handler = am335xgpio_handle_swd_gpionum_swdio_dir,
-		.mode = COMMAND_CONFIG,
-		.help = "gpio number for swdio direction control pin.",
-		.usage = "[swdio_dir]",
-	},
-	{
-		.name = "swdio_dir_output_state",
-		.handler = am335xgpio_handle_swd_dir_output_state,
-		.mode = COMMAND_CONFIG,
-		.help = "required state for swdio_dir pin to select SWDIO buffer to be output.",
-		.usage = "['off'|'on']",
-	},
-	{
-		.name = "srst_num",
-		.handler = am335xgpio_handle_jtag_gpionum_srst,
-		.mode = COMMAND_CONFIG,
-		.help = "gpio number for srst.",
-		.usage = "[srst]",
-	},
-	{
-		.name = "trst_num",
-		.handler = am335xgpio_handle_jtag_gpionum_trst,
-		.mode = COMMAND_CONFIG,
-		.help = "gpio number for trst.",
-		.usage = "[trst]",
-	},
-	{
-		.name = "led_num",
-		.handler = am335xgpio_handle_gpionum_led,
-		.mode = COMMAND_CONFIG,
-		.help = "gpio number for led.",
-		.usage = "[led]",
-	},
-	{
-		.name = "led_on_state",
-		.handler = am335xgpio_handle_led_on_state,
-		.mode = COMMAND_CONFIG,
-		.help = "required state for led pin to turn on LED.",
-		.usage = "['off'|'on']",
-	},
 	{
 		.name = "speed_coeffs",
 		.handler = am335xgpio_handle_speed_coeffs,
@@ -562,31 +357,32 @@ static struct jtag_interface am335xgpio_interface = {
 
 static bool am335xgpio_jtag_mode_possible(void)
 {
-	if (!is_gpio_valid(tck_gpio))
+	if (!is_gpio_config_valid(&adapter_gpio_config[ADAPTER_GPIO_IDX_TCK]))
 		return false;
-	if (!is_gpio_valid(tms_gpio))
+	if (!is_gpio_config_valid(&adapter_gpio_config[ADAPTER_GPIO_IDX_TMS]))
 		return false;
-	if (!is_gpio_valid(tdi_gpio))
+	if (!is_gpio_config_valid(&adapter_gpio_config[ADAPTER_GPIO_IDX_TDI]))
 		return false;
-	if (!is_gpio_valid(tdo_gpio))
+	if (!is_gpio_config_valid(&adapter_gpio_config[ADAPTER_GPIO_IDX_TDO]))
 		return false;
 	return true;
 }
 
 static bool am335xgpio_swd_mode_possible(void)
 {
-	if (!is_gpio_valid(swclk_gpio))
+	if (!is_gpio_config_valid(&adapter_gpio_config[ADAPTER_GPIO_IDX_SWCLK]))
 		return false;
-	if (!is_gpio_valid(swdio_gpio))
+	if (!is_gpio_config_valid(&adapter_gpio_config[ADAPTER_GPIO_IDX_SWDIO]))
 		return false;
 	return true;
 }
 
 static int am335xgpio_init(void)
 {
-	bitbang_interface = &am335xgpio_bitbang;
-
 	LOG_INFO("AM335x GPIO JTAG/SWD bitbang driver");
+
+	bitbang_interface = &am335xgpio_bitbang;
+	adapter_gpio_config = adapter_gpio_get_config();
 
 	if (transport_is_jtag() && !am335xgpio_jtag_mode_possible()) {
 		LOG_ERROR("Require tck, tms, tdi and tdo gpios for JTAG mode");
@@ -608,99 +404,77 @@ static int am335xgpio_init(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	for (unsigned int i = 0; i < AM335XGPIO_NUM_GPIO_PORTS; ++i) {
-		am335xgpio_gpio_port_mmap_addr[i] = mmap(NULL, sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_WRITE,
-				MAP_SHARED, dev_mem_fd, am335xgpio_gpio_port_hw_addr[i]);
+	for (unsigned int i = 0; i < AM335XGPIO_NUM_GPIO_CHIPS; ++i) {
+		am335xgpio_gpio_chip_mmap_addr[i] = mmap(NULL, sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_WRITE,
+				MAP_SHARED, dev_mem_fd, am335xgpio_gpio_chip_hw_addr[i]);
 
-		if (am335xgpio_gpio_port_mmap_addr[i] == MAP_FAILED) {
+		if (am335xgpio_gpio_chip_mmap_addr[i] == MAP_FAILED) {
 			LOG_ERROR("mmap: %s", strerror(errno));
 			close(dev_mem_fd);
 			return ERROR_JTAG_INIT_FAILED;
 		}
 	}
 
-	/*
-	 * Configure TDO as an input, and TDI, TCK, TMS, TRST, SRST as outputs.
-	 * Drive TDI and TCK low, and TMS high.
+	/* Configure JTAG/SWD signals. Default directions and initial states are handled
+	 * by adapter.c and "adapter gpio" command.
 	 */
 	if (transport_is_jtag()) {
-		tdo_gpio_mode = get_gpio_mode(tdo_gpio);
-		tdi_gpio_mode = get_gpio_mode(tdi_gpio);
-		tck_gpio_mode = get_gpio_mode(tck_gpio);
-		tms_gpio_mode = get_gpio_mode(tms_gpio);
-		LOG_DEBUG("saved GPIO mode for tdo (GPIO #%d): %s", tdo_gpio, get_gpio_mode_name(tdo_gpio_mode));
-		LOG_DEBUG("saved GPIO mode for tdi (GPIO #%d): %s", tdi_gpio, get_gpio_mode_name(tdi_gpio_mode));
-		LOG_DEBUG("saved GPIO mode for tck (GPIO #%d): %s", tck_gpio, get_gpio_mode_name(tck_gpio_mode));
-		LOG_DEBUG("saved GPIO mode for tms (GPIO #%d): %s", tms_gpio, get_gpio_mode_name(tms_gpio_mode));
-
-		set_gpio_mode(tdo_gpio, AM335XGPIO_GPIO_MODE_INPUT);
-		set_gpio_mode(tdi_gpio, AM335XGPIO_GPIO_MODE_OUTPUT_LOW);
-		set_gpio_mode(tms_gpio, AM335XGPIO_GPIO_MODE_OUTPUT_HIGH);
-		set_gpio_mode(tck_gpio, AM335XGPIO_GPIO_MODE_OUTPUT_LOW);
-
-		if (is_gpio_valid(trst_gpio)) {
-			trst_gpio_mode = get_gpio_mode(trst_gpio);
-			LOG_DEBUG("saved GPIO mode for trst (GPIO #%d): %s", trst_gpio, get_gpio_mode_name(trst_gpio_mode));
-		}
+		initialize_gpio(ADAPTER_GPIO_IDX_TDO);
+		initialize_gpio(ADAPTER_GPIO_IDX_TDI);
+		initialize_gpio(ADAPTER_GPIO_IDX_TMS);
+		initialize_gpio(ADAPTER_GPIO_IDX_TCK);
+		initialize_gpio(ADAPTER_GPIO_IDX_TRST);
 	}
 
 	if (transport_is_swd()) {
-		swclk_gpio_mode = get_gpio_mode(swclk_gpio);
-		swdio_gpio_mode = get_gpio_mode(swdio_gpio);
-		LOG_DEBUG("saved GPIO mode for swclk (GPIO #%d): %s", swclk_gpio, get_gpio_mode_name(swclk_gpio_mode));
-		LOG_DEBUG("saved GPIO mode for swdio (GPIO #%d): %s", swdio_gpio, get_gpio_mode_name(swdio_gpio_mode));
-		if (is_gpio_valid(swdio_dir_gpio)) {
-			swdio_dir_gpio_mode = get_gpio_mode(swdio_dir_gpio);
-			LOG_DEBUG("saved GPIO mode for swdio_dir (GPIO #%d): %s",
-					swdio_dir_gpio, get_gpio_mode_name(swdio_dir_gpio_mode));
-			set_gpio_mode(swdio_dir_gpio,
-					swdio_dir_is_active_high ? AM335XGPIO_GPIO_MODE_OUTPUT_HIGH : AM335XGPIO_GPIO_MODE_OUTPUT_LOW);
-
+		/* swdio and its buffer should be initialized in the order that prevents
+		 * two outputs from being connected together. This will occur if the
+		 * swdio GPIO of the AM335x is configured as an output while its
+		 * external buffer is configured to send the swdio signal from the
+		 * target to the AM335x.
+		 */
+		if (adapter_gpio_config[ADAPTER_GPIO_IDX_SWDIO].init_state == ADAPTER_GPIO_INIT_STATE_INPUT) {
+			initialize_gpio(ADAPTER_GPIO_IDX_SWDIO);
+			initialize_gpio(ADAPTER_GPIO_IDX_SWDIO_DIR);
+		} else {
+			initialize_gpio(ADAPTER_GPIO_IDX_SWDIO_DIR);
+			initialize_gpio(ADAPTER_GPIO_IDX_SWDIO);
 		}
-		set_gpio_mode(swdio_gpio, AM335XGPIO_GPIO_MODE_OUTPUT_LOW);
-		set_gpio_mode(swclk_gpio, AM335XGPIO_GPIO_MODE_OUTPUT_LOW);
+
+		initialize_gpio(ADAPTER_GPIO_IDX_SWCLK);
 	}
 
-	if (is_gpio_valid(srst_gpio)) {
-		srst_gpio_mode = get_gpio_mode(srst_gpio);
-		LOG_DEBUG("saved GPIO mode for srst (GPIO #%d): %s", srst_gpio, get_gpio_mode_name(srst_gpio_mode));
-	}
+	initialize_gpio(ADAPTER_GPIO_IDX_SRST);
+	initialize_gpio(ADAPTER_GPIO_IDX_LED);
 
-	if (is_gpio_valid(led_gpio)) {
-		led_gpio_mode = get_gpio_mode(led_gpio);
-		LOG_DEBUG("saved GPIO mode for led (GPIO #%d): %s", led_gpio, get_gpio_mode_name(led_gpio_mode));
-		set_gpio_mode(led_gpio,
-				led_is_active_high ? AM335XGPIO_GPIO_MODE_OUTPUT_LOW : AM335XGPIO_GPIO_MODE_OUTPUT_HIGH);
-	}
-
-	/* Set GPIO modes for TRST and SRST and make both inactive */
-	am335xgpio_reset(0, 0);
 	return ERROR_OK;
 }
 
 static int am335xgpio_quit(void)
 {
 	if (transport_is_jtag()) {
-		set_gpio_mode(tdo_gpio, tdo_gpio_mode);
-		set_gpio_mode(tdi_gpio, tdi_gpio_mode);
-		set_gpio_mode(tck_gpio, tck_gpio_mode);
-		set_gpio_mode(tms_gpio, tms_gpio_mode);
-		if (is_gpio_valid(trst_gpio))
-			set_gpio_mode(trst_gpio, trst_gpio_mode);
+		restore_gpio(ADAPTER_GPIO_IDX_TDO);
+		restore_gpio(ADAPTER_GPIO_IDX_TDI);
+		restore_gpio(ADAPTER_GPIO_IDX_TMS);
+		restore_gpio(ADAPTER_GPIO_IDX_TCK);
+		restore_gpio(ADAPTER_GPIO_IDX_TRST);
 	}
 
 	if (transport_is_swd()) {
-		set_gpio_mode(swclk_gpio, swclk_gpio_mode);
-		set_gpio_mode(swdio_gpio, swdio_gpio_mode);
-		if (is_gpio_valid(swdio_dir_gpio))
-			set_gpio_mode(swdio_dir_gpio, swdio_dir_gpio_mode);
+		/* Restore swdio/swdio_dir to their initial modes, even if that means
+		 * connecting two outputs. Begin by making swdio an input so that the
+		 * current and final states of swdio and swdio_dir do not have to be
+		 * considered to calculate the safe restoration order.
+		 */
+		AM335XGPIO_SET_INPUT(&adapter_gpio_config[ADAPTER_GPIO_IDX_SWDIO]);
+		restore_gpio(ADAPTER_GPIO_IDX_SWDIO_DIR);
+		restore_gpio(ADAPTER_GPIO_IDX_SWDIO);
+
+		restore_gpio(ADAPTER_GPIO_IDX_SWCLK);
 	}
 
-	if (is_gpio_valid(srst_gpio))
-		set_gpio_mode(srst_gpio, srst_gpio_mode);
-
-	if (is_gpio_valid(led_gpio))
-		set_gpio_mode(led_gpio, led_gpio_mode);
+	restore_gpio(ADAPTER_GPIO_IDX_SRST);
+	restore_gpio(ADAPTER_GPIO_IDX_LED);
 
 	return ERROR_OK;
 }
