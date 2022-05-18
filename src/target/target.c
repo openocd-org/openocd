@@ -6471,7 +6471,6 @@ static int jim_target_smp(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	foreach_smp_target(head, lh) {
 		target = head->target;
 		target->smp = smp_group;
-		target->smp = 1;
 		target->smp_targets = lh;
 	}
 	smp_group++;
