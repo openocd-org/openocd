@@ -474,7 +474,7 @@ static int esp32s2_soc_reset(struct target *target)
 	res = esp32s2_set_peri_reg_mask(target,
 		ESP32_S2_OPTIONS0,
 		ESP32_S2_SW_SYS_RST_M,
-		1U << ESP32_S2_SW_SYS_RST_S);
+		BIT(ESP32_S2_SW_SYS_RST_S));
 	xtensa->suppress_dsr_errors = false;
 	if (res != ERROR_OK) {
 		LOG_ERROR("Failed to write ESP32_S2_OPTIONS0 (%d)!", res);

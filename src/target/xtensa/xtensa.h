@@ -302,6 +302,16 @@ int xtensa_fetch_user_regs_u32(struct target *target);
 int xtensa_queue_write_dirty_user_regs_u32(struct target *target);
 const char *xtensa_get_gdb_arch(struct target *target);
 
+
+COMMAND_HELPER(xtensa_cmd_permissive_mode_do, struct xtensa *xtensa);
+COMMAND_HELPER(xtensa_cmd_mask_interrupts_do, struct xtensa *xtensa);
+COMMAND_HELPER(xtensa_cmd_smpbreak_do, struct target *target);
+COMMAND_HELPER(xtensa_cmd_perfmon_dump_do, struct xtensa *xtensa);
+COMMAND_HELPER(xtensa_cmd_perfmon_enable_do, struct xtensa *xtensa);
+COMMAND_HELPER(xtensa_cmd_tracestart_do, struct xtensa *xtensa);
+COMMAND_HELPER(xtensa_cmd_tracestop_do, struct xtensa *xtensa);
+COMMAND_HELPER(xtensa_cmd_tracedump_do, struct xtensa *xtensa, const char *fname);
+
 extern const struct reg_arch_type xtensa_user_reg_u32_type;
 extern const struct reg_arch_type xtensa_user_reg_u128_type;
 extern const struct command_registration xtensa_command_handlers[];

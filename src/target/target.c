@@ -105,6 +105,7 @@ extern struct target_type hla_target;
 extern struct target_type nds32_v2_target;
 extern struct target_type nds32_v3_target;
 extern struct target_type nds32_v3m_target;
+extern struct target_type esp32_target;
 extern struct target_type esp32s2_target;
 extern struct target_type or1k_target;
 extern struct target_type quark_x10xx_target;
@@ -142,6 +143,7 @@ static struct target_type *target_types[] = {
 	&nds32_v2_target,
 	&nds32_v3_target,
 	&nds32_v3m_target,
+	&esp32_target,
 	&esp32s2_target,
 	&or1k_target,
 	&quark_x10xx_target,
@@ -3336,7 +3338,7 @@ COMMAND_HANDLER(handle_soft_reset_halt_command)
 {
 	struct target *target = get_current_target(CMD_CTX);
 
-	LOG_USER("requesting target halt and executing a soft reset");
+	LOG_TARGET_INFO(target, "requesting target halt and executing a soft reset");
 
 	target_soft_reset_halt(target);
 
