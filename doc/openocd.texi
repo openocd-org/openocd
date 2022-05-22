@@ -4915,6 +4915,7 @@ compact Thumb2 instruction set. Supports also ARMv6-M and ARMv8-M cores
 The current implementation supports eSi-32xx cores.
 @item @code{esp32} -- this is an Espressif SoC with dual Xtensa cores.
 @item @code{esp32s2} -- this is an Espressif SoC with single Xtensa core.
+@item @code{esp32s3} -- this is an Espressif SoC with dual Xtensa cores.
 @item @code{fa526} -- resembles arm920 (w/o Thumb).
 @item @code{feroceon} -- resembles arm926.
 @item @code{hla_target} -- a Cortex-M alternative to work with HL adapters like ST-Link.
