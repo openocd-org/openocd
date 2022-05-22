@@ -373,9 +373,9 @@ AC_ARG_ENABLE([jimtcl-maintainer],
   [use_internal_jimtcl_maintainer=$enableval], [use_internal_jimtcl_maintainer=no])
 
 AC_ARG_ENABLE([internal-libjaylink],
-  AS_HELP_STRING([--disable-internal-libjaylink],
-  [Disable building internal libjaylink]),
-  [use_internal_libjaylink=$enableval], [use_internal_libjaylink=yes])
+  AS_HELP_STRING([--enable-internal-libjaylink],
+  [Enable building internal libjaylink]),
+  [use_internal_libjaylink=$enableval], [use_internal_libjaylink=no])
 
 AC_ARG_ENABLE([remote-bitbang],
   AS_HELP_STRING([--enable-remote-bitbang], [Enable building support for the Remote Bitbang jtag driver]),
@@ -713,7 +713,7 @@ AS_IF([test "x$enable_jlink" != "xno"], [
       AX_CONFIG_SUBDIR_OPTION([src/jtag/drivers/libjaylink],
 		[--enable-subproject-build])
     ], [
-      AC_MSG_ERROR([Internal libjaylink not found, run either 'git submodule init' and 'git submodule update' or disable internal libjaylink with --disable-internal-libjaylink.])
+      AC_MSG_ERROR([Internal libjaylink not found, run 'git submodule init' and 'git submodule update'.])
     ])
   ])
 ])
@@ -822,6 +822,12 @@ AC_CONFIG_FILES([
   Makefile
 ])
 AC_OUTPUT
+
+AS_IF([test "x$enable_jlink" != "xno"], [
+  AS_IF([test "x$use_internal_libjaylink" = "xyes"], [
+    AC_MSG_WARN([Using the internal libjaylink is deprecated and will not be possible in the future.])
+  ]])
+)
 
 echo
 echo
