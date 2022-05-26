@@ -36,6 +36,8 @@ enum adapter_clk_mode {
 	CLOCK_MODE_RCLK
 };
 
+#define DEFAULT_CLOCK_SPEED_KHZ		100U
+
 /**
  * Adapter configuration
  */
@@ -70,6 +72,18 @@ int adapter_init(struct command_context *cmd_ctx)
 	}
 
 	int retval;
+
+	if (adapter_config.clock_mode == CLOCK_MODE_UNSELECTED) {
+		LOG_WARNING("An adapter speed is not selected in the init scripts."
+			" OpenOCD will try to run the adapter at the low speed (%d kHz)",
+			DEFAULT_CLOCK_SPEED_KHZ);
+		LOG_WARNING("To remove this warnings and achieve reasonable communication speed with the target,"
+		    " set \"adapter speed\" or \"jtag_rclk\" in the init scripts.");
+		retval = adapter_config_khz(DEFAULT_CLOCK_SPEED_KHZ);
+		if (retval != ERROR_OK)
+			return ERROR_JTAG_INIT_FAILED;
+	}
+
 	retval = adapter_driver->init();
 	if (retval != ERROR_OK)
 		return retval;
@@ -78,12 +92,6 @@ int adapter_init(struct command_context *cmd_ctx)
 	if (!adapter_driver->speed) {
 		LOG_INFO("This adapter doesn't support configurable speed");
 		return ERROR_OK;
-	}
-
-	if (adapter_config.clock_mode == CLOCK_MODE_UNSELECTED) {
-		LOG_ERROR("An adapter speed is not selected in the init script."
-			" Insert a call to \"adapter speed\" or \"jtag_rclk\" to proceed.");
-		return ERROR_JTAG_INIT_FAILED;
 	}
 
 	int requested_khz = adapter_get_speed_khz();
