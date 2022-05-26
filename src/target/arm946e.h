@@ -16,11 +16,12 @@
 
 #include "arm9tdmi.h"
 
-#define ARM946E_COMMON_MAGIC 0x20f920f9
+#define ARM946E_COMMON_MAGIC 0x20f920f9U
 
 struct arm946e_common {
+	unsigned int common_magic;
+
 	struct arm7_9_common arm7_9_common;
-	int common_magic;
 	uint32_t cp15_control_reg;
 	uint32_t cp15_cache_info;
 };

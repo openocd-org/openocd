@@ -20,14 +20,15 @@
 #include "arm.h"
 #include "arm_jtag.h"
 
-#define	ARM7_9_COMMON_MAGIC 0x0a790a79 /**< */
+#define	ARM7_9_COMMON_MAGIC 0x0a790a79U /**< */
 
 /**
  * Structure for items that are common between both ARM7 and ARM9 targets.
  */
 struct arm7_9_common {
+	unsigned int common_magic;
+
 	struct arm arm;
-	uint32_t common_magic;
 
 	struct arm_jtag jtag_info; /**< JTAG information for target */
 	struct reg_cache *eice_cache; /**< Embedded ICE register cache */

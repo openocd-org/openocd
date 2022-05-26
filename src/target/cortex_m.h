@@ -17,7 +17,7 @@
 #include "armv7m.h"
 #include "helper/bits.h"
 
-#define CORTEX_M_COMMON_MAGIC 0x1A451A45
+#define CORTEX_M_COMMON_MAGIC 0x1A451A45U
 
 #define SYSTEM_CONTROL_BASE 0x400FE000
 
@@ -199,7 +199,7 @@ enum cortex_m_isrmasking_mode {
 };
 
 struct cortex_m_common {
-	int common_magic;
+	unsigned int common_magic;
 
 	/* Context information */
 	uint32_t dcb_dhcsr;

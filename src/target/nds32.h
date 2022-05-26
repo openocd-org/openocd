@@ -224,7 +224,8 @@ struct nds32_misc_config {
  * Represents a generic Andes core.
  */
 struct nds32 {
-	uint32_t common_magic;
+	unsigned int common_magic;
+
 	struct reg_cache *core_cache;
 
 	/** Handle for the debug module. */

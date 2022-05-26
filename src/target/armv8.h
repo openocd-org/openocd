@@ -108,7 +108,7 @@ enum run_control_op {
 	ARMV8_RUNCONTROL_STEP = 3,
 };
 
-#define ARMV8_COMMON_MAGIC 0x0A450AAA
+#define ARMV8_COMMON_MAGIC 0x0A450AAAU
 
 /* VA to PA translation operations opc2 values*/
 #define V2PCWPR  0
@@ -178,8 +178,9 @@ struct armv8_mmu_common {
 };
 
 struct armv8_common {
+	unsigned int common_magic;
+
 	struct arm arm;
-	int common_magic;
 	struct reg_cache *core_cache;
 
 	/* Core Debug Unit */

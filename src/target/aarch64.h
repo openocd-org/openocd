@@ -9,7 +9,7 @@
 
 #include "armv8.h"
 
-#define AARCH64_COMMON_MAGIC 0x411fc082
+#define AARCH64_COMMON_MAGIC 0x411fc082U
 
 #define CPUDBG_CPUID	0xD00
 #define CPUDBG_CTYPR	0xD04
@@ -38,7 +38,7 @@ struct aarch64_brp {
 };
 
 struct aarch64_common {
-	int common_magic;
+	unsigned int common_magic;
 
 	/* Context information */
 	uint32_t system_control_reg;

@@ -215,12 +215,13 @@ enum {
 
 #define ARMV7M_NUM_CORE_REGS (ARMV7M_CORE_LAST_REG - ARMV7M_CORE_FIRST_REG + 1)
 
-#define ARMV7M_COMMON_MAGIC 0x2A452A45
+#define ARMV7M_COMMON_MAGIC 0x2A452A45U
 
 struct armv7m_common {
+	unsigned int common_magic;
+
 	struct arm arm;
 
-	int common_magic;
 	int exception_number;
 
 	/* AP this processor is connected to in the DAP */
@@ -289,7 +290,7 @@ target_to_armv7m_safe(struct target *target)
 }
 
 struct armv7m_algorithm {
-	int common_magic;
+	unsigned int common_magic;
 
 	enum arm_mode core_mode;
 

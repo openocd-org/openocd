@@ -11,11 +11,12 @@
 #include "arm7tdmi.h"
 #include "armv4_5_mmu.h"
 
-#define	ARM720T_COMMON_MAGIC 0xa720a720
+#define	ARM720T_COMMON_MAGIC 0xa720a720U
 
 struct arm720t_common {
+	unsigned int common_magic;
+
 	struct arm7_9_common arm7_9_common;
-	uint32_t common_magic;
 	struct armv4_5_mmu_common armv4_5_mmu;
 	uint32_t cp15_control_reg;
 	uint32_t fsr_reg;
