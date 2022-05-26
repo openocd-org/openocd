@@ -405,13 +405,12 @@ static uint32_t dtmcontrol_scan(struct target *target, uint32_t out)
 
 static struct target_type *get_target_type(struct target *target)
 {
-	riscv_info_t *info = (riscv_info_t *) target->arch_info;
-
-	if (!info) {
+	if (!target->arch_info) {
 		LOG_ERROR("Target has not been initialized");
 		return NULL;
 	}
 
+	RISCV_INFO(info);
 	switch (info->dtm_version) {
 		case 0:
 			return &riscv011_target;
@@ -426,7 +425,7 @@ static struct target_type *get_target_type(struct target *target)
 static int riscv_create_target(struct target *target, Jim_Interp *interp)
 {
 	LOG_DEBUG("riscv_create_target()");
-	target->arch_info = calloc(1, sizeof(riscv_info_t));
+	target->arch_info = calloc(1, sizeof(struct riscv_info));
 	if (!target->arch_info) {
 		LOG_ERROR("Failed to allocate RISC-V target structure.");
 		return ERROR_FAIL;
@@ -489,13 +488,16 @@ static void riscv_deinit_target(struct target *target)
 {
 	LOG_DEBUG("riscv_deinit_target()");
 
-	riscv_info_t *info = target->arch_info;
+	struct riscv_info *info = target->arch_info;
 	struct target_type *tt = get_target_type(target);
 
-	if (tt && info->version_specific)
+	if (tt && info && info->version_specific)
 		tt->deinit_target(target);
 
 	riscv_free_registers(target);
+
+	if (!info)
+		return;
 
 	range_list_t *entry, *tmp;
 	list_for_each_entry_safe(entry, tmp, &info->expose_csr, list) {
@@ -1200,7 +1202,7 @@ int riscv_halt_go_all_harts(struct target *target)
 
 int halt_go(struct target *target)
 {
-	riscv_info_t *r = riscv_info(target);
+	RISCV_INFO(r);
 	int result;
 	if (!r->is_halted) {
 		struct target_type *tt = get_target_type(target);
@@ -1242,7 +1244,7 @@ int riscv_halt(struct target *target)
 
 		foreach_smp_target(tlist, target->smp_targets) {
 			struct target *t = tlist->target;
-			riscv_info_t *i = riscv_info(t);
+			struct riscv_info *i = riscv_info(t);
 			if (i->prepped) {
 				if (halt_go(t) != ERROR_OK)
 					result = ERROR_FAIL;
@@ -1434,7 +1436,7 @@ static int resume_prep(struct target *target, int current,
 static int resume_go(struct target *target, int current,
 		target_addr_t address, int handle_breakpoints, int debug_execution)
 {
-	riscv_info_t *r = riscv_info(target);
+	RISCV_INFO(r);
 	int result;
 	if (!r->is_halted) {
 		struct target_type *tt = get_target_type(target);
@@ -1483,7 +1485,7 @@ int riscv_resume(
 		foreach_smp_target_direction(resume_order == RO_NORMAL,
 									 tlist, target->smp_targets) {
 			struct target *t = tlist->target;
-			riscv_info_t *i = riscv_info(t);
+			struct riscv_info *i = riscv_info(t);
 			if (i->prepped) {
 				if (resume_go(t, current, address, handle_breakpoints,
 							debug_execution) != ERROR_OK)
@@ -2189,7 +2191,7 @@ int riscv_openocd_poll(struct target *target)
 		struct target_list *list;
 		foreach_smp_target(list, target->smp_targets) {
 			struct target *t = list->target;
-			riscv_info_t *r = riscv_info(t);
+			struct riscv_info *r = riscv_info(t);
 			enum riscv_poll_hart out = riscv_poll_hart(t, r->current_hartid);
 			switch (out) {
 			case RPH_NO_CHANGE:
@@ -3197,7 +3199,7 @@ struct target_type riscv_target = {
 
 /*** RISC-V Interface ***/
 
-void riscv_info_init(struct target *target, riscv_info_t *r)
+void riscv_info_init(struct target *target, struct riscv_info *r)
 {
 	memset(r, 0, sizeof(*r));
 	r->dtm_version = 1;

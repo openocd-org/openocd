@@ -85,7 +85,7 @@ typedef struct {
 	char *name;
 } range_list_t;
 
-typedef struct {
+struct riscv_info {
 	unsigned dtm_version;
 
 	struct command_context *cmd_ctx;
@@ -225,7 +225,7 @@ typedef struct {
 
 	riscv_sample_config_t sample_config;
 	struct riscv_sample_buf sample_buf;
-} riscv_info_t;
+};
 
 COMMAND_HELPER(riscv_print_info_line, const char *section, const char *key,
 			   unsigned int value);
@@ -261,13 +261,13 @@ extern bool riscv_ebreaku;
 
 /* Everything needs the RISC-V specific info structure, so here's a nice macro
  * that provides that. */
-static inline riscv_info_t *riscv_info(const struct target *target) __attribute__((unused));
-static inline riscv_info_t *riscv_info(const struct target *target)
+static inline struct riscv_info *riscv_info(const struct target *target) __attribute__((unused));
+static inline struct riscv_info *riscv_info(const struct target *target)
 {
 	assert(target->arch_info);
 	return target->arch_info;
 }
-#define RISCV_INFO(R) riscv_info_t *R = riscv_info(target);
+#define RISCV_INFO(R) struct riscv_info *R = riscv_info(target);
 
 extern uint8_t ir_dtmcontrol[4];
 extern struct scan_field select_dtmcontrol;
@@ -313,7 +313,7 @@ int riscv_openocd_deassert_reset(struct target *target);
 /*** RISC-V Interface ***/
 
 /* Initializes the shared RISC-V structure. */
-void riscv_info_init(struct target *target, riscv_info_t *r);
+void riscv_info_init(struct target *target, struct riscv_info *r);
 
 /* Steps the hart that's currently selected in the RTOS, or if there is no RTOS
  * then the only hart. */
