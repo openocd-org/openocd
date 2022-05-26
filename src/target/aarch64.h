@@ -9,7 +9,7 @@
 
 #include "armv8.h"
 
-#define AARCH64_COMMON_MAGIC 0x411fc082U
+#define AARCH64_COMMON_MAGIC 0x41413634U
 
 #define CPUDBG_CPUID	0xD00
 #define CPUDBG_CTYPR	0xD04
