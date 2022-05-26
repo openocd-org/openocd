@@ -4104,15 +4104,21 @@ instead of @command{adapter speed}, but only for (ARM) cores and boards
 which support adaptive clocking.
 
 @deffn {Command} {adapter speed} max_speed_kHz
-A non-zero speed is in KHZ. Hence: 3000 is 3mhz.
-JTAG interfaces usually support a limited number of
+A non-zero speed is in kHz. Hence: 3000 is 3 MHz.
+The debug adapter usually supports a limited number of
 speeds. The speed actually used won't be faster
 than the speed specified.
 
-Chip data sheets generally include a top JTAG clock rate.
-The actual rate is often a function of a CPU core clock,
+Chip data sheets generally include a top debug clock rate.
+It might be further lowered by PCB routing or wiring in case
+of an external adapter.
+
+The actual rate is sometimes a function of a CPU core clock,
 and is normally less than that peak rate.
-For example, most ARM cores accept at most one sixth of the CPU clock.
+For example, the legacy ARM7, ARM9, ARM11 cores accept JTAG clock
+at most one sixth of the CPU clock.
+Note the modern ARM ADI v5+ based debug circuitry is always self-clocked
+and the debug clock frequency can be much higher than CPU clock.
 
 Speed 0 (khz) selects RTCK method.
 @xref{faqrtck,,FAQ RTCK}.
@@ -4130,7 +4136,7 @@ This Tcl proc (defined in @file{startup.tcl}) attempts to enable RTCK/RCLK.
 If that fails (maybe the interface, board, or target doesn't
 support it), falls back to the specified frequency.
 @example
-# Fall back to 3mhz if RTCK is not supported
+# Fall back to 3 MHz if RTCK is not supported
 jtag_rclk 3000
 @end example
 @end defun
