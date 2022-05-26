@@ -118,9 +118,6 @@ typedef struct {
 	/* The number of entries in the debug buffer. */
 	int debug_buffer_size;
 
-	/* This avoids invalidating the register cache too often. */
-	bool registers_initialized;
-
 	/* This hart contains an implicit ebreak at the end of the program buffer. */
 	bool impebreak;
 
