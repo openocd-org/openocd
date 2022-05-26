@@ -13,6 +13,8 @@ struct riscv_program;
 #include "target/semihosting_common.h"
 #include <helper/command.h>
 
+#define RISCV_COMMON_MAGIC	0x52495356U
+
 /* The register cache is statically allocated. */
 #define RISCV_MAX_HARTS 1024
 #define RISCV_MAX_REGISTERS 5000
@@ -86,6 +88,8 @@ typedef struct {
 } range_list_t;
 
 struct riscv_info {
+	unsigned int common_magic;
+
 	unsigned dtm_version;
 
 	struct command_context *cmd_ctx;
@@ -268,6 +272,11 @@ static inline struct riscv_info *riscv_info(const struct target *target)
 	return target->arch_info;
 }
 #define RISCV_INFO(R) struct riscv_info *R = riscv_info(target);
+
+static inline bool is_riscv(const struct riscv_info *riscv_info)
+{
+	return riscv_info->common_magic == RISCV_COMMON_MAGIC;
+}
 
 extern uint8_t ir_dtmcontrol[4];
 extern struct scan_field select_dtmcontrol;

@@ -3202,6 +3202,9 @@ struct target_type riscv_target = {
 void riscv_info_init(struct target *target, struct riscv_info *r)
 {
 	memset(r, 0, sizeof(*r));
+
+	r->common_magic = RISCV_COMMON_MAGIC;
+
 	r->dtm_version = 1;
 	r->current_hartid = target->coreid;
 	r->version_specific = NULL;
