@@ -40,6 +40,8 @@ struct aarch64_brp {
 struct aarch64_common {
 	unsigned int common_magic;
 
+	struct armv8_common armv8_common;
+
 	/* Context information */
 	uint32_t system_control_reg;
 	uint32_t system_control_reg_curr;
@@ -54,8 +56,6 @@ struct aarch64_common {
 	int wp_num;
 	int wp_num_available;
 	struct aarch64_brp *wp_list;
-
-	struct armv8_common armv8_common;
 
 	enum aarch64_isrmasking_mode isrmasking_mode;
 };

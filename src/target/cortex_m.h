@@ -201,6 +201,8 @@ enum cortex_m_isrmasking_mode {
 struct cortex_m_common {
 	unsigned int common_magic;
 
+	struct armv7m_common armv7m;
+
 	/* Context information */
 	uint32_t dcb_dhcsr;
 	uint32_t dcb_dhcsr_cumulated_sticky;
@@ -226,7 +228,6 @@ struct cortex_m_common {
 	enum cortex_m_isrmasking_mode isrmasking_mode;
 
 	const struct cortex_m_part_info *core_info;
-	struct armv7m_common armv7m;
 
 	bool slow_register_read;	/* A register has not been ready, poll S_REGRDY */
 

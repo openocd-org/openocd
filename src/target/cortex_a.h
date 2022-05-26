@@ -69,6 +69,8 @@ struct cortex_a_wrp {
 struct cortex_a_common {
 	unsigned int common_magic;
 
+	struct armv7a_common armv7a_common;
+
 	/* Context information */
 	uint32_t cpudbg_dscr;
 
@@ -96,9 +98,6 @@ struct cortex_a_common {
 
 	enum cortex_a_isrmasking_mode isrmasking_mode;
 	enum cortex_a_dacrfixup_mode dacrfixup_mode;
-
-	struct armv7a_common armv7a_common;
-
 };
 
 static inline struct cortex_a_common *
