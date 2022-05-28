@@ -615,7 +615,11 @@ static void telnet_auto_complete(struct connection *connection)
 	while ((usr_cmd_pos < t_con->line_cursor) && isspace(t_con->line[usr_cmd_pos]))
 		usr_cmd_pos++;
 
-	/* user command length */
+	/* check user command length */
+	if (t_con->line_cursor < usr_cmd_pos) {
+		telnet_bell(connection);
+		return;
+	}
 	size_t usr_cmd_len = t_con->line_cursor - usr_cmd_pos;
 
 	/* optimize multiple spaces in the user command,
