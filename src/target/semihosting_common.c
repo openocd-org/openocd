@@ -877,9 +877,11 @@ int semihosting_common(struct target *target)
 					semihosting->result = -1;
 					semihosting->sys_errno = ENOMEM;
 				} else {
-					strncpy((char *)fn, semihosting->basedir, basedir_len);
-					if (fn[basedir_len - 1] != '/')
-						fn[basedir_len++] = '/';
+					if (basedir_len > 0) {
+						strcpy((char *)fn, semihosting->basedir);
+						if (fn[basedir_len - 1] != '/')
+							fn[basedir_len++] = '/';
+					}
 					retval = target_read_memory(target, addr, 1, len, fn + basedir_len);
 					if (retval != ERROR_OK) {
 						free(fn);
