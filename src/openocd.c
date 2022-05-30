@@ -119,6 +119,8 @@ COMMAND_HANDLER(handle_init_command)
 
 	initialized = 1;
 
+	bool save_poll_mask = jtag_poll_mask();
+
 	retval = command_run_line(CMD_CTX, "target init");
 	if (retval != ERROR_OK)
 		return ERROR_FAIL;
@@ -165,6 +167,8 @@ COMMAND_HANDLER(handle_init_command)
 	/* in COMMAND_EXEC, after target_examine(), only tpiu or only swo */
 	if (command_run_line(CMD_CTX, "tpiu init") != ERROR_OK)
 		return ERROR_FAIL;
+
+	jtag_poll_unmask(save_poll_mask);
 
 	/* initialize telnet subsystem */
 	gdb_target_add_all(all_targets);
