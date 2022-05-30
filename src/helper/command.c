@@ -702,14 +702,12 @@ static int jim_capture(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	 * This is necessary in order to avoid accidentally getting a non-empty
 	 * string for tcl fn's.
 	 */
-	bool save_poll = jtag_poll_get_enabled();
-
-	jtag_poll_set_enabled(false);
+	bool save_poll_mask = jtag_poll_mask();
 
 	const char *str = Jim_GetString(argv[1], NULL);
 	int retcode = Jim_Eval_Named(interp, str, __THIS__FILE__, __LINE__);
 
-	jtag_poll_set_enabled(save_poll);
+	jtag_poll_unmask(save_poll_mask);
 
 	command_log_capture_finish(state);
 

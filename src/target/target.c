@@ -654,10 +654,10 @@ int target_resume(struct target *target, int current, target_addr_t address,
 	 * Disable polling during resume() to guarantee the execution of handlers
 	 * in the correct order.
 	 */
-	bool save_poll = jtag_poll_get_enabled();
-	jtag_poll_set_enabled(false);
+	bool save_poll_mask = jtag_poll_mask();
 	retval = target->type->resume(target, current, address, handle_breakpoints, debug_execution);
-	jtag_poll_set_enabled(save_poll);
+	jtag_poll_unmask(save_poll_mask);
+
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -685,14 +685,12 @@ static int target_process_reset(struct command_invocation *cmd, enum target_rese
 	 * more predictable, i.e. dr/irscan & pathmove in events will
 	 * not have JTAG operations injected into the middle of a sequence.
 	 */
-	bool save_poll = jtag_poll_get_enabled();
-
-	jtag_poll_set_enabled(false);
+	bool save_poll_mask = jtag_poll_mask();
 
 	sprintf(buf, "ocd_process_reset %s", n->name);
 	retval = Jim_Eval(cmd->ctx->interp, buf);
 
-	jtag_poll_set_enabled(save_poll);
+	jtag_poll_unmask(save_poll_mask);
 
 	if (retval != JIM_OK) {
 		Jim_MakeErrorMessage(cmd->ctx->interp);
