@@ -1552,8 +1552,10 @@ static int rtp_rom_loop(const struct rtp_ops *ops,
 		}
 		if (retval == ERROR_OK)
 			retval = dap_run(ap->dap);
-		if (retval != ERROR_OK)
+		if (retval != ERROR_OK) {
 			LOG_DEBUG("Failed read ROM table entry");
+			return retval;
+		}
 
 		if (width == 64) {
 			romentry = (((uint64_t)romentry_high) << 32) | romentry_low;
