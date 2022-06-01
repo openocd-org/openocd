@@ -1938,6 +1938,8 @@ static const struct jim_nvp nvp_config_opts[] = {
 static int adiv5_jim_spot_configure(struct jim_getopt_info *goi,
 		struct adiv5_dap **dap_p, int *ap_num_p, uint32_t *base_p)
 {
+	assert(dap_p && ap_num_p);
+
 	if (!goi->argc)
 		return JIM_OK;
 
