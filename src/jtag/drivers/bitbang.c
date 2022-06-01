@@ -532,8 +532,9 @@ static void bitbang_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay
 	/* Devices do not reply to DP_TARGETSEL write cmd, ignore received ack */
 	bool check_ack = swd_cmd_returns_ack(cmd);
 
+	/* init the array to silence scan-build */
+	uint8_t trn_ack_data_parity_trn[DIV_ROUND_UP(4 + 3 + 32 + 1 + 4, 8)] = {0};
 	for (;;) {
-		uint8_t trn_ack_data_parity_trn[DIV_ROUND_UP(4 + 3 + 32 + 1 + 4, 8)];
 		buf_set_u32(trn_ack_data_parity_trn, 1 + 3 + 1, 32, value);
 		buf_set_u32(trn_ack_data_parity_trn, 1 + 3 + 1 + 32, 1, parity_u32(value));
 
