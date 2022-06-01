@@ -1641,11 +1641,12 @@ static int rtp_ap(const struct rtp_ops *ops, struct adiv5_ap *ap)
 {
 	int retval;
 	uint32_t apid;
-	target_addr_t dbgbase = 0; /* GCC complains can be used uninitialized */
-	target_addr_t invalid_entry;
+	target_addr_t dbgbase, invalid_entry;
 
 	/* Now we read ROM table ID registers, ref. ARM IHI 0029B sec  */
 	retval = dap_get_debugbase(ap, &dbgbase, &apid);
+	if (retval != ERROR_OK)
+		return retval;
 	retval = rtp_ops_mem_ap_header(ops, retval, ap, dbgbase, apid);
 	if (retval != ERROR_OK)
 		return retval;
