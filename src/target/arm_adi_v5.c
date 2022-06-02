@@ -2044,6 +2044,10 @@ int adiv5_jim_configure(struct target *target, struct jim_getopt_info *goi)
 	pc = (struct adiv5_private_config *)target->private_config;
 	if (!pc) {
 		pc = calloc(1, sizeof(struct adiv5_private_config));
+		if (!pc) {
+			LOG_ERROR("Out of memory");
+			return JIM_ERR;
+		}
 		pc->ap_num = DP_APSEL_INVALID;
 		target->private_config = pc;
 	}
