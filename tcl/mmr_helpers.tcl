@@ -70,3 +70,22 @@ proc show_mmr_bitfield { MSB LSB VAL FIELDNAME FIELDVALUES } {
     }
     echo [format "%-15s: %d (0x%0*x) %s" $FIELDNAME $nval $width $nval $sval ]
 }
+
+# Give: ADDR - address of the register.
+#       BIT - bit's number.
+
+proc get_mmr_bit { ADDR BIT } {
+	set val [memread32 $ADDR]
+	set bit_val [expr {$val & [expr {1 << $BIT}]}]
+	return $bit_val
+}
+
+
+# Give: ADDR - address of the register.
+#       MSB - MSB bit's number.
+#       LSB - LSB bit's number.
+
+proc get_mmr_bitfield { ADDR MSB LSB } {
+	set rval [memread32 $ADDR]
+	return normalize_bitfield $rval $MSB $LSB
+}
