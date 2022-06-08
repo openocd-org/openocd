@@ -2582,6 +2582,13 @@ minimal impact on the target system. Avoid floating inputs, conflicting outputs
 and initially asserted reset signals.
 @end deffn
 
+@deffn {Command} {ftdi oscan1_mode} on|off
+Enable or disable OSCAN1 mode. This mode is intended for use with an adapter,
+such as the ARM-JTAG-SWD by Olimex, that sits in between the FTDI chip and the
+target. The adapter uses the normal JTAG signals to control TCKC and TMSC
+(bidirectional) signals used in 2-wire cJTAG.
+@end deffn
+
 @deffn {Command} {ftdi layout_signal} name [@option{-data}|@option{-ndata} data_mask] [@option{-input}|@option{-ninput} input_mask] [@option{-oe}|@option{-noe} oe_mask] [@option{-alias}|@option{-nalias} name]
 Creates a signal with the specified @var{name}, controlled by one or more FTDI
 GPIO pins via a range of possible buffer connections. The masks are FTDI GPIO
