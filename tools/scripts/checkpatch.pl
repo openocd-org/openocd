@@ -22,6 +22,19 @@ my $V = '0.32';
 
 use Getopt::Long qw(:config no_auto_abbrev);
 
+# ATTENTION: easily track modification to this script for OpenOCD.
+# When possible, don't modify the existing code, don't change its indentation,
+# but remove it enclosing it within:
+#
+# if (!$OpenOCD) {
+# original_code;
+# } # !$OpenOCD
+#
+# Mark every addition within comments
+# # OpenOCD specific: Begin[: additional comment]
+# # OpenOCD specific: End
+my $OpenOCD = 1;
+
 my $quiet = 0;
 my $verbose = 0;
 my %verbose_messages = ();
