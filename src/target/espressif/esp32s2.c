@@ -21,6 +21,7 @@
 #include "config.h"
 #endif
 
+#include <helper/time_support.h>
 #include "assert.h"
 #include <target/target.h>
 #include <target/target_type.h>
@@ -482,15 +483,16 @@ static int esp32s2_soc_reset(struct target *target)
 	}
 	/* Wait for SoC to reset */
 	alive_sleep(100);
-	int timeout = 100;
-	while (target->state != TARGET_RESET && target->state != TARGET_RUNNING && --timeout > 0) {
+	int64_t timeout = timeval_ms() + 100;
+	while (target->state != TARGET_RESET && target->state != TARGET_RUNNING) {
 		alive_sleep(10);
 		xtensa_poll(target);
+		if (timeval_ms() >= timeout) {
+			LOG_TARGET_ERROR(target, "Timed out waiting for CPU to be reset, target state=%d", target->state);
+			return ERROR_TARGET_TIMEOUT;
+		}
 	}
-	if (timeout == 0) {
-		LOG_ERROR("Timed out waiting for CPU to be reset, target->state=%d", target->state);
-		return ERROR_TARGET_TIMEOUT;
-	}
+
 	xtensa_halt(target);
 	res = target_wait_state(target, TARGET_HALTED, 1000);
 	if (res != ERROR_OK) {
