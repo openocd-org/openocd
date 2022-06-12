@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 source [find bitsbytes.tcl]
 source [find cpu/arm/arm7tdmi.tcl]
 source [find memory.tcl]

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
 
 proc proc_exists { NAME } {
     set n [info commands $NAME]
