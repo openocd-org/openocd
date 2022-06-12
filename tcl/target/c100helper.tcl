@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
 
 proc helpC100 {} {
     echo "List of useful functions for C100 processor:"
