@@ -78,7 +78,12 @@ my $codespell = 0;
 my $codespellfile = "/usr/share/codespell/dictionary.txt";
 my $user_codespellfile = "";
 my $conststructsfile = "$D/const_structs.checkpatch";
+if (!$OpenOCD) {
 my $docsfile = "$D/../Documentation/dev-tools/checkpatch.rst";
+} # !$OpenOCD
+# OpenOCD Specific: Begin
+my $docsfile = "$D/../../doc/checkpatch.rst";
+# OpenOCD Specific: End
 my $typedefsfile;
 my $color = "auto";
 my $allow_c99_comments = 1; # Can be overridden by --ignore C99_COMMENT_TOLERANCE
