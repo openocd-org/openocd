@@ -1942,7 +1942,7 @@ static int aarch64_assert_reset(struct target *target)
 	else if (reset_config & RESET_HAS_SRST) {
 		bool srst_asserted = false;
 
-		if (target->reset_halt) {
+		if (target->reset_halt && !(reset_config & RESET_SRST_PULLS_TRST)) {
 			if (target_was_examined(target)) {
 
 				if (reset_config & RESET_SRST_NO_GATING) {
@@ -1952,11 +1952,11 @@ static int aarch64_assert_reset(struct target *target)
 					 */
 					adapter_assert_reset();
 					srst_asserted = true;
-
-					/* make sure to clear all sticky errors */
-					mem_ap_write_atomic_u32(armv8->debug_ap,
-							armv8->debug_base + CPUV8_DBG_DRCR, DRCR_CSE);
 				}
+
+				/* make sure to clear all sticky errors */
+				mem_ap_write_atomic_u32(armv8->debug_ap,
+						armv8->debug_base + CPUV8_DBG_DRCR, DRCR_CSE);
 
 				/* set up Reset Catch debug event to halt the CPU after reset */
 				retval = aarch64_enable_reset_catch(target, true);
