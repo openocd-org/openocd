@@ -299,6 +299,7 @@ static int linuxgpiod_quit(void)
 	helper_release(gpiod_led);
 	helper_release(gpiod_srst);
 	helper_release(gpiod_swdio);
+	helper_release(gpiod_swdio_dir);
 	helper_release(gpiod_swclk);
 	helper_release(gpiod_trst);
 	helper_release(gpiod_tms);
