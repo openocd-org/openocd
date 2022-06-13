@@ -1830,7 +1830,7 @@ COMMAND_HANDLER(handle_common_semihosting_redirect_command)
 {
 	struct target *target = get_current_target(CMD_CTX);
 
-	if (target == NULL) {
+	if (!target) {
 		LOG_ERROR("No target selected");
 		return ERROR_FAIL;
 	}
