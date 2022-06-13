@@ -288,45 +288,26 @@ static bool linuxgpiod_swd_mode_possible(void)
 	return true;
 }
 
-static inline void helper_release(struct gpiod_line *line)
+static inline void helper_release(struct gpiod_line *line, struct gpiod_chip *chip)
 {
 	if (line)
 		gpiod_line_release(line);
+	if (chip)
+		gpiod_chip_close(chip);
 }
 
 static int linuxgpiod_quit(void)
 {
-	helper_release(gpiod_led);
-	helper_release(gpiod_srst);
-	helper_release(gpiod_swdio);
-	helper_release(gpiod_swdio_dir);
-	helper_release(gpiod_swclk);
-	helper_release(gpiod_trst);
-	helper_release(gpiod_tms);
-	helper_release(gpiod_tck);
-	helper_release(gpiod_tdi);
-	helper_release(gpiod_tdo);
-
-	if (gpiod_chip_led != NULL)
-		gpiod_chip_close(gpiod_chip_led);
-	if (gpiod_chip_srst != NULL)
-		gpiod_chip_close(gpiod_chip_srst);
-	if (gpiod_chip_swdio != NULL)
-		gpiod_chip_close(gpiod_chip_swdio);
-	if (gpiod_chip_swdio_dir != NULL)
-		gpiod_chip_close(gpiod_chip_swdio_dir);
-	if (gpiod_chip_swclk != NULL)
-		gpiod_chip_close(gpiod_chip_swclk);
-	if (gpiod_chip_trst != NULL)
-		gpiod_chip_close(gpiod_chip_trst);
-	if (gpiod_chip_tms != NULL)
-		gpiod_chip_close(gpiod_chip_tms);
-	if (gpiod_chip_tck != NULL)
-		gpiod_chip_close(gpiod_chip_tck);
-	if (gpiod_chip_tdi != NULL)
-		gpiod_chip_close(gpiod_chip_tdi);
-	if (gpiod_chip_tdo != NULL)
-		gpiod_chip_close(gpiod_chip_tdo);
+	helper_release(gpiod_led,       gpiod_chip_led);
+	helper_release(gpiod_srst,      gpiod_chip_srst);
+	helper_release(gpiod_swdio,     gpiod_chip_swdio);
+	helper_release(gpiod_swdio_dir, gpiod_chip_swdio_dir);
+	helper_release(gpiod_swclk,     gpiod_chip_swclk);
+	helper_release(gpiod_trst,      gpiod_chip_trst);
+	helper_release(gpiod_tms,       gpiod_chip_tms);
+	helper_release(gpiod_tck,       gpiod_chip_tck);
+	helper_release(gpiod_tdi,       gpiod_chip_tdi);
+	helper_release(gpiod_tdo,       gpiod_chip_tdo);
 
 	return ERROR_OK;
 }
