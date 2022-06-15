@@ -2201,7 +2201,6 @@ int riscv_openocd_poll(struct target *target)
 	enum target_state old_state = target->state;
 
 	if (target->smp) {
-		unsigned halts_discovered = 0;
 		unsigned should_remain_halted = 0;
 		unsigned should_resume = 0;
 		struct target_list *list;
@@ -2219,7 +2218,6 @@ int riscv_openocd_poll(struct target *target)
 				t->debug_reason = DBG_REASON_NOTHALTED;
 				break;
 			case RPH_DISCOVERED_HALTED:
-				halts_discovered++;
 				t->state = TARGET_HALTED;
 				enum riscv_halt_reason halt_reason =
 					riscv_halt_reason(t, r->current_hartid);
