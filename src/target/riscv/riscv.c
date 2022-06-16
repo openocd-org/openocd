@@ -3519,7 +3519,6 @@ void riscv_info_init(struct target *target, riscv_info_t *r)
 {
 	memset(r, 0, sizeof(*r));
 	r->dtm_version = 1;
-	r->registers_initialized = false;
 	r->current_hartid = target->coreid;
 	r->version_specific = NULL;
 
@@ -3664,7 +3663,10 @@ int riscv_set_current_hartid(struct target *target, int hartid)
 
 void riscv_invalidate_register_cache(struct target *target)
 {
-	RISCV_INFO(r);
+	/* Do not invalidate the register cache if it is not yet set up
+	 * (e.g. when the target failed to get examined). */
+	if (!target->reg_cache)
+		return;
 
 	LOG_DEBUG("[%d]", target->coreid);
 	register_cache_invalidate(target->reg_cache);
@@ -3672,8 +3674,6 @@ void riscv_invalidate_register_cache(struct target *target)
 		struct reg *reg = &target->reg_cache->reg_list[i];
 		reg->valid = false;
 	}
-
-	r->registers_initialized = true;
 }
 
 int riscv_current_hartid(const struct target *target)
