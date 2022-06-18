@@ -24,6 +24,12 @@ AC_PROG_CC
 m4_version_prereq([2.70],[],[AC_PROG_CC_C99])
 AM_PROG_CC_C_O
 AC_PROG_RANLIB
+
+# If macro PKG_PROG_PKG_CONFIG is not available, Autoconf generates a misleading error message,
+# so check for existence first, and otherwise provide helpful advice.
+m4_ifndef([PKG_PROG_PKG_CONFIG], [m4_fatal(m4_normalize([
+  Macro PKG_PROG_PKG_CONFIG is not available.
+  It is usually defined in file pkg.m4 provided by package pkg-config.]))])
 PKG_PROG_PKG_CONFIG([0.23])
 
 dnl disable checks for C++, Fortran and GNU Java Compiler
