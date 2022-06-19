@@ -148,6 +148,10 @@ int parse_config_file(struct command_context *cmd_ctx)
 
 char *get_home_dir(const char *append_path)
 {
+#ifdef _WIN32
+	char homepath[MAX_PATH];
+#endif
+
 	char *home = getenv("HOME");
 
 	if (!home) {
@@ -156,8 +160,6 @@ char *get_home_dir(const char *append_path)
 		home = getenv("USERPROFILE");
 
 		if (!home) {
-
-			char homepath[MAX_PATH];
 			char *drive = getenv("HOMEDRIVE");
 			char *path = getenv("HOMEPATH");
 			if (drive && path) {
