@@ -103,6 +103,13 @@ enum semihosting_redirect_config {
 	SEMIHOSTING_REDIRECT_CFG_ALL,
 };
 
+enum semihosting_result {
+	SEMIHOSTING_NONE,		/* Not halted for a semihosting call. */
+	SEMIHOSTING_HANDLED,	/* Call handled, and target was resumed. */
+	SEMIHOSTING_WAITING,	/* Call handled, target is halted waiting until we can resume. */
+	SEMIHOSTING_ERROR		/* Something went wrong. */
+};
+
 struct target;
 
 /*

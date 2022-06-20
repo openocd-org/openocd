@@ -10,6 +10,7 @@ struct riscv_program;
 #include "gdb_regs.h"
 #include "jtag/jtag.h"
 #include "target/register.h"
+#include "target/semihosting_common.h"
 #include <helper/command.h>
 
 /* The register cache is statically allocated. */
@@ -377,13 +378,8 @@ int riscv_hit_watchpoint(struct target *target, struct watchpoint **hit_wp_addre
 int riscv_init_registers(struct target *target);
 
 void riscv_semihosting_init(struct target *target);
-typedef enum {
-	SEMI_NONE,		/* Not halted for a semihosting call. */
-	SEMI_HANDLED,	/* Call handled, and target was resumed. */
-	SEMI_WAITING,	/* Call handled, target is halted waiting until we can resume. */
-	SEMI_ERROR		/* Something went wrong. */
-} semihosting_result_t;
-semihosting_result_t riscv_semihosting(struct target *target, int *retval);
+
+enum semihosting_result riscv_semihosting(struct target *target, int *retval);
 
 void riscv_add_bscan_tunneled_scan(struct target *target, struct scan_field *field,
 		riscv_bscan_tunneled_scan_context_t *ctxt);
