@@ -3401,87 +3401,14 @@ See @file{interface/beaglebone-swd-native.cfg} for a sample configuration file.
 
 
 @deffn {Interface Driver} {linuxgpiod}
-Linux provides userspace access to GPIO through libgpiod since Linux kernel version v4.6.
-The driver emulates either JTAG or SWD transport through bitbanging.
+Linux provides userspace access to GPIO through libgpiod since Linux kernel
+version v4.6. The driver emulates either JTAG or SWD transport through
+bitbanging. There are no driver-specific commands, all GPIO configuration is
+handled by the generic command @ref{adapter gpio, @command{adapter gpio}}. This
+driver supports the resistor pull options provided by the @command{adapter gpio}
+command but the underlying hardware may not be able to support them.
 
-See @file{interface/dln-2-gpiod.cfg} for a sample config.
-
-@deffn {Config Command} {linuxgpiod gpiochip} @var{chip}
-Set the GPIO chip number for all GPIOs used by linuxgpiod. If GPIOs use
-different GPIO chips then the individual GPIO configuration commands (i.e., not
-@command{linuxgpiod jtag_nums} or @command{linuxgpiod swd_nums}) can be used to
-set chip numbers independently for each GPIO.
-@end deffn
-
-@deffn {Config Command} {linuxgpiod jtag_nums} @var{tck} @var{tms} @var{tdi} @var{tdo}
-Set JTAG transport GPIO numbers for TCK, TMS, TDI, and TDO (in that order). Must
-be specified to enable JTAG transport. These pins can also be specified
-individually.
-@end deffn
-
-@deffn {Config Command} {linuxgpiod tck_num} [@var{chip}] @var{tck}
-Set TCK GPIO number, and optionally TCK chip number. Must be specified to enable
-JTAG transport. Can also be specified using the configuration command
-@command{linuxgpiod jtag_nums}.
-@end deffn
-
-@deffn {Config Command} {linuxgpiod tms_num} [@var{chip}] @var{tms}
-Set TMS GPIO number, and optionally TMS chip number. Must be specified to enable
-JTAG transport. Can also be specified using the configuration command
-@command{linuxgpiod jtag_nums}.
-@end deffn
-
-@deffn {Config Command} {linuxgpiod tdo_num} [@var{chip}] @var{tdo}
-Set TDO GPIO number, and optionally TDO chip number. Must be specified to enable
-JTAG transport. Can also be specified using the configuration command
-@command{linuxgpiod jtag_nums}.
-@end deffn
-
-@deffn {Config Command} {linuxgpiod tdi_num} [@var{chip}] @var{tdi}
-Set TDI GPIO number, and optionally TDI chip number. Must be specified to enable
-JTAG transport. Can also be specified using the configuration command
-@command{linuxgpiod jtag_nums}.
-@end deffn
-
-@deffn {Config Command} {linuxgpiod trst_num} [@var{chip}] @var{trst}
-Set TRST GPIO number, and optionally TRST chip number. Must be specified to
-enable TRST.
-@end deffn
-
-@deffn {Config Command} {linuxgpiod swd_nums} @var{swclk} @var{swdio}
-Set SWD transport GPIO numbers for SWCLK and SWDIO (in that order). Must be
-specified to enable SWD transport. These pins can also be specified
-individually.
-@end deffn
-
-@deffn {Config Command} {linuxgpiod swclk_num} [@var{chip}] @var{swclk}
-Set SWCLK GPIO number, and optionally SWCLK chip number. Must be specified to
-enable SWD transport. Can also be specified using the configuration command
-@command{linuxgpiod swd_nums}.
-@end deffn
-
-@deffn {Config Command} {linuxgpiod swdio_num} [@var{chip}] @var{swdio}
-Set SWDIO GPIO number, and optionally SWDIO chip number. Must be specified to
-enable SWD transport. Can also be specified using the configuration command
-@command{linuxgpiod swd_nums}.
-@end deffn
-
-@deffn {Config Command} {linuxgpiod swdio_dir_num} [@var{chip}] @var{swdio_dir}
-Set SWDIO direction control GPIO number, and optionally SWDIO direction control
-chip number. If specified, this GPIO can be used to control the direction of an
-external buffer connected to the SWDIO GPIO (set=output mode, clear=input mode).
-@end deffn
-
-@deffn {Config Command} {linuxgpiod srst_num} [@var{chip}] @var{srst}
-Set SRST GPIO number, and optionally SRST chip number. Must be specified to
-enable SRST.
-@end deffn
-
-@deffn {Config Command} {linuxgpiod led_num} [@var{chip}] @var{led}
-Set activity LED GPIO number, and optionally activity LED chip number. If not
-specified an activity LED is not enabled.
-@end deffn
-
+See @file{interface/dln-2-gpiod.cfg} for a sample configuration file.
 @end deffn
 
 

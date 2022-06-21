@@ -535,74 +535,72 @@ proc bcm2835gpio_peripheral_base args {
 
 lappend _telnet_autocomplete_skip linuxgpiod_jtag_nums
 proc linuxgpiod_jtag_nums args {
-	echo "DEPRECATED! use 'linuxgpiod jtag_nums' not 'linuxgpiod_jtag_nums'"
-	eval linuxgpiod jtag_nums $args
+	eval adapter_gpio_jtag_nums $args
 }
 
 lappend _telnet_autocomplete_skip linuxgpiod_tck_num
 proc linuxgpiod_tck_num args {
-	echo "DEPRECATED! use 'linuxgpiod tck_num' not 'linuxgpiod_tck_num'"
-	eval linuxgpiod tck_num $args
+	eval adapter_gpio_helper tck $args
 }
 
 lappend _telnet_autocomplete_skip linuxgpiod_tms_num
 proc linuxgpiod_tms_num args {
-	echo "DEPRECATED! use 'linuxgpiod tms_num' not 'linuxgpiod_tms_num'"
-	eval linuxgpiod tms_num $args
+	eval adapter_gpio_helper tms $args
 }
 
 lappend _telnet_autocomplete_skip linuxgpiod_tdo_num
 proc linuxgpiod_tdo_num args {
-	echo "DEPRECATED! use 'linuxgpiod tdo_num' not 'linuxgpiod_tdo_num'"
-	eval linuxgpiod tdo_num $args
+	eval adapter_gpio_helper tdo $args
 }
 
 lappend _telnet_autocomplete_skip linuxgpiod_tdi_num
 proc linuxgpiod_tdi_num args {
-	echo "DEPRECATED! use 'linuxgpiod tdi_num' not 'linuxgpiod_tdi_num'"
-	eval linuxgpiod tdi_num $args
+	eval adapter_gpio_helper tdi $args
 }
 
 lappend _telnet_autocomplete_skip linuxgpiod_srst_num
 proc linuxgpiod_srst_num args {
-	echo "DEPRECATED! use 'linuxgpiod srst_num' not 'linuxgpiod_srst_num'"
-	eval linuxgpiod srst_num $args
+	eval adapter_gpio_helper srst $args
 }
 
 lappend _telnet_autocomplete_skip linuxgpiod_trst_num
 proc linuxgpiod_trst_num args {
-	echo "DEPRECATED! use 'linuxgpiod trst_num' not 'linuxgpiod_trst_num'"
-	eval linuxgpiod trst_num $args
+	eval adapter_gpio_helper trst $args
 }
 
 lappend _telnet_autocomplete_skip linuxgpiod_swd_nums
 proc linuxgpiod_swd_nums args {
-	echo "DEPRECATED! use 'linuxgpiod swd_nums' not 'linuxgpiod_swd_nums'"
-	eval linuxgpiod swd_nums $args
+	eval adapter_gpio_swd_nums $args
 }
 
 lappend _telnet_autocomplete_skip linuxgpiod_swclk_num
 proc linuxgpiod_swclk_num args {
-	echo "DEPRECATED! use 'linuxgpiod swclk_num' not 'linuxgpiod_swclk_num'"
-	eval linuxgpiod swclk_num $args
+	eval adapter_gpio_helper swclk $args
 }
 
 lappend _telnet_autocomplete_skip linuxgpiod_swdio_num
 proc linuxgpiod_swdio_num args {
-	echo "DEPRECATED! use 'linuxgpiod swdio_num' not 'linuxgpiod_swdio_num'"
-	eval linuxgpiod swdio_num $args
+	eval adapter_gpio_helper swdio $args
 }
 
 lappend _telnet_autocomplete_skip linuxgpiod_led_num
 proc linuxgpiod_led_num args {
-	echo "DEPRECATED! use 'linuxgpiod led_num' not 'linuxgpiod_led_num'"
-	eval linuxgpiod led_num $args
+	eval adapter_gpio_helper led $args
 }
 
 lappend _telnet_autocomplete_skip linuxgpiod_gpiochip
 proc linuxgpiod_gpiochip args {
-	echo "DEPRECATED! use 'linuxgpiod gpiochip' not 'linuxgpiod_gpiochip'"
-	eval linuxgpiod gpiochip $args
+	echo "DEPRECATED! use 'adapter <signal_name> -chip' not 'linuxgpiod_gpiochip'"
+	switch [llength $args] {
+		0 { }
+		1 {
+			foreach sig_name {tck tms tdi tdo trst srst swclk swdio swdio_dir led} {
+				eval adapter gpio $sig_name -chip $args
+			}
+		}
+		default {return -code 1 -level 1 "linuxgpiod_gpiochip: syntax error"}
+	}
+	eval adapter gpio
 }
 
 lappend _telnet_autocomplete_skip sysfsgpio_jtag_nums
@@ -861,6 +859,87 @@ lappend _telnet_autocomplete_skip "xds110 serial"
 proc "xds110 serial" {args} {
 	echo "DEPRECATED! use 'adapter serial' not 'xds110 serial'"
 	eval adapter serial $args
+}
+
+lappend _telnet_autocomplete_skip linuxgpiod
+# linuxgpiod command completely removed, this is required for the sub-commands to work
+proc linuxgpiod {subcommand args} {
+	eval {"linuxgpiod $subcommand"} $args
+}
+
+lappend _telnet_autocomplete_skip "linuxgpiod tck_num"
+proc "linuxgpiod tck_num" {args} {
+	eval adapter_gpio_helper tck $args
+}
+
+lappend _telnet_autocomplete_skip "linuxgpiod tms_num"
+proc "linuxgpiod tms_num" {args} {
+	eval adapter_gpio_helper tms $args
+}
+
+lappend _telnet_autocomplete_skip "linuxgpiod tdi_num"
+proc "linuxgpiod tdi_num" {args} {
+	eval adapter_gpio_helper tdi $args
+}
+
+lappend _telnet_autocomplete_skip "linuxgpiod tdo_num"
+proc "linuxgpiod tdo_num" {args} {
+	eval adapter_gpio_helper tdo $args
+}
+
+lappend _telnet_autocomplete_skip "linuxgpiod trst_num"
+proc "linuxgpiod trst_num" {args} {
+	eval adapter_gpio_helper trst $args
+}
+
+lappend _telnet_autocomplete_skip "linuxgpiod srst_num"
+proc "linuxgpiod srst_num" {args} {
+	eval adapter_gpio_helper srst $args
+}
+
+lappend _telnet_autocomplete_skip "linuxgpiod swclk_num"
+proc "linuxgpiod swclk_num" {args} {
+	eval adapter_gpio_helper swclk $args
+}
+
+lappend _telnet_autocomplete_skip "linuxgpiod swdio_num"
+proc "linuxgpiod swdio_num" {args} {
+	eval adapter_gpio_helper swdio $args
+}
+
+lappend _telnet_autocomplete_skip "linuxgpiod swdio_dir_num"
+proc "linuxgpiod swdio_dir_num" {args} {
+	eval adapter_gpio_helper swdio_dir $args
+}
+
+lappend _telnet_autocomplete_skip "linuxgpiod led_num"
+proc "linuxgpiod led_num" {args} {
+	eval adapter_gpio_helper led $args
+}
+
+lappend _telnet_autocomplete_skip "linuxgpiod gpiochip"
+proc "linuxgpiod gpiochip" {num} {
+	echo "DEPRECATED! use 'adapter <signal_name> -chip' not 'linuxgpiod gpiochip'"
+	foreach sig_name {tck tms tdi tdo trst srst swclk swdio swdio_dir led} {
+		eval adapter gpio $sig_name -chip $num
+	}
+	eval adapter gpio
+}
+
+lappend _telnet_autocomplete_skip "linuxgpiod jtag_nums"
+proc "linuxgpiod jtag_nums" {tck_num tms_num tdi_num tdo_num} {
+	echo "DEPRECATED! use 'adapter gpio tck; adapter gpio tms; adapter gpio tdi; adapter gpio tdo' not 'linuxgpiod jtag_nums'"
+	eval adapter gpio tck $tck_num
+	eval adapter gpio tms $tms_num
+	eval adapter gpio tdi $tdi_num
+	eval adapter gpio tdo $tdo_num
+}
+
+lappend _telnet_autocomplete_skip "linuxgpiod swd_nums"
+proc "linuxgpiod swd_nums" {swclk swdio} {
+	echo "DEPRECATED! use 'adapter gpio swclk; adapter gpio swdio' not 'linuxgpiod jtag_nums'"
+	eval adapter gpio swclk $swclk
+	eval adapter gpio swdio $swdio
 }
 
 lappend _telnet_autocomplete_skip "am335xgpio jtag_nums"
