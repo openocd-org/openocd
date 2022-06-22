@@ -377,6 +377,13 @@ static bool am335xgpio_swd_mode_possible(void)
 	return true;
 }
 
+static void am335xgpio_munmap(void)
+{
+	for (unsigned int i = 0; i < AM335XGPIO_NUM_GPIO_CHIPS && am335xgpio_gpio_chip_mmap_addr[i] != MAP_FAILED; ++i)
+		if (munmap((void *)am335xgpio_gpio_chip_mmap_addr[i], sysconf(_SC_PAGE_SIZE)) < 0)
+			LOG_ERROR("Cannot unmap GPIO memory for chip %d: %s", i, strerror(errno));
+}
+
 static int am335xgpio_init(void)
 {
 	LOG_INFO("AM335x GPIO JTAG/SWD bitbang driver");
@@ -410,10 +417,12 @@ static int am335xgpio_init(void)
 
 		if (am335xgpio_gpio_chip_mmap_addr[i] == MAP_FAILED) {
 			LOG_ERROR("mmap: %s", strerror(errno));
+			am335xgpio_munmap();
 			close(dev_mem_fd);
 			return ERROR_JTAG_INIT_FAILED;
 		}
 	}
+	close(dev_mem_fd);
 
 	/* Configure JTAG/SWD signals. Default directions and initial states are handled
 	 * by adapter.c and "adapter gpio" command.
@@ -475,6 +484,8 @@ static int am335xgpio_quit(void)
 
 	restore_gpio(ADAPTER_GPIO_IDX_SRST);
 	restore_gpio(ADAPTER_GPIO_IDX_LED);
+
+	am335xgpio_munmap();
 
 	return ERROR_OK;
 }
