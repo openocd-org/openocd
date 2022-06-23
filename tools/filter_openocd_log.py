@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import sys
 import re
@@ -38,7 +38,7 @@ def shorten_buffer(outfd, buf, current_repetition):
 
     # Look for repeated sequences...
     repetitions = []
-    for length in range(1, len(buf)/2):
+    for length in range(1, int(len(buf)/2)):
         # Is there a repeating sequence of `length` lines?
         matched_lines = 0
         for i, entry in enumerate(buf[length:]):
@@ -52,7 +52,7 @@ def shorten_buffer(outfd, buf, current_repetition):
     if repetitions:
         repetitions.sort(key=lambda entry: (entry[0] * (entry[1] / entry[0]), -entry[1]))
         matched_lines, length = repetitions[-1]
-        repeated = matched_lines / length
+        repeated = int(matched_lines / length)
         if repeated * length >= 3:
             sequence = buf[:length]
             del buf[:repeated * length]
@@ -74,9 +74,9 @@ def shorten_buffer(outfd, buf, current_repetition):
         buf.pop(0)
 
     if length_before <= len(buf):
-        print "Buffer:"
+        print("Buffer:")
         for entry in buf:
-            print "%r" % entry[0]
+            print("%r" % entry[0])
         assert False
 
     return None
