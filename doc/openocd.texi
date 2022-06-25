@@ -3292,65 +3292,11 @@ able to coexist nicely with both sysfs bitbanging and various
 peripherals' kernel drivers. The driver restores the previous
 configuration on exit.
 
-GPIO numbers >= 32 can't be used for performance reasons.
+GPIO numbers >= 32 can't be used for performance reasons. GPIO configuration is
+handled by the generic command @ref{adapter gpio, @command{adapter gpio}}.
 
 See @file{interface/raspberrypi-native.cfg} for a sample config and
 pinout.
-
-@deffn {Config Command} {bcm2835gpio jtag_nums} @var{tck} @var{tms} @var{tdi} @var{tdo}
-Set JTAG transport GPIO numbers for TCK, TMS, TDI, and TDO (in that order).
-Must be specified to enable JTAG transport. These pins can also be specified
-individually.
-@end deffn
-
-@deffn {Config Command} {bcm2835gpio tck_num} @var{tck}
-Set TCK GPIO number. Must be specified to enable JTAG transport. Can also be
-specified using the configuration command @command{bcm2835gpio jtag_nums}.
-@end deffn
-
-@deffn {Config Command} {bcm2835gpio tms_num} @var{tms}
-Set TMS GPIO number. Must be specified to enable JTAG transport. Can also be
-specified using the configuration command @command{bcm2835gpio jtag_nums}.
-@end deffn
-
-@deffn {Config Command} {bcm2835gpio tdo_num} @var{tdo}
-Set TDO GPIO number. Must be specified to enable JTAG transport. Can also be
-specified using the configuration command @command{bcm2835gpio jtag_nums}.
-@end deffn
-
-@deffn {Config Command} {bcm2835gpio tdi_num} @var{tdi}
-Set TDI GPIO number. Must be specified to enable JTAG transport. Can also be
-specified using the configuration command @command{bcm2835gpio jtag_nums}.
-@end deffn
-
-@deffn {Config Command} {bcm2835gpio swd_nums} @var{swclk} @var{swdio}
-Set SWD transport GPIO numbers for SWCLK and SWDIO (in that order). Must be
-specified to enable SWD transport. These pins can also be specified individually.
-@end deffn
-
-@deffn {Config Command} {bcm2835gpio swclk_num} @var{swclk}
-Set SWCLK GPIO number. Must be specified to enable SWD transport. Can also be
-specified using the configuration command @command{bcm2835gpio swd_nums}.
-@end deffn
-
-@deffn {Config Command} {bcm2835gpio swdio_num} @var{swdio}
-Set SWDIO GPIO number. Must be specified to enable SWD transport. Can also be
-specified using the configuration command @command{bcm2835gpio swd_nums}.
-@end deffn
-
-@deffn {Config Command} {bcm2835gpio swdio_dir_num} @var{swdio} @var{dir}
-Set SWDIO direction control pin GPIO number. If specified, this pin can be used
-to control the direction of an external buffer on the SWDIO pin (set=output
-mode, clear=input mode). If not specified, this feature is disabled.
-@end deffn
-
-@deffn {Config Command} {bcm2835gpio srst_num} @var{srst}
-Set SRST GPIO number. Must be specified to enable SRST.
-@end deffn
-
-@deffn {Config Command} {bcm2835gpio trst_num} @var{trst}
-Set TRST GPIO number. Must be specified to enable TRST.
-@end deffn
 
 @deffn {Config Command} {bcm2835gpio speed_coeffs} @var{speed_coeff} @var{speed_offset}
 Set SPEED_COEFF and SPEED_OFFSET for delay calculations. If unspecified,

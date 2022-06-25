@@ -455,70 +455,140 @@ proc vsllink_usb_interface args {
 	eval vsllink usb_interface $args
 }
 
+
+lappend _telnet_autocomplete_skip bcm2835_gpio_helper
+proc bcm2835_gpio_helper {sig_name args} {
+	set caller [lindex [info level -1] 0]
+	echo "DEPRECATED! use 'adapter gpio $sig_name' not '$caller'"
+	switch [llength $args] {
+		0 {}
+		1 {eval adapter gpio $sig_name $args -chip 0}
+		2 {eval adapter gpio $sig_name [lindex $args 1] -chip [lindex $args 0]}
+		default {return -code 1 -level 1 "$caller: syntax error"}
+	}
+	eval adapter gpio $sig_name
+}
+
 lappend _telnet_autocomplete_skip bcm2835gpio_jtag_nums
-proc bcm2835gpio_jtag_nums args {
-	echo "DEPRECATED! use 'bcm2835gpio jtag_nums' not 'bcm2835gpio_jtag_nums'"
-	eval bcm2835gpio jtag_nums $args
+proc bcm2835gpio_jtag_nums {tck_num tms_num tdi_num tdo_num} {
+	echo "DEPRECATED! use 'adapter gpio tck; adapter gpio tms; adapter gpio tdi; adapter gpio tdo' not 'bcm2835gpio_jtag_nums'"
+	eval adapter gpio tck $tck_num -chip 0
+	eval adapter gpio tms $tms_num -chip 0
+	eval adapter gpio tdi $tdi_num -chip 0
+	eval adapter gpio tdo $tdo_num -chip 0
 }
 
 lappend _telnet_autocomplete_skip bcm2835gpio_tck_num
 proc bcm2835gpio_tck_num args {
-	echo "DEPRECATED! use 'bcm2835gpio tck_num' not 'bcm2835gpio_tck_num'"
-	eval bcm2835gpio tck_num $args
+	eval bcm2835_gpio_helper tck $args
 }
 
 lappend _telnet_autocomplete_skip bcm2835gpio_tms_num
 proc bcm2835gpio_tms_num args {
-	echo "DEPRECATED! use 'bcm2835gpio tms_num' not 'bcm2835gpio_tms_num'"
-	eval bcm2835gpio tms_num $args
+	eval bcm2835_gpio_helper tms $args
 }
 
 lappend _telnet_autocomplete_skip bcm2835gpio_tdo_num
 proc bcm2835gpio_tdo_num args {
-	echo "DEPRECATED! use 'bcm2835gpio tdo_num' not 'bcm2835gpio_tdo_num'"
-	eval bcm2835gpio tdo_num $args
+	eval bcm2835_gpio_helper tdo $args
 }
 
 lappend _telnet_autocomplete_skip bcm2835gpio_tdi_num
 proc bcm2835gpio_tdi_num args {
-	echo "DEPRECATED! use 'bcm2835gpio tdi_num' not 'bcm2835gpio_tdi_num'"
-	eval bcm2835gpio tdi_num $args
+	eval bcm2835_gpio_helper tdi $args
 }
 
 lappend _telnet_autocomplete_skip bcm2835gpio_swd_nums
-proc bcm2835gpio_swd_nums args {
-	echo "DEPRECATED! use 'bcm2835gpio swd_nums' not 'bcm2835gpio_swd_nums'"
-	eval bcm2835gpio swd_nums $args
+proc bcm2835gpio_swd_nums {swclk_num swdio_num} {
+	echo "DEPRECATED! use 'adapter gpio swclk; adapter gpio swdio' not 'bcm2835gpio_swd_nums'"
+	eval adapter gpio swclk $swclk_num -chip 0
+	eval adapter gpio swdio $swdio_num -chip 0
 }
 
 lappend _telnet_autocomplete_skip bcm2835gpio_swclk_num
 proc bcm2835gpio_swclk_num args {
-	echo "DEPRECATED! use 'bcm2835gpio swclk_num' not 'bcm2835gpio_swclk_num'"
-	eval bcm2835gpio swclk_num $args
+	eval bcm2835_gpio_helper swclk $args
 }
 
 lappend _telnet_autocomplete_skip bcm2835gpio_swdio_num
 proc bcm2835gpio_swdio_num args {
-	echo "DEPRECATED! use 'bcm2835gpio swdio_num' not 'bcm2835gpio_swdio_num'"
-	eval bcm2835gpio swdio_num $args
+	eval bcm2835_gpio_helper swdio $args
 }
 
 lappend _telnet_autocomplete_skip bcm2835gpio_swdio_dir_num
 proc bcm2835gpio_swdio_dir_num args {
-	echo "DEPRECATED! use 'bcm2835gpio swdio_dir_num' not 'bcm2835gpio_swdio_dir_num'"
-	eval bcm2835gpio swdio_dir_num $args
+	eval bcm2835_gpio_helper swdio_dir $args
 }
 
 lappend _telnet_autocomplete_skip bcm2835gpio_srst_num
 proc bcm2835gpio_srst_num args {
-	echo "DEPRECATED! use 'bcm2835gpio srst_num' not 'bcm2835gpio_srst_num'"
-	eval bcm2835gpio srst_num $args
+	eval bcm2835_gpio_helper srst $args
 }
 
 lappend _telnet_autocomplete_skip bcm2835gpio_trst_num
 proc bcm2835gpio_trst_num args {
-	echo "DEPRECATED! use 'bcm2835gpio trst_num' not 'bcm2835gpio_trst_num'"
-	eval bcm2835gpio trst_num $args
+	eval bcm2835_gpio_helper trst $args
+}
+
+lappend _telnet_autocomplete_skip "bcm2835gpio jtag_nums"
+proc "bcm2835gpio jtag_nums" {tck_num tms_num tdi_num tdo_num} {
+	echo "DEPRECATED! use 'adapter gpio tck; adapter gpio tms; adapter gpio tdi; adapter gpio tdo' not 'bcm2835gpio jtag_nums'"
+	eval adapter gpio tck $tck_num -chip 0
+	eval adapter gpio tms $tms_num -chip 0
+	eval adapter gpio tdi $tdi_num -chip 0
+	eval adapter gpio tdo $tdo_num -chip 0
+}
+
+lappend _telnet_autocomplete_skip "bcm2835gpio tck_num"
+proc "bcm2835gpio tck_num" args {
+	eval bcm2835_gpio_helper tck $args
+}
+
+lappend _telnet_autocomplete_skip "bcm2835gpio tms_num"
+proc "bcm2835gpio tms_num" args {
+	eval bcm2835_gpio_helper tms $args
+}
+
+lappend _telnet_autocomplete_skip "bcm2835gpio tdo_num"
+proc "bcm2835gpio tdo_num" args {
+	eval bcm2835_gpio_helper tdo $args
+}
+
+lappend _telnet_autocomplete_skip "bcm2835gpio tdi_num"
+proc "bcm2835gpio tdi_num" args {
+	eval bcm2835_gpio_helper tdi $args
+}
+
+lappend _telnet_autocomplete_skip "bcm2835gpio swd_nums"
+proc "bcm2835gpio swd_nums" {swclk_num swdio_num} {
+	echo "DEPRECATED! use 'adapter gpio swclk; adapter gpio swdio' not 'bcm2835gpio swd_nums'"
+	eval adapter gpio swclk $swclk_num -chip 0
+	eval adapter gpio swdio $swdio_num -chip 0
+}
+
+lappend _telnet_autocomplete_skip "bcm2835gpio swclk_num"
+proc "bcm2835gpio swclk_num" args {
+	eval bcm2835_gpio_helper swclk $args
+}
+
+lappend _telnet_autocomplete_skip "bcm2835gpio swdio_num"
+proc "bcm2835gpio swdio_num" args {
+	eval bcm2835_gpio_helper swdio $args
+}
+
+lappend _telnet_autocomplete_skip "bcm2835gpio swdio_dir_num"
+proc "bcm2835gpio swdio_dir_num" args {
+	eval bcm2835_gpio_helper swdio_dir $args
+}
+
+lappend _telnet_autocomplete_skip "bcm2835gpio srst_num"
+proc "bcm2835gpio srst_num" args {
+	eval bcm2835_gpio_helper srst $args
+}
+
+lappend _telnet_autocomplete_skip "bcm2835gpio trst_num"
+proc "bcm2835gpio trst_num" args {
+	eval bcm2835_gpio_helper trst $args
 }
 
 lappend _telnet_autocomplete_skip bcm2835gpio_speed_coeffs
