@@ -7,8 +7,5 @@ noinst_LTLIBRARIES += %D%/libespressif.la
        %D%/esp_xtensa_smp.c \
        %D%/esp_xtensa_smp.h \
        %D%/esp32.c \
-       %D%/esp32.h \
        %D%/esp32s2.c \
-       %D%/esp32s2.h \
-       %D%/esp32s3.c \
-       %D%/esp32s3.h
+       %D%/esp32s3.c

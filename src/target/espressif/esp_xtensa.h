@@ -23,7 +23,6 @@ static inline struct esp_xtensa_common *target_to_esp_xtensa(struct target *targ
 
 int esp_xtensa_init_arch_info(struct target *target,
 	struct esp_xtensa_common *esp_xtensa,
-	const struct xtensa_config *xtensa_cfg,
 	struct xtensa_debug_module_config *dm_cfg);
 int esp_xtensa_target_init(struct command_context *cmd_ctx, struct target *target);
 void esp_xtensa_target_deinit(struct target *target);

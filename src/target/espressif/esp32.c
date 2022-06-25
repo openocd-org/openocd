@@ -14,7 +14,6 @@
 #include <target/target_type.h>
 #include <target/smp.h>
 #include "assert.h"
-#include "esp32.h"
 #include "esp_xtensa_smp.h"
 
 /*
@@ -69,204 +68,6 @@ implementation.
 /* ESP32 RTC regs */
 #define ESP32_RTC_CNTL_SW_CPU_STALL_REG (ESP32_RTCCNTL_BASE + 0xac)
 #define ESP32_RTC_CNTL_SW_CPU_STALL_DEF 0x0
-
-
-/* this should map local reg IDs to GDB reg mapping as defined in xtensa-config.c 'rmap' in
- *xtensa-overlay */
-static const unsigned int esp32_gdb_regs_mapping[ESP32_NUM_REGS] = {
-	XT_REG_IDX_PC,
-	XT_REG_IDX_AR0, XT_REG_IDX_AR1, XT_REG_IDX_AR2, XT_REG_IDX_AR3,
-	XT_REG_IDX_AR4, XT_REG_IDX_AR5, XT_REG_IDX_AR6, XT_REG_IDX_AR7,
-	XT_REG_IDX_AR8, XT_REG_IDX_AR9, XT_REG_IDX_AR10, XT_REG_IDX_AR11,
-	XT_REG_IDX_AR12, XT_REG_IDX_AR13, XT_REG_IDX_AR14, XT_REG_IDX_AR15,
-	XT_REG_IDX_AR16, XT_REG_IDX_AR17, XT_REG_IDX_AR18, XT_REG_IDX_AR19,
-	XT_REG_IDX_AR20, XT_REG_IDX_AR21, XT_REG_IDX_AR22, XT_REG_IDX_AR23,
-	XT_REG_IDX_AR24, XT_REG_IDX_AR25, XT_REG_IDX_AR26, XT_REG_IDX_AR27,
-	XT_REG_IDX_AR28, XT_REG_IDX_AR29, XT_REG_IDX_AR30, XT_REG_IDX_AR31,
-	XT_REG_IDX_AR32, XT_REG_IDX_AR33, XT_REG_IDX_AR34, XT_REG_IDX_AR35,
-	XT_REG_IDX_AR36, XT_REG_IDX_AR37, XT_REG_IDX_AR38, XT_REG_IDX_AR39,
-	XT_REG_IDX_AR40, XT_REG_IDX_AR41, XT_REG_IDX_AR42, XT_REG_IDX_AR43,
-	XT_REG_IDX_AR44, XT_REG_IDX_AR45, XT_REG_IDX_AR46, XT_REG_IDX_AR47,
-	XT_REG_IDX_AR48, XT_REG_IDX_AR49, XT_REG_IDX_AR50, XT_REG_IDX_AR51,
-	XT_REG_IDX_AR52, XT_REG_IDX_AR53, XT_REG_IDX_AR54, XT_REG_IDX_AR55,
-	XT_REG_IDX_AR56, XT_REG_IDX_AR57, XT_REG_IDX_AR58, XT_REG_IDX_AR59,
-	XT_REG_IDX_AR60, XT_REG_IDX_AR61, XT_REG_IDX_AR62, XT_REG_IDX_AR63,
-	XT_REG_IDX_LBEG, XT_REG_IDX_LEND, XT_REG_IDX_LCOUNT, XT_REG_IDX_SAR,
-	XT_REG_IDX_WINDOWBASE, XT_REG_IDX_WINDOWSTART, XT_REG_IDX_CONFIGID0, XT_REG_IDX_CONFIGID1,
-	XT_REG_IDX_PS, XT_REG_IDX_THREADPTR, XT_REG_IDX_BR, XT_REG_IDX_SCOMPARE1,
-	XT_REG_IDX_ACCLO, XT_REG_IDX_ACCHI,
-	XT_REG_IDX_M0, XT_REG_IDX_M1, XT_REG_IDX_M2, XT_REG_IDX_M3,
-	ESP32_REG_IDX_EXPSTATE,
-	ESP32_REG_IDX_F64R_LO,
-	ESP32_REG_IDX_F64R_HI,
-	ESP32_REG_IDX_F64S,
-	XT_REG_IDX_F0, XT_REG_IDX_F1, XT_REG_IDX_F2, XT_REG_IDX_F3,
-	XT_REG_IDX_F4, XT_REG_IDX_F5, XT_REG_IDX_F6, XT_REG_IDX_F7,
-	XT_REG_IDX_F8, XT_REG_IDX_F9, XT_REG_IDX_F10, XT_REG_IDX_F11,
-	XT_REG_IDX_F12, XT_REG_IDX_F13, XT_REG_IDX_F14, XT_REG_IDX_F15,
-	XT_REG_IDX_FCR, XT_REG_IDX_FSR, XT_REG_IDX_MMID, XT_REG_IDX_IBREAKENABLE,
-	XT_REG_IDX_MEMCTL, XT_REG_IDX_ATOMCTL, XT_REG_IDX_OCD_DDR,
-	XT_REG_IDX_IBREAKA0, XT_REG_IDX_IBREAKA1, XT_REG_IDX_DBREAKA0, XT_REG_IDX_DBREAKA1,
-	XT_REG_IDX_DBREAKC0, XT_REG_IDX_DBREAKC1,
-	XT_REG_IDX_EPC1, XT_REG_IDX_EPC2, XT_REG_IDX_EPC3, XT_REG_IDX_EPC4,
-	XT_REG_IDX_EPC5, XT_REG_IDX_EPC6, XT_REG_IDX_EPC7, XT_REG_IDX_DEPC,
-	XT_REG_IDX_EPS2, XT_REG_IDX_EPS3, XT_REG_IDX_EPS4, XT_REG_IDX_EPS5,
-	XT_REG_IDX_EPS6, XT_REG_IDX_EPS7,
-	XT_REG_IDX_EXCSAVE1, XT_REG_IDX_EXCSAVE2, XT_REG_IDX_EXCSAVE3, XT_REG_IDX_EXCSAVE4,
-	XT_REG_IDX_EXCSAVE5, XT_REG_IDX_EXCSAVE6, XT_REG_IDX_EXCSAVE7, XT_REG_IDX_CPENABLE,
-	XT_REG_IDX_INTERRUPT, XT_REG_IDX_INTSET, XT_REG_IDX_INTCLEAR, XT_REG_IDX_INTENABLE,
-	XT_REG_IDX_VECBASE, XT_REG_IDX_EXCCAUSE, XT_REG_IDX_DEBUGCAUSE, XT_REG_IDX_CCOUNT,
-	XT_REG_IDX_PRID, XT_REG_IDX_ICOUNT, XT_REG_IDX_ICOUNTLEVEL, XT_REG_IDX_EXCVADDR,
-	XT_REG_IDX_CCOMPARE0, XT_REG_IDX_CCOMPARE1, XT_REG_IDX_CCOMPARE2,
-	XT_REG_IDX_MISC0, XT_REG_IDX_MISC1, XT_REG_IDX_MISC2, XT_REG_IDX_MISC3,
-	XT_REG_IDX_A0, XT_REG_IDX_A1, XT_REG_IDX_A2, XT_REG_IDX_A3,
-	XT_REG_IDX_A4, XT_REG_IDX_A5, XT_REG_IDX_A6, XT_REG_IDX_A7,
-	XT_REG_IDX_A8, XT_REG_IDX_A9, XT_REG_IDX_A10, XT_REG_IDX_A11,
-	XT_REG_IDX_A12, XT_REG_IDX_A13, XT_REG_IDX_A14, XT_REG_IDX_A15,
-	XT_REG_IDX_PWRCTL, XT_REG_IDX_PWRSTAT, XT_REG_IDX_ERISTAT,
-	XT_REG_IDX_CS_ITCTRL, XT_REG_IDX_CS_CLAIMSET, XT_REG_IDX_CS_CLAIMCLR,
-	XT_REG_IDX_CS_LOCKACCESS, XT_REG_IDX_CS_LOCKSTATUS, XT_REG_IDX_CS_AUTHSTATUS,
-	XT_REG_IDX_FAULT_INFO,
-	XT_REG_IDX_TRAX_ID, XT_REG_IDX_TRAX_CTRL, XT_REG_IDX_TRAX_STAT,
-	XT_REG_IDX_TRAX_DATA, XT_REG_IDX_TRAX_ADDR, XT_REG_IDX_TRAX_PCTRIGGER,
-	XT_REG_IDX_TRAX_PCMATCH, XT_REG_IDX_TRAX_DELAY, XT_REG_IDX_TRAX_MEMSTART,
-	XT_REG_IDX_TRAX_MEMEND,
-	XT_REG_IDX_PMG, XT_REG_IDX_PMPC, XT_REG_IDX_PM0, XT_REG_IDX_PM1,
-	XT_REG_IDX_PMCTRL0, XT_REG_IDX_PMCTRL1, XT_REG_IDX_PMSTAT0, XT_REG_IDX_PMSTAT1,
-	XT_REG_IDX_OCD_ID, XT_REG_IDX_OCD_DCRCLR, XT_REG_IDX_OCD_DCRSET, XT_REG_IDX_OCD_DSR,
-};
-
-static const struct xtensa_user_reg_desc esp32_user_regs[ESP32_NUM_REGS - XT_NUM_REGS] = {
-	{ "expstate", 0xE6, 0, 32, &xtensa_user_reg_u32_type },
-	{ "f64r_lo", 0xEA, 0, 32, &xtensa_user_reg_u32_type },
-	{ "f64r_hi", 0xEB, 0, 32, &xtensa_user_reg_u32_type },
-	{ "f64s", 0xEC, 0, 32, &xtensa_user_reg_u32_type },
-};
-
-static const struct xtensa_config esp32_xtensa_cfg = {
-	.density = true,
-	.aregs_num = XT_AREGS_NUM_MAX,
-	.windowed = true,
-	.coproc = true,
-	.fp_coproc = true,
-	.loop = true,
-	.miscregs_num = 4,
-	.threadptr = true,
-	.boolean = true,
-	.reloc_vec = true,
-	.proc_id = true,
-	.cond_store = true,
-	.mac16 = true,
-	.user_regs_num = ARRAY_SIZE(esp32_user_regs),
-	.user_regs = esp32_user_regs,
-	.fetch_user_regs = xtensa_fetch_user_regs_u32,
-	.queue_write_dirty_user_regs = xtensa_queue_write_dirty_user_regs_u32,
-	.gdb_general_regs_num = ESP32_NUM_REGS_G_COMMAND,
-	.gdb_regs_mapping = esp32_gdb_regs_mapping,
-	.irom = {
-		.count = 2,
-		.regions = {
-			{
-				.base = ESP32_IROM_LOW,
-				.size = ESP32_IROM_HIGH - ESP32_IROM_LOW,
-				.access = XT_MEM_ACCESS_READ,
-			},
-			{
-				.base = ESP32_IROM_MASK_LOW,
-				.size = ESP32_IROM_MASK_HIGH - ESP32_IROM_MASK_LOW,
-				.access = XT_MEM_ACCESS_READ,
-			},
-		}
-	},
-	.iram = {
-		.count = 2,
-		.regions = {
-			{
-				.base = ESP32_IRAM_LOW,
-				.size = ESP32_IRAM_HIGH - ESP32_IRAM_LOW,
-				.access = XT_MEM_ACCESS_READ | XT_MEM_ACCESS_WRITE,
-			},
-			{
-				.base = ESP32_RTC_IRAM_LOW,
-				.size = ESP32_RTC_IRAM_HIGH - ESP32_RTC_IRAM_LOW,
-				.access = XT_MEM_ACCESS_READ | XT_MEM_ACCESS_WRITE,
-			},
-		}
-	},
-	.drom = {
-		.count = 1,
-		.regions = {
-			{
-				.base = ESP32_DROM_LOW,
-				.size = ESP32_DROM_HIGH - ESP32_DROM_LOW,
-				.access = XT_MEM_ACCESS_READ,
-			},
-		}
-	},
-	.dram = {
-		.count = 6,
-		.regions = {
-			{
-				.base = ESP32_DRAM_LOW,
-				.size = ESP32_DRAM_HIGH - ESP32_DRAM_LOW,
-				.access = XT_MEM_ACCESS_READ | XT_MEM_ACCESS_WRITE,
-			},
-			{
-				.base = ESP32_RTC_DRAM_LOW,
-				.size = ESP32_RTC_DRAM_HIGH - ESP32_RTC_DRAM_LOW,
-				.access = XT_MEM_ACCESS_READ | XT_MEM_ACCESS_WRITE,
-			},
-			{
-				.base = ESP32_RTC_DATA_LOW,
-				.size = ESP32_RTC_DATA_HIGH - ESP32_RTC_DATA_LOW,
-				.access = XT_MEM_ACCESS_READ | XT_MEM_ACCESS_WRITE,
-			},
-			{
-				.base = ESP32_EXTRAM_DATA_LOW,
-				.size = ESP32_EXTRAM_DATA_HIGH - ESP32_EXTRAM_DATA_LOW,
-				.access = XT_MEM_ACCESS_READ | XT_MEM_ACCESS_WRITE,
-			},
-			{
-				.base = ESP32_DR_REG_LOW,
-				.size = ESP32_DR_REG_HIGH - ESP32_DR_REG_LOW,
-				.access = XT_MEM_ACCESS_READ | XT_MEM_ACCESS_WRITE,
-			},
-			{
-				.base = ESP32_SYS_RAM_LOW,
-				.size = ESP32_SYS_RAM_HIGH - ESP32_SYS_RAM_LOW,
-				.access = XT_MEM_ACCESS_READ | XT_MEM_ACCESS_WRITE,
-			},
-		}
-	},
-	.exc = {
-		.enabled = true,
-	},
-	.irq = {
-		.enabled = true,
-		.irq_num = 32,
-	},
-	.high_irq = {
-		.enabled = true,
-		.excm_level = 3,
-		.nmi_num = 1,
-	},
-	.tim_irq = {
-		.enabled = true,
-		.comp_num = 3,
-	},
-	.debug = {
-		.enabled = true,
-		.irq_level = 6,
-		.ibreaks_num = 2,
-		.dbreaks_num = 2,
-		.icount_sz = 32,
-	},
-	.trace = {
-		.enabled = true,
-		.mem_sz = ESP32_TRACEMEM_BLOCK_SZ,
-		.reversed_mem_access = true,
-	},
-};
 
 /* 0 - don't care, 1 - TMS low, 2 - TMS high */
 enum esp32_flash_bootstrap {
@@ -401,7 +202,8 @@ static int esp32_soc_reset(struct target *target)
 		alive_sleep(10);
 		xtensa_poll(target);
 		if (timeval_ms() >= timeout) {
-			LOG_TARGET_ERROR(target, "Timed out waiting for CPU to be reset, target state=%d", target->state);
+			LOG_TARGET_ERROR(target, "Timed out waiting for CPU to be reset, target state=%d",
+				target->state);
 			get_timeout = true;
 			break;
 		}
@@ -481,7 +283,6 @@ static int esp32_virt2phys(struct target *target,
 	return ERROR_FAIL;
 }
 
-
 /* The TDI pin is also used as a flash Vcc bootstrap pin. If we reset the CPU externally, the last state of the TDI pin
  * can allow the power to an 1.8V flash chip to be raised to 3.3V, or the other way around. Users can use the
  * esp32 flashbootstrap command to set a level, and this routine will make sure the tdi line will return to
@@ -544,7 +345,7 @@ static int esp32_target_create(struct target *target, Jim_Interp *interp)
 		return ERROR_FAIL;
 	}
 
-	int ret = esp_xtensa_smp_init_arch_info(target, &esp32->esp_xtensa_smp, &esp32_xtensa_cfg,
+	int ret = esp_xtensa_smp_init_arch_info(target, &esp32->esp_xtensa_smp,
 		&esp32_dm_cfg, &esp32_chip_ops);
 	if (ret != ERROR_OK) {
 		LOG_ERROR("Failed to init arch info!");

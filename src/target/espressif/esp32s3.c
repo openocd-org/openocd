@@ -14,7 +14,6 @@
 #include <target/target_type.h>
 #include <target/smp.h>
 #include "assert.h"
-#include "esp32s3.h"
 #include "esp_xtensa_smp.h"
 
 /*
@@ -75,245 +74,9 @@ implementation.
 #define ESP32_S3_RTC_CNTL_SW_CPU_STALL_REG (ESP32_S3_RTCCNTL_BASE + 0xBC)
 #define ESP32_S3_RTC_CNTL_SW_CPU_STALL_DEF 0x0
 
-/* this should map local reg IDs to GDB reg mapping as defined in xtensa-config.c 'rmap' in
- *xtensa-overlay */
-static const unsigned int esp32s3_gdb_regs_mapping[ESP32_S3_NUM_REGS] = {
-	XT_REG_IDX_PC,
-	XT_REG_IDX_AR0, XT_REG_IDX_AR1, XT_REG_IDX_AR2, XT_REG_IDX_AR3,
-	XT_REG_IDX_AR4, XT_REG_IDX_AR5, XT_REG_IDX_AR6, XT_REG_IDX_AR7,
-	XT_REG_IDX_AR8, XT_REG_IDX_AR9, XT_REG_IDX_AR10, XT_REG_IDX_AR11,
-	XT_REG_IDX_AR12, XT_REG_IDX_AR13, XT_REG_IDX_AR14, XT_REG_IDX_AR15,
-	XT_REG_IDX_AR16, XT_REG_IDX_AR17, XT_REG_IDX_AR18, XT_REG_IDX_AR19,
-	XT_REG_IDX_AR20, XT_REG_IDX_AR21, XT_REG_IDX_AR22, XT_REG_IDX_AR23,
-	XT_REG_IDX_AR24, XT_REG_IDX_AR25, XT_REG_IDX_AR26, XT_REG_IDX_AR27,
-	XT_REG_IDX_AR28, XT_REG_IDX_AR29, XT_REG_IDX_AR30, XT_REG_IDX_AR31,
-	XT_REG_IDX_AR32, XT_REG_IDX_AR33, XT_REG_IDX_AR34, XT_REG_IDX_AR35,
-	XT_REG_IDX_AR36, XT_REG_IDX_AR37, XT_REG_IDX_AR38, XT_REG_IDX_AR39,
-	XT_REG_IDX_AR40, XT_REG_IDX_AR41, XT_REG_IDX_AR42, XT_REG_IDX_AR43,
-	XT_REG_IDX_AR44, XT_REG_IDX_AR45, XT_REG_IDX_AR46, XT_REG_IDX_AR47,
-	XT_REG_IDX_AR48, XT_REG_IDX_AR49, XT_REG_IDX_AR50, XT_REG_IDX_AR51,
-	XT_REG_IDX_AR52, XT_REG_IDX_AR53, XT_REG_IDX_AR54, XT_REG_IDX_AR55,
-	XT_REG_IDX_AR56, XT_REG_IDX_AR57, XT_REG_IDX_AR58, XT_REG_IDX_AR59,
-	XT_REG_IDX_AR60, XT_REG_IDX_AR61, XT_REG_IDX_AR62, XT_REG_IDX_AR63,
-	XT_REG_IDX_LBEG, XT_REG_IDX_LEND, XT_REG_IDX_LCOUNT, XT_REG_IDX_SAR,
-	XT_REG_IDX_WINDOWBASE, XT_REG_IDX_WINDOWSTART, XT_REG_IDX_CONFIGID0, XT_REG_IDX_CONFIGID1,
-	XT_REG_IDX_PS, XT_REG_IDX_THREADPTR, XT_REG_IDX_BR, XT_REG_IDX_SCOMPARE1,
-	XT_REG_IDX_ACCLO, XT_REG_IDX_ACCHI,
-	XT_REG_IDX_M0, XT_REG_IDX_M1, XT_REG_IDX_M2, XT_REG_IDX_M3,
-	ESP32_S3_REG_IDX_GPIOOUT,
-	XT_REG_IDX_F0, XT_REG_IDX_F1, XT_REG_IDX_F2, XT_REG_IDX_F3,
-	XT_REG_IDX_F4, XT_REG_IDX_F5, XT_REG_IDX_F6, XT_REG_IDX_F7,
-	XT_REG_IDX_F8, XT_REG_IDX_F9, XT_REG_IDX_F10, XT_REG_IDX_F11,
-	XT_REG_IDX_F12, XT_REG_IDX_F13, XT_REG_IDX_F14, XT_REG_IDX_F15,
-	XT_REG_IDX_FCR, XT_REG_IDX_FSR,
-	ESP32_S3_REG_IDX_ACCX_0, ESP32_S3_REG_IDX_ACCX_1,
-	ESP32_S3_REG_IDX_QACC_H_0, ESP32_S3_REG_IDX_QACC_H_1, ESP32_S3_REG_IDX_QACC_H_2,
-	ESP32_S3_REG_IDX_QACC_H_3, ESP32_S3_REG_IDX_QACC_H_4,
-	ESP32_S3_REG_IDX_QACC_L_0, ESP32_S3_REG_IDX_QACC_L_1, ESP32_S3_REG_IDX_QACC_L_2,
-	ESP32_S3_REG_IDX_QACC_L_3, ESP32_S3_REG_IDX_QACC_L_4,
-	ESP32_S3_REG_IDX_SAR_BYTE, ESP32_S3_REG_IDX_FFT_BIT_WIDTH,
-	ESP32_S3_REG_IDX_UA_STATE_0, ESP32_S3_REG_IDX_UA_STATE_1, ESP32_S3_REG_IDX_UA_STATE_2,
-	ESP32_S3_REG_IDX_UA_STATE_3,
-	ESP32_S3_REG_IDX_Q0, ESP32_S3_REG_IDX_Q1, ESP32_S3_REG_IDX_Q2, ESP32_S3_REG_IDX_Q3,
-	ESP32_S3_REG_IDX_Q4, ESP32_S3_REG_IDX_Q5, ESP32_S3_REG_IDX_Q6, ESP32_S3_REG_IDX_Q7,
-
-	XT_REG_IDX_MMID, XT_REG_IDX_IBREAKENABLE,
-	XT_REG_IDX_MEMCTL, XT_REG_IDX_ATOMCTL, XT_REG_IDX_OCD_DDR,
-	XT_REG_IDX_IBREAKA0, XT_REG_IDX_IBREAKA1, XT_REG_IDX_DBREAKA0, XT_REG_IDX_DBREAKA1,
-	XT_REG_IDX_DBREAKC0, XT_REG_IDX_DBREAKC1,
-	XT_REG_IDX_EPC1, XT_REG_IDX_EPC2, XT_REG_IDX_EPC3, XT_REG_IDX_EPC4,
-	XT_REG_IDX_EPC5, XT_REG_IDX_EPC6, XT_REG_IDX_EPC7, XT_REG_IDX_DEPC,
-	XT_REG_IDX_EPS2, XT_REG_IDX_EPS3, XT_REG_IDX_EPS4, XT_REG_IDX_EPS5,
-	XT_REG_IDX_EPS6, XT_REG_IDX_EPS7,
-	XT_REG_IDX_EXCSAVE1, XT_REG_IDX_EXCSAVE2, XT_REG_IDX_EXCSAVE3, XT_REG_IDX_EXCSAVE4,
-	XT_REG_IDX_EXCSAVE5, XT_REG_IDX_EXCSAVE6, XT_REG_IDX_EXCSAVE7, XT_REG_IDX_CPENABLE,
-	XT_REG_IDX_INTERRUPT, XT_REG_IDX_INTSET, XT_REG_IDX_INTCLEAR, XT_REG_IDX_INTENABLE,
-	XT_REG_IDX_VECBASE, XT_REG_IDX_EXCCAUSE, XT_REG_IDX_DEBUGCAUSE, XT_REG_IDX_CCOUNT,
-	XT_REG_IDX_PRID, XT_REG_IDX_ICOUNT, XT_REG_IDX_ICOUNTLEVEL, XT_REG_IDX_EXCVADDR,
-	XT_REG_IDX_CCOMPARE0, XT_REG_IDX_CCOMPARE1, XT_REG_IDX_CCOMPARE2,
-	XT_REG_IDX_MISC0, XT_REG_IDX_MISC1, XT_REG_IDX_MISC2, XT_REG_IDX_MISC3,
-
-	XT_REG_IDX_PWRCTL, XT_REG_IDX_PWRSTAT, XT_REG_IDX_ERISTAT,
-	XT_REG_IDX_CS_ITCTRL, XT_REG_IDX_CS_CLAIMSET, XT_REG_IDX_CS_CLAIMCLR,
-	XT_REG_IDX_CS_LOCKACCESS, XT_REG_IDX_CS_LOCKSTATUS, XT_REG_IDX_CS_AUTHSTATUS,
-	XT_REG_IDX_FAULT_INFO,
-	XT_REG_IDX_TRAX_ID, XT_REG_IDX_TRAX_CTRL, XT_REG_IDX_TRAX_STAT,
-	XT_REG_IDX_TRAX_DATA, XT_REG_IDX_TRAX_ADDR, XT_REG_IDX_TRAX_PCTRIGGER,
-	XT_REG_IDX_TRAX_PCMATCH, XT_REG_IDX_TRAX_DELAY, XT_REG_IDX_TRAX_MEMSTART,
-	XT_REG_IDX_TRAX_MEMEND,
-	XT_REG_IDX_PMG, XT_REG_IDX_PMPC, XT_REG_IDX_PM0, XT_REG_IDX_PM1,
-	XT_REG_IDX_PMCTRL0, XT_REG_IDX_PMCTRL1, XT_REG_IDX_PMSTAT0, XT_REG_IDX_PMSTAT1,
-	XT_REG_IDX_OCD_ID, XT_REG_IDX_OCD_DCRCLR, XT_REG_IDX_OCD_DCRSET, XT_REG_IDX_OCD_DSR,
-	XT_REG_IDX_A0, XT_REG_IDX_A1, XT_REG_IDX_A2, XT_REG_IDX_A3,
-	XT_REG_IDX_A4, XT_REG_IDX_A5, XT_REG_IDX_A6, XT_REG_IDX_A7,
-	XT_REG_IDX_A8, XT_REG_IDX_A9, XT_REG_IDX_A10, XT_REG_IDX_A11,
-	XT_REG_IDX_A12, XT_REG_IDX_A13, XT_REG_IDX_A14, XT_REG_IDX_A15,
-};
-
-/* actually this table contains user + TIE registers
- * TODO: for TIE registers we need to specify custom access functions instead of `xtensa_user_reg_xxx_type`*/
-static const struct xtensa_user_reg_desc esp32s3_user_regs[ESP32_S3_NUM_REGS - XT_NUM_REGS] = {
-	{ "gpio_out", 0x00, 0, 32, &xtensa_user_reg_u32_type },
-	{ "accx_0", 0x01, 0, 32, &xtensa_user_reg_u32_type },
-	{ "accx_1", 0x02, 0, 32, &xtensa_user_reg_u32_type },
-	{ "qacc_h_0", 0x03, 0, 32, &xtensa_user_reg_u32_type },
-	{ "qacc_h_1", 0x04, 0, 32, &xtensa_user_reg_u32_type },
-	{ "qacc_h_2", 0x05, 0, 32, &xtensa_user_reg_u32_type },
-	{ "qacc_h_3", 0x06, 0, 32, &xtensa_user_reg_u32_type },
-	{ "qacc_h_4", 0x07, 0, 32, &xtensa_user_reg_u32_type },
-	{ "qacc_l_0", 0x08, 0, 32, &xtensa_user_reg_u32_type },
-	{ "qacc_l_1", 0x09, 0, 32, &xtensa_user_reg_u32_type },
-	{ "qacc_l_2", 0x0A, 0, 32, &xtensa_user_reg_u32_type },
-	{ "qacc_l_3", 0x0B, 0, 32, &xtensa_user_reg_u32_type },
-	{ "qacc_l_4", 0x0C, 0, 32, &xtensa_user_reg_u32_type },
-	{ "sar_byte", 0x0D, 0, 32, &xtensa_user_reg_u32_type },
-	{ "fft_bit_width", 0x0E, 0, 32, &xtensa_user_reg_u32_type },
-	{ "ua_state_0", 0x0F, 0, 32, &xtensa_user_reg_u32_type },
-	{ "ua_state_1", 0x10, 0, 32, &xtensa_user_reg_u32_type },
-	{ "ua_state_2", 0x11, 0, 32, &xtensa_user_reg_u32_type },
-	{ "ua_state_3", 0x12, 0, 32, &xtensa_user_reg_u32_type },
-	{ "q0", 0x13, 0, 128, &xtensa_user_reg_u128_type },
-	{ "q1", 0x14, 0, 128, &xtensa_user_reg_u128_type },
-	{ "q2", 0x15, 0, 128, &xtensa_user_reg_u128_type },
-	{ "q3", 0x16, 0, 128, &xtensa_user_reg_u128_type },
-	{ "q4", 0x17, 0, 128, &xtensa_user_reg_u128_type },
-	{ "q5", 0x18, 0, 128, &xtensa_user_reg_u128_type },
-	{ "q6", 0x19, 0, 128, &xtensa_user_reg_u128_type },
-	{ "q7", 0x20, 0, 128, &xtensa_user_reg_u128_type },
-};
-
 struct esp32s3_common {
 	struct esp_xtensa_smp_common esp_xtensa_smp;
 };
-
-static int esp32s3_fetch_user_regs(struct target *target);
-static int esp32s3_queue_write_dirty_user_regs(struct target *target);
-
-static const struct xtensa_config esp32s3_xtensa_cfg = {
-	.density = true,
-	.aregs_num = XT_AREGS_NUM_MAX,
-	.windowed = true,
-	.coproc = true,
-	.fp_coproc = true,
-	.loop = true,
-	.miscregs_num = 4,
-	.threadptr = true,
-	.boolean = true,
-	.reloc_vec = true,
-	.proc_id = true,
-	.cond_store = true,
-	.mac16 = true,
-	.user_regs_num = ARRAY_SIZE(esp32s3_user_regs),
-	.user_regs = esp32s3_user_regs,
-	.fetch_user_regs = esp32s3_fetch_user_regs,
-	.queue_write_dirty_user_regs = esp32s3_queue_write_dirty_user_regs,
-	.gdb_general_regs_num = ESP32_S3_NUM_REGS_G_COMMAND,
-	.gdb_regs_mapping = esp32s3_gdb_regs_mapping,
-	.irom = {
-		.count = 2,
-		.regions = {
-			{
-				.base = ESP32_S3_IROM_LOW,
-				.size = ESP32_S3_IROM_HIGH - ESP32_S3_IROM_LOW,
-				.access = XT_MEM_ACCESS_READ,
-			},
-			{
-				.base = ESP32_S3_IROM_MASK_LOW,
-				.size = ESP32_S3_IROM_MASK_HIGH - ESP32_S3_IROM_MASK_LOW,
-				.access = XT_MEM_ACCESS_READ,
-			}
-		}
-	},
-	.iram = {
-		.count = 2,
-		.regions = {
-			{
-				.base = ESP32_S3_IRAM_LOW,
-				.size = ESP32_S3_IRAM_HIGH - ESP32_S3_IRAM_LOW,
-				.access = XT_MEM_ACCESS_READ | XT_MEM_ACCESS_WRITE,
-			},
-			{
-				.base = ESP32_S3_RTC_IRAM_LOW,
-				.size = ESP32_S3_RTC_IRAM_HIGH - ESP32_S3_RTC_IRAM_LOW,
-				.access = XT_MEM_ACCESS_READ | XT_MEM_ACCESS_WRITE,
-			},
-		}
-	},
-	.drom = {
-		.count = 1,
-		.regions = {
-			{
-				.base = ESP32_S3_DROM_LOW,
-				.size = ESP32_S3_DROM_HIGH - ESP32_S3_DROM_LOW,
-				.access = XT_MEM_ACCESS_READ,
-			},
-		}
-	},
-	.dram = {
-		.count = 4,
-		.regions = {
-			{
-				.base = ESP32_S3_DRAM_LOW,
-				.size = ESP32_S3_DRAM_HIGH - ESP32_S3_DRAM_LOW,
-				.access = XT_MEM_ACCESS_READ | XT_MEM_ACCESS_WRITE,
-			},
-			{
-				.base = ESP32_S3_RTC_DRAM_LOW,
-				.size = ESP32_S3_RTC_DRAM_HIGH - ESP32_S3_RTC_DRAM_LOW,
-				.access = XT_MEM_ACCESS_READ | XT_MEM_ACCESS_WRITE,
-			},
-			{
-				.base = ESP32_S3_RTC_DATA_LOW,
-				.size = ESP32_S3_RTC_DATA_HIGH - ESP32_S3_RTC_DATA_LOW,
-				.access = XT_MEM_ACCESS_READ | XT_MEM_ACCESS_WRITE,
-			},
-			{
-				.base = ESP32_S3_SYS_RAM_LOW,
-				.size = ESP32_S3_SYS_RAM_HIGH - ESP32_S3_SYS_RAM_LOW,
-				.access = XT_MEM_ACCESS_READ | XT_MEM_ACCESS_WRITE,
-			},
-		}
-	},
-	.exc = {
-		.enabled = true,
-	},
-	.irq = {
-		.enabled = true,
-		.irq_num = 32,
-	},
-	.high_irq = {
-		.enabled = true,
-		.excm_level = 3,
-		.nmi_num = 1,
-	},
-	.tim_irq = {
-		.enabled = true,
-		.comp_num = 3,
-	},
-	.debug = {
-		.enabled = true,
-		.irq_level = 6,
-		.ibreaks_num = 2,
-		.dbreaks_num = 2,
-		.icount_sz = 32,
-	},
-	.trace = {
-		.enabled = true,
-		.mem_sz = ESP32_S3_TRACEMEM_BLOCK_SZ,
-	},
-};
-
-static int esp32s3_fetch_user_regs(struct target *target)
-{
-	LOG_DEBUG("%s: user regs fetching is not implemented!", target_name(target));
-	return ERROR_OK;
-}
-
-static int esp32s3_queue_write_dirty_user_regs(struct target *target)
-{
-	LOG_DEBUG("%s: user regs writing is not implemented!", target_name(target));
-	return ERROR_OK;
-}
 
 /* Reset ESP32-S3's peripherals.
  * 1. OpenOCD makes sure the target is halted; if not, tries to halt it.
@@ -537,7 +300,6 @@ static int esp32s3_virt2phys(struct target *target,
 	return ERROR_FAIL;
 }
 
-
 static int esp32s3_target_init(struct command_context *cmd_ctx, struct target *target)
 {
 	return esp_xtensa_target_init(cmd_ctx, target);
@@ -577,7 +339,6 @@ static int esp32s3_target_create(struct target *target, Jim_Interp *interp)
 
 	int ret = esp_xtensa_smp_init_arch_info(target,
 		&esp32s3->esp_xtensa_smp,
-		&esp32s3_xtensa_cfg,
 		&esp32s3_dm_cfg,
 		&esp32s3_chip_ops);
 	if (ret != ERROR_OK) {
