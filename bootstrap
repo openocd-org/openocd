@@ -1,4 +1,6 @@
 #!/bin/sh
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 # Run the autotools bootstrap sequence to create the configure script
 
 # Abort execution on error

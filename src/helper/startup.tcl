@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 # Defines basic Tcl procs that must exist for OpenOCD scripts to work.
 #
 # Embedded into OpenOCD executable

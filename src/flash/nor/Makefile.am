@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 noinst_LTLIBRARIES += %D%/libocdflashnor.la
 %C%_libocdflashnor_la_SOURCES = \
 	%D%/core.c \

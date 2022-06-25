@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 noinst_LTLIBRARIES += %D%/libxtensa.la
 %C%_libxtensa_la_SOURCES = \
        %D%/xtensa.c \

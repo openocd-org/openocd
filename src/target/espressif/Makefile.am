@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 noinst_LTLIBRARIES += %D%/libespressif.la
 %C%_libespressif_la_SOURCES = \
        %D%/esp_xtensa.c \

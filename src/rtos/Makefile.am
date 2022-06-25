@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 noinst_LTLIBRARIES += %D%/librtos.la
 %C%_librtos_la_SOURCES = \
 	%D%/rtos.c \
