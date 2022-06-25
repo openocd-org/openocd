@@ -37,7 +37,8 @@ uint32_t bcm2835_peri_base = 0x20000000;
 #define GPIO_LEV (*(pio_base+13)) /* current level of the pin */
 
 static int dev_mem_fd;
-static volatile uint32_t *pio_base;
+static volatile uint32_t *pio_base = MAP_FAILED;
+static volatile uint32_t *pads_base = MAP_FAILED;
 
 static bb_value_t bcm2835gpio_read(void);
 static int bcm2835gpio_write(int tck, int tms, int tdi);
@@ -479,6 +480,19 @@ static bool bcm2835gpio_swd_mode_possible(void)
 	return 1;
 }
 
+static void bcm2835gpio_munmap(void)
+{
+	if (pio_base != MAP_FAILED) {
+		munmap((void *)pio_base, sysconf(_SC_PAGE_SIZE));
+		pio_base = MAP_FAILED;
+	}
+
+	if (pads_base != MAP_FAILED) {
+		munmap((void *)pads_base, sysconf(_SC_PAGE_SIZE));
+		pads_base = MAP_FAILED;
+	}
+}
+
 static int bcm2835gpio_init(void)
 {
 	bitbang_interface = &bcm2835gpio_bitbang;
@@ -514,15 +528,17 @@ static int bcm2835gpio_init(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	static volatile uint32_t *pads_base;
 	pads_base = mmap(NULL, sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_WRITE,
 				MAP_SHARED, dev_mem_fd, BCM2835_PADS_GPIO_0_27);
 
 	if (pads_base == MAP_FAILED) {
 		LOG_ERROR("mmap: %s", strerror(errno));
+		bcm2835gpio_munmap();
 		close(dev_mem_fd);
 		return ERROR_JTAG_INIT_FAILED;
 	}
+
+	close(dev_mem_fd);
 
 	/* set 4mA drive strength, slew rate limited, hysteresis on */
 	pads_base[BCM2835_PADS_GPIO_0_27_OFFSET] = 0x5a000008 + 1;
@@ -604,6 +620,8 @@ static int bcm2835gpio_quit(void)
 
 	if (is_gpio_valid(swdio_dir_gpio))
 		SET_MODE_GPIO(swdio_dir_gpio, swdio_dir_gpio_mode);
+
+	bcm2835gpio_munmap();
 
 	return ERROR_OK;
 }
