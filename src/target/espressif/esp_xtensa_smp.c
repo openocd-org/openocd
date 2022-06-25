@@ -386,7 +386,7 @@ int esp_xtensa_smp_step(struct target *target,
 	int handle_breakpoints)
 {
 	int res;
-	uint32_t smp_break;
+	uint32_t smp_break = 0;
 	struct esp_xtensa_smp_common *esp_xtensa_smp = target_to_esp_xtensa_smp(target);
 
 	if (target->smp) {
