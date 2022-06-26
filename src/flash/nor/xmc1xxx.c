@@ -1,9 +1,9 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+
 /*
  * XMC1000 flash driver
  *
  * Copyright (c) 2016 Andreas Färber
- *
- * License: GPL-2.0+
  */
 
 #ifdef HAVE_CONFIG_H
