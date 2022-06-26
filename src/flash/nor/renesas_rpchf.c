@@ -1,4 +1,5 @@
-/* SPDX-License-Identifier: GPL-2.0+ */
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+
 /*
  * Renesas RCar Gen3 RPC Hyperflash driver
  * Based on U-Boot RPC Hyperflash driver

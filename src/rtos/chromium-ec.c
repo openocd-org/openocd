@@ -1,6 +1,6 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
+
 /*
- * SPDX-License-Identifier: GPL-2.0
- *
  * Copyright (c) 2018 National Instruments Corp
  * Author: Moritz Fischer <moritz.fischer@ettus.com>
  *

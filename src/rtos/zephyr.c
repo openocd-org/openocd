@@ -1,11 +1,11 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+
 /***************************************************************************
  *   Copyright (C) 2017 by Intel Corporation
  *   Leandro Pereira <leandro.pereira@intel.com>
  *   Daniel Glöckner <dg@emlix.com>*
  *   Copyright (C) 2021 by Synopsys, Inc.
  *   Evgeniy Didin <didin@synopsys.com>
- *                                                                         *
- *   SPDX-License-Identifier: GPL-2.0-or-later                             *
  ***************************************************************************/
 
 #ifdef HAVE_CONFIG_H

@@ -1,5 +1,6 @@
-/* SPDX-License-Identifier: GPL-2.0
- *
+/* SPDX-License-Identifier: GPL-2.0-only */
+
+/*
  * Copyright (c) 2019 Google, LLC.
  * Author: Moritz Fischer <moritzf@google.com>
  */
