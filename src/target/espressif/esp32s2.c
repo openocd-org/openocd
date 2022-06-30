@@ -13,7 +13,9 @@
 #include "assert.h"
 #include <target/target.h>
 #include <target/target_type.h>
+#include <target/semihosting_common.h>
 #include "esp_xtensa.h"
+#include "esp_xtensa_semihosting.h"
 
 /* Overall memory map
  * TODO: read memory configuration from target registers */
@@ -406,6 +408,19 @@ static int esp32s2_poll(struct target *target)
 		if (old_state == TARGET_DEBUG_RUNNING) {
 			target_call_event_callbacks(target, TARGET_EVENT_DEBUG_HALTED);
 		} else {
+			if (esp_xtensa_semihosting(target, &ret) == SEMIHOSTING_HANDLED) {
+				struct esp_xtensa_common *esp_xtensa = target_to_esp_xtensa(target);
+				if (ret == ERROR_OK && esp_xtensa->semihost.need_resume) {
+					esp_xtensa->semihost.need_resume = false;
+					/* Resume xtensa_resume will handle BREAK instruction. */
+					ret = target_resume(target, 1, 0, 1, 0);
+					if (ret != ERROR_OK) {
+						LOG_ERROR("Failed to resume target");
+						return ret;
+					}
+				}
+				return ret;
+			}
 			esp32s2_on_halt(target);
 			target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 		}
@@ -423,7 +438,11 @@ static int esp32s2_virt2phys(struct target *target,
 
 static int esp32s2_target_init(struct command_context *cmd_ctx, struct target *target)
 {
-	return esp_xtensa_target_init(cmd_ctx, target);
+	int ret = esp_xtensa_target_init(cmd_ctx, target);
+	if (ret != ERROR_OK)
+		return ret;
+
+	return esp_xtensa_semihosting_init(target);
 }
 
 static const struct xtensa_debug_ops esp32s2_dbg_ops = {
@@ -435,6 +454,10 @@ static const struct xtensa_debug_ops esp32s2_dbg_ops = {
 static const struct xtensa_power_ops esp32s2_pwr_ops = {
 	.queue_reg_read = xtensa_dm_queue_pwr_reg_read,
 	.queue_reg_write = xtensa_dm_queue_pwr_reg_write
+};
+
+static const struct esp_semihost_ops esp32s2_semihost_ops = {
+	.prepare = esp32s2_disable_wdts
 };
 
 static int esp32s2_target_create(struct target *target, Jim_Interp *interp)
@@ -454,7 +477,7 @@ static int esp32s2_target_create(struct target *target, Jim_Interp *interp)
 		return ERROR_FAIL;
 	}
 
-	int ret = esp_xtensa_init_arch_info(target, &esp32->esp_xtensa, &esp32s2_dm_cfg);
+	int ret = esp_xtensa_init_arch_info(target, &esp32->esp_xtensa, &esp32s2_dm_cfg, &esp32s2_semihost_ops);
 	if (ret != ERROR_OK) {
 		LOG_ERROR("Failed to init arch info!");
 		free(esp32);
@@ -470,6 +493,13 @@ static int esp32s2_target_create(struct target *target, Jim_Interp *interp)
 static const struct command_registration esp32s2_command_handlers[] = {
 	{
 		.chain = xtensa_command_handlers,
+	},
+	{
+		.name = "arm",
+		.mode = COMMAND_ANY,
+		.help = "ARM Command Group",
+		.usage = "",
+		.chain = semihosting_common_handlers
 	},
 	COMMAND_REGISTRATION_DONE
 };

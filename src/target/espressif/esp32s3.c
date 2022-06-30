@@ -13,6 +13,7 @@
 #include <target/target.h>
 #include <target/target_type.h>
 #include <target/smp.h>
+#include <target/semihosting_common.h>
 #include "assert.h"
 #include "esp_xtensa_smp.h"
 
@@ -302,7 +303,7 @@ static int esp32s3_virt2phys(struct target *target,
 
 static int esp32s3_target_init(struct command_context *cmd_ctx, struct target *target)
 {
-	return esp_xtensa_target_init(cmd_ctx, target);
+	return esp_xtensa_smp_target_init(cmd_ctx, target);
 }
 
 static const struct xtensa_debug_ops esp32s3_dbg_ops = {
@@ -319,6 +320,10 @@ static const struct xtensa_power_ops esp32s3_pwr_ops = {
 static const struct esp_xtensa_smp_chip_ops esp32s3_chip_ops = {
 	.reset = esp32s3_soc_reset,
 	.on_halt = esp32s3_on_halt
+};
+
+static const struct esp_semihost_ops esp32s3_semihost_ops = {
+	.prepare = esp32s3_disable_wdts
 };
 
 static int esp32s3_target_create(struct target *target, Jim_Interp *interp)
@@ -340,7 +345,8 @@ static int esp32s3_target_create(struct target *target, Jim_Interp *interp)
 	int ret = esp_xtensa_smp_init_arch_info(target,
 		&esp32s3->esp_xtensa_smp,
 		&esp32s3_dm_cfg,
-		&esp32s3_chip_ops);
+		&esp32s3_chip_ops,
+		&esp32s3_semihost_ops);
 	if (ret != ERROR_OK) {
 		LOG_ERROR("Failed to init arch info!");
 		free(esp32s3);
@@ -362,6 +368,13 @@ static const struct command_registration esp32s3_command_handlers[] = {
 		.name = "esp32",
 		.usage = "",
 		.chain = smp_command_handlers,
+	},
+	{
+		.name = "arm",
+		.mode = COMMAND_ANY,
+		.help = "ARM Command Group",
+		.usage = "",
+		.chain = semihosting_common_handlers
 	},
 	COMMAND_REGISTRATION_DONE
 };

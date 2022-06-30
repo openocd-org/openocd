@@ -44,7 +44,8 @@ int esp_xtensa_smp_target_init(struct command_context *cmd_ctx, struct target *t
 int esp_xtensa_smp_init_arch_info(struct target *target,
 	struct esp_xtensa_smp_common *esp_xtensa_smp,
 	struct xtensa_debug_module_config *dm_cfg,
-	const struct esp_xtensa_smp_chip_ops *chip_ops);
+	const struct esp_xtensa_smp_chip_ops *chip_ops,
+	const struct esp_semihost_ops *semihost_ops);
 
 extern const struct command_registration esp_xtensa_smp_command_handlers[];
 extern const struct command_registration esp_xtensa_smp_xtensa_command_handlers[];

@@ -13,6 +13,7 @@
 #include <target/target.h>
 #include <target/target_type.h>
 #include <target/smp.h>
+#include <target/semihosting_common.h>
 #include "assert.h"
 #include "esp_xtensa_smp.h"
 
@@ -329,6 +330,10 @@ static const struct esp_xtensa_smp_chip_ops esp32_chip_ops = {
 	.on_halt = esp32_on_halt
 };
 
+static const struct esp_semihost_ops esp32_semihost_ops = {
+	.prepare = esp32_disable_wdts
+};
+
 static int esp32_target_create(struct target *target, Jim_Interp *interp)
 {
 	struct xtensa_debug_module_config esp32_dm_cfg = {
@@ -346,7 +351,7 @@ static int esp32_target_create(struct target *target, Jim_Interp *interp)
 	}
 
 	int ret = esp_xtensa_smp_init_arch_info(target, &esp32->esp_xtensa_smp,
-		&esp32_dm_cfg, &esp32_chip_ops);
+		&esp32_dm_cfg, &esp32_chip_ops, &esp32_semihost_ops);
 	if (ret != ERROR_OK) {
 		LOG_ERROR("Failed to init arch info!");
 		free(esp32);
@@ -444,6 +449,13 @@ static const struct command_registration esp32_command_handlers[] = {
 		.name = "esp32",
 		.usage = "",
 		.chain = esp32_any_command_handlers,
+	},
+	{
+		.name = "arm",
+		.mode = COMMAND_ANY,
+		.help = "ARM Command Group",
+		.usage = "",
+		.chain = semihosting_common_handlers
 	},
 	COMMAND_REGISTRATION_DONE
 };

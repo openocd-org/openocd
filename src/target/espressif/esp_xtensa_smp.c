@@ -13,7 +13,9 @@
 #include <target/target.h>
 #include <target/target_type.h>
 #include <target/smp.h>
+#include <target/semihosting_common.h>
 #include "esp_xtensa_smp.h"
+#include "esp_xtensa_semihosting.h"
 
 /*
 Multiprocessor stuff common:
@@ -128,6 +130,7 @@ int esp_xtensa_smp_poll(struct target *target)
 {
 	enum target_state old_state = target->state;
 	struct esp_xtensa_smp_common *esp_xtensa_smp = target_to_esp_xtensa_smp(target);
+	struct esp_xtensa_common *esp_xtensa = target_to_esp_xtensa(target);
 	struct target_list *head;
 	struct target *curr;
 	bool other_core_resume_req = false;
@@ -180,6 +183,19 @@ int esp_xtensa_smp_poll(struct target *target)
 		if (old_state == TARGET_DEBUG_RUNNING) {
 			target_call_event_callbacks(target, TARGET_EVENT_DEBUG_HALTED);
 		} else {
+			if (esp_xtensa_semihosting(target, &ret) == SEMIHOSTING_HANDLED) {
+				if (ret == ERROR_OK && esp_xtensa->semihost.need_resume &&
+					!esp_xtensa_smp->other_core_does_resume) {
+					esp_xtensa->semihost.need_resume = false;
+					/* Resume xtensa_resume will handle BREAK instruction. */
+					ret = target_resume(target, 1, 0, 1, 0);
+					if (ret != ERROR_OK) {
+						LOG_ERROR("Failed to resume target");
+						return ret;
+					}
+				}
+				return ret;
+			}
 			/* check whether any core polled by esp_xtensa_smp_update_halt_gdb() requested resume */
 			if (target->smp && other_core_resume_req) {
 				/* Resume xtensa_resume will handle BREAK instruction. */
@@ -253,6 +269,11 @@ static int esp_xtensa_smp_update_halt_gdb(struct target *target, bool *need_resu
 		if (ret != ERROR_OK)
 			return ret;
 		esp_xtensa_smp->other_core_does_resume = false;
+		struct esp_xtensa_common *curr_esp_xtensa = target_to_esp_xtensa(curr);
+		if (curr_esp_xtensa->semihost.need_resume) {
+			curr_esp_xtensa->semihost.need_resume = false;
+			*need_resume = true;
+		}
 	}
 
 	/* after all targets were updated, poll the gdb serving target */
@@ -451,9 +472,10 @@ int esp_xtensa_smp_watchpoint_remove(struct target *target, struct watchpoint *w
 int esp_xtensa_smp_init_arch_info(struct target *target,
 	struct esp_xtensa_smp_common *esp_xtensa_smp,
 	struct xtensa_debug_module_config *dm_cfg,
-	const struct esp_xtensa_smp_chip_ops *chip_ops)
+	const struct esp_xtensa_smp_chip_ops *chip_ops,
+	const struct esp_semihost_ops *semihost_ops)
 {
-	int ret = esp_xtensa_init_arch_info(target, &esp_xtensa_smp->esp_xtensa, dm_cfg);
+	int ret = esp_xtensa_init_arch_info(target, &esp_xtensa_smp->esp_xtensa, dm_cfg, semihost_ops);
 	if (ret != ERROR_OK)
 		return ret;
 	esp_xtensa_smp->chip_ops = chip_ops;
@@ -463,7 +485,24 @@ int esp_xtensa_smp_init_arch_info(struct target *target,
 
 int esp_xtensa_smp_target_init(struct command_context *cmd_ctx, struct target *target)
 {
-	return esp_xtensa_target_init(cmd_ctx, target);
+	int ret = esp_xtensa_target_init(cmd_ctx, target);
+	if (ret != ERROR_OK)
+		return ret;
+
+	if (target->smp) {
+		struct target_list *head;
+		foreach_smp_target(head, target->smp_targets) {
+			struct target *curr = head->target;
+			ret = esp_xtensa_semihosting_init(curr);
+			if (ret != ERROR_OK)
+				return ret;
+		}
+	} else {
+		ret = esp_xtensa_semihosting_init(target);
+		if (ret != ERROR_OK)
+			return ret;
+	}
+	return ERROR_OK;
 }
 
 COMMAND_HANDLER(esp_xtensa_smp_cmd_xtdef)
