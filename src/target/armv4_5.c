@@ -1116,8 +1116,6 @@ static int jim_mcrmrc(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
 	return JIM_OK;
 }
 
-extern const struct command_registration semihosting_common_handlers[];
-
 static const struct command_registration arm_exec_command_handlers[] = {
 	{
 		.name = "reg",

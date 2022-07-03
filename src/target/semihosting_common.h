@@ -201,4 +201,6 @@ void semihosting_set_field(struct target *target, uint64_t value,
 	size_t index,
 	uint8_t *fields);
 
+extern const struct command_registration semihosting_common_handlers[];
+
 #endif	/* OPENOCD_TARGET_SEMIHOSTING_COMMON_H */

@@ -3114,7 +3114,6 @@ static const struct command_registration riscv_exec_command_handlers[] = {
  * protocol, then a command like `riscv semihosting enable` will make
  * sense, but for now all semihosting commands are prefixed with `arm`.
  */
-extern const struct command_registration semihosting_common_handlers[];
 
 const struct command_registration riscv_command_handlers[] = {
 	{
