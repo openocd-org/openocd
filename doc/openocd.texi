@@ -3568,6 +3568,66 @@ espusbjtag chip_id 1
 
 @end deffn
 
+@deffn {Interface Driver} {dmem} Direct Memory access debug interface
+
+The Texas Instruments K3 SoC family provides memory access to DAP
+and coresight control registers. This allows control over the
+microcontrollers directly from one of the processors on the SOC
+itself.
+
+For maximum performance, the driver accesses the debug registers
+directly over the SoC memory map. The memory mapping requires read
+and write permission to kernel memory via "/dev/mem" and assumes that
+the system firewall configurations permit direct access to the debug
+memory space.
+
+@verbatim
++-----------+
+|  OpenOCD  |   SoC mem map (/dev/mem)
+|    on     +--------------+
+| Cortex-A53|              |
++-----------+              |
+                           |
++-----------+        +-----v-----+
+|Cortex-M4F <--------+           |
++-----------+        |           |
+                     |  DebugSS  |
++-----------+        |           |
+|Cortex-M4F <--------+           |
++-----------+        +-----------+
+@end verbatim
+
+NOTE: Firewalls are configurable in K3 SoC and depending on various types of
+device configuration, this function may be blocked out. Typical behavior
+observed in such cases is a firewall exception report on the security
+controller and armv8 processor reporting a system error.
+
+See @file{tcl/interface/ti_k3_am625-swd-native.cfg} for a sample configuration
+file.
+
+@deffn {Command} {dmem info}
+Print the DAPBUS dmem configuration.
+@end deffn
+
+@deffn {Config Command} {dmem device} device_path
+Set the DAPBUS memory access device (default: /dev/mem).
+@end deffn
+
+@deffn {Config Command} {dmem base_address} base_address
+Set the DAPBUS base address which is used to access CoreSight
+compliant Access Ports (APs) directly.
+@end deffn
+
+@deffn {Config Command} {dmem ap_address_offset} offset_address
+Set the address offset between Access Ports (APs).
+@end deffn
+
+@deffn {Config Command} {dmem max_aps} n
+Set the maximum number of valid access ports on the SoC.
+@end deffn
+
+@end deffn
+
 @section Transport Configuration
 @cindex Transport
 As noted earlier, depending on the version of OpenOCD you use,
