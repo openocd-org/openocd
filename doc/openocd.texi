@@ -3626,6 +3626,19 @@ Set the address offset between Access Ports (APs).
 Set the maximum number of valid access ports on the SoC.
 @end deffn
 
+@deffn {Config Command} {dmem emu_ap_list} n
+Set the list of Access Ports (APs) that need to be emulated. This
+emulation mode supports software translation of an AP request into an
+address mapped transaction that does not rely on physical AP hardware.
+This maybe needed if the AP is either denied access via memory map or
+protected using other SoC mechanisms.
+@end deffn
+
+@deffn {Config Command} {dmem emu_base_address_range} base_address address_window_size
+Set the emulated address and address window size. Both of these
+parameters must be aligned to page size.
+@end deffn
+
 @end deffn
 
 @section Transport Configuration
