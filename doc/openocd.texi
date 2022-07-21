@@ -5149,7 +5149,7 @@ The value should normally correspond to a static mapping for the
 
 @anchor{rtostype}
 @item @code{-rtos} @var{rtos_type} -- enable rtos support for target,
-@var{rtos_type} can be one of @option{auto}, @option{eCos},
+@var{rtos_type} can be one of @option{auto}, @option{none}, @option{eCos},
 @option{ThreadX}, @option{FreeRTOS}, @option{linux}, @option{ChibiOS},
 @option{embKernel}, @option{mqx}, @option{uCOS-III}, @option{nuttx},
 @option{RIOT}, @option{Zephyr}
@@ -11847,6 +11847,11 @@ Currently supported rtos's include:
 @item @option{hwthread} (This is not an actual RTOS. @xref{usingopenocdsmpwithgdb,,Using OpenOCD SMP with GDB}.)
 @item @option{Zephyr}
 @end itemize
+
+At any time, it's possible to drop the selected RTOS using:
+@example
+$_TARGETNAME configure -rtos none
+@end example
 
 Before an RTOS can be detected, it must export certain symbols; otherwise, it cannot
 be used by OpenOCD. Below is a list of the required symbols for each supported RTOS.

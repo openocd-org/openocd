@@ -129,6 +129,9 @@ int rtos_create(struct jim_getopt_info *goi, struct target *target)
 	if (e != JIM_OK)
 		return e;
 
+	if (strcmp(cp, "none") == 0)
+		return JIM_OK;
+
 	if (strcmp(cp, "auto") == 0) {
 		/* Auto detect tries to look up all symbols for each RTOS,
 		 * and runs the RTOS driver's _detect() function when GDB
@@ -148,7 +151,7 @@ int rtos_create(struct jim_getopt_info *goi, struct target *target)
 	res = Jim_GetResult(goi->interp);
 	for (x = 0; rtos_types[x]; x++)
 		Jim_AppendStrings(goi->interp, res, rtos_types[x]->name, ", ", NULL);
-	Jim_AppendStrings(goi->interp, res, " or auto", NULL);
+	Jim_AppendStrings(goi->interp, res, ", auto or none", NULL);
 
 	return JIM_ERR;
 }
