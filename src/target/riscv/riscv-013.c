@@ -1505,7 +1505,7 @@ static int set_group(struct target *target, bool *supported, unsigned group, gro
 	uint32_t write_val = DM_DMCS2_HGWRITE;
 	assert(group <= 31);
 	write_val = set_field(write_val, DM_DMCS2_GROUP, group);
-	write_val = set_field(write_val, DM_DMCS2_GROUPTYPE, (grouptype == HALTGROUP) ? 1 : 0);
+	write_val = set_field(write_val, DM_DMCS2_GROUPTYPE, (grouptype == HALTGROUP) ? 0 : 1);
 	if (dmi_write(target, DM_DMCS2, write_val) != ERROR_OK)
 		return ERROR_FAIL;
 	uint32_t read_val;
