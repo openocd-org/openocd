@@ -928,6 +928,12 @@ static int stm32x_probe(struct flash_bank *bank)
 		stm32x_info->ppage_size = 4;
 		max_flash_size_in_kb = 128;
 		break;
+	case 0x511:	
+		page_size = 2048;
+		max_flash_size_in_kb = 512;
+		stm32x_info->default_rdp = 0xAA;
+		stm32x_info->can_load_options = true;
+		break;	
 	case 0x428: /* stm32f100xx high-density value line */
 		page_size = 2048;
 		stm32x_info->ppage_size = 4;
@@ -942,7 +948,6 @@ static int stm32x_probe(struct flash_bank *bank)
 		stm32x_info->default_rdp = 0xAA;
 		stm32x_info->can_load_options = true;
 		break;
-	case 0x511:		
 	case 0x446: /* stm32f303xD/E */
 		page_size = 2048;
 		stm32x_info->ppage_size = 2;
