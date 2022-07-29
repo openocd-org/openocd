@@ -748,20 +748,6 @@ static int wait_for_idle(struct target *target, uint32_t *abstractcs)
 
 		if (time(NULL) - start > riscv_command_timeout_sec) {
 			info->cmderr = get_field(*abstractcs, DM_ABSTRACTCS_CMDERR);
-			if (info->cmderr != CMDERR_NONE) {
-				const char *errors[8] = {
-					"none",
-					"busy",
-					"not supported",
-					"exception",
-					"halt/resume",
-					"reserved",
-					"reserved",
-					"other" };
-
-				LOG_ERROR("Abstract command ended in error '%s' (abstractcs=0x%x)",
-						errors[info->cmderr], *abstractcs);
-			}
 
 			LOG_ERROR("Timed out after %ds waiting for busy to go low (abstractcs=0x%x). "
 					"Increase the timeout with riscv set_command_timeout_sec.",
