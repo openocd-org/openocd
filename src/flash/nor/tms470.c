@@ -248,9 +248,6 @@ static int tms470_read_part_info(struct flash_bank *bank)
 	target_write_u32(target, 0xFFFFFFE4, 0x00000000);
 	target_write_u32(target, 0xFFFFFFE0, 0x00000000);
 
-	bank->chip_width = 32;
-	bank->bus_width = 32;
-
 	LOG_INFO("Identified %s, ver=%d, core=%s, nvmem=%s.",
 		part_name,
 		(int)(silicon_version),
