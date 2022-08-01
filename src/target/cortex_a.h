@@ -20,7 +20,6 @@
 #include "armv7a.h"
 
 #define CORTEX_A_COMMON_MAGIC 0x411fc082
-#define CORTEX_A15_COMMON_MAGIC 0x413fc0f1
 
 #define CORTEX_A5_PARTNUM 0xc05
 #define CORTEX_A7_PARTNUM 0xc07
