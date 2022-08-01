@@ -321,9 +321,13 @@ static int kitprog_hid_command(uint8_t *command, size_t command_length,
 		return ERROR_FAIL;
 	}
 
-	ret = hid_read(kitprog_handle->hid_handle, data, data_length);
-	if (ret < 0) {
-		LOG_DEBUG("HID read returned %i", ret);
+	ret = hid_read_timeout(kitprog_handle->hid_handle,
+							data, data_length, LIBUSB_TIMEOUT_MS);
+	if (ret == 0) {
+		LOG_ERROR("HID read timed out");
+		return ERROR_TIMEOUT_REACHED;
+	} else if (ret < 0) {
+		LOG_ERROR("HID read error %ls", hid_error(kitprog_handle->hid_handle));
 		return ERROR_FAIL;
 	}
 
