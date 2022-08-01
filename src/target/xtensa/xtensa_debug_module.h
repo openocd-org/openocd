@@ -3,11 +3,8 @@
 /***************************************************************************
  *   Xtensa debug module API                                               *
  *   Copyright (C) 2019 Espressif Systems Ltd.                             *
- *   <alexey@espressif.com>                                                *
- *                                                                         *
  *   Derived from original ESP8266 target.                                 *
- *   Copyright (C) 2015 by Angus Gratton                                   *
- *   gus@projectgus.com                                                    *
+ *   Author: Angus Gratton gus@projectgus.com                              *
  ***************************************************************************/
 
 #ifndef OPENOCD_TARGET_XTENSA_DEBUG_MODULE_H

@@ -3,7 +3,6 @@
 /***************************************************************************
  *   Generic ESP xtensa target implementation for OpenOCD                  *
  *   Copyright (C) 2019 Espressif Systems Ltd.                             *
- *   Author: Alexey Gerenkov <alexey@espressif.com>                        *
  ***************************************************************************/
 
 #ifndef OPENOCD_TARGET_ESP_XTENSA_H

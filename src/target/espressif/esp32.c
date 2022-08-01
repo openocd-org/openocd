@@ -3,8 +3,6 @@
 /***************************************************************************
  *   ESP32 target API for OpenOCD                                          *
  *   Copyright (C) 2016-2019 Espressif Systems Ltd.                        *
- *   Author: Dmitry Yakovlev <dmitry@espressif.com>                        *
- *   Author: Alexey Gerenkov <alexey@espressif.com>                        *
  ***************************************************************************/
 
 #ifdef HAVE_CONFIG_H

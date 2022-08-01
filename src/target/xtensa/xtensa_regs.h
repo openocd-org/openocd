@@ -4,8 +4,8 @@
  *   Generic Xtensa target API for OpenOCD                                 *
  *   Copyright (C) 2016-2019 Espressif Systems Ltd.                        *
  *   Author: Angus Gratton gus@projectgus.com                              *
- *   Author: Jeroen Domburg <jeroen@espressif.com>                         *
  ***************************************************************************/
+
 #ifndef OPENOCD_TARGET_XTENSA_REGS_H
 #define OPENOCD_TARGET_XTENSA_REGS_H
 

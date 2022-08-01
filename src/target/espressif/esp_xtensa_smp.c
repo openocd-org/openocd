@@ -3,7 +3,6 @@
 /***************************************************************************
  *   ESP Xtensa SMP target API for OpenOCD                                 *
  *   Copyright (C) 2020 Espressif Systems Ltd. Co                          *
- *   Author: Alexey Gerenkov <alexey@espressif.com>                        *
  ***************************************************************************/
 
 #ifdef HAVE_CONFIG_H

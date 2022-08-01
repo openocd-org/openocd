@@ -5,9 +5,6 @@
  *   Copyright (C) 2016-2019 Espressif Systems Ltd.                        *
  *   Derived from esp108.c                                                 *
  *   Author: Angus Gratton gus@projectgus.com                              *
- *   Author: Jeroen Domburg <jeroen@espressif.com>                         *
- *   Author: Alexey Gerenkov <alexey@espressif.com>                        *
- *   Author: Andrey Gramakov <andrei.gramakov@espressif.com>               *
  ***************************************************************************/
 
 #ifdef HAVE_CONFIG_H

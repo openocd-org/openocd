@@ -3,7 +3,6 @@
 /***************************************************************************
  *   Espressif Xtensa target API for OpenOCD                               *
  *   Copyright (C) 2019 Espressif Systems Ltd.                             *
- *   Author: Alexey Gerenkov <alexey@espressif.com>                        *
  ***************************************************************************/
 
 #ifdef HAVE_CONFIG_H

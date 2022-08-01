@@ -3,7 +3,6 @@
 /***************************************************************************
  *   Generic Xtensa target                                                 *
  *   Copyright (C) 2019 Espressif Systems Ltd.                             *
- *   Author: Alexey Gerenkov <alexey@espressif.com>                        *
  ***************************************************************************/
 
 #ifndef OPENOCD_TARGET_XTENSA_H
