@@ -1126,20 +1126,6 @@ static const struct command_registration arm_exec_command_handlers[] = {
 		.usage = "",
 	},
 	{
-		.name = "core_state",
-		.handler = handle_arm_core_state_command,
-		.mode = COMMAND_EXEC,
-		.usage = "['arm'|'thumb']",
-		.help = "display/change ARM core state",
-	},
-	{
-		.name = "disassemble",
-		.handler = handle_arm_disassemble_command,
-		.mode = COMMAND_EXEC,
-		.usage = "address [count ['thumb']]",
-		.help = "disassemble instructions",
-	},
-	{
 		.name = "mcr",
 		.mode = COMMAND_EXEC,
 		.jim_handler = &jim_mcrmrc,
@@ -1154,10 +1140,32 @@ static const struct command_registration arm_exec_command_handlers[] = {
 		.usage = "cpnum op1 CRn CRm op2",
 	},
 	{
+		.chain = arm_all_profiles_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+const struct command_registration arm_all_profiles_command_handlers[] = {
+	{
+		.name = "core_state",
+		.handler = handle_arm_core_state_command,
+		.mode = COMMAND_EXEC,
+		.usage = "['arm'|'thumb']",
+		.help = "display/change ARM core state",
+	},
+	{
+		.name = "disassemble",
+		.handler = handle_arm_disassemble_command,
+		.mode = COMMAND_EXEC,
+		.usage = "address [count ['thumb']]",
+		.help = "disassemble instructions",
+	},
+	{
 		.chain = semihosting_common_handlers,
 	},
 	COMMAND_REGISTRATION_DONE
 };
+
 const struct command_registration arm_command_handlers[] = {
 	{
 		.name = "arm",

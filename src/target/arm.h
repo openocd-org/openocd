@@ -273,6 +273,7 @@ void arm_free_reg_cache(struct arm *arm);
 struct reg_cache *armv8_build_reg_cache(struct target *target);
 
 extern const struct command_registration arm_command_handlers[];
+extern const struct command_registration arm_all_profiles_command_handlers[];
 
 int arm_arch_state(struct target *target);
 const char *arm_get_gdb_arch(struct target *target);

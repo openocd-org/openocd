@@ -1085,7 +1085,11 @@ int armv7m_maybe_skip_bkpt_inst(struct target *target, bool *inst_found)
 
 const struct command_registration armv7m_command_handlers[] = {
 	{
-		.chain = arm_command_handlers,
+		.name = "arm",
+		.mode = COMMAND_ANY,
+		.help = "ARM command group",
+		.usage = "",
+		.chain = arm_all_profiles_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE
 };
