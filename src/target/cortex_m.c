@@ -652,6 +652,11 @@ static int cortex_m_endreset_event(struct target *target)
 
 	register_cache_invalidate(armv7m->arm.core_cache);
 
+	/* TODO: invalidate also working areas (needed in the case of detected reset).
+	 * Doing so will require flash drivers to test if working area
+	 * is still valid in all target algo calling loops.
+	 */
+
 	/* make sure we have latest dhcsr flags */
 	retval = cortex_m_read_dhcsr_atomic_sticky(target);
 	if (retval != ERROR_OK)
@@ -2396,6 +2401,20 @@ int cortex_m_examine(struct target *target)
 		retval = target_read_u32(target, DCB_DHCSR, &cortex_m->dcb_dhcsr);
 		if (retval != ERROR_OK)
 			return retval;
+
+		/*  Don't cumulate sticky S_RESET_ST at the very first read of DHCSR
+		 *  as S_RESET_ST may indicate a reset that happened long time ago
+		 *  (most probably the power-on reset before OpenOCD was started).
+		 *  As we are just initializing the debug system we do not need
+		 *  to call cortex_m_endreset_event() in the following poll.
+		 */
+		if (!cortex_m->dcb_dhcsr_sticky_is_recent) {
+			cortex_m->dcb_dhcsr_sticky_is_recent = true;
+			if (cortex_m->dcb_dhcsr & S_RESET_ST) {
+				LOG_TARGET_DEBUG(target, "reset happened some time ago, ignore");
+				cortex_m->dcb_dhcsr &= ~S_RESET_ST;
+			}
+		}
 		cortex_m_cumulate_dhcsr_sticky(cortex_m, cortex_m->dcb_dhcsr);
 
 		if (!(cortex_m->dcb_dhcsr & C_DEBUGEN)) {

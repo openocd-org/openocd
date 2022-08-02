@@ -206,6 +206,8 @@ struct cortex_m_common {
 	/* Context information */
 	uint32_t dcb_dhcsr;
 	uint32_t dcb_dhcsr_cumulated_sticky;
+	/* DCB DHCSR has been at least once read, so the sticky bits have been reset */
+	bool dcb_dhcsr_sticky_is_recent;
 	uint32_t nvic_dfsr;  /* Debug Fault Status Register - shows reason for debug halt */
 	uint32_t nvic_icsr;  /* Interrupt Control State Register - shows active and pending IRQ */
 
