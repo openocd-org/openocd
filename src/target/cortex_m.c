@@ -868,6 +868,16 @@ static int cortex_m_poll(struct target *target)
 	struct cortex_m_common *cortex_m = target_to_cm(target);
 	struct armv7m_common *armv7m = &cortex_m->armv7m;
 
+	/* Check if debug_ap is available to prevent segmentation fault.
+	 * If the re-examination after an error does not find a MEM-AP
+	 * (e.g. the target stopped communicating), debug_ap pointer
+	 * can suddenly become NULL.
+	 */
+	if (!armv7m->debug_ap) {
+		target->state = TARGET_UNKNOWN;
+		return ERROR_TARGET_NOT_EXAMINED;
+	}
+
 	/* Read from Debug Halting Control and Status Register */
 	retval = cortex_m_read_dhcsr_atomic_sticky(target);
 	if (retval != ERROR_OK) {
