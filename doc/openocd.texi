@@ -7396,6 +7396,31 @@ flash bank $_FLASHNAME rp2040_flash $_FLASHBASE $_FLASHSIZE 1 32 $_TARGETNAME
 @end example
 @end deffn
 
+@deffn {Flash Driver} {rsl10}
+Supports Onsemi RSL10 microcontroller flash memory.  Uses functions
+stored in ROM to control flash memory interface.
+
+@example
+flash bank $_FLASHNAME rsl10 $_FLASHBASE $_FLASHSIZE 0 0 $_TARGETNAME
+@end example
+
+@deffn {Command} {rsl10 lock} key1 key2 key3 key4
+Writes @var{key1 key2 key3 key4} words to @var{0x81044 0x81048 0x8104c
+0x8050}. Locks debug port by writing @var{0x4C6F634B} to @var{0x81040}.
+
+To unlock use the @command{rsl10 unlock key1 key2 key3 key4} command.
+@end deffn
+
+@deffn {Command} {rsl10 unlock} key1 key2 key3 key4
+Unlocks debug port, by writing @var{key1 key2 key3 key4} words to
+registers through DAP, and clears @var{0x81040} address in flash to 0x1.
+@end deffn
+
+@deffn {Command} {rsl10 mass_erase}
+Erases all unprotected flash sectors.
+@end deffn
+@end deffn
+
 @deffn {Flash Driver} {sim3x}
 All members of the SiM3 microcontroller family from Silicon Laboratories
 include internal flash and use ARM Cortex-M3 cores. It supports both JTAG
