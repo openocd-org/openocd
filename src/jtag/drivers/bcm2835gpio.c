@@ -341,13 +341,21 @@ static void bcm2835gpio_munmap(void)
 	}
 }
 
+static int bcm2835gpio_blink(int on)
+{
+	if (is_gpio_config_valid(ADAPTER_GPIO_IDX_LED))
+		set_gpio_value(&adapter_gpio_config[ADAPTER_GPIO_IDX_LED], on);
+
+	return ERROR_OK;
+}
+
 static struct bitbang_interface bcm2835gpio_bitbang = {
 	.read = bcm2835gpio_read,
 	.write = bcm2835gpio_write,
 	.swdio_read = bcm2835_swdio_read,
 	.swdio_drive = bcm2835_swdio_drive,
 	.swd_write = bcm2835gpio_swd_write_generic,
-	.blink = NULL
+	.blink = bcm2835gpio_blink,
 };
 
 static int bcm2835gpio_init(void)
@@ -440,6 +448,7 @@ static int bcm2835gpio_init(void)
 	}
 
 	initialize_gpio(ADAPTER_GPIO_IDX_SRST);
+	initialize_gpio(ADAPTER_GPIO_IDX_LED);
 
 	return ERROR_OK;
 }
@@ -467,6 +476,7 @@ static int bcm2835gpio_quit(void)
 	}
 
 	restore_gpio(ADAPTER_GPIO_IDX_SRST);
+	restore_gpio(ADAPTER_GPIO_IDX_LED);
 
 	bcm2835gpio_munmap();
 
