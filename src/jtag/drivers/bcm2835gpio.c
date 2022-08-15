@@ -51,7 +51,11 @@ static int speed_offset = 28;
 static unsigned int jtag_delay;
 
 static const struct adapter_gpio_config *adapter_gpio_config;
-static int initial_gpio_mode[ADAPTER_GPIO_IDX_NUM];
+static struct initial_gpio_state {
+	unsigned int mode;
+	unsigned int output_level;
+} initial_gpio_state[ADAPTER_GPIO_IDX_NUM];
+static uint32_t initial_drive_strength_etc;
 
 static bool is_gpio_config_valid(enum adapter_gpio_config_index idx)
 {
@@ -96,8 +100,15 @@ static void set_gpio_value(const struct adapter_gpio_config *gpio_config, int va
 
 static void restore_gpio(enum adapter_gpio_config_index idx)
 {
-	if (is_gpio_config_valid(idx))
-		SET_MODE_GPIO(adapter_gpio_config[idx].gpio_num, initial_gpio_mode[idx]);
+	if (is_gpio_config_valid(idx)) {
+		SET_MODE_GPIO(adapter_gpio_config[idx].gpio_num, initial_gpio_state[idx].mode);
+		if (initial_gpio_state[idx].mode == BCM2835_GPIO_MODE_OUTPUT) {
+			if (initial_gpio_state[idx].output_level)
+				GPIO_SET = 1 << adapter_gpio_config[idx].gpio_num;
+			else
+				GPIO_CLR = 1 << adapter_gpio_config[idx].gpio_num;
+		}
+	}
 }
 
 static void initialize_gpio(enum adapter_gpio_config_index idx)
@@ -105,10 +116,12 @@ static void initialize_gpio(enum adapter_gpio_config_index idx)
 	if (!is_gpio_config_valid(idx))
 		return;
 
-	initial_gpio_mode[idx] = MODE_GPIO(adapter_gpio_config[idx].gpio_num);
+	initial_gpio_state[idx].mode = MODE_GPIO(adapter_gpio_config[idx].gpio_num);
+	unsigned int shift = adapter_gpio_config[idx].gpio_num;
+	initial_gpio_state[idx].output_level = (GPIO_LEV >> shift) & 1;
 	LOG_DEBUG("saved GPIO mode for %s (GPIO %d %d): %d",
 			adapter_gpio_get_name(idx), adapter_gpio_config[idx].chip_num, adapter_gpio_config[idx].gpio_num,
-			initial_gpio_mode[idx]);
+			initial_gpio_state[idx].mode);
 
 	if (adapter_gpio_config[idx].pull != ADAPTER_GPIO_PULL_NONE) {
 		LOG_WARNING("BCM2835 GPIO does not support pull-up or pull-down settings (signal %s)",
@@ -407,6 +420,7 @@ static int bcm2835gpio_init(void)
 	close(dev_mem_fd);
 
 	/* set 4mA drive strength, slew rate limited, hysteresis on */
+	initial_drive_strength_etc = pads_base[BCM2835_PADS_GPIO_0_27_OFFSET] & 0x1f;
 	pads_base[BCM2835_PADS_GPIO_0_27_OFFSET] = 0x5a000008 + 1;
 
 	/* Configure JTAG/SWD signals. Default directions and initial states are handled
@@ -478,6 +492,8 @@ static int bcm2835gpio_quit(void)
 	restore_gpio(ADAPTER_GPIO_IDX_SRST);
 	restore_gpio(ADAPTER_GPIO_IDX_LED);
 
+	/* Restore drive strength. MSB is password ("5A") */
+	pads_base[BCM2835_PADS_GPIO_0_27_OFFSET] = 0x5A000000 | initial_drive_strength_etc;
 	bcm2835gpio_munmap();
 
 	return ERROR_OK;
