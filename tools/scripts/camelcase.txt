@@ -142,7 +142,10 @@ Elf32_Ehdr
 Elf32_Half
 Elf32_Off
 Elf32_Phdr
+Elf32_Section
+Elf32_Shdr
 Elf32_Size
+Elf32_Sym
 Elf32_Word
 Elf64_Addr
 Elf64_Ehdr

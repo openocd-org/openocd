@@ -8609,6 +8609,52 @@ applied to all of them.
 @end deffn
 @end deffn
 
+@deffn {Flash Driver} {stldr}
+This driver supports STM32CubeProgrammer Memory Loaders (aka STLDR).
+This driver permits re-using these loaders to support both internal and external memories.
+
+@example
+flash bank $_FLASHNAME stldr 0 0 0 0 $_TARGETNAME /path/to/loader.xldr
+@end example
+
+The predefined @var{chip_width} parameter of the @code{flash bank}
+command specifies the required flash write alignment, in bytes.
+The driver uses this value for both the start address and the length
+of flash writes. If @var{chip_width} is zero, the driver defaults to
+a 32-byte alignment.
+
+This driver provides these specific commands:
+
+@deffn {Command} {stldr set_loader} num path_to_loader
+Sets the loader path
+
+The @var{num} parameter is a value shown by @command{flash banks}.
+
+Hint: use a complete path name for @var{path_to_loader}, so you don't depend
+on the directory used to start the OpenOCD server.
+@end deffn
+
+@deffn {Command} {stldr set_size} num size
+Set bank size
+
+The @var{num} parameter is a value shown by @command{flash banks}.
+The @var{size} is the bank size.
+@end deffn
+
+@deffn {Command} {stldr init} num
+Initialize memory
+
+The @var{num} parameter is a value shown by @command{flash banks}.
+@end deffn
+
+@deffn {Command} {stldr mass_erase} num
+Mass erases the entire flash bank.
+
+The @var{num} parameter is a value shown by @command{flash banks}.
+@end deffn
+
+@end deffn
+
 @deffn {Flash Driver} {stm32f1x}
 This driver supports the STM32F0, STM32F1 and STM32F3 microcontroller series from STMicroelectronics.
 The driver is also compatible with the GD32F1, GD32VF103 (RISC-V core), GD32F3 and GD32E23 microcontroller series from GigaDevice.
