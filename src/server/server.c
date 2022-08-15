@@ -473,7 +473,7 @@ int server_loop(struct command_context *command_context)
 			tv.tv_usec = 0;
 			retval = socket_select(fd_max + 1, &read_fds, NULL, NULL, &tv);
 		} else {
-			/* Every 100ms, can be changed with "poll_period" command */
+			/* Timeout socket_select() when a target timer expires or every polling_period */
 			int timeout_ms = next_event - timeval_ms();
 			if (timeout_ms < 0)
 				timeout_ms = 0;
@@ -507,9 +507,12 @@ int server_loop(struct command_context *command_context)
 		}
 
 		if (retval == 0) {
-			/* We only execute these callbacks when there was nothing to do or we timed
-			 *out */
-			target_call_timer_callbacks_now();
+			/* Execute callbacks of expired timers when
+			 * - there was nothing to do if poll_ok was true
+			 * - socket_select() timed out if poll_ok was false, now one or more
+			 *   timers expired or the polling period elapsed
+			 */
+			target_call_timer_callbacks();
 			next_event = target_timer_next_event();
 			process_jim_events(command_context);
 
