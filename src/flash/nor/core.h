@@ -20,8 +20,6 @@
 
 struct image;
 
-#define FLASH_MAX_ERROR_STR	(128)
-
 /**
  * Describes the geometry and status of a single flash sector
  * within a flash bank.  A single bank typically consists of multiple
