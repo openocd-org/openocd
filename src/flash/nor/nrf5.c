@@ -136,7 +136,7 @@ struct nrf5_device_spec {
 };
 
 struct nrf5_info {
-	uint32_t refcount;
+	unsigned int refcount;
 
 	struct nrf5_bank {
 		struct nrf5_info *chip;
