@@ -95,7 +95,7 @@
 /* timeout values */
 
 #define FLASH_WRITE_TIMEOUT 10
-#define FLASH_ERASE_TIMEOUT 100
+#define FLASH_ERASE_TIMEOUT 10000
 
 struct stm32x_options {
 	uint8_t rdp;
@@ -742,7 +742,6 @@ static int stm32x_get_property_addr(struct target *target, struct stm32x_propert
 		LOG_ERROR("Target not examined yet");
 		return ERROR_TARGET_NOT_EXAMINED;
 	}
-
 	switch (cortex_m_get_partno_safe(target)) {
 	case CORTEX_M0_PARTNO: /* STM32F0x devices */
 		addr->device_id = 0x40015800;
@@ -754,7 +753,7 @@ static int stm32x_get_property_addr(struct target *target, struct stm32x_propert
 		return ERROR_OK;
 	case CORTEX_M4_PARTNO: /* STM32F3x devices */
 		addr->device_id = 0xE0042000;
-		addr->flash_size = 0x1FFFF7CC;
+		addr->flash_size = 0x1FFFF7E0; //0x1FFFF7CC;
 		return ERROR_OK;
 	case CORTEX_M23_PARTNO: /* GD32E23x devices */
 		addr->device_id = 0x40015800;
@@ -970,6 +969,17 @@ static int stm32x_probe(struct flash_bank *bank)
 		stm32x_info->default_rdp = 0xAA;
 		stm32x_info->can_load_options = true;
 		break;
+	case 0x34B:
+		page_size = 2048;
+		stm32x_info->ppage_size = 2;
+		max_flash_size_in_kb = 2048;
+		stm32x_info->has_dual_banks = true;
+		stm32x_info->user_data_offset = 10;
+		stm32x_info->option_offset = 6;
+		stm32x_info->default_rdp = 0xAA;
+		stm32x_info->can_load_options = true;
+		break;
+
 	default:
 		LOG_WARNING("Cannot identify target as a STM32 family.");
 		return ERROR_FAIL;
@@ -1025,6 +1035,8 @@ static int stm32x_probe(struct flash_bank *bank)
 
 	bank->base = base_address;
 	bank->size = (num_pages * page_size);
+	LOG_INFO("bank base = 0x%x", base_address);
+	LOG_INFO("bank size = %d", bank->size);
 
 	bank->num_sectors = num_pages;
 	bank->sectors = alloc_block_array(0, page_size, num_pages);
