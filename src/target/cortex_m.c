@@ -103,6 +103,12 @@ static const struct cortex_m_part_info cortex_m_parts[] = {
 		.arch = ARM_ARCH_V8M,
 		.flags = CORTEX_M_F_HAS_FPV5,
 	},
+	{
+		.partno = STAR_MC1_PARTNO,
+		.name = "STAR-MC1",
+		.arch = ARM_ARCH_V8M,
+		.flags = CORTEX_M_F_HAS_FPV5,
+	},
 };
 
 /* forward declarations */
