@@ -591,7 +591,7 @@ static int xtensa_write_dirty_registers(struct target *target)
 	unsigned int reg_list_size = xtensa->core_cache->num_regs;
 	bool preserve_a3 = false;
 	uint8_t a3_buf[4];
-	xtensa_reg_val_t a3, woe;
+	xtensa_reg_val_t a3 = 0, woe;
 
 	LOG_TARGET_DEBUG(target, "start");
 
@@ -655,6 +655,8 @@ static int xtensa_write_dirty_registers(struct target *target)
 		xtensa_queue_exec_ins(xtensa, XT_INS_WSR(xtensa, XT_SR_DDR, XT_REG_A3));
 		xtensa_queue_dbg_reg_read(xtensa, NARADR_DDR, a3_buf);
 		res = jtag_execute_queue();
+		if (res != ERROR_OK)
+			return res;
 		xtensa_core_status_check(target);
 		a3 = buf_get_u32(a3_buf, 0, 32);
 	}
@@ -2468,7 +2470,7 @@ static int xtensa_build_reg_cache(struct target *target)
 			LOG_TARGET_ERROR(target, "ERROR: Out of memory");
 			goto fail;
 		}
-		sprintf((char *)xtensa->empty_regs[i].name, "?0x%04x", i);
+		sprintf((char *)xtensa->empty_regs[i].name, "?0x%04x", i & 0x0000FFFF);
 		xtensa->empty_regs[i].size = 32;
 		xtensa->empty_regs[i].type = &xtensa_reg_type;
 		xtensa->empty_regs[i].value = calloc(1, 4 /*XT_REG_LEN*/);	/* make Clang Static Analyzer happy */
@@ -2526,6 +2528,7 @@ fail:
 	if (reg_list) {
 		for (unsigned int i = 0; i < reg_list_size; i++)
 			free(reg_list[i].value);
+		free(reg_list);
 	}
 	if (xtensa->empty_regs) {
 		for (unsigned int i = 0; i < xtensa->dbregs_num; i++) {
@@ -2847,7 +2850,7 @@ int xtensa_init_arch_info(struct target *target, struct xtensa *xtensa,
 	for (enum xtensa_ar_scratch_set_e s = 0; s < XT_AR_SCRATCH_NUM; s++) {
 		xtensa->scratch_ars[s].chrval = calloc(8, sizeof(char));
 		if (!xtensa->scratch_ars[s].chrval) {
-			for (enum xtensa_ar_scratch_set_e f = s - 1; s >= 0; s--)
+			for (enum xtensa_ar_scratch_set_e f = 0; f < s; f++)
 				free(xtensa->scratch_ars[f].chrval);
 			free(xtensa->core_config);
 			LOG_ERROR("Xtensa scratch AR alloc failed\n");
