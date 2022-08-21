@@ -2608,6 +2608,7 @@ static int xtensa_gdbqc_qxtreg(struct target *target, const char *packet, char *
 		goto xtensa_gdbqc_qxtreg_fail;
 	}
 	uint8_t regbuf[XT_QUERYPKT_RESP_MAX];
+	memset(regbuf, 0, XT_QUERYPKT_RESP_MAX);
 	LOG_DEBUG("TIE reg 0x%08" PRIx32 " %s (%d bytes)", regnum, iswrite ? "write" : "read", reglen);
 	if (reglen * 2 + 1 > XT_QUERYPKT_RESP_MAX) {
 		LOG_ERROR("TIE register too large");
@@ -2990,6 +2991,7 @@ COMMAND_HELPER(xtensa_cmd_exe_do, struct target *target)
 	}
 
 	uint8_t ops[32];
+	memset(ops, 0, 32);
 	unsigned int oplen = parm_len / 2;
 	char encoded_byte[3] = { 0, 0, 0 };
 	for (unsigned int i = 0; i < oplen; i++) {
