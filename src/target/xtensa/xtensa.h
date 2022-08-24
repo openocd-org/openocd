@@ -273,24 +273,24 @@ static inline bool xtensa_data_addr_valid(struct target *target, uint32_t addr)
 	return false;
 }
 
-static inline int xtensa_queue_dbg_reg_read(struct xtensa *xtensa, unsigned int reg, uint8_t *data)
+static inline int xtensa_queue_dbg_reg_read(struct xtensa *xtensa, enum xtensa_dm_reg reg, uint8_t *data)
 {
 	struct xtensa_debug_module *dm = &xtensa->dbg_mod;
 
 	if (!xtensa->core_config->trace.enabled &&
-		(reg <= NARADR_MEMADDREND || (reg >= NARADR_PMG && reg <= NARADR_PMSTAT7))) {
+		(reg <= XDMREG_MEMADDREND || (reg >= XDMREG_PMG && reg <= XDMREG_PMSTAT7))) {
 		LOG_ERROR("Can not access %u reg when Trace Port option disabled!", reg);
 		return ERROR_FAIL;
 	}
 	return dm->dbg_ops->queue_reg_read(dm, reg, data);
 }
 
-static inline int xtensa_queue_dbg_reg_write(struct xtensa *xtensa, unsigned int reg, uint32_t data)
+static inline int xtensa_queue_dbg_reg_write(struct xtensa *xtensa, enum xtensa_dm_reg reg, uint32_t data)
 {
 	struct xtensa_debug_module *dm = &xtensa->dbg_mod;
 
 	if (!xtensa->core_config->trace.enabled &&
-		(reg <= NARADR_MEMADDREND || (reg >= NARADR_PMG && reg <= NARADR_PMSTAT7))) {
+		(reg <= XDMREG_MEMADDREND || (reg >= XDMREG_PMG && reg <= XDMREG_PMSTAT7))) {
 		LOG_ERROR("Can not access %u reg when Trace Port option disabled!", reg);
 		return ERROR_FAIL;
 	}
