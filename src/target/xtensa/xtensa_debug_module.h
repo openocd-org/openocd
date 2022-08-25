@@ -12,6 +12,7 @@
 #define OPENOCD_TARGET_XTENSA_DEBUG_MODULE_H
 
 #include <jtag/jtag.h>
+#include <target/arm_adi_v5.h>
 #include <helper/bits.h>
 #include <target/target.h>
 
@@ -45,19 +46,22 @@ struct xtensa_dm_pwr_reg_offsets {
  Module to happen correctly. When it is set, any write to this bit clears it.
  Either don't access it, or re-write it to 1 so JTAG accesses continue.
 */
-#define PWRCTL_JTAGDEBUGUSE     BIT(7)
-#define PWRCTL_DEBUGRESET       BIT(6)
-#define PWRCTL_CORERESET        BIT(4)
-#define PWRCTL_DEBUGWAKEUP      BIT(2)
-#define PWRCTL_MEMWAKEUP        BIT(1)
-#define PWRCTL_COREWAKEUP       BIT(0)
+#define PWRCTL_JTAGDEBUGUSE(x)		(((x)->dbg_mod.dap) ? (0)     : BIT(7))
+#define PWRCTL_DEBUGRESET(x)		(((x)->dbg_mod.dap) ? BIT(28) : BIT(6))
+#define PWRCTL_CORERESET(x)			(((x)->dbg_mod.dap) ? BIT(16) : BIT(4))
+#define PWRCTL_DEBUGWAKEUP(x)		(((x)->dbg_mod.dap) ? BIT(12) : BIT(2))
+#define PWRCTL_MEMWAKEUP(x)			(((x)->dbg_mod.dap) ? BIT(8)  : BIT(1))
+#define PWRCTL_COREWAKEUP(x)		(((x)->dbg_mod.dap) ? BIT(0)  : BIT(0))
 
-#define PWRSTAT_DEBUGWASRESET   BIT(6)
-#define PWRSTAT_COREWASRESET    BIT(4)
-#define PWRSTAT_CORESTILLNEEDED BIT(3)
-#define PWRSTAT_DEBUGDOMAINON   BIT(2)
-#define PWRSTAT_MEMDOMAINON     BIT(1)
-#define PWRSTAT_COREDOMAINON    BIT(0)
+#define PWRSTAT_DEBUGWASRESET_DM(d)	(((d)->dap) ? BIT(28) : BIT(6))
+#define PWRSTAT_COREWASRESET_DM(d)	(((d)->dap) ? BIT(16) : BIT(4))
+#define PWRSTAT_DEBUGWASRESET(x)	(PWRSTAT_DEBUGWASRESET_DM(&((x)->dbg_mod)))
+#define PWRSTAT_COREWASRESET(x)		(PWRSTAT_COREWASRESET_DM(&((x)->dbg_mod)))
+#define PWRSTAT_CORESTILLNEEDED(x)	(((x)->dbg_mod.dap) ? BIT(4)  : BIT(3))
+#define PWRSTAT_DEBUGDOMAINON(x)	(((x)->dbg_mod.dap) ? BIT(12) : BIT(2))
+#define PWRSTAT_MEMDOMAINON(x)		(((x)->dbg_mod.dap) ? BIT(8)  : BIT(1))
+#define PWRSTAT_COREDOMAINON(x)		(((x)->dbg_mod.dap) ? BIT(0)  : BIT(0))
+
 /* Virtual IDs for using with xtensa_debug_ops API */
 enum xtensa_dm_reg {
 	/* TRAX Registers */
@@ -236,7 +240,7 @@ struct xtensa_dm_reg_offsets {
 	{ .nar = 0x7f, .apb = 0x3ffc },	/* XDMREG_COMPID3 */		\
 }
 
-#define XTENSA_DM_APB_MASK          (0x3fff)
+#define XTENSA_DM_APB_ALIGN         0x4000
 
 /* OCD registers, bit definitions */
 #define OCDDCR_ENABLEOCD            BIT(0)
@@ -408,24 +412,47 @@ struct xtensa_perfmon_result {
 struct xtensa_debug_module_config {
 	const struct xtensa_power_ops *pwr_ops;
 	const struct xtensa_debug_ops *dbg_ops;
+
+	/* Either JTAG or DAP structures will be populated */
 	struct jtag_tap *tap;
 	void (*queue_tdi_idle)(struct target *target);
 	void *queue_tdi_idle_arg;
+
+	/* For targets conforming to ARM Debug Interface v5,
+	 * "dap" references the Debug Access Port (DAP)
+	 * used to make requests to the target;
+	 * "debug_ap" is AP instance connected to processor
+	 */
+	struct adiv5_dap *dap;
+	struct adiv5_ap *debug_ap;
+	int debug_apsel;
+	uint32_t ap_offset;
 };
 
 struct xtensa_debug_module {
 	const struct xtensa_power_ops *pwr_ops;
 	const struct xtensa_debug_ops *dbg_ops;
+
+	/* Either JTAG or DAP structures will be populated */
 	struct jtag_tap *tap;
 	void (*queue_tdi_idle)(struct target *target);
 	void *queue_tdi_idle_arg;
 
+	/* DAP struct; AP instance connected to processor */
+	struct adiv5_dap *dap;
+	struct adiv5_ap *debug_ap;
+	int debug_apsel;
+
 	struct xtensa_power_status power_status;
 	struct xtensa_core_status core_status;
 	xtensa_ocdid_t device_id;
+	uint32_t ap_offset;
 };
 
 int xtensa_dm_init(struct xtensa_debug_module *dm, const struct xtensa_debug_module_config *cfg);
+void xtensa_dm_deinit(struct xtensa_debug_module *dm);
+int xtensa_dm_poll(struct xtensa_debug_module *dm);
+int xtensa_dm_examine(struct xtensa_debug_module *dm);
 int xtensa_dm_queue_enable(struct xtensa_debug_module *dm);
 int xtensa_dm_queue_reg_read(struct xtensa_debug_module *dm, enum xtensa_dm_reg reg, uint8_t *value);
 int xtensa_dm_queue_reg_write(struct xtensa_debug_module *dm, enum xtensa_dm_reg reg, uint32_t value);
@@ -439,7 +466,7 @@ int xtensa_dm_queue_pwr_reg_write(struct xtensa_debug_module *dm,
 
 static inline int xtensa_dm_queue_execute(struct xtensa_debug_module *dm)
 {
-	return jtag_execute_queue();
+	return dm->dap ? dap_run(dm->dap) : jtag_execute_queue();
 }
 
 static inline void xtensa_dm_queue_tdi_idle(struct xtensa_debug_module *dm)
@@ -492,14 +519,14 @@ static inline bool xtensa_dm_is_online(struct xtensa_debug_module *dm)
 
 static inline bool xtensa_dm_tap_was_reset(struct xtensa_debug_module *dm)
 {
-	return !(dm->power_status.prev_stat & PWRSTAT_DEBUGWASRESET) &&
-	       dm->power_status.stat & PWRSTAT_DEBUGWASRESET;
+	return !(dm->power_status.prev_stat & PWRSTAT_DEBUGWASRESET_DM(dm)) &&
+	       dm->power_status.stat & PWRSTAT_DEBUGWASRESET_DM(dm);
 }
 
 static inline bool xtensa_dm_core_was_reset(struct xtensa_debug_module *dm)
 {
-	return !(dm->power_status.prev_stat & PWRSTAT_COREWASRESET) &&
-	       dm->power_status.stat & PWRSTAT_COREWASRESET;
+	return !(dm->power_status.prev_stat & PWRSTAT_COREWASRESET_DM(dm)) &&
+	       dm->power_status.stat & PWRSTAT_COREWASRESET_DM(dm);
 }
 
 static inline bool xtensa_dm_core_is_stalled(struct xtensa_debug_module *dm)

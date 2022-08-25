@@ -83,10 +83,23 @@ static int xtensa_chip_target_create(struct target *target, Jim_Interp *interp)
 		.tap = NULL,
 		.queue_tdi_idle = NULL,
 		.queue_tdi_idle_arg = NULL,
+		.dap = NULL,
+		.debug_ap = NULL,
+		.debug_apsel = DP_APSEL_INVALID,
+		.ap_offset = 0,
 	};
 
-	xtensa_chip_dm_cfg.tap = target->tap;
-	LOG_DEBUG("JTAG: %s:%s pos %d", target->tap->chip, target->tap->tapname, target->tap->abs_chain_position);
+	struct adiv5_private_config *pc = target->private_config;
+	if (adiv5_verify_config(pc) == ERROR_OK) {
+		xtensa_chip_dm_cfg.dap = pc->dap;
+		xtensa_chip_dm_cfg.debug_apsel = pc->ap_num;
+		xtensa_chip_dm_cfg.ap_offset = target->dbgbase;
+		LOG_DEBUG("DAP: ap_num %" PRId64 " DAP %p\n", pc->ap_num, pc->dap);
+	} else {
+		xtensa_chip_dm_cfg.tap = target->tap;
+		LOG_DEBUG("JTAG: %s:%s pos %d", target->tap->chip, target->tap->tapname,
+			target->tap->abs_chain_position);
+	}
 
 	struct xtensa_chip_common *xtensa_chip = calloc(1, sizeof(struct xtensa_chip_common));
 	if (!xtensa_chip) {
@@ -116,13 +129,26 @@ void xtensa_chip_target_deinit(struct target *target)
 
 static int xtensa_chip_examine(struct target *target)
 {
-	return xtensa_examine(target);
+	struct xtensa *xtensa = target_to_xtensa(target);
+	int retval = xtensa_dm_examine(&xtensa->dbg_mod);
+	if (retval == ERROR_OK)
+		retval = xtensa_examine(target);
+	return retval;
 }
 
 int xtensa_chip_jim_configure(struct target *target, struct jim_getopt_info *goi)
 {
-	target->has_dap = false;
-	return JIM_CONTINUE;
+	static bool dap_configured;
+	int ret = adiv5_jim_configure(target, goi);
+	if (ret == JIM_OK) {
+		LOG_DEBUG("xtensa '-dap' target option found");
+		dap_configured = true;
+	}
+	if (!dap_configured) {
+		LOG_DEBUG("xtensa '-dap' target option not yet found, assuming JTAG...");
+		target->has_dap = false;
+	}
+	return ret;
 }
 
 /** Methods for generic example of Xtensa-based chip-level targets. */

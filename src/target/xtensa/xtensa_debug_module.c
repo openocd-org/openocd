@@ -10,6 +10,7 @@
 #include <config.h>
 #endif
 
+#include <helper/align.h>
 #include "xtensa_debug_module.h"
 
 #define TAPINS_PWRCTL           0x08
@@ -24,6 +25,10 @@
 #define TAPINS_NARSEL_DATALEN   32
 #define TAPINS_IDCODE_LEN       32
 #define TAPINS_BYPASS_LEN       1
+
+/* Table of power register offsets for APB space */
+static const struct xtensa_dm_pwr_reg_offsets xdm_pwr_regs[XDMREG_PWRNUM] =
+	XTENSA_DM_PWR_REG_OFFSETS;
 
 /* Table of debug register offsets for Nexus and APB space */
 static const struct xtensa_dm_reg_offsets xdm_regs[XDMREG_NUM] =
@@ -60,13 +65,83 @@ int xtensa_dm_init(struct xtensa_debug_module *dm, const struct xtensa_debug_mod
 {
 	if (!dm || !cfg)
 		return ERROR_FAIL;
+	if (!IS_ALIGNED(cfg->ap_offset, XTENSA_DM_APB_ALIGN)) {
+		LOG_ERROR("Xtensa DM APB offset must be aligned to a %dKB multiple",
+			XTENSA_DM_APB_ALIGN / 1024);
+		return ERROR_FAIL;
+	}
 
 	dm->pwr_ops = cfg->pwr_ops;
 	dm->dbg_ops = cfg->dbg_ops;
 	dm->tap = cfg->tap;
 	dm->queue_tdi_idle = cfg->queue_tdi_idle;
 	dm->queue_tdi_idle_arg = cfg->queue_tdi_idle_arg;
+	dm->dap = cfg->dap;
+	dm->debug_ap = cfg->debug_ap;
+	dm->debug_apsel = cfg->debug_apsel;
+	dm->ap_offset = cfg->ap_offset;
 	return ERROR_OK;
+}
+
+void xtensa_dm_deinit(struct xtensa_debug_module *dm)
+{
+	if (dm->debug_ap) {
+		dap_put_ap(dm->debug_ap);
+		dm->debug_ap = NULL;
+	}
+}
+
+int xtensa_dm_poll(struct xtensa_debug_module *dm)
+{
+	/* Check if debug_ap is available to prevent segmentation fault.
+	 * If the re-examination after an error does not find a MEM-AP
+	 * (e.g. the target stopped communicating), debug_ap pointer
+	 * can suddenly become NULL.
+	 */
+	return (!dm || (dm->dap && !dm->debug_ap)) ? ERROR_FAIL : ERROR_OK;
+}
+
+int xtensa_dm_examine(struct xtensa_debug_module *dm)
+{
+	struct adiv5_dap *swjdp = dm->dap;
+	int retval = ERROR_OK;
+
+	if (swjdp) {
+		LOG_DEBUG("DM examine: DAP AP select %d", dm->debug_apsel);
+		if (dm->debug_ap) {
+			dap_put_ap(dm->debug_ap);
+			dm->debug_ap = NULL;
+		}
+		if (dm->debug_apsel == DP_APSEL_INVALID) {
+			LOG_DEBUG("DM examine: search for APB-type MEM-AP...");
+			/* TODO: Determine whether AP_TYPE_AXI_AP APs can be supported... */
+			retval = dap_find_get_ap(swjdp, AP_TYPE_APB_AP, &dm->debug_ap);
+			if (retval != ERROR_OK) {
+				LOG_ERROR("Could not find MEM-AP to control the core");
+				return retval;
+			}
+		} else {
+			dm->debug_ap = dap_get_ap(swjdp, dm->debug_apsel);
+		}
+
+		/* TODO: Allow a user-specified AP instead of relying on AP_TYPE_APB_AP */
+		dm->debug_apsel = dm->debug_ap->ap_num;
+		LOG_DEBUG("DM examine: Setting apsel to %d", dm->debug_apsel);
+
+		/* Leave (only) generic DAP stuff for debugport_init(); */
+		dm->debug_ap->memaccess_tck = 8;
+
+		retval = mem_ap_init(dm->debug_ap);
+		if (retval != ERROR_OK) {
+			LOG_ERROR("MEM-AP init failed: %d", retval);
+			return retval;
+		}
+
+		/* TODO: how to set autoincrement range? Hard-code it to 1024 bytes for now */
+		dm->debug_ap->tar_autoincr_block = (1 << 10);
+	}
+
+	return retval;
 }
 
 int xtensa_dm_queue_enable(struct xtensa_debug_module *dm)
@@ -80,6 +155,11 @@ int xtensa_dm_queue_reg_read(struct xtensa_debug_module *dm, enum xtensa_dm_reg 
 		LOG_ERROR("Invalid DBG reg ID %d!", reg);
 		return ERROR_FAIL;
 	}
+	if (dm->dap)
+		/* NOTE: Future optimization: mem_ap_read_u32() offers higher performance with
+		 * queued reads, but requires an API change to pass value as a 32-bit pointer.
+		 */
+		return mem_ap_read_buf(dm->debug_ap, value, 4, 1, xdm_regs[reg].apb + dm->ap_offset);
 	uint8_t regdata = (xdm_regs[reg].nar << 1) | 0;
 	uint8_t dummy[4] = { 0, 0, 0, 0 };
 	xtensa_dm_add_set_ir(dm, TAPINS_NARSEL);
@@ -94,6 +174,8 @@ int xtensa_dm_queue_reg_write(struct xtensa_debug_module *dm, enum xtensa_dm_reg
 		LOG_ERROR("Invalid DBG reg ID %d!", reg);
 		return ERROR_FAIL;
 	}
+	if (dm->dap)
+		return mem_ap_write_u32(dm->debug_ap, xdm_regs[reg].apb + dm->ap_offset, value);
 	uint8_t regdata = (xdm_regs[reg].nar << 1) | 1;
 	uint8_t valdata[] = { value, value >> 8, value >> 16, value >> 24 };
 	xtensa_dm_add_set_ir(dm, TAPINS_NARSEL);
@@ -111,6 +193,16 @@ int xtensa_dm_queue_pwr_reg_read(struct xtensa_debug_module *dm,
 		LOG_ERROR("Invalid PWR reg ID %d!", reg);
 		return ERROR_FAIL;
 	}
+	if (dm->dap) {
+		/* NOTE: Future optimization: mem_ap_read_u32() offers higher performance with
+		 * queued reads, but requires an API change to pass value as a 32-bit pointer.
+		 */
+		uint32_t apbreg = xdm_pwr_regs[reg].apb + dm->ap_offset;
+		int retval = mem_ap_read_buf(dm->debug_ap, data, 4, 1, apbreg);
+		if (retval == ERROR_OK)
+			retval = mem_ap_write_u32(dm->debug_ap, apbreg, clear);
+		return retval;
+	}
 	uint8_t value_clr = (uint8_t)clear;
 	uint8_t tap_insn = (reg == XDMREG_PWRCTL) ? TAPINS_PWRCTL : TAPINS_PWRSTAT;
 	int tap_insn_sz = (reg == XDMREG_PWRCTL) ? TAPINS_PWRCTL_LEN : TAPINS_PWRSTAT_LEN;
@@ -126,6 +218,10 @@ int xtensa_dm_queue_pwr_reg_write(struct xtensa_debug_module *dm,
 	if (reg >= XDMREG_PWRNUM) {
 		LOG_ERROR("Invalid PWR reg ID %d!", reg);
 		return ERROR_FAIL;
+	}
+	if (dm->dap) {
+		uint32_t apbreg = xdm_pwr_regs[reg].apb + dm->ap_offset;
+		return mem_ap_write_u32(dm->debug_ap, apbreg, data);
 	}
 	uint8_t tap_insn = (reg == XDMREG_PWRCTL) ? TAPINS_PWRCTL : TAPINS_PWRSTAT;
 	int tap_insn_sz = (reg == XDMREG_PWRCTL) ? TAPINS_PWRCTL_LEN : TAPINS_PWRSTAT_LEN;
