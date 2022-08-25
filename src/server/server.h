@@ -104,6 +104,8 @@ int server_register_commands(struct command_context *context);
 int connection_write(struct connection *connection, const void *data, int len);
 int connection_read(struct connection *connection, void *data, int len);
 
+bool openocd_is_shutdown_pending(void);
+
 /**
  * Defines an extended command handler function declaration to enable
  * access to (and manipulation of) the server port number.
