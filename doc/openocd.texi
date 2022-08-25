@@ -11137,6 +11137,46 @@ Stop current trace as started by the tracestart command.
 Dump trace memory to a file.
 @end deffn
 
+@section Espressif Specific Commands
+
+@deffn {Command} {esp apptrace} (start <destination> [<poll_period> [<trace_size> [<stop_tmo> [<wait4halt> [<skip_size>]]]]])
+Starts
+@uref{https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/app_trace.html#application-level-tracing-library, application level tracing}.
+Data will be stored to specified destination. Available destinations are:
+@itemize @bullet
+@item @code{file://<outfile>} - Save trace logs into file.
+@item @code{tcp://<host>:<port>} - Send trace logs to tcp port on specified host. OpenOCD will act as a tcp client.
+@item @code{con:} - Print trace logs to the stdout.
+@end itemize
+Other parameters will be same for each destination.
+@itemize @bullet
+@item @code{poll_period} - trace data polling period in ms.
+@item @code{trace_size} - maximum trace data size.
+Tracing will be stopped automatically when that amount is reached.
+Use "-1" to disable the limitation.
+@item @code{stop_tmo} - Data reception timeout in ms.
+Tracing will be stopped automatically when no data is received within that period.
+@item @code{wait4halt} - if non-zero then wait for target to be halted before tracing start.
+@item @code{skip_size} - amount of tracing data to be skipped before writing it to destination.
+@end itemize
+@end deffn
+
+@deffn {Command} {esp apptrace} (stop)
+Stops tracing started with above command.
+@end deffn
+
+@deffn {Command} {esp apptrace} (status)
+Requests ongoing tracing status.
+@end deffn
+
+@deffn {Command} {esp apptrace} (dump file://<outfile>)
+Dumps tracing data from target buffer. It can be useful to dump the latest data
+buffered on target for post-mortem analysis. For example when target starts tracing automatically
+w/o OpenOCD command and keeps only the latest data window which fit into the buffer.
+@uref{https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/app_trace.html#application-level-tracing-library, application level tracing}.
+Data will be stored to specified destination.
+@end deffn
+
 @anchor{softwaredebugmessagesandtracing}
 @section Software Debug Messages and Tracing
 @cindex Linux-ARM DCC support
