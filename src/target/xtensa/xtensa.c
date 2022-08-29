@@ -1586,11 +1586,8 @@ int xtensa_do_step(struct target *target, int current, target_addr_t address, in
 			target->state = TARGET_RUNNING;
 			return ERROR_FAIL;
 		}
-		target->debug_reason = DBG_REASON_SINGLESTEP;
-		target->state = TARGET_HALTED;
 
 		xtensa_fetch_all_regs(target);
-
 		cur_pc = xtensa_reg_get(target, XT_REG_IDX_PC);
 
 		LOG_TARGET_DEBUG(target,
@@ -1620,6 +1617,10 @@ int xtensa_do_step(struct target *target, int current, target_addr_t address, in
 			LOG_DEBUG("Stepped from %" PRIX32 " to %" PRIX32, oldpc, cur_pc);
 		break;
 	} while (true);
+
+	target->debug_reason = DBG_REASON_SINGLESTEP;
+	target->state = TARGET_HALTED;
+	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 	LOG_DEBUG("Done stepping, PC=%" PRIX32, cur_pc);
 
 	if (cause & DEBUGCAUSE_DB) {
