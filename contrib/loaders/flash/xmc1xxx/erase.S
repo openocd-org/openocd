@@ -1,11 +1,11 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+
 /*
  * Infineon XMC1000 flash sectors erase
  *
  * Copyright (c) 2016 Andreas Färber
  *
  * Based on XMC1100 AA-Step Reference Manual
- *
- * License: GPL-2.0+
  */
 
 #include "xmc1xxx.S"
