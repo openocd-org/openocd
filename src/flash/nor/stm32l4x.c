@@ -289,7 +289,7 @@ static const struct stm32l4_rev stm32l45_l46xx_revs[] = {
 	{ 0x1000, "A" }, { 0x1001, "Z" }, { 0x2001, "Y" },
 };
 
-static const struct stm32l4_rev stm32l41_L42xx_revs[] = {
+static const struct stm32l4_rev stm32l41_l42xx_revs[] = {
 	{ 0x1000, "A" }, { 0x1001, "Z" }, { 0x2001, "Y" },
 };
 
@@ -420,8 +420,8 @@ static const struct stm32l4_part_info stm32l4_parts[] = {
 	},
 	{
 	  .id                    = DEVID_STM32L41_L42XX,
-	  .revs                  = stm32l41_L42xx_revs,
-	  .num_revs              = ARRAY_SIZE(stm32l41_L42xx_revs),
+	  .revs                  = stm32l41_l42xx_revs,
+	  .num_revs              = ARRAY_SIZE(stm32l41_l42xx_revs),
 	  .device_str            = "STM32L41/L42xx",
 	  .max_flash_size_kb     = 128,
 	  .flags                 = F_NONE,
