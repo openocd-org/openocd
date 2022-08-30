@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: (GPL-2.0-or-later OR BSD-Source-Code) */
+// SPDX-License-Identifier: (GPL-2.0-or-later OR BSD-Source-Code)
 
 /*
  * Copyright (C) 2009 by Duane Ellis <openocd@duaneellis.com>

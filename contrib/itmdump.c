@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-3.0-or-later */
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 /* Copyright (C) 2010 by David Brownell */
 

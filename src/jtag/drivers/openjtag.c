@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /*******************************************************************************
  *   Driver for OpenJTAG Project (www.openjtag.org)                            *

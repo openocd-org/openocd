@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: (GPL-2.0-or-later OR BSD-2-Clause) */
+// SPDX-License-Identifier: (GPL-2.0-or-later OR BSD-2-Clause)
 
 /* Copyright 2020-2022 Cadence Design Systems, Inc. */
 

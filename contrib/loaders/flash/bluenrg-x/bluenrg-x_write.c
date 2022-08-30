@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /* To be built with arm-none-eabi-gcc -c -mthumb -mcpu=cortex-m0 -O3 bluenrgx.c */
 /* Then postprocess output of command "arm-none-eabi-objdump -d bluenrgx.o" to make a C array of bytes */

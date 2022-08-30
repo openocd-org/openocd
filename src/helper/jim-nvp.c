@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: BSD-2-Clause-Views */
+// SPDX-License-Identifier: BSD-2-Clause-Views
 
 /* Jim - A small embeddable Tcl interpreter
  *

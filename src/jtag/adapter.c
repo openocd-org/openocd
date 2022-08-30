@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 /*
  * Copyright (C) 2005 by Dominic Rath <Dominic.Rath@gmx.de>
  * Copyright (C) 2007-2010 Øyvind Harboe <oyvind.harboe@zylin.com>

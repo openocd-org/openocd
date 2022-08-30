@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 /*
  * Bitbang driver for Linux GPIO descriptors through libgpiod
  * Copyright (C) 2020 Antonio Borneo <borneo.antonio@gmail.com>

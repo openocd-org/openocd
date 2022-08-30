@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later WITH eCos-exception-2.0 */
+// SPDX-License-Identifier: GPL-2.0-or-later WITH eCos-exception-2.0
 
 /*
  * This file contains an ECC algorithm from Toshiba that allows for detection
