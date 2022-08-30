@@ -775,7 +775,7 @@ static int cortex_m_examine_exception_reason(struct target *target)
 
 static int cortex_m_debug_entry(struct target *target)
 {
-	uint32_t xPSR;
+	uint32_t xpsr;
 	int retval;
 	struct cortex_m_common *cortex_m = target_to_cm(target);
 	struct armv7m_common *armv7m = &cortex_m->armv7m;
@@ -826,11 +826,11 @@ static int cortex_m_debug_entry(struct target *target)
 		return retval;
 
 	r = arm->cpsr;
-	xPSR = buf_get_u32(r->value, 0, 32);
+	xpsr = buf_get_u32(r->value, 0, 32);
 
 	/* Are we in an exception handler */
-	if (xPSR & 0x1FF) {
-		armv7m->exception_number = (xPSR & 0x1FF);
+	if (xpsr & 0x1FF) {
+		armv7m->exception_number = (xpsr & 0x1FF);
 
 		arm->core_mode = ARM_MODE_HANDLER;
 		arm->map = armv7m_msp_reg_map;

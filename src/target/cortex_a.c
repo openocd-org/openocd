@@ -807,11 +807,11 @@ static int cortex_a_internal_restore(struct target *target, int current,
 		armv7m->core_cache->reg_list[ARMV7M_PRIMASK].valid = true;
 
 		/* Make sure we are in Thumb mode */
-		buf_set_u32(armv7m->core_cache->reg_list[ARMV7M_xPSR].value, 0, 32,
-			buf_get_u32(armv7m->core_cache->reg_list[ARMV7M_xPSR].value, 0,
+		buf_set_u32(armv7m->core_cache->reg_list[ARMV7M_XPSR].value, 0, 32,
+			buf_get_u32(armv7m->core_cache->reg_list[ARMV7M_XPSR].value, 0,
 			32) | (1 << 24));
-		armv7m->core_cache->reg_list[ARMV7M_xPSR].dirty = true;
-		armv7m->core_cache->reg_list[ARMV7M_xPSR].valid = true;
+		armv7m->core_cache->reg_list[ARMV7M_XPSR].dirty = true;
+		armv7m->core_cache->reg_list[ARMV7M_XPSR].valid = true;
 	}
 #endif
 

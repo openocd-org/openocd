@@ -136,7 +136,7 @@ static const struct stack_register_offset arm_cpu_saved[] = {
 	{ ARMV7M_R13,  -2, 32 },
 	{ ARMV7M_R14,  20, 32 },
 	{ ARMV7M_PC,   24, 32 },
-	{ ARMV7M_xPSR, 28, 32 },
+	{ ARMV7M_XPSR, 28, 32 },
 };
 
 static struct stack_register_offset arc_cpu_saved[] = {

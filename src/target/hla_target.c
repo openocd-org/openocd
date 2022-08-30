@@ -231,7 +231,7 @@ static int adapter_debug_entry(struct target *target)
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct arm *arm = &armv7m->arm;
 	struct reg *r;
-	uint32_t xPSR;
+	uint32_t xpsr;
 	int retval;
 
 	/* preserve the DCRDR across halts */
@@ -249,11 +249,11 @@ static int adapter_debug_entry(struct target *target)
 	adapter->layout->api->write_debug_reg(adapter->handle, DCB_DEMCR, TRCENA);
 
 	r = arm->cpsr;
-	xPSR = buf_get_u32(r->value, 0, 32);
+	xpsr = buf_get_u32(r->value, 0, 32);
 
 	/* Are we in an exception handler */
-	if (xPSR & 0x1FF) {
-		armv7m->exception_number = (xPSR & 0x1FF);
+	if (xpsr & 0x1FF) {
+		armv7m->exception_number = (xpsr & 0x1FF);
 
 		arm->core_mode = ARM_MODE_HANDLER;
 		arm->map = armv7m_msp_reg_map;

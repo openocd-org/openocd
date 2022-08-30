@@ -25,7 +25,7 @@ static const struct stack_register_offset rtos_ecos_cortex_m3_stack_offsets[ARMV
 	{ ARMV7M_R13,  -2,   32 },		/* sp   */
 	{ ARMV7M_R14,  -1,   32 },		/* lr   */
 	{ ARMV7M_PC,   0x40, 32 },		/* pc   */
-	{ ARMV7M_xPSR, -1,   32 },		/* xPSR */
+	{ ARMV7M_XPSR, -1,   32 },		/* xPSR */
 };
 
 const struct rtos_register_stacking rtos_ecos_cortex_m3_stacking = {

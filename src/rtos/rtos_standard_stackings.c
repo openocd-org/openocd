@@ -29,7 +29,7 @@ static const struct stack_register_offset rtos_standard_cortex_m3_stack_offsets[
 	{ ARMV7M_R13,  -2,   32 },		/* sp   */
 	{ ARMV7M_R14,  0x34, 32 },		/* lr   */
 	{ ARMV7M_PC,   0x38, 32 },		/* pc   */
-	{ ARMV7M_xPSR, 0x3c, 32 },		/* xPSR */
+	{ ARMV7M_XPSR, 0x3c, 32 },		/* xPSR */
 };
 
 static const struct stack_register_offset rtos_standard_cortex_m4f_stack_offsets[] = {
@@ -49,7 +49,7 @@ static const struct stack_register_offset rtos_standard_cortex_m4f_stack_offsets
 	{ ARMV7M_R13,  -2,   32 },		/* sp   */
 	{ ARMV7M_R14,  0x38, 32 },		/* lr   */
 	{ ARMV7M_PC,   0x3c, 32 },		/* pc   */
-	{ ARMV7M_xPSR, 0x40, 32 },		/* xPSR */
+	{ ARMV7M_XPSR, 0x40, 32 },		/* xPSR */
 };
 
 static const struct stack_register_offset rtos_standard_cortex_m4f_fpu_stack_offsets[] = {
@@ -69,7 +69,7 @@ static const struct stack_register_offset rtos_standard_cortex_m4f_fpu_stack_off
 	{ ARMV7M_R13,  -2,   32 },		/* sp   */
 	{ ARMV7M_R14,  0x78, 32 },		/* lr   */
 	{ ARMV7M_PC,   0x7c, 32 },		/* pc   */
-	{ ARMV7M_xPSR, 0x80, 32 },		/* xPSR */
+	{ ARMV7M_XPSR, 0x80, 32 },		/* xPSR */
 };
 
 

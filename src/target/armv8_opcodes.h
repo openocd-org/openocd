@@ -138,9 +138,9 @@
 	(0xd500401f | ((op1) << 16)  | ((crm) << 8) | ((op2) << 5))
 
 #define ARMV8_MRS_T1(r, m1, rd, m) (0xF3E08020 | (r << 20) | (m1 << 16) | (rd << 8) | (m << 4))
-#define ARMV8_MRS_xPSR_T1(r, rd) (0xF3EF8000 | (r << 20) | (rd << 8))
+#define ARMV8_MRS_XPSR_T1(r, rd) (0xF3EF8000 | (r << 20) | (rd << 8))
 #define ARMV8_MSR_GP_T1(r, m1, rd, m) (0xF3808020 | (r << 20) | (m1 << 8) | (rd << 16) | (m << 4))
-#define ARMV8_MSR_GP_xPSR_T1(r, rn, mask) (0xF3808000 | (r << 20) | (rn << 16) | (mask << 8))
+#define ARMV8_MSR_GP_XPSR_T1(r, rn, mask) (0xF3808000 | (r << 20) | (rn << 16) | (mask << 8))
 
 #define ARMV8_BKPT(im) (0xD4200000 | ((im & 0xffff) << 5))
 #define ARMV8_HLT(im) (0x0D4400000 | ((im & 0xffff) << 5))

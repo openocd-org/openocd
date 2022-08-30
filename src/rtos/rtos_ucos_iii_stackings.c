@@ -32,7 +32,7 @@ static const struct stack_register_offset rtos_ucos_iii_cortex_m_stack_offsets[]
 	{ ARMV7M_R13,  -2,   32 },	/* sp   */
 	{ ARMV7M_R14,  0x34, 32 },	/* lr   */
 	{ ARMV7M_PC,   0x38, 32 },	/* pc   */
-	{ ARMV7M_xPSR, 0x3c, 32 },	/* xPSR */
+	{ ARMV7M_XPSR, 0x3c, 32 },	/* xPSR */
 };
 
 static const struct stack_register_offset rtos_ucos_iii_esi_risc_stack_offsets[] = {

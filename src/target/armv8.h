@@ -49,7 +49,7 @@ enum {
 
 	ARMV8_SP = 31,
 	ARMV8_PC = 32,
-	ARMV8_xPSR = 33,
+	ARMV8_XPSR = 33,
 
 	ARMV8_V0 = 34,
 	ARMV8_V1,

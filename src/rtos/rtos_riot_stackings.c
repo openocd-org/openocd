@@ -43,7 +43,7 @@ static const struct stack_register_offset rtos_riot_cortex_m0_stack_offsets[ARMV
 	{ ARMV7M_R13,   -2,   32 },		/* sp   */
 	{ ARMV7M_R14,   0x38, 32 },		/* lr   */
 	{ ARMV7M_PC,    0x3c, 32 },		/* pc   */
-	{ ARMV7M_xPSR,  0x40, 32 },		/* xPSR */
+	{ ARMV7M_XPSR,  0x40, 32 },		/* xPSR */
 };
 
 const struct rtos_register_stacking rtos_riot_cortex_m0_stacking = {
@@ -72,7 +72,7 @@ static const struct stack_register_offset rtos_riot_cortex_m34_stack_offsets[ARM
 	{ ARMV7M_R13,   -2,   32 },	/* sp   */
 	{ ARMV7M_R14,   0x38, 32 },	/* lr   */
 	{ ARMV7M_PC,    0x3c, 32 },	/* pc   */
-	{ ARMV7M_xPSR,  0x40, 32 },	/* xPSR */
+	{ ARMV7M_XPSR,  0x40, 32 },	/* xPSR */
 };
 
 const struct rtos_register_stacking rtos_riot_cortex_m34_stacking = {
