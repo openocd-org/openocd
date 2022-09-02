@@ -3268,11 +3268,6 @@ static int gdb_v_packet(struct connection *connection,
 	int result;
 
 	struct target *target = get_target_from_connection(connection);
-	if (target->rtos != NULL && target->rtos->gdb_v_packet != NULL) {
-		int out = target->rtos->gdb_v_packet(connection, packet, packet_size);
-		if (out != GDB_THREAD_PACKET_NOT_CONSUMED)
-			return out;
-	}
 
 	if (strncmp(packet, "vCont", 5) == 0) {
 		bool handled;
