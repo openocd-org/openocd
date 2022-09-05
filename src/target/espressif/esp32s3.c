@@ -96,7 +96,7 @@ struct esp32s3_common {
  * PRO CPU is halted, APP CPU is in reset.
  */
 
-const uint8_t esp32s3_reset_stub_code[] = {
+static const uint8_t esp32s3_reset_stub_code[] = {
 #include "../../../contrib/loaders/reset/espressif/esp32s3/cpu_reset_handler_code.inc"
 };
 

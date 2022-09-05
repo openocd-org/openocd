@@ -101,7 +101,7 @@ static inline struct esp32_common *target_to_esp32(struct target *target)
  * 6. restore initial PC and the contents of ESP32_SMP_RTC_DATA_LOW
  * TODO: some state of RTC_CNTL is not reset during SW_SYS_RST. Need to reset that manually. */
 
-const uint8_t esp32_reset_stub_code[] = {
+static const uint8_t esp32_reset_stub_code[] = {
 #include "../../../contrib/loaders/reset/espressif/esp32/cpu_reset_handler_code.inc"
 };
 
@@ -365,7 +365,7 @@ static int esp32_target_create(struct target *target, Jim_Interp *interp)
 	return ERROR_OK;
 }
 
-COMMAND_HELPER(esp32_cmd_flashbootstrap_do, struct esp32_common *esp32)
+static COMMAND_HELPER(esp32_cmd_flashbootstrap_do, struct esp32_common *esp32)
 {
 	int state = -1;
 

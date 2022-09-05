@@ -300,7 +300,7 @@ union xtensa_reg_val_u {
 	uint8_t buf[4];
 };
 
-const struct xtensa_keyval_info_s xt_qerr[XT_QERR_NUM] = {
+static const struct xtensa_keyval_info_s xt_qerr[XT_QERR_NUM] = {
 	{ .chrval = "E00", .intval = ERROR_FAIL },
 	{ .chrval = "E01", .intval = ERROR_FAIL },
 	{ .chrval = "E02", .intval = ERROR_COMMAND_ARGUMENT_INVALID },
@@ -519,7 +519,7 @@ static int xtensa_queue_pwr_reg_write(struct xtensa *xtensa, unsigned int reg, u
 }
 
 /* NOTE: Assumes A3 has already been saved */
-int xtensa_window_state_save(struct target *target, uint32_t *woe)
+static int xtensa_window_state_save(struct target *target, uint32_t *woe)
 {
 	struct xtensa *xtensa = target_to_xtensa(target);
 	int woe_dis;
@@ -547,7 +547,7 @@ int xtensa_window_state_save(struct target *target, uint32_t *woe)
 }
 
 /* NOTE: Assumes A3 has already been saved */
-void xtensa_window_state_restore(struct target *target, uint32_t woe)
+static void xtensa_window_state_restore(struct target *target, uint32_t woe)
 {
 	struct xtensa *xtensa = target_to_xtensa(target);
 	if (xtensa->core_config->windowed) {
@@ -2983,7 +2983,7 @@ const char *xtensa_get_gdb_arch(struct target *target)
 }
 
 /* exe <ascii-encoded hexadecimal instruction bytes> */
-COMMAND_HELPER(xtensa_cmd_exe_do, struct target *target)
+static COMMAND_HELPER(xtensa_cmd_exe_do, struct target *target)
 {
 	struct xtensa *xtensa = target_to_xtensa(target);
 

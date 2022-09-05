@@ -15,7 +15,7 @@
 #include "esp_semihosting.h"
 #include "esp_xtensa.h"
 
-struct esp_semihost_data *target_to_esp_semihost_data(struct target *target)
+static struct esp_semihost_data __attribute__((unused)) *target_to_esp_semihost_data(struct target *target)
 {
 	const char *arch = target_get_gdb_arch(target);
 	if (arch) {
@@ -27,7 +27,7 @@ struct esp_semihost_data *target_to_esp_semihost_data(struct target *target)
 	return NULL;
 }
 
-int esp_semihosting_sys_seek(struct target *target, uint64_t fd, uint32_t pos, size_t whence)
+static int esp_semihosting_sys_seek(struct target *target, uint64_t fd, uint32_t pos, size_t whence)
 {
 	struct semihosting *semihosting = target->semihosting;
 

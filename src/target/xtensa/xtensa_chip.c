@@ -120,7 +120,7 @@ static int xtensa_chip_target_create(struct target *target, Jim_Interp *interp)
 	return ERROR_OK;
 }
 
-void xtensa_chip_target_deinit(struct target *target)
+static void xtensa_chip_target_deinit(struct target *target)
 {
 	struct xtensa *xtensa = target_to_xtensa(target);
 	xtensa_target_deinit(target);
@@ -136,7 +136,7 @@ static int xtensa_chip_examine(struct target *target)
 	return retval;
 }
 
-int xtensa_chip_jim_configure(struct target *target, struct jim_getopt_info *goi)
+static int xtensa_chip_jim_configure(struct target *target, struct jim_getopt_info *goi)
 {
 	static bool dap_configured;
 	int ret = adiv5_jim_configure(target, goi);

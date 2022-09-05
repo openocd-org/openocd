@@ -122,7 +122,7 @@ static int esp32s2_deassert_reset(struct target *target)
 	return ERROR_OK;
 }
 
-int esp32s2_soft_reset_halt(struct target *target)
+static int esp32s2_soft_reset_halt(struct target *target)
 {
 	LOG_TARGET_DEBUG(target, "begin");
 
