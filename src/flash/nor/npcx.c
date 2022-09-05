@@ -17,7 +17,7 @@
 #include "../../../contrib/loaders/flash/npcx/npcx_flash.h"
 
 /* NPCX flash loader */
-const uint8_t npcx_algo[] = {
+static const uint8_t npcx_algo[] = {
 #include "../../../contrib/loaders/flash/npcx/npcx_algo.inc"
 };
 
