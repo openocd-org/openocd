@@ -335,8 +335,6 @@ static void usbprog_reset(int trst, int srst)
 
 /*************** jtag lowlevel functions ********************/
 
-struct usb_bus *busses;
-
 struct usbprog_jtag *usbprog_jtag_open(void)
 {
 	const uint16_t vids[] = { VID, 0 };
