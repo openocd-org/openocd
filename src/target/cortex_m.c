@@ -1914,7 +1914,7 @@ int cortex_m_remove_watchpoint(struct target *target, struct watchpoint *watchpo
 	return ERROR_OK;
 }
 
-int cortex_m_hit_watchpoint(struct target *target, struct watchpoint **hit_watchpoint)
+static int cortex_m_hit_watchpoint(struct target *target, struct watchpoint **hit_watchpoint)
 {
 	if (target->debug_reason != DBG_REASON_WATCHPOINT)
 		return ERROR_FAIL;

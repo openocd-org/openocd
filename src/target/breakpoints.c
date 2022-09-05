@@ -392,7 +392,7 @@ struct breakpoint *breakpoint_find(struct target *target, target_addr_t address)
 	return NULL;
 }
 
-int watchpoint_add_internal(struct target *target, target_addr_t address,
+static int watchpoint_add_internal(struct target *target, target_addr_t address,
 		uint32_t length, enum watchpoint_rw rw, uint32_t value, uint32_t mask)
 {
 	struct watchpoint *watchpoint = target->watchpoints;
@@ -500,7 +500,7 @@ static void watchpoint_free(struct target *target, struct watchpoint *watchpoint
 	free(watchpoint);
 }
 
-int watchpoint_remove_internal(struct target *target, target_addr_t address)
+static int watchpoint_remove_internal(struct target *target, target_addr_t address)
 {
 	struct watchpoint *watchpoint = target->watchpoints;
 
