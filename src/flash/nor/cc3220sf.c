@@ -22,6 +22,11 @@ struct cc3220sf_bank {
 	struct armv7m_algorithm armv7m_info;
 };
 
+/* Flash helper algorithm for CC3220SF */
+static const uint8_t cc3220sf_algo[] = {
+#include "../../../contrib/loaders/flash/cc3220sf/cc3220sf.inc"
+};
+
 static int cc3220sf_mass_erase(struct flash_bank *bank)
 {
 	struct target *target = bank->target;

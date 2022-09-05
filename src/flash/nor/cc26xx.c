@@ -34,6 +34,16 @@ struct cc26xx_bank {
 	uint32_t params_addr[2];
 };
 
+/* Flash helper algorithm for CC26x0 Chameleon targets */
+static const uint8_t cc26x0_algo[] = {
+#include "../../../contrib/loaders/flash/cc26xx/cc26x0_algo.inc"
+};
+
+/* Flash helper algorithm for CC26x2 Agama targets */
+static const uint8_t cc26x2_algo[] = {
+#include "../../../contrib/loaders/flash/cc26xx/cc26x2_algo.inc"
+};
+
 static int cc26xx_auto_probe(struct flash_bank *bank);
 
 static uint32_t cc26xx_device_type(uint32_t icepick_id, uint32_t user_id)
