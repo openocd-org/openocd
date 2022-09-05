@@ -2297,7 +2297,7 @@ static int arch_state(struct target *target)
 	return ERROR_OK;
 }
 
-COMMAND_HELPER(riscv011_print_info, struct target *target)
+static COMMAND_HELPER(riscv011_print_info, struct target *target)
 {
 	/* Abstract description. */
 	riscv_print_info_line(CMD, "target", "memory.read_while_running8", 0);

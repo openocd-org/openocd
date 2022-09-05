@@ -131,15 +131,15 @@ int bscan_tunnel_ir_width; /* if zero, then tunneling is not present/active */
 static const uint8_t bscan_zero[4] = {0};
 static const uint8_t bscan_one[4] = {1};
 
-uint8_t ir_user4[4];
+static uint8_t ir_user4[4];
 struct scan_field select_user4 = {
 	.in_value = NULL,
 	.out_value = ir_user4
 };
 
 
-uint8_t bscan_tunneled_ir_width[4] = {5};  /* overridden by assignment in riscv_init_target */
-struct scan_field _bscan_tunnel_data_register_select_dmi[] = {
+static uint8_t bscan_tunneled_ir_width[4] = {5};  /* overridden by assignment in riscv_init_target */
+static struct scan_field _bscan_tunnel_data_register_select_dmi[] = {
 		{
 			.num_bits = 3,
 			.out_value = bscan_zero,
@@ -162,7 +162,7 @@ struct scan_field _bscan_tunnel_data_register_select_dmi[] = {
 		}
 };
 
-struct scan_field _bscan_tunnel_nested_tap_select_dmi[] = {
+static struct scan_field _bscan_tunnel_nested_tap_select_dmi[] = {
 		{
 			.num_bits = 1,
 			.out_value = bscan_zero,
@@ -184,11 +184,11 @@ struct scan_field _bscan_tunnel_nested_tap_select_dmi[] = {
 			.in_value = NULL,
 		}
 };
-struct scan_field *bscan_tunnel_nested_tap_select_dmi = _bscan_tunnel_nested_tap_select_dmi;
-uint32_t bscan_tunnel_nested_tap_select_dmi_num_fields = ARRAY_SIZE(_bscan_tunnel_nested_tap_select_dmi);
+static struct scan_field *bscan_tunnel_nested_tap_select_dmi = _bscan_tunnel_nested_tap_select_dmi;
+static uint32_t bscan_tunnel_nested_tap_select_dmi_num_fields = ARRAY_SIZE(_bscan_tunnel_nested_tap_select_dmi);
 
-struct scan_field *bscan_tunnel_data_register_select_dmi = _bscan_tunnel_data_register_select_dmi;
-uint32_t bscan_tunnel_data_register_select_dmi_num_fields = ARRAY_SIZE(_bscan_tunnel_data_register_select_dmi);
+static struct scan_field *bscan_tunnel_data_register_select_dmi = _bscan_tunnel_data_register_select_dmi;
+static uint32_t bscan_tunnel_data_register_select_dmi_num_fields = ARRAY_SIZE(_bscan_tunnel_data_register_select_dmi);
 
 struct trigger {
 	uint64_t address;
@@ -205,7 +205,7 @@ int riscv_command_timeout_sec = DEFAULT_COMMAND_TIMEOUT_SEC;
 /* Wall-clock timeout after reset. Settable via RISC-V Target commands.*/
 int riscv_reset_timeout_sec = DEFAULT_RESET_TIMEOUT_SEC;
 
-bool riscv_enable_virt2phys = true;
+static bool riscv_enable_virt2phys = true;
 bool riscv_ebreakm = true;
 bool riscv_ebreaks = true;
 bool riscv_ebreaku = true;
@@ -217,7 +217,7 @@ static enum {
 	RO_REVERSED
 } resume_order;
 
-const virt2phys_info_t sv32 = {
+static const virt2phys_info_t sv32 = {
 	.name = "Sv32",
 	.va_bits = 32,
 	.level = 2,
@@ -230,7 +230,7 @@ const virt2phys_info_t sv32 = {
 	.pa_ppn_mask = {0x3ff, 0xfff},
 };
 
-const virt2phys_info_t sv39 = {
+static const virt2phys_info_t sv39 = {
 	.name = "Sv39",
 	.va_bits = 39,
 	.level = 3,
@@ -243,7 +243,7 @@ const virt2phys_info_t sv39 = {
 	.pa_ppn_mask = {0x1ff, 0x1ff, 0x3ffffff},
 };
 
-const virt2phys_info_t sv48 = {
+static const virt2phys_info_t sv48 = {
 	.name = "Sv48",
 	.va_bits = 48,
 	.level = 4,
@@ -256,7 +256,7 @@ const virt2phys_info_t sv48 = {
 	.pa_ppn_mask = {0x1ff, 0x1ff, 0x1ff, 0x1ffff},
 };
 
-void riscv_sample_buf_maybe_add_timestamp(struct target *target, bool before)
+static void riscv_sample_buf_maybe_add_timestamp(struct target *target, bool before)
 {
 	RISCV_INFO(r);
 	uint32_t now = timeval_ms() & 0xffffffff;
@@ -1162,7 +1162,7 @@ int riscv_select_current_hart(struct target *target)
 	return riscv_set_current_hartid(target, target->coreid);
 }
 
-int halt_prep(struct target *target)
+static int halt_prep(struct target *target)
 {
 	RISCV_INFO(r);
 
@@ -1182,7 +1182,7 @@ int halt_prep(struct target *target)
 	return ERROR_OK;
 }
 
-int riscv_halt_go_all_harts(struct target *target)
+static int riscv_halt_go_all_harts(struct target *target)
 {
 	RISCV_INFO(r);
 
@@ -1200,7 +1200,7 @@ int riscv_halt_go_all_harts(struct target *target)
 	return ERROR_OK;
 }
 
-int halt_go(struct target *target)
+static int halt_go(struct target *target)
 {
 	RISCV_INFO(r);
 	int result;
@@ -1284,7 +1284,7 @@ static int riscv_deassert_reset(struct target *target)
 	return tt->deassert_reset(target);
 }
 
-int riscv_resume_prep_all_harts(struct target *target)
+static int riscv_resume_prep_all_harts(struct target *target)
 {
 	RISCV_INFO(r);
 
@@ -1742,7 +1742,7 @@ static int riscv_write_memory(struct target *target, target_addr_t address,
 	return tt->write_memory(target, address, size, count, buffer);
 }
 
-const char *riscv_get_gdb_arch(struct target *target)
+static const char *riscv_get_gdb_arch(struct target *target)
 {
 	switch (riscv_xlen(target)) {
 		case 32:
@@ -2105,7 +2105,7 @@ static enum riscv_poll_hart riscv_poll_hart(struct target *target, int hartid)
 	return RPH_NO_CHANGE;
 }
 
-int set_debug_reason(struct target *target, enum riscv_halt_reason halt_reason)
+static int set_debug_reason(struct target *target, enum riscv_halt_reason halt_reason)
 {
 	switch (halt_reason) {
 		case RISCV_HALT_BREAKPOINT:
@@ -2131,7 +2131,7 @@ int set_debug_reason(struct target *target, enum riscv_halt_reason halt_reason)
 	return ERROR_OK;
 }
 
-int sample_memory(struct target *target)
+static int sample_memory(struct target *target)
 {
 	RISCV_INFO(r);
 
@@ -2458,7 +2458,7 @@ COMMAND_HANDLER(riscv_set_enable_virtual)
 	return ERROR_OK;
 }
 
-int parse_ranges(struct list_head *ranges, const char *tcl_arg, const char *reg_type, unsigned int max_val)
+static int parse_ranges(struct list_head *ranges, const char *tcl_arg, const char *reg_type, unsigned int max_val)
 {
 	char *args = strdup(tcl_arg);
 	if (!args)
@@ -3117,7 +3117,7 @@ static const struct command_registration riscv_exec_command_handlers[] = {
  * sense, but for now all semihosting commands are prefixed with `arm`.
  */
 
-const struct command_registration riscv_command_handlers[] = {
+static const struct command_registration riscv_command_handlers[] = {
 	{
 		.name = "riscv",
 		.mode = COMMAND_ANY,

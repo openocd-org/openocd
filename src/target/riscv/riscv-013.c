@@ -67,9 +67,9 @@ static int write_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, const uint8_t *buffer);
 static int riscv013_test_sba_config_reg(struct target *target, target_addr_t legal_address,
 		uint32_t num_words, target_addr_t illegal_address, bool run_sbbusyerror_test);
-void write_memory_sba_simple(struct target *target, target_addr_t addr, uint32_t *write_data,
+static void write_memory_sba_simple(struct target *target, target_addr_t addr, uint32_t *write_data,
 		uint32_t write_size, uint32_t sbcs);
-void read_memory_sba_simple(struct target *target, target_addr_t addr,
+static void read_memory_sba_simple(struct target *target, target_addr_t addr,
 		uint32_t *rd_buf, uint32_t read_size, uint32_t sbcs);
 
 /**
@@ -221,7 +221,7 @@ typedef struct {
 	dm013_info_t *dm;
 } riscv013_info_t;
 
-LIST_HEAD(dm_list);
+static LIST_HEAD(dm_list);
 
 static riscv013_info_t *get_info(const struct target *target)
 {
@@ -236,7 +236,7 @@ static riscv013_info_t *get_info(const struct target *target)
  * global list of DMs. If it's not in there, then create one and initialize it
  * to 0.
  */
-dm013_info_t *get_dm(struct target *target)
+static dm013_info_t *get_dm(struct target *target)
 {
 	RISCV013_INFO(info);
 	if (info->dm)
@@ -683,7 +683,7 @@ static int dmi_write_exec(struct target *target, uint32_t address,
 	return dmi_op(target, NULL, NULL, DMI_OP_WRITE, address, value, true, ensure_success);
 }
 
-int dmstatus_read_timeout(struct target *target, uint32_t *dmstatus,
+static int dmstatus_read_timeout(struct target *target, uint32_t *dmstatus,
 		bool authenticated, unsigned timeout_sec)
 {
 	int result = dmi_op_timeout(target, dmstatus, NULL, DMI_OP_READ,
@@ -705,7 +705,7 @@ int dmstatus_read_timeout(struct target *target, uint32_t *dmstatus,
 	return ERROR_OK;
 }
 
-int dmstatus_read(struct target *target, uint32_t *dmstatus,
+static int dmstatus_read(struct target *target, uint32_t *dmstatus,
 		bool authenticated)
 {
 	return dmstatus_read_timeout(target, dmstatus, authenticated,
@@ -721,7 +721,7 @@ static void increase_ac_busy_delay(struct target *target)
 			info->ac_busy_delay);
 }
 
-uint32_t abstract_register_size(unsigned width)
+static uint32_t __attribute__((unused)) abstract_register_size(unsigned width)
 {
 	switch (width) {
 		case 32:
@@ -1873,7 +1873,7 @@ static unsigned riscv013_data_bits(struct target *target)
 	return 32;
 }
 
-COMMAND_HELPER(riscv013_print_info, struct target *target)
+static COMMAND_HELPER(riscv013_print_info, struct target *target)
 {
 	RISCV013_INFO(info);
 
@@ -4701,7 +4701,7 @@ static int riscv013_test_sba_config_reg(struct target *target,
 
 }
 
-void write_memory_sba_simple(struct target *target, target_addr_t addr,
+static void write_memory_sba_simple(struct target *target, target_addr_t addr,
 		uint32_t *write_data, uint32_t write_size, uint32_t sbcs)
 {
 	RISCV013_INFO(info);
@@ -4731,7 +4731,7 @@ void write_memory_sba_simple(struct target *target, target_addr_t addr,
 		dmi_write(target, DM_SBDATA0+i, write_data[i]);
 }
 
-void read_memory_sba_simple(struct target *target, target_addr_t addr,
+static void read_memory_sba_simple(struct target *target, target_addr_t addr,
 		uint32_t *rd_buf, uint32_t read_size, uint32_t sbcs)
 {
 	RISCV013_INFO(info);
