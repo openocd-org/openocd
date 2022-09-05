@@ -275,7 +275,7 @@ static int linuxgpiod_quit(void)
 	return ERROR_OK;
 }
 
-int helper_get_line(enum adapter_gpio_config_index idx)
+static int helper_get_line(enum adapter_gpio_config_index idx)
 {
 	if (!is_gpio_config_valid(idx))
 		return ERROR_OK;
