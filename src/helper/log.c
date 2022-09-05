@@ -295,12 +295,6 @@ void log_exit(void)
 	log_output = NULL;
 }
 
-int set_log_output(struct command_context *cmd_ctx, FILE *output)
-{
-	log_output = output;
-	return ERROR_OK;
-}
-
 /* add/remove log callback handler */
 int log_add_callback(log_callback_fn fn, void *priv)
 {
