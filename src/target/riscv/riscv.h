@@ -278,19 +278,14 @@ static inline bool is_riscv(const struct riscv_info *riscv_info)
 	return riscv_info->common_magic == RISCV_COMMON_MAGIC;
 }
 
-extern uint8_t ir_dtmcontrol[4];
 extern struct scan_field select_dtmcontrol;
-extern uint8_t ir_dbus[4];
 extern struct scan_field select_dbus;
-extern uint8_t ir_idcode[4];
 extern struct scan_field select_idcode;
 
-extern struct scan_field select_user4;
 extern struct scan_field *bscan_tunneled_select_dmi;
 extern uint32_t bscan_tunneled_select_dmi_num_fields;
 typedef enum { BSCAN_TUNNEL_NESTED_TAP, BSCAN_TUNNEL_DATA_REGISTER } bscan_tunnel_type_t;
 extern int bscan_tunnel_ir_width;
-extern bscan_tunnel_type_t bscan_tunnel_type;
 
 uint32_t dtmcontrol_scan_via_bscan(struct target *target, uint32_t out);
 void select_dmi_via_bscan(struct target *target);
@@ -299,15 +294,6 @@ void select_dmi_via_bscan(struct target *target);
 int riscv_openocd_poll(struct target *target);
 
 int riscv_halt(struct target *target);
-
-int riscv_resume(
-	struct target *target,
-	int current,
-	target_addr_t address,
-	int handle_breakpoints,
-	int debug_execution,
-	bool single_hart
-);
 
 int riscv_openocd_step(
 	struct target *target,
@@ -320,13 +306,6 @@ int riscv_openocd_assert_reset(struct target *target);
 int riscv_openocd_deassert_reset(struct target *target);
 
 /*** RISC-V Interface ***/
-
-/* Initializes the shared RISC-V structure. */
-void riscv_info_init(struct target *target, struct riscv_info *r);
-
-/* Steps the hart that's currently selected in the RTOS, or if there is no RTOS
- * then the only hart. */
-int riscv_step_rtos_hart(struct target *target);
 
 bool riscv_supports_extension(struct target *target, char letter);
 
@@ -356,7 +335,6 @@ int riscv_get_register(struct target *target, riscv_reg_t *value,
 /* Checks the state of the current hart -- "is_halted" checks the actual
  * on-device register. */
 bool riscv_is_halted(struct target *target);
-enum riscv_halt_reason riscv_halt_reason(struct target *target, int hartid);
 
 /* These helper functions let the generic program interface get target-specific
  * information. */
@@ -371,18 +349,11 @@ void riscv_fill_dmi_write_u64(struct target *target, char *buf, int a, uint64_t 
 void riscv_fill_dmi_read_u64(struct target *target, char *buf, int a);
 int riscv_dmi_write_u64_bits(struct target *target);
 
-/* Invalidates the register cache. */
-void riscv_invalidate_register_cache(struct target *target);
-
 int riscv_enumerate_triggers(struct target *target);
 
-int riscv_add_breakpoint(struct target *target, struct breakpoint *breakpoint);
-int riscv_remove_breakpoint(struct target *target,
-		struct breakpoint *breakpoint);
 int riscv_add_watchpoint(struct target *target, struct watchpoint *watchpoint);
 int riscv_remove_watchpoint(struct target *target,
 		struct watchpoint *watchpoint);
-int riscv_hit_watchpoint(struct target *target, struct watchpoint **hit_wp_address);
 
 int riscv_init_registers(struct target *target);
 
