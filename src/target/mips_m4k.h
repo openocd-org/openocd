@@ -43,6 +43,5 @@ static inline void mips_m4k_isa_filter(enum mips32_isa_imp isa_imp, target_addr_
 		}
 	}
 }
-extern const struct command_registration mips_m4k_command_handlers[];
 
 #endif /* OPENOCD_TARGET_MIPS_M4K_H */

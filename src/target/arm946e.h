@@ -32,10 +32,4 @@ static inline struct arm946e_common *target_to_arm946(struct target *target)
 			arm7_9_common.arm);
 }
 
-int arm946e_init_arch_info(struct target *target,
-			   struct arm946e_common *arm946e, struct jtag_tap *tap);
-int arm946e_write_cp15(struct target *target, int reg_addr, uint32_t value);
-
-extern const struct command_registration arm946e_command_handlers[];
-
 #endif /* OPENOCD_TARGET_ARM946E_H */

@@ -16,7 +16,7 @@
 #include "target_type.h"
 #include "dsp5680xx.h"
 
-struct dsp5680xx_common dsp5680xx_context;
+static struct dsp5680xx_common dsp5680xx_context;
 
 #define _E "DSP5680XX_ERROR:%d\nAt:%s:%d:%s"
 #define err_check(r, c, m) if (r != ERROR_OK) {LOG_ERROR(_E, c, __func__, __LINE__, m); return r; }

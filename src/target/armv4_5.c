@@ -535,7 +535,7 @@ static struct reg_feature arm_gdb_dummy_fp_features = {
  * Modern ARM cores use Vector Floating Point (VFP), if they
  * have any floating point support.  VFP is not FPA-compatible.
  */
-struct reg arm_gdb_dummy_fp_reg = {
+static struct reg arm_gdb_dummy_fp_reg = {
 	.name = "GDB dummy FPA register",
 	.value = (uint8_t *) arm_gdb_dummy_fp_value,
 	.valid = true,
@@ -552,7 +552,7 @@ static const uint8_t arm_gdb_dummy_fps_value[4];
  * Dummy FPA status registers are required to support GDB on ARM.
  * Register packets require an obsolete FPA status register.
  */
-struct reg arm_gdb_dummy_fps_reg = {
+static struct reg arm_gdb_dummy_fps_reg = {
 	.name = "GDB dummy FPA status register",
 	.value = (uint8_t *) arm_gdb_dummy_fps_value,
 	.valid = true,

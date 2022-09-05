@@ -1357,7 +1357,7 @@ static const struct command_registration mips_m4k_exec_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-const struct command_registration mips_m4k_command_handlers[] = {
+static const struct command_registration mips_m4k_command_handlers[] = {
 	{
 		.chain = mips32_command_handlers,
 	},

@@ -310,7 +310,4 @@ void arm_set_cpsr(struct arm *arm, uint32_t cpsr);
 struct reg *arm_reg_current(struct arm *arm, unsigned regnum);
 struct reg *armv8_reg_current(struct arm *arm, unsigned regnum);
 
-extern struct reg arm_gdb_dummy_fp_reg;
-extern struct reg arm_gdb_dummy_fps_reg;
-
 #endif /* OPENOCD_TARGET_ARM_H */

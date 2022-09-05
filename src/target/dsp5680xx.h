@@ -278,8 +278,6 @@ struct dsp5680xx_common {
 	bool debug_mode_enabled;
 };
 
-extern struct dsp5680xx_common dsp5680xx_context;
-
 static inline struct dsp5680xx_common *target_to_dsp5680xx(struct target
 							   *target)
 {
