@@ -55,12 +55,10 @@ AC_CHECK_HEADERS([elf.h])
 AC_EGREP_HEADER(Elf64_Ehdr, [elf.h], [
   AC_DEFINE([HAVE_ELF64], [1], [Define to 1 if the system has the type `Elf64_Ehdr'.])
 ])
-AC_CHECK_HEADERS([dirent.h])
 AC_CHECK_HEADERS([fcntl.h])
 AC_CHECK_HEADERS([malloc.h])
 AC_CHECK_HEADERS([netdb.h])
 AC_CHECK_HEADERS([poll.h])
-AC_CHECK_HEADERS([pthread.h])
 AC_CHECK_HEADERS([strings.h])
 AC_CHECK_HEADERS([sys/ioctl.h])
 AC_CHECK_HEADERS([sys/param.h])
@@ -70,7 +68,7 @@ AC_CHECK_HEADERS([sys/sysctl.h])
 AC_CHECK_HEADERS([sys/time.h])
 AC_CHECK_HEADERS([sys/types.h])
 AC_CHECK_HEADERS([unistd.h])
-AC_CHECK_HEADERS([arpa/inet.h ifaddrs.h netinet/in.h netinet/tcp.h net/if.h], [], [], [dnl
+AC_CHECK_HEADERS([arpa/inet.h netinet/in.h netinet/tcp.h], [], [], [dnl
 #include <stdio.h>
 #ifdef STDC_HEADERS
 # include <stdlib.h>
@@ -94,7 +92,6 @@ AC_CHECK_FUNCS([strndup])
 AC_CHECK_FUNCS([strnlen])
 AC_CHECK_FUNCS([gettimeofday])
 AC_CHECK_FUNCS([usleep])
-AC_CHECK_FUNCS([vasprintf])
 AC_CHECK_FUNCS([realpath])
 
 # guess-rev.sh only exists in the repository, not in the released archives
