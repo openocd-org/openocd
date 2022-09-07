@@ -170,35 +170,40 @@ int gdb_thread_packet(struct connection *connection, char const *packet, int pac
 	return target->rtos->gdb_thread_packet(connection, packet, packet_size);
 }
 
-static struct symbol_table_elem *next_symbol(struct rtos *os, char *cur_symbol, uint64_t cur_addr)
+static struct symbol_table_elem *find_symbol(const struct rtos *os, const char *symbol)
 {
 	struct symbol_table_elem *s;
 
+	for (s = os->symbols; s->symbol_name; s++)
+		if (!strcmp(s->symbol_name, symbol))
+			return s;
+
+	return NULL;
+}
+
+static struct symbol_table_elem *next_symbol(struct rtos *os, char *cur_symbol, uint64_t cur_addr)
+{
 	if (!os->symbols)
 		os->type->get_symbol_list_to_lookup(&os->symbols);
 
 	if (!cur_symbol[0])
 		return &os->symbols[0];
 
-	for (s = os->symbols; s->symbol_name; s++)
-		if (!strcmp(s->symbol_name, cur_symbol)) {
-			s->address = cur_addr;
-			s++;
-			return s;
-		}
+	struct symbol_table_elem *s = find_symbol(os, cur_symbol);
+	if (!s)
+		return NULL;
 
-	return NULL;
+	s->address = cur_addr;
+	s++;
+	return s;
 }
 
 /* searches for 'symbol' in the lookup table for 'os' and returns TRUE,
  * if 'symbol' is not declared optional */
 static bool is_symbol_mandatory(const struct rtos *os, const char *symbol)
 {
-	for (struct symbol_table_elem *s = os->symbols; s->symbol_name; ++s) {
-		if (!strcmp(s->symbol_name, symbol))
-			return !s->optional;
-	}
-	return false;
+	struct symbol_table_elem *s = find_symbol(os, symbol);
+	return s && !s->optional;
 }
 
 /* rtos_qsymbol() processes and replies to all qSymbol packets from GDB.
