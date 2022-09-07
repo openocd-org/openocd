@@ -198,14 +198,6 @@ static struct symbol_table_elem *next_symbol(struct rtos *os, char *cur_symbol, 
 	return s;
 }
 
-/* searches for 'symbol' in the lookup table for 'os' and returns TRUE,
- * if 'symbol' is not declared optional */
-static bool is_symbol_mandatory(const struct rtos *os, const char *symbol)
-{
-	struct symbol_table_elem *s = find_symbol(os, symbol);
-	return s && !s->optional;
-}
-
 /* rtos_qsymbol() processes and replies to all qSymbol packets from GDB.
  *
  * GDB sends a qSymbol:: packet (empty address, empty name) to notify
@@ -245,22 +237,25 @@ int rtos_qsymbol(struct connection *connection, char const *packet, int packet_s
 	cur_sym[len] = 0;
 
 	if ((strcmp(packet, "qSymbol::") != 0) &&               /* GDB is not offering symbol lookup for the first time */
-	    (!sscanf(packet, "qSymbol:%" SCNx64 ":", &addr)) && /* GDB did not find an address for a symbol */
-	    is_symbol_mandatory(os, cur_sym)) {					/* the symbol is mandatory for this RTOS */
+	    (!sscanf(packet, "qSymbol:%" SCNx64 ":", &addr))) { /* GDB did not find an address for a symbol */
 
 		/* GDB could not find an address for the previous symbol */
-		if (!target->rtos_auto_detect) {
-			LOG_WARNING("RTOS %s not detected. (GDB could not find symbol \'%s\')", os->type->name, cur_sym);
-			goto done;
-		} else {
-			/* Autodetecting RTOS - try next RTOS */
-			if (!rtos_try_next(target)) {
-				LOG_WARNING("No RTOS could be auto-detected!");
-				goto done;
-			}
+		struct symbol_table_elem *sym = find_symbol(os, cur_sym);
 
-			/* Next RTOS selected - invalidate current symbol */
-			cur_sym[0] = '\x00';
+		if (sym && !sym->optional) {	/* the symbol is mandatory for this RTOS */
+			if (!target->rtos_auto_detect) {
+				LOG_WARNING("RTOS %s not detected. (GDB could not find symbol \'%s\')", os->type->name, cur_sym);
+				goto done;
+			} else {
+				/* Autodetecting RTOS - try next RTOS */
+				if (!rtos_try_next(target)) {
+					LOG_WARNING("No RTOS could be auto-detected!");
+					goto done;
+				}
+
+				/* Next RTOS selected - invalidate current symbol */
+				cur_sym[0] = '\x00';
+			}
 		}
 	}
 
