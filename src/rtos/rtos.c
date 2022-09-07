@@ -215,6 +215,12 @@ static struct symbol_table_elem *next_symbol(struct rtos *os, char *cur_symbol, 
  * specified explicitly, then no further symbol lookup is done. When
  * auto-detecting, the RTOS driver _detect() function must return success.
  *
+ * The symbol is tried twice to handle the -flto case with gcc.  The first
+ * attempt uses the symbol as-is, and the second attempt tries the symbol
+ * with ".lto_priv.0" appended to it.  We only consider the first static
+ * symbol here from the -flto case.  (Each subsequent static symbol with
+ * the same name is exported as .lto_priv.1, .lto_priv.2, etc.)
+ *
  * rtos_qsymbol() returns 1 if an RTOS has been detected, or 0 otherwise.
  */
 int rtos_qsymbol(struct connection *connection, char const *packet, int packet_size)
@@ -223,7 +229,7 @@ int rtos_qsymbol(struct connection *connection, char const *packet, int packet_s
 	uint64_t addr = 0;
 	size_t reply_len;
 	char reply[GDB_BUFFER_SIZE + 1], cur_sym[GDB_BUFFER_SIZE / 2 + 1] = ""; /* Extra byte for null-termination */
-	struct symbol_table_elem *next_sym;
+	struct symbol_table_elem *next_sym = NULL;
 	struct target *target = get_target_from_connection(connection);
 	struct rtos *os = target->rtos;
 
@@ -236,13 +242,34 @@ int rtos_qsymbol(struct connection *connection, char const *packet, int packet_s
 	size_t len = unhexify((uint8_t *)cur_sym, strchr(packet + 8, ':') + 1, strlen(strchr(packet + 8, ':') + 1));
 	cur_sym[len] = 0;
 
+	const char no_suffix[] = "";
+	const char lto_suffix[] = ".lto_priv.0";
+	const size_t lto_suffix_len = strlen(lto_suffix);
+
+	const char *cur_suffix;
+	const char *next_suffix;
+
+	/* Detect what suffix was used during the previous symbol lookup attempt, and
+	 * speculatively determine the next suffix (only used for the unknown address case) */
+	if (len > lto_suffix_len && !strcmp(cur_sym + len - lto_suffix_len, lto_suffix)) {
+		/* Trim the suffix from cur_sym for comparison purposes below */
+		cur_sym[len - lto_suffix_len] = '\0';
+		cur_suffix = lto_suffix;
+		next_suffix = NULL;
+	} else {
+		cur_suffix = no_suffix;
+		next_suffix = lto_suffix;
+	}
+
 	if ((strcmp(packet, "qSymbol::") != 0) &&               /* GDB is not offering symbol lookup for the first time */
 	    (!sscanf(packet, "qSymbol:%" SCNx64 ":", &addr))) { /* GDB did not find an address for a symbol */
 
 		/* GDB could not find an address for the previous symbol */
 		struct symbol_table_elem *sym = find_symbol(os, cur_sym);
 
-		if (sym && !sym->optional) {	/* the symbol is mandatory for this RTOS */
+		if (next_suffix) {
+			next_sym = sym;
+		} else if (sym && !sym->optional) {	/* the symbol is mandatory for this RTOS */
 			if (!target->rtos_auto_detect) {
 				LOG_WARNING("RTOS %s not detected. (GDB could not find symbol \'%s\')", os->type->name, cur_sym);
 				goto done;
@@ -259,13 +286,16 @@ int rtos_qsymbol(struct connection *connection, char const *packet, int packet_s
 		}
 	}
 
-	LOG_DEBUG("RTOS: Address of symbol '%s' is 0x%" PRIx64, cur_sym, addr);
+	LOG_DEBUG("RTOS: Address of symbol '%s%s' is 0x%" PRIx64, cur_sym, cur_suffix, addr);
 
-	next_sym = next_symbol(os, cur_sym, addr);
+	if (!next_sym) {
+		next_sym = next_symbol(os, cur_sym, addr);
+		next_suffix = no_suffix;
+	}
 
 	/* Should never happen unless the debugger misbehaves */
 	if (!next_sym) {
-		LOG_WARNING("RTOS: Debugger sent us qSymbol with '%s' that we did not ask for", cur_sym);
+		LOG_WARNING("RTOS: Debugger sent us qSymbol with '%s%s' that we did not ask for", cur_sym, cur_suffix);
 		goto done;
 	}
 
@@ -287,16 +317,25 @@ int rtos_qsymbol(struct connection *connection, char const *packet, int packet_s
 		}
 	}
 
-	if (8 + (strlen(next_sym->symbol_name) * 2) + 1 > sizeof(reply)) {
-		LOG_ERROR("ERROR: RTOS symbol '%s' name is too long for GDB!", next_sym->symbol_name);
+	assert(next_suffix);
+
+	reply_len = 8;                                   /* snprintf(..., "qSymbol:") */
+	reply_len += 2 * strlen(next_sym->symbol_name);  /* hexify(..., next_sym->symbol_name, ...) */
+	reply_len += 2 * strlen(next_suffix);            /* hexify(..., next_suffix, ...) */
+	reply_len += 1;                                  /* Terminating NUL */
+	if (reply_len > sizeof(reply)) {
+		LOG_ERROR("ERROR: RTOS symbol '%s%s' name is too long for GDB!", next_sym->symbol_name, next_suffix);
 		goto done;
 	}
 
-	LOG_DEBUG("RTOS: Requesting symbol lookup of '%s' from the debugger", next_sym->symbol_name);
+	LOG_DEBUG("RTOS: Requesting symbol lookup of '%s%s' from the debugger", next_sym->symbol_name, next_suffix);
 
 	reply_len = snprintf(reply, sizeof(reply), "qSymbol:");
 	reply_len += hexify(reply + reply_len,
 		(const uint8_t *)next_sym->symbol_name, strlen(next_sym->symbol_name),
+		sizeof(reply) - reply_len);
+	reply_len += hexify(reply + reply_len,
+		(const uint8_t *)next_suffix, strlen(next_suffix),
 		sizeof(reply) - reply_len);
 
 done:
