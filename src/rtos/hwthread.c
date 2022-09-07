@@ -113,7 +113,8 @@ static int hwthread_update_threads(struct rtos *rtos)
 		foreach_smp_target(head, target->smp_targets) {
 			struct target *curr = head->target;
 
-			if (!target_was_examined(curr))
+			if (!target_was_examined(curr) ||
+					curr->state == TARGET_UNAVAILABLE)
 				continue;
 
 			++thread_list_size;
@@ -134,7 +135,8 @@ static int hwthread_update_threads(struct rtos *rtos)
 		foreach_smp_target(head, target->smp_targets) {
 			struct target *curr = head->target;
 
-			if (!target_was_examined(curr))
+			if (!target_was_examined(curr) ||
+					curr->state == TARGET_UNAVAILABLE)
 				continue;
 
 			threadid_t tid = threadid_from_target(curr);
