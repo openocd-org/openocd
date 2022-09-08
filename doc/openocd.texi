@@ -350,59 +350,81 @@ Also, some development boards integrate an FT2232 chip to serve as
 a built-in low-cost debug adapter and USB-to-serial solution.
 
 @itemize @bullet
-@item @b{usbjtag}
-@* Link @url{http://elk.informatik.fh-augsburg.de/hhweb/doc/openocd/usbjtag/usbjtag.html}
-@item @b{jtagkey}
-@* See: @url{http://www.amontec.com/jtagkey.shtml}
-@item @b{jtagkey2}
-@* See: @url{http://www.amontec.com/jtagkey2.shtml}
-@item @b{oocdlink}
-@* See: @url{http://www.oocdlink.com} By Joern Kaipf
-@item @b{signalyzer}
-@* See: @url{http://www.signalyzer.com}
+
 @item @b{Stellaris Eval Boards}
 @* See: @url{http://www.ti.com} - The Stellaris eval boards
 bundle FT2232-based JTAG and SWD support, which can be used to debug
 the Stellaris chips. Using separate JTAG adapters is optional.
 These boards can also be used in a "pass through" mode as JTAG adapters
 to other target boards, disabling the Stellaris chip.
+
 @item @b{TI/Luminary ICDI}
 @* See: @url{http://www.ti.com} - TI/Luminary In-Circuit Debug
 Interface (ICDI) Boards are included in Stellaris LM3S9B9x
 Evaluation Kits. Like the non-detachable FT2232 support on the other
 Stellaris eval boards, they can be used to debug other target boards.
+
 @item @b{olimex-jtag}
 @* See: @url{http://www.olimex.com}
-@item @b{Flyswatter/Flyswatter2}
-@* See: @url{http://www.tincantools.com}
-@item @b{turtelizer2}
-@* See:
-@uref{http://www.ethernut.de/en/hardware/turtelizer/index.html, Turtelizer 2}, or
-@url{http://www.ethernut.de}
-@item @b{comstick}
-@* Link: @url{http://www.hitex.com/index.php?id=383}
-@item @b{stm32stick}
-@* Link @url{http://www.hitex.com/stm32-stick}
-@item @b{axm0432_jtag}
-@* Axiom AXM-0432 Link @url{http://www.axman.com} - NOTE: This JTAG does not appear
-to be available anymore as of April 2012.
-@item @b{cortino}
-@* Link @url{http://www.hitex.com/index.php?id=cortino}
-@item @b{dlp-usb1232h}
-@* Link @url{http://www.dlpdesign.com/usb/usb1232h.shtml}
-@item @b{digilent-hs1}
-@* Link @url{http://www.digilentinc.com/Products/Detail.cfm?Prod=JTAG-HS1}
-@item @b{opendous}
-@* Link @url{http://code.google.com/p/opendous/wiki/JTAG} FT2232H-based
-(OpenHardware).
-@item @b{JTAG-lock-pick Tiny 2}
-@* Link @url{http://www.distortec.com/jtag-lock-pick-tiny-2} FT232H-based
 
-@item @b{GW16042}
-@* Link: @url{http://shop.gateworks.com/index.php?route=product/product&path=70_80&product_id=64}
-FT2232H-based
+@item @b{Flyswatter2}
+@* See: @url{https://www.tincantools.com/product/flyswatter2/}
+
+@item @b{DLP-1232H High-Speed USB Adapter}
+@* Link @url{http://www.dlpdesign.com/usb/usb1232h.shtml}
+
+@item @b{digilent-hs1}
+@* Link @url{https://digilent.com/reference/jtag_hs1/refmanual}
+
+@item @b{JTAG-lock-pick Tiny 2}
+@* Link @url{http://www.distortec.com/jtag-lock-pick-tiny-2} 
+
+@item @b{Pine64 USB JTAG Adapter}
+@* Link @url{https://pine64.com/product/usb-jtag-adapter/} 
 
 @end itemize
+
+The following boards are supported but are no longer available for purchase (as of Sep 2022) from their original suppliers or other reputable sources:
+@itemize @bullet
+
+@item @b{axm0432_jtag}
+@* Axiom AXM-0432 Link @url{http://www.axman.com}
+
+@item @b{comstick}
+@* Link: @url{http://www.hitex.com/index.php?id=383}
+
+@item @b{cortino}
+@* Link @url{http://www.hitex.com/index.php?id=cortino}
+
+@item @b{jtagkey}
+@* See: @url{http://www.amontec.com/jtagkey.shtml}
+
+@item @b{jtagkey2}
+@* See: @url{http://www.amontec.com/jtagkey2.shtml}
+
+@item @b{oocdlink}
+@* See: @url{http://www.oocdlink.com} By Joern Kaipf
+
+@item @b{signalyzer}
+@* See: @url{http://www.signalyzer.com}
+
+@item @b{Flyswatter}
+@* See: @url{https://www.tincantools.com}
+
+@item @b{turtelizer2}
+@* See: @uref{http://www.ethernut.de/en/hardware/turtelizer/index.html, Turtelizer 2}, or @url{http://www.ethernut.de}
+
+@item @b{stm32stick}
+@* Link @url{http://www.hitex.com/stm32-stick}
+
+@item @b{GW16042}
+@* Link: @url{http://shop.gateworks.com/index.php?route=product/product&path=70_80&product_id=64} FT2232H-based
+
+@item @b{opendous}
+@* Link @url{http://code.google.com/p/opendous/wiki/JTAG} (OpenHardware).
+
+@end itemize
+
 @section USB-JTAG / Altera USB-Blaster compatibles
 
 These devices also show up as FTDI devices, but are not
