@@ -246,8 +246,8 @@ int xtensa_dm_device_id_read(struct xtensa_debug_module *dm)
 
 int xtensa_dm_power_status_read(struct xtensa_debug_module *dm, uint32_t clear)
 {
-	uint8_t stat_buf[sizeof(uint32_t)];
-	uint8_t stath_buf[sizeof(uint32_t)];
+	uint8_t stat_buf[sizeof(uint32_t)] = { 0, 0, 0, 0 };
+	uint8_t stath_buf[sizeof(uint32_t)] = { 0, 0, 0, 0 };
 
 	/* TODO: JTAG does not work when PWRCTL_JTAGDEBUGUSE is not set.
 	 * It is set in xtensa_examine(), need to move reading of XDMREG_OCDID out of this function */
