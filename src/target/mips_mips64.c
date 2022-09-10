@@ -205,12 +205,6 @@ static int mips_mips64_deassert_reset(struct target *target)
 	return ERROR_OK;
 }
 
-static int mips_mips64_soft_reset_halt(struct target *target)
-{
-	/* TODO */
-	return ERROR_OK;
-}
-
 static int mips_mips64_single_step_core(struct target *target)
 {
 	struct mips64_common *mips64 = target->arch_info;
@@ -1168,7 +1162,7 @@ struct target_type mips_mips64_target = {
 
 	.assert_reset = mips_mips64_assert_reset,
 	.deassert_reset = mips_mips64_deassert_reset,
-	.soft_reset_halt = mips_mips64_soft_reset_halt,
+	/* TODO: add .soft_reset_halt */
 
 	.get_gdb_reg_list = mips64_get_gdb_reg_list,
 
