@@ -138,27 +138,28 @@ static int rp2040_call_rom_func(struct target *target, struct rp2040_flash_bank 
 
 }
 
-static int stack_grab_and_prep(struct flash_bank *bank)
+static int rp2040_stack_grab_and_prep(struct flash_bank *bank)
 {
 	struct rp2040_flash_bank *priv = bank->driver_priv;
+	struct target *target = bank->target;
 
 	/* target_alloc_working_area always allocates multiples of 4 bytes, so no worry about alignment */
 	const int STACK_SIZE = 256;
-	int err = target_alloc_working_area(bank->target, STACK_SIZE, &priv->stack);
+	int err = target_alloc_working_area(target, STACK_SIZE, &priv->stack);
 	if (err != ERROR_OK) {
 		LOG_ERROR("Could not allocate stack for flash programming code");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
 	LOG_DEBUG("Connecting internal flash");
-	err = rp2040_call_rom_func(bank->target, priv, priv->jump_connect_internal_flash, NULL, 0);
+	err = rp2040_call_rom_func(target, priv, priv->jump_connect_internal_flash, NULL, 0);
 	if (err != ERROR_OK) {
 		LOG_ERROR("RP2040 erase: failed to connect internal flash");
 		return err;
 	}
 
 	LOG_DEBUG("Kicking flash out of XIP mode");
-	err = rp2040_call_rom_func(bank->target, priv, priv->jump_flash_exit_xip, NULL, 0);
+	err = rp2040_call_rom_func(target, priv, priv->jump_flash_exit_xip, NULL, 0);
 	if (err != ERROR_OK) {
 		LOG_ERROR("RP2040 erase: failed to exit flash XIP mode");
 		return err;
@@ -175,7 +176,7 @@ static int rp2040_flash_write(struct flash_bank *bank, const uint8_t *buffer, ui
 	struct target *target = bank->target;
 	struct working_area *bounce;
 
-	int err = stack_grab_and_prep(bank);
+	int err = rp2040_stack_grab_and_prep(bank);
 	if (err != ERROR_OK)
 		return err;
 
@@ -237,7 +238,7 @@ static int rp2040_flash_erase(struct flash_bank *bank, unsigned int first, unsig
 	uint32_t length = bank->sectors[last].offset + bank->sectors[last].size - start_addr;
 	LOG_DEBUG("RP2040 erase %d bytes starting at 0x%" PRIx32, length, start_addr);
 
-	int err = stack_grab_and_prep(bank);
+	int err = rp2040_stack_grab_and_prep(bank);
 	if (err != ERROR_OK)
 		return err;
 
@@ -287,6 +288,36 @@ static int rp2040_ssel_active(struct target *target, bool active)
 		return err;
 
 	return ERROR_OK;
+}
+
+static int rp2040_spi_read_flash_id(struct target *target, uint32_t *devid)
+{
+	uint32_t device_id = 0;
+	const target_addr_t ssi_dr0 = 0x18000060;
+
+	int err = rp2040_ssel_active(target, true);
+
+	/* write RDID request into SPI peripheral's FIFO */
+	for (int count = 0; (count < 4) && (err == ERROR_OK); count++)
+		err = target_write_u32(target, ssi_dr0, SPIFLASH_READ_ID);
+
+	/* by this time, there is a receive FIFO entry for every write */
+	for (int count = 0; (count < 4) && (err == ERROR_OK); count++) {
+		uint32_t status;
+		err = target_read_u32(target, ssi_dr0, &status);
+
+		device_id >>= 8;
+		device_id |= (status & 0xFF) << 24;
+	}
+
+	if (err == ERROR_OK)
+		*devid = device_id >> 8;
+
+	int err2 = rp2040_ssel_active(target, false);
+	if (err2 != ERROR_OK)
+		LOG_ERROR("SSEL inactive failed");
+
+	return err;
 }
 
 static int rp2040_flash_probe(struct flash_bank *bank)
@@ -344,34 +375,14 @@ static int rp2040_flash_probe(struct flash_bank *bank)
 		return err;
 	}
 
-	err = stack_grab_and_prep(bank);
+	err = rp2040_stack_grab_and_prep(bank);
 	if (err != ERROR_OK)
 		return err;
 
 	uint32_t device_id = 0;
-	const target_addr_t ssi_dr0 = 0x18000060;
-
-	err = rp2040_ssel_active(target, true);
-
-	/* write RDID request into SPI peripheral's FIFO */
-	for (int count = 0; (count < 4) && (err == ERROR_OK); count++)
-		err = target_write_u32(target, ssi_dr0, SPIFLASH_READ_ID);
-
-	/* by this time, there is a receive FIFO entry for every write */
-	for (int count = 0; (count < 4) && (err == ERROR_OK); count++) {
-		uint32_t status;
-		err = target_read_u32(target, ssi_dr0, &status);
-
-		device_id >>= 8;
-		device_id |= (status & 0xFF) << 24;
-	}
-	device_id >>= 8;
-
-	err = rp2040_ssel_active(target, false);
-	if (err != ERROR_OK) {
-		LOG_ERROR("SSEL inactive failed");
+	err = rp2040_spi_read_flash_id(target, &device_id);
+	if (err != ERROR_OK)
 		return err;
-	}
 
 	/* search for a SPI flash Device ID match */
 	priv->dev = NULL;
