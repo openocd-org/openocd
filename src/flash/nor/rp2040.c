@@ -138,6 +138,43 @@ static int rp2040_call_rom_func(struct target *target, struct rp2040_flash_bank 
 
 }
 
+/* Finalize flash write/erase/read ID
+ * - flush cache
+ * - enters memory-mapped (XIP) mode to make flash data visible
+ * - deallocates target ROM func stack if previously allocated
+ */
+static int rp2040_finalize_stack_free(struct flash_bank *bank)
+{
+	struct rp2040_flash_bank *priv = bank->driver_priv;
+	struct target *target = bank->target;
+
+	/* Always flush before returning to execute-in-place, to invalidate stale
+	 * cache contents. The flush call also restores regular hardware-controlled
+	 * chip select following a rp2040_flash_exit_xip().
+	 */
+	LOG_DEBUG("Flushing flash cache after write behind");
+	int err = rp2040_call_rom_func(target, priv, priv->jump_flush_cache, NULL, 0);
+	if (err != ERROR_OK) {
+		LOG_ERROR("Failed to flush flash cache");
+		/* Intentionally continue after error and try to setup xip anyway */
+	}
+
+	LOG_DEBUG("Configuring SSI for execute-in-place");
+	err = rp2040_call_rom_func(target, priv, priv->jump_enter_cmd_xip, NULL, 0);
+	if (err != ERROR_OK)
+		LOG_ERROR("Failed to set SSI to XIP mode");
+
+	target_free_working_area(target, priv->stack);
+	priv->stack = NULL;
+	return err;
+}
+
+/* Prepare flash write/erase/read ID
+ * - allocates a stack for target ROM func
+ * - switches the SPI interface from memory-mapped mode to direct command mode
+ * Always pair with a call of rp2040_finalize_stack_free()
+ * after flash operation finishes or fails.
+ */
 static int rp2040_stack_grab_and_prep(struct flash_bank *bank)
 {
 	struct rp2040_flash_bank *priv = bank->driver_priv;
@@ -154,14 +191,14 @@ static int rp2040_stack_grab_and_prep(struct flash_bank *bank)
 	LOG_DEBUG("Connecting internal flash");
 	err = rp2040_call_rom_func(target, priv, priv->jump_connect_internal_flash, NULL, 0);
 	if (err != ERROR_OK) {
-		LOG_ERROR("RP2040 erase: failed to connect internal flash");
+		LOG_ERROR("Failed to connect internal flash");
 		return err;
 	}
 
 	LOG_DEBUG("Kicking flash out of XIP mode");
 	err = rp2040_call_rom_func(target, priv, priv->jump_flash_exit_xip, NULL, 0);
 	if (err != ERROR_OK) {
-		LOG_ERROR("RP2040 erase: failed to exit flash XIP mode");
+		LOG_ERROR("Failed to exit flash XIP mode");
 		return err;
 	}
 
@@ -174,16 +211,17 @@ static int rp2040_flash_write(struct flash_bank *bank, const uint8_t *buffer, ui
 
 	struct rp2040_flash_bank *priv = bank->driver_priv;
 	struct target *target = bank->target;
-	struct working_area *bounce;
+	struct working_area *bounce = NULL;
 
 	int err = rp2040_stack_grab_and_prep(bank);
 	if (err != ERROR_OK)
-		return err;
+		goto cleanup;
 
 	const unsigned int chunk_size = target_get_working_area_avail(target);
-	if (target_alloc_working_area(target, chunk_size, &bounce) != ERROR_OK) {
+	err = target_alloc_working_area(target, chunk_size, &bounce);
+	if (err != ERROR_OK) {
 		LOG_ERROR("Could not allocate bounce buffer for flash programming. Can't continue");
-		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+		goto cleanup;
 	}
 
 	LOG_DEBUG("Allocated flash bounce buffer @" TARGET_ADDR_FMT, bounce->address);
@@ -211,23 +249,12 @@ static int rp2040_flash_write(struct flash_bank *bank, const uint8_t *buffer, ui
 		offset += write_size;
 		count -= write_size;
 	}
+
+cleanup:
 	target_free_working_area(target, bounce);
 
-	if (err != ERROR_OK)
-		return err;
+	rp2040_finalize_stack_free(bank);
 
-	/* Flash is successfully programmed. We can now do a bit of poking to make the flash
-	   contents visible to us via memory-mapped (XIP) interface in the 0x1... memory region */
-	LOG_DEBUG("Flushing flash cache after write behind");
-	err = rp2040_call_rom_func(bank->target, priv, priv->jump_flush_cache, NULL, 0);
-	if (err != ERROR_OK) {
-		LOG_ERROR("RP2040 write: failed to flush flash cache");
-		return err;
-	}
-	LOG_DEBUG("Configuring SSI for execute-in-place");
-	err = rp2040_call_rom_func(bank->target, priv, priv->jump_enter_cmd_xip, NULL, 0);
-	if (err != ERROR_OK)
-		LOG_ERROR("RP2040 write: failed to flush flash cache");
 	return err;
 }
 
@@ -240,7 +267,7 @@ static int rp2040_flash_erase(struct flash_bank *bank, unsigned int first, unsig
 
 	int err = rp2040_stack_grab_and_prep(bank);
 	if (err != ERROR_OK)
-		return err;
+		goto cleanup;
 
 	LOG_DEBUG("Remote call flash_range_erase");
 
@@ -258,10 +285,13 @@ static int rp2040_flash_erase(struct flash_bank *bank, unsigned int first, unsig
 	https://github.com/raspberrypi/pico-bootrom/blob/master/bootrom/program_flash_generic.c
 
 	In theory, the function algorithm provides for erasing both a smaller "sector" (4096 bytes) and
-	an optional larger "block" (size and command provided in args).  OpenOCD's spi.c only uses "block" sizes.
+	an optional larger "block" (size and command provided in args).
 	*/
 
 	err = rp2040_call_rom_func(bank->target, priv, priv->jump_flash_range_erase, args, ARRAY_SIZE(args));
+
+cleanup:
+	rp2040_finalize_stack_free(bank);
 
 	return err;
 }
@@ -376,11 +406,13 @@ static int rp2040_flash_probe(struct flash_bank *bank)
 	}
 
 	err = rp2040_stack_grab_and_prep(bank);
-	if (err != ERROR_OK)
-		return err;
 
 	uint32_t device_id = 0;
-	err = rp2040_spi_read_flash_id(target, &device_id);
+	if (err == ERROR_OK)
+		err = rp2040_spi_read_flash_id(target, &device_id);
+
+	rp2040_finalize_stack_free(bank);
+
 	if (err != ERROR_OK)
 		return err;
 
