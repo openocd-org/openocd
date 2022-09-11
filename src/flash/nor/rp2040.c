@@ -99,8 +99,7 @@ static int rp2040_call_rom_func(struct target *target, struct rp2040_flash_bank 
 	}
 	target_addr_t stacktop = priv->stack->address + priv->stack->size;
 
-	LOG_DEBUG("Calling ROM func @0x%" PRIx16 " with %d arguments", func_offset, n_args);
-	LOG_DEBUG("Calling on core \"%s\"", target->cmd_name);
+	LOG_TARGET_DEBUG(target, "Calling ROM func @0x%" PRIx16 " with %u arguments", func_offset, n_args);
 
 	struct reg_param args[ARRAY_SIZE(regnames) + 2];
 	struct armv7m_algorithm alg_info;
