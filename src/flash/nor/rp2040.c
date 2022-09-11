@@ -217,7 +217,11 @@ static int rp2040_flash_write(struct flash_bank *bank, const uint8_t *buffer, ui
 	if (err != ERROR_OK)
 		goto cleanup;
 
-	const unsigned int chunk_size = target_get_working_area_avail(target);
+	unsigned int avail_pages = target_get_working_area_avail(target) / priv->dev->pagesize;
+	/* We try to allocate working area rounded down to device page size,
+	 * al least 1 page, at most the write data size
+	 */
+	unsigned int chunk_size = MIN(MAX(avail_pages, 1) * priv->dev->pagesize, count);
 	err = target_alloc_working_area(target, chunk_size, &bounce);
 	if (err != ERROR_OK) {
 		LOG_ERROR("Could not allocate bounce buffer for flash programming. Can't continue");
