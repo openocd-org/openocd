@@ -78,7 +78,6 @@ static int hwthread_fill_thread(struct rtos *rtos, struct target *curr, int thre
 static int hwthread_update_threads(struct rtos *rtos)
 {
 	int threads_found = 0;
-	int thread_list_size = 0;
 	struct target_list *head;
 	struct target *target;
 	int64_t current_thread = 0;
@@ -100,13 +99,13 @@ static int hwthread_update_threads(struct rtos *rtos)
 			if (!target_was_examined(curr))
 				continue;
 
-			++thread_list_size;
+			++threads_found;
 		}
 	} else
-		thread_list_size = 1;
+		threads_found = 1;
 
 	/* create space for new thread details */
-	rtos->thread_details = malloc(sizeof(struct thread_detail) * thread_list_size);
+	rtos->thread_details = malloc(sizeof(struct thread_detail) * threads_found);
 
 	if (target->smp) {
 		/* loop over all threads */
@@ -171,13 +170,10 @@ static int hwthread_update_threads(struct rtos *rtos)
 			default:
 				break;
 			}
-
-			threads_found++;
 		}
 	} else {
 		hwthread_fill_thread(rtos, target, threads_found);
 		current_thread = threadid_from_target(target);
-		threads_found++;
 	}
 
 	rtos->thread_count = threads_found;
