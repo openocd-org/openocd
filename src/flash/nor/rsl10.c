@@ -747,6 +747,8 @@ COMMAND_HANDLER(rsl10_unlock_command)
 
 	uint32_t key;
 	retval = mem_ap_read_atomic_u32(ap, RSL10_FLASH_ADDRESS_LOCK_INFO_SETTING, &key);
+	if (retval != ERROR_OK)
+		return retval;
 	LOG_INFO("mem read: 0x%08" PRIx32, key);
 
 	if (key == RSL10_KEY_DEBUG_LOCK) {
