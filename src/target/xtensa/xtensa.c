@@ -1100,6 +1100,9 @@ int xtensa_fetch_all_regs(struct target *target)
 				if (reg_num == XT_PC_REG_NUM_VIRTUAL) {
 					/* reg number of PC for debug interrupt depends on NDEBUGLEVEL */
 					reg_num = (XT_PC_REG_NUM_BASE + xtensa->core_config->debug.irq_level);
+				} else if (reg_num == xtensa_regs[XT_REG_IDX_PS].reg_num) {
+					/* reg number of PS for debug interrupt depends on NDEBUGLEVEL */
+					reg_num = (XT_PS_REG_NUM_BASE + xtensa->core_config->debug.irq_level);
 				} else if (reg_num == xtensa_regs[XT_REG_IDX_CPENABLE].reg_num) {
 					/* CPENABLE already read/updated; don't re-read */
 					reg_fetched = false;
