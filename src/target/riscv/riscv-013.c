@@ -701,8 +701,14 @@ int dmstatus_read_timeout(struct target *target, uint32_t *dmstatus,
 int dmstatus_read(struct target *target, uint32_t *dmstatus,
 		bool authenticated)
 {
-	return dmstatus_read_timeout(target, dmstatus, authenticated,
+	int result = dmstatus_read_timeout(target, dmstatus, authenticated,
 			riscv_command_timeout_sec);
+	if (result == ERROR_TIMEOUT_REACHED)
+		LOG_TARGET_ERROR(target, "DMSTATUS read didn't complete in %d seconds. The target is "
+					 "either really slow or broken. You could increase the "
+					 "timeout with `riscv set_command_timeout_sec`.",
+				 riscv_command_timeout_sec);
+	return result;
 }
 
 static void increase_ac_busy_delay(struct target *target)
