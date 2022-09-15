@@ -117,8 +117,8 @@ struct gdb_service {
 
 /* target back off timer */
 struct backoff_timer {
-	int times;
-	int count;
+	int64_t next_attempt;
+	unsigned int interval;
 };
 
 /* split target registers into multiple class */
@@ -199,6 +199,9 @@ struct target {
 	struct rtos *rtos;					/* Instance of Real Time Operating System support */
 	bool rtos_auto_detect;				/* A flag that indicates that the RTOS has been specified as "auto"
 										 * and must be detected when symbols are offered */
+	/* Track when next to poll(). If polling is failing, we don't want to
+	 * poll too quickly because we'll just overwhelm the user with error
+	 * messages. */
 	struct backoff_timer backoff;
 	int smp;							/* add some target attributes for smp support */
 	struct list_head *smp_targets;		/* list all targets in this smp group/cluster
