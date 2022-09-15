@@ -498,17 +498,20 @@ static void xtensa_queue_exec_ins(struct xtensa *xtensa, uint32_t ins)
 
 static void xtensa_queue_exec_ins_wide(struct xtensa *xtensa, uint8_t *ops, uint8_t oplen)
 {
-	if ((oplen > 0) && (oplen <= 64)) {
-		uint32_t opsw[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };	/* 8 DIRx regs: max width 64B */
-		uint8_t oplenw = (oplen + 3) / 4;
-		if (xtensa->target->endianness == TARGET_BIG_ENDIAN)
-			buf_bswap32((uint8_t *)opsw, ops, oplenw * 4);
-		else
-			memcpy(opsw, ops, oplen);
+	const int max_oplen = 64;	/* 8 DIRx regs: max width 64B */
+	if ((oplen > 0) && (oplen <= max_oplen)) {
+		uint8_t ops_padded[max_oplen];
+		memcpy(ops_padded, ops, oplen);
+		memset(ops_padded + oplen, 0, max_oplen - oplen);
+		unsigned int oplenw = DIV_ROUND_UP(oplen, sizeof(uint32_t));
 		for (int32_t i = oplenw - 1; i > 0; i--)
-			xtensa_queue_dbg_reg_write(xtensa, XDMREG_DIR0 + i, opsw[i]);
+			xtensa_queue_dbg_reg_write(xtensa,
+				XDMREG_DIR0 + i,
+				target_buffer_get_u32(xtensa->target, &ops_padded[sizeof(uint32_t)*i]));
 		/* Write DIR0EXEC last */
-		xtensa_queue_dbg_reg_write(xtensa, XDMREG_DIR0EXEC, opsw[0]);
+		xtensa_queue_dbg_reg_write(xtensa,
+			XDMREG_DIR0EXEC,
+			target_buffer_get_u32(xtensa->target, &ops_padded[0]));
 	}
 }
 
