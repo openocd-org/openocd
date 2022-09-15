@@ -959,7 +959,6 @@ int xtensa_assert_reset(struct target *target)
 	struct xtensa *xtensa = target_to_xtensa(target);
 
 	LOG_TARGET_DEBUG(target, "target_number=%i, begin", target->target_number);
-	target->state = TARGET_RESET;
 	xtensa_queue_pwr_reg_write(xtensa,
 		XDMREG_PWRCTL,
 		PWRCTL_JTAGDEBUGUSE(xtensa) | PWRCTL_DEBUGWAKEUP(xtensa) | PWRCTL_MEMWAKEUP(xtensa) |
@@ -968,8 +967,12 @@ int xtensa_assert_reset(struct target *target)
 	int res = xtensa_dm_queue_execute(&xtensa->dbg_mod);
 	if (res != ERROR_OK)
 		return res;
+
+	/* registers are now invalid */
 	xtensa->reset_asserted = true;
-	return res;
+	register_cache_invalidate(xtensa->core_cache);
+	target->state = TARGET_RESET;
+	return ERROR_OK;
 }
 
 int xtensa_deassert_reset(struct target *target)
