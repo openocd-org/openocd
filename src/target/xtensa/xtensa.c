@@ -1738,15 +1738,12 @@ int xtensa_read_memory(struct target *target, target_addr_t address, uint32_t si
 		}
 	}
 
-	if (addrstart_al == address && addrend_al == address + (size * count)) {
-		albuff = buffer;
-	} else {
-		albuff = malloc(addrend_al - addrstart_al);
-		if (!albuff) {
-			LOG_TARGET_ERROR(target, "Out of memory allocating %" TARGET_PRIdADDR " bytes!",
-				addrend_al - addrstart_al);
-			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-		}
+	unsigned int alloc_bytes = ALIGN_UP(addrend_al - addrstart_al, sizeof(uint32_t));
+	albuff = calloc(alloc_bytes, 1);
+	if (!albuff) {
+		LOG_TARGET_ERROR(target, "Out of memory allocating %" PRId64 " bytes!",
+			addrend_al - addrstart_al);
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
 	/* We're going to use A3 here */
@@ -1795,11 +1792,8 @@ int xtensa_read_memory(struct target *target, target_addr_t address, uint32_t si
 
 	if (bswap)
 		buf_bswap32(albuff, albuff, addrend_al - addrstart_al);
-	if (albuff != buffer) {
-		memcpy(buffer, albuff + (address & 3), (size * count));
-		free(albuff);
-	}
-
+	memcpy(buffer, albuff + (address & 3), (size * count));
+	free(albuff);
 	return res;
 }
 
@@ -1855,7 +1849,7 @@ int xtensa_write_memory(struct target *target,
 		albuff = malloc(addrend_al - addrstart_al);
 	}
 	if (!albuff) {
-		LOG_TARGET_ERROR(target, "Out of memory allocating %" TARGET_PRIdADDR " bytes!",
+		LOG_TARGET_ERROR(target, "Out of memory allocating %" PRId64 " bytes!",
 			addrend_al - addrstart_al);
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
