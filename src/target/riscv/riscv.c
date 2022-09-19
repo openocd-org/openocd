@@ -2666,27 +2666,25 @@ COMMAND_HANDLER(riscv_authdata_write)
 	uint32_t value;
 	unsigned int index = 0;
 
-	if (CMD_ARGC == 0) {
-		/* nop */
-	} else if (CMD_ARGC == 1) {
+	if (CMD_ARGC == 0 || CMD_ARGC > 2)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	if (CMD_ARGC == 1) {
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], value);
-	} else if (CMD_ARGC == 2) {
+	} else {
 		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], index);
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], value);
-	} else {
-		LOG_ERROR("Command takes at most 2 arguments");
-		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	struct target *target = get_current_target(CMD_CTX);
 	RISCV_INFO(r);
 
-	if (r->authdata_write) {
-		return r->authdata_write(target, value, index);
-	} else {
+	if (!r->authdata_write) {
 		LOG_ERROR("authdata_write is not implemented for this target.");
 		return ERROR_FAIL;
 	}
+
+	return r->authdata_write(target, value, index);
 }
 
 COMMAND_HANDLER(riscv_dmi_read)
