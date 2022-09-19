@@ -713,7 +713,6 @@ static int add_trigger(struct target *target, struct trigger *trigger)
 			return result;
 		int type = get_field(tdata1, MCONTROL_TYPE(riscv_xlen(target)));
 
-		result = ERROR_OK;
 		switch (type) {
 			case 1:
 				result = maybe_add_trigger_t1(target, trigger, tdata1);
