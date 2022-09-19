@@ -2140,7 +2140,7 @@ COMMAND_HANDLER(dsp563xx_mem_command)
 			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], count);
 	}
 
-	buffer = calloc(count, sizeof(uint32_t));
+	buffer = calloc(count, 4);
 
 	if (read_mem == 1) {
 		err = dsp563xx_read_memory(target, mem_type, address, sizeof(uint32_t),
