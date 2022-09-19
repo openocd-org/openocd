@@ -808,6 +808,8 @@ static void oscan1_mpsse_clock_data(struct mpsse_ctx *ctx, const uint8_t *out, u
 	static const uint8_t zero;
 	static const uint8_t one = 1;
 
+	struct signal *tmsc_en = find_signal_by_name("TMSC_EN");
+
 	LOG_DEBUG_IO("oscan1_mpsse_clock_data: %sout %d bits", in ? "in" : "", length);
 
 	for (unsigned i = 0; i < length; i++) {
@@ -833,8 +835,14 @@ static void oscan1_mpsse_clock_data(struct mpsse_ctx *ctx, const uint8_t *out, u
 			mpsse_clock_tms_cs_out(mpsse_ctx, &one, 0, 1, false, mode);
 		}
 
+		if (tmsc_en)
+			ftdi_set_signal(tmsc_en, '0'); /* put TMSC in high impedance */
+
 		/* drive another TCK without driving TMSC (TDO cycle) */
 		mpsse_clock_tms_cs(mpsse_ctx, &zero, 0, in, in_offset+i, 1, false, mode);
+
+		if (tmsc_en)
+			ftdi_set_signal(tmsc_en, '1'); /* drive again TMSC */
 	}
 }
 
@@ -844,6 +852,8 @@ static void oscan1_mpsse_clock_tms_cs(struct mpsse_ctx *ctx, const uint8_t *out,
 {
 	static const uint8_t zero;
 	static const uint8_t one = 1;
+
+	struct signal *tmsc_en = find_signal_by_name("TMSC_EN");
 
 	LOG_DEBUG_IO("oscan1_mpsse_clock_tms_cs: %sout %d bits, tdi=%d", in ? "in" : "", length, tdi);
 
@@ -871,8 +881,14 @@ static void oscan1_mpsse_clock_tms_cs(struct mpsse_ctx *ctx, const uint8_t *out,
 			mpsse_clock_tms_cs_out(mpsse_ctx, &one, 0, 1, (tmsbit != 0), mode);
 		}
 
+		if (tmsc_en)
+			ftdi_set_signal(tmsc_en, '0'); /* put TMSC in high impedance */
+
 		/* drive another TCK without driving TMSC (TDO cycle) */
 		mpsse_clock_tms_cs(mpsse_ctx, &zero, 0, in, in_offset+i, 1, false, mode);
+
+		if (tmsc_en)
+			ftdi_set_signal(tmsc_en, '1'); /* drive again TMSC */
 	}
 }
 
