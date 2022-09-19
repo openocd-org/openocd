@@ -4463,7 +4463,9 @@ static int riscv013_test_sba_config_reg(struct target *target,
 
 	uint32_t rd_val;
 	uint32_t sbcs_orig;
-	dmi_read(target, &sbcs_orig, DM_SBCS);
+	int retval = dmi_read(target, &sbcs_orig, DM_SBCS);
+	if (retval != ERROR_OK)
+		return retval;
 
 	uint32_t sbcs = sbcs_orig;
 	bool test_passed;
