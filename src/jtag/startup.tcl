@@ -865,12 +865,6 @@ proc ft232r_restore_serial args {
 	eval ft232r restore_serial $args
 }
 
-lappend _telnet_autocomplete_skip "aice serial"
-proc "aice serial" {args} {
-	echo "DEPRECATED! use 'adapter serial' not 'aice serial'"
-	eval adapter serial $args
-}
-
 lappend _telnet_autocomplete_skip cmsis_dap_serial
 proc cmsis_dap_serial args {
 	echo "DEPRECATED! use 'adapter serial' not 'cmsis_dap_serial'"

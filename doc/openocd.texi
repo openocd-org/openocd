@@ -2480,7 +2480,7 @@ This command is only available if your libusb1 is at least version 1.0.16.
 Specifies the @var{serial_string} of the adapter to use.
 If this command is not specified, serial strings are not checked.
 Only the following adapter drivers use the serial string from this command:
-aice (aice_usb), arm-jtag-ew, cmsis_dap, ft232r, ftdi, hla (stlink, ti-icdi), jlink, kitprog, opendus,
+arm-jtag-ew, cmsis_dap, ft232r, ftdi, hla (stlink, ti-icdi), jlink, kitprog, opendus,
 openjtag, osbdm, presto, rlink, st-link, usb_blaster (ublast2), usbprog, vsllink, xds110.
 @end deffn
 
@@ -4825,9 +4825,6 @@ specified, @xref{gdbportoverride,,option -gdb-port}.), and a fake ARM core will
 be emulated to comply to GDB remote protocol.
 @item @code{mips_m4k} -- a MIPS core.
 @item @code{mips_mips64} -- a MIPS64 core.
-@item @code{nds32_v2} -- this is an Andes NDS32 v2 core (deprecated; would be removed in v0.13.0).
-@item @code{nds32_v3} -- this is an Andes NDS32 v3 core (deprecated; would be removed in v0.13.0).
-@item @code{nds32_v3m} -- this is an Andes NDS32 v3m core (deprecated; would be removed in v0.13.0).
 @item @code{or1k} -- this is an OpenRISC 1000 core.
 The current implementation supports three JTAG TAP cores:
 @itemize @minus

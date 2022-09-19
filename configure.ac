@@ -130,9 +130,6 @@ m4_define([USB1_ADAPTERS],
 	[[usbprog], [USBProg JTAG Programmer], [USBPROG]],
 	[[esp_usb_jtag], [Espressif JTAG Programmer], [ESP_USB_JTAG]]])
 
-m4_define([DEPRECATED_USB1_ADAPTERS],
-	[[[aice], [Andes JTAG Programmer (deprecated)], [AICE]]])
-
 m4_define([HIDAPI_ADAPTERS],
 	[[[cmsis_dap], [CMSIS-DAP Compliant Debugger], [CMSIS_DAP_HID]],
 	[[nulink], [Nu-Link Programmer], [HLADAPTER_NULINK]]])
@@ -263,8 +260,6 @@ AC_ARG_ADAPTERS([
   SERIAL_PORT_ADAPTERS,
   LIBJAYLINK_ADAPTERS
   ],[auto])
-
-AC_ARG_ADAPTERS([DEPRECATED_USB1_ADAPTERS],[no])
 
 AC_ARG_ENABLE([parport],
   AS_HELP_STRING([--enable-parport], [Enable building the pc parallel port driver]),
@@ -684,7 +679,6 @@ m4_define([PROCESS_ADAPTERS], [
 ])
 
 PROCESS_ADAPTERS([USB1_ADAPTERS], ["x$use_libusb1" = "xyes"], [libusb-1.x])
-PROCESS_ADAPTERS([DEPRECATED_USB1_ADAPTERS], ["x$use_libusb1" = "xyes"], [libusb-1.x])
 PROCESS_ADAPTERS([HIDAPI_ADAPTERS], ["x$use_hidapi" = "xyes"], [hidapi])
 PROCESS_ADAPTERS([HIDAPI_USB1_ADAPTERS], ["x$use_hidapi" = "xyes" -a "x$use_libusb1" = "xyes"], [hidapi and libusb-1.x])
 PROCESS_ADAPTERS([LIBFTDI_ADAPTERS], ["x$use_libftdi" = "xyes"], [libftdi])
@@ -834,7 +828,6 @@ echo
 echo OpenOCD configuration summary
 echo --------------------------------------------------
 m4_foreach([adapter], [USB1_ADAPTERS,
-	DEPRECATED_USB1_ADAPTERS,
 	HIDAPI_ADAPTERS, HIDAPI_USB1_ADAPTERS, LIBFTDI_ADAPTERS,
 	LIBFTDI_USB1_ADAPTERS,
 	LIBGPIOD_ADAPTERS,
