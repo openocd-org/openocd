@@ -117,7 +117,7 @@ const char *adapter_get_required_serial(void);
 const char *adapter_gpio_get_name(enum adapter_gpio_config_index idx);
 
 /**
- * Retrieves gpio configuration set with command 'adapter gpio <signal_name>'
+ * Retrieves gpio configuration set with command "adapter gpio <signal_name>"
  */
 const struct adapter_gpio_config *adapter_gpio_get_config(void);
 
