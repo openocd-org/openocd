@@ -2359,9 +2359,7 @@ static int assert_reset(struct target *target)
 		/* TODO: Try to use hasel in dmcontrol */
 
 		/* Set haltreq for each hart. */
-		uint32_t control = control_base;
-
-		control = set_hartsel(control_base, target->coreid);
+		uint32_t control = set_hartsel(control_base, target->coreid);
 		control = set_field(control, DM_DMCONTROL_HALTREQ,
 				target->reset_halt ? 1 : 0);
 		dmi_write(target, DM_DMCONTROL, control);
