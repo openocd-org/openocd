@@ -3059,6 +3059,7 @@ static int handle_target(void *priv)
 		/* polling may fail silently until the target has been examined */
 		retval = target_poll(target);
 		if (retval == ERROR_OK) {
+			/* Polling succeeded, reset the back-off interval */
 			target->backoff.interval = polling_interval;
 		} else {
 			/* Increase interval between polling up to 5000ms */
