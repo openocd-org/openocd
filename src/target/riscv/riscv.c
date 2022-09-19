@@ -1607,6 +1607,7 @@ static int riscv_address_translate(struct target *target,
 	LOG_DEBUG("virtual=0x%" TARGET_PRIxADDR "; mode=%s", virtual, info->name);
 
 	/* verify bits xlen-1:va_bits-1 are all equal */
+	assert(xlen >= info->va_bits);
 	target_addr_t mask = ((target_addr_t)1 << (xlen - (info->va_bits - 1))) - 1;
 	target_addr_t masked_msbs = (virtual >> (info->va_bits - 1)) & mask;
 	if (masked_msbs != 0 && masked_msbs != mask) {
