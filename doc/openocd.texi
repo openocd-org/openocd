@@ -19,7 +19,7 @@ dated @value{UPDATED},
 of the Open On-Chip Debugger (OpenOCD).
 
 @itemize @bullet
-@item Copyright @copyright{} 2008 The OpenOCD Project
+@item Copyright @copyright{} 2008-2022 The OpenOCD Project
 @item Copyright @copyright{} 2007-2008 Spencer Oliver @email{spen@@spen-soft.co.uk}
 @item Copyright @copyright{} 2008-2010 Oyvind Harboe @email{oyvind.harboe@@zylin.com}
 @item Copyright @copyright{} 2008 Duane Ellis @email{openocd@@duaneellis.com}
