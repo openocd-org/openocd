@@ -3065,7 +3065,7 @@ static int handle_target(void *priv)
 			target->backoff.interval = MAX(polling_interval,
 					MIN(target->backoff.interval * 2 + 1, 5000));
 			/* Tell GDB to halt the debugger. This allows the user to run
-			* monitor commands to handle the situation. */
+			 * monitor commands to handle the situation. */
 			target_call_event_callbacks(target, TARGET_EVENT_GDB_HALT);
 		}
 		target->backoff.next_attempt = timeval_ms() + target->backoff.interval;
