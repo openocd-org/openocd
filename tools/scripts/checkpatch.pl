@@ -995,8 +995,10 @@ sub read_words {
 
 # OpenOCD specific: Begin: Load list of allowed CamelCase symbols
 if (show_type("CAMELCASE")) {
-	my $allowed_camelcase_file = "$root/tools/scripts/camelcase.txt";
-	if (open(my $words, '<', $allowed_camelcase_file)) {
+	my $allowed_camelcase_file = "tools/scripts/camelcase.txt";
+	if (!$root) {
+		warn "Ignore list of allowed camelcase symbols.\n";
+	} elsif (open(my $words, '<', "$root/$allowed_camelcase_file")) {
 		while (<$words>) {
 			 my $line = $_;
 
@@ -1012,9 +1014,9 @@ if (show_type("CAMELCASE")) {
 
 			$camelcase{$line} = 1;
 		}
-		close($allowed_camelcase_file);
+		close("$root/$allowed_camelcase_file");
 	} else {
-		warn "No camelcase symbols to ignore - file '$allowed_camelcase_file': $!\n";
+		warn "Failed opening file '$root/$allowed_camelcase_file': $!\n";
 	}
 }
 # OpenOCD specific: End
