@@ -132,7 +132,7 @@ static int rp2040_call_rom_func(struct target *target, struct rp2040_flash_bank 
 	for (unsigned int i = 0; i < n_args + 2; ++i)
 		destroy_reg_param(&args[i]);
 	if (err != ERROR_OK)
-		LOG_ERROR("Failed to invoke ROM function @0x%" PRIx16 "\n", func_offset);
+		LOG_ERROR("Failed to invoke ROM function @0x%" PRIx16, func_offset);
 	return err;
 
 }
