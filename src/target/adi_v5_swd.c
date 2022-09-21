@@ -272,6 +272,8 @@ static int swd_multidrop_select(struct adiv5_dap *dap)
 
 		LOG_DEBUG("Failed to select multidrop %s, retrying...",
 				  adiv5_dap_name(dap));
+		/* we going to retry localy, do not ask for full reconnect */
+		dap->do_reconnect = false;
 	}
 
 	return retval;
