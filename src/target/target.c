@@ -4717,7 +4717,7 @@ static int target_jim_read_memory(Jim_Interp *interp, int argc,
 				break;
 			}
 
-			char value_buf[11];
+			char value_buf[19];
 			snprintf(value_buf, sizeof(value_buf), "0x%" PRIx64, v);
 
 			Jim_ListAppendElement(interp, result_list,
