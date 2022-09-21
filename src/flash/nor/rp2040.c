@@ -87,7 +87,7 @@ static uint32_t rp2040_lookup_symbol(struct target *target, uint32_t tag, uint16
 }
 
 static int rp2040_call_rom_func(struct target *target, struct rp2040_flash_bank *priv,
-		uint16_t func_offset, uint32_t argdata[], unsigned int n_args)
+		uint16_t func_offset, uint32_t argdata[], unsigned int n_args, int timeout_ms)
 {
 	char *regnames[4] = { "r0", "r1", "r2", "r3" };
 
@@ -127,7 +127,7 @@ static int rp2040_call_rom_func(struct target *target, struct rp2040_flash_bank 
 		0, NULL,          /* No memory arguments */
 		n_args + 1, args, /* User arguments + r7 */
 		priv->jump_debug_trampoline, priv->jump_debug_trampoline_end,
-		3000, /* 3s timeout */
+		timeout_ms,
 		&alg_info
 	);
 	for (unsigned int i = 0; i < n_args + 2; ++i)
@@ -153,14 +153,14 @@ static int rp2040_finalize_stack_free(struct flash_bank *bank)
 	 * chip select following a rp2040_flash_exit_xip().
 	 */
 	LOG_DEBUG("Flushing flash cache after write behind");
-	int err = rp2040_call_rom_func(target, priv, priv->jump_flush_cache, NULL, 0);
+	int err = rp2040_call_rom_func(target, priv, priv->jump_flush_cache, NULL, 0, 1000);
 	if (err != ERROR_OK) {
 		LOG_ERROR("Failed to flush flash cache");
 		/* Intentionally continue after error and try to setup xip anyway */
 	}
 
 	LOG_DEBUG("Configuring SSI for execute-in-place");
-	err = rp2040_call_rom_func(target, priv, priv->jump_enter_cmd_xip, NULL, 0);
+	err = rp2040_call_rom_func(target, priv, priv->jump_enter_cmd_xip, NULL, 0, 1000);
 	if (err != ERROR_OK)
 		LOG_ERROR("Failed to set SSI to XIP mode");
 
@@ -189,14 +189,14 @@ static int rp2040_stack_grab_and_prep(struct flash_bank *bank)
 	}
 
 	LOG_DEBUG("Connecting internal flash");
-	err = rp2040_call_rom_func(target, priv, priv->jump_connect_internal_flash, NULL, 0);
+	err = rp2040_call_rom_func(target, priv, priv->jump_connect_internal_flash, NULL, 0, 1000);
 	if (err != ERROR_OK) {
 		LOG_ERROR("Failed to connect internal flash");
 		return err;
 	}
 
 	LOG_DEBUG("Kicking flash out of XIP mode");
-	err = rp2040_call_rom_func(target, priv, priv->jump_flash_exit_xip, NULL, 0);
+	err = rp2040_call_rom_func(target, priv, priv->jump_flash_exit_xip, NULL, 0, 1000);
 	if (err != ERROR_OK) {
 		LOG_ERROR("Failed to exit flash XIP mode");
 		return err;
@@ -243,7 +243,8 @@ static int rp2040_flash_write(struct flash_bank *bank, const uint8_t *buffer, ui
 			bounce->address, /* data */
 			write_size /* count */
 		};
-		err = rp2040_call_rom_func(target, priv, priv->jump_flash_range_program, args, ARRAY_SIZE(args));
+		err = rp2040_call_rom_func(target, priv, priv->jump_flash_range_program,
+								 args, ARRAY_SIZE(args), 3000);
 		if (err != ERROR_OK) {
 			LOG_ERROR("Failed to invoke flash programming code on target");
 			break;
@@ -292,7 +293,9 @@ static int rp2040_flash_erase(struct flash_bank *bank, unsigned int first, unsig
 	an optional larger "block" (size and command provided in args).
 	*/
 
-	err = rp2040_call_rom_func(bank->target, priv, priv->jump_flash_range_erase, args, ARRAY_SIZE(args));
+	int timeout_ms = 2000 * (last - first) + 1000;
+	err = rp2040_call_rom_func(bank->target, priv, priv->jump_flash_range_erase,
+							args, ARRAY_SIZE(args), timeout_ms);
 
 cleanup:
 	rp2040_finalize_stack_free(bank);
