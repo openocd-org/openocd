@@ -211,6 +211,12 @@ static int rp2040_flash_write(struct flash_bank *bank, const uint8_t *buffer, ui
 
 	struct rp2040_flash_bank *priv = bank->driver_priv;
 	struct target *target = bank->target;
+
+	if (target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
 	struct working_area *bounce = NULL;
 
 	int err = rp2040_stack_grab_and_prep(bank);
@@ -266,6 +272,13 @@ cleanup:
 static int rp2040_flash_erase(struct flash_bank *bank, unsigned int first, unsigned int last)
 {
 	struct rp2040_flash_bank *priv = bank->driver_priv;
+	struct target *target = bank->target;
+
+	if (target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
 	uint32_t start_addr = bank->sectors[first].offset;
 	uint32_t length = bank->sectors[last].offset + bank->sectors[last].size - start_addr;
 	LOG_DEBUG("RP2040 erase %d bytes starting at 0x%" PRIx32, length, start_addr);
@@ -294,7 +307,7 @@ static int rp2040_flash_erase(struct flash_bank *bank, unsigned int first, unsig
 	*/
 
 	int timeout_ms = 2000 * (last - first) + 1000;
-	err = rp2040_call_rom_func(bank->target, priv, priv->jump_flash_range_erase,
+	err = rp2040_call_rom_func(target, priv, priv->jump_flash_range_erase,
 							args, ARRAY_SIZE(args), timeout_ms);
 
 cleanup:
@@ -361,6 +374,11 @@ static int rp2040_flash_probe(struct flash_bank *bank)
 {
 	struct rp2040_flash_bank *priv = bank->driver_priv;
 	struct target *target = bank->target;
+
+	if (target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
 
 	int err = rp2040_lookup_symbol(target, FUNC_DEBUG_TRAMPOLINE, &priv->jump_debug_trampoline);
 	if (err != ERROR_OK) {
