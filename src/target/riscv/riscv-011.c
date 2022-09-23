@@ -1590,7 +1590,6 @@ static int examine(struct target *target)
 		return result;
 
 	target_set_examined(target);
-	riscv_set_current_hartid(target, 0);
 	for (size_t i = 0; i < 32; ++i)
 		reg_cache_set(target, i, -1);
 	LOG_INFO("Examined RISCV core; XLEN=%d, misa=0x%" PRIx64,
