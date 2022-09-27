@@ -1323,7 +1323,9 @@ static int register_write_direct(struct target *target, unsigned number,
 		/* There are no instructions to move all the bits from a register, so
 		 * we need to use some scratch RAM. */
 		use_scratch = true;
-		riscv_program_insert(&program, fld(number - GDB_REGNO_FPR0, S0, 0));
+		if (riscv_program_insert(&program, fld(number - GDB_REGNO_FPR0, S0, 0))
+				!= ERROR_OK)
+			return ERROR_FAIL;
 
 		if (scratch_reserve(target, &scratch, &program, 8) != ERROR_OK)
 			return ERROR_FAIL;
@@ -1341,10 +1343,15 @@ static int register_write_direct(struct target *target, unsigned number,
 
 	} else {
 		if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
-			if (riscv_supports_extension(target, 'D'))
-				riscv_program_insert(&program, fmv_d_x(number - GDB_REGNO_FPR0, S0));
-			else
-				riscv_program_insert(&program, fmv_w_x(number - GDB_REGNO_FPR0, S0));
+			if (riscv_supports_extension(target, 'D')) {
+				if (riscv_program_insert(&program,
+							fmv_d_x(number - GDB_REGNO_FPR0, S0) != ERROR_OK))
+					return ERROR_FAIL;
+			} else {
+				if (riscv_program_insert(&program,
+							fmv_w_x(number - GDB_REGNO_FPR0, S0) != ERROR_OK))
+					return ERROR_FAIL;
+			}
 		} else if (number == GDB_REGNO_VTYPE) {
 			if (riscv_save_register(target, GDB_REGNO_S1) != ERROR_OK)
 				return ERROR_FAIL;
@@ -1363,7 +1370,8 @@ static int register_write_direct(struct target *target, unsigned number,
 			if (riscv_program_insert(&program, vsetvl(ZERO, S0, S1)) != ERROR_OK)
 				return ERROR_FAIL;
 		} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
-			riscv_program_csrw(&program, S0, number);
+			if (riscv_program_csrw(&program, S0, number) != ERROR_OK)
+				return ERROR_FAIL;
 		} else {
 			LOG_ERROR("Unsupported register (enum gdb_regno)(%d)", number);
 			return ERROR_FAIL;
@@ -1417,9 +1425,9 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 					&& riscv_xlen(target) < 64) {
 				/* There are no instructions to move all the bits from a
 				 * register, so we need to use some scratch RAM. */
-				riscv_program_insert(&program, fsd(number - GDB_REGNO_FPR0, S0,
-							0));
-
+				if (riscv_program_insert(&program,
+							fsd(number - GDB_REGNO_FPR0, S0, 0)) != ERROR_OK)
+					return ERROR_FAIL;
 				if (scratch_reserve(target, &scratch, &program, 8) != ERROR_OK)
 					return ERROR_FAIL;
 				use_scratch = true;
@@ -1430,12 +1438,17 @@ static int register_read_direct(struct target *target, uint64_t *value, uint32_t
 					return ERROR_FAIL;
 				}
 			} else if (riscv_supports_extension(target, 'D')) {
-				riscv_program_insert(&program, fmv_x_d(S0, number - GDB_REGNO_FPR0));
+				if (riscv_program_insert(&program, fmv_x_d(S0, number - GDB_REGNO_FPR0)) !=
+						ERROR_OK)
+					return ERROR_FAIL;
 			} else {
-				riscv_program_insert(&program, fmv_x_w(S0, number - GDB_REGNO_FPR0));
+				if (riscv_program_insert(&program, fmv_x_w(S0, number - GDB_REGNO_FPR0)) !=
+						ERROR_OK)
+					return ERROR_FAIL;
 			}
 		} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
-			riscv_program_csrr(&program, S0, number);
+			if (riscv_program_csrr(&program, S0, number) != ERROR_OK)
+				return ERROR_FAIL;
 		} else {
 			LOG_ERROR("Unsupported register: %s", gdb_regno_name(number));
 			return ERROR_FAIL;
