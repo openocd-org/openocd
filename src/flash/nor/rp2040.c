@@ -111,11 +111,12 @@ static int rp2040_call_rom_func(struct target *target, struct rp2040_flash_bank 
 	/* Pass function pointer in r7 */
 	init_reg_param(&args[n_args], "r7", 32, PARAM_OUT);
 	buf_set_u32(args[n_args].value, 0, 32, func_offset);
+	/* Setup stack */
 	init_reg_param(&args[n_args + 1], "sp", 32, PARAM_OUT);
 	buf_set_u32(args[n_args + 1].value, 0, 32, stacktop);
+	unsigned int n_reg_params = n_args + 2;	/* User arguments + r7 + sp */
 
-
-	for (unsigned int i = 0; i < n_args + 2; ++i)
+	for (unsigned int i = 0; i < n_reg_params; ++i)
 		LOG_DEBUG("Set %s = 0x%" PRIx32, args[i].reg_name, buf_get_u32(args[i].value, 0, 32));
 
 	/* Actually call the function */
@@ -124,17 +125,19 @@ static int rp2040_call_rom_func(struct target *target, struct rp2040_flash_bank 
 	int err = target_run_algorithm(
 		target,
 		0, NULL,          /* No memory arguments */
-		n_args + 1, args, /* User arguments + r7 */
+		n_reg_params, args, /* User arguments + r7 + sp */
 		priv->jump_debug_trampoline, priv->jump_debug_trampoline_end,
 		timeout_ms,
 		&alg_info
 	);
-	for (unsigned int i = 0; i < n_args + 2; ++i)
+
+	for (unsigned int i = 0; i < n_reg_params; ++i)
 		destroy_reg_param(&args[i]);
+
 	if (err != ERROR_OK)
 		LOG_ERROR("Failed to invoke ROM function @0x%" PRIx16, func_offset);
-	return err;
 
+	return err;
 }
 
 /* Finalize flash write/erase/read ID
