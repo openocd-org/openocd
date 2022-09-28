@@ -1437,6 +1437,14 @@ static int cortex_m_assert_reset(struct target *target)
 		srst_asserted = true;
 	}
 
+	/* TODO: replace the hack calling target_examine_one()
+	 * as soon as a better reset framework is available */
+	if (!target_was_examined(target) && !target->defer_examine
+		&& srst_asserted && (jtag_reset_config & RESET_SRST_NO_GATING)) {
+		LOG_TARGET_DEBUG(target, "Trying to re-examine under reset");
+		target_examine_one(target);
+	}
+
 	/* We need at least debug_ap to go further.
 	 * Inform user and bail out if we don't have one. */
 	if (!armv7m->debug_ap) {
@@ -1578,7 +1586,7 @@ static int cortex_m_deassert_reset(struct target *target)
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
 
 	if ((jtag_reset_config & RESET_HAS_SRST) &&
-	    !(jtag_reset_config & RESET_SRST_NO_GATING) &&
+		!(jtag_reset_config & RESET_SRST_NO_GATING) &&
 		armv7m->debug_ap) {
 
 		int retval = dap_dp_init_or_reconnect(armv7m->debug_ap->dap);
