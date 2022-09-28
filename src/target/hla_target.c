@@ -347,6 +347,13 @@ static int hl_assert_reset(struct target *target)
 
 	adapter->layout->api->write_debug_reg(adapter->handle, DCB_DHCSR, DBGKEY|C_DEBUGEN);
 
+	if (!target_was_examined(target) && !target->defer_examine
+		&& srst_asserted && res == ERROR_OK) {
+		/* If the target is not examined, now under reset it is good time to retry examination */
+		LOG_TARGET_DEBUG(target, "Trying to re-examine under reset");
+		target_examine_one(target);
+	}
+
 	/* only set vector catch if halt is requested */
 	if (target->reset_halt)
 		adapter->layout->api->write_debug_reg(adapter->handle, DCB_DEMCR, TRCENA|VC_CORERESET);
