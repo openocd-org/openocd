@@ -543,7 +543,8 @@ static int samd_issue_nvmctrl_command(struct target *target, uint16_t cmd)
 	}
 
 	/* Issue the NVM command */
-	res = target_write_u16(target,
+	/* 32-bit write is used to ensure atomic operation on ST-Link */
+	res = target_write_u32(target,
 			SAMD_NVMCTRL + SAMD_NVMCTRL_CTRLA, SAMD_NVM_CMD(cmd));
 	if (res != ERROR_OK)
 		return res;
