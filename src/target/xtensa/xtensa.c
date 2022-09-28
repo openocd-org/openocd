@@ -1781,9 +1781,9 @@ int xtensa_read_memory(struct target *target, target_addr_t address, uint32_t si
 	if (res != ERROR_OK) {
 		if (xtensa->probe_lsddr32p != 0) {
 			/* Disable fast memory access instructions and retry before reporting an error */
-			LOG_TARGET_INFO(target, "Disabling LDDR32.P/SDDR32.P");
+			LOG_TARGET_DEBUG(target, "Disabling LDDR32.P/SDDR32.P");
 			xtensa->probe_lsddr32p = 0;
-			res = xtensa_read_memory(target, address, size, count, buffer);
+			res = xtensa_read_memory(target, address, size, count, albuff);
 			bswap = false;
 		} else {
 			LOG_TARGET_WARNING(target, "Failed reading %d bytes at address "TARGET_ADDR_FMT,
