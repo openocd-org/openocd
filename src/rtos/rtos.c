@@ -573,10 +573,9 @@ int rtos_get_gdb_reg_list(struct connection *connection)
 		struct rtos_reg *reg_list;
 		int num_regs;
 
-		LOG_DEBUG("RTOS: getting register list for thread 0x%" PRIx64
-				  ", target->rtos->current_thread=0x%" PRIx64 "\r\n",
-										current_threadid,
-										target->rtos->current_thread);
+		LOG_TARGET_DEBUG(target, "RTOS: getting register list for thread 0x%" PRIx64
+			  ", target->rtos->current_thread=0x%" PRIx64,
+			  current_threadid, target->rtos->current_thread);
 
 		int retval = target->rtos->type->get_thread_reg_list(target->rtos,
 				current_threadid,
