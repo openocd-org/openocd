@@ -85,7 +85,7 @@
 /* FTDI access library includes */
 #include "mpsse.h"
 
-#if BUILD_FTDI_OSCAN1 == 1
+#if BUILD_FTDI_CJTAG == 1
 #define DO_CLOCK_DATA clock_data
 #define DO_CLOCK_TMS_CS clock_tms_cs
 #define DO_CLOCK_TMS_CS_OUT clock_tms_cs_out
@@ -105,7 +105,7 @@ static uint8_t ftdi_jtag_mode = JTAG_MODE;
 
 static bool swd_mode;
 
-#if BUILD_FTDI_OSCAN1 == 1
+#if BUILD_FTDI_CJTAG == 1
 /*
   The cJTAG 2-wire OScan1 protocol, in lieu of 4-wire JTAG, is a configuration option
   for some SoCs. An FTDI-based adapter that can be configured to appropriately drive
@@ -275,7 +275,7 @@ static int ftdi_get_signal(const struct signal *s, uint16_t *value_out)
 	return ERROR_OK;
 }
 
-#if BUILD_FTDI_OSCAN1 == 1
+#if BUILD_FTDI_CJTAG == 1
 static void clock_data(struct mpsse_ctx *ctx, const uint8_t *out, unsigned out_offset, uint8_t *in,
 		     unsigned in_offset, unsigned length, uint8_t mode)
 {
@@ -669,7 +669,7 @@ static void ftdi_execute_command(struct jtag_command *cmd)
 {
 	switch (cmd->type) {
 		case JTAG_RESET:
-#if BUILD_FTDI_OSCAN1 == 1
+#if BUILD_FTDI_CJTAG == 1
 			oscan1_reset_online_activate(); /* put the target back into OScan1 mode */
 #endif
 			break;
@@ -678,7 +678,7 @@ static void ftdi_execute_command(struct jtag_command *cmd)
 			break;
 		case JTAG_TLR_RESET:
 			ftdi_execute_statemove(cmd);
-#if BUILD_FTDI_OSCAN1 == 1
+#if BUILD_FTDI_CJTAG == 1
 			oscan1_reset_online_activate(); /* put the target back into OScan1 mode */
 #endif
 			break;
@@ -759,7 +759,7 @@ static int ftdi_initialize(void)
 		/* A dummy SWD_EN would have zero mask */
 		if (sig->data_mask)
 			ftdi_set_signal(sig, '1');
-#if BUILD_FTDI_OSCAN1 == 1
+#if BUILD_FTDI_CJTAG == 1
 	} else if (oscan1_mode) {
 		struct signal *sig = find_signal_by_name("JTAG_SEL");
 		if (!sig) {
@@ -801,7 +801,7 @@ static int ftdi_quit(void)
 	return ERROR_OK;
 }
 
-#if BUILD_FTDI_OSCAN1 == 1
+#if BUILD_FTDI_CJTAG == 1
 static void oscan1_mpsse_clock_data(struct mpsse_ctx *ctx, const uint8_t *out, unsigned out_offset, uint8_t *in,
 		     unsigned in_offset, unsigned length, uint8_t mode)
 {
@@ -900,7 +900,7 @@ static void oscan1_mpsse_clock_tms_cs_out(struct mpsse_ctx *ctx, const uint8_t *
 }
 
 
-static void oscan1_set_tck_tms_tdi(struct signal *tck, char tckvalue, struct signal *tms,
+static void cjtag_set_tck_tms_tdi(struct signal *tck, char tckvalue, struct signal *tms,
 				   char tmsvalue, struct signal *tdi, char tdivalue)
 {
 	ftdi_set_signal(tms, tmsvalue);
@@ -1058,12 +1058,12 @@ static void oscan1_reset_online_activate(void)
 
 	/* Send the sequence to the adapter */
 	for (size_t i = 0; i < sizeof(sequence)/sizeof(sequence[0]); i++)
-		oscan1_set_tck_tms_tdi(tck, sequence[i].tck, tms, sequence[i].tms, tdi, sequence[i].tdi);
+		cjtag_set_tck_tms_tdi(tck, sequence[i].tck, tms, sequence[i].tms, tdi, sequence[i].tdi);
 
 	ftdi_get_signal(tdo, &tdovalue);  /* Just to force a flush */
 }
 
-#endif /* #if BUILD_FTDI_OSCAN1 == 1 */
+#endif /* #if BUILD_FTDI_CJTAG == 1 */
 
 COMMAND_HANDLER(ftdi_handle_device_desc_command)
 {
@@ -1276,7 +1276,7 @@ COMMAND_HANDLER(ftdi_handle_tdo_sample_edge_command)
 	return ERROR_OK;
 }
 
-#if BUILD_FTDI_OSCAN1 == 1
+#if BUILD_FTDI_CJTAG == 1
 COMMAND_HANDLER(ftdi_handle_oscan1_mode_command)
 {
 	if (CMD_ARGC > 1)
@@ -1351,7 +1351,7 @@ static const struct command_registration ftdi_subcommand_handlers[] = {
 			"allow signalling speed increase)",
 		.usage = "(rising|falling)",
 	},
-#if BUILD_FTDI_OSCAN1 == 1
+#if BUILD_FTDI_CJTAG == 1
 	{
 		.name = "oscan1_mode",
 		.handler = &ftdi_handle_oscan1_mode_command,

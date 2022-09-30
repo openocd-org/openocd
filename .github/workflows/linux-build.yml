@@ -37,7 +37,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install libusb-1.0-0 libusb-1.0-0-dev
       - run: ./bootstrap
-      - run: ./configure --enable-remote-bitbang --enable-jtag_vpi --enable-ftdi-oscan1
+      - run: ./configure --enable-remote-bitbang --enable-jtag_vpi --enable-ftdi-cjtag
       - run: make -j`nproc`
       - run: file src/openocd | grep 64-bit
       - run: src/openocd --version
