@@ -106,6 +106,10 @@ static uint8_t ftdi_jtag_mode = JTAG_MODE;
 static bool swd_mode;
 
 #if BUILD_FTDI_CJTAG == 1
+#define ESCAPE_SEQ_OAC_BIT2 28
+
+static void cjtag_reset_online_activate(void);
+
 /*
   The cJTAG 2-wire OScan1 protocol, in lieu of 4-wire JTAG, is a configuration option
   for some SoCs. An FTDI-based adapter that can be configured to appropriately drive
@@ -119,7 +123,6 @@ static bool swd_mode;
   to the two-wire clocking and signaling of OScan1 protocol, if placed into OScan1 mode
   during initialization.
 */
-static void oscan1_reset_online_activate(void);
 static void oscan1_mpsse_clock_data(struct mpsse_ctx *ctx, const uint8_t *out, unsigned out_offset, uint8_t *in,
 				    unsigned in_offset, unsigned length, uint8_t mode);
 static void oscan1_mpsse_clock_tms_cs(struct mpsse_ctx *ctx, const uint8_t *out, unsigned out_offset, uint8_t *in,
@@ -128,6 +131,11 @@ static void oscan1_mpsse_clock_tms_cs_out(struct mpsse_ctx *ctx, const uint8_t *
 					  unsigned length, bool tdi, uint8_t mode);
 
 static bool oscan1_mode;
+
+/*
+  The cJTAG 4-wire JScan3 allows to use standard JTAG protocol with cJTAG hardware
+*/
+static bool jscan3_mode;
 #endif
 
 #define MAX_USB_IDS 8
@@ -670,7 +678,7 @@ static void ftdi_execute_command(struct jtag_command *cmd)
 	switch (cmd->type) {
 		case JTAG_RESET:
 #if BUILD_FTDI_CJTAG == 1
-			oscan1_reset_online_activate(); /* put the target back into OScan1 mode */
+			cjtag_reset_online_activate(); /* put the target back into selected cJTAG mode */
 #endif
 			break;
 		case JTAG_RUNTEST:
@@ -679,7 +687,7 @@ static void ftdi_execute_command(struct jtag_command *cmd)
 		case JTAG_TLR_RESET:
 			ftdi_execute_statemove(cmd);
 #if BUILD_FTDI_CJTAG == 1
-			oscan1_reset_online_activate(); /* put the target back into OScan1 mode */
+			cjtag_reset_online_activate(); /* put the target back into selected cJTAG mode */
 #endif
 			break;
 		case JTAG_PATHMOVE:
@@ -760,15 +768,19 @@ static int ftdi_initialize(void)
 		if (sig->data_mask)
 			ftdi_set_signal(sig, '1');
 #if BUILD_FTDI_CJTAG == 1
-	} else if (oscan1_mode) {
+	} else if (oscan1_mode || jscan3_mode) {
 		struct signal *sig = find_signal_by_name("JTAG_SEL");
 		if (!sig) {
-			LOG_ERROR("OScan1 mode is active but JTAG_SEL signal is not defined");
+			LOG_ERROR("A cJTAG mode is active but JTAG_SEL signal is not defined");
 			return ERROR_JTAG_INIT_FAILED;
 		}
 		/* A dummy JTAG_SEL would have zero mask */
 		if (sig->data_mask)
 			ftdi_set_signal(sig, '0');
+		else if (jscan3_mode) {
+			LOG_ERROR("In JScan3 mode JTAG_SEL signal cannot be dummy, data mask needed");
+			return ERROR_JTAG_INIT_FAILED;
+		}
 #endif
 	}
 
@@ -908,11 +920,11 @@ static void cjtag_set_tck_tms_tdi(struct signal *tck, char tckvalue, struct sign
 	ftdi_set_signal(tck, tckvalue);
 }
 
-static void oscan1_reset_online_activate(void)
+static void cjtag_reset_online_activate(void)
 {
-	/* After TAP reset, the OSCAN1-to-JTAG adapter is in offline and
-	non-activated state.  Escape sequences are needed to bring
-	the TAP online and activated into OSCAN1 mode. */
+	/* After TAP reset, the cJTAG-to-JTAG adapter is in offline and
+	non-activated state. Escape sequences are needed to bring the
+	TAP online and activated into the desired working mode. */
 
 	struct signal *tck = find_signal_by_name("TCK");
 	struct signal *tdi = find_signal_by_name("TDI");
@@ -920,7 +932,7 @@ static void oscan1_reset_online_activate(void)
 	struct signal *tdo = find_signal_by_name("TDO");
 	uint16_t tdovalue;
 
-	static const struct {
+	static struct {
 		int8_t tck;
 		int8_t tms;
 		int8_t tdi;
@@ -982,7 +994,7 @@ static void oscan1_reset_online_activate(void)
 		/* TCK=0, TMS=1, TDI=0 (falling edge TCK with TMSC still 0) */
 		{'0', '1', '0'},
 
-		/* Drive cJTAG escape sequence for activation */
+		/* Drive cJTAG escape sequence for OScan1 activation -- OAC = 1100 -> 2 wires -- */
 		/* TCK=1, TMS=1, TDI=0 (rising edge TCK with TMSC still 0... online mode activated... also OAC bit0==0) */
 		{'1', '1', '0'},
 		/* TCK=0, TMS=1, TDI=0 (falling edge TCK) */
@@ -1029,12 +1041,17 @@ static void oscan1_reset_online_activate(void)
 		{'0', '1', '0'},
 		/* TCK=1, TMS=1, TDI=0 (rising edge TCK... CP bit3==0) */
 		{'1', '1', '0'},
+		/* TCK=0, TMS=1, TDI=0 (falling edge TCK) */
+		{'0', '1', '0'},
 	};
 
+	if (!oscan1_mode && !jscan3_mode)
+		return; /* Nothing to do */
 
-	if (!oscan1_mode)
+	if (oscan1_mode && jscan3_mode) {
+		LOG_ERROR("Both oscan1_mode and jscan3_mode are \"on\". At most one of them can be enabled.");
 		return;
-
+	}
 
 	if (!tck) {
 		LOG_ERROR("Can't run cJTAG online/activate escape sequences: TCK signal is not defined");
@@ -1056,9 +1073,19 @@ static void oscan1_reset_online_activate(void)
 		return;
 	}
 
+	if (jscan3_mode) {
+		/* Update the sequence above to enable JScan3 instead of OScan1 */
+		sequence[ESCAPE_SEQ_OAC_BIT2].tdi = '0';
+		sequence[ESCAPE_SEQ_OAC_BIT2+1].tdi = '0';
+	}
+
 	/* Send the sequence to the adapter */
 	for (size_t i = 0; i < sizeof(sequence)/sizeof(sequence[0]); i++)
 		cjtag_set_tck_tms_tdi(tck, sequence[i].tck, tms, sequence[i].tms, tdi, sequence[i].tdi);
+
+	/* If JScan3 mode, configure cJTAG adapter to 4-wire */
+	if (jscan3_mode)
+		ftdi_set_signal(find_signal_by_name("JTAG_SEL"), '1');
 
 	ftdi_get_signal(tdo, &tdovalue);  /* Just to force a flush */
 }
@@ -1288,6 +1315,18 @@ COMMAND_HANDLER(ftdi_handle_oscan1_mode_command)
 	command_print(CMD, "oscan1 mode: %s.", oscan1_mode ? "on" : "off");
 	return ERROR_OK;
 }
+
+COMMAND_HANDLER(ftdi_handle_jscan3_mode_command)
+{
+	if (CMD_ARGC > 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	if (CMD_ARGC == 1)
+		COMMAND_PARSE_ON_OFF(CMD_ARGV[0], jscan3_mode);
+
+	command_print(CMD, "jscan3 mode: %s.", jscan3_mode ? "on" : "off");
+	return ERROR_OK;
+}
 #endif
 
 static const struct command_registration ftdi_subcommand_handlers[] = {
@@ -1357,6 +1396,13 @@ static const struct command_registration ftdi_subcommand_handlers[] = {
 		.handler = &ftdi_handle_oscan1_mode_command,
 		.mode = COMMAND_ANY,
 		.help = "set to 'on' to use OScan1 mode for signaling, otherwise 'off' (default is 'off')",
+		.usage = "(on|off)",
+	},
+	{
+		.name = "jscan3_mode",
+		.handler = &ftdi_handle_jscan3_mode_command,
+		.mode = COMMAND_ANY,
+		.help = "set to 'on' to use JScan3 mode for signaling, otherwise 'off' (default is 'off')",
 		.usage = "(on|off)",
 	},
 #endif

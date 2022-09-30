@@ -2602,6 +2602,15 @@ probes by defining the signal TMSC_EN using
 @command{ftdi layout_signal TMSC_EN -data <mask>}.
 @end deffn
 
+@deffn {Command} {ftdi jscan3_mode} on|off
+Enable or disable JScan3 mode. This mode uses the classic 4-wire JTAG protocol
+in chips whose JTAG port is only compliant with the cJTAG standard (IEEE 1149.7).
+
+Since cJTAG needs a 2-wire escape sequence to select the operating mode,
+a cJTAG adapter like ARM-JTAG-SWD by Olimex is still required. This means
+that a cJTAG probe configuration script must be used too.
+@end deffn
+
 @deffn {Command} {ftdi layout_signal} name [@option{-data}|@option{-ndata} data_mask] [@option{-input}|@option{-ninput} input_mask] [@option{-oe}|@option{-noe} oe_mask] [@option{-alias}|@option{-nalias} name]
 Creates a signal with the specified @var{name}, controlled by one or more FTDI
 GPIO pins via a range of possible buffer connections. The masks are FTDI GPIO
