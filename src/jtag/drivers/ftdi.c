@@ -930,6 +930,7 @@ static void cjtag_reset_online_activate(void)
 	struct signal *tdi = find_signal_by_name("TDI");
 	struct signal *tms = find_signal_by_name("TMS");
 	struct signal *tdo = find_signal_by_name("TDO");
+	struct signal *tmsc_en = find_signal_by_name("TMSC_EN");
 	uint16_t tdovalue;
 
 	static struct {
@@ -1078,6 +1079,10 @@ static void cjtag_reset_online_activate(void)
 		sequence[ESCAPE_SEQ_OAC_BIT2].tdi = '0';
 		sequence[ESCAPE_SEQ_OAC_BIT2+1].tdi = '0';
 	}
+
+	/* if defined TMSC_EN, replace tms with it */
+	if (tmsc_en)
+		tms = tmsc_en;
 
 	/* Send the sequence to the adapter */
 	for (size_t i = 0; i < sizeof(sequence)/sizeof(sequence[0]); i++)
