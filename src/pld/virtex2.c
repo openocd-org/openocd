@@ -157,6 +157,8 @@ static int virtex2_load(struct pld_device *pld_device, const char *filename)
 	virtex2_set_instr(virtex2_info->tap, 0x3f);		/* BYPASS */
 	jtag_execute_queue();
 
+	xilinx_free_bit_file(&bit_file);
+
 	return ERROR_OK;
 }
 

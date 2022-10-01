@@ -22,4 +22,6 @@ struct xilinx_bit_file {
 
 int xilinx_read_bit_file(struct xilinx_bit_file *bit_file, const char *filename);
 
+void xilinx_free_bit_file(struct xilinx_bit_file *bit_file);
+
 #endif /* OPENOCD_PLD_XILINX_BIT_H */
