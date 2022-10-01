@@ -193,6 +193,10 @@ struct target {
 	struct list_head *smp_targets;		/* list all targets in this smp group/cluster
 										 * The head of the list is shared between the
 										 * cluster, thus here there is a pointer */
+	bool smp_halt_event_postponed;		/* Some SMP implementations (currently Cortex-M) stores
+										 * 'halted' events and emits them after all targets of
+										 * the SMP group has been polled */
+
 	/* the gdb service is there in case of smp, we have only one gdb server
 	 * for all smp target
 	 * the target attached to the gdb is changing dynamically by changing

@@ -28,6 +28,7 @@
 #include "register.h"
 #include "arm_opcodes.h"
 #include "arm_semihosting.h"
+#include "smp.h"
 #include <helper/time_support.h>
 #include <rtt/rtt.h>
 
@@ -871,7 +872,7 @@ static int cortex_m_debug_entry(struct target *target)
 	return ERROR_OK;
 }
 
-static int cortex_m_poll(struct target *target)
+static int cortex_m_poll_one(struct target *target)
 {
 	int detected_failure = ERROR_OK;
 	int retval = ERROR_OK;
@@ -934,21 +935,26 @@ static int cortex_m_poll(struct target *target)
 
 		if ((prev_target_state == TARGET_RUNNING) || (prev_target_state == TARGET_RESET)) {
 			retval = cortex_m_debug_entry(target);
-			if (retval != ERROR_OK)
+
+			/* arm_semihosting needs to know registers, don't run if debug entry returned error */
+			if (retval == ERROR_OK && arm_semihosting(target, &retval) != 0)
 				return retval;
 
-			if (arm_semihosting(target, &retval) != 0)
-				return retval;
-
-			target_call_event_callbacks(target, TARGET_EVENT_HALTED);
+			if (target->smp) {
+				LOG_TARGET_DEBUG(target, "postpone target event 'halted'");
+				target->smp_halt_event_postponed = true;
+			} else {
+				/* regardless of errors returned in previous code update state */
+				target_call_event_callbacks(target, TARGET_EVENT_HALTED);
+			}
 		}
 		if (prev_target_state == TARGET_DEBUG_RUNNING) {
 			retval = cortex_m_debug_entry(target);
-			if (retval != ERROR_OK)
-				return retval;
 
 			target_call_event_callbacks(target, TARGET_EVENT_DEBUG_HALTED);
 		}
+		if (retval != ERROR_OK)
+			return retval;
 	}
 
 	if (target->state == TARGET_UNKNOWN) {
@@ -981,7 +987,104 @@ static int cortex_m_poll(struct target *target)
 	return retval;
 }
 
-static int cortex_m_halt(struct target *target)
+static int cortex_m_halt_one(struct target *target);
+
+static int cortex_m_smp_halt_all(struct list_head *smp_targets)
+{
+	int retval = ERROR_OK;
+	struct target_list *head;
+
+	foreach_smp_target(head, smp_targets) {
+		struct target *curr = head->target;
+		if (!target_was_examined(curr))
+			continue;
+		if (curr->state == TARGET_HALTED)
+			continue;
+
+		int ret2 = cortex_m_halt_one(curr);
+		if (retval == ERROR_OK)
+			retval = ret2;	/* store the first error code ignore others */
+	}
+	return retval;
+}
+
+static int cortex_m_smp_post_halt_poll(struct list_head *smp_targets)
+{
+	int retval = ERROR_OK;
+	struct target_list *head;
+
+	foreach_smp_target(head, smp_targets) {
+		struct target *curr = head->target;
+		if (!target_was_examined(curr))
+			continue;
+		/* skip targets that were already halted */
+		if (curr->state == TARGET_HALTED)
+			continue;
+
+		int ret2 = cortex_m_poll_one(curr);
+		if (retval == ERROR_OK)
+			retval = ret2;	/* store the first error code ignore others */
+	}
+	return retval;
+}
+
+static int cortex_m_poll_smp(struct list_head *smp_targets)
+{
+	int retval = ERROR_OK;
+	struct target_list *head;
+	bool halted = false;
+
+	foreach_smp_target(head, smp_targets) {
+		struct target *curr = head->target;
+		if (curr->smp_halt_event_postponed) {
+			halted = true;
+			break;
+		}
+	}
+
+	if (halted) {
+		retval = cortex_m_smp_halt_all(smp_targets);
+
+		int ret2 = cortex_m_smp_post_halt_poll(smp_targets);
+		if (retval == ERROR_OK)
+			retval = ret2;	/* store the first error code ignore others */
+
+		foreach_smp_target(head, smp_targets) {
+			struct target *curr = head->target;
+			if (!curr->smp_halt_event_postponed)
+				continue;
+
+			curr->smp_halt_event_postponed = false;
+			if (curr->state == TARGET_HALTED) {
+				LOG_TARGET_DEBUG(curr, "sending postponed target event 'halted'");
+				target_call_event_callbacks(curr, TARGET_EVENT_HALTED);
+			}
+		}
+		/* There is no need to set gdb_service->target
+		 * as hwthread_update_threads() selects an interesting thread
+		 * by its own
+		 */
+	}
+	return retval;
+}
+
+static int cortex_m_poll(struct target *target)
+{
+	int retval = cortex_m_poll_one(target);
+
+	if (target->smp) {
+		struct target_list *last;
+		last = list_last_entry(target->smp_targets, struct target_list, lh);
+		if (target == last->target)
+			/* After the last target in SMP group has been polled
+			 * check for postponed halted events and eventually halt and re-poll
+			 * other targets */
+			cortex_m_poll_smp(target->smp_targets);
+	}
+	return retval;
+}
+
+static int cortex_m_halt_one(struct target *target)
 {
 	LOG_TARGET_DEBUG(target, "target->state: %s", target_state_name(target));
 
@@ -1017,6 +1120,14 @@ static int cortex_m_halt(struct target *target)
 	target->debug_reason = DBG_REASON_DBGRQ;
 
 	return ERROR_OK;
+}
+
+static int cortex_m_halt(struct target *target)
+{
+	if (target->smp)
+		return cortex_m_smp_halt_all(target->smp_targets);
+	else
+		return cortex_m_halt_one(target);
 }
 
 static int cortex_m_soft_reset_halt(struct target *target)
@@ -1096,8 +1207,8 @@ void cortex_m_enable_breakpoints(struct target *target)
 	}
 }
 
-static int cortex_m_resume(struct target *target, int current,
-	target_addr_t address, int handle_breakpoints, int debug_execution)
+static int cortex_m_restore_one(struct target *target, bool current,
+	target_addr_t *address, bool handle_breakpoints, bool debug_execution)
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct breakpoint *breakpoint = NULL;
@@ -1105,7 +1216,7 @@ static int cortex_m_resume(struct target *target, int current,
 	struct reg *r;
 
 	if (target->state != TARGET_HALTED) {
-		LOG_TARGET_WARNING(target, "target not halted");
+		LOG_TARGET_ERROR(target, "target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -1147,7 +1258,7 @@ static int cortex_m_resume(struct target *target, int current,
 	/* current = 1: continue on current pc, otherwise continue at <address> */
 	r = armv7m->arm.pc;
 	if (!current) {
-		buf_set_u32(r->value, 0, 32, address);
+		buf_set_u32(r->value, 0, 32, *address);
 		r->dirty = true;
 		r->valid = true;
 	}
@@ -1161,8 +1272,12 @@ static int cortex_m_resume(struct target *target, int current,
 		armv7m_maybe_skip_bkpt_inst(target, NULL);
 
 	resume_pc = buf_get_u32(r->value, 0, 32);
+	if (current)
+		*address = resume_pc;
 
-	armv7m_restore_context(target);
+	int retval = armv7m_restore_context(target);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* the front-end may request us not to handle breakpoints */
 	if (handle_breakpoints) {
@@ -1172,30 +1287,95 @@ static int cortex_m_resume(struct target *target, int current,
 			LOG_TARGET_DEBUG(target, "unset breakpoint at " TARGET_ADDR_FMT " (ID: %" PRIu32 ")",
 				breakpoint->address,
 				breakpoint->unique_id);
-			cortex_m_unset_breakpoint(target, breakpoint);
-			cortex_m_single_step_core(target);
-			cortex_m_set_breakpoint(target, breakpoint);
+			retval = cortex_m_unset_breakpoint(target, breakpoint);
+			if (retval == ERROR_OK)
+				retval = cortex_m_single_step_core(target);
+			int ret2 = cortex_m_set_breakpoint(target, breakpoint);
+			if (retval != ERROR_OK)
+				return retval;
+			if (ret2 != ERROR_OK)
+				return ret2;
 		}
 	}
+
+	return ERROR_OK;
+}
+
+static int cortex_m_restart_one(struct target *target, bool debug_execution)
+{
+	struct armv7m_common *armv7m = target_to_armv7m(target);
 
 	/* Restart core */
 	cortex_m_set_maskints_for_run(target);
 	cortex_m_write_debug_halt_mask(target, 0, C_HALT);
 
 	target->debug_reason = DBG_REASON_NOTHALTED;
-
 	/* registers are now invalid */
 	register_cache_invalidate(armv7m->arm.core_cache);
 
 	if (!debug_execution) {
 		target->state = TARGET_RUNNING;
 		target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
-		LOG_TARGET_DEBUG(target, "target resumed at 0x%" PRIx32 "", resume_pc);
 	} else {
 		target->state = TARGET_DEBUG_RUNNING;
 		target_call_event_callbacks(target, TARGET_EVENT_DEBUG_RESUMED);
-		LOG_TARGET_DEBUG(target, "target debug resumed at 0x%" PRIx32 "", resume_pc);
 	}
+
+	return ERROR_OK;
+}
+
+static int cortex_m_restore_smp(struct target *target, bool handle_breakpoints)
+{
+	struct target_list *head;
+	target_addr_t address;
+	foreach_smp_target(head, target->smp_targets) {
+		struct target *curr = head->target;
+		/* skip calling target */
+		if (curr == target)
+			continue;
+		if (!target_was_examined(curr))
+			continue;
+		/* skip running targets */
+		if (curr->state == TARGET_RUNNING)
+			continue;
+
+		int retval = cortex_m_restore_one(curr, true, &address,
+										handle_breakpoints, false);
+		if (retval != ERROR_OK)
+			return retval;
+
+		retval = cortex_m_restart_one(curr, false);
+		if (retval != ERROR_OK)
+			return retval;
+
+		LOG_TARGET_DEBUG(curr, "SMP resumed at " TARGET_ADDR_FMT, address);
+	}
+	return ERROR_OK;
+}
+
+static int cortex_m_resume(struct target *target, int current,
+						   target_addr_t address, int handle_breakpoints, int debug_execution)
+{
+	int retval = cortex_m_restore_one(target, !!current, &address, !!handle_breakpoints, !!debug_execution);
+	if (retval != ERROR_OK) {
+		LOG_TARGET_ERROR(target, "context restore failed, aborting resume");
+		return retval;
+	}
+
+	if (target->smp && !debug_execution) {
+		retval = cortex_m_restore_smp(target, !!handle_breakpoints);
+		if (retval != ERROR_OK)
+			LOG_WARNING("resume of a SMP target failed, trying to resume current one");
+	}
+
+	cortex_m_restart_one(target, !!debug_execution);
+	if (retval != ERROR_OK) {
+		LOG_TARGET_ERROR(target, "resume failed");
+		return retval;
+	}
+
+	LOG_TARGET_DEBUG(target, "%sresumed at " TARGET_ADDR_FMT,
+					debug_execution ? "debug " : "", address);
 
 	return ERROR_OK;
 }
@@ -1216,6 +1396,11 @@ static int cortex_m_step(struct target *target, int current,
 		LOG_TARGET_WARNING(target, "target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
+
+	/* Just one of SMP cores will step. Set the gdb control
+	 * target to current one or gdb miss gdb-end event */
+	if (target->smp && target->gdb_service)
+		target->gdb_service->target = target;
 
 	/* current = 1: continue on current pc, otherwise continue at <address> */
 	if (!current) {
@@ -2849,6 +3034,9 @@ static const struct command_registration cortex_m_exec_command_handlers[] = {
 		.mode = COMMAND_ANY,
 		.help = "configure software reset handling",
 		.usage = "['sysresetreq'|'vectreset']",
+	},
+	{
+		.chain = smp_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE
 };
