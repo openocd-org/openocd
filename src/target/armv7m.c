@@ -182,8 +182,11 @@ int armv7m_restore_context(struct target *target)
 	for (i = cache->num_regs - 1; i >= 0; i--) {
 		struct reg *r = &cache->reg_list[i];
 
-		if (r->exist && r->dirty)
-			armv7m->arm.write_core_reg(target, r, i, ARM_MODE_ANY, r->value);
+		if (r->exist && r->dirty) {
+			int retval = armv7m->arm.write_core_reg(target, r, i, ARM_MODE_ANY, r->value);
+			if (retval != ERROR_OK)
+				return retval;
+		}
 	}
 
 	return ERROR_OK;
