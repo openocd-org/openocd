@@ -96,31 +96,37 @@ int xilinx_read_bit_file(struct xilinx_bit_file *bit_file, const char *filename)
 	read_count = fread(bit_file->unknown_header, 1, 13, input_file);
 	if (read_count != 13) {
 		LOG_ERROR("couldn't read unknown_header from file '%s'", filename);
+		fclose(input_file);
 		return ERROR_PLD_FILE_LOAD_FAILED;
 	}
 
 	if (read_section(input_file, 2, 'a', NULL, &bit_file->source_file) != ERROR_OK) {
 		xilinx_free_bit_file(bit_file);
+		fclose(input_file);
 		return ERROR_PLD_FILE_LOAD_FAILED;
 	}
 
 	if (read_section(input_file, 2, 'b', NULL, &bit_file->part_name) != ERROR_OK) {
 		xilinx_free_bit_file(bit_file);
+		fclose(input_file);
 		return ERROR_PLD_FILE_LOAD_FAILED;
 	}
 
 	if (read_section(input_file, 2, 'c', NULL, &bit_file->date) != ERROR_OK) {
 		xilinx_free_bit_file(bit_file);
+		fclose(input_file);
 		return ERROR_PLD_FILE_LOAD_FAILED;
 	}
 
 	if (read_section(input_file, 2, 'd', NULL, &bit_file->time) != ERROR_OK) {
 		xilinx_free_bit_file(bit_file);
+		fclose(input_file);
 		return ERROR_PLD_FILE_LOAD_FAILED;
 	}
 
 	if (read_section(input_file, 4, 'e', &bit_file->length, &bit_file->data) != ERROR_OK) {
 		xilinx_free_bit_file(bit_file);
+		fclose(input_file);
 		return ERROR_PLD_FILE_LOAD_FAILED;
 	}
 
