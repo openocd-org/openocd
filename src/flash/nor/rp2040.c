@@ -50,6 +50,10 @@ struct rp2040_flash_bank {
 	const struct flash_device *dev;
 };
 
+/* guessed SPI flash description if autodetection disabled (same as win w25q16jv) */
+static const struct flash_device rp2040_default_spi_device =
+	FLASH_ID("autodetect disabled", 0x03, 0x00, 0x02, 0xd8, 0xc7, 0, 0x100, 0x10000, 0);
+
 static uint32_t rp2040_lookup_symbol(struct target *target, uint32_t tag, uint16_t *symbol)
 {
 	uint32_t magic;
@@ -432,41 +436,48 @@ static int rp2040_flash_probe(struct flash_bank *bank)
 		return err;
 	}
 
-	err = rp2040_stack_grab_and_prep(bank);
+	if (bank->size) {
+		/* size overridden, suppress reading SPI flash ID */
+		priv->dev = &rp2040_default_spi_device;
+		LOG_DEBUG("SPI flash autodetection disabled, using configured size");
 
-	uint32_t device_id = 0;
-	if (err == ERROR_OK)
-		err = rp2040_spi_read_flash_id(target, &device_id);
+	} else {
+		/* zero bank size in cfg, read SPI flash ID and autodetect */
+		err = rp2040_stack_grab_and_prep(bank);
 
-	rp2040_finalize_stack_free(bank);
+		uint32_t device_id = 0;
+		if (err == ERROR_OK)
+			err = rp2040_spi_read_flash_id(target, &device_id);
 
-	if (err != ERROR_OK)
-		return err;
+		rp2040_finalize_stack_free(bank);
 
-	/* search for a SPI flash Device ID match */
-	priv->dev = NULL;
-	for (const struct flash_device *p = flash_devices; p->name ; p++)
-		if (p->device_id == device_id) {
-			priv->dev = p;
-			break;
+		if (err != ERROR_OK)
+			return err;
+
+		/* search for a SPI flash Device ID match */
+		priv->dev = NULL;
+		for (const struct flash_device *p = flash_devices; p->name ; p++)
+			if (p->device_id == device_id) {
+				priv->dev = p;
+				break;
+			}
+
+		if (!priv->dev) {
+			LOG_ERROR("Unknown flash device (ID 0x%08" PRIx32 ")", device_id);
+			return ERROR_FAIL;
 		}
+		LOG_INFO("Found flash device '%s' (ID 0x%08" PRIx32 ")",
+			priv->dev->name, priv->dev->device_id);
 
-	if (!priv->dev) {
-		LOG_ERROR("Unknown flash device (ID 0x%08" PRIx32 ")", device_id);
-		return ERROR_FAIL;
+		bank->size = priv->dev->size_in_bytes;
 	}
-
-	LOG_INFO("Found flash device \'%s\' (ID 0x%08" PRIx32 ")",
-		priv->dev->name, priv->dev->device_id);
 
 	/* the Boot ROM flash_range_program() routine requires page alignment */
 	bank->write_start_alignment = priv->dev->pagesize;
 	bank->write_end_alignment = priv->dev->pagesize;
 
-	bank->size = priv->dev->size_in_bytes;
-
 	bank->num_sectors = bank->size / priv->dev->sectorsize;
-	LOG_INFO("RP2040 B0 Flash Probe: %d bytes @" TARGET_ADDR_FMT ", in %d sectors\n",
+	LOG_INFO("RP2040 B0 Flash Probe: %" PRIu32 " bytes @" TARGET_ADDR_FMT ", in %u sectors\n",
 		bank->size, bank->base, bank->num_sectors);
 	bank->sectors = alloc_block_array(0, priv->dev->sectorsize, bank->num_sectors);
 	if (!bank->sectors)
