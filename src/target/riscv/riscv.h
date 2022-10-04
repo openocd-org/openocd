@@ -99,12 +99,6 @@ typedef struct {
 	struct command_context *cmd_ctx;
 	void *version_specific;
 
-	/* The hart that is currently being debugged.  Note that this is
-	 * different than the hartid that the RTOS is expected to use.  This
-	 * one will change all the time, it's more of a global argument to
-	 * every function than an actual */
-	int current_hartid;
-
 	/* Single buffer that contains all register names, instead of calling
 	 * malloc for each register. Needs to be freed when reg_list is freed. */
 	char *reg_names;
@@ -154,7 +148,7 @@ typedef struct {
 	int (*get_register_buf)(struct target *target, uint8_t *buf, int regno);
 	int (*set_register_buf)(struct target *target, int regno,
 			const uint8_t *buf);
-	int (*select_current_hart)(struct target *target);
+	int (*select_target)(struct target *target);
 	bool (*is_halted)(struct target *target);
 	/* Resume this target, as well as every other prepped target that can be
 	 * resumed near-simultaneously. Clear the prepped flag on any target that
@@ -354,7 +348,7 @@ int riscv_current_hartid(const struct target *target);
 
 /* Lists the number of harts in the system, which are assumed to be
  * consecutive and start with mhartid=0. */
-int riscv_count_harts(struct target *target);
+unsigned int riscv_count_harts(struct target *target);
 
 /** Set register, updating the cache. */
 int riscv_set_register(struct target *target, enum gdb_regno i, riscv_reg_t v);
@@ -370,7 +364,7 @@ int riscv_flush_registers(struct target *target);
 /* Checks the state of the current hart -- "is_halted" checks the actual
  * on-device register. */
 bool riscv_is_halted(struct target *target);
-enum riscv_halt_reason riscv_halt_reason(struct target *target, int hartid);
+enum riscv_halt_reason riscv_halt_reason(struct target *target);
 
 /* These helper functions let the generic program interface get target-specific
  * information. */
