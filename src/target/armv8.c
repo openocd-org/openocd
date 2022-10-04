@@ -114,6 +114,166 @@ const char *armv8_mode_name(unsigned psr_mode)
 	return "UNRECOGNIZED";
 }
 
+static uint8_t armv8_pa_size(uint32_t ps)
+{
+	uint8_t ret = 0;
+	switch (ps) {
+		case 0:
+			ret = 32;
+			break;
+		case 1:
+			ret = 36;
+			break;
+		case 2:
+			ret = 40;
+			break;
+		case 3:
+			ret = 42;
+			break;
+		case 4:
+			ret = 44;
+			break;
+		case 5:
+			ret = 48;
+			break;
+		default:
+			LOG_INFO("Unknown physical address size");
+			break;
+	}
+	return ret;
+}
+
+static __attribute__((unused)) int armv8_read_ttbcr32(struct target *target)
+{
+	struct armv8_common *armv8 = target_to_armv8(target);
+	struct arm_dpm *dpm = armv8->arm.dpm;
+	uint32_t ttbcr, ttbcr_n;
+	int retval = dpm->prepare(dpm);
+	if (retval != ERROR_OK)
+		goto done;
+	/*  MRC p15,0,<Rt>,c2,c0,2 ; Read CP15 Translation Table Base Control Register*/
+	retval = dpm->instr_read_data_r0(dpm,
+			ARMV4_5_MRC(15, 0, 0, 2, 0, 2),
+			&ttbcr);
+	if (retval != ERROR_OK)
+		goto done;
+
+	LOG_DEBUG("ttbcr %" PRIx32, ttbcr);
+
+	ttbcr_n = ttbcr & 0x7;
+	armv8->armv8_mmu.ttbcr = ttbcr;
+
+	/*
+	 * ARM Architecture Reference Manual (ARMv7-A and ARMv7-R edition),
+	 * document # ARM DDI 0406C
+	 */
+	armv8->armv8_mmu.ttbr_range[0]  = 0xffffffff >> ttbcr_n;
+	armv8->armv8_mmu.ttbr_range[1] = 0xffffffff;
+	armv8->armv8_mmu.ttbr_mask[0] = 0xffffffff << (14 - ttbcr_n);
+	armv8->armv8_mmu.ttbr_mask[1] = 0xffffffff << 14;
+
+	LOG_DEBUG("ttbr1 %s, ttbr0_mask %" PRIx32 " ttbr1_mask %" PRIx32,
+		  (ttbcr_n != 0) ? "used" : "not used",
+		  armv8->armv8_mmu.ttbr_mask[0],
+		  armv8->armv8_mmu.ttbr_mask[1]);
+
+done:
+	dpm->finish(dpm);
+	return retval;
+}
+
+static int armv8_read_ttbcr(struct target *target)
+{
+	struct armv8_common *armv8 = target_to_armv8(target);
+	struct arm_dpm *dpm = armv8->arm.dpm;
+	struct arm *arm = &armv8->arm;
+	uint32_t ttbcr;
+	uint64_t ttbcr_64;
+
+	int retval = dpm->prepare(dpm);
+	if (retval != ERROR_OK)
+		goto done;
+
+	/* clear ttrr1_used and ttbr0_mask */
+	memset(&armv8->armv8_mmu.ttbr1_used, 0, sizeof(armv8->armv8_mmu.ttbr1_used));
+	memset(&armv8->armv8_mmu.ttbr0_mask, 0, sizeof(armv8->armv8_mmu.ttbr0_mask));
+
+	switch (armv8_curel_from_core_mode(arm->core_mode)) {
+	case SYSTEM_CUREL_EL3:
+		retval = dpm->instr_read_data_r0(dpm,
+				ARMV8_MRS(SYSTEM_TCR_EL3, 0),
+				&ttbcr);
+		retval += dpm->instr_read_data_r0_64(dpm,
+				ARMV8_MRS(SYSTEM_TTBR0_EL3, 0),
+				&armv8->ttbr_base);
+		if (retval != ERROR_OK)
+			goto done;
+		armv8->va_size = 64 - (ttbcr & 0x3F);
+		armv8->pa_size = armv8_pa_size((ttbcr >> 16) & 7);
+		armv8->page_size = (ttbcr >> 14) & 3;
+		break;
+	case SYSTEM_CUREL_EL2:
+		retval = dpm->instr_read_data_r0(dpm,
+				ARMV8_MRS(SYSTEM_TCR_EL2, 0),
+				&ttbcr);
+		retval += dpm->instr_read_data_r0_64(dpm,
+				ARMV8_MRS(SYSTEM_TTBR0_EL2, 0),
+				&armv8->ttbr_base);
+		if (retval != ERROR_OK)
+			goto done;
+		armv8->va_size = 64 - (ttbcr & 0x3F);
+		armv8->pa_size = armv8_pa_size((ttbcr >> 16) & 7);
+		armv8->page_size = (ttbcr >> 14) & 3;
+		break;
+	case SYSTEM_CUREL_EL0:
+		armv8_dpm_modeswitch(dpm, ARMV8_64_EL1H);
+		/* fall through */
+	case SYSTEM_CUREL_EL1:
+		retval = dpm->instr_read_data_r0_64(dpm,
+				ARMV8_MRS(SYSTEM_TCR_EL1, 0),
+				&ttbcr_64);
+		armv8->va_size = 64 - (ttbcr_64 & 0x3F);
+		armv8->pa_size = armv8_pa_size((ttbcr_64 >> 32) & 7);
+		armv8->page_size = (ttbcr_64 >> 14) & 3;
+		armv8->armv8_mmu.ttbr1_used = (((ttbcr_64 >> 16) & 0x3F) != 0) ? 1 : 0;
+		armv8->armv8_mmu.ttbr0_mask  = 0x0000FFFFFFFFFFFF;
+		retval += dpm->instr_read_data_r0_64(dpm,
+				ARMV8_MRS(SYSTEM_TTBR0_EL1 | (armv8->armv8_mmu.ttbr1_used), 0),
+				&armv8->ttbr_base);
+		if (retval != ERROR_OK)
+			goto done;
+		break;
+	default:
+		LOG_ERROR("unknown core state");
+		retval = ERROR_FAIL;
+		break;
+	}
+	if (retval != ERROR_OK)
+		goto done;
+
+	if (armv8->armv8_mmu.ttbr1_used == 1)
+		LOG_INFO("TTBR0 access above %" PRIx64, (uint64_t)(armv8->armv8_mmu.ttbr0_mask));
+
+done:
+	armv8_dpm_modeswitch(dpm, ARM_MODE_ANY);
+	dpm->finish(dpm);
+	return retval;
+}
+
+static int armv8_get_pauth_mask(struct armv8_common *armv8, uint64_t *mask)
+{
+	struct arm *arm = &armv8->arm;
+	int retval = ERROR_OK;
+	if (armv8->va_size == 0)
+		retval = armv8_read_ttbcr(arm->target);
+	if (retval != ERROR_OK)
+		return retval;
+
+	*mask = ~(((uint64_t)1 << armv8->va_size) - 1);
+
+	return retval;
+}
+
 static int armv8_read_reg(struct armv8_common *armv8, int regnum, uint64_t *regval)
 {
 	struct arm_dpm *dpm = &armv8->dpm;
@@ -190,6 +350,10 @@ static int armv8_read_reg(struct armv8_common *armv8, int regnum, uint64_t *regv
 		retval = dpm->instr_read_data_r0(dpm,
 				ARMV8_MRS(SYSTEM_SPSR_EL3, 0), &value);
 		value_64 = value;
+		break;
+	case ARMV8_PAUTH_CMASK:
+	case ARMV8_PAUTH_DMASK:
+		retval = armv8_get_pauth_mask(armv8, &value_64);
 		break;
 	default:
 		retval = ERROR_FAIL;
@@ -772,152 +936,6 @@ static __attribute__((unused)) void armv8_show_fault_registers(struct target *ta
 		armv8_show_fault_registers32(armv8);
 }
 
-static uint8_t armv8_pa_size(uint32_t ps)
-{
-	uint8_t ret = 0;
-	switch (ps) {
-		case 0:
-			ret = 32;
-			break;
-		case 1:
-			ret = 36;
-			break;
-		case 2:
-			ret = 40;
-			break;
-		case 3:
-			ret = 42;
-			break;
-		case 4:
-			ret = 44;
-			break;
-		case 5:
-			ret = 48;
-			break;
-		default:
-			LOG_INFO("Unknown physical address size");
-			break;
-	}
-	return ret;
-}
-
-static __attribute__((unused)) int armv8_read_ttbcr32(struct target *target)
-{
-	struct armv8_common *armv8 = target_to_armv8(target);
-	struct arm_dpm *dpm = armv8->arm.dpm;
-	uint32_t ttbcr, ttbcr_n;
-	int retval = dpm->prepare(dpm);
-	if (retval != ERROR_OK)
-		goto done;
-	/*  MRC p15,0,<Rt>,c2,c0,2 ; Read CP15 Translation Table Base Control Register*/
-	retval = dpm->instr_read_data_r0(dpm,
-			ARMV4_5_MRC(15, 0, 0, 2, 0, 2),
-			&ttbcr);
-	if (retval != ERROR_OK)
-		goto done;
-
-	LOG_DEBUG("ttbcr %" PRIx32, ttbcr);
-
-	ttbcr_n = ttbcr & 0x7;
-	armv8->armv8_mmu.ttbcr = ttbcr;
-
-	/*
-	 * ARM Architecture Reference Manual (ARMv7-A and ARMv7-R edition),
-	 * document # ARM DDI 0406C
-	 */
-	armv8->armv8_mmu.ttbr_range[0]  = 0xffffffff >> ttbcr_n;
-	armv8->armv8_mmu.ttbr_range[1] = 0xffffffff;
-	armv8->armv8_mmu.ttbr_mask[0] = 0xffffffff << (14 - ttbcr_n);
-	armv8->armv8_mmu.ttbr_mask[1] = 0xffffffff << 14;
-
-	LOG_DEBUG("ttbr1 %s, ttbr0_mask %" PRIx32 " ttbr1_mask %" PRIx32,
-		  (ttbcr_n != 0) ? "used" : "not used",
-		  armv8->armv8_mmu.ttbr_mask[0],
-		  armv8->armv8_mmu.ttbr_mask[1]);
-
-done:
-	dpm->finish(dpm);
-	return retval;
-}
-
-static __attribute__((unused)) int armv8_read_ttbcr(struct target *target)
-{
-	struct armv8_common *armv8 = target_to_armv8(target);
-	struct arm_dpm *dpm = armv8->arm.dpm;
-	struct arm *arm = &armv8->arm;
-	uint32_t ttbcr;
-	uint64_t ttbcr_64;
-
-	int retval = dpm->prepare(dpm);
-	if (retval != ERROR_OK)
-		goto done;
-
-	/* clear ttrr1_used and ttbr0_mask */
-	memset(&armv8->armv8_mmu.ttbr1_used, 0, sizeof(armv8->armv8_mmu.ttbr1_used));
-	memset(&armv8->armv8_mmu.ttbr0_mask, 0, sizeof(armv8->armv8_mmu.ttbr0_mask));
-
-	switch (armv8_curel_from_core_mode(arm->core_mode)) {
-	case SYSTEM_CUREL_EL3:
-		retval = dpm->instr_read_data_r0(dpm,
-				ARMV8_MRS(SYSTEM_TCR_EL3, 0),
-				&ttbcr);
-		retval += dpm->instr_read_data_r0_64(dpm,
-				ARMV8_MRS(SYSTEM_TTBR0_EL3, 0),
-				&armv8->ttbr_base);
-		if (retval != ERROR_OK)
-			goto done;
-		armv8->va_size = 64 - (ttbcr & 0x3F);
-		armv8->pa_size = armv8_pa_size((ttbcr >> 16) & 7);
-		armv8->page_size = (ttbcr >> 14) & 3;
-		break;
-	case SYSTEM_CUREL_EL2:
-		retval = dpm->instr_read_data_r0(dpm,
-				ARMV8_MRS(SYSTEM_TCR_EL2, 0),
-				&ttbcr);
-		retval += dpm->instr_read_data_r0_64(dpm,
-				ARMV8_MRS(SYSTEM_TTBR0_EL2, 0),
-				&armv8->ttbr_base);
-		if (retval != ERROR_OK)
-			goto done;
-		armv8->va_size = 64 - (ttbcr & 0x3F);
-		armv8->pa_size = armv8_pa_size((ttbcr >> 16) & 7);
-		armv8->page_size = (ttbcr >> 14) & 3;
-		break;
-	case SYSTEM_CUREL_EL0:
-		armv8_dpm_modeswitch(dpm, ARMV8_64_EL1H);
-		/* fall through */
-	case SYSTEM_CUREL_EL1:
-		retval = dpm->instr_read_data_r0_64(dpm,
-				ARMV8_MRS(SYSTEM_TCR_EL1, 0),
-				&ttbcr_64);
-		armv8->va_size = 64 - (ttbcr_64 & 0x3F);
-		armv8->pa_size = armv8_pa_size((ttbcr_64 >> 32) & 7);
-		armv8->page_size = (ttbcr_64 >> 14) & 3;
-		armv8->armv8_mmu.ttbr1_used = (((ttbcr_64 >> 16) & 0x3F) != 0) ? 1 : 0;
-		armv8->armv8_mmu.ttbr0_mask  = 0x0000FFFFFFFFFFFF;
-		retval += dpm->instr_read_data_r0_64(dpm,
-				ARMV8_MRS(SYSTEM_TTBR0_EL1 | (armv8->armv8_mmu.ttbr1_used), 0),
-				&armv8->ttbr_base);
-		if (retval != ERROR_OK)
-			goto done;
-		break;
-	default:
-		LOG_ERROR("unknown core state");
-		retval = ERROR_FAIL;
-		break;
-	}
-	if (retval != ERROR_OK)
-		goto done;
-
-	if (armv8->armv8_mmu.ttbr1_used == 1)
-		LOG_INFO("TTBR0 access above %" PRIx64, (uint64_t)(armv8->armv8_mmu.ttbr0_mask));
-
-done:
-	armv8_dpm_modeswitch(dpm, ARM_MODE_ANY);
-	dpm->finish(dpm);
-	return retval;
-}
-
 /*  method adapted to cortex A : reused arm v4 v5 method*/
 int armv8_mmu_translate_va(struct target *target,  target_addr_t va, target_addr_t *val)
 {
@@ -1081,6 +1099,15 @@ COMMAND_HANDLER(armv8_handle_exception_catch_command)
 		return retval;
 
 	return ERROR_OK;
+}
+
+COMMAND_HANDLER(armv8_pauth_command)
+{
+	struct target *target = get_current_target(CMD_CTX);
+	struct armv8_common *armv8 = target_to_armv8(target);
+	return CALL_COMMAND_HANDLER(handle_command_parse_bool,
+				    &armv8->enable_pauth,
+				    "pauth feature");
 }
 
 int armv8_handle_cache_info_command(struct command_invocation *cmd,
@@ -1421,6 +1448,8 @@ static const struct {
 														NULL},
 	{ ARMV8_SPSR_EL3, "SPSR_EL3", 32, ARMV8_64_EL3H, REG_TYPE_UINT32, "banked", "net.sourceforge.openocd.banked",
 														NULL},
+	{ ARMV8_PAUTH_DMASK, "pauth_dmask", 64, ARM_MODE_ANY, REG_TYPE_UINT64, NULL, "org.gnu.gdb.aarch64.pauth", NULL},
+	{ ARMV8_PAUTH_CMASK, "pauth_cmask", 64, ARM_MODE_ANY, REG_TYPE_UINT64, NULL, "org.gnu.gdb.aarch64.pauth", NULL},
 };
 
 static const struct {
@@ -1650,6 +1679,9 @@ struct reg_cache *armv8_build_reg_cache(struct target *target)
 				*reg_list[i].reg_data_type = *armv8_regs[i].data_type;
 		} else
 			LOG_ERROR("unable to allocate reg type list");
+
+		if (i == ARMV8_PAUTH_CMASK || i == ARMV8_PAUTH_DMASK)
+			reg_list[i].hidden = !armv8->enable_pauth;
 	}
 
 	arm->cpsr = reg_list + ARMV8_XPSR;
@@ -1744,6 +1776,17 @@ const struct command_registration armv8_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.help = "configure exception catch",
 		.usage = "[(nsec_el1,nsec_el2,sec_el1,sec_el3)+,off]",
+	},
+	{
+		.name = "pauth",
+		.handler = armv8_pauth_command,
+		.mode = COMMAND_CONFIG,
+		.help = "enable or disable providing GDB with an 8-bytes mask to "
+			"remove signature bits added by pointer authentication."
+			"Pointer authentication feature is broken until gdb 12.1, going to be fixed. "
+			"Consider using a newer version of gdb if you want enable "
+			"pauth feature.",
+		.usage = "[on|off]",
 	},
 	COMMAND_REGISTRATION_DONE
 };

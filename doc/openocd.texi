@@ -10297,6 +10297,16 @@ the target, the exception catch must be disabled again with @command{$target_nam
 Issuing the command without options prints the current configuration.
 @end deffn
 
+@deffn {Command} {$target_name pauth} [@option{off}|@option{on}]
+Enable or disable pointer authentication features.
+When pointer authentication is used on ARM cores, GDB asks GDB servers for an 8-bytes mask to remove signature bits added by pointer authentication.
+If this feature is enabled, OpenOCD provides GDB with an 8-bytes mask.
+Pointer authentication feature is broken until gdb 12.1, going to be fixed.
+Consider using a newer version of gdb if you want to enable pauth feature.
+The default configuration is @option{off}.
+@end deffn
+
+
 @section EnSilica eSi-RISC Architecture
 
 eSi-RISC is a highly configurable microprocessor architecture for embedded systems
