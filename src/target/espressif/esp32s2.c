@@ -402,6 +402,8 @@ static int esp32s2_poll(struct target *target)
 {
 	enum target_state old_state = target->state;
 	int ret = esp_xtensa_poll(target);
+	if (ret != ERROR_OK)
+		return ret;
 
 	if (old_state != TARGET_HALTED && target->state == TARGET_HALTED) {
 		/* Call any event callbacks that are applicable */
