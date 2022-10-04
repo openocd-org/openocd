@@ -2467,15 +2467,13 @@ static int execute_fence(struct target *target)
 
 	/* FIXME: For non-coherent systems we need to flush the caches right
 	 * here, but there's no ISA-defined way of doing that. */
-	{
-		struct riscv_program program;
-		riscv_program_init(&program, target);
-		riscv_program_fence_i(&program);
-		riscv_program_fence(&program);
-		int result = riscv_program_exec(&program, target);
-		if (result != ERROR_OK)
-			LOG_DEBUG("Unable to execute pre-fence");
-	}
+	struct riscv_program program;
+	riscv_program_init(&program, target);
+	riscv_program_fence_i(&program);
+	riscv_program_fence(&program);
+	int result = riscv_program_exec(&program, target);
+	if (result != ERROR_OK)
+		LOG_TARGET_DEBUG(target, "Unable to execute pre-fence");
 
 	return ERROR_OK;
 }
