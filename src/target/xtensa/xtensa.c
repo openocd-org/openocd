@@ -2503,6 +2503,12 @@ static int xtensa_build_reg_cache(struct target *target)
 			unsigned int j;
 			for (j = 0; j < reg_cache->num_regs; j++) {
 				if (!strcmp(reg_cache->reg_list[j].name, xtensa->contiguous_regs_desc[i]->name)) {
+					/*	Register number field is not filled above.
+						Here we are assigning the corresponding index from the contiguous reg list.
+						These indexes are in the same order with gdb g-packet request/response.
+						Some more changes may be required for sparse reg lists.
+					*/
+					reg_cache->reg_list[j].number = i;
 					xtensa->contiguous_regs_list[i] = &(reg_cache->reg_list[j]);
 					LOG_TARGET_DEBUG(target,
 						"POPULATE contiguous regs list: %-16s, dbreg_num 0x%04x",
