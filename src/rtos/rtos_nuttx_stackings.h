@@ -7,5 +7,6 @@
 
 extern const struct rtos_register_stacking nuttx_stacking_cortex_m;
 extern const struct rtos_register_stacking nuttx_stacking_cortex_m_fpu;
+extern const struct rtos_register_stacking nuttx_riscv_stacking;
 
 #endif	/* INCLUDED_RTOS_NUTTX_STACKINGS_H */
