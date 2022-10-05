@@ -50,7 +50,7 @@ def shorten_buffer(outfd, buf, current_repetition):
             repetitions.append((matched_lines + length, length))
 
     if repetitions:
-        repetitions.sort(key=lambda entry: (entry[0] * (entry[1] / entry[0]), -entry[1]))
+        repetitions.sort(key=lambda entry: -entry[1])
         matched_lines, length = repetitions[-1]
         repeated = int(matched_lines / length)
         if repeated * length >= 3:
