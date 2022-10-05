@@ -72,7 +72,6 @@ static const struct stack_register_offset rtos_standard_cortex_m4f_fpu_stack_off
 	{ ARMV7M_XPSR, 0x80, 32 },		/* xPSR */
 };
 
-
 static const struct stack_register_offset rtos_standard_cortex_r4_stack_offsets[] = {
 	{ 0,  0x08, 32 },		/* r0  (a1)   */
 	{ 1,  0x0c, 32 },		/* r1  (a2)  */
