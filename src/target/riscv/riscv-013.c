@@ -4856,6 +4856,8 @@ static int riscv013_step_or_resume_current_hart(struct target *target,
 		usleep(10);
 		if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
 			return ERROR_FAIL;
+		if (get_field(dmstatus, DM_DMSTATUS_ALLUNAVAIL))
+			return ERROR_FAIL;
 		if (get_field(dmstatus, DM_DMSTATUS_ALLRESUMEACK) == 0)
 			continue;
 		if (step && get_field(dmstatus, DM_DMSTATUS_ALLHALTED) == 0)
