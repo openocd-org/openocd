@@ -4208,14 +4208,19 @@ static int riscv013_halt_go(struct target *target)
 		dmcontrol |= DM_DMCONTROL_HASEL;
 	dmcontrol = set_hartsel(dmcontrol, info->index);
 	dmi_write(target, DM_DMCONTROL, dmcontrol);
-	for (size_t i = 0; i < 256; ++i)
-		if (riscv_is_halted(target))
-			break;
-
-	if (!riscv_is_halted(target)) {
-		uint32_t dmstatus;
+	uint32_t dmstatus;
+	for (size_t i = 0; i < 256; ++i) {
 		if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
 			return ERROR_FAIL;
+		/* When no harts are running, there's no point in continuing this loop. */
+		if (!get_field(dmstatus, DM_DMSTATUS_ALLRUNNING))
+			break;
+	}
+
+	/* We declare success if no harts are running. One or more of them may be
+	 * unavailable, though. */
+
+	if ((get_field(dmstatus, DM_DMSTATUS_ANYRUNNING))) {
 		if (dmi_read(target, &dmcontrol, DM_DMCONTROL) != ERROR_OK)
 			return ERROR_FAIL;
 
