@@ -2266,120 +2266,93 @@ exit:
 int riscv_openocd_poll(struct target *target)
 {
 	LOG_DEBUG("polling all harts");
-	enum target_state old_state = target->state;
+
+	struct list_head *targets;
+
+	LIST_HEAD(single_target_list);
+	struct target_list single_target_entry = {
+		.lh = {NULL, NULL},
+		.target = target
+	};
 
 	if (target->smp) {
-		unsigned should_remain_halted = 0;
-		unsigned should_resume = 0;
-		struct target_list *list;
-		foreach_smp_target(list, target->smp_targets) {
-			struct target *t = list->target;
-			if (!target_was_examined(t))
-				continue;
-			enum riscv_poll_hart out = riscv_poll_hart(t, t->coreid);
-			switch (out) {
-			case RPH_NO_CHANGE:
-				break;
-			case RPH_DISCOVERED_RUNNING:
-				t->state = TARGET_RUNNING;
-				t->debug_reason = DBG_REASON_NOTHALTED;
-				break;
-			case RPH_DISCOVERED_HALTED:
-				t->state = TARGET_HALTED;
-				enum riscv_halt_reason halt_reason =
-					riscv_halt_reason(t);
-				if (set_debug_reason(t, halt_reason) != ERROR_OK)
-					return ERROR_FAIL;
-
-				if (halt_reason == RISCV_HALT_BREAKPOINT) {
-					int retval;
-					switch (riscv_semihosting(t, &retval)) {
-					case SEMI_NONE:
-					case SEMI_WAITING:
-						/* This hart should remain halted. */
-						should_remain_halted++;
-						break;
-					case SEMI_HANDLED:
-						/* This hart should be resumed, along with any other
-							 * harts that halted due to haltgroups. */
-						should_resume++;
-						break;
-					case SEMI_ERROR:
-						return retval;
-					}
-				} else if (halt_reason != RISCV_HALT_GROUP) {
-					should_remain_halted++;
-				}
-				break;
-
-			case RPH_ERROR:
-				return ERROR_FAIL;
-			}
-		}
-
-		LOG_DEBUG("should_remain_halted=%d, should_resume=%d",
-				  should_remain_halted, should_resume);
-		if (should_remain_halted && should_resume) {
-			LOG_WARNING("%d harts should remain halted, and %d should resume.",
-						should_remain_halted, should_resume);
-		}
-		if (should_remain_halted) {
-			LOG_DEBUG("halt all");
-			riscv_halt(target);
-		} else if (should_resume) {
-			LOG_DEBUG("resume all");
-			riscv_resume(target, true, 0, 0, 0, false);
-		}
-
-		/* Sample memory if any target is running. */
-		foreach_smp_target(list, target->smp_targets) {
-			struct target *t = list->target;
-			if (t->state == TARGET_RUNNING) {
-				sample_memory(target);
-				break;
-			}
-		}
-
-		return ERROR_OK;
-
+		targets = target->smp_targets;
 	} else {
-		enum riscv_poll_hart out = riscv_poll_hart(target, target->coreid);
-		if (out == RPH_NO_CHANGE || out == RPH_DISCOVERED_RUNNING) {
-			if (target->state == TARGET_RUNNING)
-				sample_memory(target);
-			return ERROR_OK;
-		} else if (out == RPH_ERROR) {
-			return ERROR_FAIL;
-		}
-
-		LOG_TARGET_DEBUG(target, "hart halted");
-
-		target->state = TARGET_HALTED;
-		enum riscv_halt_reason halt_reason = riscv_halt_reason(target);
-		if (set_debug_reason(target, halt_reason) != ERROR_OK)
-			return ERROR_FAIL;
-		target->state = TARGET_HALTED;
+		/* Make a list that just contains a single target, so we can
+		 * share code below. */
+		list_add(&single_target_entry.lh, &single_target_list);
+		targets = &single_target_list;
 	}
 
-	if (target->debug_reason == DBG_REASON_BREAKPOINT) {
-		int retval;
-		switch (riscv_semihosting(target, &retval)) {
-			case SEMI_NONE:
-			case SEMI_WAITING:
-				target_call_event_callbacks(target, TARGET_EVENT_HALTED);
-				break;
-			case SEMI_HANDLED:
-				if (riscv_resume(target, true, 0, 0, 0, false) != ERROR_OK)
-					return ERROR_FAIL;
-				break;
-			case SEMI_ERROR:
-				return retval;
+	unsigned should_remain_halted = 0;
+	unsigned should_resume = 0;
+	struct target_list *list;
+	foreach_smp_target(list, targets) {
+		struct target *t = list->target;
+		if (!target_was_examined(t))
+			continue;
+		enum riscv_poll_hart out = riscv_poll_hart(t, t->coreid);
+		switch (out) {
+		case RPH_NO_CHANGE:
+			break;
+		case RPH_DISCOVERED_RUNNING:
+			t->state = TARGET_RUNNING;
+			t->debug_reason = DBG_REASON_NOTHALTED;
+			break;
+		case RPH_DISCOVERED_HALTED:
+			t->state = TARGET_HALTED;
+			enum riscv_halt_reason halt_reason =
+				riscv_halt_reason(t);
+			if (set_debug_reason(t, halt_reason) != ERROR_OK)
+				return ERROR_FAIL;
+
+			if (halt_reason == RISCV_HALT_BREAKPOINT) {
+				int retval;
+				switch (riscv_semihosting(t, &retval)) {
+				case SEMI_NONE:
+				case SEMI_WAITING:
+					/* This hart should remain halted. */
+					should_remain_halted++;
+					break;
+				case SEMI_HANDLED:
+					/* This hart should be resumed, along with any other
+					 * harts that halted due to haltgroups. */
+					should_resume++;
+					break;
+				case SEMI_ERROR:
+					return retval;
+				}
+			} else if (halt_reason != RISCV_HALT_GROUP) {
+				should_remain_halted++;
+			}
+			break;
+
+		case RPH_ERROR:
+			return ERROR_FAIL;
 		}
-	} else {
-		if (old_state == TARGET_DEBUG_RUNNING)
-			target_call_event_callbacks(target, TARGET_EVENT_DEBUG_HALTED);
-		else
-			target_call_event_callbacks(target, TARGET_EVENT_HALTED);
+	}
+
+	LOG_DEBUG("should_remain_halted=%d, should_resume=%d",
+				should_remain_halted, should_resume);
+	if (should_remain_halted && should_resume) {
+		LOG_WARNING("%d harts should remain halted, and %d should resume.",
+					should_remain_halted, should_resume);
+	}
+	if (should_remain_halted) {
+		LOG_DEBUG("halt all");
+		riscv_halt(target);
+	} else if (should_resume) {
+		LOG_DEBUG("resume all");
+		riscv_resume(target, true, 0, 0, 0, false);
+	}
+
+	/* Sample memory if any target is running. */
+	foreach_smp_target(list, targets) {
+		struct target *t = list->target;
+		if (t->state == TARGET_RUNNING) {
+			sample_memory(target);
+			break;
+		}
 	}
 
 	return ERROR_OK;
