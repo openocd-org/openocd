@@ -676,18 +676,19 @@ static void ftdi_execute_stableclocks(struct jtag_command *cmd)
 static void ftdi_execute_command(struct jtag_command *cmd)
 {
 	switch (cmd->type) {
-		case JTAG_RESET:
 #if BUILD_FTDI_CJTAG == 1
-			cjtag_reset_online_activate(); /* put the target back into selected cJTAG mode */
-#endif
+		case JTAG_RESET:
+			if (cmd->cmd.reset->trst)
+				cjtag_reset_online_activate(); /* put the target (back) into selected cJTAG mode */
 			break;
+#endif
 		case JTAG_RUNTEST:
 			ftdi_execute_runtest(cmd);
 			break;
 		case JTAG_TLR_RESET:
 			ftdi_execute_statemove(cmd);
 #if BUILD_FTDI_CJTAG == 1
-			cjtag_reset_online_activate(); /* put the target back into selected cJTAG mode */
+			cjtag_reset_online_activate(); /* put the target (back) into selected cJTAG mode */
 #endif
 			break;
 		case JTAG_PATHMOVE:
