@@ -686,10 +686,10 @@ static void ftdi_execute_command(struct jtag_command *cmd)
 			ftdi_execute_runtest(cmd);
 			break;
 		case JTAG_TLR_RESET:
-			ftdi_execute_statemove(cmd);
 #if BUILD_FTDI_CJTAG == 1
 			cjtag_reset_online_activate(); /* put the target (back) into selected cJTAG mode */
 #endif
+			ftdi_execute_statemove(cmd);
 			break;
 		case JTAG_PATHMOVE:
 			ftdi_execute_pathmove(cmd);
