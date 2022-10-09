@@ -221,19 +221,35 @@ You'll also need:
 - libtool
 - pkg-config >= 0.23 or pkgconf
 
+OpenOCD uses jimtcl library; build from git can retrieve jimtcl as git
+submodule.
+
 Additionally, for building from git:
 
 - autoconf >= 2.69
 - automake >= 1.14
 - texinfo >= 5.0
 
-USB-based adapters depend on libusb-1.0.
+Optional USB-based adapter drivers need libusb-1.0.
 
-USB-Blaster, ASIX Presto and OpenJTAG interface adapter
+Optional USB-Blaster, ASIX Presto and OpenJTAG interface adapter
 drivers need:
   - libftdi: http://www.intra2net.com/en/developer/libftdi/index.php
 
-CMSIS-DAP support needs HIDAPI library.
+Optional CMSIS-DAP adapter driver needs HIDAPI library.
+
+Optional linuxgpiod adapter driver needs libgpiod library.
+
+Optional JLink adapter driver needs libjaylink; build from git can
+retrieve libjaylink as git submodule.
+
+Optional ARM disassembly needs capstone library.
+
+Optional development script checkpatch needs:
+
+- perl
+- python
+- python-ply
 
 Permissions delegation
 ----------------------
