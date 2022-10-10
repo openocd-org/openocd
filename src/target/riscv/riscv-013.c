@@ -1340,11 +1340,11 @@ static int register_write_direct(struct target *target, unsigned number,
 		if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
 			if (riscv_supports_extension(target, 'D')) {
 				if (riscv_program_insert(&program,
-							fmv_d_x(number - GDB_REGNO_FPR0, S0) != ERROR_OK))
+							fmv_d_x(number - GDB_REGNO_FPR0, S0)) != ERROR_OK)
 					return ERROR_FAIL;
 			} else {
 				if (riscv_program_insert(&program,
-							fmv_w_x(number - GDB_REGNO_FPR0, S0) != ERROR_OK))
+							fmv_w_x(number - GDB_REGNO_FPR0, S0)) != ERROR_OK)
 					return ERROR_FAIL;
 			}
 		} else if (number == GDB_REGNO_VTYPE) {
