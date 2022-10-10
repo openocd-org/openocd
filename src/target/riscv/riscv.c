@@ -2175,44 +2175,126 @@ static int riscv_checksum_memory(struct target *target,
 
 /*** OpenOCD Helper Functions ***/
 
-enum riscv_poll_hart {
-	RPH_NO_CHANGE,
-	RPH_DISCOVERED_HALTED,
-	RPH_DISCOVERED_RUNNING,
-	RPH_ERROR
+enum riscv_next_action {
+	RPH_NONE,
+	RPH_RESUME,
+	RPH_REMAIN_HALTED
 };
-static enum riscv_poll_hart riscv_poll_hart(struct target *target, int hartid)
+static int riscv_poll_hart(struct target *target, enum riscv_next_action *next_action)
 {
 	RISCV_INFO(r);
 
 	LOG_TARGET_DEBUG(target, "polling, target->state=%d", target->state);
+
+	*next_action = RPH_NONE;
+
+	enum riscv_hart_state previous_riscv_state = 0;
+	enum target_state previous_target_state = target->state;
+	switch (target->state) {
+		case TARGET_UNKNOWN:
+			/* Special case, handled further down. */
+			previous_riscv_state = RISCV_STATE_UNAVAILABLE;	/* Need to assign something. */
+			break;
+		case TARGET_RUNNING:
+			previous_riscv_state = RISCV_STATE_RUNNING;
+			break;
+		case TARGET_HALTED:
+			previous_riscv_state = RISCV_STATE_HALTED;
+			break;
+		case TARGET_RESET:
+			previous_riscv_state = RISCV_STATE_HALTED;
+			break;
+		case TARGET_DEBUG_RUNNING:
+			previous_riscv_state = RISCV_STATE_RUNNING;
+			break;
+		case TARGET_UNAVAILABLE:
+			previous_riscv_state = RISCV_STATE_UNAVAILABLE;
+			break;
+	}
 
 	/* If OpenOCD thinks we're running but this hart is halted then it's time
 	 * to raise an event. */
 	enum riscv_hart_state state;
 	if (riscv_get_hart_state(target, &state) != ERROR_OK)
 		return ERROR_FAIL;
-	bool halted = (state == RISCV_STATE_HALTED);
 
-	if (halted && timeval_ms() - r->last_activity > 100) {
+	if (state == RISCV_STATE_NON_EXISTENT) {
+		LOG_TARGET_ERROR(target, "Hart is non-existent!");
+		return ERROR_FAIL;
+	}
+
+	if (state == RISCV_STATE_HALTED && timeval_ms() - r->last_activity > 100) {
 		/* If we've been idle for a while, flush the register cache. Just in case
 		 * OpenOCD is going to be disconnected without shutting down cleanly. */
 		if (riscv_flush_registers(target) != ERROR_OK)
 			return ERROR_FAIL;
 	}
 
-	if (target->state != TARGET_HALTED && halted) {
-		LOG_DEBUG("  triggered a halt");
-		r->on_halt(target);
-		return RPH_DISCOVERED_HALTED;
-	} else if (target->state != TARGET_RUNNING && target->state != TARGET_DEBUG_RUNNING && !halted) {
-		LOG_DEBUG("  triggered running");
-		target->state = TARGET_RUNNING;
-		target->debug_reason = DBG_REASON_NOTHALTED;
-		return RPH_DISCOVERED_RUNNING;
+	if (target->state == TARGET_UNKNOWN || state != previous_riscv_state) {
+		switch (state) {
+			case RISCV_STATE_HALTED:
+				LOG_TARGET_DEBUG(target, "  triggered a halt; previous_target_state=%d",
+					previous_target_state);
+				target->state = TARGET_HALTED;
+				enum riscv_halt_reason halt_reason = riscv_halt_reason(target);
+				if (set_debug_reason(target, halt_reason) != ERROR_OK)
+					return ERROR_FAIL;
+
+				if (halt_reason == RISCV_HALT_BREAKPOINT) {
+					int retval;
+					/* Detect if this EBREAK is a semihosting request. If so, handle it. */
+					switch (riscv_semihosting(target, &retval)) {
+						case SEMI_NONE:
+							break;
+						case SEMI_WAITING:
+							/* This hart should remain halted. */
+							*next_action = RPH_REMAIN_HALTED;
+							break;
+						case SEMI_HANDLED:
+							/* This hart should be resumed, along with any other
+							* harts that halted due to haltgroups. */
+							*next_action = RPH_RESUME;
+							return ERROR_OK;
+						case SEMI_ERROR:
+							return retval;
+					}
+				}
+
+				r->on_halt(target);
+
+				/* We shouldn't do the callbacks yet. What if
+				 * there are multiple harts that halted at the
+				 * same time? We need to set debug reason on each
+				 * of them before calling a callback, which is
+				 * going to figure out the "current thread". */
+
+				r->halted_needs_event_callback = true;
+				if (previous_target_state == TARGET_DEBUG_RUNNING)
+					r->halted_callback_event = TARGET_EVENT_DEBUG_HALTED;
+				else
+					r->halted_callback_event = TARGET_EVENT_HALTED;
+				break;
+
+			case RISCV_STATE_RUNNING:
+				LOG_TARGET_DEBUG(target, "  triggered running");
+				target->state = TARGET_RUNNING;
+				target->debug_reason = DBG_REASON_NOTHALTED;
+				break;
+
+			case RISCV_STATE_UNAVAILABLE:
+				LOG_TARGET_DEBUG(target, "  became unavailable");
+				LOG_TARGET_INFO(target, "became unavailable.");
+				target->state = TARGET_UNAVAILABLE;
+				break;
+
+			case RISCV_STATE_NON_EXISTENT:
+				LOG_TARGET_ERROR(target, "Hart is non-existent!");
+				target->state = TARGET_UNAVAILABLE;
+				break;
+		}
 	}
 
-	return RPH_NO_CHANGE;
+	return ERROR_OK;
 }
 
 int sample_memory(struct target *target)
@@ -2286,49 +2368,38 @@ int riscv_openocd_poll(struct target *target)
 
 	unsigned should_remain_halted = 0;
 	unsigned should_resume = 0;
-	struct target_list *list;
-	foreach_smp_target(list, targets) {
-		struct target *t = list->target;
+	unsigned halted = 0;
+	unsigned running = 0;
+	struct target_list *entry;
+	foreach_smp_target(entry, targets) {
+		struct target *t = entry->target;
+		riscv_info_t *info = riscv_info(t);
+
+		/* Clear here just in case there were errors and we never got to
+		 * check this flag further down. */
+		info->halted_needs_event_callback = false;
+
 		if (!target_was_examined(t))
 			continue;
-		enum riscv_poll_hart out = riscv_poll_hart(t, t->coreid);
-		switch (out) {
-		case RPH_NO_CHANGE:
-			break;
-		case RPH_DISCOVERED_RUNNING:
-			t->state = TARGET_RUNNING;
-			t->debug_reason = DBG_REASON_NOTHALTED;
-			break;
-		case RPH_DISCOVERED_HALTED:
-			t->state = TARGET_HALTED;
-			enum riscv_halt_reason halt_reason =
-				riscv_halt_reason(t);
-			if (set_debug_reason(t, halt_reason) != ERROR_OK)
-				return ERROR_FAIL;
 
-			if (halt_reason == RISCV_HALT_BREAKPOINT) {
-				int retval;
-				switch (riscv_semihosting(t, &retval)) {
-				case SEMI_NONE:
-				case SEMI_WAITING:
-					/* This hart should remain halted. */
-					should_remain_halted++;
-					break;
-				case SEMI_HANDLED:
-					/* This hart should be resumed, along with any other
-					 * harts that halted due to haltgroups. */
-					should_resume++;
-					break;
-				case SEMI_ERROR:
-					return retval;
-				}
-			} else if (halt_reason != RISCV_HALT_GROUP) {
-				should_remain_halted++;
-			}
-			break;
-
-		case RPH_ERROR:
+		enum riscv_next_action next_action;
+		if (riscv_poll_hart(t, &next_action) != ERROR_OK)
 			return ERROR_FAIL;
+
+		switch (next_action) {
+			case RPH_NONE:
+				if (t->state == TARGET_HALTED)
+					halted++;
+				if (t->state == TARGET_RUNNING ||
+					t->state == TARGET_DEBUG_RUNNING)
+					running++;
+				break;
+			case RPH_REMAIN_HALTED:
+				should_remain_halted++;
+				break;
+			case RPH_RESUME:
+				should_resume++;
+				break;
 		}
 	}
 
@@ -2339,16 +2410,33 @@ int riscv_openocd_poll(struct target *target)
 					should_remain_halted, should_resume);
 	}
 	if (should_remain_halted) {
-		LOG_DEBUG("halt all");
+		LOG_TARGET_DEBUG(target, "halt all; should_remain_halted=%d",
+			should_remain_halted);
 		riscv_halt(target);
 	} else if (should_resume) {
 		LOG_DEBUG("resume all");
 		riscv_resume(target, true, 0, 0, 0, false);
+	} else if (halted && running) {
+		LOG_TARGET_DEBUG(target, "halt all; halted=%d",
+			halted);
+		riscv_halt(target);
+	} else {
+		/* For targets that were discovered to be halted, call the
+		 * appropriate callback. */
+		foreach_smp_target(entry, targets)
+		{
+			struct target *t = entry->target;
+			riscv_info_t *info = riscv_info(t);
+			if (info->halted_needs_event_callback) {
+				target_call_event_callbacks(t, info->halted_callback_event);
+				info->halted_needs_event_callback = false;
+			}
+		}
 	}
 
 	/* Sample memory if any target is running. */
-	foreach_smp_target(list, targets) {
-		struct target *t = list->target;
+	foreach_smp_target(entry, targets) {
+		struct target *t = entry->target;
 		if (t->state == TARGET_RUNNING) {
 			sample_memory(target);
 			break;

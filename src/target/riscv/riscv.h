@@ -151,6 +151,10 @@ typedef struct {
 	/* This target was selected using hasel. */
 	bool selected;
 
+	/* Used by riscv_openocd_poll(). */
+	bool halted_needs_event_callback;
+	enum target_event halted_callback_event;
+
 	enum riscv_isrmasking_mode isrmask_mode;
 
 	/* Helper functions that target the various RISC-V debug spec
