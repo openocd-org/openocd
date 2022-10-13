@@ -66,6 +66,12 @@ static inline void bcm2835_gpio_synchronize(void)
 	__sync_synchronize();
 }
 
+static inline void bcm2835_delay(void)
+{
+	for (unsigned int i = 0; i < jtag_delay; i++)
+		asm volatile ("");
+}
+
 static bool is_gpio_config_valid(enum adapter_gpio_config_index idx)
 {
 	/* Only chip 0 is supported, accept unset value (-1) too */
@@ -178,8 +184,7 @@ static int bcm2835gpio_write(int tck, int tms, int tdi)
 	GPIO_CLR = clear;
 	bcm2835_gpio_synchronize();
 
-	for (unsigned int i = 0; i < jtag_delay; i++)
-		asm volatile ("");
+	bcm2835_delay();
 
 	return ERROR_OK;
 }
@@ -199,8 +204,7 @@ static int bcm2835gpio_swd_write_fast(int swclk, int swdio)
 	GPIO_CLR = clear;
 	bcm2835_gpio_synchronize();
 
-	for (unsigned int i = 0; i < jtag_delay; i++)
-		asm volatile ("");
+	bcm2835_delay();
 
 	return ERROR_OK;
 }
@@ -211,8 +215,7 @@ static int bcm2835gpio_swd_write_generic(int swclk, int swdio)
 	set_gpio_value(&adapter_gpio_config[ADAPTER_GPIO_IDX_SWDIO], swdio);
 	set_gpio_value(&adapter_gpio_config[ADAPTER_GPIO_IDX_SWCLK], swclk); /* Write clock last */
 
-	for (unsigned int i = 0; i < jtag_delay; ++i)
-		asm volatile ("");
+	bcm2835_delay();
 
 	return ERROR_OK;
 }
