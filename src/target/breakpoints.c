@@ -78,7 +78,7 @@ static int breakpoint_add_internal(struct target *target,
 		reason = "resource not available";
 		goto fail;
 	case ERROR_TARGET_NOT_HALTED:
-		reason = "target running";
+		reason = "target not halted";
 		goto fail;
 	default:
 		reason = "unknown reason";
@@ -523,7 +523,7 @@ static int watchpoint_add_internal(struct target *target, target_addr_t address,
 		reason = "resource not available";
 		goto bye;
 	case ERROR_TARGET_NOT_HALTED:
-		reason = "target running";
+		reason = "target not halted";
 		goto bye;
 	default:
 		reason = "unrecognized error";
