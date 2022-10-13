@@ -1625,9 +1625,11 @@ int riscv_resume(
 	struct target_list *tlist;
 	foreach_smp_target_direction(resume_order == RO_NORMAL, tlist, targets) {
 		struct target *t = tlist->target;
-		if (resume_prep(t, current, address, handle_breakpoints,
-					debug_execution) != ERROR_OK)
-			result = ERROR_FAIL;
+		if (t->state != TARGET_UNAVAILABLE) {
+			if (resume_prep(t, current, address, handle_breakpoints,
+						debug_execution) != ERROR_OK)
+				result = ERROR_FAIL;
+		}
 	}
 
 	foreach_smp_target_direction(resume_order == RO_NORMAL, tlist, targets) {
@@ -1642,8 +1644,10 @@ int riscv_resume(
 
 	foreach_smp_target_direction(resume_order == RO_NORMAL, tlist, targets) {
 		struct target *t = tlist->target;
-		if (resume_finish(t, debug_execution) != ERROR_OK)
-			result = ERROR_FAIL;
+		if (t->state != TARGET_UNAVAILABLE) {
+			if (resume_finish(t, debug_execution) != ERROR_OK)
+				result = ERROR_FAIL;
+		}
 	}
 
 	return result;
