@@ -264,7 +264,8 @@ static int bcm2835gpio_khz(int khz, int *jtag_speed)
 		LOG_DEBUG("BCM2835 GPIO: RCLK not supported");
 		return ERROR_FAIL;
 	}
-	*jtag_speed = speed_coeff/khz - speed_offset;
+	*jtag_speed = DIV_ROUND_UP(speed_coeff, khz) - speed_offset;
+	LOG_DEBUG("jtag_delay %d", *jtag_speed);
 	if (*jtag_speed < 0)
 		*jtag_speed = 0;
 	return ERROR_OK;
@@ -272,7 +273,9 @@ static int bcm2835gpio_khz(int khz, int *jtag_speed)
 
 static int bcm2835gpio_speed_div(int speed, int *khz)
 {
-	*khz = speed_coeff/(speed + speed_offset);
+	int divisor = speed + speed_offset;
+	/* divide with roundig to the closest */
+	*khz = (speed_coeff + divisor / 2) / divisor;
 	return ERROR_OK;
 }
 
