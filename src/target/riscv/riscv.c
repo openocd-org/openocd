@@ -1604,43 +1604,46 @@ int riscv_resume(
 {
 	LOG_DEBUG("handle_breakpoints=%d", handle_breakpoints);
 	int result = ERROR_OK;
+
+	struct list_head *targets;
+
+	LIST_HEAD(single_target_list);
+	struct target_list single_target_entry = {
+		.lh = {NULL, NULL},
+		.target = target
+	};
+
 	if (target->smp && !single_hart) {
-		struct target_list *tlist;
-		foreach_smp_target_direction(resume_order == RO_NORMAL,
-									 tlist, target->smp_targets) {
-			struct target *t = tlist->target;
-			if (resume_prep(t, current, address, handle_breakpoints,
+		targets = target->smp_targets;
+	} else {
+		/* Make a list that just contains a single target, so we can
+		 * share code below. */
+		list_add(&single_target_entry.lh, &single_target_list);
+		targets = &single_target_list;
+	}
+
+	struct target_list *tlist;
+	foreach_smp_target_direction(resume_order == RO_NORMAL, tlist, targets) {
+		struct target *t = tlist->target;
+		if (resume_prep(t, current, address, handle_breakpoints,
+					debug_execution) != ERROR_OK)
+			result = ERROR_FAIL;
+	}
+
+	foreach_smp_target_direction(resume_order == RO_NORMAL, tlist, targets) {
+		struct target *t = tlist->target;
+		riscv_info_t *i = riscv_info(t);
+		if (i->prepped) {
+			if (resume_go(t, current, address, handle_breakpoints,
 						debug_execution) != ERROR_OK)
 				result = ERROR_FAIL;
 		}
+	}
 
-		foreach_smp_target_direction(resume_order == RO_NORMAL,
-									 tlist, target->smp_targets) {
-			struct target *t = tlist->target;
-			riscv_info_t *i = riscv_info(t);
-			if (i->prepped) {
-				if (resume_go(t, current, address, handle_breakpoints,
-							debug_execution) != ERROR_OK)
-					result = ERROR_FAIL;
-			}
-		}
-
-		foreach_smp_target_direction(resume_order == RO_NORMAL,
-									 tlist, target->smp_targets) {
-			struct target *t = tlist->target;
-			if (resume_finish(t, debug_execution) != ERROR_OK)
-				result = ERROR_FAIL;
-		}
-
-	} else {
-		if (resume_prep(target, current, address, handle_breakpoints,
-					debug_execution) != ERROR_OK)
+	foreach_smp_target_direction(resume_order == RO_NORMAL, tlist, targets) {
+		struct target *t = tlist->target;
+		if (resume_finish(t, debug_execution) != ERROR_OK)
 			result = ERROR_FAIL;
-		if (resume_go(target, current, address, handle_breakpoints,
-					debug_execution) != ERROR_OK)
-			result = ERROR_FAIL;
-		if (resume_finish(target, debug_execution) != ERROR_OK)
-			return ERROR_FAIL;
 	}
 
 	return result;
