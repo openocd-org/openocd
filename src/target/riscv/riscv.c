@@ -2289,10 +2289,24 @@ int riscv_openocd_poll(struct target *target)
 int riscv_openocd_step(struct target *target, int current,
 	target_addr_t address, int handle_breakpoints)
 {
-	LOG_DEBUG("stepping rtos hart");
+	LOG_TARGET_DEBUG(target, "stepping hart");
 
-	if (!current)
-		riscv_set_register(target, GDB_REGNO_PC, address);
+	if (!current) {
+		if (riscv_set_register(target, GDB_REGNO_PC, address) != ERROR_OK)
+			return ERROR_FAIL;
+	}
+
+	struct breakpoint *breakpoint = NULL;
+	/* the front-end may request us not to handle breakpoints */
+	if (handle_breakpoints) {
+		if (current) {
+			if (riscv_get_register(target, &address, GDB_REGNO_PC) != ERROR_OK)
+				return ERROR_FAIL;
+		}
+		breakpoint = breakpoint_find(target, address);
+		if (breakpoint && (riscv_remove_breakpoint(target, breakpoint) != ERROR_OK))
+			return ERROR_FAIL;
+	}
 
 	riscv_reg_t trigger_state[RISCV_MAX_HWBPS] = {0};
 	if (disable_triggers(target, trigger_state) != ERROR_OK)
@@ -2330,6 +2344,11 @@ _exit:
 	if (enable_triggers(target, trigger_state) != ERROR_OK) {
 		success = false;
 		LOG_ERROR("unable to enable triggers");
+	}
+
+	if (breakpoint && (riscv_add_breakpoint(target, breakpoint) != ERROR_OK)) {
+		success = false;
+		LOG_TARGET_ERROR(target, "unable to restore the disabled breakpoint");
 	}
 
 	if (success) {
