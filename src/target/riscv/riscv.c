@@ -2744,6 +2744,9 @@ COMMAND_HANDLER(riscv_dmi_write)
 
 COMMAND_HANDLER(riscv_test_sba_config_reg)
 {
+	LOG_WARNING("Command \"riscv test_sba_config_reg\" is deprecated. "
+		"It will be removed in a future OpenOCD version.");
+
 	if (CMD_ARGC != 4) {
 		LOG_ERROR("Command takes exactly 4 arguments");
 		return ERROR_COMMAND_SYNTAX_ERROR;
