@@ -10976,12 +10976,12 @@ NXP}.
 
 @subsection Xtensa Configuration Commands
 
-@deffn {Command} {xtensa xtdef} (@option{LX}|@option{NX})
+@deffn {Config Command} {xtensa xtdef} (@option{LX}|@option{NX})
 Configure the Xtensa target architecture. Currently, Xtensa support is limited
 to LX6, LX7, and NX cores.
 @end deffn
 
-@deffn {Command} {xtensa xtopt} option value
+@deffn {Config Command} {xtensa xtopt} option value
 Configure Xtensa target options that are relevant to the debug subsystem.
 @var{option} is one of: @option{arnum}, @option{windowed},
 @option{cpenable}, @option{exceptions}, @option{intnum}, @option{hipriints},
@@ -10993,35 +10993,35 @@ NOTE: Some options are specific to Xtensa LX or Xtensa NX architecture, while
 others may be common to both but have different valid ranges.
 @end deffn
 
-@deffn {Command} {xtensa xtmem} (@option{iram}|@option{dram}|@option{sram}|@option{irom}|@option{drom}|@option{srom}) baseaddr bytes
+@deffn {Config Command} {xtensa xtmem} (@option{iram}|@option{dram}|@option{sram}|@option{irom}|@option{drom}|@option{srom}) baseaddr bytes
 Configure Xtensa target memory. Memory type determines access rights,
 where RAMs are read/write while ROMs are read-only. @var{baseaddr} and
 @var{bytes} are both integers, typically hexadecimal and decimal, respectively.
 @end deffn
 
-@deffn {Command} {xtensa xtmem} (@option{icache}|@option{dcache}) linebytes cachebytes ways [writeback]
+@deffn {Config Command} {xtensa xtmem} (@option{icache}|@option{dcache}) linebytes cachebytes ways [writeback]
 Configure Xtensa processor cache. All parameters are required except for
 the optional @option{writeback} parameter; all are integers.
 @end deffn
 
-@deffn {Command} {xtensa xtmpu} numfgseg minsegsz lockable execonly
+@deffn {Config Command} {xtensa xtmpu} numfgseg minsegsz lockable execonly
 Configure an Xtensa Memory Protection Unit (MPU). MPUs can restrict access
 and/or control cacheability of specific address ranges, but are lighter-weight
 than a full traditional MMU. All parameters are required; all are integers.
 @end deffn
 
-@deffn {Command} {xtensa xtmmu} numirefillentries numdrefillentries
+@deffn {Config Command} {xtensa xtmmu} numirefillentries numdrefillentries
 (Xtensa-LX only) Configure an Xtensa Memory Management Unit (MMU). Both
 parameters are required; both are integers.
 @end deffn
 
-@deffn {Command} {xtensa xtregs} numregs
+@deffn {Config Command} {xtensa xtregs} numregs
 Configure the total number of registers for the Xtensa core. Configuration
 logic expects to subsequently process this number of @code{xtensa xtreg}
 definitions. @var{numregs} is an integer.
 @end deffn
 
-@deffn {Command} {xtensa xtregfmt} (@option{sparse}|@option{contiguous}) [general]
+@deffn {Config Command} {xtensa xtregfmt} (@option{sparse}|@option{contiguous}) [general]
 Configure the type of register map used by GDB to access the Xtensa core.
 Generic Xtensa tools (e.g. xt-gdb) require @option{sparse} mapping (default) while
 Espressif tools expect @option{contiguous} mapping. Contiguous mapping takes an
@@ -11029,7 +11029,7 @@ additional, optional integer parameter @option{numgregs}, which specifies the nu
 of general registers used in handling g/G packets.
 @end deffn
 
-@deffn {Command} {xtensa xtreg} name offset
+@deffn {Config Command} {xtensa xtreg} name offset
 Configure an Xtensa core register. All core registers are 32 bits wide,
 while TIE and user registers may have variable widths. @var{name} is a
 character string identifier while @var{offset} is a hexadecimal integer.
