@@ -104,7 +104,7 @@ int allow_transports(struct command_context *ctx, const char * const *vector)
 
 	/* autoselect if there's no choice ... */
 	if (!vector[1]) {
-		LOG_INFO("only one transport option; autoselect '%s'", vector[0]);
+		LOG_INFO("only one transport option; autoselecting '%s'", vector[0]);
 		return transport_select(ctx, vector[0]);
 	}
 

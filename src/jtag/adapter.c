@@ -136,9 +136,11 @@ int adapter_init(struct command_context *cmd_ctx)
 
 	int retval;
 
-	if (adapter_config.clock_mode == CLOCK_MODE_UNSELECTED) {
+	/* If the adapter supports configurable speed but the speed is not configured,
+	 * provide a hint to the user. */
+	if (adapter_driver->speed && adapter_config.clock_mode == CLOCK_MODE_UNSELECTED) {
 		LOG_WARNING("An adapter speed is not selected in the init scripts."
-			" OpenOCD will try to run the adapter at the low speed (%d kHz)",
+			" OpenOCD will try to run the adapter at very low speed (%d kHz).",
 			DEFAULT_CLOCK_SPEED_KHZ);
 		LOG_WARNING("To remove this warnings and achieve reasonable communication speed with the target,"
 		    " set \"adapter speed\" or \"jtag_rclk\" in the init scripts.");
@@ -153,7 +155,7 @@ int adapter_init(struct command_context *cmd_ctx)
 	adapter_config.adapter_initialized = true;
 
 	if (!adapter_driver->speed) {
-		LOG_INFO("This adapter doesn't support configurable speed");
+		LOG_INFO("Note: The adapter \"%s\" doesn't support configurable speed", adapter_driver->name);
 		return ERROR_OK;
 	}
 
