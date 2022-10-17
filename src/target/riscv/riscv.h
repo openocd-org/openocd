@@ -174,9 +174,6 @@ struct riscv_info {
 	int (*dmi_read)(struct target *target, uint32_t *value, uint32_t address);
 	int (*dmi_write)(struct target *target, uint32_t address, uint32_t value);
 
-	int (*test_sba_config_reg)(struct target *target, target_addr_t legal_address,
-			uint32_t num_words, target_addr_t illegal_address, bool run_sbbusyerror_test);
-
 	int (*sample_memory)(struct target *target,
 						 struct riscv_sample_buf *buf,
 						 riscv_sample_config_t *config,
