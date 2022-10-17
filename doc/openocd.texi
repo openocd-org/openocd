@@ -1785,7 +1785,6 @@ $_TARGETNAME configure -work-area-phys 0x00200000 \
              -work-area-size 0x4000 -work-area-backup 0
 @end example
 
-@anchor{definecputargetsworkinginsmp}
 @subsection Define CPU targets working in SMP
 @cindex SMP
 After setting targets, you can define a list of targets working in SMP.
@@ -1939,7 +1938,6 @@ For an example of this scheme see LPC2000 target config files.
 The @code{init_boards} procedure is a similar concept concerning board config files
 (@xref{theinitboardprocedure,,The init_board procedure}.)
 
-@anchor{theinittargeteventsprocedure}
 @subsection The init_target_events procedure
 @cindex init_target_events procedure
 
@@ -2468,7 +2466,6 @@ the generic mapping may not support all of the listed options.
 Returns the name of the debug adapter driver being used.
 @end deffn
 
-@anchor{adapter_usb_location}
 @deffn {Config Command} {adapter usb location} [<bus>-<port>[.<port>]...]
 Displays or specifies the physical USB port of the adapter to use. The path
 roots at @var{bus} and walks down the physical ports, with each
@@ -6205,7 +6202,6 @@ the flash.
 @end deffn
 @end deffn
 
-@anchor{at91samd}
 @deffn {Flash Driver} {at91samd}
 @cindex at91samd
 All members of the ATSAM D2x, D1x, D0x, ATSAMR, ATSAML and ATSAMC microcontroller
