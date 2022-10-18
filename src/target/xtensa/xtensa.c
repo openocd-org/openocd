@@ -1630,7 +1630,6 @@ int xtensa_do_step(struct target *target, int current, target_addr_t address, in
 
 	target->debug_reason = DBG_REASON_SINGLESTEP;
 	target->state = TARGET_HALTED;
-	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 	LOG_DEBUG("Done stepping, PC=%" PRIX32, cur_pc);
 
 	if (cause & DEBUGCAUSE_DB) {
@@ -1658,7 +1657,12 @@ int xtensa_do_step(struct target *target, int current, target_addr_t address, in
 
 int xtensa_step(struct target *target, int current, target_addr_t address, int handle_breakpoints)
 {
-	return xtensa_do_step(target, current, address, handle_breakpoints);
+	int retval = xtensa_do_step(target, current, address, handle_breakpoints);
+	if (retval != ERROR_OK)
+		return retval;
+	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
+
+	return ERROR_OK;
 }
 
 /**
