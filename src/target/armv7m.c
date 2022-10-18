@@ -529,6 +529,9 @@ int armv7m_start_algorithm(struct target *target,
 	/* Store all non-debug execution registers to armv7m_algorithm_info context */
 	for (unsigned i = 0; i < armv7m->arm.core_cache->num_regs; i++) {
 		struct reg *reg = &armv7m->arm.core_cache->reg_list[i];
+		if (!reg->exist)
+			continue;
+
 		if (!reg->valid)
 			armv7m_get_core_reg(reg);
 
@@ -688,16 +691,19 @@ int armv7m_wait_algorithm(struct target *target,
 	}
 
 	for (int i = armv7m->arm.core_cache->num_regs - 1; i >= 0; i--) {
+		struct reg *reg = &armv7m->arm.core_cache->reg_list[i];
+		if (!reg->exist)
+			continue;
+
 		uint32_t regvalue;
-		regvalue = buf_get_u32(armv7m->arm.core_cache->reg_list[i].value, 0, 32);
+		regvalue = buf_get_u32(reg->value, 0, 32);
 		if (regvalue != armv7m_algorithm_info->context[i]) {
 			LOG_DEBUG("restoring register %s with value 0x%8.8" PRIx32,
-					armv7m->arm.core_cache->reg_list[i].name,
-				armv7m_algorithm_info->context[i]);
-			buf_set_u32(armv7m->arm.core_cache->reg_list[i].value,
+					  reg->name, armv7m_algorithm_info->context[i]);
+			buf_set_u32(reg->value,
 				0, 32, armv7m_algorithm_info->context[i]);
-			armv7m->arm.core_cache->reg_list[i].valid = true;
-			armv7m->arm.core_cache->reg_list[i].dirty = true;
+			reg->valid = true;
+			reg->dirty = true;
 		}
 	}
 
