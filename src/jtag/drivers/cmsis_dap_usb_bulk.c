@@ -262,8 +262,10 @@ static int cmsis_dap_usb_open(struct cmsis_dap *dap, uint16_t vids[], uint16_t p
 					/* If the interface is reliably identified
 					 * then we need not insist on setting USB class, subclass and protocol
 					 * exactly as the specification requires.
+					 * Just filter out the well known classes, mainly CDC and MSC.
 					 * At least KitProg3 uses class 0 contrary to the specification */
-					if (intf_identified_reliably) {
+					if (intf_identified_reliably &&
+							(intf_desc->bInterfaceClass == 0 || intf_desc->bInterfaceClass > 0x12)) {
 						LOG_WARNING("Using CMSIS-DAPv2 interface %d with wrong class %" PRId8
 								  " subclass %" PRId8 " or protocol %" PRId8,
 								  interface_num,
