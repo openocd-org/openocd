@@ -2452,8 +2452,13 @@ static int deassert_reset(struct target *target)
 				return ERROR_FAIL;
 			}
 		}
-		target->state = TARGET_HALTED;
-		target->debug_reason = DBG_REASON_DBGRQ;
+		if (target->reset_halt) {
+			target->state = TARGET_HALTED;
+			target->debug_reason = DBG_REASON_DBGRQ;
+		} else {
+			target->state = TARGET_RUNNING;
+			target->debug_reason = DBG_REASON_NOTHALTED;
+		}
 
 		if (get_field(dmstatus, DM_DMSTATUS_ALLHAVERESET)) {
 			/* Ack reset. */
