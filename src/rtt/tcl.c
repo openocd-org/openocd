@@ -117,7 +117,7 @@ COMMAND_HANDLER(handle_rtt_channels_command)
 
 	ctrl = rtt_get_control();
 
-	command_print(CMD, "Channels: up=%u, down=%u", ctrl->num_up_channels,
+	command_print(CMD, "Channels: up=%" PRIu32 ", down=%" PRIu32, ctrl->num_up_channels,
 		ctrl->num_down_channels);
 
 	command_print(CMD, "Up-channels:");
@@ -134,7 +134,7 @@ COMMAND_HANDLER(handle_rtt_channels_command)
 		if (!info.size)
 			continue;
 
-		command_print(CMD, "%u: %s %u %u", i, info.name, info.size,
+		command_print(CMD, "%u: %s %" PRIu32 " %" PRIu32, i, info.name, info.size,
 			info.flags);
 	}
 
@@ -149,7 +149,7 @@ COMMAND_HANDLER(handle_rtt_channels_command)
 		if (!info.size)
 			continue;
 
-		command_print(CMD, "%u: %s %u %u", i, info.name, info.size,
+		command_print(CMD, "%u: %s %" PRIu32 " %" PRIu32, i, info.name, info.size,
 			info.flags);
 	}
 
