@@ -46,6 +46,8 @@ struct gdb_fileio_info;
  * not sure how this is used with all the recent changes)
  * TARGET_DEBUG_RUNNING = 4: the target is running, but it is executing code on
  * behalf of the debugger (e.g. algorithm for flashing)
+ * TARGET_UNAVAILABLE = 5: The target is unavailable for some reason. It might
+ * be powered down, for instance.
  *
  * also see: target_state_name();
  */
@@ -56,6 +58,7 @@ enum target_state {
 	TARGET_HALTED = 2,
 	TARGET_RESET = 3,
 	TARGET_DEBUG_RUNNING = 4,
+	TARGET_UNAVAILABLE = 5
 };
 
 enum target_reset_mode {
