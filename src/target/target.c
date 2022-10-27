@@ -256,6 +256,7 @@ static const struct jim_nvp nvp_target_state[] = {
 	{ .name = "halted",  .value = TARGET_HALTED },
 	{ .name = "reset",   .value = TARGET_RESET },
 	{ .name = "debug-running", .value = TARGET_DEBUG_RUNNING },
+	{ .name = "unavailable", .value = TARGET_UNAVAILABLE },
 	{ .name = NULL, .value = -1 },
 };
 
