@@ -38,6 +38,14 @@ jobs:
           cd hidapi-hidapi-${HIDAPI_VER}
           ./bootstrap
           echo "HIDAPI_SRC=$PWD" >> $GITHUB_ENV
+      - name: Prepare libftdi
+        env:
+          LIBFTDI_VER: 1.5
+        run: |
+          mkdir -p $DL_DIR && cd $DL_DIR
+          wget "http://www.intra2net.com/en/developer/libftdi/download/libftdi1-${LIBFTDI_VER}.tar.bz2"
+          tar -xjf libftdi1-${LIBFTDI_VER}.tar.bz2
+          echo "LIBFTDI_SRC=$PWD/libftdi1-${LIBFTDI_VER}" >> $GITHUB_ENV
       - name: Prepare capstone
         env:
           CAPSTONE_VER: 4.0.2
@@ -54,6 +62,7 @@ jobs:
           HOST: i686-w64-mingw32
           LIBUSB1_CONFIG: --enable-shared --disable-static
           HIDAPI_CONFIG: --enable-shared --disable-static --disable-testgui
+          LIBFTDI_CONFIG: -DSTATICLIBS=OFF -DEXAMPLES=OFF -DFTDI_EEPROM=OFF
           CAPSTONE_CONFIG: "CAPSTONE_BUILD_CORE_ONLY=yes CAPSTONE_STATIC=yes CAPSTONE_SHARED=no"
           CAPSTONE_CFLAGS: -I$(CAPSTONE_SRC)/include/capstone
         run: |

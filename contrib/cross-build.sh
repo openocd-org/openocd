@@ -121,11 +121,17 @@ fi
 if [ -d $LIBFTDI_SRC ] ; then
   mkdir -p $LIBFTDI_BUILD_DIR
   cd $LIBFTDI_BUILD_DIR
-  # libftdi requires libusb1 static libraries, granted by:
-  # export LIBUSB1_CONFIG="--enable-static ..."
+  # note : libftdi versions < 1.5 requires libusb1 static
+  #   hint use : # export LIBUSB1_CONFIG="--enable-static ..."
+  #   not needed since libftdi-1.5 when LIBFTDI_CONFIG="-DSTATICLIBS=OFF ..."
+
+  # fix <toolchain>.cmake file
+  ESCAPED_SYSROOT=$(printf '%s\n' "$SYSROOT" | sed -e 's/[\/&]/\\&/g')
+  sed -i -E "s/(SET\(CMAKE_FIND_ROOT_PATH\s+).+\)/\1${ESCAPED_SYSROOT})/" \
+    ${LIBFTDI_SRC}/cmake/Toolchain-${HOST_TRIPLET}.cmake
+
   cmake $LIBFTDI_CONFIG \
-    -DLIBUSB_INCLUDE_DIR=${SYSROOT}${PREFIX}/include/libusb-1.0 \
-    -DLIBUSB_LIBRARIES=${SYSROOT}${PREFIX}/lib/libusb-1.0.a \
+    -DCMAKE_TOOLCHAIN_FILE=${LIBFTDI_SRC}/cmake/Toolchain-${HOST_TRIPLET}.cmake \
     -DCMAKE_INSTALL_PREFIX=${PREFIX} \
     -DPKG_CONFIG_EXECUTABLE=`which pkg-config` \
     $LIBFTDI_SRC
