@@ -130,6 +130,7 @@ typedef enum {
 } yes_no_maybe_t;
 
 #define HART_INDEX_MULTIPLE	-1
+#define HART_INDEX_UNKNOWN	-2
 
 typedef struct {
 	struct list_head list;
@@ -284,6 +285,8 @@ dm013_info_t *get_dm(struct target *target)
 
 static uint32_t set_dmcontrol_hartsel(uint32_t initial, int hart_index)
 {
+	assert(hart_index != HART_INDEX_UNKNOWN);
+
 	if (hart_index >= 0) {
 		initial = set_field(initial, DM_DMCONTROL_HASEL, DM_DMCONTROL_HASEL_SINGLE);
 		uint32_t index_lo = hart_index & ((1 << DM_DMCONTROL_HARTSELLO_LENGTH) - 1);
@@ -1599,9 +1602,14 @@ static int examine(struct target *target)
 	dmi_write(target, DM_DMCONTROL, DM_DMCONTROL_HARTSELLO |
 			DM_DMCONTROL_HARTSELHI | DM_DMCONTROL_DMACTIVE |
 			DM_DMCONTROL_HASEL);
+	dm->current_hartid = HART_INDEX_UNKNOWN;
 	uint32_t dmcontrol;
 	if (dmi_read(target, &dmcontrol, DM_DMCONTROL) != ERROR_OK)
 		return ERROR_FAIL;
+	/* Ensure the HART_INDEX_UNKNOWN is flushed out */
+	if (dm013_select_hart(target, 0) != ERROR_OK)
+		return ERROR_FAIL;
+
 
 	if (!get_field(dmcontrol, DM_DMCONTROL_DMACTIVE)) {
 		LOG_ERROR("Debug Module did not become active. dmcontrol=0x%x",
@@ -4139,7 +4147,7 @@ static int dm013_select_hart(struct target *target, int hart_index)
 	dmcontrol = set_dmcontrol_hartsel(dmcontrol, hart_index);
 	if (dmi_write(target, DM_DMCONTROL, dmcontrol) != ERROR_OK) {
 		/* Who knows what the state is? */
-		dm->current_hartid = -2;
+		dm->current_hartid = HART_INDEX_UNKNOWN;
 		return ERROR_FAIL;
 	}
 	dm->current_hartid = hart_index;
