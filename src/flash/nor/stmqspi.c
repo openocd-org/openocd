@@ -1799,7 +1799,6 @@ static int find_sfdp_dummy(struct flash_bank *bank, int len)
 		}
 	}
 
-	retval = ERROR_FAIL;
 	LOG_DEBUG("no start of SFDP header even after %u dummy bytes", count);
 
 err:
