@@ -8478,11 +8478,19 @@ that particular type of PLD.
 
 @deffn {FPGA Driver} {virtex2} [no_jstart]
 Virtex-II is a family of FPGAs sold by Xilinx.
+This driver can also be used to load Series3, Series6, Series7 and Zynq 7000 devices.
 It supports the IEEE 1532 standard for In-System Configuration (ISC).
 
 If @var{no_jstart} is non-zero, the JSTART instruction is not used after
 loading the bitstream. While required for Series2, Series3, and Series6, it
 breaks bitstream loading on Series7.
+
+@example
+openocd -f board/digilent_zedboard.cfg -c "init" \
+	-c "pld load 0 zedboard_bitstream.bit"
+@end example
+
+
 
 @deffn {Command} {virtex2 read_stat} num
 Reads and displays the Virtex-II status register (STAT)
