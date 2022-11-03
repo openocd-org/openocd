@@ -255,10 +255,10 @@ static int hwthread_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
 	for (int i = 0; i < reg_list_size; i++) {
 		if (!reg_list[i] || reg_list[i]->exist == false || reg_list[i]->hidden)
 			continue;
-		(*rtos_reg_list)[j].number = (*reg_list)[i].number;
-		(*rtos_reg_list)[j].size = (*reg_list)[i].size;
-		memcpy((*rtos_reg_list)[j].value, (*reg_list)[i].value,
-				((*reg_list)[i].size + 7) / 8);
+		(*rtos_reg_list)[j].number = reg_list[i]->number;
+		(*rtos_reg_list)[j].size = reg_list[i]->size;
+		memcpy((*rtos_reg_list)[j].value, reg_list[i]->value,
+				DIV_ROUND_UP(reg_list[i]->size, 8));
 		j++;
 	}
 	free(reg_list);
