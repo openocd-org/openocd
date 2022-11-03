@@ -370,16 +370,21 @@ static int threadx_update_threads(struct rtos *rtos)
 		}
 
 		/* Read the thread name */
-		retval =
-			target_read_buffer(rtos->target,
-				name_ptr,
-				THREADX_THREAD_NAME_STR_SIZE,
-				(uint8_t *)&tmp_str);
-		if (retval != ERROR_OK) {
-			LOG_ERROR("Error reading thread name from ThreadX target");
-			return retval;
+		tmp_str[0] = '\x00';
+
+		/* Check if thread has a valid name */
+		if (name_ptr != 0) {
+			retval =
+				target_read_buffer(rtos->target,
+					name_ptr,
+					THREADX_THREAD_NAME_STR_SIZE,
+					(uint8_t *)&tmp_str);
+			if (retval != ERROR_OK) {
+				LOG_ERROR("Error reading thread name from ThreadX target");
+				return retval;
+			}
+			tmp_str[THREADX_THREAD_NAME_STR_SIZE - 1] = '\x00';
 		}
-		tmp_str[THREADX_THREAD_NAME_STR_SIZE-1] = '\x00';
 
 		if (tmp_str[0] == '\x00')
 			strcpy(tmp_str, "No Name");
