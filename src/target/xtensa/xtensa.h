@@ -35,12 +35,38 @@
 
 #define XT_ISNS_SZ_MAX                          3
 
+/* PS register bits (LX) */
 #define XT_PS_RING(_v_)                         ((uint32_t)((_v_) & 0x3) << 6)
 #define XT_PS_RING_MSK                          (0x3 << 6)
 #define XT_PS_RING_GET(_v_)                     (((_v_) >> 6) & 0x3)
 #define XT_PS_CALLINC_MSK                       (0x3 << 16)
 #define XT_PS_OWB_MSK                           (0xF << 8)
 #define XT_PS_WOE_MSK                           BIT(18)
+
+/* PS register bits (NX) */
+#define XT_PS_DIEXC_MSK                         BIT(2)
+
+/* MS register bits (NX) */
+#define XT_MS_DE_MSK                            BIT(5)
+#define XT_MS_DISPST_MSK                        (0x1f)
+#define XT_MS_DISPST_DBG                        (0x10)
+
+/* WB register bits (NX) */
+#define XT_WB_P_SHIFT                           (0)
+#define XT_WB_P_MSK                             (0x7U << XT_WB_P_SHIFT)
+#define XT_WB_C_SHIFT                           (4)
+#define XT_WB_C_MSK                             (0x7U << XT_WB_C_SHIFT)
+#define XT_WB_N_SHIFT                           (8)
+#define XT_WB_N_MSK                             (0x7U << XT_WB_N_SHIFT)
+#define XT_WB_S_SHIFT                           (30)
+#define XT_WB_S_MSK                             (0x3U << XT_WB_S_SHIFT)
+
+/* IBREAKC register bits (NX) */
+#define XT_IBREAKC_FB                           (0x80000000)
+
+/* Definitions for imprecise exception registers (NX) */
+#define XT_IMPR_EXC_MSK                         (0x00000013)
+#define XT_MESRCLR_IMPR_EXC_MSK                 (0x00000090)
 
 #define XT_LOCAL_MEM_REGIONS_NUM_MAX            8
 
@@ -79,6 +105,7 @@ struct xtensa_keyval_info_s {
 enum xtensa_type {
 	XT_UNDEF = 0,
 	XT_LX,
+	XT_NX,
 };
 
 struct xtensa_cache_config {
@@ -167,6 +194,17 @@ enum xtensa_stepping_isr_mode {
 	XT_STEPPING_ISR_ON,		/* interrupts are enabled during stepping */
 };
 
+enum xtensa_nx_reg_idx {
+	XT_NX_REG_IDX_IBREAKC0 = 0,
+	XT_NX_REG_IDX_WB,
+	XT_NX_REG_IDX_MS,
+	XT_NX_REG_IDX_IEVEC,		/* IEVEC, IEEXTERN, and MESR must be contiguous */
+	XT_NX_REG_IDX_IEEXTERN,
+	XT_NX_REG_IDX_MESR,
+	XT_NX_REG_IDX_MESRCLR,
+	XT_NX_REG_IDX_NUM
+};
+
 /* Only supported in cores with in-CPU MMU. None of Espressif chips as of now. */
 enum xtensa_mode {
 	XT_MODE_RING0,
@@ -232,6 +270,8 @@ struct xtensa {
 	uint8_t come_online_probes_num;
 	bool proc_syscall;
 	bool halt_request;
+	uint32_t nx_stop_cause;
+	uint32_t nx_reg_idx[XT_NX_REG_IDX_NUM];
 	struct xtensa_keyval_info_s scratch_ars[XT_AR_SCRATCH_NUM];
 	bool regs_fetched;	/* true after first register fetch completed successfully */
 };

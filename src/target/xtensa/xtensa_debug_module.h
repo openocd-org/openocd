@@ -246,6 +246,7 @@ struct xtensa_dm_reg_offsets {
 #define OCDDCR_ENABLEOCD            BIT(0)
 #define OCDDCR_DEBUGINTERRUPT       BIT(1)
 #define OCDDCR_INTERRUPTALLCONDS    BIT(2)
+#define OCDDCR_STEPREQUEST          BIT(3)		/* NX only */
 #define OCDDCR_BREAKINEN            BIT(16)
 #define OCDDCR_BREAKOUTEN           BIT(17)
 #define OCDDCR_DEBUGSWACTIVE        BIT(20)
@@ -259,6 +260,8 @@ struct xtensa_dm_reg_offsets {
 #define OCDDSR_EXECBUSY             BIT(2)
 #define OCDDSR_EXECOVERRUN          BIT(3)
 #define OCDDSR_STOPPED              BIT(4)
+#define OCDDSR_STOPCAUSE            (0xF << 5)	/* NX only */
+#define OCDDSR_STOPCAUSE_SHIFT      (5)			/* NX only */
 #define OCDDSR_COREWROTEDDR         BIT(10)
 #define OCDDSR_COREREADDDR          BIT(11)
 #define OCDDSR_HOSTWROTEDDR         BIT(14)
@@ -275,12 +278,24 @@ struct xtensa_dm_reg_offsets {
 #define OCDDSR_BREAKINITI           BIT(26)
 #define OCDDSR_DBGMODPOWERON        BIT(31)
 
+/* NX stop cause */
+#define OCDDSR_STOPCAUSE_DI         (0)		/* Debug Interrupt */
+#define OCDDSR_STOPCAUSE_SS         (1)		/* Single-step completed */
+#define OCDDSR_STOPCAUSE_IB         (2)		/* HW breakpoint (IBREAKn match) */
+#define OCDDSR_STOPCAUSE_B1         (4)		/* SW breakpoint (BREAK.1 instruction) */
+#define OCDDSR_STOPCAUSE_BN         (5)		/* SW breakpoint (BREAK.N instruction) */
+#define OCDDSR_STOPCAUSE_B          (6)		/* SW breakpoint (BREAK instruction) */
+#define OCDDSR_STOPCAUSE_DB0        (8)		/* HW watchpoint (DBREAK0 match) */
+#define OCDDSR_STOPCAUSE_DB1        (9)		/* HW watchpoint (DBREAK0 match) */
+
+/* LX stop cause */
 #define DEBUGCAUSE_IC               BIT(0)	/* ICOUNT exception */
 #define DEBUGCAUSE_IB               BIT(1)	/* IBREAK exception */
 #define DEBUGCAUSE_DB               BIT(2)	/* DBREAK exception */
 #define DEBUGCAUSE_BI               BIT(3)	/* BREAK instruction encountered */
 #define DEBUGCAUSE_BN               BIT(4)	/* BREAK.N instruction encountered */
 #define DEBUGCAUSE_DI               BIT(5)	/* Debug Interrupt */
+#define DEBUGCAUSE_VALID            BIT(31)	/* Pseudo-value to trigger reread (NX only) */
 
 #define TRAXCTRL_TREN               BIT(0)	/* Trace enable. Tracing starts on 0->1 */
 #define TRAXCTRL_TRSTP              BIT(1)	/* Trace Stop. Make 1 to stop trace. */
