@@ -2231,16 +2231,27 @@ static int sample_memory_bus_v1(struct target *target,
 			break;
 		}
 
-		size_t sbcs_key = riscv_batch_add_dmi_read(batch, DM_SBCS);
+		size_t sbcs_read_index = riscv_batch_add_dmi_read(batch, DM_SBCS);
 
 		int result = batch_run(target, batch);
-		if (result != ERROR_OK)
+		if (result != ERROR_OK) {
+			riscv_batch_free(batch);
 			return result;
+		}
 
-		uint32_t sbcs_read = riscv_batch_get_dmi_read_data(batch, sbcs_key);
+		/* Discard the batch when we encounter a busy state on the DMI level.
+		 * It's too much hassle to try to recover partial data. We'll try again
+		 * with a larger DMI delay. */
+		unsigned int sbcs_read_op = riscv_batch_get_dmi_read_op(batch, sbcs_read_index);
+		if (sbcs_read_op == DTM_DMI_OP_BUSY) {
+			increase_dmi_busy_delay(target);
+			continue;
+		}
+
+		uint32_t sbcs_read = riscv_batch_get_dmi_read_data(batch, sbcs_read_index);
 		if (get_field(sbcs_read, DM_SBCS_SBBUSYERROR)) {
-			/* Discard this batch (too much hassle to try to recover partial
-			 * data) and try again with a larger delay. */
+			/* Discard this batch when we encounter "busy error" state on the System Bus level.
+			 * We'll try next time with a larger System Bus read delay. */
 			info->bus_master_read_delay += info->bus_master_read_delay / 10 + 1;
 			dmi_write(target, DM_SBCS, sbcs_read | DM_SBCS_SBBUSYERROR | DM_SBCS_SBERROR);
 			riscv_batch_free(batch);
