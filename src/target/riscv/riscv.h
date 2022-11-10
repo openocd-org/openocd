@@ -65,6 +65,13 @@ enum riscv_isrmasking_mode {
 	RISCV_ISRMASK_STEPONLY,
 };
 
+enum riscv_hart_state {
+	RISCV_STATE_NON_EXISTENT,
+	RISCV_STATE_RUNNING,
+	RISCV_STATE_HALTED,
+	RISCV_STATE_UNAVAILABLE
+};
+
 typedef struct {
 	struct target *target;
 	unsigned custom_number;
@@ -152,7 +159,7 @@ typedef struct {
 	int (*set_register_buf)(struct target *target, int regno,
 			const uint8_t *buf);
 	int (*select_target)(struct target *target);
-	bool (*is_halted)(struct target *target);
+	int (*get_hart_state)(struct target *target, enum riscv_hart_state *state);
 	/* Resume this target, as well as every other prepped target that can be
 	 * resumed near-simultaneously. Clear the prepped flag on any target that
 	 * was resumed. */
@@ -366,7 +373,7 @@ int riscv_flush_registers(struct target *target);
 
 /* Checks the state of the current hart -- "is_halted" checks the actual
  * on-device register. */
-bool riscv_is_halted(struct target *target);
+int riscv_get_hart_state(struct target *target, enum riscv_hart_state *state);
 enum riscv_halt_reason riscv_halt_reason(struct target *target);
 
 /* These helper functions let the generic program interface get target-specific

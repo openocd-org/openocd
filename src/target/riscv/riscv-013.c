@@ -46,7 +46,6 @@ static int riscv013_step_current_hart(struct target *target);
 static int riscv013_on_halt(struct target *target);
 static int riscv013_on_step(struct target *target);
 static int riscv013_resume_prep(struct target *target);
-static bool riscv013_is_halted(struct target *target);
 static enum riscv_halt_reason riscv013_halt_reason(struct target *target);
 static int riscv013_write_debug_buffer(struct target *target, unsigned index,
 		riscv_insn_t d);
@@ -1307,8 +1306,7 @@ static int register_write_direct(struct target *target, unsigned number,
 
 	int result = register_write_abstract(target, number, value,
 			register_size(target, number));
-	if (result == ERROR_OK || !has_sufficient_progbuf(target, 2) ||
-			!riscv_is_halted(target))
+	if (result == ERROR_OK || !has_sufficient_progbuf(target, 2))
 		return result;
 
 	struct riscv_program program;
@@ -1717,7 +1715,10 @@ static int examine(struct target *target)
 	if (dm013_select_hart(target, info->index) != ERROR_OK)
 		return ERROR_FAIL;
 
-	bool halted = riscv_is_halted(target);
+	enum riscv_hart_state state;
+	if (riscv_get_hart_state(target, &state) != ERROR_OK)
+		return ERROR_FAIL;
+	bool halted = (state == RISCV_STATE_HALTED);
 	if (!halted) {
 		r->prepped = true;
 		if (riscv013_halt_go(target) != ERROR_OK) {
@@ -2298,6 +2299,50 @@ static int sample_memory(struct target *target,
 	return sample_memory_bus_v1(target, buf, config, until_ms);
 }
 
+static int riscv013_get_hart_state(struct target *target, enum riscv_hart_state *state)
+{
+	RISCV013_INFO(info);
+	if (dm013_select_target(target) != ERROR_OK)
+		return ERROR_FAIL;
+
+	uint32_t dmstatus;
+	if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
+		return ERROR_FAIL;
+	if (get_field(dmstatus, DM_DMSTATUS_ANYHAVERESET)) {
+		LOG_TARGET_INFO(target, "Hart unexpectedly reset!");
+		/* TODO: Can we make this more obvious to eg. a gdb user? */
+		uint32_t dmcontrol = DM_DMCONTROL_DMACTIVE |
+			DM_DMCONTROL_ACKHAVERESET;
+		dmcontrol = set_dmcontrol_hartsel(dmcontrol, info->index);
+		/* If we had been halted when we reset, request another halt. If we
+		 * ended up running out of reset, then the user will (hopefully) get a
+		 * message that a reset happened, that the target is running, and then
+		 * that it is halted again once the request goes through.
+		 */
+		if (target->state == TARGET_HALTED)
+			dmcontrol |= DM_DMCONTROL_HALTREQ;
+		dmi_write(target, DM_DMCONTROL, dmcontrol);
+	}
+	if (get_field(dmstatus, DM_DMSTATUS_ALLNONEXISTENT)) {
+		*state = RISCV_STATE_NON_EXISTENT;
+		return ERROR_OK;
+	}
+	if (get_field(dmstatus, DM_DMSTATUS_ALLUNAVAIL)) {
+		*state = RISCV_STATE_UNAVAILABLE;
+		return ERROR_OK;
+	}
+	if (get_field(dmstatus, DM_DMSTATUS_ALLHALTED)) {
+		*state = RISCV_STATE_HALTED;
+		return ERROR_OK;
+	}
+	if (get_field(dmstatus, DM_DMSTATUS_ALLRUNNING)) {
+		*state = RISCV_STATE_RUNNING;
+		return ERROR_OK;
+	}
+	LOG_TARGET_ERROR(target, "Couldn't determine state. dmstatus=0x%x", dmstatus);
+	return ERROR_FAIL;
+}
+
 static int init_target(struct command_context *cmd_ctx,
 		struct target *target)
 {
@@ -2309,7 +2354,7 @@ static int init_target(struct command_context *cmd_ctx,
 	generic_info->get_register_buf = &riscv013_get_register_buf;
 	generic_info->set_register_buf = &riscv013_set_register_buf;
 	generic_info->select_target = &dm013_select_target;
-	generic_info->is_halted = &riscv013_is_halted;
+	generic_info->get_hart_state = &riscv013_get_hart_state;
 	generic_info->resume_go = &riscv013_resume_go;
 	generic_info->step_current_hart = &riscv013_step_current_hart;
 	generic_info->on_halt = &riscv013_on_halt;
@@ -4308,37 +4353,6 @@ static int riscv013_on_step(struct target *target)
 static int riscv013_on_halt(struct target *target)
 {
 	return ERROR_OK;
-}
-
-static bool riscv013_is_halted(struct target *target)
-{
-	RISCV013_INFO(info);
-
-	uint32_t dmstatus;
-	if (dm013_select_target(target) != ERROR_OK)
-		return false;
-	if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
-		return false;
-	if (get_field(dmstatus, DM_DMSTATUS_ANYUNAVAIL))
-		LOG_TARGET_ERROR(target, "Hart is unavailable.");
-	if (get_field(dmstatus, DM_DMSTATUS_ANYNONEXISTENT))
-		LOG_TARGET_ERROR(target, "Hart doesn't exist.");
-	if (get_field(dmstatus, DM_DMSTATUS_ANYHAVERESET)) {
-		LOG_TARGET_INFO(target, "Hart unexpectedly reset!");
-		/* TODO: Can we make this more obvious to eg. a gdb user? */
-		uint32_t dmcontrol = DM_DMCONTROL_DMACTIVE |
-			DM_DMCONTROL_ACKHAVERESET;
-		dmcontrol = set_dmcontrol_hartsel(dmcontrol, info->index);
-		/* If we had been halted when we reset, request another halt. If we
-		 * ended up running out of reset, then the user will (hopefully) get a
-		 * message that a reset happened, that the target is running, and then
-		 * that it is halted again once the request goes through.
-		 */
-		if (target->state == TARGET_HALTED)
-			dmcontrol |= DM_DMCONTROL_HALTREQ;
-		dmi_write(target, DM_DMCONTROL, dmcontrol);
-	}
-	return get_field(dmstatus, DM_DMSTATUS_ALLHALTED);
 }
 
 static enum riscv_halt_reason riscv013_halt_reason(struct target *target)

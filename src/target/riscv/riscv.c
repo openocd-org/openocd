@@ -1201,7 +1201,7 @@ static int old_or_new_riscv_step(struct target *target, int current,
 {
 	RISCV_INFO(r);
 	LOG_DEBUG("handle_breakpoints=%d", handle_breakpoints);
-	if (!r->is_halted)
+	if (!r->get_hart_state)
 		return oldriscv_step(target, current, address, handle_breakpoints);
 	else
 		return riscv_openocd_step(target, current, address, handle_breakpoints);
@@ -1243,7 +1243,7 @@ static int oldriscv_poll(struct target *target)
 static int old_or_new_riscv_poll(struct target *target)
 {
 	RISCV_INFO(r);
-	if (!r->is_halted)
+	if (!r->get_hart_state)
 		return oldriscv_poll(target);
 	else
 		return riscv_openocd_poll(target);
@@ -1317,14 +1317,11 @@ int halt_prep(struct target *target)
 
 	LOG_DEBUG("[%s] prep hart, debug_reason=%d", target_name(target),
 				target->debug_reason);
-	if (riscv_is_halted(target)) {
-		LOG_DEBUG("[%s] Hart is already halted (debug_reason=%d).",
-				target_name(target), target->debug_reason);
-		if (target->debug_reason == DBG_REASON_NOTHALTED) {
-			enum riscv_halt_reason halt_reason = riscv_halt_reason(target);
-			if (set_debug_reason(target, halt_reason) != ERROR_OK)
-				return ERROR_FAIL;
-		}
+	r->prepped = false;
+	if (target->state == TARGET_HALTED) {
+		LOG_TARGET_DEBUG(target, "Hart is already halted.");
+	} else if (target->state == TARGET_UNAVAILABLE) {
+		LOG_TARGET_DEBUG(target, "Hart is unavailable.");
 	} else {
 		if (r->halt_prep(target) != ERROR_OK)
 			return ERROR_FAIL;
@@ -1338,7 +1335,10 @@ int riscv_halt_go_all_harts(struct target *target)
 {
 	RISCV_INFO(r);
 
-	if (riscv_is_halted(target)) {
+	enum riscv_hart_state state;
+	if (riscv_get_hart_state(target, &state) != ERROR_OK)
+		return ERROR_FAIL;
+	if (state == RISCV_STATE_HALTED) {
 		LOG_DEBUG("[%s] Hart is already halted.", target_name(target));
 	} else {
 		if (r->halt_go(target) != ERROR_OK)
@@ -1354,13 +1354,12 @@ int halt_go(struct target *target)
 {
 	riscv_info_t *r = riscv_info(target);
 	int result;
-	if (!r->is_halted) {
+	if (!r->get_hart_state) {
 		struct target_type *tt = get_target_type(target);
 		result = tt->halt(target);
 	} else {
 		result = riscv_halt_go_all_harts(target);
 	}
-	target->state = TARGET_HALTED;
 	if (target->debug_reason == DBG_REASON_NOTHALTED)
 		target->debug_reason = DBG_REASON_DBGRQ;
 
@@ -1376,7 +1375,7 @@ int riscv_halt(struct target *target)
 {
 	RISCV_INFO(r);
 
-	if (!r->is_halted) {
+	if (!r->get_hart_state) {
 		struct target_type *tt = get_target_type(target);
 		return tt->halt(target);
 	}
@@ -1547,7 +1546,7 @@ static int resume_prep(struct target *target, int current,
 			return ERROR_FAIL;
 	}
 
-	if (r->is_halted) {
+	if (r->get_hart_state) {
 		if (r->resume_prep(target) != ERROR_OK)
 			return ERROR_FAIL;
 	}
@@ -1567,7 +1566,7 @@ static int resume_go(struct target *target, int current,
 {
 	riscv_info_t *r = riscv_info(target);
 	int result;
-	if (!r->is_halted) {
+	if (!r->get_hart_state) {
 		struct target_type *tt = get_target_type(target);
 		result = tt->resume(target, current, address, handle_breakpoints,
 				debug_execution);
@@ -2187,7 +2186,10 @@ static enum riscv_poll_hart riscv_poll_hart(struct target *target, int hartid)
 
 	/* If OpenOCD thinks we're running but this hart is halted then it's time
 	 * to raise an event. */
-	bool halted = riscv_is_halted(target);
+	enum riscv_hart_state state;
+	if (riscv_get_hart_state(target, &state) != ERROR_OK)
+		return ERROR_FAIL;
+	bool halted = (state == RISCV_STATE_HALTED);
 
 	if (halted && timeval_ms() - r->last_activity > 100) {
 		/* If we've been idle for a while, flush the register cache. Just in case
@@ -3624,7 +3626,7 @@ static int riscv_resume_go_all_harts(struct target *target)
 	RISCV_INFO(r);
 
 	LOG_TARGET_DEBUG(target, "resuming hart, state=%d", target->state);
-	if (riscv_is_halted(target)) {
+	if (target->state == TARGET_HALTED) {
 		if (r->resume_go(target) != ERROR_OK)
 			return ERROR_FAIL;
 	} else {
@@ -3687,7 +3689,7 @@ int riscv_step_rtos_hart(struct target *target)
 	RISCV_INFO(r);
 	LOG_DEBUG("[%s] stepping", target_name(target));
 
-	if (!riscv_is_halted(target)) {
+	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("Hart isn't halted before single step!");
 		return ERROR_FAIL;
 	}
@@ -3695,7 +3697,7 @@ int riscv_step_rtos_hart(struct target *target)
 	if (r->step_current_hart(target) != ERROR_OK)
 		return ERROR_FAIL;
 	r->on_halt(target);
-	if (!riscv_is_halted(target)) {
+	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("Hart was not halted after single step!");
 		return ERROR_FAIL;
 	}
@@ -3897,11 +3899,11 @@ int riscv_save_register(struct target *target, enum gdb_regno regid)
 	return ERROR_OK;
 }
 
-bool riscv_is_halted(struct target *target)
+int riscv_get_hart_state(struct target *target, enum riscv_hart_state *state)
 {
 	RISCV_INFO(r);
-	assert(r->is_halted);
-	return r->is_halted(target);
+	assert(r->get_hart_state);
+	return r->get_hart_state(target, state);
 }
 
 enum riscv_halt_reason riscv_halt_reason(struct target *target)
