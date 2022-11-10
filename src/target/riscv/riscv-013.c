@@ -1539,24 +1539,6 @@ static int set_group(struct target *target, bool *supported, unsigned group, gro
 	return ERROR_OK;
 }
 
-static int discover_vlenb(struct target *target)
-{
-	RISCV_INFO(r);
-	riscv_reg_t vlenb;
-
-	if (register_read_direct(target, &vlenb, GDB_REGNO_VLENB) != ERROR_OK) {
-		LOG_WARNING("Couldn't read vlenb for %s; vector register access won't work.",
-				target_name(target));
-		r->vlenb = 0;
-		return ERROR_OK;
-	}
-	r->vlenb = vlenb;
-
-	LOG_INFO("Vector support with vlenb=%d", r->vlenb);
-
-	return ERROR_OK;
-}
-
 static int examine(struct target *target)
 {
 	/* Don't need to select dbus, since the first thing we do is read dtmcontrol. */
@@ -1755,9 +1737,14 @@ static int examine(struct target *target)
 		return ERROR_FAIL;
 	}
 
-	if (riscv_supports_extension(target, 'V')) {
-		if (discover_vlenb(target) != ERROR_OK)
-			return ERROR_FAIL;
+	uint64_t vlenb;
+	if (register_read_direct(target, &vlenb, GDB_REGNO_VLENB) != ERROR_OK) {
+		if (riscv_supports_extension(target, 'V'))
+			LOG_TARGET_WARNING(target, "Couldn't read vlenb; vector register access won't work.");
+		r->vlenb = 0;
+	} else {
+		LOG_TARGET_INFO(target, "Vector support with vlenb=%d", r->vlenb);
+		r->vlenb = vlenb;
 	}
 
 	/* Now init registers based on what we discovered. */

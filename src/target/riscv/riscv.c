@@ -4875,7 +4875,7 @@ int riscv_init_registers(struct target *target)
 				case CSR_VL:
 				case CSR_VTYPE:
 				case CSR_VLENB:
-					r->exist = riscv_supports_extension(target, 'V');
+					r->exist = (info->vlenb > 0);
 					break;
 			}
 
@@ -4904,7 +4904,7 @@ int riscv_init_registers(struct target *target)
 
 		} else if (number >= GDB_REGNO_V0 && number <= GDB_REGNO_V31) {
 			r->caller_save = false;
-			r->exist = riscv_supports_extension(target, 'V') && info->vlenb;
+			r->exist = (info->vlenb > 0);
 			r->size = info->vlenb * 8;
 			sprintf(reg_name, "v%d", number - GDB_REGNO_V0);
 			r->group = "vector";

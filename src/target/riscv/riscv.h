@@ -113,7 +113,9 @@ typedef struct {
 	/* It's possible that each core has a different supported ISA set. */
 	int xlen;
 	riscv_reg_t misa;
-	/* Cached value of vlenb. 0 if vlenb is not readable for some reason. */
+	/* Cached value of vlenb. 0 indicates there is no vector support.
+	 * Note that you can have vector support without misa.V set, because
+	 * Zve* extensions implement vector registers without setting misa.V. */
 	unsigned int vlenb;
 
 	/* The number of triggers per hart. */
