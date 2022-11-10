@@ -3736,7 +3736,8 @@ static int gdb_input_inner(struct connection *connection)
 					target_call_event_callbacks(target, TARGET_EVENT_GDB_HALT);
 				gdb_con->ctrl_c = false;
 			} else {
-				LOG_INFO("The target is not running when halt was requested, stopping GDB.");
+				LOG_TARGET_INFO(target, "Not running when halt was requested, stopping GDB. (state=%d)",
+						target->state);
 				target_call_event_callbacks(target, TARGET_EVENT_GDB_HALT);
 			}
 		}

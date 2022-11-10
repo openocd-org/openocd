@@ -211,7 +211,7 @@ static int hwthread_update_threads(struct rtos *rtos)
 	else
 		rtos->current_thread = threadid_from_target(target);
 
-	LOG_DEBUG("%s current_thread=%i", __func__, (int)rtos->current_thread);
+	LOG_DEBUG("current_thread=%i, threads_found=%d", (int)rtos->current_thread, threads_found);
 	return 0;
 }
 
