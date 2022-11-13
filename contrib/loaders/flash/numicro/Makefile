@@ -9,9 +9,9 @@ OBJCOPY=$(CROSS_COMPILE)objcopy
 OBJDUMP=$(CROSS_COMPILE)objdump
 
 
-AFLAGS = -static -nostartfiles -mlittle-endian -mcpu=cortex-m4 -Wa,-EL
+AFLAGS = -static -nostartfiles -mlittle-endian -Wa,-EL
 
-all: numicro_m4.inc
+all: numicro_m0.inc numicro_m4.inc
 
 .PHONY: clean
 
