@@ -111,7 +111,7 @@ Build and Release:
 	* Drop repository repo.or.cz for submodules
 	* Move gerrit to https://review.openocd.org/
 	* Require autoconf 2.69 or newer
-	* Update jep106 to revision JEP106BE
+	* Update jep106 to revision JEP106BF.01
 	* Update jimtcl to version 0.81
 	* Update libjaylink to version 0.3.1
 	* New configure flag '--enable-jimtcl-maintainer' for jimtcl build
@@ -121,7 +121,7 @@ This release also contains a number of other important functional and
 cosmetic bugfixes. For more details about what has changed since the
 last release, see the git repository history:
 
-http://sourceforge.net/p/openocd/code/ci/v0.12.0-rc2/log/?path=
+http://sourceforge.net/p/openocd/code/ci/v0.12.0-rc3/log/?path=
 
 
 For older NEWS, see the NEWS files associated with each release
