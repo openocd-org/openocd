@@ -3292,8 +3292,12 @@ configuration on exit.
 GPIO numbers >= 32 can't be used for performance reasons. GPIO configuration is
 handled by the generic command @ref{adapter gpio, @command{adapter gpio}}.
 
+/dev/gpiomem is preferred for GPIO mapping with fallback to /dev/mem.
+If /dev/mem is used GPIO 0-27 pads are set to the limited
+slew rate and drive strength is reduced to 4 mA (2 mA on RPi 4).
+
 See @file{interface/raspberrypi-native.cfg} for a sample config and
-pinout.
+@file{interface/raspberrypi-gpio-connector.cfg} for pinout.
 
 @deffn {Config Command} {bcm2835gpio speed_coeffs} @var{speed_coeff} @var{speed_offset}
 Set SPEED_COEFF and SPEED_OFFSET for delay calculations. If unspecified,

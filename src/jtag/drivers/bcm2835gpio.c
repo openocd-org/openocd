@@ -409,10 +409,13 @@ static int bcm2835gpio_init(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
+	bool pad_mapping_possible = false;
+
 	dev_mem_fd = open("/dev/gpiomem", O_RDWR | O_SYNC);
 	if (dev_mem_fd < 0) {
 		LOG_DEBUG("Cannot open /dev/gpiomem, fallback to /dev/mem");
 		dev_mem_fd = open("/dev/mem", O_RDWR | O_SYNC);
+		pad_mapping_possible = true;
 	}
 	if (dev_mem_fd < 0) {
 		LOG_ERROR("open: %s", strerror(errno));
@@ -428,21 +431,28 @@ static int bcm2835gpio_init(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	pads_base = mmap(NULL, sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_WRITE,
+	/* TODO: move pads config to a separate utility */
+	if (pad_mapping_possible) {
+		pads_base = mmap(NULL, sysconf(_SC_PAGE_SIZE), PROT_READ | PROT_WRITE,
 				MAP_SHARED, dev_mem_fd, BCM2835_PADS_GPIO_0_27);
 
-	if (pads_base == MAP_FAILED) {
-		LOG_ERROR("mmap: %s", strerror(errno));
-		bcm2835gpio_munmap();
-		close(dev_mem_fd);
-		return ERROR_JTAG_INIT_FAILED;
+		if (pads_base == MAP_FAILED) {
+			LOG_ERROR("mmap pads: %s", strerror(errno));
+			LOG_WARNING("Continuing with unchanged GPIO pad settings (drive strength and slew rate)");
+		}
+	} else {
+		pads_base = MAP_FAILED;
 	}
 
 	close(dev_mem_fd);
 
-	/* set 4mA drive strength, slew rate limited, hysteresis on */
-	initial_drive_strength_etc = pads_base[BCM2835_PADS_GPIO_0_27_OFFSET] & 0x1f;
-	pads_base[BCM2835_PADS_GPIO_0_27_OFFSET] = 0x5a000008 + 1;
+	if (pads_base != MAP_FAILED) {
+		/* set 4mA drive strength, slew rate limited, hysteresis on */
+		initial_drive_strength_etc = pads_base[BCM2835_PADS_GPIO_0_27_OFFSET] & 0x1f;
+LOG_INFO("initial pads conf %08x", pads_base[BCM2835_PADS_GPIO_0_27_OFFSET]);
+		pads_base[BCM2835_PADS_GPIO_0_27_OFFSET] = 0x5a000008 + 1;
+LOG_INFO("pads conf set to %08x", pads_base[BCM2835_PADS_GPIO_0_27_OFFSET]);
+	}
 
 	/* Configure JTAG/SWD signals. Default directions and initial states are handled
 	 * by adapter.c and "adapter gpio" command.
@@ -513,8 +523,10 @@ static int bcm2835gpio_quit(void)
 	restore_gpio(ADAPTER_GPIO_IDX_SRST);
 	restore_gpio(ADAPTER_GPIO_IDX_LED);
 
-	/* Restore drive strength. MSB is password ("5A") */
-	pads_base[BCM2835_PADS_GPIO_0_27_OFFSET] = 0x5A000000 | initial_drive_strength_etc;
+	if (pads_base != MAP_FAILED) {
+		/* Restore drive strength. MSB is password ("5A") */
+		pads_base[BCM2835_PADS_GPIO_0_27_OFFSET] = 0x5A000000 | initial_drive_strength_etc;
+	}
 	bcm2835gpio_munmap();
 
 	return ERROR_OK;
