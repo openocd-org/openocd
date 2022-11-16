@@ -218,19 +218,10 @@ int breakpoint_add(struct target *target,
 	uint32_t length,
 	enum breakpoint_type type)
 {
-	if (target->smp) {
-		struct target_list *head;
-
-		if (type == BKPT_SOFT) {
-			head = list_first_entry(target->smp_targets, struct target_list, lh);
-			struct target *curr = head->target;
-			if (target->rtos)
-				curr = rtos_swbp_target(target, address, length, type);
-			return breakpoint_add_internal(curr, address, length, type);
-		}
-
-		foreach_smp_target(head, target->smp_targets) {
-			struct target *curr = head->target;
+	if (target->smp && type == BKPT_HARD) {
+		struct target_list *list_node;
+		foreach_smp_target(list_node, target->smp_targets) {
+			struct target *curr = list_node->target;
 			int retval = breakpoint_add_internal(curr, address, length, type);
 			if (retval != ERROR_OK)
 				return retval;
