@@ -67,6 +67,8 @@
  * to the target. Afterwards use cache_get... to read results.
  */
 
+static int handle_halt(struct target *target, bool announce);
+
 #define get_field(reg, mask) (((reg) & (mask)) / ((mask) & ~((mask) << 1)))
 #define set_field(reg, mask, val) (((reg) & ~(mask)) | (((val) * ((mask) & ~((mask) << 1))) & (mask)))
 
@@ -1192,7 +1194,7 @@ static int full_step(struct target *target, bool announce)
 			return ERROR_FAIL;
 		}
 	}
-	return ERROR_OK;
+	return handle_halt(target, announce);
 }
 
 static uint64_t reg_cache_get(struct target *target, unsigned int number)
