@@ -1195,16 +1195,6 @@ static int full_step(struct target *target, bool announce)
 	return ERROR_OK;
 }
 
-static int resume(struct target *target, int debug_execution, bool step)
-{
-	if (debug_execution) {
-		LOG_ERROR("TODO: debug_execution is true");
-		return ERROR_FAIL;
-	}
-
-	return execute_resume(target, step);
-}
-
 static uint64_t reg_cache_get(struct target *target, unsigned int number)
 {
 	struct reg *r = &target->reg_cache->reg_list[number];
@@ -1935,7 +1925,7 @@ static int riscv011_resume(struct target *target, int current,
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
 
 	r->prepped = false;
-	return resume(target, debug_execution, false);
+	return execute_resume(target, false);
 }
 
 static int assert_reset(struct target *target)
