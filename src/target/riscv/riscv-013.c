@@ -2188,7 +2188,7 @@ static int sample_memory_bus_v1(struct target *target,
 						sbcs_write |= DM_SBCS_SBREADONDATA;
 					sbcs_write |= sb_sbaccess(config->bucket[i].size_bytes);
 					if (!sbcs_valid || sbcs_write != sbcs) {
-						riscv_batch_add_dmi_write(batch, DM_SBCS, sbcs_write);
+						riscv_batch_add_dmi_write(batch, DM_SBCS, sbcs_write, true);
 						sbcs = sbcs_write;
 						sbcs_valid = true;
 					}
@@ -2197,13 +2197,13 @@ static int sample_memory_bus_v1(struct target *target,
 							(!sbaddress1_valid ||
 							sbaddress1 != config->bucket[i].address >> 32)) {
 						sbaddress1 = config->bucket[i].address >> 32;
-						riscv_batch_add_dmi_write(batch, DM_SBADDRESS1, sbaddress1);
+						riscv_batch_add_dmi_write(batch, DM_SBADDRESS1, sbaddress1, true);
 						sbaddress1_valid = true;
 					}
 					if (!sbaddress0_valid ||
 							sbaddress0 != (config->bucket[i].address & 0xffffffff)) {
 						sbaddress0 = config->bucket[i].address;
-						riscv_batch_add_dmi_write(batch, DM_SBADDRESS0, sbaddress0);
+						riscv_batch_add_dmi_write(batch, DM_SBADDRESS0, sbaddress0, true);
 						sbaddress0_valid = true;
 					}
 					if (config->bucket[i].size_bytes > 4)
@@ -3742,20 +3742,20 @@ static int write_memory_bus_v1(struct target *target, target_addr_t address,
 						((uint32_t) p[12]) |
 						(((uint32_t) p[13]) << 8) |
 						(((uint32_t) p[14]) << 16) |
-						(((uint32_t) p[15]) << 24));
+						(((uint32_t) p[15]) << 24), false);
 
 			if (size > 8)
 				riscv_batch_add_dmi_write(batch, DM_SBDATA2,
 						((uint32_t) p[8]) |
 						(((uint32_t) p[9]) << 8) |
 						(((uint32_t) p[10]) << 16) |
-						(((uint32_t) p[11]) << 24));
+						(((uint32_t) p[11]) << 24), false);
 			if (size > 4)
 				riscv_batch_add_dmi_write(batch, DM_SBDATA1,
 						((uint32_t) p[4]) |
 						(((uint32_t) p[5]) << 8) |
 						(((uint32_t) p[6]) << 16) |
-						(((uint32_t) p[7]) << 24));
+						(((uint32_t) p[7]) << 24), false);
 			uint32_t value = p[0];
 			if (size > 2) {
 				value |= ((uint32_t) p[2]) << 16;
@@ -3763,7 +3763,7 @@ static int write_memory_bus_v1(struct target *target, target_addr_t address,
 			}
 			if (size > 1)
 				value |= ((uint32_t) p[1]) << 8;
-			riscv_batch_add_dmi_write(batch, DM_SBDATA0, value);
+			riscv_batch_add_dmi_write(batch, DM_SBDATA0, value, false);
 
 			log_memory_access(address + i * size, value, size, false);
 			next_address += size;
@@ -3967,8 +3967,8 @@ static int write_memory_progbuf(struct target *target, target_addr_t address,
 				setup_needed = false;
 			} else {
 				if (size > 4)
-					riscv_batch_add_dmi_write(batch, DM_DATA1, value >> 32);
-				riscv_batch_add_dmi_write(batch, DM_DATA0, value);
+					riscv_batch_add_dmi_write(batch, DM_DATA1, value >> 32, false);
+				riscv_batch_add_dmi_write(batch, DM_DATA0, value, false);
 				if (riscv_batch_full(batch))
 					break;
 			}
