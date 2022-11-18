@@ -506,6 +506,17 @@ static int find_trigger(struct target *target, int type, bool chained, int *idx)
 	return ERROR_FAIL;
 }
 
+static int find_first_trigger_by_id(struct target *target, int unique_id)
+{
+	RISCV_INFO(r);
+
+	for (unsigned i = 0; i < r->trigger_count; i++) {
+		if (r->trigger_unique_id[i] == unique_id)
+			return i;
+	}
+	return -1;
+}
+
 static int set_trigger(struct target *target, int idx, riscv_reg_t tdata1, riscv_reg_t tdata2,
 	riscv_reg_t tdata1_ignore_mask)
 {
@@ -658,6 +669,38 @@ MATCH_EQUAL:
 	if (ret != ERROR_OK)
 		return ret;
 	r->trigger_unique_id[idx] = trigger->unique_id;
+	return ERROR_OK;
+}
+
+static int maybe_add_trigger_t4(struct target *target, bool vs, bool vu,
+				bool nmi, bool m, bool s, bool u, riscv_reg_t interrupts,
+				int unique_id)
+{
+	int idx, ret;
+	riscv_reg_t tdata1, tdata2;
+
+	RISCV_INFO(r);
+
+	tdata1 = 0;
+	tdata1 = set_field(tdata1, CSR_ITRIGGER_TYPE(riscv_xlen(target)), CSR_TDATA1_TYPE_ITRIGGER);
+	tdata1 = set_field(tdata1, CSR_ITRIGGER_DMODE(riscv_xlen(target)), 1);
+	tdata1 = set_field(tdata1, CSR_ITRIGGER_ACTION, CSR_ITRIGGER_ACTION_DEBUG_MODE);
+	tdata1 = set_field(tdata1, CSR_ITRIGGER_VS, vs);
+	tdata1 = set_field(tdata1, CSR_ITRIGGER_VU, vu);
+	tdata1 = set_field(tdata1, CSR_ITRIGGER_NMI, nmi);
+	tdata1 = set_field(tdata1, CSR_ITRIGGER_M, m);
+	tdata1 = set_field(tdata1, CSR_ITRIGGER_S, s);
+	tdata1 = set_field(tdata1, CSR_ITRIGGER_U, u);
+
+	tdata2 = interrupts;
+
+	ret = find_trigger(target, CSR_TDATA1_TYPE_ITRIGGER, false, &idx);
+	if (ret != ERROR_OK)
+		return ret;
+	ret = set_trigger(target, idx, tdata1, tdata2, 0);
+	if (ret != ERROR_OK)
+		return ret;
+	r->trigger_unique_id[idx] = unique_id;
 	return ERROR_OK;
 }
 
@@ -937,7 +980,7 @@ int riscv_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
 	return ERROR_OK;
 }
 
-static int remove_trigger(struct target *target, struct trigger *trigger)
+static int remove_trigger(struct target *target, int unique_id)
 {
 	RISCV_INFO(r);
 
@@ -951,12 +994,12 @@ static int remove_trigger(struct target *target, struct trigger *trigger)
 
 	bool done = false;
 	for (unsigned int i = 0; i < r->trigger_count; i++) {
-		if (r->trigger_unique_id[i] == trigger->unique_id) {
+		if (r->trigger_unique_id[i] == unique_id) {
 			riscv_set_register(target, GDB_REGNO_TSELECT, i);
 			riscv_set_register(target, GDB_REGNO_TDATA1, 0);
 			r->trigger_unique_id[i] = -1;
 			LOG_TARGET_DEBUG(target, "Stop using resource %d for bp %d",
-				i, trigger->unique_id);
+				i, unique_id);
 			done = true;
 		}
 	}
@@ -986,7 +1029,7 @@ int riscv_remove_breakpoint(struct target *target,
 	} else if (breakpoint->type == BKPT_HARD) {
 		struct trigger trigger;
 		trigger_from_breakpoint(&trigger, breakpoint);
-		int result = remove_trigger(target, &trigger);
+		int result = remove_trigger(target, trigger.unique_id);
 		if (result != ERROR_OK)
 			return result;
 
@@ -1035,7 +1078,7 @@ int riscv_remove_watchpoint(struct target *target,
 	struct trigger trigger;
 	trigger_from_watchpoint(&trigger, watchpoint);
 
-	int result = remove_trigger(target, &trigger);
+	int result = remove_trigger(target, trigger.unique_id);
 	if (result != ERROR_OK)
 		return result;
 	watchpoint->is_set = false;
@@ -1079,6 +1122,9 @@ static int riscv_hit_trigger_hit_bit(struct target *target, uint32_t *unique_id)
 				break;
 			case CSR_TDATA1_TYPE_MCONTROL6:
 				hit_mask = CSR_MCONTROL6_HIT;
+				break;
+			case CSR_TDATA1_TYPE_ITRIGGER:
+				hit_mask = CSR_ITRIGGER_HIT(riscv_xlen(target));
 				break;
 			default:
 				LOG_DEBUG("trigger %d has unknown type %d", i, type);
@@ -3173,6 +3219,81 @@ COMMAND_HANDLER(riscv_set_ebreaku)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(riscv_itrigger)
+{
+	if (CMD_ARGC < 1) {
+		LOG_ERROR("Command takes at least 1 parameter");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	struct target *target = get_current_target(CMD_CTX);
+	const int ITRIGGER_UNIQUE_ID = -CSR_TDATA1_TYPE_ITRIGGER;
+
+	if (riscv_enumerate_triggers(target) != ERROR_OK)
+		return ERROR_FAIL;
+
+	if (!strcmp(CMD_ARGV[0], "set")) {
+		if (find_first_trigger_by_id(target, ITRIGGER_UNIQUE_ID) >= 0) {
+			LOG_TARGET_ERROR(target, "An itrigger is already set, and OpenOCD "
+				  "doesn't support setting more than one at a time.");
+			return ERROR_FAIL;
+		}
+		bool vs = false;
+		bool vu = false;
+		bool nmi = false;
+		bool m = false;
+		bool s = false;
+		bool u = false;
+		riscv_reg_t interrupts = 0;
+
+		for (unsigned int i = 1; i < CMD_ARGC; i++) {
+			if (!strcmp(CMD_ARGV[i], "vs"))
+				vs = true;
+			else if (!strcmp(CMD_ARGV[i], "vu"))
+				vu = true;
+			else if (!strcmp(CMD_ARGV[i], "nmi"))
+				nmi = true;
+			else if (!strcmp(CMD_ARGV[i], "m"))
+				m = true;
+			else if (!strcmp(CMD_ARGV[i], "s"))
+				s = true;
+			else if (!strcmp(CMD_ARGV[i], "u"))
+				u = true;
+			else
+				COMMAND_PARSE_NUMBER(u64, CMD_ARGV[i], interrupts);
+		}
+		if (!nmi && interrupts == 0) {
+			LOG_ERROR("Doesn't make sense to set itrigger with "
+				  "mie_bits=0 and without nmi.");
+			return ERROR_FAIL;
+		} else if (!vs && !vu && !m && !s && !u) {
+			LOG_ERROR("Doesn't make sense to set itrigger without at "
+				  "least one of vs, vu, m, s, or u.");
+			return ERROR_FAIL;
+		}
+		int result = maybe_add_trigger_t4(target, vs, vu, nmi, m, s, u, interrupts, ITRIGGER_UNIQUE_ID);
+		if (result != ERROR_OK)
+			LOG_TARGET_ERROR(target, "Failed to set requested itrigger.");
+		return result;
+
+	} else if (!strcmp(CMD_ARGV[0], "clear")) {
+		if (CMD_ARGC != 1) {
+			LOG_ERROR("clear command takes no extra arguments.");
+			return ERROR_COMMAND_SYNTAX_ERROR;
+		}
+		if (find_first_trigger_by_id(target, ITRIGGER_UNIQUE_ID) < 0) {
+			LOG_TARGET_ERROR(target, "No itrigger is set. Nothing to clear.");
+			return ERROR_FAIL;
+		}
+		return remove_trigger(target, ITRIGGER_UNIQUE_ID);
+
+	} else {
+		LOG_ERROR("First argument must be either 'set' or 'clear'.");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+	return ERROR_OK;
+}
+
 COMMAND_HANDLER(handle_repeat_read)
 {
 	struct target *target = get_current_target(CMD_CTX);
@@ -3589,6 +3710,13 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.usage = "on|off",
 		.help = "Control dcsr.ebreaku. When off, U-mode ebreak instructions "
 			"don't trap to OpenOCD. Defaults to on."
+	},
+	{
+		.name = "itrigger",
+		.handler = riscv_itrigger,
+		.mode = COMMAND_EXEC,
+		.usage = "set [vs] [vu] [nmi] [m] [s] [u] <mie_bits>|clear",
+		.help = "Set or clear a single interrupt trigger."
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -4131,6 +4259,10 @@ int riscv_enumerate_triggers(struct target *target)
 					break;
 				case CSR_TDATA1_TYPE_MCONTROL6:
 					if (tdata1 & CSR_MCONTROL6_DMODE(riscv_xlen(target)))
+						riscv_set_register(target, GDB_REGNO_TDATA1, 0);
+					break;
+				case CSR_TDATA1_TYPE_ITRIGGER:
+					if (tdata1 & CSR_ITRIGGER_DMODE(riscv_xlen(target)))
 						riscv_set_register(target, GDB_REGNO_TDATA1, 0);
 					break;
 			}
