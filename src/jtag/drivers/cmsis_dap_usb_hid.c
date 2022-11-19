@@ -36,6 +36,7 @@ struct cmsis_dap_backend_data {
 
 static void cmsis_dap_hid_close(struct cmsis_dap *dap);
 static int cmsis_dap_hid_alloc(struct cmsis_dap *dap, unsigned int pkt_sz);
+static void cmsis_dap_hid_free(struct cmsis_dap *dap);
 
 static int cmsis_dap_hid_open(struct cmsis_dap *dap, uint16_t vids[], uint16_t pids[], const char *serial)
 {
@@ -165,14 +166,21 @@ static void cmsis_dap_hid_close(struct cmsis_dap *dap)
 	hid_exit();
 	free(dap->bdata);
 	dap->bdata = NULL;
-	free(dap->packet_buffer);
-	dap->packet_buffer = NULL;
+	cmsis_dap_hid_free(dap);
 }
 
-static int cmsis_dap_hid_read(struct cmsis_dap *dap, int timeout_ms)
+static int cmsis_dap_hid_read(struct cmsis_dap *dap, int transfer_timeout_ms,
+							  struct timeval *wait_timeout)
 {
-	int retval = hid_read_timeout(dap->bdata->dev_handle, dap->packet_buffer, dap->packet_buffer_size, timeout_ms);
+	int timeout_ms;
+	if (wait_timeout)
+		timeout_ms = wait_timeout->tv_usec / 1000 + wait_timeout->tv_sec * 1000;
+	else
+		timeout_ms = transfer_timeout_ms;
 
+	int retval = hid_read_timeout(dap->bdata->dev_handle,
+								  dap->packet_buffer, dap->packet_buffer_size,
+								  timeout_ms);
 	if (retval == 0) {
 		return ERROR_TIMEOUT_REACHED;
 	} else if (retval == -1) {
@@ -222,6 +230,12 @@ static int cmsis_dap_hid_alloc(struct cmsis_dap *dap, unsigned int pkt_sz)
 	return ERROR_OK;
 }
 
+static void cmsis_dap_hid_free(struct cmsis_dap *dap)
+{
+	free(dap->packet_buffer);
+	dap->packet_buffer = NULL;
+}
+
 const struct cmsis_dap_backend cmsis_dap_hid_backend = {
 	.name = "hid",
 	.open = cmsis_dap_hid_open,
@@ -229,4 +243,5 @@ const struct cmsis_dap_backend cmsis_dap_hid_backend = {
 	.read = cmsis_dap_hid_read,
 	.write = cmsis_dap_hid_write,
 	.packet_buffer_alloc = cmsis_dap_hid_alloc,
+	.packet_buffer_free = cmsis_dap_hid_free,
 };
