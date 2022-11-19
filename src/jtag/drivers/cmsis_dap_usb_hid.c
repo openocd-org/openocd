@@ -213,6 +213,7 @@ static int cmsis_dap_hid_alloc(struct cmsis_dap *dap, unsigned int pkt_sz)
 
 	dap->packet_buffer = buf;
 	dap->packet_size = pkt_sz;
+	dap->packet_usable_size = pkt_sz;
 	dap->packet_buffer_size = packet_buffer_size;
 
 	dap->command = dap->packet_buffer + REPORT_ID_SIZE;

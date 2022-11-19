@@ -27,6 +27,7 @@ struct cmsis_dap {
 	struct cmsis_dap_backend_data *bdata;
 	const struct cmsis_dap_backend *backend;
 	unsigned int packet_size;
+	unsigned int packet_usable_size;
 	unsigned int packet_buffer_size;
 	uint8_t *packet_buffer;
 	uint8_t *command;

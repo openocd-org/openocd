@@ -229,7 +229,7 @@ static int pending_scan_result_count;
 static struct pending_scan_result pending_scan_results[MAX_PENDING_SCAN_RESULTS];
 
 /* queued JTAG sequences that will be executed on the next flush */
-#define QUEUED_SEQ_BUF_LEN (cmsis_dap_handle->packet_size - 3)
+#define QUEUED_SEQ_BUF_LEN (cmsis_dap_handle->packet_usable_size - 3)
 static int queued_seq_count;
 static int queued_seq_buf_end;
 static int queued_seq_tdo_ptr;
