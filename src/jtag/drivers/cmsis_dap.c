@@ -290,14 +290,15 @@ static void cmsis_dap_close(struct cmsis_dap *dap)
 		dap->backend = NULL;
 	}
 
-	free(cmsis_dap_handle->packet_buffer);
-	free(cmsis_dap_handle);
-	cmsis_dap_handle = NULL;
+	free(dap->packet_buffer);
 
 	for (int i = 0; i < MAX_PENDING_REQUESTS; i++) {
 		free(dap->pending_fifo[i].transfers);
 		dap->pending_fifo[i].transfers = NULL;
 	}
+
+	free(cmsis_dap_handle);
+	cmsis_dap_handle = NULL;
 }
 
 static void cmsis_dap_flush_read(struct cmsis_dap *dap)
@@ -328,7 +329,7 @@ static int cmsis_dap_xfer(struct cmsis_dap *dap, int txlen)
 		dap->pending_fifo_get_idx = 0;
 	}
 
-	uint8_t current_cmd = cmsis_dap_handle->command[0];
+	uint8_t current_cmd = dap->command[0];
 	int retval = dap->backend->write(dap, txlen, LIBUSB_TIMEOUT_MS);
 	if (retval < 0)
 		return retval;
@@ -338,7 +339,7 @@ static int cmsis_dap_xfer(struct cmsis_dap *dap, int txlen)
 	if (retval < 0)
 		return retval;
 
-	uint8_t *resp = cmsis_dap_handle->response;
+	uint8_t *resp = dap->response;
 	if (resp[0] == DAP_ERROR) {
 		LOG_ERROR("CMSIS-DAP command 0x%" PRIx8 " not implemented", current_cmd);
 		return ERROR_NOT_IMPLEMENTED;
@@ -743,7 +744,7 @@ static int cmsis_dap_cmd_dap_swo_data(
 
 static void cmsis_dap_swd_write_from_queue(struct cmsis_dap *dap)
 {
-	uint8_t *command = cmsis_dap_handle->command;
+	uint8_t *command = dap->command;
 	struct pending_request_block *block = &dap->pending_fifo[dap->pending_fifo_put_idx];
 
 	LOG_DEBUG_IO("Executing %d queued transactions from FIFO index %u",
