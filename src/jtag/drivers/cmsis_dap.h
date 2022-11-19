@@ -7,17 +7,37 @@
 
 struct cmsis_dap_backend;
 struct cmsis_dap_backend_data;
-struct command_registration;
+
+struct pending_transfer_result {
+	uint8_t cmd;
+	uint32_t data;
+	void *buffer;
+};
+
+/* Up to MIN(packet_count, MAX_PENDING_REQUESTS) requests may be issued
+ * until the first response arrives */
+#define MAX_PENDING_REQUESTS 4
+
+struct pending_request_block {
+	struct pending_transfer_result *transfers;
+	int transfer_count;
+};
 
 struct cmsis_dap {
 	struct cmsis_dap_backend_data *bdata;
 	const struct cmsis_dap_backend *backend;
 	uint16_t packet_size;
-	int packet_count;
 	uint8_t *packet_buffer;
 	uint16_t packet_buffer_size;
 	uint8_t *command;
 	uint8_t *response;
+
+	/* Pending requests are organized as a FIFO - circular buffer */
+	struct pending_request_block pending_fifo[MAX_PENDING_REQUESTS];
+	unsigned int packet_count;
+	unsigned int pending_fifo_put_idx, pending_fifo_get_idx;
+	unsigned int pending_fifo_block_count;
+
 	uint16_t caps;
 	uint8_t mode;
 	uint32_t swo_buf_sz;
