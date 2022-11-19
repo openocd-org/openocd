@@ -20,15 +20,15 @@ struct pending_transfer_result {
 
 struct pending_request_block {
 	struct pending_transfer_result *transfers;
-	int transfer_count;
+	unsigned int transfer_count;
 };
 
 struct cmsis_dap {
 	struct cmsis_dap_backend_data *bdata;
 	const struct cmsis_dap_backend *backend;
-	uint16_t packet_size;
+	unsigned int packet_size;
+	unsigned int packet_buffer_size;
 	uint8_t *packet_buffer;
-	uint16_t packet_buffer_size;
 	uint8_t *command;
 	uint8_t *response;
 

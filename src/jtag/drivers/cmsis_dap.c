@@ -211,17 +211,17 @@ static const char * const info_caps_str[INFO_CAPS__NUM_CAPS] = {
 
 struct pending_scan_result {
 	/** Offset in bytes in the CMD_DAP_JTAG_SEQ response buffer. */
-	unsigned first;
+	unsigned int first;
 	/** Number of bits to read. */
-	unsigned length;
+	unsigned int length;
 	/** Location to store the result */
 	uint8_t *buffer;
 	/** Offset in the destination buffer */
-	unsigned buffer_offset;
+	unsigned int buffer_offset;
 };
 
 /* Each block in FIFO can contain up to pending_queue_len transfers */
-static int pending_queue_len;
+static unsigned int pending_queue_len;
 
 /* pointers to buffers that will receive jtag scan results on the next flush */
 #define MAX_PENDING_SCAN_RESULTS 256
@@ -292,7 +292,7 @@ static void cmsis_dap_close(struct cmsis_dap *dap)
 
 	free(dap->packet_buffer);
 
-	for (int i = 0; i < MAX_PENDING_REQUESTS; i++) {
+	for (unsigned int i = 0; i < MAX_PENDING_REQUESTS; i++) {
 		free(dap->pending_fifo[i].transfers);
 		dap->pending_fifo[i].transfers = NULL;
 	}
@@ -403,7 +403,7 @@ static int cmsis_dap_cmd_dap_swj_sequence(uint8_t s_len, const uint8_t *sequence
 
 #ifdef CMSIS_DAP_JTAG_DEBUG
 	LOG_DEBUG("cmsis-dap TMS sequence: len=%d", s_len);
-	for (int i = 0; i < DIV_ROUND_UP(s_len, 8); ++i)
+	for (unsigned int i = 0; i < DIV_ROUND_UP(s_len, 8); ++i)
 		printf("%02X ", sequence[i]);
 
 	printf("\n");
@@ -763,7 +763,7 @@ static void cmsis_dap_swd_write_from_queue(struct cmsis_dap *dap)
 	command[2] = block->transfer_count;
 	size_t idx = 3;
 
-	for (int i = 0; i < block->transfer_count; i++) {
+	for (unsigned int i = 0; i < block->transfer_count; i++) {
 		struct pending_transfer_result *transfer = &(block->transfers[i]);
 		uint8_t cmd = transfer->cmd;
 		uint32_t data = transfer->data;
@@ -844,7 +844,7 @@ static void cmsis_dap_swd_read_process(struct cmsis_dap *dap, int timeout_ms)
 		goto skip;
 	}
 
-	uint8_t transfer_count = resp[1];
+	unsigned int transfer_count = resp[1];
 	uint8_t ack = resp[2] & 0x07;
 	if (resp[2] & 0x08) {
 		LOG_DEBUG("CMSIS-DAP Protocol Error @ %d (wrong parity)", transfer_count);
@@ -865,8 +865,8 @@ static void cmsis_dap_swd_read_process(struct cmsis_dap *dap, int timeout_ms)
 
 	LOG_DEBUG_IO("Received results of %d queued transactions FIFO index %u timeout %i",
 		 transfer_count, dap->pending_fifo_get_idx, timeout_ms);
-	size_t idx = 3;
-	for (int i = 0; i < transfer_count; i++) {
+	unsigned int idx = 3;
+	for (unsigned int i = 0; i < transfer_count; i++) {
 		struct pending_transfer_result *transfer = &(block->transfers[i]);
 		if (transfer->cmd & SWD_CMD_RNW) {
 			static uint32_t last_read;
@@ -1005,7 +1005,7 @@ static int cmsis_dap_get_caps_info(void)
 
 		cmsis_dap_handle->caps = caps;
 
-		for (int i = 0; i < INFO_CAPS__NUM_CAPS; ++i) {
+		for (unsigned int i = 0; i < INFO_CAPS__NUM_CAPS; ++i) {
 			if (caps & BIT(i))
 				LOG_INFO("CMSIS-DAP: %s", info_caps_str[i]);
 		}
@@ -1351,7 +1351,7 @@ static void cmsis_dap_end_state(tap_state_t state)
 }
 
 #ifdef SPRINT_BINARY
-static void sprint_binary(char *s, const uint8_t *buf, int offset, int len)
+static void sprint_binary(char *s, const uint8_t *buf, unsigned int offset, unsigned int len)
 {
 	if (!len)
 		return;
@@ -1362,7 +1362,7 @@ static void sprint_binary(char *s, const uint8_t *buf, int offset, int len)
 	buf = { 0xc0 0x18 } offset=3 len=10 should result in: 11000 11000
 		i=3 there means i/8 = 0 so c = 0xFF, and
 	*/
-	for (int i = offset; i < offset + len; ++i) {
+	for (unsigned int i = offset; i < offset + len; ++i) {
 		uint8_t c = buf[i / 8], mask = 1 << (i % 8);
 		if ((i != offset) && !(i % 8))
 			putchar(' ');
@@ -1476,10 +1476,11 @@ static void cmsis_dap_flush(void)
  * sequence=NULL means clock out zeros on TDI
  * tdo_buffer=NULL means don't capture TDO
  */
-static void cmsis_dap_add_jtag_sequence(int s_len, const uint8_t *sequence, int s_offset,
-					bool tms, uint8_t *tdo_buffer, int tdo_buffer_offset)
+static void cmsis_dap_add_jtag_sequence(unsigned int s_len, const uint8_t *sequence,
+					unsigned int s_offset, bool tms,
+					uint8_t *tdo_buffer, unsigned int tdo_buffer_offset)
 {
-	LOG_DEBUG_IO("[at %d] %d bits, tms %s, seq offset %d, tdo buf %p, tdo offset %d",
+	LOG_DEBUG_IO("[at %d] %u bits, tms %s, seq offset %u, tdo buf %p, tdo offset %u",
 		queued_seq_buf_end,
 		s_len, tms ? "HIGH" : "LOW", s_offset, tdo_buffer, tdo_buffer_offset);
 
@@ -1488,11 +1489,11 @@ static void cmsis_dap_add_jtag_sequence(int s_len, const uint8_t *sequence, int 
 
 	if (s_len > 64) {
 		LOG_DEBUG_IO("START JTAG SEQ SPLIT");
-		for (int offset = 0; offset < s_len; offset += 64) {
-			int len = s_len - offset;
+		for (unsigned int offset = 0; offset < s_len; offset += 64) {
+			unsigned int len = s_len - offset;
 			if (len > 64)
 				len = 64;
-			LOG_DEBUG_IO("Splitting long jtag sequence: %d-bit chunk starting at offset %d", len, offset);
+			LOG_DEBUG_IO("Splitting long jtag sequence: %u-bit chunk starting at offset %u", len, offset);
 			cmsis_dap_add_jtag_sequence(
 				len,
 				sequence,
@@ -1506,7 +1507,7 @@ static void cmsis_dap_add_jtag_sequence(int s_len, const uint8_t *sequence, int 
 		return;
 	}
 
-	int cmd_len = 1 + DIV_ROUND_UP(s_len, 8);
+	unsigned int cmd_len = 1 + DIV_ROUND_UP(s_len, 8);
 	if (queued_seq_count >= 255 || queued_seq_buf_end + cmd_len > QUEUED_SEQ_BUF_LEN)
 		/* empty out the buffer */
 		cmsis_dap_flush();
