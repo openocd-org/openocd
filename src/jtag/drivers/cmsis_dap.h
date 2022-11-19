@@ -33,6 +33,11 @@ struct cmsis_dap {
 	uint8_t *command;
 	uint8_t *response;
 
+	/* DAP register r/w operation counters used for checking the packet size
+	 * that would result from the queue run */
+	unsigned int write_count;
+	unsigned int read_count;
+
 	/* Pending requests are organized as a FIFO - circular buffer */
 	struct pending_request_block pending_fifo[MAX_PENDING_REQUESTS];
 	unsigned int packet_count;

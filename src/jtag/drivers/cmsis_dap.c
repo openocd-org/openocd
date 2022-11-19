@@ -222,6 +222,8 @@ struct pending_scan_result {
 
 /* Each block in FIFO can contain up to pending_queue_len transfers */
 static unsigned int pending_queue_len;
+static unsigned int tfer_max_command_size;
+static unsigned int tfer_max_response_size;
 
 /* pointers to buffers that will receive jtag scan results on the next flush */
 #define MAX_PENDING_SCAN_RESULTS 256
@@ -742,10 +744,17 @@ static int cmsis_dap_cmd_dap_swo_data(
 	return ERROR_OK;
 }
 
+
 static void cmsis_dap_swd_write_from_queue(struct cmsis_dap *dap)
 {
 	uint8_t *command = dap->command;
 	struct pending_request_block *block = &dap->pending_fifo[dap->pending_fifo_put_idx];
+
+	assert(dap->write_count + dap->read_count == block->transfer_count);
+
+	/* Reset packet size check counters for the next packet */
+	dap->write_count = 0;
+	dap->read_count = 0;
 
 	LOG_DEBUG_IO("Executing %d queued transactions from FIFO index %u",
 			  block->transfer_count, dap->pending_fifo_put_idx);
@@ -913,11 +922,43 @@ static int cmsis_dap_swd_run_queue(void)
 	return retval;
 }
 
+static unsigned int cmsis_dap_tfer_cmd_size(unsigned int write_count,
+											unsigned int read_count)
+{
+	unsigned int size = 3;			/* header */
+	size += write_count * (1 + 4);	/* DAP register + data */
+	size += read_count;				/* DAP register */
+	return size;
+}
+
+static unsigned int cmsis_dap_tfer_resp_size(unsigned int write_count,
+											 unsigned int read_count)
+{
+	unsigned int size = 3;			/* header */
+	size += read_count * 4;			/* data */
+	return size;
+}
+
 static void cmsis_dap_swd_queue_cmd(uint8_t cmd, uint32_t *dst, uint32_t data)
 {
+	/* Compute sizes of the DAP Transfer command and the expected response
+	 * for all queued and this operation */
 	bool targetsel_cmd = swd_cmd(false, false, DP_TARGETSEL) == cmd;
 
-	if (cmsis_dap_handle->pending_fifo[cmsis_dap_handle->pending_fifo_put_idx].transfer_count == pending_queue_len
+	unsigned int write_count = cmsis_dap_handle->write_count;
+	unsigned int read_count = cmsis_dap_handle->read_count;
+	if (cmd & SWD_CMD_RNW)
+		read_count++;
+	else
+		write_count++;
+
+	unsigned int cmd_size = cmsis_dap_tfer_cmd_size(write_count, read_count);
+	unsigned int resp_size = cmsis_dap_tfer_resp_size(write_count, read_count);
+
+	/* Does the DAP Transfer command and the expected response fit into one packet?
+	 * Run the queue also before a targetsel - it cannot be queued */
+	if (cmd_size > tfer_max_command_size
+			|| resp_size > tfer_max_response_size
 			|| targetsel_cmd) {
 		if (cmsis_dap_handle->pending_fifo_block_count)
 			cmsis_dap_swd_read_process(cmsis_dap_handle, 0);
@@ -928,6 +969,8 @@ static void cmsis_dap_swd_queue_cmd(uint8_t cmd, uint32_t *dst, uint32_t data)
 		if (cmsis_dap_handle->pending_fifo_block_count >= cmsis_dap_handle->packet_count)
 			cmsis_dap_swd_read_process(cmsis_dap_handle, LIBUSB_TIMEOUT_MS);
 	}
+
+	assert(cmsis_dap_handle->pending_fifo[cmsis_dap_handle->pending_fifo_put_idx].transfer_count < pending_queue_len);
 
 	if (queued_retval != ERROR_OK)
 		return;
@@ -944,6 +987,9 @@ static void cmsis_dap_swd_queue_cmd(uint8_t cmd, uint32_t *dst, uint32_t data)
 	if (cmd & SWD_CMD_RNW) {
 		/* Queue a read transaction */
 		transfer->buffer = dst;
+		cmsis_dap_handle->read_count++;
+	} else {
+		cmsis_dap_handle->write_count++;
 	}
 	block->transfer_count++;
 }
@@ -1183,7 +1229,6 @@ static int cmsis_dap_init(void)
 	/* Be conservative and suppress submitting multiple HID requests
 	 * until we get packet count info from the adaptor */
 	cmsis_dap_handle->packet_count = 1;
-	pending_queue_len = 12;
 
 	/* INFO_ID_PKT_SZ - short */
 	retval = cmsis_dap_cmd_dap_info(INFO_ID_PKT_SZ, &data);
@@ -1193,12 +1238,6 @@ static int cmsis_dap_init(void)
 	if (data[0] == 2) {  /* short */
 		uint16_t pkt_sz = data[1] + (data[2] << 8);
 		if (pkt_sz != cmsis_dap_handle->packet_size) {
-
-			/* 4 bytes of command header + 5 bytes per register
-			 * write. For bulk read sequences just 4 bytes are
-			 * needed per transfer, so this is suboptimal. */
-			pending_queue_len = (pkt_sz - 4) / 5;
-
 			free(cmsis_dap_handle->packet_buffer);
 			retval = cmsis_dap_handle->backend->packet_buffer_alloc(cmsis_dap_handle, pkt_sz);
 			if (retval != ERROR_OK)
@@ -1207,6 +1246,16 @@ static int cmsis_dap_init(void)
 			LOG_DEBUG("CMSIS-DAP: Packet Size = %" PRIu16, pkt_sz);
 		}
 	}
+
+	/* Maximal number of transfers which fit to one packet:
+	 * Limited by response size: 3 bytes of response header + 4 per read
+	 * Plus writes to full command size: 3 bytes cmd header + 1 per read + 5 per write */
+	tfer_max_command_size = cmsis_dap_handle->packet_usable_size;
+	tfer_max_response_size = cmsis_dap_handle->packet_usable_size;
+	unsigned int max_reads = tfer_max_response_size / 4;
+	pending_queue_len = max_reads + (tfer_max_command_size - max_reads) / 5;
+	cmsis_dap_handle->write_count = 0;
+	cmsis_dap_handle->read_count = 0;
 
 	/* INFO_ID_PKT_CNT - byte */
 	retval = cmsis_dap_cmd_dap_info(INFO_ID_PKT_CNT, &data);
