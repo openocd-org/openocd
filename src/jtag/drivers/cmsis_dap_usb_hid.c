@@ -236,6 +236,10 @@ static void cmsis_dap_hid_free(struct cmsis_dap *dap)
 	dap->packet_buffer = NULL;
 }
 
+static void cmsis_dap_hid_cancel_all(struct cmsis_dap *dap)
+{
+}
+
 const struct cmsis_dap_backend cmsis_dap_hid_backend = {
 	.name = "hid",
 	.open = cmsis_dap_hid_open,
@@ -244,4 +248,5 @@ const struct cmsis_dap_backend cmsis_dap_hid_backend = {
 	.write = cmsis_dap_hid_write,
 	.packet_buffer_alloc = cmsis_dap_hid_alloc,
 	.packet_buffer_free = cmsis_dap_hid_free,
+	.cancel_all = cmsis_dap_hid_cancel_all,
 };

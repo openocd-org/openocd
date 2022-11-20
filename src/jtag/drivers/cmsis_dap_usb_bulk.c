@@ -634,6 +634,19 @@ static void cmsis_dap_usb_free(struct cmsis_dap *dap)
 	dap->response = NULL;
 }
 
+static void cmsis_dap_usb_cancel_all(struct cmsis_dap *dap)
+{
+	for (unsigned int i = 0; i < MAX_PENDING_REQUESTS; i++) {
+		if (dap->bdata->command_transfers[i].status == CMSIS_DAP_TRANSFER_PENDING)
+			libusb_cancel_transfer(dap->bdata->command_transfers[i].transfer);
+		if (dap->bdata->response_transfers[i].status == CMSIS_DAP_TRANSFER_PENDING)
+			libusb_cancel_transfer(dap->bdata->response_transfers[i].transfer);
+
+		dap->bdata->command_transfers[i].status = CMSIS_DAP_TRANSFER_IDLE;
+		dap->bdata->response_transfers[i].status = CMSIS_DAP_TRANSFER_IDLE;
+	}
+}
+
 COMMAND_HANDLER(cmsis_dap_handle_usb_interface_command)
 {
 	if (CMD_ARGC == 1)
@@ -663,4 +676,5 @@ const struct cmsis_dap_backend cmsis_dap_usb_backend = {
 	.write = cmsis_dap_usb_write,
 	.packet_buffer_alloc = cmsis_dap_usb_alloc,
 	.packet_buffer_free = cmsis_dap_usb_free,
+	.cancel_all = cmsis_dap_usb_cancel_all,
 };

@@ -66,6 +66,7 @@ struct cmsis_dap_backend {
 	int (*write)(struct cmsis_dap *dap, int len, int timeout_ms);
 	int (*packet_buffer_alloc)(struct cmsis_dap *dap, unsigned int pkt_sz);
 	void (*packet_buffer_free)(struct cmsis_dap *dap);
+	void (*cancel_all)(struct cmsis_dap *dap);
 };
 
 extern const struct cmsis_dap_backend cmsis_dap_hid_backend;

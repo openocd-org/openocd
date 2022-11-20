@@ -365,6 +365,7 @@ static int cmsis_dap_xfer(struct cmsis_dap *dap, int txlen)
 		LOG_ERROR("CMSIS-DAP command mismatch. Sent 0x%" PRIx8
 			 " received 0x%" PRIx8, current_cmd, resp[0]);
 
+		dap->backend->cancel_all(dap);
 		cmsis_dap_flush_read(dap);
 		return ERROR_FAIL;
 	}
@@ -758,7 +759,6 @@ static int cmsis_dap_cmd_dap_swo_data(
 	return ERROR_OK;
 }
 
-
 static void cmsis_dap_swd_discard_all_pending(struct cmsis_dap *dap)
 {
 	for (unsigned int i = 0; i < MAX_PENDING_REQUESTS; i++)
@@ -767,6 +767,13 @@ static void cmsis_dap_swd_discard_all_pending(struct cmsis_dap *dap)
 	dap->pending_fifo_put_idx = 0;
 	dap->pending_fifo_get_idx = 0;
 	dap->pending_fifo_block_count = 0;
+}
+
+static void cmsis_dap_swd_cancel_transfers(struct cmsis_dap *dap)
+{
+	dap->backend->cancel_all(dap);
+	cmsis_dap_flush_read(dap);
+	cmsis_dap_swd_discard_all_pending(dap);
 }
 
 static void cmsis_dap_swd_write_from_queue(struct cmsis_dap *dap)
@@ -913,8 +920,9 @@ static void cmsis_dap_swd_read_process(struct cmsis_dap *dap, enum cmsis_dap_blo
 	if (resp[0] != block->command) {
 		LOG_ERROR("CMSIS-DAP command mismatch. Expected 0x%x received 0x%" PRIx8,
 			block->command, resp[0]);
+		cmsis_dap_swd_cancel_transfers(dap);
 		queued_retval = ERROR_FAIL;
-		goto skip;
+		return;
 	}
 
 	unsigned int transfer_count;
@@ -940,9 +948,13 @@ static void cmsis_dap_swd_read_process(struct cmsis_dap *dap, enum cmsis_dap_blo
 		goto skip;
 	}
 
-	if (block->transfer_count != transfer_count)
+	if (block->transfer_count != transfer_count) {
 		LOG_ERROR("CMSIS-DAP transfer count mismatch: expected %d, got %d",
 			  block->transfer_count, transfer_count);
+		cmsis_dap_swd_cancel_transfers(dap);
+		queued_retval = ERROR_FAIL;
+		return;
+	}
 
 	LOG_DEBUG_IO("Received results of %d queued transactions FIFO index %u, %s mode",
 				 transfer_count, dap->pending_fifo_get_idx,
