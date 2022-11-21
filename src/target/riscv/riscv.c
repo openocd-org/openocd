@@ -506,7 +506,8 @@ static int find_trigger(struct target *target, int type, bool chained, int *idx)
 	return ERROR_FAIL;
 }
 
-static int set_trigger(struct target *target, int idx, riscv_reg_t tdata1, riscv_reg_t tdata2)
+static int set_trigger(struct target *target, int idx, riscv_reg_t tdata1, riscv_reg_t tdata2,
+	riscv_reg_t tdata1_ignore_mask)
 {
 	riscv_reg_t tdata1_rb;
 	if (riscv_set_register(target, GDB_REGNO_TSELECT, idx) != ERROR_OK)
@@ -515,10 +516,11 @@ static int set_trigger(struct target *target, int idx, riscv_reg_t tdata1, riscv
 		return ERROR_FAIL;
 	if (riscv_get_register(target, &tdata1_rb, GDB_REGNO_TDATA1) != ERROR_OK)
 		return ERROR_FAIL;
-	if (tdata1 != tdata1_rb) {
+	if ((tdata1 & ~tdata1_ignore_mask) != (tdata1_rb & ~tdata1_ignore_mask)) {
 		LOG_DEBUG("Trigger doesn't support what we need; After writing 0x%"
-			PRIx64 " to tdata1 it contains 0x%" PRIx64,
-			tdata1, tdata1_rb);
+			PRIx64 " to tdata1 it contains 0x%" PRIx64
+			"; tdata1_ignore_mask=0x%" PRIx64,
+			tdata1, tdata1_rb, tdata1_ignore_mask);
 		riscv_set_register(target, GDB_REGNO_TDATA1, 0);
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
@@ -567,7 +569,7 @@ static int maybe_add_trigger_t1(struct target *target, struct trigger *trigger)
 	tdata1 = set_field(tdata1, bpcontrol_bpaction, 0); /* cause bp exception */
 	tdata1 = set_field(tdata1, bpcontrol_bpmatch, 0); /* exact match */
 	tdata2 = trigger->address;
-	ret = set_trigger(target, idx, tdata1, tdata2);
+	ret = set_trigger(target, idx, tdata1, tdata2, 0);
 	if (ret != ERROR_OK)
 		return ret;
 	r->trigger_unique_id[idx] = trigger->unique_id;
@@ -604,7 +606,7 @@ static int maybe_add_trigger_t2(struct target *target, struct trigger *trigger)
 		return ret;
 	tdata1 = set_field(tdata1, CSR_MCONTROL_MATCH, CSR_MCONTROL_MATCH_NAPOT);
 	tdata1 = set_field(tdata1, CSR_MCONTROL_CHAIN, CSR_MCONTROL_CHAIN_DISABLED);
-	ret = set_trigger(target, idx, tdata1, tdata2);
+	ret = set_trigger(target, idx, tdata1, tdata2, CSR_MCONTROL_MASKMAX(riscv_xlen(target)));
 	if (ret != ERROR_OK) {
 		if (ret == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
 			goto MATCH_GE_LT; /* Fallback to chained MATCH using GT and LE */
@@ -620,7 +622,7 @@ MATCH_GE_LT:
 	tdata1 = set_field(tdata1, CSR_MCONTROL_MATCH, CSR_MCONTROL_MATCH_GE);
 	tdata1 = set_field(tdata1, CSR_MCONTROL_CHAIN, CSR_MCONTROL_CHAIN_ENABLED);
 	tdata2 = trigger->address;
-	ret = set_trigger(target, idx, tdata1, tdata2);
+	ret = set_trigger(target, idx, tdata1, tdata2, 0);
 	if (ret != ERROR_OK) {
 		if (ret == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
 			goto MATCH_EQUAL; /* Fallback to EQUAL MATCH */
@@ -629,9 +631,10 @@ MATCH_GE_LT:
 	tdata1 = set_field(tdata1, CSR_MCONTROL_MATCH, CSR_MCONTROL_MATCH_LT);
 	tdata1 = set_field(tdata1, CSR_MCONTROL_CHAIN, CSR_MCONTROL_CHAIN_DISABLED);
 	tdata2 = trigger->address + trigger->length;
-	ret = set_trigger(target, idx + 1, tdata1, tdata2);
+	ret = set_trigger(target, idx + 1, tdata1, tdata2, 0);
 	if (ret != ERROR_OK) {
-		set_trigger(target, idx, 0, 0); /* Undo the setting of the previous trigger*/
+		/* Undo the setting of the previous trigger*/
+		set_trigger(target, idx, 0, 0, CSR_MCONTROL_MASKMAX(riscv_xlen(target)));
 		if (ret == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
 			goto MATCH_EQUAL; /* Fallback to EQUAL MATCH */
 		return ret;
@@ -651,7 +654,7 @@ MATCH_EQUAL:
 	}
 	tdata1 = set_field(tdata1, CSR_MCONTROL_CHAIN, CSR_MCONTROL_CHAIN_DISABLED);
 	tdata2 = trigger->address;
-	ret = set_trigger(target, idx, tdata1, tdata2);
+	ret = set_trigger(target, idx, tdata1, tdata2, CSR_MCONTROL_MASKMAX(riscv_xlen(target)));
 	if (ret != ERROR_OK)
 		return ret;
 	r->trigger_unique_id[idx] = trigger->unique_id;
@@ -687,7 +690,7 @@ static int maybe_add_trigger_t6(struct target *target, struct trigger *trigger)
 		return ret;
 	tdata1 = set_field(tdata1, CSR_MCONTROL6_MATCH, CSR_MCONTROL6_MATCH_NAPOT);
 	tdata1 = set_field(tdata1, CSR_MCONTROL6_CHAIN, CSR_MCONTROL6_CHAIN_DISABLED);
-	ret = set_trigger(target, idx, tdata1, tdata2);
+	ret = set_trigger(target, idx, tdata1, tdata2, 0);
 	if (ret != ERROR_OK) {
 		if (ret == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
 			goto MATCH_GE_LT; /* Fallback to chained MATCH using GT and LE */
@@ -703,7 +706,7 @@ MATCH_GE_LT:
 	tdata1 = set_field(tdata1, CSR_MCONTROL6_MATCH, CSR_MCONTROL6_MATCH_GE);
 	tdata1 = set_field(tdata1, CSR_MCONTROL6_CHAIN, CSR_MCONTROL6_CHAIN_ENABLED);
 	tdata2 = trigger->address;
-	ret = set_trigger(target, idx, tdata1, tdata2);
+	ret = set_trigger(target, idx, tdata1, tdata2, 0);
 	if (ret != ERROR_OK) {
 		if (ret == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
 			goto MATCH_EQUAL; /* Fallback to EQUAL MATCH */
@@ -712,9 +715,9 @@ MATCH_GE_LT:
 	tdata1 = set_field(tdata1, CSR_MCONTROL6_MATCH, CSR_MCONTROL6_MATCH_LT);
 	tdata1 = set_field(tdata1, CSR_MCONTROL6_CHAIN, CSR_MCONTROL6_CHAIN_DISABLED);
 	tdata2 = trigger->address + trigger->length;
-	ret = set_trigger(target, idx + 1, tdata1, tdata2);
+	ret = set_trigger(target, idx + 1, tdata1, tdata2, 0);
 	if (ret != ERROR_OK) {
-		set_trigger(target, idx, 0, 0); /* Undo the setting of the previous trigger*/
+		set_trigger(target, idx, 0, 0, 0); /* Undo the setting of the previous trigger*/
 		if (ret == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
 			goto MATCH_EQUAL; /* Fallback to EQUAL MATCH */
 		return ret;
@@ -732,7 +735,7 @@ MATCH_EQUAL:
 		tdata1 = set_field(tdata1, CSR_MCONTROL6_SIZE, CSR_MCONTROL6_SIZE_8BIT);
 	tdata1 = set_field(tdata1, CSR_MCONTROL6_CHAIN, CSR_MCONTROL6_CHAIN_DISABLED);
 	tdata2 = trigger->address;
-	ret = set_trigger(target, idx, tdata1, tdata2);
+	ret = set_trigger(target, idx, tdata1, tdata2, 0);
 	if (ret != ERROR_OK)
 		return ret;
 	r->trigger_unique_id[idx] = trigger->unique_id;
