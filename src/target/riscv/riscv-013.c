@@ -4281,7 +4281,7 @@ static int riscv013_halt_go(struct target *target)
 		if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
 			return ERROR_FAIL;
 		/* When no harts are running, there's no point in continuing this loop. */
-		if (!get_field(dmstatus, DM_DMSTATUS_ALLRUNNING))
+		if (!get_field(dmstatus, DM_DMSTATUS_ANYRUNNING))
 			break;
 	}
 
