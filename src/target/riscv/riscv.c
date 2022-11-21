@@ -1283,7 +1283,7 @@ int set_debug_reason(struct target *target, enum riscv_halt_reason halt_reason)
 	RISCV_INFO(r);
 	r->trigger_hit = -1;
 	switch (halt_reason) {
-		case RISCV_HALT_BREAKPOINT:
+		case RISCV_HALT_EBREAK:
 			target->debug_reason = DBG_REASON_BREAKPOINT;
 			break;
 		case RISCV_HALT_TRIGGER:
@@ -2247,7 +2247,7 @@ static int riscv_poll_hart(struct target *target, enum riscv_next_action *next_a
 				if (set_debug_reason(target, halt_reason) != ERROR_OK)
 					return ERROR_FAIL;
 
-				if (halt_reason == RISCV_HALT_BREAKPOINT) {
+				if (halt_reason == RISCV_HALT_EBREAK) {
 					int retval;
 					/* Detect if this EBREAK is a semihosting request. If so, handle it. */
 					switch (riscv_semihosting(target, &retval)) {

@@ -4376,7 +4376,7 @@ static enum riscv_halt_reason riscv013_halt_reason(struct target *target)
 
 	switch (get_field(dcsr, CSR_DCSR_CAUSE)) {
 	case CSR_DCSR_CAUSE_EBREAK:
-		return RISCV_HALT_BREAKPOINT;
+		return RISCV_HALT_EBREAK;
 	case CSR_DCSR_CAUSE_TRIGGER:
 		/* We could get here before triggers are enumerated if a trigger was
 		 * already set when we connected. Force enumeration now, which has the
