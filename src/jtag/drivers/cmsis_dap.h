@@ -21,6 +21,7 @@ struct pending_transfer_result {
 struct pending_request_block {
 	struct pending_transfer_result *transfers;
 	unsigned int transfer_count;
+	uint8_t command;
 };
 
 struct cmsis_dap {
@@ -33,10 +34,16 @@ struct cmsis_dap {
 	uint8_t *command;
 	uint8_t *response;
 
-	/* DAP register r/w operation counters used for checking the packet size
+	/* DP/AP register r/w operation counters used for checking the packet size
 	 * that would result from the queue run */
 	unsigned int write_count;
 	unsigned int read_count;
+
+	/* We can use DAP_TransferBlock only if all SWD operations in the packet
+	 * are either all writes or all reads and use the same DP/AP register.
+	 * The following variables keep track of it */
+	uint8_t common_swd_cmd;
+	bool swd_cmds_differ;
 
 	/* Pending requests are organized as a FIFO - circular buffer */
 	struct pending_request_block pending_fifo[MAX_PENDING_REQUESTS];

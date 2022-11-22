@@ -160,6 +160,11 @@ static bool swd_mode;
 #define CMD_DAP_TFER_BLOCK        0x06
 #define CMD_DAP_TFER_ABORT        0x07
 
+/* DAP_TransferBlock increases the sum of command/response sizes
+ * (due to 16-bit Transfer Count) if used in a small packet.
+ * Prevent using it until we have at least r/w operations. */
+#define CMD_DAP_TFER_BLOCK_MIN_OPS 4
+
 /* DAP Status Code */
 #define DAP_OK                    0
 #define DAP_ERROR                 0xFF
@@ -756,8 +761,9 @@ static void cmsis_dap_swd_write_from_queue(struct cmsis_dap *dap)
 	dap->write_count = 0;
 	dap->read_count = 0;
 
-	LOG_DEBUG_IO("Executing %d queued transactions from FIFO index %u",
-			  block->transfer_count, dap->pending_fifo_put_idx);
+	LOG_DEBUG_IO("Executing %d queued transactions from FIFO index %u%s",
+				 block->transfer_count, dap->pending_fifo_put_idx,
+				 cmsis_dap_handle->swd_cmds_differ ? "" : ", same swd ops");
 
 	if (queued_retval != ERROR_OK) {
 		LOG_DEBUG("Skipping due to previous errors: %d", queued_retval);
@@ -767,10 +773,21 @@ static void cmsis_dap_swd_write_from_queue(struct cmsis_dap *dap)
 	if (block->transfer_count == 0)
 		goto skip;
 
-	command[0] = CMD_DAP_TFER;
+	bool block_cmd = !cmsis_dap_handle->swd_cmds_differ
+					 && block->transfer_count >= CMD_DAP_TFER_BLOCK_MIN_OPS;
+	block->command = block_cmd ? CMD_DAP_TFER_BLOCK : CMD_DAP_TFER;
+
+	command[0] = block->command;
 	command[1] = 0x00;	/* DAP Index */
-	command[2] = block->transfer_count;
-	size_t idx = 3;
+
+	unsigned int idx;
+	if (block_cmd) {
+		h_u16_to_le(&command[2], block->transfer_count);
+		idx = 4;	/* The first transfer will store the common DAP register */
+	} else {
+		command[2] = block->transfer_count;
+		idx = 3;
+	}
 
 	for (unsigned int i = 0; i < block->transfer_count; i++) {
 		struct pending_transfer_result *transfer = &(block->transfers[i]);
@@ -801,7 +818,9 @@ static void cmsis_dap_swd_write_from_queue(struct cmsis_dap *dap)
 			data &= ~CORUNDETECT;
 		}
 
-		command[idx++] = (cmd >> 1) & 0x0f;
+		if (!block_cmd || i == 0)
+			command[idx++] = (cmd >> 1) & 0x0f;
+
 		if (!(cmd & SWD_CMD_RNW)) {
 			h_u32_to_le(&command[idx], data);
 			idx += 4;
@@ -846,20 +865,28 @@ static void cmsis_dap_swd_read_process(struct cmsis_dap *dap, int timeout_ms)
 	}
 
 	uint8_t *resp = dap->response;
-	if (resp[0] != CMD_DAP_TFER) {
+	if (resp[0] != block->command) {
 		LOG_ERROR("CMSIS-DAP command mismatch. Expected 0x%x received 0x%" PRIx8,
-			CMD_DAP_TFER, resp[0]);
+			block->command, resp[0]);
 		queued_retval = ERROR_FAIL;
 		goto skip;
 	}
 
-	unsigned int transfer_count = resp[1];
-	uint8_t ack = resp[2] & 0x07;
-	if (resp[2] & 0x08) {
+	unsigned int transfer_count;
+	unsigned int idx;
+	if (block->command == CMD_DAP_TFER_BLOCK) {
+		transfer_count = le_to_h_u16(&resp[1]);
+		idx = 3;
+	} else {
+		transfer_count = resp[1];
+		idx = 2;
+	}
+	if (resp[idx] & 0x08) {
 		LOG_DEBUG("CMSIS-DAP Protocol Error @ %d (wrong parity)", transfer_count);
 		queued_retval = ERROR_FAIL;
 		goto skip;
 	}
+	uint8_t ack = resp[idx++] & 0x07;
 	if (ack != SWD_ACK_OK) {
 		LOG_DEBUG("SWD ack not OK @ %d %s", transfer_count,
 			  ack == SWD_ACK_WAIT ? "WAIT" : ack == SWD_ACK_FAULT ? "FAULT" : "JUNK");
@@ -874,7 +901,7 @@ static void cmsis_dap_swd_read_process(struct cmsis_dap *dap, int timeout_ms)
 
 	LOG_DEBUG_IO("Received results of %d queued transactions FIFO index %u timeout %i",
 		 transfer_count, dap->pending_fifo_get_idx, timeout_ms);
-	unsigned int idx = 3;
+
 	for (unsigned int i = 0; i < transfer_count; i++) {
 		struct pending_transfer_result *transfer = &(block->transfers[i]);
 		if (transfer->cmd & SWD_CMD_RNW) {
@@ -923,19 +950,30 @@ static int cmsis_dap_swd_run_queue(void)
 }
 
 static unsigned int cmsis_dap_tfer_cmd_size(unsigned int write_count,
-											unsigned int read_count)
+							unsigned int read_count, bool block_tfer)
 {
-	unsigned int size = 3;			/* header */
-	size += write_count * (1 + 4);	/* DAP register + data */
-	size += read_count;				/* DAP register */
+	unsigned int size;
+	if (block_tfer) {
+		size = 5;						/* DAP_TransferBlock header */
+		size += write_count * 4;		/* data */
+	} else {
+		size = 3;						/* DAP_Transfer header */
+		size += write_count * (1 + 4);	/* DAP register + data */
+		size += read_count;				/* DAP register */
+	}
 	return size;
 }
 
 static unsigned int cmsis_dap_tfer_resp_size(unsigned int write_count,
-											 unsigned int read_count)
+							unsigned int read_count, bool block_tfer)
 {
-	unsigned int size = 3;			/* header */
-	size += read_count * 4;			/* data */
+	unsigned int size;
+	if (block_tfer)
+		size = 4;						/* DAP_TransferBlock response header */
+	else
+		size = 3;						/* DAP_Transfer response header */
+
+	size += read_count * 4;				/* data */
 	return size;
 }
 
@@ -947,13 +985,22 @@ static void cmsis_dap_swd_queue_cmd(uint8_t cmd, uint32_t *dst, uint32_t data)
 
 	unsigned int write_count = cmsis_dap_handle->write_count;
 	unsigned int read_count = cmsis_dap_handle->read_count;
+	bool block_cmd;
+	if (write_count + read_count < CMD_DAP_TFER_BLOCK_MIN_OPS)
+		block_cmd = false;
+	else
+		block_cmd = !cmsis_dap_handle->swd_cmds_differ
+					&& cmd == cmsis_dap_handle->common_swd_cmd;
+
 	if (cmd & SWD_CMD_RNW)
 		read_count++;
 	else
 		write_count++;
 
-	unsigned int cmd_size = cmsis_dap_tfer_cmd_size(write_count, read_count);
-	unsigned int resp_size = cmsis_dap_tfer_resp_size(write_count, read_count);
+	unsigned int cmd_size = cmsis_dap_tfer_cmd_size(write_count, read_count,
+													block_cmd);
+	unsigned int resp_size = cmsis_dap_tfer_resp_size(write_count, read_count,
+													block_cmd);
 
 	/* Does the DAP Transfer command and the expected response fit into one packet?
 	 * Run the queue also before a targetsel - it cannot be queued */
@@ -984,6 +1031,13 @@ static void cmsis_dap_swd_queue_cmd(uint8_t cmd, uint32_t *dst, uint32_t data)
 	struct pending_transfer_result *transfer = &(block->transfers[block->transfer_count]);
 	transfer->data = data;
 	transfer->cmd = cmd;
+	if (block->transfer_count == 0) {
+		cmsis_dap_handle->swd_cmds_differ = false;
+		cmsis_dap_handle->common_swd_cmd = cmd;
+	} else if (cmd != cmsis_dap_handle->common_swd_cmd) {
+		cmsis_dap_handle->swd_cmds_differ = true;
+	}
+
 	if (cmd & SWD_CMD_RNW) {
 		/* Queue a read transaction */
 		transfer->buffer = dst;
