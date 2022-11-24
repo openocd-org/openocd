@@ -1158,7 +1158,9 @@ static int cmsis_dap_swd_switch_seq(enum swd_special_seq seq)
 	unsigned int s_len;
 	int retval;
 
-	if ((output_pins & (SWJ_PIN_SRST | SWJ_PIN_TRST)) == (SWJ_PIN_SRST | SWJ_PIN_TRST)) {
+	if (seq != LINE_RESET &&
+			(output_pins & (SWJ_PIN_SRST | SWJ_PIN_TRST))
+				== (SWJ_PIN_SRST | SWJ_PIN_TRST)) {
 		/* Following workaround deasserts reset on most adapters.
 		 * Do not reconnect if a reset line is active!
 		 * Reconnecting would break connecting under reset. */
