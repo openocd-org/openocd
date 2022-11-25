@@ -4281,7 +4281,7 @@ static int riscv013_halt_go(struct target *target)
 		if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
 			return ERROR_FAIL;
 		/* When no harts are running, there's no point in continuing this loop. */
-		if (!get_field(dmstatus, DM_DMSTATUS_ALLRUNNING))
+		if (!get_field(dmstatus, DM_DMSTATUS_ANYRUNNING))
 			break;
 	}
 
@@ -4304,9 +4304,32 @@ static int riscv013_halt_go(struct target *target)
 		target_list_t *entry;
 		list_for_each_entry(entry, &dm->target_list, list) {
 			struct target *t = entry->target;
-			t->state = TARGET_HALTED;
-			if (t->debug_reason == DBG_REASON_NOTHALTED)
-				t->debug_reason = DBG_REASON_DBGRQ;
+			uint32_t t_dmstatus;
+			if (get_field(dmstatus, DM_DMSTATUS_ALLHALTED) ||
+					get_field(dmstatus, DM_DMSTATUS_ALLUNAVAIL)) {
+				/* All harts are either halted or unavailable. No
+				 * need to read dmstatus for each hart. */
+				t_dmstatus = dmstatus;
+			} else {
+				/* Only some harts were halted/unavailable. Read
+				 * dmstatus for this one to see what its status
+				 * is. */
+				riscv013_info_t *info = get_info(t);
+				dmcontrol = set_dmcontrol_hartsel(dmcontrol, info->index);
+				if (dmi_write(target, DM_DMCONTROL, dmcontrol) != ERROR_OK)
+					return ERROR_FAIL;
+				dm->current_hartid = info->index;
+				if (dmi_read(target, &t_dmstatus, DM_DMSTATUS) != ERROR_OK)
+					return ERROR_FAIL;
+			}
+			/* Set state for the current target based on its dmstatus. */
+			if (get_field(t_dmstatus, DM_DMSTATUS_ALLHALTED)) {
+				t->state = TARGET_HALTED;
+				if (t->debug_reason == DBG_REASON_NOTHALTED)
+					t->debug_reason = DBG_REASON_DBGRQ;
+			} else if (get_field(t_dmstatus, DM_DMSTATUS_ALLUNAVAIL)) {
+				t->state = TARGET_UNAVAILABLE;
+			}
 		}
 	}
 	/* The "else" case is handled in halt_go(). */
@@ -4353,7 +4376,7 @@ static enum riscv_halt_reason riscv013_halt_reason(struct target *target)
 
 	switch (get_field(dcsr, CSR_DCSR_CAUSE)) {
 	case CSR_DCSR_CAUSE_EBREAK:
-		return RISCV_HALT_BREAKPOINT;
+		return RISCV_HALT_EBREAK;
 	case CSR_DCSR_CAUSE_TRIGGER:
 		/* We could get here before triggers are enumerated if a trigger was
 		 * already set when we connected. Force enumeration now, which has the
@@ -4855,6 +4878,8 @@ static int riscv013_step_or_resume_current_hart(struct target *target,
 	for (size_t i = 0; i < 256; ++i) {
 		usleep(10);
 		if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
+			return ERROR_FAIL;
+		if (get_field(dmstatus, DM_DMSTATUS_ALLUNAVAIL))
 			return ERROR_FAIL;
 		if (get_field(dmstatus, DM_DMSTATUS_ALLRESUMEACK) == 0)
 			continue;

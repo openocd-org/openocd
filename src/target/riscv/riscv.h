@@ -50,7 +50,7 @@ enum riscv_mem_access_method {
 
 enum riscv_halt_reason {
 	RISCV_HALT_INTERRUPT,
-	RISCV_HALT_BREAKPOINT,
+	RISCV_HALT_EBREAK,
 	RISCV_HALT_SINGLESTEP,
 	RISCV_HALT_TRIGGER,
 	RISCV_HALT_UNKNOWN,
@@ -150,6 +150,10 @@ typedef struct {
 	bool prepped;
 	/* This target was selected using hasel. */
 	bool selected;
+
+	/* Used by riscv_openocd_poll(). */
+	bool halted_needs_event_callback;
+	enum target_event halted_callback_event;
 
 	enum riscv_isrmasking_mode isrmask_mode;
 
