@@ -8523,7 +8523,7 @@ command. All output is relayed through the GDB session.
 
 @item @b{Machine Interface}
 The Tcl interface's intent is to be a machine interface. The default Tcl
-port is 5555.
+port is 6666.
 @end itemize
 
 
