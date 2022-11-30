@@ -1765,8 +1765,11 @@ static int examine(struct target *target)
 		return ERROR_FAIL;
 	}
 
-	if (!halted)
+	if (!halted) {
 		riscv013_step_or_resume_current_hart(target, false);
+		target->state = TARGET_RUNNING;
+		target->debug_reason = DBG_REASON_NOTHALTED;
+	}
 
 	if (target->smp) {
 		bool haltgroup_supported;
@@ -4331,8 +4334,17 @@ static int riscv013_halt_go(struct target *target)
 				t->state = TARGET_UNAVAILABLE;
 			}
 		}
+
+	} else {
+		/* Set state for the current target based on its dmstatus. */
+		if (get_field(dmstatus, DM_DMSTATUS_ALLHALTED)) {
+			target->state = TARGET_HALTED;
+			if (target->debug_reason == DBG_REASON_NOTHALTED)
+				target->debug_reason = DBG_REASON_DBGRQ;
+		} else if (get_field(dmstatus, DM_DMSTATUS_ALLUNAVAIL)) {
+			target->state = TARGET_UNAVAILABLE;
+		}
 	}
-	/* The "else" case is handled in halt_go(). */
 
 	return ERROR_OK;
 }
