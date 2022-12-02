@@ -1956,14 +1956,22 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 {
 	RISCV_INFO(info);
 
-	if (num_mem_params > 0) {
-		LOG_ERROR("Memory parameters are not supported for RISC-V algorithms.");
-		return ERROR_FAIL;
-	}
-
 	if (target->state != TARGET_HALTED) {
 		LOG_WARNING("target not halted");
 		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	/* Write memory parameters to the target memory */
+	for (int i = 0; i < num_mem_params; i++) {
+		if (mem_params[i].direction == PARAM_OUT ||
+				mem_params[i].direction == PARAM_IN_OUT) {
+			int retval = target_write_buffer(target, mem_params[i].address, mem_params[i].size, mem_params[i].value);
+			if (retval != ERROR_OK) {
+				LOG_ERROR("Couldn't write input mem param into the memory, addr=0x%" TARGET_PRIxADDR " size=0x%" PRIx32,
+						mem_params[i].address, mem_params[i].size);
+				return retval;
+			}
+		}
 	}
 
 	/* Save registers */
@@ -2088,6 +2096,20 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 		if (r->type->set(r, buf) != ERROR_OK) {
 			LOG_ERROR("set(%s) failed", r->name);
 			return ERROR_FAIL;
+		}
+	}
+
+	/* Read memory parameters from the target memory */
+	for (int i = 0; i < num_mem_params; i++) {
+		if (mem_params[i].direction == PARAM_IN ||
+				mem_params[i].direction == PARAM_IN_OUT) {
+			int retval = target_read_buffer(target, mem_params[i].address, mem_params[i].size,
+					mem_params[i].value);
+			if (retval != ERROR_OK) {
+				LOG_ERROR("Couldn't read output mem param from the memory, addr=0x%" TARGET_PRIxADDR " size=0x%" PRIx32,
+						mem_params[i].address, mem_params[i].size);
+				return retval;
+			}
 		}
 	}
 
