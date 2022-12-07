@@ -327,6 +327,7 @@ static const struct stm32l4_rev stm32g49_g4axx_revs[] = {
 
 static const struct stm32l4_rev stm32u57_u58xx_revs[] = {
 	{ 0x1000, "A" }, { 0x1001, "Z" }, { 0x1003, "Y" }, { 0x2000, "B" },
+	{ 0x2001, "X" }, { 0x3000, "C" },
 };
 
 static const struct stm32l4_rev stm32wb1xx_revs[] = {
