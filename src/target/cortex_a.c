@@ -2874,23 +2874,20 @@ static int cortex_a_examine_first(struct target *target)
 	int retval = ERROR_OK;
 	uint32_t didr, cpuid, dbg_osreg, dbg_idpfr1;
 
-	if (armv7a->debug_ap) {
-		dap_put_ap(armv7a->debug_ap);
-		armv7a->debug_ap = NULL;
-	}
-
-	if (pc->ap_num == DP_APSEL_INVALID) {
-		/* Search for the APB-AP - it is needed for access to debug registers */
-		retval = dap_find_get_ap(swjdp, AP_TYPE_APB_AP, &armv7a->debug_ap);
-		if (retval != ERROR_OK) {
-			LOG_ERROR("Could not find APB-AP for debug access");
-			return retval;
-		}
-	} else {
-		armv7a->debug_ap = dap_get_ap(swjdp, pc->ap_num);
-		if (!armv7a->debug_ap) {
-			LOG_ERROR("Cannot get AP");
-			return ERROR_FAIL;
+	if (!armv7a->debug_ap) {
+		if (pc->ap_num == DP_APSEL_INVALID) {
+			/* Search for the APB-AP - it is needed for access to debug registers */
+			retval = dap_find_get_ap(swjdp, AP_TYPE_APB_AP, &armv7a->debug_ap);
+			if (retval != ERROR_OK) {
+				LOG_ERROR("Could not find APB-AP for debug access");
+				return retval;
+			}
+		} else {
+			armv7a->debug_ap = dap_get_ap(swjdp, pc->ap_num);
+			if (!armv7a->debug_ap) {
+				LOG_ERROR("Cannot get AP");
+				return ERROR_FAIL;
+			}
 		}
 	}
 

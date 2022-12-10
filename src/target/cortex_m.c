@@ -879,16 +879,6 @@ static int cortex_m_poll(struct target *target)
 	struct cortex_m_common *cortex_m = target_to_cm(target);
 	struct armv7m_common *armv7m = &cortex_m->armv7m;
 
-	/* Check if debug_ap is available to prevent segmentation fault.
-	 * If the re-examination after an error does not find a MEM-AP
-	 * (e.g. the target stopped communicating), debug_ap pointer
-	 * can suddenly become NULL.
-	 */
-	if (!armv7m->debug_ap) {
-		target->state = TARGET_UNKNOWN;
-		return ERROR_TARGET_NOT_EXAMINED;
-	}
-
 	/* Read from Debug Halting Control and Status Register */
 	retval = cortex_m_read_dhcsr_atomic_sticky(target);
 	if (retval != ERROR_OK) {
@@ -2311,23 +2301,20 @@ int cortex_m_examine(struct target *target)
 	/* hla_target shares the examine handler but does not support
 	 * all its calls */
 	if (!armv7m->is_hla_target) {
-		if (armv7m->debug_ap) {
-			dap_put_ap(armv7m->debug_ap);
-			armv7m->debug_ap = NULL;
-		}
-
-		if (cortex_m->apsel == DP_APSEL_INVALID) {
-			/* Search for the MEM-AP */
-			retval = cortex_m_find_mem_ap(swjdp, &armv7m->debug_ap);
-			if (retval != ERROR_OK) {
-				LOG_TARGET_ERROR(target, "Could not find MEM-AP to control the core");
-				return retval;
-			}
-		} else {
-			armv7m->debug_ap = dap_get_ap(swjdp, cortex_m->apsel);
-			if (!armv7m->debug_ap) {
-				LOG_ERROR("Cannot get AP");
-				return ERROR_FAIL;
+		if (!armv7m->debug_ap) {
+			if (cortex_m->apsel == DP_APSEL_INVALID) {
+				/* Search for the MEM-AP */
+				retval = cortex_m_find_mem_ap(swjdp, &armv7m->debug_ap);
+				if (retval != ERROR_OK) {
+					LOG_TARGET_ERROR(target, "Could not find MEM-AP to control the core");
+					return retval;
+				}
+			} else {
+				armv7m->debug_ap = dap_get_ap(swjdp, cortex_m->apsel);
+				if (!armv7m->debug_ap) {
+					LOG_ERROR("Cannot get AP");
+					return ERROR_FAIL;
+				}
 			}
 		}
 
