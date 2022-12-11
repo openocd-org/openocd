@@ -4251,10 +4251,11 @@ static void write_gmon(uint32_t *samples, uint32_t sample_num, const char *filen
 
 		/* max should be (largest sample + 1)
 		 * Refer to binutils/gprof/hist.c (find_histogram_for_pc) */
-		max++;
+		if (max < UINT32_MAX)
+			max++;
 	}
 
-	int address_space = max - min;
+	uint32_t address_space = max - min;
 	assert(address_space >= 2);
 
 	/* FIXME: What is the reasonable number of buckets?
