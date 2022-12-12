@@ -8530,6 +8530,34 @@ This driver can be used to load the bitstream into the FPGA.
 @end deffn
 
 
+@deffn {FPGA Driver} {intel} [@option{family}]
+This driver can be used to load the bitstream into Intel (former Altera) FPGAs.
+The families Cyclone III, Cyclone IV, Cyclone V, Cyclone 10, Arria II are supported.
+@c Arria V and Arria 10, MAX II, MAX V, MAX10)
+
+The option @option{family} is one of @var{cycloneiii cycloneiv cyclonev cyclone10 arriaii}.
+This is needed when the JTAG ID of the device is ambiguous (same ID is used for chips in different families).
+
+As input file format the driver supports a '.rbf' (raw bitstream file) file. The '.rbf' file can be generated
+from a '.sof' file with @verb{|quartus_cpf -c blinker.sof blinker.rbf|}
+
+Defines a new PLD device, an FPGA of the Cyclone III family, using the TAP named @verb{|cycloneiii.tap|}:
+@example
+pld device intel cycloneiii.tap cycloneiii
+@end example
+
+@deffn {Command} {intel set_bscan} num len
+Set boundary scan register length of FPGA @var{num} to @var{len}. This is needed because the
+length can vary between chips with the same JTAG ID.
+@end deffn
+
+@deffn {Command} {intel set_check_pos} num pos
+Selects the position @var{pos} in the boundary-scan register. The bit at this
+position is checked after loading the bitstream and must be '1', which is the case when no error occurred.
+With a value of -1 for @var{pos} the check will be omitted.
+@end deffn
+@end deffn
+
 
 @node General Commands
 @chapter General Commands
