@@ -5,6 +5,7 @@ noinst_LTLIBRARIES += %D%/libpld.la
 	%D%/certus.c \
 	%D%/ecp2_3.c \
 	%D%/ecp5.c \
+	%D%/efinix.c \
 	%D%/lattice.c \
 	%D%/lattice_bit.c \
 	%D%/pld.c \

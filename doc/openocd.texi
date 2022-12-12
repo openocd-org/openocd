@@ -8524,6 +8524,12 @@ The load command for the FPGA @var{num} will use a length for the preload of @va
 @end deffn
 
 
+@deffn {FPGA Driver} {efinix}
+Both families (Trion and Titanium) sold by Efinix are supported as both use the same protocol for In-System Configuration.
+This driver can be used to load the bitstream into the FPGA.
+@end deffn
+
+
 
 @node General Commands
 @chapter General Commands
