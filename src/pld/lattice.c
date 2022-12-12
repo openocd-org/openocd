@@ -15,6 +15,7 @@
 #include "lattice_bit.h"
 #include "ecp2_3.h"
 #include "ecp5.h"
+#include "certus.h"
 
 #define PRELOAD              0x1C
 
@@ -50,6 +51,9 @@ static const struct lattice_devices_elem lattice_devices[] = {
 	{0x01111043,  409, LATTICE_ECP5 /* "LAE5UM-25F" */},
 	{0x01112043,  510, LATTICE_ECP5 /* "LAE5UM-45F" */},
 	{0x01113043,  750, LATTICE_ECP5 /* "LAE5UM-85F" */},
+	{0x310f0043,  362, LATTICE_CERTUS /* LFD2NX-17 */},
+	{0x310f1043,  362, LATTICE_CERTUS /* LFD2NX-40 */},
+	{0x010f4043,  362, LATTICE_CERTUS /* LFCPNX-100 */},
 };
 
 int lattice_set_instr(struct jtag_tap *tap, uint8_t new_instr, tap_state_t endstate)
@@ -116,6 +120,27 @@ int lattice_read_u32_register(struct jtag_tap *tap, uint8_t cmd, uint32_t *in_va
 	return retval;
 }
 
+int lattice_read_u64_register(struct jtag_tap *tap, uint8_t cmd, uint64_t *in_val,
+							uint64_t out_val)
+{
+	struct scan_field field;
+	uint8_t buffer[8];
+
+	int retval = lattice_set_instr(tap, cmd, TAP_IDLE);
+	if (retval != ERROR_OK)
+		return retval;
+	h_u64_to_le(buffer, out_val);
+	field.num_bits = 64;
+	field.out_value = buffer;
+	field.in_value = buffer;
+	jtag_add_dr_scan(tap, 1, &field, TAP_IDLE);
+	retval = jtag_execute_queue();
+	if (retval == ERROR_OK)
+		*in_val = le_to_h_u64(buffer);
+
+	return retval;
+}
+
 int lattice_preload(struct lattice_pld_device *lattice_device)
 {
 	struct scan_field field;
@@ -150,6 +175,8 @@ static int lattice_read_usercode(struct lattice_pld_device *lattice_device, uint
 		return lattice_ecp2_3_read_usercode(tap, usercode, out);
 	else if (lattice_device->family == LATTICE_ECP5)
 		return lattice_ecp5_read_usercode(tap, usercode, out);
+	else if (lattice_device->family == LATTICE_CERTUS)
+		return lattice_certus_read_usercode(tap, usercode, out);
 
 	return ERROR_FAIL;
 }
@@ -177,6 +204,8 @@ static int lattice_write_usercode(struct lattice_pld_device *lattice_device, uin
 		return lattice_ecp2_3_write_usercode(lattice_device, usercode);
 	else if (lattice_device->family == LATTICE_ECP5)
 		return lattice_ecp5_write_usercode(lattice_device, usercode);
+	else if (lattice_device->family == LATTICE_CERTUS)
+		return lattice_certus_write_usercode(lattice_device, usercode);
 
 	return ERROR_FAIL;
 }
@@ -194,12 +223,22 @@ static int lattice_read_status_u32(struct lattice_pld_device *lattice_device, ui
 
 	return ERROR_FAIL;
 }
+static int lattice_read_status_u64(struct lattice_pld_device *lattice_device, uint64_t *status,
+								uint64_t out)
+{
+	if (!lattice_device->tap)
+		return ERROR_FAIL;
+
+	if (lattice_device->family == LATTICE_CERTUS)
+		return lattice_certus_read_status(lattice_device->tap, status, out);
+
+	return ERROR_FAIL;
+}
 
 int lattice_verify_status_register_u32(struct lattice_pld_device *lattice_device, uint32_t out,
 						uint32_t expected, uint32_t mask, bool do_idle)
 {
 	uint32_t status;
-
 	int retval = lattice_read_status_u32(lattice_device, &status, out, do_idle);
 	if (retval != ERROR_OK)
 		return retval;
@@ -212,13 +251,28 @@ int lattice_verify_status_register_u32(struct lattice_pld_device *lattice_device
 	return ERROR_OK;
 }
 
+int lattice_verify_status_register_u64(struct lattice_pld_device *lattice_device, uint64_t out,
+						uint64_t expected, uint64_t mask)
+{
+	uint64_t status;
+	int retval = lattice_read_status_u64(lattice_device, &status, out);
+	if (retval != ERROR_OK)
+		return retval;
+
+	if ((status & mask) != expected) {
+		LOG_ERROR("verifying status register failed got: 0x%08" PRIx64 " expected: 0x%08" PRIx64,
+			status & mask, expected);
+		return ERROR_FAIL;
+	}
+	return ERROR_OK;
+}
+
 static int lattice_load_command(struct pld_device *pld_device, const char *filename)
 {
 	if (!pld_device)
 		return ERROR_FAIL;
 
 	struct lattice_pld_device *lattice_device = pld_device->driver_priv;
-
 	if (!lattice_device || !lattice_device->tap)
 		return ERROR_FAIL;
 	struct jtag_tap *tap = lattice_device->tap;
@@ -245,10 +299,14 @@ static int lattice_load_command(struct pld_device *pld_device, const char *filen
 		retval = lattice_ecp3_load(lattice_device, &bit_file);
 		break;
 	case LATTICE_ECP5:
+	case LATTICE_CERTUS:
 		if (bit_file.has_id && id != bit_file.idcode)
 			LOG_WARNING("Id on device (0x%8.8" PRIx32 ") and id in bit-stream (0x%8.8" PRIx32 ") don't match.",
 				id, bit_file.idcode);
-		retval = lattice_ecp5_load(lattice_device, &bit_file);
+		if (lattice_device->family == LATTICE_ECP5)
+			retval = lattice_ecp5_load(lattice_device, &bit_file);
+		else
+			retval = lattice_certus_load(lattice_device, &bit_file);
 		break;
 	default:
 		LOG_ERROR("loading unknown device family");
@@ -283,6 +341,8 @@ PLD_DEVICE_COMMAND_HANDLER(lattice_pld_device_command)
 			family = LATTICE_ECP3;
 		} else if (strcasecmp(CMD_ARGV[2], "ecp5") == 0) {
 			family = LATTICE_ECP5;
+		} else if (strcasecmp(CMD_ARGV[2], "certus") == 0) {
+			family = LATTICE_CERTUS;
 		} else {
 			command_print(CMD, "unknown family");
 			free(lattice_device);
@@ -405,11 +465,18 @@ COMMAND_HANDLER(lattice_read_status_command_handler)
 	if (retval != ERROR_OK)
 		return retval;
 
-	uint32_t status;
-	const bool do_idle = lattice_device->family == LATTICE_ECP5;
-	retval = lattice_read_status_u32(lattice_device, &status, 0x0, do_idle);
-	if (retval == ERROR_OK)
-		command_print(CMD, "0x%8.8" PRIx32, status);
+	if (lattice_device->family == LATTICE_CERTUS) {
+		uint64_t status;
+		retval = lattice_read_status_u64(lattice_device, &status, 0x0);
+		if (retval == ERROR_OK)
+			command_print(CMD, "0x%016" PRIx64, status);
+	} else {
+		uint32_t status;
+		const bool do_idle = lattice_device->family == LATTICE_ECP5;
+		retval = lattice_read_status_u32(lattice_device, &status, 0x0, do_idle);
+		if (retval == ERROR_OK)
+			command_print(CMD, "0x%8.8" PRIx32, status);
+	}
 
 	return retval;
 }

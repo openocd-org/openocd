@@ -2,6 +2,7 @@
 
 noinst_LTLIBRARIES += %D%/libpld.la
 %C%_libpld_la_SOURCES = \
+	%D%/certus.c \
 	%D%/ecp2_3.c \
 	%D%/ecp5.c \
 	%D%/lattice.c \
@@ -10,6 +11,7 @@ noinst_LTLIBRARIES += %D%/libpld.la
 	%D%/raw_bit.c \
 	%D%/xilinx_bit.c \
 	%D%/virtex2.c \
+	%D%/certus.h \
 	%D%/ecp2_3.h \
 	%D%/ecp5.h \
 	%D%/lattice.h \

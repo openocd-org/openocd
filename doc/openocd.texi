@@ -8497,10 +8497,10 @@ for FPGA @var{num}.
 
 
 @deffn {FPGA Driver} {lattice} [family]
-The FGPA families ECP2, ECP3 and ECP5 by Lattice are supported.
+The FGPA families ECP2, ECP3, ECP5, Certus and CertusPro by Lattice are supported.
 This driver can be used to load the bitstream into the FPGA or read the status register and read/write the usercode register.
 
-The option @option{family} is one of @var{ecp2 ecp3 ecp5}. This is needed when the JTAG ID of the device is not known by openocd (newer NX devices).
+The option @option{family} is one of @var{ecp2 ecp3 ecp5 certus}. This is needed when the JTAG ID of the device is not known by openocd (newer NX devices).
 
 @deffn {Command} {lattice read_status} num
 Reads and displays the status register
