@@ -3,6 +3,7 @@
 noinst_LTLIBRARIES += %D%/libpld.la
 %C%_libpld_la_SOURCES = \
 	%D%/ecp2_3.c \
+	%D%/ecp5.c \
 	%D%/lattice.c \
 	%D%/lattice_bit.c \
 	%D%/pld.c \
@@ -10,8 +11,10 @@ noinst_LTLIBRARIES += %D%/libpld.la
 	%D%/xilinx_bit.c \
 	%D%/virtex2.c \
 	%D%/ecp2_3.h \
+	%D%/ecp5.h \
 	%D%/lattice.h \
 	%D%/lattice_bit.h \
+	%D%/lattice_cmd.h \
 	%D%/pld.h \
 	%D%/raw_bit.h \
 	%D%/xilinx_bit.h \

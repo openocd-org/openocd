@@ -14,6 +14,7 @@
 #include "pld.h"
 #include "lattice_bit.h"
 #include "ecp2_3.h"
+#include "ecp5.h"
 
 #define PRELOAD              0x1C
 
@@ -39,6 +40,16 @@ static const struct lattice_devices_elem lattice_devices[] = {
 	{0x01012043,  675, LATTICE_ECP3 /* ecp3 lae3-35ea & lfe3-35ea*/},
 	{0x01014043, 1077, LATTICE_ECP3 /* ecp3 lfe3-70ea & lfe3-70e & lfe3-95ea && lfe3-95e*/},
 	{0x01015043, 1326, LATTICE_ECP3 /* ecp3 lfe3-150e*/},
+	{0x21111043,  409, LATTICE_ECP5 /* "LAE5U-12F & LFE5U-12F" */},
+	{0x41111043,  409, LATTICE_ECP5 /* "LFE5U-25F" */},
+	{0x41112043,  510, LATTICE_ECP5 /* "LFE5U-45F" */},
+	{0x41113043,  750, LATTICE_ECP5 /* "LFE5U-85F" */},
+	{0x81111043,  409, LATTICE_ECP5 /* "LFE5UM5G-25F" */},
+	{0x81112043,  510, LATTICE_ECP5 /* "LFE5UM5G-45F" */},
+	{0x81113043,  750, LATTICE_ECP5 /* "LFE5UM5G-85F" */},
+	{0x01111043,  409, LATTICE_ECP5 /* "LAE5UM-25F" */},
+	{0x01112043,  510, LATTICE_ECP5 /* "LAE5UM-45F" */},
+	{0x01113043,  750, LATTICE_ECP5 /* "LAE5UM-85F" */},
 };
 
 int lattice_set_instr(struct jtag_tap *tap, uint8_t new_instr, tap_state_t endstate)
@@ -137,6 +148,8 @@ static int lattice_read_usercode(struct lattice_pld_device *lattice_device, uint
 
 	if (lattice_device->family == LATTICE_ECP2 || lattice_device->family == LATTICE_ECP3)
 		return lattice_ecp2_3_read_usercode(tap, usercode, out);
+	else if (lattice_device->family == LATTICE_ECP5)
+		return lattice_ecp5_read_usercode(tap, usercode, out);
 
 	return ERROR_FAIL;
 }
@@ -162,6 +175,8 @@ static int lattice_write_usercode(struct lattice_pld_device *lattice_device, uin
 {
 	if (lattice_device->family == LATTICE_ECP2 || lattice_device->family == LATTICE_ECP3)
 		return lattice_ecp2_3_write_usercode(lattice_device, usercode);
+	else if (lattice_device->family == LATTICE_ECP5)
+		return lattice_ecp5_write_usercode(lattice_device, usercode);
 
 	return ERROR_FAIL;
 }
@@ -174,6 +189,8 @@ static int lattice_read_status_u32(struct lattice_pld_device *lattice_device, ui
 
 	if (lattice_device->family == LATTICE_ECP2 || lattice_device->family == LATTICE_ECP3)
 		return lattice_ecp2_3_read_status(lattice_device->tap, status, out, do_idle);
+	else if (lattice_device->family == LATTICE_ECP5)
+		return lattice_ecp5_read_status(lattice_device->tap, status, out, do_idle);
 
 	return ERROR_FAIL;
 }
@@ -218,6 +235,7 @@ static int lattice_load_command(struct pld_device *pld_device, const char *filen
 	if (retval != ERROR_OK)
 		return retval;
 
+	uint32_t id = tap->idcode;
 	retval = ERROR_FAIL;
 	switch (lattice_device->family) {
 	case LATTICE_ECP2:
@@ -225,6 +243,12 @@ static int lattice_load_command(struct pld_device *pld_device, const char *filen
 		break;
 	case LATTICE_ECP3:
 		retval = lattice_ecp3_load(lattice_device, &bit_file);
+		break;
+	case LATTICE_ECP5:
+		if (bit_file.has_id && id != bit_file.idcode)
+			LOG_WARNING("Id on device (0x%8.8" PRIx32 ") and id in bit-stream (0x%8.8" PRIx32 ") don't match.",
+				id, bit_file.idcode);
+		retval = lattice_ecp5_load(lattice_device, &bit_file);
 		break;
 	default:
 		LOG_ERROR("loading unknown device family");
@@ -257,6 +281,8 @@ PLD_DEVICE_COMMAND_HANDLER(lattice_pld_device_command)
 			family = LATTICE_ECP2;
 		} else if (strcasecmp(CMD_ARGV[2], "ecp3") == 0) {
 			family = LATTICE_ECP3;
+		} else if (strcasecmp(CMD_ARGV[2], "ecp5") == 0) {
+			family = LATTICE_ECP5;
 		} else {
 			command_print(CMD, "unknown family");
 			free(lattice_device);
@@ -380,7 +406,8 @@ COMMAND_HANDLER(lattice_read_status_command_handler)
 		return retval;
 
 	uint32_t status;
-	retval = lattice_read_status_u32(lattice_device, &status, 0x0, false);
+	const bool do_idle = lattice_device->family == LATTICE_ECP5;
+	retval = lattice_read_status_u32(lattice_device, &status, 0x0, do_idle);
 	if (retval == ERROR_OK)
 		command_print(CMD, "0x%8.8" PRIx32, status);
 
