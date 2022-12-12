@@ -18,9 +18,11 @@
 
 /* pld drivers
  */
+extern struct pld_driver lattice_pld;
 extern struct pld_driver virtex2_pld;
 
 static struct pld_driver *pld_drivers[] = {
+	&lattice_pld,
 	&virtex2_pld,
 	NULL,
 };

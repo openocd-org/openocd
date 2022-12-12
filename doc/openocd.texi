@@ -8488,12 +8488,42 @@ openocd -f board/digilent_zedboard.cfg -c "init" \
 @end example
 
 
-
 @deffn {Command} {virtex2 read_stat} num
 Reads and displays the Virtex-II status register (STAT)
 for FPGA @var{num}.
 @end deffn
 @end deffn
+
+
+
+@deffn {FPGA Driver} {lattice} [family]
+The FGPA families ECP2 and ECP3 by Lattice are supported.
+This driver can be used to load the bitstream into the FPGA or read the status register and read/write the usercode register.
+
+The option @option{family} is one of @var{ecp2 ecp3}. This is needed when the JTAG ID of the device is not known by openocd (newer NX devices).
+
+@deffn {Command} {lattice read_status} num
+Reads and displays the status register
+for FPGA @var{num}.
+@end deffn
+
+@deffn {Command} {lattice read_user} num
+Reads and displays the user register
+for FPGA @var{num}.
+@end deffn
+
+@deffn {Command} {lattice write_user} num val
+Writes the user register.
+for FPGA @var{num} with value @var{val}.
+@end deffn
+
+@deffn {Command} {lattice set_preload} num length
+Set the length of the register for the preload. This is needed when the JTAG ID of the device is not known by openocd (newer NX devices).
+The load command for the FPGA @var{num} will use a length for the preload of @var{length}.
+@end deffn
+@end deffn
+
+
 
 @node General Commands
 @chapter General Commands
