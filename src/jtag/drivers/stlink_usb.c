@@ -84,6 +84,8 @@
 #define STLINK_V3S_PID          (0x374F)
 #define STLINK_V3_2VCP_PID      (0x3753)
 #define STLINK_V3E_NO_MSD_PID   (0x3754)
+#define STLINK_V3P_USBLOADER_PID (0x3755)
+#define STLINK_V3P_PID           (0x3757)
 
 /*
  * ST-Link/V1, ST-Link/V2 and ST-Link/V2.1 are full-speed USB devices and
@@ -1297,8 +1299,8 @@ static int stlink_usb_version(void *handle)
 		break;
 	}
 
-	/* STLINK-V3 requires a specific command */
-	if (v == 3 && x == 0 && y == 0) {
+	/* STLINK-V3 & STLINK-V3P require a specific command */
+	if (v >= 3 && x == 0 && y == 0) {
 		stlink_usb_init_buffer(handle, h->rx_ep, 16);
 
 		h->cmdbuf[h->cmdidx++] = STLINK_APIV3_GET_VERSION_EX;
@@ -1413,6 +1415,41 @@ static int stlink_usb_version(void *handle)
 		/* 8bit read/write max packet size 512 bytes from V3J6 */
 		if (h->version.jtag >= 6)
 			flags |= STLINK_F_HAS_RW8_512BYTES;
+
+		break;
+	case 4:
+		/* STLINK-V3P use api-v3 */
+		h->version.jtag_api = STLINK_JTAG_API_V3;
+
+		/* STLINK-V3P is a superset of ST-LINK/V3 */
+
+		/* API for trace */
+		/* API for target voltage */
+		flags |= STLINK_F_HAS_TRACE;
+
+		/* preferred API to get last R/W status */
+		flags |= STLINK_F_HAS_GETLASTRWSTATUS2;
+
+		/* API to access DAP registers */
+		flags |= STLINK_F_HAS_DAP_REG;
+
+		/* API to read/write memory at 16 bit */
+		/* API to write memory without address increment */
+		flags |= STLINK_F_HAS_MEM_16BIT;
+
+		/* API required to init AP before any AP access */
+		flags |= STLINK_F_HAS_AP_INIT;
+
+		/* API required to return proper error code on close AP */
+		flags |= STLINK_F_FIX_CLOSE_AP;
+
+		/* Banked regs (DPv1 & DPv2) support */
+		/* API to read memory without address increment */
+		/* Memory R/W supports CSW */
+		flags |= STLINK_F_HAS_DPBANKSEL;
+
+		/* 8bit read/write max packet size 512 bytes */
+		flags |= STLINK_F_HAS_RW8_512BYTES;
 
 		break;
 	default:
@@ -3402,6 +3439,8 @@ static int stlink_usb_usb_open(void *handle, struct hl_interface_param_s *param)
 			case STLINK_V3S_PID:
 			case STLINK_V3_2VCP_PID:
 			case STLINK_V3E_NO_MSD_PID:
+			case STLINK_V3P_USBLOADER_PID:
+			case STLINK_V3P_PID:
 				h->version.stlink = 3;
 				h->tx_ep = STLINK_V2_1_TX_EP;
 				h->trace_ep = STLINK_V2_1_TRACE_EP;
@@ -3820,7 +3859,7 @@ static int stlink_config_trace(void *handle, bool enabled,
 		return ERROR_FAIL;
 	}
 
-	unsigned int max_trace_freq = (h->version.stlink == 3) ?
+	unsigned int max_trace_freq = (h->version.stlink >= 3) ?
 			STLINK_V3_TRACE_MAX_HZ : STLINK_TRACE_MAX_HZ;
 
 	/* Only concern ourselves with the frequency if the STlink is processing it. */

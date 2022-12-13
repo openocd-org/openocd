@@ -463,6 +463,12 @@ They only work with STMicroelectronics chips, notably STM32 and STM8.
 @item @b{STLINK-V3}
 @* This is available standalone and as part of some kits.
 @* Link: @url{http://www.st.com/stlink-v3}
+@item @b{STLINK-V3PWR}
+@* This is available standalone.
+Beside the debugger functionality, the probe includes a SMU (source
+measurement unit) aimed at analyzing power consumption during code
+execution. The SMU is not supported by OpenOCD.
+@* Link: @url{http://www.st.com/stlink-v3pwr}
 @end itemize
 
 For info the original ST-LINK enumerates using the mass storage usb class; however,
@@ -3184,7 +3190,7 @@ passed as is to the underlying adapter layout handler.
 @anchor{st_link_dap_interface}
 @deffn {Interface Driver} {st-link}
 This is a driver that supports STMicroelectronics adapters ST-LINK/V2
-(from firmware V2J24) and STLINK-V3, thanks to a new API that provides
+(from firmware V2J24), STLINK-V3 and STLINK-V3PWR, thanks to a new API that provides
 directly access the arm ADIv5 DAP.
 
 The new API provide access to multiple AP on the same DAP, but the
