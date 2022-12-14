@@ -2270,6 +2270,22 @@ static void cortex_m_dwt_free(struct target *target)
 	cm->dwt_cache = NULL;
 }
 
+static bool cortex_m_has_tz(struct target *target)
+{
+	struct armv7m_common *armv7m = target_to_armv7m(target);
+	uint32_t dauthstatus;
+
+	if (armv7m->arm.arch != ARM_ARCH_V8M)
+		return false;
+
+	int retval = target_read_u32(target, DAUTHSTATUS, &dauthstatus);
+	if (retval != ERROR_OK) {
+		LOG_WARNING("Error reading DAUTHSTATUS register");
+		return false;
+	}
+	return (dauthstatus & DAUTHSTATUS_SID_MASK) != 0;
+}
+
 #define MVFR0 0xe000ef40
 #define MVFR1 0xe000ef44
 
@@ -2398,7 +2414,7 @@ int cortex_m_examine(struct target *target)
 			for (size_t idx = ARMV7M_FPU_FIRST_REG; idx <= ARMV7M_FPU_LAST_REG; idx++)
 				armv7m->arm.core_cache->reg_list[idx].exist = false;
 
-		if (armv7m->arm.arch != ARM_ARCH_V8M)
+		if (!cortex_m_has_tz(target))
 			for (size_t idx = ARMV8M_FIRST_REG; idx <= ARMV8M_LAST_REG; idx++)
 				armv7m->arm.core_cache->reg_list[idx].exist = false;
 
