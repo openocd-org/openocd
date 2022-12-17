@@ -543,10 +543,10 @@ static const struct command_registration gowin_exec_command_handlers[] = {
 		.help = "reading user register from FPGA",
 		.usage = "pld_name",
 	}, {
-		.name = "reload",
+		.name = "refresh",
 		.mode = COMMAND_EXEC,
 		.handler = gowin_reload_command_handler,
-		.help = "reloading bitstream from flash to SRAM",
+		.help = "reload bitstream from flash to SRAM",
 		.usage = "pld_name",
 	},
 	COMMAND_REGISTRATION_DONE

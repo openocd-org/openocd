@@ -304,3 +304,27 @@ int lattice_certus_get_facing_read_bits(struct lattice_pld_device *pld_device_in
 
 	return ERROR_OK;
 }
+
+int lattice_certus_refresh(struct lattice_pld_device *lattice_device)
+{
+	struct jtag_tap *tap = lattice_device->tap;
+	if (!tap)
+		return ERROR_FAIL;
+
+	int retval = lattice_preload(lattice_device);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = lattice_set_instr(tap, LSC_REFRESH, TAP_IDLE);
+	if (retval != ERROR_OK)
+		return retval;
+	jtag_add_runtest(2, TAP_IDLE);
+	jtag_add_sleep(200000);
+	retval = lattice_set_instr(tap, BYPASS, TAP_IDLE);
+	if (retval != ERROR_OK)
+		return retval;
+	jtag_add_runtest(100, TAP_IDLE);
+	jtag_add_sleep(1000);
+
+	return jtag_execute_queue();
+}

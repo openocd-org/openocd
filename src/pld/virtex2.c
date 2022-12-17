@@ -265,7 +265,7 @@ static int virtex2_load(struct pld_device *pld_device, const char *filename)
 	return retval;
 }
 
-COMMAND_HANDLER(virtex2_handle_program_command)
+COMMAND_HANDLER(virtex2_handle_refresh_command)
 {
 	struct pld_device *device;
 
@@ -449,10 +449,10 @@ static const struct command_registration virtex2_exec_command_handlers[] = {
 		.help = "set instructions codes used for jtag-hub",
 		.usage = "pld_name user1 [user2 [user3 [user4]]]",
 	}, {
-		.name = "program",
+		.name = "refresh",
 		.mode = COMMAND_EXEC,
-		.handler = virtex2_handle_program_command,
-		.help = "start loading of configuration (refresh)",
+		.handler = virtex2_handle_refresh_command,
+		.help = "start loading of configuration (program)",
 		.usage = "pld_name",
 	},
 	COMMAND_REGISTRATION_DONE

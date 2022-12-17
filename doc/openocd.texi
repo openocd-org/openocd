@@ -8764,8 +8764,8 @@ Change values for boundary scan instructions selecting the registers USER1 to US
 Description of the arguments can be found at command @command{virtex2 set_instr_codes}.
 @end deffn
 
-@deffn {Command} {virtex2 program} pld_name
-Load the bitstream from external memory for FPGA @var{pld_name}. A.k.a. refresh.
+@deffn {Command} {virtex2 refresh} pld_name
+Load the bitstream from external memory for FPGA @var{pld_name}. A.k.a. program.
 @end deffn
 @end deffn
 
@@ -8795,6 +8795,10 @@ for FPGA @var{pld_name} with value @var{val}.
 @deffn {Command} {lattice set_preload} pld_name length
 Set the length of the register for the preload. This is needed when the JTAG ID of the device is not known by openocd (newer NX devices).
 The load command for the FPGA @var{pld_name} will use a length for the preload of @var{length}.
+@end deffn
+
+@deffn {Command} {lattice refresh} pld_name
+Load the bitstream from external memory for FPGA @var{pld_name}. A.k.a program.
 @end deffn
 @end deffn
 
@@ -8850,9 +8854,9 @@ Reads and displays the user register
 for FPGA @var{pld_name}.
 @end deffn
 
-@deffn {Command} {gowin reload} pld_name
+@deffn {Command} {gowin refresh} pld_name
 Load the bitstream from external memory for
-FPGA @var{pld_name}. A.k.a. refresh.
+FPGA @var{pld_name}. A.k.a. reload.
 @end deffn
 @end deffn
 

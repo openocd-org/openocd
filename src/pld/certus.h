@@ -17,5 +17,6 @@ int lattice_certus_load(struct lattice_pld_device *lattice_device, struct lattic
 int lattice_certus_connect_spi_to_jtag(struct lattice_pld_device *pld_device_info);
 int lattice_certus_disconnect_spi_from_jtag(struct lattice_pld_device *pld_device_info);
 int lattice_certus_get_facing_read_bits(struct lattice_pld_device *pld_device_info, unsigned int *facing_read_bits);
+int lattice_certus_refresh(struct lattice_pld_device *lattice_device);
 
 #endif /* OPENOCD_PLD_CERTUS_H */

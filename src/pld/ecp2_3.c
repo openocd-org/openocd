@@ -304,3 +304,14 @@ int lattice_ecp2_3_get_facing_read_bits(struct lattice_pld_device *pld_device_in
 
 	return ERROR_OK;
 }
+
+int lattice_ecp2_3_refresh(struct lattice_pld_device *lattice_device)
+{
+	if (!lattice_device || !lattice_device->tap)
+		return ERROR_FAIL;
+
+	int retval = lattice_set_instr(lattice_device->tap, LSCC_REFRESH, TAP_IDLE);
+	if (retval != ERROR_OK)
+		return retval;
+	return jtag_execute_queue();
+}

@@ -13,6 +13,7 @@
 #define PROGRAM_SPI          0x3A
 #define LSC_READ_STATUS      0x3C
 #define LSC_INIT_ADDRESS     0x46
+#define LSC_REFRESH          0x79
 #define LSC_BITSTREAM_BURST  0x7A
 #define READ_USERCODE        0xC0
 #define ISC_ENABLE           0xC6
