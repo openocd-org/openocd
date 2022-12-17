@@ -10,6 +10,7 @@
 
 #define ISC_ERASE            0x0E
 #define ISC_DISABLE          0x26
+#define PROGRAM_SPI          0x3A
 #define LSC_READ_STATUS      0x3C
 #define LSC_INIT_ADDRESS     0x46
 #define LSC_BITSTREAM_BURST  0x7A
