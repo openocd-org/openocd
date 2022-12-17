@@ -796,17 +796,12 @@ int opendous_usb_read(struct opendous_jtag *opendous_jtag)
 
 void opendous_debug_buffer(uint8_t *buffer, int length)
 {
-	char line[81];
-	char s[4];
-	int i;
-	int j;
+	char line[8 + 3 * BYTES_PER_LINE + 1];
 
-	for (i = 0; i < length; i += BYTES_PER_LINE) {
-		snprintf(line, 5, "%04x", i);
-		for (j = i; j < i + BYTES_PER_LINE && j < length; j++) {
-			snprintf(s, 4, " %02x", buffer[j]);
-			strcat(line, s);
-		}
+	for (int i = 0; i < length; i += BYTES_PER_LINE) {
+		int n = snprintf(line, 9, "%04x", i);
+		for (int j = i; j < i + BYTES_PER_LINE && j < length; j++)
+			n += snprintf(line + n, 4, " %02x", buffer[j]);
 		LOG_DEBUG("%s", line);
 	}
 }
