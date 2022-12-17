@@ -326,6 +326,21 @@ static int xilinx_get_ipdbg_hub(int user_num, struct pld_device *pld_device, str
 	return ERROR_OK;
 }
 
+static int xilinx_get_jtagspi_userircode(struct pld_device *pld_device, unsigned int *ir)
+{
+	if (!pld_device || !pld_device->driver_priv)
+		return ERROR_FAIL;
+	struct virtex2_pld_device *pld_device_info = pld_device->driver_priv;
+
+	if (pld_device_info->command_set.num_user < 1) {
+		LOG_ERROR("code for command 'select user1' is unknown");
+		return ERROR_FAIL;
+	}
+
+	*ir = pld_device_info->command_set.user[0];
+	return ERROR_OK;
+}
+
 COMMAND_HANDLER(virtex2_handle_set_instuction_codes_command)
 {
 	if (CMD_ARGC < 6 || CMD_ARGC > (6 + VIRTEX2_MAX_USER_INSTRUCTIONS))
@@ -460,4 +475,5 @@ struct pld_driver virtex2_pld = {
 	.pld_create_command = &virtex2_pld_create_command,
 	.load = &virtex2_load,
 	.get_ipdbg_hub = xilinx_get_ipdbg_hub,
+	.get_jtagspi_userircode = xilinx_get_jtagspi_userircode,
 };
