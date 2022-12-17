@@ -357,6 +357,8 @@ static int lattice_connect_spi_to_jtag(struct pld_device *pld_device)
 		return lattice_ecp2_3_connect_spi_to_jtag(pld_device_info);
 	else if (pld_device_info->family == LATTICE_ECP5)
 		return lattice_ecp5_connect_spi_to_jtag(pld_device_info);
+	else if (pld_device_info->family == LATTICE_CERTUS)
+		return lattice_certus_connect_spi_to_jtag(pld_device_info);
 
 	return ERROR_FAIL;
 }
@@ -376,6 +378,8 @@ static int lattice_disconnect_spi_from_jtag(struct pld_device *pld_device)
 		return lattice_ecp2_3_disconnect_spi_from_jtag(pld_device_info);
 	else if (pld_device_info->family == LATTICE_ECP5)
 		return lattice_ecp5_disconnect_spi_from_jtag(pld_device_info);
+	else if (pld_device_info->family == LATTICE_CERTUS)
+		return lattice_certus_disconnect_spi_from_jtag(pld_device_info);
 
 	return ERROR_FAIL;
 }
@@ -396,6 +400,8 @@ static int lattice_get_stuff_bits(struct pld_device *pld_device, unsigned int *f
 		return lattice_ecp2_3_get_facing_read_bits(pld_device_info, facing_read_bits);
 	else if (pld_device_info->family == LATTICE_ECP5)
 		return lattice_ecp5_get_facing_read_bits(pld_device_info, facing_read_bits);
+	else if (pld_device_info->family == LATTICE_CERTUS)
+		return lattice_certus_get_facing_read_bits(pld_device_info, facing_read_bits);
 
 	return ERROR_FAIL;
 }
