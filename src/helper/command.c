@@ -936,19 +936,7 @@ static int jim_command_dispatch(Jim_Interp *interp, int argc, Jim_Obj * const *a
 	if (!command_can_run(cmd_ctx, c, Jim_GetString(argv[0], NULL)))
 		return JIM_ERR;
 
-	/*
-	 * TODO: to be removed after v0.12.0
-	 * workaround for https://sourceforge.net/p/openocd/tickets/362/
-	 * After syntax change of "expr" in jimtcl 0.81
-	 * the replacement of jimtcl "expr" with openocd version in
-	 * https://review.openocd.org/6510/
-	 * introduces too many target polling during math expressions with
-	 * "expr" commands.
-	 * After v0.12.0 replace the following two lines with
-	 * target_call_timer_callbacks();
-	 */
-	if (strcmp(c->name, "expr"))
-		target_call_timer_callbacks_now();
+	target_call_timer_callbacks();
 
 	/*
 	 * Black magic of overridden current target:
