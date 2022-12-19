@@ -672,27 +672,18 @@ COMMAND_HANDLER(handle_jtag_arp_init)
 	return jtag_init_inner(CMD_CTX);
 }
 
-static int jim_jtag_arp_init_reset(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+COMMAND_HANDLER(handle_jtag_arp_init_reset)
 {
-	int e = ERROR_OK;
-	struct jim_getopt_info goi;
-	jim_getopt_setup(&goi, interp, argc-1, argv + 1);
-	if (goi.argc != 0) {
-		Jim_WrongNumArgs(goi.interp, 1, goi.argv-1, "(no params)");
-		return JIM_ERR;
-	}
-	struct command_context *context = current_command_context(interp);
-	if (transport_is_jtag())
-		e = jtag_init_reset(context);
-	else if (transport_is_swd())
-		e = swd_init_reset(context);
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	if (e != ERROR_OK) {
-		Jim_Obj *obj = Jim_NewIntObj(goi.interp, e);
-		Jim_SetResultFormatted(goi.interp, "error: %#s", obj);
-		return JIM_ERR;
-	}
-	return JIM_OK;
+	if (transport_is_jtag())
+		return jtag_init_reset(CMD_CTX);
+
+	if (transport_is_swd())
+		return swd_init_reset(CMD_CTX);
+
+	return ERROR_OK;
 }
 
 int jim_jtag_newtap(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
@@ -842,9 +833,10 @@ static const struct command_registration jtag_subcommand_handlers[] = {
 	{
 		.name = "arp_init-reset",
 		.mode = COMMAND_ANY,
-		.jim_handler = jim_jtag_arp_init_reset,
+		.handler = handle_jtag_arp_init_reset,
 		.help = "Uses TRST and SRST to try resetting everything on "
-			"the JTAG scan chain, then performs 'jtag arp_init'."
+			"the JTAG scan chain, then performs 'jtag arp_init'.",
+		.usage = "",
 	},
 	{
 		.name = "newtap",
