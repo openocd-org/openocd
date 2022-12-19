@@ -664,22 +664,12 @@ static void jtag_tap_handle_event(struct jtag_tap *tap, enum jtag_event e)
 	}
 }
 
-static int jim_jtag_arp_init(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+COMMAND_HANDLER(handle_jtag_arp_init)
 {
-	struct jim_getopt_info goi;
-	jim_getopt_setup(&goi, interp, argc-1, argv + 1);
-	if (goi.argc != 0) {
-		Jim_WrongNumArgs(goi.interp, 1, goi.argv-1, "(no params)");
-		return JIM_ERR;
-	}
-	struct command_context *context = current_command_context(interp);
-	int e = jtag_init_inner(context);
-	if (e != ERROR_OK) {
-		Jim_Obj *obj = Jim_NewIntObj(goi.interp, e);
-		Jim_SetResultFormatted(goi.interp, "error: %#s", obj);
-		return JIM_ERR;
-	}
-	return JIM_OK;
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	return jtag_init_inner(CMD_CTX);
 }
 
 static int jim_jtag_arp_init_reset(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
@@ -843,10 +833,11 @@ static const struct command_registration jtag_subcommand_handlers[] = {
 	{
 		.name = "arp_init",
 		.mode = COMMAND_ANY,
-		.jim_handler = jim_jtag_arp_init,
+		.handler = handle_jtag_arp_init,
 		.help = "Validates JTAG scan chain against the list of "
 			"declared TAPs using just the four standard JTAG "
 			"signals.",
+		.usage = "",
 	},
 	{
 		.name = "arp_init-reset",
