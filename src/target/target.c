@@ -6388,20 +6388,18 @@ COMMAND_HANDLER(handle_target_types)
 	return ERROR_OK;
 }
 
-static int jim_target_names(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+COMMAND_HANDLER(handle_target_names)
 {
-	if (argc != 1) {
-		Jim_WrongNumArgs(interp, 1, argv, "Too many parameters");
-		return JIM_ERR;
-	}
-	Jim_SetResult(interp, Jim_NewListObj(interp, NULL, 0));
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
 	struct target *target = all_targets;
 	while (target) {
-		Jim_ListAppendElement(interp, Jim_GetResult(interp),
-			Jim_NewStringObj(interp, target_name(target), -1));
+		command_print(CMD, "%s", target_name(target));
 		target = target->next;
 	}
-	return JIM_OK;
+
+	return ERROR_OK;
 }
 
 static struct target_list *
@@ -6531,8 +6529,9 @@ static const struct command_registration target_subcommand_handlers[] = {
 	{
 		.name = "names",
 		.mode = COMMAND_ANY,
-		.jim_handler = jim_target_names,
+		.handler = handle_target_names,
 		.help = "Returns the names of all targets as a list of strings",
+		.usage = "",
 	},
 	{
 		.name = "smp",
