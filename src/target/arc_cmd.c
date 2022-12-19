@@ -363,41 +363,29 @@ COMMAND_HANDLER(arc_handle_get_core_reg)
 	return ERROR_OK;
 }
 
-static int jim_arc_set_core_reg(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
+COMMAND_HANDLER(arc_handle_set_core_reg)
 {
-	struct command_context *context;
-	struct target *target;
-	uint32_t regnum;
-	uint32_t value;
+	if (CMD_ARGC != 2)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	struct jim_getopt_info goi;
-	JIM_CHECK_RETVAL(jim_getopt_setup(&goi, interp, argc-1, argv+1));
-
-	if (goi.argc != 2) {
-		Jim_SetResultFormatted(goi.interp,
-			"usage: %s <core_reg_num> <core_reg_value>", Jim_GetString(argv[0], NULL));
-		return JIM_ERR;
-	}
-
-	context = current_command_context(interp);
-	assert(context);
-
-	target = get_current_target(context);
+	struct target *target = get_current_target(CMD_CTX);
 	if (!target) {
-		Jim_SetResultFormatted(goi.interp, "No current target");
-		return JIM_ERR;
+		command_print(CMD, "No current target");
+		return ERROR_FAIL;
 	}
 
 	/* Register number */
-	JIM_CHECK_RETVAL(arc_cmd_jim_get_uint32(&goi, &regnum));
+	uint32_t regnum;
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], regnum);
 	if (regnum > CORE_REG_MAX_NUMBER || regnum == ARC_R61 || regnum == ARC_R62) {
-		Jim_SetResultFormatted(goi.interp, "Core register number %i "
+		command_print(CMD, "Core register number %i "
 			"is invalid. Must less then 64 and not 61 and 62.", regnum);
-		return JIM_ERR;
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
 	/* Register value */
-	JIM_CHECK_RETVAL(arc_cmd_jim_get_uint32(&goi, &value));
+	uint32_t value;
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], value);
 
 	struct arc_common *arc = target_to_arc(target);
 	assert(arc);
@@ -440,7 +428,7 @@ static const struct command_registration arc_jtag_command_group[] = {
 	},
 	{
 		.name = "set-core-reg",
-		.jim_handler = jim_arc_set_core_reg,
+		.handler = arc_handle_set_core_reg,
 		.mode = COMMAND_EXEC,
 		.help = "Get/Set core register by number. This command does a "
 			"raw JTAG request that bypasses OpenOCD register cache "
