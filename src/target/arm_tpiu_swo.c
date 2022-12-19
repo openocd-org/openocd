@@ -981,20 +981,17 @@ err_exit:
 	return JIM_ERR;
 }
 
-static int jim_arm_tpiu_swo_names(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+COMMAND_HANDLER(handle_arm_tpiu_swo_names)
 {
 	struct arm_tpiu_swo_object *obj;
 
-	if (argc != 1) {
-		Jim_WrongNumArgs(interp, 1, argv, "Too many parameters");
-		return JIM_ERR;
-	}
-	Jim_SetResult(interp, Jim_NewListObj(interp, NULL, 0));
-	list_for_each_entry(obj, &all_tpiu_swo, lh) {
-		Jim_ListAppendElement(interp, Jim_GetResult(interp),
-			Jim_NewStringObj(interp, obj->name, -1));
-	}
-	return JIM_OK;
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	list_for_each_entry(obj, &all_tpiu_swo, lh)
+		command_print(CMD, "%s", obj->name);
+
+	return ERROR_OK;
 }
 
 static int jim_arm_tpiu_swo_init(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
@@ -1185,7 +1182,7 @@ static const struct command_registration arm_tpiu_swo_subcommand_handlers[] = {
 	{
 		.name = "names",
 		.mode = COMMAND_ANY,
-		.jim_handler = jim_arm_tpiu_swo_names,
+		.handler = handle_arm_tpiu_swo_names,
 		.usage = "",
 		.help = "Lists all registered TPIU and SWO objects by name",
 	},
