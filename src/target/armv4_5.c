@@ -989,36 +989,37 @@ COMMAND_HANDLER(handle_arm_disassemble_command)
 #endif
 }
 
-static int jim_mcrmrc(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
+COMMAND_HANDLER(handle_armv4_5_mcrmrc)
 {
-	struct command_context *context;
-	struct target *target;
-	struct arm *arm;
-	int retval;
+	bool is_mcr = false;
+	unsigned int arg_cnt = 5;
 
-	context = current_command_context(interp);
-	assert(context);
+	if (!strcmp(CMD_NAME, "mcr")) {
+		is_mcr = true;
+		arg_cnt = 6;
+	}
 
-	target = get_current_target(context);
+	if (arg_cnt != CMD_ARGC)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	struct target *target = get_current_target(CMD_CTX);
 	if (!target) {
-		LOG_ERROR("%s: no current target", __func__);
-		return JIM_ERR;
+		command_print(CMD, "no current target");
+		return ERROR_FAIL;
 	}
 	if (!target_was_examined(target)) {
-		LOG_ERROR("%s: not yet examined", target_name(target));
-		return JIM_ERR;
-	}
-	arm = target_to_arm(target);
-	if (!is_arm(arm)) {
-		LOG_ERROR("%s: not an ARM", target_name(target));
-		return JIM_ERR;
+		command_print(CMD, "%s: not yet examined", target_name(target));
+		return ERROR_TARGET_NOT_EXAMINED;
 	}
 
-	if ((argc < 6) || (argc > 7)) {
-		/* FIXME use the command name to verify # params... */
-		LOG_ERROR("%s: wrong number of arguments", __func__);
-		return JIM_ERR;
+	struct arm *arm = target_to_arm(target);
+	if (!is_arm(arm)) {
+		command_print(CMD, "%s: not an ARM", target_name(target));
+		return ERROR_FAIL;
 	}
+
+	if (target->state != TARGET_HALTED)
+		return ERROR_TARGET_NOT_HALTED;
 
 	int cpnum;
 	uint32_t op1;
@@ -1026,95 +1027,68 @@ static int jim_mcrmrc(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
 	uint32_t crn;
 	uint32_t crm;
 	uint32_t value;
-	long l;
 
 	/* NOTE:  parameter sequence matches ARM instruction set usage:
 	 *	MCR	pNUM, op1, rX, CRn, CRm, op2	; write CP from rX
 	 *	MRC	pNUM, op1, rX, CRn, CRm, op2	; read CP into rX
 	 * The "rX" is necessarily omitted; it uses Tcl mechanisms.
 	 */
-	retval = Jim_GetLong(interp, argv[1], &l);
-	if (retval != JIM_OK)
-		return retval;
-	if (l & ~0xf) {
-		LOG_ERROR("%s: %s %d out of range", __func__,
-			"coprocessor", (int) l);
-		return JIM_ERR;
+	COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], cpnum);
+	if (cpnum & ~0xf) {
+		command_print(CMD, "coprocessor %d out of range", cpnum);
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
-	cpnum = l;
 
-	retval = Jim_GetLong(interp, argv[2], &l);
-	if (retval != JIM_OK)
-		return retval;
-	if (l & ~0x7) {
-		LOG_ERROR("%s: %s %d out of range", __func__,
-			"op1", (int) l);
-		return JIM_ERR;
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], op1);
+	if (op1 & ~0x7) {
+		command_print(CMD, "op1 %d out of range", op1);
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
-	op1 = l;
 
-	retval = Jim_GetLong(interp, argv[3], &l);
-	if (retval != JIM_OK)
-		return retval;
-	if (l & ~0xf) {
-		LOG_ERROR("%s: %s %d out of range", __func__,
-			"CRn", (int) l);
-		return JIM_ERR;
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], crn);
+	if (crn & ~0xf) {
+		command_print(CMD, "CRn %d out of range", crn);
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
-	crn = l;
 
-	retval = Jim_GetLong(interp, argv[4], &l);
-	if (retval != JIM_OK)
-		return retval;
-	if (l & ~0xf) {
-		LOG_ERROR("%s: %s %d out of range", __func__,
-			"CRm", (int) l);
-		return JIM_ERR;
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[3], crm);
+	if (crm & ~0xf) {
+		command_print(CMD, "CRm %d out of range", crm);
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
-	crm = l;
 
-	retval = Jim_GetLong(interp, argv[5], &l);
-	if (retval != JIM_OK)
-		return retval;
-	if (l & ~0x7) {
-		LOG_ERROR("%s: %s %d out of range", __func__,
-			"op2", (int) l);
-		return JIM_ERR;
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[4], op2);
+	if (op2 & ~0x7) {
+		command_print(CMD, "op2 %d out of range", op2);
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
-	op2 = l;
 
-	value = 0;
-
-	/* FIXME don't assume "mrc" vs "mcr" from the number of params;
-	 * that could easily be a typo!  Check both...
-	 *
+	/*
 	 * FIXME change the call syntax here ... simplest to just pass
 	 * the MRC() or MCR() instruction to be executed.  That will also
 	 * let us support the "mrc2" and "mcr2" opcodes (toggling one bit)
 	 * if that's ever needed.
 	 */
-	if (argc == 7) {
-		retval = Jim_GetLong(interp, argv[6], &l);
-		if (retval != JIM_OK)
-			return retval;
-		value = l;
+	if (is_mcr) {
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[5], value);
 
 		/* NOTE: parameters reordered! */
 		/* ARMV4_5_MCR(cpnum, op1, 0, crn, crm, op2) */
-		retval = arm->mcr(target, cpnum, op1, op2, crn, crm, value);
+		int retval = arm->mcr(target, cpnum, op1, op2, crn, crm, value);
 		if (retval != ERROR_OK)
-			return JIM_ERR;
+			return retval;
 	} else {
+		value = 0;
 		/* NOTE: parameters reordered! */
 		/* ARMV4_5_MRC(cpnum, op1, 0, crn, crm, op2) */
-		retval = arm->mrc(target, cpnum, op1, op2, crn, crm, &value);
+		int retval = arm->mrc(target, cpnum, op1, op2, crn, crm, &value);
 		if (retval != ERROR_OK)
-			return JIM_ERR;
+			return retval;
 
-		Jim_SetResult(interp, Jim_NewIntObj(interp, value));
+		command_print(CMD, "0x%" PRIx32, value);
 	}
 
-	return JIM_OK;
+	return ERROR_OK;
 }
 
 static const struct command_registration arm_exec_command_handlers[] = {
@@ -1128,14 +1102,14 @@ static const struct command_registration arm_exec_command_handlers[] = {
 	{
 		.name = "mcr",
 		.mode = COMMAND_EXEC,
-		.jim_handler = &jim_mcrmrc,
+		.handler = handle_armv4_5_mcrmrc,
 		.help = "write coprocessor register",
 		.usage = "cpnum op1 CRn CRm op2 value",
 	},
 	{
 		.name = "mrc",
 		.mode = COMMAND_EXEC,
-		.jim_handler = &jim_mcrmrc,
+		.handler = handle_armv4_5_mcrmrc,
 		.help = "read coprocessor register",
 		.usage = "cpnum op1 CRn CRm op2",
 	},
