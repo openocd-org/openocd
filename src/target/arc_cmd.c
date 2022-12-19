@@ -278,37 +278,24 @@ static struct jim_nvp nvp_add_reg_type_struct_opts[] = {
 	{ .name = NULL,     .value = -1 }
 };
 
-static int jim_arc_set_aux_reg(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
+COMMAND_HANDLER(arc_handle_set_aux_reg)
 {
+	if (CMD_ARGC != 2)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	struct command_context *context;
-	struct target *target;
-	uint32_t regnum;
-	uint32_t value;
-
-	struct jim_getopt_info goi;
-	JIM_CHECK_RETVAL(jim_getopt_setup(&goi, interp, argc-1, argv+1));
-
-	if (goi.argc != 2) {
-		Jim_SetResultFormatted(goi.interp,
-			"usage: %s <aux_reg_num> <aux_reg_value>", Jim_GetString(argv[0], NULL));
-		return JIM_ERR;
-	}
-
-	context = current_command_context(interp);
-	assert(context);
-
-	target = get_current_target(context);
+	struct target *target = get_current_target(CMD_CTX);
 	if (!target) {
-		Jim_SetResultFormatted(goi.interp, "No current target");
-		return JIM_ERR;
+		command_print(CMD, "No current target");
+		return ERROR_FAIL;
 	}
 
 	/* Register number */
-	JIM_CHECK_RETVAL(arc_cmd_jim_get_uint32(&goi, &regnum));
+	uint32_t regnum;
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], regnum);
 
 	/* Register value */
-	JIM_CHECK_RETVAL(arc_cmd_jim_get_uint32(&goi, &value));
+	uint32_t value;
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], value);
 
 	struct arc_common *arc = target_to_arc(target);
 	assert(arc);
@@ -444,7 +431,7 @@ static const struct command_registration arc_jtag_command_group[] = {
 	},
 	{
 		.name = "set-aux-reg",
-		.jim_handler = jim_arc_set_aux_reg,
+		.handler = arc_handle_set_aux_reg,
 		.mode = COMMAND_EXEC,
 		.help = "Set AUX register by number. This command does a "
 			"raw JTAG request that bypasses OpenOCD register cache "
