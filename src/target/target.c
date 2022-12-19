@@ -4592,57 +4592,36 @@ static int target_mem2array(Jim_Interp *interp, struct target *target, int argc,
 	return e;
 }
 
-static int target_jim_read_memory(Jim_Interp *interp, int argc,
-		Jim_Obj * const *argv)
+COMMAND_HANDLER(handle_target_read_memory)
 {
 	/*
-	 * argv[1] = memory address
-	 * argv[2] = desired element width in bits
-	 * argv[3] = number of elements to read
-	 * argv[4] = optional "phys"
+	 * CMD_ARGV[0] = memory address
+	 * CMD_ARGV[1] = desired element width in bits
+	 * CMD_ARGV[2] = number of elements to read
+	 * CMD_ARGV[3] = optional "phys"
 	 */
 
-	if (argc < 4 || argc > 5) {
-		Jim_WrongNumArgs(interp, 1, argv, "address width count ['phys']");
-		return JIM_ERR;
-	}
+	if (CMD_ARGC < 3 || CMD_ARGC > 4)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	/* Arg 1: Memory address. */
-	jim_wide wide_addr;
-	int e;
-	e = Jim_GetWide(interp, argv[1], &wide_addr);
-
-	if (e != JIM_OK)
-		return e;
-
-	target_addr_t addr = (target_addr_t)wide_addr;
+	target_addr_t addr;
+	COMMAND_PARSE_NUMBER(u64, CMD_ARGV[0], addr);
 
 	/* Arg 2: Bit width of one element. */
-	long l;
-	e = Jim_GetLong(interp, argv[2], &l);
-
-	if (e != JIM_OK)
-		return e;
-
-	const unsigned int width_bits = l;
+	unsigned int width_bits;
+	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[1], width_bits);
 
 	/* Arg 3: Number of elements to read. */
-	e = Jim_GetLong(interp, argv[3], &l);
-
-	if (e != JIM_OK)
-		return e;
-
-	size_t count = l;
+	unsigned int count;
+	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[2], count);
 
 	/* Arg 4: Optional 'phys'. */
 	bool is_phys = false;
-
-	if (argc > 4) {
-		const char *phys = Jim_GetString(argv[4], NULL);
-
-		if (strcmp(phys, "phys")) {
-			Jim_SetResultFormatted(interp, "invalid argument '%s', must be 'phys'", phys);
-			return JIM_ERR;
+	if (CMD_ARGC == 4) {
+		if (strcmp(CMD_ARGV[3], "phys")) {
+			command_print(CMD, "invalid argument '%s', must be 'phys'", CMD_ARGV[3]);
+			return ERROR_COMMAND_ARGUMENT_INVALID;
 		}
 
 		is_phys = true;
@@ -4655,37 +4634,33 @@ static int target_jim_read_memory(Jim_Interp *interp, int argc,
 	case 64:
 		break;
 	default:
-		Jim_SetResultString(interp, "invalid width, must be 8, 16, 32 or 64", -1);
-		return JIM_ERR;
+		command_print(CMD, "invalid width, must be 8, 16, 32 or 64");
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
 	const unsigned int width = width_bits / 8;
 
 	if ((addr + (count * width)) < addr) {
-		Jim_SetResultString(interp, "read_memory: addr + count wraps to zero", -1);
-		return JIM_ERR;
+		command_print(CMD, "read_memory: addr + count wraps to zero");
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
 	if (count > 65536) {
-		Jim_SetResultString(interp, "read_memory: too large read request, exeeds 64K elements", -1);
-		return JIM_ERR;
+		command_print(CMD, "read_memory: too large read request, exceeds 64K elements");
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
-	struct command_context *cmd_ctx = current_command_context(interp);
-	assert(cmd_ctx != NULL);
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 
 	const size_t buffersize = 4096;
 	uint8_t *buffer = malloc(buffersize);
 
 	if (!buffer) {
 		LOG_ERROR("Failed to allocate memory");
-		return JIM_ERR;
+		return ERROR_FAIL;
 	}
 
-	Jim_Obj *result_list = Jim_NewListObj(interp, NULL, 0);
-	Jim_IncrRefCount(result_list);
-
+	char *separator = "";
 	while (count > 0) {
 		const unsigned int max_chunk_len = buffersize / width;
 		const size_t chunk_len = MIN(count, max_chunk_len);
@@ -4698,11 +4673,15 @@ static int target_jim_read_memory(Jim_Interp *interp, int argc,
 			retval = target_read_memory(target, addr, width, chunk_len, buffer);
 
 		if (retval != ERROR_OK) {
-			LOG_ERROR("read_memory: read at " TARGET_ADDR_FMT " with width=%u and count=%zu failed",
+			LOG_DEBUG("read_memory: read at " TARGET_ADDR_FMT " with width=%u and count=%zu failed",
 				addr, width_bits, chunk_len);
-			Jim_SetResultString(interp, "read_memory: failed to read memory", -1);
-			e = JIM_ERR;
-			break;
+			/*
+			 * FIXME: we append the errmsg to the list of value already read.
+			 * Add a way to flush and replace old output, but LOG_DEBUG() it
+			 */
+			command_print(CMD, "read_memory: failed to read memory");
+			free(buffer);
+			return retval;
 		}
 
 		for (size_t i = 0; i < chunk_len ; i++) {
@@ -4723,11 +4702,8 @@ static int target_jim_read_memory(Jim_Interp *interp, int argc,
 				break;
 			}
 
-			char value_buf[19];
-			snprintf(value_buf, sizeof(value_buf), "0x%" PRIx64, v);
-
-			Jim_ListAppendElement(interp, result_list,
-				Jim_NewStringObj(interp, value_buf, -1));
+			command_print_sameline(CMD, "%s0x%" PRIx64, separator, v);
+			separator = " ";
 		}
 
 		count -= chunk_len;
@@ -4736,15 +4712,7 @@ static int target_jim_read_memory(Jim_Interp *interp, int argc,
 
 	free(buffer);
 
-	if (e != JIM_OK) {
-		Jim_DecrRefCount(interp, result_list);
-		return e;
-	}
-
-	Jim_SetResult(interp, result_list);
-	Jim_DecrRefCount(interp, result_list);
-
-	return JIM_OK;
+	return ERROR_OK;
 }
 
 static int get_u64_array_element(Jim_Interp *interp, const char *varname, size_t idx, uint64_t *val)
@@ -6074,7 +6042,7 @@ static const struct command_registration target_instance_command_handlers[] = {
 	{
 		.name = "read_memory",
 		.mode = COMMAND_EXEC,
-		.jim_handler = target_jim_read_memory,
+		.handler = handle_target_read_memory,
 		.help = "Read Tcl list of 8/16/32/64 bit numbers from target memory",
 		.usage = "address width count ['phys']",
 	},
@@ -7203,7 +7171,7 @@ static const struct command_registration target_exec_command_handlers[] = {
 	{
 		.name = "read_memory",
 		.mode = COMMAND_EXEC,
-		.jim_handler = target_jim_read_memory,
+		.handler = handle_target_read_memory,
 		.help = "Read Tcl list of 8/16/32/64 bit numbers from target memory",
 		.usage = "address width count ['phys']",
 	},
