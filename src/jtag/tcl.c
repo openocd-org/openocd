@@ -249,12 +249,15 @@ static int jim_command_pathmove(Jim_Interp *interp, int argc, Jim_Obj * const *a
 	return JIM_OK;
 }
 
-
-static int jim_command_flush_count(Jim_Interp *interp, int argc, Jim_Obj * const *args)
+COMMAND_HANDLER(handle_jtag_flush_count)
 {
-	Jim_SetResult(interp, Jim_NewIntObj(interp, jtag_get_flush_queue_count()));
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	return JIM_OK;
+	int count = jtag_get_flush_queue_count();
+	command_print_sameline(CMD, "%d", count);
+
+	return ERROR_OK;
 }
 
 /* REVISIT Just what about these should "move" ... ?
@@ -279,9 +282,10 @@ static const struct command_registration jtag_command_handlers_to_move[] = {
 	{
 		.name = "flush_count",
 		.mode = COMMAND_EXEC,
-		.jim_handler = jim_command_flush_count,
+		.handler = handle_jtag_flush_count,
 		.help = "Returns the number of times the JTAG queue "
 			"has been flushed.",
+		.usage = "",
 	},
 	{
 		.name = "pathmove",
