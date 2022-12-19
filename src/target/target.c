@@ -6377,18 +6377,15 @@ COMMAND_HANDLER(handle_target_current)
 	return ERROR_OK;
 }
 
-static int jim_target_types(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+COMMAND_HANDLER(handle_target_types)
 {
-	if (argc != 1) {
-		Jim_WrongNumArgs(interp, 1, argv, "Too many parameters");
-		return JIM_ERR;
-	}
-	Jim_SetResult(interp, Jim_NewListObj(interp, NULL, 0));
-	for (unsigned x = 0; target_types[x]; x++) {
-		Jim_ListAppendElement(interp, Jim_GetResult(interp),
-			Jim_NewStringObj(interp, target_types[x]->name, -1));
-	}
-	return JIM_OK;
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	for (unsigned int x = 0; target_types[x]; x++)
+		command_print(CMD, "%s", target_types[x]->name);
+
+	return ERROR_OK;
 }
 
 static int jim_target_names(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
@@ -6526,9 +6523,10 @@ static const struct command_registration target_subcommand_handlers[] = {
 	{
 		.name = "types",
 		.mode = COMMAND_ANY,
-		.jim_handler = jim_target_types,
+		.handler = handle_target_types,
 		.help = "Returns the available target types as "
 				"a list of strings",
+		.usage = "",
 	},
 	{
 		.name = "names",
