@@ -994,23 +994,21 @@ COMMAND_HANDLER(handle_arm_tpiu_swo_names)
 	return ERROR_OK;
 }
 
-static int jim_arm_tpiu_swo_init(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+COMMAND_HANDLER(handle_arm_tpiu_swo_init)
 {
-	struct command_context *cmd_ctx = current_command_context(interp);
 	struct arm_tpiu_swo_object *obj;
-	int retval = JIM_OK;
+	int retval = ERROR_OK;
 
-	if (argc != 1) {
-		Jim_WrongNumArgs(interp, 1, argv, "Too many parameters");
-		return JIM_ERR;
-	}
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
 	list_for_each_entry(obj, &all_tpiu_swo, lh) {
 		if (!obj->deferred_enable)
 			continue;
 		LOG_DEBUG("%s: running enable during init", obj->name);
-		int retval2 = command_run_linef(cmd_ctx, "%s enable", obj->name);
+		int retval2 = command_run_linef(CMD_CTX, "%s enable", obj->name);
 		if (retval2 != ERROR_OK)
-			retval = JIM_ERR;
+			retval = retval2;
 	}
 	return retval;
 }
@@ -1189,7 +1187,7 @@ static const struct command_registration arm_tpiu_swo_subcommand_handlers[] = {
 	{
 		.name = "init",
 		.mode = COMMAND_EXEC,
-		.jim_handler = jim_arm_tpiu_swo_init,
+		.handler = handle_arm_tpiu_swo_init,
 		.usage = "",
 		.help = "Initialize TPIU and SWO",
 	},
