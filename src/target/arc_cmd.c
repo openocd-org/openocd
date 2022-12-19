@@ -22,14 +22,6 @@
  * ------------------------------------------------------------------------- */
 
 
-static int arc_cmd_jim_get_uint32(struct jim_getopt_info *goi, uint32_t *value)
-{
-	jim_wide value_wide;
-	JIM_CHECK_RETVAL(jim_getopt_wide(goi, &value_wide));
-	*value = (uint32_t)value_wide;
-	return JIM_OK;
-}
-
 enum add_reg_types {
 	CFG_ADD_REG_TYPE_FLAG,
 	CFG_ADD_REG_TYPE_STRUCT,
@@ -863,27 +855,17 @@ COMMAND_HANDLER(arc_l2_cache_disable_auto_cmd)
 		&arc->has_l2cache, "target has l2 cache enabled");
 }
 
-static int jim_handle_actionpoints_num(Jim_Interp *interp, int argc,
-	Jim_Obj * const *argv)
+COMMAND_HANDLER(arc_handle_actionpoints_num)
 {
-	struct jim_getopt_info goi;
-	jim_getopt_setup(&goi, interp, argc - 1, argv + 1);
-
 	LOG_DEBUG("-");
 
-	if (goi.argc >= 2) {
-		Jim_WrongNumArgs(interp, goi.argc, goi.argv, "[<unsigned integer>]");
-		return JIM_ERR;
-	}
+	if (CMD_ARGC >= 2)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	struct command_context *context = current_command_context(interp);
-	assert(context);
-
-	struct target *target = get_current_target(context);
-
+	struct target *target = get_current_target(CMD_CTX);
 	if (!target) {
-		Jim_SetResultFormatted(goi.interp, "No current target");
-		return JIM_ERR;
+		command_print(CMD, "No current target");
+		return ERROR_FAIL;
 	}
 
 	struct arc_common *arc = target_to_arc(target);
@@ -892,19 +874,19 @@ static int jim_handle_actionpoints_num(Jim_Interp *interp, int argc,
 	 * "actionpoint reset, initiated by arc_set_actionpoints_num.  */
 	uint32_t ap_num = arc->actionpoints_num;
 
-	if (goi.argc == 1) {
-		JIM_CHECK_RETVAL(arc_cmd_jim_get_uint32(&goi, &ap_num));
+	if (CMD_ARGC == 1) {
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], ap_num);
 		int e = arc_set_actionpoints_num(target, ap_num);
 		if (e != ERROR_OK) {
-			Jim_SetResultFormatted(goi.interp,
+			command_print(CMD,
 				"Failed to set number of actionpoints");
-			return JIM_ERR;
+			return e;
 		}
 	}
 
-	Jim_SetResultInt(interp, ap_num);
+	command_print(CMD, "%" PRIu32, ap_num);
 
-	return JIM_OK;
+	return ERROR_OK;
 }
 
 /* ----- Exported target commands ------------------------------------------ */
@@ -1004,7 +986,7 @@ static const struct command_registration arc_core_command_handlers[] = {
 	},
 	{
 		.name = "num-actionpoints",
-		.jim_handler = jim_handle_actionpoints_num,
+		.handler = arc_handle_actionpoints_num,
 		.mode = COMMAND_ANY,
 		.usage = "[<unsigned integer>]",
 		.help = "Prints or sets amount of actionpoints in the processor.",
