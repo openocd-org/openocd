@@ -5740,20 +5740,14 @@ COMMAND_HANDLER(handle_target_examine_deferred)
 	return ERROR_OK;
 }
 
-static int jim_target_halt_gdb(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+COMMAND_HANDLER(handle_target_halt_gdb)
 {
-	if (argc != 1) {
-		Jim_WrongNumArgs(interp, 1, argv, "[no parameters]");
-		return JIM_ERR;
-	}
-	struct command_context *cmd_ctx = current_command_context(interp);
-	assert(cmd_ctx);
-	struct target *target = get_current_target(cmd_ctx);
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	if (target_call_event_callbacks(target, TARGET_EVENT_GDB_HALT) != ERROR_OK)
-		return JIM_ERR;
+	struct target *target = get_current_target(CMD_CTX);
 
-	return JIM_OK;
+	return target_call_event_callbacks(target, TARGET_EVENT_GDB_HALT);
 }
 
 static int jim_target_poll(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
@@ -6096,8 +6090,9 @@ static const struct command_registration target_instance_command_handlers[] = {
 	{
 		.name = "arp_halt_gdb",
 		.mode = COMMAND_EXEC,
-		.jim_handler = jim_target_halt_gdb,
+		.handler = handle_target_halt_gdb,
 		.help = "used internally for reset processing to halt GDB",
+		.usage = "",
 	},
 	{
 		.name = "arp_poll",
