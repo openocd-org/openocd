@@ -805,24 +805,15 @@ int jim_jtag_configure(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	return jtag_tap_configure_cmd(&goi, t);
 }
 
-static int jim_jtag_names(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+COMMAND_HANDLER(handle_jtag_names)
 {
-	struct jim_getopt_info goi;
-	jim_getopt_setup(&goi, interp, argc-1, argv + 1);
-	if (goi.argc != 0) {
-		Jim_WrongNumArgs(goi.interp, 1, goi.argv, "Too many parameters");
-		return JIM_ERR;
-	}
-	Jim_SetResult(goi.interp, Jim_NewListObj(goi.interp, NULL, 0));
-	struct jtag_tap *tap;
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	for (tap = jtag_all_taps(); tap; tap = tap->next_tap) {
-		Jim_ListAppendElement(goi.interp,
-			Jim_GetResult(goi.interp),
-			Jim_NewStringObj(goi.interp,
-				tap->dotted_name, -1));
-	}
-	return JIM_OK;
+	for (struct jtag_tap *tap = jtag_all_taps(); tap; tap = tap->next_tap)
+		command_print(CMD, "%s", tap->dotted_name);
+
+	return ERROR_OK;
 }
 
 COMMAND_HANDLER(handle_jtag_init_command)
@@ -921,8 +912,9 @@ static const struct command_registration jtag_subcommand_handlers[] = {
 	{
 		.name = "names",
 		.mode = COMMAND_ANY,
-		.jim_handler = jim_jtag_names,
+		.handler = handle_jtag_names,
 		.help = "Returns list of all JTAG tap names.",
+		.usage = "",
 	},
 	{
 		.chain = jtag_command_handlers_to_move,
