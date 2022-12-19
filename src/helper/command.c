@@ -543,8 +543,16 @@ static int run_command(struct command_context *context,
 		if (retval != ERROR_OK)
 			LOG_DEBUG("Command '%s' failed with error code %d",
 						words[0], retval);
-		/* Use the command output as the Tcl result */
-		Jim_SetResult(context->interp, cmd.output);
+		/*
+		 * Use the command output as the Tcl result.
+		 * Drop last '\n' to allow command output concatenation
+		 * while keep using command_print() everywhere.
+		 */
+		const char *output_txt = Jim_String(cmd.output);
+		int len = strlen(output_txt);
+		if (len && output_txt[len - 1] == '\n')
+			--len;
+		Jim_SetResultString(context->interp, output_txt, len);
 	}
 	Jim_DecrRefCount(context->interp, cmd.output);
 
