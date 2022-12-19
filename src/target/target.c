@@ -5904,18 +5904,19 @@ COMMAND_HANDLER(handle_target_event_list)
 	command_print(CMD, "***END***");
 	return ERROR_OK;
 }
-static int jim_target_current_state(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+
+COMMAND_HANDLER(handle_target_current_state)
 {
-	if (argc != 1) {
-		Jim_WrongNumArgs(interp, 1, argv, "[no parameters]");
-		return JIM_ERR;
-	}
-	struct command_context *cmd_ctx = current_command_context(interp);
-	assert(cmd_ctx);
-	struct target *target = get_current_target(cmd_ctx);
-	Jim_SetResultString(interp, target_state_name(target), -1);
-	return JIM_OK;
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	struct target *target = get_current_target(CMD_CTX);
+
+	command_print(CMD, "%s", target_state_name(target));
+
+	return ERROR_OK;
 }
+
 static int jim_target_invoke_event(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	struct jim_getopt_info goi;
@@ -6063,8 +6064,9 @@ static const struct command_registration target_instance_command_handlers[] = {
 	{
 		.name = "curstate",
 		.mode = COMMAND_EXEC,
-		.jim_handler = jim_target_current_state,
+		.handler = handle_target_current_state,
 		.help = "displays the current state of this target",
+		.usage = "",
 	},
 	{
 		.name = "arp_examine",
