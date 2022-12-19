@@ -5716,14 +5716,16 @@ static int jim_target_examine(Jim_Interp *interp, int argc, Jim_Obj *const *argv
 	return JIM_OK;
 }
 
-static int jim_target_was_examined(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
+COMMAND_HANDLER(handle_target_was_examined)
 {
-	struct command_context *cmd_ctx = current_command_context(interp);
-	assert(cmd_ctx);
-	struct target *target = get_current_target(cmd_ctx);
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	Jim_SetResultBool(interp, target_was_examined(target));
-	return JIM_OK;
+	struct target *target = get_current_target(CMD_CTX);
+
+	command_print(CMD, "%d", target_was_examined(target) ? 1 : 0);
+
+	return ERROR_OK;
 }
 
 static int jim_target_examine_deferred(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
@@ -6078,8 +6080,9 @@ static const struct command_registration target_instance_command_handlers[] = {
 	{
 		.name = "was_examined",
 		.mode = COMMAND_EXEC,
-		.jim_handler = jim_target_was_examined,
+		.handler = handle_target_was_examined,
 		.help = "used internally for reset processing",
+		.usage = "",
 	},
 	{
 		.name = "examine_deferred",
