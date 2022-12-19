@@ -796,59 +796,40 @@ COMMAND_HANDLER(arc_set_reg_exists)
 
 /* arc reg-field  ($reg_name) ($reg_field)
  * Reads struct type register field */
-static int jim_arc_get_reg_field(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
+COMMAND_HANDLER(arc_handle_get_reg_field)
 {
-	struct jim_getopt_info goi;
-	const char *reg_name, *field_name;
-	uint32_t value;
-	int retval;
-
-	JIM_CHECK_RETVAL(jim_getopt_setup(&goi, interp, argc-1, argv+1));
-
-	LOG_DEBUG("Reading register field");
-	if (goi.argc != 2) {
-		if (!goi.argc)
-			Jim_WrongNumArgs(interp, goi.argc, goi.argv, "<regname> <fieldname>");
-		else if (goi.argc == 1)
-			Jim_WrongNumArgs(interp, goi.argc, goi.argv, "<fieldname>");
-		else
-			Jim_WrongNumArgs(interp, goi.argc, goi.argv, "<regname> <fieldname>");
+	if (CMD_ARGC != 2)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
-	JIM_CHECK_RETVAL(jim_getopt_string(&goi, &reg_name, NULL));
-	JIM_CHECK_RETVAL(jim_getopt_string(&goi, &field_name, NULL));
-	assert(reg_name);
-	assert(field_name);
-
-	struct command_context * const ctx = current_command_context(interp);
-	assert(ctx);
-	struct target * const target = get_current_target(ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	if (!target) {
-		Jim_SetResultFormatted(goi.interp, "No current target");
-		return JIM_ERR;
+		command_print(CMD, "No current target");
+		return ERROR_FAIL;
 	}
 
-	retval = arc_reg_get_field(target, reg_name, field_name, &value);
+	const char *reg_name = CMD_ARGV[0];
+	const char *field_name = CMD_ARGV[1];
+	uint32_t value;
+	int retval = arc_reg_get_field(target, reg_name, field_name, &value);
 
 	switch (retval) {
 		case ERROR_OK:
 			break;
 		case ERROR_ARC_REGISTER_NOT_FOUND:
-			Jim_SetResultFormatted(goi.interp,
+			command_print(CMD,
 				"Register `%s' has not been found.", reg_name);
 			return ERROR_COMMAND_ARGUMENT_INVALID;
 		case ERROR_ARC_REGISTER_IS_NOT_STRUCT:
-			Jim_SetResultFormatted(goi.interp,
+			command_print(CMD,
 				"Register `%s' must have 'struct' type.", reg_name);
 			return ERROR_COMMAND_ARGUMENT_INVALID;
 		case ERROR_ARC_REGISTER_FIELD_NOT_FOUND:
-			Jim_SetResultFormatted(goi.interp,
+			command_print(CMD,
 				"Field `%s' has not been found in register `%s'.",
 				field_name, reg_name);
 			return ERROR_COMMAND_ARGUMENT_INVALID;
 		case ERROR_ARC_FIELD_IS_NOT_BITFIELD:
-			Jim_SetResultFormatted(goi.interp,
+			command_print(CMD,
 				"Field `%s' is not a 'bitfield' field in a structure.",
 				field_name);
 			return ERROR_COMMAND_ARGUMENT_INVALID;
@@ -857,9 +838,9 @@ static int jim_arc_get_reg_field(Jim_Interp *interp, int argc, Jim_Obj * const *
 			return retval;
 	}
 
-	Jim_SetResultInt(interp, value);
+	command_print(CMD, "0x%" PRIx32, value);
 
-	return JIM_OK;
+	return ERROR_OK;
 }
 
 COMMAND_HANDLER(arc_l1_cache_disable_auto_cmd)
@@ -1002,7 +983,7 @@ static const struct command_registration arc_core_command_handlers[] = {
 	},
 	{
 		.name = "get-reg-field",
-		.jim_handler = jim_arc_get_reg_field,
+		.handler = arc_handle_get_reg_field,
 		.mode = COMMAND_ANY,
 		.usage = "<regname> <field_name>",
 		.help = "Returns value of field in a register with 'struct' type.",
