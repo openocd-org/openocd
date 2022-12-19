@@ -820,18 +820,15 @@ error_exit:
 	return JIM_ERR;
 }
 
-static int jim_arm_tpiu_swo_disable(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+COMMAND_HANDLER(handle_arm_tpiu_swo_disable)
 {
-	struct command *c = jim_to_command(interp);
-	struct arm_tpiu_swo_object *obj = c->jim_handler_data;
+	struct arm_tpiu_swo_object *obj = CMD_DATA;
 
-	if (argc != 1) {
-		Jim_WrongNumArgs(interp, 1, argv, "Too many parameters");
-		return JIM_ERR;
-	}
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	if (!obj->enabled)
-		return JIM_OK;
+		return ERROR_OK;
 	obj->enabled = false;
 
 	arm_tpiu_swo_handle_event(obj, TPIU_SWO_EVENT_PRE_DISABLE);
@@ -845,20 +842,19 @@ static int jim_arm_tpiu_swo_disable(Jim_Interp *interp, int argc, Jim_Obj *const
 
 		int retval = adapter_config_trace(false, 0, 0, NULL, 0, NULL);
 		if (retval != ERROR_OK) {
-			LOG_ERROR("Failed to stop adapter's trace");
-			return JIM_ERR;
+			command_print(CMD, "Failed to stop adapter's trace");
+			return retval;
 		}
 	}
 
 	arm_tpiu_swo_handle_event(obj, TPIU_SWO_EVENT_POST_DISABLE);
 
 	/* START_DEPRECATED_TPIU */
-	struct command_context *cmd_ctx = current_command_context(interp);
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	target_handle_event(target, TARGET_EVENT_TRACE_CONFIG);
 	/* END_DEPRECATED_TPIU */
 
-	return JIM_OK;
+	return ERROR_OK;
 }
 
 static const struct command_registration arm_tpiu_swo_instance_command_handlers[] = {
@@ -893,7 +889,7 @@ static const struct command_registration arm_tpiu_swo_instance_command_handlers[
 	{
 		.name = "disable",
 		.mode = COMMAND_EXEC,
-		.jim_handler = jim_arm_tpiu_swo_disable,
+		.handler = handle_arm_tpiu_swo_disable,
 		.usage = "",
 		.help = "Disables the TPIU/SWO output",
 	},
