@@ -763,7 +763,7 @@ COMMAND_HANDLER(arc_set_reg_exists)
 	struct target * const target = get_current_target(CMD_CTX);
 	if (!target) {
 		command_print(CMD, "Unable to get current target.");
-		return JIM_ERR;
+		return ERROR_FAIL;
 	}
 
 	if (!CMD_ARGC) {
@@ -783,7 +783,7 @@ COMMAND_HANDLER(arc_set_reg_exists)
 		r->exist = true;
 	}
 
-	return JIM_OK;
+	return ERROR_OK;
 }
 
 /* arc reg-field  ($reg_name) ($reg_field)
