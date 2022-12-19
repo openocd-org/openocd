@@ -5728,14 +5728,16 @@ COMMAND_HANDLER(handle_target_was_examined)
 	return ERROR_OK;
 }
 
-static int jim_target_examine_deferred(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
+COMMAND_HANDLER(handle_target_examine_deferred)
 {
-	struct command_context *cmd_ctx = current_command_context(interp);
-	assert(cmd_ctx);
-	struct target *target = get_current_target(cmd_ctx);
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	Jim_SetResultBool(interp, target->defer_examine);
-	return JIM_OK;
+	struct target *target = get_current_target(CMD_CTX);
+
+	command_print(CMD, "%d", target->defer_examine ? 1 : 0);
+
+	return ERROR_OK;
 }
 
 static int jim_target_halt_gdb(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
@@ -6087,8 +6089,9 @@ static const struct command_registration target_instance_command_handlers[] = {
 	{
 		.name = "examine_deferred",
 		.mode = COMMAND_EXEC,
-		.jim_handler = jim_target_examine_deferred,
+		.handler = handle_target_examine_deferred,
 		.help = "used internally for reset processing",
+		.usage = "",
 	},
 	{
 		.name = "arp_halt_gdb",
