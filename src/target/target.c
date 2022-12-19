@@ -6404,9 +6404,8 @@ COMMAND_HANDLER(handle_target_names)
 
 static struct target_list *
 __attribute__((warn_unused_result))
-create_target_list_node(Jim_Obj *const name) {
-	int len;
-	const char *targetname = Jim_GetString(name, &len);
+create_target_list_node(const char *targetname)
+{
 	struct target *target = get_target(targetname);
 	LOG_DEBUG("%s ", targetname);
 	if (!target)
@@ -6422,7 +6421,8 @@ create_target_list_node(Jim_Obj *const name) {
 	return new;
 }
 
-static int get_target_with_common_rtos_type(struct list_head *lh, struct target **result)
+static int get_target_with_common_rtos_type(struct command_invocation *cmd,
+	struct list_head *lh, struct target **result)
 {
 	struct target *target = NULL;
 	struct target_list *curr;
@@ -6430,39 +6430,39 @@ static int get_target_with_common_rtos_type(struct list_head *lh, struct target 
 		struct rtos *curr_rtos = curr->target->rtos;
 		if (curr_rtos) {
 			if (target && target->rtos && target->rtos->type != curr_rtos->type) {
-				LOG_ERROR("Different rtos types in members of one smp target!");
-				return JIM_ERR;
+				command_print(cmd, "Different rtos types in members of one smp target!");
+				return ERROR_FAIL;
 			}
 			target = curr->target;
 		}
 	}
 	*result = target;
-	return JIM_OK;
+	return ERROR_OK;
 }
 
-static int jim_target_smp(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+COMMAND_HANDLER(handle_target_smp)
 {
 	static int smp_group = 1;
 
-	if (argc == 1) {
+	if (CMD_ARGC == 0) {
 		LOG_DEBUG("Empty SMP target");
-		return JIM_OK;
+		return ERROR_OK;
 	}
-	LOG_DEBUG("%d", argc);
-	/* argv[1] = target to associate in smp
-	 * argv[2] = target to associate in smp
-	 * argv[3] ...
+	LOG_DEBUG("%d", CMD_ARGC);
+	/* CMD_ARGC[0] = target to associate in smp
+	 * CMD_ARGC[1] = target to associate in smp
+	 * CMD_ARGC[2] ...
 	 */
 
 	struct list_head *lh = malloc(sizeof(*lh));
 	if (!lh) {
 		LOG_ERROR("Out of memory");
-		return JIM_ERR;
+		return ERROR_FAIL;
 	}
 	INIT_LIST_HEAD(lh);
 
-	for (int i = 1; i < argc; i++) {
-		struct target_list *new = create_target_list_node(argv[i]);
+	for (unsigned int i = 0; i < CMD_ARGC; i++) {
+		struct target_list *new = create_target_list_node(CMD_ARGV[i]);
 		if (new)
 			list_add_tail(&new->lh, lh);
 	}
@@ -6476,13 +6476,12 @@ static int jim_target_smp(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	smp_group++;
 
 	struct target *rtos_target;
-	int retval = get_target_with_common_rtos_type(lh, &rtos_target);
-	if (retval == JIM_OK && rtos_target)
+	int retval = get_target_with_common_rtos_type(CMD, lh, &rtos_target);
+	if (retval == ERROR_OK && rtos_target)
 		retval = rtos_smp_init(rtos_target);
 
 	return retval;
 }
-
 
 static int jim_target_create(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
@@ -6536,7 +6535,7 @@ static const struct command_registration target_subcommand_handlers[] = {
 	{
 		.name = "smp",
 		.mode = COMMAND_ANY,
-		.jim_handler = jim_target_smp,
+		.handler = handle_target_smp,
 		.usage = "targetname1 targetname2 ...",
 		.help = "gather several target in a smp list"
 	},
