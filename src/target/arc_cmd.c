@@ -70,51 +70,6 @@ static int jim_arc_read_reg_name_field(struct jim_getopt_info *goi,
 	return e;
 }
 
-/* Helper function to read bitfields/flags of register type. */
-static int jim_arc_read_reg_type_field(struct jim_getopt_info *goi, const char **field_name, int *field_name_len,
-	 struct arc_reg_bitfield *bitfields, int cur_field, int type)
-{
-		jim_wide start_pos, end_pos;
-
-		int e = JIM_OK;
-		if ((type == CFG_ADD_REG_TYPE_STRUCT && goi->argc < 3) ||
-		 (type == CFG_ADD_REG_TYPE_FLAG && goi->argc < 2)) {
-			Jim_SetResultFormatted(goi->interp, "Not enough arguments after -flag/-bitfield");
-			return JIM_ERR;
-		}
-
-		e = jim_getopt_string(goi, field_name, field_name_len);
-		if (e != JIM_OK)
-					return e;
-
-		/* read start position of bitfield/flag */
-		e = jim_getopt_wide(goi, &start_pos);
-		if (e != JIM_OK)
-					return e;
-
-		end_pos = start_pos;
-
-		/* Check if any arguments remain,
-		 * set bitfields[cur_field].end if flag is multibit */
-		if (goi->argc > 0)
-			/* Check current argv[0], if it is equal to "-flag",
-			 * than bitfields[cur_field].end remains start */
-			if ((strcmp(Jim_String(goi->argv[0]), "-flag") && type == CFG_ADD_REG_TYPE_FLAG)
-					|| (type == CFG_ADD_REG_TYPE_STRUCT)) {
-								e = jim_getopt_wide(goi, &end_pos);
-								if (e != JIM_OK) {
-									Jim_SetResultFormatted(goi->interp, "Error reading end position");
-									return e;
-								}
-							}
-
-		bitfields[cur_field].bitfield.start = start_pos;
-		bitfields[cur_field].bitfield.end = end_pos;
-		if ((end_pos != start_pos) || (type == CFG_ADD_REG_TYPE_STRUCT))
-			bitfields[cur_field].bitfield.type = REG_TYPE_INT;
-	return e;
-}
-
 static COMMAND_HELPER(arc_handle_add_reg_type_flags_ops, struct arc_reg_data_type *type)
 {
 	struct reg_data_type_flags_field *fields = type->reg_type_flags_field;
@@ -255,7 +210,7 @@ enum add_reg_type_struct {
 	CFG_ADD_REG_TYPE_STRUCT_BITFIELD,
 };
 
-static struct jim_nvp nvp_add_reg_type_struct_opts[] = {
+static const struct nvp nvp_add_reg_type_struct_opts[] = {
 	{ .name = "-name",     .value = CFG_ADD_REG_TYPE_STRUCT_NAME },
 	{ .name = "-bitfield", .value = CFG_ADD_REG_TYPE_STRUCT_BITFIELD },
 	{ .name = NULL,     .value = -1 }
@@ -424,53 +379,117 @@ static const struct command_registration arc_jtag_command_group[] = {
 
 
 /* This function supports only bitfields. */
-static int jim_arc_add_reg_type_struct(Jim_Interp *interp, int argc,
-	Jim_Obj * const *argv)
+static COMMAND_HELPER(arc_handle_add_reg_type_struct_opts, struct arc_reg_data_type *type)
 {
-	struct jim_getopt_info goi;
-	JIM_CHECK_RETVAL(jim_getopt_setup(&goi, interp, argc-1, argv+1));
+	struct reg_data_type_struct_field *fields = type->reg_type_struct_field;
+	struct arc_reg_bitfield *bitfields = type->bitfields;
+	struct reg_data_type_struct *struct_type = &type->data_type_struct;
+	unsigned int cur_field = 0;
+
+	while (CMD_ARGC) {
+		const struct nvp *n = nvp_name2value(nvp_add_reg_type_struct_opts, CMD_ARGV[0]);
+		CMD_ARGC--;
+		CMD_ARGV++;
+		switch (n->value) {
+		case CFG_ADD_REG_TYPE_STRUCT_NAME:
+			if (!CMD_ARGC)
+				return ERROR_COMMAND_ARGUMENT_INVALID;
+
+			const char *name = CMD_ARGV[0];
+			CMD_ARGC--;
+			CMD_ARGV++;
+
+			if (strlen(name) >= REG_TYPE_MAX_NAME_LENGTH) {
+				command_print(CMD, "Reg type name is too big.");
+				return ERROR_COMMAND_ARGUMENT_INVALID;
+			}
+
+			strcpy((void *)type->data_type.id, name);
+			break;
+
+		case CFG_ADD_REG_TYPE_STRUCT_BITFIELD:
+			if (CMD_ARGC < 3)
+				return ERROR_COMMAND_ARGUMENT_INVALID;
+
+			uint32_t start_pos, end_pos;
+			const char *field_name = CMD_ARGV[0];
+			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], start_pos);
+			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], end_pos);
+			CMD_ARGC -= 3;
+			CMD_ARGV += 3;
+			bitfields[cur_field].bitfield.start = start_pos;
+			bitfields[cur_field].bitfield.end = end_pos;
+			bitfields[cur_field].bitfield.type = REG_TYPE_INT;
+
+			if (strlen(field_name) >= REG_TYPE_MAX_NAME_LENGTH) {
+				command_print(CMD, "Reg type field_name is too big.");
+				return ERROR_COMMAND_ARGUMENT_INVALID;
+			}
+
+			fields[cur_field].name = bitfields[cur_field].name;
+			strcpy(bitfields[cur_field].name, field_name);
+
+			fields[cur_field].bitfield = &bitfields[cur_field].bitfield;
+			fields[cur_field].use_bitfields = true;
+			if (cur_field > 0)
+				fields[cur_field - 1].next = &fields[cur_field];
+			else
+				struct_type->fields = fields;
+
+			cur_field += 1;
+
+			break;
+
+		default:
+			nvp_unknown_command_print(CMD, nvp_add_reg_type_struct_opts, NULL, CMD_ARGV[-1]);
+			return ERROR_COMMAND_ARGUMENT_INVALID;
+		}
+	}
+
+	if (!type->data_type.id) {
+		command_print(CMD, "-name is a required option");
+		return ERROR_COMMAND_ARGUMENT_INVALID;
+	}
+
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(arc_handle_add_reg_type_struct)
+{
+	int retval;
 
 	LOG_DEBUG("-");
 
-	struct command_context *ctx;
-	struct target *target;
-
-	ctx = current_command_context(interp);
-	assert(ctx);
-	target = get_current_target(ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	if (!target) {
-		Jim_SetResultFormatted(goi.interp, "No current target");
-		return JIM_ERR;
+		command_print(CMD, "No current target");
+		return ERROR_FAIL;
 	}
-
-	int e = JIM_OK;
 
 	/* Check if the amount of arguments is not zero */
-	if (goi.argc <= 0) {
-		Jim_SetResultFormatted(goi.interp, "The command has no arguments");
-		return JIM_ERR;
-	}
+	if (CMD_ARGC == 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	/* Estimate number of registers as (argc - 2)/4 as each -bitfield option has 3
 	 * arguments while -name is required. */
-	unsigned int fields_sz = (goi.argc - 2) / 4;
-	unsigned int cur_field = 0;
+	unsigned int fields_sz = (CMD_ARGC - 2) / 4;
 
 	/* The maximum amount of bitfields is 32 */
 	if (fields_sz > 32) {
-			Jim_SetResultFormatted(goi.interp, "The amount of bitfields exceed 32");
-			return JIM_ERR;
+		command_print(CMD, "The amount of bitfields exceed 32");
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
 	struct arc_reg_data_type *type = calloc(1, sizeof(*type));
-	struct reg_data_type_struct *struct_type = &type->data_type_struct;
 	struct reg_data_type_struct_field *fields = calloc(fields_sz, sizeof(*fields));
-	type->reg_type_struct_field = fields;
 	struct arc_reg_bitfield *bitfields = calloc(fields_sz, sizeof(*bitfields));
-	if (!(type && fields && bitfields)) {
-		Jim_SetResultFormatted(goi.interp, "Failed to allocate memory.");
+	if (!type || !fields || !bitfields) {
+		LOG_ERROR("Out of memory");
+		retval = ERROR_FAIL;
 		goto fail;
 	}
+	struct reg_data_type_struct *struct_type = &type->data_type_struct;
+	type->reg_type_struct_field = fields;
 
 	/* Initialize type */
 	type->data_type.id = type->data_type_id;
@@ -480,91 +499,22 @@ static int jim_arc_add_reg_type_struct(Jim_Interp *interp, int argc,
 	type->data_type.reg_type_struct = struct_type;
 	struct_type->size = 4; /* For now ARC has only 32-bit registers */
 
-	while (goi.argc > 0 && e == JIM_OK) {
-		struct jim_nvp *n;
-		e = jim_getopt_nvp(&goi, nvp_add_reg_type_struct_opts, &n);
-		if (e != JIM_OK) {
-			jim_getopt_nvp_unknown(&goi, nvp_add_reg_type_struct_opts, 0);
-			continue;
-		}
-
-		switch (n->value) {
-			case CFG_ADD_REG_TYPE_STRUCT_NAME:
-			{
-				const char *name = NULL;
-				int name_len = 0;
-
-				e = jim_arc_read_reg_name_field(&goi, &name, &name_len);
-				if (e != JIM_OK) {
-					Jim_SetResultFormatted(goi.interp, "Unable to read reg name.");
-					goto fail;
-				}
-
-				if (name_len > REG_TYPE_MAX_NAME_LENGTH) {
-					Jim_SetResultFormatted(goi.interp, "Reg type name is too big.");
-					goto fail;
-				}
-
-				strncpy((void *)type->data_type.id, name, name_len);
-				if (!type->data_type.id) {
-					Jim_SetResultFormatted(goi.interp, "Unable to setup reg type name.");
-					goto fail;
-				}
-
-				break;
-			}
-			case CFG_ADD_REG_TYPE_STRUCT_BITFIELD:
-			{
-				const char *field_name = NULL;
-				int field_name_len = 0;
-				e = jim_arc_read_reg_type_field(&goi, &field_name, &field_name_len, bitfields,
-									cur_field, CFG_ADD_REG_TYPE_STRUCT);
-				if (e != JIM_OK) {
-					Jim_SetResultFormatted(goi.interp, "Unable to add reg_type_struct field.");
-					goto fail;
-				}
-
-				if (field_name_len > REG_TYPE_MAX_NAME_LENGTH) {
-					Jim_SetResultFormatted(goi.interp, "Reg type field_name_len is too big.");
-					goto fail;
-				}
-
-				fields[cur_field].name = bitfields[cur_field].name;
-				strncpy(bitfields[cur_field].name, field_name, field_name_len);
-				if (!fields[cur_field].name) {
-					Jim_SetResultFormatted(goi.interp, "Unable to setup field name. ");
-					goto fail;
-				}
-
-				fields[cur_field].bitfield = &(bitfields[cur_field].bitfield);
-				fields[cur_field].use_bitfields = true;
-				if (cur_field > 0)
-					fields[cur_field - 1].next = &(fields[cur_field]);
-				else
-					struct_type->fields = fields;
-
-				cur_field += 1;
-
-				break;
-			}
-		}
-	}
-
-	if (!type->data_type.id) {
-		Jim_SetResultFormatted(goi.interp, "-name is a required option");
+	retval = CALL_COMMAND_HANDLER(arc_handle_add_reg_type_struct_opts, type);
+	if (retval != ERROR_OK)
 		goto fail;
-	}
 
 	arc_reg_data_type_add(target, type);
+
 	LOG_DEBUG("added struct type {name=%s}", type->data_type.id);
-	return JIM_OK;
+
+	return ERROR_OK;
 
 fail:
-			free(type);
-			free(fields);
-			free(bitfields);
+	free(type);
+	free(fields);
+	free(bitfields);
 
-			return JIM_ERR;
+	return retval;
 }
 
 /* Add register */
@@ -925,7 +875,7 @@ static const struct command_registration arc_core_command_handlers[] = {
 	},
 	{
 		.name = "add-reg-type-struct",
-		.jim_handler = jim_arc_add_reg_type_struct,
+		.handler = arc_handle_add_reg_type_struct,
 		.mode = COMMAND_CONFIG,
 		.usage = "-name <string> -bitfield <name> <start> <end> "
 			"[-bitfield <name> <start> <end>]...",
