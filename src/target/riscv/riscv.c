@@ -1071,13 +1071,13 @@ static int riscv_hit_trigger_hit_bit(struct target *target, uint32_t *unique_id)
 
 		uint64_t hit_mask = 0;
 		switch (type) {
-			case 1:
+			case CSR_TDATA1_TYPE_LEGACY:
 				/* Doesn't support hit bit. */
 				break;
-			case 2:
+			case CSR_TDATA1_TYPE_MCONTROL:
 				hit_mask = CSR_MCONTROL_HIT;
 				break;
-			case 6:
+			case CSR_TDATA1_TYPE_MCONTROL6:
 				hit_mask = CSR_MCONTROL6_HIT;
 				break;
 			default:
@@ -4120,16 +4120,16 @@ int riscv_enumerate_triggers(struct target *target)
 			if (type == 0)
 				break;
 			switch (type) {
-				case 1:
+				case CSR_TDATA1_TYPE_LEGACY:
 					/* On these older cores we don't support software using
 						* triggers. */
 					riscv_set_register(target, GDB_REGNO_TDATA1, 0);
 					break;
-				case 2:
+				case CSR_TDATA1_TYPE_MCONTROL:
 					if (tdata1 & CSR_MCONTROL_DMODE(riscv_xlen(target)))
 						riscv_set_register(target, GDB_REGNO_TDATA1, 0);
 					break;
-				case 6:
+				case CSR_TDATA1_TYPE_MCONTROL6:
 					if (tdata1 & CSR_MCONTROL6_DMODE(riscv_xlen(target)))
 						riscv_set_register(target, GDB_REGNO_TDATA1, 0);
 					break;
