@@ -55,21 +55,6 @@ static const char *validate_register(const struct arc_reg_desc * const reg, bool
 	return NULL;
 }
 
-/* Helper function to read the name of register type or register from
- * configure files  */
-static int jim_arc_read_reg_name_field(struct jim_getopt_info *goi,
-	const char **name, int *name_len)
-{
-	int e = JIM_OK;
-
-	if (!goi->argc) {
-		Jim_WrongNumArgs(goi->interp, goi->argc, goi->argv, "-name <name> ...");
-		return JIM_ERR;
-	}
-	e = jim_getopt_string(goi, name, name_len);
-	return e;
-}
-
 static COMMAND_HELPER(arc_handle_add_reg_type_flags_ops, struct arc_reg_data_type *type)
 {
 	struct reg_data_type_flags_field *fields = type->reg_type_flags_field;
@@ -528,7 +513,7 @@ enum opts_add_reg {
 	CFG_ADD_REG_GENERAL,
 };
 
-static struct jim_nvp opts_nvp_add_reg[] = {
+static const struct nvp opts_nvp_add_reg[] = {
 	{ .name = "-name",    .value = CFG_ADD_REG_NAME },
 	{ .name = "-num",     .value = CFG_ADD_REG_ARCH_NUM },
 	{ .name = "-core",    .value = CFG_ADD_REG_IS_CORE },
@@ -546,155 +531,133 @@ void free_reg_desc(struct arc_reg_desc *r)
 	free(r);
 }
 
-static int jim_arc_add_reg(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
+static COMMAND_HELPER(arc_handle_add_reg_do, struct arc_reg_desc *reg)
 {
-	struct jim_getopt_info goi;
-	JIM_CHECK_RETVAL(jim_getopt_setup(&goi, interp, argc-1, argv+1));
-
-	struct arc_reg_desc *reg = calloc(1, sizeof(*reg));
-	if (!reg) {
-		Jim_SetResultFormatted(goi.interp, "Failed to allocate memory.");
-		return JIM_ERR;
-	}
-
 	/* There is no architecture number that we could treat as invalid, so
 	 * separate variable required to ensure that arch num has been set. */
 	bool arch_num_set = false;
 	const char *type_name = "int"; /* Default type */
-	int type_name_len = strlen(type_name);
-	int e = ERROR_OK;
 
 	/* At least we need to specify 4 parameters: name, number and gdb_feature,
 	 * which means there should be 6 arguments. Also there can be additional parameters
 	 * "-type <type>", "-g" and  "-core" or "-bcr" which makes maximum 10 parameters. */
-	if (goi.argc < 6 || goi.argc > 10) {
-		free_reg_desc(reg);
-		Jim_SetResultFormatted(goi.interp,
-			"Should be at least 6 arguments and not greater than 10: "
-			" -name <name> -num <num> -feature <gdb_feature> "
-			" [-type <type_name>] [-core|-bcr] [-g].");
-		return JIM_ERR;
-	}
+	if (CMD_ARGC < 6 || CMD_ARGC > 10)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	/* Parse options. */
-	while (goi.argc > 0) {
-		struct jim_nvp *n;
-		e = jim_getopt_nvp(&goi, opts_nvp_add_reg, &n);
-		if (e != JIM_OK) {
-			jim_getopt_nvp_unknown(&goi, opts_nvp_add_reg, 0);
-			free_reg_desc(reg);
-			return e;
-		}
-
+	while (CMD_ARGC) {
+		const struct nvp *n = nvp_name2value(opts_nvp_add_reg, CMD_ARGV[0]);
+		CMD_ARGC--;
+		CMD_ARGV++;
 		switch (n->value) {
-			case CFG_ADD_REG_NAME:
-			{
-				const char *reg_name = NULL;
-				int reg_name_len = 0;
+		case CFG_ADD_REG_NAME:
+			if (!CMD_ARGC)
+				return ERROR_COMMAND_ARGUMENT_INVALID;
 
-				e = jim_arc_read_reg_name_field(&goi, &reg_name, &reg_name_len);
-				if (e != JIM_OK) {
-					Jim_SetResultFormatted(goi.interp, "Unable to read register name.");
-					free_reg_desc(reg);
-					return e;
-				}
-
-				reg->name = strndup(reg_name, reg_name_len);
-				break;
+			reg->name = strdup(CMD_ARGV[0]);
+			if (!reg->name) {
+				LOG_ERROR("Out of memory");
+				return ERROR_FAIL;
 			}
-			case CFG_ADD_REG_IS_CORE:
-				reg->is_core = true;
-				break;
-			case CFG_ADD_REG_IS_BCR:
-				reg->is_bcr = true;
-				break;
-			case CFG_ADD_REG_ARCH_NUM:
-			{
-				jim_wide archnum;
 
-				if (!goi.argc) {
-					free_reg_desc(reg);
-					Jim_WrongNumArgs(interp, goi.argc, goi.argv, "-num <int> ...");
-					return JIM_ERR;
-				}
+			CMD_ARGC--;
+			CMD_ARGV++;
+			break;
 
-				e = jim_getopt_wide(&goi, &archnum);
-				if (e != JIM_OK) {
-					free_reg_desc(reg);
-					return e;
-				}
+		case CFG_ADD_REG_IS_CORE:
+			reg->is_core = true;
+			break;
 
-				reg->arch_num = archnum;
-				arch_num_set = true;
-				break;
+		case CFG_ADD_REG_IS_BCR:
+			reg->is_bcr = true;
+			break;
+
+		case CFG_ADD_REG_ARCH_NUM:
+			if (!CMD_ARGC)
+				return ERROR_COMMAND_ARGUMENT_INVALID;
+
+			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], reg->arch_num);
+			CMD_ARGC--;
+			CMD_ARGV++;
+
+			arch_num_set = true;
+			break;
+
+		case CFG_ADD_REG_GDB_FEATURE:
+			if (!CMD_ARGC)
+				return ERROR_COMMAND_ARGUMENT_INVALID;
+
+			reg->gdb_xml_feature = strdup(CMD_ARGV[0]);
+			if (!reg->gdb_xml_feature) {
+				LOG_ERROR("Out of memory");
+				return ERROR_FAIL;
 			}
-			case CFG_ADD_REG_GDB_FEATURE:
-			{
-				const char *feature = NULL;
-				int feature_len = 0;
 
-				e = jim_arc_read_reg_name_field(&goi, &feature, &feature_len);
-				if (e != JIM_OK) {
-					Jim_SetResultFormatted(goi.interp, "Unable to read gdb_feature.");
-					free_reg_desc(reg);
-					return e;
-				}
+			CMD_ARGC--;
+			CMD_ARGV++;
+			break;
 
-				reg->gdb_xml_feature = strndup(feature, feature_len);
-				break;
-			}
-			case CFG_ADD_REG_TYPE:
-				e = jim_arc_read_reg_name_field(&goi, &type_name, &type_name_len);
-				if (e != JIM_OK) {
-					Jim_SetResultFormatted(goi.interp, "Unable to read register type.");
-					free_reg_desc(reg);
-					return e;
-				}
+		case CFG_ADD_REG_TYPE:
+			if (!CMD_ARGC)
+				return ERROR_COMMAND_ARGUMENT_INVALID;
 
-				break;
-			case CFG_ADD_REG_GENERAL:
-				reg->is_general = true;
-				break;
-			default:
-				LOG_DEBUG("Error: Unknown parameter");
-				free_reg_desc(reg);
-				return JIM_ERR;
+			type_name = CMD_ARGV[0];
+			CMD_ARGC--;
+			CMD_ARGV++;
+			break;
+
+		case CFG_ADD_REG_GENERAL:
+			reg->is_general = true;
+			break;
+
+		default:
+			nvp_unknown_command_print(CMD, opts_nvp_add_reg, NULL, CMD_ARGV[-1]);
+			return ERROR_COMMAND_ARGUMENT_INVALID;
 		}
 	}
 
 	/* Check that required fields are set */
 	const char * const errmsg = validate_register(reg, arch_num_set);
 	if (errmsg) {
-		Jim_SetResultFormatted(goi.interp, errmsg);
-		free_reg_desc(reg);
-		return JIM_ERR;
+		command_print(CMD, "%s", errmsg);
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
 	/* Add new register */
-	struct command_context *ctx;
-	struct target *target;
-
-	ctx = current_command_context(interp);
-	assert(ctx);
-	target = get_current_target(ctx);
+	struct target *target = get_current_target(CMD_CTX);
 	if (!target) {
-		Jim_SetResultFormatted(goi.interp, "No current target");
-		free_reg_desc(reg);
-		return JIM_ERR;
+		command_print(CMD, "No current target");
+		return ERROR_FAIL;
 	}
 
 	reg->target = target;
 
-	e = arc_reg_add(target, reg, type_name, type_name_len);
-	if (e == ERROR_ARC_REGTYPE_NOT_FOUND) {
-		Jim_SetResultFormatted(goi.interp,
+	int retval = arc_reg_add(target, reg, type_name, strlen(type_name));
+	if (retval == ERROR_ARC_REGTYPE_NOT_FOUND) {
+		command_print(CMD,
 			"Cannot find type `%s' for register `%s'.",
 			type_name, reg->name);
-		free_reg_desc(reg);
-		return JIM_ERR;
+		return retval;
 	}
 
-	return e;
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(arc_handle_add_reg)
+{
+	struct arc_reg_desc *reg = calloc(1, sizeof(*reg));
+	if (!reg) {
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
+	}
+
+	int retval = CALL_COMMAND_HANDLER(arc_handle_add_reg_do, reg);
+	if (retval != ERROR_OK) {
+		free_reg_desc(reg);
+		return retval;
+	}
+
+	return ERROR_OK;
 }
 
 /* arc set-reg-exists ($reg_name)+
@@ -887,7 +850,7 @@ static const struct command_registration arc_core_command_handlers[] = {
 	},
 	{
 		.name = "add-reg",
-		.jim_handler = jim_arc_add_reg,
+		.handler = arc_handle_add_reg,
 		.mode = COMMAND_CONFIG,
 		.usage = "-name <string> -num <int> -feature <string> [-gdbnum <int>] "
 			"[-core|-bcr] [-type <type_name>] [-g]",
