@@ -10723,6 +10723,21 @@ cleanly onto OpenOCD's notion of hardware breakpoints. These commands let you
 set those triggers directly. (It's also possible to do so by writing the
 appropriate CSRs.)
 
+@deffn {Command} {riscv etrigger set} [@option{m}] [@option{s}] [@option{u}] [@option{vs}] [@option{vu}] exception_codes
+Set an exception trigger (type 5) on the current target, which halts the target when it
+fires.  @option{m}, @option{s}, @option{u}, @option{vs}, and @option{vu} control
+which execution modes the trigger fires in. @var{exception_codes} is a bit
+field, where each bit corresponds to an exception code in mcause (defined in the
+RISC-V Privileged Spec). The etrigger will fire on the exceptions whose bits are
+set in @var{exception_codes}.
+
+For details on this trigger type, see the RISC-V Debug Specification.
+@end deffn
+
+@deffn {Command} {riscv etrigger clear}
+Clear the type 5 trigger that was set using @command{riscv etrigger set}.
+@end deffn
+
 @deffn {Command} {riscv itrigger set} [@option{m}] [@option{s}] [@option{u}] [@option{vs}] [@option{vu}] [@option{nmi}] mie_bits
 Set an interrupt trigger (type 4) on the current target, which halts the target when it
 fires.  @option{m}, @option{s}, @option{u}, @option{vs}, and @option{vu} control

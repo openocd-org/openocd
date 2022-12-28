@@ -127,6 +127,7 @@ typedef struct {
 	/* For each physical trigger contains:
 	 * -1: the hwbp is available
 	 * -4: The trigger is used by the itrigger command
+	 * -5: The trigger is used by the etrigger command
 	 * >= 0: unique_id of the breakpoint/watchpoint that is using it.
 	 * Note that in RTOS mode the triggers are the same across all harts the
 	 * target controls, while otherwise only a single hart is controlled. */
