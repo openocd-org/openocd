@@ -329,7 +329,7 @@ COMMAND_HANDLER(jtagspi_handle_cmd)
 
 	/* process command */
 	ptr = &read_buffer[0];
-	jtagspi_cmd(bank, write_buffer[0], &write_buffer[1], num_write - 1, ptr, -num_read);
+	retval = jtagspi_cmd(bank, write_buffer[0], &write_buffer[1], num_write - 1, ptr, -num_read);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -518,7 +518,7 @@ static int jtagspi_bulk_erase(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		return retval;
 
-	jtagspi_cmd(bank, info->dev.chip_erase_cmd, NULL, 0, NULL, 0);
+	retval = jtagspi_cmd(bank, info->dev.chip_erase_cmd, NULL, 0, NULL, 0);
 	if (retval != ERROR_OK)
 		return retval;
 
