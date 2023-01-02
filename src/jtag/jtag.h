@@ -12,6 +12,7 @@
 #define OPENOCD_JTAG_JTAG_H
 
 #include <helper/binarybuffer.h>
+#include <helper/command.h>
 #include <helper/log.h>
 #include <helper/replacements.h>
 
@@ -602,6 +603,6 @@ void jtag_poll_unmask(bool saved);
 
 #include <jtag/minidriver.h>
 
-int jim_jtag_newtap(Jim_Interp *interp, int argc, Jim_Obj *const *argv);
+__COMMAND_HANDLER(handle_jtag_newtap);
 
 #endif /* OPENOCD_JTAG_JTAG_H */

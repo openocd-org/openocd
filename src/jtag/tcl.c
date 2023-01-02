@@ -31,6 +31,8 @@
 #include <strings.h>
 #endif
 
+#include <helper/command.h>
+#include <helper/nvp.h>
 #include <helper/time_support.h>
 #include "transport/transport.h"
 
@@ -376,39 +378,6 @@ static int jtag_tap_configure_cmd(struct jim_getopt_info *goi, struct jtag_tap *
 	return JIM_OK;
 }
 
-static int is_bad_irval(int ir_length, jim_wide w)
-{
-	jim_wide v = 1;
-
-	v <<= ir_length;
-	v -= 1;
-	v = ~v;
-	return (w & v) != 0;
-}
-
-static int jim_newtap_expected_id(struct jim_nvp *n, struct jim_getopt_info *goi,
-	struct jtag_tap *tap)
-{
-	jim_wide w;
-	int e = jim_getopt_wide(goi, &w);
-	if (e != JIM_OK) {
-		Jim_SetResultFormatted(goi->interp, "option: %s bad parameter", n->name);
-		return e;
-	}
-
-	uint32_t *p = realloc(tap->expected_ids,
-			      (tap->expected_ids_cnt + 1) * sizeof(uint32_t));
-	if (!p) {
-		Jim_SetResultFormatted(goi->interp, "no memory");
-		return JIM_ERR;
-	}
-
-	tap->expected_ids = p;
-	tap->expected_ids[tap->expected_ids_cnt++] = w;
-
-	return JIM_OK;
-}
-
 #define NTAP_OPT_IRLEN     0
 #define NTAP_OPT_IRMASK    1
 #define NTAP_OPT_IRCAPTURE 2
@@ -418,166 +387,155 @@ static int jim_newtap_expected_id(struct jim_nvp *n, struct jim_getopt_info *goi
 #define NTAP_OPT_VERSION   6
 #define NTAP_OPT_BYPASS    7
 
-static int jim_newtap_ir_param(struct jim_nvp *n, struct jim_getopt_info *goi,
-	struct jtag_tap *tap)
+static const struct nvp jtag_newtap_opts[] = {
+	{ .name = "-irlen",          .value = NTAP_OPT_IRLEN },
+	{ .name = "-irmask",         .value = NTAP_OPT_IRMASK },
+	{ .name = "-ircapture",      .value = NTAP_OPT_IRCAPTURE },
+	{ .name = "-enable",         .value = NTAP_OPT_ENABLED },
+	{ .name = "-disable",        .value = NTAP_OPT_DISABLED },
+	{ .name = "-expected-id",    .value = NTAP_OPT_EXPECTED_ID },
+	{ .name = "-ignore-version", .value = NTAP_OPT_VERSION },
+	{ .name = "-ignore-bypass",  .value = NTAP_OPT_BYPASS },
+	{ .name = NULL,              .value = -1 },
+};
+
+static COMMAND_HELPER(handle_jtag_newtap_args, struct jtag_tap *tap)
 {
-	jim_wide w;
-	int e = jim_getopt_wide(goi, &w);
-	if (e != JIM_OK) {
-		Jim_SetResultFormatted(goi->interp,
-			"option: %s bad parameter", n->name);
-		return e;
+	/* we expect CHIP + TAP + OPTIONS */
+	if (CMD_ARGC < 2)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	tap->chip = strdup(CMD_ARGV[0]);
+	tap->tapname = strdup(CMD_ARGV[1]);
+	tap->dotted_name = alloc_printf("%s.%s", CMD_ARGV[0], CMD_ARGV[1]);
+	if (!tap->chip || !tap->tapname || !tap->dotted_name) {
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
 	}
-	switch (n->value) {
-	    case NTAP_OPT_IRLEN:
-		    if (w > (jim_wide) (8 * sizeof(tap->ir_capture_value))) {
-			    LOG_WARNING("%s: huge IR length %d",
-				    tap->dotted_name, (int) w);
-		    }
-		    tap->ir_length = w;
-		    break;
-	    case NTAP_OPT_IRMASK:
-		    if (is_bad_irval(tap->ir_length, w)) {
-			    LOG_ERROR("%s: IR mask %x too big",
-				    tap->dotted_name,
-				    (int) w);
-			    return JIM_ERR;
-		    }
-		    if ((w & 3) != 3)
-			    LOG_WARNING("%s: nonstandard IR mask", tap->dotted_name);
-		    tap->ir_capture_mask = w;
-		    break;
-	    case NTAP_OPT_IRCAPTURE:
-		    if (is_bad_irval(tap->ir_length, w)) {
-			    LOG_ERROR("%s: IR capture %x too big",
-				    tap->dotted_name, (int) w);
-			    return JIM_ERR;
-		    }
-		    if ((w & 3) != 1)
-			    LOG_WARNING("%s: nonstandard IR value",
-				    tap->dotted_name);
-		    tap->ir_capture_value = w;
-		    break;
-	    default:
-		    return JIM_ERR;
-	}
-	return JIM_OK;
-}
-
-static int jim_newtap_cmd(struct jim_getopt_info *goi)
-{
-	struct jtag_tap *tap;
-	int x;
-	int e;
-	struct jim_nvp *n;
-	char *cp;
-	const struct jim_nvp opts[] = {
-		{ .name = "-irlen",       .value = NTAP_OPT_IRLEN },
-		{ .name = "-irmask",       .value = NTAP_OPT_IRMASK },
-		{ .name = "-ircapture",       .value = NTAP_OPT_IRCAPTURE },
-		{ .name = "-enable",       .value = NTAP_OPT_ENABLED },
-		{ .name = "-disable",       .value = NTAP_OPT_DISABLED },
-		{ .name = "-expected-id",       .value = NTAP_OPT_EXPECTED_ID },
-		{ .name = "-ignore-version",       .value = NTAP_OPT_VERSION },
-		{ .name = "-ignore-bypass",       .value = NTAP_OPT_BYPASS },
-		{ .name = NULL,       .value = -1 },
-	};
-
-	tap = calloc(1, sizeof(struct jtag_tap));
-	if (!tap) {
-		Jim_SetResultFormatted(goi->interp, "no memory");
-		return JIM_ERR;
-	}
-
-	/*
-	 * we expect CHIP + TAP + OPTIONS
-	 * */
-	if (goi->argc < 3) {
-		Jim_SetResultFormatted(goi->interp, "Missing CHIP TAP OPTIONS ....");
-		free(tap);
-		return JIM_ERR;
-	}
-
-	const char *tmp;
-	jim_getopt_string(goi, &tmp, NULL);
-	tap->chip = strdup(tmp);
-
-	jim_getopt_string(goi, &tmp, NULL);
-	tap->tapname = strdup(tmp);
-
-	/* name + dot + name + null */
-	x = strlen(tap->chip) + 1 + strlen(tap->tapname) + 1;
-	cp = malloc(x);
-	sprintf(cp, "%s.%s", tap->chip, tap->tapname);
-	tap->dotted_name = cp;
+	CMD_ARGC -= 2;
+	CMD_ARGV += 2;
 
 	LOG_DEBUG("Creating New Tap, Chip: %s, Tap: %s, Dotted: %s, %d params",
-		tap->chip, tap->tapname, tap->dotted_name, goi->argc);
+		  tap->chip, tap->tapname, tap->dotted_name, CMD_ARGC);
 
-	/* IEEE specifies that the two LSBs of an IR scan are 01, so make
+	/*
+	 * IEEE specifies that the two LSBs of an IR scan are 01, so make
 	 * that the default.  The "-ircapture" and "-irmask" options are only
 	 * needed to cope with nonstandard TAPs, or to specify more bits.
 	 */
 	tap->ir_capture_mask = 0x03;
 	tap->ir_capture_value = 0x01;
 
-	while (goi->argc) {
-		e = jim_getopt_nvp(goi, opts, &n);
-		if (e != JIM_OK) {
-			jim_getopt_nvp_unknown(goi, opts, 0);
-			free(cp);
-			free(tap);
-			return e;
-		}
-		LOG_DEBUG("Processing option: %s", n->name);
+	while (CMD_ARGC) {
+		const struct nvp *n = nvp_name2value(jtag_newtap_opts, CMD_ARGV[0]);
+		CMD_ARGC--;
+		CMD_ARGV++;
 		switch (n->value) {
-		    case NTAP_OPT_ENABLED:
-			    tap->disabled_after_reset = false;
-			    break;
-		    case NTAP_OPT_DISABLED:
-			    tap->disabled_after_reset = true;
-			    break;
-		    case NTAP_OPT_EXPECTED_ID:
-			    e = jim_newtap_expected_id(n, goi, tap);
-			    if (e != JIM_OK) {
-				    free(cp);
-				    free(tap);
-				    return e;
-			    }
-			    break;
-		    case NTAP_OPT_IRLEN:
-		    case NTAP_OPT_IRMASK:
-		    case NTAP_OPT_IRCAPTURE:
-			    e = jim_newtap_ir_param(n, goi, tap);
-			    if (e != JIM_OK) {
-				    free(cp);
-				    free(tap);
-				    return e;
-			    }
-			    break;
-		    case NTAP_OPT_VERSION:
-			    tap->ignore_version = true;
-			    break;
-		    case NTAP_OPT_BYPASS:
-			    tap->ignore_bypass = true;
-			    break;
-		}	/* switch (n->value) */
-	}	/* while (goi->argc) */
+	    case NTAP_OPT_ENABLED:
+		    tap->disabled_after_reset = false;
+		    break;
+
+	    case NTAP_OPT_DISABLED:
+		    tap->disabled_after_reset = true;
+		    break;
+
+		case NTAP_OPT_EXPECTED_ID:
+			if (!CMD_ARGC)
+				return ERROR_COMMAND_ARGUMENT_INVALID;
+
+			tap->expected_ids = realloc(tap->expected_ids,
+										(tap->expected_ids_cnt + 1) * sizeof(uint32_t));
+			if (!tap->expected_ids) {
+				LOG_ERROR("Out of memory");
+				return ERROR_FAIL;
+			}
+
+			uint32_t id;
+			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], id);
+			CMD_ARGC--;
+			CMD_ARGV++;
+			tap->expected_ids[tap->expected_ids_cnt++] = id;
+
+			break;
+
+		case NTAP_OPT_IRLEN:
+			if (!CMD_ARGC)
+				return ERROR_COMMAND_ARGUMENT_INVALID;
+
+			COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], tap->ir_length);
+			CMD_ARGC--;
+			CMD_ARGV++;
+			if (tap->ir_length > (int)(8 * sizeof(tap->ir_capture_value)))
+				LOG_WARNING("%s: huge IR length %d", tap->dotted_name, tap->ir_length);
+			break;
+
+		case NTAP_OPT_IRMASK:
+			if (!CMD_ARGC)
+				return ERROR_COMMAND_ARGUMENT_INVALID;
+
+			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], tap->ir_capture_mask);
+			CMD_ARGC--;
+			CMD_ARGV++;
+			if ((tap->ir_capture_mask & 3) != 3)
+				LOG_WARNING("%s: nonstandard IR mask", tap->dotted_name);
+			break;
+
+		case NTAP_OPT_IRCAPTURE:
+			if (!CMD_ARGC)
+				return ERROR_COMMAND_ARGUMENT_INVALID;
+
+			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], tap->ir_capture_value);
+			CMD_ARGC--;
+			CMD_ARGV++;
+			if ((tap->ir_capture_value & 3) != 1)
+				LOG_WARNING("%s: nonstandard IR value", tap->dotted_name);
+			break;
+
+		case NTAP_OPT_VERSION:
+			tap->ignore_version = true;
+			break;
+
+		case NTAP_OPT_BYPASS:
+			tap->ignore_bypass = true;
+			break;
+
+		default:
+			nvp_unknown_command_print(CMD, jtag_newtap_opts, NULL, CMD_ARGV[-1]);
+			return ERROR_COMMAND_ARGUMENT_INVALID;
+		}
+	}
 
 	/* default is enabled-after-reset */
 	tap->enabled = !tap->disabled_after_reset;
 
-	/* Did all the required option bits get cleared? */
-	if (!transport_is_jtag() || tap->ir_length != 0) {
-		jtag_tap_init(tap);
-		return JIM_OK;
+	if (transport_is_jtag() && tap->ir_length == 0) {
+		command_print(CMD, "newtap: %s missing IR length", tap->dotted_name);
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
-	Jim_SetResultFormatted(goi->interp,
-		"newtap: %s missing IR length",
-		tap->dotted_name);
-	jtag_tap_free(tap);
-	return JIM_ERR;
+	return ERROR_OK;
+}
+
+__COMMAND_HANDLER(handle_jtag_newtap)
+{
+	struct jtag_tap *tap = calloc(1, sizeof(struct jtag_tap));
+	if (!tap) {
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
+	}
+
+	int retval = CALL_COMMAND_HANDLER(handle_jtag_newtap_args, tap);
+	if (retval != ERROR_OK) {
+		free(tap->chip);
+		free(tap->tapname);
+		free(tap->dotted_name);
+		free(tap->expected_ids);
+		free(tap);
+		return retval;
+	}
+
+	jtag_tap_init(tap);
+	return ERROR_OK;
 }
 
 static void jtag_tap_handle_event(struct jtag_tap *tap, enum jtag_event e)
@@ -641,13 +599,6 @@ COMMAND_HANDLER(handle_jtag_arp_init_reset)
 		return swd_init_reset(CMD_CTX);
 
 	return ERROR_OK;
-}
-
-int jim_jtag_newtap(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
-{
-	struct jim_getopt_info goi;
-	jim_getopt_setup(&goi, interp, argc-1, argv + 1);
-	return jim_newtap_cmd(&goi);
 }
 
 static bool jtag_tap_enable(struct jtag_tap *t)
@@ -798,7 +749,7 @@ static const struct command_registration jtag_subcommand_handlers[] = {
 	{
 		.name = "newtap",
 		.mode = COMMAND_CONFIG,
-		.jim_handler = jim_jtag_newtap,
+		.handler = handle_jtag_newtap,
 		.help = "Create a new TAP instance named basename.tap_type, "
 			"and appends it to the scan chain.",
 		.usage = "basename tap_type '-irlen' count "
