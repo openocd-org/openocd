@@ -520,7 +520,7 @@ static int find_first_trigger_by_id(struct target *target, int unique_id)
 static int set_trigger(struct target *target, int idx, riscv_reg_t tdata1, riscv_reg_t tdata2,
 	riscv_reg_t tdata1_ignore_mask)
 {
-	riscv_reg_t tdata1_rb;
+	riscv_reg_t tdata1_rb, tdata2_rb;
 	if (riscv_set_register(target, GDB_REGNO_TSELECT, idx) != ERROR_OK)
 		return ERROR_FAIL;
 	if (riscv_set_register(target, GDB_REGNO_TDATA1, tdata1) != ERROR_OK)
@@ -528,16 +528,26 @@ static int set_trigger(struct target *target, int idx, riscv_reg_t tdata1, riscv
 	if (riscv_get_register(target, &tdata1_rb, GDB_REGNO_TDATA1) != ERROR_OK)
 		return ERROR_FAIL;
 	if ((tdata1 & ~tdata1_ignore_mask) != (tdata1_rb & ~tdata1_ignore_mask)) {
-		LOG_DEBUG("Trigger doesn't support what we need; After writing 0x%"
+		LOG_TARGET_DEBUG(target,
+			"Trigger %u doesn't support what we need; After writing 0x%"
 			PRIx64 " to tdata1 it contains 0x%" PRIx64
 			"; tdata1_ignore_mask=0x%" PRIx64,
-			tdata1, tdata1_rb, tdata1_ignore_mask);
+			idx, tdata1, tdata1_rb, tdata1_ignore_mask);
 		riscv_set_register(target, GDB_REGNO_TDATA1, 0);
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
-	LOG_DEBUG("tdata1=0x%" PRIx64, tdata1_rb);
 	if (riscv_set_register(target, GDB_REGNO_TDATA2, tdata2) != ERROR_OK)
 		return ERROR_FAIL;
+	if (riscv_get_register(target, &tdata2_rb, GDB_REGNO_TDATA2) != ERROR_OK)
+		return ERROR_FAIL;
+	if (tdata2 != tdata2_rb) {
+		LOG_TARGET_DEBUG(target,
+			"Trigger %u doesn't support what we need; wrote 0x%"
+			PRIx64 " to tdata2 but read back 0x%" PRIx64,
+			idx, tdata2, tdata2_rb);
+		riscv_set_register(target, GDB_REGNO_TDATA1, 0);
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
 	return ERROR_OK;
 }
 
