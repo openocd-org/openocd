@@ -241,43 +241,37 @@ int target_rtt_find_control_block(struct target *target,
 		target_addr_t *address, size_t size, const char *id, bool *found,
 		void *user_data)
 {
+	target_addr_t address_end = *address + size;
 	uint8_t buf[1024];
 
 	*found = false;
 
-	size_t j = 0;
-	size_t cb_offset = 0;
+	size_t id_matched_length = 0;
 	const size_t id_length = strlen(id);
 
 	LOG_INFO("rtt: Searching for control block '%s'", id);
 
-	for (target_addr_t addr = 0; addr < size; addr = addr + sizeof(buf)) {
+	for (target_addr_t addr = *address; addr < address_end; addr += sizeof(buf)) {
 		int ret;
 
-		const size_t buf_size = MIN(sizeof(buf), size - addr);
-		ret = target_read_buffer(target, *address + addr, buf_size, buf);
+		const size_t buf_size = MIN(sizeof(buf), address_end - addr);
+		ret = target_read_buffer(target, addr, buf_size, buf);
 
 		if (ret != ERROR_OK)
 			return ret;
 
-		size_t start = 0;
-		size_t i = 0;
-
-		while (i < buf_size) {
-			if (buf[i] != id[j]) {
-				start++;
-				cb_offset++;
-				i = start;
-				j = 0;
-
-				continue;
+		for (size_t buf_off = 0; buf_off < buf_size; buf_off++) {
+			if (id_matched_length > 0 &&
+			    buf[buf_off] != id[id_matched_length]) {
+				/* Start from beginning */
+				id_matched_length = 0;
 			}
 
-			i++;
-			j++;
+			if (buf[buf_off] == id[id_matched_length])
+				id_matched_length++;
 
-			if (j == id_length) {
-				*address = *address + cb_offset;
+			if (id_matched_length == id_length) {
+				*address = addr + buf_off + 1 - id_length;
 				*found = true;
 				return ERROR_OK;
 			}
