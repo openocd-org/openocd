@@ -89,12 +89,18 @@ static const struct command_registration dapdirect_jtag_subcommand_handlers[] = 
 	{
 		.name = "tapisenabled",
 		.mode = COMMAND_EXEC,
-		.jim_handler = jim_jtag_tap_enabler,
+		.handler = handle_jtag_tap_enabler,
+		.help = "Returns a Tcl boolean (0/1) indicating whether "
+			"the TAP is enabled (1) or not (0).",
+		.usage = "tap_name",
 	},
 	{
 		.name = "tapenable",
 		.mode = COMMAND_EXEC,
-		.jim_handler = jim_jtag_tap_enabler,
+		.handler = handle_jtag_tap_enabler,
+		.help = "Try to enable the specified TAP using the "
+			"'tap-enable' TAP event.",
+		.usage = "tap_name",
 	},
 	{
 		.name = "tapdisable",

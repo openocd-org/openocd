@@ -18,9 +18,10 @@
 #ifndef OPENOCD_JTAG_TCL_H
 #define OPENOCD_JTAG_TCL_H
 
+#include <helper/command.h>
+
 int jim_jtag_configure(Jim_Interp *interp, int argc,
 		Jim_Obj * const *argv);
-int jim_jtag_tap_enabler(Jim_Interp *interp, int argc,
-		Jim_Obj * const *argv);
+__COMMAND_HANDLER(handle_jtag_tap_enabler);
 
 #endif /* OPENOCD_JTAG_TCL_H */

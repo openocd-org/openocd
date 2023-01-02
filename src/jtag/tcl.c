@@ -604,7 +604,7 @@ COMMAND_HANDLER(handle_jtag_arp_init_reset)
 static bool jtag_tap_enable(struct jtag_tap *t)
 {
 	if (t->enabled)
-		return false;
+		return true;
 	jtag_tap_handle_event(t, JTAG_TAP_EVENT_ENABLE);
 	if (!t->enabled)
 		return false;
@@ -619,7 +619,7 @@ static bool jtag_tap_enable(struct jtag_tap *t)
 static bool jtag_tap_disable(struct jtag_tap *t)
 {
 	if (!t->enabled)
-		return false;
+		return true;
 	jtag_tap_handle_event(t, JTAG_TAP_EVENT_DISABLE);
 	if (t->enabled)
 		return false;
@@ -632,42 +632,36 @@ static bool jtag_tap_disable(struct jtag_tap *t)
 	return true;
 }
 
-int jim_jtag_tap_enabler(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+__COMMAND_HANDLER(handle_jtag_tap_enabler)
 {
-	struct command *c = jim_to_command(interp);
-	const char *cmd_name = c->name;
-	struct jim_getopt_info goi;
-	jim_getopt_setup(&goi, interp, argc-1, argv + 1);
-	if (goi.argc != 1) {
-		Jim_SetResultFormatted(goi.interp, "usage: %s <name>", cmd_name);
-		return JIM_ERR;
+	if (CMD_ARGC != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	struct jtag_tap *t = jtag_tap_by_string(CMD_ARGV[0]);
+	if (!t) {
+		command_print(CMD, "Tap '%s' could not be found", CMD_ARGV[0]);
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
-	struct jtag_tap *t;
-
-	t = jtag_tap_by_jim_obj(goi.interp, goi.argv[0]);
-	if (!t)
-		return JIM_ERR;
-
-	if (strcasecmp(cmd_name, "tapisenabled") == 0) {
+	if (strcmp(CMD_NAME, "tapisenabled") == 0) {
 		/* do nothing, just return the value */
-	} else if (strcasecmp(cmd_name, "tapenable") == 0) {
+	} else if (strcmp(CMD_NAME, "tapenable") == 0) {
 		if (!jtag_tap_enable(t)) {
-			LOG_WARNING("failed to enable tap %s", t->dotted_name);
-			return JIM_ERR;
+			command_print(CMD, "failed to enable tap %s", t->dotted_name);
+			return ERROR_FAIL;
 		}
-	} else if (strcasecmp(cmd_name, "tapdisable") == 0) {
+	} else if (strcmp(CMD_NAME, "tapdisable") == 0) {
 		if (!jtag_tap_disable(t)) {
-			LOG_WARNING("failed to disable tap %s", t->dotted_name);
-			return JIM_ERR;
+			command_print(CMD, "failed to disable tap %s", t->dotted_name);
+			return ERROR_FAIL;
 		}
 	} else {
-		LOG_ERROR("command '%s' unknown", cmd_name);
-		return JIM_ERR;
+		command_print(CMD, "command '%s' unknown", CMD_NAME);
+		return ERROR_FAIL;
 	}
-	bool e = t->enabled;
-	Jim_SetResult(goi.interp, Jim_NewIntObj(goi.interp, e));
-	return JIM_OK;
+
+	command_print(CMD, "%d", t->enabled ? 1 : 0);
+	return ERROR_OK;
 }
 
 int jim_jtag_configure(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
@@ -763,7 +757,7 @@ static const struct command_registration jtag_subcommand_handlers[] = {
 	{
 		.name = "tapisenabled",
 		.mode = COMMAND_EXEC,
-		.jim_handler = jim_jtag_tap_enabler,
+		.handler = handle_jtag_tap_enabler,
 		.help = "Returns a Tcl boolean (0/1) indicating whether "
 			"the TAP is enabled (1) or not (0).",
 		.usage = "tap_name",
@@ -771,7 +765,7 @@ static const struct command_registration jtag_subcommand_handlers[] = {
 	{
 		.name = "tapenable",
 		.mode = COMMAND_EXEC,
-		.jim_handler = jim_jtag_tap_enabler,
+		.handler = handle_jtag_tap_enabler,
 		.help = "Try to enable the specified TAP using the "
 			"'tap-enable' TAP event.",
 		.usage = "tap_name",
@@ -779,7 +773,7 @@ static const struct command_registration jtag_subcommand_handlers[] = {
 	{
 		.name = "tapdisable",
 		.mode = COMMAND_EXEC,
-		.jim_handler = jim_jtag_tap_enabler,
+		.handler = handle_jtag_tap_enabler,
 		.help = "Try to disable the specified TAP using the "
 			"'tap-disable' TAP event.",
 		.usage = "tap_name",
