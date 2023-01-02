@@ -72,146 +72,97 @@ static bool scan_is_safe(tap_state_t state)
 	}
 }
 
-static int jim_command_drscan(Jim_Interp *interp, int argc, Jim_Obj * const *args)
+static COMMAND_HELPER(handle_jtag_command_drscan_fields, struct scan_field *fields)
 {
-	int retval;
-	struct scan_field *fields;
-	int num_fields;
-	int field_count = 0;
-	int i, e;
-	struct jtag_tap *tap;
-	tap_state_t endstate;
-
-	/* args[1] = device
-	 * args[2] = num_bits
-	 * args[3] = hex string
-	 * ... repeat num bits and hex string ...
-	 *
-	 * .. optionally:
-	*     args[N-2] = "-endstate"
-	 *     args[N-1] = statename
-	 */
-	if ((argc < 4) || ((argc % 2) != 0)) {
-		Jim_WrongNumArgs(interp, 1, args, "wrong arguments");
-		return JIM_ERR;
-	}
-
-	endstate = TAP_IDLE;
-
-	/* validate arguments as numbers */
-	e = JIM_OK;
-	for (i = 2; i < argc; i += 2) {
-		long bits;
-		const char *cp;
-
-		e = Jim_GetLong(interp, args[i], &bits);
-		/* If valid - try next arg */
-		if (e == JIM_OK)
-			continue;
-
-		/* Not valid.. are we at the end? */
-		if (((i + 2) != argc)) {
-			/* nope, then error */
-			return e;
-		}
-
-		/* it could be: "-endstate FOO"
-		 * e.g. DRPAUSE so we can issue more instructions
-		 * before entering RUN/IDLE and executing them.
-		 */
-
-		/* get arg as a string. */
-		cp = Jim_GetString(args[i], NULL);
-		/* is it the magic? */
-		if (strcmp("-endstate", cp) == 0) {
-			/* is the statename valid? */
-			cp = Jim_GetString(args[i + 1], NULL);
-
-			/* see if it is a valid state name */
-			endstate = tap_state_by_name(cp);
-			if (endstate < 0) {
-				/* update the error message */
-				Jim_SetResultFormatted(interp, "endstate: %s invalid", cp);
-			} else {
-				if (!scan_is_safe(endstate))
-					LOG_WARNING("drscan with unsafe "
-						"endstate \"%s\"", cp);
-
-				/* valid - so clear the error */
-				e = JIM_OK;
-				/* and remove the last 2 args */
-				argc -= 2;
-			}
-		}
-
-		/* Still an error? */
-		if (e != JIM_OK)
-			return e;	/* too bad */
-	}	/* validate args */
-
-	assert(e == JIM_OK);
-
-	tap = jtag_tap_by_jim_obj(interp, args[1]);
-	if (!tap)
-		return JIM_ERR;
-
-	num_fields = (argc-2)/2;
-	if (num_fields <= 0) {
-		Jim_SetResultString(interp, "drscan: no scan fields supplied", -1);
-		return JIM_ERR;
-	}
-	fields = malloc(sizeof(struct scan_field) * num_fields);
-	for (i = 2; i < argc; i += 2) {
-		long bits;
-		int len;
-		const char *str;
-
-		Jim_GetLong(interp, args[i], &bits);
-		str = Jim_GetString(args[i + 1], &len);
-
+	unsigned int field_count = 0;
+	for (unsigned int i = 1; i < CMD_ARGC; i += 2) {
+		unsigned int bits;
+		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[i], bits);
 		fields[field_count].num_bits = bits;
+
 		void *t = malloc(DIV_ROUND_UP(bits, 8));
+		if (!t) {
+			LOG_ERROR("Out of memory");
+			return ERROR_FAIL;
+		}
 		fields[field_count].out_value = t;
-		str_to_buf(str, len, t, bits, 0);
+		str_to_buf(CMD_ARGV[i + 1], strlen(CMD_ARGV[i + 1]), t, bits, 0);
 		fields[field_count].in_value = t;
 		field_count++;
 	}
+
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(handle_jtag_command_drscan)
+{
+	/*
+	 * CMD_ARGV[0] = device
+	 * CMD_ARGV[1] = num_bits
+	 * CMD_ARGV[2] = hex string
+	 * ... repeat num bits and hex string ...
+	 *
+	 * ... optionally:
+	 * CMD_ARGV[CMD_ARGC-2] = "-endstate"
+	 * CMD_ARGV[CMD_ARGC-1] = statename
+	 */
+
+	if (CMD_ARGC < 3 || (CMD_ARGC % 2) != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	struct jtag_tap *tap = jtag_tap_by_string(CMD_ARGV[0]);
+	if (!tap) {
+		command_print(CMD, "Tap '%s' could not be found", CMD_ARGV[0]);
+		return ERROR_COMMAND_ARGUMENT_INVALID;
+	}
+
+	tap_state_t endstate = TAP_IDLE;
+	if (CMD_ARGC > 3 && !strcmp("-endstate", CMD_ARGV[CMD_ARGC - 2])) {
+		const char *state_name = CMD_ARGV[CMD_ARGC - 1];
+		endstate = tap_state_by_name(state_name);
+		if (endstate < 0) {
+			command_print(CMD, "endstate: %s invalid", state_name);
+			return ERROR_COMMAND_ARGUMENT_INVALID;
+		}
+
+		if (!scan_is_safe(endstate))
+			LOG_WARNING("drscan with unsafe endstate \"%s\"", state_name);
+
+		CMD_ARGC -= 2;
+	}
+
+	unsigned int num_fields = (CMD_ARGC - 1) / 2;
+	struct scan_field *fields = calloc(num_fields, sizeof(struct scan_field));
+	if (!fields) {
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
+	}
+
+	int retval = CALL_COMMAND_HANDLER(handle_jtag_command_drscan_fields, fields);
+	if (retval != ERROR_OK)
+		goto fail;
 
 	jtag_add_dr_scan(tap, num_fields, fields, endstate);
 
 	retval = jtag_execute_queue();
 	if (retval != ERROR_OK) {
-		Jim_SetResultString(interp, "drscan: jtag execute failed", -1);
-
-		for (i = 0; i < field_count; i++)
-			free(fields[i].in_value);
-		free(fields);
-
-		return JIM_ERR;
+		command_print(CMD, "drscan: jtag execute failed");
+		goto fail;
 	}
 
-	field_count = 0;
-	Jim_Obj *list = Jim_NewListObj(interp, NULL, 0);
-	for (i = 2; i < argc; i += 2) {
-		long bits;
-		char *str;
-
-		Jim_GetLong(interp, args[i], &bits);
-		str = buf_to_hex_str(fields[field_count].in_value, bits);
-		free(fields[field_count].in_value);
-
-		Jim_ListAppendElement(interp, list, Jim_NewStringObj(interp, str, strlen(str)));
+	for (unsigned int i = 0; i < num_fields; i++) {
+		char *str = buf_to_hex_str(fields[i].in_value, fields[i].num_bits);
+		command_print(CMD, "%s", str);
 		free(str);
-		field_count++;
 	}
 
-	Jim_SetResult(interp, list);
-
+fail:
+	for (unsigned int i = 0; i < num_fields; i++)
+		free(fields[i].in_value);
 	free(fields);
 
-	return JIM_OK;
+	return retval;
 }
-
 
 static int jim_command_pathmove(Jim_Interp *interp, int argc, Jim_Obj * const *args)
 {
@@ -274,7 +225,7 @@ static const struct command_registration jtag_command_handlers_to_move[] = {
 	{
 		.name = "drscan",
 		.mode = COMMAND_EXEC,
-		.jim_handler = jim_command_drscan,
+		.handler = handle_jtag_command_drscan,
 		.help = "Execute Data Register (DR) scan for one TAP.  "
 			"Other TAPs must be in BYPASS mode.",
 		.usage = "tap_name [num_bits value]* ['-endstate' state_name]",
