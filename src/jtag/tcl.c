@@ -164,40 +164,37 @@ fail:
 	return retval;
 }
 
-static int jim_command_pathmove(Jim_Interp *interp, int argc, Jim_Obj * const *args)
+COMMAND_HANDLER(handle_jtag_command_pathmove)
 {
 	tap_state_t states[8];
 
-	if ((argc < 2) || ((size_t)argc > (ARRAY_SIZE(states) + 1))) {
-		Jim_WrongNumArgs(interp, 1, args, "wrong arguments");
-		return JIM_ERR;
-	}
+	if (CMD_ARGC < 1 || CMD_ARGC > ARRAY_SIZE(states))
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	int i;
-	for (i = 0; i < argc-1; i++) {
-		const char *cp;
-		cp = Jim_GetString(args[i + 1], NULL);
-		states[i] = tap_state_by_name(cp);
+	for (unsigned int i = 0; i < CMD_ARGC; i++) {
+		states[i] = tap_state_by_name(CMD_ARGV[i]);
 		if (states[i] < 0) {
-			/* update the error message */
-			Jim_SetResultFormatted(interp, "endstate: %s invalid", cp);
-			return JIM_ERR;
+			command_print(CMD, "endstate: %s invalid", CMD_ARGV[i]);
+			return ERROR_COMMAND_ARGUMENT_INVALID;
 		}
 	}
 
-	if ((jtag_add_statemove(states[0]) != ERROR_OK) || (jtag_execute_queue() != ERROR_OK)) {
-		Jim_SetResultString(interp, "pathmove: jtag execute failed", -1);
-		return JIM_ERR;
+	int retval = jtag_add_statemove(states[0]);
+	if (retval == ERROR_OK)
+		retval = jtag_execute_queue();
+	if (retval != ERROR_OK) {
+		command_print(CMD, "pathmove: jtag execute failed");
+		return retval;
 	}
 
-	jtag_add_pathmove(argc - 2, states + 1);
-
-	if (jtag_execute_queue() != ERROR_OK) {
-		Jim_SetResultString(interp, "pathmove: failed", -1);
-		return JIM_ERR;
+	jtag_add_pathmove(CMD_ARGC - 1, states + 1);
+	retval = jtag_execute_queue();
+	if (retval != ERROR_OK) {
+		command_print(CMD, "pathmove: failed");
+		return retval;
 	}
 
-	return JIM_OK;
+	return ERROR_OK;
 }
 
 COMMAND_HANDLER(handle_jtag_flush_count)
@@ -241,7 +238,7 @@ static const struct command_registration jtag_command_handlers_to_move[] = {
 	{
 		.name = "pathmove",
 		.mode = COMMAND_EXEC,
-		.jim_handler = jim_command_pathmove,
+		.handler = handle_jtag_command_pathmove,
 		.usage = "start_state state1 [state2 [state3 ...]]",
 		.help = "Move JTAG state machine from current state "
 			"(start_state) to state1, then state2, state3, etc.",
