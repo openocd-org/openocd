@@ -476,7 +476,7 @@ static bool can_use_napot_match(struct trigger *trigger, riscv_reg_t *tdata2)
 	return false;
 }
 
-static int find_trigger(struct target *target, int type, bool chained, int *idx)
+static int find_trigger(struct target *target, int type, bool chained, unsigned int *idx)
 {
 	RISCV_INFO(r);
 
@@ -517,7 +517,7 @@ static int find_first_trigger_by_id(struct target *target, int unique_id)
 	return -1;
 }
 
-static int set_trigger(struct target *target, int idx, riscv_reg_t tdata1, riscv_reg_t tdata2,
+static int set_trigger(struct target *target, unsigned int idx, riscv_reg_t tdata1, riscv_reg_t tdata2,
 	riscv_reg_t tdata1_ignore_mask)
 {
 	riscv_reg_t tdata1_rb, tdata2_rb;
@@ -553,7 +553,7 @@ static int set_trigger(struct target *target, int idx, riscv_reg_t tdata1, riscv
 
 static int maybe_add_trigger_t1(struct target *target, struct trigger *trigger)
 {
-	int idx, ret;
+	int ret;
 	riscv_reg_t tdata1, tdata2;
 
 	RISCV_INFO(r);
@@ -568,6 +568,7 @@ static int maybe_add_trigger_t1(struct target *target, struct trigger *trigger)
 	const uint32_t bpcontrol_bpmatch = 0xf << 7;
 	const uint32_t bpcontrol_bpaction = 0xff << 11;
 
+	unsigned int idx;
 	ret = find_trigger(target, CSR_TDATA1_TYPE_LEGACY, false, &idx);
 	if (ret != ERROR_OK)
 		return ret;
@@ -599,7 +600,7 @@ static int maybe_add_trigger_t1(struct target *target, struct trigger *trigger)
 
 static int maybe_add_trigger_t2(struct target *target, struct trigger *trigger)
 {
-	int idx, ret;
+	int ret;
 	riscv_reg_t tdata1, tdata2;
 
 	RISCV_INFO(r);
@@ -622,6 +623,7 @@ static int maybe_add_trigger_t2(struct target *target, struct trigger *trigger)
 	if (!can_use_napot_match(trigger, &tdata2))
 		goto MATCH_GE_LT;
 
+	unsigned int idx;
 	ret = find_trigger(target, CSR_TDATA1_TYPE_MCONTROL, false, &idx);
 	if (ret != ERROR_OK)
 		return ret;
@@ -686,7 +688,7 @@ static int maybe_add_trigger_t4(struct target *target, bool vs, bool vu,
 				bool nmi, bool m, bool s, bool u, riscv_reg_t interrupts,
 				int unique_id)
 {
-	int idx, ret;
+	int ret;
 	riscv_reg_t tdata1, tdata2;
 
 	RISCV_INFO(r);
@@ -704,6 +706,7 @@ static int maybe_add_trigger_t4(struct target *target, bool vs, bool vu,
 
 	tdata2 = interrupts;
 
+	unsigned int idx;
 	ret = find_trigger(target, CSR_TDATA1_TYPE_ITRIGGER, false, &idx);
 	if (ret != ERROR_OK)
 		return ret;
@@ -718,7 +721,7 @@ static int maybe_add_trigger_t5(struct target *target, bool vs, bool vu,
 				bool m, bool s, bool u, riscv_reg_t exception_codes,
 				int unique_id)
 {
-	int idx, ret;
+	int ret;
 	riscv_reg_t tdata1, tdata2;
 
 	RISCV_INFO(r);
@@ -735,6 +738,7 @@ static int maybe_add_trigger_t5(struct target *target, bool vs, bool vu,
 
 	tdata2 = exception_codes;
 
+	unsigned int idx;
 	ret = find_trigger(target, CSR_TDATA1_TYPE_ETRIGGER, false, &idx);
 	if (ret != ERROR_OK)
 		return ret;
@@ -747,7 +751,7 @@ static int maybe_add_trigger_t5(struct target *target, bool vs, bool vu,
 
 static int maybe_add_trigger_t6(struct target *target, struct trigger *trigger)
 {
-	int idx, ret;
+	int ret;
 	riscv_reg_t tdata1, tdata2;
 
 	RISCV_INFO(r);
@@ -769,6 +773,7 @@ static int maybe_add_trigger_t6(struct target *target, struct trigger *trigger)
 	if (!can_use_napot_match(trigger, &tdata2))
 		goto MATCH_GE_LT;
 
+	unsigned int idx;
 	ret = find_trigger(target, CSR_TDATA1_TYPE_MCONTROL6, false, &idx);
 	if (ret != ERROR_OK)
 		return ret;
