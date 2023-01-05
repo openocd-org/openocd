@@ -22,6 +22,7 @@
 #include "svf.h"
 #include "helper/system.h"
 #include <helper/time_support.h>
+#include <stdbool.h>
 
 /* SVF command */
 enum svf_command {
@@ -139,6 +140,9 @@ static const struct svf_statemove svf_statemoves[] = {
 #define XXR_TDO				(1 << 1)
 #define XXR_MASK			(1 << 2)
 #define XXR_SMASK			(1 << 3)
+
+#define SVF_MAX_ADDCYCLES	255
+
 struct svf_xxr_para {
 	int len;
 	int data_mask;
@@ -220,6 +224,8 @@ static int svf_buffer_index, svf_buffer_size;
 static int svf_quiet;
 static int svf_nil;
 static int svf_ignore_error;
+static bool svf_noreset;
+static int svf_addcycles;
 
 /* Targeting particular tap */
 static int svf_tap_is_specified;
@@ -343,7 +349,7 @@ int svf_add_statemove(tap_state_t state_to)
 COMMAND_HANDLER(handle_svf_command)
 {
 #define SVF_MIN_NUM_OF_OPTIONS 1
-#define SVF_MAX_NUM_OF_OPTIONS 5
+#define SVF_MAX_NUM_OF_OPTIONS 8
 	int command_num = 0;
 	int ret = ERROR_OK;
 	int64_t time_measure_ms;
@@ -363,8 +369,18 @@ COMMAND_HANDLER(handle_svf_command)
 	svf_nil = 0;
 	svf_progress_enabled = 0;
 	svf_ignore_error = 0;
+	svf_noreset = false;
+	svf_addcycles = 0;
+
 	for (unsigned int i = 0; i < CMD_ARGC; i++) {
-		if (strcmp(CMD_ARGV[i], "-tap") == 0) {
+		if (strcmp(CMD_ARGV[i], "-addcycles") == 0) {
+			svf_addcycles = atoi(CMD_ARGV[i + 1]);
+			if (svf_addcycles > SVF_MAX_ADDCYCLES) {
+				command_print(CMD, "addcycles: %s out of range", CMD_ARGV[i + 1]);
+				return ERROR_FAIL;
+			}
+			i++;
+		} else if (strcmp(CMD_ARGV[i], "-tap") == 0) {
 			tap = jtag_tap_by_string(CMD_ARGV[i+1]);
 			if (!tap) {
 				command_print(CMD, "Tap: %s unknown", CMD_ARGV[i+1]);
@@ -382,6 +398,8 @@ COMMAND_HANDLER(handle_svf_command)
 		else if ((strcmp(CMD_ARGV[i],
 				  "ignore_error") == 0) || (strcmp(CMD_ARGV[i], "-ignore_error") == 0))
 			svf_ignore_error = 1;
+		else if (strcmp(CMD_ARGV[i], "-noreset") == 0)
+			svf_noreset = true;
 		else {
 			svf_fd = fopen(CMD_ARGV[i], "r");
 			if (!svf_fd) {
@@ -424,7 +442,7 @@ COMMAND_HANDLER(handle_svf_command)
 
 	memcpy(&svf_para, &svf_para_init, sizeof(svf_para));
 
-	if (!svf_nil) {
+	if (!svf_nil && !svf_noreset) {
 		/* TAP_RESET */
 		jtag_add_tlr();
 	}
@@ -1189,6 +1207,9 @@ xxr_common:
 							svf_para.dr_end_state);
 				}
 
+				if (svf_addcycles)
+					jtag_add_clocks(svf_addcycles);
+
 				svf_buffer_index += (i + 7) >> 3;
 			} else if (command == SIR) {
 				/* check buffer size first, reallocate if necessary */
@@ -1545,7 +1566,7 @@ static const struct command_registration svf_command_handlers[] = {
 		.handler = handle_svf_command,
 		.mode = COMMAND_EXEC,
 		.help = "Runs a SVF file.",
-		.usage = "[-tap device.tap] <file> [quiet] [nil] [progress] [ignore_error]",
+		.usage = "[-tap device.tap] <file> [quiet] [nil] [progress] [ignore_error] [-noreset] [-addcycles numcycles]",
 	},
 	COMMAND_REGISTRATION_DONE
 };
