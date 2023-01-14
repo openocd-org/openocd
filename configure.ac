@@ -574,7 +574,7 @@ AS_IF([test "x$enable_buspirate" != "xno"], [
 ])
 
 AS_IF([test "x$use_internal_jimtcl" = "xyes"], [
-  AS_IF([test -f "$srcdir/jimtcl/configure.ac"], [
+  AS_IF([test -f "$srcdir/jimtcl/configure"], [
     AS_IF([test "x$use_internal_jimtcl_maintainer" = "xyes"], [
       jimtcl_config_options="--disable-install-jim --with-ext=json --maintainer"
     ], [
