@@ -121,7 +121,7 @@ This release also contains a number of other important functional and
 cosmetic bugfixes. For more details about what has changed since the
 last release, see the git repository history:
 
-http://sourceforge.net/p/openocd/code/ci/v0.12.0-rc3/log/?path=
+http://sourceforge.net/p/openocd/code/ci/v0.12.0/log/?path=
 
 
 For older NEWS, see the NEWS files associated with each release
