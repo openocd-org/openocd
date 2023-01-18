@@ -5188,6 +5188,7 @@ int riscv_init_registers(struct target *target)
 				case CSR_VXSAT:
 				case CSR_VXRM:
 				case CSR_VL:
+				case CSR_VCSR:
 				case CSR_VTYPE:
 				case CSR_VLENB:
 					r->exist = (info->vlenb > 0);

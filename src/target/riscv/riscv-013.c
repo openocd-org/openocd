@@ -1075,6 +1075,7 @@ static int is_vector_reg(uint32_t gdb_regno)
 		gdb_regno == GDB_REGNO_VSTART ||
 		gdb_regno == GDB_REGNO_VXSAT ||
 		gdb_regno == GDB_REGNO_VXRM ||
+		gdb_regno == GDB_REGNO_VCSR ||
 		gdb_regno == GDB_REGNO_VL ||
 		gdb_regno == GDB_REGNO_VTYPE ||
 		gdb_regno == GDB_REGNO_VLENB;
