@@ -52,5 +52,5 @@ port depending on which application to use.
 
 For more information, see:
 
-  http://msdn.microsoft.com/en-us/library/windows/hardware/jj649944(v=vs.85).aspx
+  https://learn.microsoft.com/en-us/windows-hardware/drivers/usbcon/usb-device-specific-registry-settings
   http://www.ftdichip.com/Support/Knowledgebase/index.html?ignorehardwareserialnumber.htm
