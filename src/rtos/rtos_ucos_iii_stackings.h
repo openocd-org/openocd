@@ -8,11 +8,7 @@
 #ifndef OPENOCD_RTOS_RTOS_UCOS_III_STACKINGS_H
 #define OPENOCD_RTOS_RTOS_UCOS_III_STACKINGS_H
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include <rtos/rtos.h>
+#include "rtos.h"
 
 extern const struct rtos_register_stacking rtos_ucos_iii_cortex_m_stacking;
 extern const struct rtos_register_stacking rtos_ucos_iii_esi_risc_stacking;

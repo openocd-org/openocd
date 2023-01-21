@@ -9,11 +9,11 @@
 #include "config.h"
 #endif
 
-#include <helper/types.h>
-#include <rtos/rtos.h>
-#include <rtos/rtos_standard_stackings.h>
-#include <target/armv7m.h>
-#include <target/esirisc.h>
+#include "rtos.h"
+#include "target/armv7m.h"
+#include "target/esirisc.h"
+#include "rtos_standard_stackings.h"
+#include "rtos_ucos_iii_stackings.h"
 
 static const struct stack_register_offset rtos_ucos_iii_cortex_m_stack_offsets[] = {
 	{ ARMV7M_R0,   0x20, 32 },	/* r0   */
