@@ -632,7 +632,10 @@ int rtos_generic_stack_read(struct target *target,
 
 	if (stacking->stack_growth_direction == 1)
 		address -= stacking->stack_registers_size;
-	retval = target_read_buffer(target, address, stacking->stack_registers_size, stack_data);
+	if (stacking->read_stack)
+		retval = stacking->read_stack(target, address, stacking, stack_data);
+	else
+		retval = target_read_buffer(target, address, stacking->stack_registers_size, stack_data);
 	if (retval != ERROR_OK) {
 		free(stack_data);
 		LOG_ERROR("Error reading stack frame from thread");
