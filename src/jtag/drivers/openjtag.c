@@ -530,9 +530,20 @@ static int openjtag_quit(void)
 static void openjtag_write_tap_buffer(void)
 {
 	uint32_t written;
+	uint32_t rx_expected = 0;
+
+	/* calculate expected number of return bytes */
+	for (int tx_offs = 0; tx_offs < usb_tx_buf_offs; tx_offs++) {
+		if ((usb_tx_buf[tx_offs] & 0x0F) == 6) {
+			rx_expected++;
+			tx_offs++;
+		} else if ((usb_tx_buf[tx_offs] & 0x0F) == 2) {
+			rx_expected++;
+		}
+	}
 
 	openjtag_buf_write(usb_tx_buf, usb_tx_buf_offs, &written);
-	openjtag_buf_read(usb_rx_buf, usb_tx_buf_offs, &usb_rx_buf_len);
+	openjtag_buf_read(usb_rx_buf, rx_expected, &usb_rx_buf_len);
 
 	usb_tx_buf_offs = 0;
 }
