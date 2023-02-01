@@ -151,9 +151,9 @@ int riscv_program_fence_i(struct riscv_program *p)
 	return riscv_program_insert(p, fence_i());
 }
 
-int riscv_program_fence(struct riscv_program *p)
+int riscv_program_fence_rw_rw(struct riscv_program *p)
 {
-	return riscv_program_insert(p, fence());
+	return riscv_program_insert(p, fence_rw_rw());
 }
 
 int riscv_program_ebreak(struct riscv_program *p)

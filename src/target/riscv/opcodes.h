@@ -294,10 +294,11 @@ static uint32_t srli(unsigned int dest, unsigned int src, uint8_t shamt)
 	return inst_rs2(shamt) | inst_rs1(src) | inst_rd(dest) | MATCH_SRLI;
 }
 
-static uint32_t fence(void) __attribute__((unused));
-static uint32_t fence(void)
+static uint32_t fence_rw_rw(void) __attribute__((unused));
+static uint32_t fence_rw_rw(void)
 {
-	return MATCH_FENCE;
+	/* fence rw,rw */
+	return MATCH_FENCE | 0x3300000;
 }
 
 static uint32_t auipc(unsigned int dest) __attribute__((unused));
