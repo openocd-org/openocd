@@ -28,6 +28,7 @@
 
 #define get_field(reg, mask) (((reg) & (mask)) / ((mask) & ~((mask) << 1)))
 #define set_field(reg, mask, val) (((reg) & ~(mask)) | (((val) * ((mask) & ~((mask) << 1))) & (mask)))
+#define field_value(mask, val) set_field((riscv_reg_t) 0, mask, val)
 
 /*** JTAG registers. ***/
 
@@ -468,36 +469,37 @@ static void trigger_from_breakpoint(struct trigger *trigger,
 	trigger->unique_id = breakpoint->unique_id;
 }
 
-static bool can_use_napot_match(struct trigger *trigger, riscv_reg_t *tdata2)
+static bool can_use_napot_match(struct trigger *trigger)
 {
 	riscv_reg_t addr = trigger->address;
 	riscv_reg_t size = trigger->length;
 	bool sizePowerOf2 = (size & (size - 1)) == 0;
 	bool addrAligned = (addr & (size - 1)) == 0;
-	if (size > 1 && sizePowerOf2 && addrAligned) {
-		if (tdata2)
-			*tdata2 = addr | ((size - 1) >> 1);
-		return true;
-	}
-	return false;
+	return size > 1 && sizePowerOf2 && addrAligned;
 }
 
-static int find_trigger(struct target *target, int type, bool chained, unsigned int *idx)
+/* Find the next free trigger of the given type, without talking to the target. */
+static int find_next_free_trigger(struct target *target, int type, bool chained,
+		unsigned int *idx)
 {
+	assert(idx);
 	RISCV_INFO(r);
 
 	unsigned int num_found = 0;
 	unsigned int num_required = chained ? 2 : 1;
 
-	for (unsigned i = 0; i < r->trigger_count; i++) {
+	for (unsigned i = *idx; i < r->trigger_count; i++) {
 		if (r->trigger_unique_id[i] == -1) {
 			if (r->trigger_tinfo[i] & (1 << type)) {
 				num_found++;
-				bool done = (num_required == num_found);
-				if (done) {
+				if (num_required == num_found) {
 					/* Found num_required consecutive free triggers - success, done. */
-					if (idx)
-						*idx = i - (num_required - 1);
+					*idx = i - (num_required - 1);
+					LOG_TARGET_DEBUG(target,
+							"%d trigger(s) of type %d found on index %u, "
+							"chained == %s",
+							num_required, type, *idx,
+							chained ? "true" : "false");
 					return ERROR_OK;
 				}
 				/* Found a trigger but need more consecutive ones */
@@ -574,8 +576,8 @@ static int maybe_add_trigger_t1(struct target *target, struct trigger *trigger)
 	const uint32_t bpcontrol_bpmatch = 0xf << 7;
 	const uint32_t bpcontrol_bpaction = 0xff << 11;
 
-	unsigned int idx;
-	ret = find_trigger(target, CSR_TDATA1_TYPE_LEGACY, false, &idx);
+	unsigned int idx = 0;
+	ret = find_next_free_trigger(target, CSR_TDATA1_TYPE_LEGACY, false, &idx);
 	if (ret != ERROR_OK)
 		return ret;
 
@@ -604,90 +606,227 @@ static int maybe_add_trigger_t1(struct target *target, struct trigger *trigger)
 	return ERROR_OK;
 }
 
-static int maybe_add_trigger_t2(struct target *target, struct trigger *trigger)
-{
-	int ret;
-	riscv_reg_t tdata1, tdata2;
+struct trigger_request_info {
+	riscv_reg_t tdata1;
+	riscv_reg_t tdata2;
+	riscv_reg_t tdata1_ignore_mask;
+};
 
+static int try_setup_single_match_trigger(struct target *target,
+		struct trigger *trigger, struct trigger_request_info trig_info)
+{
+	int trigger_type =
+		get_field(trig_info.tdata1, CSR_MCONTROL_TYPE(riscv_xlen(target)));
+	int ret = ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	RISCV_INFO(r);
 
-	tdata1 = 0;
-	tdata1 = set_field(tdata1, CSR_MCONTROL_TYPE(riscv_xlen(target)), 2);
-	tdata1 = set_field(tdata1, CSR_MCONTROL_DMODE(riscv_xlen(target)), 1);
-	tdata1 = set_field(tdata1, CSR_MCONTROL_ACTION, CSR_MCONTROL_ACTION_DEBUG_MODE);
-	tdata1 = set_field(tdata1, CSR_MCONTROL_M, 1);
-	tdata1 = set_field(tdata1, CSR_MCONTROL_S, !!(r->misa & (1 << ('S' - 'A'))));
-	tdata1 = set_field(tdata1, CSR_MCONTROL_U, !!(r->misa & (1 << ('U' - 'A'))));
-	tdata1 = set_field(tdata1, CSR_MCONTROL_EXECUTE, trigger->execute);
-	tdata1 = set_field(tdata1, CSR_MCONTROL_LOAD, trigger->read);
-	tdata1 = set_field(tdata1, CSR_MCONTROL_STORE, trigger->write);
-	tdata1 = set_field(tdata1, CSR_MCONTROL_SIZELO, CSR_MCONTROL_SIZELO_ANY & 3);
-	tdata1 = set_field(tdata1, CSR_MCONTROL_SIZEHI, (CSR_MCONTROL_SIZELO_ANY >> 2) & 3);
-
-	if (trigger->execute || trigger->length == 1)
-		goto MATCH_EQUAL;
-	if (!can_use_napot_match(trigger, &tdata2))
-		goto MATCH_GE_LT;
-
-	unsigned int idx;
-	ret = find_trigger(target, CSR_TDATA1_TYPE_MCONTROL, false, &idx);
-	if (ret != ERROR_OK)
-		return ret;
-	tdata1 = set_field(tdata1, CSR_MCONTROL_MATCH, CSR_MCONTROL_MATCH_NAPOT);
-	tdata1 = set_field(tdata1, CSR_MCONTROL_CHAIN, CSR_MCONTROL_CHAIN_DISABLED);
-	ret = set_trigger(target, idx, tdata1, tdata2, CSR_MCONTROL_MASKMAX(riscv_xlen(target)));
-	if (ret != ERROR_OK) {
-		if (ret == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
-			goto MATCH_GE_LT; /* Fallback to chained MATCH using GT and LE */
-		return ret;
+	/* Find the first trigger, supporting required tdata1 value */
+	for (unsigned int idx = 0;
+			find_next_free_trigger(target, trigger_type, false, &idx) == ERROR_OK;
+			++idx) {
+		ret = set_trigger(target, idx, trig_info.tdata1, trig_info.tdata2,
+				trig_info.tdata1_ignore_mask);
+		if (ret == ERROR_OK) {
+			r->trigger_unique_id[idx] = trigger->unique_id;
+			return ERROR_OK;
+		}
+		if (ret != ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
+			return ret;
 	}
-	r->trigger_unique_id[idx] = trigger->unique_id;
-	return ERROR_OK;
+	return ret;
+}
 
-MATCH_GE_LT:
-	ret = find_trigger(target, CSR_TDATA1_TYPE_MCONTROL, true, &idx);
-	if (ret != ERROR_OK)
-		return ret;
-	tdata1 = set_field(tdata1, CSR_MCONTROL_MATCH, CSR_MCONTROL_MATCH_GE);
-	tdata1 = set_field(tdata1, CSR_MCONTROL_CHAIN, CSR_MCONTROL_CHAIN_ENABLED);
-	tdata2 = trigger->address;
-	ret = set_trigger(target, idx, tdata1, tdata2, 0);
-	if (ret != ERROR_OK) {
-		if (ret == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
-			goto MATCH_EQUAL; /* Fallback to EQUAL MATCH */
-		return ret;
-	}
-	tdata1 = set_field(tdata1, CSR_MCONTROL_MATCH, CSR_MCONTROL_MATCH_LT);
-	tdata1 = set_field(tdata1, CSR_MCONTROL_CHAIN, CSR_MCONTROL_CHAIN_DISABLED);
-	tdata2 = trigger->address + trigger->length;
-	ret = set_trigger(target, idx + 1, tdata1, tdata2, 0);
-	if (ret != ERROR_OK) {
-		/* Undo the setting of the previous trigger*/
-		set_trigger(target, idx, 0, 0, CSR_MCONTROL_MASKMAX(riscv_xlen(target)));
-		if (ret == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
-			goto MATCH_EQUAL; /* Fallback to EQUAL MATCH */
-		return ret;
-	}
-	r->trigger_unique_id[idx] = trigger->unique_id;
-	r->trigger_unique_id[idx + 1] = trigger->unique_id;
-	return ERROR_OK;
+static int try_setup_chained_match_triggers(struct target *target,
+		struct trigger *trigger, struct trigger_request_info t1,
+		struct trigger_request_info t2)
+{
+	int trigger_type =
+		get_field(t1.tdata1, CSR_MCONTROL_TYPE(riscv_xlen(target)));
+	int ret = ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	RISCV_INFO(r);
 
-MATCH_EQUAL:
-	ret = find_trigger(target, CSR_TDATA1_TYPE_MCONTROL, false, &idx);
-	if (ret != ERROR_OK)
-		return ret;
-	tdata1 = set_field(tdata1, CSR_MCONTROL_MATCH, CSR_MCONTROL_MATCH_EQUAL);
-	if (trigger->length == 1) {
-		tdata1 = set_field(tdata1, CSR_MCONTROL_SIZELO, CSR_MCONTROL_SIZELO_8BIT & 3);
-		tdata1 = set_field(tdata1, CSR_MCONTROL_SIZEHI, (CSR_MCONTROL_SIZELO_8BIT >> 2) & 3);
+	/* Find the first 2 consecutive triggers, supporting required tdata1 values */
+	for (unsigned int idx = 0;
+			find_next_free_trigger(target, trigger_type, true, &idx) == ERROR_OK;
+			++idx) {
+		ret = set_trigger(target, idx, t1.tdata1, t1.tdata2,
+				t1.tdata1_ignore_mask);
+		if (ret != ERROR_OK)
+			continue;
+		ret = set_trigger(target, idx + 1, t2.tdata1, t2.tdata2,
+				t2.tdata1_ignore_mask);
+		if (ret == ERROR_OK) {
+			r->trigger_unique_id[idx] = trigger->unique_id;
+			r->trigger_unique_id[idx + 1] = trigger->unique_id;
+			return ERROR_OK;
+		}
+		/* Undo the setting of the previous trigger */
+		int ret_undo = set_trigger(target, idx, 0, 0, 0);
+		if (ret_undo != ERROR_OK)
+			return ret_undo;
+
+		if (ret != ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
+			return ret;
 	}
-	tdata1 = set_field(tdata1, CSR_MCONTROL_CHAIN, CSR_MCONTROL_CHAIN_DISABLED);
-	tdata2 = trigger->address;
-	ret = set_trigger(target, idx, tdata1, tdata2, CSR_MCONTROL_MASKMAX(riscv_xlen(target)));
-	if (ret != ERROR_OK)
-		return ret;
-	r->trigger_unique_id[idx] = trigger->unique_id;
-	return ERROR_OK;
+	return ret;
+}
+
+struct match_triggers_tdata1_fields {
+	riscv_reg_t common;
+	struct {
+		riscv_reg_t any;
+		riscv_reg_t s8bit;
+	} size;
+	struct {
+		riscv_reg_t enable;
+		riscv_reg_t disable;
+	} chain;
+	struct {
+		riscv_reg_t napot;
+		riscv_reg_t lt;
+		riscv_reg_t ge;
+		riscv_reg_t eq;
+	} match;
+	riscv_reg_t tdata1_ignore_mask;
+};
+
+static struct match_triggers_tdata1_fields fill_match_triggers_tdata1_fields_t2(
+		struct target *target, struct trigger *trigger)
+{
+	RISCV_INFO(r);
+
+	struct match_triggers_tdata1_fields result = {
+		.common =
+			field_value(CSR_MCONTROL_TYPE(riscv_xlen(target)), CSR_TDATA1_TYPE_MCONTROL) |
+			field_value(CSR_MCONTROL_DMODE(riscv_xlen(target)), 1) |
+			field_value(CSR_MCONTROL_ACTION, CSR_MCONTROL_ACTION_DEBUG_MODE) |
+			field_value(CSR_MCONTROL_M, 1) |
+			field_value(CSR_MCONTROL_S, !!(r->misa & BIT('S' - 'A'))) |
+			field_value(CSR_MCONTROL_U, !!(r->misa & BIT('U' - 'A'))) |
+			field_value(CSR_MCONTROL_EXECUTE, trigger->execute) |
+			field_value(CSR_MCONTROL_LOAD, trigger->read) |
+			field_value(CSR_MCONTROL_STORE, trigger->write),
+		.size = {
+			.any =
+				field_value(CSR_MCONTROL_SIZELO, CSR_MCONTROL_SIZELO_ANY & 3) |
+				field_value(CSR_MCONTROL_SIZEHI, (CSR_MCONTROL_SIZELO_ANY >> 2) & 3),
+			.s8bit =
+				field_value(CSR_MCONTROL_SIZELO, CSR_MCONTROL_SIZELO_8BIT & 3) |
+				field_value(CSR_MCONTROL_SIZEHI, (CSR_MCONTROL_SIZELO_8BIT >> 2) & 3)
+		},
+		.chain = {
+			.enable = field_value(CSR_MCONTROL_CHAIN, CSR_MCONTROL_CHAIN_ENABLED),
+			.disable = field_value(CSR_MCONTROL_CHAIN, CSR_MCONTROL_CHAIN_DISABLED)
+		},
+		.match = {
+			.napot = field_value(CSR_MCONTROL_MATCH, CSR_MCONTROL_MATCH_NAPOT),
+			.lt = field_value(CSR_MCONTROL_MATCH, CSR_MCONTROL_MATCH_LT),
+			.ge = field_value(CSR_MCONTROL_MATCH, CSR_MCONTROL_MATCH_GE),
+			.eq = field_value(CSR_MCONTROL_MATCH, CSR_MCONTROL_MATCH_EQUAL)
+		},
+		.tdata1_ignore_mask = CSR_MCONTROL_MASKMAX(riscv_xlen(target))
+	};
+	return result;
+}
+
+static struct match_triggers_tdata1_fields fill_match_triggers_tdata1_fields_t6(
+		struct target *target, struct trigger *trigger)
+{
+	RISCV_INFO(r);
+
+	struct match_triggers_tdata1_fields result = {
+		.common =
+			field_value(CSR_MCONTROL6_TYPE(riscv_xlen(target)), CSR_TDATA1_TYPE_MCONTROL6) |
+			field_value(CSR_MCONTROL6_DMODE(riscv_xlen(target)), 1) |
+			field_value(CSR_MCONTROL6_ACTION, CSR_MCONTROL_ACTION_DEBUG_MODE) |
+			field_value(CSR_MCONTROL6_M, 1) |
+			field_value(CSR_MCONTROL6_S, !!(r->misa & BIT('S' - 'A'))) |
+			field_value(CSR_MCONTROL6_U, !!(r->misa & BIT('U' - 'A'))) |
+			field_value(CSR_MCONTROL6_EXECUTE, trigger->execute) |
+			field_value(CSR_MCONTROL6_LOAD, trigger->read) |
+			field_value(CSR_MCONTROL6_STORE, trigger->write),
+		.size = {
+			.any = field_value(CSR_MCONTROL6_SIZE, CSR_MCONTROL6_SIZE_ANY),
+			.s8bit = field_value(CSR_MCONTROL6_SIZE, CSR_MCONTROL6_SIZE_8BIT)
+		},
+		.chain = {
+			.enable = field_value(CSR_MCONTROL6_CHAIN, CSR_MCONTROL6_CHAIN_ENABLED),
+			.disable = field_value(CSR_MCONTROL6_CHAIN, CSR_MCONTROL6_CHAIN_DISABLED)
+		},
+		.match = {
+			.napot = field_value(CSR_MCONTROL6_MATCH, CSR_MCONTROL6_MATCH_NAPOT),
+			.lt = field_value(CSR_MCONTROL6_MATCH, CSR_MCONTROL6_MATCH_LT),
+			.ge = field_value(CSR_MCONTROL6_MATCH, CSR_MCONTROL6_MATCH_GE),
+			.eq = field_value(CSR_MCONTROL6_MATCH, CSR_MCONTROL6_MATCH_EQUAL)
+		},
+		.tdata1_ignore_mask = 0
+	};
+	return result;
+}
+
+static int maybe_add_trigger_t2_t6(struct target *target,
+		struct trigger *trigger, struct match_triggers_tdata1_fields fields)
+{
+	int ret = ERROR_OK;
+
+	if (!trigger->execute && trigger->length > 1) {
+		/* Setting a load/store trigger ("watchpoint") on a range of addresses */
+
+		if (can_use_napot_match(trigger)) {
+			LOG_TARGET_DEBUG(target, "trying to setup NAPOT match trigger");
+			struct trigger_request_info napot = {
+				.tdata1 = fields.common | fields.size.any |
+					fields.chain.disable | fields.match.napot,
+				.tdata2 = trigger->address | ((trigger->length - 1) >> 1),
+				.tdata1_ignore_mask = fields.tdata1_ignore_mask
+			};
+			ret = try_setup_single_match_trigger(target, trigger, napot);
+			if (ret != ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
+				return ret;
+		}
+		LOG_TARGET_DEBUG(target, "trying to setup GE+LT chained match trigger pair");
+		struct trigger_request_info ge_1 = {
+			.tdata1 = fields.common | fields.size.any | fields.chain.enable |
+				fields.match.ge,
+			.tdata2 = trigger->address,
+			.tdata1_ignore_mask = fields.tdata1_ignore_mask
+		};
+		struct trigger_request_info lt_2 = {
+			.tdata1 = fields.common | fields.size.any | fields.chain.disable |
+				fields.match.lt,
+			.tdata2 = trigger->address + trigger->length,
+			.tdata1_ignore_mask = fields.tdata1_ignore_mask
+		};
+		ret = try_setup_chained_match_triggers(target, trigger, ge_1, lt_2);
+		if (ret != ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
+			return ret;
+
+		LOG_TARGET_DEBUG(target, "trying to setup LT+GE chained match trigger pair");
+		struct trigger_request_info lt_1 = {
+			.tdata1 = fields.common | fields.size.any | fields.chain.enable |
+				fields.match.lt,
+			.tdata2 = trigger->address,
+			.tdata1_ignore_mask = fields.tdata1_ignore_mask
+		};
+		struct trigger_request_info ge_2 = {
+			.tdata1 = fields.common | fields.size.any | fields.chain.disable |
+				fields.match.ge,
+			.tdata2 = trigger->address + trigger->length,
+			.tdata1_ignore_mask = fields.tdata1_ignore_mask
+		};
+		ret = try_setup_chained_match_triggers(target, trigger, lt_1, ge_2);
+		if (ret != ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
+			return ret;
+	}
+	LOG_TARGET_DEBUG(target, "trying to setup equality match trigger");
+	struct trigger_request_info eq = {
+		.tdata1 = fields.common |
+			(trigger->length == 1 ? fields.size.s8bit : fields.size.any) |
+			fields.chain.disable | fields.match.eq,
+		.tdata2 = trigger->address,
+		.tdata1_ignore_mask = fields.tdata1_ignore_mask
+	};
+	return try_setup_single_match_trigger(target, trigger, eq);
 }
 
 static int maybe_add_trigger_t3(struct target *target, bool vs, bool vu,
@@ -711,8 +850,8 @@ static int maybe_add_trigger_t3(struct target *target, bool vs, bool vu,
 	tdata1 = set_field(tdata1, CSR_ICOUNT_U, u);
 	tdata1 = set_field(tdata1, CSR_ICOUNT_COUNT, count);
 
-	unsigned int idx;
-	ret = find_trigger(target, CSR_TDATA1_TYPE_ICOUNT, false, &idx);
+	unsigned int idx = 0;
+	ret = find_next_free_trigger(target, CSR_TDATA1_TYPE_ICOUNT, false, &idx);
 	if (ret != ERROR_OK)
 		return ret;
 	ret = set_trigger(target, idx, tdata1, 0, CSR_MCONTROL_MASKMAX(riscv_xlen(target)));
@@ -744,8 +883,8 @@ static int maybe_add_trigger_t4(struct target *target, bool vs, bool vu,
 
 	tdata2 = interrupts;
 
-	unsigned int idx;
-	ret = find_trigger(target, CSR_TDATA1_TYPE_ITRIGGER, false, &idx);
+	unsigned int idx = 0;
+	ret = find_next_free_trigger(target, CSR_TDATA1_TYPE_ITRIGGER, false, &idx);
 	if (ret != ERROR_OK)
 		return ret;
 	ret = set_trigger(target, idx, tdata1, tdata2, 0);
@@ -776,8 +915,8 @@ static int maybe_add_trigger_t5(struct target *target, bool vs, bool vu,
 
 	tdata2 = exception_codes;
 
-	unsigned int idx;
-	ret = find_trigger(target, CSR_TDATA1_TYPE_ETRIGGER, false, &idx);
+	unsigned int idx = 0;
+	ret = find_next_free_trigger(target, CSR_TDATA1_TYPE_ETRIGGER, false, &idx);
 	if (ret != ERROR_OK)
 		return ret;
 	ret = set_trigger(target, idx, tdata1, tdata2, 0);
@@ -787,108 +926,29 @@ static int maybe_add_trigger_t5(struct target *target, bool vs, bool vu,
 	return ERROR_OK;
 }
 
-static int maybe_add_trigger_t6(struct target *target, struct trigger *trigger)
-{
-	int ret;
-	riscv_reg_t tdata1, tdata2;
-
-	RISCV_INFO(r);
-
-	tdata1 = 0;
-	tdata1 = set_field(tdata1, CSR_MCONTROL6_TYPE(riscv_xlen(target)), 6);
-	tdata1 = set_field(tdata1, CSR_MCONTROL6_DMODE(riscv_xlen(target)), 1);
-	tdata1 = set_field(tdata1, CSR_MCONTROL6_ACTION, CSR_MCONTROL6_ACTION_DEBUG_MODE);
-	tdata1 = set_field(tdata1, CSR_MCONTROL6_M, 1);
-	tdata1 = set_field(tdata1, CSR_MCONTROL6_S, !!(r->misa & (1 << ('S' - 'A'))));
-	tdata1 = set_field(tdata1, CSR_MCONTROL6_U, !!(r->misa & (1 << ('U' - 'A'))));
-	tdata1 = set_field(tdata1, CSR_MCONTROL6_EXECUTE, trigger->execute);
-	tdata1 = set_field(tdata1, CSR_MCONTROL6_LOAD, trigger->read);
-	tdata1 = set_field(tdata1, CSR_MCONTROL6_STORE, trigger->write);
-	tdata1 = set_field(tdata1, CSR_MCONTROL6_SIZE, CSR_MCONTROL6_SIZE_ANY);
-
-	if (trigger->execute || trigger->length == 1)
-		goto MATCH_EQUAL;
-	if (!can_use_napot_match(trigger, &tdata2))
-		goto MATCH_GE_LT;
-
-	unsigned int idx;
-	ret = find_trigger(target, CSR_TDATA1_TYPE_MCONTROL6, false, &idx);
-	if (ret != ERROR_OK)
-		return ret;
-	tdata1 = set_field(tdata1, CSR_MCONTROL6_MATCH, CSR_MCONTROL6_MATCH_NAPOT);
-	tdata1 = set_field(tdata1, CSR_MCONTROL6_CHAIN, CSR_MCONTROL6_CHAIN_DISABLED);
-	ret = set_trigger(target, idx, tdata1, tdata2, 0);
-	if (ret != ERROR_OK) {
-		if (ret == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
-			goto MATCH_GE_LT; /* Fallback to chained MATCH using GT and LE */
-		return ret;
-	}
-	r->trigger_unique_id[idx] = trigger->unique_id;
-	return ERROR_OK;
-
-MATCH_GE_LT:
-	ret = find_trigger(target, CSR_TDATA1_TYPE_MCONTROL6, true, &idx);
-	if (ret != ERROR_OK)
-		return ret;
-	tdata1 = set_field(tdata1, CSR_MCONTROL6_MATCH, CSR_MCONTROL6_MATCH_GE);
-	tdata1 = set_field(tdata1, CSR_MCONTROL6_CHAIN, CSR_MCONTROL6_CHAIN_ENABLED);
-	tdata2 = trigger->address;
-	ret = set_trigger(target, idx, tdata1, tdata2, 0);
-	if (ret != ERROR_OK) {
-		if (ret == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
-			goto MATCH_EQUAL; /* Fallback to EQUAL MATCH */
-		return ret;
-	}
-	tdata1 = set_field(tdata1, CSR_MCONTROL6_MATCH, CSR_MCONTROL6_MATCH_LT);
-	tdata1 = set_field(tdata1, CSR_MCONTROL6_CHAIN, CSR_MCONTROL6_CHAIN_DISABLED);
-	tdata2 = trigger->address + trigger->length;
-	ret = set_trigger(target, idx + 1, tdata1, tdata2, 0);
-	if (ret != ERROR_OK) {
-		set_trigger(target, idx, 0, 0, 0); /* Undo the setting of the previous trigger*/
-		if (ret == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
-			goto MATCH_EQUAL; /* Fallback to EQUAL MATCH */
-		return ret;
-	}
-	r->trigger_unique_id[idx] = trigger->unique_id;
-	r->trigger_unique_id[idx + 1] = trigger->unique_id;
-	return ERROR_OK;
-
-MATCH_EQUAL:
-	ret = find_trigger(target, CSR_TDATA1_TYPE_MCONTROL6, false, &idx);
-	if (ret != ERROR_OK)
-		return ret;
-	tdata1 = set_field(tdata1, CSR_MCONTROL6_MATCH, CSR_MCONTROL6_MATCH_EQUAL);
-	if (trigger->length == 1)
-		tdata1 = set_field(tdata1, CSR_MCONTROL6_SIZE, CSR_MCONTROL6_SIZE_8BIT);
-	tdata1 = set_field(tdata1, CSR_MCONTROL6_CHAIN, CSR_MCONTROL6_CHAIN_DISABLED);
-	tdata2 = trigger->address;
-	ret = set_trigger(target, idx, tdata1, tdata2, 0);
-	if (ret != ERROR_OK)
-		return ret;
-	r->trigger_unique_id[idx] = trigger->unique_id;
-	return ERROR_OK;
-}
-
 static int add_trigger(struct target *target, struct trigger *trigger)
 {
 	int ret;
 	riscv_reg_t tselect;
 
-	if (riscv_enumerate_triggers(target) != ERROR_OK)
-		return ERROR_FAIL;
+	ret = riscv_enumerate_triggers(target);
+	if (ret != ERROR_OK)
+		return ret;
 
-	int result = riscv_get_register(target, &tselect, GDB_REGNO_TSELECT);
-	if (result != ERROR_OK)
-		return result;
+	ret = riscv_get_register(target, &tselect, GDB_REGNO_TSELECT);
+	if (ret != ERROR_OK)
+		return ret;
 
 	do {
 		ret = maybe_add_trigger_t1(target, trigger);
 		if (ret == ERROR_OK)
 			break;
-		ret = maybe_add_trigger_t2(target, trigger);
+		ret = maybe_add_trigger_t2_t6(target, trigger,
+				fill_match_triggers_tdata1_fields_t2(target, trigger));
 		if (ret == ERROR_OK)
 			break;
-		ret = maybe_add_trigger_t6(target, trigger);
+		ret = maybe_add_trigger_t2_t6(target, trigger,
+				fill_match_triggers_tdata1_fields_t6(target, trigger));
 		if (ret == ERROR_OK)
 			break;
 	} while (0);
