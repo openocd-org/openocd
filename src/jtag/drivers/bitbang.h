@@ -54,6 +54,9 @@ struct bitbang_interface {
 
 	/** Set SWCLK and SWDIO to the given value. */
 	int (*swd_write)(int swclk, int swdio);
+
+	/** Sleep for some number of microseconds. **/
+	int (*sleep)(unsigned int microseconds);
 };
 
 extern const struct swd_driver bitbang_swd;
