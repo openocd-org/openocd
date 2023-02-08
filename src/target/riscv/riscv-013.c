@@ -116,12 +116,6 @@ struct trigger {
 	int unique_id;
 };
 
-typedef enum {
-	YNM_MAYBE,
-	YNM_YES,
-	YNM_NO
-} yes_no_maybe_t;
-
 #define HART_INDEX_MULTIPLE	-1
 #define HART_INDEX_UNKNOWN	-2
 
