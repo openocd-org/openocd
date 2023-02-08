@@ -259,6 +259,8 @@ typedef struct {
 
 	/* Track when we were last asked to do something substantial. */
 	int64_t last_activity;
+
+	yes_no_maybe_t vsew64_supported;
 } riscv_info_t;
 
 COMMAND_HELPER(riscv_print_info_line, const char *section, const char *key,

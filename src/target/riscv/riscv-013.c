@@ -1905,34 +1905,54 @@ COMMAND_HELPER(riscv013_print_info, struct target *target)
 	return 0;
 }
 
-static int prep_for_vector_access(struct target *target, uint64_t *vtype,
-		uint64_t *vl, unsigned *debug_vl)
+static int prep_for_vector_access(struct target *target, uint64_t *saved_vtype,
+		uint64_t *saved_vl, unsigned *debug_vl, unsigned *debug_vsew)
 {
 	RISCV_INFO(r);
 	/* TODO: this continuous save/restore is terrible for performance. */
 	/* Write vtype and vl. */
-	unsigned encoded_vsew;
-	switch (riscv_xlen(target)) {
-		case 32:
-			encoded_vsew = 2;
-			break;
-		case 64:
-			encoded_vsew = 3;
-			break;
-		default:
-			LOG_ERROR("Unsupported xlen: %d", riscv_xlen(target));
-			return ERROR_FAIL;
-	}
 
 	/* Save vtype and vl. */
-	if (register_read_direct(target, vtype, GDB_REGNO_VTYPE) != ERROR_OK)
+	if (register_read_direct(target, saved_vtype, GDB_REGNO_VTYPE) != ERROR_OK)
 		return ERROR_FAIL;
-	if (register_read_direct(target, vl, GDB_REGNO_VL) != ERROR_OK)
+	if (register_read_direct(target, saved_vl, GDB_REGNO_VL) != ERROR_OK)
 		return ERROR_FAIL;
 
-	if (register_write_direct(target, GDB_REGNO_VTYPE, encoded_vsew << 3) != ERROR_OK)
-		return ERROR_FAIL;
-	*debug_vl = DIV_ROUND_UP(r->vlenb * 8, riscv_xlen(target));
+	while (true) {
+		unsigned int encoded_vsew;
+		if (riscv_xlen(target) == 64 && r->vsew64_supported != YNM_NO) {
+			encoded_vsew = 3;
+			*debug_vsew = 64;
+		} else {
+			encoded_vsew = 2;
+			*debug_vsew = 32;
+		}
+
+		/* Set standard element width to match XLEN, for vmv instruction to move
+		 * the least significant bits into a GPR. */
+		if (register_write_direct(target, GDB_REGNO_VTYPE, encoded_vsew << 3) != ERROR_OK)
+			return ERROR_FAIL;
+
+		if (*debug_vsew == 64 && r->vsew64_supported == YNM_MAYBE) {
+			/* Check that it's supported. */
+			uint64_t vtype;
+			if (register_read_direct(target, &vtype, GDB_REGNO_VTYPE) != ERROR_OK)
+				return ERROR_FAIL;
+			if (vtype >> (riscv_xlen(target) - 1)) {
+				r->vsew64_supported = YNM_NO;
+				/* Try again. */
+				continue;
+			} else {
+				r->vsew64_supported = YNM_YES;
+			}
+		}
+		break;
+	}
+
+	/* Set the number of elements to be updated with results from a vector
+	 * instruction, for the vslide1down instruction.
+	 * Set it so the entire V register is updated. */
+	*debug_vl = DIV_ROUND_UP(r->vlenb * 8, *debug_vsew);
 	if (register_write_direct(target, GDB_REGNO_VL, *debug_vl) != ERROR_OK)
 		return ERROR_FAIL;
 
@@ -1966,12 +1986,11 @@ static int riscv013_get_register_buf(struct target *target,
 		return ERROR_FAIL;
 
 	uint64_t vtype, vl;
-	unsigned debug_vl;
-	if (prep_for_vector_access(target, &vtype, &vl, &debug_vl) != ERROR_OK)
+	unsigned int debug_vl, debug_vsew;
+	if (prep_for_vector_access(target, &vtype, &vl, &debug_vl, &debug_vsew) != ERROR_OK)
 		return ERROR_FAIL;
 
 	unsigned vnum = regno - GDB_REGNO_V0;
-	unsigned xlen = riscv_xlen(target);
 
 	struct riscv_program program;
 	riscv_program_init(&program, target);
@@ -1991,8 +2010,10 @@ static int riscv013_get_register_buf(struct target *target,
 			uint64_t v;
 			if (register_read_direct(target, &v, GDB_REGNO_S0) != ERROR_OK)
 				return ERROR_FAIL;
-			buf_set_u64(value, xlen * i, xlen, v);
+			buf_set_u64(value, debug_vsew * i, debug_vsew, v);
 		} else {
+			LOG_TARGET_ERROR(target, "Failed to execute vmv/vslide1down while reading %s",
+					 gdb_regno_name(regno));
 			break;
 		}
 	}
@@ -2022,12 +2043,11 @@ static int riscv013_set_register_buf(struct target *target,
 		return ERROR_FAIL;
 
 	uint64_t vtype, vl;
-	unsigned debug_vl;
-	if (prep_for_vector_access(target, &vtype, &vl, &debug_vl) != ERROR_OK)
+	unsigned int debug_vl, debug_vsew;
+	if (prep_for_vector_access(target, &vtype, &vl, &debug_vl, &debug_vsew) != ERROR_OK)
 		return ERROR_FAIL;
 
 	unsigned vnum = regno - GDB_REGNO_V0;
-	unsigned xlen = riscv_xlen(target);
 
 	struct riscv_program program;
 	riscv_program_init(&program, target);
@@ -2035,7 +2055,7 @@ static int riscv013_set_register_buf(struct target *target,
 	int result = ERROR_OK;
 	for (unsigned i = 0; i < debug_vl; i++) {
 		if (register_write_direct(target, GDB_REGNO_S0,
-					buf_get_u64(value, xlen * i, xlen)) != ERROR_OK)
+					buf_get_u64(value, debug_vsew * i, debug_vsew)) != ERROR_OK)
 			return ERROR_FAIL;
 		result = riscv_program_exec(&program, target);
 		if (result != ERROR_OK)
