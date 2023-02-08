@@ -1732,8 +1732,8 @@ static int examine(struct target *target)
 			LOG_TARGET_WARNING(target, "Couldn't read vlenb; vector register access won't work.");
 		r->vlenb = 0;
 	} else {
-		LOG_TARGET_INFO(target, "Vector support with vlenb=%d", r->vlenb);
 		r->vlenb = vlenb;
+		LOG_TARGET_INFO(target, "Vector support with vlenb=%d", r->vlenb);
 	}
 
 	/* Now init registers based on what we discovered. */
