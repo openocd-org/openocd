@@ -1992,13 +1992,15 @@ static int riscv013_get_register_buf(struct target *target,
 
 	unsigned vnum = regno - GDB_REGNO_V0;
 
-	struct riscv_program program;
-	riscv_program_init(&program, target);
-	riscv_program_insert(&program, vmv_x_s(S0, vnum));
-	riscv_program_insert(&program, vslide1down_vx(vnum, vnum, S0, true));
-
 	int result = ERROR_OK;
 	for (unsigned i = 0; i < debug_vl; i++) {
+		/* Can't reuse the same program because riscv_program_exec() adds
+		 * ebreak to the end every time. */
+		struct riscv_program program;
+		riscv_program_init(&program, target);
+		riscv_program_insert(&program, vmv_x_s(S0, vnum));
+		riscv_program_insert(&program, vslide1down_vx(vnum, vnum, S0, true));
+
 		/* Executing the program might result in an exception if there is some
 		 * issue with the vector implementation/instructions we're using. If that
 		 * happens, attempt to restore as usual. We may have clobbered the
