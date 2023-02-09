@@ -18,7 +18,7 @@ proc cortex_m_test_cpu_speed { address { timeout 200 } { cycles_per_loop 4 } } {
 	halt
 
 	# Backup registers and memory.
-	set backup_regs [get_reg -force {pc r0 xPSR}]
+	set backup_regs [get_reg -force {pc r0 xpsr}]
 	set backup_mem [read_memory $address 16 3]
 
 	# We place the following code at the given address to measure the
