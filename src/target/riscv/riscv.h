@@ -41,6 +41,12 @@ typedef uint64_t riscv_reg_t;
 typedef uint32_t riscv_insn_t;
 typedef uint64_t riscv_addr_t;
 
+typedef enum {
+	YNM_MAYBE,
+	YNM_YES,
+	YNM_NO
+} yes_no_maybe_t;
+
 enum riscv_mem_access_method {
 	RISCV_MEM_ACCESS_UNSPECIFIED,
 	RISCV_MEM_ACCESS_PROGBUF,
@@ -253,6 +259,8 @@ typedef struct {
 
 	/* Track when we were last asked to do something substantial. */
 	int64_t last_activity;
+
+	yes_no_maybe_t vsew64_supported;
 } riscv_info_t;
 
 COMMAND_HELPER(riscv_print_info_line, const char *section, const char *key,

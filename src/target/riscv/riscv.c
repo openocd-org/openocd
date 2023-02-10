@@ -3926,6 +3926,8 @@ void riscv_info_init(struct target *target, riscv_info_t *r)
 
 	INIT_LIST_HEAD(&r->expose_csr);
 	INIT_LIST_HEAD(&r->expose_custom);
+
+	r->vsew64_supported = YNM_MAYBE;
 }
 
 static int riscv_resume_go_all_harts(struct target *target)
