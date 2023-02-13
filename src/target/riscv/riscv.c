@@ -684,6 +684,38 @@ MATCH_EQUAL:
 	return ERROR_OK;
 }
 
+static int maybe_add_trigger_t3(struct target *target, bool vs, bool vu,
+				bool m, bool s, bool u, bool pending, unsigned int count,
+				int unique_id)
+{
+	int ret;
+	riscv_reg_t tdata1;
+
+	RISCV_INFO(r);
+
+	tdata1 = 0;
+	tdata1 = set_field(tdata1, CSR_ICOUNT_TYPE(riscv_xlen(target)), CSR_TDATA1_TYPE_ICOUNT);
+	tdata1 = set_field(tdata1, CSR_ICOUNT_DMODE(riscv_xlen(target)), 1);
+	tdata1 = set_field(tdata1, CSR_ICOUNT_ACTION, CSR_ICOUNT_ACTION_DEBUG_MODE);
+	tdata1 = set_field(tdata1, CSR_ICOUNT_VS, vs);
+	tdata1 = set_field(tdata1, CSR_ICOUNT_VU, vu);
+	tdata1 = set_field(tdata1, CSR_ICOUNT_PENDING, pending);
+	tdata1 = set_field(tdata1, CSR_ICOUNT_M, m);
+	tdata1 = set_field(tdata1, CSR_ICOUNT_S, s);
+	tdata1 = set_field(tdata1, CSR_ICOUNT_U, u);
+	tdata1 = set_field(tdata1, CSR_ICOUNT_COUNT, count);
+
+	unsigned int idx;
+	ret = find_trigger(target, CSR_TDATA1_TYPE_ICOUNT, false, &idx);
+	if (ret != ERROR_OK)
+		return ret;
+	ret = set_trigger(target, idx, tdata1, 0, CSR_MCONTROL_MASKMAX(riscv_xlen(target)));
+	if (ret != ERROR_OK)
+		return ret;
+	r->trigger_unique_id[idx] = unique_id;
+	return ERROR_OK;
+}
+
 static int maybe_add_trigger_t4(struct target *target, bool vs, bool vu,
 				bool nmi, bool m, bool s, bool u, riscv_reg_t interrupts,
 				int unique_id)
@@ -1168,6 +1200,9 @@ static int riscv_hit_trigger_hit_bit(struct target *target, uint32_t *unique_id)
 				break;
 			case CSR_TDATA1_TYPE_MCONTROL6:
 				hit_mask = CSR_MCONTROL6_HIT;
+				break;
+			case CSR_TDATA1_TYPE_ICOUNT:
+				hit_mask = CSR_ICOUNT_HIT;
 				break;
 			case CSR_TDATA1_TYPE_ITRIGGER:
 				hit_mask = CSR_ITRIGGER_HIT(riscv_xlen(target));
@@ -3239,6 +3274,20 @@ COMMAND_HANDLER(riscv_set_ebreaku)
 	return ERROR_OK;
 }
 
+COMMAND_HELPER(riscv_clear_trigger, int trigger_id, const char *name)
+{
+	struct target *target = get_current_target(CMD_CTX);
+	if (CMD_ARGC != 1) {
+		LOG_ERROR("clear command takes no extra arguments.");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+	if (find_first_trigger_by_id(target, trigger_id) < 0) {
+		LOG_TARGET_ERROR(target, "No %s is set. Nothing to clear.", name);
+		return ERROR_FAIL;
+	}
+	return remove_trigger(target, trigger_id);
+}
+
 COMMAND_HANDLER(riscv_itrigger)
 {
 	if (CMD_ARGC < 1) {
@@ -3297,15 +3346,74 @@ COMMAND_HANDLER(riscv_itrigger)
 		return result;
 
 	} else if (!strcmp(CMD_ARGV[0], "clear")) {
-		if (CMD_ARGC != 1) {
-			LOG_ERROR("clear command takes no extra arguments.");
-			return ERROR_COMMAND_SYNTAX_ERROR;
-		}
-		if (find_first_trigger_by_id(target, ITRIGGER_UNIQUE_ID) < 0) {
-			LOG_TARGET_ERROR(target, "No itrigger is set. Nothing to clear.");
+		return riscv_clear_trigger(CMD, ITRIGGER_UNIQUE_ID, "itrigger");
+
+	} else {
+		LOG_ERROR("First argument must be either 'set' or 'clear'.");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(riscv_icount)
+{
+	if (CMD_ARGC < 1) {
+		LOG_ERROR("Command takes at least 1 parameter");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	struct target *target = get_current_target(CMD_CTX);
+	const int ICOUNT_UNIQUE_ID = -CSR_TDATA1_TYPE_ICOUNT;
+
+	if (riscv_enumerate_triggers(target) != ERROR_OK)
+		return ERROR_FAIL;
+
+	if (!strcmp(CMD_ARGV[0], "set")) {
+		if (find_first_trigger_by_id(target, ICOUNT_UNIQUE_ID) >= 0) {
+			LOG_TARGET_ERROR(target, "An icount trigger is already set, and OpenOCD "
+				  "doesn't support setting more than one at a time.");
 			return ERROR_FAIL;
 		}
-		return remove_trigger(target, ITRIGGER_UNIQUE_ID);
+		bool vs = false;
+		bool vu = false;
+		bool m = false;
+		bool s = false;
+		bool u = false;
+		bool pending = false;
+		unsigned int count = 0;
+
+		for (unsigned int i = 1; i < CMD_ARGC; i++) {
+			if (!strcmp(CMD_ARGV[i], "vs"))
+				vs = true;
+			else if (!strcmp(CMD_ARGV[i], "vu"))
+				vu = true;
+			else if (!strcmp(CMD_ARGV[i], "pending"))
+				pending = true;
+			else if (!strcmp(CMD_ARGV[i], "m"))
+				m = true;
+			else if (!strcmp(CMD_ARGV[i], "s"))
+				s = true;
+			else if (!strcmp(CMD_ARGV[i], "u"))
+				u = true;
+			else
+				COMMAND_PARSE_NUMBER(uint, CMD_ARGV[i], count);
+		}
+		if (count == 0) {
+			LOG_ERROR("Doesn't make sense to set icount trigger with "
+				  "count=0.");
+			return ERROR_FAIL;
+		} else if (!vs && !vu && !m && !s && !u) {
+			LOG_ERROR("Doesn't make sense to set itrigger without at "
+				  "least one of vs, vu, m, s, or u.");
+			return ERROR_FAIL;
+		}
+		int result = maybe_add_trigger_t3(target, vs, vu, m, s, u, pending, count, ICOUNT_UNIQUE_ID);
+		if (result != ERROR_OK)
+			LOG_TARGET_ERROR(target, "Failed to set requested icount trigger.");
+		return result;
+
+	} else if (!strcmp(CMD_ARGV[0], "clear")) {
+		return riscv_clear_trigger(CMD, ICOUNT_UNIQUE_ID, "icount trigger");
 
 	} else {
 		LOG_ERROR("First argument must be either 'set' or 'clear'.");
@@ -3369,15 +3477,7 @@ COMMAND_HANDLER(riscv_etrigger)
 		return result;
 
 	} else if (!strcmp(CMD_ARGV[0], "clear")) {
-		if (CMD_ARGC != 1) {
-			LOG_ERROR("clear command takes no extra arguments.");
-			return ERROR_COMMAND_SYNTAX_ERROR;
-		}
-		if (find_first_trigger_by_id(target, ETRIGGER_UNIQUE_ID) < 0) {
-			LOG_TARGET_ERROR(target, "No etrigger is set. Nothing to clear.");
-			return ERROR_FAIL;
-		}
-		return remove_trigger(target, ETRIGGER_UNIQUE_ID);
+		return riscv_clear_trigger(CMD, ETRIGGER_UNIQUE_ID, "etrigger");
 
 	} else {
 		LOG_ERROR("First argument must be either 'set' or 'clear'.");
@@ -3796,6 +3896,13 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.usage = "set [vs] [vu] [m] [s] [u] <exception_codes>|clear",
 		.help = "Set or clear a single exception trigger."
+	},
+	{
+		.name = "icount",
+		.handler = riscv_icount,
+		.mode = COMMAND_EXEC,
+		.usage = "set [vs] [vu] [m] [s] [u] [pending] <count>|clear",
+		.help = "Set or clear a single instruction count trigger."
 	},
 	{
 		.name = "itrigger",
@@ -4347,6 +4454,10 @@ int riscv_enumerate_triggers(struct target *target)
 					break;
 				case CSR_TDATA1_TYPE_MCONTROL6:
 					if (tdata1 & CSR_MCONTROL6_DMODE(riscv_xlen(target)))
+						riscv_set_register(target, GDB_REGNO_TDATA1, 0);
+					break;
+				case CSR_TDATA1_TYPE_ICOUNT:
+					if (tdata1 & CSR_ICOUNT_DMODE(riscv_xlen(target)))
 						riscv_set_register(target, GDB_REGNO_TDATA1, 0);
 					break;
 				case CSR_TDATA1_TYPE_ITRIGGER:

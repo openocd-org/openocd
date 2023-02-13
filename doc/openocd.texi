@@ -10738,6 +10738,23 @@ For details on this trigger type, see the RISC-V Debug Specification.
 Clear the type 5 trigger that was set using @command{riscv etrigger set}.
 @end deffn
 
+@deffn {Command} {riscv icount set} [@option{m}] [@option{s}] [@option{u}] [@option{vs}] [@option{vu}] [@option{pending}] count
+Set an instruction count
+trigger (type 3) on the current target, which halts the target when it fires.
+@option{m}, @option{s}, @option{u}, @option{vs}, and @option{vu} control which
+execution modes the trigger fires in. If [@option{pending}] is passed then the
+pending bit is set, which is unlikely to be useful unless you're debugging the
+hardware implementation of this trigger.
+@var{count} sets the number of instructions to execute before the trigger is
+taken.
+
+For details on this trigger type, see the RISC-V Debug Specification.
+@end deffn
+
+@deffn {Command} {riscv icount clear}
+Clear the type 3 trigger that was set using @command{riscv icount set}.
+@end deffn
+
 @deffn {Command} {riscv itrigger set} [@option{m}] [@option{s}] [@option{u}] [@option{vs}] [@option{vu}] [@option{nmi}] mie_bits
 Set an interrupt trigger (type 4) on the current target, which halts the target when it
 fires.  @option{m}, @option{s}, @option{u}, @option{vs}, and @option{vu} control
