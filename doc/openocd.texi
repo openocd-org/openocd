@@ -10718,8 +10718,9 @@ Perform a 32-bit DMI write of value at address.
 
 @subsection RISC-V Trigger Commands
 
-The RISC-V Debug Specification defines several trigger types that don't map
-cleanly onto OpenOCD's notion of hardware breakpoints. These commands let you
+The RISC-V Debug Specification defines several optional trigger types that don't
+map cleanly onto OpenOCD's notion of hardware breakpoints. For the types that
+the target supports, these commands let you
 set those triggers directly. (It's also possible to do so by writing the
 appropriate CSRs.)
 
