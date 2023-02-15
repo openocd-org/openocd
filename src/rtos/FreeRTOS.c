@@ -590,7 +590,7 @@ static int freertos_update_threads(struct rtos *rtos)
 			return retval;
 		}
 		LOG_DEBUG("FreeRTOS: Read thread count for list %u at 0x%" PRIx64 ", value %" PRIu64,
-										i, list_of_lists[i], list_thread_count);
+								i, list_of_lists[i] + freertos->list_uxNumberOfItems_offset, list_thread_count);
 
 		if (list_thread_count == 0)
 			continue;
