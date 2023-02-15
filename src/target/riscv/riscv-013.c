@@ -1700,7 +1700,7 @@ static int examine(struct target *target)
 	}
 
 	/* Without knowing anything else we can at least mess with the
-		* program buffer. */
+	 * program buffer. */
 	r->debug_buffer_size = info->progbufsize;
 
 	int result = register_read_abstract(target, NULL, GDB_REGNO_S0, 64);

@@ -20,6 +20,7 @@
 #include "helper/base64.h"
 #include "helper/time_support.h"
 #include "riscv.h"
+#include "program.h"
 #include "gdb_regs.h"
 #include "rtos/rtos.h"
 #include "debug_defines.h"
@@ -3589,6 +3590,52 @@ COMMAND_HANDLER(handle_info)
 	return 0;
 }
 
+COMMAND_HANDLER(riscv_exec_progbuf)
+{
+	if (CMD_ARGC < 1 || CMD_ARGC > 16) {
+		LOG_ERROR("Command 'exec_progbuf' takes 1 to 16 arguments.");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	struct target *target = get_current_target(CMD_CTX);
+
+	RISCV_INFO(r);
+	if (r->dtm_version != 1) {
+		LOG_TARGET_ERROR(target, "exec_progbuf: Program buffer is "
+				"only supported on v0.13 or v1.0 targets.");
+		return ERROR_FAIL;
+	}
+
+	if (target->state != TARGET_HALTED) {
+		LOG_TARGET_ERROR(target, "exec_progbuf: Can't execute "
+				"program buffer, target not halted.");
+		return ERROR_FAIL;
+	}
+
+	if (riscv_debug_buffer_size(target) == 0) {
+		LOG_TARGET_ERROR(target, "exec_progbuf: Program buffer not implemented "
+				"in the target.");
+		return ERROR_FAIL;
+	}
+
+	struct riscv_program prog;
+	riscv_program_init(&prog, target);
+
+	for (unsigned int i = 0; i < CMD_ARGC; i++) {
+		riscv_insn_t instr;
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[i], instr);
+		if (riscv_program_insert(&prog, instr) != ERROR_OK)
+			return ERROR_FAIL;
+	}
+
+	if (riscv_program_exec(&prog, target) == ERROR_OK)
+		LOG_TARGET_DEBUG(target, "exec_progbuf: Program buffer execution successful.");
+	else
+		LOG_TARGET_ERROR(target, "exec_progbuf: Program buffer execution failed.");
+
+	return ERROR_OK;
+}
+
 static const struct command_registration riscv_exec_command_handlers[] = {
 	{
 		.name = "dump_sample_buf",
@@ -3803,6 +3850,14 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.usage = "set [vs] [vu] [nmi] [m] [s] [u] <mie_bits>|clear",
 		.help = "Set or clear a single interrupt trigger."
+	},
+	{
+		.name = "exec_progbuf",
+		.handler = riscv_exec_progbuf,
+		.mode = COMMAND_EXEC,
+		.usage = "instr1 [instr2 [... instr16]]",
+		.help = "Execute a sequence of 32-bit instructions using the program buffer. "
+			"The final ebreak instruction is added automatically, if needed."
 	},
 	COMMAND_REGISTRATION_DONE
 };
