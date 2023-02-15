@@ -254,6 +254,10 @@ typedef struct {
 	 * from range 0xc000 ... 0xffff. */
 	struct list_head expose_custom;
 
+	/* The list of registers to mark as "hidden". Hidden registers are available
+	 * but do not appear in gdb targets description or reg command output. */
+	struct list_head hide_csr;
+
 	riscv_sample_config_t sample_config;
 	struct riscv_sample_buf sample_buf;
 

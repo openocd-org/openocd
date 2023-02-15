@@ -10553,6 +10553,23 @@ $_TARGETNAME expose_custom 32=myregister
 @end example
 @end deffn
 
+@deffn {Config Command} {riscv hide_csrs} n[-m] [,n1[-m1]] [...]
+The RISC-V Specification defines many CSRs, and we may want to avoid showing
+each CSR to the user, as they may not be relevant to the task at hand. For
+example, we may choose not to show trigger or PMU registers for simple
+debugging scenarios. This command allows to mark individual registers or
+register ranges (inclusive) as "hidden". Such hidden registers won't be
+displayed in GDB or @code{reg} command output.
+
+@example
+
+# Hide range of RISC-V CSRs
+# CSR_TSELECT - 1952 and CSR_TDATA1 - 1953
+$_TARGETNAME riscv hide_csrs 1952-1953
+
+@end example
+@end deffn
+
 @deffn {Command} {riscv memory_sample} bucket address|clear [size=4]
 Configure OpenOCD to frequently read size bytes at the given addresses.
 Execute the command with no arguments to see the current configuration. Use

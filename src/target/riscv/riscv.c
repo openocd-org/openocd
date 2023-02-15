@@ -434,6 +434,11 @@ static void riscv_deinit_target(struct target *target)
 	riscv_free_registers(target);
 
 	range_list_t *entry, *tmp;
+	list_for_each_entry_safe(entry, tmp, &info->hide_csr, list) {
+		free(entry->name);
+		free(entry);
+	}
+
 	list_for_each_entry_safe(entry, tmp, &info->expose_csr, list) {
 		free(entry->name);
 		free(entry);
@@ -2938,6 +2943,26 @@ COMMAND_HANDLER(riscv_set_expose_custom)
 	return ret;
 }
 
+COMMAND_HANDLER(riscv_hide_csrs)
+{
+	if (CMD_ARGC == 0) {
+		LOG_ERROR("Command expects parameters");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	struct target *target = get_current_target(CMD_CTX);
+	RISCV_INFO(info);
+	int ret = ERROR_OK;
+
+	for (unsigned int i = 0; i < CMD_ARGC; i++) {
+		ret = parse_ranges(&info->hide_csr, CMD_ARGV[i], "csr", 0xfff);
+		if (ret != ERROR_OK)
+			break;
+	}
+
+	return ret;
+}
+
 COMMAND_HANDLER(riscv_authdata_read)
 {
 	unsigned int index = 0;
@@ -3723,6 +3748,16 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 			"etc. This must be executed before `init`."
 	},
 	{
+		.name = "hide_csrs",
+		.handler = riscv_hide_csrs,
+		.mode = COMMAND_CONFIG,
+		.usage = "{n0|n-m0}[,n1|n-m1]......",
+		.help = "Configure a list of inclusive ranges for CSRs to hide from gdb. "
+			"Hidden registers are still available, but are not listed in "
+			"gdb target description and `reg` command output. "
+			"This must be executed before `init`."
+	},
+	{
 		.name = "authdata_read",
 		.handler = riscv_authdata_read,
 		.usage = "[index]",
@@ -3981,6 +4016,7 @@ void riscv_info_init(struct target *target, riscv_info_t *r)
 
 	INIT_LIST_HEAD(&r->expose_csr);
 	INIT_LIST_HEAD(&r->expose_custom);
+	INIT_LIST_HEAD(&r->hide_csr);
 
 	r->vsew64_supported = YNM_MAYBE;
 }
@@ -5268,6 +5304,14 @@ int riscv_init_registers(struct target *target)
 								csr_number, entry->name ? entry->name : reg_name);
 
 						r->exist = true;
+						break;
+					}
+			} else if (r->exist && !list_empty(&info->hide_csr)) {
+				range_list_t *entry;
+				list_for_each_entry(entry, &info->hide_csr, list)
+					if ((entry->low <= csr_number) && (csr_number <= entry->high)) {
+						LOG_TARGET_DEBUG(target, "Hiding CSR %d (name=%s)", csr_number, r->name);
+						r->hidden = true;
 						break;
 					}
 			}
