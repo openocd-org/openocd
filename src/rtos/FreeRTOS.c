@@ -501,6 +501,7 @@ static int freertos_update_threads(struct rtos *rtos)
 			LOG_ERROR("Error allocating memory for %" PRIu64 " threads", thread_list_size);
 			return ERROR_FAIL;
 		}
+		rtos->current_thread = 1;
 		rtos->thread_details->threadid = 1;
 		rtos->thread_details->exists = true;
 		rtos->thread_details->extra_info_str = NULL;
