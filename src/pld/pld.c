@@ -19,6 +19,7 @@
 /* pld drivers
  */
 extern struct pld_driver efinix_pld;
+extern struct pld_driver gatemate_pld;
 extern struct pld_driver gowin_pld;
 extern struct pld_driver intel_pld;
 extern struct pld_driver lattice_pld;
@@ -26,6 +27,7 @@ extern struct pld_driver virtex2_pld;
 
 static struct pld_driver *pld_drivers[] = {
 	&efinix_pld,
+	&gatemate_pld,
 	&gowin_pld,
 	&intel_pld,
 	&lattice_pld,
