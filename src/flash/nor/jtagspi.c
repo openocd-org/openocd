@@ -12,6 +12,7 @@
 #include <jtag/jtag.h>
 #include <flash/nor/spi.h>
 #include <helper/time_support.h>
+#include <pld/pld.h>
 
 #define JTAGSPI_MAX_TIMEOUT 3000
 
@@ -21,19 +22,44 @@ struct jtagspi_flash_bank {
 	struct flash_device dev;
 	char devname[32];
 	bool probed;
-	bool always_4byte;			/* use always 4-byte address except for basic read 0x03 */
-	uint32_t ir;
-	unsigned int addr_len;		/* address length in bytes */
+	bool always_4byte;             /* use always 4-byte address except for basic read 0x03 */
+	unsigned int addr_len;         /* address length in bytes */
+	struct pld_device *pld_device; /* if not NULL, the PLD has special instructions for JTAGSPI */
+	uint32_t ir;                   /* when !pld_device, this instruction code is used in
+									  jtagspi_set_user_ir to connect through a proxy bitstream */
 };
 
 FLASH_BANK_COMMAND_HANDLER(jtagspi_flash_bank_command)
 {
-	struct jtagspi_flash_bank *info;
-
 	if (CMD_ARGC < 7)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	info = malloc(sizeof(struct jtagspi_flash_bank));
+	unsigned int ir = 0;
+	struct pld_device *device = NULL;
+	if (strcmp(CMD_ARGV[6], "-pld") == 0) {
+		if (CMD_ARGC < 8)
+			return ERROR_COMMAND_SYNTAX_ERROR;
+		device = get_pld_device_by_name_or_numstr(CMD_ARGV[7]);
+		if (device) {
+			bool has_jtagspi_instruction = false;
+			int retval = pld_has_jtagspi_instruction(device, &has_jtagspi_instruction);
+			if (retval != ERROR_OK)
+				return retval;
+			if (!has_jtagspi_instruction) {
+				retval = pld_get_jtagspi_userircode(device, &ir);
+				if (retval != ERROR_OK)
+					return retval;
+				device = NULL;
+			}
+		} else {
+			LOG_ERROR("pld device '#%s' is out of bounds or unknown", CMD_ARGV[7]);
+			return ERROR_FAIL;
+		}
+	} else {
+		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[6], ir);
+	}
+
+	struct jtagspi_flash_bank *info = calloc(1, sizeof(struct jtagspi_flash_bank));
 	if (!info) {
 		LOG_ERROR("no memory for flash bank info");
 		return ERROR_FAIL;
@@ -47,18 +73,19 @@ FLASH_BANK_COMMAND_HANDLER(jtagspi_flash_bank_command)
 	}
 	info->tap = bank->target->tap;
 	info->probed = false;
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[6], info->ir);
+
+	info->ir = ir;
+	info->pld_device = device;
 
 	return ERROR_OK;
 }
 
-static void jtagspi_set_ir(struct flash_bank *bank)
+static void jtagspi_set_user_ir(struct jtagspi_flash_bank *info)
 {
-	struct jtagspi_flash_bank *info = bank->driver_priv;
 	struct scan_field field;
 	uint8_t buf[4] = { 0 };
 
-	LOG_DEBUG("loading jtagspi ir");
+	LOG_DEBUG("loading jtagspi ir(0x%" PRIx32 ")", info->ir);
 	buf_set_u32(buf, 0, info->tap->ir_length, info->ir);
 	field.num_bits = info->tap->ir_length;
 	field.out_value = buf;
@@ -79,6 +106,7 @@ static int jtagspi_cmd(struct flash_bank *bank, uint8_t cmd,
 	assert(data_buffer || data_len == 0);
 
 	struct scan_field fields[6];
+	struct jtagspi_flash_bank *info = bank->driver_priv;
 
 	LOG_DEBUG("cmd=0x%02x write_len=%d data_len=%d", cmd, write_len, data_len);
 
@@ -87,22 +115,34 @@ static int jtagspi_cmd(struct flash_bank *bank, uint8_t cmd,
 	if (is_read)
 		data_len = -data_len;
 
+	unsigned int facing_read_bits = 0;
+	unsigned int trailing_write_bits = 0;
+
+	if (info->pld_device) {
+		int retval = pld_get_jtagspi_stuff_bits(info->pld_device, &facing_read_bits, &trailing_write_bits);
+		if (retval != ERROR_OK)
+			return retval;
+	}
+
 	int n = 0;
 	const uint8_t marker = 1;
-	fields[n].num_bits = 1;
-	fields[n].out_value = &marker;
-	fields[n].in_value = NULL;
-	n++;
-
-	/* transfer length = cmd + address + read/write,
-	 * -1 due to the counter implementation */
 	uint8_t xfer_bits[4];
-	h_u32_to_be(xfer_bits, ((sizeof(cmd) + write_len + data_len) * CHAR_BIT) - 1);
-	flip_u8(xfer_bits, xfer_bits, sizeof(xfer_bits));
-	fields[n].num_bits = sizeof(xfer_bits) * CHAR_BIT;
-	fields[n].out_value = xfer_bits;
-	fields[n].in_value = NULL;
-	n++;
+	if (!info->pld_device) { /* mode == JTAGSPI_MODE_PROXY_BITSTREAM */
+		facing_read_bits = jtag_tap_count_enabled();
+		fields[n].num_bits = 1;
+		fields[n].out_value = &marker;
+		fields[n].in_value = NULL;
+		n++;
+
+		/* transfer length = cmd + address + read/write,
+		 * -1 due to the counter implementation */
+		h_u32_to_be(xfer_bits, ((sizeof(cmd) + write_len + data_len) * CHAR_BIT) - 1);
+		flip_u8(xfer_bits, xfer_bits, sizeof(xfer_bits));
+		fields[n].num_bits = sizeof(xfer_bits) * CHAR_BIT;
+		fields[n].out_value = xfer_bits;
+		fields[n].in_value = NULL;
+		n++;
+	}
 
 	flip_u8(&cmd, &cmd, sizeof(cmd));
 	fields[n].num_bits = sizeof(cmd) * CHAR_BIT;
@@ -120,10 +160,12 @@ static int jtagspi_cmd(struct flash_bank *bank, uint8_t cmd,
 
 	if (data_len > 0) {
 		if (is_read) {
-			fields[n].num_bits = jtag_tap_count_enabled();
-			fields[n].out_value = NULL;
-			fields[n].in_value = NULL;
-			n++;
+			if (facing_read_bits) {
+				fields[n].num_bits = facing_read_bits;
+				fields[n].out_value = NULL;
+				fields[n].in_value = NULL;
+				n++;
+			}
 
 			fields[n].out_value = NULL;
 			fields[n].in_value = data_buffer;
@@ -135,16 +177,33 @@ static int jtagspi_cmd(struct flash_bank *bank, uint8_t cmd,
 		fields[n].num_bits = data_len * CHAR_BIT;
 		n++;
 	}
+	if (!is_read && trailing_write_bits) {
+		fields[n].num_bits = trailing_write_bits;
+		fields[n].out_value = NULL;
+		fields[n].in_value = NULL;
+		n++;
+	}
 
-	jtagspi_set_ir(bank);
+	if (info->pld_device) {
+		int retval = pld_connect_spi_to_jtag(info->pld_device);
+		if (retval != ERROR_OK)
+			return retval;
+	} else {
+		jtagspi_set_user_ir(info);
+	}
+
 	/* passing from an IR scan to SHIFT-DR clears BYPASS registers */
-	struct jtagspi_flash_bank *info = bank->driver_priv;
 	jtag_add_dr_scan(info->tap, n, fields, TAP_IDLE);
 	int retval = jtag_execute_queue();
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (is_read)
 		flip_u8(data_buffer, data_buffer, data_len);
-	return retval;
+
+	if (info->pld_device)
+		return pld_disconnect_spi_from_jtag(info->pld_device);
+	return ERROR_OK;
 }
 
 COMMAND_HANDLER(jtagspi_handle_set)

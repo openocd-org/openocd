@@ -5900,23 +5900,41 @@ flash bank $_FLASHNAME cfi 0x00000000 0x02000000 2 4 $_TARGETNAME
 @c "cfi part_id" disabled
 @end deffn
 
+@anchor{jtagspi}
 @deffn {Flash Driver} {jtagspi}
 @cindex Generic JTAG2SPI driver
 @cindex SPI
 @cindex jtagspi
 @cindex bscan_spi
 Several FPGAs and CPLDs can retrieve their configuration (bitstream) from a
-SPI flash connected to them. To access this flash from the host, the device
-is first programmed with a special proxy bitstream that
-exposes the SPI flash on the device's JTAG interface. The flash can then be
-accessed through JTAG.
+SPI flash connected to them. To access this flash from the host, some FPGA
+device provides dedicated JTAG instructions, while other FPGA devices should
+be programmed with a special proxy bitstream that exposes the SPI flash on
+the device's JTAG interface. The flash can then be accessed through JTAG.
 
-Since signaling between JTAG and SPI is compatible, all that is required for
+Since signalling between JTAG and SPI is compatible, all that is required for
 a proxy bitstream is to connect TDI-MOSI, TDO-MISO, TCK-CLK and activate
-the flash chip select when the JTAG state machine is in SHIFT-DR. Such
-a bitstream for several Xilinx FPGAs can be found in
+the flash chip select when the JTAG state machine is in SHIFT-DR.
+
+Such a bitstream for several Xilinx FPGAs can be found in
 @file{contrib/loaders/flash/fpga/xilinx_bscan_spi.py}. It requires
 @uref{https://github.com/m-labs/migen, migen} and a Xilinx toolchain to build.
+
+This mechanism with a proxy bitstream can also be used for FPGAs from Intel and
+Efinix. FPGAs from Lattice and Cologne Chip have dedicated JTAG instructions
+and procedure to connect the JTAG to the SPI signals and don't need a proxy
+bitstream. Support for these devices with dedicated procedure is provided by
+the pld drivers. For convenience the PLD drivers will provide the USERx code
+for FPGAs with a proxy bitstream. Currently the following PLD drivers are able
+to support jtagspi:
+@itemize
+@item Efinix: proxy-bitstream
+@item Gatemate: dedicated procedure
+@item Intel/Altera: proxy-bitstream
+@item Lattice: dedicated procedure supporting ECP2, ECP3, ECP5, Certus and Certus Pro devices
+@item AMD/Xilinx: proxy-bitstream
+@end itemize
+
 
 This flash bank driver requires a target on a JTAG tap and will access that
 tap directly. Since no support from the target is needed, the target can be a
@@ -5935,14 +5953,25 @@ command, see below.
 @item @var{ir} ... is loaded into the JTAG IR to map the flash as the JTAG DR.
 For the bitstreams generated from @file{xilinx_bscan_spi.py} this is the
 @var{USER1} instruction.
-@end itemize
+@example
+target create $_TARGETNAME testee -chain-position $_CHIPNAME.tap
+set _USER1_INSTR_CODE 0x02
+flash bank $_FLASHNAME jtagspi 0x0 0 0 0 \
+           $_TARGETNAME $_USER1_INSTR_CODE
+@end example
+
+@item The option @option{-pld} @var{name} is used to have support from the
+PLD driver of pld device @var{name}. The name is the name of the pld device
+given during creation of the pld device.
+Pld device names are shown by the @command{pld devices} command.
 
 @example
-target create $_TARGETNAME testee -chain-position $_CHIPNAME.fpga
-set _XILINX_USER1 0x02
-flash bank $_FLASHNAME spi 0x0 0 0 0 \
-           $_TARGETNAME $_XILINX_USER1
+target create $_TARGETNAME testee -chain-position $_CHIPNAME.tap
+set _JTAGSPI_CHAIN_ID $_CHIPNAME.pld
+flash bank $_FLASHNAME jtagspi 0x0 0 0 0 \
+           $_TARGETNAME -pld $_JTAGSPI_CHAIN_ID
 @end example
+@end itemize
 
 @deffn Command {jtagspi set} bank_id name total_size page_size read_cmd unused pprg_cmd mass_erase_cmd sector_size sector_erase_cmd
 Sets flash parameters: @var{name} human readable string, @var{total_size}
@@ -8668,7 +8697,8 @@ Accordingly, both are called PLDs here.
 
 As it does for JTAG TAPs, debug targets, and flash chips (both NOR and NAND),
 OpenOCD maintains a list of PLDs available for use in various commands.
-Also, each such PLD requires a driver.
+Also, each such PLD requires a driver. PLD drivers may also be needed to program
+SPI flash connected to the FPGA to store the bitstream (@xref{jtagspi} for details).
 
 They are referenced by the name which was given when the pld was created or
 the number shown by the @command{pld devices} command.
