@@ -342,6 +342,64 @@ static int lattice_get_ipdbg_hub(int user_num, struct pld_device *pld_device, st
 	return ERROR_OK;
 }
 
+static int lattice_connect_spi_to_jtag(struct pld_device *pld_device)
+{
+	if (!pld_device)
+		return ERROR_FAIL;
+
+	struct lattice_pld_device *pld_device_info = pld_device->driver_priv;
+
+	int retval = lattice_check_device_family(pld_device_info);
+	if (retval != ERROR_OK)
+		return retval;
+
+	if (pld_device_info->family == LATTICE_ECP2 || pld_device_info->family == LATTICE_ECP3)
+		return lattice_ecp2_3_connect_spi_to_jtag(pld_device_info);
+
+	return ERROR_FAIL;
+}
+
+static int lattice_disconnect_spi_from_jtag(struct pld_device *pld_device)
+{
+	if (!pld_device)
+		return ERROR_FAIL;
+
+	struct lattice_pld_device *pld_device_info = pld_device->driver_priv;
+
+	int retval = lattice_check_device_family(pld_device_info);
+	if (retval != ERROR_OK)
+		return retval;
+
+	if (pld_device_info->family == LATTICE_ECP2 || pld_device_info->family == LATTICE_ECP3)
+		return lattice_ecp2_3_disconnect_spi_from_jtag(pld_device_info);
+
+	return ERROR_FAIL;
+}
+
+static int lattice_get_stuff_bits(struct pld_device *pld_device, unsigned int *facing_read_bits,
+		unsigned int *trailing_write_bits)
+{
+	if (!pld_device)
+		return ERROR_FAIL;
+
+	struct lattice_pld_device *pld_device_info = pld_device->driver_priv;
+
+	int retval = lattice_check_device_family(pld_device_info);
+	if (retval != ERROR_OK)
+		return retval;
+
+	if (pld_device_info->family == LATTICE_ECP2 || pld_device_info->family == LATTICE_ECP3)
+		return lattice_ecp2_3_get_facing_read_bits(pld_device_info, facing_read_bits);
+
+	return ERROR_FAIL;
+}
+
+static int lattice_has_jtagspi_instruction(struct pld_device *device, bool *has_instruction)
+{
+	*has_instruction = true;
+	return ERROR_OK;
+}
+
 PLD_CREATE_COMMAND_HANDLER(lattice_pld_create_command)
 {
 	if (CMD_ARGC != 4 && CMD_ARGC != 6)
@@ -551,4 +609,8 @@ struct pld_driver lattice_pld = {
 	.pld_create_command = &lattice_pld_create_command,
 	.load = &lattice_load_command,
 	.get_ipdbg_hub = lattice_get_ipdbg_hub,
+	.has_jtagspi_instruction = lattice_has_jtagspi_instruction,
+	.connect_spi_to_jtag = lattice_connect_spi_to_jtag,
+	.disconnect_spi_from_jtag = lattice_disconnect_spi_from_jtag,
+	.get_stuff_bits = lattice_get_stuff_bits,
 };
