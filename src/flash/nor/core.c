@@ -429,7 +429,11 @@ int default_flash_blank_check(struct flash_bank *bank)
 			bank->sectors[i].is_erased = block_array[i].result;
 		retval = ERROR_OK;
 	} else {
-		LOG_USER("Running slow fallback erase check - add working memory");
+		if (retval == ERROR_NOT_IMPLEMENTED)
+			LOG_USER("Running slow fallback erase check");
+		else
+			LOG_USER("Running slow fallback erase check - add working memory");
+
 		retval = default_flash_mem_blank_check(bank);
 	}
 	free(block_array);

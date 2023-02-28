@@ -2026,9 +2026,13 @@ static int aarch64_deassert_reset(struct target *target)
 		if (target->state != TARGET_HALTED) {
 			LOG_WARNING("%s: ran after reset and before halt ...",
 				target_name(target));
-			retval = target_halt(target);
-			if (retval != ERROR_OK)
-				return retval;
+			if (target_was_examined(target)) {
+				retval = aarch64_halt_one(target, HALT_LAZY);
+				if (retval != ERROR_OK)
+					return retval;
+			} else {
+				target->state = TARGET_UNKNOWN;
+			}
 		}
 	}
 
@@ -2574,20 +2578,13 @@ static int aarch64_examine_first(struct target *target)
 	armv8->debug_ap->memaccess_tck = 10;
 
 	if (!target->dbgbase_set) {
-		target_addr_t dbgbase;
-		/* Get ROM Table base */
-		uint32_t apid;
-		int32_t coreidx = target->coreid;
-		retval = dap_get_debugbase(armv8->debug_ap, &dbgbase, &apid);
-		if (retval != ERROR_OK)
-			return retval;
 		/* Lookup Processor DAP */
-		retval = dap_lookup_cs_component(armv8->debug_ap, dbgbase, ARM_CS_C9_DEVTYPE_CORE_DEBUG,
-				&armv8->debug_base, &coreidx);
+		retval = dap_lookup_cs_component(armv8->debug_ap, ARM_CS_C9_DEVTYPE_CORE_DEBUG,
+				&armv8->debug_base, target->coreid);
 		if (retval != ERROR_OK)
 			return retval;
-		LOG_DEBUG("Detected core %" PRId32 " dbgbase: " TARGET_ADDR_FMT
-				" apid: %08" PRIx32, coreidx, armv8->debug_base, apid);
+		LOG_DEBUG("Detected core %" PRId32 " dbgbase: " TARGET_ADDR_FMT,
+				target->coreid, armv8->debug_base);
 	} else
 		armv8->debug_base = target->dbgbase;
 

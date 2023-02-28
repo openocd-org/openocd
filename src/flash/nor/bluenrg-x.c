@@ -35,6 +35,8 @@
 #define JTAG_IDCODE_REG(bluenrgx_info)      (bluenrgx_info->flash_ptr->jtag_idcode_reg)
 #define FLASH_PAGE_SIZE(bluenrgx_info)      (bluenrgx_info->flash_ptr->flash_page_size)
 
+#define FLASH_SIZE_REG_MASK (0xFFFF)
+
 struct flash_ctrl_priv_data {
 	uint32_t die_id_reg;
 	uint32_t jtag_idcode_reg;
@@ -75,6 +77,16 @@ static const struct flash_ctrl_priv_data flash_priv_data_lp = {
 	.part_name = "BLUENRG-LP",
 };
 
+static const struct flash_ctrl_priv_data flash_priv_data_lps = {
+	.die_id_reg = 0x40000000,
+	.jtag_idcode_reg = 0x40000004,
+	.flash_base = 0x10040000,
+	.flash_regs_base = 0x40001000,
+	.flash_page_size = 2048,
+	.jtag_idcode = 0x02028041,
+	.part_name = "BLUENRG-LPS",
+};
+
 struct bluenrgx_flash_bank {
 	bool probed;
 	uint32_t die_id;
@@ -84,8 +96,8 @@ struct bluenrgx_flash_bank {
 static const struct flash_ctrl_priv_data *flash_ctrl[] = {
 	&flash_priv_data_1,
 	&flash_priv_data_2,
-	&flash_priv_data_lp
-};
+	&flash_priv_data_lp,
+	&flash_priv_data_lps};
 
 /* flash_bank bluenrg-x 0 0 0 0 <target#> */
 FLASH_BANK_COMMAND_HANDLER(bluenrgx_flash_bank_command)
@@ -377,7 +389,7 @@ static int bluenrgx_probe(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		return retval;
 
-	if (idcode != flash_priv_data_lp.jtag_idcode) {
+	if ((idcode != flash_priv_data_lp.jtag_idcode) && (idcode != flash_priv_data_lps.jtag_idcode)) {
 		retval = target_read_u32(bank->target, BLUENRG2_JTAG_REG, &idcode);
 		if (retval != ERROR_OK)
 			return retval;
@@ -395,6 +407,7 @@ static int bluenrgx_probe(struct flash_bank *bank)
 		}
 	}
 	retval = bluenrgx_read_flash_reg(bank, FLASH_SIZE_REG, &size_info);
+	size_info = size_info & FLASH_SIZE_REG_MASK;
 	if (retval != ERROR_OK)
 		return retval;
 

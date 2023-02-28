@@ -44,12 +44,9 @@
 #define ARM_CS_CIDR3                            (0xFFC)
 
 #define ARM_CS_CIDR_CLASS_MASK                  (0x0000F000)
-#define ARM_CS_CIDR_CLASS_SHIFT                 (12)
+#define ARM_CS_CIDR_CLASS(cidr)                 (((cidr) >> 12) & 0x000F)
 #define ARM_CS_CLASS_0X1_ROM_TABLE              (0x1)
 #define ARM_CS_CLASS_0X9_CS_COMPONENT           (0x9)
-
-#define ARM_CS_CIDR1_CLASS_MASK                 (0x000000F0)
-#define ARM_CS_CIDR1_CLASS_SHIFT                (4)
 
 static inline bool is_valid_arm_cs_cidr(uint32_t cidr)
 {
@@ -66,6 +63,10 @@ static inline bool is_valid_arm_cs_cidr(uint32_t cidr)
 #define ARM_CS_C9_DEVARCH_PRESENT               BIT(20)
 #define ARM_CS_C9_DEVARCH_ARCHITECT_MASK        (0xFFE00000)
 #define ARM_CS_C9_DEVARCH_ARCHITECT_SHIFT       (21)
+#define ARM_CS_C9_DEVARCH_REVISION(devarch)     \
+	(((devarch) & ARM_CS_C9_DEVARCH_REVISION_MASK) >> ARM_CS_C9_DEVARCH_REVISION_SHIFT)
+#define ARM_CS_C9_DEVARCH_ARCHITECT(devarch)    \
+	(((devarch) & ARM_CS_C9_DEVARCH_ARCHITECT_MASK) >> ARM_CS_C9_DEVARCH_ARCHITECT_SHIFT)
 
 #define ARM_CS_C9_DEVID                         (0xFC8)
 

@@ -182,6 +182,9 @@ COMMAND_HANDLER(handle_init_command)
 
 	target_register_event_callback(log_target_callback_event_handler, CMD_CTX);
 
+	if (command_run_line(CMD_CTX, "_run_post_init_commands") != ERROR_OK)
+		return ERROR_FAIL;
+
 	return ERROR_OK;
 }
 

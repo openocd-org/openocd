@@ -1,7 +1,8 @@
 /***************************************************************************
+ *   ESP32-S2 target for OpenOCD                                           *
+ *   Copyright (C) 2019 Espressif Systems Ltd.                             *
+ *   Author: Alexey Gerenkov <alexey@espressif.com>                        *
  *                                                                         *
- * Copyright (C) ST-Ericsson SA 2011                                       *
- * Author: Michel Jaouen <michel.jaouen@stericsson.com> for ST-Ericsson.   *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -16,25 +17,24 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
-#ifndef OPENOCD_TARGET_SMP_H
-#define OPENOCD_TARGET_SMP_H
+#ifndef OPENOCD_TARGET_ESP32S2_H
+#define OPENOCD_TARGET_ESP32S2_H
 
-#include <helper/list.h>
-#include "server/server.h"
+#include <target/xtensa/xtensa_regs.h>
 
-#define foreach_smp_target(pos, head) \
-	list_for_each_entry(pos, head, lh)
+#define ESP32_S2_DROM_LOW   0x3f000000
+#define ESP32_S2_DROM_HIGH  0x3ff80000
+#define ESP32_S2_IROM_LOW   0x40080000
+#define ESP32_S2_IROM_HIGH  0x40800000
 
-#define foreach_smp_target_direction(forward, pos, head) \
-	list_for_each_entry_direction(forward, pos, head, lh)
+/* Number of registers returned directly by the G command
+ * Corresponds to the amount of regs listed in regformats/reg-xtensa.dat in the gdb source */
+#define ESP32_S2_NUM_REGS_G_COMMAND   72
 
-extern const struct command_registration smp_command_handlers[];
+enum esp32s2_reg_id {
+	/* chip specific registers that extend ISA go after ISA-defined ones */
+	ESP32_S2_REG_IDX_GPIOOUT = XT_USR_REG_START,
+	ESP32_S2_NUM_REGS,
+};
 
-/* DEPRECATED */
-int gdb_read_smp_packet(struct connection *connection,
-		char const *packet, int packet_size);
-/* DEPRECATED */
-int gdb_write_smp_packet(struct connection *connection,
-		char const *packet, int packet_size);
-
-#endif /* OPENOCD_TARGET_SMP_H */
+#endif	/* OPENOCD_TARGET_ESP32S2_H */

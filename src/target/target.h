@@ -206,7 +206,7 @@ struct target {
 	 * poll too quickly because we'll just overwhelm the user with error
 	 * messages. */
 	struct backoff_timer backoff;
-	int smp;							/* add some target attributes for smp support */
+	int smp;							/* Unique non-zero number for each SMP group */
 	struct list_head *smp_targets;		/* list all targets in this smp group/cluster
 										 * The head of the list is shared between the
 										 * cluster, thus here there is a pointer */
