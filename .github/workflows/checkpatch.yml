@@ -24,4 +24,5 @@ jobs:
                 -x "a/src/jtag/drivers/libjaylink/*" \
                 -x "a/tools/git2cl/*" \
                 -x "a/.github/*" \
+                -x "a/HACKING" \
             | ./tools/scripts/checkpatch.pl --no-signoff -
