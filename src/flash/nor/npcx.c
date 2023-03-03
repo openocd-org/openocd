@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /*
  * Copyright (C) 2020 by Nuvoton Technology Corporation
@@ -17,7 +17,7 @@
 #include "../../../contrib/loaders/flash/npcx/npcx_flash.h"
 
 /* NPCX flash loader */
-const uint8_t npcx_algo[] = {
+static const uint8_t npcx_algo[] = {
 #include "../../../contrib/loaders/flash/npcx/npcx_algo.inc"
 };
 

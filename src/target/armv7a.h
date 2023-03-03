@@ -19,7 +19,7 @@ enum {
 	ARM_CPSR = 16
 };
 
-#define ARMV7_COMMON_MAGIC 0x0A450999
+#define ARMV7_COMMON_MAGIC 0x0A450999U
 
 /* VA to PA translation operations opc2 values*/
 #define V2PCWPR  0
@@ -87,8 +87,9 @@ struct armv7a_mmu_common {
 };
 
 struct armv7a_common {
+	unsigned int common_magic;
+
 	struct arm arm;
-	int common_magic;
 	struct reg_cache *core_cache;
 
 	/* Core Debug Unit */

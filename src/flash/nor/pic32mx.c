@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /***************************************************************************
  *   Copyright (C) 2005 by Dominic Rath                                    *
@@ -759,7 +759,7 @@ static int pic32mx_probe(struct flash_bank *bank)
 		}
 	}
 
-	LOG_INFO("flash size = %" PRIu32 "kbytes", num_pages / 1024);
+	LOG_INFO("flash size = %" PRIu32 " KiB", num_pages / 1024);
 
 	free(bank->sectors);
 

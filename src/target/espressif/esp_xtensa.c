@@ -1,9 +1,8 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /***************************************************************************
  *   Espressif Xtensa target API for OpenOCD                               *
  *   Copyright (C) 2019 Espressif Systems Ltd.                             *
- *   Author: Alexey Gerenkov <alexey@espressif.com>                        *
  ***************************************************************************/
 
 #ifdef HAVE_CONFIG_H
@@ -13,15 +12,20 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <target/smp.h>
-#include "esp_xtensa.h"
 #include <target/register.h>
+#include "esp_xtensa.h"
+#include "esp_semihosting.h"
 
 int esp_xtensa_init_arch_info(struct target *target,
 	struct esp_xtensa_common *esp_xtensa,
-	const struct xtensa_config *xtensa_cfg,
-	struct xtensa_debug_module_config *dm_cfg)
+	struct xtensa_debug_module_config *dm_cfg,
+	const struct esp_semihost_ops *semihost_ops)
 {
-	return xtensa_init_arch_info(target, &esp_xtensa->xtensa, xtensa_cfg, dm_cfg);
+	int ret = xtensa_init_arch_info(target, &esp_xtensa->xtensa, dm_cfg);
+	if (ret != ERROR_OK)
+		return ret;
+	esp_xtensa->semihost.ops = (struct esp_semihost_ops *)semihost_ops;
+	return ERROR_OK;
 }
 
 int esp_xtensa_target_init(struct command_context *cmd_ctx, struct target *target)

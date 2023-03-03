@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /***************************************************************************
  *   Copyright (C) 2005 by Dominic Rath                                    *
@@ -293,12 +293,6 @@ void log_exit(void)
 		fclose(log_output);
 	}
 	log_output = NULL;
-}
-
-int set_log_output(struct command_context *cmd_ctx, FILE *output)
-{
-	log_output = output;
-	return ERROR_OK;
 }
 
 /* add/remove log callback handler */

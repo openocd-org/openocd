@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 CROSS_COMPILE=arm-linux-gnueabihf-
 BIN2C = ../../../../src/helper/bin2char.sh
 

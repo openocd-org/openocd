@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 BIN2C = ../../../../src/helper/bin2char.sh
 
 SRCS=stmqspi_erase_check.S stmqspi_crc32.S stmqspi_read.S stmqspi_write.S \

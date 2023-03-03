@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /***************************************************************************
  *   Copyright (C) 2006 by Magnus Lundin                                   *
@@ -113,7 +113,7 @@ static int mem_ap_setup_tar(struct adiv5_ap *ap, target_addr_t tar)
 		int retval = dap_queue_ap_write(ap, MEM_AP_REG_TAR(ap->dap), (uint32_t)(tar & 0xffffffffUL));
 		if (retval == ERROR_OK && is_64bit_ap(ap)) {
 			/* See if bits 63:32 of tar is different from last setting */
-			if ((ap->tar_value >> 32) != (tar >> 32))
+			if (!ap->tar_valid || (ap->tar_value >> 32) != (tar >> 32))
 				retval = dap_queue_ap_write(ap, MEM_AP_REG_TAR64(ap->dap), (uint32_t)(tar >> 32));
 		}
 		if (retval != ERROR_OK) {
@@ -408,6 +408,26 @@ static int mem_ap_write(struct adiv5_ap *ap, const uint8_t *buffer, uint32_t siz
 			case 1:
 				outvalue |= (uint32_t)*buffer++ << 8 * (0 ^ (drw_byte_idx & 3) ^ addr_xor);
 				break;
+			}
+		} else if (dap->nu_npcx_quirks) {
+			switch (this_size) {
+			case 4:
+				outvalue |= (uint32_t)*buffer++ << 8 * (drw_byte_idx++ & 3);
+				outvalue |= (uint32_t)*buffer++ << 8 * (drw_byte_idx++ & 3);
+				outvalue |= (uint32_t)*buffer++ << 8 * (drw_byte_idx++ & 3);
+				outvalue |= (uint32_t)*buffer++ << 8 * (drw_byte_idx & 3);
+				break;
+			case 2:
+				outvalue |= (uint32_t)*buffer << 8 * (drw_byte_idx++ & 3);
+				outvalue |= (uint32_t)*(buffer+1) << 8 * (drw_byte_idx++ & 3);
+				outvalue |= (uint32_t)*buffer++ << 8 * (drw_byte_idx++ & 3);
+				outvalue |= (uint32_t)*buffer++ << 8 * (drw_byte_idx & 3);
+				break;
+			case 1:
+				outvalue |= (uint32_t)*buffer << 8 * (drw_byte_idx++ & 3);
+				outvalue |= (uint32_t)*buffer << 8 * (drw_byte_idx++ & 3);
+				outvalue |= (uint32_t)*buffer << 8 * (drw_byte_idx++ & 3);
+				outvalue |= (uint32_t)*buffer++ << 8 * (drw_byte_idx & 3);
 			}
 		} else {
 			switch (this_size) {
@@ -2755,6 +2775,13 @@ COMMAND_HANDLER(dap_ti_be_32_quirks_command)
 		"TI BE-32 quirks mode");
 }
 
+COMMAND_HANDLER(dap_nu_npcx_quirks_command)
+{
+	struct adiv5_dap *dap = adiv5_get_dap(CMD_DATA);
+	return CALL_COMMAND_HANDLER(handle_command_parse_bool, &dap->nu_npcx_quirks,
+								"Nuvoton NPCX quirks mode");
+}
+
 const struct command_registration dap_instance_commands[] = {
 	{
 		.name = "info",
@@ -2825,6 +2852,13 @@ const struct command_registration dap_instance_commands[] = {
 		.handler = dap_ti_be_32_quirks_command,
 		.mode = COMMAND_CONFIG,
 		.help = "set/get quirks mode for TI TMS450/TMS570 processors",
+		.usage = "[enable]",
+	},
+	{
+		.name = "nu_npcx_quirks",
+		.handler = dap_nu_npcx_quirks_command,
+		.mode = COMMAND_CONFIG,
+		.help = "set/get quirks mode for Nuvoton NPCX controllers",
 		.usage = "[enable]",
 	},
 	COMMAND_REGISTRATION_DONE

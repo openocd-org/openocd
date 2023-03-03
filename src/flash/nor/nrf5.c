@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /***************************************************************************
  *   Copyright (C) 2013 Synapse Product Development                        *
@@ -136,7 +136,7 @@ struct nrf5_device_spec {
 };
 
 struct nrf5_info {
-	uint32_t refcount;
+	unsigned int refcount;
 
 	struct nrf5_bank {
 		struct nrf5_info *chip;

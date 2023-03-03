@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /***************************************************************************
  *   Copyright (C) 2017 by Texas Instruments, Inc.                         *
@@ -32,6 +32,16 @@ struct cc26xx_bank {
 	uint32_t algo_working_size;
 	uint32_t buffer_addr[2];
 	uint32_t params_addr[2];
+};
+
+/* Flash helper algorithm for CC26x0 Chameleon targets */
+static const uint8_t cc26x0_algo[] = {
+#include "../../../contrib/loaders/flash/cc26xx/cc26x0_algo.inc"
+};
+
+/* Flash helper algorithm for CC26x2 Agama targets */
+static const uint8_t cc26x2_algo[] = {
+#include "../../../contrib/loaders/flash/cc26xx/cc26x2_algo.inc"
 };
 
 static int cc26xx_auto_probe(struct flash_bank *bank);

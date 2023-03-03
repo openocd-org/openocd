@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -50,6 +50,10 @@ struct rp2040_flash_bank {
 	const struct flash_device *dev;
 };
 
+/* guessed SPI flash description if autodetection disabled (same as win w25q16jv) */
+static const struct flash_device rp2040_default_spi_device =
+	FLASH_ID("autodetect disabled", 0x03, 0x00, 0x02, 0xd8, 0xc7, 0, 0x100, 0x10000, 0);
+
 static uint32_t rp2040_lookup_symbol(struct target *target, uint32_t tag, uint16_t *symbol)
 {
 	uint32_t magic;
@@ -87,7 +91,7 @@ static uint32_t rp2040_lookup_symbol(struct target *target, uint32_t tag, uint16
 }
 
 static int rp2040_call_rom_func(struct target *target, struct rp2040_flash_bank *priv,
-		uint16_t func_offset, uint32_t argdata[], unsigned int n_args)
+		uint16_t func_offset, uint32_t argdata[], unsigned int n_args, int timeout_ms)
 {
 	char *regnames[4] = { "r0", "r1", "r2", "r3" };
 
@@ -99,8 +103,7 @@ static int rp2040_call_rom_func(struct target *target, struct rp2040_flash_bank 
 	}
 	target_addr_t stacktop = priv->stack->address + priv->stack->size;
 
-	LOG_DEBUG("Calling ROM func @0x%" PRIx16 " with %d arguments", func_offset, n_args);
-	LOG_DEBUG("Calling on core \"%s\"", target->cmd_name);
+	LOG_TARGET_DEBUG(target, "Calling ROM func @0x%" PRIx16 " with %u arguments", func_offset, n_args);
 
 	struct reg_param args[ARRAY_SIZE(regnames) + 2];
 	struct armv7m_algorithm alg_info;
@@ -112,11 +115,12 @@ static int rp2040_call_rom_func(struct target *target, struct rp2040_flash_bank 
 	/* Pass function pointer in r7 */
 	init_reg_param(&args[n_args], "r7", 32, PARAM_OUT);
 	buf_set_u32(args[n_args].value, 0, 32, func_offset);
+	/* Setup stack */
 	init_reg_param(&args[n_args + 1], "sp", 32, PARAM_OUT);
 	buf_set_u32(args[n_args + 1].value, 0, 32, stacktop);
+	unsigned int n_reg_params = n_args + 2;	/* User arguments + r7 + sp */
 
-
-	for (unsigned int i = 0; i < n_args + 2; ++i)
+	for (unsigned int i = 0; i < n_reg_params; ++i)
 		LOG_DEBUG("Set %s = 0x%" PRIx32, args[i].reg_name, buf_get_u32(args[i].value, 0, 32));
 
 	/* Actually call the function */
@@ -125,42 +129,82 @@ static int rp2040_call_rom_func(struct target *target, struct rp2040_flash_bank 
 	int err = target_run_algorithm(
 		target,
 		0, NULL,          /* No memory arguments */
-		n_args + 1, args, /* User arguments + r7 */
+		n_reg_params, args, /* User arguments + r7 + sp */
 		priv->jump_debug_trampoline, priv->jump_debug_trampoline_end,
-		3000, /* 3s timeout */
+		timeout_ms,
 		&alg_info
 	);
-	for (unsigned int i = 0; i < n_args + 2; ++i)
-		destroy_reg_param(&args[i]);
-	if (err != ERROR_OK)
-		LOG_ERROR("Failed to invoke ROM function @0x%" PRIx16 "\n", func_offset);
-	return err;
 
+	for (unsigned int i = 0; i < n_reg_params; ++i)
+		destroy_reg_param(&args[i]);
+
+	if (err != ERROR_OK)
+		LOG_ERROR("Failed to invoke ROM function @0x%" PRIx16, func_offset);
+
+	return err;
 }
 
-static int stack_grab_and_prep(struct flash_bank *bank)
+/* Finalize flash write/erase/read ID
+ * - flush cache
+ * - enters memory-mapped (XIP) mode to make flash data visible
+ * - deallocates target ROM func stack if previously allocated
+ */
+static int rp2040_finalize_stack_free(struct flash_bank *bank)
 {
 	struct rp2040_flash_bank *priv = bank->driver_priv;
+	struct target *target = bank->target;
+
+	/* Always flush before returning to execute-in-place, to invalidate stale
+	 * cache contents. The flush call also restores regular hardware-controlled
+	 * chip select following a rp2040_flash_exit_xip().
+	 */
+	LOG_DEBUG("Flushing flash cache after write behind");
+	int err = rp2040_call_rom_func(target, priv, priv->jump_flush_cache, NULL, 0, 1000);
+	if (err != ERROR_OK) {
+		LOG_ERROR("Failed to flush flash cache");
+		/* Intentionally continue after error and try to setup xip anyway */
+	}
+
+	LOG_DEBUG("Configuring SSI for execute-in-place");
+	err = rp2040_call_rom_func(target, priv, priv->jump_enter_cmd_xip, NULL, 0, 1000);
+	if (err != ERROR_OK)
+		LOG_ERROR("Failed to set SSI to XIP mode");
+
+	target_free_working_area(target, priv->stack);
+	priv->stack = NULL;
+	return err;
+}
+
+/* Prepare flash write/erase/read ID
+ * - allocates a stack for target ROM func
+ * - switches the SPI interface from memory-mapped mode to direct command mode
+ * Always pair with a call of rp2040_finalize_stack_free()
+ * after flash operation finishes or fails.
+ */
+static int rp2040_stack_grab_and_prep(struct flash_bank *bank)
+{
+	struct rp2040_flash_bank *priv = bank->driver_priv;
+	struct target *target = bank->target;
 
 	/* target_alloc_working_area always allocates multiples of 4 bytes, so no worry about alignment */
 	const int STACK_SIZE = 256;
-	int err = target_alloc_working_area(bank->target, STACK_SIZE, &priv->stack);
+	int err = target_alloc_working_area(target, STACK_SIZE, &priv->stack);
 	if (err != ERROR_OK) {
 		LOG_ERROR("Could not allocate stack for flash programming code");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
 	LOG_DEBUG("Connecting internal flash");
-	err = rp2040_call_rom_func(bank->target, priv, priv->jump_connect_internal_flash, NULL, 0);
+	err = rp2040_call_rom_func(target, priv, priv->jump_connect_internal_flash, NULL, 0, 1000);
 	if (err != ERROR_OK) {
-		LOG_ERROR("RP2040 erase: failed to connect internal flash");
+		LOG_ERROR("Failed to connect internal flash");
 		return err;
 	}
 
 	LOG_DEBUG("Kicking flash out of XIP mode");
-	err = rp2040_call_rom_func(bank->target, priv, priv->jump_flash_exit_xip, NULL, 0);
+	err = rp2040_call_rom_func(target, priv, priv->jump_flash_exit_xip, NULL, 0, 1000);
 	if (err != ERROR_OK) {
-		LOG_ERROR("RP2040 erase: failed to exit flash XIP mode");
+		LOG_ERROR("Failed to exit flash XIP mode");
 		return err;
 	}
 
@@ -173,16 +217,27 @@ static int rp2040_flash_write(struct flash_bank *bank, const uint8_t *buffer, ui
 
 	struct rp2040_flash_bank *priv = bank->driver_priv;
 	struct target *target = bank->target;
-	struct working_area *bounce;
 
-	int err = stack_grab_and_prep(bank);
+	if (target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	struct working_area *bounce = NULL;
+
+	int err = rp2040_stack_grab_and_prep(bank);
 	if (err != ERROR_OK)
-		return err;
+		goto cleanup;
 
-	const unsigned int chunk_size = target_get_working_area_avail(target);
-	if (target_alloc_working_area(target, chunk_size, &bounce) != ERROR_OK) {
+	unsigned int avail_pages = target_get_working_area_avail(target) / priv->dev->pagesize;
+	/* We try to allocate working area rounded down to device page size,
+	 * al least 1 page, at most the write data size
+	 */
+	unsigned int chunk_size = MIN(MAX(avail_pages, 1) * priv->dev->pagesize, count);
+	err = target_alloc_working_area(target, chunk_size, &bounce);
+	if (err != ERROR_OK) {
 		LOG_ERROR("Could not allocate bounce buffer for flash programming. Can't continue");
-		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+		goto cleanup;
 	}
 
 	LOG_DEBUG("Allocated flash bounce buffer @" TARGET_ADDR_FMT, bounce->address);
@@ -200,7 +255,8 @@ static int rp2040_flash_write(struct flash_bank *bank, const uint8_t *buffer, ui
 			bounce->address, /* data */
 			write_size /* count */
 		};
-		err = rp2040_call_rom_func(target, priv, priv->jump_flash_range_program, args, ARRAY_SIZE(args));
+		err = rp2040_call_rom_func(target, priv, priv->jump_flash_range_program,
+								 args, ARRAY_SIZE(args), 3000);
 		if (err != ERROR_OK) {
 			LOG_ERROR("Failed to invoke flash programming code on target");
 			break;
@@ -210,36 +266,32 @@ static int rp2040_flash_write(struct flash_bank *bank, const uint8_t *buffer, ui
 		offset += write_size;
 		count -= write_size;
 	}
+
+cleanup:
 	target_free_working_area(target, bounce);
 
-	if (err != ERROR_OK)
-		return err;
+	rp2040_finalize_stack_free(bank);
 
-	/* Flash is successfully programmed. We can now do a bit of poking to make the flash
-	   contents visible to us via memory-mapped (XIP) interface in the 0x1... memory region */
-	LOG_DEBUG("Flushing flash cache after write behind");
-	err = rp2040_call_rom_func(bank->target, priv, priv->jump_flush_cache, NULL, 0);
-	if (err != ERROR_OK) {
-		LOG_ERROR("RP2040 write: failed to flush flash cache");
-		return err;
-	}
-	LOG_DEBUG("Configuring SSI for execute-in-place");
-	err = rp2040_call_rom_func(bank->target, priv, priv->jump_enter_cmd_xip, NULL, 0);
-	if (err != ERROR_OK)
-		LOG_ERROR("RP2040 write: failed to flush flash cache");
 	return err;
 }
 
 static int rp2040_flash_erase(struct flash_bank *bank, unsigned int first, unsigned int last)
 {
 	struct rp2040_flash_bank *priv = bank->driver_priv;
+	struct target *target = bank->target;
+
+	if (target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
 	uint32_t start_addr = bank->sectors[first].offset;
 	uint32_t length = bank->sectors[last].offset + bank->sectors[last].size - start_addr;
 	LOG_DEBUG("RP2040 erase %d bytes starting at 0x%" PRIx32, length, start_addr);
 
-	int err = stack_grab_and_prep(bank);
+	int err = rp2040_stack_grab_and_prep(bank);
 	if (err != ERROR_OK)
-		return err;
+		goto cleanup;
 
 	LOG_DEBUG("Remote call flash_range_erase");
 
@@ -257,10 +309,15 @@ static int rp2040_flash_erase(struct flash_bank *bank, unsigned int first, unsig
 	https://github.com/raspberrypi/pico-bootrom/blob/master/bootrom/program_flash_generic.c
 
 	In theory, the function algorithm provides for erasing both a smaller "sector" (4096 bytes) and
-	an optional larger "block" (size and command provided in args).  OpenOCD's spi.c only uses "block" sizes.
+	an optional larger "block" (size and command provided in args).
 	*/
 
-	err = rp2040_call_rom_func(bank->target, priv, priv->jump_flash_range_erase, args, ARRAY_SIZE(args));
+	int timeout_ms = 2000 * (last - first) + 1000;
+	err = rp2040_call_rom_func(target, priv, priv->jump_flash_range_erase,
+							args, ARRAY_SIZE(args), timeout_ms);
+
+cleanup:
+	rp2040_finalize_stack_free(bank);
 
 	return err;
 }
@@ -289,10 +346,45 @@ static int rp2040_ssel_active(struct target *target, bool active)
 	return ERROR_OK;
 }
 
+static int rp2040_spi_read_flash_id(struct target *target, uint32_t *devid)
+{
+	uint32_t device_id = 0;
+	const target_addr_t ssi_dr0 = 0x18000060;
+
+	int err = rp2040_ssel_active(target, true);
+
+	/* write RDID request into SPI peripheral's FIFO */
+	for (int count = 0; (count < 4) && (err == ERROR_OK); count++)
+		err = target_write_u32(target, ssi_dr0, SPIFLASH_READ_ID);
+
+	/* by this time, there is a receive FIFO entry for every write */
+	for (int count = 0; (count < 4) && (err == ERROR_OK); count++) {
+		uint32_t status;
+		err = target_read_u32(target, ssi_dr0, &status);
+
+		device_id >>= 8;
+		device_id |= (status & 0xFF) << 24;
+	}
+
+	if (err == ERROR_OK)
+		*devid = device_id >> 8;
+
+	int err2 = rp2040_ssel_active(target, false);
+	if (err2 != ERROR_OK)
+		LOG_ERROR("SSEL inactive failed");
+
+	return err;
+}
+
 static int rp2040_flash_probe(struct flash_bank *bank)
 {
 	struct rp2040_flash_bank *priv = bank->driver_priv;
 	struct target *target = bank->target;
+
+	if (target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
 
 	int err = rp2040_lookup_symbol(target, FUNC_DEBUG_TRAMPOLINE, &priv->jump_debug_trampoline);
 	if (err != ERROR_OK) {
@@ -344,59 +436,48 @@ static int rp2040_flash_probe(struct flash_bank *bank)
 		return err;
 	}
 
-	err = stack_grab_and_prep(bank);
-	if (err != ERROR_OK)
-		return err;
+	if (bank->size) {
+		/* size overridden, suppress reading SPI flash ID */
+		priv->dev = &rp2040_default_spi_device;
+		LOG_DEBUG("SPI flash autodetection disabled, using configured size");
 
-	uint32_t device_id = 0;
-	const target_addr_t ssi_dr0 = 0x18000060;
+	} else {
+		/* zero bank size in cfg, read SPI flash ID and autodetect */
+		err = rp2040_stack_grab_and_prep(bank);
 
-	err = rp2040_ssel_active(target, true);
+		uint32_t device_id = 0;
+		if (err == ERROR_OK)
+			err = rp2040_spi_read_flash_id(target, &device_id);
 
-	/* write RDID request into SPI peripheral's FIFO */
-	for (int count = 0; (count < 4) && (err == ERROR_OK); count++)
-		err = target_write_u32(target, ssi_dr0, SPIFLASH_READ_ID);
+		rp2040_finalize_stack_free(bank);
 
-	/* by this time, there is a receive FIFO entry for every write */
-	for (int count = 0; (count < 4) && (err == ERROR_OK); count++) {
-		uint32_t status;
-		err = target_read_u32(target, ssi_dr0, &status);
+		if (err != ERROR_OK)
+			return err;
 
-		device_id >>= 8;
-		device_id |= (status & 0xFF) << 24;
-	}
-	device_id >>= 8;
+		/* search for a SPI flash Device ID match */
+		priv->dev = NULL;
+		for (const struct flash_device *p = flash_devices; p->name ; p++)
+			if (p->device_id == device_id) {
+				priv->dev = p;
+				break;
+			}
 
-	err = rp2040_ssel_active(target, false);
-	if (err != ERROR_OK) {
-		LOG_ERROR("SSEL inactive failed");
-		return err;
-	}
-
-	/* search for a SPI flash Device ID match */
-	priv->dev = NULL;
-	for (const struct flash_device *p = flash_devices; p->name ; p++)
-		if (p->device_id == device_id) {
-			priv->dev = p;
-			break;
+		if (!priv->dev) {
+			LOG_ERROR("Unknown flash device (ID 0x%08" PRIx32 ")", device_id);
+			return ERROR_FAIL;
 		}
+		LOG_INFO("Found flash device '%s' (ID 0x%08" PRIx32 ")",
+			priv->dev->name, priv->dev->device_id);
 
-	if (!priv->dev) {
-		LOG_ERROR("Unknown flash device (ID 0x%08" PRIx32 ")", device_id);
-		return ERROR_FAIL;
+		bank->size = priv->dev->size_in_bytes;
 	}
-
-	LOG_INFO("Found flash device \'%s\' (ID 0x%08" PRIx32 ")",
-		priv->dev->name, priv->dev->device_id);
 
 	/* the Boot ROM flash_range_program() routine requires page alignment */
 	bank->write_start_alignment = priv->dev->pagesize;
 	bank->write_end_alignment = priv->dev->pagesize;
 
-	bank->size = priv->dev->size_in_bytes;
-
 	bank->num_sectors = bank->size / priv->dev->sectorsize;
-	LOG_INFO("RP2040 B0 Flash Probe: %d bytes @" TARGET_ADDR_FMT ", in %d sectors\n",
+	LOG_INFO("RP2040 B0 Flash Probe: %" PRIu32 " bytes @" TARGET_ADDR_FMT ", in %u sectors\n",
 		bank->size, bank->base, bank->num_sectors);
 	bank->sectors = alloc_block_array(0, priv->dev->sectorsize, bank->num_sectors);
 	if (!bank->sectors)

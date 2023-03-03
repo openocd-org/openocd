@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
+# Patterns for excluding files and directories
+
+# Ignore the license directory and the licensing documentation which would
+# create lots of noise for no value
+LICENSES/
+license-rules.rst
+
+# Other files without copyrightable content
+/NEWS*
+testing/
+

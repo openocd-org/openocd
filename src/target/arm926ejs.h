@@ -11,11 +11,12 @@
 #include "arm9tdmi.h"
 #include "armv4_5_mmu.h"
 
-#define	ARM926EJS_COMMON_MAGIC 0xa926a926
+#define	ARM926EJS_COMMON_MAGIC 0xa926a926U
 
 struct arm926ejs_common {
+	unsigned int common_magic;
+
 	struct arm7_9_common arm7_9_common;
-	uint32_t common_magic;
 	struct armv4_5_mmu_common armv4_5_mmu;
 	int (*read_cp15)(struct target *target, uint32_t op1, uint32_t op2,
 			uint32_t crn, uint32_t crm, uint32_t *value);

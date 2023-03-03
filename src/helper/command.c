@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /***************************************************************************
  *   Copyright (C) 2005 by Dominic Rath                                    *
@@ -543,8 +543,16 @@ static int run_command(struct command_context *context,
 		if (retval != ERROR_OK)
 			LOG_DEBUG("Command '%s' failed with error code %d",
 						words[0], retval);
-		/* Use the command output as the Tcl result */
-		Jim_SetResult(context->interp, cmd.output);
+		/*
+		 * Use the command output as the Tcl result.
+		 * Drop last '\n' to allow command output concatenation
+		 * while keep using command_print() everywhere.
+		 */
+		const char *output_txt = Jim_String(cmd.output);
+		int len = strlen(output_txt);
+		if (len && output_txt[len - 1] == '\n')
+			--len;
+		Jim_SetResultString(context->interp, output_txt, len);
 	}
 	Jim_DecrRefCount(context->interp, cmd.output);
 
@@ -702,14 +710,12 @@ static int jim_capture(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	 * This is necessary in order to avoid accidentally getting a non-empty
 	 * string for tcl fn's.
 	 */
-	bool save_poll = jtag_poll_get_enabled();
-
-	jtag_poll_set_enabled(false);
+	bool save_poll_mask = jtag_poll_mask();
 
 	const char *str = Jim_GetString(argv[1], NULL);
 	int retcode = Jim_Eval_Named(interp, str, __THIS__FILE__, __LINE__);
 
-	jtag_poll_set_enabled(save_poll);
+	jtag_poll_unmask(save_poll_mask);
 
 	command_log_capture_finish(state);
 
@@ -938,7 +944,7 @@ static int jim_command_dispatch(Jim_Interp *interp, int argc, Jim_Obj * const *a
 	if (!command_can_run(cmd_ctx, c, Jim_GetString(argv[0], NULL)))
 		return JIM_ERR;
 
-	target_call_timer_callbacks_now();
+	target_call_timer_callbacks();
 
 	/*
 	 * Black magic of overridden current target:

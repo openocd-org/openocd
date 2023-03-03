@@ -77,14 +77,4 @@ struct cc26xx_algo_params {
 	uint8_t status[4];
 };
 
-/* Flash helper algorithm for CC26x0 Chameleon targets */
-const uint8_t cc26x0_algo[] = {
-#include "../../../contrib/loaders/flash/cc26xx/cc26x0_algo.inc"
-};
-
-/* Flash helper algorithm for CC26x2 Agama targets */
-const uint8_t cc26x2_algo[] = {
-#include "../../../contrib/loaders/flash/cc26xx/cc26x2_algo.inc"
-};
-
 #endif /* OPENOCD_FLASH_NOR_CC26XX_H */

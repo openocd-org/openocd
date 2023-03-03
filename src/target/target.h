@@ -193,6 +193,10 @@ struct target {
 	struct list_head *smp_targets;		/* list all targets in this smp group/cluster
 										 * The head of the list is shared between the
 										 * cluster, thus here there is a pointer */
+	bool smp_halt_event_postponed;		/* Some SMP implementations (currently Cortex-M) stores
+										 * 'halted' events and emits them after all targets of
+										 * the SMP group has been polled */
+
 	/* the gdb service is there in case of smp, we have only one gdb server
 	 * for all smp target
 	 * the target attached to the gdb is changing dynamically by changing
@@ -286,14 +290,14 @@ enum target_event {
 
 	TARGET_EVENT_TRACE_CONFIG,
 
-	TARGET_EVENT_SEMIHOSTING_USER_CMD_0x100 = 0x100, /* semihosting allows user cmds from 0x100 to 0x1ff */
-	TARGET_EVENT_SEMIHOSTING_USER_CMD_0x101 = 0x101,
-	TARGET_EVENT_SEMIHOSTING_USER_CMD_0x102 = 0x102,
-	TARGET_EVENT_SEMIHOSTING_USER_CMD_0x103 = 0x103,
-	TARGET_EVENT_SEMIHOSTING_USER_CMD_0x104 = 0x104,
-	TARGET_EVENT_SEMIHOSTING_USER_CMD_0x105 = 0x105,
-	TARGET_EVENT_SEMIHOSTING_USER_CMD_0x106 = 0x106,
-	TARGET_EVENT_SEMIHOSTING_USER_CMD_0x107 = 0x107,
+	TARGET_EVENT_SEMIHOSTING_USER_CMD_0X100 = 0x100, /* semihosting allows user cmds from 0x100 to 0x1ff */
+	TARGET_EVENT_SEMIHOSTING_USER_CMD_0X101 = 0x101,
+	TARGET_EVENT_SEMIHOSTING_USER_CMD_0X102 = 0x102,
+	TARGET_EVENT_SEMIHOSTING_USER_CMD_0X103 = 0x103,
+	TARGET_EVENT_SEMIHOSTING_USER_CMD_0X104 = 0x104,
+	TARGET_EVENT_SEMIHOSTING_USER_CMD_0X105 = 0x105,
+	TARGET_EVENT_SEMIHOSTING_USER_CMD_0X106 = 0x106,
+	TARGET_EVENT_SEMIHOSTING_USER_CMD_0X107 = 0x107,
 };
 
 struct target_event_action {

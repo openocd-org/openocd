@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /***************************************************************************
  *   Copyright (C) 2005 by Dominic Rath                                    *
@@ -77,6 +77,7 @@ extern struct target_type fa526_target;
 extern struct target_type feroceon_target;
 extern struct target_type dragonite_target;
 extern struct target_type xscale_target;
+extern struct target_type xtensa_chip_target;
 extern struct target_type cortexm_target;
 extern struct target_type cortexa_target;
 extern struct target_type aarch64_target;
@@ -91,9 +92,6 @@ extern struct target_type dsp5680xx_target;
 extern struct target_type testee_target;
 extern struct target_type avr32_ap7k_target;
 extern struct target_type hla_target;
-extern struct target_type nds32_v2_target;
-extern struct target_type nds32_v3_target;
-extern struct target_type nds32_v3m_target;
 extern struct target_type esp32_target;
 extern struct target_type esp32s2_target;
 extern struct target_type esp32s3_target;
@@ -118,6 +116,7 @@ static struct target_type *target_types[] = {
 	&feroceon_target,
 	&dragonite_target,
 	&xscale_target,
+	&xtensa_chip_target,
 	&cortexm_target,
 	&cortexa_target,
 	&cortexr4_target,
@@ -130,9 +129,6 @@ static struct target_type *target_types[] = {
 	&testee_target,
 	&avr32_ap7k_target,
 	&hla_target,
-	&nds32_v2_target,
-	&nds32_v3_target,
-	&nds32_v3m_target,
 	&esp32_target,
 	&esp32s2_target,
 	&esp32s3_target,
@@ -234,14 +230,14 @@ static const struct jim_nvp nvp_target_event[] = {
 
 	{ .value = TARGET_EVENT_TRACE_CONFIG, .name = "trace-config" },
 
-	{ .value = TARGET_EVENT_SEMIHOSTING_USER_CMD_0x100, .name = "semihosting-user-cmd-0x100" },
-	{ .value = TARGET_EVENT_SEMIHOSTING_USER_CMD_0x101, .name = "semihosting-user-cmd-0x101" },
-	{ .value = TARGET_EVENT_SEMIHOSTING_USER_CMD_0x102, .name = "semihosting-user-cmd-0x102" },
-	{ .value = TARGET_EVENT_SEMIHOSTING_USER_CMD_0x103, .name = "semihosting-user-cmd-0x103" },
-	{ .value = TARGET_EVENT_SEMIHOSTING_USER_CMD_0x104, .name = "semihosting-user-cmd-0x104" },
-	{ .value = TARGET_EVENT_SEMIHOSTING_USER_CMD_0x105, .name = "semihosting-user-cmd-0x105" },
-	{ .value = TARGET_EVENT_SEMIHOSTING_USER_CMD_0x106, .name = "semihosting-user-cmd-0x106" },
-	{ .value = TARGET_EVENT_SEMIHOSTING_USER_CMD_0x107, .name = "semihosting-user-cmd-0x107" },
+	{ .value = TARGET_EVENT_SEMIHOSTING_USER_CMD_0X100, .name = "semihosting-user-cmd-0x100" },
+	{ .value = TARGET_EVENT_SEMIHOSTING_USER_CMD_0X101, .name = "semihosting-user-cmd-0x101" },
+	{ .value = TARGET_EVENT_SEMIHOSTING_USER_CMD_0X102, .name = "semihosting-user-cmd-0x102" },
+	{ .value = TARGET_EVENT_SEMIHOSTING_USER_CMD_0X103, .name = "semihosting-user-cmd-0x103" },
+	{ .value = TARGET_EVENT_SEMIHOSTING_USER_CMD_0X104, .name = "semihosting-user-cmd-0x104" },
+	{ .value = TARGET_EVENT_SEMIHOSTING_USER_CMD_0X105, .name = "semihosting-user-cmd-0x105" },
+	{ .value = TARGET_EVENT_SEMIHOSTING_USER_CMD_0X106, .name = "semihosting-user-cmd-0x106" },
+	{ .value = TARGET_EVENT_SEMIHOSTING_USER_CMD_0X107, .name = "semihosting-user-cmd-0x107" },
 
 	{ .name = NULL, .value = -1 }
 };
@@ -654,10 +650,10 @@ int target_resume(struct target *target, int current, target_addr_t address,
 	 * Disable polling during resume() to guarantee the execution of handlers
 	 * in the correct order.
 	 */
-	bool save_poll = jtag_poll_get_enabled();
-	jtag_poll_set_enabled(false);
+	bool save_poll_mask = jtag_poll_mask();
 	retval = target->type->resume(target, current, address, handle_breakpoints, debug_execution);
-	jtag_poll_set_enabled(save_poll);
+	jtag_poll_unmask(save_poll_mask);
+
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -685,14 +681,12 @@ static int target_process_reset(struct command_invocation *cmd, enum target_rese
 	 * more predictable, i.e. dr/irscan & pathmove in events will
 	 * not have JTAG operations injected into the middle of a sequence.
 	 */
-	bool save_poll = jtag_poll_get_enabled();
-
-	jtag_poll_set_enabled(false);
+	bool save_poll_mask = jtag_poll_mask();
 
 	sprintf(buf, "ocd_process_reset %s", n->name);
 	retval = Jim_Eval(cmd->ctx->interp, buf);
 
-	jtag_poll_set_enabled(save_poll);
+	jtag_poll_unmask(save_poll_mask);
 
 	if (retval != JIM_OK) {
 		Jim_MakeErrorMessage(cmd->ctx->interp);
@@ -2071,7 +2065,7 @@ int target_alloc_working_area_try(struct target *target, uint32_t size, struct w
 		struct working_area *new_wa = malloc(sizeof(*new_wa));
 		if (new_wa) {
 			new_wa->next = NULL;
-			new_wa->size = target->working_area_size & ~3UL; /* 4-byte align */
+			new_wa->size = ALIGN_DOWN(target->working_area_size, 4); /* 4-byte align */
 			new_wa->address = target->working_area;
 			new_wa->backup = NULL;
 			new_wa->user = NULL;
@@ -2082,8 +2076,7 @@ int target_alloc_working_area_try(struct target *target, uint32_t size, struct w
 	}
 
 	/* only allocate multiples of 4 byte */
-	if (size % 4)
-		size = (size + 3) & (~3UL);
+	size = ALIGN_UP(size, 4);
 
 	struct working_area *c = target->working_areas;
 
@@ -2237,7 +2230,7 @@ uint32_t target_get_working_area_avail(struct target *target)
 	uint32_t max_size = 0;
 
 	if (!c)
-		return target->working_area_size;
+		return ALIGN_DOWN(target->working_area_size, 4);
 
 	while (c) {
 		if (c->free && max_size < c->size)
@@ -4252,11 +4245,19 @@ static void write_gmon(uint32_t *samples, uint32_t sample_num, const char *filen
 
 		/* max should be (largest sample + 1)
 		 * Refer to binutils/gprof/hist.c (find_histogram_for_pc) */
-		max++;
+		if (max < UINT32_MAX)
+			max++;
+
+		/* gprof requires (max - min) >= 2 */
+		while ((max - min) < 2) {
+			if (max < UINT32_MAX)
+				max++;
+			else
+				min--;
+		}
 	}
 
-	int address_space = max - min;
-	assert(address_space >= 2);
+	uint32_t address_space = max - min;
 
 	/* FIXME: What is the reasonable number of buckets?
 	 * The profiling result will be more accurate if there are enough buckets. */
@@ -4332,6 +4333,19 @@ COMMAND_HANDLER(handle_profile_command)
 
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], offset);
 
+	uint32_t start_address = 0;
+	uint32_t end_address = 0;
+	bool with_range = false;
+	if (CMD_ARGC == 4) {
+		with_range = true;
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], start_address);
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[3], end_address);
+		if (start_address > end_address || (end_address - start_address) < 2) {
+			command_print(CMD, "Error: end - start < 2");
+			return ERROR_COMMAND_ARGUMENT_INVALID;
+		}
+	}
+
 	uint32_t *samples = malloc(sizeof(uint32_t) * MAX_PROFILE_SAMPLE_NUM);
 	if (!samples) {
 		LOG_ERROR("No memory to store samples.");
@@ -4382,15 +4396,6 @@ COMMAND_HANDLER(handle_profile_command)
 	if (retval != ERROR_OK) {
 		free(samples);
 		return retval;
-	}
-
-	uint32_t start_address = 0;
-	uint32_t end_address = 0;
-	bool with_range = false;
-	if (CMD_ARGC == 4) {
-		with_range = true;
-		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], start_address);
-		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[3], end_address);
 	}
 
 	write_gmon(samples, num_of_samples, CMD_ARGV[1],
@@ -4718,7 +4723,7 @@ static int target_jim_read_memory(Jim_Interp *interp, int argc,
 				break;
 			}
 
-			char value_buf[11];
+			char value_buf[19];
 			snprintf(value_buf, sizeof(value_buf), "0x%" PRIx64, v);
 
 			Jim_ListAppendElement(interp, result_list,
@@ -6434,16 +6439,52 @@ static int jim_target_names(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	return JIM_OK;
 }
 
+static struct target_list *
+__attribute__((warn_unused_result))
+create_target_list_node(Jim_Obj *const name) {
+	int len;
+	const char *targetname = Jim_GetString(name, &len);
+	struct target *target = get_target(targetname);
+	LOG_DEBUG("%s ", targetname);
+	if (!target)
+		return NULL;
+
+	struct target_list *new = malloc(sizeof(struct target_list));
+	if (!new) {
+		LOG_ERROR("Out of memory");
+		return new;
+	}
+
+	new->target = target;
+	return new;
+}
+
+static int get_target_with_common_rtos_type(struct list_head *lh, struct target **result)
+{
+	struct target *target = NULL;
+	struct target_list *curr;
+	foreach_smp_target(curr, lh) {
+		struct rtos *curr_rtos = curr->target->rtos;
+		if (curr_rtos) {
+			if (target && target->rtos && target->rtos->type != curr_rtos->type) {
+				LOG_ERROR("Different rtos types in members of one smp target!");
+				return JIM_ERR;
+			}
+			target = curr->target;
+		}
+	}
+	*result = target;
+	return JIM_OK;
+}
+
 static int jim_target_smp(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
-	int i;
-	const char *targetname;
-	int retval, len;
 	static int smp_group = 1;
-	struct target *target = NULL;
-	struct target_list *head, *new;
 
-	retval = 0;
+	if (argc == 1) {
+		LOG_DEBUG("Empty SMP target");
+		return JIM_OK;
+	}
 	LOG_DEBUG("%d", argc);
 	/* argv[1] = target to associate in smp
 	 * argv[2] = target to associate in smp
@@ -6457,27 +6498,24 @@ static int jim_target_smp(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	}
 	INIT_LIST_HEAD(lh);
 
-	for (i = 1; i < argc; i++) {
-
-		targetname = Jim_GetString(argv[i], &len);
-		target = get_target(targetname);
-		LOG_DEBUG("%s ", targetname);
-		if (target) {
-			new = malloc(sizeof(struct target_list));
-			new->target = target;
+	for (int i = 1; i < argc; i++) {
+		struct target_list *new = create_target_list_node(argv[i]);
+		if (new)
 			list_add_tail(&new->lh, lh);
-		}
 	}
 	/*  now parse the list of cpu and put the target in smp mode*/
-	foreach_smp_target(head, lh) {
-		target = head->target;
+	struct target_list *curr;
+	foreach_smp_target(curr, lh) {
+		struct target *target = curr->target;
 		target->smp = smp_group;
 		target->smp_targets = lh;
 	}
 	smp_group++;
 
-	if (target && target->rtos)
-		retval = rtos_smp_init(target);
+	struct target *rtos_target;
+	int retval = get_target_with_common_rtos_type(lh, &rtos_target);
+	if (retval == JIM_OK && rtos_target)
+		retval = rtos_smp_init(rtos_target);
 
 	return retval;
 }

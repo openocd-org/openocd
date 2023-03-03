@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /***************************************************************************
  *   Copyright (C) 2011 by Broadcom Corporation                            *
@@ -12,6 +12,7 @@
 #include "rtos.h"
 #include "target/armv7m.h"
 #include "rtos_standard_stackings.h"
+#include "rtos_embkernel_stackings.h"
 
 static const struct stack_register_offset rtos_embkernel_cortex_m_stack_offsets[ARMV7M_NUM_CORE_REGS] = {
 	{ ARMV7M_R0,   0x24, 32 },		/* r0   */
@@ -30,7 +31,7 @@ static const struct stack_register_offset rtos_embkernel_cortex_m_stack_offsets[
 	{ ARMV7M_R13,  -2,   32 },	    /* sp   */
 	{ ARMV7M_R14,  0x38, 32 },		/* lr   */
 	{ ARMV7M_PC,   0x3c, 32 },		/* pc   */
-	{ ARMV7M_xPSR, 0x40, 32 },		/* xPSR */
+	{ ARMV7M_XPSR, 0x40, 32 },		/* xPSR */
 };
 
 const struct rtos_register_stacking rtos_embkernel_cortex_m_stacking = {

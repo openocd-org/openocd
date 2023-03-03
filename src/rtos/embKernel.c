@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /***************************************************************************
  *   Copyright (C) 2011 by Broadcom Corporation                            *
@@ -27,7 +27,7 @@ static int embkernel_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
 		struct rtos_reg **reg_list, int *num_regs);
 static int embkernel_get_symbol_list_to_lookup(struct symbol_table_elem *symbol_list[]);
 
-struct rtos_type embkernel_rtos = {
+const struct rtos_type embkernel_rtos = {
 		.name = "embKernel",
 		.detect_rtos = embkernel_detect_rtos,
 		.create = embkernel_create,

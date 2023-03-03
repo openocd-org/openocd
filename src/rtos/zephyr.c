@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /***************************************************************************
  *   Copyright (C) 2017 by Intel Corporation
@@ -136,7 +136,7 @@ static const struct stack_register_offset arm_cpu_saved[] = {
 	{ ARMV7M_R13,  -2, 32 },
 	{ ARMV7M_R14,  20, 32 },
 	{ ARMV7M_PC,   24, 32 },
-	{ ARMV7M_xPSR, 28, 32 },
+	{ ARMV7M_XPSR, 28, 32 },
 };
 
 static struct stack_register_offset arc_cpu_saved[] = {
@@ -785,7 +785,7 @@ static int zephyr_get_symbol_list_to_lookup(struct symbol_table_elem **symbol_li
 	return ERROR_OK;
 }
 
-struct rtos_type zephyr_rtos = {
+const struct rtos_type zephyr_rtos = {
 	.name = "Zephyr",
 
 	.detect_rtos = zephyr_detect_rtos,

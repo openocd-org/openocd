@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /***************************************************************************
  *   Copyright (C) 2009 Zachary T Welch <zw@superlucidity.net>             *
@@ -78,6 +78,7 @@ extern const struct flash_driver w600_flash;
 extern const struct flash_driver xcf_flash;
 extern const struct flash_driver xmc1xxx_flash;
 extern const struct flash_driver xmc4xxx_flash;
+extern const struct flash_driver rsl10_flash;
 
 /**
  * The list of built-in flash drivers.
@@ -153,6 +154,7 @@ static const struct flash_driver * const flash_drivers[] = {
 	&xmc1xxx_flash,
 	&xmc4xxx_flash,
 	&w600_flash,
+	&rsl10_flash,
 	NULL,
 };
 

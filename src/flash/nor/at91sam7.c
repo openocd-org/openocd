@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /***************************************************************************
  *   Copyright (C) 2006 by Magnus Lundin                                   *
@@ -576,8 +576,6 @@ static int at91sam7_read_part_info(struct flash_bank *bank)
 		t_bank->bank_number = bnk;
 		t_bank->base = base_address + bnk * bank_size;
 		t_bank->size = bank_size;
-		t_bank->chip_width = 0;
-		t_bank->bus_width = 4;
 		t_bank->num_sectors = sectors_num;
 
 		/* allocate sectors */
@@ -691,8 +689,6 @@ FLASH_BANK_COMMAND_HANDLER(at91sam7_flash_bank_command)
 	uint32_t bank_size;
 	uint32_t ext_freq = 0;
 
-	unsigned int chip_width;
-	unsigned int bus_width;
 	unsigned int banks_num;
 	unsigned int num_sectors;
 
@@ -716,9 +712,6 @@ FLASH_BANK_COMMAND_HANDLER(at91sam7_flash_bank_command)
 
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], base_address);
 
-	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[3], chip_width);
-	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[4], bus_width);
-
 	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[8], banks_num);
 	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[9], num_sectors);
 	COMMAND_PARSE_NUMBER(u16, CMD_ARGV[10], pages_per_sector);
@@ -732,7 +725,7 @@ FLASH_BANK_COMMAND_HANDLER(at91sam7_flash_bank_command)
 		at91sam7_info->ext_freq = ext_freq;
 	}
 
-	if ((bus_width == 0) || (banks_num == 0) || (num_sectors == 0) ||
+	if ((banks_num == 0) || (num_sectors == 0) ||
 			(pages_per_sector == 0) || (page_size == 0) || (num_nvmbits == 0)) {
 		at91sam7_info->flash_autodetection = 1;
 		return ERROR_OK;
@@ -761,8 +754,6 @@ FLASH_BANK_COMMAND_HANDLER(at91sam7_flash_bank_command)
 		t_bank->bank_number = bnk;
 		t_bank->base = base_address + bnk * bank_size;
 		t_bank->size = bank_size;
-		t_bank->chip_width = chip_width;
-		t_bank->bus_width = bus_width;
 		t_bank->num_sectors = num_sectors;
 
 		/* allocate sectors */

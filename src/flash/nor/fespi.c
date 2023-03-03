@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /***************************************************************************
  *   Copyright (C) 2010 by Antonio Borneo <borneo.antonio@gmail.com>       *
@@ -510,6 +510,12 @@ static int fespi_write(struct flash_bank *bank, const uint8_t *buffer,
 			LOG_ERROR("Flash sector %u protected", sector);
 			return ERROR_FAIL;
 		}
+	}
+
+	struct riscv_info *riscv = riscv_info(target);
+	if (!is_riscv(riscv)) {
+		LOG_ERROR("Unexpected target type");
+		return ERROR_FAIL;
 	}
 
 	unsigned int xlen = riscv_xlen(target);

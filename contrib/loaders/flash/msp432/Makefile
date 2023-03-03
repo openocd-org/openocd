@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: BSD-3-Clause
+
+# Copyright (C) 2018 Texas Instruments Incorporated - http://www.ti.com/
+
 BIN2C = ../../../../src/helper/bin2char.sh
 
 CROSS_COMPILE ?= arm-none-eabi-

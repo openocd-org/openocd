@@ -26,9 +26,4 @@
 #define FMC_ERASE_VALUE   (FMC_DEFAULT_VALUE | FMC_ERASE_BIT)
 #define FMC_MERASE_VALUE  (FMC_DEFAULT_VALUE | FMC_MERASE_BIT)
 
-/* Flash helper algorithm for CC3220SF */
-const uint8_t cc3220sf_algo[] = {
-#include "../../../contrib/loaders/flash/cc3220sf/cc3220sf.inc"
-};
-
 #endif /* OPENOCD_FLASH_NOR_CC3220SF_H */

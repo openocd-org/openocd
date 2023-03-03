@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /*
  * XMC1000 flash driver
@@ -520,24 +520,8 @@ FLASH_BANK_COMMAND_HANDLER(xmc1xxx_flash_bank_command)
 	return ERROR_OK;
 }
 
-static const struct command_registration xmc1xxx_exec_command_handlers[] = {
-	COMMAND_REGISTRATION_DONE
-};
-
-static const struct command_registration xmc1xxx_command_handlers[] = {
-	{
-		.name = "xmc1xxx",
-		.mode = COMMAND_ANY,
-		.help = "xmc1xxx flash command group",
-		.usage = "",
-		.chain = xmc1xxx_exec_command_handlers,
-	},
-	COMMAND_REGISTRATION_DONE
-};
-
 const struct flash_driver xmc1xxx_flash = {
 	.name = "xmc1xxx",
-	.commands = xmc1xxx_command_handlers,
 	.flash_bank_command = xmc1xxx_flash_bank_command,
 	.info = xmc1xxx_get_info_command,
 	.probe = xmc1xxx_probe,

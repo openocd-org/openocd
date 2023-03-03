@@ -148,7 +148,7 @@ enum {
 	PMCR,
 };
 
-#define X86_32_COMMON_MAGIC 0x86328632
+#define X86_32_COMMON_MAGIC 0x86328632U
 
 enum {
 	/* memory read/write */
@@ -200,7 +200,8 @@ struct swbp_mem_patch {
 #define NUM_PM_REGS		18 /* regs used in save/restore */
 
 struct x86_32_common {
-	uint32_t common_magic;
+	unsigned int common_magic;
+
 	void *arch_info;
 	enum x86_core_type core_type;
 	struct reg_cache *cache;

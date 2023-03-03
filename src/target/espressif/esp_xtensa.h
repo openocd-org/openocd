@@ -3,18 +3,19 @@
 /***************************************************************************
  *   Generic ESP xtensa target implementation for OpenOCD                  *
  *   Copyright (C) 2019 Espressif Systems Ltd.                             *
- *   Author: Alexey Gerenkov <alexey@espressif.com>                        *
  ***************************************************************************/
 
 #ifndef OPENOCD_TARGET_ESP_XTENSA_H
 #define OPENOCD_TARGET_ESP_XTENSA_H
 
-#include <helper/command.h>
 #include <target/target.h>
 #include <target/xtensa/xtensa.h>
+#include "esp_xtensa.h"
+#include "esp_semihosting.h"
 
 struct esp_xtensa_common {
 	struct xtensa xtensa;	/* must be the first element */
+	struct esp_semihost_data semihost;
 };
 
 static inline struct esp_xtensa_common *target_to_esp_xtensa(struct target *target)
@@ -24,8 +25,8 @@ static inline struct esp_xtensa_common *target_to_esp_xtensa(struct target *targ
 
 int esp_xtensa_init_arch_info(struct target *target,
 	struct esp_xtensa_common *esp_xtensa,
-	const struct xtensa_config *xtensa_cfg,
-	struct xtensa_debug_module_config *dm_cfg);
+	struct xtensa_debug_module_config *dm_cfg,
+	const struct esp_semihost_ops *semihost_ops);
 int esp_xtensa_target_init(struct command_context *cmd_ctx, struct target *target);
 void esp_xtensa_target_deinit(struct target *target);
 int esp_xtensa_arch_state(struct target *target);

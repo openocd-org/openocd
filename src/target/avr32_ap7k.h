@@ -9,9 +9,11 @@
 
 struct target;
 
-#define AP7K_COMMON_MAGIC	0x4150374b
+#define AP7K_COMMON_MAGIC	0x4150374bU
+
 struct avr32_ap7k_common {
-	int common_magic;
+	unsigned int common_magic;
+
 	struct avr32_jtag jtag;
 	struct reg_cache *core_cache;
 	uint32_t core_regs[AVR32NUMCOREREGS];

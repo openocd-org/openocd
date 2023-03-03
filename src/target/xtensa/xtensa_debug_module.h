@@ -1,25 +1,39 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
 
 /***************************************************************************
- *   Xtensa debug module API                                               *
+ *   Xtensa Debug Module (XDM) Support for OpenOCD                         *
+ *   Copyright (C) 2020-2022 Cadence Design Systems, Inc.                  *
  *   Copyright (C) 2019 Espressif Systems Ltd.                             *
- *   <alexey@espressif.com>                                                *
- *                                                                         *
  *   Derived from original ESP8266 target.                                 *
- *   Copyright (C) 2015 by Angus Gratton                                   *
- *   gus@projectgus.com                                                    *
+ *   Author: Angus Gratton gus@projectgus.com                              *
  ***************************************************************************/
 
 #ifndef OPENOCD_TARGET_XTENSA_DEBUG_MODULE_H
 #define OPENOCD_TARGET_XTENSA_DEBUG_MODULE_H
 
 #include <jtag/jtag.h>
+#include <target/arm_adi_v5.h>
 #include <helper/bits.h>
 #include <target/target.h>
 
 /* Virtual IDs for using with xtensa_power_ops API */
-#define DMREG_PWRCTL       0x00
-#define DMREG_PWRSTAT      0x01
+enum xtensa_dm_pwr_reg {
+	XDMREG_PWRCTL = 0x00,
+	XDMREG_PWRSTAT,
+	XDMREG_PWRNUM
+};
+
+/* Debug Module Power Register offsets within APB */
+struct xtensa_dm_pwr_reg_offsets {
+	uint16_t apb;
+};
+
+/* Debug Module Power Register offset structure; must include XDMREG_PWRNUM entries */
+#define XTENSA_DM_PWR_REG_OFFSETS	{				\
+	/* Power/Reset Registers */						\
+	{ .apb = 0x3020 },		/* XDMREG_PWRCTL */		\
+	{ .apb = 0x3024 },		/* XDMREG_PWRSTAT */	\
+}
 
 /*
  From the manual:
@@ -32,81 +46,203 @@
  Module to happen correctly. When it is set, any write to this bit clears it.
  Either don't access it, or re-write it to 1 so JTAG accesses continue.
 */
-#define PWRCTL_JTAGDEBUGUSE     BIT(7)
-#define PWRCTL_DEBUGRESET       BIT(6)
-#define PWRCTL_CORERESET        BIT(4)
-#define PWRCTL_DEBUGWAKEUP      BIT(2)
-#define PWRCTL_MEMWAKEUP        BIT(1)
-#define PWRCTL_COREWAKEUP       BIT(0)
+#define PWRCTL_JTAGDEBUGUSE(x)		(((x)->dbg_mod.dap) ? (0)     : BIT(7))
+#define PWRCTL_DEBUGRESET(x)		(((x)->dbg_mod.dap) ? BIT(28) : BIT(6))
+#define PWRCTL_CORERESET(x)			(((x)->dbg_mod.dap) ? BIT(16) : BIT(4))
+#define PWRCTL_DEBUGWAKEUP(x)		(((x)->dbg_mod.dap) ? BIT(12) : BIT(2))
+#define PWRCTL_MEMWAKEUP(x)			(((x)->dbg_mod.dap) ? BIT(8)  : BIT(1))
+#define PWRCTL_COREWAKEUP(x)		(((x)->dbg_mod.dap) ? BIT(0)  : BIT(0))
 
-#define PWRSTAT_DEBUGWASRESET   BIT(6)
-#define PWRSTAT_COREWASRESET    BIT(4)
-#define PWRSTAT_CORESTILLNEEDED BIT(3)
-#define PWRSTAT_DEBUGDOMAINON   BIT(2)
-#define PWRSTAT_MEMDOMAINON     BIT(1)
-#define PWRSTAT_COREDOMAINON    BIT(0)
+#define PWRSTAT_DEBUGWASRESET_DM(d)	(((d)->dap) ? BIT(28) : BIT(6))
+#define PWRSTAT_COREWASRESET_DM(d)	(((d)->dap) ? BIT(16) : BIT(4))
+#define PWRSTAT_DEBUGWASRESET(x)	(PWRSTAT_DEBUGWASRESET_DM(&((x)->dbg_mod)))
+#define PWRSTAT_COREWASRESET(x)		(PWRSTAT_COREWASRESET_DM(&((x)->dbg_mod)))
+#define PWRSTAT_CORESTILLNEEDED(x)	(((x)->dbg_mod.dap) ? BIT(4)  : BIT(3))
+#define PWRSTAT_DEBUGDOMAINON(x)	(((x)->dbg_mod.dap) ? BIT(12) : BIT(2))
+#define PWRSTAT_MEMDOMAINON(x)		(((x)->dbg_mod.dap) ? BIT(8)  : BIT(1))
+#define PWRSTAT_COREDOMAINON(x)		(((x)->dbg_mod.dap) ? BIT(0)  : BIT(0))
 
-/* *** NAR addresses (also used as IDs for debug registers in xtensa_debug_ops API) ***
- *TRAX registers */
-#define NARADR_TRAXID       0x00
-#define NARADR_TRAXCTRL     0x01
-#define NARADR_TRAXSTAT     0x02
-#define NARADR_TRAXDATA     0x03
-#define NARADR_TRAXADDR     0x04
-#define NARADR_TRIGGERPC    0x05
-#define NARADR_PCMATCHCTRL  0x06
-#define NARADR_DELAYCNT     0x07
-#define NARADR_MEMADDRSTART 0x08
-#define NARADR_MEMADDREND   0x09
-/*Performance monitor registers */
-#define NARADR_PMG          0x20
-#define NARADR_INTPC        0x24
-#define NARADR_PM0          0x28
-/*... */
-#define NARADR_PM7          0x2F
-#define NARADR_PMCTRL0      0x30
-/*... */
-#define NARADR_PMCTRL7      0x37
-#define NARADR_PMSTAT0      0x38
-/*... */
-#define NARADR_PMSTAT7      0x3F
-/*OCD registers */
-#define NARADR_OCDID        0x40
-#define NARADR_DCRCLR       0x42
-#define NARADR_DCRSET       0x43
-#define NARADR_DSR          0x44
-#define NARADR_DDR          0x45
-#define NARADR_DDREXEC      0x46
-#define NARADR_DIR0EXEC     0x47
-#define NARADR_DIR0         0x48
-#define NARADR_DIR1         0x49
-/*... */
-#define NARADR_DIR7         0x4F
-/*Misc registers */
-#define NARADR_PWRCTL       0x58
-#define NARADR_PWRSTAT      0x59
-#define NARADR_ERISTAT      0x5A
-/*CoreSight registers */
-#define NARADR_ITCTRL       0x60
-#define NARADR_CLAIMSET     0x68
-#define NARADR_CLAIMCLR     0x69
-#define NARADR_LOCKACCESS   0x6c
-#define NARADR_LOCKSTATUS   0x6d
-#define NARADR_AUTHSTATUS   0x6e
-#define NARADR_DEVID        0x72
-#define NARADR_DEVTYPE      0x73
-#define NARADR_PERID4       0x74
-/*... */
-#define NARADR_PERID7       0x77
-#define NARADR_PERID0       0x78
-/*... */
-#define NARADR_PERID3       0x7b
-#define NARADR_COMPID0      0x7c
-/*... */
-#define NARADR_COMPID3      0x7f
-#define NARADR_MAX          NARADR_COMPID3
+/* Virtual IDs for using with xtensa_debug_ops API */
+enum xtensa_dm_reg {
+	/* TRAX Registers */
+	XDMREG_TRAXID = 0x00,
+	XDMREG_TRAXCTRL,
+	XDMREG_TRAXSTAT,
+	XDMREG_TRAXDATA,
+	XDMREG_TRAXADDR,
+	XDMREG_TRIGGERPC,
+	XDMREG_PCMATCHCTRL,
+	XDMREG_DELAYCNT,
+	XDMREG_MEMADDRSTART,
+	XDMREG_MEMADDREND,
 
-/*OCD registers, bit definitions */
+	/* Performance Monitor Registers */
+	XDMREG_PMG,
+	XDMREG_INTPC,
+	XDMREG_PM0,
+	XDMREG_PM1,
+	XDMREG_PM2,
+	XDMREG_PM3,
+	XDMREG_PM4,
+	XDMREG_PM5,
+	XDMREG_PM6,
+	XDMREG_PM7,
+	XDMREG_PMCTRL0,
+	XDMREG_PMCTRL1,
+	XDMREG_PMCTRL2,
+	XDMREG_PMCTRL3,
+	XDMREG_PMCTRL4,
+	XDMREG_PMCTRL5,
+	XDMREG_PMCTRL6,
+	XDMREG_PMCTRL7,
+	XDMREG_PMSTAT0,
+	XDMREG_PMSTAT1,
+	XDMREG_PMSTAT2,
+	XDMREG_PMSTAT3,
+	XDMREG_PMSTAT4,
+	XDMREG_PMSTAT5,
+	XDMREG_PMSTAT6,
+	XDMREG_PMSTAT7,
+
+	/* OCD Registers */
+	XDMREG_OCDID,
+	XDMREG_DCRCLR,
+	XDMREG_DCRSET,
+	XDMREG_DSR,
+	XDMREG_DDR,
+	XDMREG_DDREXEC,
+	XDMREG_DIR0EXEC,
+	XDMREG_DIR0,
+	XDMREG_DIR1,
+	XDMREG_DIR2,
+	XDMREG_DIR3,
+	XDMREG_DIR4,
+	XDMREG_DIR5,
+	XDMREG_DIR6,
+	XDMREG_DIR7,
+
+	/* Misc Registers */
+	XDMREG_ERISTAT,
+
+	/* CoreSight Registers */
+	XDMREG_ITCTRL,
+	XDMREG_CLAIMSET,
+	XDMREG_CLAIMCLR,
+	XDMREG_LOCKACCESS,
+	XDMREG_LOCKSTATUS,
+	XDMREG_AUTHSTATUS,
+	XDMREG_DEVID,
+	XDMREG_DEVTYPE,
+	XDMREG_PERID4,
+	XDMREG_PERID5,
+	XDMREG_PERID6,
+	XDMREG_PERID7,
+	XDMREG_PERID0,
+	XDMREG_PERID1,
+	XDMREG_PERID2,
+	XDMREG_PERID3,
+	XDMREG_COMPID0,
+	XDMREG_COMPID1,
+	XDMREG_COMPID2,
+	XDMREG_COMPID3,
+
+	XDMREG_NUM
+};
+
+/* Debug Module Register offsets within Nexus (NAR) or APB */
+struct xtensa_dm_reg_offsets {
+	uint8_t  nar;
+	uint16_t apb;
+};
+
+/* Debug Module Register offset structure; must include XDMREG_NUM entries */
+#define XTENSA_DM_REG_OFFSETS	{								\
+	/* TRAX Registers */										\
+	{ .nar = 0x00, .apb = 0x0000 },	/* XDMREG_TRAXID */			\
+	{ .nar = 0x01, .apb = 0x0004 },	/* XDMREG_TRAXCTRL */		\
+	{ .nar = 0x02, .apb = 0x0008 },	/* XDMREG_TRAXSTAT */		\
+	{ .nar = 0x03, .apb = 0x000c },	/* XDMREG_TRAXDATA */		\
+	{ .nar = 0x04, .apb = 0x0010 },	/* XDMREG_TRAXADDR */		\
+	{ .nar = 0x05, .apb = 0x0014 },	/* XDMREG_TRIGGERPC */		\
+	{ .nar = 0x06, .apb = 0x0018 },	/* XDMREG_PCMATCHCTRL */	\
+	{ .nar = 0x07, .apb = 0x001c },	/* XDMREG_DELAYCNT */		\
+	{ .nar = 0x08, .apb = 0x0020 },	/* XDMREG_MEMADDRSTART */	\
+	{ .nar = 0x09, .apb = 0x0024 },	/* XDMREG_MEMADDREND */		\
+																\
+	/* Performance Monitor Registers */							\
+	{ .nar = 0x20, .apb = 0x1000 },	/* XDMREG_PMG */			\
+	{ .nar = 0x24, .apb = 0x1010 },	/* XDMREG_INTPC */			\
+	{ .nar = 0x28, .apb = 0x1080 },	/* XDMREG_PM0 */			\
+	{ .nar = 0x29, .apb = 0x1084 },	/* XDMREG_PM1 */			\
+	{ .nar = 0x2a, .apb = 0x1088 },	/* XDMREG_PM2 */			\
+	{ .nar = 0x2b, .apb = 0x108c },	/* XDMREG_PM3 */			\
+	{ .nar = 0x2c, .apb = 0x1090 },	/* XDMREG_PM4 */			\
+	{ .nar = 0x2d, .apb = 0x1094 },	/* XDMREG_PM5 */			\
+	{ .nar = 0x2e, .apb = 0x1098 },	/* XDMREG_PM6 */			\
+	{ .nar = 0x2f, .apb = 0x109c },	/* XDMREG_PM7 */			\
+	{ .nar = 0x30, .apb = 0x1100 },	/* XDMREG_PMCTRL0 */		\
+	{ .nar = 0x31, .apb = 0x1104 },	/* XDMREG_PMCTRL1 */		\
+	{ .nar = 0x32, .apb = 0x1108 },	/* XDMREG_PMCTRL2 */		\
+	{ .nar = 0x33, .apb = 0x110c },	/* XDMREG_PMCTRL3 */		\
+	{ .nar = 0x34, .apb = 0x1110 },	/* XDMREG_PMCTRL4 */		\
+	{ .nar = 0x35, .apb = 0x1114 },	/* XDMREG_PMCTRL5 */		\
+	{ .nar = 0x36, .apb = 0x1118 },	/* XDMREG_PMCTRL6 */		\
+	{ .nar = 0x37, .apb = 0x111c },	/* XDMREG_PMCTRL7 */		\
+	{ .nar = 0x38, .apb = 0x1180 },	/* XDMREG_PMSTAT0 */		\
+	{ .nar = 0x39, .apb = 0x1184 },	/* XDMREG_PMSTAT1 */		\
+	{ .nar = 0x3a, .apb = 0x1188 },	/* XDMREG_PMSTAT2 */		\
+	{ .nar = 0x3b, .apb = 0x118c },	/* XDMREG_PMSTAT3 */		\
+	{ .nar = 0x3c, .apb = 0x1190 },	/* XDMREG_PMSTAT4 */		\
+	{ .nar = 0x3d, .apb = 0x1194 },	/* XDMREG_PMSTAT5 */		\
+	{ .nar = 0x3e, .apb = 0x1198 },	/* XDMREG_PMSTAT6 */		\
+	{ .nar = 0x3f, .apb = 0x119c },	/* XDMREG_PMSTAT7 */		\
+																\
+	/* OCD Registers */											\
+	{ .nar = 0x40, .apb = 0x2000 },	/* XDMREG_OCDID */			\
+	{ .nar = 0x42, .apb = 0x2008 },	/* XDMREG_DCRCLR */			\
+	{ .nar = 0x43, .apb = 0x200c },	/* XDMREG_DCRSET */			\
+	{ .nar = 0x44, .apb = 0x2010 },	/* XDMREG_DSR */			\
+	{ .nar = 0x45, .apb = 0x2014 },	/* XDMREG_DDR */			\
+	{ .nar = 0x46, .apb = 0x2018 },	/* XDMREG_DDREXEC */		\
+	{ .nar = 0x47, .apb = 0x201c },	/* XDMREG_DIR0EXEC */		\
+	{ .nar = 0x48, .apb = 0x2020 },	/* XDMREG_DIR0 */			\
+	{ .nar = 0x49, .apb = 0x2024 },	/* XDMREG_DIR1 */			\
+	{ .nar = 0x4a, .apb = 0x2028 },	/* XDMREG_DIR2 */			\
+	{ .nar = 0x4b, .apb = 0x202c },	/* XDMREG_DIR3 */			\
+	{ .nar = 0x4c, .apb = 0x2030 },	/* XDMREG_DIR4 */			\
+	{ .nar = 0x4d, .apb = 0x2034 },	/* XDMREG_DIR5 */			\
+	{ .nar = 0x4e, .apb = 0x2038 },	/* XDMREG_DIR6 */			\
+	{ .nar = 0x4f, .apb = 0x203c },	/* XDMREG_DIR7 */			\
+																\
+	/* Misc Registers */										\
+	{ .nar = 0x5a, .apb = 0x3028 },	/* XDMREG_ERISTAT */		\
+																\
+	/* CoreSight Registers */									\
+	{ .nar = 0x60, .apb = 0x3f00 },	/* XDMREG_ITCTRL */			\
+	{ .nar = 0x68, .apb = 0x3fa0 },	/* XDMREG_CLAIMSET */		\
+	{ .nar = 0x69, .apb = 0x3fa4 },	/* XDMREG_CLAIMCLR */		\
+	{ .nar = 0x6c, .apb = 0x3fb0 },	/* XDMREG_LOCKACCESS */		\
+	{ .nar = 0x6d, .apb = 0x3fb4 },	/* XDMREG_LOCKSTATUS */		\
+	{ .nar = 0x6e, .apb = 0x3fb8 },	/* XDMREG_AUTHSTATUS */		\
+	{ .nar = 0x72, .apb = 0x3fc8 },	/* XDMREG_DEVID */			\
+	{ .nar = 0x73, .apb = 0x3fcc },	/* XDMREG_DEVTYPE */		\
+	{ .nar = 0x74, .apb = 0x3fd0 },	/* XDMREG_PERID4 */			\
+	{ .nar = 0x75, .apb = 0x3fd4 },	/* XDMREG_PERID5 */			\
+	{ .nar = 0x76, .apb = 0x3fd8 },	/* XDMREG_PERID6 */			\
+	{ .nar = 0x77, .apb = 0x3fdc },	/* XDMREG_PERID7 */			\
+	{ .nar = 0x78, .apb = 0x3fe0 },	/* XDMREG_PERID0 */			\
+	{ .nar = 0x79, .apb = 0x3fe4 },	/* XDMREG_PERID1 */			\
+	{ .nar = 0x7a, .apb = 0x3fe8 },	/* XDMREG_PERID2 */			\
+	{ .nar = 0x7b, .apb = 0x3fec },	/* XDMREG_PERID3 */			\
+	{ .nar = 0x7c, .apb = 0x3ff0 },	/* XDMREG_COMPID0 */		\
+	{ .nar = 0x7d, .apb = 0x3ff4 },	/* XDMREG_COMPID1 */		\
+	{ .nar = 0x7e, .apb = 0x3ff8 },	/* XDMREG_COMPID2 */		\
+	{ .nar = 0x7f, .apb = 0x3ffc },	/* XDMREG_COMPID3 */		\
+}
+
+#define XTENSA_DM_APB_ALIGN         0x4000
+
+/* OCD registers, bit definitions */
 #define OCDDCR_ENABLEOCD            BIT(0)
 #define OCDDCR_DEBUGINTERRUPT       BIT(1)
 #define OCDDCR_INTERRUPTALLCONDS    BIT(2)
@@ -153,7 +289,7 @@
 #define TRAXCTRL_CTIEN              BIT(5)	/* Cross-trigger enable */
 #define TRAXCTRL_TMEN               BIT(7)	/* Tracemem Enable. Always set. */
 #define TRAXCTRL_CNTU               BIT(9)	/* Post-stop-trigger countdown units; selects when DelayCount-- happens.
-						 *0 - every 32-bit word written to tracemem, 1 - every cpu instruction */
+											 * 0 - every 32-bit word written to tracemem, 1 - every cpu instruction */
 #define TRAXCTRL_TSEN               BIT(11)	/* Undocumented/deprecated? */
 #define TRAXCTRL_SMPER_SHIFT        12		/* Send sync every 2^(9-smper) messages. 7=reserved, 0=no sync msg */
 #define TRAXCTRL_SMPER_MASK         0x07	/* Synchronization message period */
@@ -191,7 +327,7 @@
 #define PCMATCHCTRL_PCML_SHIFT      0		/* Amount of lower bits to ignore in pc trigger register */
 #define PCMATCHCTRL_PCML_MASK       0x1F
 #define PCMATCHCTRL_PCMS            BIT(31)	/* PC Match Sense, 0-match when procs PC is in-range, 1-match when
-						 *out-of-range */
+											 * out-of-range */
 
 #define XTENSA_MAX_PERF_COUNTERS    2
 #define XTENSA_MAX_PERF_SELECT      32
@@ -205,20 +341,24 @@ struct xtensa_debug_ops {
 	/** enable operation */
 	int (*queue_enable)(struct xtensa_debug_module *dm);
 	/** register read. */
-	int (*queue_reg_read)(struct xtensa_debug_module *dm, unsigned int reg, uint8_t *data);
+	int (*queue_reg_read)(struct xtensa_debug_module *dm, enum xtensa_dm_reg reg, uint8_t *data);
 	/** register write. */
-	int (*queue_reg_write)(struct xtensa_debug_module *dm, unsigned int reg, uint32_t data);
+	int (*queue_reg_write)(struct xtensa_debug_module *dm, enum xtensa_dm_reg reg, uint32_t data);
 };
 
+/* Xtensa power registers are 8 bits wide on JTAG interfaces but 32 bits wide
+ * when accessed via APB/DAP.  In order to use DAP queuing APIs (for optimal
+ * performance), the XDM power register APIs take 32-bit register params.
+ */
 struct xtensa_power_ops {
 	/** register read. */
-	int (*queue_reg_read)(struct xtensa_debug_module *dm, unsigned int reg, uint8_t *data,
-		uint8_t clear);
+	int (*queue_reg_read)(struct xtensa_debug_module *dm, enum xtensa_dm_pwr_reg reg, uint8_t *data,
+		uint32_t clear);
 	/** register write. */
-	int (*queue_reg_write)(struct xtensa_debug_module *dm, unsigned int reg, uint8_t data);
+	int (*queue_reg_write)(struct xtensa_debug_module *dm, enum xtensa_dm_pwr_reg reg, uint32_t data);
 };
 
-typedef uint8_t xtensa_pwrstat_t;
+typedef uint32_t xtensa_pwrstat_t;
 typedef uint32_t xtensa_ocdid_t;
 typedef uint32_t xtensa_dsr_t;
 typedef uint32_t xtensa_traxstat_t;
@@ -272,29 +412,62 @@ struct xtensa_perfmon_result {
 struct xtensa_debug_module_config {
 	const struct xtensa_power_ops *pwr_ops;
 	const struct xtensa_debug_ops *dbg_ops;
+
+	/* Either JTAG or DAP structures will be populated */
 	struct jtag_tap *tap;
 	void (*queue_tdi_idle)(struct target *target);
 	void *queue_tdi_idle_arg;
+
+	/* For targets conforming to ARM Debug Interface v5,
+	 * "dap" references the Debug Access Port (DAP)
+	 * used to make requests to the target;
+	 * "debug_ap" is AP instance connected to processor
+	 */
+	struct adiv5_dap *dap;
+	struct adiv5_ap *debug_ap;
+	int debug_apsel;
+	uint32_t ap_offset;
 };
 
 struct xtensa_debug_module {
 	const struct xtensa_power_ops *pwr_ops;
 	const struct xtensa_debug_ops *dbg_ops;
+
+	/* Either JTAG or DAP structures will be populated */
 	struct jtag_tap *tap;
 	void (*queue_tdi_idle)(struct target *target);
 	void *queue_tdi_idle_arg;
 
+	/* DAP struct; AP instance connected to processor */
+	struct adiv5_dap *dap;
+	struct adiv5_ap *debug_ap;
+	int debug_apsel;
+
 	struct xtensa_power_status power_status;
 	struct xtensa_core_status core_status;
 	xtensa_ocdid_t device_id;
+	uint32_t ap_offset;
 };
 
 int xtensa_dm_init(struct xtensa_debug_module *dm, const struct xtensa_debug_module_config *cfg);
+void xtensa_dm_deinit(struct xtensa_debug_module *dm);
+int xtensa_dm_poll(struct xtensa_debug_module *dm);
+int xtensa_dm_examine(struct xtensa_debug_module *dm);
 int xtensa_dm_queue_enable(struct xtensa_debug_module *dm);
-int xtensa_dm_queue_reg_read(struct xtensa_debug_module *dm, unsigned int reg, uint8_t *value);
-int xtensa_dm_queue_reg_write(struct xtensa_debug_module *dm, unsigned int reg, uint32_t value);
-int xtensa_dm_queue_pwr_reg_read(struct xtensa_debug_module *dm, unsigned int reg, uint8_t *data, uint8_t clear);
-int xtensa_dm_queue_pwr_reg_write(struct xtensa_debug_module *dm, unsigned int reg, uint8_t data);
+int xtensa_dm_queue_reg_read(struct xtensa_debug_module *dm, enum xtensa_dm_reg reg, uint8_t *value);
+int xtensa_dm_queue_reg_write(struct xtensa_debug_module *dm, enum xtensa_dm_reg reg, uint32_t value);
+int xtensa_dm_queue_pwr_reg_read(struct xtensa_debug_module *dm,
+	enum xtensa_dm_pwr_reg reg,
+	uint8_t *data,
+	uint32_t clear);
+int xtensa_dm_queue_pwr_reg_write(struct xtensa_debug_module *dm,
+	enum xtensa_dm_pwr_reg reg,
+	uint32_t data);
+
+static inline int xtensa_dm_queue_execute(struct xtensa_debug_module *dm)
+{
+	return dm->dap ? dap_run(dm->dap) : jtag_execute_queue();
+}
 
 static inline void xtensa_dm_queue_tdi_idle(struct xtensa_debug_module *dm)
 {
@@ -341,19 +514,19 @@ static inline bool xtensa_dm_is_online(struct xtensa_debug_module *dm)
 	int res = xtensa_dm_device_id_read(dm);
 	if (res != ERROR_OK)
 		return false;
-	return (dm->device_id != 0xffffffff && dm->device_id != 0);
+	return dm->device_id != 0xffffffff && dm->device_id != 0;
 }
 
 static inline bool xtensa_dm_tap_was_reset(struct xtensa_debug_module *dm)
 {
-	return !(dm->power_status.prev_stat & PWRSTAT_DEBUGWASRESET) &&
-	       dm->power_status.stat & PWRSTAT_DEBUGWASRESET;
+	return !(dm->power_status.prev_stat & PWRSTAT_DEBUGWASRESET_DM(dm)) &&
+	       dm->power_status.stat & PWRSTAT_DEBUGWASRESET_DM(dm);
 }
 
 static inline bool xtensa_dm_core_was_reset(struct xtensa_debug_module *dm)
 {
-	return !(dm->power_status.prev_stat & PWRSTAT_COREWASRESET) &&
-	       dm->power_status.stat & PWRSTAT_COREWASRESET;
+	return !(dm->power_status.prev_stat & PWRSTAT_COREWASRESET_DM(dm)) &&
+	       dm->power_status.stat & PWRSTAT_COREWASRESET_DM(dm);
 }
 
 static inline bool xtensa_dm_core_is_stalled(struct xtensa_debug_module *dm)

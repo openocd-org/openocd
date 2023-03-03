@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /***************************************************************************
  *                                                                         *
@@ -591,8 +591,7 @@ static int psoc6_probe(struct flash_bank *bank)
 
 	unsigned int num_sectors = bank_size / row_sz;
 	bank->size = bank_size;
-	bank->chip_width = 4;
-	bank->bus_width = 4;
+
 	bank->erased_value = 0;
 	bank->default_padded_value = 0;
 

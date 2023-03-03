@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /***************************************************************************
  *   Copyright (C) 2015 by Uwe Bonnes                                      *
@@ -289,7 +289,7 @@ static const struct stm32l4_rev stm32l45_l46xx_revs[] = {
 	{ 0x1000, "A" }, { 0x1001, "Z" }, { 0x2001, "Y" },
 };
 
-static const struct stm32l4_rev stm32l41_L42xx_revs[] = {
+static const struct stm32l4_rev stm32l41_l42xx_revs[] = {
 	{ 0x1000, "A" }, { 0x1001, "Z" }, { 0x2001, "Y" },
 };
 
@@ -318,7 +318,7 @@ static const struct stm32l4_rev stm32l4p_l4qxx_revs[] = {
 };
 
 static const struct stm32l4_rev stm32l55_l56xx_revs[] = {
-	{ 0x1000, "A" }, { 0x2000, "B" },
+	{ 0x1000, "A" }, { 0x2000, "B" }, { 0x2001, "Z" },
 };
 
 static const struct stm32l4_rev stm32g49_g4axx_revs[] = {
@@ -327,6 +327,7 @@ static const struct stm32l4_rev stm32g49_g4axx_revs[] = {
 
 static const struct stm32l4_rev stm32u57_u58xx_revs[] = {
 	{ 0x1000, "A" }, { 0x1001, "Z" }, { 0x1003, "Y" }, { 0x2000, "B" },
+	{ 0x2001, "X" }, { 0x3000, "C" },
 };
 
 static const struct stm32l4_rev stm32wb1xx_revs[] = {
@@ -420,8 +421,8 @@ static const struct stm32l4_part_info stm32l4_parts[] = {
 	},
 	{
 	  .id                    = DEVID_STM32L41_L42XX,
-	  .revs                  = stm32l41_L42xx_revs,
-	  .num_revs              = ARRAY_SIZE(stm32l41_L42xx_revs),
+	  .revs                  = stm32l41_l42xx_revs,
+	  .num_revs              = ARRAY_SIZE(stm32l41_l42xx_revs),
 	  .device_str            = "STM32L41/L42xx",
 	  .max_flash_size_kb     = 128,
 	  .flags                 = F_NONE,
@@ -1740,7 +1741,8 @@ static int stm32l4_probe(struct flash_bank *bank)
 
 	/* Set flash write alignment boundaries.
 	 * Ask the flash infrastructure to ensure required alignment */
-	bank->write_start_alignment = bank->write_end_alignment = stm32l4_info->data_width;
+	bank->write_start_alignment = stm32l4_info->data_width;
+	bank->write_end_alignment = stm32l4_info->data_width;
 
 	/* Initialize the flash registers layout */
 	if (part_info->flags & F_HAS_L5_FLASH_REGS)
@@ -1816,7 +1818,7 @@ static int stm32l4_probe(struct flash_bank *bank)
 		flash_size_kb = stm32l4_info->user_bank_size / 1024;
 	}
 
-	LOG_INFO("flash size = %dkbytes", flash_size_kb);
+	LOG_INFO("flash size = %d KiB", flash_size_kb);
 
 	/* did we assign a flash size? */
 	assert((flash_size_kb != 0xffff) && flash_size_kb);

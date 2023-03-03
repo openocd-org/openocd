@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /***************************************************************************
  *   Copyright (C) 2017 by Square, Inc.                                    *
@@ -9,11 +9,11 @@
 #include "config.h"
 #endif
 
-#include <helper/types.h>
-#include <rtos/rtos.h>
-#include <rtos/rtos_standard_stackings.h>
-#include <target/armv7m.h>
-#include <target/esirisc.h>
+#include "rtos.h"
+#include "target/armv7m.h"
+#include "target/esirisc.h"
+#include "rtos_standard_stackings.h"
+#include "rtos_ucos_iii_stackings.h"
 
 static const struct stack_register_offset rtos_ucos_iii_cortex_m_stack_offsets[] = {
 	{ ARMV7M_R0,   0x20, 32 },	/* r0   */
@@ -32,7 +32,7 @@ static const struct stack_register_offset rtos_ucos_iii_cortex_m_stack_offsets[]
 	{ ARMV7M_R13,  -2,   32 },	/* sp   */
 	{ ARMV7M_R14,  0x34, 32 },	/* lr   */
 	{ ARMV7M_PC,   0x38, 32 },	/* pc   */
-	{ ARMV7M_xPSR, 0x3c, 32 },	/* xPSR */
+	{ ARMV7M_XPSR, 0x3c, 32 },	/* xPSR */
 };
 
 static const struct stack_register_offset rtos_ucos_iii_esi_risc_stack_offsets[] = {

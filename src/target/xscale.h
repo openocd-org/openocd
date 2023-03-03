@@ -15,7 +15,7 @@
 #include "armv4_5_mmu.h"
 #include "trace.h"
 
-#define	XSCALE_COMMON_MAGIC 0x58534341
+#define	XSCALE_COMMON_MAGIC 0x58534341U
 
 /* These four JTAG instructions are architecturally defined.
  * Lengths are core-specific; originally 5 bits, later 7.
@@ -71,10 +71,10 @@ struct xscale_trace {
 };
 
 struct xscale_common {
+	unsigned int common_magic;
+
 	/* armv4/5 common stuff */
 	struct arm arm;
-
-	int common_magic;
 
 	/* XScale registers (CP15, DBG) */
 	struct reg_cache *reg_cache;

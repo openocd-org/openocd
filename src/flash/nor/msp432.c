@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /***************************************************************************
  *   Copyright (C) 2018 by Texas Instruments, Inc.                         *
@@ -43,6 +43,21 @@ struct msp432_bank {
 	bool unlock_bsl;
 	struct working_area *working_area;
 	struct armv7m_algorithm armv7m_info;
+};
+
+/* Flash helper algorithm for MSP432P401x targets */
+static const uint8_t msp432p401x_algo[] = {
+#include "../../../contrib/loaders/flash/msp432/msp432p401x_algo.inc"
+};
+
+/* Flash helper algorithm for MSP432P411x targets */
+static const uint8_t msp432p411x_algo[] = {
+#include "../../../contrib/loaders/flash/msp432/msp432p411x_algo.inc"
+};
+
+/* Flash helper algorithm for MSP432E4x targets */
+static const uint8_t msp432e4x_algo[] = {
+#include "../../../contrib/loaders/flash/msp432/msp432e4x_algo.inc"
 };
 
 static int msp432_auto_probe(struct flash_bank *bank);

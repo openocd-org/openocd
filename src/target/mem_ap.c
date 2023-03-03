@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /*
  * Copyright (C) 2016 by Matthias Welwarsky <matthias.welwarsky@sysgo.com>
@@ -136,15 +136,12 @@ static int mem_ap_examine(struct target *target)
 	struct mem_ap *mem_ap = target->arch_info;
 
 	if (!target_was_examined(target)) {
-		if (mem_ap->ap) {
-			dap_put_ap(mem_ap->ap);
-			mem_ap->ap = NULL;
-		}
-
-		mem_ap->ap = dap_get_ap(mem_ap->dap, mem_ap->ap_num);
 		if (!mem_ap->ap) {
-			LOG_ERROR("Cannot get AP");
-			return ERROR_FAIL;
+			mem_ap->ap = dap_get_ap(mem_ap->dap, mem_ap->ap_num);
+			if (!mem_ap->ap) {
+				LOG_ERROR("Cannot get AP");
+				return ERROR_FAIL;
+			}
 		}
 		target_set_examined(target);
 		target->state = TARGET_UNKNOWN;
@@ -185,7 +182,7 @@ static struct reg_arch_type mem_ap_reg_arch_type = {
 	.set = mem_ap_reg_set,
 };
 
-const char *mem_ap_get_gdb_arch(struct target *target)
+static const char *mem_ap_get_gdb_arch(struct target *target)
 {
 	return "arm";
 }

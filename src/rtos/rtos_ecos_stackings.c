@@ -1,13 +1,21 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
 #include "rtos.h"
-#include "rtos_standard_stackings.h"
 #include "target/armv7m.h"
+#include "rtos_standard_stackings.h"
+#include "rtos_ecos_stackings.h"
 
+/* For Cortex-M eCos applications the actual thread context register layout can
+ * be different between active threads of an application depending on whether
+ * the FPU is in use, configured for lazy FPU context saving, etc. */
+
+/* Default fixed thread register context description used for older eCos
+ * application builds without the necessary symbolic information describing the
+ * actual configuration-dependent offsets. */
 static const struct stack_register_offset rtos_ecos_cortex_m3_stack_offsets[ARMV7M_NUM_CORE_REGS] = {
 	{ ARMV7M_R0,   0x0c, 32 },		/* r0   */
 	{ ARMV7M_R1,   0x10, 32 },		/* r1   */
@@ -25,7 +33,7 @@ static const struct stack_register_offset rtos_ecos_cortex_m3_stack_offsets[ARMV
 	{ ARMV7M_R13,  -2,   32 },		/* sp   */
 	{ ARMV7M_R14,  -1,   32 },		/* lr   */
 	{ ARMV7M_PC,   0x40, 32 },		/* pc   */
-	{ ARMV7M_xPSR, -1,   32 },		/* xPSR */
+	{ ARMV7M_XPSR, -1,   32 },		/* xPSR */
 };
 
 const struct rtos_register_stacking rtos_ecos_cortex_m3_stacking = {

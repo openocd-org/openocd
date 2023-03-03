@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /***************************************************************************
  *  Copyright (C) 2011 by Rodrigo L. Rosa                                 *
@@ -16,7 +16,7 @@
 #include "target_type.h"
 #include "dsp5680xx.h"
 
-struct dsp5680xx_common dsp5680xx_context;
+static struct dsp5680xx_common dsp5680xx_context;
 
 #define _E "DSP5680XX_ERROR:%d\nAt:%s:%d:%s"
 #define err_check(r, c, m) if (r != ERROR_OK) {LOG_ERROR(_E, c, __func__, __LINE__, m); return r; }
@@ -2200,8 +2200,8 @@ int dsp5680xx_f_lock(struct target *target)
 	struct jtag_tap *tap_chp;
 
 	struct jtag_tap *tap_cpu;
-	uint16_t lock_word[] = { HFM_LOCK_FLASH };
-	retval = dsp5680xx_f_wr(target, (uint8_t *) (lock_word), HFM_LOCK_ADDR_L, 2, 1);
+	uint16_t lock_word = HFM_LOCK_FLASH;
+	retval = dsp5680xx_f_wr(target, (uint8_t *)&lock_word, HFM_LOCK_ADDR_L, 2, 1);
 	err_check_propagate(retval);
 
 	jtag_add_reset(0, 1);

@@ -11,11 +11,12 @@
 #include "arm9tdmi.h"
 #include "armv4_5_mmu.h"
 
-#define	ARM920T_COMMON_MAGIC 0xa920a920
+#define	ARM920T_COMMON_MAGIC 0xa920a920U
 
 struct arm920t_common {
+	unsigned int common_magic;
+
 	struct arm7_9_common arm7_9_common;
-	uint32_t common_magic;
 	struct armv4_5_mmu_common armv4_5_mmu;
 	uint32_t cp15_control_reg;
 	uint32_t d_fsr;

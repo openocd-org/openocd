@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /***************************************************************************
  *   Copyright (C) 2008 by Spencer Oliver                                  *
@@ -150,7 +150,7 @@ static int mips32_pracc_clean_text_jump(struct mips_ejtag *ejtag_info)
 	return ERROR_OK;
 }
 
-int mips32_pracc_exec(struct mips_ejtag *ejtag_info, struct pracc_queue_info *ctx,
+static int mips32_pracc_exec(struct mips_ejtag *ejtag_info, struct pracc_queue_info *ctx,
 					uint32_t *param_out, bool check_last)
 {
 	int code_count = 0;
@@ -323,7 +323,7 @@ void pracc_add(struct pracc_queue_info *ctx, uint32_t addr, uint32_t instr)
 		ctx->store_count++;
 }
 
-void pracc_add_li32(struct pracc_queue_info *ctx, uint32_t reg_num, uint32_t data, bool optimize)
+static void pracc_add_li32(struct pracc_queue_info *ctx, uint32_t reg_num, uint32_t data, bool optimize)
 {
 	if (LOWER16(data) == 0 && optimize)
 		pracc_add(ctx, 0, MIPS32_LUI(ctx->isa, reg_num, UPPER16(data)));	/* load only upper value */

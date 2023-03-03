@@ -15,12 +15,14 @@
 
 struct target;
 
-#define MIPSM4K_COMMON_MAGIC	0xB321B321
+#define MIPSM4K_COMMON_MAGIC	0xB321B321U
 
 struct mips_m4k_common {
-	uint32_t common_magic;
-	bool is_pic32mx;
+	unsigned int common_magic;
+
 	struct mips32_common mips32;
+
+	bool is_pic32mx;
 };
 
 static inline struct mips_m4k_common *
@@ -41,6 +43,5 @@ static inline void mips_m4k_isa_filter(enum mips32_isa_imp isa_imp, target_addr_
 		}
 	}
 }
-extern const struct command_registration mips_m4k_command_handlers[];
 
 #endif /* OPENOCD_TARGET_MIPS_M4K_H */

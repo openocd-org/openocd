@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /***************************************************************************
  *   Copyright (C) 2011 by Mathias Kuester                                 *
@@ -17,7 +17,6 @@
 #include <transport/transport.h>
 #include <helper/time_support.h>
 
-#include <jtag/hla/hla_tcl.h>
 #include <jtag/hla/hla_layout.h>
 #include <jtag/hla/hla_transport.h>
 #include <jtag/hla/hla_interface.h>

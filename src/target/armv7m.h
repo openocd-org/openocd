@@ -46,7 +46,7 @@ enum {
 	ARMV7M_REGSEL_R14,
 	ARMV7M_REGSEL_PC = 15,
 
-	ARMV7M_REGSEL_xPSR = 16,
+	ARMV7M_REGSEL_XPSR = 16,
 	ARMV7M_REGSEL_MSP,
 	ARMV7M_REGSEL_PSP,
 
@@ -124,7 +124,7 @@ enum {
 	ARMV7M_R14 = ARMV7M_REGSEL_R14,
 	ARMV7M_PC = ARMV7M_REGSEL_PC,
 
-	ARMV7M_xPSR = ARMV7M_REGSEL_xPSR,
+	ARMV7M_XPSR = ARMV7M_REGSEL_XPSR,
 	ARMV7M_MSP = ARMV7M_REGSEL_MSP,
 	ARMV7M_PSP = ARMV7M_REGSEL_PSP,
 
@@ -199,7 +199,7 @@ enum {
 	/* for convenience add registers' block delimiters */
 	ARMV7M_LAST_REG,
 	ARMV7M_CORE_FIRST_REG = ARMV7M_R0,
-	ARMV7M_CORE_LAST_REG = ARMV7M_xPSR,
+	ARMV7M_CORE_LAST_REG = ARMV7M_XPSR,
 	ARMV7M_FPU_FIRST_REG = ARMV7M_D0,
 	ARMV7M_FPU_LAST_REG = ARMV7M_FPSCR,
 	ARMV8M_FIRST_REG = ARMV8M_MSP_NS,
@@ -215,12 +215,13 @@ enum {
 
 #define ARMV7M_NUM_CORE_REGS (ARMV7M_CORE_LAST_REG - ARMV7M_CORE_FIRST_REG + 1)
 
-#define ARMV7M_COMMON_MAGIC 0x2A452A45
+#define ARMV7M_COMMON_MAGIC 0x2A452A45U
 
 struct armv7m_common {
+	unsigned int common_magic;
+
 	struct arm arm;
 
-	int common_magic;
 	int exception_number;
 
 	/* AP this processor is connected to in the DAP */
@@ -289,7 +290,7 @@ target_to_armv7m_safe(struct target *target)
 }
 
 struct armv7m_algorithm {
-	int common_magic;
+	unsigned int common_magic;
 
 	enum arm_mode core_mode;
 

@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /***************************************************************************
  *   Copyright (C) 2005 by Dominic Rath                                    *
@@ -1075,8 +1075,8 @@ static int efm32x_probe(struct flash_bank *bank)
 
 	LOG_INFO("detected part: %s Gecko, rev %d",
 			efm32_mcu_info->family_data->name, efm32_mcu_info->prod_rev);
-	LOG_INFO("flash size = %dkbytes", efm32_mcu_info->flash_sz_kib);
-	LOG_INFO("flash page size = %dbytes", efm32_mcu_info->page_size);
+	LOG_INFO("flash size = %d KiB", efm32_mcu_info->flash_sz_kib);
+	LOG_INFO("flash page size = %d B", efm32_mcu_info->page_size);
 
 	assert(efm32_mcu_info->page_size != 0);
 

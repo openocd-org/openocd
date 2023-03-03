@@ -17,7 +17,7 @@
 #include "armv7m.h"
 #include "helper/bits.h"
 
-#define CORTEX_M_COMMON_MAGIC 0x1A451A45
+#define CORTEX_M_COMMON_MAGIC 0x1A451A45U
 
 #define SYSTEM_CONTROL_BASE 0x400FE000
 
@@ -36,6 +36,7 @@
 
 enum cortex_m_partno {
 	CORTEX_M_PARTNO_INVALID,
+	STAR_MC1_PARTNO    = 0x132,
 	CORTEX_M0_PARTNO   = 0xC20,
 	CORTEX_M1_PARTNO   = 0xC21,
 	CORTEX_M3_PARTNO   = 0xC23,
@@ -66,6 +67,9 @@ struct cortex_m_part_info {
 #define DCB_DCRDR	0xE000EDF8
 #define DCB_DEMCR	0xE000EDFC
 #define DCB_DSCSR	0xE000EE08
+
+#define DAUTHSTATUS	0xE000EFB8
+#define DAUTHSTATUS_SID_MASK	0x00000030
 
 #define DCRSR_WNR	BIT(16)
 
@@ -199,11 +203,15 @@ enum cortex_m_isrmasking_mode {
 };
 
 struct cortex_m_common {
-	int common_magic;
+	unsigned int common_magic;
+
+	struct armv7m_common armv7m;
 
 	/* Context information */
 	uint32_t dcb_dhcsr;
 	uint32_t dcb_dhcsr_cumulated_sticky;
+	/* DCB DHCSR has been at least once read, so the sticky bits have been reset */
+	bool dcb_dhcsr_sticky_is_recent;
 	uint32_t nvic_dfsr;  /* Debug Fault Status Register - shows reason for debug halt */
 	uint32_t nvic_icsr;  /* Interrupt Control State Register - shows active and pending IRQ */
 
@@ -226,7 +234,6 @@ struct cortex_m_common {
 	enum cortex_m_isrmasking_mode isrmasking_mode;
 
 	const struct cortex_m_part_info *core_info;
-	struct armv7m_common armv7m;
 
 	bool slow_register_read;	/* A register has not been ready, poll S_REGRDY */
 

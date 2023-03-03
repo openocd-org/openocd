@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /***************************************************************************
  *   Copyright (C) 2005 by Dominic Rath                                    *
@@ -473,7 +473,7 @@ static int stm32x_write_block_async(struct flash_bank *bank, const uint8_t *buff
 
 	/* memory buffer */
 	buffer_size = target_get_working_area_avail(target);
-	buffer_size = MIN(hwords_count * 2, MAX(buffer_size, 256));
+	buffer_size = MIN(hwords_count * 2 + 8, MAX(buffer_size, 256));
 	/* Normally we allocate all available working area.
 	 * MIN shrinks buffer_size if the size of the written block is smaller.
 	 * MAX prevents using async algo if the available working area is smaller
@@ -1012,7 +1012,7 @@ static int stm32x_probe(struct flash_bank *bank)
 		flash_size_in_kb = stm32x_info->user_bank_size / 1024;
 	}
 
-	LOG_INFO("flash size = %dkbytes", flash_size_in_kb);
+	LOG_INFO("flash size = %d KiB", flash_size_in_kb);
 
 	/* did we assign flash size? */
 	assert(flash_size_in_kb != 0xffff);

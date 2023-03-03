@@ -11,11 +11,12 @@
 
 struct target;
 
-#define STM8_COMMON_MAGIC	0x53544D38
+#define STM8_COMMON_MAGIC	0x53544D38U
 #define STM8_NUM_CORE_REGS 6
 
 struct stm8_common {
-	uint32_t common_magic;
+	unsigned int common_magic;
+
 	void *arch_info;
 	struct reg_cache *core_cache;
 	uint32_t core_regs[STM8_NUM_CORE_REGS];

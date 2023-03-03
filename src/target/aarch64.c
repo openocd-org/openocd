@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /***************************************************************************
  *   Copyright (C) 2015 by David Ung                                       *
@@ -1837,7 +1837,7 @@ static int aarch64_remove_watchpoint(struct target *target,
  * find out which watchpoint hits
  * get exception address and compare the address to watchpoints
  */
-int aarch64_hit_watchpoint(struct target *target,
+static int aarch64_hit_watchpoint(struct target *target,
 	struct watchpoint **hit_watchpoint)
 {
 	if (target->debug_reason != DBG_REASON_WATCHPOINT)
@@ -2546,23 +2546,20 @@ static int aarch64_examine_first(struct target *target)
 	if (!pc)
 		return ERROR_FAIL;
 
-	if (armv8->debug_ap) {
-		dap_put_ap(armv8->debug_ap);
-		armv8->debug_ap = NULL;
-	}
-
-	if (pc->adiv5_config.ap_num == DP_APSEL_INVALID) {
-		/* Search for the APB-AB */
-		retval = dap_find_get_ap(swjdp, AP_TYPE_APB_AP, &armv8->debug_ap);
-		if (retval != ERROR_OK) {
-			LOG_ERROR("Could not find APB-AP for debug access");
-			return retval;
-		}
-	} else {
-		armv8->debug_ap = dap_get_ap(swjdp, pc->adiv5_config.ap_num);
-		if (!armv8->debug_ap) {
-			LOG_ERROR("Cannot get AP");
-			return ERROR_FAIL;
+	if (!armv8->debug_ap) {
+		if (pc->adiv5_config.ap_num == DP_APSEL_INVALID) {
+			/* Search for the APB-AB */
+			retval = dap_find_get_ap(swjdp, AP_TYPE_APB_AP, &armv8->debug_ap);
+			if (retval != ERROR_OK) {
+				LOG_ERROR("Could not find APB-AP for debug access");
+				return retval;
+			}
+		} else {
+			armv8->debug_ap = dap_get_ap(swjdp, pc->adiv5_config.ap_num);
+			if (!armv8->debug_ap) {
+				LOG_ERROR("Cannot get AP");
+				return ERROR_FAIL;
+			}
 		}
 	}
 

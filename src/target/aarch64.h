@@ -9,7 +9,7 @@
 
 #include "armv8.h"
 
-#define AARCH64_COMMON_MAGIC 0x411fc082
+#define AARCH64_COMMON_MAGIC 0x41413634U
 
 #define CPUDBG_CPUID	0xD00
 #define CPUDBG_CTYPR	0xD04
@@ -38,7 +38,9 @@ struct aarch64_brp {
 };
 
 struct aarch64_common {
-	int common_magic;
+	unsigned int common_magic;
+
+	struct armv8_common armv8_common;
 
 	/* Context information */
 	uint32_t system_control_reg;
@@ -54,8 +56,6 @@ struct aarch64_common {
 	int wp_num;
 	int wp_num_available;
 	struct aarch64_brp *wp_list;
-
-	struct armv8_common armv8_common;
 
 	enum aarch64_isrmasking_mode isrmasking_mode;
 };

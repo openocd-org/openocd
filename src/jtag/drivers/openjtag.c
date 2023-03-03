@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /*******************************************************************************
  *   Driver for OpenJTAG Project (www.openjtag.org)                            *
@@ -742,16 +742,18 @@ static void openjtag_execute_runtest(struct jtag_command *cmd)
 		tap_set_state(TAP_IDLE);
 	}
 
-	if (cmd->cmd.runtest->num_cycles > 16)
-		LOG_WARNING("num_cycles > 16 on run test");
-
 	if (openjtag_variant != OPENJTAG_VARIANT_CY7C65215 ||
 		cmd->cmd.runtest->num_cycles) {
 		uint8_t command;
-		command = 7;
-		command |= ((cmd->cmd.runtest->num_cycles - 1) & 0x0F) << 4;
+		int cycles = cmd->cmd.runtest->num_cycles;
 
-		openjtag_add_byte(command);
+		do {
+			command = 7;
+			command |= (((cycles > 16 ? 16 : cycles) - 1) & 0x0F) << 4;
+
+			openjtag_add_byte(command);
+			cycles -= 16;
+		} while (cycles > 0);
 	}
 
 	tap_set_end_state(end_state);

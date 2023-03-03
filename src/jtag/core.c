@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /***************************************************************************
  *   Copyright (C) 2009 Zachary T Welch                                    *
@@ -136,14 +136,19 @@ int jtag_error_clear(void)
 
 /************/
 
-static bool jtag_poll = 1;
+static bool jtag_poll = true;
+static bool jtag_poll_en = true;
 
 bool is_jtag_poll_safe(void)
 {
 	/* Polling can be disabled explicitly with set_enabled(false).
+	 * It can also be masked with mask().
 	 * It is also implicitly disabled while TRST is active and
 	 * while SRST is gating the JTAG clock.
 	 */
+	if (!jtag_poll_en)
+		return false;
+
 	if (!transport_is_jtag())
 		return jtag_poll;
 
@@ -160,6 +165,18 @@ bool jtag_poll_get_enabled(void)
 void jtag_poll_set_enabled(bool value)
 {
 	jtag_poll = value;
+}
+
+bool jtag_poll_mask(void)
+{
+	bool retval = jtag_poll_en;
+	jtag_poll_en = false;
+	return retval;
+}
+
+void jtag_poll_unmask(bool saved)
+{
+	jtag_poll_en = saved;
 }
 
 /************/

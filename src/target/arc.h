@@ -27,7 +27,7 @@
 #include "arc_cmd.h"
 #include "arc_mem.h"
 
-#define ARC_COMMON_MAGIC	0xB32EB324  /* just a unique number */
+#define ARC_COMMON_MAGIC	0xB32EB324U  /* just a unique number */
 
 #define AUX_DEBUG_REG                   0x5
 #define AUX_PC_REG                      0x6
@@ -183,7 +183,7 @@ struct arc_actionpoint {
 };
 
 struct arc_common {
-	uint32_t common_magic;
+	unsigned int common_magic;
 
 	struct arc_jtag jtag_info;
 
@@ -247,16 +247,6 @@ struct arc_common {
 	do {					\
 		int __retval = (action);	\
 		if (__retval != ERROR_OK) {	\
-			LOG_DEBUG("error while calling \"%s\"",	\
-				# action);     \
-			return __retval;	\
-		}				\
-	} while (0)
-
-#define JIM_CHECK_RETVAL(action)		\
-	do {					\
-		int __retval = (action);	\
-		if (__retval != JIM_OK) {	\
 			LOG_DEBUG("error while calling \"%s\"",	\
 				# action);     \
 			return __retval;	\

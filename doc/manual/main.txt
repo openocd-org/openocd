@@ -19,6 +19,8 @@ check the mailing list archives to find the status of your feature (or bug).
 - The @subpage bugs page contains the content of the BUGS file, which
   provides instructions for submitting bug reports to the maintainers.
 - The @subpage releases page describes the project's release process.
+- The @subpage endianness provides hints about writing and testing
+  endianness independent code for OpenOCD.
 
 @ref primer provide introductory materials for new developers on various
 specific topics.

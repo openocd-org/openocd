@@ -68,7 +68,6 @@ doxygen
 doxygen.log
 Doxyfile
 libtool
-*-libtool
 Makefile
 !contrib/loaders/**/Makefile
 stamp-h1
@@ -101,3 +100,14 @@ tags
 GPATH
 GRTAGS
 GTAGS
+
+# checkpatch script files
+.checkpatch-camelcase.*
+
+# clangd (e.g. for advanced code completion and linting) generates cache files
+# into .cache
+.cache
+
+# A compile_commands.json can be generated using bear and will help tools such
+# as clangd to locate header files and use correct $CFLAGS
+compile_commands.json

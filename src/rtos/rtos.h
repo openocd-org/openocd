@@ -102,6 +102,13 @@ struct rtos_register_stacking {
 		const struct rtos_register_stacking *stacking,
 		target_addr_t stack_ptr);
 	const struct stack_register_offset *register_offsets;
+	/* Optional field for targets which may have to implement their own stack read function.
+	 * Because stack format can be weird or stack data needed to be edited before passing to the gdb.
+	 */
+	int (*read_stack)(struct target *target,
+		int64_t stack_ptr,
+		const struct rtos_register_stacking *stacking,
+		uint8_t *stack_data);
 };
 
 #define GDB_THREAD_PACKET_NOT_CONSUMED (-40)

@@ -587,6 +587,19 @@ bool jtag_poll_get_enabled(void);
  */
 void jtag_poll_set_enabled(bool value);
 
+/**
+ * Mask (disable) polling and return the current mask status that should be
+ * feed to jtag_poll_unmask() to restore it.
+ * Multiple nested calls to jtag_poll_mask() are allowed, each balanced with
+ * its call to jtag_poll_unmask().
+ */
+bool jtag_poll_mask(void);
+
+/**
+ * Restore saved mask for polling.
+ */
+void jtag_poll_unmask(bool saved);
+
 #include <jtag/minidriver.h>
 
 int jim_jtag_newtap(Jim_Interp *interp, int argc, Jim_Obj *const *argv);

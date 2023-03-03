@@ -370,10 +370,21 @@ struct command_context *copy_command_context(struct command_context *cmd_ctx);
  */
 void command_done(struct command_context *context);
 
+/*
+ * command_print() and command_print_sameline() are used to produce the TCL
+ * output of OpenOCD commands. command_print() automatically adds a '\n' at
+ * the end or the format string. Use command_print_sameline() to avoid the
+ * trailing '\n', e.g. to concatenate the command output in the same line.
+ * The very last '\n' of the command is stripped away (see run_command()).
+ * For commands that strictly require a '\n' as last output character, add
+ * it explicitly with either an empty command_print() or with a '\n' in the
+ * last command_print() and add a comment to document it.
+ */
 void command_print(struct command_invocation *cmd, const char *format, ...)
 __attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 2, 3)));
 void command_print_sameline(struct command_invocation *cmd, const char *format, ...)
 __attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 2, 3)));
+
 int command_run_line(struct command_context *context, char *line);
 int command_run_linef(struct command_context *context, const char *format, ...)
 __attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 2, 3)));

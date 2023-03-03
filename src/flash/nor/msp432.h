@@ -101,19 +101,4 @@ struct msp432_algo_params {
 	uint8_t unlock_bsl[4];
 };
 
-/* Flash helper algorithm for MSP432P401x targets */
-const uint8_t msp432p401x_algo[] = {
-#include "../../../contrib/loaders/flash/msp432/msp432p401x_algo.inc"
-};
-
-/* Flash helper algorithm for MSP432P411x targets */
-const uint8_t msp432p411x_algo[] = {
-#include "../../../contrib/loaders/flash/msp432/msp432p411x_algo.inc"
-};
-
-/* Flash helper algorithm for MSP432E4x targets */
-const uint8_t msp432e4x_algo[] = {
-#include "../../../contrib/loaders/flash/msp432/msp432e4x_algo.inc"
-};
-
 #endif /* OPENOCD_FLASH_NOR_MSP432_H */

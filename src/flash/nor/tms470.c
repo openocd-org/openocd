@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /***************************************************************************
  *   Copyright (C) 2007,2008 by Christopher Kilgour                        *
@@ -247,9 +247,6 @@ static int tms470_read_part_info(struct flash_bank *bank)
 	/* turn off memory selects */
 	target_write_u32(target, 0xFFFFFFE4, 0x00000000);
 	target_write_u32(target, 0xFFFFFFE0, 0x00000000);
-
-	bank->chip_width = 32;
-	bank->bus_width = 32;
 
 	LOG_INFO("Identified %s, ver=%d, core=%s, nvmem=%s.",
 		part_name,

@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /***************************************************************************
  *   Copyright (C) 2012 by Matthias Blaicher                               *
@@ -14,6 +14,7 @@
 
 #include "rtos.h"
 #include "target/armv7m.h"
+#include "rtos_chibios_stackings.h"
 
 static const struct stack_register_offset rtos_chibios_arm_v7m_stack_offsets[ARMV7M_NUM_CORE_REGS] = {
 	{ ARMV7M_R0,   -1,   32 },		/* r0   */
@@ -32,7 +33,7 @@ static const struct stack_register_offset rtos_chibios_arm_v7m_stack_offsets[ARM
 	{ ARMV7M_R13,  -2,   32 },		/* sp   */
 	{ ARMV7M_R14,  -1,   32 },		/* lr   */
 	{ ARMV7M_PC,   0x20, 32 },		/* pc   */
-	{ ARMV7M_xPSR, -1,   32 },		/* xPSR */
+	{ ARMV7M_XPSR, -1,   32 },		/* xPSR */
 };
 
 const struct rtos_register_stacking rtos_chibios_arm_v7m_stacking = {
@@ -59,7 +60,7 @@ static const struct stack_register_offset rtos_chibios_arm_v7m_stack_offsets_w_f
 	{ ARMV7M_R13,  -2,   32 },		/* sp   */
 	{ ARMV7M_R14,  -1,   32 },		/* lr   */
 	{ ARMV7M_PC,   0x60, 32 },		/* pc   */
-	{ ARMV7M_xPSR, -1,   32 },		/* xPSR */
+	{ ARMV7M_XPSR, -1,   32 },		/* xPSR */
 };
 
 const struct rtos_register_stacking rtos_chibios_arm_v7m_stacking_w_fpu = {

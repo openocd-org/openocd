@@ -359,6 +359,10 @@ struct adiv5_dap {
 	 * swizzle appropriately. */
 	bool ti_be_32_quirks;
 
+	/* The Nuvoton NPCX M4 has an issue with writing to non-4-byte-aligned mmios.
+	 * The work around is to repeat the data in all 4 bytes of DRW */
+	bool nu_npcx_quirks;
+
 	/**
 	 * STLINK adapter need to know if last AP operation was read or write, and
 	 * in case of write has to flush it with a dummy read from DP_RDBUFF

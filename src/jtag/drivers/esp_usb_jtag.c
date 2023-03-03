@@ -1,20 +1,8 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /***************************************************************************
  *   Espressif USB to Jtag adapter                                         *
  *   Copyright (C) 2020 Espressif Systems (Shanghai) Co. Ltd.              *
- *   Author: Jeroen Domburg <jeroen@espressif.com>                         *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
 #ifdef HAVE_CONFIG_H
@@ -27,8 +15,6 @@
 #include <helper/bits.h>
 #include "bitq.h"
 #include "libusb_helper.h"
-
-#define __packed __attribute__((packed))
 
 /*
 Holy Crap, it's protocol documentation, and it's even vendor-provided!
@@ -122,7 +108,7 @@ descriptor.
 struct jtag_proto_caps_hdr {
 	uint8_t proto_ver;	/* Protocol version. Expects JTAG_PROTO_CAPS_VER for now. */
 	uint8_t length;	/* of this plus any following descriptors */
-} __packed;
+} __attribute__((packed));
 
 /* start of the descriptor headers */
 #define JTAG_BUILTIN_DESCR_START_OFF            0	/* Devices with builtin usb jtag */
@@ -145,7 +131,7 @@ of caps header to assume this. If no such caps exist, assume a minimum (in) buff
 struct jtag_gen_hdr {
 	uint8_t type;
 	uint8_t length;
-} __packed;
+} __attribute__((packed));
 
 struct jtag_proto_caps_speed_apb {
 	uint8_t type;					/* Type, always JTAG_PROTO_CAPS_SPEED_APB_TYPE */
@@ -153,7 +139,7 @@ struct jtag_proto_caps_speed_apb {
 	uint8_t apb_speed_10khz[2];		/* ABP bus speed, in 10KHz increments. Base speed is half this. */
 	uint8_t div_min[2];				/* minimum divisor (to base speed), inclusive */
 	uint8_t div_max[2];				/* maximum divisor (to base speed), inclusive */
-} __packed;
+} __attribute__((packed));
 
 #define JTAG_PROTO_CAPS_DATA_LEN                255
 #define JTAG_PROTO_CAPS_SPEED_APB_TYPE          1
