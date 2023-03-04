@@ -20,6 +20,8 @@
 #ifndef OPENOCD_HELPER_NVP_H
 #define OPENOCD_HELPER_NVP_H
 
+#include <helper/compiler.h>
+
 /** Name Value Pairs, aka: NVP
  *   -  Given a string - return the associated int.
  *   -  Given a number - return the associated string.
@@ -65,9 +67,9 @@ struct command_invocation;
 
 /* Name Value Pairs Operations */
 const struct nvp *nvp_name2value(const struct nvp *nvp_table, const char *name)
-	__attribute__((returns_nonnull, nonnull(1)));
+	__returns_nonnull __nonnull((1));
 const struct nvp *nvp_value2name(const struct nvp *nvp_table, int v)
-	__attribute__((returns_nonnull, nonnull(1)));
+	__returns_nonnull __nonnull((1));
 
 void nvp_unknown_command_print(struct command_invocation *cmd, const struct nvp *nvp,
 	const char *param_name, const char *param_value);
