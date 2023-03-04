@@ -18,9 +18,6 @@
 #include "config.h"
 #endif
 
-/* see Embedded-HOWTO.txt in Jim Tcl project hosted on BerliOS*/
-#define JIM_EMBEDDED
-
 /* @todo the inclusion of target.h here is a layering violation */
 #include <jtag/jtag.h>
 #include <target/target.h>
