@@ -34,7 +34,8 @@ noinst_LTLIBRARIES += %D%/libhelper.la
 	%D%/jep106.h \
 	%D%/jep106.inc \
 	%D%/jim-nvp.h \
-	%D%/nvp.h
+	%D%/nvp.h \
+	%D%/compiler.h
 
 STARTUP_TCL_SRCS += %D%/startup.tcl
 EXTRA_DIST += \
