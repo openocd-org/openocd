@@ -26,10 +26,14 @@ noinst_LTLIBRARIES =
 info_TEXINFOS =
 dist_man_MANS =
 EXTRA_DIST =
+DISTCLEANFILES =
 
 if INTERNAL_JIMTCL
 SUBDIRS += jimtcl
 DIST_SUBDIRS += jimtcl
+EXTRA_DIST += jimtcl/configure.gnu
+# jimtcl from 0.79 to 0.82 miss cleaning jsmn.o
+DISTCLEANFILES += jimtcl/jsmn/jsmn.o
 endif
 
 # common flags used in openocd build
@@ -129,9 +133,9 @@ uninstall-hook:
 
 distclean-local:
 	rm -rf Doxyfile doxygen
-	rm -f $(srcdir)/jimtcl/configure.gnu
+	-rm -f $(srcdir)/jimtcl/configure.gnu
 
-DISTCLEANFILES = doxygen.log
+DISTCLEANFILES += doxygen.log
 
 METASOURCES = AUTO
 
