@@ -243,8 +243,8 @@ static const struct samd_part saml21_parts[] = {
 	{ 0x1F, "SAMR30E18A", 256, 32 },
 
     /* SAMR34/R35 parts have integrated SAML21 with a lora radio */
-	{ 0x28, "SAMR34J18", 256, 32 },
-	{ 0x2B, "SAMR35J18", 256, 32 },
+	{ 0x28, "SAMR34J18", 256, 40 },
+	{ 0x2B, "SAMR35J18", 256, 40 },
 };
 
 /* Known SAML22 parts. */
