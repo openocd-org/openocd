@@ -50,7 +50,7 @@ static int jtag_libusb_error(int err)
 	}
 }
 
-static bool jtag_libusb_match_ids(struct libusb_device_descriptor *dev_desc,
+bool jtag_libusb_match_ids(struct libusb_device_descriptor *dev_desc,
 		const uint16_t vids[], const uint16_t pids[])
 {
 	for (unsigned i = 0; vids[i]; i++) {
