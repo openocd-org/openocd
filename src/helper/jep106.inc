@@ -1011,6 +1011,7 @@
 [7][0x7b - 1] = "Gowe Technology Co Ltd",
 [7][0x7c - 1] = "Hermes Testing Solutions Inc",
 [7][0x7d - 1] = "Positivo BGH",
+[7][0x7e - 1] = "Intelligence Silicon Technology",
 [8][0x01 - 1] = "3D PLUS",
 [8][0x02 - 1] = "Diehl Aerospace",
 [8][0x03 - 1] = "Fairchild",
