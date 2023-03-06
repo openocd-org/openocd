@@ -13,6 +13,7 @@
 #include "helper/log.h"
 #include "helper/replacements.h"
 #include "helper/time_support.h"
+#include "libusb_helper.h"
 #include <libusb.h>
 
 /* Compatibility define for older libusb-1.0 */
@@ -148,7 +149,7 @@ static bool device_location_equal(struct libusb_device *device, const char *loca
  * Set any field to 0 as a wildcard. If the device is found true is returned, with ctx containing
  * the already opened handle. ctx->interface must be set to the desired interface (channel) number
  * prior to calling this function. */
-static bool open_matching_device(struct mpsse_ctx *ctx, const uint16_t *vid, const uint16_t *pid,
+static bool open_matching_device(struct mpsse_ctx *ctx, const uint16_t vids[], const uint16_t pids[],
 	const char *product, const char *serial, const char *location)
 {
 	struct libusb_device **list;
@@ -169,9 +170,7 @@ static bool open_matching_device(struct mpsse_ctx *ctx, const uint16_t *vid, con
 			continue;
 		}
 
-		if (vid && *vid != desc.idVendor)
-			continue;
-		if (pid && *pid != desc.idProduct)
+		if (!jtag_libusb_match_ids(&desc, vids, pids))
 			continue;
 
 		err = libusb_open(device, &ctx->usb_dev);
@@ -203,7 +202,7 @@ static bool open_matching_device(struct mpsse_ctx *ctx, const uint16_t *vid, con
 	libusb_free_device_list(list, 1);
 
 	if (!found) {
-		LOG_ERROR("no device found");
+		/* The caller reports detailed error desc */
 		return false;
 	}
 
@@ -307,7 +306,7 @@ error:
 	return false;
 }
 
-struct mpsse_ctx *mpsse_open(const uint16_t *vid, const uint16_t *pid, const char *description,
+struct mpsse_ctx *mpsse_open(const uint16_t vids[], const uint16_t pids[], const char *description,
 	const char *serial, const char *location, int channel)
 {
 	struct mpsse_ctx *ctx = calloc(1, sizeof(*ctx));
@@ -343,14 +342,9 @@ struct mpsse_ctx *mpsse_open(const uint16_t *vid, const uint16_t *pid, const cha
 		goto error;
 	}
 
-	if (!open_matching_device(ctx, vid, pid, description, serial, location)) {
-		/* Four hex digits plus terminating zero each */
-		char vidstr[5];
-		char pidstr[5];
-		LOG_ERROR("unable to open ftdi device with vid %s, pid %s, description '%s', "
+	if (!open_matching_device(ctx, vids, pids, description, serial, location)) {
+		LOG_ERROR("unable to open ftdi device with description '%s', "
 				"serial '%s' at bus location '%s'",
-				vid ? sprintf(vidstr, "%04x", *vid), vidstr : "*",
-				pid ? sprintf(pidstr, "%04x", *pid), pidstr : "*",
 				description ? description : "*",
 				serial ? serial : "*",
 				location ? location : "*");
