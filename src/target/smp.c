@@ -28,6 +28,7 @@
 #include "smp.h"
 #include "helper/binarybuffer.h"
 
+/* DEPRECATED: gdb_read_smp_packet/gdb_write_smp_packet to be removed      */
 /*  implementation of new packet in gdb interface for smp feature          */
 /*                                                                         */
 /*   j : smp  status request                                               */
@@ -53,11 +54,15 @@
 /*  maint packet jc                                                        */
 
 /* packet j :smp status request */
+#define DEPRECATED_MSG "DEPRECATED: This method is deprecated in favor of the hwthread pseudo RTOS"
 int gdb_read_smp_packet(struct connection *connection,
 		char const *packet, int packet_size)
 {
 	struct target *target = get_target_from_connection(connection);
 	int retval = ERROR_OK;
+
+	LOG_WARNING(DEPRECATED_MSG);
+
 	if (target->smp) {
 		if (strncmp(packet, "jc", 2) == 0) {
 			const uint32_t len = sizeof(target->gdb_service->core[0]);
@@ -82,6 +87,8 @@ int gdb_write_smp_packet(struct connection *connection,
 	char *separator;
 	int coreid = 0;
 	int retval = ERROR_OK;
+
+	LOG_WARNING(DEPRECATED_MSG);
 
 	/* skip command character */
 	if (target->smp) {

@@ -619,10 +619,6 @@ int mem_ap_init(struct adiv5_ap *ap);
 /* Invalidate cached DP select and cached TAR and CSW of all APs */
 void dap_invalidate_cache(struct adiv5_dap *dap);
 
-/* Probe the AP for ROM Table location */
-int dap_get_debugbase(struct adiv5_ap *ap,
-			target_addr_t *dbgbase, uint32_t *apid);
-
 /* Probe Access Ports to find a particular type */
 int dap_find_ap(struct adiv5_dap *dap,
 			enum ap_type type_to_find,
@@ -641,7 +637,7 @@ static inline bool dap_is_multidrop(struct adiv5_dap *dap)
 
 /* Lookup CoreSight component */
 int dap_lookup_cs_component(struct adiv5_ap *ap,
-			target_addr_t dbgbase, uint8_t type, target_addr_t *addr, int32_t *idx);
+			uint8_t type, target_addr_t *addr, int32_t idx);
 
 struct target;
 

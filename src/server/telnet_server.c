@@ -222,9 +222,8 @@ static int telnet_new_connection(struct connection *connection)
 {
 	struct telnet_connection *telnet_connection;
 	struct telnet_service *telnet_service = connection->service->priv;
-	int i;
 
-	telnet_connection = malloc(sizeof(struct telnet_connection));
+	telnet_connection = calloc(1, sizeof(struct telnet_connection));
 
 	if (!telnet_connection) {
 		LOG_ERROR("Failed to allocate telnet connection.");
@@ -234,9 +233,6 @@ static int telnet_new_connection(struct connection *connection)
 	connection->priv = telnet_connection;
 
 	/* initialize telnet connection information */
-	telnet_connection->closed = false;
-	telnet_connection->line_size = 0;
-	telnet_connection->line_cursor = 0;
 	telnet_connection->prompt = strdup("> ");
 	telnet_connection->prompt_visible = true;
 	telnet_connection->state = TELNET_STATE_DATA;
@@ -257,11 +253,6 @@ static int telnet_new_connection(struct connection *connection)
 	telnet_write(connection, "\r", 1);
 	telnet_prompt(connection);
 
-	/* initialize history */
-	for (i = 0; i < TELNET_LINE_HISTORY_SIZE; i++)
-		telnet_connection->history[i] = NULL;
-	telnet_connection->next_history = 0;
-	telnet_connection->current_history = 0;
 	telnet_load_history(telnet_connection);
 
 	log_add_callback(telnet_log_callback, connection);
@@ -624,7 +615,11 @@ static void telnet_auto_complete(struct connection *connection)
 	while ((usr_cmd_pos < t_con->line_cursor) && isspace(t_con->line[usr_cmd_pos]))
 		usr_cmd_pos++;
 
-	/* user command length */
+	/* check user command length */
+	if (t_con->line_cursor < usr_cmd_pos) {
+		telnet_bell(connection);
+		return;
+	}
 	size_t usr_cmd_len = t_con->line_cursor - usr_cmd_pos;
 
 	/* optimize multiple spaces in the user command,

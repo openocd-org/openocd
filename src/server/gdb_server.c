@@ -3716,12 +3716,14 @@ static int gdb_input_inner(struct connection *connection)
 					break;
 
 				case 'j':
+					/* DEPRECATED */
 					/* packet supported only by smp target i.e cortex_a.c*/
 					/* handle smp packet replying coreid played to gbd */
 					gdb_read_smp_packet(connection, packet, packet_size);
 					break;
 
 				case 'J':
+					/* DEPRECATED */
 					/* packet supported only by smp target i.e cortex_a.c */
 					/* handle smp packet setting coreid to be played at next
 					 * resume to gdb */

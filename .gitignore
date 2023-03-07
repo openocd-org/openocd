@@ -68,6 +68,7 @@ doxygen
 doxygen.log
 Doxyfile
 libtool
+*-libtool
 Makefile
 !contrib/loaders/**/Makefile
 stamp-h1

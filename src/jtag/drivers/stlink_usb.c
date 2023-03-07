@@ -504,6 +504,8 @@ static inline int stlink_usb_xfer_noerrcheck(void *handle, const uint8_t *buf, i
 #define STLINK_TCP_SS_CMD_NOT_AVAILABLE      0x00001053
 #define STLINK_TCP_SS_TCP_ERROR              0x00002001
 #define STLINK_TCP_SS_TCP_CANT_CONNECT       0x00002002
+#define STLINK_TCP_SS_TCP_CLOSE_ERROR        0x00002003
+#define STLINK_TCP_SS_TCP_BUSY               0x00002004
 #define STLINK_TCP_SS_WIN32_ERROR            0x00010000
 
 /*
@@ -971,6 +973,11 @@ static int stlink_tcp_send_cmd(void *handle, int send_size, int recv_size, bool 
 	if (check_tcp_status) {
 		uint32_t tcp_ss = le_to_h_u32(h->tcp_backend_priv.recv_buf);
 		if (tcp_ss != STLINK_TCP_SS_OK) {
+			if (tcp_ss == STLINK_TCP_SS_TCP_BUSY) {
+				LOG_DEBUG("TCP busy");
+				return ERROR_WAIT;
+			}
+
 			LOG_ERROR("TCP error status 0x%X", tcp_ss);
 			return ERROR_FAIL;
 		}

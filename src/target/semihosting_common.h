@@ -176,6 +176,9 @@ struct semihosting {
 	/** The current time when 'execution starts' */
 	clock_t setup_time;
 
+	/** Base directory for semihosting I/O operations. */
+	char *basedir;
+
 	int (*setup)(struct target *target, int enable);
 	int (*post_result)(struct target *target);
 };

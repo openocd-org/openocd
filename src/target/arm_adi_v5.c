@@ -893,6 +893,55 @@ static const char *class_description[16] = {
 	[0xF] = "CoreLink, PrimeCell or System component",
 };
 
+#define ARCH_ID(architect, archid) ( \
+	(((architect) << ARM_CS_C9_DEVARCH_ARCHITECT_SHIFT) & ARM_CS_C9_DEVARCH_ARCHITECT_MASK) | \
+	(((archid) << ARM_CS_C9_DEVARCH_ARCHID_SHIFT) & ARM_CS_C9_DEVARCH_ARCHID_MASK) \
+)
+
+static const struct {
+	uint32_t arch_id;
+	const char *description;
+} class0x9_devarch[] = {
+	/* keep same unsorted order as in ARM IHI0029E */
+	{ ARCH_ID(ARM_ID, 0x0A00), "RAS architecture" },
+	{ ARCH_ID(ARM_ID, 0x1A01), "Instrumentation Trace Macrocell (ITM) architecture" },
+	{ ARCH_ID(ARM_ID, 0x1A02), "DWT architecture" },
+	{ ARCH_ID(ARM_ID, 0x1A03), "Flash Patch and Breakpoint unit (FPB) architecture" },
+	{ ARCH_ID(ARM_ID, 0x2A04), "Processor debug architecture (ARMv8-M)" },
+	{ ARCH_ID(ARM_ID, 0x6A05), "Processor debug architecture (ARMv8-R)" },
+	{ ARCH_ID(ARM_ID, 0x0A10), "PC sample-based profiling" },
+	{ ARCH_ID(ARM_ID, 0x4A13), "Embedded Trace Macrocell (ETM) architecture" },
+	{ ARCH_ID(ARM_ID, 0x1A14), "Cross Trigger Interface (CTI) architecture" },
+	{ ARCH_ID(ARM_ID, 0x6A15), "Processor debug architecture (v8.0-A)" },
+	{ ARCH_ID(ARM_ID, 0x7A15), "Processor debug architecture (v8.1-A)" },
+	{ ARCH_ID(ARM_ID, 0x8A15), "Processor debug architecture (v8.2-A)" },
+	{ ARCH_ID(ARM_ID, 0x2A16), "Processor Performance Monitor (PMU) architecture" },
+	{ ARCH_ID(ARM_ID, 0x0A17), "Memory Access Port v2 architecture" },
+	{ ARCH_ID(ARM_ID, 0x0A27), "JTAG Access Port v2 architecture" },
+	{ ARCH_ID(ARM_ID, 0x0A31), "Basic trace router" },
+	{ ARCH_ID(ARM_ID, 0x0A37), "Power requestor" },
+	{ ARCH_ID(ARM_ID, 0x0A47), "Unknown Access Port v2 architecture" },
+	{ ARCH_ID(ARM_ID, 0x0A50), "HSSTP architecture" },
+	{ ARCH_ID(ARM_ID, 0x0A63), "System Trace Macrocell (STM) architecture" },
+	{ ARCH_ID(ARM_ID, 0x0A75), "CoreSight ELA architecture" },
+	{ ARCH_ID(ARM_ID, 0x0AF7), "CoreSight ROM architecture" },
+};
+
+#define DEVARCH_ID_MASK         (ARM_CS_C9_DEVARCH_ARCHITECT_MASK | ARM_CS_C9_DEVARCH_ARCHID_MASK)
+#define DEVARCH_ROM_C_0X9       ARCH_ID(ARM_ID, 0x0AF7)
+
+static const char *class0x9_devarch_description(uint32_t devarch)
+{
+	if (!(devarch & ARM_CS_C9_DEVARCH_PRESENT))
+		return "not present";
+
+	for (unsigned int i = 0; i < ARRAY_SIZE(class0x9_devarch); i++)
+		if ((devarch & DEVARCH_ID_MASK) == class0x9_devarch[i].arch_id)
+			return class0x9_devarch[i].description;
+
+	return "unknown";
+}
+
 static const struct {
 	enum ap_type type;
 	const char *description;
@@ -953,7 +1002,7 @@ int dap_find_ap(struct adiv5_dap *dap, enum ap_type type_to_find, struct adiv5_a
 	return ERROR_FAIL;
 }
 
-int dap_get_debugbase(struct adiv5_ap *ap,
+static int dap_get_debugbase(struct adiv5_ap *ap,
 			target_addr_t *dbgbase, uint32_t *apid)
 {
 	struct adiv5_dap *dap = ap->dap;
@@ -989,109 +1038,89 @@ int dap_get_debugbase(struct adiv5_ap *ap,
 	return ERROR_OK;
 }
 
-int dap_lookup_cs_component(struct adiv5_ap *ap,
-			target_addr_t dbgbase, uint8_t type, target_addr_t *addr, int32_t *idx)
-{
-	uint32_t romentry, entry_offset = 0, devtype;
+/** Holds registers and coordinates of a CoreSight component */
+struct cs_component_vals {
+	struct adiv5_ap *ap;
 	target_addr_t component_base;
-	int retval;
+	uint64_t pid;
+	uint32_t cid;
+	uint32_t devarch;
+	uint32_t devid;
+	uint32_t devtype_memtype;
+};
 
-	dbgbase &= 0xFFFFFFFFFFFFF000ull;
-	*addr = 0;
-
-	do {
-		retval = mem_ap_read_atomic_u32(ap, dbgbase |
-						entry_offset, &romentry);
-		if (retval != ERROR_OK)
-			return retval;
-
-		component_base = dbgbase + (target_addr_t)(romentry & ARM_CS_ROMENTRY_OFFSET_MASK);
-
-		if (romentry & ARM_CS_ROMENTRY_PRESENT) {
-			uint32_t c_cid1;
-			retval = mem_ap_read_atomic_u32(ap, component_base + ARM_CS_CIDR1, &c_cid1);
-			if (retval != ERROR_OK) {
-				LOG_ERROR("Can't read component with base address " TARGET_ADDR_FMT
-					  ", the corresponding core might be turned off", component_base);
-				return retval;
-			}
-			unsigned int class = (c_cid1 & ARM_CS_CIDR1_CLASS_MASK) >> ARM_CS_CIDR1_CLASS_SHIFT;
-			if (class == ARM_CS_CLASS_0X1_ROM_TABLE) {
-				retval = dap_lookup_cs_component(ap, component_base,
-							type, addr, idx);
-				if (retval == ERROR_OK)
-					break;
-				if (retval != ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
-					return retval;
-			}
-
-			retval = mem_ap_read_atomic_u32(ap, component_base + ARM_CS_C9_DEVTYPE, &devtype);
-			if (retval != ERROR_OK)
-				return retval;
-			if ((devtype & ARM_CS_C9_DEVTYPE_MASK) == type) {
-				if (!*idx) {
-					*addr = component_base;
-					break;
-				} else
-					(*idx)--;
-			}
-		}
-		entry_offset += 4;
-	} while ((romentry > 0) && (entry_offset < 0xf00));
-
-	if (!*addr)
-		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-
-	return ERROR_OK;
-}
-
-static int dap_read_part_id(struct adiv5_ap *ap, target_addr_t component_base, uint32_t *cid, uint64_t *pid)
+/**
+ * Read the CoreSight registers needed during ROM Table Parsing (RTP).
+ *
+ * @param ap             Pointer to AP containing the component.
+ * @param component_base On MEM-AP access method, base address of the component.
+ * @param v              Pointer to the struct holding the value of registers.
+ *
+ * @return ERROR_OK on success, else a fault code.
+ */
+static int rtp_read_cs_regs(struct adiv5_ap *ap, target_addr_t component_base,
+		struct cs_component_vals *v)
 {
 	assert(IS_ALIGNED(component_base, ARM_CS_ALIGN));
-	assert(ap && cid && pid);
+	assert(ap && v);
 
 	uint32_t cid0, cid1, cid2, cid3;
 	uint32_t pid0, pid1, pid2, pid3, pid4;
-	int retval;
+	int retval = ERROR_OK;
 
-	/* IDs are in last 4K section */
-	retval = mem_ap_read_u32(ap, component_base + ARM_CS_PIDR0, &pid0);
-	if (retval != ERROR_OK)
-		return retval;
-	retval = mem_ap_read_u32(ap, component_base + ARM_CS_PIDR1, &pid1);
-	if (retval != ERROR_OK)
-		return retval;
-	retval = mem_ap_read_u32(ap, component_base + ARM_CS_PIDR2, &pid2);
-	if (retval != ERROR_OK)
-		return retval;
-	retval = mem_ap_read_u32(ap, component_base + ARM_CS_PIDR3, &pid3);
-	if (retval != ERROR_OK)
-		return retval;
-	retval = mem_ap_read_u32(ap, component_base + ARM_CS_PIDR4, &pid4);
-	if (retval != ERROR_OK)
-		return retval;
-	retval = mem_ap_read_u32(ap, component_base + ARM_CS_CIDR0, &cid0);
-	if (retval != ERROR_OK)
-		return retval;
-	retval = mem_ap_read_u32(ap, component_base + ARM_CS_CIDR1, &cid1);
-	if (retval != ERROR_OK)
-		return retval;
-	retval = mem_ap_read_u32(ap, component_base + ARM_CS_CIDR2, &cid2);
-	if (retval != ERROR_OK)
-		return retval;
-	retval = mem_ap_read_u32(ap, component_base + ARM_CS_CIDR3, &cid3);
-	if (retval != ERROR_OK)
-		return retval;
+	v->ap = ap;
+	v->component_base = component_base;
 
-	retval = dap_run(ap->dap);
-	if (retval != ERROR_OK)
-		return retval;
+	/* sort by offset to gain speed */
 
-	*cid = (cid3 & 0xff) << 24
+	/*
+	 * Registers DEVARCH, DEVID and DEVTYPE are valid on Class 0x9 devices
+	 * only, but are at offset above 0xf00, so can be read on any device
+	 * without triggering error. Read them for eventual use on Class 0x9.
+	 */
+	if (retval == ERROR_OK)
+		retval = mem_ap_read_u32(ap, component_base + ARM_CS_C9_DEVARCH, &v->devarch);
+
+	if (retval == ERROR_OK)
+		retval = mem_ap_read_u32(ap, component_base + ARM_CS_C9_DEVID, &v->devid);
+
+	/* Same address as ARM_CS_C1_MEMTYPE */
+	if (retval == ERROR_OK)
+		retval = mem_ap_read_u32(ap, component_base + ARM_CS_C9_DEVTYPE, &v->devtype_memtype);
+
+	if (retval == ERROR_OK)
+		retval = mem_ap_read_u32(ap, component_base + ARM_CS_PIDR4, &pid4);
+
+	if (retval == ERROR_OK)
+		retval = mem_ap_read_u32(ap, component_base + ARM_CS_PIDR0, &pid0);
+	if (retval == ERROR_OK)
+		retval = mem_ap_read_u32(ap, component_base + ARM_CS_PIDR1, &pid1);
+	if (retval == ERROR_OK)
+		retval = mem_ap_read_u32(ap, component_base + ARM_CS_PIDR2, &pid2);
+	if (retval == ERROR_OK)
+		retval = mem_ap_read_u32(ap, component_base + ARM_CS_PIDR3, &pid3);
+
+	if (retval == ERROR_OK)
+		retval = mem_ap_read_u32(ap, component_base + ARM_CS_CIDR0, &cid0);
+	if (retval == ERROR_OK)
+		retval = mem_ap_read_u32(ap, component_base + ARM_CS_CIDR1, &cid1);
+	if (retval == ERROR_OK)
+		retval = mem_ap_read_u32(ap, component_base + ARM_CS_CIDR2, &cid2);
+	if (retval == ERROR_OK)
+		retval = mem_ap_read_u32(ap, component_base + ARM_CS_CIDR3, &cid3);
+
+	if (retval == ERROR_OK)
+		retval = dap_run(ap->dap);
+	if (retval != ERROR_OK) {
+		LOG_DEBUG("Failed read CoreSight registers");
+		return retval;
+	}
+
+	v->cid = (cid3 & 0xff) << 24
 			| (cid2 & 0xff) << 16
 			| (cid1 & 0xff) << 8
 			| (cid0 & 0xff);
-	*pid = (uint64_t)(pid4 & 0xff) << 32
+	v->pid = (uint64_t)(pid4 & 0xff) << 32
 			| (pid3 & 0xff) << 24
 			| (pid2 & 0xff) << 16
 			| (pid1 & 0xff) << 8
@@ -1397,122 +1426,269 @@ static int dap_devtype_display(struct command_invocation *cmd, uint32_t devtype)
 	return ERROR_OK;
 }
 
-static int dap_rom_display(struct command_invocation *cmd,
-				struct adiv5_ap *ap, target_addr_t dbgbase, int depth)
+/**
+ * Actions/operations to be executed while parsing ROM tables.
+ */
+struct rtp_ops {
+	/**
+	 * Executed at the start of a new MEM-AP, typically to print the MEM-AP header.
+	 * @param retval    Error encountered while reading AP.
+	 * @param ap        Pointer to AP.
+	 * @param dbgbase   Value of MEM-AP Debug Base Address register.
+	 * @param apid      Value of MEM-AP IDR Identification Register.
+	 * @param priv      Pointer to private data.
+	 * @return          ERROR_OK on success, else a fault code.
+	 */
+	int (*mem_ap_header)(int retval, struct adiv5_ap *ap, uint64_t dbgbase,
+			uint32_t apid, void *priv);
+	/**
+	 * Executed when a CoreSight component is parsed, typically to print
+	 * information on the component.
+	 * @param retval    Error encountered while reading component's registers.
+	 * @param v         Pointer to a container of the component's registers.
+	 * @param depth     The current depth level of ROM table.
+	 * @param priv      Pointer to private data.
+	 * @return          ERROR_OK on success, else a fault code.
+	 */
+	int (*cs_component)(int retval, struct cs_component_vals *v, int depth, void *priv);
+	/**
+	 * Executed for each entry of a ROM table, typically to print the entry
+	 * and information about validity or end-of-table mark.
+	 * @param retval    Error encountered while reading the ROM table entry.
+	 * @param depth     The current depth level of ROM table.
+	 * @param offset    The offset of the entry in the ROM table.
+	 * @param romentry  The value of the ROM table entry.
+	 * @param priv      Pointer to private data.
+	 * @return          ERROR_OK on success, else a fault code.
+	 */
+	int (*rom_table_entry)(int retval, int depth, unsigned int offset, uint64_t romentry,
+			void *priv);
+	/**
+	 * Private data
+	 */
+	void *priv;
+};
+
+/**
+ * Wrapper around struct rtp_ops::mem_ap_header.
+ * Input parameter @a retval is propagated.
+ */
+static int rtp_ops_mem_ap_header(const struct rtp_ops *ops,
+		int retval, struct adiv5_ap *ap, uint64_t dbgbase, uint32_t apid)
 {
-	int retval;
-	uint64_t pid;
-	uint32_t cid;
-	char tabs[16] = "";
+	if (!ops->mem_ap_header)
+		return retval;
 
-	if (depth > 16) {
-		command_print(cmd, "\tTables too deep");
-		return ERROR_FAIL;
-	}
+	int retval1 = ops->mem_ap_header(retval, ap, dbgbase, apid, ops->priv);
+	if (retval != ERROR_OK)
+		return retval;
+	return retval1;
+}
 
-	if (depth)
-		snprintf(tabs, sizeof(tabs), "[L%02d] ", depth);
+/**
+ * Wrapper around struct rtp_ops::cs_component.
+ * Input parameter @a retval is propagated.
+ */
+static int rtp_ops_cs_component(const struct rtp_ops *ops,
+		int retval, struct cs_component_vals *v, int depth)
+{
+	if (!ops->cs_component)
+		return retval;
 
-	target_addr_t base_addr = dbgbase & 0xFFFFFFFFFFFFF000ull;
-	command_print(cmd, "\t\tComponent base address " TARGET_ADDR_FMT, base_addr);
+	int retval1 = ops->cs_component(retval, v, depth, ops->priv);
+	if (retval != ERROR_OK)
+		return retval;
+	return retval1;
+}
 
-	retval = dap_read_part_id(ap, base_addr, &cid, &pid);
-	if (retval != ERROR_OK) {
-		command_print(cmd, "\t\tCan't read component, the corresponding core might be turned off");
-		return ERROR_OK; /* Don't abort recursion */
-	}
+/**
+ * Wrapper around struct rtp_ops::rom_table_entry.
+ * Input parameter @a retval is propagated.
+ */
+static int rtp_ops_rom_table_entry(const struct rtp_ops *ops,
+		int retval, int depth, unsigned int offset, uint64_t romentry)
+{
+	if (!ops->rom_table_entry)
+		return retval;
 
-	if (!is_valid_arm_cs_cidr(cid)) {
-		command_print(cmd, "\t\tInvalid CID 0x%08" PRIx32, cid);
-		return ERROR_OK; /* Don't abort recursion */
-	}
+	int retval1 = ops->rom_table_entry(retval, depth, offset, romentry, ops->priv);
+	if (retval != ERROR_OK)
+		return retval;
+	return retval1;
+}
 
-	/* component may take multiple 4K pages */
-	uint32_t size = ARM_CS_PIDR_SIZE(pid);
-	if (size > 0)
-		command_print(cmd, "\t\tStart address " TARGET_ADDR_FMT, base_addr - 0x1000 * size);
+/* Broken ROM tables can have circular references. Stop after a while */
+#define ROM_TABLE_MAX_DEPTH (16)
 
-	command_print(cmd, "\t\tPeripheral ID 0x%010" PRIx64, pid);
+/**
+ * Value used only during lookup of a CoreSight component in ROM table.
+ * Return CORESIGHT_COMPONENT_FOUND when component is found.
+ * Return ERROR_OK when component is not found yet.
+ * Return any other ERROR_* in case of error.
+ */
+#define CORESIGHT_COMPONENT_FOUND (1)
 
-	const unsigned int class = (cid & ARM_CS_CIDR_CLASS_MASK) >> ARM_CS_CIDR_CLASS_SHIFT;
-	const unsigned int part_num = ARM_CS_PIDR_PART(pid);
-	unsigned int designer_id = ARM_CS_PIDR_DESIGNER(pid);
+static int rtp_cs_component(const struct rtp_ops *ops,
+		struct adiv5_ap *ap, target_addr_t dbgbase, int depth);
 
-	if (pid & ARM_CS_PIDR_JEDEC) {
-		/* JEP106 code */
-		command_print(cmd, "\t\tDesigner is 0x%03x, %s",
-				designer_id, jep106_manufacturer(designer_id));
-	} else {
-		/* Legacy ASCII ID, clear invalid bits */
-		designer_id &= 0x7f;
-		command_print(cmd, "\t\tDesigner ASCII code 0x%02x, %s",
-				designer_id, designer_id == 0x41 ? "ARM" : "<unknown>");
-	}
+static int rtp_rom_loop(const struct rtp_ops *ops,
+		struct adiv5_ap *ap, target_addr_t base_address, int depth,
+		unsigned int width, unsigned int max_entries)
+{
+	assert(IS_ALIGNED(base_address, ARM_CS_ALIGN));
 
-	const struct dap_part_nums *partnum = pidr_to_part_num(designer_id, part_num);
-	command_print(cmd, "\t\tPart is 0x%03x, %s %s", part_num, partnum->type, partnum->full);
-	command_print(cmd, "\t\tComponent class is 0x%x, %s", class, class_description[class]);
+	unsigned int offset = 0;
+	while (max_entries--) {
+		uint64_t romentry;
+		uint32_t romentry_low, romentry_high;
+		target_addr_t component_base;
+		unsigned int saved_offset = offset;
 
-	if (class == ARM_CS_CLASS_0X1_ROM_TABLE) {
-		uint32_t memtype;
-		retval = mem_ap_read_atomic_u32(ap, base_addr + ARM_CS_C1_MEMTYPE, &memtype);
-		if (retval != ERROR_OK)
-			return retval;
-
-		if (memtype & ARM_CS_C1_MEMTYPE_SYSMEM_MASK)
-			command_print(cmd, "\t\tMEMTYPE system memory present on bus");
-		else
-			command_print(cmd, "\t\tMEMTYPE system memory not present: dedicated debug bus");
-
-		/* Read ROM table entries from base address until we get 0x00000000 or reach the reserved area */
-		for (uint16_t entry_offset = 0; entry_offset < 0xF00; entry_offset += 4) {
-			uint32_t romentry;
-			retval = mem_ap_read_atomic_u32(ap, base_addr | entry_offset, &romentry);
-			if (retval != ERROR_OK)
-				return retval;
-			command_print(cmd, "\t%sROMTABLE[0x%x] = 0x%" PRIx32 "",
-					tabs, entry_offset, romentry);
-			if (romentry & ARM_CS_ROMENTRY_PRESENT) {
-				/* Recurse. "romentry" is signed */
-				retval = dap_rom_display(cmd, ap, base_addr + (int32_t)(romentry & ARM_CS_ROMENTRY_OFFSET_MASK),
-										 depth + 1);
-				if (retval != ERROR_OK)
-					return retval;
-			} else if (romentry != 0) {
-				command_print(cmd, "\t\tComponent not present");
-			} else {
-				command_print(cmd, "\t%s\tEnd of ROM table", tabs);
-				break;
-			}
+		int retval = mem_ap_read_u32(ap, base_address + offset, &romentry_low);
+		offset += 4;
+		if (retval == ERROR_OK && width == 64) {
+			retval = mem_ap_read_u32(ap, base_address + offset, &romentry_high);
+			offset += 4;
 		}
-	} else if (class == ARM_CS_CLASS_0X9_CS_COMPONENT) {
-		uint32_t devtype;
-		retval = mem_ap_read_atomic_u32(ap, base_addr + ARM_CS_C9_DEVTYPE, &devtype);
+		if (retval == ERROR_OK)
+			retval = dap_run(ap->dap);
+		if (retval != ERROR_OK) {
+			LOG_DEBUG("Failed read ROM table entry");
+			return retval;
+		}
+
+		if (width == 64) {
+			romentry = (((uint64_t)romentry_high) << 32) | romentry_low;
+			component_base = base_address +
+				((((uint64_t)romentry_high) << 32) | (romentry_low & ARM_CS_ROMENTRY_OFFSET_MASK));
+		} else {
+			romentry = romentry_low;
+			/* "romentry" is signed */
+			component_base = base_address + (int32_t)(romentry_low & ARM_CS_ROMENTRY_OFFSET_MASK);
+			if (!is_64bit_ap(ap))
+				component_base = (uint32_t)component_base;
+		}
+		retval = rtp_ops_rom_table_entry(ops, retval, depth, saved_offset, romentry);
 		if (retval != ERROR_OK)
 			return retval;
 
-		retval = dap_devtype_display(cmd, devtype);
-		if (retval != ERROR_OK)
-			return retval;
+		if (romentry == 0) {
+			/* End of ROM table */
+			break;
+		}
 
-		/* REVISIT also show ARM_CS_C9_DEVID */
+		if (!(romentry & ARM_CS_ROMENTRY_PRESENT))
+			continue;
+
+		/* Recurse */
+		retval = rtp_cs_component(ops, ap, component_base, depth + 1);
+		if (retval == CORESIGHT_COMPONENT_FOUND)
+			return CORESIGHT_COMPONENT_FOUND;
+		if (retval != ERROR_OK) {
+			/* TODO: do we need to send an ABORT before continuing? */
+			LOG_DEBUG("Ignore error parsing CoreSight component");
+			continue;
+		}
 	}
 
 	return ERROR_OK;
 }
 
-int dap_info_command(struct command_invocation *cmd,
-		struct adiv5_ap *ap)
+static int rtp_cs_component(const struct rtp_ops *ops,
+		struct adiv5_ap *ap, target_addr_t base_address, int depth)
+{
+	struct cs_component_vals v;
+	int retval;
+
+	assert(IS_ALIGNED(base_address, ARM_CS_ALIGN));
+
+	if (depth > ROM_TABLE_MAX_DEPTH)
+		retval = ERROR_FAIL;
+	else
+		retval = rtp_read_cs_regs(ap, base_address, &v);
+
+	retval = rtp_ops_cs_component(ops, retval, &v, depth);
+	if (retval == CORESIGHT_COMPONENT_FOUND)
+		return CORESIGHT_COMPONENT_FOUND;
+	if (retval != ERROR_OK)
+		return ERROR_OK; /* Don't abort recursion */
+
+	if (!is_valid_arm_cs_cidr(v.cid))
+		return ERROR_OK; /* Don't abort recursion */
+
+	const unsigned int class = ARM_CS_CIDR_CLASS(v.cid);
+
+	if (class == ARM_CS_CLASS_0X1_ROM_TABLE)
+		return rtp_rom_loop(ops, ap, base_address, depth, 32, 960);
+
+	if (class == ARM_CS_CLASS_0X9_CS_COMPONENT) {
+		if ((v.devarch & ARM_CS_C9_DEVARCH_PRESENT) == 0)
+			return ERROR_OK;
+
+		/* quit if not ROM table */
+		if ((v.devarch & DEVARCH_ID_MASK) != DEVARCH_ROM_C_0X9)
+			return ERROR_OK;
+
+		if ((v.devid & ARM_CS_C9_DEVID_FORMAT_MASK) == ARM_CS_C9_DEVID_FORMAT_64BIT)
+			return rtp_rom_loop(ops, ap, base_address, depth, 64, 256);
+		else
+			return rtp_rom_loop(ops, ap, base_address, depth, 32, 512);
+	}
+
+	/* Class other than 0x1 and 0x9 */
+	return ERROR_OK;
+}
+
+static int rtp_ap(const struct rtp_ops *ops, struct adiv5_ap *ap)
 {
 	int retval;
 	uint32_t apid;
-	target_addr_t dbgbase;
-	target_addr_t dbgaddr;
+	target_addr_t dbgbase, invalid_entry;
 
 	/* Now we read ROM table ID registers, ref. ARM IHI 0029B sec  */
 	retval = dap_get_debugbase(ap, &dbgbase, &apid);
 	if (retval != ERROR_OK)
 		return retval;
+	retval = rtp_ops_mem_ap_header(ops, retval, ap, dbgbase, apid);
+	if (retval != ERROR_OK)
+		return retval;
+
+	if (apid == 0)
+		return ERROR_FAIL;
+
+	/* NOTE: a MEM-AP may have a single CoreSight component that's
+	 * not a ROM table ... or have no such components at all.
+	 */
+	const unsigned int class = (apid & AP_REG_IDR_CLASS_MASK) >> AP_REG_IDR_CLASS_SHIFT;
+
+	if (class == AP_REG_IDR_CLASS_MEM_AP) {
+		if (is_64bit_ap(ap))
+			invalid_entry = 0xFFFFFFFFFFFFFFFFull;
+		else
+			invalid_entry = 0xFFFFFFFFul;
+
+		if (dbgbase != invalid_entry && (dbgbase & 0x3) != 0x2) {
+			retval = rtp_cs_component(ops, ap, dbgbase & 0xFFFFFFFFFFFFF000ull, 0);
+			if (retval == CORESIGHT_COMPONENT_FOUND)
+				return CORESIGHT_COMPONENT_FOUND;
+		}
+	}
+
+	return ERROR_OK;
+}
+
+/* Actions for command "dap info" */
+
+static int dap_info_mem_ap_header(int retval, struct adiv5_ap *ap,
+		target_addr_t dbgbase, uint32_t apid, void *priv)
+{
+	struct command_invocation *cmd = priv;
+	target_addr_t invalid_entry;
+
+	if (retval != ERROR_OK) {
+		command_print(cmd, "\t\tCan't read MEM-AP, the corresponding core might be turned off");
+		return retval;
+	}
 
 	command_print(cmd, "AP ID register 0x%8.8" PRIx32, apid);
 	if (apid == 0) {
@@ -1529,25 +1705,219 @@ int dap_info_command(struct command_invocation *cmd,
 
 	if (class == AP_REG_IDR_CLASS_MEM_AP) {
 		if (is_64bit_ap(ap))
-			dbgaddr = 0xFFFFFFFFFFFFFFFFull;
+			invalid_entry = 0xFFFFFFFFFFFFFFFFull;
 		else
-			dbgaddr = 0xFFFFFFFFul;
+			invalid_entry = 0xFFFFFFFFul;
 
 		command_print(cmd, "MEM-AP BASE " TARGET_ADDR_FMT, dbgbase);
 
-		if (dbgbase == dbgaddr || (dbgbase & 0x3) == 0x2) {
+		if (dbgbase == invalid_entry || (dbgbase & 0x3) == 0x2) {
 			command_print(cmd, "\tNo ROM table present");
 		} else {
 			if (dbgbase & 0x01)
 				command_print(cmd, "\tValid ROM table present");
 			else
 				command_print(cmd, "\tROM table in legacy format");
-
-			dap_rom_display(cmd, ap, dbgbase & 0xFFFFFFFFFFFFF000ull, 0);
 		}
 	}
 
 	return ERROR_OK;
+}
+
+static int dap_info_cs_component(int retval, struct cs_component_vals *v, int depth, void *priv)
+{
+	struct command_invocation *cmd = priv;
+
+	if (depth > ROM_TABLE_MAX_DEPTH) {
+		command_print(cmd, "\tTables too deep");
+		return ERROR_FAIL;
+	}
+
+	command_print(cmd, "\t\tComponent base address " TARGET_ADDR_FMT, v->component_base);
+
+	if (retval != ERROR_OK) {
+		command_print(cmd, "\t\tCan't read component, the corresponding core might be turned off");
+		return retval;
+	}
+
+	if (!is_valid_arm_cs_cidr(v->cid)) {
+		command_print(cmd, "\t\tInvalid CID 0x%08" PRIx32, v->cid);
+		return ERROR_OK; /* Don't abort recursion */
+	}
+
+	/* component may take multiple 4K pages */
+	uint32_t size = ARM_CS_PIDR_SIZE(v->pid);
+	if (size > 0)
+		command_print(cmd, "\t\tStart address " TARGET_ADDR_FMT, v->component_base - 0x1000 * size);
+
+	command_print(cmd, "\t\tPeripheral ID 0x%010" PRIx64, v->pid);
+
+	const unsigned int part_num = ARM_CS_PIDR_PART(v->pid);
+	unsigned int designer_id = ARM_CS_PIDR_DESIGNER(v->pid);
+
+	if (v->pid & ARM_CS_PIDR_JEDEC) {
+		/* JEP106 code */
+		command_print(cmd, "\t\tDesigner is 0x%03x, %s",
+				designer_id, jep106_manufacturer(designer_id));
+	} else {
+		/* Legacy ASCII ID, clear invalid bits */
+		designer_id &= 0x7f;
+		command_print(cmd, "\t\tDesigner ASCII code 0x%02x, %s",
+				designer_id, designer_id == 0x41 ? "ARM" : "<unknown>");
+	}
+
+	const struct dap_part_nums *partnum = pidr_to_part_num(designer_id, part_num);
+	command_print(cmd, "\t\tPart is 0x%03x, %s %s", part_num, partnum->type, partnum->full);
+
+	const unsigned int class = ARM_CS_CIDR_CLASS(v->cid);
+	command_print(cmd, "\t\tComponent class is 0x%x, %s", class, class_description[class]);
+
+	if (class == ARM_CS_CLASS_0X1_ROM_TABLE) {
+		if (v->devtype_memtype & ARM_CS_C1_MEMTYPE_SYSMEM_MASK)
+			command_print(cmd, "\t\tMEMTYPE system memory present on bus");
+		else
+			command_print(cmd, "\t\tMEMTYPE system memory not present: dedicated debug bus");
+		return ERROR_OK;
+	}
+
+	if (class == ARM_CS_CLASS_0X9_CS_COMPONENT) {
+		dap_devtype_display(cmd, v->devtype_memtype);
+
+		/* REVISIT also show ARM_CS_C9_DEVID */
+
+		if ((v->devarch & ARM_CS_C9_DEVARCH_PRESENT) == 0)
+			return ERROR_OK;
+
+		unsigned int architect_id = ARM_CS_C9_DEVARCH_ARCHITECT(v->devarch);
+		unsigned int revision = ARM_CS_C9_DEVARCH_REVISION(v->devarch);
+		command_print(cmd, "\t\tDev Arch is 0x%08" PRIx32 ", %s \"%s\" rev.%u", v->devarch,
+				jep106_manufacturer(architect_id), class0x9_devarch_description(v->devarch),
+				revision);
+
+		if ((v->devarch & DEVARCH_ID_MASK) == DEVARCH_ROM_C_0X9) {
+			command_print(cmd, "\t\tType is ROM table");
+
+			if (v->devid & ARM_CS_C9_DEVID_SYSMEM_MASK)
+				command_print(cmd, "\t\tMEMTYPE system memory present on bus");
+			else
+				command_print(cmd, "\t\tMEMTYPE system memory not present: dedicated debug bus");
+		}
+		return ERROR_OK;
+	}
+
+	/* Class other than 0x1 and 0x9 */
+	return ERROR_OK;
+}
+
+static int dap_info_rom_table_entry(int retval, int depth,
+		unsigned int offset, uint64_t romentry, void *priv)
+{
+	struct command_invocation *cmd = priv;
+	char tabs[16] = "";
+
+	if (depth)
+		snprintf(tabs, sizeof(tabs), "[L%02d] ", depth);
+
+	if (retval != ERROR_OK) {
+		command_print(cmd, "\t%sROMTABLE[0x%x] Read error", tabs, offset);
+		command_print(cmd, "\t\tUnable to continue");
+		command_print(cmd, "\t%s\tStop parsing of ROM table", tabs);
+		return retval;
+	}
+
+	command_print(cmd, "\t%sROMTABLE[0x%x] = 0x%08" PRIx64,
+			tabs, offset, romentry);
+
+	if (romentry == 0) {
+		command_print(cmd, "\t%s\tEnd of ROM table", tabs);
+		return ERROR_OK;
+	}
+
+	if (!(romentry & ARM_CS_ROMENTRY_PRESENT)) {
+		command_print(cmd, "\t\tComponent not present");
+		return ERROR_OK;
+	}
+
+	return ERROR_OK;
+}
+
+int dap_info_command(struct command_invocation *cmd, struct adiv5_ap *ap)
+{
+	struct rtp_ops dap_info_ops = {
+		.mem_ap_header   = dap_info_mem_ap_header,
+		.cs_component    = dap_info_cs_component,
+		.rom_table_entry = dap_info_rom_table_entry,
+		.priv            = cmd,
+	};
+
+	return rtp_ap(&dap_info_ops, ap);
+}
+
+/* Actions for dap_lookup_cs_component() */
+
+struct dap_lookup_data {
+	/* input */
+	unsigned int idx;
+	unsigned int type;
+	/* output */
+	uint64_t component_base;
+};
+
+static int dap_lookup_cs_component_cs_component(int retval,
+		struct cs_component_vals *v, int depth, void *priv)
+{
+	struct dap_lookup_data *lookup = priv;
+
+	if (retval != ERROR_OK)
+		return retval;
+
+	if (!is_valid_arm_cs_cidr(v->cid))
+		return ERROR_OK;
+
+	const unsigned int class = ARM_CS_CIDR_CLASS(v->cid);
+	if (class != ARM_CS_CLASS_0X9_CS_COMPONENT)
+		return ERROR_OK;
+
+	if ((v->devtype_memtype & ARM_CS_C9_DEVTYPE_MASK) != lookup->type)
+		return ERROR_OK;
+
+	if (lookup->idx) {
+		/* search for next one */
+		--lookup->idx;
+		return ERROR_OK;
+	}
+
+	/* Found! */
+	lookup->component_base = v->component_base;
+	return CORESIGHT_COMPONENT_FOUND;
+}
+
+int dap_lookup_cs_component(struct adiv5_ap *ap, uint8_t type,
+		target_addr_t *addr, int32_t core_id)
+{
+	struct dap_lookup_data lookup = {
+		.type = type,
+		.idx  = core_id,
+	};
+	struct rtp_ops dap_lookup_cs_component_ops = {
+		.mem_ap_header   = NULL,
+		.cs_component    = dap_lookup_cs_component_cs_component,
+		.rom_table_entry = NULL,
+		.priv            = &lookup,
+	};
+
+	int retval = rtp_ap(&dap_lookup_cs_component_ops, ap);
+	if (retval == CORESIGHT_COMPONENT_FOUND) {
+		LOG_DEBUG("CS lookup found at 0x%" PRIx64, lookup.component_base);
+		*addr = lookup.component_base;
+		return ERROR_OK;
+	}
+	if (retval != ERROR_OK) {
+		LOG_DEBUG("CS lookup error %d", retval);
+		return retval;
+	}
+	LOG_DEBUG("CS lookup not found");
+	return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 }
 
 enum adiv5_cfg_param {
@@ -1568,6 +1938,8 @@ static const struct jim_nvp nvp_config_opts[] = {
 static int adiv5_jim_spot_configure(struct jim_getopt_info *goi,
 		struct adiv5_dap **dap_p, int *ap_num_p, uint32_t *base_p)
 {
+	assert(dap_p && ap_num_p);
+
 	if (!goi->argc)
 		return JIM_OK;
 
@@ -1672,6 +2044,10 @@ int adiv5_jim_configure(struct target *target, struct jim_getopt_info *goi)
 	pc = (struct adiv5_private_config *)target->private_config;
 	if (!pc) {
 		pc = calloc(1, sizeof(struct adiv5_private_config));
+		if (!pc) {
+			LOG_ERROR("Out of memory");
+			return JIM_ERR;
+		}
 		pc->ap_num = DP_APSEL_INVALID;
 		target->private_config = pc;
 	}

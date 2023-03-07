@@ -2905,18 +2905,11 @@ static int cortex_a_examine_first(struct target *target)
 	armv7a->debug_ap->memaccess_tck = 80;
 
 	if (!target->dbgbase_set) {
-		target_addr_t dbgbase;
-		/* Get ROM Table base */
-		uint32_t apid;
-		int32_t coreidx = target->coreid;
 		LOG_DEBUG("%s's dbgbase is not set, trying to detect using the ROM table",
 			  target->cmd_name);
-		retval = dap_get_debugbase(armv7a->debug_ap, &dbgbase, &apid);
-		if (retval != ERROR_OK)
-			return retval;
 		/* Lookup Processor DAP */
-		retval = dap_lookup_cs_component(armv7a->debug_ap, dbgbase, ARM_CS_C9_DEVTYPE_CORE_DEBUG,
-				&armv7a->debug_base, &coreidx);
+		retval = dap_lookup_cs_component(armv7a->debug_ap, ARM_CS_C9_DEVTYPE_CORE_DEBUG,
+				&armv7a->debug_base, target->coreid);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("Can't detect %s's dbgbase from the ROM table; you need to specify it explicitly.",
 				  target->cmd_name);

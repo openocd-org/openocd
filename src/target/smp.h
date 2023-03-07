@@ -30,8 +30,10 @@
 
 extern const struct command_registration smp_command_handlers[];
 
+/* DEPRECATED */
 int gdb_read_smp_packet(struct connection *connection,
 		char const *packet, int packet_size);
+/* DEPRECATED */
 int gdb_write_smp_packet(struct connection *connection,
 		char const *packet, int packet_size);
 

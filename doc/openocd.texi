@@ -584,6 +584,9 @@ produced, PDF schematics are easily found and it is easy to make.
 @item @b{imx_gpio}
 @* A NXP i.MX-based board (e.g. Wandboard) using the GPIO pins (should work on any i.MX processor).
 
+@item @b{am335xgpio}
+@* A Texas Instruments AM335x-based board (e.g. BeagleBone Black) using the GPIO pins of the expansion headers.
+
 @item @b{jtag_vpi}
 @* A JTAG driver acting as a client for the JTAG VPI server interface.
 @* Link: @url{http://github.com/fjullien/jtag_vpi}
@@ -2120,6 +2123,15 @@ corresponding subsystems:
 @deffnx {Config Command} {pld init}
 @deffnx {Command} {tpiu init}
 @end deffn
+
+At last, @command{init} executes all the commands that are specified in
+the TCL list @var{post_init_commands}. The commands are executed in the
+same order they occupy in the list. If one of the commands fails, then
+the error is propagated and OpenOCD fails too.
+@example
+lappend post_init_commands @{echo "OpenOCD successfully initialized."@}
+lappend post_init_commands @{echo "Have fun with OpenOCD !"@}
+@end example
 @end deffn
 
 @deffn {Config Command} {noinit}
@@ -3342,11 +3354,180 @@ pinout.
 @end deffn
 
 
+@deffn {Interface Driver} {am335xgpio} The AM335x SoC is present in BeagleBone
+Black and BeagleBone Green single-board computers which expose some of the GPIOs
+on the two expansion headers.
+
+For maximum performance the driver accesses memory-mapped GPIO peripheral
+registers directly. The memory mapping requires read and write permission to
+kernel memory; if /dev/gpiomem exists it will be used, otherwise /dev/mem will
+be used. The driver restores the GPIO state on exit.
+
+All four GPIO ports are available. GPIOs numbered 0 to 31 are mapped to GPIO port
+0, GPIO numbers 32 to 63 are mapped to GPIO port 1 and so on.
+
+See @file{interface/beaglebone-swd-native.cfg} for a sample configuration file.
+
+@deffn {Config Command} {am335xgpio jtag_nums} @var{tck} @var{tms} @var{tdi} @var{tdo}
+Set JTAG transport GPIO numbers for TCK, TMS, TDI, and TDO (in that order).
+Must be specified to enable JTAG transport. These pins can also be specified
+individually.
+@end deffn
+
+@deffn {Config Command} {am335xgpio tck_num} @var{tck}
+Set TCK GPIO number. Must be specified to enable JTAG transport. Can also be
+specified using the configuration command @command{am335xgpio jtag_nums}.
+@end deffn
+
+@deffn {Config Command} {am335xgpio tms_num} @var{tms}
+Set TMS GPIO number. Must be specified to enable JTAG transport. Can also be
+specified using the configuration command @command{am335xgpio jtag_nums}.
+@end deffn
+
+@deffn {Config Command} {am335xgpio tdo_num} @var{tdo}
+Set TDO GPIO number. Must be specified to enable JTAG transport. Can also be
+specified using the configuration command @command{am335xgpio jtag_nums}.
+@end deffn
+
+@deffn {Config Command} {am335xgpio tdi_num} @var{tdi}
+Set TDI GPIO number. Must be specified to enable JTAG transport. Can also be
+specified using the configuration command @command{am335xgpio jtag_nums}.
+@end deffn
+
+@deffn {Config Command} {am335xgpio swd_nums} @var{swclk} @var{swdio}
+Set SWD transport GPIO numbers for SWCLK and SWDIO (in that order). Must be
+specified to enable SWD transport. These pins can also be specified individually.
+@end deffn
+
+@deffn {Config Command} {am335xgpio swclk_num} @var{swclk}
+Set SWCLK GPIO number. Must be specified to enable SWD transport. Can also be
+specified using the configuration command @command{am335xgpio swd_nums}.
+@end deffn
+
+@deffn {Config Command} {am335xgpio swdio_num} @var{swdio}
+Set SWDIO GPIO number. Must be specified to enable SWD transport. Can also be
+specified using the configuration command @command{am335xgpio swd_nums}.
+@end deffn
+
+@deffn {Config Command} {am335xgpio swdio_dir_num} @var{swdio_dir}
+Set SWDIO direction control pin GPIO number. If specified, this pin can be used
+to control the direction of an external buffer on the SWDIO pin. The direction
+control state can be set with the command @command{am335xgpio
+swdio_dir_output_state}. If not specified this feature is disabled.
+@end deffn
+
+@deffn {Config Command} {am335xgpio swdio_dir_output_state} @var{output_state}
+Set the state required for an external SWDIO buffer to be an output. Valid
+values are @option{on} (default) and @option{off}.
+@end deffn
+
+@deffn {Config Command} {am335xgpio srst_num} @var{srst}
+Set SRST GPIO number. Must be specified to enable SRST.
+@end deffn
+
+@deffn {Config Command} {am335xgpio trst_num} @var{trst}
+Set TRST GPIO number. Must be specified to enable TRST.
+@end deffn
+
+@deffn {Config Command} {am335xgpio led_num} @var{led}
+Set activity LED GPIO number. If not specified an activity LED is not enabled.
+@end deffn
+
+@deffn {Config Command} {am335xgpio led_on_state} @var{on_state}
+Set required logic level for the LED to be on. Valid values are @option{on}
+(default) and @option{off}.
+@end deffn
+
+@deffn {Config Command} {am335xgpio speed_coeffs} @var{speed_coeff} @var{speed_offset}
+Set SPEED_COEFF and SPEED_OFFSET for delay calculations. If unspecified
+speed_coeff defaults to 600000 and speed_offset defaults to 575.
+@end deffn
+
+@end deffn
+
+
 @deffn {Interface Driver} {linuxgpiod}
 Linux provides userspace access to GPIO through libgpiod since Linux kernel version v4.6.
-The driver emulates either JTAG and SWD transport through bitbanging.
+The driver emulates either JTAG or SWD transport through bitbanging.
 
 See @file{interface/dln-2-gpiod.cfg} for a sample config.
+
+@deffn {Config Command} {linuxgpiod gpiochip} @var{chip}
+Set the GPIO chip number for all GPIOs used by linuxgpiod. If GPIOs use
+different GPIO chips then the individual GPIO configuration commands (i.e., not
+@command{linuxgpiod jtag_nums} or @command{linuxgpiod swd_nums}) can be used to
+set chip numbers independently for each GPIO.
+@end deffn
+
+@deffn {Config Command} {linuxgpiod jtag_nums} @var{tck} @var{tms} @var{tdi} @var{tdo}
+Set JTAG transport GPIO numbers for TCK, TMS, TDI, and TDO (in that order). Must
+be specified to enable JTAG transport. These pins can also be specified
+individually.
+@end deffn
+
+@deffn {Config Command} {linuxgpiod tck_num} [@var{chip}] @var{tck}
+Set TCK GPIO number, and optionally TCK chip number. Must be specified to enable
+JTAG transport. Can also be specified using the configuration command
+@command{linuxgpiod jtag_nums}.
+@end deffn
+
+@deffn {Config Command} {linuxgpiod tms_num} [@var{chip}] @var{tms}
+Set TMS GPIO number, and optionally TMS chip number. Must be specified to enable
+JTAG transport. Can also be specified using the configuration command
+@command{linuxgpiod jtag_nums}.
+@end deffn
+
+@deffn {Config Command} {linuxgpiod tdo_num} [@var{chip}] @var{tdo}
+Set TDO GPIO number, and optionally TDO chip number. Must be specified to enable
+JTAG transport. Can also be specified using the configuration command
+@command{linuxgpiod jtag_nums}.
+@end deffn
+
+@deffn {Config Command} {linuxgpiod tdi_num} [@var{chip}] @var{tdi}
+Set TDI GPIO number, and optionally TDI chip number. Must be specified to enable
+JTAG transport. Can also be specified using the configuration command
+@command{linuxgpiod jtag_nums}.
+@end deffn
+
+@deffn {Config Command} {linuxgpiod trst_num} [@var{chip}] @var{trst}
+Set TRST GPIO number, and optionally TRST chip number. Must be specified to
+enable TRST.
+@end deffn
+
+@deffn {Config Command} {linuxgpiod swd_nums} @var{swclk} @var{swdio}
+Set SWD transport GPIO numbers for SWCLK and SWDIO (in that order). Must be
+specified to enable SWD transport. These pins can also be specified
+individually.
+@end deffn
+
+@deffn {Config Command} {linuxgpiod swclk_num} [@var{chip}] @var{swclk}
+Set SWCLK GPIO number, and optionally SWCLK chip number. Must be specified to
+enable SWD transport. Can also be specified using the configuration command
+@command{linuxgpiod swd_nums}.
+@end deffn
+
+@deffn {Config Command} {linuxgpiod swdio_num} [@var{chip}] @var{swdio}
+Set SWDIO GPIO number, and optionally SWDIO chip number. Must be specified to
+enable SWD transport. Can also be specified using the configuration command
+@command{linuxgpiod swd_nums}.
+@end deffn
+
+@deffn {Config Command} {linuxgpiod swdio_dir_num} [@var{chip}] @var{swdio_dir}
+Set SWDIO direction control GPIO number, and optionally SWDIO direction control
+chip number. If specified, this GPIO can be used to control the direction of an
+external buffer connected to the SWDIO GPIO (set=output mode, clear=input mode).
+@end deffn
+
+@deffn {Config Command} {linuxgpiod srst_num} [@var{chip}] @var{srst}
+Set SRST GPIO number, and optionally SRST chip number. Must be specified to
+enable SRST.
+@end deffn
+
+@deffn {Config Command} {linuxgpiod led_num} [@var{chip}] @var{led}
+Set activity LED GPIO number, and optionally activity LED chip number. If not
+specified an activity LED is not enabled.
+@end deffn
+
 @end deffn
 
 
@@ -4745,6 +4926,7 @@ compact Thumb2 instruction set. Supports also ARMv6-M and ARMv8-M cores
 The current implementation supports eSi-32xx cores.
 @item @code{esp32c2} -- this is an Espressif SoC with single RISC-V core.
 @item @code{esp32c3} -- this is an Espressif SoC with single RISC-V core.
+@item @code{esp32s2} -- this is an Espressif SoC with single Xtensa core.
 @item @code{fa526} -- resembles arm920 (w/o Thumb).
 @item @code{feroceon} -- resembles arm926.
 @item @code{hla_target} -- a Cortex-M alternative to work with HL adapters like ST-Link.
@@ -6449,7 +6631,7 @@ The AVR 8-bit microcontrollers from Atmel integrate flash memory.
 @end deffn
 
 @deffn {Flash Driver} {bluenrg-x}
-STMicroelectronics BlueNRG-1, BlueNRG-2 and BlueNRG-LP Bluetooth low energy wireless system-on-chip. They include ARM Cortex-M0/M0+ core and internal flash memory.
+STMicroelectronics BlueNRG-1, BlueNRG-2 and BlueNRG-LP/LPS Bluetooth low energy wireless system-on-chip. They include ARM Cortex-M0/M0+ core and internal flash memory.
 The driver automatically recognizes these chips using
 the chip identification registers, and autoconfigures itself.
 
@@ -8464,18 +8646,19 @@ Close the OpenOCD server, disconnecting all clients (GDB, telnet,
 other). If option @option{error} is used, OpenOCD will return a
 non-zero exit code to the parent process.
 
-Like any TCL commands, also @command{shutdown} can be redefined, e.g.:
+If user types CTRL-C or kills OpenOCD, the command @command{shutdown}
+will be automatically executed to cause OpenOCD to exit.
+
+It is possible to specify, in the TCL list @var{pre_shutdown_commands} , a
+set of commands to be automatically executed before @command{shutdown} , e.g.:
 @example
-# redefine shutdown
-rename shutdown original_shutdown
-proc shutdown @{@} @{
-    puts "This is my implementation of shutdown"
-    # my own stuff before exit OpenOCD
-    original_shutdown
-@}
+lappend pre_shutdown_commands @{echo "Goodbye, my friend ..."@}
+lappend pre_shutdown_commands @{echo "see you soon !"@}
 @end example
-If user types CTRL-C or kills OpenOCD, either the command @command{shutdown}
-or its replacement will be automatically executed before OpenOCD exits.
+The commands in the list will be executed (in the same order they occupy
+in the list) before OpenOCD exits. If one of the commands in the list
+fails, then the remaining commands are not executed anymore while OpenOCD
+will proceed to quit.
 @end deffn
 
 @anchor{debuglevel}
@@ -9471,6 +9654,12 @@ When the target makes semihosting call with operation number from range 0x100-
 0x107, an optional string parameter can be passed to the server. This parameter
 is valid during the run of the event handlers and is accessible with this
 command.
+@end deffn
+
+@deffn {Command} {arm semihosting_basedir} [dir]
+@cindex ARM semihosting
+Set the base directory for semihosting I/O, either an absolute path or a path relative to OpenOCD working directory.
+Use "." for the current directory.
 @end deffn
 
 @section ARMv4 and ARMv5 Architecture
@@ -10956,6 +11145,94 @@ STMicroelectronics, based on a proprietary 8-bit core architecture.
 OpenOCD supports debugging STM8 through the STMicroelectronics debug
 protocol SWIM, @pxref{swimtransport,,SWIM}.
 
+@section Xtensa Architecture
+Xtensa processors are based on a modular, highly flexible 32-bit RISC architecture
+that can easily scale from a tiny, cache-less controller or task engine to a high-performance
+SIMD/VLIW DSP provided by Cadence.
+@url{https://www.cadence.com/en_US/home/tools/ip/tensilica-ip/tensilica-xtensa-controllers-and-extensible-processors.html}.
+
+OpenOCD supports generic Xtensa processors implementation which can be customized by
+simply providing vendor-specific core configuration which controls every configurable
+Xtensa architecture option, e.g. number of address registers, exceptions, reduced
+size instructions support, memory banks configuration etc. Also OpenOCD supports SMP
+configurations for Xtensa processors with any number of cores and allows to configure
+their debug signals interconnection (so-called "break/stall networks") which control how
+debug signals are distributed among cores. Xtensa "break networks" are compatible with
+ARM's Cross Trigger Interface (CTI). For debugging code on Xtensa chips OpenOCD
+uses JTAG protocol. Currently OpenOCD implements several Epsressif Xtensa-based chips of
+@uref{https://www.espressif.com/en/products/socs, ESP32 family}.
+
+@subsection General Xtensa Commands
+
+@deffn {Command} {xtensa set_permissive} (0|1)
+By default accessing memory beyond defined regions is forbidden. This commnd controls memory access address check.
+When set to (1), skips access controls and address range check before read/write memory.
+@end deffn
+
+@deffn {Command} {xtensa maskisr} (on|off)
+Selects whether interrupts will be disabled during stepping over single instruction. The default configuration is (off).
+@end deffn
+
+@deffn {Command} {xtensa smpbreak} [none|breakinout|runstall] | [BreakIn] [BreakOut] [RunStallIn] [DebugModeOut]
+Configures debug signals connection ("break network") for currently selected core.
+@itemize @bullet
+@item @code{none} - Core's "break/stall network" is disconnected. Core is not affected by any debug
+signal from other cores.
+@item @code{breakinout} - Core's "break network" is fully connected (break inputs and outputs are enabled).
+Core will receive debug break signals from other cores and send such signals to them. For example when another core
+is stopped due to breakpoint hit this core will be stopped too and vice versa.
+@item @code{runstall} - Core's "stall network" is fully connected (stall inputs and outputs are enabled).
+This feature is not well implemented and tested yet.
+@item @code{BreakIn} - Core's "break-in" signal is enabled.
+Core will receive debug break signals from other cores. For example when another core is
+stopped due to breakpoint hit this core will be stopped too.
+@item @code{BreakOut} - Core's "break-out" signal is enabled.
+Core will send debug break signal to other cores. For example when this core is
+stopped due to breakpoint hit other cores with enabled break-in signals will be stopped too.
+@item @code{RunStallIn} - Core's "runstall-in" signal is enabled.
+This feature is not well implemented and tested yet.
+@item @code{DebugModeOut} - Core's "debugmode-out" signal is enabled.
+This feature is not well implemented and tested yet.
+@end itemize
+@end deffn
+
+@deffn {Command} {xtensa perfmon_enable} <counter_id> <select> [mask] [kernelcnt] [tracelevel]
+Enable and start performance counter.
+@itemize @bullet
+@item @code{counter_id} - Counter ID (0-1).
+@item @code{select} - Selects performance metric to be counted by the counter,
+e.g. 0 - CPU cycles, 2 - retired instructions.
+@item @code{mask} - Selects input subsets to be counted (counter will
+increment only once even if more than one condition corresponding to a mask bit occurs).
+@item @code{kernelcnt} - 0 - count events with "CINTLEVEL <= tracelevel",
+1 - count events with "CINTLEVEL > tracelevel".
+@item @code{tracelevel} - Compares this value to "CINTLEVEL" when deciding
+whether to count.
+@end itemize
+@end deffn
+
+@deffn {Command} {xtensa perfmon_dump} (counter_id)
+Dump performance counter value. If no argument specified, dumps all counters.
+@end deffn
+
+@deffn {Command} {xtensa tracestart} [pc <pcval>/[<maskbitcount>]] [after <n> [ins|words]]
+Set up and start a HW trace. Optionally set PC address range to trigger tracing stop when reached during program execution.
+This command also allows to specify the amount of data to capture after stop trigger activation.
+@itemize @bullet
+@item @code{pcval} - PC value which will trigger trace data collection stop.
+@item @code{maskbitcount} - PC value mask.
+@item @code{n} - Maximum number of instructions/words to capture after trace stop trigger.
+@end itemize
+@end deffn
+
+@deffn {Command} {xtensa tracestop}
+Stop current trace as started by the tracestart command.
+@end deffn
+
+@deffn {Command} {xtensa tracedump} <outfile>
+Dump trace memory to a file.
+@end deffn
+
 @anchor{softwaredebugmessagesandtracing}
 @section Software Debug Messages and Tracing
 @cindex Linux-ARM DCC support
@@ -11756,57 +12033,6 @@ The @command{step} and @command{stepi} commands can be used to step a specific c
 while other cores are free-running or remain halted, depending on the
 scheduler-locking mode configured in GDB.
 
-@section Legacy SMP core switching support
-@quotation Note
-This method is deprecated in favor of the @emph{hwthread} pseudo RTOS.
-@end quotation
-
-For SMP support following GDB serial protocol packet have been defined :
-@itemize @bullet
-@item j - smp status request
-@item J - smp set request
-@end itemize
-
-OpenOCD implements :
-@itemize @bullet
-@item @option{jc} packet for reading core id displayed by
-GDB connection. Reply is @option{XXXXXXXX} (8 hex digits giving core id) or
- @option{E01} for target not smp.
-@item @option{JcXXXXXXXX} (8 hex digits) packet for setting core id displayed at next GDB continue
-(core id -1 is reserved for returning to normal resume mode). Reply @option{E01}
-for target not smp or @option{OK} on success.
-@end itemize
-
-Handling of this packet within GDB can be done :
-@itemize @bullet
-@item by the creation of an internal variable (i.e @option{_core}) by mean
-of function allocate_computed_value allowing following GDB command.
-@example
-set $_core 1
-#Jc01 packet is sent
-print $_core
-#jc packet is sent and result is affected in $
-@end example
-
-@item by the usage of GDB maintenance command as described in following example (2 cpus in SMP with
-core id 0 and 1 @pxref{definecputargetsworkinginsmp,,Define CPU targets working in SMP}).
-
-@example
-# toggle0 : force display of coreid 0
-define toggle0
-maint packet Jc0
-continue
-main packet Jc-1
-end
-# toggle1 : force display of coreid 1
-define toggle1
-maint packet Jc1
-continue
-main packet Jc-1
-end
-@end example
-@end itemize
-
 @node Tcl Scripting API
 @chapter Tcl Scripting API
 @cindex Tcl Scripting API
@@ -12374,7 +12600,7 @@ It sort of works like this:
 When the command ``proc'' is parsed (which creates a procedure
 function) it gets 3 parameters on the command line. @b{1} the name of
 the proc (function), @b{2} the list of parameters, and @b{3} the body
-of the function. Not the choice of words: LIST and BODY. The PROC
+of the function. Note the choice of words: LIST and BODY. The PROC
 command stores these items in a table somewhere so it can be found by
 ``LookupCommand()''
 
