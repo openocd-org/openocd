@@ -22,7 +22,7 @@
 #include <target/algorithm.h>
 #include <target/cortex_m.h>
 
-/* stm32x register locations */
+/* n32g45x register locations */
 
 #define FLASH_REG_BASE_B0 0x40022000
 #define FLASH_REG_BASE_B1 0x40022040
@@ -110,7 +110,7 @@ struct n32g45x_flash_bank {
 	bool probed;
 
 	bool has_dual_banks;
-	/* used to access dual flash bank stm32xl */
+	/* used to access dual flash bank n32g45xl */
 	bool can_load_options;
 	uint32_t register_base;
 	uint8_t default_rdp;
@@ -123,7 +123,7 @@ static int n32g45x_mass_erase(struct flash_bank *bank);
 static int n32g45x_write_block(struct flash_bank *bank, const uint8_t *buffer,
 		uint32_t address, uint32_t hwords_count);
 
-/* flash bank stm32x <base> <size> 0 0 <target#>
+/* flash bank n32g45x <base> <size> 0 0 <target#>
  */
 FLASH_BANK_COMMAND_HANDLER(n32g45x_flash_bank_command)
 {
@@ -181,12 +181,12 @@ static int n32g45x_wait_status_busy(struct flash_bank *bank, int timeout)
 	}
 
 	if (status & FLASH_WRPRTERR) {
-		LOG_ERROR("stm32x device protected");
+		LOG_ERROR("n32g45x device protected");
 		retval = ERROR_FLASH_PROTECTED;
 	}
 
 	if (status & FLASH_PGERR) {
-		LOG_ERROR("stm32x device programming failed / flash not erased");
+		LOG_ERROR("n32g45x device programming failed / flash not erased");
 		retval = ERROR_FLASH_OPERATION_FAILED;
 	}
 
@@ -330,7 +330,7 @@ static int n32g45x_write_options(struct flash_bank *bank)
 	 * 480: flash: stm32f1x: write option bytes using the loader
 	 * https://review.openocd.org/c/openocd/+/480
 	 */
-	retval = n32g45x_write_block(bank, opt_bytes, STM32_OB_RDP, sizeof(opt_bytes) / 2);
+	retval = n32g45x_write_block(bank, opt_bytes, STM32_OB_RDP, sizeof(opt_bytes) / 4);
 
 flash_lock:
 	{
@@ -428,7 +428,7 @@ static int n32g45x_protect(struct flash_bank *bank, int set, unsigned int first,
 
 	retval = n32g45x_erase_options(bank);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("stm32x failed to erase options");
+		LOG_ERROR("n32g45x failed to erase options");
 		return retval;
 	}
 
@@ -659,7 +659,7 @@ static int n32g45x_write_block(struct flash_bank *bank,
 	/* The flash write must be aligned to a halfword boundary.
 	 * The flash infrastructure ensures it, do just a security check
 	 */
-	assert(address % 2 == 0);
+	assert(address % 4 == 0);
 
 	int retval;
     while (words_count > 0) {
@@ -794,7 +794,7 @@ static int n32g45x_get_property_addr(struct target *target, struct n32g45x_prope
 		}
 		/* fallthrough */
 	default:
-		LOG_ERROR("Cannot identify target as a stm32x");
+		LOG_ERROR("Cannot identify target as a n32g45x");
 		return ERROR_FAIL;
 	}
 }
@@ -1372,7 +1372,7 @@ COMMAND_HANDLER(n32g45x_handle_lock_command)
 		return retval;
 
 	if (n32g45x_erase_options(bank) != ERROR_OK) {
-		command_print(CMD, "stm32x failed to erase options");
+		command_print(CMD, "n32g45x failed to erase options");
 		return ERROR_OK;
 	}
 
@@ -1380,11 +1380,11 @@ COMMAND_HANDLER(n32g45x_handle_lock_command)
 	n32g45x_info->option_bytes.rdp = 0;
 
 	if (n32g45x_write_options(bank) != ERROR_OK) {
-		command_print(CMD, "stm32x failed to lock device");
+		command_print(CMD, "n32g45x failed to lock device");
 		return ERROR_OK;
 	}
 
-	command_print(CMD, "stm32x locked");
+	command_print(CMD, "n32g45x locked");
 
 	return ERROR_OK;
 }
@@ -1413,16 +1413,16 @@ COMMAND_HANDLER(n32g45x_handle_unlock_command)
 		return retval;
 
 	if (n32g45x_erase_options(bank) != ERROR_OK) {
-		command_print(CMD, "stm32x failed to erase options");
+		command_print(CMD, "n32g45x failed to erase options");
 		return ERROR_OK;
 	}
 
 	if (n32g45x_write_options(bank) != ERROR_OK) {
-		command_print(CMD, "stm32x failed to unlock device");
+		command_print(CMD, "n32g45x failed to unlock device");
 		return ERROR_OK;
 	}
 
-	command_print(CMD, "stm32x unlocked.\n"
+	command_print(CMD, "n32g45x unlocked.\n"
 			"INFO: a reset or power cycle is required "
 			"for the new settings to take effect.");
 
@@ -1568,7 +1568,7 @@ COMMAND_HANDLER(n32g45x_handle_options_write_command)
 	}
 
 	if (n32g45x_erase_options(bank) != ERROR_OK) {
-		command_print(CMD, "stm32x failed to erase options");
+		command_print(CMD, "n32g45x failed to erase options");
 		return ERROR_OK;
 	}
 
@@ -1576,11 +1576,11 @@ COMMAND_HANDLER(n32g45x_handle_options_write_command)
 	n32g45x_info->option_bytes.data = useropt;
 
 	if (n32g45x_write_options(bank) != ERROR_OK) {
-		command_print(CMD, "stm32x failed to write options");
+		command_print(CMD, "n32g45x failed to write options");
 		return ERROR_OK;
 	}
 
-	command_print(CMD, "stm32x write options complete.\n"
+	command_print(CMD, "n32g45x write options complete.\n"
 				"INFO: %spower cycle is required "
 				"for the new settings to take effect.",
 				n32g45x_info->can_load_options
@@ -1685,14 +1685,14 @@ COMMAND_HANDLER(n32g45x_handle_mass_erase_command)
 
 	retval = n32g45x_mass_erase(bank);
 	if (retval == ERROR_OK)
-		command_print(CMD, "stm32x mass erase complete");
+		command_print(CMD, "n32g45x mass erase complete");
 	else
-		command_print(CMD, "stm32x mass erase failed");
+		command_print(CMD, "n32g45x mass erase failed");
 
 	return retval;
 }
 
-static const struct command_registration stm32f1x_exec_command_handlers[] = {
+static const struct command_registration n32g45x_exec_command_handlers[] = {
 	{
 		.name = "lock",
 		.handler = n32g45x_handle_lock_command,
@@ -1740,20 +1740,20 @@ static const struct command_registration stm32f1x_exec_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-static const struct command_registration stm32f1x_command_handlers[] = {
+static const struct command_registration n32g45x_command_handlers[] = {
 	{
 		.name = "n32g45x",
 		.mode = COMMAND_ANY,
 		.help = "n32g45x flash command group",
 		.usage = "",
-		.chain = stm32f1x_exec_command_handlers,
+		.chain = n32g45x_exec_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE
 };
 
-const struct flash_driver stm32f1x_flash = {
+const struct flash_driver n32g45x_flash = {
 	.name = "n32g45x",
-	.commands = stm32f1x_command_handlers,
+	.commands = n32g45x_command_handlers,
 	.flash_bank_command = n32g45x_flash_bank_command,
 	.erase = n32g45x_erase,
 	.protect = n32g45x_protect,
