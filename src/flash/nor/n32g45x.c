@@ -442,7 +442,7 @@ static int n32g45x_protect(struct flash_bank *bank, int set, unsigned int first,
 	return n32g45x_write_options(bank);
 }
 
-#if 0
+#if 1
 static int n32g45x_write_block_async(struct flash_bank *bank, const uint8_t *buffer,
 		uint32_t address, uint32_t hwords_count)
 {
@@ -455,7 +455,7 @@ static int n32g45x_write_block_async(struct flash_bank *bank, const uint8_t *buf
 	int retval;
 
 	static const uint8_t n32g45x_flash_write_code[] = {
-#include "../../../contrib/loaders/flash/stm32/stm32f1x.inc"
+#include "../../../contrib/loaders/flash/stm32/n32g45x.inc"
 	};
 
 	/* flash write code */
@@ -474,14 +474,14 @@ static int n32g45x_write_block_async(struct flash_bank *bank, const uint8_t *buf
 
 	/* memory buffer */
 	buffer_size = target_get_working_area_avail(target);
-	buffer_size = MIN(hwords_count * 2 + 8, MAX(buffer_size, 256));
+	buffer_size = MIN(hwords_count * 4 + 8, MAX(buffer_size, 256));
 	/* Normally we allocate all available working area.
 	 * MIN shrinks buffer_size if the size of the written block is smaller.
 	 * MAX prevents using async algo if the available working area is smaller
 	 * than 256, the following allocation fails with
 	 * ERROR_TARGET_RESOURCE_NOT_AVAILABLE and slow flashing takes place.
 	 */
-	LOG_INFO("target_alloc_working_area: hwords_count=%d, buffer_size=%d", hwords_count, buffer_size);
+	LOG_INFO("target_alloc_working_area: words_count=%d, buffer_size=%d", hwords_count, buffer_size);
 	retval = target_alloc_working_area(target, buffer_size, &source);
 	/* Allocated size is always 32-bit word aligned */
 	if (retval != ERROR_OK) {
@@ -510,7 +510,7 @@ static int n32g45x_write_block_async(struct flash_bank *bank, const uint8_t *buf
 	armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
 	armv7m_info.core_mode = ARM_MODE_THREAD;
 
-	retval = target_run_flash_async_algorithm(target, buffer, hwords_count, 2,
+	retval = target_run_flash_async_algorithm(target, buffer, hwords_count, 4,
 			0, NULL,
 			ARRAY_SIZE(reg_params), reg_params,
 			source->address, source->size,
@@ -662,19 +662,22 @@ static int n32g45x_write_block(struct flash_bank *bank,
 	assert(address % 4 == 0);
 
 	int retval;
-    while (words_count > 0) {
-        retval = target_write_memory(target, address, 4, 1, buffer);
-        if (retval != ERROR_OK)
-            return retval;
+	retval = n32g45x_write_block_async(bank, buffer, address, words_count);
+	if (retval == ERROR_TARGET_RESOURCE_NOT_AVAILABLE) {
+		while (words_count > 0) {
+			retval = target_write_memory(target, address, 4, 1, buffer);
+			if (retval != ERROR_OK)
+				return retval;
 
-        retval = n32g45x_wait_status_busy(bank, 5);
-        if (retval != ERROR_OK)
-            return retval;
+			retval = n32g45x_wait_status_busy(bank, 5);
+			if (retval != ERROR_OK)
+				return retval;
 
-        words_count--;
-        buffer += 4;
-        address += 4;
-    }
+			words_count--;
+			buffer += 4;
+			address += 4;
+		}
+	}
 #if 0    
 	struct arm *arm = target_to_arm(target);
 	if (is_arm(arm)) {

@@ -1,0 +1,382 @@
+   1              		.cpu cortex-m0plus
+   2              		.arch armv6s-m
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 4
+  11              		.eabi_attribute 34, 0
+  12              		.eabi_attribute 18, 4
+  13              		.file	"stm32l4x.c"
+  14              		.text
+  15              	.Ltext0:
+  16              		.cfi_sections	.debug_frame
+  17              		.file 1 "stm32l4x.c"
+  18              		.align	1
+  19              		.global	write
+  20              		.syntax unified
+  21              		.code	16
+  22              		.thumb_func
+  24              	write:
+  25              	.LVL0:
+  26              	.LFB1:
+   1:stm32l4x.c    **** // SPDX-License-Identifier: GPL-2.0-or-later
+   2:stm32l4x.c    **** 
+   3:stm32l4x.c    **** /**
+   4:stm32l4x.c    ****  * Copyright (C) 2021 Tarek BOCHKATI
+   5:stm32l4x.c    ****  *   tarek.bouchkati@st.com
+   6:stm32l4x.c    ****  */
+   7:stm32l4x.c    **** 
+   8:stm32l4x.c    **** #define OPENOCD_CONTRIB_LOADERS_FLASH_STM32_STM32L4X
+   9:stm32l4x.c    **** 
+  10:stm32l4x.c    **** #include <stdint.h>
+  11:stm32l4x.c    **** #include "../../../../src/flash/nor/stm32l4x.h"
+  12:stm32l4x.c    **** 
+  13:stm32l4x.c    **** static inline __attribute__((always_inline))
+  14:stm32l4x.c    **** void copy_buffer_u32(uint32_t *dst, uint32_t *src, int len)
+  15:stm32l4x.c    **** {
+  16:stm32l4x.c    **** 	for (int i = 0; i < len; i++)
+  17:stm32l4x.c    **** 		dst[i] = src[i];
+  18:stm32l4x.c    **** }
+  19:stm32l4x.c    **** 
+  20:stm32l4x.c    **** /* this function is assumes that fifo_size is multiple of flash_word_size
+  21:stm32l4x.c    ****  * this condition is ensured by target_run_flash_async_algorithm
+  22:stm32l4x.c    ****  */
+  23:stm32l4x.c    **** 
+  24:stm32l4x.c    **** void write(volatile struct stm32l4_work_area *work_area,
+  25:stm32l4x.c    **** 		   uint8_t *fifo_end,
+  26:stm32l4x.c    **** 		   uint8_t *target_address,
+  27:stm32l4x.c    **** 		   uint32_t count)
+  28:stm32l4x.c    **** {
+  27              		.loc 1 28 1 view -0
+  28              		.cfi_startproc
+  29              		@ args = 0, pretend = 0, frame = 24
+  30              		@ frame_needed = 0, uses_anonymous_args = 0
+  29:stm32l4x.c    **** 	volatile uint32_t *flash_sr = (uint32_t *) work_area->params.flash_sr_addr;
+  31              		.loc 1 29 2 view .LVU1
+  28:stm32l4x.c    **** 	volatile uint32_t *flash_sr = (uint32_t *) work_area->params.flash_sr_addr;
+  32              		.loc 1 28 1 is_stmt 0 view .LVU2
+  33 0000 F0B5     		push	{r4, r5, r6, r7, lr}
+  34              		.cfi_def_cfa_offset 20
+  35              		.cfi_offset 4, -20
+  36              		.cfi_offset 5, -16
+  37              		.cfi_offset 6, -12
+  38              		.cfi_offset 7, -8
+  39              		.cfi_offset 14, -4
+  40 0002 9C46     		mov	ip, r3
+  41              		.loc 1 29 62 view .LVU3
+  42 0004 0668     		ldr	r6, [r0]
+  43              	.LVL1:
+  30:stm32l4x.c    **** 	volatile uint32_t *flash_cr = (uint32_t *) work_area->params.flash_cr_addr;
+  44              		.loc 1 30 2 is_stmt 1 view .LVU4
+  45              		.loc 1 30 62 is_stmt 0 view .LVU5
+  46 0006 4368     		ldr	r3, [r0, #4]
+  47              	.LVL2:
+  28:stm32l4x.c    **** 	volatile uint32_t *flash_sr = (uint32_t *) work_area->params.flash_sr_addr;
+  48              		.loc 1 28 1 view .LVU6
+  49 0008 87B0     		sub	sp, sp, #28
+  50              		.cfi_def_cfa_offset 48
+  51              		.loc 1 30 62 view .LVU7
+  52 000a 0293     		str	r3, [sp, #8]
+  53              	.LVL3:
+  31:stm32l4x.c    **** 
+  32:stm32l4x.c    **** 	/* optimization to avoid reading from memory each time */
+  33:stm32l4x.c    **** 	uint8_t *rp_cache  = work_area->fifo.rp;
+  54              		.loc 1 33 2 is_stmt 1 view .LVU8
+  55              		.loc 1 33 11 is_stmt 0 view .LVU9
+  56 000c 836F     		ldr	r3, [r0, #120]
+  57              	.LVL4:
+  28:stm32l4x.c    **** 	volatile uint32_t *flash_sr = (uint32_t *) work_area->params.flash_sr_addr;
+  58              		.loc 1 28 1 view .LVU10
+  59 000e 0192     		str	r2, [sp, #4]
+  60              		.loc 1 33 11 view .LVU11
+  61 0010 0393     		str	r3, [sp, #12]
+  62              	.LVL5:
+  34:stm32l4x.c    **** 
+  35:stm32l4x.c    **** 	/* fifo_start is used to wrap when we reach fifo_end */
+  36:stm32l4x.c    **** 	uint8_t *fifo_start = rp_cache;
+  63              		.loc 1 36 2 is_stmt 1 view .LVU12
+  37:stm32l4x.c    **** 
+  38:stm32l4x.c    **** 	/* enable flash programming */
+  39:stm32l4x.c    **** 	*flash_cr = FLASH_PG;
+  64              		.loc 1 39 2 view .LVU13
+  65              		.loc 1 39 12 is_stmt 0 view .LVU14
+  66 0012 0123     		movs	r3, #1
+  67              	.LVL6:
+  68              		.loc 1 39 12 view .LVU15
+  69 0014 029A     		ldr	r2, [sp, #8]
+  70              	.LVL7:
+  28:stm32l4x.c    **** 	volatile uint32_t *flash_sr = (uint32_t *) work_area->params.flash_sr_addr;
+  71              		.loc 1 28 1 view .LVU16
+  72 0016 0491     		str	r1, [sp, #16]
+  73              		.loc 1 39 12 view .LVU17
+  74 0018 1360     		str	r3, [r2]
+  40:stm32l4x.c    **** 
+  41:stm32l4x.c    **** 	while (count) {
+  75              		.loc 1 41 2 is_stmt 1 view .LVU18
+  33:stm32l4x.c    **** 
+  76              		.loc 1 33 11 is_stmt 0 view .LVU19
+  77 001a 039B     		ldr	r3, [sp, #12]
+  78              	.LVL8:
+  79              	.L2:
+  80              		.loc 1 41 9 is_stmt 1 view .LVU20
+  81 001c 6246     		mov	r2, ip
+  82 001e 002A     		cmp	r2, #0
+  83 0020 21D0     		beq	.L3
+  84              	.LVL9:
+  85              	.LBB6:
+  42:stm32l4x.c    **** 		/* optimization to avoid reading from memory each time */
+  43:stm32l4x.c    **** 		uint8_t *wp_cache  = work_area->fifo.wp;
+  86              		.loc 1 43 3 view .LVU21
+  87              		.loc 1 43 12 is_stmt 0 view .LVU22
+  88 0022 426F     		ldr	r2, [r0, #116]
+  89              	.LVL10:
+  44:stm32l4x.c    **** 		if (wp_cache == 0)
+  90              		.loc 1 44 3 is_stmt 1 view .LVU23
+  91              		.loc 1 44 6 is_stmt 0 view .LVU24
+  92 0024 002A     		cmp	r2, #0
+  93 0026 1ED0     		beq	.L3
+  45:stm32l4x.c    **** 			break; /* aborted by target_run_flash_async_algorithm */
+  46:stm32l4x.c    **** 
+  47:stm32l4x.c    **** 		int32_t fifo_size = wp_cache - rp_cache;
+  94              		.loc 1 47 3 is_stmt 1 view .LVU25
+  95              		.loc 1 47 11 is_stmt 0 view .LVU26
+  96 0028 D21A     		subs	r2, r2, r3
+  97              	.LVL11:
+  48:stm32l4x.c    **** 		if (fifo_size < 0) {
+  98              		.loc 1 48 3 is_stmt 1 view .LVU27
+  99              		.loc 1 48 6 is_stmt 0 view .LVU28
+ 100 002a 01D5     		bpl	.L5
+  49:stm32l4x.c    **** 			/* consider the linear fifo, we will wrap later */
+  50:stm32l4x.c    **** 			fifo_size = fifo_end - rp_cache;
+ 101              		.loc 1 50 4 is_stmt 1 view .LVU29
+ 102              		.loc 1 50 14 is_stmt 0 view .LVU30
+ 103 002c 049A     		ldr	r2, [sp, #16]
+ 104              	.LVL12:
+ 105              		.loc 1 50 14 view .LVU31
+ 106 002e D21A     		subs	r2, r2, r3
+ 107              	.LVL13:
+ 108              	.L5:
+  51:stm32l4x.c    **** 		}
+  52:stm32l4x.c    **** 
+  53:stm32l4x.c    **** 		/* wait for at least a flash word */
+  54:stm32l4x.c    **** 		while (fifo_size >= work_area->params.flash_word_size) {
+ 109              		.loc 1 54 20 is_stmt 1 view .LVU32
+ 110              		.loc 1 54 40 is_stmt 0 view .LVU33
+ 111 0030 8168     		ldr	r1, [r0, #8]
+ 112              		.loc 1 54 20 view .LVU34
+ 113 0032 9142     		cmp	r1, r2
+ 114 0034 F2D8     		bhi	.L2
+  55:stm32l4x.c    **** 			copy_buffer_u32((uint32_t *)target_address,
+ 115              		.loc 1 55 4 is_stmt 1 view .LVU35
+  56:stm32l4x.c    **** 					(uint32_t *)rp_cache,
+  57:stm32l4x.c    **** 					work_area->params.flash_word_size / 4);
+ 116              		.loc 1 57 23 is_stmt 0 view .LVU36
+ 117 0036 8468     		ldr	r4, [r0, #8]
+ 118              		.loc 1 57 40 view .LVU37
+ 119 0038 A108     		lsrs	r1, r4, #2
+ 120 003a 0591     		str	r1, [sp, #20]
+ 121              	.LVL14:
+ 122              	.LBB7:
+ 123              	.LBI7:
+  14:stm32l4x.c    **** {
+ 124              		.loc 1 14 6 is_stmt 1 view .LVU38
+  16:stm32l4x.c    **** 		dst[i] = src[i];
+ 125              		.loc 1 16 2 view .LVU39
+ 126              	.LBB8:
+  16:stm32l4x.c    **** 		dst[i] = src[i];
+ 127              		.loc 1 16 7 view .LVU40
+  16:stm32l4x.c    **** 		dst[i] = src[i];
+ 128              		.loc 1 16 11 is_stmt 0 view .LVU41
+ 129 003c 0021     		movs	r1, #0
+ 130              	.LVL15:
+ 131              	.L6:
+  16:stm32l4x.c    **** 		dst[i] = src[i];
+ 132              		.loc 1 16 20 is_stmt 1 view .LVU42
+ 133 003e 059C     		ldr	r4, [sp, #20]
+ 134 0040 8C42     		cmp	r4, r1
+ 135 0042 16DC     		bgt	.L7
+ 136              	.LVL16:
+  16:stm32l4x.c    **** 		dst[i] = src[i];
+ 137              		.loc 1 16 20 is_stmt 0 view .LVU43
+ 138              	.LBE8:
+ 139              	.LBE7:
+  58:stm32l4x.c    **** 
+  59:stm32l4x.c    **** 			/* update target_address and rp_cache */
+  60:stm32l4x.c    **** 			target_address += work_area->params.flash_word_size;
+ 140              		.loc 1 60 4 is_stmt 1 view .LVU44
+ 141              		.loc 1 60 39 is_stmt 0 view .LVU45
+ 142 0044 8168     		ldr	r1, [r0, #8]
+ 143              		.loc 1 60 19 view .LVU46
+ 144 0046 019C     		ldr	r4, [sp, #4]
+ 145 0048 6118     		adds	r1, r4, r1
+ 146 004a 0191     		str	r1, [sp, #4]
+ 147              	.LVL17:
+  61:stm32l4x.c    **** 			rp_cache += work_area->params.flash_word_size;
+ 148              		.loc 1 61 4 is_stmt 1 view .LVU47
+ 149              		.loc 1 61 33 is_stmt 0 view .LVU48
+ 150 004c 8168     		ldr	r1, [r0, #8]
+ 151              	.LVL18:
+ 152              		.loc 1 61 13 view .LVU49
+ 153 004e 5B18     		adds	r3, r3, r1
+ 154              	.LVL19:
+  62:stm32l4x.c    **** 
+  63:stm32l4x.c    **** 			/* wait for the busy flag */
+  64:stm32l4x.c    **** 			while (*flash_sr & work_area->params.flash_sr_bsy_mask)
+ 155              		.loc 1 64 4 is_stmt 1 view .LVU50
+ 156              	.L8:
+ 157              		.loc 1 64 11 discriminator 1 view .LVU51
+ 158 0050 3168     		ldr	r1, [r6]
+ 159              		.loc 1 64 40 is_stmt 0 discriminator 1 view .LVU52
+ 160 0052 C468     		ldr	r4, [r0, #12]
+ 161              		.loc 1 64 21 discriminator 1 view .LVU53
+ 162 0054 2700     		movs	r7, r4
+ 163 0056 0F40     		ands	r7, r1
+ 164              		.loc 1 64 11 discriminator 1 view .LVU54
+ 165 0058 0C42     		tst	r4, r1
+ 166 005a F9D1     		bne	.L8
+  65:stm32l4x.c    **** 				;
+  66:stm32l4x.c    **** 
+  67:stm32l4x.c    **** 			if (*flash_sr & FLASH_ERROR) {
+ 167              		.loc 1 67 4 is_stmt 1 view .LVU55
+ 168              		.loc 1 67 7 is_stmt 0 view .LVU56
+ 169 005c FA24     		movs	r4, #250
+ 170              		.loc 1 67 8 view .LVU57
+ 171 005e 3168     		ldr	r1, [r6]
+ 172              		.loc 1 67 7 view .LVU58
+ 173 0060 2142     		tst	r1, r4
+ 174 0062 0DD0     		beq	.L9
+  68:stm32l4x.c    **** 				work_area->fifo.rp = 0; /* set rp to zero 0 on error */
+ 175              		.loc 1 68 5 is_stmt 1 view .LVU59
+ 176              		.loc 1 68 24 is_stmt 0 view .LVU60
+ 177 0064 8767     		str	r7, [r0, #120]
+  69:stm32l4x.c    **** 				goto write_end;
+ 178              		.loc 1 69 5 is_stmt 1 view .LVU61
+ 179              	.LVL20:
+ 180              	.L3:
+ 181              		.loc 1 69 5 is_stmt 0 view .LVU62
+ 182              	.LBE6:
+  70:stm32l4x.c    **** 			}
+  71:stm32l4x.c    **** 
+  72:stm32l4x.c    **** 			/* wrap if reach the fifo_end, and update rp in memory */
+  73:stm32l4x.c    **** 			if (rp_cache >= fifo_end)
+  74:stm32l4x.c    **** 				rp_cache = fifo_start;
+  75:stm32l4x.c    **** 
+  76:stm32l4x.c    **** 			/* flush the rp cache value,
+  77:stm32l4x.c    **** 			 * so target_run_flash_async_algorithm can fill the circular fifo */
+  78:stm32l4x.c    **** 			work_area->fifo.rp = rp_cache;
+  79:stm32l4x.c    **** 
+  80:stm32l4x.c    **** 			/* update fifo_size and count */
+  81:stm32l4x.c    **** 			fifo_size -= work_area->params.flash_word_size;
+  82:stm32l4x.c    **** 			count--;
+  83:stm32l4x.c    **** 		}
+  84:stm32l4x.c    **** 	}
+  85:stm32l4x.c    **** 
+  86:stm32l4x.c    **** write_end:
+  87:stm32l4x.c    **** 	/* disable flash programming */
+  88:stm32l4x.c    **** 	*flash_cr = 0;
+ 183              		.loc 1 88 2 is_stmt 1 view .LVU63
+ 184              		.loc 1 88 12 is_stmt 0 view .LVU64
+ 185 0066 0023     		movs	r3, #0
+ 186              	.LVL21:
+ 187              		.loc 1 88 12 view .LVU65
+ 188 0068 029A     		ldr	r2, [sp, #8]
+ 189 006a 1360     		str	r3, [r2]
+  89:stm32l4x.c    **** 
+  90:stm32l4x.c    **** 	/* soft break the loader */
+  91:stm32l4x.c    **** 	__asm("bkpt 0");
+ 190              		.loc 1 91 2 is_stmt 1 view .LVU66
+ 191              		.syntax divided
+ 192              	@ 91 "stm32l4x.c" 1
+ 193 006c 00BE     		bkpt 0
+ 194              	@ 0 "" 2
+  92:stm32l4x.c    **** }
+ 195              		.loc 1 92 1 is_stmt 0 view .LVU67
+ 196              		.thumb
+ 197              		.syntax unified
+ 198 006e 07B0     		add	sp, sp, #28
+ 199              		@ sp needed
+ 200              	.LVL22:
+ 201              		.loc 1 92 1 view .LVU68
+ 202 0070 F0BD     		pop	{r4, r5, r6, r7, pc}
+ 203              	.LVL23:
+ 204              	.L7:
+ 205              	.LBB11:
+ 206              	.LBB10:
+ 207              	.LBB9:
+  17:stm32l4x.c    **** }
+ 208              		.loc 1 17 3 is_stmt 1 view .LVU69
+ 209 0072 8F00     		lsls	r7, r1, #2
+  17:stm32l4x.c    **** }
+ 210              		.loc 1 17 15 is_stmt 0 view .LVU70
+ 211 0074 DC59     		ldr	r4, [r3, r7]
+  16:stm32l4x.c    **** 		dst[i] = src[i];
+ 212              		.loc 1 16 28 view .LVU71
+ 213 0076 0131     		adds	r1, r1, #1
+ 214              	.LVL24:
+  17:stm32l4x.c    **** }
+ 215              		.loc 1 17 15 view .LVU72
+ 216 0078 2500     		movs	r5, r4
+  17:stm32l4x.c    **** }
+ 217              		.loc 1 17 10 view .LVU73
+ 218 007a 019C     		ldr	r4, [sp, #4]
+ 219 007c E551     		str	r5, [r4, r7]
+  16:stm32l4x.c    **** 		dst[i] = src[i];
+ 220              		.loc 1 16 28 is_stmt 1 view .LVU74
+ 221              	.LVL25:
+  16:stm32l4x.c    **** 		dst[i] = src[i];
+ 222              		.loc 1 16 28 is_stmt 0 view .LVU75
+ 223 007e DEE7     		b	.L6
+ 224              	.LVL26:
+ 225              	.L9:
+  16:stm32l4x.c    **** 		dst[i] = src[i];
+ 226              		.loc 1 16 28 view .LVU76
+ 227              	.LBE9:
+ 228              	.LBE10:
+  73:stm32l4x.c    **** 				rp_cache = fifo_start;
+ 229              		.loc 1 73 4 is_stmt 1 view .LVU77
+  73:stm32l4x.c    **** 				rp_cache = fifo_start;
+ 230              		.loc 1 73 7 is_stmt 0 view .LVU78
+ 231 0080 0499     		ldr	r1, [sp, #16]
+ 232 0082 9942     		cmp	r1, r3
+ 233 0084 00D8     		bhi	.L10
+  74:stm32l4x.c    **** 
+ 234              		.loc 1 74 14 view .LVU79
+ 235 0086 039B     		ldr	r3, [sp, #12]
+ 236              	.LVL27:
+ 237              	.L10:
+  78:stm32l4x.c    **** 
+ 238              		.loc 1 78 4 is_stmt 1 view .LVU80
+  78:stm32l4x.c    **** 
+ 239              		.loc 1 78 23 is_stmt 0 view .LVU81
+ 240 0088 8367     		str	r3, [r0, #120]
+  81:stm32l4x.c    **** 			count--;
+ 241              		.loc 1 81 4 is_stmt 1 view .LVU82
+  81:stm32l4x.c    **** 			count--;
+ 242              		.loc 1 81 34 is_stmt 0 view .LVU83
+ 243 008a 8168     		ldr	r1, [r0, #8]
+  81:stm32l4x.c    **** 			count--;
+ 244              		.loc 1 81 14 view .LVU84
+ 245 008c 521A     		subs	r2, r2, r1
+ 246              	.LVL28:
+  82:stm32l4x.c    **** 		}
+ 247              		.loc 1 82 4 is_stmt 1 view .LVU85
+  82:stm32l4x.c    **** 		}
+ 248              		.loc 1 82 9 is_stmt 0 view .LVU86
+ 249 008e 0121     		movs	r1, #1
+ 250 0090 4942     		rsbs	r1, r1, #0
+ 251 0092 8C44     		add	ip, ip, r1
+ 252              	.LVL29:
+  82:stm32l4x.c    **** 		}
+ 253              		.loc 1 82 9 view .LVU87
+ 254 0094 CCE7     		b	.L5
+ 255              	.LBE11:
+ 256              		.cfi_endproc
+ 257              	.LFE1:
+ 259              	.Letext0:
+ 260              		.file 2 "d:\\install\\msys2\\mingw64\\arm-none-eabi\\include\\machine\\_default_types.h"
+ 261              		.file 3 "d:\\install\\msys2\\mingw64\\arm-none-eabi\\include\\sys\\_stdint.h"
+ 262              		.file 4 "../../../../src/flash/nor/stm32l4x.h"
