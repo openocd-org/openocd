@@ -59,6 +59,8 @@ struct FreeRTOS {
 	unsigned ubasetype_size;
 	/* sizeof(void *) */
 	unsigned pointer_size;
+	/* sizeof(TickType_t) */
+	unsigned ticktype_size;
 	unsigned list_width;
 	unsigned list_item_width;
 	unsigned list_elem_next_offset;
@@ -126,6 +128,45 @@ static int nds32_stacking(struct rtos *rtos, const struct rtos_register_stacking
 	*stacking = &rtos_standard_nds32_n1068_stacking;
 	return ERROR_OK;
 }
+
+/* take 4 bytes (32 bits) as the default size,
+ * which is suitable for most 32-bit targets and
+ * configuration of configUSE_16_BIT_TICKS = 0. */
+static unsigned int freertos_ticktype_size = 4;
+COMMAND_HANDLER(handle_freertos_ticktype_size)
+{
+	if (CMD_ARGC != 1) {
+		LOG_ERROR("Command takes exactly 1 parameter");
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	unsigned int size;
+	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], size);
+	switch (size) {
+		case 2:
+		case 4:
+		case 8:
+			freertos_ticktype_size = size;
+			break;
+		default:
+			LOG_ERROR("Invalid ticktype size. Should be 2, 4 or 8.");
+			return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	return ERROR_OK;
+}
+
+static const struct command_registration freertos_commands[] = {
+	{
+		.name = "freertos_ticktype_size",
+		.handler = handle_freertos_ticktype_size,
+		.mode = COMMAND_ANY,
+		.usage = "(2|4|8)",
+		.help = "Pass the size (in bytes) of TickType_t to OpenOCD. To make sure the "
+		"calculation of offsets and sizes is correct. Defaults to 4."
+	},
+	COMMAND_REGISTRATION_DONE
+};
 
 static enum {
 	STACKING_MAINLINE,
@@ -305,13 +346,12 @@ static unsigned populate_offset_size(struct FreeRTOS *freertos,
 				align = freertos->pointer_size;
 				break;
 			case TYPE_TICKTYPE:
-				/* Could be either 16 or 32 bits, depending on configUSE_16_BIT_TICKS. */
-				info[i].size = 4;
-				align = 4;
+				info[i].size = freertos->ticktype_size;
+				align = freertos->ticktype_size;
 				break;
 			case TYPE_LIST_ITEM:
 				info[i].size = freertos->list_item_width;
-				align = MAX(freertos->ubasetype_size, freertos->pointer_size);
+				align = MAX(freertos->ticktype_size, freertos->pointer_size);
 				break;
 			case TYPE_CHAR_ARRAY:
 				/* size is set by the caller. */
@@ -347,11 +387,12 @@ static void freertos_compute_offsets(struct rtos *rtos)
 {
 	struct FreeRTOS *freertos = (struct FreeRTOS *) rtos->rtos_specific_params;
 
-	if (freertos->pointer_size != 0)
+	if (freertos->ticktype_size == freertos_ticktype_size)
 		return;
 
 	freertos->pointer_size = DIV_ROUND_UP(target_address_bits(rtos->target), 8);
 	freertos->ubasetype_size = DIV_ROUND_UP(target_data_bits(rtos->target), 8);
+	freertos->ticktype_size = freertos_ticktype_size;
 
 	/*
 	 * FreeRTOS can be compiled with configUSE_LIST_DATA_INTEGRITY_CHECK_BYTES
@@ -915,5 +956,5 @@ static int freertos_create(struct target *target)
 			return ERROR_FAIL;
 	}
 
-	return ERROR_OK;
+	return register_commands(target->rtos->cmd_ctx, NULL, freertos_commands);
 }

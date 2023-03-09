@@ -12018,6 +12018,14 @@ contrib/rtos-helpers/FreeRTOS-openocd.c
 contrib/rtos-helpers/uCOS-III-openocd.c
 @end table
 
+@section RTOS Commands
+@cindex RTOS Commands
+
+@deffn {Config Command} {freertos_ticktype_size} (2|4|8)
+Pass the size (in bytes) of FreeRTOS TickType_t to OpenOCD. To make sure the
+calculation of offsets and sizes is correct. Defaults to 4.
+@end deffn
+
 @anchor{usingopenocdsmpwithgdb}
 @section Using OpenOCD SMP with GDB
 @cindex SMP
