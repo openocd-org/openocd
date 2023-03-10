@@ -473,27 +473,31 @@ COMMAND_HANDLER(handle_svf_command)
 		}
 
 		/* HDR %d TDI (0) */
-		if (svf_set_padding(&svf_para.hdr_para, header_dr_len, 0) != ERROR_OK) {
-			LOG_ERROR("failed to set data header");
-			return ERROR_FAIL;
+		ret = svf_set_padding(&svf_para.hdr_para, header_dr_len, 0);
+		if (ret != ERROR_OK) {
+			command_print(CMD, "failed to set data header");
+			goto free_all;
 		}
 
 		/* HIR %d TDI (0xFF) */
-		if (svf_set_padding(&svf_para.hir_para, header_ir_len, 0xFF) != ERROR_OK) {
-			LOG_ERROR("failed to set instruction header");
-			return ERROR_FAIL;
+		ret = svf_set_padding(&svf_para.hir_para, header_ir_len, 0xFF);
+		if (ret != ERROR_OK) {
+			command_print(CMD, "failed to set instruction header");
+			goto free_all;
 		}
 
 		/* TDR %d TDI (0) */
-		if (svf_set_padding(&svf_para.tdr_para, trailer_dr_len, 0) != ERROR_OK) {
-			LOG_ERROR("failed to set data trailer");
-			return ERROR_FAIL;
+		ret = svf_set_padding(&svf_para.tdr_para, trailer_dr_len, 0);
+		if (ret != ERROR_OK) {
+			command_print(CMD, "failed to set data trailer");
+			goto free_all;
 		}
 
 		/* TIR %d TDI (0xFF) */
-		if (svf_set_padding(&svf_para.tir_para, trailer_ir_len, 0xFF) != ERROR_OK) {
-			LOG_ERROR("failed to set instruction trailer");
-			return ERROR_FAIL;
+		ret = svf_set_padding(&svf_para.tir_para, trailer_ir_len, 0xFF);
+		if (ret != ERROR_OK) {
+			command_print(CMD, "failed to set instruction trailer");
+			goto free_all;
 		}
 	}
 
