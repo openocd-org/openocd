@@ -562,7 +562,6 @@ static int dmi_op_timeout(struct target *target, uint32_t *data_in,
 	select_dmi(target);
 
 	dmi_status_t status;
-	uint32_t address_in;
 
 	if (dmi_busy_encountered)
 		*dmi_busy_encountered = false;
@@ -615,7 +614,7 @@ static int dmi_op_timeout(struct target *target, uint32_t *data_in,
 		 * Note that NOP can result in a 'busy' result as well, but that would be
 		 * noticed on the next DMI access we do. */
 		while (1) {
-			status = dmi_scan(target, &address_in, data_in, DMI_OP_NOP, address, 0,
+			status = dmi_scan(target, NULL, data_in, DMI_OP_NOP, address, 0,
 					false);
 			if (status == DMI_STATUS_BUSY) {
 				increase_dmi_busy_delay(target);
