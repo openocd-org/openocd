@@ -122,22 +122,25 @@ static int gemini_get_command_status(struct target * target, uint32_t *status)
 
 static int gemini_switch_to_bcpu(struct target * target)
 {
-	int retval = ERROR_FAIL;
-    uint32_t cpu = 0;
+    uint32_t cpu = 1;
 
-    if (gemini_sysbus_write_reg32(target, GEMINI_DEBUG_CONTROL, 0) != ERROR_OK)
+    if (gemini_sysbus_write_reg32(target, GEMINI_DEBUG_CONTROL, 0) != ERROR_OK) {
         return ERROR_FAIL;
+    }
 
-	// todo: reset target to reflect bcpu state
+    target->examined = false;
+    if (target_examine_one(target) != ERROR_OK) {
+        LOG_ERROR("Failed to re-init the target after switching to BCPU");
+        return ERROR_FAIL;
+    }
 
     if (gemini_get_cpu_type(target, &cpu) == ERROR_OK)
-	{
-		if (cpu == GEMINI_BCPU) {
-			retval = ERROR_OK;
-		}
-	}
+    {
+        if (cpu == GEMINI_BCPU)
+            return ERROR_OK;
+    }
 
-    return retval;
+    return ERROR_FAIL;
 }
 
 static int gemini_write_command(struct target * target, uint32_t cmd_id)
@@ -249,13 +252,17 @@ static int gemini_load(struct pld_device *pld_device, const char *filename)
         return ERROR_FAIL;
     }
 
-	if (cpu == GEMINI_ACPU)
+    if (cpu == GEMINI_ACPU)
     {
+        LOG_INFO("[RS] Connected to ACPU");
+
         if (gemini_switch_to_bcpu(gemini_info->target) != ERROR_OK)
         {
             LOG_ERROR("[RS] Failed to switch to BCPU. Quit.");
             return ERROR_FAIL;          
         }
+
+        LOG_INFO("[RS] Switched to BCPU successfully");
     }
 	
 	if (gemini_get_firmware_type(gemini_info->target, &fw_type) != ERROR_OK)
