@@ -377,6 +377,9 @@ COMMAND_HANDLER(handle_svf_command)
 			svf_addcycles = atoi(CMD_ARGV[i + 1]);
 			if (svf_addcycles > SVF_MAX_ADDCYCLES) {
 				command_print(CMD, "addcycles: %s out of range", CMD_ARGV[i + 1]);
+				if (svf_fd)
+					fclose(svf_fd);
+				svf_fd = NULL;
 				return ERROR_FAIL;
 			}
 			i++;
@@ -384,6 +387,9 @@ COMMAND_HANDLER(handle_svf_command)
 			tap = jtag_tap_by_string(CMD_ARGV[i+1]);
 			if (!tap) {
 				command_print(CMD, "Tap: %s unknown", CMD_ARGV[i+1]);
+				if (svf_fd)
+					fclose(svf_fd);
+				svf_fd = NULL;
 				return ERROR_FAIL;
 			}
 			i++;
@@ -546,7 +552,7 @@ COMMAND_HANDLER(handle_svf_command)
 free_all:
 
 	fclose(svf_fd);
-	svf_fd = 0;
+	svf_fd = NULL;
 
 	/* free buffers */
 	free(svf_command_buffer);
