@@ -11432,8 +11432,8 @@ way to represent JTAG test patterns in text files.
 In a debug session using JTAG for its transport protocol,
 OpenOCD supports running such test files.
 
-@deffn {Command} {svf} @file{filename} [@option{-tap @var{tapname}}] [@option{[-]quiet}] @
-                     [@option{[-]nil}] [@option{[-]progress}] [@option{[-]ignore_error}] @
+@deffn {Command} {svf} @file{filename} [@option{-tap @var{tapname}}] [@option{-quiet}] @
+                     [@option{-nil}] [@option{-progress}] [@option{-ignore_error}] @
                      [@option{-noreset}] [@option{-addcycles @var{cyclecount}}]
 This issues a JTAG reset (Test-Logic-Reset) and then
 runs the SVF script from @file{filename}.
@@ -11447,11 +11447,11 @@ Command options:
 specified by the SVF file with HIR, TIR, HDR and TDR commands;
 instead, calculate them automatically according to the current JTAG
 chain configuration, targeting @var{tapname};
-@item @option{[-]quiet} do not log every command before execution;
-@item @option{[-]nil} ``dry run'', i.e., do not perform any operations
+@item @option{-quiet} do not log every command before execution;
+@item @option{-nil} ``dry run'', i.e., do not perform any operations
 on the real interface;
-@item @option{[-]progress} enable progress indication;
-@item @option{[-]ignore_error} continue execution despite TDO check
+@item @option{-progress} enable progress indication;
+@item @option{-ignore_error} continue execution despite TDO check
 errors.
 @item @option{-noreset} omit JTAG reset (Test-Logic-Reset) before executing
 content of the SVF file;
