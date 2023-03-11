@@ -54,8 +54,9 @@ static int gemini_sysbus_write_reg32(struct target * target, target_addr_t addre
     if (ri->dmi_write(target, DM_SBADDRESS0, address) != ERROR_OK)
         return ERROR_FAIL;
 
-    if (ri->dmi_write(target, DM_SBDATA0, value) != ERROR_OK)
-        return ERROR_FAIL;
+    //if (ri->dmi_write(target, DM_SBDATA0, value) != ERROR_OK)
+    //    return ERROR_FAIL;
+	ri->dmi_write(target, DM_SBDATA0, value);
 
     return ERROR_OK;
 }
@@ -128,6 +129,9 @@ static int gemini_switch_to_bcpu(struct target * target)
         return ERROR_FAIL;
     }
 
+	jtag_add_tlr();
+	jtag_execute_queue();
+
     target->examined = false;
     if (target_examine_one(target) != ERROR_OK) {
         LOG_ERROR("Failed to re-init the target after switching to BCPU");
@@ -145,30 +149,24 @@ static int gemini_switch_to_bcpu(struct target * target)
 
 static int gemini_write_command(struct target * target, uint32_t cmd_id)
 {
-	int retval = ERROR_FAIL;
-	uint32_t spare_reg = 0;
+    int retval = ERROR_FAIL;
+    uint32_t spare_reg = 0;
 
-	if (target_halt(target) != ERROR_OK)
+    if (target_halt(target) != ERROR_OK)
         return ERROR_FAIL;
 
     if (target_read_u32(target, GEMINI_SPARE_REG, &spare_reg) == ERROR_OK)
-	{
-		// clear task command and status fields
-		spare_reg &= ~(0xffff << 0);
-
-		// set task command
-		spare_reg |= ((cmd_id & 0x3FF) << 0);
-
-		// write back spare reg
-		if (target_write_u32(target, GEMINI_SPARE_REG, spare_reg) == ERROR_OK)
-		{
-			retval = ERROR_OK;
-		}
-	}
+    {
+        // set command and clear status fields
+        spare_reg &= ~(0xffff << 0);
+        spare_reg |= ((cmd_id & 0x3FF) << 0);
+        if (target_write_u32(target, GEMINI_SPARE_REG, spare_reg) == ERROR_OK)
+            retval = ERROR_OK;
+    }
 
     target_resume(target, true, 0, true, false);
 
-	return retval;
+    return retval;
 }
 
 static void gemini_wait(uint32_t miliseconds)
@@ -254,7 +252,7 @@ static int gemini_load(struct pld_device *pld_device, const char *filename)
 
     if (cpu == GEMINI_ACPU)
     {
-        LOG_INFO("[RS] Connected to ACPU");
+        LOG_INFO("[RS] Connected to ACPU. Trying to switch to BCPU...");
 
         if (gemini_switch_to_bcpu(gemini_info->target) != ERROR_OK)
         {
