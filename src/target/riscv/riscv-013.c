@@ -3197,7 +3197,7 @@ static int read_memory_progbuf_inner(struct target *target, target_addr_t addres
 		return result;
 
 	if (increment == 0 &&
-			register_write_direct(target, GDB_REGNO_S2, 0) != ERROR_OK)
+			register_write_direct(target, GDB_REGNO_A0, 0) != ERROR_OK)
 		return ERROR_FAIL;
 
 	uint32_t command = access_register_command(target, GDB_REGNO_S1,
@@ -3299,7 +3299,7 @@ static int read_memory_progbuf_inner(struct target *target, target_addr_t addres
 				/* See how far we got, clobbering dmi_data0. */
 				if (increment == 0) {
 					uint64_t counter;
-					result = register_read_direct(target, &counter, GDB_REGNO_S2);
+					result = register_read_direct(target, &counter, GDB_REGNO_A0);
 					next_index = counter;
 				} else {
 					uint64_t next_read_addr;
@@ -3524,13 +3524,13 @@ static int read_memory_progbuf(struct target *target, target_addr_t address,
 
 	/* s0 holds the next address to read from
 	 * s1 holds the next data value read
-	 * s2 is a counter in case increment is 0
+	 * a0 is a counter in case increment is 0
 	 */
 	if (riscv_save_register(target, GDB_REGNO_S0) != ERROR_OK)
 		return ERROR_FAIL;
 	if (riscv_save_register(target, GDB_REGNO_S1) != ERROR_OK)
 		return ERROR_FAIL;
-	if (increment == 0 && riscv_save_register(target, GDB_REGNO_S2) != ERROR_OK)
+	if (increment == 0 && riscv_save_register(target, GDB_REGNO_A0) != ERROR_OK)
 		return ERROR_FAIL;
 
 	/* Write the program (load, increment) */
@@ -3560,7 +3560,7 @@ static int read_memory_progbuf(struct target *target, target_addr_t address,
 	if (riscv_enable_virtual && has_sufficient_progbuf(target, 5) && get_field(mstatus, MSTATUS_MPRV))
 		riscv_program_csrrci(&program, GDB_REGNO_ZERO,  CSR_DCSR_MPRVEN, GDB_REGNO_DCSR);
 	if (increment == 0)
-		riscv_program_addi(&program, GDB_REGNO_S2, GDB_REGNO_S2, 1);
+		riscv_program_addi(&program, GDB_REGNO_A0, GDB_REGNO_A0, 1);
 	else
 		riscv_program_addi(&program, GDB_REGNO_S0, GDB_REGNO_S0, increment);
 
