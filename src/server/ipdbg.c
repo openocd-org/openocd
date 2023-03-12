@@ -20,6 +20,17 @@
 #define IPDBG_MIN_DR_LENGTH 11
 #define IPDBG_MAX_DR_LENGTH 13
 #define IPDBG_TCP_PORT_STR_MAX_LENGTH 6
+#define IPDBG_SCRATCH_MEMORY_SIZE 1024
+#define IPDBG_EMPTY_DOWN_TRANSFERS 1024
+#define IPDBG_CONSECUTIVE_UP_TRANSFERS 1024
+
+#if IPDBG_SCRATCH_MEMORY_SIZE < IPDBG_EMPTY_DOWN_TRANSFERS
+#error "scratch Memory must be at least IPDBG_EMPTY_DOWN_TRANSFERS"
+#endif
+
+#if IPDBG_SCRATCH_MEMORY_SIZE < IPDBG_CONSECUTIVE_UP_TRANSFERS
+#error "scratch Memory must be at least IPDBG_CONSECUTIVE_UP_TRANSFERS"
+#endif
 
 /* private connection data for IPDBG */
 struct ipdbg_fifo {
@@ -48,6 +59,13 @@ struct ipdbg_virtual_ir_info {
 	uint32_t value;
 };
 
+struct ipdbg_hub_scratch_memory {
+	uint8_t *dr_out_vals;
+	uint8_t *dr_in_vals;
+	uint8_t *vir_out_val;
+	struct scan_field *fields;
+};
+
 struct ipdbg_hub {
 	uint32_t user_instruction;
 	uint32_t max_tools;
@@ -62,7 +80,9 @@ struct ipdbg_hub {
 	struct connection **connections;
 	uint8_t data_register_length;
 	uint8_t dn_xoff;
+	uint8_t flow_control_enabled;
 	struct ipdbg_virtual_ir_info *virtual_ir;
+	struct ipdbg_hub_scratch_memory scratch_memory;
 };
 
 static struct ipdbg_hub *ipdbg_first_hub;
@@ -236,20 +256,28 @@ static int ipdbg_create_hub(struct jtag_tap *tap, uint32_t user_instruction, uin
 {
 	*hub = NULL;
 	struct ipdbg_hub *new_hub = calloc(1, sizeof(struct ipdbg_hub));
-	if (!new_hub) {
-		free(virtual_ir);
-		LOG_ERROR("Out of memory");
-		return ERROR_FAIL;
-	}
+	if (!new_hub)
+		goto mem_err_hub;
 
+	const size_t dreg_buffer_size = DIV_ROUND_UP(data_register_length, 8);
 	new_hub->max_tools = ipdbg_max_tools_from_data_register_length(data_register_length);
+
+	new_hub->scratch_memory.dr_out_vals = calloc(IPDBG_SCRATCH_MEMORY_SIZE, dreg_buffer_size);
+	new_hub->scratch_memory.dr_in_vals = calloc(IPDBG_SCRATCH_MEMORY_SIZE, dreg_buffer_size);
+	new_hub->scratch_memory.fields = calloc(IPDBG_SCRATCH_MEMORY_SIZE, sizeof(struct scan_field));
 	new_hub->connections = calloc(new_hub->max_tools, sizeof(struct connection *));
-	if (!new_hub->connections) {
-		free(virtual_ir);
-		free(new_hub);
-		LOG_ERROR("Out of memory");
-		return ERROR_FAIL;
-	}
+
+	if (virtual_ir)
+		new_hub->scratch_memory.vir_out_val = calloc(1, DIV_ROUND_UP(virtual_ir->length, 8));
+
+	if (!new_hub->scratch_memory.dr_out_vals || !new_hub->scratch_memory.dr_in_vals ||
+		!new_hub->scratch_memory.fields || (virtual_ir && !new_hub->scratch_memory.vir_out_val) ||
+		!new_hub->connections)
+		goto mem_err2;
+
+	if (virtual_ir)
+		buf_set_u32(new_hub->scratch_memory.vir_out_val, 0, virtual_ir->length, virtual_ir->value);
+
 	new_hub->tap                  = tap;
 	new_hub->user_instruction     = user_instruction;
 	new_hub->data_register_length = data_register_length;
@@ -260,8 +288,19 @@ static int ipdbg_create_hub(struct jtag_tap *tap, uint32_t user_instruction, uin
 	new_hub->virtual_ir           = virtual_ir;
 
 	*hub = new_hub;
-
 	return ERROR_OK;
+
+mem_err2:
+	free(new_hub->scratch_memory.vir_out_val);
+	free(new_hub->connections);
+	free(new_hub->scratch_memory.fields);
+	free(new_hub->scratch_memory.dr_in_vals);
+	free(new_hub->scratch_memory.dr_out_vals);
+	free(new_hub);
+mem_err_hub:
+	free(virtual_ir);
+	LOG_ERROR("Out of memory");
+	return ERROR_FAIL;
 }
 
 static void ipdbg_free_hub(struct ipdbg_hub *hub)
@@ -270,6 +309,10 @@ static void ipdbg_free_hub(struct ipdbg_hub *hub)
 		return;
 	free(hub->connections);
 	free(hub->virtual_ir);
+	free(hub->scratch_memory.dr_out_vals);
+	free(hub->scratch_memory.dr_in_vals);
+	free(hub->scratch_memory.fields);
+	free(hub->scratch_memory.vir_out_val);
 	free(hub);
 }
 
@@ -348,19 +391,10 @@ static int ipdbg_shift_vir(struct ipdbg_hub *hub)
 	if (!tap)
 		return ERROR_FAIL;
 
-	uint8_t *dr_out_val = calloc(DIV_ROUND_UP(hub->virtual_ir->length, 8), 1);
-	if (!dr_out_val) {
-		LOG_ERROR("Out of memory");
-		return ERROR_FAIL;
-	}
-	buf_set_u32(dr_out_val, 0, hub->virtual_ir->length, hub->virtual_ir->value);
-
-	struct scan_field fields;
-	ipdbg_init_scan_field(&fields, NULL, hub->virtual_ir->length, dr_out_val);
-	jtag_add_dr_scan(tap, 1, &fields, TAP_IDLE);
+	ipdbg_init_scan_field(hub->scratch_memory.fields, NULL,
+		hub->virtual_ir->length, hub->scratch_memory.vir_out_val);
+	jtag_add_dr_scan(tap, 1, hub->scratch_memory.fields, TAP_IDLE);
 	retval = jtag_execute_queue();
-
-	free(dr_out_val);
 
 	return retval;
 }
@@ -374,33 +408,15 @@ static int ipdbg_shift_data(struct ipdbg_hub *hub, uint32_t dn_data, uint32_t *u
 	if (!tap)
 		return ERROR_FAIL;
 
-	uint8_t *dr_out_val = calloc(DIV_ROUND_UP(hub->data_register_length, 8), 1);
-	if (!dr_out_val) {
-		LOG_ERROR("Out of memory");
-		return ERROR_FAIL;
-	}
-	buf_set_u32(dr_out_val, 0, hub->data_register_length, dn_data);
+	buf_set_u32(hub->scratch_memory.dr_out_vals, 0, hub->data_register_length, dn_data);
 
-	uint8_t *dr_in_val = NULL;
-	if (up_data) {
-		dr_in_val = calloc(DIV_ROUND_UP(hub->data_register_length, 8), 1);
-		if (!dr_in_val) {
-			LOG_ERROR("Out of memory");
-			free(dr_out_val);
-			return ERROR_FAIL;
-		}
-	}
-
-	struct scan_field fields;
-	ipdbg_init_scan_field(&fields, dr_in_val, hub->data_register_length, dr_out_val);
-	jtag_add_dr_scan(tap, 1, &fields, TAP_IDLE);
+	ipdbg_init_scan_field(hub->scratch_memory.fields, hub->scratch_memory.dr_in_vals,
+						hub->data_register_length, hub->scratch_memory.dr_out_vals);
+	jtag_add_dr_scan(tap, 1, hub->scratch_memory.fields, TAP_IDLE);
 	int retval = jtag_execute_queue();
 
 	if (up_data && retval == ERROR_OK)
-		*up_data = buf_get_u32(dr_in_val, 0, hub->data_register_length);
-
-	free(dr_out_val);
-	free(dr_in_val);
+		*up_data = buf_get_u32(hub->scratch_memory.dr_in_vals, 0, hub->data_register_length);
 
 	return retval;
 }
@@ -432,6 +448,60 @@ static int ipdbg_distribute_data_from_hub(struct ipdbg_hub *hub, uint32_t up)
 	return ERROR_OK;
 }
 
+static void ipdbg_check_for_xoff(struct ipdbg_hub *hub, size_t tool,
+								uint32_t rx_data)
+{
+	if ((rx_data & hub->xoff_mask) && hub->last_dn_tool != hub->max_tools) {
+		hub->dn_xoff |= BIT(hub->last_dn_tool);
+		LOG_INFO("tool %d sent xoff", hub->last_dn_tool);
+	}
+
+	hub->last_dn_tool = tool;
+}
+
+static int ipdbg_shift_empty_data(struct ipdbg_hub *hub)
+{
+	if (!hub)
+		return ERROR_FAIL;
+
+	struct jtag_tap *tap = hub->tap;
+	if (!tap)
+		return ERROR_FAIL;
+
+	const size_t dreg_buffer_size = DIV_ROUND_UP(hub->data_register_length, 8);
+	memset(hub->scratch_memory.dr_out_vals, 0, dreg_buffer_size);
+	for (size_t i = 0; i < IPDBG_EMPTY_DOWN_TRANSFERS; ++i) {
+		ipdbg_init_scan_field(hub->scratch_memory.fields + i,
+								hub->scratch_memory.dr_in_vals + i * dreg_buffer_size,
+								hub->data_register_length,
+								hub->scratch_memory.dr_out_vals);
+		jtag_add_dr_scan(tap, 1, hub->scratch_memory.fields + i, TAP_IDLE);
+	}
+
+	int retval = jtag_execute_queue();
+
+	if (retval == ERROR_OK) {
+		uint32_t up_data;
+		for (size_t i = 0; i < IPDBG_EMPTY_DOWN_TRANSFERS; ++i) {
+			up_data = buf_get_u32(hub->scratch_memory.dr_in_vals +
+									i * dreg_buffer_size, 0,
+									hub->data_register_length);
+			int rv = ipdbg_distribute_data_from_hub(hub, up_data);
+			if (rv != ERROR_OK)
+				retval = rv;
+
+			if (i == 0) {
+				/* check if xoff sent is only needed on the first transfer which
+				   may contain the xoff of the prev down transfer.
+				*/
+				ipdbg_check_for_xoff(hub, hub->max_tools, up_data);
+			}
+		}
+	}
+
+	return retval;
+}
+
 static int ipdbg_jtag_transfer_byte(struct ipdbg_hub *hub, size_t tool, struct ipdbg_connection *connection)
 {
 	uint32_t dn = hub->valid_mask | ((tool & hub->tool_mask) << 8) |
@@ -445,14 +515,63 @@ static int ipdbg_jtag_transfer_byte(struct ipdbg_hub *hub, size_t tool, struct i
 	if (ret != ERROR_OK)
 		return ret;
 
-	if ((up & hub->xoff_mask) && (hub->last_dn_tool != hub->max_tools)) {
-		hub->dn_xoff |= BIT(hub->last_dn_tool);
-		LOG_INFO("tool %d sent xoff", hub->last_dn_tool);
-	}
-
-	hub->last_dn_tool = tool;
+	ipdbg_check_for_xoff(hub, tool, up);
 
 	return ERROR_OK;
+}
+
+static int ipdbg_jtag_transfer_bytes(struct ipdbg_hub *hub,
+			size_t tool, struct ipdbg_connection *connection)
+{
+	if (!hub)
+		return ERROR_FAIL;
+
+	struct jtag_tap *tap = hub->tap;
+	if (!tap)
+		return ERROR_FAIL;
+
+	const size_t dreg_buffer_size = DIV_ROUND_UP(hub->data_register_length, 8);
+	size_t num_tx = (connection->dn_fifo.count < IPDBG_CONSECUTIVE_UP_TRANSFERS) ?
+		connection->dn_fifo.count : IPDBG_CONSECUTIVE_UP_TRANSFERS;
+
+	for (size_t i = 0; i < num_tx; ++i) {
+		uint32_t dn_data = hub->valid_mask | ((tool & hub->tool_mask) << 8) |
+			(0x00fful & ipdbg_get_from_fifo(&connection->dn_fifo));
+		buf_set_u32(hub->scratch_memory.dr_out_vals + i * dreg_buffer_size, 0,
+					hub->data_register_length, dn_data);
+
+		ipdbg_init_scan_field(hub->scratch_memory.fields + i,
+								hub->scratch_memory.dr_in_vals +
+									i * dreg_buffer_size,
+								hub->data_register_length,
+								hub->scratch_memory.dr_out_vals +
+									i * dreg_buffer_size);
+		jtag_add_dr_scan(tap, 1, hub->scratch_memory.fields + i, TAP_IDLE);
+	}
+
+	int retval = jtag_execute_queue();
+
+	if (retval == ERROR_OK) {
+		uint32_t up_data;
+		for (size_t i = 0; i < num_tx; ++i) {
+			up_data = buf_get_u32(hub->scratch_memory.dr_in_vals +
+									i * dreg_buffer_size,
+									0, hub->data_register_length);
+			int rv = ipdbg_distribute_data_from_hub(hub, up_data);
+			if (rv != ERROR_OK)
+				retval = rv;
+			if (i == 0) {
+				/* check if xoff sent is only needed on the first transfer which
+				   may contain the xoff of the prev down transfer.
+				   No checks for this channel because this function is only
+				   called for channels without enabled flow control.
+				*/
+				ipdbg_check_for_xoff(hub, tool, up_data);
+			}
+		}
+	}
+
+	return retval;
 }
 
 static int ipdbg_polling_callback(void *priv)
@@ -468,33 +587,25 @@ static int ipdbg_polling_callback(void *priv)
 		return ret;
 
 	/* transfer dn buffers to jtag-hub */
-	unsigned int num_transfers = 0;
 	for (size_t tool = 0; tool < hub->max_tools; ++tool) {
 		struct connection *conn = hub->connections[tool];
 		if (conn && conn->priv) {
 			struct ipdbg_connection *connection = conn->priv;
 			while (((hub->dn_xoff & BIT(tool)) == 0) && !ipdbg_fifo_is_empty(&connection->dn_fifo)) {
-				ret = ipdbg_jtag_transfer_byte(hub, tool, connection);
+				if (hub->flow_control_enabled & BIT(tool))
+					ret = ipdbg_jtag_transfer_byte(hub, tool, connection);
+				else
+					ret = ipdbg_jtag_transfer_bytes(hub, tool, connection);
 				if (ret != ERROR_OK)
 					return ret;
-				++num_transfers;
 			}
 		}
 	}
 
 	/* some transfers to get data from jtag-hub in case there is no dn data */
-	while (num_transfers++ < hub->max_tools) {
-		uint32_t dn = 0;
-		uint32_t up = 0;
-
-		int retval = ipdbg_shift_data(hub, dn, &up);
-		if (retval != ERROR_OK)
-			return ret;
-
-		retval = ipdbg_distribute_data_from_hub(hub, up);
-		if (retval != ERROR_OK)
-			return ret;
-	}
+	ret = ipdbg_shift_empty_data(hub);
+	if (ret != ERROR_OK)
+		return ret;
 
 	/* write from up fifos to sockets */
 	for (size_t tool = 0; tool < hub->max_tools; ++tool) {
@@ -506,6 +617,33 @@ static int ipdbg_polling_callback(void *priv)
 				return retval;
 		}
 	}
+
+	return ERROR_OK;
+}
+
+static int ipdbg_get_flow_control_info_from_hub(struct ipdbg_hub *hub)
+{
+	uint32_t up_data;
+
+	/* on older implementations the flow_control_enable_word is not sent to us.
+		so we don't know -> assume it's enabled on all channels */
+	hub->flow_control_enabled = 0x7f;
+
+	int ret = ipdbg_shift_data(hub, 0UL, &up_data);
+	if (ret != ERROR_OK)
+		return ret;
+
+	const bool valid_up_data = up_data & hub->valid_mask;
+	if (valid_up_data) {
+		const size_t tool = (up_data >> 8) & hub->tool_mask;
+		/* the first valid data from hub is flow_control_enable_word */
+		if (tool == hub->tool_mask)
+			hub->flow_control_enabled = up_data & 0x007f;
+		else
+			ipdbg_distribute_data_from_hub(hub, up_data);
+	}
+
+	LOG_INFO("Flow control enabled on IPDBG JTAG Hub: 0x%02x", hub->flow_control_enabled);
 
 	return ERROR_OK;
 }
@@ -533,6 +671,10 @@ static int ipdbg_start_polling(struct ipdbg_service *service, struct connection 
 	ret = ipdbg_shift_data(hub, reset_hub, NULL);
 	hub->last_dn_tool = hub->tool_mask;
 	hub->dn_xoff = 0;
+	if (ret != ERROR_OK)
+		return ret;
+
+	ret = ipdbg_get_flow_control_info_from_hub(hub);
 	if (ret != ERROR_OK)
 		return ret;
 
