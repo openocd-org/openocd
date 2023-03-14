@@ -655,7 +655,11 @@ int mem_ap_write_buf_noincr(struct adiv5_ap *ap,
  */
 void dap_invalidate_cache(struct adiv5_dap *dap)
 {
-	dap->select = DP_SELECT_INVALID;
+	dap->select = 0;	/* speculate the first AP access will select AP 0, bank 0 */
+	dap->select_valid = false;
+	dap->select1_valid = false;
+	dap->select_dpbanksel_valid = false;
+
 	dap->last_read = NULL;
 
 	int i;

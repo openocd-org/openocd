@@ -100,7 +100,11 @@
 #define ADIV5_DP_SELECT_APSEL	0xFF000000
 #define ADIV5_DP_SELECT_APBANK	0x000000F0
 #define DP_SELECT_DPBANK		0x0000000F
-#define DP_SELECT_INVALID		0x00FFFF00 /* Reserved bits one */
+/*
+ * Mask of AP ADDR in select cache, concatenating DP SELECT and DP_SELECT1.
+ * In case of ADIv5, the mask contains both APSEL and APBANKSEL fields.
+ */
+#define SELECT_AP_MASK			(~(uint64_t)DP_SELECT_DPBANK)
 
 #define DP_APSEL_MAX			(255) /* Strict limit for ADIv5, number of AP buffers for ADIv6 */
 #define DP_APSEL_INVALID		0xF00 /* more than DP_APSEL_MAX and not ADIv6 aligned 4k */
@@ -338,11 +342,21 @@ struct adiv5_dap {
 	/* The current manually selected AP by the "dap apsel" command */
 	uint64_t apsel;
 
-	/**
-	 * Cache for DP_SELECT register. A value of DP_SELECT_INVALID
-	 * indicates no cached value and forces rewrite of the register.
-	 */
+	/** Cache for DP SELECT and SELECT1 (ADIv6) register. */
 	uint64_t select;
+	/** Validity of DP SELECT cache. false will force register rewrite */
+	bool select_valid;
+	bool select1_valid;	/* ADIv6 only */
+	/**
+	 * Partial DPBANKSEL validity for SWD only.
+	 * ADIv6 line reset sets DP SELECT DPBANKSEL to zero,
+	 * ADIv5 does not.
+	 * We can rely on it for the banked DP register 0 also on ADIv5
+	 * as ADIv5 has no mapping for DP reg 0 - it is always DPIDR.
+	 * It is important to avoid setting DP SELECT in connection
+	 * reset state before reading DPIDR.
+	 */
+	bool select_dpbanksel_valid;
 
 	/* information about current pending SWjDP-AHBAP transaction */
 	uint8_t  ack;

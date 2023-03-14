@@ -99,27 +99,31 @@ static inline int check_sync(struct adiv5_dap *dap)
 	return do_sync ? swd_run_inner(dap) : ERROR_OK;
 }
 
-/** Select the DP register bank matching bits 7:4 of reg. */
+/** Select the DP register bank */
 static int swd_queue_dp_bankselect(struct adiv5_dap *dap, unsigned int reg)
 {
-	/* Only register address 0 and 4 are banked. */
+	/* Only register address 0 (ADIv6 only) and 4 are banked. */
 	if ((reg & 0xf) > 4)
 		return ERROR_OK;
 
-	uint64_t sel = (reg & 0x000000F0) >> 4;
-	if (dap->select != DP_SELECT_INVALID)
-		sel |= dap->select & ~0xfULL;
+	uint32_t sel = (reg >> 4) & DP_SELECT_DPBANK;
 
-	if (sel == dap->select)
+	/* DP register 0 is not mapped according to ADIv5
+	 * whereas ADIv6 ensures DPBANKSEL = 0 after line reset */
+	if ((dap->select_valid || ((reg & 0xf) == 0 && dap->select_dpbanksel_valid))
+			&& (sel == (dap->select & DP_SELECT_DPBANK)))
 		return ERROR_OK;
 
-	dap->select = sel;
+	/* Use the AP part of dap->select regardless of dap->select_valid:
+	 * if !dap->select_valid
+	 * dap->select contains a speculative value likely going to be used
+	 * in the following swd_queue_ap_bankselect() */
+	sel |= (uint32_t)(dap->select & SELECT_AP_MASK);
 
-	int retval = swd_queue_dp_write_inner(dap, DP_SELECT, (uint32_t)sel);
-	if (retval != ERROR_OK)
-		dap->select = DP_SELECT_INVALID;
+	LOG_DEBUG_IO("DP BANK SELECT: %" PRIx32, sel);
 
-	return retval;
+	/* dap->select cache gets updated in the following call */
+	return swd_queue_dp_write_inner(dap, DP_SELECT, sel);
 }
 
 static int swd_queue_dp_read_inner(struct adiv5_dap *dap, unsigned int reg,
@@ -147,24 +151,31 @@ static int swd_queue_dp_write_inner(struct adiv5_dap *dap, unsigned int reg,
 	swd_finish_read(dap);
 
 	if (reg == DP_SELECT) {
-		dap->select = data & (ADIV5_DP_SELECT_APSEL | ADIV5_DP_SELECT_APBANK | DP_SELECT_DPBANK);
+		dap->select = data | (dap->select & (0xffffffffull << 32));
 
 		swd->write_reg(swd_cmd(false, false, reg), data, 0);
 
 		retval = check_sync(dap);
-		if (retval != ERROR_OK)
-			dap->select = DP_SELECT_INVALID;
+		dap->select_valid = (retval == ERROR_OK);
+		dap->select_dpbanksel_valid = dap->select_valid;
 
 		return retval;
 	}
 
+	if (reg == DP_SELECT1)
+		dap->select = ((uint64_t)data << 32) | (dap->select & 0xffffffffull);
+
 	retval = swd_queue_dp_bankselect(dap, reg);
-	if (retval != ERROR_OK)
-		return retval;
+	if (retval == ERROR_OK) {
+		swd->write_reg(swd_cmd(false, false, reg), data, 0);
 
-	swd->write_reg(swd_cmd(false, false, reg), data, 0);
+		retval = check_sync(dap);
+	}
 
-	return check_sync(dap);
+	if (reg == DP_SELECT1)
+		dap->select1_valid = (retval == ERROR_OK);
+
+	return retval;
 }
 
 
@@ -177,19 +188,17 @@ static int swd_multidrop_select_inner(struct adiv5_dap *dap, uint32_t *dpidr_ptr
 	assert(dap_is_multidrop(dap));
 
 	swd_send_sequence(dap, LINE_RESET);
-	/* From ARM IHI 0074C ADIv6.0, chapter B4.3.3 "Connection and line reset
-	 * sequence":
-	 * - line reset sets DP_SELECT_DPBANK to zero;
-	 * - read of DP_DPIDR takes the connection out of reset;
-	 * - write of DP_TARGETSEL keeps the connection in reset;
-	 * - other accesses return protocol error (SWDIO not driven by target).
-	 *
-	 * Read DP_DPIDR to get out of reset. Initialize dap->select to zero to
-	 * skip the write to DP_SELECT, avoiding the protocol error. Set again
-	 * dap->select to DP_SELECT_INVALID because the rest of the register is
-	 * unknown after line reset.
+	/*
+	 * Zero dap->select and set dap->select_dpbanksel_valid
+	 * to skip the write to DP_SELECT before DPIDR read, avoiding
+	 * the protocol error.
+	 * Clear the other validity flags because the rest of the DP
+	 * SELECT and SELECT1 registers is unknown after line reset.
 	 */
 	dap->select = 0;
+	dap->select_dpbanksel_valid = true;
+	dap->select_valid = false;
+	dap->select1_valid = false;
 
 	retval = swd_queue_dp_write_inner(dap, DP_TARGETSEL, dap->multidrop_targetsel);
 	if (retval != ERROR_OK)
@@ -208,8 +217,6 @@ static int swd_multidrop_select_inner(struct adiv5_dap *dap, uint32_t *dpidr_ptr
 		if (retval != ERROR_OK)
 			return retval;
 	}
-
-	dap->select = DP_SELECT_INVALID;
 
 	retval = swd_queue_dp_read_inner(dap, DP_DLPIDR, &dlpidr);
 	if (retval != ERROR_OK)
@@ -335,19 +342,20 @@ static int swd_connect_single(struct adiv5_dap *dap)
 
 		/* The sequences to enter in SWD (JTAG_TO_SWD and DORMANT_TO_SWD) end
 		 * with a SWD line reset sequence (50 clk with SWDIO high).
-		 * From ARM IHI 0074C ADIv6.0, chapter B4.3.3 "Connection and line reset
-		 * sequence":
-		 * - line reset sets DP_SELECT_DPBANK to zero;
+		 * From ARM IHI 0031F ADIv5.2 and ARM IHI 0074C ADIv6.0,
+		 * chapter B4.3.3 "Connection and line reset sequence":
+		 * - DPv3 (ADIv6) only: line reset sets DP_SELECT_DPBANK to zero;
 		 * - read of DP_DPIDR takes the connection out of reset;
 		 * - write of DP_TARGETSEL keeps the connection in reset;
 		 * - other accesses return protocol error (SWDIO not driven by target).
 		 *
-		 * Read DP_DPIDR to get out of reset. Initialize dap->select to zero to
-		 * skip the write to DP_SELECT, avoiding the protocol error. Set again
-		 * dap->select to DP_SELECT_INVALID because the rest of the register is
-		 * unknown after line reset.
+		 * dap_invalidate_cache() sets dap->select to zero and all validity
+		 * flags to invalid. Set dap->select_dpbanksel_valid only
+		 * to skip the write to DP_SELECT, avoiding the protocol error.
+		 * Read DP_DPIDR to get out of reset.
 		 */
-		dap->select = 0;
+		dap->select_dpbanksel_valid = true;
+
 		retval = swd_queue_dp_read_inner(dap, DP_DPIDR, &dpidr);
 		if (retval == ERROR_OK) {
 			retval = swd_run_inner(dap);
@@ -359,8 +367,6 @@ static int swd_connect_single(struct adiv5_dap *dap)
 
 		dap->switch_through_dormant = !dap->switch_through_dormant;
 	} while (timeval_ms() < timeout);
-
-	dap->select = DP_SELECT_INVALID;
 
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Error connecting DP: cannot read IDR");
@@ -494,49 +500,55 @@ static int swd_queue_dp_write(struct adiv5_dap *dap, unsigned reg,
 	return swd_queue_dp_write_inner(dap, reg, data);
 }
 
-/** Select the AP register bank matching bits 7:4 of reg. */
+/** Select the AP register bank */
 static int swd_queue_ap_bankselect(struct adiv5_ap *ap, unsigned reg)
 {
 	int retval;
 	struct adiv5_dap *dap = ap->dap;
 	uint64_t sel;
 
-	if (is_adiv6(dap)) {
+	if (is_adiv6(dap))
 		sel = ap->ap_num | (reg & 0x00000FF0);
-		if (sel == (dap->select & ~0xfULL))
-			return ERROR_OK;
+	else
+		sel = (ap->ap_num << 24) | (reg & ADIV5_DP_SELECT_APBANK);
 
-		if (dap->select != DP_SELECT_INVALID)
-			sel |= dap->select & 0xf;
-		dap->select = sel;
-		LOG_DEBUG("AP BANKSEL: %" PRIx64, sel);
+	uint64_t sel_diff = (sel ^ dap->select) & SELECT_AP_MASK;
 
-		retval = swd_queue_dp_write(dap, DP_SELECT, (uint32_t)sel);
+	bool set_select = !dap->select_valid || (sel_diff & 0xffffffffull);
+	bool set_select1 = is_adiv6(dap) && dap->asize > 32
+						&& (!dap->select1_valid
+							|| sel_diff & (0xffffffffull << 32));
 
-		if (retval == ERROR_OK && dap->asize > 32)
-			retval = swd_queue_dp_write(dap, DP_SELECT1, (uint32_t)(sel >> 32));
-
-		if (retval != ERROR_OK)
-			dap->select = DP_SELECT_INVALID;
-
-		return retval;
+	if (set_select && set_select1) {
+		/* Prepare DP bank for DP_SELECT1 now to save one write */
+		sel |= (DP_SELECT1 & 0x000000f0) >> 4;
+	} else {
+		/* Use the DP part of dap->select regardless of dap->select_valid:
+		 * if !dap->select_valid
+		 * dap->select contains a speculative value likely going to be used
+		 * in the following swd_queue_dp_bankselect().
+		 * Moreover dap->select_valid should never be false here as a DP bank
+		 * is always selected before selecting an AP bank */
+		sel |= dap->select & DP_SELECT_DPBANK;
 	}
 
-	/* ADIv5 */
-	sel = (ap->ap_num << 24) | (reg & ADIV5_DP_SELECT_APBANK);
-	if (dap->select != DP_SELECT_INVALID)
-		sel |= dap->select & DP_SELECT_DPBANK;
+	if (set_select) {
+		LOG_DEBUG_IO("AP BANK SELECT: %" PRIx32, (uint32_t)sel);
 
-	if (sel == dap->select)
-		return ERROR_OK;
+		retval = swd_queue_dp_write(dap, DP_SELECT, (uint32_t)sel);
+		if (retval != ERROR_OK)
+			return retval;
+	}
 
-	dap->select = sel;
+	if (set_select1) {
+		LOG_DEBUG_IO("AP BANK SELECT1: %" PRIx32, (uint32_t)(sel >> 32));
 
-	retval = swd_queue_dp_write_inner(dap, DP_SELECT, sel);
-	if (retval != ERROR_OK)
-		dap->select = DP_SELECT_INVALID;
+		retval = swd_queue_dp_write(dap, DP_SELECT1, (uint32_t)(sel >> 32));
+		if (retval != ERROR_OK)
+			return retval;
+	}
 
-	return retval;
+	return ERROR_OK;
 }
 
 static int swd_queue_ap_read(struct adiv5_ap *ap, unsigned reg,
