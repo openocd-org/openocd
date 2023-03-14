@@ -523,7 +523,7 @@ static int swd_queue_ap_bankselect(struct adiv5_ap *ap, unsigned reg)
 	}
 
 	/* ADIv5 */
-	sel = (ap->ap_num << 24) | (reg & 0x000000F0);
+	sel = (ap->ap_num << 24) | (reg & ADIV5_DP_SELECT_APBANK);
 	if (dap->select != DP_SELECT_INVALID)
 		sel |= dap->select & DP_SELECT_DPBANK;
 
