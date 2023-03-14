@@ -265,8 +265,7 @@ static inline void list_bulk_move_tail(struct list_head *head,
  * @param list the entry to test
  * @param head the head of the list
  */
-static inline int list_is_first(const struct list_head *list,
-					const struct list_head *head)
+static inline int list_is_first(const struct list_head *list, const struct list_head *head)
 {
 	return list->prev == head;
 }
@@ -276,10 +275,19 @@ static inline int list_is_first(const struct list_head *list,
  * @param list the entry to test
  * @param head the head of the list
  */
-static inline int list_is_last(const struct list_head *list,
-				const struct list_head *head)
+static inline int list_is_last(const struct list_head *list, const struct list_head *head)
 {
 	return list->next == head;
+}
+
+/**
+ * list_is_head - tests whether @a list is the list @a head
+ * @param list the entry to test
+ * @param head the head of the list
+ */
+static inline int list_is_head(const struct list_head *list, const struct list_head *head)
+{
+	return list == head;
 }
 
 /**
@@ -400,10 +408,9 @@ static inline void list_cut_position(struct list_head *list,
 {
 	if (list_empty(head))
 		return;
-	if (list_is_singular(head) &&
-		(head->next != entry && head != entry))
+	if (list_is_singular(head) && !list_is_head(entry, head) && (entry != head->next))
 		return;
-	if (entry == head)
+	if (list_is_head(entry, head))
 		INIT_LIST_HEAD(list);
 	else
 		__list_cut_position(list, head, entry);
@@ -564,6 +571,19 @@ static inline void list_splice_tail_init(struct list_head *list,
 	list_entry((pos)->member.next, typeof(*(pos)), member)
 
 /**
+ * list_next_entry_circular - get the next element in list
+ * @param pos    the type * to cursor.
+ * @param head   the list head to take the element from.
+ * @param member the name of the list_head within the struct.
+ *
+ * Wraparound if pos is the last element (return the first element).
+ * Note, that list is expected to be not empty.
+ */
+#define list_next_entry_circular(pos, head, member) \
+	(list_is_last(&(pos)->member, head) ? \
+	list_first_entry(head, typeof(*(pos)), member) : list_next_entry(pos, member))
+
+/**
  * list_prev_entry - get the prev element in list
  * @param pos    the type * to cursor
  * @param member the name of the list_head within the struct.
@@ -572,12 +592,27 @@ static inline void list_splice_tail_init(struct list_head *list,
 	list_entry((pos)->member.prev, typeof(*(pos)), member)
 
 /**
+ * list_prev_entry_circular - get the prev element in list
+ * @param pos    the type * to cursor.
+ * @param head   the list head to take the element from.
+ * @param member the name of the list_head within the struct.
+ *
+ * Wraparound if pos is the first element (return the last element).
+ * Note, that list is expected to be not empty.
+ */
+#define list_prev_entry_circular(pos, head, member) \
+	(list_is_first(&(pos)->member, head) ? \
+	list_last_entry(head, typeof(*(pos)), member) : list_prev_entry(pos, member))
+
+/**
  * list_for_each	-	iterate over a list
  * @param pos  the &struct list_head to use as a loop cursor.
  * @param head the head for your list.
  */
 #define list_for_each(pos, head) \
-	for (pos = (head)->next; pos != (head); pos = pos->next)
+	for (pos = (head)->next; !list_is_head(pos, (head)); pos = pos->next)
+
+/* Ignore kernel list_for_each_rcu() */
 
 /**
  * list_for_each_continue - continue iteration over a list
@@ -617,6 +652,21 @@ static inline void list_splice_tail_init(struct list_head *list,
 	for (pos = (head)->prev, n = pos->prev; \
 	     pos != (head); \
 	     pos = n, n = pos->prev)
+
+/**
+ * list_count_nodes - count nodes in the list
+ * @param head	the head for your list.
+ */
+static inline size_t list_count_nodes(struct list_head *head)
+{
+	struct list_head *pos;
+	size_t count = 0;
+
+	list_for_each(pos, head)
+		count++;
+
+	return count;
+}
 
 /**
  * list_entry_is_head - test if the entry points to the head of the list
