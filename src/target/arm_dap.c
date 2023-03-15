@@ -91,6 +91,7 @@ static int dap_init_all(void)
 {
 	struct arm_dap_object *obj;
 	int retval;
+	bool pre_connect = true;
 
 	LOG_DEBUG("Initializing all DAPs ...");
 
@@ -121,6 +122,14 @@ static int dap_init_all(void)
 		} else {
 			LOG_DEBUG("DAP %s configured to use %s protocol by user cfg file", jtag_tap_name(dap->tap),
 				is_adiv6(dap) ? "ADIv6" : "ADIv5");
+		}
+
+		if (pre_connect && dap->ops->pre_connect_init) {
+			retval = dap->ops->pre_connect_init(dap);
+			if (retval != ERROR_OK)
+				return retval;
+
+			pre_connect = false;
 		}
 
 		retval = dap->ops->connect(dap);

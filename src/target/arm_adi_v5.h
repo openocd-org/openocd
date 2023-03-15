@@ -420,6 +420,9 @@ struct adiv5_dap {
  * available until run().
  */
 struct dap_ops {
+	/** Optional; called once on the first enabled dap before connecting */
+	int (*pre_connect_init)(struct adiv5_dap *dap);
+
 	/** connect operation for SWD */
 	int (*connect)(struct adiv5_dap *dap);
 
