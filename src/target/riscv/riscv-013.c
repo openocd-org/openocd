@@ -2418,128 +2418,97 @@ static int init_target(struct command_context *cmd_ctx,
 static int assert_reset(struct target *target)
 {
 	RISCV013_INFO(info);
+	int result;
 
 	select_dmi(target);
-
-	uint32_t control_base = set_field(0, DM_DMCONTROL_DMACTIVE, 1);
 
 	if (target_has_event_action(target, TARGET_EVENT_RESET_ASSERT)) {
 		/* Run the user-supplied script if there is one. */
 		target_handle_event(target, TARGET_EVENT_RESET_ASSERT);
-	} else if (target->rtos) {
-		/* There's only one target, and OpenOCD thinks each hart is a thread.
-		 * We must reset them all. */
-
-		/* TODO: Try to use hasel in dmcontrol */
-
-		/* Set haltreq for each hart. */
-		uint32_t control = set_dmcontrol_hartsel(control_base, info->index);
-		control = set_field(control, DM_DMCONTROL_HALTREQ,
-				target->reset_halt ? 1 : 0);
-		dmi_write(target, DM_DMCONTROL, control);
-
-		/* Assert ndmreset */
-		control = set_field(control, DM_DMCONTROL_NDMRESET, 1);
-		dmi_write(target, DM_DMCONTROL, control);
-
 	} else {
-		/* Reset just this hart. */
-		uint32_t control = set_dmcontrol_hartsel(control_base, info->index);
+		uint32_t control = set_field(0, DM_DMCONTROL_DMACTIVE, 1);
+		control = set_dmcontrol_hartsel(control, info->index);
 		control = set_field(control, DM_DMCONTROL_HALTREQ,
 				target->reset_halt ? 1 : 0);
 		control = set_field(control, DM_DMCONTROL_NDMRESET, 1);
-		dmi_write(target, DM_DMCONTROL, control);
+		result = dmi_write(target, DM_DMCONTROL, control);
+		if (result != ERROR_OK)
+			return result;
 	}
 
 	target->state = TARGET_RESET;
 
-	dm013_info_t *dm = get_dm(target);
-	if (!dm)
-		return ERROR_FAIL;
-
 	/* The DM might have gotten reset if OpenOCD called us in some reset that
 	 * involves SRST being toggled. So clear our cache which may be out of
 	 * date. */
-	riscv013_invalidate_cached_debug_buffer(target);
-
-	return ERROR_OK;
+	return riscv013_invalidate_cached_debug_buffer(target);
 }
 
 static int deassert_reset(struct target *target)
 {
 	RISCV013_INFO(info);
-	select_dmi(target);
+	int result;
 
+	select_dmi(target);
 	/* Clear the reset, but make sure haltreq is still set */
-	uint32_t control = 0, control_haltreq;
+	uint32_t control = 0;
 	control = set_field(control, DM_DMCONTROL_DMACTIVE, 1);
-	control_haltreq = set_field(control, DM_DMCONTROL_HALTREQ, target->reset_halt ? 1 : 0);
-	dmi_write(target, DM_DMCONTROL,
-			set_dmcontrol_hartsel(control_haltreq, info->index));
+	control = set_field(control, DM_DMCONTROL_HALTREQ, target->reset_halt ? 1 : 0);
+	control = set_dmcontrol_hartsel(control, info->index);
+	result = dmi_write(target, DM_DMCONTROL, control);
+	if (result != ERROR_OK)
+		return result;
 
 	uint32_t dmstatus;
-	int dmi_busy_delay = info->dmi_busy_delay;
+	const int orig_dmi_busy_delay = info->dmi_busy_delay;
 	time_t start = time(NULL);
-
-	for (unsigned int i = 0; i < riscv_count_harts(target); ++i) {
-		unsigned int index = i;
-		if (target->rtos) {
-			if (index != info->index)
-				continue;
-			dmi_write(target, DM_DMCONTROL,
-					set_dmcontrol_hartsel(control_haltreq, index));
-		} else {
-			index = info->index;
-		}
-
-		LOG_DEBUG("Waiting for hart %d to come out of reset.", index);
-		while (1) {
-			int result = dmstatus_read_timeout(target, &dmstatus, true,
+	LOG_TARGET_DEBUG(target, "Waiting for hart to come out of reset.");
+	do {
+		result = dmstatus_read_timeout(target, &dmstatus, true,
+				riscv_reset_timeout_sec);
+		if (result == ERROR_TIMEOUT_REACHED)
+			LOG_TARGET_ERROR(target, "Hart didn't complete a DMI read coming "
+					"out of reset in %ds; Increase the timeout with riscv "
+					"set_reset_timeout_sec.",
 					riscv_reset_timeout_sec);
-			if (result == ERROR_TIMEOUT_REACHED)
-				LOG_ERROR("Hart %d didn't complete a DMI read coming out of "
-						"reset in %ds; Increase the timeout with riscv "
-						"set_reset_timeout_sec.",
-						index, riscv_reset_timeout_sec);
-			if (result != ERROR_OK)
-				return result;
-			/* Certain debug modules, like the one in GD32VF103
-			 * MCUs, violate the specification's requirement that
-			 * each hart is in "exactly one of four states" and,
-			 * during reset, report harts as both unavailable and
-			 * halted/running. To work around this, we check for
-			 * the absence of the unavailable state rather than
-			 * the presence of any other state. */
-			if (!get_field(dmstatus, DM_DMSTATUS_ALLUNAVAIL))
-				break;
-			if (time(NULL) - start > riscv_reset_timeout_sec) {
-				LOG_ERROR("Hart %d didn't leave reset in %ds; "
-						"dmstatus=0x%x; "
-						"Increase the timeout with riscv set_reset_timeout_sec.",
-						index, riscv_reset_timeout_sec, dmstatus);
-				return ERROR_FAIL;
-			}
-		}
-		if (target->reset_halt) {
-			target->state = TARGET_HALTED;
-			target->debug_reason = DBG_REASON_DBGRQ;
-		} else {
-			target->state = TARGET_RUNNING;
-			target->debug_reason = DBG_REASON_NOTHALTED;
-		}
+		if (result != ERROR_OK)
+			return result;
 
-		if (get_field(dmstatus, DM_DMSTATUS_ALLHAVERESET)) {
-			/* Ack reset and clear DM_DMCONTROL_HALTREQ if previously set */
-			dmi_write(target, DM_DMCONTROL,
-					set_dmcontrol_hartsel(control, index) |
-					DM_DMCONTROL_ACKHAVERESET);
+		if (time(NULL) - start > riscv_reset_timeout_sec) {
+			LOG_TARGET_ERROR(target, "Hart didn't leave reset in %ds; "
+					"dmstatus=0x%x (allunavail=%s, allhavereset=%s); "
+					"Increase the timeout with riscv set_reset_timeout_sec.",
+					riscv_reset_timeout_sec, dmstatus,
+					get_field(dmstatus, DM_DMSTATUS_ALLUNAVAIL) ? "true" : "false",
+					get_field(dmstatus, DM_DMSTATUS_ALLHAVERESET) ? "true" : "false");
+			return ERROR_TIMEOUT_REACHED;
 		}
+		/* Certain debug modules, like the one in GD32VF103
+		 * MCUs, violate the specification's requirement that
+		 * each hart is in "exactly one of four states" and,
+		 * during reset, report harts as both unavailable and
+		 * halted/running. To work around this, we check for
+		 * the absence of the unavailable state rather than
+		 * the presence of any other state. */
+	} while (get_field(dmstatus, DM_DMSTATUS_ALLUNAVAIL) &&
+			!get_field(dmstatus, DM_DMSTATUS_ALLHAVERESET));
 
-		if (!target->rtos)
-			break;
+	info->dmi_busy_delay = orig_dmi_busy_delay;
+
+	if (target->reset_halt) {
+		target->state = TARGET_HALTED;
+		target->debug_reason = DBG_REASON_DBGRQ;
+	} else {
+		target->state = TARGET_RUNNING;
+		target->debug_reason = DBG_REASON_NOTHALTED;
 	}
-	info->dmi_busy_delay = dmi_busy_delay;
-	return ERROR_OK;
+
+	/* Ack reset and clear DM_DMCONTROL_HALTREQ if previously set */
+	control = 0;
+	control = set_field(control, DM_DMCONTROL_DMACTIVE, 1);
+	control = set_field(control, DM_DMCONTROL_ACKHAVERESET, 1);
+	control = set_dmcontrol_hartsel(control, info->index);
+	return dmi_write(target, DM_DMCONTROL, control);
 }
 
 static int execute_fence(struct target *target)
@@ -4475,8 +4444,10 @@ riscv_insn_t riscv013_read_debug_buffer(struct target *target, unsigned index)
 int riscv013_invalidate_cached_debug_buffer(struct target *target)
 {
 	dm013_info_t *dm = get_dm(target);
-	if (!dm)
+	if (!dm) {
+		LOG_TARGET_DEBUG(target, "No DM is specified for the target");
 		return ERROR_FAIL;
+	}
 
 	LOG_TARGET_DEBUG(target, "Invalidating progbuf cache");
 	for (unsigned int i = 0; i < 15; i++)
