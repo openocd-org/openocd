@@ -144,7 +144,7 @@ enum semihosting_result riscv_semihosting(struct target *target, int *retval)
 	/* Resume right after the EBREAK 4 bytes instruction. */
 	*retval = riscv_set_register(target, GDB_REGNO_PC, pc + 4);
 	if (*retval != ERROR_OK)
-		return SEMI_ERROR;
+		return SEMIHOSTING_ERROR;
 
 	/*
 	 * Resume target if we are not waiting on a fileio

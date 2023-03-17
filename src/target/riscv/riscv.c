@@ -185,7 +185,7 @@ static const virt2phys_info_t sv48 = {
 	.pa_ppn_mask = {0x1ff, 0x1ff, 0x1ff, 0x1ffff},
 };
 
-static enum riscv_halt_reason riscv_halt_reason(struct target *target, int hartid);
+static enum riscv_halt_reason riscv_halt_reason(struct target *target);
 static void riscv_info_init(struct target *target, struct riscv_info *r);
 static void riscv_invalidate_register_cache(struct target *target);
 static int riscv_step_rtos_hart(struct target *target);
@@ -2474,18 +2474,18 @@ static int riscv_poll_hart(struct target *target, enum riscv_next_action *next_a
 					int retval;
 					/* Detect if this EBREAK is a semihosting request. If so, handle it. */
 					switch (riscv_semihosting(target, &retval)) {
-						case SEMI_NONE:
+						case SEMIHOSTING_NONE:
 							break;
-						case SEMI_WAITING:
+						case SEMIHOSTING_WAITING:
 							/* This hart should remain halted. */
 							*next_action = RPH_REMAIN_HALTED;
 							break;
-						case SEMI_HANDLED:
+						case SEMIHOSTING_HANDLED:
 							/* This hart should be resumed, along with any other
 							* harts that halted due to haltgroups. */
 							*next_action = RPH_RESUME;
 							return ERROR_OK;
-						case SEMI_ERROR:
+						case SEMIHOSTING_ERROR:
 							return retval;
 					}
 				}
@@ -2603,7 +2603,7 @@ int riscv_openocd_poll(struct target *target)
 	struct target_list *entry;
 	foreach_smp_target(entry, targets) {
 		struct target *t = entry->target;
-		riscv_info_t *info = riscv_info(t);
+		struct riscv_info *info = riscv_info(t);
 
 		/* Clear here just in case there were errors and we never got to
 		 * check this flag further down. */
@@ -2656,7 +2656,7 @@ int riscv_openocd_poll(struct target *target)
 		foreach_smp_target(entry, targets)
 		{
 			struct target *t = entry->target;
-			riscv_info_t *info = riscv_info(t);
+			struct riscv_info *info = riscv_info(t);
 			if (info->halted_needs_event_callback) {
 				target_call_event_callbacks(t, info->halted_callback_event);
 				info->halted_needs_event_callback = false;
@@ -4472,14 +4472,14 @@ int riscv_save_register(struct target *target, enum gdb_regno regid)
 	return ERROR_OK;
 }
 
-static int riscv_get_hart_state(struct target *target, enum riscv_hart_state *state)
+int riscv_get_hart_state(struct target *target, enum riscv_hart_state *state)
 {
 	RISCV_INFO(r);
 	assert(r->get_hart_state);
 	return r->get_hart_state(target, state);
 }
 
-enum riscv_halt_reason riscv_halt_reason(struct target *target)
+static enum riscv_halt_reason riscv_halt_reason(struct target *target)
 {
 	RISCV_INFO(r);
 	if (target->state != TARGET_HALTED) {

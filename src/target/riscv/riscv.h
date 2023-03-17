@@ -381,7 +381,6 @@ int riscv_flush_registers(struct target *target);
 /* Checks the state of the current hart -- "is_halted" checks the actual
  * on-device register. */
 int riscv_get_hart_state(struct target *target, enum riscv_hart_state *state);
-enum riscv_halt_reason riscv_halt_reason(struct target *target);
 
 /* These helper functions let the generic program interface get target-specific
  * information. */
