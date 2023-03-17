@@ -9,4 +9,6 @@ noinst_LTLIBRARIES += %D%/libpld.la
 	%D%/xilinx_bit.h \
 	%D%/virtex2.h \
 	%D%/gemini.c \
-	%D%/gemini.h
+	%D%/gemini.h \
+	%D%/gemini_bit.c \
+	%D%/gemini_bit.h
