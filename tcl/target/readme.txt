@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 Prerequisites:
 The users of OpenOCD as well as computer programs interacting with OpenOCD are expecting that certain commands
 do the same thing across all the targets.

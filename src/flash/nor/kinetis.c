@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /***************************************************************************
  *   Copyright (C) 2011 by Mathias Kuester                                 *
  *   kesmtp@freenet.de                                                     *
@@ -13,19 +15,6 @@
  *                                                                         *
  *   Copyright (C) 2015 Tomas Vanek                                        *
  *   vanekt@fbl.cz                                                         *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
 #ifdef HAVE_CONFIG_H
@@ -108,6 +97,8 @@
 #define SMC_PMSTAT	0x4007E003
 #define SMC32_PMCTRL	0x4007E00C
 #define SMC32_PMSTAT	0x4007E014
+#define PMC_REGSC	0x4007D002
+#define MC_PMCTRL	0x4007E003
 #define MCM_PLACR	0xF000300C
 
 /* Offsets */
@@ -198,6 +189,9 @@
 #define KINETIS_K_SDID_K60_M100  0x00000140
 #define KINETIS_K_SDID_K60_M150  0x000001C0
 #define KINETIS_K_SDID_K70_M150  0x000001D0
+
+#define KINETIS_K_REVID_MASK	0x0000F000
+#define KINETIS_K_REVID_SHIFT	12
 
 #define KINETIS_SDID_SERIESID_MASK 0x00F00000
 #define KINETIS_SDID_SERIESID_K   0x00000000
@@ -309,6 +303,7 @@ struct kinetis_chip {
 	enum {
 		KINETIS_SMC,
 		KINETIS_SMC32,
+		KINETIS_MC,
 	} sysmodectrlr_type;
 
 	char name[40];
@@ -402,16 +397,23 @@ static int kinetis_auto_probe(struct flash_bank *bank);
 
 static int kinetis_mdm_write_register(struct adiv5_dap *dap, unsigned reg, uint32_t value)
 {
-	int retval;
 	LOG_DEBUG("MDM_REG[0x%02x] <- %08" PRIX32, reg, value);
 
-	retval = dap_queue_ap_write(dap_ap(dap, MDM_AP), reg, value);
+	struct adiv5_ap *ap = dap_get_ap(dap, MDM_AP);
+	if (!ap) {
+		LOG_DEBUG("MDM: failed to get AP");
+		return ERROR_FAIL;
+	}
+
+	int retval = dap_queue_ap_write(ap, reg, value);
 	if (retval != ERROR_OK) {
 		LOG_DEBUG("MDM: failed to queue a write request");
+		dap_put_ap(ap);
 		return retval;
 	}
 
 	retval = dap_run(dap);
+	dap_put_ap(ap);
 	if (retval != ERROR_OK) {
 		LOG_DEBUG("MDM: dap_run failed");
 		return retval;
@@ -423,15 +425,21 @@ static int kinetis_mdm_write_register(struct adiv5_dap *dap, unsigned reg, uint3
 
 static int kinetis_mdm_read_register(struct adiv5_dap *dap, unsigned reg, uint32_t *result)
 {
-	int retval;
+	struct adiv5_ap *ap = dap_get_ap(dap, MDM_AP);
+	if (!ap) {
+		LOG_DEBUG("MDM: failed to get AP");
+		return ERROR_FAIL;
+	}
 
-	retval = dap_queue_ap_read(dap_ap(dap, MDM_AP), reg, result);
+	int retval = dap_queue_ap_read(ap, reg, result);
 	if (retval != ERROR_OK) {
 		LOG_DEBUG("MDM: failed to queue a read request");
+		dap_put_ap(ap);
 		return retval;
 	}
 
 	retval = dap_run(dap);
+	dap_put_ap(ap);
 	if (retval != ERROR_OK) {
 		LOG_DEBUG("MDM: dap_run failed");
 		return retval;
@@ -787,12 +795,18 @@ COMMAND_HANDLER(kinetis_check_flash_security_status)
 
 	if ((val & (MDM_STAT_SYSSEC | MDM_STAT_FREADY)) != MDM_STAT_FREADY) {
 		uint32_t stats[32];
+		struct adiv5_ap *ap = dap_get_ap(dap, MDM_AP);
+		if (!ap) {
+			LOG_ERROR("MDM: failed to get AP");
+			return ERROR_OK;
+		}
 
 		for (unsigned int i = 0; i < 32; i++) {
 			stats[i] = MDM_STAT_FREADY;
-			dap_queue_ap_read(dap_ap(dap, MDM_AP), MDM_REG_STAT, &stats[i]);
+			dap_queue_ap_read(ap, MDM_REG_STAT, &stats[i]);
 		}
 		retval = dap_run(dap);
+		dap_put_ap(ap);
 		if (retval != ERROR_OK) {
 			LOG_DEBUG("MDM: dap_run failed when validating secured state");
 			return ERROR_OK;
@@ -934,7 +948,7 @@ static int kinetis_create_missing_banks(struct kinetis_chip *k_chip)
 	unsigned num_blocks;
 	struct kinetis_flash_bank *k_bank;
 	struct flash_bank *bank;
-	char base_name[69], name[80], num[4];
+	char base_name[69], name[87], num[11];
 	char *class, *p;
 
 	num_blocks = k_chip->num_pflash_blocks + k_chip->num_nvm_blocks;
@@ -1529,6 +1543,17 @@ static int kinetis_read_pmstat(struct kinetis_chip *k_chip, uint8_t *pmstat)
 		if (result == ERROR_OK)
 			*pmstat = stat32 & 0xff;
 		return result;
+
+	case KINETIS_MC:
+		/* emulate SMC by reading PMC_REGSC bit 3 (VLPRS) */
+		result = target_read_u8(target, PMC_REGSC, pmstat);
+		if (result == ERROR_OK) {
+			if (*pmstat & 0x08)
+				*pmstat = PM_STAT_VLPR;
+			else
+				*pmstat = PM_STAT_RUN;
+		}
+		return result;
 	}
 	return ERROR_FAIL;
 }
@@ -1568,6 +1593,10 @@ static int kinetis_check_run_mode(struct kinetis_chip *k_chip)
 
 		case KINETIS_SMC32:
 			result = target_write_u32(target, SMC32_PMCTRL, PM_CTRL_RUNM_RUN);
+			break;
+
+		case KINETIS_MC:
+			result = target_write_u32(target, MC_PMCTRL, PM_CTRL_RUNM_RUN);
 			break;
 		}
 		if (result != ERROR_OK)
@@ -2135,6 +2164,24 @@ static int kinetis_probe_chip(struct kinetis_chip *k_chip)
 			}
 		}
 
+		/* first revision of some devices has no SMC */
+		switch (mcu_type) {
+		case KINETIS_K_SDID_K10_M100:
+		case KINETIS_K_SDID_K20_M100:
+		case KINETIS_K_SDID_K30_M100:
+		case KINETIS_K_SDID_K40_M100:
+		case KINETIS_K_SDID_K60_M100:
+			{
+				uint32_t revid = (k_chip->sim_sdid & KINETIS_K_REVID_MASK) >> KINETIS_K_REVID_SHIFT;
+				 /* highest bit set corresponds to rev 2.x */
+				if (revid <= 7) {
+					k_chip->sysmodectrlr_type = KINETIS_MC;
+					strcat(name, " Rev 1.x");
+				}
+			}
+			break;
+		}
+
 	} else {
 		/* Newer K-series or KL series MCU */
 		familyid = (k_chip->sim_sdid & KINETIS_SDID_FAMILYID_MASK) >> KINETIS_SDID_FAMILYID_SHIFT;
@@ -2615,12 +2662,12 @@ static int kinetis_probe_chip(struct kinetis_chip *k_chip)
 
 	snprintf(k_chip->name, sizeof(k_chip->name), name, flash_marking);
 	LOG_INFO("Kinetis %s detected: %u flash blocks", k_chip->name, num_blocks);
-	LOG_INFO("%u PFlash banks: %" PRIu32 "k total", k_chip->num_pflash_blocks, pflash_size_k);
+	LOG_INFO("%u PFlash banks: %" PRIu32 " KiB total", k_chip->num_pflash_blocks, pflash_size_k);
 	if (k_chip->num_nvm_blocks) {
 		nvm_size_k = k_chip->nvm_size / 1024;
 		dflash_size_k = k_chip->dflash_size / 1024;
-		LOG_INFO("%u FlexNVM banks: %" PRIu32 "k total, %" PRIu32 "k available as data flash, %" PRIu32 "bytes FlexRAM",
-			 k_chip->num_nvm_blocks, nvm_size_k, dflash_size_k, ee_size);
+		LOG_INFO("%u FlexNVM banks: %" PRIu32 " KiB total, %" PRIu32 " KiB available as data flash, %"
+			 PRIu32 " bytes FlexRAM", k_chip->num_nvm_blocks, nvm_size_k, dflash_size_k, ee_size);
 	}
 
 	k_chip->probed = true;

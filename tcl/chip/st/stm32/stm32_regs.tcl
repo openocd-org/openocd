@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 # /* Peripheral and SRAM base address in the alias region */
 set PERIPH_BB_BASE        0x42000000
 set SRAM_BB_BASE          0x22000000

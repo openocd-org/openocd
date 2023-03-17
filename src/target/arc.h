@@ -1,11 +1,11 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+
 /***************************************************************************
  *   Copyright (C) 2013-2015,2019-2020 Synopsys, Inc.                      *
  *   Frank Dols <frank.dols@synopsys.com>                                  *
  *   Mischa Jonker <mischa.jonker@synopsys.com>                            *
  *   Anton Kolesov <anton.kolesov@synopsys.com>                            *
  *   Evgeniy Didin <didin@synopsys.com>                                    *
- *                                                                         *
- *   SPDX-License-Identifier: GPL-2.0-or-later                             *
  ***************************************************************************/
 
 #ifndef OPENOCD_TARGET_ARC_H
@@ -27,7 +27,7 @@
 #include "arc_cmd.h"
 #include "arc_mem.h"
 
-#define ARC_COMMON_MAGIC	0xB32EB324  /* just a unique number */
+#define ARC_COMMON_MAGIC	0xB32EB324U  /* just a unique number */
 
 #define AUX_DEBUG_REG                   0x5
 #define AUX_PC_REG                      0x6
@@ -183,7 +183,7 @@ struct arc_actionpoint {
 };
 
 struct arc_common {
-	uint32_t common_magic;
+	unsigned int common_magic;
 
 	struct arc_jtag jtag_info;
 

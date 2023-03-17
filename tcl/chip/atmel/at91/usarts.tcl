@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 # the DBGU and USARTs are 'almost' indentical'
 set DBGU_CR         [expr {$AT91C_BASE_DBGU + 0x00000000}]
 set DBGU_MR         [expr {$AT91C_BASE_DBGU + 0x00000004}]

@@ -1,22 +1,11 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+
 /***************************************************************************
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
  *                                                                         *
  *   Copyright (C) 2007,2008 Øyvind Harboe                                 *
  *   oyvind.harboe@zylin.com                                               *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
 #ifndef OPENOCD_TARGET_XSCALE_H
@@ -26,7 +15,7 @@
 #include "armv4_5_mmu.h"
 #include "trace.h"
 
-#define	XSCALE_COMMON_MAGIC 0x58534341
+#define	XSCALE_COMMON_MAGIC 0x58534341U
 
 /* These four JTAG instructions are architecturally defined.
  * Lengths are core-specific; originally 5 bits, later 7.
@@ -82,10 +71,10 @@ struct xscale_trace {
 };
 
 struct xscale_common {
+	unsigned int common_magic;
+
 	/* armv4/5 common stuff */
 	struct arm arm;
-
-	int common_magic;
 
 	/* XScale registers (CP15, DBG) */
 	struct reg_cache *reg_cache;

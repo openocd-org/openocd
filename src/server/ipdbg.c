@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 /* Copyright (C) 2020 by Daniel Anselmi <danselmi@gmx.ch> */
 
 #ifdef HAVE_CONFIG_H

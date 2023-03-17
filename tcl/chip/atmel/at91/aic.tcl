@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 set AIC_SMR      	[expr {$AT91C_BASE_AIC + 0x00000000} ]
 global AIC_SMR
 set AIC_SVR      	[expr {$AT91C_BASE_AIC + 0x00000080} ]

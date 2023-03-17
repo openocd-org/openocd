@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+
 #ifndef OPENOCD_JTAG_DRIVERS_CMSIS_DAP_H
 #define OPENOCD_JTAG_DRIVERS_CMSIS_DAP_H
 

@@ -1,19 +1,7 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /***************************************************************************
  *   Copyright (C) 2016 by Matthias Welwarsky                              *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
  *                                                                         *
  ***************************************************************************/
 
@@ -50,7 +38,7 @@ static void dap_instance_init(struct adiv5_dap *dap)
 	/* Set up with safe defaults */
 	for (i = 0; i <= DP_APSEL_MAX; i++) {
 		dap->ap[i].dap = dap;
-		dap->ap[i].ap_num = i;
+		dap->ap[i].ap_num = DP_APSEL_INVALID;
 		/* memaccess_tck max is 255 */
 		dap->ap[i].memaccess_tck = 255;
 		/* Number of bits for tar autoincrement, impl. dep. at least 10 */
@@ -58,6 +46,8 @@ static void dap_instance_init(struct adiv5_dap *dap)
 		/* default CSW value */
 		dap->ap[i].csw_default = CSW_AHB_DEFAULT;
 		dap->ap[i].cfg_reg = MEM_AP_REG_CFG_INVALID; /* mem_ap configuration reg (large physical addr, etc.) */
+		dap->ap[i].refcount = 0;
+		dap->ap[i].config_ap_never_release = false;
 	}
 	INIT_LIST_HEAD(&dap->cmd_journal);
 	INIT_LIST_HEAD(&dap->cmd_pool);
@@ -127,9 +117,34 @@ static int dap_init_all(void)
 		} else
 			dap->ops = &jtag_dp_ops;
 
+		if (dap->adi_version == 0) {
+			LOG_DEBUG("DAP %s configured by default to use ADIv5 protocol", jtag_tap_name(dap->tap));
+			dap->adi_version = 5;
+		} else {
+			LOG_DEBUG("DAP %s configured to use %s protocol by user cfg file", jtag_tap_name(dap->tap),
+				is_adiv6(dap) ? "ADIv6" : "ADIv5");
+		}
+
 		retval = dap->ops->connect(dap);
 		if (retval != ERROR_OK)
 			return retval;
+
+		/* see if address size of ROM Table is greater than 32-bits */
+		if (is_adiv6(dap)) {
+			uint32_t dpidr1;
+
+			retval = dap->ops->queue_dp_read(dap, DP_DPIDR1, &dpidr1);
+			if (retval != ERROR_OK) {
+				LOG_ERROR("DAP read of DPIDR1 failed...");
+				return retval;
+			}
+			retval = dap_run(dap);
+			if (retval != ERROR_OK) {
+				LOG_ERROR("DAP read of DPIDR1 failed...");
+				return retval;
+			}
+			dap->asize = dpidr1 & DP_DPIDR1_ASIZE_MASK;
+		}
 	}
 
 	return ERROR_OK;
@@ -142,6 +157,10 @@ int dap_cleanup_all(void)
 
 	list_for_each_entry_safe(obj, tmp, &all_dap, lh) {
 		dap = &obj->dap;
+		for (unsigned int i = 0; i <= DP_APSEL_MAX; i++) {
+			if (dap->ap[i].refcount != 0)
+				LOG_ERROR("BUG: refcount AP#%u still %u at exit", i, dap->ap[i].refcount);
+		}
 		if (dap->ops && dap->ops->quit)
 			dap->ops->quit(dap);
 
@@ -157,6 +176,8 @@ enum dap_cfg_param {
 	CFG_IGNORE_SYSPWRUPACK,
 	CFG_DP_ID,
 	CFG_INSTANCE_ID,
+	CFG_ADIV6,
+	CFG_ADIV5,
 };
 
 static const struct jim_nvp nvp_config_opts[] = {
@@ -164,6 +185,8 @@ static const struct jim_nvp nvp_config_opts[] = {
 	{ .name = "-ignore-syspwrupack", .value = CFG_IGNORE_SYSPWRUPACK },
 	{ .name = "-dp-id",              .value = CFG_DP_ID },
 	{ .name = "-instance-id",        .value = CFG_INSTANCE_ID },
+	{ .name = "-adiv6",              .value = CFG_ADIV6 },
+	{ .name = "-adiv5",              .value = CFG_ADIV5 },
 	{ .name = NULL, .value = -1 }
 };
 
@@ -243,6 +266,12 @@ static int dap_configure(struct jim_getopt_info *goi, struct arm_dap_object *dap
 			dap->dap.multidrop_instance_id_valid = true;
 			break;
 		}
+		case CFG_ADIV6:
+			dap->dap.adi_version = 6;
+			break;
+		case CFG_ADIV5:
+			dap->dap.adi_version = 5;
+			break;
 		default:
 			break;
 		}
@@ -418,7 +447,7 @@ COMMAND_HANDLER(handle_dap_info_command)
 	struct target *target = get_current_target(CMD_CTX);
 	struct arm *arm = target_to_arm(target);
 	struct adiv5_dap *dap = arm->dap;
-	uint32_t apsel;
+	uint64_t apsel;
 
 	if (!dap) {
 		LOG_ERROR("DAP instance not available. Probably a HLA target...");
@@ -430,15 +459,34 @@ COMMAND_HANDLER(handle_dap_info_command)
 			apsel = dap->apsel;
 			break;
 		case 1:
-			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], apsel);
-			if (apsel > DP_APSEL_MAX)
+			if (!strcmp(CMD_ARGV[0], "root")) {
+				if (!is_adiv6(dap)) {
+					command_print(CMD, "Option \"root\" not allowed with ADIv5 DAP");
+					return ERROR_COMMAND_ARGUMENT_INVALID;
+				}
+				int retval = adiv6_dap_read_baseptr(CMD, dap, &apsel);
+				if (retval != ERROR_OK) {
+					command_print(CMD, "Failed reading DAP baseptr");
+					return retval;
+				}
+				break;
+			}
+			COMMAND_PARSE_NUMBER(u64, CMD_ARGV[0], apsel);
+			if (!is_ap_num_valid(dap, apsel))
 				return ERROR_COMMAND_SYNTAX_ERROR;
 			break;
 		default:
 			return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	return dap_info_command(CMD, &dap->ap[apsel]);
+	struct adiv5_ap *ap = dap_get_ap(dap, apsel);
+	if (!ap) {
+		command_print(CMD, "Cannot get AP");
+		return ERROR_FAIL;
+	}
+	int retval = dap_info_command(CMD, ap);
+	dap_put_ap(ap);
+	return retval;
 }
 
 static const struct command_registration dap_subcommand_handlers[] = {
@@ -467,9 +515,9 @@ static const struct command_registration dap_subcommand_handlers[] = {
 		.name = "info",
 		.handler = handle_dap_info_command,
 		.mode = COMMAND_EXEC,
-		.help = "display ROM table for MEM-AP of current target "
-		"(default currently selected AP)",
-		.usage = "[ap_num]",
+		.help = "display ROM table for specified MEM-AP (default MEM-AP of current target) "
+			"or the ADIv6 root ROM table of current target's DAP",
+		.usage = "[ap_num | 'root']",
 	},
 	COMMAND_REGISTRATION_DONE
 };

@@ -1,31 +1,21 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /***************************************************************************
  *   ESP32-S2 target for OpenOCD                                           *
  *   Copyright (C) 2019 Espressif Systems Ltd.                             *
- *   Author: Alexey Gerenkov <alexey@espressif.com>                        *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
+#include <helper/time_support.h>
 #include "assert.h"
 #include <target/target.h>
 #include <target/target_type.h>
+#include <target/semihosting_common.h>
 #include "esp_xtensa.h"
-#include "esp32s2.h"
+#include "esp_xtensa_semihosting.h"
 
 /* Overall memory map
  * TODO: read memory configuration from target registers */
@@ -100,190 +90,6 @@
 #define ESP32_S2_DR_REG_UART_BASE       0x3f400000
 #define ESP32_S2_REG_UART_BASE(i)       (ESP32_S2_DR_REG_UART_BASE + (i) * 0x10000)
 #define ESP32_S2_UART_DATE_REG(i)       (ESP32_S2_REG_UART_BASE(i) + 0x74)
-
-/* this should map local reg IDs to GDB reg mapping as defined in xtensa-config.c 'rmap' in
- * xtensa-overlay */
-static const unsigned int esp32s2_gdb_regs_mapping[ESP32_S2_NUM_REGS] = {
-	XT_REG_IDX_PC,
-	XT_REG_IDX_AR0, XT_REG_IDX_AR1, XT_REG_IDX_AR2, XT_REG_IDX_AR3,
-	XT_REG_IDX_AR4, XT_REG_IDX_AR5, XT_REG_IDX_AR6, XT_REG_IDX_AR7,
-	XT_REG_IDX_AR8, XT_REG_IDX_AR9, XT_REG_IDX_AR10, XT_REG_IDX_AR11,
-	XT_REG_IDX_AR12, XT_REG_IDX_AR13, XT_REG_IDX_AR14, XT_REG_IDX_AR15,
-	XT_REG_IDX_AR16, XT_REG_IDX_AR17, XT_REG_IDX_AR18, XT_REG_IDX_AR19,
-	XT_REG_IDX_AR20, XT_REG_IDX_AR21, XT_REG_IDX_AR22, XT_REG_IDX_AR23,
-	XT_REG_IDX_AR24, XT_REG_IDX_AR25, XT_REG_IDX_AR26, XT_REG_IDX_AR27,
-	XT_REG_IDX_AR28, XT_REG_IDX_AR29, XT_REG_IDX_AR30, XT_REG_IDX_AR31,
-	XT_REG_IDX_AR32, XT_REG_IDX_AR33, XT_REG_IDX_AR34, XT_REG_IDX_AR35,
-	XT_REG_IDX_AR36, XT_REG_IDX_AR37, XT_REG_IDX_AR38, XT_REG_IDX_AR39,
-	XT_REG_IDX_AR40, XT_REG_IDX_AR41, XT_REG_IDX_AR42, XT_REG_IDX_AR43,
-	XT_REG_IDX_AR44, XT_REG_IDX_AR45, XT_REG_IDX_AR46, XT_REG_IDX_AR47,
-	XT_REG_IDX_AR48, XT_REG_IDX_AR49, XT_REG_IDX_AR50, XT_REG_IDX_AR51,
-	XT_REG_IDX_AR52, XT_REG_IDX_AR53, XT_REG_IDX_AR54, XT_REG_IDX_AR55,
-	XT_REG_IDX_AR56, XT_REG_IDX_AR57, XT_REG_IDX_AR58, XT_REG_IDX_AR59,
-	XT_REG_IDX_AR60, XT_REG_IDX_AR61, XT_REG_IDX_AR62, XT_REG_IDX_AR63,
-	XT_REG_IDX_SAR,
-	XT_REG_IDX_WINDOWBASE, XT_REG_IDX_WINDOWSTART, XT_REG_IDX_CONFIGID0, XT_REG_IDX_CONFIGID1,
-	XT_REG_IDX_PS, XT_REG_IDX_THREADPTR,
-	ESP32_S2_REG_IDX_GPIOOUT,
-	XT_REG_IDX_MMID, XT_REG_IDX_IBREAKENABLE, XT_REG_IDX_OCD_DDR,
-	XT_REG_IDX_IBREAKA0, XT_REG_IDX_IBREAKA1, XT_REG_IDX_DBREAKA0, XT_REG_IDX_DBREAKA1,
-	XT_REG_IDX_DBREAKC0, XT_REG_IDX_DBREAKC1,
-	XT_REG_IDX_EPC1, XT_REG_IDX_EPC2, XT_REG_IDX_EPC3, XT_REG_IDX_EPC4,
-	XT_REG_IDX_EPC5, XT_REG_IDX_EPC6, XT_REG_IDX_EPC7, XT_REG_IDX_DEPC,
-	XT_REG_IDX_EPS2, XT_REG_IDX_EPS3, XT_REG_IDX_EPS4, XT_REG_IDX_EPS5,
-	XT_REG_IDX_EPS6, XT_REG_IDX_EPS7,
-	XT_REG_IDX_EXCSAVE1, XT_REG_IDX_EXCSAVE2, XT_REG_IDX_EXCSAVE3, XT_REG_IDX_EXCSAVE4,
-	XT_REG_IDX_EXCSAVE5, XT_REG_IDX_EXCSAVE6, XT_REG_IDX_EXCSAVE7, XT_REG_IDX_CPENABLE,
-	XT_REG_IDX_INTERRUPT, XT_REG_IDX_INTSET, XT_REG_IDX_INTCLEAR, XT_REG_IDX_INTENABLE,
-	XT_REG_IDX_VECBASE, XT_REG_IDX_EXCCAUSE, XT_REG_IDX_DEBUGCAUSE, XT_REG_IDX_CCOUNT,
-	XT_REG_IDX_PRID, XT_REG_IDX_ICOUNT, XT_REG_IDX_ICOUNTLEVEL, XT_REG_IDX_EXCVADDR,
-	XT_REG_IDX_CCOMPARE0, XT_REG_IDX_CCOMPARE1, XT_REG_IDX_CCOMPARE2,
-	XT_REG_IDX_MISC0, XT_REG_IDX_MISC1, XT_REG_IDX_MISC2, XT_REG_IDX_MISC3,
-	XT_REG_IDX_A0, XT_REG_IDX_A1, XT_REG_IDX_A2, XT_REG_IDX_A3,
-	XT_REG_IDX_A4, XT_REG_IDX_A5, XT_REG_IDX_A6, XT_REG_IDX_A7,
-	XT_REG_IDX_A8, XT_REG_IDX_A9, XT_REG_IDX_A10, XT_REG_IDX_A11,
-	XT_REG_IDX_A12, XT_REG_IDX_A13, XT_REG_IDX_A14, XT_REG_IDX_A15,
-	XT_REG_IDX_PWRCTL, XT_REG_IDX_PWRSTAT, XT_REG_IDX_ERISTAT,
-	XT_REG_IDX_CS_ITCTRL, XT_REG_IDX_CS_CLAIMSET, XT_REG_IDX_CS_CLAIMCLR,
-	XT_REG_IDX_CS_LOCKACCESS, XT_REG_IDX_CS_LOCKSTATUS, XT_REG_IDX_CS_AUTHSTATUS,
-	XT_REG_IDX_FAULT_INFO,
-	XT_REG_IDX_TRAX_ID, XT_REG_IDX_TRAX_CTRL, XT_REG_IDX_TRAX_STAT,
-	XT_REG_IDX_TRAX_DATA, XT_REG_IDX_TRAX_ADDR, XT_REG_IDX_TRAX_PCTRIGGER,
-	XT_REG_IDX_TRAX_PCMATCH, XT_REG_IDX_TRAX_DELAY, XT_REG_IDX_TRAX_MEMSTART,
-	XT_REG_IDX_TRAX_MEMEND,
-	XT_REG_IDX_PMG, XT_REG_IDX_PMPC, XT_REG_IDX_PM0, XT_REG_IDX_PM1,
-	XT_REG_IDX_PMCTRL0, XT_REG_IDX_PMCTRL1, XT_REG_IDX_PMSTAT0, XT_REG_IDX_PMSTAT1,
-	XT_REG_IDX_OCD_ID, XT_REG_IDX_OCD_DCRCLR, XT_REG_IDX_OCD_DCRSET, XT_REG_IDX_OCD_DSR,
-};
-
-static const struct xtensa_user_reg_desc esp32s2_user_regs[ESP32_S2_NUM_REGS - XT_NUM_REGS] = {
-	{ "gpio_out", 0x00, 0, 32, &xtensa_user_reg_u32_type },
-};
-
-static const struct xtensa_config esp32s2_xtensa_cfg = {
-	.density = true,
-	.aregs_num = XT_AREGS_NUM_MAX,
-	.windowed = true,
-	.coproc = true,
-	.miscregs_num = 4,
-	.reloc_vec = true,
-	.proc_id = true,
-	.threadptr = true,
-	.user_regs_num = ARRAY_SIZE(esp32s2_user_regs),
-	.user_regs = esp32s2_user_regs,
-	.fetch_user_regs = xtensa_fetch_user_regs_u32,
-	.queue_write_dirty_user_regs = xtensa_queue_write_dirty_user_regs_u32,
-	.gdb_general_regs_num = ESP32_S2_NUM_REGS_G_COMMAND,
-	.gdb_regs_mapping = esp32s2_gdb_regs_mapping,
-	.irom = {
-		.count = 2,
-		.regions = {
-			{
-				.base = ESP32_S2_IROM_LOW,
-				.size = ESP32_S2_IROM_HIGH - ESP32_S2_IROM_LOW,
-				.access = XT_MEM_ACCESS_READ,
-			},
-			{
-				.base = ESP32_S2_IROM_MASK_LOW,
-				.size = ESP32_S2_IROM_MASK_HIGH - ESP32_S2_IROM_MASK_LOW,
-				.access = XT_MEM_ACCESS_READ,
-			},
-		}
-	},
-	.iram = {
-		.count = 2,
-		.regions = {
-			{
-				.base = ESP32_S2_IRAM_LOW,
-				.size = ESP32_S2_IRAM_HIGH - ESP32_S2_IRAM_LOW,
-				.access = XT_MEM_ACCESS_READ | XT_MEM_ACCESS_WRITE,
-			},
-			{
-				.base = ESP32_S2_RTC_IRAM_LOW,
-				.size = ESP32_S2_RTC_IRAM_HIGH - ESP32_S2_RTC_IRAM_LOW,
-				.access = XT_MEM_ACCESS_READ | XT_MEM_ACCESS_WRITE,
-			},
-		}
-	},
-	.drom = {
-		.count = 2,
-		.regions = {
-			{
-				.base = ESP32_S2_DROM0_LOW,
-				.size = ESP32_S2_DROM0_HIGH - ESP32_S2_DROM0_LOW,
-				.access = XT_MEM_ACCESS_READ,
-			},
-			{
-				.base = ESP32_S2_DROM1_LOW,
-				.size = ESP32_S2_DROM1_HIGH - ESP32_S2_DROM1_LOW,
-				.access = XT_MEM_ACCESS_READ,
-			},
-		}
-	},
-	.dram = {
-		.count = 6,
-		.regions = {
-			{
-				.base = ESP32_S2_DRAM_LOW,
-				.size = ESP32_S2_DRAM_HIGH - ESP32_S2_DRAM_LOW,
-				.access = XT_MEM_ACCESS_READ | XT_MEM_ACCESS_WRITE,
-			},
-			{
-				.base = ESP32_S2_RTC_DRAM_LOW,
-				.size = ESP32_S2_RTC_DRAM_HIGH - ESP32_S2_RTC_DRAM_LOW,
-				.access = XT_MEM_ACCESS_READ | XT_MEM_ACCESS_WRITE,
-			},
-			{
-				.base = ESP32_S2_RTC_DATA_LOW,
-				.size = ESP32_S2_RTC_DATA_HIGH - ESP32_S2_RTC_DATA_LOW,
-				.access = XT_MEM_ACCESS_READ | XT_MEM_ACCESS_WRITE,
-			},
-			{
-				.base = ESP32_S2_EXTRAM_DATA_LOW,
-				.size = ESP32_S2_EXTRAM_DATA_HIGH - ESP32_S2_EXTRAM_DATA_LOW,
-				.access = XT_MEM_ACCESS_READ | XT_MEM_ACCESS_WRITE,
-			},
-			{
-				.base = ESP32_S2_DR_REG_LOW,
-				.size = ESP32_S2_DR_REG_HIGH - ESP32_S2_DR_REG_LOW,
-				.access = XT_MEM_ACCESS_READ | XT_MEM_ACCESS_WRITE,
-			},
-			{
-				.base = ESP32_S2_SYS_RAM_LOW,
-				.size = ESP32_S2_SYS_RAM_HIGH - ESP32_S2_SYS_RAM_LOW,
-				.access = XT_MEM_ACCESS_READ | XT_MEM_ACCESS_WRITE,
-			},
-		}
-	},
-	.exc = {
-		.enabled = true,
-	},
-	.irq = {
-		.enabled = true,
-		.irq_num = 32,
-	},
-	.high_irq = {
-		.enabled = true,
-		.excm_level = 3,
-		.nmi_num = 1,
-	},
-	.tim_irq = {
-		.enabled = true,
-		.comp_num = 3,
-	},
-	.debug = {
-		.enabled = true,
-		.irq_level = 6,
-		.ibreaks_num = 2,
-		.dbreaks_num = 2,
-		.icount_sz = 32,
-	},
-	.trace = {
-		.enabled = true,
-		.mem_sz = ESP32_S2_TRACEMEM_BLOCK_SZ,
-	},
-};
-
 struct esp32s2_common {
 	struct esp_xtensa_common esp_xtensa;
 };
@@ -316,7 +122,7 @@ static int esp32s2_deassert_reset(struct target *target)
 	return ERROR_OK;
 }
 
-int esp32s2_soft_reset_halt(struct target *target)
+static int esp32s2_soft_reset_halt(struct target *target)
 {
 	LOG_TARGET_DEBUG(target, "begin");
 
@@ -324,7 +130,7 @@ int esp32s2_soft_reset_halt(struct target *target)
 	int res = esp32s2_soc_reset(target);
 	if (res != ERROR_OK)
 		return res;
-	return xtensa_assert_reset(target);
+	return xtensa_soft_reset_halt(target);
 }
 
 static int esp32s2_set_peri_reg_mask(struct target *target,
@@ -474,7 +280,7 @@ static int esp32s2_soc_reset(struct target *target)
 	res = esp32s2_set_peri_reg_mask(target,
 		ESP32_S2_OPTIONS0,
 		ESP32_S2_SW_SYS_RST_M,
-		1U << ESP32_S2_SW_SYS_RST_S);
+		BIT(ESP32_S2_SW_SYS_RST_S));
 	xtensa->suppress_dsr_errors = false;
 	if (res != ERROR_OK) {
 		LOG_ERROR("Failed to write ESP32_S2_OPTIONS0 (%d)!", res);
@@ -482,15 +288,17 @@ static int esp32s2_soc_reset(struct target *target)
 	}
 	/* Wait for SoC to reset */
 	alive_sleep(100);
-	int timeout = 100;
-	while (target->state != TARGET_RESET && target->state != TARGET_RUNNING && --timeout > 0) {
+	int64_t timeout = timeval_ms() + 100;
+	while (target->state != TARGET_RESET && target->state != TARGET_RUNNING) {
 		alive_sleep(10);
 		xtensa_poll(target);
+		if (timeval_ms() >= timeout) {
+			LOG_TARGET_ERROR(target, "Timed out waiting for CPU to be reset, target state=%d",
+				target->state);
+			return ERROR_TARGET_TIMEOUT;
+		}
 	}
-	if (timeout == 0) {
-		LOG_ERROR("Timed out waiting for CPU to be reset, target->state=%d", target->state);
-		return ERROR_TARGET_TIMEOUT;
-	}
+
 	xtensa_halt(target);
 	res = target_wait_state(target, TARGET_HALTED, 1000);
 	if (res != ERROR_OK) {
@@ -600,6 +408,19 @@ static int esp32s2_poll(struct target *target)
 		if (old_state == TARGET_DEBUG_RUNNING) {
 			target_call_event_callbacks(target, TARGET_EVENT_DEBUG_HALTED);
 		} else {
+			if (esp_xtensa_semihosting(target, &ret) == SEMIHOSTING_HANDLED) {
+				struct esp_xtensa_common *esp_xtensa = target_to_esp_xtensa(target);
+				if (ret == ERROR_OK && esp_xtensa->semihost.need_resume) {
+					esp_xtensa->semihost.need_resume = false;
+					/* Resume xtensa_resume will handle BREAK instruction. */
+					ret = target_resume(target, 1, 0, 1, 0);
+					if (ret != ERROR_OK) {
+						LOG_ERROR("Failed to resume target");
+						return ret;
+					}
+				}
+				return ret;
+			}
 			esp32s2_on_halt(target);
 			target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 		}
@@ -617,7 +438,11 @@ static int esp32s2_virt2phys(struct target *target,
 
 static int esp32s2_target_init(struct command_context *cmd_ctx, struct target *target)
 {
-	return esp_xtensa_target_init(cmd_ctx, target);
+	int ret = esp_xtensa_target_init(cmd_ctx, target);
+	if (ret != ERROR_OK)
+		return ret;
+
+	return esp_xtensa_semihosting_init(target);
 }
 
 static const struct xtensa_debug_ops esp32s2_dbg_ops = {
@@ -629,6 +454,10 @@ static const struct xtensa_debug_ops esp32s2_dbg_ops = {
 static const struct xtensa_power_ops esp32s2_pwr_ops = {
 	.queue_reg_read = xtensa_dm_queue_pwr_reg_read,
 	.queue_reg_write = xtensa_dm_queue_pwr_reg_write
+};
+
+static const struct esp_semihost_ops esp32s2_semihost_ops = {
+	.prepare = esp32s2_disable_wdts
 };
 
 static int esp32s2_target_create(struct target *target, Jim_Interp *interp)
@@ -648,7 +477,7 @@ static int esp32s2_target_create(struct target *target, Jim_Interp *interp)
 		return ERROR_FAIL;
 	}
 
-	int ret = esp_xtensa_init_arch_info(target, &esp32->esp_xtensa, &esp32s2_xtensa_cfg, &esp32s2_dm_cfg);
+	int ret = esp_xtensa_init_arch_info(target, &esp32->esp_xtensa, &esp32s2_dm_cfg, &esp32s2_semihost_ops);
 	if (ret != ERROR_OK) {
 		LOG_ERROR("Failed to init arch info!");
 		free(esp32);
@@ -663,11 +492,14 @@ static int esp32s2_target_create(struct target *target, Jim_Interp *interp)
 
 static const struct command_registration esp32s2_command_handlers[] = {
 	{
-		.name = "xtensa",
-		.mode = COMMAND_ANY,
-		.help = "Xtensa commands group",
-		.usage = "",
 		.chain = xtensa_command_handlers,
+	},
+	{
+		.name = "arm",
+		.mode = COMMAND_ANY,
+		.help = "ARM Command Group",
+		.usage = "",
+		.chain = semihosting_common_handlers
 	},
 	COMMAND_REGISTRATION_DONE
 };

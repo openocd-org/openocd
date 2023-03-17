@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 # Defines basic Tcl procs for OpenOCD server modules
 
 # Handle GDB 'R' packet. Can be overridden by configuration script,

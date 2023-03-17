@@ -1,22 +1,11 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /***************************************************************************
  *   Copyright (C) 2016 - 2019 by Andreas Bolsch                           *
  *   andreas.bolsch@mni.thm.de                                             *
  *                                                                         *
  *   Copyright (C) 2010 by Antonio Borneo                                  *
  *   borneo.antonio@gmail.com                                              *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or	   *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
 /* STM QuadSPI (QSPI) and OctoSPI (OCTOSPI) controller are SPI bus controllers
@@ -765,13 +754,13 @@ COMMAND_HANDLER(stmqspi_handle_set)
 	bank->sectors = sectors;
 	stmqspi_info->dev.name = stmqspi_info->devname;
 	if (stmqspi_info->dev.size_in_bytes / 4096)
-		LOG_INFO("flash \'%s\' id = unknown\nchip size = %" PRIu32 "kbytes,"
-			" bank size = %" PRIu32 "kbytes", stmqspi_info->dev.name,
+		LOG_INFO("flash \'%s\' id = unknown\nchip size = %" PRIu32 " KiB,"
+			" bank size = %" PRIu32 " KiB", stmqspi_info->dev.name,
 			stmqspi_info->dev.size_in_bytes / 1024,
 			(stmqspi_info->dev.size_in_bytes / 1024) << dual);
 	else
-		LOG_INFO("flash \'%s\' id = unknown\nchip size = %" PRIu32 "bytes,"
-			" bank size = %" PRIu32 "bytes", stmqspi_info->dev.name,
+		LOG_INFO("flash \'%s\' id = unknown\nchip size = %" PRIu32 " B,"
+			" bank size = %" PRIu32 " B", stmqspi_info->dev.name,
 			stmqspi_info->dev.size_in_bytes,
 			stmqspi_info->dev.size_in_bytes << dual);
 
@@ -2217,10 +2206,10 @@ static int stmqspi_probe(struct flash_bank *bank)
 			memcpy(&stmqspi_info->dev, p, sizeof(stmqspi_info->dev));
 			if (p->size_in_bytes / 4096)
 				LOG_INFO("flash1 \'%s\' id = 0x%06" PRIx32 " size = %" PRIu32
-					"kbytes", p->name, id1, p->size_in_bytes / 1024);
+					" KiB", p->name, id1, p->size_in_bytes / 1024);
 			else
 				LOG_INFO("flash1 \'%s\' id = 0x%06" PRIx32 " size = %" PRIu32
-					"bytes", p->name, id1, p->size_in_bytes);
+					" B", p->name, id1, p->size_in_bytes);
 			break;
 		}
 	}
@@ -2239,7 +2228,7 @@ static int stmqspi_probe(struct flash_bank *bank)
 
 		if (retval == ERROR_OK) {
 			LOG_INFO("flash1 \'%s\' id = 0x%06" PRIx32 " size = %" PRIu32
-				"kbytes", temp.name, id1, temp.size_in_bytes / 1024);
+				" KiB", temp.name, id1, temp.size_in_bytes / 1024);
 			/* save info and retrieved *good* id as spi_sfdp clears all info */
 			memcpy(&stmqspi_info->dev, &temp, sizeof(stmqspi_info->dev));
 			stmqspi_info->dev.device_id = id1;
@@ -2257,10 +2246,10 @@ static int stmqspi_probe(struct flash_bank *bank)
 		if (p->device_id == id2) {
 			if (p->size_in_bytes / 4096)
 				LOG_INFO("flash2 \'%s\' id = 0x%06" PRIx32 " size = %" PRIu32
-					"kbytes", p->name, id2, p->size_in_bytes / 1024);
+					" KiB", p->name, id2, p->size_in_bytes / 1024);
 			else
 				LOG_INFO("flash2 \'%s\' id = 0x%06" PRIx32 " size = %" PRIu32
-					"bytes", p->name, id2, p->size_in_bytes);
+					" B", p->name, id2, p->size_in_bytes);
 
 			if (!id1)
 				memcpy(&stmqspi_info->dev, p, sizeof(stmqspi_info->dev));
@@ -2297,7 +2286,7 @@ static int stmqspi_probe(struct flash_bank *bank)
 
 		if (retval == ERROR_OK)
 			LOG_INFO("flash2 \'%s\' id = 0x%06" PRIx32 " size = %" PRIu32
-				"kbytes", temp.name, id2, temp.size_in_bytes / 1024);
+				" KiB", temp.name, id2, temp.size_in_bytes / 1024);
 		else {
 			/* even not identified by SFDP, then give up */
 			LOG_WARNING("Unknown flash2 device id = 0x%06" PRIx32
@@ -2403,22 +2392,22 @@ static int get_stmqspi_info(struct flash_bank *bank, struct command_invocation *
 	}
 
 	command_print_sameline(cmd, "flash%s%s \'%s\', device id = 0x%06" PRIx32
-			", flash size = %" PRIu32 "%sbytes\n(page size = %" PRIu32
+			", flash size = %" PRIu32 "%s B\n(page size = %" PRIu32
 			", read = 0x%02" PRIx8 ", qread = 0x%02" PRIx8
 			", pprog = 0x%02" PRIx8 ", mass_erase = 0x%02" PRIx8
-			", sector size = %" PRIu32 "%sbytes, sector_erase = 0x%02" PRIx8 ")",
+			", sector size = %" PRIu32 " %sB, sector_erase = 0x%02" PRIx8 ")",
 			((stmqspi_info->saved_cr & (BIT(SPI_DUAL_FLASH) |
 			BIT(SPI_FSEL_FLASH))) != BIT(SPI_FSEL_FLASH)) ? "1" : "",
 			((stmqspi_info->saved_cr & (BIT(SPI_DUAL_FLASH) |
 			BIT(SPI_FSEL_FLASH))) != 0) ? "2" : "",
 			stmqspi_info->dev.name, stmqspi_info->dev.device_id,
 			bank->size / 4096 ? bank->size / 1024 : bank->size,
-			bank->size / 4096 ? "k" : "", stmqspi_info->dev.pagesize,
+			bank->size / 4096 ? "Ki" : "", stmqspi_info->dev.pagesize,
 			stmqspi_info->dev.read_cmd, stmqspi_info->dev.qread_cmd,
 			stmqspi_info->dev.pprog_cmd, stmqspi_info->dev.chip_erase_cmd,
 			stmqspi_info->dev.sectorsize / 4096 ?
 				stmqspi_info->dev.sectorsize / 1024 : stmqspi_info->dev.sectorsize,
-			stmqspi_info->dev.sectorsize / 4096 ? "k" : "",
+			stmqspi_info->dev.sectorsize / 4096 ? "Ki" : "",
 			stmqspi_info->dev.erase_cmd);
 
 	return ERROR_OK;

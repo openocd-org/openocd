@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /***************************************************************************
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
@@ -10,19 +12,6 @@
  *                                                                         *
  *   part of this file is taken from libcli (libcli.sourceforge.net)       *
  *   Copyright (C) David Parrish (david@dparrish.com)                      *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
 #ifdef HAVE_CONFIG_H
@@ -713,14 +702,12 @@ static int jim_capture(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	 * This is necessary in order to avoid accidentally getting a non-empty
 	 * string for tcl fn's.
 	 */
-	bool save_poll = jtag_poll_get_enabled();
-
-	jtag_poll_set_enabled(false);
+	bool save_poll_mask = jtag_poll_mask();
 
 	const char *str = Jim_GetString(argv[1], NULL);
 	int retcode = Jim_Eval_Named(interp, str, __THIS__FILE__, __LINE__);
 
-	jtag_poll_set_enabled(save_poll);
+	jtag_poll_unmask(save_poll_mask);
 
 	command_log_capture_finish(state);
 
@@ -949,7 +936,19 @@ static int jim_command_dispatch(Jim_Interp *interp, int argc, Jim_Obj * const *a
 	if (!command_can_run(cmd_ctx, c, Jim_GetString(argv[0], NULL)))
 		return JIM_ERR;
 
-	target_call_timer_callbacks_now();
+	/*
+	 * TODO: to be removed after v0.12.0
+	 * workaround for https://sourceforge.net/p/openocd/tickets/362/
+	 * After syntax change of "expr" in jimtcl 0.81
+	 * the replacement of jimtcl "expr" with openocd version in
+	 * https://review.openocd.org/6510/
+	 * introduces too many target polling during math expressions with
+	 * "expr" commands.
+	 * After v0.12.0 replace the following two lines with
+	 * target_call_timer_callbacks();
+	 */
+	if (strcmp(c->name, "expr"))
+		target_call_timer_callbacks_now();
 
 	/*
 	 * Black magic of overridden current target:

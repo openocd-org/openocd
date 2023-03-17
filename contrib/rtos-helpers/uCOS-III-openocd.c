@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /*
  * uC/OS-III does not provide a fixed layout for OS_TCB, which makes it
  * impossible to determine the appropriate offsets within the structure

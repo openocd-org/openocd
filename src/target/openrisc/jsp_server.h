@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+
 #ifndef OPENOCD_TARGET_OPENRISC_JSP_SERVER_H
 #define OPENOCD_TARGET_OPENRISC_JSP_SERVER_H
 

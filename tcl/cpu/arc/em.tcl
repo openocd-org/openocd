@@ -1,8 +1,8 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 #  Copyright (C) 2015, 2020 Synopsys, Inc.
 #  Anton Kolesov <anton.kolesov@synopsys.com>
 #  Didin Evgeniy <didin@synopsys.com>
-#
-# SPDX-License-Identifier: GPL-2.0-or-later
 
 source [find cpu/arc/v2.tcl]
 

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 noinst_LTLIBRARIES += %D%/libocdjtagdrivers.la
 %C%_libocdjtagdrivers_la_LIBADD =
 
@@ -105,6 +107,9 @@ DRIVERFILES += %D%/bitq.c
 endif
 if PRESTO
 DRIVERFILES += %D%/presto.c
+endif
+if ESP_USB_JTAG
+DRIVERFILES += %D%/esp_usb_jtag.c
 endif
 if USBPROG
 DRIVERFILES += %D%/usbprog.c

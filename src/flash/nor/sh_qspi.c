@@ -1,4 +1,5 @@
-/* SPDX-License-Identifier: GPL-2.0 */
+// SPDX-License-Identifier: GPL-2.0-only
+
 /*
  * SH QSPI (Quad SPI) driver
  * Copyright (C) 2019 Marek Vasut <marek.vasut@gmail.com>

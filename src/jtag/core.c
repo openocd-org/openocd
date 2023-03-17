@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /***************************************************************************
  *   Copyright (C) 2009 Zachary T Welch                                    *
  *   zw@superlucidity.net                                                  *
@@ -11,19 +13,6 @@
  *                                                                         *
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
 #ifdef HAVE_CONFIG_H
@@ -147,14 +136,19 @@ int jtag_error_clear(void)
 
 /************/
 
-static bool jtag_poll = 1;
+static bool jtag_poll = true;
+static bool jtag_poll_en = true;
 
 bool is_jtag_poll_safe(void)
 {
 	/* Polling can be disabled explicitly with set_enabled(false).
+	 * It can also be masked with mask().
 	 * It is also implicitly disabled while TRST is active and
 	 * while SRST is gating the JTAG clock.
 	 */
+	if (!jtag_poll_en)
+		return false;
+
 	if (!transport_is_jtag())
 		return jtag_poll;
 
@@ -171,6 +165,18 @@ bool jtag_poll_get_enabled(void)
 void jtag_poll_set_enabled(bool value)
 {
 	jtag_poll = value;
+}
+
+bool jtag_poll_mask(void)
+{
+	bool retval = jtag_poll_en;
+	jtag_poll_en = false;
+	return retval;
+}
+
+void jtag_poll_unmask(bool saved)
+{
+	jtag_poll_en = saved;
 }
 
 /************/

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 %C%_libtarget_la_LIBADD = %D%/openrisc/libopenrisc.la \
 	%D%/riscv/libriscv.la \
 	%D%/xtensa/libxtensa.la \

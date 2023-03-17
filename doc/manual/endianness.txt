@@ -1,0 +1,197 @@
+/** @page endianness About endianness
+
+OpenOCD has to potentially deal with different endianness between:
+- the host PC endianness;
+- the data endianness during communication between host and adapter;
+- the target CPU endianness.
+
+The whole OpenOCD code should be written to handle any endianness
+mismatch and should run on either little and big endian hosts.
+
+Big-endian host PC are becoming less and less common since Apple&trade; has
+switched away from big-endian PowerPC&trade; in favor of little-endian intel
+X86&trade;.
+
+The lack of commercial big-endian hosts makes hard testing OpenOCD correctness
+on big-endian hosts. Running OpenOCD on low-cost commercial routers based on
+big-endian MIPS is possible, but it's tricky to properly setup the system and
+the cross-compiling environment.
+
+In next sections there are two example on how to compile and test OpenOCD in an
+emulated big-endian environment.
+
+
+@section endianness_helpers OpenOCD API for handling endianness
+
+Use the following OpenOCD API to handle endianness conversions:
+- host endianness to/from little endian:
+  - le_to_h_u64(), le_to_h_u32(), le_to_h_u16();
+  - h_u64_to_le(), h_u32_to_le(), h_u16_to_le();
+  - buf_get_u32(), buf_get_u64();
+  - buf_set_u32(), buf_set_u64();
+- host endianness to/from big endian:
+  - be_to_h_u64(), be_to_h_u32(), be_to_h_u16();
+  - h_u64_to_be(), h_u32_to_be(), h_u16_to_be();
+- host endianness to/from target endianness:
+  - target_read_u64(), target_read_u32(), target_read_u16();
+  - target_write_u64(), target_write_u32(), target_write_u16();
+  - target_write_phys_u64(), target_write_phys_u32(), target_write_phys_u16();
+  - target_buffer_get_u64(), target_buffer_get_u32(), target_buffer_get_u24(), target_buffer_get_u16();
+  - target_buffer_set_u64(), target_buffer_set_u32(), target_buffer_set_u24(), target_buffer_set_u16();
+- byte swap:
+  - buf_bswap32(), buf_bswap16().
+
+
+@section endianness_docker Use dockers to run different endianness
+
+
+Docker can run a full Linux image that includes the toolchain through QEMU
+emulator.
+By selecting a big-endian image, it's possible to compile and execute OpenOCD
+in big-endian.
+There are, so far, not many options for big-endian images; s390x is one of the
+few available.
+
+To be expanded.
+
+User should:
+- install docker;
+- download the big-endian image;
+- run the image in docker;
+- download, in the image, the OpenOCD code to test;
+- recompile OpenOCD code in the image;
+- run OpenOCD binary in the image.
+
+From https://github.com/multiarch/qemu-user-static
+
+  @code{.unparsed}
+  docker run --rm -t s390x/ubuntu bash
+  @endcode
+
+
+@section endianness_qemu Use buildroot and QEMU to run different endianness
+
+QEMU User Mode Emulation is an efficient method to launch, on host's CPU,
+applications compiled for another CPU and/or for different endianness.
+It works either on Linux and BSD. More info available on
+https://www.qemu.org/docs/master/user/index.html
+
+With QEMU User Mode Emulation is thus possible running, on a commonly available
+little-endian X86 Linux host, OpenOCD compiled for a big-endian host.
+
+The following example will show how to use buildroot to:
+- build big-endian toolchain and libraries;
+- compile OpenOCD for big-endian;
+- run the big-endian OpenOCD on little-endian Linux PC.
+
+The example will use ARM Cortex-A7 big-endian only because I personally feel
+comfortable reading ARM assembly during debug. User can select other CPU
+architectures, as this does not impact the result.
+
+A similar method can be used to test OpenOCD compiled for 32 vs 64 bit host.
+
+@note
+- the version of autotools locally installer in your Linux host can be
+  incompatible with the version of autotools used by buildroot. This can cause
+  the build to fail if buildroot has to run its autotools on a partially
+  configured OpenOCD folder. Use either a clean copy of OpenOCD code in 2., or
+  run "./bootstrap" in OpenOCD folder to prevent buildroot from using its own
+  autotools;
+- the configuration tool in 4. and 5. matches the version of OpenOCD used by
+  buildroot. Some new driver could be not listed in. OpenOCD will build every
+  driver that is not disabled and with satisfied dependencies. If the driver
+  you plan to use is not listed, try a first build and check OpenOCD with
+  command "adapter list", then try to hack the buildroot files Config.in and
+  openocd.mk in folder package/openocd/ and use "make openocd-reconfigure" to
+  rerun the build starting with configuration;
+- using pre-built toolchains, you need 2GB of disk space for buildroot build.
+  To also rebuild the toolchains you will need ~5GB and much longer time for
+  the first build (it takes ~2 hour on my crap 10+ years old laptop);
+- you need to install few tools for buildroot dependency, listed in
+  https://buildroot.org/downloads/manual/manual.html#requirement ;
+- you need to install qemu-armeb. On Arch Linux it's in package qemu-arch-extra;
+  on Ubuntu/debian it's packaged in qemu-user.
+  Buildroot can also be configured to build qemu for the host, if you prefer,
+  by enabling BR2_PACKAGE_HOST_QEMU_LINUX_USER_MODE, but this takes longer
+  compile time;
+- don't use qemu-system-arm, as it emulates a complete system and requires a
+  fully bootable ARM image;
+- while QEMU User Mode Emulation is available for both Linux and BSD, buildroot
+  only builds binaries for Linux target. This example can only be used with
+  Linux hosts emulating the Linux target.
+
+
+Steps to run big-endian OpenOCD on little-endian host Linux PC:
+
+1. Get buildroot source. Today's latest version is "2022.02":
+     @code{.unparsed}
+     wget https://buildroot.org/downloads/buildroot-2022.02.tar.xz
+     tar xf buildroot-2022.02.tar.xz
+     cd buildroot-2022.02
+     @endcode
+
+2. Override the source repo for OpenOCD in order to build your own code version
+   in place of the default OpenOCD release version:
+     @code{.unparsed}
+     echo OPENOCD_OVERRIDE_SRCDIR=/home/me/openocd.git >> local.mk
+     @endcode
+
+3. Copy default config for OpenOCD big-endian. This used:
+   - ARM Cortex-A7 big-endian target,
+   - external Linaro armeb toolchain (to speed up first build),
+   - OpenOCD all configure options enabled.
+
+     @code{.unparsed}
+     cp $OPENOCD_OVERRIDE_SRCDIR/contrib/buildroot/openocd_be_defconfig configs/
+     @endcode
+
+4. Configure buildroot with default config for OpenOCD big-endian:
+     @code{.unparsed}
+     make openocd_be_defconfig
+     @endcode
+
+5. Optional, change buildroot configuration:
+     @code{.unparsed}
+     make menuconfig
+     @endcode
+   These are the options selected with default config for OpenOCD big-endian:
+     @code{.unparsed}
+     Target options  --->
+       Target Architecture  --->
+         ARM (big endian)
+       Target Architecture Variant  --->
+         cortex-A7
+     Toolchain  --->
+       Toolchain type  --->
+         External toolchain
+       Toolchain  --->
+         Linaro armeb 2018.05
+       Toolchain origin  --->
+         Toolchain to be downloaded and installed
+     Target packages  --->
+       Hardware handling  --->
+         openocd
+           All adapters selected
+     @endcode
+   Save and exit
+
+6. Build (and take a long coffee break ...):
+     @code{.unparsed}
+     make openocd
+     @endcode
+
+7. Execute big-endian OpenOCD:
+     @code{.unparsed}
+     cd output/target
+     qemu-armeb -cpu cortex-a7 -L . usr/bin/openocd -s usr/share/openocd/scripts/ -f board/st_nucleo_f4.cfg
+     @endcode
+
+8. Optional, to rebuild after any source code modification in ${OPENOCD_OVERRIDE_SRCDIR}:
+     @code{.unparsed}
+     make openocd-rebuild
+     @endcode
+
+ */
+/** @file
+This file contains the @ref endianness page.
+ */

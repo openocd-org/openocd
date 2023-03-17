@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 # Generic init scripts for all ST SPEAr3xx family
 # http://www.st.com/spear
 #

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 # Init scripts to configure DDR controller of SPEAr3xx
 # http://www.st.com/spear
 # Original values taken from XLoader source code

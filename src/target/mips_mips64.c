@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /*
  * MIPS64 generic target support
  *
@@ -8,8 +10,6 @@
  * Based on the work of:
  *     Copyright (C) 2008 by Spencer Oliver
  *     Copyright (C) 2008 by David T.L. Wong
- *
- * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 #ifdef HAVE_CONFIG_H
@@ -202,12 +202,6 @@ static int mips_mips64_deassert_reset(struct target *target)
 	/* deassert reset lines */
 	jtag_add_reset(0, 0);
 
-	return ERROR_OK;
-}
-
-static int mips_mips64_soft_reset_halt(struct target *target)
-{
-	/* TODO */
 	return ERROR_OK;
 }
 
@@ -1168,7 +1162,7 @@ struct target_type mips_mips64_target = {
 
 	.assert_reset = mips_mips64_assert_reset,
 	.deassert_reset = mips_mips64_deassert_reset,
-	.soft_reset_halt = mips_mips64_soft_reset_halt,
+	/* TODO: add .soft_reset_halt */
 
 	.get_gdb_reg_list = mips64_get_gdb_reg_list,
 

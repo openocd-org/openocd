@@ -1,11 +1,11 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /***************************************************************************
  *   Copyright (C) 2013-2015,2019-2020 Synopsys, Inc.                      *
  *   Frank Dols <frank.dols@synopsys.com>                                  *
  *   Mischa Jonker <mischa.jonker@synopsys.com>                            *
  *   Anton Kolesov <anton.kolesov@synopsys.com>                            *
  *   Evgeniy Didin <didin@synopsys.com>                                    *
- *                                                                         *
- *   SPDX-License-Identifier: GPL-2.0-or-later                             *
  ***************************************************************************/
 
 #ifdef HAVE_CONFIG_H
@@ -975,7 +975,7 @@ static int jim_handle_actionpoints_num(Jim_Interp *interp, int argc,
 
 /* ----- Exported target commands ------------------------------------------ */
 
-const struct command_registration arc_l2_cache_group_handlers[] = {
+static const struct command_registration arc_l2_cache_group_handlers[] = {
 	{
 		.name = "auto",
 		.handler = arc_l2_cache_disable_auto_cmd,
@@ -986,7 +986,7 @@ const struct command_registration arc_l2_cache_group_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-const struct command_registration arc_cache_group_handlers[] = {
+static const struct command_registration arc_cache_group_handlers[] = {
 	{
 		.name = "auto",
 		.handler = arc_l1_cache_disable_auto_cmd,

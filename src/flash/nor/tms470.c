@@ -1,19 +1,8 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /***************************************************************************
  *   Copyright (C) 2007,2008 by Christopher Kilgour                        *
  *   techie |_at_| whiterocker |_dot_| com                                 *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
 #ifdef HAVE_CONFIG_H
@@ -258,9 +247,6 @@ static int tms470_read_part_info(struct flash_bank *bank)
 	/* turn off memory selects */
 	target_write_u32(target, 0xFFFFFFE4, 0x00000000);
 	target_write_u32(target, 0xFFFFFFE0, 0x00000000);
-
-	bank->chip_width = 32;
-	bank->bus_width = 32;
 
 	LOG_INFO("Identified %s, ver=%d, core=%s, nvmem=%s.",
 		part_name,
