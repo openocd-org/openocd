@@ -32,7 +32,15 @@
 /*
  * The __nonnull function attribute marks pointer parameters that
  * must not be NULL.
+ *
+ * clang for Apple defines
+ * #define __nonnull _Nonnull
+ * that is a per argument attribute, incompatible with the gcc per function attribute __nonnull__.
+ * Undefine it to keep compatibility among compilers.
  */
+#if defined(__clang__) && defined(__APPLE__)
+# undef __nonnull
+#endif
 #ifndef __nonnull
 # if __has_attribute(__nonnull__)
 #  define __nonnull(params) __attribute__ ((__nonnull__ params))
