@@ -18,7 +18,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential autoconf texinfo automake libtool libusb-1.0-0-dev libftdi-dev libhidapi-dev libusb-dev libusb-1.0-0-dev libusb-1.0-doc libusb-1.0-0-dbg libusb-1.0-0 libusb-1.0-0-dev libusb-1.0-doc libusb-1.0-0-dbg libusb-1.0-0 libusb-1.0-0-dev libusb-1.0-doc libusb-1.0-0-dbg libusb-1.0-0 libusb-1.0-0-dev libusb-1.0-doc libusb-1.0-0-dbg libusb-1.0-0 libusb-1.0-0-dev libusb-1.0-doc libusb-1.0-0-dbg libusb-1.0-0 libusb-1.0-0-dev libusb-1.0-doc libusb-1.0-0-dbg libusb-1.0-0 libusb-1.0-0-dev libusb-1.0-doc libusb-1.0-0-dbg libusb-1.0-0 libusb-1.0-0-dev libusb-1.0-doc libusb-1.0-0-dbg libusb-1.0-0 libusb-1.0-0-dev libusb-1.0-doc libusb-1.0-0-dbg libusb-1.0-0 libusb-1.0-0-dev libusb-1.0-doc libusb-1.0-0-dbg libusb-1.0-0 libusb-1.0-0-dev libusb-1.0-doc libusb-1.0-0-dbg libusb-1.0-0 libusb-1.0-0-dev libusb-1.0-doc libusb-1.0-0-dbg libusb-1.0-0 libusb-1.0-0-dev libusb-1
+        sudo apt-get install -y build-essential autoconf texinfo automake libtool libusb-1.0-0 libusb-1.0-0-dev
     - run: ./bootstrap
     - run: ./configure
     - run: make
