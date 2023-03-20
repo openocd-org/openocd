@@ -168,6 +168,7 @@ int gemini_read_bit_file(gemini_bit_file_t *bit_file, const char *filename)
 int gemini_create_helper_bitstream(gemini_bit_file_t *bit_file, uint8_t **bitstream, uint32_t *filesize)
 {
 	bop_header_t *bop_fsbl = NULL;
+	uint32_t padding = 0;
 
 	if (!filesize || !bit_file)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -193,13 +194,20 @@ int gemini_create_helper_bitstream(gemini_bit_file_t *bit_file, uint8_t **bitstr
 	else
 		*filesize = bop_fsbl->offsetToNextHeader + 16;
 
+	// add padding if filesize not 32-bit word aligned
+	if ((*filesize & 0x3) != 0) {
+		LOG_WARNING("[RS] FSBL BOP size is not 32-bit word aligned");
+		padding = 4 - (*filesize & 0x3);
+		*filesize += padding;
+	}
+
 	if (bitstream)
 	{
 		*bitstream = (uint8_t *)malloc(*filesize);
 		ubi_header_t *ubi_header = (ubi_header_t *)(*bitstream);
 		bop_header_t *bop_header = (bop_header_t *)(*bitstream + 16);
 		memcpy(ubi_header, bit_file->ubi_header, 16);
-		memcpy(bop_header, bop_fsbl, *filesize - 16);
+		memcpy(bop_header, bop_fsbl, *filesize - 16 - padding);
 		ubi_header->packageCount = 1;
 		ubi_header->crc16 = rs_crypto_crc16((const unsigned char *)ubi_header, sizeof(ubi_header_t) - 2);
 		bop_header->offsetToNextHeader = 0;

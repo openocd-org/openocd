@@ -270,6 +270,10 @@ static int gemini_load_config_fsbl(struct target *target, gemini_bit_file_t *bit
 			LOG_ERROR("[RS] Failed to write bitstream of size %d byte(s) to SRAM at 0x%08x", filesize, GEMINI_SRAM_ADDRESS);
 			retval = ERROR_FAIL;
 		}
+		else
+		{
+			LOG_INFO("[RS] Wrote %d byte(s) to SRAM at 0x%08x", filesize, GEMINI_SRAM_ADDRESS);
+		}
 	}
 
 	if (retval == ERROR_OK)
@@ -288,6 +292,10 @@ static int gemini_load_config_fsbl(struct target *target, gemini_bit_file_t *bit
 			LOG_ERROR("[RS] Failed to write command to spare_reg");
 			retval = ERROR_FAIL;
 		}
+		else
+		{
+			LOG_INFO("[RS] Wrote command to spare_reg");
+		}
 	}
 
 	target_resume(target, true, 0, true, false);
@@ -299,7 +307,7 @@ static int gemini_load_config_fsbl(struct target *target, gemini_bit_file_t *bit
 		{
 			if (status != GEMINI_COMMAND_SUCCESS)
 			{
-				LOG_ERROR("[RS] Command completed with error status %d.", status);
+				LOG_ERROR("[RS] Command completed with error status %d", status);
 				retval = ERROR_FAIL;
 			}
 		}
