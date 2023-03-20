@@ -814,6 +814,7 @@ COMMAND_HANDLER(handle_flash_write_bank_command)
 	if (buf_cnt != length) {
 		LOG_ERROR("Short read");
 		free(buffer);
+		fileio_close(fileio);
 		return ERROR_FAIL;
 	}
 
