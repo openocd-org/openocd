@@ -39,7 +39,7 @@
 #endif
 
 #define GEMINI_LOAD_ADDRESS   	0x00000000
-#define GEMINI_SRAM_SIZE	   	(256 * 1024)
+#define GEMINI_SRAM_SIZE	   	(255 * 1024)
 #define GEMINI_BOOTROM			1
 #define GEMINI_FSBL				2
 #define GEMINI_ACPU				1
@@ -248,7 +248,7 @@ static int gemini_load_config_fsbl(struct target *target, gemini_bit_file_t *bit
 
 	if (filesize > GEMINI_SRAM_SIZE)
 	{
-		LOG_ERROR("[RS] Helper bitstream size %d is larger that Gemini's SRAM 256kb", filesize);
+		LOG_ERROR("[RS] Helper bitstream size (%d bytes) is larger than Gemini available SRAM (%d bytes)", filesize, GEMINI_SRAM_SIZE);
 		free(bitstream);
 		return ERROR_FAIL;	
 	}
