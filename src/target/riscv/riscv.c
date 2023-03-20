@@ -5460,6 +5460,72 @@ int riscv_init_registers(struct target *target)
 				case CSR_MCOUNTEREN:
 					r->exist = riscv_supports_extension(target, 'U');
 					break;
+
+				/* Interrupts M-Mode CSRs. */
+				case CSR_MISELECT:
+				case CSR_MIREG:
+				case CSR_MTOPI:
+				case CSR_MVIEN:
+				case CSR_MVIP:
+					r->exist = info->mtopi_readable;
+					break;
+				case CSR_MTOPEI:
+					r->exist = info->mtopei_readable;
+					break;
+				case CSR_MIDELEGH:
+				case CSR_MVIENH:
+				case CSR_MVIPH:
+					r->exist = info->mtopi_readable &&
+						riscv_xlen(target) == 32 &&
+						riscv_supports_extension(target, 'S');
+					break;
+				case CSR_MIEH:
+				case CSR_MIPH:
+					r->exist = info->mtopi_readable;
+					break;
+				/* Interrupts S-Mode CSRs. */
+				case CSR_SISELECT:
+				case CSR_SIREG:
+				case CSR_STOPI:
+					r->exist = info->mtopi_readable &&
+						riscv_supports_extension(target, 'S');
+					break;
+				case CSR_STOPEI:
+					r->exist = info->mtopei_readable &&
+						riscv_supports_extension(target, 'S');
+					break;
+				case CSR_SIEH:
+				case CSR_SIPH:
+					r->exist = info->mtopi_readable &&
+						riscv_xlen(target) == 32 &&
+						riscv_supports_extension(target, 'S');
+					break;
+				/* Interrupts Hypervisor and VS CSRs. */
+				case CSR_HVIEN:
+				case CSR_HVICTL:
+				case CSR_HVIPRIO1:
+				case CSR_HVIPRIO2:
+				case CSR_VSISELECT:
+				case CSR_VSIREG:
+				case CSR_VSTOPI:
+					r->exist = info->mtopi_readable &&
+						riscv_supports_extension(target, 'V');
+					break;
+				case CSR_VSTOPEI:
+					r->exist = info->mtopei_readable &&
+						riscv_supports_extension(target, 'V');
+					break;
+				case CSR_HIDELEGH:
+				case CSR_HVIENH:
+				case CSR_HVIPH:
+				case CSR_HVIPRIO1H:
+				case CSR_HVIPRIO2H:
+				case CSR_VSIEH:
+				case CSR_VSIPH:
+					r->exist = info->mtopi_readable &&
+						riscv_xlen(target) == 32 &&
+						riscv_supports_extension(target, 'V');
+					break;
 			}
 
 			if (!r->exist && !list_empty(&info->expose_csr)) {

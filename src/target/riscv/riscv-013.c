@@ -1725,14 +1725,28 @@ static int examine(struct target *target)
 		return ERROR_FAIL;
 	}
 
-	uint64_t vlenb;
-	if (register_read_direct(target, &vlenb, GDB_REGNO_VLENB) != ERROR_OK) {
+	uint64_t value;
+	if (register_read_direct(target, &value, GDB_REGNO_VLENB) != ERROR_OK) {
 		if (riscv_supports_extension(target, 'V'))
 			LOG_TARGET_WARNING(target, "Couldn't read vlenb; vector register access won't work.");
 		r->vlenb = 0;
 	} else {
-		r->vlenb = vlenb;
+		r->vlenb = value;
 		LOG_TARGET_INFO(target, "Vector support with vlenb=%d", r->vlenb);
+	}
+
+	if (register_read_direct(target, &value, GDB_REGNO_MTOPI) == ERROR_OK) {
+		r->mtopi_readable = true;
+
+		if (register_read_direct(target, &value, GDB_REGNO_MTOPEI) == ERROR_OK) {
+			LOG_TARGET_INFO(target, "S?aia detected with IMSIC");
+			r->mtopei_readable = true;
+		} else {
+			r->mtopei_readable = false;
+			LOG_TARGET_INFO(target, "S?aia detected without IMSIC");
+		}
+	} else {
+		r->mtopi_readable = false;
 	}
 
 	/* Now init registers based on what we discovered. */

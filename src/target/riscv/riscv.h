@@ -124,6 +124,9 @@ typedef struct {
 	 * Zve* extensions implement vector registers without setting misa.V. */
 	unsigned int vlenb;
 
+	bool mtopi_readable;
+	bool mtopei_readable;
+
 	/* The number of triggers per hart. */
 	unsigned int trigger_count;
 
