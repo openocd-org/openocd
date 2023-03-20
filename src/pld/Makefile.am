@@ -7,4 +7,8 @@ noinst_LTLIBRARIES += %D%/libpld.la
 	%D%/virtex2.c \
 	%D%/pld.h \
 	%D%/xilinx_bit.h \
-	%D%/virtex2.h
+	%D%/virtex2.h \
+	%D%/gemini.c \
+	%D%/gemini.h \
+	%D%/gemini_bit.c \
+	%D%/gemini_bit.h

@@ -18,9 +18,11 @@
 /* pld drivers
  */
 extern struct pld_driver virtex2_pld;
+extern struct pld_driver gemini_pld;
 
 static struct pld_driver *pld_drivers[] = {
 	&virtex2_pld,
+	&gemini_pld,
 	NULL,
 };
 
