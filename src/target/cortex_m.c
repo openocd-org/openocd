@@ -59,6 +59,11 @@ static const struct cortex_m_part_info cortex_m_parts[] = {
 		.arch = ARM_ARCH_V6M,
 	},
 	{
+		.partno = CORTEX_SC000_PARTNO,
+		.name = "SecurCore-000",
+		.arch = ARM_ARCH_V6M,
+	},
+	{
 		.partno = CORTEX_M1_PARTNO,
 		.name = "Cortex-M1",
 		.arch = ARM_ARCH_V6M,
@@ -66,6 +71,12 @@ static const struct cortex_m_part_info cortex_m_parts[] = {
 	{
 		.partno = CORTEX_M3_PARTNO,
 		.name = "Cortex-M3",
+		.arch = ARM_ARCH_V7M,
+		.flags = CORTEX_M_F_TAR_AUTOINCR_BLOCK_4K,
+	},
+	{
+		.partno = CORTEX_SC300_PARTNO,
+		.name = "SecurCore-300",
 		.arch = ARM_ARCH_V7M,
 		.flags = CORTEX_M_F_TAR_AUTOINCR_BLOCK_4K,
 	},
