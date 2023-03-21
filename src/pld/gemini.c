@@ -86,13 +86,13 @@ static int gemini_write_reg32(struct target * target, target_addr_t address, uin
 
 			if (target_write_u32(target, address, (tmp & ~(bitmask << offset)) | ((value & bitmask) << offset)) != ERROR_OK)
 			{
-				LOG_WARNING("[RS] Failed to write to address 0x%08lx", address);
+				LOG_WARNING("[RS] Failed to write to address 0x%08x", (uint32_t)address);
 				retval = ERROR_FAIL;
 			}
 		}
 		else
 		{
-			LOG_WARNING("[RS] Failed to read from address 0x%08lx", address);
+			LOG_WARNING("[RS] Failed to read from address 0x%08x", (uint32_t)address);
 			retval = ERROR_FAIL;
 		}
 		target_resume(target, true, 0, true, false);
