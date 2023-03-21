@@ -561,7 +561,7 @@ int target_poll(struct target *target)
 		return retval;
 
 	if (target->halt_issued) {
-		if (target->state == TARGET_HALTED)
+		if ((target->state == TARGET_HALTED) || (target->state == TARGET_RESET))
 			target->halt_issued = false;
 		else {
 			int64_t t = timeval_ms() - target->halt_issued_time;
@@ -1356,7 +1356,7 @@ int target_write_phys_memory(struct target *target,
 int target_add_breakpoint(struct target *target,
 		struct breakpoint *breakpoint)
 {
-	if ((target->state != TARGET_HALTED) && (breakpoint->type != BKPT_HARD)) {
+	if ((target->state != TARGET_HALTED) && (target->state != TARGET_RESET) && (breakpoint->type != BKPT_HARD)) {
 		LOG_WARNING("target %s is not halted (add breakpoint)", target_name(target));
 		return ERROR_TARGET_NOT_HALTED;
 	}
@@ -1366,7 +1366,7 @@ int target_add_breakpoint(struct target *target,
 int target_add_context_breakpoint(struct target *target,
 		struct breakpoint *breakpoint)
 {
-	if (target->state != TARGET_HALTED) {
+	if ((target->state != TARGET_HALTED) && (target->state != TARGET_RESET)) {
 		LOG_WARNING("target %s is not halted (add context breakpoint)", target_name(target));
 		return ERROR_TARGET_NOT_HALTED;
 	}
@@ -1376,7 +1376,7 @@ int target_add_context_breakpoint(struct target *target,
 int target_add_hybrid_breakpoint(struct target *target,
 		struct breakpoint *breakpoint)
 {
-	if (target->state != TARGET_HALTED) {
+	if ((target->state != TARGET_HALTED) && (target->state != TARGET_RESET)) {
 		LOG_WARNING("target %s is not halted (add hybrid breakpoint)", target_name(target));
 		return ERROR_TARGET_NOT_HALTED;
 	}
@@ -1392,7 +1392,7 @@ int target_remove_breakpoint(struct target *target,
 int target_add_watchpoint(struct target *target,
 		struct watchpoint *watchpoint)
 {
-	if (target->state != TARGET_HALTED) {
+	if ((target->state != TARGET_HALTED) && (target->state != TARGET_RESET)) {
 		LOG_WARNING("target %s is not halted (add watchpoint)", target_name(target));
 		return ERROR_TARGET_NOT_HALTED;
 	}
@@ -1406,7 +1406,7 @@ int target_remove_watchpoint(struct target *target,
 int target_hit_watchpoint(struct target *target,
 		struct watchpoint **hit_watchpoint)
 {
-	if (target->state != TARGET_HALTED) {
+	if ((target->state != TARGET_HALTED) && (target->state != TARGET_RESET)) {
 		LOG_WARNING("target %s is not halted (hit watchpoint)", target->cmd_name);
 		return ERROR_TARGET_NOT_HALTED;
 	}
@@ -1488,7 +1488,7 @@ int target_step(struct target *target,
 
 int target_get_gdb_fileio_info(struct target *target, struct gdb_fileio_info *fileio_info)
 {
-	if (target->state != TARGET_HALTED) {
+	if ((target->state != TARGET_HALTED) && (target->state != TARGET_RESET)) {
 		LOG_WARNING("target %s is not halted (gdb fileio)", target->cmd_name);
 		return ERROR_TARGET_NOT_HALTED;
 	}
@@ -1497,7 +1497,7 @@ int target_get_gdb_fileio_info(struct target *target, struct gdb_fileio_info *fi
 
 int target_gdb_fileio_end(struct target *target, int retcode, int fileio_errno, bool ctrl_c)
 {
-	if (target->state != TARGET_HALTED) {
+	if ((target->state != TARGET_HALTED) && (target->state != TARGET_RESET)) {
 		LOG_WARNING("target %s is not halted (gdb fileio end)", target->cmd_name);
 		return ERROR_TARGET_NOT_HALTED;
 	}
@@ -2324,7 +2324,7 @@ int target_arch_state(struct target *target)
 		return ERROR_OK;
 	}
 
-	if (target->state != TARGET_HALTED)
+	if ((target->state != TARGET_HALTED) && (target->state != TARGET_RESET))
 		return ERROR_OK;
 
 	retval = target->type->arch_state(target);
@@ -2365,7 +2365,7 @@ int target_profiling_default(struct target *target, uint32_t *samples,
 	int retval = ERROR_OK;
 	for (;;) {
 		target_poll(target);
-		if (target->state == TARGET_HALTED) {
+		if ((target->state == TARGET_HALTED) || (target->state == TARGET_RESET)) {
 			uint32_t t = buf_get_u32(reg->value, 0, 32);
 			samples[sample_count++] = t;
 			/* current pc, addr = 0, do not handle breakpoints, not debugging */
@@ -4329,7 +4329,7 @@ COMMAND_HANDLER(handle_profile_command)
 	uint32_t offset;
 	uint32_t num_of_samples;
 	int retval = ERROR_OK;
-	bool halted_before_profiling = target->state == TARGET_HALTED;
+	bool halted_before_profiling = target->state == TARGET_HALTED || target->state == TARGET_RESET;
 
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], offset);
 
@@ -4382,7 +4382,7 @@ COMMAND_HANDLER(handle_profile_command)
 			free(samples);
 			return retval;
 		}
-	} else if (target->state == TARGET_HALTED && !halted_before_profiling) {
+	} else if ((target->state == TARGET_HALTED || target->state == TARGET_RESET) && !halted_before_profiling) {
 		/* The target was running before we started and is halted now. Resume
 		 * it, for consistency. */
 		retval = target_resume(target, 1, 0, 0, 0);
@@ -6771,7 +6771,7 @@ COMMAND_HANDLER(handle_ps_command)
 {
 	struct target *target = get_current_target(CMD_CTX);
 	char *display;
-	if (target->state != TARGET_HALTED) {
+	if ((target->state != TARGET_HALTED) && (target->state != TARGET_RESET)) {
 		LOG_INFO("target not halted !!");
 		return ERROR_OK;
 	}
@@ -6803,7 +6803,7 @@ COMMAND_HANDLER(handle_test_mem_access_command)
 	uint32_t test_size;
 	int retval = ERROR_OK;
 
-	if (target->state != TARGET_HALTED) {
+	if ((target->state != TARGET_HALTED) && (target->state != TARGET_RESET)) {
 		LOG_INFO("target not halted !!");
 		return ERROR_FAIL;
 	}
