@@ -1080,7 +1080,7 @@ static int gdb_new_connection(struct connection *connection)
 		return ERROR_TARGET_NOT_EXAMINED;
 	}
 
-	if (target->state != TARGET_HALTED)
+	if ((target->state != TARGET_HALTED) && (target->state != TARGET_RESET))
 		LOG_WARNING("GDB connection %d on target %s not halted",
 					gdb_actual_connections, target_name(target));
 
@@ -3123,7 +3123,7 @@ static bool gdb_handle_vcont_packet(struct connection *connection, const char *p
 		/* support for gdb_sync command */
 		if (gdb_connection->sync) {
 			gdb_connection->sync = false;
-			if (ct->state == TARGET_HALTED) {
+			if (ct->state == TARGET_HALTED || ct->state == TARGET_RESET) {
 				LOG_DEBUG("stepi ignored. GDB will now fetch the register state "
 								"from the target.");
 				gdb_sig_halted(connection);
@@ -3595,7 +3595,7 @@ static int gdb_input_inner(struct connection *connection)
 								"All changes GDB did to registers will be discarded! "
 								"Waiting for target to halt.");
 						already_running = true;
-					} else if (target->state != TARGET_HALTED) {
+					} else if (target->state != TARGET_HALTED && target->state != TARGET_RESET) {
 						LOG_WARNING("The target is not in the halted nor running stated, "
 								"stepi/continue ignored.");
 						nostep = true;
