@@ -1,5 +1,3 @@
-# create a github build action for openocd on linux
-# the event happen when a push or pull request is made to the master branch
 
 name: OpenOCD Linux Build
 
@@ -18,7 +16,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential autoconf texinfo automake libtool libusb-1.0-0 libusb-1.0-0-dev
+        sudo apt-get install -y build-essential autoconf texinfo automake libtool libusb-1.0-0 libusb-1.0-0-dev libftdi-dev
     - run: ./bootstrap
     - run: ./configure
     - run: make
