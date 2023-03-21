@@ -114,7 +114,7 @@ static int gemini_read_reg32(struct target * target, target_addr_t address, uint
 	{
 		if (target_read_u32(target, address, value) != ERROR_OK)
 		{
-			LOG_WARNING("[RS] Failed to read from address 0x%08lx", address);
+			LOG_WARNING("[RS] Failed to read from address 0x%08x", (uint32_t)address);
 			retval = ERROR_FAIL;
 		}
 		target_resume(target, true, 0, true, false);
