@@ -41,7 +41,11 @@ FLASH_BANK_COMMAND_HANDLER(jtagspi_flash_bank_command)
 	bank->sectors = NULL;
 	bank->driver_priv = info;
 
-	info->tap = NULL;
+	if (!bank->target->tap) {
+		LOG_ERROR("Target has no JTAG tap");
+		return ERROR_FAIL;
+	}
+	info->tap = bank->target->tap;
 	info->probed = false;
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[6], info->ir);
 
@@ -161,7 +165,12 @@ COMMAND_HANDLER(jtagspi_handle_set)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
+	/* calling flash_command_get_bank without probing because handle_set is used
+	   to set device parameters if not autodetected. So probing would fail
+	   anyhow.
+	*/
+	retval = CALL_COMMAND_HANDLER(flash_command_get_bank_probe_optional, 0,
+		&bank, false);
 	if (ERROR_OK != retval)
 		return retval;
 	info = bank->driver_priv;
@@ -312,7 +321,13 @@ COMMAND_HANDLER(jtagspi_handle_cmd)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
+	/* calling flash_command_get_bank without probing because we like to be
+	   able to send commands before auto-probing occurred. For example sending
+	   "release from power down" is needed before probing when flash is in
+	   power down mode.
+	 */
+	retval = CALL_COMMAND_HANDLER(flash_command_get_bank_probe_optional, 0,
+								&bank, false);
 	if (ERROR_OK != retval)
 		return retval;
 
@@ -380,12 +395,6 @@ static int jtagspi_probe(struct flash_bank *bank)
 		bank->sectors = NULL;
 	}
 	info->probed = false;
-
-	if (!bank->target->tap) {
-		LOG_ERROR("Target has no JTAG tap");
-		return ERROR_FAIL;
-	}
-	info->tap = bank->target->tap;
 
 	jtagspi_cmd(bank, SPIFLASH_READ_ID, NULL, 0, in_buf, -3);
 	/* the table in spi.c has the manufacturer byte (first) as the lsb */
