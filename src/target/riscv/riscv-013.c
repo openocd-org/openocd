@@ -2570,6 +2570,18 @@ static int execute_fence(struct target *target)
 	return ERROR_OK;
 }
 
+static void log_memory_access128(target_addr_t address, uint64_t value_h,
+		uint64_t value_l, bool read)
+{
+	if (debug_level < LOG_LVL_DEBUG)
+		return;
+
+	char fmt[80];
+	sprintf(fmt, "M[0x%" TARGET_PRIxADDR "] %ss 0x%%016" PRIx64 "%%016" PRIx64,
+			address, read ? "read" : "write");
+	LOG_DEBUG(fmt, value_h, value_l);
+}
+
 static void log_memory_access(target_addr_t address, uint64_t value,
 		unsigned size_bytes, bool read)
 {
@@ -3764,35 +3776,49 @@ static int write_memory_bus_v1(struct target *target, target_addr_t address,
 			if (riscv_batch_available_scans(batch) < (size + 3) / 4)
 				break;
 
-			if (size > 12)
-				riscv_batch_add_dmi_write(batch, DM_SBDATA3,
-						((uint32_t) p[12]) |
+			uint32_t sbvalue[4] = { 0 };
+			if (size > 12) {
+				sbvalue[3] = ((uint32_t) p[12]) |
 						(((uint32_t) p[13]) << 8) |
 						(((uint32_t) p[14]) << 16) |
-						(((uint32_t) p[15]) << 24), false);
+						(((uint32_t) p[15]) << 24);
+				riscv_batch_add_dmi_write(batch, DM_SBDATA3, sbvalue[3], false);
+			}
 
-			if (size > 8)
-				riscv_batch_add_dmi_write(batch, DM_SBDATA2,
-						((uint32_t) p[8]) |
+			if (size > 8) {
+				sbvalue[2] = ((uint32_t) p[8]) |
 						(((uint32_t) p[9]) << 8) |
 						(((uint32_t) p[10]) << 16) |
-						(((uint32_t) p[11]) << 24), false);
-			if (size > 4)
-				riscv_batch_add_dmi_write(batch, DM_SBDATA1,
-						((uint32_t) p[4]) |
+						(((uint32_t) p[11]) << 24);
+				riscv_batch_add_dmi_write(batch, DM_SBDATA2, sbvalue[2], false);
+			}
+			if (size > 4) {
+				sbvalue[1] = ((uint32_t) p[4]) |
 						(((uint32_t) p[5]) << 8) |
 						(((uint32_t) p[6]) << 16) |
-						(((uint32_t) p[7]) << 24), false);
-			uint32_t value = p[0];
+						(((uint32_t) p[7]) << 24);
+				riscv_batch_add_dmi_write(batch, DM_SBDATA1, sbvalue[1], false);
+			}
+
+			sbvalue[0] = p[0];
 			if (size > 2) {
-				value |= ((uint32_t) p[2]) << 16;
-				value |= ((uint32_t) p[3]) << 24;
+				sbvalue[0] |= ((uint32_t) p[2]) << 16;
+				sbvalue[0] |= ((uint32_t) p[3]) << 24;
 			}
 			if (size > 1)
-				value |= ((uint32_t) p[1]) << 8;
-			riscv_batch_add_dmi_write(batch, DM_SBDATA0, value, false);
+				sbvalue[0] |= ((uint32_t) p[1]) << 8;
 
-			log_memory_access(address + i * size, value, size, false);
+			riscv_batch_add_dmi_write(batch, DM_SBDATA0, sbvalue[0], false);
+
+			if (size == 16) {
+				uint64_t value_h = (((uint64_t) sbvalue[3]) << 32) | sbvalue[2];
+				uint64_t value_l = (((uint64_t) sbvalue[1]) << 32) | sbvalue[0];
+				log_memory_access128(address + i * size, value_h, value_l, false);
+			} else {
+				uint64_t value = (((uint64_t) sbvalue[1]) << 32) | sbvalue[0];
+				log_memory_access(address + i * size, value, size, false);
+			}
+
 			next_address += size;
 		}
 
