@@ -8,7 +8,7 @@ name: OpenOCD Snapshot
 
 jobs:
   package:
-    runs-on: [ubuntu-18.04]
+    runs-on: [ubuntu-20.04]
     env:
       DL_DIR: ../downloads
       BUILD_DIR: ../build
@@ -90,7 +90,7 @@ jobs:
           echo "IS_PRE_RELEASE=$IS_PRE_RELEASE" >> $GITHUB_ENV
           echo "ARTIFACT_PATH=$PWD/$ARTIFACT" >> $GITHUB_ENV
       - name: Publish OpenOCD packaged for windows
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           path: ${{ env.ARTIFACT_PATH }}
       - name: Delete 'latest' Release
