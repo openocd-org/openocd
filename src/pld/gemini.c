@@ -39,7 +39,7 @@
 #endif
 
 #define GEMINI_LOAD_ADDRESS   	0x00000000
-#define GEMINI_SRAM_SIZE	   	(256 * 1024)
+#define GEMINI_SRAM_SIZE	   	(255 * 1024)
 #define GEMINI_BOOTROM			1
 #define GEMINI_FSBL				2
 #define GEMINI_ACPU				1
@@ -86,13 +86,13 @@ static int gemini_write_reg32(struct target * target, target_addr_t address, uin
 
 			if (target_write_u32(target, address, (tmp & ~(bitmask << offset)) | ((value & bitmask) << offset)) != ERROR_OK)
 			{
-				LOG_WARNING("[RS] Failed to write to address 0x%08lx", address);
+				LOG_WARNING("[RS] Failed to write to address 0x%08x", (uint32_t)address);
 				retval = ERROR_FAIL;
 			}
 		}
 		else
 		{
-			LOG_WARNING("[RS] Failed to read from address 0x%08lx", address);
+			LOG_WARNING("[RS] Failed to read from address 0x%08x", (uint32_t)address);
 			retval = ERROR_FAIL;
 		}
 		target_resume(target, true, 0, true, false);
@@ -114,7 +114,7 @@ static int gemini_read_reg32(struct target * target, target_addr_t address, uint
 	{
 		if (target_read_u32(target, address, value) != ERROR_OK)
 		{
-			LOG_WARNING("[RS] Failed to read from address 0x%08lx", address);
+			LOG_WARNING("[RS] Failed to read from address 0x%08x", (uint32_t)address);
 			retval = ERROR_FAIL;
 		}
 		target_resume(target, true, 0, true, false);
@@ -248,7 +248,7 @@ static int gemini_load_config_fsbl(struct target *target, gemini_bit_file_t *bit
 
 	if (filesize > GEMINI_SRAM_SIZE)
 	{
-		LOG_ERROR("[RS] Helper bitstream size %d is larger that Gemini's SRAM 256kb", filesize);
+		LOG_ERROR("[RS] Helper bitstream size (%d bytes) is larger than Gemini available SRAM (%d bytes)", filesize, GEMINI_SRAM_SIZE);
 		free(bitstream);
 		return ERROR_FAIL;	
 	}

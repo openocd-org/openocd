@@ -1,4 +1,3 @@
-
 /* SPDX-License-Identifier: GPL-2.0-or-later */
 
 /***************************************************************************
@@ -134,7 +133,7 @@ int gemini_read_bit_file(gemini_bit_file_t *bit_file, const char *filename)
 
 	for (uint8_t i = 0; i < bit_file->ubi_header->packageCount; i++)
 	{
-		if (header_offset >= bit_file->filesize)
+		if (header_offset >= (uint32_t)bit_file->filesize)
 		{
 			free(bit_file->bop_header_list);
 			free(bit_file->rawdata);
