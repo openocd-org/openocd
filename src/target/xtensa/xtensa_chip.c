@@ -15,6 +15,7 @@
 #include <target/arm_adi_v5.h>
 #include <rtos/rtos.h>
 #include "xtensa_chip.h"
+#include "xtensa_fileio.h"
 
 int xtensa_chip_init_arch_info(struct target *target, void *arch_info,
 	struct xtensa_debug_module_config *dm_cfg)
@@ -30,7 +31,10 @@ int xtensa_chip_init_arch_info(struct target *target, void *arch_info,
 
 int xtensa_chip_target_init(struct command_context *cmd_ctx, struct target *target)
 {
-	return xtensa_target_init(cmd_ctx, target);
+	int ret = xtensa_target_init(cmd_ctx, target);
+	if (ret != ERROR_OK)
+		return ret;
+	return xtensa_fileio_init(target);
 }
 
 int xtensa_chip_arch_state(struct target *target)
@@ -45,10 +49,12 @@ static int xtensa_chip_poll(struct target *target)
 
 	if (old_state != TARGET_HALTED && target->state == TARGET_HALTED) {
 		/*Call any event callbacks that are applicable */
-		if (old_state == TARGET_DEBUG_RUNNING)
+		if (old_state == TARGET_DEBUG_RUNNING) {
 			target_call_event_callbacks(target, TARGET_EVENT_DEBUG_HALTED);
-		else
+		} else {
+			xtensa_fileio_detect_proc(target);
 			target_call_event_callbacks(target, TARGET_EVENT_HALTED);
+		}
 	}
 
 	return ret;
@@ -193,4 +199,7 @@ struct target_type xtensa_chip_target = {
 	.gdb_query_custom = xtensa_gdb_query_custom,
 
 	.commands = xtensa_command_handlers,
+
+	.get_gdb_fileio_info = xtensa_get_gdb_fileio_info,
+	.gdb_fileio_end = xtensa_gdb_fileio_end,
 };
