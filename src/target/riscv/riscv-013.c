@@ -4531,6 +4531,8 @@ static int riscv013_on_step_or_resume(struct target *target, bool step)
 	dcsr = set_field(dcsr, CSR_DCSR_EBREAKM, riscv_ebreakm);
 	dcsr = set_field(dcsr, CSR_DCSR_EBREAKS, riscv_ebreaks);
 	dcsr = set_field(dcsr, CSR_DCSR_EBREAKU, riscv_ebreaku);
+	dcsr = set_field(dcsr, CSR_DCSR_EBREAKVS, riscv_ebreaku);
+	dcsr = set_field(dcsr, CSR_DCSR_EBREAKVU, riscv_ebreaku);
 	if (riscv_set_register(target, GDB_REGNO_DCSR, dcsr) != ERROR_OK)
 		return ERROR_FAIL;
 	if (riscv_flush_registers(target) != ERROR_OK)

@@ -732,7 +732,9 @@ static struct match_triggers_tdata1_fields fill_match_triggers_tdata1_fields_t2(
 static struct match_triggers_tdata1_fields fill_match_triggers_tdata1_fields_t6(
 		struct target *target, struct trigger *trigger)
 {
-	RISCV_INFO(r);
+	bool misa_s = riscv_supports_extension(target, 'S');
+	bool misa_u = riscv_supports_extension(target, 'U');
+	bool misa_h = riscv_supports_extension(target, 'H');
 
 	struct match_triggers_tdata1_fields result = {
 		.common =
@@ -740,8 +742,10 @@ static struct match_triggers_tdata1_fields fill_match_triggers_tdata1_fields_t6(
 			field_value(CSR_MCONTROL6_DMODE(riscv_xlen(target)), 1) |
 			field_value(CSR_MCONTROL6_ACTION, CSR_MCONTROL_ACTION_DEBUG_MODE) |
 			field_value(CSR_MCONTROL6_M, 1) |
-			field_value(CSR_MCONTROL6_S, !!(r->misa & BIT('S' - 'A'))) |
-			field_value(CSR_MCONTROL6_U, !!(r->misa & BIT('U' - 'A'))) |
+			field_value(CSR_MCONTROL6_S, misa_s) |
+			field_value(CSR_MCONTROL6_U, misa_u) |
+			field_value(CSR_MCONTROL6_VS, misa_h && misa_s) |
+			field_value(CSR_MCONTROL6_VU, misa_h && misa_u) |
 			field_value(CSR_MCONTROL6_EXECUTE, trigger->execute) |
 			field_value(CSR_MCONTROL6_LOAD, trigger->read) |
 			field_value(CSR_MCONTROL6_STORE, trigger->write),
