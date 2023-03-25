@@ -105,17 +105,6 @@ typedef enum slot {
 #define CMDERR_HALT_RESUME		4
 #define CMDERR_OTHER			7
 
-/*** Info about the core being debugged. ***/
-
-struct trigger {
-	uint64_t address;
-	uint32_t length;
-	uint64_t mask;
-	uint64_t value;
-	bool read, write, execute;
-	int unique_id;
-};
-
 #define HART_INDEX_MULTIPLE	-1
 #define HART_INDEX_UNKNOWN	-2
 
@@ -987,14 +976,14 @@ static uint32_t abstract_memory_size(unsigned width)
  * Creates a memory access abstract command.
  */
 static uint32_t access_memory_command(struct target *target, bool virtual,
-		unsigned width, bool postincrement, bool write)
+		unsigned width, bool postincrement, bool is_write)
 {
 	uint32_t command = set_field(0, AC_ACCESS_MEMORY_CMDTYPE, 2);
 	command = set_field(command, AC_ACCESS_MEMORY_AAMVIRTUAL, virtual);
 	command |= abstract_memory_size(width);
 	command = set_field(command, AC_ACCESS_MEMORY_AAMPOSTINCREMENT,
 						postincrement);
-	command = set_field(command, AC_ACCESS_MEMORY_WRITE, write);
+	command = set_field(command, AC_ACCESS_MEMORY_WRITE, is_write);
 
 	return command;
 }
@@ -2279,15 +2268,15 @@ static int sample_memory_bus_v1(struct target *target,
 			return ERROR_FAIL;
 		}
 
-		unsigned int read = 0;
+		unsigned int read_count = 0;
 		for (unsigned int n = 0; n < repeat; n++) {
 			for (unsigned int i = 0; i < ARRAY_SIZE(config->bucket); i++) {
 				if (config->bucket[i].enabled) {
 					assert(i < RISCV_SAMPLE_BUF_TIMESTAMP_BEFORE);
 					uint64_t value = 0;
 					if (config->bucket[i].size_bytes > 4)
-						value = ((uint64_t)riscv_batch_get_dmi_read_data(batch, read++)) << 32;
-					value |= riscv_batch_get_dmi_read_data(batch, read++);
+						value = ((uint64_t)riscv_batch_get_dmi_read_data(batch, read_count++)) << 32;
+					value |= riscv_batch_get_dmi_read_data(batch, read_count++);
 
 					buf->buf[buf->used] = i;
 					buf_set_u64(buf->buf + buf->used + 1, 0, config->bucket[i].size_bytes * 8, value);
@@ -2571,26 +2560,26 @@ static int execute_fence(struct target *target)
 }
 
 static void log_memory_access128(target_addr_t address, uint64_t value_h,
-		uint64_t value_l, bool read)
+		uint64_t value_l, bool is_read)
 {
 	if (debug_level < LOG_LVL_DEBUG)
 		return;
 
 	char fmt[80];
 	sprintf(fmt, "M[0x%" TARGET_PRIxADDR "] %ss 0x%%016" PRIx64 "%%016" PRIx64,
-			address, read ? "read" : "write");
+			address, is_read ? "read" : "write");
 	LOG_DEBUG(fmt, value_h, value_l);
 }
 
 static void log_memory_access(target_addr_t address, uint64_t value,
-		unsigned size_bytes, bool read)
+		unsigned size_bytes, bool is_read)
 {
 	if (debug_level < LOG_LVL_DEBUG)
 		return;
 
 	char fmt[80];
 	sprintf(fmt, "M[0x%" TARGET_PRIxADDR "] %ss 0x%%0%d" PRIx64,
-			address, read ? "read" : "write", size_bytes * 2);
+			address, is_read ? "read" : "write", size_bytes * 2);
 	switch (size_bytes) {
 		case 1:
 			value &= 0xff;
@@ -2915,7 +2904,7 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 	return ERROR_OK;
 }
 
-static void log_mem_access_result(struct target *target, bool success, int method, bool read)
+static void log_mem_access_result(struct target *target, bool success, int method, bool is_read)
 {
 	RISCV_INFO(r);
 	bool warn = false;
@@ -2924,7 +2913,7 @@ static void log_mem_access_result(struct target *target, bool success, int metho
 	/* Compose the message */
 	snprintf(msg, 60, "%s to %s memory via %s.",
 			success ? "Succeeded" : "Failed",
-			read ? "read" : "write",
+			is_read ? "read" : "write",
 			(method == RISCV_MEM_ACCESS_PROGBUF) ? "program buffer" :
 			(method == RISCV_MEM_ACCESS_SYSBUS) ? "system bus" : "abstract access");
 
@@ -2951,37 +2940,37 @@ static void log_mem_access_result(struct target *target, bool success, int metho
 }
 
 static bool mem_should_skip_progbuf(struct target *target, target_addr_t address,
-		uint32_t size, bool read, char **skip_reason)
+		uint32_t size, bool is_read, char **skip_reason)
 {
 	assert(skip_reason);
 
 	if (!has_sufficient_progbuf(target, 3)) {
 		LOG_DEBUG("Skipping mem %s via progbuf - insufficient progbuf size.",
-				read ? "read" : "write");
+				is_read ? "read" : "write");
 		*skip_reason = "skipped (insufficient progbuf)";
 		return true;
 	}
 	if (target->state != TARGET_HALTED) {
 		LOG_DEBUG("Skipping mem %s via progbuf - target not halted.",
-				read ? "read" : "write");
+				is_read ? "read" : "write");
 		*skip_reason = "skipped (target not halted)";
 		return true;
 	}
 	if (riscv_xlen(target) < size * 8) {
 		LOG_DEBUG("Skipping mem %s via progbuf - XLEN (%d) is too short for %d-bit memory access.",
-				read ? "read" : "write", riscv_xlen(target), size * 8);
+				is_read ? "read" : "write", riscv_xlen(target), size * 8);
 		*skip_reason = "skipped (XLEN too short)";
 		return true;
 	}
 	if (size > 8) {
 		LOG_DEBUG("Skipping mem %s via progbuf - unsupported size.",
-				read ? "read" : "write");
+				is_read ? "read" : "write");
 		*skip_reason = "skipped (unsupported size)";
 		return true;
 	}
 	if ((sizeof(address) * 8 > riscv_xlen(target)) && (address >> riscv_xlen(target))) {
 		LOG_DEBUG("Skipping mem %s via progbuf - progbuf only supports %u-bit address.",
-				read ? "read" : "write", riscv_xlen(target));
+				is_read ? "read" : "write", riscv_xlen(target));
 		*skip_reason = "skipped (too large address)";
 		return true;
 	}
@@ -2990,25 +2979,25 @@ static bool mem_should_skip_progbuf(struct target *target, target_addr_t address
 }
 
 static bool mem_should_skip_sysbus(struct target *target, target_addr_t address,
-		uint32_t size, uint32_t increment, bool read, char **skip_reason)
+		uint32_t size, uint32_t increment, bool is_read, char **skip_reason)
 {
 	assert(skip_reason);
 
 	RISCV013_INFO(info);
 	if (!sba_supports_access(target, size)) {
 		LOG_DEBUG("Skipping mem %s via system bus - unsupported size.",
-				read ? "read" : "write");
+				is_read ? "read" : "write");
 		*skip_reason = "skipped (unsupported size)";
 		return true;
 	}
 	unsigned int sbasize = get_field(info->sbcs, DM_SBCS_SBASIZE);
 	if ((sizeof(address) * 8 > sbasize) && (address >> sbasize)) {
 		LOG_DEBUG("Skipping mem %s via system bus - sba only supports %u-bit address.",
-				read ? "read" : "write", sbasize);
+				is_read ? "read" : "write", sbasize);
 		*skip_reason = "skipped (too large address)";
 		return true;
 	}
-	if (read && increment != size && (get_field(info->sbcs, DM_SBCS_SBVERSION) == 0 || increment != 0)) {
+	if (is_read && increment != size && (get_field(info->sbcs, DM_SBCS_SBVERSION) == 0 || increment != 0)) {
 		LOG_DEBUG("Skipping mem read via system bus - "
 				"sba reads only support size==increment or also size==0 for sba v1.");
 		*skip_reason = "skipped (unsupported increment)";
@@ -3019,7 +3008,7 @@ static bool mem_should_skip_sysbus(struct target *target, target_addr_t address,
 }
 
 static bool mem_should_skip_abstract(struct target *target, target_addr_t address,
-		uint32_t size, uint32_t increment, bool read, char **skip_reason)
+		uint32_t size, uint32_t increment, bool is_read, char **skip_reason)
 {
 	assert(skip_reason);
 
@@ -3027,17 +3016,17 @@ static bool mem_should_skip_abstract(struct target *target, target_addr_t addres
 		/* TODO: Add 128b support if it's ever used. Involves modifying
 				 read/write_abstract_arg() to work on two 64b values. */
 		LOG_DEBUG("Skipping mem %s via abstract access - unsupported size: %d bits",
-				read ? "read" : "write", size * 8);
+				is_read ? "read" : "write", size * 8);
 		*skip_reason = "skipped (unsupported size)";
 		return true;
 	}
 	if ((sizeof(address) * 8 > riscv_xlen(target)) && (address >> riscv_xlen(target))) {
 		LOG_DEBUG("Skipping mem %s via abstract access - abstract access only supports %u-bit address.",
-				read ? "read" : "write", riscv_xlen(target));
+				is_read ? "read" : "write", riscv_xlen(target));
 		*skip_reason = "skipped (too large address)";
 		return true;
 	}
-	if (read && size != increment) {
+	if (is_read && size != increment) {
 		LOG_ERROR("Skipping mem read via abstract access - "
 				"abstract command reads only support size==increment.");
 		*skip_reason = "skipped (unsupported increment)";
@@ -3363,7 +3352,7 @@ static int read_memory_progbuf_inner(struct target *target, target_addr_t addres
 
 		/* Now read whatever we got out of the batch. */
 		dmi_status_t status = DMI_STATUS_SUCCESS;
-		unsigned read = 0;
+		unsigned read_count = 0;
 		assert(index >= 2);
 		for (unsigned j = index - 2; j < index + reads; j++) {
 			assert(j < count);
@@ -3372,9 +3361,9 @@ static int read_memory_progbuf_inner(struct target *target, target_addr_t addres
 			if (j + 3 + ignore_last > next_index)
 				break;
 
-			status = riscv_batch_get_dmi_read_op(batch, read);
-			uint64_t value = riscv_batch_get_dmi_read_data(batch, read);
-			read++;
+			status = riscv_batch_get_dmi_read_op(batch, read_count);
+			uint64_t value = riscv_batch_get_dmi_read_data(batch, read_count);
+			read_count++;
 			if (status != DMI_STATUS_SUCCESS) {
 				/* If we're here because of busy count, dmi_busy_delay will
 				 * already have been increased and busy state will have been
@@ -3391,7 +3380,7 @@ static int read_memory_progbuf_inner(struct target *target, target_addr_t addres
 				goto error;
 			}
 			if (size > 4) {
-				status = riscv_batch_get_dmi_read_op(batch, read);
+				status = riscv_batch_get_dmi_read_op(batch, read_count);
 				if (status != DMI_STATUS_SUCCESS) {
 					LOG_WARNING("Batch memory read encountered DMI error %d. "
 							"Falling back on slower reads.", status);
@@ -3400,8 +3389,8 @@ static int read_memory_progbuf_inner(struct target *target, target_addr_t addres
 					goto error;
 				}
 				value <<= 32;
-				value |= riscv_batch_get_dmi_read_data(batch, read);
-				read++;
+				value |= riscv_batch_get_dmi_read_data(batch, read_count);
+				read_count++;
 			}
 			riscv_addr_t offset = j * size;
 			buf_set_u64(buffer + offset, 0, 8 * size, value);

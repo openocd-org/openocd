@@ -124,7 +124,7 @@ struct trigger {
 	uint32_t length;
 	uint64_t mask;
 	uint64_t value;
-	bool read, write, execute;
+	bool is_read, is_write, is_execute;
 	int unique_id;
 };
 
@@ -462,9 +462,9 @@ static void trigger_from_breakpoint(struct trigger *trigger,
 	trigger->address = breakpoint->address;
 	trigger->length = breakpoint->length;
 	trigger->mask = ~0LL;
-	trigger->read = false;
-	trigger->write = false;
-	trigger->execute = true;
+	trigger->is_read = false;
+	trigger->is_write = false;
+	trigger->is_execute = true;
 	/* unique_id is unique across both breakpoints and watchpoints. */
 	trigger->unique_id = breakpoint->unique_id;
 }
@@ -589,9 +589,9 @@ static int maybe_add_trigger_t1(struct target *target, struct trigger *trigger)
 	}
 
 	tdata1 = 0;
-	tdata1 = set_field(tdata1, bpcontrol_r, trigger->read);
-	tdata1 = set_field(tdata1, bpcontrol_w, trigger->write);
-	tdata1 = set_field(tdata1, bpcontrol_x, trigger->execute);
+	tdata1 = set_field(tdata1, bpcontrol_r, trigger->is_read);
+	tdata1 = set_field(tdata1, bpcontrol_w, trigger->is_write);
+	tdata1 = set_field(tdata1, bpcontrol_x, trigger->is_execute);
 	tdata1 = set_field(tdata1, bpcontrol_u, !!(r->misa & BIT('U' - 'A')));
 	tdata1 = set_field(tdata1, bpcontrol_s, !!(r->misa & BIT('S' - 'A')));
 	tdata1 = set_field(tdata1, bpcontrol_h, !!(r->misa & BIT('H' - 'A')));
@@ -703,9 +703,9 @@ static struct match_triggers_tdata1_fields fill_match_triggers_tdata1_fields_t2(
 			field_value(CSR_MCONTROL_M, 1) |
 			field_value(CSR_MCONTROL_S, !!(r->misa & BIT('S' - 'A'))) |
 			field_value(CSR_MCONTROL_U, !!(r->misa & BIT('U' - 'A'))) |
-			field_value(CSR_MCONTROL_EXECUTE, trigger->execute) |
-			field_value(CSR_MCONTROL_LOAD, trigger->read) |
-			field_value(CSR_MCONTROL_STORE, trigger->write),
+			field_value(CSR_MCONTROL_EXECUTE, trigger->is_execute) |
+			field_value(CSR_MCONTROL_LOAD, trigger->is_read) |
+			field_value(CSR_MCONTROL_STORE, trigger->is_write),
 		.size = {
 			.any =
 				field_value(CSR_MCONTROL_SIZELO, CSR_MCONTROL_SIZELO_ANY & 3) |
@@ -742,9 +742,9 @@ static struct match_triggers_tdata1_fields fill_match_triggers_tdata1_fields_t6(
 			field_value(CSR_MCONTROL6_M, 1) |
 			field_value(CSR_MCONTROL6_S, !!(r->misa & BIT('S' - 'A'))) |
 			field_value(CSR_MCONTROL6_U, !!(r->misa & BIT('U' - 'A'))) |
-			field_value(CSR_MCONTROL6_EXECUTE, trigger->execute) |
-			field_value(CSR_MCONTROL6_LOAD, trigger->read) |
-			field_value(CSR_MCONTROL6_STORE, trigger->write),
+			field_value(CSR_MCONTROL6_EXECUTE, trigger->is_execute) |
+			field_value(CSR_MCONTROL6_LOAD, trigger->is_read) |
+			field_value(CSR_MCONTROL6_STORE, trigger->is_write),
 		.size = {
 			.any = field_value(CSR_MCONTROL6_SIZE, CSR_MCONTROL6_SIZE_ANY),
 			.s8bit = field_value(CSR_MCONTROL6_SIZE, CSR_MCONTROL6_SIZE_8BIT)
@@ -769,7 +769,7 @@ static int maybe_add_trigger_t2_t6(struct target *target,
 {
 	int ret = ERROR_OK;
 
-	if (!trigger->execute && trigger->length > 1) {
+	if (!trigger->is_execute && trigger->length > 1) {
 		/* Setting a load/store trigger ("watchpoint") on a range of addresses */
 
 		if (can_use_napot_match(trigger)) {
@@ -1194,9 +1194,9 @@ static void trigger_from_watchpoint(struct trigger *trigger,
 	trigger->length = watchpoint->length;
 	trigger->mask = watchpoint->mask;
 	trigger->value = watchpoint->value;
-	trigger->read = (watchpoint->rw == WPT_READ || watchpoint->rw == WPT_ACCESS);
-	trigger->write = (watchpoint->rw == WPT_WRITE || watchpoint->rw == WPT_ACCESS);
-	trigger->execute = false;
+	trigger->is_read = (watchpoint->rw == WPT_READ || watchpoint->rw == WPT_ACCESS);
+	trigger->is_write = (watchpoint->rw == WPT_WRITE || watchpoint->rw == WPT_ACCESS);
+	trigger->is_execute = false;
 	/* unique_id is unique across both breakpoints and watchpoints. */
 	trigger->unique_id = watchpoint->unique_id;
 }
@@ -2081,9 +2081,9 @@ const char *riscv_get_gdb_arch(struct target *target)
 
 static int riscv_get_gdb_reg_list_internal(struct target *target,
 		struct reg **reg_list[], int *reg_list_size,
-		enum target_register_class reg_class, bool read)
+		enum target_register_class reg_class, bool is_read)
 {
-	LOG_TARGET_DEBUG(target, "reg_class=%d, read=%d", reg_class, read);
+	LOG_TARGET_DEBUG(target, "reg_class=%d, read=%d", reg_class, is_read);
 
 	if (!target->reg_cache) {
 		LOG_ERROR("Target not initialized. Return ERROR_FAIL.");
@@ -2110,7 +2110,7 @@ static int riscv_get_gdb_reg_list_internal(struct target *target,
 		assert(!target->reg_cache->reg_list[i].valid ||
 				target->reg_cache->reg_list[i].size > 0);
 		(*reg_list)[i] = &target->reg_cache->reg_list[i];
-		if (read &&
+		if (is_read &&
 				target->reg_cache->reg_list[i].exist &&
 				!target->reg_cache->reg_list[i].valid) {
 			if (target->reg_cache->reg_list[i].type->get(
@@ -4324,7 +4324,7 @@ unsigned int riscv_count_harts(struct target *target)
  *   return true iff we are guaranteed that the register will read the same
  *       value in the future as the value we just read.
  */
-static bool gdb_regno_cacheable(enum gdb_regno regno, bool write)
+static bool gdb_regno_cacheable(enum gdb_regno regno, bool is_write)
 {
 	/* GPRs, FPRs, vector registers are just normal data stores. */
 	if (regno <= GDB_REGNO_XPR31 ||
@@ -4355,7 +4355,7 @@ static bool gdb_regno_cacheable(enum gdb_regno regno, bool write)
 			 * WARL registers might not contain the value we just wrote, but
 			 * these ones won't spontaneously change their value either. *
 			 */
-			return !write;
+			return !is_write;
 
 		case GDB_REGNO_TSELECT:	/* I think this should be above, but then it doesn't work. */
 		case GDB_REGNO_TDATA1:	/* Changes value when tselect is changed. */

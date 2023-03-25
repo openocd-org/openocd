@@ -163,15 +163,6 @@ typedef enum slot {
 
 #define DRAM_CACHE_SIZE		16
 
-struct trigger {
-	uint64_t address;
-	uint32_t length;
-	uint64_t mask;
-	uint64_t value;
-	bool read, write, execute;
-	int unique_id;
-};
-
 struct memory_cache_line {
 	uint32_t data;
 	bool valid;
