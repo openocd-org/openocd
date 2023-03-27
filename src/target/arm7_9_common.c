@@ -2518,7 +2518,7 @@ static const uint8_t *dcc_buffer;
 
 static int arm7_9_dcc_completion(struct target *target,
 	uint32_t exit_point,
-	int timeout_ms,
+	unsigned int timeout_ms,
 	void *arch_info)
 {
 	int retval = ERROR_OK;

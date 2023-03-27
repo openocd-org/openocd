@@ -292,14 +292,14 @@ int armv4_5_run_algorithm(struct target *target,
 		int num_mem_params, struct mem_param *mem_params,
 		int num_reg_params, struct reg_param *reg_params,
 		target_addr_t entry_point, target_addr_t exit_point,
-		int timeout_ms, void *arch_info);
+		unsigned int timeout_ms, void *arch_info);
 int armv4_5_run_algorithm_inner(struct target *target,
 		int num_mem_params, struct mem_param *mem_params,
 		int num_reg_params, struct reg_param *reg_params,
 		uint32_t entry_point, uint32_t exit_point,
-		int timeout_ms, void *arch_info,
+		unsigned int timeout_ms, void *arch_info,
 		int (*run_it)(struct target *target, uint32_t exit_point,
-				int timeout_ms, void *arch_info));
+				unsigned int timeout_ms, void *arch_info));
 
 int arm_checksum_memory(struct target *target,
 		target_addr_t address, uint32_t count, uint32_t *checksum);

@@ -384,7 +384,7 @@ int mips32_init_arch_info(struct target *target, struct mips32_common *mips32, s
 
 /* run to exit point. return error if exit point was not reached. */
 static int mips32_run_and_wait(struct target *target, target_addr_t entry_point,
-		int timeout_ms, target_addr_t exit_point, struct mips32_common *mips32)
+		unsigned int timeout_ms, target_addr_t exit_point, struct mips32_common *mips32)
 {
 	uint32_t pc;
 	int retval;
@@ -418,7 +418,7 @@ static int mips32_run_and_wait(struct target *target, target_addr_t entry_point,
 int mips32_run_algorithm(struct target *target, int num_mem_params,
 		struct mem_param *mem_params, int num_reg_params,
 		struct reg_param *reg_params, target_addr_t entry_point,
-		target_addr_t exit_point, int timeout_ms, void *arch_info)
+		target_addr_t exit_point, unsigned int timeout_ms, void *arch_info)
 {
 	struct mips32_common *mips32 = target_to_mips32(target);
 	struct mips32_algorithm *mips32_algorithm_info = arch_info;
@@ -803,7 +803,7 @@ int mips32_checksum_memory(struct target *target, target_addr_t address,
 	init_reg_param(&reg_params[1], "r5", 32, PARAM_OUT);
 	buf_set_u32(reg_params[1].value, 0, 32, count);
 
-	int timeout = 20000 * (1 + (count / (1024 * 1024)));
+	unsigned int timeout = 20000 * (1 + (count / (1024 * 1024)));
 
 	retval = target_run_algorithm(target, 0, NULL, 2, reg_params, crc_algorithm->address,
 				      crc_algorithm->address + (sizeof(mips_crc_code) - 4), timeout, &mips32_info);
