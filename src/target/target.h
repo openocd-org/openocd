@@ -57,11 +57,6 @@ enum target_state {
 	TARGET_DEBUG_RUNNING = 4,
 };
 
-enum nvp_assert {
-	NVP_DEASSERT,
-	NVP_ASSERT,
-};
-
 enum target_reset_mode {
 	RESET_UNKNOWN = 0,
 	RESET_RUN = 1,		/* reset and let target run */

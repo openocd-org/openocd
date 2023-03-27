@@ -157,7 +157,12 @@ static LIST_HEAD(target_trace_callback_list);
 static const int polling_interval = TARGET_DEFAULT_POLLING_INTERVAL;
 static LIST_HEAD(empty_smp_targets);
 
-static const struct jim_nvp nvp_assert[] = {
+enum nvp_assert {
+	NVP_DEASSERT,
+	NVP_ASSERT,
+};
+
+static const struct nvp nvp_assert[] = {
 	{ .name = "assert", NVP_ASSERT },
 	{ .name = "deassert", NVP_DEASSERT },
 	{ .name = "T", NVP_ASSERT },
@@ -5770,40 +5775,30 @@ COMMAND_HANDLER(handle_target_poll)
 	return target->type->poll(target);
 }
 
-static int jim_target_reset(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+COMMAND_HANDLER(handle_target_reset)
 {
-	struct jim_getopt_info goi;
-	jim_getopt_setup(&goi, interp, argc - 1, argv + 1);
+	if (CMD_ARGC != 2)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	if (goi.argc != 2) {
-		Jim_WrongNumArgs(interp, 0, argv,
-				"([tT]|[fF]|assert|deassert) BOOL");
-		return JIM_ERR;
+	const struct nvp *n = nvp_name2value(nvp_assert, CMD_ARGV[0]);
+	if (!n->name) {
+		nvp_unknown_command_print(CMD, nvp_assert, NULL, CMD_ARGV[0]);
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
-	struct jim_nvp *n;
-	int e = jim_getopt_nvp(&goi, nvp_assert, &n);
-	if (e != JIM_OK) {
-		jim_getopt_nvp_unknown(&goi, nvp_assert, 1);
-		return e;
-	}
 	/* the halt or not param */
-	jim_wide a;
-	e = jim_getopt_wide(&goi, &a);
-	if (e != JIM_OK)
-		return e;
+	int a;
+	COMMAND_PARSE_NUMBER(int, CMD_ARGV[1], a);
 
-	struct command_context *cmd_ctx = current_command_context(interp);
-	assert(cmd_ctx);
-	struct target *target = get_current_target(cmd_ctx);
-	if (!target->tap->enabled)
-		return jim_target_tap_disabled(interp);
+	struct target *target = get_current_target(CMD_CTX);
+	if (!target->tap->enabled) {
+		command_print(CMD, "[TAP is disabled]");
+		return ERROR_FAIL;
+	}
 
 	if (!target->type->assert_reset || !target->type->deassert_reset) {
-		Jim_SetResultFormatted(interp,
-				"No target-specific reset for %s",
-				target_name(target));
-		return JIM_ERR;
+		command_print(CMD, "No target-specific reset for %s", target_name(target));
+		return ERROR_FAIL;
 	}
 
 	if (target->defer_examine)
@@ -5816,10 +5811,8 @@ static int jim_target_reset(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 	/* do the assert */
 	if (n->value == NVP_ASSERT)
-		e = target->type->assert_reset(target);
-	else
-		e = target->type->deassert_reset(target);
-	return (e == ERROR_OK) ? JIM_OK : JIM_ERR;
+		return target->type->assert_reset(target);
+	return target->type->deassert_reset(target);
 }
 
 COMMAND_HANDLER(handle_target_halt)
@@ -6101,8 +6094,9 @@ static const struct command_registration target_instance_command_handlers[] = {
 	{
 		.name = "arp_reset",
 		.mode = COMMAND_EXEC,
-		.jim_handler = jim_target_reset,
+		.handler = handle_target_reset,
 		.help = "used internally for reset processing",
+		.usage = "'assert'|'deassert' halt",
 	},
 	{
 		.name = "arp_halt",
