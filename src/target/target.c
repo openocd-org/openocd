@@ -5639,49 +5639,40 @@ static int jim_target_tap_disabled(Jim_Interp *interp)
 	return JIM_ERR;
 }
 
-static int jim_target_examine(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+COMMAND_HANDLER(handle_target_examine)
 {
 	bool allow_defer = false;
 
-	struct jim_getopt_info goi;
-	jim_getopt_setup(&goi, interp, argc - 1, argv + 1);
-	if (goi.argc > 1) {
-		const char *cmd_name = Jim_GetString(argv[0], NULL);
-		Jim_SetResultFormatted(goi.interp,
-				"usage: %s ['allow-defer']", cmd_name);
-		return JIM_ERR;
-	}
-	if (goi.argc > 0 &&
-	    strcmp(Jim_GetString(argv[1], NULL), "allow-defer") == 0) {
-		/* consume it */
-		Jim_Obj *obj;
-		int e = jim_getopt_obj(&goi, &obj);
-		if (e != JIM_OK)
-			return e;
+	if (CMD_ARGC > 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	if (CMD_ARGC == 1) {
+		if (strcmp(CMD_ARGV[0], "allow-defer"))
+			return ERROR_COMMAND_ARGUMENT_INVALID;
 		allow_defer = true;
 	}
 
-	struct command_context *cmd_ctx = current_command_context(interp);
-	assert(cmd_ctx);
-	struct target *target = get_current_target(cmd_ctx);
-	if (!target->tap->enabled)
-		return jim_target_tap_disabled(interp);
+	struct target *target = get_current_target(CMD_CTX);
+	if (!target->tap->enabled) {
+		command_print(CMD, "[TAP is disabled]");
+		return ERROR_FAIL;
+	}
 
 	if (allow_defer && target->defer_examine) {
 		LOG_INFO("Deferring arp_examine of %s", target_name(target));
 		LOG_INFO("Use arp_examine command to examine it manually!");
-		return JIM_OK;
+		return ERROR_OK;
 	}
 
-	int e = target->type->examine(target);
-	if (e != ERROR_OK) {
+	int retval = target->type->examine(target);
+	if (retval != ERROR_OK) {
 		target_reset_examined(target);
-		return JIM_ERR;
+		return retval;
 	}
 
 	target_set_examined(target);
 
-	return JIM_OK;
+	return ERROR_OK;
 }
 
 COMMAND_HANDLER(handle_target_was_examined)
@@ -6019,7 +6010,7 @@ static const struct command_registration target_instance_command_handlers[] = {
 	{
 		.name = "arp_examine",
 		.mode = COMMAND_EXEC,
-		.jim_handler = jim_target_examine,
+		.handler = handle_target_examine,
 		.help = "used internally for reset processing",
 		.usage = "['allow-defer']",
 	},
