@@ -854,7 +854,7 @@ static int maybe_add_trigger_t3(struct target *target, bool vs, bool vu,
 	ret = find_next_free_trigger(target, CSR_TDATA1_TYPE_ICOUNT, false, &idx);
 	if (ret != ERROR_OK)
 		return ret;
-	ret = set_trigger(target, idx, tdata1, 0, CSR_MCONTROL_MASKMAX(riscv_xlen(target)));
+	ret = set_trigger(target, idx, tdata1, 0, 0);
 	if (ret != ERROR_OK)
 		return ret;
 	r->trigger_unique_id[idx] = unique_id;
