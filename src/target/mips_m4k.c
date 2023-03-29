@@ -1218,8 +1218,8 @@ static int mips_m4k_bulk_write_memory(struct target *target, target_addr_t addre
 
 	fast_data_area = mips32->fast_data_area;
 
-	if (address <= fast_data_area->address + fast_data_area->size &&
-			fast_data_area->address <= address + count) {
+	if (address < (fast_data_area->address + fast_data_area->size) &&
+			fast_data_area->address < (address + count)) {
 		LOG_ERROR("fast_data (" TARGET_ADDR_FMT ") is within write area "
 			  "(" TARGET_ADDR_FMT "-" TARGET_ADDR_FMT ").",
 			  fast_data_area->address, address, address + count);
