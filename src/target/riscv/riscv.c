@@ -5509,11 +5509,11 @@ int riscv_init_registers(struct target *target)
 				case CSR_VSIREG:
 				case CSR_VSTOPI:
 					r->exist = info->mtopi_readable &&
-						riscv_supports_extension(target, 'V');
+						riscv_supports_extension(target, 'H');
 					break;
 				case CSR_VSTOPEI:
 					r->exist = info->mtopei_readable &&
-						riscv_supports_extension(target, 'V');
+						riscv_supports_extension(target, 'H');
 					break;
 				case CSR_HIDELEGH:
 				case CSR_HVIENH:
@@ -5524,7 +5524,7 @@ int riscv_init_registers(struct target *target)
 				case CSR_VSIPH:
 					r->exist = info->mtopi_readable &&
 						riscv_xlen(target) == 32 &&
-						riscv_supports_extension(target, 'V');
+						riscv_supports_extension(target, 'H');
 					break;
 			}
 
