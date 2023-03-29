@@ -36,6 +36,8 @@ static int mips_m4k_internal_restore(struct target *target, int current,
 static int mips_m4k_halt(struct target *target);
 static int mips_m4k_bulk_write_memory(struct target *target, target_addr_t address,
 		uint32_t count, const uint8_t *buffer);
+static int mips_m4k_bulk_read_memory(struct target *target, target_addr_t address,
+		uint32_t count, uint8_t *buffer);
 
 static int mips_m4k_examine_debug_reason(struct target *target)
 {
@@ -1021,6 +1023,12 @@ static int mips_m4k_read_memory(struct target *target, target_addr_t address,
 	if (((size == 4) && (address & 0x3u)) || ((size == 2) && (address & 0x1u)))
 		return ERROR_TARGET_UNALIGNED_ACCESS;
 
+	if (size == 4 && count > 32) {
+		int retval = mips_m4k_bulk_read_memory(target, address, count, buffer);
+		if (retval == ERROR_OK)
+			return ERROR_OK;
+		LOG_WARNING("Falling back to non-bulk read");
+	}
 	/* since we don't know if buffer is aligned, we allocate new mem that is always aligned */
 	void *t = NULL;
 
@@ -1240,6 +1248,71 @@ static int mips_m4k_bulk_write_memory(struct target *target, target_addr_t addre
 
 	retval = mips32_pracc_fastdata_xfer(ejtag_info, mips32->fast_data_area, write_t, address,
 			count, t);
+
+	free(t);
+
+	if (retval != ERROR_OK)
+		LOG_ERROR("Fastdata access Failed");
+
+	return retval;
+}
+
+static int mips_m4k_bulk_read_memory(struct target *target, target_addr_t address,
+		uint32_t count, uint8_t *buffer)
+{
+	struct mips32_common *mips32 = target_to_mips32(target);
+	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
+	struct working_area *fast_data_area;
+	int retval;
+	int write_t = 0;
+
+	LOG_DEBUG("address: " TARGET_ADDR_FMT ", count: 0x%8.8" PRIx32 "",
+			address, count);
+
+	/* check alignment */
+	if (address & 0x3u)
+		return ERROR_TARGET_UNALIGNED_ACCESS;
+
+	if (!mips32->fast_data_area) {
+		/* Get memory for block read handler
+		 * we preserve this area between calls and gain a speed increase
+		 * of about 3kb/sec when reading flash
+		 * this will be released/nulled by the system when the target is resumed or reset */
+		retval = target_alloc_working_area(target,
+				MIPS32_FASTDATA_HANDLER_SIZE,
+				&mips32->fast_data_area);
+		if (retval != ERROR_OK) {
+			LOG_ERROR("No working area available");
+			return retval;
+		}
+
+		/* reset fastadata state so the algo get reloaded */
+		ejtag_info->fast_access_save = -1;
+	}
+
+	fast_data_area = mips32->fast_data_area;
+
+	if (address < (fast_data_area->address + fast_data_area->size) &&
+			fast_data_area->address < (address + count)) {
+		LOG_ERROR("fast_data (" TARGET_ADDR_FMT ") is within read area "
+				"(" TARGET_ADDR_FMT "-" TARGET_ADDR_FMT ").",
+				fast_data_area->address, address, address + count);
+		LOG_ERROR("Change work-area-phys or load_image address!");
+		return ERROR_FAIL;
+	}
+
+	/* mips32_pracc_fastdata_xfer requires uint32_t in host endianness, */
+	/* but byte array represents target endianness                      */
+	uint32_t *t = malloc(count * sizeof(uint32_t));
+	if (!t) {
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
+	}
+
+	retval = mips32_pracc_fastdata_xfer(ejtag_info, mips32->fast_data_area, write_t, address,
+			count, t);
+
+	target_buffer_set_u32_array(target, buffer, count, t);
 
 	free(t);
 
