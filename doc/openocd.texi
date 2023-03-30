@@ -10708,13 +10708,13 @@ CSRs.
 
 @example
 # Expose a single RISC-V CSR number 128 under the name "csr128":
-$_TARGETNAME expose_csrs 128
+riscv expose_csrs 128
 
 # Expose multiple RISC-V CSRs 128..132 under names "csr128" through "csr132":
-$_TARGETNAME expose_csrs 128-132
+riscv expose_csrs 128-132
 
 # Expose a single RISC-V CSR number 1996 under custom name "csr_myregister":
-$_TARGETNAME expose_csrs 1996=myregister
+riscv expose_csrs 1996=myregister
 @end example
 @end deffn
 
