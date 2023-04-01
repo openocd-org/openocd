@@ -1940,13 +1940,13 @@ static int target_call_timer_callbacks_check_time(int checktime)
 	return ERROR_OK;
 }
 
-int target_call_timer_callbacks()
+int target_call_timer_callbacks(void)
 {
 	return target_call_timer_callbacks_check_time(1);
 }
 
 /* invoke periodic callbacks immediately */
-int target_call_timer_callbacks_now()
+int target_call_timer_callbacks_now(void)
 {
 	return target_call_timer_callbacks_check_time(0);
 }
