@@ -3012,7 +3012,8 @@ static int gdb_query_packet(struct connection *connection,
 	return ERROR_OK;
 }
 
-static bool gdb_handle_vcont_packet(struct connection *connection, const char *packet, int packet_size)
+static bool gdb_handle_vcont_packet(struct connection *connection, const char *packet,
+	__attribute__((unused)) int packet_size)
 {
 	struct gdb_connection *gdb_connection = connection->priv;
 	struct target *target = get_available_target_from_connection(connection);
@@ -3031,7 +3032,6 @@ static bool gdb_handle_vcont_packet(struct connection *connection, const char *p
 
 	if (parse[0] == ';') {
 		++parse;
-		--packet_size;
 	}
 
 	/* simple case, a continue packet */
@@ -3070,14 +3070,11 @@ static bool gdb_handle_vcont_packet(struct connection *connection, const char *p
 		int current_pc = 1;
 		int64_t thread_id;
 		parse++;
-		packet_size--;
 		if (parse[0] == ':') {
 			char *endp;
 			parse++;
-			packet_size--;
 			thread_id = strtoll(parse, &endp, 16);
 			if (endp) {
-				packet_size -= endp - parse;
 				parse = endp;
 			}
 		} else {
@@ -3115,7 +3112,6 @@ static bool gdb_handle_vcont_packet(struct connection *connection, const char *p
 
 		if (parse[0] == ';') {
 			++parse;
-			--packet_size;
 
 			if (parse[0] == 'c') {
 				parse += 1;
