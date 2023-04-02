@@ -338,7 +338,6 @@ static int mem_ap_write(struct adiv5_ap *ap, const uint8_t *buffer, uint32_t siz
 	size_t nbytes = size * count;
 	const uint32_t csw_addrincr = addrinc ? CSW_ADDRINC_SINGLE : CSW_ADDRINC_OFF;
 	uint32_t csw_size;
-	target_addr_t addr_xor;
 	int retval = ERROR_OK;
 
 	/* TI BE-32 Quirks mode:
@@ -354,15 +353,17 @@ static int mem_ap_write(struct adiv5_ap *ap, const uint8_t *buffer, uint32_t siz
 	 * setting the TAP, and we set the TAP after every transfer rather then relying on
 	 * address increment. */
 
+	target_addr_t ti_be_lane_xor = dap->ti_be_32_quirks ? 3 : 0;
+	target_addr_t ti_be_addr_xor;
 	if (size == 4) {
 		csw_size = CSW_32BIT;
-		addr_xor = 0;
+		ti_be_addr_xor = 0;
 	} else if (size == 2) {
 		csw_size = CSW_16BIT;
-		addr_xor = dap->ti_be_32_quirks ? 2 : 0;
+		ti_be_addr_xor = dap->ti_be_32_quirks ? 2 : 0;
 	} else if (size == 1) {
 		csw_size = CSW_8BIT;
-		addr_xor = dap->ti_be_32_quirks ? 3 : 0;
+		ti_be_addr_xor = dap->ti_be_32_quirks ? 3 : 0;
 	} else {
 		return ERROR_TARGET_UNALIGNED_ACCESS;
 	}
@@ -385,7 +386,7 @@ static int mem_ap_write(struct adiv5_ap *ap, const uint8_t *buffer, uint32_t siz
 		if (retval != ERROR_OK)
 			break;
 
-		retval = mem_ap_setup_tar(ap, address ^ addr_xor);
+		retval = mem_ap_setup_tar(ap, address ^ ti_be_addr_xor);
 		if (retval != ERROR_OK)
 			return retval;
 
@@ -393,23 +394,7 @@ static int mem_ap_write(struct adiv5_ap *ap, const uint8_t *buffer, uint32_t siz
 		 * depends on the type of transfer and alignment. See ARM document IHI0031C. */
 		uint32_t outvalue = 0;
 		uint32_t drw_byte_idx = address;
-		if (dap->ti_be_32_quirks) {
-			switch (this_size) {
-			case 4:
-				outvalue |= (uint32_t)*buffer++ << 8 * (3 ^ (drw_byte_idx++ & 3) ^ addr_xor);
-				outvalue |= (uint32_t)*buffer++ << 8 * (3 ^ (drw_byte_idx++ & 3) ^ addr_xor);
-				outvalue |= (uint32_t)*buffer++ << 8 * (3 ^ (drw_byte_idx++ & 3) ^ addr_xor);
-				outvalue |= (uint32_t)*buffer++ << 8 * (3 ^ (drw_byte_idx & 3) ^ addr_xor);
-				break;
-			case 2:
-				outvalue |= (uint32_t)*buffer++ << 8 * (1 ^ (drw_byte_idx++ & 3) ^ addr_xor);
-				outvalue |= (uint32_t)*buffer++ << 8 * (1 ^ (drw_byte_idx & 3) ^ addr_xor);
-				break;
-			case 1:
-				outvalue |= (uint32_t)*buffer++ << 8 * (0 ^ (drw_byte_idx & 3) ^ addr_xor);
-				break;
-			}
-		} else if (dap->nu_npcx_quirks) {
+		if (dap->nu_npcx_quirks) {
 			switch (this_size) {
 			case 4:
 				outvalue |= (uint32_t)*buffer++ << 8 * (drw_byte_idx++ & 3);
@@ -432,14 +417,14 @@ static int mem_ap_write(struct adiv5_ap *ap, const uint8_t *buffer, uint32_t siz
 		} else {
 			switch (this_size) {
 			case 4:
-				outvalue |= (uint32_t)*buffer++ << 8 * (drw_byte_idx++ & 3);
-				outvalue |= (uint32_t)*buffer++ << 8 * (drw_byte_idx++ & 3);
+				outvalue |= (uint32_t)*buffer++ << 8 * ((drw_byte_idx++ & 3) ^ ti_be_lane_xor);
+				outvalue |= (uint32_t)*buffer++ << 8 * ((drw_byte_idx++ & 3) ^ ti_be_lane_xor);
 				/* fallthrough */
 			case 2:
-				outvalue |= (uint32_t)*buffer++ << 8 * (drw_byte_idx++ & 3);
+				outvalue |= (uint32_t)*buffer++ << 8 * ((drw_byte_idx++ & 3) ^ ti_be_lane_xor);
 				/* fallthrough */
 			case 1:
-				outvalue |= (uint32_t)*buffer++ << 8 * (drw_byte_idx & 3);
+				outvalue |= (uint32_t)*buffer++ << 8 * ((drw_byte_idx & 3) ^ ti_be_lane_xor);
 			}
 		}
 
@@ -496,7 +481,7 @@ static int mem_ap_read(struct adiv5_ap *ap, uint8_t *buffer, uint32_t size, uint
 	 * They read from the physical address requested, but with DRW byte-reversed.
 	 * For example, a byte read from address 0 will place the result in the high bytes of DRW.
 	 * Also, packed 8-bit and 16-bit transfers seem to sometimes return garbage in some bytes,
-	 * so avoid them. */
+	 * so avoid them (ap->packed_transfers is forced to false in mem_ap_init). */
 
 	if (size == 4)
 		csw_size = CSW_32BIT;
@@ -576,6 +561,8 @@ static int mem_ap_read(struct adiv5_ap *ap, uint8_t *buffer, uint32_t size, uint
 		}
 	}
 
+	target_addr_t ti_be_lane_xor = dap->ti_be_32_quirks ? 3 : 0;
+
 	/* Replay loop to populate caller's buffer from the correct word and byte lane */
 	while (nbytes > 0) {
 		uint32_t this_size = size;
@@ -585,30 +572,16 @@ static int mem_ap_read(struct adiv5_ap *ap, uint8_t *buffer, uint32_t size, uint
 			this_size = 4;
 		}
 
-		if (dap->ti_be_32_quirks) {
-			switch (this_size) {
-			case 4:
-				*buffer++ = *read_ptr >> 8 * (3 - (address++ & 3));
-				*buffer++ = *read_ptr >> 8 * (3 - (address++ & 3));
-				/* fallthrough */
-			case 2:
-				*buffer++ = *read_ptr >> 8 * (3 - (address++ & 3));
-				/* fallthrough */
-			case 1:
-				*buffer++ = *read_ptr >> 8 * (3 - (address++ & 3));
-			}
-		} else {
-			switch (this_size) {
-			case 4:
-				*buffer++ = *read_ptr >> 8 * (address++ & 3);
-				*buffer++ = *read_ptr >> 8 * (address++ & 3);
-				/* fallthrough */
-			case 2:
-				*buffer++ = *read_ptr >> 8 * (address++ & 3);
-				/* fallthrough */
-			case 1:
-				*buffer++ = *read_ptr >> 8 * (address++ & 3);
-			}
+		switch (this_size) {
+		case 4:
+			*buffer++ = *read_ptr >> 8 * ((address++ & 3) ^ ti_be_lane_xor);
+			*buffer++ = *read_ptr >> 8 * ((address++ & 3) ^ ti_be_lane_xor);
+			/* fallthrough */
+		case 2:
+			*buffer++ = *read_ptr >> 8 * ((address++ & 3) ^ ti_be_lane_xor);
+			/* fallthrough */
+		case 1:
+			*buffer++ = *read_ptr >> 8 * ((address++ & 3) ^ ti_be_lane_xor);
 		}
 
 		read_ptr++;
