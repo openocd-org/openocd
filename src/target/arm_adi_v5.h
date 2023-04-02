@@ -165,6 +165,9 @@
 #define CSW_8BIT		0
 #define CSW_16BIT		1
 #define CSW_32BIT		2
+#define CSW_64BIT		3
+#define CSW_128BIT		4
+#define CSW_256BIT		5
 #define CSW_ADDRINC_MASK    (3UL << 4)
 #define CSW_ADDRINC_OFF     0UL
 #define CSW_ADDRINC_SINGLE  (1UL << 4)
@@ -270,6 +273,26 @@ struct adiv5_ap {
 	uint32_t csw_value;
 
 	/**
+	 * Save the supported CSW.Size data types for the MEM-AP.
+	 * Each bit corresponds to a data type.
+	 * 0b1 = Supported data size. 0b0 = Not supported.
+	 * Bit 0 = Byte (8-bits)
+	 * Bit 1 = Halfword (16-bits)
+	 * Bit 2 = Word (32-bits) - always supported by spec.
+	 * Bit 3 = Doubleword (64-bits)
+	 * Bit 4 = 128-bits
+	 * Bit 5 = 256-bits
+	 */
+	uint32_t csw_size_supported_mask;
+	/**
+	 * Probed CSW.Size data types for the MEM-AP.
+	 * Each bit corresponds to a data type.
+	 * 0b1 = Data size has been probed. 0b0 = Not yet probed.
+	 * Bits assigned to sizes same way as above.
+	 */
+	uint32_t csw_size_probed_mask;
+
+	/**
 	 * Cache for (MEM-AP) AP_REG_TAR register value This is written to
 	 * configure the address being read or written
 	 * "-1" indicates no cached value.
@@ -286,7 +309,8 @@ struct adiv5_ap {
 	uint32_t tar_autoincr_block;
 
 	/* true if packed transfers are supported by the MEM-AP */
-	bool packed_transfers;
+	bool packed_transfers_supported;
+	bool packed_transfers_probed;
 
 	/* true if unaligned memory access is not supported by the MEM-AP */
 	bool unaligned_access_bad;
