@@ -376,6 +376,7 @@ static int mem_ap_write(struct adiv5_ap *ap, const uint8_t *buffer, uint32_t siz
 
 		/* Select packed transfer if possible */
 		if (addrinc && ap->packed_transfers && nbytes >= 4
+				&& !dap->nu_npcx_quirks
 				&& max_tar_block_size(ap->tar_autoincr_block, address) >= 4) {
 			this_size = 4;
 			retval = mem_ap_setup_csw(ap, csw_size | CSW_ADDRINC_PACKED);
@@ -394,25 +395,28 @@ static int mem_ap_write(struct adiv5_ap *ap, const uint8_t *buffer, uint32_t siz
 		 * depends on the type of transfer and alignment. See ARM document IHI0031C. */
 		uint32_t outvalue = 0;
 		uint32_t drw_byte_idx = address;
-		if (dap->nu_npcx_quirks) {
+		if (dap->nu_npcx_quirks && this_size <= 2) {
 			switch (this_size) {
-			case 4:
-				outvalue |= (uint32_t)*buffer++ << 8 * (drw_byte_idx++ & 3);
-				outvalue |= (uint32_t)*buffer++ << 8 * (drw_byte_idx++ & 3);
-				outvalue |= (uint32_t)*buffer++ << 8 * (drw_byte_idx++ & 3);
-				outvalue |= (uint32_t)*buffer++ << 8 * (drw_byte_idx & 3);
-				break;
 			case 2:
-				outvalue |= (uint32_t)*buffer << 8 * (drw_byte_idx++ & 3);
-				outvalue |= (uint32_t)*(buffer+1) << 8 * (drw_byte_idx++ & 3);
-				outvalue |= (uint32_t)*buffer++ << 8 * (drw_byte_idx++ & 3);
-				outvalue |= (uint32_t)*buffer++ << 8 * (drw_byte_idx & 3);
+				{
+					/* Alternate low and high byte to all byte lanes */
+					uint32_t low = *buffer++;
+					uint32_t high = *buffer++;
+					outvalue |= low << 8 * (drw_byte_idx++ & 3);
+					outvalue |= high << 8 * (drw_byte_idx++ & 3);
+					outvalue |= low << 8 * (drw_byte_idx++ & 3);
+					outvalue |= high << 8 * (drw_byte_idx & 3);
+				}
 				break;
 			case 1:
-				outvalue |= (uint32_t)*buffer << 8 * (drw_byte_idx++ & 3);
-				outvalue |= (uint32_t)*buffer << 8 * (drw_byte_idx++ & 3);
-				outvalue |= (uint32_t)*buffer << 8 * (drw_byte_idx++ & 3);
-				outvalue |= (uint32_t)*buffer++ << 8 * (drw_byte_idx & 3);
+				{
+					/* Mirror output byte to all byte lanes */
+					uint32_t data = *buffer++;
+					outvalue |= data;
+					outvalue |= data << 8;
+					outvalue |= data << 16;
+					outvalue |= data << 24;
+				}
 			}
 		} else {
 			switch (this_size) {
