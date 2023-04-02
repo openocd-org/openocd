@@ -287,6 +287,13 @@ Only for <em>exceptional cases</em>, it is allowed to submit patches
 to Gerrit with the special field 'Checkpatch-ignore:' in the commit
 message. This field will cause checkpatch to ignore the error types
 listed in the field, only for the patch itself.
+For errors in the commit message, the special field has to be put in
+the commit message before the line that produces the error.
+The special field must be added <em>before</em> the 'Signed-off-by:'
+line, otherwise it is ignored.
+To ignore multiple errors, either add multiple lines with the special
+field or add multiple error types, separated by space or commas, in a
+single line.
 The error type is printed by checkpatch on failure.
 For example the names of Windows APIs mix lower and upper case chars,
 in violation of OpenOCD coding style, triggering a 'CAMELCASE' error:
