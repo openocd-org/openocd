@@ -5352,18 +5352,27 @@ int riscv_init_registers(struct target *target)
 			}
 
 			switch (csr_number) {
+				case CSR_DCSR:
+				case CSR_MVENDORID:
+				case CSR_MCOUNTINHIBIT:
+					r->size = 32;
+					break;
+				case CSR_FCSR:
+					r->size = 32;
+					/* fall through */
 				case CSR_FFLAGS:
 				case CSR_FRM:
-				case CSR_FCSR:
 					r->exist = riscv_supports_extension(target, 'F');
 					r->group = "float";
 					r->feature = &feature_fpu;
 					break;
+				case CSR_SCOUNTEREN:
+					r->size = 32;
+					/* fall through */
 				case CSR_SSTATUS:
 				case CSR_STVEC:
 				case CSR_SIP:
 				case CSR_SIE:
-				case CSR_SCOUNTEREN:
 				case CSR_SSCRATCH:
 				case CSR_SEPC:
 				case CSR_SCAUSE:
@@ -5458,6 +5467,7 @@ int riscv_init_registers(struct target *target)
 					r->exist = (info->vlenb > 0);
 					break;
 				case CSR_MCOUNTEREN:
+					r->size = 32;
 					r->exist = riscv_supports_extension(target, 'U');
 					break;
 
