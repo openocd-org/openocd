@@ -2541,8 +2541,8 @@ static void log_memory_access128(target_addr_t address, uint64_t value_h,
 	LOG_DEBUG(fmt, value_h, value_l);
 }
 
-static void log_memory_access(target_addr_t address, uint64_t value,
-		unsigned size_bytes, bool is_read)
+static void log_memory_access64(target_addr_t address, uint64_t value,
+		unsigned int size_bytes, bool is_read)
 {
 	if (debug_level < LOG_LVL_DEBUG)
 		return;
@@ -2567,23 +2567,35 @@ static void log_memory_access(target_addr_t address, uint64_t value,
 	}
 	LOG_DEBUG(fmt, value);
 }
+static void log_memory_access(target_addr_t address, uint32_t *sbvalue,
+		unsigned int size_bytes, bool is_read)
+{
+	if (size_bytes == 16) {
+		uint64_t value_h = ((uint64_t)sbvalue[3] << 32) | sbvalue[2];
+		uint64_t value_l = ((uint64_t)sbvalue[1] << 32) | sbvalue[0];
+		log_memory_access128(address, value_h, value_l, is_read);
+	} else {
+		uint64_t value = ((uint64_t)sbvalue[1] << 32) | sbvalue[0];
+		log_memory_access64(address, value, size_bytes, is_read);
+	}
+}
 
 /* Read the relevant sbdata regs depending on size, and put the results into
  * buffer. */
 static int read_memory_bus_word(struct target *target, target_addr_t address,
 		uint32_t size, uint8_t *buffer)
 {
-	uint32_t value;
 	int result;
+	uint32_t sbvalue[4] = { 0 };
 	static int sbdata[4] = { DM_SBDATA0, DM_SBDATA1, DM_SBDATA2, DM_SBDATA3 };
 	assert(size <= 16);
 	for (int i = (size - 1) / 4; i >= 0; i--) {
-		result = dmi_op(target, &value, NULL, DMI_OP_READ, sbdata[i], 0, false, true);
+		result = dmi_op(target, &sbvalue[i], NULL, DMI_OP_READ, sbdata[i], 0, false, true);
 		if (result != ERROR_OK)
 			return result;
-		buf_set_u32(buffer + i * 4, 0, 8 * MIN(size, 4), value);
-		log_memory_access(address + i * 4, value, MIN(size, 4), true);
+		buf_set_u32(buffer + i * 4, 0, 8 * MIN(size, 4), sbvalue[i]);
 	}
+	log_memory_access(address, sbvalue, size, true);
 	return ERROR_OK;
 }
 
@@ -2778,11 +2790,12 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 		 * to get it. */
 
 		static int sbdata[4] = {DM_SBDATA0, DM_SBDATA1, DM_SBDATA2, DM_SBDATA3};
+		uint32_t sbvalue[4] = {0};
 		assert(size <= 16);
 		target_addr_t next_read = address - 1;
+		int next_read_j = 0;
 		for (uint32_t i = (next_address - address) / size; i < count - 1; i++) {
 			for (int j = (size - 1) / 4; j >= 0; j--) {
-				uint32_t value;
 				unsigned attempt = 0;
 				while (1) {
 					if (attempt++ > 100) {
@@ -2791,7 +2804,7 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 						return ERROR_FAIL;
 					}
 					keep_alive();
-					dmi_status_t status = dmi_scan(target, NULL, &value,
+					dmi_status_t status = dmi_scan(target, NULL, &sbvalue[next_read_j],
 												   DMI_OP_READ, sbdata[j], 0, false);
 					if (status == DMI_STATUS_BUSY)
 						increase_dmi_busy_delay(target);
@@ -2801,16 +2814,19 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 						return ERROR_FAIL;
 				}
 				if (next_read != address - 1) {
-					buf_set_u32(buffer + next_read - address, 0, 8 * MIN(size, 4), value);
-					log_memory_access(next_read, value, MIN(size, 4), true);
+					buf_set_u32(buffer + next_read - address, 0, 8 * MIN(size, 4), sbvalue[next_read_j]);
+					if (next_read_j == 0) {
+						log_memory_access(next_read, sbvalue, size, true);
+						memset(sbvalue, 0, size);
+					}
 				}
-				next_read = address + i * size + j * 4;
+				next_read_j = j;
+				next_read = address + i * size + next_read_j * 4;
 			}
 		}
 
 		uint32_t sbcs_read = 0;
 		if (count > 1) {
-			uint32_t value;
 			unsigned attempt = 0;
 			while (1) {
 				if (attempt++ > 100) {
@@ -2818,7 +2834,7 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 								next_read);
 					return ERROR_FAIL;
 				}
-				dmi_status_t status = dmi_scan(target, NULL, &value, DMI_OP_NOP, 0, 0, false);
+				dmi_status_t status = dmi_scan(target, NULL, &sbvalue[0], DMI_OP_NOP, 0, 0, false);
 				if (status == DMI_STATUS_BUSY)
 					increase_dmi_busy_delay(target);
 				else if (status == DMI_STATUS_SUCCESS)
@@ -2826,8 +2842,8 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 				else
 					return ERROR_FAIL;
 			}
-			buf_set_u32(buffer + next_read - address, 0, 8 * MIN(size, 4), value);
-			log_memory_access(next_read, value, MIN(size, 4), true);
+			buf_set_u32(buffer + next_read - address, 0, 8 * MIN(size, 4), sbvalue[0]);
+			log_memory_access(next_read, sbvalue, size, true);
 
 			/* "Writes to sbcs while sbbusy is high result in undefined behavior.
 			 * A debugger must not write to sbcs until it reads sbbusy as 0." */
@@ -3196,7 +3212,7 @@ static int read_memory_progbuf_inner(struct target *target, target_addr_t addres
 		if (register_read_direct(target, &value, GDB_REGNO_S1) != ERROR_OK)
 			return ERROR_FAIL;
 		buf_set_u64(buffer, 0, 8 * size, value);
-		log_memory_access(address, value, size, true);
+		log_memory_access64(address, value, size, true);
 		return ERROR_OK;
 	}
 
@@ -3298,7 +3314,7 @@ static int read_memory_progbuf_inner(struct target *target, target_addr_t addres
 
 				uint64_t value64 = (((uint64_t)dmi_data1) << 32) | dmi_data0;
 				buf_set_u64(buffer + (next_index - 2) * size, 0, 8 * size, value64);
-				log_memory_access(address + (next_index - 2) * size, value64, size, true);
+				log_memory_access64(address + (next_index - 2) * size, value64, size, true);
 
 				/* Restore the command, and execute it.
 				 * Now DM_DATA0 contains the next value just as it would if no
@@ -3364,7 +3380,7 @@ static int read_memory_progbuf_inner(struct target *target, target_addr_t addres
 			}
 			riscv_addr_t offset = j * size;
 			buf_set_u64(buffer + offset, 0, 8 * size, value);
-			log_memory_access(address + j * increment, value, size, true);
+			log_memory_access64(address + j * increment, value, size, true);
 		}
 
 		index = next_index;
@@ -3383,7 +3399,7 @@ static int read_memory_progbuf_inner(struct target *target, target_addr_t addres
 			return ERROR_FAIL;
 		uint64_t value64 = (((uint64_t)dmi_data1) << 32) | dmi_data0;
 		buf_set_u64(buffer + size * (count - 2), 0, 8 * size, value64);
-		log_memory_access(address + size * (count - 2), value64, size, true);
+		log_memory_access64(address + size * (count - 2), value64, size, true);
 	}
 
 	/* Read the last word. */
@@ -3391,8 +3407,8 @@ static int read_memory_progbuf_inner(struct target *target, target_addr_t addres
 	result = register_read_direct(target, &value, GDB_REGNO_S1);
 	if (result != ERROR_OK)
 		goto error;
-	buf_set_u64(buffer + size * (count-1), 0, 8 * size, value);
-	log_memory_access(address + size * (count-1), value, size, true);
+	buf_set_u64(buffer + size * (count - 1), 0, 8 * size, value);
+	log_memory_access64(address + size * (count - 1), value, size, true);
 
 	return ERROR_OK;
 
@@ -3460,7 +3476,7 @@ static int read_memory_progbuf_one(struct target *target, target_addr_t address,
 	if (register_read_direct(target, &value, GDB_REGNO_S0) != ERROR_OK)
 		goto restore_mstatus;
 	buf_set_u64(buffer, 0, 8 * size, value);
-	log_memory_access(address, value, size, true);
+	log_memory_access64(address, value, size, true);
 	result = ERROR_OK;
 
 restore_mstatus:
@@ -3769,14 +3785,7 @@ static int write_memory_bus_v1(struct target *target, target_addr_t address,
 
 			riscv_batch_add_dmi_write(batch, DM_SBDATA0, sbvalue[0], false);
 
-			if (size == 16) {
-				uint64_t value_h = (((uint64_t) sbvalue[3]) << 32) | sbvalue[2];
-				uint64_t value_l = (((uint64_t) sbvalue[1]) << 32) | sbvalue[0];
-				log_memory_access128(address + i * size, value_h, value_l, false);
-			} else {
-				uint64_t value = (((uint64_t) sbvalue[1]) << 32) | sbvalue[0];
-				log_memory_access(address + i * size, value, size, false);
-			}
+			log_memory_access(address + i * size, sbvalue, size, false);
 
 			next_address += size;
 		}
@@ -3943,7 +3952,7 @@ static int write_memory_progbuf(struct target *target, target_addr_t address,
 
 			uint64_t value = buf_get_u64(t_buffer, 0, 8 * size);
 
-			log_memory_access(cur_addr, value, size, false);
+			log_memory_access64(cur_addr, value, size, false);
 			cur_addr += size;
 
 			if (setup_needed) {
