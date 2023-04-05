@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+
 /***************************************************************************
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
@@ -10,19 +12,6 @@
  *                                                                         *
  *   Copyright (C) 2009 by Dirk Behme                                      *
  *   dirk.behme@gmail.com - copy from cortex_m3                            *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
 #ifndef OPENOCD_TARGET_CORTEX_A_H
@@ -30,8 +19,7 @@
 
 #include "armv7a.h"
 
-#define CORTEX_A_COMMON_MAGIC 0x411fc082
-#define CORTEX_A15_COMMON_MAGIC 0x413fc0f1
+#define CORTEX_A_COMMON_MAGIC 0x411fc082U
 
 #define CORTEX_A5_PARTNUM 0xc05
 #define CORTEX_A7_PARTNUM 0xc07
@@ -79,7 +67,9 @@ struct cortex_a_wrp {
 };
 
 struct cortex_a_common {
-	int common_magic;
+	unsigned int common_magic;
+
+	struct armv7a_common armv7a_common;
 
 	/* Context information */
 	uint32_t cpudbg_dscr;
@@ -108,9 +98,6 @@ struct cortex_a_common {
 
 	enum cortex_a_isrmasking_mode isrmasking_mode;
 	enum cortex_a_dacrfixup_mode dacrfixup_mode;
-
-	struct armv7a_common armv7a_common;
-
 };
 
 static inline struct cortex_a_common *

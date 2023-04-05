@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
 
 if [info exists AT91C_MAINOSC_FREQ] {
     # user set this... let it be.

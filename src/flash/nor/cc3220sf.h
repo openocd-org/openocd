@@ -1,18 +1,7 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+
 /***************************************************************************
  *   Copyright (C) 2017 by Texas Instruments, Inc.                         *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
 #ifndef OPENOCD_FLASH_NOR_CC3220SF_H
@@ -36,10 +25,5 @@
 #define FMC_MERASE_BIT    0x00000004
 #define FMC_ERASE_VALUE   (FMC_DEFAULT_VALUE | FMC_ERASE_BIT)
 #define FMC_MERASE_VALUE  (FMC_DEFAULT_VALUE | FMC_MERASE_BIT)
-
-/* Flash helper algorithm for CC3220SF */
-const uint8_t cc3220sf_algo[] = {
-#include "../../../contrib/loaders/flash/cc3220sf/cc3220sf.inc"
-};
 
 #endif /* OPENOCD_FLASH_NOR_CC3220SF_H */

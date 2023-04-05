@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 # MEMORY
 #
 # All Memory regions have two components.

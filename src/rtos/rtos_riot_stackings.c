@@ -1,19 +1,8 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /***************************************************************************
  *   Copyright (C) 2015 by Daniel Krebs                                    *
  *   Daniel Krebs - github@daniel-krebs.net                                *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
 #ifdef HAVE_CONFIG_H
@@ -54,7 +43,7 @@ static const struct stack_register_offset rtos_riot_cortex_m0_stack_offsets[ARMV
 	{ ARMV7M_R13,   -2,   32 },		/* sp   */
 	{ ARMV7M_R14,   0x38, 32 },		/* lr   */
 	{ ARMV7M_PC,    0x3c, 32 },		/* pc   */
-	{ ARMV7M_xPSR,  0x40, 32 },		/* xPSR */
+	{ ARMV7M_XPSR,  0x40, 32 },		/* xPSR */
 };
 
 const struct rtos_register_stacking rtos_riot_cortex_m0_stacking = {
@@ -83,7 +72,7 @@ static const struct stack_register_offset rtos_riot_cortex_m34_stack_offsets[ARM
 	{ ARMV7M_R13,   -2,   32 },	/* sp   */
 	{ ARMV7M_R14,   0x38, 32 },	/* lr   */
 	{ ARMV7M_PC,    0x3c, 32 },	/* pc   */
-	{ ARMV7M_xPSR,  0x40, 32 },	/* xPSR */
+	{ ARMV7M_XPSR,  0x40, 32 },	/* xPSR */
 };
 
 const struct rtos_register_stacking rtos_riot_cortex_m34_stacking = {

@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+
 /***************************************************************************
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
@@ -13,19 +15,6 @@
  *                                                                         *
  *   Copyright (C) ST-Ericsson SA 2011                                     *
  *   michel.jaouen@stericsson.com : smp minimum support                    *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
 #ifndef OPENOCD_TARGET_TARGET_H
@@ -303,14 +292,14 @@ enum target_event {
 
 	TARGET_EVENT_TRACE_CONFIG,
 
-	TARGET_EVENT_SEMIHOSTING_USER_CMD_0x100 = 0x100, /* semihosting allows user cmds from 0x100 to 0x1ff */
-	TARGET_EVENT_SEMIHOSTING_USER_CMD_0x101 = 0x101,
-	TARGET_EVENT_SEMIHOSTING_USER_CMD_0x102 = 0x102,
-	TARGET_EVENT_SEMIHOSTING_USER_CMD_0x103 = 0x103,
-	TARGET_EVENT_SEMIHOSTING_USER_CMD_0x104 = 0x104,
-	TARGET_EVENT_SEMIHOSTING_USER_CMD_0x105 = 0x105,
-	TARGET_EVENT_SEMIHOSTING_USER_CMD_0x106 = 0x106,
-	TARGET_EVENT_SEMIHOSTING_USER_CMD_0x107 = 0x107,
+	TARGET_EVENT_SEMIHOSTING_USER_CMD_0X100 = 0x100, /* semihosting allows user cmds from 0x100 to 0x1ff */
+	TARGET_EVENT_SEMIHOSTING_USER_CMD_0X101 = 0x101,
+	TARGET_EVENT_SEMIHOSTING_USER_CMD_0X102 = 0x102,
+	TARGET_EVENT_SEMIHOSTING_USER_CMD_0X103 = 0x103,
+	TARGET_EVENT_SEMIHOSTING_USER_CMD_0X104 = 0x104,
+	TARGET_EVENT_SEMIHOSTING_USER_CMD_0X105 = 0x105,
+	TARGET_EVENT_SEMIHOSTING_USER_CMD_0X106 = 0x106,
+	TARGET_EVENT_SEMIHOSTING_USER_CMD_0X107 = 0x107,
 };
 
 struct target_event_action {

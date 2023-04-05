@@ -1,19 +1,8 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /***************************************************************************
  *
  *   Copyright (C) 2010 by David Brownell
- *
- *   This program is free software; you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation; either version 2 of the License, or
- *   (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
  ***************************************************************************/
 
 /**
@@ -29,6 +18,7 @@
  * for details, see "ARM IHI 0031A"
  * ARM Debug Interface v5 Architecture Specification
  * especially section 5.3 for SWD protocol
+ * and "ARM IHI 0074C" ARM Debug Interface Architecture Specification ADIv6.0
  *
  * On many chips (most current Cortex-M3 parts) SWD is a run-time alternative
  * to JTAG.  Boards may support one or both.  There are also SWD-only chips,
@@ -112,20 +102,20 @@ static inline int check_sync(struct adiv5_dap *dap)
 /** Select the DP register bank matching bits 7:4 of reg. */
 static int swd_queue_dp_bankselect(struct adiv5_dap *dap, unsigned int reg)
 {
-	/* Only register address 4 is banked. */
-	if ((reg & 0xf) != 4)
+	/* Only register address 0 and 4 are banked. */
+	if ((reg & 0xf) > 4)
 		return ERROR_OK;
 
-	uint32_t select_dp_bank = (reg & 0x000000F0) >> 4;
-	uint32_t sel = select_dp_bank
-			| (dap->select & (DP_SELECT_APSEL | DP_SELECT_APBANK));
+	uint64_t sel = (reg & 0x000000F0) >> 4;
+	if (dap->select != DP_SELECT_INVALID)
+		sel |= dap->select & ~0xfULL;
 
 	if (sel == dap->select)
 		return ERROR_OK;
 
 	dap->select = sel;
 
-	int retval = swd_queue_dp_write_inner(dap, DP_SELECT, sel);
+	int retval = swd_queue_dp_write_inner(dap, DP_SELECT, (uint32_t)sel);
 	if (retval != ERROR_OK)
 		dap->select = DP_SELECT_INVALID;
 
@@ -326,6 +316,21 @@ static int swd_connect_single(struct adiv5_dap *dap)
 		dap->do_reconnect = false;
 		dap_invalidate_cache(dap);
 
+		/* The sequences to enter in SWD (JTAG_TO_SWD and DORMANT_TO_SWD) end
+		 * with a SWD line reset sequence (50 clk with SWDIO high).
+		 * From ARM IHI 0074C ADIv6.0, chapter B4.3.3 "Connection and line reset
+		 * sequence":
+		 * - line reset sets DP_SELECT_DPBANK to zero;
+		 * - read of DP_DPIDR takes the connection out of reset;
+		 * - write of DP_TARGETSEL keeps the connection in reset;
+		 * - other accesses return protocol error (SWDIO not driven by target).
+		 *
+		 * Read DP_DPIDR to get out of reset. Initialize dap->select to zero to
+		 * skip the write to DP_SELECT, avoiding the protocol error. Set again
+		 * dap->select to DP_SELECT_INVALID because the rest of the register is
+		 * unknown after line reset.
+		 */
+		dap->select = 0;
 		retval = swd_queue_dp_read_inner(dap, DP_DPIDR, &dpidr);
 		if (retval == ERROR_OK) {
 			retval = swd_run_inner(dap);
@@ -337,6 +342,7 @@ static int swd_connect_single(struct adiv5_dap *dap)
 
 		dap->switch_through_dormant = !dap->switch_through_dormant;
 	} while (timeval_ms() < timeout);
+	dap->select = DP_SELECT_INVALID;
 
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Error connecting DP: cannot read IDR");
@@ -473,17 +479,42 @@ static int swd_queue_dp_write(struct adiv5_dap *dap, unsigned reg,
 /** Select the AP register bank matching bits 7:4 of reg. */
 static int swd_queue_ap_bankselect(struct adiv5_ap *ap, unsigned reg)
 {
+	int retval;
 	struct adiv5_dap *dap = ap->dap;
-	uint32_t sel = ((uint32_t)ap->ap_num << 24)
-			| (reg & 0x000000F0)
-			| (dap->select & DP_SELECT_DPBANK);
+	uint64_t sel;
+
+	if (is_adiv6(dap)) {
+		sel = ap->ap_num | (reg & 0x00000FF0);
+		if (sel == (dap->select & ~0xfULL))
+			return ERROR_OK;
+
+		if (dap->select != DP_SELECT_INVALID)
+			sel |= dap->select & 0xf;
+		dap->select = sel;
+		LOG_DEBUG("AP BANKSEL: %" PRIx64, sel);
+
+		retval = swd_queue_dp_write(dap, DP_SELECT, (uint32_t)sel);
+
+		if (retval == ERROR_OK && dap->asize > 32)
+			retval = swd_queue_dp_write(dap, DP_SELECT1, (uint32_t)(sel >> 32));
+
+		if (retval != ERROR_OK)
+			dap->select = DP_SELECT_INVALID;
+
+		return retval;
+	}
+
+	/* ADIv5 */
+	sel = (ap->ap_num << 24) | (reg & 0x000000F0);
+	if (dap->select != DP_SELECT_INVALID)
+		sel |= dap->select & DP_SELECT_DPBANK;
 
 	if (sel == dap->select)
 		return ERROR_OK;
 
 	dap->select = sel;
 
-	int retval = swd_queue_dp_write_inner(dap, DP_SELECT, sel);
+	retval = swd_queue_dp_write_inner(dap, DP_SELECT, sel);
 	if (retval != ERROR_OK)
 		dap->select = DP_SELECT_INVALID;
 

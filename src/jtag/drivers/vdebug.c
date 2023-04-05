@@ -1,35 +1,14 @@
-/* SPDX-License-Identifier: (GPL-2.0-or-later OR BSD-2-Clause) */
-/*----------------------------------------------------------------------------
- * Copyright 2020-2021 Cadence Design Systems, Inc.
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- * 1. Redistributions of source code must retain the above copyright notice,
- * this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.
- *----------------------------------------------------------------------------
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
- * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *----------------------------------------------------------------------------
-*/
+// SPDX-License-Identifier: (GPL-2.0-or-later OR BSD-2-Clause)
+
+/* Copyright 2020-2022 Cadence Design Systems, Inc. */
 
 /*!
  * @file
  *
  * @brief the virtual debug interface provides a connection between a sw debugger
- * and the simulated, emulated core over a soft connection, implemented by DPI
- * The vdebug debug driver currently supports JTAG transport
- * TODO: implement support and test big endian platforms
+ * and the simulated, emulated core. The openOCD client connects via TCP sockets
+ * with vdebug server and over DPI-based transactor with the emulation or simulation
+ * The vdebug debug driver supports JTAG and DAP-level transports
  *
 */
 
@@ -68,16 +47,18 @@
 #include "jtag/interface.h"
 #include "jtag/commands.h"
 #include "transport/transport.h"
+#include "target/arm_adi_v5.h"
 #include "helper/time_support.h"
 #include "helper/replacements.h"
 #include "helper/log.h"
+#include "helper/list.h"
 
-#define VD_VERSION 43
+#define VD_VERSION 44
 #define VD_BUFFER_LEN 4024
 #define VD_CHEADER_LEN 24
 #define VD_SHEADER_LEN 16
 
-#define VD_MAX_MEMORIES 4
+#define VD_MAX_MEMORIES 20
 #define VD_POLL_INTERVAL 500
 #define VD_SCALE_PSTOMS 1000000000
 
@@ -149,10 +130,19 @@ enum {
 	VD_CMD_SIGSET     = 0x0a,
 	VD_CMD_SIGGET     = 0x0b,
 	VD_CMD_JTAGCLOCK  = 0x0f,
+	VD_CMD_REGWRITE   = 0x15,
+	VD_CMD_REGREAD    = 0x16,
 	VD_CMD_JTAGSHTAP  = 0x1a,
 	VD_CMD_MEMOPEN    = 0x21,
 	VD_CMD_MEMCLOSE   = 0x22,
 	VD_CMD_MEMWRITE   = 0x23,
+};
+
+enum {
+	VD_ASPACE_AP      = 0x01,
+	VD_ASPACE_DP      = 0x02,
+	VD_ASPACE_ID      = 0x03,
+	VD_ASPACE_AB      = 0x04,
 };
 
 enum {
@@ -165,37 +155,32 @@ struct vd_shm {
 	struct {                     /* VD_CHEADER_LEN written by client */
 		uint8_t cmd;             /* 000; command */
 		uint8_t type;            /* 001; interface type */
-		uint16_t waddr;          /* 002; write pointer */
-		uint16_t wbytes;         /* 004; data bytes */
-		uint16_t rbytes;         /* 006; data bytes to read */
-		uint16_t wwords;         /* 008; data words */
-		uint16_t rwords;         /* 00a; data words to read */
-		uint32_t rwdata;         /* 00c; read/write data */
-		uint32_t offset;         /* 010; address offset */
-		uint16_t offseth;        /* 014; address offset 47:32 */
-		uint16_t wid;            /* 016; request id*/
+		uint8_t waddr[2];        /* 002; write pointer */
+		uint8_t wbytes[2];       /* 004; data bytes */
+		uint8_t rbytes[2];       /* 006; data bytes to read */
+		uint8_t wwords[2];       /* 008; data words */
+		uint8_t rwords[2];       /* 00a; data words to read */
+		uint8_t rwdata[4];       /* 00c; read/write data */
+		uint8_t offset[4];       /* 010; address offset */
+		uint8_t offseth[2];      /* 014; address offset 47:32 */
+		uint8_t wid[2];          /* 016; request id*/
 	};
-	union {                      /* 018; */
-		uint8_t wd8[VD_BUFFER_LEN];
-		uint16_t wd16[VD_BUFFER_LEN / 2];
-		uint32_t wd32[VD_BUFFER_LEN / 4];
-		uint64_t wd64[VD_BUFFER_LEN / 8];
-	};
+	uint8_t wd8[VD_BUFFER_LEN];  /* 018; */
 	struct {                     /* VD_SHEADER_LEN written by server */
-		uint16_t rid;            /* fd0: request id read */
-		uint16_t awords;         /* fd2: actual data words read back */
-		int32_t  status;         /* fd4; */
-		uint64_t duttime;        /* fd8; */
+		uint8_t rid[2];          /* fd0: request id read */
+		uint8_t awords[2];       /* fd2: actual data words read back */
+		uint8_t status[4];       /* fd4; */
+		uint8_t duttime[8];      /* fd8; */
 	};
-	union {                      /* fe0: */
-		uint8_t rd8[VD_BUFFER_LEN];
-		uint16_t rd16[VD_BUFFER_LEN / 2];
-		uint32_t rd32[VD_BUFFER_LEN / 4];
-		uint64_t rd64[VD_BUFFER_LEN / 8];
-	};
-	uint32_t state;              /* 1f98; connection state */
-	uint32_t count;              /* 1f9c; */
+	uint8_t rd8[VD_BUFFER_LEN];  /* fe0: */
+	uint8_t state[4];            /* 1f98; connection state */
+	uint8_t count[4];            /* 1f9c; */
 	uint8_t dummy[96];           /* 1fa0; 48+40B+8B; */
+} __attribute__((packed));
+
+struct vd_rdata {
+	struct list_head lh;
+	uint8_t *rdata;
 };
 
 struct vd_client {
@@ -222,7 +207,7 @@ struct vd_client {
 	char server_name[32];
 	char bfm_path[128];
 	char mem_path[VD_MAX_MEMORIES][128];
-	uint8_t *tdo;
+	struct vd_rdata rdataq;
 };
 
 struct vd_jtag_hdr {
@@ -232,6 +217,16 @@ struct vd_jtag_hdr {
 	uint64_t cmd:2;
 	uint64_t wlen:16;
 	uint64_t rlen:16;
+};
+
+struct vd_reg_hdr {
+	uint64_t prot:3;
+	uint64_t nonincr:1;
+	uint64_t haddr:12;
+	uint64_t tlen:11;
+	uint64_t asize:3;
+	uint64_t cmd:2;
+	uint64_t addr:32;
 };
 
 static struct vd_shm *pbuf;
@@ -277,7 +272,7 @@ static int vdebug_socket_open(char *server_addr, uint32_t port)
 		LOG_ERROR("socket_open: cannot resolve address %s, error %d", server_addr, vdebug_socket_error());
 		rc = VD_ERR_SOC_ADDR;
 	} else {
-		((struct sockaddr_in *)(ainfo->ai_addr))->sin_port = htons(port);
+		buf_set_u32((uint8_t *)ainfo->ai_addr->sa_data, 0, 16, htons(port));
 		if (connect(hsock, ainfo->ai_addr, sizeof(struct sockaddr)) < 0) {
 			LOG_ERROR("socket_open: cannot connect to %s:%d, error %d", server_addr, port, vdebug_socket_error());
 			rc = VD_ERR_SOC_CONN;
@@ -299,8 +294,8 @@ static int vdebug_socket_receive(int hsock, struct vd_shm *pmem)
 {
 	int rc;
 	int dreceived = 0;
-	int offset = (uint8_t *)&pmem->rid - &pmem->cmd;
-	int to_receive = VD_SHEADER_LEN + pmem->rbytes;
+	int offset = &pmem->rid[0] - &pmem->cmd;
+	int to_receive = VD_SHEADER_LEN + le_to_h_u16(pmem->rbytes);
 	char *pb = (char *)pmem;
 
 	do {
@@ -320,7 +315,7 @@ static int vdebug_socket_receive(int hsock, struct vd_shm *pmem)
 
 static int vdebug_socket_send(int hsock, struct vd_shm *pmem)
 {
-	int rc = send(hsock, (const char *)&pmem->cmd, VD_CHEADER_LEN + pmem->wbytes, 0);
+	int rc = send(hsock, (const char *)&pmem->cmd, VD_CHEADER_LEN + le_to_h_u16(pmem->wbytes), 0);
 	if (rc <= 0)
 		LOG_WARNING("socket_send: send failed, error %d", vdebug_socket_error());
 	else
@@ -333,6 +328,7 @@ static uint32_t vdebug_wait_server(int hsock, struct vd_shm *pmem)
 {
 	if (!hsock)
 		return VD_ERR_SOC_OPEN;
+
 	int st = vdebug_socket_send(hsock, pmem);
 	if (st <= 0)
 		return VD_ERR_SOC_SEND;
@@ -341,9 +337,9 @@ static uint32_t vdebug_wait_server(int hsock, struct vd_shm *pmem)
 	if (rd  <= 0)
 		return VD_ERR_SOC_RECV;
 
-	int rc = pmem->status;
+	int rc = le_to_h_u32(pmem->status);
 	LOG_DEBUG_IO("wait_server: cmd %02" PRIx8 " done, sent %d, rcvd %d, status %d",
-					pmem->cmd, st, rd, rc);
+				 pmem->cmd, st, rd, rc);
 
 	return rc;
 }
@@ -356,22 +352,23 @@ int vdebug_run_jtag_queue(int hsock, struct vd_shm *pm, unsigned int count)
 	int64_t ts, te;
 	uint8_t *tdo;
 	int rc;
-	struct vd_jtag_hdr *hdr;
+	uint64_t jhdr;
+	struct vd_rdata *rd;
 
 	req = 0;                            /* beginning of request */
 	waddr = 0;
 	rwords = 0;
-	pm->wbytes = pm->wwords * vdc.buf_width;
-	pm->rbytes = pm->rwords * vdc.buf_width;
+	h_u16_to_le(pm->wbytes, le_to_h_u16(pm->wwords) * vdc.buf_width);
+	h_u16_to_le(pm->rbytes, le_to_h_u16(pm->rwords) * vdc.buf_width);
 	ts = timeval_ms();
 	rc = vdebug_wait_server(hsock, pm);
 	while (!rc && (req < count)) {      /* loop over requests to read data and print out */
-		hdr = (struct vd_jtag_hdr *)&pm->wd8[waddr * 4];
-		hwords = hdr->wlen;
-		words = hdr->rlen;
-		anum = hdr->tlen;
-		num_pre = hdr->pre;
-		num_post = hdr->post;
+		jhdr = le_to_h_u64(&pm->wd8[waddr * 4]);
+		words = jhdr >> 48;
+		hwords = (jhdr >> 32) & 0xffff;
+		anum = jhdr & 0xffffff;
+		num_pre = (jhdr >> 27) & 0x7;
+		num_post = (jhdr >> 24) & 0x7;
 		if (num_post)
 			num = anum - num_pre - num_post + 1;
 		else
@@ -379,21 +376,29 @@ int vdebug_run_jtag_queue(int hsock, struct vd_shm *pm, unsigned int count)
 		bytes = (num + 7) / 8;
 		vdc.trans_last = (req + 1) < count ? 0 : 1;
 		vdc.trans_first = waddr ? 0 : 1;
-		if (hdr->cmd == 3) { /* read */
-			tdo = vdc.tdo;
+		if (((jhdr >> 30) & 0x3) == 3) { /* cmd is read */
+			if (!rwords) {
+				rd = &vdc.rdataq;
+				tdo = rd->rdata;
+			} else {
+				rd = list_first_entry(&vdc.rdataq.lh, struct vd_rdata, lh);
+				tdo = rd->rdata;
+				list_del(&rd->lh);
+				free(rd);
+			}
 			for (unsigned int j = 0; j < bytes; j++) {
 				tdo[j] = (pm->rd8[rwords * 8 + j] >> num_pre) | (pm->rd8[rwords * 8 + j + 1] << (8 - num_pre));
-				LOG_DEBUG_IO("%04x D0[%02x]:%02x", pm->wid - count + req, j, tdo[j]);
+				LOG_DEBUG_IO("%04x D0[%02x]:%02x", le_to_h_u16(pm->wid) - count + req, j, tdo[j]);
 			}
 			rwords += words;           /* read data offset */
 		} else {
 			tdo = NULL;
 		}
-		waddr += sizeof(struct vd_jtag_hdr) / 4; /* waddr past header */
+		waddr += sizeof(uint64_t) / 4; /* waddr past header */
 		tdi = (pm->wd8[waddr * 4] >> num_pre) | (pm->wd8[waddr * 4 + 1] << (8 - num_pre));
 		tms = (pm->wd8[waddr * 4 + 4] >> num_pre) | (pm->wd8[waddr * 4 + 4 + 1] << (8 - num_pre));
-		LOG_DEBUG("%04x L:%02d O:%05x @%03x DI:%02x MS:%02x DO:%02x",
-			pm->wid - count + req, num, (vdc.trans_first << 14) | (vdc.trans_last << 15),
+		LOG_DEBUG_IO("%04x L:%02d O:%05x @%03x DI:%02x MS:%02x DO:%02x",
+			le_to_h_u16(pm->wid) - count + req, num, (vdc.trans_first << 14) | (vdc.trans_last << 15),
 			waddr - 2, tdi, tms, (tdo ? tdo[0] : 0xdd));
 		waddr += hwords * 2;           /* start of next request */
 		req += 1;
@@ -406,10 +411,83 @@ int vdebug_run_jtag_queue(int hsock, struct vd_shm *pm, unsigned int count)
 
 	te = timeval_ms();
 	vdc.targ_time += (uint32_t)(te - ts);
-	pm->offseth = 0;     /* reset buffer write address */
-	pm->offset = 0;
-	pm->rwords = 0;
-	pm->waddr = 0;
+	h_u16_to_le(pm->offseth, 0);      /* reset buffer write address */
+	h_u32_to_le(pm->offset, 0);
+	h_u16_to_le(pm->rwords, 0);
+	h_u16_to_le(pm->waddr, 0);
+	assert(list_empty(&vdc.rdataq.lh));/* list should be empty after run queue */
+
+	return rc;
+}
+
+int vdebug_run_reg_queue(int hsock, struct vd_shm *pm, unsigned int count)
+{
+	unsigned int num, awidth, wwidth;
+	unsigned int req, waddr, rwords;
+	uint8_t aspace;
+	uint32_t addr;
+	int64_t ts, te;
+	uint8_t *data;
+	int rc;
+	uint64_t rhdr;
+	struct vd_rdata *rd;
+
+	req = 0;                            /* beginning of request */
+	waddr = 0;
+	rwords = 0;
+	h_u16_to_le(pm->wbytes, le_to_h_u16(pm->wwords) * vdc.buf_width);
+	h_u16_to_le(pm->rbytes, le_to_h_u16(pm->rwords) * vdc.buf_width);
+	ts = timeval_ms();
+	rc = vdebug_wait_server(hsock, pm);
+	while (!rc && (req < count)) {      /* loop over requests to read data and print out */
+		rhdr = le_to_h_u64(&pm->wd8[waddr * 4]);
+		addr = rhdr >> 32;              /* reconstruct data for a single request */
+		num = (rhdr >> 16) & 0x7ff;
+		aspace = rhdr & 0x3;
+		awidth = (1 << ((rhdr >> 27) & 0x7));
+		wwidth = (awidth + vdc.buf_width - 1) / vdc.buf_width;
+		vdc.trans_last = (req + 1) < count ? 0 : 1;
+		vdc.trans_first = waddr ? 0 : 1;
+		if (((rhdr >> 30) & 0x3) == 2) { /* cmd is read */
+			if (num) {
+				if (!rwords) {
+					rd = &vdc.rdataq;
+					data = rd->rdata;
+				} else {
+					rd = list_first_entry(&vdc.rdataq.lh, struct vd_rdata, lh);
+					data = rd->rdata;
+					list_del(&rd->lh);
+					free(rd);
+				}
+				for (unsigned int j = 0; j < num; j++)
+					memcpy(&data[j * awidth], &pm->rd8[(rwords + j) * awidth], awidth);
+			}
+			LOG_DEBUG_IO("read  %04x AS:%02x RG:%02x O:%05x @%03x D:%08x", le_to_h_u16(pm->wid) - count + req,
+				aspace, addr, (vdc.trans_first << 14) | (vdc.trans_last << 15), waddr,
+				(num ? le_to_h_u32(&pm->rd8[rwords * 4]) : 0xdead));
+			rwords += num * wwidth;
+			waddr += sizeof(uint64_t) / 4; /* waddr past header */
+		} else {
+			LOG_DEBUG_IO("write %04x AS:%02x RG:%02x O:%05x @%03x D:%08x", le_to_h_u16(pm->wid) - count + req,
+				aspace, addr, (vdc.trans_first << 14) | (vdc.trans_last << 15), waddr,
+				le_to_h_u32(&pm->wd8[(waddr + num + 1) * 4]));
+			waddr += sizeof(uint64_t) / 4 + (num * wwidth * awidth + 3) / 4;
+		}
+		req += 1;
+	}
+
+	if (rc) {
+		LOG_ERROR("0x%x executing transaction", rc);
+		rc = ERROR_FAIL;
+	}
+
+	te = timeval_ms();
+	vdc.targ_time += (uint32_t)(te - ts);
+	h_u16_to_le(pm->offseth, 0);      /* reset buffer write address */
+	h_u32_to_le(pm->offset, 0);
+	h_u16_to_le(pm->rwords, 0);
+	h_u16_to_le(pm->waddr, 0);
+	assert(list_empty(&vdc.rdataq.lh));/* list should be empty after run queue */
 
 	return rc;
 }
@@ -420,35 +498,35 @@ static int vdebug_open(int hsock, struct vd_shm *pm, const char *path,
 	int rc = VD_ERR_NOT_OPEN;
 
 	pm->cmd = VD_CMD_OPEN;
-	pm->wid = VD_VERSION;              /* client version */
-	pm->wbytes = 0;
-	pm->rbytes = 0;
-	pm->wwords = 0;
-	pm->rwords = 0;
+	h_u16_to_le(pm->wid, VD_VERSION);  /* client version */
+	h_u16_to_le(pm->wbytes, 0);
+	h_u16_to_le(pm->rbytes, 0);
+	h_u16_to_le(pm->wwords, 0);
+	h_u16_to_le(pm->rwords, 0);
 	rc = vdebug_wait_server(hsock, pm);
 	if (rc != 0) {                     /* communication problem */
 		LOG_ERROR("0x%x connecting to server", rc);
-	} else if (pm->rid < pm->wid) {
-		LOG_ERROR("server version %d too old for the client %d", pm->rid, pm->wid);
+	} else if (le_to_h_u16(pm->rid) < le_to_h_u16(pm->wid)) {
+		LOG_ERROR("server version %d too old for the client %d", le_to_h_u16(pm->rid), le_to_h_u16(pm->wid));
 		pm->cmd = VD_CMD_CLOSE;        /* let server close the connection */
 		vdebug_wait_server(hsock, pm);
 		rc = VD_ERR_VERSION;
 	} else {
 		pm->cmd = VD_CMD_CONNECT;
 		pm->type = type;               /* BFM type to connect to, here JTAG */
-		pm->rwdata = sig_mask | VD_SIG_BUF | (VD_SIG_BUF << 16);
-		pm->wbytes = strlen(path) + 1;
-		pm->rbytes = 12;
-		pm->wid = 0;              /* reset wid for transaction ID */
-		pm->wwords = 0;
-		pm->rwords = 0;
-		memcpy(pm->wd8, path, pm->wbytes + 1);
+		h_u32_to_le(pm->rwdata, sig_mask | VD_SIG_BUF | (VD_SIG_BUF << 16));
+		h_u16_to_le(pm->wbytes, strlen(path) + 1);
+		h_u16_to_le(pm->rbytes, 12);
+		h_u16_to_le(pm->wid, 0);       /* reset wid for transaction ID */
+		h_u16_to_le(pm->wwords, 0);
+		h_u16_to_le(pm->rwords, 0);
+		memcpy(pm->wd8, path, le_to_h_u16(pm->wbytes));
 		rc = vdebug_wait_server(hsock, pm);
-		vdc.sig_read = pm->rwdata >> 16;  /* signal read mask */
-		vdc.sig_write = pm->rwdata;     /* signal write mask */
+		vdc.sig_read = le_to_h_u32(pm->rwdata) >> 16;  /* signal read mask */
+		vdc.sig_write = le_to_h_u32(pm->rwdata);     /* signal write mask */
 		vdc.bfm_period = period_ps;
-		vdc.buf_width = pm->rd32[0] / 8;/* access width in bytes */
-		vdc.addr_bits = pm->rd32[2];    /* supported address bits */
+		vdc.buf_width = le_to_h_u32(&pm->rd8[0]) / 8;/* access width in bytes */
+		vdc.addr_bits = le_to_h_u32(&pm->rd8[2 * 4]);    /* supported address bits */
 	}
 
 	if (rc) {
@@ -456,6 +534,7 @@ static int vdebug_open(int hsock, struct vd_shm *pm, const char *path,
 		return ERROR_FAIL;
 	}
 
+	INIT_LIST_HEAD(&vdc.rdataq.lh);
 	LOG_DEBUG("%s type %0x, period %dps, buffer %dx%dB signals r%04xw%04x",
 		path, type, vdc.bfm_period, VD_BUFFER_LEN / vdc.buf_width,
 		vdc.buf_width, vdc.sig_read, vdc.sig_write);
@@ -467,17 +546,17 @@ static int vdebug_close(int hsock, struct vd_shm *pm, uint8_t type)
 {
 	pm->cmd = VD_CMD_DISCONNECT;
 	pm->type = type;              /* BFM type, here JTAG */
-	pm->wbytes = 0;
-	pm->rbytes = 0;
-	pm->wwords = 0;
-	pm->rwords = 0;
+	h_u16_to_le(pm->wbytes, 0);
+	h_u16_to_le(pm->rbytes, 0);
+	h_u16_to_le(pm->wwords, 0);
+	h_u16_to_le(pm->rwords, 0);
 	vdebug_wait_server(hsock, pm);
 	pm->cmd = VD_CMD_CLOSE;
-	pm->wid = VD_VERSION;    /* client version */
-	pm->wbytes = 0;
-	pm->rbytes = 0;
-	pm->wwords = 0;
-	pm->rwords = 0;
+	h_u16_to_le(pm->wid, VD_VERSION);    /* client version */
+	h_u16_to_le(pm->wbytes, 0);
+	h_u16_to_le(pm->rbytes, 0);
+	h_u16_to_le(pm->wwords, 0);
+	h_u16_to_le(pm->rwords, 0);
 	vdebug_wait_server(hsock, pm);
 	LOG_DEBUG("type %0x", type);
 
@@ -488,9 +567,9 @@ static int vdebug_wait(int hsock, struct vd_shm *pm, uint32_t cycles)
 {
 	if (cycles) {
 		pm->cmd = VD_CMD_WAIT;
-		pm->wbytes = 0;
-		pm->rbytes = 0;
-		pm->rwdata = cycles;  /* clock sycles to wait */
+		h_u16_to_le(pm->wbytes, 0);
+		h_u16_to_le(pm->rbytes, 0);
+		h_u32_to_le(pm->rwdata, cycles);  /* clock sycles to wait */
 		int rc = vdebug_wait_server(hsock, pm);
 		if (rc) {
 			LOG_ERROR("0x%x waiting %" PRIx32 " cycles", rc, cycles);
@@ -505,9 +584,9 @@ static int vdebug_wait(int hsock, struct vd_shm *pm, uint32_t cycles)
 static int vdebug_sig_set(int hsock, struct vd_shm *pm, uint32_t write_mask, uint32_t value)
 {
 	pm->cmd = VD_CMD_SIGSET;
-	pm->wbytes = 0;
-	pm->rbytes = 0;
-	pm->rwdata = (write_mask << 16) | (value & 0xffff); /* mask and value of signals to set */
+	h_u16_to_le(pm->wbytes, 0);
+	h_u16_to_le(pm->rbytes, 0);
+	h_u32_to_le(pm->rwdata, (write_mask << 16) | (value & 0xffff)); /* mask and value of signals to set */
 	int rc = vdebug_wait_server(hsock, pm);
 	if (rc) {
 		LOG_ERROR("0x%x setting signals %04" PRIx32, rc, write_mask);
@@ -522,9 +601,9 @@ static int vdebug_sig_set(int hsock, struct vd_shm *pm, uint32_t write_mask, uin
 static int vdebug_jtag_clock(int hsock, struct vd_shm *pm, uint32_t value)
 {
 	pm->cmd = VD_CMD_JTAGCLOCK;
-	pm->wbytes = 0;
-	pm->rbytes = 0;
-	pm->rwdata = value;  /* divider value */
+	h_u16_to_le(pm->wbytes, 0);
+	h_u16_to_le(pm->rbytes, 0);
+	h_u32_to_le(pm->rwdata, value);  /* divider value */
 	int rc = vdebug_wait_server(hsock, pm);
 	if (rc) {
 		LOG_ERROR("0x%x setting jtag_clock", rc);
@@ -546,11 +625,11 @@ static int vdebug_jtag_shift_tap(int hsock, struct vd_shm *pm, uint8_t num_pre,
 	int rc = 0;
 
 	pm->cmd = VD_CMD_JTAGSHTAP;
-	vdc.trans_last = f_last || (vdc.trans_batch == VD_BATCH_NO) || tdo;
+	vdc.trans_last = f_last || (vdc.trans_batch == VD_BATCH_NO);
 	if (vdc.trans_first)
 		waddr = 0;             /* reset buffer offset */
 	else
-		waddr = pm->offseth;   /* continue from the previous transaction */
+		waddr = le_to_h_u32(pm->offseth);   /* continue from the previous transaction */
 	if (num_post)          /* actual number of bits to shift */
 		anum = num + num_pre + num_post - 1;
 	else
@@ -559,25 +638,22 @@ static int vdebug_jtag_shift_tap(int hsock, struct vd_shm *pm, uint8_t num_pre,
 	words = (hwords + 1) / 2;    /* in 8B TDO words to read */
 	bytes = (num + 7) / 8;       /* data only portion in bytes */
 	/* buffer overflow check and flush */
-	if (4 * waddr + sizeof(struct vd_jtag_hdr) + 8 * hwords + 64 > VD_BUFFER_LEN) {
+	if (4 * waddr + sizeof(uint64_t) + 8 * hwords + 64 > VD_BUFFER_LEN) {
 		vdc.trans_last = 1;        /* force flush within 64B of buffer end */
-	} else if (4 * waddr + sizeof(struct vd_jtag_hdr) + 8 * hwords > VD_BUFFER_LEN) {
+	} else if (4 * waddr + sizeof(uint64_t) + 8 * hwords > VD_BUFFER_LEN) {
 		/* this req does not fit, discard it */
 		LOG_ERROR("%04x L:%02d O:%05x @%04x too many bits to shift",
-			pm->wid, anum, (vdc.trans_first << 14) | (vdc.trans_last << 15), waddr);
+			le_to_h_u16(pm->wid), anum, (vdc.trans_first << 14) | (vdc.trans_last << 15), waddr);
 		rc = ERROR_FAIL;
 	}
 
 	if (!rc && anum) {
-		uint16_t i, j;
-		struct vd_jtag_hdr *hdr = (struct vd_jtag_hdr *)&pm->wd8[4 * waddr]; /* 8 bytes header */
-		hdr->cmd = (tdo ? 3 : 1); /* R and W bits */
-		hdr->pre = num_pre;
-		hdr->post = num_post;
-		hdr->tlen = anum;
-		hdr->wlen = hwords;
-		hdr->rlen = words;
-		pm->wid++;               /* transaction ID */
+		uint16_t i, j;       /* portability requires to use bit operations for 8B JTAG header */
+		uint64_t jhdr = (tdo ? ((uint64_t)(words) << 48) : 0) + ((uint64_t)(hwords) << 32) +
+			((tdo ? 3UL : 1UL) << 30) + (num_pre << 27) + (num_post << 24) + anum;
+		h_u64_to_le(&pm->wd8[4 * waddr], jhdr);
+
+		h_u16_to_le(pm->wid, le_to_h_u16(pm->wid) + 1);    /* transaction ID */
 		waddr += 2;              /* waddr past header */
 		/* TDI/TMS data follows as 32 bit word pairs {TMS,TDI} */
 		pm->wd8[4 * waddr] = (tdi ? (tdi[0] << num_pre) : 0);
@@ -615,19 +691,102 @@ static int vdebug_jtag_shift_tap(int hsock, struct vd_shm *pm, uint8_t num_pre,
 		}
 
 		if (tdo) {
-			pm->rwords += words;       /* keep track of the words to read */
-			vdc.tdo = tdo;
+			struct vd_rdata *rd;
+			if (le_to_h_u16(pm->rwords) == 0) {
+				rd = &vdc.rdataq;
+			} else {
+				rd = calloc(1, sizeof(struct vd_rdata));
+				if (!rd)                   /* check allocation for 24B */
+					return ERROR_FAIL;
+				list_add_tail(&rd->lh, &vdc.rdataq.lh);
+			}
+			rd->rdata = tdo;
+			h_u16_to_le(pm->rwords, le_to_h_u16(pm->rwords) + words);/* keep track of the words to read */
 		}
-		pm->wwords = waddr / 2 + hwords;   /* payload size *2 to include both TDI and TMS data */
-		pm->waddr++;
+		h_u16_to_le(pm->wwords, waddr / 2 + hwords); /* payload size *2 to include both TDI and TMS data */
+		h_u16_to_le(pm->waddr, le_to_h_u16(pm->waddr) + 1);
 	}
 
 	if (!waddr)                        /* flush issued, but buffer empty */
 		;
 	else if (!vdc.trans_last)          /* buffered request */
-		pm->offseth = waddr + hwords * 2;  /* offset for next transaction, must be even */
+		h_u16_to_le(pm->offseth, waddr + hwords * 2);  /* offset for next transaction, must be even */
 	else                               /* execute batch of requests */
-		rc = vdebug_run_jtag_queue(hsock, pm, pm->waddr);
+		rc = vdebug_run_jtag_queue(hsock, pm, le_to_h_u16(pm->waddr));
+	vdc.trans_first = vdc.trans_last; /* flush forces trans_first flag */
+
+	return rc;
+}
+
+static int vdebug_reg_write(int hsock, struct vd_shm *pm, const uint32_t reg,
+							const uint32_t data, uint8_t aspace, uint8_t f_last)
+{
+	uint32_t waddr;
+	int rc = ERROR_OK;
+
+	pm->cmd = VD_CMD_REGWRITE;
+	vdc.trans_last = f_last || (vdc.trans_batch == VD_BATCH_NO);
+	if (vdc.trans_first)
+		waddr = 0;             /* reset buffer offset */
+	else
+		waddr = le_to_h_u16(pm->offseth);   /* continue from the previous transaction */
+
+	if (4 * waddr + 2 * sizeof(uint64_t) + 4 > VD_BUFFER_LEN)
+		vdc.trans_last = 1;    /* force flush, no room for next request */
+
+	uint64_t rhdr = ((uint64_t)reg << 32) + (1UL << 30) + (2UL << 27) + (1UL << 16) + aspace;
+	h_u64_to_le(&pm->wd8[4 * waddr], rhdr);
+	h_u32_to_le(&pm->wd8[4 * (waddr + 2)], data);
+	h_u16_to_le(pm->wid, le_to_h_u16(pm->wid) + 1);
+	h_u16_to_le(pm->wwords, waddr + 3);
+	h_u16_to_le(pm->waddr, le_to_h_u16(pm->waddr) + 1);
+	if (!vdc.trans_last)       /* buffered request */
+		h_u16_to_le(pm->offseth, waddr + 3);
+	else
+		rc = vdebug_run_reg_queue(hsock, pm, le_to_h_u16(pm->waddr));
+	vdc.trans_first = vdc.trans_last; /* flush forces trans_first flag */
+
+	return rc;
+}
+
+static int vdebug_reg_read(int hsock, struct vd_shm *pm, const uint32_t reg,
+							uint32_t *data, uint8_t aspace, uint8_t f_last)
+{
+	uint32_t waddr;
+	int rc = ERROR_OK;
+
+	pm->cmd = VD_CMD_REGREAD;
+	vdc.trans_last = f_last || (vdc.trans_batch == VD_BATCH_NO);
+	if (vdc.trans_first)
+		waddr = 0;             /* reset buffer offset */
+	else
+		waddr = le_to_h_u16(pm->offseth);   /* continue from the previous transaction */
+
+	if (4 * waddr + 2 * sizeof(uint64_t) + 4 > VD_BUFFER_LEN)
+		vdc.trans_last = 1;    /* force flush, no room for next request */
+
+	uint64_t rhdr = ((uint64_t)reg << 32) + (2UL << 30) + (2UL << 27) + ((data ? 1UL : 0UL) << 16) + aspace;
+	h_u64_to_le(&pm->wd8[4 * waddr], rhdr);
+	h_u16_to_le(pm->wid, le_to_h_u16(pm->wid) + 1);
+	if (data) {
+		struct vd_rdata *rd;
+		if (le_to_h_u16(pm->rwords) == 0) {
+			rd = &vdc.rdataq;
+		} else {
+			rd = calloc(1, sizeof(struct vd_rdata));
+			if (!rd)                   /* check allocation for 24B */
+				return ERROR_FAIL;
+			list_add_tail(&rd->lh, &vdc.rdataq.lh);
+		}
+		rd->rdata = (uint8_t *)data;
+		h_u16_to_le(pm->rwords, le_to_h_u16(pm->rwords) + 1);
+	}
+	h_u16_to_le(pm->wwords, waddr + 2);
+	h_u16_to_le(pm->waddr, le_to_h_u16(pm->waddr) + 1);
+	if (!vdc.trans_last)       /* buffered request */
+		h_u16_to_le(pm->offseth, waddr + 2);
+	else
+		rc = vdebug_run_reg_queue(hsock, pm, le_to_h_u16(pm->waddr));
 	vdc.trans_first = vdc.trans_last; /* flush forces trans_first flag */
 
 	return rc;
@@ -641,19 +800,19 @@ static int vdebug_mem_open(int hsock, struct vd_shm *pm, const char *path, uint8
 		return ERROR_OK;
 
 	pm->cmd = VD_CMD_MEMOPEN;
-	pm->wbytes = strlen(path) + 1;   /* includes terminating 0 */
-	pm->rbytes = 8;
-	pm->wwords = 0;
-	pm->rwords = 0;
-	memcpy(pm->wd8, path, pm->wbytes);
+	h_u16_to_le(pm->wbytes, strlen(path) + 1);   /* includes terminating 0 */
+	h_u16_to_le(pm->rbytes, 8);
+	h_u16_to_le(pm->wwords, 0);
+	h_u16_to_le(pm->rwords, 0);
+	memcpy(pm->wd8, path, le_to_h_u16(pm->wbytes));
 	rc = vdebug_wait_server(hsock, pm);
 	if (rc) {
 		LOG_ERROR("0x%x opening memory %s", rc, path);
-	} else if (ndx != pm->rd16[1]) {
-		LOG_WARNING("Invalid memory index %" PRIu16 " returned. Direct memory access disabled", pm->rd16[1]);
+	} else if (ndx != pm->rd8[2]) {
+		LOG_WARNING("Invalid memory index %" PRIu16 " returned. Direct memory access disabled", pm->rd8[2]);
 	} else {
-		vdc.mem_width[ndx] = pm->rd16[0] / 8;   /* memory width in bytes */
-		vdc.mem_depth[ndx] = pm->rd32[1];       /* memory depth in words */
+		vdc.mem_width[ndx] = le_to_h_u16(&pm->rd8[0]) / 8;   /* memory width in bytes */
+		vdc.mem_depth[ndx] = le_to_h_u32(&pm->rd8[4]);       /* memory depth in words */
 		LOG_DEBUG("%" PRIx8 ": %s memory %" PRIu32 "x%" PRIu32 "B, buffer %" PRIu32 "x%" PRIu32 "B", ndx, path,
 			vdc.mem_depth[ndx], vdc.mem_width[ndx], VD_BUFFER_LEN / vdc.mem_width[ndx], vdc.mem_width[ndx]);
 	}
@@ -664,14 +823,15 @@ static int vdebug_mem_open(int hsock, struct vd_shm *pm, const char *path, uint8
 static void vdebug_mem_close(int hsock, struct vd_shm *pm, uint8_t ndx)
 {
 	pm->cmd = VD_CMD_MEMCLOSE;
-	pm->rwdata = ndx;        /* which memory */
-	pm->wbytes = 0;
-	pm->rbytes = 0;
-	pm->wwords = 0;
-	pm->rwords = 0;
+	h_u32_to_le(pm->rwdata, ndx);        /* which memory */
+	h_u16_to_le(pm->wbytes, 0);
+	h_u16_to_le(pm->rbytes, 0);
+	h_u16_to_le(pm->wwords, 0);
+	h_u16_to_le(pm->rwords, 0);
 	vdebug_wait_server(hsock, pm);
 	LOG_DEBUG("%" PRIx8 ": %s", ndx, vdc.mem_path[ndx]);
 }
+
 
 static int vdebug_init(void)
 {
@@ -680,7 +840,7 @@ static int vdebug_init(void)
 	if (!pbuf) {
 		close_socket(vdc.hsocket);
 		vdc.hsocket = 0;
-		LOG_ERROR("cannot allocate %lu bytes", sizeof(struct vd_shm));
+		LOG_ERROR("cannot allocate %zu bytes", sizeof(struct vd_shm));
 		return ERROR_FAIL;
 	}
 	if (vdc.hsocket <= 0) {
@@ -692,10 +852,13 @@ static int vdebug_init(void)
 	}
 	vdc.trans_first = 1;
 	vdc.poll_cycles = vdc.poll_max;
-	uint32_t sig_mask = VD_SIG_RESET | VD_SIG_TRST | VD_SIG_TCKDIV;
+	uint32_t sig_mask = VD_SIG_RESET;
+	if (transport_is_jtag())
+		sig_mask |= VD_SIG_TRST | VD_SIG_TCKDIV;
+
 	int rc = vdebug_open(vdc.hsocket, pbuf, vdc.bfm_path, vdc.bfm_type, vdc.bfm_period, sig_mask);
 	if (rc != 0) {
-		LOG_ERROR("cannot connect to %s, rc 0x%x", vdc.bfm_path, rc);
+		LOG_ERROR("0x%x cannot connect to %s", rc, vdc.bfm_path);
 		close_socket(vdc.hsocket);
 		vdc.hsocket = 0;
 		free(pbuf);
@@ -704,7 +867,7 @@ static int vdebug_init(void)
 		for (uint8_t i = 0; i < vdc.mem_ndx; i++) {
 			rc = vdebug_mem_open(vdc.hsocket, pbuf, vdc.mem_path[i], i);
 			if (rc != 0)
-				LOG_ERROR("cannot connect to %s, rc 0x%x", vdc.mem_path[i], rc);
+				LOG_ERROR("0x%x cannot connect to %s", rc, vdc.mem_path[i]);
 		}
 
 		LOG_INFO("vdebug %d connected to %s through %s:%" PRIu16,
@@ -754,7 +917,7 @@ static int vdebug_reset(int trst, int srst)
 
 static int vdebug_jtag_tms_seq(const uint8_t *tms, int num, uint8_t f_flush)
 {
-	LOG_INFO("tms  len:%d tms:%x", num, *(const uint32_t *)tms);
+	LOG_INFO("tms  len:%d tms:%x", num, *tms);
 
 	return vdebug_jtag_shift_tap(vdc.hsocket, pbuf, num, *tms, 0, NULL, 0, 0, NULL, f_flush);
 }
@@ -811,8 +974,8 @@ static int vdebug_jtag_scan(struct scan_command *cmd, uint8_t f_flush)
 		uint8_t cur_tms_post = i == cmd->num_fields - 1 ? tms_post : 0;
 		uint8_t cur_flush = i == cmd->num_fields - 1 ? f_flush : 0;
 		rc = vdebug_jtag_shift_tap(vdc.hsocket, pbuf, cur_num_pre, cur_tms_pre,
-			cmd->fields[i].num_bits, cmd->fields[i].out_value, cur_num_post, cur_tms_post,
-			cmd->fields[i].in_value, cur_flush);
+								   cmd->fields[i].num_bits, cmd->fields[i].out_value, cur_num_post, cur_tms_post,
+							 cmd->fields[i].in_value, cur_flush);
 		if (rc)
 			break;
 	}
@@ -913,6 +1076,61 @@ static int vdebug_jtag_execute_queue(void)
 	return rc;
 }
 
+static int vdebug_dap_connect(struct adiv5_dap *dap)
+{
+	return dap_dp_init(dap);
+}
+
+static int vdebug_dap_send_sequence(struct adiv5_dap *dap, enum swd_special_seq seq)
+{
+	return ERROR_OK;
+}
+
+static int vdebug_dap_queue_dp_read(struct adiv5_dap *dap, unsigned int reg, uint32_t *data)
+{
+	return vdebug_reg_read(vdc.hsocket, pbuf, (reg & DP_SELECT_DPBANK) >> 2, data, VD_ASPACE_DP, 0);
+}
+
+static int vdebug_dap_queue_dp_write(struct adiv5_dap *dap, unsigned int reg, uint32_t data)
+{
+	return vdebug_reg_write(vdc.hsocket, pbuf, (reg & DP_SELECT_DPBANK) >> 2, data, VD_ASPACE_DP, 0);
+}
+
+static int vdebug_dap_queue_ap_read(struct adiv5_ap *ap, unsigned int reg, uint32_t *data)
+{
+	if ((reg & DP_SELECT_APBANK) != ap->dap->select) {
+		vdebug_reg_write(vdc.hsocket, pbuf, DP_SELECT >> 2, reg & DP_SELECT_APBANK, VD_ASPACE_DP, 0);
+		ap->dap->select = reg & DP_SELECT_APBANK;
+	}
+
+	vdebug_reg_read(vdc.hsocket, pbuf, (reg & DP_SELECT_DPBANK) >> 2, NULL, VD_ASPACE_AP, 0);
+
+	return vdebug_reg_read(vdc.hsocket, pbuf, DP_RDBUFF >> 2, data, VD_ASPACE_DP, 0);
+}
+
+static int vdebug_dap_queue_ap_write(struct adiv5_ap *ap, unsigned int reg, uint32_t data)
+{
+	if ((reg & DP_SELECT_APBANK) != ap->dap->select) {
+		vdebug_reg_write(vdc.hsocket, pbuf, DP_SELECT >> 2, reg & DP_SELECT_APBANK, VD_ASPACE_DP, 0);
+		ap->dap->select = reg & DP_SELECT_APBANK;
+	}
+
+	return vdebug_reg_write(vdc.hsocket, pbuf, (reg & DP_SELECT_DPBANK) >> 2, data, VD_ASPACE_AP, 0);
+}
+
+static int vdebug_dap_queue_ap_abort(struct adiv5_dap *dap, uint8_t *ack)
+{
+	return vdebug_reg_write(vdc.hsocket, pbuf, 0, 0x1, VD_ASPACE_AB, 0);
+}
+
+static int vdebug_dap_run(struct adiv5_dap *dap)
+{
+	if (pbuf->waddr)
+		return vdebug_run_reg_queue(vdc.hsocket, pbuf, le_to_h_u16(pbuf->waddr));
+
+	return ERROR_OK;
+}
+
 COMMAND_HANDLER(vdebug_set_server)
 {
 	if ((CMD_ARGC != 1) || !strchr(CMD_ARGV[0], ':'))
@@ -951,7 +1169,10 @@ COMMAND_HANDLER(vdebug_set_bfm)
 	default:
 		break;
 	}
-	vdc.bfm_type = VD_BFM_JTAG;
+	if (transport_is_dapdirect_swd())
+		vdc.bfm_type = VD_BFM_SWDP;
+	else
+		vdc.bfm_type = VD_BFM_JTAG;
 	LOG_DEBUG("bfm_path: %s clk_period %ups", vdc.bfm_path, vdc.bfm_period);
 
 	return ERROR_OK;
@@ -1062,9 +1283,24 @@ static struct jtag_interface vdebug_jtag_ops = {
 	.execute_queue = vdebug_jtag_execute_queue,
 };
 
+static const struct dap_ops vdebug_dap_ops = {
+	.connect = vdebug_dap_connect,
+	.send_sequence = vdebug_dap_send_sequence,
+	.queue_dp_read = vdebug_dap_queue_dp_read,
+	.queue_dp_write = vdebug_dap_queue_dp_write,
+	.queue_ap_read = vdebug_dap_queue_ap_read,
+	.queue_ap_write = vdebug_dap_queue_ap_write,
+	.queue_ap_abort = vdebug_dap_queue_ap_abort,
+	.run = vdebug_dap_run,
+	.sync = NULL, /* optional */
+	.quit = NULL, /* optional */
+};
+
+static const char *const vdebug_transports[] = { "jtag", "dapdirect_swd", NULL };
+
 struct adapter_driver vdebug_adapter_driver = {
 	.name = "vdebug",
-	.transports = jtag_only,
+	.transports = vdebug_transports,
 	.speed = vdebug_jtag_speed,
 	.khz = vdebug_jtag_khz,
 	.speed_div = vdebug_jtag_div,
@@ -1073,4 +1309,5 @@ struct adapter_driver vdebug_adapter_driver = {
 	.quit = vdebug_quit,
 	.reset = vdebug_reset,
 	.jtag_ops = &vdebug_jtag_ops,
+	.dap_swd_ops = &vdebug_dap_ops,
 };

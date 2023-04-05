@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+
 /***************************************************************************
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
@@ -10,19 +12,6 @@
  *                                                                         *
  *   Copyright (C) 2008 by Hongtao Zheng                                   *
  *   hontor@126.com                                                        *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
 #ifndef OPENOCD_TARGET_ARM7_9_COMMON_H
@@ -31,14 +20,15 @@
 #include "arm.h"
 #include "arm_jtag.h"
 
-#define	ARM7_9_COMMON_MAGIC 0x0a790a79 /**< */
+#define	ARM7_9_COMMON_MAGIC 0x0a790a79U /**< */
 
 /**
  * Structure for items that are common between both ARM7 and ARM9 targets.
  */
 struct arm7_9_common {
+	unsigned int common_magic;
+
 	struct arm arm;
-	uint32_t common_magic;
 
 	struct arm_jtag jtag_info; /**< JTAG information for target */
 	struct reg_cache *eice_cache; /**< Embedded ICE register cache */

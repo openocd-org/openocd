@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+
 /* identify the Entry Point  */
 ENTRY(reset_handler)
 

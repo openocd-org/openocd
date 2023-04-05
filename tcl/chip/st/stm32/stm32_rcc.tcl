@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
 
 set RCC_CR            [expr {$RCC_BASE + 0x00}]
 set RCC_CFGR          [expr {$RCC_BASE + 0x04}]

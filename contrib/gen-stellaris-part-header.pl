@@ -1,4 +1,6 @@
 #!/usr/bin/perl
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 # Automatically generates the StellarisParts struct in src/flash/nor/stellaris.c
 # Uses the header files from TI/Luminary's StellarisWare complete Firmware Development Package
 # available from: http://www.luminarymicro.com/products/software_updates.html

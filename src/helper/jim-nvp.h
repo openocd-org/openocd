@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: BSD-2-Clause-Views */
+
 /* Jim - A small embeddable Tcl interpreter
  *
  * Copyright 2005 Salvatore Sanfilippo <antirez@invece.org>
@@ -11,34 +13,7 @@
  * Copyright 2009 Nico Coesel <ncoesel@dealogic.nl>
  * Copyright 2009 Zachary T Welch zw@superlucidity.net
  * Copyright 2009 David Brownell
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above
- *    copyright notice, this list of conditions and the following
- *    disclaimer in the documentation and/or other materials
- *    provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE JIM TCL PROJECT ``AS IS'' AND ANY
- * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
- * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
- * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * JIM TCL PROJECT OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
- * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
- * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * The views and conclusions contained in the software and documentation
- * are those of the authors and should not be interpreted as representing
- * official policies, either expressed or implied, of the Jim Tcl Project.
+ * Copyright (c) 2005-2011 Jim Tcl Project. All rights reserved.
  */
 
 #ifndef OPENOCD_HELPER_JIM_NVP_H
@@ -325,145 +300,5 @@ void jim_getopt_nvp_unknown(struct jim_getopt_info *goi, const struct jim_nvp *l
  *
  */
 int jim_getopt_enum(struct jim_getopt_info *goi, const char *const *lookup, int *puthere);
-
-/*
- * DEPRECATED API
- * Do not use these API anymore, as they do not comply with OpenOCD coding style
- * They are listed here to avoid breaking build after merge of patches already queued in gerrit
- */
-
-static inline __attribute__ ((deprecated))
-const char *Jim_Debug_ArgvString(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
-{
-	return jim_debug_argv_string(interp, argc, argv);
-}
-
-static inline __attribute__ ((deprecated))
-int Jim_GetNvp(Jim_Interp *interp, Jim_Obj *objptr, const struct jim_nvp *nvp_table, const struct jim_nvp **result)
-{
-	return jim_get_nvp(interp, objptr, nvp_table, result);
-}
-
-static inline __attribute__ ((deprecated))
-void Jim_GetOpt_Debug(struct jim_getopt_info *goi)
-{
-	jim_getopt_debug(goi);
-}
-
-static inline __attribute__ ((deprecated))
-int Jim_GetOpt_Double(struct jim_getopt_info *goi, double *puthere)
-{
-	return jim_getopt_double(goi, puthere);
-}
-
-static inline __attribute__ ((deprecated))
-int Jim_GetOpt_Enum(struct jim_getopt_info *goi, const char *const *lookup, int *puthere)
-{
-	return jim_getopt_enum(goi, lookup, puthere);
-}
-
-static inline __attribute__ ((deprecated))
-int Jim_GetOpt_Nvp(struct jim_getopt_info *goi, const struct jim_nvp *lookup, struct jim_nvp **puthere)
-{
-	return jim_getopt_nvp(goi, lookup, puthere);
-}
-
-static inline __attribute__ ((deprecated))
-void Jim_GetOpt_NvpUnknown(struct jim_getopt_info *goi, const struct jim_nvp *lookup, int hadprefix)
-{
-	jim_getopt_nvp_unknown(goi, lookup, hadprefix);
-}
-
-static inline __attribute__ ((deprecated))
-int Jim_GetOpt_Obj(struct jim_getopt_info *goi, Jim_Obj **puthere)
-{
-	return jim_getopt_obj(goi, puthere);
-}
-
-static inline __attribute__ ((deprecated))
-int Jim_GetOpt_Setup(struct jim_getopt_info *goi, Jim_Interp *interp, int argc, Jim_Obj *const *argv)
-{
-	return jim_getopt_setup(goi, interp, argc, argv);
-}
-
-static inline __attribute__ ((deprecated))
-int Jim_GetOpt_String(struct jim_getopt_info *goi, const char **puthere, int *len)
-{
-	return jim_getopt_string(goi, puthere, len);
-}
-
-static inline __attribute__ ((deprecated))
-int Jim_GetOpt_Wide(struct jim_getopt_info *goi, jim_wide *puthere)
-{
-	return jim_getopt_wide(goi, puthere);
-}
-
-static inline __attribute__ ((deprecated))
-int Jim_Nvp_name2value(Jim_Interp *interp, const struct jim_nvp *nvp_table, const char *name, struct jim_nvp **result)
-{
-	return jim_nvp_name2value(interp, nvp_table, name, result);
-}
-
-static inline __attribute__ ((deprecated))
-int Jim_Nvp_name2value_nocase(Jim_Interp *interp, const struct jim_nvp *nvp_table, const char *name,
-	struct jim_nvp **result)
-{
-	return jim_nvp_name2value_nocase(interp, nvp_table, name, result);
-}
-
-static inline __attribute__ ((deprecated))
-struct jim_nvp *Jim_Nvp_name2value_nocase_simple(const struct jim_nvp *nvp_table, const char *name)
-{
-	return jim_nvp_name2value_nocase_simple(nvp_table, name);
-}
-
-static inline __attribute__ ((deprecated))
-int Jim_Nvp_name2value_obj(Jim_Interp *interp, const struct jim_nvp *nvp_table, Jim_Obj *name_obj,
-	struct jim_nvp **result)
-{
-	return jim_nvp_name2value_obj(interp, nvp_table, name_obj, result);
-}
-
-static inline __attribute__ ((deprecated))
-int Jim_Nvp_name2value_obj_nocase(Jim_Interp *interp, const struct jim_nvp *nvp_table, Jim_Obj *name_obj,
-	struct jim_nvp **result)
-{
-	return jim_nvp_name2value_obj_nocase(interp, nvp_table, name_obj, result);
-}
-
-static inline __attribute__ ((deprecated))
-struct jim_nvp *Jim_Nvp_name2value_simple(const struct jim_nvp *nvp_table, const char *name)
-{
-	return jim_nvp_name2value_simple(nvp_table, name);
-}
-
-static inline __attribute__ ((deprecated))
-int Jim_Nvp_value2name(Jim_Interp *interp, const struct jim_nvp *nvp_table, int value, struct jim_nvp **result)
-{
-	return jim_nvp_value2name(interp, nvp_table, value, result);
-}
-
-static inline __attribute__ ((deprecated))
-int Jim_Nvp_value2name_obj(Jim_Interp *interp, const struct jim_nvp *nvp_table, Jim_Obj *value_obj,
-	struct jim_nvp **result)
-{
-	return jim_nvp_value2name_obj(interp, nvp_table, value_obj, result);
-}
-
-static inline __attribute__ ((deprecated))
-struct jim_nvp *Jim_Nvp_value2name_simple(const struct jim_nvp *nvp_table, int v)
-{
-	return jim_nvp_value2name_simple(nvp_table, v);
-}
-
-static inline __attribute__ ((deprecated))
-void Jim_SetResult_NvpUnknown(Jim_Interp *interp, Jim_Obj *param_name, Jim_Obj *param_value,
-	const struct jim_nvp *nvp_table)
-{
-	jim_set_result_nvp_unknown(interp, param_name, param_value, nvp_table);
-}
-
-typedef struct jim_getopt_info Jim_GetOptInfo __attribute__ ((deprecated));
-typedef struct jim_nvp Jim_Nvp __attribute__ ((deprecated));
 
 #endif /* OPENOCD_HELPER_JIM_NVP_H */

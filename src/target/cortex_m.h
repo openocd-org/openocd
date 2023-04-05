@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+
 /***************************************************************************
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
@@ -7,19 +9,6 @@
  *                                                                         *
  *   Copyright (C) 2008 by Spencer Oliver                                  *
  *   spen@spen-soft.co.uk                                                  *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
 #ifndef OPENOCD_TARGET_CORTEX_M_H
@@ -28,7 +17,7 @@
 #include "armv7m.h"
 #include "helper/bits.h"
 
-#define CORTEX_M_COMMON_MAGIC 0x1A451A45
+#define CORTEX_M_COMMON_MAGIC 0x1A451A45U
 
 #define SYSTEM_CONTROL_BASE 0x400FE000
 
@@ -47,6 +36,7 @@
 
 enum cortex_m_partno {
 	CORTEX_M_PARTNO_INVALID,
+	STAR_MC1_PARTNO    = 0x132,
 	CORTEX_M0_PARTNO   = 0xC20,
 	CORTEX_M1_PARTNO   = 0xC21,
 	CORTEX_M3_PARTNO   = 0xC23,
@@ -210,11 +200,15 @@ enum cortex_m_isrmasking_mode {
 };
 
 struct cortex_m_common {
-	int common_magic;
+	unsigned int common_magic;
+
+	struct armv7m_common armv7m;
 
 	/* Context information */
 	uint32_t dcb_dhcsr;
 	uint32_t dcb_dhcsr_cumulated_sticky;
+	/* DCB DHCSR has been at least once read, so the sticky bits have been reset */
+	bool dcb_dhcsr_sticky_is_recent;
 	uint32_t nvic_dfsr;  /* Debug Fault Status Register - shows reason for debug halt */
 	uint32_t nvic_icsr;  /* Interrupt Control State Register - shows active and pending IRQ */
 
@@ -237,11 +231,10 @@ struct cortex_m_common {
 	enum cortex_m_isrmasking_mode isrmasking_mode;
 
 	const struct cortex_m_part_info *core_info;
-	struct armv7m_common armv7m;
 
 	bool slow_register_read;	/* A register has not been ready, poll S_REGRDY */
 
-	int apsel;
+	uint64_t apsel;
 
 	/* Whether this target has the erratum that makes C_MASKINTS not apply to
 	 * already pending interrupts */

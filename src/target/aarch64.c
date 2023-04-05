@@ -1,19 +1,7 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /***************************************************************************
  *   Copyright (C) 2015 by David Ung                                       *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
  *                                                                         *
  ***************************************************************************/
 
@@ -1849,7 +1837,7 @@ static int aarch64_remove_watchpoint(struct target *target,
  * find out which watchpoint hits
  * get exception address and compare the address to watchpoints
  */
-int aarch64_hit_watchpoint(struct target *target,
+static int aarch64_hit_watchpoint(struct target *target,
 	struct watchpoint **hit_watchpoint)
 {
 	if (target->debug_reason != DBG_REASON_WATCHPOINT)
@@ -1942,7 +1930,7 @@ static int aarch64_assert_reset(struct target *target)
 	else if (reset_config & RESET_HAS_SRST) {
 		bool srst_asserted = false;
 
-		if (target->reset_halt) {
+		if (target->reset_halt && !(reset_config & RESET_SRST_PULLS_TRST)) {
 			if (target_was_examined(target)) {
 
 				if (reset_config & RESET_SRST_NO_GATING) {
@@ -1952,11 +1940,11 @@ static int aarch64_assert_reset(struct target *target)
 					 */
 					adapter_assert_reset();
 					srst_asserted = true;
-
-					/* make sure to clear all sticky errors */
-					mem_ap_write_atomic_u32(armv8->debug_ap,
-							armv8->debug_base + CPUV8_DBG_DRCR, DRCR_CSE);
 				}
+
+				/* make sure to clear all sticky errors */
+				mem_ap_write_atomic_u32(armv8->debug_ap,
+						armv8->debug_base + CPUV8_DBG_DRCR, DRCR_CSE);
 
 				/* set up Reset Catch debug event to halt the CPU after reset */
 				retval = aarch64_enable_reset_catch(target, true);
@@ -2558,15 +2546,24 @@ static int aarch64_examine_first(struct target *target)
 	if (!pc)
 		return ERROR_FAIL;
 
+	if (armv8->debug_ap) {
+		dap_put_ap(armv8->debug_ap);
+		armv8->debug_ap = NULL;
+	}
+
 	if (pc->adiv5_config.ap_num == DP_APSEL_INVALID) {
 		/* Search for the APB-AB */
-		retval = dap_find_ap(swjdp, AP_TYPE_APB_AP, &armv8->debug_ap);
+		retval = dap_find_get_ap(swjdp, AP_TYPE_APB_AP, &armv8->debug_ap);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("Could not find APB-AP for debug access");
 			return retval;
 		}
 	} else {
-		armv8->debug_ap = dap_ap(swjdp, pc->adiv5_config.ap_num);
+		armv8->debug_ap = dap_get_ap(swjdp, pc->adiv5_config.ap_num);
+		if (!armv8->debug_ap) {
+			LOG_ERROR("Cannot get AP");
+			return ERROR_FAIL;
+		}
 	}
 
 	retval = mem_ap_init(armv8->debug_ap);
@@ -2754,6 +2751,9 @@ static void aarch64_deinit_target(struct target *target)
 	struct aarch64_common *aarch64 = target_to_aarch64(target);
 	struct armv8_common *armv8 = &aarch64->armv8_common;
 	struct arm_dpm *dpm = &armv8->dpm;
+
+	if (armv8->debug_ap)
+		dap_put_ap(armv8->debug_ap);
 
 	armv8_free_reg_cache(target);
 	free(aarch64->brp_list);
@@ -3143,8 +3143,6 @@ static const struct command_registration aarch64_exec_command_handlers[] = {
 
 	COMMAND_REGISTRATION_DONE
 };
-
-extern const struct command_registration semihosting_common_handlers[];
 
 static const struct command_registration aarch64_command_handlers[] = {
 	{

@@ -1,22 +1,11 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /***************************************************************************
  *  Copyright (C) 2011 by Rodrigo L. Rosa                                 *
  *  rodrigorosa.LG@gmail.com                                              *
  *                                                                        *
  *  Based on dsp563xx_once.h written by Mathias Kuester                   *
  *  mkdorg@users.sourceforge.net                                          *
- *                                                                        *
- *  This program is free software; you can redistribute it and/or modify  *
- *  it under the terms of the GNU General Public License as published by  *
- *  the Free Software Foundation; either version 2 of the License, or     *
- *  (at your option) any later version.                                   *
- *                                                                        *
- *  This program is distributed in the hope that it will be useful,       *
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *  GNU General Public License for more details.                          *
- *                                                                        *
- *  You should have received a copy of the GNU General Public License     *
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
 #ifdef HAVE_CONFIG_H
@@ -27,7 +16,7 @@
 #include "target_type.h"
 #include "dsp5680xx.h"
 
-struct dsp5680xx_common dsp5680xx_context;
+static struct dsp5680xx_common dsp5680xx_context;
 
 #define _E "DSP5680XX_ERROR:%d\nAt:%s:%d:%s"
 #define err_check(r, c, m) if (r != ERROR_OK) {LOG_ERROR(_E, c, __func__, __LINE__, m); return r; }

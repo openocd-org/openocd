@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /***************************************************************************
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
@@ -25,19 +27,6 @@
  *                                                                         *
  *   Copyright (C) 2016 Chengyu Zheng                                      *
  *   chengyu.zheng@polimi.it : watchpoint support                          *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  *                                                                         *
  *   Cortex-A8(tm) TRM, ARM DDI 0344H                                      *
  *   Cortex-A9(tm) TRM, ARM DDI 0407F                                      *
@@ -818,11 +807,11 @@ static int cortex_a_internal_restore(struct target *target, int current,
 		armv7m->core_cache->reg_list[ARMV7M_PRIMASK].valid = true;
 
 		/* Make sure we are in Thumb mode */
-		buf_set_u32(armv7m->core_cache->reg_list[ARMV7M_xPSR].value, 0, 32,
-			buf_get_u32(armv7m->core_cache->reg_list[ARMV7M_xPSR].value, 0,
+		buf_set_u32(armv7m->core_cache->reg_list[ARMV7M_XPSR].value, 0, 32,
+			buf_get_u32(armv7m->core_cache->reg_list[ARMV7M_XPSR].value, 0,
 			32) | (1 << 24));
-		armv7m->core_cache->reg_list[ARMV7M_xPSR].dirty = true;
-		armv7m->core_cache->reg_list[ARMV7M_xPSR].valid = true;
+		armv7m->core_cache->reg_list[ARMV7M_XPSR].dirty = true;
+		armv7m->core_cache->reg_list[ARMV7M_XPSR].valid = true;
 	}
 #endif
 
@@ -2885,15 +2874,24 @@ static int cortex_a_examine_first(struct target *target)
 	int retval = ERROR_OK;
 	uint32_t didr, cpuid, dbg_osreg, dbg_idpfr1;
 
+	if (armv7a->debug_ap) {
+		dap_put_ap(armv7a->debug_ap);
+		armv7a->debug_ap = NULL;
+	}
+
 	if (pc->ap_num == DP_APSEL_INVALID) {
 		/* Search for the APB-AP - it is needed for access to debug registers */
-		retval = dap_find_ap(swjdp, AP_TYPE_APB_AP, &armv7a->debug_ap);
+		retval = dap_find_get_ap(swjdp, AP_TYPE_APB_AP, &armv7a->debug_ap);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("Could not find APB-AP for debug access");
 			return retval;
 		}
 	} else {
-		armv7a->debug_ap = dap_ap(swjdp, pc->ap_num);
+		armv7a->debug_ap = dap_get_ap(swjdp, pc->ap_num);
+		if (!armv7a->debug_ap) {
+			LOG_ERROR("Cannot get AP");
+			return ERROR_FAIL;
+		}
 	}
 
 	retval = mem_ap_init(armv7a->debug_ap);
@@ -3171,6 +3169,9 @@ static void cortex_a_deinit_target(struct target *target)
 					armv7a->debug_base + CPUDBG_DSCR,
 					dscr & ~DSCR_HALT_DBG_MODE);
 	}
+
+	if (armv7a->debug_ap)
+		dap_put_ap(armv7a->debug_ap);
 
 	free(cortex_a->wrp_list);
 	free(cortex_a->brp_list);

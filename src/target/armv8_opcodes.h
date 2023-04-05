@@ -1,17 +1,9 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+
 /*
- * Copyright (C) 2015 by pierrr kuo
- * vichy.kuo@gmail.com
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
+ * Copyright (C) 2015 by pierrr kuo <vichy.kuo@gmail.com>
  */
+
 #ifndef OPENOCD_TARGET_ARMV8_OPCODES_H
 #define OPENOCD_TARGET_ARMV8_OPCODES_H
 
@@ -146,9 +138,9 @@
 	(0xd500401f | ((op1) << 16)  | ((crm) << 8) | ((op2) << 5))
 
 #define ARMV8_MRS_T1(r, m1, rd, m) (0xF3E08020 | (r << 20) | (m1 << 16) | (rd << 8) | (m << 4))
-#define ARMV8_MRS_xPSR_T1(r, rd) (0xF3EF8000 | (r << 20) | (rd << 8))
+#define ARMV8_MRS_XPSR_T1(r, rd) (0xF3EF8000 | (r << 20) | (rd << 8))
 #define ARMV8_MSR_GP_T1(r, m1, rd, m) (0xF3808020 | (r << 20) | (m1 << 8) | (rd << 16) | (m << 4))
-#define ARMV8_MSR_GP_xPSR_T1(r, rn, mask) (0xF3808000 | (r << 20) | (rn << 16) | (mask << 8))
+#define ARMV8_MSR_GP_XPSR_T1(r, rn, mask) (0xF3808000 | (r << 20) | (rn << 16) | (mask << 8))
 
 #define ARMV8_BKPT(im) (0xD4200000 | ((im & 0xffff) << 5))
 #define ARMV8_HLT(im) (0x0D4400000 | ((im & 0xffff) << 5))

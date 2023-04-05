@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+
 /***************************************************************************
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
@@ -7,19 +9,6 @@
  *                                                                         *
  *   Copyright (C) 2008 by Spencer Oliver                                  *
  *   spen@spen-soft.co.uk                                                  *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
 #ifndef OPENOCD_TARGET_TARGET_TYPE_H
@@ -296,6 +285,15 @@ struct target_type {
 	/* pass GDB file-I/O response to target
 	 */
 	int (*gdb_fileio_end)(struct target *target, int retcode, int fileio_errno, bool ctrl_c);
+
+	/* Parse target-specific GDB query commands.
+	 * The string pointer "response_p" is always assigned by the called function
+	 * to a pointer to a NULL-terminated string, even when the function returns
+	 * an error. The string memory is not freed by the caller, so this function
+	 * must pay attention for possible memory leaks if the string memory is
+	 * dynamically allocated.
+	 */
+	int (*gdb_query_custom)(struct target *target, const char *packet, char **response_p);
 
 	/* do target profiling
 	 */

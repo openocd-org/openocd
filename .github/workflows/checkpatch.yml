@@ -16,7 +16,7 @@ jobs:
       - name: Install required packages (apt-get)
         run: |
             sudo apt-get update
-            sudo apt-get install patchutils
+            sudo apt-get install patchutils python3-ply python3-git
       - name: Run checkpatch
         run: |
             git diff -U20 HEAD~40 \

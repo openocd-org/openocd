@@ -1,4 +1,6 @@
 #!/usr/bin/perl
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 use strict;
 use warnings;
 use File::Basename;

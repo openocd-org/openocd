@@ -1,19 +1,8 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /***************************************************************************
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
 #ifdef HAVE_CONFIG_H
@@ -35,7 +24,7 @@
 
 static uint8_t output_value;
 static int dev_mem_fd;
-static void *gpio_controller;
+static uint8_t *gpio_controller;
 static volatile uint8_t *gpio_data_register;
 static volatile uint8_t *gpio_data_direction_register;
 
@@ -121,19 +110,16 @@ static int ep93xx_reset(int trst, int srst)
 
 static int set_gonk_mode(void)
 {
-	void *syscon;
-	uint32_t devicecfg;
-
-	syscon = mmap(NULL, 4096, PROT_READ | PROT_WRITE,
+	void *syscon = mmap(NULL, 4096, PROT_READ | PROT_WRITE,
 			MAP_SHARED, dev_mem_fd, 0x80930000);
 	if (syscon == MAP_FAILED) {
 		LOG_ERROR("mmap: %s", strerror(errno));
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	devicecfg = *((volatile int *)(syscon + 0x80));
-	*((volatile int *)(syscon + 0xc0)) = 0xaa;
-	*((volatile int *)(syscon + 0x80)) = devicecfg | 0x08000000;
+	uint32_t devicecfg = *((volatile uint32_t *)((uintptr_t)syscon + 0x80));
+	*((volatile uint32_t *)((uintptr_t)syscon + 0xc0)) = 0xaa;
+	*((volatile uint32_t *)((uintptr_t)syscon + 0x80)) = devicecfg | 0x08000000;
 
 	munmap(syscon, 4096);
 

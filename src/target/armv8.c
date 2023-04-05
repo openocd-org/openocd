@@ -1,22 +1,10 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /***************************************************************************
  *   Copyright (C) 2015 by David Ung                                       *
  *                                                                         *
  *   Copyright (C) 2018 by Liviu Ionescu                                   *
  *   <ilg@livius.net>                                                      *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
  ***************************************************************************/
 
 #ifdef HAVE_CONFIG_H
@@ -146,7 +134,7 @@ static int armv8_read_reg(struct armv8_common *armv8, int regnum, uint64_t *regv
 		retval = dpm->instr_read_data_r0_64(dpm,
 				ARMV8_MRS_DLR(0), &value_64);
 		break;
-	case ARMV8_xPSR:
+	case ARMV8_XPSR:
 		retval = dpm->instr_read_data_r0(dpm,
 				ARMV8_MRS_DSPSR(0), &value);
 		value_64 = value;
@@ -261,7 +249,7 @@ static int armv8_write_reg(struct armv8_common *armv8, int regnum, uint64_t valu
 			ARMV8_MSR_DLR(0),
 			value_64);
 		break;
-	case ARMV8_xPSR:
+	case ARMV8_XPSR:
 		value = value_64;
 		retval = dpm->instr_write_data_r0(dpm,
 			ARMV8_MSR_DSPSR(0),
@@ -376,7 +364,7 @@ static int armv8_read_reg32(struct armv8_common *armv8, int regnum, uint64_t *re
 			ARMV8_MRC_DLR(0),
 			&value);
 		break;
-	case ARMV8_xPSR:
+	case ARMV8_XPSR:
 		retval = dpm->instr_read_data_r0(dpm,
 			ARMV8_MRC_DSPSR(0),
 			&value);
@@ -411,17 +399,17 @@ static int armv8_read_reg32(struct armv8_common *armv8, int regnum, uint64_t *re
 		break;
 	case ARMV8_SPSR_EL1: /* mapped to SPSR_svc */
 		retval = dpm->instr_read_data_r0(dpm,
-				ARMV8_MRS_xPSR_T1(1, 0),
+				ARMV8_MRS_XPSR_T1(1, 0),
 				&value);
 		break;
 	case ARMV8_SPSR_EL2: /* mapped to SPSR_hyp */
 		retval = dpm->instr_read_data_r0(dpm,
-				ARMV8_MRS_xPSR_T1(1, 0),
+				ARMV8_MRS_XPSR_T1(1, 0),
 				&value);
 		break;
 	case ARMV8_SPSR_EL3: /* mapped to SPSR_mon */
 		retval = dpm->instr_read_data_r0(dpm,
-				ARMV8_MRS_xPSR_T1(1, 0),
+				ARMV8_MRS_XPSR_T1(1, 0),
 				&value);
 		break;
 	case ARMV8_FPSR:
@@ -512,7 +500,7 @@ static int armv8_write_reg32(struct armv8_common *armv8, int regnum, uint64_t va
 		retval = dpm->instr_write_data_r0(dpm,
 				ARMV8_MCR_DLR(0), value);
 		break;
-	case ARMV8_xPSR: /* CPSR */
+	case ARMV8_XPSR: /* CPSR */
 		/* read r0 from DCC, then "MCR r0, DSPSR" */
 		retval = dpm->instr_write_data_r0(dpm,
 				ARMV8_MCR_DSPSR(0), value);
@@ -547,17 +535,17 @@ static int armv8_write_reg32(struct armv8_common *armv8, int regnum, uint64_t va
 		break;
 	case ARMV8_SPSR_EL1: /* mapped to SPSR_svc */
 		retval = dpm->instr_write_data_r0(dpm,
-				ARMV8_MSR_GP_xPSR_T1(1, 0, 15),
+				ARMV8_MSR_GP_XPSR_T1(1, 0, 15),
 				value);
 		break;
 	case ARMV8_SPSR_EL2: /* mapped to SPSR_hyp */
 		retval = dpm->instr_write_data_r0(dpm,
-				ARMV8_MSR_GP_xPSR_T1(1, 0, 15),
+				ARMV8_MSR_GP_XPSR_T1(1, 0, 15),
 				value);
 		break;
 	case ARMV8_SPSR_EL3: /* mapped to SPSR_mon */
 		retval = dpm->instr_write_data_r0(dpm,
-				ARMV8_MSR_GP_xPSR_T1(1, 0, 15),
+				ARMV8_MSR_GP_XPSR_T1(1, 0, 15),
 				value);
 		break;
 	case ARMV8_FPSR:
@@ -1376,7 +1364,7 @@ static const struct {
 
 	{ ARMV8_SP, "sp", 64, ARM_MODE_ANY, REG_TYPE_DATA_PTR, "general", "org.gnu.gdb.aarch64.core", NULL},
 	{ ARMV8_PC, "pc", 64, ARM_MODE_ANY, REG_TYPE_CODE_PTR, "general", "org.gnu.gdb.aarch64.core", NULL},
-	{ ARMV8_xPSR, "cpsr", 32, ARM_MODE_ANY, REG_TYPE_ARCH_DEFINED,
+	{ ARMV8_XPSR, "cpsr", 32, ARM_MODE_ANY, REG_TYPE_ARCH_DEFINED,
 		"general", "org.gnu.gdb.aarch64.core", aarch64_flags_cpsr},
 	{ ARMV8_V0,  "v0",  128, ARM_MODE_ANY, REG_TYPE_ARCH_DEFINED, "simdfp", "org.gnu.gdb.aarch64.fpu", aarch64v},
 	{ ARMV8_V1,  "v1",  128, ARM_MODE_ANY, REG_TYPE_ARCH_DEFINED, "simdfp", "org.gnu.gdb.aarch64.fpu", aarch64v},
@@ -1461,7 +1449,7 @@ static const struct {
 	{ ARMV8_R13, 0, "sp", 32, ARM_MODE_ANY, REG_TYPE_DATA_PTR, "general", "org.gnu.gdb.arm.core" },
 	{ ARMV8_R14, 0, "lr",  32, ARM_MODE_ANY, REG_TYPE_CODE_PTR, "general", "org.gnu.gdb.arm.core" },
 	{ ARMV8_PC, 0, "pc",   32, ARM_MODE_ANY, REG_TYPE_CODE_PTR, "general", "org.gnu.gdb.arm.core" },
-	{ ARMV8_xPSR, 0, "cpsr", 32, ARM_MODE_ANY, REG_TYPE_UINT32, "general", "org.gnu.gdb.arm.core" },
+	{ ARMV8_XPSR, 0, "cpsr", 32, ARM_MODE_ANY, REG_TYPE_UINT32, "general", "org.gnu.gdb.arm.core" },
 	{ ARMV8_V0, 0, "d0",  64, ARM_MODE_ANY, REG_TYPE_IEEE_DOUBLE, NULL, "org.gnu.gdb.arm.vfp"},
 	{ ARMV8_V0, 8, "d1",  64, ARM_MODE_ANY, REG_TYPE_IEEE_DOUBLE, NULL, "org.gnu.gdb.arm.vfp"},
 	{ ARMV8_V1, 0, "d2",  64, ARM_MODE_ANY, REG_TYPE_IEEE_DOUBLE, NULL, "org.gnu.gdb.arm.vfp"},
@@ -1664,7 +1652,7 @@ struct reg_cache *armv8_build_reg_cache(struct target *target)
 			LOG_ERROR("unable to allocate reg type list");
 	}
 
-	arm->cpsr = reg_list + ARMV8_xPSR;
+	arm->cpsr = reg_list + ARMV8_XPSR;
 	arm->pc = reg_list + ARMV8_PC;
 	arm->core_cache = cache;
 

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 # Note that I basically converted
 # u-boot/include/asm-arm/arch/comcerto_100.h
 # defines

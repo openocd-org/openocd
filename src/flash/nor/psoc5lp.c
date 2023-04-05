@@ -1,20 +1,9 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /*
  * PSoC 5LP flash driver
  *
  * Copyright (c) 2016 Andreas Färber
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -822,24 +811,8 @@ FLASH_BANK_COMMAND_HANDLER(psoc5lp_nvl_flash_bank_command)
 	return ERROR_OK;
 }
 
-static const struct command_registration psoc5lp_nvl_exec_command_handlers[] = {
-	COMMAND_REGISTRATION_DONE
-};
-
-static const struct command_registration psoc5lp_nvl_command_handlers[] = {
-	{
-		.name = "psoc5lp_nvl",
-		.mode = COMMAND_ANY,
-		.help = "PSoC 5LP NV Latch command group",
-		.usage = "",
-		.chain = psoc5lp_nvl_exec_command_handlers,
-	},
-	COMMAND_REGISTRATION_DONE
-};
-
 const struct flash_driver psoc5lp_nvl_flash = {
 	.name = "psoc5lp_nvl",
-	.commands = psoc5lp_nvl_command_handlers,
 	.flash_bank_command = psoc5lp_nvl_flash_bank_command,
 	.info = psoc5lp_nvl_get_info_command,
 	.probe = psoc5lp_nvl_probe,
@@ -1021,24 +994,8 @@ FLASH_BANK_COMMAND_HANDLER(psoc5lp_eeprom_flash_bank_command)
 	return ERROR_OK;
 }
 
-static const struct command_registration psoc5lp_eeprom_exec_command_handlers[] = {
-	COMMAND_REGISTRATION_DONE
-};
-
-static const struct command_registration psoc5lp_eeprom_command_handlers[] = {
-	{
-		.name = "psoc5lp_eeprom",
-		.mode = COMMAND_ANY,
-		.help = "PSoC 5LP EEPROM command group",
-		.usage = "",
-		.chain = psoc5lp_eeprom_exec_command_handlers,
-	},
-	COMMAND_REGISTRATION_DONE
-};
-
 const struct flash_driver psoc5lp_eeprom_flash = {
 	.name = "psoc5lp_eeprom",
-	.commands = psoc5lp_eeprom_command_handlers,
 	.flash_bank_command = psoc5lp_eeprom_flash_bank_command,
 	.info = psoc5lp_eeprom_get_info_command,
 	.probe = psoc5lp_eeprom_probe,

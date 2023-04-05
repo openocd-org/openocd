@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
 
 set RTTC_RTMR [expr {$AT91C_BASE_RTTC + 0x00}]
 set RTTC_RTAR [expr {$AT91C_BASE_RTTC + 0x04}]
