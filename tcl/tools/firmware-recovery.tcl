@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 echo "\n\nFirmware recovery helpers"
 echo "Use -c firmware_help to get help\n"
 

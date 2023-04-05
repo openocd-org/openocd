@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 noinst_LTLIBRARIES += %D%/libopenrisc.la
 %C%_libopenrisc_la_SOURCES = \
 	%D%/or1k.c \

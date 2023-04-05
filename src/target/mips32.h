@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+
 /***************************************************************************
  *   Copyright (C) 2008 by Spencer Oliver                                  *
  *   spen@spen-soft.co.uk                                                  *
@@ -6,19 +8,6 @@
  *                                                                         *
  *   Copyright (C) 2011 by Drasko DRASKOVIC                                *
  *   drasko.draskovic@gmail.com                                            *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
 #ifndef OPENOCD_TARGET_MIPS32_H
@@ -27,7 +16,7 @@
 #include "target.h"
 #include "mips32_pracc.h"
 
-#define MIPS32_COMMON_MAGIC		0xB320B320
+#define MIPS32_COMMON_MAGIC		0xB320B320U
 
 /**
  * Memory segments (32bit kernel mode addresses)
@@ -93,7 +82,8 @@ struct mips32_comparator {
 };
 
 struct mips32_common {
-	uint32_t common_magic;
+	unsigned int common_magic;
+
 	void *arch_info;
 	struct reg_cache *core_cache;
 	struct mips_ejtag ejtag_info;
@@ -130,7 +120,7 @@ struct mips32_core_reg {
 };
 
 struct mips32_algorithm {
-	int common_magic;
+	unsigned int common_magic;
 	enum mips32_isa_mode isa_mode;
 };
 

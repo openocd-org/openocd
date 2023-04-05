@@ -101,17 +101,18 @@ Supported hardware
 JTAG adapters
 -------------
 
-AICE, ARM-JTAG-EW, ARM-USB-OCD, ARM-USB-TINY, AT91RM9200, axm0432, BCM2835,
-Bus Blaster, Buspirate, Cadence DPI, Chameleon, CMSIS-DAP, Cortino,
-Cypress KitProg, DENX, Digilent JTAG-SMT2, DLC 5, DLP-USB1232H,
-embedded projects, eStick, FlashLINK, FlossJTAG, Flyswatter, Flyswatter2,
+AICE, AM335x, ARM-JTAG-EW, ARM-USB-OCD, ARM-USB-TINY, AT91RM9200, axm0432, BCM2835,
+Bus Blaster, Buspirate, Cadence DPI, Cadence vdebug, Chameleon, CMSIS-DAP,
+Cortino, Cypress KitProg, DENX, Digilent JTAG-SMT2, DLC 5, DLP-USB1232H,
+embedded projects, Espressif USB JTAG Programmer,
+eStick, FlashLINK, FlossJTAG, Flyswatter, Flyswatter2,
 FTDI FT232R, Gateworks, Hoegl, ICDI, ICEBear, J-Link, JTAG VPI, JTAGkey,
 JTAGkey2, JTAG-lock-pick, KT-Link, Linux GPIOD, Lisa/L, LPC1768-Stick,
 Mellanox rshim, MiniModule, NGX, Nuvoton Nu-Link, Nu-Link2, NXHX, NXP IMX GPIO,
 OOCDLink, Opendous, OpenJTAG, Openmoko, OpenRD, OSBDM, Presto, Redbee,
 Remote Bitbang, RLink, SheevaPlug devkit, Stellaris evkits,
 ST-LINK (SWO tracing supported), STM32-PerformanceStick, STR9-comStick,
-sysfsgpio, TI XDS110, TUMPA, Turtelizer, ULINK, USB-A9260, USB-Blaster,
+sysfsgpio, Tigard, TI XDS110, TUMPA, Turtelizer, ULINK, USB-A9260, USB-Blaster,
 USB-JTAG, USBprog, VPACLink, VSLLink, Wiggler, XDS100v2, Xilinx XVC/PCIe,
 Xverve.
 
@@ -121,16 +122,18 @@ Debug targets
 ARM: AArch64, ARM11, ARM7, ARM9, Cortex-A/R (v7-A/R), Cortex-M (ARMv{6/7/8}-M),
 FA526, Feroceon/Dragonite, XScale.
 ARCv2, AVR32, DSP563xx, DSP5680xx, EnSilica eSi-RISC, EJTAG (MIPS32, MIPS64),
-Intel Quark, LS102x-SAP, NDS32, RISC-V, ST STM8.
+ESP32, ESP32-S2, ESP32-S3, Intel Quark, LS102x-SAP, NDS32, RISC-V, ST STM8,
+Xtensa.
 
 Flash drivers
 -------------
 
 ADUC702x, AT91SAM, AT91SAM9 (NAND), ATH79, ATmega128RFA1, Atmel SAM, AVR, CFI,
 DSP5680xx, EFM32, EM357, eSi-RISC, eSi-TSMC, EZR32HG, FM3, FM4, Freedom E SPI,
-i.MX31, Kinetis, LPC8xx/LPC1xxx/LPC2xxx/LPC541xx, LPC2900, LPC3180, LPC32xx,
+GD32, i.MX31, Kinetis, LPC8xx/LPC1xxx/LPC2xxx/LPC541xx, LPC2900, LPC3180, LPC32xx,
 LPCSPIFI, Marvell QSPI, MAX32, Milandr, MXC, NIIET, nRF51, nRF52 , NuMicro,
-NUC910, Orion/Kirkwood, PIC32mx, PSoC4/5LP/6, Renesas RPC HF and SH QSPI,
+NUC910, Nuvoton NPCX, onsemi RSL10, Orion/Kirkwood, PIC32mx, PSoC4/5LP/6,
+Raspberry RP2040, Renesas RPC HF and SH QSPI,
 S3C24xx, S3C6400, SiM3x, SiFive Freedom E, Stellaris, ST BlueNRG, STM32,
 STM32 QUAD/OCTO-SPI for Flash/FRAM/EEPROM, STMSMI, STR7x, STR9x, SWM050,
 TI CC13xx, TI CC26xx, TI CC32xx, TI MSP432, Winner Micro w600, Xilinx XCF,

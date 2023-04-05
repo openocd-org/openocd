@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 noinst_LTLIBRARIES += %D%/libpld.la
 %C%_libpld_la_SOURCES = \
 	%D%/pld.c \

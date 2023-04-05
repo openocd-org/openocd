@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 noinst_LTLIBRARIES += %D%/libhelper.la
 
 %C%_libhelper_la_SOURCES = \

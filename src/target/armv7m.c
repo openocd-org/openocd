@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /***************************************************************************
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
@@ -16,19 +18,6 @@
  *                                                                         *
  *   Copyright (C) 2019 by Tomas Vanek                                     *
  *   vanekt@fbl.cz                                                         *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  *                                                                         *
  *   ARMv7-M Architecture, Application Level Reference Manual              *
  *              ARM DDI 0405C (September 2008)                             *
@@ -64,7 +53,7 @@ const int armv7m_psp_reg_map[ARMV7M_NUM_CORE_REGS] = {
 	ARMV7M_R4, ARMV7M_R5, ARMV7M_R6, ARMV7M_R7,
 	ARMV7M_R8, ARMV7M_R9, ARMV7M_R10, ARMV7M_R11,
 	ARMV7M_R12, ARMV7M_PSP, ARMV7M_R14, ARMV7M_PC,
-	ARMV7M_xPSR,
+	ARMV7M_XPSR,
 };
 
 /* MSP is used in handler and some thread modes */
@@ -73,7 +62,7 @@ const int armv7m_msp_reg_map[ARMV7M_NUM_CORE_REGS] = {
 	ARMV7M_R4, ARMV7M_R5, ARMV7M_R6, ARMV7M_R7,
 	ARMV7M_R8, ARMV7M_R9, ARMV7M_R10, ARMV7M_R11,
 	ARMV7M_R12, ARMV7M_MSP, ARMV7M_R14, ARMV7M_PC,
-	ARMV7M_xPSR,
+	ARMV7M_XPSR,
 };
 
 /*
@@ -108,7 +97,7 @@ static const struct {
 	{ ARMV7M_R13, "sp", 32, REG_TYPE_DATA_PTR, "general", "org.gnu.gdb.arm.m-profile" },
 	{ ARMV7M_R14, "lr", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile" },
 	{ ARMV7M_PC, "pc", 32, REG_TYPE_CODE_PTR, "general", "org.gnu.gdb.arm.m-profile" },
-	{ ARMV7M_xPSR, "xPSR", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile" },
+	{ ARMV7M_XPSR, "xPSR", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile" },
 
 	{ ARMV7M_MSP, "msp", 32, REG_TYPE_DATA_PTR, "system", "org.gnu.gdb.arm.m-system" },
 	{ ARMV7M_PSP, "psp", 32, REG_TYPE_DATA_PTR, "system", "org.gnu.gdb.arm.m-system" },
@@ -256,7 +245,7 @@ uint32_t armv7m_map_id_to_regsel(unsigned int arm_reg_id)
 	switch (arm_reg_id) {
 	case ARMV7M_R0 ... ARMV7M_R14:
 	case ARMV7M_PC:
-	case ARMV7M_xPSR:
+	case ARMV7M_XPSR:
 	case ARMV7M_MSP:
 	case ARMV7M_PSP:
 		/* NOTE:  we "know" here that the register identifiers
@@ -590,7 +579,7 @@ int armv7m_start_algorithm(struct target *target,
 		 * Because xPSR.T is populated on reset from the vector table,
 		 * it might be 0 if the vector table has "bad" data in it.
 		 */
-		struct reg *reg = &armv7m->arm.core_cache->reg_list[ARMV7M_xPSR];
+		struct reg *reg = &armv7m->arm.core_cache->reg_list[ARMV7M_XPSR];
 		buf_set_u32(reg->value, 0, 32, 0x01000000);
 		reg->valid = true;
 		reg->dirty = true;
@@ -814,7 +803,7 @@ struct reg_cache *armv7m_build_reg_cache(struct target *target)
 			LOG_ERROR("unable to allocate reg type list");
 	}
 
-	arm->cpsr = reg_list + ARMV7M_xPSR;
+	arm->cpsr = reg_list + ARMV7M_XPSR;
 	arm->pc = reg_list + ARMV7M_PC;
 	arm->core_cache = cache;
 
@@ -865,6 +854,7 @@ int armv7m_init_arch_info(struct target *target, struct armv7m_common *armv7m)
 	/* Enable stimulus port #0 by default */
 	armv7m->trace_config.itm_ter[0] = 1;
 
+	arm->core_state = ARM_STATE_THUMB;
 	arm->core_type = ARM_CORE_TYPE_M_PROFILE;
 	arm->arch_info = armv7m;
 	arm->setup_semihosting = armv7m_setup_semihosting;
@@ -1095,7 +1085,11 @@ int armv7m_maybe_skip_bkpt_inst(struct target *target, bool *inst_found)
 
 const struct command_registration armv7m_command_handlers[] = {
 	{
-		.chain = arm_command_handlers,
+		.name = "arm",
+		.mode = COMMAND_ANY,
+		.help = "ARM command group",
+		.usage = "",
+		.chain = arm_all_profiles_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE
 };

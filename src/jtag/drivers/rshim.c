@@ -1,19 +1,8 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /*
  * Copyright (c) 2020, Mellanox Technologies Ltd. - All Rights Reserved
  * Liming Sun <lsun@mellanox.com>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -282,36 +271,44 @@ static int rshim_ap_q_read(struct adiv5_ap *ap, unsigned int reg,
 	uint32_t addr;
 	int rc = ERROR_OK, tile;
 
+	if (is_adiv6(ap->dap)) {
+		static bool error_flagged;
+		if (!error_flagged)
+			LOG_ERROR("ADIv6 dap not supported by rshim dap-direct mode");
+		error_flagged = true;
+		return ERROR_FAIL;
+	}
+
 	switch (reg) {
-	case MEM_AP_REG_CSW:
+	case ADIV5_MEM_AP_REG_CSW:
 		*data = ap_csw;
 		break;
 
-	case MEM_AP_REG_CFG:
+	case ADIV5_MEM_AP_REG_CFG:
 		*data = 0;
 		break;
 
-	case MEM_AP_REG_BASE:
+	case ADIV5_MEM_AP_REG_BASE:
 		*data = RSH_CS_ROM_BASE;
 		break;
 
-	case AP_REG_IDR:
+	case ADIV5_AP_REG_IDR:
 		if (ap->ap_num == 0)
 			*data = APB_AP_IDR;
 		else
 			*data = 0;
 		break;
 
-	case MEM_AP_REG_BD0:
-	case MEM_AP_REG_BD1:
-	case MEM_AP_REG_BD2:
-	case MEM_AP_REG_BD3:
+	case ADIV5_MEM_AP_REG_BD0:
+	case ADIV5_MEM_AP_REG_BD1:
+	case ADIV5_MEM_AP_REG_BD2:
+	case ADIV5_MEM_AP_REG_BD3:
 		addr = (ap_tar & ~0xf) + (reg & 0x0C);
 		ap_addr_2_tile(&tile, &addr);
 		rc = coresight_read(tile, addr, data);
 		break;
 
-	case MEM_AP_REG_DRW:
+	case ADIV5_MEM_AP_REG_DRW:
 		addr = (ap_tar & ~0x3) + ap_tar_inc;
 		ap_addr_2_tile(&tile, &addr);
 		rc = coresight_read(tile, addr, data);
@@ -338,31 +335,39 @@ static int rshim_ap_q_write(struct adiv5_ap *ap, unsigned int reg,
 	int rc = ERROR_OK, tile;
 	uint32_t addr;
 
+	if (is_adiv6(ap->dap)) {
+		static bool error_flagged;
+		if (!error_flagged)
+			LOG_ERROR("ADIv6 dap not supported by rshim dap-direct mode");
+		error_flagged = true;
+		return ERROR_FAIL;
+	}
+
 	if (ap_bank != 0) {
 		rshim_dap_retval = ERROR_FAIL;
 		return ERROR_FAIL;
 	}
 
 	switch (reg) {
-	case MEM_AP_REG_CSW:
+	case ADIV5_MEM_AP_REG_CSW:
 		ap_csw = data;
 		break;
 
-	case MEM_AP_REG_TAR:
+	case ADIV5_MEM_AP_REG_TAR:
 		ap_tar = data;
 		ap_tar_inc = 0;
 		break;
 
-	case MEM_AP_REG_BD0:
-	case MEM_AP_REG_BD1:
-	case MEM_AP_REG_BD2:
-	case MEM_AP_REG_BD3:
+	case ADIV5_MEM_AP_REG_BD0:
+	case ADIV5_MEM_AP_REG_BD1:
+	case ADIV5_MEM_AP_REG_BD2:
+	case ADIV5_MEM_AP_REG_BD3:
 		addr = (ap_tar & ~0xf) + (reg & 0x0C);
 		ap_addr_2_tile(&tile, &addr);
 		rc = coresight_write(tile, addr, data);
 		break;
 
-	case MEM_AP_REG_DRW:
+	case ADIV5_MEM_AP_REG_DRW:
 		ap_drw = data;
 		addr = (ap_tar & ~0x3) + ap_tar_inc;
 		ap_addr_2_tile(&tile, &addr);

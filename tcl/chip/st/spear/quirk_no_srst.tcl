@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 # Quirks to bypass missing SRST on JTAG connector
 # EVALSPEAr310 Rev. 2.0
 # http://www.st.com/spear

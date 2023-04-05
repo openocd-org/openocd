@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 # ARM Debug Interface V5 (ADI_V5) utility
 # ... Mostly for SWJ-DP (not SW-DP or JTAG-DP, since
 # SW-DP and JTAG-DP targets don't need to switch based

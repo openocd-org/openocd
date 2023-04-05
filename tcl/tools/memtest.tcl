@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 # Algorithms by Michael Barr, released into public domain
 # Ported to OpenOCD by Shane Volpe, additional fixes by Paul Fertser
 

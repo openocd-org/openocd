@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /*
  * Spansion FM4 flash
  *
@@ -686,24 +688,8 @@ FLASH_BANK_COMMAND_HANDLER(fm4_flash_bank_command)
 	return ret;
 }
 
-static const struct command_registration fm4_exec_command_handlers[] = {
-	COMMAND_REGISTRATION_DONE
-};
-
-static const struct command_registration fm4_command_handlers[] = {
-	{
-		.name = "fm4",
-		.mode = COMMAND_ANY,
-		.help = "fm4 flash command group",
-		.usage = "",
-		.chain = fm4_exec_command_handlers,
-	},
-	COMMAND_REGISTRATION_DONE
-};
-
 const struct flash_driver fm4_flash = {
 	.name = "fm4",
-	.commands = fm4_command_handlers,
 	.flash_bank_command = fm4_flash_bank_command,
 	.info = fm4_get_info_command,
 	.probe = fm4_probe,

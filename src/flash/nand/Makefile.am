@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 noinst_LTLIBRARIES += %D%/libocdflashnand.la
 
 %C%_libocdflashnand_la_SOURCES = \

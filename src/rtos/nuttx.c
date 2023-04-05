@@ -1,20 +1,9 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /***************************************************************************
  *   Copyright 2016,2017 Sony Video & Sound Products Inc.                  *
  *   Masatoshi Tateishi - Masatoshi.Tateishi@jp.sony.com                   *
  *   Masayuki Ishikawa - Masayuki.Ishikawa@jp.sony.com                     *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
 #ifdef HAVE_CONFIG_H
@@ -114,7 +103,7 @@ static const struct stack_register_offset nuttx_stack_offsets_cortex_m[] = {
 	{ ARMV7M_R13,	  0,  32 },		/* sp   */
 	{ ARMV7M_R14,	0x3c, 32 },		/* lr   */
 	{ ARMV7M_PC,	0x40, 32 },		/* pc   */
-	{ ARMV7M_xPSR,	0x44, 32 },		/* xPSR */
+	{ ARMV7M_XPSR,	0x44, 32 },		/* xPSR */
 };
 
 
@@ -142,7 +131,7 @@ static const struct stack_register_offset nuttx_stack_offsets_cortex_m_fpu[] = {
 	{ ARMV7M_R13,	  0,  32 },		/* sp   */
 	{ ARMV7M_R14,	0x80, 32 },		/* lr   */
 	{ ARMV7M_PC,	0x84, 32 },		/* pc   */
-	{ ARMV7M_xPSR,	0x88, 32 },		/* xPSR */
+	{ ARMV7M_XPSR,	0x88, 32 },		/* xPSR */
 };
 
 static const struct rtos_register_stacking nuttx_stacking_cortex_m_fpu = {

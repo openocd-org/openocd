@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+
 #ifndef OPENOCD_RTOS_LINUX_HEADER_H
 #define OPENOCD_RTOS_LINUX_HEADER_H
 

@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+
 /*
  * Copyright (C) 2005 by Dominic Rath
  * Dominic.Rath@gmx.de
@@ -10,19 +12,6 @@
  *
  * Copyright (C) 2018 by Liviu Ionescu
  *   <ilg@livius.net>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifndef OPENOCD_TARGET_ARM_H
@@ -166,7 +155,7 @@ enum arm_vfp_version {
 	ARM_VFP_V3,
 };
 
-#define ARM_COMMON_MAGIC 0x0A450A45
+#define ARM_COMMON_MAGIC 0x0A450A45U
 
 /**
  * Represents a generic ARM core, with standard application registers.
@@ -176,7 +165,8 @@ enum arm_vfp_version {
  * registers as traditional ARM cores, and only support Thumb2 instructions.
  */
 struct arm {
-	int common_magic;
+	unsigned int common_magic;
+
 	struct reg_cache *core_cache;
 
 	/** Handle to the PC; valid in all core modes. */
@@ -263,7 +253,7 @@ static inline bool is_arm(struct arm *arm)
 }
 
 struct arm_algorithm {
-	int common_magic;
+	unsigned int common_magic;
 
 	enum arm_mode core_mode;
 	enum arm_state core_state;
@@ -283,6 +273,7 @@ void arm_free_reg_cache(struct arm *arm);
 struct reg_cache *armv8_build_reg_cache(struct target *target);
 
 extern const struct command_registration arm_command_handlers[];
+extern const struct command_registration arm_all_profiles_command_handlers[];
 
 int arm_arch_state(struct target *target);
 const char *arm_get_gdb_arch(struct target *target);
@@ -318,8 +309,5 @@ int arm_blank_check_memory(struct target *target,
 void arm_set_cpsr(struct arm *arm, uint32_t cpsr);
 struct reg *arm_reg_current(struct arm *arm, unsigned regnum);
 struct reg *armv8_reg_current(struct arm *arm, unsigned regnum);
-
-extern struct reg arm_gdb_dummy_fp_reg;
-extern struct reg arm_gdb_dummy_fps_reg;
 
 #endif /* OPENOCD_TARGET_ARM_H */

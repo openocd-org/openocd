@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /***************************************************************************
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
@@ -7,19 +9,6 @@
  *                                                                         *
  *   Copyright (C) 2010 by Drasko DRASKOVIC                                *
  *   drasko.draskovic@gmail.com                                            *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
 #ifdef HAVE_CONFIG_H
@@ -55,7 +44,7 @@ static int arm946e_post_debug_entry(struct target *target);
 static void arm946e_pre_restore_context(struct target *target);
 static int arm946e_read_cp15(struct target *target, int reg_addr, uint32_t *value);
 
-int arm946e_init_arch_info(struct target *target,
+static int arm946e_init_arch_info(struct target *target,
 	struct arm946e_common *arm946e,
 	struct jtag_tap *tap)
 {
@@ -184,7 +173,7 @@ static int arm946e_read_cp15(struct target *target, int reg_addr, uint32_t *valu
 	return ERROR_OK;
 }
 
-int arm946e_write_cp15(struct target *target, int reg_addr, uint32_t value)
+static int arm946e_write_cp15(struct target *target, int reg_addr, uint32_t value)
 {
 	int retval = ERROR_OK;
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
@@ -731,7 +720,7 @@ static const struct command_registration arm946e_exec_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-const struct command_registration arm946e_command_handlers[] = {
+static const struct command_registration arm946e_command_handlers[] = {
 	{
 		.chain = arm9tdmi_command_handlers,
 	},

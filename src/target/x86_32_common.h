@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+
 /*
  * Copyright(c) 2013-2016 Intel Corporation.
  *
@@ -6,19 +8,6 @@
  * Ivan De Cesaris (ivan.de.cesaris@intel.com)
  * Julien Carreno (julien.carreno@intel.com)
  * Jeffrey Maxwell (jeffrey.r.maxwell@intel.com)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Contact Information:
  * Intel Corporation
@@ -159,7 +148,7 @@ enum {
 	PMCR,
 };
 
-#define X86_32_COMMON_MAGIC 0x86328632
+#define X86_32_COMMON_MAGIC 0x86328632U
 
 enum {
 	/* memory read/write */
@@ -211,7 +200,8 @@ struct swbp_mem_patch {
 #define NUM_PM_REGS		18 /* regs used in save/restore */
 
 struct x86_32_common {
-	uint32_t common_magic;
+	unsigned int common_magic;
+
 	void *arch_info;
 	enum x86_core_type core_type;
 	struct reg_cache *cache;

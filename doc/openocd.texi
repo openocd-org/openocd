@@ -19,7 +19,7 @@ dated @value{UPDATED},
 of the Open On-Chip Debugger (OpenOCD).
 
 @itemize @bullet
-@item Copyright @copyright{} 2008 The OpenOCD Project
+@item Copyright @copyright{} 2008-2022 The OpenOCD Project
 @item Copyright @copyright{} 2007-2008 Spencer Oliver @email{spen@@spen-soft.co.uk}
 @item Copyright @copyright{} 2008-2010 Oyvind Harboe @email{oyvind.harboe@@zylin.com}
 @item Copyright @copyright{} 2008 Duane Ellis @email{openocd@@duaneellis.com}
@@ -594,8 +594,8 @@ produced, PDF schematics are easily found and it is easy to make.
 @item @b{vdebug}
 @* A driver for Cadence virtual Debug Interface to emulated or simulated targets.
 It implements a client connecting to the vdebug server, which in turn communicates
-with the emulated or simulated RTL model through a transactor. The current version
-supports only JTAG as a transport, but other virtual transports, like DAP are planned.
+with the emulated or simulated RTL model through a transactor. The driver supports
+JTAG and DAP-level transports.
 
 @item @b{jtag_dpi}
 @* A JTAG driver acting as a client for the SystemVerilog Direct Programming
@@ -612,6 +612,9 @@ emulation model of target hardware.
 @item @b{sysfsgpio}
 @* A bitbang JTAG driver using Linux legacy sysfs GPIO.
 This is deprecated from Linux v5.3; prefer using @b{linuxgpiod}.
+
+@item @b{esp_usb_jtag}
+@* A JTAG driver to communicate with builtin debug modules of Espressif ESP32-C3 and ESP32-S3 chips using OpenOCD.
 
 @end itemize
 
@@ -2409,7 +2412,57 @@ when external configuration (such as jumpering) changes what
 the hardware can support.
 @end deffn
 
+@anchor{adapter gpio}
+@deffn {Config Command} {adapter gpio [ @
+    @option{tdo} | @option{tdi} | @option{tms} | @option{tck} | @option{trst} | @
+    @option{swdio} | @option{swdio_dir} | @option{swclk} | @option{srst} | @
+    @option{led} @
+    [ @
+        gpio_number | @option{-chip} chip_number | @
+        @option{-active-high} | @option{-active-low} | @
+        @option{-push-pull} | @option{-open-drain} | @option{-open-source} | @
+        @option{-pull-none} | @option{-pull-up} | @option{-pull-down} | @
+        @option{-init-inactive} | @option{-init-active} | @option{-init-input} @
+    ] ]}
 
+Define the GPIO mapping that the adapter will use. The following signals can be
+defined:
+
+@itemize @minus
+@item @option{tdo}, @option{tdi}, @option{tms}, @option{tck}, @option{trst}:
+JTAG transport signals
+@item @option{swdio}, @option{swclk}: SWD transport signals
+@item @option{swdio_dir}: optional swdio buffer control signal
+@item @option{srst}: system reset signal
+@item @option{led}: optional activity led
+
+@end itemize
+
+Some adapters require that the GPIO chip number is set in addition to the GPIO
+number. The configuration options enable signals to be defined as active-high or
+active-low. The output drive mode can be set to push-pull, open-drain or
+open-source. Most adapters will have to emulate open-drain or open-source drive
+modes by switching between an input and output. Input and output signals can be
+instructed to use a pull-up or pull-down resistor, assuming it is supported by
+the adaptor driver and hardware. The initial state of outputs may also be set,
+"active" state means 1 for active-high outputs and 0 for active-low outputs.
+Bidirectional signals may also be initialized as an input. If the swdio signal
+is buffered the buffer direction can be controlled with the swdio_dir signal;
+the active state means that the buffer should be set as an output with respect
+to the adapter. The command options are cumulative with later commands able to
+override settings defined by earlier ones. The two commands @command{gpio led 7
+-active-high} and @command{gpio led -chip 1 -active-low} sent sequentially are
+equivalent to issuing the single command @command{gpio led 7 -chip 1
+-active-low}. It is not permissible to set the drive mode or initial state for
+signals which are inputs. The drive mode for the srst and trst signals must be
+set with the @command{adapter reset_config} command. It is not permissible to
+set the initial state of swdio_dir as it is derived from the initial state of
+swdio. The command @command{adapter gpio} prints the current configuration for
+all GPIOs while the command @command{adapter gpio gpio_name} prints the current
+configuration for gpio_name. Not all adapters support this generic GPIO mapping,
+some require their own commands to define the GPIOs used. Adapters that support
+the generic mapping may not support all of the listed options.
+@end deffn
 
 @deffn {Command} {adapter name}
 Returns the name of the debug adapter driver being used.
@@ -3268,65 +3321,11 @@ able to coexist nicely with both sysfs bitbanging and various
 peripherals' kernel drivers. The driver restores the previous
 configuration on exit.
 
-GPIO numbers >= 32 can't be used for performance reasons.
+GPIO numbers >= 32 can't be used for performance reasons. GPIO configuration is
+handled by the generic command @ref{adapter gpio, @command{adapter gpio}}.
 
 See @file{interface/raspberrypi-native.cfg} for a sample config and
 pinout.
-
-@deffn {Config Command} {bcm2835gpio jtag_nums} @var{tck} @var{tms} @var{tdi} @var{tdo}
-Set JTAG transport GPIO numbers for TCK, TMS, TDI, and TDO (in that order).
-Must be specified to enable JTAG transport. These pins can also be specified
-individually.
-@end deffn
-
-@deffn {Config Command} {bcm2835gpio tck_num} @var{tck}
-Set TCK GPIO number. Must be specified to enable JTAG transport. Can also be
-specified using the configuration command @command{bcm2835gpio jtag_nums}.
-@end deffn
-
-@deffn {Config Command} {bcm2835gpio tms_num} @var{tms}
-Set TMS GPIO number. Must be specified to enable JTAG transport. Can also be
-specified using the configuration command @command{bcm2835gpio jtag_nums}.
-@end deffn
-
-@deffn {Config Command} {bcm2835gpio tdo_num} @var{tdo}
-Set TDO GPIO number. Must be specified to enable JTAG transport. Can also be
-specified using the configuration command @command{bcm2835gpio jtag_nums}.
-@end deffn
-
-@deffn {Config Command} {bcm2835gpio tdi_num} @var{tdi}
-Set TDI GPIO number. Must be specified to enable JTAG transport. Can also be
-specified using the configuration command @command{bcm2835gpio jtag_nums}.
-@end deffn
-
-@deffn {Config Command} {bcm2835gpio swd_nums} @var{swclk} @var{swdio}
-Set SWD transport GPIO numbers for SWCLK and SWDIO (in that order). Must be
-specified to enable SWD transport. These pins can also be specified individually.
-@end deffn
-
-@deffn {Config Command} {bcm2835gpio swclk_num} @var{swclk}
-Set SWCLK GPIO number. Must be specified to enable SWD transport. Can also be
-specified using the configuration command @command{bcm2835gpio swd_nums}.
-@end deffn
-
-@deffn {Config Command} {bcm2835gpio swdio_num} @var{swdio}
-Set SWDIO GPIO number. Must be specified to enable SWD transport. Can also be
-specified using the configuration command @command{bcm2835gpio swd_nums}.
-@end deffn
-
-@deffn {Config Command} {bcm2835gpio swdio_dir_num} @var{swdio} @var{dir}
-Set SWDIO direction control pin GPIO number. If specified, this pin can be used
-to control the direction of an external buffer on the SWDIO pin (set=output
-mode, clear=input mode). If not specified, this feature is disabled.
-@end deffn
-
-@deffn {Config Command} {bcm2835gpio srst_num} @var{srst}
-Set SRST GPIO number. Must be specified to enable SRST.
-@end deffn
-
-@deffn {Config Command} {bcm2835gpio trst_num} @var{trst}
-Set TRST GPIO number. Must be specified to enable TRST.
-@end deffn
 
 @deffn {Config Command} {bcm2835gpio speed_coeffs} @var{speed_coeff} @var{speed_offset}
 Set SPEED_COEFF and SPEED_OFFSET for delay calculations. If unspecified,
@@ -3363,171 +3362,28 @@ registers directly. The memory mapping requires read and write permission to
 kernel memory; if /dev/gpiomem exists it will be used, otherwise /dev/mem will
 be used. The driver restores the GPIO state on exit.
 
-All four GPIO ports are available. GPIOs numbered 0 to 31 are mapped to GPIO port
-0, GPIO numbers 32 to 63 are mapped to GPIO port 1 and so on.
-
-See @file{interface/beaglebone-swd-native.cfg} for a sample configuration file.
-
-@deffn {Config Command} {am335xgpio jtag_nums} @var{tck} @var{tms} @var{tdi} @var{tdo}
-Set JTAG transport GPIO numbers for TCK, TMS, TDI, and TDO (in that order).
-Must be specified to enable JTAG transport. These pins can also be specified
-individually.
-@end deffn
-
-@deffn {Config Command} {am335xgpio tck_num} @var{tck}
-Set TCK GPIO number. Must be specified to enable JTAG transport. Can also be
-specified using the configuration command @command{am335xgpio jtag_nums}.
-@end deffn
-
-@deffn {Config Command} {am335xgpio tms_num} @var{tms}
-Set TMS GPIO number. Must be specified to enable JTAG transport. Can also be
-specified using the configuration command @command{am335xgpio jtag_nums}.
-@end deffn
-
-@deffn {Config Command} {am335xgpio tdo_num} @var{tdo}
-Set TDO GPIO number. Must be specified to enable JTAG transport. Can also be
-specified using the configuration command @command{am335xgpio jtag_nums}.
-@end deffn
-
-@deffn {Config Command} {am335xgpio tdi_num} @var{tdi}
-Set TDI GPIO number. Must be specified to enable JTAG transport. Can also be
-specified using the configuration command @command{am335xgpio jtag_nums}.
-@end deffn
-
-@deffn {Config Command} {am335xgpio swd_nums} @var{swclk} @var{swdio}
-Set SWD transport GPIO numbers for SWCLK and SWDIO (in that order). Must be
-specified to enable SWD transport. These pins can also be specified individually.
-@end deffn
-
-@deffn {Config Command} {am335xgpio swclk_num} @var{swclk}
-Set SWCLK GPIO number. Must be specified to enable SWD transport. Can also be
-specified using the configuration command @command{am335xgpio swd_nums}.
-@end deffn
-
-@deffn {Config Command} {am335xgpio swdio_num} @var{swdio}
-Set SWDIO GPIO number. Must be specified to enable SWD transport. Can also be
-specified using the configuration command @command{am335xgpio swd_nums}.
-@end deffn
-
-@deffn {Config Command} {am335xgpio swdio_dir_num} @var{swdio_dir}
-Set SWDIO direction control pin GPIO number. If specified, this pin can be used
-to control the direction of an external buffer on the SWDIO pin. The direction
-control state can be set with the command @command{am335xgpio
-swdio_dir_output_state}. If not specified this feature is disabled.
-@end deffn
-
-@deffn {Config Command} {am335xgpio swdio_dir_output_state} @var{output_state}
-Set the state required for an external SWDIO buffer to be an output. Valid
-values are @option{on} (default) and @option{off}.
-@end deffn
-
-@deffn {Config Command} {am335xgpio srst_num} @var{srst}
-Set SRST GPIO number. Must be specified to enable SRST.
-@end deffn
-
-@deffn {Config Command} {am335xgpio trst_num} @var{trst}
-Set TRST GPIO number. Must be specified to enable TRST.
-@end deffn
-
-@deffn {Config Command} {am335xgpio led_num} @var{led}
-Set activity LED GPIO number. If not specified an activity LED is not enabled.
-@end deffn
-
-@deffn {Config Command} {am335xgpio led_on_state} @var{on_state}
-Set required logic level for the LED to be on. Valid values are @option{on}
-(default) and @option{off}.
-@end deffn
+All four GPIO ports are available. GPIO configuration is handled by the generic
+command @ref{adapter gpio, @command{adapter gpio}}.
 
 @deffn {Config Command} {am335xgpio speed_coeffs} @var{speed_coeff} @var{speed_offset}
 Set SPEED_COEFF and SPEED_OFFSET for delay calculations. If unspecified
 speed_coeff defaults to 600000 and speed_offset defaults to 575.
 @end deffn
 
+See @file{interface/beaglebone-swd-native.cfg} for a sample configuration file.
+
 @end deffn
 
 
 @deffn {Interface Driver} {linuxgpiod}
-Linux provides userspace access to GPIO through libgpiod since Linux kernel version v4.6.
-The driver emulates either JTAG or SWD transport through bitbanging.
+Linux provides userspace access to GPIO through libgpiod since Linux kernel
+version v4.6. The driver emulates either JTAG or SWD transport through
+bitbanging. There are no driver-specific commands, all GPIO configuration is
+handled by the generic command @ref{adapter gpio, @command{adapter gpio}}. This
+driver supports the resistor pull options provided by the @command{adapter gpio}
+command but the underlying hardware may not be able to support them.
 
-See @file{interface/dln-2-gpiod.cfg} for a sample config.
-
-@deffn {Config Command} {linuxgpiod gpiochip} @var{chip}
-Set the GPIO chip number for all GPIOs used by linuxgpiod. If GPIOs use
-different GPIO chips then the individual GPIO configuration commands (i.e., not
-@command{linuxgpiod jtag_nums} or @command{linuxgpiod swd_nums}) can be used to
-set chip numbers independently for each GPIO.
-@end deffn
-
-@deffn {Config Command} {linuxgpiod jtag_nums} @var{tck} @var{tms} @var{tdi} @var{tdo}
-Set JTAG transport GPIO numbers for TCK, TMS, TDI, and TDO (in that order). Must
-be specified to enable JTAG transport. These pins can also be specified
-individually.
-@end deffn
-
-@deffn {Config Command} {linuxgpiod tck_num} [@var{chip}] @var{tck}
-Set TCK GPIO number, and optionally TCK chip number. Must be specified to enable
-JTAG transport. Can also be specified using the configuration command
-@command{linuxgpiod jtag_nums}.
-@end deffn
-
-@deffn {Config Command} {linuxgpiod tms_num} [@var{chip}] @var{tms}
-Set TMS GPIO number, and optionally TMS chip number. Must be specified to enable
-JTAG transport. Can also be specified using the configuration command
-@command{linuxgpiod jtag_nums}.
-@end deffn
-
-@deffn {Config Command} {linuxgpiod tdo_num} [@var{chip}] @var{tdo}
-Set TDO GPIO number, and optionally TDO chip number. Must be specified to enable
-JTAG transport. Can also be specified using the configuration command
-@command{linuxgpiod jtag_nums}.
-@end deffn
-
-@deffn {Config Command} {linuxgpiod tdi_num} [@var{chip}] @var{tdi}
-Set TDI GPIO number, and optionally TDI chip number. Must be specified to enable
-JTAG transport. Can also be specified using the configuration command
-@command{linuxgpiod jtag_nums}.
-@end deffn
-
-@deffn {Config Command} {linuxgpiod trst_num} [@var{chip}] @var{trst}
-Set TRST GPIO number, and optionally TRST chip number. Must be specified to
-enable TRST.
-@end deffn
-
-@deffn {Config Command} {linuxgpiod swd_nums} @var{swclk} @var{swdio}
-Set SWD transport GPIO numbers for SWCLK and SWDIO (in that order). Must be
-specified to enable SWD transport. These pins can also be specified
-individually.
-@end deffn
-
-@deffn {Config Command} {linuxgpiod swclk_num} [@var{chip}] @var{swclk}
-Set SWCLK GPIO number, and optionally SWCLK chip number. Must be specified to
-enable SWD transport. Can also be specified using the configuration command
-@command{linuxgpiod swd_nums}.
-@end deffn
-
-@deffn {Config Command} {linuxgpiod swdio_num} [@var{chip}] @var{swdio}
-Set SWDIO GPIO number, and optionally SWDIO chip number. Must be specified to
-enable SWD transport. Can also be specified using the configuration command
-@command{linuxgpiod swd_nums}.
-@end deffn
-
-@deffn {Config Command} {linuxgpiod swdio_dir_num} [@var{chip}] @var{swdio_dir}
-Set SWDIO direction control GPIO number, and optionally SWDIO direction control
-chip number. If specified, this GPIO can be used to control the direction of an
-external buffer connected to the SWDIO GPIO (set=output mode, clear=input mode).
-@end deffn
-
-@deffn {Config Command} {linuxgpiod srst_num} [@var{chip}] @var{srst}
-Set SRST GPIO number, and optionally SRST chip number. Must be specified to
-enable SRST.
-@end deffn
-
-@deffn {Config Command} {linuxgpiod led_num} [@var{chip}] @var{led}
-Set activity LED GPIO number, and optionally activity LED chip number. If not
-specified an activity LED is not enabled.
-@end deffn
-
+See @file{interface/dln-2-gpiod.cfg} for a sample configuration file.
 @end deffn
 
 
@@ -3672,6 +3528,44 @@ buspirate led 1
 
 @end deffn
 
+@deffn {Interface Driver} {esp_usb_jtag}
+Espressif JTAG driver to communicate with ESP32-C3, ESP32-S3 chips and ESP USB Bridge board using OpenOCD.
+These chips have built-in JTAG circuitry and can be debugged without any additional hardware.
+Only an USB cable connected to the D+/D- pins is necessary.
+
+@deffn {Config Command} {espusbjtag tdo}
+Returns the current state of the TDO line
+@end deffn
+
+@deffn {Config Command} {espusbjtag setio} setio
+Manually set the status of the output lines with the order of (tdi tms tck trst srst)
+@example
+espusbjtag setio 0 1 0 1 0
+@end example
+@end deffn
+
+@deffn {Config Command} {espusbjtag vid_pid} vid_pid
+Set vendor ID and product ID for the ESP usb jtag driver
+@example
+espusbjtag vid_pid 0x303a 0x1001
+@end example
+@end deffn
+
+@deffn {Config Command} {espusbjtag caps_descriptor} caps_descriptor
+Set the jtag descriptor to read capabilities of ESP usb jtag driver
+@example
+espusbjtag caps_descriptor 0x2000
+@end example
+@end deffn
+
+@deffn {Config Command} {espusbjtag chip_id} chip_id
+Set chip id to transfer to the ESP USB bridge board
+@example
+espusbjtag chip_id 1
+@end example
+@end deffn
+
+@end deffn
 
 @section Transport Configuration
 @cindex Transport
@@ -4675,8 +4569,12 @@ There can only be one DAP for each JTAG tap in the system.
 A DAP may also provide optional @var{configparams}:
 
 @itemize @bullet
+@item @code{-adiv5}
+Specify that it's an ADIv5 DAP. This is the default if not specified.
+@item @code{-adiv6}
+Specify that it's an ADIv6 DAP.
 @item @code{-ignore-syspwrupack}
-@*Specify this to ignore the CSYSPWRUPACK bit in the ARM DAP DP CTRL/STAT
+Specify this to ignore the CSYSPWRUPACK bit in the ARM DAP DP CTRL/STAT
 register during initial examination and when checking the sticky error bit.
 This bit is normally checked after setting the CSYSPWRUPREQ bit, but some
 devices do not set the ack bit until sometime later.
@@ -4702,9 +4600,12 @@ This command returns a list of all registered DAP objects. It it useful mainly
 for TCL scripting.
 @end deffn
 
-@deffn {Command} {dap info} [num]
+@deffn {Command} {dap info} [@var{num}|@option{root}]
 Displays the ROM table for MEM-AP @var{num},
 defaulting to the currently selected AP of the currently selected target.
+On ADIv5 DAP @var{num} is the numeric index of the AP.
+On ADIv6 DAP @var{num} is the base address of the AP.
+With ADIv6 only, @option{root} specifies the root ROM table.
 @end deffn
 
 @deffn {Command} {dap init}
@@ -4715,24 +4616,33 @@ initialization, too.
 
 The following commands exist as subcommands of DAP instances:
 
-@deffn {Command} {$dap_name info} [num]
+@deffn {Command} {$dap_name info} [@var{num}|@option{root}]
 Displays the ROM table for MEM-AP @var{num},
 defaulting to the currently selected AP.
+On ADIv5 DAP @var{num} is the numeric index of the AP.
+On ADIv6 DAP @var{num} is the base address of the AP.
+With ADIv6 only, @option{root} specifies the root ROM table.
 @end deffn
 
 @deffn {Command} {$dap_name apid} [num]
 Displays ID register from AP @var{num}, defaulting to the currently selected AP.
+On ADIv5 DAP @var{num} is the numeric index of the AP.
+On ADIv6 DAP @var{num} is the base address of the AP.
 @end deffn
 
 @anchor{DAP subcommand apreg}
 @deffn {Command} {$dap_name apreg} ap_num reg [value]
 Displays content of a register @var{reg} from AP @var{ap_num}
 or set a new value @var{value}.
+On ADIv5 DAP @var{ap_num} is the numeric index of the AP.
+On ADIv6 DAP @var{ap_num} is the base address of the AP.
 @var{reg} is byte address of a word register, 0, 4, 8 ... 0xfc.
 @end deffn
 
 @deffn {Command} {$dap_name apsel} [num]
 Select AP @var{num}, defaulting to 0.
+On ADIv5 DAP @var{num} is the numeric index of the AP.
+On ADIv6 DAP @var{num} is the base address of the AP.
 @end deffn
 
 @deffn {Command} {$dap_name dpreg} reg [value]
@@ -4750,6 +4660,8 @@ background activity by OpenOCD while you are operating at such low-level.
 @deffn {Command} {$dap_name baseaddr} [num]
 Displays debug base address from MEM-AP @var{num},
 defaulting to the currently selected AP.
+On ADIv5 DAP @var{num} is the numeric index of the AP.
+On ADIv6 DAP @var{num} is the base address of the AP.
 @end deffn
 
 @deffn {Command} {$dap_name memaccess} [value]
@@ -4806,6 +4718,10 @@ Set/get quirks mode for TI TMS450/TMS570 processors
 Disabled by default
 @end deffn
 
+@deffn {Config Command} {$dap_name nu_npcx_quirks} [@option{enable}]
+Set/get quirks mode for Nuvoton NPCX/NPCD MCU families
+Disabled by default
+@end deffn
 
 @node CPU Configuration
 @chapter CPU Configuration
@@ -4924,9 +4840,11 @@ compact Thumb2 instruction set. Supports also ARMv6-M and ARMv8-M cores
 @item @code{dsp5680xx} -- implements Freescale's 5680x DSP.
 @item @code{esirisc} -- this is an EnSilica eSi-RISC core.
 The current implementation supports eSi-32xx cores.
+@item @code{esp32} -- this is an Espressif SoC with dual Xtensa cores.
 @item @code{esp32c2} -- this is an Espressif SoC with single RISC-V core.
 @item @code{esp32c3} -- this is an Espressif SoC with single RISC-V core.
 @item @code{esp32s2} -- this is an Espressif SoC with single Xtensa core.
+@item @code{esp32s3} -- this is an Espressif SoC with dual Xtensa cores.
 @item @code{fa526} -- resembles arm920 (w/o Thumb).
 @item @code{feroceon} -- resembles arm926.
 @item @code{hla_target} -- a Cortex-M alternative to work with HL adapters like ST-Link.
@@ -4965,6 +4883,7 @@ And two debug interfaces cores:
 @item @code{testee} -- a dummy target for cases without a real CPU, e.g. CPLD.
 @item @code{xscale} -- this is actually an architecture,
 not a CPU type. It is based on the ARMv5 architecture.
+@item @code{xtensa} -- this is a generic Cadence/Tensilica Xtensa core.
 @end itemize
 @end deffn
 
@@ -5115,7 +5034,7 @@ The value should normally correspond to a static mapping for the
 
 @anchor{rtostype}
 @item @code{-rtos} @var{rtos_type} -- enable rtos support for target,
-@var{rtos_type} can be one of @option{auto}, @option{eCos},
+@var{rtos_type} can be one of @option{auto}, @option{none}, @option{eCos},
 @option{ThreadX}, @option{FreeRTOS}, @option{linux}, @option{ChibiOS},
 @option{embKernel}, @option{mqx}, @option{uCOS-III}, @option{nuttx},
 @option{RIOT}, @option{Zephyr}
@@ -5125,8 +5044,9 @@ The value should normally correspond to a static mapping for the
 scan and after a reset. A manual call to arp_examine is required to
 access the target for debugging.
 
-@item @code{-ap-num} @var{ap_number} -- set DAP access port for target,
-@var{ap_number} is the numeric index of the DAP AP the target is connected to.
+@item @code{-ap-num} @var{ap_number} -- set DAP access port for target.
+On ADIv5 DAP @var{ap_number} is the numeric index of the DAP AP the target is connected to.
+On ADIv6 DAP @var{ap_number} is the base address of the DAP AP the target is connected to.
 Use this option with systems where multiple, independent cores are connected
 to separate access ports of the same DAP.
 
@@ -7453,6 +7373,31 @@ flash bank $_FLASHNAME rp2040_flash $_FLASHBASE $_FLASHSIZE 1 32 $_TARGETNAME
 @end example
 @end deffn
 
+@deffn {Flash Driver} {rsl10}
+Supports Onsemi RSL10 microcontroller flash memory.  Uses functions
+stored in ROM to control flash memory interface.
+
+@example
+flash bank $_FLASHNAME rsl10 $_FLASHBASE $_FLASHSIZE 0 0 $_TARGETNAME
+@end example
+
+@deffn {Command} {rsl10 lock} key1 key2 key3 key4
+Writes @var{key1 key2 key3 key4} words to @var{0x81044 0x81048 0x8104c
+0x8050}. Locks debug port by writing @var{0x4C6F634B} to @var{0x81040}.
+
+To unlock use the @command{rsl10 unlock key1 key2 key3 key4} command.
+@end deffn
+
+@deffn {Command} {rsl10 unlock} key1 key2 key3 key4
+Unlocks debug port, by writing @var{key1 key2 key3 key4} words to
+registers through DAP, and clears @var{0x81040} address in flash to 0x1.
+@end deffn
+
+@deffn {Command} {rsl10 mass_erase}
+Erases all unprotected flash sectors.
+@end deffn
+@end deffn
+
 @deffn {Flash Driver} {sim3x}
 All members of the SiM3 microcontroller family from Silicon Laboratories
 include internal flash and use ARM Cortex-M3 cores. It supports both JTAG
@@ -9476,7 +9421,10 @@ the @emph{cti} group of commands.
 
 @deffn {Command} {cti create} cti_name @option{-dap} dap_name @option{-ap-num} apn @option{-baseaddr} base_address
 Creates a CTI instance @var{cti_name} on the DAP instance @var{dap_name} on MEM-AP
-@var{apn}. The @var{base_address} must match the base address of the CTI
+@var{apn}.
+On ADIv5 DAP @var{apn} is the numeric index of the DAP AP the CTI is connected to.
+On ADIv6 DAP @var{apn} is the base address of the DAP AP the CTI is connected to.
+The @var{base_address} must match the base address of the CTI
 on the respective MEM-AP. All arguments are mandatory. This creates a
 new command @command{$cti_name} which is used for various purposes
 including additional configuration.
@@ -10141,8 +10089,9 @@ using the @command{$tpiu_name cget} command.
 @item @code{-dap} @var{dap_name} -- names the DAP used to access this
 TPIU. @xref{dapdeclaration,,DAP declaration}, on how to create and manage DAP instances.
 
-@item @code{-ap-num} @var{ap_number} -- sets DAP access port for TPIU,
-@var{ap_number} is the numeric index of the DAP AP the TPIU is connected to.
+@item @code{-ap-num} @var{ap_number} -- sets DAP access port for TPIU.
+On ADIv5 DAP @var{ap_number} is the numeric index of the DAP AP the TPIU is connected to.
+On ADIv6 DAP @var{ap_number} is the base address of the DAP AP the TPIU is connected to.
 
 @item @code{-baseaddr} @var{base_address} -- sets the TPIU @var{base_address} where
 to access the TPIU in the DAP AP memory space.
@@ -10708,13 +10657,13 @@ CSRs.
 
 @example
 # Expose a single RISC-V CSR number 128 under the name "csr128":
-$_TARGETNAME expose_csrs 128
+riscv expose_csrs 128
 
 # Expose multiple RISC-V CSRs 128..132 under names "csr128" through "csr132":
-$_TARGETNAME expose_csrs 128-132
+riscv expose_csrs 128-132
 
 # Expose a single RISC-V CSR number 1996 under custom name "csr_myregister":
-$_TARGETNAME expose_csrs 1996=myregister
+riscv expose_csrs 1996=myregister
 @end example
 @end deffn
 
@@ -11146,31 +11095,148 @@ OpenOCD supports debugging STM8 through the STMicroelectronics debug
 protocol SWIM, @pxref{swimtransport,,SWIM}.
 
 @section Xtensa Architecture
-Xtensa processors are based on a modular, highly flexible 32-bit RISC architecture
-that can easily scale from a tiny, cache-less controller or task engine to a high-performance
-SIMD/VLIW DSP provided by Cadence.
-@url{https://www.cadence.com/en_US/home/tools/ip/tensilica-ip/tensilica-xtensa-controllers-and-extensible-processors.html}.
 
-OpenOCD supports generic Xtensa processors implementation which can be customized by
-simply providing vendor-specific core configuration which controls every configurable
+Xtensa is a highly-customizable, user-extensible microprocessor and DSP
+architecture for complex embedded systems provided by Cadence Design
+Systems, Inc. See the
+@uref{https://www.cadence.com/en_US/home/tools/ip/tensilica-ip.html, Tensilica IP}
+website for additional information and documentation.
+
+OpenOCD supports generic Xtensa processor implementations which can be customized by
+providing a core-specific configuration file which describes every enabled
 Xtensa architecture option, e.g. number of address registers, exceptions, reduced
-size instructions support, memory banks configuration etc. Also OpenOCD supports SMP
-configurations for Xtensa processors with any number of cores and allows to configure
-their debug signals interconnection (so-called "break/stall networks") which control how
-debug signals are distributed among cores. Xtensa "break networks" are compatible with
-ARM's Cross Trigger Interface (CTI). For debugging code on Xtensa chips OpenOCD
-uses JTAG protocol. Currently OpenOCD implements several Epsressif Xtensa-based chips of
+size instructions support, memory banks configuration etc. OpenOCD also supports SMP
+configurations for Xtensa processors with any number of cores and allows configuring
+their debug interconnect (termed "break/stall networks"), which control how debug
+signals are distributed among cores. Xtensa "break networks" are compatible with
+ARM's Cross Trigger Interface (CTI). OpenOCD implements both generic Xtensa targets
+as well as several Espressif Xtensa-based chips from the
 @uref{https://www.espressif.com/en/products/socs, ESP32 family}.
 
-@subsection General Xtensa Commands
+OCD sessions for Xtensa processor and DSP targets are accessed via the Xtensa
+Debug Module (XDM), which provides external connectivity either through a
+traditional JTAG interface or an ARM DAP interface. If used, the DAP interface
+can control Xtensa targets through JTAG or SWD probes.
+
+@subsection Xtensa Core Configuration
+
+Due to the high level of configurability in Xtensa cores, the Xtensa target
+configuration comprises two categories:
+
+@enumerate
+@item Base Xtensa support common to all core configurations, and
+@item Core-specific support as configured for individual cores.
+@end enumerate
+
+All common Xtensa support is built into the OpenOCD Xtensa target layer and
+is enabled through a combination of TCL scripts: the target-specific
+@file{target/xtensa.cfg} and a board-specific @file{board/xtensa-*.cfg},
+similar to other target architectures.
+
+Importantly, core-specific configuration information must be provided by
+the user, and takes the form of an @file{xtensa-core-XXX.cfg} TCL script that
+defines the core's configurable features through a series of Xtensa
+configuration commands (detailed below).
+
+This core-specific @file{xtensa-core-XXX.cfg} file is typically either:
+
+@itemize @bullet
+@item Located within the Xtensa core configuration build as
+@file{src/config/xtensa-core-openocd.cfg}, or
+@item Generated by running the command @code{xt-gdb --dump-oocd-config}
+from the Xtensa processor tool-chain's command-line tools.
+@end itemize
+
+NOTE: @file{xtensa-core-XXX.cfg} must match the target Xtensa hardware
+connected to OpenOCD.
+
+Some example Xtensa configurations are bundled with OpenOCD for reference:
+@itemize @bullet
+@item Cadence Palladium VDebug emulation target. The user can combine their
+@file{xtensa-core-XXX.cfg} with the provided
+@file{board/xtensa-palladium-vdebug.cfg} to debug an emulated Xtensa RTL design.
+@item NXP MIMXRT685-EVK evaluation kit. The relevant configuration files are
+@file{board/xtensa-rt685-jlink.cfg} and @file{board/xtensa-core-nxp_rt600.cfg}.
+Additional information is provided by
+@uref{https://www.nxp.com/design/development-boards/i-mx-evaluation-and-development-boards/i-mx-rt600-evaluation-kit:MIMXRT685-EVK,
+NXP}.
+@end itemize
+
+@subsection Xtensa Configuration Commands
+
+@deffn {Command} {xtensa xtdef} (@option{LX}|@option{NX})
+Configure the Xtensa target architecture. Currently, Xtensa support is limited
+to LX6, LX7, and NX cores.
+@end deffn
+
+@deffn {Command} {xtensa xtopt} option value
+Configure Xtensa target options that are relevant to the debug subsystem.
+@var{option} is one of: @option{arnum}, @option{windowed},
+@option{cpenable}, @option{exceptions}, @option{intnum}, @option{hipriints},
+@option{excmlevel}, @option{intlevels}, @option{debuglevel},
+@option{ibreaknum}, or @option{dbreaknum}. @var{value} is an integer with
+the exact range determined by each particular option.
+
+NOTE: Some options are specific to Xtensa LX or Xtensa NX architecture, while
+others may be common to both but have different valid ranges.
+@end deffn
+
+@deffn {Command} {xtensa xtmem} (@option{iram}|@option{dram}|@option{sram}|@option{irom}|@option{drom}|@option{srom}) baseaddr bytes
+Configure Xtensa target memory. Memory type determines access rights,
+where RAMs are read/write while ROMs are read-only. @var{baseaddr} and
+@var{bytes} are both integers, typically hexadecimal and decimal, respectively.
+@end deffn
+
+@deffn {Command} {xtensa xtmem} (@option{icache}|@option{dcache}) linebytes cachebytes ways [writeback]
+Configure Xtensa processor cache. All parameters are required except for
+the optional @option{writeback} parameter; all are integers.
+@end deffn
+
+@deffn {Command} {xtensa xtmpu} numfgseg minsegsz lockable execonly
+Configure an Xtensa Memory Protection Unit (MPU). MPUs can restrict access
+and/or control cacheability of specific address ranges, but are lighter-weight
+than a full traditional MMU. All parameters are required; all are integers.
+@end deffn
+
+@deffn {Command} {xtensa xtmmu} numirefillentries numdrefillentries
+(Xtensa-LX only) Configure an Xtensa Memory Management Unit (MMU). Both
+parameters are required; both are integers.
+@end deffn
+
+@deffn {Command} {xtensa xtregs} numregs
+Configure the total number of registers for the Xtensa core. Configuration
+logic expects to subsequently process this number of @code{xtensa xtreg}
+definitions. @var{numregs} is an integer.
+@end deffn
+
+@deffn {Command} {xtensa xtregfmt} (@option{sparse}|@option{contiguous}) [general]
+Configure the type of register map used by GDB to access the Xtensa core.
+Generic Xtensa tools (e.g. xt-gdb) require @option{sparse} mapping (default) while
+Espressif tools expect @option{contiguous} mapping. Contiguous mapping takes an
+additional, optional integer parameter @option{numgregs}, which specifies the number
+of general registers used in handling g/G packets.
+@end deffn
+
+@deffn {Command} {xtensa xtreg} name offset
+Configure an Xtensa core register. All core registers are 32 bits wide,
+while TIE and user registers may have variable widths. @var{name} is a
+character string identifier while @var{offset} is a hexadecimal integer.
+@end deffn
+
+@subsection Xtensa Operation Commands
+
+@deffn {Command} {xtensa maskisr} (@option{on}|@option{off})
+(Xtensa-LX only) Mask or unmask Xtensa interrupts during instruction step.
+When masked, an interrupt that occurs during a step operation is handled and
+its ISR is executed, with the user's debug session returning after potentially
+executing many instructions. When unmasked, a triggered interrupt will result
+in execution progressing the requested number of instructions into the relevant
+vector/ISR code.
+@end deffn
 
 @deffn {Command} {xtensa set_permissive} (0|1)
 By default accessing memory beyond defined regions is forbidden. This commnd controls memory access address check.
 When set to (1), skips access controls and address range check before read/write memory.
-@end deffn
-
-@deffn {Command} {xtensa maskisr} (on|off)
-Selects whether interrupts will be disabled during stepping over single instruction. The default configuration is (off).
 @end deffn
 
 @deffn {Command} {xtensa smpbreak} [none|breakinout|runstall] | [BreakIn] [BreakOut] [RunStallIn] [DebugModeOut]
@@ -11196,6 +11262,13 @@ This feature is not well implemented and tested yet.
 @end itemize
 @end deffn
 
+@deffn {Command} {xtensa exe} <ascii-encoded hexadecimal instruction bytes>
+Execute arbitrary instruction(s) provided as an ascii string.  The string represents an integer
+number of instruction bytes, thus its length must be even.
+@end deffn
+
+@subsection Xtensa Performance Monitor Configuration
+
 @deffn {Command} {xtensa perfmon_enable} <counter_id> <select> [mask] [kernelcnt] [tracelevel]
 Enable and start performance counter.
 @itemize @bullet
@@ -11214,6 +11287,8 @@ whether to count.
 @deffn {Command} {xtensa perfmon_dump} (counter_id)
 Dump performance counter value. If no argument specified, dumps all counters.
 @end deffn
+
+@subsection Xtensa Trace Configuration
 
 @deffn {Command} {xtensa tracestart} [pc <pcval>/[<maskbitcount>]] [after <n> [ins|words]]
 Set up and start a HW trace. Optionally set PC address range to trigger tracing stop when reached during program execution.
@@ -11965,6 +12040,11 @@ Currently supported rtos's include:
 @item @option{hwthread} (This is not an actual RTOS. @xref{usingopenocdsmpwithgdb,,Using OpenOCD SMP with GDB}.)
 @item @option{Zephyr}
 @end itemize
+
+At any time, it's possible to drop the selected RTOS using:
+@example
+$_TARGETNAME configure -rtos none
+@end example
 
 Before an RTOS can be detected, it must export certain symbols; otherwise, it cannot
 be used by OpenOCD. Below is a list of the required symbols for each supported RTOS.

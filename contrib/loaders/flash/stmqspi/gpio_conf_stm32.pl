@@ -1,4 +1,6 @@
 #!/usr/bin/perl
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 #
 # Helper for generating GPIO setup for STM32F0, F4, F7, H7, L0, L1, L4, L4+
 # and F1 (for 'stmqspi' and 'cmspi' drivers).

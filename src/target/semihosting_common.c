@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /***************************************************************************
  *   Copyright (C) 2018 by Liviu Ionescu                                   *
  *   <ilg@livius.net>                                                      *
@@ -10,19 +12,6 @@
  *                                                                         *
  *   Copyright (C) 2016 by Square, Inc.                                    *
  *   Steven Stallion <stallion@squareup.com>                               *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
 /**
@@ -103,16 +92,6 @@ static int semihosting_common_fileio_info(struct target *target,
 static int semihosting_common_fileio_end(struct target *target, int result,
 	int fileio_errno, bool ctrl_c);
 
-static int semihosting_read_fields(struct target *target, size_t number,
-	uint8_t *fields);
-static int semihosting_write_fields(struct target *target, size_t number,
-	uint8_t *fields);
-static uint64_t semihosting_get_field(struct target *target, size_t index,
-	uint8_t *fields);
-static void semihosting_set_field(struct target *target, uint64_t value,
-	size_t index,
-	uint8_t *fields);
-
 /* Attempts to include gdb_server.h failed. */
 extern int gdb_actual_connections;
 
@@ -166,6 +145,7 @@ int semihosting_common_init(struct target *target, void *setup,
 
 	semihosting->setup = setup;
 	semihosting->post_result = post_result;
+	semihosting->user_command_extension = NULL;
 
 	target->semihosting = semihosting;
 
@@ -426,7 +406,7 @@ int semihosting_common(struct target *target)
 				} else {
 					semihosting->result = close(fd);
 					semihosting->sys_errno = errno;
-					LOG_DEBUG("close(%d)=%d", fd, (int)semihosting->result);
+					LOG_DEBUG("close(%d)=%" PRId64, fd, semihosting->result);
 				}
 			}
 			break;
@@ -651,10 +631,10 @@ int semihosting_common(struct target *target)
 				semihosting->result = fstat(fd, &buf);
 				if (semihosting->result == -1) {
 					semihosting->sys_errno = errno;
-					LOG_DEBUG("fstat(%d)=%d", fd, (int)semihosting->result);
+					LOG_DEBUG("fstat(%d)=%" PRId64, fd, semihosting->result);
 					break;
 				}
-				LOG_DEBUG("fstat(%d)=%d", fd, (int)semihosting->result);
+				LOG_DEBUG("fstat(%d)=%" PRId64, fd, semihosting->result);
 				semihosting->result = buf.st_size;
 			}
 			break;
@@ -711,8 +691,7 @@ int semihosting_common(struct target *target)
 					if (retval != ERROR_OK)
 						return retval;
 				}
-				LOG_DEBUG("SYS_GET_CMDLINE=[%s],%d", arg,
-					(int)semihosting->result);
+				LOG_DEBUG("SYS_GET_CMDLINE=[%s], %" PRId64, arg, semihosting->result);
 			}
 			break;
 
@@ -804,7 +783,7 @@ int semihosting_common(struct target *target)
 				int fd = semihosting_get_field(target, 0, fields);
 				semihosting->result = isatty(fd);
 				semihosting->sys_errno = errno;
-				LOG_DEBUG("isatty(%d)=%d", fd, (int)semihosting->result);
+				LOG_DEBUG("isatty(%d)=%" PRId64, fd, semihosting->result);
 			}
 			break;
 
@@ -877,9 +856,11 @@ int semihosting_common(struct target *target)
 					semihosting->result = -1;
 					semihosting->sys_errno = ENOMEM;
 				} else {
-					strncpy((char *)fn, semihosting->basedir, basedir_len);
-					if (fn[basedir_len - 1] != '/')
-						fn[basedir_len++] = '/';
+					if (basedir_len > 0) {
+						strcpy((char *)fn, semihosting->basedir);
+						if (fn[basedir_len - 1] != '/')
+							fn[basedir_len++] = '/';
+					}
 					retval = target_read_memory(target, addr, 1, len, fn + basedir_len);
 					if (retval != ERROR_OK) {
 						free(fn);
@@ -920,22 +901,19 @@ int semihosting_common(struct target *target)
 								semihosting->result = fd;
 								semihosting->stdin_fd = fd;
 								semihosting->sys_errno = errno;
-								LOG_DEBUG("dup(STDIN)=%d",
-									(int)semihosting->result);
+								LOG_DEBUG("dup(STDIN)=%" PRId64, semihosting->result);
 							} else if (mode < 8) {
 								int fd = dup(STDOUT_FILENO);
 								semihosting->result = fd;
 								semihosting->stdout_fd = fd;
 								semihosting->sys_errno = errno;
-								LOG_DEBUG("dup(STDOUT)=%d",
-									(int)semihosting->result);
+								LOG_DEBUG("dup(STDOUT)=%" PRId64, semihosting->result);
 							} else {
 								int fd = dup(STDERR_FILENO);
 								semihosting->result = fd;
 								semihosting->stderr_fd = fd;
 								semihosting->sys_errno = errno;
-								LOG_DEBUG("dup(STDERR)=%d",
-									(int)semihosting->result);
+								LOG_DEBUG("dup(STDERR)=%" PRId64, semihosting->result);
 							}
 						} else {
 							/* cygwin requires the permission setting
@@ -945,8 +923,7 @@ int semihosting_common(struct target *target)
 									open_host_modeflags[mode],
 									0644);
 							semihosting->sys_errno = errno;
-							LOG_DEBUG("open('%s')=%d", fn,
-								(int)semihosting->result);
+							LOG_DEBUG("open('%s')=%" PRId64, fn, semihosting->result);
 						}
 					}
 					free(fn);
@@ -1009,11 +986,11 @@ int semihosting_common(struct target *target)
 						semihosting->sys_errno = ENOMEM;
 					} else {
 						semihosting->result = semihosting_read(semihosting, fd, buf, len);
-						LOG_DEBUG("read(%d, 0x%" PRIx64 ", %zu)=%d",
+						LOG_DEBUG("read(%d, 0x%" PRIx64 ", %zu)=%" PRId64,
 							fd,
 							addr,
 							len,
-							(int)semihosting->result);
+							semihosting->result);
 						if (semihosting->result >= 0) {
 							retval = target_write_buffer(target, addr,
 									semihosting->result,
@@ -1049,7 +1026,7 @@ int semihosting_common(struct target *target)
 				return ERROR_FAIL;
 			}
 			semihosting->result = semihosting_getchar(semihosting, semihosting->stdin_fd);
-			LOG_DEBUG("getchar()=%d", (int)semihosting->result);
+			LOG_DEBUG("getchar()=%" PRId64, semihosting->result);
 			break;
 
 		case SEMIHOSTING_SYS_REMOVE:	/* 0x0E */
@@ -1095,8 +1072,7 @@ int semihosting_common(struct target *target)
 						fn[len] = 0;
 						semihosting->result = remove((char *)fn);
 						semihosting->sys_errno = errno;
-						LOG_DEBUG("remove('%s')=%d", fn,
-							(int)semihosting->result);
+						LOG_DEBUG("remove('%s')=%" PRId64, fn, semihosting->result);
 
 						free(fn);
 					}
@@ -1165,9 +1141,7 @@ int semihosting_common(struct target *target)
 						semihosting->result = rename((char *)fn1,
 								(char *)fn2);
 						semihosting->sys_errno = errno;
-						LOG_DEBUG("rename('%s', '%s')=%d", fn1, fn2,
-							(int)semihosting->result);
-
+						LOG_DEBUG("rename('%s', '%s')=%" PRId64 " %d", fn1, fn2, semihosting->result, errno);
 						free(fn1);
 						free(fn2);
 					}
@@ -1212,8 +1186,7 @@ int semihosting_common(struct target *target)
 				} else {
 					semihosting->result = lseek(fd, pos, SEEK_SET);
 					semihosting->sys_errno = errno;
-					LOG_DEBUG("lseek(%d, %d)=%d", fd, (int)pos,
-						(int)semihosting->result);
+					LOG_DEBUG("lseek(%d, %d)=%" PRId64, fd, (int)pos, semihosting->result);
 					if (semihosting->result == pos)
 						semihosting->result = 0;
 				}
@@ -1272,9 +1245,7 @@ int semihosting_common(struct target *target)
 							cmd[len] = 0;
 							semihosting->result = system(
 									(const char *)cmd);
-							LOG_DEBUG("system('%s')=%d",
-								cmd,
-								(int)semihosting->result);
+							LOG_DEBUG("system('%s')=%" PRId64, cmd, semihosting->result);
 						}
 
 						free(cmd);
@@ -1353,11 +1324,11 @@ int semihosting_common(struct target *target)
 						}
 						semihosting->result = semihosting_write(semihosting, fd, buf, len);
 						semihosting->sys_errno = errno;
-						LOG_DEBUG("write(%d, 0x%" PRIx64 ", %zu)=%d",
+						LOG_DEBUG("write(%d, 0x%" PRIx64 ", %zu)=%" PRId64,
 							fd,
 							addr,
 							len,
-							(int)semihosting->result);
+							semihosting->result);
 						if (semihosting->result >= 0) {
 							/* The number of bytes that are NOT written.
 							 * */
@@ -1446,7 +1417,7 @@ int semihosting_common(struct target *target)
 			}
 			break;
 
-		case SEMIHOSTING_USER_CMD_0x100 ... SEMIHOSTING_USER_CMD_0x107:
+		case SEMIHOSTING_USER_CMD_0X100 ... SEMIHOSTING_USER_CMD_0X107:
 			/**
 			 * This is a user defined operation (while user cmds 0x100-0x1ff
 			 * are possible, only 0x100-0x107 are currently implemented).
@@ -1465,9 +1436,14 @@ int semihosting_common(struct target *target)
 			 * Return
 			 * On exit, the RETURN REGISTER contains the return status.
 			 */
-		{
-			assert(!semihosting_user_op_params);
+			if (semihosting->user_command_extension) {
+				retval = semihosting->user_command_extension(target);
+				if (retval != ERROR_NOT_IMPLEMENTED)
+					break;
+				/* If custom user command not handled, we are looking for the TCL handler */
+			}
 
+			assert(!semihosting_user_op_params);
 			retval = semihosting_read_fields(target, 2, fields);
 			if (retval != ERROR_OK) {
 				LOG_ERROR("Failed to read fields for user defined command"
@@ -1505,11 +1481,8 @@ int semihosting_common(struct target *target)
 			target_handle_event(target, semihosting->op);
 			free(semihosting_user_op_params);
 			semihosting_user_op_params = NULL;
-
 			semihosting->result = 0;
 			break;
-		}
-
 
 		case SEMIHOSTING_SYS_ELAPSED:	/* 0x30 */
 		/*
@@ -1646,17 +1619,11 @@ static int semihosting_common_fileio_end(struct target *target, int result,
 	 */
 	switch (semihosting->op) {
 		case SEMIHOSTING_SYS_WRITE:	/* 0x05 */
-			if (result < 0)
-				semihosting->result = fileio_info->param_3;
-			else
-				semihosting->result = 0;
-			break;
-
 		case SEMIHOSTING_SYS_READ:	/* 0x06 */
-			if (result == (int)fileio_info->param_3)
-				semihosting->result = 0;
-			if (result <= 0)
-				semihosting->result = fileio_info->param_3;
+			if (result < 0)
+				semihosting->result = fileio_info->param_3;  /* Zero bytes read/written. */
+			else
+				semihosting->result = (int64_t)fileio_info->param_3 - result;
 			break;
 
 		case SEMIHOSTING_SYS_SEEK:	/* 0x0a */
@@ -1668,10 +1635,13 @@ static int semihosting_common_fileio_end(struct target *target, int result,
 	return semihosting->post_result(target);
 }
 
+/* -------------------------------------------------------------------------
+ * Utility functions. */
+
 /**
  * Read all fields of a command from target to buffer.
  */
-static int semihosting_read_fields(struct target *target, size_t number,
+int semihosting_read_fields(struct target *target, size_t number,
 	uint8_t *fields)
 {
 	struct semihosting *semihosting = target->semihosting;
@@ -1683,7 +1653,7 @@ static int semihosting_read_fields(struct target *target, size_t number,
 /**
  * Write all fields of a command from buffer to target.
  */
-static int semihosting_write_fields(struct target *target, size_t number,
+int semihosting_write_fields(struct target *target, size_t number,
 	uint8_t *fields)
 {
 	struct semihosting *semihosting = target->semihosting;
@@ -1695,7 +1665,7 @@ static int semihosting_write_fields(struct target *target, size_t number,
 /**
  * Extract a field from the buffer, considering register size and endianness.
  */
-static uint64_t semihosting_get_field(struct target *target, size_t index,
+uint64_t semihosting_get_field(struct target *target, size_t index,
 	uint8_t *fields)
 {
 	struct semihosting *semihosting = target->semihosting;
@@ -1708,7 +1678,7 @@ static uint64_t semihosting_get_field(struct target *target, size_t index,
 /**
  * Store a field in the buffer, considering register size and endianness.
  */
-static void semihosting_set_field(struct target *target, uint64_t value,
+void semihosting_set_field(struct target *target, uint64_t value,
 	size_t index,
 	uint8_t *fields)
 {
@@ -1832,7 +1802,7 @@ COMMAND_HANDLER(handle_common_semihosting_redirect_command)
 {
 	struct target *target = get_current_target(CMD_CTX);
 
-	if (target == NULL) {
+	if (!target) {
 		LOG_ERROR("No target selected");
 		return ERROR_FAIL;
 	}

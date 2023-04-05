@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /***************************************************************************
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
@@ -7,19 +9,6 @@
  *                                                                         *
  *   Copyright (C) 2011 by Clement Burin des Roziers                       *
  *   clement.burin-des-roziers@hikob.com                                   *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
 #ifdef HAVE_CONFIG_H
@@ -152,7 +141,7 @@ static const struct stm32lx_rev stm32_429_revs[] = {
 	{ 0x1000, "A" }, { 0x1018, "Z" },
 };
 static const struct stm32lx_rev stm32_436_revs[] = {
-	{ 0x1000, "A" }, { 0x1008, "Z" }, { 0x1018, "Y" },
+	{ 0x1000, "A" }, { 0x1008, "Z" }, { 0x1018, "Y" }, { 0x1038, "X" },
 };
 static const struct stm32lx_rev stm32_437_revs[] = {
 	{ 0x1000, "A" },

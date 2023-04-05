@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /***************************************************************************
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
@@ -10,19 +12,6 @@
  *                                                                         *
  *   Copyright (C) 2018 by Liviu Ionescu                                   *
  *   <ilg@livius.net>                                                      *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
 #ifdef HAVE_CONFIG_H
@@ -546,7 +535,7 @@ static struct reg_feature arm_gdb_dummy_fp_features = {
  * Modern ARM cores use Vector Floating Point (VFP), if they
  * have any floating point support.  VFP is not FPA-compatible.
  */
-struct reg arm_gdb_dummy_fp_reg = {
+static struct reg arm_gdb_dummy_fp_reg = {
 	.name = "GDB dummy FPA register",
 	.value = (uint8_t *) arm_gdb_dummy_fp_value,
 	.valid = true,
@@ -563,7 +552,7 @@ static const uint8_t arm_gdb_dummy_fps_value[4];
  * Dummy FPA status registers are required to support GDB on ARM.
  * Register packets require an obsolete FPA status register.
  */
-struct reg arm_gdb_dummy_fps_reg = {
+static struct reg arm_gdb_dummy_fps_reg = {
 	.name = "GDB dummy FPA status register",
 	.value = (uint8_t *) arm_gdb_dummy_fps_value,
 	.valid = true,
@@ -916,32 +905,33 @@ COMMAND_HANDLER(handle_armv4_5_reg_command)
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(handle_armv4_5_core_state_command)
+COMMAND_HANDLER(handle_arm_core_state_command)
 {
 	struct target *target = get_current_target(CMD_CTX);
 	struct arm *arm = target_to_arm(target);
+	int ret = ERROR_OK;
 
 	if (!is_arm(arm)) {
 		command_print(CMD, "current target isn't an ARM");
 		return ERROR_FAIL;
 	}
 
-	if (arm->core_type == ARM_CORE_TYPE_M_PROFILE) {
-		/* armv7m not supported */
-		command_print(CMD, "Unsupported Command");
-		return ERROR_OK;
-	}
-
 	if (CMD_ARGC > 0) {
-		if (strcmp(CMD_ARGV[0], "arm") == 0)
-			arm->core_state = ARM_STATE_ARM;
+		if (strcmp(CMD_ARGV[0], "arm") == 0) {
+			if (arm->core_type == ARM_CORE_TYPE_M_PROFILE) {
+				command_print(CMD, "arm mode not supported on Cortex-M");
+				ret = ERROR_FAIL;
+			} else {
+				arm->core_state = ARM_STATE_ARM;
+			}
+		}
 		if (strcmp(CMD_ARGV[0], "thumb") == 0)
 			arm->core_state = ARM_STATE_THUMB;
 	}
 
 	command_print(CMD, "core state: %s", arm_state_strings[arm->core_state]);
 
-	return ERROR_OK;
+	return ret;
 }
 
 COMMAND_HANDLER(handle_arm_disassemble_command)
@@ -1127,8 +1117,6 @@ static int jim_mcrmrc(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
 	return JIM_OK;
 }
 
-extern const struct command_registration semihosting_common_handlers[];
-
 static const struct command_registration arm_exec_command_handlers[] = {
 	{
 		.name = "reg",
@@ -1136,20 +1124,6 @@ static const struct command_registration arm_exec_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.help = "display ARM core registers",
 		.usage = "",
-	},
-	{
-		.name = "core_state",
-		.handler = handle_armv4_5_core_state_command,
-		.mode = COMMAND_EXEC,
-		.usage = "['arm'|'thumb']",
-		.help = "display/change ARM core state",
-	},
-	{
-		.name = "disassemble",
-		.handler = handle_arm_disassemble_command,
-		.mode = COMMAND_EXEC,
-		.usage = "address [count ['thumb']]",
-		.help = "disassemble instructions",
 	},
 	{
 		.name = "mcr",
@@ -1166,10 +1140,32 @@ static const struct command_registration arm_exec_command_handlers[] = {
 		.usage = "cpnum op1 CRn CRm op2",
 	},
 	{
+		.chain = arm_all_profiles_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+const struct command_registration arm_all_profiles_command_handlers[] = {
+	{
+		.name = "core_state",
+		.handler = handle_arm_core_state_command,
+		.mode = COMMAND_EXEC,
+		.usage = "['arm'|'thumb']",
+		.help = "display/change ARM core state",
+	},
+	{
+		.name = "disassemble",
+		.handler = handle_arm_disassemble_command,
+		.mode = COMMAND_EXEC,
+		.usage = "address [count ['thumb']]",
+		.help = "disassemble instructions",
+	},
+	{
 		.chain = semihosting_common_handlers,
 	},
 	COMMAND_REGISTRATION_DONE
 };
+
 const struct command_registration arm_command_handlers[] = {
 	{
 		.name = "arm",

@@ -1,19 +1,8 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+
 /***************************************************************************
  *   Copyright (C) 2005 by Dominic Rath                                    *
  *   Dominic.Rath@gmx.de                                                   *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 
 #ifndef OPENOCD_TARGET_ARM720T_H
@@ -22,11 +11,12 @@
 #include "arm7tdmi.h"
 #include "armv4_5_mmu.h"
 
-#define	ARM720T_COMMON_MAGIC 0xa720a720
+#define	ARM720T_COMMON_MAGIC 0xa720a720U
 
 struct arm720t_common {
+	unsigned int common_magic;
+
 	struct arm7_9_common arm7_9_common;
-	uint32_t common_magic;
 	struct armv4_5_mmu_common armv4_5_mmu;
 	uint32_t cp15_control_reg;
 	uint32_t fsr_reg;

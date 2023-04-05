@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 noinst_LTLIBRARIES += %D%/libflash.la
 %C%_libflash_la_SOURCES = \
 	%D%/common.c %D%/common.h
