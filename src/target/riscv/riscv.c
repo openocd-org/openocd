@@ -1984,7 +1984,7 @@ static int riscv_address_translate(struct target *target,
 		if (!(pte & PTE_V) || (!(pte & PTE_R) && (pte & PTE_W)))
 			return ERROR_FAIL;
 
-		if ((pte & PTE_R) || (pte & PTE_X)) /* Found leaf PTE. */
+		if ((pte & PTE_R) || (pte & PTE_W) || (pte & PTE_X)) /* Found leaf PTE. */
 			break;
 
 		i--;
