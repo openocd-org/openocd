@@ -410,7 +410,7 @@ static int xtensa_core_reg_get(struct reg *reg)
 		return ERROR_TARGET_NOT_HALTED;
 	if (!reg->exist) {
 		if (strncmp(reg->name, "?0x", 3) == 0) {
-			unsigned int regnum = strtoul(reg->name + 1, 0, 0);
+			unsigned int regnum = strtoul(reg->name + 1, NULL, 0);
 			LOG_WARNING("Read unknown register 0x%04x ignored", regnum);
 			return ERROR_OK;
 		}
@@ -430,7 +430,7 @@ static int xtensa_core_reg_set(struct reg *reg, uint8_t *buf)
 
 	if (!reg->exist) {
 		if (strncmp(reg->name, "?0x", 3) == 0) {
-			unsigned int regnum = strtoul(reg->name + 1, 0, 0);
+			unsigned int regnum = strtoul(reg->name + 1, NULL, 0);
 			LOG_WARNING("Write unknown register 0x%04x ignored", regnum);
 			return ERROR_OK;
 		}

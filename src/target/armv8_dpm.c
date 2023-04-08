@@ -274,7 +274,7 @@ static int dpmv8_instr_write_data_dcc(struct arm_dpm *dpm,
 	if (retval != ERROR_OK)
 		return retval;
 
-	return dpmv8_exec_opcode(dpm, opcode, 0);
+	return dpmv8_exec_opcode(dpm, opcode, NULL);
 }
 
 static int dpmv8_instr_write_data_dcc_64(struct arm_dpm *dpm,
@@ -287,7 +287,7 @@ static int dpmv8_instr_write_data_dcc_64(struct arm_dpm *dpm,
 	if (retval != ERROR_OK)
 		return retval;
 
-	return dpmv8_exec_opcode(dpm, opcode, 0);
+	return dpmv8_exec_opcode(dpm, opcode, NULL);
 }
 
 static int dpmv8_instr_write_data_r0(struct arm_dpm *dpm,
