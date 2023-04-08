@@ -411,9 +411,13 @@ COMMAND_HANDLER(parport_handle_parport_cable_command)
 		return ERROR_OK;
 
 	/* only if the cable name wasn't overwritten by cmdline */
-	if (parport_cable == 0) {
+	if (!parport_cable) {
 		/* REVISIT first verify that it's listed in cables[] ... */
 		parport_cable = malloc(strlen(CMD_ARGV[0]) + sizeof(char));
+		if (!parport_cable) {
+			LOG_ERROR("Out of memory");
+			return ERROR_FAIL;
+		}
 		strcpy(parport_cable, CMD_ARGV[0]);
 	}
 

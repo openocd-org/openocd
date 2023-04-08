@@ -313,7 +313,7 @@ struct mpsse_ctx *mpsse_open(const uint16_t vids[], const uint16_t pids[], const
 	int err;
 
 	if (!ctx)
-		return 0;
+		return NULL;
 
 	bit_copy_queue_init(&ctx->read_queue);
 	ctx->read_chunk_size = 16384;
@@ -348,7 +348,7 @@ struct mpsse_ctx *mpsse_open(const uint16_t vids[], const uint16_t pids[], const
 				description ? description : "*",
 				serial ? serial : "*",
 				location ? location : "*");
-		ctx->usb_dev = 0;
+		ctx->usb_dev = NULL;
 		goto error;
 	}
 
@@ -378,7 +378,7 @@ struct mpsse_ctx *mpsse_open(const uint16_t vids[], const uint16_t pids[], const
 	return ctx;
 error:
 	mpsse_close(ctx);
-	return 0;
+	return NULL;
 }
 
 void mpsse_close(struct mpsse_ctx *ctx)
@@ -465,13 +465,13 @@ static unsigned buffer_add_read(struct mpsse_ctx *ctx, uint8_t *in, unsigned in_
 void mpsse_clock_data_out(struct mpsse_ctx *ctx, const uint8_t *out, unsigned out_offset,
 	unsigned length, uint8_t mode)
 {
-	mpsse_clock_data(ctx, out, out_offset, 0, 0, length, mode);
+	mpsse_clock_data(ctx, out, out_offset, NULL, 0, length, mode);
 }
 
 void mpsse_clock_data_in(struct mpsse_ctx *ctx, uint8_t *in, unsigned in_offset, unsigned length,
 	uint8_t mode)
 {
-	mpsse_clock_data(ctx, 0, 0, in, in_offset, length, mode);
+	mpsse_clock_data(ctx, NULL, 0, in, in_offset, length, mode);
 }
 
 void mpsse_clock_data(struct mpsse_ctx *ctx, const uint8_t *out, unsigned out_offset, uint8_t *in,
@@ -548,7 +548,7 @@ void mpsse_clock_data(struct mpsse_ctx *ctx, const uint8_t *out, unsigned out_of
 void mpsse_clock_tms_cs_out(struct mpsse_ctx *ctx, const uint8_t *out, unsigned out_offset,
 	unsigned length, bool tdi, uint8_t mode)
 {
-	mpsse_clock_tms_cs(ctx, out, out_offset, 0, 0, length, tdi, mode);
+	mpsse_clock_tms_cs(ctx, out, out_offset, NULL, 0, length, tdi, mode);
 }
 
 void mpsse_clock_tms_cs(struct mpsse_ctx *ctx, const uint8_t *out, unsigned out_offset, uint8_t *in,
@@ -842,7 +842,7 @@ int mpsse_flush(struct mpsse_ctx *ctx)
 	if (ctx->write_count == 0)
 		return retval;
 
-	struct libusb_transfer *read_transfer = 0;
+	struct libusb_transfer *read_transfer = NULL;
 	struct transfer_result read_result = { .ctx = ctx, .done = true };
 	if (ctx->read_count) {
 		buffer_write_byte(ctx, 0x87); /* SEND_IMMEDIATE */

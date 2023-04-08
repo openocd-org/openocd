@@ -181,7 +181,7 @@ static int ftdi_set_signal(const struct signal *s, char value)
 		oe = s->invert_oe;
 		break;
 	default:
-		assert(0 && "invalid signal level specifier");
+		LOG_ERROR("invalid signal level specifier \'%c\'(0x%02x)", value, value);
 		return ERROR_FAIL;
 	}
 

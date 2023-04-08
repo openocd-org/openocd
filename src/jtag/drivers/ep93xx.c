@@ -58,7 +58,7 @@ struct adapter_driver ep93xx_adapter_driver = {
 static struct bitbang_interface ep93xx_bitbang = {
 	.read = ep93xx_read,
 	.write = ep93xx_write,
-	.blink = 0,
+	.blink = NULL,
 };
 
 static bb_value_t ep93xx_read(void)
