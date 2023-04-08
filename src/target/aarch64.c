@@ -588,7 +588,7 @@ static int aarch64_restore_one(struct target *target, int current,
 			resume_pc &= 0xFFFFFFFC;
 			break;
 		case ARM_STATE_AARCH64:
-			resume_pc &= 0xFFFFFFFFFFFFFFFC;
+			resume_pc &= 0xFFFFFFFFFFFFFFFCULL;
 			break;
 		case ARM_STATE_THUMB:
 		case ARM_STATE_THUMB_EE:
@@ -1248,7 +1248,7 @@ static int aarch64_set_breakpoint(struct target *target,
 			| (byte_addr_select << 5)
 			| (3 << 1) | 1;
 		brp_list[brp_i].used = 1;
-		brp_list[brp_i].value = breakpoint->address & 0xFFFFFFFFFFFFFFFC;
+		brp_list[brp_i].value = breakpoint->address & 0xFFFFFFFFFFFFFFFCULL;
 		brp_list[brp_i].control = control;
 		bpt_value = brp_list[brp_i].value;
 
@@ -1300,28 +1300,28 @@ static int aarch64_set_breakpoint(struct target *target,
 		buf_set_u32(code, 0, 32, opcode);
 
 		retval = target_read_memory(target,
-				breakpoint->address & 0xFFFFFFFFFFFFFFFE,
+				breakpoint->address & 0xFFFFFFFFFFFFFFFEULL,
 				breakpoint->length, 1,
 				breakpoint->orig_instr);
 		if (retval != ERROR_OK)
 			return retval;
 
 		armv8_cache_d_inner_flush_virt(armv8,
-				breakpoint->address & 0xFFFFFFFFFFFFFFFE,
+				breakpoint->address & 0xFFFFFFFFFFFFFFFEULL,
 				breakpoint->length);
 
 		retval = target_write_memory(target,
-				breakpoint->address & 0xFFFFFFFFFFFFFFFE,
+				breakpoint->address & 0xFFFFFFFFFFFFFFFEULL,
 				breakpoint->length, 1, code);
 		if (retval != ERROR_OK)
 			return retval;
 
 		armv8_cache_d_inner_flush_virt(armv8,
-				breakpoint->address & 0xFFFFFFFFFFFFFFFE,
+				breakpoint->address & 0xFFFFFFFFFFFFFFFEULL,
 				breakpoint->length);
 
 		armv8_cache_i_inner_inval_virt(armv8,
-				breakpoint->address & 0xFFFFFFFFFFFFFFFE,
+				breakpoint->address & 0xFFFFFFFFFFFFFFFEULL,
 				breakpoint->length);
 
 		breakpoint->is_set = true;
@@ -1453,7 +1453,7 @@ static int aarch64_set_hybrid_breakpoint(struct target *target, struct breakpoin
 		| (iva_byte_addr_select << 5)
 		| (3 << 1) | 1;
 	brp_list[brp_2].used = 1;
-	brp_list[brp_2].value = breakpoint->address & 0xFFFFFFFFFFFFFFFC;
+	brp_list[brp_2].value = breakpoint->address & 0xFFFFFFFFFFFFFFFCULL;
 	brp_list[brp_2].control = control_iva;
 	retval = aarch64_dap_write_memap_register_u32(target, armv8->debug_base
 			+ CPUV8_DBG_BVR_BASE + 16 * brp_list[brp_2].brpn,
@@ -1577,29 +1577,29 @@ static int aarch64_unset_breakpoint(struct target *target, struct breakpoint *br
 		/* restore original instruction (kept in target endianness) */
 
 		armv8_cache_d_inner_flush_virt(armv8,
-				breakpoint->address & 0xFFFFFFFFFFFFFFFE,
+				breakpoint->address & 0xFFFFFFFFFFFFFFFEULL,
 				breakpoint->length);
 
 		if (breakpoint->length == 4) {
 			retval = target_write_memory(target,
-					breakpoint->address & 0xFFFFFFFFFFFFFFFE,
+					breakpoint->address & 0xFFFFFFFFFFFFFFFEULL,
 					4, 1, breakpoint->orig_instr);
 			if (retval != ERROR_OK)
 				return retval;
 		} else {
 			retval = target_write_memory(target,
-					breakpoint->address & 0xFFFFFFFFFFFFFFFE,
+					breakpoint->address & 0xFFFFFFFFFFFFFFFEULL,
 					2, 1, breakpoint->orig_instr);
 			if (retval != ERROR_OK)
 				return retval;
 		}
 
 		armv8_cache_d_inner_flush_virt(armv8,
-				breakpoint->address & 0xFFFFFFFFFFFFFFFE,
+				breakpoint->address & 0xFFFFFFFFFFFFFFFEULL,
 				breakpoint->length);
 
 		armv8_cache_i_inner_inval_virt(armv8,
-				breakpoint->address & 0xFFFFFFFFFFFFFFFE,
+				breakpoint->address & 0xFFFFFFFFFFFFFFFEULL,
 				breakpoint->length);
 	}
 	breakpoint->is_set = false;

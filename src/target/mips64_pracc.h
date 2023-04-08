@@ -29,7 +29,7 @@
 #undef LOWER16
 #define UPPER16(v) ((uint32_t)((v >> 16) & 0xFFFF))
 #define LOWER16(v) ((uint32_t)(v & 0xFFFF))
-#define MIPS64_PRACC_FASTDATA_AREA		0xffffffffFF200000
+#define MIPS64_PRACC_FASTDATA_AREA		0xffffffffFF200000ull
 #define MIPS64_PRACC_FASTDATA_SIZE		16
 #define MIPS64_FASTDATA_HANDLER_SIZE	0x80
 
