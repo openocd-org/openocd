@@ -249,12 +249,15 @@ static int jim_command_pathmove(Jim_Interp *interp, int argc, Jim_Obj * const *a
 	return JIM_OK;
 }
 
-
-static int jim_command_flush_count(Jim_Interp *interp, int argc, Jim_Obj * const *args)
+COMMAND_HANDLER(handle_jtag_flush_count)
 {
-	Jim_SetResult(interp, Jim_NewIntObj(interp, jtag_get_flush_queue_count()));
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	return JIM_OK;
+	int count = jtag_get_flush_queue_count();
+	command_print_sameline(CMD, "%d", count);
+
+	return ERROR_OK;
 }
 
 /* REVISIT Just what about these should "move" ... ?
@@ -279,9 +282,10 @@ static const struct command_registration jtag_command_handlers_to_move[] = {
 	{
 		.name = "flush_count",
 		.mode = COMMAND_EXEC,
-		.jim_handler = jim_command_flush_count,
+		.handler = handle_jtag_flush_count,
 		.help = "Returns the number of times the JTAG queue "
 			"has been flushed.",
+		.usage = "",
 	},
 	{
 		.name = "pathmove",
@@ -664,45 +668,26 @@ static void jtag_tap_handle_event(struct jtag_tap *tap, enum jtag_event e)
 	}
 }
 
-static int jim_jtag_arp_init(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+COMMAND_HANDLER(handle_jtag_arp_init)
 {
-	struct jim_getopt_info goi;
-	jim_getopt_setup(&goi, interp, argc-1, argv + 1);
-	if (goi.argc != 0) {
-		Jim_WrongNumArgs(goi.interp, 1, goi.argv-1, "(no params)");
-		return JIM_ERR;
-	}
-	struct command_context *context = current_command_context(interp);
-	int e = jtag_init_inner(context);
-	if (e != ERROR_OK) {
-		Jim_Obj *obj = Jim_NewIntObj(goi.interp, e);
-		Jim_SetResultFormatted(goi.interp, "error: %#s", obj);
-		return JIM_ERR;
-	}
-	return JIM_OK;
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	return jtag_init_inner(CMD_CTX);
 }
 
-static int jim_jtag_arp_init_reset(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+COMMAND_HANDLER(handle_jtag_arp_init_reset)
 {
-	int e = ERROR_OK;
-	struct jim_getopt_info goi;
-	jim_getopt_setup(&goi, interp, argc-1, argv + 1);
-	if (goi.argc != 0) {
-		Jim_WrongNumArgs(goi.interp, 1, goi.argv-1, "(no params)");
-		return JIM_ERR;
-	}
-	struct command_context *context = current_command_context(interp);
-	if (transport_is_jtag())
-		e = jtag_init_reset(context);
-	else if (transport_is_swd())
-		e = swd_init_reset(context);
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	if (e != ERROR_OK) {
-		Jim_Obj *obj = Jim_NewIntObj(goi.interp, e);
-		Jim_SetResultFormatted(goi.interp, "error: %#s", obj);
-		return JIM_ERR;
-	}
-	return JIM_OK;
+	if (transport_is_jtag())
+		return jtag_init_reset(CMD_CTX);
+
+	if (transport_is_swd())
+		return swd_init_reset(CMD_CTX);
+
+	return ERROR_OK;
 }
 
 int jim_jtag_newtap(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
@@ -805,24 +790,15 @@ int jim_jtag_configure(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	return jtag_tap_configure_cmd(&goi, t);
 }
 
-static int jim_jtag_names(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+COMMAND_HANDLER(handle_jtag_names)
 {
-	struct jim_getopt_info goi;
-	jim_getopt_setup(&goi, interp, argc-1, argv + 1);
-	if (goi.argc != 0) {
-		Jim_WrongNumArgs(goi.interp, 1, goi.argv, "Too many parameters");
-		return JIM_ERR;
-	}
-	Jim_SetResult(goi.interp, Jim_NewListObj(goi.interp, NULL, 0));
-	struct jtag_tap *tap;
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	for (tap = jtag_all_taps(); tap; tap = tap->next_tap) {
-		Jim_ListAppendElement(goi.interp,
-			Jim_GetResult(goi.interp),
-			Jim_NewStringObj(goi.interp,
-				tap->dotted_name, -1));
-	}
-	return JIM_OK;
+	for (struct jtag_tap *tap = jtag_all_taps(); tap; tap = tap->next_tap)
+		command_print(CMD, "%s", tap->dotted_name);
+
+	return ERROR_OK;
 }
 
 COMMAND_HANDLER(handle_jtag_init_command)
@@ -852,17 +828,19 @@ static const struct command_registration jtag_subcommand_handlers[] = {
 	{
 		.name = "arp_init",
 		.mode = COMMAND_ANY,
-		.jim_handler = jim_jtag_arp_init,
+		.handler = handle_jtag_arp_init,
 		.help = "Validates JTAG scan chain against the list of "
 			"declared TAPs using just the four standard JTAG "
 			"signals.",
+		.usage = "",
 	},
 	{
 		.name = "arp_init-reset",
 		.mode = COMMAND_ANY,
-		.jim_handler = jim_jtag_arp_init_reset,
+		.handler = handle_jtag_arp_init_reset,
 		.help = "Uses TRST and SRST to try resetting everything on "
-			"the JTAG scan chain, then performs 'jtag arp_init'."
+			"the JTAG scan chain, then performs 'jtag arp_init'.",
+		.usage = "",
 	},
 	{
 		.name = "newtap",
@@ -921,8 +899,9 @@ static const struct command_registration jtag_subcommand_handlers[] = {
 	{
 		.name = "names",
 		.mode = COMMAND_ANY,
-		.jim_handler = jim_jtag_names,
+		.handler = handle_jtag_names,
 		.help = "Returns list of all JTAG tap names.",
+		.usage = "",
 	},
 	{
 		.chain = jtag_command_handlers_to_move,

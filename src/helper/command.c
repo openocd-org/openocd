@@ -18,9 +18,6 @@
 #include "config.h"
 #endif
 
-/* see Embedded-HOWTO.txt in Jim Tcl project hosted on BerliOS*/
-#define JIM_EMBEDDED
-
 /* @todo the inclusion of target.h here is a layering violation */
 #include <jtag/jtag.h>
 #include <target/target.h>
@@ -665,19 +662,19 @@ void command_done(struct command_context *cmd_ctx)
 }
 
 /* find full path to file */
-static int jim_find(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+COMMAND_HANDLER(handle_find)
 {
-	if (argc != 2)
-		return JIM_ERR;
-	const char *file = Jim_GetString(argv[1], NULL);
-	char *full_path = find_file(file);
+	if (CMD_ARGC != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	char *full_path = find_file(CMD_ARGV[0]);
 	if (!full_path)
-		return JIM_ERR;
-	Jim_Obj *result = Jim_NewStringObj(interp, full_path, strlen(full_path));
+		return ERROR_COMMAND_ARGUMENT_INVALID;
+
+	command_print(CMD, "%s", full_path);
 	free(full_path);
 
-	Jim_SetResult(interp, result);
-	return JIM_OK;
+	return ERROR_OK;
 }
 
 COMMAND_HANDLER(handle_echo)
@@ -1168,7 +1165,7 @@ static const struct command_registration command_builtin_handlers[] = {
 	{
 		.name = "ocd_find",
 		.mode = COMMAND_ANY,
-		.jim_handler = jim_find,
+		.handler = handle_find,
 		.help = "find full path to file",
 		.usage = "file",
 	},

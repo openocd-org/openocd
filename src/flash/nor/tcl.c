@@ -814,6 +814,7 @@ COMMAND_HANDLER(handle_flash_write_bank_command)
 	if (buf_cnt != length) {
 		LOG_ERROR("Short read");
 		free(buffer);
+		fileio_close(fileio);
 		return ERROR_FAIL;
 	}
 
@@ -1324,40 +1325,27 @@ COMMAND_HANDLER(handle_flash_banks_command)
 	return ERROR_OK;
 }
 
-static int jim_flash_list(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
+COMMAND_HANDLER(handle_flash_list)
 {
-	if (argc != 1) {
-		Jim_WrongNumArgs(interp, 1, argv,
-			"no arguments to 'flash list' command");
-		return JIM_ERR;
-	}
-
-	Jim_Obj *list = Jim_NewListObj(interp, NULL, 0);
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	for (struct flash_bank *p = flash_bank_list(); p; p = p->next) {
-		Jim_Obj *elem = Jim_NewListObj(interp, NULL, 0);
-
-		Jim_ListAppendElement(interp, elem, Jim_NewStringObj(interp, "name", -1));
-		Jim_ListAppendElement(interp, elem, Jim_NewStringObj(interp, p->name, -1));
-		Jim_ListAppendElement(interp, elem, Jim_NewStringObj(interp, "driver", -1));
-		Jim_ListAppendElement(interp, elem, Jim_NewStringObj(interp, p->driver->name, -1));
-		Jim_ListAppendElement(interp, elem, Jim_NewStringObj(interp, "base", -1));
-		Jim_ListAppendElement(interp, elem, Jim_NewIntObj(interp, p->base));
-		Jim_ListAppendElement(interp, elem, Jim_NewStringObj(interp, "size", -1));
-		Jim_ListAppendElement(interp, elem, Jim_NewIntObj(interp, p->size));
-		Jim_ListAppendElement(interp, elem, Jim_NewStringObj(interp, "bus_width", -1));
-		Jim_ListAppendElement(interp, elem, Jim_NewIntObj(interp, p->bus_width));
-		Jim_ListAppendElement(interp, elem, Jim_NewStringObj(interp, "chip_width", -1));
-		Jim_ListAppendElement(interp, elem, Jim_NewIntObj(interp, p->chip_width));
-		Jim_ListAppendElement(interp, elem, Jim_NewStringObj(interp, "target", -1));
-		Jim_ListAppendElement(interp, elem, Jim_NewStringObj(interp, target_name(p->target), -1));
-
-		Jim_ListAppendElement(interp, list, elem);
+		command_print(CMD,
+			"{\n"
+			"    name       %s\n"
+			"    driver     %s\n"
+			"    base       " TARGET_ADDR_FMT "\n"
+			"    size       0x%" PRIx32 "\n"
+			"    bus_width  %u\n"
+			"    chip_width %u\n"
+			"    target     %s\n"
+			"}",
+			p->name, p->driver->name, p->base, p->size, p->bus_width, p->chip_width,
+			target_name(p->target));
 	}
 
-	Jim_SetResult(interp, list);
-
-	return JIM_OK;
+	return ERROR_OK;
 }
 
 COMMAND_HANDLER(handle_flash_init_command)
@@ -1404,8 +1392,9 @@ static const struct command_registration flash_config_command_handlers[] = {
 	{
 		.name = "list",
 		.mode = COMMAND_ANY,
-		.jim_handler = jim_flash_list,
+		.handler = handle_flash_list,
 		.help = "Returns a list of details about the flash banks.",
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };

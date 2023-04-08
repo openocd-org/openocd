@@ -8,7 +8,7 @@ name: OpenOCD Snapshot
 
 jobs:
   package:
-    runs-on: [ubuntu-18.04]
+    runs-on: [ubuntu-20.04]
     env:
       DL_DIR: ../downloads
       BUILD_DIR: ../build
@@ -30,7 +30,7 @@ jobs:
           echo "LIBUSB1_SRC=$PWD/libusb-${LIBUSB1_VER}" >> $GITHUB_ENV
       - name: Prepare hidapi
         env:
-          HIDAPI_VER: 0.11.2
+          HIDAPI_VER: 0.13.1
         run: |
           mkdir -p $DL_DIR && cd $DL_DIR
           wget "https://github.com/libusb/hidapi/archive/hidapi-${HIDAPI_VER}.tar.gz"
@@ -56,6 +56,16 @@ jobs:
           wget "https://github.com/aquynh/capstone/archive/${CAPSTONE_VER}.tar.gz"
           tar -xzf ${CAPSTONE_VER}.tar.gz
           echo "CAPSTONE_SRC=$PWD/capstone-${CAPSTONE_VER}" >> $GITHUB_ENV
+      - name: Prepare libjaylink
+        env:
+          LIBJAYLINK_VER: 0.3.1
+        run: |
+          mkdir -p $DL_DIR && cd $DL_DIR
+          wget https://gitlab.zapb.de/libjaylink/libjaylink/-/archive/${LIBJAYLINK_VER}/libjaylink-${LIBJAYLINK_VER}.tar.gz
+          tar -xzf libjaylink-${LIBJAYLINK_VER}.tar.gz
+          cd libjaylink-${LIBJAYLINK_VER}
+          ./autogen.sh
+          echo "LIBJAYLINK_SRC=$PWD" >> $GITHUB_ENV
       - name: Package OpenOCD for windows
         env:
           MAKE_JOBS: 2
@@ -64,6 +74,7 @@ jobs:
           HIDAPI_CONFIG: --enable-shared --disable-static --disable-testgui
           LIBFTDI_CONFIG: -DSTATICLIBS=OFF -DEXAMPLES=OFF -DFTDI_EEPROM=OFF
           CAPSTONE_CONFIG: "CAPSTONE_BUILD_CORE_ONLY=yes CAPSTONE_STATIC=yes CAPSTONE_SHARED=no"
+          LIBJAYLINK_CONFIG: --enable-shared --disable-static
         run: |
           # check if there is tag pointing at HEAD, otherwise take the HEAD SHA-1 as OPENOCD_TAG
           OPENOCD_TAG="`git tag --points-at HEAD`"
@@ -82,6 +93,7 @@ jobs:
           # add missing dlls
           cd $HOST-root/usr
           cp `$HOST-gcc --print-file-name=libwinpthread-1.dll` ./bin/
+          # required by libftdi1.dll. For the gcc-mingw-10.3.x or later "libgcc_s_dw2-1.dll" will need to be copied.
           cp `$HOST-gcc --print-file-name=libgcc_s_sjlj-1.dll` ./bin/
           # prepare the artifact
           ARTIFACT="openocd-${OPENOCD_TAG}-${HOST}.tar.gz"
@@ -90,11 +102,11 @@ jobs:
           echo "IS_PRE_RELEASE=$IS_PRE_RELEASE" >> $GITHUB_ENV
           echo "ARTIFACT_PATH=$PWD/$ARTIFACT" >> $GITHUB_ENV
       - name: Publish OpenOCD packaged for windows
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           path: ${{ env.ARTIFACT_PATH }}
       - name: Delete 'latest' Release
-        uses: dev-drprasad/delete-tag-and-release@v0.2.0
+        uses: dev-drprasad/delete-tag-and-release@v0.2.1
         with:
           delete_release: true
           tag_name: ${{ env.RELEASE_NAME }}

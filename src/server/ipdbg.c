@@ -90,7 +90,7 @@ static void ipdbg_zero_rd_idx(struct ipdbg_fifo *fifo)
 		return;
 
 	size_t ri = fifo->rd_idx;
-	for (size_t idx = 0 ; idx < fifo->count ; ++idx)
+	for (size_t idx = 0; idx < fifo->count; ++idx)
 		fifo->buffer[idx] = fifo->buffer[ri++];
 	fifo->rd_idx = 0;
 }
@@ -149,7 +149,7 @@ static int ipdbg_max_tools_from_data_register_length(uint8_t data_register_lengt
 static struct ipdbg_service *ipdbg_find_service(struct ipdbg_hub *hub, uint8_t tool)
 {
 	struct ipdbg_service *service;
-	for (service = ipdbg_first_service ; service ; service = service->next) {
+	for (service = ipdbg_first_service; service; service = service->next) {
 		if (service->hub == hub && service->tool == tool)
 			break;
 	}
@@ -160,7 +160,7 @@ static void ipdbg_add_service(struct ipdbg_service *service)
 {
 	struct ipdbg_service *iservice;
 	if (ipdbg_first_service) {
-		for (iservice = ipdbg_first_service ; iservice->next; iservice = iservice->next)
+		for (iservice = ipdbg_first_service; iservice->next; iservice = iservice->next)
 			;
 		iservice->next = service;
 	} else
@@ -192,7 +192,7 @@ static int ipdbg_remove_service(struct ipdbg_service *service)
 		return ERROR_OK;
 	}
 
-	for (struct ipdbg_service *iservice = ipdbg_first_service ; iservice->next ; iservice = iservice->next) {
+	for (struct ipdbg_service *iservice = ipdbg_first_service; iservice->next; iservice = iservice->next) {
 		if (service == iservice->next) {
 			iservice->next = service->next;
 			return ERROR_OK;
@@ -205,7 +205,7 @@ static struct ipdbg_hub *ipdbg_find_hub(struct jtag_tap *tap,
 				uint32_t user_instruction, struct ipdbg_virtual_ir_info *virtual_ir)
 {
 	struct ipdbg_hub *hub = NULL;
-	for (hub = ipdbg_first_hub ; hub ; hub = hub->next) {
+	for (hub = ipdbg_first_hub; hub; hub = hub->next) {
 		if (hub->tap == tap && hub->user_instruction == user_instruction) {
 			if ((!virtual_ir && !hub->virtual_ir) ||
 				 (virtual_ir && hub->virtual_ir &&
@@ -223,7 +223,7 @@ static void ipdbg_add_hub(struct ipdbg_hub *hub)
 {
 	struct ipdbg_hub *ihub;
 	if (ipdbg_first_hub) {
-		for (ihub = ipdbg_first_hub ; ihub->next; ihub = ihub->next)
+		for (ihub = ipdbg_first_hub; ihub->next; ihub = ihub->next)
 			;
 		ihub->next = hub;
 	} else
@@ -281,7 +281,7 @@ static int ipdbg_remove_hub(struct ipdbg_hub *hub)
 		return ERROR_OK;
 	}
 
-	for (struct ipdbg_hub *ihub = ipdbg_first_hub ; ihub->next ; ihub = ihub->next) {
+	for (struct ipdbg_hub *ihub = ipdbg_first_hub; ihub->next; ihub = ihub->next) {
 		if (hub == ihub->next) {
 			ihub->next = hub->next;
 			return ERROR_OK;
@@ -447,7 +447,7 @@ static int ipdbg_polling_callback(void *priv)
 
 	/* transfer dn buffers to jtag-hub */
 	unsigned int num_transfers = 0;
-	for (size_t tool = 0 ; tool < hub->max_tools ; ++tool) {
+	for (size_t tool = 0; tool < hub->max_tools; ++tool) {
 		struct connection *conn = hub->connections[tool];
 		if (conn && conn->priv) {
 			struct ipdbg_connection *connection = conn->priv;
@@ -475,7 +475,7 @@ static int ipdbg_polling_callback(void *priv)
 	}
 
 	/* write from up fifos to sockets */
-	for (size_t tool = 0 ; tool < hub->max_tools ; ++tool) {
+	for (size_t tool = 0; tool < hub->max_tools; ++tool) {
 		struct connection *conn = hub->connections[tool];
 		if (conn && conn->priv) {
 			struct ipdbg_connection *connection = conn->priv;

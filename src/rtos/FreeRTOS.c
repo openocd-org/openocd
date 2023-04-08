@@ -312,7 +312,6 @@ static int freertos_update_threads(struct rtos *rtos)
 				(list_elem_ptr != prev_list_elem_ptr) &&
 				(tasks_found < thread_list_size)) {
 			/* Get the location of the thread structure. */
-			rtos->thread_details[tasks_found].threadid = 0;
 			retval = target_read_u32(rtos->target,
 					list_elem_ptr + param->list_elem_content_offset,
 					&pointer_casts_are_bad);
@@ -365,6 +364,7 @@ static int freertos_update_threads(struct rtos *rtos)
 
 			tasks_found++;
 			list_thread_count--;
+			rtos->thread_count = tasks_found;
 
 			prev_list_elem_ptr = list_elem_ptr;
 			list_elem_ptr = 0;
@@ -383,7 +383,6 @@ static int freertos_update_threads(struct rtos *rtos)
 	}
 
 	free(list_of_lists);
-	rtos->thread_count = tasks_found;
 	return 0;
 }
 

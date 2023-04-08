@@ -658,13 +658,8 @@ static int ftdi_initialize(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	for (int i = 0; ftdi_vid[i] || ftdi_pid[i]; i++) {
-		mpsse_ctx = mpsse_open(&ftdi_vid[i], &ftdi_pid[i], ftdi_device_desc,
+	mpsse_ctx = mpsse_open(ftdi_vid, ftdi_pid, ftdi_device_desc,
 				adapter_get_required_serial(), adapter_usb_get_location(), ftdi_channel);
-		if (mpsse_ctx)
-			break;
-	}
-
 	if (!mpsse_ctx)
 		return ERROR_JTAG_INIT_FAILED;
 

@@ -4592,57 +4592,36 @@ static int target_mem2array(Jim_Interp *interp, struct target *target, int argc,
 	return e;
 }
 
-static int target_jim_read_memory(Jim_Interp *interp, int argc,
-		Jim_Obj * const *argv)
+COMMAND_HANDLER(handle_target_read_memory)
 {
 	/*
-	 * argv[1] = memory address
-	 * argv[2] = desired element width in bits
-	 * argv[3] = number of elements to read
-	 * argv[4] = optional "phys"
+	 * CMD_ARGV[0] = memory address
+	 * CMD_ARGV[1] = desired element width in bits
+	 * CMD_ARGV[2] = number of elements to read
+	 * CMD_ARGV[3] = optional "phys"
 	 */
 
-	if (argc < 4 || argc > 5) {
-		Jim_WrongNumArgs(interp, 1, argv, "address width count ['phys']");
-		return JIM_ERR;
-	}
+	if (CMD_ARGC < 3 || CMD_ARGC > 4)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	/* Arg 1: Memory address. */
-	jim_wide wide_addr;
-	int e;
-	e = Jim_GetWide(interp, argv[1], &wide_addr);
-
-	if (e != JIM_OK)
-		return e;
-
-	target_addr_t addr = (target_addr_t)wide_addr;
+	target_addr_t addr;
+	COMMAND_PARSE_NUMBER(u64, CMD_ARGV[0], addr);
 
 	/* Arg 2: Bit width of one element. */
-	long l;
-	e = Jim_GetLong(interp, argv[2], &l);
-
-	if (e != JIM_OK)
-		return e;
-
-	const unsigned int width_bits = l;
+	unsigned int width_bits;
+	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[1], width_bits);
 
 	/* Arg 3: Number of elements to read. */
-	e = Jim_GetLong(interp, argv[3], &l);
-
-	if (e != JIM_OK)
-		return e;
-
-	size_t count = l;
+	unsigned int count;
+	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[2], count);
 
 	/* Arg 4: Optional 'phys'. */
 	bool is_phys = false;
-
-	if (argc > 4) {
-		const char *phys = Jim_GetString(argv[4], NULL);
-
-		if (strcmp(phys, "phys")) {
-			Jim_SetResultFormatted(interp, "invalid argument '%s', must be 'phys'", phys);
-			return JIM_ERR;
+	if (CMD_ARGC == 4) {
+		if (strcmp(CMD_ARGV[3], "phys")) {
+			command_print(CMD, "invalid argument '%s', must be 'phys'", CMD_ARGV[3]);
+			return ERROR_COMMAND_ARGUMENT_INVALID;
 		}
 
 		is_phys = true;
@@ -4655,37 +4634,33 @@ static int target_jim_read_memory(Jim_Interp *interp, int argc,
 	case 64:
 		break;
 	default:
-		Jim_SetResultString(interp, "invalid width, must be 8, 16, 32 or 64", -1);
-		return JIM_ERR;
+		command_print(CMD, "invalid width, must be 8, 16, 32 or 64");
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
 	const unsigned int width = width_bits / 8;
 
 	if ((addr + (count * width)) < addr) {
-		Jim_SetResultString(interp, "read_memory: addr + count wraps to zero", -1);
-		return JIM_ERR;
+		command_print(CMD, "read_memory: addr + count wraps to zero");
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
 	if (count > 65536) {
-		Jim_SetResultString(interp, "read_memory: too large read request, exeeds 64K elements", -1);
-		return JIM_ERR;
+		command_print(CMD, "read_memory: too large read request, exceeds 64K elements");
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
-	struct command_context *cmd_ctx = current_command_context(interp);
-	assert(cmd_ctx != NULL);
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 
 	const size_t buffersize = 4096;
 	uint8_t *buffer = malloc(buffersize);
 
 	if (!buffer) {
 		LOG_ERROR("Failed to allocate memory");
-		return JIM_ERR;
+		return ERROR_FAIL;
 	}
 
-	Jim_Obj *result_list = Jim_NewListObj(interp, NULL, 0);
-	Jim_IncrRefCount(result_list);
-
+	char *separator = "";
 	while (count > 0) {
 		const unsigned int max_chunk_len = buffersize / width;
 		const size_t chunk_len = MIN(count, max_chunk_len);
@@ -4698,11 +4673,15 @@ static int target_jim_read_memory(Jim_Interp *interp, int argc,
 			retval = target_read_memory(target, addr, width, chunk_len, buffer);
 
 		if (retval != ERROR_OK) {
-			LOG_ERROR("read_memory: read at " TARGET_ADDR_FMT " with width=%u and count=%zu failed",
+			LOG_DEBUG("read_memory: read at " TARGET_ADDR_FMT " with width=%u and count=%zu failed",
 				addr, width_bits, chunk_len);
-			Jim_SetResultString(interp, "read_memory: failed to read memory", -1);
-			e = JIM_ERR;
-			break;
+			/*
+			 * FIXME: we append the errmsg to the list of value already read.
+			 * Add a way to flush and replace old output, but LOG_DEBUG() it
+			 */
+			command_print(CMD, "read_memory: failed to read memory");
+			free(buffer);
+			return retval;
 		}
 
 		for (size_t i = 0; i < chunk_len ; i++) {
@@ -4723,11 +4702,8 @@ static int target_jim_read_memory(Jim_Interp *interp, int argc,
 				break;
 			}
 
-			char value_buf[19];
-			snprintf(value_buf, sizeof(value_buf), "0x%" PRIx64, v);
-
-			Jim_ListAppendElement(interp, result_list,
-				Jim_NewStringObj(interp, value_buf, -1));
+			command_print_sameline(CMD, "%s0x%" PRIx64, separator, v);
+			separator = " ";
 		}
 
 		count -= chunk_len;
@@ -4736,15 +4712,7 @@ static int target_jim_read_memory(Jim_Interp *interp, int argc,
 
 	free(buffer);
 
-	if (e != JIM_OK) {
-		Jim_DecrRefCount(interp, result_list);
-		return e;
-	}
-
-	Jim_SetResult(interp, result_list);
-	Jim_DecrRefCount(interp, result_list);
-
-	return JIM_OK;
+	return ERROR_OK;
 }
 
 static int get_u64_array_element(Jim_Interp *interp, const char *varname, size_t idx, uint64_t *val)
@@ -5748,40 +5716,38 @@ static int jim_target_examine(Jim_Interp *interp, int argc, Jim_Obj *const *argv
 	return JIM_OK;
 }
 
-static int jim_target_was_examined(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
+COMMAND_HANDLER(handle_target_was_examined)
 {
-	struct command_context *cmd_ctx = current_command_context(interp);
-	assert(cmd_ctx);
-	struct target *target = get_current_target(cmd_ctx);
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	Jim_SetResultBool(interp, target_was_examined(target));
-	return JIM_OK;
+	struct target *target = get_current_target(CMD_CTX);
+
+	command_print(CMD, "%d", target_was_examined(target) ? 1 : 0);
+
+	return ERROR_OK;
 }
 
-static int jim_target_examine_deferred(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
+COMMAND_HANDLER(handle_target_examine_deferred)
 {
-	struct command_context *cmd_ctx = current_command_context(interp);
-	assert(cmd_ctx);
-	struct target *target = get_current_target(cmd_ctx);
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	Jim_SetResultBool(interp, target->defer_examine);
-	return JIM_OK;
+	struct target *target = get_current_target(CMD_CTX);
+
+	command_print(CMD, "%d", target->defer_examine ? 1 : 0);
+
+	return ERROR_OK;
 }
 
-static int jim_target_halt_gdb(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+COMMAND_HANDLER(handle_target_halt_gdb)
 {
-	if (argc != 1) {
-		Jim_WrongNumArgs(interp, 1, argv, "[no parameters]");
-		return JIM_ERR;
-	}
-	struct command_context *cmd_ctx = current_command_context(interp);
-	assert(cmd_ctx);
-	struct target *target = get_current_target(cmd_ctx);
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	if (target_call_event_callbacks(target, TARGET_EVENT_GDB_HALT) != ERROR_OK)
-		return JIM_ERR;
+	struct target *target = get_current_target(CMD_CTX);
 
-	return JIM_OK;
+	return target_call_event_callbacks(target, TARGET_EVENT_GDB_HALT);
 }
 
 static int jim_target_poll(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
@@ -5936,18 +5902,19 @@ COMMAND_HANDLER(handle_target_event_list)
 	command_print(CMD, "***END***");
 	return ERROR_OK;
 }
-static int jim_target_current_state(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+
+COMMAND_HANDLER(handle_target_current_state)
 {
-	if (argc != 1) {
-		Jim_WrongNumArgs(interp, 1, argv, "[no parameters]");
-		return JIM_ERR;
-	}
-	struct command_context *cmd_ctx = current_command_context(interp);
-	assert(cmd_ctx);
-	struct target *target = get_current_target(cmd_ctx);
-	Jim_SetResultString(interp, target_state_name(target), -1);
-	return JIM_OK;
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	struct target *target = get_current_target(CMD_CTX);
+
+	command_print(CMD, "%s", target_state_name(target));
+
+	return ERROR_OK;
 }
+
 static int jim_target_invoke_event(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	struct jim_getopt_info goi;
@@ -6074,7 +6041,7 @@ static const struct command_registration target_instance_command_handlers[] = {
 	{
 		.name = "read_memory",
 		.mode = COMMAND_EXEC,
-		.jim_handler = target_jim_read_memory,
+		.handler = handle_target_read_memory,
 		.help = "Read Tcl list of 8/16/32/64 bit numbers from target memory",
 		.usage = "address width count ['phys']",
 	},
@@ -6095,8 +6062,9 @@ static const struct command_registration target_instance_command_handlers[] = {
 	{
 		.name = "curstate",
 		.mode = COMMAND_EXEC,
-		.jim_handler = jim_target_current_state,
+		.handler = handle_target_current_state,
 		.help = "displays the current state of this target",
+		.usage = "",
 	},
 	{
 		.name = "arp_examine",
@@ -6108,20 +6076,23 @@ static const struct command_registration target_instance_command_handlers[] = {
 	{
 		.name = "was_examined",
 		.mode = COMMAND_EXEC,
-		.jim_handler = jim_target_was_examined,
+		.handler = handle_target_was_examined,
 		.help = "used internally for reset processing",
+		.usage = "",
 	},
 	{
 		.name = "examine_deferred",
 		.mode = COMMAND_EXEC,
-		.jim_handler = jim_target_examine_deferred,
+		.handler = handle_target_examine_deferred,
 		.help = "used internally for reset processing",
+		.usage = "",
 	},
 	{
 		.name = "arp_halt_gdb",
 		.mode = COMMAND_EXEC,
-		.jim_handler = jim_target_halt_gdb,
+		.handler = handle_target_halt_gdb,
 		.help = "used internally for reset processing to halt GDB",
+		.usage = "",
 	},
 	{
 		.name = "arp_poll",
@@ -6394,56 +6365,47 @@ static int target_create(struct jim_getopt_info *goi)
 	return JIM_OK;
 }
 
-static int jim_target_current(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+COMMAND_HANDLER(handle_target_current)
 {
-	if (argc != 1) {
-		Jim_WrongNumArgs(interp, 1, argv, "Too many parameters");
-		return JIM_ERR;
-	}
-	struct command_context *cmd_ctx = current_command_context(interp);
-	assert(cmd_ctx);
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	struct target *target = get_current_target_or_null(cmd_ctx);
+	struct target *target = get_current_target_or_null(CMD_CTX);
 	if (target)
-		Jim_SetResultString(interp, target_name(target), -1);
-	return JIM_OK;
+		command_print(CMD, "%s", target_name(target));
+
+	return ERROR_OK;
 }
 
-static int jim_target_types(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+COMMAND_HANDLER(handle_target_types)
 {
-	if (argc != 1) {
-		Jim_WrongNumArgs(interp, 1, argv, "Too many parameters");
-		return JIM_ERR;
-	}
-	Jim_SetResult(interp, Jim_NewListObj(interp, NULL, 0));
-	for (unsigned x = 0; target_types[x]; x++) {
-		Jim_ListAppendElement(interp, Jim_GetResult(interp),
-			Jim_NewStringObj(interp, target_types[x]->name, -1));
-	}
-	return JIM_OK;
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	for (unsigned int x = 0; target_types[x]; x++)
+		command_print(CMD, "%s", target_types[x]->name);
+
+	return ERROR_OK;
 }
 
-static int jim_target_names(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+COMMAND_HANDLER(handle_target_names)
 {
-	if (argc != 1) {
-		Jim_WrongNumArgs(interp, 1, argv, "Too many parameters");
-		return JIM_ERR;
-	}
-	Jim_SetResult(interp, Jim_NewListObj(interp, NULL, 0));
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
 	struct target *target = all_targets;
 	while (target) {
-		Jim_ListAppendElement(interp, Jim_GetResult(interp),
-			Jim_NewStringObj(interp, target_name(target), -1));
+		command_print(CMD, "%s", target_name(target));
 		target = target->next;
 	}
-	return JIM_OK;
+
+	return ERROR_OK;
 }
 
 static struct target_list *
 __attribute__((warn_unused_result))
-create_target_list_node(Jim_Obj *const name) {
-	int len;
-	const char *targetname = Jim_GetString(name, &len);
+create_target_list_node(const char *targetname)
+{
 	struct target *target = get_target(targetname);
 	LOG_DEBUG("%s ", targetname);
 	if (!target)
@@ -6459,7 +6421,8 @@ create_target_list_node(Jim_Obj *const name) {
 	return new;
 }
 
-static int get_target_with_common_rtos_type(struct list_head *lh, struct target **result)
+static int get_target_with_common_rtos_type(struct command_invocation *cmd,
+	struct list_head *lh, struct target **result)
 {
 	struct target *target = NULL;
 	struct target_list *curr;
@@ -6467,39 +6430,39 @@ static int get_target_with_common_rtos_type(struct list_head *lh, struct target 
 		struct rtos *curr_rtos = curr->target->rtos;
 		if (curr_rtos) {
 			if (target && target->rtos && target->rtos->type != curr_rtos->type) {
-				LOG_ERROR("Different rtos types in members of one smp target!");
-				return JIM_ERR;
+				command_print(cmd, "Different rtos types in members of one smp target!");
+				return ERROR_FAIL;
 			}
 			target = curr->target;
 		}
 	}
 	*result = target;
-	return JIM_OK;
+	return ERROR_OK;
 }
 
-static int jim_target_smp(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+COMMAND_HANDLER(handle_target_smp)
 {
 	static int smp_group = 1;
 
-	if (argc == 1) {
+	if (CMD_ARGC == 0) {
 		LOG_DEBUG("Empty SMP target");
-		return JIM_OK;
+		return ERROR_OK;
 	}
-	LOG_DEBUG("%d", argc);
-	/* argv[1] = target to associate in smp
-	 * argv[2] = target to associate in smp
-	 * argv[3] ...
+	LOG_DEBUG("%d", CMD_ARGC);
+	/* CMD_ARGC[0] = target to associate in smp
+	 * CMD_ARGC[1] = target to associate in smp
+	 * CMD_ARGC[2] ...
 	 */
 
 	struct list_head *lh = malloc(sizeof(*lh));
 	if (!lh) {
 		LOG_ERROR("Out of memory");
-		return JIM_ERR;
+		return ERROR_FAIL;
 	}
 	INIT_LIST_HEAD(lh);
 
-	for (int i = 1; i < argc; i++) {
-		struct target_list *new = create_target_list_node(argv[i]);
+	for (unsigned int i = 0; i < CMD_ARGC; i++) {
+		struct target_list *new = create_target_list_node(CMD_ARGV[i]);
 		if (new)
 			list_add_tail(&new->lh, lh);
 	}
@@ -6513,13 +6476,12 @@ static int jim_target_smp(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	smp_group++;
 
 	struct target *rtos_target;
-	int retval = get_target_with_common_rtos_type(lh, &rtos_target);
-	if (retval == JIM_OK && rtos_target)
+	int retval = get_target_with_common_rtos_type(CMD, lh, &rtos_target);
+	if (retval == ERROR_OK && rtos_target)
 		retval = rtos_smp_init(rtos_target);
 
 	return retval;
 }
-
 
 static int jim_target_create(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
@@ -6551,26 +6513,29 @@ static const struct command_registration target_subcommand_handlers[] = {
 	{
 		.name = "current",
 		.mode = COMMAND_ANY,
-		.jim_handler = jim_target_current,
+		.handler = handle_target_current,
 		.help = "Returns the currently selected target",
+		.usage = "",
 	},
 	{
 		.name = "types",
 		.mode = COMMAND_ANY,
-		.jim_handler = jim_target_types,
+		.handler = handle_target_types,
 		.help = "Returns the available target types as "
 				"a list of strings",
+		.usage = "",
 	},
 	{
 		.name = "names",
 		.mode = COMMAND_ANY,
-		.jim_handler = jim_target_names,
+		.handler = handle_target_names,
 		.help = "Returns the names of all targets as a list of strings",
+		.usage = "",
 	},
 	{
 		.name = "smp",
 		.mode = COMMAND_ANY,
-		.jim_handler = jim_target_smp,
+		.handler = handle_target_smp,
 		.usage = "targetname1 targetname2 ...",
 		.help = "gather several target in a smp list"
 	},
@@ -7203,7 +7168,7 @@ static const struct command_registration target_exec_command_handlers[] = {
 	{
 		.name = "read_memory",
 		.mode = COMMAND_EXEC,
-		.jim_handler = target_jim_read_memory,
+		.handler = handle_target_read_memory,
 		.help = "Read Tcl list of 8/16/32/64 bit numbers from target memory",
 		.usage = "address width count ['phys']",
 	},

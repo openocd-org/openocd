@@ -566,13 +566,19 @@ static int jtagdp_overrun_check(struct adiv5_dap *dap)
 		/* restore SELECT register first */
 		if (!list_empty(&replay_list)) {
 			el = list_first_entry(&replay_list, struct dap_cmd, lh);
+
+			uint8_t out_value_buf[4];
+			buf_set_u32(out_value_buf, 0, 32, (uint32_t)(el->dp_select));
+
 			tmp = dap_cmd_new(dap, JTAG_DP_DPACC,
-					  DP_SELECT, DPAP_WRITE, (uint8_t *)&el->dp_select, NULL, 0);
+					  DP_SELECT, DPAP_WRITE, out_value_buf, NULL, 0);
 			if (!tmp) {
 				retval = ERROR_JTAG_DEVICE_ERROR;
 				goto done;
 			}
 			list_add(&tmp->lh, &replay_list);
+
+			/* TODO: ADIv6 DP SELECT1 handling */
 
 			dap->select = DP_SELECT_INVALID;
 		}
