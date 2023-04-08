@@ -37,7 +37,7 @@ static int ep93xx_reset(int trst, int srst);
 static int ep93xx_init(void);
 static int ep93xx_quit(void);
 
-struct timespec ep93xx_zzzz;
+static struct timespec ep93xx_zzzz;
 
 static struct jtag_interface ep93xx_interface = {
 	.supported = DEBUG_CAP_TMS_SEQ,
