@@ -540,7 +540,7 @@ static void xtensa_queue_exec_ins_wide(struct xtensa *xtensa, uint8_t *ops, uint
 		for (int32_t i = oplenw - 1; i > 0; i--)
 			xtensa_queue_dbg_reg_write(xtensa,
 				XDMREG_DIR0 + i,
-				target_buffer_get_u32(xtensa->target, &ops_padded[sizeof(uint32_t)*i]));
+				target_buffer_get_u32(xtensa->target, &ops_padded[sizeof(uint32_t) * i]));
 		/* Write DIR0EXEC last */
 		xtensa_queue_dbg_reg_write(xtensa,
 			XDMREG_DIR0EXEC,
