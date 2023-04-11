@@ -1735,8 +1735,8 @@ static int resume_prep(struct target *target, int current,
 	RISCV_INFO(r);
 	LOG_TARGET_DEBUG(target, "target->state=%d", target->state);
 
-	if (!current)
-		riscv_set_register(target, GDB_REGNO_PC, address);
+	if (!current && riscv_set_register(target, GDB_REGNO_PC, address) != ERROR_OK)
+		return ERROR_FAIL;
 
 	if (target->debug_reason == DBG_REASON_WATCHPOINT) {
 		/* To be able to run off a trigger, disable all the triggers, step, and
