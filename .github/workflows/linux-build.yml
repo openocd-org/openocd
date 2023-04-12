@@ -5,7 +5,7 @@ name: Linux Build
 jobs:
   # 32-bit, clang
   build32:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     env:
       CFLAGS: -m32
       CC: clang
@@ -22,7 +22,6 @@ jobs:
       - run: file src/openocd | grep 32-bit
       - run: src/openocd --version
 
-
   # 64-bit, gcc
   build64:
     runs-on: ubuntu-latest
@@ -31,13 +30,32 @@ jobs:
       CC: gcc
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+      - name: Configure environment
+        run: |
+          TAG=$(git rev-parse --short HEAD)
+          echo "TAG=$TAG" >> $GITHUB_OUTPUT
+          echo "NAME=openocd64-$TAG" >> $GITHUB_ENV
       - name: Install required packages (apt-get)
         run: |
           sudo apt-get update
           sudo apt-get install libusb-1.0-0 libusb-1.0-0-dev
       - run: ./bootstrap
-      - run: ./configure --enable-remote-bitbang --enable-jtag_vpi --enable-ftdi-cjtag
+      - run: ./configure --enable-remote-bitbang --enable-jtag_vpi --enable-ftdi-cjtag --prefix /tmp/${{ env.NAME }}
       - run: make -j`nproc`
-      - run: file src/openocd | grep 64-bit
-      - run: src/openocd --version
+      - name: Check that we built something
+        run: |
+          file src/openocd | grep 64-bit
+          src/openocd --version
+      - name: Package
+        # Package into tgz so that github stores a compressed artifact, even
+        # though it zips that artifact again before it sends it back to be
+        # downloaded.
+        run: |
+          make install
+          tar zcvf ${{ env.NAME }}.tgz -C /tmp ${{ env.NAME }}
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.NAME }}
+          path: ${{ env.NAME }}.tgz
