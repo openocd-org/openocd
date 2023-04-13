@@ -10,16 +10,20 @@ jobs:
       BUILD_DIR: ../build
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
-            fetch-depth: 50
+            fetch-depth: 0
+      - name: Checkout Base
+        run: |
+            git fetch origin ${{ github.event.pull_request.base.ref }}
+            echo "The current base for checkpatch is: $(git show FETCH_HEAD --oneline --raw)"            
       - name: Install required packages (apt-get)
         run: |
             sudo apt-get update
             sudo apt-get install patchutils python3-ply python3-git
       - name: Run checkpatch
         run: |
-            git diff -U20 HEAD~40 \
+            git diff --patch FETCH_HEAD \
             | filterdiff \
                 -x "a/src/jtag/drivers/libjaylink/*" \
                 -x "a/tools/git2cl/*" \
