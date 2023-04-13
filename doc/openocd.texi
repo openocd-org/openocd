@@ -11271,6 +11271,40 @@ w/o OpenOCD command and keeps only the latest data window which fit into the buf
 Data will be stored to specified destination.
 @end deffn
 
+@deffn {Command} {esp sysview} (start file://<outfile1> [file://<outfile2>] [<poll_period> [<trace_size> [<stop_tmo> [<wait4halt> [<skip_size>]]]]])
+Starts @uref{https://www.segger.com/products/development-tools/systemview/, SEGGER SystemView}
+compatible tracing. Data will be stored to specified destination.
+For dual-core chips traces from every core will be saved to separate files.
+Resulting files can be open in "SEGGER SystemView" application.
+@url{https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/app_trace.html#openocd-systemview-tracing-command-options}
+The meaning of the arguments is identical to @command{esp apptrace start}.
+@end deffn
+
+@deffn {Command} {esp sysview} (stop)
+Stops SystremView compatible tracing started with above command.
+@url{https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/app_trace.html#openocd-systemview-tracing-command-options}
+@end deffn
+
+@deffn {Command} {esp sysview} (status)
+Requests ongoing SystremView compatible tracing status.
+@url{https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/app_trace.html#openocd-systemview-tracing-command-options}
+@end deffn
+
+@deffn {Command} {esp sysview_mcore} (start file://<outfile> [<poll_period> [<trace_size> [<stop_tmo> [<wait4halt> [<skip_size>]]]]])
+This command is identical to @command{esp sysview start}, but uses Espressif multi-core extension to
+@uref{https://www.segger.com/products/development-tools/systemview/, SEGGER SystemView} data format.
+Data will be stored to specified destination. Tracing data from all cores are saved in the same file.
+The meaning of the arguments is identical to @command{esp sysview start}.
+@end deffn
+
+@deffn {Command} {esp sysview_mcore} (stop)
+Stops Espressif multi-core SystremView tracing started with above command.
+@end deffn
+
+@deffn {Command} {esp sysview_mcore} (status)
+Requests ongoing Espressif multi-core SystremView tracing status.
+@end deffn
+
 @anchor{softwaredebugmessagesandtracing}
 @section Software Debug Messages and Tracing
 @cindex Linux-ARM DCC support
