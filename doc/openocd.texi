@@ -8638,6 +8638,10 @@ SSI devices are using different values.
 Change values for boundary scan instructions selecting the registers USER1 to USER4.
 Description of the arguments can be found at command @command{virtex2 set_instr_codes}.
 @end deffn
+
+@deffn {Command} {virtex2 program} pld_name
+Load the bitstream from external memory for FPGA @var{pld_name}. A.k.a. refresh.
+@end deffn
 @end deffn
 
 

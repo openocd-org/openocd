@@ -143,6 +143,35 @@ static int virtex2_read_stat(struct pld_device *pld_device, uint32_t *status)
 	return retval;
 }
 
+static int virtex2_program(struct pld_device *pld_device)
+{
+	struct virtex2_pld_device *virtex2_info = pld_device->driver_priv;
+	if (!virtex2_info)
+		return ERROR_FAIL;
+
+	int retval = virtex2_set_instr(virtex2_info->tap, virtex2_info->command_set.jshutdown);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = virtex2_set_instr(virtex2_info->tap, virtex2_info->command_set.jprog_b);
+	if (retval != ERROR_OK)
+		return retval;
+
+	jtag_add_runtest(62000, TAP_IDLE);
+	if (!(virtex2_info->no_jstart)) {
+		retval = virtex2_set_instr(virtex2_info->tap, virtex2_info->command_set.jstart);
+		if (retval != ERROR_OK)
+			return retval;
+	}
+
+	retval = virtex2_set_instr(virtex2_info->tap, virtex2_info->command_set.bypass);
+	if (retval != ERROR_OK)
+		return retval;
+	jtag_add_runtest(2000, TAP_IDLE);
+
+	return jtag_execute_queue();
+}
+
 static int virtex2_load_prepare(struct pld_device *pld_device)
 {
 	struct virtex2_pld_device *virtex2_info = pld_device->driver_priv;
@@ -234,6 +263,22 @@ static int virtex2_load(struct pld_device *pld_device, const char *filename)
 	xilinx_free_bit_file(&bit_file);
 
 	return retval;
+}
+
+COMMAND_HANDLER(virtex2_handle_program_command)
+{
+	struct pld_device *device;
+
+	if (CMD_ARGC != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	device = get_pld_device_by_name_or_numstr(CMD_ARGV[0]);
+	if (!device) {
+		command_print(CMD, "pld device '#%s' is out of bounds or unknown", CMD_ARGV[0]);
+		return ERROR_FAIL;
+	}
+
+	return virtex2_program(device);
 }
 
 COMMAND_HANDLER(virtex2_handle_read_stat_command)
@@ -368,6 +413,12 @@ static const struct command_registration virtex2_exec_command_handlers[] = {
 		.handler = virtex2_handle_set_user_codes_command,
 		.help = "set instructions codes used for jtag-hub",
 		.usage = "pld_name user1 [user2 [user3 [user4]]]",
+	}, {
+		.name = "program",
+		.mode = COMMAND_EXEC,
+		.handler = virtex2_handle_program_command,
+		.help = "start loading of configuration (refresh)",
+		.usage = "pld_name",
 	},
 	COMMAND_REGISTRATION_DONE
 };
