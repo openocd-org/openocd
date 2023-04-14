@@ -15,11 +15,17 @@ struct pld_device;
 #define __PLD_CREATE_COMMAND(name) \
 	COMMAND_HELPER(name, struct pld_device *pld)
 
+struct pld_ipdbg_hub {
+	struct jtag_tap *tap;
+	unsigned int user_ir_code;
+};
+
 struct pld_driver {
 	const char *name;
 	__PLD_CREATE_COMMAND((*pld_create_command));
 	const struct command_registration *commands;
 	int (*load)(struct pld_device *pld_device, const char *filename);
+	int (*get_ipdbg_hub)(int user_num, struct pld_device *pld_device, struct pld_ipdbg_hub *hub);
 };
 
 #define PLD_CREATE_COMMAND_HANDLER(name) \

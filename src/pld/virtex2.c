@@ -306,6 +306,26 @@ COMMAND_HANDLER(virtex2_handle_read_stat_command)
 	return ERROR_OK;
 }
 
+static int xilinx_get_ipdbg_hub(int user_num, struct pld_device *pld_device, struct pld_ipdbg_hub *hub)
+{
+	if (!pld_device)
+		return ERROR_FAIL;
+
+	struct virtex2_pld_device *pld_device_info = pld_device->driver_priv;
+
+	if (!pld_device_info || !pld_device_info->tap)
+		return ERROR_FAIL;
+
+	hub->tap = pld_device_info->tap;
+	if (user_num < 1 || (unsigned int)user_num > pld_device_info->command_set.num_user) {
+		LOG_ERROR("device has only user register 1 to %d", pld_device_info->command_set.num_user);
+		return ERROR_FAIL;
+	}
+
+	hub->user_ir_code = pld_device_info->command_set.user[user_num - 1];
+	return ERROR_OK;
+}
+
 COMMAND_HANDLER(virtex2_handle_set_instuction_codes_command)
 {
 	if (CMD_ARGC < 6 || CMD_ARGC > (6 + VIRTEX2_MAX_USER_INSTRUCTIONS))
@@ -439,4 +459,5 @@ struct pld_driver virtex2_pld = {
 	.commands = virtex2_command_handler,
 	.pld_create_command = &virtex2_pld_create_command,
 	.load = &virtex2_load,
+	.get_ipdbg_hub = xilinx_get_ipdbg_hub,
 };

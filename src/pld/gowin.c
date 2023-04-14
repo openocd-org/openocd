@@ -29,6 +29,9 @@
 #define ERASE_FLASH                 0x75
 #define ENABLE_2ND_FLASH            0x78
 
+#define USER1                       0x42
+#define USER2                       0x43
+
 #define STAUS_MASK_MEMORY_ERASE     BIT(5)
 #define STAUS_MASK_SYSTEM_EDIT_MODE BIT(7)
 
@@ -449,6 +452,29 @@ static int gowin_reload_command(struct pld_device *pld_device)
 	return gowin_reload(gowin_info->tap);
 }
 
+static int gowin_get_ipdbg_hub(int user_num, struct pld_device *pld_device, struct pld_ipdbg_hub *hub)
+{
+	if (!pld_device)
+		return ERROR_FAIL;
+
+	struct gowin_pld_device *pld_device_info = pld_device->driver_priv;
+
+	if (!pld_device_info || !pld_device_info->tap)
+		return ERROR_FAIL;
+
+	hub->tap = pld_device_info->tap;
+
+	if (user_num == 1) {
+		hub->user_ir_code = USER1;
+	} else if (user_num == 2) {
+		hub->user_ir_code = USER2;
+	} else {
+		LOG_ERROR("gowin devices only have user register 1 & 2");
+		return ERROR_FAIL;
+	}
+	return ERROR_OK;
+}
+
 COMMAND_HANDLER(gowin_read_status_command_handler)
 {
 	if (CMD_ARGC != 1)
@@ -568,4 +594,5 @@ struct pld_driver gowin_pld = {
 	.commands = gowin_command_handler,
 	.pld_create_command = &gowin_pld_create_command,
 	.load = &gowin_load_to_sram,
+	.get_ipdbg_hub = gowin_get_ipdbg_hub,
 };

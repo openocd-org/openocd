@@ -10,11 +10,12 @@
 #include <jtag/jtag.h>
 #include <server/server.h>
 #include <target/target.h>
+#include <pld/pld.h>
 
 #include "ipdbg.h"
 
 #define IPDBG_BUFFER_SIZE 16384
-#define IPDBG_MIN_NUM_OF_OPTIONS 4
+#define IPDBG_MIN_NUM_OF_OPTIONS 2
 #define IPDBG_MAX_NUM_OF_OPTIONS 14
 #define IPDBG_MIN_DR_LENGTH 11
 #define IPDBG_MAX_DR_LENGTH 13
@@ -716,6 +717,7 @@ COMMAND_HANDLER(handle_ipdbg_command)
 	uint32_t virtual_ir_length = 5;
 	uint32_t virtual_ir_value = 0x11;
 	struct ipdbg_virtual_ir_info *virtual_ir = NULL;
+	int user_num = 1;
 
 	if ((CMD_ARGC < IPDBG_MIN_NUM_OF_OPTIONS) || (CMD_ARGC > IPDBG_MAX_NUM_OF_OPTIONS))
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -742,6 +744,34 @@ COMMAND_HANDLER(handle_ipdbg_command)
 							IPDBG_MIN_DR_LENGTH, IPDBG_MAX_DR_LENGTH);
 				return ERROR_FAIL;
 			}
+		} else if (strcmp(CMD_ARGV[i], "-pld") == 0) {
+			++i;
+			if (i >= CMD_ARGC || CMD_ARGV[i][0] == '-')
+				return ERROR_COMMAND_SYNTAX_ERROR;
+			struct pld_device *device = get_pld_device_by_name_or_numstr(CMD_ARGV[i]);
+			if (!device || !device->driver) {
+				command_print(CMD, "pld device '#%s' is out of bounds or unknown", CMD_ARGV[i]);
+				return ERROR_FAIL;
+			}
+			COMMAND_PARSE_OPTIONAL_NUMBER(int, i, user_num);
+			struct pld_ipdbg_hub pld_hub;
+			struct pld_driver *driver = device->driver;
+			if (!driver->get_ipdbg_hub) {
+				command_print(CMD, "pld driver has no ipdbg support");
+				return ERROR_FAIL;
+			}
+			if (driver->get_ipdbg_hub(user_num, device, &pld_hub) != ERROR_OK) {
+				command_print(CMD, "unable to retrieve hub from pld driver");
+				return ERROR_FAIL;
+			}
+			if (!pld_hub.tap) {
+				command_print(CMD, "no tap received from pld driver");
+				return ERROR_FAIL;
+			}
+			hub_configured = true;
+			user_instruction = pld_hub.user_ir_code;
+			tap = pld_hub.tap;
+
 		} else if (strcmp(CMD_ARGV[i], "-vir") == 0) {
 			COMMAND_PARSE_OPTIONAL_NUMBER(u32, i, virtual_ir_value);
 			COMMAND_PARSE_OPTIONAL_NUMBER(u32, i, virtual_ir_length);

@@ -18,6 +18,8 @@
 #include "raw_bit.h"
 
 #define BYPASS 0x3FF
+#define USER0  0x00C
+#define USER1  0x00E
 
 enum intel_family_e {
 	INTEL_CYCLONEIII,
@@ -337,6 +339,29 @@ static int intel_load(struct pld_device *pld_device, const char *filename)
 	return jtag_execute_queue();
 }
 
+static int intel_get_ipdbg_hub(int user_num, struct pld_device *pld_device, struct pld_ipdbg_hub *hub)
+{
+	if (!pld_device)
+		return ERROR_FAIL;
+
+	struct intel_pld_device *pld_device_info = pld_device->driver_priv;
+
+	if (!pld_device_info || !pld_device_info->tap)
+		return ERROR_FAIL;
+
+	hub->tap = pld_device_info->tap;
+
+	if (user_num == 0) {
+		hub->user_ir_code = USER0;
+	} else if (user_num == 1) {
+		hub->user_ir_code = USER1;
+	} else {
+		LOG_ERROR("intel devices only have user register 0 & 1");
+		return ERROR_FAIL;
+	}
+	return ERROR_OK;
+}
+
 COMMAND_HANDLER(intel_set_bscan_command_handler)
 {
 	unsigned int boundary_scan_length;
@@ -472,4 +497,5 @@ struct pld_driver intel_pld = {
 	.commands = intel_command_handler,
 	.pld_create_command = &intel_pld_create_command,
 	.load = &intel_load,
+	.get_ipdbg_hub = intel_get_ipdbg_hub,
 };

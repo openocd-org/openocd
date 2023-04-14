@@ -18,6 +18,9 @@
 #include "certus.h"
 
 #define PRELOAD              0x1C
+#define USER1                0x32
+#define USER2                0x38
+
 
 struct lattice_devices_elem {
 	uint32_t id;
@@ -316,6 +319,29 @@ static int lattice_load_command(struct pld_device *pld_device, const char *filen
 	return retval;
 }
 
+int lattice_get_ipdbg_hub(int user_num, struct pld_device *pld_device, struct pld_ipdbg_hub *hub)
+{
+	if (!pld_device)
+		return ERROR_FAIL;
+
+	struct lattice_pld_device *pld_device_info = pld_device->driver_priv;
+
+	if (!pld_device_info || !pld_device_info->tap)
+		return ERROR_FAIL;
+
+	hub->tap = pld_device_info->tap;
+
+	if (user_num == 1) {
+		hub->user_ir_code = USER1;
+	} else if (user_num == 2) {
+		hub->user_ir_code = USER2;
+	} else {
+		LOG_ERROR("lattice devices only have user register 1 & 2");
+		return ERROR_FAIL;
+	}
+	return ERROR_OK;
+}
+
 PLD_CREATE_COMMAND_HANDLER(lattice_pld_create_command)
 {
 	if (CMD_ARGC != 4 && CMD_ARGC != 6)
@@ -524,4 +550,5 @@ struct pld_driver lattice_pld = {
 	.commands = lattice_command_handler,
 	.pld_create_command = &lattice_pld_create_command,
 	.load = &lattice_load_command,
+	.get_ipdbg_hub = lattice_get_ipdbg_hub,
 };
