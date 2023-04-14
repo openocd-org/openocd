@@ -13,12 +13,23 @@
 #include "xilinx_bit.h"
 #include "pld.h"
 
-static int virtex2_set_instr(struct jtag_tap *tap, uint32_t new_instr)
+static const struct virtex2_command_set virtex2_default_commands = {
+	.cfg_out   = 0x04,
+	.cfg_in    = 0x05,
+	.jprog_b   = 0x0b,
+	.jstart    = 0x0c,
+	.jshutdown = 0x0d,
+	.bypass    = 0x3f,
+	.user      = {0x02, 0x03},
+	.num_user  = 2, /* virtex II has only 2 user instructions */
+};
+
+static int virtex2_set_instr(struct jtag_tap *tap, uint64_t new_instr)
 {
 	if (!tap)
 		return ERROR_FAIL;
 
-	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) != new_instr) {
+	if (buf_get_u64(tap->cur_instr, 0, tap->ir_length) != new_instr) {
 		struct scan_field field;
 
 		field.num_bits = tap->ir_length;
@@ -28,7 +39,7 @@ static int virtex2_set_instr(struct jtag_tap *tap, uint32_t new_instr)
 			return ERROR_FAIL;
 		}
 		field.out_value = t;
-		buf_set_u32(t, 0, field.num_bits, new_instr);
+		buf_set_u64(t, 0, field.num_bits, new_instr);
 		field.in_value = NULL;
 
 		jtag_add_ir_scan(tap, &field, TAP_IDLE);
@@ -60,7 +71,7 @@ static int virtex2_send_32(struct pld_device *pld_device,
 	for (i = 0; i < num_words; i++)
 		buf_set_u32(values + 4 * i, 0, 32, flip_u32(*words++, 32));
 
-	int retval = virtex2_set_instr(virtex2_info->tap, 0x5);	/* CFG_IN */
+	int retval = virtex2_set_instr(virtex2_info->tap, virtex2_info->command_set.cfg_in);
 	if (retval != ERROR_OK) {
 		free(values);
 		return retval;
@@ -89,7 +100,7 @@ static int virtex2_receive_32(struct pld_device *pld_device,
 	scan_field.out_value = NULL;
 	scan_field.in_value = NULL;
 
-	int retval = virtex2_set_instr(virtex2_info->tap, 0x4);	/* CFG_OUT */
+	int retval = virtex2_set_instr(virtex2_info->tap, virtex2_info->command_set.cfg_out);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -137,7 +148,7 @@ static int virtex2_load_prepare(struct pld_device *pld_device)
 	struct virtex2_pld_device *virtex2_info = pld_device->driver_priv;
 	int retval;
 
-	retval = virtex2_set_instr(virtex2_info->tap, 0xb);	/* JPROG_B */
+	retval = virtex2_set_instr(virtex2_info->tap, virtex2_info->command_set.jprog_b);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -146,7 +157,7 @@ static int virtex2_load_prepare(struct pld_device *pld_device)
 		return retval;
 	jtag_add_sleep(1000);
 
-	retval = virtex2_set_instr(virtex2_info->tap, 0x5);	/* CFG_IN */
+	retval = virtex2_set_instr(virtex2_info->tap, virtex2_info->command_set.cfg_in);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -161,24 +172,24 @@ static int virtex2_load_cleanup(struct pld_device *pld_device)
 	jtag_add_tlr();
 
 	if (!(virtex2_info->no_jstart)) {
-		retval = virtex2_set_instr(virtex2_info->tap, 0xc);	/* JSTART */
+		retval = virtex2_set_instr(virtex2_info->tap, virtex2_info->command_set.jstart);
 		if (retval != ERROR_OK)
 			return retval;
 	}
 	jtag_add_runtest(13, TAP_IDLE);
-	retval = virtex2_set_instr(virtex2_info->tap, 0x3f);		/* BYPASS */
+	retval = virtex2_set_instr(virtex2_info->tap, virtex2_info->command_set.bypass);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = virtex2_set_instr(virtex2_info->tap, 0x3f);		/* BYPASS */
+	retval = virtex2_set_instr(virtex2_info->tap, virtex2_info->command_set.bypass);
 	if (retval != ERROR_OK)
 		return retval;
 	if (!(virtex2_info->no_jstart)) {
-		retval = virtex2_set_instr(virtex2_info->tap, 0xc);	/* JSTART */
+		retval = virtex2_set_instr(virtex2_info->tap, virtex2_info->command_set.jstart);
 		if (retval != ERROR_OK)
 			return retval;
 	}
 	jtag_add_runtest(13, TAP_IDLE);
-	retval = virtex2_set_instr(virtex2_info->tap, 0x3f);		/* BYPASS */
+	retval = virtex2_set_instr(virtex2_info->tap, virtex2_info->command_set.bypass);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -250,6 +261,62 @@ COMMAND_HANDLER(virtex2_handle_read_stat_command)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(virtex2_handle_set_instuction_codes_command)
+{
+	if (CMD_ARGC < 6 || CMD_ARGC > (6 + VIRTEX2_MAX_USER_INSTRUCTIONS))
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	struct pld_device *device = get_pld_device_by_name(CMD_ARGV[0]);
+	if (!device) {
+		command_print(CMD, "pld device '#%s' is unknown", CMD_ARGV[0]);
+		return ERROR_FAIL;
+	}
+
+	struct virtex2_pld_device *virtex2_info = device->driver_priv;
+	if (!virtex2_info)
+		return ERROR_FAIL;
+
+	struct virtex2_command_set instr_codes;
+	COMMAND_PARSE_NUMBER(u64, CMD_ARGV[1], instr_codes.cfg_out);
+	COMMAND_PARSE_NUMBER(u64, CMD_ARGV[2], instr_codes.cfg_in);
+	COMMAND_PARSE_NUMBER(u64, CMD_ARGV[3], instr_codes.jprog_b);
+	COMMAND_PARSE_NUMBER(u64, CMD_ARGV[4], instr_codes.jstart);
+	COMMAND_PARSE_NUMBER(u64, CMD_ARGV[5], instr_codes.jshutdown);
+	instr_codes.bypass = 0xffffffffffffffff;
+
+	unsigned int num_user = CMD_ARGC - 6;
+	for (unsigned int i = 0; i < num_user; ++i)
+		COMMAND_PARSE_NUMBER(u64, CMD_ARGV[6 + i], instr_codes.user[i]);
+	instr_codes.num_user = num_user;
+
+	virtex2_info->command_set = instr_codes;
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(virtex2_handle_set_user_codes_command)
+{
+	if (CMD_ARGC < 2 || CMD_ARGC > (1 + VIRTEX2_MAX_USER_INSTRUCTIONS))
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	struct pld_device *device = get_pld_device_by_name(CMD_ARGV[0]);
+	if (!device) {
+		command_print(CMD, "pld device '#%s' is unknown", CMD_ARGV[0]);
+		return ERROR_FAIL;
+	}
+
+	struct virtex2_pld_device *virtex2_info = device->driver_priv;
+	if (!virtex2_info)
+		return ERROR_FAIL;
+
+	uint64_t user[VIRTEX2_MAX_USER_INSTRUCTIONS];
+	unsigned int num_user = CMD_ARGC - 1;
+	for (unsigned int i = 0; i < num_user; ++i)
+		COMMAND_PARSE_NUMBER(u64, CMD_ARGV[1 + i], user[i]);
+	virtex2_info->command_set.num_user = num_user;
+	memcpy(virtex2_info->command_set.user, user, num_user * sizeof(uint64_t));
+	return ERROR_OK;
+}
+
 PLD_CREATE_COMMAND_HANDLER(virtex2_pld_create_command)
 {
 	if (CMD_ARGC < 4)
@@ -270,6 +337,7 @@ PLD_CREATE_COMMAND_HANDLER(virtex2_pld_create_command)
 		return ERROR_FAIL;
 	}
 	virtex2_info->tap = tap;
+	virtex2_info->command_set = virtex2_default_commands;
 
 	virtex2_info->no_jstart = 0;
 	if (CMD_ARGC >= 5 && strcmp(CMD_ARGV[4], "-no_jstart") == 0)
@@ -287,9 +355,23 @@ static const struct command_registration virtex2_exec_command_handlers[] = {
 		.handler = virtex2_handle_read_stat_command,
 		.help = "read status register",
 		.usage = "pld_name",
+	}, {
+		.name = "set_instr_codes",
+		.mode = COMMAND_EXEC,
+		.handler = virtex2_handle_set_instuction_codes_command,
+		.help = "set instructions codes used for loading the bitstream/refreshing/jtag-hub",
+		.usage = "pld_name cfg_out cfg_in jprogb jstart jshutdown"
+				 " [user1 [user2 [user3 [user4]]]]",
+	}, {
+		.name = "set_user_codes",
+		.mode = COMMAND_EXEC,
+		.handler = virtex2_handle_set_user_codes_command,
+		.help = "set instructions codes used for jtag-hub",
+		.usage = "pld_name user1 [user2 [user3 [user4]]]",
 	},
 	COMMAND_REGISTRATION_DONE
 };
+
 static const struct command_registration virtex2_command_handler[] = {
 	{
 		.name = "virtex2",

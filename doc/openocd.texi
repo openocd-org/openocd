@@ -8621,6 +8621,23 @@ openocd -f board/digilent_zedboard.cfg -c "init" \
 Reads and displays the Virtex-II status register (STAT)
 for FPGA @var{pld_name}.
 @end deffn
+
+@deffn {Command} {virtex2 set_instr_codes} pld_name cfg_out cfg_in jprogb jstart jshutdown [user1 [user2 [user3 [user4]]]]
+Change values for boundary scan instructions. Default are values for Virtex 2, devices Virtex 4/5/6 and
+SSI devices are using different values.
+@var{pld_name} is the name of the pld device.
+@var{cfg_out} is the value used to select CFG_OUT instruction.
+@var{cfg_in} is the value used to select CFG_IN instruction.
+@var{jprogb} is the value used to select JPROGRAM instruction.
+@var{jstart} is the value used to select JSTART instruction.
+@var{jshutdown} is the value used to select JSHUTDOWN instruction.
+@var{user1} to @var{user4} are the intruction used to select the user registers USER1 to USER4.
+@end deffn
+
+@deffn {Command} {virtex2 set_user_codes} pld_name user1 [user2 [user3 [user4]]]
+Change values for boundary scan instructions selecting the registers USER1 to USER4.
+Description of the arguments can be found at command @command{virtex2 set_instr_codes}.
+@end deffn
 @end deffn
 
 
