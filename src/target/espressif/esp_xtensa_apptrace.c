@@ -242,9 +242,11 @@ int esp_xtensa_apptrace_status_reg_read(struct target *target, uint32_t *stat)
 	struct xtensa *xtensa = target_to_xtensa(target);
 	uint8_t tmp[4];
 
-	xtensa_queue_dbg_reg_read(xtensa, XTENSA_APPTRACE_STAT_REG, tmp);
+	int res = xtensa_queue_dbg_reg_read(xtensa, XTENSA_APPTRACE_STAT_REG, tmp);
+	if (res != ERROR_OK)
+		return res;
 	xtensa_dm_queue_tdi_idle(&xtensa->dbg_mod);
-	int res = xtensa_dm_queue_execute(&xtensa->dbg_mod);
+	res = xtensa_dm_queue_execute(&xtensa->dbg_mod);
 	if (res != ERROR_OK) {
 		LOG_ERROR("Failed to exec JTAG queue!");
 		return res;
