@@ -356,18 +356,14 @@ static int esp32_apptrace_ready_block_put(struct esp32_apptrace_cmd_ctx *ctx, st
 
 static struct esp32_apptrace_block *esp32_apptrace_ready_block_get(struct esp32_apptrace_cmd_ctx *ctx)
 {
-	struct esp32_apptrace_block *block = NULL;
+	if (list_empty(&ctx->ready_trace_blocks))
+		return NULL;
 
-	if (!list_empty(&ctx->ready_trace_blocks)) {
-		struct list_head *head = &ctx->ready_trace_blocks;
-		struct list_head *tmp, *pos;
+	struct esp32_apptrace_block *block =
+		list_last_entry(&ctx->ready_trace_blocks, struct esp32_apptrace_block, node);
 
-		list_for_each_safe(pos, tmp, head) {
-			block = list_entry(pos, struct esp32_apptrace_block, node);
-		}
-		/* remove it from ready list */
-		list_del(&block->node);
-	}
+	/* remove it from ready list */
+	list_del(&block->node);
 
 	return block;
 }
