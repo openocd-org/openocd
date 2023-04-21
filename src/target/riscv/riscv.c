@@ -1733,23 +1733,23 @@ static int resume_prep(struct target *target, int current,
 		target_addr_t address, int handle_breakpoints, int debug_execution)
 {
 	RISCV_INFO(r);
-	LOG_TARGET_DEBUG(target, "target->state=%d", target->state);
+
+	LOG_TARGET_DEBUG(target, "target->state=%d, current=%s, address=0x%"
+		TARGET_PRIxADDR ", handle_breakpoints=%s, debug_exec=%s",
+		target->state,
+		current ? "true" : "false",
+		address,
+		handle_breakpoints ? "true" : "false",
+		debug_execution ? "true" : "false");
 
 	if (!current && riscv_set_register(target, GDB_REGNO_PC, address) != ERROR_OK)
 		return ERROR_FAIL;
 
-	if (target->debug_reason == DBG_REASON_WATCHPOINT) {
-		/* To be able to run off a trigger, disable all the triggers, step, and
-		 * then resume as usual. */
-		riscv_reg_t trigger_state[RISCV_MAX_HWBPS] = {0};
-
-		if (disable_triggers(target, trigger_state) != ERROR_OK)
-			return ERROR_FAIL;
-
-		if (old_or_new_riscv_step(target, true, 0, false) != ERROR_OK)
-			return ERROR_FAIL;
-
-		if (enable_triggers(target, trigger_state) != ERROR_OK)
+	if (handle_breakpoints) {
+		/* To be able to run off a trigger, we perform a step operation and then
+		 * resume. If handle_breakpoints is true then step temporarily disables
+		 * pending breakpoints so we can safely perform the step. */
+		if (old_or_new_riscv_step(target, current, address, handle_breakpoints) != ERROR_OK)
 			return ERROR_FAIL;
 	}
 
@@ -1857,9 +1857,16 @@ static int riscv_resume(
 	return result;
 }
 
-static int riscv_target_resume(struct target *target, int current, target_addr_t address,
-		int handle_breakpoints, int debug_execution)
+static int riscv_target_resume(struct target *target, int current,
+		target_addr_t address, int handle_breakpoints, int debug_execution)
 {
+	LOG_TARGET_DEBUG(target, "target->state=%d, current=%s, address=0x%"
+		TARGET_PRIxADDR ", handle_breakpoints=%s, debug_exec=%s",
+		target->state,
+		current ? "true" : "false",
+		address,
+		handle_breakpoints ? "true" : "false",
+		debug_execution ? "true" : "false");
 	return riscv_resume(target, current, address, handle_breakpoints,
 			debug_execution, false);
 }
