@@ -1533,8 +1533,10 @@ int riscv_flush_registers(struct target *target)
 	return ERROR_OK;
 }
 
-/* Convert: RISC-V hart's halt reason --> OpenOCD's generic debug reason */
-static int set_debug_reason(struct target *target, enum riscv_halt_reason halt_reason)
+/**
+ * Set OpenOCD's generic debug reason from the RISC-V halt reason.
+ */
+int set_debug_reason(struct target *target, enum riscv_halt_reason halt_reason)
 {
 	RISCV_INFO(r);
 	r->trigger_hit = -1;

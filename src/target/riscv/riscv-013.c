@@ -58,6 +58,7 @@ static void riscv013_fill_dmi_write_u64(struct target *target, char *buf, int a,
 static void riscv013_fill_dmi_read_u64(struct target *target, char *buf, int a);
 static int riscv013_dmi_write_u64_bits(struct target *target);
 static void riscv013_fill_dmi_nop_u64(struct target *target, char *buf);
+static unsigned int register_size(struct target *target, enum gdb_regno number);
 static int register_read_direct(struct target *target, riscv_reg_t *value,
 		enum gdb_regno number);
 static int register_write_direct(struct target *target, enum gdb_regno number,
@@ -877,8 +878,8 @@ static uint32_t access_register_command(struct target *target, uint32_t number,
 	return command;
 }
 
-static int register_read_abstract(struct target *target, riscv_reg_t *value,
-		enum gdb_regno number, unsigned int size)
+static int register_read_abstract_with_size(struct target *target,
+		riscv_reg_t *value, enum gdb_regno number, unsigned int size)
 {
 	RISCV013_INFO(info);
 
@@ -915,10 +916,19 @@ static int register_read_abstract(struct target *target, riscv_reg_t *value,
 	return ERROR_OK;
 }
 
+static int register_read_abstract(struct target *target, riscv_reg_t *value,
+		enum gdb_regno number)
+{
+	const unsigned int size = register_size(target, number);
+
+	return register_read_abstract_with_size(target, value, number, size);
+}
+
 static int register_write_abstract(struct target *target, enum gdb_regno number,
-		riscv_reg_t value, unsigned int size)
+		riscv_reg_t value)
 {
 	RISCV013_INFO(info);
+	const unsigned int size = register_size(target, number);
 
 	if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31 &&
 			!info->abstract_write_fpr_supported)
@@ -1294,22 +1304,43 @@ static bool has_sufficient_progbuf(struct target *target, unsigned size)
 }
 
 /**
- * Immediately write the new value to the requested register. This mechanism
- * bypasses any caches.
+ * This function is used to read a 64-bit value from a register by executing a
+ * program.
+ * The program stores a register to address located in S0.
+ * The caller should save S0.
  */
-static int register_write_direct(struct target *target, enum gdb_regno number,
-		riscv_reg_t value)
+static int internal_register_read64_progbuf_scratch(struct target *target,
+		struct riscv_program *program, riscv_reg_t *value)
 {
-	LOG_TARGET_DEBUG(target, "%s <- 0x%" PRIx64, gdb_regno_name(number), value);
+	scratch_mem_t scratch;
 
-	riscv_reg_t mstatus;
-	if (prep_for_register_access(target, &mstatus, number) != ERROR_OK)
+	if (scratch_reserve(target, &scratch, program, 8) != ERROR_OK)
 		return ERROR_FAIL;
 
-	int result = register_write_abstract(target, number, value,
-			register_size(target, number));
-	if (result == ERROR_OK || !has_sufficient_progbuf(target, 2))
-		return result;
+	if (register_write_abstract(target, GDB_REGNO_S0, scratch.hart_address)
+			!= ERROR_OK) {
+		scratch_release(target, &scratch);
+		return ERROR_FAIL;
+	}
+	if (riscv_program_exec(program, target) != ERROR_OK) {
+		scratch_release(target, &scratch);
+		return ERROR_FAIL;
+	}
+
+	int result = scratch_read64(target, &scratch, value);
+
+	scratch_release(target, &scratch);
+	return result;
+}
+
+/**
+ * This function reads a register by writing a program to program buffer and
+ * executing it.
+ */
+static int register_read_progbuf(struct target *target, uint64_t *value,
+		enum gdb_regno number)
+{
+	assert(target->state == TARGET_HALTED);
 
 	struct riscv_program program;
 	riscv_program_init(&program, target);
@@ -1317,170 +1348,183 @@ static int register_write_direct(struct target *target, enum gdb_regno number,
 	if (riscv_save_register(target, GDB_REGNO_S0) != ERROR_OK)
 		return ERROR_FAIL;
 
-	scratch_mem_t scratch;
-	bool use_scratch = false;
-	if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31 &&
-			riscv_supports_extension(target, 'D') &&
-			riscv_xlen(target) < 64) {
-		/* There are no instructions to move all the bits from a register, so
-		 * we need to use some scratch RAM. */
-		use_scratch = true;
-		if (riscv_program_insert(&program, fld(number - GDB_REGNO_FPR0, S0, 0))
-				!= ERROR_OK)
-			return ERROR_FAIL;
+	if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
+		const unsigned int freg = number - GDB_REGNO_FPR0;
 
-		if (scratch_reserve(target, &scratch, &program, 8) != ERROR_OK)
-			return ERROR_FAIL;
-
-		if (register_write_direct(target, GDB_REGNO_S0, scratch.hart_address)
-				!= ERROR_OK) {
-			scratch_release(target, &scratch);
-			return ERROR_FAIL;
+		if (riscv_supports_extension(target, 'D') && riscv_xlen(target) < 64) {
+			/* There are no instructions to move all the bits from a
+			 * register, so we need to use some scratch RAM.
+			 */
+			if (riscv_program_insert(&program, fsd(freg, S0, 0)) != ERROR_OK)
+				return ERROR_FAIL;
+			return internal_register_read64_progbuf_scratch(target, &program,
+					value);
 		}
-
-		if (scratch_write64(target, &scratch, value) != ERROR_OK) {
-			scratch_release(target, &scratch);
+		if (riscv_program_insert(&program,
+					riscv_supports_extension(target, 'D') ?
+					fmv_x_d(S0, freg) : fmv_x_w(S0, freg)) != ERROR_OK)
 			return ERROR_FAIL;
-		}
-
+	} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
+		if (riscv_program_csrr(&program, S0, number) != ERROR_OK)
+			return ERROR_FAIL;
 	} else {
-		if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
-			if (riscv_supports_extension(target, 'D')) {
-				if (riscv_program_insert(&program,
-							fmv_d_x(number - GDB_REGNO_FPR0, S0)) != ERROR_OK)
-					return ERROR_FAIL;
-			} else {
-				if (riscv_program_insert(&program,
-							fmv_w_x(number - GDB_REGNO_FPR0, S0)) != ERROR_OK)
-					return ERROR_FAIL;
-			}
-		} else if (number == GDB_REGNO_VTYPE) {
-			if (riscv_save_register(target, GDB_REGNO_S1) != ERROR_OK)
-				return ERROR_FAIL;
-			if (riscv_program_insert(&program, csrr(S1, CSR_VL)) != ERROR_OK)
-				return ERROR_FAIL;
-			if (riscv_program_insert(&program, vsetvl(ZERO, S1, S0)) != ERROR_OK)
-				return ERROR_FAIL;
-		} else if (number == GDB_REGNO_VL) {
-			/* "The XLEN-bit-wide read-only vl CSR can only be updated by the
-			 * vsetvli and vsetvl instructions, and the fault-only-rst vector
-			 * load instruction variants." */
-			if (riscv_save_register(target, GDB_REGNO_S1) != ERROR_OK)
-				return ERROR_FAIL;
-			if (riscv_program_insert(&program, csrr(S1, CSR_VTYPE)) != ERROR_OK)
-				return ERROR_FAIL;
-			if (riscv_program_insert(&program, vsetvl(ZERO, S0, S1)) != ERROR_OK)
-				return ERROR_FAIL;
-		} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
-			if (riscv_program_csrw(&program, S0, number) != ERROR_OK)
-				return ERROR_FAIL;
-		} else {
-			LOG_ERROR("Unsupported register (enum gdb_regno)(%d)", number);
-			return ERROR_FAIL;
-		}
-		if (register_write_direct(target, GDB_REGNO_S0, value) != ERROR_OK)
-			return ERROR_FAIL;
+		LOG_ERROR("Unsupported register: %s", gdb_regno_name(number));
+		return ERROR_FAIL;
 	}
 
-	int exec_out = riscv_program_exec(&program, target);
-	/* Don't message on error. Probably the register doesn't exist. */
-	if (exec_out == ERROR_OK && target->reg_cache) {
-		struct reg *reg = &target->reg_cache->reg_list[number];
-		buf_set_u64(reg->value, 0, reg->size, value);
-	}
+	if (riscv_program_exec(&program, target) != ERROR_OK)
+		return ERROR_FAIL;
 
-	if (use_scratch)
+	return register_read_abstract(target, value, GDB_REGNO_S0) != ERROR_OK;
+}
+
+/**
+ * This function is used to write a 64-bit value to a register by executing a
+ * program.
+ * The program loads a value from address located in S0 to a register.
+ * The caller should save S0.
+ */
+static int internal_register_write64_progbuf_scratch(struct target *target,
+		struct riscv_program *program, riscv_reg_t value)
+{
+	scratch_mem_t scratch;
+
+	if (scratch_reserve(target, &scratch, program, 8) != ERROR_OK)
+		return ERROR_FAIL;
+
+	if (register_write_abstract(target, GDB_REGNO_S0, scratch.hart_address)
+			!= ERROR_OK) {
 		scratch_release(target, &scratch);
+		return ERROR_FAIL;
+	}
+	if (scratch_write64(target, &scratch, value) != ERROR_OK) {
+		scratch_release(target, &scratch);
+		return ERROR_FAIL;
+	}
+	int result = riscv_program_exec(program, target);
+
+	scratch_release(target, &scratch);
+	return result;
+}
+
+/**
+ * This function writes a register by writing a program to program buffer and
+ * executing it.
+ */
+static int register_write_progbuf(struct target *target, enum gdb_regno number,
+		riscv_reg_t value)
+{
+	assert(target->state == TARGET_HALTED);
+
+	struct riscv_program program;
+
+	riscv_program_init(&program, target);
+
+	if (riscv_save_register(target, GDB_REGNO_S0) != ERROR_OK)
+		return ERROR_FAIL;
+
+	if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31 &&
+			riscv_supports_extension(target, 'D') && riscv_xlen(target) < 64) {
+		/* There are no instructions to move all the bits from a register,
+		 * so we need to use some scratch RAM.
+		 */
+		const unsigned int freg = number - GDB_REGNO_FPR0;
+
+		if (riscv_program_insert(&program, fld(freg, S0, 0)) != ERROR_OK)
+			return ERROR_FAIL;
+		return internal_register_write64_progbuf_scratch(target, &program,
+				value);
+	}
+
+	if (register_write_abstract(target, GDB_REGNO_S0, value) != ERROR_OK)
+		return ERROR_FAIL;
+
+	if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
+		const unsigned int freg = number - GDB_REGNO_FPR0;
+
+		if (riscv_program_insert(&program,
+					riscv_supports_extension(target, 'D') ?
+					fmv_d_x(freg, S0) : fmv_w_x(freg, S0)) != ERROR_OK)
+			return ERROR_FAIL;
+	} else if (number == GDB_REGNO_VTYPE) {
+		if (riscv_save_register(target, GDB_REGNO_S1) != ERROR_OK)
+			return ERROR_FAIL;
+		if (riscv_program_insert(&program, csrr(S1, CSR_VL)) != ERROR_OK)
+			return ERROR_FAIL;
+		if (riscv_program_insert(&program, vsetvl(ZERO, S1, S0)) != ERROR_OK)
+			return ERROR_FAIL;
+	} else if (number == GDB_REGNO_VL) {
+		/* "The XLEN-bit-wide read-only vl CSR can only be updated by the
+		 * vsetvli and vsetvl instructions, and the fault-only-rst vector
+		 * load instruction variants."
+		 */
+		if (riscv_save_register(target, GDB_REGNO_S1) != ERROR_OK)
+			return ERROR_FAIL;
+		if (riscv_program_insert(&program, csrr(S1, CSR_VTYPE)) != ERROR_OK)
+			return ERROR_FAIL;
+		if (riscv_program_insert(&program, vsetvl(ZERO, S0, S1)) != ERROR_OK)
+			return ERROR_FAIL;
+	} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
+		if (riscv_program_csrw(&program, S0, number) != ERROR_OK)
+			return ERROR_FAIL;
+	} else {
+		LOG_ERROR("Unsupported register (enum gdb_regno)(%d)", number);
+		return ERROR_FAIL;
+	}
+	return riscv_program_exec(&program, target);
+}
+
+/**
+ * Immediately write the new value to the requested register. This mechanism
+ * bypasses any caches.
+ */
+static int register_write_direct(struct target *target, enum gdb_regno number,
+		riscv_reg_t value)
+{
+	LOG_TARGET_DEBUG(target, "Writing 0x%" PRIx64 " to %s", value,
+			gdb_regno_name(number));
+
+	riscv_reg_t mstatus;
+	if (prep_for_register_access(target, &mstatus, number) != ERROR_OK)
+		return ERROR_FAIL;
+
+	int result = register_write_abstract(target, number, value);
+
+	if (result != ERROR_OK && target->state == TARGET_HALTED)
+		result = register_write_progbuf(target, number, value);
 
 	if (cleanup_after_register_access(target, mstatus, number) != ERROR_OK)
 		return ERROR_FAIL;
 
-	return exec_out;
+	if (result == ERROR_OK)
+		LOG_TARGET_DEBUG(target, "%s <- 0x%" PRIx64, gdb_regno_name(number),
+				value);
+
+	return result;
 }
 
 /** Actually read registers from the target right now. */
 static int register_read_direct(struct target *target, riscv_reg_t *value,
 		enum gdb_regno number)
 {
-	if (dm013_select_target(target) != ERROR_OK)
-		return ERROR_FAIL;
+	LOG_TARGET_DEBUG(target, "Reading %s", gdb_regno_name(number));
 
 	riscv_reg_t mstatus;
+
 	if (prep_for_register_access(target, &mstatus, number) != ERROR_OK)
 		return ERROR_FAIL;
 
-	int result = register_read_abstract(target, value, number,
-			register_size(target, number));
+	int result = register_read_abstract(target, value, number);
 
-	if (result != ERROR_OK &&
-			has_sufficient_progbuf(target, 2) &&
-			number > GDB_REGNO_XPR31) {
-		struct riscv_program program;
-		riscv_program_init(&program, target);
-
-		scratch_mem_t scratch;
-		bool use_scratch = false;
-
-		if (riscv_save_register(target, GDB_REGNO_S0) != ERROR_OK)
-			return ERROR_FAIL;
-
-		/* Write program to move data into s0. */
-
-		if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
-			if (riscv_supports_extension(target, 'D')
-					&& riscv_xlen(target) < 64) {
-				/* There are no instructions to move all the bits from a
-				 * register, so we need to use some scratch RAM. */
-				if (riscv_program_insert(&program,
-							fsd(number - GDB_REGNO_FPR0, S0, 0)) != ERROR_OK)
-					return ERROR_FAIL;
-				if (scratch_reserve(target, &scratch, &program, 8) != ERROR_OK)
-					return ERROR_FAIL;
-				use_scratch = true;
-
-				if (register_write_direct(target, GDB_REGNO_S0,
-							scratch.hart_address) != ERROR_OK) {
-					scratch_release(target, &scratch);
-					return ERROR_FAIL;
-				}
-			} else if (riscv_supports_extension(target, 'D')) {
-				if (riscv_program_insert(&program, fmv_x_d(S0, number - GDB_REGNO_FPR0)) !=
-						ERROR_OK)
-					return ERROR_FAIL;
-			} else {
-				if (riscv_program_insert(&program, fmv_x_w(S0, number - GDB_REGNO_FPR0)) !=
-						ERROR_OK)
-					return ERROR_FAIL;
-			}
-		} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
-			if (riscv_program_csrr(&program, S0, number) != ERROR_OK)
-				return ERROR_FAIL;
-		} else {
-			LOG_ERROR("Unsupported register: %s", gdb_regno_name(number));
-			return ERROR_FAIL;
-		}
-
-		/* Execute program. */
-		result = riscv_program_exec(&program, target);
-		/* Don't message on error. Probably the register doesn't exist. */
-
-		if (use_scratch) {
-			result = scratch_read64(target, &scratch, value);
-			scratch_release(target, &scratch);
-			if (result != ERROR_OK)
-				return result;
-		} else {
-			/* Read S0 */
-			if (register_read_direct(target, value, GDB_REGNO_S0) != ERROR_OK)
-				return ERROR_FAIL;
-		}
-	}
+	if (result != ERROR_OK && target->state == TARGET_HALTED)
+		result = register_read_progbuf(target, value, number);
 
 	if (cleanup_after_register_access(target, mstatus, number) != ERROR_OK)
 		return ERROR_FAIL;
 
 	if (result == ERROR_OK)
-		LOG_TARGET_DEBUG(target, "%s = 0x%" PRIx64, gdb_regno_name(number), *value);
+		LOG_TARGET_DEBUG(target, "%s = 0x%" PRIx64, gdb_regno_name(number),
+				*value);
 
 	return result;
 }
@@ -1710,13 +1754,29 @@ static int examine(struct target *target)
 					info->index);
 			return ERROR_FAIL;
 		}
+		target->state = TARGET_HALTED;
+		target->debug_reason = DBG_REASON_DBGRQ;
+	}
+	/* FIXME: This is needed since register_read_direct relies on target->state
+	 * to work correctly, so, if target->state does not represent current state
+	 * of target, e.g. if a target is halted, but target->state is
+	 * TARGET_UNKNOWN, it can fail early, (e.g. accessing registers via program
+	 * buffer can not be done atomically on a running hart becuse mstatus can't
+	 * be prepared for a register access and then restored)
+	 * See https://github.com/riscv/riscv-openocd/pull/842#discussion_r1179414089
+	 */
+	const enum target_state saved_tgt_state = target->state;
+	const enum target_debug_reason saved_dbg_reason = target->debug_reason;
+	if (target->state != TARGET_HALTED) {
+		target->state = TARGET_HALTED;
+		target->debug_reason = DBG_REASON_DBGRQ;
 	}
 
 	/* Without knowing anything else we can at least mess with the
 	 * program buffer. */
 	r->debug_buffer_size = info->progbufsize;
 
-	int result = register_read_abstract(target, NULL, GDB_REGNO_S0, 64);
+	int result = register_read_abstract_with_size(target, NULL, GDB_REGNO_S0, 64);
 	if (result == ERROR_OK)
 		r->xlen = 64;
 	else
@@ -1725,11 +1785,11 @@ static int examine(struct target *target)
 	/* Save s0 and s1. The register cache hasn't be initialized yet so we
 	 * need to take care of this manually. */
 	uint64_t s0, s1;
-	if (register_read_direct(target, &s0, GDB_REGNO_S0) != ERROR_OK) {
+	if (register_read_abstract(target, &s0, GDB_REGNO_S0) != ERROR_OK) {
 		LOG_TARGET_ERROR(target, "Fatal: Failed to read s0.");
 		return ERROR_FAIL;
 	}
-	if (register_read_direct(target, &s1, GDB_REGNO_S1) != ERROR_OK) {
+	if (register_read_abstract(target, &s1, GDB_REGNO_S1) != ERROR_OK) {
 		LOG_TARGET_ERROR(target, "Fatal: Failed to read s1.");
 		return ERROR_FAIL;
 	}
@@ -1780,6 +1840,9 @@ static int examine(struct target *target)
 		LOG_TARGET_ERROR(target, "Fatal: Failed to write back s1.");
 		return ERROR_FAIL;
 	}
+
+	target->state = saved_tgt_state;
+	target->debug_reason = saved_dbg_reason;
 
 	if (!halted) {
 		riscv013_step_or_resume_current_hart(target, false);
@@ -2019,14 +2082,15 @@ static int riscv013_get_register_buf(struct target *target,
 
 	riscv_reg_t mstatus, vtype, vl;
 	unsigned int debug_vl, debug_vsew;
+
 	if (prep_for_vector_access(target, &mstatus, &vtype, &vl,
 				&debug_vl, &debug_vsew) != ERROR_OK)
 		return ERROR_FAIL;
 
-	unsigned vnum = regno - GDB_REGNO_V0;
+	unsigned int vnum = regno - GDB_REGNO_V0;
 
 	int result = ERROR_OK;
-	for (unsigned i = 0; i < debug_vl; i++) {
+	for (unsigned int i = 0; i < debug_vl; i++) {
 		/* Can't reuse the same program because riscv_program_exec() adds
 		 * ebreak to the end every time. */
 		struct riscv_program program;
@@ -2073,17 +2137,18 @@ static int riscv013_set_register_buf(struct target *target,
 
 	riscv_reg_t mstatus, vtype, vl;
 	unsigned int debug_vl, debug_vsew;
+
 	if (prep_for_vector_access(target, &mstatus, &vtype, &vl,
 				&debug_vl, &debug_vsew) != ERROR_OK)
 		return ERROR_FAIL;
 
-	unsigned vnum = regno - GDB_REGNO_V0;
+	unsigned int vnum = regno - GDB_REGNO_V0;
 
 	struct riscv_program program;
 	riscv_program_init(&program, target);
 	riscv_program_insert(&program, vslide1down_vx(vnum, vnum, S0, true));
 	int result = ERROR_OK;
-	for (unsigned i = 0; i < debug_vl; i++) {
+	for (unsigned int i = 0; i < debug_vl; i++) {
 		if (register_write_direct(target, GDB_REGNO_S0,
 					buf_get_u64(value, debug_vsew * i, debug_vsew)) != ERROR_OK)
 			return ERROR_FAIL;
@@ -4164,8 +4229,7 @@ struct target_type riscv013_target = {
 static int riscv013_get_register(struct target *target,
 		riscv_reg_t *value, enum gdb_regno rid)
 {
-	LOG_DEBUG("[%s] reading register %s", target_name(target),
-			gdb_regno_name(rid));
+	LOG_TARGET_DEBUG(target, "reading register %s",	gdb_regno_name(rid));
 
 	if (dm013_select_target(target) != ERROR_OK)
 		return ERROR_FAIL;
@@ -4178,7 +4242,8 @@ static int riscv013_get_register(struct target *target,
 	} else if (rid == GDB_REGNO_PRIV) {
 		uint64_t dcsr;
 		/* TODO: move this into riscv.c. */
-		result = register_read_direct(target, &dcsr, GDB_REGNO_DCSR);
+		if (register_read_direct(target, &dcsr, GDB_REGNO_DCSR) != ERROR_OK)
+			return ERROR_FAIL;
 		*value = set_field(0, VIRT_PRIV_V, get_field(dcsr, CSR_DCSR_V));
 		*value = set_field(*value, VIRT_PRIV_PRV, get_field(dcsr, CSR_DCSR_PRV));
 	} else {
@@ -4193,27 +4258,22 @@ static int riscv013_get_register(struct target *target,
 static int riscv013_set_register(struct target *target, enum gdb_regno rid,
 		riscv_reg_t value)
 {
-	if (dm013_select_target(target) != ERROR_OK)
-		return ERROR_FAIL;
 	LOG_TARGET_DEBUG(target, "writing 0x%" PRIx64 " to register %s",
 			value, gdb_regno_name(rid));
+
+	if (dm013_select_target(target) != ERROR_OK)
+		return ERROR_FAIL;
 
 	if (rid <= GDB_REGNO_XPR31) {
 		return register_write_direct(target, rid, value);
 	} else if (rid == GDB_REGNO_PC) {
 		LOG_TARGET_DEBUG(target, "writing PC to DPC: 0x%" PRIx64, value);
-		register_write_direct(target, GDB_REGNO_DPC, value);
-		riscv_reg_t actual_value;
-		register_read_direct(target, &actual_value, GDB_REGNO_DPC);
-		LOG_TARGET_DEBUG(target, "  actual DPC written: 0x%016" PRIx64, actual_value);
-		if (value != actual_value) {
-			LOG_ERROR("Written PC (0x%" PRIx64 ") does not match read back "
-					"value (0x%" PRIx64 ")", value, actual_value);
-			return ERROR_FAIL;
-		}
+		return register_write_direct(target, GDB_REGNO_DPC, value);
 	} else if (rid == GDB_REGNO_PRIV) {
 		riscv_reg_t dcsr;
-		register_read_direct(target, &dcsr, GDB_REGNO_DCSR);
+
+		if (register_read_direct(target, &dcsr, GDB_REGNO_DCSR) != ERROR_OK)
+			return ERROR_FAIL;
 		dcsr = set_field(dcsr, CSR_DCSR_PRV, get_field(value, VIRT_PRIV_PRV));
 		dcsr = set_field(dcsr, CSR_DCSR_V, get_field(value, VIRT_PRIV_V));
 		return register_write_direct(target, GDB_REGNO_DCSR, dcsr);
@@ -4544,7 +4604,7 @@ static int riscv013_on_step_or_resume(struct target *target, bool step)
 
 	/* We want to twiddle some bits in the debug CSR so debugging works. */
 	riscv_reg_t dcsr;
-	int result = register_read_direct(target, &dcsr, GDB_REGNO_DCSR);
+	int result = riscv_get_register(target, &dcsr, GDB_REGNO_DCSR);
 	if (result != ERROR_OK)
 		return result;
 	dcsr = set_field(dcsr, CSR_DCSR_STEP, step);
