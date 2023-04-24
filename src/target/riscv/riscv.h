@@ -376,8 +376,16 @@ int riscv_current_hartid(const struct target *target);
  * consecutive and start with mhartid=0. */
 unsigned int riscv_count_harts(struct target *target);
 
-/** Set register, updating the cache. */
+/**
+ * Set the register value. For cacheable registers, only the cache is updated
+ * (write-back mode).
+ */
 int riscv_set_register(struct target *target, enum gdb_regno i, riscv_reg_t v);
+/**
+ * Set the register value and immediately write it to the target
+ * (write-through mode).
+ */
+int riscv_write_register(struct target *target, enum gdb_regno i, riscv_reg_t v);
 /** Get register, from the cache if it's in there. */
 int riscv_get_register(struct target *target, riscv_reg_t *value,
 		enum gdb_regno r);

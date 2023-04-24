@@ -4632,96 +4632,166 @@ static bool gdb_regno_cacheable(enum gdb_regno regno, bool is_write)
 }
 
 /**
- * This function is called when the debug user wants to change the value of a
- * register. The new value may be cached, and may not be written until the hart
- * is resumed. */
-int riscv_set_register(struct target *target, enum gdb_regno regid, riscv_reg_t value)
+ * This function is used internally by functions that change register values.
+ * If `write_through` is true, it is ensured that the value of the target's
+ * register is set to be equal to the `value` argument. The cached value is
+ * updated if the register is cacheable.
+ */
+static int riscv_set_or_write_register(struct target *target,
+		enum gdb_regno regid, riscv_reg_t value, bool write_through)
 {
 	RISCV_INFO(r);
-	LOG_DEBUG("[%s] %s <- %" PRIx64, target_name(target), gdb_regno_name(regid), value);
 	assert(r->set_register);
 
 	keep_alive();
 
-	/* TODO: Hack to deal with gdb that thinks these registers still exist. */
-	if (regid > GDB_REGNO_XPR15 && regid <= GDB_REGNO_XPR31 && value == 0 &&
-			riscv_supports_extension(target, 'E'))
-		return ERROR_OK;
-
-	struct reg *reg = &target->reg_cache->reg_list[regid];
-	buf_set_u64(reg->value, 0, reg->size, value);
-
-	if (gdb_regno_cacheable(regid, true)) {
-		reg->valid = true;
-		reg->dirty = true;
-	} else {
-		if (r->set_register(target, regid, value) != ERROR_OK)
-			return ERROR_FAIL;
+	if (!target->reg_cache) {
+		assert(!target_was_examined(target));
+		LOG_TARGET_DEBUG(target,
+				"No cache, writing to target: %s <- 0x%" PRIx64,
+				gdb_regno_name(regid), value);
+		return r->set_register(target, regid, value);
 	}
 
-	LOG_DEBUG("[%s] wrote 0x%" PRIx64 " to %s valid=%d",
-			  target_name(target), value, reg->name, reg->valid);
+	struct reg *reg = get_reg_cache_entry(target, regid);
+
+	if (!reg->exist) {
+		LOG_TARGET_DEBUG(target, "Register %s does not exist.", reg->name);
+		return ERROR_FAIL;
+	}
+
+	if (target->state != TARGET_HALTED) {
+		LOG_TARGET_DEBUG(target,
+				"Target not halted, writing to target: %s <- 0x%" PRIx64,
+				reg->name, value);
+		return r->set_register(target, regid, value);
+	}
+
+	const bool need_to_write = !reg->valid || reg->dirty ||
+		value != buf_get_u64(reg->value, 0, reg->size);
+	const bool cacheable = gdb_regno_cacheable(regid, need_to_write);
+
+	if (!cacheable || (write_through && need_to_write)) {
+		LOG_TARGET_DEBUG(target,
+				"Writing to target: %s <- 0x%" PRIx64 " (cacheable=%s, valid=%s, dirty=%s)",
+				reg->name, value, cacheable ? "true" : "false",
+				reg->valid ? "true" : "false",
+				reg->dirty ? "true" : "false");
+		if (r->set_register(target, regid, value) != ERROR_OK)
+			return ERROR_FAIL;
+
+		reg->dirty = false;
+	} else {
+		reg->dirty = need_to_write;
+	}
+
+	buf_set_u64(reg->value, 0, reg->size, value);
+	reg->valid = cacheable;
+
+	LOG_TARGET_DEBUG(target,
+			"Wrote 0x%" PRIx64 " to %s (cacheable=%s, valid=%s, dirty=%s)",
+			value, reg->name, cacheable ? "true" : "false",
+			reg->valid ? "true" : "false",
+			reg->dirty ? "true" : "false");
 	return ERROR_OK;
 }
 
+/**
+ * This function is used to change the value of a register. The new value may
+ * be cached, and may not be written until the hart is resumed.
+ */
+int riscv_set_register(struct target *target, enum gdb_regno regid,
+		riscv_reg_t value)
+{
+	return riscv_set_or_write_register(target, regid, value,
+			/* write_through */ false);
+}
+
+/**
+ * This function is used to change the value of a register. The new value may
+ * be cached, but it will be written to hart immediately.
+ */
+int riscv_write_register(struct target *target, enum gdb_regno regid,
+		riscv_reg_t value)
+{
+	return riscv_set_or_write_register(target, regid, value,
+			/* write_through */ true);
+}
+
+/**
+ * This function is used to get the value of a register. If possible, the value
+ * in cache will be updated.
+ */
 int riscv_get_register(struct target *target, riscv_reg_t *value,
 		enum gdb_regno regid)
 {
 	RISCV_INFO(r);
+	assert(r->get_register);
 
 	keep_alive();
 
-	struct reg *reg = &target->reg_cache->reg_list[regid];
+	if (!target->reg_cache) {
+		assert(!target_was_examined(target));
+		LOG_TARGET_DEBUG(target, "No cache, reading %s from target",
+				gdb_regno_name(regid));
+		return r->get_register(target, value, regid);
+	}
+
+	struct reg *reg = get_reg_cache_entry(target, regid);
 	if (!reg->exist) {
-		LOG_DEBUG("[%s] %s does not exist.",
-				  target_name(target), gdb_regno_name(regid));
+		LOG_TARGET_DEBUG(target, "Register %s does not exist.", reg->name);
 		return ERROR_FAIL;
 	}
 
-	if (reg && reg->valid) {
+	if (reg->valid) {
 		*value = buf_get_u64(reg->value, 0, reg->size);
-		LOG_DEBUG("[%s] %s: %" PRIx64 " (cached)", target_name(target),
-				  gdb_regno_name(regid), *value);
+		LOG_TARGET_DEBUG(target, "Read %s: 0x%" PRIx64 " (cached)", reg->name,
+				*value);
 		return ERROR_OK;
 	}
 
-	/* TODO: Hack to deal with gdb that thinks these registers still exist. */
-	if (regid > GDB_REGNO_XPR15 && regid <= GDB_REGNO_XPR31 &&
-			riscv_supports_extension(target, 'E')) {
-		*value = 0;
-		return ERROR_OK;
-	}
+	LOG_TARGET_DEBUG(target, "Reading %s from target", reg->name);
+	if (r->get_register(target, value, regid) != ERROR_OK)
+		return ERROR_FAIL;
 
-	int result = r->get_register(target, value, regid);
+	buf_set_u64(reg->value, 0, reg->size, *value);
+	reg->valid = gdb_regno_cacheable(regid, /* is write? */ false);
+	reg->dirty = false;
 
-	if (result == ERROR_OK) {
-		/* Update the cache in case we're called from
-		 * riscv_save_register(). */
-		buf_set_u64(reg->value, 0, reg->size, *value);
-		reg->valid = gdb_regno_cacheable(regid, false);
-	}
-
-	LOG_DEBUG("[%s] %s: %" PRIx64, target_name(target),
-			gdb_regno_name(regid), *value);
-	return result;
+	LOG_TARGET_DEBUG(target, "Read %s: 0x%" PRIx64, reg->name, *value);
+	return ERROR_OK;
 }
 
+/**
+ * This function is used to save the value of a register in cache. The register
+ * is marked as dirty, and writeback is delayed for as long as possible.
+ */
 int riscv_save_register(struct target *target, enum gdb_regno regid)
 {
+	assert(target->state == TARGET_HALTED &&
+			"Doesn't make sense to populate register cache on non-halted targets.");
+	assert(gdb_regno_cacheable(regid, /* is write? */ false) &&
+			"Only cacheable registers can be saved.");
+
 	RISCV_INFO(r);
 	riscv_reg_t value;
 	if (!target->reg_cache) {
 		assert(!target_was_examined(target));
+		/* To create register cache it is needed to examine the target first,
+		 * therefore during examine, any changed register needs to be saved
+		 * and restored manually.
+		 */
 		return ERROR_OK;
 	}
 
-	struct reg *reg = &target->reg_cache->reg_list[regid];
-	LOG_DEBUG("[%s] save %s", target_name(target), reg->name);
+	struct reg *reg = get_reg_cache_entry(target, regid);
+
+	LOG_TARGET_DEBUG(target, "Saving %s", reg->name);
 	if (riscv_get_register(target, &value, regid) != ERROR_OK)
 		return ERROR_FAIL;
 
-	if (!reg->valid)
-		return ERROR_FAIL;
+	assert(reg->valid &&
+			"The register is cacheable, so the cache entry must be valid now.");
 	/* Mark the register dirty. We assume that this function is called
 	 * because the caller is about to mess with the underlying value of the
 	 * register. */
@@ -5080,21 +5150,34 @@ const char *gdb_regno_name(enum gdb_regno regno)
 	}
 }
 
+
+/**
+ * This function is the handler of user's request to read a register.
+ */
 static int register_get(struct reg *reg)
 {
-	riscv_reg_info_t *reg_info = reg->arch_info;
-	struct target *target = reg_info->target;
+	struct target *target = ((riscv_reg_info_t *)reg->arch_info)->target;
 	RISCV_INFO(r);
+
+	/* TODO: Hack to deal with gdb that thinks these registers still exist. */
+	if (reg->number > GDB_REGNO_XPR15 && reg->number <= GDB_REGNO_XPR31 &&
+			riscv_supports_extension(target, 'E')) {
+		buf_set_u64(reg->value, 0, reg->size, 0);
+		return ERROR_OK;
+	}
 
 	if (reg->number >= GDB_REGNO_V0 && reg->number <= GDB_REGNO_V31) {
 		if (!r->get_register_buf) {
-			LOG_ERROR("Reading register %s not supported on this RISC-V target.",
-					gdb_regno_name(reg->number));
+			LOG_TARGET_ERROR(target,
+					"Reading register %s not supported on this target.",
+					reg->name);
 			return ERROR_FAIL;
 		}
 
 		if (r->get_register_buf(target, reg->value, reg->number) != ERROR_OK)
 			return ERROR_FAIL;
+
+		reg->valid = gdb_regno_cacheable(reg->number, /* is write? */ false);
 	} else {
 		uint64_t value;
 		int result = riscv_get_register(target, &value, reg->number);
@@ -5102,32 +5185,31 @@ static int register_get(struct reg *reg)
 			return result;
 		buf_set_u64(reg->value, 0, reg->size, value);
 	}
-	reg->valid = gdb_regno_cacheable(reg->number, false);
 	char *str = buf_to_hex_str(reg->value, reg->size);
-	LOG_DEBUG("[%s] read 0x%s from %s (valid=%d)", target_name(target),
-			str, reg->name, reg->valid);
+	LOG_TARGET_DEBUG(target, "read 0x%s from %s (valid=%d)", str, reg->name,
+			reg->valid);
 	free(str);
 	return ERROR_OK;
 }
 
+/**
+ * This function is the handler of user's request to write a register.
+ */
 static int register_set(struct reg *reg, uint8_t *buf)
 {
-	riscv_reg_info_t *reg_info = reg->arch_info;
-	struct target *target = reg_info->target;
+	struct target *target = ((riscv_reg_info_t *)reg->arch_info)->target;
 	RISCV_INFO(r);
 
 	char *str = buf_to_hex_str(buf, reg->size);
-	LOG_DEBUG("[%s] write 0x%s to %s (valid=%d)", target_name(target),
-			str, reg->name, reg->valid);
+	LOG_TARGET_DEBUG(target, "write 0x%s to %s (valid=%d)",	str, reg->name,
+			reg->valid);
 	free(str);
 
-	/* Exit early for writing x0, which on the hardware would be ignored, and we
-	 * don't want to update our cache. */
-	if (reg->number == GDB_REGNO_ZERO)
+	/* TODO: Hack to deal with gdb that thinks these registers still exist. */
+	if (reg->number > GDB_REGNO_XPR15 && reg->number <= GDB_REGNO_XPR31 &&
+			riscv_supports_extension(target, 'E') &&
+			buf_get_u64(buf, 0, reg->size) == 0)
 		return ERROR_OK;
-
-	memcpy(reg->value, buf, DIV_ROUND_UP(reg->size, 8));
-	reg->valid = gdb_regno_cacheable(reg->number, true);
 
 	if (reg->number == GDB_REGNO_TDATA1 ||
 			reg->number == GDB_REGNO_TDATA2) {
@@ -5142,15 +5224,19 @@ static int register_set(struct reg *reg, uint8_t *buf)
 
 	if (reg->number >= GDB_REGNO_V0 && reg->number <= GDB_REGNO_V31) {
 		if (!r->set_register_buf) {
-			LOG_ERROR("Writing register %s not supported on this RISC-V target.",
-					gdb_regno_name(reg->number));
+			LOG_TARGET_ERROR(target,
+					"Writing register %s not supported on this target.",
+					reg->name);
 			return ERROR_FAIL;
 		}
 
-		if (r->set_register_buf(target, reg->number, reg->value) != ERROR_OK)
+		if (r->set_register_buf(target, reg->number, buf) != ERROR_OK)
 			return ERROR_FAIL;
+
+		memcpy(reg->value, buf, DIV_ROUND_UP(reg->size, 8));
+		reg->valid = gdb_regno_cacheable(reg->number, /* is write? */ true);
 	} else {
-		uint64_t value = buf_get_u64(buf, 0, reg->size);
+		const riscv_reg_t value = buf_get_u64(buf, 0, reg->size);
 		if (riscv_set_register(target, reg->number, value) != ERROR_OK)
 			return ERROR_FAIL;
 	}
