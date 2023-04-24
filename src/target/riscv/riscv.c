@@ -1495,6 +1495,15 @@ static int old_or_new_riscv_poll(struct target *target)
 		return riscv_openocd_poll(target);
 }
 
+static struct reg *get_reg_cache_entry(struct target *target,
+		unsigned int number)
+{
+	assert(target->reg_cache);
+	assert(target->reg_cache->reg_list);
+	assert(number < target->reg_cache->num_regs);
+	return &target->reg_cache->reg_list[number];
+}
+
 int riscv_flush_registers(struct target *target)
 {
 	RISCV_INFO(r);
@@ -1502,21 +1511,25 @@ int riscv_flush_registers(struct target *target)
 	if (!target->reg_cache)
 		return ERROR_OK;
 
-	LOG_DEBUG("[%s]", target_name(target));
+	LOG_TARGET_DEBUG(target, "");
 
-	for (uint32_t number = 0; number < target->reg_cache->num_regs; number++) {
-		struct reg *reg = &target->reg_cache->reg_list[number];
+	/* Writing non-GPR registers may require progbuf execution, and some GPRs
+	 * may become dirty in the process (e.g. S0, S1). For that reason, flush
+	 * registers in reverse order, so that GPRs are flushed last.
+	 */
+	for (unsigned int number = target->reg_cache->num_regs; number-- > 0; ) {
+		struct reg *reg = get_reg_cache_entry(target, number);
 		if (reg->valid && reg->dirty) {
-			uint64_t value = buf_get_u64(reg->value, 0, reg->size);
-			LOG_DEBUG("[%s] %s is dirty; write back 0x%" PRIx64,
-				  target_name(target), reg->name, value);
-			int result = r->set_register(target, number, value);
-			if (result != ERROR_OK)
+			riscv_reg_t value = buf_get_u64(reg->value, 0, reg->size);
+
+			LOG_TARGET_DEBUG(target, "%s is dirty; write back 0x%" PRIx64,
+					reg->name, value);
+			if (r->set_register(target, number, value) != ERROR_OK)
 				return ERROR_FAIL;
 			reg->dirty = false;
 		}
 	}
-
+	LOG_TARGET_DEBUG(target, "Flush of register cache completed");
 	return ERROR_OK;
 }
 
