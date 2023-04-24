@@ -161,7 +161,7 @@ size_t riscv_batch_add_dmi_read(struct riscv_batch *batch, unsigned address)
 	return batch->read_keys_used++;
 }
 
-unsigned riscv_batch_get_dmi_read_op(struct riscv_batch *batch, size_t key)
+unsigned int riscv_batch_get_dmi_read_op(const struct riscv_batch *batch, size_t key)
 {
 	assert(key < batch->read_keys_used);
 	size_t index = batch->read_keys[key];
@@ -171,7 +171,7 @@ unsigned riscv_batch_get_dmi_read_op(struct riscv_batch *batch, size_t key)
 	return (unsigned)buf_get_u32(base, DTM_DMI_OP_OFFSET, DTM_DMI_OP_LENGTH);
 }
 
-uint32_t riscv_batch_get_dmi_read_data(struct riscv_batch *batch, size_t key)
+uint32_t riscv_batch_get_dmi_read_data(const struct riscv_batch *batch, size_t key)
 {
 	assert(key < batch->read_keys_used);
 	size_t index = batch->read_keys[key];
