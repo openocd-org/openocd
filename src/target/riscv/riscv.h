@@ -178,10 +178,13 @@ struct riscv_info {
 
 	/* Helper functions that target the various RISC-V debug spec
 	 * implementations. */
-	int (*get_register)(struct target *target, riscv_reg_t *value, int regid);
-	int (*set_register)(struct target *target, int regid, uint64_t value);
-	int (*get_register_buf)(struct target *target, uint8_t *buf, int regno);
-	int (*set_register_buf)(struct target *target, int regno,
+	int (*get_register)(struct target *target, riscv_reg_t *value,
+			enum gdb_regno regno);
+	int (*set_register)(struct target *target, enum gdb_regno regno,
+			riscv_reg_t value);
+	int (*get_register_buf)(struct target *target, uint8_t *buf,
+			enum gdb_regno regno);
+	int (*set_register_buf)(struct target *target, enum gdb_regno regno,
 			const uint8_t *buf);
 	int (*select_target)(struct target *target);
 	int (*get_hart_state)(struct target *target, enum riscv_hart_state *state);
