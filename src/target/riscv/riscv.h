@@ -289,6 +289,7 @@ typedef struct {
 	const char *name;
 	int level;
 	unsigned va_bits;
+	/* log2(PTESIZE) */
 	unsigned pte_shift;
 	unsigned vpn_shift[PG_MAX_LEVEL];
 	unsigned vpn_mask[PG_MAX_LEVEL];
