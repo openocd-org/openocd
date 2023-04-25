@@ -1909,44 +1909,16 @@ static int riscv_mmu(struct target *target, int *enabled)
 	return ERROR_OK;
 }
 
+/* Translate address from virtual to physical, using info and ppn. */
 static int riscv_address_translate(struct target *target,
+		const virt2phys_info_t *info, target_addr_t ppn,
 		target_addr_t virtual, target_addr_t *physical)
 {
 	RISCV_INFO(r);
-	riscv_reg_t satp_value;
-	int mode;
-	uint64_t ppn_value;
-	target_addr_t table_address;
-	const virt2phys_info_t *info;
-	uint64_t pte = 0;
-	int i;
+	unsigned int xlen = riscv_xlen(target);
 
-	int result = riscv_get_register(target, &satp_value, GDB_REGNO_SATP);
-	if (result != ERROR_OK)
-		return result;
-
-	unsigned xlen = riscv_xlen(target);
-	mode = get_field(satp_value, RISCV_SATP_MODE(xlen));
-	switch (mode) {
-		case SATP_MODE_SV32:
-			info = &sv32;
-			break;
-		case SATP_MODE_SV39:
-			info = &sv39;
-			break;
-		case SATP_MODE_SV48:
-			info = &sv48;
-			break;
-		case SATP_MODE_OFF:
-			LOG_ERROR("No translation or protection." \
-				      " (satp: 0x%" PRIx64 ")", satp_value);
-			return ERROR_FAIL;
-		default:
-			LOG_ERROR("The translation mode is not supported." \
-				      " (satp: 0x%" PRIx64 ")", satp_value);
-			return ERROR_FAIL;
-	}
-	LOG_DEBUG("virtual=0x%" TARGET_PRIxADDR "; mode=%s", virtual, info->name);
+	LOG_TARGET_DEBUG(target, "mode=%s; ppn=0x%" TARGET_PRIxADDR "; virtual=0x%" TARGET_PRIxADDR,
+		info->name, ppn, virtual);
 
 	/* verify bits xlen-1:va_bits-1 are all equal */
 	assert(xlen >= info->va_bits);
@@ -1958,14 +1930,13 @@ static int riscv_address_translate(struct target *target,
 		return ERROR_FAIL;
 	}
 
-	ppn_value = get_field(satp_value, RISCV_SATP_PPN(xlen));
-	table_address = ppn_value << RISCV_PGSHIFT;
-	i = info->level - 1;
+	uint64_t pte = 0;
+	target_addr_t table_address = ppn << RISCV_PGSHIFT;
+	int i = info->level - 1;
 	while (i >= 0) {
 		uint64_t vpn = virtual >> info->vpn_shift[i];
 		vpn &= info->vpn_mask[i];
-		target_addr_t pte_address = table_address +
-									(vpn << info->pte_shift);
+		target_addr_t pte_address = table_address + (vpn << info->pte_shift);
 		uint8_t buffer[8];
 		assert(info->pte_shift <= 3);
 		int retval = r->read_memory(target, pte_address,
@@ -1981,8 +1952,11 @@ static int riscv_address_translate(struct target *target,
 		LOG_DEBUG("i=%d; PTE @0x%" TARGET_PRIxADDR " = 0x%" PRIx64, i,
 				pte_address, pte);
 
-		if (!(pte & PTE_V) || (!(pte & PTE_R) && (pte & PTE_W)))
+		if (!(pte & PTE_V) || (!(pte & PTE_R) && (pte & PTE_W))) {
+			LOG_TARGET_ERROR(target, "invalid PTE @0x%" TARGET_PRIxADDR ": 0x%" PRIx64
+					"; mode=%s; i=%d", pte_address, pte, info->name, i);
 			return ERROR_FAIL;
+		}
 
 		if ((pte & PTE_R) || (pte & PTE_W) || (pte & PTE_X)) /* Found leaf PTE. */
 			break;
@@ -1990,8 +1964,8 @@ static int riscv_address_translate(struct target *target,
 		i--;
 		if (i < 0)
 			break;
-		ppn_value = pte >> PTE_PPN_SHIFT;
-		table_address = ppn_value << RISCV_PGSHIFT;
+		ppn = pte >> PTE_PPN_SHIFT;
+		table_address = ppn << RISCV_PGSHIFT;
 	}
 
 	if (i < 0) {
@@ -2003,31 +1977,59 @@ static int riscv_address_translate(struct target *target,
 	*physical = virtual & (((target_addr_t)1 << info->va_bits) - 1);
 
 	while (i < info->level) {
-		ppn_value = pte >> info->pte_ppn_shift[i];
-		ppn_value &= info->pte_ppn_mask[i];
+		ppn = pte >> info->pte_ppn_shift[i];
+		ppn &= info->pte_ppn_mask[i];
 		*physical &= ~(((target_addr_t)info->pa_ppn_mask[i]) <<
 				info->pa_ppn_shift[i]);
-		*physical |= (ppn_value << info->pa_ppn_shift[i]);
+		*physical |= (ppn << info->pa_ppn_shift[i]);
 		i++;
 	}
-	LOG_DEBUG("0x%" TARGET_PRIxADDR " -> 0x%" TARGET_PRIxADDR, virtual,
-			*physical);
-
+	LOG_TARGET_DEBUG(target, "mode=%s; 0x%" TARGET_PRIxADDR " -> 0x%" TARGET_PRIxADDR,
+			 info->name, virtual, *physical);
 	return ERROR_OK;
 }
 
 static int riscv_virt2phys(struct target *target, target_addr_t virtual, target_addr_t *physical)
 {
 	int enabled;
-	if (riscv_mmu(target, &enabled) == ERROR_OK) {
-		if (!enabled)
-			return ERROR_FAIL;
 
-		if (riscv_address_translate(target, virtual, physical) == ERROR_OK)
-			return ERROR_OK;
+	if (riscv_mmu(target, &enabled) != ERROR_OK)
+		return ERROR_FAIL;
+	if (!enabled)
+		return ERROR_FAIL;
+
+	unsigned xlen = riscv_xlen(target);
+
+	riscv_reg_t satp_value;
+	int result = riscv_get_register(target, &satp_value, GDB_REGNO_SATP);
+	if (result != ERROR_OK)
+		return result;
+
+	int satp_mode = get_field(satp_value, RISCV_SATP_MODE(xlen));
+	const virt2phys_info_t *satp_info;
+	switch (satp_mode) {
+		case SATP_MODE_SV32:
+			satp_info = &sv32;
+			break;
+		case SATP_MODE_SV39:
+			satp_info = &sv39;
+			break;
+		case SATP_MODE_SV48:
+			satp_info = &sv48;
+			break;
+		case SATP_MODE_OFF:
+			LOG_ERROR("No translation or protection."
+				      " (satp: 0x%" PRIx64 ")", satp_value);
+			return ERROR_FAIL;
+		default:
+			LOG_ERROR("The translation mode is not supported."
+				      " (satp: 0x%" PRIx64 ")", satp_value);
+			return ERROR_FAIL;
 	}
 
-	return ERROR_FAIL;
+	return riscv_address_translate(target,
+			satp_info, get_field(satp_value, RISCV_SATP_PPN(xlen)),
+			virtual, physical);
 }
 
 static int riscv_read_phys_memory(struct target *target, target_addr_t phys_address,
