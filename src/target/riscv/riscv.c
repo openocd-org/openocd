@@ -1864,8 +1864,35 @@ static int riscv_target_resume(struct target *target, int current, target_addr_t
 			debug_execution, false);
 }
 
+static int riscv_effective_privilege_mode(struct target *target, int *v_mode, int *effective_mode)
+{
+	riscv_reg_t priv;
+	if (riscv_get_register(target, &priv, GDB_REGNO_PRIV) != ERROR_OK) {
+		LOG_TARGET_ERROR(target, "Failed to read priv register.");
+		return ERROR_FAIL;
+	}
+	*v_mode = get_field(priv, VIRT_PRIV_V);
+
+	riscv_reg_t mstatus;
+	if (riscv_get_register(target, &mstatus, GDB_REGNO_MSTATUS) != ERROR_OK) {
+		LOG_TARGET_ERROR(target, "Failed to read mstatus register.");
+		return ERROR_FAIL;
+	}
+
+	if (get_field(mstatus, MSTATUS_MPRV))
+		*effective_mode = get_field(mstatus, MSTATUS_MPP);
+	else
+		*effective_mode = get_field(priv, VIRT_PRIV_PRV);
+
+	LOG_TARGET_DEBUG(target, "Effective mode=%d; v=%d", *effective_mode, *v_mode);
+
+	return ERROR_OK;
+}
+
 static int riscv_mmu(struct target *target, int *enabled)
 {
+	unsigned int xlen = riscv_xlen(target);
+
 	if (!riscv_enable_virt2phys) {
 		*enabled = 0;
 		return ERROR_OK;
@@ -1878,14 +1905,14 @@ static int riscv_mmu(struct target *target, int *enabled)
 		return ERROR_FAIL;
 	}
 
-	riscv_reg_t mstatus;
-	if (riscv_get_register(target, &mstatus, GDB_REGNO_MSTATUS) != ERROR_OK) {
-		LOG_ERROR("Failed to read mstatus register.");
+	int effective_mode;
+	int v_mode;
+	if (riscv_effective_privilege_mode(target, &v_mode, &effective_mode) != ERROR_OK)
 		return ERROR_FAIL;
-	}
 
-	if ((get_field(mstatus, MSTATUS_MPRV) ? get_field(mstatus, MSTATUS_MPP) : priv) == PRV_M) {
-		LOG_DEBUG("SATP/MMU ignored in Machine mode (mstatus=0x%" PRIx64 ").", mstatus);
+	/* Don't use MMU in explicit or effective M (machine) mode */
+	if (effective_mode == PRV_M) {
+		LOG_TARGET_DEBUG(target, "SATP/MMU ignored in Machine mode.");
 		*enabled = 0;
 		return ERROR_OK;
 	}
@@ -1898,7 +1925,7 @@ static int riscv_mmu(struct target *target, int *enabled)
 		return ERROR_OK;
 	}
 
-	if (get_field(satp, RISCV_SATP_MODE(riscv_xlen(target))) == SATP_MODE_OFF) {
+	if (get_field(satp, RISCV_SATP_MODE(xlen)) == SATP_MODE_OFF) {
 		LOG_DEBUG("MMU is disabled.");
 		*enabled = 0;
 	} else {
