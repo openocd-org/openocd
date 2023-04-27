@@ -4228,8 +4228,7 @@ static int select_prepped_harts(struct target *target)
 		return ERROR_FAIL;
 	if (!dm->hasel_supported) {
 		r->prepped = false;
-		dm013_select_target(target);
-		return ERROR_OK;
+		return dm013_select_target(target);
 	}
 
 	assert(dm->hart_count);
