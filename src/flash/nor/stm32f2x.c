@@ -659,8 +659,10 @@ static int stm32x_protect(struct flash_bank *bank, int set, unsigned int first,
 	}
 
 	if (stm32x_is_otp(bank)) {
-		if (!set)
+		if (!set) {
+			LOG_ERROR("OTP protection can only be enabled");
 			return ERROR_COMMAND_ARGUMENT_INVALID;
+		}
 
 		return stm32x_otp_protect(bank, first, last);
 	}
