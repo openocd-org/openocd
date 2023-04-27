@@ -230,11 +230,11 @@ static int stm32x_otp_enable(struct flash_bank *bank)
 	struct stm32x_flash_bank *stm32x_info = bank->driver_priv;
 
 	if (!stm32x_info->otp_unlocked) {
-		LOG_INFO("OTP memory bank #%u is is enabled for write commands.",
+		LOG_INFO("OTP memory bank #%u is enabled for write commands.",
 			 bank->bank_number);
 		stm32x_info->otp_unlocked = true;
 	} else {
-		LOG_WARNING("OTP memory bank #%u is is already enabled for write commands.",
+		LOG_WARNING("OTP memory bank #%u is already enabled for write commands.",
 			    bank->bank_number);
 	}
 	return ERROR_OK;
