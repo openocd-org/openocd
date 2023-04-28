@@ -350,6 +350,10 @@ static const struct stm32l4_rev stm32g49_g4axx_revs[] = {
 	{ 0x1000, "A" },
 };
 
+static const struct stm32l4_rev stm32u53_u54xx_revs[] = {
+	{ 0x1000, "A" }, { 0x1001, "Z" },
+};
+
 static const struct stm32l4_rev stm32u57_u58xx_revs[] = {
 	{ 0x1000, "A" }, { 0x1001, "Z" }, { 0x1003, "Y" }, { 0x2000, "B" },
 	{ 0x2001, "X" }, { 0x3000, "C" }, { 0x3001, "W" },
@@ -427,6 +431,18 @@ static const struct stm32l4_part_info stm32l4_parts[] = {
 	  .fsize_addr            = 0x1FFF75A0,
 	  .otp_base              = 0x1FFF7000,
 	  .otp_size              = 1024,
+	},
+	{
+	  .id                    = DEVID_STM32U53_U54XX,
+	  .revs                  = stm32u53_u54xx_revs,
+	  .num_revs              = ARRAY_SIZE(stm32u53_u54xx_revs),
+	  .device_str            = "STM32U535/U545",
+	  .max_flash_size_kb     = 512,
+	  .flags                 = F_HAS_DUAL_BANK | F_QUAD_WORD_PROG | F_HAS_TZ | F_HAS_L5_FLASH_REGS,
+	  .flash_regs_base       = 0x40022000,
+	  .fsize_addr            = 0x0BFA07A0,
+	  .otp_base              = 0x0BFA0000,
+	  .otp_size              = 512,
 	},
 	{
 	  .id                    = DEVID_STM32G05_G06XX,
@@ -2022,11 +2038,22 @@ static int stm32l4_probe(struct flash_bank *bank)
 			stm32l4_info->bank1_sectors = num_pages / 2;
 		}
 		break;
-	case DEVID_STM32U59_U5AXX:
+	case DEVID_STM32U53_U54XX:
 	case DEVID_STM32U57_U58XX:
-		/* if flash size is more than 1M the device is always dual bank
-		 * otherwise check DUALBANK bit
+	case DEVID_STM32U59_U5AXX:
+		/* according to RM0456 Rev 4, Chapter 7.3.1 and 7.9.13
+		 * U53x/U54x have 512K max flash size:
+		 *   512K variants are always in DUAL BANK mode
+		 *   256K and 128K variants can be in DUAL BANK mode if FLASH_OPTR:DUALBANK is set
+		 * U57x/U58x have 2M max flash size:
+		 *   2M variants are always in DUAL BANK mode
+		 *   1M variants can be in DUAL BANK mode if FLASH_OPTR:DUALBANK is set
+		 * U59x/U5Ax have 4M max flash size:
+		 *   4M variants are always in DUAL BANK mode
+		 *   2M variants can be in DUAL BANK mode if FLASH_OPTR:DUALBANK is set
+		 * Note: flash banks are always contiguous
 		 */
+
 		page_size_kb = 8;
 		num_pages = flash_size_kb / page_size_kb;
 		stm32l4_info->bank1_sectors = num_pages;
