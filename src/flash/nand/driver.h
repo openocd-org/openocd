@@ -89,4 +89,19 @@ typedef int (*nand_driver_walker_t)(struct nand_flash_controller *c, void *);
  */
 int nand_driver_walk(nand_driver_walker_t f, void *x);
 
+extern struct nand_flash_controller at91sam9_nand_controller;
+extern struct nand_flash_controller davinci_nand_controller;
+extern struct nand_flash_controller imx31_nand_flash_controller;
+extern struct nand_flash_controller lpc3180_nand_controller;
+extern struct nand_flash_controller lpc32xx_nand_controller;
+extern struct nand_flash_controller mxc_nand_flash_controller;
+extern struct nand_flash_controller nonce_nand_controller;
+extern struct nand_flash_controller nuc910_nand_controller;
+extern struct nand_flash_controller orion_nand_controller;
+extern struct nand_flash_controller s3c2410_nand_controller;
+extern struct nand_flash_controller s3c2412_nand_controller;
+extern struct nand_flash_controller s3c2440_nand_controller;
+extern struct nand_flash_controller s3c2443_nand_controller;
+extern struct nand_flash_controller s3c6400_nand_controller;
+
 #endif /* OPENOCD_FLASH_NAND_DRIVER_H */
