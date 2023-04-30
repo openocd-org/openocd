@@ -9,6 +9,7 @@
 #include "config.h"
 #endif
 
+#include "ecp5.h"
 #include "lattice.h"
 #include "lattice_cmd.h"
 

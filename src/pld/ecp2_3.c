@@ -9,6 +9,7 @@
 #include "config.h"
 #endif
 
+#include "ecp2_3.h"
 #include "lattice.h"
 
 #define LSCC_REFRESH         0x23
