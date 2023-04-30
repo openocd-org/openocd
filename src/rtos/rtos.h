@@ -135,4 +135,19 @@ int rtos_read_buffer(struct target *target, target_addr_t address,
 int rtos_write_buffer(struct target *target, target_addr_t address,
 		uint32_t size, const uint8_t *buffer);
 
+extern const struct rtos_type chibios_rtos;
+extern const struct rtos_type chromium_ec_rtos;
+extern const struct rtos_type ecos_rtos;
+extern const struct rtos_type embkernel_rtos;
+extern const struct rtos_type freertos_rtos;
+extern const struct rtos_type hwthread_rtos;
+extern const struct rtos_type linux_rtos;
+extern const struct rtos_type mqx_rtos;
+extern const struct rtos_type nuttx_rtos;
+extern const struct rtos_type riot_rtos;
+extern const struct rtos_type rtkernel_rtos;
+extern const struct rtos_type threadx_rtos;
+extern const struct rtos_type ucos_iii_rtos;
+extern const struct rtos_type zephyr_rtos;
+
 #endif /* OPENOCD_RTOS_RTOS_H */
