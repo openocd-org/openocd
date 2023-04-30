@@ -192,8 +192,10 @@ static int gatemate_load(struct pld_device *pld_device, const char *filename)
 		return retval;
 
 	retval = gatemate_set_instr(tap, JTAG_CONFIGURE);
-	if (retval != ERROR_OK)
+	if (retval != ERROR_OK) {
+		free(bit_file.raw_file.data);
 		return retval;
+	}
 
 	struct scan_field field;
 	field.num_bits = bit_file.raw_file.length * 8;
