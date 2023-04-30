@@ -53,8 +53,6 @@
 #define SAMV_PAGE_SIZE                 512
 #define SAMV_FLASH_BASE         0x00400000
 
-extern const struct flash_driver atsamv_flash;
-
 struct samv_flash_bank {
 	bool      probed;
 	unsigned size_bytes;
