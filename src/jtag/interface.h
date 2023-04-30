@@ -364,4 +364,42 @@ int adapter_config_trace(bool enabled, enum tpiu_pin_protocol pin_protocol,
 		unsigned int traceclkin_freq, uint16_t *prescaler);
 int adapter_poll_trace(uint8_t *buf, size_t *size);
 
+extern struct adapter_driver am335xgpio_adapter_driver;
+extern struct adapter_driver amt_jtagaccel_adapter_driver;
+extern struct adapter_driver armjtagew_adapter_driver;
+extern struct adapter_driver at91rm9200_adapter_driver;
+extern struct adapter_driver bcm2835gpio_adapter_driver;
+extern struct adapter_driver buspirate_adapter_driver;
+extern struct adapter_driver cmsis_dap_adapter_driver;
+extern struct adapter_driver dummy_adapter_driver;
+extern struct adapter_driver ep93xx_adapter_driver;
+extern struct adapter_driver esp_usb_adapter_driver;
+extern struct adapter_driver ft232r_adapter_driver;
+extern struct adapter_driver ftdi_adapter_driver;
+extern struct adapter_driver gw16012_adapter_driver;
+extern struct adapter_driver hl_adapter_driver;
+extern struct adapter_driver imx_gpio_adapter_driver;
+extern struct adapter_driver jlink_adapter_driver;
+extern struct adapter_driver jtag_dpi_adapter_driver;
+extern struct adapter_driver jtag_vpi_adapter_driver;
+extern struct adapter_driver kitprog_adapter_driver;
+extern struct adapter_driver linuxgpiod_adapter_driver;
+extern struct adapter_driver opendous_adapter_driver;
+extern struct adapter_driver openjtag_adapter_driver;
+extern struct adapter_driver osbdm_adapter_driver;
+extern struct adapter_driver parport_adapter_driver;
+extern struct adapter_driver presto_adapter_driver;
+extern struct adapter_driver remote_bitbang_adapter_driver;
+extern struct adapter_driver rlink_adapter_driver;
+extern struct adapter_driver rshim_dap_adapter_driver;
+extern struct adapter_driver stlink_dap_adapter_driver;
+extern struct adapter_driver sysfsgpio_adapter_driver;
+extern struct adapter_driver ulink_adapter_driver;
+extern struct adapter_driver usb_blaster_adapter_driver;
+extern struct adapter_driver usbprog_adapter_driver;
+extern struct adapter_driver vdebug_adapter_driver;
+extern struct adapter_driver vsllink_adapter_driver;
+extern struct adapter_driver xds110_adapter_driver;
+extern struct adapter_driver xlnx_pcie_xvc_adapter_driver;
+
 #endif /* OPENOCD_JTAG_INTERFACE_H */
