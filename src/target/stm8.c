@@ -542,12 +542,12 @@ static int stm8_get_core_reg(struct reg *reg)
 	int retval;
 	struct stm8_core_reg *stm8_reg = reg->arch_info;
 	struct target *target = stm8_reg->target;
-	struct stm8_common *stm8_target = target_to_stm8(target);
+	struct stm8_common *stm8 = target_to_stm8(target);
 
 	if (target->state != TARGET_HALTED)
 		return ERROR_TARGET_NOT_HALTED;
 
-	retval = stm8_target->read_core_reg(target, stm8_reg->num);
+	retval = stm8->read_core_reg(target, stm8_reg->num);
 
 	return retval;
 }
