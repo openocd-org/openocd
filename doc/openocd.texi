@@ -1785,7 +1785,6 @@ $_TARGETNAME configure -work-area-phys 0x00200000 \
              -work-area-size 0x4000 -work-area-backup 0
 @end example
 
-@anchor{definecputargetsworkinginsmp}
 @subsection Define CPU targets working in SMP
 @cindex SMP
 After setting targets, you can define a list of targets working in SMP.
@@ -1939,7 +1938,6 @@ For an example of this scheme see LPC2000 target config files.
 The @code{init_boards} procedure is a similar concept concerning board config files
 (@xref{theinitboardprocedure,,The init_board procedure}.)
 
-@anchor{theinittargeteventsprocedure}
 @subsection The init_target_events procedure
 @cindex init_target_events procedure
 
@@ -2468,7 +2466,6 @@ the generic mapping may not support all of the listed options.
 Returns the name of the debug adapter driver being used.
 @end deffn
 
-@anchor{adapter_usb_location}
 @deffn {Config Command} {adapter usb location} [<bus>-<port>[.<port>]...]
 Displays or specifies the physical USB port of the adapter to use. The path
 roots at @var{bus} and walks down the physical ports, with each
@@ -2483,7 +2480,7 @@ This command is only available if your libusb1 is at least version 1.0.16.
 Specifies the @var{serial_string} of the adapter to use.
 If this command is not specified, serial strings are not checked.
 Only the following adapter drivers use the serial string from this command:
-aice (aice_usb), arm-jtag-ew, cmsis_dap, ft232r, ftdi, hla (stlink, ti-icdi), jlink, kitprog, opendus,
+arm-jtag-ew, cmsis_dap, ft232r, ftdi, hla (stlink, ti-icdi), jlink, kitprog, opendus,
 openjtag, osbdm, presto, rlink, st-link, usb_blaster (ublast2), usbprog, vsllink, xds110.
 @end deffn
 
@@ -3533,11 +3530,11 @@ Espressif JTAG driver to communicate with ESP32-C3, ESP32-S3 chips and ESP USB B
 These chips have built-in JTAG circuitry and can be debugged without any additional hardware.
 Only an USB cable connected to the D+/D- pins is necessary.
 
-@deffn {Config Command} {espusbjtag tdo}
+@deffn {Command} {espusbjtag tdo}
 Returns the current state of the TDO line
 @end deffn
 
-@deffn {Config Command} {espusbjtag setio} setio
+@deffn {Command} {espusbjtag setio} setio
 Manually set the status of the output lines with the order of (tdi tms tck trst srst)
 @example
 espusbjtag setio 0 1 0 1 0
@@ -4859,9 +4856,6 @@ specified, @xref{gdbportoverride,,option -gdb-port}.), and a fake ARM core will
 be emulated to comply to GDB remote protocol.
 @item @code{mips_m4k} -- a MIPS core.
 @item @code{mips_mips64} -- a MIPS64 core.
-@item @code{nds32_v2} -- this is an Andes NDS32 v2 core (deprecated; would be removed in v0.13.0).
-@item @code{nds32_v3} -- this is an Andes NDS32 v3 core (deprecated; would be removed in v0.13.0).
-@item @code{nds32_v3m} -- this is an Andes NDS32 v3m core (deprecated; would be removed in v0.13.0).
 @item @code{or1k} -- this is an OpenRISC 1000 core.
 The current implementation supports three JTAG TAP cores:
 @itemize @minus
@@ -6236,7 +6230,6 @@ the flash.
 @end deffn
 @end deffn
 
-@anchor{at91samd}
 @deffn {Flash Driver} {at91samd}
 @cindex at91samd
 All members of the ATSAM D2x, D1x, D0x, ATSAMR, ATSAML and ATSAMC microcontroller
@@ -8513,11 +8506,19 @@ that particular type of PLD.
 
 @deffn {FPGA Driver} {virtex2} [no_jstart]
 Virtex-II is a family of FPGAs sold by Xilinx.
+This driver can also be used to load Series3, Series6, Series7 and Zynq 7000 devices.
 It supports the IEEE 1532 standard for In-System Configuration (ISC).
 
 If @var{no_jstart} is non-zero, the JSTART instruction is not used after
 loading the bitstream. While required for Series2, Series3, and Series6, it
 breaks bitstream loading on Series7.
+
+@example
+openocd -f board/digilent_zedboard.cfg -c "init" \
+	-c "pld load 0 zedboard_bitstream.bit"
+@end example
+
+
 
 @deffn {Command} {virtex2 read_stat} num
 Reads and displays the Virtex-II status register (STAT)
@@ -8550,7 +8551,7 @@ command. All output is relayed through the GDB session.
 
 @item @b{Machine Interface}
 The Tcl interface's intent is to be a machine interface. The default Tcl
-port is 5555.
+port is 6666.
 @end itemize
 
 
@@ -9533,14 +9534,14 @@ requests by using a special SVC instruction that is trapped at the
 Supervisor Call vector by OpenOCD.
 @end deffn
 
-@deffn {Command} {arm semihosting_redirect} (@option{disable} | @option{tcp} <port>
-[@option{debug}|@option{stdio}|@option{all})
+@deffn {Command} {arm semihosting_redirect} (@option{disable} | @option{tcp} <port> [@option{debug}|@option{stdio}|@option{all}])
 @cindex ARM semihosting
 Redirect semihosting messages to a specified TCP port.
 
 This command redirects debug (READC, WRITEC and WRITE0) and stdio (READ, WRITE)
 semihosting operations to the specified TCP port.
 The command allows to select which type of operations to redirect (debug, stdio, all (default)).
+
 Note: for stdio operations, only I/O from/to ':tt' file descriptors are redirected.
 @end deffn
 
@@ -10327,6 +10328,16 @@ the target, the exception catch must be disabled again with @command{$target_nam
 Issuing the command without options prints the current configuration.
 @end deffn
 
+@deffn {Command} {$target_name pauth} [@option{off}|@option{on}]
+Enable or disable pointer authentication features.
+When pointer authentication is used on ARM cores, GDB asks GDB servers for an 8-bytes mask to remove signature bits added by pointer authentication.
+If this feature is enabled, OpenOCD provides GDB with an 8-bytes mask.
+Pointer authentication feature is broken until gdb 12.1, going to be fixed.
+Consider using a newer version of gdb if you want to enable pauth feature.
+The default configuration is @option{off}.
+@end deffn
+
+
 @section EnSilica eSi-RISC Architecture
 
 eSi-RISC is a highly configurable microprocessor architecture for embedded systems
@@ -10724,6 +10735,16 @@ to read out a buffer that's memory-mapped to be accessed through a single
 address, or to sample a changing value in a memory-mapped device.
 @end deffn
 
+@deffn {Command} {riscv info}
+Displays some information OpenOCD detected about the target.
+@end deffn
+
+@deffn {Command} {riscv reset_delays} [wait]
+OpenOCD learns how many Run-Test/Idle cycles are required between scans to avoid
+encountering the target being busy. This command resets those learned values
+after `wait` scans. It's only useful for testing OpenOCD itself.
+@end deffn
+
 @deffn {Command} {riscv set_command_timeout_sec} [seconds]
 Set the wall-clock timeout (in seconds) for individual commands. The default
 should work fine for all but the slowest targets (eg. simulators).
@@ -10739,7 +10760,7 @@ Set the address of 16 bytes of scratch RAM the debugger can use, or 'none'.
 This is used to access 64-bit floating point registers on 32-bit targets.
 @end deffn
 
-@deffn Command {riscv set_mem_access} method1 [method2] [method3]
+@deffn {Command} {riscv set_mem_access} method1 [method2] [method3]
 Specify which RISC-V memory access method(s) shall be used, and in which order
 of priority. At least one method must be specified.
 
@@ -11164,12 +11185,12 @@ NXP}.
 
 @subsection Xtensa Configuration Commands
 
-@deffn {Command} {xtensa xtdef} (@option{LX}|@option{NX})
+@deffn {Config Command} {xtensa xtdef} (@option{LX}|@option{NX})
 Configure the Xtensa target architecture. Currently, Xtensa support is limited
 to LX6, LX7, and NX cores.
 @end deffn
 
-@deffn {Command} {xtensa xtopt} option value
+@deffn {Config Command} {xtensa xtopt} option value
 Configure Xtensa target options that are relevant to the debug subsystem.
 @var{option} is one of: @option{arnum}, @option{windowed},
 @option{cpenable}, @option{exceptions}, @option{intnum}, @option{hipriints},
@@ -11181,35 +11202,35 @@ NOTE: Some options are specific to Xtensa LX or Xtensa NX architecture, while
 others may be common to both but have different valid ranges.
 @end deffn
 
-@deffn {Command} {xtensa xtmem} (@option{iram}|@option{dram}|@option{sram}|@option{irom}|@option{drom}|@option{srom}) baseaddr bytes
+@deffn {Config Command} {xtensa xtmem} (@option{iram}|@option{dram}|@option{sram}|@option{irom}|@option{drom}|@option{srom}) baseaddr bytes
 Configure Xtensa target memory. Memory type determines access rights,
 where RAMs are read/write while ROMs are read-only. @var{baseaddr} and
 @var{bytes} are both integers, typically hexadecimal and decimal, respectively.
 @end deffn
 
-@deffn {Command} {xtensa xtmem} (@option{icache}|@option{dcache}) linebytes cachebytes ways [writeback]
+@deffn {Config Command} {xtensa xtmem} (@option{icache}|@option{dcache}) linebytes cachebytes ways [writeback]
 Configure Xtensa processor cache. All parameters are required except for
 the optional @option{writeback} parameter; all are integers.
 @end deffn
 
-@deffn {Command} {xtensa xtmpu} numfgseg minsegsz lockable execonly
+@deffn {Config Command} {xtensa xtmpu} numfgseg minsegsz lockable execonly
 Configure an Xtensa Memory Protection Unit (MPU). MPUs can restrict access
 and/or control cacheability of specific address ranges, but are lighter-weight
 than a full traditional MMU. All parameters are required; all are integers.
 @end deffn
 
-@deffn {Command} {xtensa xtmmu} numirefillentries numdrefillentries
+@deffn {Config Command} {xtensa xtmmu} numirefillentries numdrefillentries
 (Xtensa-LX only) Configure an Xtensa Memory Management Unit (MMU). Both
 parameters are required; both are integers.
 @end deffn
 
-@deffn {Command} {xtensa xtregs} numregs
+@deffn {Config Command} {xtensa xtregs} numregs
 Configure the total number of registers for the Xtensa core. Configuration
 logic expects to subsequently process this number of @code{xtensa xtreg}
 definitions. @var{numregs} is an integer.
 @end deffn
 
-@deffn {Command} {xtensa xtregfmt} (@option{sparse}|@option{contiguous}) [general]
+@deffn {Config Command} {xtensa xtregfmt} (@option{sparse}|@option{contiguous}) [general]
 Configure the type of register map used by GDB to access the Xtensa core.
 Generic Xtensa tools (e.g. xt-gdb) require @option{sparse} mapping (default) while
 Espressif tools expect @option{contiguous} mapping. Contiguous mapping takes an
@@ -11217,7 +11238,7 @@ additional, optional integer parameter @option{numgregs}, which specifies the nu
 of general registers used in handling g/G packets.
 @end deffn
 
-@deffn {Command} {xtensa xtreg} name offset
+@deffn {Config Command} {xtensa xtreg} name offset
 Configure an Xtensa core register. All core registers are 32 bits wide,
 while TIE and user registers may have variable widths. @var{name} is a
 character string identifier while @var{offset} is a hexadecimal integer.

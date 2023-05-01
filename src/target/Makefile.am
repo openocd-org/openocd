@@ -19,7 +19,6 @@ noinst_LTLIBRARIES += %D%/libtarget.la
 	$(ARM_MISC_SRC) \
 	$(AVR32_SRC) \
 	$(MIPS32_SRC) \
-	$(NDS32_SRC) \
 	$(STM8_SRC) \
 	$(INTEL_IA32_SRC) \
 	$(ESIRISC_SRC) \
@@ -134,18 +133,6 @@ MIPS64_SRC = \
 	%D%/trace.c \
 	%D%/mips_ejtag.c
 
-NDS32_SRC = \
-	%D%/nds32.c \
-	%D%/nds32_reg.c \
-	%D%/nds32_cmd.c \
-	%D%/nds32_disassembler.c \
-	%D%/nds32_tlb.c \
-	%D%/nds32_v2.c \
-	%D%/nds32_v3_common.c \
-	%D%/nds32_v3.c \
-	%D%/nds32_v3m.c \
-	%D%/nds32_aice.c
-
 STM8_SRC = \
 	%D%/stm8.c
 
@@ -235,18 +222,6 @@ ARC_SRC = \
 	%D%/avr32_jtag.h \
 	%D%/avr32_mem.h \
 	%D%/avr32_regs.h \
-	%D%/nds32.h \
-	%D%/nds32_cmd.h \
-	%D%/nds32_disassembler.h \
-	%D%/nds32_edm.h \
-	%D%/nds32_insn.h \
-	%D%/nds32_reg.h \
-	%D%/nds32_tlb.h \
-	%D%/nds32_v2.h \
-	%D%/nds32_v3_common.h \
-	%D%/nds32_v3.h \
-	%D%/nds32_v3m.h \
-	%D%/nds32_aice.h \
 	%D%/semihosting_common.h \
 	%D%/stm8.h \
 	%D%/lakemont.h \

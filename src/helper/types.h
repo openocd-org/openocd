@@ -151,7 +151,7 @@ static inline uint16_t be_to_h_u16(const uint8_t *buf)
 	return (uint16_t)((uint16_t)buf[1] | (uint16_t)buf[0] << 8);
 }
 
-static inline void h_u64_to_le(uint8_t *buf, int64_t val)
+static inline void h_u64_to_le(uint8_t *buf, uint64_t val)
 {
 	buf[7] = (uint8_t) (val >> 56);
 	buf[6] = (uint8_t) (val >> 48);
@@ -163,7 +163,7 @@ static inline void h_u64_to_le(uint8_t *buf, int64_t val)
 	buf[0] = (uint8_t) (val >> 0);
 }
 
-static inline void h_u64_to_be(uint8_t *buf, int64_t val)
+static inline void h_u64_to_be(uint8_t *buf, uint64_t val)
 {
 	buf[0] = (uint8_t) (val >> 56);
 	buf[1] = (uint8_t) (val >> 48);
@@ -175,7 +175,7 @@ static inline void h_u64_to_be(uint8_t *buf, int64_t val)
 	buf[7] = (uint8_t) (val >> 0);
 }
 
-static inline void h_u32_to_le(uint8_t *buf, int val)
+static inline void h_u32_to_le(uint8_t *buf, uint32_t val)
 {
 	buf[3] = (uint8_t) (val >> 24);
 	buf[2] = (uint8_t) (val >> 16);
@@ -183,7 +183,7 @@ static inline void h_u32_to_le(uint8_t *buf, int val)
 	buf[0] = (uint8_t) (val >> 0);
 }
 
-static inline void h_u32_to_be(uint8_t *buf, int val)
+static inline void h_u32_to_be(uint8_t *buf, uint32_t val)
 {
 	buf[0] = (uint8_t) (val >> 24);
 	buf[1] = (uint8_t) (val >> 16);
@@ -191,27 +191,27 @@ static inline void h_u32_to_be(uint8_t *buf, int val)
 	buf[3] = (uint8_t) (val >> 0);
 }
 
-static inline void h_u24_to_le(uint8_t *buf, int val)
+static inline void h_u24_to_le(uint8_t *buf, unsigned int val)
 {
 	buf[2] = (uint8_t) (val >> 16);
 	buf[1] = (uint8_t) (val >> 8);
 	buf[0] = (uint8_t) (val >> 0);
 }
 
-static inline void h_u24_to_be(uint8_t *buf, int val)
+static inline void h_u24_to_be(uint8_t *buf, unsigned int val)
 {
 	buf[0] = (uint8_t) (val >> 16);
 	buf[1] = (uint8_t) (val >> 8);
 	buf[2] = (uint8_t) (val >> 0);
 }
 
-static inline void h_u16_to_le(uint8_t *buf, int val)
+static inline void h_u16_to_le(uint8_t *buf, uint16_t val)
 {
 	buf[1] = (uint8_t) (val >> 8);
 	buf[0] = (uint8_t) (val >> 0);
 }
 
-static inline void h_u16_to_be(uint8_t *buf, int val)
+static inline void h_u16_to_be(uint8_t *buf, uint16_t val)
 {
 	buf[0] = (uint8_t) (val >> 8);
 	buf[1] = (uint8_t) (val >> 0);

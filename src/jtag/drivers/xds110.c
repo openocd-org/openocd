@@ -1354,11 +1354,13 @@ static void xds110_swd_queue_cmd(uint8_t cmd, uint32_t *value)
 static void xds110_swd_read_reg(uint8_t cmd, uint32_t *value,
 	uint32_t ap_delay_clk)
 {
+	assert(cmd & SWD_CMD_RNW);
 	xds110_swd_queue_cmd(cmd, value);
 }
 static void xds110_swd_write_reg(uint8_t cmd, uint32_t value,
 	uint32_t ap_delay_clk)
 {
+	assert(!(cmd & SWD_CMD_RNW));
 	xds110_swd_queue_cmd(cmd, &value);
 }
 

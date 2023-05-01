@@ -1246,7 +1246,7 @@ static const struct command_registration vdebug_command_handlers[] = {
 	{
 		.name = "mem_path",
 		.handler = &vdebug_set_mem,
-		.mode = COMMAND_ANY,
+		.mode = COMMAND_CONFIG,
 		.help = "set the design memory for the code load",
 		.usage = "<path> <base_address> <size>",
 	},

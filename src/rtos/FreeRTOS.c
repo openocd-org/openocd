@@ -112,13 +112,6 @@ static int cortex_m_stacking(struct rtos *rtos, const struct rtos_register_stack
 	return ERROR_OK;
 }
 
-static int nds32_stacking(struct rtos *rtos, const struct rtos_register_stacking **stacking,
-							 target_addr_t stack_ptr)
-{
-	*stacking = &rtos_standard_nds32_n1068_stacking;
-	return ERROR_OK;
-}
-
 /* take 4 bytes (32 bits) as the default size,
  * which is suitable for most 32-bit targets and
  * configuration of configUSE_16_BIT_TICKS = 0. */
@@ -224,10 +217,6 @@ static const struct freertos_params freertos_params_list[] = {
 	{
 	.target_name = "hla_target",
 	.stacking = cortex_m_stacking
-	},
-	{
-	.target_name = "nds32_v3",
-	.stacking = nds32_stacking,
 	},
 	{
 	.target_name = "riscv",

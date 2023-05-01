@@ -116,27 +116,27 @@ static const struct {
 	{ ARMV7M_FAULTMASK, "faultmask", 1, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.m-system" },
 	{ ARMV7M_CONTROL, "control", 3, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.m-system" },
 
-	/* ARMv8-M specific registers */
-	{ ARMV8M_MSP_NS, "msp_ns", 32, REG_TYPE_DATA_PTR, "stack", "v8-m.sp" },
-	{ ARMV8M_PSP_NS, "psp_ns", 32, REG_TYPE_DATA_PTR, "stack", "v8-m.sp" },
-	{ ARMV8M_MSP_S, "msp_s", 32, REG_TYPE_DATA_PTR, "stack", "v8-m.sp" },
-	{ ARMV8M_PSP_S, "psp_s", 32, REG_TYPE_DATA_PTR, "stack", "v8-m.sp" },
-	{ ARMV8M_MSPLIM_S, "msplim_s", 32, REG_TYPE_DATA_PTR, "stack", "v8-m.sp" },
-	{ ARMV8M_PSPLIM_S, "psplim_s", 32, REG_TYPE_DATA_PTR, "stack", "v8-m.sp" },
-	{ ARMV8M_MSPLIM_NS, "msplim_ns", 32, REG_TYPE_DATA_PTR, "stack", "v8-m.sp" },
-	{ ARMV8M_PSPLIM_NS, "psplim_ns", 32, REG_TYPE_DATA_PTR, "stack", "v8-m.sp" },
+	/* ARMv8-M security extension (TrustZone) specific registers */
+	{ ARMV8M_MSP_NS, "msp_ns", 32, REG_TYPE_DATA_PTR, "stack", "org.gnu.gdb.arm.secext" },
+	{ ARMV8M_PSP_NS, "psp_ns", 32, REG_TYPE_DATA_PTR, "stack", "org.gnu.gdb.arm.secext" },
+	{ ARMV8M_MSP_S, "msp_s", 32, REG_TYPE_DATA_PTR, "stack", "org.gnu.gdb.arm.secext" },
+	{ ARMV8M_PSP_S, "psp_s", 32, REG_TYPE_DATA_PTR, "stack", "org.gnu.gdb.arm.secext" },
+	{ ARMV8M_MSPLIM_S, "msplim_s", 32, REG_TYPE_DATA_PTR, "stack", "org.gnu.gdb.arm.secext" },
+	{ ARMV8M_PSPLIM_S, "psplim_s", 32, REG_TYPE_DATA_PTR, "stack", "org.gnu.gdb.arm.secext" },
+	{ ARMV8M_MSPLIM_NS, "msplim_ns", 32, REG_TYPE_DATA_PTR, "stack", "org.gnu.gdb.arm.secext" },
+	{ ARMV8M_PSPLIM_NS, "psplim_ns", 32, REG_TYPE_DATA_PTR, "stack", "org.gnu.gdb.arm.secext" },
 
 	{ ARMV8M_PMSK_BPRI_FLTMSK_CTRL_S, "pmsk_bpri_fltmsk_ctrl_s", 32, REG_TYPE_INT, NULL, NULL },
-	{ ARMV8M_PRIMASK_S, "primask_s", 1, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.m-system" },
-	{ ARMV8M_BASEPRI_S, "basepri_s", 8, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.m-system" },
-	{ ARMV8M_FAULTMASK_S, "faultmask_s", 1, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.m-system" },
-	{ ARMV8M_CONTROL_S, "control_s", 3, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.m-system" },
+	{ ARMV8M_PRIMASK_S, "primask_s", 1, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.secext" },
+	{ ARMV8M_BASEPRI_S, "basepri_s", 8, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.secext" },
+	{ ARMV8M_FAULTMASK_S, "faultmask_s", 1, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.secext" },
+	{ ARMV8M_CONTROL_S, "control_s", 3, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.secext" },
 
 	{ ARMV8M_PMSK_BPRI_FLTMSK_CTRL_NS, "pmsk_bpri_fltmsk_ctrl_ns", 32, REG_TYPE_INT, NULL, NULL },
-	{ ARMV8M_PRIMASK_NS, "primask_ns", 1, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.m-system" },
-	{ ARMV8M_BASEPRI_NS, "basepri_ns", 8, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.m-system" },
-	{ ARMV8M_FAULTMASK_NS, "faultmask_ns", 1, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.m-system" },
-	{ ARMV8M_CONTROL_NS, "control_ns", 3, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.m-system" },
+	{ ARMV8M_PRIMASK_NS, "primask_ns", 1, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.secext" },
+	{ ARMV8M_BASEPRI_NS, "basepri_ns", 8, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.secext" },
+	{ ARMV8M_FAULTMASK_NS, "faultmask_ns", 1, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.secext" },
+	{ ARMV8M_CONTROL_NS, "control_ns", 3, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.secext" },
 
 	/* FPU registers */
 	{ ARMV7M_D0, "d0", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp" },
@@ -182,8 +182,11 @@ int armv7m_restore_context(struct target *target)
 	for (i = cache->num_regs - 1; i >= 0; i--) {
 		struct reg *r = &cache->reg_list[i];
 
-		if (r->exist && r->dirty)
-			armv7m->arm.write_core_reg(target, r, i, ARM_MODE_ANY, r->value);
+		if (r->exist && r->dirty) {
+			int retval = armv7m->arm.write_core_reg(target, r, i, ARM_MODE_ANY, r->value);
+			if (retval != ERROR_OK)
+				return retval;
+		}
 	}
 
 	return ERROR_OK;
@@ -528,11 +531,17 @@ int armv7m_start_algorithm(struct target *target,
 
 	/* Store all non-debug execution registers to armv7m_algorithm_info context */
 	for (unsigned i = 0; i < armv7m->arm.core_cache->num_regs; i++) {
+		struct reg *reg = &armv7m->arm.core_cache->reg_list[i];
+		if (!reg->exist)
+			continue;
 
-		armv7m_algorithm_info->context[i] = buf_get_u32(
-				armv7m->arm.core_cache->reg_list[i].value,
-				0,
-				32);
+		if (!reg->valid)
+			armv7m_get_core_reg(reg);
+
+		if (!reg->valid)
+			LOG_TARGET_WARNING(target, "Storing invalid register %s", reg->name);
+
+		armv7m_algorithm_info->context[i] = buf_get_u32(reg->value, 0, 32);
 	}
 
 	for (int i = 0; i < num_mem_params; i++) {
@@ -685,16 +694,19 @@ int armv7m_wait_algorithm(struct target *target,
 	}
 
 	for (int i = armv7m->arm.core_cache->num_regs - 1; i >= 0; i--) {
+		struct reg *reg = &armv7m->arm.core_cache->reg_list[i];
+		if (!reg->exist)
+			continue;
+
 		uint32_t regvalue;
-		regvalue = buf_get_u32(armv7m->arm.core_cache->reg_list[i].value, 0, 32);
+		regvalue = buf_get_u32(reg->value, 0, 32);
 		if (regvalue != armv7m_algorithm_info->context[i]) {
 			LOG_DEBUG("restoring register %s with value 0x%8.8" PRIx32,
-					armv7m->arm.core_cache->reg_list[i].name,
-				armv7m_algorithm_info->context[i]);
-			buf_set_u32(armv7m->arm.core_cache->reg_list[i].value,
+					  reg->name, armv7m_algorithm_info->context[i]);
+			buf_set_u32(reg->value,
 				0, 32, armv7m_algorithm_info->context[i]);
-			armv7m->arm.core_cache->reg_list[i].valid = true;
-			armv7m->arm.core_cache->reg_list[i].dirty = true;
+			reg->valid = true;
+			reg->dirty = true;
 		}
 	}
 
@@ -726,8 +738,9 @@ int armv7m_arch_state(struct target *target)
 	ctrl = buf_get_u32(arm->core_cache->reg_list[ARMV7M_CONTROL].value, 0, 32);
 	sp = buf_get_u32(arm->core_cache->reg_list[ARMV7M_R13].value, 0, 32);
 
-	LOG_USER("target halted due to %s, current mode: %s %s\n"
+	LOG_USER("[%s] halted due to %s, current mode: %s %s\n"
 		"xPSR: %#8.8" PRIx32 " pc: %#8.8" PRIx32 " %csp: %#8.8" PRIx32 "%s%s",
+		target_name(target),
 		debug_reason_name(target),
 		arm_mode_name(arm->core_mode),
 		armv7m_exception_string(armv7m->exception_number),

@@ -157,6 +157,8 @@ static int virtex2_load(struct pld_device *pld_device, const char *filename)
 	virtex2_set_instr(virtex2_info->tap, 0x3f);		/* BYPASS */
 	jtag_execute_queue();
 
+	xilinx_free_bit_file(&bit_file);
+
 	return ERROR_OK;
 }
 
@@ -173,7 +175,7 @@ COMMAND_HANDLER(virtex2_handle_read_stat_command)
 	device = get_pld_device_by_num(dev_id);
 	if (!device) {
 		command_print(CMD, "pld device '#%s' is out of bounds", CMD_ARGV[0]);
-		return ERROR_OK;
+		return ERROR_FAIL;
 	}
 
 	virtex2_read_stat(device, &status);
@@ -195,7 +197,7 @@ PLD_DEVICE_COMMAND_HANDLER(virtex2_pld_device_command)
 	tap = jtag_tap_by_string(CMD_ARGV[1]);
 	if (!tap) {
 		command_print(CMD, "Tap: %s does not exist", CMD_ARGV[1]);
-		return ERROR_OK;
+		return ERROR_FAIL;
 	}
 
 	virtex2_info = malloc(sizeof(struct virtex2_pld_device));

@@ -616,8 +616,6 @@ COMMAND_HANDLER(stmqspi_handle_set)
 
 	LOG_DEBUG("%s", __func__);
 
-	dual = (stmqspi_info->saved_cr & BIT(SPI_DUAL_FLASH)) ? 1 : 0;
-
 	/* chip_erase_cmd, sectorsize and erase_cmd are optional */
 	if ((CMD_ARGC < 7) || (CMD_ARGC > 10))
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -628,8 +626,9 @@ COMMAND_HANDLER(stmqspi_handle_set)
 
 	target = bank->target;
 	stmqspi_info = bank->driver_priv;
+	dual = (stmqspi_info->saved_cr & BIT(SPI_DUAL_FLASH)) ? 1 : 0;
 
-	/* invalidate all old info */
+	/* invalidate all flash device info */
 	if (stmqspi_info->probed)
 		free(bank->sectors);
 	bank->size = 0;
@@ -721,10 +720,8 @@ COMMAND_HANDLER(stmqspi_handle_set)
 
 	uint32_t dcr;
 	retval = target_read_u32(target, io_base + SPI_DCR, &dcr);
-
 	if (retval != ERROR_OK)
 		return retval;
-
 	fsize = (dcr >> SPI_FSIZE_POS) & (BIT(SPI_FSIZE_LEN) - 1);
 
 	LOG_DEBUG("FSIZE = 0x%04x", fsize);
@@ -1799,7 +1796,6 @@ static int find_sfdp_dummy(struct flash_bank *bank, int len)
 		}
 	}
 
-	retval = ERROR_FAIL;
 	LOG_DEBUG("no start of SFDP header even after %u dummy bytes", count);
 
 err:
@@ -2081,16 +2077,17 @@ static int stmqspi_probe(struct flash_bank *bank)
 	bool octal_dtr;
 	int retval;
 
-	if (stmqspi_info->probed) {
-		bank->size = 0;
-		bank->num_sectors = 0;
+	/* invalidate all flash device info */
+	if (stmqspi_info->probed)
 		free(bank->sectors);
-		bank->sectors = NULL;
-		memset(&stmqspi_info->dev, 0, sizeof(stmqspi_info->dev));
-		stmqspi_info->sfdp_dummy1 = 0;
-		stmqspi_info->sfdp_dummy2 = 0;
-		stmqspi_info->probed = false;
-	}
+	bank->size = 0;
+	bank->num_sectors = 0;
+	bank->sectors = NULL;
+	stmqspi_info->sfdp_dummy1 = 0;
+	stmqspi_info->sfdp_dummy2 = 0;
+	stmqspi_info->probed = false;
+	memset(&stmqspi_info->dev, 0, sizeof(stmqspi_info->dev));
+	stmqspi_info->dev.name = "unknown";
 
 	/* Abort any previous operation */
 	retval = stmqspi_abort(bank);
@@ -2105,8 +2102,8 @@ static int stmqspi_probe(struct flash_bank *bank)
 	/* check whether QSPI_ABR is writeable and readback returns the value written */
 	retval = target_write_u32(target, io_base + QSPI_ABR, magic);
 	if (retval == ERROR_OK) {
-		retval = target_read_u32(target, io_base + QSPI_ABR, &data);
-		retval = target_write_u32(target, io_base + QSPI_ABR, 0);
+		(void)target_read_u32(target, io_base + QSPI_ABR, &data);
+		(void)target_write_u32(target, io_base + QSPI_ABR, 0);
 	}
 
 	if (data == magic) {

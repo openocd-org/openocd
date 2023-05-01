@@ -114,10 +114,21 @@ proc ocd_process_reset_inner { MODE } {
 				continue
 			}
 
-			# don't wait for targets where examination is deferred
-			# they can not be halted anyway at this point
-			if { ![$t was_examined] && [$t examine_deferred] } {
-				continue
+			if { ![$t was_examined] } {
+				# don't wait for targets where examination is deferred
+				# they can not be halted anyway at this point
+				if { [$t examine_deferred] } {
+					continue
+				}
+				# try to re-examine or target state will be unknown
+				$t invoke-event examine-start
+				set err [catch "$t arp_examine allow-defer"]
+				if { $err } {
+					$t invoke-event examine-fail
+					return -code error [format "TARGET: %s - Not examined" $t]
+				} else {
+					$t invoke-event examine-end
+				}
 			}
 
 			# Wait up to 1 second for target to halt. Why 1sec? Cause

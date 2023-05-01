@@ -175,10 +175,7 @@ __FreeBSD_kernel__
 # for Windows
 CreateFile
 CloseHandle
-CreatePipe
-CreateProcess
 FormatMessage
-GetLastError
 GetModuleFileName
 GetSystemTimeAsFileTime
 GetTickCount
@@ -189,29 +186,16 @@ MsgWaitForMultipleObjects
 PeekMessage
 PeekNamedPipe
 QuadPart
-ReadFile
 SetConsoleCtrlHandler
-SetHandleInformation
 Sleep
 WaitForSingleObject
-WriteFile
 WSACleanup
 WSAGetLastError
 WSAStartup
-ZeroMemory
-bInheritHandle
-dwFlags
 dwHighDateTime
 dwLowDateTime
 dwPlatformId
 dwOSVersionInfoSize
-hProcess
-hThread
-hStdError
-hStdInput
-hStdOutput
-lpSecurityDescriptor
-nLength
 
 # OpenOCD exceptions that should be removed
 KiB

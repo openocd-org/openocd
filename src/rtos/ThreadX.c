@@ -320,6 +320,12 @@ static int threadx_update_threads(struct rtos *rtos)
 		rtos->thread_details->thread_name_str = malloc(sizeof(tmp_str));
 		strcpy(rtos->thread_details->thread_name_str, tmp_str);
 
+		/* If we just invented thread 1 to represent the current execution, we
+		 * need to make sure the RTOS object also claims it's the current thread
+		 * so that threadx_get_thread_reg_list() doesn't attempt to read a
+		 * thread control block at 0x00000001. */
+		rtos->current_thread = 1;
+
 		if (thread_list_size == 0) {
 			rtos->thread_count = 1;
 			return ERROR_OK;
@@ -364,16 +370,21 @@ static int threadx_update_threads(struct rtos *rtos)
 		}
 
 		/* Read the thread name */
-		retval =
-			target_read_buffer(rtos->target,
-				name_ptr,
-				THREADX_THREAD_NAME_STR_SIZE,
-				(uint8_t *)&tmp_str);
-		if (retval != ERROR_OK) {
-			LOG_ERROR("Error reading thread name from ThreadX target");
-			return retval;
+		tmp_str[0] = '\x00';
+
+		/* Check if thread has a valid name */
+		if (name_ptr != 0) {
+			retval =
+				target_read_buffer(rtos->target,
+					name_ptr,
+					THREADX_THREAD_NAME_STR_SIZE,
+					(uint8_t *)&tmp_str);
+			if (retval != ERROR_OK) {
+				LOG_ERROR("Error reading thread name from ThreadX target");
+				return retval;
+			}
+			tmp_str[THREADX_THREAD_NAME_STR_SIZE - 1] = '\x00';
 		}
-		tmp_str[THREADX_THREAD_NAME_STR_SIZE-1] = '\x00';
 
 		if (tmp_str[0] == '\x00')
 			strcpy(tmp_str, "No Name");
