@@ -225,7 +225,7 @@ static const struct command_registration jtag_command_handlers_to_move[] = {
 		.handler = handle_jtag_command_drscan,
 		.help = "Execute Data Register (DR) scan for one TAP.  "
 			"Other TAPs must be in BYPASS mode.",
-		.usage = "tap_name [num_bits value]* ['-endstate' state_name]",
+		.usage = "tap_name (num_bits value)+ ['-endstate' state_name]",
 	},
 	{
 		.name = "flush_count",
