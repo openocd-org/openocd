@@ -116,6 +116,11 @@ COMMAND_HANDLER(handle_jtag_command_drscan)
 		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
+	if (tap->bypass) {
+		command_print(CMD, "Can't execute as the selected tap is in BYPASS");
+		return ERROR_FAIL;
+	}
+
 	tap_state_t endstate = TAP_IDLE;
 	if (CMD_ARGC > 3 && !strcmp("-endstate", CMD_ARGV[CMD_ARGC - 2])) {
 		const char *state_name = CMD_ARGV[CMD_ARGC - 1];
