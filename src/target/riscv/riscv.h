@@ -26,6 +26,8 @@ struct riscv_program;
 
 #define RISCV_SATP_MODE(xlen)  ((xlen) == 32 ? SATP32_MODE : SATP64_MODE)
 #define RISCV_SATP_PPN(xlen)  ((xlen) == 32 ? SATP32_PPN : SATP64_PPN)
+#define RISCV_HGATP_MODE(xlen)  ((xlen) == 32 ? HGATP32_MODE : HGATP64_MODE)
+#define RISCV_HGATP_PPN(xlen)  ((xlen) == 32 ? HGATP32_PPN : HGATP64_PPN)
 #define RISCV_PGSHIFT 12
 
 # define PG_MAX_LEVEL 4
@@ -287,6 +289,7 @@ typedef struct {
 	const char *name;
 	int level;
 	unsigned va_bits;
+	/* log2(PTESIZE) */
 	unsigned pte_shift;
 	unsigned vpn_shift[PG_MAX_LEVEL];
 	unsigned vpn_mask[PG_MAX_LEVEL];
