@@ -241,9 +241,13 @@ COMMAND_HANDLER(virtex2_handle_read_stat_command)
 		return ERROR_FAIL;
 	}
 
-	virtex2_read_stat(device, &status);
+	int retval = virtex2_read_stat(device, &status);
+	if (retval != ERROR_OK) {
+		command_print(CMD, "cannot read virtex2 status register");
+		return retval;
+	}
 
-	command_print(CMD, "virtex2 status register: 0x%8.8" PRIx32 "", status);
+	command_print(CMD, "virtex2 status register: 0x%8.8" PRIx32, status);
 
 	return ERROR_OK;
 }
