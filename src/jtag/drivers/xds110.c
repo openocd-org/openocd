@@ -1688,7 +1688,7 @@ static void xds110_execute_pathmove(struct jtag_command *cmd)
 		return;
 
 	path = malloc(num_states * sizeof(uint8_t));
-	if (path) {
+	if (!path) {
 		LOG_ERROR("XDS110: unable to allocate memory");
 		return;
 	}
