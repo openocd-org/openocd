@@ -66,12 +66,10 @@ int gettimeofday(struct timeval *tv, struct timezone *tz);
 
 #endif
 
-#ifndef IN_REPLACEMENTS_C
-/**** clear_malloc & fill_malloc ****/
 void *clear_malloc(size_t size);
 void *fill_malloc(size_t size);
-#endif
 
+#ifndef IN_REPLACEMENTS_C
 /*
  * Now you have 3 ways for the malloc function:
  *
@@ -100,6 +98,7 @@ void *fill_malloc(size_t size);
 
 /* #define malloc(_a) clear_malloc(_a)
  * #define malloc(_a) fill_malloc(_a) */
+#endif  /* IN_REPLACEMENTS_C */
 
 /* GNU extensions to the C library that may be missing on some systems */
 #ifndef HAVE_STRNDUP
