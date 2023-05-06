@@ -123,7 +123,8 @@ typedef enum slot {
 typedef struct {
 	struct list_head list;
 	int abs_chain_position;
-
+	/* The base address to access this DM on DMI */
+	uint32_t base;
 	/* The number of harts connected to this DM. */
 	int hart_count;
 	/* Indicates we already reset this DM, so don't need to do it again. */
@@ -243,7 +244,8 @@ static dm013_info_t *get_dm(struct target *target)
 	dm013_info_t *entry;
 	dm013_info_t *dm = NULL;
 	list_for_each_entry(entry, &dm_list, list) {
-		if (entry->abs_chain_position == abs_chain_position) {
+		if (entry->abs_chain_position == abs_chain_position
+				&& entry->base == target->dbgbase) {
 			dm = entry;
 			break;
 		}
@@ -255,6 +257,11 @@ static dm013_info_t *get_dm(struct target *target)
 		if (!dm)
 			return NULL;
 		dm->abs_chain_position = abs_chain_position;
+
+		/* Safety check for dbgbase */
+		assert(target->dbgbase_set || target->dbgbase == 0);
+
+		dm->base = target->dbgbase;
 		dm->current_hartid = 0;
 		dm->hart_count = -1;
 		INIT_LIST_HEAD(&dm->target_list);
@@ -378,12 +385,15 @@ static void decode_dm(char *text, unsigned int address, unsigned int data)
 	}
 }
 
-static void decode_dmi(char *text, unsigned int address, unsigned int data)
+static void decode_dmi(struct target *target, char *text, unsigned int address, unsigned int data)
 {
-	decode_dm(text, address, data);
+	dm013_info_t *dm = get_dm(target);
+	if (!dm)
+		return;
+	decode_dm(text, address - dm->base, data);
 }
 
-static void dump_field(int idle, const struct scan_field *field)
+static void dump_field(struct target *target, int idle, const struct scan_field *field)
 {
 	static const char * const op_string[] = {"-", "r", "w", "?"};
 	static const char * const status_string[] = {"+", "?", "F", "b"};
@@ -409,8 +419,8 @@ static void dump_field(int idle, const struct scan_field *field)
 
 	char out_text[500];
 	char in_text[500];
-	decode_dmi(out_text, out_address, out_data);
-	decode_dmi(in_text, in_address, in_data);
+	decode_dmi(target, out_text, out_address, out_data);
+	decode_dmi(target, in_text, in_address, in_data);
 	if (in_text[0] || out_text[0]) {
 		log_printf_lf(LOG_LVL_DEBUG, __FILE__, __LINE__, "scan", "%s -> %s",
 				out_text, in_text);
@@ -549,7 +559,7 @@ static dmi_status_t dmi_scan(struct target *target, uint32_t *address_in,
 
 	if (address_in)
 		*address_in = buf_get_u32(in, DTM_DMI_ADDRESS_OFFSET, info->abits);
-	dump_field(idle_count, &field);
+	dump_field(target, idle_count, &field);
 	return buf_get_u32(in, DTM_DMI_OP_OFFSET, DTM_DMI_OP_LENGTH);
 }
 
@@ -698,7 +708,10 @@ static int dm_op_timeout(struct target *target, uint32_t *data_in,
 		bool *dmi_busy_encountered, int op, uint32_t address,
 		uint32_t data_out, int timeout_sec, bool exec, bool ensure_success)
 {
-	dmi_op_timeout(target, data_in, dmi_busy_encountered, op, address,
+	dm013_info_t *dm = get_dm(target);
+	if (!dm)
+		return ERROR_FAIL;
+	return dmi_op_timeout(target, data_in, dmi_busy_encountered, op, address + dm->base,
 		data_out, timeout_sec, exec, ensure_success);
 }
 
@@ -706,29 +719,44 @@ static int dm_op(struct target *target, uint32_t *data_in,
 		bool *dmi_busy_encountered, int op, uint32_t address,
 		uint32_t data_out, bool exec, bool ensure_success)
 {
-	return dmi_op(target, data_in, dmi_busy_encountered, op, address,
+	dm013_info_t *dm = get_dm(target);
+	if (!dm)
+		return ERROR_FAIL;
+	return dmi_op(target, data_in, dmi_busy_encountered, op, address + dm->base,
 			data_out, exec, ensure_success);
 }
 
 static int dm_read(struct target *target, uint32_t *value, uint32_t address)
 {
-	return dmi_read(target, value, address);
+	dm013_info_t *dm = get_dm(target);
+	if (!dm)
+		return ERROR_FAIL;
+	return dmi_read(target, value, address + dm->base);
 }
 
 static int dm_read_exec(struct target *target, uint32_t *value, uint32_t address)
 {
-	return dmi_read_exec(target, value, address);
+	dm013_info_t *dm = get_dm(target);
+	if (!dm)
+		return ERROR_FAIL;
+	return dmi_read_exec(target, value, address + dm->base);
 }
 
 static int dm_write(struct target *target, uint32_t address, uint32_t value)
 {
-	return dmi_write(target, address, value);
+	dm013_info_t *dm = get_dm(target);
+	if (!dm)
+		return ERROR_FAIL;
+	return dmi_write(target, address + dm->base, value);
 }
 
 static int dm_write_exec(struct target *target, uint32_t address,
 		uint32_t value, bool ensure_success)
 {
-	return dmi_write_exec(target, address, value, ensure_success);
+	dm013_info_t *dm = get_dm(target);
+	if (!dm)
+		return ERROR_FAIL;
+	return dmi_write_exec(target, address + dm->base, value, ensure_success);
 }
 
 static int dmstatus_read_timeout(struct target *target, uint32_t *dmstatus,
@@ -1739,6 +1767,8 @@ static int examine(struct target *target)
 {
 	/* Don't need to select dbus, since the first thing we do is read dtmcontrol. */
 
+	LOG_TARGET_DEBUG(target, "dbgbase=0x%x", target->dbgbase);
+
 	uint32_t dtmcontrol = dtmcontrol_scan(target, 0);
 	LOG_TARGET_DEBUG(target, "dtmcontrol=0x%x", dtmcontrol);
 	LOG_TARGET_DEBUG(target, "  dmireset=%d", get_field(dtmcontrol, DTM_DTMCS_DMIRESET));
@@ -1757,7 +1787,7 @@ static int examine(struct target *target)
 	}
 
 	riscv013_info_t *info = get_info(target);
-	/* TODO: This won't be true if there are multiple DMs. */
+
 	info->index = target->coreid;
 	info->abits = get_field(dtmcontrol, DTM_DTMCS_ABITS);
 	info->dtmcs_idle = get_field(dtmcontrol, DTM_DTMCS_IDLE);
@@ -1882,7 +1912,7 @@ static int examine(struct target *target)
 		LOG_TARGET_DEBUG(target, "Detected %d harts.", dm->hart_count);
 	}
 
-	if (dm->hart_count == 0) {
+	if (dm->hart_count <= 0) {
 		LOG_TARGET_ERROR(target, "No harts found!");
 		return ERROR_FAIL;
 	}
@@ -4909,12 +4939,18 @@ static int riscv013_dmi_write_u64_bits(struct target *target)
 
 void riscv013_fill_dm_write_u64(struct target *target, char *buf, int a, uint64_t d)
 {
-	riscv013_fill_dmi_write_u64(target, buf, a, d);
+	dm013_info_t *dm = get_dm(target);
+	if (!dm)
+		return;
+	riscv013_fill_dmi_write_u64(target, buf, a + dm->base, d);
 }
 
 void riscv013_fill_dm_read_u64(struct target *target, char *buf, int a)
 {
-	riscv013_fill_dmi_read_u64(target, buf, a);
+	dm013_info_t *dm = get_dm(target);
+	if (!dm)
+		return;
+	riscv013_fill_dmi_read_u64(target, buf, a + dm->base);
 }
 
 void riscv013_fill_dm_nop_u64(struct target *target, char *buf)
