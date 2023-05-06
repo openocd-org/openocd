@@ -1431,7 +1431,7 @@ static int esp32_sysview_stop(struct esp32_apptrace_cmd_ctx *ctx)
 	return res;
 }
 
-int esp32_cmd_apptrace_generic(struct command_invocation *cmd, int mode, const char **argv, int argc)
+static int esp32_cmd_apptrace_generic(struct command_invocation *cmd, int mode, const char **argv, int argc)
 {
 	static struct esp32_apptrace_cmd_ctx s_at_cmd_ctx;
 	struct esp32_apptrace_cmd_data *cmd_data;
