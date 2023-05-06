@@ -147,6 +147,8 @@ void tap_use_new_tms_table(bool use_new);
 /** @returns True if new TMS table is active; false otherwise. */
 bool tap_uses_new_tms_table(void);
 
+tap_state_t jtag_debug_state_machine_(const void *tms_buf, const void *tdi_buf,
+		unsigned int tap_len, tap_state_t start_tap_state);
 
 /**
  * @brief Prints verbose TAP state transitions for the given TMS/TDI buffers.
@@ -159,10 +161,6 @@ bool tap_uses_new_tms_table(void);
 static inline tap_state_t jtag_debug_state_machine(const void *tms_buf,
 		const void *tdi_buf, unsigned tap_len, tap_state_t start_tap_state)
 {
-	/* Private declaration */
-	tap_state_t jtag_debug_state_machine_(const void *tms_buf, const void *tdi_buf,
-			unsigned tap_len, tap_state_t start_tap_state);
-
 	if (LOG_LEVEL_IS(LOG_LVL_DEBUG_IO))
 		return jtag_debug_state_machine_(tms_buf, tdi_buf, tap_len, start_tap_state);
 	else
