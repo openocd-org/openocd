@@ -156,8 +156,6 @@ COMMAND_HANDLER(handle_pld_load_command)
 	if (retval != ERROR_OK) {
 		command_print(CMD, "failed loading file %s to pld device %u",
 			CMD_ARGV[1], dev_id);
-		switch (retval) {
-		}
 		return retval;
 	} else {
 		gettimeofday(&end, NULL);

@@ -29,7 +29,7 @@ static int lattice_read_bit_file(struct lattice_bit_file *bit_file, const char *
 	if (retval != ERROR_OK)
 		return retval;
 
-	bit_file->part = 0;
+	bit_file->part = NULL;
 	bit_file->has_id = false;
 	enum read_bit_state state = SEEK_HEADER_START;
 	for (size_t pos = 1; pos < bit_file->raw_bit.length && state != DONE; ++pos) {
