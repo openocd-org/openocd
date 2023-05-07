@@ -77,6 +77,21 @@ patch:
   src/openocd -s ../tcl -f /path/to/openocd.cfg
   @endcode
 
+- Sparse Static Analyzer
+
+  Using this tool allows identifying some bug in C code.
+  In the future, OpenOCD would use the sparse attribute 'bitwise' to
+  detect incorrect endianness assignments.
+
+  Example usage:
+  @code
+  mkdir build-sparse; cd build-sparse
+  ../configure CC=cgcc CFLAGS="-Wsparse-all -Wno-declaration-after-statement \
+	   -Wno-unknown-attribute -Wno-transparent-union -Wno-tautological-compare \
+       -Wno-vla -Wno-flexible-array-array -D__FLT_EVAL_METHOD__=0"
+  make
+  @endcode
+
 Please consider performing these additional checks where appropriate
 (especially Clang Static Analyzer for big portions of new code) and
 mention the results (e.g. "Valgrind-clean, no new Clang analyzer
