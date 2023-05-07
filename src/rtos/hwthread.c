@@ -32,8 +32,6 @@ static int hwthread_write_buffer(struct rtos *rtos, target_addr_t address,
 
 #define HW_THREAD_NAME_STR_SIZE (32)
 
-extern int rtos_thread_packet(struct connection *connection, const char *packet, int packet_size);
-
 static inline threadid_t threadid_from_target(const struct target *target)
 {
 	return target->coreid + 1;

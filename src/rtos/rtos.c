@@ -36,8 +36,6 @@ static const struct rtos_type *rtos_types[] = {
 
 static int rtos_try_next(struct target *target);
 
-int rtos_thread_packet(struct connection *connection, const char *packet, int packet_size);
-
 int rtos_smp_init(struct target *target)
 {
 	if (target->rtos->type->smp_init)
