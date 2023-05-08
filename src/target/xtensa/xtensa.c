@@ -607,7 +607,7 @@ static int xtensa_write_dirty_registers(struct target *target)
 	xtensa_reg_val_t a3 = 0, woe;
 	unsigned int ms_idx = (xtensa->core_config->core_type == XT_NX) ?
 		xtensa->nx_reg_idx[XT_NX_REG_IDX_MS] : reg_list_size;
-	xtensa_reg_val_t ms;
+	xtensa_reg_val_t ms = 0;
 	bool restore_ms = false;
 
 	LOG_TARGET_DEBUG(target, "start");
