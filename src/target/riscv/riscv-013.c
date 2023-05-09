@@ -1623,10 +1623,10 @@ static int examine(struct target *target)
 		dmi_write(target, DM_DMCONTROL, 0);
 		dmi_write(target, DM_DMCONTROL, DM_DMCONTROL_DMACTIVE);
 		dm->was_reset = true;
-
-		/* The DM gets reset, so forget any cached progbuf entries. */
-		riscv013_invalidate_cached_debug_buffer(target);
 	}
+	/* We're here because we're uncertain about the state of the target. That
+	 * includes our progbuf cache. */
+	riscv013_invalidate_cached_debug_buffer(target);
 
 	dmi_write(target, DM_DMCONTROL, DM_DMCONTROL_HARTSELLO |
 			DM_DMCONTROL_HARTSELHI | DM_DMCONTROL_DMACTIVE |
