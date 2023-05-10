@@ -72,10 +72,6 @@ int riscv_program_exec(struct riscv_program *p, struct target *t)
 		return ERROR_FAIL;
 	}
 
-	for (size_t i = 0; i < riscv_debug_buffer_size(p->target); ++i)
-		if (i >= riscv_debug_buffer_size(p->target))
-			p->debug_buffer[i] = riscv_read_debug_buffer(t, i);
-
 	for (size_t i = GDB_REGNO_ZERO; i <= GDB_REGNO_XPR31; ++i)
 		if (p->writes_xreg[i])
 			riscv_set_register(t, i, saved_registers[i]);
