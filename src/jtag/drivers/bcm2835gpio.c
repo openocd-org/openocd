@@ -19,7 +19,7 @@
 
 #include <sys/mman.h>
 
-static uint32_t bcm2835_peri_base = 0x20000000;
+static off_t bcm2835_peri_base = 0x20000000;
 #define BCM2835_GPIO_BASE	(bcm2835_peri_base + 0x200000) /* GPIO controller */
 
 #define BCM2835_PADS_GPIO_0_27		(bcm2835_peri_base + 0x100000)
@@ -302,11 +302,15 @@ COMMAND_HANDLER(bcm2835gpio_handle_speed_coeffs)
 
 COMMAND_HANDLER(bcm2835gpio_handle_peripheral_base)
 {
-	if (CMD_ARGC == 1)
-		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], bcm2835_peri_base);
+	uint64_t tmp_base;
+	if (CMD_ARGC == 1) {
+		COMMAND_PARSE_NUMBER(u64, CMD_ARGV[0], tmp_base);
+		bcm2835_peri_base = (off_t)tmp_base;
+	}
 
-	command_print(CMD, "BCM2835 GPIO: peripheral_base = 0x%08x",
-				  bcm2835_peri_base);
+	tmp_base = bcm2835_peri_base;
+	command_print(CMD, "BCM2835 GPIO: peripheral_base = 0x%08" PRIu64,
+				  tmp_base);
 	return ERROR_OK;
 }
 
@@ -322,7 +326,7 @@ static const struct command_registration bcm2835gpio_subcommand_handlers[] = {
 		.name = "peripheral_base",
 		.handler = &bcm2835gpio_handle_peripheral_base,
 		.mode = COMMAND_CONFIG,
-		.help = "peripheral base to access GPIOs (RPi1 0x20000000, RPi2 0x3F000000).",
+		.help = "peripheral base to access GPIOs, not needed with /dev/gpiomem.",
 		.usage = "[base]",
 	},
 
