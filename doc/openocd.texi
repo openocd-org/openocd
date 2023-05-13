@@ -3292,10 +3292,6 @@ configuration on exit.
 GPIO numbers >= 32 can't be used for performance reasons. GPIO configuration is
 handled by the generic command @ref{adapter gpio, @command{adapter gpio}}.
 
-/dev/gpiomem is preferred for GPIO mapping with fallback to /dev/mem.
-If /dev/mem is used GPIO 0-27 pads are set to the limited
-slew rate and drive strength is reduced to 4 mA (2 mA on RPi 4).
-
 See @file{interface/raspberrypi-native.cfg} for a sample config and
 @file{interface/raspberrypi-gpio-connector.cfg} for pinout.
 
@@ -3304,8 +3300,25 @@ Set SPEED_COEFF and SPEED_OFFSET for delay calculations. If unspecified,
 speed_coeff defaults to 113714, and speed_offset defaults to 28.
 @end deffn
 
+@deffn {Config Command} {bcm2835gpio peripheral_mem_dev} @var{device}
+Set the device path for access to the memory mapped GPIO control registers.
+Uses @file{/dev/gpiomem} by default, this is also the preferred option with
+respect to system security.
+If overridden to @file{/dev/mem}:
+@itemize @minus
+@item OpenOCD needs @code{cap_sys_rawio} or run as root to open @file{/dev/mem}.
+Please be aware of security issues imposed by running OpenOCD with
+elevated user rights and by @file{/dev/mem} itself.
+@item correct @command{peripheral_base} must be configured.
+@item GPIO 0-27 pads are set to the limited slew rate
+and drive strength is reduced to 4 mA (2 mA on RPi 4).
+@end itemize
+
+@end deffn
+
 @deffn {Config Command} {bcm2835gpio peripheral_base} @var{base}
-Set the peripheral base register address to access GPIOs. For the RPi1, use
+Set the peripheral base register address to access GPIOs.
+Ignored if @file{/dev/gpiomem} is used. For the RPi1, use
 0x20000000. For RPi2 and RPi3, use 0x3F000000. For RPi4, use 0xFE000000. A full
 list can be found in the
 @uref{https://www.raspberrypi.org/documentation/hardware/raspberrypi/peripheral_addresses.md, official guide}.

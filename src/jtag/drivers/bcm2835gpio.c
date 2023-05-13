@@ -19,6 +19,7 @@
 
 #include <sys/mman.h>
 
+static char *bcm2835_peri_mem_dev;
 static off_t bcm2835_peri_base = 0x20000000;
 #define BCM2835_GPIO_BASE	(bcm2835_peri_base + 0x200000) /* GPIO controller */
 
@@ -56,6 +57,14 @@ static struct initial_gpio_state {
 	unsigned int output_level;
 } initial_gpio_state[ADAPTER_GPIO_IDX_NUM];
 static uint32_t initial_drive_strength_etc;
+
+static inline const char *bcm2835_get_mem_dev(void)
+{
+	if (bcm2835_peri_mem_dev)
+		return bcm2835_peri_mem_dev;
+
+	return "/dev/gpiomem";
+}
 
 static inline void bcm2835_gpio_synchronize(void)
 {
@@ -300,6 +309,18 @@ COMMAND_HANDLER(bcm2835gpio_handle_speed_coeffs)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(bcm2835gpio_handle_peripheral_mem_dev)
+{
+	if (CMD_ARGC == 1) {
+		free(bcm2835_peri_mem_dev);
+		bcm2835_peri_mem_dev = strdup(CMD_ARGV[0]);
+	}
+
+	command_print(CMD, "BCM2835 GPIO: peripheral_mem_dev = %s",
+				  bcm2835_get_mem_dev());
+	return ERROR_OK;
+}
+
 COMMAND_HANDLER(bcm2835gpio_handle_peripheral_base)
 {
 	uint64_t tmp_base;
@@ -321,6 +342,13 @@ static const struct command_registration bcm2835gpio_subcommand_handlers[] = {
 		.mode = COMMAND_CONFIG,
 		.help = "SPEED_COEFF and SPEED_OFFSET for delay calculations.",
 		.usage = "[SPEED_COEFF SPEED_OFFSET]",
+	},
+	{
+		.name = "peripheral_mem_dev",
+		.handler = &bcm2835gpio_handle_peripheral_mem_dev,
+		.mode = COMMAND_CONFIG,
+		.help = "device to map memory mapped GPIOs from.",
+		.usage = "[device]",
 	},
 	{
 		.name = "peripheral_base",
@@ -413,16 +441,16 @@ static int bcm2835gpio_init(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	bool pad_mapping_possible = false;
+	bool is_gpiomem = strcmp(bcm2835_get_mem_dev(), "/dev/gpiomem") == 0;
+	bool pad_mapping_possible = !is_gpiomem;
 
-	dev_mem_fd = open("/dev/gpiomem", O_RDWR | O_SYNC);
+	dev_mem_fd = open(bcm2835_get_mem_dev(), O_RDWR | O_SYNC);
 	if (dev_mem_fd < 0) {
-		LOG_DEBUG("Cannot open /dev/gpiomem, fallback to /dev/mem");
-		dev_mem_fd = open("/dev/mem", O_RDWR | O_SYNC);
-		pad_mapping_possible = true;
-	}
-	if (dev_mem_fd < 0) {
-		LOG_ERROR("open: %s", strerror(errno));
+		LOG_ERROR("open %s: %s", bcm2835_get_mem_dev(), strerror(errno));
+		/* TODO: add /dev/mem specific doc and refer to it
+		 * if (!is_gpiomem && (errno == EACCES || errno == EPERM))
+		 *	LOG_INFO("Consult the user's guide chapter 4.? how to set permissions and capabilities");
+		 */
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
@@ -532,6 +560,7 @@ static int bcm2835gpio_quit(void)
 		pads_base[BCM2835_PADS_GPIO_0_27_OFFSET] = 0x5A000000 | initial_drive_strength_etc;
 	}
 	bcm2835gpio_munmap();
+	free(bcm2835_peri_mem_dev);
 
 	return ERROR_OK;
 }
