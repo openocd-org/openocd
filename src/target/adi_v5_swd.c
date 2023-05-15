@@ -177,6 +177,19 @@ static int swd_multidrop_select_inner(struct adiv5_dap *dap, uint32_t *dpidr_ptr
 	assert(dap_is_multidrop(dap));
 
 	swd_send_sequence(dap, LINE_RESET);
+	/* From ARM IHI 0074C ADIv6.0, chapter B4.3.3 "Connection and line reset
+	 * sequence":
+	 * - line reset sets DP_SELECT_DPBANK to zero;
+	 * - read of DP_DPIDR takes the connection out of reset;
+	 * - write of DP_TARGETSEL keeps the connection in reset;
+	 * - other accesses return protocol error (SWDIO not driven by target).
+	 *
+	 * Read DP_DPIDR to get out of reset. Initialize dap->select to zero to
+	 * skip the write to DP_SELECT, avoiding the protocol error. Set again
+	 * dap->select to DP_SELECT_INVALID because the rest of the register is
+	 * unknown after line reset.
+	 */
+	dap->select = 0;
 
 	retval = swd_queue_dp_write_inner(dap, DP_TARGETSEL, dap->multidrop_targetsel);
 	if (retval != ERROR_OK)
@@ -195,6 +208,8 @@ static int swd_multidrop_select_inner(struct adiv5_dap *dap, uint32_t *dpidr_ptr
 		if (retval != ERROR_OK)
 			return retval;
 	}
+
+	dap->select = DP_SELECT_INVALID;
 
 	retval = swd_queue_dp_read_inner(dap, DP_DLPIDR, &dlpidr);
 	if (retval != ERROR_OK)
@@ -257,6 +272,8 @@ static int swd_multidrop_select(struct adiv5_dap *dap)
 
 		LOG_DEBUG("Failed to select multidrop %s, retrying...",
 				  adiv5_dap_name(dap));
+		/* we going to retry localy, do not ask for full reconnect */
+		dap->do_reconnect = false;
 	}
 
 	return retval;
@@ -342,6 +359,7 @@ static int swd_connect_single(struct adiv5_dap *dap)
 
 		dap->switch_through_dormant = !dap->switch_through_dormant;
 	} while (timeval_ms() < timeout);
+
 	dap->select = DP_SELECT_INVALID;
 
 	if (retval != ERROR_OK) {

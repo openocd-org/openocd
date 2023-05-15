@@ -168,8 +168,9 @@
 #define XT_REG_A3         (xtensa_regs[XT_REG_IDX_AR3].reg_num)
 #define XT_REG_A4         (xtensa_regs[XT_REG_IDX_AR4].reg_num)
 
-#define XT_PS_REG_NUM_BASE          (0xc0U)	/* (EPS2 - 2), for adding DBGLEVEL */
-#define XT_PC_REG_NUM_BASE          (0xb0U)	/* (EPC1 - 1), for adding DBGLEVEL */
+#define XT_PS_REG_NUM               (0xe6U)
+#define XT_EPS_REG_NUM_BASE         (0xc0U)	/* (EPS2 - 2), for adding DBGLEVEL */
+#define XT_EPC_REG_NUM_BASE         (0xb0U)	/* (EPC1 - 1), for adding DBGLEVEL */
 #define XT_PC_REG_NUM_VIRTUAL       (0xffU)	/* Marker for computing PC (EPC[DBGLEVEL) */
 #define XT_PC_DBREG_NUM_BASE        (0x20U)	/* External (i.e., GDB) access */
 
@@ -245,7 +246,7 @@ struct xtensa_reg_desc xtensa_regs[XT_NUM_REGS] = {
 	XT_MK_REG_DESC("ar63", 0x3F, XT_REG_GENERAL, 0),
 	XT_MK_REG_DESC("windowbase", 0x48, XT_REG_SPECIAL, 0),
 	XT_MK_REG_DESC("windowstart", 0x49, XT_REG_SPECIAL, 0),
-	XT_MK_REG_DESC("ps", 0xE6, XT_REG_SPECIAL, 0),	/* PS (not mapped through EPS[]) */
+	XT_MK_REG_DESC("ps", XT_PS_REG_NUM, XT_REG_SPECIAL, 0),	/* PS (not mapped through EPS[]) */
 	XT_MK_REG_DESC("ibreakenable", 0x60, XT_REG_SPECIAL, 0),
 	XT_MK_REG_DESC("ddr", 0x68, XT_REG_DEBUG, XT_REGF_NOREAD),
 	XT_MK_REG_DESC("ibreaka0", 0x80, XT_REG_SPECIAL, 0),
@@ -630,7 +631,7 @@ static int xtensa_write_dirty_registers(struct target *target)
 							/* reg number of PC for debug interrupt depends on NDEBUGLEVEL
 							 **/
 							reg_num =
-								(XT_PC_REG_NUM_BASE +
+								(XT_EPC_REG_NUM_BASE +
 								xtensa->core_config->debug.irq_level);
 						xtensa_queue_exec_ins(xtensa, XT_INS_WSR(xtensa, reg_num, XT_REG_A3));
 					}
@@ -800,8 +801,7 @@ int xtensa_examine(struct target *target)
 		return ERROR_TARGET_FAILURE;
 	}
 	LOG_DEBUG("OCD_ID = %08" PRIx32, xtensa->dbg_mod.device_id);
-	if (!target_was_examined(target))
-		target_set_examined(target);
+	target_set_examined(target);
 	xtensa_smpbreak_write(xtensa, xtensa->smp_break);
 	return ERROR_OK;
 }
@@ -1105,10 +1105,10 @@ int xtensa_fetch_all_regs(struct target *target)
 			case XT_REG_SPECIAL:
 				if (reg_num == XT_PC_REG_NUM_VIRTUAL) {
 					/* reg number of PC for debug interrupt depends on NDEBUGLEVEL */
-					reg_num = (XT_PC_REG_NUM_BASE + xtensa->core_config->debug.irq_level);
+					reg_num = XT_EPC_REG_NUM_BASE + xtensa->core_config->debug.irq_level;
 				} else if (reg_num == xtensa_regs[XT_REG_IDX_PS].reg_num) {
 					/* reg number of PS for debug interrupt depends on NDEBUGLEVEL */
-					reg_num = (XT_PS_REG_NUM_BASE + xtensa->core_config->debug.irq_level);
+					reg_num = XT_EPS_REG_NUM_BASE + xtensa->core_config->debug.irq_level;
 				} else if (reg_num == xtensa_regs[XT_REG_IDX_CPENABLE].reg_num) {
 					/* CPENABLE already read/updated; don't re-read */
 					reg_fetched = false;
@@ -1629,7 +1629,6 @@ int xtensa_do_step(struct target *target, int current, target_addr_t address, in
 
 	target->debug_reason = DBG_REASON_SINGLESTEP;
 	target->state = TARGET_HALTED;
-	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 	LOG_DEBUG("Done stepping, PC=%" PRIX32, cur_pc);
 
 	if (cause & DEBUGCAUSE_DB) {
@@ -1657,7 +1656,12 @@ int xtensa_do_step(struct target *target, int current, target_addr_t address, in
 
 int xtensa_step(struct target *target, int current, target_addr_t address, int handle_breakpoints)
 {
-	return xtensa_do_step(target, current, address, handle_breakpoints);
+	int retval = xtensa_do_step(target, current, address, handle_breakpoints);
+	if (retval != ERROR_OK)
+		return retval;
+	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
+
+	return ERROR_OK;
 }
 
 /**
@@ -1780,9 +1784,9 @@ int xtensa_read_memory(struct target *target, target_addr_t address, uint32_t si
 	if (res != ERROR_OK) {
 		if (xtensa->probe_lsddr32p != 0) {
 			/* Disable fast memory access instructions and retry before reporting an error */
-			LOG_TARGET_INFO(target, "Disabling LDDR32.P/SDDR32.P");
+			LOG_TARGET_DEBUG(target, "Disabling LDDR32.P/SDDR32.P");
 			xtensa->probe_lsddr32p = 0;
-			res = xtensa_read_memory(target, address, size, count, buffer);
+			res = xtensa_read_memory(target, address, size, count, albuff);
 			bswap = false;
 		} else {
 			LOG_TARGET_WARNING(target, "Failed reading %d bytes at address "TARGET_ADDR_FMT,
@@ -2502,6 +2506,12 @@ static int xtensa_build_reg_cache(struct target *target)
 			unsigned int j;
 			for (j = 0; j < reg_cache->num_regs; j++) {
 				if (!strcmp(reg_cache->reg_list[j].name, xtensa->contiguous_regs_desc[i]->name)) {
+					/*	Register number field is not filled above.
+						Here we are assigning the corresponding index from the contiguous reg list.
+						These indexes are in the same order with gdb g-packet request/response.
+						Some more changes may be required for sparse reg lists.
+					*/
+					reg_cache->reg_list[j].number = i;
 					xtensa->contiguous_regs_list[i] = &(reg_cache->reg_list[j]);
 					LOG_TARGET_DEBUG(target,
 						"POPULATE contiguous regs list: %-16s, dbreg_num 0x%04x",
@@ -3441,8 +3451,8 @@ COMMAND_HELPER(xtensa_cmd_xtreg_do, struct xtensa *xtensa)
 		else
 			rptr->flags = 0;
 
-		if ((rptr->reg_num == (XT_PS_REG_NUM_BASE + xtensa->core_config->debug.irq_level)) &&
-			(xtensa->core_config->core_type == XT_LX) && (rptr->type == XT_REG_SPECIAL)) {
+		if (rptr->reg_num == (XT_EPS_REG_NUM_BASE + xtensa->core_config->debug.irq_level) &&
+			xtensa->core_config->core_type == XT_LX && rptr->type == XT_REG_SPECIAL) {
 			xtensa->eps_dbglevel_idx = XT_NUM_REGS + xtensa->num_optregs - 1;
 			LOG_DEBUG("Setting PS (%s) index to %d", rptr->name, xtensa->eps_dbglevel_idx);
 		}

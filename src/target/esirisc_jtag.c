@@ -130,7 +130,9 @@ static int esirisc_jtag_recv(struct esirisc_jtag *jtag_info,
 	int num_in_bytes = DIV_ROUND_UP(num_in_bits, 8);
 
 	struct scan_field fields[3];
-	uint8_t r[num_in_bytes * 2];
+	/* prevent zero-size variable length array */
+	int r_size = num_in_bytes ? num_in_bytes * 2 : 1;
+	uint8_t r[r_size];
 
 	esirisc_jtag_set_instr(jtag_info, INSTR_DEBUG);
 

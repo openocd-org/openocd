@@ -68,6 +68,9 @@ struct cortex_m_part_info {
 #define DCB_DEMCR	0xE000EDFC
 #define DCB_DSCSR	0xE000EE08
 
+#define DAUTHSTATUS	0xE000EFB8
+#define DAUTHSTATUS_SID_MASK	0x00000030
+
 #define DCRSR_WNR	BIT(16)
 
 #define DWT_CTRL	0xE0001000

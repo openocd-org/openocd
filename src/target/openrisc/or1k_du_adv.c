@@ -934,7 +934,7 @@ static int or1k_adv_jtag_write_memory(struct or1k_jtag *jtag_info,
 	void *t = NULL;
 	struct target *target = jtag_info->target;
 	if ((target->endianness == TARGET_BIG_ENDIAN) && (size != 1)) {
-		t = malloc(count * size * sizeof(uint8_t));
+		t = calloc(count * size, sizeof(uint8_t));
 		if (!t) {
 			LOG_ERROR("Out of memory");
 			return ERROR_FAIL;
@@ -947,6 +947,9 @@ static int or1k_adv_jtag_write_memory(struct or1k_jtag *jtag_info,
 		case 2:
 			buf_bswap16(t, buffer, size * count);
 			break;
+		default:
+			free(t);
+			return ERROR_TARGET_FAILURE;
 		}
 		buffer = t;
 	}

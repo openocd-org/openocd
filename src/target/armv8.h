@@ -98,6 +98,10 @@ enum {
 	ARMV8_ESR_EL3 = 75,
 	ARMV8_SPSR_EL3 = 76,
 
+	/* Pseudo registers defined by GDB to remove the pauth signature. */
+	ARMV8_PAUTH_DMASK = 77,
+	ARMV8_PAUTH_CMASK = 78,
+
 	ARMV8_LAST_REG,
 };
 
@@ -204,6 +208,9 @@ struct armv8_common {
 	struct armv8_mmu_common armv8_mmu;
 
 	struct arm_cti *cti;
+
+	/* True if OpenOCD provides pointer auth related info to GDB */
+	bool enable_pauth;
 
 	/* last run-control command issued to this target (resume, halt, step) */
 	enum run_control_op last_run_control_op;

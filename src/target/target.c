@@ -92,9 +92,6 @@ extern struct target_type dsp5680xx_target;
 extern struct target_type testee_target;
 extern struct target_type avr32_ap7k_target;
 extern struct target_type hla_target;
-extern struct target_type nds32_v2_target;
-extern struct target_type nds32_v3_target;
-extern struct target_type nds32_v3m_target;
 extern struct target_type esp32_target;
 extern struct target_type esp32s2_target;
 extern struct target_type esp32s3_target;
@@ -132,9 +129,6 @@ static struct target_type *target_types[] = {
 	&testee_target,
 	&avr32_ap7k_target,
 	&hla_target,
-	&nds32_v2_target,
-	&nds32_v3_target,
-	&nds32_v3m_target,
 	&esp32_target,
 	&esp32s2_target,
 	&esp32s3_target,
@@ -4253,11 +4247,19 @@ static void write_gmon(uint32_t *samples, uint32_t sample_num, const char *filen
 
 		/* max should be (largest sample + 1)
 		 * Refer to binutils/gprof/hist.c (find_histogram_for_pc) */
-		max++;
+		if (max < UINT32_MAX)
+			max++;
+
+		/* gprof requires (max - min) >= 2 */
+		while ((max - min) < 2) {
+			if (max < UINT32_MAX)
+				max++;
+			else
+				min--;
+		}
 	}
 
-	int address_space = max - min;
-	assert(address_space >= 2);
+	uint32_t address_space = max - min;
 
 	/* FIXME: What is the reasonable number of buckets?
 	 * The profiling result will be more accurate if there are enough buckets. */
@@ -4333,6 +4335,19 @@ COMMAND_HANDLER(handle_profile_command)
 
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], offset);
 
+	uint32_t start_address = 0;
+	uint32_t end_address = 0;
+	bool with_range = false;
+	if (CMD_ARGC == 4) {
+		with_range = true;
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], start_address);
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[3], end_address);
+		if (start_address > end_address || (end_address - start_address) < 2) {
+			command_print(CMD, "Error: end - start < 2");
+			return ERROR_COMMAND_ARGUMENT_INVALID;
+		}
+	}
+
 	uint32_t *samples = malloc(sizeof(uint32_t) * MAX_PROFILE_SAMPLE_NUM);
 	if (!samples) {
 		LOG_ERROR("No memory to store samples.");
@@ -4383,15 +4398,6 @@ COMMAND_HANDLER(handle_profile_command)
 	if (retval != ERROR_OK) {
 		free(samples);
 		return retval;
-	}
-
-	uint32_t start_address = 0;
-	uint32_t end_address = 0;
-	bool with_range = false;
-	if (CMD_ARGC == 4) {
-		with_range = true;
-		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], start_address);
-		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[3], end_address);
 	}
 
 	write_gmon(samples, num_of_samples, CMD_ARGV[1],
@@ -6435,16 +6441,52 @@ static int jim_target_names(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	return JIM_OK;
 }
 
+static struct target_list *
+__attribute__((warn_unused_result))
+create_target_list_node(Jim_Obj *const name) {
+	int len;
+	const char *targetname = Jim_GetString(name, &len);
+	struct target *target = get_target(targetname);
+	LOG_DEBUG("%s ", targetname);
+	if (!target)
+		return NULL;
+
+	struct target_list *new = malloc(sizeof(struct target_list));
+	if (!new) {
+		LOG_ERROR("Out of memory");
+		return new;
+	}
+
+	new->target = target;
+	return new;
+}
+
+static int get_target_with_common_rtos_type(struct list_head *lh, struct target **result)
+{
+	struct target *target = NULL;
+	struct target_list *curr;
+	foreach_smp_target(curr, lh) {
+		struct rtos *curr_rtos = curr->target->rtos;
+		if (curr_rtos) {
+			if (target && target->rtos && target->rtos->type != curr_rtos->type) {
+				LOG_ERROR("Different rtos types in members of one smp target!");
+				return JIM_ERR;
+			}
+			target = curr->target;
+		}
+	}
+	*result = target;
+	return JIM_OK;
+}
+
 static int jim_target_smp(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
-	int i;
-	const char *targetname;
-	int retval, len;
 	static int smp_group = 1;
-	struct target *target = NULL;
-	struct target_list *head, *new;
 
-	retval = 0;
+	if (argc == 1) {
+		LOG_DEBUG("Empty SMP target");
+		return JIM_OK;
+	}
 	LOG_DEBUG("%d", argc);
 	/* argv[1] = target to associate in smp
 	 * argv[2] = target to associate in smp
@@ -6458,27 +6500,24 @@ static int jim_target_smp(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	}
 	INIT_LIST_HEAD(lh);
 
-	for (i = 1; i < argc; i++) {
-
-		targetname = Jim_GetString(argv[i], &len);
-		target = get_target(targetname);
-		LOG_DEBUG("%s ", targetname);
-		if (target) {
-			new = malloc(sizeof(struct target_list));
-			new->target = target;
+	for (int i = 1; i < argc; i++) {
+		struct target_list *new = create_target_list_node(argv[i]);
+		if (new)
 			list_add_tail(&new->lh, lh);
-		}
 	}
 	/*  now parse the list of cpu and put the target in smp mode*/
-	foreach_smp_target(head, lh) {
-		target = head->target;
+	struct target_list *curr;
+	foreach_smp_target(curr, lh) {
+		struct target *target = curr->target;
 		target->smp = smp_group;
 		target->smp_targets = lh;
 	}
 	smp_group++;
 
-	if (target && target->rtos)
-		retval = rtos_smp_init(target);
+	struct target *rtos_target;
+	int retval = get_target_with_common_rtos_type(lh, &rtos_target);
+	if (retval == JIM_OK && rtos_target)
+		retval = rtos_smp_init(rtos_target);
 
 	return retval;
 }

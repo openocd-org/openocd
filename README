@@ -101,7 +101,7 @@ Supported hardware
 JTAG adapters
 -------------
 
-AICE, AM335x, ARM-JTAG-EW, ARM-USB-OCD, ARM-USB-TINY, AT91RM9200, axm0432, BCM2835,
+AM335x, ARM-JTAG-EW, ARM-USB-OCD, ARM-USB-TINY, AT91RM9200, axm0432, BCM2835,
 Bus Blaster, Buspirate, Cadence DPI, Cadence vdebug, Chameleon, CMSIS-DAP,
 Cortino, Cypress KitProg, DENX, Digilent JTAG-SMT2, DLC 5, DLP-USB1232H,
 embedded projects, Espressif USB JTAG Programmer,
@@ -122,7 +122,7 @@ Debug targets
 ARM: AArch64, ARM11, ARM7, ARM9, Cortex-A/R (v7-A/R), Cortex-M (ARMv{6/7/8}-M),
 FA526, Feroceon/Dragonite, XScale.
 ARCv2, AVR32, DSP563xx, DSP5680xx, EnSilica eSi-RISC, EJTAG (MIPS32, MIPS64),
-ESP32, ESP32-S2, ESP32-S3, Intel Quark, LS102x-SAP, NDS32, RISC-V, ST STM8,
+ESP32, ESP32-S2, ESP32-S3, Intel Quark, LS102x-SAP, RISC-V, ST STM8,
 Xtensa.
 
 Flash drivers
@@ -219,7 +219,10 @@ You'll also need:
 
 - make
 - libtool
-- pkg-config >= 0.23 (or compatible)
+- pkg-config >= 0.23 or pkgconf
+
+OpenOCD uses jimtcl library; build from git can retrieve jimtcl as git
+submodule.
 
 Additionally, for building from git:
 
@@ -227,14 +230,26 @@ Additionally, for building from git:
 - automake >= 1.14
 - texinfo >= 5.0
 
-USB-based adapters depend on libusb-1.0. A compatible implementation, such as
-FreeBSD's, additionally needs the corresponding .pc files.
+Optional USB-based adapter drivers need libusb-1.0.
 
-USB-Blaster, ASIX Presto and OpenJTAG interface adapter
+Optional USB-Blaster, ASIX Presto and OpenJTAG interface adapter
 drivers need:
   - libftdi: http://www.intra2net.com/en/developer/libftdi/index.php
 
-CMSIS-DAP support needs HIDAPI library.
+Optional CMSIS-DAP adapter driver needs HIDAPI library.
+
+Optional linuxgpiod adapter driver needs libgpiod library.
+
+Optional JLink adapter driver needs libjaylink; build from git can
+retrieve libjaylink as git submodule.
+
+Optional ARM disassembly needs capstone library.
+
+Optional development script checkpatch needs:
+
+- perl
+- python
+- python-ply
 
 Permissions delegation
 ----------------------

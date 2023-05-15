@@ -12,6 +12,7 @@
 #include "imp.h"
 #include "helper/binarybuffer.h"
 
+#include <helper/time_support.h>
 #include <jtag/jtag.h>
 #include <target/cortex_m.h>
 
@@ -31,7 +32,7 @@
 #define SAMD_NVMCTRL_CTRLA		0x00	/* NVM control A register */
 #define SAMD_NVMCTRL_CTRLB		0x04	/* NVM control B register */
 #define SAMD_NVMCTRL_PARAM		0x08	/* NVM parameters register */
-#define SAMD_NVMCTRL_INTFLAG	0x18	/* NVM Interrupt Flag Status & Clear */
+#define SAMD_NVMCTRL_INTFLAG	0x14	/* NVM Interrupt Flag Status & Clear */
 #define SAMD_NVMCTRL_STATUS		0x18	/* NVM status register */
 #define SAMD_NVMCTRL_ADDR		0x1C	/* NVM address register */
 #define SAMD_NVMCTRL_LOCK		0x20	/* NVM Lock section register */
@@ -54,6 +55,9 @@
 
 /* NVMCTRL bits */
 #define SAMD_NVM_CTRLB_MANW 0x80
+
+/* NVMCTRL_INTFLAG bits */
+#define SAMD_NVM_INTFLAG_READY 0x01
 
 /* Known identifiers */
 #define SAMD_PROCESSOR_M0	0x01
@@ -497,7 +501,27 @@ static int samd_probe(struct flash_bank *bank)
 static int samd_check_error(struct target *target)
 {
 	int ret, ret2;
+	uint8_t intflag;
 	uint16_t status;
+	int timeout_ms = 1000;
+	int64_t ts_start = timeval_ms();
+
+	do {
+		ret = target_read_u8(target,
+			SAMD_NVMCTRL + SAMD_NVMCTRL_INTFLAG, &intflag);
+		if (ret != ERROR_OK) {
+			LOG_ERROR("Can't read NVM intflag");
+			return ret;
+		}
+		if (intflag & SAMD_NVM_INTFLAG_READY)
+			break;
+		keep_alive();
+	} while (timeval_ms() - ts_start < timeout_ms);
+
+	if (!(intflag & SAMD_NVM_INTFLAG_READY)) {
+		LOG_ERROR("SAMD: NVM programming timed out");
+		return ERROR_FLASH_OPERATION_FAILED;
+	}
 
 	ret = target_read_u16(target,
 			SAMD_NVMCTRL + SAMD_NVMCTRL_STATUS, &status);
@@ -543,7 +567,8 @@ static int samd_issue_nvmctrl_command(struct target *target, uint16_t cmd)
 	}
 
 	/* Issue the NVM command */
-	res = target_write_u16(target,
+	/* 32-bit write is used to ensure atomic operation on ST-Link */
+	res = target_write_u32(target,
 			SAMD_NVMCTRL + SAMD_NVMCTRL_CTRLA, SAMD_NVM_CMD(cmd));
 	if (res != ERROR_OK)
 		return res;

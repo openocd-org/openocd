@@ -113,7 +113,7 @@ static int mem_ap_setup_tar(struct adiv5_ap *ap, target_addr_t tar)
 		int retval = dap_queue_ap_write(ap, MEM_AP_REG_TAR(ap->dap), (uint32_t)(tar & 0xffffffffUL));
 		if (retval == ERROR_OK && is_64bit_ap(ap)) {
 			/* See if bits 63:32 of tar is different from last setting */
-			if ((ap->tar_value >> 32) != (tar >> 32))
+			if (!ap->tar_valid || (ap->tar_value >> 32) != (tar >> 32))
 				retval = dap_queue_ap_write(ap, MEM_AP_REG_TAR64(ap->dap), (uint32_t)(tar >> 32));
 		}
 		if (retval != ERROR_OK) {

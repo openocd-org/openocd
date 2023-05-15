@@ -573,6 +573,8 @@ static int cmsis_dap_metacmd_targetsel(uint32_t instance_id)
 	The purpose of this operation is to select the target
 	corresponding to the instance_id that is written */
 
+	LOG_DEBUG_IO("DP write reg TARGETSEL %" PRIx32, instance_id);
+
 	size_t idx = 0;
 	command[idx++] = CMD_DAP_SWD_SEQUENCE;
 	command[idx++] = 3;	/* sequence count */
@@ -658,7 +660,7 @@ static int cmsis_dap_cmd_dap_swo_baudrate(
 	command[0] = CMD_DAP_SWO_BAUDRATE;
 	h_u32_to_le(&command[1], in_baudrate);
 
-	int retval = cmsis_dap_xfer(cmsis_dap_handle, 4);
+	int retval = cmsis_dap_xfer(cmsis_dap_handle, 5);
 	uint32_t rvbr = le_to_h_u32(&cmsis_dap_handle->response[1]);
 	if (retval != ERROR_OK || rvbr == 0) {
 		LOG_ERROR("CMSIS-DAP: command CMD_SWO_Baudrate(%u) -> %u failed.", in_baudrate, rvbr);
@@ -783,7 +785,7 @@ static void cmsis_dap_swd_write_from_queue(struct cmsis_dap *dap)
 		uint8_t cmd = transfer->cmd;
 		uint32_t data = transfer->data;
 
-		LOG_DEBUG_IO("%s %s reg %x %"PRIx32,
+		LOG_DEBUG_IO("%s %s reg %x %" PRIx32,
 				cmd & SWD_CMD_APNDP ? "AP" : "DP",
 				cmd & SWD_CMD_RNW ? "read" : "write",
 			  (cmd & SWD_CMD_A32) >> 1, data);
@@ -889,7 +891,7 @@ static void cmsis_dap_swd_read_process(struct cmsis_dap *dap, int timeout_ms)
 			uint32_t tmp = data;
 			idx += 4;
 
-			LOG_DEBUG_IO("Read result: %"PRIx32, data);
+			LOG_DEBUG_IO("Read result: %" PRIx32, data);
 
 			/* Imitate posted AP reads */
 			if ((transfer->cmd & SWD_CMD_APNDP) ||

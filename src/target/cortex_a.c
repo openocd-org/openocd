@@ -2246,7 +2246,7 @@ static int cortex_a_write_cpu_memory(struct target *target,
 	/* Switch to non-blocking mode if not already in that mode. */
 	retval = cortex_a_set_dcc_mode(target, DSCR_EXT_DCC_NON_BLOCKING, &dscr);
 	if (retval != ERROR_OK)
-		goto out;
+		return retval;
 
 	/* Mark R0 as dirty. */
 	arm_reg_current(arm, 0)->dirty = true;
@@ -2254,16 +2254,16 @@ static int cortex_a_write_cpu_memory(struct target *target,
 	/* Read DFAR and DFSR, as they will be modified in the event of a fault. */
 	retval = cortex_a_read_dfar_dfsr(target, &orig_dfar, &orig_dfsr, &dscr);
 	if (retval != ERROR_OK)
-		goto out;
+		return retval;
 
 	/* Get the memory address into R0. */
 	retval = mem_ap_write_atomic_u32(armv7a->debug_ap,
 			armv7a->debug_base + CPUDBG_DTRRX, address);
 	if (retval != ERROR_OK)
-		goto out;
+		return retval;
 	retval = cortex_a_exec_opcode(target, ARMV4_5_MRC(14, 0, 0, 0, 5, 0), &dscr);
 	if (retval != ERROR_OK)
-		goto out;
+		return retval;
 
 	if (size == 4 && (address % 4) == 0) {
 		/* We are doing a word-aligned transfer, so use fast mode. */
@@ -2288,7 +2288,6 @@ static int cortex_a_write_cpu_memory(struct target *target,
 		retval = cortex_a_write_cpu_memory_slow(target, size, count, buffer, &dscr);
 	}
 
-out:
 	final_retval = retval;
 
 	/* Switch to non-blocking mode if not already in that mode. */
@@ -2564,7 +2563,7 @@ static int cortex_a_read_cpu_memory(struct target *target,
 	/* Switch to non-blocking mode if not already in that mode. */
 	retval = cortex_a_set_dcc_mode(target, DSCR_EXT_DCC_NON_BLOCKING, &dscr);
 	if (retval != ERROR_OK)
-		goto out;
+		return retval;
 
 	/* Mark R0 as dirty. */
 	arm_reg_current(arm, 0)->dirty = true;
@@ -2572,16 +2571,16 @@ static int cortex_a_read_cpu_memory(struct target *target,
 	/* Read DFAR and DFSR, as they will be modified in the event of a fault. */
 	retval = cortex_a_read_dfar_dfsr(target, &orig_dfar, &orig_dfsr, &dscr);
 	if (retval != ERROR_OK)
-		goto out;
+		return retval;
 
 	/* Get the memory address into R0. */
 	retval = mem_ap_write_atomic_u32(armv7a->debug_ap,
 			armv7a->debug_base + CPUDBG_DTRRX, address);
 	if (retval != ERROR_OK)
-		goto out;
+		return retval;
 	retval = cortex_a_exec_opcode(target, ARMV4_5_MRC(14, 0, 0, 0, 5, 0), &dscr);
 	if (retval != ERROR_OK)
-		goto out;
+		return retval;
 
 	if (size == 4 && (address % 4) == 0) {
 		/* We are doing a word-aligned transfer, so use fast mode. */
@@ -2607,7 +2606,6 @@ static int cortex_a_read_cpu_memory(struct target *target,
 		retval = cortex_a_read_cpu_memory_slow(target, size, count, buffer, &dscr);
 	}
 
-out:
 	final_retval = retval;
 
 	/* Switch to non-blocking mode if not already in that mode. */
@@ -2874,23 +2872,20 @@ static int cortex_a_examine_first(struct target *target)
 	int retval = ERROR_OK;
 	uint32_t didr, cpuid, dbg_osreg, dbg_idpfr1;
 
-	if (armv7a->debug_ap) {
-		dap_put_ap(armv7a->debug_ap);
-		armv7a->debug_ap = NULL;
-	}
-
-	if (pc->ap_num == DP_APSEL_INVALID) {
-		/* Search for the APB-AP - it is needed for access to debug registers */
-		retval = dap_find_get_ap(swjdp, AP_TYPE_APB_AP, &armv7a->debug_ap);
-		if (retval != ERROR_OK) {
-			LOG_ERROR("Could not find APB-AP for debug access");
-			return retval;
-		}
-	} else {
-		armv7a->debug_ap = dap_get_ap(swjdp, pc->ap_num);
-		if (!armv7a->debug_ap) {
-			LOG_ERROR("Cannot get AP");
-			return ERROR_FAIL;
+	if (!armv7a->debug_ap) {
+		if (pc->ap_num == DP_APSEL_INVALID) {
+			/* Search for the APB-AP - it is needed for access to debug registers */
+			retval = dap_find_get_ap(swjdp, AP_TYPE_APB_AP, &armv7a->debug_ap);
+			if (retval != ERROR_OK) {
+				LOG_ERROR("Could not find APB-AP for debug access");
+				return retval;
+			}
+		} else {
+			armv7a->debug_ap = dap_get_ap(swjdp, pc->ap_num);
+			if (!armv7a->debug_ap) {
+				LOG_ERROR("Cannot get AP");
+				return ERROR_FAIL;
+			}
 		}
 	}
 

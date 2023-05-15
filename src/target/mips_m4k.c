@@ -900,7 +900,7 @@ static int mips_m4k_set_watchpoint(struct target *target,
 			LOG_ERROR("BUG: watchpoint->rw neither read, write nor access");
 	}
 
-	watchpoint->number = wp_num;
+	watchpoint_set(watchpoint, wp_num);
 	comparator_list[wp_num].used = 1;
 	comparator_list[wp_num].bp_value = watchpoint->address;
 

@@ -57,6 +57,15 @@ static struct initial_gpio_state {
 } initial_gpio_state[ADAPTER_GPIO_IDX_NUM];
 static uint32_t initial_drive_strength_etc;
 
+static inline void bcm2835_gpio_synchronize(void)
+{
+	/* Ensure that previous writes to GPIO registers are flushed out of
+	 * the inner shareable domain to prevent pipelined writes to the
+	 * same address being merged.
+	 */
+	__sync_synchronize();
+}
+
 static bool is_gpio_config_valid(enum adapter_gpio_config_index idx)
 {
 	/* Only chip 0 is supported, accept unset value (-1) too */
@@ -96,6 +105,7 @@ static void set_gpio_value(const struct adapter_gpio_config *gpio_config, int va
 		}
 		break;
 	}
+	bcm2835_gpio_synchronize();
 }
 
 static void restore_gpio(enum adapter_gpio_config_index idx)
@@ -109,6 +119,7 @@ static void restore_gpio(enum adapter_gpio_config_index idx)
 				GPIO_CLR = 1 << adapter_gpio_config[idx].gpio_num;
 		}
 	}
+	bcm2835_gpio_synchronize();
 }
 
 static void initialize_gpio(enum adapter_gpio_config_index idx)
@@ -143,6 +154,7 @@ static void initialize_gpio(enum adapter_gpio_config_index idx)
 	/* Direction for non push-pull is already set by set_gpio_value() */
 	if (adapter_gpio_config[idx].drive == ADAPTER_GPIO_DRIVE_MODE_PUSH_PULL)
 		OUT_GPIO(adapter_gpio_config[idx].gpio_num);
+	bcm2835_gpio_synchronize();
 }
 
 static bb_value_t bcm2835gpio_read(void)
@@ -164,6 +176,7 @@ static int bcm2835gpio_write(int tck, int tms, int tdi)
 
 	GPIO_SET = set;
 	GPIO_CLR = clear;
+	bcm2835_gpio_synchronize();
 
 	for (unsigned int i = 0; i < jtag_delay; i++)
 		asm volatile ("");
@@ -184,6 +197,7 @@ static int bcm2835gpio_swd_write_fast(int swclk, int swdio)
 
 	GPIO_SET = set;
 	GPIO_CLR = clear;
+	bcm2835_gpio_synchronize();
 
 	for (unsigned int i = 0; i < jtag_delay; i++)
 		asm volatile ("");
@@ -234,6 +248,7 @@ static void bcm2835_swdio_drive(bool is_output)
 		if (is_gpio_config_valid(ADAPTER_GPIO_IDX_SWDIO_DIR))
 			set_gpio_value(&adapter_gpio_config[ADAPTER_GPIO_IDX_SWDIO_DIR], 0);
 	}
+	bcm2835_gpio_synchronize();
 }
 
 static int bcm2835_swdio_read(void)
