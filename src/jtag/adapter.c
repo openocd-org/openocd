@@ -18,10 +18,6 @@
 #include "interfaces.h"
 #include <transport/transport.h>
 
-#ifdef HAVE_STRINGS_H
-#include <strings.h>
-#endif
-
 /**
  * @file
  * Holds support for configuring debug adapters from TCl scripts.
