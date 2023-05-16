@@ -3101,23 +3101,21 @@ COMMAND_HANDLER(handle_reg_command)
 				if (reg->exist == false || reg->hidden)
 					continue;
 				/* only print cached values if they are valid */
-				if (reg->exist) {
-					if (reg->valid) {
-						char *value = buf_to_hex_str(reg->value,
-								reg->size);
-						command_print(CMD,
-								"(%i) %s (/%" PRIu32 "): 0x%s%s",
-								count, reg->name,
-								reg->size, value,
-								reg->dirty
-								? " (dirty)"
-								: "");
-						free(value);
-					} else {
-						command_print(CMD, "(%i) %s (/%" PRIu32 ")",
-								count, reg->name,
-								reg->size) ;
-					}
+				if (reg->valid) {
+					char *value = buf_to_hex_str(reg->value,
+							reg->size);
+					command_print(CMD,
+							"(%i) %s (/%" PRIu32 "): 0x%s%s",
+							count, reg->name,
+							reg->size, value,
+							reg->dirty
+							? " (dirty)"
+							: "");
+					free(value);
+				} else {
+					command_print(CMD, "(%i) %s (/%" PRIu32 ")",
+							count, reg->name,
+							reg->size);
 				}
 			}
 			cache = cache->next;
@@ -3173,8 +3171,8 @@ COMMAND_HANDLER(handle_reg_command)
 		if (reg->valid == 0) {
 			int retval = reg->type->get(reg);
 			if (retval != ERROR_OK) {
-			    LOG_DEBUG("Couldn't get register %s.", reg->name);
-			    return retval;
+				LOG_ERROR("Could not read register '%s'", reg->name);
+				return retval;
 			}
 		}
 		char *value = buf_to_hex_str(reg->value, reg->size);
