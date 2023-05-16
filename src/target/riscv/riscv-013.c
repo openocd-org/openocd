@@ -589,17 +589,15 @@ static int dmi_op_timeout(struct target *target, uint32_t *data_in,
 		} else if (status == DMI_STATUS_SUCCESS) {
 			break;
 		} else {
-			LOG_ERROR("failed %s at 0x%x, status=%d", op_name, address, status);
 			dtmcontrol_scan(target, DTM_DTMCS_DMIRESET);
-			return ERROR_FAIL;
+			break;
 		}
 		if (time(NULL) - start > timeout_sec)
 			return ERROR_TIMEOUT_REACHED;
 	}
 
 	if (status != DMI_STATUS_SUCCESS) {
-		LOG_ERROR("Failed %s at 0x%x; status=%d", op_name, address, status);
-		dtmcontrol_scan(target, DTM_DTMCS_DMIRESET);
+		LOG_TARGET_ERROR(target, "Failed DMI %s at 0x%x; status=%d", op_name, address, status);
 		return ERROR_FAIL;
 	}
 
@@ -618,10 +616,12 @@ static int dmi_op_timeout(struct target *target, uint32_t *data_in,
 				break;
 			} else {
 				if (data_in) {
-					LOG_ERROR("Failed %s (NOP) at 0x%x; value=0x%x, status=%d",
+					LOG_TARGET_ERROR(target,
+							"Failed DMI %s (NOP) at 0x%x; value=0x%x, status=%d",
 							op_name, address, *data_in, status);
 				} else {
-					LOG_ERROR("Failed %s (NOP) at 0x%x; status=%d", op_name, address,
+					LOG_TARGET_ERROR(target,
+							"Failed DMI %s (NOP) at 0x%x; status=%d", op_name, address,
 							status);
 				}
 				dtmcontrol_scan(target, DTM_DTMCS_DMIRESET);

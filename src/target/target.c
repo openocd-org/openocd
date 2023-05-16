@@ -3055,9 +3055,12 @@ static int handle_target(void *priv)
 			/* Increase interval between polling up to 5000ms */
 			target->backoff.interval = MAX(polling_interval,
 					MIN(target->backoff.interval * 2 + 1, 5000));
-			/* Tell GDB to halt the debugger. This allows the user to run
-			 * monitor commands to handle the situation. */
-			target_call_event_callbacks(target, TARGET_EVENT_GDB_HALT);
+			/* Do *not* tell gdb the target halted. This might just
+			 * be a hiccup.  We have no reason to believe the target
+			 * is halted, and if it is running while gdb thinks it's
+			 * halted things just get unnecessarily confused.  gdb
+			 * users can hit ^C if the need to interact with the
+			 * target. */
 		}
 		target->backoff.next_attempt = timeval_ms() + target->backoff.interval;
 		LOG_TARGET_DEBUG(target, "target_poll() -> %d, next attempt in %dms",
@@ -3067,8 +3070,7 @@ static int handle_target(void *priv)
 			target_reset_examined(target);
 			retval = target_examine_one(target);
 			if (retval != ERROR_OK) {
-				LOG_TARGET_DEBUG(target, "Examination failed, GDB will be halted. "
-					"Polling again in %dms",
+				LOG_TARGET_DEBUG(target, "Examination failed. Polling again in %dms",
 					target->backoff.interval);
 				return retval;
 			}
