@@ -3987,6 +3987,10 @@ static int write_memory_progbuf(struct target *target, target_addr_t address,
 
 				setup_needed = false;
 			} else {
+				/* Note that data1 "might not be preserved after
+				 * an abstract command is executed," so this
+				 * can't be optimized by only writing data1 when
+				 * it has changed. */
 				if (size > 4)
 					riscv_batch_add_dmi_write(batch, DM_DATA1, value >> 32, false);
 				riscv_batch_add_dmi_write(batch, DM_DATA0, value, false);
