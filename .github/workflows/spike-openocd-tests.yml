@@ -1,6 +1,13 @@
-# Build spike and run a couple of debug tests.
+# Build Spike and run a couple of debug tests.
 
 name: Test OpenOCD against 2 spike configurations
+
+env:
+  SPIKE_REPO: https://github.com/riscv-software-src/riscv-isa-sim.git
+  SPIKE_REV: master
+  RISCV_TESTS_REPO: https://github.com/riscv-software-src/riscv-tests.git
+  RISCV_TESTS_REV: master
+  TOOLCHAIN_URL: https://github.com/xpack-dev-tools/riscv-none-elf-gcc-xpack/releases/download/v12.2.0-1/xpack-riscv-none-elf-gcc-12.2.0-1-linux-x64.tar.gz
 
 on: pull_request
 
@@ -14,11 +21,71 @@ jobs:
     name: Test debug (Ubuntu)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
-      - name: Install Dependencies
+      - name: Install packages
         run: |
-          sudo apt install build-essential device-tree-compiler
+          sudo apt-get update
+          sudo apt-get install -y device-tree-compiler build-essential
+
+      - name: Get revisions of dependencies
+        run: |
+          SPIKE_COMMIT=$( git ls-remote "$SPIKE_REPO" master | awk '{ print $1; }' )
+          RISC_V_TESTS_COMMIT=$( git ls-remote "$RISCV_TESTS_REPO" master | awk '{ print $1; }' )
+          echo "Revison of Spike: $SPIKE_COMMIT"
+          echo "Revision of RISC-V tests: $RISC_V_TESTS_COMMIT"
+          # Save for later use
+          echo "SPIKE_COMMIT=$SPIKE_COMMIT" >> $GITHUB_ENV
+          echo "RISC_V_TESTS_COMMIT=$RISC_V_TESTS_COMMIT" >> $GITHUB_ENV
+
+      - name: Get the toolchain from cache (if available)
+        id: cache-toolchain
+        uses: actions/cache@v3
+        with:
+          path: /opt/riscv/toolchain
+          key: "toolchain-${{env.TOOLCHAIN_URL}}"
+
+      - name: Get spike from cache (if available)
+        id: cache-spike
+        uses: actions/cache@v3
+        with:
+          path: /opt/riscv/spike
+          key: "spike-${{env.SPIKE_COMMIT}}"
+
+      - if: ${{ steps.cache-toolchain.outputs.cache-hit != 'true' }}
+        name: Download Toolchain (if not cached)
+        run: |
+          mkdir -p /opt/riscv/toolchain
+          wget --progress=dot:giga $TOOLCHAIN_URL -O /tmp/toolchain.tar.gz
+
+      - if: ${{ steps.cache-toolchain.outputs.cache-hit != 'true' }}
+        name: Install Toolchain (if not cached)
+        run: tar zxf /tmp/toolchain.tar.gz --strip-components=1 -C /opt/riscv/toolchain
+
+      - if: ${{ steps.cache-spike.outputs.cache-hit != 'true' }}
+        name: Download Spike source (if not cached)
+        run: |
+          git clone "$SPIKE_REPO"
+          cd riscv-isa-sim
+          git checkout "$SPIKE_COMMIT"
+          git submodule update --init --recursive
+
+      - if: ${{ steps.cache-spike.outputs.cache-hit != 'true' }}
+        name: Build Spike (if not cached)
+        run: |
+          cd riscv-isa-sim
+          mkdir build && cd build
+          ../configure --prefix=/opt/riscv/spike
+          make -j"$(nproc 2> /dev/null || sysctl -n hw.ncpu)"
+          make install
+
+      - name: Build OpenOCD
+        run: |
+          #cd riscv-openocd
+          ./bootstrap
+          ./configure --prefix=/opt/riscv
+          make -j"$(nproc 2> /dev/null || sysctl -n hw.ncpu)"
+          ls -l src/openocd
 
 #      - name: Download OpenOCD
 #        run: |
@@ -26,51 +93,31 @@ jobs:
 #          cd riscv-openocd
 #          git checkout 43ea20dfbb6c815004a51106a3b2009d7f6c4940
 
-      - name: Build OpenOCD
-        run: |
-          #cd riscv-openocd
-          ./bootstrap
-          ./configure
-          make -j"$(nproc 2> /dev/null || sysctl -n hw.ncpu)"
-          ls -l src/openocd
-
-      - name: Download Toolchain
-        run: wget --progress=dot:giga https://github.com/xpack-dev-tools/riscv-none-elf-gcc-xpack/releases/download/v12.2.0-1/xpack-riscv-none-elf-gcc-12.2.0-1-linux-x64.tar.gz
-
-      - name: Install Toolchain
-        run: tar zxf xpack-riscv-none-elf-gcc-12.2.0-1-linux-x64.tar.gz
-
-      - name: Download spike
-        run: |
-          git clone --recurse-submodules https://github.com/riscv-software-src/riscv-isa-sim
-          #cd riscv-isa-sim
-          #git checkout 43ea20dfbb6c815004a51106a3b2009d7f6c4940
-
-      - name: Build Spike
-        run: |
-          cd riscv-isa-sim
-          mkdir build install
-          cd build
-          ../configure --prefix=`pwd`/install
-          make -j"$(nproc 2> /dev/null || sysctl -n hw.ncpu)"
-          make install
-
       - name: Download Tests
         run: |
-          git clone --recurse-submodules https://github.com/riscv-software-src/riscv-tests.git
-          #cd riscv-tests
-          #git checkout c84daca8824635b7d896003c78f9c6245997cf7a
+          git clone "$RISCV_TESTS_REPO"
+          cd riscv-tests
+          git checkout "$RISCV_TESTS_REV"
+          git submodule update --init --recursive
 
       - name: Run Tests
         run: |
           cd riscv-tests/debug
           ./gdbserver.py targets/RISC-V/spike32.py --print-failures \
-              --gcc $GITHUB_WORKSPACE/xpack-riscv-none-elf-gcc-12.2.0-1/bin/riscv-none-elf-gcc \
-              --gdb $GITHUB_WORKSPACE/xpack-riscv-none-elf-gcc-12.2.0-1/bin/riscv-none-elf-gdb \
-              --sim_cmd $GITHUB_WORKSPACE/riscv-isa-sim/build/install/bin/spike \
+              --gcc /opt/riscv/toolchain/bin/riscv-none-elf-gcc \
+              --gdb /opt/riscv/toolchain/bin/riscv-none-elf-gdb \
+              --sim_cmd /opt/riscv/spike/bin/spike \
               --server_cmd $GITHUB_WORKSPACE/src/openocd
           ./gdbserver.py targets/RISC-V/spike64-2.py --print-failures \
-              --gcc $GITHUB_WORKSPACE/xpack-riscv-none-elf-gcc-12.2.0-1/bin/riscv-none-elf-gcc \
-              --gdb $GITHUB_WORKSPACE/xpack-riscv-none-elf-gcc-12.2.0-1/bin/riscv-none-elf-gdb \
-              --sim_cmd $GITHUB_WORKSPACE/riscv-isa-sim/build/install/bin/spike \
+              --gcc /opt/riscv/toolchain/bin/riscv-none-elf-gcc \
+              --gdb /opt/riscv/toolchain/bin/riscv-none-elf-gdb \
+              --sim_cmd /opt/riscv/spike/bin/spike \
               --server_cmd $GITHUB_WORKSPACE/src/openocd
+
+      - name: Archive test logs
+        # Proceed even if there was a failed test
+        if: ${{ success() || failure() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-logs
+          path: riscv-tests/debug/logs
