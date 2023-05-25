@@ -212,7 +212,8 @@ typedef struct {
 
 static int poll_target(struct target *target, bool announce);
 static int riscv011_poll(struct target *target);
-static int get_register(struct target *target, riscv_reg_t *value, int regid);
+static int get_register(struct target *target, riscv_reg_t *value,
+		enum gdb_regno regid);
 
 /*** Utility functions. ***/
 
@@ -1324,7 +1325,8 @@ static int register_write(struct target *target, unsigned int number,
 	return ERROR_OK;
 }
 
-static int get_register(struct target *target, riscv_reg_t *value, int regid)
+static int get_register(struct target *target, riscv_reg_t *value,
+		enum gdb_regno regid)
 {
 	riscv011_info_t *info = get_info(target);
 
@@ -1368,7 +1370,8 @@ static int get_register(struct target *target, riscv_reg_t *value, int regid)
 	return ERROR_OK;
 }
 
-static int set_register(struct target *target, int regid, uint64_t value)
+static int set_register(struct target *target, enum gdb_regno regid,
+		riscv_reg_t value)
 {
 	return register_write(target, regid, value);
 }

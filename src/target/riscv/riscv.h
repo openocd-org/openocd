@@ -178,10 +178,13 @@ struct riscv_info {
 
 	/* Helper functions that target the various RISC-V debug spec
 	 * implementations. */
-	int (*get_register)(struct target *target, riscv_reg_t *value, int regid);
-	int (*set_register)(struct target *target, int regid, uint64_t value);
-	int (*get_register_buf)(struct target *target, uint8_t *buf, int regno);
-	int (*set_register_buf)(struct target *target, int regno,
+	int (*get_register)(struct target *target, riscv_reg_t *value,
+			enum gdb_regno regno);
+	int (*set_register)(struct target *target, enum gdb_regno regno,
+			riscv_reg_t value);
+	int (*get_register_buf)(struct target *target, uint8_t *buf,
+			enum gdb_regno regno);
+	int (*set_register_buf)(struct target *target, enum gdb_regno regno,
 			const uint8_t *buf);
 	int (*select_target)(struct target *target);
 	int (*get_hart_state)(struct target *target, enum riscv_hart_state *state);
@@ -373,8 +376,16 @@ int riscv_current_hartid(const struct target *target);
  * consecutive and start with mhartid=0. */
 unsigned int riscv_count_harts(struct target *target);
 
-/** Set register, updating the cache. */
+/**
+ * Set the register value. For cacheable registers, only the cache is updated
+ * (write-back mode).
+ */
 int riscv_set_register(struct target *target, enum gdb_regno i, riscv_reg_t v);
+/**
+ * Set the register value and immediately write it to the target
+ * (write-through mode).
+ */
+int riscv_write_register(struct target *target, enum gdb_regno i, riscv_reg_t v);
 /** Get register, from the cache if it's in there. */
 int riscv_get_register(struct target *target, riscv_reg_t *value,
 		enum gdb_regno r);
