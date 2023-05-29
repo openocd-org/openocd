@@ -272,7 +272,7 @@ static int vdebug_socket_open(char *server_addr, uint32_t port)
 		LOG_ERROR("socket_open: cannot resolve address %s, error %d", server_addr, vdebug_socket_error());
 		rc = VD_ERR_SOC_ADDR;
 	} else {
-		buf_set_u32((uint8_t *)ainfo->ai_addr->sa_data, 0, 16, htons(port));
+		h_u16_to_be((uint8_t *)ainfo->ai_addr->sa_data, port);
 		if (connect(hsock, ainfo->ai_addr, sizeof(struct sockaddr)) < 0) {
 			LOG_ERROR("socket_open: cannot connect to %s:%d, error %d", server_addr, port, vdebug_socket_error());
 			rc = VD_ERR_SOC_CONN;
@@ -1125,7 +1125,7 @@ static int vdebug_dap_queue_ap_abort(struct adiv5_dap *dap, uint8_t *ack)
 
 static int vdebug_dap_run(struct adiv5_dap *dap)
 {
-	if (pbuf->waddr)
+	if (le_to_h_u16(pbuf->waddr))
 		return vdebug_run_reg_queue(vdc.hsocket, pbuf, le_to_h_u16(pbuf->waddr));
 
 	return ERROR_OK;
