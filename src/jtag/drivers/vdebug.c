@@ -53,7 +53,7 @@
 #include "helper/log.h"
 #include "helper/list.h"
 
-#define VD_VERSION 44
+#define VD_VERSION 46
 #define VD_BUFFER_LEN 4024
 #define VD_CHEADER_LEN 24
 #define VD_SHEADER_LEN 16
@@ -942,10 +942,10 @@ static int vdebug_jtag_tlr(tap_state_t state, uint8_t f_flush)
 {
 	int rc = ERROR_OK;
 
-	uint8_t cur = tap_get_state();
+	tap_state_t cur = tap_get_state();
 	uint8_t tms_pre = tap_get_tms_path(cur, state);
 	uint8_t num_pre = tap_get_tms_path_len(cur, state);
-	LOG_INFO("tlr  from %" PRIx8 " to %" PRIx8, cur, state);
+	LOG_INFO("tlr  from %x to %x", cur, state);
 	if (cur != state) {
 		rc = vdebug_jtag_shift_tap(vdc.hsocket, pbuf, num_pre, tms_pre, 0, NULL, 0, 0, NULL, f_flush);
 		tap_set_state(state);
@@ -958,7 +958,7 @@ static int vdebug_jtag_scan(struct scan_command *cmd, uint8_t f_flush)
 {
 	int rc = ERROR_OK;
 
-	uint8_t cur = tap_get_state();
+	tap_state_t cur = tap_get_state();
 	uint8_t state = cmd->ir_scan ? TAP_IRSHIFT : TAP_DRSHIFT;
 	uint8_t tms_pre = tap_get_tms_path(cur, state);
 	uint8_t num_pre = tap_get_tms_path_len(cur, state);
@@ -988,7 +988,7 @@ static int vdebug_jtag_scan(struct scan_command *cmd, uint8_t f_flush)
 
 static int vdebug_jtag_runtest(int cycles, tap_state_t state, uint8_t f_flush)
 {
-	uint8_t cur = tap_get_state();
+	tap_state_t cur = tap_get_state();
 	uint8_t tms_pre = tap_get_tms_path(cur, state);
 	uint8_t num_pre = tap_get_tms_path_len(cur, state);
 	LOG_DEBUG("idle len:%d state cur:%x end:%x", cycles, cur, state);
