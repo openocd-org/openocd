@@ -4494,6 +4494,7 @@ static int riscv013_step_current_hart(struct target *target)
 
 static int riscv013_resume_prep(struct target *target)
 {
+	assert(target->state == TARGET_HALTED);
 	return riscv013_on_step_or_resume(target, false);
 }
 

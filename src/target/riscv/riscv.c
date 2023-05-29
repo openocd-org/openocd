@@ -1786,15 +1786,8 @@ static int enable_triggers(struct target *target, riscv_reg_t *state)
 static int resume_prep(struct target *target, int current,
 		target_addr_t address, int handle_breakpoints, int debug_execution)
 {
+	assert(target->state == TARGET_HALTED);
 	RISCV_INFO(r);
-
-	LOG_TARGET_DEBUG(target, "target->state=%d, current=%s, address=0x%"
-		TARGET_PRIxADDR ", handle_breakpoints=%s, debug_exec=%s",
-		target->state,
-		current ? "true" : "false",
-		address,
-		handle_breakpoints ? "true" : "false",
-		debug_execution ? "true" : "false");
 
 	if (!current && riscv_set_register(target, GDB_REGNO_PC, address) != ERROR_OK)
 		return ERROR_FAIL;
@@ -1825,6 +1818,7 @@ static int resume_prep(struct target *target, int current,
 static int resume_go(struct target *target, int current,
 		target_addr_t address, int handle_breakpoints, int debug_execution)
 {
+	assert(target->state == TARGET_HALTED);
 	RISCV_INFO(r);
 	int result;
 	if (!r->get_hart_state) {
@@ -1840,6 +1834,7 @@ static int resume_go(struct target *target, int current,
 
 static int resume_finish(struct target *target, int debug_execution)
 {
+	assert(target->state == TARGET_HALTED);
 	register_cache_invalidate(target->reg_cache);
 
 	target->state = debug_execution ? TARGET_DEBUG_RUNNING : TARGET_RUNNING;
@@ -1860,7 +1855,6 @@ static int riscv_resume(
 		int debug_execution,
 		bool single_hart)
 {
-	LOG_DEBUG("handle_breakpoints=%d", handle_breakpoints);
 	int result = ERROR_OK;
 
 	struct list_head *targets;
@@ -1880,14 +1874,22 @@ static int riscv_resume(
 		targets = &single_target_list;
 	}
 
+	LOG_TARGET_DEBUG(target, "current=%s, address=0x%"
+				TARGET_PRIxADDR ", handle_breakpoints=%s, debug_exec=%s",
+				current ? "true" : "false",
+				address,
+				handle_breakpoints ? "true" : "false",
+				debug_execution ? "true" : "false");
+
 	struct target_list *tlist;
 	foreach_smp_target_direction(resume_order == RO_NORMAL, tlist, targets) {
 		struct target *t = tlist->target;
-		if (t->state != TARGET_UNAVAILABLE) {
-			if (resume_prep(t, current, address, handle_breakpoints,
-						debug_execution) != ERROR_OK)
-				result = ERROR_FAIL;
-		}
+		LOG_TARGET_DEBUG(t, "target->state=%s", target_state_name(t));
+		if (t->state != TARGET_HALTED)
+			LOG_TARGET_DEBUG(t, "skipping this target: target not halted");
+		else if (resume_prep(t, current, address, handle_breakpoints,
+					debug_execution) != ERROR_OK)
+			result = ERROR_FAIL;
 	}
 
 	foreach_smp_target_direction(resume_order == RO_NORMAL, tlist, targets) {
@@ -1902,7 +1904,7 @@ static int riscv_resume(
 
 	foreach_smp_target_direction(resume_order == RO_NORMAL, tlist, targets) {
 		struct target *t = tlist->target;
-		if (t->state != TARGET_UNAVAILABLE) {
+		if (t->state == TARGET_HALTED) {
 			if (resume_finish(t, debug_execution) != ERROR_OK)
 				result = ERROR_FAIL;
 		}
@@ -1914,13 +1916,10 @@ static int riscv_resume(
 static int riscv_target_resume(struct target *target, int current,
 		target_addr_t address, int handle_breakpoints, int debug_execution)
 {
-	LOG_TARGET_DEBUG(target, "target->state=%d, current=%s, address=0x%"
-		TARGET_PRIxADDR ", handle_breakpoints=%s, debug_exec=%s",
-		target->state,
-		current ? "true" : "false",
-		address,
-		handle_breakpoints ? "true" : "false",
-		debug_execution ? "true" : "false");
+	if (target->state != TARGET_HALTED) {
+		LOG_TARGET_ERROR(target, "not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
 	return riscv_resume(target, current, address, handle_breakpoints,
 			debug_execution, false);
 }
@@ -2906,7 +2905,7 @@ int riscv_openocd_poll(struct target *target)
 			should_remain_halted);
 		riscv_halt(target);
 	} else if (should_resume) {
-		LOG_DEBUG("resume all");
+		LOG_TARGET_DEBUG(target, "resume all");
 		riscv_resume(target, true, 0, 0, 0, false);
 	} else if (halted && running) {
 		LOG_TARGET_DEBUG(target, "halt all; halted=%d",
