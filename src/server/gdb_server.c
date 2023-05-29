@@ -145,6 +145,9 @@ static char gdb_running_type;
 
 static int gdb_last_signal(struct target *target)
 {
+	LOG_TARGET_DEBUG(target, "Debug reason is: %s",
+			target_debug_reason_str(target->debug_reason));
+
 	switch (target->debug_reason) {
 		case DBG_REASON_DBGRQ:
 			return 0x2;		/* SIGINT */
@@ -159,8 +162,9 @@ static int gdb_last_signal(struct target *target)
 		case DBG_REASON_NOTHALTED:
 			return 0x0;		/* no signal... shouldn't happen */
 		default:
-			LOG_USER("undefined debug reason %d - target needs reset",
-					target->debug_reason);
+			LOG_USER("undefined debug reason %d (%s) - target needs reset",
+					target->debug_reason,
+					target_debug_reason_str(target->debug_reason));
 			return 0x0;
 	}
 }
@@ -798,6 +802,7 @@ static void gdb_signal_reply(struct target *target, struct connection *connectio
 		}
 
 		if (gdb_connection->ctrl_c) {
+			LOG_TARGET_DEBUG(target, "Responding with signal 2 (SIGINT) to debugger due to Ctrl-C");
 			signal_var = 0x2;
 		} else
 			signal_var = gdb_last_signal(ct);

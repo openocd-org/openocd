@@ -803,4 +803,6 @@ extern bool get_target_reset_nag(void);
 
 #define TARGET_DEFAULT_POLLING_INTERVAL		100
 
+const char *target_debug_reason_str(enum target_debug_reason reason);
+
 #endif /* OPENOCD_TARGET_TARGET_H */

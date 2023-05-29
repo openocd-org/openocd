@@ -7147,3 +7147,29 @@ static int target_register_user_commands(struct command_context *cmd_ctx)
 
 	return register_commands(cmd_ctx, NULL, target_exec_command_handlers);
 }
+
+const char *target_debug_reason_str(enum target_debug_reason reason)
+{
+	switch (reason) {
+		case DBG_REASON_DBGRQ:
+			return "DBGRQ";
+		case DBG_REASON_BREAKPOINT:
+			return "BREAKPOINT";
+		case DBG_REASON_WATCHPOINT:
+			return "WATCHPOINT";
+		case DBG_REASON_WPTANDBKPT:
+			return "WPTANDBKPT";
+		case DBG_REASON_SINGLESTEP:
+			return "SINGLESTEP";
+		case DBG_REASON_NOTHALTED:
+			return "NOTHALTED";
+		case DBG_REASON_EXIT:
+			return "EXIT";
+		case DBG_REASON_EXC_CATCH:
+			return "EXC_CATCH";
+		case DBG_REASON_UNDEFINED:
+			return "UNDEFINED";
+		default:
+			return "UNKNOWN!";
+	}
+}
