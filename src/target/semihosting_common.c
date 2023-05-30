@@ -294,6 +294,66 @@ static inline int semihosting_getchar(struct semihosting *semihosting, int fd)
  */
 static char *semihosting_user_op_params;
 
+const char *semihosting_opcode_to_str(const uint64_t opcode)
+{
+	switch (opcode) {
+		case SEMIHOSTING_SYS_CLOSE:
+			return "CLOSE";
+		case SEMIHOSTING_SYS_CLOCK:
+			return "CLOCK";
+		case SEMIHOSTING_SYS_ELAPSED:
+			return "ELAPSED";
+		case SEMIHOSTING_SYS_ERRNO:
+			return "ERRNO";
+		case SEMIHOSTING_SYS_EXIT:
+			return "EXIT";
+		case SEMIHOSTING_SYS_EXIT_EXTENDED:
+			return "EXIT_EXTENDED";
+		case SEMIHOSTING_SYS_FLEN:
+			return "FLEN";
+		case SEMIHOSTING_SYS_GET_CMDLINE:
+			return "GET_CMDLINE";
+		case SEMIHOSTING_SYS_HEAPINFO:
+			return "HEAPINFO";
+		case SEMIHOSTING_SYS_ISERROR:
+			return "ISERROR";
+		case SEMIHOSTING_SYS_ISTTY:
+			return "ISTTY";
+		case SEMIHOSTING_SYS_OPEN:
+			return "OPEN";
+		case SEMIHOSTING_SYS_READ:
+			return "READ";
+		case SEMIHOSTING_SYS_READC:
+			return "READC";
+		case SEMIHOSTING_SYS_REMOVE:
+			return "REMOVE";
+		case SEMIHOSTING_SYS_RENAME:
+			return "RENAME";
+		case SEMIHOSTING_SYS_SEEK:
+			return "SEEK";
+		case SEMIHOSTING_SYS_SYSTEM:
+			return "SYSTEM";
+		case SEMIHOSTING_SYS_TICKFREQ:
+			return "TICKFREQ";
+		case SEMIHOSTING_SYS_TIME:
+			return "TIME";
+		case SEMIHOSTING_SYS_TMPNAM:
+			return "TMPNAM";
+		case SEMIHOSTING_SYS_WRITE:
+			return "WRITE";
+		case SEMIHOSTING_SYS_WRITEC:
+			return "WRITEC";
+		case SEMIHOSTING_SYS_WRITE0:
+			return "WRITE0";
+		case SEMIHOSTING_USER_CMD_0X100 ... SEMIHOSTING_USER_CMD_0X1FF:
+			return "USER_CMD";
+		case SEMIHOSTING_ARM_RESERVED_START ... SEMIHOSTING_ARM_RESERVED_END:
+			return "ARM_RESERVED_CMD";
+		default:
+			return "<unknown>";
+	}
+}
+
 /**
  * Portable implementation of ARM semihosting calls.
  * Performs the currently pending semihosting operation
@@ -323,8 +383,9 @@ int semihosting_common(struct target *target)
 	/* Enough space to hold 4 long words. */
 	uint8_t fields[4*8];
 
-	LOG_DEBUG("op=0x%x, param=0x%" PRIx64, semihosting->op,
-		semihosting->param);
+	LOG_DEBUG("op=0x%x (%s), param=0x%" PRIx64, semihosting->op,
+			  semihosting_opcode_to_str(semihosting->op),
+			  semihosting->param);
 
 	switch (semihosting->op) {
 
@@ -1470,8 +1531,9 @@ int semihosting_common(struct target *target)
 			retval = target_read_buffer(target, addr, len,
 					(uint8_t *)(semihosting_user_op_params));
 			if (retval != ERROR_OK) {
-				LOG_ERROR("Failed to read from target, semihosting op=0x%x",
-						semihosting->op);
+				LOG_ERROR("Failed to read from target, semihosting op=0x%x (%s)",
+						semihosting->op,
+						semihosting_opcode_to_str(semihosting->op));
 				free(semihosting_user_op_params);
 				semihosting_user_op_params = NULL;
 				return retval;
