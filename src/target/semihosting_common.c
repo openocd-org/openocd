@@ -779,7 +779,8 @@ int semihosting_common(struct target *target)
 				if (retval != ERROR_OK)
 					return retval;
 				int fd = semihosting_get_field(target, 0, fields);
-				semihosting->result = isatty(fd);
+				// isatty() on Windows may return any non-zero value if fd is a terminal
+				semihosting->result = isatty(fd) ? 1 : 0;
 				semihosting->sys_errno = errno;
 				LOG_DEBUG("isatty(%d)=%" PRId64, fd, semihosting->result);
 			}
