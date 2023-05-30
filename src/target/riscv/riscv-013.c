@@ -589,15 +589,15 @@ static int dmi_op_timeout(struct target *target, uint32_t *data_in,
 		} else if (status == DMI_STATUS_SUCCESS) {
 			break;
 		} else {
-			LOG_ERROR("failed %s at 0x%x, status=%d", op_name, address, status);
-			return ERROR_FAIL;
+			dtmcontrol_scan(target, DTM_DTMCS_DMIRESET);
+			break;
 		}
 		if (time(NULL) - start > timeout_sec)
 			return ERROR_TIMEOUT_REACHED;
 	}
 
 	if (status != DMI_STATUS_SUCCESS) {
-		LOG_ERROR("Failed %s at 0x%x; status=%d", op_name, address, status);
+		LOG_TARGET_ERROR(target, "Failed DMI %s at 0x%x; status=%d", op_name, address, status);
 		return ERROR_FAIL;
 	}
 
@@ -616,12 +616,15 @@ static int dmi_op_timeout(struct target *target, uint32_t *data_in,
 				break;
 			} else {
 				if (data_in) {
-					LOG_ERROR("Failed %s (NOP) at 0x%x; value=0x%x, status=%d",
+					LOG_TARGET_ERROR(target,
+							"Failed DMI %s (NOP) at 0x%x; value=0x%x, status=%d",
 							op_name, address, *data_in, status);
 				} else {
-					LOG_ERROR("Failed %s (NOP) at 0x%x; status=%d", op_name, address,
+					LOG_TARGET_ERROR(target,
+							"Failed DMI %s (NOP) at 0x%x; status=%d", op_name, address,
 							status);
 				}
+				dtmcontrol_scan(target, DTM_DTMCS_DMIRESET);
 				return ERROR_FAIL;
 			}
 			if (time(NULL) - start > timeout_sec)
@@ -1552,6 +1555,24 @@ static int wait_for_authbusy(struct target *target, uint32_t *dmstatus)
 	return ERROR_OK;
 }
 
+static int update_dcsr(struct target *target, bool step)
+{
+	riscv_reg_t dcsr;
+	/* We want to twiddle some bits in the debug CSR so debugging works. */
+	int result = register_read_direct(target, &dcsr, GDB_REGNO_DCSR);
+	if (result != ERROR_OK)
+		return result;
+	dcsr = set_field(dcsr, CSR_DCSR_STEP, step);
+	dcsr = set_field(dcsr, CSR_DCSR_EBREAKM, riscv_ebreakm);
+	dcsr = set_field(dcsr, CSR_DCSR_EBREAKS, riscv_ebreaks);
+	dcsr = set_field(dcsr, CSR_DCSR_EBREAKU, riscv_ebreaku);
+	dcsr = set_field(dcsr, CSR_DCSR_EBREAKVS, riscv_ebreaku);
+	dcsr = set_field(dcsr, CSR_DCSR_EBREAKVU, riscv_ebreaku);
+	if (riscv_set_register(target, GDB_REGNO_DCSR, dcsr) != ERROR_OK)
+		return ERROR_FAIL;
+	return ERROR_OK;
+}
+
 /*** OpenOCD target functions. ***/
 
 static void deinit_target(struct target *target)
@@ -1620,10 +1641,10 @@ static int examine(struct target *target)
 		dmi_write(target, DM_DMCONTROL, 0);
 		dmi_write(target, DM_DMCONTROL, DM_DMCONTROL_DMACTIVE);
 		dm->was_reset = true;
-
-		/* The DM gets reset, so forget any cached progbuf entries. */
-		riscv013_invalidate_cached_debug_buffer(target);
 	}
+	/* We're here because we're uncertain about the state of the target. That
+	 * includes our progbuf cache. */
+	riscv013_invalidate_cached_debug_buffer(target);
 
 	dmi_write(target, DM_DMCONTROL, DM_DMCONTROL_HARTSELLO |
 			DM_DMCONTROL_HARTSELHI | DM_DMCONTROL_DMACTIVE |
@@ -1823,10 +1844,6 @@ static int examine(struct target *target)
 		r->mtopi_readable = false;
 	}
 
-	/* Now init registers based on what we discovered. */
-	if (riscv_init_registers(target) != ERROR_OK)
-		return ERROR_FAIL;
-
 	/* Display this as early as possible to help people who are using
 	 * really slow simulators. */
 	LOG_TARGET_DEBUG(target, " XLEN=%d, misa=0x%" PRIx64, r->xlen, r->misa);
@@ -1843,6 +1860,13 @@ static int examine(struct target *target)
 
 	target->state = saved_tgt_state;
 	target->debug_reason = saved_dbg_reason;
+
+	/* Now init registers based on what we discovered. */
+	if (riscv_init_registers(target) != ERROR_OK)
+		return ERROR_FAIL;
+
+	if (update_dcsr(target, false) != ERROR_OK)
+		return ERROR_FAIL;
 
 	if (!halted) {
 		riscv013_step_or_resume_current_hart(target, false);
@@ -4602,19 +4626,9 @@ static int riscv013_on_step_or_resume(struct target *target, bool step)
 	if (maybe_execute_fence_i(target) != ERROR_OK)
 		return ERROR_FAIL;
 
-	/* We want to twiddle some bits in the debug CSR so debugging works. */
-	riscv_reg_t dcsr;
-	int result = riscv_get_register(target, &dcsr, GDB_REGNO_DCSR);
-	if (result != ERROR_OK)
-		return result;
-	dcsr = set_field(dcsr, CSR_DCSR_STEP, step);
-	dcsr = set_field(dcsr, CSR_DCSR_EBREAKM, riscv_ebreakm);
-	dcsr = set_field(dcsr, CSR_DCSR_EBREAKS, riscv_ebreaks);
-	dcsr = set_field(dcsr, CSR_DCSR_EBREAKU, riscv_ebreaku);
-	dcsr = set_field(dcsr, CSR_DCSR_EBREAKVS, riscv_ebreaku);
-	dcsr = set_field(dcsr, CSR_DCSR_EBREAKVU, riscv_ebreaku);
-	if (riscv_set_register(target, GDB_REGNO_DCSR, dcsr) != ERROR_OK)
+	if (update_dcsr(target, step) != ERROR_OK)
 		return ERROR_FAIL;
+
 	if (riscv_flush_registers(target) != ERROR_OK)
 		return ERROR_FAIL;
 	return ERROR_OK;
