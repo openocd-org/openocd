@@ -223,7 +223,10 @@ static ssize_t semihosting_write(struct semihosting *semihosting, int fd, void *
 		return semihosting_redirect_write(semihosting, buf, size);
 
 	/* default write */
-	return write(fd, buf, size);
+	int result = write(fd, buf, size);
+	if (result == -1)
+		semihosting->sys_errno = errno;
+	return result;
 }
 
 static ssize_t semihosting_redirect_read(struct semihosting *semihosting, void *buf, int size)
@@ -268,7 +271,8 @@ static inline ssize_t semihosting_read(struct semihosting *semihosting, int fd, 
 
 	/* default read */
 	ssize_t result = read(fd, buf, size);
-	semihosting->sys_errno = errno;
+	if (result == -1)
+		semihosting->sys_errno = errno;
 
 	return result;
 }
@@ -449,12 +453,7 @@ int semihosting_common(struct target *target)
 							(fd == 0) ? "stdin" :
 							(fd == 1) ? "stdout" : "stderr");
 					/* Just pretend success */
-					if (semihosting->is_fileio) {
-						semihosting->result = 0;
-					} else {
-						semihosting->result = 0;
-						semihosting->sys_errno = 0;
-					}
+					semihosting->result = 0;
 					break;
 				}
 				/* Close the descriptor */
@@ -464,7 +463,8 @@ int semihosting_common(struct target *target)
 					fileio_info->param_1 = fd;
 				} else {
 					semihosting->result = close(fd);
-					semihosting->sys_errno = errno;
+					if (semihosting->result == -1)
+						semihosting->sys_errno = errno;
 					LOG_DEBUG("close(%d)=%" PRId64, fd, semihosting->result);
 				}
 			}
@@ -842,7 +842,8 @@ int semihosting_common(struct target *target)
 				int fd = semihosting_get_field(target, 0, fields);
 				// isatty() on Windows may return any non-zero value if fd is a terminal
 				semihosting->result = isatty(fd) ? 1 : 0;
-				semihosting->sys_errno = errno;
+				if (semihosting->result == 0)
+					semihosting->sys_errno = errno;
 				LOG_DEBUG("isatty(%d)=%" PRId64, fd, semihosting->result);
 			}
 			break;
@@ -934,14 +935,16 @@ int semihosting_common(struct target *target)
 							semihosting->result = -1;
 							semihosting->sys_errno = EINVAL;
 						} else if (strcmp((char *)fn, ":tt") == 0) {
-							if (mode == 0)
+							if (mode == 0) {
 								semihosting->result = 0;
-							else if (mode == 4)
+							} else if (mode == 4) {
 								semihosting->result = 1;
-							else if (mode == 8)
+							} else if (mode == 8) {
 								semihosting->result = 2;
-							else
+							} else {
 								semihosting->result = -1;
+								semihosting->sys_errno = EINVAL;
+							}
 						} else {
 							semihosting->hit_fileio = true;
 							fileio_info->identifier = "open";
@@ -956,25 +959,23 @@ int semihosting_common(struct target *target)
 							 * - 0-3 ("r") for stdin,
 							 * - 4-7 ("w") for stdout,
 							 * - 8-11 ("a") for stderr */
+							int fd;
 							if (mode < 4) {
-								int fd = dup(STDIN_FILENO);
-								semihosting->result = fd;
+								fd = dup(STDIN_FILENO);
 								semihosting->stdin_fd = fd;
-								semihosting->sys_errno = errno;
-								LOG_DEBUG("dup(STDIN)=%" PRId64, semihosting->result);
+								LOG_DEBUG("dup(STDIN)=%d", fd);
 							} else if (mode < 8) {
-								int fd = dup(STDOUT_FILENO);
-								semihosting->result = fd;
+								fd = dup(STDOUT_FILENO);
 								semihosting->stdout_fd = fd;
-								semihosting->sys_errno = errno;
-								LOG_DEBUG("dup(STDOUT)=%" PRId64, semihosting->result);
+								LOG_DEBUG("dup(STDOUT)=%d", fd);
 							} else {
-								int fd = dup(STDERR_FILENO);
-								semihosting->result = fd;
+								fd = dup(STDERR_FILENO);
 								semihosting->stderr_fd = fd;
-								semihosting->sys_errno = errno;
-								LOG_DEBUG("dup(STDERR)=%" PRId64, semihosting->result);
+								LOG_DEBUG("dup(STDERR)=%d", fd);
 							}
+							semihosting->result = fd;
+							if (fd == -1)
+								semihosting->sys_errno = errno;
 						} else {
 							/* cygwin requires the permission setting
 							 * otherwise it will fail to reopen a previously
@@ -982,7 +983,8 @@ int semihosting_common(struct target *target)
 							semihosting->result = open((char *)fn,
 									open_host_modeflags[mode],
 									0644);
-							semihosting->sys_errno = errno;
+							if (semihosting->result == -1)
+								semihosting->sys_errno = errno;
 							LOG_DEBUG("open('%s')=%" PRId64, fn, semihosting->result);
 						}
 					}
@@ -1131,7 +1133,8 @@ int semihosting_common(struct target *target)
 						}
 						fn[len] = 0;
 						semihosting->result = remove((char *)fn);
-						semihosting->sys_errno = errno;
+						if (semihosting->result == -1)
+							semihosting->sys_errno = errno;
 						LOG_DEBUG("remove('%s')=%" PRId64, fn, semihosting->result);
 
 						free(fn);
@@ -1200,7 +1203,9 @@ int semihosting_common(struct target *target)
 						fn2[len2] = 0;
 						semihosting->result = rename((char *)fn1,
 								(char *)fn2);
-						semihosting->sys_errno = errno;
+						// rename() on Windows returns nonzero on error
+						if (semihosting->result != 0)
+							semihosting->sys_errno = errno;
 						LOG_DEBUG("rename('%s', '%s')=%" PRId64 " %d", fn1, fn2, semihosting->result, errno);
 						free(fn1);
 						free(fn2);
@@ -1245,7 +1250,8 @@ int semihosting_common(struct target *target)
 					fileio_info->param_3 = SEEK_SET;
 				} else {
 					semihosting->result = lseek(fd, pos, SEEK_SET);
-					semihosting->sys_errno = errno;
+					if (semihosting->result == -1)
+						semihosting->sys_errno = errno;
 					LOG_DEBUG("lseek(%d, %d)=%" PRId64, fd, (int)pos, semihosting->result);
 					if (semihosting->result == pos)
 						semihosting->result = 0;
@@ -1383,7 +1389,6 @@ int semihosting_common(struct target *target)
 							return retval;
 						}
 						semihosting->result = semihosting_write(semihosting, fd, buf, len);
-						semihosting->sys_errno = errno;
 						LOG_DEBUG("write(%d, 0x%" PRIx64 ", %zu)=%" PRId64,
 							fd,
 							addr,
@@ -1671,7 +1676,6 @@ static int semihosting_common_fileio_end(struct target *target, int result,
 	semihosting->hit_fileio = false;
 
 	semihosting->result = result;
-	semihosting->sys_errno = fileio_errno;
 
 	/*
 	 * Some fileio results do not match up with what the semihosting
@@ -1692,6 +1696,17 @@ static int semihosting_common_fileio_end(struct target *target, int result,
 				semihosting->result = 0;
 			break;
 	}
+
+	bool fileio_failed = false;
+	if (semihosting->op == SEMIHOSTING_SYS_ISTTY)
+		fileio_failed = (semihosting->result == 0);
+	else if (semihosting->op == SEMIHOSTING_SYS_RENAME)
+		fileio_failed = (semihosting->result != 0);
+	else
+		fileio_failed = (semihosting->result == -1);
+
+	if (fileio_failed)
+		semihosting->sys_errno = fileio_errno;
 
 	return semihosting->post_result(target);
 }
