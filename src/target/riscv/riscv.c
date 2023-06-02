@@ -2752,8 +2752,6 @@ static int riscv_poll_hart(struct target *target, enum riscv_next_action *next_a
 					}
 				}
 
-				r->on_halt(target);
-
 				/* We shouldn't do the callbacks yet. What if
 				 * there are multiple harts that halted at the
 				 * same time? We need to set debug reason on each
@@ -4538,7 +4536,6 @@ static int riscv_step_rtos_hart(struct target *target)
 	r->on_step(target);
 	if (r->step_current_hart(target) != ERROR_OK)
 		return ERROR_FAIL;
-	r->on_halt(target);
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("Hart was not halted after single step!");
 		return ERROR_FAIL;
