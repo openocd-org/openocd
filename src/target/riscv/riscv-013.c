@@ -67,6 +67,13 @@ static int read_memory(struct target *target, target_addr_t address,
 static int write_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, const uint8_t *buffer);
 
+typedef enum {
+	HALT_GROUP,
+	RESUME_GROUP
+} grouptype_t;
+static int set_group(struct target *target, bool *supported, unsigned int group,
+		grouptype_t grouptype);
+
 /**
  * Since almost everything can be accomplish by scanning the dbus register, all
  * functions here assume dbus is already selected. The exception are functions
@@ -1591,22 +1598,20 @@ static void deinit_target(struct target *target)
 	info->version_specific = NULL;
 }
 
-typedef enum {
-	HALTGROUP,
-	RESUMEGROUP
-} grouptype_t;
-static int set_group(struct target *target, bool *supported, unsigned group, grouptype_t grouptype)
+static int set_group(struct target *target, bool *supported, unsigned int group,
+		grouptype_t grouptype)
 {
 	uint32_t write_val = DM_DMCS2_HGWRITE;
 	assert(group <= 31);
 	write_val = set_field(write_val, DM_DMCS2_GROUP, group);
-	write_val = set_field(write_val, DM_DMCS2_GROUPTYPE, (grouptype == HALTGROUP) ? 0 : 1);
+	write_val = set_field(write_val, DM_DMCS2_GROUPTYPE, (grouptype == HALT_GROUP) ? 0 : 1);
 	if (dmi_write(target, DM_DMCS2, write_val) != ERROR_OK)
 		return ERROR_FAIL;
 	uint32_t read_val;
 	if (dmi_read(target, &read_val, DM_DMCS2) != ERROR_OK)
 		return ERROR_FAIL;
-	*supported = get_field(read_val, DM_DMCS2_GROUP) == group;
+	if (supported)
+		*supported = (get_field(read_val, DM_DMCS2_GROUP) == group);
 	return ERROR_OK;
 }
 
@@ -1880,7 +1885,7 @@ static int examine(struct target *target)
 
 	if (target->smp) {
 		bool haltgroup_supported;
-		if (set_group(target, &haltgroup_supported, target->smp, HALTGROUP) != ERROR_OK)
+		if (set_group(target, &haltgroup_supported, target->smp, HALT_GROUP) != ERROR_OK)
 			return ERROR_FAIL;
 		if (haltgroup_supported)
 			LOG_INFO("Core %d made part of halt group %d.", target->coreid,
