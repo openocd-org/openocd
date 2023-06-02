@@ -1090,13 +1090,8 @@ static int prep_for_register_access(struct target *target,
 	LOG_TARGET_DEBUG(target, "Preparing mstatus to access %s",
 			gdb_regno_name(regno));
 
-	/* FIXME: On a running target, there is no way to make sure mstatus won't
-	 * change between reading and writing it, so
-	 * if target->state != TARGET_HALTED an error should be returned here.
-	 * However, this would not allow access to FPU registers on the running
-	 * target.
-	 * See https://github.com/riscv/riscv-openocd/pull/842#discussion_r1178500114
-	 */
+	assert(target->state == TARGET_HALTED &&
+			"The target must be halted to modify and then restore mstatus");
 
 	if (riscv_get_register(target, orig_mstatus, GDB_REGNO_MSTATUS) != ERROR_OK)
 		return ERROR_FAIL;
@@ -1487,6 +1482,9 @@ static int register_write_direct(struct target *target, enum gdb_regno number,
 	LOG_TARGET_DEBUG(target, "Writing 0x%" PRIx64 " to %s", value,
 			gdb_regno_name(number));
 
+	if (target->state != TARGET_HALTED)
+		return register_write_abstract(target, number, value);
+
 	riscv_reg_t mstatus;
 	if (prep_for_register_access(target, &mstatus, number) != ERROR_OK)
 		return ERROR_FAIL;
@@ -1511,6 +1509,9 @@ static int register_read_direct(struct target *target, riscv_reg_t *value,
 		enum gdb_regno number)
 {
 	LOG_TARGET_DEBUG(target, "Reading %s", gdb_regno_name(number));
+
+	if (target->state != TARGET_HALTED)
+		return register_read_abstract(target, value, number);
 
 	riscv_reg_t mstatus;
 
