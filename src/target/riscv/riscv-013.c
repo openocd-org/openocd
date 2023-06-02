@@ -474,6 +474,7 @@ static dmi_status_t dmi_scan(struct target *target, uint32_t *address_in,
 	if (r->reset_delays_wait >= 0) {
 		r->reset_delays_wait--;
 		if (r->reset_delays_wait < 0) {
+			LOG_TARGET_DEBUG(target, "reset_delays_wait done");
 			info->dmi_busy_delay = 0;
 			info->ac_busy_delay = 0;
 		}
