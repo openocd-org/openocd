@@ -1563,23 +1563,26 @@ static int wait_for_authbusy(struct target *target, uint32_t *dmstatus)
 	return ERROR_OK;
 }
 
-static int update_dcsr(struct target *target, bool step)
+static int set_dcsr_ebreak(struct target *target, bool step)
 {
+	LOG_TARGET_DEBUG(target, "Set dcsr.ebreak*");
+
 	if (dm013_select_target(target) != ERROR_OK)
 		return ERROR_FAIL;
 
-	riscv_reg_t dcsr;
+	riscv_reg_t original_dcsr, dcsr;
 	/* We want to twiddle some bits in the debug CSR so debugging works. */
-	int result = register_read_direct(target, &dcsr, GDB_REGNO_DCSR);
-	if (result != ERROR_OK)
-		return result;
+	if (riscv_get_register(target, &dcsr, GDB_REGNO_DCSR) != ERROR_OK)
+		return ERROR_FAIL;
+	original_dcsr = dcsr;
 	dcsr = set_field(dcsr, CSR_DCSR_STEP, step);
 	dcsr = set_field(dcsr, CSR_DCSR_EBREAKM, riscv_ebreakm);
-	dcsr = set_field(dcsr, CSR_DCSR_EBREAKS, riscv_ebreaks);
-	dcsr = set_field(dcsr, CSR_DCSR_EBREAKU, riscv_ebreaku);
-	dcsr = set_field(dcsr, CSR_DCSR_EBREAKVS, riscv_ebreaku);
-	dcsr = set_field(dcsr, CSR_DCSR_EBREAKVU, riscv_ebreaku);
-	if (riscv_set_register(target, GDB_REGNO_DCSR, dcsr) != ERROR_OK)
+	dcsr = set_field(dcsr, CSR_DCSR_EBREAKS, riscv_ebreaks && riscv_supports_extension(target, 'S'));
+	dcsr = set_field(dcsr, CSR_DCSR_EBREAKU, riscv_ebreaku && riscv_supports_extension(target, 'U'));
+	dcsr = set_field(dcsr, CSR_DCSR_EBREAKVS, riscv_ebreaku && riscv_supports_extension(target, 'H'));
+	dcsr = set_field(dcsr, CSR_DCSR_EBREAKVU, riscv_ebreaku && riscv_supports_extension(target, 'H'));
+	if (dcsr != original_dcsr &&
+			riscv_set_register(target, GDB_REGNO_DCSR, dcsr) != ERROR_OK)
 		return ERROR_FAIL;
 	return ERROR_OK;
 }
@@ -1871,7 +1874,7 @@ static int examine(struct target *target)
 	if (riscv_init_registers(target) != ERROR_OK)
 		return ERROR_FAIL;
 
-	if (update_dcsr(target, false) != ERROR_OK)
+	if (set_dcsr_ebreak(target, false) != ERROR_OK)
 		return ERROR_FAIL;
 
 	target->state = saved_tgt_state;
@@ -4629,7 +4632,7 @@ static int riscv013_on_step_or_resume(struct target *target, bool step)
 	if (maybe_execute_fence_i(target) != ERROR_OK)
 		return ERROR_FAIL;
 
-	if (update_dcsr(target, step) != ERROR_OK)
+	if (set_dcsr_ebreak(target, step) != ERROR_OK)
 		return ERROR_FAIL;
 
 	if (riscv_flush_registers(target) != ERROR_OK)
