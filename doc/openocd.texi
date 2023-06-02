@@ -3472,8 +3472,7 @@ able to coexist nicely with both sysfs bitbanging and various
 peripherals' kernel drivers. The driver restores the previous
 configuration on exit.
 
-GPIO numbers >= 32 can't be used for performance reasons. GPIO configuration is
-handled by the generic command @ref{adapter gpio, @command{adapter gpio}}.
+GPIO configuration is handled by the generic command @ref{adapter gpio, @command{adapter gpio}}.
 
 See @file{interface/raspberrypi-native.cfg} for a sample config and
 @file{interface/raspberrypi-gpio-connector.cfg} for pinout.
