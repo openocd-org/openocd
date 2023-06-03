@@ -451,15 +451,12 @@ static int gowin_reload_command(struct pld_device *pld_device)
 
 COMMAND_HANDLER(gowin_read_status_command_handler)
 {
-	int dev_id;
-
 	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], dev_id);
-	struct pld_device *device = get_pld_device_by_num(dev_id);
+	struct pld_device *device = get_pld_device_by_name_or_numstr(CMD_ARGV[0]);
 	if (!device) {
-		command_print(CMD, "pld device '#%s' is out of bounds", CMD_ARGV[0]);
+		command_print(CMD, "pld device '#%s' is out of bounds or unknown", CMD_ARGV[0]);
 		return ERROR_FAIL;
 	}
 
@@ -474,15 +471,12 @@ COMMAND_HANDLER(gowin_read_status_command_handler)
 
 COMMAND_HANDLER(gowin_read_user_register_command_handler)
 {
-	int dev_id;
-
 	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], dev_id);
-	struct pld_device *device = get_pld_device_by_num(dev_id);
+	struct pld_device *device = get_pld_device_by_name_or_numstr(CMD_ARGV[0]);
 	if (!device) {
-		command_print(CMD, "pld device '#%s' is out of bounds", CMD_ARGV[0]);
+		command_print(CMD, "pld device '#%s' is out of bounds or unknown", CMD_ARGV[0]);
 		return ERROR_FAIL;
 	}
 
@@ -497,15 +491,12 @@ COMMAND_HANDLER(gowin_read_user_register_command_handler)
 
 COMMAND_HANDLER(gowin_reload_command_handler)
 {
-	int dev_id;
-
 	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], dev_id);
-	struct pld_device *device = get_pld_device_by_num(dev_id);
+	struct pld_device *device = get_pld_device_by_name_or_numstr(CMD_ARGV[0]);
 	if (!device) {
-		command_print(CMD, "pld device '#%s' is out of bounds", CMD_ARGV[0]);
+		command_print(CMD, "pld device '#%s' is out of bounds or unknown", CMD_ARGV[0]);
 		return ERROR_FAIL;
 	}
 
@@ -518,19 +509,19 @@ static const struct command_registration gowin_exec_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.handler = gowin_read_status_command_handler,
 		.help = "reading status register from FPGA",
-		.usage = "num_pld",
+		.usage = "pld_name",
 	}, {
 		.name = "read_user",
 		.mode = COMMAND_EXEC,
 		.handler = gowin_read_user_register_command_handler,
 		.help = "reading user register from FPGA",
-		.usage = "num_pld",
+		.usage = "pld_name",
 	}, {
 		.name = "reload",
 		.mode = COMMAND_EXEC,
 		.handler = gowin_reload_command_handler,
 		.help = "reloading bitstream from flash to SRAM",
-		.usage = "num_pld",
+		.usage = "pld_name",
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -546,22 +537,21 @@ static const struct command_registration gowin_command_handler[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-PLD_DEVICE_COMMAND_HANDLER(gowin_pld_device_command)
+PLD_CREATE_COMMAND_HANDLER(gowin_pld_create_command)
 {
-	struct jtag_tap *tap;
-
-	struct gowin_pld_device *gowin_info;
-
-	if (CMD_ARGC != 2)
+	if (CMD_ARGC != 4)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	tap = jtag_tap_by_string(CMD_ARGV[1]);
+	if (strcmp(CMD_ARGV[2], "-chain-position") != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	struct jtag_tap *tap = jtag_tap_by_string(CMD_ARGV[3]);
 	if (!tap) {
-		command_print(CMD, "Tap: %s does not exist", CMD_ARGV[1]);
+		command_print(CMD, "Tap: %s does not exist", CMD_ARGV[3]);
 		return ERROR_FAIL;
 	}
 
-	gowin_info = malloc(sizeof(struct gowin_pld_device));
+	struct gowin_pld_device *gowin_info = malloc(sizeof(struct gowin_pld_device));
 	if (!gowin_info) {
 		LOG_ERROR("Out of memory");
 		return ERROR_FAIL;
@@ -576,6 +566,6 @@ PLD_DEVICE_COMMAND_HANDLER(gowin_pld_device_command)
 struct pld_driver gowin_pld = {
 	.name = "gowin",
 	.commands = gowin_command_handler,
-	.pld_device_command = &gowin_pld_device_command,
+	.pld_create_command = &gowin_pld_create_command,
 	.load = &gowin_load_to_sram,
 };

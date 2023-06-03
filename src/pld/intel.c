@@ -339,16 +339,14 @@ static int intel_load(struct pld_device *pld_device, const char *filename)
 
 COMMAND_HANDLER(intel_set_bscan_command_handler)
 {
-	int dev_id;
 	unsigned int boundary_scan_length;
 
 	if (CMD_ARGC != 2)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], dev_id);
-	struct pld_device *pld_device = get_pld_device_by_num(dev_id);
+	struct pld_device *pld_device = get_pld_device_by_name_or_numstr(CMD_ARGV[0]);
 	if (!pld_device) {
-		command_print(CMD, "pld device '#%s' is out of bounds", CMD_ARGV[0]);
+		command_print(CMD, "pld device '#%s' is out of bounds or unknown", CMD_ARGV[0]);
 		return ERROR_FAIL;
 	}
 
@@ -366,16 +364,14 @@ COMMAND_HANDLER(intel_set_bscan_command_handler)
 
 COMMAND_HANDLER(intel_set_check_pos_command_handler)
 {
-	int dev_id;
 	int checkpos;
 
 	if (CMD_ARGC != 2)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], dev_id);
-	struct pld_device *pld_device = get_pld_device_by_num(dev_id);
+	struct pld_device *pld_device = get_pld_device_by_name_or_numstr(CMD_ARGV[0]);
 	if (!pld_device) {
-		command_print(CMD, "pld device '#%s' is out of bounds", CMD_ARGV[0]);
+		command_print(CMD, "pld device '#%s' is out of bounds or unknown", CMD_ARGV[0]);
 		return ERROR_FAIL;
 	}
 
@@ -392,15 +388,39 @@ COMMAND_HANDLER(intel_set_check_pos_command_handler)
 }
 
 
-PLD_DEVICE_COMMAND_HANDLER(intel_pld_device_command)
+PLD_CREATE_COMMAND_HANDLER(intel_pld_create_command)
 {
-	if (CMD_ARGC < 2 || CMD_ARGC > 3)
+	if (CMD_ARGC != 4 && CMD_ARGC != 6)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	struct jtag_tap *tap = jtag_tap_by_string(CMD_ARGV[1]);
+	if (strcmp(CMD_ARGV[2], "-chain-position") != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	struct jtag_tap *tap = jtag_tap_by_string(CMD_ARGV[3]);
 	if (!tap) {
-		command_print(CMD, "Tap: %s does not exist", CMD_ARGV[1]);
+		command_print(CMD, "Tap: %s does not exist", CMD_ARGV[3]);
 		return ERROR_FAIL;
+	}
+
+	enum intel_family_e family = INTEL_UNKNOWN;
+	if (CMD_ARGC == 6) {
+		if (strcmp(CMD_ARGV[4], "-family") != 0)
+			return ERROR_COMMAND_SYNTAX_ERROR;
+
+		if (strcmp(CMD_ARGV[5], "cycloneiii") == 0) {
+			family = INTEL_CYCLONEIII;
+		} else if (strcmp(CMD_ARGV[5], "cycloneiv") == 0) {
+			family = INTEL_CYCLONEIV;
+		} else if (strcmp(CMD_ARGV[5], "cyclonev") == 0) {
+			family = INTEL_CYCLONEV;
+		} else if (strcmp(CMD_ARGV[5], "cyclone10") == 0) {
+			family = INTEL_CYCLONE10;
+		} else if (strcmp(CMD_ARGV[5], "arriaii") == 0) {
+			family = INTEL_ARRIAII;
+		} else {
+			command_print(CMD, "unknown family");
+			return ERROR_FAIL;
+		}
 	}
 
 	struct intel_pld_device *intel_info = malloc(sizeof(struct intel_pld_device));
@@ -409,25 +429,6 @@ PLD_DEVICE_COMMAND_HANDLER(intel_pld_device_command)
 		return ERROR_FAIL;
 	}
 
-	enum intel_family_e family = INTEL_UNKNOWN;
-
-	if (CMD_ARGC == 3) {
-		if (strcmp(CMD_ARGV[2], "cycloneiii") == 0) {
-			family = INTEL_CYCLONEIII;
-		} else if (strcmp(CMD_ARGV[2], "cycloneiv") == 0) {
-			family = INTEL_CYCLONEIV;
-		} else if (strcmp(CMD_ARGV[2], "cyclonev") == 0) {
-			family = INTEL_CYCLONEV;
-		} else if (strcmp(CMD_ARGV[2], "cyclone10") == 0) {
-			family = INTEL_CYCLONE10;
-		} else if (strcmp(CMD_ARGV[2], "arriaii") == 0) {
-			family = INTEL_ARRIAII;
-		} else {
-			command_print(CMD, "unknown family");
-			free(intel_info);
-			return ERROR_FAIL;
-		}
-	}
 	intel_info->tap = tap;
 	intel_info->boundary_scan_length = 0;
 	intel_info->checkpos = -1;
@@ -444,13 +445,13 @@ static const struct command_registration intel_exec_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.handler = intel_set_bscan_command_handler,
 		.help = "set boundary scan register length of FPGA",
-		.usage = "num_pld len",
+		.usage = "pld_name len",
 	}, {
 		.name = "set_check_pos",
 		.mode = COMMAND_EXEC,
 		.handler = intel_set_check_pos_command_handler,
 		.help = "set check_pos of FPGA",
-		.usage = "num_pld pos",
+		.usage = "pld_name pos",
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -469,6 +470,6 @@ static const struct command_registration intel_command_handler[] = {
 struct pld_driver intel_pld = {
 	.name = "intel",
 	.commands = intel_command_handler,
-	.pld_device_command = &intel_pld_device_command,
+	.pld_create_command = &intel_pld_create_command,
 	.load = &intel_load,
 };

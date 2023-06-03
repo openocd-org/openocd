@@ -1108,4 +1108,18 @@ proc "am335xgpio led_on_state" {state} {
 	}
 }
 
+lappend _telnet_autocomplete_skip "pld device"
+proc "pld device" {driver tap_name {opt 0}} {
+	echo "DEPRECATED! use 'pld create ...', not 'pld device ...'"
+	if {[string is integer -strict $opt]} {
+		if {$opt == 0} {
+			eval pld create [lindex [split $tap_name .] 0].pld $driver -chain-position $tap_name
+		} else {
+			eval pld create [lindex [split $tap_name .] 0].pld $driver -chain-position $tap_name -no_jstart
+		}
+	} else {
+		eval pld create [lindex [split $tap_name .] 0].pld $driver -chain-position $tap_name -family $opt
+	}
+}
+
 # END MIGRATION AIDS

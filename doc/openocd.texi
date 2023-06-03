@@ -8575,22 +8575,24 @@ As it does for JTAG TAPs, debug targets, and flash chips (both NOR and NAND),
 OpenOCD maintains a list of PLDs available for use in various commands.
 Also, each such PLD requires a driver.
 
-They are referenced by the number shown by the @command{pld devices} command,
-and new PLDs are defined by @command{pld device driver_name}.
+They are referenced by the name which was given when the pld was created or
+the number shown by the @command{pld devices} command.
+New PLDs are defined by @command{pld create pld_name driver_name -chain-position tap_name [driver_options]}.
 
-@deffn {Config Command} {pld device} driver_name tap_name [driver_options]
-Defines a new PLD device, supported by driver @var{driver_name},
-using the TAP named @var{tap_name}.
-The driver may make use of any @var{driver_options} to configure its
-behavior.
+@deffn {Config Command} {pld create} pld_name driver_name -chain-position tap_name [driver_options]
+Creates a new PLD device, supported by driver @var{driver_name},
+assigning @var{pld_name} for further reference.
+@code{-chain-position} @var{tap_name} names the TAP
+used to access this target.
+The driver may make use of any @var{driver_options} to configure its behavior.
 @end deffn
 
 @deffn {Command} {pld devices}
-Lists the PLDs and their numbers.
+List the known PLDs with their name.
 @end deffn
 
-@deffn {Command} {pld load} num filename
-Loads the file @file{filename} into the PLD identified by @var{num}.
+@deffn {Command} {pld load} pld_name filename
+Loads the file @file{filename} into the PLD identified by @var{pld_name}.
 The file format must be inferred by the driver.
 @end deffn
 
@@ -8600,12 +8602,12 @@ Drivers may support PLD-specific options to the @command{pld device}
 definition command, and may also define commands usable only with
 that particular type of PLD.
 
-@deffn {FPGA Driver} {virtex2} [no_jstart]
+@deffn {FPGA Driver} {virtex2} [@option{-no_jstart}]
 Virtex-II is a family of FPGAs sold by Xilinx.
 This driver can also be used to load Series3, Series6, Series7 and Zynq 7000 devices.
 It supports the IEEE 1532 standard for In-System Configuration (ISC).
 
-If @var{no_jstart} is non-zero, the JSTART instruction is not used after
+If @var{-no_jstart} is given, the JSTART instruction is not used after
 loading the bitstream. While required for Series2, Series3, and Series6, it
 breaks bitstream loading on Series7.
 
@@ -8615,38 +8617,38 @@ openocd -f board/digilent_zedboard.cfg -c "init" \
 @end example
 
 
-@deffn {Command} {virtex2 read_stat} num
+@deffn {Command} {virtex2 read_stat} pld_name
 Reads and displays the Virtex-II status register (STAT)
-for FPGA @var{num}.
+for FPGA @var{pld_name}.
 @end deffn
 @end deffn
 
 
 
-@deffn {FPGA Driver} {lattice} [family]
+@deffn {FPGA Driver} {lattice} [@option{-family} <name>]
 The FGPA families ECP2, ECP3, ECP5, Certus and CertusPro by Lattice are supported.
 This driver can be used to load the bitstream into the FPGA or read the status register and read/write the usercode register.
 
-The option @option{family} is one of @var{ecp2 ecp3 ecp5 certus}. This is needed when the JTAG ID of the device is not known by openocd (newer NX devices).
+For the option @option{-family} @var{name} is one of @var{ecp2 ecp3 ecp5 certus}. This is needed when the JTAG ID of the device is not known by openocd (newer NX devices).
 
-@deffn {Command} {lattice read_status} num
+@deffn {Command} {lattice read_status} pld_name
 Reads and displays the status register
-for FPGA @var{num}.
+for FPGA @var{pld_name}.
 @end deffn
 
-@deffn {Command} {lattice read_user} num
+@deffn {Command} {lattice read_user} pld_name
 Reads and displays the user register
-for FPGA @var{num}.
+for FPGA @var{pld_name}.
 @end deffn
 
-@deffn {Command} {lattice write_user} num val
+@deffn {Command} {lattice write_user} pld_name val
 Writes the user register.
-for FPGA @var{num} with value @var{val}.
+for FPGA @var{pld_name} with value @var{val}.
 @end deffn
 
-@deffn {Command} {lattice set_preload} num length
+@deffn {Command} {lattice set_preload} pld_name length
 Set the length of the register for the preload. This is needed when the JTAG ID of the device is not known by openocd (newer NX devices).
-The load command for the FPGA @var{num} will use a length for the preload of @var{length}.
+The load command for the FPGA @var{pld_name} will use a length for the preload of @var{length}.
 @end deffn
 @end deffn
 
@@ -8657,28 +8659,28 @@ This driver can be used to load the bitstream into the FPGA.
 @end deffn
 
 
-@deffn {FPGA Driver} {intel} [@option{family}]
+@deffn {FPGA Driver} {intel} [@option{-family} <name>]
 This driver can be used to load the bitstream into Intel (former Altera) FPGAs.
 The families Cyclone III, Cyclone IV, Cyclone V, Cyclone 10, Arria II are supported.
 @c Arria V and Arria 10, MAX II, MAX V, MAX10)
 
-The option @option{family} is one of @var{cycloneiii cycloneiv cyclonev cyclone10 arriaii}.
+For the option @option{-family} @var{name} is one of @var{cycloneiii cycloneiv cyclonev cyclone10 arriaii}.
 This is needed when the JTAG ID of the device is ambiguous (same ID is used for chips in different families).
 
 As input file format the driver supports a '.rbf' (raw bitstream file) file. The '.rbf' file can be generated
 from a '.sof' file with @verb{|quartus_cpf -c blinker.sof blinker.rbf|}
 
-Defines a new PLD device, an FPGA of the Cyclone III family, using the TAP named @verb{|cycloneiii.tap|}:
+Creates a new PLD device, an FPGA of the Cyclone III family, using the TAP named @verb{|cycloneiii.tap|}:
 @example
-pld device intel cycloneiii.tap cycloneiii
+pld create cycloneiii.pld intel -chain-position cycloneiii.tap -family cycloneiii
 @end example
 
-@deffn {Command} {intel set_bscan} num len
-Set boundary scan register length of FPGA @var{num} to @var{len}. This is needed because the
+@deffn {Command} {intel set_bscan} pld_name len
+Set boundary scan register length of FPGA @var{pld_name} to @var{len}. This is needed because the
 length can vary between chips with the same JTAG ID.
 @end deffn
 
-@deffn {Command} {intel set_check_pos} num pos
+@deffn {Command} {intel set_check_pos} pld_name pos
 Selects the position @var{pos} in the boundary-scan register. The bit at this
 position is checked after loading the bitstream and must be '1', which is the case when no error occurred.
 With a value of -1 for @var{pos} the check will be omitted.

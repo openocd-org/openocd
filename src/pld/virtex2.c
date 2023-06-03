@@ -233,11 +233,9 @@ COMMAND_HANDLER(virtex2_handle_read_stat_command)
 	if (CMD_ARGC < 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	unsigned dev_id;
-	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], dev_id);
-	device = get_pld_device_by_num(dev_id);
+	device = get_pld_device_by_name_or_numstr(CMD_ARGV[0]);
 	if (!device) {
-		command_print(CMD, "pld device '#%s' is out of bounds", CMD_ARGV[0]);
+		command_print(CMD, "pld device '#%s' is out of bounds or unknown", CMD_ARGV[0]);
 		return ERROR_FAIL;
 	}
 
@@ -252,22 +250,21 @@ COMMAND_HANDLER(virtex2_handle_read_stat_command)
 	return ERROR_OK;
 }
 
-PLD_DEVICE_COMMAND_HANDLER(virtex2_pld_device_command)
+PLD_CREATE_COMMAND_HANDLER(virtex2_pld_create_command)
 {
-	struct jtag_tap *tap;
-
-	struct virtex2_pld_device *virtex2_info;
-
-	if (CMD_ARGC < 2)
+	if (CMD_ARGC < 4)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	tap = jtag_tap_by_string(CMD_ARGV[1]);
+	if (strcmp(CMD_ARGV[2], "-chain-position") != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	struct jtag_tap *tap = jtag_tap_by_string(CMD_ARGV[3]);
 	if (!tap) {
-		command_print(CMD, "Tap: %s does not exist", CMD_ARGV[1]);
+		command_print(CMD, "Tap: %s does not exist", CMD_ARGV[3]);
 		return ERROR_FAIL;
 	}
 
-	virtex2_info = malloc(sizeof(struct virtex2_pld_device));
+	struct virtex2_pld_device *virtex2_info = malloc(sizeof(struct virtex2_pld_device));
 	if (!virtex2_info) {
 		LOG_ERROR("Out of memory");
 		return ERROR_FAIL;
@@ -275,8 +272,8 @@ PLD_DEVICE_COMMAND_HANDLER(virtex2_pld_device_command)
 	virtex2_info->tap = tap;
 
 	virtex2_info->no_jstart = 0;
-	if (CMD_ARGC >= 3)
-		COMMAND_PARSE_NUMBER(int, CMD_ARGV[2], virtex2_info->no_jstart);
+	if (CMD_ARGC >= 5 && strcmp(CMD_ARGV[4], "-no_jstart") == 0)
+		virtex2_info->no_jstart = 1;
 
 	pld->driver_priv = virtex2_info;
 
@@ -289,7 +286,7 @@ static const struct command_registration virtex2_exec_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.handler = virtex2_handle_read_stat_command,
 		.help = "read status register",
-		.usage = "pld_num",
+		.usage = "pld_name",
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -307,6 +304,6 @@ static const struct command_registration virtex2_command_handler[] = {
 struct pld_driver virtex2_pld = {
 	.name = "virtex2",
 	.commands = virtex2_command_handler,
-	.pld_device_command = &virtex2_pld_device_command,
+	.pld_create_command = &virtex2_pld_create_command,
 	.load = &virtex2_load,
 };
