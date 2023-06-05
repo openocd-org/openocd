@@ -1596,6 +1596,69 @@ static int set_dcsr_ebreak(struct target *target, bool step)
 	return ERROR_OK;
 }
 
+static int halt_set_dcsr_ebreak(struct target *target)
+{
+	RISCV_INFO(r);
+	RISCV013_INFO(info);
+	LOG_TARGET_DEBUG(target, "Halt to set DCSR.ebreak*");
+
+	/* Remove this hart from the halt group.  This won't work on all targets
+	 * because the debug spec allows halt groups to be hard-coded, but I
+	 * haven't actually encountered those in the wild yet.
+	 *
+	 * There is a possible race condition when another hart halts, and
+	 * this one is expected to also halt because it's supposed to be in the
+	 * same halt group. Or when this hart is halted when that happens.
+	 *
+	 * A better solution might be to leave the halt groups alone, and track
+	 * why we're halting when a halt occurs. When there are halt groups,
+	 * that leads to extra halting if not all harts need to set dcsr.ebreak
+	 * at the same time.  It also makes for more complicated code.
+	 *
+	 * The perfect solution would be Quick Access, but I'm not aware of any
+	 * hardware that implements it.
+	 *
+	 * We don't need a perfect solution, because we only get here when a
+	 * hart spontaneously resets, or when it powers down and back up again.
+	 * Those are both relatively rare. (At least I hope so. Maybe some
+	 * design just powers each hart down for 90ms out of every 100ms)
+	 */
+
+
+	if (info->haltgroup_supported) {
+		bool supported;
+		if (set_group(target, &supported, 0, HALT_GROUP) != ERROR_OK)
+			return ERROR_FAIL;
+		if (!supported)
+			LOG_TARGET_ERROR(target, "Couldn't place hart in halt group 0. "
+						 "Some harts may be unexpectedly halted.");
+	}
+
+	int result = ERROR_OK;
+
+	r->prepped = true;
+	if (riscv013_halt_go(target) != ERROR_OK ||
+			set_dcsr_ebreak(target, false) != ERROR_OK ||
+			riscv013_step_or_resume_current_hart(target, false) != ERROR_OK) {
+		result = ERROR_FAIL;
+	} else {
+		target->state = TARGET_RUNNING;
+		target->debug_reason = DBG_REASON_NOTHALTED;
+	}
+
+	/* Add it back to the halt group. */
+	if (info->haltgroup_supported) {
+		bool supported;
+		if (set_group(target, &supported, target->smp, HALT_GROUP) != ERROR_OK)
+			return ERROR_FAIL;
+		if (!supported)
+			LOG_TARGET_ERROR(target, "Couldn't place hart back in halt group %d. "
+						 "Some harts may be unexpectedly halted.", target->smp);
+	}
+
+	return result;
+}
+
 /*** OpenOCD target functions. ***/
 
 static void deinit_target(struct target *target)
@@ -2488,6 +2551,16 @@ static int handle_became_unavailable(struct target *target,
 	return ERROR_OK;
 }
 
+static int tick(struct target *target)
+{
+	RISCV013_INFO(info);
+	if (!info->dcsr_ebreak_is_set &&
+			target->state == TARGET_RUNNING &&
+			target_was_examined(target))
+		return halt_set_dcsr_ebreak(target);
+	return ERROR_OK;
+}
+
 static int init_target(struct command_context *cmd_ctx,
 		struct target *target)
 {
@@ -2525,6 +2598,7 @@ static int init_target(struct command_context *cmd_ctx,
 	generic_info->print_info = &riscv013_print_info;
 
 	generic_info->handle_became_unavailable = &handle_became_unavailable;
+	generic_info->tick = &tick;
 
 	if (!generic_info->version_specific) {
 		generic_info->version_specific = calloc(1, sizeof(riscv013_info_t));
