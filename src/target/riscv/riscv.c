@@ -2752,6 +2752,10 @@ static int riscv_poll_hart(struct target *target, enum riscv_next_action *next_a
 					}
 				}
 
+				if (r->handle_became_halted &&
+						r->handle_became_halted(target, previous_riscv_state) != ERROR_OK)
+					return ERROR_FAIL;
+
 				/* We shouldn't do the callbacks yet. What if
 				 * there are multiple harts that halted at the
 				 * same time? We need to set debug reason on each
@@ -2769,12 +2773,18 @@ static int riscv_poll_hart(struct target *target, enum riscv_next_action *next_a
 				LOG_TARGET_DEBUG(target, "  triggered running");
 				target->state = TARGET_RUNNING;
 				target->debug_reason = DBG_REASON_NOTHALTED;
+				if (r->handle_became_running &&
+						r->handle_became_running(target, previous_riscv_state) != ERROR_OK)
+					return ERROR_FAIL;
 				break;
 
 			case RISCV_STATE_UNAVAILABLE:
 				LOG_TARGET_DEBUG(target, "  became unavailable");
 				LOG_TARGET_INFO(target, "became unavailable.");
 				target->state = TARGET_UNAVAILABLE;
+				if (r->handle_became_unavailable &&
+						r->handle_became_unavailable(target, previous_riscv_state) != ERROR_OK)
+					return ERROR_FAIL;
 				break;
 
 			case RISCV_STATE_NON_EXISTENT:
