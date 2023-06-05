@@ -204,6 +204,10 @@ struct riscv_info {
 	int (*handle_became_unavailable)(struct target *target,
 		enum riscv_hart_state previous_riscv_state);
 
+	/* Called periodically (no guarantees about frequency), while there's
+	 * nothing else going on. */
+	int (*tick)(struct target *target);
+
 	/* Get this target as ready as possible to resume, without actually
 	 * resuming. */
 	int (*resume_prep)(struct target *target);

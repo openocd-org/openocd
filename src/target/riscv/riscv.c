@@ -2934,6 +2934,17 @@ int riscv_openocd_poll(struct target *target)
 		}
 	}
 
+	/* Call tick() for every hart. What happens in tick() is opaque to this
+	 * layer. The reason it's outside the previous loop is that at this point
+	 * the state of every hart has settled, so any side effects happening in
+	 * tick() won't affect the delicate poll() code. */
+	foreach_smp_target(entry, targets) {
+		struct target *t = entry->target;
+		struct riscv_info *info = riscv_info(t);
+		if (info->tick && info->tick(t) != ERROR_OK)
+			return ERROR_FAIL;
+	}
+
 	/* Sample memory if any target is running. */
 	foreach_smp_target(entry, targets) {
 		struct target *t = entry->target;
