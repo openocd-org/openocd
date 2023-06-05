@@ -206,6 +206,10 @@ typedef struct {
 	/* This target was selected using hasel. */
 	bool selected;
 
+	/* When false, we need to set dcsr.ebreak*, halting the target if that's
+	 * necessary. */
+	bool dcsr_ebreak_is_set;
+
 	/* This hart was placed into a halt group in examine(). */
 	bool haltgroup_supported;
 } riscv013_info_t;
@@ -1573,6 +1577,7 @@ static int set_dcsr_ebreak(struct target *target, bool step)
 	if (dm013_select_target(target) != ERROR_OK)
 		return ERROR_FAIL;
 
+	RISCV013_INFO(info);
 	riscv_reg_t original_dcsr, dcsr;
 	/* We want to twiddle some bits in the debug CSR so debugging works. */
 	if (riscv_get_register(target, &dcsr, GDB_REGNO_DCSR) != ERROR_OK)
@@ -1587,6 +1592,7 @@ static int set_dcsr_ebreak(struct target *target, bool step)
 	if (dcsr != original_dcsr &&
 			riscv_set_register(target, GDB_REGNO_DCSR, dcsr) != ERROR_OK)
 		return ERROR_FAIL;
+	info->dcsr_ebreak_is_set = true;
 	return ERROR_OK;
 }
 
@@ -2440,6 +2446,7 @@ static int riscv013_get_hart_state(struct target *target, enum riscv_hart_state 
 		return ERROR_FAIL;
 	if (get_field(dmstatus, DM_DMSTATUS_ANYHAVERESET)) {
 		LOG_TARGET_INFO(target, "Hart unexpectedly reset!");
+		info->dcsr_ebreak_is_set = false;
 		/* TODO: Can we make this more obvious to eg. a gdb user? */
 		uint32_t dmcontrol = DM_DMCONTROL_DMACTIVE |
 			DM_DMCONTROL_ACKHAVERESET;
@@ -2471,6 +2478,14 @@ static int riscv013_get_hart_state(struct target *target, enum riscv_hart_state 
 	}
 	LOG_TARGET_ERROR(target, "Couldn't determine state. dmstatus=0x%x", dmstatus);
 	return ERROR_FAIL;
+}
+
+static int handle_became_unavailable(struct target *target,
+		enum riscv_hart_state previous_riscv_state)
+{
+	RISCV013_INFO(info);
+	info->dcsr_ebreak_is_set = false;
+	return ERROR_OK;
 }
 
 static int init_target(struct command_context *cmd_ctx,
@@ -2508,6 +2523,9 @@ static int init_target(struct command_context *cmd_ctx,
 	generic_info->hart_count = &riscv013_hart_count;
 	generic_info->data_bits = &riscv013_data_bits;
 	generic_info->print_info = &riscv013_print_info;
+
+	generic_info->handle_became_unavailable = &handle_became_unavailable;
+
 	if (!generic_info->version_specific) {
 		generic_info->version_specific = calloc(1, sizeof(riscv013_info_t));
 		if (!generic_info->version_specific)
@@ -2625,6 +2643,7 @@ static int deassert_reset(struct target *target)
 		target->state = TARGET_RUNNING;
 		target->debug_reason = DBG_REASON_NOTHALTED;
 	}
+	info->dcsr_ebreak_is_set = false;
 
 	/* Ack reset and clear DM_DMCONTROL_HALTREQ if previously set */
 	control = 0;
