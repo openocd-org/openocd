@@ -205,6 +205,9 @@ typedef struct {
 
 	/* This target was selected using hasel. */
 	bool selected;
+
+	/* This hart was placed into a halt group in examine(). */
+	bool haltgroup_supported;
 } riscv013_info_t;
 
 static LIST_HEAD(dm_list);
@@ -1890,7 +1893,7 @@ static int examine(struct target *target)
 		bool haltgroup_supported;
 		if (set_group(target, &haltgroup_supported, target->smp, HALT_GROUP) != ERROR_OK)
 			return ERROR_FAIL;
-		if (haltgroup_supported)
+		if (info->haltgroup_supported)
 			LOG_INFO("Core %d made part of halt group %d.", target->coreid,
 					target->smp);
 		else
