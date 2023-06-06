@@ -1511,7 +1511,7 @@ int riscv_flush_registers(struct target *target)
 	if (!target->reg_cache)
 		return ERROR_OK;
 
-	LOG_TARGET_DEBUG(target, "");
+	LOG_TARGET_DEBUG(target, "Flushing register cache");
 
 	/* Writing non-GPR registers may require progbuf execution, and some GPRs
 	 * may become dirty in the process (e.g. S0, S1). For that reason, flush
@@ -4078,10 +4078,17 @@ COMMAND_HANDLER(riscv_exec_progbuf)
 			return ERROR_FAIL;
 	}
 
-	if (riscv_program_exec(&prog, target) == ERROR_OK)
-		LOG_TARGET_DEBUG(target, "exec_progbuf: Program buffer execution successful.");
-	else
+	if (riscv_flush_registers(target) != ERROR_OK)
+		return ERROR_FAIL;
+	int error = riscv_program_exec(&prog, target);
+	riscv_invalidate_register_cache(target);
+
+	if (error != ERROR_OK) {
 		LOG_TARGET_ERROR(target, "exec_progbuf: Program buffer execution failed.");
+		return ERROR_FAIL;
+	}
+
+	LOG_TARGET_DEBUG(target, "exec_progbuf: Program buffer execution successful.");
 
 	return ERROR_OK;
 }
@@ -4565,12 +4572,8 @@ static void riscv_invalidate_register_cache(struct target *target)
 	if (!target->reg_cache)
 		return;
 
-	LOG_DEBUG("[%d]", target->coreid);
+	LOG_TARGET_DEBUG(target, "Invalidating register cache");
 	register_cache_invalidate(target->reg_cache);
-	for (size_t i = 0; i < target->reg_cache->num_regs; ++i) {
-		struct reg *reg = &target->reg_cache->reg_list[i];
-		reg->valid = false;
-	}
 }
 
 
