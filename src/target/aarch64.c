@@ -1091,6 +1091,7 @@ static int aarch64_step(struct target *target, int current, target_addr_t addres
 	struct armv8_common *armv8 = target_to_armv8(target);
 	struct aarch64_common *aarch64 = target_to_aarch64(target);
 	int saved_retval = ERROR_OK;
+	int poll_retval;
 	int retval;
 	uint32_t edecr;
 
@@ -1173,6 +1174,8 @@ static int aarch64_step(struct target *target, int current, target_addr_t addres
 	if (retval == ERROR_TARGET_TIMEOUT)
 		saved_retval = aarch64_halt_one(target, HALT_SYNC);
 
+	poll_retval = aarch64_poll(target);
+
 	/* restore EDECR */
 	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
 			armv8->debug_base + CPUV8_DBG_EDECR, edecr);
@@ -1188,6 +1191,9 @@ static int aarch64_step(struct target *target, int current, target_addr_t addres
 
 	if (saved_retval != ERROR_OK)
 		return saved_retval;
+
+	if (poll_retval != ERROR_OK)
+		return poll_retval;
 
 	return ERROR_OK;
 }
@@ -2694,6 +2700,9 @@ static int aarch64_examine(struct target *target)
 	/* Configure core debug access */
 	if (retval == ERROR_OK)
 		retval = aarch64_init_debug_access(target);
+
+	if (retval == ERROR_OK)
+		retval = aarch64_poll(target);
 
 	return retval;
 }
