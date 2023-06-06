@@ -1558,6 +1558,9 @@ static int wait_for_authbusy(struct target *target, uint32_t *dmstatus)
 
 static int update_dcsr(struct target *target, bool step)
 {
+	if (dm013_select_target(target) != ERROR_OK)
+		return ERROR_FAIL;
+
 	riscv_reg_t dcsr;
 	/* We want to twiddle some bits in the debug CSR so debugging works. */
 	int result = register_read_direct(target, &dcsr, GDB_REGNO_DCSR);
