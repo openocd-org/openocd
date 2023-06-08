@@ -1862,15 +1862,15 @@ static int examine(struct target *target)
 		return ERROR_FAIL;
 	}
 
-	target->state = saved_tgt_state;
-	target->debug_reason = saved_dbg_reason;
-
 	/* Now init registers based on what we discovered. */
 	if (riscv_init_registers(target) != ERROR_OK)
 		return ERROR_FAIL;
 
 	if (update_dcsr(target, false) != ERROR_OK)
 		return ERROR_FAIL;
+
+	target->state = saved_tgt_state;
+	target->debug_reason = saved_dbg_reason;
 
 	if (!halted) {
 		riscv013_step_or_resume_current_hart(target, false);
