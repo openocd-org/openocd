@@ -292,6 +292,8 @@ struct riscv_info {
 	int64_t last_activity;
 
 	yes_no_maybe_t vsew64_supported;
+
+	bool range_trigger_fallback_encountered;
 };
 
 COMMAND_HELPER(riscv_print_info_line, const char *section, const char *key,
