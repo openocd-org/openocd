@@ -352,22 +352,12 @@ int riscv_openocd_step(
 	int handle_breakpoints
 );
 
-int riscv_openocd_assert_reset(struct target *target);
-int riscv_openocd_deassert_reset(struct target *target);
-
 /*** RISC-V Interface ***/
 
 bool riscv_supports_extension(struct target *target, char letter);
 
 /* Returns XLEN for the given (or current) hart. */
 unsigned riscv_xlen(const struct target *target);
-int riscv_xlen_of_hart(const struct target *target);
-
-/* Sets the current hart, which is the hart that will actually be used when
- * issuing debug commands. */
-int riscv_set_current_hartid(struct target *target, int hartid);
-int riscv_select_current_hart(struct target *target);
-int riscv_current_hartid(const struct target *target);
 
 /*** Support functions for the RISC-V 'RTOS', which provides multihart support
  * without requiring multiple targets.  */
