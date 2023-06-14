@@ -496,19 +496,19 @@ static int freertos_update_threads(struct rtos *rtos)
 	rtos_free_threadlist(rtos);
 
 	/* read the current thread */
-	target_addr_t pxCurrentTCB;
+	target_addr_t px_current_tcb;
 	retval = freertos_read_struct_value(rtos->target,
 										rtos->symbols[FREERTOS_VAL_PX_CURRENT_TCB].address,
 										0,
 										freertos->pointer_size,
-										&pxCurrentTCB);
+										&px_current_tcb);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Error reading current thread in FreeRTOS thread list");
 		return retval;
 	}
 	LOG_DEBUG("FreeRTOS: Read pxCurrentTCB at 0x%" PRIx64 ", value 0x%" PRIx64,
 										rtos->symbols[FREERTOS_VAL_PX_CURRENT_TCB].address,
-										pxCurrentTCB);
+										px_current_tcb);
 
 	/* read scheduler running */
 	uint32_t scheduler_running;
@@ -523,7 +523,7 @@ static int freertos_update_threads(struct rtos *rtos)
 										rtos->symbols[FREERTOS_VAL_X_SCHEDULER_RUNNING].address,
 										scheduler_running);
 
-	if ((thread_list_size  == 0) || (rtos->current_thread == 0) || (scheduler_running != 1)) {
+	if (thread_list_size  == 0 || px_current_tcb == 0 || scheduler_running != 1) {
 		/* Either : No RTOS threads - there is always at least the current execution though */
 		/* OR     : No current thread - all threads suspended - show the current execution
 		 * of idling */
@@ -711,7 +711,7 @@ static int freertos_update_threads(struct rtos *rtos)
 			strcpy(rtos->thread_details[tasks_found].thread_name_str, tmp_str);
 			rtos->thread_details[tasks_found].exists = true;
 
-			if (value->tcb == pxCurrentTCB) {
+			if (value->tcb == px_current_tcb) {
 				char running_str[] = "State: Running";
 				rtos->current_thread = value->threadid;
 				rtos->thread_details[tasks_found].extra_info_str = malloc(
