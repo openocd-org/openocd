@@ -71,33 +71,31 @@ enum semihosting_result riscv_semihosting(struct target *target, int *retval)
 	if (result != ERROR_OK)
 		return SEMIHOSTING_ERROR;
 
-	uint8_t tmp_buf[12];
-
-	/* Read three uncompressed instructions: The previous, the current one (pointed to by PC) and the next one */
-	for (int i = 0; i < 3; i++) {
-		/* Instruction memories may not support arbitrary read size. Use any size that will work. */
-		*retval = riscv_read_by_any_size(target, (pc - 4) + 4 * i, 4, tmp_buf + 4 * i);
-		if (*retval != ERROR_OK)
-			return SEMIHOSTING_ERROR;
-	}
-
 	/*
 	 * The instructions that trigger a semihosting call,
 	 * always uncompressed, should look like:
-	 *
-	 * 01f01013              slli    zero,zero,0x1f
-	 * 00100073              ebreak
-	 * 40705013              srai    zero,zero,0x7
 	 */
-	uint32_t pre = target_buffer_get_u32(target, tmp_buf);
-	uint32_t ebreak = target_buffer_get_u32(target, tmp_buf + 4);
-	uint32_t post = target_buffer_get_u32(target, tmp_buf + 8);
-	LOG_DEBUG("check %08x %08x %08x from 0x%" PRIx64 "-4", pre, ebreak, post, pc);
+	uint32_t magic[] = {
+		0x01f01013,	/* slli    zero,zero,0x1f */
+		0x00100073,	/* ebreak */
+		0x40705013	/* srai    zero,zero,0x7 */
+	};
 
-	if (pre != 0x01f01013 || ebreak != 0x00100073 || post != 0x40705013) {
-		/* Not the magic sequence defining semihosting. */
-		LOG_DEBUG("   -> NONE (no magic)");
-		return SEMIHOSTING_NONE;
+	/* Read three uncompressed instructions: The previous, the current one (pointed to by PC) and the next one */
+	for (int i = 0; i < 3; i++) {
+		uint8_t buf[4];
+		/* Instruction memories may not support arbitrary read size. Use any size that will work. */
+		target_addr_t address = (pc - 4) + 4 * i;
+		*retval = riscv_read_by_any_size(target, address, 4, buf);
+		if (*retval != ERROR_OK)
+			return SEMIHOSTING_ERROR;
+		uint32_t value = target_buffer_get_u32(target, buf);
+		LOG_TARGET_DEBUG(target, "compare 0x%08x from 0x%" PRIx64 " against 0x%08x",
+			value, address, magic[i]);
+		if (value != magic[i]) {
+			LOG_DEBUG("   -> NONE (no magic)");
+			return SEMIHOSTING_NONE;
+		}
 	}
 
 	/*
