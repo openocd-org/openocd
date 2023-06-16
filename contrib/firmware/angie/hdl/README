@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright (C) 2023 by NanoXplore, France - all rights reserved
+
+This is the source code of Nanoxplore USB-JTAG Adapter Angie's bitstream.
+This bitstream is for the "xc6slx9-2tqg144" Spartan-6 Xilinx FPGA.
+
+To generate this bitstream, you need to install Xilinx ISE Webpack 14.7
+You will need to give the ISE software path : export XILINX_HOME=path/to/ise/sw
+Please set the enviromnent first by executing the ". ./set_env.sh"
+
+All you have to do now is to write your vhd and constrains codes.
+
+One all is setup, you can use the make commands:
+    make compile : to compile your (.vhd & .ucf) files in the "src" directory
+    A directory named "build" will be created, which contains all the generated
+    files including the bitstream file.
+
+    make clean : to delete the build directory.
