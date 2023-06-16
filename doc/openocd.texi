@@ -508,6 +508,9 @@ debuggers to ARM Cortex based targets @url{http://www.keil.com/support/man/docs/
 @item @b{ARM-JTAG-EW}
 @* Link: @url{http://www.olimex.com/dev/arm-jtag-ew.html}
 
+@item @b{angie}
+@* Link: @url{https://nanoxplore.org/}
+
 @item @b{Buspirate}
 @* Link: @url{http://dangerousprototypes.com/bus-pirate-manual/}
 
@@ -2513,6 +2516,10 @@ the number of the @file{/dev/parport} device.
 Displays status of RTCK option.
 Optionally sets that option first.
 @end deffn
+@end deffn
+
+@deffn {Interface Driver} {angie}
+This is the NanoXplore's ANGIE USB-JTAG Adapter.
 @end deffn
 
 @deffn {Interface Driver} {arm-jtag-ew}

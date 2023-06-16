@@ -10,8 +10,10 @@ noinst_LTLIBRARIES += %D%/libocdjtagdrivers.la
 %C%_libocdjtagdrivers_la_CPPFLAGS = $(AM_CPPFLAGS)
 
 ULINK_FIRMWARE = %D%/OpenULINK
+ANGIE_FILES = %D%/angie
 
 EXTRA_DIST += $(ULINK_FIRMWARE) \
+	$(ANGIE_FILES) \
 	%D%/usb_blaster/README.CheapClone \
 	%D%/Makefile.rlink \
 	%D%/rlink_call.m4 \
@@ -121,6 +123,12 @@ if ULINK
 DRIVERFILES += %D%/ulink.c
 ulinkdir = $(pkgdatadir)/OpenULINK
 dist_ulink_DATA = $(ULINK_FIRMWARE)/ulink_firmware.hex
+%C%_libocdjtagdrivers_la_LIBADD += -lm
+endif
+if ANGIE
+DRIVERFILES += %D%/angie.c
+angiedir = $(pkgdatadir)/angie
+dist_angie_DATA = $(ANGIE_FILES)/angie_firmware.bin $(ANGIE_FILES)/angie_bitstream.bit
 %C%_libocdjtagdrivers_la_LIBADD += -lm
 endif
 if VSLLINK
