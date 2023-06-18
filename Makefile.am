@@ -67,6 +67,7 @@ EXTRA_DIST += \
 	LICENSES/preferred/GFDL-1.2 \
 	LICENSES/preferred/gfdl-1.2.texi.readme \
 	LICENSES/preferred/GPL-2.0 \
+	LICENSES/preferred/LGPL-2.1 \
 	LICENSES/preferred/MIT \
 	LICENSES/stand-alone/GPL-3.0 \
 	tools/logger.pl \
