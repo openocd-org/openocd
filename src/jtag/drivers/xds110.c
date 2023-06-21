@@ -579,7 +579,7 @@ static bool usb_get_response(uint32_t *total_bytes_read, uint32_t timeout)
 
 static bool usb_send_command(uint16_t size)
 {
-	int written;
+	int written = 0;
 	bool success = true;
 
 	/* Check the packet length */

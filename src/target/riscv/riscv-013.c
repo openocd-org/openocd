@@ -44,7 +44,6 @@ static int riscv013_halt_prep(struct target *target);
 static int riscv013_halt_go(struct target *target);
 static int riscv013_resume_go(struct target *target);
 static int riscv013_step_current_hart(struct target *target);
-static int riscv013_on_halt(struct target *target);
 static int riscv013_on_step(struct target *target);
 static int riscv013_resume_prep(struct target *target);
 static enum riscv_halt_reason riscv013_halt_reason(struct target *target);
@@ -67,6 +66,13 @@ static int read_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer, uint32_t increment);
 static int write_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, const uint8_t *buffer);
+
+typedef enum {
+	HALT_GROUP,
+	RESUME_GROUP
+} grouptype_t;
+static int set_group(struct target *target, bool *supported, unsigned int group,
+		grouptype_t grouptype);
 
 /**
  * Since almost everything can be accomplish by scanning the dbus register, all
@@ -199,6 +205,13 @@ typedef struct {
 
 	/* This target was selected using hasel. */
 	bool selected;
+
+	/* When false, we need to set dcsr.ebreak*, halting the target if that's
+	 * necessary. */
+	bool dcsr_ebreak_is_set;
+
+	/* This hart was placed into a halt group in examine(). */
+	bool haltgroup_supported;
 } riscv013_info_t;
 
 static LIST_HEAD(dm_list);
@@ -475,6 +488,7 @@ static dmi_status_t dmi_scan(struct target *target, uint32_t *address_in,
 	if (r->reset_delays_wait >= 0) {
 		r->reset_delays_wait--;
 		if (r->reset_delays_wait < 0) {
+			LOG_TARGET_DEBUG(target, "reset_delays_wait done");
 			info->dmi_busy_delay = 0;
 			info->ac_busy_delay = 0;
 		}
@@ -1556,25 +1570,93 @@ static int wait_for_authbusy(struct target *target, uint32_t *dmstatus)
 	return ERROR_OK;
 }
 
-static int update_dcsr(struct target *target, bool step)
+static int set_dcsr_ebreak(struct target *target, bool step)
 {
+	LOG_TARGET_DEBUG(target, "Set dcsr.ebreak*");
+
 	if (dm013_select_target(target) != ERROR_OK)
 		return ERROR_FAIL;
 
-	riscv_reg_t dcsr;
+	RISCV013_INFO(info);
+	riscv_reg_t original_dcsr, dcsr;
 	/* We want to twiddle some bits in the debug CSR so debugging works. */
-	int result = register_read_direct(target, &dcsr, GDB_REGNO_DCSR);
-	if (result != ERROR_OK)
-		return result;
+	if (riscv_get_register(target, &dcsr, GDB_REGNO_DCSR) != ERROR_OK)
+		return ERROR_FAIL;
+	original_dcsr = dcsr;
 	dcsr = set_field(dcsr, CSR_DCSR_STEP, step);
 	dcsr = set_field(dcsr, CSR_DCSR_EBREAKM, riscv_ebreakm);
-	dcsr = set_field(dcsr, CSR_DCSR_EBREAKS, riscv_ebreaks);
-	dcsr = set_field(dcsr, CSR_DCSR_EBREAKU, riscv_ebreaku);
-	dcsr = set_field(dcsr, CSR_DCSR_EBREAKVS, riscv_ebreaku);
-	dcsr = set_field(dcsr, CSR_DCSR_EBREAKVU, riscv_ebreaku);
-	if (riscv_set_register(target, GDB_REGNO_DCSR, dcsr) != ERROR_OK)
+	dcsr = set_field(dcsr, CSR_DCSR_EBREAKS, riscv_ebreaks && riscv_supports_extension(target, 'S'));
+	dcsr = set_field(dcsr, CSR_DCSR_EBREAKU, riscv_ebreaku && riscv_supports_extension(target, 'U'));
+	dcsr = set_field(dcsr, CSR_DCSR_EBREAKVS, riscv_ebreaku && riscv_supports_extension(target, 'H'));
+	dcsr = set_field(dcsr, CSR_DCSR_EBREAKVU, riscv_ebreaku && riscv_supports_extension(target, 'H'));
+	if (dcsr != original_dcsr &&
+			riscv_set_register(target, GDB_REGNO_DCSR, dcsr) != ERROR_OK)
 		return ERROR_FAIL;
+	info->dcsr_ebreak_is_set = true;
 	return ERROR_OK;
+}
+
+static int halt_set_dcsr_ebreak(struct target *target)
+{
+	RISCV_INFO(r);
+	RISCV013_INFO(info);
+	LOG_TARGET_DEBUG(target, "Halt to set DCSR.ebreak*");
+
+	/* Remove this hart from the halt group.  This won't work on all targets
+	 * because the debug spec allows halt groups to be hard-coded, but I
+	 * haven't actually encountered those in the wild yet.
+	 *
+	 * There is a possible race condition when another hart halts, and
+	 * this one is expected to also halt because it's supposed to be in the
+	 * same halt group. Or when this hart is halted when that happens.
+	 *
+	 * A better solution might be to leave the halt groups alone, and track
+	 * why we're halting when a halt occurs. When there are halt groups,
+	 * that leads to extra halting if not all harts need to set dcsr.ebreak
+	 * at the same time.  It also makes for more complicated code.
+	 *
+	 * The perfect solution would be Quick Access, but I'm not aware of any
+	 * hardware that implements it.
+	 *
+	 * We don't need a perfect solution, because we only get here when a
+	 * hart spontaneously resets, or when it powers down and back up again.
+	 * Those are both relatively rare. (At least I hope so. Maybe some
+	 * design just powers each hart down for 90ms out of every 100ms)
+	 */
+
+
+	if (info->haltgroup_supported) {
+		bool supported;
+		if (set_group(target, &supported, 0, HALT_GROUP) != ERROR_OK)
+			return ERROR_FAIL;
+		if (!supported)
+			LOG_TARGET_ERROR(target, "Couldn't place hart in halt group 0. "
+						 "Some harts may be unexpectedly halted.");
+	}
+
+	int result = ERROR_OK;
+
+	r->prepped = true;
+	if (riscv013_halt_go(target) != ERROR_OK ||
+			set_dcsr_ebreak(target, false) != ERROR_OK ||
+			riscv013_step_or_resume_current_hart(target, false) != ERROR_OK) {
+		result = ERROR_FAIL;
+	} else {
+		target->state = TARGET_RUNNING;
+		target->debug_reason = DBG_REASON_NOTHALTED;
+	}
+
+	/* Add it back to the halt group. */
+	if (info->haltgroup_supported) {
+		bool supported;
+		if (set_group(target, &supported, target->smp, HALT_GROUP) != ERROR_OK)
+			return ERROR_FAIL;
+		if (!supported)
+			LOG_TARGET_ERROR(target, "Couldn't place hart back in halt group %d. "
+						 "Some harts may be unexpectedly halted.", target->smp);
+	}
+
+	return result;
 }
 
 /*** OpenOCD target functions. ***/
@@ -1591,22 +1673,20 @@ static void deinit_target(struct target *target)
 	info->version_specific = NULL;
 }
 
-typedef enum {
-	HALTGROUP,
-	RESUMEGROUP
-} grouptype_t;
-static int set_group(struct target *target, bool *supported, unsigned group, grouptype_t grouptype)
+static int set_group(struct target *target, bool *supported, unsigned int group,
+		grouptype_t grouptype)
 {
 	uint32_t write_val = DM_DMCS2_HGWRITE;
 	assert(group <= 31);
 	write_val = set_field(write_val, DM_DMCS2_GROUP, group);
-	write_val = set_field(write_val, DM_DMCS2_GROUPTYPE, (grouptype == HALTGROUP) ? 0 : 1);
+	write_val = set_field(write_val, DM_DMCS2_GROUPTYPE, (grouptype == HALT_GROUP) ? 0 : 1);
 	if (dmi_write(target, DM_DMCS2, write_val) != ERROR_OK)
 		return ERROR_FAIL;
 	uint32_t read_val;
 	if (dmi_read(target, &read_val, DM_DMCS2) != ERROR_OK)
 		return ERROR_FAIL;
-	*supported = get_field(read_val, DM_DMCS2_GROUP) == group;
+	if (supported)
+		*supported = (get_field(read_val, DM_DMCS2_GROUP) == group);
 	return ERROR_OK;
 }
 
@@ -1866,7 +1946,7 @@ static int examine(struct target *target)
 	if (riscv_init_registers(target) != ERROR_OK)
 		return ERROR_FAIL;
 
-	if (update_dcsr(target, false) != ERROR_OK)
+	if (set_dcsr_ebreak(target, false) != ERROR_OK)
 		return ERROR_FAIL;
 
 	target->state = saved_tgt_state;
@@ -1880,9 +1960,9 @@ static int examine(struct target *target)
 
 	if (target->smp) {
 		bool haltgroup_supported;
-		if (set_group(target, &haltgroup_supported, target->smp, HALTGROUP) != ERROR_OK)
+		if (set_group(target, &haltgroup_supported, target->smp, HALT_GROUP) != ERROR_OK)
 			return ERROR_FAIL;
-		if (haltgroup_supported)
+		if (info->haltgroup_supported)
 			LOG_INFO("Core %d made part of halt group %d.", target->coreid,
 					target->smp);
 		else
@@ -2429,6 +2509,7 @@ static int riscv013_get_hart_state(struct target *target, enum riscv_hart_state 
 		return ERROR_FAIL;
 	if (get_field(dmstatus, DM_DMSTATUS_ANYHAVERESET)) {
 		LOG_TARGET_INFO(target, "Hart unexpectedly reset!");
+		info->dcsr_ebreak_is_set = false;
 		/* TODO: Can we make this more obvious to eg. a gdb user? */
 		uint32_t dmcontrol = DM_DMCONTROL_DMACTIVE |
 			DM_DMCONTROL_ACKHAVERESET;
@@ -2462,6 +2543,24 @@ static int riscv013_get_hart_state(struct target *target, enum riscv_hart_state 
 	return ERROR_FAIL;
 }
 
+static int handle_became_unavailable(struct target *target,
+		enum riscv_hart_state previous_riscv_state)
+{
+	RISCV013_INFO(info);
+	info->dcsr_ebreak_is_set = false;
+	return ERROR_OK;
+}
+
+static int tick(struct target *target)
+{
+	RISCV013_INFO(info);
+	if (!info->dcsr_ebreak_is_set &&
+			target->state == TARGET_RUNNING &&
+			target_was_examined(target))
+		return halt_set_dcsr_ebreak(target);
+	return ERROR_OK;
+}
+
 static int init_target(struct command_context *cmd_ctx,
 		struct target *target)
 {
@@ -2476,7 +2575,6 @@ static int init_target(struct command_context *cmd_ctx,
 	generic_info->get_hart_state = &riscv013_get_hart_state;
 	generic_info->resume_go = &riscv013_resume_go;
 	generic_info->step_current_hart = &riscv013_step_current_hart;
-	generic_info->on_halt = &riscv013_on_halt;
 	generic_info->resume_prep = &riscv013_resume_prep;
 	generic_info->halt_prep = &riscv013_halt_prep;
 	generic_info->halt_go = &riscv013_halt_go;
@@ -2498,6 +2596,10 @@ static int init_target(struct command_context *cmd_ctx,
 	generic_info->hart_count = &riscv013_hart_count;
 	generic_info->data_bits = &riscv013_data_bits;
 	generic_info->print_info = &riscv013_print_info;
+
+	generic_info->handle_became_unavailable = &handle_became_unavailable;
+	generic_info->tick = &tick;
+
 	if (!generic_info->version_specific) {
 		generic_info->version_specific = calloc(1, sizeof(riscv013_info_t));
 		if (!generic_info->version_specific)
@@ -2615,6 +2717,7 @@ static int deassert_reset(struct target *target)
 		target->state = TARGET_RUNNING;
 		target->debug_reason = DBG_REASON_NOTHALTED;
 	}
+	info->dcsr_ebreak_is_set = false;
 
 	/* Ack reset and clear DM_DMCONTROL_HALTREQ if previously set */
 	control = 0;
@@ -4502,11 +4605,6 @@ static int riscv013_on_step(struct target *target)
 	return riscv013_on_step_or_resume(target, true);
 }
 
-static int riscv013_on_halt(struct target *target)
-{
-	return ERROR_OK;
-}
-
 static enum riscv_halt_reason riscv013_halt_reason(struct target *target)
 {
 	riscv_reg_t dcsr;
@@ -4630,7 +4728,7 @@ static int riscv013_on_step_or_resume(struct target *target, bool step)
 	if (maybe_execute_fence_i(target) != ERROR_OK)
 		return ERROR_FAIL;
 
-	if (update_dcsr(target, step) != ERROR_OK)
+	if (set_dcsr_ebreak(target, step) != ERROR_OK)
 		return ERROR_FAIL;
 
 	if (riscv_flush_registers(target) != ERROR_OK)

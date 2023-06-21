@@ -2752,7 +2752,9 @@ static int riscv_poll_hart(struct target *target, enum riscv_next_action *next_a
 					}
 				}
 
-				r->on_halt(target);
+				if (r->handle_became_halted &&
+						r->handle_became_halted(target, previous_riscv_state) != ERROR_OK)
+					return ERROR_FAIL;
 
 				/* We shouldn't do the callbacks yet. What if
 				 * there are multiple harts that halted at the
@@ -2771,12 +2773,18 @@ static int riscv_poll_hart(struct target *target, enum riscv_next_action *next_a
 				LOG_TARGET_DEBUG(target, "  triggered running");
 				target->state = TARGET_RUNNING;
 				target->debug_reason = DBG_REASON_NOTHALTED;
+				if (r->handle_became_running &&
+						r->handle_became_running(target, previous_riscv_state) != ERROR_OK)
+					return ERROR_FAIL;
 				break;
 
 			case RISCV_STATE_UNAVAILABLE:
 				LOG_TARGET_DEBUG(target, "  became unavailable");
 				LOG_TARGET_INFO(target, "became unavailable.");
 				target->state = TARGET_UNAVAILABLE;
+				if (r->handle_became_unavailable &&
+						r->handle_became_unavailable(target, previous_riscv_state) != ERROR_OK)
+					return ERROR_FAIL;
 				break;
 
 			case RISCV_STATE_NON_EXISTENT:
@@ -2924,6 +2932,17 @@ int riscv_openocd_poll(struct target *target)
 				info->halted_needs_event_callback = false;
 			}
 		}
+	}
+
+	/* Call tick() for every hart. What happens in tick() is opaque to this
+	 * layer. The reason it's outside the previous loop is that at this point
+	 * the state of every hart has settled, so any side effects happening in
+	 * tick() won't affect the delicate poll() code. */
+	foreach_smp_target(entry, targets) {
+		struct target *t = entry->target;
+		struct riscv_info *info = riscv_info(t);
+		if (info->tick && info->tick(t) != ERROR_OK)
+			return ERROR_FAIL;
 	}
 
 	/* Sample memory if any target is running. */
@@ -4538,7 +4557,6 @@ static int riscv_step_rtos_hart(struct target *target)
 	r->on_step(target);
 	if (r->step_current_hart(target) != ERROR_OK)
 		return ERROR_FAIL;
-	r->on_halt(target);
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("Hart was not halted after single step!");
 		return ERROR_FAIL;
