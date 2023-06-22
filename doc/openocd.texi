@@ -11278,6 +11278,18 @@ When utilizing version 0.11 of the RISC-V Debug Specification,
 and DBUS registers, respectively.
 @end deffn
 
+@deffn {Command} {riscv smp} [on|off]
+Display, enable or disable SMP handling mode. This command is needed only if
+user wants to temporary @b{disable} SMP handling for an existing SMP group
+(see @code{aarch64 smp} for additional information). To define an SMP
+group the command @code{target smp} should be used.
+@end deffn
+
+@deffn {Command} {riscv smp_gdb} [core_id]
+Display/set the current core displayed in GDB. This is needed only if
+@code{riscv smp} was used.
+@end deffn
+
 @deffn {Command} {riscv use_bscan_tunnel} value
 Enable or disable use of a BSCAN tunnel to reach the Debug Module. Supply the
 width of the DM transport TAP's instruction register to enable. Supply a
