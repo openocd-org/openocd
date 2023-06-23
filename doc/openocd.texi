@@ -9448,8 +9448,9 @@ Return a list of all channels and their properties as Tcl list.
 The list can be manipulated easily from within scripts.
 @end deffn
 
-@deffn {Command} {rtt server start} port channel
-Start a TCP server on @var{port} for the channel @var{channel}.
+@deffn {Command} {rtt server start} port channel [message]
+Start a TCP server on @var{port} for the channel @var{channel}. When
+@var{message} is not empty, it will be sent to a client when it connects.
 @end deffn
 
 @deffn {Command} {rtt server stop} port
