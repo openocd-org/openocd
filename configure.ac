@@ -825,8 +825,10 @@ AC_SUBST(EXTRA_DIST_NEWS, ["$(echo $srcdir/NEWS-*)"])
 AC_CONFIG_FILES([
   Makefile \
   testing/Makefile \
-  testing/tcl_commands/Makefile
+  testing/tcl_commands/Makefile \
+  tools/syntacore/Makefile
 ])
+AM_CONDITIONAL([BUILD_USB_RESET], [test "x$is_linux" = "xyes"])
 AC_OUTPUT
 
 
