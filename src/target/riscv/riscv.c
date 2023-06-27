@@ -2737,6 +2737,9 @@ static int riscv_poll_hart(struct target *target, enum riscv_next_action *next_a
 	if (target->state == TARGET_UNKNOWN || state != previous_riscv_state) {
 		switch (state) {
 			case RISCV_STATE_HALTED:
+				if (previous_riscv_state == RISCV_STATE_UNAVAILABLE)
+					LOG_TARGET_INFO(target, "became available (halted)");
+
 				LOG_TARGET_DEBUG(target, "  triggered a halt; previous_target_state=%d",
 					previous_target_state);
 				target->state = TARGET_HALTED;
@@ -2782,6 +2785,9 @@ static int riscv_poll_hart(struct target *target, enum riscv_next_action *next_a
 				break;
 
 			case RISCV_STATE_RUNNING:
+				if (previous_riscv_state == RISCV_STATE_UNAVAILABLE)
+					LOG_TARGET_INFO(target, "became available (running)");
+
 				LOG_TARGET_DEBUG(target, "  triggered running");
 				target->state = TARGET_RUNNING;
 				target->debug_reason = DBG_REASON_NOTHALTED;
