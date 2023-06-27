@@ -1959,8 +1959,7 @@ static int examine(struct target *target)
 	}
 
 	if (target->smp) {
-		bool haltgroup_supported;
-		if (set_group(target, &haltgroup_supported, target->smp, HALT_GROUP) != ERROR_OK)
+		if (set_group(target, &info->haltgroup_supported, target->smp, HALT_GROUP) != ERROR_OK)
 			return ERROR_FAIL;
 		if (info->haltgroup_supported)
 			LOG_INFO("Core %d made part of halt group %d.", target->coreid,
