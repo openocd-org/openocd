@@ -759,6 +759,33 @@ static int dm_write_exec(struct target *target, uint32_t address,
 	return dmi_write_exec(target, address + dm->base, value, ensure_success);
 }
 
+static bool check_dbgbase_exists(struct target *target)
+{
+	uint32_t next_dm = 0;
+	unsigned int count = 1;
+
+	LOG_TARGET_DEBUG(target, "Searching for DM with DMI base address (dbgbase) = 0x%x", target->dbgbase);
+	while (1) {
+		uint32_t current_dm = next_dm;
+		if (current_dm == target->dbgbase)
+			return true;
+		if (dmi_read(target, &next_dm, DM_NEXTDM + current_dm) != ERROR_OK)
+			break;
+		LOG_TARGET_DEBUG(target, "dm @ 0x%x --> nextdm=0x%x", current_dm, next_dm);
+		/* Check if it's last one in the chain. */
+		if (next_dm == 0) {
+			LOG_TARGET_ERROR(target, "Reached the end of DM chain (detected %u DMs in total).", count);
+			break;
+		}
+		/* Safety: Avoid looping forever in case of buggy nextdm values in the hardware. */
+		if (count++ > RISCV_MAX_DMS) {
+			LOG_TARGET_ERROR(target, "Supporting no more than %d DMs on a DMI bus. Aborting", RISCV_MAX_DMS);
+			break;
+		}
+	}
+	return false;
+}
+
 static int dmstatus_read_timeout(struct target *target, uint32_t *dmstatus,
 		bool authenticated, unsigned timeout_sec)
 {
@@ -1791,6 +1818,11 @@ static int examine(struct target *target)
 	info->index = target->coreid;
 	info->abits = get_field(dtmcontrol, DTM_DTMCS_ABITS);
 	info->dtmcs_idle = get_field(dtmcontrol, DTM_DTMCS_IDLE);
+
+	if (!check_dbgbase_exists(target)) {
+		LOG_TARGET_ERROR(target, "Could not find debug module with DMI base address (dbgbase) = 0x%x", target->dbgbase);
+		return ERROR_FAIL;
+	}
 
 	/* Reset the Debug Module. */
 	dm013_info_t *dm = get_dm(target);
