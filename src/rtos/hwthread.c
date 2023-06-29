@@ -95,6 +95,9 @@ static int hwthread_update_threads(struct rtos *rtos)
 
 	target = rtos->target;
 
+	/* wipe out previous thread details if any */
+	rtos_free_threadlist(rtos);
+
 	/* determine the number of "threads" */
 	if (target->smp) {
 		foreach_smp_target(head, target->smp_targets) {
