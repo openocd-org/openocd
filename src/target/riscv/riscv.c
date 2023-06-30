@@ -4663,7 +4663,7 @@ static bool gdb_regno_cacheable(enum gdb_regno regno, bool is_write)
 
 		case GDB_REGNO_TSELECT:	/* I think this should be above, but then it doesn't work. */
 		case GDB_REGNO_TDATA1:	/* Changes value when tselect is changed. */
-		case GDB_REGNO_TDATA2:  /* Changse value when tselect is changed. */
+		case GDB_REGNO_TDATA2:  /* Changes value when tselect is changed. */
 		default:
 			return false;
 	}
