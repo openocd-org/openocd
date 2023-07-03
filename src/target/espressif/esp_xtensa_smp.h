@@ -9,6 +9,7 @@
 #define OPENOCD_TARGET_XTENSA_ESP_SMP_H
 
 #include "esp_xtensa.h"
+#include "esp_algorithm.h"
 
 struct esp_xtensa_smp_chip_ops {
 	int (*poll)(struct target *target);
@@ -47,7 +48,12 @@ int esp_xtensa_smp_init_arch_info(struct target *target,
 	struct xtensa_debug_module_config *dm_cfg,
 	const struct esp_xtensa_smp_chip_ops *chip_ops,
 	const struct esp_semihost_ops *semihost_ops);
-
+int esp_xtensa_smp_run_func_image(struct target *target, struct esp_algorithm_run_data *run, uint32_t num_args, ...);
+int esp_xtensa_smp_run_onboard_func(struct target *target,
+	struct esp_algorithm_run_data *run,
+	uint32_t func_addr,
+	uint32_t num_args,
+	...);
 extern const struct command_registration esp_xtensa_smp_command_handlers[];
 extern const struct command_registration esp_xtensa_smp_xtensa_command_handlers[];
 extern const struct command_registration esp_xtensa_smp_esp_command_handlers[];

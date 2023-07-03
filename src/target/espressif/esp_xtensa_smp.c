@@ -16,6 +16,7 @@
 #include <target/semihosting_common.h>
 #include "esp_xtensa_smp.h"
 #include "esp_xtensa_semihosting.h"
+#include "esp_algorithm.h"
 
 /*
 Multiprocessor stuff common:
@@ -493,6 +494,83 @@ int esp_xtensa_smp_watchpoint_remove(struct target *target, struct watchpoint *w
 		curr->smp = 1;
 	}
 	return ERROR_OK;
+}
+
+int esp_xtensa_smp_run_func_image(struct target *target, struct esp_algorithm_run_data *run, uint32_t num_args, ...)
+{
+	struct target *run_target = target;
+	struct target_list *head;
+	va_list ap;
+	uint32_t smp_break = 0;
+	int res;
+
+	if (target->smp) {
+		/* find first HALTED and examined core */
+		foreach_smp_target(head, target->smp_targets) {
+			run_target = head->target;
+			if (target_was_examined(run_target) && run_target->state == TARGET_HALTED)
+				break;
+		}
+		if (!head) {
+			LOG_ERROR("Failed to find HALTED core!");
+			return ERROR_FAIL;
+		}
+
+		res = esp_xtensa_smp_smpbreak_disable(run_target, &smp_break);
+		if (res != ERROR_OK)
+			return res;
+	}
+
+	va_start(ap, num_args);
+	int algo_res = esp_algorithm_run_func_image_va(run_target, run, num_args, ap);
+	va_end(ap);
+
+	if (target->smp) {
+		res = esp_xtensa_smp_smpbreak_restore(run_target, smp_break);
+		if (res != ERROR_OK)
+			return res;
+	}
+	return algo_res;
+}
+
+int esp_xtensa_smp_run_onboard_func(struct target *target,
+	struct esp_algorithm_run_data *run,
+	uint32_t func_addr,
+	uint32_t num_args,
+	...)
+{
+	struct target *run_target = target;
+	struct target_list *head;
+	va_list ap;
+	uint32_t smp_break = 0;
+	int res;
+
+	if (target->smp) {
+		/* find first HALTED and examined core */
+		foreach_smp_target(head, target->smp_targets) {
+			run_target = head->target;
+			if (target_was_examined(run_target) && run_target->state == TARGET_HALTED)
+				break;
+		}
+		if (!head) {
+			LOG_ERROR("Failed to find HALTED core!");
+			return ERROR_FAIL;
+		}
+		res = esp_xtensa_smp_smpbreak_disable(run_target, &smp_break);
+		if (res != ERROR_OK)
+			return res;
+	}
+
+	va_start(ap, num_args);
+	int algo_res = esp_algorithm_run_onboard_func_va(run_target, run, func_addr, num_args, ap);
+	va_end(ap);
+
+	if (target->smp) {
+		res = esp_xtensa_smp_smpbreak_restore(run_target, smp_break);
+		if (res != ERROR_OK)
+			return res;
+	}
+	return algo_res;
 }
 
 int esp_xtensa_smp_init_arch_info(struct target *target,
