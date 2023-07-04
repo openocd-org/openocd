@@ -17,6 +17,12 @@
 #include "esp_xtensa.h"
 #include "esp_semihosting.h"
 
+int esp_xtensa_on_halt(struct target *target)
+{
+	/* will be used in the next patches */
+	return ERROR_OK;
+}
+
 int esp_xtensa_init_arch_info(struct target *target,
 	struct esp_xtensa_common *esp_xtensa,
 	struct xtensa_debug_module_config *dm_cfg,

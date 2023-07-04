@@ -112,6 +112,21 @@ int esp_xtensa_smp_soft_reset_halt(struct target *target)
 	return ERROR_OK;
 }
 
+int esp_xtensa_smp_on_halt(struct target *target)
+{
+	struct target_list *head;
+
+	if (!target->smp)
+		return esp_xtensa_on_halt(target);
+
+	foreach_smp_target(head, target->smp_targets) {
+		int res = esp_xtensa_on_halt(head->target);
+		if (res != ERROR_OK)
+			return res;
+	}
+	return ERROR_OK;
+}
+
 static struct target *get_halted_esp_xtensa_smp(struct target *target, int32_t coreid)
 {
 	struct target_list *head;

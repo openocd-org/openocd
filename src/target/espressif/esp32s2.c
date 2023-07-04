@@ -385,7 +385,10 @@ static int esp32s2_arch_state(struct target *target)
 
 static int esp32s2_on_halt(struct target *target)
 {
-	return esp32s2_disable_wdts(target);
+	int ret = esp32s2_disable_wdts(target);
+	if (ret == ERROR_OK)
+		ret = esp_xtensa_on_halt(target);
+	return ret;
 }
 
 static int esp32s2_step(struct target *target, int current, target_addr_t address, int handle_breakpoints)

@@ -283,7 +283,10 @@ static int esp32s3_disable_wdts(struct target *target)
 
 static int esp32s3_on_halt(struct target *target)
 {
-	return esp32s3_disable_wdts(target);
+	int ret = esp32s3_disable_wdts(target);
+	if (ret == ERROR_OK)
+		ret = esp_xtensa_smp_on_halt(target);
+	return ret;
 }
 
 static int esp32s3_arch_state(struct target *target)
