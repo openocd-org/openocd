@@ -24,16 +24,6 @@ implementation.
 */
 
 /* ESP32_S3 memory map */
-#define ESP32_S3_IRAM_LOW               0x40370000
-#define ESP32_S3_IRAM_HIGH              0x403E0000
-#define ESP32_S3_IROM_MASK_LOW          0x40000000
-#define ESP32_S3_IROM_MASK_HIGH         0x40060000
-#define ESP32_S3_DRAM_LOW               0x3FC88000
-#define ESP32_S3_DRAM_HIGH              0x3FD00000
-#define ESP32_S3_RTC_IRAM_LOW           0x600FE000
-#define ESP32_S3_RTC_IRAM_HIGH          0x60100000
-#define ESP32_S3_RTC_DRAM_LOW           0x600FE000
-#define ESP32_S3_RTC_DRAM_HIGH          0x60100000
 #define ESP32_S3_RTC_DATA_LOW           0x50000000
 #define ESP32_S3_RTC_DATA_HIGH          0x50002000
 #define ESP32_S3_EXTRAM_DATA_LOW        0x3D000000
