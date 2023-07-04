@@ -572,33 +572,46 @@ static int set_trigger(struct target *target, unsigned int idx, riscv_reg_t tdat
 	riscv_reg_t tdata1_ignore_mask)
 {
 	riscv_reg_t tdata1_rb, tdata2_rb;
+	// Select which trigger to use
 	if (riscv_set_register(target, GDB_REGNO_TSELECT, idx) != ERROR_OK)
 		return ERROR_FAIL;
+
+	// Disable the trigger by writing 0 to it
+	if (riscv_set_register(target, GDB_REGNO_TDATA1, 0) != ERROR_OK)
+		return ERROR_FAIL;
+
+	// Set trigger data for tdata2 (and tdata3 if it was supported)
+	if (riscv_set_register(target, GDB_REGNO_TDATA2, tdata2) != ERROR_OK)
+		return ERROR_FAIL;
+
+	// Set trigger data for tdata1
 	if (riscv_set_register(target, GDB_REGNO_TDATA1, tdata1) != ERROR_OK)
 		return ERROR_FAIL;
+
+	// Read back tdata1, tdata2, (tdata3), and check if the configuration is supported
 	if (riscv_get_register(target, &tdata1_rb, GDB_REGNO_TDATA1) != ERROR_OK)
-		return ERROR_FAIL;
-	if ((tdata1 & ~tdata1_ignore_mask) != (tdata1_rb & ~tdata1_ignore_mask)) {
-		LOG_TARGET_DEBUG(target,
-			"Trigger %u doesn't support what we need; After writing 0x%"
-			PRIx64 " to tdata1 it contains 0x%" PRIx64
-			"; tdata1_ignore_mask=0x%" PRIx64,
-			idx, tdata1, tdata1_rb, tdata1_ignore_mask);
-		riscv_set_register(target, GDB_REGNO_TDATA1, 0);
-		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-	}
-	if (riscv_set_register(target, GDB_REGNO_TDATA2, tdata2) != ERROR_OK)
 		return ERROR_FAIL;
 	if (riscv_get_register(target, &tdata2_rb, GDB_REGNO_TDATA2) != ERROR_OK)
 		return ERROR_FAIL;
-	if (tdata2 != tdata2_rb) {
-		LOG_TARGET_DEBUG(target,
-			"Trigger %u doesn't support what we need; wrote 0x%"
-			PRIx64 " to tdata2 but read back 0x%" PRIx64,
-			idx, tdata2, tdata2_rb);
+	bool tdata1_config_denied = (tdata1 & ~tdata1_ignore_mask) != (tdata1_rb & ~tdata1_ignore_mask);
+	bool tdata2_config_denied = tdata2 != tdata2_rb;
+	if (tdata1_config_denied || tdata2_config_denied) {
+		LOG_TARGET_DEBUG(target, "Trigger %u doesn't support what we need.", idx);
+
+		if (tdata1_config_denied)
+			LOG_TARGET_DEBUG(target,
+				"After writing 0x%" PRIx64 " to tdata1 it contains 0x%" PRIx64 "; tdata1_ignore_mask=0x%" PRIx64,
+				tdata1, tdata1_rb, tdata1_ignore_mask);
+
+		if (tdata2_config_denied)
+			LOG_TARGET_DEBUG(target,
+				"wrote 0x%" PRIx64 " to tdata2 but read back 0x%" PRIx64,
+				tdata2, tdata2_rb);
+
 		riscv_set_register(target, GDB_REGNO_TDATA1, 0);
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
+
 	return ERROR_OK;
 }
 
