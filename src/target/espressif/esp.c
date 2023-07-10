@@ -14,6 +14,16 @@
 #include "target/target.h"
 #include "esp.h"
 
+int esp_common_init(struct esp_common *esp, const struct esp_algorithm_hw *algo_hw)
+{
+	if (!esp)
+		return ERROR_FAIL;
+
+	esp->algo_hw = algo_hw;
+
+	return ERROR_OK;
+}
+
 int esp_dbgstubs_table_read(struct target *target, struct esp_dbg_stubs *dbg_stubs)
 {
 	uint32_t table_size, table_start_id, desc_entry_id, gcov_entry_id;
