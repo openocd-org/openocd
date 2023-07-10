@@ -632,10 +632,8 @@ static int ipdbg_start(uint16_t port, struct jtag_tap *tap, uint32_t user_instru
 		}
 	} else {
 		int retval = ipdbg_create_hub(tap, user_instruction, data_register_length, virtual_ir, &hub);
-		if (retval != ERROR_OK) {
-			free(virtual_ir);
+		if (retval != ERROR_OK)
 			return retval;
-		}
 	}
 
 	struct ipdbg_service *service = NULL;
