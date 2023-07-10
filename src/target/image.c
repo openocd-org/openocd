@@ -433,7 +433,7 @@ static int image_elf32_read_headers(struct image *image)
 			break;
 		else if ((field32(elf,
 			elf->segments32[i].p_type) == PT_LOAD) &&
-			(field32(elf, elf->segments32[i].p_memsz) != 0))
+			(field32(elf, elf->segments32[i].p_filesz) != 0))
 			++nload;
 
 	if (i >= elf->segment_count && nload > 1)
@@ -448,7 +448,8 @@ static int image_elf32_read_headers(struct image *image)
 
 	for (i = 0, j = 0; i < elf->segment_count; i++) {
 		if (field32(elf, elf->segments32[i].p_type) == PT_LOAD) {
-			image->sections[j].size = field32(elf, elf->segments32[i].p_memsz);
+			unsigned int filesize = field32(elf, elf->segments32[i].p_filesz);
+			image->sections[j].size = filesize?field32(elf, elf->segments32[i].p_memsz):0;
 			if (load_to_vaddr)
 				image->sections[j].base_address = field32(elf,
 						elf->segments32[i].p_vaddr);

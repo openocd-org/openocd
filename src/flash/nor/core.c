@@ -929,7 +929,7 @@ int flash_write_unlock_verify(struct target *target, struct image *image,
 				buffer_idx, size_read);
 			retval = image_read_section(image, t_section_num, section_offset,
 					size_read, buffer + buffer_idx, &size_read);
-			if (retval != ERROR_OK || size_read == 0) {
+			if (retval != ERROR_OK) {
 				free(buffer);
 				goto done;
 			}
