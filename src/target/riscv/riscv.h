@@ -12,12 +12,11 @@ struct riscv_program;
 #include "target/register.h"
 #include "target/semihosting_common.h"
 #include <helper/command.h>
+#include <helper/bits.h>
 
 #define RISCV_COMMON_MAGIC	0x52495356U
 
-/* The register cache is statically allocated. */
-#define RISCV_MAX_HARTS 1024
-#define RISCV_MAX_REGISTERS 5000
+#define RISCV_MAX_HARTS  ((int)BIT(20))
 #define RISCV_MAX_TRIGGERS 32
 #define RISCV_MAX_HWBPS 16
 
@@ -30,7 +29,7 @@ struct riscv_program;
 #define RISCV_HGATP_PPN(xlen)  ((xlen) == 32 ? HGATP32_PPN : HGATP64_PPN)
 #define RISCV_PGSHIFT 12
 
-# define PG_MAX_LEVEL 4
+#define PG_MAX_LEVEL 4
 
 #define RISCV_NUM_MEM_ACCESS_METHODS  3
 
