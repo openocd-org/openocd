@@ -127,7 +127,7 @@ int riscv_batch_run(struct riscv_batch *batch)
 	return ERROR_OK;
 }
 
-void riscv_batch_add_dmi_write(struct riscv_batch *batch, unsigned address, uint64_t data,
+void riscv_batch_add_dmi_write(struct riscv_batch *batch, unsigned int address, uint64_t data,
 	bool read_back)
 {
 	assert(batch->used_scans < batch->allocated_scans);
@@ -194,7 +194,7 @@ void riscv_batch_add_nop(struct riscv_batch *batch)
 	batch->used_scans++;
 }
 
-void dump_field(int idle, const struct scan_field *field)
+static void dump_field(int idle, const struct scan_field *field)
 {
 	static const char * const op_string[] = {"-", "r", "w", "?"};
 	static const char * const status_string[] = {"+", "?", "F", "b"};
