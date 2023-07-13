@@ -4448,9 +4448,9 @@ static int select_prepped_harts(struct target *target)
 
 	assert(dm->hart_count);
 	unsigned hawindow_count = (dm->hart_count + 31) / 32;
-	uint32_t hawindow[hawindow_count];
-
-	memset(hawindow, 0, sizeof(uint32_t) * hawindow_count);
+	uint32_t *hawindow = calloc(hawindow_count, sizeof(uint32_t));
+	if (!hawindow)
+		return ERROR_FAIL;
 
 	target_list_t *entry;
 	unsigned total_selected = 0;
@@ -4472,22 +4472,31 @@ static int select_prepped_harts(struct target *target)
 
 	if (total_selected == 0) {
 		LOG_TARGET_ERROR(target, "No harts were prepped!");
+		free(hawindow);
 		return ERROR_FAIL;
 	} else if (total_selected == 1) {
 		/* Don't use hasel if we only need to talk to one hart. */
+		free(hawindow);
 		return dm013_select_hart(target, selected_index);
 	}
 
-	if (dm013_select_hart(target, HART_INDEX_MULTIPLE) != ERROR_OK)
+	if (dm013_select_hart(target, HART_INDEX_MULTIPLE) != ERROR_OK) {
+		free(hawindow);
 		return ERROR_FAIL;
-
-	for (unsigned i = 0; i < hawindow_count; i++) {
-		if (dmi_write(target, DM_HAWINDOWSEL, i) != ERROR_OK)
-			return ERROR_FAIL;
-		if (dmi_write(target, DM_HAWINDOW, hawindow[i]) != ERROR_OK)
-			return ERROR_FAIL;
 	}
 
+	for (unsigned i = 0; i < hawindow_count; i++) {
+		if (dmi_write(target, DM_HAWINDOWSEL, i) != ERROR_OK) {
+			free(hawindow);
+			return ERROR_FAIL;
+		}
+		if (dmi_write(target, DM_HAWINDOW, hawindow[i]) != ERROR_OK) {
+			free(hawindow);
+			return ERROR_FAIL;
+		}
+	}
+
+	free(hawindow);
 	return ERROR_OK;
 }
 
