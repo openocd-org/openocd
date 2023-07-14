@@ -10596,11 +10596,9 @@ addreg rtest 0x1234 org.gnu.gdb.or1k.group0 system
 @section RISC-V Architecture
 
 @uref{http://riscv.org/, RISC-V} is a free and open ISA. OpenOCD supports JTAG
-debug of RV32 and RV64 cores in heterogeneous multicore systems of up to 32
-harts. (It's possible to increase this limit to 1024 by changing
-RISCV_MAX_HARTS in riscv.h.) OpenOCD primarily supports 0.13 of the RISC-V
-Debug Specification, but there is also support for legacy targets that
-implement version 0.11.
+debug of RV32 and RV64 cores in heterogeneous multicore systems of up to 2^20
+harts. OpenOCD primarily supports 0.13 of the RISC-V Debug Specification,
+but there is also support for legacy targets that implement version 0.11.
 
 @subsection RISC-V Terminology
 
