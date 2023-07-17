@@ -3396,310 +3396,514 @@ static int write_memory_abstract(struct target *target, target_addr_t address,
 }
 
 /**
- * Read the requested memory, taking care to execute every read exactly once,
- * even if cmderr=busy is encountered.
+ * This function is used to start the memory-reading pipeline.
+ * The pipeline looks like this:
+ * memory -> s1 -> dm_data[0:1] -> debugger
+ * Prior to calling it, the program buffer should contain the appropriate
+ * program.
+ * This function sets DM_ABSTRACTAUTO_AUTOEXECDATA to trigger second stage of the
+ * pipeline (s1 -> dm_data[0:1]) whenever dm_data is read.
  */
-static int read_memory_progbuf_inner(struct target *target, target_addr_t address,
-		uint32_t size, uint32_t count, uint8_t *buffer, uint32_t increment)
+static int read_memory_progbuf_inner_startup(struct target *target,
+		target_addr_t address, uint32_t increment, uint32_t index)
+{
+	RISCV013_INFO(info);
+	/* s0 holds the next address to read from.
+	 * s1 holds the next data value read.
+	 * a0 is a counter in case increment is 0.
+	 */
+	if (register_write_direct(target, GDB_REGNO_S0, address + index * increment)
+			!= ERROR_OK)
+		return ERROR_FAIL;
+
+	if (/*is_repeated_read*/ increment == 0 &&
+			register_write_direct(target, GDB_REGNO_A0, index) != ERROR_OK)
+		return ERROR_FAIL;
+
+	/* AC_ACCESS_REGISTER_POSTEXEC is used to trigger first stage of the
+	 * pipeline (memory -> s1) whenever this command is executed.
+	 */
+	const uint32_t startup_command = access_register_command(target,
+			GDB_REGNO_S1, riscv_xlen(target),
+			AC_ACCESS_REGISTER_TRANSFER | AC_ACCESS_REGISTER_POSTEXEC);
+	if (execute_abstract_command(target, startup_command) != ERROR_OK)
+		return ERROR_FAIL;
+
+	/* First read has just triggered. Result is in s1.
+	 * dm_data registers contain the previous value of s1 (garbage).
+	 */
+	if (dmi_write(target, DM_ABSTRACTAUTO,
+				set_field(0, DM_ABSTRACTAUTO_AUTOEXECDATA, 1)) != ERROR_OK)
+		return ERROR_FAIL;
+
+	/* Read garbage from dm_data0, which triggers another execution of the
+	 * program. Now dm_data contains the first good result (from s1),
+	 * and s1 the next memory value.
+	 */
+	if (dmi_read_exec(target, NULL, DM_DATA0) != ERROR_OK)
+		goto clear_abstractauto_and_fail;
+
+	uint32_t abstractcs;
+
+	if (wait_for_idle(target, &abstractcs) != ERROR_OK)
+		goto clear_abstractauto_and_fail;
+
+	info->cmderr = get_field(abstractcs, DM_ABSTRACTCS_CMDERR);
+	switch (info->cmderr) {
+	case CMDERR_NONE:
+		return ERROR_OK;
+	case CMDERR_BUSY:
+		LOG_TARGET_ERROR(target, "Unexpected busy error. This is probably a hardware bug.");
+		/* fall through */
+	default:
+		LOG_TARGET_DEBUG(target, "error when reading memory, cmderr=0x%" PRIx32,
+				info->cmderr);
+		riscv013_clear_abstract_error(target);
+		goto clear_abstractauto_and_fail;
+	}
+clear_abstractauto_and_fail:
+	dmi_write(target, DM_ABSTRACTAUTO, 0);
+	return ERROR_FAIL;
+}
+
+struct memory_access_info {
+	uint8_t *buffer_address;
+	target_addr_t target_address;
+	uint32_t element_size;
+	uint32_t increment;
+};
+
+/**
+ * This function attempts to restore the pipeline after a busy on abstract
+ * access.
+ * Target's state is as follows:
+ * s0 contains address + index_on_target * increment
+ * s1 contains mem[address + (index_on_target - 1) * increment]
+ * dm_data[0:1] contains mem[address + (index_on_target - 2) * increment]
+ */
+static int read_memory_progbuf_inner_on_ac_busy(struct target *target,
+		uint32_t start_index, uint32_t elements_to_read, uint32_t *elements_read,
+		struct memory_access_info access)
+{
+	increase_ac_busy_delay(target);
+	riscv013_clear_abstract_error(target);
+
+	if (dmi_write(target, DM_ABSTRACTAUTO, 0) != ERROR_OK)
+		return ERROR_FAIL;
+
+	/* See how far we got by reading s0/a0 */
+	uint32_t index_on_target;
+
+	if (/*is_repeated_read*/ access.increment == 0) {
+		/* s0 is constant, a0 is incremented by one each execution */
+		riscv_reg_t counter;
+
+		if (register_read_direct(target, &counter, GDB_REGNO_A0) != ERROR_OK)
+			return ERROR_FAIL;
+		index_on_target = counter;
+	} else {
+		target_addr_t address_on_target;
+
+		if (register_read_direct(target, &address_on_target, GDB_REGNO_S0) != ERROR_OK)
+			return ERROR_FAIL;
+		index_on_target = (address_on_target - access.target_address) /
+			access.increment;
+	}
+
+	/* According to the spec, if an abstract command fails, one can't make any
+	 * assumptions about dm_data registers, so all the values in the pipeline
+	 * are clobbered now and need to be reread.
+	 */
+	const uint32_t min_index_on_target = start_index + 2;
+	if (index_on_target < min_index_on_target) {
+		LOG_TARGET_ERROR(target, "Arithmetic does not work correctly on the target");
+		return ERROR_FAIL;
+	} else if (index_on_target == min_index_on_target) {
+		LOG_TARGET_DEBUG(target, "No forward progress");
+	}
+	const uint32_t next_index = (index_on_target - 2);
+	*elements_read = next_index - start_index;
+	LOG_TARGET_WARNING(target, "Re-reading memory from addresses 0x%"
+			TARGET_PRIxADDR " and 0x%" TARGET_PRIxADDR ".",
+			access.target_address + access.increment * next_index,
+			access.target_address + access.increment * (next_index + 1));
+	return read_memory_progbuf_inner_startup(target, access.target_address,
+			access.increment, next_index);
+}
+
+/**
+ * This function attempts to restore the pipeline after a dmi busy.
+ */
+static int read_memory_progbuf_inner_on_dmi_busy(struct target *target,
+		uint32_t start_index, uint32_t next_start_index,
+		struct memory_access_info access)
+{
+	LOG_TARGET_DEBUG(target, "DMI_STATUS_BUSY encountered in batch. Memory read [%"
+			PRIu32 ", %" PRIu32 ")", start_index, next_start_index);
+	if (start_index == next_start_index)
+		LOG_TARGET_DEBUG(target, "No forward progress");
+
+	if (dmi_write(target, DM_ABSTRACTAUTO, 0) != ERROR_OK)
+		return ERROR_FAIL;
+	return read_memory_progbuf_inner_startup(target, access.target_address,
+			access.increment, next_start_index);
+}
+
+/**
+ * This function extracts the data from the batch.
+ */
+static int read_memory_progbuf_inner_extract_batch_data(struct target *target,
+		const struct riscv_batch *batch,
+		uint32_t start_index, uint32_t elements_to_read, uint32_t *elements_read,
+		struct memory_access_info access)
+{
+	const bool two_reads_per_element = access.element_size > 4;
+	const uint32_t reads_per_element = (two_reads_per_element ? 2 : 1);
+	assert(!two_reads_per_element || riscv_xlen(target) == 64);
+	assert(elements_to_read <= UINT32_MAX / reads_per_element);
+	const uint32_t nreads = elements_to_read * reads_per_element;
+	for (uint32_t curr_idx = start_index, read = 0; read < nreads; ++read) {
+		switch (riscv_batch_get_dmi_read_op(batch, read)) {
+		case DMI_STATUS_BUSY:
+			*elements_read = curr_idx - start_index;
+			return read_memory_progbuf_inner_on_dmi_busy(target, start_index, curr_idx
+					, access);
+		case DMI_STATUS_FAILED:
+			LOG_TARGET_DEBUG(target,
+					"Batch memory read encountered DMI_STATUS_FAILED on read %"
+					PRIu32, read);
+			return ERROR_FAIL;
+		case DMI_STATUS_SUCCESS:
+			break;
+		default:
+			assert(0);
+		}
+		const uint32_t value = riscv_batch_get_dmi_read_data(batch, read);
+		uint8_t * const curr_buff = access.buffer_address +
+			curr_idx * access.element_size;
+		const target_addr_t curr_addr = access.target_address +
+			curr_idx * access.increment;
+		const uint32_t size = access.element_size;
+
+		assert(size <= 8);
+		const bool is_odd_read = read % 2;
+
+		if (two_reads_per_element && !is_odd_read) {
+			buf_set_u32(curr_buff + 4, 0, (size * 8) - 32, value);
+			continue;
+		}
+		const bool is_second_read = two_reads_per_element;
+
+		buf_set_u32(curr_buff, 0, is_second_read ? 32 : (size * 8), value);
+		log_memory_access64(curr_addr, buf_get_u64(curr_buff, 0, size * 8),
+				size, /*is_read*/ true);
+		++curr_idx;
+	}
+	*elements_read = elements_to_read;
+	return ERROR_OK;
+}
+
+/**
+ * This function reads a batch of elements from memory.
+ * Prior to calling this function the folowing conditions should be met:
+ * - Appropriate program loaded to program buffer.
+ * - DM_ABSTRACTAUTO_AUTOEXECDATA is set.
+ */
+static int read_memory_progbuf_inner_run_and_process_batch(struct target *target,
+		struct riscv_batch *batch, struct memory_access_info access,
+		uint32_t start_index, uint32_t elements_to_read, uint32_t *elements_read)
 {
 	RISCV013_INFO(info);
 
-	int result = ERROR_OK;
-
-	/* Write address to S0. */
-	result = register_write_direct(target, GDB_REGNO_S0, address);
-	if (result != ERROR_OK)
-		return result;
-
-	if (increment == 0 &&
-			register_write_direct(target, GDB_REGNO_A0, 0) != ERROR_OK)
+	if (batch_run(target, batch) != ERROR_OK)
 		return ERROR_FAIL;
 
-	uint32_t command = access_register_command(target, GDB_REGNO_S1,
-			riscv_xlen(target),
-			AC_ACCESS_REGISTER_TRANSFER | AC_ACCESS_REGISTER_POSTEXEC);
-	if (execute_abstract_command(target, command) != ERROR_OK)
+	uint32_t abstractcs;
+
+	if (wait_for_idle(target, &abstractcs) != ERROR_OK)
 		return ERROR_FAIL;
 
-	/* First read has just triggered. Result is in s1. */
-	if (count == 1) {
-		uint64_t value;
-		if (register_read_direct(target, &value, GDB_REGNO_S1) != ERROR_OK)
+	uint32_t elements_to_extract_from_batch;
+
+	info->cmderr = get_field(abstractcs, DM_ABSTRACTCS_CMDERR);
+	switch (info->cmderr) {
+	case CMDERR_NONE:
+		LOG_TARGET_DEBUG(target, "successful (partial?) memory read [%"
+				PRIu32 ", %" PRIu32 ")", start_index, start_index + elements_to_read);
+		elements_to_extract_from_batch = elements_to_read;
+		break;
+	case CMDERR_BUSY:
+		LOG_TARGET_DEBUG(target, "memory read resulted in busy response");
+		if (read_memory_progbuf_inner_on_ac_busy(target, start_index,
+					elements_to_read, &elements_to_extract_from_batch, access)
+				!= ERROR_OK)
 			return ERROR_FAIL;
-		buf_set_u64(buffer, 0, 8 * size, value);
-		log_memory_access64(address, value, size, true);
-		return ERROR_OK;
+		break;
+	default:
+		LOG_TARGET_DEBUG(target, "error when reading memory, cmderr=0x%" PRIx32,
+				info->cmderr);
+		riscv013_clear_abstract_error(target);
+		return ERROR_FAIL;
 	}
 
-	if (dmi_write(target, DM_ABSTRACTAUTO,
-			1 << DM_ABSTRACTAUTO_AUTOEXECDATA_OFFSET) != ERROR_OK)
-		goto error;
-	/* Read garbage from dmi_data0, which triggers another execution of the
-	 * program. Now dmi_data0 contains the first good result, and s1 the next
-	 * memory value. */
-	if (dmi_read_exec(target, NULL, DM_DATA0) != ERROR_OK)
-		goto error;
-
-	/* read_addr is the next address that the hart will read from, which is the
-	 * value in s0. */
-	unsigned index = 2;
-	while (index < count) {
-		riscv_addr_t read_addr = address + index * increment;
-		LOG_DEBUG("i=%d, count=%d, read_addr=0x%" PRIx64, index, count, read_addr);
-		/* The pipeline looks like this:
-		 * memory -> s1 -> dm_data0 -> debugger
-		 * Right now:
-		 * s0 contains read_addr
-		 * s1 contains mem[read_addr-size]
-		 * dm_data0 contains[read_addr-size*2]
-		 */
-
-		struct riscv_batch *batch = riscv_batch_alloc(target, RISCV_BATCH_ALLOC_SIZE,
-				info->dmi_busy_delay + info->ac_busy_delay);
-		if (!batch)
-			return ERROR_FAIL;
-
-		unsigned reads = 0;
-		for (unsigned j = index; j < count; j++) {
-			if (size > 4)
-				riscv_batch_add_dmi_read(batch, DM_DATA1);
-			riscv_batch_add_dmi_read(batch, DM_DATA0);
-
-			reads++;
-			if (riscv_batch_full(batch))
-				break;
-		}
-
-		batch_run(target, batch);
-
-		/* Wait for the target to finish performing the last abstract command,
-		 * and update our copy of cmderr. If we see that DMI is busy here,
-		 * dmi_busy_delay will be incremented. */
-		uint32_t abstractcs;
-		if (dmi_read(target, &abstractcs, DM_ABSTRACTCS) != ERROR_OK)
-			return ERROR_FAIL;
-		while (get_field(abstractcs, DM_ABSTRACTCS_BUSY))
-			if (dmi_read(target, &abstractcs, DM_ABSTRACTCS) != ERROR_OK)
-				return ERROR_FAIL;
-		info->cmderr = get_field(abstractcs, DM_ABSTRACTCS_CMDERR);
-
-		unsigned next_index;
-		unsigned ignore_last = 0;
-		switch (info->cmderr) {
-			case CMDERR_NONE:
-				LOG_DEBUG("successful (partial?) memory read");
-				next_index = index + reads;
-				break;
-			case CMDERR_BUSY:
-				LOG_DEBUG("memory read resulted in busy response");
-
-				increase_ac_busy_delay(target);
-				riscv013_clear_abstract_error(target);
-
-				dmi_write(target, DM_ABSTRACTAUTO, 0);
-
-				uint32_t dmi_data0, dmi_data1 = 0;
-				/* This is definitely a good version of the value that we
-				 * attempted to read when we discovered that the target was
-				 * busy. */
-				if (dmi_read(target, &dmi_data0, DM_DATA0) != ERROR_OK) {
-					riscv_batch_free(batch);
-					goto error;
-				}
-				if (size > 4 && dmi_read(target, &dmi_data1, DM_DATA1) != ERROR_OK) {
-					riscv_batch_free(batch);
-					goto error;
-				}
-
-				/* See how far we got, clobbering dmi_data0. */
-				if (increment == 0) {
-					uint64_t counter;
-					result = register_read_direct(target, &counter, GDB_REGNO_A0);
-					next_index = counter;
-				} else {
-					uint64_t next_read_addr;
-					result = register_read_direct(target, &next_read_addr,
-												  GDB_REGNO_S0);
-					next_index = (next_read_addr - address) / increment;
-				}
-				if (result != ERROR_OK) {
-					riscv_batch_free(batch);
-					goto error;
-				}
-
-				uint64_t value64 = (((uint64_t)dmi_data1) << 32) | dmi_data0;
-				buf_set_u64(buffer + (next_index - 2) * size, 0, 8 * size, value64);
-				log_memory_access64(address + (next_index - 2) * size, value64, size, true);
-
-				/* Restore the command, and execute it.
-				 * Now DM_DATA0 contains the next value just as it would if no
-				 * error had occurred. */
-				dmi_write_exec(target, DM_COMMAND, command, true);
-				next_index++;
-
-				dmi_write(target, DM_ABSTRACTAUTO,
-						1 << DM_ABSTRACTAUTO_AUTOEXECDATA_OFFSET);
-
-				ignore_last = 1;
-
-				break;
-			default:
-				LOG_DEBUG("error when reading memory, abstractcs=0x%08lx", (long)abstractcs);
-				riscv013_clear_abstract_error(target);
-				riscv_batch_free(batch);
-				result = ERROR_FAIL;
-				goto error;
-		}
-
-		/* Now read whatever we got out of the batch. */
-		dmi_status_t status = DMI_STATUS_SUCCESS;
-		unsigned read_count = 0;
-		assert(index >= 2);
-		for (unsigned j = index - 2; j < index + reads; j++) {
-			assert(j < count);
-			LOG_DEBUG("index=%d, reads=%d, next_index=%d, ignore_last=%d, j=%d",
-				index, reads, next_index, ignore_last, j);
-			if (j + 3 + ignore_last > next_index)
-				break;
-
-			status = riscv_batch_get_dmi_read_op(batch, read_count);
-			uint64_t value = riscv_batch_get_dmi_read_data(batch, read_count);
-			read_count++;
-			if (status != DMI_STATUS_SUCCESS) {
-				/* If we're here because of busy count, dmi_busy_delay will
-				 * already have been increased and busy state will have been
-				 * cleared in dmi_read(). */
-				/* In at least some implementations, we issue a read, and then
-				 * can get busy back when we try to scan out the read result,
-				 * and the actual read value is lost forever. Since this is
-				 * rare in any case, we return error here and rely on our
-				 * caller to reread the entire block. */
-				LOG_WARNING("Batch memory read encountered DMI error %d. "
-						"Falling back on slower reads.", status);
-				riscv_batch_free(batch);
-				result = ERROR_FAIL;
-				goto error;
-			}
-			if (size > 4) {
-				status = riscv_batch_get_dmi_read_op(batch, read_count);
-				if (status != DMI_STATUS_SUCCESS) {
-					LOG_WARNING("Batch memory read encountered DMI error %d. "
-							"Falling back on slower reads.", status);
-					riscv_batch_free(batch);
-					result = ERROR_FAIL;
-					goto error;
-				}
-				value <<= 32;
-				value |= riscv_batch_get_dmi_read_data(batch, read_count);
-				read_count++;
-			}
-			riscv_addr_t offset = j * size;
-			buf_set_u64(buffer + offset, 0, 8 * size, value);
-			log_memory_access64(address + j * increment, value, size, true);
-		}
-
-		index = next_index;
-
-		riscv_batch_free(batch);
-	}
-
-	dmi_write(target, DM_ABSTRACTAUTO, 0);
-
-	if (count > 1) {
-		/* Read the penultimate word. */
-		uint32_t dmi_data0, dmi_data1 = 0;
-		if (dmi_read(target, &dmi_data0, DM_DATA0) != ERROR_OK)
-			return ERROR_FAIL;
-		if (size > 4 && dmi_read(target, &dmi_data1, DM_DATA1) != ERROR_OK)
-			return ERROR_FAIL;
-		uint64_t value64 = (((uint64_t)dmi_data1) << 32) | dmi_data0;
-		buf_set_u64(buffer + size * (count - 2), 0, 8 * size, value64);
-		log_memory_access64(address + size * (count - 2), value64, size, true);
-	}
-
-	/* Read the last word. */
-	uint64_t value;
-	result = register_read_direct(target, &value, GDB_REGNO_S1);
-	if (result != ERROR_OK)
-		goto error;
-	buf_set_u64(buffer + size * (count - 1), 0, 8 * size, value);
-	log_memory_access64(address + size * (count - 1), value, size, true);
+	if (read_memory_progbuf_inner_extract_batch_data(target, batch, start_index,
+				elements_to_extract_from_batch, elements_read, access) != ERROR_OK)
+		return ERROR_FAIL;
 
 	return ERROR_OK;
+}
 
-error:
-	dmi_write(target, DM_ABSTRACTAUTO, 0);
+static uint32_t read_memory_progbuf_inner_fill_batch(struct riscv_batch *batch,
+		uint32_t count, uint32_t size)
+{
+	assert(size <= 8);
+	const uint32_t two_regs_used[] = {DM_DATA1, DM_DATA0};
+	const uint32_t one_reg_used[] = {DM_DATA0};
+	const uint32_t reads_per_element = size > 4 ? 2 : 1;
+	const uint32_t * const used_regs = size > 4 ? two_regs_used : one_reg_used;
+	const uint32_t batch_capacity = riscv_batch_available_scans(batch) / reads_per_element;
+	const uint32_t end = MIN(batch_capacity, count);
 
+	for (uint32_t j = 0; j < end; ++j)
+		for (uint32_t i = 0; i < reads_per_element; ++i)
+			riscv_batch_add_dmi_read(batch, used_regs[i]);
+	return end;
+}
+
+static int read_memory_progbuf_inner_try_to_read(struct target *target,
+		struct memory_access_info access, uint32_t *elements_read,
+		uint32_t index, uint32_t loop_count)
+{
+	RISCV013_INFO(info);
+	struct riscv_batch *batch = riscv_batch_alloc(target, RISCV_BATCH_ALLOC_SIZE,
+			info->dmi_busy_delay + info->ac_busy_delay);
+	if (!batch)
+		return ERROR_FAIL;
+
+	const uint32_t elements_to_read = read_memory_progbuf_inner_fill_batch(batch,
+			loop_count - index, access.element_size);
+
+	int result = read_memory_progbuf_inner_run_and_process_batch(target, batch,
+			access, index, elements_to_read, elements_read);
+	riscv_batch_free(batch);
 	return result;
 }
 
-/* Only need to save/restore one GPR to read a single word, and the progbuf
- * program doesn't need to increment. */
-static int read_memory_progbuf_one(struct target *target, target_addr_t address,
-		uint32_t size, uint8_t *buffer)
+/**
+ * read_memory_progbuf_inner_startup() must be called before calling this function
+ * with the address argument equal to curr_target_address.
+ */
+static int read_memory_progbuf_inner_ensure_forward_progress(struct target *target,
+		struct memory_access_info access, uint32_t start_index)
 {
-	uint64_t mstatus = 0;
-	uint64_t mstatus_old = 0;
-	if (modify_privilege(target, &mstatus, &mstatus_old) != ERROR_OK)
+	LOG_TARGET_DEBUG(target,
+			"Executing one loop iteration to ensure forward progress (index=%"
+			PRIu32 ")", start_index);
+	const target_addr_t curr_target_address = access.target_address +
+		start_index * access.increment;
+	uint8_t * const curr_buffer_address = access.buffer_address +
+		start_index * access.element_size;
+	const struct memory_access_info curr_access = {
+		.buffer_address = curr_buffer_address,
+		.target_address = curr_target_address,
+		.element_size = access.element_size,
+		.increment = access.increment,
+	};
+	uint32_t elements_read;
+	if (read_memory_progbuf_inner_try_to_read(target, curr_access, &elements_read,
+			/*index*/ 0, /*loop_count*/ 1) != ERROR_OK)
 		return ERROR_FAIL;
 
-	int result = ERROR_FAIL;
+	if (elements_read != 1) {
+		assert(elements_read == 0);
+		LOG_TARGET_DEBUG(target, "Can not ensure forward progress");
+		/* FIXME: Here it would be better to retry the read and fail only if the
+		 * delay is greater then some threshold.
+		 */
+		return ERROR_FAIL;
+	}
+	return ERROR_OK;
+}
+
+static void set_buffer_and_log_read(struct memory_access_info access,
+		uint32_t index, uint64_t value)
+{
+	uint8_t * const buffer = access.buffer_address;
+	const uint32_t size = access.element_size;
+	const uint32_t increment = access.increment;
+	const target_addr_t address = access.target_address;
+
+	assert(size <= 8);
+	buf_set_u64(buffer + index * size, 0, 8 * size, value);
+	log_memory_access64(address + index * increment, value, size,
+			/*is_read*/ true);
+}
+
+static int read_word_from_dmi_data_regs(struct target *target,
+		struct memory_access_info access, uint32_t index)
+{
+	assert(access.element_size <= 8);
+	const uint64_t value = read_abstract_arg(target, /*index*/ 0,
+			access.element_size > 4 ? 64 : 32);
+	set_buffer_and_log_read(access, index, value);
+	return ERROR_OK;
+}
+
+static int read_word_from_s1(struct target *target,
+		struct memory_access_info access, uint32_t index)
+{
+	uint64_t value;
+
+	if (register_read_direct(target, &value, GDB_REGNO_S1) != ERROR_OK)
+		return ERROR_FAIL;
+	set_buffer_and_log_read(access, index, value);
+	return ERROR_OK;
+}
+
+static int riscv_program_load_mprv(struct riscv_program *p, enum gdb_regno d,
+		enum gdb_regno b, int offset, unsigned int size, bool mprven)
+{
+	if (mprven && riscv_program_csrrsi(p, GDB_REGNO_ZERO, CSR_DCSR_MPRVEN,
+				GDB_REGNO_DCSR) != ERROR_OK)
+		return ERROR_FAIL;
+
+	if (riscv_program_load(p, d, b, offset, size) != ERROR_OK)
+		return ERROR_FAIL;
+
+	if (mprven && riscv_program_csrrci(p, GDB_REGNO_ZERO, CSR_DCSR_MPRVEN,
+				GDB_REGNO_DCSR) != ERROR_OK)
+		return ERROR_FAIL;
+
+	return ERROR_OK;
+}
+
+static int read_memory_progbuf_inner_fill_progbuf(struct target *target,
+		uint32_t increment, uint32_t size, bool mprven)
+{
+	const bool is_repeated_read = increment == 0;
 
 	if (riscv_save_register(target, GDB_REGNO_S0) != ERROR_OK)
-		goto restore_mstatus;
+		return ERROR_FAIL;
+	if (riscv_save_register(target, GDB_REGNO_S1) != ERROR_OK)
+		return ERROR_FAIL;
+	if (is_repeated_read &&	riscv_save_register(target, GDB_REGNO_A0) != ERROR_OK)
+		return ERROR_FAIL;
 
-	/* Write the program (load, increment) */
 	struct riscv_program program;
+
 	riscv_program_init(&program, target);
-	if (riscv_enable_virtual && has_sufficient_progbuf(target, 5) && get_field(mstatus, MSTATUS_MPRV))
-		riscv_program_csrrsi(&program, GDB_REGNO_ZERO, CSR_DCSR_MPRVEN, GDB_REGNO_DCSR);
-	switch (size) {
-		case 1:
-			riscv_program_lbr(&program, GDB_REGNO_S0, GDB_REGNO_S0, 0);
-			break;
-		case 2:
-			riscv_program_lhr(&program, GDB_REGNO_S0, GDB_REGNO_S0, 0);
-			break;
-		case 4:
-			riscv_program_lwr(&program, GDB_REGNO_S0, GDB_REGNO_S0, 0);
-			break;
-		case 8:
-			riscv_program_ldr(&program, GDB_REGNO_S0, GDB_REGNO_S0, 0);
-			break;
-		default:
-			LOG_ERROR("Unsupported size: %d", size);
-			goto restore_mstatus;
+	if (riscv_program_load_mprv(&program, GDB_REGNO_S1, GDB_REGNO_S0, 0, size,
+				mprven) != ERROR_OK)
+		return ERROR_FAIL;
+	if (is_repeated_read) {
+		if (riscv_program_addi(&program, GDB_REGNO_A0, GDB_REGNO_A0, 1)
+				!= ERROR_OK)
+			return ERROR_FAIL;
+	} else {
+		if (riscv_program_addi(&program, GDB_REGNO_S0, GDB_REGNO_S0,
+					increment)
+				!= ERROR_OK)
+			return ERROR_FAIL;
 	}
-	if (riscv_enable_virtual && has_sufficient_progbuf(target, 5) && get_field(mstatus, MSTATUS_MPRV))
-		riscv_program_csrrci(&program, GDB_REGNO_ZERO,  CSR_DCSR_MPRVEN, GDB_REGNO_DCSR);
-
 	if (riscv_program_ebreak(&program) != ERROR_OK)
-		goto restore_mstatus;
+		return ERROR_FAIL;
 	if (riscv_program_write(&program) != ERROR_OK)
-		goto restore_mstatus;
+		return ERROR_FAIL;
 
-	/* Write address to S0, and execute buffer. */
-	if (write_abstract_arg(target, 0, address, riscv_xlen(target)) != ERROR_OK)
-		goto restore_mstatus;
-	uint32_t command = access_register_command(target, GDB_REGNO_S0,
+	return ERROR_OK;
+}
+
+/**
+ * Read the requested memory, taking care to minimize the number of reads and
+ * re-read the data only if `abstract command busy` or `DMI busy`
+ * is encountered in the process.
+ */
+static int read_memory_progbuf_inner(struct target *target,
+		struct memory_access_info access, uint32_t count, bool mprven)
+{
+	assert(count > 1 && "If count == 1, read_memory_progbuf_inner_one must be called");
+
+	if (read_memory_progbuf_inner_fill_progbuf(target, access.increment,
+				access.element_size, mprven) != ERROR_OK)
+		return ERROR_FAIL;
+
+	if (read_memory_progbuf_inner_startup(target, access.target_address,
+				access.increment, /*index*/ 0)
+			!= ERROR_OK)
+		return ERROR_FAIL;
+	/* The program in program buffer is executed twice during
+	 * read_memory_progbuf_inner_startup().
+	 * Here:
+	 * dmi_data[0:1] == M[address]
+	 * s1 == M[address + increment]
+	 * s0 == address + increment * 2
+	 * `count - 2` program executions are performed in this loop.
+	 * No need to execute the program any more, since S1 will already contain
+	 * M[address + increment * (count - 1)] and we can read it directly.
+	 */
+	const uint32_t loop_count = count - 2;
+
+	for (uint32_t index = 0; index < loop_count;) {
+		uint32_t elements_read;
+		if (read_memory_progbuf_inner_try_to_read(target, access, &elements_read,
+					index, loop_count) != ERROR_OK) {
+			dmi_write(target, DM_ABSTRACTAUTO, 0);
+			return ERROR_FAIL;
+		}
+		if (elements_read == 0) {
+			if (read_memory_progbuf_inner_ensure_forward_progress(target, access,
+						index) != ERROR_OK) {
+				dmi_write(target, DM_ABSTRACTAUTO, 0);
+				return ERROR_FAIL;
+			}
+			elements_read = 1;
+		}
+		index += elements_read;
+		assert(index <= loop_count);
+	}
+	if (dmi_write(target, DM_ABSTRACTAUTO, 0) != ERROR_OK)
+		return ERROR_FAIL;
+
+	/* Read the penultimate word. */
+	if (read_word_from_dmi_data_regs(target, access, count - 2)
+			!= ERROR_OK)
+		return ERROR_FAIL;
+	/* Read the last word. */
+	return read_word_from_s1(target, access, count - 1);
+}
+
+/**
+ * Only need to save/restore one GPR to read a single word, and the progbuf
+ * program doesn't need to increment.
+ */
+static int read_memory_progbuf_inner_one(struct target *target,
+		struct memory_access_info access, bool mprven)
+{
+	if (riscv_save_register(target, GDB_REGNO_S1) != ERROR_OK)
+		return ERROR_FAIL;
+
+	struct riscv_program program;
+
+	riscv_program_init(&program, target);
+	if (riscv_program_load_mprv(&program, GDB_REGNO_S1, GDB_REGNO_S1, 0,
+				access.element_size, mprven) != ERROR_OK)
+		return ERROR_FAIL;
+	if (riscv_program_ebreak(&program) != ERROR_OK)
+		return ERROR_FAIL;
+	if (riscv_program_write(&program) != ERROR_OK)
+		return ERROR_FAIL;
+
+	/* Write address to S1, and execute buffer. */
+	if (write_abstract_arg(target, 0, access.target_address, riscv_xlen(target))
+			!= ERROR_OK)
+		return ERROR_FAIL;
+	uint32_t command = access_register_command(target, GDB_REGNO_S1,
 			riscv_xlen(target), AC_ACCESS_REGISTER_WRITE |
 			AC_ACCESS_REGISTER_TRANSFER | AC_ACCESS_REGISTER_POSTEXEC);
 	if (execute_abstract_command(target, command) != ERROR_OK)
-		goto restore_mstatus;
+		return ERROR_FAIL;
 
-	uint64_t value;
-	if (register_read_direct(target, &value, GDB_REGNO_S0) != ERROR_OK)
-		goto restore_mstatus;
-	buf_set_u64(buffer, 0, 8 * size, value);
-	log_memory_access64(address, value, size, true);
-	result = ERROR_OK;
-
-restore_mstatus:
-	if (mstatus != mstatus_old)
-		if (register_write_direct(target, GDB_REGNO_MSTATUS, mstatus_old))
-			result = ERROR_FAIL;
-
-	return result;
+	return read_word_from_s1(target, access, 0);
 }
 
 /**
@@ -3709,15 +3913,13 @@ static int read_memory_progbuf(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer, uint32_t increment)
 {
 	if (riscv_xlen(target) < size * 8) {
-		LOG_ERROR("XLEN (%d) is too short for %d-bit memory read.",
-				riscv_xlen(target), size * 8);
+		LOG_TARGET_ERROR(target, "XLEN (%d) is too short for %"
+				PRIu32 "-bit memory read.", riscv_xlen(target), size * 8);
 		return ERROR_FAIL;
 	}
 
-	int result = ERROR_OK;
-
-	LOG_DEBUG("reading %d words of %d bytes from 0x%" TARGET_PRIxADDR, count,
-			size, address);
+	LOG_TARGET_DEBUG(target, "reading %" PRIu32 " elements of %" PRIu32
+			" bytes from 0x%" TARGET_PRIxADDR, count, size, address);
 
 	if (dm013_select_target(target) != ERROR_OK)
 		return ERROR_FAIL;
@@ -3729,91 +3931,25 @@ static int read_memory_progbuf(struct target *target, target_addr_t address,
 	if (execute_fence(target) != ERROR_OK)
 		return ERROR_FAIL;
 
-	if (count == 1)
-		return read_memory_progbuf_one(target, address, size, buffer);
-
 	uint64_t mstatus = 0;
 	uint64_t mstatus_old = 0;
 	if (modify_privilege(target, &mstatus, &mstatus_old) != ERROR_OK)
 		return ERROR_FAIL;
 
-	/* s0 holds the next address to read from
-	 * s1 holds the next data value read
-	 * a0 is a counter in case increment is 0
-	 */
-	if (riscv_save_register(target, GDB_REGNO_S0) != ERROR_OK)
+	const bool mprven = riscv_enable_virtual && get_field(mstatus, MSTATUS_MPRV);
+	const struct memory_access_info access = {
+		.target_address = address,
+		.increment = increment,
+		.buffer_address = buffer,
+		.element_size = size,
+	};
+	int result = (count == 1) ?
+		read_memory_progbuf_inner_one(target, access, mprven) :
+		read_memory_progbuf_inner(target, access, count, mprven);
+
+	if (mstatus != mstatus_old &&
+			register_write_direct(target, GDB_REGNO_MSTATUS, mstatus_old) != ERROR_OK)
 		return ERROR_FAIL;
-	if (riscv_save_register(target, GDB_REGNO_S1) != ERROR_OK)
-		return ERROR_FAIL;
-	if (increment == 0 && riscv_save_register(target, GDB_REGNO_A0) != ERROR_OK)
-		return ERROR_FAIL;
-
-	/* Write the program (load, increment) */
-	struct riscv_program program;
-	riscv_program_init(&program, target);
-	if (riscv_enable_virtual && has_sufficient_progbuf(target, 5) && get_field(mstatus, MSTATUS_MPRV))
-		riscv_program_csrrsi(&program, GDB_REGNO_ZERO, CSR_DCSR_MPRVEN, GDB_REGNO_DCSR);
-
-	switch (size) {
-		case 1:
-			riscv_program_lbr(&program, GDB_REGNO_S1, GDB_REGNO_S0, 0);
-			break;
-		case 2:
-			riscv_program_lhr(&program, GDB_REGNO_S1, GDB_REGNO_S0, 0);
-			break;
-		case 4:
-			riscv_program_lwr(&program, GDB_REGNO_S1, GDB_REGNO_S0, 0);
-			break;
-		case 8:
-			riscv_program_ldr(&program, GDB_REGNO_S1, GDB_REGNO_S0, 0);
-			break;
-		default:
-			LOG_ERROR("Unsupported size: %d", size);
-			return ERROR_FAIL;
-	}
-
-	if (riscv_enable_virtual && has_sufficient_progbuf(target, 5) && get_field(mstatus, MSTATUS_MPRV))
-		riscv_program_csrrci(&program, GDB_REGNO_ZERO,  CSR_DCSR_MPRVEN, GDB_REGNO_DCSR);
-	if (increment == 0)
-		riscv_program_addi(&program, GDB_REGNO_A0, GDB_REGNO_A0, 1);
-	else
-		riscv_program_addi(&program, GDB_REGNO_S0, GDB_REGNO_S0, increment);
-
-	if (riscv_program_ebreak(&program) != ERROR_OK)
-		return ERROR_FAIL;
-	if (riscv_program_write(&program) != ERROR_OK)
-		return ERROR_FAIL;
-
-	result = read_memory_progbuf_inner(target, address, size, count, buffer, increment);
-
-	if (result != ERROR_OK) {
-		/* The full read did not succeed, so we will try to read each word individually. */
-		/* This will not be fast, but reading outside actual memory is a special case anyway. */
-		/* It will make the toolchain happier, especially Eclipse Memory View as it reads ahead. */
-		target_addr_t address_i = address;
-		uint32_t count_i = 1;
-		uint8_t *buffer_i = buffer;
-
-		for (uint32_t i = 0; i < count; i++, address_i += increment, buffer_i += size) {
-			/* TODO: This is much slower than it needs to be because we end up
-			 * writing the address to read for every word we read. */
-			result = read_memory_progbuf_inner(target, address_i, size, count_i, buffer_i, increment);
-
-			/* The read of a single word failed, so we will just return 0 for that instead */
-			if (result != ERROR_OK) {
-				LOG_DEBUG("error reading single word of %d bytes from 0x%" TARGET_PRIxADDR,
-						size, address_i);
-
-				buf_set_u64(buffer_i, 0, 8 * size, 0);
-			}
-		}
-		result = ERROR_OK;
-	}
-
-	/* Restore MSTATUS */
-	if (mstatus != mstatus_old)
-		if (register_write_direct(target, GDB_REGNO_MSTATUS, mstatus_old))
-			return ERROR_FAIL;
 
 	return result;
 }

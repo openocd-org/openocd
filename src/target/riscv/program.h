@@ -51,6 +51,8 @@ int riscv_program_ldr(struct riscv_program *p, enum gdb_regno d, enum gdb_regno 
 int riscv_program_lwr(struct riscv_program *p, enum gdb_regno d, enum gdb_regno a, int o);
 int riscv_program_lhr(struct riscv_program *p, enum gdb_regno d, enum gdb_regno a, int o);
 int riscv_program_lbr(struct riscv_program *p, enum gdb_regno d, enum gdb_regno a, int o);
+int riscv_program_load(struct riscv_program *p, enum gdb_regno d, enum gdb_regno b, int o,
+		unsigned int s);
 
 int riscv_program_sdr(struct riscv_program *p, enum gdb_regno s, enum gdb_regno a, int o);
 int riscv_program_swr(struct riscv_program *p, enum gdb_regno s, enum gdb_regno a, int o);
