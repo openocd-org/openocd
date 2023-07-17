@@ -28,6 +28,7 @@
 #include "program.h"
 #include "asm.h"
 #include "batch.h"
+#include "debug_reg_printer.h"
 
 static int riscv013_on_step_or_resume(struct target *target, bool step);
 static int riscv013_step_or_resume_current_hart(struct target *target,
@@ -285,6 +286,29 @@ static dm013_info_t *get_dm(struct target *target)
 	return dm;
 }
 
+static riscv_debug_reg_ctx_t get_riscv_debug_reg_ctx(struct target *target)
+{
+	RISCV_INFO(r);
+	RISCV013_INFO(info);
+	const riscv_debug_reg_ctx_t context = {
+		.XLEN = { .value = r->xlen, .is_set = true },
+		.DXLEN = { .value = r->xlen, .is_set = true },
+		.abits = { .value = info->abits, .is_set = true },
+	};
+	return context;
+}
+
+static void log_debug_reg(struct target *target, enum riscv_debug_reg_ordinal reg,
+		riscv_reg_t value)
+{
+	if (debug_level < LOG_LVL_DEBUG)
+		return;
+	const riscv_debug_reg_ctx_t context = get_riscv_debug_reg_ctx(target);
+	char buf[riscv_debug_reg_to_s(NULL, reg, context, value) + 1];
+	riscv_debug_reg_to_s(buf, reg, context, value);
+	LOG_TARGET_DEBUG(target, "%s", buf);
+}
+
 static uint32_t set_dmcontrol_hartsel(uint32_t initial, int hart_index)
 {
 	assert(hart_index != HART_INDEX_UNKNOWN);
@@ -306,91 +330,40 @@ static uint32_t set_dmcontrol_hartsel(uint32_t initial, int hart_index)
 	return initial;
 }
 
-static void decode_dm(char *text, unsigned int address, unsigned int data)
+static unsigned int decode_dm(char *text, unsigned int address, unsigned int data)
 {
 	static const struct {
 		unsigned int address;
-		uint64_t mask;
-		const char *name;
+		enum riscv_debug_reg_ordinal ordinal;
 	} description[] = {
-		{ DM_DMCONTROL, DM_DMCONTROL_HALTREQ, "haltreq" },
-		{ DM_DMCONTROL, DM_DMCONTROL_RESUMEREQ, "resumereq" },
-		{ DM_DMCONTROL, DM_DMCONTROL_HARTRESET, "hartreset" },
-		{ DM_DMCONTROL, DM_DMCONTROL_HASEL, "hasel" },
-		{ DM_DMCONTROL, DM_DMCONTROL_HARTSELHI, "hartselhi" },
-		{ DM_DMCONTROL, DM_DMCONTROL_HARTSELLO, "hartsello" },
-		{ DM_DMCONTROL, DM_DMCONTROL_NDMRESET, "ndmreset" },
-		{ DM_DMCONTROL, DM_DMCONTROL_DMACTIVE, "dmactive" },
-		{ DM_DMCONTROL, DM_DMCONTROL_ACKHAVERESET, "ackhavereset" },
-
-		{ DM_DMSTATUS, DM_DMSTATUS_IMPEBREAK, "impebreak" },
-		{ DM_DMSTATUS, DM_DMSTATUS_ALLHAVERESET, "allhavereset" },
-		{ DM_DMSTATUS, DM_DMSTATUS_ANYHAVERESET, "anyhavereset" },
-		{ DM_DMSTATUS, DM_DMSTATUS_ALLRESUMEACK, "allresumeack" },
-		{ DM_DMSTATUS, DM_DMSTATUS_ANYRESUMEACK, "anyresumeack" },
-		{ DM_DMSTATUS, DM_DMSTATUS_ALLNONEXISTENT, "allnonexistent" },
-		{ DM_DMSTATUS, DM_DMSTATUS_ANYNONEXISTENT, "anynonexistent" },
-		{ DM_DMSTATUS, DM_DMSTATUS_ALLUNAVAIL, "allunavail" },
-		{ DM_DMSTATUS, DM_DMSTATUS_ANYUNAVAIL, "anyunavail" },
-		{ DM_DMSTATUS, DM_DMSTATUS_ALLRUNNING, "allrunning" },
-		{ DM_DMSTATUS, DM_DMSTATUS_ANYRUNNING, "anyrunning" },
-		{ DM_DMSTATUS, DM_DMSTATUS_ALLHALTED, "allhalted" },
-		{ DM_DMSTATUS, DM_DMSTATUS_ANYHALTED, "anyhalted" },
-		{ DM_DMSTATUS, DM_DMSTATUS_AUTHENTICATED, "authenticated" },
-		{ DM_DMSTATUS, DM_DMSTATUS_AUTHBUSY, "authbusy" },
-		{ DM_DMSTATUS, DM_DMSTATUS_HASRESETHALTREQ, "hasresethaltreq" },
-		{ DM_DMSTATUS, DM_DMSTATUS_CONFSTRPTRVALID, "confstrptrvalid" },
-		{ DM_DMSTATUS, DM_DMSTATUS_VERSION, "version" },
-
-		{ DM_ABSTRACTCS, DM_ABSTRACTCS_PROGBUFSIZE, "progbufsize" },
-		{ DM_ABSTRACTCS, DM_ABSTRACTCS_BUSY, "busy" },
-		{ DM_ABSTRACTCS, DM_ABSTRACTCS_CMDERR, "cmderr" },
-		{ DM_ABSTRACTCS, DM_ABSTRACTCS_DATACOUNT, "datacount" },
-
-		{ DM_COMMAND, DM_COMMAND_CMDTYPE, "cmdtype" },
-
-		{ DM_SBCS, DM_SBCS_SBVERSION, "sbversion" },
-		{ DM_SBCS, DM_SBCS_SBBUSYERROR, "sbbusyerror" },
-		{ DM_SBCS, DM_SBCS_SBBUSY, "sbbusy" },
-		{ DM_SBCS, DM_SBCS_SBREADONADDR, "sbreadonaddr" },
-		{ DM_SBCS, DM_SBCS_SBACCESS, "sbaccess" },
-		{ DM_SBCS, DM_SBCS_SBAUTOINCREMENT, "sbautoincrement" },
-		{ DM_SBCS, DM_SBCS_SBREADONDATA, "sbreadondata" },
-		{ DM_SBCS, DM_SBCS_SBERROR, "sberror" },
-		{ DM_SBCS, DM_SBCS_SBASIZE, "sbasize" },
-		{ DM_SBCS, DM_SBCS_SBACCESS128, "sbaccess128" },
-		{ DM_SBCS, DM_SBCS_SBACCESS64, "sbaccess64" },
-		{ DM_SBCS, DM_SBCS_SBACCESS32, "sbaccess32" },
-		{ DM_SBCS, DM_SBCS_SBACCESS16, "sbaccess16" },
-		{ DM_SBCS, DM_SBCS_SBACCESS8, "sbaccess8" },
+		{DM_DMCONTROL, DM_DMCONTROL_ORDINAL},
+		{DM_DMSTATUS, DM_DMSTATUS_ORDINAL},
+		{DM_ABSTRACTCS, DM_ABSTRACTCS_ORDINAL},
+		{DM_COMMAND, DM_COMMAND_ORDINAL},
+		{DM_SBCS, DM_SBCS_ORDINAL}
 	};
 
-	text[0] = 0;
 	for (unsigned i = 0; i < ARRAY_SIZE(description); i++) {
 		if (description[i].address == address) {
-			uint64_t mask = description[i].mask;
-			unsigned value = get_field(data, mask);
-			if (value) {
-				if (i > 0)
-					*(text++) = ' ';
-				if (mask & (mask >> 1)) {
-					/* If the field is more than 1 bit wide. */
-					sprintf(text, "%s=%d", description[i].name, value);
-				} else {
-					strcpy(text, description[i].name);
-				}
-				text += strlen(text);
-			}
+			const riscv_debug_reg_ctx_t context = {
+				.XLEN = { .value = 0, .is_set = false },
+				.DXLEN = { .value = 0, .is_set = false },
+				.abits = { .value = 0, .is_set = false },
+			};
+			return riscv_debug_reg_to_s(text, description[i].ordinal,
+					context, data);
 		}
 	}
+	return 0;
 }
 
-static void decode_dmi(struct target *target, char *text, unsigned int address, unsigned int data)
+static unsigned int decode_dmi(struct target *target, char *text, unsigned int address,
+		unsigned int data)
 {
 	dm013_info_t *dm = get_dm(target);
 	if (!dm)
-		return;
-	decode_dm(text, address - dm->base, data);
+		return 0;
+	return decode_dm(text, address - dm->base, data);
 }
 
 static void dump_field(struct target *target, int idle, const struct scan_field *field)
@@ -417,13 +390,13 @@ static void dump_field(struct target *target, int idle, const struct scan_field 
 			field->num_bits, op_string[out_op], out_data, out_address,
 			status_string[in_op], in_data, in_address, idle);
 
-	char out_text[500];
-	char in_text[500];
-	decode_dmi(target, out_text, out_address, out_data);
-	decode_dmi(target, in_text, in_address, in_data);
+	char out_text[decode_dmi(target, NULL, out_address, out_data) + 1];
+	unsigned int out_len = decode_dmi(target, out_text, out_address, out_data);
+	char in_text[decode_dmi(target, NULL, in_address, in_data) + 1];
+	unsigned int in_len = decode_dmi(target, in_text, in_address, in_data);
 	if (in_text[0] || out_text[0]) {
-		log_printf_lf(LOG_LVL_DEBUG, __FILE__, __LINE__, "scan", "%s -> %s",
-				out_text, in_text);
+		log_printf_lf(LOG_LVL_DEBUG, __FILE__, __LINE__, "scan", "%.*s -> %.*s",
+				out_len, out_text, in_len, in_text);
 	}
 }
 
@@ -880,14 +853,7 @@ static int execute_abstract_command(struct target *target, uint32_t command)
 	if (debug_level >= LOG_LVL_DEBUG) {
 		switch (get_field(command, DM_COMMAND_CMDTYPE)) {
 			case 0:
-				LOG_TARGET_DEBUG(target, "command=0x%x; access register, size=%d, postexec=%d, "
-						"transfer=%d, write=%d, regno=0x%x",
-						command,
-						8 << get_field(command, AC_ACCESS_REGISTER_AARSIZE),
-						get_field(command, AC_ACCESS_REGISTER_POSTEXEC),
-						get_field(command, AC_ACCESS_REGISTER_TRANSFER),
-						get_field(command, AC_ACCESS_REGISTER_WRITE),
-						get_field(command, AC_ACCESS_REGISTER_REGNO));
+				log_debug_reg(target, AC_ACCESS_REGISTER_ORDINAL, command);
 				break;
 			default:
 				LOG_TARGET_DEBUG(target, "command=0x%x", command);
