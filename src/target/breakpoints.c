@@ -220,6 +220,8 @@ int breakpoint_add(struct target *target,
 
 		return ERROR_OK;
 	} else {
+		/* For software breakpoints on SMP targets, only set them on a
+		 * single target. We assume that SMP targets share memory. */
 		return breakpoint_add_internal(target, address, length, type);
 	}
 }
@@ -270,11 +272,17 @@ int hybrid_breakpoint_add(struct target *target,
 		return hybrid_breakpoint_add_internal(target, address, asid, length, type);
 }
 
-/* free up a breakpoint */
-static void breakpoint_free(struct target *target, struct breakpoint *breakpoint_to_remove)
+/* Free the data structures we use to track a breakpoint on data_target.
+ * Remove the actual breakpoint from breakpoint_target.
+ * This separation is useful when a software breakpoint is tracked on a target
+ * that is currently unavailable, but the breakpoint also affects a target that
+ * is available.
+ */
+static void breakpoint_free(struct target *data_target, struct target *breakpoint_target,
+		struct breakpoint *breakpoint_to_remove)
 {
-	struct breakpoint *breakpoint = target->breakpoints;
-	struct breakpoint **breakpoint_p = &target->breakpoints;
+	struct breakpoint *breakpoint = data_target->breakpoints;
+	struct breakpoint **breakpoint_p = &data_target->breakpoints;
 	int retval;
 
 	while (breakpoint) {
@@ -287,33 +295,12 @@ static void breakpoint_free(struct target *target, struct breakpoint *breakpoint
 	if (!breakpoint)
 		return;
 
-	retval = target_remove_breakpoint(target, breakpoint);
+	retval = target_remove_breakpoint(breakpoint_target, breakpoint);
 
 	LOG_DEBUG("free BPID: %" PRIu32 " --> %d", breakpoint->unique_id, retval);
 	(*breakpoint_p) = breakpoint->next;
 	free(breakpoint->orig_instr);
 	free(breakpoint);
-}
-
-static int breakpoint_remove_internal(struct target *target, target_addr_t address)
-{
-	struct breakpoint *breakpoint = target->breakpoints;
-
-	while (breakpoint) {
-		if ((breakpoint->address == address) ||
-		    (breakpoint->address == 0 && breakpoint->asid == address))
-			break;
-		breakpoint = breakpoint->next;
-	}
-
-	if (breakpoint) {
-		breakpoint_free(target, breakpoint);
-		return 1;
-	} else {
-		if (!target->smp)
-			LOG_ERROR("no breakpoint at address " TARGET_ADDR_FMT " found", address);
-		return 0;
-	}
 }
 
 static void breakpoint_remove_all_internal(struct target *target)
@@ -323,24 +310,90 @@ static void breakpoint_remove_all_internal(struct target *target)
 	while (breakpoint) {
 		struct breakpoint *tmp = breakpoint;
 		breakpoint = breakpoint->next;
-		breakpoint_free(target, tmp);
+		breakpoint_free(target, target, tmp);
 	}
 }
 
 void breakpoint_remove(struct target *target, target_addr_t address)
 {
-	if (target->smp) {
-		unsigned int num_breakpoints = 0;
-		struct target_list *head;
+	if (!target->smp) {
+		struct breakpoint *breakpoint = breakpoint_find(target, address);
+		if (breakpoint)
+			breakpoint_free(target, target, breakpoint);
+		return;
+	}
 
-		foreach_smp_target(head, target->smp_targets) {
-			struct target *curr = head->target;
-			num_breakpoints += breakpoint_remove_internal(curr, address);
+	unsigned int found = 0;
+	struct target_list *head;
+	/* Target where we found a software breakpoint. */
+	struct target *software_breakpoint_target = NULL;
+	struct breakpoint *software_breakpoint = NULL;
+	/* Target that is available. */
+	struct target *available_target = NULL;
+	/* Target that is available and halted. */
+	struct target *halted_target = NULL;
+
+	foreach_smp_target(head, target->smp_targets) {
+		struct target *curr = head->target;
+
+		if (!available_target && curr->state != TARGET_UNAVAILABLE)
+			available_target = curr;
+		if (!halted_target && curr->state == TARGET_HALTED)
+			halted_target = curr;
+
+		struct breakpoint *breakpoint = breakpoint_find(curr, address);
+		if (!breakpoint)
+			continue;
+
+		found++;
+
+		if (breakpoint->type == BKPT_SOFT) {
+			/* Software breakpoints are set on only one of the SMP
+			 * targets.  We can remove them through any of the SMP
+			 * targets. */
+			if (software_breakpoint_target) {
+				LOG_TARGET_WARNING(curr, "Already found software breakpoint at "
+						TARGET_ADDR_FMT " on %s.", address, target_name(software_breakpoint_target));
+			} else {
+				assert(!software_breakpoint_target);
+				software_breakpoint_target = curr;
+				software_breakpoint = breakpoint;
+			}
+		} else {
+			breakpoint_free(curr, curr, breakpoint);
 		}
-		if (!num_breakpoints)
-			LOG_ERROR("no breakpoint at address " TARGET_ADDR_FMT " found", address);
-	} else {
-		breakpoint_remove_internal(target, address);
+	}
+
+	if (!found) {
+		LOG_ERROR("no breakpoint at address " TARGET_ADDR_FMT " found", address);
+		return;
+	}
+
+	if (software_breakpoint) {
+		struct target *remove_target;
+		if (software_breakpoint_target->state == TARGET_HALTED)
+			remove_target = software_breakpoint_target;
+		else if (halted_target)
+			remove_target = halted_target;
+		else
+			remove_target = available_target;
+
+		if (remove_target) {
+			LOG_DEBUG("Removing software breakpoint found on %s using %s (address="
+					TARGET_ADDR_FMT ").",
+					target_name(software_breakpoint_target),
+					target_name(remove_target),
+					address);
+			/* Remove the software breakpoint through
+			* remove_target, but update the breakpoints structure
+			* of software_breakpoint_target. */
+			/* TODO: If there is an error, can we try to remove the
+			 * same breakpoint from a different target? */
+			breakpoint_free(software_breakpoint_target, remove_target, software_breakpoint);
+		} else {
+			LOG_WARNING("No halted target found to remove software breakpoint at "
+					TARGET_ADDR_FMT ".", address);
+		}
 	}
 }
 
@@ -363,7 +416,7 @@ static void breakpoint_clear_target_internal(struct target *target)
 	LOG_DEBUG("Delete all breakpoints for target: %s",
 		target_name(target));
 	while (target->breakpoints)
-		breakpoint_free(target, target->breakpoints);
+		breakpoint_free(target, target, target->breakpoints);
 }
 
 void breakpoint_clear_target(struct target *target)
@@ -385,7 +438,8 @@ struct breakpoint *breakpoint_find(struct target *target, target_addr_t address)
 	struct breakpoint *breakpoint = target->breakpoints;
 
 	while (breakpoint) {
-		if (breakpoint->address == address)
+		if (breakpoint->address == address ||
+				(breakpoint->address == 0 && breakpoint->asid == address))
 			return breakpoint;
 		breakpoint = breakpoint->next;
 	}
