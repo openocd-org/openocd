@@ -9,7 +9,14 @@ env:
   RISCV_TESTS_REV: master
   TOOLCHAIN_URL: https://github.com/xpack-dev-tools/riscv-none-elf-gcc-xpack/releases/download/v12.2.0-1/xpack-riscv-none-elf-gcc-12.2.0-1-linux-x64.tar.gz
 
-on: pull_request
+on:
+  # Run on merges to master to populate the cache with entities that are
+  # accessible by every pull request.
+  push:
+    branches:
+      - riscv
+  pull_request:
+    types: [synchronize, opened, reopened]
 
 # There is some commented out code below that would be useful in adding this
 # workflow to other repos. Ideally we can come up with something that would
