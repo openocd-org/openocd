@@ -107,7 +107,8 @@ jobs:
           git checkout "$RISCV_TESTS_REV"
           git submodule update --init --recursive
 
-      - name: Run Tests
+      - name: Run Spike32 Tests
+        id: spike32-tests
         run: |
           cd riscv-tests/debug
           ./gdbserver.py targets/RISC-V/spike32.py --print-failures \
@@ -115,6 +116,11 @@ jobs:
               --gdb /opt/riscv/toolchain/bin/riscv-none-elf-gdb \
               --sim_cmd /opt/riscv/spike/bin/spike \
               --server_cmd $GITHUB_WORKSPACE/src/openocd
+
+      - name: Run Spike64-2 Tests
+        if: success() || steps.spike32-tests.conclusion == 'failure'
+        run: |
+          cd riscv-tests/debug
           ./gdbserver.py targets/RISC-V/spike64-2.py --print-failures \
               --gcc /opt/riscv/toolchain/bin/riscv-none-elf-gcc \
               --gdb /opt/riscv/toolchain/bin/riscv-none-elf-gdb \
