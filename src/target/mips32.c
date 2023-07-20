@@ -438,7 +438,7 @@ int mips32_run_algorithm(struct target *target, int num_mem_params,
 	}
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted (run target algo)");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -921,8 +921,8 @@ COMMAND_HANDLER(mips32_handle_cp0_command)
 		return retval;
 
 	if (target->state != TARGET_HALTED) {
-		command_print(CMD, "target must be stopped for \"%s\" command", CMD_NAME);
-		return ERROR_OK;
+		command_print(CMD, "Error: target must be stopped for \"%s\" command", CMD_NAME);
+		return ERROR_TARGET_NOT_HALTED;
 	}
 
 	/* two or more argument, access a single register/select (write if third argument is given) */

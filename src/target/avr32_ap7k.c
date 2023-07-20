@@ -309,7 +309,7 @@ static int avr32_ap7k_resume(struct target *target, int current,
 	int retval;
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -431,7 +431,7 @@ static int avr32_ap7k_read_memory(struct target *target, target_addr_t address,
 		count);
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -471,7 +471,7 @@ static int avr32_ap7k_write_memory(struct target *target, target_addr_t address,
 		count);
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 

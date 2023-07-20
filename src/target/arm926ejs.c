@@ -754,8 +754,8 @@ static int arm926ejs_mmu(struct target *target, int *enabled)
 	struct arm926ejs_common *arm926ejs = target_to_arm926(target);
 
 	if (target->state != TARGET_HALTED) {
-		LOG_ERROR("Target not halted");
-		return ERROR_TARGET_INVALID;
+		LOG_TARGET_ERROR(target, "not halted");
+		return ERROR_TARGET_NOT_HALTED;
 	}
 	*enabled = arm926ejs->armv4_5_mmu.mmu_enabled;
 	return ERROR_OK;

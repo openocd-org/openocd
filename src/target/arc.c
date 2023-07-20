@@ -1258,7 +1258,7 @@ static int arc_resume(struct target *target, int current, target_addr_t address,
 	CHECK_RETVAL(arc_reset_caches_states(target));
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -1671,7 +1671,7 @@ static int arc_add_breakpoint(struct target *target, struct breakpoint *breakpoi
 		return arc_set_breakpoint(target, breakpoint);
 
 	} else {
-		LOG_WARNING(" > core was not halted, please try again.");
+		LOG_TARGET_ERROR(target, "not halted (add breakpoint)");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 }
@@ -1683,7 +1683,7 @@ static int arc_remove_breakpoint(struct target *target,
 		if (breakpoint->is_set)
 			CHECK_RETVAL(arc_unset_breakpoint(target, breakpoint));
 	} else {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted (remove breakpoint)");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -1905,7 +1905,7 @@ static int arc_add_watchpoint(struct target *target,
 	struct watchpoint *watchpoint)
 {
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -1918,7 +1918,7 @@ static int arc_remove_watchpoint(struct target *target,
 	struct watchpoint *watchpoint)
 {
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -2006,7 +2006,7 @@ static int arc_step(struct target *target, int current, target_addr_t address,
 	struct reg *pc = &(arc->core_and_aux_cache->reg_list[arc->pc_index_in_cache]);
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 

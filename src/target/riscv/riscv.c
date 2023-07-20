@@ -1840,7 +1840,7 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 	}
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted (run target algo)");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 

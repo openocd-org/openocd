@@ -449,7 +449,7 @@ static int adapter_resume(struct target *target, int current,
 			address, handle_breakpoints, debug_execution);
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -538,7 +538,7 @@ static int adapter_step(struct target *target, int current,
 	LOG_DEBUG("%s", __func__);
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 

@@ -318,8 +318,10 @@ static int esirisc_flush_caches(struct target *target)
 
 	LOG_DEBUG("-");
 
-	if (target->state != TARGET_HALTED)
+	if (target->state != TARGET_HALTED) {
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
+	}
 
 	int retval = esirisc_jtag_flush_caches(jtag_info);
 	if (retval != ERROR_OK) {
@@ -855,8 +857,10 @@ static int esirisc_resume_or_step(struct target *target, int current, target_add
 
 	LOG_DEBUG("-");
 
-	if (target->state != TARGET_HALTED)
+	if (target->state != TARGET_HALTED) {
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
+	}
 
 	if (!debug_execution) {
 		target_free_all_working_areas(target);

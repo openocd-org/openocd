@@ -22,7 +22,7 @@ static int armv7a_l1_d_cache_sanity_check(struct target *target)
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 
 	if (target->state != TARGET_HALTED) {
-		LOG_ERROR("%s: target not halted", __func__);
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -40,7 +40,7 @@ static int armv7a_l1_i_cache_sanity_check(struct target *target)
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 
 	if (target->state != TARGET_HALTED) {
-		LOG_ERROR("%s: target not halted", __func__);
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 

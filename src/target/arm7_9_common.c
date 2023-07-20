@@ -184,7 +184,7 @@ static int arm7_9_set_breakpoint(struct target *target, struct breakpoint *break
 		breakpoint->type);
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -455,7 +455,7 @@ static int arm7_9_set_watchpoint(struct target *target, struct watchpoint *watch
 	mask = watchpoint->length - 1;
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -524,7 +524,7 @@ static int arm7_9_unset_watchpoint(struct target *target, struct watchpoint *wat
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -1259,7 +1259,7 @@ static int arm7_9_debug_entry(struct target *target)
 		return retval;
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -1390,7 +1390,7 @@ static int arm7_9_full_context(struct target *target)
 	LOG_DEBUG("-");
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -1506,7 +1506,7 @@ static int arm7_9_restore_context(struct target *target)
 	LOG_DEBUG("-");
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -1709,7 +1709,7 @@ int arm7_9_resume(struct target *target,
 	LOG_DEBUG("-");
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -1907,7 +1907,7 @@ int arm7_9_step(struct target *target, int current, target_addr_t address, int h
 	int err, retval;
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -2118,7 +2118,7 @@ int arm7_9_read_memory(struct target *target,
 		address, size, count);
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -2291,7 +2291,7 @@ int arm7_9_write_memory(struct target *target,
 #endif
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 

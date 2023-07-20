@@ -525,7 +525,7 @@ int armv7m_start_algorithm(struct target *target,
 	}
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted (start target algo)");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 

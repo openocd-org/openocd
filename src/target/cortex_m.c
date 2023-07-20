@@ -1214,7 +1214,7 @@ static int cortex_m_restore_one(struct target *target, bool current,
 	struct reg *r;
 
 	if (target->state != TARGET_HALTED) {
-		LOG_TARGET_ERROR(target, "target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -1391,7 +1391,7 @@ static int cortex_m_step(struct target *target, int current,
 	bool isr_timed_out = false;
 
 	if (target->state != TARGET_HALTED) {
-		LOG_TARGET_WARNING(target, "target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -2092,7 +2092,7 @@ int cortex_m_remove_watchpoint(struct target *target, struct watchpoint *watchpo
 
 	/* REVISIT why check? DWT can be updated with core running ... */
 	if (target->state != TARGET_HALTED) {
-		LOG_TARGET_WARNING(target, "target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -2948,8 +2948,8 @@ COMMAND_HANDLER(handle_cortex_m_mask_interrupts_command)
 		return retval;
 
 	if (target->state != TARGET_HALTED) {
-		command_print(CMD, "target must be stopped for \"%s\" command", CMD_NAME);
-		return ERROR_OK;
+		command_print(CMD, "Error: target must be stopped for \"%s\" command", CMD_NAME);
+		return ERROR_TARGET_NOT_HALTED;
 	}
 
 	if (CMD_ARGC > 0) {

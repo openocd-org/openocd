@@ -1147,7 +1147,7 @@ static int cortex_a_step(struct target *target, int current, target_addr_t addre
 	int retval;
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -2225,7 +2225,7 @@ static int cortex_a_write_cpu_memory(struct target *target,
 	LOG_DEBUG("Writing CPU memory address 0x%" PRIx32 " size %"  PRIu32 " count %"  PRIu32,
 			  address, size, count);
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -2542,7 +2542,7 @@ static int cortex_a_read_cpu_memory(struct target *target,
 	LOG_DEBUG("Reading CPU memory address 0x%" PRIx32 " size %"  PRIu32 " count %"  PRIu32,
 			  address, size, count);
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -3183,8 +3183,8 @@ static int cortex_a_mmu(struct target *target, int *enabled)
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 
 	if (target->state != TARGET_HALTED) {
-		LOG_ERROR("%s: target not halted", __func__);
-		return ERROR_TARGET_INVALID;
+		LOG_TARGET_ERROR(target, "not halted");
+		return ERROR_TARGET_NOT_HALTED;
 	}
 
 	if (armv7a->is_armv7r)
