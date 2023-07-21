@@ -28,7 +28,7 @@
 
 #define get_field(reg, mask) (((reg) & (mask)) / ((mask) & ~((mask) << 1)))
 #define set_field(reg, mask, val) (((reg) & ~(mask)) | (((val) * ((mask) & ~((mask) << 1))) & (mask)))
-#define field_value(mask, val) set_field((riscv_reg_t) 0, mask, val)
+#define field_value(mask, val) set_field((riscv_reg_t)0, mask, val)
 
 /*** JTAG registers. ***/
 
@@ -516,9 +516,9 @@ static bool can_use_napot_match(struct trigger *trigger)
 {
 	riscv_reg_t addr = trigger->address;
 	riscv_reg_t size = trigger->length;
-	bool sizePowerOf2 = (size & (size - 1)) == 0;
-	bool addrAligned = (addr & (size - 1)) == 0;
-	return size > 1 && sizePowerOf2 && addrAligned;
+	bool size_power_of_2 = (size & (size - 1)) == 0;
+	bool addr_aligned = (addr & (size - 1)) == 0;
+	return size > 1 && size_power_of_2 && addr_aligned;
 }
 
 /* Find the next free trigger of the given type, without talking to the target. */
@@ -531,7 +531,7 @@ static int find_next_free_trigger(struct target *target, int type, bool chained,
 	unsigned int num_found = 0;
 	unsigned int num_required = chained ? 2 : 1;
 
-	for (unsigned i = *idx; i < r->trigger_count; i++) {
+	for (unsigned int i = *idx; i < r->trigger_count; i++) {
 		if (r->trigger_unique_id[i] == -1) {
 			if (r->trigger_tinfo[i] & (1 << type)) {
 				num_found++;
@@ -561,7 +561,7 @@ static int find_first_trigger_by_id(struct target *target, int unique_id)
 {
 	RISCV_INFO(r);
 
-	for (unsigned i = 0; i < r->trigger_count; i++) {
+	for (unsigned int i = 0; i < r->trigger_count; i++) {
 		if (r->trigger_unique_id[i] == unique_id)
 			return i;
 	}
@@ -760,8 +760,8 @@ struct match_triggers_tdata1_fields {
 	riscv_reg_t tdata1_ignore_mask;
 };
 
-static struct match_triggers_tdata1_fields fill_match_triggers_tdata1_fields_t2(
-		struct target *target, struct trigger *trigger)
+static struct match_triggers_tdata1_fields fill_match_triggers_tdata1_fields_t2(struct target *target,
+	struct trigger *trigger)
 {
 	RISCV_INFO(r);
 
@@ -796,8 +796,8 @@ static struct match_triggers_tdata1_fields fill_match_triggers_tdata1_fields_t2(
 	return result;
 }
 
-static struct match_triggers_tdata1_fields fill_match_triggers_tdata1_fields_t6(
-		struct target *target, struct trigger *trigger)
+static struct match_triggers_tdata1_fields fill_match_triggers_tdata1_fields_t6(struct target *target,
+	struct trigger *trigger)
 {
 	bool misa_s = riscv_supports_extension(target, 'S');
 	bool misa_u = riscv_supports_extension(target, 'U');
@@ -1578,7 +1578,7 @@ int riscv_flush_registers(struct target *target)
 /**
  * Set OpenOCD's generic debug reason from the RISC-V halt reason.
  */
-int set_debug_reason(struct target *target, enum riscv_halt_reason halt_reason)
+static int set_debug_reason(struct target *target, enum riscv_halt_reason halt_reason)
 {
 	RISCV_INFO(r);
 	r->trigger_hit = -1;
@@ -2684,7 +2684,7 @@ static int riscv_checksum_memory(struct target *target,
 	buf_set_u64(reg_params[1].value, 0, xlen, count);
 
 	/* 20 second timeout/megabyte */
-	int timeout = 20000 * (1 + (count / (1024 * 1024)));
+	unsigned int timeout = 20000 * (1 + (count / (1024 * 1024)));
 
 	retval = target_run_algorithm(target, 0, NULL, 2, reg_params,
 			crc_algorithm->address,
@@ -2913,10 +2913,10 @@ int riscv_openocd_poll(struct target *target)
 		targets = &single_target_list;
 	}
 
-	unsigned should_remain_halted = 0;
-	unsigned should_resume = 0;
-	unsigned halted = 0;
-	unsigned running = 0;
+	unsigned int should_remain_halted = 0;
+	unsigned int should_resume = 0;
+	unsigned int halted = 0;
+	unsigned int running = 0;
 	struct target_list *entry;
 	foreach_smp_target(entry, targets) {
 		struct target *t = entry->target;
@@ -3509,9 +3509,9 @@ COMMAND_HANDLER(riscv_dmi_write)
 		   - if debug module was reset, in which case progbuf registers
 		     may not retain their value.
 		*/
-		bool progbufTouched = (address >= DM_PROGBUF0 && address <= DM_PROGBUF15);
-		bool dmDeactivated = (address == DM_DMCONTROL && (value & DM_DMCONTROL_DMACTIVE) == 0);
-		if (progbufTouched || dmDeactivated) {
+		bool progbuf_touched = (address >= DM_PROGBUF0 && address <= DM_PROGBUF15);
+		bool dm_deactivated = (address == DM_DMCONTROL && (value & DM_DMCONTROL_DMACTIVE) == 0);
+		if (progbuf_touched || dm_deactivated) {
 			if (r->invalidate_cached_debug_buffer)
 				r->invalidate_cached_debug_buffer(target);
 		}
@@ -3949,7 +3949,7 @@ COMMAND_HANDLER(handle_memory_sample_command)
 
 	if (CMD_ARGC == 0) {
 		command_print(CMD, "Memory sample configuration for %s:", target_name(target));
-		for (unsigned i = 0; i < ARRAY_SIZE(r->sample_config.bucket); i++) {
+		for (unsigned int i = 0; i < ARRAY_SIZE(r->sample_config.bucket); i++) {
 			if (r->sample_config.bucket[i].enabled) {
 				command_print(CMD, "bucket %d; address=0x%" TARGET_PRIxADDR "; size=%d", i,
 							  r->sample_config.bucket[i].address,
@@ -3969,7 +3969,7 @@ COMMAND_HANDLER(handle_memory_sample_command)
 	uint32_t bucket;
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], bucket);
 	if (bucket > ARRAY_SIZE(r->sample_config.bucket)) {
-		LOG_ERROR("Max bucket number is %d.", (unsigned) ARRAY_SIZE(r->sample_config.bucket));
+		LOG_ERROR("Max bucket number is %zu.", ARRAY_SIZE(r->sample_config.bucket));
 		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
@@ -4036,7 +4036,7 @@ COMMAND_HANDLER(handle_dump_sample_buf_command)
 		command_print(CMD, "%s", encoded);
 		free(encoded);
 	} else {
-		unsigned i = 0;
+		unsigned int i = 0;
 		while (i < r->sample_buf.used) {
 			uint8_t command = r->sample_buf.buf[i++];
 			if (command == RISCV_SAMPLE_BUF_TIMESTAMP_BEFORE) {
@@ -4080,7 +4080,7 @@ error:
 }
 
 COMMAND_HELPER(riscv_print_info_line, const char *section, const char *key,
-			   unsigned value)
+			   unsigned int value)
 {
 	char full_key[80];
 	snprintf(full_key, sizeof(full_key), "%s.%s", section, key);
@@ -4437,7 +4437,7 @@ static const struct command_registration riscv_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-static unsigned riscv_xlen_nonconst(struct target *target)
+static unsigned int riscv_xlen_nonconst(struct target *target)
 {
 	return riscv_xlen(target);
 }
@@ -5981,7 +5981,7 @@ int riscv_init_registers(struct target *target)
 			} else if (r->exist && !list_empty(&info->hide_csr)) {
 				range_list_t *entry;
 				list_for_each_entry(entry, &info->hide_csr, list)
-					if ((entry->low <= csr_number) && (csr_number <= entry->high)) {
+					if (entry->low <= csr_number && csr_number <= entry->high) {
 						LOG_TARGET_DEBUG(target, "Hiding CSR %d (name=%s)", csr_number, r->name);
 						r->hidden = true;
 						break;
