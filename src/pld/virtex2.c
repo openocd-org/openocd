@@ -422,14 +422,14 @@ static const struct command_registration virtex2_exec_command_handlers[] = {
 		.usage = "pld_name",
 	}, {
 		.name = "set_instr_codes",
-		.mode = COMMAND_EXEC,
+		.mode = COMMAND_ANY,
 		.handler = virtex2_handle_set_instuction_codes_command,
 		.help = "set instructions codes used for loading the bitstream/refreshing/jtag-hub",
 		.usage = "pld_name cfg_out cfg_in jprogb jstart jshutdown"
 				 " [user1 [user2 [user3 [user4]]]]",
 	}, {
 		.name = "set_user_codes",
-		.mode = COMMAND_EXEC,
+		.mode = COMMAND_ANY,
 		.handler = virtex2_handle_set_user_codes_command,
 		.help = "set instructions codes used for jtag-hub",
 		.usage = "pld_name user1 [user2 [user3 [user4]]]",
