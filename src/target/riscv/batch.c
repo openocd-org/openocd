@@ -88,7 +88,7 @@ bool riscv_batch_full(struct riscv_batch *batch)
 int riscv_batch_run(struct riscv_batch *batch)
 {
 	if (batch->used_scans == 0) {
-		LOG_DEBUG("Ignoring empty batch.");
+		LOG_TARGET_DEBUG(batch->target, "Ignoring empty batch.");
 		return ERROR_OK;
 	}
 
@@ -107,7 +107,7 @@ int riscv_batch_run(struct riscv_batch *batch)
 	keep_alive();
 
 	if (jtag_execute_queue() != ERROR_OK) {
-		LOG_ERROR("Unable to execute JTAG queue");
+		LOG_TARGET_ERROR(batch->target, "Unable to execute JTAG queue");
 		return ERROR_FAIL;
 	}
 
