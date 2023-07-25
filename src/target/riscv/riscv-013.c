@@ -515,7 +515,10 @@ static dmi_status_t dmi_scan(struct target *target, uint32_t *address_in,
 	memset(in, 0, num_bytes);
 	memset(out, 0, num_bytes);
 
-	assert(info->abits != 0);
+	if (info->abits == 0) {
+		LOG_TARGET_ERROR(target, "Can't access DMI because addrbits=0.");
+		return DMI_STATUS_FAILED;
+	}
 
 	buf_set_u32(out, DTM_DMI_OP_OFFSET, DTM_DMI_OP_LENGTH, op);
 	buf_set_u32(out, DTM_DMI_DATA_OFFSET, DTM_DMI_DATA_LENGTH, data_out);
