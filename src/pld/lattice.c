@@ -319,7 +319,7 @@ static int lattice_load_command(struct pld_device *pld_device, const char *filen
 	return retval;
 }
 
-int lattice_get_ipdbg_hub(int user_num, struct pld_device *pld_device, struct pld_ipdbg_hub *hub)
+static int lattice_get_ipdbg_hub(int user_num, struct pld_device *pld_device, struct pld_ipdbg_hub *hub)
 {
 	if (!pld_device)
 		return ERROR_FAIL;

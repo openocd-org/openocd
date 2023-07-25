@@ -347,7 +347,7 @@ COMMAND_HANDLER(virtex2_handle_set_instuction_codes_command)
 	COMMAND_PARSE_NUMBER(u64, CMD_ARGV[3], instr_codes.jprog_b);
 	COMMAND_PARSE_NUMBER(u64, CMD_ARGV[4], instr_codes.jstart);
 	COMMAND_PARSE_NUMBER(u64, CMD_ARGV[5], instr_codes.jshutdown);
-	instr_codes.bypass = 0xffffffffffffffff;
+	instr_codes.bypass = 0xffffffffffffffffULL;
 
 	unsigned int num_user = CMD_ARGC - 6;
 	for (unsigned int i = 0; i < num_user; ++i)
