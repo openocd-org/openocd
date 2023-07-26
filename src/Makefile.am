@@ -22,6 +22,12 @@ endif
 
 %C%_libopenocd_la_CPPFLAGS =
 
+# this is Syntacore-specific code
+if SYNTACORE_RELEASE
+%C%_libopenocd_la_CPPFLAGS += -DRELSTR=\"-`head -1 $(top_srcdir)/__sc_version.txt`\"
+%C%_libopenocd_la_CPPFLAGS += -DGITVERSION=\"`tail -1 $(top_srcdir)/__sc_version.txt`\"
+%C%_libopenocd_la_CPPFLAGS += -DPKGBLDDATE=\"`date +%F-%R`\"
+else
 # banner output includes RELSTR appended to $VERSION from the configure script
 # guess-rev.sh returns either a repository version ID or "-snapshot"
 if RELEASE
@@ -31,6 +37,7 @@ else
 %C%_libopenocd_la_CPPFLAGS += -DRELSTR=\"`$(top_srcdir)/guess-rev.sh $(top_srcdir)`\"
 %C%_libopenocd_la_CPPFLAGS += -DGITVERSION=\"`cd $(top_srcdir) && git describe`\"
 %C%_libopenocd_la_CPPFLAGS += -DPKGBLDDATE=\"`date +%F-%R`\"
+endif
 endif
 
 # add default CPPFLAGS

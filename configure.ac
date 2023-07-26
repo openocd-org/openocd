@@ -110,6 +110,15 @@ AS_IF([test -x "$srcdir/guess-rev.sh"], [
 ])
 AC_MSG_RESULT([$build_release])
 
+# Syntacore has it's own rules for release processing
+AC_MSG_CHECKING([whether to build a release for Syntacore])
+AS_IF([test -r "$srcdir/__sc_version.txt"], [
+  build_syntacore_release=yes
+], [
+  build_syntacore_release=no
+])
+AC_MSG_RESULT([$build_syntacore_release])
+
 # Adapter drivers
 # 1st column -- Basename for the configure option generated with AC_ARG_ENABLE.
 #               For example, "buspirate" generates options "--enable-buspirate[=yes/no]"
@@ -746,6 +755,7 @@ AS_IF([test "x$enable_esp_usb_jtag" != "xno"], [
 ])
 
 AM_CONDITIONAL([RELEASE], [test "x$build_release" = "xyes"])
+AM_CONDITIONAL([SYNTACORE_RELEASE], [test "x$build_syntacore_release" = "xyes"])
 AM_CONDITIONAL([PARPORT], [test "x$build_parport" = "xyes"])
 AM_CONDITIONAL([GIVEIO], [test "x$parport_use_giveio" = "xyes"])
 AM_CONDITIONAL([EP93XX], [test "x$build_ep93xx" = "xyes"])
