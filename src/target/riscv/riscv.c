@@ -4945,8 +4945,11 @@ int riscv_get_register(struct target *target, riscv_reg_t *value,
  */
 int riscv_save_register(struct target *target, enum gdb_regno regid)
 {
-	assert(target->state == TARGET_HALTED &&
-			"Doesn't make sense to populate register cache on non-halted targets.");
+	if (target->state != TARGET_HALTED) {
+		LOG_TARGET_ERROR(target, "Can't save register %s on a hart that is not halted.",
+				 gdb_regno_name(regid));
+		return ERROR_FAIL;
+	}
 	assert(gdb_regno_cacheable(regid, /* is write? */ false) &&
 			"Only cacheable registers can be saved.");
 
