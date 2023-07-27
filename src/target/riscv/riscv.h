@@ -19,6 +19,7 @@ struct riscv_program;
 #define RISCV_MAX_HARTS  ((int)BIT(20))
 #define RISCV_MAX_TRIGGERS 32
 #define RISCV_MAX_HWBPS 16
+#define RISCV_MAX_DMS 100
 
 #define DEFAULT_COMMAND_TIMEOUT_SEC		2
 #define DEFAULT_RESET_TIMEOUT_SEC		30
@@ -220,15 +221,18 @@ struct riscv_info {
 	int (*execute_debug_buffer)(struct target *target);
 	int (*invalidate_cached_debug_buffer)(struct target *target);
 	int (*dmi_write_u64_bits)(struct target *target);
-	void (*fill_dmi_write_u64)(struct target *target, char *buf, int a, uint64_t d);
-	void (*fill_dmi_read_u64)(struct target *target, char *buf, int a);
-	void (*fill_dmi_nop_u64)(struct target *target, char *buf);
+	void (*fill_dm_write_u64)(struct target *target, char *buf, int a, uint64_t d);
+	void (*fill_dm_read_u64)(struct target *target, char *buf, int a);
+	void (*fill_dm_nop_u64)(struct target *target, char *buf);
 
 	int (*authdata_read)(struct target *target, uint32_t *value, unsigned int index);
 	int (*authdata_write)(struct target *target, uint32_t value, unsigned int index);
 
 	int (*dmi_read)(struct target *target, uint32_t *value, uint32_t address);
 	int (*dmi_write)(struct target *target, uint32_t address, uint32_t value);
+
+	int (*dm_read)(struct target *target, uint32_t *value, uint32_t address);
+	int (*dm_write)(struct target *target, uint32_t address, uint32_t value);
 
 	int (*sample_memory)(struct target *target,
 						 struct riscv_sample_buf *buf,
@@ -412,9 +416,9 @@ riscv_insn_t riscv_read_debug_buffer(struct target *target, int index);
 int riscv_write_debug_buffer(struct target *target, int index, riscv_insn_t insn);
 int riscv_execute_debug_buffer(struct target *target);
 
-void riscv_fill_dmi_nop_u64(struct target *target, char *buf);
-void riscv_fill_dmi_write_u64(struct target *target, char *buf, int a, uint64_t d);
-void riscv_fill_dmi_read_u64(struct target *target, char *buf, int a);
+void riscv_fill_dm_nop_u64(struct target *target, char *buf);
+void riscv_fill_dm_write_u64(struct target *target, char *buf, int a, uint64_t d);
+void riscv_fill_dm_read_u64(struct target *target, char *buf, int a);
 int riscv_dmi_write_u64_bits(struct target *target);
 
 int riscv_enumerate_triggers(struct target *target);

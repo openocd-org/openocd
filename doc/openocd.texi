@@ -10891,15 +10891,28 @@ Write the 32-bit value to authdata or authdata0 (index=0), or authdata1
 
 @subsection RISC-V DMI Commands
 
-The following commands allow direct access to the Debug Module Interface, which
-can be used to interact with custom debug features.
+The following commands allow for direct low-level access to the registers
+of the Debug Module (DM). They can be useful to access custom features in the DM.
+
+@deffn {Command} {riscv dm_read} reg_address
+Perform a 32-bit read from the register indicated by reg_address from the DM of the
+current target.
+@end deffn
+
+@deffn {Command} {riscv dm_write} reg_address value
+Write the 32-bit value to the register indicated by reg_address from the DM of the
+current target.
+@end deffn
+
+The following commands allow for direct low-level access to the Debug Module
+Interface (DMI). They can be useful to access any device that resides on the DMI.
 
 @deffn {Command} {riscv dmi_read} address
-Perform a 32-bit DMI read at address, returning the value.
+Perform a 32-bit read from the given DMI address, returning the value.
 @end deffn
 
 @deffn {Command} {riscv dmi_write} address value
-Perform a 32-bit DMI write of value at address.
+Perform a 32-bit write to the given DMI address.
 @end deffn
 
 @subsection RISC-V Trigger Commands

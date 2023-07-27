@@ -58,14 +58,14 @@ bool riscv_batch_full(struct riscv_batch *batch);
 /* Executes this scan batch. */
 int riscv_batch_run(struct riscv_batch *batch);
 
-/* Adds a DMI write to this batch. */
-void riscv_batch_add_dmi_write(struct riscv_batch *batch, unsigned int address, uint64_t data,
+/* Adds a DM register write to this batch. */
+void riscv_batch_add_dm_write(struct riscv_batch *batch, unsigned int address, uint64_t data,
 	bool read_back);
 
-/* DMI reads must be handled in two parts: the first one schedules a read and
+/* DM register reads must be handled in two parts: the first one schedules a read and
  * provides a key, the second one actually obtains the result of the read -
  * status (op) and the actual data. */
-size_t riscv_batch_add_dmi_read(struct riscv_batch *batch, unsigned address);
+size_t riscv_batch_add_dm_read(struct riscv_batch *batch, unsigned int address);
 unsigned int riscv_batch_get_dmi_read_op(const struct riscv_batch *batch, size_t key);
 uint32_t riscv_batch_get_dmi_read_data(const struct riscv_batch *batch, size_t key);
 

@@ -127,17 +127,17 @@ int riscv_batch_run(struct riscv_batch *batch)
 	return ERROR_OK;
 }
 
-void riscv_batch_add_dmi_write(struct riscv_batch *batch, unsigned int address, uint64_t data,
+void riscv_batch_add_dm_write(struct riscv_batch *batch, unsigned int address, uint64_t data,
 	bool read_back)
 {
 	assert(batch->used_scans < batch->allocated_scans);
 	struct scan_field *field = batch->fields + batch->used_scans;
 	field->num_bits = riscv_dmi_write_u64_bits(batch->target);
 	field->out_value = (void *)(batch->data_out + batch->used_scans * DMI_SCAN_BUF_SIZE);
-	riscv_fill_dmi_write_u64(batch->target, (char *)field->out_value, address, data);
+	riscv_fill_dm_write_u64(batch->target, (char *)field->out_value, address, data);
 	if (read_back) {
 		field->in_value = (void *)(batch->data_in + batch->used_scans * DMI_SCAN_BUF_SIZE);
-		riscv_fill_dmi_nop_u64(batch->target, (char *)field->in_value);
+		riscv_fill_dm_nop_u64(batch->target, (char *)field->in_value);
 	} else {
 		field->in_value = NULL;
 	}
@@ -145,15 +145,15 @@ void riscv_batch_add_dmi_write(struct riscv_batch *batch, unsigned int address, 
 	batch->used_scans++;
 }
 
-size_t riscv_batch_add_dmi_read(struct riscv_batch *batch, unsigned address)
+size_t riscv_batch_add_dm_read(struct riscv_batch *batch, unsigned int address)
 {
 	assert(batch->used_scans < batch->allocated_scans);
 	struct scan_field *field = batch->fields + batch->used_scans;
 	field->num_bits = riscv_dmi_write_u64_bits(batch->target);
 	field->out_value = (void *)(batch->data_out + batch->used_scans * DMI_SCAN_BUF_SIZE);
 	field->in_value  = (void *)(batch->data_in  + batch->used_scans * DMI_SCAN_BUF_SIZE);
-	riscv_fill_dmi_read_u64(batch->target, (char *)field->out_value, address);
-	riscv_fill_dmi_nop_u64(batch->target, (char *)field->in_value);
+	riscv_fill_dm_read_u64(batch->target, (char *)field->out_value, address);
+	riscv_fill_dm_nop_u64(batch->target, (char *)field->in_value);
 	batch->last_scan = RISCV_SCAN_TYPE_READ;
 	batch->used_scans++;
 
@@ -188,8 +188,8 @@ void riscv_batch_add_nop(struct riscv_batch *batch)
 	field->num_bits = riscv_dmi_write_u64_bits(batch->target);
 	field->out_value = (void *)(batch->data_out + batch->used_scans * DMI_SCAN_BUF_SIZE);
 	field->in_value  = (void *)(batch->data_in  + batch->used_scans * DMI_SCAN_BUF_SIZE);
-	riscv_fill_dmi_nop_u64(batch->target, (char *)field->out_value);
-	riscv_fill_dmi_nop_u64(batch->target, (char *)field->in_value);
+	riscv_fill_dm_nop_u64(batch->target, (char *)field->out_value);
+	riscv_fill_dm_nop_u64(batch->target, (char *)field->in_value);
 	batch->last_scan = RISCV_SCAN_TYPE_NOP;
 	batch->used_scans++;
 }
