@@ -1293,6 +1293,14 @@ static void trigger_from_watchpoint(struct trigger *trigger,
 
 int riscv_add_watchpoint(struct target *target, struct watchpoint *watchpoint)
 {
+	// NOTE: typeof is needed because of upstream OpenOCD bug. This should be
+	// replaced by WATCHPOINT_IGNORE_DATA_VALUE_MASK once it is available
+	// See: https://review.openocd.org/c/openocd/+/7840
+	if (watchpoint->mask != ~(typeof(watchpoint->mask))0) {
+		LOG_TARGET_ERROR(target, "Watchpoints on data values are not implemented");
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+
 	struct trigger trigger;
 	trigger_from_watchpoint(&trigger, watchpoint);
 
