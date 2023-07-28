@@ -451,6 +451,7 @@ static int arm7_9_set_watchpoint(struct target *target, struct watchpoint *watch
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	int rw_mask = 1;
 	uint32_t mask;
+	const uint32_t wp_data_mask = watchpoint->mask;
 
 	mask = watchpoint->length - 1;
 
@@ -469,8 +470,8 @@ static int arm7_9_set_watchpoint(struct target *target, struct watchpoint *watch
 			watchpoint->address);
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_ADDR_MASK], mask);
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_DATA_MASK],
-			watchpoint->mask);
-		if (watchpoint->mask != 0xffffffffu)
+			wp_data_mask);
+		if (wp_data_mask != (uint32_t)WATCHPOINT_IGNORE_DATA_VALUE_MASK)
 			embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_DATA_VALUE],
 				watchpoint->value);
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W0_CONTROL_MASK],
@@ -488,8 +489,8 @@ static int arm7_9_set_watchpoint(struct target *target, struct watchpoint *watch
 			watchpoint->address);
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_ADDR_MASK], mask);
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_DATA_MASK],
-			watchpoint->mask);
-		if (watchpoint->mask != 0xffffffffu)
+			wp_data_mask);
+		if (wp_data_mask != (uint32_t)WATCHPOINT_IGNORE_DATA_VALUE_MASK)
 			embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_DATA_VALUE],
 				watchpoint->value);
 		embeddedice_set_reg(&arm7_9->eice_cache->reg_list[EICE_W1_CONTROL_MASK],

@@ -2296,7 +2296,7 @@ static int xscale_add_watchpoint(struct target *target,
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
-	if (watchpoint->value)
+	if (watchpoint->mask != WATCHPOINT_IGNORE_DATA_VALUE_MASK)
 		LOG_WARNING("xscale does not support value, mask arguments; ignoring");
 
 	/* check that length is a power of two */

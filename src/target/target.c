@@ -4061,8 +4061,8 @@ COMMAND_HANDLER(handle_wp_command)
 		while (watchpoint) {
 			command_print(CMD, "address: " TARGET_ADDR_FMT
 					", len: 0x%8.8" PRIx32
-					", r/w/a: %i, value: 0x%8.8" PRIx32
-					", mask: 0x%8.8" PRIx32,
+					", r/w/a: %i, value: 0x%8.8" PRIx64
+					", mask: 0x%8.8" PRIx64,
 					watchpoint->address,
 					watchpoint->length,
 					(int)watchpoint->rw,
@@ -4076,15 +4076,20 @@ COMMAND_HANDLER(handle_wp_command)
 	enum watchpoint_rw type = WPT_ACCESS;
 	target_addr_t addr = 0;
 	uint32_t length = 0;
-	uint32_t data_value = 0x0;
-	uint32_t data_mask = 0xffffffff;
+	uint64_t data_value = 0x0;
+	uint64_t data_mask = WATCHPOINT_IGNORE_DATA_VALUE_MASK;
+	bool mask_specified = false;
 
 	switch (CMD_ARGC) {
 	case 5:
-		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[4], data_mask);
+		COMMAND_PARSE_NUMBER(u64, CMD_ARGV[4], data_mask);
+		mask_specified = true;
 		/* fall through */
 	case 4:
-		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[3], data_value);
+		COMMAND_PARSE_NUMBER(u64, CMD_ARGV[3], data_value);
+		// if user specified only data value without mask - the mask should be 0
+		if (!mask_specified)
+			data_mask = 0;
 		/* fall through */
 	case 3:
 		switch (CMD_ARGV[2][0]) {
