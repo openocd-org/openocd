@@ -3052,6 +3052,10 @@ COMMAND_HANDLER(handle_reg_command)
 	LOG_DEBUG("-");
 
 	struct target *target = get_current_target(CMD_CTX);
+	if (!target_was_examined(target)) {
+		LOG_ERROR("Target not examined yet");
+		return ERROR_TARGET_NOT_EXAMINED;
+	}
 	struct reg *reg = NULL;
 
 	/* list all available registers for the current target */
