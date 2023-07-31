@@ -7193,10 +7193,16 @@ Show information about flash driver.
 All versions of the NPCX microcontroller families from Nuvoton include internal
 flash. The NPCX flash driver supports the NPCX family of devices. The driver
 automatically recognizes the specific version's flash parameters and
-autoconfigures itself. The flash bank starts at address 0x64000000.
+autoconfigures itself. The flash bank starts at address 0x64000000. An optional additional
+parameter sets the FIU version for the bank, with the default FIU is @var{npcx.fiu}.
 
 @example
+
+flash bank $_FLASHNAME npcx 0x64000000 0 0 0 $_TARGETNAME npcx_v2.fiu
+
+# FIU defaults to npcx.fiu
 flash bank $_FLASHNAME npcx 0x64000000 0 0 0 $_TARGETNAME
+
 @end example
 @end deffn
 

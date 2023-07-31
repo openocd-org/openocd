@@ -80,6 +80,7 @@
 #define NPCX_FIU_DMM_CYC     NPCX_HW_BYTE(NPCX_FIU_BASE_ADDR + 0x032)
 #define NPCX_FIU_EXT_CFG     NPCX_HW_BYTE(NPCX_FIU_BASE_ADDR + 0x033)
 #define NPCX_FIU_UMA_AB0_3  NPCX_HW_DWORD(NPCX_FIU_BASE_ADDR + 0x034)
+#define NPCX_FIU_MSR_IE_CFG  NPCX_HW_BYTE(NPCX_FIU_BASE_ADDR + 0x043)
 
 /* FIU register fields */
 #define NPCX_RESP_CFG_IAD_EN             0
@@ -93,6 +94,7 @@
 #define NPCX_UMA_ECTS_SW_CS1             1
 #define NPCX_UMA_ECTS_SEC_CS             2
 #define NPCX_UMA_ECTS_UMA_LOCK           3
+#define NPCX_FIU_MSR_IE_CFG_UMA_BLOCK    3
 
 /* Flash UMA commands for npcx internal SPI flash */
 #define NPCX_CMD_READ_ID                 0x9F
@@ -130,7 +132,6 @@
 #define NPCX_SPI_FLASH_SR1_BUSY          (1 << 0)
 
 #define NPCX_MASK_CMD_ONLY               (0xC0)
-#define NPCX_MASK_CMD_ADR                (0xC0 | 0x08)
 #define NPCX_MASK_CMD_ADR_WR             (0xC0 | 0x20 | 0x08 | 0x01)
 #define NPCX_MASK_RD_1BYTE               (0xC0 | 0x10 | 0x01)
 #define NPCX_MASK_RD_2BYTE               (0xC0 | 0x10 | 0x02)
@@ -143,10 +144,12 @@
 #define NPCX_MASK_CMD_WR_ONLY            (0xC0 | 0x20)
 #define NPCX_MASK_CMD_WR_1BYTE           (0xC0 | 0x20 | 0x10 | 0x01)
 #define NPCX_MASK_CMD_WR_2BYTE           (0xC0 | 0x20 | 0x10 | 0x02)
-#define NPCX_MASK_CMD_WR_ADR             (0xC0 | 0x20 | 0x08)
+#define NPCX_MASK_CMD_WR_3BYTE           (0xC0 | 0x20 | 0x10 | 0x03)
+#define NPCX_MASK_CMD_WR_4BYTE           (0xC0 | 0x20 | 0x10 | 0x04)
 
 /* Flash loader parameters */
 struct __attribute__((__packed__)) npcx_flash_params {
+	uint32_t fiu_ver; /* Flash controller unit version */
 	uint32_t addr; /* Address in flash */
 	uint32_t len;  /* Number of bytes */
 	uint32_t cmd;  /* Command */
@@ -174,6 +177,12 @@ enum npcx_flash_status {
 	NPCX_FLASH_STATUS_FAILED_UNKNOWN_COMMAND,
 	NPCX_FLASH_STATUS_FAILED,
 	NPCX_FLASH_STATUS_FAILED_TIMEOUT,
+};
+
+enum npcx_fiu_ver {
+	NPCX_FIU_NPCX = 0,
+	NPCX_FIU_NPCX_V2,
+	NPCX_FIU_NPCK,
 };
 
 #endif /* OPENOCD_LOADERS_FLASH_NPCX_NPCX_FLASH_H */
