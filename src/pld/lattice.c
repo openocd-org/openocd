@@ -526,7 +526,7 @@ static const struct command_registration lattice_exec_command_handlers[] = {
 		.usage = "pld_name value",
 	}, {
 		.name = "set_preload",
-		.mode = COMMAND_EXEC,
+		.mode = COMMAND_ANY,
 		.handler = lattice_set_preload_command_handler,
 		.help = "set length for preload (device specific)",
 		.usage = "pld_name value",

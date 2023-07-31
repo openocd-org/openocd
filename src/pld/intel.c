@@ -467,13 +467,13 @@ PLD_CREATE_COMMAND_HANDLER(intel_pld_create_command)
 static const struct command_registration intel_exec_command_handlers[] = {
 	{
 		.name = "set_bscan",
-		.mode = COMMAND_EXEC,
+		.mode = COMMAND_ANY,
 		.handler = intel_set_bscan_command_handler,
 		.help = "set boundary scan register length of FPGA",
 		.usage = "pld_name len",
 	}, {
 		.name = "set_check_pos",
-		.mode = COMMAND_EXEC,
+		.mode = COMMAND_ANY,
 		.handler = intel_set_check_pos_command_handler,
 		.help = "set check_pos of FPGA",
 		.usage = "pld_name pos",
