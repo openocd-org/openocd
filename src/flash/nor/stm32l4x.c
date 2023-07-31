@@ -1740,7 +1740,8 @@ static int stm32l4_probe(struct flash_bank *bank)
 
 	/* Set flash write alignment boundaries.
 	 * Ask the flash infrastructure to ensure required alignment */
-	bank->write_start_alignment = bank->write_end_alignment = stm32l4_info->data_width;
+	bank->write_start_alignment = stm32l4_info->data_width;
+	bank->write_end_alignment = stm32l4_info->data_width;
 
 	/* Initialize the flash registers layout */
 	if (part_info->flags & F_HAS_L5_FLASH_REGS)
