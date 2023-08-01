@@ -426,7 +426,10 @@ static dbus_status_t dbus_scan(struct target *target, uint16_t *address_in,
 		.in_value = in
 	};
 
-	assert(info->addrbits != 0);
+	if (info->addrbits == 0) {
+		LOG_TARGET_ERROR(target, "Can't access DMI because addrbits=0.");
+		return DBUS_STATUS_FAILED;
+	}
 
 	buf_set_u64(out, DBUS_OP_START, DBUS_OP_SIZE, op);
 	buf_set_u64(out, DBUS_DATA_START, DBUS_DATA_SIZE, data_out);
@@ -680,17 +683,12 @@ static void dram_write32(struct target *target, unsigned int index, uint32_t val
 }
 
 /** Read the haltnot and interrupt bits. */
-static bits_t read_bits(struct target *target)
+static int read_bits(struct target *target, bits_t *result)
 {
 	uint64_t value;
 	dbus_status_t status;
 	uint16_t address_in;
 	riscv011_info_t *info = get_info(target);
-
-	bits_t err_result = {
-		.haltnot = 0,
-		.interrupt = 0
-	};
 
 	do {
 		unsigned i = 0;
@@ -700,26 +698,23 @@ static bits_t read_bits(struct target *target)
 				if (address_in == (1<<info->addrbits) - 1 &&
 						value == (1ULL<<DBUS_DATA_SIZE) - 1) {
 					LOG_ERROR("TDO seems to be stuck high.");
-					return err_result;
+					return ERROR_FAIL;
 				}
 				increase_dbus_busy_delay(target);
-			} else if (status == DBUS_STATUS_FAILED) {
-				/* TODO: return an actual error */
-				return err_result;
 			}
 		} while (status == DBUS_STATUS_BUSY && i++ < 256);
 
-		if (i >= 256) {
+		if (status != DBUS_STATUS_SUCCESS) {
 			LOG_ERROR("Failed to read from 0x%x; status=%d", address_in, status);
-			return err_result;
+			return ERROR_FAIL;
 		}
 	} while (address_in > 0x10 && address_in != DMCONTROL);
 
-	bits_t result = {
-		.haltnot = get_field(value, DMCONTROL_HALTNOT),
-		.interrupt = get_field(value, DMCONTROL_INTERRUPT)
-	};
-	return result;
+	if (result) {
+		result->haltnot = get_field(value, DMCONTROL_HALTNOT);
+		result->interrupt = get_field(value, DMCONTROL_INTERRUPT);
+	}
+	return ERROR_OK;
 }
 
 static int wait_for_debugint_clear(struct target *target, bool ignore_first)
@@ -730,10 +725,16 @@ static int wait_for_debugint_clear(struct target *target, bool ignore_first)
 		 * result of the read that happened just before debugint was set.
 		 * (Assuming the last scan before calling this function was one that
 		 * sets debugint.) */
-		read_bits(target);
+		read_bits(target, NULL);
 	}
 	while (1) {
-		bits_t bits = read_bits(target);
+		bits_t bits = {
+			.haltnot = 0,
+			.interrupt = 0
+		};
+		if (read_bits(target, &bits) != ERROR_OK)
+			return ERROR_FAIL;
+
 		if (!bits.interrupt)
 			return ERROR_OK;
 		if (time(NULL) - start > riscv_command_timeout_sec) {
@@ -1893,7 +1894,13 @@ static int poll_target(struct target *target, bool announce)
 	int old_debug_level = debug_level;
 	if (debug_level >= LOG_LVL_DEBUG)
 		debug_level = LOG_LVL_INFO;
-	bits_t bits = read_bits(target);
+	bits_t bits = {
+		.haltnot = 0,
+		.interrupt = 0
+	};
+	if (read_bits(target, &bits) != ERROR_OK)
+		return ERROR_FAIL;
+
 	debug_level = old_debug_level;
 
 	if (bits.haltnot && bits.interrupt) {
