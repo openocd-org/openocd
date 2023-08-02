@@ -795,7 +795,7 @@ static int stm32x_probe(struct flash_bank *bank)
 	/* STM32H74x/H75x, the second core (Cortex-M4) cannot read the flash size */
 	retval = ERROR_FAIL;
 	if (device_id == DEVID_STM32H74_H75XX
-			&& cortex_m_get_partno_safe(target) == CORTEX_M4_PARTNO)
+			&& cortex_m_get_impl_part(target) == CORTEX_M4_PARTNO)
 		LOG_WARNING("%s cannot read the flash size register", target_name(target));
 	else
 		retval = target_read_u16(target, stm32x_info->part_info->fsize_addr, &flash_size_in_kb);
