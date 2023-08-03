@@ -897,7 +897,7 @@ static int maybe_add_trigger_t2_t6(struct target *target,
 	};
 	ret = try_setup_single_match_trigger(target, trigger, eq);
 	if (ret != ERROR_OK)
-		return ERROR_FAIL;
+		return ret;
 
 	if (trigger->length > 1) {
 		LOG_TARGET_DEBUG(target, "Trigger will match accesses at address 0x%" TARGET_PRIxADDR
@@ -1042,7 +1042,9 @@ static int add_trigger(struct target *target, struct trigger *trigger)
 			break;
 	} while (0);
 
-	riscv_set_register(target, GDB_REGNO_TSELECT, tselect);
+	if (riscv_set_register(target, GDB_REGNO_TSELECT, tselect) != ERROR_OK &&
+			ret == ERROR_OK)
+		return ERROR_FAIL;
 
 	return ret;
 }
