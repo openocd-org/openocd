@@ -1870,8 +1870,12 @@ static int set_group(struct target *target, bool *supported, unsigned int group,
 
 static int examine(struct target *target)
 {
-	/* Don't need to select dbus, since the first thing we do is read dtmcontrol. */
+	/* We reset target state in case if something goes wrong during examine:
+	 * DTM/DM scans could fail or hart may fail to halt. */
+	target->state = TARGET_UNKNOWN;
+	target->debug_reason = DBG_REASON_UNDEFINED;
 
+	/* Don't need to select dbus, since the first thing we do is read dtmcontrol. */
 	LOG_TARGET_DEBUG(target, "dbgbase=0x%x", target->dbgbase);
 
 	uint32_t dtmcontrol = dtmcontrol_scan(target, 0);
@@ -2033,34 +2037,21 @@ static int examine(struct target *target)
 	if (dm013_select_hart(target, info->index) != ERROR_OK)
 		return ERROR_FAIL;
 
-	enum riscv_hart_state state;
-	if (riscv_get_hart_state(target, &state) != ERROR_OK)
+	enum riscv_hart_state state_at_examine_start;
+	if (riscv_get_hart_state(target, &state_at_examine_start) != ERROR_OK)
 		return ERROR_FAIL;
-	bool halted = (state == RISCV_STATE_HALTED);
-	if (!halted) {
+	const bool hart_halted_at_examine_start = state_at_examine_start == RISCV_STATE_HALTED;
+	if (!hart_halted_at_examine_start) {
 		r->prepped = true;
 		if (riscv013_halt_go(target) != ERROR_OK) {
 			LOG_TARGET_ERROR(target, "Fatal: Hart %d failed to halt during %s",
 					info->index, __func__);
 			return ERROR_FAIL;
 		}
-		target->state = TARGET_HALTED;
-		target->debug_reason = DBG_REASON_DBGRQ;
 	}
-	/* FIXME: This is needed since register_read_direct relies on target->state
-	 * to work correctly, so, if target->state does not represent current state
-	 * of target, e.g. if a target is halted, but target->state is
-	 * TARGET_UNKNOWN, it can fail early, (e.g. accessing registers via program
-	 * buffer can not be done atomically on a running hart becuse mstatus can't
-	 * be prepared for a register access and then restored)
-	 * See https://github.com/riscv/riscv-openocd/pull/842#discussion_r1179414089
-	 */
-	const enum target_state saved_tgt_state = target->state;
-	const enum target_debug_reason saved_dbg_reason = target->debug_reason;
-	if (target->state != TARGET_HALTED) {
-		target->state = TARGET_HALTED;
-		target->debug_reason = DBG_REASON_DBGRQ;
-	}
+
+	target->state = TARGET_HALTED;
+	target->debug_reason = hart_halted_at_examine_start ? DBG_REASON_UNDEFINED : DBG_REASON_DBGRQ;
 
 	/* Without knowing anything else we can at least mess with the
 	 * program buffer. */
@@ -2134,13 +2125,13 @@ static int examine(struct target *target)
 	if (set_dcsr_ebreak(target, false) != ERROR_OK)
 		return ERROR_FAIL;
 
-	target->state = saved_tgt_state;
-	target->debug_reason = saved_dbg_reason;
-
-	if (!halted) {
+	if (state_at_examine_start == RISCV_STATE_RUNNING) {
 		riscv013_step_or_resume_current_hart(target, false);
 		target->state = TARGET_RUNNING;
 		target->debug_reason = DBG_REASON_NOTHALTED;
+	} else if (state_at_examine_start == RISCV_STATE_HALTED) {
+		target->state = TARGET_HALTED;
+		target->debug_reason = DBG_REASON_UNDEFINED;
 	}
 
 	if (target->smp) {
