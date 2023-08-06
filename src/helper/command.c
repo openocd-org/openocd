@@ -154,30 +154,6 @@ static void script_debug(Jim_Interp *interp, unsigned int argc, Jim_Obj * const 
 	free(dbg);
 }
 
-static void script_command_args_free(char **words, unsigned nwords)
-{
-	for (unsigned i = 0; i < nwords; i++)
-		free(words[i]);
-	free(words);
-}
-
-static char **script_command_args_alloc(unsigned int argc, Jim_Obj * const *argv)
-{
-	char **words = malloc(argc * sizeof(char *));
-	if (!words)
-		return NULL;
-
-	for (unsigned int i = 0; i < argc; i++) {
-		const char *w = Jim_GetString(argv[i], NULL);
-		words[i] = strdup(w);
-		if (!words[i]) {
-			script_command_args_free(words, i);
-			return NULL;
-		}
-	}
-	return words;
-}
-
 struct command_context *current_command_context(Jim_Interp *interp)
 {
 	/* grab the command context from the associated data */
@@ -898,13 +874,17 @@ static int exec_command(Jim_Interp *interp, struct command_context *cmd_ctx,
 		return c->jim_handler(interp, argc, argv);
 
 	/* use c->handler */
-	unsigned int nwords = argc;
-	char **words = script_command_args_alloc(argc, argv);
-	if (!words)
+	const char **words = malloc(argc * sizeof(char *));
+	if (!words) {
+		LOG_ERROR("Out of memory");
 		return JIM_ERR;
+	}
 
-	int retval = run_command(cmd_ctx, c, (const char **)words, nwords);
-	script_command_args_free(words, nwords);
+	for (int i = 0; i < argc; i++)
+		words[i] = Jim_GetString(argv[i], NULL);
+
+	int retval = run_command(cmd_ctx, c, words, argc);
+	free(words);
 	return command_retval_set(interp, retval);
 }
 
