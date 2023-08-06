@@ -79,6 +79,7 @@ struct command_invocation {
 	const char *name;
 	unsigned argc;
 	const char **argv;
+	Jim_Obj * const *jimtcl_argv;
 	Jim_Obj *output;
 };
 
@@ -153,6 +154,11 @@ void *jimcmd_privdata(Jim_Cmd *cmd);
  * rather than accessing the variable directly.  It may be moved.
  */
 #define CMD_ARGV (cmd->argv)
+/**
+ * Use this macro to access the jimtcl arguments for the command being
+ * handled, rather than accessing the variable directly.  It may be moved.
+ */
+#define CMD_JIMTCL_ARGV (cmd->jimtcl_argv)
 /**
  * Use this macro to access the name of the command being handled,
  * rather than accessing the variable directly.  It may be moved.
