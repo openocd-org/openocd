@@ -145,8 +145,7 @@ static void script_debug(Jim_Interp *interp, unsigned int argc, Jim_Obj * const 
 
 	char *dbg = alloc_printf("command -");
 	for (unsigned i = 0; i < argc; i++) {
-		int len;
-		const char *w = Jim_GetString(argv[i], &len);
+		const char *w = Jim_GetString(argv[i], NULL);
 		char *t = alloc_printf("%s %s", dbg, w);
 		free(dbg);
 		dbg = t;
@@ -171,8 +170,7 @@ static char **script_command_args_alloc(
 
 	unsigned i;
 	for (i = 0; i < argc; i++) {
-		int len;
-		const char *w = Jim_GetString(argv[i], &len);
+		const char *w = Jim_GetString(argv[i], NULL);
 		words[i] = strdup(w);
 		if (!words[i]) {
 			script_command_args_free(words, i);
