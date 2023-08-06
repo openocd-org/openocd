@@ -79,6 +79,8 @@ command handlers and helpers:
 - @c CMD_NAME - invoked command name
 - @c CMD_ARGC - the number of command arguments
 - @c CMD_ARGV - array of command argument strings
+- @c CMD_JIMTCL_ARGV - array containing the Jim_Obj equivalent of command
+  argument in @c CMD_ARGV.
 
 @section helpercmdregister Command Registration
 

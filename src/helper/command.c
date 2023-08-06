@@ -511,6 +511,7 @@ static int exec_command(Jim_Interp *interp, struct command_context *context,
 		.name = c->name,
 		.argc = argc - 1,
 		.argv = words + 1,
+		.jimtcl_argv = argv + 1,
 	};
 
 	cmd.output = Jim_NewEmptyStringObj(context->interp);
