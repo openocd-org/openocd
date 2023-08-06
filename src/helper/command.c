@@ -161,15 +161,13 @@ static void script_command_args_free(char **words, unsigned nwords)
 	free(words);
 }
 
-static char **script_command_args_alloc(
-	unsigned argc, Jim_Obj * const *argv, unsigned *nwords)
+static char **script_command_args_alloc(unsigned int argc, Jim_Obj * const *argv)
 {
 	char **words = malloc(argc * sizeof(char *));
 	if (!words)
 		return NULL;
 
-	unsigned i;
-	for (i = 0; i < argc; i++) {
+	for (unsigned int i = 0; i < argc; i++) {
 		const char *w = Jim_GetString(argv[i], NULL);
 		words[i] = strdup(w);
 		if (!words[i]) {
@@ -177,7 +175,6 @@ static char **script_command_args_alloc(
 			return NULL;
 		}
 	}
-	*nwords = i;
 	return words;
 }
 
@@ -901,8 +898,8 @@ static int exec_command(Jim_Interp *interp, struct command_context *cmd_ctx,
 		return c->jim_handler(interp, argc, argv);
 
 	/* use c->handler */
-	unsigned int nwords;
-	char **words = script_command_args_alloc(argc, argv, &nwords);
+	unsigned int nwords = argc;
+	char **words = script_command_args_alloc(argc, argv);
 	if (!words)
 		return JIM_ERR;
 
