@@ -489,14 +489,27 @@ static bool command_can_run(struct command_context *cmd_ctx, struct command *c, 
 	return false;
 }
 
-static int run_command(struct command_context *context,
-	struct command *c, const char **words, unsigned num_words)
+static int exec_command(Jim_Interp *interp, struct command_context *context,
+		struct command *c, int argc, Jim_Obj * const *argv)
 {
+	if (c->jim_handler)
+		return c->jim_handler(interp, argc, argv);
+
+	/* use c->handler */
+	const char **words = malloc(argc * sizeof(char *));
+	if (!words) {
+		LOG_ERROR("Out of memory");
+		return JIM_ERR;
+	}
+
+	for (int i = 0; i < argc; i++)
+		words[i] = Jim_GetString(argv[i], NULL);
+
 	struct command_invocation cmd = {
 		.ctx = context,
 		.current = c,
 		.name = c->name,
-		.argc = num_words - 1,
+		.argc = argc - 1,
 		.argv = words + 1,
 	};
 
@@ -526,7 +539,8 @@ static int run_command(struct command_context *context,
 	}
 	Jim_DecrRefCount(context->interp, cmd.output);
 
-	return retval;
+	free(words);
+	return command_retval_set(interp, retval);
 }
 
 int command_run_line(struct command_context *context, char *line)
@@ -865,27 +879,6 @@ static char *alloc_concatenate_strings(int argc, Jim_Obj * const *argv)
 	}
 
 	return all;
-}
-
-static int exec_command(Jim_Interp *interp, struct command_context *cmd_ctx,
-		struct command *c, int argc, Jim_Obj * const *argv)
-{
-	if (c->jim_handler)
-		return c->jim_handler(interp, argc, argv);
-
-	/* use c->handler */
-	const char **words = malloc(argc * sizeof(char *));
-	if (!words) {
-		LOG_ERROR("Out of memory");
-		return JIM_ERR;
-	}
-
-	for (int i = 0; i < argc; i++)
-		words[i] = Jim_GetString(argv[i], NULL);
-
-	int retval = run_command(cmd_ctx, c, words, argc);
-	free(words);
-	return command_retval_set(interp, retval);
 }
 
 static int jim_command_dispatch(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
