@@ -2845,15 +2845,35 @@ static int execute_fence(struct target *target)
 
 	/* FIXME: For non-coherent systems we need to flush the caches right
 	 * here, but there's no ISA-defined way of doing that. */
+	int result;
 	struct riscv_program program;
-	riscv_program_init(&program, target);
-	riscv_program_fence_i(&program);
-	riscv_program_fence_rw_rw(&program);
-	int result = riscv_program_exec(&program, target);
-	if (result != ERROR_OK)
-		LOG_TARGET_DEBUG(target, "Unable to execute pre-fence");
 
-	return ERROR_OK;
+	if (has_sufficient_progbuf(target, 3)) {
+		riscv_program_init(&program, target);
+		riscv_program_fence_rw_rw(&program);
+		riscv_program_fence_i(&program);
+		result = riscv_program_exec(&program, target);
+		if (result != ERROR_OK)
+			LOG_TARGET_DEBUG(target, "Unable to execute pre-fence");
+		return ERROR_OK;
+	}
+
+	if (has_sufficient_progbuf(target, 2)) {
+		riscv_program_init(&program, target);
+		riscv_program_fence_i(&program);
+		result = riscv_program_exec(&program, target);
+		if (result != ERROR_OK)
+			LOG_TARGET_DEBUG(target, "Unable to execute fence.i");
+
+		riscv_program_init(&program, target);
+		riscv_program_fence_rw_rw(&program);
+		result = riscv_program_exec(&program, target);
+		if (result != ERROR_OK)
+			LOG_TARGET_DEBUG(target, "Unable to execute fence rw, rw");
+		return ERROR_OK;
+	}
+
+	return ERROR_FAIL;
 }
 
 static void log_memory_access128(target_addr_t address, uint64_t value_h,
@@ -4995,7 +5015,7 @@ void riscv013_fill_dm_nop_u64(struct target *target, char *buf)
 
 static int maybe_execute_fence_i(struct target *target)
 {
-	if (has_sufficient_progbuf(target, 3))
+	if (has_sufficient_progbuf(target, 2))
 		return execute_fence(target);
 	return ERROR_OK;
 }
