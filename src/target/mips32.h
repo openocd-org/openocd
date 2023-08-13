@@ -13,6 +13,8 @@
 #ifndef OPENOCD_TARGET_MIPS32_H
 #define OPENOCD_TARGET_MIPS32_H
 
+#include <helper/bits.h>
+
 #include "target.h"
 #include "mips32_pracc.h"
 
@@ -55,6 +57,9 @@
 
 #define MIPS32_SCAN_DELAY_LEGACY_MODE 2000000
 
+/* Insert extra NOPs after the DRET instruction on exit from debug. */
+#define	EJTAG_QUIRK_PAD_DRET		BIT(0)
+
 /* offsets into mips32 core register cache */
 enum {
 	MIPS32_PC = 37,
@@ -90,6 +95,11 @@ struct mips32_common {
 	uint32_t core_regs[MIPS32NUMCOREREGS];
 	enum mips32_isa_mode isa_mode;
 	enum mips32_isa_imp isa_imp;
+
+	/* processor identification register */
+	uint32_t prid;
+	/* CPU specific quirks */
+	uint32_t cpu_quirks;
 
 	/* working area for fastdata access */
 	struct working_area *fast_data_area;
@@ -407,6 +417,8 @@ int mips32_configure_break_unit(struct target *target);
 int mips32_enable_interrupts(struct target *target, int enable);
 
 int mips32_examine(struct target *target);
+
+int mips32_cpu_probe(struct target *target);
 
 int mips32_read_config_regs(struct target *target);
 
