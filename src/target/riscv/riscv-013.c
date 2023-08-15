@@ -2369,14 +2369,14 @@ static int riscv013_get_register_buf(struct target *target,
 	if (dm013_select_target(target) != ERROR_OK)
 		return ERROR_FAIL;
 
-	if (riscv_save_register(target, GDB_REGNO_S0) != ERROR_OK)
-		return ERROR_FAIL;
-
 	riscv_reg_t mstatus, vtype, vl;
 	unsigned int debug_vl, debug_vsew;
 
 	if (prep_for_vector_access(target, &mstatus, &vtype, &vl,
 				&debug_vl, &debug_vsew) != ERROR_OK)
+		return ERROR_FAIL;
+
+	if (riscv_save_register(target, GDB_REGNO_S0) != ERROR_OK)
 		return ERROR_FAIL;
 
 	unsigned int vnum = regno - GDB_REGNO_V0;
@@ -2424,14 +2424,14 @@ static int riscv013_set_register_buf(struct target *target,
 	if (dm013_select_target(target) != ERROR_OK)
 		return ERROR_FAIL;
 
-	if (riscv_save_register(target, GDB_REGNO_S0) != ERROR_OK)
-		return ERROR_FAIL;
-
 	riscv_reg_t mstatus, vtype, vl;
 	unsigned int debug_vl, debug_vsew;
 
 	if (prep_for_vector_access(target, &mstatus, &vtype, &vl,
 				&debug_vl, &debug_vsew) != ERROR_OK)
+		return ERROR_FAIL;
+
+	if (riscv_save_register(target, GDB_REGNO_S0) != ERROR_OK)
 		return ERROR_FAIL;
 
 	unsigned int vnum = regno - GDB_REGNO_V0;
