@@ -226,6 +226,8 @@ ATTRS{idVendor}=="303a", ATTRS{idProduct}=="1002", MODE="660", GROUP="plugdev", 
 
 # ANGIE USB-JTAG Adapter
 ATTRS{idVendor}=="584e", ATTRS{idProduct}=="424e", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="584e", ATTRS{idProduct}=="4255", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="584e", ATTRS{idProduct}=="4355", MODE="660", GROUP="plugdev", TAG+="uaccess"
 ATTRS{idVendor}=="584e", ATTRS{idProduct}=="4a55", MODE="660", GROUP="plugdev", TAG+="uaccess"
 
 # Marvell Sheevaplug
