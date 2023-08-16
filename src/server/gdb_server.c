@@ -95,6 +95,8 @@ struct gdb_connection {
 	char *thread_list;
 	/* flag to mask the output from gdb_log_callback() */
 	enum gdb_output_flag output_flag;
+	/* Unique index for this GDB connection. */
+	unsigned int unique_index;
 };
 
 #if 0
@@ -351,6 +353,7 @@ static void gdb_log_incoming_packet(struct connection *connection, char *packet)
 		return;
 
 	struct target *target = get_target_from_connection(connection);
+	struct gdb_connection *gdb_connection = connection->priv;
 
 	/* Avoid dumping non-printable characters to the terminal */
 	const unsigned packet_len = strlen(packet);
@@ -365,14 +368,15 @@ static void gdb_log_incoming_packet(struct connection *connection, char *packet)
 		if (packet_prefix_printable) {
 			const unsigned int prefix_len = colon - packet + 1;  /* + 1 to include the ':' */
 			const unsigned int payload_len = packet_len - prefix_len;
-			LOG_TARGET_DEBUG(target, "received packet: %.*s<binary-data-%u-bytes>", prefix_len,
-				packet, payload_len);
+			LOG_TARGET_DEBUG(target, "{%d} received packet: %.*s<binary-data-%u-bytes>",
+				gdb_connection->unique_index, prefix_len, packet, payload_len);
 		} else {
-			LOG_TARGET_DEBUG(target, "received packet: <binary-data-%u-bytes>", packet_len);
+			LOG_TARGET_DEBUG(target, "{%d} received packet: <binary-data-%u-bytes>",
+				gdb_connection->unique_index, packet_len);
 		}
 	} else {
 		/* All chars printable, dump the packet as is */
-		LOG_TARGET_DEBUG(target, "received packet: %s", packet);
+		LOG_TARGET_DEBUG(target, "{%d} received packet: %s", gdb_connection->unique_index, packet);
 	}
 }
 
@@ -383,13 +387,14 @@ static void gdb_log_outgoing_packet(struct connection *connection, char *packet_
 		return;
 
 	struct target *target = get_target_from_connection(connection);
+	struct gdb_connection *gdb_connection = connection->priv;
 
 	if (find_nonprint_char(packet_buf, packet_len))
-		LOG_TARGET_DEBUG(target, "sending packet: $<binary-data-%u-bytes>#%2.2x",
-			packet_len, checksum);
+		LOG_TARGET_DEBUG(target, "{%d} sending packet: $<binary-data-%u-bytes>#%2.2x",
+			gdb_connection->unique_index, packet_len, checksum);
 	else
-		LOG_TARGET_DEBUG(target, "sending packet: $%.*s#%2.2x", packet_len, packet_buf,
-			checksum);
+		LOG_TARGET_DEBUG(target, "{%d} sending packet: $%.*s#%2.2x",
+			gdb_connection->unique_index, packet_len, packet_buf, checksum);
 }
 
 static int gdb_put_packet_inner(struct connection *connection,
@@ -971,6 +976,7 @@ static int gdb_new_connection(struct connection *connection)
 	struct target *target;
 	int retval;
 	int initial_ack;
+	static unsigned int next_unique_id = 1;
 
 	target = get_target_from_connection(connection);
 	connection->priv = gdb_connection;
@@ -993,6 +999,7 @@ static int gdb_new_connection(struct connection *connection)
 	gdb_connection->target_desc.tdesc_length = 0;
 	gdb_connection->thread_list = NULL;
 	gdb_connection->output_flag = GDB_OUTPUT_NO;
+	gdb_connection->unique_index = next_unique_id++;
 
 	/* send ACK to GDB for debug request */
 	gdb_write(connection, "+", 1);
@@ -1051,20 +1058,19 @@ static int gdb_new_connection(struct connection *connection)
 		}
 	}
 
-	gdb_actual_connections++;
 	log_printf_lf(all_targets->next ? LOG_LVL_INFO : LOG_LVL_DEBUG,
 			__FILE__, __LINE__, __func__,
 			"New GDB Connection: %d, Target %s, state: %s",
-			gdb_actual_connections,
+			gdb_connection->unique_index,
 			target_name(target),
 			target_state_name(target));
 
 	if (!target_was_examined(target)) {
 		LOG_ERROR("Target %s not examined yet, refuse gdb connection %d!",
-				  target_name(target), gdb_actual_connections);
-		gdb_actual_connections--;
+				  target_name(target), gdb_connection->unique_index);
 		return ERROR_TARGET_NOT_EXAMINED;
 	}
+	gdb_actual_connections++;
 
 	if (target->state != TARGET_HALTED)
 		LOG_WARNING("GDB connection %d on target %s not halted",
@@ -1095,7 +1101,8 @@ static int gdb_connection_closed(struct connection *connection)
 	log_remove_callback(gdb_log_callback, connection);
 
 	gdb_actual_connections--;
-	LOG_DEBUG("GDB Close, Target: %s, state: %s, gdb_actual_connections=%d",
+	LOG_DEBUG("{%d} GDB Close, Target: %s, state: %s, gdb_actual_connections=%d",
+		gdb_connection->unique_index,
 		target_name(target),
 		target_state_name(target),
 		gdb_actual_connections);
