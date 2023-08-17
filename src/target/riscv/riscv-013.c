@@ -1448,6 +1448,57 @@ static int internal_register_read64_progbuf_scratch(struct target *target,
 	return result;
 }
 
+static int fpr_read_progbuf(struct target *target, uint64_t *value,
+		enum gdb_regno number)
+{
+	assert(target->state == TARGET_HALTED);
+	assert(number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31);
+
+	const unsigned int freg = number - GDB_REGNO_FPR0;
+
+	if (riscv_save_register(target, GDB_REGNO_S0) != ERROR_OK)
+		return ERROR_FAIL;
+
+	struct riscv_program program;
+	riscv_program_init(&program, target);
+	if (riscv_supports_extension(target, 'D') && riscv_xlen(target) < 64) {
+		/* There are no instructions to move all the bits from a
+		 * register, so we need to use some scratch RAM.
+		 */
+		if (riscv_program_insert(&program, fsd(freg, S0, 0)) != ERROR_OK)
+			return ERROR_FAIL;
+		return internal_register_read64_progbuf_scratch(target, &program, value);
+	}
+	if (riscv_program_insert(&program,
+				riscv_supports_extension(target, 'D') ?
+				fmv_x_d(S0, freg) : fmv_x_w(S0, freg)) != ERROR_OK)
+		return ERROR_FAIL;
+
+	if (riscv_program_exec(&program, target) != ERROR_OK)
+		return ERROR_FAIL;
+
+	return register_read_abstract(target, value, GDB_REGNO_S0) != ERROR_OK;
+}
+
+static int csr_read_progbuf(struct target *target, uint64_t *value,
+		enum gdb_regno number)
+{
+	assert(target->state == TARGET_HALTED);
+	assert(number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095);
+
+	if (riscv_save_register(target, GDB_REGNO_S0) != ERROR_OK)
+		return ERROR_FAIL;
+
+	struct riscv_program program;
+	riscv_program_init(&program, target);
+	if (riscv_program_csrr(&program, S0, number) != ERROR_OK)
+		return ERROR_FAIL;
+	if (riscv_program_exec(&program, target) != ERROR_OK)
+		return ERROR_FAIL;
+
+	return register_read_abstract(target, value, GDB_REGNO_S0) != ERROR_OK;
+}
+
 /**
  * This function reads a register by writing a program to program buffer and
  * executing it.
@@ -1457,40 +1508,14 @@ static int register_read_progbuf(struct target *target, uint64_t *value,
 {
 	assert(target->state == TARGET_HALTED);
 
-	struct riscv_program program;
-	riscv_program_init(&program, target);
+	if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31)
+		return fpr_read_progbuf(target, value, number);
+	else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095)
+		return csr_read_progbuf(target, value, number);
 
-	if (riscv_save_register(target, GDB_REGNO_S0) != ERROR_OK)
-		return ERROR_FAIL;
-
-	if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
-		const unsigned int freg = number - GDB_REGNO_FPR0;
-
-		if (riscv_supports_extension(target, 'D') && riscv_xlen(target) < 64) {
-			/* There are no instructions to move all the bits from a
-			 * register, so we need to use some scratch RAM.
-			 */
-			if (riscv_program_insert(&program, fsd(freg, S0, 0)) != ERROR_OK)
-				return ERROR_FAIL;
-			return internal_register_read64_progbuf_scratch(target, &program,
-					value);
-		}
-		if (riscv_program_insert(&program,
-					riscv_supports_extension(target, 'D') ?
-					fmv_x_d(S0, freg) : fmv_x_w(S0, freg)) != ERROR_OK)
-			return ERROR_FAIL;
-	} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
-		if (riscv_program_csrr(&program, S0, number) != ERROR_OK)
-			return ERROR_FAIL;
-	} else {
-		LOG_TARGET_ERROR(target, "Unsupported register: %s", gdb_regno_name(number));
-		return ERROR_FAIL;
-	}
-
-	if (riscv_program_exec(&program, target) != ERROR_OK)
-		return ERROR_FAIL;
-
-	return register_read_abstract(target, value, GDB_REGNO_S0) != ERROR_OK;
+	LOG_TARGET_ERROR(target, "Unexpected read of %s via program buffer.",
+			gdb_regno_name(number));
+	return ERROR_FAIL;
 }
 
 /**
@@ -1522,6 +1547,100 @@ static int internal_register_write64_progbuf_scratch(struct target *target,
 	return result;
 }
 
+static int fpr_write_progbuf(struct target *target, enum gdb_regno number,
+		riscv_reg_t value)
+{
+	assert(target->state == TARGET_HALTED);
+	assert(number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31);
+	const unsigned int freg = number - GDB_REGNO_FPR0;
+
+	if (riscv_save_register(target, GDB_REGNO_S0) != ERROR_OK)
+		return ERROR_FAIL;
+
+	struct riscv_program program;
+	riscv_program_init(&program, target);
+
+	if (riscv_supports_extension(target, 'D') && riscv_xlen(target) < 64) {
+		/* There are no instructions to move all the bits from a register,
+		 * so we need to use some scratch RAM.
+		 */
+		if (riscv_program_insert(&program, fld(freg, S0, 0)) != ERROR_OK)
+			return ERROR_FAIL;
+		return internal_register_write64_progbuf_scratch(target, &program, value);
+	}
+
+	if (register_write_abstract(target, GDB_REGNO_S0, value) != ERROR_OK)
+		return ERROR_FAIL;
+
+	if (riscv_program_insert(&program,
+			riscv_supports_extension(target, 'D') ?
+			fmv_d_x(freg, S0) : fmv_w_x(freg, S0)) != ERROR_OK)
+		return ERROR_FAIL;
+
+	return riscv_program_exec(&program, target);
+}
+
+static int vtype_write_progbuf(struct target *target, riscv_reg_t value)
+{
+	assert(target->state == TARGET_HALTED);
+
+	if (riscv_save_register(target, GDB_REGNO_S0) != ERROR_OK)
+		return ERROR_FAIL;
+	if (register_write_abstract(target, GDB_REGNO_S0, value) != ERROR_OK)
+		return ERROR_FAIL;
+	if (riscv_save_register(target, GDB_REGNO_S1) != ERROR_OK)
+		return ERROR_FAIL;
+
+	struct riscv_program program;
+	riscv_program_init(&program, target);
+	if (riscv_program_insert(&program, csrr(S1, CSR_VL)) != ERROR_OK)
+		return ERROR_FAIL;
+	if (riscv_program_insert(&program, vsetvl(ZERO, S1, S0)) != ERROR_OK)
+		return ERROR_FAIL;
+
+	return riscv_program_exec(&program, target);
+}
+
+static int vl_write_progbuf(struct target *target, riscv_reg_t value)
+{
+	assert(target->state == TARGET_HALTED);
+
+	if (riscv_save_register(target, GDB_REGNO_S0) != ERROR_OK)
+		return ERROR_FAIL;
+	if (register_write_abstract(target, GDB_REGNO_S0, value) != ERROR_OK)
+		return ERROR_FAIL;
+	if (riscv_save_register(target, GDB_REGNO_S1) != ERROR_OK)
+		return ERROR_FAIL;
+
+	struct riscv_program program;
+	riscv_program_init(&program, target);
+	if (riscv_program_insert(&program, csrr(S1, CSR_VTYPE)) != ERROR_OK)
+		return ERROR_FAIL;
+	if (riscv_program_insert(&program, vsetvl(ZERO, S0, S1)) != ERROR_OK)
+		return ERROR_FAIL;
+
+	return riscv_program_exec(&program, target);
+}
+
+static int csr_write_progbuf(struct target *target, enum gdb_regno number,
+		riscv_reg_t value)
+{
+	assert(target->state == TARGET_HALTED);
+	assert(number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095);
+
+	if (riscv_save_register(target, GDB_REGNO_S0) != ERROR_OK)
+		return ERROR_FAIL;
+	if (register_write_abstract(target, GDB_REGNO_S0, value) != ERROR_OK)
+		return ERROR_FAIL;
+
+	struct riscv_program program;
+	riscv_program_init(&program, target);
+	if (riscv_program_csrw(&program, S0, number) != ERROR_OK)
+		return ERROR_FAIL;
+
+	return riscv_program_exec(&program, target);
+}
+
 /**
  * This function writes a register by writing a program to program buffer and
  * executing it.
@@ -1531,62 +1650,18 @@ static int register_write_progbuf(struct target *target, enum gdb_regno number,
 {
 	assert(target->state == TARGET_HALTED);
 
-	struct riscv_program program;
+	if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31)
+		return fpr_write_progbuf(target, number, value);
+	else if (number == GDB_REGNO_VTYPE)
+		return vtype_write_progbuf(target, value);
+	else if (number == GDB_REGNO_VL)
+		return vl_write_progbuf(target, value);
+	else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095)
+		return csr_write_progbuf(target, number, value);
 
-	riscv_program_init(&program, target);
-
-	if (riscv_save_register(target, GDB_REGNO_S0) != ERROR_OK)
-		return ERROR_FAIL;
-
-	if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31 &&
-			riscv_supports_extension(target, 'D') && riscv_xlen(target) < 64) {
-		/* There are no instructions to move all the bits from a register,
-		 * so we need to use some scratch RAM.
-		 */
-		const unsigned int freg = number - GDB_REGNO_FPR0;
-
-		if (riscv_program_insert(&program, fld(freg, S0, 0)) != ERROR_OK)
-			return ERROR_FAIL;
-		return internal_register_write64_progbuf_scratch(target, &program,
-				value);
-	}
-
-	if (register_write_abstract(target, GDB_REGNO_S0, value) != ERROR_OK)
-		return ERROR_FAIL;
-
-	if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
-		const unsigned int freg = number - GDB_REGNO_FPR0;
-
-		if (riscv_program_insert(&program,
-					riscv_supports_extension(target, 'D') ?
-					fmv_d_x(freg, S0) : fmv_w_x(freg, S0)) != ERROR_OK)
-			return ERROR_FAIL;
-	} else if (number == GDB_REGNO_VTYPE) {
-		if (riscv_save_register(target, GDB_REGNO_S1) != ERROR_OK)
-			return ERROR_FAIL;
-		if (riscv_program_insert(&program, csrr(S1, CSR_VL)) != ERROR_OK)
-			return ERROR_FAIL;
-		if (riscv_program_insert(&program, vsetvl(ZERO, S1, S0)) != ERROR_OK)
-			return ERROR_FAIL;
-	} else if (number == GDB_REGNO_VL) {
-		/* "The XLEN-bit-wide read-only vl CSR can only be updated by the
-		 * vsetvli and vsetvl instructions, and the fault-only-rst vector
-		 * load instruction variants."
-		 */
-		if (riscv_save_register(target, GDB_REGNO_S1) != ERROR_OK)
-			return ERROR_FAIL;
-		if (riscv_program_insert(&program, csrr(S1, CSR_VTYPE)) != ERROR_OK)
-			return ERROR_FAIL;
-		if (riscv_program_insert(&program, vsetvl(ZERO, S0, S1)) != ERROR_OK)
-			return ERROR_FAIL;
-	} else if (number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095) {
-		if (riscv_program_csrw(&program, S0, number) != ERROR_OK)
-			return ERROR_FAIL;
-	} else {
-		LOG_TARGET_ERROR(target, "Unsupported register (enum gdb_regno)(%d)", number);
-		return ERROR_FAIL;
-	}
-	return riscv_program_exec(&program, target);
+	LOG_TARGET_ERROR(target, "Unexpected write to %s via program buffer.",
+			gdb_regno_name(number));
+	return ERROR_FAIL;
 }
 
 /**
