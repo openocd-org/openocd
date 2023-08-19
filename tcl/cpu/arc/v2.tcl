@@ -173,8 +173,8 @@ proc arc_v2_init_regs { } {
 		r19      19 uint32
 		r20      20 uint32
 		r21      21 uint32
-		r22      23 uint32
-		r23      24 uint32
+		r22      22 uint32
+		r23      23 uint32
 		r24      24 uint32
 		r25      25 uint32
 		gp       26 data_ptr
