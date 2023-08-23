@@ -30,7 +30,7 @@ struct riscv_program;
 #define RISCV_HGATP_PPN(xlen)  ((xlen) == 32 ? HGATP32_PPN : HGATP64_PPN)
 #define RISCV_PGSHIFT 12
 
-#define PG_MAX_LEVEL 4
+#define PG_MAX_LEVEL 5
 
 #define RISCV_NUM_MEM_ACCESS_METHODS  3
 
