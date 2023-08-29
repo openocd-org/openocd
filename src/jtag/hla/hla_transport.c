@@ -18,7 +18,6 @@
 #include <transport/transport.h>
 #include <helper/time_support.h>
 #include <target/target.h>
-#include <jtag/hla/hla_tcl.h>
 #include <jtag/hla/hla_transport.h>
 #include <jtag/hla/hla_interface.h>
 
@@ -38,7 +37,7 @@ static const struct command_registration hl_swd_transport_subcommand_handlers[] 
 	{
 	 .name = "newdap",
 	 .mode = COMMAND_CONFIG,
-	 .jim_handler = jim_hl_newtap,
+	 .jim_handler = jim_jtag_newtap,
 	 .help = "declare a new SWD DAP",
 	 },
 	COMMAND_REGISTRATION_DONE
@@ -59,7 +58,7 @@ static const struct command_registration hl_transport_jtag_subcommand_handlers[]
 	{
 	 .name = "newtap",
 	 .mode = COMMAND_CONFIG,
-	 .jim_handler = jim_hl_newtap,
+	 .jim_handler = jim_jtag_newtap,
 	 .help = "Create a new TAP instance named basename.tap_type, "
 	 "and appends it to the scan chain.",
 	 .usage = "basename tap_type '-irlen' count "

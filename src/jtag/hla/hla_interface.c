@@ -17,7 +17,6 @@
 #include <transport/transport.h>
 #include <helper/time_support.h>
 
-#include <jtag/hla/hla_tcl.h>
 #include <jtag/hla/hla_layout.h>
 #include <jtag/hla/hla_transport.h>
 #include <jtag/hla/hla_interface.h>
