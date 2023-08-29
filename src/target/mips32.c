@@ -796,6 +796,44 @@ static const struct cpu_entry *mips32_find_cpu_by_prid(uint32_t prid)
 	return &mips32_cpu_entry[MIPS32_NUM_CPU_ENTRIES - 1];
 }
 
+static bool mips32_cpu_is_lexra(struct mips_ejtag *ejtag_info)
+{
+	return (ejtag_info->prid & PRID_COMP_MASK) == PRID_COMP_LEXRA;
+}
+
+static int mips32_cpu_get_release(struct mips_ejtag *ejtag_info)
+{
+	return (ejtag_info->config[0] & MIPS32_CONFIG0_AR_MASK) >> MIPS32_CONFIG0_AR_SHIFT;
+}
+
+/**
+ * mips32_cpu_support_sync - Checks CPU supports ordering
+ * @param[in] ejtag_info: MIPS EJTAG information structure.
+ *
+ * @brief MIPS ISA implemented on Lexra CPUs is MIPS-I, similar to R3000,
+ * which does not have the SYNC instruction alone with unaligned
+ * load/store instructions.
+ *
+ * @returns true if current CPU supports sync instruction(CPU is not Lexra)
+*/
+bool mips32_cpu_support_sync(struct mips_ejtag *ejtag_info)
+{
+	return !mips32_cpu_is_lexra(ejtag_info);
+}
+
+/**
+ * mips32_cpu_support_hazard_barrier - Checks CPU supports hazard barrier
+ * @param[in] ejtag_info: MIPS EJTAG information structure.
+ *
+ * @brief hazard barrier instructions EHB and *.HB was introduced to MIPS from release 2.
+ *
+ * @returns true if current CPU supports hazard barrier(release > 1)
+*/
+bool mips32_cpu_support_hazard_barrier(struct mips_ejtag *ejtag_info)
+{
+	return mips32_cpu_get_release(ejtag_info) > MIPS32_RELEASE_1;
+}
+
 /**
  * mips32_cpu_probe - Detects processor type and applies necessary quirks.
  * @param[in] target: The target CPU to probe.

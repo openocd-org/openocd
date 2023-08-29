@@ -206,6 +206,7 @@ struct mips_ejtag {
 	struct jtag_tap *tap;
 	uint32_t impcode;
 	uint32_t idcode;
+	uint32_t prid;
 	uint32_t ejtag_ctrl;
 	int fast_access_save;
 	uint32_t config_regs;	/* number of config registers read */
