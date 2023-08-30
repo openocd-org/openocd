@@ -61,6 +61,7 @@ enum arm_arch {
 /** Known ARM implementor IDs */
 enum arm_implementor {
 	ARM_IMPLEMENTOR_ARM = 0x41,
+	ARM_IMPLEMENTOR_INFINEON = 0x49,
 	ARM_IMPLEMENTOR_REALTEK = 0x72,
 };
 

@@ -112,6 +112,11 @@ static const struct cortex_m_part_info cortex_m_parts[] = {
 		.flags = CORTEX_M_F_HAS_FPV5,
 	},
 	{
+		.impl_part = INFINEON_SLX2_PARTNO,
+		.name = "Infineon-SLx2",
+		.arch = ARM_ARCH_V8M,
+	},
+	{
 		.impl_part = REALTEK_M200_PARTNO,
 		.name = "Real-M200 (KM0)",
 		.arch = ARM_ARCH_V8M,
