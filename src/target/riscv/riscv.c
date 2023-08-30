@@ -4753,6 +4753,9 @@ unsigned int riscv_count_harts(struct target *target)
  */
 static bool gdb_regno_cacheable(enum gdb_regno regno, bool is_write)
 {
+	if (regno == GDB_REGNO_ZERO)
+		return !is_write;
+
 	/* GPRs, FPRs, vector registers are just normal data stores. */
 	if (regno <= GDB_REGNO_XPR31 ||
 			(regno >= GDB_REGNO_FPR0 && regno <= GDB_REGNO_FPR31) ||
