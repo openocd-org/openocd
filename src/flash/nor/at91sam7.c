@@ -576,7 +576,6 @@ static int at91sam7_read_part_info(struct flash_bank *bank)
 					return ERROR_FAIL;
 				}
 				fb->name = strdup("sam7_probed");
-				fb->next = NULL;
 
 				/* link created bank in 'flash_banks' list */
 				t_bank->next = fb;
@@ -765,7 +764,6 @@ FLASH_BANK_COMMAND_HANDLER(at91sam7_flash_bank_command)
 					return ERROR_FAIL;
 				}
 				fb->name = strdup("sam7_probed");
-				fb->next = NULL;
 
 				/* link created bank in 'flash_banks' list */
 				t_bank->next = fb;

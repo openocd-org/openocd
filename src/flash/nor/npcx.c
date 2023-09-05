@@ -331,7 +331,6 @@ FLASH_BANK_COMMAND_HANDLER(npcx_flash_bank_command)
 
 	/* Finish initialization of bank */
 	bank->driver_priv = npcx_bank;
-	bank->next = NULL;
 
 	return ERROR_OK;
 }
