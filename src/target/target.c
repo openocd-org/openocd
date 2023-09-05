@@ -3116,7 +3116,7 @@ COMMAND_HANDLER(handle_reg_command)
 		if (!reg) {
 			command_print(CMD, "%i is out of bounds, the current target "
 					"has only %i registers (0 - %i)", num, count, count - 1);
-			return ERROR_OK;
+			return ERROR_FAIL;
 		}
 	} else {
 		/* access a single register by its name */
@@ -3175,7 +3175,7 @@ COMMAND_HANDLER(handle_reg_command)
 
 not_found:
 	command_print(CMD, "register %s not found in current target", CMD_ARGV[0]);
-	return ERROR_OK;
+	return ERROR_FAIL;
 }
 
 COMMAND_HANDLER(handle_poll_command)
