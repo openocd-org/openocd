@@ -109,13 +109,13 @@ enum semihosting_result riscv_semihosting(struct target *target, int *retval)
 
 		result = riscv_get_register(target, &r0, GDB_REGNO_A0);
 		if (result != ERROR_OK) {
-			LOG_TARGET_DEBUG(target, "   -> ERROR (couldn't read a0)");
+			LOG_TARGET_ERROR(target, "Could not read semihosting operation code (register a0)");
 			return SEMIHOSTING_ERROR;
 		}
 
 		result = riscv_get_register(target, &r1, GDB_REGNO_A1);
 		if (result != ERROR_OK) {
-			LOG_TARGET_DEBUG(target, "   -> ERROR (couldn't read a1)");
+			LOG_TARGET_ERROR(target, "Could not read semihosting operation code (register a1)");
 			return SEMIHOSTING_ERROR;
 		}
 
@@ -134,7 +134,7 @@ enum semihosting_result riscv_semihosting(struct target *target, int *retval)
 			}
 		} else {
 			/* Unknown operation number, not a semihosting call. */
-			LOG_TARGET_DEBUG(target, "   -> NONE (unknown operation number)");
+			LOG_TARGET_ERROR(target, "Unknown semihosting operation requested (op = 0x%x)", semihosting->op);
 			return SEMIHOSTING_NONE;
 		}
 	}
