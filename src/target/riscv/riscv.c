@@ -1198,15 +1198,17 @@ static int riscv_add_breakpoint(struct target *target, struct breakpoint *breakp
 	LOG_TARGET_DEBUG(target, "@0x%" TARGET_PRIxADDR, breakpoint->address);
 	assert(breakpoint);
 	if (breakpoint->type == BKPT_SOFT) {
-		/** @todo check RVC for size/alignment */
-		if (!(breakpoint->length == 4 || breakpoint->length == 2)) {
-			LOG_TARGET_ERROR(target, "Invalid breakpoint length %d", breakpoint->length);
+		const bool c_extension_supported = riscv_supports_extension(target, 'C');
+		if (!(breakpoint->length == 4 || (breakpoint->length == 2 && c_extension_supported))) {
+			LOG_TARGET_ERROR(target, "Invalid breakpoint length %d, supported lengths: %s", breakpoint->length,
+				c_extension_supported ? "2, 4" : "4");
 			return ERROR_FAIL;
 		}
 
-		if (0 != (breakpoint->address % 2)) {
-			LOG_TARGET_ERROR(target, "Invalid breakpoint alignment for address 0x%" TARGET_PRIxADDR,
-				breakpoint->address);
+		const unsigned int required_align = c_extension_supported ? 2 : 4;
+		if ((breakpoint->address % required_align) != 0) {
+			LOG_TARGET_ERROR(target, "Invalid breakpoint alignment for address 0x%" TARGET_PRIxADDR
+				", required alignment: %u", breakpoint->address, required_align);
 			return ERROR_FAIL;
 		}
 
