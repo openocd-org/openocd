@@ -321,6 +321,7 @@ FLASH_BANK_COMMAND_HANDLER(npcx_flash_bank_command)
 			npcx_bank->fiu_ver = NPCX_FIU_NPCK;
 		} else {
 			LOG_ERROR("%s is not a valid fiu", fiu);
+			free(npcx_bank);
 			return ERROR_TARGET_INVALID;
 		}
 	}
