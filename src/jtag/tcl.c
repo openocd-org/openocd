@@ -557,13 +557,6 @@ static int jim_newtap_cmd(struct jim_getopt_info *goi)
 	LOG_DEBUG("Creating New Tap, Chip: %s, Tap: %s, Dotted: %s, %d params",
 		tap->chip, tap->tapname, tap->dotted_name, goi->argc);
 
-	if (!transport_is_jtag()) {
-		/* SWD doesn't require any JTAG tap parameters */
-		tap->enabled = true;
-		jtag_tap_init(tap);
-		return JIM_OK;
-	}
-
 	/* IEEE specifies that the two LSBs of an IR scan are 01, so make
 	 * that the default.  The "-ircapture" and "-irmask" options are only
 	 * needed to cope with nonstandard TAPs, or to specify more bits.
@@ -618,7 +611,7 @@ static int jim_newtap_cmd(struct jim_getopt_info *goi)
 	tap->enabled = !tap->disabled_after_reset;
 
 	/* Did all the required option bits get cleared? */
-	if (tap->ir_length != 0) {
+	if (!transport_is_jtag() || tap->ir_length != 0) {
 		jtag_tap_init(tap);
 		return JIM_OK;
 	}

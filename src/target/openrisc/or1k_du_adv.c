@@ -22,8 +22,9 @@
 #include "or1k_du.h"
 #include "jsp_server.h"
 
-#include <target/target.h>
+#include <helper/crc32.h>
 #include <jtag/jtag.h>
+#include <target/target.h>
 
 #define JSP_BANNER "\n\r" \
 		   "******************************\n\r" \
@@ -66,13 +67,6 @@
 /* CPU control register bits mask */
 #define DBG_CPU_CR_STALL		0x01
 #define DBG_CPU_CR_RESET		0x02
-
-/* Polynomial for the CRC calculation
- * Yes, it's backwards.  Yes, this is on purpose.
- * The hardware is designed this way to save on logic and routing,
- * and it's really all the same to us here.
- */
-#define ADBG_CRC_POLY			0xedb88320
 
 /* These are for the internal registers in the Wishbone module
  * The first is the length of the index register,
@@ -132,20 +126,6 @@
 static struct or1k_du or1k_du_adv;
 
 static const char * const chain_name[] = {"WISHBONE", "CPU0", "CPU1", "JSP"};
-
-static uint32_t adbg_compute_crc(uint32_t crc, uint32_t data_in,
-				 int length_bits)
-{
-	for (int i = 0; i < length_bits; i++) {
-		uint32_t d, c;
-		d = ((data_in >> i) & 0x1) ? 0xffffffff : 0;
-		c = (crc & 0x1) ? 0xffffffff : 0;
-		crc = crc >> 1;
-		crc = crc ^ ((d ^ c) & ADBG_CRC_POLY);
-	}
-
-	return crc;
-}
 
 static int find_status_bit(void *_buf, int len)
 {
@@ -522,9 +502,8 @@ retry_read_full:
 	memcpy(data, in_buffer, total_size_bytes);
 	memcpy(&crc_read, &in_buffer[total_size_bytes], 4);
 
-	uint32_t crc_calc = 0xffffffff;
-	for (int i = 0; i < total_size_bytes; i++)
-		crc_calc = adbg_compute_crc(crc_calc, data[i], 8);
+	uint32_t crc_calc = crc32_le(CRC32_POLY_LE, 0xffffffff, data,
+			total_size_bytes);
 
 	if (crc_calc != crc_read) {
 		LOG_WARNING("CRC ERROR! Computed 0x%08" PRIx32 ", read CRC 0x%08" PRIx32, crc_calc, crc_read);
@@ -650,9 +629,8 @@ retry_full_write:
 	field[0].out_value = &value;
 	field[0].in_value = NULL;
 
-	uint32_t crc_calc = 0xffffffff;
-	for (int i = 0; i < (count * size); i++)
-		crc_calc = adbg_compute_crc(crc_calc, data[i], 8);
+	uint32_t crc_calc = crc32_le(CRC32_POLY_LE, 0xffffffff, data,
+			count * size);
 
 	field[1].num_bits = count * size * 8;
 	field[1].out_value = data;

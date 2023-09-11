@@ -651,9 +651,6 @@ static int psoc4_write(struct flash_bank *bank, const uint8_t *buffer,
 	if (row_offset)
 		memset(row_buffer, bank->default_padded_value, row_offset);
 
-	/* Mask automatic polling triggered by execution of halted events */
-	bool save_poll_mask = jtag_poll_mask();
-
 	while (count) {
 		uint32_t chunk_size = psoc4_info->row_size - row_offset;
 		if (chunk_size > count) {
@@ -693,8 +690,6 @@ static int psoc4_write(struct flash_bank *bank, const uint8_t *buffer,
 	}
 
 cleanup:
-	jtag_poll_unmask(save_poll_mask);
-
 	free(sysrq_buffer);
 	return retval;
 }
