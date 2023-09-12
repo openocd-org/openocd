@@ -240,8 +240,7 @@ Optional CMSIS-DAP adapter driver needs HIDAPI library.
 
 Optional linuxgpiod adapter driver needs libgpiod library.
 
-Optional JLink adapter driver needs libjaylink; build from git can
-retrieve libjaylink as git submodule.
+Optional J-Link adapter driver needs libjaylink library.
 
 Optional ARM disassembly needs capstone library.
 

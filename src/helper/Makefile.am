@@ -16,6 +16,7 @@ noinst_LTLIBRARIES += %D%/libhelper.la
 	%D%/util.c \
 	%D%/jep106.c \
 	%D%/jim-nvp.c \
+	%D%/nvp.c \
 	%D%/align.h \
 	%D%/binarybuffer.h \
 	%D%/bits.h \
@@ -34,7 +35,9 @@ noinst_LTLIBRARIES += %D%/libhelper.la
 	%D%/jep106.inc \
 	%D%/jim-nvp.h \
 	%D%/base64.c \
-	%D%/base64.h
+	%D%/base64.h \
+	%D%/nvp.h \
+	%D%/compiler.h
 
 STARTUP_TCL_SRCS += %D%/startup.tcl
 EXTRA_DIST += \

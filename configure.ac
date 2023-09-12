@@ -572,9 +572,9 @@ AS_IF([test "x$enable_buspirate" != "xno"], [
 AS_IF([test "x$use_internal_jimtcl" = "xyes"], [
   AS_IF([test -f "$srcdir/jimtcl/configure"], [
     AS_IF([test "x$use_internal_jimtcl_maintainer" = "xyes"], [
-      jimtcl_config_options="--disable-install-jim --with-ext=json --maintainer"
+      jimtcl_config_options="--disable-install-jim --with-ext=json --minimal --disable-ssl --maintainer"
     ], [
-      jimtcl_config_options="--disable-install-jim --with-ext=json"
+      jimtcl_config_options="--disable-install-jim --with-ext=json --minimal --disable-ssl"
     ])
     AX_CONFIG_SUBDIR_OPTION([jimtcl], [$jimtcl_config_options])
   ], [

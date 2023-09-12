@@ -1001,12 +1001,14 @@ static void cmsis_dap_swd_queue_cmd(uint8_t cmd, uint32_t *dst, uint32_t data)
 													block_cmd);
 	unsigned int resp_size = cmsis_dap_tfer_resp_size(write_count, read_count,
 													block_cmd);
+	unsigned int max_transfer_count = block_cmd ? 65535 : 255;
 
 	/* Does the DAP Transfer command and the expected response fit into one packet?
 	 * Run the queue also before a targetsel - it cannot be queued */
 	if (cmd_size > tfer_max_command_size
 			|| resp_size > tfer_max_response_size
-			|| targetsel_cmd) {
+			|| targetsel_cmd
+			|| write_count + read_count > max_transfer_count) {
 		if (cmsis_dap_handle->pending_fifo_block_count)
 			cmsis_dap_swd_read_process(cmsis_dap_handle, 0);
 

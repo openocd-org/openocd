@@ -525,7 +525,19 @@ static void bitbang_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay
 		bitbang_swd_exchange(false, &cmd, 0, 8);
 
 		bitbang_interface->swdio_drive(false);
-		bitbang_swd_exchange(true, trn_ack_data_parity_trn, 0, 1 + 3 + 1);
+		bitbang_swd_exchange(true, trn_ack_data_parity_trn, 0, 1 + 3);
+
+		/* Avoid a glitch on SWDIO when changing the direction to output.
+		 * To keep performance penalty minimal, pre-write the first data
+		 * bit to SWDIO GPIO output buffer while clocking the turnaround bit.
+		 * Following swdio_drive(true) outputs the pre-written value
+		 * and the same value is rewritten by the next swd_write()
+		 * instead of glitching SWDIO
+		 * HiZ/pull-up --------------> 0 -------------> 1
+		 *           swdio_drive(true)   swd_write(0,1)
+		 * in case of data bit 0 = 1
+		 */
+		bitbang_swd_exchange(false, trn_ack_data_parity_trn, 1 + 3 + 1, 1);
 		bitbang_interface->swdio_drive(true);
 		bitbang_swd_exchange(false, trn_ack_data_parity_trn, 1 + 3 + 1, 32 + 1);
 

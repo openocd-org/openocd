@@ -14,6 +14,7 @@
 
 #include "rtos.h"
 #include "target/armv7m.h"
+#include "rtos_chibios_stackings.h"
 
 static const struct stack_register_offset rtos_chibios_arm_v7m_stack_offsets[ARMV7M_NUM_CORE_REGS] = {
 	{ ARMV7M_R0,   -1,   32 },		/* r0   */

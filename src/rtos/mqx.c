@@ -498,7 +498,7 @@ static int mqx_get_symbol_list_to_lookup(struct symbol_table_elem *symbol_list[]
 	return ERROR_OK;
 }
 
-struct rtos_type mqx_rtos = {
+const struct rtos_type mqx_rtos = {
 	.name = "mqx",
 	.detect_rtos = mqx_detect_rtos,
 	.create = mqx_create,
