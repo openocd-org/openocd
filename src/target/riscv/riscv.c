@@ -135,9 +135,6 @@ int riscv_command_timeout_sec = DEFAULT_COMMAND_TIMEOUT_SEC;
 int riscv_reset_timeout_sec = DEFAULT_RESET_TIMEOUT_SEC;
 
 static bool riscv_enable_virt2phys = true;
-bool riscv_ebreakm = true;
-bool riscv_ebreaks = true;
-bool riscv_ebreaku = true;
 
 bool riscv_enable_virtual;
 
@@ -3748,32 +3745,53 @@ COMMAND_HANDLER(riscv_set_enable_virt2phys)
 
 COMMAND_HANDLER(riscv_set_ebreakm)
 {
-	if (CMD_ARGC != 1) {
-		LOG_ERROR("Command takes exactly 1 parameter");
-		return ERROR_COMMAND_SYNTAX_ERROR;
+	struct target *target = get_current_target(CMD_CTX);
+	RISCV_INFO(r);
+
+	if (CMD_ARGC == 0) {
+		command_print(CMD, "riscv_ebreakm enabled: %s", r->riscv_ebreakm ? "on" : "off");
+		return ERROR_OK;
+	} else if (CMD_ARGC == 1) {
+		COMMAND_PARSE_ON_OFF(CMD_ARGV[0], r->riscv_ebreakm);
+		return ERROR_OK;
 	}
-	COMMAND_PARSE_ON_OFF(CMD_ARGV[0], riscv_ebreakm);
-	return ERROR_OK;
+
+	LOG_ERROR("Command takes 0 or 1 parameters");
+	return ERROR_COMMAND_SYNTAX_ERROR;
 }
 
 COMMAND_HANDLER(riscv_set_ebreaks)
 {
-	if (CMD_ARGC != 1) {
-		LOG_ERROR("Command takes exactly 1 parameter");
-		return ERROR_COMMAND_SYNTAX_ERROR;
+	struct target *target = get_current_target(CMD_CTX);
+	RISCV_INFO(r);
+
+	if (CMD_ARGC == 0) {
+		command_print(CMD, "riscv_ebreaks enabled: %s", r->riscv_ebreaks ? "on" : "off");
+		return ERROR_OK;
+	} else if (CMD_ARGC == 1) {
+		COMMAND_PARSE_ON_OFF(CMD_ARGV[0], r->riscv_ebreaks);
+		return ERROR_OK;
 	}
-	COMMAND_PARSE_ON_OFF(CMD_ARGV[0], riscv_ebreaks);
-	return ERROR_OK;
+
+	LOG_ERROR("Command takes 0 or 1 parameters");
+	return ERROR_COMMAND_SYNTAX_ERROR;
 }
 
 COMMAND_HANDLER(riscv_set_ebreaku)
 {
-	if (CMD_ARGC != 1) {
-		LOG_ERROR("Command takes exactly 1 parameter");
-		return ERROR_COMMAND_SYNTAX_ERROR;
+	struct target *target = get_current_target(CMD_CTX);
+	RISCV_INFO(r);
+
+	if (CMD_ARGC == 0) {
+		command_print(CMD, "riscv_ebreaku enabled: %s", r->riscv_ebreaku ? "on" : "off");
+		return ERROR_OK;
+	} else if (CMD_ARGC == 1) {
+		COMMAND_PARSE_ON_OFF(CMD_ARGV[0], r->riscv_ebreaku);
+		return ERROR_OK;
 	}
-	COMMAND_PARSE_ON_OFF(CMD_ARGV[0], riscv_ebreaku);
-	return ERROR_OK;
+
+	LOG_ERROR("Command takes 0 or 1 parameters");
+	return ERROR_COMMAND_SYNTAX_ERROR;
 }
 
 COMMAND_HELPER(riscv_clear_trigger, int trigger_id, const char *name)
@@ -4452,7 +4470,7 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.name = "set_ebreakm",
 		.handler = riscv_set_ebreakm,
 		.mode = COMMAND_ANY,
-		.usage = "on|off",
+		.usage = "[on|off]",
 		.help = "Control dcsr.ebreakm. When off, M-mode ebreak instructions "
 			"don't trap to OpenOCD. Defaults to on."
 	},
@@ -4460,7 +4478,7 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.name = "set_ebreaks",
 		.handler = riscv_set_ebreaks,
 		.mode = COMMAND_ANY,
-		.usage = "on|off",
+		.usage = "[on|off]",
 		.help = "Control dcsr.ebreaks. When off, S-mode ebreak instructions "
 			"don't trap to OpenOCD. Defaults to on."
 	},
@@ -4468,7 +4486,7 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.name = "set_ebreaku",
 		.handler = riscv_set_ebreaku,
 		.mode = COMMAND_ANY,
-		.usage = "on|off",
+		.usage = "[on|off]",
 		.help = "Control dcsr.ebreaku. When off, U-mode ebreak instructions "
 			"don't trap to OpenOCD. Defaults to on."
 	},
@@ -4632,6 +4650,10 @@ static void riscv_info_init(struct target *target, struct riscv_info *r)
 	INIT_LIST_HEAD(&r->hide_csr);
 
 	r->vsew64_supported = YNM_MAYBE;
+
+	r->riscv_ebreakm = true;
+	r->riscv_ebreaks = true;
+	r->riscv_ebreaku = true;
 }
 
 static int riscv_resume_go_all_harts(struct target *target)

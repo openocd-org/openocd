@@ -297,6 +297,10 @@ struct riscv_info {
 	yes_no_maybe_t vsew64_supported;
 
 	bool range_trigger_fallback_encountered;
+
+	bool riscv_ebreakm;
+	bool riscv_ebreaks;
+	bool riscv_ebreaku;
 };
 
 COMMAND_HELPER(riscv_print_info_line, const char *section, const char *key,
@@ -328,9 +332,6 @@ extern int riscv_command_timeout_sec;
 extern int riscv_reset_timeout_sec;
 
 extern bool riscv_enable_virtual;
-extern bool riscv_ebreakm;
-extern bool riscv_ebreaks;
-extern bool riscv_ebreaku;
 
 /* Everything needs the RISC-V specific info structure, so here's a nice macro
  * that provides that. */

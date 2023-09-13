@@ -10856,17 +10856,17 @@ Keep in mind, disabling the option does not guarantee that single stepping will 
 To make that happen, dcsr.stepie would have to be written to 1 as well.
 @end deffn
 
-@deffn {Command} {riscv set_ebreakm} on|off
+@deffn {Command} {riscv set_ebreakm} [on|off]
 Control dcsr.ebreakm. When on (default), M-mode ebreak instructions trap to
 OpenOCD. When off, they generate a breakpoint exception handled internally.
 @end deffn
 
-@deffn {Command} {riscv set_ebreaks} on|off
+@deffn {Command} {riscv set_ebreaks} [on|off]
 Control dcsr.ebreaks. When on (default), S-mode ebreak instructions trap to
 OpenOCD. When off, they generate a breakpoint exception handled internally.
 @end deffn
 
-@deffn {Command} {riscv set_ebreaku} on|off
+@deffn {Command} {riscv set_ebreaku} [on|off]
 Control dcsr.ebreaku. When on (default), U-mode ebreak instructions trap to
 OpenOCD. When off, they generate a breakpoint exception handled internally.
 @end deffn
