@@ -600,7 +600,7 @@ int rtos_get_gdb_reg(struct connection *connection, int reg_num)
 
 		free(reg_list);
 	}
-	return ERROR_FAIL;
+	return ERROR_NOT_IMPLEMENTED;
 }
 
 /** Return a list of general registers. */
