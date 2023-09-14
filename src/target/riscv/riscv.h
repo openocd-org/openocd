@@ -301,6 +301,10 @@ struct riscv_info {
 	bool riscv_ebreakm;
 	bool riscv_ebreaks;
 	bool riscv_ebreaku;
+
+	bool enable_equality_match_trigger;
+	bool enable_napot_trigger;
+	bool enable_ge_lt_trigger;
 };
 
 COMMAND_HELPER(riscv_print_info_line, const char *section, const char *key,
