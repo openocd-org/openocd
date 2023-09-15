@@ -166,6 +166,24 @@ struct target *get_available_target_from_connection(struct connection *connectio
 	return target;
 }
 
+/** Return true iff the given connection includes the given target. */
+static bool gdb_connection_includes_target(struct connection *connection, struct target *target)
+{
+	struct gdb_service *gdb_service = connection->service->priv;
+	struct target *service_target = gdb_service->target;
+	if (service_target->smp) {
+		struct target_list *tlist;
+		foreach_smp_target(tlist, service_target->smp_targets) {
+			struct target *t = tlist->target;
+			if (t == target)
+				return true;
+		}
+		return false;
+	}
+	/* Non-SMP target. */
+	return service_target == target;
+}
+
 static int gdb_last_signal(struct target *target)
 {
 	switch (target->debug_reason) {
@@ -988,9 +1006,9 @@ static int gdb_target_callback_event_handler(struct target *target,
 		enum target_event event, void *priv)
 {
 	struct connection *connection = priv;
-	struct target *gdb_target = get_available_target_from_connection(connection);
 
-	if (gdb_target != target)
+	/* Propagate this event if it's for any of the targets on this gdb connection. */
+	if (!gdb_connection_includes_target(connection, target))
 		return ERROR_OK;
 
 	switch (event) {
