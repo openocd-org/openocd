@@ -143,6 +143,12 @@ struct riscv_info {
 	/* The number of triggers per hart. */
 	unsigned int trigger_count;
 
+	/* Data structure to record known unsupported tdata1+tdata2 trigger CSR values.
+	 * This is to avoid repetitive attempts to set trigger configurations that are already
+	 * known to be unsupported in the HW.
+	 * A separate data structure is created for each trigger. */
+	struct list_head *wp_triggers_negative_cache;
+
 	/* record the tinfo of each trigger */
 	unsigned int trigger_tinfo[RISCV_MAX_TRIGGERS];
 
