@@ -92,11 +92,14 @@ COMMAND_HANDLER(handle_itm_port_command)
 	else
 		armv7m->trace_config.itm_ter[reg_idx] &= ~(1 << port);
 
-	if (CMD_CTX->mode == COMMAND_EXEC)
-		return armv7m_trace_itm_config(target);
+	/*
+	 * In config mode ITM is not accessible yet.
+	 * Keep the value and it will be programmed at target init.
+	 */
+	if (CMD_CTX->mode == COMMAND_CONFIG)
+		return ERROR_OK;
 
-	armv7m->trace_config.itm_deferred_config = true;
-	return ERROR_OK;
+	return armv7m_trace_itm_config(target);
 }
 
 COMMAND_HANDLER(handle_itm_ports_command)
@@ -112,11 +115,14 @@ COMMAND_HANDLER(handle_itm_ports_command)
 	memset(armv7m->trace_config.itm_ter, enable ? 0xff : 0,
 	       sizeof(armv7m->trace_config.itm_ter));
 
-	if (CMD_CTX->mode == COMMAND_EXEC)
-		return armv7m_trace_itm_config(target);
+	/*
+	 * In config mode ITM is not accessible yet.
+	 * Keep the value and it will be programmed at target init.
+	 */
+	if (CMD_CTX->mode == COMMAND_CONFIG)
+		return ERROR_OK;
 
-	armv7m->trace_config.itm_deferred_config = true;
-	return ERROR_OK;
+	return armv7m_trace_itm_config(target);
 }
 
 static const struct command_registration itm_command_handlers[] = {

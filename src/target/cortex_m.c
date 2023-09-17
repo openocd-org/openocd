@@ -2659,8 +2659,8 @@ int cortex_m_examine(struct target *target)
 		if (retval != ERROR_OK)
 			return retval;
 
-		if (armv7m->trace_config.itm_deferred_config)
-			armv7m_trace_itm_config(target);
+		/* Configure ITM */
+		armv7m_trace_itm_config(target);
 
 		/* NOTE: FPB and DWT are both optional. */
 
