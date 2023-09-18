@@ -12475,7 +12475,7 @@ Return information about the flash banks
 @item @b{capture} <@var{command}>
 
 Run <@var{command}> and return full log output that was produced during
-its execution. Example:
+its execution together with the command output. Example:
 
 @example
 > capture "reset init"
