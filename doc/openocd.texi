@@ -11778,6 +11778,10 @@ using the @var{riscv exec_progbuf} command to execute fences or CMO instructions
 (RISC-V Cache Management Operations).
 @end deffn
 
+@deffn {Command} {riscv re_examine}
+Enforce (re)examination of target.
+@end deffn
+
 @section ARC Architecture
 @cindex ARC
 

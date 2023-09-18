@@ -5442,6 +5442,19 @@ COMMAND_HANDLER(riscv_set_enable_trigger_feature)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(handle_re_examine_target)
+{
+	struct target *target = get_current_target(CMD_CTX);
+
+	if (riscv_reg_flush_all(target) != ERROR_OK) {
+		LOG_TARGET_ERROR(target, "Flush of register cache failed.");
+		return ERROR_FAIL;
+	}
+
+	target_reset_examined(target);
+	return target_examine_one(target);
+}
+
 static COMMAND_HELPER(report_reserved_triggers, struct target *target)
 {
 	RISCV_INFO(r);
@@ -5757,6 +5770,13 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.mode = COMMAND_ANY,
 		.usage = "[('eq'|'napot'|'ge_lt'|'all') ('wp'|'none')]",
 		.help = "Control whether OpenOCD is allowed to use certain RISC-V trigger features for watchpoints."
+	},
+	{
+		.name = "re_examine",
+		.handler = handle_re_examine_target,
+		.mode = COMMAND_EXEC,
+		.help = "Enforce (re)examination of target",
+		.usage = "",
 	},
 	{
 		.name = "reserve_trigger",

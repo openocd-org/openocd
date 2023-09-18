@@ -452,6 +452,15 @@ static inline void target_set_examined(struct target *target)
 }
 
 /**
+ * Reset the @c examined flag for the given target.
+ * Pure paranoia -- targets are zeroed on allocation.
+ */
+static inline void target_reset_examined(struct target *target)
+{
+	target->examined = false;
+}
+
+/**
  * Add the @a breakpoint for @a target.
  *
  * This routine is a wrapper for target->type->add_breakpoint.

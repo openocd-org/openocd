@@ -647,15 +647,6 @@ static int no_mmu(struct target *target, int *enabled)
 	return ERROR_OK;
 }
 
-/**
- * Reset the @c examined flag for the given target.
- * Pure paranoia -- targets are zeroed on allocation.
- */
-static inline void target_reset_examined(struct target *target)
-{
-	target->examined = false;
-}
-
 static int default_examine(struct target *target)
 {
 	target_set_examined(target);
