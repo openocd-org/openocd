@@ -9358,8 +9358,8 @@ for similar mechanisms that do not consume hardware breakpoints.)
 Remove the breakpoint at @var{address} or all breakpoints.
 @end deffn
 
-@deffn {Command} {rwp} address
-Remove data watchpoint on @var{address}
+@deffn {Command} {rwp} @option{all} | address
+Remove data watchpoint on @var{address} or all watchpoints.
 @end deffn
 
 @deffn {Command} {wp} [address len [(@option{r}|@option{w}|@option{a}) [value [mask]]]]
