@@ -4069,13 +4069,14 @@ COMMAND_HANDLER(handle_wp_command)
 		struct watchpoint *watchpoint = target->watchpoints;
 
 		while (watchpoint) {
+			char wp_type = (watchpoint->rw == WPT_READ ? 'r' : (watchpoint->rw == WPT_WRITE ? 'w' : 'a'));
 			command_print(CMD, "address: " TARGET_ADDR_FMT
 					", len: 0x%8.8" PRIx32
-					", r/w/a: %i, value: 0x%8.8" PRIx64
+					", r/w/a: %c, value: 0x%8.8" PRIx64
 					", mask: 0x%8.8" PRIx64,
 					watchpoint->address,
 					watchpoint->length,
-					(int)watchpoint->rw,
+					wp_type,
 					watchpoint->value,
 					watchpoint->mask);
 			watchpoint = watchpoint->next;
