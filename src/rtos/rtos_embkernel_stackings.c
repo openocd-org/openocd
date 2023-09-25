@@ -12,6 +12,7 @@
 #include "rtos.h"
 #include "target/armv7m.h"
 #include "rtos_standard_stackings.h"
+#include "rtos_embkernel_stackings.h"
 
 static const struct stack_register_offset rtos_embkernel_cortex_m_stack_offsets[ARMV7M_NUM_CORE_REGS] = {
 	{ ARMV7M_R0,   0x24, 32 },		/* r0   */

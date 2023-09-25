@@ -12,6 +12,7 @@
 #include "rtos.h"
 #include "target/armv7m.h"
 #include "rtos_standard_stackings.h"
+#include "rtos_riot_stackings.h"
 
 /* This works for the M0 and M34 stackings as xPSR is in a fixed
  * location

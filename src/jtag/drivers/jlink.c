@@ -1976,6 +1976,8 @@ struct pending_scan_result {
 	void *buffer;
 	/** Offset in the destination buffer */
 	unsigned buffer_offset;
+	/** SWD command */
+	uint8_t swd_cmd;
 };
 
 #define MAX_PENDING_SCAN_RESULTS 256
@@ -2179,12 +2181,13 @@ static int jlink_swd_run_queue(void)
 	}
 
 	for (i = 0; i < pending_scan_results_length; i++) {
+		/* Devices do not reply to DP_TARGETSEL write cmd, ignore received ack */
+		bool check_ack = swd_cmd_returns_ack(pending_scan_results_buffer[i].swd_cmd);
 		int ack = buf_get_u32(tdo_buffer, pending_scan_results_buffer[i].first, 3);
-
-		if (ack != SWD_ACK_OK) {
+		if (check_ack && ack != SWD_ACK_OK) {
 			LOG_DEBUG("SWD ack not OK: %d %s", ack,
 				  ack == SWD_ACK_WAIT ? "WAIT" : ack == SWD_ACK_FAULT ? "FAULT" : "JUNK");
-			queued_retval = ack == SWD_ACK_WAIT ? ERROR_WAIT : ERROR_FAIL;
+			queued_retval = swd_ack_to_error_code(ack);
 			goto skip;
 		} else if (pending_scan_results_buffer[i].length) {
 			uint32_t data = buf_get_u32(tdo_buffer, 3 + pending_scan_results_buffer[i].first, 32);
@@ -2221,6 +2224,7 @@ static void jlink_swd_queue_cmd(uint8_t cmd, uint32_t *dst, uint32_t data, uint3
 	if (queued_retval != ERROR_OK)
 		return;
 
+	pending_scan_results_buffer[pending_scan_results_length].swd_cmd = cmd;
 	cmd |= SWD_CMD_START | SWD_CMD_PARK;
 
 	jlink_queue_data_out(&cmd, 8);

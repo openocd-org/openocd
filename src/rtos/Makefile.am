@@ -21,6 +21,7 @@ noinst_LTLIBRARIES += %D%/librtos.la
 	%D%/mqx.c \
 	%D%/uCOS-III.c \
 	%D%/nuttx.c \
+	%D%/rtkernel.c \
 	%D%/hwthread.c \
 	%D%/zephyr.c \
 	%D%/riot.c \
@@ -33,5 +34,4 @@ noinst_LTLIBRARIES += %D%/librtos.la
 	%D%/rtos_mqx_stackings.h \
 	%D%/rtos_riot_stackings.h \
 	%D%/rtos_ucos_iii_stackings.h \
-	%D%/rtos_nuttx_stackings.h \
-	%D%/nuttx_header.h
+	%D%/rtos_nuttx_stackings.h

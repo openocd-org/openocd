@@ -8,10 +8,6 @@
 #ifndef OPENOCD_RTOS_RTOS_STANDARD_STACKINGS_H
 #define OPENOCD_RTOS_RTOS_STANDARD_STACKINGS_H
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
 #include "rtos.h"
 
 extern const struct rtos_register_stacking rtos_standard_cortex_m3_stacking;

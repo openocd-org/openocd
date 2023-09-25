@@ -236,7 +236,7 @@ static int freertos_get_thread_reg_value(struct rtos *rtos, threadid_t thread_id
 static int freertos_set_reg(struct rtos *rtos, uint32_t reg_num, uint8_t *reg_value);
 static int freertos_get_symbol_list_to_lookup(struct symbol_table_elem *symbol_list[]);
 
-struct rtos_type freertos_rtos = {
+const struct rtos_type freertos_rtos = {
 	.name = "FreeRTOS",
 
 	.detect_rtos = freertos_detect_rtos,

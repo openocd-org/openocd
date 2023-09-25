@@ -5,8 +5,9 @@
 #endif
 
 #include "rtos.h"
-#include "rtos_standard_stackings.h"
 #include "target/armv7m.h"
+#include "rtos_standard_stackings.h"
+#include "rtos_ecos_stackings.h"
 
 /* For Cortex-M eCos applications the actual thread context register layout can
  * be different between active threads of an application depending on whether

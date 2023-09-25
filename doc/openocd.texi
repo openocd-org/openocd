@@ -5031,7 +5031,7 @@ The value should normally correspond to a static mapping for the
 @var{rtos_type} can be one of @option{auto}, @option{none}, @option{eCos},
 @option{ThreadX}, @option{FreeRTOS}, @option{linux}, @option{ChibiOS},
 @option{embKernel}, @option{mqx}, @option{uCOS-III}, @option{nuttx},
-@option{RIOT}, @option{Zephyr}
+@option{RIOT}, @option{Zephyr}, @option{rtkernel}
 @xref{gdbrtossupport,,RTOS Support}.
 
 @item @code{-defer-examine} -- skip target examination at initial JTAG chain
@@ -11651,7 +11651,8 @@ In a debug session using JTAG for its transport protocol,
 OpenOCD supports running such test files.
 
 @deffn {Command} {svf} @file{filename} [@option{-tap @var{tapname}}] [@option{[-]quiet}] @
-                     [@option{[-]nil}] [@option{[-]progress}] [@option{[-]ignore_error}]
+                     [@option{[-]nil}] [@option{[-]progress}] [@option{[-]ignore_error}] @
+                     [@option{-noreset}] [@option{-addcycles @var{cyclecount}}]
 This issues a JTAG reset (Test-Logic-Reset) and then
 runs the SVF script from @file{filename}.
 
@@ -11670,6 +11671,10 @@ on the real interface;
 @item @option{[-]progress} enable progress indication;
 @item @option{[-]ignore_error} continue execution despite TDO check
 errors.
+@item @option{-noreset} omit JTAG reset (Test-Logic-Reset) before executing
+content of the SVF file;
+@item @option{-addcycles @var{cyclecount}} inject @var{cyclecount} number of
+additional TCLK cycles after each SDR scan instruction;
 @end itemize
 @end deffn
 
@@ -12085,6 +12090,7 @@ Currently supported rtos's include:
 @item @option{RIOT}
 @item @option{hwthread} (This is not an actual RTOS. @xref{usingopenocdsmpwithgdb,,Using OpenOCD SMP with GDB}.)
 @item @option{Zephyr}
+@item @option{rtkernel}
 @end itemize
 
 At any time, it's possible to drop the selected RTOS using:
@@ -12104,7 +12110,7 @@ _tx_thread_current_ptr, _tx_thread_created_ptr, _tx_thread_created_count.
 @raggedright
 pxCurrentTCB, pxReadyTasksLists, xDelayedTaskList1, xDelayedTaskList2,
 pxDelayedTaskList, pxOverflowDelayedTaskList, xPendingReadyList,
-uxCurrentNumberOfTasks, uxTopUsedPriority.
+uxCurrentNumberOfTasks, uxTopUsedPriority, xSchedulerRunning.
 @end raggedright
 @item linux symbols
 init_task.
@@ -12126,6 +12132,8 @@ _tcb_name_offset.
 @end raggedright
 @item Zephyr symbols
 _kernel, _kernel_openocd_offsets, _kernel_openocd_size_t_size
+@item rtkernel symbols
+Multiple struct offsets.
 @end table
 
 For most RTOS supported the above symbols will be exported by default. However for

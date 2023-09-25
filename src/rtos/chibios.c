@@ -97,7 +97,7 @@ static int chibios_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
 		struct rtos_reg **reg_list, int *num_regs);
 static int chibios_get_symbol_list_to_lookup(struct symbol_table_elem *symbol_list[]);
 
-struct rtos_type chibios_rtos = {
+const struct rtos_type chibios_rtos = {
 	.name = "chibios",
 
 	.detect_rtos = chibios_detect_rtos,
