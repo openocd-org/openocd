@@ -46,8 +46,20 @@
 #define MIPS32_CONFIG0_AR_SHIFT 10
 #define MIPS32_CONFIG0_AR_MASK (0x7 << MIPS32_CONFIG0_AR_SHIFT)
 
+#define MIPS32_CONFIG1_FP_SHIFT	0
+#define MIPS32_CONFIG1_FP_MASK	BIT(MIPS32_CONFIG1_FP_SHIFT)
+
 #define MIPS32_CONFIG1_DL_SHIFT 10
 #define MIPS32_CONFIG1_DL_MASK (0x7 << MIPS32_CONFIG1_DL_SHIFT)
+
+#define MIPS32_CONFIG3_CDMM_SHIFT	3
+#define MIPS32_CONFIG3_CDMM_MASK	BIT(MIPS32_CONFIG3_CDMM_SHIFT)
+
+#define MIPS32_CONFIG3_DSPP_SHIFT	10
+#define MIPS32_CONFIG3_DSPP_MASK	BIT(MIPS32_CONFIG3_DSPP_SHIFT)
+
+#define MIPS32_CONFIG3_DSPREV_SHIFT	11
+#define MIPS32_CONFIG3_DSPREV_MASK	BIT(MIPS32_CONFIG3_DSPREV_SHIFT)
 
 #define MIPS32_CONFIG3_ISA_SHIFT	14
 #define MIPS32_CONFIG3_ISA_MASK		(3 << MIPS32_CONFIG3_ISA_SHIFT)
@@ -56,6 +68,8 @@
 #define MIPS32_ARCH_REL2 0x1
 
 #define MIPS32_SCAN_DELAY_LEGACY_MODE 2000000
+
+#define MIPS32_NUM_DSPREGS		9
 
 /* Bit Mask indicating CP0 register supported by this core */
 #define	MIPS_CP0_MK4		0x0001
@@ -237,6 +251,31 @@ enum mips32_isa_imp {
 	MIPS32_MMIPS32 = 3,
 };
 
+/* Release 2~5 does not have much change regarding to the ISA under User mode,
+* therefore no new Architecture Revision(AR) level is assigned to them.
+* Release 6 changed some instruction's encoding/mnemonic, removed instructions that
+* has lost its purposes/none are using, and added some new instructions as well.
+*/
+enum mips32_isa_rel {
+	MIPS32_RELEASE_1 = 0,
+	MIPS32_RELEASE_2 = 1,
+	MIPS32_RELEASE_6 = 2,
+	MIPS32_RELEASE_UNKNOWN,
+};
+
+enum mips32_fp_imp {
+	MIPS32_FP_IMP_NONE = 0,
+	MIPS32_FP_IMP_32 = 1,
+	MIPS32_FP_IMP_64 = 2,
+	MIPS32_FP_IMP_UNKNOWN = 3,
+};
+
+enum mips32_dsp_imp {
+	MIPS32_DSP_IMP_NONE = 0,
+	MIPS32_DSP_IMP_REV1 = 1,
+	MIPS32_DSP_IMP_REV2 = 2,
+};
+
 struct mips32_comparator {
 	int used;
 	uint32_t bp_value;
@@ -261,6 +300,18 @@ struct mips32_common {
 
 	enum mips32_isa_mode isa_mode;
 	enum mips32_isa_imp isa_imp;
+	enum mips32_isa_rel isa_rel;
+	enum mips32_fp_imp fp_imp;
+	enum mips32_dsp_imp dsp_imp;
+
+	int fdc;
+	int semihosting;
+	uint32_t cp0_mask;
+
+	/* FPU enabled (cp0.status.cu1) */
+	bool fpu_enabled;
+	/* FPU mode (cp0.status.fr) */
+	bool fpu_in_64bit;
 
 	/* processor identification register */
 	uint32_t prid;
@@ -559,6 +610,173 @@ struct mips32_algorithm {
 #define MIPS32_SDBBP(isa)			(isa ? MMIPS32_SDBBP : MIPS32_ISA_SDBBP)
 
 #define MIPS16_SDBBP(isa)			(isa ? MMIPS16_SDBBP : MIPS16_ISA_SDBBP)
+
+/*
+ * MIPS32 Config1 Register (CP0 Register 16, Select 1)
+ */
+#define MIPS32_CFG1_M			0x80000000		/* Config2 implemented */
+#define MIPS32_CFG1_MMUSMASK		0x7e000000		/* mmu size - 1 */
+#define MIPS32_CFG1_MMUSSHIFT		25
+#define MIPS32_CFG1_ISMASK		0x01c00000		/* icache lines 64<<n */
+#define MIPS32_CFG1_ISSHIFT		22
+#define MIPS32_CFG1_ILMASK		0x00380000		/* icache line size 2<<n */
+#define MIPS32_CFG1_ILSHIFT		19
+#define MIPS32_CFG1_IAMASK		0x00070000		/* icache ways - 1 */
+#define MIPS32_CFG1_IASHIFT		16
+#define MIPS32_CFG1_DSMASK		0x0000e000		/* dcache lines 64<<n */
+#define MIPS32_CFG1_DSSHIFT		13
+#define MIPS32_CFG1_DLMASK		0x00001c00		/* dcache line size 2<<n */
+#define MIPS32_CFG1_DLSHIFT		10
+#define MIPS32_CFG1_DAMASK		0x00000380		/* dcache ways - 1 */
+#define MIPS32_CFG1_DASHIFT		7
+#define MIPS32_CFG1_C2			0x00000040		/* Coprocessor 2 present */
+#define MIPS32_CFG1_MD			0x00000020		/* MDMX implemented */
+#define MIPS32_CFG1_PC			0x00000010		/* performance counters implemented */
+#define MIPS32_CFG1_WR			0x00000008		/* watch registers implemented */
+#define MIPS32_CFG1_CA			0x00000004		/* compression (mips16) implemented */
+#define MIPS32_CFG1_EP			0x00000002		/* ejtag implemented */
+#define MIPS32_CFG1_FP			0x00000001		/* fpu implemented */
+
+/*
+ * MIPS32 Coprocessor 0 register numbers
+ */
+#define MIPS32_C0_INDEX			0
+#define MIPS32_C0_INX			0
+#define MIPS32_C0_RANDOM		1
+#define MIPS32_C0_RAND			1
+#define MIPS32_C0_ENTRYLO0		2
+#define MIPS32_C0_TLBLO0		2
+#define MIPS32_C0_ENTRYLO1		3
+#define MIPS32_C0_TLBLO1		3
+#define MIPS32_C0_CONTEXT		4
+#define MIPS32_C0_CTXT			4
+#define MIPS32_C0_PAGEMASK		5
+#define MIPS32_C0_PAGEGRAIN		(5, 1)
+#define MIPS32_C0_WIRED			6
+#define MIPS32_C0_HWRENA		7
+#define MIPS32_C0_BADVADDR		8
+#define MIPS32_C0_VADDR			8
+#define MIPS32_C0_COUNT			9
+#define MIPS32_C0_ENTRYHI		10
+#define MIPS32_C0_TLBHI			10
+#define MIPS32_C0_GUESTCTL1		10
+#define MIPS32_C0_COMPARE		11
+#define MIPS32_C0_STATUS		12
+#define MIPS32_C0_SR			12
+#define MIPS32_C0_INTCTL		(12, 1)
+#define MIPS32_C0_SRSCTL		(12, 2)
+#define MIPS32_C0_SRSMAP		(12, 3)
+#define MIPS32_C0_CAUSE			13
+#define MIPS32_C0_CR			13
+#define MIPS32_C0_EPC			14
+#define MIPS32_C0_PRID			15
+#define MIPS32_C0_EBASE			(15, 1)
+#define MIPS32_C0_CONFIG		16
+#define MIPS32_C0_CONFIG0		(16, 0)
+#define MIPS32_C0_CONFIG1		(16, 1)
+#define MIPS32_C0_CONFIG2		(16, 2)
+#define MIPS32_C0_CONFIG3		(16, 3)
+#define MIPS32_C0_LLADDR		17
+#define MIPS32_C0_WATCHLO		18
+#define MIPS32_C0_WATCHHI		19
+#define MIPS32_C0_DEBUG			23
+#define MIPS32_C0_DEPC			24
+#define MIPS32_C0_PERFCNT		25
+#define MIPS32_C0_ERRCTL		26
+#define MIPS32_C0_CACHEERR		27
+#define MIPS32_C0_TAGLO			28
+#define MIPS32_C0_ITAGLO		28
+#define MIPS32_C0_DTAGLO		(28, 2)
+#define MIPS32_C0_TAGLO2		(28, 4)
+#define MIPS32_C0_DATALO		(28, 1)
+#define MIPS32_C0_IDATALO		(28, 1)
+#define MIPS32_C0_DDATALO		(28, 3)
+#define MIPS32_C0_DATALO2		(28, 5)
+#define MIPS32_C0_TAGHI			29
+#define MIPS32_C0_ITAGHI		29
+#define MIPS32_C0_DATAHI		(29, 1)
+#define MIPS32_C0_ERRPC			30
+#define MIPS32_C0_DESAVE		31
+
+/*
+ * MIPS32 MMU types
+ */
+#define MIPS32_MMU_TLB			1
+#define MIPS32_MMU_BAT			2
+#define MIPS32_MMU_FIXED		3
+#define MIPS32_MMU_DUAL_VTLB_FTLB	4
+
+enum mips32_cpu_vendor {
+	MIPS32_CPU_VENDOR_MTI,
+	MIPS32_CPU_VENDOR_ALCHEMY,
+	MIPS32_CPU_VENDOR_BROADCOM,
+	MIPS32_CPU_VENDOR_ALTERA,
+	MIPS32_CPU_VENDOR_LEXRA,
+};
+
+enum mips32_isa_supported {
+	MIPS16,
+	MIPS32,
+	MIPS64,
+	MICROMIPS_ONLY,
+	MIPS32_AT_RESET_AND_MICROMIPS,
+	MICROMIPS_AT_RESET_AND_MIPS32,
+};
+
+struct mips32_cpu_features {
+	/* Type of CPU	(4Kc, 24Kf, etc.) */
+	uint32_t cpu_core;
+
+	/* Internal representation of cpu type */
+	uint32_t cpu_type;
+
+	/* Processor vendor */
+	enum mips32_cpu_vendor vendor;
+
+	/* Supported ISA and boot config */
+	enum mips32_isa_supported isa;
+
+	/* PRID */
+	uint32_t prid;
+
+	/* Processor implemented the MultiThreading ASE */
+	bool mtase;
+
+	/* Processor implemented the DSP ASE */
+	bool dspase;
+
+	/* Processor implemented the SmartMIPS ASE */
+	bool smase;
+
+	/* Processor implemented the MIPS16[e] ASE */
+	bool m16ase;
+
+	/* Processor implemented the microMIPS ASE */
+	bool micromipsase;
+
+	/* Processor implemented the Virtualization ASE */
+	uint32_t vzase;
+
+	uint32_t vz_guest_id_width;
+
+	/* ebase.cpuid number */
+	uint32_t cpuid;
+
+	uint32_t inst_cache_size;
+	uint32_t data_cache_size;
+	uint32_t mmu_type;
+	uint32_t tlb_entries;
+	uint32_t num_shadow_regs;
+
+	/* Processor implemented the MSA module */
+	bool msa;
+
+	/* Processor implemented mfhc0 and mthc0 instructions */
+	bool mvh;
+
+	bool guest_ctl1_present;
+	bool cdmm;
+};
 
 extern const struct command_registration mips32_command_handlers[];
 

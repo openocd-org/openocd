@@ -805,15 +805,82 @@ int mips32_cpu_probe(struct target *target)
 	return ERROR_OK;
 }
 
+/* reads dsp implementation info from CP0 Config3 register {DSPP, DSPREV}*/
+void mips32_read_config_dsp(struct mips32_common *mips32, struct mips_ejtag *ejtag_info)
+{
+	uint32_t dsp_present = ((ejtag_info->config[3] & MIPS32_CONFIG3_DSPP_MASK) >> MIPS32_CONFIG3_DSPP_SHIFT);
+	if (dsp_present) {
+		mips32->dsp_imp = ((ejtag_info->config[3] & MIPS32_CONFIG3_DSPREV_MASK) >> MIPS32_CONFIG3_DSPREV_SHIFT) + 1;
+		LOG_USER("DSP implemented: %s, rev %d", "yes", mips32->dsp_imp);
+	} else {
+		LOG_USER("DSP implemented: %s", "no");
+	}
+}
+
+/* read fpu implementation info from CP0 Config1 register {CU1, FP}*/
+int mips32_read_config_fpu(struct mips32_common *mips32, struct mips_ejtag *ejtag_info)
+{
+	int retval;
+	uint32_t fp_imp = (ejtag_info->config[1] & MIPS32_CONFIG1_FP_MASK) >> MIPS32_CONFIG1_FP_SHIFT;
+	char buf[60] = {0};
+	if (!fp_imp) {
+		LOG_USER("FPU implemented: %s", "no");
+		mips32->fp_imp = MIPS32_FP_IMP_NONE;
+		return ERROR_OK;
+	}
+	uint32_t status_value;
+	bool status_fr, status_cu1;
+
+	retval = mips32_cp0_read(ejtag_info, &status_value, MIPS32_C0_STATUS, 0);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("Failed to read cp0 status register");
+		return retval;
+	}
+
+	status_fr = (status_value >> MIPS32_CP0_STATUS_FR_SHIFT) & 0x1;
+	status_cu1 = (status_value >> MIPS32_CP0_STATUS_CU1_SHIFT) & 0x1;
+	if (status_cu1) {
+		/* TODO: read fpu(cp1) config register for current operating mode.
+		 * Now its set to 32 bits by default. */
+		snprintf(buf, sizeof(buf), "yes");
+		fp_imp = MIPS32_FP_IMP_32;
+	} else {
+		snprintf(buf, sizeof(buf), "yes, disabled");
+		fp_imp = MIPS32_FP_IMP_UNKNOWN;
+	}
+
+	mips32->fpu_in_64bit = status_fr;
+	mips32->fpu_enabled = status_cu1;
+
+	LOG_USER("FPU implemented: %s", buf);
+	mips32->fp_imp = fp_imp;
+
+	return ERROR_OK;
+}
+
+/* Checks if current target implements Common Device Memory Map and therefore Fast Debug Channel (MD00090) */
+void mips32_read_config_fdc(struct mips32_common *mips32, struct mips_ejtag *ejtag_info, uint32_t dcr)
+{
+	if (((ejtag_info->config[3] & MIPS32_CONFIG3_CDMM_MASK) != 0) && ((dcr & EJTAG_DCR_FDC) != 0)) {
+		mips32->fdc = 1;
+		mips32->semihosting = 1;
+	} else {
+		mips32->fdc = 0;
+		mips32->semihosting = 0;
+	}
+}
+
 /* read config to config3 cp0 registers and log isa implementation */
 int mips32_read_config_regs(struct target *target)
 {
 	struct mips32_common *mips32 = target_to_mips32(target);
 	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
+	char buf[60] = {0};
+	int retval;
 
 	if (ejtag_info->config_regs == 0)
 		for (int i = 0; i != 4; i++) {
-			int retval = mips32_cp0_read(ejtag_info, &ejtag_info->config[i], 16, i);
+			retval = mips32_cp0_read(ejtag_info, &ejtag_info->config[i], 16, i);
 			if (retval != ERROR_OK) {
 				LOG_ERROR("isa info not available, failed to read cp0 config register: %" PRId32, i);
 				ejtag_info->config_regs = 0;
@@ -828,27 +895,56 @@ int mips32_read_config_regs(struct target *target)
 
 	LOG_DEBUG("read  %"PRIu32" config registers", ejtag_info->config_regs);
 
+	mips32->isa_rel = (ejtag_info->config[0] & MIPS32_CONFIG0_AR_MASK) >> MIPS32_CONFIG0_AR_SHIFT;
+	snprintf(buf, sizeof(buf), ", release %s(AR=%d)",
+			mips32->isa_rel == MIPS32_RELEASE_1 ? "1"
+			: mips32->isa_rel == MIPS32_RELEASE_2 ? "2"
+			: mips32->isa_rel == MIPS32_RELEASE_6 ? "6"
+			: "unknown", mips32->isa_rel);
+
 	if (ejtag_info->impcode & EJTAG_IMP_MIPS16) {
 		mips32->isa_imp = MIPS32_MIPS16;
-		LOG_USER("MIPS32 with MIPS16 support implemented");
-
+		LOG_USER("ISA implemented: %s%s", "MIPS32, MIPS16", buf);
 	} else if (ejtag_info->config_regs >= 4) {	/* config3 implemented */
 		unsigned isa_imp = (ejtag_info->config[3] & MIPS32_CONFIG3_ISA_MASK) >> MIPS32_CONFIG3_ISA_SHIFT;
 		if (isa_imp == 1) {
 			mips32->isa_imp = MMIPS32_ONLY;
-			LOG_USER("MICRO MIPS32 only implemented");
+			LOG_USER("ISA implemented: %s%s", "microMIPS32", buf);
 
 		} else if (isa_imp != 0) {
 			mips32->isa_imp = MIPS32_MMIPS32;
-			LOG_USER("MIPS32 and MICRO MIPS32 implemented");
+			LOG_USER("ISA implemented: %s%s", "MIPS32, microMIPS32", buf);
 		}
+	} else if (mips32->isa_imp == MIPS32_ONLY)	{
+		/* initial default value */
+		LOG_USER("ISA implemented: %s%s", "MIPS32", buf);
 	}
 
-	if (mips32->isa_imp == MIPS32_ONLY)	/* initial default value */
-		LOG_USER("MIPS32 only implemented");
+	/* Retrieve DSP info */
+	mips32_read_config_dsp(mips32, ejtag_info);
+
+	/* Retrieve if Float Point CoProcessor Implemented */
+	retval = mips32_read_config_fpu(mips32, ejtag_info);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("fpu info is not available, error while reading cp0 status");
+		mips32->fp_imp = MIPS32_FP_IMP_NONE;
+		return retval;
+	}
+
+	uint32_t dcr;
+
+	retval = target_read_u32(target, EJTAG_DCR, &dcr);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("failed to read EJTAG_DCR register");
+		return retval;
+	}
+
+	/* Determine if FDC and CDMM are implemented for this core */
+	mips32_read_config_fdc(mips32, ejtag_info, dcr);
 
 	return ERROR_OK;
 }
+
 int mips32_checksum_memory(struct target *target, target_addr_t address,
 		uint32_t count, uint32_t *checksum)
 {
