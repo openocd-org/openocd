@@ -123,11 +123,12 @@
 
 /* Debug Control Register DCR */
 #define EJTAG_DCR				0xFF300000
-#define EJTAG_DCR_ENM			(1 << 29)
-#define EJTAG_DCR_DB			(1 << 17)
-#define EJTAG_DCR_IB			(1 << 16)
-#define EJTAG_DCR_INTE			(1 << 4)
-#define EJTAG_DCR_MP			(1 << 2)
+#define EJTAG_DCR_ENM			BIT(29)
+#define EJTAG_DCR_FDC			BIT(18)
+#define EJTAG_DCR_DB			BIT(17)
+#define EJTAG_DCR_IB			BIT(16)
+#define EJTAG_DCR_INTE			BIT(4)
+#define EJTAG_DCR_MP			BIT(2)
 
 /* breakpoint support */
 /* EJTAG_V20_* was tested on Broadcom BCM7401

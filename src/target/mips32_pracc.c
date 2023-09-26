@@ -823,9 +823,13 @@ int mips32_pracc_write_mem(struct mips_ejtag *ejtag_info, uint32_t addr, int siz
 	return retval;
 }
 
-int mips32_pracc_write_regs(struct mips_ejtag *ejtag_info, uint32_t *regs)
+int mips32_pracc_write_regs(struct mips32_common *mips32)
 {
+	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
 	struct pracc_queue_info ctx = {.ejtag_info = ejtag_info};
+	uint32_t *gprs = mips32->core_regs.gpr;
+	uint32_t *c0rs = mips32->core_regs.cp0;
+
 	pracc_queue_init(&ctx);
 
 	uint32_t cp0_write_code[] = {
@@ -837,66 +841,178 @@ int mips32_pracc_write_regs(struct mips_ejtag *ejtag_info, uint32_t *regs)
 		MIPS32_MTC0(ctx.isa, 1, 24, 0),					/* move $1 to depc (pc) */
 	};
 
+	uint32_t cp0_write_data[] = {
+		/* lo */
+		gprs[32],
+		/* hi */
+		gprs[33],
+		/* status */
+		c0rs[0],
+		/* badvaddr */
+		c0rs[1],
+		/* cause */
+		c0rs[2],
+		/* depc (pc) */
+		c0rs[3],
+	};
+
+	for (size_t i = 0; i < ARRAY_SIZE(cp0_write_code); i++) {
+		/* load CP0 value in $1 */
+		pracc_add_li32(&ctx, 1, cp0_write_data[i], 0);
+		/* write value from $1 to CP0 register */
+		pracc_add(&ctx, 0, cp0_write_code[i]);
+	}
+
 	/* load registers 2 to 31 with li32, optimize */
 	for (int i = 2; i < 32; i++)
-		pracc_add_li32(&ctx, i, regs[i], 1);
+		pracc_add_li32(&ctx, i, gprs[i], 1);
 
-	for (int i = 0; i != 6; i++) {
-		pracc_add_li32(&ctx, 1, regs[i + 32], 0);	/* load CPO value in $1 */
-		pracc_add(&ctx, 0, cp0_write_code[i]);			/* write value from $1 to CPO register */
-	}
-	pracc_add(&ctx, 0, MIPS32_MTC0(ctx.isa, 15, 31, 0));				/* load $15 in DeSave */
-	pracc_add(&ctx, 0, MIPS32_LUI(ctx.isa, 1, UPPER16((regs[1]))));		/* load upper half word in $1 */
-	pracc_add(&ctx, 0, MIPS32_B(ctx.isa, NEG16((ctx.code_count + 1) << ctx.isa)));		/* jump to start */
-	pracc_add(&ctx, 0, MIPS32_ORI(ctx.isa, 1, 1, LOWER16((regs[1]))));	/* load lower half word in $1 */
+	/* load $15 in DeSave */
+	pracc_add(&ctx, 0, MIPS32_MTC0(ctx.isa, 15, 31, 0));
+	/* load upper half word in $1 */
+	pracc_add(&ctx, 0, MIPS32_LUI(ctx.isa, 1, UPPER16((gprs[1]))));
+	/* jump to start */
+	pracc_add(&ctx, 0, MIPS32_B(ctx.isa, NEG16((ctx.code_count + 1) << ctx.isa)));
+	/* load lower half word in $1 */
+	pracc_add(&ctx, 0, MIPS32_ORI(ctx.isa, 1, 1, LOWER16((gprs[1]))));
 
 	ctx.retval = mips32_pracc_queue_exec(ejtag_info, &ctx, NULL, 1);
 
-	ejtag_info->reg8 = regs[8];
-	ejtag_info->reg9 = regs[9];
+	ejtag_info->reg8 = gprs[8];
+	ejtag_info->reg9 = gprs[9];
 	pracc_queue_free(&ctx);
 	return ctx.retval;
 }
 
-int mips32_pracc_read_regs(struct mips_ejtag *ejtag_info, uint32_t *regs)
+/* Saves content in `$1` to `DeSave(cp0.31.0)` and loads `MIPS32_PRACC_BASE_ADDR` into `$1` */
+static void mips32_pracc_store_regs_set_base_addr(struct pracc_queue_info *ctx)
 {
-	struct pracc_queue_info ctx = {.ejtag_info = ejtag_info};
-	pracc_queue_init(&ctx);
+	/* move $1 to COP0 DeSave */
+	pracc_add(ctx, 0, MIPS32_MTC0(ctx->isa, 1, 31, 0));
+	/* $1 = MIP32_PRACC_BASE_ADDR */
+	pracc_add(ctx, 0, MIPS32_LUI(ctx->isa, 1, PRACC_UPPER_BASE_ADDR));
+}
 
-	uint32_t cp0_read_code[] = {
-		MIPS32_MFC0(ctx.isa, 8, 12, 0),					/* move status to $8 */
-		MIPS32_MFLO(ctx.isa, 8),						/* move lo to $8 */
-		MIPS32_MFHI(ctx.isa, 8),						/* move hi to $8 */
-		MIPS32_MFC0(ctx.isa, 8, 8, 0),					/* move badvaddr to $8 */
-		MIPS32_MFC0(ctx.isa, 8, 13, 0),					/* move cause to $8 */
-		MIPS32_MFC0(ctx.isa, 8, 24, 0),					/* move depc (pc) to $8 */
+/* This function assumes the address for saving is stored in `$1`.
+ * And that action is performed in `mips32_pracc_set_save_base_addr`.
+ */
+static void mips32_pracc_store_regs_gpr(struct pracc_queue_info *ctx, unsigned int offset_gpr)
+{
+	for (int i = 2; i != 32; i++)
+		pracc_add(ctx, MIPS32_PRACC_PARAM_OUT + offset_gpr + (i * 4),
+				MIPS32_SW(ctx->isa, i, PRACC_OUT_OFFSET + offset_gpr + (i * 4), 1));
+}
+
+static void mips32_pracc_store_regs_lohi(struct pracc_queue_info *ctx)
+{
+	uint32_t lohi_read_code[] = {
+		MIPS32_MFLO(ctx->isa, 8),	/* move lo to $8 */
+		MIPS32_MFHI(ctx->isa, 8),	/* move hi to $8 */
 	};
 
-	pracc_add(&ctx, 0, MIPS32_MTC0(ctx.isa, 1, 31, 0));				/* move $1 to COP0 DeSave */
-	pracc_add(&ctx, 0, MIPS32_LUI(ctx.isa, 1, PRACC_UPPER_BASE_ADDR));	/* $1 = MIP32_PRACC_BASE_ADDR */
-
-	for (int i = 2; i != 32; i++)					/* store GPR's 2 to 31 */
-		pracc_add(&ctx, MIPS32_PRACC_PARAM_OUT + (i * 4),
-				  MIPS32_SW(ctx.isa, i, PRACC_OUT_OFFSET + (i * 4), 1));
-
-	for (int i = 0; i != 6; i++) {
-		pracc_add(&ctx, 0, cp0_read_code[i]);				/* load COP0 needed registers to $8 */
-		pracc_add(&ctx, MIPS32_PRACC_PARAM_OUT + (i + 32) * 4,			/* store $8 at PARAM OUT */
-				  MIPS32_SW(ctx.isa, 8, PRACC_OUT_OFFSET + (i + 32) * 4, 1));
+	/* store lo & hi */
+	for (int i = 0; i < 2; i++) {
+		/* load COP0 needed registers to $8 */
+		pracc_add(ctx, 0, lohi_read_code[i]);
+		/* store $8 at PARAM OUT */
+		pracc_add(ctx, MIPS32_PRACC_PARAM_OUT + (i + 32) * 4,
+					MIPS32_SW(ctx->isa, 8, PRACC_OUT_OFFSET + (i + 32) * 4, 1));
 	}
-	pracc_add(&ctx, 0, MIPS32_MFC0(ctx.isa, 8, 31, 0));			/* move DeSave to $8, reg1 value */
-	pracc_add(&ctx, MIPS32_PRACC_PARAM_OUT + 4,			/* store reg1 value from $8 to param out */
-			  MIPS32_SW(ctx.isa, 8, PRACC_OUT_OFFSET + 4, 1));
+}
 
-	pracc_add(&ctx, 0, MIPS32_MFC0(ctx.isa, 1, 31, 0));		/* move COP0 DeSave to $1, restore reg1 */
-	pracc_add(&ctx, 0, MIPS32_B(ctx.isa, NEG16((ctx.code_count + 1) << ctx.isa)));		/* jump to start */
-	pracc_add(&ctx, 0, MIPS32_MTC0(ctx.isa, 15, 31, 0));				/* load $15 in DeSave */
+/* Saves CP0 registers [status, badvaddr, cause, depc] */
+static void mips32_pracc_store_regs_cp0_context(struct pracc_queue_info *ctx, unsigned int offset_cp0)
+{
+	uint32_t cp0_read_code[] = {
+		MIPS32_MFC0(ctx->isa, 8, 12, 0),	/* move status to $8 */
+		MIPS32_MFC0(ctx->isa, 8, 8, 0),	/* move badvaddr to $8 */
+		MIPS32_MFC0(ctx->isa, 8, 13, 0),	/* move cause to $8 */
+		MIPS32_MFC0(ctx->isa, 8, 24, 0),	/* move depc (pc) to $8 */
+	};
 
-	ctx.retval = mips32_pracc_queue_exec(ejtag_info, &ctx, regs, 1);
+	/* store cp0 */
+	for (size_t i = 0; i < ARRAY_SIZE(cp0_read_code); i++) {
+		size_t offset = offset_cp0 + (i * 4);
 
-	ejtag_info->reg8 = regs[8];	/* reg8 is saved but not restored, next called function should restore it */
-	ejtag_info->reg9 = regs[9];
+		/* load COP0 needed registers to $8 */
+		pracc_add(ctx, 0, cp0_read_code[i]);
+		/* store $8 at PARAM OUT */
+		pracc_add(ctx, MIPS32_PRACC_PARAM_OUT + offset,
+					MIPS32_SW(ctx->isa, 8, PRACC_OUT_OFFSET + offset, 1));
+	}
+}
+
+/* Loads original content of $1 into $8,
+ * then store it to the batch data access address.
+ * Finally it restores $1 from DeSave.
+ */
+static void mips32_pracc_store_regs_restore(struct pracc_queue_info *ctx)
+{
+	/* move DeSave to $8, reg1 value */
+	pracc_add(ctx, 0, MIPS32_MFC0(ctx->isa, 8, 31, 0));
+	/* store reg1 value from $8 to param out */
+	pracc_add(ctx, MIPS32_PRACC_PARAM_OUT + 4,
+			  MIPS32_SW(ctx->isa, 8, PRACC_OUT_OFFSET + 4, 1));
+
+	/* move COP0 DeSave to $1, restore reg1 */
+	pracc_add(ctx, 0, MIPS32_MFC0(ctx->isa, 1, 31, 0));
+}
+
+/* This function performs following actions:
+ * Saves `$1` to `DeSave`,
+ * then load `PRACC_UPPER_BASE_ADDR` for saving the register data structure into `$1`,
+ * Saves `$2` ~ `$31` to `PRACC_UPPER_BASE_ADDR + offset_gpr`
+ * Saves HI and LO,
+ * Saves necessary cp0 registers.
+*/
+static void mips32_pracc_store_regs(struct pracc_queue_info *ctx,
+					unsigned int offset_gpr, unsigned int offset_cp0)
+{
+	mips32_pracc_store_regs_set_base_addr(ctx);
+	mips32_pracc_store_regs_gpr(ctx, offset_gpr);
+	mips32_pracc_store_regs_lohi(ctx);
+	mips32_pracc_store_regs_cp0_context(ctx, offset_cp0);
+	mips32_pracc_store_regs_restore(ctx);
+}
+
+int mips32_pracc_read_regs(struct mips32_common *mips32)
+{
+	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
+	struct pracc_queue_info ctx = {.ejtag_info = ejtag_info};
+	struct mips32_core_regs *core_regs = &mips32->core_regs;
+	unsigned int offset_gpr = ((uint8_t *)&core_regs->gpr[0]) - (uint8_t *)core_regs;
+	unsigned int offset_cp0 = ((uint8_t *)&core_regs->cp0[0]) - (uint8_t *)core_regs;
+
+	/*
+	 * This procedure has to be in 2 distinctive steps, because we can
+	 * only know whether FP is enabled after reading CP0.
+	 *
+	 * Step 1: Read everything except CP1 stuff
+	 * Step 2: Read CP1 stuff if FP is implemented
+	 */
+
+	pracc_queue_init(&ctx);
+
+	mips32_pracc_store_regs(&ctx, offset_gpr, offset_cp0);
+
+	/* jump to start */
+	pracc_add(&ctx, 0, MIPS32_B(ctx.isa, NEG16((ctx.code_count + 1) << ctx.isa)));
+	/* load $15 in DeSave */
+	pracc_add(&ctx, 0, MIPS32_MTC0(ctx.isa, 15, 31, 0));
+
+	ctx.retval = mips32_pracc_queue_exec(ejtag_info, &ctx, (uint32_t *)&mips32->core_regs, 1);
+
 	pracc_queue_free(&ctx);
+
+	/* reg8 is saved but not restored, next called function should restore it */
+	ejtag_info->reg8 = mips32->core_regs.gpr[8];
+	ejtag_info->reg9 = mips32->core_regs.gpr[9];
+
+	/* we only care if FP is actually impl'd and if cp1 is enabled */
+	/* since we already read cp0 in the prev step */
+	/* now we know what's in cp0.status */
+	/* TODO: Read FPRs */
+
 	return ctx.retval;
 }
 

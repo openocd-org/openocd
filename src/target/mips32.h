@@ -57,6 +57,139 @@
 
 #define MIPS32_SCAN_DELAY_LEGACY_MODE 2000000
 
+/* Bit Mask indicating CP0 register supported by this core */
+#define	MIPS_CP0_MK4		0x0001
+#define	MIPS_CP0_MAPTIV_UC	0x0002
+#define	MIPS_CP0_MAPTIV_UP	0x0004
+#define MIPS_CP0_IAPTIV		0x0008
+
+/* CP0 Status register fields */
+#define MIPS32_CP0_STATUS_FR_SHIFT	26
+#define MIPS32_CP0_STATUS_CU1_SHIFT	29
+
+/* CP1 FIR register fields */
+#define MIPS32_CP1_FIR_F64_SHIFT	22
+
+static const struct {
+	unsigned int reg;
+	unsigned int sel;
+	const char *name;
+	const unsigned int core;
+} mips32_cp0_regs[] = {
+	{0, 0, "index", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UP},
+	{0, 1, "mvpcontrol", MIPS_CP0_IAPTIV},
+	{0, 2, "mvpconf0", MIPS_CP0_IAPTIV},
+	{0, 3, "mvpconf1", MIPS_CP0_IAPTIV},
+	{1, 0, "random", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UP},
+	{1, 1, "vpecontrol", MIPS_CP0_IAPTIV},
+	{1, 2, "vpeconf0", MIPS_CP0_IAPTIV},
+	{1, 3, "vpeconf1", MIPS_CP0_IAPTIV},
+	{1, 4, "yqmask", MIPS_CP0_IAPTIV},
+	{1, 5, "vpeschedule", MIPS_CP0_IAPTIV},
+	{1, 6, "vpeschefback", MIPS_CP0_IAPTIV},
+	{1, 7, "vpeopt", MIPS_CP0_IAPTIV},
+	{2, 0, "entrylo0", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UP},
+	{2, 1, "tcstatus", MIPS_CP0_IAPTIV},
+	{2, 2, "tcbind", MIPS_CP0_IAPTIV},
+	{2, 3, "tcrestart", MIPS_CP0_IAPTIV},
+	{2, 4, "tchalt", MIPS_CP0_IAPTIV},
+	{2, 5, "tccontext", MIPS_CP0_IAPTIV},
+	{2, 6, "tcschedule", MIPS_CP0_IAPTIV},
+	{2, 7, "tcschefback", MIPS_CP0_IAPTIV},
+	{3, 0, "entrylo1", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UP},
+	{3, 7, "tcopt", MIPS_CP0_IAPTIV},
+	{4, 0, "context", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UP},
+	{4, 2, "userlocal", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MK4},
+	{5, 0, "pagemask", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UP},
+	{5, 1, "pagegrain", MIPS_CP0_MAPTIV_UP},
+	{5, 2, "segctl0", MIPS_CP0_IAPTIV},
+	{5, 3, "segctl1", MIPS_CP0_IAPTIV},
+	{5, 4, "segctl2", MIPS_CP0_IAPTIV},
+	{6, 0, "wired", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UP},
+	{6, 1, "srsconf0", MIPS_CP0_IAPTIV},
+	{6, 2, "srsconf1", MIPS_CP0_IAPTIV},
+	{6, 3, "srsconf2", MIPS_CP0_IAPTIV},
+	{6, 4, "srsconf3", MIPS_CP0_IAPTIV},
+	{6, 5, "srsconf4", MIPS_CP0_IAPTIV},
+	{7, 0, "hwrena", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MK4},
+	{8, 0, "badvaddr", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MK4},
+	{8, 1, "badinstr", MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP},
+	{8, 2, "badinstrp", MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP},
+	{9, 0, "count", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MK4},
+	{10, 0, "entryhi", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UP},
+	{10, 4, "guestctl1", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MK4},
+	{10, 5, "guestctl2", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MK4},
+	{10, 6, "guestctl3", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MK4},
+	{11, 0, "compare", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MK4},
+	{11, 4, "guestctl0ext", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MK4},
+	{12, 0, "status", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MK4},
+	{12, 1, "intctl", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MK4},
+	{12, 2, "srsctl", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MK4},
+	{12, 3, "srsmap", MIPS_CP0_IAPTIV},
+	{12, 3, "srsmap1", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP},
+	{12, 4, "view_ipl", MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MK4},
+	{12, 5, "srsmap2", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP},
+	{12, 6, "guestctl0", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MK4},
+	{12, 7, "gtoffset", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MK4},
+	{13, 0, "cause", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MK4},
+	{13, 5, "nestedexc", MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MK4},
+	{14, 0, "epc", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MK4},
+	{14, 2, "nestedepc", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MK4},
+	{15, 0, "prid", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MK4},
+	{15, 1, "ebase", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MK4},
+	{15, 2, "cdmmbase", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MK4},
+	{15, 3, "cmgcrbase", MIPS_CP0_IAPTIV},
+	{16, 0, "config", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MK4},
+	{16, 1, "config1", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MK4},
+	{16, 2, "config2", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MK4},
+	{16, 3, "config3", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MK4},
+	{16, 4, "config4", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MK4},
+	{16, 5, "config5", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MK4},
+	{16, 7, "config7", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MK4},
+	{17, 0, "lladdr", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MK4},
+	{18, 0, "watchlo0", MIPS_CP0_IAPTIV},
+	{18, 1, "watchlo1", MIPS_CP0_IAPTIV},
+	{18, 2, "watchlo2", MIPS_CP0_IAPTIV},
+	{18, 3, "watchlo3", MIPS_CP0_IAPTIV},
+	{19, 0, "watchhi0", MIPS_CP0_IAPTIV},
+	{19, 1, "watchhi1", MIPS_CP0_IAPTIV},
+	{19, 2, "watchhi2", MIPS_CP0_IAPTIV},
+	{19, 3, "watchhi3", MIPS_CP0_IAPTIV},
+	{23, 0, "debug", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MK4},
+	{23, 1, "tracecontrol", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MK4},
+	{23, 2, "tracecontrol2", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MK4},
+	{23, 3, "usertracedata1", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MK4},
+	{23, 4, "tracebpc", MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MK4},
+	{23, 4, "traceibpc", MIPS_CP0_IAPTIV},
+	{23, 5, "tracedbpc", MIPS_CP0_IAPTIV},
+	{24, 0, "depc", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MK4},
+	{24, 2, "tracecontrol3", MIPS_CP0_IAPTIV},
+	{24, 3, "usertracedata2", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MK4},
+	{25, 0, "perfctl0", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MK4},
+	{25, 1, "perfcnt0", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MK4},
+	{25, 2, "perfctl1", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MK4},
+	{25, 3, "perfcnt1", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MK4},
+	{26, 0, "errctl", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MK4},
+	{27, 0, "cacheerr", MIPS_CP0_IAPTIV},
+	{28, 0, "itaglo", MIPS_CP0_IAPTIV},
+	{28, 0, "taglo", MIPS_CP0_IAPTIV},
+	{28, 1, "idatalo", MIPS_CP0_IAPTIV},
+	{28, 1, "datalo", MIPS_CP0_IAPTIV},
+	{28, 2, "dtaglo", MIPS_CP0_IAPTIV},
+	{28, 3, "ddatalo", MIPS_CP0_IAPTIV},
+	{28, 4, "l23taglo", MIPS_CP0_IAPTIV},
+	{28, 5, "l23datalo", MIPS_CP0_IAPTIV},
+	{29, 1, "idatahi", MIPS_CP0_IAPTIV},
+	{29, 2, "dtaghi", MIPS_CP0_IAPTIV},
+	{29, 5, "l23datahi", MIPS_CP0_IAPTIV},
+	{30, 0, "errorepc", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MK4},
+	{31, 0, "desave", MIPS_CP0_IAPTIV | MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP | MIPS_CP0_MK4},
+	{31, 2, "kscratch1", MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP},
+	{31, 3, "kscratch2", MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP},
+};
+
+#define MIPS32NUMCP0REGS ((int)ARRAY_SIZE(mips32_cp0_regs))
+
 /* Insert extra NOPs after the DRET instruction on exit from debug. */
 #define	EJTAG_QUIRK_PAD_DRET		BIT(0)
 
@@ -66,6 +199,30 @@ enum {
 	MIPS32_FIR = 71,
 	MIPS32NUMCOREREGS
 };
+
+/* offsets into mips32 core register cache */
+
+#define MIPS32_REG_GP_COUNT			34
+#define MIPS32_REG_FP_COUNT			32
+#define MIPS32_REG_FPC_COUNT			2
+#define MIPS32_REG_C0_COUNT			5
+
+#define MIPS32_REGLIST_GP_INDEX			0
+#define MIPS32_REGLIST_FP_INDEX			(MIPS32_REGLIST_GP_INDEX + MIPS32_REG_GP_COUNT)
+#define MIPS32_REGLIST_FPC_INDEX		(MIPS32_REGLIST_FP_INDEX + MIPS32_REG_FP_COUNT)
+#define MIPS32_REGLIST_C0_INDEX			(MIPS32_REGLIST_FPC_INDEX + MIPS32_REG_FPC_COUNT)
+
+#define MIPS32_REGLIST_C0_STATUS_INDEX		(MIPS32_REGLIST_C0_INDEX + 0)
+#define MIPS32_REGLIST_C0_BADVADDR_INDEX	(MIPS32_REGLIST_C0_INDEX + 1)
+#define MIPS32_REGLIST_C0_CAUSE_INDEX		(MIPS32_REGLIST_C0_INDEX + 2)
+#define MIPS32_REGLIST_C0_PC_INDEX		(MIPS32_REGLIST_C0_INDEX + 3)
+#define MIPS32_REGLIST_C0_GUESTCTL1_INDEX	(MIPS32_REGLIST_C0_INDEX + 4)
+
+#define MIPS32_REG_C0_STATUS_INDEX		0
+#define MIPS32_REG_C0_BADVADDR_INDEX		1
+#define MIPS32_REG_C0_CAUSE_INDEX		2
+#define MIPS32_REG_C0_PC_INDEX			3
+#define MIPS32_REG_C0_GUESTCTL1_INDEX		4
 
 enum mips32_isa_mode {
 	MIPS32_ISA_MIPS32 = 0,
@@ -86,13 +243,22 @@ struct mips32_comparator {
 	uint32_t reg_address;
 };
 
+struct mips32_core_regs {
+	uint32_t gpr[MIPS32_REG_GP_COUNT];
+	uint64_t fpr[MIPS32_REG_FP_COUNT];
+	uint32_t fpcr[MIPS32_REG_FPC_COUNT];
+	uint32_t cp0[MIPS32_REG_C0_COUNT];
+};
+
 struct mips32_common {
 	unsigned int common_magic;
 
 	void *arch_info;
 	struct reg_cache *core_cache;
 	struct mips_ejtag ejtag_info;
-	uint32_t core_regs[MIPS32NUMCOREREGS];
+
+	struct mips32_core_regs core_regs;
+
 	enum mips32_isa_mode isa_mode;
 	enum mips32_isa_imp isa_imp;
 

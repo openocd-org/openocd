@@ -108,11 +108,11 @@ static int mips_m4k_debug_entry(struct target *target)
 	mips32->isa_mode = MIPS32_ISA_MIPS32;
 
 	/* other than mips32 only and isa bit set ? */
-	if (mips32->isa_imp && buf_get_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 1))
+	if (mips32->isa_imp && buf_get_u32(mips32->core_cache->reg_list[MIPS32_REGLIST_C0_PC_INDEX].value, 0, 1))
 		mips32->isa_mode = mips32->isa_imp == 2 ? MIPS32_ISA_MIPS16E : MIPS32_ISA_MMIPS32;
 
 	LOG_DEBUG("entered debug state at PC 0x%" PRIx32 ", target->state: %s",
-			buf_get_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 32),
+			buf_get_u32(mips32->core_cache->reg_list[MIPS32_REGLIST_C0_PC_INDEX].value, 0, 32),
 			target_state_name(target));
 
 	return ERROR_OK;
@@ -443,18 +443,18 @@ static int mips_m4k_internal_restore(struct target *target, int current,
 	/* current = 1: continue on current pc, otherwise continue at <address> */
 	if (!current) {
 		mips_m4k_isa_filter(mips32->isa_imp, &address);
-		buf_set_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 32, address);
-		mips32->core_cache->reg_list[MIPS32_PC].dirty = true;
-		mips32->core_cache->reg_list[MIPS32_PC].valid = true;
+		buf_set_u32(mips32->core_cache->reg_list[MIPS32_REGLIST_C0_PC_INDEX].value, 0, 32, address);
+		mips32->core_cache->reg_list[MIPS32_REGLIST_C0_PC_INDEX].dirty = true;
+		mips32->core_cache->reg_list[MIPS32_REGLIST_C0_PC_INDEX].valid = true;
 	}
 
 	if ((mips32->isa_imp > 1) &&  debug_execution)	/* if more than one isa supported */
-		buf_set_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 1, mips32->isa_mode);
+		buf_set_u32(mips32->core_cache->reg_list[MIPS32_REGLIST_C0_PC_INDEX].value, 0, 1, mips32->isa_mode);
 
 	if (!current)
 		resume_pc = address;
 	else
-		resume_pc = buf_get_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 32);
+		resume_pc = buf_get_u32(mips32->core_cache->reg_list[MIPS32_REGLIST_C0_PC_INDEX].value, 0, 32);
 
 	mips32_restore_context(target);
 
@@ -537,15 +537,15 @@ static int mips_m4k_step(struct target *target, int current,
 	/* current = 1: continue on current pc, otherwise continue at <address> */
 	if (!current) {
 		mips_m4k_isa_filter(mips32->isa_imp, &address);
-		buf_set_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 32, address);
-		mips32->core_cache->reg_list[MIPS32_PC].dirty = true;
-		mips32->core_cache->reg_list[MIPS32_PC].valid = true;
+		buf_set_u32(mips32->core_cache->reg_list[MIPS32_REGLIST_C0_PC_INDEX].value, 0, 32, address);
+		mips32->core_cache->reg_list[MIPS32_REGLIST_C0_PC_INDEX].dirty = true;
+		mips32->core_cache->reg_list[MIPS32_REGLIST_C0_PC_INDEX].valid = true;
 	}
 
 	/* the front-end may request us not to handle breakpoints */
 	if (handle_breakpoints) {
 		breakpoint = breakpoint_find(target,
-				buf_get_u32(mips32->core_cache->reg_list[MIPS32_PC].value, 0, 32));
+				buf_get_u32(mips32->core_cache->reg_list[MIPS32_REGLIST_C0_PC_INDEX].value, 0, 32));
 		if (breakpoint)
 			mips_m4k_unset_breakpoint(target, breakpoint);
 	}
