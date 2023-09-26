@@ -10981,6 +10981,64 @@ addreg rtest 0x1234 org.gnu.gdb.or1k.group0 system
 
 @end deffn
 
+@section MIPS Architecture
+@cindex microMIPS
+@cindex MIPS32
+@cindex MIPS64
+
+@uref{http://mips.com/, MIPS} is a simple, streamlined, highly scalable RISC
+architecture. The architecture is evolving over time, from MIPS I~V to
+MIPS release 1~6 iterations, the architecture is now able to handle various tasks
+with different ASEs, including SIMD(MSA), DSP, VZ, MT and more.
+MIPS32 supports 32-bit programs while MIPS64 can support both 32-bit and 64-bit programs.
+
+@subsection MIPS Terminology
+
+The term ASE means Application-Specific Extension, ASEs provide features that
+improve the efficiency and performance of certain workloads, such as
+digital signal processing(DSP), Virtualization(VZ), Multi-Threading(MT),
+SIMD(MSA) and more.
+The MIPS CPU Uses Coprocessors to configure its behaviour or to let software
+know the capabilities of current CPU, the commonly used ones are Config0~3 Registers
+and Status register.
+
+@subsection MIPS FPU & Vector Registers
+
+MIPS processors does not all comes with FPU co-processor, and when it does, the FPU
+appears as Coprocessor 1 whereas the Coprocessor 0 is for the main processor.
+
+Most of MIPS FPUs are 64 bits, IEEE 754 standard, and they provides both 32-bit
+single precision and 64-bit double precision calculations. Fixed point format
+calculations are also provided with both 32 and 64-bit modes.
+
+The MIPS SIMD Architecture(MSA) operates on 32 128-bit wide vector registers.
+If both MSA and the scalar floating-point unit (FPU) are present, the 128-bit MSA
+vector registers extend and share the 64-bit FPU registers. MSA and FPU can not be
+both present, unless the FPU has 64-bit floating-point register.
+
+@subsection MIPS Configuration Commands
+
+@deffn {Command} {mips32 cpuinfo}
+Displays detailed information about current CPU core. This includes core type,
+vendor, instruction set, cache size, and other relevant details.
+@end deffn
+
+@deffn {Config Command} {mips32 scan_delay} [nanoseconds]
+Display or set scan delay in nano seconds. A value below 2_000_000 will set the
+scan delay into legacy mode.
+@end deffn
+
+@deffn {Config Command} {mips32 cp0} regnum select [value]
+Displays or sets coprocessor 0 register by register number and select.
+
+For common MIPS Coprocessor 0 registers, you can find the definitions of them
+on MIPS Privileged Resource Architecture Documents(MIPS Document MD00090).
+
+For core specific cp0 registers, you can find the definitions of them on Core
+Specific Software User's Manual, for example, MIPS M5150 Software User Manual
+(MD00980).
+@end deffn
+
 @section RISC-V Architecture
 
 @uref{http://riscv.org/, RISC-V} is a free and open ISA. OpenOCD supports JTAG

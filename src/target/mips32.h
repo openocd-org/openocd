@@ -263,6 +263,96 @@ enum mips32_isa_rel {
 	MIPS32_RELEASE_UNKNOWN,
 };
 
+enum mips32_isa_supported {
+	MIPS16,
+	MIPS32,
+	MIPS64,
+	MICROMIPS_ONLY,
+	MIPS32_AT_RESET_AND_MICROMIPS,
+	MICROMIPS_AT_RESET_AND_MIPS32,
+};
+#define MIPS32_CORE_MASK	0xFFFFFF00
+#define MIPS32_VARIANT_MASK	0x00FF
+
+/* This struct contains mips cpu types with their name respectively.
+ * The PrID register format is as following:
+ *  - Company Optionsp[31:24]
+ *  - Company ID[23:16]
+ *  - Processor ID[15:8]
+ *  - Revision[7:0]
+ * Here the revision field represents the maximum value of revision.
+ */
+static const struct cpu_entry {
+	uint32_t prid;
+	enum mips32_isa_supported isa;
+	const char *vendor;
+	const char *cpu_name;
+} mips32_cpu_entry[] = {
+	/* MIPS Technologies cores */
+	{0x000180FF, MIPS32, "MIPS", "4Kc"},
+	{0x000181FF, MIPS64, "MIPS", "5Kc"},
+	{0x000182FF, MIPS64, "MIPS", "20Kc"},
+	{0x000183FF, MIPS32, "MIPS", "4KM"},
+
+	{0x000184FF, MIPS32, "MIPS", "4KEc"},
+	{0x000190FF, MIPS32, "MIPS", "4KEc"},
+
+	{0x000185FF, MIPS32, "MIPS", "4KEm"},
+	{0x000191FF, MIPS32, "MIPS", "4KEm"},
+
+	{0x000186FF, MIPS32, "MIPS", "4KSc"},
+	{0x000187FF, MIPS32, "MIPS", "M4K"},
+	{0x000188FF, MIPS64, "MIPS", "25Kf"},
+	{0x000189FF, MIPS64, "MIPS", "5KEc"},
+	{0x000192FF, MIPS32, "MIPS", "4KSD"},
+	{0x000193FF, MIPS32, "MIPS", "24Kc"},
+	{0x000195FF, MIPS32, "MIPS", "34Kc"},
+	{0x000196FF, MIPS32, "MIPS", "24KEc"},
+	{0x000197FF, MIPS32, "MIPS", "74Kc"},
+	{0x000199FF, MIPS32, "MIPS", "1004Kc"},
+	{0x00019AFF, MIPS32, "MIPS", "1074Kc"},
+	{0x00019BFF, MIPS32, "MIPS", "M14K"},
+	{0x00019CFF, MIPS32, "MIPS", "M14Kc"},
+	{0x00019DFF, MIPS32, "MIPS", "microAptiv_UC(M14KE)"},
+	{0x00019EFF, MIPS32, "MIPS", "microAptiv_UP(M14KEc)"},
+	{0x0001A0FF, MIPS32, "MIPS", "interAptiv"},
+	{0x0001A1FF, MIPS32, "MIPS", "interAptiv_CM"},
+	{0x0001A2FF, MIPS32, "MIPS", "proAptiv"},
+	{0x0001A3FF, MIPS32, "MIPS", "proAptiv_CM"},
+	{0x0001A6FF, MIPS32, "MIPS", "M5100"},
+	{0x0001A7FF, MIPS32, "MIPS", "M5150"},
+	{0x0001A8FF, MIPS32, "MIPS", "P5600"},
+	{0x0001A9FF, MIPS32, "MIPS", "I5500"},
+
+	/* Broadcom */
+	{0x000200FF, MIPS32, "Broadcom", "Broadcom"},
+
+	/* AMD Alchemy Series*/
+	/* NOTE: AMD/Alchemy series uses Company Option instead of
+	 * Processor ID, to match the find function, Processor ID field
+	 * is the copy of Company Option field */
+	{0x000300FF, MIPS32, "AMD Alchemy", "AU1000"},
+	{0x010301FF, MIPS32, "AMD Alchemy", "AU1500"},
+	{0x020302FF, MIPS32, "AMD Alchemy", "AU1100"},
+	{0x030303FF, MIPS32, "AMD Alchemy", "AU1550"},
+	{0x04030401, MIPS32, "AMD Alchemy", "AU1200"},
+	{0x040304FF, MIPS32, "AMD Alchemy", "AU1250"},
+	{0x050305FF, MIPS32, "AMD Alchemy", "AU1210"},
+
+	/* Altera */
+	{0x001000FF, MIPS32, "Altera", "Altera"},
+
+	/* Lexra */
+	{0x000B00FF, MIPS32, "Lexra", "Lexra"},
+
+	/* Ingenic */
+	{0x00e102FF, MIPS32, "Ingenic", "Ingenic XBurst rev1"},
+
+	{0xFFFFFFFF, MIPS32, "Unknown", "Unknown"}
+};
+
+#define MIPS32_NUM_CPU_ENTRIES (ARRAY_SIZE(mips32_cpu_entry))
+
 enum mips32_fp_imp {
 	MIPS32_FP_IMP_NONE = 0,
 	MIPS32_FP_IMP_32 = 1,
@@ -306,7 +396,6 @@ struct mips32_common {
 
 	int fdc;
 	int semihosting;
-	uint32_t cp0_mask;
 
 	/* FPU enabled (cp0.status.cu1) */
 	bool fpu_enabled;
@@ -315,6 +404,8 @@ struct mips32_common {
 
 	/* processor identification register */
 	uint32_t prid;
+	/* detected CPU type */
+	const struct cpu_entry *cpu_info;
 	/* CPU specific quirks */
 	uint32_t cpu_quirks;
 
@@ -707,78 +798,6 @@ struct mips32_algorithm {
 #define MIPS32_MMU_BAT			2
 #define MIPS32_MMU_FIXED		3
 #define MIPS32_MMU_DUAL_VTLB_FTLB	4
-
-enum mips32_cpu_vendor {
-	MIPS32_CPU_VENDOR_MTI,
-	MIPS32_CPU_VENDOR_ALCHEMY,
-	MIPS32_CPU_VENDOR_BROADCOM,
-	MIPS32_CPU_VENDOR_ALTERA,
-	MIPS32_CPU_VENDOR_LEXRA,
-};
-
-enum mips32_isa_supported {
-	MIPS16,
-	MIPS32,
-	MIPS64,
-	MICROMIPS_ONLY,
-	MIPS32_AT_RESET_AND_MICROMIPS,
-	MICROMIPS_AT_RESET_AND_MIPS32,
-};
-
-struct mips32_cpu_features {
-	/* Type of CPU	(4Kc, 24Kf, etc.) */
-	uint32_t cpu_core;
-
-	/* Internal representation of cpu type */
-	uint32_t cpu_type;
-
-	/* Processor vendor */
-	enum mips32_cpu_vendor vendor;
-
-	/* Supported ISA and boot config */
-	enum mips32_isa_supported isa;
-
-	/* PRID */
-	uint32_t prid;
-
-	/* Processor implemented the MultiThreading ASE */
-	bool mtase;
-
-	/* Processor implemented the DSP ASE */
-	bool dspase;
-
-	/* Processor implemented the SmartMIPS ASE */
-	bool smase;
-
-	/* Processor implemented the MIPS16[e] ASE */
-	bool m16ase;
-
-	/* Processor implemented the microMIPS ASE */
-	bool micromipsase;
-
-	/* Processor implemented the Virtualization ASE */
-	uint32_t vzase;
-
-	uint32_t vz_guest_id_width;
-
-	/* ebase.cpuid number */
-	uint32_t cpuid;
-
-	uint32_t inst_cache_size;
-	uint32_t data_cache_size;
-	uint32_t mmu_type;
-	uint32_t tlb_entries;
-	uint32_t num_shadow_regs;
-
-	/* Processor implemented the MSA module */
-	bool msa;
-
-	/* Processor implemented mfhc0 and mthc0 instructions */
-	bool mvh;
-
-	bool guest_ctl1_present;
-	bool cdmm;
-};
 
 extern const struct command_registration mips32_command_handlers[];
 
