@@ -7401,6 +7401,56 @@ msp432 bsl lock
 @end deffn
 @end deffn
 
+@deffn {Flash Driver} {mspm0}
+
+All Arm Cortex-M0+ MSPM0 microcontroller versions from Texas Instruments
+include internal flash. The mspm0 flash driver automatically recognizes the
+specific version's flash parameters and autoconfigures itself. The main
+program flash starts at address 0x0. Non-main flash starts at 0x41c00000.
+If present on the device, the optional region called "Data" starts at
+0x41d00000.
+
+@b{Warning}:
+
+@itemize @bullet
+@item @b{Reset while MCU operation:} When erasing all of MAIN memory, if the
+MCU is still executing from MAIN memory do not reset the device as it could
+cause a double hard-fault due to the missing interrupt vector table at the
+start of memory. To recover from such scenario reset or power-cycle the MCU.
+
+@item @b{No explicit protection support:} MSPM0 flash controller auto-protect
+themselves after every flash operation. As a result of this, OpenOCD does not
+explicitly provide any protection function and automatically un-protects
+required sections as flash operations are requested.
+@end itemize
+
+@b{Examples}:
+
+@itemize @bullet
+
+@item @b{Flash bank description:}
+@example
+flash bank $_FLASHNAME mspm0 0 0 0 0 $_TARGETNAME
+@end example
+
+@item @b{To erase and program the MAIN region:}
+@example
+halt
+flash erase_sector 0 0 last
+flash write_image MAIN.bin 0x0
+@end example
+
+@item @b{To erase and program the NONMAIN region:}
+@example
+halt
+flash erase_sector 1 0 last
+flash write_image NONMAIN.bin 0x41C00000
+@end example
+
+@end itemize
+
+@end deffn
+
 @deffn {Flash Driver} {niietcm4}
 This drivers handles the integrated NOR flash on NIIET Cortex-M4
 based controllers. Flash size and sector layout are auto-configured by the driver.
