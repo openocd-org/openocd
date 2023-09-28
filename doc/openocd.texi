@@ -7438,6 +7438,7 @@ flash bank $_FLASHNAME mspm0 0 0 0 0 $_TARGETNAME
 halt
 flash erase_sector 0 0 last
 flash write_image MAIN.bin 0x0
+mspm0_board_reset
 @end example
 
 @item @b{To erase and program the NONMAIN region:}
@@ -7445,9 +7446,28 @@ flash write_image MAIN.bin 0x0
 halt
 flash erase_sector 1 0 last
 flash write_image NONMAIN.bin 0x41C00000
+mspm0_board_reset
 @end example
 
 @end itemize
+
+@deffn {TCL proc} {mspm0_board_reset}
+Performs an nRST toggle on the device.
+@end deffn
+
+@deffn {TCL proc} {mspm0_mass_erase}
+Sends the mass erase command to the SEC-AP mailbox and then performs
+an nRST toggle. Once the command has been fully processed by the ROM,
+all MAIN memory will be erased. NOTE: This command is not supported
+on MSPM0C* family of devices.
+@end deffn
+
+@deffn {TCL proc} {mspm0_factory_reset}
+Sends the factory reset command to the SEC-AP mailbox and then performs
+an nRST toggle. Once the command has been fully processed by the ROM,
+all MAIN memory will be erased and NONMAIN will be reset to its default
+values.
+@end deffn
 
 @end deffn
 
