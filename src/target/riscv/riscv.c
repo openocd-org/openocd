@@ -1393,7 +1393,7 @@ static int riscv_hit_trigger_hit_bit(struct target *target, uint32_t *unique_id)
 				hit_mask = CSR_MCONTROL_HIT;
 				break;
 			case CSR_TDATA1_TYPE_MCONTROL6:
-				hit_mask = CSR_MCONTROL6_HIT;
+				hit_mask = CSR_MCONTROL6_HIT0 | CSR_MCONTROL6_HIT1;
 				break;
 			case CSR_TDATA1_TYPE_ICOUNT:
 				hit_mask = CSR_ICOUNT_HIT;
