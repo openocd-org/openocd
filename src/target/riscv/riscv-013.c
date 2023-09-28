@@ -411,14 +411,14 @@ static void select_dmi(struct target *target)
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
 }
 
-static uint32_t dtmcontrol_scan(struct target *target, uint32_t out)
+static int dtmcontrol_scan(struct target *target, uint32_t out, uint32_t *in_ptr)
 {
 	struct scan_field field;
 	uint8_t in_value[4];
 	uint8_t out_value[4] = { 0 };
 
 	if (bscan_tunnel_ir_width != 0)
-		return dtmcontrol_scan_via_bscan(target, out);
+		return dtmcontrol_scan_via_bscan(target, out, in_ptr);
 
 	buf_set_u32(out_value, 0, 32, out);
 
@@ -441,7 +441,9 @@ static uint32_t dtmcontrol_scan(struct target *target, uint32_t out)
 	uint32_t in = buf_get_u32(field.in_value, 0, 32);
 	LOG_DEBUG("DTMCS: 0x%x -> 0x%x", out, in);
 
-	return in;
+	if (in_ptr)
+		*in_ptr = in;
+	return ERROR_OK;
 }
 
 static void increase_dmi_busy_delay(struct target *target)
@@ -452,7 +454,7 @@ static void increase_dmi_busy_delay(struct target *target)
 			info->dtmcs_idle, info->dmi_busy_delay,
 			info->ac_busy_delay);
 
-	dtmcontrol_scan(target, DTM_DTMCS_DMIRESET);
+	dtmcontrol_scan(target, DTM_DTMCS_DMIRESET, NULL /* discard result */);
 }
 
 /**
@@ -597,7 +599,7 @@ static int dmi_op_timeout(struct target *target, uint32_t *data_in,
 		} else if (status == DMI_STATUS_SUCCESS) {
 			break;
 		} else {
-			dtmcontrol_scan(target, DTM_DTMCS_DMIRESET);
+			dtmcontrol_scan(target, DTM_DTMCS_DMIRESET, NULL /* discard result */);
 			break;
 		}
 		if (time(NULL) - start > timeout_sec)
@@ -632,7 +634,7 @@ static int dmi_op_timeout(struct target *target, uint32_t *data_in,
 							"Failed DMI %s (NOP) at 0x%x; status=%d", op_name, address,
 							status);
 				}
-				dtmcontrol_scan(target, DTM_DTMCS_DMIRESET);
+				dtmcontrol_scan(target, DTM_DTMCS_DMIRESET, NULL /* discard result */);
 				return ERROR_FAIL;
 			}
 			if (time(NULL) - start > timeout_sec)
@@ -1845,17 +1847,19 @@ static int examine(struct target *target)
 	/* Don't need to select dbus, since the first thing we do is read dtmcontrol. */
 	LOG_TARGET_DEBUG(target, "dbgbase=0x%x", target->dbgbase);
 
-	uint32_t dtmcontrol = dtmcontrol_scan(target, 0);
+	uint32_t dtmcontrol;
+	if (dtmcontrol_scan(target, 0, &dtmcontrol) != ERROR_OK || dtmcontrol == 0) {
+		LOG_TARGET_ERROR(target, "Could not scan dtmcontrol. Check JTAG connectivity/board power.");
+		return ERROR_FAIL;
+	}
+
 	LOG_TARGET_DEBUG(target, "dtmcontrol=0x%x", dtmcontrol);
 	LOG_TARGET_DEBUG(target, "  dmireset=%d", get_field(dtmcontrol, DTM_DTMCS_DMIRESET));
 	LOG_TARGET_DEBUG(target, "  idle=%d", get_field(dtmcontrol, DTM_DTMCS_IDLE));
 	LOG_TARGET_DEBUG(target, "  dmistat=%d", get_field(dtmcontrol, DTM_DTMCS_DMISTAT));
 	LOG_TARGET_DEBUG(target, "  abits=%d", get_field(dtmcontrol, DTM_DTMCS_ABITS));
 	LOG_TARGET_DEBUG(target, "  version=%d", get_field(dtmcontrol, DTM_DTMCS_VERSION));
-	if (dtmcontrol == 0) {
-		LOG_TARGET_ERROR(target, "dtmcontrol is 0. Check JTAG connectivity/board power.");
-		return ERROR_FAIL;
-	}
+
 	if (get_field(dtmcontrol, DTM_DTMCS_VERSION) != 1) {
 		LOG_TARGET_ERROR(target, "Unsupported DTM version %d. (dtmcontrol=0x%x)",
 				get_field(dtmcontrol, DTM_DTMCS_VERSION), dtmcontrol);

@@ -273,7 +273,7 @@ static uint16_t dram_address(unsigned int index)
 		return 0x40 + index - 0x10;
 }
 
-static uint32_t dtmcontrol_scan(struct target *target, uint32_t out)
+static int dtmcontrol_scan(struct target *target, uint32_t out, uint32_t *in_ptr)
 {
 	struct scan_field field;
 	uint8_t in_value[4];
@@ -300,7 +300,9 @@ static uint32_t dtmcontrol_scan(struct target *target, uint32_t out)
 	uint32_t in = buf_get_u32(field.in_value, 0, 32);
 	LOG_DEBUG("DTMCONTROL: 0x%x -> 0x%x", out, in);
 
-	return in;
+	if (in_ptr)
+		*in_ptr = in;
+	return ERROR_OK;
 }
 
 static uint32_t idcode_scan(struct target *target)
@@ -338,7 +340,7 @@ static void increase_dbus_busy_delay(struct target *target)
 			info->dtmcontrol_idle, info->dbus_busy_delay,
 			info->interrupt_high_delay);
 
-	dtmcontrol_scan(target, DTMCONTROL_DBUS_RESET);
+	dtmcontrol_scan(target, DTMCONTROL_DBUS_RESET, NULL /* discard value */);
 }
 
 static void increase_interrupt_high_delay(struct target *target)
@@ -1459,16 +1461,17 @@ static int step(struct target *target, int current, target_addr_t address,
 static int examine(struct target *target)
 {
 	/* Don't need to select dbus, since the first thing we do is read dtmcontrol. */
+	uint32_t dtmcontrol;
+	if (dtmcontrol_scan(target, 0, &dtmcontrol) != ERROR_OK || dtmcontrol == 0) {
+		LOG_ERROR("Could not scan dtmcontrol. Check JTAG connectivity/board power.");
+		return ERROR_FAIL;
+	}
 
-	uint32_t dtmcontrol = dtmcontrol_scan(target, 0);
 	LOG_DEBUG("dtmcontrol=0x%x", dtmcontrol);
 	LOG_DEBUG("  addrbits=%d", get_field(dtmcontrol, DTMCONTROL_ADDRBITS));
 	LOG_DEBUG("  version=%d", get_field(dtmcontrol, DTMCONTROL_VERSION));
 	LOG_DEBUG("  idle=%d", get_field(dtmcontrol, DTMCONTROL_IDLE));
-	if (dtmcontrol == 0) {
-		LOG_ERROR("dtmcontrol is 0. Check JTAG connectivity/board power.");
-		return ERROR_FAIL;
-	}
+
 	if (get_field(dtmcontrol, DTMCONTROL_VERSION) != 0) {
 		LOG_ERROR("Unsupported DTM version %d. (dtmcontrol=0x%x)",
 				get_field(dtmcontrol, DTMCONTROL_VERSION), dtmcontrol);
