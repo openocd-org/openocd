@@ -1721,6 +1721,7 @@ static int set_dcsr_ebreak(struct target *target, bool step)
 	if (dm013_select_target(target) != ERROR_OK)
 		return ERROR_FAIL;
 
+	RISCV_INFO(r);
 	RISCV013_INFO(info);
 	riscv_reg_t original_dcsr, dcsr;
 	/* We want to twiddle some bits in the debug CSR so debugging works. */
@@ -1728,11 +1729,11 @@ static int set_dcsr_ebreak(struct target *target, bool step)
 		return ERROR_FAIL;
 	original_dcsr = dcsr;
 	dcsr = set_field(dcsr, CSR_DCSR_STEP, step);
-	dcsr = set_field(dcsr, CSR_DCSR_EBREAKM, riscv_ebreakm);
-	dcsr = set_field(dcsr, CSR_DCSR_EBREAKS, riscv_ebreaks && riscv_supports_extension(target, 'S'));
-	dcsr = set_field(dcsr, CSR_DCSR_EBREAKU, riscv_ebreaku && riscv_supports_extension(target, 'U'));
-	dcsr = set_field(dcsr, CSR_DCSR_EBREAKVS, riscv_ebreaku && riscv_supports_extension(target, 'H'));
-	dcsr = set_field(dcsr, CSR_DCSR_EBREAKVU, riscv_ebreaku && riscv_supports_extension(target, 'H'));
+	dcsr = set_field(dcsr, CSR_DCSR_EBREAKM, r->riscv_ebreakm);
+	dcsr = set_field(dcsr, CSR_DCSR_EBREAKS, r->riscv_ebreaks && riscv_supports_extension(target, 'S'));
+	dcsr = set_field(dcsr, CSR_DCSR_EBREAKU, r->riscv_ebreaku && riscv_supports_extension(target, 'U'));
+	dcsr = set_field(dcsr, CSR_DCSR_EBREAKVS, r->riscv_ebreaku && riscv_supports_extension(target, 'H'));
+	dcsr = set_field(dcsr, CSR_DCSR_EBREAKVU, r->riscv_ebreaku && riscv_supports_extension(target, 'H'));
 	if (dcsr != original_dcsr &&
 			riscv_set_register(target, GDB_REGNO_DCSR, dcsr) != ERROR_OK)
 		return ERROR_FAIL;

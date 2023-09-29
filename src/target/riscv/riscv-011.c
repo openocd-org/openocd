@@ -1104,6 +1104,7 @@ static int maybe_write_tselect(struct target *target)
 
 static int execute_resume(struct target *target, bool step)
 {
+	RISCV_INFO(r);
 	riscv011_info_t *info = get_info(target);
 
 	LOG_DEBUG("step=%d", step);
@@ -1135,9 +1136,9 @@ static int execute_resume(struct target *target, bool step)
 		}
 	}
 
-	info->dcsr = set_field(info->dcsr, DCSR_EBREAKM, riscv_ebreakm);
-	info->dcsr = set_field(info->dcsr, DCSR_EBREAKS, riscv_ebreaks);
-	info->dcsr = set_field(info->dcsr, DCSR_EBREAKU, riscv_ebreaku);
+	info->dcsr = set_field(info->dcsr, DCSR_EBREAKM, r->riscv_ebreakm);
+	info->dcsr = set_field(info->dcsr, DCSR_EBREAKS, r->riscv_ebreaks);
+	info->dcsr = set_field(info->dcsr, DCSR_EBREAKU, r->riscv_ebreaku);
 	info->dcsr = set_field(info->dcsr, DCSR_EBREAKH, 1);
 	info->dcsr &= ~DCSR_HALT;
 
@@ -1936,6 +1937,7 @@ static int riscv011_resume(struct target *target, int current,
 
 static int assert_reset(struct target *target)
 {
+	RISCV_INFO(r);
 	riscv011_info_t *info = get_info(target);
 	/* TODO: Maybe what I implemented here is more like soft_reset_halt()? */
 
@@ -1949,9 +1951,9 @@ static int assert_reset(struct target *target)
 
 	/* Not sure what we should do when there are multiple cores.
 	 * Here just reset the single hart we're talking to. */
-	info->dcsr = set_field(info->dcsr, DCSR_EBREAKM, riscv_ebreakm);
-	info->dcsr = set_field(info->dcsr, DCSR_EBREAKS, riscv_ebreaks);
-	info->dcsr = set_field(info->dcsr, DCSR_EBREAKU, riscv_ebreaku);
+	info->dcsr = set_field(info->dcsr, DCSR_EBREAKM, r->riscv_ebreakm);
+	info->dcsr = set_field(info->dcsr, DCSR_EBREAKS, r->riscv_ebreaks);
+	info->dcsr = set_field(info->dcsr, DCSR_EBREAKU, r->riscv_ebreaku);
 	info->dcsr = set_field(info->dcsr, DCSR_EBREAKH, 1);
 	info->dcsr |= DCSR_HALT;
 	if (target->reset_halt)
