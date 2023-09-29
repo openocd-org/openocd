@@ -3142,7 +3142,7 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 
 	RISCV013_INFO(info);
 	target_addr_t next_address = address;
-	target_addr_t end_address = address + count * size;
+	target_addr_t end_address = address + (increment ? count : 1) * size;
 
 	while (next_address < end_address) {
 		uint32_t sbcs_write = set_field(0, DM_SBCS_SBREADONADDR, 1);
@@ -3173,6 +3173,7 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 		uint32_t sbvalue[4] = {0};
 		assert(size <= 16);
 		target_addr_t next_read = address - 1;
+		uint32_t buffer_offset = 0;
 		int next_read_j = 0;
 		for (uint32_t i = (next_address - address) / size; i < count - 1; i++) {
 			for (int j = (size - 1) / 4; j >= 0; j--) {
@@ -3194,14 +3195,15 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 						return ERROR_FAIL;
 				}
 				if (next_read != address - 1) {
-					buf_set_u32(buffer + next_read - address, 0, 8 * MIN(size, 4), sbvalue[next_read_j]);
+					buf_set_u32(buffer + buffer_offset, 0, 8 * MIN(size, 4), sbvalue[next_read_j]);
 					if (next_read_j == 0) {
 						log_memory_access(next_read, sbvalue, size, true);
 						memset(sbvalue, 0, size);
 					}
 				}
 				next_read_j = j;
-				next_read = address + i * size + next_read_j * 4;
+				next_read = address + i * increment + next_read_j * 4;
+				buffer_offset = i * size + next_read_j * 4;
 			}
 		}
 
@@ -3222,7 +3224,7 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 				else
 					return ERROR_FAIL;
 			}
-			buf_set_u32(buffer + next_read - address, 0, 8 * MIN(size, 4), sbvalue[0]);
+			buf_set_u32(buffer + buffer_offset, 0, 8 * MIN(size, 4), sbvalue[0]);
 			log_memory_access(next_read, sbvalue, size, true);
 
 			/* "Writes to sbcs while sbbusy is high result in undefined behavior.
@@ -3238,7 +3240,7 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 		/* Read the last word, after we disabled sbreadondata if necessary. */
 		if (!get_field(sbcs_read, DM_SBCS_SBERROR) &&
 				!get_field(sbcs_read, DM_SBCS_SBBUSYERROR)) {
-			if (read_memory_bus_word(target, address + (count - 1) * size, size,
+			if (read_memory_bus_word(target, address + (count - 1) * increment, size,
 						buffer + (count - 1) * size) != ERROR_OK)
 				return ERROR_FAIL;
 
