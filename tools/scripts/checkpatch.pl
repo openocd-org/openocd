@@ -3562,17 +3562,16 @@ sub process {
 		}
 
 # Check for FSF mailing addresses.
-		# Don't care in this branch. This always messes up when we merge changes down.
-		#if ($rawline =~ /\bwrite to the Free/i ||
-		#    $rawline =~ /\b675\s+Mass\s+Ave/i ||
-		#    $rawline =~ /\b59\s+Temple\s+Pl/i ||
-		#    $rawline =~ /\b51\s+Franklin\s+St/i) {
-		#	my $herevet = "$here\n" . cat_vet($rawline) . "\n";
-		#	my $msg_level = \&ERROR;
-		#	$msg_level = \&CHK if ($file);
-		#	&{$msg_level}("FSF_MAILING_ADDRESS",
-		#		      "Do not include the paragraph about writing to the Free Software Foundation's mailing address from the sample GPL notice. The FSF has changed addresses in the past, and may do so again. OpenOCD already includes a copy of the GPL.\n" . $herevet)
-		#}
+		if ($rawline =~ /\bwrite to the Free/i ||
+		    $rawline =~ /\b675\s+Mass\s+Ave/i ||
+		    $rawline =~ /\b59\s+Temple\s+Pl/i ||
+		    $rawline =~ /\b51\s+Franklin\s+St/i) {
+			my $herevet = "$here\n" . cat_vet($rawline) . "\n";
+			my $msg_level = \&ERROR;
+			$msg_level = \&CHK if ($file);
+			&{$msg_level}("FSF_MAILING_ADDRESS",
+				      "Do not include the paragraph about writing to the Free Software Foundation's mailing address from the sample GPL notice. The FSF has changed addresses in the past, and may do so again. OpenOCD already includes a copy of the GPL.\n" . $herevet)
+		}
 
 # check for Kconfig help text having a real description
 # Only applies when adding the entry originally, after that we do not have

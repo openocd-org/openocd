@@ -28,78 +28,64 @@ env:
   - CC=clang-9
 
 language: c
-dist: trusty
 
-matrix:
-    include:
-        - os: linux
-          env:
-              - BUILD=x86_64-linux-gnu
-              - EXECUTABLE=openocd
-          addons:
-              apt:
-                  packages:
-                      - patchutils
-          compiler: gcc
-
-        - os: linux
-          env:
-              - BUILD=i686-linux-gnu
-              - CFLAGS=-m32
-              - EXECUTABLE=openocd
-          addons:
-              apt:
-                  packages:
-                      - gcc-multilib patchutils
-          compiler: gcc
-
-        - os: linux
-          env:
-              - BUILD=x86_64-linux-gnu
-              - EXECUTABLE=openocd
-          addons:
-              apt:
-                  packages:
-                      - patchutils
-          compiler: clang
-
-        - os: linux
-          env:
-              - BUILD=i686-linux-gnu
-              - CFLAGS=-m32
-              - CONFIGURE_ARGS="--disable-target64"
-              - EXECUTABLE=openocd
-          compiler: clang
-          addons:
-              apt:
-                  packages:
-                      - gcc-multilib patchutils
-
-        - os: linux
-          env:
-              - BUILD=i686-w64-mingw
-              - CONFIGURE_ARGS="--build=i686-unknown-linux-gnu --host=i686-w64-mingw32"
-              - EXECUTABLE=openocd.exe
-          compiler: i686-w64-mingw32-gcc
-          addons:
-              apt:
-                  packages:
-                      - binutils-mingw-w64-i686 gcc-mingw-w64-i686 g++-mingw-w64-i686 patchutils
+git:
+  depth: 1
+  autocrlf: input
 
 script:
-    # This is here for the signoff check.
-    # Disabled because when travis does the integration build the last change
-    # is an automated change, which won't have the Signed-off-by line.
-    #- ./tools/checkpatch.sh
+  - $mingw64 ${CC} --version
+  - $mingw64 env
+  - $mingw64 ./bootstrap
+  - $mingw64 ./configure
+  - $mingw64 make
 
-    # Ideally we'd diff back to where we either branched off OpenOCD or master,
-    # or riscv. But that's tricky, and the default git clone only gets the last
-    # 50 changes any case. Most merges won't consist of more than 40 changes,
-    # so this should work fine most of the time, and be a lot better than not
-    # checking at all.
-    - git diff -U20 HEAD~40 |
-        filterdiff -x "a/src/jtag/drivers/libjaylink/*" -x "a/tools/git2cl/*"
-                -x "b/src/gnulib/*" |
-        ./tools/scripts/checkpatch.pl --no-signoff -
-    - ./bootstrap && ./configure --enable-remote-bitbang --enable-jtag_vpi $CONFIGURE_ARGS && make
-    - file src/$EXECUTABLE
+before_install:
+  - |-
+    case $TRAVIS_OS_NAME in
+      linux)
+        sudo apt install ${CC} libusb-1.0-0-dev
+        ;;
+      osx)
+        brew install libtool automake libusb libusb-compat hidapi libftdi
+        ;;
+      windows)
+        [[ ! -f C:/tools/msys64/msys2_shell.cmd ]] && rm -rf C:/tools/msys64
+        choco uninstall -y mingw
+        choco upgrade --no-progress -y msys2
+        export msys2='cmd //C RefreshEnv.cmd '
+        export msys2+='& set MSYS=winsymlinks:nativestrict '
+        export msys2+='& C:\\tools\\msys64\\msys2_shell.cmd -defterm -no-start'
+        export mingw64="$msys2 -mingw64 -full-path -here -c \$\* --"
+        export msys2+=" -msys2 -c \$\* --"
+        $msys2 pacman --sync --noconfirm --needed mingw-w64-x86_64-toolchain autoconf autoconf-archive automake automake-wrapper binutils gcc gettext git libtool m4 make pkg-config tcl texinfo mingw-w64-x86_64-libusb mingw-w64-x86_64-libusb-compat-git mingw-w64-x86_64-libjaylink-git mingw-w64-x86_64-libftdi mingw-w64-x86_64-hidapi mingw-w64-x86_64-clang
+        ## FIXME: Also build for i686?
+        ## Install more MSYS2 packages from https://packages.msys2.org/base here
+        taskkill //IM gpg-agent.exe //F  # https://travis-ci.community/t/4967
+        export PATH=/C/tools/msys64/mingw64/bin:$PATH
+        export MAKE=mingw32-make  # so that Autotools can find it
+        ;;
+    esac
+
+before_cache:
+- |-
+    case $TRAVIS_OS_NAME in
+      windows)
+        # https://unix.stackexchange.com/a/137322/107554
+        $msys2 pacman --sync --clean --noconfirm
+        ;;
+    esac
+
+cache:
+    directories:
+    - $HOME/AppData/Local/Temp/chocolatey
+    - /C/tools/msys64
+
+matrix:
+  include:
+    - os: osx
+      env:
+        - CC=clang
+    - os: windows
+      env:
+        - CC=gcc
