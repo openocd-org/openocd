@@ -744,16 +744,22 @@ static int default_check_reset(struct target *target)
  * Keep in sync */
 int target_examine_one(struct target *target)
 {
+	if (target->examine_attempted)
+		LOG_TARGET_INFO(target, "Retry examination.");
+
+	LOG_TARGET_INFO(target, "Examination started.");
+
 	target_call_event_callbacks(target, TARGET_EVENT_EXAMINE_START);
 
 	int retval = target->type->examine(target);
 	if (retval != ERROR_OK) {
+		LOG_TARGET_ERROR(target, "Examination failed. examine() -> %d", retval);
 		target_reset_examined(target);
 		target_call_event_callbacks(target, TARGET_EVENT_EXAMINE_FAIL);
 		return retval;
 	}
 
-	LOG_USER("[%s] Target successfully examined.", target_name(target));
+	LOG_TARGET_INFO(target, "Target successfully examined.");
 	target_set_examined(target);
 	target_call_event_callbacks(target, TARGET_EVENT_EXAMINE_END);
 
@@ -772,12 +778,6 @@ static int jtag_enable_callback(enum jtag_event event, void *priv)
 	return target_examine_one(target);
 }
 
-/* When this is true, it's OK to call examine() again in the hopes that this time
- * it will work.  Earlier than that there is probably other initialization that
- * needs to happen (like scanning the JTAG chain) before examine should be
- * called. */
-static bool examine_attempted;
-
 /* Targets that correctly implement init + examine, i.e.
  * no communication with target during init:
  *
@@ -787,8 +787,6 @@ int target_examine(void)
 {
 	int retval = ERROR_OK;
 	struct target *target;
-
-	examine_attempted = true;
 
 	for (target = all_targets; target; target = target->next) {
 		/* defer examination, but don't skip it */
@@ -801,11 +799,11 @@ int target_examine(void)
 		if (target->defer_examine)
 			continue;
 
+		target->examine_attempted = true;
+
 		int retval2 = target_examine_one(target);
-		if (retval2 != ERROR_OK) {
-			LOG_WARNING("target %s examination failed", target_name(target));
+		if (retval2 != ERROR_OK)
 			retval = retval2;
-		}
 	}
 	return retval;
 }
@@ -3066,11 +3064,11 @@ static int handle_target(void *priv)
 		LOG_TARGET_DEBUG(target, "target_poll() -> %d, next attempt in %dms",
 				 retval, target->backoff.interval);
 
-		if (retval != ERROR_OK && examine_attempted) {
+		if (retval != ERROR_OK && target->examine_attempted) {
 			target_reset_examined(target);
 			retval = target_examine_one(target);
 			if (retval != ERROR_OK) {
-				LOG_TARGET_DEBUG(target, "Examination failed. Polling again in %dms",
+				LOG_TARGET_DEBUG(target, "Polling again in %dms",
 					target->backoff.interval);
 				return retval;
 			}
@@ -6267,6 +6265,8 @@ static int target_create(struct jim_getopt_info *goi)
 	target->verbose_halt_msg	= true;
 
 	target->halt_issued			= false;
+
+	target->examine_attempted   = false;
 
 	/* initialize trace information */
 	target->trace_info = calloc(1, sizeof(struct trace));
