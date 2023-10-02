@@ -22,10 +22,22 @@
  /* Shared table of known SPI flash devices for SPI-based flash drivers. Taken
   * from device datasheets and Linux SPI flash drivers. */
 const struct flash_device flash_devices[] = {
-	/* name, read_cmd, qread_cmd, pprog_cmd, erase_cmd, chip_erase_cmd, device_id,
-	 * pagesize, sectorsize, size_in_bytes
-	 * note: device id is usually 3 bytes long, however the unused highest byte counts
-	 * continuation codes for manufacturer id as per JEP106xx */
+	/* Note: device_id is usually 3 bytes long, however the unused highest byte counts
+	 * continuation codes for manufacturer id as per JEP106xx.
+	 *
+	 * All sizes (page, sector/block and flash) are in bytes.
+	 *
+	 * Guide to select a proper erase command (if both sector and block erase cmds are available):
+	 * Use 4kbit sector erase cmd and set erase size to the size of sector for small devices
+	 * (4Mbit and less, size <= 0x80000) to prevent too raw erase granularity.
+	 * Use 64kbit block erase cmd and set erase size to the size of block for bigger devices
+	 * (8Mbit and more, size >= 0x100000) to keep erase speed reasonable.
+	 * If the device implements also 32kbit block erase, use it for 8Mbit, size == 0x100000.
+	 */
+	/*        name                  read qread  page  erase chip  device_id   page   erase   flash
+	 *                              _cmd _cmd   _prog _cmd* _erase            size   size*   size
+	 *                                          _cmd        _cmd
+	 */
 	FLASH_ID("st m25pe10",          0x03, 0x00, 0x02, 0xd8, 0x00, 0x00118020, 0x100, 0x10000, 0x20000),
 	FLASH_ID("st m25pe20",          0x03, 0x00, 0x02, 0xd8, 0x00, 0x00128020, 0x100, 0x10000, 0x40000),
 	FLASH_ID("st m25pe40",          0x03, 0x00, 0x02, 0xd8, 0x00, 0x00138020, 0x100, 0x10000, 0x80000),
@@ -174,6 +186,11 @@ const struct flash_device flash_devices[] = {
 	FLASH_ID("zetta zd25q16",       0x03, 0x00, 0x02, 0xd8, 0xc7, 0x001560ba, 0x100, 0x10000, 0x200000),
 
 	/* FRAM, no erase commands, no write page or sectors */
+
+	/*        name                  read qread  page  device_id   total
+	 *                              _cmd _cmd   _prog             size
+	 *                                          _cmd
+	 */
 	FRAM_ID("fu mb85rs16n",         0x03, 0,    0x02, 0x00010104, 0x800),
 	FRAM_ID("fu mb85rs32v",         0x03, 0,    0x02, 0x00010204, 0x1000), /* exists ? */
 	FRAM_ID("fu mb85rs64v",         0x03, 0,    0x02, 0x00020304, 0x2000),
