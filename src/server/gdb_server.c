@@ -1068,8 +1068,10 @@ static int gdb_new_connection(struct connection *connection)
 	 * Remove the initial ACK from the incoming buffer.
 	 */
 	retval = gdb_get_char(connection, &initial_ack);
-	if (retval != ERROR_OK)
+	if (retval != ERROR_OK) {
+		LOG_ERROR("Could not receive GDB Ack packet. gdb_get_char() error: %d", retval);
 		return retval;
+	}
 
 	if (initial_ack != '+')
 		gdb_putback_char(connection, initial_ack);
