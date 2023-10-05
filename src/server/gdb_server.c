@@ -3176,9 +3176,15 @@ static bool gdb_handle_vcont_packet(struct connection *connection, const char *p
 			return true;
 		}
 
-		retval = target_step(ct, current_pc, 0, 0);
-		if (retval == ERROR_TARGET_NOT_HALTED)
-			LOG_INFO("target %s was not halted when step was requested", target_name(ct));
+		if (ct->state == TARGET_UNAVAILABLE) {
+			LOG_TARGET_ERROR(ct, "Target is unavailable, so cannot be stepped. "
+					     "Pretending to gdb that it is running until it's available again.");
+			retval = ERROR_FAIL;
+		} else {
+			retval = target_step(ct, current_pc, 0, 0);
+			if (retval == ERROR_TARGET_NOT_HALTED)
+				LOG_INFO("target %s was not halted when step was requested", target_name(ct));
+		}
 
 		/* if step was successful send a reply back to gdb */
 		if (retval == ERROR_OK) {
