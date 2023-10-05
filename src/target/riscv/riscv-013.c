@@ -4671,7 +4671,6 @@ static int riscv013_get_register(struct target *target,
 	if (rid == GDB_REGNO_PC) {
 		/* TODO: move this into riscv.c. */
 		result = register_read_direct(target, value, GDB_REGNO_DPC);
-		LOG_TARGET_DEBUG(target, "read PC from DPC: 0x%" PRIx64, *value);
 	} else if (rid == GDB_REGNO_PRIV) {
 		uint64_t dcsr;
 		/* TODO: move this into riscv.c. */
