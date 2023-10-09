@@ -306,7 +306,11 @@ int mips32_save_context(struct target *target)
 	struct mips32_common *mips32 = target_to_mips32(target);
 
 	/* read core registers */
-	mips32_pracc_read_regs(mips32);
+	int retval = mips32_pracc_read_regs(mips32);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("Could not read core registers from target");
+		return retval;
+	}
 
 	for (i = 0; i < MIPS32_NUM_REGS; i++) {
 		if (!mips32->core_cache->reg_list[i].valid)
