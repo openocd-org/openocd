@@ -4667,24 +4667,12 @@ static int riscv013_get_register(struct target *target,
 	if (dm013_select_target(target) != ERROR_OK)
 		return ERROR_FAIL;
 
-	int result = ERROR_OK;
-	if (rid == GDB_REGNO_PC) {
-		/* TODO: move this into riscv.c. */
-		result = register_read_direct(target, value, GDB_REGNO_DPC);
-	} else if (rid == GDB_REGNO_PRIV) {
-		uint64_t dcsr;
-		/* TODO: move this into riscv.c. */
-		if (register_read_direct(target, &dcsr, GDB_REGNO_DCSR) != ERROR_OK)
-			return ERROR_FAIL;
-		*value = set_field(0, VIRT_PRIV_V, get_field(dcsr, CSR_DCSR_V));
-		*value = set_field(*value, VIRT_PRIV_PRV, get_field(dcsr, CSR_DCSR_PRV));
-	} else {
-		result = register_read_direct(target, value, rid);
-		if (result != ERROR_OK)
-			*value = -1;
+	if (register_read_direct(target, value, rid) != ERROR_OK) {
+		*value = -1;
+		return ERROR_FAIL;
 	}
 
-	return result;
+	return ERROR_OK;
 }
 
 static int riscv013_set_register(struct target *target, enum gdb_regno rid,
@@ -4696,24 +4684,7 @@ static int riscv013_set_register(struct target *target, enum gdb_regno rid,
 	if (dm013_select_target(target) != ERROR_OK)
 		return ERROR_FAIL;
 
-	if (rid <= GDB_REGNO_XPR31) {
-		return register_write_direct(target, rid, value);
-	} else if (rid == GDB_REGNO_PC) {
-		LOG_TARGET_DEBUG(target, "writing PC to DPC: 0x%" PRIx64, value);
-		return register_write_direct(target, GDB_REGNO_DPC, value);
-	} else if (rid == GDB_REGNO_PRIV) {
-		riscv_reg_t dcsr;
-
-		if (register_read_direct(target, &dcsr, GDB_REGNO_DCSR) != ERROR_OK)
-			return ERROR_FAIL;
-		dcsr = set_field(dcsr, CSR_DCSR_PRV, get_field(value, VIRT_PRIV_PRV));
-		dcsr = set_field(dcsr, CSR_DCSR_V, get_field(value, VIRT_PRIV_V));
-		return register_write_direct(target, GDB_REGNO_DCSR, dcsr);
-	} else {
-		return register_write_direct(target, rid, value);
-	}
-
-	return ERROR_OK;
+	return register_write_direct(target, rid, value);
 }
 
 static int dm013_select_hart(struct target *target, int hart_index)

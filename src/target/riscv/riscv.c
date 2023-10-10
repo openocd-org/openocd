@@ -4844,6 +4844,18 @@ static int riscv_set_or_write_register(struct target *target,
 
 	keep_alive();
 
+	if (regid == GDB_REGNO_PC) {
+		return riscv_set_or_write_register(target, GDB_REGNO_DPC, value, write_through);
+	} else if (regid == GDB_REGNO_PRIV) {
+		riscv_reg_t dcsr;
+
+		if (riscv_get_register(target, &dcsr, GDB_REGNO_DCSR) != ERROR_OK)
+			return ERROR_FAIL;
+		dcsr = set_field(dcsr, CSR_DCSR_PRV, get_field(value, VIRT_PRIV_PRV));
+		dcsr = set_field(dcsr, CSR_DCSR_V, get_field(value, VIRT_PRIV_V));
+		return riscv_set_or_write_register(target, GDB_REGNO_DCSR, dcsr, write_through);
+	}
+
 	if (!target->reg_cache) {
 		assert(!target_was_examined(target));
 		LOG_TARGET_DEBUG(target,
@@ -4928,6 +4940,17 @@ int riscv_get_register(struct target *target, riscv_reg_t *value,
 	assert(r->get_register);
 
 	keep_alive();
+
+	if (regid == GDB_REGNO_PC) {
+		return riscv_get_register(target, value, GDB_REGNO_DPC);
+	} else if (regid == GDB_REGNO_PRIV) {
+		uint64_t dcsr;
+		if (riscv_get_register(target, &dcsr, GDB_REGNO_DCSR) != ERROR_OK)
+			return ERROR_FAIL;
+		*value = set_field(0, VIRT_PRIV_V, get_field(dcsr, CSR_DCSR_V));
+		*value = set_field(*value, VIRT_PRIV_PRV, get_field(dcsr, CSR_DCSR_PRV));
+		return ERROR_OK;
+	}
 
 	if (!target->reg_cache) {
 		assert(!target_was_examined(target));
