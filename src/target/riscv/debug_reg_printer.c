@@ -62,22 +62,35 @@ static uint64_t riscv_debug_reg_field_value(riscv_debug_reg_field_info_t field, 
 
 static unsigned int riscv_debug_reg_fields_to_s(char *buf, unsigned int offset,
 	struct riscv_debug_reg_field_list_t (*get_next)(riscv_debug_reg_ctx_t contex),
-	riscv_debug_reg_ctx_t context, uint64_t value)
+	riscv_debug_reg_ctx_t context, uint64_t value,
+	enum riscv_debug_reg_show show)
 {
 	unsigned int curr = offset;
-	curr += get_len_or_sprintf(buf, curr, " { ");
+	curr += get_len_or_sprintf(buf, curr, " {");
+	char *separator = "";
 	for (struct riscv_debug_reg_field_list_t list; get_next; get_next = list.get_next) {
 		list = get_next(context);
-		curr += riscv_debug_reg_field_to_s(buf, curr, list.field, context,
-				riscv_debug_reg_field_value(list.field, value));
-		curr += get_len_or_sprintf(buf, curr, ", ");
+
+		uint64_t field_value = riscv_debug_reg_field_value(list.field, value);
+
+		if (show == RISCV_DEBUG_REG_SHOW_ALL ||
+				(show == RISCV_DEBUG_REG_HIDE_UNNAMED_0 &&
+					(field_value != 0 ||
+						(list.field.values && list.field.values[0]))) ||
+				(show == RISCV_DEBUG_REG_HIDE_ALL_0 && field_value != 0)) {
+			curr += get_len_or_sprintf(buf, curr, separator);
+			curr += riscv_debug_reg_field_to_s(buf, curr, list.field, context,
+							field_value);
+			separator = " ";
+		}
 	}
 	curr += get_len_or_sprintf(buf, curr, "}");
 	return curr - offset;
 }
 
 unsigned int riscv_debug_reg_to_s(char *buf, enum riscv_debug_reg_ordinal reg_ordinal,
-		riscv_debug_reg_ctx_t context, uint64_t value)
+		riscv_debug_reg_ctx_t context, uint64_t value,
+		enum riscv_debug_reg_show show)
 {
 	unsigned int length = 0;
 
@@ -88,7 +101,7 @@ unsigned int riscv_debug_reg_to_s(char *buf, enum riscv_debug_reg_ordinal reg_or
 
 	if (reg.get_fields_head)
 		length += riscv_debug_reg_fields_to_s(buf, length,
-				reg.get_fields_head, context, value);
+				reg.get_fields_head, context, value, show);
 
 	if (buf)
 		buf[length] = '\0';

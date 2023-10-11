@@ -2,6 +2,12 @@
 
 #include "debug_defines.h"
 
+enum riscv_debug_reg_show {
+	RISCV_DEBUG_REG_SHOW_ALL,
+	RISCV_DEBUG_REG_HIDE_ALL_0,
+	RISCV_DEBUG_REG_HIDE_UNNAMED_0,
+};
+
 /**
  * This function is used to fill a buffer with a decoded string representation
  * of register's value.
@@ -25,4 +31,5 @@
  * riscv_debug_reg_to_s(buf, DTM_DMI_ORDINAL, context, <dmi value>);
  */
 unsigned int riscv_debug_reg_to_s(char *buf, enum riscv_debug_reg_ordinal reg_ordinal,
-		riscv_debug_reg_ctx_t context, uint64_t value);
+		riscv_debug_reg_ctx_t context, uint64_t value,
+		enum riscv_debug_reg_show show);
