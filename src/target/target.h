@@ -138,6 +138,12 @@ struct target {
 	 */
 	bool examined;
 
+	/* When this is true, it's OK to call examine() again in the hopes that this time
+	* it will work.  Earlier than that there is probably other initialization that
+	* needs to happen (like scanning the JTAG chain) before examine should be
+	* called. */
+	bool examine_attempted;
+
 	/**
 	 * true if the  target is currently running a downloaded
 	 * "algorithm" instead of arbitrary user code. OpenOCD code
