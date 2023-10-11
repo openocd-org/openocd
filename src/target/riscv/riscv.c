@@ -857,15 +857,16 @@ static struct match_triggers_tdata1_fields fill_match_triggers_tdata1_fields_t6(
 	return result;
 }
 
-static int maybe_add_trigger_t2_t6(struct target *target,
+static int maybe_add_trigger_t2_t6_for_wp(struct target *target,
 		struct trigger *trigger, struct match_triggers_tdata1_fields fields)
 {
-	int ret = ERROR_OK;
+	RISCV_INFO(r);
+	int ret = ERROR_FAIL;
 
-	if (!trigger->is_execute && trigger->length > 1) {
+	if (trigger->length > 0) {
 		/* Setting a load/store trigger ("watchpoint") on a range of addresses */
 
-		if (can_use_napot_match(trigger)) {
+		if (r->enable_napot_trigger && can_use_napot_match(trigger)) {
 			LOG_TARGET_DEBUG(target, "trying to setup NAPOT match trigger");
 			struct trigger_request_info napot = {
 				.tdata1 = fields.common | fields.size.any |
@@ -877,52 +878,58 @@ static int maybe_add_trigger_t2_t6(struct target *target,
 			if (ret != ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
 				return ret;
 		}
-		LOG_TARGET_DEBUG(target, "trying to setup GE+LT chained match trigger pair");
-		struct trigger_request_info ge_1 = {
-			.tdata1 = fields.common | fields.size.any | fields.chain.enable |
-				fields.match.ge,
-			.tdata2 = trigger->address,
-			.tdata1_ignore_mask = fields.tdata1_ignore_mask
-		};
-		struct trigger_request_info lt_2 = {
-			.tdata1 = fields.common | fields.size.any | fields.chain.disable |
-				fields.match.lt,
-			.tdata2 = trigger->address + trigger->length,
-			.tdata1_ignore_mask = fields.tdata1_ignore_mask
-		};
-		ret = try_setup_chained_match_triggers(target, trigger, ge_1, lt_2);
-		if (ret != ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
-			return ret;
 
-		LOG_TARGET_DEBUG(target, "trying to setup LT+GE chained match trigger pair");
-		struct trigger_request_info lt_1 = {
-			.tdata1 = fields.common | fields.size.any | fields.chain.enable |
-				fields.match.lt,
-			.tdata2 = trigger->address + trigger->length,
-			.tdata1_ignore_mask = fields.tdata1_ignore_mask
-		};
-		struct trigger_request_info ge_2 = {
-			.tdata1 = fields.common | fields.size.any | fields.chain.disable |
-				fields.match.ge,
-			.tdata2 = trigger->address,
-			.tdata1_ignore_mask = fields.tdata1_ignore_mask
-		};
-		ret = try_setup_chained_match_triggers(target, trigger, lt_1, ge_2);
-		if (ret != ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
-			return ret;
+		if (r->enable_ge_lt_trigger) {
+			LOG_TARGET_DEBUG(target, "trying to setup GE+LT chained match trigger pair");
+			struct trigger_request_info ge_1 = {
+				.tdata1 = fields.common | fields.size.any | fields.chain.enable |
+					fields.match.ge,
+				.tdata2 = trigger->address,
+				.tdata1_ignore_mask = fields.tdata1_ignore_mask
+			};
+			struct trigger_request_info lt_2 = {
+				.tdata1 = fields.common | fields.size.any | fields.chain.disable |
+					fields.match.lt,
+				.tdata2 = trigger->address + trigger->length,
+				.tdata1_ignore_mask = fields.tdata1_ignore_mask
+			};
+			ret = try_setup_chained_match_triggers(target, trigger, ge_1, lt_2);
+			if (ret != ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
+				return ret;
+
+			LOG_TARGET_DEBUG(target, "trying to setup LT+GE chained match trigger pair");
+			struct trigger_request_info lt_1 = {
+				.tdata1 = fields.common | fields.size.any | fields.chain.enable |
+					fields.match.lt,
+				.tdata2 = trigger->address + trigger->length,
+				.tdata1_ignore_mask = fields.tdata1_ignore_mask
+			};
+			struct trigger_request_info ge_2 = {
+				.tdata1 = fields.common | fields.size.any | fields.chain.disable |
+					fields.match.ge,
+				.tdata2 = trigger->address,
+				.tdata1_ignore_mask = fields.tdata1_ignore_mask
+			};
+			ret = try_setup_chained_match_triggers(target, trigger, lt_1, ge_2);
+			if (ret != ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
+				return ret;
+		}
 	}
-	LOG_TARGET_DEBUG(target, "trying to setup equality match trigger");
-	struct trigger_request_info eq = {
-		.tdata1 = fields.common | fields.size.any | fields.chain.disable |
-			fields.match.eq,
-		.tdata2 = trigger->address,
-		.tdata1_ignore_mask = fields.tdata1_ignore_mask
-	};
-	ret = try_setup_single_match_trigger(target, trigger, eq);
-	if (ret != ERROR_OK)
-		return ret;
 
-	if (trigger->length > 1) {
+	if (r->enable_equality_match_trigger) {
+		LOG_TARGET_DEBUG(target, "trying to setup equality match trigger");
+		struct trigger_request_info eq = {
+			.tdata1 = fields.common | fields.size.any | fields.chain.disable |
+				fields.match.eq,
+			.tdata2 = trigger->address,
+			.tdata1_ignore_mask = fields.tdata1_ignore_mask
+		};
+		ret = try_setup_single_match_trigger(target, trigger, eq);
+		if (ret != ERROR_OK)
+			return ERROR_FAIL;
+	}
+
+	if (ret == ERROR_OK && trigger->length > 1) {
 		LOG_TARGET_DEBUG(target, "Trigger will match accesses at address 0x%" TARGET_PRIxADDR
 				", but may not match accesses at addresses in the inclusive range from 0x%"
 				TARGET_PRIxADDR " to 0x%" TARGET_PRIxADDR ".", trigger->address,
@@ -938,7 +945,34 @@ static int maybe_add_trigger_t2_t6(struct target *target,
 					"against the first address of the range.");
 		info->range_trigger_fallback_encountered = true;
 	}
-	return ERROR_OK;
+
+	return ret;
+}
+
+static int maybe_add_trigger_t2_t6_for_bp(struct target *target,
+		struct trigger *trigger, struct match_triggers_tdata1_fields fields)
+{
+	LOG_TARGET_DEBUG(target, "trying to setup equality match trigger");
+	struct trigger_request_info eq = {
+		.tdata1 = fields.common | fields.size.any | fields.chain.disable |
+			fields.match.eq,
+		.tdata2 = trigger->address,
+		.tdata1_ignore_mask = fields.tdata1_ignore_mask
+	};
+
+	return try_setup_single_match_trigger(target, trigger, eq);
+}
+
+static int maybe_add_trigger_t2_t6(struct target *target,
+		struct trigger *trigger, struct match_triggers_tdata1_fields fields)
+{
+	if (trigger->is_execute) {
+		assert(!trigger->is_read && !trigger->is_write);
+		return maybe_add_trigger_t2_t6_for_bp(target, trigger, fields);
+	}
+
+	assert(trigger->is_read || trigger->is_write);
+	return maybe_add_trigger_t2_t6_for_wp(target, trigger, fields);
 }
 
 static int maybe_add_trigger_t3(struct target *target, bool vs, bool vu,
@@ -4273,6 +4307,57 @@ COMMAND_HANDLER(riscv_exec_progbuf)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(riscv_set_enable_eq_match_trigger)
+{
+	struct target *target = get_current_target(CMD_CTX);
+	RISCV_INFO(r);
+
+	if (CMD_ARGC == 0) {
+		command_print(CMD, "equality match trigger enabled: %s", r->enable_equality_match_trigger ? "on" : "off");
+		return ERROR_OK;
+	} else if (CMD_ARGC == 1) {
+		COMMAND_PARSE_ON_OFF(CMD_ARGV[0], r->enable_equality_match_trigger);
+		return ERROR_OK;
+	}
+
+	LOG_ERROR("Command takes 0 or 1 parameters");
+	return ERROR_COMMAND_SYNTAX_ERROR;
+}
+
+COMMAND_HANDLER(riscv_set_enable_napot_trigger)
+{
+	struct target *target = get_current_target(CMD_CTX);
+	RISCV_INFO(r);
+
+	if (CMD_ARGC == 0) {
+		command_print(CMD, "NAPOT trigger enabled: %s", r->enable_napot_trigger ? "on" : "off");
+		return ERROR_OK;
+	} else if (CMD_ARGC == 1) {
+		COMMAND_PARSE_ON_OFF(CMD_ARGV[0], r->enable_napot_trigger);
+		return ERROR_OK;
+	}
+
+	LOG_ERROR("Command takes 0 or 1 parameters");
+	return ERROR_COMMAND_SYNTAX_ERROR;
+}
+
+COMMAND_HANDLER(riscv_set_enable_ge_lt_trigger)
+{
+	struct target *target = get_current_target(CMD_CTX);
+	RISCV_INFO(r);
+
+	if (CMD_ARGC == 0) {
+		command_print(CMD, "ge-lt triggers enabled: %s", r->enable_ge_lt_trigger ? "on" : "off");
+		return ERROR_OK;
+	} else if (CMD_ARGC == 1) {
+		COMMAND_PARSE_ON_OFF(CMD_ARGV[0], r->enable_ge_lt_trigger);
+		return ERROR_OK;
+	}
+
+	LOG_ERROR("Command takes 0 or 1 parameters");
+	return ERROR_COMMAND_SYNTAX_ERROR;
+}
+
 static const struct command_registration riscv_exec_command_handlers[] = {
 	{
 		.name = "dump_sample_buf",
@@ -4519,6 +4604,27 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.help = "Execute a sequence of 32-bit instructions using the program buffer. "
 			"The final ebreak instruction is added automatically, if needed."
 	},
+	{
+		.name = "set_enable_eq_match_trigger",
+		.handler = riscv_set_enable_eq_match_trigger,
+		.mode = COMMAND_CONFIG,
+		.usage = "[on|off]",
+		.help = "When on, allow OpenOCD to use equality match trigger in wp."
+	},
+	{
+		.name = "set_enable_napot_trigger",
+		.handler = riscv_set_enable_napot_trigger,
+		.mode = COMMAND_CONFIG,
+		.usage = "[on|off]",
+		.help = "When on, allow OpenOCD to use NAPOT trigger in wp."
+	},
+	{
+		.name = "set_enable_ge_lt_trigger",
+		.handler = riscv_set_enable_ge_lt_trigger,
+		.mode = COMMAND_CONFIG,
+		.usage = "[on|off]",
+		.help = "When on, allow OpenOCD to use GE/LT triggers in wp."
+	},
 	COMMAND_REGISTRATION_DONE
 };
 
@@ -4654,6 +4760,10 @@ static void riscv_info_init(struct target *target, struct riscv_info *r)
 	r->riscv_ebreakm = true;
 	r->riscv_ebreaks = true;
 	r->riscv_ebreaku = true;
+
+	r->enable_equality_match_trigger = true;
+	r->enable_ge_lt_trigger = true;
+	r->enable_napot_trigger = true;
 }
 
 static int riscv_resume_go_all_harts(struct target *target)

@@ -10871,6 +10871,21 @@ Control dcsr.ebreaku. When on (default), U-mode ebreak instructions trap to
 OpenOCD. When off, they generate a breakpoint exception handled internally.
 @end deffn
 
+The commands below can be used to prevent OpenOCD from using certain RISC-V trigger features.
+For example in cases when there are known issues in the target hardware.
+
+@deffn {Command} {riscv set_enable_eq_match_trigger} [on|off]
+When on (default), allow OpenOCD to use exact-match triggers in watchpoints.
+@end deffn
+
+@deffn {Command} {riscv set_enable_napot_trigger} [on|off]
+When on (default), allow OpenOCD to use NAPOT trigger in watchpoints.
+@end deffn
+
+@deffn {Command} {riscv set_enable_ge_lt_trigger} [on|off]
+When on (default), allow OpenOCD to use a pair of chained less-than & greater-than triggers in watchpoints.
+@end deffn
+
 @subsection RISC-V Authentication Commands
 
 The following commands can be used to authenticate to a RISC-V system. Eg.  a
