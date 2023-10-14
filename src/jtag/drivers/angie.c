@@ -257,7 +257,7 @@ static int angie_usb_open(struct angie *device)
 	const uint16_t vids[] = {ANGIE_VID, ANGIE_VID, ANGIE_VID, ANGIE_VID, 0};
 	const uint16_t pids[] = {ANGIE_PID, ANGIE_PID_2, ANGIE_PID_3, ANGIE_PID_4, 0};
 
-	int ret = jtag_libusb_open(vids, pids, &usb_device_handle, NULL);
+	int ret = jtag_libusb_open(vids, pids, NULL, &usb_device_handle, NULL);
 
 	if (ret != ERROR_OK)
 		return ret;

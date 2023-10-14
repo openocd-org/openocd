@@ -438,7 +438,7 @@ static int openjtag_init_cy7c65215(void)
 	int ret;
 
 	usbh = NULL;
-	ret = jtag_libusb_open(cy7c65215_vids, cy7c65215_pids, &usbh, NULL);
+	ret = jtag_libusb_open(cy7c65215_vids, cy7c65215_pids, NULL, &usbh, NULL);
 	if (ret != ERROR_OK) {
 		LOG_ERROR("unable to open cy7c65215 device");
 		goto err;

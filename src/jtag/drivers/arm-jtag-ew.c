@@ -677,7 +677,7 @@ static struct armjtagew *armjtagew_usb_open(void)
 	const uint16_t pids[] = { USB_PID, 0 };
 	struct libusb_device_handle *dev;
 
-	if (jtag_libusb_open(vids, pids, &dev, NULL) != ERROR_OK)
+	if (jtag_libusb_open(vids, pids, NULL, &dev, NULL) != ERROR_OK)
 		return NULL;
 
 	struct armjtagew *result = malloc(sizeof(struct armjtagew));
