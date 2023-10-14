@@ -633,6 +633,10 @@ This is deprecated from Linux v5.3; prefer using @b{linuxgpiod}.
 @item @b{esp_usb_jtag}
 @* A JTAG driver to communicate with builtin debug modules of Espressif ESP32-C3 and ESP32-S3 chips using OpenOCD.
 
+@item @b{ch347}
+@* A JTAG driver that works with the WCH CH347F and CH347T chips.
+When using the CH347T, it must be configured to operate in mode 3 (UART + JTAG).
+
 @end itemize
 
 @node About Jim Tcl
@@ -2552,6 +2556,41 @@ presuming that system is an Atmel AT91rm9200
 and a specific set of GPIOs is used.
 @c command:	at91rm9200_device NAME
 @c chooses among list of bit configs ... only one option
+@end deffn
+
+@deffn {Interface Driver} {ch347}
+Driver for WCH CH347F and CH347T chips.
+When using the CH347T, it must be configured to operate in mode 3 (UART + JTAG).
+This driver has these driver-specific command:
+
+@deffn {Config Command} {ch347 vid_pid} [vid pid]+
+The vendor ID and product ID of the CH347F or CH347T device in mode 3. If not specified
+the driver will use vendor ID 0x1a86 and product ID 0x55dd.
+Currently, up to four [@var{vid}, @var{pid}] pairs may be given, e.g.
+@example
+ch347 vid_pid 0x1a86 0x55dd 0x1a86 0x55de
+@end example
+@end deffn
+
+@deffn {Config Command} {ch347 device_desc} description
+If specified connect to a device which exactly has this product description
+string. If not specified the first found device with the correct vendor
+and product ID will be connected.
+@example
+ch347 device_desc "EasyDevKit"
+@end example
+@end deffn
+
+@deffn {Config Command} {ch347 activity_led} [n]gpio_number
+If specified the drive let an activity LED blink during JTAG operations.
+The number is the GPIO number of the CH347T chip. If prefixed with "n",
+then this GPIO should be low active. The example configures GPIO4 as
+low active activity LED. For the CH347T chip only GPIO3 (Pin11 / SCL),
+GPIO4 (Pin15 / ACT), GPIO5 (Pin9 / TRST) and GPIO6 (Pin2 / CTS1) are possible.
+@example
+ch347 activity_led n4
+@end example
+@end deffn
 @end deffn
 
 @deffn {Interface Driver} {cmsis-dap}

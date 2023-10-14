@@ -159,6 +159,8 @@ struct adapter_driver *adapter_drivers[] = {
 	&xlnx_pcie_xvc_adapter_driver,
 	&xlnx_axi_xvc_adapter_driver,
 #endif
-
+#if BUILD_CH347 == 1
+		&ch347_adapter_driver,
+#endif
 		NULL,
 };

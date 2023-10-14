@@ -379,6 +379,7 @@ extern struct adapter_driver armjtagew_adapter_driver;
 extern struct adapter_driver at91rm9200_adapter_driver;
 extern struct adapter_driver bcm2835gpio_adapter_driver;
 extern struct adapter_driver buspirate_adapter_driver;
+extern struct adapter_driver ch347_adapter_driver;
 extern struct adapter_driver cmsis_dap_adapter_driver;
 extern struct adapter_driver dmem_dap_adapter_driver;
 extern struct adapter_driver dummy_adapter_driver;
