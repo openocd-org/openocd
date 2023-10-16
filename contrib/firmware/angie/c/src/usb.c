@@ -773,8 +773,6 @@ void i2c_recieve(void)
 		/*  ack:  */
 		uint8_t ack = get_ack();
 
-		delay_us(10);
-
 		/*   send data   */
 		if (reg_adr_check) { //if there is a byte reg
 			send_byte(reg_adr);
@@ -782,16 +780,12 @@ void i2c_recieve(void)
 			ack = get_ack();
 		}
 
-		delay_us(10);
-
 		/*  repeated start:  */
 		repeated_start();
 		/*  address:   */
 		send_byte(address);
 		/*  get ack:  */
 		ack = get_ack();
-
-		delay_us(10);
 
 		/*   receive data   */
 		for (uint8_t i = 0; i < count; i++) {
@@ -801,12 +795,8 @@ void i2c_recieve(void)
 			send_ack();
 		}
 
-		delay_ms(1);
-
 		/*   stop   */
 		stop_cd();
-
-		delay_us(10);
 
 		EP8BCH = 0; //EP8
 		syncdelay(3);
