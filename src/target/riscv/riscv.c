@@ -2095,10 +2095,10 @@ static int riscv_effective_privilege_mode(struct target *target, int *v_mode, in
 
 static int riscv_mmu(struct target *target, int *enabled)
 {
-	if (!riscv_enable_virt2phys) {
-		*enabled = 0;
+	*enabled = 0;
+
+	if (!riscv_enable_virt2phys)
 		return ERROR_OK;
-	}
 
 	/* Don't use MMU in explicit or effective M (machine) mode */
 	riscv_reg_t priv;
@@ -2129,6 +2129,7 @@ static int riscv_mmu(struct target *target, int *enabled)
 				/* In hypervisor mode regular satp translation
 				 * doesn't happen. */
 				return ERROR_OK;
+
 		}
 
 		riscv_reg_t vsatp;
@@ -2155,7 +2156,6 @@ static int riscv_mmu(struct target *target, int *enabled)
 			*enabled = 1;
 		} else {
 			LOG_TARGET_DEBUG(target, "No V-mode address translation enabled.");
-			*enabled = 0;
 		}
 
 		return ERROR_OK;
@@ -2164,7 +2164,6 @@ static int riscv_mmu(struct target *target, int *enabled)
 	/* Don't use MMU in explicit or effective M (machine) mode */
 	if (effective_mode == PRV_M) {
 		LOG_TARGET_DEBUG(target, "SATP/MMU ignored in Machine mode.");
-		*enabled = 0;
 		return ERROR_OK;
 	}
 
@@ -2172,13 +2171,11 @@ static int riscv_mmu(struct target *target, int *enabled)
 	if (riscv_get_register(target, &satp, GDB_REGNO_SATP) != ERROR_OK) {
 		LOG_TARGET_DEBUG(target, "Couldn't read SATP.");
 		/* If we can't read SATP, then there must not be an MMU. */
-		*enabled = 0;
 		return ERROR_OK;
 	}
 
 	if (get_field(satp, RISCV_SATP_MODE(xlen)) == SATP_MODE_OFF) {
 		LOG_TARGET_DEBUG(target, "MMU is disabled.");
-		*enabled = 0;
 	} else {
 		LOG_TARGET_DEBUG(target, "MMU is enabled.");
 		*enabled = 1;
@@ -2315,6 +2312,8 @@ static int riscv_virt2phys_v(struct target *target, target_addr_t virtual, targe
 			break;
 		case SATP_MODE_OFF:
 			vsatp_info = NULL;
+			LOG_TARGET_DEBUG(target, "vsatp mode is %d. No VS-stage translation. (vsatp: 0x%" PRIx64 ")",
+				vsatp_mode, vsatp);
 			break;
 		default:
 			LOG_TARGET_ERROR(target,
@@ -2340,6 +2339,8 @@ static int riscv_virt2phys_v(struct target *target, target_addr_t virtual, targe
 			break;
 		case HGATP_MODE_OFF:
 			hgatp_info = NULL;
+			LOG_TARGET_DEBUG(target, "hgatp mode is %d. No G-stage translation. (hgatp: 0x%" PRIx64 ")",
+				hgatp_mode, hgatp);
 			break;
 		default:
 			LOG_TARGET_ERROR(target,
@@ -2390,9 +2391,11 @@ static int riscv_virt2phys(struct target *target, target_addr_t virtual, target_
 	int enabled;
 	if (riscv_mmu(target, &enabled) != ERROR_OK)
 		return ERROR_FAIL;
-	if (!enabled)
-		return ERROR_FAIL;
-
+	if (!enabled) {
+		*physical = virtual;
+		LOG_TARGET_DEBUG(target, "MMU is disabled. 0x%" TARGET_PRIxADDR " -> 0x%" TARGET_PRIxADDR, virtual, *physical);
+		return ERROR_OK;
+	}
 
 	riscv_reg_t priv;
 	if (riscv_get_register(target, &priv, GDB_REGNO_PRIV) != ERROR_OK) {
@@ -2404,9 +2407,10 @@ static int riscv_virt2phys(struct target *target, target_addr_t virtual, target_
 		return riscv_virt2phys_v(target, virtual, physical);
 
 	riscv_reg_t satp_value;
-	int result = riscv_get_register(target, &satp_value, GDB_REGNO_SATP);
-	if (result != ERROR_OK)
-		return result;
+	if (riscv_get_register(target, &satp_value, GDB_REGNO_SATP) != ERROR_OK) {
+		LOG_TARGET_ERROR(target, "Failed to read SATP register.");
+		return ERROR_FAIL;
+	}
 
 	unsigned int xlen = riscv_xlen(target);
 	int satp_mode = get_field(satp_value, RISCV_SATP_MODE(xlen));
@@ -2456,11 +2460,14 @@ static int riscv_read_memory(struct target *target, target_addr_t address,
 	}
 
 	target_addr_t physical_addr;
-	if (target->type->virt2phys(target, address, &physical_addr) == ERROR_OK)
-		address = physical_addr;
+	int result = target->type->virt2phys(target, address, &physical_addr);
+	if (result != ERROR_OK) {
+		LOG_TARGET_ERROR(target, "Address translation failed.");
+		return result;
+	}
 
 	RISCV_INFO(r);
-	return r->read_memory(target, address, size, count, buffer, size);
+	return r->read_memory(target, physical_addr, size, count, buffer, size);
 }
 
 static int riscv_write_phys_memory(struct target *target, target_addr_t phys_address,
@@ -2481,13 +2488,16 @@ static int riscv_write_memory(struct target *target, target_addr_t address,
 	}
 
 	target_addr_t physical_addr;
-	if (target->type->virt2phys(target, address, &physical_addr) == ERROR_OK)
-		address = physical_addr;
+	int result = target->type->virt2phys(target, address, &physical_addr);
+	if (result != ERROR_OK) {
+		LOG_TARGET_ERROR(target, "Address translation failed.");
+		return result;
+	}
 
 	struct target_type *tt = get_target_type(target);
 	if (!tt)
 		return ERROR_FAIL;
-	return tt->write_memory(target, address, size, count, buffer);
+	return tt->write_memory(target, physical_addr, size, count, buffer);
 }
 
 static const char *riscv_get_gdb_arch(struct target *target)
