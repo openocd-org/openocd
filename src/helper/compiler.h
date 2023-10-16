@@ -36,9 +36,11 @@
  * clang for Apple defines
  * #define __nonnull _Nonnull
  * that is a per argument attribute, incompatible with the gcc per function attribute __nonnull__.
- * Undefine it to keep compatibility among compilers.
+ * gcc for Apple includes sys/cdefs.h from MacOSX.sdk that defines
+ * #define __nonnull
+ * In both cases, undefine __nonnull to keep compatibility among compilers and platforms.
  */
-#if defined(__clang__) && defined(__APPLE__)
+#if defined(__APPLE__)
 # undef __nonnull
 #endif
 #ifndef __nonnull

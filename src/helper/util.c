@@ -13,28 +13,21 @@
 #include "log.h"
 #include "time_support.h"
 
-static int jim_util_ms(Jim_Interp *interp,
-	int argc,
-	Jim_Obj * const *argv)
+COMMAND_HANDLER(handler_util_ms)
 {
-	if (argc != 1) {
-		Jim_WrongNumArgs(interp, 1, argv, "ls ?dir?");
-		return JIM_ERR;
-	}
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	/* Cast from 64 to 32 bit int works for 2's-compliment
-	 * when calculating differences*/
-	Jim_SetResult(interp, Jim_NewIntObj(interp, (int)timeval_ms()));
+	command_print(CMD, "%" PRId64, timeval_ms());
 
-	return JIM_OK;
+	return ERROR_OK;
 }
 
 static const struct command_registration util_command_handlers[] = {
-	/* jim handlers */
 	{
 		.name = "ms",
 		.mode = COMMAND_ANY,
-		.jim_handler = jim_util_ms,
+		.handler = handler_util_ms,
 		.help =
 			"Returns ever increasing milliseconds. Used to calculate differences in time.",
 		.usage = "",

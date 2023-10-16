@@ -13,7 +13,7 @@
  * is a transport level interface, with "target/arm_adi_v5.[hc]" code
  * understanding operation semantics, shared with the JTAG transport.
  *
- * Single-DAP support only.
+ * Single DAP and multidrop-SWD support.
  *
  * for details, see "ARM IHI 0031A"
  * ARM Debug Interface v5 Architecture Specification

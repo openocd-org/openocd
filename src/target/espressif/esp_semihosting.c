@@ -17,12 +17,10 @@
 
 static struct esp_semihost_data __attribute__((unused)) *target_to_esp_semihost_data(struct target *target)
 {
-	const char *arch = target_get_gdb_arch(target);
-	if (arch) {
-		if (strncmp(arch, "xtensa", 6) == 0)
-			return &target_to_esp_xtensa(target)->semihost;
-		/* TODO: add riscv */
-	}
+	struct xtensa *xtensa = target->arch_info;
+	if (xtensa->common_magic == XTENSA_COMMON_MAGIC)
+		return &target_to_esp_xtensa(target)->semihost;
+	/* TODO: add riscv */
 	LOG_ERROR("Unknown target arch!");
 	return NULL;
 }
