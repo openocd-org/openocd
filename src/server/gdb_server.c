@@ -3039,7 +3039,7 @@ static bool gdb_handle_vcont_packet(struct connection *connection, const char *p
 	__attribute__((unused)) int packet_size)
 {
 	struct gdb_connection *gdb_connection = connection->priv;
-	struct target *target = get_available_target_from_connection(connection);
+	struct target *target = get_target_from_connection(connection);
 	const char *parse = packet;
 	int retval;
 
@@ -3060,6 +3060,24 @@ static bool gdb_handle_vcont_packet(struct connection *connection, const char *p
 	/* simple case, a continue packet */
 	if (parse[0] == 'c') {
 		gdb_running_type = 'c';
+
+		if (target->state == TARGET_UNAVAILABLE) {
+			struct target *available_target = get_available_target_from_connection(connection);
+			if (target == available_target) {
+				LOG_DEBUG("All targets for this gdb connection "
+						"are unavailable.  Fake to gdb that the resume "
+						"succeeded and the target is now running.");
+				gdb_connection->frontend_state = TARGET_RUNNING;
+				gdb_connection->output_flag = GDB_OUTPUT_ALL;
+				target_call_event_callbacks(target, TARGET_EVENT_GDB_START);
+				return true;
+			}
+			LOG_TARGET_DEBUG(target, "Target is unavailable. Resume %s instead.",
+					target_name(available_target));
+			/* Resume an available target. */
+			target = available_target;
+		}
+
 		LOG_DEBUG("target %s continue", target_name(target));
 		gdb_connection->output_flag = GDB_OUTPUT_ALL;
 		retval = target_resume(target, 1, 0, 0, 0);
