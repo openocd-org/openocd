@@ -798,6 +798,9 @@ void i2c_recieve(void)
 
 		EP8FIFOBUF[count - 1] = receive_byte();
 
+		/*  send Nack:  */
+		send_nack();
+
 		/*   stop   */
 		stop_cd();
 

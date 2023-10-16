@@ -60,6 +60,16 @@ void send_ack(void)
 	delay_us(1);
 }
 
+void send_nack(void)
+{
+	PIN_SDA = 1;
+	delay_us(1);
+	PIN_SCL = 1;
+	delay_us(1);
+	PIN_SCL = 0;
+	delay_us(1);
+}
+
 bool get_ack(void)
 {
 	PIN_SDA_DIR = 1;
