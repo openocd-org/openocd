@@ -2,7 +2,7 @@
 
 # Copyright (C) 2020 by Tarek BOUCHKATI <tarek.bouchkati@gmail.com>
 
-on: pull_request
+on: push
 
 name: OpenOCD Snapshot
 
@@ -74,7 +74,6 @@ jobs:
           HIDAPI_CONFIG: --enable-shared --disable-static --disable-testgui
           LIBFTDI_CONFIG: -DSTATICLIBS=OFF -DEXAMPLES=OFF -DFTDI_EEPROM=OFF
           CAPSTONE_CONFIG: "CAPSTONE_BUILD_CORE_ONLY=yes CAPSTONE_STATIC=yes CAPSTONE_SHARED=no"
-          CAPSTONE_CFLAGS: -I$(CAPSTONE_SRC)/include/capstone
           LIBJAYLINK_CONFIG: --enable-shared --disable-static
         run: |
           # check if there is tag pointing at HEAD, otherwise take the HEAD SHA-1 as OPENOCD_TAG
@@ -102,11 +101,9 @@ jobs:
           echo "RELEASE_NAME=$RELEASE_NAME" >> $GITHUB_ENV
           echo "IS_PRE_RELEASE=$IS_PRE_RELEASE" >> $GITHUB_ENV
           echo "ARTIFACT_PATH=$PWD/$ARTIFACT" >> $GITHUB_ENV
-          echo "ARTIFACT_NAME=openocd-windows-${OPENOCD_TAG}" >> $GITHUB_ENV
       - name: Publish OpenOCD packaged for windows
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ env.ARTIFACT_NAME }}
           path: ${{ env.ARTIFACT_PATH }}
       - name: Delete 'latest' Release
         uses: dev-drprasad/delete-tag-and-release@v0.2.1
