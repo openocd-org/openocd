@@ -281,7 +281,7 @@ void select_dmi_via_bscan(struct target *target)
 										bscan_tunnel_nested_tap_select_dmi, TAP_IDLE);
 }
 
-uint32_t dtmcontrol_scan_via_bscan(struct target *target, uint32_t out)
+int dtmcontrol_scan_via_bscan(struct target *target, uint32_t out, uint32_t *in_ptr)
 {
 	/* On BSCAN TAP: Select IR=USER4, issue tunneled IR scan via BSCAN TAP's DR */
 	uint8_t tunneled_ir_width[4] = {bscan_tunnel_ir_width};
@@ -362,18 +362,19 @@ uint32_t dtmcontrol_scan_via_bscan(struct target *target, uint32_t out)
 	uint32_t in = buf_get_u32(in_value, 1, 32);
 	LOG_DEBUG("DTMCS: 0x%x -> 0x%x", out, in);
 
-	return in;
+	if (in_ptr)
+		*in_ptr = in;
+	return ERROR_OK;
 }
 
-static uint32_t dtmcontrol_scan(struct target *target, uint32_t out)
+static int dtmcontrol_scan(struct target *target, uint32_t out, uint32_t *in_ptr)
 {
 	struct scan_field field;
 	uint8_t in_value[4];
 	uint8_t out_value[4] = { 0 };
 
 	if (bscan_tunnel_ir_width != 0)
-		return dtmcontrol_scan_via_bscan(target, out);
-
+		return dtmcontrol_scan_via_bscan(target, out, in_ptr);
 
 	buf_set_u32(out_value, 0, 32, out);
 
@@ -389,14 +390,16 @@ static uint32_t dtmcontrol_scan(struct target *target, uint32_t out)
 
 	int retval = jtag_execute_queue();
 	if (retval != ERROR_OK) {
-		LOG_ERROR("failed jtag scan: %d", retval);
+		LOG_TARGET_ERROR(target, "dtmcontrol scan failed, error code = %d", retval);
 		return retval;
 	}
 
 	uint32_t in = buf_get_u32(field.in_value, 0, 32);
 	LOG_DEBUG("DTMCONTROL: 0x%x -> 0x%x", out, in);
 
-	return in;
+	if (in_ptr)
+		*in_ptr = in;
+	return ERROR_OK;
 }
 
 static struct target_type *get_target_type(struct target *target)
@@ -408,11 +411,13 @@ static struct target_type *get_target_type(struct target *target)
 
 	RISCV_INFO(info);
 	switch (info->dtm_version) {
-		case 0:
+		case DTM_DTMCS_VERSION_0_11:
 			return &riscv011_target;
-		case 1:
+		case DTM_DTMCS_VERSION_1_0:
 			return &riscv013_target;
 		default:
+			/* TODO: once we have proper support for non-examined targets
+			 * we should have an assert here */
 			LOG_TARGET_ERROR(target, "Unsupported DTM version: %d",
 					info->dtm_version);
 			return NULL;
@@ -479,6 +484,7 @@ static void riscv_free_registers(struct target *target)
 			free(target->reg_cache->reg_list);
 		}
 		free(target->reg_cache);
+		target->reg_cache = NULL;
 	}
 }
 
@@ -488,6 +494,8 @@ static void riscv_deinit_target(struct target *target)
 
 	struct riscv_info *info = target->arch_info;
 	struct target_type *tt = get_target_type(target);
+	if (!tt)
+		LOG_TARGET_ERROR(target, "Could not identify target type.");
 
 	if (riscv_flush_registers(target) != ERROR_OK)
 		LOG_TARGET_ERROR(target, "Failed to flush registers. Ignoring this error.");
@@ -1551,6 +1559,8 @@ static int oldriscv_step(struct target *target, int current, uint32_t address,
 		int handle_breakpoints)
 {
 	struct target_type *tt = get_target_type(target);
+	if (!tt)
+		return ERROR_FAIL;
 	return tt->step(target, current, address, handle_breakpoints);
 }
 
@@ -1576,25 +1586,40 @@ static int riscv_examine(struct target *target)
 	/* Don't need to select dbus, since the first thing we do is read dtmcontrol. */
 
 	RISCV_INFO(info);
-	uint32_t dtmcontrol = dtmcontrol_scan(target, 0);
+	uint32_t dtmcontrol;
+	if (dtmcontrol_scan(target, 0, &dtmcontrol) != ERROR_OK || dtmcontrol == 0) {
+		LOG_TARGET_ERROR(target, "Could not read dtmcontrol. Check JTAG connectivity/board power.");
+		return ERROR_FAIL;
+	}
 	LOG_TARGET_DEBUG(target, "dtmcontrol=0x%x", dtmcontrol);
 	info->dtm_version = get_field(dtmcontrol, DTMCONTROL_VERSION);
 	LOG_TARGET_DEBUG(target, "version=0x%x", info->dtm_version);
 
+	int examine_status = ERROR_FAIL;
 	struct target_type *tt = get_target_type(target);
 	if (!tt)
-		return ERROR_FAIL;
+		goto examine_fail;
 
-	int result = tt->init_target(info->cmd_ctx, target);
-	if (result != ERROR_OK)
-		return result;
+	examine_status = tt->init_target(info->cmd_ctx, target);
+	if (examine_status != ERROR_OK)
+		goto examine_fail;
 
-	return tt->examine(target);
+	examine_status = tt->examine(target);
+	if (examine_status != ERROR_OK)
+		goto examine_fail;
+
+	return ERROR_OK;
+
+examine_fail:
+	info->dtm_version = DTM_DTMCS_VERSION_UNKNOWN;
+	return examine_status;
 }
 
 static int oldriscv_poll(struct target *target)
 {
 	struct target_type *tt = get_target_type(target);
+	if (!tt)
+		return ERROR_FAIL;
 	return tt->poll(target);
 }
 
@@ -1728,6 +1753,8 @@ static int halt_go(struct target *target)
 	int result;
 	if (!r->get_hart_state) {
 		struct target_type *tt = get_target_type(target);
+		if (!tt)
+			return ERROR_FAIL;
 		result = tt->halt(target);
 	} else {
 		result = riscv_halt_go_all_harts(target);
@@ -1749,6 +1776,8 @@ int riscv_halt(struct target *target)
 
 	if (!r->get_hart_state) {
 		struct target_type *tt = get_target_type(target);
+		if (!tt)
+			return ERROR_FAIL;
 		return tt->halt(target);
 	}
 
@@ -1794,6 +1823,8 @@ static int riscv_assert_reset(struct target *target)
 {
 	LOG_TARGET_DEBUG(target, "coreid: [%d]", target->coreid);
 	struct target_type *tt = get_target_type(target);
+	if (!tt)
+		return ERROR_FAIL;
 	riscv_invalidate_register_cache(target);
 	return tt->assert_reset(target);
 }
@@ -1802,6 +1833,8 @@ static int riscv_deassert_reset(struct target *target)
 {
 	LOG_TARGET_DEBUG(target, "coreid: [%d]", target->coreid);
 	struct target_type *tt = get_target_type(target);
+	if (!tt)
+		return ERROR_FAIL;
 	return tt->deassert_reset(target);
 }
 
@@ -1934,6 +1967,8 @@ static int resume_go(struct target *target, int current,
 	int result;
 	if (!r->get_hart_state) {
 		struct target_type *tt = get_target_type(target);
+		if (!tt)
+			return ERROR_FAIL;
 		result = tt->resume(target, current, address, handle_breakpoints,
 				debug_execution);
 	} else {
@@ -2434,6 +2469,8 @@ static int riscv_write_phys_memory(struct target *target, target_addr_t phys_add
 			uint32_t size, uint32_t count, const uint8_t *buffer)
 {
 	struct target_type *tt = get_target_type(target);
+	if (!tt)
+		return ERROR_FAIL;
 	return tt->write_memory(target, phys_address, size, count, buffer);
 }
 
@@ -2450,6 +2487,8 @@ static int riscv_write_memory(struct target *target, target_addr_t address,
 		address = physical_addr;
 
 	struct target_type *tt = get_target_type(target);
+	if (!tt)
+		return ERROR_FAIL;
 	return tt->write_memory(target, address, size, count, buffer);
 }
 
@@ -2527,6 +2566,8 @@ static int riscv_get_gdb_reg_list(struct target *target,
 static int riscv_arch_state(struct target *target)
 {
 	struct target_type *tt = get_target_type(target);
+	if (!tt)
+		return ERROR_FAIL;
 	return tt->arch_state(target);
 }
 
@@ -4264,7 +4305,7 @@ COMMAND_HANDLER(riscv_exec_progbuf)
 	struct target *target = get_current_target(CMD_CTX);
 
 	RISCV_INFO(r);
-	if (r->dtm_version != 1) {
+	if (r->dtm_version != DTM_DTMCS_VERSION_1_0) {
 		LOG_TARGET_ERROR(target, "exec_progbuf: Program buffer is "
 				"only supported on v0.13 or v1.0 targets.");
 		return ERROR_FAIL;
@@ -4734,7 +4775,7 @@ static void riscv_info_init(struct target *target, struct riscv_info *r)
 
 	r->common_magic = RISCV_COMMON_MAGIC;
 
-	r->dtm_version = 1;
+	r->dtm_version = DTM_DTMCS_VERSION_UNKNOWN;
 	r->version_specific = NULL;
 
 	memset(r->trigger_unique_id, 0xff, sizeof(r->trigger_unique_id));

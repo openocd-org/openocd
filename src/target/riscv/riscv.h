@@ -111,10 +111,12 @@ typedef struct {
 	char *name;
 } range_list_t;
 
+#define DTM_DTMCS_VERSION_UNKNOWN ((unsigned int)-1)
+
 struct riscv_info {
 	unsigned int common_magic;
 
-	unsigned dtm_version;
+	unsigned int dtm_version;
 
 	struct command_context *cmd_ctx;
 	void *version_specific;
@@ -361,7 +363,7 @@ extern uint32_t bscan_tunneled_select_dmi_num_fields;
 typedef enum { BSCAN_TUNNEL_NESTED_TAP, BSCAN_TUNNEL_DATA_REGISTER } bscan_tunnel_type_t;
 extern int bscan_tunnel_ir_width;
 
-uint32_t dtmcontrol_scan_via_bscan(struct target *target, uint32_t out);
+int dtmcontrol_scan_via_bscan(struct target *target, uint32_t out, uint32_t *in_ptr);
 void select_dmi_via_bscan(struct target *target);
 
 /*** OpenOCD Interface */
