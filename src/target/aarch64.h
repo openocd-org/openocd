@@ -43,8 +43,8 @@ struct aarch64_common {
 	struct armv8_common armv8_common;
 
 	/* Context information */
-	uint32_t system_control_reg;
-	uint32_t system_control_reg_curr;
+	uint64_t system_control_reg;
+	uint64_t system_control_reg_curr;
 
 	/* Breakpoint register pairs */
 	int brp_num_context;
