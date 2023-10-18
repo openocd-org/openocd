@@ -2297,7 +2297,7 @@ static int riscv_virt2phys_v(struct target *target, target_addr_t virtual, targe
 		LOG_TARGET_ERROR(target, "Failed to read hgatp register.");
 		return ERROR_FAIL;
 	}
-	int hgatp_mode = get_field(vsatp, RISCV_HGATP_MODE(xlen));
+	int hgatp_mode = get_field(hgatp, RISCV_HGATP_MODE(xlen));
 	LOG_TARGET_DEBUG(target, "G-stage translation mode: %d", hgatp_mode);
 
 	const virt2phys_info_t *vsatp_info;
