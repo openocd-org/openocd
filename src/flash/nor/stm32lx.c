@@ -890,10 +890,11 @@ static int stm32lx_get_info(struct flash_bank *bank, struct command_invocation *
 		if (rev_id == info->revs[i].rev)
 			rev_str = info->revs[i].str;
 
-	if (rev_str)
+	if (rev_str) {
 		command_print_sameline(cmd, "%s - Rev: %s", info->device_str, rev_str);
-	else
+	} else {
 		command_print_sameline(cmd, "%s - Rev: unknown (0x%04x)", info->device_str, rev_id);
+	}
 
 	return ERROR_OK;
 }
