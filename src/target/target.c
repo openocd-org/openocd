@@ -5874,6 +5874,18 @@ COMMAND_HANDLER(handle_target_current_state)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(handle_target_debug_reason)
+{
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	struct target *target = get_current_target(CMD_CTX);
+
+	command_print(CMD, "%s", debug_reason_name(target));
+
+	return ERROR_OK;
+}
+
 static int jim_target_invoke_event(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	struct jim_getopt_info goi;
@@ -6023,6 +6035,13 @@ static const struct command_registration target_instance_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.handler = handle_target_current_state,
 		.help = "displays the current state of this target",
+		.usage = "",
+	},
+	{
+		.name = "debug_reason",
+		.mode = COMMAND_EXEC,
+		.handler = handle_target_debug_reason,
+		.help = "displays the debug reason of this target",
 		.usage = "",
 	},
 	{
