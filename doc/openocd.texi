@@ -11364,16 +11364,18 @@ NOTE: @file{xtensa-core-XXX.cfg} must match the target Xtensa hardware
 connected to OpenOCD.
 
 Some example Xtensa configurations are bundled with OpenOCD for reference:
-@itemize @bullet
+@enumerate
 @item Cadence Palladium VDebug emulation target. The user can combine their
 @file{xtensa-core-XXX.cfg} with the provided
 @file{board/xtensa-palladium-vdebug.cfg} to debug an emulated Xtensa RTL design.
-@item NXP MIMXRT685-EVK evaluation kit. The relevant configuration files are
-@file{board/xtensa-rt685-jlink.cfg} and @file{board/xtensa-core-nxp_rt600.cfg}.
-Additional information is provided by
-@uref{https://www.nxp.com/design/development-boards/i-mx-evaluation-and-development-boards/i-mx-rt600-evaluation-kit:MIMXRT685-EVK,
-NXP}.
+@item NXP MIMXRT685-EVK evaluation kit. The relevant configuration files are:
+@itemize @bullet
+@item @file{board/xtensa-rt685-ext.cfg}
+@item @file{target/xtensa-core-nxp_rt600.cfg}
 @end itemize
+Additional information is available by searching for "i.MX RT600 Evaluation Kit"
+on @url{https://www.nxp.com}.
+@end enumerate
 
 @subsection Xtensa Configuration Commands
 
@@ -11398,6 +11400,11 @@ others may be common to both but have different valid ranges.
 Configure Xtensa target memory. Memory type determines access rights,
 where RAMs are read/write while ROMs are read-only. @var{baseaddr} and
 @var{bytes} are both integers, typically hexadecimal and decimal, respectively.
+
+NOTE: Some Xtensa memory types, such as system RAM/ROM or MMIO/device regions,
+can be added or modified after the Xtensa core has been generated. Additional
+@code{xtensa xtmem} definitions should be manually added to xtensa-core-XXX.cfg
+to keep OpenOCD's target address map consistent with the Xtensa configuration.
 @end deffn
 
 @deffn {Config Command} {xtensa xtmem} (@option{icache}|@option{dcache}) linebytes cachebytes ways [writeback]
