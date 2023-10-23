@@ -41,12 +41,14 @@ WORK_DIR=$PWD
 : ${HIDAPI_SRC:=/path/to/hidapi}
 : ${LIBFTDI_SRC:=/path/to/libftdi}
 : ${CAPSTONE_SRC:=/path/to/capstone}
+: ${LIBJAYLINK_SRC:=/path/to/libjaylink}
 
 OPENOCD_SRC=`readlink -m $OPENOCD_SRC`
 LIBUSB1_SRC=`readlink -m $LIBUSB1_SRC`
 HIDAPI_SRC=`readlink -m $HIDAPI_SRC`
 LIBFTDI_SRC=`readlink -m $LIBFTDI_SRC`
 CAPSTONE_SRC=`readlink -m $CAPSTONE_SRC`
+LIBJAYLINK_SRC=`readlink -m $LIBJAYLINK_SRC`
 
 HOST_TRIPLET=$1
 BUILD_DIR=$WORK_DIR/$HOST_TRIPLET-build
@@ -54,6 +56,7 @@ LIBUSB1_BUILD_DIR=$BUILD_DIR/libusb1
 HIDAPI_BUILD_DIR=$BUILD_DIR/hidapi
 LIBFTDI_BUILD_DIR=$BUILD_DIR/libftdi
 CAPSTONE_BUILD_DIR=$BUILD_DIR/capstone
+LIBJAYLINK_BUILD_DIR=$BUILD_DIR/libjaylink
 OPENOCD_BUILD_DIR=$BUILD_DIR/openocd
 
 ## Root of host file tree
@@ -158,6 +161,16 @@ libdir=${exec_prefix}/lib \
 includedir=${prefix}/include/capstone\n\n;' $CAPSTONE_PC_FILE
 fi
 
+# libjaylink build & install into sysroot
+if [ -d $LIBJAYLINK_SRC ] ; then
+  mkdir -p $LIBJAYLINK_BUILD_DIR
+  cd $LIBJAYLINK_BUILD_DIR
+  $LIBJAYLINK_SRC/configure --build=`$LIBJAYLINK_SRC/config.guess` --host=$HOST_TRIPLET \
+    --with-sysroot=$SYSROOT --prefix=$PREFIX \
+    $LIBJAYLINK_CONFIG
+  make -j $MAKE_JOBS
+  make install DESTDIR=$SYSROOT
+fi
 
 # OpenOCD build & install into sysroot
 mkdir -p $OPENOCD_BUILD_DIR

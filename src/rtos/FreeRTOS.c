@@ -729,6 +729,7 @@ static int freertos_update_threads(struct rtos *rtos)
 
 			tasks_found++;
 			list_thread_count--;
+			rtos->thread_count = tasks_found;
 
 			prev_list_elem_ptr = list_elem_ptr;
 			list_elem_ptr = 0;
@@ -750,7 +751,6 @@ static int freertos_update_threads(struct rtos *rtos)
 	}
 
 	free(list_of_lists);
-	rtos->thread_count = tasks_found;
 	return 0;
 }
 

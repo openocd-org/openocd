@@ -525,20 +525,17 @@ static int jim_cti_create(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	return cti_create(&goi);
 }
 
-static int jim_cti_names(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+COMMAND_HANDLER(cti_handle_names)
 {
 	struct arm_cti *obj;
 
-	if (argc != 1) {
-		Jim_WrongNumArgs(interp, 1, argv, "Too many parameters");
-		return JIM_ERR;
-	}
-	Jim_SetResult(interp, Jim_NewListObj(interp, NULL, 0));
-	list_for_each_entry(obj, &all_cti, lh) {
-		Jim_ListAppendElement(interp, Jim_GetResult(interp),
-			Jim_NewStringObj(interp, obj->name, -1));
-	}
-	return JIM_OK;
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	list_for_each_entry(obj, &all_cti, lh)
+		command_print(CMD, "%s", obj->name);
+
+	return ERROR_OK;
 }
 
 
@@ -553,7 +550,7 @@ static const struct command_registration cti_subcommand_handlers[] = {
 	{
 		.name = "names",
 		.mode = COMMAND_ANY,
-		.jim_handler = jim_cti_names,
+		.handler = cti_handle_names,
 		.usage = "",
 		.help = "Lists all registered CTI objects by name",
 	},

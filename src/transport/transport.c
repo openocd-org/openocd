@@ -252,64 +252,62 @@ COMMAND_HANDLER(handle_transport_list)
  * set supported by the debug adapter being used.  Return value
  * is scriptable (allowing "if swd then..." etc).
  */
-static int jim_transport_select(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
+COMMAND_HANDLER(handle_transport_select)
 {
-	int res;
-	switch (argc) {
-		case 1:	/* autoselect if necessary, then return/display current config */
-			if (!session) {
-				if (!allowed_transports) {
-					LOG_ERROR("Debug adapter does not support any transports? Check config file order.");
-					return JIM_ERR;
-				}
-				LOG_INFO("auto-selecting first available session transport \"%s\". "
-					 "To override use 'transport select <transport>'.", allowed_transports[0]);
-				res = transport_select(global_cmd_ctx, allowed_transports[0]);
-				if (res != JIM_OK)
-					return res;
-			}
-			Jim_SetResultString(interp, session->name, -1);
-			return JIM_OK;
-		case 2:	/* assign */
-			if (session) {
-				if (!strcmp(session->name, argv[1]->bytes)) {
-					LOG_WARNING("Transport \"%s\" was already selected", session->name);
-					Jim_SetResultString(interp, session->name, -1);
-					return JIM_OK;
-				} else {
-					LOG_ERROR("Can't change session's transport after the initial selection was made");
-					return JIM_ERR;
-				}
-			}
+	if (CMD_ARGC > 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-			/* Is this transport supported by our debug adapter?
-			 * Example, "JTAG-only" means SWD is not supported.
-			 *
-			 * NOTE:  requires adapter to have been set up, with
-			 * transports declared via C.
-			 */
+	if (CMD_ARGC == 0) {
+		/* autoselect if necessary, then return/display current config */
+		if (!session) {
 			if (!allowed_transports) {
-				LOG_ERROR("Debug adapter doesn't support any transports?");
-				return JIM_ERR;
+				command_print(CMD, "Debug adapter does not support any transports? Check config file order.");
+				return ERROR_FAIL;
 			}
-
-			for (unsigned i = 0; allowed_transports[i]; i++) {
-
-				if (strcmp(allowed_transports[i], argv[1]->bytes) == 0) {
-					if (transport_select(global_cmd_ctx, argv[1]->bytes) == ERROR_OK) {
-						Jim_SetResultString(interp, session->name, -1);
-						return JIM_OK;
-					}
-					return JIM_ERR;
-				}
-			}
-
-			LOG_ERROR("Debug adapter doesn't support '%s' transport", argv[1]->bytes);
-			return JIM_ERR;
-		default:
-			Jim_WrongNumArgs(interp, 1, argv, "[too many parameters]");
-			return JIM_ERR;
+			LOG_INFO("auto-selecting first available session transport \"%s\". "
+				"To override use 'transport select <transport>'.", allowed_transports[0]);
+			int retval = transport_select(CMD_CTX, allowed_transports[0]);
+			if (retval != ERROR_OK)
+				return retval;
+		}
+		command_print(CMD, "%s", session->name);
+		return ERROR_OK;
 	}
+
+	/* assign transport */
+	if (session) {
+		if (!strcmp(session->name, CMD_ARGV[0])) {
+			LOG_WARNING("Transport \"%s\" was already selected", session->name);
+			command_print(CMD, "%s", session->name);
+			return ERROR_OK;
+		}
+		command_print(CMD, "Can't change session's transport after the initial selection was made");
+		return ERROR_FAIL;
+	}
+
+	/* Is this transport supported by our debug adapter?
+	 * Example, "JTAG-only" means SWD is not supported.
+	 *
+	 * NOTE:  requires adapter to have been set up, with
+	 * transports declared via C.
+	 */
+	if (!allowed_transports) {
+		command_print(CMD, "Debug adapter doesn't support any transports?");
+		return ERROR_FAIL;
+	}
+
+	for (unsigned int i = 0; allowed_transports[i]; i++) {
+		if (!strcmp(allowed_transports[i], CMD_ARGV[0])) {
+			int retval = transport_select(CMD_CTX, CMD_ARGV[0]);
+			if (retval != ERROR_OK)
+				return retval;
+			command_print(CMD, "%s", session->name);
+			return ERROR_OK;
+		}
+	}
+
+	command_print(CMD, "Debug adapter doesn't support '%s' transport", CMD_ARGV[0]);
+	return ERROR_FAIL;
 }
 
 static const struct command_registration transport_commands[] = {
@@ -333,7 +331,7 @@ static const struct command_registration transport_commands[] = {
 	},
 	{
 		.name = "select",
-		.jim_handler = jim_transport_select,
+		.handler = handle_transport_select,
 		.mode = COMMAND_ANY,
 		.help = "Select this session's transport",
 		.usage = "[transport_name]",

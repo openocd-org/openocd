@@ -27,13 +27,6 @@ struct list_head {
 	struct list_head *next, *prev;
 };
 
-struct hlist_head {
-	struct hlist_node *first;
-};
-
-struct hlist_node {
-	struct hlist_node *next, **pprev;
-};
 /* end local changes */
 
 /*
@@ -272,8 +265,7 @@ static inline void list_bulk_move_tail(struct list_head *head,
  * @param list the entry to test
  * @param head the head of the list
  */
-static inline int list_is_first(const struct list_head *list,
-					const struct list_head *head)
+static inline int list_is_first(const struct list_head *list, const struct list_head *head)
 {
 	return list->prev == head;
 }
@@ -283,10 +275,19 @@ static inline int list_is_first(const struct list_head *list,
  * @param list the entry to test
  * @param head the head of the list
  */
-static inline int list_is_last(const struct list_head *list,
-				const struct list_head *head)
+static inline int list_is_last(const struct list_head *list, const struct list_head *head)
 {
 	return list->next == head;
+}
+
+/**
+ * list_is_head - tests whether @a list is the list @a head
+ * @param list the entry to test
+ * @param head the head of the list
+ */
+static inline int list_is_head(const struct list_head *list, const struct list_head *head)
+{
+	return list == head;
 }
 
 /**
@@ -407,10 +408,9 @@ static inline void list_cut_position(struct list_head *list,
 {
 	if (list_empty(head))
 		return;
-	if (list_is_singular(head) &&
-		(head->next != entry && head != entry))
+	if (list_is_singular(head) && !list_is_head(entry, head) && (entry != head->next))
 		return;
-	if (entry == head)
+	if (list_is_head(entry, head))
 		INIT_LIST_HEAD(list);
 	else
 		__list_cut_position(list, head, entry);
@@ -571,6 +571,19 @@ static inline void list_splice_tail_init(struct list_head *list,
 	list_entry((pos)->member.next, typeof(*(pos)), member)
 
 /**
+ * list_next_entry_circular - get the next element in list
+ * @param pos    the type * to cursor.
+ * @param head   the list head to take the element from.
+ * @param member the name of the list_head within the struct.
+ *
+ * Wraparound if pos is the last element (return the first element).
+ * Note, that list is expected to be not empty.
+ */
+#define list_next_entry_circular(pos, head, member) \
+	(list_is_last(&(pos)->member, head) ? \
+	list_first_entry(head, typeof(*(pos)), member) : list_next_entry(pos, member))
+
+/**
  * list_prev_entry - get the prev element in list
  * @param pos    the type * to cursor
  * @param member the name of the list_head within the struct.
@@ -579,12 +592,27 @@ static inline void list_splice_tail_init(struct list_head *list,
 	list_entry((pos)->member.prev, typeof(*(pos)), member)
 
 /**
+ * list_prev_entry_circular - get the prev element in list
+ * @param pos    the type * to cursor.
+ * @param head   the list head to take the element from.
+ * @param member the name of the list_head within the struct.
+ *
+ * Wraparound if pos is the first element (return the last element).
+ * Note, that list is expected to be not empty.
+ */
+#define list_prev_entry_circular(pos, head, member) \
+	(list_is_first(&(pos)->member, head) ? \
+	list_last_entry(head, typeof(*(pos)), member) : list_prev_entry(pos, member))
+
+/**
  * list_for_each	-	iterate over a list
  * @param pos  the &struct list_head to use as a loop cursor.
  * @param head the head for your list.
  */
 #define list_for_each(pos, head) \
-	for (pos = (head)->next; pos != (head); pos = pos->next)
+	for (pos = (head)->next; !list_is_head(pos, (head)); pos = pos->next)
+
+/* Ignore kernel list_for_each_rcu() */
 
 /**
  * list_for_each_continue - continue iteration over a list
@@ -624,6 +652,21 @@ static inline void list_splice_tail_init(struct list_head *list,
 	for (pos = (head)->prev, n = pos->prev; \
 	     pos != (head); \
 	     pos = n, n = pos->prev)
+
+/**
+ * list_count_nodes - count nodes in the list
+ * @param head	the head for your list.
+ */
+static inline size_t list_count_nodes(struct list_head *head)
+{
+	struct list_head *pos;
+	size_t count = 0;
+
+	list_for_each(pos, head)
+		count++;
+
+	return count;
+}
 
 /**
  * list_entry_is_head - test if the entry points to the head of the list
@@ -811,237 +854,7 @@ static inline void list_splice_tail_init(struct list_head *list,
 
 /*
  * Double linked lists with a single pointer list head.
- * Mostly useful for hash tables where the two pointer list head is
- * too wasteful.
- * You lose the ability to access the tail in O(1).
+ * IGNORED
  */
-
-#define HLIST_HEAD_INIT { .first = NULL }
-#define HLIST_HEAD(name) struct hlist_head name = {  .first = NULL }
-#define INIT_HLIST_HEAD(ptr) ((ptr)->first = NULL)
-static inline void INIT_HLIST_NODE(struct hlist_node *h)
-{
-	h->next = NULL;
-	h->pprev = NULL;
-}
-
-/**
- * hlist_unhashed - Has node been removed from list and reinitialized?
- * @param h Node to be checked
- *
- * Not that not all removal functions will leave a node in unhashed
- * state.  For example, hlist_nulls_del_init_rcu() does leave the
- * node in unhashed state, but hlist_nulls_del() does not.
- */
-static inline int hlist_unhashed(const struct hlist_node *h)
-{
-	return !h->pprev;
-}
-
-/* Ignore kernel hlist_unhashed_lockless() */
-
-/**
- * hlist_empty - Is the specified hlist_head structure an empty hlist?
- * @param h Structure to check.
- */
-static inline int hlist_empty(const struct hlist_head *h)
-{
-	return !h->first;
-}
-
-static inline void __hlist_del(struct hlist_node *n)
-{
-	struct hlist_node *next = n->next;
-	struct hlist_node **pprev = n->pprev;
-
-	*pprev = next;
-	if (next)
-		next->pprev = pprev;
-}
-
-/**
- * hlist_del - Delete the specified hlist_node from its list
- * @param n Node to delete.
- *
- * Note that this function leaves the node in hashed state.  Use
- * hlist_del_init() or similar instead to unhash @a n.
- */
-static inline void hlist_del(struct hlist_node *n)
-{
-	__hlist_del(n);
-	n->next = LIST_POISON1;
-	n->pprev = LIST_POISON2;
-}
-
-/**
- * hlist_del_init - Delete the specified hlist_node from its list and initialize
- * @param n Node to delete.
- *
- * Note that this function leaves the node in unhashed state.
- */
-static inline void hlist_del_init(struct hlist_node *n)
-{
-	if (!hlist_unhashed(n)) {
-		__hlist_del(n);
-		INIT_HLIST_NODE(n);
-	}
-}
-
-/**
- * hlist_add_head - add a new entry at the beginning of the hlist
- * @param n new entry to be added
- * @param h hlist head to add it after
- *
- * Insert a new entry after the specified head.
- * This is good for implementing stacks.
- */
-static inline void hlist_add_head(struct hlist_node *n, struct hlist_head *h)
-{
-	struct hlist_node *first = h->first;
-	n->next = first;
-	if (first)
-		first->pprev = &n->next;
-	h->first = n;
-	n->pprev = &h->first;
-}
-
-/**
- * hlist_add_before - add a new entry before the one specified
- * @param n    new entry to be added
- * @param next hlist node to add it before, which must be non-NULL
- */
-static inline void hlist_add_before(struct hlist_node *n,
-				    struct hlist_node *next)
-{
-	n->pprev = next->pprev;
-	n->next = next;
-	next->pprev = &n->next;
-	*(n->pprev) = n;
-}
-
-/**
- * hlist_add_behind - add a new entry after the one specified
- * @param n    new entry to be added
- * @param prev hlist node to add it after, which must be non-NULL
- */
-static inline void hlist_add_behind(struct hlist_node *n,
-				    struct hlist_node *prev)
-{
-	n->next = prev->next;
-	prev->next = n;
-	n->pprev = &prev->next;
-
-	if (n->next)
-		n->next->pprev = &n->next;
-}
-
-/**
- * hlist_add_fake - create a fake hlist consisting of a single headless node
- * @param n Node to make a fake list out of
- *
- * This makes @a n appear to be its own predecessor on a headless hlist.
- * The point of this is to allow things like hlist_del() to work correctly
- * in cases where there is no list.
- */
-static inline void hlist_add_fake(struct hlist_node *n)
-{
-	n->pprev = &n->next;
-}
-
-/**
- * hlist_fake: Is this node a fake hlist?
- * @param h Node to check for being a self-referential fake hlist.
- */
-static inline bool hlist_fake(struct hlist_node *h)
-{
-	return h->pprev == &h->next;
-}
-
-/**
- * hlist_is_singular_node - is node the only element of the specified hlist?
- * @param n Node to check for singularity.
- * @param h Header for potentially singular list.
- *
- * Check whether the node is the only node of the head without
- * accessing head, thus avoiding unnecessary cache misses.
- */
-static inline bool
-hlist_is_singular_node(struct hlist_node *n, struct hlist_head *h)
-{
-	return !n->next && n->pprev == &h->first;
-}
-
-/**
- * hlist_move_list - Move an hlist
- * @param old hlist_head for old list.
- * @param new hlist_head for new list.
- *
- * Move a list from one list head to another. Fixup the pprev
- * reference of the first entry if it exists.
- */
-static inline void hlist_move_list(struct hlist_head *old,
-				   struct hlist_head *new)
-{
-	new->first = old->first;
-	if (new->first)
-		new->first->pprev = &new->first;
-	old->first = NULL;
-}
-
-#define hlist_entry(ptr, type, member) container_of(ptr, type, member)
-
-#define hlist_for_each(pos, head) \
-	for (pos = (head)->first; pos ; pos = pos->next)
-
-#define hlist_for_each_safe(pos, n, head) \
-	for (pos = (head)->first; pos && ({ n = pos->next; 1; }); \
-	     pos = n)
-
-#define hlist_entry_safe(ptr, type, member) \
-	({ typeof(ptr) ____ptr = (ptr); \
-	   ____ptr ? hlist_entry(____ptr, type, member) : NULL; \
-	})
-
-/**
- * hlist_for_each_entry	- iterate over list of given type
- * @param pos    the type * to use as a loop cursor.
- * @param head   the head for your list.
- * @param member the name of the hlist_node within the struct.
- */
-#define hlist_for_each_entry(pos, head, member)				\
-	for (pos = hlist_entry_safe((head)->first, typeof(*(pos)), member);\
-	     pos;							\
-	     pos = hlist_entry_safe((pos)->member.next, typeof(*(pos)), member))
-
-/**
- * hlist_for_each_entry_continue - iterate over a hlist continuing after current point
- * @param pos    the type * to use as a loop cursor.
- * @param member the name of the hlist_node within the struct.
- */
-#define hlist_for_each_entry_continue(pos, member)			\
-	for (pos = hlist_entry_safe((pos)->member.next, typeof(*(pos)), member);\
-	     pos;							\
-	     pos = hlist_entry_safe((pos)->member.next, typeof(*(pos)), member))
-
-/**
- * hlist_for_each_entry_from - iterate over a hlist continuing from current point
- * @param pos    the type * to use as a loop cursor.
- * @param member the name of the hlist_node within the struct.
- */
-#define hlist_for_each_entry_from(pos, member)				\
-	for (; pos;							\
-	     pos = hlist_entry_safe((pos)->member.next, typeof(*(pos)), member))
-
-/**
- * hlist_for_each_entry_safe - iterate over list of given type safe against removal of list entry
- * @param pos    the type * to use as a loop cursor.
- * @param n      a &struct hlist_node to use as temporary storage
- * @param head   the head for your list.
- * @param member the name of the hlist_node within the struct.
- */
-#define hlist_for_each_entry_safe(pos, n, head, member)		\
-	for (pos = hlist_entry_safe((head)->first, typeof(*pos), member);\
-	     pos && ({ n = pos->member.next; 1; });			\
-	     pos = hlist_entry_safe(n, typeof(*pos), member))
 
 #endif /* OPENOCD_HELPER_LIST_H */
