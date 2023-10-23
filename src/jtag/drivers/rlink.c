@@ -632,7 +632,7 @@ static int dtc_queue_run(void)
 	uint8_t dtc_mask, tdo_mask;
 	uint8_t reply_buffer[USB_EP2IN_SIZE];
 
-	assert((dtc_queue.rq_head != 0) == (dtc_queue.reply_index > 0));
+	assert((!!dtc_queue.rq_head) == (dtc_queue.reply_index > 0));
 	assert(dtc_queue.cmd_index < USB_EP2BANK_SIZE);
 	assert(dtc_queue.reply_index <= USB_EP2IN_SIZE);
 

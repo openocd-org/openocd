@@ -123,7 +123,7 @@ static int linux_read_memory(struct target *target,
 		target->rtos->rtos_specific_params;
 	uint32_t pa = (address & linux_os->phys_mask) + linux_os->phys_base;
 #endif
-	if (address < 0xc000000) {
+	if (address < 0xc0000000) {
 		LOG_ERROR("linux awareness : address in user space");
 		return ERROR_FAIL;
 	}

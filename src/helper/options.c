@@ -39,12 +39,12 @@ static int help_flag, version_flag;
 static const struct option long_options[] = {
 	{"help",		no_argument,			&help_flag,		1},
 	{"version",		no_argument,			&version_flag,	1},
-	{"debug",		optional_argument,		0,				'd'},
-	{"file",		required_argument,		0,				'f'},
-	{"search",		required_argument,		0,				's'},
-	{"log_output",	required_argument,		0,				'l'},
-	{"command",		required_argument,		0,				'c'},
-	{0, 0, 0, 0}
+	{"debug",		optional_argument,		NULL,			'd'},
+	{"file",		required_argument,		NULL,			'f'},
+	{"search",		required_argument,		NULL,			's'},
+	{"log_output",	required_argument,		NULL,			'l'},
+	{"command",		required_argument,		NULL,			'c'},
+	{NULL, 0, NULL, 0}
 };
 
 int configuration_output_handler(struct command_context *context, const char *line)

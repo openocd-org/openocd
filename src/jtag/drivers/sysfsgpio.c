@@ -571,7 +571,7 @@ static struct bitbang_interface sysfsgpio_bitbang = {
 	.swdio_read = sysfsgpio_swdio_read,
 	.swdio_drive = sysfsgpio_swdio_drive,
 	.swd_write = sysfsgpio_swd_write,
-	.blink = 0
+	.blink = NULL,
 };
 
 /* helper func to close and cleanup files only if they were valid/ used */

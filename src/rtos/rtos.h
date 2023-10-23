@@ -173,4 +173,19 @@ struct target *rtos_swbp_target(struct target *target, target_addr_t address,
 				uint32_t length, enum breakpoint_type type);
 struct rtos *rtos_of_target(struct target *target);
 
+extern const struct rtos_type chibios_rtos;
+extern const struct rtos_type chromium_ec_rtos;
+extern const struct rtos_type ecos_rtos;
+extern const struct rtos_type embkernel_rtos;
+extern const struct rtos_type freertos_rtos;
+extern const struct rtos_type hwthread_rtos;
+extern const struct rtos_type linux_rtos;
+extern const struct rtos_type mqx_rtos;
+extern const struct rtos_type nuttx_rtos;
+extern const struct rtos_type riot_rtos;
+extern const struct rtos_type rtkernel_rtos;
+extern const struct rtos_type threadx_rtos;
+extern const struct rtos_type ucos_iii_rtos;
+extern const struct rtos_type zephyr_rtos;
+
 #endif /* OPENOCD_RTOS_RTOS_H */

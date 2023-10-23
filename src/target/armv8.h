@@ -204,6 +204,7 @@ struct armv8_common {
 	uint8_t pa_size;
 	uint32_t page_size;
 	uint64_t ttbr_base;
+	bool is_armv8r;
 
 	struct armv8_mmu_common armv8_mmu;
 

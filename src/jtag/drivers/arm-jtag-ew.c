@@ -213,7 +213,7 @@ static int armjtagew_init(void)
 
 	armjtagew_handle = armjtagew_usb_open();
 
-	if (armjtagew_handle == 0) {
+	if (!armjtagew_handle) {
 		LOG_ERROR(
 			"Cannot find ARM-JTAG-EW Interface! Please check connection and permissions.");
 		return ERROR_JTAG_INIT_FAILED;

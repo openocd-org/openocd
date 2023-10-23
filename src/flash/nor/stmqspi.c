@@ -2447,7 +2447,7 @@ static const struct command_registration stmqspi_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-struct flash_driver stmqspi_flash = {
+const struct flash_driver stmqspi_flash = {
 	.name = "stmqspi",
 	.commands = stmqspi_command_handlers,
 	.flash_bank_command = stmqspi_flash_bank_command,

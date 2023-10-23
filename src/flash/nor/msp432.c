@@ -375,7 +375,7 @@ static int msp432_init(struct flash_bank *bank)
 	buf_set_u32(reg_params[0].value, 0, 32, ALGO_STACK_POINTER_ADDR);
 
 	/* Begin executing the flash helper algorithm */
-	retval = target_start_algorithm(target, 0, 0, 1, reg_params,
+	retval = target_start_algorithm(target, 0, NULL, 1, reg_params,
 				algo_entry_addr, 0, &msp432_bank->armv7m_info);
 	destroy_reg_param(&reg_params[0]);
 	if (retval != ERROR_OK) {

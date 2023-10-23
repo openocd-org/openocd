@@ -536,8 +536,8 @@ struct  numicro_flash_bank {
 };
 
 /* Private variables */
-uint32_t m_page_size = NUMICRO_PAGESIZE;
-uint32_t m_address_bias_offset;
+static uint32_t m_page_size = NUMICRO_PAGESIZE;
+static uint32_t m_address_bias_offset;
 
 /* Private methods */
 static int numicro_get_arm_arch(struct target *target)

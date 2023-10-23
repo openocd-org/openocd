@@ -107,7 +107,7 @@ static int at91rm9200_quit(void);
 static struct bitbang_interface at91rm9200_bitbang = {
 	.read = at91rm9200_read,
 	.write = at91rm9200_write,
-	.blink = 0
+	.blink = NULL,
 };
 
 static bb_value_t at91rm9200_read(void)
@@ -157,8 +157,12 @@ COMMAND_HANDLER(at91rm9200_handle_device_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	/* only if the device name wasn't overwritten by cmdline */
-	if (at91rm9200_device == 0) {
+	if (!at91rm9200_device) {
 		at91rm9200_device = malloc(strlen(CMD_ARGV[0]) + sizeof(char));
+		if (!at91rm9200_device) {
+			LOG_ERROR("Out of memory");
+			return ERROR_FAIL;
+		}
 		strcpy(at91rm9200_device, CMD_ARGV[0]);
 	}
 

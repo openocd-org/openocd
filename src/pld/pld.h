@@ -38,4 +38,11 @@ struct pld_device *get_pld_device_by_num(int num);
 #define ERROR_PLD_DEVICE_INVALID        (-1000)
 #define ERROR_PLD_FILE_LOAD_FAILED      (-1001)
 
+extern struct pld_driver efinix_pld;
+extern struct pld_driver gatemate_pld;
+extern struct pld_driver gowin_pld;
+extern struct pld_driver intel_pld;
+extern struct pld_driver lattice_pld;
+extern struct pld_driver virtex2_pld;
+
 #endif /* OPENOCD_PLD_PLD_H */

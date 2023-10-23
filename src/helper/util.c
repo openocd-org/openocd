@@ -12,6 +12,7 @@
 
 #include "log.h"
 #include "time_support.h"
+#include "util.h"
 
 COMMAND_HANDLER(handler_util_ms)
 {

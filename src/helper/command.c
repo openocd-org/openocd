@@ -582,7 +582,7 @@ int command_run_line(struct command_context *context, char *line)
 		Jim_DeleteAssocData(interp, "retval");
 		retcode = Jim_SetAssocData(interp, "retval", NULL, &retval);
 		if (retcode == JIM_OK) {
-			retcode = Jim_Eval_Named(interp, line, 0, 0);
+			retcode = Jim_Eval_Named(interp, line, NULL, 0);
 
 			Jim_DeleteAssocData(interp, "retval");
 		}

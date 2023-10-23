@@ -16,22 +16,6 @@
 #include "helper/binarybuffer.h"
 #include "server/gdb_server.h"
 
-/* RTOSs */
-extern const struct rtos_type freertos_rtos;
-extern const struct rtos_type threadx_rtos;
-extern const struct rtos_type ecos_rtos;
-extern const struct rtos_type linux_rtos;
-extern const struct rtos_type chibios_rtos;
-extern const struct rtos_type chromium_ec_rtos;
-extern const struct rtos_type embkernel_rtos;
-extern const struct rtos_type mqx_rtos;
-extern const struct rtos_type ucos_iii_rtos;
-extern const struct rtos_type nuttx_rtos;
-extern const struct rtos_type hwthread_rtos;
-extern const struct rtos_type riot_rtos;
-extern const struct rtos_type zephyr_rtos;
-extern const struct rtos_type rtkernel_rtos;
-
 static const struct rtos_type *rtos_types[] = {
 	&threadx_rtos,
 	&freertos_rtos,

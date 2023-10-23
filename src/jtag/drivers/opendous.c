@@ -347,7 +347,7 @@ static int opendous_init(void)
 
 	opendous_jtag_handle = opendous_usb_open();
 
-	if (opendous_jtag_handle == 0) {
+	if (!opendous_jtag_handle) {
 		LOG_ERROR("Cannot find opendous Interface! Please check connection and permissions.");
 		return ERROR_JTAG_INIT_FAILED;
 	}

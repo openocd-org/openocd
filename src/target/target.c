@@ -31,6 +31,7 @@
 #endif
 
 #include <helper/align.h>
+#include <helper/nvp.h>
 #include <helper/time_support.h>
 #include <jtag/jtag.h>
 #include <flash/nor/core.h>
@@ -64,45 +65,6 @@ static int target_get_gdb_fileio_info_default(struct target *target,
 		struct gdb_fileio_info *fileio_info);
 static int target_gdb_fileio_end_default(struct target *target, int retcode,
 		int fileio_errno, bool ctrl_c);
-
-/* targets */
-extern struct target_type arm7tdmi_target;
-extern struct target_type arm720t_target;
-extern struct target_type arm9tdmi_target;
-extern struct target_type arm920t_target;
-extern struct target_type arm966e_target;
-extern struct target_type arm946e_target;
-extern struct target_type arm926ejs_target;
-extern struct target_type fa526_target;
-extern struct target_type feroceon_target;
-extern struct target_type dragonite_target;
-extern struct target_type xscale_target;
-extern struct target_type xtensa_chip_target;
-extern struct target_type cortexm_target;
-extern struct target_type cortexa_target;
-extern struct target_type aarch64_target;
-extern struct target_type cortexr4_target;
-extern struct target_type arm11_target;
-extern struct target_type ls1_sap_target;
-extern struct target_type mips_m4k_target;
-extern struct target_type mips_mips64_target;
-extern struct target_type avr_target;
-extern struct target_type dsp563xx_target;
-extern struct target_type dsp5680xx_target;
-extern struct target_type testee_target;
-extern struct target_type avr32_ap7k_target;
-extern struct target_type hla_target;
-extern struct target_type esp32_target;
-extern struct target_type esp32s2_target;
-extern struct target_type esp32s3_target;
-extern struct target_type or1k_target;
-extern struct target_type quark_x10xx_target;
-extern struct target_type quark_d20xx_target;
-extern struct target_type stm8_target;
-extern struct target_type riscv_target;
-extern struct target_type mem_ap_target;
-extern struct target_type esirisc_target;
-extern struct target_type arcv2_target;
 
 static struct target_type *target_types[] = {
 	&arm7tdmi_target,
@@ -141,6 +103,7 @@ static struct target_type *target_types[] = {
 	&esirisc_target,
 	&arcv2_target,
 	&aarch64_target,
+	&armv8r_target,
 	&mips_mips64_target,
 	NULL,
 };
@@ -154,7 +117,12 @@ static LIST_HEAD(target_trace_callback_list);
 static const unsigned int polling_interval = TARGET_DEFAULT_POLLING_INTERVAL;
 static LIST_HEAD(empty_smp_targets);
 
-static const struct jim_nvp nvp_assert[] = {
+enum nvp_assert {
+	NVP_DEASSERT,
+	NVP_ASSERT,
+};
+
+static const struct nvp nvp_assert[] = {
 	{ .name = "assert", NVP_ASSERT },
 	{ .name = "deassert", NVP_DEASSERT },
 	{ .name = "T", NVP_ASSERT },
@@ -164,7 +132,7 @@ static const struct jim_nvp nvp_assert[] = {
 	{ .name = NULL, .value = -1 }
 };
 
-static const struct jim_nvp nvp_error_target[] = {
+static const struct nvp nvp_error_target[] = {
 	{ .value = ERROR_TARGET_INVALID, .name = "err-invalid" },
 	{ .value = ERROR_TARGET_INIT_FAILED, .name = "err-init-failed" },
 	{ .value = ERROR_TARGET_TIMEOUT, .name = "err-timeout" },
@@ -181,9 +149,9 @@ static const struct jim_nvp nvp_error_target[] = {
 
 static const char *target_strerror_safe(int err)
 {
-	const struct jim_nvp *n;
+	const struct nvp *n;
 
-	n = jim_nvp_value2name_simple(nvp_error_target, err);
+	n = nvp_value2name(nvp_error_target, err);
 	if (!n->name)
 		return "unknown";
 	else
@@ -252,7 +220,7 @@ static const struct jim_nvp nvp_target_state[] = {
 	{ .name = NULL, .value = -1 },
 };
 
-static const struct jim_nvp nvp_target_debug_reason[] = {
+static const struct nvp nvp_target_debug_reason[] = {
 	{ .name = "debug-request",             .value = DBG_REASON_DBGRQ },
 	{ .name = "breakpoint",                .value = DBG_REASON_BREAKPOINT },
 	{ .name = "watchpoint",                .value = DBG_REASON_WATCHPOINT },
@@ -273,7 +241,7 @@ static const struct jim_nvp nvp_target_endian[] = {
 	{ .name = NULL,     .value = -1 },
 };
 
-static const struct jim_nvp nvp_reset_modes[] = {
+static const struct nvp nvp_reset_modes[] = {
 	{ .name = "unknown", .value = RESET_UNKNOWN },
 	{ .name = "run",     .value = RESET_RUN },
 	{ .name = "halt",    .value = RESET_HALT },
@@ -285,7 +253,7 @@ const char *debug_reason_name(struct target *t)
 {
 	const char *cp;
 
-	cp = jim_nvp_value2name_simple(nvp_target_debug_reason,
+	cp = nvp_value2name(nvp_target_debug_reason,
 			t->debug_reason)->name;
 	if (!cp) {
 		LOG_ERROR("Invalid debug reason: %d", (int)(t->debug_reason));
@@ -323,7 +291,7 @@ const char *target_event_name(enum target_event event)
 const char *target_reset_mode_name(enum target_reset_mode reset_mode)
 {
 	const char *cp;
-	cp = jim_nvp_value2name_simple(nvp_reset_modes, reset_mode)->name;
+	cp = nvp_value2name(nvp_reset_modes, reset_mode)->name;
 	if (!cp) {
 		LOG_ERROR("Invalid target reset mode: %d", (int)(reset_mode));
 		cp = "(*BUG*unknown*BUG*)";
@@ -667,8 +635,8 @@ static int target_process_reset(struct command_invocation *cmd, enum target_rese
 {
 	char buf[100];
 	int retval;
-	struct jim_nvp *n;
-	n = jim_nvp_value2name_simple(nvp_reset_modes, reset_mode);
+	const struct nvp *n;
+	n = nvp_value2name(nvp_reset_modes, reset_mode);
 	if (!n->name) {
 		LOG_ERROR("invalid reset mode");
 		return ERROR_FAIL;
@@ -1864,7 +1832,7 @@ int target_call_reset_callbacks(struct target *target, enum target_reset_mode re
 	struct target_reset_callback *callback;
 
 	LOG_DEBUG("target reset %i (%s)", reset_mode,
-			jim_nvp_value2name_simple(nvp_reset_modes, reset_mode)->name);
+			nvp_value2name(nvp_reset_modes, reset_mode)->name);
 
 	list_for_each_entry(callback, &target_reset_callback_list, list)
 		callback->callback(target, reset_mode, callback->priv);
@@ -3337,8 +3305,8 @@ COMMAND_HANDLER(handle_reset_command)
 
 	enum target_reset_mode reset_mode = RESET_RUN;
 	if (CMD_ARGC == 1) {
-		const struct jim_nvp *n;
-		n = jim_nvp_name2value_simple(nvp_reset_modes, CMD_ARGV[0]);
+		const struct nvp *n;
+		n = nvp_name2value(nvp_reset_modes, CMD_ARGV[0]);
 		if ((!n->name) || (n->value == RESET_UNKNOWN))
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		reset_mode = n->value;
@@ -5752,62 +5720,47 @@ COMMAND_HANDLER(handle_target_halt_gdb)
 	return target_call_event_callbacks(target, TARGET_EVENT_GDB_HALT);
 }
 
-static int jim_target_poll(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+COMMAND_HANDLER(handle_target_poll)
 {
-	if (argc != 1) {
-		Jim_WrongNumArgs(interp, 1, argv, "[no parameters]");
-		return JIM_ERR;
-	}
-	struct command_context *cmd_ctx = current_command_context(interp);
-	assert(cmd_ctx);
-	struct target *target = get_current_target(cmd_ctx);
-	if (!target->tap->enabled)
-		return jim_target_tap_disabled(interp);
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	int e;
+	struct target *target = get_current_target(CMD_CTX);
+	if (!target->tap->enabled) {
+		command_print(CMD, "[TAP is disabled]");
+		return ERROR_FAIL;
+	}
+
 	if (!(target_was_examined(target)))
-		e = ERROR_TARGET_NOT_EXAMINED;
-	else
-		e = target->type->poll(target);
-	if (e != ERROR_OK)
-		return JIM_ERR;
-	return JIM_OK;
+		return ERROR_TARGET_NOT_EXAMINED;
+
+	return target->type->poll(target);
 }
 
-static int jim_target_reset(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+COMMAND_HANDLER(handle_target_reset)
 {
-	struct jim_getopt_info goi;
-	jim_getopt_setup(&goi, interp, argc - 1, argv + 1);
+	if (CMD_ARGC != 2)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	if (goi.argc != 2) {
-		Jim_WrongNumArgs(interp, 0, argv,
-				"([tT]|[fF]|assert|deassert) BOOL");
-		return JIM_ERR;
+	const struct nvp *n = nvp_name2value(nvp_assert, CMD_ARGV[0]);
+	if (!n->name) {
+		nvp_unknown_command_print(CMD, nvp_assert, NULL, CMD_ARGV[0]);
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
-	struct jim_nvp *n;
-	int e = jim_getopt_nvp(&goi, nvp_assert, &n);
-	if (e != JIM_OK) {
-		jim_getopt_nvp_unknown(&goi, nvp_assert, 1);
-		return e;
-	}
 	/* the halt or not param */
-	jim_wide a;
-	e = jim_getopt_wide(&goi, &a);
-	if (e != JIM_OK)
-		return e;
+	int a;
+	COMMAND_PARSE_NUMBER(int, CMD_ARGV[1], a);
 
-	struct command_context *cmd_ctx = current_command_context(interp);
-	assert(cmd_ctx);
-	struct target *target = get_current_target(cmd_ctx);
-	if (!target->tap->enabled)
-		return jim_target_tap_disabled(interp);
+	struct target *target = get_current_target(CMD_CTX);
+	if (!target->tap->enabled) {
+		command_print(CMD, "[TAP is disabled]");
+		return ERROR_FAIL;
+	}
 
 	if (!target->type->assert_reset || !target->type->deassert_reset) {
-		Jim_SetResultFormatted(interp,
-				"No target-specific reset for %s",
-				target_name(target));
-		return JIM_ERR;
+		command_print(CMD, "No target-specific reset for %s", target_name(target));
+		return ERROR_FAIL;
 	}
 
 	if (target->defer_examine)
@@ -5820,25 +5773,22 @@ static int jim_target_reset(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 
 	/* do the assert */
 	if (n->value == NVP_ASSERT)
-		e = target->type->assert_reset(target);
-	else
-		e = target->type->deassert_reset(target);
-	return (e == ERROR_OK) ? JIM_OK : JIM_ERR;
+		return target->type->assert_reset(target);
+	return target->type->deassert_reset(target);
 }
 
-static int jim_target_halt(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+COMMAND_HANDLER(handle_target_halt)
 {
-	if (argc != 1) {
-		Jim_WrongNumArgs(interp, 1, argv, "[no parameters]");
-		return JIM_ERR;
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	struct target *target = get_current_target(CMD_CTX);
+	if (!target->tap->enabled) {
+		command_print(CMD, "[TAP is disabled]");
+		return ERROR_FAIL;
 	}
-	struct command_context *cmd_ctx = current_command_context(interp);
-	assert(cmd_ctx);
-	struct target *target = get_current_target(cmd_ctx);
-	if (!target->tap->enabled)
-		return jim_target_tap_disabled(interp);
-	int e = target->type->halt(target);
-	return (e == ERROR_OK) ? JIM_OK : JIM_ERR;
+
+	return target->type->halt(target);
 }
 
 static int jim_target_wait_state(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
@@ -6099,20 +6049,23 @@ static const struct command_registration target_instance_command_handlers[] = {
 	{
 		.name = "arp_poll",
 		.mode = COMMAND_EXEC,
-		.jim_handler = jim_target_poll,
+		.handler = handle_target_poll,
 		.help = "used internally for reset processing",
+		.usage = "",
 	},
 	{
 		.name = "arp_reset",
 		.mode = COMMAND_EXEC,
-		.jim_handler = jim_target_reset,
+		.handler = handle_target_reset,
 		.help = "used internally for reset processing",
+		.usage = "'assert'|'deassert' halt",
 	},
 	{
 		.name = "arp_halt",
 		.mode = COMMAND_EXEC,
-		.jim_handler = jim_target_halt,
+		.handler = handle_target_halt,
 		.help = "used internally for reset processing",
+		.usage = "",
 	},
 	{
 		.name = "arp_waitstate",

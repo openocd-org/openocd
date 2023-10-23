@@ -23,6 +23,10 @@ static int virtex2_set_instr(struct jtag_tap *tap, uint32_t new_instr)
 
 		field.num_bits = tap->ir_length;
 		void *t = calloc(DIV_ROUND_UP(field.num_bits, 8), 1);
+		if (!t) {
+			LOG_ERROR("Out of memory");
+			return ERROR_FAIL;
+		}
 		field.out_value = t;
 		buf_set_u32(t, 0, field.num_bits, new_instr);
 		field.in_value = NULL;
@@ -44,6 +48,10 @@ static int virtex2_send_32(struct pld_device *pld_device,
 	int i;
 
 	values = malloc(num_words * 4);
+	if (!values) {
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
+	}
 
 	scan_field.num_bits = num_words * 32;
 	scan_field.out_value = values;
@@ -52,7 +60,11 @@ static int virtex2_send_32(struct pld_device *pld_device,
 	for (i = 0; i < num_words; i++)
 		buf_set_u32(values + 4 * i, 0, 32, flip_u32(*words++, 32));
 
-	virtex2_set_instr(virtex2_info->tap, 0x5);	/* CFG_IN */
+	int retval = virtex2_set_instr(virtex2_info->tap, 0x5);	/* CFG_IN */
+	if (retval != ERROR_OK) {
+		free(values);
+		return retval;
+	}
 
 	jtag_add_dr_scan(virtex2_info->tap, 1, &scan_field, TAP_DRPAUSE);
 
@@ -77,7 +89,9 @@ static int virtex2_receive_32(struct pld_device *pld_device,
 	scan_field.out_value = NULL;
 	scan_field.in_value = NULL;
 
-	virtex2_set_instr(virtex2_info->tap, 0x4);	/* CFG_OUT */
+	int retval = virtex2_set_instr(virtex2_info->tap, 0x4);	/* CFG_OUT */
+	if (retval != ERROR_OK)
+		return retval;
 
 	while (num_words--) {
 		scan_field.in_value = (uint8_t *)words;
@@ -103,15 +117,72 @@ static int virtex2_read_stat(struct pld_device *pld_device, uint32_t *status)
 	data[2] = 0x20000000;	/* NOOP (Type 1, read, address 0, 0 words */
 	data[3] = 0x20000000;	/* NOOP */
 	data[4] = 0x20000000;	/* NOOP */
-	virtex2_send_32(pld_device, 5, data);
+	int retval = virtex2_send_32(pld_device, 5, data);
+	if (retval != ERROR_OK)
+		return retval;
 
-	virtex2_receive_32(pld_device, 1, status);
+	retval = virtex2_receive_32(pld_device, 1, status);
+	if (retval != ERROR_OK)
+		return retval;
 
-	jtag_execute_queue();
+	retval = jtag_execute_queue();
+	if (retval == ERROR_OK)
+		LOG_DEBUG("status: 0x%8.8" PRIx32, *status);
 
-	LOG_DEBUG("status: 0x%8.8" PRIx32 "", *status);
+	return retval;
+}
 
-	return ERROR_OK;
+static int virtex2_load_prepare(struct pld_device *pld_device)
+{
+	struct virtex2_pld_device *virtex2_info = pld_device->driver_priv;
+	int retval;
+
+	retval = virtex2_set_instr(virtex2_info->tap, 0xb);	/* JPROG_B */
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = jtag_execute_queue();
+	if (retval != ERROR_OK)
+		return retval;
+	jtag_add_sleep(1000);
+
+	retval = virtex2_set_instr(virtex2_info->tap, 0x5);	/* CFG_IN */
+	if (retval != ERROR_OK)
+		return retval;
+
+	return jtag_execute_queue();
+}
+
+static int virtex2_load_cleanup(struct pld_device *pld_device)
+{
+	struct virtex2_pld_device *virtex2_info = pld_device->driver_priv;
+	int retval;
+
+	jtag_add_tlr();
+
+	if (!(virtex2_info->no_jstart)) {
+		retval = virtex2_set_instr(virtex2_info->tap, 0xc);	/* JSTART */
+		if (retval != ERROR_OK)
+			return retval;
+	}
+	jtag_add_runtest(13, TAP_IDLE);
+	retval = virtex2_set_instr(virtex2_info->tap, 0x3f);		/* BYPASS */
+	if (retval != ERROR_OK)
+		return retval;
+	retval = virtex2_set_instr(virtex2_info->tap, 0x3f);		/* BYPASS */
+	if (retval != ERROR_OK)
+		return retval;
+	if (!(virtex2_info->no_jstart)) {
+		retval = virtex2_set_instr(virtex2_info->tap, 0xc);	/* JSTART */
+		if (retval != ERROR_OK)
+			return retval;
+	}
+	jtag_add_runtest(13, TAP_IDLE);
+	retval = virtex2_set_instr(virtex2_info->tap, 0x3f);		/* BYPASS */
+	if (retval != ERROR_OK)
+		return retval;
+
+	return jtag_execute_queue();
 }
 
 static int virtex2_load(struct pld_device *pld_device, const char *filename)
@@ -128,12 +199,11 @@ static int virtex2_load(struct pld_device *pld_device, const char *filename)
 	if (retval != ERROR_OK)
 		return retval;
 
-	virtex2_set_instr(virtex2_info->tap, 0xb);	/* JPROG_B */
-	jtag_execute_queue();
-	jtag_add_sleep(1000);
-
-	virtex2_set_instr(virtex2_info->tap, 0x5);	/* CFG_IN */
-	jtag_execute_queue();
+	retval = virtex2_load_prepare(pld_device);
+	if (retval != ERROR_OK) {
+		xilinx_free_bit_file(&bit_file);
+		return retval;
+	}
 
 	for (i = 0; i < bit_file.length; i++)
 		bit_file.data[i] = flip_u32(bit_file.data[i], 8);
@@ -142,24 +212,17 @@ static int virtex2_load(struct pld_device *pld_device, const char *filename)
 	field.out_value = bit_file.data;
 
 	jtag_add_dr_scan(virtex2_info->tap, 1, &field, TAP_DRPAUSE);
-	jtag_execute_queue();
+	retval = jtag_execute_queue();
+	if (retval != ERROR_OK) {
+		xilinx_free_bit_file(&bit_file);
+		return retval;
+	}
 
-	jtag_add_tlr();
-
-	if (!(virtex2_info->no_jstart))
-		virtex2_set_instr(virtex2_info->tap, 0xc);	/* JSTART */
-	jtag_add_runtest(13, TAP_IDLE);
-	virtex2_set_instr(virtex2_info->tap, 0x3f);		/* BYPASS */
-	virtex2_set_instr(virtex2_info->tap, 0x3f);		/* BYPASS */
-	if (!(virtex2_info->no_jstart))
-		virtex2_set_instr(virtex2_info->tap, 0xc);	/* JSTART */
-	jtag_add_runtest(13, TAP_IDLE);
-	virtex2_set_instr(virtex2_info->tap, 0x3f);		/* BYPASS */
-	jtag_execute_queue();
+	retval = virtex2_load_cleanup(pld_device);
 
 	xilinx_free_bit_file(&bit_file);
 
-	return ERROR_OK;
+	return retval;
 }
 
 COMMAND_HANDLER(virtex2_handle_read_stat_command)
@@ -201,6 +264,10 @@ PLD_DEVICE_COMMAND_HANDLER(virtex2_pld_device_command)
 	}
 
 	virtex2_info = malloc(sizeof(struct virtex2_pld_device));
+	if (!virtex2_info) {
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
+	}
 	virtex2_info->tap = tap;
 
 	virtex2_info->no_jstart = 0;
