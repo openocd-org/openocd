@@ -259,6 +259,7 @@ extern const struct flash_driver em357_flash;
 extern const struct flash_driver esirisc_flash;
 extern const struct flash_driver faux_flash;
 extern const struct flash_driver fespi_flash;
+extern const struct flash_driver gd32vf103_flash;
 extern const struct flash_driver fm3_flash;
 extern const struct flash_driver fm4_flash;
 extern const struct flash_driver jtagspi_flash;
