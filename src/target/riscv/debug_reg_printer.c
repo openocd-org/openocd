@@ -61,11 +61,13 @@ static uint64_t riscv_debug_reg_field_value(riscv_debug_reg_field_info_t field, 
 }
 
 static unsigned int riscv_debug_reg_fields_to_s(char *buf, unsigned int offset,
-		riscv_debug_reg_field_list_t list, riscv_debug_reg_ctx_t context, uint64_t value)
+	struct riscv_debug_reg_field_list_t (*get_next)(riscv_debug_reg_ctx_t contex),
+	riscv_debug_reg_ctx_t context, uint64_t value)
 {
 	unsigned int curr = offset;
 	curr += get_len_or_sprintf(buf, curr, " { ");
-	for (; list.get_next; list = list.get_next(context)) {
+	for (struct riscv_debug_reg_field_list_t list; get_next; get_next = list.get_next) {
+		list = get_next(context);
 		curr += riscv_debug_reg_field_to_s(buf, curr, list.field, context,
 				riscv_debug_reg_field_value(list.field, value));
 		curr += get_len_or_sprintf(buf, curr, ", ");
@@ -85,8 +87,8 @@ unsigned int riscv_debug_reg_to_s(char *buf, enum riscv_debug_reg_ordinal reg_or
 	length += print_number(buf, length, value);
 
 	if (reg.get_fields_head)
-		length += riscv_debug_reg_fields_to_s(buf, length, reg.get_fields_head(context),
-				context, value);
+		length += riscv_debug_reg_fields_to_s(buf, length,
+				reg.get_fields_head, context, value);
 
 	if (buf)
 		buf[length] = '\0';
