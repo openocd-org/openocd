@@ -481,7 +481,6 @@ int server_loop(struct command_context *command_context)
 				timeout_ms = polling_period;
 			tv.tv_usec = timeout_ms * 1000;
 			/* Only while we're sleeping we'll let others run */
-			kept_alive();
 			retval = socket_select(fd_max + 1, &read_fds, NULL, NULL, &tv);
 		}
 
