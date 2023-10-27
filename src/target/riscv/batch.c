@@ -230,3 +230,13 @@ size_t riscv_batch_available_scans(struct riscv_batch *batch)
 {
 	return batch->allocated_scans - batch->used_scans - 4;
 }
+
+bool riscv_batch_dmi_busy_encountered(const struct riscv_batch *batch)
+{
+	if (!batch->used_scans)
+		return false;
+	assert(batch->last_scan == RISCV_SCAN_TYPE_NOP);
+	const struct scan_field *field = batch->fields + batch->used_scans - 1;
+	const uint64_t in = buf_get_u64(field->in_value, 0, field->num_bits);
+	return get_field(in, DTM_DMI_OP) == DTM_DMI_OP_BUSY;
+}

@@ -75,4 +75,7 @@ void riscv_batch_add_nop(struct riscv_batch *batch);
 /* Returns the number of available scans. */
 size_t riscv_batch_available_scans(struct riscv_batch *batch);
 
+/* Return true iff the last scan in the batch returned DMI_OP_BUSY. */
+bool riscv_batch_dmi_busy_encountered(const struct riscv_batch *batch);
+
 #endif
