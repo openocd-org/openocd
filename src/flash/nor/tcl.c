@@ -19,7 +19,7 @@
  * Implements Tcl commands used to access NOR flash facilities.
  */
 
-static COMMAND_HELPER(flash_command_get_bank_maybe_probe, unsigned name_index,
+COMMAND_HELPER(flash_command_get_bank_probe_optional, unsigned int name_index,
 	       struct flash_bank **bank, bool do_probe)
 {
 	const char *name = CMD_ARGV[name_index];
@@ -51,7 +51,7 @@ static COMMAND_HELPER(flash_command_get_bank_maybe_probe, unsigned name_index,
 COMMAND_HELPER(flash_command_get_bank, unsigned name_index,
 	struct flash_bank **bank)
 {
-	return CALL_COMMAND_HANDLER(flash_command_get_bank_maybe_probe,
+	return CALL_COMMAND_HANDLER(flash_command_get_bank_probe_optional,
 				    name_index, bank, true);
 }
 
@@ -157,7 +157,7 @@ COMMAND_HANDLER(handle_flash_probe_command)
 	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	retval = CALL_COMMAND_HANDLER(flash_command_get_bank_maybe_probe, 0, &p, false);
+	retval = CALL_COMMAND_HANDLER(flash_command_get_bank_probe_optional, 0, &p, false);
 	if (retval != ERROR_OK)
 		return retval;
 

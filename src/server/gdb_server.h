@@ -20,6 +20,7 @@
 struct image;
 struct reg;
 #include <target/target.h>
+#include <server/server.h>
 
 #define GDB_BUFFER_SIZE 16384
 
@@ -28,6 +29,8 @@ int gdb_register_commands(struct command_context *command_context);
 void gdb_service_free(void);
 
 int gdb_put_packet(struct connection *connection, char *buffer, int len);
+
+int gdb_get_actual_connections(void);
 
 static inline struct target *get_target_from_connection(struct connection *connection)
 {

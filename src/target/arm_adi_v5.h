@@ -455,6 +455,9 @@ enum ap_type {
 	AP_TYPE_AHB5H_AP = AP_REG_IDR_VALUE(ARM_ID, AP_REG_IDR_CLASS_MEM_AP, 8),  /* AHB5 with enhanced HPROT Memory-AP */
 };
 
+extern const struct dap_ops jtag_dp_ops;
+extern const struct dap_ops swd_dap_ops;
+
 /* Check the ap->cfg_reg Long Address field (bit 1)
  *
  * 0b0: The AP only supports physical addresses 32 bits or smaller

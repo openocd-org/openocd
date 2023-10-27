@@ -285,6 +285,7 @@ extern const struct flash_driver psoc5lp_eeprom_flash;
 extern const struct flash_driver psoc5lp_flash;
 extern const struct flash_driver psoc5lp_nvl_flash;
 extern const struct flash_driver psoc6_flash;
+extern const struct flash_driver qn908x_flash;
 extern const struct flash_driver renesas_rpchf_flash;
 extern const struct flash_driver rp2040_flash;
 extern const struct flash_driver rsl10_flash;

@@ -372,7 +372,7 @@ tap_state_t tap_state_by_name(const char *name)
 	tap_state_name(a), tap_state_name(b), astr, bstr)
 
 tap_state_t jtag_debug_state_machine_(const void *tms_buf, const void *tdi_buf,
-	unsigned tap_bits, tap_state_t next_state)
+	unsigned int tap_bits, tap_state_t next_state)
 {
 	const uint8_t *tms_buffer;
 	const uint8_t *tdi_buffer;

@@ -779,7 +779,7 @@ static int psoc4_probe(struct flash_bank *bank)
 		flash_size_in_kb = psoc4_info->user_bank_size / 1024;
 	}
 
-	char macros_txt[20] = "";
+	char macros_txt[22] = "";
 	if (num_macros > 1)
 		snprintf(macros_txt, sizeof(macros_txt), " in %" PRIu32 " macros", num_macros);
 

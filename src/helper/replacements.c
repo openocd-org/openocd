@@ -10,10 +10,18 @@
  *   Copyright (C) 2008 by Spencer Oliver                                  *
  *   spen@spen-soft.co.uk                                                  *
  ***************************************************************************/
-/* DANGER!!!! These must be defined *BEFORE* replacements.h and the malloc() macro!!!! */
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+/* define IN_REPLACEMENTS_C before include replacements.h */
+#define IN_REPLACEMENTS_C
+#include "replacements.h"
 
 #include <stdlib.h>
 #include <string.h>
+
 /*
  * clear_malloc
  *
@@ -41,10 +49,6 @@ void *fill_malloc(size_t size)
 	return t;
 }
 
-#define IN_REPLACEMENTS_C
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
 #ifdef HAVE_STRINGS_H
 #include <strings.h>
 #endif

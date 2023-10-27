@@ -253,6 +253,19 @@ int get_flash_bank_by_num(unsigned int num, struct flash_bank **bank);
 COMMAND_HELPER(flash_command_get_bank, unsigned name_index,
 		struct flash_bank **bank);
 /**
+ * Retrieves @a bank from a command argument, reporting errors parsing
+ * the bank identifier or retrieving the specified bank.  The bank
+ * may be identified by its bank number or by @c name.instance, where
+ * @a instance is driver-specific.
+ * @param name_index The index to the string in args containing the
+ * bank identifier.
+ * @param bank On output, contains a pointer to the bank or NULL.
+ * @param do_probe Does auto-probing when set, otherwise without probing.
+ * @returns ERROR_OK on success, or an error indicating the problem.
+ */
+COMMAND_HELPER(flash_command_get_bank_probe_optional, unsigned int name_index,
+		struct flash_bank **bank, bool do_probe);
+/**
  * Returns the flash bank like get_flash_bank_by_num(), without probing.
  * @param num The flash bank number.
  * @returns A struct flash_bank for flash bank @a num, or NULL.

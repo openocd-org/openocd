@@ -1161,9 +1161,6 @@ static bool ecos_detect_rtos(struct target *target)
 	return false;
 }
 
-extern int rtos_thread_packet(struct connection *connection,
-		const char *packet, int packet_size);
-
 /* Since we should never have 0 as a valid eCos thread ID we use $Hg0 as the
  * indicator of a new session as regards flushing any cached state. */
 static int ecos_packet_hook(struct connection *connection,

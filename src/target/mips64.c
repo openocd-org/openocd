@@ -459,7 +459,7 @@ int mips64_init_arch_info(struct target *target, struct mips64_common *mips64,
 int mips64_run_algorithm(struct target *target, int num_mem_params,
 			 struct mem_param *mem_params, int num_reg_params,
 			 struct reg_param *reg_params, target_addr_t entry_point,
-			 target_addr_t exit_point, int timeout_ms, void *arch_info)
+			 target_addr_t exit_point, unsigned int timeout_ms, void *arch_info)
 {
 	/* TODO */
 	return ERROR_OK;

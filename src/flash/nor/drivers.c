@@ -62,6 +62,7 @@ static const struct flash_driver * const flash_drivers[] = {
 	&psoc5lp_eeprom_flash,
 	&psoc5lp_nvl_flash,
 	&psoc6_flash,
+	&qn908x_flash,
 	&renesas_rpchf_flash,
 	&rp2040_flash,
 	&sh_qspi_flash,

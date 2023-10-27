@@ -53,7 +53,7 @@
 #include "helper/log.h"
 #include "helper/list.h"
 
-#define VD_VERSION 44
+#define VD_VERSION 46
 #define VD_BUFFER_LEN 4024
 #define VD_CHEADER_LEN 24
 #define VD_SHEADER_LEN 16
@@ -272,7 +272,7 @@ static int vdebug_socket_open(char *server_addr, uint32_t port)
 		LOG_ERROR("socket_open: cannot resolve address %s, error %d", server_addr, vdebug_socket_error());
 		rc = VD_ERR_SOC_ADDR;
 	} else {
-		buf_set_u32((uint8_t *)ainfo->ai_addr->sa_data, 0, 16, htons(port));
+		h_u16_to_be((uint8_t *)ainfo->ai_addr->sa_data, port);
 		if (connect(hsock, ainfo->ai_addr, sizeof(struct sockaddr)) < 0) {
 			LOG_ERROR("socket_open: cannot connect to %s:%d, error %d", server_addr, port, vdebug_socket_error());
 			rc = VD_ERR_SOC_CONN;
@@ -942,10 +942,10 @@ static int vdebug_jtag_tlr(tap_state_t state, uint8_t f_flush)
 {
 	int rc = ERROR_OK;
 
-	uint8_t cur = tap_get_state();
+	tap_state_t cur = tap_get_state();
 	uint8_t tms_pre = tap_get_tms_path(cur, state);
 	uint8_t num_pre = tap_get_tms_path_len(cur, state);
-	LOG_INFO("tlr  from %" PRIx8 " to %" PRIx8, cur, state);
+	LOG_INFO("tlr  from %x to %x", cur, state);
 	if (cur != state) {
 		rc = vdebug_jtag_shift_tap(vdc.hsocket, pbuf, num_pre, tms_pre, 0, NULL, 0, 0, NULL, f_flush);
 		tap_set_state(state);
@@ -958,7 +958,7 @@ static int vdebug_jtag_scan(struct scan_command *cmd, uint8_t f_flush)
 {
 	int rc = ERROR_OK;
 
-	uint8_t cur = tap_get_state();
+	tap_state_t cur = tap_get_state();
 	uint8_t state = cmd->ir_scan ? TAP_IRSHIFT : TAP_DRSHIFT;
 	uint8_t tms_pre = tap_get_tms_path(cur, state);
 	uint8_t num_pre = tap_get_tms_path_len(cur, state);
@@ -988,7 +988,7 @@ static int vdebug_jtag_scan(struct scan_command *cmd, uint8_t f_flush)
 
 static int vdebug_jtag_runtest(int cycles, tap_state_t state, uint8_t f_flush)
 {
-	uint8_t cur = tap_get_state();
+	tap_state_t cur = tap_get_state();
 	uint8_t tms_pre = tap_get_tms_path(cur, state);
 	uint8_t num_pre = tap_get_tms_path_len(cur, state);
 	LOG_DEBUG("idle len:%d state cur:%x end:%x", cycles, cur, state);
@@ -1125,7 +1125,7 @@ static int vdebug_dap_queue_ap_abort(struct adiv5_dap *dap, uint8_t *ack)
 
 static int vdebug_dap_run(struct adiv5_dap *dap)
 {
-	if (pbuf->waddr)
+	if (le_to_h_u16(pbuf->waddr))
 		return vdebug_run_reg_queue(vdc.hsocket, pbuf, le_to_h_u16(pbuf->waddr));
 
 	return ERROR_OK;

@@ -8,6 +8,7 @@
 #include <config.h>
 #endif
 #include <helper/log.h>
+#include "hello.h"
 
 COMMAND_HANDLER(handle_foo_command)
 {
