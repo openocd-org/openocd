@@ -10,16 +10,18 @@
 #endif
 
 #include "pld.h"
+#include <sys/stat.h>
 #include <helper/log.h>
 #include <helper/replacements.h>
 #include <helper/time_support.h>
 
 
-/* pld drivers
- */
-extern struct pld_driver virtex2_pld;
-
 static struct pld_driver *pld_drivers[] = {
+	&efinix_pld,
+	&gatemate_pld,
+	&gowin_pld,
+	&intel_pld,
+	&lattice_pld,
 	&virtex2_pld,
 	NULL,
 };
@@ -132,6 +134,22 @@ COMMAND_HANDLER(handle_pld_load_command)
 	if (!p) {
 		command_print(CMD, "pld device '#%s' is out of bounds", CMD_ARGV[0]);
 		return ERROR_OK;
+	}
+
+	struct stat input_stat;
+	if (stat(CMD_ARGV[1], &input_stat) == -1) {
+		LOG_ERROR("couldn't stat() %s: %s", CMD_ARGV[1], strerror(errno));
+		return ERROR_PLD_FILE_LOAD_FAILED;
+	}
+
+	if (S_ISDIR(input_stat.st_mode)) {
+		LOG_ERROR("%s is a directory", CMD_ARGV[1]);
+		return ERROR_PLD_FILE_LOAD_FAILED;
+	}
+
+	if (input_stat.st_size == 0) {
+		LOG_ERROR("Empty file %s", CMD_ARGV[1]);
+		return ERROR_PLD_FILE_LOAD_FAILED;
 	}
 
 	retval = p->driver->load(p, CMD_ARGV[1]);

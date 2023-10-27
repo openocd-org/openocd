@@ -21,7 +21,7 @@
 	.global _start
 _start:
 launch_program_in_rom:
-    // variables are already set, addres to jump is in r3
+    // variables are already set, address to jump is in r3
     blx r3
 exit:
 	// Wait for OpenOCD

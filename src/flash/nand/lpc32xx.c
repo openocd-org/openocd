@@ -1029,7 +1029,7 @@ static int lpc32xx_write_page_slc(struct nand_device *nand,
 
 	LOG_DEBUG("SLC write page %" PRIx32 " data=%d, oob=%d, "
 		"data_size=%" PRIu32 ", oob_size=%" PRIu32,
-		page, data != 0, oob != 0, data_size, oob_size);
+		page, !!data, !!oob, data_size, oob_size);
 
 	target_mem_base = pworking_area->address;
 	/*

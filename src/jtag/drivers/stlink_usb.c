@@ -3694,7 +3694,7 @@ static int stlink_open(struct hl_interface_param_s *param, enum stlink_mode mode
 
 	h = calloc(1, sizeof(struct stlink_usb_handle_s));
 
-	if (h == 0) {
+	if (!h) {
 		LOG_DEBUG("malloc failed");
 		return ERROR_FAIL;
 	}

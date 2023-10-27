@@ -21,6 +21,7 @@
 #include "arm_semihosting.h"
 #include "jtag/interface.h"
 #include "smp.h"
+#include <helper/nvp.h>
 #include <helper/time_support.h>
 
 enum restart_mode {
@@ -588,7 +589,7 @@ static int aarch64_restore_one(struct target *target, int current,
 			resume_pc &= 0xFFFFFFFC;
 			break;
 		case ARM_STATE_AARCH64:
-			resume_pc &= 0xFFFFFFFFFFFFFFFC;
+			resume_pc &= 0xFFFFFFFFFFFFFFFCULL;
 			break;
 		case ARM_STATE_THUMB:
 		case ARM_STATE_THUMB_EE:
@@ -1066,9 +1067,12 @@ static int aarch64_post_debug_entry(struct target *target)
 		armv8_identify_cache(armv8);
 		armv8_read_mpidr(armv8);
 	}
-
-	armv8->armv8_mmu.mmu_enabled =
+	if (armv8->is_armv8r) {
+		armv8->armv8_mmu.mmu_enabled = 0;
+	} else {
+		armv8->armv8_mmu.mmu_enabled =
 			(aarch64->system_control_reg & 0x1U) ? 1 : 0;
+	}
 	armv8->armv8_mmu.armv8_cache.d_u_cache_enabled =
 		(aarch64->system_control_reg & 0x4U) ? 1 : 0;
 	armv8->armv8_mmu.armv8_cache.i_cache_enabled =
@@ -1245,7 +1249,7 @@ static int aarch64_set_breakpoint(struct target *target,
 			| (byte_addr_select << 5)
 			| (3 << 1) | 1;
 		brp_list[brp_i].used = 1;
-		brp_list[brp_i].value = breakpoint->address & 0xFFFFFFFFFFFFFFFC;
+		brp_list[brp_i].value = breakpoint->address & 0xFFFFFFFFFFFFFFFCULL;
 		brp_list[brp_i].control = control;
 		bpt_value = brp_list[brp_i].value;
 
@@ -1297,28 +1301,28 @@ static int aarch64_set_breakpoint(struct target *target,
 		buf_set_u32(code, 0, 32, opcode);
 
 		retval = target_read_memory(target,
-				breakpoint->address & 0xFFFFFFFFFFFFFFFE,
+				breakpoint->address & 0xFFFFFFFFFFFFFFFEULL,
 				breakpoint->length, 1,
 				breakpoint->orig_instr);
 		if (retval != ERROR_OK)
 			return retval;
 
 		armv8_cache_d_inner_flush_virt(armv8,
-				breakpoint->address & 0xFFFFFFFFFFFFFFFE,
+				breakpoint->address & 0xFFFFFFFFFFFFFFFEULL,
 				breakpoint->length);
 
 		retval = target_write_memory(target,
-				breakpoint->address & 0xFFFFFFFFFFFFFFFE,
+				breakpoint->address & 0xFFFFFFFFFFFFFFFEULL,
 				breakpoint->length, 1, code);
 		if (retval != ERROR_OK)
 			return retval;
 
 		armv8_cache_d_inner_flush_virt(armv8,
-				breakpoint->address & 0xFFFFFFFFFFFFFFFE,
+				breakpoint->address & 0xFFFFFFFFFFFFFFFEULL,
 				breakpoint->length);
 
 		armv8_cache_i_inner_inval_virt(armv8,
-				breakpoint->address & 0xFFFFFFFFFFFFFFFE,
+				breakpoint->address & 0xFFFFFFFFFFFFFFFEULL,
 				breakpoint->length);
 
 		breakpoint->is_set = true;
@@ -1450,7 +1454,7 @@ static int aarch64_set_hybrid_breakpoint(struct target *target, struct breakpoin
 		| (iva_byte_addr_select << 5)
 		| (3 << 1) | 1;
 	brp_list[brp_2].used = 1;
-	brp_list[brp_2].value = breakpoint->address & 0xFFFFFFFFFFFFFFFC;
+	brp_list[brp_2].value = breakpoint->address & 0xFFFFFFFFFFFFFFFCULL;
 	brp_list[brp_2].control = control_iva;
 	retval = aarch64_dap_write_memap_register_u32(target, armv8->debug_base
 			+ CPUV8_DBG_BVR_BASE + 16 * brp_list[brp_2].brpn,
@@ -1574,29 +1578,29 @@ static int aarch64_unset_breakpoint(struct target *target, struct breakpoint *br
 		/* restore original instruction (kept in target endianness) */
 
 		armv8_cache_d_inner_flush_virt(armv8,
-				breakpoint->address & 0xFFFFFFFFFFFFFFFE,
+				breakpoint->address & 0xFFFFFFFFFFFFFFFEULL,
 				breakpoint->length);
 
 		if (breakpoint->length == 4) {
 			retval = target_write_memory(target,
-					breakpoint->address & 0xFFFFFFFFFFFFFFFE,
+					breakpoint->address & 0xFFFFFFFFFFFFFFFEULL,
 					4, 1, breakpoint->orig_instr);
 			if (retval != ERROR_OK)
 				return retval;
 		} else {
 			retval = target_write_memory(target,
-					breakpoint->address & 0xFFFFFFFFFFFFFFFE,
+					breakpoint->address & 0xFFFFFFFFFFFFFFFEULL,
 					2, 1, breakpoint->orig_instr);
 			if (retval != ERROR_OK)
 				return retval;
 		}
 
 		armv8_cache_d_inner_flush_virt(armv8,
-				breakpoint->address & 0xFFFFFFFFFFFFFFFE,
+				breakpoint->address & 0xFFFFFFFFFFFFFFFEULL,
 				breakpoint->length);
 
 		armv8_cache_i_inner_inval_virt(armv8,
-				breakpoint->address & 0xFFFFFFFFFFFFFFFE,
+				breakpoint->address & 0xFFFFFFFFFFFFFFFEULL,
 				breakpoint->length);
 	}
 	breakpoint->is_set = false;
@@ -2726,6 +2730,25 @@ static int aarch64_init_arch_info(struct target *target,
 	return ERROR_OK;
 }
 
+static int armv8r_target_create(struct target *target, Jim_Interp *interp)
+{
+	struct aarch64_private_config *pc = target->private_config;
+	struct aarch64_common *aarch64;
+
+	if (adiv5_verify_config(&pc->adiv5_config) != ERROR_OK)
+		return ERROR_FAIL;
+
+	aarch64 = calloc(1, sizeof(struct aarch64_common));
+	if (!aarch64) {
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
+	}
+
+	aarch64->armv8_common.is_armv8r = true;
+
+	return aarch64_init_arch_info(target, aarch64, pc->adiv5_config.dap);
+}
+
 static int aarch64_target_create(struct target *target, Jim_Interp *interp)
 {
 	struct aarch64_private_config *pc = target->private_config;
@@ -2739,6 +2762,8 @@ static int aarch64_target_create(struct target *target, Jim_Interp *interp)
 		LOG_ERROR("Out of memory");
 		return ERROR_FAIL;
 	}
+
+	aarch64->armv8_common.is_armv8r = false;
 
 	return aarch64_init_arch_info(target, aarch64, pc->adiv5_config.dap);
 }
@@ -2762,12 +2787,16 @@ static void aarch64_deinit_target(struct target *target)
 
 static int aarch64_mmu(struct target *target, int *enabled)
 {
+	struct aarch64_common *aarch64 = target_to_aarch64(target);
+	struct armv8_common *armv8 = &aarch64->armv8_common;
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("%s: target %s not halted", __func__, target_name(target));
 		return ERROR_TARGET_INVALID;
 	}
-
-	*enabled = target_to_aarch64(target)->armv8_common.armv8_mmu.mmu_enabled;
+	if (armv8->is_armv8r)
+		*enabled = 0;
+	else
+		*enabled = target_to_aarch64(target)->armv8_common.armv8_mmu.mmu_enabled;
 	return ERROR_OK;
 }
 
@@ -2929,15 +2958,15 @@ COMMAND_HANDLER(aarch64_mask_interrupts_command)
 	struct target *target = get_current_target(CMD_CTX);
 	struct aarch64_common *aarch64 = target_to_aarch64(target);
 
-	static const struct jim_nvp nvp_maskisr_modes[] = {
+	static const struct nvp nvp_maskisr_modes[] = {
 		{ .name = "off", .value = AARCH64_ISRMASK_OFF },
 		{ .name = "on", .value = AARCH64_ISRMASK_ON },
 		{ .name = NULL, .value = -1 },
 	};
-	const struct jim_nvp *n;
+	const struct nvp *n;
 
 	if (CMD_ARGC > 0) {
-		n = jim_nvp_name2value_simple(nvp_maskisr_modes, CMD_ARGV[0]);
+		n = nvp_name2value(nvp_maskisr_modes, CMD_ARGV[0]);
 		if (!n->name) {
 			LOG_ERROR("Unknown parameter: %s - should be off or on", CMD_ARGV[0]);
 			return ERROR_COMMAND_SYNTAX_ERROR;
@@ -2946,7 +2975,7 @@ COMMAND_HANDLER(aarch64_mask_interrupts_command)
 		aarch64->isrmasking_mode = n->value;
 	}
 
-	n = jim_nvp_value2name_simple(nvp_maskisr_modes, aarch64->isrmasking_mode);
+	n = nvp_value2name(nvp_maskisr_modes, aarch64->isrmasking_mode);
 	command_print(CMD, "aarch64 interrupt mask %s", n->name);
 
 	return ERROR_OK;
@@ -3164,4 +3193,40 @@ struct target_type aarch64_target = {
 	.write_phys_memory = aarch64_write_phys_memory,
 	.mmu = aarch64_mmu,
 	.virt2phys = aarch64_virt2phys,
+};
+
+struct target_type armv8r_target = {
+	.name = "armv8r",
+
+	.poll = aarch64_poll,
+	.arch_state = armv8_arch_state,
+
+	.halt = aarch64_halt,
+	.resume = aarch64_resume,
+	.step = aarch64_step,
+
+	.assert_reset = aarch64_assert_reset,
+	.deassert_reset = aarch64_deassert_reset,
+
+	/* REVISIT allow exporting VFP3 registers ... */
+	.get_gdb_arch = armv8_get_gdb_arch,
+	.get_gdb_reg_list = armv8_get_gdb_reg_list,
+
+	.read_memory = aarch64_read_phys_memory,
+	.write_memory = aarch64_write_phys_memory,
+
+	.add_breakpoint = aarch64_add_breakpoint,
+	.add_context_breakpoint = aarch64_add_context_breakpoint,
+	.add_hybrid_breakpoint = aarch64_add_hybrid_breakpoint,
+	.remove_breakpoint = aarch64_remove_breakpoint,
+	.add_watchpoint = aarch64_add_watchpoint,
+	.remove_watchpoint = aarch64_remove_watchpoint,
+	.hit_watchpoint = aarch64_hit_watchpoint,
+
+	.commands = aarch64_command_handlers,
+	.target_create = armv8r_target_create,
+	.target_jim_configure = aarch64_jim_configure,
+	.init_target = aarch64_init_target,
+	.deinit_target = aarch64_deinit_target,
+	.examine = aarch64_examine,
 };

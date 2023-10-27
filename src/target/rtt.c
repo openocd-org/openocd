@@ -14,6 +14,7 @@
 #include <helper/binarybuffer.h>
 #include <helper/command.h>
 #include <rtt/rtt.h>
+#include <target/rtt.h>
 
 #include "target.h"
 

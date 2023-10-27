@@ -8,6 +8,10 @@ noinst_LTLIBRARIES += %D%/libespressif.la
        %D%/esp_xtensa_smp.h \
        %D%/esp_xtensa_semihosting.c \
        %D%/esp_xtensa_semihosting.h \
+       %D%/esp_xtensa_apptrace.c \
+       %D%/esp_xtensa_apptrace.h \
+       %D%/esp32_apptrace.c \
+       %D%/esp32_apptrace.h \
        %D%/esp32.c \
        %D%/esp32s2.c \
        %D%/esp32s3.c \

@@ -107,7 +107,7 @@ static const char *const rsl10_error_list[] = {
 	[RSL10_FLASH_ERR_PROG_FAILED]       = "prog failed",
 };
 
-const char *rsl10_error(enum rsl10_flash_status x)
+static const char *rsl10_error(enum rsl10_flash_status x)
 {
 	if (x >= RSL10_FLASH_MAX_ERR_CODES || !rsl10_error_list[x])
 		return "unknown";

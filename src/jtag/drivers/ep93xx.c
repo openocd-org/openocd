@@ -37,7 +37,7 @@ static int ep93xx_reset(int trst, int srst);
 static int ep93xx_init(void);
 static int ep93xx_quit(void);
 
-struct timespec ep93xx_zzzz;
+static struct timespec ep93xx_zzzz;
 
 static struct jtag_interface ep93xx_interface = {
 	.supported = DEBUG_CAP_TMS_SEQ,
@@ -58,7 +58,7 @@ struct adapter_driver ep93xx_adapter_driver = {
 static struct bitbang_interface ep93xx_bitbang = {
 	.read = ep93xx_read,
 	.write = ep93xx_write,
-	.blink = 0,
+	.blink = NULL,
 };
 
 static bb_value_t ep93xx_read(void)

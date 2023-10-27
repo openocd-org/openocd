@@ -19,6 +19,7 @@
 #include "register.h"
 #include <helper/binarybuffer.h>
 #include <helper/command.h>
+#include <helper/nvp.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -236,7 +237,7 @@ static int armv8_read_ttbcr(struct target *target)
 		armv8->pa_size = armv8_pa_size((ttbcr_64 >> 32) & 7);
 		armv8->page_size = (ttbcr_64 >> 14) & 3;
 		armv8->armv8_mmu.ttbr1_used = (((ttbcr_64 >> 16) & 0x3F) != 0) ? 1 : 0;
-		armv8->armv8_mmu.ttbr0_mask  = 0x0000FFFFFFFFFFFF;
+		armv8->armv8_mmu.ttbr0_mask  = 0x0000FFFFFFFFFFFFULL;
 		retval += dpm->instr_read_data_r0_64(dpm,
 				ARMV8_MRS(SYSTEM_TTBR0_EL1 | (armv8->armv8_mmu.ttbr1_used), 0),
 				&armv8->ttbr_base);
@@ -1043,7 +1044,7 @@ COMMAND_HANDLER(armv8_handle_exception_catch_command)
 	unsigned int argp = 0;
 	int retval;
 
-	static const struct jim_nvp nvp_ecatch_modes[] = {
+	static const struct nvp nvp_ecatch_modes[] = {
 		{ .name = "off",       .value = 0 },
 		{ .name = "nsec_el1",  .value = (1 << 5) },
 		{ .name = "nsec_el2",  .value = (2 << 5) },
@@ -1053,7 +1054,7 @@ COMMAND_HANDLER(armv8_handle_exception_catch_command)
 		{ .name = "sec_el13",  .value = (5 << 1) },
 		{ .name = NULL, .value = -1 },
 	};
-	const struct jim_nvp *n;
+	const struct nvp *n;
 
 	if (CMD_ARGC == 0) {
 		const char *sec = NULL, *nsec = NULL;
@@ -1063,11 +1064,11 @@ COMMAND_HANDLER(armv8_handle_exception_catch_command)
 		if (retval != ERROR_OK)
 			return retval;
 
-		n = jim_nvp_value2name_simple(nvp_ecatch_modes, edeccr & 0x0f);
+		n = nvp_value2name(nvp_ecatch_modes, edeccr & 0x0f);
 		if (n->name)
 			sec = n->name;
 
-		n = jim_nvp_value2name_simple(nvp_ecatch_modes, edeccr & 0xf0);
+		n = nvp_value2name(nvp_ecatch_modes, edeccr & 0xf0);
 		if (n->name)
 			nsec = n->name;
 
@@ -1081,7 +1082,7 @@ COMMAND_HANDLER(armv8_handle_exception_catch_command)
 	}
 
 	while (argp < CMD_ARGC) {
-		n = jim_nvp_name2value_simple(nvp_ecatch_modes, CMD_ARGV[argp]);
+		n = nvp_name2value(nvp_ecatch_modes, CMD_ARGV[argp]);
 		if (!n->name) {
 			LOG_ERROR("Unknown option: %s", CMD_ARGV[argp]);
 			return ERROR_FAIL;

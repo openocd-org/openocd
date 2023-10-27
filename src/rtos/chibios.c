@@ -80,12 +80,12 @@ struct chibios_params {
 static struct chibios_params chibios_params_list[] = {
 	{
 	"cortex_m",							/* target_name */
-	0,
+	NULL,
 	NULL,									/* stacking_info */
 	},
 	{
 	"hla_target",							/* target_name */
-	0,
+	NULL,
 	NULL,									/* stacking_info */
 	}
 };
@@ -198,7 +198,7 @@ static int chibios_update_memory_signature(struct rtos *rtos)
 errfree:
 	/* Error reading the ChibiOS memory structure */
 	free(signature);
-	param->signature = 0;
+	param->signature = NULL;
 	return -1;
 }
 
@@ -468,7 +468,7 @@ static int chibios_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
 		return -1;
 
 	/* Update stacking if it can only be determined from runtime information */
-	if ((param->stacking_info == 0) &&
+	if (!param->stacking_info &&
 		(chibios_update_stacking(rtos) != ERROR_OK)) {
 		LOG_ERROR("Failed to determine exact stacking for the target type %s", rtos->target->type->name);
 		return -1;

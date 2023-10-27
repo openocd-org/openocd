@@ -19,7 +19,7 @@
 
 #include <sys/mman.h>
 
-uint32_t bcm2835_peri_base = 0x20000000;
+static uint32_t bcm2835_peri_base = 0x20000000;
 #define BCM2835_GPIO_BASE	(bcm2835_peri_base + 0x200000) /* GPIO controller */
 
 #define BCM2835_PADS_GPIO_0_27		(bcm2835_peri_base + 0x100000)

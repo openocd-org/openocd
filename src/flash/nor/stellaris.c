@@ -1342,7 +1342,7 @@ COMMAND_HANDLER(stellaris_handle_recover_command)
 	 * cycle to recover.
 	 */
 
-	Jim_Eval_Named(CMD_CTX->interp, "catch { hla_command \"debug unlock\" }", 0, 0);
+	Jim_Eval_Named(CMD_CTX->interp, "catch { hla_command \"debug unlock\" }", NULL, 0);
 	if (!strcmp(Jim_GetString(Jim_GetResult(CMD_CTX->interp), NULL), "0")) {
 		retval = ERROR_OK;
 		goto user_action;

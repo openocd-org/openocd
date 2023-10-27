@@ -12,10 +12,12 @@
 #include <target/xtensa/xtensa.h>
 #include "esp_xtensa.h"
 #include "esp_semihosting.h"
+#include "esp_xtensa_apptrace.h"
 
 struct esp_xtensa_common {
 	struct xtensa xtensa;	/* must be the first element */
 	struct esp_semihost_data semihost;
+	struct esp_xtensa_apptrace_info apptrace;
 };
 
 static inline struct esp_xtensa_common *target_to_esp_xtensa(struct target *target)

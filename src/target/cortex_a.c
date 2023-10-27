@@ -52,6 +52,7 @@
 #include "transport/transport.h"
 #include "smp.h"
 #include <helper/bits.h>
+#include <helper/nvp.h>
 #include <helper/time_support.h>
 
 static int cortex_a_poll(struct target *target);
@@ -3246,15 +3247,15 @@ COMMAND_HANDLER(handle_cortex_a_mask_interrupts_command)
 	struct target *target = get_current_target(CMD_CTX);
 	struct cortex_a_common *cortex_a = target_to_cortex_a(target);
 
-	static const struct jim_nvp nvp_maskisr_modes[] = {
+	static const struct nvp nvp_maskisr_modes[] = {
 		{ .name = "off", .value = CORTEX_A_ISRMASK_OFF },
 		{ .name = "on", .value = CORTEX_A_ISRMASK_ON },
 		{ .name = NULL, .value = -1 },
 	};
-	const struct jim_nvp *n;
+	const struct nvp *n;
 
 	if (CMD_ARGC > 0) {
-		n = jim_nvp_name2value_simple(nvp_maskisr_modes, CMD_ARGV[0]);
+		n = nvp_name2value(nvp_maskisr_modes, CMD_ARGV[0]);
 		if (!n->name) {
 			LOG_ERROR("Unknown parameter: %s - should be off or on", CMD_ARGV[0]);
 			return ERROR_COMMAND_SYNTAX_ERROR;
@@ -3263,7 +3264,7 @@ COMMAND_HANDLER(handle_cortex_a_mask_interrupts_command)
 		cortex_a->isrmasking_mode = n->value;
 	}
 
-	n = jim_nvp_value2name_simple(nvp_maskisr_modes, cortex_a->isrmasking_mode);
+	n = nvp_value2name(nvp_maskisr_modes, cortex_a->isrmasking_mode);
 	command_print(CMD, "cortex_a interrupt mask %s", n->name);
 
 	return ERROR_OK;
@@ -3274,22 +3275,22 @@ COMMAND_HANDLER(handle_cortex_a_dacrfixup_command)
 	struct target *target = get_current_target(CMD_CTX);
 	struct cortex_a_common *cortex_a = target_to_cortex_a(target);
 
-	static const struct jim_nvp nvp_dacrfixup_modes[] = {
+	static const struct nvp nvp_dacrfixup_modes[] = {
 		{ .name = "off", .value = CORTEX_A_DACRFIXUP_OFF },
 		{ .name = "on", .value = CORTEX_A_DACRFIXUP_ON },
 		{ .name = NULL, .value = -1 },
 	};
-	const struct jim_nvp *n;
+	const struct nvp *n;
 
 	if (CMD_ARGC > 0) {
-		n = jim_nvp_name2value_simple(nvp_dacrfixup_modes, CMD_ARGV[0]);
+		n = nvp_name2value(nvp_dacrfixup_modes, CMD_ARGV[0]);
 		if (!n->name)
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		cortex_a->dacrfixup_mode = n->value;
 
 	}
 
-	n = jim_nvp_value2name_simple(nvp_dacrfixup_modes, cortex_a->dacrfixup_mode);
+	n = nvp_value2name(nvp_dacrfixup_modes, cortex_a->dacrfixup_mode);
 	command_print(CMD, "cortex_a domain access control fixup %s", n->name);
 
 	return ERROR_OK;

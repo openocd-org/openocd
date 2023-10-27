@@ -344,7 +344,7 @@ static uint32_t vdebug_wait_server(int hsock, struct vd_shm *pmem)
 	return rc;
 }
 
-int vdebug_run_jtag_queue(int hsock, struct vd_shm *pm, unsigned int count)
+static int vdebug_run_jtag_queue(int hsock, struct vd_shm *pm, unsigned int count)
 {
 	uint8_t  num_pre, num_post, tdi, tms;
 	unsigned int num, anum, bytes, hwords, words;
@@ -420,7 +420,7 @@ int vdebug_run_jtag_queue(int hsock, struct vd_shm *pm, unsigned int count)
 	return rc;
 }
 
-int vdebug_run_reg_queue(int hsock, struct vd_shm *pm, unsigned int count)
+static int vdebug_run_reg_queue(int hsock, struct vd_shm *pm, unsigned int count)
 {
 	unsigned int num, awidth, wwidth;
 	unsigned int req, waddr, rwords;

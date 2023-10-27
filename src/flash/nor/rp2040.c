@@ -520,7 +520,7 @@ FLASH_BANK_COMMAND_HANDLER(rp2040_flash_bank_command)
 	return ERROR_OK;
 }
 
-struct flash_driver rp2040_flash = {
+const struct flash_driver rp2040_flash = {
 	.name = "rp2040_flash",
 	.flash_bank_command = rp2040_flash_bank_command,
 	.erase =  rp2040_flash_erase,

@@ -26,7 +26,7 @@ const char *jep106_table_manufacturer(unsigned int bank, unsigned int id)
 	/* index is zero based */
 	id--;
 
-	if (bank >= ARRAY_SIZE(jep106) || jep106[bank][id] == 0)
+	if (bank >= ARRAY_SIZE(jep106) || !jep106[bank][id])
 		return "<unknown>";
 
 	return jep106[bank][id];

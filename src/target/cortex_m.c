@@ -29,6 +29,7 @@
 #include "arm_opcodes.h"
 #include "arm_semihosting.h"
 #include "smp.h"
+#include <helper/nvp.h>
 #include <helper/time_support.h>
 #include <rtt/rtt.h>
 
@@ -2935,14 +2936,14 @@ COMMAND_HANDLER(handle_cortex_m_mask_interrupts_command)
 	struct cortex_m_common *cortex_m = target_to_cm(target);
 	int retval;
 
-	static const struct jim_nvp nvp_maskisr_modes[] = {
+	static const struct nvp nvp_maskisr_modes[] = {
 		{ .name = "auto", .value = CORTEX_M_ISRMASK_AUTO },
 		{ .name = "off", .value = CORTEX_M_ISRMASK_OFF },
 		{ .name = "on", .value = CORTEX_M_ISRMASK_ON },
 		{ .name = "steponly", .value = CORTEX_M_ISRMASK_STEPONLY },
 		{ .name = NULL, .value = -1 },
 	};
-	const struct jim_nvp *n;
+	const struct nvp *n;
 
 
 	retval = cortex_m_verify_pointer(CMD, cortex_m);
@@ -2955,14 +2956,14 @@ COMMAND_HANDLER(handle_cortex_m_mask_interrupts_command)
 	}
 
 	if (CMD_ARGC > 0) {
-		n = jim_nvp_name2value_simple(nvp_maskisr_modes, CMD_ARGV[0]);
+		n = nvp_name2value(nvp_maskisr_modes, CMD_ARGV[0]);
 		if (!n->name)
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		cortex_m->isrmasking_mode = n->value;
 		cortex_m_set_maskints_for_halt(target);
 	}
 
-	n = jim_nvp_value2name_simple(nvp_maskisr_modes, cortex_m->isrmasking_mode);
+	n = nvp_value2name(nvp_maskisr_modes, cortex_m->isrmasking_mode);
 	command_print(CMD, "cortex_m interrupt mask %s", n->name);
 
 	return ERROR_OK;

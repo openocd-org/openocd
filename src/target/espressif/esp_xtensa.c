@@ -12,6 +12,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <target/smp.h>
+#include "esp_xtensa_apptrace.h"
 #include <target/register.h>
 #include "esp_xtensa.h"
 #include "esp_semihosting.h"
@@ -25,6 +26,7 @@ int esp_xtensa_init_arch_info(struct target *target,
 	if (ret != ERROR_OK)
 		return ret;
 	esp_xtensa->semihost.ops = (struct esp_semihost_ops *)semihost_ops;
+	esp_xtensa->apptrace.hw = &esp_xtensa_apptrace_hw;
 	return ERROR_OK;
 }
 

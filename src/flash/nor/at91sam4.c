@@ -62,8 +62,6 @@
 #define  OFFSET_EFC_FSR   8
 #define  OFFSET_EFC_FRR   12
 
-extern const struct flash_driver at91sam4_flash;
-
 static float _tomhz(uint32_t freq_hz)
 {
 	float f;

@@ -497,6 +497,11 @@ static const struct command_registration esp32s2_command_handlers[] = {
 		.chain = xtensa_command_handlers,
 	},
 	{
+		.name = "esp",
+		.usage = "",
+		.chain = esp32_apptrace_command_handlers,
+	},
+	{
 		.name = "arm",
 		.mode = COMMAND_ANY,
 		.help = "ARM Command Group",
