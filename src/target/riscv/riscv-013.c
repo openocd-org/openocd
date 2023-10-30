@@ -354,6 +354,8 @@ static unsigned int decode_dm(char *text, unsigned int address, unsigned int dat
 					context, data);
 		}
 	}
+	if (text)
+		text[0] = '\0';
 	return 0;
 }
 
@@ -361,8 +363,11 @@ static unsigned int decode_dmi(struct target *target, char *text, unsigned int a
 		unsigned int data)
 {
 	dm013_info_t *dm = get_dm(target);
-	if (!dm)
+	if (!dm) {
+		if (text)
+			text[0] = '\0';
 		return 0;
+	}
 	return decode_dm(text, address - dm->base, data);
 }
 
