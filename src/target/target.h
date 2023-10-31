@@ -115,7 +115,6 @@ enum target_register_class {
 struct target {
 	struct target_type *type;			/* target type definition (name, access functions) */
 	char *cmd_name;				/* tcl Name of target */
-	int target_number;					/* DO NOT USE!  field to be removed in 2010 */
 	struct jtag_tap *tap;				/* where on the jtag chain is this */
 	int32_t coreid;						/* which device on the TAP? */
 
@@ -412,7 +411,6 @@ int target_call_timer_callbacks_now(void);
  */
 int64_t target_timer_next_event(void);
 
-struct target *get_target_by_num(int num);
 struct target *get_current_target(struct command_context *cmd_ctx);
 struct target *get_current_target_or_null(struct command_context *cmd_ctx);
 struct target *get_target(const char *id);
