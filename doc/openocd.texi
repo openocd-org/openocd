@@ -10833,11 +10833,6 @@ Set the maximum time to wait for a hart to come out of reset after reset is
 deasserted.
 @end deffn
 
-@deffn {Command} {riscv set_scratch_ram} none|[address]
-Set the address of 16 bytes of scratch RAM the debugger can use, or 'none'.
-This is used to access 64-bit floating point registers on 32-bit targets.
-@end deffn
-
 @deffn {Command} {riscv set_mem_access} method1 [method2] [method3]
 Specify which RISC-V memory access method(s) shall be used, and in which order
 of priority. At least one method must be specified.
