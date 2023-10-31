@@ -33,7 +33,18 @@ static int hwthread_write_buffer(struct rtos *rtos, target_addr_t address,
 
 static inline threadid_t threadid_from_target(const struct target *target)
 {
-	return target->coreid + 1;
+	if (!target->smp)
+		return 1;
+
+	threadid_t threadid = 1;
+	struct target_list *head;
+	foreach_smp_target(head, target->smp_targets) {
+		if (target == head->target)
+			return threadid;
+		++threadid;
+	}
+	assert(0 && "Target is not found in it's own SMP group!");
+	return -1;
 }
 
 const struct rtos_type hwthread_rtos = {
@@ -54,14 +65,13 @@ struct hwthread_params {
 	int dummy_param;
 };
 
-static int hwthread_fill_thread(struct rtos *rtos, struct target *curr, int thread_num)
+static int hwthread_fill_thread(struct rtos *rtos, struct target *curr, int thread_num, threadid_t tid)
 {
 	char tmp_str[HW_THREAD_NAME_STR_SIZE];
-	threadid_t tid = threadid_from_target(curr);
 
 	memset(tmp_str, 0, HW_THREAD_NAME_STR_SIZE);
 
-	/* thread-id is the core-id of this core inside the SMP group plus 1 */
+	/* thread-id is the index of this core inside the SMP group plus 1 */
 	rtos->thread_details[thread_num].threadid = tid;
 	/* create the thread name */
 	rtos->thread_details[thread_num].exists = true;
@@ -123,9 +133,8 @@ static int hwthread_update_threads(struct rtos *rtos)
 			if (!target_was_examined(curr))
 				continue;
 
-			threadid_t tid = threadid_from_target(curr);
-
-			hwthread_fill_thread(rtos, curr, threads_found);
+			threadid_t tid = threads_found + 1;
+			hwthread_fill_thread(rtos, curr, threads_found, tid);
 
 			/* find an interesting thread to set as current */
 			switch (current_reason) {
@@ -182,8 +191,8 @@ static int hwthread_update_threads(struct rtos *rtos)
 			threads_found++;
 		}
 	} else {
-		hwthread_fill_thread(rtos, target, threads_found);
-		current_thread = threadid_from_target(target);
+		current_thread = 1;
+		hwthread_fill_thread(rtos, target, threads_found, current_thread);
 		threads_found++;
 	}
 
@@ -206,19 +215,17 @@ static int hwthread_smp_init(struct target *target)
 	return hwthread_update_threads(target->rtos);
 }
 
-static struct target *hwthread_find_thread(struct target *target, int64_t thread_id)
+static struct target *hwthread_find_thread(struct target *target, threadid_t thread_id)
 {
-	/* Find the thread with that thread_id */
-	if (!target)
-		return NULL;
-	if (target->smp) {
-		struct target_list *head;
-		foreach_smp_target(head, target->smp_targets) {
-			if (thread_id == threadid_from_target(head->target))
-				return head->target;
-		}
-	} else if (thread_id == threadid_from_target(target)) {
+	/* Find the thread with that thread_id (index in SMP group plus 1)*/
+	if (!(target && target->smp))
 		return target;
+	struct target_list *head;
+	threadid_t tid = 1;
+	foreach_smp_target(head, target->smp_targets) {
+		if (thread_id == tid)
+			return head->target;
+		++tid;
 	}
 	return NULL;
 }
@@ -297,7 +304,7 @@ static int hwthread_get_thread_reg(struct rtos *rtos, int64_t thread_id,
 	}
 
 	if (!target_was_examined(curr)) {
-		LOG_ERROR("Target %d hasn't been examined yet.", curr->coreid);
+		LOG_TARGET_ERROR(curr, "Target hasn't been examined yet.");
 		return ERROR_FAIL;
 	}
 
@@ -382,9 +389,9 @@ static int hwthread_thread_packet(struct connection *connection, const char *pac
 				return ERROR_FAIL;
 			}
 			target->rtos->current_thread = current_threadid;
-		} else
-		if (current_threadid == 0 || current_threadid == -1)
+		} else if (current_threadid == 0 || current_threadid == -1) {
 			target->rtos->current_thread = threadid_from_target(target);
+		}
 
 		target->rtos->current_threadid = current_threadid;
 
