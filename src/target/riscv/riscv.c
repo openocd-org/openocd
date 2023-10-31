@@ -1831,7 +1831,7 @@ int riscv_halt(struct target *target)
 
 static int riscv_assert_reset(struct target *target)
 {
-	LOG_TARGET_DEBUG(target, "coreid: [%d]", target->coreid);
+	LOG_TARGET_DEBUG(target, "");
 	struct target_type *tt = get_target_type(target);
 	if (!tt)
 		return ERROR_FAIL;
@@ -1841,7 +1841,7 @@ static int riscv_assert_reset(struct target *target)
 
 static int riscv_deassert_reset(struct target *target)
 {
-	LOG_TARGET_DEBUG(target, "coreid: [%d]", target->coreid);
+	LOG_TARGET_DEBUG(target, "");
 	struct target_type *tt = get_target_type(target);
 	if (!tt)
 		return ERROR_FAIL;
