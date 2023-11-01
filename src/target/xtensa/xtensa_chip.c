@@ -184,6 +184,10 @@ struct target_type xtensa_chip_target = {
 
 	.get_gdb_reg_list = xtensa_get_gdb_reg_list,
 
+	.run_algorithm = xtensa_run_algorithm,
+	.start_algorithm = xtensa_start_algorithm,
+	.wait_algorithm = xtensa_wait_algorithm,
+
 	.add_breakpoint = xtensa_breakpoint_add,
 	.remove_breakpoint = xtensa_breakpoint_remove,
 
