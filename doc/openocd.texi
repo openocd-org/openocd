@@ -4838,8 +4838,6 @@ compact Thumb2 instruction set. Supports also ARMv6-M and ARMv8-M cores
 @item @code{esirisc} -- this is an EnSilica eSi-RISC core.
 The current implementation supports eSi-32xx cores.
 @item @code{esp32} -- this is an Espressif SoC with dual Xtensa cores.
-@item @code{esp32c2} -- this is an Espressif SoC with single RISC-V core.
-@item @code{esp32c3} -- this is an Espressif SoC with single RISC-V core.
 @item @code{esp32s2} -- this is an Espressif SoC with single Xtensa core.
 @item @code{esp32s3} -- this is an Espressif SoC with dual Xtensa cores.
 @item @code{fa526} -- resembles arm920 (w/o Thumb).
