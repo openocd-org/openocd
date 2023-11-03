@@ -4960,8 +4960,6 @@ static bool gdb_regno_cacheable(enum gdb_regno regno, bool is_write)
 	 * CSRs. */
 	switch (regno) {
 		case GDB_REGNO_DPC:
-			return true;
-
 		case GDB_REGNO_VSTART:
 		case GDB_REGNO_VXSAT:
 		case GDB_REGNO_VXRM:
