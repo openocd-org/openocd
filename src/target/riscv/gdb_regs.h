@@ -120,6 +120,6 @@ enum gdb_regno {
 	GDB_REGNO_COUNT
 };
 
-const char *gdb_regno_name(enum gdb_regno regno);
+const char *gdb_regno_name(struct target *target, enum gdb_regno regno);
 
 #endif

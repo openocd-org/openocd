@@ -1045,7 +1045,7 @@ static int read_remote_csr(struct target *target, uint64_t *value, uint32_t csr)
 	uint32_t exception = cache_get32(target, info->dramsize-1);
 	if (exception) {
 		LOG_WARNING("Got exception 0x%x when reading %s", exception,
-				gdb_regno_name(GDB_REGNO_CSR0 + csr));
+				gdb_regno_name(target, GDB_REGNO_CSR0 + csr));
 		*value = ~0;
 		return ERROR_FAIL;
 	}
@@ -1247,7 +1247,7 @@ static int register_read(struct target *target, riscv_reg_t *value, int regnum)
 
 	uint32_t exception = cache_get32(target, info->dramsize-1);
 	if (exception) {
-		LOG_WARNING("Got exception 0x%x when reading %s", exception, gdb_regno_name(regnum));
+		LOG_WARNING("Got exception 0x%x when reading %s", exception, gdb_regno_name(target, regnum));
 		*value = ~0;
 		return ERROR_FAIL;
 	}
@@ -1322,7 +1322,7 @@ static int register_write(struct target *target, unsigned int number,
 	uint32_t exception = cache_get32(target, info->dramsize-1);
 	if (exception) {
 		LOG_WARNING("Got exception 0x%x when writing %s", exception,
-				gdb_regno_name(number));
+				gdb_regno_name(target, number));
 		return ERROR_FAIL;
 	}
 

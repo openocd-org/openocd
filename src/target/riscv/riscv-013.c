@@ -942,7 +942,7 @@ static uint32_t access_register_command(struct target *target, uint32_t number,
 			break;
 		default:
 			LOG_TARGET_ERROR(target, "%d-bit register %s not supported.",
-					size, gdb_regno_name(number));
+					size, gdb_regno_name(target, number));
 			assert(0);
 	}
 
@@ -1178,7 +1178,7 @@ static int prep_for_register_access(struct target *target,
 		return ERROR_OK;
 
 	LOG_TARGET_DEBUG(target, "Preparing mstatus to access %s",
-			gdb_regno_name(regno));
+			gdb_regno_name(target, regno));
 
 	assert(target->state == TARGET_HALTED &&
 			"The target must be halted to modify and then restore mstatus");
@@ -1198,7 +1198,7 @@ static int prep_for_register_access(struct target *target,
 		return ERROR_FAIL;
 
 	LOG_TARGET_DEBUG(target, "Prepared to access %s (mstatus=0x%" PRIx64 ")",
-			gdb_regno_name(regno), new_mstatus);
+			gdb_regno_name(target, regno), new_mstatus);
 	return ERROR_OK;
 }
 
@@ -1487,7 +1487,7 @@ static int register_read_progbuf(struct target *target, uint64_t *value,
 		return csr_read_progbuf(target, value, number);
 
 	LOG_TARGET_ERROR(target, "Unexpected read of %s via program buffer.",
-			gdb_regno_name(number));
+			gdb_regno_name(target, number));
 	return ERROR_FAIL;
 }
 
@@ -1633,7 +1633,7 @@ static int register_write_progbuf(struct target *target, enum gdb_regno number,
 		return csr_write_progbuf(target, number, value);
 
 	LOG_TARGET_ERROR(target, "Unexpected write to %s via program buffer.",
-			gdb_regno_name(number));
+			gdb_regno_name(target, number));
 	return ERROR_FAIL;
 }
 
@@ -1645,7 +1645,7 @@ static int register_write_direct(struct target *target, enum gdb_regno number,
 		riscv_reg_t value)
 {
 	LOG_TARGET_DEBUG(target, "Writing 0x%" PRIx64 " to %s", value,
-			gdb_regno_name(number));
+			gdb_regno_name(target, number));
 
 	if (target->state != TARGET_HALTED)
 		return register_write_abstract(target, number, value);
@@ -1663,7 +1663,7 @@ static int register_write_direct(struct target *target, enum gdb_regno number,
 		return ERROR_FAIL;
 
 	if (result == ERROR_OK)
-		LOG_TARGET_DEBUG(target, "%s <- 0x%" PRIx64, gdb_regno_name(number),
+		LOG_TARGET_DEBUG(target, "%s <- 0x%" PRIx64, gdb_regno_name(target, number),
 				value);
 
 	return result;
@@ -1673,7 +1673,7 @@ static int register_write_direct(struct target *target, enum gdb_regno number,
 static int register_read_direct(struct target *target, riscv_reg_t *value,
 		enum gdb_regno number)
 {
-	LOG_TARGET_DEBUG(target, "Reading %s", gdb_regno_name(number));
+	LOG_TARGET_DEBUG(target, "Reading %s", gdb_regno_name(target, number));
 
 	if (target->state != TARGET_HALTED)
 		return register_read_abstract(target, value, number);
@@ -1692,7 +1692,7 @@ static int register_read_direct(struct target *target, riscv_reg_t *value,
 		return ERROR_FAIL;
 
 	if (result == ERROR_OK)
-		LOG_TARGET_DEBUG(target, "%s = 0x%" PRIx64, gdb_regno_name(number),
+		LOG_TARGET_DEBUG(target, "%s = 0x%" PRIx64, gdb_regno_name(target, number),
 				*value);
 
 	return result;
@@ -2372,7 +2372,7 @@ static int riscv013_get_register_buf(struct target *target,
 		} else {
 			LOG_TARGET_ERROR(target,
 					"Failed to execute vmv/vslide1down while reading %s",
-					gdb_regno_name(regno));
+					gdb_regno_name(target, regno));
 			break;
 		}
 	}
@@ -4671,7 +4671,7 @@ struct target_type riscv013_target = {
 static int riscv013_get_register(struct target *target,
 		riscv_reg_t *value, enum gdb_regno rid)
 {
-	LOG_TARGET_DEBUG(target, "reading register %s",	gdb_regno_name(rid));
+	LOG_TARGET_DEBUG(target, "reading register %s",	gdb_regno_name(target, rid));
 
 	if (dm013_select_target(target) != ERROR_OK)
 		return ERROR_FAIL;
@@ -4688,7 +4688,7 @@ static int riscv013_set_register(struct target *target, enum gdb_regno rid,
 		riscv_reg_t value)
 {
 	LOG_TARGET_DEBUG(target, "writing 0x%" PRIx64 " to register %s",
-			value, gdb_regno_name(rid));
+			value, gdb_regno_name(target, rid));
 
 	if (dm013_select_target(target) != ERROR_OK)
 		return ERROR_FAIL;
