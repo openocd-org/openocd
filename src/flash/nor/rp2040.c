@@ -9,13 +9,18 @@
 #include <target/algorithm.h>
 #include <target/armv7m.h>
 #include "spi.h"
+#include <target/cortex_m.h>
 
 /* NOTE THAT THIS CODE REQUIRES FLASH ROUTINES in BOOTROM WITH FUNCTION TABLE PTR AT 0x00000010
    Your gdbinit should load the bootrom.elf if appropriate */
 
 /* this is 'M' 'u', 1 (version) */
-#define BOOTROM_MAGIC 0x01754d
+#define BOOTROM_RP2040_MAGIC 0x01754d
+/* this is 'M' 'u', 2 (version) */
+#define BOOTROM_RP2350_MAGIC 0x02754d
 #define BOOTROM_MAGIC_ADDR 0x00000010
+
+#define RT_ARM_FUNC 0x1
 
 /* Call a ROM function via the debug trampoline
    Up to four arguments passed in r0...r3 as per ABI
@@ -31,6 +36,48 @@
 #define FUNC_FLASH_RANGE_PROGRAM    MAKE_TAG('R', 'P')
 #define FUNC_FLASH_FLUSH_CACHE      MAKE_TAG('F', 'C')
 #define FUNC_FLASH_ENTER_CMD_XIP    MAKE_TAG('C', 'X')
+#define FUNC_BOOTROM_STATE_RESET    MAKE_TAG('S', 'R')
+
+// these form a bit set
+#define BOOTROM_STATE_RESET_CURRENT_CORE 0x01
+#define BOOTROM_STATE_RESET_OTHER_CORE   0x02
+#define BOOTROM_STATE_RESET_GLOBAL_STATE 0x04
+
+#define ACCESSCTRL_LOCK_OFFSET     0x40060000u
+#define ACCESSCTRL_LOCK_DEBUG_BITS 0x00000008u
+#define ACCESSCTRL_CFGRESET_OFFSET 0x40060008u
+#define ACCESSCTRL_WRITE_PASSWORD  0xacce0000u
+
+// Calling bootrom functions requires the redundancy coprocessor (RCP) to be
+// initialised. Usually this is done first thing by the bootrom, but the
+// debugger may skip this, e.g. by resetting the cores and then running a
+// NO_FLASH binary, or by reset-halting the cores before flash programming.
+//
+// The first case can be handled by a stub in the binary itself to initialise
+// the RCP with dummy values if the bootrom has not already initialised it.
+// (Note this case is only reachable via the debugger.) The second case
+// requires the debugger itself to initialise the RCP, using this stub code:
+
+static const int rcp_init_code_bkpt_offset = 24;
+static const uint16_t rcp_init_code[] = {
+	// Just enable the RCP which is fine if it already was (we assume no other
+	// co-processors are enabled at this point to save space)
+	0x4806,         // ldr r0, = PPB_BASE + M33_CPACR_OFFSET
+	0xf45f, 0x4140, // movs r1, #M33_CPACR_CP7_BITS
+	0x6001,         // str r1, [r0]
+	// Only initialize canary seeds if they haven't been (as to do so twice is a fault)
+	0xee30, 0xf710, // mrc p7, #1, r15, c0, c0, #0
+	0xd404,         // bmi 1f
+	// Todo should we use something random here and pass it into the algorithm?
+	0xec40, 0x0780, // mcrr p7, #8, r0, r0, c0
+	0xec40, 0x0781, // mcrr p7, #8, r0, r0, c1
+	// Let other core know
+	0xbf40,         // sev
+	// 1:
+	0xbe00,         // bkpt (end of algorithm)
+	0x0000,         // pad
+	0xed88, 0xe000  // PPB_BASE + M33_CPACR_OFFSET
+};
 
 struct rp2040_flash_bank {
 	/* flag indicating successful flash probe */
@@ -46,33 +93,31 @@ struct rp2040_flash_bank {
 	uint16_t jump_flash_range_program;
 	uint16_t jump_flush_cache;
 	uint16_t jump_enter_cmd_xip;
-	/* detected model of SPI flash */
-	const struct flash_device *dev;
+	uint16_t jump_bootrom_reset_state;
 };
-
-/* guessed SPI flash description if autodetection disabled (same as win w25q16jv) */
-static const struct flash_device rp2040_default_spi_device =
-	FLASH_ID("autodetect disabled", 0x03, 0x00, 0x02, 0xd8, 0xc7, 0, 0x100, 0x10000, 0);
 
 static uint32_t rp2040_lookup_symbol(struct target *target, uint32_t tag, uint16_t *symbol)
 {
-	uint32_t magic;
+	uint32_t magic, magic_addr;
+	bool found_rp2040_magic, found_rp2350_magic;
+	magic_addr = BOOTROM_MAGIC_ADDR;
 	int err = target_read_u32(target, BOOTROM_MAGIC_ADDR, &magic);
 	if (err != ERROR_OK)
 		return err;
 
 	magic &= 0xffffff; /* ignore bootrom version */
-	if (magic != BOOTROM_MAGIC) {
-		if (!((magic ^ BOOTROM_MAGIC)&0xffff))
-			LOG_ERROR("Incorrect RP2040 BOOT ROM version");
-		else
-			LOG_ERROR("RP2040 BOOT ROM not found");
+
+	found_rp2040_magic = magic == BOOTROM_RP2040_MAGIC;
+	found_rp2350_magic = magic == BOOTROM_RP2350_MAGIC;
+
+	if (!(found_rp2040_magic || found_rp2350_magic)) {
+		LOG_ERROR("RP2040/RP2350 BOOT ROM not found");
 		return ERROR_FAIL;
 	}
 
 	/* dereference the table pointer */
 	uint16_t table_entry;
-	err = target_read_u16(target, BOOTROM_MAGIC_ADDR + 4, &table_entry);
+	err = target_read_u16(target, magic_addr + 4, &table_entry);
 	if (err != ERROR_OK)
 		return err;
 
@@ -82,16 +127,29 @@ static uint32_t rp2040_lookup_symbol(struct target *target, uint32_t tag, uint16
 		if (err != ERROR_OK)
 			return err;
 		if (entry_tag == tag) {
-			/* 16 bit symbol is next */
-			return target_read_u16(target, table_entry + 2, symbol);
+			if (found_rp2350_magic) {
+				uint16_t flags;
+				/* flags are next */
+				err = target_read_u16(target, table_entry + 4, &flags);
+				if (err != ERROR_OK)
+					return err;
+				//
+				if (flags & RT_ARM_FUNC) {
+					/* 16 bit symbol */
+					return target_read_u16(target, table_entry + 2, symbol);
+				}
+			} else {
+				/* 16 bit symbol is next */
+				return target_read_u16(target, table_entry + 2, symbol);
+			}
 		}
-		table_entry += 4;
+		table_entry += found_rp2350_magic ? 6 : 4;
 	} while (entry_tag);
 	return ERROR_FAIL;
 }
 
 static int rp2040_call_rom_func(struct target *target, struct rp2040_flash_bank *priv,
-		uint16_t func_offset, uint32_t argdata[], unsigned int n_args, unsigned int timeout_ms)
+		uint16_t func_offset, uint32_t argdata[], unsigned int n_args)
 {
 	char *regnames[4] = { "r0", "r1", "r2", "r3" };
 
@@ -103,9 +161,10 @@ static int rp2040_call_rom_func(struct target *target, struct rp2040_flash_bank 
 	}
 	target_addr_t stacktop = priv->stack->address + priv->stack->size;
 
-	LOG_TARGET_DEBUG(target, "Calling ROM func @0x%" PRIx16 " with %u arguments", func_offset, n_args);
+	LOG_DEBUG("Calling ROM func @0x%" PRIx16 " with %d arguments", func_offset, n_args);
+	LOG_DEBUG("Calling on core \"%s\"", target->cmd_name);
 
-	struct reg_param args[ARRAY_SIZE(regnames) + 2];
+	struct reg_param args[ARRAY_SIZE(regnames) + 12];
 	struct armv7m_algorithm alg_info;
 
 	for (unsigned int i = 0; i < n_args; ++i) {
@@ -113,14 +172,36 @@ static int rp2040_call_rom_func(struct target *target, struct rp2040_flash_bank 
 		buf_set_u32(args[i].value, 0, 32, argdata[i]);
 	}
 	/* Pass function pointer in r7 */
-	init_reg_param(&args[n_args], "r7", 32, PARAM_OUT);
-	buf_set_u32(args[n_args].value, 0, 32, func_offset);
-	/* Setup stack */
-	init_reg_param(&args[n_args + 1], "sp", 32, PARAM_OUT);
-	buf_set_u32(args[n_args + 1].value, 0, 32, stacktop);
-	unsigned int n_reg_params = n_args + 2;	/* User arguments + r7 + sp */
+	unsigned int extra_args = 0;
+	init_reg_param(&args[n_args + extra_args], "r7", 32, PARAM_OUT);
+	buf_set_u32(args[n_args + extra_args++].value, 0, 32, func_offset);
+	/* Set stack pointer, have seen the caching get confused by the aliases of sp so
+	   take the shotgun approach*/
+	init_reg_param(&args[n_args + extra_args], "msp_s", 32, PARAM_OUT);
+	buf_set_u32(args[n_args + extra_args++].value, 0, 32, stacktop);
+	init_reg_param(&args[n_args + extra_args], "msp_ns", 32, PARAM_OUT);
+	buf_set_u32(args[n_args + extra_args++].value, 0, 32, stacktop);
+	init_reg_param(&args[n_args + extra_args], "psp_s", 32, PARAM_OUT);
+	buf_set_u32(args[n_args + extra_args++].value, 0, 32, stacktop);
+	init_reg_param(&args[n_args + extra_args], "psp_ns", 32, PARAM_OUT);
+	buf_set_u32(args[n_args + extra_args++].value, 0, 32, stacktop);
+	init_reg_param(&args[n_args + extra_args], "msp", 32, PARAM_OUT);
+	buf_set_u32(args[n_args + extra_args++].value, 0, 32, stacktop);
+	init_reg_param(&args[n_args + extra_args], "psp", 32, PARAM_OUT);
+	buf_set_u32(args[n_args + extra_args++].value, 0, 32, stacktop);
+	init_reg_param(&args[n_args + extra_args], "sp", 32, PARAM_OUT);
+	buf_set_u32(args[n_args + extra_args++].value, 0, 32, stacktop);
+	/* Clear stack pointer limits, as they may be above the algorithm stack */
+	init_reg_param(&args[n_args + extra_args], "msplim_s", 32, PARAM_OUT);
+	buf_set_u32(args[n_args + extra_args++].value, 0, 32, 0);
+	init_reg_param(&args[n_args + extra_args], "psplim_s", 32, PARAM_OUT);
+	buf_set_u32(args[n_args + extra_args++].value, 0, 32, 0);
+	init_reg_param(&args[n_args + extra_args], "msplim_ns", 32, PARAM_OUT);
+	buf_set_u32(args[n_args + extra_args++].value, 0, 32, 0);
+	init_reg_param(&args[n_args + extra_args], "psplim_ns", 32, PARAM_OUT);
+	buf_set_u32(args[n_args + extra_args++].value, 0, 32, 0);
 
-	for (unsigned int i = 0; i < n_reg_params; ++i)
+	for (unsigned int i = 0; i < n_args + extra_args; ++i)
 		LOG_DEBUG("Set %s = 0x%" PRIx32, args[i].reg_name, buf_get_u32(args[i].value, 0, 32));
 
 	/* Actually call the function */
@@ -129,82 +210,158 @@ static int rp2040_call_rom_func(struct target *target, struct rp2040_flash_bank 
 	int err = target_run_algorithm(
 		target,
 		0, NULL,          /* No memory arguments */
-		n_reg_params, args, /* User arguments + r7 + sp */
+		n_args + extra_args, args, /* User arguments + r7 + SPs */
 		priv->jump_debug_trampoline, priv->jump_debug_trampoline_end,
-		timeout_ms,
+		3000, /* 3s timeout */
 		&alg_info
 	);
-
-	for (unsigned int i = 0; i < n_reg_params; ++i)
+	for (unsigned int i = 0; i < n_args + extra_args; ++i)
 		destroy_reg_param(&args[i]);
-
 	if (err != ERROR_OK)
-		LOG_ERROR("Failed to invoke ROM function @0x%" PRIx16, func_offset);
-
+		LOG_ERROR("Failed to invoke ROM function @0x%" PRIx16 "\n", func_offset);
 	return err;
 }
 
-/* Finalize flash write/erase/read ID
- * - flush cache
- * - enters memory-mapped (XIP) mode to make flash data visible
- * - deallocates target ROM func stack if previously allocated
- */
-static int rp2040_finalize_stack_free(struct flash_bank *bank)
+static int rp2350_init_core(struct target *target, struct rp2040_flash_bank *priv)
 {
-	struct rp2040_flash_bank *priv = bank->driver_priv;
-	struct target *target = bank->target;
-
-	/* Always flush before returning to execute-in-place, to invalidate stale
-	 * cache contents. The flush call also restores regular hardware-controlled
-	 * chip select following a rp2040_flash_exit_xip().
-	 */
-	LOG_DEBUG("Flushing flash cache after write behind");
-	int err = rp2040_call_rom_func(target, priv, priv->jump_flush_cache, NULL, 0, 1000);
-	if (err != ERROR_OK) {
-		LOG_ERROR("Failed to flush flash cache");
-		/* Intentionally continue after error and try to setup xip anyway */
-	}
-
-	LOG_DEBUG("Configuring SSI for execute-in-place");
-	err = rp2040_call_rom_func(target, priv, priv->jump_enter_cmd_xip, NULL, 0, 1000);
-	if (err != ERROR_OK)
-		LOG_ERROR("Failed to set SSI to XIP mode");
-
-	target_free_working_area(target, priv->stack);
-	priv->stack = NULL;
-	return err;
-}
-
-/* Prepare flash write/erase/read ID
- * - allocates a stack for target ROM func
- * - switches the SPI interface from memory-mapped mode to direct command mode
- * Always pair with a call of rp2040_finalize_stack_free()
- * after flash operation finishes or fails.
- */
-static int rp2040_stack_grab_and_prep(struct flash_bank *bank)
-{
-	struct rp2040_flash_bank *priv = bank->driver_priv;
-	struct target *target = bank->target;
-
-	/* target_alloc_working_area always allocates multiples of 4 bytes, so no worry about alignment */
-	const int STACK_SIZE = 256;
-	int err = target_alloc_working_area(target, STACK_SIZE, &priv->stack);
-	if (err != ERROR_OK) {
-		LOG_ERROR("Could not allocate stack for flash programming code");
+	if (!priv->stack) {
+		LOG_ERROR("no stack for flash programming code");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
-	LOG_DEBUG("Connecting internal flash");
-	err = rp2040_call_rom_func(target, priv, priv->jump_connect_internal_flash, NULL, 0, 1000);
+	struct armv7m_algorithm alg_info;
+
+	// copy rcp_init code onto stack, as we don't actually need any stack during the call
+	if (priv->stack->size < sizeof(rcp_init_code)) {
+		LOG_ERROR("Working area too small for rcp_init");
+		return ERROR_BUF_TOO_SMALL;
+	}
+
+	// Attempt to reset ACCESSCTRL before running RCP init, in case Secure
+	// access to SRAM has been blocked. (Also ROM, QMI regs are needed later)
+	uint32_t accessctrl_lock_reg;
+	if (target_read_u32(target, ACCESSCTRL_LOCK_OFFSET, &accessctrl_lock_reg) != ERROR_OK) {
+		LOG_ERROR("Failed to read ACCESSCTRL lock register");
+		// Failed to read an APB register which should always be readable from
+		// any security/privilege level. Something fundamental is wrong. E.g.:
+		//
+		// - The debugger is attempting to perform Secure bus accesses on a
+		//   system where Secure debug has been disabled
+		// - clk_sys or busfabric clock are stopped (try doing a rescue reset)
+		return ERROR_FAIL;
+	}
+	if (accessctrl_lock_reg & ACCESSCTRL_LOCK_DEBUG_BITS) {
+		LOG_ERROR("ACCESSCTRL is locked, so can't reset permissions. Following steps might fail.\n");
+	} else {
+		LOG_DEBUG("Reset ACCESSCTRL permissions via CFGRESET\n");
+		target_write_u32(target, ACCESSCTRL_CFGRESET_OFFSET, ACCESSCTRL_WRITE_PASSWORD | 1u);
+	}
+
+	int err = target_write_memory(target,
+		priv->stack->address,
+		1,
+		sizeof(rcp_init_code),
+		(const uint8_t *)rcp_init_code
+	);
 	if (err != ERROR_OK) {
-		LOG_ERROR("Failed to connect internal flash");
+		LOG_ERROR("Failed to load rcp_init algorithm into RAM\n");
+		return ERROR_FAIL;
+	}
+
+	LOG_DEBUG("Calling rcp_init core \"%s\" code at 0x%" PRIx16 "\n", target->cmd_name, (uint32_t)priv->stack->address);
+
+	/* Actually call the function */
+	alg_info.common_magic = ARMV7M_COMMON_MAGIC;
+	alg_info.core_mode = ARM_MODE_THREAD;
+	err = target_run_algorithm(target,
+			0, NULL,          /* No memory arguments */
+			0, NULL,          /* No register arguments */
+			priv->stack->address,
+			priv->stack->address + rcp_init_code_bkpt_offset,
+			1000, /* 1s timeout */
+			&alg_info
+	);
+	if (err != ERROR_OK) {
+		LOG_ERROR("Failed to invoke rcp_init\n");
+		return err;
+	}
+
+	uint32_t reset_args[1] = {
+			BOOTROM_STATE_RESET_CURRENT_CORE
+	};
+	if (!priv->jump_bootrom_reset_state) {
+		LOG_WARNING("RP2350 flash: no bootrom_reset_method\n");
+	} else {
+		err = rp2040_call_rom_func(target, priv, priv->jump_bootrom_reset_state, reset_args, ARRAY_SIZE(reset_args));
+		if (err != ERROR_OK) {
+			LOG_ERROR("RP2040 flash: failed to call reset core state");
+			return err;
+		}
+	}
+
+	return err;
+}
+
+static int setup_for_rom_call(struct flash_bank *bank)
+{
+	struct rp2040_flash_bank *priv = bank->driver_priv;
+
+	struct target *target = bank->target;
+
+	int err = ERROR_OK;
+	if (!priv->stack) {
+		/* target_alloc_working_area always allocates multiples of 4 bytes, so no worry about alignment */
+		const int STACK_SIZE = 256;
+		target_alloc_working_area(bank->target, STACK_SIZE, &priv->stack);
+		if (err != ERROR_OK) {
+			LOG_ERROR("Could not allocate stack for flash programming code");
+			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+		}
+	}
+
+	// Flash algorithms must run in Secure state
+	uint32_t dscsr;
+	(void)target_read_u32(target, DCB_DSCSR, &dscsr);
+	LOG_DEBUG("DSCSR:  %08x\n", dscsr);
+	if (!(dscsr & DSCSR_CDS)) {
+		LOG_DEBUG("Setting Current Domain Secure in DSCSR\n");
+		(void)target_write_u32(target, DCB_DSCSR, (dscsr & ~DSCSR_CDSKEY) | DSCSR_CDS);
+		(void)target_read_u32(target, DCB_DSCSR, &dscsr);
+		LOG_DEBUG("DSCSR*: %08x\n", dscsr);
+	}
+
+	// hacky RP2350 check
+	if (target_to_arm(target)->arch == ARM_ARCH_V8M) {
+		err = rp2350_init_core(target, priv);
+		if (err != ERROR_OK) {
+			LOG_ERROR("RP2350 flash: failed to init core");
+			return err;
+		}
+	}
+	return err;
+}
+
+static int setup_for_raw_flash_cmd(struct flash_bank *bank)
+{
+	struct rp2040_flash_bank *priv = bank->driver_priv;
+	int err = setup_for_rom_call(bank);
+	err = rp2040_call_rom_func(bank->target, priv, priv->jump_connect_internal_flash, NULL, 0);
+	if (err != ERROR_OK) {
+		LOG_ERROR("RP2040 flash: failed to setup for rom call");
+		return err;
+	}
+
+	LOG_DEBUG("Connecting internal flash");
+	err = rp2040_call_rom_func(bank->target, priv, priv->jump_connect_internal_flash, NULL, 0);
+	if (err != ERROR_OK) {
+		LOG_ERROR("RP2040 flash: failed to connect internal flash");
 		return err;
 	}
 
 	LOG_DEBUG("Kicking flash out of XIP mode");
-	err = rp2040_call_rom_func(target, priv, priv->jump_flash_exit_xip, NULL, 0, 1000);
+	err = rp2040_call_rom_func(bank->target, priv, priv->jump_flash_exit_xip, NULL, 0);
 	if (err != ERROR_OK) {
-		LOG_ERROR("Failed to exit flash XIP mode");
+		LOG_ERROR("RP2040 flash: failed to exit flash XIP mode");
 		return err;
 	}
 
@@ -217,27 +374,17 @@ static int rp2040_flash_write(struct flash_bank *bank, const uint8_t *buffer, ui
 
 	struct rp2040_flash_bank *priv = bank->driver_priv;
 	struct target *target = bank->target;
+	struct working_area *bounce;
 
-	if (target->state != TARGET_HALTED) {
-		LOG_ERROR("Target not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
-
-	struct working_area *bounce = NULL;
-
-	int err = rp2040_stack_grab_and_prep(bank);
+	int err = setup_for_raw_flash_cmd(bank);
 	if (err != ERROR_OK)
-		goto cleanup;
+		return err;
 
-	unsigned int avail_pages = target_get_working_area_avail(target) / priv->dev->pagesize;
-	/* We try to allocate working area rounded down to device page size,
-	 * al least 1 page, at most the write data size
-	 */
-	unsigned int chunk_size = MIN(MAX(avail_pages, 1) * priv->dev->pagesize, count);
-	err = target_alloc_working_area(target, chunk_size, &bounce);
-	if (err != ERROR_OK) {
+	// Allocate as much memory as possible, rounded down to a whole number of flash pages
+	const unsigned int chunk_size = target_get_working_area_avail(target) & ~0xffu;
+	if (chunk_size == 0 || target_alloc_working_area(target, chunk_size, &bounce) != ERROR_OK) {
 		LOG_ERROR("Could not allocate bounce buffer for flash programming. Can't continue");
-		goto cleanup;
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
 	LOG_DEBUG("Allocated flash bounce buffer @" TARGET_ADDR_FMT, bounce->address);
@@ -255,8 +402,7 @@ static int rp2040_flash_write(struct flash_bank *bank, const uint8_t *buffer, ui
 			bounce->address, /* data */
 			write_size /* count */
 		};
-		err = rp2040_call_rom_func(target, priv, priv->jump_flash_range_program,
-								 args, ARRAY_SIZE(args), 3000);
+		err = rp2040_call_rom_func(target, priv, priv->jump_flash_range_program, args, ARRAY_SIZE(args));
 		if (err != ERROR_OK) {
 			LOG_ERROR("Failed to invoke flash programming code on target");
 			break;
@@ -266,40 +412,44 @@ static int rp2040_flash_write(struct flash_bank *bank, const uint8_t *buffer, ui
 		offset += write_size;
 		count -= write_size;
 	}
-
-cleanup:
 	target_free_working_area(target, bounce);
 
-	rp2040_finalize_stack_free(bank);
+	if (err != ERROR_OK)
+		return err;
 
+	/* Flash is successfully programmed. We can now do a bit of poking to make the flash
+	   contents visible to us via memory-mapped (XIP) interface in the 0x1... memory region */
+	LOG_DEBUG("Flushing flash cache after write behind");
+	err = rp2040_call_rom_func(bank->target, priv, priv->jump_flush_cache, NULL, 0);
+	if (err != ERROR_OK) {
+		LOG_ERROR("RP2040 write: failed to flush flash cache");
+		return err;
+	}
+	LOG_DEBUG("Configuring SSI for execute-in-place");
+	err = rp2040_call_rom_func(bank->target, priv, priv->jump_enter_cmd_xip, NULL, 0);
+	if (err != ERROR_OK)
+		LOG_ERROR("RP2040 write: failed to flush flash cache");
 	return err;
 }
 
 static int rp2040_flash_erase(struct flash_bank *bank, unsigned int first, unsigned int last)
 {
 	struct rp2040_flash_bank *priv = bank->driver_priv;
-	struct target *target = bank->target;
-
-	if (target->state != TARGET_HALTED) {
-		LOG_ERROR("Target not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
-
 	uint32_t start_addr = bank->sectors[first].offset;
 	uint32_t length = bank->sectors[last].offset + bank->sectors[last].size - start_addr;
 	LOG_DEBUG("RP2040 erase %d bytes starting at 0x%" PRIx32, length, start_addr);
 
-	int err = rp2040_stack_grab_and_prep(bank);
+	int err = setup_for_raw_flash_cmd(bank);
 	if (err != ERROR_OK)
-		goto cleanup;
+		return err;
 
 	LOG_DEBUG("Remote call flash_range_erase");
 
 	uint32_t args[4] = {
 		bank->sectors[first].offset, /* addr */
 		bank->sectors[last].offset + bank->sectors[last].size - bank->sectors[first].offset, /* count */
-		priv->dev->sectorsize, /* block_size */
-		priv->dev->erase_cmd /* block_cmd */
+		65536, /* block_size */
+		0xd8   /* block_cmd */
 	};
 
 	/*
@@ -309,15 +459,10 @@ static int rp2040_flash_erase(struct flash_bank *bank, unsigned int first, unsig
 	https://github.com/raspberrypi/pico-bootrom/blob/master/bootrom/program_flash_generic.c
 
 	In theory, the function algorithm provides for erasing both a smaller "sector" (4096 bytes) and
-	an optional larger "block" (size and command provided in args).
+	an optional larger "block" (size and command provided in args).  OpenOCD's spi.c only uses "block" sizes.
 	*/
 
-	unsigned int timeout_ms = 2000 * (last - first) + 1000;
-	err = rp2040_call_rom_func(target, priv, priv->jump_flash_range_erase,
-							args, ARRAY_SIZE(args), timeout_ms);
-
-cleanup:
-	rp2040_finalize_stack_free(bank);
+	err = rp2040_call_rom_func(bank->target, priv, priv->jump_flash_range_erase, args, ARRAY_SIZE(args));
 
 	return err;
 }
@@ -325,66 +470,10 @@ cleanup:
 /* -----------------------------------------------------------------------------
    Driver probing etc */
 
-static int rp2040_ssel_active(struct target *target, bool active)
-{
-	const target_addr_t qspi_ctrl_addr = 0x4001800c;
-	const uint32_t qspi_ctrl_outover_low  = 2UL << 8;
-	const uint32_t qspi_ctrl_outover_high = 3UL << 8;
-	uint32_t state = (active) ? qspi_ctrl_outover_low : qspi_ctrl_outover_high;
-	uint32_t val;
-
-	int err = target_read_u32(target, qspi_ctrl_addr, &val);
-	if (err != ERROR_OK)
-		return err;
-
-	val = (val & ~qspi_ctrl_outover_high) | state;
-
-	err = target_write_u32(target, qspi_ctrl_addr, val);
-	if (err != ERROR_OK)
-		return err;
-
-	return ERROR_OK;
-}
-
-static int rp2040_spi_read_flash_id(struct target *target, uint32_t *devid)
-{
-	uint32_t device_id = 0;
-	const target_addr_t ssi_dr0 = 0x18000060;
-
-	int err = rp2040_ssel_active(target, true);
-
-	/* write RDID request into SPI peripheral's FIFO */
-	for (int count = 0; (count < 4) && (err == ERROR_OK); count++)
-		err = target_write_u32(target, ssi_dr0, SPIFLASH_READ_ID);
-
-	/* by this time, there is a receive FIFO entry for every write */
-	for (int count = 0; (count < 4) && (err == ERROR_OK); count++) {
-		uint32_t status;
-		err = target_read_u32(target, ssi_dr0, &status);
-
-		device_id >>= 8;
-		device_id |= (status & 0xFF) << 24;
-	}
-
-	if (err == ERROR_OK)
-		*devid = device_id >> 8;
-
-	int err2 = rp2040_ssel_active(target, false);
-	if (err2 != ERROR_OK)
-		LOG_ERROR("SSEL inactive failed");
-
-	return err;
-}
-
 static int rp2040_flash_probe(struct flash_bank *bank)
 {
 	struct rp2040_flash_bank *priv = bank->driver_priv;
 	struct target *target = bank->target;
-
-	if (target->state != TARGET_HALTED) {
-		LOG_ERROR("Target not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
 
 	int err = rp2040_lookup_symbol(target, FUNC_DEBUG_TRAMPOLINE, &priv->jump_debug_trampoline);
 	if (err != ERROR_OK) {
@@ -417,6 +506,7 @@ static int rp2040_flash_probe(struct flash_bank *bank)
 		LOG_ERROR("Function FUNC_FLASH_RANGE_ERASE not found in RP2040 ROM.");
 		return err;
 	}
+	LOG_WARNING("GOT FLASH ERASE AT %08x\n", (int)priv->jump_flash_range_erase);
 
 	err = rp2040_lookup_symbol(target, FUNC_FLASH_RANGE_PROGRAM, &priv->jump_flash_range_program);
 	if (err != ERROR_OK) {
@@ -436,50 +526,25 @@ static int rp2040_flash_probe(struct flash_bank *bank)
 		return err;
 	}
 
-	if (bank->size) {
-		/* size overridden, suppress reading SPI flash ID */
-		priv->dev = &rp2040_default_spi_device;
-		LOG_DEBUG("SPI flash autodetection disabled, using configured size");
-
-	} else {
-		/* zero bank size in cfg, read SPI flash ID and autodetect */
-		err = rp2040_stack_grab_and_prep(bank);
-
-		uint32_t device_id = 0;
-		if (err == ERROR_OK)
-			err = rp2040_spi_read_flash_id(target, &device_id);
-
-		rp2040_finalize_stack_free(bank);
-
-		if (err != ERROR_OK)
-			return err;
-
-		/* search for a SPI flash Device ID match */
-		priv->dev = NULL;
-		for (const struct flash_device *p = flash_devices; p->name ; p++)
-			if (p->device_id == device_id) {
-				priv->dev = p;
-				break;
-			}
-
-		if (!priv->dev) {
-			LOG_ERROR("Unknown flash device (ID 0x%08" PRIx32 ")", device_id);
-			return ERROR_FAIL;
-		}
-		LOG_INFO("Found flash device '%s' (ID 0x%08" PRIx32 ")",
-			priv->dev->name, priv->dev->device_id);
-
-		bank->size = priv->dev->size_in_bytes;
+	err = rp2040_lookup_symbol(target, FUNC_BOOTROM_STATE_RESET, &priv->jump_bootrom_reset_state);
+	if (err != ERROR_OK) {
+		priv->jump_bootrom_reset_state = 0;
+//        LOG_ERROR("Function FUNC_BOOTROM_STATE_RESET not found in RP2040 ROM.");
+//        return err;
 	}
 
 	/* the Boot ROM flash_range_program() routine requires page alignment */
-	bank->write_start_alignment = priv->dev->pagesize;
-	bank->write_end_alignment = priv->dev->pagesize;
+	bank->write_start_alignment = 256;
+	bank->write_end_alignment = 256;
 
-	bank->num_sectors = bank->size / priv->dev->sectorsize;
-	LOG_INFO("RP2040 B0 Flash Probe: %" PRIu32 " bytes @" TARGET_ADDR_FMT ", in %u sectors\n",
+	// Max size -- up to two devices (two chip selects) in adjacent 24-bit address windows
+	bank->size = 32 * 1024 * 1024;
+
+	bank->num_sectors = bank->size / 4096;
+
+	LOG_INFO("RP2040 Flash Probe: %d bytes @" TARGET_ADDR_FMT ", in %d sectors\n",
 		bank->size, bank->base, bank->num_sectors);
-	bank->sectors = alloc_block_array(0, priv->dev->sectorsize, bank->num_sectors);
+	bank->sectors = alloc_block_array(0, 4096, bank->num_sectors);
 	if (!bank->sectors)
 		return ERROR_FAIL;
 
