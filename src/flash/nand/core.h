@@ -179,6 +179,7 @@ enum oob_formats {
 	NAND_OOB_YAFFS2 = 0x100,/* when writing, use YAFFS2 OOB layout */
 };
 
+extern struct nand_device *nand_devices;
 
 struct nand_device *get_nand_device_by_num(int num);
 
@@ -202,6 +203,8 @@ int nand_calculate_ecc(struct nand_device *nand,
 		       const uint8_t *dat, uint8_t *ecc_code);
 int nand_calculate_ecc_kw(struct nand_device *nand,
 			  const uint8_t *dat, uint8_t *ecc_code);
+int nand_correct_data(struct nand_device *nand, u_char *dat,
+		u_char *read_ecc, u_char *calc_ecc);
 
 int nand_register_commands(struct command_context *cmd_ctx);
 

@@ -484,7 +484,7 @@ int armv7m_run_algorithm(struct target *target,
 	int num_mem_params, struct mem_param *mem_params,
 	int num_reg_params, struct reg_param *reg_params,
 	target_addr_t entry_point, target_addr_t exit_point,
-	int timeout_ms, void *arch_info)
+	unsigned int timeout_ms, void *arch_info)
 {
 	int retval;
 
@@ -622,7 +622,7 @@ int armv7m_start_algorithm(struct target *target,
 int armv7m_wait_algorithm(struct target *target,
 	int num_mem_params, struct mem_param *mem_params,
 	int num_reg_params, struct reg_param *reg_params,
-	target_addr_t exit_point, int timeout_ms,
+	target_addr_t exit_point, unsigned int timeout_ms,
 	void *arch_info)
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
@@ -909,7 +909,7 @@ int armv7m_checksum_memory(struct target *target,
 	buf_set_u32(reg_params[0].value, 0, 32, address);
 	buf_set_u32(reg_params[1].value, 0, 32, count);
 
-	int timeout = 20000 * (1 + (count / (1024 * 1024)));
+	unsigned int timeout = 20000 * (1 + (count / (1024 * 1024)));
 
 	retval = target_run_algorithm(target, 0, NULL, 2, reg_params, crc_algorithm->address,
 			crc_algorithm->address + (sizeof(cortex_m_crc_code) - 6),
@@ -1016,7 +1016,7 @@ int armv7m_blank_check_memory(struct target *target,
 	buf_set_u32(reg_params[1].value, 0, 32, erased_word);
 
 	/* assume CPU clk at least 1 MHz */
-	int timeout = (timed_out ? 30000 : 2000) + total_size * 3 / 1000;
+	unsigned int timeout = (timed_out ? 30000 : 2000) + total_size * 3 / 1000;
 
 	retval = target_run_algorithm(target,
 				0, NULL,

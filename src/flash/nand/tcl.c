@@ -17,9 +17,6 @@
 #include "fileio.h"
 #include <target/target.h>
 
-/* to be removed */
-extern struct nand_device *nand_devices;
-
 COMMAND_HANDLER(handle_nand_list_command)
 {
 	struct nand_device *p;

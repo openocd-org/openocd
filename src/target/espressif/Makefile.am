@@ -15,5 +15,8 @@ noinst_LTLIBRARIES += %D%/libespressif.la
        %D%/esp32.c \
        %D%/esp32s2.c \
        %D%/esp32s3.c \
+       %D%/esp32_sysview.c \
+       %D%/esp32_sysview.h \
+       %D%/segger_sysview.h \
        %D%/esp_semihosting.c \
        %D%/esp_semihosting.h

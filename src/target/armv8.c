@@ -1682,7 +1682,7 @@ struct reg_cache *armv8_build_reg_cache(struct target *target)
 			LOG_ERROR("unable to allocate reg type list");
 
 		if (i == ARMV8_PAUTH_CMASK || i == ARMV8_PAUTH_DMASK)
-			reg_list[i].hidden = !armv8->enable_pauth;
+			reg_list[i].exist = armv8->enable_pauth;
 	}
 
 	arm->cpsr = reg_list + ARMV8_XPSR;

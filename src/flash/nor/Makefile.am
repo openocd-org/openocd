@@ -54,6 +54,7 @@ NOR_DRIVERS = \
 	%D%/psoc4.c \
 	%D%/psoc5lp.c \
 	%D%/psoc6.c \
+	%D%/qn908x.c \
 	%D%/renesas_rpchf.c \
 	%D%/rp2040.c \
 	%D%/rsl10.c \

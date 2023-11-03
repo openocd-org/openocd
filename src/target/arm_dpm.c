@@ -1050,7 +1050,7 @@ int arm_dpm_setup(struct arm_dpm *dpm)
 {
 	struct arm *arm = dpm->arm;
 	struct target *target = arm->target;
-	struct reg_cache *cache = 0;
+	struct reg_cache *cache = NULL;
 
 	arm->dpm = dpm;
 

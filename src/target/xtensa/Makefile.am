@@ -8,4 +8,6 @@ noinst_LTLIBRARIES += %D%/libxtensa.la
        %D%/xtensa_chip.h \
        %D%/xtensa_debug_module.c \
        %D%/xtensa_debug_module.h \
+       %D%/xtensa_fileio.c \
+       %D%/xtensa_fileio.h \
        %D%/xtensa_regs.h

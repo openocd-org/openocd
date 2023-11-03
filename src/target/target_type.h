@@ -181,7 +181,7 @@ struct target_type {
 	int (*run_algorithm)(struct target *target, int num_mem_params,
 			struct mem_param *mem_params, int num_reg_params,
 			struct reg_param *reg_param, target_addr_t entry_point,
-			target_addr_t exit_point, int timeout_ms, void *arch_info);
+			target_addr_t exit_point, unsigned int timeout_ms, void *arch_info);
 	int (*start_algorithm)(struct target *target, int num_mem_params,
 			struct mem_param *mem_params, int num_reg_params,
 			struct reg_param *reg_param, target_addr_t entry_point,
@@ -189,7 +189,7 @@ struct target_type {
 	int (*wait_algorithm)(struct target *target, int num_mem_params,
 			struct mem_param *mem_params, int num_reg_params,
 			struct reg_param *reg_param, target_addr_t exit_point,
-			int timeout_ms, void *arch_info);
+			unsigned int timeout_ms, void *arch_info);
 
 	const struct command_registration *commands;
 

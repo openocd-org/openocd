@@ -1544,6 +1544,7 @@ int xtensa_prepare_resume(struct target *target,
 		LOG_TARGET_WARNING(target, "target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
+	xtensa->halt_request = false;
 
 	if (address && !current) {
 		xtensa_reg_set(target, XT_REG_IDX_PC, address);

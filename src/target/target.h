@@ -553,7 +553,7 @@ int target_run_algorithm(struct target *target,
 		int num_mem_params, struct mem_param *mem_params,
 		int num_reg_params, struct reg_param *reg_param,
 		target_addr_t entry_point, target_addr_t exit_point,
-		int timeout_ms, void *arch_info);
+		unsigned int timeout_ms, void *arch_info);
 
 /**
  * Starts an algorithm in the background on the @a target given.
@@ -574,7 +574,7 @@ int target_start_algorithm(struct target *target,
 int target_wait_algorithm(struct target *target,
 		int num_mem_params, struct mem_param *mem_params,
 		int num_reg_params, struct reg_param *reg_params,
-		target_addr_t exit_point, int timeout_ms,
+		target_addr_t exit_point, unsigned int timeout_ms,
 		void *arch_info);
 
 /**
@@ -666,7 +666,7 @@ int target_checksum_memory(struct target *target,
 int target_blank_check_memory(struct target *target,
 		struct target_memory_check_block *blocks, int num_blocks,
 		uint8_t erased_value);
-int target_wait_state(struct target *target, enum target_state state, int ms);
+int target_wait_state(struct target *target, enum target_state state, unsigned int ms);
 
 /**
  * Obtain file-I/O information from target for GDB to do syscall.
@@ -808,5 +808,7 @@ int target_profiling_default(struct target *target, uint32_t *samples, uint32_t
 extern bool get_target_reset_nag(void);
 
 #define TARGET_DEFAULT_POLLING_INTERVAL		100
+
+const char *target_debug_reason_str(enum target_debug_reason reason);
 
 #endif /* OPENOCD_TARGET_TARGET_H */

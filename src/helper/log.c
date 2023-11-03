@@ -19,6 +19,7 @@
 #include "command.h"
 #include "replacements.h"
 #include "time_support.h"
+#include <server/gdb_server.h>
 #include <server/server.h>
 
 #include <stdarg.h>
@@ -399,9 +400,7 @@ char *alloc_printf(const char *format, ...)
 
 static void gdb_timeout_warning(int64_t delta_time)
 {
-	extern int gdb_actual_connections;
-
-	if (gdb_actual_connections)
+	if (gdb_get_actual_connections())
 		LOG_WARNING("keep_alive() was not invoked in the "
 			"%d ms timelimit. GDB alive packet not "
 			"sent! (%" PRId64 " ms). Workaround: increase "

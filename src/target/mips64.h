@@ -213,7 +213,7 @@ int mips64_build_reg_cache(struct target *target);
 int mips64_run_algorithm(struct target *target, int num_mem_params, struct mem_param *mem_params,
 	int num_reg_params, struct reg_param *reg_params,
 	target_addr_t entry_point, target_addr_t exit_point,
-	int timeout_ms, void *arch_info);
+	unsigned int timeout_ms, void *arch_info);
 int mips64_configure_break_unit(struct target *target);
 int mips64_enable_interrupts(struct target *target, bool enable);
 int mips64_examine(struct target *target);

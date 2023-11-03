@@ -41,7 +41,11 @@ FLASH_BANK_COMMAND_HANDLER(jtagspi_flash_bank_command)
 	bank->sectors = NULL;
 	bank->driver_priv = info;
 
-	info->tap = NULL;
+	if (!bank->target->tap) {
+		LOG_ERROR("Target has no JTAG tap");
+		return ERROR_FAIL;
+	}
+	info->tap = bank->target->tap;
 	info->probed = false;
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[6], info->ir);
 
@@ -161,7 +165,12 @@ COMMAND_HANDLER(jtagspi_handle_set)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
+	/* calling flash_command_get_bank without probing because handle_set is used
+	   to set device parameters if not autodetected. So probing would fail
+	   anyhow.
+	*/
+	retval = CALL_COMMAND_HANDLER(flash_command_get_bank_probe_optional, 0,
+		&bank, false);
 	if (ERROR_OK != retval)
 		return retval;
 	info = bank->driver_priv;
@@ -292,52 +301,50 @@ COMMAND_HANDLER(jtagspi_handle_set)
 COMMAND_HANDLER(jtagspi_handle_cmd)
 {
 	struct flash_bank *bank;
-	unsigned int index = 1;
-	const int max = 21;
-	uint8_t num_write, num_read, write_buffer[max], read_buffer[1 << CHAR_BIT];
-	uint8_t data, *ptr;
-	char temp[4], output[(2 + max + (1 << CHAR_BIT)) * 3 + 8];
-	int retval;
+	const unsigned int max = 20;
+	uint8_t cmd_byte, num_read, write_buffer[max], read_buffer[1 << CHAR_BIT];
 
 	LOG_DEBUG("%s", __func__);
 
-	if (CMD_ARGC < 3) {
-		command_print(CMD, "jtagspi: not enough arguments");
+	if (CMD_ARGC < 3)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
-	num_write = CMD_ARGC - 2;
+	uint8_t num_write = CMD_ARGC - 3;
 	if (num_write > max) {
-		LOG_ERROR("at most %d bytes may be send", max);
-		return ERROR_COMMAND_SYNTAX_ERROR;
+		command_print(CMD, "at most %d bytes may be send", max);
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
-	retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
-	if (ERROR_OK != retval)
-		return retval;
-
-	COMMAND_PARSE_NUMBER(u8, CMD_ARGV[index++], num_read);
-
-	snprintf(output, sizeof(output), "spi: ");
-	for (ptr = &write_buffer[0] ; index < CMD_ARGC; index++) {
-		COMMAND_PARSE_NUMBER(u8, CMD_ARGV[index], data);
-		*ptr++ = data;
-		snprintf(temp, sizeof(temp), "%02" PRIx8 " ", data);
-		strncat(output, temp, sizeof(output) - strlen(output) - 1);
-	}
-	strncat(output, "-> ", sizeof(output) - strlen(output) - 1);
-
-	/* process command */
-	ptr = &read_buffer[0];
-	jtagspi_cmd(bank, write_buffer[0], &write_buffer[1], num_write - 1, ptr, -num_read);
+	/* calling flash_command_get_bank without probing because we like to be
+	   able to send commands before auto-probing occurred. For example sending
+	   "release from power down" is needed before probing when flash is in
+	   power down mode.
+	 */
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank_probe_optional, 0,
+								&bank, false);
 	if (retval != ERROR_OK)
 		return retval;
 
-	for ( ; num_read > 0; num_read--) {
-		snprintf(temp, sizeof(temp), "%02" PRIx8 " ", *ptr++);
-		strncat(output, temp, sizeof(output) - strlen(output) - 1);
-	}
-	command_print(CMD, "%s", output);
+	COMMAND_PARSE_NUMBER(u8, CMD_ARGV[1], num_read);
+	COMMAND_PARSE_NUMBER(u8, CMD_ARGV[2], cmd_byte);
+
+	for (unsigned int i = 0; i < num_write; i++)
+		COMMAND_PARSE_NUMBER(u8, CMD_ARGV[i + 3], write_buffer[i]);
+
+	/* process command */
+	retval = jtagspi_cmd(bank, cmd_byte, write_buffer, num_write, read_buffer, -num_read);
+	if (retval != ERROR_OK)
+		return retval;
+
+	command_print_sameline(CMD, "spi: %02" PRIx8, cmd_byte);
+
+	for (unsigned int i = 0; i < num_write; i++)
+		command_print_sameline(CMD, " %02" PRIx8, write_buffer[i]);
+
+	command_print_sameline(CMD, " ->");
+
+	for (unsigned int i = 0; i < num_read; i++)
+		command_print_sameline(CMD, " %02" PRIx8, read_buffer[i]);
 
 	return ERROR_OK;
 }
@@ -380,12 +387,6 @@ static int jtagspi_probe(struct flash_bank *bank)
 		bank->sectors = NULL;
 	}
 	info->probed = false;
-
-	if (!bank->target->tap) {
-		LOG_ERROR("Target has no JTAG tap");
-		return ERROR_FAIL;
-	}
-	info->tap = bank->target->tap;
 
 	jtagspi_cmd(bank, SPIFLASH_READ_ID, NULL, 0, in_buf, -3);
 	/* the table in spi.c has the manufacturer byte (first) as the lsb */
@@ -518,7 +519,7 @@ static int jtagspi_bulk_erase(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		return retval;
 
-	jtagspi_cmd(bank, info->dev.chip_erase_cmd, NULL, 0, NULL, 0);
+	retval = jtagspi_cmd(bank, info->dev.chip_erase_cmd, NULL, 0, NULL, 0);
 	if (retval != ERROR_OK)
 		return retval;
 

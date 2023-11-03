@@ -29,6 +29,12 @@
 struct ucos_iii_params {
 	const char *target_name;
 	const unsigned char pointer_width;
+	size_t threadid_start;
+	const struct rtos_register_stacking *stacking_info;
+};
+
+struct ucos_iii_private {
+	const struct ucos_iii_params *params;
 	symbol_address_t thread_stack_offset;
 	symbol_address_t thread_name_offset;
 	symbol_address_t thread_state_offset;
@@ -36,40 +42,22 @@ struct ucos_iii_params {
 	symbol_address_t thread_prev_offset;
 	symbol_address_t thread_next_offset;
 	bool thread_offsets_updated;
-	size_t threadid_start;
-	const struct rtos_register_stacking *stacking_info;
 	size_t num_threads;
-	symbol_address_t threads[];
+	symbol_address_t threads[UCOS_III_MAX_THREADS];
 };
 
 static const struct ucos_iii_params ucos_iii_params_list[] = {
 	{
-		"cortex_m",							/* target_name */
-		sizeof(uint32_t),					/* pointer_width */
-		0,									/* thread_stack_offset */
-		0,									/* thread_name_offset */
-		0,									/* thread_state_offset */
-		0,									/* thread_priority_offset */
-		0,									/* thread_prev_offset */
-		0,									/* thread_next_offset */
-		false,								/* thread_offsets_updated */
-		1,									/* threadid_start */
-		&rtos_ucos_iii_cortex_m_stacking,	/* stacking_info */
-		0,									/* num_threads */
+		.target_name    = "cortex_m",
+		.pointer_width  = sizeof(uint32_t),
+		.threadid_start = 1,
+		.stacking_info  = &rtos_ucos_iii_cortex_m_stacking,
 	},
 	{
-		"esirisc",							/* target_name */
-		sizeof(uint32_t),					/* pointer_width */
-		0,									/* thread_stack_offset */
-		0,									/* thread_name_offset */
-		0,									/* thread_state_offset */
-		0,									/* thread_priority_offset */
-		0,									/* thread_prev_offset */
-		0,									/* thread_next_offset */
-		false,								/* thread_offsets_updated */
-		1,									/* threadid_start */
-		&rtos_ucos_iii_esi_risc_stacking,	/* stacking_info */
-		0,									/* num_threads */
+		.target_name    = "esirisc",
+		.pointer_width  = sizeof(uint32_t),
+		.threadid_start = 1,
+		.stacking_info  = &rtos_ucos_iii_esi_risc_stacking,
 	},
 };
 
@@ -118,7 +106,7 @@ static const char * const ucos_iii_thread_state_list[] = {
 static int ucos_iii_find_or_create_thread(struct rtos *rtos, symbol_address_t thread_address,
 		threadid_t *threadid)
 {
-	struct ucos_iii_params *params = rtos->rtos_specific_params;
+	struct ucos_iii_private *params = rtos->rtos_specific_params;
 	size_t thread_index;
 
 	for (thread_index = 0; thread_index < params->num_threads; thread_index++)
@@ -133,17 +121,17 @@ static int ucos_iii_find_or_create_thread(struct rtos *rtos, symbol_address_t th
 	params->threads[thread_index] = thread_address;
 	params->num_threads++;
 found:
-	*threadid = thread_index + params->threadid_start;
+	*threadid = thread_index + params->params->threadid_start;
 	return ERROR_OK;
 }
 
 static int ucos_iii_find_thread_address(struct rtos *rtos, threadid_t threadid,
 		symbol_address_t *thread_address)
 {
-	struct ucos_iii_params *params = rtos->rtos_specific_params;
+	struct ucos_iii_private *params = rtos->rtos_specific_params;
 	size_t thread_index;
 
-	thread_index = threadid - params->threadid_start;
+	thread_index = threadid - params->params->threadid_start;
 	if (thread_index >= params->num_threads) {
 		LOG_ERROR("uCOS-III: failed to find thread address");
 		return ERROR_FAIL;
@@ -155,7 +143,7 @@ static int ucos_iii_find_thread_address(struct rtos *rtos, threadid_t threadid,
 
 static int ucos_iii_find_last_thread_address(struct rtos *rtos, symbol_address_t *thread_address)
 {
-	struct ucos_iii_params *params = rtos->rtos_specific_params;
+	struct ucos_iii_private *params = rtos->rtos_specific_params;
 	int retval;
 
 	/* read the thread list head */
@@ -163,7 +151,7 @@ static int ucos_iii_find_last_thread_address(struct rtos *rtos, symbol_address_t
 
 	retval = target_read_memory(rtos->target,
 			rtos->symbols[UCOS_III_VAL_OS_TASK_DBG_LIST_PTR].address,
-			params->pointer_width,
+			params->params->pointer_width,
 			1,
 			(void *)&thread_list_address);
 	if (retval != ERROR_OK) {
@@ -177,7 +165,7 @@ static int ucos_iii_find_last_thread_address(struct rtos *rtos, symbol_address_t
 
 		retval = target_read_memory(rtos->target,
 				thread_list_address + params->thread_next_offset,
-				params->pointer_width,
+				params->params->pointer_width,
 				1,
 				(void *)&thread_list_address);
 		if (retval != ERROR_OK) {
@@ -191,7 +179,7 @@ static int ucos_iii_find_last_thread_address(struct rtos *rtos, symbol_address_t
 
 static int ucos_iii_update_thread_offsets(struct rtos *rtos)
 {
-	struct ucos_iii_params *params = rtos->rtos_specific_params;
+	struct ucos_iii_private *params = rtos->rtos_specific_params;
 
 	if (params->thread_offsets_updated)
 		return ERROR_OK;
@@ -231,7 +219,7 @@ static int ucos_iii_update_thread_offsets(struct rtos *rtos)
 
 		int retval = target_read_memory(rtos->target,
 				rtos->symbols[thread_offset_map->symbol_value].address,
-				params->pointer_width,
+				params->params->pointer_width,
 				1,
 				(void *)thread_offset_map->thread_offset);
 		if (retval != ERROR_OK) {
@@ -252,7 +240,7 @@ static bool ucos_iii_detect_rtos(struct target *target)
 
 static int ucos_iii_reset_handler(struct target *target, enum target_reset_mode reset_mode, void *priv)
 {
-	struct ucos_iii_params *params = target->rtos->rtos_specific_params;
+	struct ucos_iii_private *params = target->rtos->rtos_specific_params;
 
 	params->thread_offsets_updated = false;
 	params->num_threads = 0;
@@ -262,17 +250,17 @@ static int ucos_iii_reset_handler(struct target *target, enum target_reset_mode 
 
 static int ucos_iii_create(struct target *target)
 {
-	struct ucos_iii_params *params;
+	struct ucos_iii_private *params;
 
 	for (size_t i = 0; i < ARRAY_SIZE(ucos_iii_params_list); i++)
 		if (strcmp(ucos_iii_params_list[i].target_name, target->type->name) == 0) {
-			params = malloc(sizeof(*params) + (UCOS_III_MAX_THREADS * sizeof(*params->threads)));
+			params = calloc(1, sizeof(*params));
 			if (!params) {
 				LOG_ERROR("uCOS-III: out of memory");
 				return ERROR_FAIL;
 			}
 
-			memcpy(params, &ucos_iii_params_list[i], sizeof(ucos_iii_params_list[i]));
+			params->params = &ucos_iii_params_list[i];
 			target->rtos->rtos_specific_params = (void *)params;
 
 			target_register_reset_callback(ucos_iii_reset_handler, NULL);
@@ -286,7 +274,7 @@ static int ucos_iii_create(struct target *target)
 
 static int ucos_iii_update_threads(struct rtos *rtos)
 {
-	struct ucos_iii_params *params = rtos->rtos_specific_params;
+	struct ucos_iii_private *params = rtos->rtos_specific_params;
 	int retval;
 
 	if (!rtos->symbols) {
@@ -340,7 +328,7 @@ static int ucos_iii_update_threads(struct rtos *rtos)
 
 	retval = target_read_memory(rtos->target,
 			rtos->symbols[UCOS_III_VAL_OS_TCB_CUR_PTR].address,
-			params->pointer_width,
+			params->params->pointer_width,
 			1,
 			(void *)&current_thread_address);
 	if (retval != ERROR_OK) {
@@ -396,7 +384,7 @@ static int ucos_iii_update_threads(struct rtos *rtos)
 
 		retval = target_read_memory(rtos->target,
 				thread_address + params->thread_name_offset,
-				params->pointer_width,
+				params->params->pointer_width,
 				1,
 				(void *)&thread_name_address);
 		if (retval != ERROR_OK) {
@@ -450,7 +438,7 @@ static int ucos_iii_update_threads(struct rtos *rtos)
 		/* read previous thread address */
 		retval = target_read_memory(rtos->target,
 				thread_address + params->thread_prev_offset,
-				params->pointer_width,
+				params->params->pointer_width,
 				1,
 				(void *)&thread_address);
 		if (retval != ERROR_OK) {
@@ -465,7 +453,7 @@ static int ucos_iii_update_threads(struct rtos *rtos)
 static int ucos_iii_get_thread_reg_list(struct rtos *rtos, threadid_t threadid,
 		struct rtos_reg **reg_list, int *num_regs)
 {
-	struct ucos_iii_params *params = rtos->rtos_specific_params;
+	struct ucos_iii_private *params = rtos->rtos_specific_params;
 	int retval;
 
 	/* find thread address for threadid */
@@ -482,7 +470,7 @@ static int ucos_iii_get_thread_reg_list(struct rtos *rtos, threadid_t threadid,
 
 	retval = target_read_memory(rtos->target,
 			thread_address + params->thread_stack_offset,
-			params->pointer_width,
+			params->params->pointer_width,
 			1,
 			(void *)&stack_address);
 	if (retval != ERROR_OK) {
@@ -491,7 +479,7 @@ static int ucos_iii_get_thread_reg_list(struct rtos *rtos, threadid_t threadid,
 	}
 
 	return rtos_generic_stack_read(rtos->target,
-			params->stacking_info,
+			params->params->stacking_info,
 			stack_address,
 			reg_list,
 			num_regs);

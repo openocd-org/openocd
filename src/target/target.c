@@ -210,7 +210,7 @@ static const struct jim_nvp nvp_target_event[] = {
 	{ .name = NULL, .value = -1 }
 };
 
-static const struct jim_nvp nvp_target_state[] = {
+static const struct nvp nvp_target_state[] = {
 	{ .name = "unknown", .value = TARGET_UNKNOWN },
 	{ .name = "running", .value = TARGET_RUNNING },
 	{ .name = "halted",  .value = TARGET_HALTED },
@@ -265,7 +265,7 @@ const char *debug_reason_name(struct target *t)
 const char *target_state_name(struct target *t)
 {
 	const char *cp;
-	cp = jim_nvp_value2name_simple(nvp_target_state, t->state)->name;
+	cp = nvp_value2name(nvp_target_state, t->state)->name;
 	if (!cp) {
 		LOG_ERROR("Invalid target state: %d", (int)(t->state));
 		cp = "(*BUG*unknown*BUG*)";
@@ -819,7 +819,7 @@ int target_run_algorithm(struct target *target,
 		int num_mem_params, struct mem_param *mem_params,
 		int num_reg_params, struct reg_param *reg_param,
 		target_addr_t entry_point, target_addr_t exit_point,
-		int timeout_ms, void *arch_info)
+		unsigned int timeout_ms, void *arch_info)
 {
 	int retval = ERROR_FAIL;
 
@@ -903,7 +903,7 @@ done:
 int target_wait_algorithm(struct target *target,
 		int num_mem_params, struct mem_param *mem_params,
 		int num_reg_params, struct reg_param *reg_params,
-		target_addr_t exit_point, int timeout_ms,
+		target_addr_t exit_point, unsigned int timeout_ms,
 		void *arch_info)
 {
 	int retval = ERROR_FAIL;
@@ -3230,7 +3230,7 @@ COMMAND_HANDLER(handle_wait_halt_command)
  *
  * After 500ms, keep_alive() is invoked
  */
-int target_wait_state(struct target *target, enum target_state state, int ms)
+int target_wait_state(struct target *target, enum target_state state, unsigned int ms)
 {
 	int retval;
 	int64_t then = 0, cur;
@@ -3247,7 +3247,7 @@ int target_wait_state(struct target *target, enum target_state state, int ms)
 			once = false;
 			then = timeval_ms();
 			LOG_DEBUG("waiting for target %s...",
-				jim_nvp_value2name_simple(nvp_target_state, state)->name);
+				nvp_value2name(nvp_target_state, state)->name);
 		}
 
 		if (cur-then > 500)
@@ -3255,7 +3255,7 @@ int target_wait_state(struct target *target, enum target_state state, int ms)
 
 		if ((cur-then) > ms) {
 			LOG_ERROR("timed out while waiting for target %s",
-				jim_nvp_value2name_simple(nvp_target_state, state)->name);
+				nvp_value2name(nvp_target_state, state)->name);
 			return ERROR_FAIL;
 		}
 	}
@@ -5635,55 +5635,40 @@ static int jim_target_array2mem(Jim_Interp *interp,
 	return target_array2mem(interp, target, argc - 1, argv + 1);
 }
 
-static int jim_target_tap_disabled(Jim_Interp *interp)
-{
-	Jim_SetResultFormatted(interp, "[TAP is disabled]");
-	return JIM_ERR;
-}
-
-static int jim_target_examine(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+COMMAND_HANDLER(handle_target_examine)
 {
 	bool allow_defer = false;
 
-	struct jim_getopt_info goi;
-	jim_getopt_setup(&goi, interp, argc - 1, argv + 1);
-	if (goi.argc > 1) {
-		const char *cmd_name = Jim_GetString(argv[0], NULL);
-		Jim_SetResultFormatted(goi.interp,
-				"usage: %s ['allow-defer']", cmd_name);
-		return JIM_ERR;
-	}
-	if (goi.argc > 0 &&
-	    strcmp(Jim_GetString(argv[1], NULL), "allow-defer") == 0) {
-		/* consume it */
-		Jim_Obj *obj;
-		int e = jim_getopt_obj(&goi, &obj);
-		if (e != JIM_OK)
-			return e;
+	if (CMD_ARGC > 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	if (CMD_ARGC == 1) {
+		if (strcmp(CMD_ARGV[0], "allow-defer"))
+			return ERROR_COMMAND_ARGUMENT_INVALID;
 		allow_defer = true;
 	}
 
-	struct command_context *cmd_ctx = current_command_context(interp);
-	assert(cmd_ctx);
-	struct target *target = get_current_target(cmd_ctx);
-	if (!target->tap->enabled)
-		return jim_target_tap_disabled(interp);
+	struct target *target = get_current_target(CMD_CTX);
+	if (!target->tap->enabled) {
+		command_print(CMD, "[TAP is disabled]");
+		return ERROR_FAIL;
+	}
 
 	if (allow_defer && target->defer_examine) {
 		LOG_INFO("Deferring arp_examine of %s", target_name(target));
 		LOG_INFO("Use arp_examine command to examine it manually!");
-		return JIM_OK;
+		return ERROR_OK;
 	}
 
-	int e = target->type->examine(target);
-	if (e != ERROR_OK) {
+	int retval = target->type->examine(target);
+	if (retval != ERROR_OK) {
 		target_reset_examined(target);
-		return JIM_ERR;
+		return retval;
 	}
 
 	target_set_examined(target);
 
-	return JIM_OK;
+	return ERROR_OK;
 }
 
 COMMAND_HANDLER(handle_target_was_examined)
@@ -5791,45 +5776,35 @@ COMMAND_HANDLER(handle_target_halt)
 	return target->type->halt(target);
 }
 
-static int jim_target_wait_state(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+COMMAND_HANDLER(handle_target_wait_state)
 {
-	struct jim_getopt_info goi;
-	jim_getopt_setup(&goi, interp, argc - 1, argv + 1);
+	if (CMD_ARGC != 2)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	/* params:  <name>  statename timeoutmsecs */
-	if (goi.argc != 2) {
-		const char *cmd_name = Jim_GetString(argv[0], NULL);
-		Jim_SetResultFormatted(goi.interp,
-				"%s <state_name> <timeout_in_msec>", cmd_name);
-		return JIM_ERR;
+	const struct nvp *n = nvp_name2value(nvp_target_state, CMD_ARGV[0]);
+	if (!n->name) {
+		nvp_unknown_command_print(CMD, nvp_target_state, NULL, CMD_ARGV[0]);
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
-	struct jim_nvp *n;
-	int e = jim_getopt_nvp(&goi, nvp_target_state, &n);
-	if (e != JIM_OK) {
-		jim_getopt_nvp_unknown(&goi, nvp_target_state, 1);
-		return e;
-	}
-	jim_wide a;
-	e = jim_getopt_wide(&goi, &a);
-	if (e != JIM_OK)
-		return e;
-	struct command_context *cmd_ctx = current_command_context(interp);
-	assert(cmd_ctx);
-	struct target *target = get_current_target(cmd_ctx);
-	if (!target->tap->enabled)
-		return jim_target_tap_disabled(interp);
+	unsigned int a;
+	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[1], a);
 
-	e = target_wait_state(target, n->value, a);
-	if (e != ERROR_OK) {
-		Jim_Obj *obj = Jim_NewIntObj(interp, e);
-		Jim_SetResultFormatted(goi.interp,
-				"target: %s wait %s fails (%#s) %s",
+	struct target *target = get_current_target(CMD_CTX);
+	if (!target->tap->enabled) {
+		command_print(CMD, "[TAP is disabled]");
+		return ERROR_FAIL;
+	}
+
+	int retval = target_wait_state(target, n->value, a);
+	if (retval != ERROR_OK) {
+		command_print(CMD,
+				"target: %s wait %s fails (%d) %s",
 				target_name(target), n->name,
-				obj, target_strerror_safe(e));
-		return JIM_ERR;
+				retval, target_strerror_safe(retval));
+		return retval;
 	}
-	return JIM_OK;
+	return ERROR_OK;
 }
 /* List for human, Events defined for this target.
  * scripts/programs should use 'name cget -event NAME'
@@ -6021,7 +5996,7 @@ static const struct command_registration target_instance_command_handlers[] = {
 	{
 		.name = "arp_examine",
 		.mode = COMMAND_EXEC,
-		.jim_handler = jim_target_examine,
+		.handler = handle_target_examine,
 		.help = "used internally for reset processing",
 		.usage = "['allow-defer']",
 	},
@@ -6070,8 +6045,9 @@ static const struct command_registration target_instance_command_handlers[] = {
 	{
 		.name = "arp_waitstate",
 		.mode = COMMAND_EXEC,
-		.jim_handler = jim_target_wait_state,
+		.handler = handle_target_wait_state,
 		.help = "used internally for reset processing",
+		.usage = "statename timeoutmsecs",
 	},
 	{
 		.name = "invoke-event",
@@ -7172,4 +7148,30 @@ static int target_register_user_commands(struct command_context *cmd_ctx)
 
 
 	return register_commands(cmd_ctx, NULL, target_exec_command_handlers);
+}
+
+const char *target_debug_reason_str(enum target_debug_reason reason)
+{
+	switch (reason) {
+		case DBG_REASON_DBGRQ:
+			return "DBGRQ";
+		case DBG_REASON_BREAKPOINT:
+			return "BREAKPOINT";
+		case DBG_REASON_WATCHPOINT:
+			return "WATCHPOINT";
+		case DBG_REASON_WPTANDBKPT:
+			return "WPTANDBKPT";
+		case DBG_REASON_SINGLESTEP:
+			return "SINGLESTEP";
+		case DBG_REASON_NOTHALTED:
+			return "NOTHALTED";
+		case DBG_REASON_EXIT:
+			return "EXIT";
+		case DBG_REASON_EXC_CATCH:
+			return "EXC_CATCH";
+		case DBG_REASON_UNDEFINED:
+			return "UNDEFINED";
+		default:
+			return "UNKNOWN!";
+	}
 }

@@ -20,8 +20,6 @@
 
 static LIST_HEAD(all_dap);
 
-extern const struct dap_ops swd_dap_ops;
-extern const struct dap_ops jtag_dp_ops;
 extern struct adapter_driver *adapter_driver;
 
 /* DAP command support */

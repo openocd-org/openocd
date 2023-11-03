@@ -91,7 +91,7 @@ static uint32_t rp2040_lookup_symbol(struct target *target, uint32_t tag, uint16
 }
 
 static int rp2040_call_rom_func(struct target *target, struct rp2040_flash_bank *priv,
-		uint16_t func_offset, uint32_t argdata[], unsigned int n_args, int timeout_ms)
+		uint16_t func_offset, uint32_t argdata[], unsigned int n_args, unsigned int timeout_ms)
 {
 	char *regnames[4] = { "r0", "r1", "r2", "r3" };
 
@@ -312,7 +312,7 @@ static int rp2040_flash_erase(struct flash_bank *bank, unsigned int first, unsig
 	an optional larger "block" (size and command provided in args).
 	*/
 
-	int timeout_ms = 2000 * (last - first) + 1000;
+	unsigned int timeout_ms = 2000 * (last - first) + 1000;
 	err = rp2040_call_rom_func(target, priv, priv->jump_flash_range_erase,
 							args, ARRAY_SIZE(args), timeout_ms);
 
