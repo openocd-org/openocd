@@ -5539,7 +5539,7 @@ static void init_custom_csr_names(struct target *target)
 	}
 }
 
-const char *gdb_regno_name(struct target *target, unsigned int regno)
+const char *gdb_regno_name(struct target *target, enum gdb_regno regno)
 {
 	RISCV_INFO(info);
 
