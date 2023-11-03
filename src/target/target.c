@@ -5149,7 +5149,7 @@ static int target_jim_get_reg(Jim_Interp *interp, int argc,
 			return JIM_ERR;
 		}
 
-		if (force) {
+		if (force || !reg->valid) {
 			int retval = reg->type->get(reg);
 
 			if (retval != ERROR_OK) {
