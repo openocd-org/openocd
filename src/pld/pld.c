@@ -34,68 +34,110 @@ struct pld_device *get_pld_device_by_num(int num)
 	int i = 0;
 
 	for (p = pld_devices; p; p = p->next) {
-		if (i++ == num)
+		if (i++ == num) {
+			LOG_WARNING("DEPRECATED: use pld name \"%s\" instead of number %d", p->name, num);
+			return p;
+		}
+	}
+
+	return NULL;
+}
+
+struct pld_device *get_pld_device_by_name(const char *name)
+{
+	for (struct pld_device *p = pld_devices; p; p = p->next) {
+		if (strcmp(p->name, name) == 0)
 			return p;
 	}
 
 	return NULL;
 }
 
-/* pld device <driver> [driver_options ...]
- */
-COMMAND_HANDLER(handle_pld_device_command)
+struct pld_device *get_pld_device_by_name_or_numstr(const char *str)
 {
-	int i;
-	int found = 0;
+	struct pld_device *dev = get_pld_device_by_name(str);
+	if (dev)
+		return dev;
 
-	if (CMD_ARGC < 1)
+	char *end;
+	unsigned long dev_num = strtoul(str, &end, 0);
+	if (*end || dev_num > INT_MAX) {
+		LOG_ERROR("Invalid argument");
+		return NULL;
+	}
+
+	return get_pld_device_by_num(dev_num);
+}
+
+/* @deffn {Config Command} {pld create} pld_name driver -chain-position tap_name [options]
+*/
+COMMAND_HANDLER(handle_pld_create_command)
+{
+	if (CMD_ARGC < 2)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	for (i = 0; pld_drivers[i]; i++) {
-		if (strcmp(CMD_ARGV[0], pld_drivers[i]->name) == 0) {
-			struct pld_device *p, *c;
+	struct pld_driver *pld_driver = NULL;
 
-			/* register pld specific commands */
-			int retval;
-			if (pld_drivers[i]->commands) {
-				retval = register_commands(CMD_CTX, NULL, pld_drivers[i]->commands);
-				if (retval != ERROR_OK) {
-					LOG_ERROR("couldn't register '%s' commands", CMD_ARGV[0]);
-					return ERROR_FAIL;
-				}
-			}
-
-			c = malloc(sizeof(struct pld_device));
-			c->driver = pld_drivers[i];
-			c->next = NULL;
-
-			retval = CALL_COMMAND_HANDLER(
-					pld_drivers[i]->pld_device_command, c);
-			if (retval != ERROR_OK) {
-				LOG_ERROR("'%s' driver rejected pld device",
-					CMD_ARGV[0]);
-				free(c);
-				return ERROR_OK;
-			}
-
-			/* put pld device in linked list */
-			if (pld_devices) {
-				/* find last pld device */
-				for (p = pld_devices; p && p->next; p = p->next)
-					;
-				if (p)
-					p->next = c;
-			} else
-				pld_devices = c;
-
-			found = 1;
+	for (int i = 0; pld_drivers[i]; i++) {
+		if (strcmp(CMD_ARGV[1], pld_drivers[i]->name) == 0) {
+			pld_driver = pld_drivers[i];
+			break;
 		}
 	}
 
-	/* no matching pld driver found */
-	if (!found) {
-		LOG_ERROR("pld driver '%s' not found", CMD_ARGV[0]);
-		exit(-1);
+	if (!pld_driver) {
+		LOG_ERROR("pld driver '%s' not found", CMD_ARGV[1]);
+		return ERROR_FAIL; /* exit(-1); */
+	}
+
+	if (get_pld_device_by_name(CMD_ARGV[0])) {
+		LOG_ERROR("pld device with name '%s' already exists", CMD_ARGV[0]);
+		return ERROR_FAIL;
+	}
+
+	struct pld_device *pld_device = malloc(sizeof(struct pld_device));
+	if (!pld_device) {
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
+	}
+
+	pld_device->driver = pld_driver;
+	pld_device->next = NULL;
+
+	int retval = CALL_COMMAND_HANDLER(pld_driver->pld_create_command, pld_device);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("'%s' driver rejected pld device",
+			CMD_ARGV[1]);
+		free(pld_device);
+		return ERROR_OK;
+	}
+	pld_device->name = strdup(CMD_ARGV[0]);
+	if (!pld_device->name) {
+		LOG_ERROR("Out of memory");
+		free(pld_device);
+		return ERROR_FAIL;
+	}
+
+	/* register pld specific commands */
+	if (pld_driver->commands) {
+		retval = register_commands(CMD_CTX, NULL, pld_driver->commands);
+		if (retval != ERROR_OK) {
+			LOG_ERROR("couldn't register '%s' commands", CMD_ARGV[1]);
+			free(pld_device->name);
+			free(pld_device);
+			return ERROR_FAIL;
+		}
+	}
+
+	if (pld_devices) {
+		/* find last pld device */
+		struct pld_device *p = pld_devices;
+		for (; p && p->next; p = p->next)
+			;
+		if (p)
+			p->next = pld_device;
+	} else {
+		pld_devices = pld_device;
 	}
 
 	return ERROR_OK;
@@ -112,7 +154,7 @@ COMMAND_HANDLER(handle_pld_devices_command)
 	}
 
 	for (p = pld_devices; p; p = p->next)
-		command_print(CMD, "#%i: %s", i++, p->driver->name);
+		command_print(CMD, "#%i: %s (driver: %s)", i++, p->name, p->driver->name);
 
 	return ERROR_OK;
 }
@@ -128,11 +170,9 @@ COMMAND_HANDLER(handle_pld_load_command)
 	if (CMD_ARGC < 2)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	unsigned dev_id;
-	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], dev_id);
-	p = get_pld_device_by_num(dev_id);
+	p = get_pld_device_by_name_or_numstr(CMD_ARGV[0]);
 	if (!p) {
-		command_print(CMD, "pld device '#%s' is out of bounds", CMD_ARGV[0]);
+		command_print(CMD, "pld device '#%s' is out of bounds or unknown", CMD_ARGV[0]);
 		return ERROR_OK;
 	}
 
@@ -154,15 +194,15 @@ COMMAND_HANDLER(handle_pld_load_command)
 
 	retval = p->driver->load(p, CMD_ARGV[1]);
 	if (retval != ERROR_OK) {
-		command_print(CMD, "failed loading file %s to pld device %u",
-			CMD_ARGV[1], dev_id);
+		command_print(CMD, "failed loading file %s to pld device %s",
+			CMD_ARGV[1], CMD_ARGV[0]);
 		return retval;
 	} else {
 		gettimeofday(&end, NULL);
 		timeval_subtract(&duration, &end, &start);
 
-		command_print(CMD, "loaded file %s to pld device %u in %jis %jius",
-			CMD_ARGV[1], dev_id,
+		command_print(CMD, "loaded file %s to pld device %s in %jis %jius",
+			CMD_ARGV[1], CMD_ARGV[0],
 			(intmax_t)duration.tv_sec, (intmax_t)duration.tv_usec);
 	}
 
@@ -182,7 +222,7 @@ static const struct command_registration pld_exec_command_handlers[] = {
 		.handler = handle_pld_load_command,
 		.mode = COMMAND_EXEC,
 		.help = "load configuration file into PLD",
-		.usage = "pld_num filename",
+		.usage = "pld_name filename",
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -213,11 +253,11 @@ COMMAND_HANDLER(handle_pld_init_command)
 
 static const struct command_registration pld_config_command_handlers[] = {
 	{
-		.name = "device",
+		.name = "create",
 		.mode = COMMAND_CONFIG,
-		.handler = handle_pld_device_command,
-		.help = "configure a PLD device",
-		.usage = "driver_name [driver_args ... ]",
+		.handler = handle_pld_create_command,
+		.help = "create a PLD device",
+		.usage = "name.pld driver_name [driver_args ... ]",
 	},
 	{
 		.name = "init",

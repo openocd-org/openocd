@@ -1541,7 +1541,7 @@ int xtensa_prepare_resume(struct target *target,
 		debug_execution);
 
 	if (target->state != TARGET_HALTED) {
-		LOG_TARGET_WARNING(target, "target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	xtensa->halt_request = false;
@@ -1667,7 +1667,7 @@ int xtensa_do_step(struct target *target, int current, target_addr_t address, in
 		current, address, handle_breakpoints);
 
 	if (target->state != TARGET_HALTED) {
-		LOG_TARGET_WARNING(target, "target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -1941,7 +1941,7 @@ int xtensa_read_memory(struct target *target, target_addr_t address, uint32_t si
 	bool bswap = xtensa->target->endianness == TARGET_BIG_ENDIAN;
 
 	if (target->state != TARGET_HALTED) {
-		LOG_TARGET_WARNING(target, "target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -2037,7 +2037,7 @@ int xtensa_write_memory(struct target *target,
 	bool fill_head_tail = false;
 
 	if (target->state != TARGET_HALTED) {
-		LOG_TARGET_WARNING(target, "target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -2566,11 +2566,11 @@ int xtensa_watchpoint_add(struct target *target, struct watchpoint *watchpoint)
 	xtensa_reg_val_t dbreakcval;
 
 	if (target->state != TARGET_HALTED) {
-		LOG_TARGET_WARNING(target, "target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if (watchpoint->mask != ~(uint32_t)0) {
+	if (watchpoint->mask != WATCHPOINT_IGNORE_DATA_VALUE_MASK) {
 		LOG_TARGET_ERROR(target, "watchpoint value masks not supported");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}

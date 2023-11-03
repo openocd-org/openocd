@@ -414,13 +414,13 @@ static int kitprog_set_protocol(uint8_t protocol)
 	int transferred;
 	char status = PROGRAMMER_NOK_NACK;
 
-	transferred = jtag_libusb_control_transfer(kitprog_handle->usb_handle,
+	int retval = jtag_libusb_control_transfer(kitprog_handle->usb_handle,
 		LIBUSB_ENDPOINT_IN | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
 		CONTROL_TYPE_WRITE,
 		(CONTROL_MODE_SET_PROGRAMMER_PROTOCOL << 8) | CONTROL_COMMAND_PROGRAM,
-		protocol, &status, 1, 0);
+		protocol, &status, 1, 0, &transferred);
 
-	if (transferred == 0) {
+	if (retval != ERROR_OK || transferred == 0) {
 		LOG_DEBUG("Zero bytes transferred");
 		return ERROR_FAIL;
 	}
@@ -440,11 +440,11 @@ static int kitprog_get_status(void)
 
 	/* Try a maximum of three times */
 	for (int i = 0; (i < 3) && (transferred == 0); i++) {
-		transferred = jtag_libusb_control_transfer(kitprog_handle->usb_handle,
+		jtag_libusb_control_transfer(kitprog_handle->usb_handle,
 			LIBUSB_ENDPOINT_IN | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
 			CONTROL_TYPE_READ,
 			(CONTROL_MODE_POLL_PROGRAMMER_STATUS << 8) | CONTROL_COMMAND_PROGRAM,
-			0, &status, 1, 0);
+			0, &status, 1, 0, &transferred);
 		jtag_sleep(1000);
 	}
 
@@ -466,13 +466,13 @@ static int kitprog_set_unknown(void)
 	int transferred;
 	char status = PROGRAMMER_NOK_NACK;
 
-	transferred = jtag_libusb_control_transfer(kitprog_handle->usb_handle,
+	int retval = jtag_libusb_control_transfer(kitprog_handle->usb_handle,
 		LIBUSB_ENDPOINT_IN | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
 		CONTROL_TYPE_WRITE,
 		(0x03 << 8) | 0x04,
-		0, &status, 1, 0);
+		0, &status, 1, 0, &transferred);
 
-	if (transferred == 0) {
+	if (retval != ERROR_OK || transferred == 0) {
 		LOG_DEBUG("Zero bytes transferred");
 		return ERROR_FAIL;
 	}
@@ -491,13 +491,13 @@ static int kitprog_acquire_psoc(uint8_t psoc_type, uint8_t acquire_mode,
 	int transferred;
 	char status = PROGRAMMER_NOK_NACK;
 
-	transferred = jtag_libusb_control_transfer(kitprog_handle->usb_handle,
+	int retval = jtag_libusb_control_transfer(kitprog_handle->usb_handle,
 		LIBUSB_ENDPOINT_IN | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
 		CONTROL_TYPE_WRITE,
 		(CONTROL_MODE_ACQUIRE_SWD_TARGET << 8) | CONTROL_COMMAND_PROGRAM,
-		(max_attempts << 8) | (acquire_mode << 4) | psoc_type, &status, 1, 0);
+		(max_attempts << 8) | (acquire_mode << 4) | psoc_type, &status, 1, 0, &transferred);
 
-	if (transferred == 0) {
+	if (retval != ERROR_OK || transferred == 0) {
 		LOG_DEBUG("Zero bytes transferred");
 		return ERROR_FAIL;
 	}
@@ -515,13 +515,13 @@ static int kitprog_reset_target(void)
 	int transferred;
 	char status = PROGRAMMER_NOK_NACK;
 
-	transferred = jtag_libusb_control_transfer(kitprog_handle->usb_handle,
+	int retval = jtag_libusb_control_transfer(kitprog_handle->usb_handle,
 		LIBUSB_ENDPOINT_IN | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
 		CONTROL_TYPE_WRITE,
 		(CONTROL_MODE_RESET_TARGET << 8) | CONTROL_COMMAND_PROGRAM,
-		0, &status, 1, 0);
+		0, &status, 1, 0, &transferred);
 
-	if (transferred == 0) {
+	if (retval != ERROR_OK || transferred == 0) {
 		LOG_DEBUG("Zero bytes transferred");
 		return ERROR_FAIL;
 	}
@@ -539,13 +539,13 @@ static int kitprog_swd_sync(void)
 	int transferred;
 	char status = PROGRAMMER_NOK_NACK;
 
-	transferred = jtag_libusb_control_transfer(kitprog_handle->usb_handle,
+	int retval = jtag_libusb_control_transfer(kitprog_handle->usb_handle,
 		LIBUSB_ENDPOINT_IN | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
 		CONTROL_TYPE_WRITE,
 		(CONTROL_MODE_SYNCHRONIZE_TRANSFER << 8) | CONTROL_COMMAND_PROGRAM,
-		0, &status, 1, 0);
+		0, &status, 1, 0, &transferred);
 
-	if (transferred == 0) {
+	if (retval != ERROR_OK || transferred == 0) {
 		LOG_DEBUG("Zero bytes transferred");
 		return ERROR_FAIL;
 	}
@@ -563,13 +563,13 @@ static int kitprog_swd_seq(uint8_t seq_type)
 	int transferred;
 	char status = PROGRAMMER_NOK_NACK;
 
-	transferred = jtag_libusb_control_transfer(kitprog_handle->usb_handle,
+	int retval = jtag_libusb_control_transfer(kitprog_handle->usb_handle,
 		LIBUSB_ENDPOINT_IN | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
 		CONTROL_TYPE_WRITE,
 		(CONTROL_MODE_SEND_SWD_SEQUENCE << 8) | CONTROL_COMMAND_PROGRAM,
-		seq_type, &status, 1, 0);
+		seq_type, &status, 1, 0, &transferred);
 
-	if (transferred == 0) {
+	if (retval != ERROR_OK || transferred == 0) {
 		LOG_DEBUG("Zero bytes transferred");
 		return ERROR_FAIL;
 	}

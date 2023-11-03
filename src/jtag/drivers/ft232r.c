@@ -235,7 +235,7 @@ static int ft232r_speed(int divisor)
 
 	if (jtag_libusb_control_transfer(adapter,
 		LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE | LIBUSB_ENDPOINT_OUT,
-		SIO_SET_BAUD_RATE, divisor, 0, NULL, 0, 1000) != 0) {
+		SIO_SET_BAUD_RATE, divisor, 0, NULL, 0, 1000, NULL) != ERROR_OK) {
 		LOG_ERROR("cannot set baud rate");
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
@@ -266,7 +266,7 @@ static int ft232r_init(void)
 	/* Reset the device. */
 	if (jtag_libusb_control_transfer(adapter,
 		LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE | LIBUSB_ENDPOINT_OUT,
-		SIO_RESET, 0, 0, NULL, 0, 1000) != 0) {
+		SIO_RESET, 0, 0, NULL, 0, 1000, NULL) != ERROR_OK) {
 		LOG_ERROR("unable to reset device");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -275,7 +275,7 @@ static int ft232r_init(void)
 	if (jtag_libusb_control_transfer(adapter,
 		LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE | LIBUSB_ENDPOINT_OUT,
 		SIO_SET_BITMODE, (1<<tck_gpio) | (1<<tdi_gpio) | (1<<tms_gpio) | (1<<ntrst_gpio) | (1<<nsysrst_gpio) | 0x400,
-		0, NULL, 0, 1000) != 0) {
+		0, NULL, 0, 1000, NULL) != ERROR_OK) {
 		LOG_ERROR("cannot set sync bitbang mode");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -288,13 +288,13 @@ static int ft232r_init(void)
 	if (jtag_libusb_control_transfer(adapter,
 		LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE | LIBUSB_ENDPOINT_OUT,
 		SIO_SET_BAUD_RATE, divisor,
-		0, NULL, 0, 1000) != 0) {
+		0, NULL, 0, 1000, NULL) != ERROR_OK) {
 		LOG_ERROR("cannot set baud rate");
 		return ERROR_JTAG_INIT_FAILED;
 	}
 	if (jtag_libusb_control_transfer(adapter,
 		LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE | LIBUSB_ENDPOINT_OUT,
-		SIO_SET_LATENCY_TIMER, latency_timer, 0, NULL, 0, 1000) != 0) {
+		SIO_SET_LATENCY_TIMER, latency_timer, 0, NULL, 0, 1000, NULL) != ERROR_OK) {
 		LOG_ERROR("unable to set latency timer");
 		return ERROR_JTAG_INIT_FAILED;
 	}
@@ -315,7 +315,7 @@ static int ft232r_quit(void)
 		if (jtag_libusb_control_transfer(adapter,
 			LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE | LIBUSB_ENDPOINT_OUT,
 			SIO_SET_BITMODE, ft232r_restore_bitmode,
-			0, NULL, 0, 1000) != 0) {
+			0, NULL, 0, 1000, NULL) != ERROR_OK) {
 			LOG_ERROR("cannot set bitmode to restore serial port");
 		}
 	}

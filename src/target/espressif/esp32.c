@@ -24,20 +24,8 @@ implementation.
 */
 
 /* ESP32 memory map */
-#define ESP32_DRAM_LOW            0x3ffae000
-#define ESP32_DRAM_HIGH           0x40000000
-#define ESP32_IROM_MASK_LOW       0x40000000
-#define ESP32_IROM_MASK_HIGH      0x40064f00
-#define ESP32_IRAM_LOW            0x40070000
-#define ESP32_IRAM_HIGH           0x400a0000
-#define ESP32_RTC_IRAM_LOW        0x400c0000
-#define ESP32_RTC_IRAM_HIGH       0x400c2000
-#define ESP32_RTC_DRAM_LOW        0x3ff80000
-#define ESP32_RTC_DRAM_HIGH       0x3ff82000
 #define ESP32_RTC_DATA_LOW        0x50000000
 #define ESP32_RTC_DATA_HIGH       0x50002000
-#define ESP32_EXTRAM_DATA_LOW     0x3f800000
-#define ESP32_EXTRAM_DATA_HIGH    0x3fc00000
 #define ESP32_DR_REG_LOW          0x3ff00000
 #define ESP32_DR_REG_HIGH         0x3ff71000
 #define ESP32_SYS_RAM_LOW         0x60000000UL
@@ -266,7 +254,10 @@ static int esp32_disable_wdts(struct target *target)
 
 static int esp32_on_halt(struct target *target)
 {
-	return esp32_disable_wdts(target);
+	int ret = esp32_disable_wdts(target);
+	if (ret == ERROR_OK)
+		ret = esp_xtensa_smp_on_halt(target);
+	return ret;
 }
 
 static int esp32_arch_state(struct target *target)

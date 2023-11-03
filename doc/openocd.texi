@@ -463,6 +463,12 @@ They only work with STMicroelectronics chips, notably STM32 and STM8.
 @item @b{STLINK-V3}
 @* This is available standalone and as part of some kits.
 @* Link: @url{http://www.st.com/stlink-v3}
+@item @b{STLINK-V3PWR}
+@* This is available standalone.
+Beside the debugger functionality, the probe includes a SMU (source
+measurement unit) aimed at analyzing power consumption during code
+execution. The SMU is not supported by OpenOCD.
+@* Link: @url{http://www.st.com/stlink-v3pwr}
 @end itemize
 
 For info the original ST-LINK enumerates using the mass storage usb class; however,
@@ -501,6 +507,9 @@ debuggers to ARM Cortex based targets @url{http://www.keil.com/support/man/docs/
 
 @item @b{ARM-JTAG-EW}
 @* Link: @url{http://www.olimex.com/dev/arm-jtag-ew.html}
+
+@item @b{angie}
+@* Link: @url{https://nanoxplore.org/}
 
 @item @b{Buspirate}
 @* Link: @url{http://dangerousprototypes.com/bus-pirate-manual/}
@@ -2174,6 +2183,9 @@ In such cases, just specify the relevant port number as "disabled".
 If you disable all access through TCP/IP, you will need to
 use the command line @option{-pipe} option.
 
+You can request the operating system to select one of the available
+ports for the server by specifying the relevant port number as "0".
+
 @anchor{gdb_port}
 @deffn {Config Command} {gdb_port} [number]
 @cindex GDB server
@@ -2504,6 +2516,10 @@ the number of the @file{/dev/parport} device.
 Displays status of RTCK option.
 Optionally sets that option first.
 @end deffn
+@end deffn
+
+@deffn {Interface Driver} {angie}
+This is the NanoXplore's ANGIE USB-JTAG Adapter.
 @end deffn
 
 @deffn {Interface Driver} {arm-jtag-ew}
@@ -3213,7 +3229,7 @@ passed as is to the underlying adapter layout handler.
 @anchor{st_link_dap_interface}
 @deffn {Interface Driver} {st-link}
 This is a driver that supports STMicroelectronics adapters ST-LINK/V2
-(from firmware V2J24) and STLINK-V3, thanks to a new API that provides
+(from firmware V2J24), STLINK-V3 and STLINK-V3PWR, thanks to a new API that provides
 directly access the arm ADIv5 DAP.
 
 The new API provide access to multiple AP on the same DAP, but the
@@ -8604,22 +8620,24 @@ As it does for JTAG TAPs, debug targets, and flash chips (both NOR and NAND),
 OpenOCD maintains a list of PLDs available for use in various commands.
 Also, each such PLD requires a driver.
 
-They are referenced by the number shown by the @command{pld devices} command,
-and new PLDs are defined by @command{pld device driver_name}.
+They are referenced by the name which was given when the pld was created or
+the number shown by the @command{pld devices} command.
+New PLDs are defined by @command{pld create pld_name driver_name -chain-position tap_name [driver_options]}.
 
-@deffn {Config Command} {pld device} driver_name tap_name [driver_options]
-Defines a new PLD device, supported by driver @var{driver_name},
-using the TAP named @var{tap_name}.
-The driver may make use of any @var{driver_options} to configure its
-behavior.
+@deffn {Config Command} {pld create} pld_name driver_name -chain-position tap_name [driver_options]
+Creates a new PLD device, supported by driver @var{driver_name},
+assigning @var{pld_name} for further reference.
+@code{-chain-position} @var{tap_name} names the TAP
+used to access this target.
+The driver may make use of any @var{driver_options} to configure its behavior.
 @end deffn
 
 @deffn {Command} {pld devices}
-Lists the PLDs and their numbers.
+List the known PLDs with their name.
 @end deffn
 
-@deffn {Command} {pld load} num filename
-Loads the file @file{filename} into the PLD identified by @var{num}.
+@deffn {Command} {pld load} pld_name filename
+Loads the file @file{filename} into the PLD identified by @var{pld_name}.
 The file format must be inferred by the driver.
 @end deffn
 
@@ -8629,12 +8647,12 @@ Drivers may support PLD-specific options to the @command{pld device}
 definition command, and may also define commands usable only with
 that particular type of PLD.
 
-@deffn {FPGA Driver} {virtex2} [no_jstart]
+@deffn {FPGA Driver} {virtex2} [@option{-no_jstart}]
 Virtex-II is a family of FPGAs sold by Xilinx.
 This driver can also be used to load Series3, Series6, Series7 and Zynq 7000 devices.
 It supports the IEEE 1532 standard for In-System Configuration (ISC).
 
-If @var{no_jstart} is non-zero, the JSTART instruction is not used after
+If @var{-no_jstart} is given, the JSTART instruction is not used after
 loading the bitstream. While required for Series2, Series3, and Series6, it
 breaks bitstream loading on Series7.
 
@@ -8644,70 +8662,92 @@ openocd -f board/digilent_zedboard.cfg -c "init" \
 @end example
 
 
-@deffn {Command} {virtex2 read_stat} num
+@deffn {Command} {virtex2 read_stat} pld_name
 Reads and displays the Virtex-II status register (STAT)
-for FPGA @var{num}.
+for FPGA @var{pld_name}.
+@end deffn
+
+@deffn {Command} {virtex2 set_instr_codes} pld_name cfg_out cfg_in jprogb jstart jshutdown [user1 [user2 [user3 [user4]]]]
+Change values for boundary scan instructions. Default are values for Virtex 2, devices Virtex 4/5/6 and
+SSI devices are using different values.
+@var{pld_name} is the name of the pld device.
+@var{cfg_out} is the value used to select CFG_OUT instruction.
+@var{cfg_in} is the value used to select CFG_IN instruction.
+@var{jprogb} is the value used to select JPROGRAM instruction.
+@var{jstart} is the value used to select JSTART instruction.
+@var{jshutdown} is the value used to select JSHUTDOWN instruction.
+@var{user1} to @var{user4} are the intruction used to select the user registers USER1 to USER4.
+@end deffn
+
+@deffn {Command} {virtex2 set_user_codes} pld_name user1 [user2 [user3 [user4]]]
+Change values for boundary scan instructions selecting the registers USER1 to USER4.
+Description of the arguments can be found at command @command{virtex2 set_instr_codes}.
+@end deffn
+
+@deffn {Command} {virtex2 program} pld_name
+Load the bitstream from external memory for FPGA @var{pld_name}. A.k.a. refresh.
 @end deffn
 @end deffn
 
 
 
-@deffn {FPGA Driver} {lattice} [family]
+@deffn {FPGA Driver} {lattice} [@option{-family} <name>]
 The FGPA families ECP2, ECP3, ECP5, Certus and CertusPro by Lattice are supported.
 This driver can be used to load the bitstream into the FPGA or read the status register and read/write the usercode register.
 
-The option @option{family} is one of @var{ecp2 ecp3 ecp5 certus}. This is needed when the JTAG ID of the device is not known by openocd (newer NX devices).
+For the option @option{-family} @var{name} is one of @var{ecp2 ecp3 ecp5 certus}. This is needed when the JTAG ID of the device is not known by openocd (newer NX devices).
 
-@deffn {Command} {lattice read_status} num
+@deffn {Command} {lattice read_status} pld_name
 Reads and displays the status register
-for FPGA @var{num}.
+for FPGA @var{pld_name}.
 @end deffn
 
-@deffn {Command} {lattice read_user} num
+@deffn {Command} {lattice read_user} pld_name
 Reads and displays the user register
-for FPGA @var{num}.
+for FPGA @var{pld_name}.
 @end deffn
 
-@deffn {Command} {lattice write_user} num val
+@deffn {Command} {lattice write_user} pld_name val
 Writes the user register.
-for FPGA @var{num} with value @var{val}.
+for FPGA @var{pld_name} with value @var{val}.
 @end deffn
 
-@deffn {Command} {lattice set_preload} num length
+@deffn {Command} {lattice set_preload} pld_name length
 Set the length of the register for the preload. This is needed when the JTAG ID of the device is not known by openocd (newer NX devices).
-The load command for the FPGA @var{num} will use a length for the preload of @var{length}.
+The load command for the FPGA @var{pld_name} will use a length for the preload of @var{length}.
 @end deffn
 @end deffn
 
 
-@deffn {FPGA Driver} {efinix}
+@deffn {FPGA Driver} {efinix} [@option{-family} <name>]
 Both families (Trion and Titanium) sold by Efinix are supported as both use the same protocol for In-System Configuration.
 This driver can be used to load the bitstream into the FPGA.
+For the option @option{-family} @var{name} is one of @var{trion|titanium}.
 @end deffn
 
 
-@deffn {FPGA Driver} {intel} [@option{family}]
+@deffn {FPGA Driver} {intel} [@option{-family} <name>]
 This driver can be used to load the bitstream into Intel (former Altera) FPGAs.
 The families Cyclone III, Cyclone IV, Cyclone V, Cyclone 10, Arria II are supported.
 @c Arria V and Arria 10, MAX II, MAX V, MAX10)
 
-The option @option{family} is one of @var{cycloneiii cycloneiv cyclonev cyclone10 arriaii}.
+For the option @option{-family} @var{name} is one of @var{cycloneiii cycloneiv cyclonev cyclone10 arriaii}.
 This is needed when the JTAG ID of the device is ambiguous (same ID is used for chips in different families).
 
 As input file format the driver supports a '.rbf' (raw bitstream file) file. The '.rbf' file can be generated
 from a '.sof' file with @verb{|quartus_cpf -c blinker.sof blinker.rbf|}
 
-Defines a new PLD device, an FPGA of the Cyclone III family, using the TAP named @verb{|cycloneiii.tap|}:
+Creates a new PLD device, an FPGA of the Cyclone III family, using the TAP named @verb{|cycloneiii.tap|}:
 @example
-pld device intel cycloneiii.tap cycloneiii
+pld create cycloneiii.pld intel -chain-position cycloneiii.tap -family cycloneiii
 @end example
 
-@deffn {Command} {intel set_bscan} num len
-Set boundary scan register length of FPGA @var{num} to @var{len}. This is needed because the
+@deffn {Command} {intel set_bscan} pld_name len
+Set boundary scan register length of FPGA @var{pld_name} to @var{len}. This is needed because the
 length can vary between chips with the same JTAG ID.
 @end deffn
 
-@deffn {Command} {intel set_check_pos} num pos
+@deffn {Command} {intel set_check_pos} pld_name pos
 Selects the position @var{pos} in the boundary-scan register. The bit at this
 position is checked after loading the bitstream and must be '1', which is the case when no error occurred.
 With a value of -1 for @var{pos} the check will be omitted.
@@ -8719,6 +8759,21 @@ With a value of -1 for @var{pos} the check will be omitted.
 This driver can be used to load the bitstream into FPGAs from Gowin.
 It is possible to program the SRAM. Programming the flash is not supported.
 The files @verb{|.fs|} and @verb{|.bin|} generated by Gowin FPGA Designer are supported.
+
+@deffn {Command} {gowin read_status} pld_name
+Reads and displays the status register
+for FPGA @var{pld_name}.
+@end deffn
+
+@deffn {Command} {gowin read_user} pld_name
+Reads and displays the user register
+for FPGA @var{pld_name}.
+@end deffn
+
+@deffn {Command} {gowin reload} pld_name
+Load the bitstream from external memory for
+FPGA @var{pld_name}. A.k.a. refresh.
+@end deffn
 @end deffn
 
 
@@ -12022,7 +12077,7 @@ In a session using JTAG for its transport protocol, OpenOCD supports the functio
 of a JTAG-Host. The JTAG-Host is needed to connect the circuit over JTAG to the
 control-software. For more details see @url{http://ipdbg.org}.
 
-@deffn {Command} {ipdbg} [@option{-start|-stop}] @option{-tap @var{tapname}} @option{-hub @var{ir_value} [@var{dr_length}]} [@option{-port @var{number}}] [@option{-tool @var{number}}] [@option{-vir [@var{vir_value} [@var{length} [@var{instr_code}]]]}]
+@deffn {Command} {ipdbg} [@option{-start|-stop}] @option{-tap @var{tapname}} @option{-hub @var{ir_value} [@var{dr_length}]} [@option{-vir [@var{vir_value} [@var{length} [@var{instr_code}]]]}] [@option{-port @var{number}}] [@option{-tool @var{number}}]
 Starts or stops a IPDBG JTAG-Host server. Arguments can be specified in any order.
 
 Command options:
@@ -12031,14 +12086,27 @@ Command options:
 @item @option{-tap @var{tapname}} targeting the TAP @var{tapname}.
 @item @option{-hub @var{ir_value}} states that the JTAG hub is
 reachable with dr-scans while the JTAG instruction register has the value @var{ir_value}.
-@item @option{-port @var{number}} tcp port number where the JTAG-Host is listening.
-@item @option{-tool @var{number}} number of the tool/feature. These corresponds to the ports "data_(up/down)_(0..6)" at the JtagHub.
-@item @option{-vir [@var{vir_value} [@var{length} [@var{instr_code}]]]} On some devices, the user data-register is only reachable if there is a
+@item @option{-port @var{number}} tcp port number where the JTAG-Host will listen. The default is 4242 which is used when the option is not given.
+@item @option{-tool @var{number}} number of the tool/feature. These corresponds to the ports "data_(up/down)_(0..6)" at the JtagHub. The default is 1 which is used when the option is not given.
+@item @option{-vir [@var{vir_value} [@var{length} [@var{instr_code}]]]} On some devices, the user data-register is reachable if there is a
 specific value in a second dr. This second dr is called vir (virtual ir). With this parameter given, the IPDBG satisfies this condition prior an
 access to the IPDBG-Hub. The value shifted into the vir is given by the first parameter @var{vir_value} (default: 0x11). The second
 parameter @var{length} is the length of the vir data register (default: 5). With the @var{instr_code} (default: 0x00e) parameter the ir value to
 shift data through vir can be configured.
 @end itemize
+@end deffn
+or
+@deffn {Command} {ipdbg} [@option{-start|-stop}] @option{-pld @var{name} [@var{user}]} [@option{-port @var{number}}] [@option{-tool @var{number}}]
+Also starts or stops a IPDBG JTAG-Host server. The pld drivers are able to provide the tap and hub/IR for the IPDBG JTAG-Host server.
+With the @option{-pld @var{name} [@var{user}]} the information from the pld-driver is used and the options @option{-tap} and @option{-hub} are not required.
+The defined driver for the pld @var{name} gets selected. (The pld devices names can be shown by the command @command{pld devices}).
+
+The @verb{|USERx|} instructions are vendor specific and don't change between families of the same vendor.
+So if there's a pld driver for your vendor it should work with your FPGA even when the driver is not compatible with your device for the remaining features. If your device/vendor is not supported you have to use the previous command.
+
+With [@var{user}] one can select a different @verb{|USERx|}-Instruction. If the IPDBG JTAG-Hub is used without modification the default value of 1 which selects the first @verb{|USERx|} instruction is adequate.
+
+The remaining options are described in the previous command.
 @end deffn
 
 Examples:
@@ -12053,6 +12121,13 @@ ipdbg -start -tap 10m50.tap -hub 0x00C -vir -port 60000 -tool 1
 @end example
 Starts a server listening on tcp-port 60000 which connects to tool 1 (data_up_1/data_down_1).
 The connection is through the TAP of a Intel MAX10 virtual jtag component (sld_instance_index is 0; sld_ir_width is smaller than 5).
+
+@example
+ipdbg -start -pld xc7.pld -port 5555 -tool 0
+@end example
+Starts a server listening on tcp-port 5555 which connects to tool 0 (data_up_0/data_down_0).
+The TAP and ir value used to reach the JTAG Hub is given by the pld driver.
+
 
 @node Utility Commands
 @chapter Utility Commands

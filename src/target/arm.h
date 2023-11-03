@@ -58,6 +58,11 @@ enum arm_arch {
 	ARM_ARCH_V8M,
 };
 
+/** Known ARM implementor IDs */
+enum arm_implementor {
+	ARM_IMPLEMENTOR_ARM = 0x41,
+};
+
 /**
  * Represent state of an ARM core.
  *

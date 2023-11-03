@@ -964,7 +964,7 @@ int armv8_mmu_translate_va_pa(struct target *target, target_addr_t va,
 	};
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target %s not halted", target_name(target));
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 

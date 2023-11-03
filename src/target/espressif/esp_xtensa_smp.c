@@ -112,6 +112,21 @@ int esp_xtensa_smp_soft_reset_halt(struct target *target)
 	return ERROR_OK;
 }
 
+int esp_xtensa_smp_on_halt(struct target *target)
+{
+	struct target_list *head;
+
+	if (!target->smp)
+		return esp_xtensa_on_halt(target);
+
+	foreach_smp_target(head, target->smp_targets) {
+		int res = esp_xtensa_on_halt(head->target);
+		if (res != ERROR_OK)
+			return res;
+	}
+	return ERROR_OK;
+}
+
 static struct target *get_halted_esp_xtensa_smp(struct target *target, int32_t coreid)
 {
 	struct target_list *head;
@@ -131,6 +146,7 @@ int esp_xtensa_smp_poll(struct target *target)
 	enum target_state old_state = target->state;
 	struct esp_xtensa_smp_common *esp_xtensa_smp = target_to_esp_xtensa_smp(target);
 	struct esp_xtensa_common *esp_xtensa = target_to_esp_xtensa(target);
+	uint32_t old_dbg_stubs_base = esp_xtensa->esp.dbg_stubs.base;
 	struct target_list *head;
 	struct target *curr;
 	bool other_core_resume_req = false;
@@ -147,6 +163,16 @@ int esp_xtensa_smp_poll(struct target *target)
 	int ret = esp_xtensa_poll(target);
 	if (ret != ERROR_OK)
 		return ret;
+
+	if (esp_xtensa->esp.dbg_stubs.base && old_dbg_stubs_base != esp_xtensa->esp.dbg_stubs.base) {
+		/* debug stubs base is set only in PRO-CPU TRAX register, so sync this info */
+		foreach_smp_target(head, target->smp_targets) {
+			curr = head->target;
+			if (curr == target)
+				continue;
+			target_to_esp_xtensa(curr)->esp.dbg_stubs.base = esp_xtensa->esp.dbg_stubs.base;
+		}
+	}
 
 	if (target->smp) {
 		if (target->state == TARGET_RESET) {

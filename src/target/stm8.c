@@ -994,7 +994,7 @@ static int stm8_resume(struct target *target, int current,
 			handle_breakpoints, debug_execution);
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -1303,7 +1303,7 @@ static int stm8_step(struct target *target, int current,
 	struct breakpoint *breakpoint = NULL;
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -1518,7 +1518,7 @@ static int stm8_remove_breakpoint(struct target *target,
 	struct stm8_common *stm8 = target_to_stm8(target);
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -1654,7 +1654,7 @@ static int stm8_remove_watchpoint(struct target *target,
 	struct stm8_common *stm8 = target_to_stm8(target);
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 

@@ -961,7 +961,7 @@ static int stm32x_get_device_id(struct flash_bank *bank, uint32_t *device_id)
 		return retval;
 
 	if ((*device_id & 0xfff) == 0x411
-			&& cortex_m_get_partno_safe(target) == CORTEX_M4_PARTNO) {
+			&& cortex_m_get_impl_part(target) == CORTEX_M4_PARTNO) {
 		*device_id &= ~((0xFFFF << 16) | 0xfff);
 		*device_id |= (0x1000 << 16) | 0x413;
 		LOG_INFO("stm32f4x errata detected - fixing incorrect MCU_IDCODE");

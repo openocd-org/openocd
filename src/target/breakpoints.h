@@ -36,11 +36,13 @@ struct breakpoint {
 	int linked_brp;
 };
 
+#define WATCHPOINT_IGNORE_DATA_VALUE_MASK (~(uint64_t)0)
+
 struct watchpoint {
 	target_addr_t address;
 	uint32_t length;
-	uint32_t mask;
-	uint32_t value;
+	uint64_t mask;
+	uint64_t value;
 	enum watchpoint_rw rw;
 	bool is_set;
 	unsigned int number;
@@ -69,7 +71,7 @@ static inline void breakpoint_hw_set(struct breakpoint *breakpoint, unsigned int
 void watchpoint_clear_target(struct target *target);
 int watchpoint_add(struct target *target,
 		target_addr_t address, uint32_t length,
-		enum watchpoint_rw rw, uint32_t value, uint32_t mask);
+		enum watchpoint_rw rw, uint64_t value, uint64_t mask);
 void watchpoint_remove(struct target *target, target_addr_t address);
 
 /* report type and address of just hit watchpoint */

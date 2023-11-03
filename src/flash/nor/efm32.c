@@ -251,18 +251,6 @@ static int efm32x_read_info(struct flash_bank *bank)
 
 	memset(efm32_info, 0, sizeof(struct efm32_info));
 
-	const struct cortex_m_common *cortex_m = target_to_cm(bank->target);
-
-	switch (cortex_m->core_info->partno) {
-	case CORTEX_M3_PARTNO:
-	case CORTEX_M4_PARTNO:
-	case CORTEX_M0P_PARTNO:
-		break;
-	default:
-		LOG_ERROR("Target is not Cortex-Mx Device");
-		return ERROR_FAIL;
-	}
-
 	ret = efm32x_get_flash_size(bank, &(efm32_info->flash_sz_kib));
 	if (ret != ERROR_OK)
 		return ret;

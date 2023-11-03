@@ -37,6 +37,7 @@ int esp_xtensa_smp_step(struct target *target,
 int esp_xtensa_smp_assert_reset(struct target *target);
 int esp_xtensa_smp_deassert_reset(struct target *target);
 int esp_xtensa_smp_soft_reset_halt(struct target *target);
+int esp_xtensa_smp_on_halt(struct target *target);
 int esp_xtensa_smp_watchpoint_add(struct target *target, struct watchpoint *watchpoint);
 int esp_xtensa_smp_watchpoint_remove(struct target *target, struct watchpoint *watchpoint);
 int esp_xtensa_smp_handle_target_event(struct target *target, enum target_event event, void *priv);

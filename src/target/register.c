@@ -93,9 +93,8 @@ void register_unlink_cache(struct reg_cache **cache_p, const struct reg_cache *c
 /** Marks the contents of the register cache as invalid (and clean). */
 void register_cache_invalidate(struct reg_cache *cache)
 {
-	struct reg *reg = cache->reg_list;
-
-	for (unsigned int n = cache->num_regs; n != 0; n--, reg++) {
+	for (unsigned int n = 0; n < cache->num_regs; n++) {
+		struct reg *reg = &cache->reg_list[n];
 		if (!reg->exist)
 			continue;
 		reg->valid = false;
