@@ -261,6 +261,102 @@ static inline bool ch347_is_single_cmd_type(uint8_t type)
 	return type == CH347_CMD_GPIO || type == CH347_CMD_JTAG_INIT || type == CH347_CMD_SWD_INIT;
 }
 
+static void log_buf_dump(const uint8_t *data, unsigned int size, bool recv)
+{
+	unsigned int i = 0, j = 0;
+	unsigned int n = size * 3 + 1;
+	char *str = malloc(n);
+	if (!str)
+		return;
+
+	while (i < size && j < n) {
+		uint8_t cmd = data[i++];
+		hexify(str + j, &cmd, 1, n - j);
+		j += 2;
+		str[j++] = ' ';
+
+		unsigned int cmd_payload_size = le_to_h_u16(data + i);
+		if (i + 2 <= size && j + 4 < n) {
+			hexify(str + j, data + i, 2, n - j);
+			i += 2;
+			j += 4;
+			str[j++] = ' ';
+		}
+
+		if (cmd == CH347_CMD_SWD) {
+			// nested SWD commands
+			str[j] = '\0';
+			if (i + cmd_payload_size > size) {
+				LOG_DEBUG_IO("%s - bad size", str);
+				cmd_payload_size = size - i;
+			} else {
+				LOG_DEBUG_IO("%s", str);
+			}
+			j = 0;
+			unsigned int swd_base_i = i;
+
+			while (i < swd_base_i + cmd_payload_size) {
+				uint8_t swd_cmd = data[i++];
+				hexify(str + j, &swd_cmd, 1, n - j);
+				j += 2;
+				str[j++] = ' ';
+
+				unsigned int swd_bits = 0;
+				unsigned int swd_payload_size = 0;
+				if (!recv) {
+					if (i + 2 <= size) {
+						swd_bits = le_to_h_u16(data + i);
+						hexify(str + j, data + i, 2, n - j);
+						i += 2;
+						j += 4;
+						str[j++] = ' ';
+					}
+				}
+
+				switch (swd_cmd) {
+				case CH347_CMD_SWD_REG_W:
+					if (recv)
+						swd_payload_size = 1;
+					else
+						swd_payload_size = DIV_ROUND_UP(swd_bits, 8);
+					break;
+				case CH347_CMD_SWD_SEQ_W:
+					if (!recv)
+						swd_payload_size = DIV_ROUND_UP(swd_bits, 8);
+					break;
+				case CH347_CMD_SWD_REG_R:
+					if (recv)
+						swd_payload_size = 1 + 4 + 1;
+					else
+						swd_payload_size = 1;
+					break;
+				}
+
+				hexify(str + j, data + i, MIN(swd_payload_size, size - i), n - j);
+				i += swd_payload_size;
+				j += 2 * swd_payload_size;
+				str[j] = '\0';
+				if (i > size)
+					LOG_DEBUG_IO("    %s - bad size", str);
+				else
+					LOG_DEBUG_IO("    %s", str);
+				j = 0;
+			}
+		} else {
+			hexify(str + j, data + i, MIN(cmd_payload_size, size - i), n - j);
+			i += cmd_payload_size;
+			j += 2 * cmd_payload_size;
+			str[j] = '\0';
+			if (i > size)
+				LOG_DEBUG_IO("%s - bad size", str);
+			else
+				LOG_DEBUG_IO("%s", str);
+			j = 0;
+		}
+	}
+	free(str);
+}
+
 /**
  * @brief writes data to the CH347 via libusb driver
  *
@@ -289,9 +385,8 @@ static int ch347_write_data(uint8_t *data, int *length)
 	}
 
 	if (LOG_LEVEL_IS(LOG_LVL_DEBUG_IO)) {
-		char *str = buf_to_hex_str(data, i * 8);
-		LOG_DEBUG_IO("size=%d, buf=[%s]", i, str);
-		free(str);
+		LOG_DEBUG_IO("size=%d, buf=", i);
+		log_buf_dump(data, i, false);
 	}
 
 	*length = i;
@@ -327,9 +422,8 @@ static int ch347_read_data(uint8_t *data, int *length)
 	}
 
 	if (LOG_LEVEL_IS(LOG_LVL_DEBUG_IO)) {
-		char *str = buf_to_hex_str(data, i * 8);
-		LOG_DEBUG_IO("size=%d, buf=[%s]", i, str);
-		free(str);
+		LOG_DEBUG_IO("size=%d, buf=", i);
+		log_buf_dump(data, i, true);
 	}
 
 	*length = i;
