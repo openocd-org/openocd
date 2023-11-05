@@ -119,6 +119,9 @@
 #define CH347_MAX_SEND_BUF	0X200
 #define CH347_MAX_RECV_BUF	0X200
 #define CH347_MAX_CMD_BUF	128
+#define CH347_SWD_CLOCK_MAX 5000
+#define CH347_SWD_CLOCK_BASE 1000
+#define CH347_SWD_CLOCK_MAX_DIVISOR 8
 
 #define CH347_EPOUT	0x06u // the usb endpoint number for writing
 #define CH347_EPIN	0x86u // the usb endpoint number for reading
@@ -205,6 +208,7 @@ struct ch347_info {
 	bool use_bitwise_mode;
 	enum pack_size pack_size; // see: pack_size for explanation
 	int max_len; // in STANDARD_PACK or bitwise mode we can send only one USBC_PACKET_USBHS sized package
+	bool swclk_5mhz_supported;
 
 	// a "scratchpad" where we record all bytes for one command
 	uint8_t scratchpad_cmd_type; // command type
@@ -1506,6 +1510,8 @@ static int ch347_open_device(void)
 
 	if (ch347.chip_variant == CH347T) {
 		if (swd_mode) {
+			ch347.swclk_5mhz_supported = ch347_device_descriptor.bcdDevice >= 0x544;
+
 			if (ch347_device_descriptor.bcdDevice < 0x441)
 				LOG_WARNING("CH347T version older than 4.41 probably does not support SWD transport");
 
@@ -1520,6 +1526,8 @@ static int ch347_open_device(void)
 			LOG_INFO("Please upgrade CH347T firmware to a production version >= 5.44");
 
 	} else if (ch347.chip_variant == CH347F) {
+		ch347.swclk_5mhz_supported = ch347_device_descriptor.bcdDevice >= 0x101;
+
 		if (ch347_device_descriptor.bcdDevice < 0x101)
 			LOG_INFO("Please upgrade CH347F firmware to a production version >= 1.1");
 	}
@@ -1609,15 +1617,43 @@ static int ch347_adapter_set_speed(uint8_t clock_index)
 }
 
 /**
+ * @brief swd init function
+ * @param clock_divisor Divisor of base SWD frequency 1 MHz or 0 for fast 5 MHz clock
+ *
+ * @return ERROR_OK on success
+ */
+static int ch347_swd_init_cmd(uint8_t clock_divisor)
+{
+	int retval = ch347_cmd_start_next(CH347_CMD_SWD_INIT);
+	if (retval != ERROR_OK)
+		return retval;
+
+	uint8_t cmd_data[] = {0x40, 0x42, 0x0f, 0x00, clock_divisor, 0x00, 0x00, 0x00 };
+	retval = ch347_scratchpad_add_bytes(cmd_data, ARRAY_SIZE(cmd_data));
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* TODO: CH347_CMD_SWD_INIT reads one data byte.
+			But how can we decide if SWD init was successfully executed?
+			Return an error code if init was failed */
+	uint8_t init_result = 0;
+	retval = ch347_single_read_get_byte(0, &init_result);
+	LOG_DEBUG("SWD init clk div %" PRIu8 ", result %02" PRIx8,
+			  clock_divisor, init_result);
+	return retval;
+}
+
+/**
  * @brief Initializes the JTAG interface and set CH347 TCK frequency
  *
  * @param speed_index speed index for JTAG_INIT command
- * @return Success returns ERROR_OK，failed returns ERROR_FAIL
+ * @return Success returns ERROR_OK, failed returns ERROR_FAIL
  */
 static int ch347_speed_set(int speed_index)
 {
 	if (swd_mode)
-		return ERROR_OK;
+		return ch347_swd_init_cmd(speed_index);
+
 	int retval = ch347_adapter_set_speed(speed_index);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Couldn't set CH347 speed");
@@ -1660,6 +1696,14 @@ static int ch347_init_pack_size(void)
  */
 static int ch347_speed_get(int speed_idx, int *khz)
 {
+	if (swd_mode) {
+		if (speed_idx)
+			*khz = DIV_ROUND_UP(CH347_SWD_CLOCK_BASE, speed_idx);
+		else
+			*khz = CH347_SWD_CLOCK_MAX;
+		return ERROR_OK;
+	}
+
 	int retval = ch347_init_pack_size();
 	if (retval != ERROR_OK)
 		return retval;
@@ -1682,6 +1726,19 @@ static int ch347_speed_get_index(int khz, int *speed_idx)
 		LOG_ERROR("Adaptive clocking not supported");
 		return ERROR_FAIL;
 	}
+
+	if (swd_mode) {
+		if (khz >= CH347_SWD_CLOCK_MAX && ch347.swclk_5mhz_supported) {
+			*speed_idx = 0;
+		} else {
+			// Don't allow too low clk speeds: packet processing is limited to ~8 msec
+			// or triggers host USB disconnect
+			*speed_idx = MIN(DIV_ROUND_UP(CH347_SWD_CLOCK_BASE, khz),
+							 CH347_SWD_CLOCK_MAX_DIVISOR);
+		}
+		return ERROR_OK;
+	}
+
 	// when checking with speed index 9 we can see if the device supports STANDARD_PACK or LARGER_PACK mode
 	int retval = ch347_init_pack_size();
 	if (retval != ERROR_OK)
@@ -1810,27 +1867,6 @@ static const struct command_registration ch347_command_handlers[] = {
 };
 
 /**
- * @brief swd init function
- *
- * @return ERROR_OK on success
- */
-static int ch347_swd_init_cmd(void)
-{
-	int retval = ch347_cmd_start_next(CH347_CMD_SWD_INIT);
-	if (retval != ERROR_OK)
-		return retval;
-	uint8_t cmd_data[] = {0x40, 0x42, 0x0f, 0x00, 0x00, 0x00, 0x00, 0x00 };
-	retval = ch347_scratchpad_add_bytes(cmd_data, ARRAY_SIZE(cmd_data));
-	if (retval != ERROR_OK)
-		return retval;
-	/* TODO: CH347_CMD_SWD_INIT reads one data byte.
-			But how can we decide if SWD init was successfully executed?
-			Return an error code if init was failed */
-	uint8_t unused;
-	return ch347_single_read_get_byte(0, &unused);
-}
-
-/**
  * @brief CH347 Initialization function
  *
  * @return ERROR_OK on success
@@ -1862,7 +1898,8 @@ static int ch347_init(void)
 		retval = ch347_init_pack_size();
 		if (retval != ERROR_OK)
 			return retval;
-		retval = ch347_swd_init_cmd();
+
+		retval = ch347_swd_init_cmd(1);
 	}
 	return retval;
 }
