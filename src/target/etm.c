@@ -552,8 +552,8 @@ static int etm_set_reg(struct reg *reg, uint32_t value)
 	}
 
 	buf_set_u32(reg->value, 0, reg->size, value);
-	reg->valid = 1;
-	reg->dirty = 0;
+	reg->valid = true;
+	reg->dirty = false;
 
 	return ERROR_OK;
 }

@@ -625,8 +625,8 @@ static int mips_mips64_resume(struct target *target, int current,
 	/* current = 1: continue on current pc, otherwise continue at <address> */
 	if (!current) {
 		buf_set_u64(pc->value, 0, 64, address);
-		pc->dirty = 1;
-		pc->valid = 1;
+		pc->dirty = true;
+		pc->valid = true;
 	}
 
 	resume_pc = buf_get_u64(pc->value, 0, 64);
@@ -717,8 +717,8 @@ static int mips_mips64_step(struct target *target, int current,
 	 * <address> */
 	if (!current) {
 		buf_set_u64(pc->value, 0, 64, address);
-		pc->dirty = 1;
-		pc->valid = 1;
+		pc->dirty = true;
+		pc->valid = true;
 	}
 
 	/* the front-end may request us not to handle breakpoints */
