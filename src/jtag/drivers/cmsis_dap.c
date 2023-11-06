@@ -2108,12 +2108,12 @@ COMMAND_HANDLER(cmsis_dap_handle_cmd_command)
 COMMAND_HANDLER(cmsis_dap_handle_vid_pid_command)
 {
 	if (CMD_ARGC > MAX_USB_IDS * 2) {
-		LOG_WARNING("ignoring extra IDs in cmsis_dap_vid_pid "
+		LOG_WARNING("ignoring extra IDs in cmsis-dap vid_pid "
 			"(maximum is %d pairs)", MAX_USB_IDS);
 		CMD_ARGC = MAX_USB_IDS * 2;
 	}
 	if (CMD_ARGC < 2 || (CMD_ARGC & 1)) {
-		LOG_WARNING("incomplete cmsis_dap_vid_pid configuration directive");
+		LOG_WARNING("incomplete cmsis-dap vid_pid configuration directive");
 		if (CMD_ARGC < 2)
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		/* remove the incomplete trailing id */
@@ -2148,10 +2148,10 @@ COMMAND_HANDLER(cmsis_dap_handle_backend_command)
 				}
 			}
 
-			LOG_ERROR("invalid backend argument to cmsis_dap_backend <backend>");
+			LOG_ERROR("invalid backend argument to cmsis-dap backend <backend>");
 		}
 	} else {
-		LOG_ERROR("expected exactly one argument to cmsis_dap_backend <backend>");
+		LOG_ERROR("expected exactly one argument to cmsis-dap backend <backend>");
 	}
 
 	return ERROR_OK;
@@ -2172,6 +2172,29 @@ static const struct command_registration cmsis_dap_subcommand_handlers[] = {
 		.usage = "",
 		.help = "issue cmsis-dap command",
 	},
+	{
+		.name = "vid_pid",
+		.handler = &cmsis_dap_handle_vid_pid_command,
+		.mode = COMMAND_CONFIG,
+		.help = "the vendor ID and product ID of the CMSIS-DAP device",
+		.usage = "(vid pid)*",
+	},
+	{
+		.name = "backend",
+		.handler = &cmsis_dap_handle_backend_command,
+		.mode = COMMAND_CONFIG,
+		.help = "set the communication backend to use (USB bulk or HID).",
+		.usage = "(auto | usb_bulk | hid)",
+	},
+#if BUILD_CMSIS_DAP_USB
+	{
+		.name = "usb",
+		.chain = cmsis_dap_usb_subcommand_handlers,
+		.mode = COMMAND_ANY,
+		.help = "USB bulk backend-specific commands",
+		.usage = "<cmd>",
+	},
+#endif
 	COMMAND_REGISTRATION_DONE
 };
 
@@ -2184,29 +2207,6 @@ static const struct command_registration cmsis_dap_command_handlers[] = {
 		.usage = "<cmd>",
 		.chain = cmsis_dap_subcommand_handlers,
 	},
-	{
-		.name = "cmsis_dap_vid_pid",
-		.handler = &cmsis_dap_handle_vid_pid_command,
-		.mode = COMMAND_CONFIG,
-		.help = "the vendor ID and product ID of the CMSIS-DAP device",
-		.usage = "(vid pid)*",
-	},
-	{
-		.name = "cmsis_dap_backend",
-		.handler = &cmsis_dap_handle_backend_command,
-		.mode = COMMAND_CONFIG,
-		.help = "set the communication backend to use (USB bulk or HID).",
-		.usage = "(auto | usb_bulk | hid)",
-	},
-#if BUILD_CMSIS_DAP_USB
-	{
-		.name = "cmsis_dap_usb",
-		.chain = cmsis_dap_usb_subcommand_handlers,
-		.mode = COMMAND_ANY,
-		.help = "USB bulk backend-specific commands",
-		.usage = "<cmd>",
-	},
-#endif
 	COMMAND_REGISTRATION_DONE
 };
 
