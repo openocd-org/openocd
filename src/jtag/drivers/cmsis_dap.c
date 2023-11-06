@@ -2148,10 +2148,11 @@ COMMAND_HANDLER(cmsis_dap_handle_backend_command)
 				}
 			}
 
-			LOG_ERROR("invalid backend argument to cmsis-dap backend <backend>");
+			command_print(CMD, "invalid backend argument to cmsis-dap backend <backend>");
+			return ERROR_COMMAND_ARGUMENT_INVALID;
 		}
 	} else {
-		LOG_ERROR("expected exactly one argument to cmsis-dap backend <backend>");
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	return ERROR_OK;
