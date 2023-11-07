@@ -1252,7 +1252,7 @@ static int esp32_sysview_start(struct esp32_apptrace_cmd_ctx *ctx)
 {
 	uint8_t cmds[] = { SEGGER_SYSVIEW_COMMAND_ID_START };
 	uint32_t fired_target_num = 0;
-	struct esp32_apptrace_target_state target_state[ESP32_APPTRACE_MAX_CORES_NUM] = {0};
+	struct esp32_apptrace_target_state target_state[ESP32_APPTRACE_MAX_CORES_NUM] = {{0}};
 	struct esp32_sysview_cmd_data *cmd_data = ctx->cmd_priv;
 
 	/* get current block id */

@@ -18,6 +18,9 @@
 #include "certus.h"
 
 #define PRELOAD              0x1C
+#define USER1                0x32
+#define USER2                0x38
+
 
 struct lattice_devices_elem {
 	uint32_t id;
@@ -316,15 +319,61 @@ static int lattice_load_command(struct pld_device *pld_device, const char *filen
 	return retval;
 }
 
-PLD_DEVICE_COMMAND_HANDLER(lattice_pld_device_command)
+static int lattice_get_ipdbg_hub(int user_num, struct pld_device *pld_device, struct pld_ipdbg_hub *hub)
 {
-	if (CMD_ARGC < 2 || CMD_ARGC > 3)
+	if (!pld_device)
+		return ERROR_FAIL;
+
+	struct lattice_pld_device *pld_device_info = pld_device->driver_priv;
+
+	if (!pld_device_info || !pld_device_info->tap)
+		return ERROR_FAIL;
+
+	hub->tap = pld_device_info->tap;
+
+	if (user_num == 1) {
+		hub->user_ir_code = USER1;
+	} else if (user_num == 2) {
+		hub->user_ir_code = USER2;
+	} else {
+		LOG_ERROR("lattice devices only have user register 1 & 2");
+		return ERROR_FAIL;
+	}
+	return ERROR_OK;
+}
+
+PLD_CREATE_COMMAND_HANDLER(lattice_pld_create_command)
+{
+	if (CMD_ARGC != 4 && CMD_ARGC != 6)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	struct jtag_tap *tap = jtag_tap_by_string(CMD_ARGV[1]);
+	if (strcmp(CMD_ARGV[2], "-chain-position") != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	struct jtag_tap *tap = jtag_tap_by_string(CMD_ARGV[3]);
 	if (!tap) {
-		command_print(CMD, "Tap: %s does not exist", CMD_ARGV[1]);
+		command_print(CMD, "Tap: %s does not exist", CMD_ARGV[3]);
 		return ERROR_FAIL;
+	}
+
+	/* id is not known yet -> postpone lattice_check_device_family() */
+	enum lattice_family_e family = LATTICE_UNKNOWN;
+	if (CMD_ARGC == 6) {
+		if (strcmp(CMD_ARGV[4], "-family") != 0)
+			return ERROR_COMMAND_SYNTAX_ERROR;
+
+		if (strcasecmp(CMD_ARGV[5], "ecp2") == 0) {
+			family = LATTICE_ECP2;
+		} else if (strcasecmp(CMD_ARGV[5], "ecp3") == 0) {
+			family = LATTICE_ECP3;
+		} else if (strcasecmp(CMD_ARGV[5], "ecp5") == 0) {
+			family = LATTICE_ECP5;
+		} else if (strcasecmp(CMD_ARGV[5], "certus") == 0) {
+			family = LATTICE_CERTUS;
+		} else {
+			command_print(CMD, "unknown family");
+			return ERROR_FAIL;
+		}
 	}
 
 	struct lattice_pld_device *lattice_device = malloc(sizeof(struct lattice_pld_device));
@@ -332,23 +381,7 @@ PLD_DEVICE_COMMAND_HANDLER(lattice_pld_device_command)
 		LOG_ERROR("Out of memory");
 		return ERROR_FAIL;
 	}
-	/* id is not known yet -> postpone lattice_check_device_family() */
-	enum lattice_family_e family = LATTICE_UNKNOWN;
-	if (CMD_ARGC == 3) {
-		if (strcasecmp(CMD_ARGV[2], "ecp2") == 0) {
-			family = LATTICE_ECP2;
-		} else if (strcasecmp(CMD_ARGV[2], "ecp3") == 0) {
-			family = LATTICE_ECP3;
-		} else if (strcasecmp(CMD_ARGV[2], "ecp5") == 0) {
-			family = LATTICE_ECP5;
-		} else if (strcasecmp(CMD_ARGV[2], "certus") == 0) {
-			family = LATTICE_CERTUS;
-		} else {
-			command_print(CMD, "unknown family");
-			free(lattice_device);
-			return ERROR_FAIL;
-		}
-	}
+
 	lattice_device->tap = tap;
 	lattice_device->family = family;
 	lattice_device->preload_length = 0;
@@ -360,16 +393,14 @@ PLD_DEVICE_COMMAND_HANDLER(lattice_pld_device_command)
 
 COMMAND_HANDLER(lattice_read_usercode_register_command_handler)
 {
-	int dev_id;
 	uint32_t usercode;
 
 	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], dev_id);
-	struct pld_device *device = get_pld_device_by_num(dev_id);
+	struct pld_device *device = get_pld_device_by_name_or_numstr(CMD_ARGV[0]);
 	if (!device) {
-		command_print(CMD, "pld device '#%s' is out of bounds", CMD_ARGV[0]);
+		command_print(CMD, "pld device '#%s' is out of bounds or unknown", CMD_ARGV[0]);
 		return ERROR_FAIL;
 	}
 
@@ -390,16 +421,14 @@ COMMAND_HANDLER(lattice_read_usercode_register_command_handler)
 
 COMMAND_HANDLER(lattice_set_preload_command_handler)
 {
-	int dev_id;
 	unsigned int preload_length;
 
 	if (CMD_ARGC != 2)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], dev_id);
-	struct pld_device *device = get_pld_device_by_num(dev_id);
+	struct pld_device *device = get_pld_device_by_name_or_numstr(CMD_ARGV[0]);
 	if (!device) {
-		command_print(CMD, "pld device '#%s' is out of bounds", CMD_ARGV[0]);
+		command_print(CMD, "pld device '#%s' is out of bounds or unknown", CMD_ARGV[0]);
 		return ERROR_FAIL;
 	}
 
@@ -417,16 +446,14 @@ COMMAND_HANDLER(lattice_set_preload_command_handler)
 
 COMMAND_HANDLER(lattice_write_usercode_register_command_handler)
 {
-	int dev_id;
 	uint32_t usercode;
 
 	if (CMD_ARGC != 2)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], dev_id);
-	struct pld_device *device = get_pld_device_by_num(dev_id);
+	struct pld_device *device = get_pld_device_by_name_or_numstr(CMD_ARGV[0]);
 	if (!device) {
-		command_print(CMD, "pld device '#%s' is out of bounds", CMD_ARGV[0]);
+		command_print(CMD, "pld device '#%s' is out of bounds or unknown", CMD_ARGV[0]);
 		return ERROR_FAIL;
 	}
 
@@ -445,15 +472,12 @@ COMMAND_HANDLER(lattice_write_usercode_register_command_handler)
 
 COMMAND_HANDLER(lattice_read_status_command_handler)
 {
-	int dev_id;
-
 	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], dev_id);
-	struct pld_device *device = get_pld_device_by_num(dev_id);
+	struct pld_device *device = get_pld_device_by_name_or_numstr(CMD_ARGV[0]);
 	if (!device) {
-		command_print(CMD, "pld device '#%s' is out of bounds", CMD_ARGV[0]);
+		command_print(CMD, "pld device '#%s' is out of bounds or unknown", CMD_ARGV[0]);
 		return ERROR_FAIL;
 	}
 
@@ -487,25 +511,25 @@ static const struct command_registration lattice_exec_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.handler = lattice_read_status_command_handler,
 		.help = "reading status register from FPGA",
-		.usage = "num_pld",
+		.usage = "pld_name",
 	}, {
 		.name = "read_user",
 		.mode = COMMAND_EXEC,
 		.handler = lattice_read_usercode_register_command_handler,
 		.help = "reading usercode register from FPGA",
-		.usage = "num_pld",
+		.usage = "pld_name",
 	}, {
 		.name = "write_user",
 		.mode = COMMAND_EXEC,
 		.handler = lattice_write_usercode_register_command_handler,
 		.help = "writing usercode register to FPGA",
-		.usage = "num_pld value",
+		.usage = "pld_name value",
 	}, {
 		.name = "set_preload",
-		.mode = COMMAND_EXEC,
+		.mode = COMMAND_ANY,
 		.handler = lattice_set_preload_command_handler,
 		.help = "set length for preload (device specific)",
-		.usage = "num_pld value",
+		.usage = "pld_name value",
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -524,6 +548,7 @@ static const struct command_registration lattice_command_handler[] = {
 struct pld_driver lattice_pld = {
 	.name = "lattice",
 	.commands = lattice_command_handler,
-	.pld_device_command = &lattice_pld_device_command,
+	.pld_create_command = &lattice_pld_create_command,
 	.load = &lattice_load_command,
+	.get_ipdbg_hub = lattice_get_ipdbg_hub,
 };

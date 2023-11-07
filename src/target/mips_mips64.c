@@ -606,7 +606,7 @@ static int mips_mips64_resume(struct target *target, int current,
 		address = mips64_extend_sign(address);
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted %d", target->state);
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -706,7 +706,7 @@ static int mips_mips64_step(struct target *target, int current,
 	int retval = ERROR_OK;
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -804,7 +804,7 @@ static int mips_mips64_remove_breakpoint(struct target *target,
 	int retval = ERROR_OK;
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -865,7 +865,7 @@ static int mips_mips64_remove_watchpoint(struct target *target,
 	int retval = ERROR_OK;
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -886,7 +886,7 @@ static int mips_mips64_read_memory(struct target *target, uint64_t address,
 	void *t;
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted %d", target->state);
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -1014,7 +1014,7 @@ static int mips_mips64_write_memory(struct target *target, uint64_t address,
 	int retval;
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 

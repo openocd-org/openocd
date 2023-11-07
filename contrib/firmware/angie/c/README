@@ -1,0 +1,37 @@
+#SPDX-License-Identifier: GPL-2.0-or-later
+
+This is the ANGIE firmware for ANGIE USB-JTAG adapter.
+
+The main components of ANGIE adapter are:
+- Cypress EZ-USB FX2 microcontroller
+- Spartan-6 FPGA
+- SRAM memory chip
+- Pin headers for various JTAG pin assignments
+
+To compile the firmware, the SDCC compiler package is required. Most Linux
+distributions include SDCC in their official package repositories. The SDCC
+source code can be found at http://sdcc.sourceforge.net/
+
+Simply type "make hex" in the ANGIE directory to compile the firmware.
+"make clean" will remove all generated files except the Intel HEX file
+required for downloading the firmware to ANGIE.
+
+Note that the EZ-USB FX2 microcontroller does not have on-chip flash,
+ANGIE include on-board EEPROM memory to store the firmware program of
+the FX2, but we are not going to use this method.
+
+Instead, upon initial connection of the ANGIE adapter to the host PC
+via USB, the EZ-USB FX2 core has enough intelligence to act as a
+stand-alone USB device, responding to USB control requests and allowing
+firmware download via a special VENDOR-type control request. Then, the
+EZ-USB microcontroller simulates a disconnect and re-connect to the USB bus.
+It may take up to two seconds for the host to recognize the newly connected
+device before OpenOCD can proceed to execute JTAG commands. This delay is
+only visible when OpenOCD first uses a blank (unconfigured) ANGIE device.
+
+Once the firmware downloaded, the FX2 microcontroller activate its GPIF mode,
+download the Spartan-6 FPGA's bitstream, program the FPGA rapidly, and switch
+back to default io mode.
+
+Once the user disconnects the ANGIE adapter, all its memory contents are lost
+and the firmware & bitstream download process has to be executed again.

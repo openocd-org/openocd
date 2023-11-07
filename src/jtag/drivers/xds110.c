@@ -579,9 +579,6 @@ static bool usb_get_response(uint32_t *total_bytes_read, uint32_t timeout)
 
 static bool usb_send_command(uint16_t size)
 {
-	int written = 0;
-	bool success = true;
-
 	/* Check the packet length */
 	if (size > USB_PAYLOAD_SIZE)
 		return false;
@@ -596,13 +593,7 @@ static bool usb_send_command(uint16_t size)
 	size += 3;
 
 	/* Send the data via the USB connection */
-	success = usb_write(xds110.write_packet, (int)size, &written);
-
-	/* Check if the correct number of bytes was written */
-	if (written != (int)size)
-		success = false;
-
-	return success;
+	return usb_write(xds110.write_packet, (int)size, NULL);
 }
 
 /***************************************************************************

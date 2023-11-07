@@ -846,8 +846,10 @@ static int aarch64_resume(struct target *target, int current,
 	struct armv8_common *armv8 = target_to_armv8(target);
 	armv8->last_run_control_op = ARMV8_RUNCONTROL_RESUME;
 
-	if (target->state != TARGET_HALTED)
+	if (target->state != TARGET_HALTED) {
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
+	}
 
 	/*
 	 * If this target is part of a SMP group, prepare the others
@@ -1089,13 +1091,14 @@ static int aarch64_step(struct target *target, int current, target_addr_t addres
 	struct armv8_common *armv8 = target_to_armv8(target);
 	struct aarch64_common *aarch64 = target_to_aarch64(target);
 	int saved_retval = ERROR_OK;
+	int poll_retval;
 	int retval;
 	uint32_t edecr;
 
 	armv8->last_run_control_op = ARMV8_RUNCONTROL_STEP;
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -1171,6 +1174,8 @@ static int aarch64_step(struct target *target, int current, target_addr_t addres
 	if (retval == ERROR_TARGET_TIMEOUT)
 		saved_retval = aarch64_halt_one(target, HALT_SYNC);
 
+	poll_retval = aarch64_poll(target);
+
 	/* restore EDECR */
 	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
 			armv8->debug_base + CPUV8_DBG_EDECR, edecr);
@@ -1186,6 +1191,9 @@ static int aarch64_step(struct target *target, int current, target_addr_t addres
 
 	if (saved_retval != ERROR_OK)
 		return saved_retval;
+
+	if (poll_retval != ERROR_OK)
+		return poll_retval;
 
 	return ERROR_OK;
 }
@@ -2135,7 +2143,7 @@ static int aarch64_write_cpu_memory(struct target *target,
 	uint32_t dscr;
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -2353,7 +2361,7 @@ static int aarch64_read_cpu_memory(struct target *target,
 			address, size, count);
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -2693,6 +2701,9 @@ static int aarch64_examine(struct target *target)
 	if (retval == ERROR_OK)
 		retval = aarch64_init_debug_access(target);
 
+	if (retval == ERROR_OK)
+		retval = aarch64_poll(target);
+
 	return retval;
 }
 
@@ -2790,8 +2801,8 @@ static int aarch64_mmu(struct target *target, int *enabled)
 	struct aarch64_common *aarch64 = target_to_aarch64(target);
 	struct armv8_common *armv8 = &aarch64->armv8_common;
 	if (target->state != TARGET_HALTED) {
-		LOG_ERROR("%s: target %s not halted", __func__, target_name(target));
-		return ERROR_TARGET_INVALID;
+		LOG_TARGET_ERROR(target, "not halted");
+		return ERROR_TARGET_NOT_HALTED;
 	}
 	if (armv8->is_armv8r)
 		*enabled = 0;
@@ -3010,8 +3021,10 @@ COMMAND_HANDLER(aarch64_mcrmrc_command)
 		return ERROR_FAIL;
 	}
 
-	if (target->state != TARGET_HALTED)
+	if (target->state != TARGET_HALTED) {
+		command_print(CMD, "Error: [%s] not halted", target_name(target));
 		return ERROR_TARGET_NOT_HALTED;
+	}
 
 	if (arm->core_state == ARM_STATE_AARCH64) {
 		command_print(CMD, "%s: not 32-bit arm target", target_name(target));

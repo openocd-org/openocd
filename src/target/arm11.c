@@ -449,7 +449,7 @@ static int arm11_resume(struct target *target, int current,
 
 
 	if (target->state != TARGET_HALTED) {
-		LOG_ERROR("Target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -551,7 +551,7 @@ static int arm11_step(struct target *target, int current,
 		target_state_name(target));
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target was not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -798,7 +798,7 @@ static int arm11_read_memory_inner(struct target *target,
 	int retval;
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target was not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -896,7 +896,7 @@ static int arm11_write_memory_inner(struct target *target,
 	int retval;
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target was not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 

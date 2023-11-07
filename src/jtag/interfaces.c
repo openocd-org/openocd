@@ -96,6 +96,9 @@ struct adapter_driver *adapter_drivers[] = {
 #if BUILD_ULINK == 1
 		&ulink_adapter_driver,
 #endif
+#if BUILD_ANGIE == 1
+		&angie_adapter_driver,
+#endif
 #if BUILD_ARMJTAGEW == 1
 		&armjtagew_adapter_driver,
 #endif

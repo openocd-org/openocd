@@ -209,22 +209,21 @@ static int gatemate_load(struct pld_device *pld_device, const char *filename)
 	return retval;
 }
 
-PLD_DEVICE_COMMAND_HANDLER(gatemate_pld_device_command)
+PLD_CREATE_COMMAND_HANDLER(gatemate_pld_create_command)
 {
-	struct jtag_tap *tap;
-
-	struct gatemate_pld_device *gatemate_info;
-
-	if (CMD_ARGC != 2)
+	if (CMD_ARGC != 4)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	tap = jtag_tap_by_string(CMD_ARGV[1]);
+	if (strcmp(CMD_ARGV[2], "-chain-position") != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	struct jtag_tap *tap = jtag_tap_by_string(CMD_ARGV[3]);
 	if (!tap) {
-		command_print(CMD, "Tap: %s does not exist", CMD_ARGV[1]);
+		command_print(CMD, "Tap: %s does not exist", CMD_ARGV[3]);
 		return ERROR_FAIL;
 	}
 
-	gatemate_info = malloc(sizeof(struct gatemate_pld_device));
+	struct gatemate_pld_device *gatemate_info = malloc(sizeof(struct gatemate_pld_device));
 	if (!gatemate_info) {
 		LOG_ERROR("Out of memory");
 		return ERROR_FAIL;
@@ -238,6 +237,6 @@ PLD_DEVICE_COMMAND_HANDLER(gatemate_pld_device_command)
 
 struct pld_driver gatemate_pld = {
 	.name = "gatemate",
-	.pld_device_command = &gatemate_pld_device_command,
+	.pld_create_command = &gatemate_pld_create_command,
 	.load = &gatemate_load,
 };

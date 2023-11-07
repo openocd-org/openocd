@@ -31,22 +31,31 @@
 
 #define CPUID		0xE000ED00
 
-#define ARM_CPUID_PARTNO_POS    4
-#define ARM_CPUID_PARTNO_MASK	(0xFFF << ARM_CPUID_PARTNO_POS)
+#define ARM_CPUID_IMPLEMENTOR_POS	24
+#define ARM_CPUID_IMPLEMENTOR_MASK	(0xFF << ARM_CPUID_IMPLEMENTOR_POS)
+#define ARM_CPUID_PARTNO_POS		4
+#define ARM_CPUID_PARTNO_MASK		(0xFFF << ARM_CPUID_PARTNO_POS)
 
-enum cortex_m_partno {
+#define ARM_MAKE_CPUID(impl, partno)	((((impl) << ARM_CPUID_IMPLEMENTOR_POS) & ARM_CPUID_IMPLEMENTOR_MASK) | \
+	(((partno) << ARM_CPUID_PARTNO_POS)  & ARM_CPUID_PARTNO_MASK))
+
+/** Known Arm Cortex masked CPU Ids
+ * This includes the implementor and part number, but _not_ the revision or
+ * patch fields.
+ */
+enum cortex_m_impl_part {
 	CORTEX_M_PARTNO_INVALID,
-	STAR_MC1_PARTNO    = 0x132,
-	CORTEX_M0_PARTNO   = 0xC20,
-	CORTEX_M1_PARTNO   = 0xC21,
-	CORTEX_M3_PARTNO   = 0xC23,
-	CORTEX_M4_PARTNO   = 0xC24,
-	CORTEX_M7_PARTNO   = 0xC27,
-	CORTEX_M0P_PARTNO  = 0xC60,
-	CORTEX_M23_PARTNO  = 0xD20,
-	CORTEX_M33_PARTNO  = 0xD21,
-	CORTEX_M35P_PARTNO = 0xD31,
-	CORTEX_M55_PARTNO  = 0xD22,
+	STAR_MC1_PARTNO    = ARM_MAKE_CPUID(ARM_IMPLEMENTOR_ARM, 0x132), /* FIXME - confirm implementor! */
+	CORTEX_M0_PARTNO   = ARM_MAKE_CPUID(ARM_IMPLEMENTOR_ARM, 0xC20),
+	CORTEX_M1_PARTNO   = ARM_MAKE_CPUID(ARM_IMPLEMENTOR_ARM, 0xC21),
+	CORTEX_M3_PARTNO   = ARM_MAKE_CPUID(ARM_IMPLEMENTOR_ARM, 0xC23),
+	CORTEX_M4_PARTNO   = ARM_MAKE_CPUID(ARM_IMPLEMENTOR_ARM, 0xC24),
+	CORTEX_M7_PARTNO   = ARM_MAKE_CPUID(ARM_IMPLEMENTOR_ARM, 0xC27),
+	CORTEX_M0P_PARTNO  = ARM_MAKE_CPUID(ARM_IMPLEMENTOR_ARM, 0xC60),
+	CORTEX_M23_PARTNO  = ARM_MAKE_CPUID(ARM_IMPLEMENTOR_ARM, 0xD20),
+	CORTEX_M33_PARTNO  = ARM_MAKE_CPUID(ARM_IMPLEMENTOR_ARM, 0xD21),
+	CORTEX_M35P_PARTNO = ARM_MAKE_CPUID(ARM_IMPLEMENTOR_ARM, 0xD31),
+	CORTEX_M55_PARTNO  = ARM_MAKE_CPUID(ARM_IMPLEMENTOR_ARM, 0xD22),
 };
 
 /* Relevant Cortex-M flags, used in struct cortex_m_part_info.flags */
@@ -55,7 +64,7 @@ enum cortex_m_partno {
 #define CORTEX_M_F_TAR_AUTOINCR_BLOCK_4K  BIT(2)
 
 struct cortex_m_part_info {
-	enum cortex_m_partno partno;
+	enum cortex_m_impl_part impl_part;
 	const char *name;
 	enum arm_arch arch;
 	uint32_t flags;
@@ -292,11 +301,11 @@ target_to_cortex_m_safe(struct target *target)
 }
 
 /**
- * @returns cached value of Cortex-M part number
+ * @returns cached value of the cpuid, masked for implementation and part.
  * or CORTEX_M_PARTNO_INVALID if the magic number does not match
  * or core_info is not initialised.
  */
-static inline enum cortex_m_partno cortex_m_get_partno_safe(struct target *target)
+static inline enum cortex_m_impl_part cortex_m_get_impl_part(struct target *target)
 {
 	struct cortex_m_common *cortex_m = target_to_cortex_m_safe(target);
 	if (!cortex_m)
@@ -305,7 +314,7 @@ static inline enum cortex_m_partno cortex_m_get_partno_safe(struct target *targe
 	if (!cortex_m->core_info)
 		return CORTEX_M_PARTNO_INVALID;
 
-	return cortex_m->core_info->partno;
+	return cortex_m->core_info->impl_part;
 }
 
 int cortex_m_examine(struct target *target);

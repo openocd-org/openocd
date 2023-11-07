@@ -1836,7 +1836,7 @@ static int gdb_breakpoint_watchpoint_packet(struct connection *connection,
 		case 4:
 		{
 			if (packet[0] == 'Z') {
-				retval = watchpoint_add(target, address, size, wp_type, 0, 0xffffffffu);
+				retval = watchpoint_add(target, address, size, wp_type, 0, WATCHPOINT_IGNORE_DATA_VALUE_MASK);
 				if (retval == ERROR_NOT_IMPLEMENTED) {
 					/* Send empty reply to report that watchpoints of this type are not supported */
 					gdb_put_packet(connection, "", 0);

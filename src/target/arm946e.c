@@ -574,7 +574,7 @@ COMMAND_HANDLER(arm946e_handle_cp15)
 		return retval;
 
 	if (target->state != TARGET_HALTED) {
-		command_print(CMD, "target must be stopped for \"%s\" command", CMD_NAME);
+		command_print(CMD, "Error: target must be stopped for \"%s\" command", CMD_NAME);
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -624,7 +624,7 @@ COMMAND_HANDLER(arm946e_handle_idcache)
 		return retval;
 
 	if (target->state != TARGET_HALTED) {
-		command_print(CMD, "target must be stopped for \"%s\" command", CMD_NAME);
+		command_print(CMD, "Error: target must be stopped for \"%s\" command", CMD_NAME);
 		return ERROR_TARGET_NOT_HALTED;
 	}
 

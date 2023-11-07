@@ -735,7 +735,7 @@ int opendous_usb_message(struct opendous_jtag *opendous_jtag, int out_length, in
 /* Write data from out_buffer to USB. */
 int opendous_usb_write(struct opendous_jtag *opendous_jtag, int out_length)
 {
-	int result;
+	int result, transferred;
 
 	if (out_length > OPENDOUS_OUT_BUFFER_SIZE) {
 		LOG_ERROR("opendous_jtag_write illegal out_length=%d (max=%d)", out_length, OPENDOUS_OUT_BUFFER_SIZE);
@@ -748,7 +748,11 @@ int opendous_usb_write(struct opendous_jtag *opendous_jtag, int out_length)
 	if (opendous_probe->CONTROL_TRANSFER) {
 		result = jtag_libusb_control_transfer(opendous_jtag->usb_handle,
 			LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE | LIBUSB_ENDPOINT_OUT,
-			FUNC_WRITE_DATA, 0, 0, (char *) usb_out_buffer, out_length, OPENDOUS_USB_TIMEOUT);
+			FUNC_WRITE_DATA, 0, 0, (char *)usb_out_buffer, out_length, OPENDOUS_USB_TIMEOUT,
+			&transferred);
+		/* FIXME: propagate error separately from transferred */
+		if (result == ERROR_OK)
+			result = transferred;
 	} else {
 		jtag_libusb_bulk_write(opendous_jtag->usb_handle, OPENDOUS_WRITE_ENDPOINT,
 			(char *)usb_out_buffer, out_length, OPENDOUS_USB_TIMEOUT, &result);
@@ -768,6 +772,8 @@ int opendous_usb_write(struct opendous_jtag *opendous_jtag, int out_length)
 /* Read data from USB into in_buffer. */
 int opendous_usb_read(struct opendous_jtag *opendous_jtag)
 {
+	int transferred;
+
 #ifdef _DEBUG_USB_COMMS_
 	LOG_DEBUG("USB read begin");
 #endif
@@ -775,7 +781,11 @@ int opendous_usb_read(struct opendous_jtag *opendous_jtag)
 	if (opendous_probe->CONTROL_TRANSFER) {
 		result = jtag_libusb_control_transfer(opendous_jtag->usb_handle,
 			LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE | LIBUSB_ENDPOINT_IN,
-			FUNC_READ_DATA, 0, 0, (char *) usb_in_buffer, OPENDOUS_IN_BUFFER_SIZE, OPENDOUS_USB_TIMEOUT);
+			FUNC_READ_DATA, 0, 0, (char *)usb_in_buffer, OPENDOUS_IN_BUFFER_SIZE, OPENDOUS_USB_TIMEOUT,
+			&transferred);
+		/* FIXME: propagate error separately from transferred */
+		if (result == ERROR_OK)
+			result = transferred;
 	} else {
 		jtag_libusb_bulk_read(opendous_jtag->usb_handle, OPENDOUS_READ_ENDPOINT,
 			(char *)usb_in_buffer, OPENDOUS_IN_BUFFER_SIZE, OPENDOUS_USB_TIMEOUT, &result);

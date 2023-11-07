@@ -533,8 +533,8 @@ int arm920t_arch_state(struct target *target)
 static int arm920_mmu(struct target *target, int *enabled)
 {
 	if (target->state != TARGET_HALTED) {
-		LOG_ERROR("%s: target not halted", __func__);
-		return ERROR_TARGET_INVALID;
+		LOG_TARGET_ERROR(target, "not halted");
+		return ERROR_TARGET_NOT_HALTED;
 	}
 
 	*enabled = target_to_arm920(target)->armv4_5_mmu.mmu_enabled;
@@ -1455,9 +1455,9 @@ COMMAND_HANDLER(arm920t_handle_cp15_command)
 		return retval;
 
 	if (target->state != TARGET_HALTED) {
-		command_print(CMD, "target must be stopped for "
+		command_print(CMD, "Error: target must be stopped for "
 			"\"%s\" command", CMD_NAME);
-		return ERROR_OK;
+		return ERROR_TARGET_NOT_HALTED;
 	}
 
 	/* one argument, read a register.

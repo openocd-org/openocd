@@ -216,17 +216,22 @@ void jtag_libusb_close(struct libusb_device_handle *dev)
 
 int jtag_libusb_control_transfer(struct libusb_device_handle *dev, uint8_t request_type,
 		uint8_t request, uint16_t value, uint16_t index, char *bytes,
-		uint16_t size, unsigned int timeout)
+		uint16_t size, unsigned int timeout, int *transferred)
 {
-	int transferred = 0;
-
-	transferred = libusb_control_transfer(dev, request_type, request, value, index,
+	int retval = libusb_control_transfer(dev, request_type, request, value, index,
 				(unsigned char *)bytes, size, timeout);
 
-	if (transferred < 0)
-		transferred = 0;
+	if (retval < 0) {
+		LOG_ERROR("libusb_control_transfer error: %s", libusb_error_name(retval));
+		if (transferred)
+			*transferred = 0;
+		return jtag_libusb_error(retval);
+	}
 
-	return transferred;
+	if (transferred)
+		*transferred = retval;
+
+	return ERROR_OK;
 }
 
 int jtag_libusb_bulk_write(struct libusb_device_handle *dev, int ep, char *bytes,

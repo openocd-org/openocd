@@ -162,7 +162,7 @@ int arc_mem_write(struct target *target, target_addr_t address, uint32_t size,
 		address, size, count);
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 

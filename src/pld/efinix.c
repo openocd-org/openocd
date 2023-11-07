@@ -16,13 +16,29 @@
 
 #define PROGRAM   0x4
 #define ENTERUSER 0x7
+#define USER1     0x8
+#define USER2     0x9
+#define USER3     0xa
+#define USER4     0xb
+
+enum efinix_family_e {
+	EFINIX_TRION,
+	EFINIX_TITANIUM,
+	EFINIX_UNKNOWN
+};
 
 #define TRAILING_ZEROS 4000
 #define RUNTEST_START_CYCLES 100
 #define RUNTEST_FINISH_CYCLES 100
 
+struct efinix_device {
+	uint32_t idcode;
+	int num_user;
+};
+
 struct efinix_pld_device {
 	struct jtag_tap *tap;
+	enum efinix_family_e family;
 };
 
 static int efinix_read_bit_file(struct raw_bit_file *bit_file, const char *filename)
@@ -188,15 +204,78 @@ static int efinix_load(struct pld_device *pld_device, const char *filename)
 	return retval;
 }
 
-PLD_DEVICE_COMMAND_HANDLER(efinix_pld_device_command)
+static int efinix_get_ipdbg_hub(int user_num, struct pld_device *pld_device, struct pld_ipdbg_hub *hub)
 {
-	if (CMD_ARGC != 2)
+	if (!pld_device)
+		return ERROR_FAIL;
+
+	struct efinix_pld_device *pld_device_info = pld_device->driver_priv;
+
+	if (!pld_device_info || !pld_device_info->tap)
+		return ERROR_FAIL;
+
+	hub->tap = pld_device_info->tap;
+
+	if (pld_device_info->family == EFINIX_UNKNOWN) {
+		LOG_ERROR("family unknown, please specify for 'pld create'");
+		return ERROR_FAIL;
+	}
+	int num_user = 2; /* trion */
+	if (pld_device_info->family == EFINIX_TITANIUM)
+		num_user = 4;
+
+	if (user_num > num_user) {
+		LOG_ERROR("Devices has only user register 1 to %d", num_user);
+		return ERROR_FAIL;
+	}
+
+	switch (user_num) {
+	case 1:
+		hub->user_ir_code = USER1;
+		break;
+	case 2:
+		hub->user_ir_code = USER2;
+		break;
+	case 3:
+		hub->user_ir_code = USER3;
+		break;
+	case 4:
+		hub->user_ir_code = USER4;
+		break;
+	default:
+		LOG_ERROR("efinix devices only have user register 1 to %d", num_user);
+		return ERROR_FAIL;
+	}
+	return ERROR_OK;
+}
+
+PLD_CREATE_COMMAND_HANDLER(efinix_pld_create_command)
+{
+	if (CMD_ARGC != 4 && CMD_ARGC != 6)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	struct jtag_tap *tap = jtag_tap_by_string(CMD_ARGV[1]);
+	if (strcmp(CMD_ARGV[2], "-chain-position") != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	struct jtag_tap *tap = jtag_tap_by_string(CMD_ARGV[3]);
 	if (!tap) {
-		command_print(CMD, "Tap: %s does not exist", CMD_ARGV[1]);
+		command_print(CMD, "Tap: %s does not exist", CMD_ARGV[3]);
 		return ERROR_FAIL;
+	}
+
+	enum efinix_family_e family = EFINIX_UNKNOWN;
+	if (CMD_ARGC == 6) {
+		if (strcmp(CMD_ARGV[4], "-family") != 0)
+			return ERROR_COMMAND_SYNTAX_ERROR;
+
+		if (strcmp(CMD_ARGV[5], "trion") == 0) {
+			family = EFINIX_TRION;
+		} else if (strcmp(CMD_ARGV[5], "titanium") == 0) {
+			family = EFINIX_TITANIUM;
+		} else {
+			command_print(CMD, "unknown family");
+			return ERROR_FAIL;
+		}
 	}
 
 	struct efinix_pld_device *efinix_info = malloc(sizeof(struct efinix_pld_device));
@@ -205,6 +284,7 @@ PLD_DEVICE_COMMAND_HANDLER(efinix_pld_device_command)
 		return ERROR_FAIL;
 	}
 	efinix_info->tap = tap;
+	efinix_info->family = family;
 
 	pld->driver_priv = efinix_info;
 
@@ -213,6 +293,7 @@ PLD_DEVICE_COMMAND_HANDLER(efinix_pld_device_command)
 
 struct pld_driver efinix_pld = {
 	.name = "efinix",
-	.pld_device_command = &efinix_pld_device_command,
+	.pld_create_command = &efinix_pld_create_command,
 	.load = &efinix_load,
+	.get_ipdbg_hub = efinix_get_ipdbg_hub,
 };

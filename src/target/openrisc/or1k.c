@@ -789,7 +789,7 @@ static int or1k_resume_or_step(struct target *target, int current,
 		  address, step ? "yes" : "no", handle_breakpoints ? "yes" : "no");
 
 	if (target->state != TARGET_HALTED) {
-		LOG_ERROR("Target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -1026,7 +1026,7 @@ static int or1k_read_memory(struct target *target, target_addr_t address,
 	LOG_DEBUG("Read memory at 0x%08" TARGET_PRIxADDR ", size: %" PRIu32 ", count: 0x%08" PRIx32, address, size, count);
 
 	if (target->state != TARGET_HALTED) {
-		LOG_ERROR("Target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -1053,7 +1053,7 @@ static int or1k_write_memory(struct target *target, target_addr_t address,
 	LOG_DEBUG("Write memory at 0x%08" TARGET_PRIxADDR ", size: %" PRIu32 ", count: 0x%08" PRIx32, address, size, count);
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("Target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 

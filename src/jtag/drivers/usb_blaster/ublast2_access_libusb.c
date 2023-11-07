@@ -103,7 +103,8 @@ static int ublast2_write_firmware_section(struct libusb_device_handle *libusb_de
 					     0,
 					     (char *)data_ptr,
 					     chunk_size,
-					     100);
+					     100,
+					     NULL);
 
 		bytes_remaining -= chunk_size;
 		addr += chunk_size;
@@ -154,7 +155,8 @@ static int load_usb_blaster_firmware(struct libusb_device_handle *libusb_dev,
 				     0,
 				     &value,
 				     1,
-				     100);
+				     100,
+				     NULL);
 
 	/* Download all sections in the image to ULINK */
 	for (unsigned int i = 0; i < ublast2_firmware_image.num_sections; i++) {
@@ -175,7 +177,8 @@ static int load_usb_blaster_firmware(struct libusb_device_handle *libusb_dev,
 				     0,
 				     &value,
 				     1,
-				     100);
+				     100,
+				     NULL);
 
 error_close_firmware:
 	image_close(&ublast2_firmware_image);
@@ -245,7 +248,8 @@ static int ublast2_libusb_init(struct ublast_lowlevel *low)
 				     0,
 				     buffer,
 				     5,
-				     100);
+				     100,
+				     NULL);
 
 	LOG_INFO("Altera USB-Blaster II found (Firm. rev. = %s)", buffer);
 

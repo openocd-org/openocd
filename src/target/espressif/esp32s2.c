@@ -17,33 +17,12 @@
 #include "esp_xtensa.h"
 #include "esp_xtensa_semihosting.h"
 
-/* Overall memory map
- * TODO: read memory configuration from target registers */
-#define ESP32_S2_IROM_MASK_LOW          0x40000000
-#define ESP32_S2_IROM_MASK_HIGH         0x40020000
-#define ESP32_S2_IRAM_LOW               0x40020000
-#define ESP32_S2_IRAM_HIGH              0x40070000
-#define ESP32_S2_DRAM_LOW               0x3ffb0000
-#define ESP32_S2_DRAM_HIGH              0x40000000
-#define ESP32_S2_RTC_IRAM_LOW           0x40070000
-#define ESP32_S2_RTC_IRAM_HIGH          0x40072000
-#define ESP32_S2_RTC_DRAM_LOW           0x3ff9e000
-#define ESP32_S2_RTC_DRAM_HIGH          0x3ffa0000
 #define ESP32_S2_RTC_DATA_LOW           0x50000000
 #define ESP32_S2_RTC_DATA_HIGH          0x50002000
-#define ESP32_S2_EXTRAM_DATA_LOW        0x3f500000
-#define ESP32_S2_EXTRAM_DATA_HIGH       0x3ff80000
 #define ESP32_S2_DR_REG_LOW             0x3f400000
 #define ESP32_S2_DR_REG_HIGH            0x3f4d3FFC
 #define ESP32_S2_SYS_RAM_LOW            0x60000000UL
 #define ESP32_S2_SYS_RAM_HIGH           (ESP32_S2_SYS_RAM_LOW + 0x20000000UL)
-/* ESP32-S2 DROM mapping is not contiguous. */
-/* IDF declares this as 0x3F000000..0x3FF80000, but there are peripheral registers mapped to
- * 0x3f400000..0x3f4d3FFC. */
-#define ESP32_S2_DROM0_LOW              ESP32_S2_DROM_LOW
-#define ESP32_S2_DROM0_HIGH             ESP32_S2_DR_REG_LOW
-#define ESP32_S2_DROM1_LOW              ESP32_S2_DR_REG_HIGH
-#define ESP32_S2_DROM1_HIGH             ESP32_S2_DROM_HIGH
 
 /* ESP32 WDT */
 #define ESP32_S2_WDT_WKEY_VALUE         0x50d83aa1
@@ -385,7 +364,10 @@ static int esp32s2_arch_state(struct target *target)
 
 static int esp32s2_on_halt(struct target *target)
 {
-	return esp32s2_disable_wdts(target);
+	int ret = esp32s2_disable_wdts(target);
+	if (ret == ERROR_OK)
+		ret = esp_xtensa_on_halt(target);
+	return ret;
 }
 
 static int esp32s2_step(struct target *target, int current, target_addr_t address, int handle_breakpoints)

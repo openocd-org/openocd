@@ -99,6 +99,8 @@ ATTRS{idVendor}=="0483", ATTRS{idProduct}=="374e", MODE="660", GROUP="plugdev", 
 ATTRS{idVendor}=="0483", ATTRS{idProduct}=="374f", MODE="660", GROUP="plugdev", TAG+="uaccess"
 ATTRS{idVendor}=="0483", ATTRS{idProduct}=="3753", MODE="660", GROUP="plugdev", TAG+="uaccess"
 ATTRS{idVendor}=="0483", ATTRS{idProduct}=="3754", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="0483", ATTRS{idProduct}=="3755", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="0483", ATTRS{idProduct}=="3757", MODE="660", GROUP="plugdev", TAG+="uaccess"
 
 # Cypress SuperSpeed Explorer Kit
 ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="0007", MODE="660", GROUP="plugdev", TAG+="uaccess"
@@ -221,6 +223,10 @@ ATTRS{idVendor}=="2aec", ATTRS{idProduct}=="1106", MODE="660", GROUP="plugdev", 
 # Espressif USB JTAG/serial debug units
 ATTRS{idVendor}=="303a", ATTRS{idProduct}=="1001", MODE="660", GROUP="plugdev", TAG+="uaccess"
 ATTRS{idVendor}=="303a", ATTRS{idProduct}=="1002", MODE="660", GROUP="plugdev", TAG+="uaccess"
+
+# ANGIE USB-JTAG Adapter
+ATTRS{idVendor}=="584e", ATTRS{idProduct}=="424e", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="584e", ATTRS{idProduct}=="4a55", MODE="660", GROUP="plugdev", TAG+="uaccess"
 
 # Marvell Sheevaplug
 ATTRS{idVendor}=="9e88", ATTRS{idProduct}=="9e8f", MODE="660", GROUP="plugdev", TAG+="uaccess"

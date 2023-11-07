@@ -846,21 +846,17 @@ static int arc_save_context(struct target *target)
 	memset(aux_addrs, 0xff, aux_regs_size);
 
 	for (i = 0; i < MIN(arc->num_core_regs, regs_to_scan); i++) {
-		struct reg *reg = &(reg_list[i]);
+		struct reg *reg = reg_list + i;
 		struct arc_reg_desc *arc_reg = reg->arch_info;
-		if (!reg->valid && reg->exist) {
-			core_addrs[core_cnt] = arc_reg->arch_num;
-			core_cnt += 1;
-		}
+		if (!reg->valid && reg->exist)
+			core_addrs[core_cnt++] = arc_reg->arch_num;
 	}
 
 	for (i = arc->num_core_regs; i < regs_to_scan; i++) {
-		struct reg *reg = &(reg_list[i]);
+		struct reg *reg = reg_list + i;
 		struct arc_reg_desc *arc_reg = reg->arch_info;
-		if (!reg->valid && reg->exist) {
-			aux_addrs[aux_cnt] = arc_reg->arch_num;
-			aux_cnt += 1;
-		}
+		if (!reg->valid && reg->exist)
+			aux_addrs[aux_cnt++] = arc_reg->arch_num;
 	}
 
 	/* Read data from target. */
@@ -884,30 +880,30 @@ static int arc_save_context(struct target *target)
 	/* Parse core regs */
 	core_cnt = 0;
 	for (i = 0; i < MIN(arc->num_core_regs, regs_to_scan); i++) {
-		struct reg *reg = &(reg_list[i]);
+		struct reg *reg = reg_list + i;
 		struct arc_reg_desc *arc_reg = reg->arch_info;
 		if (!reg->valid && reg->exist) {
 			target_buffer_set_u32(target, reg->value, core_values[core_cnt]);
-			core_cnt += 1;
 			reg->valid = true;
 			reg->dirty = false;
 			LOG_DEBUG("Get core register regnum=%u, name=%s, value=0x%08" PRIx32,
 				i, arc_reg->name, core_values[core_cnt]);
+			core_cnt++;
 		}
 	}
 
 	/* Parse aux regs */
 	aux_cnt = 0;
 	for (i = arc->num_core_regs; i < regs_to_scan; i++) {
-		struct reg *reg = &(reg_list[i]);
+		struct reg *reg = reg_list + i;
 		struct arc_reg_desc *arc_reg = reg->arch_info;
 		if (!reg->valid && reg->exist) {
 			target_buffer_set_u32(target, reg->value, aux_values[aux_cnt]);
-			aux_cnt += 1;
 			reg->valid = true;
 			reg->dirty = false;
 			LOG_DEBUG("Get aux register regnum=%u, name=%s, value=0x%08" PRIx32,
 				i, arc_reg->name, aux_values[aux_cnt]);
+			aux_cnt++;
 		}
 	}
 
@@ -1262,7 +1258,7 @@ static int arc_resume(struct target *target, int current, target_addr_t address,
 	CHECK_RETVAL(arc_reset_caches_states(target));
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -1675,7 +1671,7 @@ static int arc_add_breakpoint(struct target *target, struct breakpoint *breakpoi
 		return arc_set_breakpoint(target, breakpoint);
 
 	} else {
-		LOG_WARNING(" > core was not halted, please try again.");
+		LOG_TARGET_ERROR(target, "not halted (add breakpoint)");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 }
@@ -1687,7 +1683,7 @@ static int arc_remove_breakpoint(struct target *target,
 		if (breakpoint->is_set)
 			CHECK_RETVAL(arc_unset_breakpoint(target, breakpoint));
 	} else {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted (remove breakpoint)");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -1909,7 +1905,7 @@ static int arc_add_watchpoint(struct target *target,
 	struct watchpoint *watchpoint)
 {
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -1922,7 +1918,7 @@ static int arc_remove_watchpoint(struct target *target,
 	struct watchpoint *watchpoint)
 {
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -2010,7 +2006,7 @@ static int arc_step(struct target *target, int current, target_addr_t address,
 	struct reg *pc = &(arc->core_and_aux_cache->reg_list[arc->pc_index_in_cache]);
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_ERROR(target, "not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
