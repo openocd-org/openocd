@@ -2991,7 +2991,7 @@ This driver is for Cypress Semiconductor's KitProg adapters. The KitProg is an
 SWD-only adapter that is designed to be used with Cypress's PSoC and PRoC device
 families, but it is possible to use it with some other devices. If you are using
 this adapter with a PSoC or a PRoC, you may need to add
-@command{kitprog_init_acquire_psoc} or @command{kitprog acquire_psoc} to your
+@command{kitprog init_acquire_psoc} or @command{kitprog acquire_psoc} to your
 configuration script.
 
 Note that this driver is for the proprietary KitProg protocol, not the CMSIS-DAP
@@ -3012,14 +3012,14 @@ versions only implement "SWD line reset". Second, due to a firmware quirk, an
 SWD sequence must be sent after every target reset in order to re-establish
 communications with the target.
 @item Due in part to the limitation above, KitProg devices with firmware below
-version 2.14 will need to use @command{kitprog_init_acquire_psoc} in order to
+version 2.14 will need to use @command{kitprog init_acquire_psoc} in order to
 communicate with PSoC 5LP devices. This is because, assuming debug is not
 disabled on the PSoC, the PSoC 5LP needs its JTAG interface switched to SWD
 mode before communication can begin, but prior to firmware 2.14, "JTAG to SWD"
 could only be sent with an acquisition sequence.
 @end itemize
 
-@deffn {Config Command} {kitprog_init_acquire_psoc}
+@deffn {Config Command} {kitprog init_acquire_psoc}
 Indicate that a PSoC acquisition sequence needs to be run during adapter init.
 Please be aware that the acquisition sequence hard-resets the target.
 @end deffn

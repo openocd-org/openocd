@@ -1126,6 +1126,12 @@ proc "cmsis_dap_usb" {args} {
 	eval cmsis-dap usb $args
 }
 
+lappend _telnet_autocomplete_skip "kitprog_init_acquire_psoc"
+proc "kitprog_init_acquire_psoc" {} {
+	echo "DEPRECATED! use 'kitprog init_acquire_psoc', not 'kitprog_init_acquire_psoc'"
+	eval kitprog init_acquire_psoc
+}
+
 lappend _telnet_autocomplete_skip "pld device"
 proc "pld device" {driver tap_name {opt 0}} {
 	echo "DEPRECATED! use 'pld create ...', not 'pld device ...'"
