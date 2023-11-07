@@ -52,7 +52,7 @@ struct cmsis_dap {
 	unsigned int pending_fifo_block_count;
 
 	uint16_t caps;
-	uint8_t mode;
+
 	uint32_t swo_buf_sz;
 	bool trace_enabled;
 };
