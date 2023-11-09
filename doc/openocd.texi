@@ -3197,19 +3197,19 @@ versions of firmware where serial number is reset after first use.  Suggest
 using ST firmware update utility to upgrade ST-LINK firmware even if current
 version reported is V2.J21.S4.
 
-@deffn {Config Command} {hla_device_desc} description
+@deffn {Config Command} {hla device_desc} description
 Currently Not Supported.
 @end deffn
 
-@deffn {Config Command} {hla_layout} (@option{stlink}|@option{icdi}|@option{nulink})
+@deffn {Config Command} {hla layout} (@option{stlink}|@option{icdi}|@option{nulink})
 Specifies the adapter layout to use.
 @end deffn
 
-@deffn {Config Command} {hla_vid_pid} [vid pid]+
+@deffn {Config Command} {hla vid_pid} [vid pid]+
 Pairs of vendor IDs and product IDs of the device.
 @end deffn
 
-@deffn {Config Command} {hla_stlink_backend} (usb | tcp [port])
+@deffn {Config Command} {hla stlink_backend} (usb | tcp [port])
 @emph{ST-Link only:} Choose between 'exclusive' USB communication (the default backend) or
 'shared' mode using ST-Link TCP server (the default port is 7184).
 
@@ -3218,7 +3218,7 @@ available from @url{https://www.st.com/en/development-tools/st-link-server.html,
 ST-LINK server software module}.
 @end deffn
 
-@deffn {Command} {hla_command} command
+@deffn {Command} {hla command} command
 Execute a custom adapter-specific command. The @var{command} string is
 passed as is to the underlying adapter layout handler.
 @end deffn
