@@ -64,6 +64,7 @@ EXTRA_DIST += \
 	LICENSES/preferred/BSD-2-Clause-Views \
 	LICENSES/preferred/BSD-3-Clause \
 	LICENSES/preferred/BSD-Source-Code \
+	LICENSES/preferred/CC0-1.0 \
 	LICENSES/preferred/GFDL-1.2 \
 	LICENSES/preferred/gfdl-1.2.texi.readme \
 	LICENSES/preferred/GPL-2.0 \
