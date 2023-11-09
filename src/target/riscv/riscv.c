@@ -25,10 +25,7 @@
 #include "rtos/rtos.h"
 #include "debug_defines.h"
 #include <helper/bits.h>
-
-#define get_field(reg, mask) (((reg) & (mask)) / ((mask) & ~((mask) << 1)))
-#define set_field(reg, mask, val) (((reg) & ~(mask)) | (((val) * ((mask) & ~((mask) << 1))) & (mask)))
-#define field_value(mask, val) set_field((riscv_reg_t)0, mask, val)
+#include "field_helpers.h"
 
 /*** JTAG registers. ***/
 
