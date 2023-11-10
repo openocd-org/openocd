@@ -128,6 +128,17 @@ struct trigger {
 	int unique_id;
 };
 
+struct tdata2_cache {
+	struct list_head elem_tdata2;
+	riscv_reg_t tdata2;
+};
+
+struct tdata1_cache {
+	riscv_reg_t tdata1;
+	struct list_head tdata2_cache_head;
+	struct list_head elem_tdata1;
+};
+
 /* Wall-clock timeout for a command/access. Settable via RISC-V Target commands.*/
 int riscv_command_timeout_sec = DEFAULT_COMMAND_TIMEOUT_SEC;
 
@@ -503,6 +514,25 @@ static void free_custom_register_names(struct target *target)
 	info->custom_register_names.reg_names = NULL;
 }
 
+static void free_wp_triggers_cache(struct target *target)
+{
+	RISCV_INFO(r);
+
+	for (unsigned int i = 0; i < r->trigger_count; ++i) {
+		struct tdata1_cache *elem_1, *tmp_1;
+		list_for_each_entry_safe(elem_1, tmp_1, &r->wp_triggers_negative_cache[i], elem_tdata1) {
+			struct tdata2_cache *elem_2, *tmp_2;
+			list_for_each_entry_safe(elem_2, tmp_2, &elem_1->tdata2_cache_head, elem_tdata2) {
+				list_del(&elem_2->elem_tdata2);
+				free(elem_2);
+			}
+			list_del(&elem_1->elem_tdata1);
+			free(elem_1);
+		}
+	}
+	free(r->wp_triggers_negative_cache);
+}
+
 static void riscv_deinit_target(struct target *target)
 {
 	LOG_TARGET_DEBUG(target, "riscv_deinit_target()");
@@ -519,6 +549,7 @@ static void riscv_deinit_target(struct target *target)
 		tt->deinit_target(target);
 
 	riscv_free_registers(target);
+	free_wp_triggers_cache(target);
 
 	if (!info)
 		return;
@@ -653,8 +684,8 @@ static int set_trigger(struct target *target, unsigned int idx, riscv_reg_t tdat
 			LOG_TARGET_DEBUG(target,
 				"wrote 0x%" PRIx64 " to tdata2 but read back 0x%" PRIx64,
 				tdata2, tdata2_rb);
-
-		riscv_set_register(target, GDB_REGNO_TDATA1, 0);
+		if (riscv_set_register(target, GDB_REGNO_TDATA1, 0) != ERROR_OK)
+			return ERROR_FAIL;
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
@@ -720,6 +751,99 @@ static void log_trigger_request_info(struct trigger_request_info trig_info)
 			trig_info.tdata1, trig_info.tdata2, trig_info.tdata1_ignore_mask);
 };
 
+static struct tdata1_cache *tdata1_cache_alloc(struct list_head *tdata1_cache_head, riscv_reg_t tdata1)
+{
+	struct tdata1_cache *elem = (struct tdata1_cache *)calloc(1, sizeof(struct tdata1_cache));
+	elem->tdata1 = tdata1;
+	INIT_LIST_HEAD(&elem->tdata2_cache_head);
+	list_add_tail(&elem->elem_tdata1, tdata1_cache_head);
+	return elem;
+}
+
+static void tdata2_cache_alloc(struct list_head *tdata2_cache_head, riscv_reg_t tdata2)
+{
+	struct tdata2_cache * const elem = calloc(1, sizeof(struct tdata2_cache));
+	elem->tdata2 = tdata2;
+	list_add(&elem->elem_tdata2, tdata2_cache_head);
+}
+
+struct tdata2_cache *tdata2_cache_search(struct list_head *tdata2_cache_head, riscv_reg_t find_tdata2)
+{
+	struct tdata2_cache *elem_2;
+	list_for_each_entry(elem_2, tdata2_cache_head, elem_tdata2) {
+		if (elem_2->tdata2 == find_tdata2)
+			return elem_2;
+	}
+	return NULL;
+}
+
+struct tdata1_cache *tdata1_cache_search(struct list_head *tdata1_cache_head, riscv_reg_t find_tdata1)
+{
+	struct tdata1_cache *elem_1;
+	list_for_each_entry(elem_1, tdata1_cache_head, elem_tdata1) {
+		if (elem_1->tdata1 == find_tdata1)
+			return elem_1;
+	}
+	return NULL;
+}
+
+static void create_wp_trigger_cache(struct target *target)
+{
+	RISCV_INFO(r);
+
+	r->wp_triggers_negative_cache = (struct list_head *)calloc(r->trigger_count,
+		sizeof(struct list_head));
+	for (unsigned int i = 0; i < r->trigger_count; ++i)
+		INIT_LIST_HEAD(&r->wp_triggers_negative_cache[i]);
+}
+
+static void wp_triggers_cache_add(struct target *target, unsigned int idx, riscv_reg_t tdata1,
+	riscv_reg_t tdata2, int error_code)
+{
+	RISCV_INFO(r);
+
+	struct tdata1_cache *tdata1_cache = tdata1_cache_search(&r->wp_triggers_negative_cache[idx], tdata1);
+	if (!tdata1_cache) {
+		tdata1_cache = tdata1_cache_alloc(&r->wp_triggers_negative_cache[idx], tdata1);
+	} else {
+		struct tdata2_cache *tdata2_cache = tdata2_cache_search(&tdata1_cache->tdata2_cache_head, tdata2);
+		if (tdata2_cache) {
+			list_move(&tdata2_cache->elem_tdata2, &tdata1_cache->tdata2_cache_head);
+			return;
+		}
+	}
+	tdata2_cache_alloc(&tdata1_cache->tdata2_cache_head, tdata2);
+}
+
+static bool wp_triggers_cache_search(struct target *target, unsigned int idx,
+	riscv_reg_t tdata1, riscv_reg_t tdata2)
+{
+	RISCV_INFO(r);
+
+	struct tdata1_cache *tdata1_cache = tdata1_cache_search(&r->wp_triggers_negative_cache[idx], tdata1);
+	if (!tdata1_cache)
+		return false;
+	struct tdata2_cache *tdata2_cache = tdata2_cache_search(&tdata1_cache->tdata2_cache_head, tdata2);
+	if (!tdata2_cache)
+		return false;
+	assert(tdata1_cache->tdata1 == tdata1 && tdata2_cache->tdata2 == tdata2);
+	return true;
+}
+
+static int try_use_trigger_and_cache_result(struct target *target, unsigned int idx, riscv_reg_t tdata1,
+	riscv_reg_t tdata2, riscv_reg_t tdata1_ignore_mask)
+{
+	if (wp_triggers_cache_search(target, idx, tdata1, tdata2))
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+
+	int ret = set_trigger(target, idx, tdata1, tdata2, tdata1_ignore_mask);
+
+	/* Add these values to the cache to remember that they are not supported. */
+	if (ret == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
+		wp_triggers_cache_add(target, idx, tdata1, tdata2, ret);
+	return ret;
+}
+
 static int try_setup_single_match_trigger(struct target *target,
 		struct trigger *trigger, struct trigger_request_info trig_info)
 {
@@ -735,8 +859,9 @@ static int try_setup_single_match_trigger(struct target *target,
 	for (unsigned int idx = 0;
 			find_next_free_trigger(target, trigger_type, false, &idx) == ERROR_OK;
 			++idx) {
-		ret = set_trigger(target, idx, trig_info.tdata1, trig_info.tdata2,
-				trig_info.tdata1_ignore_mask);
+		ret = try_use_trigger_and_cache_result(target, idx, trig_info.tdata1, trig_info.tdata2,
+			trig_info.tdata1_ignore_mask);
+
 		if (ret == ERROR_OK) {
 			r->trigger_unique_id[idx] = trigger->unique_id;
 			return ERROR_OK;
@@ -763,12 +888,17 @@ static int try_setup_chained_match_triggers(struct target *target,
 	for (unsigned int idx = 0;
 			find_next_free_trigger(target, trigger_type, true, &idx) == ERROR_OK;
 			++idx) {
-		ret = set_trigger(target, idx, t1.tdata1, t1.tdata2,
-				t1.tdata1_ignore_mask);
-		if (ret != ERROR_OK)
+		ret = try_use_trigger_and_cache_result(target, idx, t1.tdata1, t1.tdata2,
+			t1.tdata1_ignore_mask);
+
+		if (ret == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
 			continue;
-		ret = set_trigger(target, idx + 1, t2.tdata1, t2.tdata2,
-				t2.tdata1_ignore_mask);
+		else if (ret != ERROR_OK)
+			return ret;
+
+		ret = try_use_trigger_and_cache_result(target, idx + 1, t2.tdata1, t2.tdata2,
+			t2.tdata1_ignore_mask);
+
 		if (ret == ERROR_OK) {
 			r->trigger_unique_id[idx] = trigger->unique_id;
 			r->trigger_unique_id[idx + 1] = trigger->unique_id;
@@ -5397,6 +5527,7 @@ int riscv_enumerate_triggers(struct target *target)
 	r->triggers_enumerated = true;
 	r->trigger_count = t;
 	LOG_TARGET_INFO(target, "Found %d triggers", r->trigger_count);
+	create_wp_trigger_cache(target);
 	return ERROR_OK;
 }
 
