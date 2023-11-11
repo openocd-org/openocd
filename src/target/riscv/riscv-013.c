@@ -389,8 +389,7 @@ static void dump_field(struct target *target, int idle, const struct scan_field 
 	unsigned int in_data = get_field(in, DTM_DMI_DATA);
 	unsigned int in_address = in >> DTM_DMI_ADDRESS_OFFSET;
 
-	log_printf_lf(LOG_LVL_DEBUG,
-			__FILE__, __LINE__, __PRETTY_FUNCTION__,
+	log_printf_lf(LOG_LVL_DEBUG, __FILE__, __LINE__, __func__,
 			"%db %s %08x @%02x -> %s %08x @%02x; %di",
 			field->num_bits, op_string[out_op], out_data, out_address,
 			status_string[in_op], in_data, in_address, idle);
@@ -398,13 +397,13 @@ static void dump_field(struct target *target, int idle, const struct scan_field 
 	if (out_op == DTM_DMI_OP_WRITE) {
 		char out_decoded[decode_dmi(target, NULL, out_address, out_data) + 1];
 		decode_dmi(target, out_decoded, out_address, out_data);
-		log_printf_lf(LOG_LVL_DEBUG, __FILE__, __LINE__, __PRETTY_FUNCTION__,
+		log_printf_lf(LOG_LVL_DEBUG, __FILE__, __LINE__, __func__,
 				"write: %s", out_decoded);
 	}
 	if (!discard_in && in_op == DTM_DMI_OP_SUCCESS) {
 		char in_decoded[decode_dmi(target, NULL, in_address, in_data) + 1];
 		decode_dmi(target, in_decoded, in_address, in_data);
-		log_printf_lf(LOG_LVL_DEBUG, __FILE__, __LINE__, __PRETTY_FUNCTION__,
+		log_printf_lf(LOG_LVL_DEBUG, __FILE__, __LINE__, __func__,
 				"read: %s", in_decoded);
 	}
 }
