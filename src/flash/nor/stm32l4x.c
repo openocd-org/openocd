@@ -2218,10 +2218,8 @@ err_lock:
 
 COMMAND_HANDLER(stm32l4_handle_mass_erase_command)
 {
-	if (CMD_ARGC < 1) {
-		command_print(CMD, "stm32l4x mass_erase <STM32L4 bank>");
+	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	struct flash_bank *bank;
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
@@ -2239,10 +2237,8 @@ COMMAND_HANDLER(stm32l4_handle_mass_erase_command)
 
 COMMAND_HANDLER(stm32l4_handle_option_read_command)
 {
-	if (CMD_ARGC < 2) {
-		command_print(CMD, "stm32l4x option_read <STM32L4 bank> <option_reg offset>");
+	if (CMD_ARGC != 2)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	struct flash_bank *bank;
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
@@ -2266,10 +2262,8 @@ COMMAND_HANDLER(stm32l4_handle_option_read_command)
 
 COMMAND_HANDLER(stm32l4_handle_option_write_command)
 {
-	if (CMD_ARGC < 3) {
-		command_print(CMD, "stm32l4x option_write <STM32L4 bank> <option_reg offset> <value> [mask]");
+	if (CMD_ARGC != 3 && CMD_ARGC != 4)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	struct flash_bank *bank;
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
@@ -2381,7 +2375,7 @@ COMMAND_HANDLER(stm32l4_handle_lock_command)
 {
 	struct target *target = NULL;
 
-	if (CMD_ARGC < 1)
+	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	struct flash_bank *bank;
@@ -2416,7 +2410,7 @@ COMMAND_HANDLER(stm32l4_handle_unlock_command)
 {
 	struct target *target = NULL;
 
-	if (CMD_ARGC < 1)
+	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	struct flash_bank *bank;
@@ -2520,7 +2514,7 @@ COMMAND_HANDLER(stm32l4_handle_wrp_info_command)
 
 COMMAND_HANDLER(stm32l4_handle_otp_command)
 {
-	if (CMD_ARGC < 2)
+	if (CMD_ARGC != 2)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	struct flash_bank *bank;
