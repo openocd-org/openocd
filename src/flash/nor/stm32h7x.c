@@ -1080,10 +1080,8 @@ flash_lock:
 
 COMMAND_HANDLER(stm32x_handle_mass_erase_command)
 {
-	if (CMD_ARGC < 1) {
-		command_print(CMD, "stm32h7x mass_erase <bank>");
+	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	struct flash_bank *bank;
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
@@ -1101,10 +1099,8 @@ COMMAND_HANDLER(stm32x_handle_mass_erase_command)
 
 COMMAND_HANDLER(stm32x_handle_option_read_command)
 {
-	if (CMD_ARGC < 2) {
-		command_print(CMD, "stm32h7x option_read <bank> <option_reg offset>");
+	if (CMD_ARGC != 2)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	struct flash_bank *bank;
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
@@ -1126,10 +1122,8 @@ COMMAND_HANDLER(stm32x_handle_option_read_command)
 
 COMMAND_HANDLER(stm32x_handle_option_write_command)
 {
-	if (CMD_ARGC < 3) {
-		command_print(CMD, "stm32h7x option_write <bank> <option_reg offset> <value> [mask]");
+	if (CMD_ARGC != 3 && CMD_ARGC != 4)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	struct flash_bank *bank;
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
