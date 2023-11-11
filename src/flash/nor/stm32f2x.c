@@ -1540,10 +1540,8 @@ static int stm32x_mass_erase(struct flash_bank *bank)
 
 COMMAND_HANDLER(stm32x_handle_mass_erase_command)
 {
-	if (CMD_ARGC < 1) {
-		command_print(CMD, "stm32x mass_erase <bank>");
+	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	struct flash_bank *bank;
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
@@ -1566,10 +1564,8 @@ COMMAND_HANDLER(stm32f2x_handle_options_read_command)
 	struct flash_bank *bank;
 	struct stm32x_flash_bank *stm32x_info = NULL;
 
-	if (CMD_ARGC != 1) {
-		command_print(CMD, "stm32f2x options_read <bank>");
+	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
 	if (retval != ERROR_OK)
@@ -1612,10 +1608,8 @@ COMMAND_HANDLER(stm32f2x_handle_options_write_command)
 	struct stm32x_flash_bank *stm32x_info = NULL;
 	uint16_t user_options, boot_addr0, boot_addr1, options_mask;
 
-	if (CMD_ARGC < 1) {
-		command_print(CMD, "stm32f2x options_write <bank> ...");
+	if (CMD_ARGC < 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
 	if (retval != ERROR_OK)
@@ -1627,19 +1621,14 @@ COMMAND_HANDLER(stm32f2x_handle_options_write_command)
 
 	stm32x_info = bank->driver_priv;
 	if (stm32x_info->has_boot_addr) {
-		if (CMD_ARGC != 4) {
-			command_print(CMD, "stm32f2x options_write <bank> <user_options>"
-				" <boot_addr0> <boot_addr1>");
+		if (CMD_ARGC != 4)
 			return ERROR_COMMAND_SYNTAX_ERROR;
-		}
+
 		COMMAND_PARSE_NUMBER(u16, CMD_ARGV[2], boot_addr0);
 		COMMAND_PARSE_NUMBER(u16, CMD_ARGV[3], boot_addr1);
 		stm32x_info->option_bytes.boot_addr = boot_addr0 | (((uint32_t) boot_addr1) << 16);
-	} else {
-		if (CMD_ARGC != 2) {
-			command_print(CMD, "stm32f2x options_write <bank> <user_options>");
-			return ERROR_COMMAND_SYNTAX_ERROR;
-		}
+	} else if (CMD_ARGC != 2) {
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	COMMAND_PARSE_NUMBER(u16, CMD_ARGV[1], user_options);
@@ -1674,10 +1663,8 @@ COMMAND_HANDLER(stm32f2x_handle_optcr2_write_command)
 	struct stm32x_flash_bank *stm32x_info = NULL;
 	uint32_t optcr2_pcrop;
 
-	if (CMD_ARGC != 2) {
-		command_print(CMD, "stm32f2x optcr2_write <bank> <optcr2_value>");
+	if (CMD_ARGC != 2)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
 	if (retval != ERROR_OK)
@@ -1711,10 +1698,8 @@ COMMAND_HANDLER(stm32f2x_handle_optcr2_write_command)
 
 COMMAND_HANDLER(stm32x_handle_otp_command)
 {
-	if (CMD_ARGC < 2) {
-		command_print(CMD, "stm32x otp <bank> (enable|disable|show)");
+	if (CMD_ARGC != 2)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	struct flash_bank *bank;
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
@@ -1787,7 +1772,7 @@ static const struct command_registration stm32f2x_exec_command_handlers[] = {
 		.name = "otp",
 		.handler = stm32x_handle_otp_command,
 		.mode = COMMAND_EXEC,
-		.usage = "bank_id",
+		.usage = "bank_id (enable|disable|show)",
 		.help = "OTP (One Time Programmable) memory write enable/disable.",
 	},
 	COMMAND_REGISTRATION_DONE
