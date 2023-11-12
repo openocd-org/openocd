@@ -5845,7 +5845,17 @@ COMMAND_HANDLER(handle_target_debug_reason)
 
 	struct target *target = get_current_target(CMD_CTX);
 
-	command_print(CMD, "%s", debug_reason_name(target));
+
+	const char *debug_reason = nvp_value2name(nvp_target_debug_reason,
+		target->debug_reason)->name;
+
+	if (!debug_reason) {
+		command_print(CMD, "bug: invalid debug reason (%d)",
+			target->debug_reason);
+		return ERROR_FAIL;
+	}
+
+	command_print(CMD, "%s", debug_reason);
 
 	return ERROR_OK;
 }
