@@ -2114,11 +2114,11 @@ static int examine(struct target *target)
 		if (set_group(target, &info->haltgroup_supported, target->smp, HALT_GROUP) != ERROR_OK)
 			return ERROR_FAIL;
 		if (info->haltgroup_supported)
-			LOG_TARGET_INFO(target, "Core %d made part of halt group %d.", target->coreid,
+			LOG_TARGET_INFO(target, "Core %d made part of halt group %d.", info->index,
 					target->smp);
 		else
 			LOG_TARGET_INFO(target, "Core %d could not be made part of halt group %d.",
-					target->coreid, target->smp);
+					info->index, target->smp);
 	}
 
 	/* Some regression suites rely on seeing 'Examined RISC-V core' to know
@@ -4742,7 +4742,7 @@ static int select_prepped_harts(struct target *target)
 		struct riscv_info *info = riscv_info(t);
 		riscv013_info_t *info_013 = get_info(t);
 		unsigned int index = info_013->index;
-		LOG_TARGET_DEBUG(target, "index=%d, coreid=%d, prepped=%d", index, t->coreid, info->prepped);
+		LOG_TARGET_DEBUG(target, "index=%d, prepped=%d", index, info->prepped);
 		if (info->prepped) {
 			info_013->selected = true;
 			hawindow[index / 32] |= 1 << (index % 32);
@@ -4913,7 +4913,7 @@ static enum riscv_halt_reason riscv013_halt_reason(struct target *target)
 		 * already set when we connected. Force enumeration now, which has the
 		 * side effect of clearing any triggers we did not set. */
 		riscv_enumerate_triggers(target);
-		LOG_TARGET_DEBUG(target, "Coreid: [%d] halted because of trigger", target->coreid);
+		LOG_TARGET_DEBUG(target, "halted because of trigger");
 		return RISCV_HALT_TRIGGER;
 	case CSR_DCSR_CAUSE_STEP:
 		return RISCV_HALT_SINGLESTEP;
