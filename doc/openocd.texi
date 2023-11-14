@@ -7709,7 +7709,7 @@ applied to all of them.
 @deffn {Flash Driver} {stm32f1x}
 This driver supports the STM32F0, STM32F1 and STM32F3 microcontroller series from STMicroelectronics.
 The driver is also compatible with the GD32F1, GD32VF103 (RISC-V core), GD32F3 and GD32E23 microcontroller series from GigaDevice.
-The driver also supports the APM32F0 series from Geehy Semiconductor.
+The driver also supports the APM32F0 and APM32F1 series from Geehy Semiconductor.
 The driver automatically recognizes a number of these chips using the chip identification register, and autoconfigures itself.
 
 @example
@@ -7771,6 +7771,7 @@ The @var{num} parameter is a value shown by @command{flash banks}.
 @deffn {Flash Driver} {stm32f2x}
 All members of the STM32F2, STM32F4 and STM32F7 microcontroller families from STMicroelectronics
 include internal flash and use ARM Cortex-M3/M4/M7 cores.
+The driver also works for the APM32F4 series from Geehy Semiconductor.
 The driver automatically recognizes a number of these chips using
 the chip identification register, and autoconfigures itself.
 
