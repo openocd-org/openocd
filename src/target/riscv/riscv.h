@@ -230,7 +230,7 @@ struct riscv_info {
 	int (*write_debug_buffer)(struct target *target, unsigned index,
 			riscv_insn_t d);
 	riscv_insn_t (*read_debug_buffer)(struct target *target, unsigned index);
-	int (*execute_debug_buffer)(struct target *target);
+	int (*execute_debug_buffer)(struct target *target, uint32_t *cmderr);
 	int (*invalidate_cached_debug_buffer)(struct target *target);
 	int (*dmi_write_u64_bits)(struct target *target);
 	void (*fill_dm_write_u64)(struct target *target, char *buf, int a, uint64_t d);
@@ -431,7 +431,7 @@ size_t riscv_debug_buffer_size(struct target *target);
 
 riscv_insn_t riscv_read_debug_buffer(struct target *target, int index);
 int riscv_write_debug_buffer(struct target *target, int index, riscv_insn_t insn);
-int riscv_execute_debug_buffer(struct target *target);
+int riscv_execute_debug_buffer(struct target *target, uint32_t *cmderr);
 
 void riscv_fill_dm_nop_u64(struct target *target, char *buf);
 void riscv_fill_dm_write_u64(struct target *target, char *buf, int a, uint64_t d);

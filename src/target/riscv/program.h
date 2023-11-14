@@ -9,6 +9,13 @@
 #define RISCV_REGISTER_COUNT 32
 #define RISCV_DSCRATCH_COUNT 2
 
+typedef enum {
+	RISCV_DBGBUF_EXEC_RESULT_NOT_EXECUTED,
+	RISCV_DBGBUF_EXEC_RESULT_EXCEPTION,
+	RISCV_DBGBUF_EXEC_RESULT_UNKNOWN_ERROR,
+	RISCV_DBGBUF_EXEC_RESULT_SUCCESS
+} riscv_dbgbuf_exec_status_t;
+
 /* The various RISC-V debug specifications all revolve around setting up
  * program buffers and executing them on the target.  This structure contains a
  * single program, which can then be executed on targets.  */
@@ -26,6 +33,10 @@ struct riscv_program {
 
 	/* XLEN on the target. */
 	int target_xlen;
+
+	/* execution result of the program */
+	/* TODO: remove this field. We should make it a parameter to riscv_program_exec */
+	riscv_dbgbuf_exec_status_t execution_result;
 };
 
 /* Initializes a program with the header. */

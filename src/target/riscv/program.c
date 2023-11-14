@@ -11,6 +11,7 @@
 #include "helper/log.h"
 
 #include "asm.h"
+#include "debug_defines.h"
 #include "encoding.h"
 
 /* Program interface. */
@@ -26,6 +27,7 @@ int riscv_program_init(struct riscv_program *p, struct target *target)
 	for (size_t i = 0; i < RISCV_MAX_DEBUG_BUFFER_SIZE; ++i)
 		p->debug_buffer[i] = -1;
 
+	p->execution_result = RISCV_DBGBUF_EXEC_RESULT_NOT_EXECUTED;
 	return ERROR_OK;
 }
 
@@ -46,6 +48,7 @@ int riscv_program_exec(struct riscv_program *p, struct target *t)
 {
 	keep_alive();
 
+	p->execution_result = RISCV_DBGBUF_EXEC_RESULT_UNKNOWN_ERROR;
 	riscv_reg_t saved_registers[GDB_REGNO_XPR31 + 1];
 	for (size_t i = GDB_REGNO_ZERO + 1; i <= GDB_REGNO_XPR31; ++i) {
 		if (p->writes_xreg[i]) {
@@ -67,10 +70,16 @@ int riscv_program_exec(struct riscv_program *p, struct target *t)
 	if (riscv_program_write(p) != ERROR_OK)
 		return ERROR_FAIL;
 
-	if (riscv_execute_debug_buffer(t) != ERROR_OK) {
+	uint32_t cmderr;
+	if (riscv_execute_debug_buffer(t, &cmderr) != ERROR_OK) {
+		p->execution_result = (cmderr == DM_ABSTRACTCS_CMDERR_EXCEPTION)
+			? RISCV_DBGBUF_EXEC_RESULT_EXCEPTION
+			: RISCV_DBGBUF_EXEC_RESULT_UNKNOWN_ERROR;
+		/* TODO: what happens if we fail here, but need to restore registers? */
 		LOG_TARGET_DEBUG(t, "Unable to execute program %p", p);
 		return ERROR_FAIL;
 	}
+	p->execution_result = RISCV_DBGBUF_EXEC_RESULT_SUCCESS;
 
 	for (size_t i = GDB_REGNO_ZERO; i <= GDB_REGNO_XPR31; ++i)
 		if (p->writes_xreg[i])
