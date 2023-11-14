@@ -1079,7 +1079,7 @@ static int maybe_add_trigger_t2_t6_for_wp(struct target *target,
 		};
 		ret = try_setup_single_match_trigger(target, trigger, eq);
 		if (ret != ERROR_OK)
-			return ERROR_FAIL;
+			return ret;
 	}
 
 	if (ret == ERROR_OK && trigger->length > 1) {
