@@ -215,13 +215,13 @@ static void dump_field(int idle, const struct scan_field *field)
 		unsigned int in_address = in >> DTM_DMI_ADDRESS_OFFSET;
 
 		log_printf_lf(LOG_LVL_DEBUG,
-				__FILE__, __LINE__, __PRETTY_FUNCTION__,
+				__FILE__, __LINE__, __func__,
 				"%db %s %08x @%02x -> %s %08x @%02x; %di",
 				field->num_bits, op_string[out_op], out_data, out_address,
 				status_string[in_op], in_data, in_address, idle);
 	} else {
 		log_printf_lf(LOG_LVL_DEBUG,
-				__FILE__, __LINE__, __PRETTY_FUNCTION__, "%db %s %08x @%02x -> ?; %di",
+				__FILE__, __LINE__, __func__, "%db %s %08x @%02x -> ?; %di",
 				field->num_bits, op_string[out_op], out_data, out_address, idle);
 	}
 }

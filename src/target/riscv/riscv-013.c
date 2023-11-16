@@ -371,7 +371,7 @@ static unsigned int decode_dmi(struct target *target, char *text, unsigned int a
 	return decode_dm(text, address - dm->base, data);
 }
 
-static void dump_field(struct target *target, int idle, const struct scan_field *field)
+static void dump_field(struct target *target, int idle, const struct scan_field *field, bool discard_in)
 {
 	static const char * const op_string[] = {"-", "r", "w", "?"};
 	static const char * const status_string[] = {"+", "?", "F", "b"};
@@ -389,19 +389,22 @@ static void dump_field(struct target *target, int idle, const struct scan_field 
 	unsigned int in_data = get_field(in, DTM_DMI_DATA);
 	unsigned int in_address = in >> DTM_DMI_ADDRESS_OFFSET;
 
-	log_printf_lf(LOG_LVL_DEBUG,
-			__FILE__, __LINE__, "scan",
+	log_printf_lf(LOG_LVL_DEBUG, __FILE__, __LINE__, __func__,
 			"%db %s %08x @%02x -> %s %08x @%02x; %di",
 			field->num_bits, op_string[out_op], out_data, out_address,
 			status_string[in_op], in_data, in_address, idle);
 
-	char out_text[decode_dmi(target, NULL, out_address, out_data) + 1];
-	unsigned int out_len = decode_dmi(target, out_text, out_address, out_data);
-	char in_text[decode_dmi(target, NULL, in_address, in_data) + 1];
-	unsigned int in_len = decode_dmi(target, in_text, in_address, in_data);
-	if (in_text[0] || out_text[0]) {
-		log_printf_lf(LOG_LVL_DEBUG, __FILE__, __LINE__, "scan", "%.*s -> %.*s",
-				out_len, out_text, in_len, in_text);
+	if (out_op == DTM_DMI_OP_WRITE) {
+		char out_decoded[decode_dmi(target, NULL, out_address, out_data) + 1];
+		decode_dmi(target, out_decoded, out_address, out_data);
+		log_printf_lf(LOG_LVL_DEBUG, __FILE__, __LINE__, __func__,
+				"write: %s", out_decoded);
+	}
+	if (!discard_in && in_op == DTM_DMI_OP_SUCCESS) {
+		char in_decoded[decode_dmi(target, NULL, in_address, in_data) + 1];
+		decode_dmi(target, in_decoded, in_address, in_data);
+		log_printf_lf(LOG_LVL_DEBUG, __FILE__, __LINE__, __func__,
+				"read: %s", in_decoded);
 	}
 }
 
@@ -542,7 +545,7 @@ static dmi_status_t dmi_scan(struct target *target, uint32_t *address_in,
 
 	if (address_in)
 		*address_in = buf_get_u32(in, DTM_DMI_ADDRESS_OFFSET, info->abits);
-	dump_field(target, idle_count, &field);
+	dump_field(target, idle_count, &field, /*discard_in*/ !data_in);
 	return buf_get_u32(in, DTM_DMI_OP_OFFSET, DTM_DMI_OP_LENGTH);
 }
 
