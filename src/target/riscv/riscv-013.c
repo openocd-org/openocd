@@ -3171,6 +3171,8 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 			return ERROR_FAIL;
 
 		if (info->bus_master_read_delay) {
+			LOG_TARGET_DEBUG(target, "Waiting %d cycles for bus master read delay",
+					info->bus_master_read_delay);
 			jtag_add_runtest(info->bus_master_read_delay, TAP_IDLE);
 			if (jtag_execute_queue() != ERROR_OK) {
 				LOG_TARGET_ERROR(target, "Failed to scan idle sequence");
@@ -3178,8 +3180,8 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 			}
 		}
 
-		/* First value has been read, and is waiting for us to issue a DMI read
-		 * to get it. */
+		/* First read has been started. Optimistically assume that it has
+		 * completed. */
 
 		static int sbdata[4] = {DM_SBDATA0, DM_SBDATA1, DM_SBDATA2, DM_SBDATA3};
 		uint32_t sbvalue[4] = {0};
@@ -3198,7 +3200,19 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 					}
 					keep_alive();
 					dmi_status_t status = dmi_scan(target, NULL, &sbvalue[next_read_j],
-												   DMI_OP_READ, sbdata[j], 0, false);
+								       DMI_OP_READ, sbdata[j], 0, false);
+					/* By reading from sbdata0, we have just initiated another system bus read.
+					 * If necessary add a delay so the read can finish. */
+					if (j == 0 && info->bus_master_read_delay) {
+						LOG_TARGET_DEBUG(target, "Waiting %d cycles for bus master read delay",
+								info->bus_master_read_delay);
+						jtag_add_runtest(info->bus_master_read_delay, TAP_IDLE);
+						if (jtag_execute_queue() != ERROR_OK) {
+							LOG_TARGET_ERROR(target, "Failed to scan idle sequence");
+							return ERROR_FAIL;
+						}
+					}
+
 					if (status == DMI_STATUS_BUSY)
 						increase_dmi_busy_delay(target);
 					else if (status == DMI_STATUS_SUCCESS)
@@ -3261,16 +3275,32 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 		}
 
 		if (get_field(sbcs_read, DM_SBCS_SBBUSYERROR)) {
-			/* We read while the target was busy. Slow down and try again. */
-			if (dm_write(target, DM_SBCS, sbcs_read | DM_SBCS_SBBUSYERROR) != ERROR_OK)
+			/* We read while the target was busy. Slow down and try again.
+			 * Clear sbbusyerror, as well as readondata or readonaddr. */
+			if (dm_write(target, DM_SBCS, DM_SBCS_SBBUSYERROR) != ERROR_OK)
 				return ERROR_FAIL;
-			next_address = sb_read_address(target);
+
+			if (get_field(sbcs_read, DM_SBCS_SBERROR) == DM_SBCS_SBERROR_NONE) {
+				/* Read the address whose read was last completed. */
+				next_address = sb_read_address(target);
+
+				/* Read the value for the last address. It's
+				 * sitting in the register for us, but we read it
+				 * too early (sbbusyerror became set). */
+				target_addr_t current_address = next_address - (increment ? size : 0);
+				if (read_memory_bus_word(target, current_address, size,
+							buffer + current_address - address) != ERROR_OK)
+					return ERROR_FAIL;
+			}
+
 			info->bus_master_read_delay += info->bus_master_read_delay / 10 + 1;
+			LOG_TARGET_DEBUG(target, "Increasing bus_master_read_delay to %d.",
+					info->bus_master_read_delay);
 			continue;
 		}
 
 		unsigned error = get_field(sbcs_read, DM_SBCS_SBERROR);
-		if (error == 0) {
+		if (error == DM_SBCS_SBERROR_NONE) {
 			next_address = end_address;
 		} else {
 			/* Some error indicating the bus access failed, but not because of
