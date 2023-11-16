@@ -24,6 +24,7 @@
 #include "riscv.h"
 #include "asm.h"
 #include "gdb_regs.h"
+#include "field_helpers.h"
 
 /**
  * Since almost everything can be accomplish by scanning the dbus register, all
@@ -68,9 +69,6 @@
  */
 
 static int handle_halt(struct target *target, bool announce);
-
-#define get_field(reg, mask) (((reg) & (mask)) / ((mask) & ~((mask) << 1)))
-#define set_field(reg, mask, val) (((reg) & ~(mask)) | (((val) * ((mask) & ~((mask) << 1))) & (mask)))
 
 /* Constants for legacy SiFive hardware breakpoints. */
 #define CSR_BPCONTROL_X			(1<<0)
@@ -1468,13 +1466,13 @@ static int examine(struct target *target)
 	}
 
 	LOG_DEBUG("dtmcontrol=0x%x", dtmcontrol);
-	LOG_DEBUG("  addrbits=%d", get_field(dtmcontrol, DTMCONTROL_ADDRBITS));
-	LOG_DEBUG("  version=%d", get_field(dtmcontrol, DTMCONTROL_VERSION));
-	LOG_DEBUG("  idle=%d", get_field(dtmcontrol, DTMCONTROL_IDLE));
+	LOG_DEBUG("  addrbits=%d", get_field32(dtmcontrol, DTMCONTROL_ADDRBITS));
+	LOG_DEBUG("  version=%d", get_field32(dtmcontrol, DTMCONTROL_VERSION));
+	LOG_DEBUG("  idle=%d", get_field32(dtmcontrol, DTMCONTROL_IDLE));
 
 	if (get_field(dtmcontrol, DTMCONTROL_VERSION) != 0) {
 		LOG_ERROR("Unsupported DTM version %d. (dtmcontrol=0x%x)",
-				get_field(dtmcontrol, DTMCONTROL_VERSION), dtmcontrol);
+				get_field32(dtmcontrol, DTMCONTROL_VERSION), dtmcontrol);
 		return ERROR_FAIL;
 	}
 
@@ -1492,22 +1490,22 @@ static int examine(struct target *target)
 
 	uint32_t dminfo = dbus_read(target, DMINFO);
 	LOG_DEBUG("dminfo: 0x%08x", dminfo);
-	LOG_DEBUG("  abussize=0x%x", get_field(dminfo, DMINFO_ABUSSIZE));
-	LOG_DEBUG("  serialcount=0x%x", get_field(dminfo, DMINFO_SERIALCOUNT));
-	LOG_DEBUG("  access128=%d", get_field(dminfo, DMINFO_ACCESS128));
-	LOG_DEBUG("  access64=%d", get_field(dminfo, DMINFO_ACCESS64));
-	LOG_DEBUG("  access32=%d", get_field(dminfo, DMINFO_ACCESS32));
-	LOG_DEBUG("  access16=%d", get_field(dminfo, DMINFO_ACCESS16));
-	LOG_DEBUG("  access8=%d", get_field(dminfo, DMINFO_ACCESS8));
-	LOG_DEBUG("  dramsize=0x%x", get_field(dminfo, DMINFO_DRAMSIZE));
-	LOG_DEBUG("  authenticated=0x%x", get_field(dminfo, DMINFO_AUTHENTICATED));
-	LOG_DEBUG("  authbusy=0x%x", get_field(dminfo, DMINFO_AUTHBUSY));
-	LOG_DEBUG("  authtype=0x%x", get_field(dminfo, DMINFO_AUTHTYPE));
-	LOG_DEBUG("  version=0x%x", get_field(dminfo, DMINFO_VERSION));
+	LOG_DEBUG("  abussize=0x%x", get_field32(dminfo, DMINFO_ABUSSIZE));
+	LOG_DEBUG("  serialcount=0x%x", get_field32(dminfo, DMINFO_SERIALCOUNT));
+	LOG_DEBUG("  access128=%d", get_field32(dminfo, DMINFO_ACCESS128));
+	LOG_DEBUG("  access64=%d", get_field32(dminfo, DMINFO_ACCESS64));
+	LOG_DEBUG("  access32=%d", get_field32(dminfo, DMINFO_ACCESS32));
+	LOG_DEBUG("  access16=%d", get_field32(dminfo, DMINFO_ACCESS16));
+	LOG_DEBUG("  access8=%d", get_field32(dminfo, DMINFO_ACCESS8));
+	LOG_DEBUG("  dramsize=0x%x", get_field32(dminfo, DMINFO_DRAMSIZE));
+	LOG_DEBUG("  authenticated=0x%x", get_field32(dminfo, DMINFO_AUTHENTICATED));
+	LOG_DEBUG("  authbusy=0x%x", get_field32(dminfo, DMINFO_AUTHBUSY));
+	LOG_DEBUG("  authtype=0x%x", get_field32(dminfo, DMINFO_AUTHTYPE));
+	LOG_DEBUG("  version=0x%x", get_field32(dminfo, DMINFO_VERSION));
 
 	if (get_field(dminfo, DMINFO_VERSION) != 1) {
 		LOG_ERROR("OpenOCD only supports Debug Module version 1, not %d "
-				"(dminfo=0x%x)", get_field(dminfo, DMINFO_VERSION), dminfo);
+				"(dminfo=0x%x)", get_field32(dminfo, DMINFO_VERSION), dminfo);
 		return ERROR_FAIL;
 	}
 

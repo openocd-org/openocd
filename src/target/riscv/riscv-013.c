@@ -29,6 +29,7 @@
 #include "asm.h"
 #include "batch.h"
 #include "debug_reg_printer.h"
+#include "field_helpers.h"
 
 static int riscv013_on_step_or_resume(struct target *target, bool step);
 static int riscv013_step_or_resume_current_hart(struct target *target,
@@ -84,9 +85,6 @@ static int set_group(struct target *target, bool *supported, unsigned int group,
  * called directly by OpenOCD, which can't assume anything about what's
  * currently in IR. They should set IR to dbus explicitly.
  */
-
-#define get_field(reg, mask) (((reg) & (mask)) / ((mask) & ~((mask) << 1)))
-#define set_field(reg, mask, val) (((reg) & ~(mask)) | (((val) * ((mask) & ~((mask) << 1))) & (mask)))
 
 #define RISCV013_INFO(r) riscv013_info_t *r = get_info(target)
 
@@ -782,9 +780,9 @@ static int dmstatus_read_timeout(struct target *target, uint32_t *dmstatus,
 	int dmstatus_version = get_field(*dmstatus, DM_DMSTATUS_VERSION);
 	if (dmstatus_version != 2 && dmstatus_version != 3) {
 		LOG_ERROR("OpenOCD only supports Debug Module version 2 (0.13) and 3 (1.0), not "
-				"%d (dmstatus=0x%x). This error might be caused by a JTAG "
+				"%" PRId32 " (dmstatus=0x%" PRIx32 "). This error might be caused by a JTAG "
 				"signal issue. Try reducing the JTAG clock speed.",
-				get_field(*dmstatus, DM_DMSTATUS_VERSION), *dmstatus);
+				get_field32(*dmstatus, DM_DMSTATUS_VERSION), *dmstatus);
 	} else if (authenticated && !get_field(*dmstatus, DM_DMSTATUS_AUTHENTICATED)) {
 		LOG_ERROR("Debugger is not authenticated to target Debug Module. "
 				"(dmstatus=0x%x). Use `riscv authdata_read` and "
@@ -1862,15 +1860,11 @@ static int examine(struct target *target)
 	}
 
 	LOG_TARGET_DEBUG(target, "dtmcontrol=0x%x", dtmcontrol);
-	LOG_TARGET_DEBUG(target, "  dmireset=%d", get_field(dtmcontrol, DTM_DTMCS_DMIRESET));
-	LOG_TARGET_DEBUG(target, "  idle=%d", get_field(dtmcontrol, DTM_DTMCS_IDLE));
-	LOG_TARGET_DEBUG(target, "  dmistat=%d", get_field(dtmcontrol, DTM_DTMCS_DMISTAT));
-	LOG_TARGET_DEBUG(target, "  abits=%d", get_field(dtmcontrol, DTM_DTMCS_ABITS));
-	LOG_TARGET_DEBUG(target, "  version=%d", get_field(dtmcontrol, DTM_DTMCS_VERSION));
+	log_debug_reg(target, DTM_DTMCS_ORDINAL, dtmcontrol);
 
 	if (get_field(dtmcontrol, DTM_DTMCS_VERSION) != 1) {
-		LOG_TARGET_ERROR(target, "Unsupported DTM version %d. (dtmcontrol=0x%x)",
-				get_field(dtmcontrol, DTM_DTMCS_VERSION), dtmcontrol);
+		LOG_TARGET_ERROR(target, "Unsupported DTM version %" PRIu32 ". (dtmcontrol=0x%" PRIx32 ")",
+				get_field32(dtmcontrol, DTM_DTMCS_VERSION), dtmcontrol);
 		return ERROR_FAIL;
 	}
 
