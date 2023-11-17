@@ -1707,6 +1707,69 @@ COMMAND_HANDLER(mips32_handle_cpuinfo_command)
 	return ERROR_OK;
 }
 
+/**
+ * mips32_handle_ejtag_reg_command - Handler commands related to EJTAG
+ * @param[in] cmd: Command invocation context
+ *
+ * @brief Prints all EJTAG Registers including DCR features.
+ *
+ * @return ERROR_OK on success; error code on failure.
+ */
+COMMAND_HANDLER(mips32_handle_ejtag_reg_command)
+{
+	struct target *target = get_current_target(CMD_CTX);
+	struct mips32_common *mips32 = target_to_mips32(target);
+	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
+
+	uint32_t ejtag_ctrl;
+	uint32_t dcr;
+	int retval;
+
+	retval = mips_ejtag_get_idcode(ejtag_info);
+	if (retval != ERROR_OK)
+		command_print(CMD, "Error: Encounter an Error while getting idcode");
+	else
+		command_print(CMD, "       idcode: 0x%8.8" PRIx32, ejtag_info->idcode);
+
+	retval = mips_ejtag_get_impcode(ejtag_info);
+	if (retval != ERROR_OK)
+		command_print(CMD, "Error: Encounter an Error while getting impcode");
+	else
+		command_print(CMD, "      impcode: 0x%8.8" PRIx32, ejtag_info->impcode);
+
+	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL);
+	ejtag_ctrl = ejtag_info->ejtag_ctrl;
+	retval = mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
+	if (retval != ERROR_OK)
+		command_print(CMD, "Error: Encounter an Error while executing drscan reading EJTAG Control register");
+	else
+		command_print(CMD, "ejtag control: 0x%8.8" PRIx32, ejtag_ctrl);
+
+	ejtag_main_print_imp(ejtag_info);
+
+	/* Display current DCR */
+	retval = target_read_u32(target, EJTAG_DCR, &dcr);
+	if (retval != ERROR_OK)
+		command_print(CMD, "Error: Encounter an Error while reading Debug Control Register");
+	else
+		command_print(CMD, "          DCR: 0x%8.8" PRIx32, dcr);
+
+	for (unsigned int i = 0; i < EJTAG_DCR_ENTRIES; i++) {
+		if (dcr & BIT(dcr_features[i].bit))
+			command_print(CMD, "%s supported", dcr_features[i].name);
+	}
+
+	return ERROR_OK;
+}
+
+/**
+ * mips32_handle_scan_delay_command - Handler command for changing scan delay
+ * @param[in] cmd: Command invocation context
+ *
+ * @brief Changes current scan mode between legacy and fast queued mode.
+ *
+ * @return ERROR_OK on success; error code on failure.
+ */
 COMMAND_HANDLER(mips32_handle_scan_delay_command)
 {
 	struct target *target = get_current_target(CMD_CTX);
@@ -1751,6 +1814,13 @@ static const struct command_registration mips32_exec_command_handlers[] = {
 		.mode = COMMAND_ANY,
 		.help = "display/set scan delay in nano seconds",
 		.usage = "[value]",
+	},
+	{
+		.name = "ejtag_reg",
+		.handler = mips32_handle_ejtag_reg_command,
+		.mode = COMMAND_ANY,
+		.help = "read ejtag registers",
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };

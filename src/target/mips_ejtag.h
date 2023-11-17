@@ -186,6 +186,22 @@
 #define EJTAG64_V25_IBA0		0xFFFFFFFFFF301100ull
 #define EJTAG64_V25_IBS			0xFFFFFFFFFF301000ull
 
+static const struct dcr_feature {
+	int bit;
+	const char *name;
+} dcr_features[] = {
+	{22, "DAS"},
+	{18, "FDC"},
+	{17, "DataBrk"},
+	{16, "InstBrk"},
+	{15, "Inverted Data value"},
+	{14, "Data value stored"},
+	{10, "Complex Breakpoints"},
+	{ 9, "PC Sampling"},
+};
+
+#define EJTAG_DCR_ENTRIES (ARRAY_SIZE(dcr_features))
+
 struct mips_ejtag {
 	struct jtag_tap *tap;
 	uint32_t impcode;
@@ -243,6 +259,9 @@ int mips64_ejtag_fastdata_scan(struct mips_ejtag *ejtag_info, bool write_t, uint
 int mips_ejtag_init(struct mips_ejtag *ejtag_info);
 int mips_ejtag_config_step(struct mips_ejtag *ejtag_info, int enable_step);
 int mips64_ejtag_config_step(struct mips_ejtag *ejtag_info, bool enable_step);
+
+void ejtag_main_print_imp(struct mips_ejtag *ejtag_info);
+int mips_ejtag_get_impcode(struct mips_ejtag *ejtag_info);
 
 static inline void mips_le_to_h_u32(jtag_callback_data_t arg)
 {

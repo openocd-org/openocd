@@ -11037,8 +11037,15 @@ For common MIPS Coprocessor 0 registers, you can find the definitions of them
 on MIPS Privileged Resource Architecture Documents(MIPS Document MD00090).
 
 For core specific cp0 registers, you can find the definitions of them on Core
-Specific Software User's Manual, for example, MIPS M5150 Software User Manual
+Specific Software User's Manual(SUM), for example, MIPS M5150 Software User Manual
 (MD00980).
+@end deffn
+
+@deffn {Command} {mips32 ejtag_reg}
+Reads EJTAG Registers for inspection.
+
+EJTAG Register Specification could be found in MIPS Document MD00047F, for
+core specific EJTAG Register definition, please check Core Specific SUM manual.
 @end deffn
 
 @section RISC-V Architecture
