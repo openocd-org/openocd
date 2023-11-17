@@ -161,6 +161,67 @@ static const struct {
 #define MIPS32_NUM_REGS ARRAY_SIZE(mips32_regs)
 
 
+
+#define zero	0
+
+#define AT	1
+
+#define v0	2
+#define v1	3
+
+#define a0	4
+#define a1	5
+#define a2	6
+#define	a3	7
+#define t0	8
+#define t1	9
+#define t2	10
+#define t3	11
+#define t4	12
+#define t5	13
+#define t6	14
+#define t7	15
+#define ta0	12	/* alias for $t4 */
+#define ta1	13	/* alias for $t5 */
+#define ta2	14	/* alias for $t6 */
+#define ta3	15	/* alias for $t7 */
+
+#define s0	16
+#define s1	17
+#define s2	18
+#define s3	19
+#define s4	20
+#define s5	21
+#define s6	22
+#define s7	23
+#define s8	30		/* == fp */
+
+#define t8	24
+#define t9	25
+#define k0	26
+#define k1	27
+
+#define gp	28
+
+#define sp	29
+#define fp	30
+#define ra	31
+
+
+static const struct {
+	const char *name;
+} mips32_dsp_regs[MIPS32NUMDSPREGS] = {
+	{ "hi0"},
+	{ "hi1"},
+	{ "hi2"},
+	{ "hi3"},
+	{ "lo0"},
+	{ "lo1"},
+	{ "lo2"},
+	{ "lo3"},
+	{ "control"},
+};
+
 static int mips32_get_core_reg(struct reg *reg)
 {
 	int retval;
@@ -1545,6 +1606,204 @@ COMMAND_HANDLER(mips32_handle_cp0_command)
 }
 
 /**
+ * mips32_dsp_enable - Enable access to DSP registers
+ * @param[in] ctx: Context information for the pracc queue
+ * @param[in] isa: Instruction Set Architecture identifier
+ *
+ * @brief Enables access to DSP registers by modifying the status register.
+ *
+ * This function adds instructions to the context queue for enabling
+ * access to DSP registers by modifying the status register.
+ */
+static void mips32_dsp_enable(struct pracc_queue_info *ctx, int isa)
+{
+	/* Save Status Register */
+	/* move status to $9 (t1) 2*/
+	pracc_add(ctx, 0, MIPS32_MFC0(isa, 9, 12, 0));
+
+	/* Read it again in order to modify it */
+	/* move status to $0 (t0) 3*/
+	pracc_add(ctx, 0, MIPS32_MFC0(isa, 8, 12, 0));
+
+	/* Enable access to DSP registers by setting MX bit in status register */
+	/* $15 = MIPS32_PRACC_STACK 4/5/6*/
+	pracc_add(ctx, 0, MIPS32_LUI(isa, 15, UPPER16(MIPS32_DSP_ENABLE)));
+	pracc_add(ctx, 0, MIPS32_ORI(isa, 15, 15, LOWER16(MIPS32_DSP_ENABLE)));
+	pracc_add(ctx, 0, MIPS32_ISA_OR(8, 8, 15));
+	/* Enable DSP - update status registers 7*/
+	pracc_add(ctx, 0, MIPS32_MTC0(isa, 8, 12, 0));
+}
+
+/**
+ * mips32_dsp_restore - Restore DSP status registers to the previous setting
+ * @param[in] ctx: Context information pracc queue
+ * @param[in] isa: isa identifier
+ *
+ * @brief Restores the DSP status registers to their previous setting.
+ *
+ * This function adds instructions to the context queue for restoring the DSP
+ * status registers to their values before the operation.
+ */
+static void mips32_dsp_restore(struct pracc_queue_info *ctx, int isa)
+{
+	pracc_add(ctx, 0, MIPS32_MTC0(isa, 9, 12, 0)); /* Restore status registers to previous setting */
+	pracc_add(ctx, 0, MIPS32_NOP); /* nop */
+}
+
+/**
+ * mips32_pracc_read_dsp_reg - Read a value from a MIPS32 DSP register
+ * @param[in] ejtag_info: EJTAG information structure
+ * @param[out] val: Pointer to store the read value
+ * @param[in] reg: Index of the DSP register to read
+ *
+ * @brief Reads the value from the specified MIPS32 DSP register using EJTAG access.
+ *
+ * This function initiates a sequence of instructions to read the value from the
+ * specified DSP register. It will enable dsp module if its not enabled
+ * and restoring the status registers after the read operation.
+ *
+ * @return ERROR_OK on success; error code on failure.
+ */
+static int mips32_pracc_read_dsp_reg(struct mips_ejtag *ejtag_info, uint32_t *val, uint32_t reg)
+{
+	int isa = 0;
+
+	struct pracc_queue_info ctx = {
+		.max_code = 48,
+		.ejtag_info = ejtag_info
+	};
+
+	uint32_t dsp_read_code[] = {
+		MIPS32_MFHI(isa, t0),		/* mfhi t0 ($ac0) - OPCODE - 0x00004010 */
+		MIPS32_DSP_MFHI(t0, 1),		/* mfhi	t0,$ac1 - OPCODE - 0x00204010 */
+		MIPS32_DSP_MFHI(t0, 2),		/* mfhi	t0,$ac2 - OPCODE - 0x00404010 */
+		MIPS32_DSP_MFHI(t0, 3),		/* mfhi	t0,$ac3 - OPCODE - 0x00604010*/
+		MIPS32_MFLO(isa, t0),		/* mflo t0 ($ac0) - OPCODE - 0x00004012 */
+		MIPS32_DSP_MFLO(t0, 1),		/* mflo	t0,$ac1 - OPCODE - 0x00204012 */
+		MIPS32_DSP_MFLO(t0, 2),		/* mflo	t0,$ac2 - OPCODE - 0x00404012 */
+		MIPS32_DSP_MFLO(t0, 3),		/* mflo	t0,$ac3 - OPCODE - 0x00604012 */
+		MIPS32_DSP_RDDSP(t0, 0x3F),	/* rddsp t0, 0x3f (DSPCtl) - OPCODE - 0x7c3f44b8 */
+	};
+
+	/* Check status register to determine if dsp register access is enabled */
+	/* Get status register so it can be restored later */
+
+	ctx.pracc_list = NULL;
+
+	/* Init context queue */
+	pracc_queue_init(&ctx);
+
+	if (ctx.retval != ERROR_OK)
+		goto exit;
+
+	/* Enables DSP whether its already enabled or not */
+	mips32_dsp_enable(&ctx, isa);
+
+	/* move AC or Control to $8 (t0) 8*/
+	pracc_add(&ctx, 0, dsp_read_code[reg]);
+	/* Restore status registers to previous setting */
+	mips32_dsp_restore(&ctx, isa);
+
+	/* $15 = MIPS32_PRACC_BASE_ADDR 1*/
+	pracc_add(&ctx, 0, MIPS32_LUI(isa, 15, PRACC_UPPER_BASE_ADDR));
+	/* store $8 to pracc_out 10*/
+	pracc_add(&ctx, MIPS32_PRACC_PARAM_OUT, MIPS32_SW(isa, 8, PRACC_OUT_OFFSET, 15));
+	/* move COP0 DeSave to $15 11*/
+	pracc_add(&ctx, 0, MIPS32_MFC0(isa, 15, 31, 0));
+	/* restore upper 16 of $8 12*/
+	pracc_add(&ctx, 0, MIPS32_LUI(isa, 8, UPPER16(ejtag_info->reg8)));
+	/* restore lower 16 of $8 13*/
+	pracc_add(&ctx, 0, MIPS32_ORI(isa, 8, 8, LOWER16(ejtag_info->reg8)));
+	/* restore upper 16 of $9 14*/
+	pracc_add(&ctx, 0, MIPS32_LUI(isa, 9, UPPER16(ejtag_info->reg9)));
+	pracc_add(&ctx, 0, MIPS32_SYNC(isa));
+	/* jump to start 18*/
+	pracc_add(&ctx, 0, MIPS32_B(isa, NEG16(ctx.code_count + 1)));
+	/* restore lower 16 of $9 15*/
+	pracc_add(&ctx, 0, MIPS32_ORI(isa, 9, 9, LOWER16(ejtag_info->reg9)));
+
+	ctx.retval = mips32_pracc_queue_exec(ejtag_info, &ctx, val, 1);
+exit:
+	pracc_queue_free(&ctx);
+	return ctx.retval;
+}
+
+/**
+ * mips32_pracc_write_dsp_reg - Write a value to a MIPS32 DSP register
+ * @param[in] ejtag_info: EJTAG information structure
+ * @param[in] val: Value to be written to the register
+ * @param[in] reg: Index of the DSP register to write
+ *
+ * @brief Writes the specified value to the specified MIPS32 DSP register.
+ *
+ * This function initiates a sequence of instructions to write the given value to the
+ * specified DSP register.
+ *
+ * @return ERROR_OK on success; error code on failure.
+ */
+static int mips32_pracc_write_dsp_reg(struct mips_ejtag *ejtag_info, uint32_t val, uint32_t reg)
+{
+	int isa = 0;
+
+	struct pracc_queue_info ctx = {
+		.max_code = 48,
+		.ejtag_info = ejtag_info
+	};
+
+	uint32_t dsp_write_code[] = {
+		MIPS32_MTHI(isa, t0),		/* mthi t0 ($ac0) - OPCODE - 0x01000011 */
+		MIPS32_DSP_MTHI(t0, 1),		/* mthi t0, $ac1 - OPCODE - 0x01000811 */
+		MIPS32_DSP_MTHI(t0, 2),		/* mthi t0, $ac2 - OPCODE - 0x01001011 */
+		MIPS32_DSP_MTHI(t0, 3),		/* mthi t0, $ac3 - OPCODE - 0x01001811 */
+		MIPS32_MTLO(isa, t0),		/* mtlo t0 ($ac0) - OPCODE - 0x01000013 */
+		MIPS32_DSP_MTLO(t0, 1),		/* mtlo t0, $ac1 - OPCODE - 0x01000813 */
+		MIPS32_DSP_MTLO(t0, 2),		/* mtlo t0, $ac2 - OPCODE - 0x01001013 */
+		MIPS32_DSP_MTLO(t0, 3),		/* mtlo t0, $ac3 - OPCODE - 0x01001813 */
+		MIPS32_DSP_WRDSP(t0, 0x1F), /* wrdsp t0, 0x1f (DSPCtl) - OPCODE - 0x7d00fcf8*/
+	};
+
+	/* Init context queue */
+	pracc_queue_init(&ctx);
+	if (ctx.retval != ERROR_OK)
+		goto exit;
+
+	/* Enables DSP whether its already enabled or not */
+	mips32_dsp_enable(&ctx, isa);
+
+	/* Load val to $8 (t0) */
+	pracc_add(&ctx, 0, MIPS32_LUI(isa, 8, UPPER16(val)));
+	pracc_add(&ctx, 0, MIPS32_ORI(isa, 8, 8, LOWER16(val)));
+
+	/* move AC or Control to $8 (t0) */
+	pracc_add(&ctx, 0, dsp_write_code[reg]);
+
+	/* nop, delay in order to ensure write */
+	pracc_add(&ctx, 0, MIPS32_NOP);
+	/* Restore status registers to previous setting */
+	mips32_dsp_restore(&ctx, isa);
+
+	/* move COP0 DeSave to $15 */
+	pracc_add(&ctx, 0, MIPS32_MFC0(isa, 15, 31, 0));
+
+	/* restore $8 */
+	pracc_add(&ctx, 0, MIPS32_LUI(isa, 8, UPPER16(ejtag_info->reg8)));
+	pracc_add(&ctx, 0, MIPS32_ORI(isa, 8, 8, LOWER16(ejtag_info->reg8)));
+
+	/* restore upper 16 of $9 */
+	pracc_add(&ctx, 0, MIPS32_LUI(isa, 9, UPPER16(ejtag_info->reg9)));
+
+	/* jump to start */
+	pracc_add(&ctx, 0, MIPS32_B(isa, NEG16(ctx.code_count + 1)));
+	/* restore lower 16 of $9  */
+	pracc_add(&ctx, 0, MIPS32_ORI(isa, 9, 9, LOWER16(ejtag_info->reg9)));
+
+	ctx.retval = mips32_pracc_queue_exec(ejtag_info, &ctx, NULL, 1);
+exit:
+	pracc_queue_free(&ctx);
+	return ctx.retval;
+}
+
+/**
  * mips32_handle_cpuinfo_command - Handles the 'cpuinfo' command.
  * @param[in] cmd: Command invocation context.
  *
@@ -1747,6 +2006,167 @@ COMMAND_HANDLER(mips32_handle_cpuinfo_command)
 }
 
 /**
+ * mips32_dsp_find_register_by_name - Find DSP register index by name
+ * @param[in] reg_name: Name of the DSP register to find
+ *
+ * @brief Searches for a DSP register by name and returns its index.
+ * If no match is found, it returns MIPS32NUMDSPREGS.
+ *
+ * @return Index of the found register or MIPS32NUMDSPREGS if not found.
+ */
+static int mips32_dsp_find_register_by_name(const char *reg_name)
+{
+	if (reg_name)
+		for (int i = 0; i < MIPS32NUMDSPREGS; i++) {
+			if (strcmp(mips32_dsp_regs[i].name, reg_name) == 0)
+				return i;
+		}
+	return MIPS32NUMDSPREGS;
+}
+
+/**
+ * mips32_dsp_get_all_regs - Get values of all MIPS32 DSP registers
+ * @param[in] cmd: Command invocation context
+ * @param[in] ejtag_info: EJTAG information structure
+ *
+ * @brief This function iterates through all DSP registers, reads their values,
+ * and prints each register name along with its corresponding value.
+ *
+ * @return ERROR_OK on success; error code on failure.
+ */
+static int mips32_dsp_get_all_regs(struct command_invocation *cmd, struct mips_ejtag *ejtag_info)
+{
+	uint32_t value;
+	for (int i = 0; i < MIPS32NUMDSPREGS; i++) {
+		int retval = mips32_pracc_read_dsp_reg(ejtag_info, &value, i);
+		if (retval != ERROR_OK) {
+			command_print(CMD, "couldn't access reg %s", mips32_dsp_regs[i].name);
+			return retval;
+		}
+		command_print(CMD, "%*s: 0x%8.8x", 7, mips32_dsp_regs[i].name, value);
+	}
+	return ERROR_OK;
+}
+
+/**
+ * mips32_dsp_get_register - Get the value of a MIPS32 DSP register
+ * @param[in] cmd: Command invocation context
+ * @param[in] ejtag_info: EJTAG information structure
+ *
+ * @brief Retrieves the value of a specified MIPS32 DSP register.
+ * If the register is found, it reads the register value and prints the result.
+ * If the register is not found, it prints an error message.
+ *
+ * @return ERROR_OK on success; error code on failure.
+ */
+static int mips32_dsp_get_register(struct command_invocation *cmd, struct mips_ejtag *ejtag_info)
+{
+	uint32_t value;
+	int index = mips32_dsp_find_register_by_name(CMD_ARGV[0]);
+	if (index == MIPS32NUMDSPREGS) {
+		command_print(CMD, "ERROR: register '%s' not found", CMD_ARGV[0]);
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	int retval = mips32_pracc_read_dsp_reg(ejtag_info, &value, index);
+	if (retval != ERROR_OK)
+		command_print(CMD, "ERROR: Could not access dsp register %s", CMD_ARGV[0]);
+	else
+		command_print(CMD, "0x%8.8x", value);
+
+	return retval;
+}
+
+/**
+ * mips32_dsp_set_register - Set the value of a MIPS32 DSP register
+ * @param[in] cmd: Command invocation context
+ * @param[in] ejtag_info: EJTAG information structure
+ *
+ * @brief Sets the value of a specified MIPS32 DSP register.
+ * If the register is found, it writes provided value to the register.
+ * If the register is not found or there is an error in writing the value,
+ * it prints an error message.
+ *
+ * @return ERROR_OK on success; error code on failure.
+ */
+static int mips32_dsp_set_register(struct command_invocation *cmd, struct mips_ejtag *ejtag_info)
+{
+	uint32_t value;
+	int index = mips32_dsp_find_register_by_name(CMD_ARGV[0]);
+	if (index == MIPS32NUMDSPREGS) {
+		command_print(CMD, "ERROR: register '%s' not found", CMD_ARGV[0]);
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], value);
+
+	int retval = mips32_pracc_write_dsp_reg(ejtag_info, value, index);
+	if (retval != ERROR_OK)
+		command_print(CMD, "Error: could not write to dsp register %s", CMD_ARGV[0]);
+
+	return retval;
+}
+
+/**
+ * mips32_handle_dsp_command - Handles mips dsp related command
+ * @param[in] cmd: Command invocation context
+ *
+ * @brief Reads or sets the content of each dsp register.
+ *
+ * @return ERROR_OK on success; error code on failure.
+*/
+COMMAND_HANDLER(mips32_handle_dsp_command)
+{
+	int retval, tmp;
+	struct target *target = get_current_target(CMD_CTX);
+	struct mips32_common *mips32 = target_to_mips32(target);
+	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
+
+	retval = mips32_verify_pointer(CMD, mips32);
+	if (retval != ERROR_OK)
+		return retval;
+
+	if (target->state != TARGET_HALTED) {
+		command_print(CMD, "target must be stopped for \"%s\" command", CMD_NAME);
+		return ERROR_OK;
+	}
+
+	/* Check for too many command args */
+	if (CMD_ARGC >= 3)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	/* Check if DSP access supported or not */
+	if (!mips32->dsp_imp) {
+		/* Issue Error Message */
+		command_print(CMD, "DSP not implemented by this processor");
+		return ERROR_OK;
+	}
+
+	switch (CMD_ARGC) {
+		case 0:
+			retval = mips32_dsp_get_all_regs(CMD, ejtag_info);
+			break;
+		case 1:
+			retval = mips32_dsp_get_register(CMD, ejtag_info);
+			break;
+		case 2:
+			tmp = *CMD_ARGV[0];
+			if (isdigit(tmp)) {
+				command_print(CMD, "Error: invalid dsp command format");
+				retval = ERROR_COMMAND_ARGUMENT_INVALID;
+			} else {
+				retval = mips32_dsp_set_register(CMD, ejtag_info);
+			}
+			break;
+		default:
+			command_print(CMD, "Error: invalid argument format, required 0-2, given %d", CMD_ARGC);
+			retval = ERROR_COMMAND_ARGUMENT_INVALID;
+			break;
+	}
+	return retval;
+}
+
+/**
  * mips32_handle_ejtag_reg_command - Handler commands related to EJTAG
  * @param[in] cmd: Command invocation context
  *
@@ -1846,6 +2266,14 @@ static const struct command_registration mips32_exec_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.help = "display CPU information",
 		.usage = "",
+	},
+	{
+		.name = "dsp",
+		.handler = mips32_handle_dsp_command,
+		.mode = COMMAND_EXEC,
+		.help = "display or set DSP register; "
+			"with no arguments, displays all registers and their values",
+		.usage = "[[register_name] [value]]",
 	},
 	{
 		.name = "scan_delay",

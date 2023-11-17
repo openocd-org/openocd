@@ -69,7 +69,7 @@
 
 #define MIPS32_SCAN_DELAY_LEGACY_MODE 2000000
 
-#define MIPS32_NUM_DSPREGS		9
+#define MIPS32NUMDSPREGS		9
 
 /* Bit Mask indicating CP0 register supported by this core */
 #define	MIPS_CP0_MK4		0x0001
@@ -734,6 +734,24 @@ struct mips32_algorithm {
 /* ejtag specific instructions */
 #define MICRO_MIPS32_SDBBP			0x000046C0
 #define MICRO_MIPS_SDBBP			0x46C0
+#define MIPS32_DSP_ENABLE			0x1000000
+
+#define MIPS32_S_INST(rs, rac, opcode)			\
+	(((rs) << 21) | ((rac) << 11) | (opcode))
+
+#define MIPS32_DSP_R_INST(rt, immd, opcode, extrw) \
+	((0x1F << 26) | ((immd) << 16) | ((rt) << 11) | ((opcode) << 6) | (extrw))
+#define MIPS32_DSP_W_INST(rs, immd, opcode, extrw) \
+	((0x1F << 26) | ((rs) << 21) | ((immd) << 11) | ((opcode) << 6) | (extrw))
+
+#define MIPS32_DSP_MFHI(reg, ac)		MIPS32_R_INST(0, ac, 0, reg, 0, MIPS32_OP_MFHI)
+#define MIPS32_DSP_MFLO(reg, ac)	MIPS32_R_INST(0, ac, 0, reg, 0, MIPS32_OP_MFLO)
+#define MIPS32_DSP_MTLO(reg, ac)	MIPS32_S_INST(reg, ac, MIPS32_OP_MTLO)
+#define MIPS32_DSP_MTHI(reg, ac)	MIPS32_S_INST(reg, ac, MIPS32_OP_MTHI)
+#define MIPS32_DSP_RDDSP(rt, mask)	MIPS32_DSP_R_INST(rt, mask, 0x12, 0x38)
+#define MIPS32_DSP_WRDSP(rs, mask)	MIPS32_DSP_W_INST(rs, mask, 0x13, 0x38)
+
+
 /*
  * MIPS32 Config1 Register (CP0 Register 16, Select 1)
  */

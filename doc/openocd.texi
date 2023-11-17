@@ -11070,6 +11070,11 @@ EJTAG Register Specification could be found in MIPS Document MD00047F, for
 core specific EJTAG Register definition, please check Core Specific SUM manual.
 @end deffn
 
+@deffn {Command} {mips32 dsp} [[register_name] [value]]
+Displays all DSP registers' contents or get/set value by register name. Will display
+an error if current CPU does not support DSP.
+@end deffn
+
 @section RISC-V Architecture
 
 @uref{http://riscv.org/, RISC-V} is a free and open ISA. OpenOCD supports JTAG
