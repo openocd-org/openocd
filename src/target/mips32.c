@@ -262,6 +262,61 @@ static int mips32_set_core_reg(struct reg *reg, uint8_t *buf)
 	return ERROR_OK;
 }
 
+/**
+ * mips32_set_all_fpr_width - Set the width of all floating-point registers
+ * @param[in] mips32: MIPS32 common structure
+ * @param[in] fp64: Flag indicating whether to set the width to 64 bits (double precision)
+ *
+ * @brief Sets the width of all floating-point registers based on the specified flag.
+ */
+static void mips32_set_all_fpr_width(struct mips32_common *mips32, bool fp64)
+{
+	struct reg_cache *cache = mips32->core_cache;
+	struct reg *reg_list = cache->reg_list;
+	int i;
+
+	for (i = MIPS32_REGLIST_FP_INDEX; i < (MIPS32_REGLIST_FP_INDEX + MIPS32_REG_FP_COUNT); i++) {
+		reg_list[i].size = fp64 ? 64 : 32;
+		reg_list[i].reg_data_type->type = fp64 ? REG_TYPE_IEEE_DOUBLE : REG_TYPE_IEEE_SINGLE;
+	}
+}
+
+/**
+ * mips32_detect_fpr_mode_change - Detect changes in floating-point register mode
+ * @param[in] mips32: MIPS32 common structure
+ * @param[in] cp0_status: Value of the CP0 status register
+ *
+ * @brief Detects changes in the floating-point register mode based on the CP0 status register.
+ * If changes are detected, it updates the internal state
+ * and logs a warning message indicating the mode change.
+ */
+static void mips32_detect_fpr_mode_change(struct mips32_common *mips32, uint32_t cp0_status)
+{
+	if (!mips32->fp_imp)
+		return;
+
+	/* CP0.Status.FR indicates the working mode of floating-point register.
+	 * When FP = 0, fpr can contain any 32bit data type,
+	 * 64bit data types are stored in even-odd register pairs.
+	 * When FP = 1, fpr can contain any data types.*/
+	bool fpu_in_64bit = ((cp0_status & BIT(MIPS32_CP0_STATUS_FR_SHIFT)) != 0);
+
+	/* CP0.Status.CU1 indicated whether CoProcessor1(which is FPU) is present. */
+	bool fp_enabled = ((cp0_status & BIT(MIPS32_CP0_STATUS_CU1_SHIFT)) != 0);
+
+	if (mips32->fpu_in_64bit != fpu_in_64bit) {
+		mips32->fpu_in_64bit = fpu_in_64bit;
+		mips32_set_all_fpr_width(mips32, fpu_in_64bit);
+		LOG_WARNING("** FP mode changed to %sbit, you must reconnect GDB **", fpu_in_64bit ? "64" : "32");
+	}
+
+	if (mips32->fpu_enabled != fp_enabled) {
+		mips32->fpu_enabled = fp_enabled;
+		const char *s = fp_enabled ? "enabled" : "disabled";
+		LOG_WARNING("** FP is %s, register update %s **", s, s);
+	}
+}
+
 static int mips32_read_core_reg(struct target *target, unsigned int num)
 {
 	unsigned int cnum;
@@ -278,6 +333,8 @@ static int mips32_read_core_reg(struct target *target, unsigned int num)
 		cnum = num - MIPS32_REGLIST_C0_INDEX;
 		reg_value = mips32->core_regs.cp0[cnum];
 		buf_set_u32(mips32->core_cache->reg_list[num].value, 0, 32, reg_value);
+		if (cnum == MIPS32_REG_C0_STATUS_INDEX)
+			mips32_detect_fpr_mode_change(mips32, reg_value);
 	} else if (num >= MIPS32_REGLIST_FPC_INDEX) {
 		/* FPCR */
 		cnum = num - MIPS32_REGLIST_FPC_INDEX;
@@ -319,6 +376,8 @@ static int mips32_write_core_reg(struct target *target, unsigned int num)
 		cnum = num - MIPS32_REGLIST_C0_INDEX;
 		reg_value = buf_get_u32(mips32->core_cache->reg_list[num].value, 0, 32);
 		mips32->core_regs.cp0[cnum] = (uint32_t)reg_value;
+		if (cnum == MIPS32_REG_C0_STATUS_INDEX)
+			mips32_detect_fpr_mode_change(mips32, reg_value);
 	} else if (num >= MIPS32_REGLIST_FPC_INDEX) {
 		/* FPCR */
 		cnum = num - MIPS32_REGLIST_FPC_INDEX;
@@ -987,8 +1046,8 @@ static int mips32_read_config_fpu(struct mips32_common *mips32, struct mips_ejta
 		mips32->fp_imp = MIPS32_FP_IMP_NONE;
 		return ERROR_OK;
 	}
-	uint32_t status_value;
-	bool status_fr, status_cu1;
+	uint32_t fir_value, status_value;
+	bool fpu_in_64bit, fp_enabled;
 
 	retval = mips32_cp0_read(ejtag_info, &status_value, MIPS32_C0_STATUS, 0);
 	if (retval != ERROR_OK) {
@@ -996,20 +1055,34 @@ static int mips32_read_config_fpu(struct mips32_common *mips32, struct mips_ejta
 		return retval;
 	}
 
-	status_fr = (status_value >> MIPS32_CP0_STATUS_FR_SHIFT) & 0x1;
-	status_cu1 = (status_value >> MIPS32_CP0_STATUS_CU1_SHIFT) & 0x1;
-	if (status_cu1) {
-		/* TODO: read fpu(cp1) config register for current operating mode.
-		 * Now its set to 32 bits by default. */
-		snprintf(buf, sizeof(buf), "yes");
-		fp_imp = MIPS32_FP_IMP_32;
+	fpu_in_64bit = (status_value & BIT(MIPS32_CP0_STATUS_FR_SHIFT)) != 0;
+	fp_enabled = (status_value & BIT(MIPS32_CP0_STATUS_CU1_SHIFT)) != 0;
+	if (fp_enabled) {
+		retval = mips32_cp1_control_read(ejtag_info, &fir_value, 0);
+		if (retval != ERROR_OK) {
+			LOG_ERROR("Failed to read cp1 FIR register");
+			return retval;
+		}
+
+		if ((fir_value >> MIPS32_CP1_FIR_F64_SHIFT) & 0x1)
+			fp_imp++;
 	} else {
+		/* This is the only condition that writes to buf */
 		snprintf(buf, sizeof(buf), "yes, disabled");
 		fp_imp = MIPS32_FP_IMP_UNKNOWN;
 	}
 
-	mips32->fpu_in_64bit = status_fr;
-	mips32->fpu_enabled = status_cu1;
+	mips32->fpu_in_64bit = fpu_in_64bit;
+	mips32->fpu_enabled = fp_enabled;
+
+	mips32_set_all_fpr_width(mips32, fpu_in_64bit);
+
+	/* If fpu is not disabled, print out more information */
+	if (!buf[0])
+		snprintf(buf, sizeof(buf), "yes, %sbit (%s, working in %sbit)",
+			fp_imp == MIPS32_FP_IMP_64 ? "64" : "32",
+			fp_enabled ? "enabled" : "disabled",
+			fpu_in_64bit ? "64" : "32");
 
 	LOG_USER("FPU implemented: %s", buf);
 	mips32->fp_imp = fp_imp;
