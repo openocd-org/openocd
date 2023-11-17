@@ -84,7 +84,7 @@
 /* CP1 FIR register fields */
 #define MIPS32_CP1_FIR_F64_SHIFT	22
 
-static const struct {
+static const struct mips32_cp0 {
 	unsigned int reg;
 	unsigned int sel;
 	const char *name;
@@ -202,7 +202,7 @@ static const struct {
 	{31, 3, "kscratch2", MIPS_CP0_MAPTIV_UC | MIPS_CP0_MAPTIV_UP},
 };
 
-#define MIPS32NUMCP0REGS ((int)ARRAY_SIZE(mips32_cp0_regs))
+#define MIPS32NUMCP0REGS (ARRAY_SIZE(mips32_cp0_regs))
 
 /* Insert extra NOPs after the DRET instruction on exit from debug. */
 #define	EJTAG_QUIRK_PAD_DRET		BIT(0)
@@ -396,6 +396,12 @@ struct mips32_common {
 
 	int fdc;
 	int semihosting;
+
+	/* The cp0 registers implemented on different processor cores could be different, too.
+	 * Here you can see most of the registers are implemented on interAptiv, which is
+	 * a 2c4t SMP processor, it has more features than M-class processors, like vpe
+	 * and other config registers for multhreading. */
+	uint32_t cp0_mask;
 
 	/* FPU enabled (cp0.status.cu1) */
 	bool fpu_enabled;

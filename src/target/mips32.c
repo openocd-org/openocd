@@ -834,6 +834,27 @@ int mips32_cpu_probe(struct target *target)
 			break;
 		}
 		break;
+
+	/* Determine which CP0 registers are available in the current processor core */
+	case PRID_COMP_MTI:
+		switch (entry->prid & PRID_IMP_MASK) {
+		case PRID_IMP_MAPTIV_UC:
+			mips32->cp0_mask = MIPS_CP0_MAPTIV_UC;
+			break;
+		case PRID_IMP_MAPTIV_UP:
+		case PRID_IMP_M5150:
+			mips32->cp0_mask = MIPS_CP0_MAPTIV_UP;
+			break;
+		case PRID_IMP_IAPTIV:
+		case PRID_IMP_IAPTIV_CM:
+			mips32->cp0_mask = MIPS_CP0_IAPTIV;
+			break;
+		default:
+			/* CP0 mask should be the same as MK4 by default */
+			mips32->cp0_mask = MIPS_CP0_MK4;
+			break;
+		}
+
 	default:
 		break;
 	}
@@ -1212,12 +1233,239 @@ static int mips32_read_config_mmu(struct mips_ejtag *ejtag_info)
 }
 
 /**
- * MIPS32 targets expose command interface
- * to manipulate CP0 registers
+ * mips32_cp0_find_register_by_name - Find CP0 register by its name.
+ * @param[in] cp0_mask: Mask to filter out irrelevant registers.
+ * @param[in] reg_name: Name of the register to find.
+ *
+ * @brief This function iterates through mips32_cp0_regs to find a register
+ * matching reg_name, considering cp0_mask to filter out registers
+ * not relevant for the current core.
+ *
+ * @return Pointer to the found register, or NULL if not found.
+ */
+static const struct mips32_cp0 *mips32_cp0_find_register_by_name(uint32_t cp0_mask, const char *reg_name)
+{
+	if (reg_name)
+		for (unsigned int i = 0; i < MIPS32NUMCP0REGS; i++) {
+			if ((mips32_cp0_regs[i].core & cp0_mask) == 0)
+				continue;
+
+			if (strcmp(mips32_cp0_regs[i].name, reg_name) == 0)
+				return &mips32_cp0_regs[i];
+		}
+	return NULL;
+}
+
+/**
+ * mips32_cp0_get_all_regs - Print all CP0 registers and their values.
+ * @param[in] cmd: Command invocation context.
+ * @param[in] ejtag_info: EJTAG interface information.
+ * @param[in] cp0_mask: Mask to identify relevant registers.
+ *
+ * @brief Iterates over all CP0 registers, reads their values, and prints them.
+ * Only considers registers relevant to the current core, as defined by cp0_mask.
+ *
+ * @return ERROR_OK on success; error code on failure.
+ */
+static int mips32_cp0_get_all_regs(struct command_invocation *cmd, struct mips_ejtag *ejtag_info, uint32_t cp0_mask)
+{
+	uint32_t value;
+
+	for (unsigned int i = 0; i < MIPS32NUMCP0REGS; i++) {
+		/* Register name not valid for this core */
+		if ((mips32_cp0_regs[i].core & cp0_mask) == 0)
+			continue;
+
+		int retval = mips32_cp0_read(ejtag_info, &value, mips32_cp0_regs[i].reg, mips32_cp0_regs[i].sel);
+		if (retval != ERROR_OK) {
+			command_print(CMD, "Error: couldn't access reg %s", mips32_cp0_regs[i].name);
+			return retval;
+		}
+
+		command_print(CMD, "%*s: 0x%8.8" PRIx32, 14, mips32_cp0_regs[i].name, value);
+	}
+	return ERROR_OK;
+}
+
+/**
+ * mips32_cp0_get_reg_by_name - Read and print a CP0 register's value by name.
+ * @param[in] cmd: Command invocation context.
+ * @param[in] ejtag_info: EJTAG interface information.
+ * @param[in] cp0_mask: Mask to identify relevant registers.
+ *
+ * @brief Finds a CP0 register by name, reads its value, and prints it.
+ * Handles error scenarios like register not found or read failure.
+ *
+ * @return ERROR_OK on success; error code on failure.
+ */
+static int mips32_cp0_get_reg_by_name(struct command_invocation *cmd, struct mips_ejtag *ejtag_info, uint32_t cp0_mask)
+{
+	const struct mips32_cp0 *cp0_regs = mips32_cp0_find_register_by_name(cp0_mask, CMD_ARGV[0]);
+	if (!cp0_regs) {
+		command_print(CMD, "Error: Register '%s' not found", CMD_ARGV[0]);
+		return ERROR_COMMAND_ARGUMENT_INVALID;
+	}
+
+	uint32_t value;
+	int retval = mips32_cp0_read(ejtag_info, &value, cp0_regs->reg, cp0_regs->sel);
+	if (retval != ERROR_OK) {
+		command_print(CMD, "Error: Encounter an Error while reading cp0 reg %d sel %d",
+					cp0_regs->reg, cp0_regs->sel);
+		return retval;
+	}
+
+	command_print(CMD, "0x%8.8" PRIx32, value);
+	return ERROR_OK;
+}
+
+/**
+ * mips32_cp0_get_reg_by_number - Read and print a CP0 register's value by number.
+ * @param[in] cmd: Command invocation context.
+ * @param[in] ejtag_info: EJTAG interface information.
+ *
+ * @brief Reads a specific CP0 register (identified by number and selection) and prints its value.
+ * The register number and selection are parsed from the command arguments.
+ *
+ * @return ERROR_OK on success; error code on failure.
+ */
+static int mips32_cp0_get_reg_by_number(struct command_invocation *cmd, struct mips_ejtag *ejtag_info)
+{
+	uint32_t cp0_reg, cp0_sel, value;
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], cp0_reg);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], cp0_sel);
+
+	int retval = mips32_cp0_read(ejtag_info, &value, cp0_reg, cp0_sel);
+	if (retval != ERROR_OK) {
+		command_print(CMD,
+				"Error: couldn't access reg %" PRIu32,
+				cp0_reg);
+		return retval;
+	}
+
+	command_print(CMD, "cp0 reg %" PRIu32 ", select %" PRIu32 ": %8.8" PRIx32,
+			cp0_reg, cp0_sel, value);
+	return ERROR_OK;
+}
+
+/**
+ * mips32_cp0_set_reg_by_name - Write to a CP0 register identified by name.
+ * @param[in] cmd: Command invocation context.
+ * @param[in] mips32: Common MIPS32 data structure.
+ * @param[in] ejtag_info: EJTAG interface information.
+ *
+ * @brief Writes a value to a CP0 register specified by name. Updates internal
+ * cache if specific registers (STATUS, CAUSE, DEPC, GUESTCTL1) are modified.
+ *
+ * @return ERROR_OK on success; error code on failure.
+ */
+static int mips32_cp0_set_reg_by_name(struct command_invocation *cmd,
+		struct mips32_common *mips32, struct mips_ejtag *ejtag_info)
+{
+	const struct mips32_cp0 *cp0_regs = mips32_cp0_find_register_by_name(mips32->cp0_mask, CMD_ARGV[0]);
+	if (!cp0_regs) {
+		command_print(CMD, "Error: Register '%s' not found", CMD_ARGV[0]);
+		return ERROR_COMMAND_ARGUMENT_INVALID;
+	}
+
+
+	uint32_t value;
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], value);
+
+	if (cp0_regs->reg == MIPS32_C0_STATUS && cp0_regs->sel == 0) {
+		/* Update cached Status register if user is writing to Status */
+		mips32->core_regs.cp0[MIPS32_REG_C0_STATUS_INDEX] = value;
+		mips32->core_cache->reg_list[MIPS32_REGLIST_C0_STATUS_INDEX].dirty = 1;
+	} else if (cp0_regs->reg == MIPS32_C0_CAUSE && cp0_regs->sel == 0) {
+		/* Update register cache with new value if its Cause */
+		mips32->core_regs.cp0[MIPS32_REG_C0_CAUSE_INDEX] = value;
+		mips32->core_cache->reg_list[MIPS32_REGLIST_C0_CAUSE_INDEX].dirty = 1;
+	} else if (cp0_regs->reg == MIPS32_C0_DEPC && cp0_regs->sel == 0) {
+		/* Update cached PC if its DEPC */
+		mips32->core_regs.cp0[MIPS32_REG_C0_PC_INDEX] = value;
+		mips32->core_cache->reg_list[MIPS32_REGLIST_C0_PC_INDEX].dirty = 1;
+	} else if (cp0_regs->reg == MIPS32_C0_GUESTCTL1 && cp0_regs->sel == 4) {
+		/* Update cached guestCtl1 */
+		mips32->core_regs.cp0[MIPS32_REG_C0_GUESTCTL1_INDEX] = value;
+		mips32->core_cache->reg_list[MIPS32_REGLIST_C0_GUESTCTL1_INDEX].dirty = 1;
+	}
+
+	int retval = mips32_cp0_write(ejtag_info, value,
+								cp0_regs->reg,
+								cp0_regs->sel);
+	if (retval != ERROR_OK) {
+		command_print(CMD, "Error: Encounter an Error while writing to cp0 reg %d, sel %d",
+					cp0_regs->reg, cp0_regs->sel);
+		return retval;
+	}
+
+	command_print(CMD, "cp0 reg %s (%u, select %u: %8.8" PRIx32 ")",
+			CMD_ARGV[0], cp0_regs->reg, cp0_regs->sel, value);
+	return ERROR_OK;
+}
+
+/**
+ * mips32_cp0_set_reg_by_number - Write to a CP0 register identified by number.
+ * @param[in] cmd: Command invocation context.
+ * @param[in] mips32: Common MIPS32 data structure.
+ * @param[in] ejtag_info: EJTAG interface information.
+ *
+ * @brief Writes a value to a CP0 register specified by number and selection.
+ * Handles special cases like updating the internal cache for certain registers.
+ *
+ * @return ERROR_OK on success; error code on failure.
+ */
+static int mips32_cp0_set_reg_by_number(struct command_invocation *cmd,
+		struct mips32_common *mips32, struct mips_ejtag *ejtag_info)
+{
+	uint32_t cp0_reg, cp0_sel, value;
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], cp0_reg);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], cp0_sel);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], value);
+
+	if (cp0_reg == MIPS32_C0_STATUS && cp0_sel == 0) {
+		/* Update cached status register if user is writing to Status register */
+		mips32->core_regs.cp0[MIPS32_REG_C0_STATUS_INDEX] = value;
+		mips32->core_cache->reg_list[MIPS32_REGLIST_C0_STATUS_INDEX].dirty = 1;
+	} else if (cp0_reg == MIPS32_C0_CAUSE && cp0_sel == 0) {
+		/* Update register cache with new value if its Cause register */
+		mips32->core_regs.cp0[MIPS32_REG_C0_CAUSE_INDEX] = value;
+		mips32->core_cache->reg_list[MIPS32_REGLIST_C0_CAUSE_INDEX].dirty = 1;
+	} else if (cp0_reg == MIPS32_C0_DEPC && cp0_sel == 0) {
+		/* Update cached PC if its DEPC */
+		mips32->core_regs.cp0[MIPS32_REG_C0_PC_INDEX] = value;
+		mips32->core_cache->reg_list[MIPS32_REGLIST_C0_PC_INDEX].dirty = 1;
+	} else if (cp0_reg == MIPS32_C0_GUESTCTL1 && cp0_sel == 4) {
+		/* Update cached guestCtl1, too */
+		mips32->core_regs.cp0[MIPS32_REG_C0_GUESTCTL1_INDEX] = value;
+		mips32->core_cache->reg_list[MIPS32_REGLIST_C0_GUESTCTL1_INDEX].dirty = 1;
+	}
+
+	int retval = mips32_cp0_write(ejtag_info, value, cp0_reg, cp0_sel);
+	if (retval != ERROR_OK) {
+		command_print(CMD,
+				"Error: couldn't access cp0 reg %" PRIu32 ", select %" PRIu32,
+				cp0_reg,  cp0_sel);
+		return retval;
+	}
+
+	command_print(CMD, "cp0 reg %" PRIu32 ", select %" PRIu32 ": %8.8" PRIx32,
+			cp0_reg, cp0_sel, value);
+	return ERROR_OK;
+}
+
+/**
+ * mips32_handle_cp0_command - Handle commands related to CP0 registers.
+ * @cmd: Command invocation context.
+ *
+ * Orchestrates different operations on CP0 registers based on the command arguments.
+ * Supports operations like reading all registers, reading/writing a specific register
+ * by name or number.
+ *
+ * Return: ERROR_OK on success; error code on failure.
  */
 COMMAND_HANDLER(mips32_handle_cp0_command)
 {
-	int retval;
+	int retval, tmp;
 	struct target *target = get_current_target(CMD_CTX);
 	struct mips32_common *mips32 = target_to_mips32(target);
 	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
@@ -1232,43 +1480,30 @@ COMMAND_HANDLER(mips32_handle_cp0_command)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	/* two or more argument, access a single register/select (write if third argument is given) */
-	if (CMD_ARGC < 2)
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	else {
-		uint32_t cp0_reg, cp0_sel;
-		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], cp0_reg);
-		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], cp0_sel);
+	switch (CMD_ARGC) {
+		case 0: /* No arg => print out all cp0 regs */
+			retval = mips32_cp0_get_all_regs(CMD, ejtag_info, mips32->cp0_mask);
+			break;
+		case 1: /* 1 arg => get cp0 #reg/#sel value by name */
+			retval = mips32_cp0_get_reg_by_name(CMD, ejtag_info, mips32->cp0_mask);
+			break;
+		case 2: /* 2 args => get cp0 reg/sel value or set value by name */
+			tmp = *CMD_ARGV[0];
+			if (isdigit(tmp)) /* starts from number then args are #reg and #sel */
+				retval = mips32_cp0_get_reg_by_number(CMD, ejtag_info);
+			else /* or set value by register name */
+				retval = mips32_cp0_set_reg_by_name(CMD, mips32, ejtag_info);
 
-		if (CMD_ARGC == 2) {
-			uint32_t value;
-
-			retval = mips32_cp0_read(ejtag_info, &value, cp0_reg, cp0_sel);
-			if (retval != ERROR_OK) {
-				command_print(CMD,
-						"couldn't access reg %" PRIu32,
-						cp0_reg);
-				return ERROR_OK;
-			}
-			command_print(CMD, "cp0 reg %" PRIu32 ", select %" PRIu32 ": %8.8" PRIx32,
-					cp0_reg, cp0_sel, value);
-
-		} else if (CMD_ARGC == 3) {
-			uint32_t value;
-			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], value);
-			retval = mips32_cp0_write(ejtag_info, value, cp0_reg, cp0_sel);
-			if (retval != ERROR_OK) {
-				command_print(CMD,
-						"couldn't access cp0 reg %" PRIu32 ", select %" PRIu32,
-						cp0_reg,  cp0_sel);
-				return ERROR_OK;
-			}
-			command_print(CMD, "cp0 reg %" PRIu32 ", select %" PRIu32 ": %8.8" PRIx32,
-					cp0_reg, cp0_sel, value);
-		}
+			break;
+		case 3: /* 3 args => set cp0 reg/sel value*/
+			retval = mips32_cp0_set_reg_by_number(CMD, mips32, ejtag_info);
+			break;
+		default: /* Other argc => err */
+			retval = ERROR_COMMAND_SYNTAX_ERROR;
+			break;
 	}
 
-	return ERROR_OK;
+	return retval;
 }
 
 /**
@@ -1500,7 +1735,7 @@ static const struct command_registration mips32_exec_command_handlers[] = {
 		.name = "cp0",
 		.handler = mips32_handle_cp0_command,
 		.mode = COMMAND_EXEC,
-		.usage = "regnum select [value]",
+		.usage = "[[reg_name|regnum select] [value]]",
 		.help = "display/modify cp0 register",
 	},
 	{

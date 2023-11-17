@@ -10998,9 +10998,10 @@ The term ASE means Application-Specific Extension, ASEs provide features that
 improve the efficiency and performance of certain workloads, such as
 digital signal processing(DSP), Virtualization(VZ), Multi-Threading(MT),
 SIMD(MSA) and more.
-The MIPS CPU Uses Coprocessors to configure its behaviour or to let software
-know the capabilities of current CPU, the commonly used ones are Config0~3 Registers
-and Status register.
+
+MIPS Cores use Coprocessors(CPx) to configure their behaviour or to let software
+know the capabilities of current CPU, the main Coprocessor is CP0, containing 32
+registers with a maximum select number of 7.
 
 @subsection MIPS FPU & Vector Registers
 
@@ -11028,8 +11029,9 @@ Display or set scan delay in nano seconds. A value below 2_000_000 will set the
 scan delay into legacy mode.
 @end deffn
 
-@deffn {Config Command} {mips32 cp0} regnum select [value]
-Displays or sets coprocessor 0 register by register number and select.
+@deffn {Config Command} {mips32 cp0} [[reg_name|regnum select] [value]]
+Displays or sets coprocessor 0 register by register number and select or their name.
+This command shows all available cp0 register if no arguments are provided.
 
 For common MIPS Coprocessor 0 registers, you can find the definitions of them
 on MIPS Privileged Resource Architecture Documents(MIPS Document MD00090).
