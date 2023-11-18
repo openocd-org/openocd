@@ -6737,6 +6737,13 @@ static const struct command_registration target_exec_command_handlers[] = {
 		.usage = "address width data ['phys']",
 	},
 	{
+		.name = "debug_reason",
+		.mode = COMMAND_EXEC,
+		.handler = handle_target_debug_reason,
+		.help = "displays the debug reason of this target",
+		.usage = "",
+	},
+	{
 		.name = "reset_nag",
 		.handler = handle_target_reset_nag,
 		.mode = COMMAND_ANY,
