@@ -147,6 +147,9 @@ struct adapter_driver *adapter_drivers[] = {
 #if BUILD_RSHIM == 1
 		&rshim_dap_adapter_driver,
 #endif
+#if BUILD_DMEM == 1
+		&dmem_dap_adapter_driver,
+#endif
 #if BUILD_AM335XGPIO == 1
 		&am335xgpio_adapter_driver,
 #endif

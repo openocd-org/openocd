@@ -30,8 +30,10 @@
 
 /** USB Product ID of ANGIE device in unconfigured state (no firmware loaded
  *  yet) or with its firmware. */
-#define ANGIE_PID				0x424e
-#define ANGIE_PID_2				0x4a55
+#define ANGIE_PID 0x424e
+#define ANGIE_PID_2 0x4255
+#define ANGIE_PID_3 0x4355
+#define ANGIE_PID_4 0x4a55
 
 /** Address of EZ-USB ANGIE CPU Control & Status register. This register can be
  *  written by issuing a Control EP0 vendor request. */
@@ -252,8 +254,8 @@ static struct angie *angie_handle;
 static int angie_usb_open(struct angie *device)
 {
 	struct libusb_device_handle *usb_device_handle;
-	const uint16_t vids[] = {ANGIE_VID, ANGIE_VID, 0};
-	const uint16_t pids[] = {ANGIE_PID, ANGIE_PID_2, 0};
+	const uint16_t vids[] = {ANGIE_VID, ANGIE_VID, ANGIE_VID, ANGIE_VID, 0};
+	const uint16_t pids[] = {ANGIE_PID, ANGIE_PID_2, ANGIE_PID_3, ANGIE_PID_4, 0};
 
 	int ret = jtag_libusb_open(vids, pids, &usb_device_handle, NULL);
 
@@ -1719,6 +1721,8 @@ static int angie_reset(int trst, int srst)
 		high |= SIGNAL_SRST;
 
 	int ret = angie_append_set_signals_cmd(device, low, high);
+	if (ret == ERROR_OK)
+		angie_clear_queue(device);
 
 	ret = angie_execute_queued_commands(device, LIBUSB_TIMEOUT_MS);
 	if (ret == ERROR_OK)

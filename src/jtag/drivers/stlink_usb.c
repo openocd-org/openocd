@@ -456,7 +456,7 @@ static inline int stlink_usb_xfer_noerrcheck(void *handle, const uint8_t *buf, i
 #define STLINK_DEBUG_PORT_ACCESS            0xffff
 
 #define STLINK_TRACE_SIZE               4096
-#define STLINK_TRACE_MAX_HZ             2000000
+#define STLINK_TRACE_MAX_HZ             2250000
 #define STLINK_V3_TRACE_MAX_HZ          24000000
 
 #define STLINK_V3_MAX_FREQ_NB               10

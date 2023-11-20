@@ -243,6 +243,10 @@ AC_ARG_ENABLE([rshim],
   AS_HELP_STRING([--enable-rshim], [Enable building the rshim driver]),
   [build_rshim=$enableval], [build_rshim=no])
 
+AC_ARG_ENABLE([dmem],
+  AS_HELP_STRING([--enable-dmem], [Enable building the dmem driver]),
+  [build_dmem=$enableval], [build_dmem=no])
+
 m4_define([AC_ARG_ADAPTERS], [
   m4_foreach([adapter], [$1],
 	[AC_ARG_ENABLE(ADAPTER_OPT([adapter]),
@@ -358,6 +362,10 @@ AS_CASE([$host_os],
       AS_IF([test "x$build_rshim" = "xyes"], [
         AC_MSG_ERROR([build_rshim is only available on linux or freebsd])
       ])
+    ])
+
+    AS_IF([test "x$build_dmem" = "xyes"], [
+      AC_MSG_ERROR([dmem is only available on linux])
     ])
 ])
 
@@ -477,6 +485,12 @@ AS_IF([test "x$build_rshim" = "xyes"], [
   AC_DEFINE([BUILD_RSHIM], [1], [1 if you want to debug BlueField SoC via rshim.])
 ], [
   AC_DEFINE([BUILD_RSHIM], [0], [0 if you don't want to debug BlueField SoC via rshim.])
+])
+
+AS_IF([test "x$build_dmem" = "xyes"], [
+  AC_DEFINE([BUILD_DMEM], [1], [1 if you want to debug via Direct Mem.])
+], [
+  AC_DEFINE([BUILD_DMEM], [0], [0 if you don't want to debug via Direct Mem.])
 ])
 
 AS_IF([test "x$build_dummy" = "xyes"], [
@@ -755,6 +769,7 @@ AM_CONDITIONAL([USE_LIBGPIOD], [test "x$use_libgpiod" = "xyes"])
 AM_CONDITIONAL([USE_HIDAPI], [test "x$use_hidapi" = "xyes"])
 AM_CONDITIONAL([USE_LIBJAYLINK], [test "x$use_libjaylink" = "xyes"])
 AM_CONDITIONAL([RSHIM], [test "x$build_rshim" = "xyes"])
+AM_CONDITIONAL([DMEM], [test "x$build_dmem" = "xyes"])
 AM_CONDITIONAL([HAVE_CAPSTONE], [test "x$enable_capstone" != "xno"])
 
 AM_CONDITIONAL([INTERNAL_JIMTCL], [test "x$use_internal_jimtcl" = "xyes"])

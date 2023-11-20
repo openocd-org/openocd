@@ -161,6 +161,9 @@ endif
 if RSHIM
 DRIVERFILES += %D%/rshim.c
 endif
+if DMEM
+DRIVERFILES += %D%/dmem.c
+endif
 if OSBDM
 DRIVERFILES += %D%/osbdm.c
 endif

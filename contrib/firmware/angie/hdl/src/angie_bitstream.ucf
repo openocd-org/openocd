@@ -14,17 +14,31 @@ net TRST	LOC = 'P48' ;
 net TMS		LOC = 'P43' ;
 net TCK		LOC = 'P44' ;
 net TDI		LOC = 'P45' ;
-net TDO		LOC = 'P46' ;
+net TDO     LOC = 'P46' ;
 net SRST    LOC = 'P61' ;
+
+net SDA		LOC = 'P50' ;
+net SCL     LOC = 'P51' ;
+net SDA_DIR	LOC = 'P56' ;
+
 net SI_TDO	LOC = 'P16' ;
 net SO_TRST	LOC = 'P32' ;
 net SO_TMS	LOC = 'P27' ;
 net SO_TCK	LOC = 'P30' ;
 net SO_TDI	LOC = 'P26' ;
 net SO_SRST	LOC = 'P12' ;
+
+net SO_SDA_OUT	LOC = 'P140' ;
+net SO_SDA_IN	LOC = 'P1' ;
+net SO_SCL	LOC = 'P137';
+
 net ST_0	LOC = 'P29' ;
 net ST_1	LOC = 'P21' ;
 net ST_2	LOC = 'P11' ;
+
+net ST_4	LOC = 'P134' ;
+net ST_5	LOC = 'P139' ;
+
 net FTP<0>	LOC = 'P121' ;
 net FTP<1>	LOC = 'P120' ;
 net FTP<2>	LOC = 'P119' ;

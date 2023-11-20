@@ -38,7 +38,7 @@ LDFLAGS = --code-loc 0x0000 --code-size $(CODE_SIZE) --xram-loc $(XRAM_LOC) \
           --xram-size $(XRAM_SIZE) --iram-size 256 --model-small
 
 # list of base object files
-OBJECTS = main.rel usb.rel protocol.rel jtag.rel delay.rel USBJmpTb.rel serial.rel gpif.rel
+OBJECTS = main.rel usb.rel protocol.rel jtag.rel delay.rel USBJmpTb.rel serial.rel gpif.rel i2c.rel
 HEADERS = $(INCLUDE_DIR)/usb.h          \
           $(INCLUDE_DIR)/protocol.h     \
           $(INCLUDE_DIR)/jtag.h         \
@@ -47,7 +47,8 @@ HEADERS = $(INCLUDE_DIR)/usb.h          \
           $(INCLUDE_DIR)/io.h           \
           $(INCLUDE_DIR)/serial.h       \
           $(INCLUDE_DIR)/fx2macros.h    \
-          $(INCLUDE_DIR)/msgtypes.h
+          $(INCLUDE_DIR)/msgtypes.h     \
+          $(INCLUDE_DIR)/i2c.h
 
 # Disable all built-in rules.
 .SUFFIXES:
@@ -61,7 +62,7 @@ all: angie_firmware.ihx
 angie_firmware.ihx: $(OBJECTS)
 	$(CC) -mmcs51 $(LDFLAGS) -o $@ $^
 
-# Rebuild every C module (there are only 5 of them) if any header changes.
+# Rebuild every C module (there are only 8 of them) if any header changes.
 %.rel: $(SRC_DIR)/%.c $(HEADERS)
 	$(CC) -c $(CFLAGS) -mmcs51 -I$(INCLUDE_DIR) -o $@ $<
 

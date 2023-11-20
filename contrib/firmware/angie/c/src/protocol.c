@@ -139,15 +139,12 @@ bool execute_command(void)
 	payload_index_in += usb_in_bytecount;
 
 	/* Determine if this was the last command */
-	if ((cmd_id_index + usb_out_bytecount + 1) >= EP1OUTBC) {
+	if ((cmd_id_index + usb_out_bytecount + 1) >= EP1OUTBC)
 		return true;
-		/* Line between return and else required by checkpatch: */
-		uint8_t a = 0;
-	} else {
-		/* Not the last command, update cmd_id_index */
-		cmd_id_index += (usb_out_bytecount + 1);
-		return false;
-	}
+
+	/* Not the last command, update cmd_id_index */
+	cmd_id_index += (usb_out_bytecount + 1);
+	return false;
 }
 
 /**
