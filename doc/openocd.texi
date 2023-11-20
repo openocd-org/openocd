@@ -9374,7 +9374,7 @@ Remove the breakpoint at @var{address} or all breakpoints.
 Remove data watchpoint on @var{address} or all watchpoints.
 @end deffn
 
-@deffn {Command} {wp} [address len [(@option{r}|@option{w}|@option{a}) [value [mask]]]]
+@deffn {Command} {wp} [address length [(@option{r}|@option{w}|@option{a}) [value [mask]]]]
 With no parameters, lists all active watchpoints.
 Else sets a data watchpoint on data from @var{address} for @var{length} bytes.
 The watch point is an "access" watchpoint unless
