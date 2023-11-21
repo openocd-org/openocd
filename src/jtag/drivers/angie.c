@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include "helper/system.h"
+#include <helper/types.h>
 #include <jtag/interface.h>
 #include <jtag/commands.h>
 #include <target/image.h>
@@ -61,7 +62,7 @@
 #define ANGIE_FIRMWARE_FILE		PKGDATADIR "/angie/angie_firmware.bin"
 
 /** Default location of ANGIE firmware image. */
-#define ANGIE_BITSTREAM_FILE	PKGDATADIR "/angie/angie_bitstream.bit"
+#define ANGIE_BITSTREAM_FILE		PKGDATADIR "/angie/angie_bitstream.bit"
 
 /** Maximum size of a single firmware section. Entire EZ-USB ANGIE code space = 16kB */
 #define SECTION_BUFFERSIZE		16384
@@ -404,15 +405,7 @@ static int angie_load_bitstream(struct angie *device, const char *filename)
 	FILE *bitstream_file = NULL;
 	char *bitstream_data = NULL;
 	size_t bitstream_size = 0;
-
-	/* CFGopen */
-	ret = jtag_libusb_control_transfer(device->usb_device_handle,
-		0x00, 0xB0, 0, 0, NULL, 0, LIBUSB_TIMEOUT_MS, &transferred);
-	if (ret != ERROR_OK) {
-		LOG_ERROR("Failed opencfg");
-		/* Abort if libusb sent less data than requested */
-		return ERROR_FAIL;
-	}
+	uint8_t gpifcnt[4];
 
 	/* Open the bitstream file */
 	bitstream_file = fopen(bitstream_file_path, "rb");
@@ -439,6 +432,17 @@ static int angie_load_bitstream(struct angie *device, const char *filename)
 		LOG_ERROR("Failed to read bitstream data.");
 		free(bitstream_data);
 		fclose(bitstream_file);
+		return ERROR_FAIL;
+	}
+
+	h_u32_to_be(gpifcnt, bitstream_size);
+
+	/* CFGopen */
+	ret = jtag_libusb_control_transfer(device->usb_device_handle,
+		0x00, 0xB0, 0, 0, (char *)gpifcnt, 4, LIBUSB_TIMEOUT_MS, &transferred);
+	if (ret != ERROR_OK) {
+		LOG_ERROR("Failed opencfg");
+		/* Abort if libusb sent less data than requested */
 		return ERROR_FAIL;
 	}
 
