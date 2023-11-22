@@ -5141,6 +5141,9 @@ static int riscv_set_or_write_register(struct target *target,
 
 	keep_alive();
 
+	if (openocd_is_shutdown_pending())
+		return ERROR_SERVER_INTERRUPTED;
+
 	if (regid == GDB_REGNO_PC) {
 		return riscv_set_or_write_register(target, GDB_REGNO_DPC, value, write_through);
 	} else if (regid == GDB_REGNO_PRIV) {
@@ -5237,6 +5240,9 @@ int riscv_get_register(struct target *target, riscv_reg_t *value,
 	assert(r->get_register);
 
 	keep_alive();
+
+	if (openocd_is_shutdown_pending())
+		return ERROR_SERVER_INTERRUPTED;
 
 	if (regid == GDB_REGNO_PC) {
 		return riscv_get_register(target, value, GDB_REGNO_DPC);

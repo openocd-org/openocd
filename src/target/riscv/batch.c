@@ -111,6 +111,9 @@ int riscv_batch_run(struct riscv_batch *batch)
 
 	keep_alive();
 
+	if (openocd_is_shutdown_pending())
+		return ERROR_SERVER_INTERRUPTED;
+
 	if (bscan_tunnel_ir_width != 0) {
 		/* need to right-shift "in" by one bit, because of clock skew between BSCAN TAP and DM TAP */
 		for (size_t i = 0; i < batch->used_scans; ++i) {

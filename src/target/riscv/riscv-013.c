@@ -595,6 +595,9 @@ static int dmi_op_timeout(struct target *target, uint32_t *data_in,
 
 	keep_alive();
 
+	if (openocd_is_shutdown_pending())
+		return ERROR_SERVER_INTERRUPTED;
+
 	time_t start = time(NULL);
 	/* This first loop performs the request.  Note that if for some reason this
 	 * stays busy, it is actually due to the previous access. */
@@ -3241,6 +3244,9 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 						return ERROR_FAIL;
 					}
 					keep_alive();
+					if (openocd_is_shutdown_pending())
+						return ERROR_SERVER_INTERRUPTED;
+
 					dmi_status_t status = dmi_scan(target, NULL, &sbvalue[next_read_j],
 								       DMI_OP_READ, sbdata[j], 0, false);
 					/* By reading from sbdata0, we have just initiated another system bus read.
