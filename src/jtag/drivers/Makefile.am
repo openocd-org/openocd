@@ -73,6 +73,11 @@ endif
 if FTDI
 DRIVERFILES += %D%/ftdi.c %D%/mpsse.c
 endif
+
+if CH347
+DRIVERFILES += %D%/ch347_jtag.c
+endif
+
 if LINUXGPIOD
 DRIVERFILES += %D%/linuxgpiod.c
 endif
