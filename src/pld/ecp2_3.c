@@ -21,6 +21,7 @@
 #define ISC_DISABLE          0x1E
 #define LSCC_READ_STATUS     0x53
 #define LSCC_BITSTREAM_BURST 0x02
+#define PROGRAM_SPI          0x3A
 
 #define STATUS_DONE_BIT        0x00020000
 #define STATUS_ERROR_BITS_ECP2 0x00040003
@@ -248,4 +249,69 @@ int lattice_ecp3_load(struct lattice_pld_device *lattice_device, struct lattice_
 	const uint32_t mask = STATUS_DONE_BIT | STATUS_ERROR_BITS_ECP3;
 	const uint32_t expected = STATUS_DONE_BIT;
 	return lattice_verify_status_register_u32(lattice_device, out, expected, mask, false);
+}
+
+int lattice_ecp2_3_connect_spi_to_jtag(struct lattice_pld_device *pld_device_info)
+{
+	if (!pld_device_info)
+		return ERROR_FAIL;
+
+	struct jtag_tap *tap = pld_device_info->tap;
+	if (!tap)
+		return ERROR_FAIL;
+
+	// erase configuration
+	int retval = lattice_set_instr(tap, ISC_ENABLE, TAP_IDLE);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = lattice_set_instr(tap, ISC_ERASE, TAP_IDLE);
+	if (retval != ERROR_OK)
+		return retval;
+	retval = lattice_set_instr(tap, ISC_DISABLE, TAP_IDLE);
+	if (retval != ERROR_OK)
+		return retval;
+
+	// connect jtag to spi pins
+	retval = lattice_set_instr(tap, PROGRAM_SPI, TAP_IDLE);
+	if (retval != ERROR_OK)
+		return retval;
+
+	return jtag_execute_queue();
+}
+
+int lattice_ecp2_3_disconnect_spi_from_jtag(struct lattice_pld_device *pld_device_info)
+{
+	if (!pld_device_info)
+		return ERROR_FAIL;
+
+	struct jtag_tap *tap = pld_device_info->tap;
+	if (!tap)
+		return ERROR_FAIL;
+
+	int retval = lattice_set_instr(tap, BYPASS, TAP_IDLE);
+	if (retval != ERROR_OK)
+		return retval;
+
+	return jtag_execute_queue();
+}
+
+int lattice_ecp2_3_get_facing_read_bits(struct lattice_pld_device *pld_device_info, unsigned int *facing_read_bits)
+{
+	if (!pld_device_info)
+		return ERROR_FAIL;
+
+	*facing_read_bits = 1;
+
+	return ERROR_OK;
+}
+
+int lattice_ecp2_3_refresh(struct lattice_pld_device *lattice_device)
+{
+	if (!lattice_device || !lattice_device->tap)
+		return ERROR_FAIL;
+
+	int retval = lattice_set_instr(lattice_device->tap, LSCC_REFRESH, TAP_IDLE);
+	if (retval != ERROR_OK)
+		return retval;
+	return jtag_execute_queue();
 }

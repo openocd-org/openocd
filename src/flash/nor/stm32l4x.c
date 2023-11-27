@@ -58,6 +58,9 @@
 
 /* STM32WBxxx series for reference.
  *
+ * RM0493 (STM32WBA52x)
+ * http://www.st.com/resource/en/reference_manual/dm00821869.pdf
+ *
  * RM0434 (STM32WB55/WB35x)
  * http://www.st.com/resource/en/reference_manual/dm00318631.pdf
  *
@@ -346,6 +349,10 @@ static const struct stm32l4_rev stm32u57_u58xx_revs[] = {
 	{ 0x2001, "X" }, { 0x3000, "C" },
 };
 
+static const struct stm32l4_rev stm32wba5x_revs[] = {
+	{ 0x1000, "A" },
+};
+
 static const struct stm32l4_rev stm32wb1xx_revs[] = {
 	{ 0x1000, "A" }, { 0x2000, "B" },
 };
@@ -577,6 +584,18 @@ static const struct stm32l4_part_info stm32l4_parts[] = {
 	  .flash_regs_base       = 0x40022000,
 	  .fsize_addr            = 0x0BFA07A0,
 	  .otp_base              = 0x0BFA0000,
+	  .otp_size              = 512,
+	},
+	{
+	  .id                    = DEVID_STM32WBA5X,
+	  .revs                  = stm32wba5x_revs,
+	  .num_revs              = ARRAY_SIZE(stm32wba5x_revs),
+	  .device_str            = "STM32WBA5x",
+	  .max_flash_size_kb     = 1024,
+	  .flags                 = F_QUAD_WORD_PROG | F_HAS_TZ | F_HAS_L5_FLASH_REGS,
+	  .flash_regs_base       = 0x40022000,
+	  .fsize_addr            = 0x0FF907A0,
+	  .otp_base              = 0x0FF90000,
 	  .otp_size              = 512,
 	},
 	{
@@ -1992,6 +2011,12 @@ static int stm32l4_probe(struct flash_bank *bank)
 			stm32l4_info->dual_bank_mode = true;
 			stm32l4_info->bank1_sectors = num_pages / 2;
 		}
+		break;
+	case DEVID_STM32WBA5X:
+		/* single bank flash */
+		page_size_kb = 8;
+		num_pages = flash_size_kb / page_size_kb;
+		stm32l4_info->bank1_sectors = num_pages;
 		break;
 	case DEVID_STM32WB5XX:
 	case DEVID_STM32WB3XX:

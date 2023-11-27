@@ -111,8 +111,8 @@ Finally, try to avoid lines of code that are longer than 72-80 columns:
 @section stylenames Naming Rules
 
 - most identifiers must use lower-case letters (and digits) only.
-  - macros must use upper-case letters (and digits) only.
-  - OpenOCD identifiers should NEVER use @c MixedCaps.
+  - macros and enumerators must use upper-case letters (and digits) only.
+  - OpenOCD identifiers should NEVER use @c MixedCaps, aka @c CamelCase.
 - @c typedef names must end with the '_t' suffix.
   - This should be reserved for types that should be passed by value.
   - Do @b not mix the typedef keyword with @c struct.

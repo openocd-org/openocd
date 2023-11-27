@@ -15,5 +15,9 @@ int lattice_ecp2_3_read_usercode(struct jtag_tap *tap, uint32_t *usercode, uint3
 int lattice_ecp2_3_write_usercode(struct lattice_pld_device *lattice_device, uint32_t usercode);
 int lattice_ecp2_load(struct lattice_pld_device *lattice_device, struct lattice_bit_file *bit_file);
 int lattice_ecp3_load(struct lattice_pld_device *lattice_device, struct lattice_bit_file *bit_file);
+int lattice_ecp2_3_connect_spi_to_jtag(struct lattice_pld_device *pld_device_info);
+int lattice_ecp2_3_disconnect_spi_from_jtag(struct lattice_pld_device *pld_device_info);
+int lattice_ecp2_3_get_facing_read_bits(struct lattice_pld_device *pld_device_info, unsigned int *facing_read_bits);
+int lattice_ecp2_3_refresh(struct lattice_pld_device *lattice_device);
 
 #endif /* OPENOCD_PLD_ECP2_3_H */

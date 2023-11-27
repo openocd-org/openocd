@@ -50,12 +50,15 @@ static int autodetect_image_type(struct image *image, const char *url)
 	if (retval != ERROR_OK)
 		return retval;
 	retval = fileio_read(fileio, 9, buffer, &read_bytes);
-
-	if (retval == ERROR_OK) {
-		if (read_bytes != 9)
-			retval = ERROR_FILEIO_OPERATION_FAILED;
-	}
 	fileio_close(fileio);
+
+	/* If the file is smaller than 9 bytes, it can only be bin */
+	if (retval == ERROR_OK && read_bytes != 9) {
+		LOG_DEBUG("Less than 9 bytes in the image file found.");
+		LOG_DEBUG("BIN image detected.");
+		image->type = IMAGE_BINARY;
+		return ERROR_OK;
+	}
 
 	if (retval != ERROR_OK)
 		return retval;
@@ -82,8 +85,10 @@ static int autodetect_image_type(struct image *image, const char *url)
 		&& (buffer[1] >= '0') && (buffer[1] < '9')) {
 		LOG_DEBUG("S19 image detected.");
 		image->type = IMAGE_SRECORD;
-	} else
+	} else {
+		LOG_DEBUG("BIN image detected.");
 		image->type = IMAGE_BINARY;
+	}
 
 	return ERROR_OK;
 }

@@ -1098,9 +1098,9 @@ static int vdebug_dap_queue_dp_write(struct adiv5_dap *dap, unsigned int reg, ui
 
 static int vdebug_dap_queue_ap_read(struct adiv5_ap *ap, unsigned int reg, uint32_t *data)
 {
-	if ((reg & DP_SELECT_APBANK) != ap->dap->select) {
-		vdebug_reg_write(vdc.hsocket, pbuf, DP_SELECT >> 2, reg & DP_SELECT_APBANK, VD_ASPACE_DP, 0);
-		ap->dap->select = reg & DP_SELECT_APBANK;
+	if ((reg & ADIV5_DP_SELECT_APBANK) != ap->dap->select) {
+		vdebug_reg_write(vdc.hsocket, pbuf, DP_SELECT >> 2, reg & ADIV5_DP_SELECT_APBANK, VD_ASPACE_DP, 0);
+		ap->dap->select = reg & ADIV5_DP_SELECT_APBANK;
 	}
 
 	vdebug_reg_read(vdc.hsocket, pbuf, (reg & DP_SELECT_DPBANK) >> 2, NULL, VD_ASPACE_AP, 0);
@@ -1110,9 +1110,9 @@ static int vdebug_dap_queue_ap_read(struct adiv5_ap *ap, unsigned int reg, uint3
 
 static int vdebug_dap_queue_ap_write(struct adiv5_ap *ap, unsigned int reg, uint32_t data)
 {
-	if ((reg & DP_SELECT_APBANK) != ap->dap->select) {
-		vdebug_reg_write(vdc.hsocket, pbuf, DP_SELECT >> 2, reg & DP_SELECT_APBANK, VD_ASPACE_DP, 0);
-		ap->dap->select = reg & DP_SELECT_APBANK;
+	if ((reg & ADIV5_DP_SELECT_APBANK) != ap->dap->select) {
+		vdebug_reg_write(vdc.hsocket, pbuf, DP_SELECT >> 2, reg & ADIV5_DP_SELECT_APBANK, VD_ASPACE_DP, 0);
+		ap->dap->select = reg & ADIV5_DP_SELECT_APBANK;
 	}
 
 	return vdebug_reg_write(vdc.hsocket, pbuf, (reg & DP_SELECT_DPBANK) >> 2, data, VD_ASPACE_AP, 0);

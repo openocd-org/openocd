@@ -147,7 +147,7 @@ static int swd_queue_dp_write_inner(struct adiv5_dap *dap, unsigned int reg,
 	swd_finish_read(dap);
 
 	if (reg == DP_SELECT) {
-		dap->select = data & (DP_SELECT_APSEL | DP_SELECT_APBANK | DP_SELECT_DPBANK);
+		dap->select = data & (ADIV5_DP_SELECT_APSEL | ADIV5_DP_SELECT_APBANK | DP_SELECT_DPBANK);
 
 		swd->write_reg(swd_cmd(false, false, reg), data, 0);
 
@@ -523,7 +523,7 @@ static int swd_queue_ap_bankselect(struct adiv5_ap *ap, unsigned reg)
 	}
 
 	/* ADIv5 */
-	sel = (ap->ap_num << 24) | (reg & 0x000000F0);
+	sel = (ap->ap_num << 24) | (reg & ADIV5_DP_SELECT_APBANK);
 	if (dap->select != DP_SELECT_INVALID)
 		sel |= dap->select & DP_SELECT_DPBANK;
 

@@ -261,7 +261,6 @@ FLASH_BANK_COMMAND_HANDLER(cc26xx_flash_bank_command)
 
 	/* Finish initialization of bank */
 	bank->driver_priv = cc26xx_bank;
-	bank->next = NULL;
 
 	return ERROR_OK;
 }

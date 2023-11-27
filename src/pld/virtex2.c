@@ -265,7 +265,7 @@ static int virtex2_load(struct pld_device *pld_device, const char *filename)
 	return retval;
 }
 
-COMMAND_HANDLER(virtex2_handle_program_command)
+COMMAND_HANDLER(virtex2_handle_refresh_command)
 {
 	struct pld_device *device;
 
@@ -323,6 +323,21 @@ static int xilinx_get_ipdbg_hub(int user_num, struct pld_device *pld_device, str
 	}
 
 	hub->user_ir_code = pld_device_info->command_set.user[user_num - 1];
+	return ERROR_OK;
+}
+
+static int xilinx_get_jtagspi_userircode(struct pld_device *pld_device, unsigned int *ir)
+{
+	if (!pld_device || !pld_device->driver_priv)
+		return ERROR_FAIL;
+	struct virtex2_pld_device *pld_device_info = pld_device->driver_priv;
+
+	if (pld_device_info->command_set.num_user < 1) {
+		LOG_ERROR("code for command 'select user1' is unknown");
+		return ERROR_FAIL;
+	}
+
+	*ir = pld_device_info->command_set.user[0];
 	return ERROR_OK;
 }
 
@@ -434,10 +449,10 @@ static const struct command_registration virtex2_exec_command_handlers[] = {
 		.help = "set instructions codes used for jtag-hub",
 		.usage = "pld_name user1 [user2 [user3 [user4]]]",
 	}, {
-		.name = "program",
+		.name = "refresh",
 		.mode = COMMAND_EXEC,
-		.handler = virtex2_handle_program_command,
-		.help = "start loading of configuration (refresh)",
+		.handler = virtex2_handle_refresh_command,
+		.help = "start loading of configuration (program)",
 		.usage = "pld_name",
 	},
 	COMMAND_REGISTRATION_DONE
@@ -460,4 +475,5 @@ struct pld_driver virtex2_pld = {
 	.pld_create_command = &virtex2_pld_create_command,
 	.load = &virtex2_load,
 	.get_ipdbg_hub = xilinx_get_ipdbg_hub,
+	.get_jtagspi_userircode = xilinx_get_jtagspi_userircode,
 };
