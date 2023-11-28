@@ -91,6 +91,13 @@ struct image_mot {
 	uint8_t *buffer;
 };
 
+/* Begin codes from Cypress fork */
+struct symbol {
+	const char *name;
+	uint32_t offset;
+};
+/* End codes from Cypress fork */
+
 int image_open(struct image *image, const char *url, const char *type_string);
 int image_read_section(struct image *image, int section, target_addr_t offset,
 		uint32_t size, uint8_t *buffer, size_t *size_read);
@@ -101,6 +108,10 @@ int image_add_section(struct image *image, target_addr_t base, uint32_t size,
 
 int image_calculate_checksum(const uint8_t *buffer, uint32_t nbytes,
 		uint32_t *checksum);
+
+/* Begin codes from Cypress fork */
+int image_resolve_symbols(struct image *image, struct symbol *symbols);
+/* End of codes from Cypress fork */
 
 #define ERROR_IMAGE_FORMAT_ERROR	(-1400)
 #define ERROR_IMAGE_TYPE_UNKNOWN	(-1401)
