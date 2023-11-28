@@ -1,0 +1,78 @@
+   1              		.cpu cortex-m0plus
+   2              		.eabi_attribute 20, 1
+   3              		.eabi_attribute 21, 1
+   4              		.eabi_attribute 23, 3
+   5              		.eabi_attribute 24, 1
+   6              		.eabi_attribute 25, 1
+   7              		.eabi_attribute 26, 1
+   8              		.eabi_attribute 30, 4
+   9              		.eabi_attribute 34, 0
+  10              		.eabi_attribute 18, 4
+  11              		.file	"program_page.c"
+  12              		.text
+  13              		.align	1
+  14              		.global	write
+  15              		.arch armv6s-m
+  16              		.syntax unified
+  17              		.code	16
+  18              		.thumb_func
+  19              		.fpu softvfp
+  21              	write:
+  22              		@ Naked Function: prologue and epilogue provided by programmer.
+  23              		@ Volatile: function does not return.
+  24              		@ args = 0, pretend = 0, frame = 8
+  25              		@ frame_needed = 0, uses_anonymous_args = 0
+  26 0000 4368     		ldr	r3, [r0, #4]
+  27 0002 0468     		ldr	r4, [r0]
+  28 0004 0093     		str	r3, [sp]
+  29 0006 4369     		ldr	r3, [r0, #20]
+  30 0008 0769     		ldr	r7, [r0, #16]
+  31 000a C568     		ldr	r5, [r0, #12]
+  32 000c 8668     		ldr	r6, [r0, #8]
+  33 000e 0193     		str	r3, [sp, #4]
+  34              	.L2:
+  35 0010 002D     		cmp	r5, #0
+  36 0012 01D1     		bne	.L3
+  37              	.L6:
+  38              		.syntax divided
+  39              	@ 52 "program_page.c" 1
+  40 0014 00BE     		bkpt 0
+  41              	@ 0 "" 2
+  42              		.thumb
+  43              		.syntax unified
+  44 0016 FDE7     		b	.L6
+  45              	.L3:
+  46 0018 6268     		ldr	r2, [r4, #4]
+  47 001a 2368     		ldr	r3, [r4]
+  48 001c 9A42     		cmp	r2, r3
+  49 001e FBD0     		beq	.L3
+  50 0020 6268     		ldr	r2, [r4, #4]
+  51 0022 3900     		movs	r1, r7
+  52 0024 3000     		movs	r0, r6
+  53 0026 019B     		ldr	r3, [sp, #4]
+  54 0028 9847     		blx	r3
+  55 002a 0028     		cmp	r0, #0
+  56 002c 03D0     		beq	.L4
+  57 002e 0023     		movs	r3, #0
+  58 0030 6360     		str	r3, [r4, #4]
+  59              		.syntax divided
+  60              	@ 36 "program_page.c" 1
+  61 0032 001C     		mov r0, r0
+  62 0034 00BE     		bkpt 0
+  63              	@ 0 "" 2
+  64              		.thumb
+  65              		.syntax unified
+  66              	.L4:
+  67 0036 6368     		ldr	r3, [r4, #4]
+  68 0038 009A     		ldr	r2, [sp]
+  69 003a FB18     		adds	r3, r7, r3
+  70 003c F619     		adds	r6, r6, r7
+  71 003e 9A42     		cmp	r2, r3
+  72 0040 01D8     		bhi	.L5
+  73 0042 2300     		movs	r3, r4
+  74 0044 0833     		adds	r3, r3, #8
+  75              	.L5:
+  76 0046 6360     		str	r3, [r4, #4]
+  77 0048 013D     		subs	r5, r5, #1
+  78 004a E1E7     		b	.L2
+  80              		.ident	"GCC: (bleeding-edge-toolchain) 8.2.0"
