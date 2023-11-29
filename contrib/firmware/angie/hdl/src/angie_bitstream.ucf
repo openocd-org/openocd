@@ -20,6 +20,7 @@ net SRST    LOC = 'P61' ;
 net SDA		LOC = 'P50' ;
 net SCL     LOC = 'P51' ;
 net SDA_DIR	LOC = 'P56' ;
+net SCL_DIR	LOC = 'P57' ;
 
 net SI_TDO	LOC = 'P16' ;
 net SO_TRST	LOC = 'P32' ;
