@@ -66,7 +66,7 @@
 #define PIN_SDA         IOD0
 #define PIN_SCL         IOD1
 #define PIN_SDA_DIR     IOD2
-/* PD3 Not Connected */
+#define PIN_SCL_DIR     IOD3
 /* PD4 Not Connected */
 /* PD5 Not Connected */
 /* PD6 Not Connected */

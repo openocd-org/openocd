@@ -886,9 +886,6 @@ void io_init(void)
 	PORTACFG = 0x01;	/* 0: normal ou 1: alternate function (each bit) */
 	OEA = 0xEF;	/* all OUT exept INIT_B IN */
 	IOA = 0xFF;
-	PIN_RDWR_B = 1;
-	PIN_CSI_B = 1;
-	PIN_PROGRAM_B = 1;
 
 	/* PORT B */
 	OEB = 0xEF;	/* all OUT exept TDO */
@@ -899,8 +896,6 @@ void io_init(void)
 	PIN_TDI = 0;
 	PIN_SRST = 1;
 
-
-
 	/* PORT C */
 	PORTCCFG = 0x00;	/* 0: normal ou 1: alternate function (each bit) */
 	OEC = 0xFF;
@@ -909,5 +904,4 @@ void io_init(void)
 	/* PORT D */
 	OED = 0xFF;
 	IOD = 0xFF;
-	PIN_SDA_DIR = 0;
 }
