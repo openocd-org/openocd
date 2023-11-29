@@ -50,8 +50,8 @@
 /* Supported Cortex-M Cores */
 static const struct cortex_m_part_info cortex_m_parts[] = {
 	{
-		.impl_part = SYNWIT_STAR_MC1_PARTNO,
-		.name = "Synwit STAR-MC1",
+		.impl_part = STAR_MC1_PARTNO,
+		.name = "STAR-MC1",
 		.arch = ARM_ARCH_V8M,
 		.flags = CORTEX_M_F_HAS_FPV5,
 	},
@@ -112,7 +112,7 @@ static const struct cortex_m_part_info cortex_m_parts[] = {
 		.flags = CORTEX_M_F_HAS_FPV5,
 	},
 	{
-		.impl_part = STAR_MC1_PARTNO,
+		.impl_part = ARM_STAR_MC1_PARTNO,
 		.name = "STAR-MC1",
 		.arch = ARM_ARCH_V8M,
 		.flags = CORTEX_M_F_HAS_FPV5,
