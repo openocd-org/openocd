@@ -24,6 +24,8 @@
 #include "config.h"
 #endif
 
+#include "flash/progress.h"
+
 #include "imp.h"
 #include <helper/binarybuffer.h>
 #include <target/algorithm.h>
@@ -691,7 +693,7 @@ static int cmsis_flash_blank_check(struct flash_bank *bank)
 	if (hr != ERROR_OK)
 		return hr;
 
-	//progress_init(bank->num_sectors, BLANKCHECK);
+	progress_init(bank->num_sectors, BLANKCHECK);
 
 	for (unsigned int i = 0; i < bank->num_sectors; i++) {
 		hr = cmsis_algo_blank_check(algo, target,
@@ -702,11 +704,11 @@ static int cmsis_flash_blank_check(struct flash_bank *bank)
 		if (hr != ERROR_OK)
 			goto release;
 
-		//progress_sofar(i);
+		progress_sofar(i);
 	}
 
 release:
-	//progress_done(hr);
+	progress_done(hr);
 	cmsis_flash_release_algo(bank);
 	return hr;
 }
@@ -754,7 +756,7 @@ static int cmsis_flash_erase(struct flash_bank *bank, unsigned int first, unsign
 	if (hr != ERROR_OK)
 		return hr;
 
-	//progress_init(last - first + 1, ERASING);
+	progress_init(last - first + 1, ERASING);
 
 	if (bank->num_sectors == last - first + 1 && algo->of_erase_chip != UINT32_MAX
 			&& !algo->prefer_sector_erase) {
@@ -768,11 +770,11 @@ static int cmsis_flash_erase(struct flash_bank *bank, unsigned int first, unsign
 		if (hr != ERROR_OK)
 			goto release;
 
-		//progress_left(last - i);
+		progress_left(last - i);
 	}
 
 release:
-	//progress_done(hr);
+	progress_done(hr);
 	cmsis_flash_release_algo(bank);
 	return hr;
 }
@@ -802,7 +804,7 @@ static int cmsis_flash_program_slow(struct flash_bank *bank, const uint8_t *buff
 	if (hr != ERROR_OK)
 		goto exit_free_wa;
 
-	//progress_init(count / algo->flash_dev.sz_page, PROGRAMMING);
+	progress_init(count / algo->flash_dev.sz_page, PROGRAMMING);
 
 	for (size_t i = 0; i < count / algo->flash_dev.sz_page; i++) {
 		hr = target_write_buffer(target, wa->address, algo->flash_dev.sz_page, buffer);
@@ -816,7 +818,7 @@ static int cmsis_flash_program_slow(struct flash_bank *bank, const uint8_t *buff
 		if (hr != ERROR_OK)
 			goto cleanup;
 
-		//progress_sofar(i + 1);
+		progress_sofar(i + 1);
 		buffer += algo->flash_dev.sz_page;
 	}
 
@@ -825,7 +827,7 @@ cleanup:
 
 exit_free_wa:
 	target_free_working_area(target, wa);
-	//progress_done(hr);
+	progress_done(hr);
 	return hr;
 }
 
@@ -943,7 +945,7 @@ static int cmsis_flash_verify(struct flash_bank *bank, const uint8_t *buffer,
     LOG_DEBUG("verify() is not implemented");
     return ERROR_NOT_IMPLEMENTED;
   }
-  LOG_WARNING("Using custom verify function");
+  LOG_WARNING("Using CMSIS verify function");
 
 	hr = cmsis_flash_prepare_algo(bank, CMSIS_OPERATION_VERIFY);
 	if (hr != ERROR_OK)
@@ -959,6 +961,8 @@ static int cmsis_flash_verify(struct flash_bank *bank, const uint8_t *buffer,
       goto cleanup;
     }
   }
+
+  progress_init(count, VERIFYING);
 
   /* some sensible timeout in ms */
   const uint32_t timeout = 100*(buffer_size/algo->flash_dev.sz_page);
@@ -983,10 +987,15 @@ static int cmsis_flash_verify(struct flash_bank *bank, const uint8_t *buffer,
       LOG_ERROR("verify fail at 0x%08" PRIx32, result);
       goto exit_free_wa;
     }
-    LOG_INFO("verified %" PRId32 " bytes at base address 0x%08" PRIx32 " ok", write_size, addr);
+    LOG_DEBUG("verified %" PRId32 " bytes at base address 0x%08" PRIx32 " ok", write_size, addr);
     written += write_size;
 		buffer += write_size;
+
+    progress_sofar(written);
+
 	}
+
+  progress_done(hr);
 
 exit_free_wa:
 	target_free_working_area(target, wa_buffer);

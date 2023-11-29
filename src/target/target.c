@@ -49,6 +49,8 @@
 #include "smp.h"
 #include "semihosting_common.h"
 
+#include "flash/progress.h"
+
 /* default halt wait timeout (ms) */
 #define DEFAULT_HALT_TIMEOUT 5000
 
@@ -970,6 +972,8 @@ int target_run_flash_async_algorithm(struct target *target,
 		return retval;
 	}
 
+	progress_init(count, PROGRAMMING);
+
 	while (count > 0) {
 
 		retval = target_read_u32(target, rp_addr, &rp);
@@ -1049,7 +1053,12 @@ int target_run_flash_async_algorithm(struct target *target,
 
 		/* Avoid GDB timeouts */
 		keep_alive();
+
+    progress_left(count);
+
 	}
+
+	progress_done(retval);
 
 	if (retval != ERROR_OK) {
 		/* abort flash write algorithm on target */
