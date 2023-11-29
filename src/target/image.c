@@ -1302,3 +1302,186 @@ int image_calculate_checksum(const uint8_t *buffer, uint32_t nbytes, uint32_t *c
 	*checksum = crc;
 	return ERROR_OK;
 }
+
+/* Begin codes from Cypress fork */
+/**
+ * @brief Convenience function, perfroms seek+read operation with corresponding error checking
+ * @param io pointer to fileio structure
+ * @param offset starting offset of the data
+ * @param size size of the data
+ * @param buffer pointer to output buffer
+ * @return ERROR_OK in case of success, ERROR_XXX code otherwise
+ */
+static int seek_read(struct fileio *io, size_t offset, size_t size, void *buffer)
+{
+	int hr;
+	size_t read;
+
+	hr = fileio_seek(io, offset);
+	if (hr != ERROR_OK)
+		return hr;
+
+	hr = fileio_read(io, size, buffer, &read);
+	if (hr != ERROR_OK)
+		return hr;
+
+	if (read != size)
+		return ERROR_FILEIO_OPERATION_FAILED;
+
+	return ERROR_OK;
+}
+
+/**
+ * @brief Resolves section names as symbols
+ * @param elf structure representing elf image
+ * @param sect_hdrs pointer to an array of section headers
+ * @param symbols array of structures to be populated with resolved addresses
+ * @return ERROR_OK in case of success, ERROR_XXX code otherwise
+ */
+static int resolve_section_names(struct image_elf *elf, Elf32_Shdr *sect_hdrs,
+	struct symbol *symbols)
+{
+	uint32_t sh_offs, sh_size;
+	int hr;
+
+  if (elf->is_64_bit) {
+		LOG_ERROR("Symbol resolution is supported for ELF32 images only");
+		return ERROR_IMAGE_FORMAT_ERROR;  
+  }
+
+	/* Locate section header representing string table with section names */
+	const size_t str_table_idx = field16(elf, elf->header32->e_shstrndx);
+	Elf32_Shdr *str_table_hdr = &sect_hdrs[str_table_idx];
+
+	/* Load string table with section names */
+	sh_offs = field32(elf, str_table_hdr->sh_offset);
+	sh_size = field32(elf, str_table_hdr->sh_size);
+	char str_tbl[sh_size];
+
+	hr = seek_read(elf->fileio, sh_offs, sh_size, str_tbl);
+	if (hr != ERROR_OK)
+		return hr;
+
+	/* Resolve section names as symbols */
+	const size_t section_header_num = field16(elf, elf->header32->e_shnum);
+	for (size_t i = 0; i < section_header_num; i++) {
+		struct symbol *crnt_symbol = symbols;
+		while (crnt_symbol->name) {
+			const uint32_t sh_name = field32(elf, sect_hdrs[i].sh_name);
+			if (!strcmp(str_tbl + sh_name, crnt_symbol->name))
+				crnt_symbol->offset = field32(elf, sect_hdrs[i].sh_addr);
+
+			crnt_symbol++;
+		}
+	}
+
+	return ERROR_OK;
+}
+
+/**
+ * @brief Parses ELF headers and performs symbol resolution. Function is capable
+ * of resolwing section names as symbols. This is required by CMSIS Flash Algorithms.
+ * @param image structure representing elf image
+ * @param symbols array of structures to be populated with resolved addresses
+ * @return ERROR_OK in case of success, ERROR_XXX code otherwise
+ */
+int image_resolve_symbols(struct image *image, struct symbol *symbols)
+{
+	if (image->type != IMAGE_ELF) {
+		LOG_ERROR("Symbol resolution is supported for ELF images only");
+		return ERROR_IMAGE_FORMAT_ERROR;
+	}
+
+	struct image_elf *elf = image->type_private;
+	uint32_t sh_offs, sh_size;
+	int hr;
+
+  if (elf->is_64_bit) {
+		LOG_ERROR("Symbol resolution is supported for ELF32 images only");
+		return ERROR_IMAGE_FORMAT_ERROR;  
+  }
+
+	/* Read all section headers */
+	sh_offs = field32(elf, elf->header32->e_shoff);
+	sh_size = field16(elf, elf->header32->e_shnum) * sizeof(Elf32_Shdr);
+	Elf32_Shdr section_hdrs[sh_size];
+
+	hr = seek_read(elf->fileio, sh_offs, sh_size, section_hdrs);
+	if (hr != ERROR_OK)
+		return hr;
+
+	/* Symbols may include section names, resolve load addresses of all sections */
+	hr = resolve_section_names(elf, section_hdrs, symbols);
+	if (hr != ERROR_OK)
+		return hr;
+
+	size_t symbol_count = 0;
+	size_t string_tbl_idx = 0;
+	Elf32_Sym *sym_table = NULL;
+
+	/* Loop through all section headers */
+	const size_t section_header_num = field16(elf, elf->header32->e_shnum);
+	for (size_t i = 0; i < section_header_num; i++) {
+
+		/* If current section header represents symbol table */
+		if (section_hdrs[i].sh_type == SHT_SYMTAB) {
+
+			/* Read symbol table */
+			sh_offs = field32(elf, section_hdrs[i].sh_offset);
+			sh_size = field32(elf, section_hdrs[i].sh_size);
+
+			sym_table = malloc(sh_size);
+			if (!sym_table)
+				return ERROR_FAIL;
+
+			hr = seek_read(elf->fileio, sh_offs, sh_size, sym_table);
+			if (hr != ERROR_OK)
+				goto free_sym_table;
+
+			/* sh_link contains index of corresponding String Table header */
+			string_tbl_idx = field32(elf, section_hdrs[i].sh_link);
+			symbol_count = sh_size / sizeof(Elf32_Sym);
+			break;
+		}
+	}
+
+	if (!sym_table) {
+		LOG_ERROR("Symbol Table not found in elf object, symbols stripped???");
+		return ERROR_IMAGE_FORMAT_ERROR;
+	}
+
+	/* Load string table header with symbol names */
+	sh_offs = field32(elf, section_hdrs[string_tbl_idx].sh_offset);
+	sh_size = field32(elf, section_hdrs[string_tbl_idx].sh_size);
+
+	char *strtab = malloc(section_hdrs[string_tbl_idx].sh_size);
+	if (!strtab) {
+		hr = ERROR_FAIL;
+		goto free_sym_table;
+	}
+
+	hr = seek_read(elf->fileio, sh_offs, sh_size, strtab);
+	if (hr != ERROR_OK)
+		goto free_str_table;
+
+	/* Resolve symbols */
+	for (size_t j = 0; j < symbol_count; j++) {
+		struct symbol *crnt_symbol = symbols;
+
+		while (crnt_symbol->name) {
+			uint32_t st_name = field32(elf, sym_table[j].st_name);
+			if(sym_table[j].st_shndx != 0 /* STN_UNDEF */)
+				if (!strcmp(&strtab[st_name], crnt_symbol->name))
+					crnt_symbol->offset = sym_table[j].st_value;
+
+			crnt_symbol++;
+		}
+	}
+
+free_str_table:
+	free(strtab);
+free_sym_table:
+	free(sym_table);
+	return hr;
+}
+/* End codes from Cypress fork */

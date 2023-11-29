@@ -50,6 +50,12 @@
 /* Supported Cortex-M Cores */
 static const struct cortex_m_part_info cortex_m_parts[] = {
 	{
+		.impl_part = STAR_MC1_PARTNO,
+		.name = "STAR-MC1",
+		.arch = ARM_ARCH_V8M,
+		.flags = CORTEX_M_F_HAS_FPV5,
+	},
+	{
 		.impl_part = CORTEX_M0_PARTNO,
 		.name = "Cortex-M0",
 		.arch = ARM_ARCH_V6M,
@@ -106,7 +112,7 @@ static const struct cortex_m_part_info cortex_m_parts[] = {
 		.flags = CORTEX_M_F_HAS_FPV5,
 	},
 	{
-		.impl_part = STAR_MC1_PARTNO,
+		.impl_part = ARM_STAR_MC1_PARTNO,
 		.name = "STAR-MC1",
 		.arch = ARM_ARCH_V8M,
 		.flags = CORTEX_M_F_HAS_FPV5,
@@ -2545,6 +2551,7 @@ int cortex_m_examine(struct target *target)
 
 		/* Inspect implementor/part to look for recognized cores  */
 		unsigned int impl_part = cpuid & (ARM_CPUID_IMPLEMENTOR_MASK | ARM_CPUID_PARTNO_MASK);
+    LOG_DEBUG("cpuid is 0x%08" PRIX32 " impl_part is 0x%08" PRIX32, cpuid, impl_part);
 
 		for (unsigned int n = 0; n < ARRAY_SIZE(cortex_m_parts); n++) {
 			if (impl_part == cortex_m_parts[n].impl_part) {
