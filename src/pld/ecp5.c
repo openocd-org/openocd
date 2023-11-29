@@ -205,3 +205,98 @@ int lattice_ecp5_load(struct lattice_pld_device *lattice_device, struct lattice_
 	const uint32_t mask3 = STATUS_DONE_BIT | STATUS_FAIL_FLAG;
 	return lattice_verify_status_register_u32(lattice_device, out, expected2, mask3, false);
 }
+
+int lattice_ecp5_connect_spi_to_jtag(struct lattice_pld_device *pld_device_info)
+{
+	if (!pld_device_info)
+		return ERROR_FAIL;
+
+	struct jtag_tap *tap = pld_device_info->tap;
+	if (!tap)
+		return ERROR_FAIL;
+
+	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) == PROGRAM_SPI)
+		return ERROR_OK;
+
+	// erase configuration
+	int retval = lattice_preload(pld_device_info);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = lattice_ecp5_enable_sram_programming(tap);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = lattice_ecp5_erase_sram(tap);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = lattice_ecp5_exit_programming_mode(tap);
+	if (retval != ERROR_OK)
+		return retval;
+
+	// connect jtag to spi pins
+	retval = lattice_set_instr(tap, PROGRAM_SPI, TAP_IDLE);
+	if (retval != ERROR_OK)
+		return retval;
+
+	struct scan_field field;
+	uint8_t buffer[2] = {0xfe, 0x68};
+	field.num_bits = 16;
+	field.out_value = buffer;
+	field.in_value = NULL;
+	jtag_add_dr_scan(tap, 1, &field, TAP_IDLE);
+
+	return jtag_execute_queue();
+}
+
+int lattice_ecp5_disconnect_spi_from_jtag(struct lattice_pld_device *pld_device_info)
+{
+	if (!pld_device_info)
+		return ERROR_FAIL;
+
+	struct jtag_tap *tap = pld_device_info->tap;
+	if (!tap)
+		return ERROR_FAIL;
+
+	/* Connecting it again takes way too long to do it multiple times for writing
+	   a bitstream (ca. 0.4s each access).
+	   We just leave it connected since SCS will not be active when not in shift_dr state.
+	   So there is no need to change instruction, just make sure we are not in shift dr state. */
+	jtag_add_runtest(2, TAP_IDLE);
+	return jtag_execute_queue();
+}
+
+int lattice_ecp5_get_facing_read_bits(struct lattice_pld_device *pld_device_info, unsigned int *facing_read_bits)
+{
+	if (!pld_device_info)
+		return ERROR_FAIL;
+
+	*facing_read_bits = 0;
+
+	return ERROR_OK;
+}
+
+int lattice_ecp5_refresh(struct lattice_pld_device *lattice_device)
+{
+	struct jtag_tap *tap = lattice_device->tap;
+	if (!tap)
+		return ERROR_FAIL;
+
+	int retval = lattice_preload(lattice_device);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = lattice_set_instr(tap, LSC_REFRESH, TAP_IDLE);
+	if (retval != ERROR_OK)
+		return retval;
+	jtag_add_runtest(2, TAP_IDLE);
+	jtag_add_sleep(200000);
+	retval = lattice_set_instr(tap, BYPASS, TAP_IDLE);
+	if (retval != ERROR_OK)
+		return retval;
+	jtag_add_runtest(100, TAP_IDLE);
+	jtag_add_sleep(1000);
+
+	return jtag_execute_queue();
+}

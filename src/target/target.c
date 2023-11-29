@@ -3928,24 +3928,24 @@ static int handle_bp_command_list(struct command_invocation *cmd)
 		if (breakpoint->type == BKPT_SOFT) {
 			char *buf = buf_to_hex_str(breakpoint->orig_instr,
 					breakpoint->length);
-			command_print(cmd, "IVA breakpoint: " TARGET_ADDR_FMT ", 0x%x, 0x%s",
+			command_print(cmd, "Software breakpoint(IVA): addr=" TARGET_ADDR_FMT ", len=0x%x, orig_instr=0x%s",
 					breakpoint->address,
 					breakpoint->length,
 					buf);
 			free(buf);
 		} else {
 			if ((breakpoint->address == 0) && (breakpoint->asid != 0))
-				command_print(cmd, "Context breakpoint: 0x%8.8" PRIx32 ", 0x%x, %u",
+				command_print(cmd, "Context breakpoint: asid=0x%8.8" PRIx32 ", len=0x%x, num=%u",
 							breakpoint->asid,
 							breakpoint->length, breakpoint->number);
 			else if ((breakpoint->address != 0) && (breakpoint->asid != 0)) {
-				command_print(cmd, "Hybrid breakpoint(IVA): " TARGET_ADDR_FMT ", 0x%x, %u",
+				command_print(cmd, "Hybrid breakpoint(IVA): addr=" TARGET_ADDR_FMT ", len=0x%x, num=%u",
 							breakpoint->address,
 							breakpoint->length, breakpoint->number);
 				command_print(cmd, "\t|--->linked with ContextID: 0x%8.8" PRIx32,
 							breakpoint->asid);
 			} else
-				command_print(cmd, "Breakpoint(IVA): " TARGET_ADDR_FMT ", 0x%x, %u",
+				command_print(cmd, "Hardware breakpoint(IVA): addr=" TARGET_ADDR_FMT ", len=0x%x, num=%u",
 							breakpoint->address,
 							breakpoint->length, breakpoint->number);
 		}
@@ -4036,21 +4036,31 @@ COMMAND_HANDLER(handle_bp_command)
 
 COMMAND_HANDLER(handle_rbp_command)
 {
+	int retval;
+
 	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	struct target *target = get_current_target(CMD_CTX);
 
 	if (!strcmp(CMD_ARGV[0], "all")) {
-		breakpoint_remove_all(target);
+		retval = breakpoint_remove_all(target);
+
+		if (retval != ERROR_OK) {
+			command_print(CMD, "Error encountered during removal of all breakpoints.");
+			command_print(CMD, "Some breakpoints may have remained set.");
+		}
 	} else {
 		target_addr_t addr;
 		COMMAND_PARSE_ADDRESS(CMD_ARGV[0], addr);
 
-		breakpoint_remove(target, addr);
+		retval = breakpoint_remove(target, addr);
+
+		if (retval != ERROR_OK)
+			command_print(CMD, "Error during removal of breakpoint at address " TARGET_ADDR_FMT, addr);
 	}
 
-	return ERROR_OK;
+	return retval;
 }
 
 COMMAND_HANDLER(handle_wp_command)
@@ -4135,9 +4145,12 @@ COMMAND_HANDLER(handle_rwp_command)
 	COMMAND_PARSE_ADDRESS(CMD_ARGV[0], addr);
 
 	struct target *target = get_current_target(CMD_CTX);
-	watchpoint_remove(target, addr);
+	int retval = watchpoint_remove(target, addr);
 
-	return ERROR_OK;
+	if (retval != ERROR_OK)
+		command_print(CMD, "Error during removal of watchpoint at address " TARGET_ADDR_FMT, addr);
+
+	return retval;
 }
 
 /**

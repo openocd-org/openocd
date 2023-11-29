@@ -254,8 +254,8 @@ static int rshim_dp_q_write(struct adiv5_dap *dap, unsigned int reg,
 		dp_ctrl_stat = data;
 		break;
 	case DP_SELECT:
-		ap_sel = (data & DP_SELECT_APSEL) >> 24;
-		ap_bank = (data & DP_SELECT_APBANK) >> 4;
+		ap_sel = (data & ADIV5_DP_SELECT_APSEL) >> 24;
+		ap_bank = (data & ADIV5_DP_SELECT_APBANK) >> 4;
 		break;
 	default:
 		LOG_INFO("Unknown command");

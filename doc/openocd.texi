@@ -3597,6 +3597,79 @@ espusbjtag chip_id 1
 
 @end deffn
 
+@deffn {Interface Driver} {dmem} Direct Memory access debug interface
+
+The Texas Instruments K3 SoC family provides memory access to DAP
+and coresight control registers. This allows control over the
+microcontrollers directly from one of the processors on the SOC
+itself.
+
+For maximum performance, the driver accesses the debug registers
+directly over the SoC memory map. The memory mapping requires read
+and write permission to kernel memory via "/dev/mem" and assumes that
+the system firewall configurations permit direct access to the debug
+memory space.
+
+@verbatim
++-----------+
+|  OpenOCD  |   SoC mem map (/dev/mem)
+|    on     +--------------+
+| Cortex-A53|              |
++-----------+              |
+                           |
++-----------+        +-----v-----+
+|Cortex-M4F <--------+           |
++-----------+        |           |
+                     |  DebugSS  |
++-----------+        |           |
+|Cortex-M4F <--------+           |
++-----------+        +-----------+
+@end verbatim
+
+NOTE: Firewalls are configurable in K3 SoC and depending on various types of
+device configuration, this function may be blocked out. Typical behavior
+observed in such cases is a firewall exception report on the security
+controller and armv8 processor reporting a system error.
+
+See @file{tcl/interface/ti_k3_am625-swd-native.cfg} for a sample configuration
+file.
+
+@deffn {Command} {dmem info}
+Print the DAPBUS dmem configuration.
+@end deffn
+
+@deffn {Config Command} {dmem device} device_path
+Set the DAPBUS memory access device (default: /dev/mem).
+@end deffn
+
+@deffn {Config Command} {dmem base_address} base_address
+Set the DAPBUS base address which is used to access CoreSight
+compliant Access Ports (APs) directly.
+@end deffn
+
+@deffn {Config Command} {dmem ap_address_offset} offset_address
+Set the address offset between Access Ports (APs).
+@end deffn
+
+@deffn {Config Command} {dmem max_aps} n
+Set the maximum number of valid access ports on the SoC.
+@end deffn
+
+@deffn {Config Command} {dmem emu_ap_list} n
+Set the list of Access Ports (APs) that need to be emulated. This
+emulation mode supports software translation of an AP request into an
+address mapped transaction that does not rely on physical AP hardware.
+This maybe needed if the AP is either denied access via memory map or
+protected using other SoC mechanisms.
+@end deffn
+
+@deffn {Config Command} {dmem emu_base_address_range} base_address address_window_size
+Set the emulated address and address window size. Both of these
+parameters must be aligned to page size.
+@end deffn
+
+@end deffn
+
 @section Transport Configuration
 @cindex Transport
 As noted earlier, depending on the version of OpenOCD you use,
@@ -5856,23 +5929,41 @@ flash bank $_FLASHNAME cfi 0x00000000 0x02000000 2 4 $_TARGETNAME
 @c "cfi part_id" disabled
 @end deffn
 
+@anchor{jtagspi}
 @deffn {Flash Driver} {jtagspi}
 @cindex Generic JTAG2SPI driver
 @cindex SPI
 @cindex jtagspi
 @cindex bscan_spi
 Several FPGAs and CPLDs can retrieve their configuration (bitstream) from a
-SPI flash connected to them. To access this flash from the host, the device
-is first programmed with a special proxy bitstream that
-exposes the SPI flash on the device's JTAG interface. The flash can then be
-accessed through JTAG.
+SPI flash connected to them. To access this flash from the host, some FPGA
+device provides dedicated JTAG instructions, while other FPGA devices should
+be programmed with a special proxy bitstream that exposes the SPI flash on
+the device's JTAG interface. The flash can then be accessed through JTAG.
 
-Since signaling between JTAG and SPI is compatible, all that is required for
+Since signalling between JTAG and SPI is compatible, all that is required for
 a proxy bitstream is to connect TDI-MOSI, TDO-MISO, TCK-CLK and activate
-the flash chip select when the JTAG state machine is in SHIFT-DR. Such
-a bitstream for several Xilinx FPGAs can be found in
+the flash chip select when the JTAG state machine is in SHIFT-DR.
+
+Such a bitstream for several Xilinx FPGAs can be found in
 @file{contrib/loaders/flash/fpga/xilinx_bscan_spi.py}. It requires
 @uref{https://github.com/m-labs/migen, migen} and a Xilinx toolchain to build.
+
+This mechanism with a proxy bitstream can also be used for FPGAs from Intel and
+Efinix. FPGAs from Lattice and Cologne Chip have dedicated JTAG instructions
+and procedure to connect the JTAG to the SPI signals and don't need a proxy
+bitstream. Support for these devices with dedicated procedure is provided by
+the pld drivers. For convenience the PLD drivers will provide the USERx code
+for FPGAs with a proxy bitstream. Currently the following PLD drivers are able
+to support jtagspi:
+@itemize
+@item Efinix: proxy-bitstream
+@item Gatemate: dedicated procedure
+@item Intel/Altera: proxy-bitstream
+@item Lattice: dedicated procedure supporting ECP2, ECP3, ECP5, Certus and Certus Pro devices
+@item AMD/Xilinx: proxy-bitstream
+@end itemize
+
 
 This flash bank driver requires a target on a JTAG tap and will access that
 tap directly. Since no support from the target is needed, the target can be a
@@ -5891,14 +5982,25 @@ command, see below.
 @item @var{ir} ... is loaded into the JTAG IR to map the flash as the JTAG DR.
 For the bitstreams generated from @file{xilinx_bscan_spi.py} this is the
 @var{USER1} instruction.
-@end itemize
+@example
+target create $_TARGETNAME testee -chain-position $_CHIPNAME.tap
+set _USER1_INSTR_CODE 0x02
+flash bank $_FLASHNAME jtagspi 0x0 0 0 0 \
+           $_TARGETNAME $_USER1_INSTR_CODE
+@end example
+
+@item The option @option{-pld} @var{name} is used to have support from the
+PLD driver of pld device @var{name}. The name is the name of the pld device
+given during creation of the pld device.
+Pld device names are shown by the @command{pld devices} command.
 
 @example
-target create $_TARGETNAME testee -chain-position $_CHIPNAME.fpga
-set _XILINX_USER1 0x02
-flash bank $_FLASHNAME spi 0x0 0 0 0 \
-           $_TARGETNAME $_XILINX_USER1
+target create $_TARGETNAME testee -chain-position $_CHIPNAME.tap
+set _JTAGSPI_CHAIN_ID $_CHIPNAME.pld
+flash bank $_FLASHNAME jtagspi 0x0 0 0 0 \
+           $_TARGETNAME -pld $_JTAGSPI_CHAIN_ID
 @end example
+@end itemize
 
 @deffn Command {jtagspi set} bank_id name total_size page_size read_cmd unused pprg_cmd mass_erase_cmd sector_size sector_erase_cmd
 Sets flash parameters: @var{name} human readable string, @var{total_size}
@@ -7149,10 +7251,16 @@ Show information about flash driver.
 All versions of the NPCX microcontroller families from Nuvoton include internal
 flash. The NPCX flash driver supports the NPCX family of devices. The driver
 automatically recognizes the specific version's flash parameters and
-autoconfigures itself. The flash bank starts at address 0x64000000.
+autoconfigures itself. The flash bank starts at address 0x64000000. An optional additional
+parameter sets the FIU version for the bank, with the default FIU is @var{npcx.fiu}.
 
 @example
+
+flash bank $_FLASHNAME npcx 0x64000000 0 0 0 $_TARGETNAME npcx_v2.fiu
+
+# FIU defaults to npcx.fiu
 flash bank $_FLASHNAME npcx 0x64000000 0 0 0 $_TARGETNAME
+
 @end example
 @end deffn
 
@@ -8618,7 +8726,8 @@ Accordingly, both are called PLDs here.
 
 As it does for JTAG TAPs, debug targets, and flash chips (both NOR and NAND),
 OpenOCD maintains a list of PLDs available for use in various commands.
-Also, each such PLD requires a driver.
+Also, each such PLD requires a driver. PLD drivers may also be needed to program
+SPI flash connected to the FPGA to store the bitstream (@xref{jtagspi} for details).
 
 They are referenced by the name which was given when the pld was created or
 the number shown by the @command{pld devices} command.
@@ -8684,8 +8793,8 @@ Change values for boundary scan instructions selecting the registers USER1 to US
 Description of the arguments can be found at command @command{virtex2 set_instr_codes}.
 @end deffn
 
-@deffn {Command} {virtex2 program} pld_name
-Load the bitstream from external memory for FPGA @var{pld_name}. A.k.a. refresh.
+@deffn {Command} {virtex2 refresh} pld_name
+Load the bitstream from external memory for FPGA @var{pld_name}. A.k.a. program.
 @end deffn
 @end deffn
 
@@ -8715,6 +8824,10 @@ for FPGA @var{pld_name} with value @var{val}.
 @deffn {Command} {lattice set_preload} pld_name length
 Set the length of the register for the preload. This is needed when the JTAG ID of the device is not known by openocd (newer NX devices).
 The load command for the FPGA @var{pld_name} will use a length for the preload of @var{length}.
+@end deffn
+
+@deffn {Command} {lattice refresh} pld_name
+Load the bitstream from external memory for FPGA @var{pld_name}. A.k.a program.
 @end deffn
 @end deffn
 
@@ -8770,9 +8883,9 @@ Reads and displays the user register
 for FPGA @var{pld_name}.
 @end deffn
 
-@deffn {Command} {gowin reload} pld_name
+@deffn {Command} {gowin refresh} pld_name
 Load the bitstream from external memory for
-FPGA @var{pld_name}. A.k.a. refresh.
+FPGA @var{pld_name}. A.k.a. reload.
 @end deffn
 @end deffn
 

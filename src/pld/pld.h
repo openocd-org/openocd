@@ -20,12 +20,26 @@ struct pld_ipdbg_hub {
 	unsigned int user_ir_code;
 };
 
+int pld_has_jtagspi_instruction(struct pld_device *device, bool *has_instruction);
+int pld_get_jtagspi_userircode(struct pld_device *pld_device, unsigned int *ir);
+
+int pld_get_jtagspi_stuff_bits(struct pld_device *pld_device, unsigned int *facing_read_bits,
+							unsigned int *trailing_write_bits);
+int pld_connect_spi_to_jtag(struct pld_device *pld_device);
+int pld_disconnect_spi_from_jtag(struct pld_device *pld_device);
+
 struct pld_driver {
 	const char *name;
 	__PLD_CREATE_COMMAND((*pld_create_command));
 	const struct command_registration *commands;
 	int (*load)(struct pld_device *pld_device, const char *filename);
 	int (*get_ipdbg_hub)(int user_num, struct pld_device *pld_device, struct pld_ipdbg_hub *hub);
+	int (*has_jtagspi_instruction)(struct pld_device *device, bool *has_instruction);
+	int (*get_jtagspi_userircode)(struct pld_device *pld_device, unsigned int *ir);
+	int (*connect_spi_to_jtag)(struct pld_device *pld_device);
+	int (*disconnect_spi_from_jtag)(struct pld_device *pld_device);
+	int (*get_stuff_bits)(struct pld_device *pld_device, unsigned int *facing_read_bits,
+		unsigned int *trailing_write_bits);
 };
 
 #define PLD_CREATE_COMMAND_HANDLER(name) \

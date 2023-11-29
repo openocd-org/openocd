@@ -4,6 +4,7 @@
  * Copyright (C) 2020 by Nuvoton Technology Corporation
  * Mulin Chao <mlchao@nuvoton.com>
  * Wealian Liao <WHLIAO@nuvoton.com>
+ * Luca	Hung	<YCHUNG0@nuvoton.com>
  */
 
 #ifdef HAVE_CONFIG_H
@@ -22,7 +23,6 @@ static const uint8_t npcx_algo[] = {
 };
 
 #define NPCX_FLASH_TIMEOUT_MS 8000
-#define NPCX_FLASH_BASE_ADDR 0x64000000
 
 /* flash list */
 enum npcx_flash_device_index {
@@ -33,7 +33,6 @@ enum npcx_flash_device_index {
 };
 
 struct npcx_flash_bank {
-	const char *family_name;
 	uint32_t sector_length;
 	bool probed;
 	enum npcx_flash_device_index flash;
@@ -44,6 +43,7 @@ struct npcx_flash_bank {
 	uint32_t algo_working_size;
 	uint32_t buffer_addr;
 	uint32_t params_addr;
+	uint32_t fiu_ver;
 };
 
 struct npcx_flash_info {
@@ -90,7 +90,7 @@ static int npcx_init(struct flash_bank *bank)
 
 	/* Confirm the defined working address is the area we need to use */
 	if (npcx_bank->working_area->address != NPCX_FLASH_LOADER_WORKING_ADDR) {
-		LOG_ERROR("%s: Invalid working address", npcx_bank->family_name);
+		LOG_TARGET_ERROR(target, "Invalid working address");
 		LOG_INFO("Hint: Use '-work-area-phys 0x%" PRIx32 "' in your target configuration",
 			NPCX_FLASH_LOADER_WORKING_ADDR);
 		target_free_working_area(target, npcx_bank->working_area);
@@ -102,8 +102,7 @@ static int npcx_init(struct flash_bank *bank)
 	retval = target_write_buffer(target, NPCX_FLASH_LOADER_PROGRAM_ADDR,
 				npcx_bank->algo_size, npcx_bank->algo_code);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: Failed to load flash helper algorithm",
-			npcx_bank->family_name);
+		LOG_TARGET_ERROR(target, "Failed to load flash helper algorithm");
 		target_free_working_area(target, npcx_bank->working_area);
 		npcx_bank->working_area = NULL;
 		return retval;
@@ -118,8 +117,7 @@ static int npcx_init(struct flash_bank *bank)
 				NPCX_FLASH_LOADER_PROGRAM_ADDR, 0,
 				&npcx_bank->armv7m_info);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: Failed to start flash helper algorithm",
-			npcx_bank->family_name);
+		LOG_TARGET_ERROR(target, "Failed to start flash helper algorithm");
 		target_free_working_area(target, npcx_bank->working_area);
 		npcx_bank->working_area = NULL;
 		return retval;
@@ -154,7 +152,6 @@ static int npcx_quit(struct flash_bank *bank)
 static int npcx_wait_algo_done(struct flash_bank *bank, uint32_t params_addr)
 {
 	struct target *target = bank->target;
-	struct npcx_flash_bank *npcx_bank = bank->driver_priv;
 	uint32_t status_addr = params_addr + offsetof(struct npcx_flash_params, sync);
 	uint32_t status;
 	int64_t start_ms = timeval_ms();
@@ -172,9 +169,7 @@ static int npcx_wait_algo_done(struct flash_bank *bank, uint32_t params_addr)
 	} while (status == NPCX_FLASH_LOADER_EXECUTE);
 
 	if (status != NPCX_FLASH_LOADER_WAIT) {
-		LOG_ERROR("%s: Flash operation failed, status=0x%" PRIx32,
-				npcx_bank->family_name,
-				status);
+		LOG_TARGET_ERROR(target, "Flash operation failed, status (%0x" PRIX32 ") ", status);
 		return ERROR_FAIL;
 	}
 
@@ -197,6 +192,7 @@ static enum npcx_flash_device_index npcx_get_flash_id(struct flash_bank *bank, u
 		return retval;
 
 	/* Set up algorithm parameters for get flash ID command */
+	target_buffer_set_u32(target, (uint8_t *)&algo_params.fiu_ver, npcx_bank->fiu_ver);
 	target_buffer_set_u32(target, (uint8_t *)&algo_params.cmd, NPCX_FLASH_CMD_GET_FLASH_ID);
 	target_buffer_set_u32(target, (uint8_t *)&algo_params.sync, NPCX_FLASH_LOADER_WAIT);
 
@@ -250,6 +246,7 @@ static int npcx_probe(struct flash_bank *bank)
 	npcx_bank->buffer_addr = NPCX_FLASH_LOADER_BUFFER_ADDR;
 	npcx_bank->params_addr = NPCX_FLASH_LOADER_PARAMS_ADDR;
 
+
 	int retval = npcx_get_flash_id(bank, &flash_id);
 	if (retval != ERROR_OK)
 		return retval;
@@ -264,7 +261,6 @@ static int npcx_probe(struct flash_bank *bank)
 		return ERROR_FAIL;
 	}
 
-	bank->base = NPCX_FLASH_BASE_ADDR;
 	bank->num_sectors = num_sectors;
 	bank->size = num_sectors * sector_length;
 	bank->write_start_alignment = 0;
@@ -300,7 +296,7 @@ FLASH_BANK_COMMAND_HANDLER(npcx_flash_bank_command)
 {
 	struct npcx_flash_bank *npcx_bank;
 
-	if (CMD_ARGC < 6)
+	if (CMD_ARGC < 6 || CMD_ARGC > 7)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	npcx_bank = calloc(1, sizeof(struct npcx_flash_bank));
@@ -309,13 +305,32 @@ FLASH_BANK_COMMAND_HANDLER(npcx_flash_bank_command)
 		return ERROR_FAIL;
 	}
 
+	const char *fiu;
+	if (CMD_ARGC == 6) {
+		LOG_WARNING("No FIU is selection, using default.");
+		npcx_bank->fiu_ver = NPCX_FIU_NPCX;
+	}
+
+	if (CMD_ARGC == 7) {
+		fiu = CMD_ARGV[6];
+		if (strcmp(fiu, "npcx.fiu") == 0) {
+			npcx_bank->fiu_ver = NPCX_FIU_NPCX;
+		} else if (strcmp(fiu, "npcx_v2.fiu") == 0) {
+			npcx_bank->fiu_ver = NPCX_FIU_NPCX_V2;
+		} else if (strcmp(fiu, "npck.fiu") == 0) {
+			npcx_bank->fiu_ver = NPCX_FIU_NPCK;
+		} else {
+			LOG_ERROR("%s is not a valid fiu", fiu);
+			free(npcx_bank);
+			return ERROR_TARGET_INVALID;
+		}
+	}
+
 	/* Initialize private flash information */
-	npcx_bank->family_name = "npcx";
 	npcx_bank->sector_length = NPCX_FLASH_ERASE_SIZE;
 
 	/* Finish initialization of bank */
 	bank->driver_priv = npcx_bank;
-	bank->next = NULL;
 
 	return ERROR_OK;
 }
@@ -341,6 +356,7 @@ static int npcx_chip_erase(struct flash_bank *bank)
 		return retval;
 
 	/* Set up algorithm parameters for chip erase command */
+	target_buffer_set_u32(target, (uint8_t *)&algo_params.fiu_ver, npcx_bank->fiu_ver);
 	target_buffer_set_u32(target, (uint8_t *)&algo_params.cmd, NPCX_FLASH_CMD_ERASE_ALL);
 	target_buffer_set_u32(target, (uint8_t *)&algo_params.sync, NPCX_FLASH_LOADER_WAIT);
 
@@ -397,6 +413,7 @@ static int npcx_erase(struct flash_bank *bank, unsigned int first,
 		return retval;
 
 	/* Set up algorithm parameters for erase command */
+	target_buffer_set_u32(target, (uint8_t *)&algo_params.fiu_ver, npcx_bank->fiu_ver);
 	target_buffer_set_u32(target, (uint8_t *)&algo_params.addr, address);
 	target_buffer_set_u32(target, (uint8_t *)&algo_params.len, length);
 	target_buffer_set_u32(target, (uint8_t *)&algo_params.cmd, NPCX_FLASH_CMD_ERASE_SECTORS);
@@ -464,6 +481,7 @@ static int npcx_write(struct flash_bank *bank, const uint8_t *buffer,
 		}
 
 		/* Update algo parameters for flash write */
+		target_buffer_set_u32(target, (uint8_t *)&algo_params.fiu_ver, npcx_bank->fiu_ver);
 		target_buffer_set_u32(target, (uint8_t *)&algo_params.addr, address);
 		target_buffer_set_u32(target, (uint8_t *)&algo_params.len, size);
 		target_buffer_set_u32(target, (uint8_t *)&algo_params.sync, NPCX_FLASH_LOADER_WAIT);
@@ -502,7 +520,7 @@ static int npcx_info(struct flash_bank *bank, struct command_invocation *cmd)
 	struct npcx_flash_bank *npcx_bank = bank->driver_priv;
 
 	command_print_sameline(cmd, "%s flash: %s\n",
-					npcx_bank->family_name,
+					target_name(bank->target),
 					flash_info[npcx_bank->flash].name);
 
 	return ERROR_OK;

@@ -249,6 +249,12 @@ static int efinix_get_ipdbg_hub(int user_num, struct pld_device *pld_device, str
 	return ERROR_OK;
 }
 
+static int efinix_get_jtagspi_userircode(struct pld_device *pld_device, unsigned int *ir)
+{
+	*ir = USER1;
+	return ERROR_OK;
+}
+
 PLD_CREATE_COMMAND_HANDLER(efinix_pld_create_command)
 {
 	if (CMD_ARGC != 4 && CMD_ARGC != 6)
@@ -296,4 +302,5 @@ struct pld_driver efinix_pld = {
 	.pld_create_command = &efinix_pld_create_command,
 	.load = &efinix_load,
 	.get_ipdbg_hub = efinix_get_ipdbg_hub,
+	.get_jtagspi_userircode = efinix_get_jtagspi_userircode,
 };

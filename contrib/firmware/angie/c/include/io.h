@@ -45,14 +45,14 @@
 #define PIN_TDI       IOB3
 #define PIN_TDO       IOB4
 #define PIN_SRST      IOB5
-/* PA6 Not Connected */
-/* PA7 Not Connected */
+/* PB6 Not Connected */
+/* PB7 Not Connected */
 
 /* JTAG Signals with direction 'OUT' on port B */
 /* PIN_TDI - PIN_TCK - PIN_TMS - PIN_TRST - PIN_SRST */
 #define MASK_PORTB_DIRECTION_OUT (bmbit0 | bmbit1 | bmbit2 | bmbit3 | bmbit5)
 
-/* PORT C */ // Debug:
+/* PORT C */
 #define PIN_T0      IOC0
 #define PIN_T1      IOC1
 #define PIN_T2      IOC2
@@ -61,5 +61,15 @@
 /* PC5 Not Connected */
 /* PC6 Not Connected */
 /* PC7 Not Connected */
+
+/* PORT D */
+#define PIN_SDA         IOD0
+#define PIN_SCL         IOD1
+#define PIN_SDA_DIR     IOD2
+/* PD3 Not Connected */
+/* PD4 Not Connected */
+/* PD5 Not Connected */
+/* PD6 Not Connected */
+/* PD7 Not Connected */
 
 #endif

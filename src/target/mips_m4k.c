@@ -100,6 +100,8 @@ static int mips_m4k_debug_entry(struct target *target)
 	/* attempt to find halt reason */
 	mips_m4k_examine_debug_reason(target);
 
+	mips32_cpu_probe(target);
+
 	mips32_read_config_regs(target);
 
 	/* default to mips32 isa, it will be changed below if required */

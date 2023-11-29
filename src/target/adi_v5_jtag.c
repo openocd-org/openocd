@@ -350,7 +350,7 @@ static int adi_jtag_dp_scan_u32(struct adiv5_dap *dap,
 {
 	uint8_t out_value_buf[4];
 	int retval;
-	uint64_t sel = (reg_addr >> 4) & 0xf;
+	uint64_t sel = (reg_addr >> 4) & DP_SELECT_DPBANK;
 
 	/* No need to change SELECT or RDBUFF as they are not banked */
 	if (instr == JTAG_DP_DPACC && reg_addr != DP_SELECT && reg_addr != DP_RDBUFF &&
@@ -775,7 +775,7 @@ static int jtag_ap_q_bankselect(struct adiv5_ap *ap, unsigned reg)
 	}
 
 	/* ADIv5 */
-	sel = (ap->ap_num << 24) | (reg & 0x000000F0);
+	sel = (ap->ap_num << 24) | (reg & ADIV5_DP_SELECT_APBANK);
 
 	if (sel == dap->select)
 		return ERROR_OK;

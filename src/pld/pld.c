@@ -69,8 +69,95 @@ struct pld_device *get_pld_device_by_name_or_numstr(const char *str)
 	return get_pld_device_by_num(dev_num);
 }
 
-/* @deffn {Config Command} {pld create} pld_name driver -chain-position tap_name [options]
-*/
+
+int pld_has_jtagspi_instruction(struct pld_device *pld_device, bool *has_instruction)
+{
+	*has_instruction = false; /* default is using a proxy bitstream */
+
+	if (!pld_device)
+		return ERROR_FAIL;
+
+	struct pld_driver *pld_driver = pld_device->driver;
+	if (!pld_driver) {
+		LOG_ERROR("pld device has no associated driver");
+		return ERROR_FAIL;
+	}
+
+	if (pld_driver->has_jtagspi_instruction)
+		return pld_driver->has_jtagspi_instruction(pld_device, has_instruction);
+    /* else, take the default (proxy bitstream) */
+	return ERROR_OK;
+}
+
+int pld_get_jtagspi_userircode(struct pld_device *pld_device, unsigned int *ir)
+{
+	if (!pld_device)
+		return ERROR_FAIL;
+
+	struct pld_driver *pld_driver = pld_device->driver;
+	if (!pld_driver) {
+		LOG_ERROR("pld device has no associated driver");
+		return ERROR_FAIL;
+	}
+
+	if (pld_driver->get_jtagspi_userircode)
+		return pld_driver->get_jtagspi_userircode(pld_device, ir);
+
+	return ERROR_FAIL;
+}
+
+int pld_get_jtagspi_stuff_bits(struct pld_device *pld_device, unsigned int *facing_read_bits,
+							unsigned int *trailing_write_bits)
+{
+	if (!pld_device)
+		return ERROR_FAIL;
+
+	struct pld_driver *pld_driver = pld_device->driver;
+	if (!pld_driver) {
+		LOG_ERROR("pld device has no associated driver");
+		return ERROR_FAIL;
+	}
+
+	if (pld_driver->get_stuff_bits)
+		return pld_driver->get_stuff_bits(pld_device, facing_read_bits, trailing_write_bits);
+
+	return ERROR_OK;
+}
+
+int pld_connect_spi_to_jtag(struct pld_device *pld_device)
+{
+	if (!pld_device)
+		return ERROR_FAIL;
+
+	struct pld_driver *pld_driver = pld_device->driver;
+	if (!pld_driver) {
+		LOG_ERROR("pld device has no associated driver");
+		return ERROR_FAIL;
+	}
+
+	if (pld_driver->connect_spi_to_jtag)
+		return pld_driver->connect_spi_to_jtag(pld_device);
+
+	return ERROR_FAIL;
+}
+
+int pld_disconnect_spi_from_jtag(struct pld_device *pld_device)
+{
+	if (!pld_device)
+		return ERROR_FAIL;
+
+	struct pld_driver *pld_driver = pld_device->driver;
+	if (!pld_driver) {
+		LOG_ERROR("pld device has no associated driver");
+		return ERROR_FAIL;
+	}
+
+	if (pld_driver->disconnect_spi_from_jtag)
+		return pld_driver->disconnect_spi_from_jtag(pld_device);
+
+	return ERROR_FAIL;
+}
+
 COMMAND_HANDLER(handle_pld_create_command)
 {
 	if (CMD_ARGC < 2)

@@ -362,6 +362,12 @@ static int intel_get_ipdbg_hub(int user_num, struct pld_device *pld_device, stru
 	return ERROR_OK;
 }
 
+static int intel_get_jtagspi_userircode(struct pld_device *pld_device, unsigned int *ir)
+{
+	*ir = USER1;
+	return ERROR_OK;
+}
+
 COMMAND_HANDLER(intel_set_bscan_command_handler)
 {
 	unsigned int boundary_scan_length;
@@ -411,7 +417,6 @@ COMMAND_HANDLER(intel_set_check_pos_command_handler)
 
 	return ERROR_OK;
 }
-
 
 PLD_CREATE_COMMAND_HANDLER(intel_pld_create_command)
 {
@@ -498,4 +503,5 @@ struct pld_driver intel_pld = {
 	.pld_create_command = &intel_pld_create_command,
 	.load = &intel_load,
 	.get_ipdbg_hub = intel_get_ipdbg_hub,
+	.get_jtagspi_userircode = intel_get_jtagspi_userircode,
 };

@@ -18,6 +18,7 @@
 #include <fx2macros.h>
 #include <serial.h>
 #include <stdio.h>
+#include "i2c.h"
 
 /* Also update external declarations in "include/usb.h" if making changes to
  * these variables!
@@ -36,9 +37,9 @@ __code struct usb_device_descriptor device_descriptor = {
 	.blength =		sizeof(struct usb_device_descriptor),
 	.bdescriptortype =	DESCRIPTOR_TYPE_DEVICE,
 	.bcdusb =			0x0200,	    /* BCD: 02.00 (Version 2.0 USB spec) */
-	.bdeviceclass =		0xFF,		/* 0xFF = vendor-specific */
-	.bdevicesubclass =	0xFF,
-	.bdeviceprotocol =	0xFF,
+	.bdeviceclass =		0xEF,
+	.bdevicesubclass =	0x02,
+	.bdeviceprotocol =	0x01,
 	.bmaxpacketsize0 =	64,
 	.idvendor =			0x584e,
 	.idproduct =		0x424e,
@@ -55,13 +56,24 @@ __code struct usb_config_descriptor config_descriptor = {
 	.blength =		sizeof(struct usb_config_descriptor),
 	.bdescriptortype =	DESCRIPTOR_TYPE_CONFIGURATION,
 	.wtotallength =		sizeof(struct usb_config_descriptor) +
-		sizeof(struct usb_interface_descriptor) +
-		(NUM_ENDPOINTS * sizeof(struct usb_endpoint_descriptor)),
-	.bnuminterfaces =	1,
+		3 * sizeof(struct usb_interface_descriptor) +
+		((NUM_ENDPOINTS + 2) * sizeof(struct usb_endpoint_descriptor)),
+	.bnuminterfaces =	2,
 	.bconfigurationvalue =	1,
-	.iconfiguration =	4,	/* String describing this configuration */
+	.iconfiguration =	1,	/* String describing this configuration */
 	.bmattributes =		0x80,	/* Only MSB set according to USB spec */
 	.maxpower =		50	/* 100 mA */
+};
+
+__code struct usb_interface_association_descriptor interface_association_descriptor = {
+	.blength = sizeof(struct usb_interface_association_descriptor),
+	.bdescriptortype =	DESCRIPTOR_TYPE_INTERFACE_ASSOCIATION,
+	.bfirstinterface =	0x01,
+	.binterfacecount =	0x02,
+	.bfunctionclass =	0x02,
+	.bfunctionsubclass =	0x00,
+	.bfunctionprotocol =	0x00,
+	.ifunction =	0x00
 };
 
 __code struct usb_interface_descriptor interface_descriptor00 = {
@@ -70,10 +82,10 @@ __code struct usb_interface_descriptor interface_descriptor00 = {
 	.binterfacenumber =	0,
 	.balternatesetting =	0,
 	.bnumendpoints =	NUM_ENDPOINTS,
-	.binterfaceclass =	0xFF,
-	.binterfacesubclass =	0xFF,
-	.binterfaceprotocol =	0xFF,
-	.iinterface =		0
+	.binterfaceclass =	0XFF,
+	.binterfacesubclass =	0x00,
+	.binterfaceprotocol =	0x00,
+	.iinterface =		4
 };
 
 __code struct usb_endpoint_descriptor bulk_ep1_out_endpoint_descriptor = {
@@ -103,16 +115,19 @@ __code struct usb_endpoint_descriptor bulk_ep2_endpoint_descriptor = {
 	.binterval =		0
 };
 
-__code struct usb_endpoint_descriptor bulk_ep4_endpoint_descriptor = {
-	.blength =		sizeof(struct usb_endpoint_descriptor),
-	.bdescriptortype =	0x05,
-	.bendpointaddress =	(4 | USB_DIR_IN),
-	.bmattributes =		0x02,
-	.wmaxpacketsize =	512,
-	.binterval =		0
+__code struct usb_interface_descriptor interface_descriptor01 = {
+	.blength = sizeof(struct usb_interface_descriptor),
+	.bdescriptortype =	DESCRIPTOR_TYPE_INTERFACE,
+	.binterfacenumber =	1,
+	.balternatesetting =	0,
+	.bnumendpoints =	2,
+	.binterfaceclass =	0x0A,
+	.binterfacesubclass =	0x00,
+	.binterfaceprotocol =	0x00,
+	.iinterface =		0x00
 };
 
-__code struct usb_endpoint_descriptor bulk_ep6_endpoint_descriptor = {
+__code struct usb_endpoint_descriptor bulk_ep6_out_endpoint_descriptor = {
 	.blength =		sizeof(struct usb_endpoint_descriptor),
 	.bdescriptortype =	0x05,
 	.bendpointaddress =	(6 | USB_DIR_OUT),
@@ -121,19 +136,18 @@ __code struct usb_endpoint_descriptor bulk_ep6_endpoint_descriptor = {
 	.binterval =		0
 };
 
-__code struct usb_endpoint_descriptor bulk_ep8_endpoint_descriptor = {
+__code struct usb_endpoint_descriptor bulk_ep8_in_endpoint_descriptor = {
 	.blength =		sizeof(struct usb_endpoint_descriptor),
 	.bdescriptortype =	0x05,
-	.bendpointaddress =	(8 | USB_DIR_OUT),
+	.bendpointaddress =	(8 | USB_DIR_IN),
 	.bmattributes =		0x02,
 	.wmaxpacketsize =	512,
 	.binterval =		0
 };
-
 __code struct usb_language_descriptor language_descriptor = {
 	.blength =		4,
 	.bdescriptortype =	DESCRIPTOR_TYPE_STRING,
-	.wlangid =		{0x0409 /* US English */}
+	.wlangid =		{0x0409} /* US English */
 };
 
 __code struct usb_string_descriptor strmanufacturer =
@@ -212,9 +226,15 @@ void ep4_isr(void)__interrupt	EP4_ISR
 }
 void ep6_isr(void)__interrupt	EP6_ISR
 {
+	i2c_recieve();
+	EXIF &= ~0x10;  /* Clear USBINT: Main global interrupt */
+	EPIRQ = 0x40;	/* Clear individual EP6OUT IRQ */
+
 }
 void ep8_isr(void)__interrupt	EP8_ISR
 {
+	EXIF &= ~0x10;  /* Clear USBINT: Main global interrupt */
+	EPIRQ = 0x80;	/* Clear individual EP8IN IRQ */
 }
 void ibn_isr(void)__interrupt	IBN_ISR
 {
@@ -411,21 +431,21 @@ bool usb_handle_clear_feature(void)
 	switch (setup_data.bmrequesttype) {
 	case CF_DEVICE:
 		/* Clear remote wakeup not supported: stall EP0 */
-	    STALL_EP0();
-	    break;
+		STALL_EP0();
+		break;
 	case CF_ENDPOINT:
-	    if (setup_data.wvalue == 0) {
+		if (setup_data.wvalue == 0) {
 			/* Unstall the endpoint specified in wIndex */
-		    ep_cs = usb_get_endpoint_cs_reg(setup_data.windex);
-		    if (!ep_cs)
-			    return false;
-		    *ep_cs &= ~EPSTALL;
+			ep_cs = usb_get_endpoint_cs_reg(setup_data.windex);
+			if (!ep_cs)
+				return false;
+			*ep_cs &= ~EPSTALL;
 		} else {
 			/* Unsupported feature, stall EP0 */
-		    STALL_EP0();
-	    }
-	    break;
-    default:
+			STALL_EP0();
+		}
+		break;
+	default:
 		/* Vendor commands... */
 		break;
 	}
@@ -597,7 +617,6 @@ bool usb_handle_send_bitstream(void)
 		/* wait until GPIF transaction has been completed */
 		while ((GPIFTRIG & BMGPIFDONE) == 0) {
 			if (ix-- == 0) {
-				printf("GPIF done time out\n");
 				break;
 			}
 			delay_ms(1);
@@ -697,9 +716,9 @@ void ep_init(void)
 	syncdelay(3);
 	EP4CFG = 0x00;
 	syncdelay(3);
-	EP6CFG = 0x00;
+	EP6CFG = 0xA2;
 	syncdelay(3);
-	EP8CFG = 0x00;
+	EP8CFG = 0xE2;
 	syncdelay(3);
 
 	/* arm EP1-OUT */
@@ -712,6 +731,12 @@ void ep_init(void)
 	EP1INBC = 0;
 	syncdelay(3);
 	EP1INBC = 0;
+	syncdelay(3);
+
+	/* arm EP6-OUT */
+	EP6BCL = 0x80;
+	syncdelay(3);
+	EP6BCL = 0x80;
 	syncdelay(3);
 
 	/* Standard procedure to reset FIFOs */
@@ -727,9 +752,110 @@ void ep_init(void)
 	syncdelay(3);
 }
 
+void i2c_recieve(void)
+{
+	PIN_SDA_DIR = 0;
+	if (EP6FIFOBUF[0] == 1) {
+		uint8_t rdwr = EP6FIFOBUF[0];   //read
+		uint8_t reg_adr_check = EP6FIFOBUF[1];
+		uint8_t count = EP6FIFOBUF[2];  //request data count
+		uint8_t adr = EP6FIFOBUF[3];    //address
+		uint8_t reg_adr = EP6FIFOBUF[4];
+		uint8_t address = get_address(adr, rdwr);   //address byte (read command)
+		uint8_t address_2 = get_address(adr, 0);   //address byte 2 (write command)
+
+		printf("%d\n", address);
+
+		/*  start:   */
+		start_cd();
+		/*  address:   */
+		send_byte(address_2);   //write
+		/*  ack:  */
+		uint8_t ack = get_ack();
+
+		delay_us(10);
+
+		/*   send data   */
+		if (reg_adr_check) { //if there is a byte reg
+			send_byte(reg_adr);
+			/*  ack():  */
+			ack = get_ack();
+		}
+
+		delay_us(10);
+
+		/*  repeated start:  */
+		repeated_start();
+		/*  address:   */
+		send_byte(address);
+		/*  get ack:  */
+		ack = get_ack();
+
+		delay_us(10);
+
+		/*   receive data   */
+		for (uint8_t i = 0; i < count; i++) {
+			EP8FIFOBUF[i] = receive_byte();
+
+			/*  send ack:  */
+			send_ack();
+		}
+
+		delay_ms(1);
+
+		/*   stop   */
+		stop_cd();
+
+		delay_us(10);
+
+		EP8BCH = 0; //EP8
+		syncdelay(3);
+		EP8BCL = count; //EP8
+
+		EP6BCL = 0x80; //EP6
+		syncdelay(3);
+		EP6BCL = 0x80; //EP6
+	} else {
+		uint8_t rdwr = EP6FIFOBUF[0];   //write
+		uint8_t count = EP6FIFOBUF[1];  //data count
+		uint8_t adr = EP6FIFOBUF[2];    //address
+		uint8_t address = get_address(adr, rdwr);   //address byte (read command)
+		uint8_t ack_cnt = 0;
+
+/*  start():   */
+		start_cd();
+/*  address:   */
+		send_byte(address);   //write
+/*  ack():  */
+		if (!get_ack())
+			ack_cnt++;
+/*   send data  */
+		for (uint8_t i = 0; i < count; i++) {
+			send_byte(EP6FIFOBUF[i + 3]);
+
+			/*  get ack:  */
+			if (!get_ack())
+				ack_cnt++;
+		}
+
+/*   stop   */
+		stop_cd();
+
+		EP8FIFOBUF[0] = ack_cnt;
+
+		EP8BCH = 0; //EP8
+		syncdelay(3);
+		EP8BCL = 1; //EP8
+
+		EP6BCL = 0x80; //EP6
+		syncdelay(3);
+		EP6BCL = 0x80; //EP6
+	}
+}
+
 /**
  * Interrupt initialization. Configures USB interrupts.
- */
+ **/
 void interrupt_init(void)
 {
 	/* Enable Interrupts */
@@ -742,11 +868,11 @@ void interrupt_init(void)
 	/* Enable INT 2 & 4 Autovectoring */
 	INTSETUP |= (AV2EN | AV4EN);
 
-	/* Enable individual EP1OUT&IN interrupts */
-	EPIE |= 0x0C;
+	/* Enable individual EP1OUT&IN & EP6&8 interrupts */
+	EPIE |= 0xCC;
 
 	/* Clear individual USB interrupt IRQ */
-	EPIRQ = 0x0C;
+	EPIRQ = 0xCC;
 
 	/* Enable SUDAV interrupt */
 	USBIEN |= SUDAVI;
@@ -777,8 +903,15 @@ void io_init(void)
 	PIN_TDI = 0;
 	PIN_SRST = 1;
 
+
+
 	/* PORT C */
 	PORTCCFG = 0x00;	/* 0: normal ou 1: alternate function (each bit) */
-	OEC = 0xEF;
+	OEC = 0xFF;
 	IOC = 0xFF;
+
+	/* PORT D */
+	OED = 0xFF;
+	IOD = 0xFF;
+	PIN_SDA_DIR = 0;
 }

@@ -204,6 +204,7 @@ ARC_SRC = \
 	%D%/image.h \
 	%D%/mips32.h \
 	%D%/mips64.h \
+	%D%/mips_cpu.h \
 	%D%/mips_m4k.h \
 	%D%/mips_mips64.h \
 	%D%/mips_ejtag.h \

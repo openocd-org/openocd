@@ -560,12 +560,22 @@ static int at91sam7_read_part_info(struct flash_bank *bank)
 		if (bnk > 0) {
 			if (!t_bank->next) {
 				/* create a new flash bank element */
-				struct flash_bank *fb = malloc(sizeof(struct flash_bank));
+				struct flash_bank *fb = calloc(sizeof(struct flash_bank), 1);
+				if (!fb) {
+					LOG_ERROR("No memory for flash bank");
+					return ERROR_FAIL;
+				}
 				fb->target = target;
 				fb->driver = bank->driver;
+				fb->default_padded_value = 0xff;
+				fb->erased_value = 0xff;
 				fb->driver_priv = malloc(sizeof(struct at91sam7_flash_bank));
-				fb->name = "sam7_probed";
-				fb->next = NULL;
+				if (!fb->driver_priv) {
+					free(fb);
+					LOG_ERROR("No memory for flash driver priv");
+					return ERROR_FAIL;
+				}
+				fb->name = strdup("sam7_probed");
 
 				/* link created bank in 'flash_banks' list */
 				t_bank->next = fb;
@@ -738,12 +748,22 @@ FLASH_BANK_COMMAND_HANDLER(at91sam7_flash_bank_command)
 		if (bnk > 0) {
 			if (!t_bank->next) {
 				/* create a new bank element */
-				struct flash_bank *fb = malloc(sizeof(struct flash_bank));
+				struct flash_bank *fb = calloc(sizeof(struct flash_bank), 1);
+				if (!fb) {
+					LOG_ERROR("No memory for flash bank");
+					return ERROR_FAIL;
+				}
 				fb->target = target;
 				fb->driver = bank->driver;
+				fb->default_padded_value = 0xff;
+				fb->erased_value = 0xff;
 				fb->driver_priv = malloc(sizeof(struct at91sam7_flash_bank));
-				fb->name = "sam7_probed";
-				fb->next = NULL;
+				if (!fb->driver_priv) {
+					free(fb);
+					LOG_ERROR("No memory for flash driver priv");
+					return ERROR_FAIL;
+				}
+				fb->name = strdup("sam7_probed");
 
 				/* link created bank in 'flash_banks' list */
 				t_bank->next = fb;

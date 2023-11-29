@@ -2,7 +2,7 @@
 # Copyright (C) 2023 by NanoXplore, France - all rights reserved
 
 # Needed by timing test
-export PROJECT := angie_openocd
+export PROJECT := angie_bitstream
 TARGET_PART := xc6slx9-2tqg144
 export TOPLEVEL := S609
 

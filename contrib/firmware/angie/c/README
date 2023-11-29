@@ -12,8 +12,8 @@ To compile the firmware, the SDCC compiler package is required. Most Linux
 distributions include SDCC in their official package repositories. The SDCC
 source code can be found at http://sdcc.sourceforge.net/
 
-Simply type "make hex" in the ANGIE directory to compile the firmware.
-"make clean" will remove all generated files except the Intel HEX file
+Simply type "make bin" in the ANGIE directory to compile the firmware.
+"make clean" will remove all generated files except the BIN file
 required for downloading the firmware to ANGIE.
 
 Note that the EZ-USB FX2 microcontroller does not have on-chip flash,

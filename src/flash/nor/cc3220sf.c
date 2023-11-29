@@ -96,7 +96,6 @@ FLASH_BANK_COMMAND_HANDLER(cc3220sf_flash_bank_command)
 
 	/* Finish initialization of flash bank */
 	bank->driver_priv = cc3220sf_bank;
-	bank->next = NULL;
 
 	return ERROR_OK;
 }

@@ -10,9 +10,29 @@
 #include <string.h>
 #include "npcx_flash.h"
 
+/* flashloader parameter structure */
+__attribute__ ((section(".buffers.g_cfg")))
+static volatile struct npcx_flash_params g_cfg;
+/* data buffer */
+__attribute__ ((section(".buffers.g_buf")))
+static uint8_t g_buf[NPCX_FLASH_LOADER_BUFFER_SIZE];
+
 /*----------------------------------------------------------------------------
  *                             NPCX flash driver
  *----------------------------------------------------------------------------*/
+static void flash_init(void)
+{
+	if (g_cfg.fiu_ver == NPCX_FIU_NPCK) {
+		/* Set pinmux to SHD flash */
+		NPCX_DEVCNT = 0x80;
+		NPCX_DEVALT(0) = 0xC0;
+		NPCX_DEVALT(4) = 0x00;
+	} else {
+		/* Avoid F_CS0 toggles while programming the internal flash. */
+		NPCX_SET_BIT(NPCX_DEVALT(0), NPCX_DEVALT0_NO_F_SPI);
+	}
+}
+
 static void flash_execute_cmd(uint8_t code, uint8_t cts)
 {
 	/* Set UMA code */
@@ -26,11 +46,26 @@ static void flash_execute_cmd(uint8_t code, uint8_t cts)
 
 static void flash_cs_level(uint8_t level)
 {
+	int sw_cs = 0;
+
+	if (g_cfg.fiu_ver == NPCX_FIU_NPCX) {
+		sw_cs = 1;
+	} else if (g_cfg.fiu_ver == NPCX_FIU_NPCX_V2) {
+		sw_cs = 0;
+	} else if (g_cfg.fiu_ver == NPCX_FIU_NPCK) {
+		sw_cs = 1;
+		/* Unlock UMA before pulling down CS in NPCK series */
+		if (level)
+			NPCX_CLEAR_BIT(NPCX_FIU_MSR_IE_CFG, NPCX_FIU_MSR_IE_CFG_UMA_BLOCK);
+		else
+			NPCX_SET_BIT(NPCX_FIU_MSR_IE_CFG, NPCX_FIU_MSR_IE_CFG_UMA_BLOCK);
+	}
+
 	/* Program chip select pin to high/low level */
 	if (level)
-		NPCX_SET_BIT(NPCX_UMA_ECTS, NPCX_UMA_ECTS_SW_CS1);
+		NPCX_SET_BIT(NPCX_UMA_ECTS, sw_cs);
 	else
-		NPCX_CLEAR_BIT(NPCX_UMA_ECTS, NPCX_UMA_ECTS_SW_CS1);
+		NPCX_CLEAR_BIT(NPCX_UMA_ECTS, sw_cs);
 }
 
 static void flash_set_address(uint32_t dest_addr)
@@ -38,15 +73,15 @@ static void flash_set_address(uint32_t dest_addr)
 	uint8_t *addr = (uint8_t *)&dest_addr;
 
 	/* Set target flash address */
-	NPCX_UMA_AB2 = addr[2];
-	NPCX_UMA_AB1 = addr[1];
-	NPCX_UMA_AB0 = addr[0];
+	NPCX_UMA_DB0 = addr[2];
+	NPCX_UMA_DB1 = addr[1];
+	NPCX_UMA_DB2 = addr[0];
 }
 
-void delay(uint32_t i)
+static void delay(uint32_t i)
 {
 	while (i--)
-		;
+		__asm__ volatile ("nop");
 }
 
 static int flash_wait_ready(uint32_t timeout)
@@ -104,7 +139,7 @@ static void flash_burst_write(uint32_t dest_addr, uint16_t bytes,
 	/* Set write address */
 	flash_set_address(dest_addr);
 	/* Start programming */
-	flash_execute_cmd(NPCX_CMD_FLASH_PROGRAM, NPCX_MASK_CMD_WR_ADR);
+	flash_execute_cmd(NPCX_CMD_FLASH_PROGRAM, NPCX_MASK_CMD_WR_3BYTE);
 	for (uint32_t i = 0; i < bytes; i++) {
 		flash_execute_cmd(*data, NPCX_MASK_CMD_WR_ONLY);
 		data++;
@@ -112,6 +147,15 @@ static void flash_burst_write(uint32_t dest_addr, uint16_t bytes,
 
 	/* Chip Select up */
 	flash_cs_level(1);
+}
+
+static void flash_get_stsreg(uint8_t *reg1, uint8_t *reg2)
+{
+	/* Read status register 1/2 for checking */
+	flash_execute_cmd(NPCX_CMD_READ_STATUS_REG, NPCX_MASK_CMD_RD_1BYTE);
+	*reg1 = NPCX_UMA_DB0;
+	flash_execute_cmd(NPCX_CMD_READ_STATUS_REG2, NPCX_MASK_CMD_RD_1BYTE);
+	*reg2 = NPCX_UMA_DB0;
 }
 
 /* The data to write cannot cross 256 Bytes boundary */
@@ -126,7 +170,41 @@ static int flash_program_write(uint32_t addr, uint32_t size,
 	return flash_wait_ready(NPCX_FLASH_ABORT_TIMEOUT);
 }
 
-int flash_physical_write(uint32_t offset, uint32_t size, const uint8_t *data)
+static int flash_physical_clear_stsreg(void)
+{
+	int status;
+	uint8_t reg1, reg2;
+
+	/* Read status register 1/2 for checking */
+	flash_get_stsreg(&reg1, &reg2);
+	if (reg1 == 0x00 && reg2 == 0x00)
+		return NPCX_FLASH_STATUS_OK;
+
+	/* Enable write */
+	status = flash_write_enable();
+	if (status != NPCX_FLASH_STATUS_OK)
+		return status;
+
+	NPCX_UMA_DB0 = 0x0;
+	NPCX_UMA_DB1 = 0x0;
+
+	/* Write status register 1/2 */
+	flash_execute_cmd(NPCX_CMD_WRITE_STATUS_REG, NPCX_MASK_CMD_WR_2BYTE);
+
+	/* Wait writing completed */
+	status = flash_wait_ready(NPCX_FLASH_ABORT_TIMEOUT);
+	if (status != NPCX_FLASH_STATUS_OK)
+		return status;
+
+	/* Read status register 1/2 for checking */
+	flash_get_stsreg(&reg1, &reg2);
+	if (reg1 != 0x00 || reg2 != 0x00)
+		return NPCX_FLASH_STATUS_FAILED;
+
+	return NPCX_FLASH_STATUS_OK;
+}
+
+static int flash_physical_write(uint32_t offset, uint32_t size, const uint8_t *data)
 {
 	int status;
 	uint32_t trunk_start = (offset + 0xff) & ~0xff;
@@ -134,6 +212,13 @@ int flash_physical_write(uint32_t offset, uint32_t size, const uint8_t *data)
 	/* write head */
 	uint32_t dest_addr = offset;
 	uint32_t write_len = ((trunk_start - offset) > size) ? size : (trunk_start - offset);
+
+	/* Configure fiu and clear status registers if needed */
+	flash_init();
+	status = flash_physical_clear_stsreg();
+	if (status != NPCX_FLASH_STATUS_OK)
+		return status;
+
 
 	if (write_len) {
 		status = flash_program_write(dest_addr, write_len, data);
@@ -162,8 +247,16 @@ int flash_physical_write(uint32_t offset, uint32_t size, const uint8_t *data)
 	return NPCX_FLASH_STATUS_OK;
 }
 
-int flash_physical_erase(uint32_t offset, uint32_t size)
+static int flash_physical_erase(uint32_t offset, uint32_t size)
 {
+	/* Configure fiu */
+	flash_init();
+
+	/* clear flash status registers */
+	int status = flash_physical_clear_stsreg();
+	if (status != NPCX_FLASH_STATUS_OK)
+		return status;
+
 	/* Alignment has been checked in upper layer */
 	for (; size > 0; size -= NPCX_FLASH_ERASE_SIZE,
 		offset += NPCX_FLASH_ERASE_SIZE) {
@@ -175,7 +268,7 @@ int flash_physical_erase(uint32_t offset, uint32_t size)
 		/* Set erase address */
 		flash_set_address(offset);
 		/* Start erase */
-		flash_execute_cmd(NPCX_CMD_SECTOR_ERASE, NPCX_MASK_CMD_ADR);
+		flash_execute_cmd(NPCX_CMD_SECTOR_ERASE, NPCX_MASK_CMD_WR_3BYTE);
 		/* Wait erase completed */
 		status = flash_wait_ready(NPCX_FLASH_ABORT_TIMEOUT);
 		if (status != NPCX_FLASH_STATUS_OK)
@@ -185,10 +278,18 @@ int flash_physical_erase(uint32_t offset, uint32_t size)
 	return NPCX_FLASH_STATUS_OK;
 }
 
-int flash_physical_erase_all(void)
+static int flash_physical_erase_all(void)
 {
+	int status;
+
+	/* Configure fiu and clear status register if needed */
+	flash_init();
+	status = flash_physical_clear_stsreg();
+	if (status != NPCX_FLASH_STATUS_OK)
+		return status;
+
 	/* Enable write */
-	int status = flash_write_enable();
+	status = flash_write_enable();
 	if (status != NPCX_FLASH_STATUS_OK)
 		return status;
 
@@ -203,37 +304,10 @@ int flash_physical_erase_all(void)
 	return NPCX_FLASH_STATUS_OK;
 }
 
-int flash_physical_clear_stsreg(void)
+static int flash_get_id(uint32_t *id)
 {
-	/* Enable write */
-	int status = flash_write_enable();
-	if (status != NPCX_FLASH_STATUS_OK)
-		return status;
+	flash_init();
 
-	NPCX_UMA_DB0 = 0x0;
-	NPCX_UMA_DB1 = 0x0;
-
-	/* Write status register 1/2 */
-	flash_execute_cmd(NPCX_CMD_WRITE_STATUS_REG, NPCX_MASK_CMD_WR_2BYTE);
-
-	/* Wait writing completed */
-	status = flash_wait_ready(NPCX_FLASH_ABORT_TIMEOUT);
-	if (status != NPCX_FLASH_STATUS_OK)
-		return status;
-
-	/* Read status register 1/2 for checking */
-	flash_execute_cmd(NPCX_CMD_READ_STATUS_REG, NPCX_MASK_CMD_RD_1BYTE);
-	if (NPCX_UMA_DB0 != 0x00)
-		return NPCX_FLASH_STATUS_FAILED;
-	flash_execute_cmd(NPCX_CMD_READ_STATUS_REG2, NPCX_MASK_CMD_RD_1BYTE);
-	if (NPCX_UMA_DB0 != 0x00)
-		return NPCX_FLASH_STATUS_FAILED;
-
-	return NPCX_FLASH_STATUS_OK;
-}
-
-int flash_get_id(uint32_t *id)
-{
 	flash_execute_cmd(NPCX_CMD_READ_ID, NPCX_MASK_CMD_RD_3BYTE);
 	*id = NPCX_UMA_DB0 << 16 | NPCX_UMA_DB1 << 8 | NPCX_UMA_DB2;
 
@@ -243,7 +317,7 @@ int flash_get_id(uint32_t *id)
 /*----------------------------------------------------------------------------
  *                             flash loader function
  *----------------------------------------------------------------------------*/
-uint32_t flashloader_init(struct npcx_flash_params *params)
+static uint32_t flashloader_init(struct npcx_flash_params *params)
 {
 	/* Initialize params buffers */
 	memset(params, 0, sizeof(struct npcx_flash_params));
@@ -254,29 +328,12 @@ uint32_t flashloader_init(struct npcx_flash_params *params)
 /*----------------------------------------------------------------------------
  *                                      Functions
  *----------------------------------------------------------------------------*/
-/* flashloader parameter structure */
-__attribute__ ((section(".buffers.g_cfg")))
-volatile struct npcx_flash_params g_cfg;
-/* data buffer */
-__attribute__ ((section(".buffers.g_buf")))
-uint8_t g_buf[NPCX_FLASH_LOADER_BUFFER_SIZE];
-
-int main(void)
+static int main(void)
 {
-	uint32_t id;
+	uint32_t id, status;
 
 	/* set buffer */
 	flashloader_init((struct npcx_flash_params *)&g_cfg);
-
-	/* Avoid F_CS0 toggles while programming the internal flash. */
-	NPCX_SET_BIT(NPCX_DEVALT(0), NPCX_DEVALT0_NO_F_SPI);
-
-	/* clear flash status registers */
-	int status = flash_physical_clear_stsreg();
-	if (status != NPCX_FLASH_STATUS_OK) {
-		while (1)
-			g_cfg.sync = status;
-	}
 
 	while (1) {
 		/* wait command*/
