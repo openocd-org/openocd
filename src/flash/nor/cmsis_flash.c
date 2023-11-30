@@ -783,7 +783,7 @@ release:
  * @brief Performs Program operation
  * @param bank current flash bank
  * @param buffer pointer to the buffer with data
- * @param offset starting offset in falsh bank
+ * @param offset starting offset in flash bank
  * @param count number of bytes in buffer
  * @return ERROR_OK in case of success, ERROR_XXX code otherwise
  *************************************************************************************************/
@@ -835,7 +835,7 @@ exit_free_wa:
  * @brief Performs Program operation
  * @param bank current flash bank
  * @param buffer pointer to the buffer with data
- * @param offset starting offset in falsh bank
+ * @param offset starting offset in flash bank
  * @param count number of bytes in buffer
  * @return ERROR_OK in case of success, ERROR_XXX code otherwise
  *************************************************************************************************/
@@ -932,6 +932,15 @@ exit_release_algo:
 #endif  
 }
 
+/** ***********************************************************************************************
+ * @brief Performs Verify operation
+ * @param bank current flash bank
+ * @param buffer pointer to the buffer with data
+ * @param offset starting offset in flash bank
+ * @param count number of bytes in buffer
+ * @return ERROR_OK in case of success, ERROR_NOT_IMPLEMENTED if not implemented
+ *				 ERROR_XXX code otherwise
+ *************************************************************************************************/
 static int cmsis_flash_verify(struct flash_bank *bank, const uint8_t *buffer,
 	uint32_t offset, uint32_t count)
 {
