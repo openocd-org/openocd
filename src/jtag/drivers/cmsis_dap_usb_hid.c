@@ -34,6 +34,36 @@ struct cmsis_dap_backend_data {
 	hid_device *dev_handle;
 };
 
+struct cmsis_dap_report_size {
+	unsigned short vid;
+	unsigned short pid;
+	unsigned int report_size;
+};
+
+static const struct cmsis_dap_report_size report_size_quirks[] = {
+	/* Third gen Atmel tools use a report size of 512 */
+    /* This list of PIDs comes from toolinfo.py in Microchip's pyedbglib. */
+	// Atmel JTAG-ICE 3
+	{ .vid = 0x03eb, .pid = 0x2140, .report_size = 512 },
+	// Atmel-ICE
+	{ .vid = 0x03eb, .pid = 0x2141, .report_size = 512 },
+	// Atmel Power Debugger
+	{ .vid = 0x03eb, .pid = 0x2144, .report_size = 512 },
+	// EDBG (found on Xplained Pro boards)
+	{ .vid = 0x03eb, .pid = 0x2111, .report_size = 512 },
+	// Zero (???)
+	{ .vid = 0x03eb, .pid = 0x2157, .report_size = 512 },
+	// EDBG with Mass Storage (found on Xplained Pro boards)
+	{ .vid = 0x03eb, .pid = 0x2169, .report_size = 512 },
+	// Commercially available EDBG (for third-party use)
+	{ .vid = 0x03eb, .pid = 0x216a, .report_size = 512 },
+	// Kraken (???)
+	{ .vid = 0x03eb, .pid = 0x2170, .report_size = 512 },
+
+	{ .vid = 0, .pid = 0, .report_size = 0 }
+};
+
+
 static void cmsis_dap_hid_close(struct cmsis_dap *dap);
 static int cmsis_dap_hid_alloc(struct cmsis_dap *dap, unsigned int pkt_sz);
 static void cmsis_dap_hid_free(struct cmsis_dap *dap);
@@ -139,13 +169,15 @@ static int cmsis_dap_hid_open(struct cmsis_dap *dap, uint16_t vids[], uint16_t p
 
 	unsigned int packet_size = 64;
 
-	/* atmel cmsis-dap uses 512 byte reports */
-	/* except when it doesn't e.g. with mEDBG on SAMD10 Xplained
-	 * board */
+	/* Check for adapters that are known to have unusual report lengths. */
+	for (i = 0; report_size_quirks[i].vid != 0; i++) {
+		if (report_size_quirks[i].vid == target_vid &&
+		    report_size_quirks[i].pid == target_pid) {
+			packet_size = report_size_quirks[i].report_size;
+		}
+	}
 	/* TODO: HID report descriptor should be parsed instead of
-	 * hardcoding a match by VID */
-	if (target_vid == 0x03eb && target_pid != 0x2145 && target_pid != 0x2175)
-		packet_size = 512;
+	 * hardcoding a match by VID/PID */
 
 	dap->bdata->dev_handle = dev;
 
