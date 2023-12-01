@@ -302,9 +302,14 @@ static void log_debug_reg(struct target *target, enum riscv_debug_reg_ordinal re
 	if (debug_level < LOG_LVL_DEBUG)
 		return;
 	const riscv_debug_reg_ctx_t context = get_riscv_debug_reg_ctx(target);
-	char buf[riscv_debug_reg_to_s(NULL, reg, context, value) + 1];
+	char * const buf = malloc(riscv_debug_reg_to_s(NULL, reg, context, value) + 1);
+	if (!buf) {
+		LOG_ERROR("Unable to allocate memory.");
+		return;
+	}
 	riscv_debug_reg_to_s(buf, reg, context, value);
 	log_printf_lf(LOG_LVL_DEBUG, file, line, func, "[%s] %s", target_name(target), buf);
+	free(buf);
 }
 
 #define LOG_DEBUG_REG(t, r, v) log_debug_reg(t, r##_ORDINAL, v, __FILE__, __LINE__, __func__)
