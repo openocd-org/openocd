@@ -297,15 +297,17 @@ static riscv_debug_reg_ctx_t get_riscv_debug_reg_ctx(struct target *target)
 }
 
 static void log_debug_reg(struct target *target, enum riscv_debug_reg_ordinal reg,
-		riscv_reg_t value)
+		riscv_reg_t value, const char *file, unsigned int line, const char *func)
 {
 	if (debug_level < LOG_LVL_DEBUG)
 		return;
 	const riscv_debug_reg_ctx_t context = get_riscv_debug_reg_ctx(target);
 	char buf[riscv_debug_reg_to_s(NULL, reg, context, value) + 1];
 	riscv_debug_reg_to_s(buf, reg, context, value);
-	LOG_TARGET_DEBUG(target, "%s", buf);
+	log_printf_lf(LOG_LVL_DEBUG, file, line, func, "[%s] %s", target_name(target), buf);
 }
+
+#define LOG_DEBUG_REG(t, r, v) log_debug_reg(t, r##_ORDINAL, v, __FILE__, __LINE__, __func__)
 
 static uint32_t set_dmcontrol_hartsel(uint32_t initial, int hart_index)
 {
@@ -864,7 +866,7 @@ static int execute_abstract_command(struct target *target, uint32_t command)
 	if (debug_level >= LOG_LVL_DEBUG) {
 		switch (get_field(command, DM_COMMAND_CMDTYPE)) {
 			case 0:
-				log_debug_reg(target, AC_ACCESS_REGISTER_ORDINAL, command);
+				LOG_DEBUG_REG(target, AC_ACCESS_REGISTER, command);
 				break;
 			default:
 				LOG_TARGET_DEBUG(target, "command=0x%x", command);
@@ -1860,7 +1862,7 @@ static int examine(struct target *target)
 	}
 
 	LOG_TARGET_DEBUG(target, "dtmcontrol=0x%x", dtmcontrol);
-	log_debug_reg(target, DTM_DTMCS_ORDINAL, dtmcontrol);
+	LOG_DEBUG_REG(target, DTM_DTMCS, dtmcontrol);
 
 	if (get_field(dtmcontrol, DTM_DTMCS_VERSION) != 1) {
 		LOG_TARGET_ERROR(target, "Unsupported DTM version %" PRIu32 ". (dtmcontrol=0x%" PRIx32 ")",
