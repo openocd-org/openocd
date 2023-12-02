@@ -5673,44 +5673,29 @@ static const struct command_registration target_instance_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-static int target_create(struct jim_getopt_info *goi)
+COMMAND_HANDLER(handle_target_create)
 {
-	Jim_Obj *new_cmd;
-	Jim_Cmd *cmd;
-	const char *cp;
-	int e;
+	int retval = ERROR_OK;
 	int x;
-	struct target *target;
-	struct command_context *cmd_ctx;
 
-	cmd_ctx = current_command_context(goi->interp);
-	assert(cmd_ctx);
+	if (CMD_ARGC < 4)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	if (goi->argc < 3) {
-		Jim_WrongNumArgs(goi->interp, 1, goi->argv, "?name? ?type? ..options...");
-		return JIM_ERR;
-	}
-
-	/* COMMAND */
-	jim_getopt_obj(goi, &new_cmd);
-	/* does this command exist? */
-	cmd = Jim_GetCommand(goi->interp, new_cmd, JIM_NONE);
-	if (cmd) {
-		cp = Jim_GetString(new_cmd, NULL);
-		Jim_SetResultFormatted(goi->interp, "Command/target: %s Exists", cp);
-		return JIM_ERR;
+	/* check if the target name clashes with an existing command name */
+	Jim_Cmd *jimcmd = Jim_GetCommand(CMD_CTX->interp, CMD_JIMTCL_ARGV[0], JIM_NONE);
+	if (jimcmd) {
+		command_print(CMD, "Command/target: %s Exists", CMD_ARGV[0]);
+		return ERROR_FAIL;
 	}
 
 	/* TYPE */
-	e = jim_getopt_string(goi, &cp, NULL);
-	if (e != JIM_OK)
-		return e;
+	const char *cp = CMD_ARGV[1];
 	struct transport *tr = get_current_transport();
 	if (tr && tr->override_target) {
-		e = tr->override_target(&cp);
-		if (e != ERROR_OK) {
-			LOG_ERROR("The selected transport doesn't support this target");
-			return JIM_ERR;
+		retval = tr->override_target(&cp);
+		if (retval != ERROR_OK) {
+			command_print(CMD, "The selected transport doesn't support this target");
+			return retval;
 		}
 		LOG_INFO("The selected transport took over low-level target control. The results might differ compared to plain JTAG/SWD");
 	}
@@ -5722,28 +5707,29 @@ static int target_create(struct jim_getopt_info *goi)
 		}
 	}
 	if (!target_types[x]) {
-		Jim_SetResultFormatted(goi->interp, "Unknown target type %s, try one of ", cp);
+		char *all = NULL;
 		for (x = 0 ; target_types[x] ; x++) {
-			if (target_types[x + 1]) {
-				Jim_AppendStrings(goi->interp,
-								   Jim_GetResult(goi->interp),
-								   target_types[x]->name,
-								   ", ", NULL);
-			} else {
-				Jim_AppendStrings(goi->interp,
-								   Jim_GetResult(goi->interp),
-								   " or ",
-								   target_types[x]->name, NULL);
+			char *prev = all;
+			if (all)
+				all = alloc_printf("%s, %s", all, target_types[x]->name);
+			else
+				all = alloc_printf("%s", target_types[x]->name);
+			free(prev);
+			if (!all) {
+				LOG_ERROR("Out of memory");
+				return ERROR_FAIL;
 			}
 		}
-		return JIM_ERR;
+		command_print(CMD, "Unknown target type %s, try one of %s", cp, all);
+		free(all);
+		return ERROR_FAIL;
 	}
 
 	/* Create it */
-	target = calloc(1, sizeof(struct target));
+	struct target *target = calloc(1, sizeof(struct target));
 	if (!target) {
 		LOG_ERROR("Out of memory");
-		return JIM_ERR;
+		return ERROR_FAIL;
 	}
 
 	/* set empty smp cluster */
@@ -5754,7 +5740,7 @@ static int target_create(struct jim_getopt_info *goi)
 	if (!target->type) {
 		LOG_ERROR("Out of memory");
 		free(target);
-		return JIM_ERR;
+		return ERROR_FAIL;
 	}
 
 	memcpy(target->type, target_types[x], sizeof(struct target_type));
@@ -5787,7 +5773,7 @@ static int target_create(struct jim_getopt_info *goi)
 		LOG_ERROR("Out of memory");
 		free(target->type);
 		free(target);
-		return JIM_ERR;
+		return ERROR_FAIL;
 	}
 
 	target->dbgmsg          = NULL;
@@ -5801,45 +5787,54 @@ static int target_create(struct jim_getopt_info *goi)
 	target->gdb_port_override = NULL;
 	target->gdb_max_connections = 1;
 
-	cp = Jim_GetString(new_cmd, NULL);
-	target->cmd_name = strdup(cp);
+	target->cmd_name = strdup(CMD_ARGV[0]);
 	if (!target->cmd_name) {
 		LOG_ERROR("Out of memory");
 		free(target->trace_info);
 		free(target->type);
 		free(target);
-		return JIM_ERR;
+		return ERROR_FAIL;
 	}
 
 	/* Do the rest as "configure" options */
-	goi->is_configure = true;
-	e = target_configure(goi, target);
+	struct jim_getopt_info goi;
+	jim_getopt_setup(&goi, CMD_CTX->interp, CMD_ARGC - 2, CMD_JIMTCL_ARGV + 2);
+
+	goi.is_configure = 1;
+	int e = target_configure(&goi, target);
+
+	int reslen;
+	const char *result = Jim_GetString(Jim_GetResult(CMD_CTX->interp), &reslen);
+	if (reslen > 0)
+		command_print(CMD, "%s", result);
 
 	if (e == JIM_OK) {
 		if (target->has_dap) {
 			if (!target->dap_configured) {
-				Jim_SetResultString(goi->interp, "-dap ?name? required when creating target", -1);
-				e = JIM_ERR;
+				command_print(CMD, "-dap ?name? required when creating target");
+				retval = ERROR_COMMAND_ARGUMENT_INVALID;
 			}
 		} else {
 			if (!target->tap_configured) {
-				Jim_SetResultString(goi->interp, "-chain-position ?name? required when creating target", -1);
-				e = JIM_ERR;
+				command_print(CMD, "-chain-position ?name? required when creating target");
+				retval = ERROR_COMMAND_ARGUMENT_INVALID;
 			}
 		}
 		/* tap must be set after target was configured */
 		if (!target->tap)
-			e = JIM_ERR;
+			retval = ERROR_COMMAND_ARGUMENT_INVALID;
+	} else {
+		retval = ERROR_FAIL;
 	}
 
-	if (e != JIM_OK) {
+	if (retval != ERROR_OK) {
 		rtos_destroy(target);
 		free(target->gdb_port_override);
 		free(target->trace_info);
 		free(target->type);
 		free(target->private_config);
 		free(target);
-		return e;
+		return retval;
 	}
 
 	if (target->endianness == TARGET_ENDIAN_UNKNOWN) {
@@ -5848,8 +5843,8 @@ static int target_create(struct jim_getopt_info *goi)
 	}
 
 	if (target->type->target_create) {
-		e = (*(target->type->target_create))(target, goi->interp);
-		if (e != ERROR_OK) {
+		retval = (*target->type->target_create)(target, CMD_CTX->interp);
+		if (retval != ERROR_OK) {
 			LOG_DEBUG("target_create failed");
 			free(target->cmd_name);
 			rtos_destroy(target);
@@ -5858,15 +5853,15 @@ static int target_create(struct jim_getopt_info *goi)
 			free(target->type);
 			free(target->private_config);
 			free(target);
-			return JIM_ERR;
+			return retval;
 		}
 	}
 
 	/* create the target specific commands */
 	if (target->type->commands) {
-		e = register_commands(cmd_ctx, NULL, target->type->commands);
-		if (e != ERROR_OK)
-			LOG_ERROR("unable to register '%s' commands", cp);
+		retval = register_commands(CMD_CTX, NULL, target->type->commands);
+		if (retval != ERROR_OK)
+			LOG_ERROR("unable to register '%s' commands", CMD_ARGV[0]);
 	}
 
 	/* now - create the new target name command */
@@ -5881,7 +5876,7 @@ static int target_create(struct jim_getopt_info *goi)
 	};
 	const struct command_registration target_commands[] = {
 		{
-			.name = cp,
+			.name = CMD_ARGV[0],
 			.mode = COMMAND_ANY,
 			.help = "target command group",
 			.usage = "",
@@ -5889,8 +5884,8 @@ static int target_create(struct jim_getopt_info *goi)
 		},
 		COMMAND_REGISTRATION_DONE
 	};
-	e = register_commands_override_target(cmd_ctx, NULL, target_commands, target);
-	if (e != ERROR_OK) {
+	retval = register_commands_override_target(CMD_CTX, NULL, target_commands, target);
+	if (retval != ERROR_OK) {
 		if (target->type->deinit_target)
 			target->type->deinit_target(target);
 		free(target->cmd_name);
@@ -5899,14 +5894,14 @@ static int target_create(struct jim_getopt_info *goi)
 		free(target->trace_info);
 		free(target->type);
 		free(target);
-		return JIM_ERR;
+		return retval;
 	}
 
 	/* append to end of list */
 	append_to_list_all_targets(target);
 
-	cmd_ctx->current_target = target;
-	return JIM_OK;
+	CMD_CTX->current_target = target;
+	return ERROR_OK;
 }
 
 COMMAND_HANDLER(handle_target_current)
@@ -6027,18 +6022,6 @@ COMMAND_HANDLER(handle_target_smp)
 	return retval;
 }
 
-static int jim_target_create(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
-{
-	struct jim_getopt_info goi;
-	jim_getopt_setup(&goi, interp, argc - 1, argv + 1);
-	if (goi.argc < 3) {
-		Jim_WrongNumArgs(goi.interp, goi.argc, goi.argv,
-			"<name> <target_type> [<target_options> ...]");
-		return JIM_ERR;
-	}
-	return target_create(&goi);
-}
-
 static const struct command_registration target_subcommand_handlers[] = {
 	{
 		.name = "init",
@@ -6050,7 +6033,7 @@ static const struct command_registration target_subcommand_handlers[] = {
 	{
 		.name = "create",
 		.mode = COMMAND_CONFIG,
-		.jim_handler = jim_target_create,
+		.handler = handle_target_create,
 		.usage = "name type '-chain-position' name [options ...]",
 		.help = "Creates and selects a new target",
 	},
