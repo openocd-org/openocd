@@ -843,22 +843,19 @@ COMMAND_HANDLER(handle_help_command)
 	return retval;
 }
 
-static char *alloc_concatenate_strings(int argc, Jim_Obj * const *argv)
+static char *alloc_concatenate_strings(int argc, const char **argv)
 {
-	char *prev, *all;
-	int i;
-
 	assert(argc >= 1);
 
-	all = strdup(Jim_GetString(argv[0], NULL));
+	char *all = strdup(argv[0]);
 	if (!all) {
 		LOG_ERROR("Out of memory");
 		return NULL;
 	}
 
-	for (i = 1; i < argc; ++i) {
-		prev = all;
-		all = alloc_printf("%s %s", all, Jim_GetString(argv[i], NULL));
+	for (int i = 1; i < argc; ++i) {
+		char *prev = all;
+		all = alloc_printf("%s %s", all, argv[i]);
 		free(prev);
 		if (!all) {
 			LOG_ERROR("Out of memory");
@@ -944,17 +941,16 @@ static enum command_mode get_command_mode(Jim_Interp *interp, const char *cmd_na
 	return c->mode;
 }
 
-static int jim_command_mode(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+COMMAND_HANDLER(handle_command_mode)
 {
-	struct command_context *cmd_ctx = current_command_context(interp);
-	enum command_mode mode = cmd_ctx->mode;
+	enum command_mode mode = CMD_CTX->mode;
 
-	if (argc > 1) {
-		char *full_name = alloc_concatenate_strings(argc - 1, argv + 1);
+	if (CMD_ARGC) {
+		char *full_name = alloc_concatenate_strings(CMD_ARGC, CMD_ARGV);
 		if (!full_name)
-			return JIM_ERR;
+			return ERROR_FAIL;
 
-		mode = get_command_mode(interp, full_name);
+		mode = get_command_mode(CMD_CTX->interp, full_name);
 
 		free(full_name);
 	}
@@ -975,8 +971,8 @@ static int jim_command_mode(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 			mode_str = "unknown";
 			break;
 	}
-	Jim_SetResultString(interp, mode_str, -1);
-	return JIM_OK;
+	command_print(CMD, "%s", mode_str);
+	return ERROR_OK;
 }
 
 int help_del_all_commands(struct command_context *cmd_ctx)
@@ -1115,7 +1111,7 @@ static const struct command_registration command_subcommand_handlers[] = {
 	{
 		.name = "mode",
 		.mode = COMMAND_ANY,
-		.jim_handler = jim_command_mode,
+		.handler = handle_command_mode,
 		.usage = "[command_name ...]",
 		.help = "Returns the command modes allowed by a command: "
 			"'any', 'config', or 'exec'. If no command is "
