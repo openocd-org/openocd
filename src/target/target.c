@@ -4526,50 +4526,36 @@ COMMAND_HANDLER(handle_target_read_memory)
 	return ERROR_OK;
 }
 
-static int target_jim_write_memory(Jim_Interp *interp, int argc,
-		Jim_Obj * const *argv)
+COMMAND_HANDLER(handle_target_write_memory)
 {
 	/*
-	 * argv[1] = memory address
-	 * argv[2] = desired element width in bits
-	 * argv[3] = list of data to write
-	 * argv[4] = optional "phys"
+	 * CMD_ARGV[0] = memory address
+	 * CMD_ARGV[1] = desired element width in bits
+	 * CMD_ARGV[2] = list of data to write
+	 * CMD_ARGV[3] = optional "phys"
 	 */
 
-	if (argc < 4 || argc > 5) {
-		Jim_WrongNumArgs(interp, 1, argv, "address width data ['phys']");
-		return JIM_ERR;
-	}
+	if (CMD_ARGC < 3 || CMD_ARGC > 4)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	/* Arg 1: Memory address. */
-	int e;
-	jim_wide wide_addr;
-	e = Jim_GetWide(interp, argv[1], &wide_addr);
-
-	if (e != JIM_OK)
-		return e;
-
-	target_addr_t addr = (target_addr_t)wide_addr;
+	target_addr_t addr;
+	COMMAND_PARSE_NUMBER(u64, CMD_ARGV[0], addr);
 
 	/* Arg 2: Bit width of one element. */
-	long l;
-	e = Jim_GetLong(interp, argv[2], &l);
+	unsigned int width_bits;
+	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[1], width_bits);
 
-	if (e != JIM_OK)
-		return e;
-
-	const unsigned int width_bits = l;
-	size_t count = Jim_ListLength(interp, argv[3]);
+	/* Arg 3: Elements to write. */
+	size_t count = Jim_ListLength(CMD_CTX->interp, CMD_JIMTCL_ARGV[2]);
 
 	/* Arg 4: Optional 'phys'. */
 	bool is_phys = false;
 
-	if (argc > 4) {
-		const char *phys = Jim_GetString(argv[4], NULL);
-
-		if (strcmp(phys, "phys")) {
-			Jim_SetResultFormatted(interp, "invalid argument '%s', must be 'phys'", phys);
-			return JIM_ERR;
+	if (CMD_ARGC == 4) {
+		if (strcmp(CMD_ARGV[3], "phys")) {
+			command_print(CMD, "invalid argument '%s', must be 'phys'", CMD_ARGV[3]);
+			return ERROR_COMMAND_ARGUMENT_INVALID;
 		}
 
 		is_phys = true;
@@ -4582,14 +4568,13 @@ static int target_jim_write_memory(Jim_Interp *interp, int argc,
 	case 64:
 		break;
 	default:
-		Jim_SetResultString(interp, "invalid width, must be 8, 16, 32 or 64", -1);
-		return JIM_ERR;
+		command_print(CMD, "invalid width, must be 8, 16, 32 or 64");
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
 	if (count > 65536) {
-		Jim_SetResultString(interp,
-			"write_memory: too large memory write request, exceeds 64K elements", -1);
-		return JIM_ERR;
+		command_print(CMD, "too large memory write request, exceeds 64K elements");
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
 	const unsigned int width = width_bits / 8;
@@ -4597,21 +4582,18 @@ static int target_jim_write_memory(Jim_Interp *interp, int argc,
 	 * due to overflow.
 	 */
 	if ((addr + count * width - 1) < addr) {
-		Jim_SetResultFormatted(interp,
-			"write_memory: memory region wraps over address zero");
-		return JIM_ERR;
+		command_print(CMD, "memory region wraps over address zero");
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
-	struct command_context *cmd_ctx = current_command_context(interp);
-	assert(cmd_ctx);
-	struct target *target = get_current_target(cmd_ctx);
+	struct target *target = get_current_target(CMD_CTX);
 
 	const size_t buffersize = 4096;
 	uint8_t *buffer = malloc(buffersize);
 
 	if (!buffer) {
 		LOG_ERROR("Failed to allocate memory");
-		return JIM_ERR;
+		return ERROR_FAIL;
 	}
 
 	size_t j = 0;
@@ -4621,9 +4603,13 @@ static int target_jim_write_memory(Jim_Interp *interp, int argc,
 		const size_t chunk_len = MIN(count, max_chunk_len);
 
 		for (size_t i = 0; i < chunk_len; i++, j++) {
-			Jim_Obj *tmp = Jim_ListGetIndex(interp, argv[3], j);
+			Jim_Obj *tmp = Jim_ListGetIndex(CMD_CTX->interp, CMD_JIMTCL_ARGV[2], j);
 			jim_wide element_wide;
-			Jim_GetWide(interp, tmp, &element_wide);
+			int jimretval = Jim_GetWide(CMD_CTX->interp, tmp, &element_wide);
+			if (jimretval != JIM_OK) {
+				command_print(CMD, "invalid value \"%s\"", Jim_GetString(tmp, NULL));
+				return ERROR_COMMAND_ARGUMENT_INVALID;
+			}
 
 			const uint64_t v = element_wide;
 
@@ -4653,11 +4639,11 @@ static int target_jim_write_memory(Jim_Interp *interp, int argc,
 			retval = target_write_memory(target, addr, width, chunk_len, buffer);
 
 		if (retval != ERROR_OK) {
-			LOG_ERROR("write_memory: write at " TARGET_ADDR_FMT " with width=%u and count=%zu failed",
+			LOG_DEBUG("write at " TARGET_ADDR_FMT " with width=%u and count=%zu failed",
 				addr,  width_bits, chunk_len);
-			Jim_SetResultString(interp, "write_memory: failed to write memory", -1);
-			e = JIM_ERR;
-			break;
+			command_print(CMD, "failed to write memory");
+			free(buffer);
+			return retval;
 		}
 
 		addr += chunk_len * width;
@@ -4665,7 +4651,7 @@ static int target_jim_write_memory(Jim_Interp *interp, int argc,
 
 	free(buffer);
 
-	return e;
+	return ERROR_OK;
 }
 
 /* FIX? should we propagate errors here rather than printing them
@@ -5612,7 +5598,7 @@ static const struct command_registration target_instance_command_handlers[] = {
 	{
 		.name = "write_memory",
 		.mode = COMMAND_EXEC,
-		.jim_handler = target_jim_write_memory,
+		.handler = handle_target_write_memory,
 		.help = "Write Tcl list of 8/16/32/64 bit numbers to target memory",
 		.usage = "address width data ['phys']",
 	},
@@ -6747,7 +6733,7 @@ static const struct command_registration target_exec_command_handlers[] = {
 	{
 		.name = "write_memory",
 		.mode = COMMAND_EXEC,
-		.jim_handler = target_jim_write_memory,
+		.handler = handle_target_write_memory,
 		.help = "Write Tcl list of 8/16/32/64 bit numbers to target memory",
 		.usage = "address width data ['phys']",
 	},
