@@ -4701,63 +4701,46 @@ void target_handle_event(struct target *target, enum target_event e)
 	}
 }
 
-static int target_jim_get_reg(Jim_Interp *interp, int argc,
-		Jim_Obj * const *argv)
+COMMAND_HANDLER(handle_target_get_reg)
 {
+	if (CMD_ARGC < 1 || CMD_ARGC > 2)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
 	bool force = false;
+	Jim_Obj *next_argv = CMD_JIMTCL_ARGV[0];
 
-	if (argc == 3) {
-		const char *option = Jim_GetString(argv[1], NULL);
-
-		if (!strcmp(option, "-force")) {
-			argc--;
-			argv++;
-			force = true;
-		} else {
-			Jim_SetResultFormatted(interp, "invalid option '%s'", option);
-			return JIM_ERR;
+	if (CMD_ARGC == 2) {
+		if (strcmp(CMD_ARGV[0], "-force")) {
+			command_print(CMD, "invalid argument '%s', must be '-force'", CMD_ARGV[0]);
+			return ERROR_COMMAND_ARGUMENT_INVALID;
 		}
+
+		force = true;
+		next_argv = CMD_JIMTCL_ARGV[1];
 	}
 
-	if (argc != 2) {
-		Jim_WrongNumArgs(interp, 1, argv, "[-force] list");
-		return JIM_ERR;
-	}
+	const int length = Jim_ListLength(CMD_CTX->interp, next_argv);
 
-	const int length = Jim_ListLength(interp, argv[1]);
-
-	Jim_Obj *result_dict = Jim_NewDictObj(interp, NULL, 0);
-
-	if (!result_dict)
-		return JIM_ERR;
-
-	struct command_context *cmd_ctx = current_command_context(interp);
-	assert(cmd_ctx);
-	const struct target *target = get_current_target(cmd_ctx);
+	const struct target *target = get_current_target(CMD_CTX);
 
 	for (int i = 0; i < length; i++) {
-		Jim_Obj *elem = Jim_ListGetIndex(interp, argv[1], i);
-
-		if (!elem)
-			return JIM_ERR;
+		Jim_Obj *elem = Jim_ListGetIndex(CMD_CTX->interp, next_argv, i);
 
 		const char *reg_name = Jim_String(elem);
 
-		struct reg *reg = register_get_by_name(target->reg_cache, reg_name,
-			false);
+		struct reg *reg = register_get_by_name(target->reg_cache, reg_name, false);
 
 		if (!reg || !reg->exist) {
-			Jim_SetResultFormatted(interp, "unknown register '%s'", reg_name);
-			return JIM_ERR;
+			command_print(CMD, "unknown register '%s'", reg_name);
+			return ERROR_COMMAND_ARGUMENT_INVALID;
 		}
 
 		if (force || !reg->valid) {
 			int retval = reg->type->get(reg);
 
 			if (retval != ERROR_OK) {
-				Jim_SetResultFormatted(interp, "failed to read register '%s'",
-					reg_name);
-				return JIM_ERR;
+				command_print(CMD, "failed to read register '%s'", reg_name);
+				return retval;
 			}
 		}
 
@@ -4765,27 +4748,15 @@ static int target_jim_get_reg(Jim_Interp *interp, int argc,
 
 		if (!reg_value) {
 			LOG_ERROR("Failed to allocate memory");
-			return JIM_ERR;
+			return ERROR_FAIL;
 		}
 
-		char *tmp = alloc_printf("0x%s", reg_value);
+		command_print(CMD, "%s 0x%s", reg_name, reg_value);
 
 		free(reg_value);
-
-		if (!tmp) {
-			LOG_ERROR("Failed to allocate memory");
-			return JIM_ERR;
-		}
-
-		Jim_DictAddElement(interp, result_dict, elem,
-			Jim_NewStringObj(interp, tmp, -1));
-
-		free(tmp);
 	}
 
-	Jim_SetResult(interp, result_dict);
-
-	return JIM_OK;
+	return ERROR_OK;
 }
 
 COMMAND_HANDLER(handle_set_reg_command)
@@ -5577,9 +5548,9 @@ static const struct command_registration target_instance_command_handlers[] = {
 	{
 		.name = "get_reg",
 		.mode = COMMAND_EXEC,
-		.jim_handler = target_jim_get_reg,
+		.handler = handle_target_get_reg,
 		.help = "Get register values from the target",
-		.usage = "list",
+		.usage = "[-force] list",
 	},
 	{
 		.name = "set_reg",
@@ -6712,9 +6683,9 @@ static const struct command_registration target_exec_command_handlers[] = {
 	{
 		.name = "get_reg",
 		.mode = COMMAND_EXEC,
-		.jim_handler = target_jim_get_reg,
+		.handler = handle_target_get_reg,
 		.help = "Get register values from the target",
-		.usage = "list",
+		.usage = "[-force] list",
 	},
 	{
 		.name = "set_reg",
