@@ -5223,22 +5223,28 @@ no_params:
 	return JIM_OK;
 }
 
-static int jim_target_configure(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
+COMMAND_HANDLER(handle_target_configure)
 {
-	struct command *c = jim_to_command(interp);
+	if (!CMD_ARGC)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
 	struct jim_getopt_info goi;
 
-	jim_getopt_setup(&goi, interp, argc - 1, argv + 1);
-	goi.is_configure = !strcmp(c->name, "configure");
-	if (goi.argc < 1) {
-		Jim_WrongNumArgs(goi.interp, goi.argc, goi.argv,
-				 "missing: -option ...");
-		return JIM_ERR;
-	}
-	struct command_context *cmd_ctx = current_command_context(interp);
-	assert(cmd_ctx);
-	struct target *target = get_current_target(cmd_ctx);
-	return target_configure(&goi, target);
+	jim_getopt_setup(&goi, CMD_CTX->interp, CMD_ARGC, CMD_JIMTCL_ARGV);
+	goi.is_configure = !strcmp(CMD_NAME, "configure");
+
+	struct target *target = get_current_target(CMD_CTX);
+	int e = target_configure(&goi, target);
+
+	int reslen;
+	const char *result = Jim_GetString(Jim_GetResult(CMD_CTX->interp), &reslen);
+	if (reslen > 0)
+		command_print(CMD, "%s", result);
+
+	if (e != JIM_OK)
+		return ERROR_FAIL;
+
+	return ERROR_OK;
 }
 
 COMMAND_HANDLER(handle_target_examine)
@@ -5491,14 +5497,14 @@ static const struct command_registration target_instance_command_handlers[] = {
 	{
 		.name = "configure",
 		.mode = COMMAND_ANY,
-		.jim_handler = jim_target_configure,
+		.handler = handle_target_configure,
 		.help  = "configure a new target for use",
 		.usage = "[target_attribute ...]",
 	},
 	{
 		.name = "cget",
 		.mode = COMMAND_ANY,
-		.jim_handler = jim_target_configure,
+		.handler = handle_target_configure,
 		.help  = "returns the specified target attribute",
 		.usage = "target_attribute",
 	},
