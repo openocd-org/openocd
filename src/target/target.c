@@ -162,7 +162,7 @@ static const char *target_strerror_safe(int err)
 		return n->name;
 }
 
-static const struct jim_nvp nvp_target_event[] = {
+static const struct nvp nvp_target_event[] = {
 
 	{ .value = TARGET_EVENT_GDB_HALT, .name = "gdb-halt" },
 	{ .value = TARGET_EVENT_HALTED, .name = "halted" },
@@ -213,6 +213,8 @@ static const struct jim_nvp nvp_target_event[] = {
 
 	{ .name = NULL, .value = -1 }
 };
+
+static const struct jim_nvp *jim_nvp_target_event = (const struct jim_nvp *)nvp_target_event;
 
 static const struct nvp nvp_target_state[] = {
 	{ .name = "unknown", .value = TARGET_UNKNOWN },
@@ -283,7 +285,7 @@ const char *target_state_name(const struct target *t)
 const char *target_event_name(enum target_event event)
 {
 	const char *cp;
-	cp = jim_nvp_value2name_simple(nvp_target_event, event)->name;
+	cp = nvp_value2name(nvp_target_event, event)->name;
 	if (!cp) {
 		LOG_ERROR("Invalid target event: %d", (int)(event));
 		cp = "(*BUG*unknown*BUG*)";
@@ -4932,9 +4934,9 @@ no_params:
 				return JIM_ERR;
 			}
 
-			e = jim_getopt_nvp(goi, nvp_target_event, &n);
+			e = jim_getopt_nvp(goi, jim_nvp_target_event, &n);
 			if (e != JIM_OK) {
-				jim_getopt_nvp_unknown(goi, nvp_target_event, 1);
+				jim_getopt_nvp_unknown(goi, jim_nvp_target_event, 1);
 				return e;
 			}
 
@@ -5469,26 +5471,20 @@ COMMAND_HANDLER(handle_target_debug_reason)
 	return ERROR_OK;
 }
 
-static int jim_target_invoke_event(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+COMMAND_HANDLER(handle_target_invoke_event)
 {
-	struct jim_getopt_info goi;
-	jim_getopt_setup(&goi, interp, argc - 1, argv + 1);
-	if (goi.argc != 1) {
-		const char *cmd_name = Jim_GetString(argv[0], NULL);
-		Jim_SetResultFormatted(goi.interp, "%s <eventname>", cmd_name);
-		return JIM_ERR;
+	if (CMD_ARGC != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	const struct nvp *n = nvp_name2value(nvp_target_event, CMD_ARGV[0]);
+	if (!n->name) {
+		nvp_unknown_command_print(CMD, nvp_target_event, NULL, CMD_ARGV[0]);
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
-	struct jim_nvp *n;
-	int e = jim_getopt_nvp(&goi, nvp_target_event, &n);
-	if (e != JIM_OK) {
-		jim_getopt_nvp_unknown(&goi, nvp_target_event, 1);
-		return e;
-	}
-	struct command_context *cmd_ctx = current_command_context(interp);
-	assert(cmd_ctx);
-	struct target *target = get_current_target(cmd_ctx);
+
+	struct target *target = get_current_target(CMD_CTX);
 	target_handle_event(target, n->value);
-	return JIM_OK;
+	return ERROR_OK;
 }
 
 static const struct command_registration target_instance_command_handlers[] = {
@@ -5670,7 +5666,7 @@ static const struct command_registration target_instance_command_handlers[] = {
 	{
 		.name = "invoke-event",
 		.mode = COMMAND_EXEC,
-		.jim_handler = jim_target_invoke_event,
+		.handler = handle_target_invoke_event,
 		.help = "invoke handler for specified event",
 		.usage = "event_name",
 	},
