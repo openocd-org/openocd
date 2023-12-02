@@ -31,8 +31,7 @@
 #define __THIS__FILE__ "command.c"
 
 struct log_capture_state {
-	Jim_Interp *interp;
-	Jim_Obj *output;
+	char *output;
 };
 
 static int unregister_command(struct command_context *context,
@@ -57,73 +56,6 @@ bool jimcmd_is_oocd_command(Jim_Cmd *cmd)
 void *jimcmd_privdata(Jim_Cmd *cmd)
 {
 	return cmd->isproc ? NULL : cmd->u.native.privData;
-}
-
-static void tcl_output(void *privData, const char *file, unsigned int line,
-	const char *function, const char *string)
-{
-	struct log_capture_state *state = privData;
-	Jim_AppendString(state->interp, state->output, string, strlen(string));
-}
-
-static struct log_capture_state *command_log_capture_start(Jim_Interp *interp)
-{
-	/* capture log output and return it. A garbage collect can
-	 * happen, so we need a reference count to this object */
-	Jim_Obj *jim_output = Jim_NewStringObj(interp, "", 0);
-	if (!jim_output)
-		return NULL;
-
-	Jim_IncrRefCount(jim_output);
-
-	struct log_capture_state *state = malloc(sizeof(*state));
-	if (!state) {
-		LOG_ERROR("Out of memory");
-		Jim_DecrRefCount(interp, jim_output);
-		return NULL;
-	}
-
-	state->interp = interp;
-	state->output = jim_output;
-
-	log_add_callback(tcl_output, state);
-
-	return state;
-}
-
-/* Classic openocd commands provide progress output which we
- * will capture and return as a Tcl return value.
- *
- * However, if a non-openocd command has been invoked, then it
- * makes sense to return the tcl return value from that command.
- *
- * The tcl return value is empty for openocd commands that provide
- * progress output.
- *
- * For other commands, we prepend the logs to the tcl return value.
- */
-static void command_log_capture_finish(struct log_capture_state *state)
-{
-	if (!state)
-		return;
-
-	log_remove_callback(tcl_output, state);
-
-	int loglen;
-	const char *log_result = Jim_GetString(state->output, &loglen);
-	int reslen;
-	const char *cmd_result = Jim_GetString(Jim_GetResult(state->interp), &reslen);
-
-	// Just in case the log doesn't end with a newline, we add it
-	if (loglen != 0 && reslen != 0 && log_result[loglen - 1] != '\n')
-		Jim_AppendString(state->interp, state->output, "\n", 1);
-
-	Jim_AppendString(state->interp, state->output, cmd_result, reslen);
-
-	Jim_SetResult(state->interp, state->output);
-	Jim_DecrRefCount(state->interp, state->output);
-
-	free(state);
 }
 
 static int command_retval_set(Jim_Interp *interp, int retval)
@@ -680,15 +612,28 @@ COMMAND_HANDLER(handle_echo)
 	return ERROR_OK;
 }
 
-/* Return both the progress output (LOG_INFO and higher)
+static void tcl_output(void *privData, const char *file, unsigned int line,
+	const char *function, const char *string)
+{
+	struct log_capture_state *state = privData;
+	char *old = state->output;
+
+	state->output = alloc_printf("%s%s", old ? old : "", string);
+	free(old);
+	if (!state->output)
+		LOG_ERROR("Out of memory");
+}
+
+/*
+ * Return both the progress output (LOG_INFO and higher)
  * and the tcl return value of a command.
  */
-static int jim_capture(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
+COMMAND_HANDLER(handle_command_capture)
 {
-	if (argc != 2)
-		return JIM_ERR;
+	struct log_capture_state state = {NULL};
 
-	struct log_capture_state *state = command_log_capture_start(interp);
+	if (CMD_ARGC != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	/* disable polling during capture. This avoids capturing output
 	 * from polling.
@@ -698,14 +643,24 @@ static int jim_capture(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 	 */
 	bool save_poll_mask = jtag_poll_mask();
 
-	const char *str = Jim_GetString(argv[1], NULL);
-	int retcode = Jim_Eval_Named(interp, str, __THIS__FILE__, __LINE__);
+	log_add_callback(tcl_output, &state);
+
+	int jimretval = Jim_EvalObj(CMD_CTX->interp, CMD_JIMTCL_ARGV[0]);
+	const char *cmd_result = Jim_GetString(Jim_GetResult(CMD_CTX->interp), NULL);
+
+	log_remove_callback(tcl_output, &state);
 
 	jtag_poll_unmask(save_poll_mask);
 
-	command_log_capture_finish(state);
+	if (state.output && *state.output)
+		command_print(CMD, "%s", state.output);
 
-	return retcode;
+	if (cmd_result && *cmd_result)
+		command_print(CMD, "%s", cmd_result);
+
+	free(state.output);
+
+	return (jimretval == JIM_OK) ? ERROR_OK : ERROR_FAIL;
 }
 
 struct help_entry {
@@ -1133,7 +1088,7 @@ static const struct command_registration command_builtin_handlers[] = {
 	{
 		.name = "capture",
 		.mode = COMMAND_ANY,
-		.jim_handler = jim_capture,
+		.handler = handle_command_capture,
 		.help = "Capture progress output and return as tcl return value. If the "
 				"progress output was empty, return tcl return value.",
 		.usage = "command",
