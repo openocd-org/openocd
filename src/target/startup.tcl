@@ -219,31 +219,44 @@ proc init_target_events {} {
 proc init_board {} {
 }
 
-proc mem2array {arrayname bitwidth address count {phys ""}} {
-	echo "DEPRECATED! use 'read_memory' not 'mem2array'"
+lappend _telnet_autocomplete_skip _post_init_target_array_mem
+proc _post_init_target_array_mem {} {
+	set targets [target names]
+	lappend targets ""
 
-	upvar $arrayname $arrayname
-	set $arrayname ""
-	set i 0
+	foreach t $targets {
+		if {$t != ""} {
+			set t "$t "
+		}
+		eval [format	{lappend ::_telnet_autocomplete_skip "%smem2array"} $t]
+		eval [format	{proc {%smem2array} {arrayname bitwidth address count {phys ""}} {
+							echo "DEPRECATED! use 'read_memory' not 'mem2array'"
 
-	foreach elem [read_memory $address $bitwidth $count {*}$phys] {
-		set ${arrayname}($i) $elem
-		incr i
+							upvar $arrayname $arrayname
+							set $arrayname ""
+							set i 0
+
+							foreach elem [%sread_memory $address $bitwidth $count {*}$phys] {
+								set ${arrayname}($i) $elem
+								incr i
+							}
+						}} $t $t]
+		eval [format    {lappend ::_telnet_autocomplete_skip "%sarray2mem"} $t]
+		eval [format    {proc {%sarray2mem} {arrayname bitwidth address count {phys ""}} {
+							echo "DEPRECATED! use 'write_memory' not 'array2mem'"
+
+							upvar $arrayname $arrayname
+							set data ""
+
+							for {set i 0} {$i < $count} {incr i} {
+								lappend data [expr $${arrayname}($i)]
+							}
+
+							%swrite_memory $address $bitwidth $data {*}$phys
+						}} $t $t]
 	}
 }
-
-proc array2mem {arrayname bitwidth address count {phys ""}} {
-	echo "DEPRECATED! use 'write_memory' not 'array2mem'"
-
-	upvar $arrayname $arrayname
-	set data ""
-
-	for {set i 0} {$i < $count} {incr i} {
-		lappend data [expr $${arrayname}($i)]
-	}
-
-	write_memory $address $bitwidth $data {*}$phys
-}
+lappend post_init_commands _post_init_target_array_mem
 
 # smp_on/smp_off were already DEPRECATED in v0.11.0 through http://openocd.zylin.com/4615
 lappend _telnet_autocomplete_skip "aarch64 smp_on"
