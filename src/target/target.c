@@ -5450,13 +5450,13 @@ no_params:
 				e = jim_getopt_wide(goi, &w);
 				if (e != JIM_OK)
 					return e;
-				/* make this exactly 1 or 0 */
-				target->backup_working_area = (!!w);
+				/* make this boolean */
+				target->backup_working_area = (w != 0);
 			} else {
 				if (goi->argc != 0)
 					goto no_params;
 			}
-			Jim_SetResult(goi->interp, Jim_NewIntObj(goi->interp, target->backup_working_area));
+			Jim_SetResult(goi->interp, Jim_NewIntObj(goi->interp, target->backup_working_area ? 1 : 0));
 			/* loop for more e*/
 			break;
 
@@ -6181,7 +6181,7 @@ static int target_create(struct jim_getopt_info *goi)
 	target->working_area        = 0x0;
 	target->working_area_size   = 0x0;
 	target->working_areas       = NULL;
-	target->backup_working_area = 0;
+	target->backup_working_area = false;
 
 	target->state               = TARGET_UNKNOWN;
 	target->debug_reason        = DBG_REASON_UNDEFINED;
