@@ -251,11 +251,11 @@ static int mqx_create(
 		if (strcmp(mqx_params_list[i].target_name, target_type_name(target)) == 0) {
 			target->rtos->rtos_specific_params = (void *)&mqx_params_list[i];
 			/* LOG_DEBUG("MQX RTOS - valid architecture: %s", target_type_name(target)); */
-			return 0;
+			return ERROR_OK;
 		}
 	}
 	LOG_ERROR("MQX RTOS - could not find target \"%s\" in MQX compatibility list", target_type_name(target));
-	return -1;
+	return ERROR_FAIL;
 }
 
 /*

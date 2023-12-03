@@ -611,9 +611,9 @@ static int threadx_create(struct target *target)
 			target->rtos->rtos_specific_params = (void *)&threadx_params_list[i];
 			target->rtos->current_thread = 0;
 			target->rtos->thread_details = NULL;
-			return 0;
+			return ERROR_OK;
 		}
 
 	LOG_ERROR("Could not find target in ThreadX compatibility list");
-	return -1;
+	return ERROR_FAIL;
 }

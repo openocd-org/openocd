@@ -5176,17 +5176,10 @@ static COMMAND_HELPER(target_configure, struct target *target, unsigned int inde
 					command_print(CMD, "missing argument to %s", CMD_ARGV[index - 1]);
 					return ERROR_COMMAND_ARGUMENT_INVALID;
 				}
-				struct jim_getopt_info goi;
-				jim_getopt_setup(&goi, CMD_CTX->interp, CMD_ARGC - index, CMD_JIMTCL_ARGV + index);
+				retval = rtos_create(CMD, target, CMD_ARGV[index]);
+				if (retval != ERROR_OK)
+					return retval;
 				index++;
-				goi.is_configure = true;
-				int resval = rtos_create(&goi, target);
-				int reslen;
-				const char *result = Jim_GetString(Jim_GetResult(CMD_CTX->interp), &reslen);
-				if (reslen > 0)
-					command_print(CMD, "%s", result);
-				if (resval != JIM_OK)
-					return ERROR_FAIL;
 			} else {
 				if (index != CMD_ARGC)
 					return ERROR_COMMAND_SYNTAX_ERROR;

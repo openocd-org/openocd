@@ -364,12 +364,12 @@ static int rtkernel_create(struct target *target)
 	for (size_t i = 0; i < ARRAY_SIZE(rtkernel_params_list); i++) {
 		if (strcmp(rtkernel_params_list[i].target_name, target_type_name(target)) == 0) {
 			target->rtos->rtos_specific_params = (void *)&rtkernel_params_list[i];
-			return 0;
+			return ERROR_OK;
 		}
 	}
 
 	LOG_ERROR("Could not find target in rt-kernel compatibility list");
-	return -1;
+	return ERROR_FAIL;
 }
 
 const struct rtos_type rtkernel_rtos = {

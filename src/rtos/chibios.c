@@ -515,10 +515,10 @@ static int chibios_create(struct target *target)
 	for (unsigned int i = 0; i < ARRAY_SIZE(chibios_params_list); i++)
 		if (strcmp(chibios_params_list[i].target_name, target_type_name(target)) == 0) {
 			target->rtos->rtos_specific_params = (void *)&chibios_params_list[i];
-			return 0;
+			return ERROR_OK;
 		}
 
 	LOG_WARNING("Could not find target \"%s\" in ChibiOS compatibility "
 				"list", target_type_name(target));
-	return -1;
+	return ERROR_FAIL;
 }

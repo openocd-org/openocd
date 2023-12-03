@@ -1213,12 +1213,12 @@ static int ecos_create(struct target *target)
 				target->rtos->gdb_thread_packet = ecos_packet_hook;
 				/* We do not currently use the target->rtos->gdb_target_for_threadid
 				 * hook. */
-				return 0;
+				return ERROR_OK;
 			}
 			tnames++;
 		}
 	}
 
 	LOG_ERROR("Could not find target in eCos compatibility list");
-	return -1;
+	return ERROR_FAIL;
 }

@@ -129,13 +129,13 @@ static int nuttx_create(struct target *target)
 
 	if (i >= ARRAY_SIZE(nuttx_params_list)) {
 		LOG_ERROR("Could not find \"%s\" target in NuttX compatibility list", target_type_name(target));
-		return JIM_ERR;
+		return ERROR_FAIL;
 	}
 
 	/* We found a target in our list, copy its reference. */
 	target->rtos->rtos_specific_params = (void *)param;
 
-	return JIM_OK;
+	return ERROR_OK;
 }
 
 static int nuttx_smp_init(struct target *target)

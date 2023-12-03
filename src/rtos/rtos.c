@@ -57,7 +57,7 @@ static int os_alloc(struct target *target, const struct rtos_type *ostype)
 	struct rtos *os = target->rtos = calloc(1, sizeof(struct rtos));
 
 	if (!os)
-		return JIM_ERR;
+		return ERROR_FAIL;
 
 	os->type = ostype;
 	os->current_threadid = -1;
@@ -69,7 +69,7 @@ static int os_alloc(struct target *target, const struct rtos_type *ostype)
 	os->gdb_thread_packet = rtos_thread_packet;
 	os->gdb_target_for_threadid = rtos_target_for_threadid;
 
-	return JIM_OK;
+	return ERROR_OK;
 }
 
 static void os_free(struct target *target)
@@ -86,38 +86,26 @@ static void os_free(struct target *target)
 static int os_alloc_create(struct target *target, const struct rtos_type *ostype)
 {
 	int ret = os_alloc(target, ostype);
+	if (ret != ERROR_OK)
+		return ret;
 
-	if (ret == JIM_OK) {
-		ret = target->rtos->type->create(target);
-		if (ret != JIM_OK)
-			os_free(target);
-	}
+	ret = target->rtos->type->create(target);
+	if (ret != ERROR_OK)
+		os_free(target);
 
 	return ret;
 }
 
-int rtos_create(struct jim_getopt_info *goi, struct target *target)
+int rtos_create(struct command_invocation *cmd, struct target *target,
+		const char *rtos_name)
 {
-	int x;
-	const char *cp;
-	Jim_Obj *res;
-	int e;
-
-	if (!goi->is_configure && goi->argc != 0) {
-		Jim_WrongNumArgs(goi->interp, goi->argc, goi->argv, "NO PARAMS");
-		return JIM_ERR;
-	}
-
 	os_free(target);
+	target->rtos_auto_detect = false;
 
-	e = jim_getopt_string(goi, &cp, NULL);
-	if (e != JIM_OK)
-		return e;
+	if (strcmp(rtos_name, "none") == 0)
+		return ERROR_OK;
 
-	if (strcmp(cp, "none") == 0)
-		return JIM_OK;
-
-	if (strcmp(cp, "auto") == 0) {
+	if (strcmp(rtos_name, "auto") == 0) {
 		/* Auto detect tries to look up all symbols for each RTOS,
 		 * and runs the RTOS driver's _detect() function when GDB
 		 * finds all symbols for any RTOS. See rtos_qsymbol(). */
@@ -128,17 +116,29 @@ int rtos_create(struct jim_getopt_info *goi, struct target *target)
 		return os_alloc(target, rtos_types[0]);
 	}
 
-	for (x = 0; rtos_types[x]; x++)
-		if (strcmp(cp, rtos_types[x]->name) == 0)
+	for (int x = 0; rtos_types[x]; x++)
+		if (strcmp(rtos_name, rtos_types[x]->name) == 0)
 			return os_alloc_create(target, rtos_types[x]);
 
-	Jim_SetResultFormatted(goi->interp, "Unknown RTOS type %s, try one of: ", cp);
-	res = Jim_GetResult(goi->interp);
-	for (x = 0; rtos_types[x]; x++)
-		Jim_AppendStrings(goi->interp, res, rtos_types[x]->name, ", ", NULL);
-	Jim_AppendStrings(goi->interp, res, ", auto or none", NULL);
+	char *all = NULL;
+	for (int x = 0; rtos_types[x]; x++) {
+		char *prev = all;
+		if (all)
+			all = alloc_printf("%s, %s", all, rtos_types[x]->name);
+		else
+			all = alloc_printf("%s", rtos_types[x]->name);
+		free(prev);
+		if (!all) {
+			LOG_ERROR("Out of memory");
+			return ERROR_FAIL;
+		}
+	}
 
-	return JIM_ERR;
+	command_print(cmd, "Unknown RTOS type %s, try one of: %s, auto or none",
+		rtos_name, all);
+	free(all);
+
+	return ERROR_COMMAND_ARGUMENT_INVALID;
 }
 
 void rtos_destroy(struct target *target)

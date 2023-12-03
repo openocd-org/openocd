@@ -115,11 +115,11 @@ static int embkernel_create(struct target *target)
 	if (i >= ARRAY_SIZE(embkernel_params_list)) {
 		LOG_WARNING("Could not find target \"%s\" in embKernel compatibility "
 				"list", target_type_name(target));
-		return -1;
+		return ERROR_FAIL;
 	}
 
 	target->rtos->rtos_specific_params = (void *) &embkernel_params_list[i];
-	return 0;
+	return ERROR_OK;
 }
 
 static int embkernel_get_tasks_details(struct rtos *rtos, int64_t iterable, const struct embkernel_params *param,

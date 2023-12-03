@@ -1424,7 +1424,7 @@ static int linux_os_create(struct target *target)
 	/*  initialize a default virt 2 phys translation */
 	os_linux->phys_mask = ~0xc0000000;
 	os_linux->phys_base = 0x0;
-	return JIM_OK;
+	return ERROR_OK;
 }
 
 static char *linux_ps_command(struct target *target)

@@ -534,9 +534,9 @@ static int freertos_create(struct target *target)
 	for (unsigned int i = 0; i < ARRAY_SIZE(freertos_params_list); i++)
 		if (strcmp(freertos_params_list[i].target_name, target_type_name(target)) == 0) {
 			target->rtos->rtos_specific_params = (void *)&freertos_params_list[i];
-			return 0;
+			return ERROR_OK;
 		}
 
 	LOG_ERROR("Could not find target in FreeRTOS compatibility list");
-	return -1;
+	return ERROR_FAIL;
 }
