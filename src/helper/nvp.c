@@ -14,7 +14,7 @@
  * Copyright 2009 David Brownell
  * Copyright (c) 2005-2011 Jim Tcl Project. All rights reserved.
  *
- * This file is extracted from jim_nvp.c, originally part of jim TCL code.
+ * This file is extracted from jim-nvp.c, originally part of jim TCL code.
  */
 
 #ifdef HAVE_CONFIG_H
