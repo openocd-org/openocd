@@ -333,61 +333,59 @@ static int dap_check_config(struct adiv5_dap *dap)
 	return ERROR_OK;
 }
 
-static int dap_create(struct jim_getopt_info *goi)
+COMMAND_HANDLER(handle_dap_create)
 {
-	struct command_context *cmd_ctx;
-	static struct arm_dap_object *dap;
-	Jim_Obj *new_cmd;
-	Jim_Cmd *cmd;
-	const char *cp;
-	int e;
+	if (CMD_ARGC < 3)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	cmd_ctx = current_command_context(goi->interp);
-	assert(cmd_ctx);
+	int retval = ERROR_COMMAND_ARGUMENT_INVALID;
 
-	if (goi->argc < 3) {
-		Jim_WrongNumArgs(goi->interp, 1, goi->argv, "?name? ..options...");
-		return JIM_ERR;
-	}
-	/* COMMAND */
-	jim_getopt_obj(goi, &new_cmd);
-	/* does this command exist? */
-	cmd = Jim_GetCommand(goi->interp, new_cmd, JIM_NONE);
-	if (cmd) {
-		cp = Jim_GetString(new_cmd, NULL);
-		Jim_SetResultFormatted(goi->interp, "Command: %s Exists", cp);
-		return JIM_ERR;
+	/* check if the dap name clashes with an existing command name */
+	Jim_Cmd *jimcmd = Jim_GetCommand(CMD_CTX->interp, CMD_JIMTCL_ARGV[0], JIM_NONE);
+	if (jimcmd) {
+		command_print(CMD, "Command/dap: %s Exists", CMD_ARGV[0]);
+		return ERROR_FAIL;
 	}
 
 	/* Create it */
-	dap = calloc(1, sizeof(struct arm_dap_object));
-	if (!dap)
-		return JIM_ERR;
+	struct arm_dap_object *dap = calloc(1, sizeof(struct arm_dap_object));
+	if (!dap) {
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
+	}
 
 	dap_instance_init(&dap->dap);
 
-	cp = Jim_GetString(new_cmd, NULL);
-	dap->name = strdup(cp);
+	dap->name = strdup(CMD_ARGV[0]);
+	if (!dap->name) {
+		LOG_ERROR("Out of memory");
+		free(dap);
+		return ERROR_FAIL;
+	}
 
-	e = dap_configure(goi, dap);
-	if (e != JIM_OK)
+	struct jim_getopt_info goi;
+	jim_getopt_setup(&goi, CMD_CTX->interp, CMD_ARGC - 1, CMD_JIMTCL_ARGV + 1);
+	int e = dap_configure(&goi, dap);
+	if (e != JIM_OK) {
+		int reslen;
+		const char *result = Jim_GetString(Jim_GetResult(CMD_CTX->interp), &reslen);
+		if (reslen > 0)
+			command_print(CMD, "%s", result);
 		goto err;
+	}
 
 	if (!dap->dap.tap) {
-		Jim_SetResultString(goi->interp, "-chain-position required when creating DAP", -1);
-		e = JIM_ERR;
+		command_print(CMD, "-chain-position required when creating DAP");
 		goto err;
 	}
 
-	e = dap_check_config(&dap->dap);
-	if (e != ERROR_OK) {
-		e = JIM_ERR;
+	retval = dap_check_config(&dap->dap);
+	if (retval != ERROR_OK)
 		goto err;
-	}
 
 	struct command_registration dap_create_commands[] = {
 		{
-			.name = cp,
+			.name = CMD_ARGV[0],
 			.mode = COMMAND_ANY,
 			.help = "dap instance command group",
 			.usage = "",
@@ -400,32 +398,18 @@ static int dap_create(struct jim_getopt_info *goi)
 	if (transport_is_hla())
 		dap_create_commands[0].chain = NULL;
 
-	e = register_commands_with_data(cmd_ctx, NULL, dap_create_commands, dap);
-	if (e != ERROR_OK) {
-		e = JIM_ERR;
+	retval = register_commands_with_data(CMD_CTX, NULL, dap_create_commands, dap);
+	if (retval != ERROR_OK)
 		goto err;
-	}
 
 	list_add_tail(&dap->lh, &all_dap);
 
-	return JIM_OK;
+	return ERROR_OK;
 
 err:
 	free(dap->name);
 	free(dap);
-	return e;
-}
-
-static int jim_dap_create(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
-{
-	struct jim_getopt_info goi;
-	jim_getopt_setup(&goi, interp, argc - 1, argv + 1);
-	if (goi.argc < 2) {
-		Jim_WrongNumArgs(goi.interp, goi.argc, goi.argv,
-			"<name> [<dap_options> ...]");
-		return JIM_ERR;
-	}
-	return dap_create(&goi);
+	return retval;
 }
 
 COMMAND_HANDLER(handle_dap_names)
@@ -496,7 +480,7 @@ static const struct command_registration dap_subcommand_handlers[] = {
 	{
 		.name = "create",
 		.mode = COMMAND_ANY,
-		.jim_handler = jim_dap_create,
+		.handler = handle_dap_create,
 		.usage = "name '-chain-position' name",
 		.help = "Creates a new DAP instance",
 	},
