@@ -1725,14 +1725,16 @@ static int angie_reset(int trst, int srst)
 		high |= SIGNAL_SRST;
 
 	int ret = angie_append_set_signals_cmd(device, low, high);
-	if (ret == ERROR_OK)
-		angie_clear_queue(device);
+	if (ret != ERROR_OK)
+		return ret;
 
 	ret = angie_execute_queued_commands(device, LIBUSB_TIMEOUT_MS);
-	if (ret == ERROR_OK)
-		angie_clear_queue(device);
+	if (ret != ERROR_OK)
+		return ret;
 
-	return ret;
+	angie_clear_queue(device);
+
+	return ERROR_OK;
 }
 
 /**
