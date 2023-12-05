@@ -73,6 +73,7 @@ int watchpoint_add(struct target *target,
 		target_addr_t address, uint32_t length,
 		enum watchpoint_rw rw, uint64_t value, uint64_t mask);
 int watchpoint_remove(struct target *target, target_addr_t address);
+int watchpoint_remove_all(struct target *target);
 
 /* report type and address of just hit watchpoint */
 int watchpoint_hit(struct target *target, enum watchpoint_rw *rw,
