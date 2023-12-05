@@ -96,20 +96,22 @@ static int autodetect_image_type(struct image *image, const char *url)
 static int identify_image_type(struct image *image, const char *type_string, const char *url)
 {
 	if (type_string) {
-		if (!strcmp(type_string, "bin"))
+		if (!strcmp(type_string, "bin")) {
 			image->type = IMAGE_BINARY;
-		else if (!strcmp(type_string, "ihex"))
+		} else if (!strcmp(type_string, "ihex")) {
 			image->type = IMAGE_IHEX;
-		else if (!strcmp(type_string, "elf"))
+		} else if (!strcmp(type_string, "elf")) {
 			image->type = IMAGE_ELF;
-		else if (!strcmp(type_string, "mem"))
+		} else if (!strcmp(type_string, "mem")) {
 			image->type = IMAGE_MEMORY;
-		else if (!strcmp(type_string, "s19"))
+		} else if (!strcmp(type_string, "s19")) {
 			image->type = IMAGE_SRECORD;
-		else if (!strcmp(type_string, "build"))
+		} else if (!strcmp(type_string, "build")) {
 			image->type = IMAGE_BUILDER;
-		else
+		} else {
+			LOG_ERROR("Unknown image type: %s, use one of: bin, ihex, elf, mem, s19, build", type_string);
 			return ERROR_IMAGE_TYPE_UNKNOWN;
+		}
 	} else
 		return autodetect_image_type(image, url);
 

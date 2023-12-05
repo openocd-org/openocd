@@ -725,7 +725,8 @@ static int dpmv8_write_reg(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
 }
 
 /**
- * Read basic registers of the current context:  R0 to R15, and CPSR;
+ * Read basic registers of the current context:  R0 to R15, and CPSR in AArch32
+ * state or R0 to R31, PC and CPSR in AArch64 state;
  * sets the core mode (such as USR or IRQ) and state (such as ARM or Thumb).
  * In normal operation this is called on entry to halting debug state,
  * possibly after some other operations supporting restore of debug state
@@ -772,8 +773,14 @@ int armv8_dpm_read_current_registers(struct arm_dpm *dpm)
 	/* update core mode and state */
 	armv8_set_cpsr(arm, cpsr);
 
-	for (unsigned int i = ARMV8_PC; i < cache->num_regs ; i++) {
+	/* read the remaining registers that would be required by GDB 'g' packet */
+	for (unsigned int i = ARMV8_R2; i <= ARMV8_PC ; i++) {
 		struct arm_reg *arm_reg;
+
+		/* in AArch32 skip AArch64 registers */
+		/* TODO: this should be detected below through arm_reg->mode */
+		if (arm->core_state != ARM_STATE_AARCH64 && i > ARMV8_R14 && i < ARMV8_PC)
+			continue;
 
 		r = armv8_reg_current(arm, i);
 		if (!r->exist || r->valid)

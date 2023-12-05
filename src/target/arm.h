@@ -61,6 +61,7 @@ enum arm_arch {
 /** Known ARM implementor IDs */
 enum arm_implementor {
 	ARM_IMPLEMENTOR_ARM = 0x41,
+	ARM_IMPLEMENTOR_INFINEON = 0x49,
 	ARM_IMPLEMENTOR_REALTEK = 0x72,
 };
 
@@ -230,11 +231,21 @@ struct arm {
 			uint32_t crn, uint32_t crm,
 			uint32_t *value);
 
+	/** Read coprocessor to two registers. */
+	int (*mrrc)(struct target *target, int cpnum,
+			uint32_t op, uint32_t crm,
+			uint64_t *value);
+
 	/** Write coprocessor register.  */
 	int (*mcr)(struct target *target, int cpnum,
 			uint32_t op1, uint32_t op2,
 			uint32_t crn, uint32_t crm,
 			uint32_t value);
+
+	/** Write coprocessor from two registers. */
+	int (*mcrr)(struct target *target, int cpnum,
+			uint32_t op, uint32_t crm,
+			uint64_t value);
 
 	void *arch_info;
 

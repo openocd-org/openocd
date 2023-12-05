@@ -72,6 +72,12 @@ struct arm_dpm {
 	int (*instr_write_data_r0)(struct arm_dpm *dpm,
 			uint32_t opcode, uint32_t data);
 
+	/**
+	 * Runs two instructions, writing data to R0 and R1 before execution.
+	 */
+	int (*instr_write_data_r0_r1)(struct arm_dpm *dpm,
+			uint32_t opcode, uint64_t data);
+
 	/** Runs one instruction, writing data to R0 before execution. */
 	int (*instr_write_data_r0_64)(struct arm_dpm *dpm,
 			uint32_t opcode, uint64_t data);
@@ -91,6 +97,13 @@ struct arm_dpm {
 	/** Runs one instruction, reading data from r0 after execution. */
 	int (*instr_read_data_r0)(struct arm_dpm *dpm,
 			uint32_t opcode, uint32_t *data);
+
+	/**
+	 * Runs two instructions, reading data from r0 and r1 after
+	 * execution.
+	 */
+	int (*instr_read_data_r0_r1)(struct arm_dpm *dpm,
+			uint32_t opcode, uint64_t *data);
 
 	int (*instr_read_data_r0_64)(struct arm_dpm *dpm,
 			uint32_t opcode, uint64_t *data);

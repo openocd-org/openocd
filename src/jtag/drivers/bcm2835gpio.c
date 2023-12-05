@@ -331,7 +331,7 @@ COMMAND_HANDLER(bcm2835gpio_handle_peripheral_base)
 	}
 
 	tmp_base = bcm2835_peri_base;
-	command_print(CMD, "BCM2835 GPIO: peripheral_base = 0x%08" PRIu64,
+	command_print(CMD, "BCM2835 GPIO: peripheral_base = 0x%08" PRIx64,
 				  tmp_base);
 	return ERROR_OK;
 }
