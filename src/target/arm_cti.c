@@ -434,49 +434,47 @@ static int cti_configure(struct jim_getopt_info *goi, struct arm_cti *cti)
 	return JIM_OK;
 }
 
-static int cti_create(struct jim_getopt_info *goi)
+COMMAND_HANDLER(handle_cti_create)
 {
-	struct command_context *cmd_ctx;
-	static struct arm_cti *cti;
-	Jim_Obj *new_cmd;
-	Jim_Cmd *cmd;
-	const char *cp;
-	int e;
+	if (CMD_ARGC < 3)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	cmd_ctx = current_command_context(goi->interp);
-	assert(cmd_ctx);
-
-	if (goi->argc < 3) {
-		Jim_WrongNumArgs(goi->interp, 1, goi->argv, "?name? ..options...");
-		return JIM_ERR;
-	}
-	/* COMMAND */
-	jim_getopt_obj(goi, &new_cmd);
-	/* does this command exist? */
-	cmd = Jim_GetCommand(goi->interp, new_cmd, JIM_NONE);
-	if (cmd) {
-		cp = Jim_GetString(new_cmd, NULL);
-		Jim_SetResultFormatted(goi->interp, "Command: %s Exists", cp);
-		return JIM_ERR;
+	/* check if the cti name clashes with an existing command name */
+	Jim_Cmd *jimcmd = Jim_GetCommand(CMD_CTX->interp, CMD_JIMTCL_ARGV[0], JIM_NONE);
+	if (jimcmd) {
+		command_print(CMD, "Command/cti: %s Exists", CMD_ARGV[0]);
+		return ERROR_FAIL;
 	}
 
 	/* Create it */
-	cti = calloc(1, sizeof(*cti));
-	if (!cti)
-		return JIM_ERR;
+	struct arm_cti *cti = calloc(1, sizeof(*cti));
+	if (!cti) {
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
+	}
 
 	adiv5_mem_ap_spot_init(&cti->spot);
 
 	/* Do the rest as "configure" options */
-	goi->is_configure = true;
-	e = cti_configure(goi, cti);
+	struct jim_getopt_info goi;
+	jim_getopt_setup(&goi, CMD_CTX->interp, CMD_ARGC - 1, CMD_JIMTCL_ARGV + 1);
+	goi.is_configure = 1;
+	int e = cti_configure(&goi, cti);
 	if (e != JIM_OK) {
+		int reslen;
+		const char *result = Jim_GetString(Jim_GetResult(CMD_CTX->interp), &reslen);
+		if (reslen > 0)
+			command_print(CMD, "%s", result);
 		free(cti);
-		return e;
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
-	cp = Jim_GetString(new_cmd, NULL);
-	cti->name = strdup(cp);
+	cti->name = strdup(CMD_ARGV[0]);
+	if (!cti->name) {
+		LOG_ERROR("Out of memory");
+		free(cti);
+		return ERROR_FAIL;
+	}
 
 	/* now - create the new cti name command */
 	const struct command_registration cti_subcommands[] = {
@@ -487,7 +485,7 @@ static int cti_create(struct jim_getopt_info *goi)
 	};
 	const struct command_registration cti_commands[] = {
 		{
-			.name = cp,
+			.name = CMD_ARGV[0],
 			.mode = COMMAND_ANY,
 			.help = "cti instance command group",
 			.usage = "",
@@ -495,31 +493,24 @@ static int cti_create(struct jim_getopt_info *goi)
 		},
 		COMMAND_REGISTRATION_DONE
 	};
-	e = register_commands_with_data(cmd_ctx, NULL, cti_commands, cti);
-	if (e != ERROR_OK)
-		return JIM_ERR;
+	int retval = register_commands_with_data(CMD_CTX, NULL, cti_commands, cti);
+	if (retval != ERROR_OK) {
+		free(cti->name);
+		free(cti);
+		return retval;
+	}
 
 	list_add_tail(&cti->lh, &all_cti);
 
 	cti->ap = dap_get_ap(cti->spot.dap, cti->spot.ap_num);
 	if (!cti->ap) {
-		Jim_SetResultString(goi->interp, "Cannot get AP", -1);
-		return JIM_ERR;
+		command_print(CMD, "Cannot get AP");
+		free(cti->name);
+		free(cti);
+		return ERROR_FAIL;
 	}
 
-	return JIM_OK;
-}
-
-static int jim_cti_create(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
-{
-	struct jim_getopt_info goi;
-	jim_getopt_setup(&goi, interp, argc - 1, argv + 1);
-	if (goi.argc < 2) {
-		Jim_WrongNumArgs(goi.interp, goi.argc, goi.argv,
-			"<name> [<cti_options> ...]");
-		return JIM_ERR;
-	}
-	return cti_create(&goi);
+	return ERROR_OK;
 }
 
 COMMAND_HANDLER(cti_handle_names)
@@ -539,7 +530,7 @@ static const struct command_registration cti_subcommand_handlers[] = {
 	{
 		.name = "create",
 		.mode = COMMAND_ANY,
-		.jim_handler = jim_cti_create,
+		.handler = handle_cti_create,
 		.usage = "name '-chain-position' name [options ...]",
 		.help = "Creates a new CTI object",
 	},
