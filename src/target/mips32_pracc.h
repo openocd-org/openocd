@@ -36,6 +36,8 @@
 
 #define PRACC_BLOCK	128	/* 1 Kbyte */
 
+struct mips32_common;
+
 struct pa_list {
 	uint32_t instr;
 	uint32_t addr;
@@ -64,8 +66,8 @@ int mips32_pracc_write_mem(struct mips_ejtag *ejtag_info,
 int mips32_pracc_fastdata_xfer(struct mips_ejtag *ejtag_info, struct working_area *source,
 		int write_t, uint32_t addr, int count, uint32_t *buf);
 
-int mips32_pracc_read_regs(struct mips_ejtag *ejtag_info, uint32_t *regs);
-int mips32_pracc_write_regs(struct mips_ejtag *ejtag_info, uint32_t *regs);
+int mips32_pracc_read_regs(struct mips32_common *mips32);
+int mips32_pracc_write_regs(struct mips32_common *mips32);
 
 /**
  * \b mips32_cp0_read

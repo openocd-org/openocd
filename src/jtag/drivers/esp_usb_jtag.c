@@ -487,7 +487,7 @@ static int esp_usb_jtag_init(void)
 	bitq_interface->in_rdy = esp_usb_jtag_in_rdy;
 	bitq_interface->in = esp_usb_jtag_in;
 
-	int r = jtag_libusb_open(vids, pids, &priv->usb_device, NULL);
+	int r = jtag_libusb_open(vids, pids, NULL, &priv->usb_device, NULL);
 	if (r != ERROR_OK) {
 		LOG_ERROR("esp_usb_jtag: could not find or open device!");
 		goto out;

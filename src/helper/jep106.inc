@@ -2,15 +2,15 @@
 
 /*
  * The manufacturer's standard identification code list appears in JEP106.
- * Copyright (c) 2022 JEDEC. All rights reserved.
+ * Copyright (c) 2023 JEDEC. All rights reserved.
  *
  * JEP106 is regularly updated. For the current manufacturer's standard
  * identification code list, please visit the JEDEC website at www.jedec.org .
  */
 
-/* This file is aligned to revision JEP106BG May 2023. */
+/* This file is aligned to revision JEP106BH September 2023. */
 
-/* "NXP (Philips)" is reported below, while missing in JEP106BG */
+/* "NXP (Philips)" is reported below, while missing since JEP106BG */
 
 [0][0x01 - 1] = "AMD",
 [0][0x02 - 1] = "AMI",
@@ -1375,7 +1375,7 @@
 [10][0x65 - 1] = "Esperanto Technologies",
 [10][0x66 - 1] = "JinSheng Electronic (Shenzhen) Co Ltd",
 [10][0x67 - 1] = "Shenzhen Shi Bolunshuai Technology",
-[10][0x68 - 1] = "Shanghai Rei Zuan Information Tech",
+[10][0x68 - 1] = "Shanghai Rui Zuan Information Tech",
 [10][0x69 - 1] = "Fraunhofer IIS",
 [10][0x6a - 1] = "Kandou Bus SA",
 [10][0x6b - 1] = "Acer",
@@ -1841,4 +1841,51 @@
 [14][0x3f - 1] = "Shenzhen Dingsheng Technology Co Ltd",
 [14][0x40 - 1] = "EVAS Intelligence Co Ltd",
 [14][0x41 - 1] = "Kaibright Electronic Technologies",
+[14][0x42 - 1] = "Fraunhofer IMS",
+[14][0x43 - 1] = "Shenzhen Xinrui Renhe Technology",
+[14][0x44 - 1] = "Beijing Vcore Technology Co Ltd",
+[14][0x45 - 1] = "Silicon Innovation Technologies Co Ltd",
+[14][0x46 - 1] = "Shenzhen Zhengxinda Technology Co Ltd",
+[14][0x47 - 1] = "Shenzhen Remai Electronics Co Lttd",
+[14][0x48 - 1] = "Shenzhen Xinruiyan Electronics Co Ltd",
+[14][0x49 - 1] = "CEC Huada Electronic Design Co Ltd",
+[14][0x4a - 1] = "Westberry Technology Inc",
+[14][0x4b - 1] = "Tongxin Microelectronics Co Ltd",
+[14][0x4c - 1] = "UNIM Semiconductor (Shang Hai) Co Ltd",
+[14][0x4d - 1] = "Shenzhen Qiaowenxingyu Industrial Co Ltd",
+[14][0x4e - 1] = "ICC",
+[14][0x4f - 1] = "Enfabrica Corporation",
+[14][0x50 - 1] = "Niobium Microsystems Inc",
+[14][0x51 - 1] = "Xiaoli AI Electronics (Shenzhen) Co Ltd",
+[14][0x52 - 1] = "Silicon Mitus",
+[14][0x53 - 1] = "Ajiatek Inc",
+[14][0x54 - 1] = "HomeNet",
+[14][0x55 - 1] = "Shenzhen Shubang Technology Co Ltd",
+[14][0x56 - 1] = "Exacta Technologies Ltd",
+[14][0x57 - 1] = "Synology",
+[14][0x58 - 1] = "Trium Elektronik Bilgi Islem San Ve Dis",
+[14][0x59 - 1] = "Shenzhen Hippstor Technology Co Ltd",
+[14][0x5a - 1] = "SSCT",
+[14][0x5b - 1] = "Sichuan Heentai Semiconductor Co Ltd",
+[14][0x5c - 1] = "Zhejiang University",
+[14][0x5d - 1] = "www.shingroup.cn",
+[14][0x5e - 1] = "Suzhou Nano Mchip Technology Company",
+[14][0x5f - 1] = "Feature Integration Technology Inc",
+[14][0x60 - 1] = "d-Matrix",
+[14][0x61 - 1] = "Golden Memory",
+[14][0x62 - 1] = "Qingdao Thunderobot Technology Co Ltd",
+[14][0x63 - 1] = "Shenzhen Tianxiang Chuangxin Technology",
+[14][0x64 - 1] = "HYPHY USA",
+[14][0x65 - 1] = "Valkyrie",
+[14][0x66 - 1] = "Suzhou Hesetc Electronic Technology Co",
+[14][0x67 - 1] = "Hainan Zhongyuncun Technology Co Ltd",
+[14][0x68 - 1] = "Shenzhen Yousheng Bona Technology Co",
+[14][0x69 - 1] = "Shenzhen Xinle Chuang Technology Co",
+[14][0x6a - 1] = "DEEPX",
+[14][0x6b - 1] = "iStarChip CA LLC",
+[14][0x6c - 1] = "Shenzhen Vinreada Technology Co Ltd",
+[14][0x6d - 1] = "Novatek Microelectronics Corp",
+[14][0x6e - 1] = "Chemgdu EG Technology Co Ltd",
+[14][0x6f - 1] = "AGI Technology",
+[14][0x70 - 1] = "Syntiant",
 /* EOF */

@@ -968,12 +968,13 @@ int image_open(struct image *image, const char *url, const char *type_string)
 
 		retval = fileio_open(&image_binary->fileio, url, FILEIO_READ, FILEIO_BINARY);
 		if (retval != ERROR_OK)
-			return retval;
+			goto free_mem_on_error;
+
 		size_t filesize;
 		retval = fileio_size(image_binary->fileio, &filesize);
 		if (retval != ERROR_OK) {
 			fileio_close(image_binary->fileio);
-			return retval;
+			goto free_mem_on_error;
 		}
 
 		image->num_sections = 1;
@@ -988,14 +989,14 @@ int image_open(struct image *image, const char *url, const char *type_string)
 
 		retval = fileio_open(&image_ihex->fileio, url, FILEIO_READ, FILEIO_TEXT);
 		if (retval != ERROR_OK)
-			return retval;
+			goto free_mem_on_error;
 
 		retval = image_ihex_buffer_complete(image);
 		if (retval != ERROR_OK) {
 			LOG_ERROR(
 				"failed buffering IHEX image, check server output for additional information");
 			fileio_close(image_ihex->fileio);
-			return retval;
+			goto free_mem_on_error;
 		}
 	} else if (image->type == IMAGE_ELF) {
 		struct image_elf *image_elf;
@@ -1004,12 +1005,12 @@ int image_open(struct image *image, const char *url, const char *type_string)
 
 		retval = fileio_open(&image_elf->fileio, url, FILEIO_READ, FILEIO_BINARY);
 		if (retval != ERROR_OK)
-			return retval;
+			goto free_mem_on_error;
 
 		retval = image_elf_read_headers(image);
 		if (retval != ERROR_OK) {
 			fileio_close(image_elf->fileio);
-			return retval;
+			goto free_mem_on_error;
 		}
 	} else if (image->type == IMAGE_MEMORY) {
 		struct target *target = get_target(url);
@@ -1039,14 +1040,14 @@ int image_open(struct image *image, const char *url, const char *type_string)
 
 		retval = fileio_open(&image_mot->fileio, url, FILEIO_READ, FILEIO_TEXT);
 		if (retval != ERROR_OK)
-			return retval;
+			goto free_mem_on_error;
 
 		retval = image_mot_buffer_complete(image);
 		if (retval != ERROR_OK) {
 			LOG_ERROR(
 				"failed buffering S19 image, check server output for additional information");
 			fileio_close(image_mot->fileio);
-			return retval;
+			goto free_mem_on_error;
 		}
 	} else if (image->type == IMAGE_BUILDER) {
 		image->num_sections = 0;
@@ -1066,6 +1067,11 @@ int image_open(struct image *image, const char *url, const char *type_string)
 		image->base_address_set = false;
 	}
 
+	return retval;
+
+free_mem_on_error:
+	free(image->type_private);
+	image->type_private = NULL;
 	return retval;
 };
 

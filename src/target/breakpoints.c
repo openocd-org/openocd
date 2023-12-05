@@ -468,7 +468,7 @@ static int watchpoint_remove_all_internal(struct target *target)
 	return retval;
 }
 
-int breakpoint_watchpoint_remove_all(struct target *target, enum breakpoint_watchpoint bp_wp)
+static int breakpoint_watchpoint_remove_all(struct target *target, enum breakpoint_watchpoint bp_wp)
 {
 	assert(bp_wp == BREAKPOINT || bp_wp == WATCHPOINT);
 	int retval = ERROR_OK;
