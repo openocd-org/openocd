@@ -822,7 +822,7 @@ int xtensa_examine(struct target *target)
 	struct xtensa *xtensa = target_to_xtensa(target);
 	unsigned int cmd = PWRCTL_DEBUGWAKEUP(xtensa) | PWRCTL_MEMWAKEUP(xtensa) | PWRCTL_COREWAKEUP(xtensa);
 
-	LOG_DEBUG("coreid = %d", target->coreid);
+	LOG_TARGET_DEBUG(target, "");
 
 	if (xtensa->core_config->core_type == XT_UNDEF) {
 		LOG_ERROR("XTensa core not configured; is xtensa-core-openocd.cfg missing?");

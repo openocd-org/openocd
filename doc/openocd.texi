@@ -2810,9 +2810,9 @@ If not specified, default 0xFFFF is used.
 @end deffn
 
 @deffn {Interface Driver} {remote_bitbang}
-Drive JTAG from a remote process. This sets up a UNIX or TCP socket connection
-with a remote process and sends ASCII encoded bitbang requests to that process
-instead of directly driving JTAG.
+Drive JTAG and SWD from a remote process. This sets up a UNIX or TCP socket
+connection with a remote process and sends ASCII encoded bitbang requests to
+that process instead of directly driving JTAG and SWD.
 
 The remote_bitbang driver is useful for debugging software running on
 processors which are being simulated.
@@ -9374,7 +9374,7 @@ Remove the breakpoint at @var{address} or all breakpoints.
 Remove data watchpoint on @var{address} or all watchpoints.
 @end deffn
 
-@deffn {Command} {wp} [address len [(@option{r}|@option{w}|@option{a}) [value [mask]]]]
+@deffn {Command} {wp} [address length [(@option{r}|@option{w}|@option{a}) [value [mask]]]]
 With no parameters, lists all active watchpoints.
 Else sets a data watchpoint on data from @var{address} for @var{length} bytes.
 The watch point is an "access" watchpoint unless

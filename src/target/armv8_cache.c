@@ -243,7 +243,7 @@ static int  armv8_flush_all_data(struct target *target)
 		foreach_smp_target(head, target->smp_targets) {
 			struct target *curr = head->target;
 			if (curr->state == TARGET_HALTED) {
-				LOG_INFO("Wait flushing data l1 on core %" PRId32, curr->coreid);
+				LOG_TARGET_INFO(curr, "Wait flushing data l1.");
 				retval = _armv8_flush_all_data(curr);
 			}
 		}
