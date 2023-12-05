@@ -1265,8 +1265,8 @@ static int arc_resume(struct target *target, int current, target_addr_t address,
 	/* current = 1: continue on current PC, otherwise continue at <address> */
 	if (!current) {
 		target_buffer_set_u32(target, pc->value, address);
-		pc->dirty = 1;
-		pc->valid = 1;
+		pc->dirty = true;
+		pc->valid = true;
 		LOG_DEBUG("Changing the value of current PC to 0x%08" TARGET_PRIxADDR, address);
 	}
 
@@ -1281,7 +1281,7 @@ static int arc_resume(struct target *target, int current, target_addr_t address,
 		resume_pc, pc->dirty, pc->valid);
 
 	/* check if GDB tells to set our PC where to continue from */
-	if ((pc->valid == 1) && (resume_pc == target_buffer_get_u32(target, pc->value))) {
+	if (pc->valid && resume_pc == target_buffer_get_u32(target, pc->value)) {
 		value = target_buffer_get_u32(target, pc->value);
 		LOG_DEBUG("resume Core (when start-core) with PC @:0x%08" PRIx32, value);
 		CHECK_RETVAL(arc_jtag_write_aux_reg_one(&arc->jtag_info, AUX_PC_REG, value));
@@ -2007,8 +2007,8 @@ static int arc_step(struct target *target, int current, target_addr_t address,
 	/* current = 1: continue on current pc, otherwise continue at <address> */
 	if (!current) {
 		buf_set_u32(pc->value, 0, 32, address);
-		pc->dirty = 1;
-		pc->valid = 1;
+		pc->dirty = true;
+		pc->valid = true;
 	}
 
 	LOG_DEBUG("Target steps one instruction from PC=0x%" PRIx32,

@@ -121,6 +121,7 @@ static int lattice_certus_enable_programming(struct jtag_tap *tap)
 	uint8_t buffer = 0;
 	field.num_bits = 8;
 	field.out_value = &buffer;
+	field.in_value = NULL;
 	jtag_add_dr_scan(tap, 1, &field, TAP_IDLE);
 	jtag_add_runtest(2, TAP_IDLE);
 	return jtag_execute_queue();

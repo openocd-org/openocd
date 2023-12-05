@@ -5325,6 +5325,18 @@ Displays the current target state:
 (Also, @pxref{eventpolling,,Event Polling}.)
 @end deffn
 
+@deffn {Command} {$target_name debug_reason}
+Displays the current debug reason:
+@code{debug-request},
+@code{breakpoint},
+@code{watchpoint},
+@code{watchpoint-and-breakpoint},
+@code{single-step},
+@code{target-not-halted},
+@code{program-exit},
+@code{exception-catch} or @code{undefined}.
+@end deffn
+
 @deffn {Command} {$target_name eventlist}
 Displays a table listing all event handlers
 currently associated with this target.

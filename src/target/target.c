@@ -5876,6 +5876,18 @@ COMMAND_HANDLER(handle_target_current_state)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(handle_target_debug_reason)
+{
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	struct target *target = get_current_target(CMD_CTX);
+
+	command_print(CMD, "%s", debug_reason_name(target));
+
+	return ERROR_OK;
+}
+
 static int jim_target_invoke_event(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	struct jim_getopt_info goi;
@@ -6028,6 +6040,13 @@ static const struct command_registration target_instance_command_handlers[] = {
 		.usage = "",
 	},
 	{
+		.name = "debug_reason",
+		.mode = COMMAND_EXEC,
+		.handler = handle_target_debug_reason,
+		.help = "displays the debug reason of this target",
+		.usage = "",
+	},
+	{
 		.name = "arp_examine",
 		.mode = COMMAND_EXEC,
 		.handler = handle_target_examine,
@@ -6126,7 +6145,7 @@ static int target_create(struct jim_getopt_info *goi)
 	if (e != JIM_OK)
 		return e;
 	struct transport *tr = get_current_transport();
-	if (tr->override_target) {
+	if (tr && tr->override_target) {
 		e = tr->override_target(&cp);
 		if (e != ERROR_OK) {
 			LOG_ERROR("The selected transport doesn't support this target");
