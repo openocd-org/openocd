@@ -131,7 +131,7 @@ struct jtag_tap {
 	/** current instruction */
 	uint8_t *cur_instr;
 	/** Bypass register selected */
-	int bypass;
+	bool bypass;
 
 	struct jtag_tap_event_action *event_action;
 

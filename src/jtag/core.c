@@ -1049,7 +1049,7 @@ static int jtag_reset_callback(enum jtag_event event, void *priv)
 
 		/* current instruction is either BYPASS or IDCODE */
 		buf_set_ones(tap->cur_instr, tap->ir_length);
-		tap->bypass = 1;
+		tap->bypass = true;
 	}
 
 	return ERROR_OK;
@@ -1464,7 +1464,7 @@ void jtag_tap_init(struct jtag_tap *tap)
 	buf_set_u32(tap->expected_mask, 0, ir_len_bits, tap->ir_capture_mask);
 
 	/* TAP will be in bypass mode after jtag_validate_ircapture() */
-	tap->bypass = 1;
+	tap->bypass = true;
 	buf_set_ones(tap->cur_instr, tap->ir_length);
 
 	/* register the reset callback for the TAP */
