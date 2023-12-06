@@ -3483,15 +3483,21 @@ static COMMAND_HELPER(xtensa_cmd_exe_do, struct target *target)
 	LOG_TARGET_DEBUG(target, "execute stub: %s", CMD_ARGV[0]);
 	xtensa_queue_exec_ins_wide(xtensa, ops, oplen);	/* Handles endian-swap */
 	status = xtensa_dm_queue_execute(&xtensa->dbg_mod);
-	if (status != ERROR_OK)
-		LOG_TARGET_ERROR(target, "TIE queue execute: %d\n", status);
-	status = xtensa_core_status_check(target);
-	if (status != ERROR_OK)
-		LOG_TARGET_ERROR(target, "TIE instr execute: %d\n", status);
+	if (status != ERROR_OK) {
+		LOG_TARGET_ERROR(target, "exec: queue error %d", status);
+	} else {
+		status = xtensa_core_status_check(target);
+		if (status != ERROR_OK)
+			LOG_TARGET_ERROR(target, "exec: status error %d", status);
+	}
 
 	/* Reread register cache and restore saved regs after instruction execution */
 	if (xtensa_fetch_all_regs(target) != ERROR_OK)
-		LOG_TARGET_ERROR(target, "%s: Failed to fetch register cache (post-exec).", target_name(target));
+		LOG_TARGET_ERROR(target, "post-exec: register fetch error");
+	if (status != ERROR_OK) {
+		LOG_TARGET_ERROR(target, "post-exec: EXCCAUSE 0x%02" PRIx32,
+			xtensa_reg_get(target, XT_REG_IDX_EXCCAUSE));
+	}
 	xtensa_reg_set(target, XT_REG_IDX_EXCCAUSE, exccause);
 	xtensa_reg_set(target, XT_REG_IDX_CPENABLE, cpenable);
 	return status;
