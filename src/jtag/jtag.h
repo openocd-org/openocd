@@ -115,7 +115,7 @@ struct jtag_tap {
 	uint32_t idcode; /**< device identification code */
 	/** not all devices have idcode,
 	 * we'll discover this during chain examination */
-	bool hasidcode;
+	bool has_idcode;
 
 	/** Array of expected identification codes */
 	uint32_t *expected_ids;

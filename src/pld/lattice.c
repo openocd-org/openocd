@@ -81,7 +81,7 @@ static int lattice_check_device_family(struct lattice_pld_device *lattice_device
 	if (lattice_device->family != LATTICE_UNKNOWN && lattice_device->preload_length != 0)
 		return ERROR_OK;
 
-	if (!lattice_device->tap || !lattice_device->tap->hasidcode)
+	if (!lattice_device->tap || !lattice_device->tap->has_idcode)
 		return ERROR_FAIL;
 
 	for (size_t i = 0; i < ARRAY_SIZE(lattice_devices); ++i) {
@@ -280,7 +280,7 @@ static int lattice_load_command(struct pld_device *pld_device, const char *filen
 		return ERROR_FAIL;
 	struct jtag_tap *tap = lattice_device->tap;
 
-	if (!tap || !tap->hasidcode)
+	if (!tap || !tap->has_idcode)
 		return ERROR_FAIL;
 
 	int retval = lattice_check_device_family(lattice_device);

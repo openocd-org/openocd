@@ -912,7 +912,7 @@ static int dsp563xx_examine(struct target *target)
 {
 	uint32_t chip;
 
-	if (target->tap->hasidcode == false) {
+	if (!target->tap->has_idcode) {
 		LOG_ERROR("no IDCODE present on device");
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
