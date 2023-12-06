@@ -74,3 +74,6 @@ clean:
 
 bin: angie_firmware.ihx
 	makebin -p angie_firmware.ihx angie_firmware.bin
+
+hex: angie_firmware.ihx
+	$(PACKIHX) angie_firmware.ihx > fx2.hex

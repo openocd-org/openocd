@@ -225,6 +225,7 @@ ATTRS{idVendor}=="303a", ATTRS{idProduct}=="1001", MODE="660", GROUP="plugdev", 
 ATTRS{idVendor}=="303a", ATTRS{idProduct}=="1002", MODE="660", GROUP="plugdev", TAG+="uaccess"
 
 # ANGIE USB-JTAG Adapter
+ATTRS{idVendor}=="584e", ATTRS{idProduct}=="414f", MODE="660", GROUP="plugdev", TAG+="uaccess"
 ATTRS{idVendor}=="584e", ATTRS{idProduct}=="424e", MODE="660", GROUP="plugdev", TAG+="uaccess"
 ATTRS{idVendor}=="584e", ATTRS{idProduct}=="4255", MODE="660", GROUP="plugdev", TAG+="uaccess"
 ATTRS{idVendor}=="584e", ATTRS{idProduct}=="4355", MODE="660", GROUP="plugdev", TAG+="uaccess"

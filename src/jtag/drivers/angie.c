@@ -31,10 +31,11 @@
 
 /** USB Product ID of ANGIE device in unconfigured state (no firmware loaded
  *  yet) or with its firmware. */
-#define ANGIE_PID 0x424e
-#define ANGIE_PID_2 0x4255
-#define ANGIE_PID_3 0x4355
-#define ANGIE_PID_4 0x4a55
+#define ANGIE_PID 0x414F
+#define ANGIE_PID_2 0x424e
+#define ANGIE_PID_3 0x4255
+#define ANGIE_PID_4 0x4355
+#define ANGIE_PID_5 0x4a55
 
 /** Address of EZ-USB ANGIE CPU Control & Status register. This register can be
  *  written by issuing a Control EP0 vendor request. */
@@ -255,8 +256,8 @@ static struct angie *angie_handle;
 static int angie_usb_open(struct angie *device)
 {
 	struct libusb_device_handle *usb_device_handle;
-	const uint16_t vids[] = {ANGIE_VID, ANGIE_VID, ANGIE_VID, ANGIE_VID, 0};
-	const uint16_t pids[] = {ANGIE_PID, ANGIE_PID_2, ANGIE_PID_3, ANGIE_PID_4, 0};
+	const uint16_t vids[] = {ANGIE_VID, ANGIE_VID, ANGIE_VID, ANGIE_VID, ANGIE_VID, 0};
+	const uint16_t pids[] = {ANGIE_PID, ANGIE_PID_2, ANGIE_PID_3, ANGIE_PID_4, ANGIE_PID_5, 0};
 
 	int ret = jtag_libusb_open(vids, pids, NULL, &usb_device_handle, NULL);
 
