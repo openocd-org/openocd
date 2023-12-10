@@ -33,12 +33,6 @@
 #include "cmsis_dap.h"
 #include "libusb_helper.h"
 
-#if !defined(LIBUSB_API_VERSION) || (LIBUSB_API_VERSION < 0x01000105) \
-		|| defined(_WIN32) || defined(__CYGWIN__)
-	#define libusb_dev_mem_alloc(dev, sz) malloc(sz)
-	#define libusb_dev_mem_free(dev, buffer, sz) free(buffer)
-#endif
-
 enum {
 	CMSIS_DAP_TRANSFER_PENDING = 0,	/* must be 0, used in libusb_handle_events_completed */
 	CMSIS_DAP_TRANSFER_IDLE,
@@ -599,33 +593,34 @@ static int cmsis_dap_usb_alloc(struct cmsis_dap *dap, unsigned int pkt_sz)
 	dap->command = dap->packet_buffer;
 	dap->response = dap->packet_buffer;
 
+	struct cmsis_dap_backend_data *bdata = dap->bdata;
 	for (unsigned int i = 0; i < MAX_PENDING_REQUESTS; i++) {
-		dap->bdata->command_transfers[i].buffer =
-			libusb_dev_mem_alloc(dap->bdata->dev_handle, pkt_sz);
-		if (!dap->bdata->command_transfers[i].buffer) {
-			LOG_ERROR("unable to allocate CMSIS-DAP packet buffer");
-			return ERROR_FAIL;
-		}
-		dap->bdata->response_transfers[i].buffer =
-			libusb_dev_mem_alloc(dap->bdata->dev_handle, pkt_sz);
-		if (!dap->bdata->response_transfers[i].buffer) {
-			LOG_ERROR("unable to allocate CMSIS-DAP packet buffer");
+		bdata->command_transfers[i].buffer =
+			oocd_libusb_dev_mem_alloc(bdata->dev_handle, pkt_sz);
+
+		bdata->response_transfers[i].buffer =
+			oocd_libusb_dev_mem_alloc(bdata->dev_handle, pkt_sz);
+
+		if (!bdata->command_transfers[i].buffer
+			|| !bdata->response_transfers[i].buffer) {
+			LOG_ERROR("unable to allocate CMSIS-DAP pending packet buffer");
 			return ERROR_FAIL;
 		}
 	}
-
 	return ERROR_OK;
 }
 
 static void cmsis_dap_usb_free(struct cmsis_dap *dap)
 {
+	struct cmsis_dap_backend_data *bdata = dap->bdata;
+
 	for (unsigned int i = 0; i < MAX_PENDING_REQUESTS; i++) {
-		libusb_dev_mem_free(dap->bdata->dev_handle,
-			dap->bdata->command_transfers[i].buffer, dap->packet_size);
-		dap->bdata->command_transfers[i].buffer = NULL;
-		libusb_dev_mem_free(dap->bdata->dev_handle,
-			dap->bdata->response_transfers[i].buffer, dap->packet_size);
-		dap->bdata->response_transfers[i].buffer = NULL;
+		oocd_libusb_dev_mem_free(bdata->dev_handle,
+			bdata->command_transfers[i].buffer, dap->packet_size);
+		oocd_libusb_dev_mem_free(bdata->dev_handle,
+			bdata->response_transfers[i].buffer, dap->packet_size);
+		bdata->command_transfers[i].buffer = NULL;
+		bdata->response_transfers[i].buffer = NULL;
 	}
 
 	free(dap->packet_buffer);
