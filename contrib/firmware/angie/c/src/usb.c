@@ -65,17 +65,6 @@ __code struct usb_config_descriptor config_descriptor = {
 	.maxpower =		50	/* 100 mA */
 };
 
-__code struct usb_interface_association_descriptor interface_association_descriptor = {
-	.blength = sizeof(struct usb_interface_association_descriptor),
-	.bdescriptortype =	DESCRIPTOR_TYPE_INTERFACE_ASSOCIATION,
-	.bfirstinterface =	0x01,
-	.binterfacecount =	0x02,
-	.bfunctionclass =	0x02,
-	.bfunctionsubclass =	0x00,
-	.bfunctionprotocol =	0x00,
-	.ifunction =	0x00
-};
-
 __code struct usb_interface_descriptor interface_descriptor00 = {
 	.blength = sizeof(struct usb_interface_descriptor),
 	.bdescriptortype =	DESCRIPTOR_TYPE_INTERFACE,
