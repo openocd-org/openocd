@@ -3692,7 +3692,7 @@ struct memory_access_info {
  * dm_data[0:1] contains mem[address + (index_on_target - 2) * increment]
  */
 static int read_memory_progbuf_inner_on_ac_busy(struct target *target,
-		uint32_t start_index, uint32_t elements_to_read, uint32_t *elements_read,
+		uint32_t start_index, uint32_t *elements_read,
 		struct memory_access_info access)
 {
 	increase_ac_busy_delay(target);
@@ -3845,7 +3845,7 @@ static int read_memory_progbuf_inner_run_and_process_batch(struct target *target
 	case CMDERR_BUSY:
 		LOG_TARGET_DEBUG(target, "memory read resulted in busy response");
 		if (read_memory_progbuf_inner_on_ac_busy(target, start_index,
-					elements_to_read, &elements_to_extract_from_batch, access)
+					&elements_to_extract_from_batch, access)
 				!= ERROR_OK)
 			return ERROR_FAIL;
 		break;
@@ -4428,182 +4428,277 @@ static int write_memory_bus_v1(struct target *target, target_addr_t address,
 	return ERROR_OK;
 }
 
+/**
+ * This function is used to start the memory-writing pipeline.
+ * As part of the process, the function writes the first item and waits for completion,
+ * so forward progress is ensured.
+ * The pipeline looks like this:
+ * debugger -> dm_data[0:1] -> s1 -> memory
+ * Prior to calling it, the program buffer should contain the appropriate
+ * program.
+ * This function sets DM_ABSTRACTAUTO_AUTOEXECDATA to trigger second stage of the
+ * pipeline (dm_data[0:1] -> s1) whenever dm_data is written.
+ */
+static int write_memory_progbuf_startup(struct target *target, target_addr_t *address_p,
+		const uint8_t *buffer, uint32_t size)
+{
+	/* TODO: There is potential to gain some performance if the operations below are
+	 * executed inside the first DMI batch (not separately). */
+	if (register_write_direct(target, GDB_REGNO_S0, *address_p) != ERROR_OK)
+		return ERROR_FAIL;
+
+	/* Write the first item to data0 [, data1] */
+	assert(size <= 8);
+	const uint64_t value = buf_get_u64(buffer, 0, 8 * size);
+	if (write_abstract_arg(target, /*index*/ 0, value, size > 4 ? 64 : 32)
+			!= ERROR_OK)
+		return ERROR_FAIL;
+
+	/* Write and execute command that moves the value from data0 [, data1]
+	 * into S1 and executes program buffer. */
+	uint32_t command = access_register_command(target,
+			GDB_REGNO_S1, riscv_xlen(target),
+			AC_ACCESS_REGISTER_POSTEXEC |
+			AC_ACCESS_REGISTER_TRANSFER |
+			AC_ACCESS_REGISTER_WRITE);
+	if (execute_abstract_command(target, command) != ERROR_OK)
+		return ERROR_FAIL;
+
+	log_memory_access64(*address_p, value, size, /*is_read*/ false);
+
+	/* The execution of the command succeeded, which means:
+	 * - write of the first item to memory succeeded
+	 * - address on the target (S0) was incremented
+	 */
+	*address_p += size;
+
+	/* TODO: Setting abstractauto.autoexecdata is not necessary for a write
+	 * of one element. */
+	return dm_write(target, DM_ABSTRACTAUTO,
+			1 << DM_ABSTRACTAUTO_AUTOEXECDATA_OFFSET);
+}
+
+/**
+ * This function reverts the changes made by `write_memory_progbuf_startup()`
+ */
+static int write_memory_progbuf_teardown(struct target *target)
+{
+	return dm_write(target, DM_ABSTRACTAUTO, 0);
+}
+
+/**
+ * This function attempts to restore the pipeline after a busy on abstract
+ * access or a DMI busy by reading the content of s0 -- the address of the
+ * failed write.
+ */
+static int write_memory_progbuf_handle_busy(struct target *target,
+		target_addr_t *address_p, uint32_t size, const uint8_t *buffer)
+{
+	riscv013_clear_abstract_error(target);
+	increase_ac_busy_delay(target);
+
+	if (write_memory_progbuf_teardown(target) != ERROR_OK)
+		return ERROR_FAIL;
+
+	target_addr_t address_on_target;
+	if (register_read_direct(target, &address_on_target, GDB_REGNO_S0) != ERROR_OK)
+		return ERROR_FAIL;
+	const uint8_t * const curr_buff = buffer + (address_on_target - *address_p);
+	LOG_TARGET_DEBUG(target, "Restarting from 0x%" TARGET_PRIxADDR, *address_p);
+	*address_p = address_on_target;
+	/* This restores the pipeline and ensures one item gets reliably written */
+	return write_memory_progbuf_startup(target, address_p, curr_buff, size);
+}
+
+/**
+ * This function fills the batch with DMI writes (but does not execute the batch).
+ * It returns the next address -- the address that will be the start of the next batch.
+ */
+static target_addr_t write_memory_progbuf_fill_batch(struct riscv_batch *batch,
+		target_addr_t start_address, target_addr_t end_address, uint32_t size,
+		const uint8_t *buffer)
+{
+	assert(size <= 8);
+	const unsigned int writes_per_element = size > 4 ? 2 : 1;
+	const size_t batch_capacity = riscv_batch_available_scans(batch) / writes_per_element;
+	/* This is safe even for the edge case when writing at the very top of
+	 * the 64-bit address space (in which case end_address overflows to 0).
+	 */
+	const target_addr_t batch_end_address = start_address +
+		MIN((target_addr_t)batch_capacity * size,
+				end_address - start_address);
+	for (target_addr_t address = start_address; address != batch_end_address;
+			address += size, buffer += size) {
+		assert(size <= 8);
+		const uint64_t value = buf_get_u64(buffer, 0, 8 * size);
+		log_memory_access64(address, value, size, /*is_read*/ false);
+		if (writes_per_element == 2)
+			riscv_batch_add_dm_write(batch, DM_DATA1,
+					(uint32_t)(value >> 32), false);
+		riscv_batch_add_dm_write(batch, DM_DATA0, (uint32_t)value, false);
+	}
+	return batch_end_address;
+}
+
+/**
+ * This function runs the batch of writes and updates address_p with the
+ * address of the next write.
+ */
+static int write_memory_progbuf_run_batch(struct target *target, struct riscv_batch *batch,
+		target_addr_t *address_p, target_addr_t end_address, uint32_t size,
+		const uint8_t *buffer)
+{
+	if (batch_run(target, batch) != ERROR_OK)
+		return ERROR_FAIL;
+
+	/* Note that if the scan resulted in a Busy DMI response, it
+	 * is this call to wait_for_idle() that will cause the dmi_busy_delay
+	 * to be incremented if necessary. */
+	uint32_t abstractcs;
+
+	if (wait_for_idle(target, &abstractcs) != ERROR_OK)
+		return ERROR_FAIL;
+	RISCV013_INFO(info);
+	info->cmderr = get_field(abstractcs, DM_ABSTRACTCS_CMDERR);
+
+	const bool dmi_busy_encountered = riscv_batch_dmi_busy_encountered(batch);
+	if (info->cmderr == CMDERR_NONE && !dmi_busy_encountered) {
+		LOG_TARGET_DEBUG(target, "Successfully written memory block M[0x%" TARGET_PRIxADDR
+				".. 0x%" TARGET_PRIxADDR ")", *address_p, end_address);
+		*address_p = end_address;
+		return ERROR_OK;
+	} else if (info->cmderr == CMDERR_BUSY || dmi_busy_encountered) {
+		if (info->cmderr == CMDERR_BUSY)
+			LOG_TARGET_DEBUG(target, "Encountered abstract command busy response while writing block M[0x%"
+					TARGET_PRIxADDR ".. 0x%" TARGET_PRIxADDR ")", *address_p, end_address);
+		if (dmi_busy_encountered)
+			LOG_TARGET_DEBUG(target, "Encountered DMI busy response while writing block M[0x%"
+					TARGET_PRIxADDR ".. 0x%" TARGET_PRIxADDR ")", *address_p, end_address);
+		/* TODO: If dmi busy is encountered, the address of the last
+		 * successful write can be deduced by analysing the batch.
+		 */
+		return write_memory_progbuf_handle_busy(target, address_p, size, buffer);
+	}
+	LOG_TARGET_ERROR(target, "Error when writing memory, abstractcs=0x%" PRIx32,
+			abstractcs);
+	riscv013_clear_abstract_error(target);
+	return ERROR_FAIL;
+}
+
+static int write_memory_progbuf_try_to_write(struct target *target,
+		target_addr_t *address_p, target_addr_t end_address, uint32_t size,
+		const uint8_t *buffer)
+{
+	RISCV013_INFO(info);
+	struct riscv_batch * const batch = riscv_batch_alloc(target, RISCV_BATCH_ALLOC_SIZE,
+			info->dmi_busy_delay + info->ac_busy_delay);
+	if (!batch)
+		return ERROR_FAIL;
+
+	const target_addr_t batch_end_addr = write_memory_progbuf_fill_batch(batch,
+			*address_p, end_address, size, buffer);
+
+	int result = write_memory_progbuf_run_batch(target, batch, address_p,
+			batch_end_addr, size, buffer);
+	riscv_batch_free(batch);
+	return result;
+}
+
+static int riscv_program_store_mprv(struct riscv_program *p, enum gdb_regno d,
+		enum gdb_regno b, int offset, unsigned int size, bool mprven)
+{
+	if (mprven && riscv_program_csrrsi(p, GDB_REGNO_ZERO, CSR_DCSR_MPRVEN,
+				GDB_REGNO_DCSR) != ERROR_OK)
+		return ERROR_FAIL;
+
+	if (riscv_program_store(p, d, b, offset, size) != ERROR_OK)
+		return ERROR_FAIL;
+
+	if (mprven && riscv_program_csrrci(p, GDB_REGNO_ZERO, CSR_DCSR_MPRVEN,
+				GDB_REGNO_DCSR) != ERROR_OK)
+		return ERROR_FAIL;
+
+	return ERROR_OK;
+}
+
+static int write_memory_progbuf_fill_progbuf(struct target *target,
+		uint32_t size, bool mprven)
+{
+	if (riscv_save_register(target, GDB_REGNO_S0) != ERROR_OK)
+		return ERROR_FAIL;
+	if (riscv_save_register(target, GDB_REGNO_S1) != ERROR_OK)
+		return ERROR_FAIL;
+
+	struct riscv_program program;
+
+	riscv_program_init(&program, target);
+	if (riscv_program_store_mprv(&program, GDB_REGNO_S1, GDB_REGNO_S0, 0, size,
+				mprven) != ERROR_OK)
+		return ERROR_FAIL;
+
+	if (riscv_program_addi(&program, GDB_REGNO_S0, GDB_REGNO_S0, size) != ERROR_OK)
+		return ERROR_FAIL;
+
+	if (riscv_program_ebreak(&program) != ERROR_OK)
+		return ERROR_FAIL;
+
+	return riscv_program_write(&program);
+}
+
+static int write_memory_progbuf_inner(struct target *target, target_addr_t start_addr,
+		uint32_t size, uint32_t count, const uint8_t *buffer, bool mprven)
+{
+	if (write_memory_progbuf_fill_progbuf(target, size,
+				mprven) != ERROR_OK)
+		return ERROR_FAIL;
+
+	target_addr_t addr_on_target = start_addr;
+	if (write_memory_progbuf_startup(target, &addr_on_target, buffer, size) != ERROR_OK)
+		return ERROR_FAIL;
+
+	const target_addr_t end_addr = start_addr + (target_addr_t)size * count;
+
+	for (target_addr_t next_addr_on_target = addr_on_target; addr_on_target != end_addr;
+			addr_on_target = next_addr_on_target) {
+		const uint8_t * const curr_buff = buffer + (addr_on_target - start_addr);
+		if (write_memory_progbuf_try_to_write(target, &next_addr_on_target,
+					end_addr, size, curr_buff) != ERROR_OK) {
+			write_memory_progbuf_teardown(target);
+			return ERROR_FAIL;
+		}
+		/* write_memory_progbuf_try_to_write() ensures that at least one item
+		 * gets successfully written even when busy condition is encountered.
+		 * These assertions shuld hold when next_address_on_target overflows. */
+		assert(next_addr_on_target - addr_on_target > 0);
+		assert(next_addr_on_target - start_addr <= (target_addr_t)size * count);
+	}
+
+	return write_memory_progbuf_teardown(target);
+}
+
 static int write_memory_progbuf(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, const uint8_t *buffer)
 {
-	RISCV013_INFO(info);
-
 	if (riscv_xlen(target) < size * 8) {
-		LOG_TARGET_ERROR(target, "XLEN (%d) is too short for %d-bit memory write.",
+		LOG_TARGET_ERROR(target, "XLEN (%u) is too short for %" PRIu32 "-bit memory write.",
 				riscv_xlen(target), size * 8);
 		return ERROR_FAIL;
 	}
 
-	LOG_TARGET_DEBUG(target, "writing %d words of %d bytes to 0x%08lx", count, size, (long)address);
+	LOG_TARGET_DEBUG(target, "writing %" PRIu32 " words of %" PRIu32
+			" bytes to 0x%" TARGET_PRIxADDR, count, size, address);
 
-	select_dmi(target);
+	if (dm013_select_target(target) != ERROR_OK)
+		return ERROR_FAIL;
 
 	uint64_t mstatus = 0;
 	uint64_t mstatus_old = 0;
 	if (modify_privilege(target, &mstatus, &mstatus_old) != ERROR_OK)
 		return ERROR_FAIL;
 
-	/* s0 holds the next address to write to
-	 * s1 holds the next data value to write
-	 */
+	const bool mprven = riscv_enable_virtual && get_field(mstatus, MSTATUS_MPRV);
 
-	int result = ERROR_OK;
-	if (riscv_save_register(target, GDB_REGNO_S0) != ERROR_OK)
-		return ERROR_FAIL;
-	if (riscv_save_register(target, GDB_REGNO_S1) != ERROR_OK)
-		return ERROR_FAIL;
-
-	/* Write the program (store, increment) */
-	struct riscv_program program;
-	riscv_program_init(&program, target);
-	if (riscv_enable_virtual && has_sufficient_progbuf(target, 5) && get_field(mstatus, MSTATUS_MPRV))
-		riscv_program_csrrsi(&program, GDB_REGNO_ZERO, CSR_DCSR_MPRVEN, GDB_REGNO_DCSR);
-
-	switch (size) {
-		case 1:
-			riscv_program_sbr(&program, GDB_REGNO_S1, GDB_REGNO_S0, 0);
-			break;
-		case 2:
-			riscv_program_shr(&program, GDB_REGNO_S1, GDB_REGNO_S0, 0);
-			break;
-		case 4:
-			riscv_program_swr(&program, GDB_REGNO_S1, GDB_REGNO_S0, 0);
-			break;
-		case 8:
-			riscv_program_sdr(&program, GDB_REGNO_S1, GDB_REGNO_S0, 0);
-			break;
-		default:
-			LOG_TARGET_ERROR(target, "Unsupported size: %d", size);
-			result = ERROR_FAIL;
-			goto error;
-	}
-
-	if (riscv_enable_virtual && has_sufficient_progbuf(target, 5) && get_field(mstatus, MSTATUS_MPRV))
-		riscv_program_csrrci(&program, GDB_REGNO_ZERO,  CSR_DCSR_MPRVEN, GDB_REGNO_DCSR);
-	riscv_program_addi(&program, GDB_REGNO_S0, GDB_REGNO_S0, size);
-
-	result = riscv_program_ebreak(&program);
-	if (result != ERROR_OK)
-		goto error;
-	riscv_program_write(&program);
-
-	riscv_addr_t cur_addr = address;
-	riscv_addr_t distance = (riscv_addr_t)count * size;
-	bool setup_needed = true;
-	LOG_TARGET_DEBUG(target, "Writing until final address 0x%016" PRIx64, cur_addr + distance);
-	while (cur_addr - address < distance) {
-		LOG_TARGET_DEBUG(target, "Transferring burst starting at address 0x%016" PRIx64,
-				cur_addr);
-
-		struct riscv_batch *batch = riscv_batch_alloc(
-				target,
-				RISCV_BATCH_ALLOC_SIZE,
-				info->dmi_busy_delay + info->ac_busy_delay);
-		if (!batch)
-			goto error;
-
-		/* To write another word, we put it in S1 and execute the program. */
-		for (riscv_addr_t offset = cur_addr - address; offset < distance; offset += size) {
-			const uint8_t *t_buffer = buffer + offset;
-
-			uint64_t value = buf_get_u64(t_buffer, 0, 8 * size);
-
-			log_memory_access64(cur_addr, value, size, false);
-			cur_addr += size;
-
-			if (setup_needed) {
-				result = register_write_direct(target, GDB_REGNO_S0,
-						address + offset);
-				if (result != ERROR_OK) {
-					riscv_batch_free(batch);
-					goto error;
-				}
-
-				/* Write value. */
-				if (size > 4)
-					dm_write(target, DM_DATA1, value >> 32);
-				dm_write(target, DM_DATA0, value);
-
-				/* Write and execute command that moves value into S1 and
-				 * executes program buffer. */
-				uint32_t command = access_register_command(target,
-						GDB_REGNO_S1, riscv_xlen(target),
-						AC_ACCESS_REGISTER_POSTEXEC |
-						AC_ACCESS_REGISTER_TRANSFER |
-						AC_ACCESS_REGISTER_WRITE);
-				result = execute_abstract_command(target, command);
-				if (result != ERROR_OK) {
-					riscv_batch_free(batch);
-					goto error;
-				}
-
-				/* Turn on autoexec */
-				dm_write(target, DM_ABSTRACTAUTO,
-						1 << DM_ABSTRACTAUTO_AUTOEXECDATA_OFFSET);
-
-				setup_needed = false;
-			} else {
-				/* Note that data1 "might not be preserved after
-				 * an abstract command is executed," so this
-				 * can't be optimized by only writing data1 when
-				 * it has changed. */
-				if (size > 4)
-					riscv_batch_add_dm_write(batch, DM_DATA1, value >> 32, false);
-				riscv_batch_add_dm_write(batch, DM_DATA0, value, false);
-				if (riscv_batch_full(batch))
-					break;
-			}
-		}
-
-		result = batch_run(target, batch);
-		riscv_batch_free(batch);
-		if (result != ERROR_OK)
-			goto error;
-
-		/* Note that if the scan resulted in a Busy DMI response, it
-		 * is this read to abstractcs that will cause the dmi_busy_delay
-		 * to be incremented if necessary. */
-
-		uint32_t abstractcs;
-		bool dmi_busy_encountered;
-		result = dm_op(target, &abstractcs, &dmi_busy_encountered,
-				DMI_OP_READ, DM_ABSTRACTCS, 0, false, true);
-		if (result != ERROR_OK)
-			goto error;
-		while (get_field(abstractcs, DM_ABSTRACTCS_BUSY))
-			if (dm_read(target, &abstractcs, DM_ABSTRACTCS) != ERROR_OK)
-				return ERROR_FAIL;
-		info->cmderr = get_field(abstractcs, DM_ABSTRACTCS_CMDERR);
-		if (info->cmderr == CMDERR_NONE && !dmi_busy_encountered) {
-			LOG_TARGET_DEBUG(target, "Successful (partial?) memory write");
-		} else if (info->cmderr == CMDERR_BUSY || dmi_busy_encountered) {
-			if (info->cmderr == CMDERR_BUSY)
-				LOG_TARGET_DEBUG(target, "Memory write resulted in abstract command busy response.");
-			else if (dmi_busy_encountered)
-				LOG_TARGET_DEBUG(target, "Memory write resulted in DMI busy response.");
-			riscv013_clear_abstract_error(target);
-			increase_ac_busy_delay(target);
-
-			dm_write(target, DM_ABSTRACTAUTO, 0);
-			result = register_read_direct(target, &cur_addr, GDB_REGNO_S0);
-			if (result != ERROR_OK)
-				goto error;
-			setup_needed = true;
-		} else {
-			LOG_TARGET_ERROR(target, "Error when writing memory, abstractcs=0x%08lx", (long)abstractcs);
-			riscv013_clear_abstract_error(target);
-			result = ERROR_FAIL;
-			goto error;
-		}
-	}
-
-error:
-	dm_write(target, DM_ABSTRACTAUTO, 0);
+	int result = write_memory_progbuf_inner(target, address, size, count, buffer, mprven);
 
 	/* Restore MSTATUS */
 	if (mstatus != mstatus_old)

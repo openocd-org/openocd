@@ -99,6 +99,23 @@ int riscv_program_sbr(struct riscv_program *p, enum gdb_regno d, enum gdb_regno 
 	return riscv_program_insert(p, sb(d, b, offset));
 }
 
+int riscv_program_store(struct riscv_program *p, enum gdb_regno d, enum gdb_regno b, int offset,
+		unsigned int size)
+{
+	switch (size) {
+	case 1:
+		return riscv_program_sbr(p, d, b, offset);
+	case 2:
+		return riscv_program_shr(p, d, b, offset);
+	case 4:
+		return riscv_program_swr(p, d, b, offset);
+	case 8:
+		return riscv_program_sdr(p, d, b, offset);
+	}
+	assert(false && "Unsupported size");
+	return ERROR_FAIL;
+}
+
 int riscv_program_ldr(struct riscv_program *p, enum gdb_regno d, enum gdb_regno b, int offset)
 {
 	return riscv_program_insert(p, ld(d, b, offset));
