@@ -302,12 +302,12 @@ static void log_debug_reg(struct target *target, enum riscv_debug_reg_ordinal re
 	if (debug_level < LOG_LVL_DEBUG)
 		return;
 	const riscv_debug_reg_ctx_t context = get_riscv_debug_reg_ctx(target);
-	char * const buf = malloc(riscv_debug_reg_to_s(NULL, reg, context, value) + 1);
+	char * const buf = malloc(riscv_debug_reg_to_s(NULL, reg, context, value, RISCV_DEBUG_REG_HIDE_UNNAMED_0) + 1);
 	if (!buf) {
 		LOG_ERROR("Unable to allocate memory.");
 		return;
 	}
-	riscv_debug_reg_to_s(buf, reg, context, value);
+	riscv_debug_reg_to_s(buf, reg, context, value, RISCV_DEBUG_REG_HIDE_UNNAMED_0);
 	log_printf_lf(LOG_LVL_DEBUG, file, line, func, "[%s] %s", target_name(target), buf);
 	free(buf);
 }
@@ -356,7 +356,7 @@ static unsigned int decode_dm(char *text, unsigned int address, unsigned int dat
 				.abits = { .value = 0, .is_set = false },
 			};
 			return riscv_debug_reg_to_s(text, description[i].ordinal,
-					context, data);
+					context, data, RISCV_DEBUG_REG_HIDE_ALL_0);
 		}
 	}
 	if (text)
