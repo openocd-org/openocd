@@ -32,7 +32,6 @@
 #define DESCRIPTOR_TYPE_STRING                      0x03
 #define DESCRIPTOR_TYPE_INTERFACE                   0x04
 #define DESCRIPTOR_TYPE_ENDPOINT                    0x05
-#define DESCRIPTOR_TYPE_INTERFACE_ASSOCIATION       0x0B
 
 #define STR_DESCR(len, ...) { (len) * 2 + 2, DESCRIPTOR_TYPE_STRING, { __VA_ARGS__ } }
 
