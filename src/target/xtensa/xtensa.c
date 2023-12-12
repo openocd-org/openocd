@@ -16,6 +16,7 @@
 #include <helper/time_support.h>
 #include <helper/align.h>
 #include <target/register.h>
+#include <target/algorithm.h>
 
 #include "xtensa_chip.h"
 #include "xtensa.h"
@@ -2633,6 +2634,214 @@ int xtensa_watchpoint_remove(struct target *target, struct watchpoint *watchpoin
 	LOG_TARGET_DEBUG(target, "cleared HW watchpoint @ " TARGET_ADDR_FMT,
 		watchpoint->address);
 	return ERROR_OK;
+}
+
+int xtensa_start_algorithm(struct target *target,
+	int num_mem_params, struct mem_param *mem_params,
+	int num_reg_params, struct reg_param *reg_params,
+	target_addr_t entry_point, target_addr_t exit_point,
+	void *arch_info)
+{
+	struct xtensa *xtensa = target_to_xtensa(target);
+	struct xtensa_algorithm *algorithm_info = arch_info;
+	int retval = ERROR_OK;
+	bool usr_ps = false;
+
+	/* NOTE: xtensa_run_algorithm requires that each algorithm uses a software breakpoint
+	 * at the exit point */
+
+	if (target->state != TARGET_HALTED) {
+		LOG_WARNING("Target not halted!");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	for (unsigned int i = 0; i < xtensa->core_cache->num_regs; i++) {
+		struct reg *reg = &xtensa->core_cache->reg_list[i];
+		buf_cpy(reg->value, xtensa->algo_context_backup[i], reg->size);
+	}
+	/* save debug reason, it will be changed */
+	algorithm_info->ctx_debug_reason = target->debug_reason;
+	/* write mem params */
+	for (int i = 0; i < num_mem_params; i++) {
+		if (mem_params[i].direction != PARAM_IN) {
+			retval = target_write_buffer(target, mem_params[i].address,
+				mem_params[i].size,
+				mem_params[i].value);
+			if (retval != ERROR_OK)
+				return retval;
+		}
+	}
+	/* write reg params */
+	for (int i = 0; i < num_reg_params; i++) {
+		if (reg_params[i].size > 32) {
+			LOG_ERROR("BUG: not supported register size (%d)", reg_params[i].size);
+			return ERROR_FAIL;
+		}
+		struct reg *reg = register_get_by_name(xtensa->core_cache, reg_params[i].reg_name, 0);
+		if (!reg) {
+			LOG_ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
+			return ERROR_FAIL;
+		}
+		if (reg->size != reg_params[i].size) {
+			LOG_ERROR("BUG: register '%s' size doesn't match reg_params[i].size", reg_params[i].reg_name);
+			return ERROR_FAIL;
+		}
+		if (memcmp(reg_params[i].reg_name, "ps", 3)) {
+			usr_ps = true;
+		} else {
+			unsigned int reg_id = xtensa->eps_dbglevel_idx;
+			assert(reg_id < xtensa->core_cache->num_regs && "Attempt to access non-existing reg!");
+			reg = &xtensa->core_cache->reg_list[reg_id];
+		}
+		xtensa_reg_set_value(reg, buf_get_u32(reg_params[i].value, 0, reg->size));
+		reg->valid = 1;
+	}
+	/* ignore custom core mode if custom PS value is specified */
+	if (!usr_ps) {
+		unsigned int eps_reg_idx = xtensa->eps_dbglevel_idx;
+		xtensa_reg_val_t ps = xtensa_reg_get(target, eps_reg_idx);
+		enum xtensa_mode core_mode = XT_PS_RING_GET(ps);
+		if (algorithm_info->core_mode != XT_MODE_ANY && algorithm_info->core_mode != core_mode) {
+			LOG_DEBUG("setting core_mode: 0x%x", algorithm_info->core_mode);
+			xtensa_reg_val_t new_ps = (ps & ~XT_PS_RING_MSK) | XT_PS_RING(algorithm_info->core_mode);
+			/* save previous core mode */
+			/* TODO: core_mode is not restored for now. Can be added to the end of wait_algorithm */
+			algorithm_info->core_mode = core_mode;
+			xtensa_reg_set(target, eps_reg_idx, new_ps);
+			xtensa->core_cache->reg_list[eps_reg_idx].valid = 1;
+		}
+	}
+
+	return xtensa_resume(target, 0, entry_point, 1, 1);
+}
+
+/** Waits for an algorithm in the target. */
+int xtensa_wait_algorithm(struct target *target,
+	int num_mem_params, struct mem_param *mem_params,
+	int num_reg_params, struct reg_param *reg_params,
+	target_addr_t exit_point, unsigned int timeout_ms,
+	void *arch_info)
+{
+	struct xtensa *xtensa = target_to_xtensa(target);
+	struct xtensa_algorithm *algorithm_info = arch_info;
+	int retval = ERROR_OK;
+	xtensa_reg_val_t pc;
+
+	/* NOTE: xtensa_run_algorithm requires that each algorithm uses a software breakpoint
+	 * at the exit point */
+
+	retval = target_wait_state(target, TARGET_HALTED, timeout_ms);
+	/* If the target fails to halt due to the breakpoint, force a halt */
+	if (retval != ERROR_OK || target->state != TARGET_HALTED) {
+		retval = target_halt(target);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = target_wait_state(target, TARGET_HALTED, 500);
+		if (retval != ERROR_OK)
+			return retval;
+		LOG_TARGET_ERROR(target, "not halted %d, pc 0x%" PRIx32 ", ps 0x%" PRIx32, retval,
+			xtensa_reg_get(target, XT_REG_IDX_PC),
+			xtensa_reg_get(target, xtensa->eps_dbglevel_idx));
+		return ERROR_TARGET_TIMEOUT;
+	}
+	pc = xtensa_reg_get(target, XT_REG_IDX_PC);
+	if (exit_point && pc != exit_point) {
+		LOG_ERROR("failed algorithm halted at 0x%" PRIx32 ", expected " TARGET_ADDR_FMT, pc, exit_point);
+		return ERROR_TARGET_TIMEOUT;
+	}
+	/* Copy core register values to reg_params[] */
+	for (int i = 0; i < num_reg_params; i++) {
+		if (reg_params[i].direction != PARAM_OUT) {
+			struct reg *reg = register_get_by_name(xtensa->core_cache, reg_params[i].reg_name, 0);
+			if (!reg) {
+				LOG_ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
+				return ERROR_FAIL;
+			}
+			if (reg->size != reg_params[i].size) {
+				LOG_ERROR("BUG: register '%s' size doesn't match reg_params[i].size", reg_params[i].reg_name);
+				return ERROR_FAIL;
+			}
+			buf_set_u32(reg_params[i].value, 0, 32, xtensa_reg_get_value(reg));
+		}
+	}
+	/* Read memory values to mem_params */
+	LOG_DEBUG("Read mem params");
+	for (int i = 0; i < num_mem_params; i++) {
+		LOG_DEBUG("Check mem param @ " TARGET_ADDR_FMT, mem_params[i].address);
+		if (mem_params[i].direction != PARAM_OUT) {
+			LOG_DEBUG("Read mem param @ " TARGET_ADDR_FMT, mem_params[i].address);
+			retval = target_read_buffer(target, mem_params[i].address, mem_params[i].size, mem_params[i].value);
+			if (retval != ERROR_OK)
+				return retval;
+		}
+	}
+
+	/* avoid gdb keep_alive warning */
+	keep_alive();
+
+	for (int i = xtensa->core_cache->num_regs - 1; i >= 0; i--) {
+		struct reg *reg = &xtensa->core_cache->reg_list[i];
+		if (i == XT_REG_IDX_PS) {
+			continue;	/* restore mapped reg number of PS depends on NDEBUGLEVEL */
+		} else if (i == XT_REG_IDX_DEBUGCAUSE) {
+			/*FIXME: restoring DEBUGCAUSE causes exception when executing corresponding
+			* instruction in DIR */
+			LOG_DEBUG("Skip restoring register %s: 0x%8.8" PRIx32 " -> 0x%8.8" PRIx32,
+				xtensa->core_cache->reg_list[i].name,
+				buf_get_u32(reg->value, 0, 32),
+				buf_get_u32(xtensa->algo_context_backup[i], 0, 32));
+			buf_cpy(xtensa->algo_context_backup[i], reg->value, reg->size);
+			xtensa->core_cache->reg_list[i].dirty = 0;
+			xtensa->core_cache->reg_list[i].valid = 0;
+		} else if (memcmp(xtensa->algo_context_backup[i], reg->value, reg->size / 8)) {
+			if (reg->size <= 32) {
+				LOG_DEBUG("restoring register %s: 0x%8.8" PRIx32 " -> 0x%8.8" PRIx32,
+					xtensa->core_cache->reg_list[i].name,
+					buf_get_u32(reg->value, 0, reg->size),
+					buf_get_u32(xtensa->algo_context_backup[i], 0, reg->size));
+			} else if (reg->size <= 64) {
+				LOG_DEBUG("restoring register %s: 0x%8.8" PRIx64 " -> 0x%8.8" PRIx64,
+					xtensa->core_cache->reg_list[i].name,
+					buf_get_u64(reg->value, 0, reg->size),
+					buf_get_u64(xtensa->algo_context_backup[i], 0, reg->size));
+			} else {
+				LOG_DEBUG("restoring register %s %u-bits", xtensa->core_cache->reg_list[i].name, reg->size);
+			}
+			buf_cpy(xtensa->algo_context_backup[i], reg->value, reg->size);
+			xtensa->core_cache->reg_list[i].dirty = 1;
+			xtensa->core_cache->reg_list[i].valid = 1;
+		}
+	}
+	target->debug_reason = algorithm_info->ctx_debug_reason;
+
+	retval = xtensa_write_dirty_registers(target);
+	if (retval != ERROR_OK)
+		LOG_ERROR("Failed to write dirty regs (%d)!", retval);
+
+	return retval;
+}
+
+int xtensa_run_algorithm(struct target *target,
+	int num_mem_params, struct mem_param *mem_params,
+	int num_reg_params, struct reg_param *reg_params,
+	target_addr_t entry_point, target_addr_t exit_point,
+	unsigned int timeout_ms, void *arch_info)
+{
+	int retval = xtensa_start_algorithm(target,
+		num_mem_params, mem_params,
+		num_reg_params, reg_params,
+		entry_point, exit_point,
+		arch_info);
+
+	if (retval == ERROR_OK) {
+		retval = xtensa_wait_algorithm(target,
+			num_mem_params, mem_params,
+			num_reg_params, reg_params,
+			exit_point, timeout_ms,
+			arch_info);
+	}
+
+	return retval;
 }
 
 static int xtensa_build_reg_cache(struct target *target)

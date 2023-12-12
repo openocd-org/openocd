@@ -155,10 +155,6 @@ topics. It is possible because @c for/master is not a traditional Git
 branch.
   -# You will need to install this hook, we will look into a better solution:
 @code
-scp -p -P 29418 USERNAME@review.openocd.org:hooks/commit-msg .git/hooks/
-@endcode
-  Or with http only:
-@code
 wget https://review.openocd.org/tools/hooks/commit-msg
 mv commit-msg .git/hooks
 chmod +x .git/hooks/commit-msg

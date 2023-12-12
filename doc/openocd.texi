@@ -2569,6 +2569,18 @@ In most cases need not to be specified and interfaces are searched by
 interface string or for user class interface.
 @end deffn
 
+@deffn {Command} {cmsis-dap quirk} [@option{enable}|@option{disable}]
+Enables or disables the following workarounds of known CMSIS-DAP adapter
+quirks:
+@itemize @minus
+@item disconnect and re-connect before sending a switch sequence
+@item packets pipelining is suppressed, only one packet at a time is
+submitted to the adapter
+@end itemize
+The quirk workarounds are disabled by default.
+The command without a parameter displays current setting.
+@end deffn
+
 @deffn {Command} {cmsis-dap info}
 Display various device information, like hardware version, firmware version, current bus status.
 @end deffn
@@ -9480,7 +9492,7 @@ TCP/IP port 9090.
 @deffn {Command} {profile} seconds filename [start end]
 Profiling samples the CPU's program counter as quickly as possible,
 which is useful for non-intrusive stochastic profiling.
-Saves up to 10000 samples in @file{filename} using ``gmon.out''
+Saves up to 1000000 samples in @file{filename} using ``gmon.out''
 format. Optional @option{start} and @option{end} parameters allow to
 limit the address range.
 @end deffn

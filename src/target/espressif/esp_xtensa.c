@@ -12,10 +12,12 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <target/smp.h>
-#include "esp_xtensa_apptrace.h"
 #include <target/register.h>
+#include "esp.h"
 #include "esp_xtensa.h"
+#include "esp_xtensa_apptrace.h"
 #include "esp_semihosting.h"
+#include "esp_xtensa_algorithm.h"
 
 #define ESP_XTENSA_DBGSTUBS_UPDATE_DATA_ENTRY(_e_) \
 	do { \
@@ -68,6 +70,10 @@ int esp_xtensa_init_arch_info(struct target *target,
 	int ret = xtensa_init_arch_info(target, &esp_xtensa->xtensa, dm_cfg);
 	if (ret != ERROR_OK)
 		return ret;
+	ret = esp_common_init(&esp_xtensa->esp, &xtensa_algo_hw);
+	if (ret != ERROR_OK)
+		return ret;
+
 	esp_xtensa->semihost.ops = (struct esp_semihost_ops *)semihost_ops;
 	esp_xtensa->apptrace.hw = &esp_xtensa_apptrace_hw;
 	return ERROR_OK;
