@@ -49,12 +49,12 @@ static int riscv013_step_current_hart(struct target *target);
 static int riscv013_on_step(struct target *target);
 static int riscv013_resume_prep(struct target *target);
 static enum riscv_halt_reason riscv013_halt_reason(struct target *target);
-static int riscv013_write_debug_buffer(struct target *target, unsigned int index,
+static int riscv013_write_progbuf(struct target *target, unsigned int index,
 		riscv_insn_t d);
-static riscv_insn_t riscv013_read_debug_buffer(struct target *target, unsigned int
+static riscv_insn_t riscv013_read_progbuf(struct target *target, unsigned int
 		index);
-static int riscv013_invalidate_cached_debug_buffer(struct target *target);
-static int riscv013_execute_debug_buffer(struct target *target, uint32_t *cmderr);
+static int riscv013_invalidate_cached_progbuf(struct target *target);
+static int riscv013_execute_progbuf(struct target *target, uint32_t *cmderr);
 static void riscv013_fill_dmi_write_u64(struct target *target, char *buf, int a, uint64_t d);
 static void riscv013_fill_dmi_read_u64(struct target *target, char *buf, int a);
 static int riscv013_dmi_write_u64_bits(struct target *target);
@@ -1380,7 +1380,7 @@ static int scratch_write64(struct target *target, scratch_mem_t *scratch,
 		case SPACE_DMI_PROGBUF:
 			dm_write(target, DM_PROGBUF0 + scratch->debug_address, value);
 			dm_write(target, DM_PROGBUF1 + scratch->debug_address, value >> 32);
-			riscv013_invalidate_cached_debug_buffer(target);
+			riscv013_invalidate_cached_progbuf(target);
 			break;
 		case SPACE_DMI_RAM:
 			{
@@ -1919,7 +1919,7 @@ static int examine(struct target *target)
 	}
 	/* We're here because we're uncertain about the state of the target. That
 	 * includes our progbuf cache. */
-	riscv013_invalidate_cached_debug_buffer(target);
+	riscv013_invalidate_cached_progbuf(target);
 
 	dm_write(target, DM_DMCONTROL, DM_DMCONTROL_HARTSELLO |
 			DM_DMCONTROL_HARTSELHI | DM_DMCONTROL_DMACTIVE |
@@ -2057,7 +2057,7 @@ static int examine(struct target *target)
 
 	/* Without knowing anything else we can at least mess with the
 	 * program buffer. */
-	r->debug_buffer_size = info->progbufsize;
+	r->progbuf_size = info->progbufsize;
 
 	int result = register_read_abstract_with_size(target, NULL, GDB_REGNO_S0, 64);
 	if (result == ERROR_OK)
@@ -2757,10 +2757,10 @@ static int init_target(struct command_context *cmd_ctx,
 	generic_info->halt_go = &riscv013_halt_go;
 	generic_info->on_step = &riscv013_on_step;
 	generic_info->halt_reason = &riscv013_halt_reason;
-	generic_info->read_debug_buffer = &riscv013_read_debug_buffer;
-	generic_info->write_debug_buffer = &riscv013_write_debug_buffer;
-	generic_info->execute_debug_buffer = &riscv013_execute_debug_buffer;
-	generic_info->invalidate_cached_debug_buffer = &riscv013_invalidate_cached_debug_buffer;
+	generic_info->read_progbuf = &riscv013_read_progbuf;
+	generic_info->write_progbuf = &riscv013_write_progbuf;
+	generic_info->execute_progbuf = &riscv013_execute_progbuf;
+	generic_info->invalidate_cached_progbuf = &riscv013_invalidate_cached_progbuf;
 	generic_info->fill_dm_write_u64 = &riscv013_fill_dm_write_u64;
 	generic_info->fill_dm_read_u64 = &riscv013_fill_dm_read_u64;
 	generic_info->fill_dm_nop_u64 = &riscv013_fill_dm_nop_u64;
@@ -2835,7 +2835,7 @@ static int assert_reset(struct target *target)
 	/* The DM might have gotten reset if OpenOCD called us in some reset that
 	 * involves SRST being toggled. So clear our cache which may be out of
 	 * date. */
-	return riscv013_invalidate_cached_debug_buffer(target);
+	return riscv013_invalidate_cached_progbuf(target);
 }
 
 static int deassert_reset(struct target *target)
@@ -2915,7 +2915,7 @@ static int execute_fence(struct target *target)
 	 * here, but there's no ISA-defined way of doing that. */
 	struct riscv_program program;
 
-	/* program.execution_result may indicate RISCV_DBGBUF_EXEC_RESULT_EXCEPTION -
+	/* program.execution_result may indicate RISCV_PROGBUF_EXEC_RESULT_EXCEPTION -
 	 * currently, we ignore this error since most likely this is an indication
 	 * that target does not support a fence instruction (execution of an
 	 * unsupported instruction results in "Illegal instruction" exception on
@@ -2928,7 +2928,7 @@ static int execute_fence(struct target *target)
 		riscv_program_fence_i(&program);
 		riscv_program_fence_rw_rw(&program);
 		if (riscv_program_exec(&program, target) != ERROR_OK) {
-			if (program.execution_result != RISCV_DBGBUF_EXEC_RESULT_EXCEPTION) {
+			if (program.execution_result != RISCV_PROGBUF_EXEC_RESULT_EXCEPTION) {
 				LOG_TARGET_ERROR(target, "Unexpected error during fence execution");
 				return ERROR_FAIL;
 			}
@@ -2941,7 +2941,7 @@ static int execute_fence(struct target *target)
 		riscv_program_init(&program, target);
 		riscv_program_fence_i(&program);
 		if (riscv_program_exec(&program, target) != ERROR_OK) {
-			if (program.execution_result != RISCV_DBGBUF_EXEC_RESULT_EXCEPTION) {
+			if (program.execution_result != RISCV_PROGBUF_EXEC_RESULT_EXCEPTION) {
 				LOG_TARGET_ERROR(target, "Unexpected error during fence.i execution");
 				return ERROR_FAIL;
 			}
@@ -2951,7 +2951,7 @@ static int execute_fence(struct target *target)
 		riscv_program_init(&program, target);
 		riscv_program_fence_rw_rw(&program);
 		if (riscv_program_exec(&program, target) != ERROR_OK) {
-			if (program.execution_result != RISCV_DBGBUF_EXEC_RESULT_EXCEPTION) {
+			if (program.execution_result != RISCV_PROGBUF_EXEC_RESULT_EXCEPTION) {
 				LOG_TARGET_ERROR(target, "Unexpected error during fence rw, rw execution");
 				return ERROR_FAIL;
 			}
@@ -5103,7 +5103,7 @@ static enum riscv_halt_reason riscv013_halt_reason(struct target *target)
 	return RISCV_HALT_UNKNOWN;
 }
 
-static int riscv013_write_debug_buffer(struct target *target, unsigned int index, riscv_insn_t data)
+static int riscv013_write_progbuf(struct target *target, unsigned int index, riscv_insn_t data)
 {
 	dm013_info_t *dm = get_dm(target);
 	if (!dm)
@@ -5118,7 +5118,7 @@ static int riscv013_write_debug_buffer(struct target *target, unsigned int index
 	return ERROR_OK;
 }
 
-static riscv_insn_t riscv013_read_debug_buffer(struct target *target, unsigned int index)
+static riscv_insn_t riscv013_read_progbuf(struct target *target, unsigned int index)
 {
 	uint32_t value;
 	if (dm_read(target, &value, DM_PROGBUF0 + index) == ERROR_OK)
@@ -5127,7 +5127,7 @@ static riscv_insn_t riscv013_read_debug_buffer(struct target *target, unsigned i
 		return 0;
 }
 
-static int riscv013_invalidate_cached_debug_buffer(struct target *target)
+static int riscv013_invalidate_cached_progbuf(struct target *target)
 {
 	dm013_info_t *dm = get_dm(target);
 	if (!dm) {
@@ -5141,7 +5141,7 @@ static int riscv013_invalidate_cached_debug_buffer(struct target *target)
 	return ERROR_OK;
 }
 
-static int riscv013_execute_debug_buffer(struct target *target, uint32_t *cmderr)
+static int riscv013_execute_progbuf(struct target *target, uint32_t *cmderr)
 {
 	uint32_t run_program = 0;
 	run_program = set_field(run_program, AC_ACCESS_REGISTER_AARSIZE, 2);
