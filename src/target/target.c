@@ -677,10 +677,14 @@ static int default_check_reset(struct target *target)
  * Keep in sync */
 int target_examine_one(struct target *target)
 {
+	LOG_TARGET_DEBUG(target, "Examination started");
+
 	target_call_event_callbacks(target, TARGET_EVENT_EXAMINE_START);
 
 	int retval = target->type->examine(target);
 	if (retval != ERROR_OK) {
+		LOG_TARGET_ERROR(target, "Examination failed");
+		LOG_TARGET_DEBUG(target, "examine() returned error code %d", retval);
 		target_reset_examined(target);
 		target_call_event_callbacks(target, TARGET_EVENT_EXAMINE_FAIL);
 		return retval;
@@ -689,6 +693,7 @@ int target_examine_one(struct target *target)
 	target_set_examined(target);
 	target_call_event_callbacks(target, TARGET_EVENT_EXAMINE_END);
 
+	LOG_TARGET_INFO(target, "Examination succeed");
 	return ERROR_OK;
 }
 
@@ -4302,7 +4307,7 @@ COMMAND_HANDLER(handle_profile_command)
 	if ((CMD_ARGC != 2) && (CMD_ARGC != 4))
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	const uint32_t MAX_PROFILE_SAMPLE_NUM = 10000;
+	const uint32_t MAX_PROFILE_SAMPLE_NUM = 1000000;
 	uint32_t offset;
 	uint32_t num_of_samples;
 	int retval = ERROR_OK;
@@ -7073,7 +7078,7 @@ static const struct command_registration target_exec_command_handlers[] = {
 		.handler = handle_wp_command,
 		.mode = COMMAND_EXEC,
 		.help = "list (no params) or create watchpoints",
-		.usage = "[address length [('r'|'w'|'a') value [mask]]]",
+		.usage = "[address length [('r'|'w'|'a') [value [mask]]]]",
 	},
 	{
 		.name = "rwp",
