@@ -222,6 +222,16 @@ struct xtensa_sw_breakpoint {
 	uint8_t insn_sz;	/* 2 or 3 bytes */
 };
 
+/**
+ * Xtensa algorithm data.
+ */
+struct xtensa_algorithm {
+	/** User can set this to specify which core mode algorithm should be run in. */
+	enum xtensa_mode core_mode;
+	/** Used internally to backup and restore debug_reason. */
+	enum target_debug_reason ctx_debug_reason;
+};
+
 #define XTENSA_COMMON_MAGIC 0x54E4E555U
 
 /**
@@ -395,6 +405,21 @@ int xtensa_breakpoint_add(struct target *target, struct breakpoint *breakpoint);
 int xtensa_breakpoint_remove(struct target *target, struct breakpoint *breakpoint);
 int xtensa_watchpoint_add(struct target *target, struct watchpoint *watchpoint);
 int xtensa_watchpoint_remove(struct target *target, struct watchpoint *watchpoint);
+int xtensa_start_algorithm(struct target *target,
+	int num_mem_params, struct mem_param *mem_params,
+	int num_reg_params, struct reg_param *reg_params,
+	target_addr_t entry_point, target_addr_t exit_point,
+	void *arch_info);
+int xtensa_wait_algorithm(struct target *target,
+	int num_mem_params, struct mem_param *mem_params,
+	int num_reg_params, struct reg_param *reg_params,
+	target_addr_t exit_point, unsigned int timeout_ms,
+	void *arch_info);
+int xtensa_run_algorithm(struct target *target,
+	int num_mem_params, struct mem_param *mem_params,
+	int num_reg_params, struct reg_param *reg_params,
+	target_addr_t entry_point, target_addr_t exit_point,
+	unsigned int timeout_ms, void *arch_info);
 void xtensa_set_permissive_mode(struct target *target, bool state);
 const char *xtensa_get_gdb_arch(struct target *target);
 int xtensa_gdb_query_custom(struct target *target, const char *packet, char **response_p);
