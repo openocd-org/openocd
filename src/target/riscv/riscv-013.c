@@ -34,7 +34,7 @@
 static int riscv013_on_step_or_resume(struct target *target, bool step);
 static int riscv013_step_or_resume_current_hart(struct target *target,
 		bool step);
-static void riscv013_clear_abstract_error(struct target *target);
+static int riscv013_clear_abstract_error(struct target *target);
 
 /* Implementations of the functions in struct riscv_info. */
 static int riscv013_get_register(struct target *target,
@@ -907,12 +907,12 @@ static riscv_reg_t read_abstract_arg(struct target *target, unsigned index,
 			LOG_TARGET_ERROR(target, "Unsupported size: %d bits", size_bits);
 			return ~0;
 		case 64:
-			dm_read(target, &v, DM_DATA0 + offset + 1);
-			value |= ((uint64_t) v) << 32;
+			if (dm_read(target, &v, DM_DATA0 + offset + 1) == ERROR_OK)
+				value |= ((uint64_t)v) << 32;
 			/* falls through */
 		case 32:
-			dm_read(target, &v, DM_DATA0 + offset);
-			value |= v;
+			if (dm_read(target, &v, DM_DATA0 + offset) == ERROR_OK)
+				value |= v;
 	}
 	return value;
 }
@@ -1181,9 +1181,14 @@ static int prep_for_register_access(struct target *target,
 {
 	assert(orig_mstatus);
 
-	if (!is_fpu_reg(regno) && !is_vector_reg(regno))
+	if (!is_fpu_reg(regno) && !is_vector_reg(regno)) {
+		/* If we don't assign orig_mstatus, clang static analysis
+		 * complains when this value is passed to
+		 * cleanup_after_register_access(). */
+		*orig_mstatus = 0;
 		/* No special preparation needed */
 		return ERROR_OK;
+	}
 
 	LOG_TARGET_DEBUG(target, "Preparing mstatus to access %s",
 			gdb_regno_name(target, regno));
@@ -2999,12 +3004,12 @@ static target_addr_t sb_read_address(struct target *target)
 	target_addr_t address = 0;
 	uint32_t v;
 	if (sbasize > 32) {
-		dm_read(target, &v, DM_SBADDRESS1);
-		address |= v;
+		if (dm_read(target, &v, DM_SBADDRESS1) == ERROR_OK)
+			address |= v;
 		address <<= 32;
 	}
-	dm_read(target, &v, DM_SBADDRESS0);
-	address |= v;
+	if (dm_read(target, &v, DM_SBADDRESS0) == ERROR_OK)
+		address |= v;
 	return address;
 }
 
@@ -5076,8 +5081,10 @@ static int riscv013_write_debug_buffer(struct target *target, unsigned int index
 static riscv_insn_t riscv013_read_debug_buffer(struct target *target, unsigned int index)
 {
 	uint32_t value;
-	dm_read(target, &value, DM_PROGBUF0 + index);
-	return value;
+	if (dm_read(target, &value, DM_PROGBUF0 + index) == ERROR_OK)
+		return value;
+	else
+		return 0;
 }
 
 static int riscv013_invalidate_cached_debug_buffer(struct target *target)
@@ -5229,24 +5236,12 @@ static int riscv013_step_or_resume_current_hart(struct target *target,
 	return ERROR_FAIL;
 }
 
-static void riscv013_clear_abstract_error(struct target *target)
+static int riscv013_clear_abstract_error(struct target *target)
 {
-	/* Wait for busy to go away. */
-	time_t start = time(NULL);
 	uint32_t abstractcs;
-	dm_read(target, &abstractcs, DM_ABSTRACTCS);
-	while (get_field(abstractcs, DM_ABSTRACTCS_BUSY)) {
-		dm_read(target, &abstractcs, DM_ABSTRACTCS);
-
-		if (time(NULL) - start > riscv_command_timeout_sec) {
-			LOG_TARGET_ERROR(target, "abstractcs.busy is not going low after %d seconds "
-					"(abstractcs=0x%x). The target is either really slow or "
-					"broken. You could increase the timeout with riscv "
-					"set_command_timeout_sec.",
-					riscv_command_timeout_sec, abstractcs);
-			break;
-		}
-	}
-	/* Clear the error status. */
-	dm_write(target, DM_ABSTRACTCS, DM_ABSTRACTCS_CMDERR);
+	int result = wait_for_idle(target, &abstractcs);
+	/* Clear the error status, even if busy is still set. */
+	if (dm_write(target, DM_ABSTRACTCS, DM_ABSTRACTCS_CMDERR) != ERROR_OK)
+		result = ERROR_FAIL;
+	return result;
 }
