@@ -97,18 +97,6 @@ registration, while the @c unregister_command() and
 These may be called at any time, allowing the command set to change in
 response to system actions.
 
-@subsection helpercmdjim Jim Command Registration
-
-The command_registration structure provides support for registering
-native Jim command handlers (@c jim_handler) too.  For these handlers,
-the module can provide help and usage support; however, this mechanism
-allows Jim handlers to be called as sub-commands of other commands.
-These commands may be registered with a private data value (@c
-jim_handler_data) that will be available when called, as with low-level
-Jim command registration.
-
-A command may have a normal @c handler or a @c jim_handler, but not both.
-
 @subsection helpercmdregisterchains Command Chaining
 
 When using register_commands(), the array of commands may reference

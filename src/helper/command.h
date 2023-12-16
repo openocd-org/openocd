@@ -197,7 +197,6 @@ typedef __COMMAND_HANDLER((*command_handler_t));
 struct command {
 	char *name;
 	command_handler_t handler;
-	Jim_CmdProc *jim_handler;
 	void *jim_handler_data;
 		/* Command handlers can use it for any handler specific data */
 	struct target *jim_override_target;
@@ -234,7 +233,6 @@ static inline struct command *jim_to_command(Jim_Interp *interp)
 struct command_registration {
 	const char *name;
 	command_handler_t handler;
-	Jim_CmdProc *jim_handler;
 	enum command_mode mode;
 	const char *help;
 	/** a string listing the options and arguments, required or optional */

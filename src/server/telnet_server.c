@@ -671,7 +671,7 @@ static void telnet_auto_complete(struct connection *connection)
 			} else if (jimcmd_is_oocd_command(jim_cmd)) {
 				struct command *cmd = jimcmd_privdata(jim_cmd);
 
-				if (cmd && !cmd->handler && !cmd->jim_handler) {
+				if (cmd && !cmd->handler) {
 					/* Initial part of a multi-word command. Ignore it! */
 					ignore_cmd = true;
 				} else if (cmd && cmd->mode == COMMAND_CONFIG) {

@@ -130,13 +130,13 @@ static struct command *command_new(struct command_context *cmd_ctx,
 	assert(cr->name);
 
 	/*
-	 * If it is a non-jim command with no .usage specified,
+	 * If it is a command with no .usage specified,
 	 * log an error.
 	 *
 	 * strlen(.usage) == 0 means that the command takes no
 	 * arguments.
 	*/
-	if (!cr->jim_handler && !cr->usage)
+	if (!cr->usage)
 		LOG_ERROR("BUG: command '%s' does not have the "
 			"'.usage' field filled out",
 			full_name);
@@ -152,7 +152,6 @@ static struct command *command_new(struct command_context *cmd_ctx,
 	}
 
 	c->handler = cr->handler;
-	c->jim_handler = cr->jim_handler;
 	c->mode = cr->mode;
 
 	if (cr->help || cr->usage)
@@ -425,9 +424,6 @@ static bool command_can_run(struct command_context *cmd_ctx, struct command *c, 
 static int exec_command(Jim_Interp *interp, struct command_context *context,
 		struct command *c, int argc, Jim_Obj * const *argv)
 {
-	if (c->jim_handler)
-		return c->jim_handler(interp, argc, argv);
-
 	/* use c->handler */
 	const char **words = malloc(argc * sizeof(char *));
 	if (!words) {
@@ -841,7 +837,7 @@ static int jim_command_dispatch(Jim_Interp *interp, int argc, Jim_Obj * const *a
 	script_debug(interp, argc, argv);
 
 	struct command *c = jim_to_command(interp);
-	if (!c->jim_handler && !c->handler) {
+	if (!c->handler) {
 		Jim_EvalObjPrefix(interp, Jim_NewStringObj(interp, "usage", -1), 1, argv);
 		return JIM_ERR;
 	}
