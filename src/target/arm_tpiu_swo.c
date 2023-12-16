@@ -554,20 +554,28 @@ err_no_params:
 	return JIM_ERR;
 }
 
-static int jim_arm_tpiu_swo_configure(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
+COMMAND_HANDLER(handle_arm_tpiu_swo_configure)
 {
-	struct command *c = jim_to_command(interp);
-	struct jim_getopt_info goi;
+	struct arm_tpiu_swo_object *obj = CMD_DATA;
 
-	jim_getopt_setup(&goi, interp, argc - 1, argv + 1);
-	goi.is_configure = !strcmp(c->name, "configure");
-	if (goi.argc < 1) {
-		Jim_WrongNumArgs(goi.interp, goi.argc, goi.argv,
-			"missing: -option ...");
-		return JIM_ERR;
-	}
-	struct arm_tpiu_swo_object *obj = c->jim_handler_data;
-	return arm_tpiu_swo_configure(&goi, obj);
+	if (!CMD_ARGC)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	struct jim_getopt_info goi;
+	jim_getopt_setup(&goi, CMD_CTX->interp, CMD_ARGC, CMD_JIMTCL_ARGV);
+	goi.is_configure = !strcmp(CMD_NAME, "configure");
+
+	int e = arm_tpiu_swo_configure(&goi, obj);
+
+	int reslen;
+	const char *result = Jim_GetString(Jim_GetResult(CMD_CTX->interp), &reslen);
+	if (reslen > 0)
+		command_print(CMD, "%s", result);
+
+	if (e != JIM_OK)
+		return ERROR_FAIL;
+
+	return ERROR_OK;
 }
 
 static int wrap_write_u32(struct target *target, struct adiv5_ap *tpiu_ap,
@@ -872,14 +880,14 @@ static const struct command_registration arm_tpiu_swo_instance_command_handlers[
 	{
 		.name = "configure",
 		.mode = COMMAND_ANY,
-		.jim_handler = jim_arm_tpiu_swo_configure,
+		.handler = handle_arm_tpiu_swo_configure,
 		.help  = "configure a new TPIU/SWO for use",
 		.usage = "[attribute value ...]",
 	},
 	{
 		.name = "cget",
 		.mode = COMMAND_ANY,
-		.jim_handler = jim_arm_tpiu_swo_configure,
+		.handler = handle_arm_tpiu_swo_configure,
 		.help  = "returns the specified TPIU/SWO attribute",
 		.usage = "attribute",
 	},
