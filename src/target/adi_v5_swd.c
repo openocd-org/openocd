@@ -705,6 +705,7 @@ static const struct command_registration swd_commands[] = {
 			"['-ignore-version'] "
 			"['-ignore-bypass'] "
 			"['-ircapture' number] "
+			"['-ir-bypass' number] "
 			"['-mask' number]",
 	},
 	COMMAND_REGISTRATION_DONE

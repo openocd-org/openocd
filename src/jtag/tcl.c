@@ -386,6 +386,7 @@ static int jtag_tap_configure_cmd(struct jim_getopt_info *goi, struct jtag_tap *
 #define NTAP_OPT_EXPECTED_ID 5
 #define NTAP_OPT_VERSION   6
 #define NTAP_OPT_BYPASS    7
+#define NTAP_OPT_IRBYPASS    8
 
 static const struct nvp jtag_newtap_opts[] = {
 	{ .name = "-irlen",          .value = NTAP_OPT_IRLEN },
@@ -396,6 +397,7 @@ static const struct nvp jtag_newtap_opts[] = {
 	{ .name = "-expected-id",    .value = NTAP_OPT_EXPECTED_ID },
 	{ .name = "-ignore-version", .value = NTAP_OPT_VERSION },
 	{ .name = "-ignore-bypass",  .value = NTAP_OPT_BYPASS },
+	{ .name = "-ir-bypass",      .value = NTAP_OPT_IRBYPASS },
 	{ .name = NULL,              .value = -1 },
 };
 
@@ -497,6 +499,15 @@ static COMMAND_HELPER(handle_jtag_newtap_args, struct jtag_tap *tap)
 
 		case NTAP_OPT_BYPASS:
 			tap->ignore_bypass = true;
+			break;
+
+		case NTAP_OPT_IRBYPASS:
+			if (!CMD_ARGC)
+				return ERROR_COMMAND_ARGUMENT_INVALID;
+
+			COMMAND_PARSE_NUMBER(u64, CMD_ARGV[0], tap->ir_bypass_value);
+			CMD_ARGC--;
+			CMD_ARGV++;
 			break;
 
 		default:
@@ -752,6 +763,7 @@ static const struct command_registration jtag_subcommand_handlers[] = {
 			"['-ignore-version'] "
 			"['-ignore-bypass'] "
 			"['-ircapture' number] "
+			"['-ir-bypass' number] "
 			"['-mask' number]",
 	},
 	{

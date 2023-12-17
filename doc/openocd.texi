@@ -4424,6 +4424,10 @@ there seems to be no problems with JTAG scan chain operations.
 register during initial examination and when checking the sticky error bit.
 This bit is normally checked after setting the CSYSPWRUPREQ bit, but some
 devices do not set the ack bit until sometime later.
+@item @code{-ir-bypass} @var{NUMBER}
+@*Vendor specific bypass instruction, required by some hierarchical JTAG
+routers where the normal BYPASS instruction bypasses the whole router and
+a vendor specific bypass instruction is required to access child nodes.
 @end itemize
 @end deffn
 
