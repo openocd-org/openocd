@@ -597,7 +597,7 @@ static int xcf_probe(struct flash_bank *bank)
 	}
 
 	/* check idcode and alloc memory for sector table */
-	if (!bank->target->tap->hasidcode)
+	if (!bank->target->tap->has_idcode)
 		return ERROR_FLASH_OPERATION_FAILED;
 
 	/* guess number of blocks using chip ID */

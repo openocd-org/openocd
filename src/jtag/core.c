@@ -1049,7 +1049,7 @@ static int jtag_reset_callback(enum jtag_event event, void *priv)
 
 		/* current instruction is either BYPASS or IDCODE */
 		buf_set_ones(tap->cur_instr, tap->ir_length);
-		tap->bypass = 1;
+		tap->bypass = true;
 	}
 
 	return ERROR_OK;
@@ -1177,7 +1177,7 @@ static bool jtag_examine_chain_end(uint8_t *idcodes, unsigned count, unsigned ma
 static bool jtag_examine_chain_match_tap(const struct jtag_tap *tap)
 {
 
-	if (tap->expected_ids_cnt == 0 || !tap->hasidcode)
+	if (tap->expected_ids_cnt == 0 || !tap->has_idcode)
 		return true;
 
 	/* optionally ignore the JTAG version field - bits 28-31 of IDCODE */
@@ -1283,13 +1283,13 @@ static int jtag_examine_chain(void)
 			/* Zero for LSB indicates a device in bypass */
 			LOG_INFO("TAP %s does not have valid IDCODE (idcode=0x%" PRIx32 ")",
 					tap->dotted_name, idcode);
-			tap->hasidcode = false;
+			tap->has_idcode = false;
 			tap->idcode = 0;
 
 			bit_count += 1;
 		} else {
 			/* Friendly devices support IDCODE */
-			tap->hasidcode = true;
+			tap->has_idcode = true;
 			tap->idcode = idcode;
 			jtag_examine_chain_display(LOG_LVL_INFO, "tap/device found", tap->dotted_name, idcode);
 
@@ -1464,7 +1464,7 @@ void jtag_tap_init(struct jtag_tap *tap)
 	buf_set_u32(tap->expected_mask, 0, ir_len_bits, tap->ir_capture_mask);
 
 	/* TAP will be in bypass mode after jtag_validate_ircapture() */
-	tap->bypass = 1;
+	tap->bypass = true;
 	buf_set_ones(tap->cur_instr, tap->ir_length);
 
 	/* register the reset callback for the TAP */

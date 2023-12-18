@@ -157,7 +157,7 @@ static int intel_check_for_unique_id(struct intel_pld_device *intel_info)
 
 static int intel_check_config(struct intel_pld_device *intel_info)
 {
-	if (!intel_info->tap->hasidcode) {
+	if (!intel_info->tap->has_idcode) {
 		LOG_ERROR("no IDCODE");
 		return ERROR_FAIL;
 	}
