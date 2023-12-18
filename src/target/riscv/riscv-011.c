@@ -425,6 +425,8 @@ static dbus_status_t dbus_scan(struct target *target, uint16_t *address_in,
 		.out_value = out,
 		.in_value = in
 	};
+	if (address_in)
+		*address_in = 0;
 
 	if (info->addrbits == 0) {
 		LOG_TARGET_ERROR(target, "Can't access DMI because addrbits=0.");
