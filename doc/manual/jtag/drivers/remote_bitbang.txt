@@ -37,12 +37,16 @@ swdio_read
 swd_write
 	Set the value of swclk (tck) and swdio (tms).
 
+(optional) sleep
+	Instructs the remote host to sleep/idle for some period of time before
+		executing the next request
+
 An additional function, quit, is added to the remote_bitbang interface to
 indicate there will be no more requests and the connection with the remote
 driver should be closed.
 
-These eight functions are encoded in ASCII by assigning a single character to
-each possible request. The assignments are:
+The eight mandatory functions are encoded in ASCII by assigning a single
+character to each possible request. The assignments are:
 
 	B - Blink on
 	b - Blink off
@@ -69,5 +73,11 @@ each possible request. The assignments are:
 	g - SWD write 1 1
 
 The read responses are encoded in ASCII as either digit 0 or 1.
+
+If the use_remote_sleep option is set to 'yes', two additional requests may
+be sent:
+
+	D - Sleep for 1 millisecond
+	d - Sleep for 1 microsecond
 
  */

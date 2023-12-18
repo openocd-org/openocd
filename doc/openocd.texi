@@ -2839,6 +2839,15 @@ Specifies the hostname of the remote process to connect to using TCP, or the
 name of the UNIX socket to use if remote_bitbang port is 0.
 @end deffn
 
+@deffn {Config Command} {remote_bitbang use_remote_sleep} (on|off)
+If this option is enabled, delays will not be executed locally but instead
+forwarded to the remote host. This is useful if the remote host performs its
+own request queuing rather than executing requests immediately.
+
+This is disabled by default. This option must only be enabled if the given
+remote_bitbang host supports receiving the delay information.
+@end deffn
+
 For example, to connect remotely via TCP to the host foobar you might have
 something like:
 
@@ -2846,6 +2855,15 @@ something like:
 adapter driver remote_bitbang
 remote_bitbang port 3335
 remote_bitbang host foobar
+@end example
+
+And if you also wished to enable remote sleeping:
+
+@example
+adapter driver remote_bitbang
+remote_bitbang port 3335
+remote_bitbang host foobar
+remote_bitbang use_remote_sleep on
 @end example
 
 To connect to another process running locally via UNIX sockets with socket

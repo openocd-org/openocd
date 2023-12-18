@@ -14,7 +14,7 @@
  * Copyright 2009 David Brownell
  * Copyright (c) 2005-2011 Jim Tcl Project. All rights reserved.
  *
- * This file is extracted from jim_nvp.h, originally part of jim TCL code.
+ * This file is extracted from jim-nvp.h, originally part of jim TCL code.
  */
 
 #ifndef OPENOCD_HELPER_NVP_H
@@ -51,7 +51,7 @@
  *         returns &yn[0];
  *  result = nvp_name2value(yn, "no");
  *         returns &yn[1];
- *  result = jim_nvp_name2value(yn, "Blah");
+ *  result = nvp_name2value(yn, "Blah");
  *         returns &yn[4];
  * \endcode
  *
