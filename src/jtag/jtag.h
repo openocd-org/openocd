@@ -115,7 +115,7 @@ struct jtag_tap {
 	uint32_t idcode; /**< device identification code */
 	/** not all devices have idcode,
 	 * we'll discover this during chain examination */
-	bool hasidcode;
+	bool has_idcode;
 
 	/** Array of expected identification codes */
 	uint32_t *expected_ids;
@@ -131,7 +131,7 @@ struct jtag_tap {
 	/** current instruction */
 	uint8_t *cur_instr;
 	/** Bypass register selected */
-	int bypass;
+	bool bypass;
 
 	struct jtag_tap_event_action *event_action;
 
