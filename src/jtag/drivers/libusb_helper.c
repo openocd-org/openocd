@@ -377,3 +377,59 @@ int jtag_libusb_handle_events_completed(int *completed)
 {
 	return libusb_handle_events_completed(jtag_libusb_context, completed);
 }
+
+static enum {
+	DEV_MEM_NOT_YET_DECIDED,
+	DEV_MEM_AVAILABLE,
+	DEV_MEM_FALLBACK_MALLOC
+} dev_mem_allocation;
+
+/* Older libusb does not implement following API calls - define stubs instead */
+#if !defined(LIBUSB_API_VERSION) || (LIBUSB_API_VERSION < 0x01000105)
+static uint8_t *libusb_dev_mem_alloc(libusb_device_handle *devh, size_t length)
+{
+	return NULL;
+}
+
+static int libusb_dev_mem_free(libusb_device_handle *devh,
+							   uint8_t *buffer, size_t length)
+{
+	return LIBUSB_ERROR_NOT_SUPPORTED;
+}
+#endif
+
+uint8_t *oocd_libusb_dev_mem_alloc(libusb_device_handle *devh,
+			size_t length)
+{
+	uint8_t *buffer = NULL;
+	if (dev_mem_allocation != DEV_MEM_FALLBACK_MALLOC)
+		buffer = libusb_dev_mem_alloc(devh, length);
+
+	if (dev_mem_allocation == DEV_MEM_NOT_YET_DECIDED)
+		dev_mem_allocation = buffer ? DEV_MEM_AVAILABLE : DEV_MEM_FALLBACK_MALLOC;
+
+	if (dev_mem_allocation == DEV_MEM_FALLBACK_MALLOC)
+		buffer = malloc(length);
+
+	return buffer;
+}
+
+int oocd_libusb_dev_mem_free(libusb_device_handle *devh,
+		uint8_t *buffer, size_t length)
+{
+	if (!buffer)
+		return ERROR_OK;
+
+	switch (dev_mem_allocation) {
+	case DEV_MEM_AVAILABLE:
+		return jtag_libusb_error(libusb_dev_mem_free(devh, buffer, length));
+
+	case DEV_MEM_FALLBACK_MALLOC:
+		free(buffer);
+		return ERROR_OK;
+
+	case DEV_MEM_NOT_YET_DECIDED:
+		return ERROR_FAIL;
+	}
+	return ERROR_FAIL;
+}
