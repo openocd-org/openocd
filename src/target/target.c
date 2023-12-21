@@ -3053,6 +3053,10 @@ COMMAND_HANDLER(handle_reg_command)
 	LOG_DEBUG("-");
 
 	struct target *target = get_current_target(CMD_CTX);
+	if (!target_was_examined(target)) {
+		LOG_ERROR("Target not examined yet");
+		return ERROR_TARGET_NOT_EXAMINED;
+	}
 	struct reg *reg = NULL;
 
 	/* list all available registers for the current target */
@@ -3117,7 +3121,7 @@ COMMAND_HANDLER(handle_reg_command)
 		if (!reg) {
 			command_print(CMD, "%i is out of bounds, the current target "
 					"has only %i registers (0 - %i)", num, count, count - 1);
-			return ERROR_OK;
+			return ERROR_FAIL;
 		}
 	} else {
 		/* access a single register by its name */
@@ -3136,9 +3140,9 @@ COMMAND_HANDLER(handle_reg_command)
 	if ((CMD_ARGC == 1) || ((CMD_ARGC == 2) && !((CMD_ARGV[1][0] >= '0')
 			&& (CMD_ARGV[1][0] <= '9')))) {
 		if ((CMD_ARGC == 2) && (strcmp(CMD_ARGV[1], "force") == 0))
-			reg->valid = 0;
+			reg->valid = false;
 
-		if (reg->valid == 0) {
+		if (!reg->valid) {
 			int retval = reg->type->get(reg);
 			if (retval != ERROR_OK) {
 				LOG_ERROR("Could not read register '%s'", reg->name);
@@ -3176,7 +3180,7 @@ COMMAND_HANDLER(handle_reg_command)
 
 not_found:
 	command_print(CMD, "register %s not found in current target", CMD_ARGV[0]);
-	return ERROR_OK;
+	return ERROR_FAIL;
 }
 
 COMMAND_HANDLER(handle_poll_command)
@@ -4071,13 +4075,14 @@ COMMAND_HANDLER(handle_wp_command)
 		struct watchpoint *watchpoint = target->watchpoints;
 
 		while (watchpoint) {
+			char wp_type = (watchpoint->rw == WPT_READ ? 'r' : (watchpoint->rw == WPT_WRITE ? 'w' : 'a'));
 			command_print(CMD, "address: " TARGET_ADDR_FMT
 					", len: 0x%8.8" PRIx32
-					", r/w/a: %i, value: 0x%8.8" PRIx64
+					", r/w/a: %c, value: 0x%8.8" PRIx64
 					", mask: 0x%8.8" PRIx64,
 					watchpoint->address,
 					watchpoint->length,
-					(int)watchpoint->rw,
+					wp_type,
 					watchpoint->value,
 					watchpoint->mask);
 			watchpoint = watchpoint->next;
@@ -4138,17 +4143,28 @@ COMMAND_HANDLER(handle_wp_command)
 
 COMMAND_HANDLER(handle_rwp_command)
 {
+	int retval;
+
 	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	target_addr_t addr;
-	COMMAND_PARSE_ADDRESS(CMD_ARGV[0], addr);
-
 	struct target *target = get_current_target(CMD_CTX);
-	int retval = watchpoint_remove(target, addr);
+	if (!strcmp(CMD_ARGV[0], "all")) {
+		retval = watchpoint_remove_all(target);
 
-	if (retval != ERROR_OK)
-		command_print(CMD, "Error during removal of watchpoint at address " TARGET_ADDR_FMT, addr);
+		if (retval != ERROR_OK) {
+			command_print(CMD, "Error encountered during removal of all watchpoints.");
+			command_print(CMD, "Some watchpoints may have remained set.");
+		}
+	} else {
+		target_addr_t addr;
+		COMMAND_PARSE_ADDRESS(CMD_ARGV[0], addr);
+
+		retval = watchpoint_remove(target, addr);
+
+		if (retval != ERROR_OK)
+			command_print(CMD, "Error during removal of watchpoint at address " TARGET_ADDR_FMT, addr);
+	}
 
 	return retval;
 }
@@ -5135,7 +5151,7 @@ static int target_jim_get_reg(Jim_Interp *interp, int argc,
 			return JIM_ERR;
 		}
 
-		if (force) {
+		if (force || !reg->valid) {
 			int retval = reg->type->get(reg);
 
 			if (retval != ERROR_OK) {
@@ -5860,6 +5876,18 @@ COMMAND_HANDLER(handle_target_current_state)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(handle_target_debug_reason)
+{
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	struct target *target = get_current_target(CMD_CTX);
+
+	command_print(CMD, "%s", debug_reason_name(target));
+
+	return ERROR_OK;
+}
+
 static int jim_target_invoke_event(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	struct jim_getopt_info goi;
@@ -6012,6 +6040,13 @@ static const struct command_registration target_instance_command_handlers[] = {
 		.usage = "",
 	},
 	{
+		.name = "debug_reason",
+		.mode = COMMAND_EXEC,
+		.handler = handle_target_debug_reason,
+		.help = "displays the debug reason of this target",
+		.usage = "",
+	},
+	{
 		.name = "arp_examine",
 		.mode = COMMAND_EXEC,
 		.handler = handle_target_examine,
@@ -6110,7 +6145,7 @@ static int target_create(struct jim_getopt_info *goi)
 	if (e != JIM_OK)
 		return e;
 	struct transport *tr = get_current_transport();
-	if (tr->override_target) {
+	if (tr && tr->override_target) {
 		e = tr->override_target(&cp);
 		if (e != ERROR_OK) {
 			LOG_ERROR("The selected transport doesn't support this target");
@@ -7067,7 +7102,7 @@ static const struct command_registration target_exec_command_handlers[] = {
 		.handler = handle_rwp_command,
 		.mode = COMMAND_EXEC,
 		.help = "remove watchpoint",
-		.usage = "address",
+		.usage = "'all' | address",
 	},
 	{
 		.name = "load_image",

@@ -83,6 +83,7 @@ static void os_free(struct target *target)
 		return;
 
 	free(target->rtos->symbols);
+	rtos_free_threadlist(target->rtos);
 	free(target->rtos);
 	target->rtos = NULL;
 }

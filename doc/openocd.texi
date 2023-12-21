@@ -5325,6 +5325,18 @@ Displays the current target state:
 (Also, @pxref{eventpolling,,Event Polling}.)
 @end deffn
 
+@deffn {Command} {$target_name debug_reason}
+Displays the current debug reason:
+@code{debug-request},
+@code{breakpoint},
+@code{watchpoint},
+@code{watchpoint-and-breakpoint},
+@code{single-step},
+@code{target-not-halted},
+@code{program-exit},
+@code{exception-catch} or @code{undefined}.
+@end deffn
+
 @deffn {Command} {$target_name eventlist}
 Displays a table listing all event handlers
 currently associated with this target.
@@ -9387,8 +9399,8 @@ for similar mechanisms that do not consume hardware breakpoints.)
 Remove the breakpoint at @var{address} or all breakpoints.
 @end deffn
 
-@deffn {Command} {rwp} address
-Remove data watchpoint on @var{address}
+@deffn {Command} {rwp} @option{all} | address
+Remove data watchpoint on @var{address} or all watchpoints.
 @end deffn
 
 @deffn {Command} {wp} [address len [(@option{r}|@option{w}|@option{a}) [value [mask]]]]
@@ -12709,7 +12721,7 @@ Return information about the flash banks
 @item @b{capture} <@var{command}>
 
 Run <@var{command}> and return full log output that was produced during
-its execution. Example:
+its execution together with the command output. Example:
 
 @example
 > capture "reset init"

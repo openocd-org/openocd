@@ -99,8 +99,7 @@ static struct log_capture_state *command_log_capture_start(Jim_Interp *interp)
  * The tcl return value is empty for openocd commands that provide
  * progress output.
  *
- * Therefore we set the tcl return value only if we actually
- * captured output.
+ * For other commands, we prepend the logs to the tcl return value.
  */
 static void command_log_capture_finish(struct log_capture_state *state)
 {
@@ -109,15 +108,18 @@ static void command_log_capture_finish(struct log_capture_state *state)
 
 	log_remove_callback(tcl_output, state);
 
-	int length;
-	Jim_GetString(state->output, &length);
+	int loglen;
+	const char *log_result = Jim_GetString(state->output, &loglen);
+	int reslen;
+	const char *cmd_result = Jim_GetString(Jim_GetResult(state->interp), &reslen);
 
-	if (length > 0)
-		Jim_SetResult(state->interp, state->output);
-	else {
-		/* No output captured, use tcl return value (which could
-		 * be empty too). */
-	}
+	// Just in case the log doesn't end with a newline, we add it
+	if (loglen != 0 && reslen != 0 && log_result[loglen - 1] != '\n')
+		Jim_AppendString(state->interp, state->output, "\n", 1);
+
+	Jim_AppendString(state->interp, state->output, cmd_result, reslen);
+
+	Jim_SetResult(state->interp, state->output);
 	Jim_DecrRefCount(state->interp, state->output);
 
 	free(state);
@@ -691,8 +693,8 @@ COMMAND_HANDLER(handle_echo)
 	return ERROR_OK;
 }
 
-/* Capture progress output and return as tcl return value. If the
- * progress output was empty, return tcl return value.
+/* Return both the progress output (LOG_INFO and higher)
+ * and the tcl return value of a command.
  */
 static int jim_capture(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {

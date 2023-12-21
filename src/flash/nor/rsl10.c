@@ -815,7 +815,8 @@ static const struct command_registration rsl10_exec_command_handlers[] = {
 		.help    = "Mass erase all unprotected flash areas",
 		.usage   = "",
 	},
-	COMMAND_REGISTRATION_DONE};
+	COMMAND_REGISTRATION_DONE
+};
 
 static const struct command_registration rsl10_command_handlers[] = {
 	{
@@ -825,7 +826,8 @@ static const struct command_registration rsl10_command_handlers[] = {
 		.usage = "",
 		.chain = rsl10_exec_command_handlers,
 	},
-	COMMAND_REGISTRATION_DONE};
+	COMMAND_REGISTRATION_DONE
+};
 
 const struct flash_driver rsl10_flash = {
 	.name               = "rsl10",

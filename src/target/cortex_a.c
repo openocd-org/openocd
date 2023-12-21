@@ -471,6 +471,28 @@ static int cortex_a_instr_write_data_r0(struct arm_dpm *dpm,
 	return retval;
 }
 
+static int cortex_a_instr_write_data_r0_r1(struct arm_dpm *dpm,
+	uint32_t opcode, uint64_t data)
+{
+	struct cortex_a_common *a = dpm_to_a(dpm);
+	uint32_t dscr = DSCR_INSTR_COMP;
+	int retval;
+
+	retval = cortex_a_instr_write_data_rt_dcc(dpm, 0, data & 0xffffffffULL);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = cortex_a_instr_write_data_rt_dcc(dpm, 1, data >> 32);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* then the opcode, taking data from R0, R1 */
+	retval = cortex_a_exec_opcode(a->armv7a_common.arm.target,
+			opcode,
+			&dscr);
+	return retval;
+}
+
 static int cortex_a_instr_cpsr_sync(struct arm_dpm *dpm)
 {
 	struct target *target = dpm->arm->target;
@@ -537,6 +559,29 @@ static int cortex_a_instr_read_data_r0(struct arm_dpm *dpm,
 
 	/* write R0 to DCC */
 	return cortex_a_instr_read_data_rt_dcc(dpm, 0, data);
+}
+
+static int cortex_a_instr_read_data_r0_r1(struct arm_dpm *dpm,
+	uint32_t opcode, uint64_t *data)
+{
+	uint32_t lo, hi;
+	int retval;
+
+	/* the opcode, writing data to RO, R1 */
+	retval = cortex_a_instr_read_data_r0(dpm, opcode, &lo);
+	if (retval != ERROR_OK)
+		return retval;
+
+	*data = lo;
+
+	/* write R1 to DCC */
+	retval = cortex_a_instr_read_data_rt_dcc(dpm, 1, &hi);
+	if (retval != ERROR_OK)
+		return retval;
+
+	*data |= (uint64_t)hi << 32;
+
+	return retval;
 }
 
 static int cortex_a_bpwp_enable(struct arm_dpm *dpm, unsigned index_t,
@@ -612,10 +657,12 @@ static int cortex_a_dpm_setup(struct cortex_a_common *a, uint32_t didr)
 
 	dpm->instr_write_data_dcc = cortex_a_instr_write_data_dcc;
 	dpm->instr_write_data_r0 = cortex_a_instr_write_data_r0;
+	dpm->instr_write_data_r0_r1 = cortex_a_instr_write_data_r0_r1;
 	dpm->instr_cpsr_sync = cortex_a_instr_cpsr_sync;
 
 	dpm->instr_read_data_dcc = cortex_a_instr_read_data_dcc;
 	dpm->instr_read_data_r0 = cortex_a_instr_read_data_r0;
+	dpm->instr_read_data_r0_r1 = cortex_a_instr_read_data_r0_r1;
 
 	dpm->bpwp_enable = cortex_a_bpwp_enable;
 	dpm->bpwp_disable = cortex_a_bpwp_disable;

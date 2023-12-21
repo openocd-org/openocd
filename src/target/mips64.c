@@ -247,8 +247,8 @@ static int mips64_set_core_reg(struct reg *reg, uint8_t *buf)
 		return ERROR_TARGET_NOT_HALTED;
 
 	buf_set_u64(reg->value, 0, 64, value);
-	reg->dirty = 1;
-	reg->valid = 1;
+	reg->dirty = true;
+	reg->valid = true;
 
 	return ERROR_OK;
 }
@@ -265,8 +265,8 @@ static int mips64_read_core_reg(struct target *target, int num)
 
 	reg_value = mips64->core_regs[num];
 	buf_set_u64(mips64->core_cache->reg_list[num].value, 0, 64, reg_value);
-	mips64->core_cache->reg_list[num].valid = 1;
-	mips64->core_cache->reg_list[num].dirty = 0;
+	mips64->core_cache->reg_list[num].valid = true;
+	mips64->core_cache->reg_list[num].dirty = false;
 
 	return ERROR_OK;
 }
@@ -284,8 +284,8 @@ static int mips64_write_core_reg(struct target *target, int num)
 	reg_value = buf_get_u64(mips64->core_cache->reg_list[num].value, 0, 64);
 	mips64->core_regs[num] = reg_value;
 	LOG_DEBUG("write core reg %i value 0x%" PRIx64 "", num, reg_value);
-	mips64->core_cache->reg_list[num].valid = 1;
-	mips64->core_cache->reg_list[num].dirty = 0;
+	mips64->core_cache->reg_list[num].valid = true;
+	mips64->core_cache->reg_list[num].dirty = false;
 
 	return ERROR_OK;
 }
@@ -297,8 +297,8 @@ int mips64_invalidate_core_regs(struct target *target)
 	unsigned int i;
 
 	for (i = 0; i < mips64->core_cache->num_regs; i++) {
-		mips64->core_cache->reg_list[i].valid = 0;
-		mips64->core_cache->reg_list[i].dirty = 0;
+		mips64->core_cache->reg_list[i].valid = false;
+		mips64->core_cache->reg_list[i].dirty = false;
 	}
 
 	return ERROR_OK;

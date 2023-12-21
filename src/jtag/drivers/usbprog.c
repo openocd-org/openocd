@@ -341,7 +341,7 @@ struct usbprog_jtag *usbprog_jtag_open(void)
 	const uint16_t pids[] = { PID, 0 };
 	struct libusb_device_handle *dev;
 
-	if (jtag_libusb_open(vids, pids, &dev, NULL) != ERROR_OK)
+	if (jtag_libusb_open(vids, pids, NULL, &dev, NULL) != ERROR_OK)
 		return NULL;
 
 	struct usbprog_jtag *tmp = malloc(sizeof(struct usbprog_jtag));
