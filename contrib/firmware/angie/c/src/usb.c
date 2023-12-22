@@ -757,14 +757,13 @@ void i2c_recieve(void)
 	PIN_SDA_DIR = 0;
 	if (EP6FIFOBUF[0] == 1) {
 		uint8_t rdwr = EP6FIFOBUF[0];   //read
-		uint8_t reg_adr_check = EP6FIFOBUF[1];
-		uint8_t count = EP6FIFOBUF[2];  //request data count
+		uint8_t data_count = EP6FIFOBUF[1]; //data sent count
+		uint8_t count = EP6FIFOBUF[2];  //requested data count
 		uint8_t adr = EP6FIFOBUF[3];    //address
-		uint8_t reg_adr = EP6FIFOBUF[4];
 		uint8_t address = get_address(adr, rdwr);   //address byte (read command)
 		uint8_t address_2 = get_address(adr, 0);   //address byte 2 (write command)
 
-		printf("%d\n", address);
+		printf("%d\n", address - 1);
 
 		/*  start:   */
 		start_cd();
@@ -773,16 +772,14 @@ void i2c_recieve(void)
 		/*  ack:  */
 		uint8_t ack = get_ack();
 
-		delay_us(10);
-
 		/*   send data   */
-		if (reg_adr_check) { //if there is a byte reg
-			send_byte(reg_adr);
-			/*  ack():  */
-			ack = get_ack();
+		if (data_count) { //if there is a byte reg
+			for (uint8_t i = 0; i < data_count; i++) {
+				send_byte(EP6FIFOBUF[i + 4]);
+				/*  ack():  */
+				ack = get_ack();
+			}
 		}
-
-		delay_us(10);
 
 		/*  repeated start:  */
 		repeated_start();
@@ -791,22 +788,21 @@ void i2c_recieve(void)
 		/*  get ack:  */
 		ack = get_ack();
 
-		delay_us(10);
-
 		/*   receive data   */
-		for (uint8_t i = 0; i < count; i++) {
+		for (uint8_t i = 0; i < count - 1; i++) {
 			EP8FIFOBUF[i] = receive_byte();
 
-			/*  send ack:  */
+			/*  send ack: */
 			send_ack();
 		}
 
-		delay_ms(1);
+		EP8FIFOBUF[count - 1] = receive_byte();
+
+		/*  send Nack:  */
+		send_nack();
 
 		/*   stop   */
 		stop_cd();
-
-		delay_us(10);
 
 		EP8BCH = 0; //EP8
 		syncdelay(3);

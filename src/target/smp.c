@@ -132,6 +132,9 @@ COMMAND_HANDLER(handle_smp_gdb_command)
 {
 	struct target *target = get_current_target(CMD_CTX);
 	int retval = ERROR_OK;
+
+	LOG_WARNING(DEPRECATED_MSG);
+
 	if (!list_empty(target->smp_targets)) {
 		if (CMD_ARGC == 1) {
 			int coreid = 0;

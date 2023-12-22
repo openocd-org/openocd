@@ -142,7 +142,7 @@ static int mips_m4k_halt_smp(struct target *target)
 			ret = mips_m4k_halt(curr);
 
 		if (ret != ERROR_OK) {
-			LOG_ERROR("halt failed target->coreid: %" PRId32, curr->coreid);
+			LOG_TARGET_ERROR(curr, "halt failed.");
 			retval = ret;
 		}
 	}
@@ -412,8 +412,8 @@ static int mips_m4k_restore_smp(struct target *target, uint32_t address, int han
 						   handle_breakpoints, 0);
 
 			if (ret != ERROR_OK) {
-				LOG_ERROR("target->coreid :%" PRId32 " failed to resume at address :0x%" PRIx32,
-						  curr->coreid, address);
+				LOG_TARGET_ERROR(curr, "failed to resume at address: 0x%" PRIx32,
+						address);
 				retval = ret;
 			}
 		}

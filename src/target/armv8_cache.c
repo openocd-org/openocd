@@ -243,7 +243,7 @@ static int  armv8_flush_all_data(struct target *target)
 		foreach_smp_target(head, target->smp_targets) {
 			struct target *curr = head->target;
 			if (curr->state == TARGET_HALTED) {
-				LOG_INFO("Wait flushing data l1 on core %" PRId32, curr->coreid);
+				LOG_TARGET_INFO(curr, "Wait flushing data l1.");
 				retval = _armv8_flush_all_data(curr);
 			}
 		}
@@ -286,8 +286,9 @@ static struct armv8_cachesize decode_cache_reg(uint32_t cache_reg)
 	size.index = (cache_reg >> 13) & 0x7fff;
 	size.way = ((cache_reg >> 3) & 0x3ff);
 
-	while (((size.way << i) & 0x80000000) == 0)
-		i++;
+	if (size.way != 0)
+		while (((size.way << i) & 0x80000000) == 0)
+			i++;
 	size.way_shift = i;
 
 	return size;

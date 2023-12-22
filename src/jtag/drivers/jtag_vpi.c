@@ -593,10 +593,8 @@ static int jtag_vpi_quit(void)
 
 COMMAND_HANDLER(jtag_vpi_set_port)
 {
-	if (CMD_ARGC == 0) {
-		LOG_ERROR("Command \"jtag_vpi set_port\" expects 1 argument (TCP port number)");
+	if (CMD_ARGC == 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], server_port);
 	LOG_INFO("jtag_vpi: server port set to %u", server_port);
@@ -607,10 +605,8 @@ COMMAND_HANDLER(jtag_vpi_set_port)
 COMMAND_HANDLER(jtag_vpi_set_address)
 {
 
-	if (CMD_ARGC == 0) {
-		LOG_ERROR("Command \"jtag_vpi set_address\" expects 1 argument (IP address)");
+	if (CMD_ARGC == 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	free(server_address);
 	server_address = strdup(CMD_ARGV[0]);
@@ -621,10 +617,8 @@ COMMAND_HANDLER(jtag_vpi_set_address)
 
 COMMAND_HANDLER(jtag_vpi_stop_sim_on_exit_handler)
 {
-	if (CMD_ARGC != 1) {
-		LOG_ERROR("Command \"jtag_vpi stop_sim_on_exit\" expects 1 argument (on|off)");
+	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	COMMAND_PARSE_ON_OFF(CMD_ARGV[0], stop_sim_on_exit);
 	return ERROR_OK;

@@ -1108,6 +1108,30 @@ proc "am335xgpio led_on_state" {state} {
 	}
 }
 
+lappend _telnet_autocomplete_skip "cmsis_dap_backend"
+proc "cmsis_dap_backend" {backend} {
+	echo "DEPRECATED! use 'cmsis-dap backend', not 'cmsis_dap_backend'"
+	eval cmsis-dap backend $backend
+}
+
+lappend _telnet_autocomplete_skip "cmsis_dap_vid_pid"
+proc "cmsis_dap_vid_pid" {args} {
+	echo "DEPRECATED! use 'cmsis-dap vid_pid', not 'cmsis_dap_vid_pid'"
+	eval cmsis-dap vid_pid $args
+}
+
+lappend _telnet_autocomplete_skip "cmsis_dap_usb"
+proc "cmsis_dap_usb" {args} {
+	echo "DEPRECATED! use 'cmsis-dap usb', not 'cmsis_dap_usb'"
+	eval cmsis-dap usb $args
+}
+
+lappend _telnet_autocomplete_skip "kitprog_init_acquire_psoc"
+proc "kitprog_init_acquire_psoc" {} {
+	echo "DEPRECATED! use 'kitprog init_acquire_psoc', not 'kitprog_init_acquire_psoc'"
+	eval kitprog init_acquire_psoc
+}
+
 lappend _telnet_autocomplete_skip "pld device"
 proc "pld device" {driver tap_name {opt 0}} {
 	echo "DEPRECATED! use 'pld create ...', not 'pld device ...'"

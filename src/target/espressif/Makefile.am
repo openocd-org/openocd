@@ -10,6 +10,8 @@ noinst_LTLIBRARIES += %D%/libespressif.la
 	%D%/esp_xtensa_semihosting.h \
 	%D%/esp_xtensa_apptrace.c \
 	%D%/esp_xtensa_apptrace.h \
+	%D%/esp_xtensa_algorithm.c \
+	%D%/esp_xtensa_algorithm.h \
 	%D%/esp32_apptrace.c \
 	%D%/esp32_apptrace.h \
 	%D%/esp32.c \
@@ -21,4 +23,6 @@ noinst_LTLIBRARIES += %D%/libespressif.la
 	%D%/esp32_sysview.h \
 	%D%/segger_sysview.h \
 	%D%/esp_semihosting.c \
-	%D%/esp_semihosting.h
+	%D%/esp_semihosting.h \
+	%D%/esp_algorithm.c \
+	%D%/esp_algorithm.h

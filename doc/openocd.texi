@@ -2543,30 +2543,42 @@ and a specific set of GPIOs is used.
 ARM CMSIS-DAP compliant based adapter v1 (USB HID based)
 or v2 (USB bulk).
 
-@deffn {Config Command} {cmsis_dap_vid_pid} [vid pid]+
+@deffn {Config Command} {cmsis-dap vid_pid} [vid pid]+
 The vendor ID and product ID of the CMSIS-DAP device. If not specified
 the driver will attempt to auto detect the CMSIS-DAP device.
 Currently, up to eight [@var{vid}, @var{pid}] pairs may be given, e.g.
 @example
-cmsis_dap_vid_pid 0xc251 0xf001 0x0d28 0x0204
+cmsis-dap vid_pid 0xc251 0xf001 0x0d28 0x0204
 @end example
 @end deffn
 
-@deffn {Config Command} {cmsis_dap_backend} [@option{auto}|@option{usb_bulk}|@option{hid}]
+@deffn {Config Command} {cmsis-dap backend} [@option{auto}|@option{usb_bulk}|@option{hid}]
 Specifies how to communicate with the adapter:
 
 @itemize @minus
 @item @option{hid} Use HID generic reports - CMSIS-DAP v1
 @item @option{usb_bulk} Use USB bulk - CMSIS-DAP v2
 @item @option{auto} First try USB bulk CMSIS-DAP v2, if not found try HID CMSIS-DAP v1.
-This is the default if @command{cmsis_dap_backend} is not specified.
+This is the default if @command{cmsis-dap backend} is not specified.
 @end itemize
 @end deffn
 
-@deffn {Config Command} {cmsis_dap_usb interface} [number]
+@deffn {Config Command} {cmsis-dap usb interface} [number]
 Specifies the @var{number} of the USB interface to use in v2 mode (USB bulk).
 In most cases need not to be specified and interfaces are searched by
 interface string or for user class interface.
+@end deffn
+
+@deffn {Command} {cmsis-dap quirk} [@option{enable}|@option{disable}]
+Enables or disables the following workarounds of known CMSIS-DAP adapter
+quirks:
+@itemize @minus
+@item disconnect and re-connect before sending a switch sequence
+@item packets pipelining is suppressed, only one packet at a time is
+submitted to the adapter
+@end itemize
+The quirk workarounds are disabled by default.
+The command without a parameter displays current setting.
 @end deffn
 
 @deffn {Command} {cmsis-dap info}
@@ -2839,9 +2851,9 @@ If not specified, default 0xFFFF is used.
 @end deffn
 
 @deffn {Interface Driver} {remote_bitbang}
-Drive JTAG from a remote process. This sets up a UNIX or TCP socket connection
-with a remote process and sends ASCII encoded bitbang requests to that process
-instead of directly driving JTAG.
+Drive JTAG and SWD from a remote process. This sets up a UNIX or TCP socket
+connection with a remote process and sends ASCII encoded bitbang requests to
+that process instead of directly driving JTAG and SWD.
 
 The remote_bitbang driver is useful for debugging software running on
 processors which are being simulated.
@@ -3020,7 +3032,7 @@ This driver is for Cypress Semiconductor's KitProg adapters. The KitProg is an
 SWD-only adapter that is designed to be used with Cypress's PSoC and PRoC device
 families, but it is possible to use it with some other devices. If you are using
 this adapter with a PSoC or a PRoC, you may need to add
-@command{kitprog_init_acquire_psoc} or @command{kitprog acquire_psoc} to your
+@command{kitprog init_acquire_psoc} or @command{kitprog acquire_psoc} to your
 configuration script.
 
 Note that this driver is for the proprietary KitProg protocol, not the CMSIS-DAP
@@ -3041,14 +3053,14 @@ versions only implement "SWD line reset". Second, due to a firmware quirk, an
 SWD sequence must be sent after every target reset in order to re-establish
 communications with the target.
 @item Due in part to the limitation above, KitProg devices with firmware below
-version 2.14 will need to use @command{kitprog_init_acquire_psoc} in order to
+version 2.14 will need to use @command{kitprog init_acquire_psoc} in order to
 communicate with PSoC 5LP devices. This is because, assuming debug is not
 disabled on the PSoC, the PSoC 5LP needs its JTAG interface switched to SWD
 mode before communication can begin, but prior to firmware 2.14, "JTAG to SWD"
 could only be sent with an acquisition sequence.
 @end itemize
 
-@deffn {Config Command} {kitprog_init_acquire_psoc}
+@deffn {Config Command} {kitprog init_acquire_psoc}
 Indicate that a PSoC acquisition sequence needs to be run during adapter init.
 Please be aware that the acquisition sequence hard-resets the target.
 @end deffn
@@ -9403,7 +9415,7 @@ Remove the breakpoint at @var{address} or all breakpoints.
 Remove data watchpoint on @var{address} or all watchpoints.
 @end deffn
 
-@deffn {Command} {wp} [address len [(@option{r}|@option{w}|@option{a}) [value [mask]]]]
+@deffn {Command} {wp} [address length [(@option{r}|@option{w}|@option{a}) [value [mask]]]]
 With no parameters, lists all active watchpoints.
 Else sets a data watchpoint on data from @var{address} for @var{length} bytes.
 The watch point is an "access" watchpoint unless
@@ -9477,8 +9489,9 @@ Return a list of all channels and their properties as Tcl list.
 The list can be manipulated easily from within scripts.
 @end deffn
 
-@deffn {Command} {rtt server start} port channel
-Start a TCP server on @var{port} for the channel @var{channel}.
+@deffn {Command} {rtt server start} port channel [message]
+Start a TCP server on @var{port} for the channel @var{channel}. When
+@var{message} is not empty, it will be sent to a client when it connects.
 @end deffn
 
 @deffn {Command} {rtt server stop} port
@@ -9508,7 +9521,7 @@ TCP/IP port 9090.
 @deffn {Command} {profile} seconds filename [start end]
 Profiling samples the CPU's program counter as quickly as possible,
 which is useful for non-intrusive stochastic profiling.
-Saves up to 10000 samples in @file{filename} using ``gmon.out''
+Saves up to 1000000 samples in @file{filename} using ``gmon.out''
 format. Optional @option{start} and @option{end} parameters allow to
 limit the address range.
 @end deffn
@@ -11590,16 +11603,18 @@ NOTE: @file{xtensa-core-XXX.cfg} must match the target Xtensa hardware
 connected to OpenOCD.
 
 Some example Xtensa configurations are bundled with OpenOCD for reference:
-@itemize @bullet
+@enumerate
 @item Cadence Palladium VDebug emulation target. The user can combine their
 @file{xtensa-core-XXX.cfg} with the provided
 @file{board/xtensa-palladium-vdebug.cfg} to debug an emulated Xtensa RTL design.
-@item NXP MIMXRT685-EVK evaluation kit. The relevant configuration files are
-@file{board/xtensa-rt685-jlink.cfg} and @file{board/xtensa-core-nxp_rt600.cfg}.
-Additional information is provided by
-@uref{https://www.nxp.com/design/development-boards/i-mx-evaluation-and-development-boards/i-mx-rt600-evaluation-kit:MIMXRT685-EVK,
-NXP}.
+@item NXP MIMXRT685-EVK evaluation kit. The relevant configuration files are:
+@itemize @bullet
+@item @file{board/xtensa-rt685-ext.cfg}
+@item @file{target/xtensa-core-nxp_rt600.cfg}
 @end itemize
+Additional information is available by searching for "i.MX RT600 Evaluation Kit"
+on @url{https://www.nxp.com}.
+@end enumerate
 
 @subsection Xtensa Configuration Commands
 
@@ -11624,6 +11639,11 @@ others may be common to both but have different valid ranges.
 Configure Xtensa target memory. Memory type determines access rights,
 where RAMs are read/write while ROMs are read-only. @var{baseaddr} and
 @var{bytes} are both integers, typically hexadecimal and decimal, respectively.
+
+NOTE: Some Xtensa memory types, such as system RAM/ROM or MMIO/device regions,
+can be added or modified after the Xtensa core has been generated. Additional
+@code{xtensa xtmem} definitions should be manually added to xtensa-core-XXX.cfg
+to keep OpenOCD's target address map consistent with the Xtensa configuration.
 @end deffn
 
 @deffn {Config Command} {xtensa xtmem} (@option{icache}|@option{dcache}) linebytes cachebytes ways [writeback]
@@ -11704,6 +11724,12 @@ This feature is not well implemented and tested yet.
 @deffn {Command} {xtensa exe} <ascii-encoded hexadecimal instruction bytes>
 Execute arbitrary instruction(s) provided as an ascii string.  The string represents an integer
 number of instruction bytes, thus its length must be even.
+@end deffn
+
+@deffn {Command} {xtensa dm} (address) [value]
+Read or write Xtensa Debug Module (DM) registers.  @var{address} is required for both reads
+and writes and is a 4-byte-aligned value typically between 0 and 0x3ffc.  @var{value} is specified
+only for write accesses.
 @end deffn
 
 @subsection Xtensa Performance Monitor Configuration

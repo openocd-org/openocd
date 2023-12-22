@@ -879,6 +879,13 @@ static const struct command_registration kitprog_subcommand_handlers[] = {
 		.usage = "",
 		.help = "try to acquire a PSoC",
 	},
+	{
+		.name = "init_acquire_psoc",
+		.handler = &kitprog_handle_init_acquire_psoc_command,
+		.mode = COMMAND_CONFIG,
+		.help = "try to acquire a PSoC during init",
+		.usage = "",
+	},
 	COMMAND_REGISTRATION_DONE
 };
 
@@ -889,13 +896,6 @@ static const struct command_registration kitprog_command_handlers[] = {
 		.help = "perform KitProg management",
 		.usage = "<cmd>",
 		.chain = kitprog_subcommand_handlers,
-	},
-	{
-		.name = "kitprog_init_acquire_psoc",
-		.handler = &kitprog_handle_init_acquire_psoc_command,
-		.mode = COMMAND_CONFIG,
-		.help = "try to acquire a PSoC during init",
-		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };

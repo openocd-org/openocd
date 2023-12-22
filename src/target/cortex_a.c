@@ -2989,29 +2989,29 @@ static int cortex_a_examine_first(struct target *target)
 				    armv7a->debug_base + CPUDBG_PRSR, &dbg_osreg);
 	if (retval != ERROR_OK)
 		return retval;
-	LOG_DEBUG("target->coreid %" PRId32 " DBGPRSR  0x%" PRIx32, target->coreid, dbg_osreg);
+	LOG_TARGET_DEBUG(target, "DBGPRSR  0x%" PRIx32, dbg_osreg);
 
 	if ((dbg_osreg & PRSR_POWERUP_STATUS) == 0) {
-		LOG_ERROR("target->coreid %" PRId32 " powered down!", target->coreid);
+		LOG_TARGET_ERROR(target, "powered down!");
 		target->state = TARGET_UNKNOWN; /* TARGET_NO_POWER? */
 		return ERROR_TARGET_INIT_FAILED;
 	}
 
 	if (dbg_osreg & PRSR_STICKY_RESET_STATUS)
-		LOG_DEBUG("target->coreid %" PRId32 " was reset!", target->coreid);
+		LOG_TARGET_DEBUG(target, "was reset!");
 
 	/* Read DBGOSLSR and check if OSLK is implemented */
 	retval = mem_ap_read_atomic_u32(armv7a->debug_ap,
 				armv7a->debug_base + CPUDBG_OSLSR, &dbg_osreg);
 	if (retval != ERROR_OK)
 		return retval;
-	LOG_DEBUG("target->coreid %" PRId32 " DBGOSLSR 0x%" PRIx32, target->coreid, dbg_osreg);
+	LOG_TARGET_DEBUG(target, "DBGOSLSR 0x%" PRIx32, dbg_osreg);
 
 	/* check if OS Lock is implemented */
 	if ((dbg_osreg & OSLSR_OSLM) == OSLSR_OSLM0 || (dbg_osreg & OSLSR_OSLM) == OSLSR_OSLM1) {
 		/* check if OS Lock is set */
 		if (dbg_osreg & OSLSR_OSLK) {
-			LOG_DEBUG("target->coreid %" PRId32 " OSLock set! Trying to unlock", target->coreid);
+			LOG_TARGET_DEBUG(target, "OSLock set! Trying to unlock");
 
 			retval = mem_ap_write_atomic_u32(armv7a->debug_ap,
 							armv7a->debug_base + CPUDBG_OSLAR,
@@ -3022,8 +3022,7 @@ static int cortex_a_examine_first(struct target *target)
 
 			/* if we fail to access the register or cannot reset the OSLK bit, bail out */
 			if (retval != ERROR_OK || (dbg_osreg & OSLSR_OSLK) != 0) {
-				LOG_ERROR("target->coreid %" PRId32 " OSLock sticky, core not powered?",
-						target->coreid);
+				LOG_TARGET_ERROR(target, "OSLock sticky, core not powered?");
 				target->state = TARGET_UNKNOWN; /* TARGET_NO_POWER? */
 				return ERROR_TARGET_INIT_FAILED;
 			}
@@ -3036,13 +3035,11 @@ static int cortex_a_examine_first(struct target *target)
 		return retval;
 
 	if (dbg_idpfr1 & 0x000000f0) {
-		LOG_DEBUG("target->coreid %" PRId32 " has security extensions",
-				target->coreid);
+		LOG_TARGET_DEBUG(target, "has security extensions");
 		armv7a->arm.core_type = ARM_CORE_TYPE_SEC_EXT;
 	}
 	if (dbg_idpfr1 & 0x0000f000) {
-		LOG_DEBUG("target->coreid %" PRId32 " has virtualization extensions",
-				target->coreid);
+		LOG_TARGET_DEBUG(target, "has virtualization extensions");
 		/*
 		 * overwrite and simplify the checks.
 		 * virtualization extensions require implementation of security extension

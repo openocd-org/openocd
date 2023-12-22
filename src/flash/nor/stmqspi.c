@@ -646,21 +646,21 @@ COMMAND_HANDLER(stmqspi_handle_set)
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[index++], stmqspi_info->dev.size_in_bytes);
 	if (log2u(stmqspi_info->dev.size_in_bytes) < 8) {
 		command_print(CMD, "stmqspi: device size must be 2^n with n >= 8");
-		return ERROR_COMMAND_SYNTAX_ERROR;
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[index++], stmqspi_info->dev.pagesize);
 	if (stmqspi_info->dev.pagesize > stmqspi_info->dev.size_in_bytes ||
 		(log2u(stmqspi_info->dev.pagesize) < 0)) {
 		command_print(CMD, "stmqspi: page size must be 2^n and <= device size");
-		return ERROR_COMMAND_SYNTAX_ERROR;
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
 	COMMAND_PARSE_NUMBER(u8, CMD_ARGV[index++], stmqspi_info->dev.read_cmd);
 	if ((stmqspi_info->dev.read_cmd != 0x03) &&
 		(stmqspi_info->dev.read_cmd != 0x13)) {
 		command_print(CMD, "stmqspi: only 0x03/0x13 READ cmd allowed");
-		return ERROR_COMMAND_SYNTAX_ERROR;
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
 	COMMAND_PARSE_NUMBER(u8, CMD_ARGV[index++], stmqspi_info->dev.qread_cmd);
@@ -678,7 +678,7 @@ COMMAND_HANDLER(stmqspi_handle_set)
 		(stmqspi_info->dev.qread_cmd != 0xEE)) {
 		command_print(CMD, "stmqspi: only 0x0B/0x0C/0x3B/0x3C/"
 			"0x6B/0x6C/0xBB/0xBC/0xEB/0xEC/0xEE QREAD allowed");
-		return ERROR_COMMAND_SYNTAX_ERROR;
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
 	COMMAND_PARSE_NUMBER(u8, CMD_ARGV[index++], stmqspi_info->dev.pprog_cmd);
@@ -686,7 +686,7 @@ COMMAND_HANDLER(stmqspi_handle_set)
 		(stmqspi_info->dev.pprog_cmd != 0x12) &&
 		(stmqspi_info->dev.pprog_cmd != 0x32)) {
 		command_print(CMD, "stmqspi: only 0x02/0x12/0x32 PPRG cmd allowed");
-		return ERROR_COMMAND_SYNTAX_ERROR;
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
 	if (index < CMD_ARGC)
@@ -700,7 +700,7 @@ COMMAND_HANDLER(stmqspi_handle_set)
 			(stmqspi_info->dev.sectorsize < stmqspi_info->dev.pagesize) ||
 			(log2u(stmqspi_info->dev.sectorsize) < 0)) {
 			command_print(CMD, "stmqspi: sector size must be 2^n and <= device size");
-			return ERROR_COMMAND_SYNTAX_ERROR;
+			return ERROR_COMMAND_ARGUMENT_INVALID;
 		}
 
 		if (index < CMD_ARGC)
@@ -786,7 +786,7 @@ COMMAND_HANDLER(stmqspi_handle_cmd)
 	num_write = CMD_ARGC - 2;
 	if (num_write > max) {
 		LOG_ERROR("at most %d bytes may be sent", max);
-		return ERROR_COMMAND_SYNTAX_ERROR;
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
 	retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
@@ -811,7 +811,7 @@ COMMAND_HANDLER(stmqspi_handle_cmd)
 		if (stmqspi_info->saved_cr & BIT(SPI_DUAL_FLASH)) {
 			if ((num_write & 1) == 0) {
 				LOG_ERROR("number of data bytes to write must be even in dual mode");
-				return ERROR_COMMAND_SYNTAX_ERROR;
+				return ERROR_COMMAND_ARGUMENT_INVALID;
 			}
 		}
 	} else {
@@ -819,12 +819,12 @@ COMMAND_HANDLER(stmqspi_handle_cmd)
 		if (stmqspi_info->saved_cr & BIT(SPI_DUAL_FLASH)) {
 			if ((num_read & 1) != 0) {
 				LOG_ERROR("number of bytes to read must be even in dual mode");
-				return ERROR_COMMAND_SYNTAX_ERROR;
+				return ERROR_COMMAND_ARGUMENT_INVALID;
 			}
 		}
 		if ((num_write < 1) || (num_write > 5)) {
 			LOG_ERROR("one cmd and up to four addr bytes must be send when reading");
-			return ERROR_COMMAND_SYNTAX_ERROR;
+			return ERROR_COMMAND_ARGUMENT_INVALID;
 		}
 	}
 

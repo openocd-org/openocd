@@ -19,6 +19,7 @@ void repeated_start(void);
 void stop_cd(void);
 void clock_cd(void);
 void send_ack(void);
+void send_nack(void);
 bool get_ack(void);
 
 uint8_t get_address(uint8_t adr, uint8_t rdwr);

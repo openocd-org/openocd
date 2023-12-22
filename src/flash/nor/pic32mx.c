@@ -866,10 +866,8 @@ COMMAND_HANDLER(pic32mx_handle_unlock_command)
 	struct mips_ejtag *ejtag_info;
 	int timeout = 10;
 
-	if (CMD_ARGC < 1) {
-		command_print(CMD, "pic32mx unlock <bank>");
+	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	struct flash_bank *bank;
 	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
@@ -932,7 +930,7 @@ static const struct command_registration pic32mx_exec_command_handlers[] = {
 		.name = "unlock",
 		.handler = pic32mx_handle_unlock_command,
 		.mode = COMMAND_EXEC,
-		.usage = "[bank_id]",
+		.usage = "bank_id",
 		.help = "Unlock/Erase entire device.",
 	},
 	COMMAND_REGISTRATION_DONE

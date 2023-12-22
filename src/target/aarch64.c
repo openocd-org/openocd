@@ -105,7 +105,7 @@ static int aarch64_restore_system_control_reg(struct target *target)
 		if (target_mode != ARM_MODE_ANY)
 			armv8_dpm_modeswitch(&armv8->dpm, target_mode);
 
-		retval = armv8->dpm.instr_write_data_r0(&armv8->dpm, instr, aarch64->system_control_reg);
+		retval = armv8->dpm.instr_write_data_r0_64(&armv8->dpm, instr, aarch64->system_control_reg);
 		if (retval != ERROR_OK)
 			return retval;
 
@@ -182,7 +182,7 @@ static int aarch64_mmu_modify(struct target *target, int enable)
 	if (target_mode != ARM_MODE_ANY)
 		armv8_dpm_modeswitch(&armv8->dpm, target_mode);
 
-	retval = armv8->dpm.instr_write_data_r0(&armv8->dpm, instr,
+	retval = armv8->dpm.instr_write_data_r0_64(&armv8->dpm, instr,
 				aarch64->system_control_reg_curr);
 
 	if (target_mode != ARM_MODE_ANY)
@@ -1055,14 +1055,14 @@ static int aarch64_post_debug_entry(struct target *target)
 	if (target_mode != ARM_MODE_ANY)
 		armv8_dpm_modeswitch(&armv8->dpm, target_mode);
 
-	retval = armv8->dpm.instr_read_data_r0(&armv8->dpm, instr, &aarch64->system_control_reg);
+	retval = armv8->dpm.instr_read_data_r0_64(&armv8->dpm, instr, &aarch64->system_control_reg);
 	if (retval != ERROR_OK)
 		return retval;
 
 	if (target_mode != ARM_MODE_ANY)
 		armv8_dpm_modeswitch(&armv8->dpm, ARM_MODE_ANY);
 
-	LOG_DEBUG("System_register: %8.8" PRIx32, aarch64->system_control_reg);
+	LOG_DEBUG("System_register: %8.8" PRIx64, aarch64->system_control_reg);
 	aarch64->system_control_reg_curr = aarch64->system_control_reg;
 
 	if (armv8->armv8_mmu.armv8_cache.info == -1) {

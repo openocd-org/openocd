@@ -75,6 +75,22 @@ enum xtensa_dm_reg {
 	XDMREG_DELAYCNT,
 	XDMREG_MEMADDRSTART,
 	XDMREG_MEMADDREND,
+	XDMREG_EXTTIMELO,
+	XDMREG_EXTTIMEHI,
+	XDMREG_TRAXRSVD48,
+	XDMREG_TRAXRSVD4C,
+	XDMREG_TRAXRSVD50,
+	XDMREG_TRAXRSVD54,
+	XDMREG_TRAXRSVD58,
+	XDMREG_TRAXRSVD5C,
+	XDMREG_TRAXRSVD60,
+	XDMREG_TRAXRSVD64,
+	XDMREG_TRAXRSVD68,
+	XDMREG_TRAXRSVD6C,
+	XDMREG_TRAXRSVD70,
+	XDMREG_TRAXRSVD74,
+	XDMREG_CONFIGID0,
+	XDMREG_CONFIGID1,
 
 	/* Performance Monitor Registers */
 	XDMREG_PMG,
@@ -168,6 +184,22 @@ struct xtensa_dm_reg_offsets {
 	{ .nar = 0x07, .apb = 0x001c },	/* XDMREG_DELAYCNT */		\
 	{ .nar = 0x08, .apb = 0x0020 },	/* XDMREG_MEMADDRSTART */	\
 	{ .nar = 0x09, .apb = 0x0024 },	/* XDMREG_MEMADDREND */		\
+	{ .nar = 0x10, .apb = 0x0040 },	/* XDMREG_EXTTIMELO */		\
+	{ .nar = 0x11, .apb = 0x0044 },	/* XDMREG_EXTTIMEHI */		\
+	{ .nar = 0x12, .apb = 0x0048 },	/* XDMREG_TRAXRSVD48 */		\
+	{ .nar = 0x13, .apb = 0x004c },	/* XDMREG_TRAXRSVD4C */		\
+	{ .nar = 0x14, .apb = 0x0050 },	/* XDMREG_TRAXRSVD50 */		\
+	{ .nar = 0x15, .apb = 0x0054 },	/* XDMREG_TRAXRSVD54 */		\
+	{ .nar = 0x16, .apb = 0x0058 },	/* XDMREG_TRAXRSVD58 */		\
+	{ .nar = 0x17, .apb = 0x005c },	/* XDMREG_TRAXRSVD5C */		\
+	{ .nar = 0x18, .apb = 0x0060 },	/* XDMREG_TRAXRSVD60 */		\
+	{ .nar = 0x19, .apb = 0x0064 },	/* XDMREG_TRAXRSVD64 */		\
+	{ .nar = 0x1a, .apb = 0x0068 },	/* XDMREG_TRAXRSVD68 */		\
+	{ .nar = 0x1b, .apb = 0x006c },	/* XDMREG_TRAXRSVD6C */		\
+	{ .nar = 0x1c, .apb = 0x0070 },	/* XDMREG_TRAXRSVD70 */		\
+	{ .nar = 0x1d, .apb = 0x0074 },	/* XDMREG_TRAXRSVD74 */		\
+	{ .nar = 0x1e, .apb = 0x0078 },	/* XDMREG_CONFIGID0 */		\
+	{ .nar = 0x1f, .apb = 0x007c },	/* XDMREG_CONFIGID1 */		\
 																\
 	/* Performance Monitor Registers */							\
 	{ .nar = 0x20, .apb = 0x1000 },	/* XDMREG_PMG */			\
@@ -296,6 +328,11 @@ struct xtensa_dm_reg_offsets {
 #define DEBUGCAUSE_BN               BIT(4)	/* BREAK.N instruction encountered */
 #define DEBUGCAUSE_DI               BIT(5)	/* Debug Interrupt */
 #define DEBUGCAUSE_VALID            BIT(31)	/* Pseudo-value to trigger reread (NX only) */
+
+/* TRAXID */
+#define TRAXID_PRODNO_TRAX          0		/* TRAXID.PRODNO value for TRAX module */
+#define TRAXID_PRODNO_SHIFT         28
+#define TRAXID_PRODNO_MASK          0xf
 
 #define TRAXCTRL_TREN               BIT(0)	/* Trace enable. Tracing starts on 0->1 */
 #define TRAXCTRL_TRSTP              BIT(1)	/* Trace Stop. Make 1 to stop trace. */
@@ -511,6 +548,9 @@ static inline xtensa_dsr_t xtensa_dm_core_status_get(struct xtensa_debug_module 
 {
 	return dm->core_status.dsr;
 }
+
+int xtensa_dm_read(struct xtensa_debug_module *dm, uint32_t addr, uint32_t *val);
+int xtensa_dm_write(struct xtensa_debug_module *dm, uint32_t addr, uint32_t val);
 
 int xtensa_dm_device_id_read(struct xtensa_debug_module *dm);
 static inline xtensa_ocdid_t xtensa_dm_device_id_get(struct xtensa_debug_module *dm)
