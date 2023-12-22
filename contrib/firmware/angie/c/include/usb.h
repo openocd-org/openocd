@@ -129,6 +129,7 @@ struct setup_data {
  * the USB module */
 extern volatile bool ep1_out;
 extern volatile bool ep1_in;
+extern volatile bool ep6_out;
 
 extern volatile __xdata __at 0xE6B8 struct setup_data setup_data;
 

@@ -25,6 +25,7 @@
  */
 volatile bool ep1_out;
 volatile bool ep1_in;
+volatile bool ep6_out;
 
 volatile __xdata __at 0xE6B8 struct setup_data setup_data;
 
@@ -195,27 +196,24 @@ void ep0out_isr(void)__interrupt	EP0OUT_ISR
 void ep1in_isr(void)__interrupt	EP1IN_ISR
 {
 	ep1_in = true;
-
 	EXIF &= ~0x10;  /* Clear USBINT: Main global interrupt */
 	EPIRQ = 0x04;	/* Clear individual EP1IN IRQ */
 }
 void ep1out_isr(void)__interrupt	EP1OUT_ISR
 {
 	ep1_out = true;
-
 	EXIF &= ~0x10;  /* Clear USBINT: Main global interrupt */
 	EPIRQ = 0x08;	/* Clear individual EP1OUT IRQ */
 }
 void ep2_isr(void)__interrupt	EP2_ISR
 {
-	ep1_out = false; /* Does nothing but required by the compiler */
 }
 void ep4_isr(void)__interrupt	EP4_ISR
 {
 }
 void ep6_isr(void)__interrupt	EP6_ISR
 {
-	i2c_recieve();
+	ep6_out = true;
 	EXIF &= ~0x10;  /* Clear USBINT: Main global interrupt */
 	EPIRQ = 0x40;	/* Clear individual EP6OUT IRQ */
 
