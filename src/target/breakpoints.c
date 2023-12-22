@@ -306,7 +306,7 @@ static int breakpoint_free(struct target *data_target, struct target *breakpoint
 		return retval;
 	}
 
-	LOG_TARGET_DEBUG(target, "free BPID: %" PRIu32 " --> %d", breakpoint->unique_id, retval);
+	LOG_TARGET_DEBUG(data_target, "free BPID: %" PRIu32 " --> %d", breakpoint->unique_id, retval);
 	(*breakpoint_p) = breakpoint->next;
 	free(breakpoint->orig_instr);
 	free(breakpoint);
