@@ -9328,7 +9328,7 @@ Loads an image stored in memory by @command{fast_load_image} to the
 current target. Must be preceded by fast_load_image.
 @end deffn
 
-@deffn {Command} {fast_load_image} filename address [@option{bin}|@option{ihex}|@option{elf}|@option{s19}]
+@deffn {Command} {fast_load_image} filename [address [@option{bin}|@option{ihex}|@option{elf}|@option{s19} [@option{min_addr} [@option{max_length}]]]]]]
 Normally you should be using @command{load_image} or GDB load. However, for
 testing purposes or when I/O overhead is significant(OpenOCD running on an embedded
 host), storing the image in memory and uploading the image to the target
@@ -9339,8 +9339,10 @@ target programming performance as I/O and target programming can easily be profi
 separately.
 @end deffn
 
-@deffn {Command} {load_image} filename address [[@option{bin}|@option{ihex}|@option{elf}|@option{s19}] @option{min_addr} @option{max_length}]
-Load image from file @var{filename} to target memory offset by @var{address} from its load address.
+@deffn {Command} {load_image} filename [address [@option{bin}|@option{ihex}|@option{elf}|@option{s19} [@option{min_addr} [@option{max_length}]]]]
+Load image from file @var{filename} to target memory.
+If an @var{address} is specified, it is used as an offset to the file format
+defined addressing (e.g. @option{bin} file is loaded at that address).
 The file format may optionally be specified
 (@option{bin}, @option{ihex}, @option{elf}, or @option{s19}).
 In addition the following arguments may be specified:
@@ -9364,15 +9366,21 @@ The file format may optionally be specified
 (@option{bin}, @option{ihex}, or @option{elf})
 @end deffn
 
-@deffn {Command} {verify_image} filename address [@option{bin}|@option{ihex}|@option{elf}]
-Verify @var{filename} against target memory starting at @var{address}.
+@deffn {Command} {verify_image} filename [address [@option{bin}|@option{ihex}|@option{elf}]]
+Verify @var{filename} against target memory.
+If an @var{address} is specified, it is used as an offset to the file format
+defined addressing (e.g. @option{bin} file is compared against memory starting
+at that address).
 The file format may optionally be specified
 (@option{bin}, @option{ihex}, or @option{elf})
 This will first attempt a comparison using a CRC checksum, if this fails it will try a binary compare.
 @end deffn
 
-@deffn {Command} {verify_image_checksum} filename address [@option{bin}|@option{ihex}|@option{elf}]
-Verify @var{filename} against target memory starting at @var{address}.
+@deffn {Command} {verify_image_checksum} filename [address [@option{bin}|@option{ihex}|@option{elf}]]
+Verify @var{filename} against target memory.
+If an @var{address} is specified, it is used as an offset to the file format
+defined addressing (e.g. @option{bin} file is compared against memory starting
+at that address).
 The file format may optionally be specified
 (@option{bin}, @option{ihex}, or @option{elf})
 This perform a comparison using a CRC checksum only

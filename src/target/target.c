@@ -6926,8 +6926,8 @@ static const struct command_registration target_exec_command_handlers[] = {
 		.mode = COMMAND_ANY,
 		.help = "Load image into server memory for later use by "
 			"fast_load; primarily for profiling",
-		.usage = "filename address ['bin'|'ihex'|'elf'|'s19'] "
-			"[min_address [max_length]]",
+		.usage = "filename [address ['bin'|'ihex'|'elf'|'s19' "
+			"[min_address [max_length]]]]",
 	},
 	{
 		.name = "fast_load",
@@ -7100,8 +7100,8 @@ static const struct command_registration target_exec_command_handlers[] = {
 		.name = "load_image",
 		.handler = handle_load_image_command,
 		.mode = COMMAND_EXEC,
-		.usage = "filename address ['bin'|'ihex'|'elf'|'s19'] "
-			"[min_address] [max_length]",
+		.usage = "filename [address ['bin'|'ihex'|'elf'|'s19' "
+			"[min_address [max_length]]]]",
 	},
 	{
 		.name = "dump_image",
