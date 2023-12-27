@@ -2150,8 +2150,7 @@ static int examine(struct target *target)
 	/* Some regression suites rely on seeing 'Examined RISC-V core' to know
 	 * when they can connect with gdb/telnet.
 	 * We will need to update those suites if we want to change that text. */
-	LOG_TARGET_INFO(target, "Examined RISC-V core; found %d harts",
-			riscv_count_harts(target));
+	LOG_TARGET_INFO(target, "Examined RISC-V core");
 	LOG_TARGET_INFO(target, " XLEN=%d, misa=0x%" PRIx64, r->xlen, r->misa);
 	return ERROR_OK;
 }
@@ -2201,13 +2200,6 @@ static int riscv013_authdata_write(struct target *target, uint32_t value, unsign
 	}
 
 	return ERROR_OK;
-}
-
-static int riscv013_hart_count(struct target *target)
-{
-	dm013_info_t *dm = get_dm(target);
-	assert(dm);
-	return dm->hart_count;
 }
 
 /* Try to find out the widest memory access size depending on the selected memory access methods. */
@@ -2772,7 +2764,6 @@ static int init_target(struct command_context *cmd_ctx,
 	generic_info->dm_read = &dm_read;
 	generic_info->dm_write = &dm_write;
 	generic_info->read_memory = read_memory;
-	generic_info->hart_count = &riscv013_hart_count;
 	generic_info->data_bits = &riscv013_data_bits;
 	generic_info->print_info = &riscv013_print_info;
 
