@@ -3690,143 +3690,138 @@ COMMAND_HANDLER(riscv_authdata_write)
 	return r->authdata_write(target, value, index);
 }
 
-COMMAND_HANDLER(riscv_dmi_read)
+static uint32_t riscv_get_dmi_address(const struct target *target, uint32_t dm_address)
 {
-	if (CMD_ARGC != 1) {
-		LOG_ERROR("Command takes 1 parameter");
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
+	assert(target);
+	RISCV_INFO(r);
+	if (!r || !r->get_dmi_address)
+		return dm_address;
+	return r->get_dmi_address(target, dm_address);
+}
 
-	struct target *target = get_current_target(CMD_CTX);
+static int riscv_dmi_read(struct target *target, uint32_t *value, uint32_t address)
+{
 	if (!target) {
 		LOG_ERROR("target is NULL!");
 		return ERROR_FAIL;
 	}
-
 	RISCV_INFO(r);
 	if (!r) {
 		LOG_TARGET_ERROR(target, "riscv_info is NULL!");
 		return ERROR_FAIL;
 	}
-
-	if (r->dmi_read) {
-		uint32_t address, value;
-		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
-		if (r->dmi_read(target, &value, address) != ERROR_OK)
-			return ERROR_FAIL;
-		command_print(CMD, "0x%" PRIx32, value);
-	} else {
-		LOG_TARGET_ERROR(target, "dmi_read is not implemented for this target.");
+	if (!r->dmi_read) {
+		LOG_TARGET_ERROR(target, "dmi_read is not implemented.");
 		return ERROR_FAIL;
 	}
-	return ERROR_OK;
+	return r->dmi_read(target, value, address);
 }
 
-COMMAND_HANDLER(riscv_dmi_write)
+static int riscv_dmi_write(struct target *target, uint32_t dmi_address, uint32_t value)
 {
-	if (CMD_ARGC != 2) {
-		LOG_ERROR("Command takes exactly 2 arguments");
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
-	struct target *target = get_current_target(CMD_CTX);
-	RISCV_INFO(r);
-
-	uint32_t address, value;
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], value);
-
-	if (r->dmi_write) {
-		/* Perform the DMI write */
-		int retval = r->dmi_write(target, address, value);
-
-		/* Invalidate our cached progbuf copy:
-		   - if the user tinkered directly with a progbuf register
-		   - if debug module was reset, in which case progbuf registers
-		     may not retain their value.
-		*/
-		bool progbuf_touched = (address >= DM_PROGBUF0 && address <= DM_PROGBUF15);
-		bool dm_deactivated = (address == DM_DMCONTROL && (value & DM_DMCONTROL_DMACTIVE) == 0);
-		if (progbuf_touched || dm_deactivated) {
-			if (r->invalidate_cached_progbuf)
-				r->invalidate_cached_progbuf(target);
-		}
-
-		return retval;
-	}
-
-	LOG_TARGET_ERROR(target, "dmi_write is not implemented for this target.");
-	return ERROR_FAIL;
-}
-
-
-COMMAND_HANDLER(riscv_dm_read)
-{
-	if (CMD_ARGC != 1) {
-		LOG_ERROR("Command takes 1 parameter");
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
-	struct target *target = get_current_target(CMD_CTX);
 	if (!target) {
 		LOG_ERROR("target is NULL!");
 		return ERROR_FAIL;
 	}
-
 	RISCV_INFO(r);
 	if (!r) {
 		LOG_TARGET_ERROR(target, "riscv_info is NULL!");
 		return ERROR_FAIL;
 	}
-
-	if (r->dm_read) {
-		uint32_t address, value;
-		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
-		if (r->dm_read(target, &value, address) != ERROR_OK)
-			return ERROR_FAIL;
-		command_print(CMD, "0x%" PRIx32, value);
-	} else {
-		LOG_TARGET_ERROR(target, "dm_read is not implemented for this target.");
+	if (!r->dmi_write) {
+		LOG_TARGET_ERROR(target, "dmi_write is not implemented.");
 		return ERROR_FAIL;
 	}
-	return ERROR_OK;
+	const int result = r->dmi_write(target, dmi_address, value);
+	/* Invalidate our cached progbuf copy:
+	 * - if the user tinkered directly with a progbuf register
+	 * - if debug module was reset, in which case progbuf registers
+	 * may not retain their value.
+	 * FIXME: If there are multiple DMs on a single TAP, it is possible to
+	 * clobber progbuf or reset the DM of another target.
+	 */
+	const bool progbuf_touched =
+			(dmi_address >= riscv_get_dmi_address(target, DM_PROGBUF0) &&
+			dmi_address <= riscv_get_dmi_address(target, DM_PROGBUF15));
+	const bool dm_deactivated =
+			(dmi_address == riscv_get_dmi_address(target, DM_DMCONTROL) &&
+			(value & DM_DMCONTROL_DMACTIVE) == 0);
+	if (progbuf_touched || dm_deactivated) {
+		if (r->invalidate_cached_progbuf) {
+			/* Here the return value of invalidate_cached_progbuf()
+			 * is ignored. It is okay to do so for now, since the
+			 * only case an error is returned is a failure to
+			 * assign a DM to the target, which would have already
+			 * caused an error during dmi_write().
+			 * FIXME: invalidate_cached_progbuf() should be void.
+			 */
+			r->invalidate_cached_progbuf(target);
+		} else {
+			LOG_TARGET_DEBUG(target,
+					"invalidate_cached_progbuf() is not implemented.");
+		}
+	}
+	return result;
 }
 
-COMMAND_HANDLER(riscv_dm_write)
+COMMAND_HANDLER(handle_riscv_dmi_read)
 {
-	if (CMD_ARGC != 2) {
-		LOG_ERROR("Command takes exactly 2 arguments");
+	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
-	struct target *target = get_current_target(CMD_CTX);
-	RISCV_INFO(r);
+	uint32_t dmi_address;
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], dmi_address);
 
-	uint32_t address, value;
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], address);
+	struct target * const target = get_current_target(CMD_CTX);
+	uint32_t value;
+	const int result = riscv_dmi_read(target, &value, dmi_address);
+	if (result == ERROR_OK)
+		command_print(CMD, "0x%" PRIx32, value);
+	return result;
+}
+
+COMMAND_HANDLER(handle_riscv_dmi_write)
+{
+	if (CMD_ARGC != 2)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	uint32_t dmi_address, value;
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], dmi_address);
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], value);
 
-	if (r->dm_write) {
-		/* Perform the DM write */
-		int retval = r->dm_write(target, address, value);
+	struct target * const target = get_current_target(CMD_CTX);
+	return riscv_dmi_write(target, dmi_address, value);
+}
 
-		/* Invalidate our cached progbuf copy:
-		   - if the user tinkered directly with a progbuf register
-		   - if debug module was reset, in which case progbuf registers
-		     may not retain their value.
-		*/
-		bool progbuf_touched = (address >= DM_PROGBUF0 && address <= DM_PROGBUF15);
-		bool dm_deactivated = (address == DM_DMCONTROL && (value & DM_DMCONTROL_DMACTIVE) == 0);
-		if (progbuf_touched || dm_deactivated) {
-			if (r->invalidate_cached_progbuf)
-				r->invalidate_cached_progbuf(target);
-		}
+COMMAND_HANDLER(handle_riscv_dm_read)
+{
+	if (CMD_ARGC != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
-		return retval;
-	}
+	uint32_t dm_address;
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], dm_address);
 
-	LOG_TARGET_ERROR(target, "dm_write is not implemented for this target.");
-	return ERROR_FAIL;
+	struct target * const target = get_current_target(CMD_CTX);
+	uint32_t value;
+	const int result = riscv_dmi_read(target, &value,
+			riscv_get_dmi_address(target, dm_address));
+	if (result == ERROR_OK)
+		command_print(CMD, "0x%" PRIx32, value);
+	return result;
+}
+
+COMMAND_HANDLER(handle_riscv_dm_write)
+{
+	if (CMD_ARGC != 2)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	uint32_t dm_address, value;
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], dm_address);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], value);
+
+	struct target * const target = get_current_target(CMD_CTX);
+	return riscv_dmi_write(target, riscv_get_dmi_address(target, dm_address),
+					value);
 }
 
 COMMAND_HANDLER(riscv_reset_delays)
@@ -4653,31 +4648,34 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 	},
 	{
 		.name = "dmi_read",
-		.handler = riscv_dmi_read,
+		.handler = handle_riscv_dmi_read,
 		.mode = COMMAND_ANY,
 		.usage = "address",
-		.help = "Perform a 32-bit DMI read at address, returning the value."
+		.help = "Read and return 32-bit value from the given address on the "
+				"RISC-V DMI bus."
 	},
 	{
 		.name = "dmi_write",
-		.handler = riscv_dmi_write,
+		.handler = handle_riscv_dmi_write,
 		.mode = COMMAND_ANY,
 		.usage = "address value",
-		.help = "Perform a 32-bit DMI write of value at address."
+		.help = "Write a 32-bit value to the given address on the RISC-V DMI bus."
 	},
 	{
 		.name = "dm_read",
-		.handler = riscv_dm_read,
+		.handler = handle_riscv_dm_read,
 		.mode = COMMAND_ANY,
 		.usage = "reg_address",
-		.help = "Perform a 32-bit read from DM register at reg_address, returning the value."
+		.help = "Read and return 32-bit value from a debug module's register "
+				"at reg_address."
 	},
 	{
 		.name = "dm_write",
-		.handler = riscv_dm_write,
+		.handler = handle_riscv_dm_write,
 		.mode = COMMAND_ANY,
 		.usage = "reg_address value",
-		.help = "Write a 32-bit value to the DM register at reg_address."
+		.help = "Write a 32-bit value to the debug module's register at "
+				"reg_address."
 	},
 	{
 		.name = "reset_delays",
