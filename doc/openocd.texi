@@ -12198,6 +12198,20 @@ xc7.ipdbghub ipdbg start -port 5555 -tool 0
 Starts a server listening on tcp-port 5555 which connects to tool 0 (data_up_0/data_down_0).
 The TAP and ir value used to reach the JTAG Hub is given by the pld driver.
 
+@deffn {Command} {$hub_name queuing} @option{-size @var{size}}
+Configure the queuing between IPDBG JTAG-Host and Hub.
+The maximum possible queue size is 1024 which is also the default.
+
+@itemize @bullet
+@item @option{-size @var{size}} max number of transfers in the queue.
+@end itemize
+@end deffn
+
+@example
+bitbang.ibdbghub queuing -size 32
+@end example
+Send a maximum of 32 transfers to the queue before executing them.
+
 
 @node Utility Commands
 @chapter Utility Commands

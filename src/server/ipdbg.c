@@ -19,20 +19,11 @@
 #define IPDBG_MAX_NUM_OF_CREATE_OPTIONS 10
 #define IPDBG_NUM_OF_START_OPTIONS 4
 #define IPDBG_NUM_OF_STOP_OPTIONS 2
+#define IPDBG_NUM_OF_QUEUE_OPTIONS 2
 #define IPDBG_MIN_DR_LENGTH 11
 #define IPDBG_MAX_DR_LENGTH 13
 #define IPDBG_TCP_PORT_STR_MAX_LENGTH 6
 #define IPDBG_SCRATCH_MEMORY_SIZE 1024
-#define IPDBG_EMPTY_DOWN_TRANSFERS 1024
-#define IPDBG_CONSECUTIVE_UP_TRANSFERS 1024
-
-#if IPDBG_SCRATCH_MEMORY_SIZE < IPDBG_EMPTY_DOWN_TRANSFERS
-#error "scratch Memory must be at least IPDBG_EMPTY_DOWN_TRANSFERS"
-#endif
-
-#if IPDBG_SCRATCH_MEMORY_SIZE < IPDBG_CONSECUTIVE_UP_TRANSFERS
-#error "scratch Memory must be at least IPDBG_CONSECUTIVE_UP_TRANSFERS"
-#endif
 
 /* private connection data for IPDBG */
 struct ipdbg_fifo {
@@ -78,6 +69,7 @@ struct ipdbg_hub {
 	uint32_t tool_mask;
 	uint32_t last_dn_tool;
 	char *name;
+	size_t using_queue_size;
 	struct ipdbg_hub *next;
 	struct jtag_tap *tap;
 	struct connection **connections;
@@ -461,7 +453,7 @@ static int ipdbg_shift_empty_data(struct ipdbg_hub *hub)
 
 	const size_t dreg_buffer_size = DIV_ROUND_UP(hub->data_register_length, 8);
 	memset(hub->scratch_memory.dr_out_vals, 0, dreg_buffer_size);
-	for (size_t i = 0; i < IPDBG_EMPTY_DOWN_TRANSFERS; ++i) {
+	for (size_t i = 0; i < hub->using_queue_size; ++i) {
 		ipdbg_init_scan_field(hub->scratch_memory.fields + i,
 								hub->scratch_memory.dr_in_vals + i * dreg_buffer_size,
 								hub->data_register_length,
@@ -473,7 +465,7 @@ static int ipdbg_shift_empty_data(struct ipdbg_hub *hub)
 
 	if (retval == ERROR_OK) {
 		uint32_t up_data;
-		for (size_t i = 0; i < IPDBG_EMPTY_DOWN_TRANSFERS; ++i) {
+		for (size_t i = 0; i < hub->using_queue_size; ++i) {
 			up_data = buf_get_u32(hub->scratch_memory.dr_in_vals +
 									i * dreg_buffer_size, 0,
 									hub->data_register_length);
@@ -522,8 +514,8 @@ static int ipdbg_jtag_transfer_bytes(struct ipdbg_hub *hub,
 		return ERROR_FAIL;
 
 	const size_t dreg_buffer_size = DIV_ROUND_UP(hub->data_register_length, 8);
-	size_t num_tx = (connection->dn_fifo.count < IPDBG_CONSECUTIVE_UP_TRANSFERS) ?
-		connection->dn_fifo.count : IPDBG_CONSECUTIVE_UP_TRANSFERS;
+	size_t num_tx = (connection->dn_fifo.count < hub->using_queue_size) ?
+		connection->dn_fifo.count : hub->using_queue_size;
 
 	for (size_t i = 0; i < num_tx; ++i) {
 		uint32_t dn_data = hub->valid_mask | ((tool & hub->tool_mask) << 8) |
@@ -906,6 +898,46 @@ static const struct command_registration ipdbg_hostserver_subcommand_handlers[] 
 	COMMAND_REGISTRATION_DONE
 };
 
+static COMMAND_HELPER(ipdbg_config_queuing, struct ipdbg_hub *hub, unsigned int size)
+{
+	if (!hub)
+		return ERROR_FAIL;
+
+	if (hub->active_connections) {
+		command_print(CMD, "Configuration change not allowed when hub has active connections");
+		return ERROR_FAIL;
+	}
+
+	if (size == 0 || size > IPDBG_SCRATCH_MEMORY_SIZE) {
+		command_print(CMD, "queuing size out of range! Must be 0 < size <= %d", IPDBG_SCRATCH_MEMORY_SIZE);
+		return ERROR_COMMAND_ARGUMENT_INVALID;
+	}
+
+	hub->using_queue_size = size;
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(handle_ipdbg_cfg_queuing_command)
+{
+	struct ipdbg_hub *hub = CMD_DATA;
+
+	unsigned int size;
+
+	if (CMD_ARGC != IPDBG_NUM_OF_QUEUE_OPTIONS)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	for (unsigned int i = 0; i < CMD_ARGC; ++i) {
+		if (strcmp(CMD_ARGV[i], "-size") == 0) {
+			COMMAND_PARSE_ADDITIONAL_NUMBER(uint, i, size, "size");
+		} else {
+			command_print(CMD, "Unknown argument: %s", CMD_ARGV[i]);
+			return ERROR_FAIL;
+		}
+	}
+
+	return CALL_COMMAND_HANDLER(ipdbg_config_queuing, hub, size);
+}
+
 static const struct command_registration ipdbg_hub_subcommand_handlers[] = {
 	{
 		.name = "ipdbg",
@@ -913,6 +945,13 @@ static const struct command_registration ipdbg_hub_subcommand_handlers[] = {
 		.help = "IPDBG Hub commands.",
 		.usage = "",
 		.chain = ipdbg_hostserver_subcommand_handlers
+	},
+	{
+		.name = "queuing",
+		.handler = handle_ipdbg_cfg_queuing_command,
+		.mode = COMMAND_ANY,
+		.help = "configures queuing between IPDBG Host and Hub.",
+		.usage = "-size size",
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -960,6 +999,7 @@ static int ipdbg_create_hub(struct jtag_tap *tap, uint32_t user_instruction, uin
 	new_hub->last_dn_tool         = new_hub->tool_mask;
 	new_hub->virtual_ir           = virtual_ir;
 	new_hub->max_tools            = ipdbg_max_tools_from_data_register_length(data_register_length);
+	new_hub->using_queue_size     = IPDBG_SCRATCH_MEMORY_SIZE;
 
 	int retval = ipdbg_register_hub_command(new_hub, cmd);
 	if (retval != ERROR_OK) {
