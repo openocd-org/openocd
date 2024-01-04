@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0 */
+/* SPDX-License-Identifier: GPL-2.0-only */
 #ifndef OPENOCD_TARGET_MIPS_CPU_H
 #define OPENOCD_TARGET_MIPS_CPU_H
 
