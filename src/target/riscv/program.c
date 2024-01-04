@@ -11,6 +11,7 @@
 #include "helper/log.h"
 
 #include "asm.h"
+#include "debug_defines.h"
 #include "encoding.h"
 
 /* Program interface. */
@@ -23,19 +24,19 @@ int riscv_program_init(struct riscv_program *p, struct target *target)
 	for (size_t i = 0; i < RISCV_REGISTER_COUNT; ++i)
 		p->writes_xreg[i] = 0;
 
-	for (size_t i = 0; i < RISCV_MAX_DEBUG_BUFFER_SIZE; ++i)
-		p->debug_buffer[i] = -1;
+	for (size_t i = 0; i < RISCV_MAX_PROGBUF_SIZE; ++i)
+		p->progbuf[i] = -1;
 
+	p->execution_result = RISCV_PROGBUF_EXEC_RESULT_NOT_EXECUTED;
 	return ERROR_OK;
 }
 
 int riscv_program_write(struct riscv_program *program)
 {
 	for (unsigned i = 0; i < program->instruction_count; ++i) {
-		LOG_TARGET_DEBUG(program->target, "debug_buffer[%02x] = DASM(0x%08x)",
-				i, program->debug_buffer[i]);
-		if (riscv_write_debug_buffer(program->target, i,
-					program->debug_buffer[i]) != ERROR_OK)
+		LOG_TARGET_DEBUG(program->target, "progbuf[%02x] = DASM(0x%08x)",
+				i, program->progbuf[i]);
+		if (riscv_write_progbuf(program->target, i, program->progbuf[i]) != ERROR_OK)
 			return ERROR_FAIL;
 	}
 	return ERROR_OK;
@@ -46,6 +47,7 @@ int riscv_program_exec(struct riscv_program *p, struct target *t)
 {
 	keep_alive();
 
+	p->execution_result = RISCV_PROGBUF_EXEC_RESULT_UNKNOWN;
 	riscv_reg_t saved_registers[GDB_REGNO_XPR31 + 1];
 	for (size_t i = GDB_REGNO_ZERO + 1; i <= GDB_REGNO_XPR31; ++i) {
 		if (p->writes_xreg[i]) {
@@ -58,19 +60,25 @@ int riscv_program_exec(struct riscv_program *p, struct target *t)
 
 	if (riscv_program_ebreak(p) != ERROR_OK) {
 		LOG_TARGET_ERROR(t, "Unable to insert ebreak into program buffer");
-		for (size_t i = 0; i < riscv_debug_buffer_size(p->target); ++i)
+		for (size_t i = 0; i < riscv_progbuf_size(p->target); ++i)
 			LOG_TARGET_ERROR(t, "ram[%02x]: DASM(0x%08" PRIx32 ") [0x%08" PRIx32 "]",
-					(int)i, p->debug_buffer[i], p->debug_buffer[i]);
+					(int)i, p->progbuf[i], p->progbuf[i]);
 		return ERROR_FAIL;
 	}
 
 	if (riscv_program_write(p) != ERROR_OK)
 		return ERROR_FAIL;
 
-	if (riscv_execute_debug_buffer(t) != ERROR_OK) {
+	uint32_t cmderr;
+	if (riscv_execute_progbuf(t, &cmderr) != ERROR_OK) {
+		p->execution_result = (cmderr == DM_ABSTRACTCS_CMDERR_EXCEPTION)
+			? RISCV_PROGBUF_EXEC_RESULT_EXCEPTION
+			: RISCV_PROGBUF_EXEC_RESULT_UNKNOWN_ERROR;
+		/* TODO: what happens if we fail here, but need to restore registers? */
 		LOG_TARGET_DEBUG(t, "Unable to execute program %p", p);
 		return ERROR_FAIL;
 	}
+	p->execution_result = RISCV_PROGBUF_EXEC_RESULT_SUCCESS;
 
 	for (size_t i = GDB_REGNO_ZERO; i <= GDB_REGNO_XPR31; ++i)
 		if (p->writes_xreg[i])
@@ -191,7 +199,7 @@ int riscv_program_ebreak(struct riscv_program *p)
 {
 	struct target *target = p->target;
 	RISCV_INFO(r);
-	if (p->instruction_count == riscv_debug_buffer_size(p->target) &&
+	if (p->instruction_count == riscv_progbuf_size(p->target) &&
 			r->impebreak) {
 		return ERROR_OK;
 	}
@@ -205,14 +213,14 @@ int riscv_program_addi(struct riscv_program *p, enum gdb_regno d, enum gdb_regno
 
 int riscv_program_insert(struct riscv_program *p, riscv_insn_t i)
 {
-	if (p->instruction_count >= riscv_debug_buffer_size(p->target)) {
+	if (p->instruction_count >= riscv_progbuf_size(p->target)) {
 		LOG_TARGET_ERROR(p->target, "Unable to insert program into progbuf, "
 			"capacity would be exceeded (progbufsize=%d).",
-			(int)riscv_debug_buffer_size(p->target));
+			(int)riscv_progbuf_size(p->target));
 		return ERROR_FAIL;
 	}
 
-	p->debug_buffer[p->instruction_count] = i;
+	p->progbuf[p->instruction_count] = i;
 	p->instruction_count++;
 	return ERROR_OK;
 }

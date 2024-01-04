@@ -165,8 +165,8 @@ struct riscv_info {
 	 * most recent halt was not caused by a trigger, then this is -1. */
 	uint32_t trigger_hit;
 
-	/* The number of entries in the debug buffer. */
-	int debug_buffer_size;
+	/* The number of entries in the program buffer. */
+	int progbuf_size;
 
 	/* This hart contains an implicit ebreak at the end of the program buffer. */
 	bool impebreak;
@@ -227,11 +227,10 @@ struct riscv_info {
 	int (*halt_go)(struct target *target);
 	int (*on_step)(struct target *target);
 	enum riscv_halt_reason (*halt_reason)(struct target *target);
-	int (*write_debug_buffer)(struct target *target, unsigned index,
-			riscv_insn_t d);
-	riscv_insn_t (*read_debug_buffer)(struct target *target, unsigned index);
-	int (*execute_debug_buffer)(struct target *target);
-	int (*invalidate_cached_debug_buffer)(struct target *target);
+	int (*write_progbuf)(struct target *target, unsigned int index, riscv_insn_t d);
+	riscv_insn_t (*read_progbuf)(struct target *target, unsigned int index);
+	int (*execute_progbuf)(struct target *target, uint32_t *cmderr);
+	int (*invalidate_cached_progbuf)(struct target *target);
 	int (*dmi_write_u64_bits)(struct target *target);
 	void (*fill_dm_write_u64)(struct target *target, char *buf, int a, uint64_t d);
 	void (*fill_dm_read_u64)(struct target *target, char *buf, int a);
@@ -427,11 +426,11 @@ int riscv_get_hart_state(struct target *target, enum riscv_hart_state *state);
 
 /* These helper functions let the generic program interface get target-specific
  * information. */
-size_t riscv_debug_buffer_size(struct target *target);
+size_t riscv_progbuf_size(struct target *target);
 
-riscv_insn_t riscv_read_debug_buffer(struct target *target, int index);
-int riscv_write_debug_buffer(struct target *target, int index, riscv_insn_t insn);
-int riscv_execute_debug_buffer(struct target *target);
+riscv_insn_t riscv_read_progbuf(struct target *target, int index);
+int riscv_write_progbuf(struct target *target, int index, riscv_insn_t insn);
+int riscv_execute_progbuf(struct target *target, uint32_t *cmderr);
 
 void riscv_fill_dm_nop_u64(struct target *target, char *buf);
 void riscv_fill_dm_write_u64(struct target *target, char *buf, int a, uint64_t d);
