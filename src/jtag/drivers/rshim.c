@@ -434,10 +434,8 @@ static void rshim_disconnect(struct adiv5_dap *dap)
 
 COMMAND_HANDLER(rshim_dap_device_command)
 {
-	if (CMD_ARGC != 1) {
-		command_print(CMD, "Too many arguments");
+	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	free(rshim_dev_path);
 	rshim_dev_path = strdup(CMD_ARGV[0]);

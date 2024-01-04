@@ -77,9 +77,11 @@ struct esp_dbg_stubs {
 };
 
 struct esp_common {
+	const struct esp_algorithm_hw *algo_hw;
 	struct esp_dbg_stubs dbg_stubs;
 };
 
+int esp_common_init(struct esp_common *esp, const struct esp_algorithm_hw *algo_hw);
 int esp_dbgstubs_table_read(struct target *target, struct esp_dbg_stubs *dbg_stubs);
 
 #endif	/* OPENOCD_TARGET_ESP_H */

@@ -380,7 +380,8 @@ struct mips32_algorithm {
 #define MIPS32_OP_XORI	0x0Eu
 #define MIPS32_OP_XOR	0x26u
 #define MIPS32_OP_SLTU	0x2Bu
-#define MIPS32_OP_SRL	0x03u
+#define MIPS32_OP_SRL	0x02u
+#define MIPS32_OP_SRA	0x03u
 #define MIPS32_OP_SYNCI	0x1Fu
 #define MIPS32_OP_SLL	0x00u
 #define MIPS32_OP_SLTI	0x0Au
@@ -439,7 +440,8 @@ struct mips32_algorithm {
 #define MIPS32_ISA_SLL(dst, src, sa)		MIPS32_R_INST(MIPS32_OP_SPECIAL, 0, src, dst, sa, MIPS32_OP_SLL)
 #define MIPS32_ISA_SLTI(tar, src, val)		MIPS32_I_INST(MIPS32_OP_SLTI, src, tar, val)
 #define MIPS32_ISA_SLTU(dst, src, tar)		MIPS32_R_INST(MIPS32_OP_SPECIAL, src, tar, dst, 0, MIPS32_OP_SLTU)
-#define MIPS32_ISA_SRL(reg, src, off)		MIPS32_R_INST(0, 0, src, reg, off, MIPS32_OP_SRL)
+#define MIPS32_ISA_SRA(reg, src, off)		MIPS32_R_INST(MIPS32_OP_SPECIAL, 0, src, reg, off, MIPS32_OP_SRA)
+#define MIPS32_ISA_SRL(reg, src, off)		MIPS32_R_INST(MIPS32_OP_SPECIAL, 0, src, reg, off, MIPS32_OP_SRL)
 #define MIPS32_ISA_SYNC				0xFu
 #define MIPS32_ISA_SYNCI(off, base)		MIPS32_I_INST(MIPS32_OP_REGIMM, base, MIPS32_OP_SYNCI, off)
 

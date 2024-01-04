@@ -842,12 +842,12 @@ int mips32_pracc_write_regs(struct mips32_common *mips32)
 	};
 
 	uint32_t cp0_write_data[] = {
+		/* status */
+		c0rs[0],
 		/* lo */
 		gprs[32],
 		/* hi */
 		gprs[33],
-		/* status */
-		c0rs[0],
 		/* badvaddr */
 		c0rs[1],
 		/* cause */
@@ -856,6 +856,9 @@ int mips32_pracc_write_regs(struct mips32_common *mips32)
 		c0rs[3],
 	};
 
+	/* Write CP0 Status Register first, changes on EXL or ERL bits
+	 * may lead to different behaviour on writing to other CP0 registers.
+	 */
 	for (size_t i = 0; i < ARRAY_SIZE(cp0_write_code); i++) {
 		/* load CP0 value in $1 */
 		pracc_add_li32(&ctx, 1, cp0_write_data[i], 0);
