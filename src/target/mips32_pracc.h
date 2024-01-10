@@ -53,6 +53,8 @@ struct pracc_queue_info {
 	struct pa_list *pracc_list;	/* Code and store addresses at dmseg */
 };
 
+struct mips32_common;
+
 void pracc_queue_init(struct pracc_queue_info *ctx);
 void pracc_add(struct pracc_queue_info *ctx, uint32_t addr, uint32_t instr);
 void pracc_queue_free(struct pracc_queue_info *ctx);

@@ -943,6 +943,81 @@ int armv8_mmu_translate_va(struct target *target,  target_addr_t va, target_addr
 	return ERROR_OK;
 }
 
+static void armv8_decode_cacheability(int attr)
+{
+	if (attr == 0) {
+		LOG_USER_N("UNPREDICTABLE");
+		return;
+	}
+	if (attr == 4) {
+		LOG_USER_N("Non-cacheable");
+		return;
+	}
+	switch (attr & 0xC) {
+		case 0:
+			LOG_USER_N("Write-Through Transient");
+			break;
+		case 0x4:
+			LOG_USER_N("Write-Back Transient");
+			break;
+		case 0x8:
+			LOG_USER_N("Write-Through Non-transient");
+			break;
+		case 0xC:
+			LOG_USER_N("Write-Back Non-transient");
+			break;
+	}
+	if (attr & 2)
+		LOG_USER_N(" Read-Allocate");
+	else
+		LOG_USER_N(" No-Read Allocate");
+	if (attr & 1)
+		LOG_USER_N(" Write-Allocate");
+	else
+		LOG_USER_N(" No-Write Allocate");
+}
+
+static void armv8_decode_memory_attr(int attr)
+{
+	if (attr == 0x40) {
+		LOG_USER("Normal Memory, Inner Non-cacheable, "
+			 "Outer Non-cacheable, XS=0");
+	} else if (attr == 0xA0) {
+		LOG_USER("Normal Memory, Inner Write-through Cacheable, "
+			 "Outer Write-through Cacheable, Read-Allocate, "
+			 "No-Write Allocate, Non-transient, XS=0");
+	} else if (attr == 0xF0) {
+		LOG_USER("Tagged Normal Memory, Inner Write-Back, "
+			 "Outer Write-Back, Read-Allocate, Write-Allocate, "
+			 "Non-transient");
+	} else if ((attr & 0xF0) == 0) {
+		switch (attr & 0xC) {
+			case 0:
+				LOG_USER_N("Device-nGnRnE Memory");
+				break;
+			case 0x4:
+				LOG_USER_N("Device-nGnRE Memory");
+				break;
+			case 0x8:
+				LOG_USER_N("Device-nGRE Memory");
+				break;
+			case 0xC:
+				LOG_USER_N("Device-GRE Memory");
+				break;
+		}
+		if (attr & 1)
+			LOG_USER(", XS=0");
+		else
+			LOG_USER_N("\n");
+	} else {
+		LOG_USER_N("Normal Memory, Inner ");
+		armv8_decode_cacheability(attr & 0xF);
+		LOG_USER_N(", Outer ");
+		armv8_decode_cacheability(attr >> 4);
+		LOG_USER_N("\n");
+	}
+}
+
 /*  V8 method VA TO PA  */
 int armv8_mmu_translate_va_pa(struct target *target, target_addr_t va,
 	target_addr_t *val, int meminfo)
@@ -1025,11 +1100,9 @@ int armv8_mmu_translate_va_pa(struct target *target, target_addr_t va,
 			int NS = (par >> 9) & 1;
 			int ATTR = (par >> 56) & 0xFF;
 
-			char *memtype = (ATTR & 0xF0) == 0 ? "Device Memory" : "Normal Memory";
-
 			LOG_USER("%sshareable, %s",
 					shared_name[SH], secure_name[NS]);
-			LOG_USER("%s", memtype);
+			armv8_decode_memory_attr(ATTR);
 		}
 	}
 
