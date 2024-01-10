@@ -47,7 +47,7 @@ int mips_ejtag_get_idcode(struct mips_ejtag *ejtag_info)
 	return mips_ejtag_drscan_32(ejtag_info, &ejtag_info->idcode);
 }
 
-static int mips_ejtag_get_impcode(struct mips_ejtag *ejtag_info)
+int mips_ejtag_get_impcode(struct mips_ejtag *ejtag_info)
 {
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_IMPCODE);
 
@@ -332,7 +332,7 @@ static void ejtag_v26_print_imp(struct mips_ejtag *ejtag_info)
 		EJTAG_IMP_HAS(EJTAG_V26_IMP_DINT) ? " DINT" : "");
 }
 
-static void ejtag_main_print_imp(struct mips_ejtag *ejtag_info)
+void ejtag_main_print_imp(struct mips_ejtag *ejtag_info)
 {
 	LOG_DEBUG("EJTAG main: features:%s%s%s%s%s",
 		EJTAG_IMP_HAS(EJTAG_IMP_ASID8) ? " ASID_8" : "",

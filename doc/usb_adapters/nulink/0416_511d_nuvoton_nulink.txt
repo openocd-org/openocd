@@ -47,8 +47,32 @@ Device Descriptor:
           bNumDescriptors         1
           bDescriptorType        34 Report
           wDescriptorLength      28
-         Report Descriptors:
-           ** UNAVAILABLE **
+          Report Descriptor: (length is 28)
+            Item(Global): Usage Page, data= [ 0x01 ] 1
+                            Generic Desktop Controls
+            Item(Local ): Usage, data= [ 0x00 ] 0
+                            Undefined
+            Item(Main  ): Collection, data= [ 0x01 ] 1
+                            Application
+            Item(Global): Logical Minimum, data= [ 0x00 ] 0
+            Item(Global): Logical Maximum, data= [ 0xff 0x00 ] 255
+            Item(Local ): Usage Minimum, data= [ 0x00 ] 0
+                            Undefined
+            Item(Local ): Usage Maximum, data= [ 0x00 ] 0
+                            Undefined
+            Item(Global): Report Size, data= [ 0x08 ] 8
+            Item(Global): Report Count, data= [ 0x40 ] 64
+            Item(Main  ): Input, data= [ 0x02 ] 2
+                            Data Variable Absolute No_Wrap Linear
+                            Preferred_State No_Null_Position Non_Volatile Bitfield
+            Item(Local ): Usage Minimum, data= [ 0x00 ] 0
+                            Undefined
+            Item(Local ): Usage Maximum, data= [ 0x00 ] 0
+                            Undefined
+            Item(Main  ): Output, data= [ 0x02 ] 2
+                            Data Variable Absolute No_Wrap Linear
+                            Preferred_State No_Null_Position Non_Volatile Bitfield
+            Item(Main  ): End Collection, data=none
       Endpoint Descriptor:
         bLength                 7
         bDescriptorType         5

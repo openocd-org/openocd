@@ -31,6 +31,8 @@ static int remote_bitbang_fd;
 static uint8_t remote_bitbang_send_buf[512];
 static unsigned int remote_bitbang_send_buf_used;
 
+static bool use_remote_sleep;
+
 /* Circular buffer. When start == end, the buffer is empty. */
 static char remote_bitbang_recv_buf[256];
 static unsigned int remote_bitbang_recv_buf_start;
@@ -216,6 +218,32 @@ static int remote_bitbang_reset(int trst, int srst)
 	return remote_bitbang_queue(c, FLUSH_SEND_BUF);
 }
 
+static int remote_bitbang_sleep(unsigned int microseconds)
+{
+	if (!use_remote_sleep) {
+		jtag_sleep(microseconds);
+		return ERROR_OK;
+	}
+
+	int tmp;
+	unsigned int ms = microseconds / 1000;
+	unsigned int us = microseconds % 1000;
+
+	for (unsigned int i = 0; i < ms; i++) {
+		tmp = remote_bitbang_queue('D', NO_FLUSH);
+		if (tmp != ERROR_OK)
+			return tmp;
+	}
+
+	for (unsigned int i = 0; i < us; i++) {
+		tmp = remote_bitbang_queue('d', NO_FLUSH);
+		if (tmp != ERROR_OK)
+			return tmp;
+	}
+
+	return remote_bitbang_flush();
+}
+
 static int remote_bitbang_blink(int on)
 {
 	char c = on ? 'B' : 'b';
@@ -252,6 +280,8 @@ static struct bitbang_interface remote_bitbang_bitbang = {
 	.swdio_drive = &remote_bitbang_swdio_drive,
 	.swd_write = &remote_bitbang_swd_write,
 	.blink = &remote_bitbang_blink,
+	.sleep = &remote_bitbang_sleep,
+	.flush = &remote_bitbang_flush,
 };
 
 static int remote_bitbang_init_tcp(void)
@@ -377,6 +407,16 @@ COMMAND_HANDLER(remote_bitbang_handle_remote_bitbang_host_command)
 
 static const char * const remote_bitbang_transports[] = { "jtag", "swd", NULL };
 
+COMMAND_HANDLER(remote_bitbang_handle_remote_bitbang_use_remote_sleep_command)
+{
+	if (CMD_ARGC != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	COMMAND_PARSE_ON_OFF(CMD_ARGV[0], use_remote_sleep);
+
+	return ERROR_OK;
+}
+
 static const struct command_registration remote_bitbang_subcommand_handlers[] = {
 	{
 		.name = "port",
@@ -394,7 +434,15 @@ static const struct command_registration remote_bitbang_subcommand_handlers[] = 
 			"  if port is 0 or unset, this is the name of the unix socket to use.",
 		.usage = "host_name",
 	},
-	COMMAND_REGISTRATION_DONE,
+	{
+		.name = "use_remote_sleep",
+		.handler = remote_bitbang_handle_remote_bitbang_use_remote_sleep_command,
+		.mode = COMMAND_CONFIG,
+		.help = "Rather than executing sleep locally, include delays in the "
+			"instruction stream for the remote host.",
+		.usage = "(on|off)",
+	},
+	COMMAND_REGISTRATION_DONE
 };
 
 static const struct command_registration remote_bitbang_command_handlers[] = {

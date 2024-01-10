@@ -2868,6 +2868,15 @@ Specifies the hostname of the remote process to connect to using TCP, or the
 name of the UNIX socket to use if remote_bitbang port is 0.
 @end deffn
 
+@deffn {Config Command} {remote_bitbang use_remote_sleep} (on|off)
+If this option is enabled, delays will not be executed locally but instead
+forwarded to the remote host. This is useful if the remote host performs its
+own request queuing rather than executing requests immediately.
+
+This is disabled by default. This option must only be enabled if the given
+remote_bitbang host supports receiving the delay information.
+@end deffn
+
 For example, to connect remotely via TCP to the host foobar you might have
 something like:
 
@@ -2875,6 +2884,15 @@ something like:
 adapter driver remote_bitbang
 remote_bitbang port 3335
 remote_bitbang host foobar
+@end example
+
+And if you also wished to enable remote sleeping:
+
+@example
+adapter driver remote_bitbang
+remote_bitbang port 3335
+remote_bitbang host foobar
+remote_bitbang use_remote_sleep on
 @end example
 
 To connect to another process running locally via UNIX sockets with socket
@@ -4435,6 +4453,10 @@ there seems to be no problems with JTAG scan chain operations.
 register during initial examination and when checking the sticky error bit.
 This bit is normally checked after setting the CSYSPWRUPREQ bit, but some
 devices do not set the ack bit until sometime later.
+@item @code{-ir-bypass} @var{NUMBER}
+@*Vendor specific bypass instruction, required by some hierarchical JTAG
+routers where the normal BYPASS instruction bypasses the whole router and
+a vendor specific bypass instruction is required to access child nodes.
 @end itemize
 @end deffn
 
@@ -6831,16 +6853,23 @@ nor is Chip Erase (only Sector Erase is implemented).}
 
 @deffn {Flash Driver} {kinetis}
 @cindex kinetis
-Kx, KLx, KVx and KE1x members of the Kinetis microcontroller family
-from NXP (former Freescale) include
-internal flash and use ARM Cortex-M0+ or M4 cores. The driver automatically
+Several microcontrollers from NXP (former Freescale), including
+Kx, KLx, KVx and KE1x members of the Kinetis family,
+and S32K11x/S32K14x microcontrollers, include
+internal flash and use ARM Cortex-M0+ or M4 cores.
+Kinetis and S32K1 families use incompatible
+identification registers, so the driver assumes Kinetis and requires
+a driver option to indicate S32K1 is to be used.
+Within the familiy, the driver automatically
 recognizes flash size and a number of flash banks (1-4) using the chip
 identification register, and autoconfigures itself.
 Use kinetis_ke driver for KE0x and KEAx devices.
 
 The @var{kinetis} driver defines option:
 @itemize
-@item -sim-base @var{addr} ... base of System Integration Module where chip identification resides. Driver tries two known locations if option is omitted.
+@item -s32k select S32K11x/S32K14x microcontroller flash support.
+
+@item -sim-base @var{addr} ... base of System Integration Module where chip identification resides. Driver tries known locations if option is omitted.
 @end itemize
 
 @example
@@ -6889,6 +6918,7 @@ command completes.
 
 @deffn {Command} {kinetis nvm_partition}
 For FlexNVM devices only (KxxDX and KxxFX).
+Not supported (yet) on S32K1 devices.
 Command shows or sets data flash or EEPROM backup size in kilobytes,
 sets two EEPROM blocks sizes in bytes and enables/disables loading
 of EEPROM contents to FlexRAM during reset.
@@ -7714,12 +7744,10 @@ applied to all of them.
 @end deffn
 
 @deffn {Flash Driver} {stm32f1x}
-All members of the STM32F0, STM32F1 and STM32F3 microcontroller families
-from STMicroelectronics and all members of the GD32F1x0, GD32F3x0 and GD32E23x microcontroller
-families from GigaDevice include internal flash and use ARM Cortex-M0/M3/M4/M23 cores.
-The driver also works with GD32VF103 powered by RISC-V core.
-The driver automatically recognizes a number of these chips using
-the chip identification register, and autoconfigures itself.
+This driver supports the STM32F0, STM32F1 and STM32F3 microcontroller series from STMicroelectronics.
+The driver is also compatible with the GD32F1, GD32VF103 (RISC-V core), GD32F3 and GD32E23 microcontroller series from GigaDevice.
+The driver also supports the APM32F0 and APM32F1 series from Geehy Semiconductor.
+The driver automatically recognizes a number of these chips using the chip identification register, and autoconfigures itself.
 
 @example
 flash bank $_FLASHNAME stm32f1x 0 0 0 0 $_TARGETNAME
@@ -7780,6 +7808,7 @@ The @var{num} parameter is a value shown by @command{flash banks}.
 @deffn {Flash Driver} {stm32f2x}
 All members of the STM32F2, STM32F4 and STM32F7 microcontroller families from STMicroelectronics
 include internal flash and use ARM Cortex-M3/M4/M7 cores.
+The driver also works for the APM32F4 series from Geehy Semiconductor.
 The driver automatically recognizes a number of these chips using
 the chip identification register, and autoconfigures itself.
 
@@ -9336,7 +9365,7 @@ Loads an image stored in memory by @command{fast_load_image} to the
 current target. Must be preceded by fast_load_image.
 @end deffn
 
-@deffn {Command} {fast_load_image} filename address [@option{bin}|@option{ihex}|@option{elf}|@option{s19}]
+@deffn {Command} {fast_load_image} filename [address [@option{bin}|@option{ihex}|@option{elf}|@option{s19} [@option{min_addr} [@option{max_length}]]]]]]
 Normally you should be using @command{load_image} or GDB load. However, for
 testing purposes or when I/O overhead is significant(OpenOCD running on an embedded
 host), storing the image in memory and uploading the image to the target
@@ -9347,8 +9376,10 @@ target programming performance as I/O and target programming can easily be profi
 separately.
 @end deffn
 
-@deffn {Command} {load_image} filename address [[@option{bin}|@option{ihex}|@option{elf}|@option{s19}] @option{min_addr} @option{max_length}]
-Load image from file @var{filename} to target memory offset by @var{address} from its load address.
+@deffn {Command} {load_image} filename [address [@option{bin}|@option{ihex}|@option{elf}|@option{s19} [@option{min_addr} [@option{max_length}]]]]
+Load image from file @var{filename} to target memory.
+If an @var{address} is specified, it is used as an offset to the file format
+defined addressing (e.g. @option{bin} file is loaded at that address).
 The file format may optionally be specified
 (@option{bin}, @option{ihex}, @option{elf}, or @option{s19}).
 In addition the following arguments may be specified:
@@ -9372,15 +9403,21 @@ The file format may optionally be specified
 (@option{bin}, @option{ihex}, or @option{elf})
 @end deffn
 
-@deffn {Command} {verify_image} filename address [@option{bin}|@option{ihex}|@option{elf}]
-Verify @var{filename} against target memory starting at @var{address}.
+@deffn {Command} {verify_image} filename [address [@option{bin}|@option{ihex}|@option{elf}]]
+Verify @var{filename} against target memory.
+If an @var{address} is specified, it is used as an offset to the file format
+defined addressing (e.g. @option{bin} file is compared against memory starting
+at that address).
 The file format may optionally be specified
 (@option{bin}, @option{ihex}, or @option{elf})
 This will first attempt a comparison using a CRC checksum, if this fails it will try a binary compare.
 @end deffn
 
-@deffn {Command} {verify_image_checksum} filename address [@option{bin}|@option{ihex}|@option{elf}]
-Verify @var{filename} against target memory starting at @var{address}.
+@deffn {Command} {verify_image_checksum} filename [address [@option{bin}|@option{ihex}|@option{elf}]]
+Verify @var{filename} against target memory.
+If an @var{address} is specified, it is used as an offset to the file format
+defined addressing (e.g. @option{bin} file is compared against memory starting
+at that address).
 The file format may optionally be specified
 (@option{bin}, @option{ihex}, or @option{elf})
 This perform a comparison using a CRC checksum only
@@ -10987,6 +11024,73 @@ included in the generated target descriptor file.
 addreg rtest 0x1234 org.gnu.gdb.or1k.group0 system
 @end example
 
+@end deffn
+
+@section MIPS Architecture
+@cindex microMIPS
+@cindex MIPS32
+@cindex MIPS64
+
+@uref{http://mips.com/, MIPS} is a simple, streamlined, highly scalable RISC
+architecture. The architecture is evolving over time, from MIPS I~V to
+MIPS release 1~6 iterations, the architecture is now able to handle various tasks
+with different ASEs, including SIMD(MSA), DSP, VZ, MT and more.
+MIPS32 supports 32-bit programs while MIPS64 can support both 32-bit and 64-bit programs.
+
+@subsection MIPS Terminology
+
+The term ASE means Application-Specific Extension, ASEs provide features that
+improve the efficiency and performance of certain workloads, such as
+digital signal processing(DSP), Virtualization(VZ), Multi-Threading(MT),
+SIMD(MSA) and more.
+
+MIPS Cores use Coprocessors(CPx) to configure their behaviour or to let software
+know the capabilities of current CPU, the main Coprocessor is CP0, containing 32
+registers with a maximum select number of 7.
+
+@subsection MIPS FPU & Vector Registers
+
+MIPS processors does not all comes with FPU co-processor, and when it does, the FPU
+appears as Coprocessor 1 whereas the Coprocessor 0 is for the main processor.
+
+Most of MIPS FPUs are 64 bits, IEEE 754 standard, and they provides both 32-bit
+single precision and 64-bit double precision calculations. Fixed point format
+calculations are also provided with both 32 and 64-bit modes.
+
+The MIPS SIMD Architecture(MSA) operates on 32 128-bit wide vector registers.
+If both MSA and the scalar floating-point unit (FPU) are present, the 128-bit MSA
+vector registers extend and share the 64-bit FPU registers. MSA and FPU can not be
+both present, unless the FPU has 64-bit floating-point register.
+
+@subsection MIPS Configuration Commands
+
+@deffn {Command} {mips32 cpuinfo}
+Displays detailed information about current CPU core. This includes core type,
+vendor, instruction set, cache size, and other relevant details.
+@end deffn
+
+@deffn {Config Command} {mips32 scan_delay} [nanoseconds]
+Display or set scan delay in nano seconds. A value below 2_000_000 will set the
+scan delay into legacy mode.
+@end deffn
+
+@deffn {Config Command} {mips32 cp0} [[reg_name|regnum select] [value]]
+Displays or sets coprocessor 0 register by register number and select or their name.
+This command shows all available cp0 register if no arguments are provided.
+
+For common MIPS Coprocessor 0 registers, you can find the definitions of them
+on MIPS Privileged Resource Architecture Documents(MIPS Document MD00090).
+
+For core specific cp0 registers, you can find the definitions of them on Core
+Specific Software User's Manual(SUM), for example, MIPS M5150 Software User Manual
+(MD00980).
+@end deffn
+
+@deffn {Command} {mips32 ejtag_reg}
+Reads EJTAG Registers for inspection.
+
+EJTAG Register Specification could be found in MIPS Document MD00047F, for
+core specific EJTAG Register definition, please check Core Specific SUM manual.
 @end deffn
 
 @section RISC-V Architecture

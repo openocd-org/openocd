@@ -1214,6 +1214,10 @@ int target_run_read_async_algorithm(struct target *target,
 		/* Avoid GDB timeouts */
 		keep_alive();
 
+		if (openocd_is_shutdown_pending()) {
+			retval = ERROR_SERVER_INTERRUPTED;
+			break;
+		}
 	}
 
 	if (retval != ERROR_OK) {
@@ -3225,8 +3229,11 @@ int target_wait_state(struct target *target, enum target_state state, unsigned i
 				nvp_value2name(nvp_target_state, state)->name);
 		}
 
-		if (cur-then > 500)
+		if (cur - then > 500) {
 			keep_alive();
+			if (openocd_is_shutdown_pending())
+				return ERROR_SERVER_INTERRUPTED;
+		}
 
 		if ((cur-then) > ms) {
 			LOG_ERROR("timed out while waiting for target %s",
@@ -3509,6 +3516,11 @@ static int target_fill_mem(struct target *target,
 			break;
 		/* avoid GDB timeouts */
 		keep_alive();
+
+		if (openocd_is_shutdown_pending()) {
+			retval = ERROR_SERVER_INTERRUPTED;
+			break;
+		}
 	}
 	free(target_buf);
 
@@ -3851,6 +3863,12 @@ static COMMAND_HELPER(handle_verify_image_command_internal, enum verify_mode ver
 							}
 						}
 						keep_alive();
+						if (openocd_is_shutdown_pending()) {
+							retval = ERROR_SERVER_INTERRUPTED;
+							free(data);
+							free(buffer);
+							goto done;
+						}
 					}
 				}
 				free(data);
@@ -6910,8 +6928,8 @@ static const struct command_registration target_exec_command_handlers[] = {
 		.mode = COMMAND_ANY,
 		.help = "Load image into server memory for later use by "
 			"fast_load; primarily for profiling",
-		.usage = "filename address ['bin'|'ihex'|'elf'|'s19'] "
-			"[min_address [max_length]]",
+		.usage = "filename [address ['bin'|'ihex'|'elf'|'s19' "
+			"[min_address [max_length]]]]",
 	},
 	{
 		.name = "fast_load",
@@ -7084,8 +7102,8 @@ static const struct command_registration target_exec_command_handlers[] = {
 		.name = "load_image",
 		.handler = handle_load_image_command,
 		.mode = COMMAND_EXEC,
-		.usage = "filename address ['bin'|'ihex'|'elf'|'s19'] "
-			"[min_address] [max_length]",
+		.usage = "filename [address ['bin'|'ihex'|'elf'|'s19' "
+			"[min_address [max_length]]]]",
 	},
 	{
 		.name = "dump_image",
