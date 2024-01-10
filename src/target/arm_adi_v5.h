@@ -100,7 +100,11 @@
 #define ADIV5_DP_SELECT_APSEL	0xFF000000
 #define ADIV5_DP_SELECT_APBANK	0x000000F0
 #define DP_SELECT_DPBANK		0x0000000F
-#define DP_SELECT_INVALID		0x00FFFF00 /* Reserved bits one */
+/*
+ * Mask of AP ADDR in select cache, concatenating DP SELECT and DP_SELECT1.
+ * In case of ADIv5, the mask contains both APSEL and APBANKSEL fields.
+ */
+#define SELECT_AP_MASK			(~(uint64_t)DP_SELECT_DPBANK)
 
 #define DP_APSEL_MAX			(255) /* Strict limit for ADIv5, number of AP buffers for ADIv6 */
 #define DP_APSEL_INVALID		0xF00 /* more than DP_APSEL_MAX and not ADIv6 aligned 4k */
@@ -161,6 +165,9 @@
 #define CSW_8BIT		0
 #define CSW_16BIT		1
 #define CSW_32BIT		2
+#define CSW_64BIT		3
+#define CSW_128BIT		4
+#define CSW_256BIT		5
 #define CSW_ADDRINC_MASK    (3UL << 4)
 #define CSW_ADDRINC_OFF     0UL
 #define CSW_ADDRINC_SINGLE  (1UL << 4)
@@ -266,6 +273,26 @@ struct adiv5_ap {
 	uint32_t csw_value;
 
 	/**
+	 * Save the supported CSW.Size data types for the MEM-AP.
+	 * Each bit corresponds to a data type.
+	 * 0b1 = Supported data size. 0b0 = Not supported.
+	 * Bit 0 = Byte (8-bits)
+	 * Bit 1 = Halfword (16-bits)
+	 * Bit 2 = Word (32-bits) - always supported by spec.
+	 * Bit 3 = Doubleword (64-bits)
+	 * Bit 4 = 128-bits
+	 * Bit 5 = 256-bits
+	 */
+	uint32_t csw_size_supported_mask;
+	/**
+	 * Probed CSW.Size data types for the MEM-AP.
+	 * Each bit corresponds to a data type.
+	 * 0b1 = Data size has been probed. 0b0 = Not yet probed.
+	 * Bits assigned to sizes same way as above.
+	 */
+	uint32_t csw_size_probed_mask;
+
+	/**
 	 * Cache for (MEM-AP) AP_REG_TAR register value This is written to
 	 * configure the address being read or written
 	 * "-1" indicates no cached value.
@@ -282,7 +309,8 @@ struct adiv5_ap {
 	uint32_t tar_autoincr_block;
 
 	/* true if packed transfers are supported by the MEM-AP */
-	bool packed_transfers;
+	bool packed_transfers_supported;
+	bool packed_transfers_probed;
 
 	/* true if unaligned memory access is not supported by the MEM-AP */
 	bool unaligned_access_bad;
@@ -338,11 +366,21 @@ struct adiv5_dap {
 	/* The current manually selected AP by the "dap apsel" command */
 	uint64_t apsel;
 
-	/**
-	 * Cache for DP_SELECT register. A value of DP_SELECT_INVALID
-	 * indicates no cached value and forces rewrite of the register.
-	 */
+	/** Cache for DP SELECT and SELECT1 (ADIv6) register. */
 	uint64_t select;
+	/** Validity of DP SELECT cache. false will force register rewrite */
+	bool select_valid;
+	bool select1_valid;	/* ADIv6 only */
+	/**
+	 * Partial DPBANKSEL validity for SWD only.
+	 * ADIv6 line reset sets DP SELECT DPBANKSEL to zero,
+	 * ADIv5 does not.
+	 * We can rely on it for the banked DP register 0 also on ADIv5
+	 * as ADIv5 has no mapping for DP reg 0 - it is always DPIDR.
+	 * It is important to avoid setting DP SELECT in connection
+	 * reset state before reading DPIDR.
+	 */
+	bool select_dpbanksel_valid;
 
 	/* information about current pending SWjDP-AHBAP transaction */
 	uint8_t  ack;
@@ -406,6 +444,9 @@ struct adiv5_dap {
  * available until run().
  */
 struct dap_ops {
+	/** Optional; called once on the first enabled dap before connecting */
+	int (*pre_connect_init)(struct adiv5_dap *dap);
+
 	/** connect operation for SWD */
 	int (*connect)(struct adiv5_dap *dap);
 

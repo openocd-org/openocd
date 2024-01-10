@@ -57,6 +57,9 @@ struct bitbang_interface {
 
 	/** Sleep for some number of microseconds. **/
 	int (*sleep)(unsigned int microseconds);
+
+	/** Force a flush. */
+	int (*flush)(void);
 };
 
 extern const struct swd_driver bitbang_swd;

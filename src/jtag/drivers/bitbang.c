@@ -360,6 +360,8 @@ int bitbang_execute_queue(void)
 				break;
 			case JTAG_SLEEP:
 				LOG_DEBUG_IO("sleep %" PRIu32, cmd->cmd.sleep->us);
+				if (bitbang_interface->flush && (bitbang_interface->flush() != ERROR_OK))
+					return ERROR_FAIL;
 				bitbang_sleep(cmd->cmd.sleep->us);
 				break;
 			case JTAG_TMS:
