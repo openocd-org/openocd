@@ -1,0 +1,6 @@
+{
+  "files.associations": {
+    "imp.h": "c",
+    "armv7m.h": "c"
+  }
+}

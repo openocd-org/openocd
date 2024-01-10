@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"name": "openocd_cmsis",
+			"path": "."
+		}
+	],
+  "settings": {
+    "files.associations": {
+      "*.tcc": "c",
+      "typeinfo": "c"
+    }
+  }
+}
