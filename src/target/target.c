@@ -244,7 +244,7 @@ static const struct nvp nvp_reset_modes[] = {
 	{ .name = NULL,      .value = -1 },
 };
 
-const char *debug_reason_name(struct target *t)
+const char *debug_reason_name(const struct target *t)
 {
 	const char *cp;
 
@@ -257,7 +257,7 @@ const char *debug_reason_name(struct target *t)
 	return cp;
 }
 
-const char *target_state_name(struct target *t)
+const char *target_state_name(const struct target *t)
 {
 	const char *cp;
 	cp = nvp_value2name(nvp_target_state, t->state)->name;
@@ -733,7 +733,7 @@ int target_examine(void)
 	return retval;
 }
 
-const char *target_type_name(struct target *target)
+const char *target_type_name(const struct target *target)
 {
 	return target->type->name;
 }
@@ -1398,7 +1398,7 @@ int target_get_gdb_reg_list_noread(struct target *target,
 	return target_get_gdb_reg_list(target, reg_list, reg_list_size, reg_class);
 }
 
-bool target_supports_gdb_connection(struct target *target)
+bool target_supports_gdb_connection(const struct target *target)
 {
 	/*
 	 * exclude all the targets that don't provide get_gdb_reg_list
@@ -4851,7 +4851,7 @@ static int target_jim_set_reg(Jim_Interp *interp, int argc,
 /**
  * Returns true only if the target has a handler for the specified event.
  */
-bool target_has_event_action(struct target *target, enum target_event event)
+bool target_has_event_action(const struct target *target, enum target_event event)
 {
 	struct target_event_action *teap;
 
