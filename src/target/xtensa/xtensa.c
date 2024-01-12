@@ -3442,7 +3442,7 @@ void xtensa_target_deinit(struct target *target)
 	free(xtensa->core_config);
 }
 
-const char *xtensa_get_gdb_arch(struct target *target)
+const char *xtensa_get_gdb_arch(const struct target *target)
 {
 	return "xtensa";
 }

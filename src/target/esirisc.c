@@ -1248,7 +1248,7 @@ static int esirisc_arch_state(struct target *target)
 	return ERROR_OK;
 }
 
-static const char *esirisc_get_gdb_arch(struct target *target)
+static const char *esirisc_get_gdb_arch(const struct target *target)
 {
 	struct esirisc_common *esirisc = target_to_esirisc(target);
 

@@ -83,7 +83,7 @@ struct target_type {
 	 * if dynamic allocation is used for this value, it must be managed by
 	 * the target, ideally by caching the result for subsequent calls.
 	 */
-	const char *(*get_gdb_arch)(struct target *target);
+	const char *(*get_gdb_arch)(const struct target *target);
 
 	/**
 	 * Target register access for GDB.  Do @b not call this function

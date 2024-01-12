@@ -106,7 +106,7 @@ struct esirisc_reg {
 	int (*write)(struct reg *reg);
 };
 
-static inline struct esirisc_common *target_to_esirisc(struct target *target)
+static inline struct esirisc_common *target_to_esirisc(const struct target *target)
 {
 	return (struct esirisc_common *)target->arch_info;
 }

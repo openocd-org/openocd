@@ -1358,7 +1358,7 @@ int target_hit_watchpoint(struct target *target,
 	return target->type->hit_watchpoint(target, hit_watchpoint);
 }
 
-const char *target_get_gdb_arch(struct target *target)
+const char *target_get_gdb_arch(const struct target *target)
 {
 	if (!target->type->get_gdb_arch)
 		return NULL;
