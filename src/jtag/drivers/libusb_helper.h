@@ -67,4 +67,27 @@ int jtag_libusb_choose_interface(struct libusb_device_handle *devh,
 int jtag_libusb_get_pid(struct libusb_device *dev, uint16_t *pid);
 int jtag_libusb_handle_events_completed(int *completed);
 
+/**
+ * Attempts to allocate a block of persistent DMA memory suitable for transfers
+ * against the USB device. Fall-back to the ordinary heap malloc()
+ * if the first libusb_dev_mem_alloc() call fails.
+ * @param devh _libusb_ device handle.
+ * @param length size of desired data buffer
+ * @returns a pointer to the newly allocated memory, or NULL on failure
+ */
+uint8_t *oocd_libusb_dev_mem_alloc(libusb_device_handle *devh,
+			size_t length);
+
+/**
+ * Free device memory allocated with oocd_libusb_dev_mem_alloc().
+ * Uses either libusb_dev_mem_free() or free() consistently with
+ * the used method of allocation.
+ * @param devh _libusb_ device handle.
+ * @param buffer pointer to the previously allocated memory
+ * @param length size of desired data buffer
+ * @returns Returns ERROR_OK on success, ERROR_FAIL otherwise.
+ */
+int oocd_libusb_dev_mem_free(libusb_device_handle *devh,
+			uint8_t *buffer, size_t length);
+
 #endif /* OPENOCD_JTAG_DRIVERS_LIBUSB_HELPER_H */

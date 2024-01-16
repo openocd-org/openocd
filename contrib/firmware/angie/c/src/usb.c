@@ -25,6 +25,7 @@
  */
 volatile bool ep1_out;
 volatile bool ep1_in;
+volatile bool ep6_out;
 
 volatile __xdata __at 0xE6B8 struct setup_data setup_data;
 
@@ -42,7 +43,7 @@ __code struct usb_device_descriptor device_descriptor = {
 	.bdeviceprotocol =	0x01,
 	.bmaxpacketsize0 =	64,
 	.idvendor =			0x584e,
-	.idproduct =		0x424e,
+	.idproduct =		0x414f,
 	.bcddevice =		0x0000,
 	.imanufacturer =	1,
 	.iproduct =			2,
@@ -63,17 +64,6 @@ __code struct usb_config_descriptor config_descriptor = {
 	.iconfiguration =	1,	/* String describing this configuration */
 	.bmattributes =		0x80,	/* Only MSB set according to USB spec */
 	.maxpower =		50	/* 100 mA */
-};
-
-__code struct usb_interface_association_descriptor interface_association_descriptor = {
-	.blength = sizeof(struct usb_interface_association_descriptor),
-	.bdescriptortype =	DESCRIPTOR_TYPE_INTERFACE_ASSOCIATION,
-	.bfirstinterface =	0x01,
-	.binterfacecount =	0x02,
-	.bfunctionclass =	0x02,
-	.bfunctionsubclass =	0x00,
-	.bfunctionprotocol =	0x00,
-	.ifunction =	0x00
 };
 
 __code struct usb_interface_descriptor interface_descriptor00 = {
@@ -206,27 +196,24 @@ void ep0out_isr(void)__interrupt	EP0OUT_ISR
 void ep1in_isr(void)__interrupt	EP1IN_ISR
 {
 	ep1_in = true;
-
 	EXIF &= ~0x10;  /* Clear USBINT: Main global interrupt */
 	EPIRQ = 0x04;	/* Clear individual EP1IN IRQ */
 }
 void ep1out_isr(void)__interrupt	EP1OUT_ISR
 {
 	ep1_out = true;
-
 	EXIF &= ~0x10;  /* Clear USBINT: Main global interrupt */
 	EPIRQ = 0x08;	/* Clear individual EP1OUT IRQ */
 }
 void ep2_isr(void)__interrupt	EP2_ISR
 {
-	ep1_out = false; /* Does nothing but required by the compiler */
 }
 void ep4_isr(void)__interrupt	EP4_ISR
 {
 }
 void ep6_isr(void)__interrupt	EP6_ISR
 {
-	i2c_recieve();
+	ep6_out = true;
 	EXIF &= ~0x10;  /* Clear USBINT: Main global interrupt */
 	EPIRQ = 0x40;	/* Clear individual EP6OUT IRQ */
 
@@ -886,9 +873,6 @@ void io_init(void)
 	PORTACFG = 0x01;	/* 0: normal ou 1: alternate function (each bit) */
 	OEA = 0xEF;	/* all OUT exept INIT_B IN */
 	IOA = 0xFF;
-	PIN_RDWR_B = 1;
-	PIN_CSI_B = 1;
-	PIN_PROGRAM_B = 1;
 
 	/* PORT B */
 	OEB = 0xEF;	/* all OUT exept TDO */
@@ -899,8 +883,6 @@ void io_init(void)
 	PIN_TDI = 0;
 	PIN_SRST = 1;
 
-
-
 	/* PORT C */
 	PORTCCFG = 0x00;	/* 0: normal ou 1: alternate function (each bit) */
 	OEC = 0xFF;
@@ -909,5 +891,4 @@ void io_init(void)
 	/* PORT D */
 	OED = 0xFF;
 	IOD = 0xFF;
-	PIN_SDA_DIR = 0;
 }

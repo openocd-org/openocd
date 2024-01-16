@@ -228,8 +228,9 @@ struct xtensa_sw_breakpoint {
 struct xtensa_algorithm {
 	/** User can set this to specify which core mode algorithm should be run in. */
 	enum xtensa_mode core_mode;
-	/** Used internally to backup and restore debug_reason. */
+	/** Used internally to backup and restore core state. */
 	enum target_debug_reason ctx_debug_reason;
+	xtensa_reg_val_t ctx_ps;
 };
 
 #define XTENSA_COMMON_MAGIC 0x54E4E555U

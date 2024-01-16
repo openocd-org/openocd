@@ -14,6 +14,9 @@
 
 void start_cd(void)
 {
+	PIN_SCL_DIR = 0;
+	PIN_SDA_DIR = 0;
+	delay_us(10);
 	PIN_SDA = 0; //SDA = 1;
 	delay_us(1);
 	PIN_SCL = 0; //SCL = 1;
@@ -39,6 +42,10 @@ void stop_cd(void)
 	PIN_SCL = 1;
 	delay_us(1);
 	PIN_SDA = 1;
+	delay_us(1);
+	PIN_SDA_DIR = 1;
+	delay_us(1);
+	PIN_SCL_DIR = 1;
 	delay_us(1);
 }
 

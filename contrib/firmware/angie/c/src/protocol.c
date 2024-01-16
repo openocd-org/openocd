@@ -157,30 +157,36 @@ void command_loop(void)
 		cmd_id_index = 0;
 		payload_index_in = 0;
 
-		/* Wait until host sends EP1 Bulk-OUT packet */
-		while (!ep1_out)
+		/* Wait until host sends Bulk-OUT packet */
+		while ((!ep1_out) && (!ep6_out))
 			;
-		ep1_out = false;
-
-		/* Execute the commands */
-		last_command = false;
-		while (!last_command)
-			last_command = execute_command();
-
-		/* Send back EP6 Bulk-IN packet if required */
-		if (payload_index_in > 0) {
-			EP1INBC = payload_index_in;
-			syncdelay(3);
-
-			while (!ep1_in)
-				;
-			ep1_in = false;
+		if (ep6_out) {
+			/* Execute I2C command */
+			i2c_recieve();
+			ep6_out = false;
 		}
+		if (ep1_out) {
+			ep1_out = false;
+			/* Execute the commands */
+			last_command = false;
+			while (!last_command)
+				last_command = execute_command();
 
-		/* Re-arm EP1-OUT after command execution */
-		EP1OUTBC = 0;
-		syncdelay(3);
-		EP1OUTBC = 0;
-		syncdelay(3);
+			/* Send back EP1 Bulk-IN packet if required */
+			if (payload_index_in > 0) {
+				EP1INBC = payload_index_in;
+				syncdelay(3);
+
+				while (!ep1_in)
+					;
+				ep1_in = false;
+			}
+
+			/* Re-arm EP1-OUT after command execution */
+			EP1OUTBC = 0;
+			syncdelay(3);
+			EP1OUTBC = 0;
+			syncdelay(3);
+		}
 	}
 }

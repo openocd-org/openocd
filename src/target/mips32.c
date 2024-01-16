@@ -1607,17 +1607,18 @@ COMMAND_HANDLER(mips32_handle_cpuinfo_command)
 
 	char *instr;
 	switch ((config3 & MIPS32_CONFIG3_ISA_MASK) >> MIPS32_CONFIG3_ISA_SHIFT) {
-		case 0:
-			instr = "MIPS32";
+	case 0:
+		instr = "MIPS32";
 		break;
-		case 1:
-			instr = "microMIPS";
+	case 1:
+		instr = "microMIPS";
 		break;
-		case 2:
-			instr = "MIPS32 (at reset) and microMIPS";
+	case 2:
+		instr = "MIPS32 (at reset) and microMIPS";
 		break;
-		case 3:
-			instr = "microMIPS (at reset) and MIPS32";
+	case 3:
+	default:
+		instr = "microMIPS (at reset) and MIPS32";
 		break;
 	}
 

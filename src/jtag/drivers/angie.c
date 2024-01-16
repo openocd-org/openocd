@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include "helper/system.h"
+#include <helper/types.h>
 #include <jtag/interface.h>
 #include <jtag/commands.h>
 #include <target/image.h>
@@ -30,10 +31,11 @@
 
 /** USB Product ID of ANGIE device in unconfigured state (no firmware loaded
  *  yet) or with its firmware. */
-#define ANGIE_PID 0x424e
-#define ANGIE_PID_2 0x4255
-#define ANGIE_PID_3 0x4355
-#define ANGIE_PID_4 0x4a55
+#define ANGIE_PID 0x414F
+#define ANGIE_PID_2 0x424e
+#define ANGIE_PID_3 0x4255
+#define ANGIE_PID_4 0x4355
+#define ANGIE_PID_5 0x4a55
 
 /** Address of EZ-USB ANGIE CPU Control & Status register. This register can be
  *  written by issuing a Control EP0 vendor request. */
@@ -61,7 +63,7 @@
 #define ANGIE_FIRMWARE_FILE		PKGDATADIR "/angie/angie_firmware.bin"
 
 /** Default location of ANGIE firmware image. */
-#define ANGIE_BITSTREAM_FILE	PKGDATADIR "/angie/angie_bitstream.bit"
+#define ANGIE_BITSTREAM_FILE		PKGDATADIR "/angie/angie_bitstream.bit"
 
 /** Maximum size of a single firmware section. Entire EZ-USB ANGIE code space = 16kB */
 #define SECTION_BUFFERSIZE		16384
@@ -165,7 +167,8 @@ static int angie_load_firmware_and_renumerate(struct angie *device, const char *
 		uint32_t delay_us);
 static int angie_load_firmware(struct angie *device, const char *filename);
 static int angie_load_bitstream(struct angie *device, const char *filename);
-
+static int angie_i2c_write(struct angie *device, uint8_t *i2c_data, uint8_t i2c_data_size);
+static void angie_io_extender_config(struct angie *device, uint8_t i2c_adr, uint8_t cfg_value, uint8_t value);
 static int angie_write_firmware_section(struct angie *device,
 		struct image *firmware_image, int section_index);
 
@@ -254,8 +257,8 @@ static struct angie *angie_handle;
 static int angie_usb_open(struct angie *device)
 {
 	struct libusb_device_handle *usb_device_handle;
-	const uint16_t vids[] = {ANGIE_VID, ANGIE_VID, ANGIE_VID, ANGIE_VID, 0};
-	const uint16_t pids[] = {ANGIE_PID, ANGIE_PID_2, ANGIE_PID_3, ANGIE_PID_4, 0};
+	const uint16_t vids[] = {ANGIE_VID, ANGIE_VID, ANGIE_VID, ANGIE_VID, ANGIE_VID, 0};
+	const uint16_t pids[] = {ANGIE_PID, ANGIE_PID_2, ANGIE_PID_3, ANGIE_PID_4, ANGIE_PID_5, 0};
 
 	int ret = jtag_libusb_open(vids, pids, NULL, &usb_device_handle, NULL);
 
@@ -336,7 +339,15 @@ static int angie_load_firmware_and_renumerate(struct angie *device,
 
 	usleep(delay_us);
 
-	return angie_usb_open(device);
+	ret = angie_usb_open(device);
+	if (ret != ERROR_OK)
+		return ret;
+
+	ret = libusb_claim_interface(angie_handle->usb_device_handle, 0);
+	if (ret != LIBUSB_SUCCESS)
+		return ERROR_FAIL;
+
+	return ERROR_OK;
 }
 
 /**
@@ -404,15 +415,7 @@ static int angie_load_bitstream(struct angie *device, const char *filename)
 	FILE *bitstream_file = NULL;
 	char *bitstream_data = NULL;
 	size_t bitstream_size = 0;
-
-	/* CFGopen */
-	ret = jtag_libusb_control_transfer(device->usb_device_handle,
-		0x00, 0xB0, 0, 0, NULL, 0, LIBUSB_TIMEOUT_MS, &transferred);
-	if (ret != ERROR_OK) {
-		LOG_ERROR("Failed opencfg");
-		/* Abort if libusb sent less data than requested */
-		return ERROR_FAIL;
-	}
+	uint8_t gpifcnt[4];
 
 	/* Open the bitstream file */
 	bitstream_file = fopen(bitstream_file_path, "rb");
@@ -442,6 +445,17 @@ static int angie_load_bitstream(struct angie *device, const char *filename)
 		return ERROR_FAIL;
 	}
 
+	h_u32_to_be(gpifcnt, bitstream_size);
+
+	/* CFGopen */
+	ret = jtag_libusb_control_transfer(device->usb_device_handle,
+		0x00, 0xB0, 0, 0, (char *)gpifcnt, 4, LIBUSB_TIMEOUT_MS, &transferred);
+	if (ret != ERROR_OK) {
+		LOG_ERROR("Failed opencfg");
+		/* Abort if libusb sent less data than requested */
+		return ERROR_FAIL;
+	}
+
 	/* Send the bitstream data to the microcontroller */
 	int actual_length = 0;
 	ret = jtag_libusb_bulk_write(device->usb_device_handle, 0x02, bitstream_data, bitstream_size, 1000, &actual_length);
@@ -468,6 +482,72 @@ static int angie_load_bitstream(struct angie *device, const char *filename)
 		return ERROR_FAIL;
 	}
 	return ERROR_OK;
+}
+
+/**
+ * Send an i2c write operation to dev-board components.
+ *
+ * @param device pointer to struct angie identifying ANGIE driver instance.
+ * @param i2c_data table of i2c data that we want to write to slave device.
+ * @param i2c_data_size the size of i2c data table.
+ * @return on success: ERROR_OK
+ * @return on failure: ERROR_FAIL
+ */
+static int angie_i2c_write(struct angie *device, uint8_t *i2c_data, uint8_t i2c_data_size)
+{
+	char i2c_data_buffer[i2c_data_size + 2];
+	char buffer_received[1];
+	int ret, transferred;
+	i2c_data_buffer[0] = 0; // write = 0
+	i2c_data_buffer[1] = i2c_data_size - 1; // i2c_data count (without address)
+
+	for (uint8_t i = 0; i < i2c_data_size; i++)
+		i2c_data_buffer[i + 2] = i2c_data[i];
+
+	// Send i2c packet to Dev-board and configure its clock source /
+	ret = jtag_libusb_bulk_write(device->usb_device_handle, 0x06, i2c_data_buffer,
+								 i2c_data_size + 2, 1000, &transferred);
+	if (ret != ERROR_OK) {
+		LOG_ERROR("Error in i2c clock gen configuration : ret ERROR");
+		angie_quit();
+		return ret;
+	}
+	if (transferred != i2c_data_size + 2) {
+		LOG_ERROR("Error in i2c clock gen configuration : bytes transferred");
+		angie_quit();
+		return ERROR_FAIL;
+	}
+
+	usleep(500);
+
+	// Receive packet from ANGIE /
+	ret = jtag_libusb_bulk_write(device->usb_device_handle, 0x88, buffer_received, 1, 1000, &transferred);
+	if (ret != ERROR_OK) {
+		LOG_ERROR("Error in i2c clock gen configuration : ret ERROR");
+		angie_quit();
+		return ret;
+	}
+	return ERROR_OK;
+}
+
+/**
+ * Configure dev-board gpio extender modules by configuring their
+ * register 3 and register 1 responsible for IO directions and values.
+ *
+ * @param device pointer to struct angie identifying ANGIE driver instance.
+ * @param i2c_adr i2c address of the gpio extender.
+ * @param cfg_value IOs configuration to be written in register Number 3.
+ * @param value the IOs value to be written in register Number 1.
+ * @return on success: ERROR_OK
+ * @return on failure: ERROR_FAIL
+ */
+static void angie_io_extender_config(struct angie *device, uint8_t i2c_adr, uint8_t cfg_value, uint8_t value)
+{
+	uint8_t ioconfig[3] = {i2c_adr, 3, cfg_value};
+	angie_i2c_write(device, ioconfig, 3);
+	uint8_t iovalue[3] = {i2c_adr, 1, value};
+	angie_i2c_write(device, iovalue, 3);
+	usleep(500);
 }
 
 /**
@@ -1721,14 +1801,16 @@ static int angie_reset(int trst, int srst)
 		high |= SIGNAL_SRST;
 
 	int ret = angie_append_set_signals_cmd(device, low, high);
-	if (ret == ERROR_OK)
-		angie_clear_queue(device);
+	if (ret != ERROR_OK)
+		return ret;
 
 	ret = angie_execute_queued_commands(device, LIBUSB_TIMEOUT_MS);
-	if (ret == ERROR_OK)
-		angie_clear_queue(device);
+	if (ret != ERROR_OK)
+		return ret;
 
-	return ret;
+	angie_clear_queue(device);
+
+	return ERROR_OK;
 }
 
 /**
@@ -2168,7 +2250,7 @@ static int angie_init(void)
 	if (download_firmware) {
 		LOG_INFO("Loading ANGIE firmware. This is reversible by power-cycling ANGIE device.");
 
-		if (libusb_claim_interface(angie_handle->usb_device_handle, 0) != ERROR_OK)
+		if (libusb_claim_interface(angie_handle->usb_device_handle, 0) != LIBUSB_SUCCESS)
 			LOG_ERROR("Could not claim interface");
 
 		ret = angie_load_firmware_and_renumerate(angie_handle,
@@ -2184,14 +2266,49 @@ static int angie_init(void)
 			angie_quit();
 			return ret;
 		}
+		if (libusb_claim_interface(angie_handle->usb_device_handle, 1) != LIBUSB_SUCCESS) {
+			LOG_ERROR("Could not claim interface 1");
+			angie_quit();
+			return ERROR_FAIL;
+		}
+		angie_io_extender_config(angie_handle, 0x22, 0xFF, 0xFF);
+		if (ret != ERROR_OK) {
+			LOG_ERROR("Could not configure io extender 22");
+			angie_quit();
+			return ret;
+		}
+		angie_io_extender_config(angie_handle, 0x23, 0xFF, 0xFF);
+		if (ret != ERROR_OK) {
+			LOG_ERROR("Could not configure io extender 23");
+			angie_quit();
+			return ret;
+		}
+		angie_io_extender_config(angie_handle, 0x24, 0x1F, 0x9F);
+		if (ret != ERROR_OK) {
+			LOG_ERROR("Could not configure io extender 24");
+			angie_quit();
+			return ret;
+		}
+		angie_io_extender_config(angie_handle, 0x25, 0x07, 0x00);
+		if (ret != ERROR_OK) {
+			LOG_ERROR("Could not configure io extender 25");
+			angie_quit();
+			return ret;
+		}
+		if (libusb_release_interface(angie_handle->usb_device_handle, 1) != LIBUSB_SUCCESS) {
+			LOG_ERROR("Fail release interface 1");
+			angie_quit();
+			return ERROR_FAIL;
+		}
 	} else {
 		LOG_INFO("ANGIE device is already running ANGIE firmware");
 	}
 
 	/* Get ANGIE USB IN/OUT endpoints and claim the interface */
 	ret = jtag_libusb_choose_interface(angie_handle->usb_device_handle,
-		&angie_handle->ep_in, &angie_handle->ep_out, -1, -1, -1, -1);
+		&angie_handle->ep_in, &angie_handle->ep_out, 0xFF, 0, 0, -1);
 	if (ret != ERROR_OK) {
+		LOG_ERROR("Choose and claim interface failed");
 		angie_quit();
 		return ret;
 	}

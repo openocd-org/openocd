@@ -26,8 +26,9 @@ entity S609 is port(
   SDA : inout std_logic;
   SDA_DIR : in std_logic;
   SCL : in std_logic;
+  SCL_DIR : in std_logic;
 
-  FTP : out std_logic_vector(7 downto 0):=(others => '1'); -- Test points
+  FTP : out std_logic_vector(7 downto 0); -- Test points
   SI_TDO : in  std_logic;
   ST_0 : out std_logic;
   ST_1 : out std_logic;
@@ -55,8 +56,6 @@ begin
 ST_0 <= '0';
 ST_1 <= '1';
 
-ST_4 <= '0';
-
 --TDO:
 TDO <= not SI_TDO;
 
@@ -75,13 +74,21 @@ SO_SDA_OUT <= SDA;
 
 process(SDA_DIR)
 begin
-	if(SDA_DIR = '1') then
-		ST_5 <= '1';
-	else
+	if(SDA_DIR = '0') then
 		ST_5 <= '0';
+	else
+		ST_5 <= '1';
 	end if;
 end process;
 
+process(SCL_DIR)
+begin
+	if(SCL_DIR = '0') then
+		ST_4 <= '0';
+	else
+		ST_4 <= '1';
+	end if;
+end process;
 
 --Points de test:
 FTP(0) <= SDA;

@@ -11600,13 +11600,14 @@ This feature is not well implemented and tested yet.
 @end deffn
 
 @deffn {Command} {xtensa exe} <ascii-encoded hexadecimal instruction bytes>
-Execute arbitrary instruction(s) provided as an ascii string.  The string represents an integer
-number of instruction bytes, thus its length must be even.
+Execute one arbitrary instruction provided as an ascii string. The string represents an integer
+number of instruction bytes, thus its length must be even. The instruction can be of any width
+that is valid for the Xtensa core configuration.
 @end deffn
 
 @deffn {Command} {xtensa dm} (address) [value]
-Read or write Xtensa Debug Module (DM) registers.  @var{address} is required for both reads
-and writes and is a 4-byte-aligned value typically between 0 and 0x3ffc.  @var{value} is specified
+Read or write Xtensa Debug Module (DM) registers. @var{address} is required for both reads
+and writes and is a 4-byte-aligned value typically between 0 and 0x3ffc. @var{value} is specified
 only for write accesses.
 @end deffn
 

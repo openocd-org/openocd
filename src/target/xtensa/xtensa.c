@@ -2646,6 +2646,7 @@ int xtensa_start_algorithm(struct target *target,
 	struct xtensa_algorithm *algorithm_info = arch_info;
 	int retval = ERROR_OK;
 	bool usr_ps = false;
+	uint32_t newps;
 
 	/* NOTE: xtensa_run_algorithm requires that each algorithm uses a software breakpoint
 	 * at the exit point */
@@ -2660,7 +2661,17 @@ int xtensa_start_algorithm(struct target *target,
 		buf_cpy(reg->value, xtensa->algo_context_backup[i], reg->size);
 	}
 	/* save debug reason, it will be changed */
+	if (!algorithm_info) {
+		LOG_ERROR("BUG: arch_info not specified");
+		return ERROR_FAIL;
+	}
 	algorithm_info->ctx_debug_reason = target->debug_reason;
+	if (xtensa->core_config->core_type == XT_LX) {
+		/* save PS and set to debug_level - 1 */
+		algorithm_info->ctx_ps = xtensa_reg_get(target, xtensa->eps_dbglevel_idx);
+		newps = (algorithm_info->ctx_ps & ~0xf) | (xtensa->core_config->debug.irq_level - 1);
+		xtensa_reg_set(target, xtensa->eps_dbglevel_idx, newps);
+	}
 	/* write mem params */
 	for (int i = 0; i < num_mem_params; i++) {
 		if (mem_params[i].direction != PARAM_IN) {
@@ -2688,7 +2699,7 @@ int xtensa_start_algorithm(struct target *target,
 		}
 		if (memcmp(reg_params[i].reg_name, "ps", 3)) {
 			usr_ps = true;
-		} else {
+		} else if (xtensa->core_config->core_type == XT_LX) {
 			unsigned int reg_id = xtensa->eps_dbglevel_idx;
 			assert(reg_id < xtensa->core_cache->num_regs && "Attempt to access non-existing reg!");
 			reg = &xtensa->core_cache->reg_list[reg_id];
@@ -2697,7 +2708,7 @@ int xtensa_start_algorithm(struct target *target,
 		reg->valid = 1;
 	}
 	/* ignore custom core mode if custom PS value is specified */
-	if (!usr_ps) {
+	if (!usr_ps && xtensa->core_config->core_type == XT_LX) {
 		unsigned int eps_reg_idx = xtensa->eps_dbglevel_idx;
 		xtensa_reg_val_t ps = xtensa_reg_get(target, eps_reg_idx);
 		enum xtensa_mode core_mode = XT_PS_RING_GET(ps);
@@ -2741,7 +2752,8 @@ int xtensa_wait_algorithm(struct target *target,
 			return retval;
 		LOG_TARGET_ERROR(target, "not halted %d, pc 0x%" PRIx32 ", ps 0x%" PRIx32, retval,
 			xtensa_reg_get(target, XT_REG_IDX_PC),
-			xtensa_reg_get(target, xtensa->eps_dbglevel_idx));
+			xtensa_reg_get(target, (xtensa->core_config->core_type == XT_LX) ?
+				xtensa->eps_dbglevel_idx : XT_REG_IDX_PS));
 		return ERROR_TARGET_TIMEOUT;
 	}
 	pc = xtensa_reg_get(target, XT_REG_IDX_PC);
@@ -2813,6 +2825,8 @@ int xtensa_wait_algorithm(struct target *target,
 		}
 	}
 	target->debug_reason = algorithm_info->ctx_debug_reason;
+	if (xtensa->core_config->core_type == XT_LX)
+		xtensa_reg_set(target, xtensa->eps_dbglevel_idx, algorithm_info->ctx_ps);
 
 	retval = xtensa_write_dirty_registers(target);
 	if (retval != ERROR_OK)
@@ -3483,15 +3497,21 @@ static COMMAND_HELPER(xtensa_cmd_exe_do, struct target *target)
 	LOG_TARGET_DEBUG(target, "execute stub: %s", CMD_ARGV[0]);
 	xtensa_queue_exec_ins_wide(xtensa, ops, oplen);	/* Handles endian-swap */
 	status = xtensa_dm_queue_execute(&xtensa->dbg_mod);
-	if (status != ERROR_OK)
-		LOG_TARGET_ERROR(target, "TIE queue execute: %d\n", status);
-	status = xtensa_core_status_check(target);
-	if (status != ERROR_OK)
-		LOG_TARGET_ERROR(target, "TIE instr execute: %d\n", status);
+	if (status != ERROR_OK) {
+		LOG_TARGET_ERROR(target, "exec: queue error %d", status);
+	} else {
+		status = xtensa_core_status_check(target);
+		if (status != ERROR_OK)
+			LOG_TARGET_ERROR(target, "exec: status error %d", status);
+	}
 
 	/* Reread register cache and restore saved regs after instruction execution */
 	if (xtensa_fetch_all_regs(target) != ERROR_OK)
-		LOG_TARGET_ERROR(target, "%s: Failed to fetch register cache (post-exec).", target_name(target));
+		LOG_TARGET_ERROR(target, "post-exec: register fetch error");
+	if (status != ERROR_OK) {
+		LOG_TARGET_ERROR(target, "post-exec: EXCCAUSE 0x%02" PRIx32,
+			xtensa_reg_get(target, XT_REG_IDX_EXCCAUSE));
+	}
 	xtensa_reg_set(target, XT_REG_IDX_EXCCAUSE, exccause);
 	xtensa_reg_set(target, XT_REG_IDX_CPENABLE, cpenable);
 	return status;
