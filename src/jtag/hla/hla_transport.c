@@ -45,6 +45,7 @@ static const struct command_registration hl_swd_transport_subcommand_handlers[] 
 			"['-ignore-version'] "
 			"['-ignore-bypass'] "
 			"['-ircapture' number] "
+			"['-ir-bypass' number] "
 			"['-mask' number]",
 	 },
 	COMMAND_REGISTRATION_DONE
@@ -74,6 +75,7 @@ static const struct command_registration hl_transport_jtag_subcommand_handlers[]
 			"['-ignore-version'] "
 			"['-ignore-bypass'] "
 			"['-ircapture' number] "
+			"['-ir-bypass' number] "
 			"['-mask' number]",
 	 },
 	{

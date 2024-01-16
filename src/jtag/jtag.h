@@ -133,6 +133,9 @@ struct jtag_tap {
 	/** Bypass register selected */
 	bool bypass;
 
+	/** Bypass instruction value */
+	uint64_t ir_bypass_value;
+
 	struct jtag_tap_event_action *event_action;
 
 	struct jtag_tap *next_tap;

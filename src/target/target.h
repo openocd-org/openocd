@@ -802,6 +802,8 @@ int target_profiling_default(struct target *target, uint32_t *samples, uint32_t
 #define ERROR_TARGET_NOT_EXAMINED (-311)
 #define ERROR_TARGET_DUPLICATE_BREAKPOINT (-312)
 #define ERROR_TARGET_ALGO_EXIT  (-313)
+#define ERROR_TARGET_SIZE_NOT_SUPPORTED  (-314)
+#define ERROR_TARGET_PACKING_NOT_SUPPORTED  (-315)
 
 extern bool get_target_reset_nag(void);
 

@@ -353,17 +353,25 @@ static int adi_jtag_dp_scan_u32(struct adiv5_dap *dap,
 	uint64_t sel = (reg_addr >> 4) & DP_SELECT_DPBANK;
 
 	/* No need to change SELECT or RDBUFF as they are not banked */
-	if (instr == JTAG_DP_DPACC && reg_addr != DP_SELECT && reg_addr != DP_RDBUFF &&
-			sel != (dap->select & 0xf)) {
-		if (dap->select != DP_SELECT_INVALID)
-			sel |= dap->select & ~0xfull;
-		dap->select = sel;
-		LOG_DEBUG("DP BANKSEL: %x", (uint32_t)sel);
+	if (instr == JTAG_DP_DPACC && reg_addr != DP_SELECT && reg_addr != DP_RDBUFF
+			&& (!dap->select_valid || sel != (dap->select & DP_SELECT_DPBANK))) {
+		/* Use the AP part of dap->select regardless of dap->select_valid:
+		 * if !dap->select_valid
+		 * dap->select contains a speculative value likely going to be used
+		 * in the following swd_queue_ap_bankselect() */
+		sel |= dap->select & SELECT_AP_MASK;
+
+		LOG_DEBUG_IO("DP BANK SELECT: %" PRIx32, (uint32_t)sel);
+
 		buf_set_u32(out_value_buf, 0, 32, (uint32_t)sel);
+
 		retval = adi_jtag_dp_scan(dap, JTAG_DP_DPACC,
 				DP_SELECT, DPAP_WRITE, out_value_buf, NULL, 0, NULL);
 		if (retval != ERROR_OK)
 			return retval;
+
+		dap->select = sel;
+		dap->select_valid = true;
 	}
 	buf_set_u32(out_value_buf, 0, 32, outvalue);
 
@@ -520,7 +528,10 @@ static int jtagdp_overrun_check(struct adiv5_dap *dap)
 					/* timeout happened */
 					if (tmp->ack == JTAG_ACK_WAIT) {
 						LOG_ERROR("Timeout during WAIT recovery");
-						dap->select = DP_SELECT_INVALID;
+						dap->select_valid = false;
+						dap->select1_valid = false;
+						/* Keep dap->select unchanged, the same AP and AP bank
+						 * is likely going to be used further */
 						jtag_ap_q_abort(dap, NULL);
 						/* clear the sticky overrun condition */
 						adi_jtag_scan_inout_check_u32(dap, JTAG_DP_DPACC,
@@ -580,7 +591,7 @@ static int jtagdp_overrun_check(struct adiv5_dap *dap)
 
 			/* TODO: ADIv6 DP SELECT1 handling */
 
-			dap->select = DP_SELECT_INVALID;
+			dap->select_valid = false;
 		}
 
 		list_for_each_entry_safe(el, tmp, &replay_list, lh) {
@@ -615,7 +626,10 @@ static int jtagdp_overrun_check(struct adiv5_dap *dap)
 			if (retval == ERROR_OK) {
 				if (el->ack == JTAG_ACK_WAIT) {
 					LOG_ERROR("Timeout during WAIT recovery");
-					dap->select = DP_SELECT_INVALID;
+					dap->select_valid = false;
+					dap->select1_valid = false;
+					/* Keep dap->select unchanged, the same AP and AP bank
+					 * is likely going to be used further */
 					jtag_ap_q_abort(dap, NULL);
 					/* clear the sticky overrun condition */
 					adi_jtag_scan_inout_check_u32(dap, JTAG_DP_DPACC,
@@ -748,41 +762,60 @@ static int jtag_dp_q_write(struct adiv5_dap *dap, unsigned reg,
 	return retval;
 }
 
-/** Select the AP register bank matching bits 7:4 of reg. */
+/** Select the AP register bank */
 static int jtag_ap_q_bankselect(struct adiv5_ap *ap, unsigned reg)
 {
 	int retval;
 	struct adiv5_dap *dap = ap->dap;
 	uint64_t sel;
 
-	if (is_adiv6(dap)) {
+	if (is_adiv6(dap))
 		sel = ap->ap_num | (reg & 0x00000FF0);
-		if (sel == (dap->select & ~0xfull))
-			return ERROR_OK;
+	else
+		sel = (ap->ap_num << 24) | (reg & ADIV5_DP_SELECT_APBANK);
 
-		if (dap->select != DP_SELECT_INVALID)
-			sel |= dap->select & 0xf;
-		dap->select = sel;
-		LOG_DEBUG("AP BANKSEL: %" PRIx64, sel);
+	uint64_t sel_diff = (sel ^ dap->select) & SELECT_AP_MASK;
 
-		retval = jtag_dp_q_write(dap, DP_SELECT, (uint32_t)sel);
-		if (retval != ERROR_OK)
-			return retval;
+	bool set_select = !dap->select_valid || (sel_diff & 0xffffffffull);
+	bool set_select1 = is_adiv6(dap) && dap->asize > 32
+						&& (!dap->select1_valid
+							|| sel_diff & (0xffffffffull << 32));
 
-		if (dap->asize > 32)
-			return jtag_dp_q_write(dap, DP_SELECT1, (uint32_t)(sel >> 32));
-		return ERROR_OK;
+	if (set_select && set_select1) {
+		/* Prepare DP bank for DP_SELECT1 now to save one write */
+		sel |= (DP_SELECT1 >> 4) & DP_SELECT_DPBANK;
+	} else {
+		/* Use the DP part of dap->select regardless of dap->select_valid:
+		 * if !dap->select_valid
+		 * dap->select contains a speculative value likely going to be used
+		 * in the following swd_queue_dp_bankselect().
+		 * Moreover dap->select_valid should never be false here as a DP bank
+		 * is always selected before selecting an AP bank */
+		sel |= dap->select & DP_SELECT_DPBANK;
 	}
 
-	/* ADIv5 */
-	sel = (ap->ap_num << 24) | (reg & ADIV5_DP_SELECT_APBANK);
+	if (set_select) {
+		LOG_DEBUG_IO("AP BANK SELECT: %" PRIx32, (uint32_t)sel);
 
-	if (sel == dap->select)
-		return ERROR_OK;
+		retval = jtag_dp_q_write(dap, DP_SELECT, (uint32_t)sel);
+		if (retval != ERROR_OK) {
+			dap->select_valid = false;
+			return retval;
+		}
+	}
+
+	if (set_select1) {
+		LOG_DEBUG_IO("AP BANK SELECT1: %" PRIx32, (uint32_t)(sel >> 32));
+
+		retval = jtag_dp_q_write(dap, DP_SELECT1, (uint32_t)(sel >> 32));
+		if (retval != ERROR_OK) {
+			dap->select1_valid = false;
+			return retval;
+		}
+	}
 
 	dap->select = sel;
-
-	return jtag_dp_q_write(dap, DP_SELECT, (uint32_t)sel);
+	return ERROR_OK;
 }
 
 static int jtag_ap_q_read(struct adiv5_ap *ap, unsigned reg,

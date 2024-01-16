@@ -160,6 +160,7 @@ static const struct {
 
 #define MIPS32_NUM_REGS ARRAY_SIZE(mips32_regs)
 
+
 static int mips32_get_core_reg(struct reg *reg)
 {
 	int retval;
@@ -333,9 +334,7 @@ int mips32_restore_context(struct target *target)
 	}
 
 	/* write core regs */
-	mips32_pracc_write_regs(mips32);
-
-	return ERROR_OK;
+	return mips32_pracc_write_regs(mips32);
 }
 
 int mips32_arch_state(struct target *target)
@@ -764,18 +763,94 @@ static int mips32_read_c0_prid(struct target *target)
 	return retval;
 }
 
-/*
- * Detect processor type and apply required quirks.
+/**
+ * mips32_find_cpu_by_prid - Find CPU information by processor ID.
+ * @param[in] prid: Processor ID of the CPU.
+ *
+ * @brief This function looks up the CPU entry in the mips32_cpu_entry array based on the provided
+ * processor ID. It also handles special cases like AMD/Alchemy CPUs that use Company Options
+ * instead of Processor IDs.
+ *
+ * @return Pointer to the corresponding cpu_entry struct, or the 'unknown' entry if not found.
+ */
+static const struct cpu_entry *mips32_find_cpu_by_prid(uint32_t prid)
+{
+	/* AMD/Alchemy CPU uses Company Options instead of Processor ID.
+	 * Therefore an extra transform step for prid to map it to an assigned ID,
+	 */
+	if ((prid & PRID_COMP_MASK) == PRID_COMP_ALCHEMY) {
+		/* Clears Processor ID field, then put Company Option field to its place */
+		prid = (prid & 0xFFFF00FF) | ((prid & 0xFF000000) >> 16);
+	}
+
+	/* Mask out Company Option */
+	prid &= 0x00FFFFFF;
+
+	for (unsigned int i = 0; i < MIPS32_NUM_CPU_ENTRIES; i++) {
+		const struct cpu_entry *entry = &mips32_cpu_entry[i];
+		if ((entry->prid & MIPS32_CORE_MASK) <= prid && prid <= entry->prid)
+			return entry;
+	}
+
+	/* If nothing matched, then return unknown entry */
+	return &mips32_cpu_entry[MIPS32_NUM_CPU_ENTRIES - 1];
+}
+
+static bool mips32_cpu_is_lexra(struct mips_ejtag *ejtag_info)
+{
+	return (ejtag_info->prid & PRID_COMP_MASK) == PRID_COMP_LEXRA;
+}
+
+static int mips32_cpu_get_release(struct mips_ejtag *ejtag_info)
+{
+	return (ejtag_info->config[0] & MIPS32_CONFIG0_AR_MASK) >> MIPS32_CONFIG0_AR_SHIFT;
+}
+
+/**
+ * mips32_cpu_support_sync - Checks CPU supports ordering
+ * @param[in] ejtag_info: MIPS EJTAG information structure.
+ *
+ * @brief MIPS ISA implemented on Lexra CPUs is MIPS-I, similar to R3000,
+ * which does not have the SYNC instruction alone with unaligned
+ * load/store instructions.
+ *
+ * @returns true if current CPU supports sync instruction(CPU is not Lexra)
+*/
+bool mips32_cpu_support_sync(struct mips_ejtag *ejtag_info)
+{
+	return !mips32_cpu_is_lexra(ejtag_info);
+}
+
+/**
+ * mips32_cpu_support_hazard_barrier - Checks CPU supports hazard barrier
+ * @param[in] ejtag_info: MIPS EJTAG information structure.
+ *
+ * @brief hazard barrier instructions EHB and *.HB was introduced to MIPS from release 2.
+ *
+ * @returns true if current CPU supports hazard barrier(release > 1)
+*/
+bool mips32_cpu_support_hazard_barrier(struct mips_ejtag *ejtag_info)
+{
+	return mips32_cpu_get_release(ejtag_info) > MIPS32_RELEASE_1;
+}
+
+/**
+ * mips32_cpu_probe - Detects processor type and applies necessary quirks.
+ * @param[in] target: The target CPU to probe.
+ *
+ * @brief This function probes the CPU, reads its PRID (Processor ID), and determines the CPU type.
+ * It applies any quirks necessary for specific processor types.
  *
  * NOTE: The proper detection of certain CPUs can become quite complicated.
  * Please consult the following Linux kernel code when adding new CPUs:
  *  arch/mips/include/asm/cpu.h
  *  arch/mips/kernel/cpu-probe.c
+ *
+ * @return ERROR_OK on success; error code on failure.
  */
 int mips32_cpu_probe(struct target *target)
 {
 	struct mips32_common *mips32 = target_to_mips32(target);
-	const char *cpu_name = "unknown";
 	int retval;
 
 	if (mips32->prid)
@@ -785,28 +860,51 @@ int mips32_cpu_probe(struct target *target)
 	if (retval != ERROR_OK)
 		return retval;
 
+	const struct cpu_entry *entry = mips32_find_cpu_by_prid(mips32->prid);
+
 	switch (mips32->prid & PRID_COMP_MASK) {
 	case PRID_COMP_INGENIC_E1:
 		switch (mips32->prid & PRID_IMP_MASK) {
 		case PRID_IMP_XBURST_REV1:
-			cpu_name = "Ingenic XBurst rev1";
 			mips32->cpu_quirks |= EJTAG_QUIRK_PAD_DRET;
 			break;
 		default:
 			break;
 		}
 		break;
+
+	/* Determine which CP0 registers are available in the current processor core */
+	case PRID_COMP_MTI:
+		switch (entry->prid & PRID_IMP_MASK) {
+		case PRID_IMP_MAPTIV_UC:
+			mips32->cp0_mask = MIPS_CP0_MAPTIV_UC;
+			break;
+		case PRID_IMP_MAPTIV_UP:
+		case PRID_IMP_M5150:
+			mips32->cp0_mask = MIPS_CP0_MAPTIV_UP;
+			break;
+		case PRID_IMP_IAPTIV:
+		case PRID_IMP_IAPTIV_CM:
+			mips32->cp0_mask = MIPS_CP0_IAPTIV;
+			break;
+		default:
+			/* CP0 mask should be the same as MK4 by default */
+			mips32->cp0_mask = MIPS_CP0_MK4;
+			break;
+		}
+
 	default:
 		break;
 	}
 
-	LOG_DEBUG("CPU: %s (PRId %08x)", cpu_name, mips32->prid);
+	mips32->cpu_info = entry;
+	LOG_DEBUG("CPU: %s (PRId %08x)", entry->cpu_name, mips32->prid);
 
 	return ERROR_OK;
 }
 
 /* reads dsp implementation info from CP0 Config3 register {DSPP, DSPREV}*/
-void mips32_read_config_dsp(struct mips32_common *mips32, struct mips_ejtag *ejtag_info)
+static void mips32_read_config_dsp(struct mips32_common *mips32, struct mips_ejtag *ejtag_info)
 {
 	uint32_t dsp_present = ((ejtag_info->config[3] & MIPS32_CONFIG3_DSPP_MASK) >> MIPS32_CONFIG3_DSPP_SHIFT);
 	if (dsp_present) {
@@ -818,7 +916,7 @@ void mips32_read_config_dsp(struct mips32_common *mips32, struct mips_ejtag *ejt
 }
 
 /* read fpu implementation info from CP0 Config1 register {CU1, FP}*/
-int mips32_read_config_fpu(struct mips32_common *mips32, struct mips_ejtag *ejtag_info)
+static int mips32_read_config_fpu(struct mips32_common *mips32, struct mips_ejtag *ejtag_info)
 {
 	int retval;
 	uint32_t fp_imp = (ejtag_info->config[1] & MIPS32_CONFIG1_FP_MASK) >> MIPS32_CONFIG1_FP_SHIFT;
@@ -858,8 +956,23 @@ int mips32_read_config_fpu(struct mips32_common *mips32, struct mips_ejtag *ejta
 	return ERROR_OK;
 }
 
-/* Checks if current target implements Common Device Memory Map and therefore Fast Debug Channel (MD00090) */
-void mips32_read_config_fdc(struct mips32_common *mips32, struct mips_ejtag *ejtag_info, uint32_t dcr)
+/**
+ * mips32_read_config_fdc - Read Fast Debug Channel configuration
+ * @param[in,out] mips32: MIPS32 common structure
+ * @param[in] ejtag_info: EJTAG information structure
+ * @param[in] dcr: Device Configuration Register value
+ *
+ * @brief Checks if the current target implements the Common Device Memory Map (CDMM) and Fast Debug Channel (FDC).
+ *
+ * This function examines the configuration registers and the Device Configuration Register (DCR) to determine
+ * if the current MIPS32 target supports the Common Device Memory Map (CDMM) and the Fast Debug Channel (FDC).
+ * If supported, it sets the corresponding flags in the MIPS32 common structure. \n
+ *
+ * NOTE:These are defined on MD00090, page 67 and MD00047F, page 82, respectively.
+ * MIPS Documents are pretty much all available online,
+ * it should pop up first when you search "MDxxxxx"
+ */
+static void mips32_read_config_fdc(struct mips32_common *mips32, struct mips_ejtag *ejtag_info, uint32_t dcr)
 {
 	if (((ejtag_info->config[3] & MIPS32_CONFIG3_CDMM_MASK) != 0) && ((dcr & EJTAG_DCR_FDC) != 0)) {
 		mips32->fdc = 1;
@@ -1113,12 +1226,284 @@ static int mips32_verify_pointer(struct command_invocation *cmd,
 }
 
 /**
- * MIPS32 targets expose command interface
- * to manipulate CP0 registers
+ * mips32_read_config_mmu - Reads MMU configuration and logs relevant information.
+ * @param[in] ejtag_info: EJTAG interface information.
+ *
+ * @brief Reads the MMU configuration from the CP0 register and calculates the number of TLB entries,
+ * ways, and sets. Handles different MMU types like VTLB only, root RPU/Fixed, and VTLB and FTLB.
+ *
+ * @return ERROR_OK on success; error code on failure.
+ */
+static int mips32_read_config_mmu(struct mips_ejtag *ejtag_info)
+{
+	uint32_t config4, tlb_entries = 0, ways = 0, sets = 0;
+	uint32_t config0 = ejtag_info->config[0];
+	uint32_t config1 = ejtag_info->config[1];
+	uint32_t config3 = ejtag_info->config[3];
+	uint32_t mmu_type = (config0 >> 7) & 7;
+	uint32_t vz_present = (config3 & BIT(23));
+
+	int retval = mips32_cp0_read(ejtag_info, &config4, 16, 4);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* mmu type = 1: VTLB only (Note: Does not account for Config4.ExtVTLB)
+	 * mmu type = 3: root RPU/Fixed (Note: Only valid with VZ ASE)
+	 * mmu type = 4: VTLB and FTLB
+	 */
+	if ((mmu_type == 1 || mmu_type == 4) || (mmu_type == 3 && vz_present)) {
+		tlb_entries = (uint32_t)(((config1 >> 25) & 0x3f) + 1);
+		if (mmu_type == 4) {
+			/* Release 6 definition for Config4[0:15] (MD01251, page 243) */
+			/* The FTLB ways field is defined as [2, 3, 4, 5, 6, 7, 8, ...0 (reserved)] */
+			int index = ((config4 >> 4) & 0xf);
+			ways = index > 6 ? 0 : index + 2;
+
+			/* The FTLB sets field is defined as [1, 2, 4, 8, ..., 16384, 32768] (powers of 2) */
+			index = (config4 & 0xf);
+			sets = 1 << index;
+			tlb_entries = tlb_entries + (ways * sets);
+		}
+	}
+	LOG_USER("TLB Entries: %d (%d ways, %d sets per way)", tlb_entries, ways, sets);
+
+	return ERROR_OK;
+}
+
+/**
+ * mips32_cp0_find_register_by_name - Find CP0 register by its name.
+ * @param[in] cp0_mask: Mask to filter out irrelevant registers.
+ * @param[in] reg_name: Name of the register to find.
+ *
+ * @brief This function iterates through mips32_cp0_regs to find a register
+ * matching reg_name, considering cp0_mask to filter out registers
+ * not relevant for the current core.
+ *
+ * @return Pointer to the found register, or NULL if not found.
+ */
+static const struct mips32_cp0 *mips32_cp0_find_register_by_name(uint32_t cp0_mask, const char *reg_name)
+{
+	if (reg_name)
+		for (unsigned int i = 0; i < MIPS32NUMCP0REGS; i++) {
+			if ((mips32_cp0_regs[i].core & cp0_mask) == 0)
+				continue;
+
+			if (strcmp(mips32_cp0_regs[i].name, reg_name) == 0)
+				return &mips32_cp0_regs[i];
+		}
+	return NULL;
+}
+
+/**
+ * mips32_cp0_get_all_regs - Print all CP0 registers and their values.
+ * @param[in] cmd: Command invocation context.
+ * @param[in] ejtag_info: EJTAG interface information.
+ * @param[in] cp0_mask: Mask to identify relevant registers.
+ *
+ * @brief Iterates over all CP0 registers, reads their values, and prints them.
+ * Only considers registers relevant to the current core, as defined by cp0_mask.
+ *
+ * @return ERROR_OK on success; error code on failure.
+ */
+static int mips32_cp0_get_all_regs(struct command_invocation *cmd, struct mips_ejtag *ejtag_info, uint32_t cp0_mask)
+{
+	uint32_t value;
+
+	for (unsigned int i = 0; i < MIPS32NUMCP0REGS; i++) {
+		/* Register name not valid for this core */
+		if ((mips32_cp0_regs[i].core & cp0_mask) == 0)
+			continue;
+
+		int retval = mips32_cp0_read(ejtag_info, &value, mips32_cp0_regs[i].reg, mips32_cp0_regs[i].sel);
+		if (retval != ERROR_OK) {
+			command_print(CMD, "Error: couldn't access reg %s", mips32_cp0_regs[i].name);
+			return retval;
+		}
+
+		command_print(CMD, "%*s: 0x%8.8" PRIx32, 14, mips32_cp0_regs[i].name, value);
+	}
+	return ERROR_OK;
+}
+
+/**
+ * mips32_cp0_get_reg_by_name - Read and print a CP0 register's value by name.
+ * @param[in] cmd: Command invocation context.
+ * @param[in] ejtag_info: EJTAG interface information.
+ * @param[in] cp0_mask: Mask to identify relevant registers.
+ *
+ * @brief Finds a CP0 register by name, reads its value, and prints it.
+ * Handles error scenarios like register not found or read failure.
+ *
+ * @return ERROR_OK on success; error code on failure.
+ */
+static int mips32_cp0_get_reg_by_name(struct command_invocation *cmd, struct mips_ejtag *ejtag_info, uint32_t cp0_mask)
+{
+	const struct mips32_cp0 *cp0_regs = mips32_cp0_find_register_by_name(cp0_mask, CMD_ARGV[0]);
+	if (!cp0_regs) {
+		command_print(CMD, "Error: Register '%s' not found", CMD_ARGV[0]);
+		return ERROR_COMMAND_ARGUMENT_INVALID;
+	}
+
+	uint32_t value;
+	int retval = mips32_cp0_read(ejtag_info, &value, cp0_regs->reg, cp0_regs->sel);
+	if (retval != ERROR_OK) {
+		command_print(CMD, "Error: Encounter an Error while reading cp0 reg %d sel %d",
+					cp0_regs->reg, cp0_regs->sel);
+		return retval;
+	}
+
+	command_print(CMD, "0x%8.8" PRIx32, value);
+	return ERROR_OK;
+}
+
+/**
+ * mips32_cp0_get_reg_by_number - Read and print a CP0 register's value by number.
+ * @param[in] cmd: Command invocation context.
+ * @param[in] ejtag_info: EJTAG interface information.
+ *
+ * @brief Reads a specific CP0 register (identified by number and selection) and prints its value.
+ * The register number and selection are parsed from the command arguments.
+ *
+ * @return ERROR_OK on success; error code on failure.
+ */
+static int mips32_cp0_get_reg_by_number(struct command_invocation *cmd, struct mips_ejtag *ejtag_info)
+{
+	uint32_t cp0_reg, cp0_sel, value;
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], cp0_reg);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], cp0_sel);
+
+	int retval = mips32_cp0_read(ejtag_info, &value, cp0_reg, cp0_sel);
+	if (retval != ERROR_OK) {
+		command_print(CMD,
+				"Error: couldn't access reg %" PRIu32,
+				cp0_reg);
+		return retval;
+	}
+
+	command_print(CMD, "cp0 reg %" PRIu32 ", select %" PRIu32 ": %8.8" PRIx32,
+			cp0_reg, cp0_sel, value);
+	return ERROR_OK;
+}
+
+/**
+ * mips32_cp0_set_reg_by_name - Write to a CP0 register identified by name.
+ * @param[in] cmd: Command invocation context.
+ * @param[in] mips32: Common MIPS32 data structure.
+ * @param[in] ejtag_info: EJTAG interface information.
+ *
+ * @brief Writes a value to a CP0 register specified by name. Updates internal
+ * cache if specific registers (STATUS, CAUSE, DEPC, GUESTCTL1) are modified.
+ *
+ * @return ERROR_OK on success; error code on failure.
+ */
+static int mips32_cp0_set_reg_by_name(struct command_invocation *cmd,
+		struct mips32_common *mips32, struct mips_ejtag *ejtag_info)
+{
+	const struct mips32_cp0 *cp0_regs = mips32_cp0_find_register_by_name(mips32->cp0_mask, CMD_ARGV[0]);
+	if (!cp0_regs) {
+		command_print(CMD, "Error: Register '%s' not found", CMD_ARGV[0]);
+		return ERROR_COMMAND_ARGUMENT_INVALID;
+	}
+
+
+	uint32_t value;
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], value);
+
+	if (cp0_regs->reg == MIPS32_C0_STATUS && cp0_regs->sel == 0) {
+		/* Update cached Status register if user is writing to Status */
+		mips32->core_regs.cp0[MIPS32_REG_C0_STATUS_INDEX] = value;
+		mips32->core_cache->reg_list[MIPS32_REGLIST_C0_STATUS_INDEX].dirty = 1;
+	} else if (cp0_regs->reg == MIPS32_C0_CAUSE && cp0_regs->sel == 0) {
+		/* Update register cache with new value if its Cause */
+		mips32->core_regs.cp0[MIPS32_REG_C0_CAUSE_INDEX] = value;
+		mips32->core_cache->reg_list[MIPS32_REGLIST_C0_CAUSE_INDEX].dirty = 1;
+	} else if (cp0_regs->reg == MIPS32_C0_DEPC && cp0_regs->sel == 0) {
+		/* Update cached PC if its DEPC */
+		mips32->core_regs.cp0[MIPS32_REG_C0_PC_INDEX] = value;
+		mips32->core_cache->reg_list[MIPS32_REGLIST_C0_PC_INDEX].dirty = 1;
+	} else if (cp0_regs->reg == MIPS32_C0_GUESTCTL1 && cp0_regs->sel == 4) {
+		/* Update cached guestCtl1 */
+		mips32->core_regs.cp0[MIPS32_REG_C0_GUESTCTL1_INDEX] = value;
+		mips32->core_cache->reg_list[MIPS32_REGLIST_C0_GUESTCTL1_INDEX].dirty = 1;
+	}
+
+	int retval = mips32_cp0_write(ejtag_info, value,
+								cp0_regs->reg,
+								cp0_regs->sel);
+	if (retval != ERROR_OK) {
+		command_print(CMD, "Error: Encounter an Error while writing to cp0 reg %d, sel %d",
+					cp0_regs->reg, cp0_regs->sel);
+		return retval;
+	}
+
+	command_print(CMD, "cp0 reg %s (%u, select %u: %8.8" PRIx32 ")",
+			CMD_ARGV[0], cp0_regs->reg, cp0_regs->sel, value);
+	return ERROR_OK;
+}
+
+/**
+ * mips32_cp0_set_reg_by_number - Write to a CP0 register identified by number.
+ * @param[in] cmd: Command invocation context.
+ * @param[in] mips32: Common MIPS32 data structure.
+ * @param[in] ejtag_info: EJTAG interface information.
+ *
+ * @brief Writes a value to a CP0 register specified by number and selection.
+ * Handles special cases like updating the internal cache for certain registers.
+ *
+ * @return ERROR_OK on success; error code on failure.
+ */
+static int mips32_cp0_set_reg_by_number(struct command_invocation *cmd,
+		struct mips32_common *mips32, struct mips_ejtag *ejtag_info)
+{
+	uint32_t cp0_reg, cp0_sel, value;
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], cp0_reg);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], cp0_sel);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], value);
+
+	if (cp0_reg == MIPS32_C0_STATUS && cp0_sel == 0) {
+		/* Update cached status register if user is writing to Status register */
+		mips32->core_regs.cp0[MIPS32_REG_C0_STATUS_INDEX] = value;
+		mips32->core_cache->reg_list[MIPS32_REGLIST_C0_STATUS_INDEX].dirty = 1;
+	} else if (cp0_reg == MIPS32_C0_CAUSE && cp0_sel == 0) {
+		/* Update register cache with new value if its Cause register */
+		mips32->core_regs.cp0[MIPS32_REG_C0_CAUSE_INDEX] = value;
+		mips32->core_cache->reg_list[MIPS32_REGLIST_C0_CAUSE_INDEX].dirty = 1;
+	} else if (cp0_reg == MIPS32_C0_DEPC && cp0_sel == 0) {
+		/* Update cached PC if its DEPC */
+		mips32->core_regs.cp0[MIPS32_REG_C0_PC_INDEX] = value;
+		mips32->core_cache->reg_list[MIPS32_REGLIST_C0_PC_INDEX].dirty = 1;
+	} else if (cp0_reg == MIPS32_C0_GUESTCTL1 && cp0_sel == 4) {
+		/* Update cached guestCtl1, too */
+		mips32->core_regs.cp0[MIPS32_REG_C0_GUESTCTL1_INDEX] = value;
+		mips32->core_cache->reg_list[MIPS32_REGLIST_C0_GUESTCTL1_INDEX].dirty = 1;
+	}
+
+	int retval = mips32_cp0_write(ejtag_info, value, cp0_reg, cp0_sel);
+	if (retval != ERROR_OK) {
+		command_print(CMD,
+				"Error: couldn't access cp0 reg %" PRIu32 ", select %" PRIu32,
+				cp0_reg,  cp0_sel);
+		return retval;
+	}
+
+	command_print(CMD, "cp0 reg %" PRIu32 ", select %" PRIu32 ": %8.8" PRIx32,
+			cp0_reg, cp0_sel, value);
+	return ERROR_OK;
+}
+
+/**
+ * mips32_handle_cp0_command - Handle commands related to CP0 registers.
+ * @cmd: Command invocation context.
+ *
+ * Orchestrates different operations on CP0 registers based on the command arguments.
+ * Supports operations like reading all registers, reading/writing a specific register
+ * by name or number.
+ *
+ * Return: ERROR_OK on success; error code on failure.
  */
 COMMAND_HANDLER(mips32_handle_cp0_command)
 {
-	int retval;
+	int retval, tmp;
 	struct target *target = get_current_target(CMD_CTX);
 	struct mips32_common *mips32 = target_to_mips32(target);
 	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
@@ -1133,45 +1518,296 @@ COMMAND_HANDLER(mips32_handle_cp0_command)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	/* two or more argument, access a single register/select (write if third argument is given) */
-	if (CMD_ARGC < 2)
+	switch (CMD_ARGC) {
+		case 0: /* No arg => print out all cp0 regs */
+			retval = mips32_cp0_get_all_regs(CMD, ejtag_info, mips32->cp0_mask);
+			break;
+		case 1: /* 1 arg => get cp0 #reg/#sel value by name */
+			retval = mips32_cp0_get_reg_by_name(CMD, ejtag_info, mips32->cp0_mask);
+			break;
+		case 2: /* 2 args => get cp0 reg/sel value or set value by name */
+			tmp = *CMD_ARGV[0];
+			if (isdigit(tmp)) /* starts from number then args are #reg and #sel */
+				retval = mips32_cp0_get_reg_by_number(CMD, ejtag_info);
+			else /* or set value by register name */
+				retval = mips32_cp0_set_reg_by_name(CMD, mips32, ejtag_info);
+
+			break;
+		case 3: /* 3 args => set cp0 reg/sel value*/
+			retval = mips32_cp0_set_reg_by_number(CMD, mips32, ejtag_info);
+			break;
+		default: /* Other argc => err */
+			retval = ERROR_COMMAND_SYNTAX_ERROR;
+			break;
+	}
+
+	return retval;
+}
+
+/**
+ * mips32_handle_cpuinfo_command - Handles the 'cpuinfo' command.
+ * @param[in] cmd: Command invocation context.
+ *
+ * @brief Executes the 'cpuinfo' command which displays detailed information about the current CPU core.
+ * This includes core type, vendor, instruction set, cache size, and other relevant details.
+ *
+ * @return ERROR_OK on success; error code on failure.
+ */
+COMMAND_HANDLER(mips32_handle_cpuinfo_command)
+{
+	int retval;
+	struct target *target = get_current_target(CMD_CTX);
+	struct mips32_common *mips32 = target_to_mips32(target);
+	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
+
+	uint32_t prid = mips32->prid; /* cp0 PRID - 15, 0 */
+	uint32_t config0 = ejtag_info->config[0]; /*	cp0 config - 16, 0 */
+	uint32_t config1 = ejtag_info->config[1]; /*	cp0 config - 16, 1 */
+	uint32_t config3 = ejtag_info->config[3]; /*	cp0 config - 16, 3 */
+
+	/* Following configs are not read during probe */
+	uint32_t config5; /*	cp0 config - 16, 5 */
+
+	/* No args for now */
+	if (CMD_ARGC != 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	else {
-		uint32_t cp0_reg, cp0_sel;
-		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], cp0_reg);
-		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], cp0_sel);
 
-		if (CMD_ARGC == 2) {
-			uint32_t value;
+	if (target->state != TARGET_HALTED) {
+		command_print(CMD, "target must be stopped for \"%s\" command", CMD_NAME);
+		return ERROR_TARGET_NOT_HALTED;
+	}
 
-			retval = mips32_cp0_read(ejtag_info, &value, cp0_reg, cp0_sel);
-			if (retval != ERROR_OK) {
-				command_print(CMD,
-						"couldn't access reg %" PRIu32,
-						cp0_reg);
-				return ERROR_OK;
-			}
-			command_print(CMD, "cp0 reg %" PRIu32 ", select %" PRIu32 ": %8.8" PRIx32,
-					cp0_reg, cp0_sel, value);
+	retval = mips32_cp0_read(ejtag_info, &config5, 16, 5);
+	if (retval != ERROR_OK)
+		return retval;
 
-		} else if (CMD_ARGC == 3) {
-			uint32_t value;
-			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], value);
-			retval = mips32_cp0_write(ejtag_info, value, cp0_reg, cp0_sel);
-			if (retval != ERROR_OK) {
-				command_print(CMD,
-						"couldn't access cp0 reg %" PRIu32 ", select %" PRIu32,
-						cp0_reg,  cp0_sel);
-				return ERROR_OK;
-			}
-			command_print(CMD, "cp0 reg %" PRIu32 ", select %" PRIu32 ": %8.8" PRIx32,
-					cp0_reg, cp0_sel, value);
-		}
+	/* Determine Core info */
+	const struct cpu_entry *entry = mips32->cpu_info;
+	/* Display Core Type info */
+	command_print(CMD, "CPU Core: %s", entry->cpu_name);
+
+	/* Display Core Vendor ID if it's unknown */
+	if (entry == &mips32_cpu_entry[MIPS32_NUM_CPU_ENTRIES - 1])
+		command_print(CMD, "Vendor: Unknown CPU vendor code %x.", ((prid & 0x00ffff00) >> 16));
+	else
+		command_print(CMD, "Vendor: %s", entry->vendor);
+
+	/* If MIPS release 2 or above, then get exception base info */
+	enum mips32_isa_rel ar = mips32->isa_rel;
+	if (ar > MIPS32_RELEASE_1) {	/* release 2 and above */
+		uint32_t ebase;
+		retval = mips32_cp0_read(ejtag_info, &ebase, 15, 1);
+		if (retval != ERROR_OK)
+			return retval;
+
+		command_print(CMD, "Current CPU ID: %d", (ebase & 0x1ff));
+	} else {
+		command_print(CMD, "Current CPU ID: 0");
+	}
+
+	char *instr;
+	switch ((config3 & MIPS32_CONFIG3_ISA_MASK) >> MIPS32_CONFIG3_ISA_SHIFT) {
+		case 0:
+			instr = "MIPS32";
+		break;
+		case 1:
+			instr = "microMIPS";
+		break;
+		case 2:
+			instr = "MIPS32 (at reset) and microMIPS";
+		break;
+		case 3:
+			instr = "microMIPS (at reset) and MIPS32";
+		break;
+	}
+
+	/* Display Instruction Set Info */
+	command_print(CMD, "Instr set: %s", instr);
+	command_print(CMD, "Instr rel: %s",
+			ar == MIPS32_RELEASE_1 ? "1"
+			: ar == MIPS32_RELEASE_2 ? "2"
+			: ar == MIPS32_RELEASE_6 ? "6"
+			: "unknown");
+	command_print(CMD, "PRId: %x", prid);
+	/* Some of MIPS CPU Revisions(for M74K) can be seen on MD00541, page 26 */
+	uint32_t rev = prid & 0x000000ff;
+	command_print(CMD, "RTL Rev: %d.%d.%d", (rev & 0xE0), (rev & 0x1C), (rev & 0x3));
+
+	command_print(CMD, "Max Number of Instr Breakpoints: %d", mips32->num_inst_bpoints);
+	command_print(CMD, "Max Number of  Data Breakpoints: %d", mips32->num_data_bpoints);
+
+	/* MMU Support */
+	uint32_t mmu_type = (config0 >> 7) & 7; /* MMU Type Info */
+	char *mmu;
+	switch (mmu_type) {
+		case MIPS32_MMU_TLB:
+			mmu = "TLB";
+		break;
+		case MIPS32_MMU_BAT:
+			mmu = "BAT";
+		break;
+		case MIPS32_MMU_FIXED:
+			mmu = "FIXED";
+		break;
+		case MIPS32_MMU_DUAL_VTLB_FTLB:
+			mmu = "DUAL VAR/FIXED";
+		break;
+		default:
+			mmu = "Unknown";
+	}
+	command_print(CMD, "MMU Type: %s", mmu);
+
+	retval = mips32_read_config_mmu(ejtag_info);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* Definitions of I/D Cache Sizes are available on MD01251, page 224~226 */
+	int index;
+	uint32_t ways, sets, bpl;
+
+	/* Determine Instr Cache Size */
+	/* Ways mapping = [1, 2, 3, 4, 5, 6, 7, 8] */
+	ways = ((config1 >> MIPS32_CFG1_IASHIFT) & 7);
+
+	/* Sets per way = [64, 128, 256, 512, 1024, 2048, 4096, 32] */
+	index = ((config1 >> MIPS32_CFG1_ISSHIFT) & 7);
+	sets = index == 7 ? 32 : 32 << (index + 1);
+
+	/* Bytes per line = [0, 4, 8, 16, 32, 64, 128, Reserved] */
+	index = ((config1 >> MIPS32_CFG1_ILSHIFT) & 7);
+	bpl = index == 0 ? 0 : 4 << (index - 1);
+	command_print(CMD, "Instr Cache: %d (%d ways, %d lines, %d byte per line)", ways * sets * bpl, ways, sets, bpl);
+
+	/* Determine data cache size, same as above */
+	ways = ((config1 >>  MIPS32_CFG1_DASHIFT) & 7);
+
+	index = ((config1 >> MIPS32_CFG1_DSSHIFT) & 7);
+	sets = index == 7 ? 32 : 32 << (index + 1);
+
+	index = ((config1 >> MIPS32_CFG1_DLSHIFT) & 7);
+	bpl = index == 0 ? 0 : 4 << (index - 1);
+	command_print(CMD, " Data Cache: %d (%d ways, %d lines, %d byte per line)", ways * sets * bpl, ways, sets, bpl);
+
+	/* does the core hava FPU*/
+	mips32_read_config_fpu(mips32, ejtag_info);
+
+	/* does the core support a DSP */
+	mips32_read_config_dsp(mips32, ejtag_info);
+
+	/* VZ module */
+	uint32_t vzase = (config3 & BIT(23));
+	if (vzase)
+		command_print(CMD, "VZ implemented: yes");
+	else
+		command_print(CMD, "VZ implemented: no");
+
+	/* multithreading */
+	uint32_t mtase  = (config3 & BIT(2));
+	if (mtase) {
+		command_print(CMD, "MT  implemented: yes");
+
+		/* Get VPE and Thread info */
+		uint32_t tcbind;
+		uint32_t mvpconf0;
+
+		/* Read tcbind register */
+		retval = mips32_cp0_read(ejtag_info, &tcbind, 2, 2);
+		if (retval != ERROR_OK)
+			return retval;
+
+		command_print(CMD, " | Current VPE: %d", (tcbind & 0xf));
+		command_print(CMD, " | Current  TC: %d", ((tcbind >> 21) & 0xff));
+
+		/* Read mvpconf0 register */
+		retval = mips32_cp0_read(ejtag_info, &mvpconf0, 0, 2);
+		if (retval != ERROR_OK)
+			return retval;
+
+		command_print(CMD, " | Total  TC: %d", (mvpconf0 & 0xf) + 1);
+		command_print(CMD, " | Total VPE: %d", ((mvpconf0 >> 10) & 0xf) + 1);
+	} else {
+		command_print(CMD, "MT  implemented: no");
+	}
+
+	/* MIPS SIMD Architecture (MSA) */
+	uint32_t msa = (config3 & BIT(28));
+	command_print(CMD, "MSA implemented: %s", msa ? "yes" : "no");
+
+	/* Move To/From High COP0 (MTHC0/MFHC0) instructions are implemented.
+	 * Implicates current ISA release >= 5.*/
+	uint32_t mvh = (config5 & BIT(5));
+	command_print(CMD, "MVH implemented: %s", mvh ? "yes" : "no");
+
+	/* Common Device Memory Map implemented? */
+	uint32_t cdmm = (config3 & BIT(3));
+	command_print(CMD, "CDMM implemented: %s", cdmm ? "yes" : "no");
+
+	return ERROR_OK;
+}
+
+/**
+ * mips32_handle_ejtag_reg_command - Handler commands related to EJTAG
+ * @param[in] cmd: Command invocation context
+ *
+ * @brief Prints all EJTAG Registers including DCR features.
+ *
+ * @return ERROR_OK on success; error code on failure.
+ */
+COMMAND_HANDLER(mips32_handle_ejtag_reg_command)
+{
+	struct target *target = get_current_target(CMD_CTX);
+	struct mips32_common *mips32 = target_to_mips32(target);
+	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
+
+	uint32_t ejtag_ctrl;
+	uint32_t dcr;
+	int retval;
+
+	retval = mips_ejtag_get_idcode(ejtag_info);
+	if (retval != ERROR_OK)
+		command_print(CMD, "Error: Encounter an Error while getting idcode");
+	else
+		command_print(CMD, "       idcode: 0x%8.8" PRIx32, ejtag_info->idcode);
+
+	retval = mips_ejtag_get_impcode(ejtag_info);
+	if (retval != ERROR_OK)
+		command_print(CMD, "Error: Encounter an Error while getting impcode");
+	else
+		command_print(CMD, "      impcode: 0x%8.8" PRIx32, ejtag_info->impcode);
+
+	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_CONTROL);
+	ejtag_ctrl = ejtag_info->ejtag_ctrl;
+	retval = mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
+	if (retval != ERROR_OK)
+		command_print(CMD, "Error: Encounter an Error while executing drscan reading EJTAG Control register");
+	else
+		command_print(CMD, "ejtag control: 0x%8.8" PRIx32, ejtag_ctrl);
+
+	ejtag_main_print_imp(ejtag_info);
+
+	/* Display current DCR */
+	retval = target_read_u32(target, EJTAG_DCR, &dcr);
+	if (retval != ERROR_OK)
+		command_print(CMD, "Error: Encounter an Error while reading Debug Control Register");
+	else
+		command_print(CMD, "          DCR: 0x%8.8" PRIx32, dcr);
+
+	for (unsigned int i = 0; i < EJTAG_DCR_ENTRIES; i++) {
+		if (dcr & BIT(dcr_features[i].bit))
+			command_print(CMD, "%s supported", dcr_features[i].name);
 	}
 
 	return ERROR_OK;
 }
 
+/**
+ * mips32_handle_scan_delay_command - Handler command for changing scan delay
+ * @param[in] cmd: Command invocation context
+ *
+ * @brief Changes current scan mode between legacy and fast queued mode.
+ *
+ * @return ERROR_OK on success; error code on failure.
+ */
 COMMAND_HANDLER(mips32_handle_scan_delay_command)
 {
 	struct target *target = get_current_target(CMD_CTX);
@@ -1200,15 +1836,29 @@ static const struct command_registration mips32_exec_command_handlers[] = {
 		.name = "cp0",
 		.handler = mips32_handle_cp0_command,
 		.mode = COMMAND_EXEC,
-		.usage = "regnum select [value]",
+		.usage = "[[reg_name|regnum select] [value]]",
 		.help = "display/modify cp0 register",
 	},
-		{
+	{
+		.name = "cpuinfo",
+		.handler = mips32_handle_cpuinfo_command,
+		.mode = COMMAND_EXEC,
+		.help = "display CPU information",
+		.usage = "",
+	},
+	{
 		.name = "scan_delay",
 		.handler = mips32_handle_scan_delay_command,
 		.mode = COMMAND_ANY,
 		.help = "display/set scan delay in nano seconds",
 		.usage = "[value]",
+	},
+	{
+		.name = "ejtag_reg",
+		.handler = mips32_handle_ejtag_reg_command,
+		.mode = COMMAND_ANY,
+		.help = "read ejtag registers",
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };

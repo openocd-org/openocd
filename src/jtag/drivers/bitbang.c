@@ -278,6 +278,15 @@ static int bitbang_scan(bool ir_scan, enum scan_type type, uint8_t *buffer,
 	return ERROR_OK;
 }
 
+static void bitbang_sleep(unsigned int microseconds)
+{
+	if (bitbang_interface->sleep) {
+		bitbang_interface->sleep(microseconds);
+	} else {
+		jtag_sleep(microseconds);
+	}
+}
+
 int bitbang_execute_queue(void)
 {
 	struct jtag_command *cmd = jtag_command_queue;	/* currently processed command */
@@ -351,7 +360,9 @@ int bitbang_execute_queue(void)
 				break;
 			case JTAG_SLEEP:
 				LOG_DEBUG_IO("sleep %" PRIu32, cmd->cmd.sleep->us);
-				jtag_sleep(cmd->cmd.sleep->us);
+				if (bitbang_interface->flush && (bitbang_interface->flush() != ERROR_OK))
+					return ERROR_FAIL;
+				bitbang_sleep(cmd->cmd.sleep->us);
 				break;
 			case JTAG_TMS:
 				retval = bitbang_execute_tms(cmd);

@@ -80,6 +80,7 @@
 #define FLEXRAM		0x14000000
 
 #define MSCM_OCMDR0	0x40001400
+#define MSCM_OCMDR1	0x40001404
 #define FMC_PFB01CR	0x4001f004
 #define FTFX_FSTAT	0x40020000
 #define FTFX_FCNFG	0x40020001
@@ -230,6 +231,28 @@
 #define KINETIS_SDID_PROJECTID_KE1XF 0x00000080
 #define KINETIS_SDID_PROJECTID_KE1XZ 0x00000100
 
+/* The S32K series uses a different, incompatible SDID layout :
+ * Bit 31-28 : GENERATION
+ * Bit 27-24 : SUBSERIES
+ * Bit 23-20 : DERIVATE
+ * Bit 19-16 : RAMSIZE
+ * Bit 15-12 : REVID
+ * Bit 11-8  : PACKAGE
+ * Bit 7-0   : FEATURES
+ */
+
+#define KINETIS_SDID_S32K_SERIES_MASK	0xFF000000	/* GENERATION + SUBSERIES */
+#define KINETIS_SDID_S32K_SERIES_K11X	0x11000000
+#define KINETIS_SDID_S32K_SERIES_K14X	0x14000000
+
+#define KINETIS_SDID_S32K_DERIVATE_MASK	0x00F00000
+#define KINETIS_SDID_S32K_DERIVATE_KXX2	0x00200000
+#define KINETIS_SDID_S32K_DERIVATE_KXX3	0x00300000
+#define KINETIS_SDID_S32K_DERIVATE_KXX4	0x00400000
+#define KINETIS_SDID_S32K_DERIVATE_KXX5	0x00500000
+#define KINETIS_SDID_S32K_DERIVATE_KXX6	0x00600000
+#define KINETIS_SDID_S32K_DERIVATE_KXX8	0x00800000
+
 struct kinetis_flash_bank {
 	struct kinetis_chip *k_chip;
 	bool probed;
@@ -276,6 +299,11 @@ struct kinetis_chip {
 	uint32_t sim_base;
 
 	enum {
+	      CT_KINETIS = 0,
+	      CT_S32K,
+	} chip_type;
+
+	enum {
 		FS_PROGRAM_SECTOR = 1,
 		FS_PROGRAM_LONGWORD = 2,
 		FS_PROGRAM_PHRASE = 4,		/* Unsupported */
@@ -290,6 +318,7 @@ struct kinetis_chip {
 		KINETIS_CACHE_K,	/* invalidate using FMC->PFB0CR/PFB01CR */
 		KINETIS_CACHE_L,	/* invalidate using MCM->PLACR */
 		KINETIS_CACHE_MSCM,	/* devices like KE1xF, invalidate MSCM->OCMDR0 */
+		KINETIS_CACHE_MSCM2,	/* devices like S32K, invalidate MSCM->OCMDR0 and MSCM->OCMDR1 */
 	} cache_type;
 
 	enum {
@@ -392,6 +421,7 @@ const struct flash_driver kinetis_flash;
 static int kinetis_write_inner(struct flash_bank *bank, const uint8_t *buffer,
 			uint32_t offset, uint32_t count);
 static int kinetis_probe_chip(struct kinetis_chip *k_chip);
+static int kinetis_probe_chip_s32k(struct kinetis_chip *k_chip);
 static int kinetis_auto_probe(struct flash_bank *bank);
 
 
@@ -877,6 +907,8 @@ static int kinetis_chip_options(struct kinetis_chip *k_chip, int argc, const cha
 		if (strcmp(argv[i], "-sim-base") == 0) {
 			if (i + 1 < argc)
 				k_chip->sim_base = strtoul(argv[++i], NULL, 0);
+		} else if (strcmp(argv[i], "-s32k") == 0) {
+			k_chip->chip_type = CT_S32K;
 		} else
 			LOG_ERROR("Unsupported flash bank option %s", argv[i]);
 	}
@@ -1140,7 +1172,13 @@ static int kinetis_disable_wdog(struct kinetis_chip *k_chip)
 	int retval;
 
 	if (!k_chip->probed) {
-		retval = kinetis_probe_chip(k_chip);
+		switch (k_chip->chip_type) {
+		case CT_S32K:
+			retval = kinetis_probe_chip_s32k(k_chip);
+			break;
+		default:
+			retval = kinetis_probe_chip(k_chip);
+		}
 		if (retval != ERROR_OK)
 			return retval;
 	}
@@ -1639,6 +1677,12 @@ static void kinetis_invalidate_flash_cache(struct kinetis_chip *k_chip)
 		/* disable data prefetch and flash speculate */
 		break;
 
+	case KINETIS_CACHE_MSCM2:
+		target_write_u32(target, MSCM_OCMDR0, 0x30);
+		target_write_u32(target, MSCM_OCMDR1, 0x30);
+		/* disable data prefetch and flash speculate */
+		break;
+
 	default:
 		break;
 	}
@@ -2045,6 +2089,174 @@ static int kinetis_write(struct flash_bank *bank, const uint8_t *buffer,
 		/* no FCF fiddling, normal write */
 		return kinetis_write_inner(bank, buffer, offset, count);
 	}
+}
+
+
+static int kinetis_probe_chip_s32k(struct kinetis_chip *k_chip)
+{
+	int result;
+	uint8_t fcfg1_eesize, fcfg1_depart;
+	uint32_t ee_size = 0;
+	uint32_t pflash_size_k, nvm_size_k, dflash_size_k;
+	unsigned int generation = 0, subseries = 0, derivate = 0;
+
+	struct target *target = k_chip->target;
+	k_chip->probed = false;
+	k_chip->pflash_sector_size = 0;
+	k_chip->pflash_base = 0;
+	k_chip->nvm_base = 0x10000000;
+	k_chip->progr_accel_ram = FLEXRAM;
+	k_chip->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR;
+	k_chip->watchdog_type = KINETIS_WDOG32_KE1X;
+
+	if (k_chip->sim_base == 0)
+		k_chip->sim_base = SIM_BASE;
+
+	result = target_read_u32(target, k_chip->sim_base + SIM_SDID_OFFSET, &k_chip->sim_sdid);
+	if (result != ERROR_OK)
+		return result;
+
+	generation = (k_chip->sim_sdid) >> 28 & 0x0f;
+	subseries = (k_chip->sim_sdid) >> 24 & 0x0f;
+	derivate = (k_chip->sim_sdid) >> 20 & 0x0f;
+
+	switch (k_chip->sim_sdid & KINETIS_SDID_S32K_SERIES_MASK) {
+	case KINETIS_SDID_S32K_SERIES_K11X:
+		k_chip->cache_type = KINETIS_CACHE_L;
+		k_chip->num_pflash_blocks = 1;
+		k_chip->num_nvm_blocks = 1;
+		/* Non-interleaved */
+		k_chip->max_flash_prog_size = 512;
+
+		switch (k_chip->sim_sdid & KINETIS_SDID_S32K_DERIVATE_MASK) {
+			case KINETIS_SDID_S32K_DERIVATE_KXX6:
+				/* S32K116 CPU 48Mhz Flash 128KB RAM 17KB+2KB */
+				/* Non-Interleaved */
+				k_chip->pflash_size = 128 << 10;
+				k_chip->pflash_sector_size = 2 << 10;
+				/* Non-Interleaved */
+				k_chip->nvm_size = 32 << 10;
+				k_chip->nvm_sector_size = 2 << 10;
+				break;
+			case KINETIS_SDID_S32K_DERIVATE_KXX8:
+				/* S32K118 CPU 80Mhz Flash 256KB+32KB RAM 32KB+4KB */
+				/* Non-Interleaved */
+				k_chip->pflash_size = 256 << 10;
+				k_chip->pflash_sector_size = 2 << 10;
+				/* Non-Interleaved */
+				k_chip->nvm_size = 32 << 10;
+				k_chip->nvm_sector_size = 2 << 10;
+				break;
+		}
+		break;
+
+	case KINETIS_SDID_S32K_SERIES_K14X:
+		k_chip->cache_type = KINETIS_CACHE_MSCM2;
+		k_chip->num_pflash_blocks = 1;
+		k_chip->num_nvm_blocks = 1;
+		/* Non-interleaved */
+		k_chip->max_flash_prog_size = 512;
+		switch (k_chip->sim_sdid & KINETIS_SDID_S32K_DERIVATE_MASK) {
+		case KINETIS_SDID_S32K_DERIVATE_KXX2:
+		case KINETIS_SDID_S32K_DERIVATE_KXX3:
+			/* S32K142/S32K142W CPU 80Mhz Flash 256KB+64KB RAM 32KB+4KB */
+			/* Non-Interleaved */
+			k_chip->pflash_size = 256 << 10;
+			k_chip->pflash_sector_size = 2 << 10;
+			/* Non-Interleaved */
+			k_chip->nvm_size = 64 << 10;
+			k_chip->nvm_sector_size = 2 << 10;
+			break;
+		case KINETIS_SDID_S32K_DERIVATE_KXX4:
+		case KINETIS_SDID_S32K_DERIVATE_KXX5:
+			/* S32K144/S32K144W CPU 80Mhz Flash 512KB+64KB RAM 64KB+4KB */
+			/* Interleaved */
+			k_chip->pflash_size = 512 << 10;
+			k_chip->pflash_sector_size = 4 << 10;
+			/* Non-Interleaved */
+			k_chip->nvm_size = 64 << 10;
+			k_chip->nvm_sector_size = 2 << 10;
+			break;
+		case KINETIS_SDID_S32K_DERIVATE_KXX6:
+			/* S32K146 CPU 80Mhz Flash 1024KB+64KB RAM 128KB+4KB */
+			/* Interleaved */
+			k_chip->pflash_size = 1024 << 10;
+			k_chip->pflash_sector_size = 4 << 10;
+			k_chip->num_pflash_blocks = 2;
+			/* Non-Interleaved */
+			k_chip->nvm_size = 64 << 10;
+			k_chip->nvm_sector_size = 2 << 10;
+			break;
+		case KINETIS_SDID_S32K_DERIVATE_KXX8:
+			/* S32K148 CPU 80Mhz Flash 1536KB+512KB RAM 256KB+4KB */
+			/* Interleaved */
+			k_chip->pflash_size = 1536 << 10;
+			k_chip->pflash_sector_size = 4 << 10;
+			k_chip->num_pflash_blocks = 3;
+			/* Interleaved */
+			k_chip->nvm_size = 512 << 10;
+			k_chip->nvm_sector_size = 4 << 10;
+			/* Interleaved */
+			k_chip->max_flash_prog_size = 1 << 10;
+			break;
+		}
+		break;
+
+	default:
+		LOG_ERROR("Unsupported S32K1xx-series");
+	}
+
+	if (k_chip->pflash_sector_size == 0) {
+		LOG_ERROR("MCU is unsupported, SDID 0x%08" PRIx32, k_chip->sim_sdid);
+		return ERROR_FLASH_OPER_UNSUPPORTED;
+	}
+
+	result = target_read_u32(target, k_chip->sim_base + SIM_FCFG1_OFFSET, &k_chip->sim_fcfg1);
+	if (result != ERROR_OK)
+		return result;
+	k_chip->sim_fcfg2 = 0; /* S32K1xx does not implement FCFG2 register. */
+
+	fcfg1_depart = (k_chip->sim_fcfg1 >> 12) & 0x0f;
+	fcfg1_eesize = (k_chip->sim_fcfg1 >> 16) & 0x0f;
+	if (fcfg1_eesize <= 9)
+		ee_size = (16 << (10 - fcfg1_eesize));
+	if ((fcfg1_depart & 0x8) == 0) {
+		/* Binary 0xxx values encode the amount reserved for EEPROM emulation. */
+		if (fcfg1_depart)
+			k_chip->dflash_size = k_chip->nvm_size - (4096 << fcfg1_depart);
+		else
+			k_chip->dflash_size = k_chip->nvm_size;
+	} else {
+		/* Binary 1xxx valued encode the DFlash size. */
+		if (fcfg1_depart & 0x7)
+			k_chip->dflash_size = 4096 << (fcfg1_depart & 0x7);
+		else
+			k_chip->dflash_size = 0;
+	}
+
+	snprintf(k_chip->name, sizeof(k_chip->name), "S32K%u%u%u",
+		 generation, subseries, derivate);
+
+	pflash_size_k = k_chip->pflash_size / 1024;
+	dflash_size_k = k_chip->dflash_size / 1024;
+
+	LOG_INFO("%s detected: %u flash blocks", k_chip->name, k_chip->num_pflash_blocks + k_chip->num_nvm_blocks);
+	LOG_INFO("%u PFlash banks: %" PRIu32 " KiB total", k_chip->num_pflash_blocks, pflash_size_k);
+
+	nvm_size_k = k_chip->nvm_size / 1024;
+
+	if (k_chip->num_nvm_blocks) {
+		LOG_INFO("%u FlexNVM banks: %" PRIu32 " KiB total, %" PRIu32 " KiB available as data flash, %"
+			 PRIu32 " bytes FlexRAM",
+			 k_chip->num_nvm_blocks, nvm_size_k, dflash_size_k, ee_size);
+	}
+
+	k_chip->probed = true;
+
+	if (create_banks)
+		kinetis_create_missing_banks(k_chip);
+
+	return ERROR_OK;
 }
 
 
@@ -2693,7 +2905,13 @@ static int kinetis_probe(struct flash_bank *bank)
 	k_bank->probed = false;
 
 	if (!k_chip->probed) {
-		result = kinetis_probe_chip(k_chip);
+		switch (k_chip->chip_type) {
+		case CT_S32K:
+			result = kinetis_probe_chip_s32k(k_chip);
+			break;
+		default:
+			result = kinetis_probe_chip(k_chip);
+		}
 		if (result != ERROR_OK)
 			return result;
 	}
@@ -2765,23 +2983,26 @@ static int kinetis_probe(struct flash_bank *bank)
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
-	fcfg2_pflsh = (uint8_t)((k_chip->sim_fcfg2 >> 23) & 0x01);
-	fcfg2_maxaddr0 = (uint8_t)((k_chip->sim_fcfg2 >> 24) & 0x7f);
-	fcfg2_maxaddr1 = (uint8_t)((k_chip->sim_fcfg2 >> 16) & 0x7f);
+	/* S32K1xx does not implement FCFG2 register. Skip checks. */
+	if (k_chip->chip_type != CT_S32K) {
+		fcfg2_pflsh = (uint8_t)((k_chip->sim_fcfg2 >> 23) & 0x01);
+		fcfg2_maxaddr0 = (uint8_t)((k_chip->sim_fcfg2 >> 24) & 0x7f);
+		fcfg2_maxaddr1 = (uint8_t)((k_chip->sim_fcfg2 >> 16) & 0x7f);
 
-	if (k_bank->bank_number == 0 && k_chip->fcfg2_maxaddr0_shifted != bank->size)
-		LOG_WARNING("MAXADDR0 0x%02" PRIx8 " check failed,"
-				" please report to OpenOCD mailing list", fcfg2_maxaddr0);
+		if (k_bank->bank_number == 0 && k_chip->fcfg2_maxaddr0_shifted != bank->size)
+			LOG_WARNING("MAXADDR0 0x%02" PRIx8 " check failed,"
+				    " please report to OpenOCD mailing list", fcfg2_maxaddr0);
 
-	if (fcfg2_pflsh) {
-		if (k_bank->bank_number == 1 && k_chip->fcfg2_maxaddr1_shifted != bank->size)
-			LOG_WARNING("MAXADDR1 0x%02" PRIx8 " check failed,"
-				" please report to OpenOCD mailing list", fcfg2_maxaddr1);
-	} else {
-		if (k_bank->bank_number == first_nvm_bank
-				&& k_chip->fcfg2_maxaddr1_shifted != k_chip->dflash_size)
-			LOG_WARNING("FlexNVM MAXADDR1 0x%02" PRIx8 " check failed,"
-				" please report to OpenOCD mailing list", fcfg2_maxaddr1);
+		if (fcfg2_pflsh) {
+			if (k_bank->bank_number == 1 && k_chip->fcfg2_maxaddr1_shifted != bank->size)
+				LOG_WARNING("MAXADDR1 0x%02" PRIx8 " check failed,"
+					    " please report to OpenOCD mailing list", fcfg2_maxaddr1);
+		} else {
+			if (k_bank->bank_number == first_nvm_bank
+			    && k_chip->fcfg2_maxaddr1_shifted != k_chip->dflash_size)
+				LOG_WARNING("FlexNVM MAXADDR1 0x%02" PRIx8 " check failed,"
+					    " please report to OpenOCD mailing list", fcfg2_maxaddr1);
+		}
 	}
 
 	free(bank->sectors);
@@ -2931,6 +3152,11 @@ COMMAND_HANDLER(kinetis_nvm_partition)
 	uint32_t sim_fcfg1;
 
 	k_chip = kinetis_get_chip(target);
+
+	if (k_chip->chip_type == CT_S32K) {
+		LOG_ERROR("NVM partition not supported on S32K1xx (yet).");
+		return ERROR_FAIL;
+	}
 
 	if (CMD_ARGC >= 2) {
 		if (strcmp(CMD_ARGV[0], "dataflash") == 0)

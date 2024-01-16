@@ -66,6 +66,7 @@ static const struct command_registration dapdirect_jtag_subcommand_handlers[] = 
 			"['-ignore-version'] "
 			"['-ignore-bypass'] "
 			"['-ircapture' number] "
+			"['-ir-bypass' number] "
 			"['-mask' number]",
 	},
 	{
@@ -156,6 +157,7 @@ static const struct command_registration dapdirect_swd_subcommand_handlers[] = {
 			"['-ignore-version'] "
 			"['-ignore-bypass'] "
 			"['-ircapture' number] "
+			"['-ir-bypass' number] "
 			"['-mask' number]",
 	},
 	COMMAND_REGISTRATION_DONE
