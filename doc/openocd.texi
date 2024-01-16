@@ -9541,11 +9541,12 @@ Channels are exposed via raw TCP/IP connections. One or more RTT servers can be
 assigned to each channel to make them accessible to an unlimited number
 of TCP/IP connections.
 
-@deffn {Command} {rtt setup} address size ID
+@deffn {Command} {rtt setup} address size [ID]
 Configure RTT for the currently selected target.
 Once RTT is started, OpenOCD searches for a control block with the
 identifier @var{ID} starting at the memory address @var{address} within the next
 @var{size} bytes.
+ID defaults to the string "SEGGER RTT"
 @end deffn
 
 @deffn {Command} {rtt start}
@@ -9588,7 +9589,7 @@ on the target device.
 @example
 resume
 
-rtt setup 0x20000000 2048 "SEGGER RTT"
+rtt setup 0x20000000 2048
 rtt start
 
 rtt server start 9090 0
