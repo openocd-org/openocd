@@ -260,6 +260,9 @@ struct riscv_info {
 
 	COMMAND_HELPER((*print_info), struct target *target);
 
+	/* Storage for arch_info of non-custom registers. */
+	riscv_reg_info_t shared_reg_info;
+
 	/* Storage for vector register types. */
 	struct reg_data_type_vector vector_uint8;
 	struct reg_data_type_vector vector_uint16;
@@ -390,10 +393,13 @@ int riscv_openocd_step(
 
 /*** RISC-V Interface ***/
 
-bool riscv_supports_extension(struct target *target, char letter);
+bool riscv_supports_extension(const struct target *target, char letter);
 
 /* Returns XLEN for the given (or current) hart. */
 unsigned riscv_xlen(const struct target *target);
+
+/* Returns VLENB for the given (or current) hart. */
+unsigned int riscv_vlenb(const struct target *target);
 
 /*** Support functions for the RISC-V 'RTOS', which provides multihart support
  * without requiring multiple targets.  */

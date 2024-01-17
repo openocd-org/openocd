@@ -478,25 +478,24 @@ static int riscv_init_target(struct command_context *cmd_ctx,
 	return ERROR_OK;
 }
 
+static void free_reg_names(struct target *target);
+
 static void riscv_free_registers(struct target *target)
 {
+	free_reg_names(target);
 	/* Free the shared structure use for most registers. */
-	if (target->reg_cache) {
-		if (target->reg_cache->reg_list) {
-			free(target->reg_cache->reg_list[0].arch_info);
-			/* Free the ones we allocated separately. */
-			for (unsigned i = GDB_REGNO_COUNT; i < target->reg_cache->num_regs; i++)
-				free(target->reg_cache->reg_list[i].arch_info);
-			for (unsigned int i = 0; i < target->reg_cache->num_regs; i++)
-				free(target->reg_cache->reg_list[i].value);
-			free(target->reg_cache->reg_list);
-		}
-		free(target->reg_cache);
-		target->reg_cache = NULL;
+	if (!target->reg_cache)
+		return;
+	if (target->reg_cache->reg_list) {
+		for (unsigned int i = GDB_REGNO_COUNT; i < target->reg_cache->num_regs; i++)
+			free(target->reg_cache->reg_list[i].arch_info);
+		for (unsigned int i = 0; i < target->reg_cache->num_regs; i++)
+			free(target->reg_cache->reg_list[i].value);
+		free(target->reg_cache->reg_list);
 	}
+	free(target->reg_cache);
+	target->reg_cache = NULL;
 }
-
-static void free_reg_names(struct target *target);
 
 static void free_custom_register_names(struct target *target)
 {
@@ -567,7 +566,6 @@ static void riscv_deinit_target(struct target *target)
 		free(entry);
 	}
 
-	free_reg_names(target);
 	free(target->arch_info);
 
 	target->arch_info = NULL;
@@ -1779,8 +1777,8 @@ static int old_or_new_riscv_poll(struct target *target)
 		return riscv_openocd_poll(target);
 }
 
-static struct reg *get_reg_cache_entry(struct target *target,
-		unsigned int number)
+static struct reg *get_reg_cache_entry(const struct target *target,
+		uint32_t number)
 {
 	assert(target->reg_cache);
 	assert(target->reg_cache->reg_list);
@@ -5036,7 +5034,7 @@ static int riscv_step_rtos_hart(struct target *target)
 	return ERROR_OK;
 }
 
-bool riscv_supports_extension(struct target *target, char letter)
+bool riscv_supports_extension(const struct target *target, char letter)
 {
 	RISCV_INFO(r);
 	unsigned num;
@@ -5053,6 +5051,12 @@ unsigned riscv_xlen(const struct target *target)
 {
 	RISCV_INFO(r);
 	return r->xlen;
+}
+
+unsigned int riscv_vlenb(const struct target *target)
+{
+	RISCV_INFO(r);
+	return r->vlenb;
 }
 
 static void riscv_invalidate_register_cache(struct target *target)
@@ -5627,7 +5631,7 @@ static void free_reg_names(struct target *target)
 	free_custom_register_names(target);
 }
 
-static void init_custom_csr_names(struct target *target)
+static void init_custom_csr_names(const struct target *target)
 {
 	RISCV_INFO(info);
 	range_list_t *entry;
@@ -5644,7 +5648,7 @@ static void init_custom_csr_names(struct target *target)
 	}
 }
 
-const char *gdb_regno_name(struct target *target, enum gdb_regno regno)
+const char *gdb_regno_name(const struct target *target, enum gdb_regno regno)
 {
 	RISCV_INFO(info);
 
@@ -5827,7 +5831,421 @@ static bool is_known_standard_csr(unsigned int csr_num)
 	return is_csr_in_buf[csr_num];
 }
 
-int riscv_init_registers(struct target *target)
+bool reg_is_initialized(const struct reg *reg)
+{
+	assert(reg);
+	if (!reg->feature) {
+		const struct reg default_reg = {0};
+		assert(!memcmp(&default_reg, reg, sizeof(*reg)));
+		return false;
+	}
+	assert(reg->arch_info);
+	assert(((riscv_reg_info_t *)reg->arch_info)->target);
+	assert((!reg->exist && !reg->value) || (reg->exist && reg->value));
+	assert(reg->valid || !reg->dirty);
+	return true;
+}
+
+static struct reg_feature *gdb_regno_feature(uint32_t regno)
+{
+	if (regno <= GDB_REGNO_XPR31 || regno == GDB_REGNO_PC) {
+		static struct reg_feature feature_cpu = {
+			.name = "org.gnu.gdb.riscv.cpu"
+		};
+		return &feature_cpu;
+	}
+	if ((regno >= GDB_REGNO_FPR0 && regno <= GDB_REGNO_FPR31) ||
+			regno == GDB_REGNO_FFLAGS ||
+			regno == GDB_REGNO_FRM ||
+			regno ==  GDB_REGNO_FCSR) {
+		static struct reg_feature feature_fpu = {
+			.name = "org.gnu.gdb.riscv.fpu"
+		};
+		return &feature_fpu;
+	}
+	if (regno >= GDB_REGNO_V0 && regno <= GDB_REGNO_V31) {
+		static struct reg_feature feature_vector = {
+			.name = "org.gnu.gdb.riscv.vector"
+		};
+		return &feature_vector;
+	}
+	if (regno >= GDB_REGNO_CSR0 && regno <= GDB_REGNO_CSR4095) {
+		static struct reg_feature feature_csr = {
+			.name = "org.gnu.gdb.riscv.csr"
+		};
+		return &feature_csr;
+	}
+	if (regno == GDB_REGNO_PRIV) {
+		static struct reg_feature feature_virtual = {
+			.name = "org.gnu.gdb.riscv.virtual"
+		};
+		return &feature_virtual;
+	}
+	assert(regno >= GDB_REGNO_COUNT);
+	static struct reg_feature feature_custom = {
+		.name = "org.gnu.gdb.riscv.custom"
+	};
+	return &feature_custom;
+}
+
+static bool gdb_regno_caller_save(uint32_t regno)
+{
+	return regno <= GDB_REGNO_XPR31 ||
+		regno == GDB_REGNO_PC ||
+		(regno >= GDB_REGNO_FPR0 && regno <= GDB_REGNO_FPR31);
+}
+
+static struct reg_data_type *gdb_regno_reg_data_type(const struct target *target,
+		uint32_t regno)
+{
+	if (regno >= GDB_REGNO_FPR0 && regno <= GDB_REGNO_FPR31) {
+		static struct reg_data_type type_ieee_single = {
+			.type = REG_TYPE_IEEE_SINGLE,
+			.id = "ieee_single"
+		};
+		static struct reg_data_type type_ieee_double = {
+			.type = REG_TYPE_IEEE_DOUBLE,
+			.id = "ieee_double"
+		};
+		static struct reg_data_type_union_field single_double_fields[] = {
+			{"float", &type_ieee_single, single_double_fields + 1},
+			{"double", &type_ieee_double, NULL},
+		};
+		static struct reg_data_type_union single_double_union = {
+			.fields = single_double_fields
+		};
+		static struct reg_data_type type_ieee_single_double = {
+			.type = REG_TYPE_ARCH_DEFINED,
+			.id = "FPU_FD",
+			.type_class = REG_TYPE_CLASS_UNION,
+			{.reg_type_union = &single_double_union}
+		};
+		return riscv_supports_extension(target, 'D') ?
+			&type_ieee_single_double :
+			&type_ieee_single;
+	}
+	if (regno >= GDB_REGNO_V0 && regno <= GDB_REGNO_V31) {
+		RISCV_INFO(info);
+		return &info->type_vector;
+	}
+	return NULL;
+}
+
+static const char *gdb_regno_group(uint32_t regno)
+{
+	if (regno <= GDB_REGNO_XPR31 ||
+			regno == GDB_REGNO_PC ||
+			regno == GDB_REGNO_PRIV)
+		return "general";
+	if ((regno >= GDB_REGNO_FPR0 && regno <= GDB_REGNO_FPR31) ||
+			regno == GDB_REGNO_FFLAGS ||
+			regno == GDB_REGNO_FRM ||
+			regno == GDB_REGNO_FCSR)
+		return "float";
+	if (regno >= GDB_REGNO_CSR0 && regno <= GDB_REGNO_CSR4095)
+		return "csr";
+	if (regno >= GDB_REGNO_V0 && regno <= GDB_REGNO_V31)
+		return "vector";
+	assert(regno >= GDB_REGNO_COUNT);
+	return "custom";
+}
+
+uint32_t gdb_regno_size(const struct target *target, uint32_t regno)
+{
+	if (regno >= GDB_REGNO_FPR0 && regno <= GDB_REGNO_FPR31)
+		return riscv_supports_extension(target, 'D') ? 64 : 32;
+	if (regno >= GDB_REGNO_V0 && regno <= GDB_REGNO_V31)
+		return riscv_vlenb(target) * 8;
+	if (regno == GDB_REGNO_PRIV)
+		return 8;
+	if (regno >= GDB_REGNO_CSR0 && regno <= GDB_REGNO_CSR4095) {
+		const unsigned int csr_number = regno - GDB_REGNO_CSR0;
+		switch (csr_number) {
+			case CSR_DCSR:
+			case CSR_MVENDORID:
+			case CSR_MCOUNTINHIBIT:
+
+			case CSR_FFLAGS:
+			case CSR_FRM:
+			case CSR_FCSR:
+
+			case CSR_SCOUNTEREN:
+			case CSR_MCOUNTEREN:
+				return 32;
+		}
+	}
+	return riscv_xlen(target);
+}
+
+static bool vlenb_exists(const struct target *target)
+{
+	return riscv_vlenb(target) != 0;
+}
+
+static bool mtopi_exists(const struct target *target)
+{
+	RISCV_INFO(info)
+	/* TODO: The naming is quite unfortunate here. `mtopi_readable` refers
+	 * to how the fact that `mtopi` exists was deduced during examine.
+	 */
+	return info->mtopi_readable;
+}
+
+static bool mtopei_exists(const struct target *target)
+{
+	RISCV_INFO(info)
+	/* TODO: The naming is quite unfortunate here. `mtopei_readable` refers
+	 * to how the fact that `mtopei` exists was deduced during examine.
+	 */
+	return info->mtopei_readable;
+}
+
+static bool gdb_regno_exist(const struct target *target, uint32_t regno)
+{
+	if (regno <= GDB_REGNO_XPR15 ||
+			regno == GDB_REGNO_PC ||
+			regno == GDB_REGNO_PRIV)
+		return true;
+	if (regno > GDB_REGNO_XPR15 && regno <= GDB_REGNO_XPR31)
+		return !riscv_supports_extension(target, 'E');
+	if (regno >= GDB_REGNO_FPR0 && regno <= GDB_REGNO_FPR31)
+		return riscv_supports_extension(target, 'F');
+	if (regno >= GDB_REGNO_V0 && regno <= GDB_REGNO_V31)
+		return vlenb_exists(target);
+	if (regno >= GDB_REGNO_COUNT)
+		return true;
+	assert(regno >= GDB_REGNO_CSR0 && regno <= GDB_REGNO_CSR4095);
+	const unsigned int csr_number = regno - GDB_REGNO_CSR0;
+	switch (csr_number) {
+		case CSR_FFLAGS:
+		case CSR_FRM:
+		case CSR_FCSR:
+			return riscv_supports_extension(target, 'F');
+		case CSR_SCOUNTEREN:
+		case CSR_SSTATUS:
+		case CSR_STVEC:
+		case CSR_SIP:
+		case CSR_SIE:
+		case CSR_SSCRATCH:
+		case CSR_SEPC:
+		case CSR_SCAUSE:
+		case CSR_STVAL:
+		case CSR_SATP:
+			return riscv_supports_extension(target, 'S');
+		case CSR_MEDELEG:
+		case CSR_MIDELEG:
+			/* "In systems with only M-mode, or with both M-mode and
+			 * U-mode but without U-mode trap support, the medeleg and
+			 * mideleg registers should not exist." */
+			return riscv_supports_extension(target, 'S') ||
+				riscv_supports_extension(target, 'N');
+
+		case CSR_PMPCFG1:
+		case CSR_PMPCFG3:
+		case CSR_CYCLEH:
+		case CSR_TIMEH:
+		case CSR_INSTRETH:
+		case CSR_HPMCOUNTER3H:
+		case CSR_HPMCOUNTER4H:
+		case CSR_HPMCOUNTER5H:
+		case CSR_HPMCOUNTER6H:
+		case CSR_HPMCOUNTER7H:
+		case CSR_HPMCOUNTER8H:
+		case CSR_HPMCOUNTER9H:
+		case CSR_HPMCOUNTER10H:
+		case CSR_HPMCOUNTER11H:
+		case CSR_HPMCOUNTER12H:
+		case CSR_HPMCOUNTER13H:
+		case CSR_HPMCOUNTER14H:
+		case CSR_HPMCOUNTER15H:
+		case CSR_HPMCOUNTER16H:
+		case CSR_HPMCOUNTER17H:
+		case CSR_HPMCOUNTER18H:
+		case CSR_HPMCOUNTER19H:
+		case CSR_HPMCOUNTER20H:
+		case CSR_HPMCOUNTER21H:
+		case CSR_HPMCOUNTER22H:
+		case CSR_HPMCOUNTER23H:
+		case CSR_HPMCOUNTER24H:
+		case CSR_HPMCOUNTER25H:
+		case CSR_HPMCOUNTER26H:
+		case CSR_HPMCOUNTER27H:
+		case CSR_HPMCOUNTER28H:
+		case CSR_HPMCOUNTER29H:
+		case CSR_HPMCOUNTER30H:
+		case CSR_HPMCOUNTER31H:
+		case CSR_MCYCLEH:
+		case CSR_MINSTRETH:
+		case CSR_MHPMCOUNTER4H:
+		case CSR_MHPMCOUNTER5H:
+		case CSR_MHPMCOUNTER6H:
+		case CSR_MHPMCOUNTER7H:
+		case CSR_MHPMCOUNTER8H:
+		case CSR_MHPMCOUNTER9H:
+		case CSR_MHPMCOUNTER10H:
+		case CSR_MHPMCOUNTER11H:
+		case CSR_MHPMCOUNTER12H:
+		case CSR_MHPMCOUNTER13H:
+		case CSR_MHPMCOUNTER14H:
+		case CSR_MHPMCOUNTER15H:
+		case CSR_MHPMCOUNTER16H:
+		case CSR_MHPMCOUNTER17H:
+		case CSR_MHPMCOUNTER18H:
+		case CSR_MHPMCOUNTER19H:
+		case CSR_MHPMCOUNTER20H:
+		case CSR_MHPMCOUNTER21H:
+		case CSR_MHPMCOUNTER22H:
+		case CSR_MHPMCOUNTER23H:
+		case CSR_MHPMCOUNTER24H:
+		case CSR_MHPMCOUNTER25H:
+		case CSR_MHPMCOUNTER26H:
+		case CSR_MHPMCOUNTER27H:
+		case CSR_MHPMCOUNTER28H:
+		case CSR_MHPMCOUNTER29H:
+		case CSR_MHPMCOUNTER30H:
+		case CSR_MHPMCOUNTER31H:
+			return riscv_xlen(target) == 32;
+		case CSR_MCOUNTEREN:
+			return riscv_supports_extension(target, 'U');
+			/* Interrupts M-Mode CSRs. */
+		case CSR_MISELECT:
+		case CSR_MIREG:
+		case CSR_MVIEN:
+		case CSR_MVIP:
+		case CSR_MIEH:
+		case CSR_MIPH:
+			return mtopi_exists(target);
+		case CSR_MIDELEGH:
+		case CSR_MVIENH:
+		case CSR_MVIPH:
+			return mtopi_exists(target) &&
+				riscv_xlen(target) == 32 &&
+				riscv_supports_extension(target, 'S');
+			/* Interrupts S-Mode CSRs. */
+		case CSR_SISELECT:
+		case CSR_SIREG:
+		case CSR_STOPI:
+			return mtopi_exists(target) &&
+				riscv_supports_extension(target, 'S');
+		case CSR_STOPEI:
+			return mtopei_exists(target) &&
+				riscv_supports_extension(target, 'S');
+		case CSR_SIEH:
+		case CSR_SIPH:
+			return mtopi_exists(target) &&
+				riscv_xlen(target) == 32 &&
+				riscv_supports_extension(target, 'S');
+			/* Interrupts Hypervisor and VS CSRs. */
+		case CSR_HVIEN:
+		case CSR_HVICTL:
+		case CSR_HVIPRIO1:
+		case CSR_HVIPRIO2:
+		case CSR_VSISELECT:
+		case CSR_VSIREG:
+		case CSR_VSTOPI:
+			return mtopi_exists(target) &&
+				riscv_supports_extension(target, 'H');
+		case CSR_VSTOPEI:
+			return mtopei_exists(target) &&
+				riscv_supports_extension(target, 'H');
+		case CSR_HIDELEGH:
+		case CSR_HVIENH:
+		case CSR_HVIPH:
+		case CSR_HVIPRIO1H:
+		case CSR_HVIPRIO2H:
+		case CSR_VSIEH:
+		case CSR_VSIPH:
+			return mtopi_exists(target) &&
+				riscv_xlen(target) == 32 &&
+				riscv_supports_extension(target, 'H');
+	}
+	return is_known_standard_csr(csr_number);
+}
+
+static unsigned int gdb_regno_custom_number(const struct target *target, uint32_t regno)
+{
+	if (regno < GDB_REGNO_COUNT)
+		return 0;
+
+	RISCV_INFO(info);
+	assert(!list_empty(&info->expose_custom));
+	range_list_t *range;
+	unsigned int regno_start = GDB_REGNO_COUNT;
+	unsigned int start = 0;
+	unsigned int offset = 0;
+	list_for_each_entry(range, &info->expose_custom, list) {
+		start = range->low;
+		assert(regno >= regno_start);
+		offset = regno - regno_start;
+		const unsigned int regs_in_range = range->high - range->low + 1;
+		if (offset < regs_in_range)
+			break;
+		regno_start += regs_in_range;
+	}
+	return start + offset;
+}
+
+static int resize_reg(const struct target *target, uint32_t regno, bool exist,
+		uint32_t size)
+{
+	struct reg *reg = get_reg_cache_entry(target, regno);
+	assert(reg_is_initialized(reg));
+	free(reg->value);
+	reg->size = size;
+	reg->exist = exist;
+	if (reg->exist) {
+		reg->value = malloc(DIV_ROUND_UP(reg->size, 8));
+		if (!reg->value) {
+			LOG_ERROR("Failed to allocate memory.");
+			return ERROR_FAIL;
+		}
+	} else {
+		reg->value = NULL;
+	}
+	assert(reg_is_initialized(reg));
+	return ERROR_OK;
+}
+
+static int set_reg_exist(const struct target *target, uint32_t regno, bool exist)
+{
+	const struct reg *reg = get_reg_cache_entry(target, regno);
+	assert(reg_is_initialized(reg));
+	return resize_reg(target, regno, exist, reg->size);
+}
+
+static int init_reg(struct target *target, uint32_t regno)
+{
+	struct reg * const reg = get_reg_cache_entry(target, regno);
+	if (reg_is_initialized(reg))
+		return ERROR_OK;
+	reg->number = regno;
+	reg->type = &riscv_reg_arch_type;
+	reg->dirty = false;
+	reg->valid = false;
+	reg->hidden = false;
+	reg->name = gdb_regno_name(target, regno);
+	reg->feature = gdb_regno_feature(regno);
+	reg->caller_save = gdb_regno_caller_save(regno);
+	reg->reg_data_type = gdb_regno_reg_data_type(target, regno);
+	reg->group = gdb_regno_group(regno);
+	if (regno < GDB_REGNO_COUNT) {
+		RISCV_INFO(info);
+		reg->arch_info = &info->shared_reg_info;
+	} else {
+		reg->arch_info = calloc(1, sizeof(riscv_reg_info_t));
+		if (!reg->arch_info) {
+			LOG_ERROR("Out of memory.");
+			return ERROR_FAIL;
+		}
+		riscv_reg_info_t * const reg_arch_info = reg->arch_info;
+		reg_arch_info->target = target;
+		reg_arch_info->custom_number = gdb_regno_custom_number(target, regno);
+	}
+	return resize_reg(target, regno, gdb_regno_exist(target, regno),
+			gdb_regno_size(target, regno));
+}
+
+static int riscv_init_reg_cache(struct target *target)
 {
 	RISCV_INFO(info);
 
@@ -5855,42 +6273,19 @@ int riscv_init_registers(struct target *target)
 		LOG_TARGET_ERROR(target, "Failed to allocate memory for target->reg_cache->reg_list");
 		return ERROR_FAIL;
 	}
+	return ERROR_OK;
+}
 
-	static struct reg_feature feature_cpu = {
-		.name = "org.gnu.gdb.riscv.cpu"
-	};
-	static struct reg_feature feature_fpu = {
-		.name = "org.gnu.gdb.riscv.fpu"
-	};
-	static struct reg_feature feature_csr = {
-		.name = "org.gnu.gdb.riscv.csr"
-	};
-	static struct reg_feature feature_vector = {
-		.name = "org.gnu.gdb.riscv.vector"
-	};
-	static struct reg_feature feature_virtual = {
-		.name = "org.gnu.gdb.riscv.virtual"
-	};
-	static struct reg_feature feature_custom = {
-		.name = "org.gnu.gdb.riscv.custom"
-	};
+static void init_shared_reg_info(struct target *target)
+{
+	RISCV_INFO(info);
+	info->shared_reg_info.target = target;
+	info->shared_reg_info.custom_number = 0;
+}
 
-	/* These types are built into gdb. */
-	static struct reg_data_type type_ieee_single = { .type = REG_TYPE_IEEE_SINGLE, .id = "ieee_single" };
-	static struct reg_data_type type_ieee_double = { .type = REG_TYPE_IEEE_DOUBLE, .id = "ieee_double" };
-	static struct reg_data_type_union_field single_double_fields[] = {
-		{"float", &type_ieee_single, single_double_fields + 1},
-		{"double", &type_ieee_double, NULL},
-	};
-	static struct reg_data_type_union single_double_union = {
-		.fields = single_double_fields
-	};
-	static struct reg_data_type type_ieee_single_double = {
-		.type = REG_TYPE_ARCH_DEFINED,
-		.id = "FPU_FD",
-		.type_class = REG_TYPE_CLASS_UNION,
-		{ .reg_type_union = &single_double_union }
-	};
+static void init_vector_reg_type(const struct target *target)
+{
+	RISCV_INFO(info);
 	static struct reg_data_type type_uint8 = { .type = REG_TYPE_UINT8, .id = "uint8" };
 	static struct reg_data_type type_uint16 = { .type = REG_TYPE_UINT16, .id = "uint16" };
 	static struct reg_data_type type_uint32 = { .type = REG_TYPE_UINT32, .id = "uint32" };
@@ -5913,35 +6308,35 @@ int riscv_init_registers(struct target *target)
 	 */
 
 	info->vector_uint8.type = &type_uint8;
-	info->vector_uint8.count = info->vlenb;
+	info->vector_uint8.count = riscv_vlenb(target);
 	info->type_uint8_vector.type = REG_TYPE_ARCH_DEFINED;
 	info->type_uint8_vector.id = "bytes";
 	info->type_uint8_vector.type_class = REG_TYPE_CLASS_VECTOR;
 	info->type_uint8_vector.reg_type_vector = &info->vector_uint8;
 
 	info->vector_uint16.type = &type_uint16;
-	info->vector_uint16.count = info->vlenb / 2;
+	info->vector_uint16.count = riscv_vlenb(target) / 2;
 	info->type_uint16_vector.type = REG_TYPE_ARCH_DEFINED;
 	info->type_uint16_vector.id = "shorts";
 	info->type_uint16_vector.type_class = REG_TYPE_CLASS_VECTOR;
 	info->type_uint16_vector.reg_type_vector = &info->vector_uint16;
 
 	info->vector_uint32.type = &type_uint32;
-	info->vector_uint32.count = info->vlenb / 4;
+	info->vector_uint32.count = riscv_vlenb(target) / 4;
 	info->type_uint32_vector.type = REG_TYPE_ARCH_DEFINED;
 	info->type_uint32_vector.id = "words";
 	info->type_uint32_vector.type_class = REG_TYPE_CLASS_VECTOR;
 	info->type_uint32_vector.reg_type_vector = &info->vector_uint32;
 
 	info->vector_uint64.type = &type_uint64;
-	info->vector_uint64.count = info->vlenb / 8;
+	info->vector_uint64.count = riscv_vlenb(target) / 8;
 	info->type_uint64_vector.type = REG_TYPE_ARCH_DEFINED;
 	info->type_uint64_vector.id = "longs";
 	info->type_uint64_vector.type_class = REG_TYPE_CLASS_VECTOR;
 	info->type_uint64_vector.reg_type_vector = &info->vector_uint64;
 
 	info->vector_uint128.type = &type_uint128;
-	info->vector_uint128.count = info->vlenb / 16;
+	info->vector_uint128.count = riscv_vlenb(target) / 16;
 	info->type_uint128_vector.type = REG_TYPE_ARCH_DEFINED;
 	info->type_uint128_vector.id = "quads";
 	info->type_uint128_vector.type_class = REG_TYPE_CLASS_VECTOR;
@@ -5949,28 +6344,28 @@ int riscv_init_registers(struct target *target)
 
 	info->vector_fields[0].name = "b";
 	info->vector_fields[0].type = &info->type_uint8_vector;
-	if (info->vlenb >= 2) {
+	if (riscv_vlenb(target) >= 2) {
 		info->vector_fields[0].next = info->vector_fields + 1;
 		info->vector_fields[1].name = "s";
 		info->vector_fields[1].type = &info->type_uint16_vector;
 	} else {
 		info->vector_fields[0].next = NULL;
 	}
-	if (info->vlenb >= 4) {
+	if (riscv_vlenb(target) >= 4) {
 		info->vector_fields[1].next = info->vector_fields + 2;
 		info->vector_fields[2].name = "w";
 		info->vector_fields[2].type = &info->type_uint32_vector;
 	} else {
 		info->vector_fields[1].next = NULL;
 	}
-	if (info->vlenb >= 8) {
+	if (riscv_vlenb(target) >= 8) {
 		info->vector_fields[2].next = info->vector_fields + 3;
 		info->vector_fields[3].name = "l";
 		info->vector_fields[3].type = &info->type_uint64_vector;
 	} else {
 		info->vector_fields[2].next = NULL;
 	}
-	if (info->vlenb >= 16) {
+	if (riscv_vlenb(target) >= 16) {
 		info->vector_fields[3].next = info->vector_fields + 4;
 		info->vector_fields[4].name = "q";
 		info->vector_fields[4].type = &info->type_uint128_vector;
@@ -5985,333 +6380,79 @@ int riscv_init_registers(struct target *target)
 	info->type_vector.id = "riscv_vector";
 	info->type_vector.type_class = REG_TYPE_CLASS_UNION;
 	info->type_vector.reg_type_union = &info->vector_union;
+}
 
-	riscv_reg_info_t *shared_reg_info = calloc(1, sizeof(riscv_reg_info_t));
-	if (!shared_reg_info)
-		return ERROR_FAIL;
-	shared_reg_info->target = target;
-
-	int custom_within_range = 0;
-
-	/* When gdb requests register N, gdb_get_register_packet() assumes that this
-	 * is register at index N in reg_list. So if there are certain registers
-	 * that don't exist, we need to leave holes in the list (or renumber, but
-	 * it would be nice not to have yet another set of numbers to translate
-	 * between). */
-	for (uint32_t reg_num = 0; reg_num < target->reg_cache->num_regs; reg_num++) {
-		struct reg *r = &target->reg_cache->reg_list[reg_num];
-		r->dirty = false;
-		r->valid = false;
-		r->exist = true;
-		r->type = &riscv_reg_arch_type;
-		r->arch_info = shared_reg_info;
-		r->number = reg_num;
-		r->size = riscv_xlen(target);
-		/* r->size is set in riscv_invalidate_register_cache, maybe because the
-		 * target is in theory allowed to change XLEN on us. But I expect a lot
-		 * of other things to break in that case as well. */
-		r->name = gdb_regno_name(target, reg_num);
-		if (reg_num <= GDB_REGNO_XPR31) {
-			r->exist = reg_num <= GDB_REGNO_XPR15 ||
-				!riscv_supports_extension(target, 'E');
-			/* TODO: For now we fake that all GPRs exist because otherwise gdb
-			 * doesn't work. */
-			r->exist = true;
-			r->caller_save = true;
-			r->group = "general";
-			r->feature = &feature_cpu;
-		} else if (reg_num == GDB_REGNO_PC) {
-			r->caller_save = true;
-			r->group = "general";
-			r->feature = &feature_cpu;
-		} else if (reg_num >= GDB_REGNO_FPR0 && reg_num <= GDB_REGNO_FPR31) {
-			r->caller_save = true;
-			if (riscv_supports_extension(target, 'D')) {
-				r->size = 64;
-				if (riscv_supports_extension(target, 'F'))
-					r->reg_data_type = &type_ieee_single_double;
-				else
-					r->reg_data_type = &type_ieee_double;
-			} else if (riscv_supports_extension(target, 'F')) {
-				r->reg_data_type = &type_ieee_single;
-				r->size = 32;
-			} else {
-				r->exist = false;
+static int expose_csrs(const struct target *target)
+{
+	RISCV_INFO(info);
+	range_list_t *entry;
+	list_for_each_entry(entry, &info->expose_csr, list) {
+		assert(entry->low <= entry->high);
+		assert(entry->high <= GDB_REGNO_CSR4095 - GDB_REGNO_CSR0);
+		const enum gdb_regno last_regno = GDB_REGNO_CSR0 + entry->high;
+		for (enum gdb_regno regno = GDB_REGNO_CSR0 + entry->low;
+				regno <= last_regno; ++regno) {
+			struct reg * const reg = get_reg_cache_entry(target, regno);
+			const unsigned int csr_number = regno - GDB_REGNO_CSR0;
+			if (reg->exist) {
+				LOG_TARGET_WARNING(target,
+						"Not exposing CSR %d: register already exists.",
+						csr_number);
+				continue;
 			}
-			r->group = "float";
-			r->feature = &feature_fpu;
-		} else if (reg_num >= GDB_REGNO_CSR0 && reg_num <= GDB_REGNO_CSR4095) {
-			r->group = "csr";
-			r->feature = &feature_csr;
-			const unsigned int csr_num = reg_num - GDB_REGNO_CSR0;
-
-			if (!is_known_standard_csr(csr_num)) {
-				/* Assume unnamed registers don't exist, unless we have some
-				 * configuration that tells us otherwise. That's important
-				 * because eg. Eclipse crashes if a target has too many
-				 * registers, and apparently has no way of only showing a
-				 * subset of registers in any case. */
-				r->exist = false;
-			}
-
-			switch (csr_num) {
-				case CSR_DCSR:
-				case CSR_MVENDORID:
-				case CSR_MCOUNTINHIBIT:
-					r->size = 32;
-					break;
-				case CSR_FCSR:
-					r->size = 32;
-					/* fall through */
-				case CSR_FFLAGS:
-				case CSR_FRM:
-					r->exist = riscv_supports_extension(target, 'F');
-					r->group = "float";
-					r->feature = &feature_fpu;
-					break;
-				case CSR_SCOUNTEREN:
-					r->size = 32;
-					/* fall through */
-				case CSR_SSTATUS:
-				case CSR_STVEC:
-				case CSR_SIP:
-				case CSR_SIE:
-				case CSR_SSCRATCH:
-				case CSR_SEPC:
-				case CSR_SCAUSE:
-				case CSR_STVAL:
-				case CSR_SATP:
-					r->exist = riscv_supports_extension(target, 'S');
-					break;
-				case CSR_MEDELEG:
-				case CSR_MIDELEG:
-					/* "In systems with only M-mode, or with both M-mode and
-					 * U-mode but without U-mode trap support, the medeleg and
-					 * mideleg registers should not exist." */
-					r->exist = riscv_supports_extension(target, 'S') ||
-						riscv_supports_extension(target, 'N');
-					break;
-
-				case CSR_PMPCFG1:
-				case CSR_PMPCFG3:
-				case CSR_CYCLEH:
-				case CSR_TIMEH:
-				case CSR_INSTRETH:
-				case CSR_HPMCOUNTER3H:
-				case CSR_HPMCOUNTER4H:
-				case CSR_HPMCOUNTER5H:
-				case CSR_HPMCOUNTER6H:
-				case CSR_HPMCOUNTER7H:
-				case CSR_HPMCOUNTER8H:
-				case CSR_HPMCOUNTER9H:
-				case CSR_HPMCOUNTER10H:
-				case CSR_HPMCOUNTER11H:
-				case CSR_HPMCOUNTER12H:
-				case CSR_HPMCOUNTER13H:
-				case CSR_HPMCOUNTER14H:
-				case CSR_HPMCOUNTER15H:
-				case CSR_HPMCOUNTER16H:
-				case CSR_HPMCOUNTER17H:
-				case CSR_HPMCOUNTER18H:
-				case CSR_HPMCOUNTER19H:
-				case CSR_HPMCOUNTER20H:
-				case CSR_HPMCOUNTER21H:
-				case CSR_HPMCOUNTER22H:
-				case CSR_HPMCOUNTER23H:
-				case CSR_HPMCOUNTER24H:
-				case CSR_HPMCOUNTER25H:
-				case CSR_HPMCOUNTER26H:
-				case CSR_HPMCOUNTER27H:
-				case CSR_HPMCOUNTER28H:
-				case CSR_HPMCOUNTER29H:
-				case CSR_HPMCOUNTER30H:
-				case CSR_HPMCOUNTER31H:
-				case CSR_MCYCLEH:
-				case CSR_MINSTRETH:
-				case CSR_MHPMCOUNTER3H:
-				case CSR_MHPMCOUNTER4H:
-				case CSR_MHPMCOUNTER5H:
-				case CSR_MHPMCOUNTER6H:
-				case CSR_MHPMCOUNTER7H:
-				case CSR_MHPMCOUNTER8H:
-				case CSR_MHPMCOUNTER9H:
-				case CSR_MHPMCOUNTER10H:
-				case CSR_MHPMCOUNTER11H:
-				case CSR_MHPMCOUNTER12H:
-				case CSR_MHPMCOUNTER13H:
-				case CSR_MHPMCOUNTER14H:
-				case CSR_MHPMCOUNTER15H:
-				case CSR_MHPMCOUNTER16H:
-				case CSR_MHPMCOUNTER17H:
-				case CSR_MHPMCOUNTER18H:
-				case CSR_MHPMCOUNTER19H:
-				case CSR_MHPMCOUNTER20H:
-				case CSR_MHPMCOUNTER21H:
-				case CSR_MHPMCOUNTER22H:
-				case CSR_MHPMCOUNTER23H:
-				case CSR_MHPMCOUNTER24H:
-				case CSR_MHPMCOUNTER25H:
-				case CSR_MHPMCOUNTER26H:
-				case CSR_MHPMCOUNTER27H:
-				case CSR_MHPMCOUNTER28H:
-				case CSR_MHPMCOUNTER29H:
-				case CSR_MHPMCOUNTER30H:
-				case CSR_MHPMCOUNTER31H:
-					r->exist = riscv_xlen(target) == 32;
-					break;
-
-				case CSR_VSTART:
-				case CSR_VXSAT:
-				case CSR_VXRM:
-				case CSR_VL:
-				case CSR_VCSR:
-				case CSR_VTYPE:
-				case CSR_VLENB:
-					r->exist = (info->vlenb > 0);
-					break;
-				case CSR_MCOUNTEREN:
-					r->size = 32;
-					r->exist = riscv_supports_extension(target, 'U');
-					break;
-
-				/* Interrupts M-Mode CSRs. */
-				case CSR_MISELECT:
-				case CSR_MIREG:
-				case CSR_MTOPI:
-				case CSR_MVIEN:
-				case CSR_MVIP:
-					r->exist = info->mtopi_readable;
-					break;
-				case CSR_MTOPEI:
-					r->exist = info->mtopei_readable;
-					break;
-				case CSR_MIDELEGH:
-				case CSR_MVIENH:
-				case CSR_MVIPH:
-					r->exist = info->mtopi_readable &&
-						riscv_xlen(target) == 32 &&
-						riscv_supports_extension(target, 'S');
-					break;
-				case CSR_MIEH:
-				case CSR_MIPH:
-					r->exist = info->mtopi_readable;
-					break;
-				/* Interrupts S-Mode CSRs. */
-				case CSR_SISELECT:
-				case CSR_SIREG:
-				case CSR_STOPI:
-					r->exist = info->mtopi_readable &&
-						riscv_supports_extension(target, 'S');
-					break;
-				case CSR_STOPEI:
-					r->exist = info->mtopei_readable &&
-						riscv_supports_extension(target, 'S');
-					break;
-				case CSR_SIEH:
-				case CSR_SIPH:
-					r->exist = info->mtopi_readable &&
-						riscv_xlen(target) == 32 &&
-						riscv_supports_extension(target, 'S');
-					break;
-				/* Interrupts Hypervisor and VS CSRs. */
-				case CSR_HVIEN:
-				case CSR_HVICTL:
-				case CSR_HVIPRIO1:
-				case CSR_HVIPRIO2:
-				case CSR_VSISELECT:
-				case CSR_VSIREG:
-				case CSR_VSTOPI:
-					r->exist = info->mtopi_readable &&
-						riscv_supports_extension(target, 'H');
-					break;
-				case CSR_VSTOPEI:
-					r->exist = info->mtopei_readable &&
-						riscv_supports_extension(target, 'H');
-					break;
-				case CSR_HIDELEGH:
-				case CSR_HVIENH:
-				case CSR_HVIPH:
-				case CSR_HVIPRIO1H:
-				case CSR_HVIPRIO2H:
-				case CSR_VSIEH:
-				case CSR_VSIPH:
-					r->exist = info->mtopi_readable &&
-						riscv_xlen(target) == 32 &&
-						riscv_supports_extension(target, 'H');
-					break;
-			}
-
-			if (!r->exist && !list_empty(&info->expose_csr)) {
-				range_list_t *entry;
-				list_for_each_entry(entry, &info->expose_csr, list)
-					if (entry->low <= csr_num && csr_num <= entry->high) {
-						LOG_TARGET_DEBUG(target, "Exposing additional CSR %d (name=%s)",
-								csr_num, r->name);
-						r->exist = true;
-						break;
-					}
-			} else if (r->exist && !list_empty(&info->hide_csr)) {
-				range_list_t *entry;
-				list_for_each_entry(entry, &info->hide_csr, list)
-					if (entry->low <= csr_num && csr_num <= entry->high) {
-						LOG_TARGET_DEBUG(target, "Hiding CSR %d (name=%s).", csr_num, r->name);
-						r->hidden = true;
-						break;
-					}
-			}
-
-		} else if (reg_num == GDB_REGNO_PRIV) {
-			r->group = "general";
-			r->feature = &feature_virtual;
-			r->size = 8;
-
-		} else if (reg_num >= GDB_REGNO_V0 && reg_num <= GDB_REGNO_V31) {
-			r->caller_save = false;
-			r->exist = (info->vlenb > 0);
-			r->size = info->vlenb * 8;
-			r->group = "vector";
-			r->feature = &feature_vector;
-			r->reg_data_type = &info->type_vector;
-
-		} else if (reg_num >= GDB_REGNO_COUNT) {
-			/* Custom registers. */
-			const unsigned int custom_reg_index = reg_num - GDB_REGNO_COUNT;
-
-			assert(!list_empty(&info->expose_custom));
-			assert(custom_reg_index < info->custom_register_names.num_entries);
-
-			range_list_t *range = list_first_entry(&info->expose_custom, range_list_t, list);
-
-			const unsigned int custom_number = range->low + custom_within_range;
-
-			r->group = "custom";
-			r->feature = &feature_custom;
-			r->arch_info = calloc(1, sizeof(riscv_reg_info_t));
-			if (!r->arch_info) {
-				LOG_ERROR("Failed to allocate memory for r->arch_info");
+			if (set_reg_exist(target, regno, /*exist*/ true) != ERROR_OK)
 				return ERROR_FAIL;
-			}
-			((riscv_reg_info_t *)r->arch_info)->target = target;
-			((riscv_reg_info_t *)r->arch_info)->custom_number = custom_number;
-
-			char **reg_names = info->custom_register_names.reg_names;
-			r->name = reg_names[custom_reg_index];
-
-			LOG_TARGET_DEBUG(target, "Exposing additional custom register %d (name=%s)", reg_num, r->name);
-
-			custom_within_range++;
-			if (custom_within_range > range->high - range->low) {
-				custom_within_range = 0;
-				list_rotate_left(&info->expose_custom);
-			}
+			LOG_TARGET_DEBUG(target, "Exposing additional CSR %d (name=%s)",
+					csr_number, reg->name);
 		}
-
-		r->value = calloc(1, DIV_ROUND_UP(r->size, 8));
 	}
-
 	return ERROR_OK;
 }
 
+static void hide_csrs(const struct target *target)
+{
+	RISCV_INFO(info);
+	range_list_t *entry;
+	list_for_each_entry(entry, &info->hide_csr, list) {
+		assert(entry->high <= GDB_REGNO_CSR4095 - GDB_REGNO_CSR0);
+		const enum gdb_regno last_regno = GDB_REGNO_CSR0 + entry->high;
+		for (enum gdb_regno regno = GDB_REGNO_CSR0 + entry->low;
+				regno <= last_regno; ++regno) {
+			struct reg * const reg = get_reg_cache_entry(target, regno);
+			const unsigned int csr_number = regno - GDB_REGNO_CSR0;
+			if (!reg->exist) {
+				LOG_TARGET_WARNING(target,
+						"Not hiding CSR %d: register does not exist.",
+						csr_number);
+				continue;
+			}
+			LOG_TARGET_DEBUG(target, "Hiding CSR %d (name=%s).", csr_number, reg->name);
+			reg->hidden = true;
+		}
+	}
+}
+
+int riscv_init_registers(struct target *target)
+{
+	if (riscv_init_reg_cache(target) != ERROR_OK)
+		return ERROR_FAIL;
+
+	init_shared_reg_info(target);
+
+	init_vector_reg_type(target);
+
+	for (uint32_t reg_num = 0; reg_num < target->reg_cache->num_regs; reg_num++)
+		if (init_reg(target, reg_num) != ERROR_OK)
+			return ERROR_FAIL;
+
+
+	if (expose_csrs(target) != ERROR_OK)
+		return ERROR_FAIL;
+
+	hide_csrs(target);
+
+	return ERROR_OK;
+}
 
 void riscv_add_bscan_tunneled_scan(struct target *target, struct scan_field *field,
 					riscv_bscan_tunneled_scan_context_t *ctxt)
