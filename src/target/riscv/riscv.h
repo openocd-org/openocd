@@ -242,8 +242,11 @@ struct riscv_info {
 	int (*dmi_read)(struct target *target, uint32_t *value, uint32_t address);
 	int (*dmi_write)(struct target *target, uint32_t address, uint32_t value);
 
-	int (*dm_read)(struct target *target, uint32_t *value, uint32_t address);
-	int (*dm_write)(struct target *target, uint32_t address, uint32_t value);
+	/* Get the DMI address of target's DM's register.
+	 * The function should return the passed address
+	 * if the target is not assigned a DM yet.
+	 */
+	uint32_t (*get_dmi_address)(const struct target *target, uint32_t dm_address);
 
 	int (*sample_memory)(struct target *target,
 						 struct riscv_sample_buf *buf,

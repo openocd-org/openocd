@@ -694,6 +694,16 @@ static int dmi_write_exec(struct target *target, uint32_t address,
 	return dmi_op(target, NULL, NULL, DMI_OP_WRITE, address, value, true, ensure_success);
 }
 
+static uint32_t riscv013_get_dmi_address(const struct target *target, uint32_t address)
+{
+	assert(target);
+	uint32_t base = 0;
+	RISCV013_INFO(info);
+	if (info && info->dm)
+		base = info->dm->base;
+	return address + base;
+}
+
 static int dm_op_timeout(struct target *target, uint32_t *data_in,
 		bool *dmi_busy_encountered, int op, uint32_t address,
 		uint32_t data_out, int timeout_sec, bool exec, bool ensure_success)
@@ -2772,8 +2782,7 @@ static int init_target(struct command_context *cmd_ctx,
 	generic_info->authdata_write = &riscv013_authdata_write;
 	generic_info->dmi_read = &dmi_read;
 	generic_info->dmi_write = &dmi_write;
-	generic_info->dm_read = &dm_read;
-	generic_info->dm_write = &dm_write;
+	generic_info->get_dmi_address = &riscv013_get_dmi_address;
 	generic_info->read_memory = read_memory;
 	generic_info->hart_count = &riscv013_hart_count;
 	generic_info->data_bits = &riscv013_data_bits;
