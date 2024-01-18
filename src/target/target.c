@@ -1243,7 +1243,10 @@ int target_read_memory(struct target *target,
 		LOG_ERROR("Target %s doesn't support read_memory", target_name(target));
 		return ERROR_FAIL;
 	}
-	return target->type->read_memory(target, address, size, count, buffer);
+	int result = target->type->read_memory(target, address, size, count, buffer);
+	if (result != ERROR_OK && target->state != TARGET_HALTED)
+		LOG_TARGET_WARNING(target, "failed to read_memory while target is not halted");
+	return result;
 }
 
 int target_read_phys_memory(struct target *target,
@@ -1257,7 +1260,10 @@ int target_read_phys_memory(struct target *target,
 		LOG_ERROR("Target %s doesn't support read_phys_memory", target_name(target));
 		return ERROR_FAIL;
 	}
-	return target->type->read_phys_memory(target, address, size, count, buffer);
+	int result = target->type->read_phys_memory(target, address, size, count, buffer);
+	if (result != ERROR_OK && target->state != TARGET_HALTED)
+		LOG_TARGET_WARNING(target, "failed to read_phys_memory while target is not halted");
+	return result;
 }
 
 int target_write_memory(struct target *target,
@@ -1271,7 +1277,10 @@ int target_write_memory(struct target *target,
 		LOG_ERROR("Target %s doesn't support write_memory", target_name(target));
 		return ERROR_FAIL;
 	}
-	return target->type->write_memory(target, address, size, count, buffer);
+	int result = target->type->write_memory(target, address, size, count, buffer);
+	if (result != ERROR_OK && target->state != TARGET_HALTED)
+		LOG_TARGET_WARNING(target, "failed to write_memory while target is not halted");
+	return result;
 }
 
 int target_write_phys_memory(struct target *target,
@@ -1285,7 +1294,10 @@ int target_write_phys_memory(struct target *target,
 		LOG_ERROR("Target %s doesn't support write_phys_memory", target_name(target));
 		return ERROR_FAIL;
 	}
-	return target->type->write_phys_memory(target, address, size, count, buffer);
+	int result = target->type->write_phys_memory(target, address, size, count, buffer);
+	if (result != ERROR_OK && target->state != TARGET_HALTED)
+		LOG_TARGET_WARNING(target, "failed to write_phys_memory while target is not halted");
+	return result;
 }
 
 int target_add_breakpoint(struct target *target,
