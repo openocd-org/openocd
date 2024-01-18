@@ -91,14 +91,14 @@ static int set_group(struct target *target, bool *supported, unsigned int group,
 /*** JTAG registers. ***/
 
 typedef enum {
-	DMI_OP_NOP = 0,
-	DMI_OP_READ = 1,
-	DMI_OP_WRITE = 2
+	DMI_OP_NOP = DTM_DMI_OP_NOP,
+	DMI_OP_READ = DTM_DMI_OP_READ,
+	DMI_OP_WRITE = DTM_DMI_OP_WRITE
 } dmi_op_t;
 typedef enum {
-	DMI_STATUS_SUCCESS = 0,
-	DMI_STATUS_FAILED = 2,
-	DMI_STATUS_BUSY = 3
+	DMI_STATUS_SUCCESS = DTM_DMI_OP_SUCCESS,
+	DMI_STATUS_FAILED = DTM_DMI_OP_FAILED,
+	DMI_STATUS_BUSY = DTM_DMI_OP_BUSY
 } dmi_status_t;
 
 typedef enum slot {
