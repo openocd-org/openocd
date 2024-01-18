@@ -61,6 +61,7 @@ static int armv8_cache_d_inner_flush_level(struct armv8_common *armv8, struct ar
 				goto done;
 			c_way -= 1;
 		} while (c_way >= 0);
+		keep_alive();
 		c_index -= 1;
 	} while (c_index >= 0);
 
