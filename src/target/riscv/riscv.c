@@ -5065,16 +5065,6 @@ static void riscv_invalidate_register_cache(struct target *target)
 }
 
 
-unsigned int riscv_count_harts(struct target *target)
-{
-	if (!target)
-		return 1;
-	RISCV_INFO(r);
-	if (!r || !r->hart_count)
-		return 1;
-	return r->hart_count(target);
-}
-
 /**
  * If write is true:
  *   return true iff we are guaranteed that the register will contain exactly

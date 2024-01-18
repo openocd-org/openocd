@@ -256,8 +256,6 @@ struct riscv_info {
 	int (*read_memory)(struct target *target, target_addr_t address,
 			uint32_t size, uint32_t count, uint8_t *buffer, uint32_t increment);
 
-	/* How many harts are attached to the DM that this target is attached to? */
-	int (*hart_count)(struct target *target);
 	unsigned (*data_bits)(struct target *target);
 
 	COMMAND_HELPER((*print_info), struct target *target);
@@ -399,10 +397,6 @@ unsigned riscv_xlen(const struct target *target);
 
 /*** Support functions for the RISC-V 'RTOS', which provides multihart support
  * without requiring multiple targets.  */
-
-/* Lists the number of harts in the system, which are assumed to be
- * consecutive and start with mhartid=0. */
-unsigned int riscv_count_harts(struct target *target);
 
 /**
  * Set the register value. For cacheable registers, only the cache is updated
