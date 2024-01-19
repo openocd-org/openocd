@@ -16,8 +16,6 @@
 /* Reserve extra room in the batch (needed for the last NOP operation) */
 #define BATCH_RESERVED_SCANS 1
 
-static void dump_field(int idle, const struct scan_field *field);
-
 struct riscv_batch *riscv_batch_alloc(struct target *target, size_t scans, size_t idle)
 {
 	scans += BATCH_RESERVED_SCANS;
@@ -128,7 +126,8 @@ int riscv_batch_run(struct riscv_batch *batch)
 	}
 
 	for (size_t i = 0; i < batch->used_scans; ++i)
-		dump_field(batch->idle_count, batch->fields + i);
+		riscv_decode_dmi_scan(batch->target, batch->idle_count, batch->fields + i,
+				/*discard_in*/ false);
 
 	return ERROR_OK;
 }
@@ -198,38 +197,6 @@ void riscv_batch_add_nop(struct riscv_batch *batch)
 	riscv_fill_dm_nop(batch->target, (char *)field->in_value);
 	batch->last_scan = RISCV_SCAN_TYPE_NOP;
 	batch->used_scans++;
-}
-
-static void dump_field(int idle, const struct scan_field *field)
-{
-	static const char * const op_string[] = {"-", "r", "w", "?"};
-	static const char * const status_string[] = {"+", "?", "F", "b"};
-
-	if (debug_level < LOG_LVL_DEBUG)
-		return;
-
-	assert(field->out_value);
-	uint64_t out = buf_get_u64(field->out_value, 0, field->num_bits);
-	unsigned int out_op = get_field(out, DTM_DMI_OP);
-	unsigned int out_data = get_field(out, DTM_DMI_DATA);
-	unsigned int out_address = out >> DTM_DMI_ADDRESS_OFFSET;
-
-	if (field->in_value) {
-		uint64_t in = buf_get_u64(field->in_value, 0, field->num_bits);
-		unsigned int in_op = get_field(in, DTM_DMI_OP);
-		unsigned int in_data = get_field(in, DTM_DMI_DATA);
-		unsigned int in_address = in >> DTM_DMI_ADDRESS_OFFSET;
-
-		log_printf_lf(LOG_LVL_DEBUG,
-				__FILE__, __LINE__, __func__,
-				"%db %s %08x @%02x -> %s %08x @%02x; %di",
-				field->num_bits, op_string[out_op], out_data, out_address,
-				status_string[in_op], in_data, in_address, idle);
-	} else {
-		log_printf_lf(LOG_LVL_DEBUG,
-				__FILE__, __LINE__, __func__, "%db %s %08x @%02x -> ?; %di",
-				field->num_bits, op_string[out_op], out_data, out_address, idle);
-	}
 }
 
 size_t riscv_batch_available_scans(struct riscv_batch *batch)
