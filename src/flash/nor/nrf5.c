@@ -1144,6 +1144,9 @@ FLASH_BANK_COMMAND_HANDLER(nrf5_flash_bank_command)
 	struct nrf5_info *chip;
 	struct nrf5_bank *nbank = NULL;
 
+	if (bank->driver == &nrf51_flash)
+		LOG_WARNING("Flash driver 'nrf51' is deprecated! Use 'nrf5' instead.");
+
 	switch (bank->base) {
 	case NRF5_FLASH_BASE:
 	case NRF5_UICR_BASE:
