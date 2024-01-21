@@ -254,11 +254,16 @@ struct nrf5_device_package {
 
 /* Newer devices have FICR INFO.PACKAGE.
  * This table converts its value to two character code */
-static const struct nrf5_device_package nrf5_packages_table[] = {
+static const struct nrf5_device_package nrf52_packages_table[] = {
 	{ 0x2000, "QF" },
 	{ 0x2001, "CH" },
 	{ 0x2002, "CI" },
+	{ 0x2003, "QC" },
+	{ 0x2004, "QI/CA" },	/* differs nRF52805, 810, 811: CA, nRF52833, 840: QI */
 	{ 0x2005, "CK" },
+	{ 0x2007, "QD" },
+	{ 0x2008, "CJ" },
+	{ 0x2009, "CF" },
 };
 
 const struct flash_driver nrf5_flash, nrf51_flash;
@@ -591,9 +596,9 @@ static bool nrf5_info_variant_to_str(uint32_t variant, char *bf)
 
 static const char *nrf5_decode_info_package(uint32_t package)
 {
-	for (size_t i = 0; i < ARRAY_SIZE(nrf5_packages_table); i++) {
-		if (nrf5_packages_table[i].package == package)
-			return nrf5_packages_table[i].code;
+	for (size_t i = 0; i < ARRAY_SIZE(nrf52_packages_table); i++) {
+		if (nrf52_packages_table[i].package == package)
+			return nrf52_packages_table[i].code;
 	}
 	return "xx";
 }
