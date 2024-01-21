@@ -1625,7 +1625,8 @@ static int cortex_m_assert_reset(struct target *target)
 	bool srst_asserted = false;
 
 	if ((jtag_reset_config & RESET_HAS_SRST) &&
-		((jtag_reset_config & RESET_SRST_NO_GATING) || !armv7m->debug_ap)) {
+		((jtag_reset_config & RESET_SRST_NO_GATING)
+		 || (!armv7m->debug_ap && !target->defer_examine))) {
 		/* If we have no debug_ap, asserting SRST is the only thing
 		 * we can do now */
 		adapter_assert_reset();
