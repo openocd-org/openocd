@@ -46,32 +46,6 @@ enum nrf5_ficr_registers {
 	 * On nRF52 is present but not documented */
 	NRF5_FICR_CONFIGID		= NRF5_FICR_REG(0x05C),
 
-	NRF5_FICR_DEVICEID0		= NRF5_FICR_REG(0x060),
-	NRF5_FICR_DEVICEID1		= NRF5_FICR_REG(0x064),
-	NRF5_FICR_ER0			= NRF5_FICR_REG(0x080),
-	NRF5_FICR_ER1			= NRF5_FICR_REG(0x084),
-	NRF5_FICR_ER2			= NRF5_FICR_REG(0x088),
-	NRF5_FICR_ER3			= NRF5_FICR_REG(0x08C),
-	NRF5_FICR_IR0			= NRF5_FICR_REG(0x090),
-	NRF5_FICR_IR1			= NRF5_FICR_REG(0x094),
-	NRF5_FICR_IR2			= NRF5_FICR_REG(0x098),
-	NRF5_FICR_IR3			= NRF5_FICR_REG(0x09C),
-	NRF5_FICR_DEVICEADDRTYPE	= NRF5_FICR_REG(0x0A0),
-	NRF5_FICR_DEVICEADDR0		= NRF5_FICR_REG(0x0A4),
-	NRF5_FICR_DEVICEADDR1		= NRF5_FICR_REG(0x0A8),
-
-	NRF51_FICR_OVERRIDEN		= NRF5_FICR_REG(0x0AC),
-	NRF51_FICR_NRF_1MBIT0		= NRF5_FICR_REG(0x0B0),
-	NRF51_FICR_NRF_1MBIT1		= NRF5_FICR_REG(0x0B4),
-	NRF51_FICR_NRF_1MBIT2		= NRF5_FICR_REG(0x0B8),
-	NRF51_FICR_NRF_1MBIT3		= NRF5_FICR_REG(0x0BC),
-	NRF51_FICR_NRF_1MBIT4		= NRF5_FICR_REG(0x0C0),
-	NRF51_FICR_BLE_1MBIT0		= NRF5_FICR_REG(0x0EC),
-	NRF51_FICR_BLE_1MBIT1		= NRF5_FICR_REG(0x0F0),
-	NRF51_FICR_BLE_1MBIT2		= NRF5_FICR_REG(0x0F4),
-	NRF51_FICR_BLE_1MBIT3		= NRF5_FICR_REG(0x0F8),
-	NRF51_FICR_BLE_1MBIT4		= NRF5_FICR_REG(0x0FC),
-
 	/* Following registers are available on nRF52 and on nRF51 since rev 3 */
 	NRF5_FICR_INFO_PART			= NRF5_FICR_REG(0x100),
 	NRF5_FICR_INFO_VARIANT		= NRF5_FICR_REG(0x104),
@@ -87,9 +61,6 @@ enum nrf5_uicr_registers {
 #define NRF5_UICR_REG(offset) (NRF5_UICR_BASE + offset)
 
 	NRF51_UICR_CLENR0	= NRF5_UICR_REG(0x000),
-	NRF51_UICR_RBPCONF	= NRF5_UICR_REG(0x004),
-	NRF51_UICR_XTALFREQ	= NRF5_UICR_REG(0x008),
-	NRF51_UICR_FWID		= NRF5_UICR_REG(0x010),
 };
 
 enum nrf5_nvmc_registers {
@@ -1251,136 +1222,6 @@ COMMAND_HANDLER(nrf5_handle_mass_erase_command)
 	return res;
 }
 
-COMMAND_HANDLER(nrf5_handle_info_command)
-{
-	int res;
-	struct flash_bank *bank = NULL;
-	struct target *target = get_current_target(CMD_CTX);
-
-	res = get_flash_bank_by_addr(target, NRF5_FLASH_BASE, true, &bank);
-	if (res != ERROR_OK)
-		return res;
-
-	assert(bank);
-
-	struct nrf5_bank *nbank = bank->driver_priv;
-	assert(nbank);
-	struct nrf5_info *chip = nbank->chip;
-	assert(chip);
-
-	static struct {
-		const uint32_t address;
-		uint32_t value;
-	} ficr[] = {
-		{ .address = NRF5_FICR_CODEPAGESIZE	},
-		{ .address = NRF5_FICR_CODESIZE	},
-		{ .address = NRF51_FICR_CLENR0		},
-		{ .address = NRF51_FICR_PPFC		},
-		{ .address = NRF51_FICR_NUMRAMBLOCK	},
-		{ .address = NRF51_FICR_SIZERAMBLOCK0	},
-		{ .address = NRF51_FICR_SIZERAMBLOCK1	},
-		{ .address = NRF51_FICR_SIZERAMBLOCK2	},
-		{ .address = NRF51_FICR_SIZERAMBLOCK3	},
-		{ .address = NRF5_FICR_CONFIGID	},
-		{ .address = NRF5_FICR_DEVICEID0	},
-		{ .address = NRF5_FICR_DEVICEID1	},
-		{ .address = NRF5_FICR_ER0		},
-		{ .address = NRF5_FICR_ER1		},
-		{ .address = NRF5_FICR_ER2		},
-		{ .address = NRF5_FICR_ER3		},
-		{ .address = NRF5_FICR_IR0		},
-		{ .address = NRF5_FICR_IR1		},
-		{ .address = NRF5_FICR_IR2		},
-		{ .address = NRF5_FICR_IR3		},
-		{ .address = NRF5_FICR_DEVICEADDRTYPE	},
-		{ .address = NRF5_FICR_DEVICEADDR0	},
-		{ .address = NRF5_FICR_DEVICEADDR1	},
-		{ .address = NRF51_FICR_OVERRIDEN	},
-		{ .address = NRF51_FICR_NRF_1MBIT0	},
-		{ .address = NRF51_FICR_NRF_1MBIT1	},
-		{ .address = NRF51_FICR_NRF_1MBIT2	},
-		{ .address = NRF51_FICR_NRF_1MBIT3	},
-		{ .address = NRF51_FICR_NRF_1MBIT4	},
-		{ .address = NRF51_FICR_BLE_1MBIT0	},
-		{ .address = NRF51_FICR_BLE_1MBIT1	},
-		{ .address = NRF51_FICR_BLE_1MBIT2	},
-		{ .address = NRF51_FICR_BLE_1MBIT3	},
-		{ .address = NRF51_FICR_BLE_1MBIT4	},
-	}, uicr[] = {
-		{ .address = NRF51_UICR_CLENR0,		},
-		{ .address = NRF51_UICR_RBPCONF		},
-		{ .address = NRF51_UICR_XTALFREQ	},
-		{ .address = NRF51_UICR_FWID		},
-	};
-
-	for (size_t i = 0; i < ARRAY_SIZE(ficr); i++) {
-		res = target_read_u32(chip->target, ficr[i].address,
-				      &ficr[i].value);
-		if (res != ERROR_OK) {
-			LOG_ERROR("Couldn't read %" PRIx32, ficr[i].address);
-			return res;
-		}
-	}
-
-	for (size_t i = 0; i < ARRAY_SIZE(uicr); i++) {
-		res = target_read_u32(chip->target, uicr[i].address,
-				      &uicr[i].value);
-		if (res != ERROR_OK) {
-			LOG_ERROR("Couldn't read %" PRIx32, uicr[i].address);
-			return res;
-		}
-	}
-
-	command_print(CMD,
-		 "\n[factory information control block]\n\n"
-		 "code page size: %"PRIu32"B\n"
-		 "code memory size: %"PRIu32"kB\n"
-		 "code region 0 size: %"PRIu32"kB\n"
-		 "pre-programmed code: %s\n"
-		 "number of ram blocks: %"PRIu32"\n"
-		 "ram block 0 size: %"PRIu32"B\n"
-		 "ram block 1 size: %"PRIu32"B\n"
-		 "ram block 2 size: %"PRIu32"B\n"
-		 "ram block 3 size: %"PRIu32 "B\n"
-		 "config id: %" PRIx32 "\n"
-		 "device id: 0x%"PRIx32"%08"PRIx32"\n"
-		 "encryption root: 0x%08"PRIx32"%08"PRIx32"%08"PRIx32"%08"PRIx32"\n"
-		 "identity root: 0x%08"PRIx32"%08"PRIx32"%08"PRIx32"%08"PRIx32"\n"
-		 "device address type: 0x%"PRIx32"\n"
-		 "device address: 0x%"PRIx32"%08"PRIx32"\n"
-		 "override enable: %"PRIx32"\n"
-		 "NRF_1MBIT values: %"PRIx32" %"PRIx32" %"PRIx32" %"PRIx32" %"PRIx32"\n"
-		 "BLE_1MBIT values: %"PRIx32" %"PRIx32" %"PRIx32" %"PRIx32" %"PRIx32"\n"
-		 "\n[user information control block]\n\n"
-		 "code region 0 size: %"PRIu32"kB\n"
-		 "read back protection configuration: %"PRIx32"\n"
-		 "reset value for XTALFREQ: %"PRIx32"\n"
-		 "firmware id: 0x%04"PRIx32,
-		 ficr[0].value,
-		 (ficr[1].value * ficr[0].value) / 1024,
-		 (ficr[2].value == 0xFFFFFFFF) ? 0 : ficr[2].value / 1024,
-		 ((ficr[3].value & 0xFF) == 0x00) ? "present" : "not present",
-		 ficr[4].value,
-		 ficr[5].value,
-		 (ficr[6].value == 0xFFFFFFFF) ? 0 : ficr[6].value,
-		 (ficr[7].value == 0xFFFFFFFF) ? 0 : ficr[7].value,
-		 (ficr[8].value == 0xFFFFFFFF) ? 0 : ficr[8].value,
-		 ficr[9].value,
-		 ficr[10].value, ficr[11].value,
-		 ficr[12].value, ficr[13].value, ficr[14].value, ficr[15].value,
-		 ficr[16].value, ficr[17].value, ficr[18].value, ficr[19].value,
-		 ficr[20].value,
-		 ficr[21].value, ficr[22].value,
-		 ficr[23].value,
-		 ficr[24].value, ficr[25].value, ficr[26].value, ficr[27].value, ficr[28].value,
-		 ficr[29].value, ficr[30].value, ficr[31].value, ficr[32].value, ficr[33].value,
-		 (uicr[0].value == 0xFFFFFFFF) ? 0 : uicr[0].value / 1024,
-		 uicr[1].value & 0xFFFF,
-		 uicr[2].value & 0xFF,
-		 uicr[3].value & 0xFFFF);
-
-	return ERROR_OK;
-}
 
 static const struct command_registration nrf5_exec_command_handlers[] = {
 	{
@@ -1388,13 +1229,6 @@ static const struct command_registration nrf5_exec_command_handlers[] = {
 		.handler	= nrf5_handle_mass_erase_command,
 		.mode		= COMMAND_EXEC,
 		.help		= "Erase all flash contents of the chip.",
-		.usage		= "",
-	},
-	{
-		.name		= "info",
-		.handler	= nrf5_handle_info_command,
-		.mode		= COMMAND_EXEC,
-		.help		= "Show FICR and UICR info.",
 		.usage		= "",
 	},
 	COMMAND_REGISTRATION_DONE

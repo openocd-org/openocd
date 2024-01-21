@@ -7319,10 +7319,6 @@ works only for chips that do not have factory pre-programmed region 0
 code.
 @end deffn
 
-@deffn {Command} {nrf5 info}
-Decodes and shows information from FICR and UICR registers.
-@end deffn
-
 @end deffn
 
 @deffn {Flash Driver} {ocl}
