@@ -665,11 +665,15 @@ static int nrf5_read_ficr_info(struct nrf5_info *chip)
 		chip->features = NRF5_FEATURE_SERIES_52;
 
 		switch (chip->ficr_info.part) {
+		case 0x52805:
 		case 0x52810:
+		case 0x52811:
 		case 0x52832:
 			chip->features |= NRF5_FEATURE_BPROT;
 			break;
 
+		case 0x52820:
+		case 0x52833:
 		case 0x52840:
 			chip->features |= NRF5_FEATURE_ACL_PROT;
 			break;
