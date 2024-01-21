@@ -42,7 +42,10 @@ enum nrf5_ficr_registers {
 	NRF51_FICR_SIZERAMBLOCK2	= NRF5_FICR_REG(0x040),
 	NRF51_FICR_SIZERAMBLOCK3	= NRF5_FICR_REG(0x044),
 
+	/* CONFIGID is documented on nRF51 series only.
+	 * On nRF52 is present but not documented */
 	NRF5_FICR_CONFIGID		= NRF5_FICR_REG(0x05C),
+
 	NRF5_FICR_DEVICEID0		= NRF5_FICR_REG(0x060),
 	NRF5_FICR_DEVICEID1		= NRF5_FICR_REG(0x064),
 	NRF5_FICR_ER0			= NRF5_FICR_REG(0x080),
@@ -164,26 +167,20 @@ struct nrf5_info {
 .features      = NRF5_FEATURE_SERIES_51,            \
 }
 
-#define NRF5_DEVICE_DEF(id, pt, var, bcode, fsize, features) \
-{                                                   \
-.hwid          = (id),                              \
-.part          = pt,                                \
-.variant       = var,                               \
-.build_code    = bcode,                             \
-.flash_size_kb = (fsize),                           \
-.features      = features,                          \
-}
-
-/* The known devices table below is derived from the "nRF5x series
- * compatibility matrix" documents, which can be found in the "DocLib" of
- * nordic:
+/*
+ * The table maps known HWIDs to the part numbers, variant
+ * build code and some other info. For nRF51 rev 1 and 2 devices
+ * this is the only way how to get the part number and variant.
  *
- * https://www.nordicsemi.com/DocLib/Content/Comp_Matrix/nRF51/latest/COMP/nrf51/nRF51422_ic_revision_overview
- * https://www.nordicsemi.com/DocLib/Content/Comp_Matrix/nRF51/latest/COMP/nrf51/nRF51822_ic_revision_overview
- * https://www.nordicsemi.com/DocLib/Content/Comp_Matrix/nRF51/latest/COMP/nrf51/nRF51824_ic_revision_overview
- * https://www.nordicsemi.com/DocLib/Content/Comp_Matrix/nRF52810/latest/COMP/nrf52810/nRF52810_ic_revision_overview
- * https://www.nordicsemi.com/DocLib/Content/Comp_Matrix/nRF52832/latest/COMP/nrf52832/ic_revision_overview
- * https://www.nordicsemi.com/DocLib/Content/Comp_Matrix/nRF52840/latest/COMP/nrf52840/nRF52840_ic_revision_overview
+ * All tested nRF51 rev 3 devices have FICR INFO fields
+ * but the fields are not documented in RM so we keep HWIDs in
+ * this table.
+ *
+ * nRF52 and newer devices have FICR INFO documented, the autodetection
+ * can rely on it and HWIDs table is not used.
+ *
+ * The known devices table below is derived from the "nRF5x series
+ * compatibility matrix" documents.
  *
  * Up to date with Matrix v2.0, plus some additional HWIDs.
  *
@@ -248,19 +245,6 @@ static const struct nrf5_device_spec nrf5_known_devices_table[] = {
 
 	/* The driver fully autodetects nRF52 series devices by FICR INFO,
 	 * no need for nRF52xxx HWIDs in this table */
-#if 0
-	/* nRF52810 Devices */
-	NRF5_DEVICE_DEF(0x0142, "52810", "QFAA", "B0",    192,	NRF5_FEATURE_SERIES_52 | NRF5_FEATURE_BPROT),
-	NRF5_DEVICE_DEF(0x0143, "52810", "QCAA", "C0",    192,	NRF5_FEATURE_SERIES_52 | NRF5_FEATURE_BPROT),
-
-	/* nRF52832 Devices */
-	NRF5_DEVICE_DEF(0x00C7, "52832", "QFAA", "B0",    512,	NRF5_FEATURE_SERIES_52 | NRF5_FEATURE_BPROT),
-	NRF5_DEVICE_DEF(0x0139, "52832", "QFAA", "E0",    512,	NRF5_FEATURE_SERIES_52 | NRF5_FEATURE_BPROT),
-	NRF5_DEVICE_DEF(0x00E3, "52832", "CIAA", "B0",    512,	NRF5_FEATURE_SERIES_52 | NRF5_FEATURE_BPROT),
-
-	/* nRF52840 Devices */
-	NRF5_DEVICE_DEF(0x0150, "52840", "QIAA", "C0",    1024,	NRF5_FEATURE_SERIES_52 | NRF5_FEATURE_ACL_PROT),
-#endif
 };
 
 struct nrf5_device_package {
