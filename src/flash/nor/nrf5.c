@@ -271,27 +271,9 @@ const struct flash_driver nrf5_flash, nrf51_flash;
 static bool nrf5_bank_is_probed(const struct flash_bank *bank)
 {
 	struct nrf5_bank *nbank = bank->driver_priv;
-
 	assert(nbank);
 
 	return nbank->probed;
-}
-static int nrf5_probe(struct flash_bank *bank);
-
-static int nrf5_get_probed_chip_if_halted(struct flash_bank *bank, struct nrf5_info **chip)
-{
-	if (bank->target->state != TARGET_HALTED) {
-		LOG_ERROR("Target not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
-
-	struct nrf5_bank *nbank = bank->driver_priv;
-	*chip = nbank->chip;
-
-	if (nrf5_bank_is_probed(bank))
-		return ERROR_OK;
-
-	return nrf5_probe(bank);
 }
 
 static int nrf5_wait_for_nvmc(struct nrf5_info *chip)
@@ -420,9 +402,10 @@ static int nrf5_protect_check_clenr0(struct flash_bank *bank)
 {
 	int res;
 	uint32_t clenr0;
-	struct nrf5_bank *nbank = bank->driver_priv;
-	struct nrf5_info *chip = nbank->chip;
 
+	struct nrf5_bank *nbank = bank->driver_priv;
+	assert(nbank);
+	struct nrf5_info *chip = nbank->chip;
 	assert(chip);
 
 	res = target_read_u32(chip->target, NRF51_FICR_CLENR0,
@@ -451,8 +434,8 @@ static int nrf5_protect_check_clenr0(struct flash_bank *bank)
 static int nrf5_protect_check_bprot(struct flash_bank *bank)
 {
 	struct nrf5_bank *nbank = bank->driver_priv;
+	assert(nbank);
 	struct nrf5_info *chip = nbank->chip;
-
 	assert(chip);
 
 	static uint32_t nrf5_bprot_offsets[4] = { 0x600, 0x604, 0x610, 0x614 };
@@ -482,8 +465,8 @@ static int nrf5_protect_check(struct flash_bank *bank)
 		return ERROR_OK;
 
 	struct nrf5_bank *nbank = bank->driver_priv;
+	assert(nbank);
 	struct nrf5_info *chip = nbank->chip;
-
 	assert(chip);
 
 	if (chip->features & NRF5_FEATURE_BPROT)
@@ -501,8 +484,11 @@ static int nrf5_protect_clenr0(struct flash_bank *bank, int set, unsigned int fi
 {
 	int res;
 	uint32_t clenr0, ppfc;
+
 	struct nrf5_bank *nbank = bank->driver_priv;
+	assert(nbank);
 	struct nrf5_info *chip = nbank->chip;
+	assert(chip);
 
 	if (first != 0) {
 		LOG_ERROR("Code region 0 must start at the beginning of the bank");
@@ -559,18 +545,21 @@ error:
 static int nrf5_protect(struct flash_bank *bank, int set, unsigned int first,
 		unsigned int last)
 {
-	int res;
-	struct nrf5_info *chip;
-
 	/* UICR cannot be write protected so just bail out early */
 	if (bank->base == NRF5_UICR_BASE) {
 		LOG_ERROR("UICR page does not support protection");
 		return ERROR_FLASH_OPER_UNSUPPORTED;
 	}
 
-	res = nrf5_get_probed_chip_if_halted(bank, &chip);
-	if (res != ERROR_OK)
-		return res;
+	if (bank->target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	struct nrf5_bank *nbank = bank->driver_priv;
+	assert(nbank);
+	struct nrf5_info *chip = nbank->chip;
+	assert(chip);
 
 	if (chip->features & NRF5_FEATURE_SERIES_51)
 		return nrf5_protect_clenr0(bank, set, first, last);
@@ -631,7 +620,9 @@ static int get_nrf5_chip_type_str(const struct nrf5_info *chip, char *buf, unsig
 static int nrf5_info(struct flash_bank *bank, struct command_invocation *cmd)
 {
 	struct nrf5_bank *nbank = bank->driver_priv;
+	assert(nbank);
 	struct nrf5_info *chip = nbank->chip;
+	assert(chip);
 
 	char chip_type_str[256];
 	if (get_nrf5_chip_type_str(chip, chip_type_str, sizeof(chip_type_str)) != ERROR_OK)
@@ -748,8 +739,11 @@ static int nrf5_get_ram_size(struct target *target, uint32_t *ram_size)
 static int nrf5_probe(struct flash_bank *bank)
 {
 	int res;
+
 	struct nrf5_bank *nbank = bank->driver_priv;
+	assert(nbank);
 	struct nrf5_info *chip = nbank->chip;
+	assert(chip);
 	struct target *target = chip->target;
 
 	uint32_t configid;
@@ -1017,11 +1011,17 @@ static int nrf5_ll_flash_write(struct nrf5_info *chip, uint32_t address, const u
 static int nrf5_write(struct flash_bank *bank, const uint8_t *buffer,
 					uint32_t offset, uint32_t count)
 {
-	struct nrf5_info *chip;
+	int res;
 
-	int res = nrf5_get_probed_chip_if_halted(bank, &chip);
-	if (res != ERROR_OK)
-		return res;
+	if (bank->target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	struct nrf5_bank *nbank = bank->driver_priv;
+	assert(nbank);
+	struct nrf5_info *chip = nbank->chip;
+	assert(chip);
 
 	assert(offset % 4 == 0);
 	assert(count % 4 == 0);
@@ -1074,11 +1074,16 @@ static int nrf5_erase(struct flash_bank *bank, unsigned int first,
 		unsigned int last)
 {
 	int res;
-	struct nrf5_info *chip;
 
-	res = nrf5_get_probed_chip_if_halted(bank, &chip);
-	if (res != ERROR_OK)
-		return res;
+	if (bank->target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	struct nrf5_bank *nbank = bank->driver_priv;
+	assert(nbank);
+	struct nrf5_info *chip = nbank->chip;
+	assert(chip);
 
 	/* UICR CLENR0 based protection used on nRF51 prevents erase
 	 * absolutely silently. NVMC has no flag to indicate the protection
@@ -1115,6 +1120,7 @@ static int nrf5_erase(struct flash_bank *bank, unsigned int first,
 static void nrf5_free_driver_priv(struct flash_bank *bank)
 {
 	struct nrf5_bank *nbank = bank->driver_priv;
+	assert(nbank);
 	struct nrf5_info *chip = nbank->chip;
 	if (!chip)
 		return;
@@ -1206,11 +1212,15 @@ COMMAND_HANDLER(nrf5_handle_mass_erase_command)
 
 	assert(bank);
 
-	struct nrf5_info *chip;
+	if (target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
 
-	res = nrf5_get_probed_chip_if_halted(bank, &chip);
-	if (res != ERROR_OK)
-		return res;
+	struct nrf5_bank *nbank = bank->driver_priv;
+	assert(nbank);
+	struct nrf5_info *chip = nbank->chip;
+	assert(chip);
 
 	if (chip->features & NRF5_FEATURE_SERIES_51) {
 		uint32_t ppfc;
@@ -1253,11 +1263,10 @@ COMMAND_HANDLER(nrf5_handle_info_command)
 
 	assert(bank);
 
-	struct nrf5_info *chip;
-
-	res = nrf5_get_probed_chip_if_halted(bank, &chip);
-	if (res != ERROR_OK)
-		return res;
+	struct nrf5_bank *nbank = bank->driver_priv;
+	assert(nbank);
+	struct nrf5_info *chip = nbank->chip;
+	assert(chip);
 
 	static struct {
 		const uint32_t address;
