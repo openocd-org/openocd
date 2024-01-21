@@ -19,8 +19,7 @@
 #include <helper/time_support.h>
 #include <helper/bits.h>
 
-/* Both those values are constant across the current spectrum ofr nRF5 devices */
-#define WATCHDOG_REFRESH_REGISTER       0x40010600
+/* The refresh code is constant across the current spectrum of nRF5 devices */
 #define WATCHDOG_REFRESH_VALUE          0x6e524635
 
 enum {
@@ -28,12 +27,9 @@ enum {
 };
 
 enum nrf5_ficr_registers {
-	NRF5_FICR_BASE = 0x10000000, /* Factory Information Configuration Registers */
+	NRF51_52_FICR_BASE = 0x10000000, /* Factory Information Configuration Registers */
 
-#define NRF5_FICR_REG(offset) (NRF5_FICR_BASE + offset)
-
-	NRF5_FICR_CODEPAGESIZE		= NRF5_FICR_REG(0x010),
-	NRF5_FICR_CODESIZE		= NRF5_FICR_REG(0x014),
+#define NRF5_FICR_REG(offset) (NRF51_52_FICR_BASE + (offset))
 
 	NRF51_FICR_CLENR0		= NRF5_FICR_REG(0x028),
 	NRF51_FICR_PPFC			= NRF5_FICR_REG(0x02C),
@@ -42,39 +38,23 @@ enum nrf5_ficr_registers {
 	NRF51_FICR_SIZERAMBLOCK1	= NRF5_FICR_REG(0x03C),
 	NRF51_FICR_SIZERAMBLOCK2	= NRF5_FICR_REG(0x040),
 	NRF51_FICR_SIZERAMBLOCK3	= NRF5_FICR_REG(0x044),
-
-	/* CONFIGID is documented on nRF51 series only.
-	 * On nRF52 is present but not documented */
-	NRF5_FICR_CONFIGID		= NRF5_FICR_REG(0x05C),
-
-	/* Following registers are available on nRF52 and on nRF51 since rev 3 */
-	NRF5_FICR_INFO_PART			= NRF5_FICR_REG(0x100),
-	NRF5_FICR_INFO_VARIANT		= NRF5_FICR_REG(0x104),
-	NRF5_FICR_INFO_PACKAGE		= NRF5_FICR_REG(0x108),
-	NRF5_FICR_INFO_RAM			= NRF5_FICR_REG(0x10C),
-	NRF5_FICR_INFO_FLASH		= NRF5_FICR_REG(0x110),
 };
 
 enum nrf5_uicr_registers {
-	NRF5_UICR_BASE = 0x10001000, /* User Information
+	NRF51_52_UICR_BASE = 0x10001000, /* User Information
 				       * Configuration Registers */
 
-#define NRF5_UICR_REG(offset) (NRF5_UICR_BASE + offset)
+#define NRF5_UICR_REG(offset) (NRF51_52_UICR_BASE + (offset))
 
 	NRF51_UICR_CLENR0	= NRF5_UICR_REG(0x000),
 };
 
 enum nrf5_nvmc_registers {
-	NRF5_NVMC_BASE = 0x4001E000, /* Non-Volatile Memory
-				       * Controller Registers */
-
-#define NRF5_NVMC_REG(offset) (NRF5_NVMC_BASE + offset)
-
-	NRF5_NVMC_READY	= NRF5_NVMC_REG(0x400),
-	NRF5_NVMC_CONFIG	= NRF5_NVMC_REG(0x504),
-	NRF5_NVMC_ERASEPAGE	= NRF5_NVMC_REG(0x508),
-	NRF5_NVMC_ERASEALL	= NRF5_NVMC_REG(0x50C),
-	NRF5_NVMC_ERASEUICR	= NRF5_NVMC_REG(0x514),
+	NRF5_NVMC_READY		= 0x400,
+	NRF5_NVMC_CONFIG	= 0x504,
+	NRF5_NVMC_ERASEPAGE	= 0x508,
+	NRF5_NVMC_ERASEALL	= 0x50C,
+	NRF5_NVMC_ERASEUICR	= 0x514,
 
 	NRF5_BPROT_BASE = 0x40000000,
 };
@@ -110,6 +90,28 @@ struct nrf5_device_spec {
 	enum nrf5_features features;
 };
 
+/* FICR registers offsets */
+struct nrf5_ficr_map {
+	uint32_t codepagesize;
+	uint32_t codesize;
+	uint32_t configid;
+	uint32_t info_part;
+	uint32_t info_variant;
+	uint32_t info_package;
+	uint32_t info_ram;
+	uint32_t info_flash;
+};
+
+/* Map of device */
+struct nrf5_map {
+	uint32_t flash_base;
+	uint32_t ficr_base;
+	uint32_t uicr_base;
+	uint32_t nvmc_base;
+
+	uint32_t watchdog_refresh_addr;
+};
+
 struct nrf5_info {
 	unsigned int refcount;
 
@@ -127,6 +129,9 @@ struct nrf5_info {
 	enum nrf5_features features;
 	unsigned int flash_size_kb;
 	unsigned int ram_size_kb;
+
+	const struct nrf5_map *map;
+	const struct nrf5_ficr_map *ficr_offsets;
 };
 
 #define NRF51_DEVICE_DEF(id, pt, var, bcode, fsize) \
@@ -238,6 +243,31 @@ static const struct nrf5_device_package nrf52_packages_table[] = {
 	{ 0x2009, "CF" },
 };
 
+static const struct nrf5_ficr_map nrf51_52_ficr_offsets = {
+	.codepagesize = 0x10,
+	.codesize = 0x14,
+
+	/* CONFIGID is documented on nRF51 series only.
+	 * On nRF52 is present but not documented */
+	.configid = 0x5c,
+
+	/* Following registers are available on nRF52 and on nRF51 since rev 3 */
+	.info_part = 0x100,
+	.info_variant = 0x104,
+	.info_package = 0x108,
+	.info_ram = 0x10c,
+	.info_flash = 0x110,
+};
+
+static const struct nrf5_map nrf51_52_map = {
+	.flash_base = NRF5_FLASH_BASE,
+	.ficr_base = NRF51_52_FICR_BASE,
+	.uicr_base = NRF51_52_UICR_BASE,
+	.nvmc_base = 0x4001E000,
+
+	.watchdog_refresh_addr = 0x40010600,
+};
+
 const struct flash_driver nrf5_flash, nrf51_flash;
 
 static bool nrf5_bank_is_probed(const struct flash_bank *bank)
@@ -248,6 +278,24 @@ static bool nrf5_bank_is_probed(const struct flash_bank *bank)
 	return nbank->probed;
 }
 
+static bool nrf5_bank_is_uicr(const struct nrf5_bank *nbank)
+{
+	struct nrf5_info *chip = nbank->chip;
+	assert(chip);
+
+	return nbank == &chip->bank[1];
+}
+
+static int nrf5_nvmc_read_u32(struct nrf5_info *chip, uint32_t reg_offset, uint32_t *value)
+{
+	return target_read_u32(chip->target, chip->map->nvmc_base + reg_offset, value);
+}
+
+static int nrf5_nvmc_write_u32(struct nrf5_info *chip, uint32_t reg_offset, uint32_t value)
+{
+	return target_write_u32(chip->target, chip->map->nvmc_base + reg_offset, value);
+}
+
 static int nrf5_wait_for_nvmc(struct nrf5_info *chip)
 {
 	uint32_t ready;
@@ -256,7 +304,7 @@ static int nrf5_wait_for_nvmc(struct nrf5_info *chip)
 	int64_t ts_start = timeval_ms();
 
 	do {
-		res = target_read_u32(chip->target, NRF5_NVMC_READY, &ready);
+		res = nrf5_nvmc_read_u32(chip, NRF5_NVMC_READY, &ready);
 		if (res != ERROR_OK) {
 			LOG_ERROR("Error waiting NVMC_READY: generic flash write/erase error (check protection etc...)");
 			return res;
@@ -276,7 +324,7 @@ static int nrf5_wait_for_nvmc(struct nrf5_info *chip)
 static int nrf5_nvmc_erase_enable(struct nrf5_info *chip)
 {
 	int res;
-	res = target_write_u32(chip->target,
+	res = nrf5_nvmc_write_u32(chip,
 			       NRF5_NVMC_CONFIG,
 			       NRF5_NVMC_CONFIG_EEN);
 
@@ -299,7 +347,7 @@ static int nrf5_nvmc_erase_enable(struct nrf5_info *chip)
 static int nrf5_nvmc_write_enable(struct nrf5_info *chip)
 {
 	int res;
-	res = target_write_u32(chip->target,
+	res = nrf5_nvmc_write_u32(chip,
 			       NRF5_NVMC_CONFIG,
 			       NRF5_NVMC_CONFIG_WEN);
 
@@ -322,7 +370,7 @@ static int nrf5_nvmc_write_enable(struct nrf5_info *chip)
 static int nrf5_nvmc_read_only(struct nrf5_info *chip)
 {
 	int res;
-	res = target_write_u32(chip->target,
+	res = nrf5_nvmc_write_u32(chip,
 			       NRF5_NVMC_CONFIG,
 			       NRF5_NVMC_CONFIG_REN);
 
@@ -350,7 +398,7 @@ static int nrf5_nvmc_generic_erase(struct nrf5_info *chip,
 	if (res != ERROR_OK)
 		goto error;
 
-	res = target_write_u32(chip->target,
+	res = nrf5_nvmc_write_u32(chip,
 			       erase_register,
 			       erase_value);
 	if (res != ERROR_OK)
@@ -370,7 +418,8 @@ error:
 	return ERROR_FAIL;
 }
 
-static int nrf5_protect_check_clenr0(struct flash_bank *bank)
+/* nRF51 series only */
+static int nrf51_protect_check_clenr0(struct flash_bank *bank)
 {
 	int res;
 	uint32_t clenr0;
@@ -403,7 +452,8 @@ static int nrf5_protect_check_clenr0(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-static int nrf5_protect_check_bprot(struct flash_bank *bank)
+/* nRF52 series only */
+static int nrf52_protect_check_bprot(struct flash_bank *bank)
 {
 	struct nrf5_bank *nbank = bank->driver_priv;
 	assert(nbank);
@@ -432,26 +482,27 @@ static int nrf5_protect_check_bprot(struct flash_bank *bank)
 
 static int nrf5_protect_check(struct flash_bank *bank)
 {
-	/* UICR cannot be write protected so just return early */
-	if (bank->base == NRF5_UICR_BASE)
-		return ERROR_OK;
-
 	struct nrf5_bank *nbank = bank->driver_priv;
 	assert(nbank);
 	struct nrf5_info *chip = nbank->chip;
 	assert(chip);
 
+	/* UICR cannot be write protected so just return early */
+	if (nrf5_bank_is_uicr(nbank))
+		return ERROR_OK;
+
 	if (chip->features & NRF5_FEATURE_BPROT)
-		return nrf5_protect_check_bprot(bank);
+		return nrf52_protect_check_bprot(bank);
 
 	if (chip->features & NRF5_FEATURE_SERIES_51)
-		return nrf5_protect_check_clenr0(bank);
+		return nrf51_protect_check_clenr0(bank);
 
 	LOG_WARNING("Flash protection of this nRF device is not supported");
 	return ERROR_FLASH_OPER_UNSUPPORTED;
 }
 
-static int nrf5_protect_clenr0(struct flash_bank *bank, int set, unsigned int first,
+/* nRF51 series only */
+static int nrf51_protect_clenr0(struct flash_bank *bank, int set, unsigned int first,
 		unsigned int last)
 {
 	int res;
@@ -517,8 +568,13 @@ error:
 static int nrf5_protect(struct flash_bank *bank, int set, unsigned int first,
 		unsigned int last)
 {
+	struct nrf5_bank *nbank = bank->driver_priv;
+	assert(nbank);
+	struct nrf5_info *chip = nbank->chip;
+	assert(chip);
+
 	/* UICR cannot be write protected so just bail out early */
-	if (bank->base == NRF5_UICR_BASE) {
+	if (nrf5_bank_is_uicr(nbank)) {
 		LOG_ERROR("UICR page does not support protection");
 		return ERROR_FLASH_OPER_UNSUPPORTED;
 	}
@@ -528,13 +584,8 @@ static int nrf5_protect(struct flash_bank *bank, int set, unsigned int first,
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	struct nrf5_bank *nbank = bank->driver_priv;
-	assert(nbank);
-	struct nrf5_info *chip = nbank->chip;
-	assert(chip);
-
 	if (chip->features & NRF5_FEATURE_SERIES_51)
-		return nrf5_protect_clenr0(bank, set, first, last);
+		return nrf51_protect_clenr0(bank, set, first, last);
 
 	LOG_ERROR("Flash protection setting is not supported on this nRF5 device");
 	return ERROR_FLASH_OPER_UNSUPPORTED;
@@ -564,7 +615,7 @@ static const char *nrf5_decode_info_package(uint32_t package)
 	return "xx";
 }
 
-static int get_nrf5_chip_type_str(const struct nrf5_info *chip, char *buf, unsigned int buf_size)
+static int nrf5_get_chip_type_str(const struct nrf5_info *chip, char *buf, unsigned int buf_size)
 {
 	int res;
 	if (chip->spec) {
@@ -597,7 +648,7 @@ static int nrf5_info(struct flash_bank *bank, struct command_invocation *cmd)
 	assert(chip);
 
 	char chip_type_str[256];
-	if (get_nrf5_chip_type_str(chip, chip_type_str, sizeof(chip_type_str)) != ERROR_OK)
+	if (nrf5_get_chip_type_str(chip, chip_type_str, sizeof(chip_type_str)) != ERROR_OK)
 		return ERROR_FAIL;
 
 	command_print_sameline(cmd, "%s %ukB Flash, %ukB RAM",
@@ -605,14 +656,16 @@ static int nrf5_info(struct flash_bank *bank, struct command_invocation *cmd)
 	return ERROR_OK;
 }
 
-static int nrf5_read_ficr_info(struct nrf5_info *chip)
+static int nrf5_read_ficr_info(struct nrf5_info *chip, const struct nrf5_map *map,
+							   const struct nrf5_ficr_map *ficr_offsets)
 {
 	int res;
 	struct target *target = chip->target;
+	uint32_t ficr_base = map->ficr_base;
 
 	chip->ficr_info_valid = false;
 
-	res = target_read_u32(target, NRF5_FICR_INFO_PART, &chip->ficr_info.part);
+	res = target_read_u32(target, ficr_base + ficr_offsets->info_part, &chip->ficr_info.part);
 	if (res != ERROR_OK) {
 		LOG_DEBUG("Couldn't read FICR INFO.PART register");
 		return res;
@@ -655,19 +708,19 @@ static int nrf5_read_ficr_info(struct nrf5_info *chip)
 	 * VARIANT and PACKAGE coding is unknown for a nRF51 device.
 	 * nRF52 devices have FICR INFO documented and always filled. */
 
-	res = target_read_u32(target, NRF5_FICR_INFO_VARIANT, &chip->ficr_info.variant);
+	res = target_read_u32(target, ficr_base + ficr_offsets->info_variant, &chip->ficr_info.variant);
 	if (res != ERROR_OK)
 		return res;
 
-	res = target_read_u32(target, NRF5_FICR_INFO_PACKAGE, &chip->ficr_info.package);
+	res = target_read_u32(target, ficr_base + ficr_offsets->info_package, &chip->ficr_info.package);
 	if (res != ERROR_OK)
 		return res;
 
-	res = target_read_u32(target, NRF5_FICR_INFO_RAM, &chip->ficr_info.ram);
+	res = target_read_u32(target, ficr_base + ficr_offsets->info_ram, &chip->ficr_info.ram);
 	if (res != ERROR_OK)
 		return res;
 
-	res = target_read_u32(target, NRF5_FICR_INFO_FLASH, &chip->ficr_info.flash);
+	res = target_read_u32(target, ficr_base + ficr_offsets->info_flash, &chip->ficr_info.flash);
 	if (res != ERROR_OK)
 		return res;
 
@@ -675,7 +728,8 @@ static int nrf5_read_ficr_info(struct nrf5_info *chip)
 	return ERROR_OK;
 }
 
-static int nrf5_get_ram_size(struct target *target, uint32_t *ram_size)
+/* nRF51 series only */
+static int nrf51_get_ram_size(struct target *target, uint32_t *ram_size)
 {
 	int res;
 
@@ -718,24 +772,33 @@ static int nrf5_probe(struct flash_bank *bank)
 	assert(chip);
 	struct target *target = chip->target;
 
-	uint32_t configid;
-	res = target_read_u32(target, NRF5_FICR_CONFIGID, &configid);
+	chip->spec = NULL;
+
+	/* guess a nRF51 series if the device has no FICR INFO and we don't know HWID */
+	chip->features = NRF5_FEATURE_SERIES_51;
+	chip->map = &nrf51_52_map;
+	chip->ficr_offsets = &nrf51_52_ficr_offsets;
+
+	/* Don't bail out on error for the case that some old engineering
+	 * sample has FICR INFO registers unreadable. We can proceed anyway. */
+	(void)nrf5_read_ficr_info(chip, chip->map, chip->ficr_offsets);
+
+	const struct nrf5_ficr_map *ficr_offsets = chip->ficr_offsets;
+	uint32_t ficr_base = chip->map->ficr_base;
+	uint32_t configid = 0;
+	res = target_read_u32(target, ficr_base + ficr_offsets->configid, &configid);
 	if (res != ERROR_OK) {
-		LOG_ERROR("Couldn't read CONFIGID register");
-		return res;
+		if (chip->features & NRF5_FEATURE_SERIES_51) {
+			LOG_ERROR("Couldn't read FICR CONFIGID register");
+			return res;
+		}
+
+		LOG_DEBUG("Couldn't read FICR CONFIGID register, using FICR INFO");
 	}
 
 	/* HWID is stored in the lower two bytes of the CONFIGID register */
 	chip->hwid = configid & 0xFFFF;
 
-	/* guess a nRF51 series if the device has no FICR INFO and we don't know HWID */
-	chip->features = NRF5_FEATURE_SERIES_51;
-
-	/* Don't bail out on error for the case that some old engineering
-	 * sample has FICR INFO registers unreadable. We can proceed anyway. */
-	(void)nrf5_read_ficr_info(chip);
-
-	chip->spec = NULL;
 	for (size_t i = 0; i < ARRAY_SIZE(nrf5_known_devices_table); i++) {
 		if (chip->hwid == nrf5_known_devices_table[i].hwid) {
 			chip->spec = &nrf5_known_devices_table[i];
@@ -753,15 +816,17 @@ static int nrf5_probe(struct flash_bank *bank)
 
 	if (chip->ficr_info_valid) {
 		chip->ram_size_kb = chip->ficr_info.ram;
-	} else {
+	} else if (chip->features & NRF5_FEATURE_SERIES_51) {
 		uint32_t ram_size;
-		nrf5_get_ram_size(target, &ram_size);
+		nrf51_get_ram_size(target, &ram_size);
 		chip->ram_size_kb = ram_size / 1024;
+	} else {
+		chip->ram_size_kb = 0;
 	}
 
-	/* The value stored in NRF5_FICR_CODEPAGESIZE is the number of bytes in one page of FLASH. */
+	/* The value stored in FICR CODEPAGESIZE is the number of bytes in one page of FLASH. */
 	uint32_t flash_page_size;
-	res = target_read_u32(chip->target, NRF5_FICR_CODEPAGESIZE,
+	res = target_read_u32(chip->target, ficr_base + ficr_offsets->codepagesize,
 				&flash_page_size);
 	if (res != ERROR_OK) {
 		LOG_ERROR("Couldn't read code page size");
@@ -769,9 +834,10 @@ static int nrf5_probe(struct flash_bank *bank)
 	}
 
 	/* Note the register name is misleading,
-	 * NRF5_FICR_CODESIZE is the number of pages in flash memory, not the number of bytes! */
+	 * FICR CODESIZE is the number of pages in flash memory, not the number of bytes! */
 	uint32_t num_sectors;
-	res = target_read_u32(chip->target, NRF5_FICR_CODESIZE, &num_sectors);
+	res = target_read_u32(chip->target, ficr_base + ficr_offsets->codesize,
+				&num_sectors);
 	if (res != ERROR_OK) {
 		LOG_ERROR("Couldn't read code memory size");
 		return res;
@@ -781,7 +847,7 @@ static int nrf5_probe(struct flash_bank *bank)
 
 	if (!chip->bank[0].probed && !chip->bank[1].probed) {
 		char chip_type_str[256];
-		if (get_nrf5_chip_type_str(chip, chip_type_str, sizeof(chip_type_str)) != ERROR_OK)
+		if (nrf5_get_chip_type_str(chip, chip_type_str, sizeof(chip_type_str)) != ERROR_OK)
 			return ERROR_FAIL;
 		const bool device_is_unknown = (!chip->spec && !chip->ficr_info_valid);
 		LOG_INFO("%s%s %ukB Flash, %ukB RAM",
@@ -793,7 +859,7 @@ static int nrf5_probe(struct flash_bank *bank)
 
 	free(bank->sectors);
 
-	if (bank->base == NRF5_FLASH_BASE) {
+	if (bank->base == chip->map->flash_base) {
 		/* Sanity check */
 		if (chip->spec && chip->flash_size_kb != chip->spec->flash_size_kb)
 			LOG_WARNING("Chip's reported Flash capacity does not match expected one");
@@ -810,6 +876,7 @@ static int nrf5_probe(struct flash_bank *bank)
 		chip->bank[0].probed = true;
 
 	} else {
+		/* UICR bank */
 		bank->num_sectors = 1;
 		bank->size = flash_page_size;
 
@@ -849,7 +916,7 @@ static int nrf5_erase_page(struct flash_bank *bank,
 
 	LOG_DEBUG("Erasing page at 0x%"PRIx32, sector->offset);
 
-	if (bank->base == NRF5_UICR_BASE) {
+	if (bank->base == chip->map->uicr_base) {
 		if (chip->features & NRF5_FEATURE_SERIES_51) {
 			uint32_t ppfc;
 			res = target_read_u32(chip->target, NRF51_FICR_PPFC,
@@ -958,7 +1025,7 @@ static int nrf5_ll_flash_write(struct nrf5_info *chip, uint32_t address, const u
 	buf_set_u32(reg_params[2].value, 0, 32, source->address + source->size);
 	buf_set_u32(reg_params[3].value, 0, 32, address);
 	buf_set_u32(reg_params[4].value, 0, 32, WATCHDOG_REFRESH_VALUE);
-	buf_set_u32(reg_params[5].value, 0, 32, WATCHDOG_REFRESH_REGISTER);
+	buf_set_u32(reg_params[5].value, 0, 32, chip->map->watchdog_refresh_addr);
 
 	retval = target_run_flash_async_algorithm(target, buffer, bytes/4, 4,
 			0, NULL,
@@ -1008,7 +1075,7 @@ static int nrf5_write(struct flash_bank *bank, const uint8_t *buffer,
 	 * is protected. */
 	if (chip->features & NRF5_FEATURE_SERIES_51) {
 
-		res = nrf5_protect_check_clenr0(bank);
+		res = nrf51_protect_check_clenr0(bank);
 		if (res != ERROR_OK)
 			return res;
 
@@ -1065,7 +1132,7 @@ static int nrf5_erase(struct flash_bank *bank, unsigned int first,
 	 * is protected. */
 	if (chip->features & NRF5_FEATURE_SERIES_51) {
 
-		res = nrf5_protect_check_clenr0(bank);
+		res = nrf51_protect_check_clenr0(bank);
 		if (res != ERROR_OK)
 			return res;
 	}
@@ -1136,7 +1203,7 @@ FLASH_BANK_COMMAND_HANDLER(nrf5_flash_bank_command)
 
 	switch (bank->base) {
 	case NRF5_FLASH_BASE:
-	case NRF5_UICR_BASE:
+	case NRF51_52_UICR_BASE:
 		break;
 	default:
 		LOG_ERROR("Invalid bank address " TARGET_ADDR_FMT, bank->base);
@@ -1157,7 +1224,7 @@ FLASH_BANK_COMMAND_HANDLER(nrf5_flash_bank_command)
 	case NRF5_FLASH_BASE:
 		nbank = &chip->bank[0];
 		break;
-	case NRF5_UICR_BASE:
+	case NRF51_52_UICR_BASE:
 		nbank = &chip->bank[1];
 		break;
 	}
