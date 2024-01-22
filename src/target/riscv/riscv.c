@@ -2712,9 +2712,17 @@ static int riscv_get_gdb_reg_list(struct target *target,
 
 static int riscv_arch_state(struct target *target)
 {
+	assert(target->state == TARGET_HALTED);
+	const bool semihosting_active = target->semihosting &&
+		target->semihosting->is_active;
+	LOG_USER("%s halted due to %s.%s",
+			target_name(target),
+			debug_reason_name(target),
+			semihosting_active ? " Semihosting is active." : "");
 	struct target_type *tt = get_target_type(target);
 	if (!tt)
 		return ERROR_FAIL;
+	assert(tt->arch_state);
 	return tt->arch_state(target);
 }
 
