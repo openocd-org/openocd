@@ -79,6 +79,9 @@ enum nrf5_features {
 	NRF5_FEATURE_SERIES_52	= BIT(1),
 	NRF5_FEATURE_BPROT		= BIT(2),
 	NRF5_FEATURE_ACL_PROT	= BIT(3),
+	NRF5_FEATURE_SERIES_53	= BIT(4),
+	NRF5_FEATURE_SERIES_91	= BIT(5),
+	NRF5_FEATURE_ERASE_BY_FLASH_WR = BIT(6),
 };
 
 struct nrf5_device_spec {
@@ -267,6 +270,55 @@ static const struct nrf5_map nrf51_52_map = {
 
 	.watchdog_refresh_addr = 0x40010600,
 };
+
+
+/* Third generation devices (nRF53, nRF91) */
+
+static const struct nrf5_ficr_map nrf53_91_ficr_offsets = {
+	.codepagesize = 0x220,
+	.codesize = 0x224,
+	.configid = 0x200,
+	.info_part = 0x20c,
+	.info_variant = 0x210,
+	.info_package = 0x214,
+	.info_ram = 0x218,
+	.info_flash = 0x21c,
+};
+
+enum {
+	NRF53APP_91_FICR_BASE = 0x00FF0000,
+	NRF53APP_91_UICR_BASE = 0x00FF8000,
+	NRF53NET_FLASH_BASE = 0x01000000,
+	NRF53NET_FICR_BASE = 0x01FF0000,
+	NRF53NET_UICR_BASE = 0x01FF8000,
+};
+
+static const struct nrf5_map nrf53app_91_map = {
+	.flash_base = NRF5_FLASH_BASE,
+	.ficr_base = NRF53APP_91_FICR_BASE,
+	.uicr_base = NRF53APP_91_UICR_BASE,
+	.nvmc_base = 0x50039000,
+
+	.watchdog_refresh_addr = 0x50018600,
+};
+
+/* nRF53 duality:
+ * SoC consists of two Cortex-M33 cores:
+ * - application core with security extensions
+ * - network core
+ * Each core has its own RAM, flash, FICR and UICR
+ * The flash driver probes and handles flash and UICR of one core
+ * independently of those dedicated to the other core.
+ */
+static const struct nrf5_map nrf53net_map = {
+	.flash_base = NRF53NET_FLASH_BASE,
+	.ficr_base = NRF53NET_FICR_BASE,
+	.uicr_base = NRF53NET_UICR_BASE,
+	.nvmc_base = 0x41080000,
+
+	.watchdog_refresh_addr = 0x41080000,
+};
+
 
 const struct flash_driver nrf5_flash, nrf51_flash;
 
@@ -595,10 +647,15 @@ static int nrf5_get_chip_type_str(const struct nrf5_info *chip, char *buf, unsig
 	} else if (chip->ficr_info_valid) {
 		char variant[5];
 		nrf5_info_variant_to_str(chip->ficr_info.variant, variant);
-		res = snprintf(buf, buf_size, "nRF%" PRIx32 "-%s%.2s(build code: %s)",
-				chip->ficr_info.part,
-				nrf5_decode_info_package(chip->ficr_info.package),
-				variant, &variant[2]);
+		if (chip->features & (NRF5_FEATURE_SERIES_53 | NRF5_FEATURE_SERIES_91)) {
+			res = snprintf(buf, buf_size, "nRF%" PRIx32 "-%s",
+					chip->ficr_info.part, variant);
+		} else {
+			res = snprintf(buf, buf_size, "nRF%" PRIx32 "-%s%.2s(build code: %s)",
+					chip->ficr_info.part,
+					nrf5_decode_info_package(chip->ficr_info.package),
+					variant, &variant[2]);
+		}
 	} else {
 		res = snprintf(buf, buf_size, "nRF51xxx (HWID 0x%04" PRIx16 ")", chip->hwid);
 	}
@@ -627,26 +684,27 @@ static int nrf5_info(struct flash_bank *bank, struct command_invocation *cmd)
 	return ERROR_OK;
 }
 
-static int nrf5_read_ficr_info(struct nrf5_info *chip, const struct nrf5_map *map,
+static int nrf5_read_ficr_info_part(struct nrf5_info *chip, const struct nrf5_map *map,
 							   const struct nrf5_ficr_map *ficr_offsets)
 {
-	int res;
 	struct target *target = chip->target;
 	uint32_t ficr_base = map->ficr_base;
 
-	chip->ficr_info_valid = false;
-
-	res = target_read_u32(target, ficr_base + ficr_offsets->info_part, &chip->ficr_info.part);
-	if (res != ERROR_OK) {
+	int res = target_read_u32(target, ficr_base + ficr_offsets->info_part, &chip->ficr_info.part);
+	if (res != ERROR_OK)
 		LOG_DEBUG("Couldn't read FICR INFO.PART register");
-		return res;
-	}
+
+	return res;
+}
+
+static int nrf51_52_partno_check(struct nrf5_info *chip)
+{
 
 	uint32_t series = chip->ficr_info.part & 0xfffff000;
 	switch (series) {
 	case 0x51000:
 		chip->features = NRF5_FEATURE_SERIES_51;
-		break;
+		return ERROR_OK;
 
 	case 0x52000:
 		chip->features = NRF5_FEATURE_SERIES_52;
@@ -665,19 +723,40 @@ static int nrf5_read_ficr_info(struct nrf5_info *chip, const struct nrf5_map *ma
 			chip->features |= NRF5_FEATURE_ACL_PROT;
 			break;
 		}
-		break;
+		return ERROR_OK;
 
 	default:
 		LOG_DEBUG("FICR INFO likely not implemented. Invalid PART value 0x%08"
-				PRIx32, chip->ficr_info.part);
+					PRIx32, chip->ficr_info.part);
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
+}
 
-	/* Now we know the device has FICR INFO filled by something relevant:
-	 * Although it is not documented, the tested nRF51 rev 3 devices
-	 * have FICR INFO.PART, RAM and FLASH of the same format as nRF52.
-	 * VARIANT and PACKAGE coding is unknown for a nRF51 device.
-	 * nRF52 devices have FICR INFO documented and always filled. */
+static int nrf53_91_partno_check(struct nrf5_info *chip)
+{
+	uint32_t series = chip->ficr_info.part & 0xffffff00;
+	switch (series) {
+	case 0x5300:
+		chip->features = NRF5_FEATURE_SERIES_53 | NRF5_FEATURE_ERASE_BY_FLASH_WR;
+		return ERROR_OK;
+
+	case 0x9100:
+		chip->features = NRF5_FEATURE_SERIES_91 | NRF5_FEATURE_ERASE_BY_FLASH_WR;
+		return ERROR_OK;
+
+	default:
+		LOG_DEBUG("Invalid FICR INFO PART value 0x%08"
+					PRIx32, chip->ficr_info.part);
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
+}
+
+static int nrf5_read_ficr_more_info(struct nrf5_info *chip)
+{
+	int res;
+	struct target *target = chip->target;
+	const struct nrf5_ficr_map *ficr_offsets = chip->ficr_offsets;
+	uint32_t ficr_base = chip->map->ficr_base;
 
 	res = target_read_u32(target, ficr_base + ficr_offsets->info_variant, &chip->ficr_info.variant);
 	if (res != ERROR_OK)
@@ -692,11 +771,7 @@ static int nrf5_read_ficr_info(struct nrf5_info *chip, const struct nrf5_map *ma
 		return res;
 
 	res = target_read_u32(target, ficr_base + ficr_offsets->info_flash, &chip->ficr_info.flash);
-	if (res != ERROR_OK)
-		return res;
-
-	chip->ficr_info_valid = true;
-	return ERROR_OK;
+	return res;
 }
 
 /* nRF51 series only */
@@ -735,7 +810,7 @@ static int nrf51_get_ram_size(struct target *target, uint32_t *ram_size)
 
 static int nrf5_probe(struct flash_bank *bank)
 {
-	int res;
+	int res = ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 
 	struct nrf5_bank *nbank = bank->driver_priv;
 	assert(nbank);
@@ -744,15 +819,72 @@ static int nrf5_probe(struct flash_bank *bank)
 	struct target *target = chip->target;
 
 	chip->spec = NULL;
+	chip->ficr_info_valid = false;
 
-	/* guess a nRF51 series if the device has no FICR INFO and we don't know HWID */
-	chip->features = NRF5_FEATURE_SERIES_51;
-	chip->map = &nrf51_52_map;
-	chip->ficr_offsets = &nrf51_52_ficr_offsets;
+	/* First try to detect nRF53/91 */
+	switch (bank->base) {
+	case NRF5_FLASH_BASE:
+	case NRF53APP_91_UICR_BASE:
+		res = nrf5_read_ficr_info_part(chip, &nrf53app_91_map, &nrf53_91_ficr_offsets);
+		if (res != ERROR_OK)
+			break;
 
-	/* Don't bail out on error for the case that some old engineering
-	 * sample has FICR INFO registers unreadable. We can proceed anyway. */
-	(void)nrf5_read_ficr_info(chip, chip->map, chip->ficr_offsets);
+		res = nrf53_91_partno_check(chip);
+		if (res != ERROR_OK)
+			break;
+
+		chip->map = &nrf53app_91_map;
+		chip->ficr_offsets = &nrf53_91_ficr_offsets;
+		break;
+
+	case NRF53NET_FLASH_BASE:
+	case NRF53NET_UICR_BASE:
+		res = nrf5_read_ficr_info_part(chip, &nrf53net_map, &nrf53_91_ficr_offsets);
+		if (res != ERROR_OK)
+			break;
+
+		res = nrf53_91_partno_check(chip);
+		if (res != ERROR_OK)
+			break;
+
+		chip->map = &nrf53net_map;
+		chip->ficr_offsets = &nrf53_91_ficr_offsets;
+		break;
+
+	default:
+		break;
+	}
+
+	/* If nRF53/91 is not detected, try nRF51/52 */
+	if (res != ERROR_OK) {
+		/* Guess a nRF51 series if the device has no FICR INFO and we don't know HWID */
+		chip->features = NRF5_FEATURE_SERIES_51;
+		chip->map = &nrf51_52_map;
+		chip->ficr_offsets = &nrf51_52_ficr_offsets;
+
+		/* Don't bail out on error for the case that some old engineering
+		 * sample has FICR INFO registers unreadable. We can proceed anyway. */
+		res = nrf5_read_ficr_info_part(chip, chip->map, chip->ficr_offsets);
+		if (res == ERROR_OK)
+			res = nrf51_52_partno_check(chip);
+	}
+
+	if (res == ERROR_OK) {
+		/* Now we know the device has FICR INFO filled by something relevant:
+		 * Although it is not documented, the tested nRF51 rev 3 devices
+		 * have FICR INFO.PART, RAM and FLASH of the same format as nRF52.
+		 * VARIANT and PACKAGE coding is unknown for a nRF51 device.
+		 * nRF52 devices have FICR INFO documented and always filled. */
+		res = nrf5_read_ficr_more_info(chip);
+		if (res == ERROR_OK) {
+			chip->ficr_info_valid = true;
+		} else if (chip->features & NRF5_FEATURE_SERIES_51) {
+			LOG_DEBUG("Couldn't read some of FICR INFO registers");
+		} else {
+			LOG_ERROR("Couldn't read some of FICR INFO registers");
+			return res;
+		}
+	}
 
 	const struct nrf5_ficr_map *ficr_offsets = chip->ficr_offsets;
 	uint32_t ficr_base = chip->map->ficr_base;
@@ -903,6 +1035,9 @@ static int nrf5_erase_page(struct flash_bank *bank,
 		}
 
 		res = nrf5_nvmc_write_u32(chip, NRF5_NVMC_ERASEUICR, 0x00000001);
+
+	} else if (chip->features & NRF5_FEATURE_ERASE_BY_FLASH_WR) {
+		res = target_write_u32(chip->target, bank->base + sector->offset, 0xffffffff);
 
 	} else {
 		res = nrf5_nvmc_write_u32(chip, NRF5_NVMC_ERASEPAGE, sector->offset);
@@ -1175,7 +1310,10 @@ FLASH_BANK_COMMAND_HANDLER(nrf5_flash_bank_command)
 
 	switch (bank->base) {
 	case NRF5_FLASH_BASE:
+	case NRF53NET_FLASH_BASE:
 	case NRF51_52_UICR_BASE:
+	case NRF53APP_91_UICR_BASE:
+	case NRF53NET_UICR_BASE:
 		break;
 	default:
 		LOG_ERROR("Invalid bank address " TARGET_ADDR_FMT, bank->base);
@@ -1194,9 +1332,12 @@ FLASH_BANK_COMMAND_HANDLER(nrf5_flash_bank_command)
 
 	switch (bank->base) {
 	case NRF5_FLASH_BASE:
+	case NRF53NET_FLASH_BASE:
 		nbank = &chip->bank[0];
 		break;
 	case NRF51_52_UICR_BASE:
+	case NRF53APP_91_UICR_BASE:
+	case NRF53NET_UICR_BASE:
 		nbank = &chip->bank[1];
 		break;
 	}

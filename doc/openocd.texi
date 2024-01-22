@@ -7316,12 +7316,13 @@ flash bank $_FLASHNAME npcx 0x64000000 0 0 0 $_TARGETNAME
 @end deffn
 
 @deffn {Flash Driver} {nrf5}
-All members of the nRF51 microcontroller families from Nordic Semiconductor
-include internal flash and use ARM Cortex-M0 core. nRF52 family powered
-by ARM Cortex-M4 or M4F core is supported too. nRF52832 is fully supported
-including BPROT flash protection scheme. nRF52833 and nRF52840 devices are
-supported with the exception of security extensions (flash access control list
-- ACL).
+Supports all members of the nRF51, nRF52 and nRF53 microcontroller families from
+Nordic Semiconductor. nRF91 family is supported too. One driver handles both
+the main flash and the UICR area.
+
+Flash protection is handled on nRF51 family and nRF52805, nRF52810, nRF52811,
+nRF52832 devices. Flash access control list (ACL) protection scheme of the newer
+devices is not supported.
 
 @example
 flash bank $_FLASHNAME nrf5 0 0x00000000 0 0 $_TARGETNAME
