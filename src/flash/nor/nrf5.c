@@ -375,7 +375,7 @@ static int nrf5_nvmc_read_only(struct nrf5_info *chip)
 			       NRF5_NVMC_CONFIG_REN);
 
 	if (res != ERROR_OK) {
-		LOG_ERROR("Failed to enable read-only operation");
+		LOG_ERROR("Failed to disable write/erase operation");
 		return res;
 	}
 	/*
@@ -387,35 +387,6 @@ static int nrf5_nvmc_read_only(struct nrf5_info *chip)
 		LOG_ERROR("Read only enable did not complete");
 
 	return res;
-}
-
-static int nrf5_nvmc_generic_erase(struct nrf5_info *chip,
-			       uint32_t erase_register, uint32_t erase_value)
-{
-	int res;
-
-	res = nrf5_nvmc_erase_enable(chip);
-	if (res != ERROR_OK)
-		goto error;
-
-	res = nrf5_nvmc_write_u32(chip,
-			       erase_register,
-			       erase_value);
-	if (res != ERROR_OK)
-		goto set_read_only;
-
-	res = nrf5_wait_for_nvmc(chip);
-	if (res != ERROR_OK)
-		goto set_read_only;
-
-	return nrf5_nvmc_read_only(chip);
-
-set_read_only:
-	nrf5_nvmc_read_only(chip);
-error:
-	LOG_ERROR("Failed to erase reg: 0x%08"PRIx32" val: 0x%08"PRIx32,
-		  erase_register, erase_value);
-	return ERROR_FAIL;
 }
 
 /* nRF51 series only */
@@ -900,13 +871,6 @@ static int nrf5_auto_probe(struct flash_bank *bank)
 	return nrf5_probe(bank);
 }
 
-static int nrf5_erase_all(struct nrf5_info *chip)
-{
-	LOG_DEBUG("Erasing all non-volatile memory");
-	return nrf5_nvmc_generic_erase(chip,
-					NRF5_NVMC_ERASEALL,
-					0x00000001);
-}
 
 static int nrf5_erase_page(struct flash_bank *bank,
 							struct nrf5_info *chip,
@@ -938,17 +902,18 @@ static int nrf5_erase_page(struct flash_bank *bank,
 			}
 		}
 
-		res = nrf5_nvmc_generic_erase(chip,
-					       NRF5_NVMC_ERASEUICR,
-					       0x00000001);
-
+		res = nrf5_nvmc_write_u32(chip, NRF5_NVMC_ERASEUICR, 0x00000001);
 
 	} else {
-		res = nrf5_nvmc_generic_erase(chip,
-					       NRF5_NVMC_ERASEPAGE,
-					       sector->offset);
+		res = nrf5_nvmc_write_u32(chip, NRF5_NVMC_ERASEPAGE, sector->offset);
 	}
 
+	if (res != ERROR_OK) {
+		/* caller logs the error */
+		return res;
+	}
+
+	res = nrf5_wait_for_nvmc(chip);
 	return res;
 }
 
@@ -1137,13 +1102,18 @@ static int nrf5_erase(struct flash_bank *bank, unsigned int first,
 			return res;
 	}
 
+	res = nrf5_nvmc_erase_enable(chip);
+	if (res != ERROR_OK)
+		goto error;
+
 	/* For each sector to be erased */
 	for (unsigned int s = first; s <= last; s++) {
 
 		if (chip->features & NRF5_FEATURE_SERIES_51
 				&& bank->sectors[s].is_protected == 1) {
 			LOG_ERROR("Flash sector %d is protected", s);
-			return ERROR_FLASH_PROTECTED;
+			res = ERROR_FLASH_PROTECTED;
+			break;
 		}
 
 		res = nrf5_erase_page(bank, chip, &bank->sectors[s]);
@@ -1153,7 +1123,9 @@ static int nrf5_erase(struct flash_bank *bank, unsigned int first,
 		}
 	}
 
-	return ERROR_OK;
+error:
+	nrf5_nvmc_read_only(chip);
+	return res;
 }
 
 static void nrf5_free_driver_priv(struct flash_bank *bank)
@@ -1277,14 +1249,27 @@ COMMAND_HANDLER(nrf5_handle_mass_erase_command)
 		}
 	}
 
-	res = nrf5_erase_all(chip);
+	res = nrf5_nvmc_erase_enable(chip);
+	if (res != ERROR_OK)
+		goto error;
+
+	res = nrf5_nvmc_write_u32(chip, NRF5_NVMC_ERASEALL, 0x00000001);
+	if (res != ERROR_OK) {
+		LOG_ERROR("Mass erase failed");
+		goto error;
+	}
+
+	res = nrf5_wait_for_nvmc(chip);
+	if (res != ERROR_OK)
+		LOG_ERROR("Mass erase did not complete");
+
+error:
+	nrf5_nvmc_read_only(chip);
+
 	if (res == ERROR_OK) {
 		LOG_INFO("Mass erase completed.");
 		if (chip->features & NRF5_FEATURE_SERIES_51)
 			LOG_INFO("A reset or power cycle is required if the flash was protected before.");
-
-	} else {
-		LOG_ERROR("Failed to erase the chip");
 	}
 
 	return res;
