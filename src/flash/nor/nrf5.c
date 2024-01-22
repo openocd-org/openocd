@@ -285,6 +285,22 @@ static const struct nrf5_ficr_map nrf53_91_ficr_offsets = {
 	.info_flash = 0x21c,
 };
 
+/* Since nRF9160 Product Specification v2.1 there is
+ * a new UICR field SIPINFO, which should be preferred.
+ * The original INFO fields describe just a part of the chip
+ * (PARTNO=9120 at nRF9161)
+ */
+static const struct nrf5_ficr_map nrf91new_ficr_offsets = {
+	.codepagesize = 0x220,
+	.codesize = 0x224,
+	.configid = 0x200,
+	.info_part = 0x140,		/* SIPINFO.PARTNO */
+	.info_variant = 0x148,	/* SIPINFO.VARIANT */
+	.info_package = 0x214,
+	.info_ram = 0x218,
+	.info_flash = 0x21c,
+};
+
 enum {
 	NRF53APP_91_FICR_BASE = 0x00FF0000,
 	NRF53APP_91_UICR_BASE = 0x00FF8000,
@@ -614,12 +630,17 @@ static int nrf5_protect(struct flash_bank *bank, int set, unsigned int first,
 	return ERROR_FLASH_OPER_UNSUPPORTED;
 }
 
-static bool nrf5_info_variant_to_str(uint32_t variant, char *bf)
+static bool nrf5_info_variant_to_str(uint32_t variant, char *bf, bool swap)
 {
 	uint8_t b[4];
 
-	h_u32_to_be(b, variant);
-	if (isalnum(b[0]) && isalnum(b[1]) && isalnum(b[2]) && isalnum(b[3])) {
+	if (swap)
+		h_u32_to_le(b, variant);
+	else
+		h_u32_to_be(b, variant);
+
+	if (isalnum(b[0]) && isalnum(b[1]) && isalnum(b[2]) &&
+		 (isalnum(b[3]) || b[3] == 0)) {
 		memcpy(bf, b, 4);
 		bf[4] = 0;
 		return true;
@@ -646,7 +667,10 @@ static int nrf5_get_chip_type_str(const struct nrf5_info *chip, char *buf, unsig
 				chip->spec->part, chip->spec->variant, chip->spec->build_code);
 	} else if (chip->ficr_info_valid) {
 		char variant[5];
-		nrf5_info_variant_to_str(chip->ficr_info.variant, variant);
+
+		nrf5_info_variant_to_str(chip->ficr_info.variant, variant,
+								chip->features & NRF5_FEATURE_SERIES_91);
+
 		if (chip->features & (NRF5_FEATURE_SERIES_53 | NRF5_FEATURE_SERIES_91)) {
 			res = snprintf(buf, buf_size, "nRF%" PRIx32 "-%s",
 					chip->ficr_info.part, variant);
@@ -825,6 +849,16 @@ static int nrf5_probe(struct flash_bank *bank)
 	switch (bank->base) {
 	case NRF5_FLASH_BASE:
 	case NRF53APP_91_UICR_BASE:
+		res = nrf5_read_ficr_info_part(chip, &nrf53app_91_map, &nrf91new_ficr_offsets);
+		if (res == ERROR_OK) {
+			res = nrf53_91_partno_check(chip);
+			if (res == ERROR_OK) {
+				chip->map = &nrf53app_91_map;
+				chip->ficr_offsets = &nrf91new_ficr_offsets;
+				break;
+			}
+		}
+
 		res = nrf5_read_ficr_info_part(chip, &nrf53app_91_map, &nrf53_91_ficr_offsets);
 		if (res != ERROR_OK)
 			break;
