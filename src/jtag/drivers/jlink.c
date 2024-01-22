@@ -2108,7 +2108,7 @@ static int jlink_swd_switch_seq(enum swd_special_seq seq)
 
 	switch (seq) {
 		case LINE_RESET:
-			LOG_DEBUG("SWD line reset");
+			LOG_DEBUG_IO("SWD line reset");
 			s = swd_seq_line_reset;
 			s_len = swd_seq_line_reset_len;
 			break;
@@ -2157,7 +2157,7 @@ static int jlink_swd_run_queue(void)
 	int i;
 	int ret;
 
-	LOG_DEBUG("Executing %d queued transactions", pending_scan_results_length);
+	LOG_DEBUG_IO("Executing %d queued transactions", pending_scan_results_length);
 
 	if (queued_retval != ERROR_OK) {
 		LOG_DEBUG("Skipping due to previous errors: %d", queued_retval);
