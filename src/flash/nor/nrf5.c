@@ -373,6 +373,12 @@ static int nrf5_wait_for_nvmc(struct nrf5_info *chip)
 
 	do {
 		res = nrf5_nvmc_read_u32(chip, NRF5_NVMC_READY, &ready);
+		if (res == ERROR_WAIT) {
+			/* The adapter does not handle SWD WAIT properly,
+			 * add some delay to reduce number of error messages */
+			alive_sleep(10);
+			continue;
+		}
 		if (res != ERROR_OK) {
 			LOG_ERROR("Error waiting NVMC_READY: generic flash write/erase error (check protection etc...)");
 			return res;
@@ -1072,6 +1078,22 @@ static int nrf5_erase_page(struct flash_bank *bank,
 
 	} else if (chip->features & NRF5_FEATURE_ERASE_BY_FLASH_WR) {
 		res = target_write_u32(chip->target, bank->base + sector->offset, 0xffffffff);
+		/* nRF9160 errata [2] NVMC: CPU code execution from RAM halted during
+		 * flash page erase operation
+		 * https://infocenter.nordicsemi.com/index.jsp?topic=%2Ferrata_nRF9160_Rev1%2FERR%2FnRF9160%2FRev1%2Flatest%2Fanomaly_160_2.html
+		 * affects also erasing by debugger MEM-AP write:
+		 *
+		 * Write to a flash address stalls the bus for 87 ms until
+		 * page erase finishes! This makes problems if the adapter does not
+		 * handle SWD WAIT properly or does not wait long enough.
+		 * Using a target algo would not help, AP gets unresponsive too.
+		 * Neither sending AP ABORT helps, the next AP access stalls again.
+		 * Simply wait long enough before accessing AP again...
+		 *
+		 * The same errata was observed in nRF9161
+		 */
+		if (chip->features & NRF5_FEATURE_SERIES_91)
+			alive_sleep(90);
 
 	} else {
 		res = nrf5_nvmc_write_u32(chip, NRF5_NVMC_ERASEPAGE, sector->offset);
