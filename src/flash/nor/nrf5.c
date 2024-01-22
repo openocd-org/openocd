@@ -17,6 +17,7 @@
 #include <target/armv7m.h>
 #include <helper/types.h>
 #include <helper/time_support.h>
+#include <helper/bits.h>
 
 /* Both those values are constant across the current spectrum ofr nRF5 devices */
 #define WATCHDOG_REFRESH_REGISTER       0x40010600
@@ -94,10 +95,10 @@ struct nrf52_ficr_info {
 };
 
 enum nrf5_features {
-	NRF5_FEATURE_SERIES_51	= 1 << 0,
-	NRF5_FEATURE_SERIES_52	= 1 << 1,
-	NRF5_FEATURE_BPROT		= 1 << 2,
-	NRF5_FEATURE_ACL_PROT	= 1 << 3,
+	NRF5_FEATURE_SERIES_51	= BIT(0),
+	NRF5_FEATURE_SERIES_52	= BIT(1),
+	NRF5_FEATURE_BPROT		= BIT(2),
+	NRF5_FEATURE_ACL_PROT	= BIT(3),
 };
 
 struct nrf5_device_spec {
