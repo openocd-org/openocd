@@ -861,6 +861,17 @@ COMMAND_HANDLER(openjtag_handle_variant_command)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(openjtag_handle_vid_pid_command)
+{
+	if (CMD_ARGC != 2)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	COMMAND_PARSE_NUMBER(u16, CMD_ARGV[0], openjtag_vid);
+	COMMAND_PARSE_NUMBER(u16, CMD_ARGV[1], openjtag_pid);
+
+	return ERROR_OK;
+}
+
 static const struct command_registration openjtag_subcommand_handlers[] = {
 	{
 		.name = "device_desc",
@@ -875,6 +886,13 @@ static const struct command_registration openjtag_subcommand_handlers[] = {
 		.mode = COMMAND_CONFIG,
 		.help = "set the OpenJTAG variant",
 		.usage = "variant-string",
+	},
+	{
+		.name = "vid_pid",
+		.handler = openjtag_handle_vid_pid_command,
+		.mode = COMMAND_CONFIG,
+		.help = "USB VID and PID of the adapter",
+		.usage = "vid pid",
 	},
 	COMMAND_REGISTRATION_DONE
 };
