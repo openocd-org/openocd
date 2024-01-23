@@ -671,14 +671,12 @@ static void openjtag_execute_reset(struct jtag_command *cmd)
 
 	uint8_t buf = 0x00;
 
-	if (cmd->cmd.reset->trst) {
-		buf = 0x03;
-	} else {
+	/* Pull SRST low for 5 TCLK cycles */
+	if (cmd->cmd.reset->srst) {
 		buf |= 0x04;
 		buf |= 0x05 << 4;
+		openjtag_add_byte(buf);
 	}
-
-	openjtag_add_byte(buf);
 }
 
 static void openjtag_execute_sleep(struct jtag_command *cmd)
@@ -691,8 +689,14 @@ static void openjtag_set_state(uint8_t openocd_state)
 	uint8_t state = openjtag_get_tap_state(openocd_state);
 
 	uint8_t buf = 0;
-	buf = 0x01;
-	buf |= state << 4;
+
+	if (state != OPENJTAG_TAP_RESET) {
+		buf = 0x01;
+		buf |= state << 4;
+	} else {
+		/* Force software TLR */
+		buf = 0x03;
+	}
 
 	openjtag_add_byte(buf);
 }
