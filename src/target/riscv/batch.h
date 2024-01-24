@@ -14,6 +14,67 @@ enum riscv_scan_type {
 	RISCV_SCAN_TYPE_WRITE,
 };
 
+/* These types are used to specify how many JTAG RTI cycles to add after a
+ * scan.
+ */
+enum riscv_scan_delay_class {
+	/* Delay needed for accessing debug module registers: */
+	RISCV_DELAY_BASE,
+	/* Delay for execution of an abstract command: */
+	RISCV_DELAY_ABSTRACT_COMMAND,
+	/* Delay for System Bus read operation: */
+	RISCV_DELAY_SYSBUS_READ,
+	/* Delay for System Bus write operation: */
+	RISCV_DELAY_SYSBUS_WRITE,
+};
+
+struct riscv_scan_delays {
+	/* The purpose of these delays is to be passed to "jtag_add_runtest()",
+	 * which accepts an "int".
+	 * Therefore, they should be no greater then "INT_MAX".
+	 */
+	unsigned int base_delay;
+	unsigned int ac_delay;
+	unsigned int sb_read_delay;
+	unsigned int sb_write_delay;
+};
+
+static inline unsigned int riscv_scan_get_delay(struct riscv_scan_delays delays,
+		enum riscv_scan_delay_class delay_class)
+{
+	switch (delay_class) {
+	case RISCV_DELAY_BASE:
+		return delays.base_delay;
+	case RISCV_DELAY_ABSTRACT_COMMAND:
+		return delays.ac_delay;
+	case RISCV_DELAY_SYSBUS_READ:
+		return delays.sb_read_delay;
+	case RISCV_DELAY_SYSBUS_WRITE:
+		return delays.sb_write_delay;
+	}
+	return 0;
+}
+
+static inline void riscv_scan_set_delay(struct riscv_scan_delays *delays,
+		enum riscv_scan_delay_class delay_class, unsigned int delay)
+{
+	assert(delay <= INT_MAX);
+	switch (delay_class) {
+	case RISCV_DELAY_BASE:
+		delays->base_delay = delay;
+		return;
+	case RISCV_DELAY_ABSTRACT_COMMAND:
+		delays->ac_delay = delay;
+		return;
+	case RISCV_DELAY_SYSBUS_READ:
+		delays->sb_read_delay = delay;
+		return;
+	case RISCV_DELAY_SYSBUS_WRITE:
+		delays->sb_write_delay = delay;
+		return;
+	}
+}
+
 /* A batch of multiple JTAG scans, which are grouped together to avoid the
  * overhead of some JTAG adapters when sending single commands.  This is
  * designed to support block copies, as that's what we actually need to go
@@ -27,6 +88,7 @@ struct riscv_batch {
 	uint8_t *data_out;
 	uint8_t *data_in;
 	struct scan_field *fields;
+	enum riscv_scan_delay_class *delay_classes;
 
 	/* If in BSCAN mode, this field will be allocated (one per scan),
 	   and utilized to tunnel all the scans in the batch.  If not in
@@ -48,8 +110,10 @@ struct riscv_batch {
 	 * However, RISC-V DMI "busy" condition could still have occurred.
 	 */
 	bool was_run;
-	/* Idle count used on the last run. Only valid after `was_run` is set. */
-	size_t used_idle_count;
+	/* Number of RTI cycles used by the last scan on the last run.
+	 * Only valid when `was_run` is set.
+	 */
+	unsigned int used_delay;
 };
 
 /* Allocates (or frees) a new scan set.  "scans" is the maximum number of JTAG
@@ -65,8 +129,8 @@ bool riscv_batch_full(struct riscv_batch *batch);
  * If batch is run for the first time, it is expected that "start" is zero.
  * It is expected that the batch ends with a DMI NOP operation.
  *
- * "idle_count" is the number of JTAG Run-Test-Idle cycles to add in-between
- * the scans.
+ * "idle_counts" specifies the number of JTAG Run-Test-Idle cycles to add
+ * after each scan depending on the delay class of the scan.
  *
  * If "resets_delays" is true, the algorithm will stop inserting idle cycles
  * (JTAG Run-Test-Idle) after "reset_delays_after" number of scans is
@@ -74,19 +138,21 @@ bool riscv_batch_full(struct riscv_batch *batch);
  * OpenOCD that are based on batches.
  */
 int riscv_batch_run_from(struct riscv_batch *batch, size_t start_idx,
-		size_t idle_count, bool resets_delays, size_t reset_delays_after);
+		struct riscv_scan_delays delays, bool resets_delays,
+		size_t reset_delays_after);
 
 /* Get the number of scans successfully executed form this batch. */
 size_t riscv_batch_finished_scans(const struct riscv_batch *batch);
 
 /* Adds a DM register write to this batch. */
 void riscv_batch_add_dm_write(struct riscv_batch *batch, uint64_t address, uint32_t data,
-	bool read_back);
+	bool read_back, enum riscv_scan_delay_class delay_class);
 
 /* DM register reads must be handled in two parts: the first one schedules a read and
  * provides a key, the second one actually obtains the result of the read -
  * status (op) and the actual data. */
-size_t riscv_batch_add_dm_read(struct riscv_batch *batch, uint64_t address);
+size_t riscv_batch_add_dm_read(struct riscv_batch *batch, uint64_t address,
+		enum riscv_scan_delay_class delay_class);
 unsigned int riscv_batch_get_dmi_read_op(const struct riscv_batch *batch, size_t key);
 uint32_t riscv_batch_get_dmi_read_data(const struct riscv_batch *batch, size_t key);
 

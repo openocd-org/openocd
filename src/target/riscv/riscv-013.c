@@ -719,12 +719,6 @@ static int dmi_write(struct target *target, uint32_t address, uint32_t value)
 	return dmi_op(target, NULL, NULL, DMI_OP_WRITE, address, value, false, true);
 }
 
-static int dmi_write_exec(struct target *target, uint32_t address,
-		uint32_t value, bool ensure_success)
-{
-	return dmi_op(target, NULL, NULL, DMI_OP_WRITE, address, value, true, ensure_success);
-}
-
 static uint32_t riscv013_get_dmi_address(const struct target *target, uint32_t address)
 {
 	assert(target);
@@ -780,16 +774,6 @@ static int dm_write(struct target *target, uint32_t address, uint32_t value)
 	if (!dm)
 		return ERROR_FAIL;
 	return dmi_write(target, address + dm->base, value);
-}
-
-static int dm_write_exec(struct target *target, uint32_t address,
-		uint32_t value, bool ensure_success)
-{
-	dm013_info_t *dm = get_dm(target);
-	if (!dm)
-		return ERROR_FAIL;
-	dm->abstract_cmd_maybe_busy = true;
-	return dmi_write_exec(target, address + dm->base, value, ensure_success);
 }
 
 static bool check_dbgbase_exists(struct target *target)
@@ -928,6 +912,49 @@ static int dm013_select_target(struct target *target)
 	return dm013_select_hart(target, info->index);
 }
 
+#define EXECUTE_ABSTRACT_COMMAND_BATCH_SIZE 2
+
+static size_t abstract_cmd_fill_batch(struct riscv_batch *batch,
+		uint32_t command)
+{
+	assert(riscv_batch_available_scans(batch)
+			>= EXECUTE_ABSTRACT_COMMAND_BATCH_SIZE);
+	riscv_batch_add_dm_write(batch, DM_COMMAND, command, /* read_back */ true,
+			RISCV_DELAY_ABSTRACT_COMMAND);
+	return riscv_batch_add_dm_read(batch, DM_ABSTRACTCS, RISCV_DELAY_BASE);
+}
+
+static int abstract_cmd_batch_check_and_clear_cmderr(struct target *target,
+		const struct riscv_batch *batch, size_t abstractcs_read_key,
+		uint32_t *cmderr)
+{
+	uint32_t abstractcs = riscv_batch_get_dmi_read_data(batch,
+			abstractcs_read_key);
+	int res;
+	LOG_DEBUG_REG(target, DM_ABSTRACTCS, abstractcs);
+	if (get_field32(abstractcs, DM_ABSTRACTCS_BUSY) != 0) {
+		res = wait_for_idle(target, &abstractcs);
+		if (res != ERROR_OK)
+			goto clear_cmderr;
+		increase_ac_busy_delay(target);
+	}
+	*cmderr = get_field32(abstractcs, DM_ABSTRACTCS_CMDERR);
+	if (*cmderr == CMDERR_NONE)
+		return ERROR_OK;
+	res = ERROR_FAIL;
+	LOG_TARGET_DEBUG(target,
+			"Abstract Command execution failed (abstractcs.cmderr = %" PRIx32 ").",
+			*cmderr);
+clear_cmderr:
+	/* Attempt to clear the error. */
+	/* TODO: can we add a more substantial recovery if the clear operation fails? */
+	if (dm_write(target, DM_ABSTRACTCS, DM_ABSTRACTCS_CMDERR) != ERROR_OK)
+		LOG_TARGET_ERROR(target, "could not clear abstractcs error");
+	return res;
+}
+
+static int batch_run_timeout(struct target *target, struct riscv_batch *batch);
+
 static int execute_abstract_command(struct target *target, uint32_t command,
 		uint32_t *cmderr)
 {
@@ -944,33 +971,36 @@ static int execute_abstract_command(struct target *target, uint32_t command,
 		}
 	}
 
-	if (dm_write_exec(target, DM_COMMAND, command, false /* ensure success */) != ERROR_OK)
+	dm013_info_t *dm = get_dm(target);
+	if (!dm)
 		return ERROR_FAIL;
 
-	uint32_t abstractcs;
-	int wait_result = wait_for_idle(target, &abstractcs);
-	if (wait_result != ERROR_OK) {
-		/* TODO: can we recover from this? */
-		if (wait_result == ERROR_TIMEOUT_REACHED)
-			LOG_TARGET_DEBUG(target, "command 0x%" PRIx32 " failed (timeout)", command);
-		else
-			LOG_TARGET_DEBUG(target, "command 0x%" PRIx32 " failed (unknown fatal error %d)", command, wait_result);
-		return wait_result;
-	}
-	*cmderr = get_field32(abstractcs, DM_ABSTRACTCS_CMDERR);
-	if (*cmderr != CMDERR_NONE) {
-		LOG_TARGET_DEBUG(target, "command 0x%" PRIx32 " failed; abstractcs=0x%" PRIx32,
-			command, abstractcs);
-		/* Attempt to clear the error. */
-		/* TODO: can we add a more substantial recovery if the clear operation fails ? */
-		if (dm_write(target, DM_ABSTRACTCS, DM_ABSTRACTCS_CMDERR) != ERROR_OK)
-			LOG_TARGET_ERROR(target, "could not clear abstractcs error");
-		return ERROR_FAIL;
-	}
+	struct riscv_batch *batch = riscv_batch_alloc(target,
+			EXECUTE_ABSTRACT_COMMAND_BATCH_SIZE);
+	const size_t abstractcs_read_key = abstract_cmd_fill_batch(batch, command);
 
-	return ERROR_OK;
+	/* Abstract commands are executed while running the batch. */
+	dm->abstract_cmd_maybe_busy = true;
+
+	int res = batch_run_timeout(target, batch);
+	if (res != ERROR_OK)
+		goto cleanup;
+
+	res = abstract_cmd_batch_check_and_clear_cmderr(target, batch,
+			abstractcs_read_key, cmderr);
+cleanup:
+	riscv_batch_free(batch);
+	return res;
 }
 
+/**
+ * Queue scans into a batch that read the value from abstract data registers:
+ * data[index] (and data[index+1] in case of 64-bit value).
+ *
+ * No extra DTM delay is added after the write to data[N]. It is assumed that
+ * this is a one-shot abstract command, that means no auto-execution is set up
+ * (abstractauto.autoexecdata bits are zero).
+ */
 static void abstract_data_read_fill_batch(struct riscv_batch *batch, unsigned int index,
 		unsigned int size_bits)
 {
@@ -980,7 +1010,7 @@ static void abstract_data_read_fill_batch(struct riscv_batch *batch, unsigned in
 	const unsigned int offset = index * size_in_words;
 	for (unsigned int i = 0; i < size_in_words; ++i) {
 		const unsigned int reg_address = DM_DATA0 + offset + i;
-		riscv_batch_add_dm_read(batch, reg_address);
+		riscv_batch_add_dm_read(batch, reg_address, RISCV_DELAY_BASE);
 	}
 }
 
@@ -999,8 +1029,6 @@ static riscv_reg_t abstract_data_get_from_batch(struct riscv_batch *batch,
 	return value;
 }
 
-static int batch_run_timeout(struct target *target, struct riscv_batch *batch);
-
 static int read_abstract_arg(struct target *target, riscv_reg_t *value,
 		unsigned int index, unsigned int size_bits)
 {
@@ -1017,6 +1045,32 @@ static int read_abstract_arg(struct target *target, riscv_reg_t *value,
 	return result;
 }
 
+/**
+ * Queue scans into a batch that write the value to abstract data registers:
+ * data[index] (and data[index+1] in case of 64-bit value).
+ *
+ * No extra DTM delay is added after the write to data[N]. It is assumed that
+ * this is a one-shot abstract command, that means no auto-execution is set up
+ * (abstractauto.autoexecdata bits are zero).
+ */
+static void abstract_data_write_fill_batch(struct riscv_batch *batch,
+		riscv_reg_t value, unsigned int index, unsigned int size_bits)
+{
+	assert(size_bits % 32 == 0);
+	const unsigned int size_in_words = size_bits / 32;
+	assert(value <= UINT32_MAX || size_in_words > 1);
+	const unsigned int offset = index * size_in_words;
+
+	for (unsigned int i = 0; i < size_in_words; ++i) {
+		const unsigned int reg_address = DM_DATA0 + offset + i;
+
+		riscv_batch_add_dm_write(batch, reg_address, (uint32_t)value,
+				/* read_back */ true, RISCV_DELAY_BASE);
+		value >>= 32;
+	}
+}
+
+/* TODO: reuse "abstract_data_write_fill_batch()" here*/
 static int write_abstract_arg(struct target *target, unsigned index,
 		riscv_reg_t value, unsigned size_bits)
 {
@@ -1130,7 +1184,10 @@ static int register_write_abstract(struct target *target, enum gdb_regno number,
 		riscv_reg_t value)
 {
 	RISCV013_INFO(info);
-	const unsigned int size = register_size(target, number);
+
+	dm013_info_t *dm = get_dm(target);
+	if (!dm)
+		return ERROR_FAIL;
 
 	if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31 &&
 			!info->abstract_write_fpr_supported)
@@ -1139,16 +1196,31 @@ static int register_write_abstract(struct target *target, enum gdb_regno number,
 			!info->abstract_write_csr_supported)
 		return ERROR_FAIL;
 
-	uint32_t command = access_register_command(target, number, size,
+	const unsigned int size_bits = register_size(target, number);
+	const uint32_t command = access_register_command(target, number, size_bits,
 			AC_ACCESS_REGISTER_TRANSFER |
 			AC_ACCESS_REGISTER_WRITE);
+	LOG_DEBUG_REG(target, AC_ACCESS_REGISTER, command);
+	assert(size_bits % 32 == 0);
+	const unsigned int size_in_words = size_bits / 32;
+	const unsigned int batch_size = size_in_words
+		+ EXECUTE_ABSTRACT_COMMAND_BATCH_SIZE;
+	struct riscv_batch * const batch = riscv_batch_alloc(target, batch_size);
 
-	if (write_abstract_arg(target, 0, value, size) != ERROR_OK)
-		return ERROR_FAIL;
+	abstract_data_write_fill_batch(batch, value, /*index*/ 0, size_bits);
+	const size_t abstractcs_read_key = abstract_cmd_fill_batch(batch, command);
+	/* Abstract commands are executed while running the batch. */
+	dm->abstract_cmd_maybe_busy = true;
+
+	int res = batch_run_timeout(target, batch);
+	if (res != ERROR_OK)
+		goto cleanup;
 
 	uint32_t cmderr;
-	int result = execute_abstract_command(target, command, &cmderr);
-	if (result != ERROR_OK) {
+	res = abstract_cmd_batch_check_and_clear_cmderr(target, batch,
+			abstractcs_read_key, &cmderr);
+
+	if (res != ERROR_OK) {
 		if (cmderr == CMDERR_NOT_SUPPORTED) {
 			if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
 				info->abstract_write_fpr_supported = false;
@@ -1158,10 +1230,10 @@ static int register_write_abstract(struct target *target, enum gdb_regno number,
 				LOG_TARGET_INFO(target, "Disabling abstract command writes to CSRs.");
 			}
 		}
-		return result;
 	}
-
-	return ERROR_OK;
+cleanup:
+	riscv_batch_free(batch);
+	return res;
 }
 
 /*
@@ -2686,12 +2758,28 @@ static int sb_write_address(struct target *target, target_addr_t address,
 		(uint32_t)address, false, ensure_success);
 }
 
-static int batch_run(struct target *target, struct riscv_batch *batch,
-		size_t idle_count)
+/* TODO: store delays in "struct riscv_scan_delays" and remove this function. */
+struct riscv_scan_delays get_scan_delays(struct target *target)
+{
+	RISCV013_INFO(info);
+	assert(info);
+	struct riscv_scan_delays delays;
+	riscv_scan_set_delay(&delays, RISCV_DELAY_BASE, info->dmi_busy_delay);
+	riscv_scan_set_delay(&delays, RISCV_DELAY_ABSTRACT_COMMAND, info->dmi_busy_delay +
+		info->ac_busy_delay);
+	riscv_scan_set_delay(&delays, RISCV_DELAY_SYSBUS_READ, info->dmi_busy_delay +
+		info->bus_master_read_delay);
+	riscv_scan_set_delay(&delays, RISCV_DELAY_SYSBUS_WRITE, info->dmi_busy_delay +
+		info->bus_master_write_delay);
+	return delays;
+}
+
+static int batch_run(struct target *target, struct riscv_batch *batch)
 {
 	RISCV_INFO(r);
 	riscv_batch_add_nop(batch);
-	const int result = riscv_batch_run_from(batch, 0, idle_count,
+	const int result = riscv_batch_run_from(batch, 0,
+			get_scan_delays(target),
 			/*resets_delays*/  r->reset_delays_wait >= 0,
 			r->reset_delays_wait);
 	/* TODO: To use `riscv_batch_finished_scans()` here, it is needed for
@@ -2713,12 +2801,12 @@ static int batch_run_timeout(struct target *target, struct riscv_batch *batch)
 
 	size_t finished_scans = 0;
 	const time_t start = time(NULL);
-	const size_t old_dmi_busy_delay = info->dmi_busy_delay;
+	const unsigned int old_dmi_busy_delay = info->dmi_busy_delay;
 	int result;
 	do {
 		RISCV_INFO(r);
 		result = riscv_batch_run_from(batch, finished_scans,
-				info->dmi_busy_delay,
+				get_scan_delays(target),
 				/*resets_delays*/  r->reset_delays_wait >= 0,
 				r->reset_delays_wait);
 		const size_t new_finished_scans = riscv_batch_finished_scans(batch);
@@ -2738,7 +2826,7 @@ static int batch_run_timeout(struct target *target, struct riscv_batch *batch)
 	assert(riscv_batch_was_batch_busy(batch));
 
 	/* Reset dmi_busy_delay, so the value doesn't get too big. */
-	LOG_TARGET_DEBUG(target, "dmi_busy_delay is restored to %zu.",
+	LOG_TARGET_DEBUG(target, "dmi_busy_delay is restored to %u.",
 			old_dmi_busy_delay);
 	info->dmi_busy_delay = old_dmi_busy_delay;
 
@@ -2828,7 +2916,8 @@ static int sample_memory_bus_v1(struct target *target,
 						sbcs_write |= DM_SBCS_SBREADONDATA;
 					sbcs_write |= sb_sbaccess(config->bucket[i].size_bytes);
 					if (!sbcs_valid || sbcs_write != sbcs) {
-						riscv_batch_add_dm_write(batch, DM_SBCS, sbcs_write, true);
+						riscv_batch_add_dm_write(batch, DM_SBCS, sbcs_write,
+								true, RISCV_DELAY_BASE);
 						sbcs = sbcs_write;
 						sbcs_valid = true;
 					}
@@ -2837,18 +2926,23 @@ static int sample_memory_bus_v1(struct target *target,
 							(!sbaddress1_valid ||
 							sbaddress1 != config->bucket[i].address >> 32)) {
 						sbaddress1 = config->bucket[i].address >> 32;
-						riscv_batch_add_dm_write(batch, DM_SBADDRESS1, sbaddress1, true);
+						riscv_batch_add_dm_write(batch, DM_SBADDRESS1,
+								sbaddress1, true, RISCV_DELAY_BASE);
 						sbaddress1_valid = true;
 					}
 					if (!sbaddress0_valid ||
 							sbaddress0 != (config->bucket[i].address & 0xffffffff)) {
 						sbaddress0 = config->bucket[i].address;
-						riscv_batch_add_dm_write(batch, DM_SBADDRESS0, sbaddress0, true);
+						riscv_batch_add_dm_write(batch, DM_SBADDRESS0,
+								sbaddress0, true,
+								RISCV_DELAY_SYSBUS_READ);
 						sbaddress0_valid = true;
 					}
 					if (config->bucket[i].size_bytes > 4)
-						riscv_batch_add_dm_read(batch, DM_SBDATA1);
-					riscv_batch_add_dm_read(batch, DM_SBDATA0);
+						riscv_batch_add_dm_read(batch, DM_SBDATA1,
+								RISCV_DELAY_SYSBUS_READ);
+					riscv_batch_add_dm_read(batch, DM_SBDATA0,
+							RISCV_DELAY_SYSBUS_READ);
 					result_bytes += 1 + config->bucket[i].size_bytes;
 				}
 			}
@@ -2859,10 +2953,10 @@ static int sample_memory_bus_v1(struct target *target,
 			break;
 		}
 
-		size_t sbcs_read_index = riscv_batch_add_dm_read(batch, DM_SBCS);
+		size_t sbcs_read_index = riscv_batch_add_dm_read(batch, DM_SBCS,
+				RISCV_DELAY_BASE);
 
-		int result = batch_run(target, batch,
-				info->dmi_busy_delay + info->bus_master_read_delay);
+		int result = batch_run(target, batch);
 		if (result != ERROR_OK) {
 			riscv_batch_free(batch);
 			return result;
@@ -4166,14 +4260,13 @@ static int read_memory_progbuf_inner_run_and_process_batch(struct target *target
 		struct riscv_batch *batch, struct memory_access_info access,
 		uint32_t start_index, uint32_t elements_to_read, uint32_t *elements_read)
 {
-	RISCV013_INFO(info);
 	dm013_info_t *dm = get_dm(target);
 	if (!dm)
 		return ERROR_FAIL;
 
 	/* Abstract commands are executed while running the batch. */
 	dm->abstract_cmd_maybe_busy = true;
-	if (batch_run(target, batch, info->dmi_busy_delay + info->ac_busy_delay) != ERROR_OK)
+	if (batch_run(target, batch) != ERROR_OK)
 		return ERROR_FAIL;
 
 	uint32_t abstractcs;
@@ -4220,9 +4313,15 @@ static uint32_t read_memory_progbuf_inner_fill_batch(struct riscv_batch *batch,
 	const uint32_t batch_capacity = riscv_batch_available_scans(batch) / reads_per_element;
 	const uint32_t end = MIN(batch_capacity, count);
 
-	for (uint32_t j = 0; j < end; ++j)
+	for (uint32_t j = 0; j < end; ++j) {
+		/* TODO: reuse "abstract_data_read_fill_batch()" here.
+		 * TODO: Only the read of "DM_DATA0" starts an abstract
+		 * command, so the other read can use "RISCV_DELAY_BASE"
+		 */
 		for (uint32_t i = 0; i < reads_per_element; ++i)
-			riscv_batch_add_dm_read(batch, used_regs[i]);
+			riscv_batch_add_dm_read(batch, used_regs[i],
+					RISCV_DELAY_ABSTRACT_COMMAND);
+	}
 	return end;
 }
 
@@ -4662,7 +4761,8 @@ static int write_memory_bus_v1(struct target *target, target_addr_t address,
 						(((uint32_t)p[13]) << 8) |
 						(((uint32_t)p[14]) << 16) |
 						(((uint32_t)p[15]) << 24);
-				riscv_batch_add_dm_write(batch, DM_SBDATA3, sbvalue[3], false);
+				riscv_batch_add_dm_write(batch, DM_SBDATA3, sbvalue[3], false,
+						RISCV_DELAY_BASE);
 			}
 
 			if (size > 8) {
@@ -4670,14 +4770,16 @@ static int write_memory_bus_v1(struct target *target, target_addr_t address,
 						(((uint32_t)p[9]) << 8) |
 						(((uint32_t)p[10]) << 16) |
 						(((uint32_t)p[11]) << 24);
-				riscv_batch_add_dm_write(batch, DM_SBDATA2, sbvalue[2], false);
+				riscv_batch_add_dm_write(batch, DM_SBDATA2, sbvalue[2], false,
+						RISCV_DELAY_BASE);
 			}
 			if (size > 4) {
 				sbvalue[1] = ((uint32_t)p[4]) |
 						(((uint32_t)p[5]) << 8) |
 						(((uint32_t)p[6]) << 16) |
 						(((uint32_t)p[7]) << 24);
-				riscv_batch_add_dm_write(batch, DM_SBDATA1, sbvalue[1], false);
+				riscv_batch_add_dm_write(batch, DM_SBDATA1, sbvalue[1], false,
+						RISCV_DELAY_BASE);
 			}
 
 			sbvalue[0] = p[0];
@@ -4688,7 +4790,8 @@ static int write_memory_bus_v1(struct target *target, target_addr_t address,
 			if (size > 1)
 				sbvalue[0] |= ((uint32_t)p[1]) << 8;
 
-			riscv_batch_add_dm_write(batch, DM_SBDATA0, sbvalue[0], false);
+			riscv_batch_add_dm_write(batch, DM_SBDATA0, sbvalue[0], false,
+						RISCV_DELAY_SYSBUS_WRITE);
 
 			log_memory_access(address + i * size, sbvalue, size, false);
 
@@ -4696,8 +4799,7 @@ static int write_memory_bus_v1(struct target *target, target_addr_t address,
 		}
 
 		/* Execute the batch of writes */
-		result = batch_run(target, batch,
-				info->dmi_busy_delay + info->bus_master_write_delay);
+		result = batch_run(target, batch);
 		riscv_batch_free(batch);
 		if (result != ERROR_OK)
 			return result;
@@ -4881,8 +4983,9 @@ static target_addr_t write_memory_progbuf_fill_batch(struct riscv_batch *batch,
 		log_memory_access64(address, value, size, /*is_read*/ false);
 		if (writes_per_element == 2)
 			riscv_batch_add_dm_write(batch, DM_DATA1,
-					(uint32_t)(value >> 32), false);
-		riscv_batch_add_dm_write(batch, DM_DATA0, (uint32_t)value, false);
+					(uint32_t)(value >> 32), false,	RISCV_DELAY_BASE);
+		riscv_batch_add_dm_write(batch, DM_DATA0, (uint32_t)value, false,
+				RISCV_DELAY_ABSTRACT_COMMAND);
 	}
 	return batch_end_address;
 }
@@ -4895,14 +4998,13 @@ static int write_memory_progbuf_run_batch(struct target *target, struct riscv_ba
 		target_addr_t *address_p, target_addr_t end_address, uint32_t size,
 		const uint8_t *buffer)
 {
-	RISCV013_INFO(info);
 	dm013_info_t *dm = get_dm(target);
 	if (!dm)
 		return ERROR_FAIL;
 
 	/* Abstract commands are executed while running the batch. */
 	dm->abstract_cmd_maybe_busy = true;
-	if (batch_run(target, batch, info->dmi_busy_delay + info->ac_busy_delay) != ERROR_OK)
+	if (batch_run(target, batch) != ERROR_OK)
 		return ERROR_FAIL;
 
 	/* Note that if the scan resulted in a Busy DMI response, it
