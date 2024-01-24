@@ -450,6 +450,7 @@ static int riscv_init_target(struct command_context *cmd_ctx,
 	LOG_TARGET_DEBUG(target, "riscv_init_target()");
 	RISCV_INFO(info);
 	info->cmd_ctx = cmd_ctx;
+	info->reset_delays_wait = -1;
 
 	select_dtmcontrol.num_bits = target->tap->ir_length;
 	select_dbus.num_bits = target->tap->ir_length;
@@ -3850,10 +3851,8 @@ COMMAND_HANDLER(riscv_reset_delays)
 {
 	int wait = 0;
 
-	if (CMD_ARGC > 1) {
-		LOG_ERROR("Command takes at most one argument");
+	if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	if (CMD_ARGC == 1)
 		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], wait);
@@ -6455,7 +6454,7 @@ int riscv_init_registers(struct target *target)
 	return ERROR_OK;
 }
 
-void riscv_add_bscan_tunneled_scan(struct target *target, struct scan_field *field,
+void riscv_add_bscan_tunneled_scan(struct target *target, const struct scan_field *field,
 					riscv_bscan_tunneled_scan_context_t *ctxt)
 {
 	jtag_add_ir_scan(target->tap, &select_user4, TAP_IDLE);

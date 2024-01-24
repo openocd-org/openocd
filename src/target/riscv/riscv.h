@@ -454,7 +454,7 @@ void riscv_semihosting_init(struct target *target);
 
 enum semihosting_result riscv_semihosting(struct target *target, int *retval);
 
-void riscv_add_bscan_tunneled_scan(struct target *target, struct scan_field *field,
+void riscv_add_bscan_tunneled_scan(struct target *target, const struct scan_field *field,
 		riscv_bscan_tunneled_scan_context_t *ctxt);
 
 int riscv_read_by_any_size(struct target *target, target_addr_t address, uint32_t size, uint8_t *buffer);

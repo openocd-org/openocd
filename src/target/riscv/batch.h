@@ -55,8 +55,15 @@ void riscv_batch_free(struct riscv_batch *batch);
 /* Checks to see if this batch is full. */
 bool riscv_batch_full(struct riscv_batch *batch);
 
-/* Executes this scan batch. */
-int riscv_batch_run(struct riscv_batch *batch);
+/* Executes this batch of JTAG DTM DMI scans.
+ *
+ * If resets_delays is true, the algorithm will stop inserting idle cycles
+ * (JTAG Run-Test Idle) after "reset_delays_after" number of scans is
+ * performed.  This is useful for stress-testing of RISC-V algorithms in
+ * OpenOCD that are based on batches.
+ */
+int riscv_batch_run(struct riscv_batch *batch, bool resets_delays,
+		size_t reset_delays_after);
 
 /* Adds a DM register write to this batch. */
 void riscv_batch_add_dm_write(struct riscv_batch *batch, uint64_t address, uint32_t data,

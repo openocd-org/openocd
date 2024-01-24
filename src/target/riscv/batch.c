@@ -89,7 +89,8 @@ bool riscv_batch_full(struct riscv_batch *batch)
 	return riscv_batch_available_scans(batch) == 0;
 }
 
-int riscv_batch_run(struct riscv_batch *batch)
+int riscv_batch_run(struct riscv_batch *batch, bool resets_delays,
+		size_t reset_delays_after)
 {
 	if (batch->used_scans == 0) {
 		LOG_TARGET_DEBUG(batch->target, "Ignoring empty batch.");
@@ -104,7 +105,9 @@ int riscv_batch_run(struct riscv_batch *batch)
 		else
 			jtag_add_dr_scan(batch->target->tap, 1, batch->fields + i, TAP_IDLE);
 
-		if (batch->idle_count > 0)
+		const bool delays_were_reset = resets_delays
+			&& (i >= reset_delays_after);
+		if (batch->idle_count > 0 && !delays_were_reset)
 			jtag_add_runtest(batch->idle_count, TAP_IDLE);
 	}
 
