@@ -4855,6 +4855,19 @@ struct target_type riscv013_target = {
 static int riscv013_get_register(struct target *target,
 		riscv_reg_t *value, enum gdb_regno rid)
 {
+	/* It would be beneficial to move this redirection to the
+	 * version-independent section, but there is a conflict:
+	 * `dcsr[5]` is `dcsr.v` in current spec, but it is `dcsr.debugint` in 0.11.
+	 */
+	if (rid == GDB_REGNO_PRIV) {
+		uint64_t dcsr;
+		if (riscv_get_register(target, &dcsr, GDB_REGNO_DCSR) != ERROR_OK)
+			return ERROR_FAIL;
+		*value = set_field(0, VIRT_PRIV_V, get_field(dcsr, CSR_DCSR_V));
+		*value = set_field(*value, VIRT_PRIV_PRV, get_field(dcsr, CSR_DCSR_PRV));
+		return ERROR_OK;
+	}
+
 	LOG_TARGET_DEBUG(target, "reading register %s",	gdb_regno_name(target, rid));
 
 	if (dm013_select_target(target) != ERROR_OK)
