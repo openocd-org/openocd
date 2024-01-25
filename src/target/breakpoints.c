@@ -338,6 +338,7 @@ int breakpoint_remove(struct target *target, target_addr_t address)
 		struct breakpoint *breakpoint = breakpoint_find(target, address);
 		if (breakpoint)
 			return breakpoint_free(target, target, breakpoint);
+		LOG_ERROR("no breakpoint at address " TARGET_ADDR_FMT " found", address);
 		return ERROR_BREAKPOINT_NOT_FOUND;
 	}
 
