@@ -280,13 +280,17 @@ static dm013_info_t *get_dm(struct target *target)
 	return dm;
 }
 
-static riscv_debug_reg_ctx_t get_riscv_debug_reg_ctx(struct target *target)
+static riscv_debug_reg_ctx_t get_riscv_debug_reg_ctx(const struct target *target)
 {
-	RISCV_INFO(r);
+	if (!target_was_examined(target)) {
+		const riscv_debug_reg_ctx_t default_context = {0};
+		return default_context;
+	}
+
 	RISCV013_INFO(info);
 	const riscv_debug_reg_ctx_t context = {
-		.XLEN = { .value = r->xlen, .is_set = true },
-		.DXLEN = { .value = r->xlen, .is_set = true },
+		.XLEN = { .value = riscv_xlen(target), .is_set = true },
+		.DXLEN = { .value = riscv_xlen(target), .is_set = true },
 		.abits = { .value = info->abits, .is_set = true },
 	};
 	return context;

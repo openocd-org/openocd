@@ -438,7 +438,7 @@ const char *target_type_name(struct target *target);
 int target_examine_one(struct target *target);
 
 /** @returns @c true if target_set_examined() has been called. */
-static inline bool target_was_examined(struct target *target)
+static inline bool target_was_examined(const struct target *target)
 {
 	return target->examined;
 }
