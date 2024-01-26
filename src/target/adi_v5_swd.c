@@ -193,6 +193,44 @@ static int swd_queue_dp_write_inner(struct adiv5_dap *dap, unsigned int reg,
 }
 
 
+static inline int swd_check_dpidr_in_loop(uint32_t dpidr)
+{
+	/* Without this check and with SWDIO pulled down a false DP detection
+	 * is possible on an unconnected SWD or when target does not respond:
+	 * The gradual drop of voltage at not driven SWDIO signal imposed
+	 * by discharging pins and wiring capacity can be misinterpreted
+	 * by the adapter as a valid read result:
+	 * ACK 100, RDATA 00000000000000000000000000000000, PARITY 0 */
+	if ((dpidr & BIT(0)) == 0) {
+		/* The helper is used in the loop waiting for successful connection.
+		 * Log to debug only, the error could be temporary */
+		LOG_DEBUG("Connecting DP: bad IDR value 0x%08" PRIx32
+				  ", bit 0 should read-as-one", dpidr);
+		return ERROR_FAIL;
+	}
+	return ERROR_OK;
+}
+
+static int swd_check_dpidr_final(struct adiv5_dap *dap, uint32_t dpidr)
+{
+	unsigned int dp_ver = (dpidr & DP_DPIDR_VERSION_MASK) >> DP_DPIDR_VERSION_SHIFT;
+
+	LOG_INFO("SWD DPIDR 0x%08" PRIx32 " DPv%u", dpidr, dp_ver);
+
+	if (is_adiv6(dap)) {
+		if (dp_ver < 3) {
+			LOG_ERROR("Connecting DP: ADIv6 requires DPv3");
+			return ERROR_FAIL;
+		}
+	} else {
+		if (dp_ver > 2) {
+			LOG_ERROR("Connecting DP: DPv3 requires dap create -adiv6 option");
+			return ERROR_FAIL;
+		}
+	}
+	return ERROR_OK;
+}
+
 static int swd_multidrop_select_inner(struct adiv5_dap *dap, uint32_t *dpidr_ptr,
 		uint32_t *dlpidr_ptr, uint32_t dp_abort)
 {
@@ -252,6 +290,10 @@ static int swd_multidrop_select_inner(struct adiv5_dap *dap, uint32_t *dpidr_ptr
 		return retval;
 
 	retval = swd_run_inner(dap);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = swd_check_dpidr_in_loop(dpidr);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -369,8 +411,9 @@ static int swd_connect_multidrop(struct adiv5_dap *dap)
 	}
 
 	swd_multidrop_in_swd_state = true;
-	LOG_INFO("SWD DPIDR 0x%08" PRIx32 ", DLPIDR 0x%08" PRIx32,
-			  dpidr, dlpidr);
+
+	retval = swd_check_dpidr_final(dap, dpidr);
+	LOG_INFO("multidrop DLPIDR 0x%08" PRIx32, dlpidr);
 
 	return retval;
 }
@@ -424,10 +467,14 @@ static int swd_connect_single(struct adiv5_dap *dap)
 			if (retval == ERROR_OK)
 				retval = swd_run_inner(dap);
 
+			if (retval == ERROR_OK) {
+				LOG_DEBUG("DP IDR 0x%08" PRIx32, dpidr);
+				retval = swd_check_dpidr_in_loop(dpidr);
+			}
+
 			dpidr_read_retval = retval;
 			if (retval == ERROR_OK) {
 				dpidr_was_read = true;
-				LOG_DEBUG("DP IDR 0x%08" PRIx32, dpidr);
 			} else {
 				dap->switch_through_dormant = !dap->switch_through_dormant;
 			}
@@ -519,11 +566,8 @@ static int swd_connect_single(struct adiv5_dap *dap)
 		}
 	}
 
-	if (dpidr_was_read)
-		LOG_INFO("SWD DPIDR 0x%08" PRIx32, dpidr);
-
 	if (retval == ERROR_OK)
-		return ERROR_OK;
+		return swd_check_dpidr_final(dap, dpidr);
 
 	if (dpidr_was_read)
 		LOG_ERROR("Error connecting DP: cannot write to ABORT / SELECT");
