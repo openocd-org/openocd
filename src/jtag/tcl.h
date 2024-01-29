@@ -20,8 +20,7 @@
 
 #include <helper/command.h>
 
-int jim_jtag_configure(Jim_Interp *interp, int argc,
-		Jim_Obj * const *argv);
+__COMMAND_HANDLER(handle_jtag_configure);
 __COMMAND_HANDLER(handle_jtag_tap_enabler);
 
 #endif /* OPENOCD_JTAG_TCL_H */

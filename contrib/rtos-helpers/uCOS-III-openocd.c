@@ -1,4 +1,13 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: Apache-2.0
+
+/*
+ * The original version of this file did not reported any license nor
+ * copyright, but the author clearly stated that:
+ * "This file should be linked along with the [uC/OS-III user's] project
+ *  to enable RTOS support for uC/OS-III."
+ * Such statement implies the willing to have this file's license compatible
+ * with the license Apache 2.0 of uC/OS-III.
+ */
 
 /*
  * uC/OS-III does not provide a fixed layout for OS_TCB, which makes it

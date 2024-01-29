@@ -127,7 +127,8 @@ static const struct command_registration hl_transport_jtag_subcommand_handlers[]
 	{
 	 .name = "cget",
 	 .mode = COMMAND_EXEC,
-	 .jim_handler = jim_jtag_configure,
+	 .handler = handle_jtag_configure,
+	 .usage = "",
 	 },
 	{
 	 .name = "names",
