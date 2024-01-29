@@ -118,6 +118,5 @@ COMMAND_HELPER(server_port_command, unsigned short *out);
 
 #define ERROR_SERVER_REMOTE_CLOSED		(-400)
 #define ERROR_CONNECTION_REJECTED		(-401)
-#define ERROR_SERVER_INTERRUPTED		(-402)
 
 #endif /* OPENOCD_SERVER_SERVER_H */

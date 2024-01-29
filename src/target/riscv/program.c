@@ -47,9 +47,6 @@ int riscv_program_exec(struct riscv_program *p, struct target *t)
 {
 	keep_alive();
 
-	if (openocd_is_shutdown_pending())
-		return ERROR_SERVER_INTERRUPTED;
-
 	p->execution_result = RISCV_PROGBUF_EXEC_RESULT_UNKNOWN;
 	riscv_reg_t saved_registers[GDB_REGNO_XPR31 + 1];
 	for (size_t i = GDB_REGNO_ZERO + 1; i <= GDB_REGNO_XPR31; ++i) {
