@@ -1874,6 +1874,12 @@ static int riscv_halt_go_all_harts(struct target *target)
 		return ERROR_FAIL;
 	if (state == RISCV_STATE_HALTED) {
 		LOG_TARGET_DEBUG(target, "Hart is already halted.");
+		if (target->state != TARGET_HALTED) {
+			target->state = TARGET_HALTED;
+			enum riscv_halt_reason halt_reason = riscv_halt_reason(target);
+			if (set_debug_reason(target, halt_reason) != ERROR_OK)
+				return ERROR_FAIL;
+		}
 	} else {
 		if (r->halt_go(target) != ERROR_OK)
 			return ERROR_FAIL;
