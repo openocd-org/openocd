@@ -10,6 +10,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <limits.h>
 
 /** Supported output drive modes for adaptor GPIO */
 enum adapter_gpio_drive_mode {
@@ -56,8 +57,8 @@ enum adapter_gpio_config_index {
 
 /** Configuration options for a single GPIO */
 struct adapter_gpio_config {
-	int gpio_num;
-	int chip_num;
+	unsigned int gpio_num;
+	unsigned int chip_num;
 	enum adapter_gpio_drive_mode drive; /* For outputs only */
 	enum adapter_gpio_init_state init_state;
 	bool active_low;
@@ -120,5 +121,7 @@ const char *adapter_gpio_get_name(enum adapter_gpio_config_index idx);
  * Retrieves gpio configuration set with command "adapter gpio <signal_name>"
  */
 const struct adapter_gpio_config *adapter_gpio_get_config(void);
+
+#define ADAPTER_GPIO_NOT_SET UINT_MAX
 
 #endif /* OPENOCD_JTAG_ADAPTER_H */

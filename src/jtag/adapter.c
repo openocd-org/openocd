@@ -94,8 +94,9 @@ static void adapter_driver_gpios_init(void)
 		return;
 
 	for (int i = 0; i < ADAPTER_GPIO_IDX_NUM; ++i) {
-		adapter_config.gpios[i].gpio_num = -1;
-		adapter_config.gpios[i].chip_num = -1;
+		/* Use ADAPTER_GPIO_NOT_SET as the sentinel 'unset' value. */
+		adapter_config.gpios[i].gpio_num = ADAPTER_GPIO_NOT_SET;
+		adapter_config.gpios[i].chip_num = ADAPTER_GPIO_NOT_SET;
 		if (gpio_map[i].direction == ADAPTER_GPIO_DIRECTION_INPUT)
 			adapter_config.gpios[i].init_state = ADAPTER_GPIO_INIT_STATE_INPUT;
 	}
@@ -848,6 +849,11 @@ static COMMAND_HELPER(helper_adapter_gpio_print_config, enum adapter_gpio_config
 	const char *pull = "";
 	const char *init_state = "";
 
+	if (gpio_config->gpio_num == ADAPTER_GPIO_NOT_SET) {
+		command_print(CMD, "adapter gpio %s: not configured", gpio_map[gpio_idx].name);
+		return ERROR_OK;
+	}
+
 	switch (gpio_map[gpio_idx].direction) {
 	case ADAPTER_GPIO_DIRECTION_INPUT:
 		dir = "input";
@@ -900,8 +906,8 @@ static COMMAND_HELPER(helper_adapter_gpio_print_config, enum adapter_gpio_config
 		}
 	}
 
-	command_print(CMD, "adapter gpio %s (%s): num %d, chip %d, active-%s%s%s%s",
-		gpio_map[gpio_idx].name, dir, gpio_config->gpio_num, gpio_config->chip_num, active_state,
+	command_print(CMD, "adapter gpio %s (%s): num %u, chip %d, active-%s%s%s%s",
+		gpio_map[gpio_idx].name, dir, gpio_config->gpio_num, (int)gpio_config->chip_num, active_state,
 		drive, pull, init_state);
 
 	return ERROR_OK;
@@ -942,9 +948,7 @@ COMMAND_HANDLER(adapter_gpio_config_handler)
 		LOG_DEBUG("Processing %s", CMD_ARGV[i]);
 
 		if (isdigit(*CMD_ARGV[i])) {
-			int gpio_num; /* Use a meaningful output parameter for more helpful error messages */
-			COMMAND_PARSE_NUMBER(int, CMD_ARGV[i], gpio_num);
-			gpio_config->gpio_num = gpio_num;
+			COMMAND_PARSE_NUMBER(uint, CMD_ARGV[i], gpio_config->gpio_num);
 			++i;
 			continue;
 		}
@@ -955,9 +959,7 @@ COMMAND_HANDLER(adapter_gpio_config_handler)
 				return ERROR_FAIL;
 			}
 			LOG_DEBUG("-chip arg is %s", CMD_ARGV[i + 1]);
-			int chip_num; /* Use a meaningful output parameter for more helpful error messages */
-			COMMAND_PARSE_NUMBER(int, CMD_ARGV[i + 1], chip_num);
-			gpio_config->chip_num = chip_num;
+			COMMAND_PARSE_NUMBER(uint, CMD_ARGV[i + 1], gpio_config->chip_num);
 			i += 2;
 			continue;
 		}
