@@ -315,7 +315,7 @@ __COMMAND_HANDLER(handle_jtag_configure)
 		const struct nvp *n = nvp_name2value(nvp_config_opts, CMD_ARGV[i]);
 		switch (n->value) {
 		case JCFG_EVENT:
-			if (i + (is_configure ? 3 : 2) >= CMD_ARGC) {
+			if (i + (is_configure ? 2 : 1) >= CMD_ARGC) {
 				command_print(CMD, "wrong # args: should be \"-event <event-name>%s\"",
 						is_configure ? " <event-body>" : "");
 				return ERROR_COMMAND_ARGUMENT_INVALID;
