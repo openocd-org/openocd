@@ -5161,6 +5161,38 @@ On ADIv6 DAP @var{ap_number} is the base address of the DAP AP the target is con
 Use this option with systems where multiple, independent cores are connected
 to separate access ports of the same DAP.
 
+@item @code{-dbgbase} @var{dbg_base_address} -- set the base address of the
+debug controller.
+This is ignored and not required for target types that have the debug controller
+at fixed addresses, like @code{cortex_m}.
+On DAP based SoC, OpenOCD can parse the ROM table in the DAP access port to
+identify the base address of the debug controller, but the parsing can be slow
+on devices with big ROM tables.
+While using @code{-dbgbase} is suggested to speed up the target examination,
+it is often the only viable solution for devices with incorrect ROM table
+content or with ROM table partially not accessible due to clock gating or
+power management.
+
+@item @code{-coreid} @var{coreid} -- set an index to identify the CPU or its
+debug controller.
+
+@itemize @minus
+@item When @code{-dbgbase} option is not provided on devices with multiple
+CPUs on the same DAP access port
+(e.g. @code{cortex_a}, @code{cortex_r4}, @code{aarch64} and @code{armv8r}),
+this option specifies that the ROM table parsing should select the CPU in
+position @var{coreid}.
+
+@item On target type @code{riscv}, @var{coreid} specifies the hart
+(HARdware Threads) on the DM (Debug Module). It is used on multi-hart
+devices to index a specific hart ID.
+When not present, it's default value is zero.
+
+@item This value @var{coreid} is currently also used in other contexts as a
+general CPU index, e.g. in SMP nodes or to select a specific CPU in a chip.
+To avoid confusion, these additional use cases are going to be dropped.
+@end itemize
+
 @item @code{-cti} @var{cti_name} -- set Cross-Trigger Interface (CTI) connected
 to the target. Currently, only the @code{aarch64} target makes use of this option,
 where it is a mandatory configuration for the target run control.
