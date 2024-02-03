@@ -2136,6 +2136,12 @@ static int examine(struct target *target)
 	if (riscv_get_hart_state(target, &state_at_examine_start) != ERROR_OK)
 		return ERROR_FAIL;
 
+	if (state_at_examine_start == RISCV_STATE_UNAVAILABLE) {
+		target->state = TARGET_UNAVAILABLE;
+		LOG_TARGET_INFO(target, "unavailable.");
+		return ERROR_FAIL;
+	}
+
 	RISCV_INFO(r);
 	const bool hart_halted_at_examine_start = state_at_examine_start == RISCV_STATE_HALTED;
 	if (!hart_halted_at_examine_start) {
