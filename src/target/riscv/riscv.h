@@ -231,10 +231,10 @@ struct riscv_info {
 	riscv_insn_t (*read_progbuf)(struct target *target, unsigned int index);
 	int (*execute_progbuf)(struct target *target, uint32_t *cmderr);
 	int (*invalidate_cached_progbuf)(struct target *target);
-	int (*dmi_write_u64_bits)(struct target *target);
-	void (*fill_dm_write_u64)(struct target *target, char *buf, int a, uint64_t d);
-	void (*fill_dm_read_u64)(struct target *target, char *buf, int a);
-	void (*fill_dm_nop_u64)(struct target *target, char *buf);
+	int (*get_dmi_scan_length)(struct target *target);
+	void (*fill_dm_write)(struct target *target, char *buf, uint64_t a, uint32_t d);
+	void (*fill_dm_read)(struct target *target, char *buf, uint64_t a);
+	void (*fill_dm_nop)(struct target *target, char *buf);
 
 	int (*authdata_read)(struct target *target, uint32_t *value, unsigned int index);
 	int (*authdata_write)(struct target *target, uint32_t value, unsigned int index);
@@ -429,10 +429,10 @@ riscv_insn_t riscv_read_progbuf(struct target *target, int index);
 int riscv_write_progbuf(struct target *target, int index, riscv_insn_t insn);
 int riscv_execute_progbuf(struct target *target, uint32_t *cmderr);
 
-void riscv_fill_dm_nop_u64(struct target *target, char *buf);
-void riscv_fill_dm_write_u64(struct target *target, char *buf, int a, uint64_t d);
-void riscv_fill_dm_read_u64(struct target *target, char *buf, int a);
-int riscv_dmi_write_u64_bits(struct target *target);
+void riscv_fill_dm_nop(struct target *target, char *buf);
+void riscv_fill_dm_write(struct target *target, char *buf, uint64_t a, uint32_t d);
+void riscv_fill_dm_read(struct target *target, char *buf, uint64_t a);
+int riscv_get_dmi_scan_length(struct target *target);
 
 int riscv_enumerate_triggers(struct target *target);
 

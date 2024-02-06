@@ -55,13 +55,13 @@ static riscv_insn_t riscv013_read_progbuf(struct target *target, unsigned int
 		index);
 static int riscv013_invalidate_cached_progbuf(struct target *target);
 static int riscv013_execute_progbuf(struct target *target, uint32_t *cmderr);
-static void riscv013_fill_dmi_write_u64(struct target *target, char *buf, int a, uint64_t d);
-static void riscv013_fill_dmi_read_u64(struct target *target, char *buf, int a);
-static int riscv013_dmi_write_u64_bits(struct target *target);
-static void riscv013_fill_dmi_nop_u64(struct target *target, char *buf);
-static void riscv013_fill_dm_write_u64(struct target *target, char *buf, int a, uint64_t d);
-static void riscv013_fill_dm_read_u64(struct target *target, char *buf, int a);
-static void riscv013_fill_dm_nop_u64(struct target *target, char *buf);
+static void riscv013_fill_dmi_write(struct target *target, char *buf, uint64_t a, uint32_t d);
+static void riscv013_fill_dmi_read(struct target *target, char *buf, uint64_t a);
+static void riscv013_fill_dmi_nop(struct target *target, char *buf);
+static int riscv013_get_dmi_scan_length(struct target *target);
+static void riscv013_fill_dm_write(struct target *target, char *buf, uint64_t a, uint32_t d);
+static void riscv013_fill_dm_read(struct target *target, char *buf, uint64_t a);
+static void riscv013_fill_dm_nop(struct target *target, char *buf);
 static unsigned int register_size(struct target *target, enum gdb_regno number);
 static int register_read_direct(struct target *target, riscv_reg_t *value,
 		enum gdb_regno number);
@@ -2767,10 +2767,10 @@ static int init_target(struct command_context *cmd_ctx,
 	generic_info->write_progbuf = &riscv013_write_progbuf;
 	generic_info->execute_progbuf = &riscv013_execute_progbuf;
 	generic_info->invalidate_cached_progbuf = &riscv013_invalidate_cached_progbuf;
-	generic_info->fill_dm_write_u64 = &riscv013_fill_dm_write_u64;
-	generic_info->fill_dm_read_u64 = &riscv013_fill_dm_read_u64;
-	generic_info->fill_dm_nop_u64 = &riscv013_fill_dm_nop_u64;
-	generic_info->dmi_write_u64_bits = &riscv013_dmi_write_u64_bits;
+	generic_info->fill_dm_write = &riscv013_fill_dm_write;
+	generic_info->fill_dm_read = &riscv013_fill_dm_read;
+	generic_info->fill_dm_nop = &riscv013_fill_dm_nop;
+	generic_info->get_dmi_scan_length = &riscv013_get_dmi_scan_length;
 	generic_info->authdata_read = &riscv013_authdata_read;
 	generic_info->authdata_write = &riscv013_authdata_write;
 	generic_info->dmi_read = &dmi_read;
@@ -5169,7 +5169,7 @@ static int riscv013_execute_progbuf(struct target *target, uint32_t *cmderr)
 	return execute_abstract_command(target, run_program, cmderr);
 }
 
-static void riscv013_fill_dmi_write_u64(struct target *target, char *buf, int a, uint64_t d)
+static void riscv013_fill_dmi_write(struct target *target, char *buf, uint64_t a, uint32_t d)
 {
 	RISCV013_INFO(info);
 	buf_set_u64((unsigned char *)buf, DTM_DMI_OP_OFFSET, DTM_DMI_OP_LENGTH, DMI_OP_WRITE);
@@ -5177,7 +5177,7 @@ static void riscv013_fill_dmi_write_u64(struct target *target, char *buf, int a,
 	buf_set_u64((unsigned char *)buf, DTM_DMI_ADDRESS_OFFSET, info->abits, a);
 }
 
-static void riscv013_fill_dmi_read_u64(struct target *target, char *buf, int a)
+static void riscv013_fill_dmi_read(struct target *target, char *buf, uint64_t a)
 {
 	RISCV013_INFO(info);
 	buf_set_u64((unsigned char *)buf, DTM_DMI_OP_OFFSET, DTM_DMI_OP_LENGTH, DMI_OP_READ);
@@ -5185,7 +5185,7 @@ static void riscv013_fill_dmi_read_u64(struct target *target, char *buf, int a)
 	buf_set_u64((unsigned char *)buf, DTM_DMI_ADDRESS_OFFSET, info->abits, a);
 }
 
-static void riscv013_fill_dmi_nop_u64(struct target *target, char *buf)
+static void riscv013_fill_dmi_nop(struct target *target, char *buf)
 {
 	RISCV013_INFO(info);
 	buf_set_u64((unsigned char *)buf, DTM_DMI_OP_OFFSET, DTM_DMI_OP_LENGTH, DMI_OP_NOP);
@@ -5193,31 +5193,31 @@ static void riscv013_fill_dmi_nop_u64(struct target *target, char *buf)
 	buf_set_u64((unsigned char *)buf, DTM_DMI_ADDRESS_OFFSET, info->abits, 0);
 }
 
-static int riscv013_dmi_write_u64_bits(struct target *target)
+static int riscv013_get_dmi_scan_length(struct target *target)
 {
 	RISCV013_INFO(info);
 	return info->abits + DTM_DMI_DATA_LENGTH + DTM_DMI_OP_LENGTH;
 }
 
-void riscv013_fill_dm_write_u64(struct target *target, char *buf, int a, uint64_t d)
+void riscv013_fill_dm_write(struct target *target, char *buf, uint64_t a, uint32_t d)
 {
 	dm013_info_t *dm = get_dm(target);
 	if (!dm)
 		return;
-	riscv013_fill_dmi_write_u64(target, buf, a + dm->base, d);
+	riscv013_fill_dmi_write(target, buf, a + dm->base, d);
 }
 
-void riscv013_fill_dm_read_u64(struct target *target, char *buf, int a)
+void riscv013_fill_dm_read(struct target *target, char *buf, uint64_t a)
 {
 	dm013_info_t *dm = get_dm(target);
 	if (!dm)
 		return;
-	riscv013_fill_dmi_read_u64(target, buf, a + dm->base);
+	riscv013_fill_dmi_read(target, buf, a + dm->base);
 }
 
-void riscv013_fill_dm_nop_u64(struct target *target, char *buf)
+void riscv013_fill_dm_nop(struct target *target, char *buf)
 {
-	riscv013_fill_dmi_nop_u64(target, buf);
+	riscv013_fill_dmi_nop(target, buf);
 }
 
 static int maybe_execute_fence_i(struct target *target)

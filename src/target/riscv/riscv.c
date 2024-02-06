@@ -5354,28 +5354,28 @@ int riscv_execute_progbuf(struct target *target, uint32_t *cmderr)
 	return r->execute_progbuf(target, cmderr);
 }
 
-void riscv_fill_dm_write_u64(struct target *target, char *buf, int a, uint64_t d)
+void riscv_fill_dm_write(struct target *target, char *buf, uint64_t a, uint32_t d)
 {
 	RISCV_INFO(r);
-	r->fill_dm_write_u64(target, buf, a, d);
+	r->fill_dm_write(target, buf, a, d);
 }
 
-void riscv_fill_dm_read_u64(struct target *target, char *buf, int a)
+void riscv_fill_dm_read(struct target *target, char *buf, uint64_t a)
 {
 	RISCV_INFO(r);
-	r->fill_dm_read_u64(target, buf, a);
+	r->fill_dm_read(target, buf, a);
 }
 
-void riscv_fill_dm_nop_u64(struct target *target, char *buf)
+void riscv_fill_dm_nop(struct target *target, char *buf)
 {
 	RISCV_INFO(r);
-	r->fill_dm_nop_u64(target, buf);
+	r->fill_dm_nop(target, buf);
 }
 
-int riscv_dmi_write_u64_bits(struct target *target)
+int riscv_get_dmi_scan_length(struct target *target)
 {
 	RISCV_INFO(r);
-	return r->dmi_write_u64_bits(target);
+	return r->get_dmi_scan_length(target);
 }
 
 static int check_if_trigger_exists(struct target *target, unsigned int index)

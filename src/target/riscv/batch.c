@@ -13,58 +13,62 @@
 #define DMI_SCAN_MAX_BIT_LENGTH (DTM_DMI_MAX_ADDRESS_LENGTH + DTM_DMI_DATA_LENGTH + DTM_DMI_OP_LENGTH)
 #define DMI_SCAN_BUF_SIZE (DIV_ROUND_UP(DMI_SCAN_MAX_BIT_LENGTH, 8))
 
+#define BATCH_RESERVED_SCANS 4
+
 static void dump_field(int idle, const struct scan_field *field);
 
 struct riscv_batch *riscv_batch_alloc(struct target *target, size_t scans, size_t idle)
 {
-	scans += 4;
+	scans += BATCH_RESERVED_SCANS;
 	struct riscv_batch *out = calloc(1, sizeof(*out));
-	if (!out)
-		goto error0;
+	if (!out) {
+		LOG_ERROR("Failed to allocate struct riscv_batch");
+		return NULL;
+	}
+
 	out->target = target;
 	out->allocated_scans = scans;
 	out->idle_count = idle;
-	out->data_out = malloc(sizeof(*out->data_out) * (scans) * DMI_SCAN_BUF_SIZE);
+	out->last_scan = RISCV_SCAN_TYPE_INVALID;
+
+	out->data_out = NULL;
+	out->data_in = NULL;
+	out->fields = NULL;
+	out->bscan_ctxt = NULL;
+	out->read_keys = NULL;
+
+	out->data_out = malloc(sizeof(*out->data_out) * scans * DMI_SCAN_BUF_SIZE);
 	if (!out->data_out) {
 		LOG_ERROR("Failed to allocate data_out in RISC-V batch.");
-		goto error1;
+		goto alloc_error;
 	};
-	out->data_in = malloc(sizeof(*out->data_in) * (scans) * DMI_SCAN_BUF_SIZE);
+	out->data_in = malloc(sizeof(*out->data_in) * scans * DMI_SCAN_BUF_SIZE);
 	if (!out->data_in) {
 		LOG_ERROR("Failed to allocate data_in in RISC-V batch.");
-		goto error2;
+		goto alloc_error;
 	}
-	out->fields = malloc(sizeof(*out->fields) * (scans));
+	out->fields = malloc(sizeof(*out->fields) * scans);
 	if (!out->fields) {
 		LOG_ERROR("Failed to allocate fields in RISC-V batch.");
-		goto error3;
+		goto alloc_error;
 	}
 	if (bscan_tunnel_ir_width != 0) {
-		out->bscan_ctxt = malloc(sizeof(*out->bscan_ctxt) * (scans));
+		out->bscan_ctxt = malloc(sizeof(*out->bscan_ctxt) * scans);
 		if (!out->bscan_ctxt) {
 			LOG_ERROR("Failed to allocate bscan_ctxt in RISC-V batch.");
-			goto error4;
+			goto alloc_error;
 		}
 	}
-	out->last_scan = RISCV_SCAN_TYPE_INVALID;
-	out->read_keys = malloc(sizeof(*out->read_keys) * (scans));
+	out->read_keys = malloc(sizeof(*out->read_keys) * scans);
 	if (!out->read_keys) {
 		LOG_ERROR("Failed to allocate read_keys in RISC-V batch.");
-		goto error5;
+		goto alloc_error;
 	}
+
 	return out;
 
-error5:
-	free(out->bscan_ctxt);
-error4:
-	free(out->fields);
-error3:
-	free(out->data_in);
-error2:
-	free(out->data_out);
-error1:
-	free(out);
-error0:
+alloc_error:
+	riscv_batch_free(out);
 	return NULL;
 }
 
@@ -80,7 +84,7 @@ void riscv_batch_free(struct riscv_batch *batch)
 
 bool riscv_batch_full(struct riscv_batch *batch)
 {
-	return batch->used_scans > (batch->allocated_scans - 4);
+	return batch->used_scans >= (batch->allocated_scans - BATCH_RESERVED_SCANS);
 }
 
 int riscv_batch_run(struct riscv_batch *batch)
@@ -125,17 +129,17 @@ int riscv_batch_run(struct riscv_batch *batch)
 	return ERROR_OK;
 }
 
-void riscv_batch_add_dm_write(struct riscv_batch *batch, unsigned int address, uint64_t data,
+void riscv_batch_add_dm_write(struct riscv_batch *batch, uint64_t address, uint32_t data,
 	bool read_back)
 {
 	assert(batch->used_scans < batch->allocated_scans);
 	struct scan_field *field = batch->fields + batch->used_scans;
-	field->num_bits = riscv_dmi_write_u64_bits(batch->target);
+	field->num_bits = riscv_get_dmi_scan_length(batch->target);
 	field->out_value = (void *)(batch->data_out + batch->used_scans * DMI_SCAN_BUF_SIZE);
-	riscv_fill_dm_write_u64(batch->target, (char *)field->out_value, address, data);
+	riscv_fill_dm_write(batch->target, (char *)field->out_value, address, data);
 	if (read_back) {
 		field->in_value = (void *)(batch->data_in + batch->used_scans * DMI_SCAN_BUF_SIZE);
-		riscv_fill_dm_nop_u64(batch->target, (char *)field->in_value);
+		riscv_fill_dm_nop(batch->target, (char *)field->in_value);
 	} else {
 		field->in_value = NULL;
 	}
@@ -143,15 +147,15 @@ void riscv_batch_add_dm_write(struct riscv_batch *batch, unsigned int address, u
 	batch->used_scans++;
 }
 
-size_t riscv_batch_add_dm_read(struct riscv_batch *batch, unsigned int address)
+size_t riscv_batch_add_dm_read(struct riscv_batch *batch, uint64_t address)
 {
 	assert(batch->used_scans < batch->allocated_scans);
 	struct scan_field *field = batch->fields + batch->used_scans;
-	field->num_bits = riscv_dmi_write_u64_bits(batch->target);
+	field->num_bits = riscv_get_dmi_scan_length(batch->target);
 	field->out_value = (void *)(batch->data_out + batch->used_scans * DMI_SCAN_BUF_SIZE);
 	field->in_value  = (void *)(batch->data_in  + batch->used_scans * DMI_SCAN_BUF_SIZE);
-	riscv_fill_dm_read_u64(batch->target, (char *)field->out_value, address);
-	riscv_fill_dm_nop_u64(batch->target, (char *)field->in_value);
+	riscv_fill_dm_read(batch->target, (char *)field->out_value, address);
+	riscv_fill_dm_nop(batch->target, (char *)field->in_value);
 	batch->last_scan = RISCV_SCAN_TYPE_READ;
 	batch->used_scans++;
 
@@ -163,17 +167,17 @@ unsigned int riscv_batch_get_dmi_read_op(const struct riscv_batch *batch, size_t
 {
 	assert(key < batch->read_keys_used);
 	size_t index = batch->read_keys[key];
-	assert(index <= batch->used_scans);
+	assert(index < batch->used_scans);
 	uint8_t *base = batch->data_in + DMI_SCAN_BUF_SIZE * index;
 	/* extract "op" field from the DMI read result */
-	return (unsigned)buf_get_u32(base, DTM_DMI_OP_OFFSET, DTM_DMI_OP_LENGTH);
+	return (unsigned int)buf_get_u32(base, DTM_DMI_OP_OFFSET, DTM_DMI_OP_LENGTH);
 }
 
 uint32_t riscv_batch_get_dmi_read_data(const struct riscv_batch *batch, size_t key)
 {
 	assert(key < batch->read_keys_used);
 	size_t index = batch->read_keys[key];
-	assert(index <= batch->used_scans);
+	assert(index < batch->used_scans);
 	uint8_t *base = batch->data_in + DMI_SCAN_BUF_SIZE * index;
 	/* extract "data" field from the DMI read result */
 	return buf_get_u32(base, DTM_DMI_DATA_OFFSET, DTM_DMI_DATA_LENGTH);
@@ -183,11 +187,11 @@ void riscv_batch_add_nop(struct riscv_batch *batch)
 {
 	assert(batch->used_scans < batch->allocated_scans);
 	struct scan_field *field = batch->fields + batch->used_scans;
-	field->num_bits = riscv_dmi_write_u64_bits(batch->target);
+	field->num_bits = riscv_get_dmi_scan_length(batch->target);
 	field->out_value = (void *)(batch->data_out + batch->used_scans * DMI_SCAN_BUF_SIZE);
 	field->in_value  = (void *)(batch->data_in  + batch->used_scans * DMI_SCAN_BUF_SIZE);
-	riscv_fill_dm_nop_u64(batch->target, (char *)field->out_value);
-	riscv_fill_dm_nop_u64(batch->target, (char *)field->in_value);
+	riscv_fill_dm_nop(batch->target, (char *)field->out_value);
+	riscv_fill_dm_nop(batch->target, (char *)field->in_value);
 	batch->last_scan = RISCV_SCAN_TYPE_NOP;
 	batch->used_scans++;
 }
@@ -226,13 +230,16 @@ static void dump_field(int idle, const struct scan_field *field)
 
 size_t riscv_batch_available_scans(struct riscv_batch *batch)
 {
-	return batch->allocated_scans - batch->used_scans - 4;
+	assert(batch->allocated_scans >= (batch->used_scans + BATCH_RESERVED_SCANS));
+	return batch->allocated_scans - batch->used_scans - BATCH_RESERVED_SCANS;
 }
 
 bool riscv_batch_dmi_busy_encountered(const struct riscv_batch *batch)
 {
-	if (!batch->used_scans)
+	if (batch->used_scans == 0)
+		/* Empty batch */
 		return false;
+
 	assert(batch->last_scan == RISCV_SCAN_TYPE_NOP);
 	const struct scan_field *field = batch->fields + batch->used_scans - 1;
 	const uint64_t in = buf_get_u64(field->in_value, 0, field->num_bits);
