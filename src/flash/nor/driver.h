@@ -267,6 +267,7 @@ extern const struct flash_driver kinetis_ke_flash;
 extern const struct flash_driver lpc2000_flash;
 extern const struct flash_driver lpc288x_flash;
 extern const struct flash_driver lpc2900_flash;
+extern const struct flash_driver lpc55xx_flash;
 extern const struct flash_driver lpcspifi_flash;
 extern const struct flash_driver max32xxx_flash;
 extern const struct flash_driver mdr_flash;
