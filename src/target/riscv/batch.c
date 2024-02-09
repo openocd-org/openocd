@@ -13,7 +13,8 @@
 #define DMI_SCAN_MAX_BIT_LENGTH (DTM_DMI_MAX_ADDRESS_LENGTH + DTM_DMI_DATA_LENGTH + DTM_DMI_OP_LENGTH)
 #define DMI_SCAN_BUF_SIZE (DIV_ROUND_UP(DMI_SCAN_MAX_BIT_LENGTH, 8))
 
-#define BATCH_RESERVED_SCANS 4
+/* Reserve extra room in the batch (needed for the last NOP operation) */
+#define BATCH_RESERVED_SCANS 1
 
 static void dump_field(int idle, const struct scan_field *field);
 
@@ -37,6 +38,9 @@ struct riscv_batch *riscv_batch_alloc(struct target *target, size_t scans, size_
 	out->bscan_ctxt = NULL;
 	out->read_keys = NULL;
 
+	/* FIXME: There is potential for memory usage reduction. We could allocate
+	 * smaller buffers than DMI_SCAN_BUF_SIZE (that is, buffers that correspond to
+	 * the real DR scan length on the given target) */
 	out->data_out = malloc(sizeof(*out->data_out) * scans * DMI_SCAN_BUF_SIZE);
 	if (!out->data_out) {
 		LOG_ERROR("Failed to allocate data_out in RISC-V batch.");
@@ -84,7 +88,7 @@ void riscv_batch_free(struct riscv_batch *batch)
 
 bool riscv_batch_full(struct riscv_batch *batch)
 {
-	return batch->used_scans >= (batch->allocated_scans - BATCH_RESERVED_SCANS);
+	return riscv_batch_available_scans(batch) == 0;
 }
 
 int riscv_batch_run(struct riscv_batch *batch)
@@ -98,7 +102,7 @@ int riscv_batch_run(struct riscv_batch *batch)
 
 	for (size_t i = 0; i < batch->used_scans; ++i) {
 		if (bscan_tunnel_ir_width != 0)
-			riscv_add_bscan_tunneled_scan(batch->target, batch->fields+i, batch->bscan_ctxt+i);
+			riscv_add_bscan_tunneled_scan(batch->target, batch->fields + i, batch->bscan_ctxt + i);
 		else
 			jtag_add_dr_scan(batch->target->tap, 1, batch->fields + i, TAP_IDLE);
 
