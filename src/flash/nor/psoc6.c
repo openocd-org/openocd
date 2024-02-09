@@ -945,6 +945,7 @@ static int handle_reset_halt(struct target *target)
 
 	/* Wait 100ms for bootcode and reinitialize DAP */
 	usleep(100000);
+	dap_invalidate_cache(cm->debug_ap->dap);
 	dap_dp_init(cm->debug_ap->dap);
 
 	target_wait_state(target, TARGET_HALTED, IPC_TIMEOUT_MS);

@@ -1155,6 +1155,7 @@ static int vdebug_dap_bankselect(struct adiv5_ap *ap, unsigned int reg)
 
 static int vdebug_dap_connect(struct adiv5_dap *dap)
 {
+	dap_invalidate_cache(dap);
 	return dap_dp_init(dap);
 }
 

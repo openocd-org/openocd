@@ -791,7 +791,6 @@ int dap_dp_init(struct adiv5_dap *dap)
 	LOG_DEBUG("%s", adiv5_dap_name(dap));
 
 	dap->do_reconnect = false;
-	dap_invalidate_cache(dap);
 
 	/*
 	 * Early initialize dap->dp_ctrl_stat.
@@ -882,6 +881,7 @@ int dap_dp_init_or_reconnect(struct adiv5_dap *dap)
 		/* dap connect calls dap_dp_init() after transport dependent initialization */
 		return dap->ops->connect(dap);
 	} else {
+		dap_invalidate_cache(dap);
 		return dap_dp_init(dap);
 	}
 }

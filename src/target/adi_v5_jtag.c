@@ -703,6 +703,8 @@ static int jtagdp_transaction_endcheck(struct adiv5_dap *dap)
 static int jtag_connect(struct adiv5_dap *dap)
 {
 	dap->do_reconnect = false;
+	dap_invalidate_cache(dap);
+
 	return dap_dp_init(dap);
 }
 
