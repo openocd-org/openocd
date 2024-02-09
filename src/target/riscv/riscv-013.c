@@ -955,10 +955,10 @@ static int write_abstract_arg(struct target *target, unsigned index,
 			LOG_TARGET_ERROR(target, "Unsupported size: %d bits", size_bits);
 			return ERROR_FAIL;
 		case 64:
-			dm_write(target, DM_DATA0 + offset + 1, value >> 32);
+			dm_write(target, DM_DATA0 + offset + 1, (uint32_t)(value >> 32));
 			/* falls through */
 		case 32:
-			dm_write(target, DM_DATA0 + offset, value);
+			dm_write(target, DM_DATA0 + offset, (uint32_t)value);
 	}
 	return ERROR_OK;
 }
@@ -1388,12 +1388,12 @@ static int scratch_write64(struct target *target, scratch_mem_t *scratch,
 {
 	switch (scratch->memory_space) {
 		case SPACE_DM_DATA:
-			dm_write(target, DM_DATA0 + scratch->debug_address, value);
-			dm_write(target, DM_DATA1 + scratch->debug_address, value >> 32);
+			dm_write(target, DM_DATA0 + scratch->debug_address, (uint32_t)value);
+			dm_write(target, DM_DATA1 + scratch->debug_address, (uint32_t)(value >> 32));
 			break;
 		case SPACE_DMI_PROGBUF:
-			dm_write(target, DM_PROGBUF0 + scratch->debug_address, value);
-			dm_write(target, DM_PROGBUF1 + scratch->debug_address, value >> 32);
+			dm_write(target, DM_PROGBUF0 + scratch->debug_address, (uint32_t)value);
+			dm_write(target, DM_PROGBUF1 + scratch->debug_address, (uint32_t)(value >> 32));
 			riscv013_invalidate_cached_progbuf(target);
 			break;
 		case SPACE_DMI_RAM:
@@ -2483,9 +2483,10 @@ static int sb_write_address(struct target *target, target_addr_t address,
 	if (sbasize > 64)
 		dm_op(target, NULL, NULL, DMI_OP_WRITE, DM_SBADDRESS2, 0, false, false);
 	if (sbasize > 32)
-		dm_op(target, NULL, NULL, DMI_OP_WRITE, DM_SBADDRESS1, address >> 32, false, false);
-	return dm_op(target, NULL, NULL, DMI_OP_WRITE, DM_SBADDRESS0, address,
-				  false, ensure_success);
+		dm_op(target, NULL, NULL, DMI_OP_WRITE, DM_SBADDRESS1,
+			(uint32_t)(address >> 32), false, false);
+	return dm_op(target, NULL, NULL, DMI_OP_WRITE, DM_SBADDRESS0,
+		(uint32_t)address, false, ensure_success);
 }
 
 static int batch_run(const struct target *target, struct riscv_batch *batch)
@@ -3028,7 +3029,7 @@ static int read_memory_bus_word(struct target *target, target_addr_t address,
 	static int sbdata[4] = { DM_SBDATA0, DM_SBDATA1, DM_SBDATA2, DM_SBDATA3 };
 	assert(size <= 16);
 	for (int i = (size - 1) / 4; i >= 0; i--) {
-		result = dm_op(target, &sbvalue[i], NULL, DMI_OP_READ, sbdata[i], 0, false, true);
+		result = dm_read(target, &sbvalue[i], sbdata[i]);
 		if (result != ERROR_OK)
 			return result;
 		buf_set_u32(buffer + i * 4, 0, 8 * MIN(size, 4), sbvalue[i]);
