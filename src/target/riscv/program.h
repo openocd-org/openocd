@@ -28,13 +28,6 @@ struct riscv_program {
 	/* Number of 32-bit instructions in the program. */
 	size_t instruction_count;
 
-	/* Side effects of executing this program.  These must be accounted for
-	 * in order to maintain correct executing of the target system.  */
-	bool writes_xreg[RISCV_REGISTER_COUNT];
-
-	/* XLEN on the target. */
-	int target_xlen;
-
 	/* execution result of the program */
 	/* TODO: remove this field. We should make it a parameter to riscv_program_exec */
 	riscv_progbuf_exec_result_t execution_result;

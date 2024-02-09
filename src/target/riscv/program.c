@@ -20,9 +20,6 @@ int riscv_program_init(struct riscv_program *p, struct target *target)
 	memset(p, 0, sizeof(*p));
 	p->target = target;
 	p->instruction_count = 0;
-	p->target_xlen = riscv_xlen(target);
-	for (size_t i = 0; i < RISCV_REGISTER_COUNT; ++i)
-		p->writes_xreg[i] = 0;
 
 	for (size_t i = 0; i < RISCV_MAX_PROGBUF_SIZE; ++i)
 		p->progbuf[i] = -1;
@@ -48,15 +45,6 @@ int riscv_program_exec(struct riscv_program *p, struct target *t)
 	keep_alive();
 
 	p->execution_result = RISCV_PROGBUF_EXEC_RESULT_UNKNOWN;
-	riscv_reg_t saved_registers[GDB_REGNO_XPR31 + 1];
-	for (size_t i = GDB_REGNO_ZERO + 1; i <= GDB_REGNO_XPR31; ++i) {
-		if (p->writes_xreg[i]) {
-			LOG_TARGET_DEBUG(t, "Saving register %d as used by program", (int)i);
-			int result = riscv_get_register(t, &saved_registers[i], i);
-			if (result != ERROR_OK)
-				return result;
-		}
-	}
 
 	if (riscv_program_ebreak(p) != ERROR_OK) {
 		LOG_TARGET_ERROR(t, "Unable to insert ebreak into program buffer");
@@ -79,10 +67,6 @@ int riscv_program_exec(struct riscv_program *p, struct target *t)
 		return ERROR_FAIL;
 	}
 	p->execution_result = RISCV_PROGBUF_EXEC_RESULT_SUCCESS;
-
-	for (size_t i = GDB_REGNO_ZERO; i <= GDB_REGNO_XPR31; ++i)
-		if (p->writes_xreg[i])
-			riscv_set_register(t, i, saved_registers[i]);
 
 	return ERROR_OK;
 }
