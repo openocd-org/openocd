@@ -362,7 +362,7 @@ static int cmsis_dap_usb_open(struct cmsis_dap *dap, uint16_t vids[], uint16_t p
 			if (err)
 				LOG_WARNING("could not claim interface: %s", libusb_strerror(err));
 
-			dap->bdata = malloc(sizeof(struct cmsis_dap_backend_data));
+			dap->bdata = calloc(1, sizeof(struct cmsis_dap_backend_data));
 			if (!dap->bdata) {
 				LOG_ERROR("unable to allocate memory");
 				libusb_release_interface(dev_handle, interface_num);

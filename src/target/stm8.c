@@ -1158,7 +1158,7 @@ static int stm8_write_core_reg(struct target *target, unsigned int num)
 	return ERROR_OK;
 }
 
-static const char *stm8_get_gdb_arch(struct target *target)
+static const char *stm8_get_gdb_arch(const struct target *target)
 {
 	return "stm8";
 }

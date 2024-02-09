@@ -182,7 +182,7 @@ static struct reg_arch_type mem_ap_reg_arch_type = {
 	.set = mem_ap_reg_set,
 };
 
-static const char *mem_ap_get_gdb_arch(struct target *target)
+static const char *mem_ap_get_gdb_arch(const struct target *target)
 {
 	return "arm";
 }
