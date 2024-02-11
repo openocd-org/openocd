@@ -33,6 +33,7 @@ static const struct flash_driver * const flash_drivers[] = {
 	&dsp5680xx_flash,
 	&efm32_flash,
 	&em357_flash,
+	&eneispif_flash,
 	&esirisc_flash,
 	&faux_flash,
 	&fm3_flash,
