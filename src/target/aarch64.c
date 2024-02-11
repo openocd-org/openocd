@@ -2891,13 +2891,8 @@ static int aarch64_jim_configure(struct target *target, struct jim_getopt_info *
 	 * options, JIM_OK if it correctly parsed the topmost option
 	 * and JIM_ERR if an error occurred during parameter evaluation.
 	 * For JIM_CONTINUE, we check our own params.
-	 *
-	 * adiv5_jim_configure() assumes 'private_config' to point to
-	 * 'struct adiv5_private_config'. Override 'private_config'!
 	 */
-	target->private_config = &pc->adiv5_config;
-	e = adiv5_jim_configure(target, goi);
-	target->private_config = pc;
+	e = adiv5_jim_configure_ext(target, goi, &pc->adiv5_config, ADI_CONFIGURE_DAP_COMPULSORY);
 	if (e != JIM_CONTINUE)
 		return e;
 

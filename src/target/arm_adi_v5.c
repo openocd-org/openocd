@@ -2424,23 +2424,26 @@ err_no_param:
 	return JIM_ERR;
 }
 
-int adiv5_jim_configure(struct target *target, struct jim_getopt_info *goi)
+int adiv5_jim_configure_ext(struct target *target, struct jim_getopt_info *goi,
+		struct adiv5_private_config *pc, enum adiv5_configure_dap_optional optional)
 {
-	struct adiv5_private_config *pc;
 	int e;
 
-	pc = (struct adiv5_private_config *)target->private_config;
 	if (!pc) {
-		pc = calloc(1, sizeof(struct adiv5_private_config));
+		pc = (struct adiv5_private_config *)target->private_config;
 		if (!pc) {
-			LOG_ERROR("Out of memory");
-			return JIM_ERR;
+			pc = calloc(1, sizeof(struct adiv5_private_config));
+			if (!pc) {
+				LOG_ERROR("Out of memory");
+				return JIM_ERR;
+			}
+			pc->ap_num = DP_APSEL_INVALID;
+			target->private_config = pc;
 		}
-		pc->ap_num = DP_APSEL_INVALID;
-		target->private_config = pc;
 	}
 
-	target->has_dap = true;
+	if (optional == ADI_CONFIGURE_DAP_COMPULSORY)
+		target->has_dap = true;
 
 	e = adiv5_jim_spot_configure(goi, &pc->dap, &pc->ap_num, NULL);
 	if (e != JIM_OK)
@@ -2455,9 +2458,15 @@ int adiv5_jim_configure(struct target *target, struct jim_getopt_info *goi)
 		}
 		target->tap = pc->dap->tap;
 		target->dap_configured = true;
+		target->has_dap = true;
 	}
 
 	return JIM_OK;
+}
+
+int adiv5_jim_configure(struct target *target, struct jim_getopt_info *goi)
+{
+	return adiv5_jim_configure_ext(target, goi, NULL, ADI_CONFIGURE_DAP_COMPULSORY);
 }
 
 int adiv5_verify_config(struct adiv5_private_config *pc)
