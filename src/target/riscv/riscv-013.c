@@ -280,6 +280,29 @@ static dm013_info_t *get_dm(struct target *target)
 	return dm;
 }
 
+static void riscv013_dm_free(struct target *target)
+{
+	RISCV013_INFO(info);
+	dm013_info_t *dm = info->dm;
+	if (!dm)
+		return;
+
+	target_list_t *target_entry;
+	list_for_each_entry(target_entry, &dm->target_list, list) {
+		if (target_entry->target == target) {
+			list_del(&target_entry->list);
+			free(target_entry);
+			break;
+		}
+	}
+
+	if (list_empty(&dm->target_list)) {
+		list_del(&dm->list);
+		free(dm);
+	}
+	info->dm = NULL;
+}
+
 static riscv_debug_reg_ctx_t get_riscv_debug_reg_ctx(const struct target *target)
 {
 	if (!target_was_examined(target)) {
@@ -1863,6 +1886,8 @@ static void deinit_target(struct target *target)
 	struct riscv_info *info = target->arch_info;
 	if (!info)
 		return;
+
+	riscv013_dm_free(target);
 
 	free(info->version_specific);
 	/* TODO: free register arch_info */
