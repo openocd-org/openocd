@@ -227,7 +227,7 @@ static int ulink_post_process_scan(struct ulink_cmd *ulink_cmd);
 static int ulink_post_process_queue(struct ulink *device);
 
 /* adapter driver functions */
-static int ulink_execute_queue(void);
+static int ulink_execute_queue(struct jtag_command *cmd_queue);
 static int ulink_khz(int khz, int *jtag_speed);
 static int ulink_speed(int speed);
 static int ulink_speed_div(int speed, int *khz);
@@ -1905,9 +1905,9 @@ static int ulink_post_process_queue(struct ulink *device)
  * @return on success: ERROR_OK
  * @return on failure: ERROR_FAIL
  */
-static int ulink_execute_queue(void)
+static int ulink_execute_queue(struct jtag_command *cmd_queue)
 {
-	struct jtag_command *cmd = jtag_command_queue;
+	struct jtag_command *cmd = cmd_queue;
 	int ret;
 
 	while (cmd) {

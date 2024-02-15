@@ -456,14 +456,14 @@ static const struct command_registration remote_bitbang_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-static int remote_bitbang_execute_queue(void)
+static int remote_bitbang_execute_queue(struct jtag_command *cmd_queue)
 {
 	/* safety: the send buffer must be empty, no leftover characters from
 	 * previous transactions */
 	assert(remote_bitbang_send_buf_used == 0);
 
 	/* process the JTAG command queue */
-	int ret = bitbang_execute_queue();
+	int ret = bitbang_execute_queue(cmd_queue);
 	if (ret != ERROR_OK)
 		return ret;
 

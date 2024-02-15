@@ -12,6 +12,7 @@
 #define OPENOCD_JTAG_DRIVERS_BITBANG_H
 
 #include <jtag/swd.h>
+#include <jtag/commands.h>
 
 typedef enum {
 	BB_LOW,
@@ -64,7 +65,7 @@ struct bitbang_interface {
 
 extern const struct swd_driver bitbang_swd;
 
-int bitbang_execute_queue(void);
+int bitbang_execute_queue(struct jtag_command *cmd_queue);
 
 extern struct bitbang_interface *bitbang_interface;
 

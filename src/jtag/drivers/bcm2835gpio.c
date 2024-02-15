@@ -84,10 +84,7 @@ static inline void bcm2835_delay(void)
 static bool is_gpio_config_valid(enum adapter_gpio_config_index idx)
 {
 	/* Only chip 0 is supported, accept unset value (-1) too */
-	return adapter_gpio_config[idx].chip_num >= -1
-		&& adapter_gpio_config[idx].chip_num <= 0
-		&& adapter_gpio_config[idx].gpio_num >= 0
-		&& adapter_gpio_config[idx].gpio_num <= 31;
+	return adapter_gpio_config[idx].gpio_num <= 31;
 }
 
 static void set_gpio_value(const struct adapter_gpio_config *gpio_config, int value)
@@ -243,10 +240,13 @@ static int bcm2835gpio_reset(int trst, int srst)
 	if (is_gpio_config_valid(ADAPTER_GPIO_IDX_TRST))
 		set_gpio_value(&adapter_gpio_config[ADAPTER_GPIO_IDX_TRST], trst);
 
-	LOG_DEBUG("BCM2835 GPIO: bcm2835gpio_reset(%d, %d), trst_gpio: %d %d, srst_gpio: %d %d",
-		trst, srst,
-		adapter_gpio_config[ADAPTER_GPIO_IDX_TRST].chip_num, adapter_gpio_config[ADAPTER_GPIO_IDX_TRST].gpio_num,
-		adapter_gpio_config[ADAPTER_GPIO_IDX_SRST].chip_num, adapter_gpio_config[ADAPTER_GPIO_IDX_SRST].gpio_num);
+	LOG_DEBUG("trst %d gpio: %d %d, srst %d gpio: %d %d",
+		trst,
+		(int)adapter_gpio_config[ADAPTER_GPIO_IDX_TRST].chip_num,
+		(int)adapter_gpio_config[ADAPTER_GPIO_IDX_TRST].gpio_num,
+		srst,
+		(int)adapter_gpio_config[ADAPTER_GPIO_IDX_SRST].chip_num,
+		(int)adapter_gpio_config[ADAPTER_GPIO_IDX_SRST].gpio_num);
 	return ERROR_OK;
 }
 
