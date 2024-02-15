@@ -105,14 +105,13 @@ static inline int check_sync(struct adiv5_dap *dap)
 static int swd_queue_dp_bankselect(struct adiv5_dap *dap, unsigned int reg)
 {
 	/* Only register address 0 (ADIv6 only) and 4 are banked. */
-	if ((reg & 0xf) > 4)
+	if (is_adiv6(dap) ? (reg & 0xf) > 4 : (reg & 0xf) != 4)
 		return ERROR_OK;
 
 	uint32_t sel = (reg >> 4) & DP_SELECT_DPBANK;
 
-	/* DP register 0 is not mapped according to ADIv5
-	 * whereas ADIv6 ensures DPBANKSEL = 0 after line reset */
-	if ((dap->select_valid || ((reg & 0xf) == 0 && dap->select_dpbanksel_valid))
+	/* ADIv6 ensures DPBANKSEL = 0 after line reset */
+	if ((dap->select_valid || (is_adiv6(dap) && dap->select_dpbanksel_valid))
 			&& (sel == (dap->select & DP_SELECT_DPBANK)))
 		return ERROR_OK;
 
@@ -146,7 +145,7 @@ static int swd_queue_dp_read_inner(struct adiv5_dap *dap, unsigned int reg,
 static int swd_queue_dp_write_inner(struct adiv5_dap *dap, unsigned int reg,
 		uint32_t data)
 {
-	int retval;
+	int retval = ERROR_OK;
 	const struct swd_driver *swd = adiv5_dap_swd_driver(dap);
 	assert(swd);
 
@@ -167,7 +166,11 @@ static int swd_queue_dp_write_inner(struct adiv5_dap *dap, unsigned int reg,
 	if (reg == DP_SELECT1)
 		dap->select = ((uint64_t)data << 32) | (dap->select & 0xffffffffull);
 
-	retval = swd_queue_dp_bankselect(dap, reg);
+	/* DP_ABORT write is not banked.
+	 * Prevent writing DP_SELECT before as it would fail on locked up DP */
+	if (reg != DP_ABORT)
+		retval = swd_queue_dp_bankselect(dap, reg);
+
 	if (retval == ERROR_OK) {
 		swd->write_reg(swd_cmd(false, false, reg), data, 0);
 
