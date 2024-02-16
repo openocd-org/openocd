@@ -1088,7 +1088,8 @@ static int ftdi_swd_run_queue(void)
 		/* Devices do not reply to DP_TARGETSEL write cmd, ignore received ack */
 		bool check_ack = swd_cmd_returns_ack(swd_cmd_queue[i].cmd);
 
-		LOG_DEBUG_IO("%s%s %s %s reg %X = %08"PRIx32,
+		LOG_CUSTOM_LEVEL((check_ack && ack != SWD_ACK_OK) ? LOG_LVL_DEBUG : LOG_LVL_DEBUG_IO,
+				"%s%s %s %s reg %X = %08" PRIx32,
 				check_ack ? "" : "ack ignored ",
 				ack == SWD_ACK_OK ? "OK" : ack == SWD_ACK_WAIT ? "WAIT" : ack == SWD_ACK_FAULT ? "FAULT" : "JUNK",
 				swd_cmd_queue[i].cmd & SWD_CMD_APNDP ? "AP" : "DP",
