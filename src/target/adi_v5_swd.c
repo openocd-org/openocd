@@ -322,6 +322,7 @@ static int swd_connect_multidrop(struct adiv5_dap *dap)
 	int64_t timeout = timeval_ms() + 500;
 	bool timeout_reached = false;
 	bool send_dapabort = false;
+	bool switch_to_dormant = false;
 
 	for (unsigned int retry_after_timeout = 0; ; ) {
 		/* Do not make any assumptions about SWD state in case of reconnect */
@@ -345,15 +346,20 @@ static int swd_connect_multidrop(struct adiv5_dap *dap)
 		timeout_reached = timeval_ms() > timeout;
 		if (timeout_reached) {
 			retry_after_timeout++;
-			if (retry_after_timeout > 3)
+			if (retry_after_timeout > 6)
 				break;
 
-			send_dapabort = true;
+			/* Alternate DAPABORT and DORMANT methods to revive stalled DP */
+			send_dapabort = retry_after_timeout & 1;
+			switch_to_dormant = !send_dapabort;
 		}
 
 		alive_sleep((retval == ERROR_WAIT && !timeout_reached) ? 10 : 1);
 
 		swd_multidrop_in_swd_state = false;
+
+		if (switch_to_dormant)
+			swd_send_sequence(dap, SWD_TO_DORMANT);
 	}
 
 	if (retval != ERROR_OK) {
@@ -376,13 +382,19 @@ static int swd_connect_single(struct adiv5_dap *dap)
 	int64_t timeout = timeval_ms() + 500;
 	bool timeout_reached = false;
 	bool send_dapabort = false;
+	bool switch_to_dormant = false;
 	uint32_t dpidr = 0xdeadbeef;
 	bool dpidr_was_read = false;
 
 	for (unsigned int retry_after_timeout = 0; ; ) {
 		if (dpidr_read_retval != ERROR_OK) {
 			if (dap->switch_through_dormant) {
-				swd_send_sequence(dap, JTAG_TO_DORMANT);
+				if (switch_to_dormant) {
+					swd_send_sequence(dap, SWD_TO_DORMANT);
+					switch_to_dormant = false;
+				} else {
+					swd_send_sequence(dap, JTAG_TO_DORMANT);
+				}
 				swd_send_sequence(dap, DORMANT_TO_SWD);
 			} else {
 				swd_send_sequence(dap, JTAG_TO_SWD);
@@ -481,7 +493,7 @@ static int swd_connect_single(struct adiv5_dap *dap)
 		timeout_reached = timeval_ms() > timeout;
 		if (timeout_reached) {
 			retry_after_timeout++;
-			if (retry_after_timeout > 3)
+			if (retry_after_timeout > 6)
 				break;
 		}
 
@@ -494,10 +506,12 @@ static int swd_connect_single(struct adiv5_dap *dap)
 			if (retval != ERROR_WAIT) {
 				/* Force SWD sequence and IDR read */
 				dpidr_read_retval = ERROR_FAIL;
-
 			} else if (timeout_reached) {
-				/* Issue DAPABORT to revive stalled DP */
-				send_dapabort = true;
+				/* Alternate DAPABORT and DORMANT methods to revive stalled DP */
+				send_dapabort = retry_after_timeout & 1;
+				switch_to_dormant = !send_dapabort;
+				if (switch_to_dormant)
+					dap->switch_through_dormant = true;
 
 				/* Force SWD sequence and IDR read */
 				dpidr_read_retval = ERROR_FAIL;
