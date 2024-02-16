@@ -84,16 +84,8 @@ static void swd_clear_sticky_errors(struct adiv5_dap *dap)
 static int swd_run_inner(struct adiv5_dap *dap)
 {
 	const struct swd_driver *swd = adiv5_dap_swd_driver(dap);
-	int retval;
 
-	retval = swd->run();
-
-	if (retval != ERROR_OK) {
-		/* fault response */
-		dap->do_reconnect = true;
-	}
-
-	return retval;
+	return swd->run();
 }
 
 static inline int check_sync(struct adiv5_dap *dap)
@@ -288,15 +280,15 @@ static int swd_multidrop_select(struct adiv5_dap *dap)
 		swd_multidrop_selected_dap = NULL;
 		if (retry > 3) {
 			LOG_ERROR("Failed to select multidrop %s", adiv5_dap_name(dap));
+			dap->do_reconnect = true;
 			return retval;
 		}
 
 		LOG_DEBUG("Failed to select multidrop %s, retrying...",
 				  adiv5_dap_name(dap));
-		/* we going to retry localy, do not ask for full reconnect */
-		dap->do_reconnect = false;
 	}
 
+	dap->do_reconnect = false;
 	return retval;
 }
 
@@ -635,7 +627,13 @@ static int swd_run(struct adiv5_dap *dap)
 
 	swd_finish_read(dap);
 
-	return swd_run_inner(dap);
+	retval = swd_run_inner(dap);
+	if (retval != ERROR_OK) {
+		/* fault response */
+		dap->do_reconnect = true;
+	}
+
+	return retval;
 }
 
 /** Put the SWJ-DP back to JTAG mode */
