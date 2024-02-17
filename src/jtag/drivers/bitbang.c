@@ -20,6 +20,11 @@
 #include <jtag/interface.h>
 #include <jtag/commands.h>
 
+#include <helper/time_support.h>
+
+/* Timeout for retrying on SWD WAIT in msec */
+#define SWD_WAIT_TIMEOUT 500
+
 /**
  * Function bitbang_stableclocks
  * issues a number of clock cycles while staying in a stable state.
@@ -474,6 +479,7 @@ static void bitbang_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_delay
 		return;
 	}
 
+	int64_t timeout = timeval_ms() + SWD_WAIT_TIMEOUT;
 	for (unsigned int retry = 0;; retry++) {
 		uint8_t trn_ack_data_parity_trn[DIV_ROUND_UP(4 + 3 + 32 + 1 + 4, 8)];
 
@@ -496,8 +502,11 @@ static void bitbang_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_delay
 			(cmd & SWD_CMD_A32) >> 1,
 			data);
 
-		if (ack == SWD_ACK_WAIT) {
+		if (ack == SWD_ACK_WAIT && timeval_ms() <= timeout) {
 			swd_clear_sticky_errors();
+			if (retry > 20)
+				alive_sleep(1);
+
 			continue;
 		}
 		if (retry > 1)
@@ -529,6 +538,8 @@ static void bitbang_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay
 		LOG_DEBUG("Skip bitbang_swd_write_reg because queued_retval=%d", queued_retval);
 		return;
 	}
+
+	int64_t timeout = timeval_ms() + SWD_WAIT_TIMEOUT;
 
 	/* Devices do not reply to DP_TARGETSEL write cmd, ignore received ack */
 	bool check_ack = swd_cmd_returns_ack(cmd);
@@ -569,8 +580,11 @@ static void bitbang_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay
 			(cmd & SWD_CMD_A32) >> 1,
 			buf_get_u32(trn_ack_data_parity_trn, 1 + 3 + 1, 32));
 
-		if (check_ack && ack == SWD_ACK_WAIT) {
+		if (check_ack && ack == SWD_ACK_WAIT && timeval_ms() <= timeout) {
 			swd_clear_sticky_errors();
+			if (retry > 20)
+				alive_sleep(1);
+
 			continue;
 		}
 
