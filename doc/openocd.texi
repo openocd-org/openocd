@@ -8799,8 +8799,8 @@ The file format must be inferred by the driver.
 
 @section PLD/FPGA Drivers, Options, and Commands
 
-Drivers may support PLD-specific options to the @command{pld device}
-definition command, and may also define commands usable only with
+Drivers may support PLD-specific options to the @command{pld create}
+command, and may also define commands usable only with
 that particular type of PLD.
 
 @deffn {FPGA Driver} {virtex2} [@option{-no_jstart}]
@@ -8888,7 +8888,7 @@ For the option @option{-family} @var{name} is one of @var{trion|titanium}.
 
 @deffn {FPGA Driver} {intel} @option{-family} <name>
 This driver can be used to load the bitstream into Intel (former Altera) FPGAs.
-The families Cyclone III, Cyclone IV, Cyclone V, Cyclone 10, Arria II are supported.
+The families Cyclone III, Cyclone IV, Cyclone V, Cyclone 10 and Arria II are supported.
 @c Arria V and Arria 10, MAX II, MAX V, MAX10)
 
 The option @option{-family} @var{name} is one of @var{cycloneiii cycloneiv cyclonev cyclone10 arriaii}.
