@@ -140,6 +140,12 @@ typedef struct {
 	/* The program buffer stores executable code. 0 is an illegal instruction,
 	 * so we use 0 to mean the cached value is invalid. */
 	uint32_t progbuf_cache[16];
+
+	/* Some operations are illegal when an abstract command is running.
+	 * The field is used to track whether the last command timed out, and
+	 * abstractcs.busy may have remained set. In that case we may need to
+	 * re-check the busy state before executing these operations. */
+	bool abstract_cmd_maybe_busy;
 } dm013_info_t;
 
 typedef struct {
@@ -763,6 +769,7 @@ static int dm_read_exec(struct target *target, uint32_t *value, uint32_t address
 	dm013_info_t *dm = get_dm(target);
 	if (!dm)
 		return ERROR_FAIL;
+	dm->abstract_cmd_maybe_busy = true;
 	return dmi_read_exec(target, value, address + dm->base);
 }
 
@@ -780,6 +787,7 @@ static int dm_write_exec(struct target *target, uint32_t address,
 	dm013_info_t *dm = get_dm(target);
 	if (!dm)
 		return ERROR_FAIL;
+	dm->abstract_cmd_maybe_busy = true;
 	return dmi_write_exec(target, address + dm->base, value, ensure_success);
 }
 
@@ -874,6 +882,14 @@ static int wait_for_idle(struct target *target, uint32_t *abstractcs)
 	assert(target);
 	assert(abstractcs);
 
+	dm013_info_t *dm = get_dm(target);
+	if (!dm) {
+		LOG_ERROR("BUG: Target %s is not assigned to any RISC-V debug module",
+				target_name(target));
+		*abstractcs = 0;
+		return ERROR_FAIL;
+	}
+
 	time_t start = time(NULL);
 	do {
 		if (dm_read(target, abstractcs, DM_ABSTRACTCS) != ERROR_OK) {
@@ -885,9 +901,10 @@ static int wait_for_idle(struct target *target, uint32_t *abstractcs)
 			return ERROR_FAIL;
 		}
 
-		if (get_field(*abstractcs, DM_ABSTRACTCS_BUSY) == 0)
+		if (get_field(*abstractcs, DM_ABSTRACTCS_BUSY) == 0) {
+			dm->abstract_cmd_maybe_busy = false;
 			return ERROR_OK;
-
+		}
 	} while ((time(NULL) - start) < riscv_command_timeout_sec);
 
 	LOG_TARGET_ERROR(target,
@@ -895,6 +912,11 @@ static int wait_for_idle(struct target *target, uint32_t *abstractcs)
 		"Increase the timeout with riscv set_command_timeout_sec.",
 		riscv_command_timeout_sec,
 		*abstractcs);
+
+	if (!dm->abstract_cmd_maybe_busy)
+		LOG_TARGET_ERROR(target,
+				"BUG: dm->abstract_cmd_maybe_busy had not been set when starting an abstract command.");
+	dm->abstract_cmd_maybe_busy = true;
 
 	return ERROR_TIMEOUT_REACHED;
 }
@@ -3900,6 +3922,12 @@ static int read_memory_progbuf_inner_run_and_process_batch(struct target *target
 		struct riscv_batch *batch, struct memory_access_info access,
 		uint32_t start_index, uint32_t elements_to_read, uint32_t *elements_read)
 {
+	dm013_info_t *dm = get_dm(target);
+	if (!dm)
+		return ERROR_FAIL;
+
+	/* Abstract commands are executed while running the batch. */
+	dm->abstract_cmd_maybe_busy = true;
 	if (batch_run(target, batch) != ERROR_OK)
 		return ERROR_FAIL;
 
@@ -4624,6 +4652,12 @@ static int write_memory_progbuf_run_batch(struct target *target, struct riscv_ba
 		target_addr_t *address_p, target_addr_t end_address, uint32_t size,
 		const uint8_t *buffer)
 {
+	dm013_info_t *dm = get_dm(target);
+	if (!dm)
+		return ERROR_FAIL;
+
+	/* Abstract commands are executed while running the batch. */
+	dm->abstract_cmd_maybe_busy = true;
 	if (batch_run(target, batch) != ERROR_OK)
 		return ERROR_FAIL;
 
