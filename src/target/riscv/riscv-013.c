@@ -127,6 +127,8 @@ typedef struct {
 	uint32_t base;
 	/* The number of harts connected to this DM. */
 	int hart_count;
+	/* Indicates we already examined this DM, so don't need to do it again. */
+	bool was_examined;
 	/* Indicates we already reset this DM, so don't need to do it again. */
 	bool was_reset;
 	/* Targets that are connected to this DM. */
@@ -201,9 +203,6 @@ typedef struct {
 	uint8_t datasize;
 	uint8_t dataaccess;
 	int16_t dataaddr;
-
-	/* The width of the hartsel field. */
-	unsigned hartsellen;
 
 	/* DM that provides access to this target. */
 	dm013_info_t *dm;
@@ -1933,6 +1932,126 @@ static int set_group(struct target *target, bool *supported, unsigned int group,
 	return ERROR_OK;
 }
 
+static int examine_dm(struct target *target)
+{
+	dm013_info_t *dm = get_dm(target);
+	if (!dm)
+		return ERROR_FAIL;
+	if (dm->was_examined)
+		return ERROR_OK;
+
+	int result = ERROR_FAIL;
+
+	uint32_t dmcontrol;
+	if (!dm->was_reset) {
+		/* First, the Debug Module is reset. However,
+		 * `dmcontrol.hartsel` should be read first, in order not to
+		 * change it when requesting the reset, since changing it
+		 * without checking that `abstractcs.busy` is low is
+		 * prohibited.
+		 */
+		result = dm_read(target, &dmcontrol, DM_DMCONTROL);
+		if (result != ERROR_OK)
+			return result;
+		/* Initiate the reset (`dmcontrol.dmactive == 0`) leaving
+		 * `dmcontrol.hartsel` the same.
+		 */
+		dmcontrol = (dmcontrol & DM_DMCONTROL_HARTSELLO) |
+			(dmcontrol & DM_DMCONTROL_HARTSELHI);
+		result = dm_write(target, DM_DMCONTROL, dmcontrol);
+		if (result != ERROR_OK)
+			return result;
+		/* FIXME: We should poll dmcontrol until dmactive becomes 0
+		 * See https://github.com/riscv/riscv-debug-spec/pull/566
+		 */
+	} else {
+		/* The DM was already reset when examining a different hart.
+		 * No need to reset it again. But for safety, assume that an abstract
+		 * command might be in progress at the moment.
+		 */
+		dm->abstract_cmd_maybe_busy = true;
+	}
+
+	dm->current_hartid = HART_INDEX_UNKNOWN;
+
+	result = dm_write(target, DM_DMCONTROL, DM_DMCONTROL_HARTSELLO |
+			DM_DMCONTROL_HARTSELHI | DM_DMCONTROL_DMACTIVE |
+			DM_DMCONTROL_HASEL);
+	if (result != ERROR_OK)
+		return result;
+
+
+	result = dm_read(target, &dmcontrol, DM_DMCONTROL);
+	if (result != ERROR_OK)
+		return result;
+
+	/* FIXME: We should poll for dmactive==1 as the debug module
+	 * may need some time to actually activate.
+	 * See https://github.com/riscv/riscv-debug-spec/pull/566
+	 */
+	if (!get_field(dmcontrol, DM_DMCONTROL_DMACTIVE)) {
+		LOG_TARGET_ERROR(target, "Debug Module did not become active.");
+		LOG_DEBUG_REG(target, DM_DMCONTROL, dmcontrol);
+		return ERROR_FAIL;
+	}
+
+	/* The DM has been reset and has successfully came out of the reset (dmactive=1):
+	 * - either the reset has been performed during this call to examine_dm() (above);
+	 * - or the reset had already happened in an earlier call of examine_dm() when
+	 *   examining a different hart.
+	 */
+	dm->was_reset = true;
+
+	dm->hasel_supported = get_field(dmcontrol, DM_DMCONTROL_HASEL);
+
+	uint32_t hartsel =
+		(get_field(dmcontrol, DM_DMCONTROL_HARTSELHI) <<
+		 DM_DMCONTROL_HARTSELLO_LENGTH) |
+		get_field(dmcontrol, DM_DMCONTROL_HARTSELLO);
+
+	/* Before doing anything else we must first enumerate the harts. */
+	const int max_hart_count = MIN(RISCV_MAX_HARTS, hartsel + 1);
+	if (dm->hart_count < 0) {
+		for (int i = 0; i < max_hart_count; ++i) {
+			/* TODO: This is extremely similar to
+			 * riscv013_get_hart_state().
+			 * It would be best to reuse the code.
+			 */
+			result = dm013_select_hart(target, i);
+			if (result != ERROR_OK)
+				return result;
+
+			uint32_t s;
+			result = dmstatus_read(target, &s, /*authenticated*/ true);
+			if (result != ERROR_OK)
+				return result;
+
+			if (get_field(s, DM_DMSTATUS_ANYNONEXISTENT))
+				break;
+
+			dm->hart_count = i + 1;
+
+			if (get_field(s, DM_DMSTATUS_ANYHAVERESET)) {
+				dmcontrol = DM_DMCONTROL_DMACTIVE | DM_DMCONTROL_ACKHAVERESET;
+				/* TODO: Check `abstractcs.busy` here. */
+				dmcontrol = set_dmcontrol_hartsel(dmcontrol, i);
+				result = dm_write(target, DM_DMCONTROL, dmcontrol);
+				if (result != ERROR_OK)
+					return result;
+			}
+		}
+		LOG_TARGET_DEBUG(target, "Detected %d harts.", dm->hart_count);
+	}
+
+	if (dm->hart_count <= 0) {
+		LOG_TARGET_ERROR(target, "No harts found!");
+		return ERROR_FAIL;
+	}
+
+	dm->was_examined = true;
+	return ERROR_OK;
+}
+
 static int examine(struct target *target)
 {
 	/* We reset target state in case if something goes wrong during examine:
@@ -1969,38 +2088,17 @@ static int examine(struct target *target)
 		return ERROR_FAIL;
 	}
 
-	/* Reset the Debug Module. */
-	dm013_info_t *dm = get_dm(target);
-	if (!dm)
-		return ERROR_FAIL;
-	if (!dm->was_reset) {
-		dm_write(target, DM_DMCONTROL, 0);
-		dm_write(target, DM_DMCONTROL, DM_DMCONTROL_DMACTIVE);
-		dm->was_reset = true;
-	}
+	int result = examine_dm(target);
+	if (result != ERROR_OK)
+		return result;
+
+	result = dm013_select_target(target);
+	if (result != ERROR_OK)
+		return result;
+
 	/* We're here because we're uncertain about the state of the target. That
 	 * includes our progbuf cache. */
 	riscv013_invalidate_cached_progbuf(target);
-
-	dm_write(target, DM_DMCONTROL, DM_DMCONTROL_HARTSELLO |
-			DM_DMCONTROL_HARTSELHI | DM_DMCONTROL_DMACTIVE |
-			DM_DMCONTROL_HASEL);
-	dm->current_hartid = HART_INDEX_UNKNOWN;
-	uint32_t dmcontrol;
-	if (dm_read(target, &dmcontrol, DM_DMCONTROL) != ERROR_OK)
-		return ERROR_FAIL;
-	/* Ensure the HART_INDEX_UNKNOWN is flushed out */
-	if (dm013_select_hart(target, 0) != ERROR_OK)
-		return ERROR_FAIL;
-
-
-	if (!get_field(dmcontrol, DM_DMCONTROL_DMACTIVE)) {
-		LOG_TARGET_ERROR(target, "Debug Module did not become active. dmcontrol=0x%x",
-				dmcontrol);
-		return ERROR_FAIL;
-	}
-
-	dm->hasel_supported = get_field(dmcontrol, DM_DMCONTROL_HASEL);
 
 	uint32_t dmstatus;
 	if (dmstatus_read(target, &dmstatus, false) != ERROR_OK)
@@ -2011,17 +2109,6 @@ static int examine(struct target *target)
 		/* Error was already printed out in dmstatus_read(). */
 		return ERROR_FAIL;
 	}
-
-	uint32_t hartsel =
-		(get_field(dmcontrol, DM_DMCONTROL_HARTSELHI) <<
-		 DM_DMCONTROL_HARTSELLO_LENGTH) |
-		get_field(dmcontrol, DM_DMCONTROL_HARTSELLO);
-	info->hartsellen = 0;
-	while (hartsel & 1) {
-		info->hartsellen++;
-		hartsel >>= 1;
-	}
-	LOG_TARGET_DEBUG(target, "hartsellen=%d", info->hartsellen);
 
 	uint32_t hartinfo;
 	if (dm_read(target, &hartinfo, DM_HARTINFO) != ERROR_OK)
@@ -2068,37 +2155,8 @@ static int examine(struct target *target)
 					, info->progbufsize);
 	}
 
-	/* Before doing anything else we must first enumerate the harts. */
-	if (dm->hart_count < 0) {
-		for (int i = 0; i < MIN(RISCV_MAX_HARTS, 1 << info->hartsellen); ++i) {
-			if (dm013_select_hart(target, i) != ERROR_OK)
-				return ERROR_FAIL;
-
-			uint32_t s;
-			if (dmstatus_read(target, &s, true) != ERROR_OK)
-				return ERROR_FAIL;
-			if (get_field(s, DM_DMSTATUS_ANYNONEXISTENT))
-				break;
-			dm->hart_count = i + 1;
-
-			if (get_field(s, DM_DMSTATUS_ANYHAVERESET))
-				dm_write(target, DM_DMCONTROL,
-						set_dmcontrol_hartsel(DM_DMCONTROL_DMACTIVE | DM_DMCONTROL_ACKHAVERESET, i));
-		}
-
-		LOG_TARGET_DEBUG(target, "Detected %d harts.", dm->hart_count);
-	}
-
-	if (dm->hart_count <= 0) {
-		LOG_TARGET_ERROR(target, "No harts found!");
-		return ERROR_FAIL;
-	}
-
 	/* Don't call any riscv_* functions until after we've counted the number of
 	 * cores and initialized registers. */
-
-	if (dm013_select_hart(target, info->index) != ERROR_OK)
-		return ERROR_FAIL;
 
 	enum riscv_hart_state state_at_examine_start;
 	if (riscv_get_hart_state(target, &state_at_examine_start) != ERROR_OK)
@@ -2120,7 +2178,7 @@ static int examine(struct target *target)
 	 * program buffer. */
 	r->progbuf_size = info->progbufsize;
 
-	int result = register_read_abstract_with_size(target, NULL, GDB_REGNO_S0, 64);
+	result = register_read_abstract_with_size(target, NULL, GDB_REGNO_S0, 64);
 	if (result == ERROR_OK)
 		r->xlen = 64;
 	else
