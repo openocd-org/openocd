@@ -1932,6 +1932,26 @@ static int set_group(struct target *target, bool *supported, unsigned int group,
 	return ERROR_OK;
 }
 
+static int wait_for_idle_if_needed(struct target *target)
+{
+	dm013_info_t *dm = get_dm(target);
+	if (!dm)
+		return ERROR_FAIL;
+	if (!dm->abstract_cmd_maybe_busy)
+		/* The previous abstract command ended correctly
+		 * and busy was cleared. No need to do anything. */
+		return ERROR_OK;
+
+	/* The previous abstract command timed out and abstractcs.busy
+	 * may have remained set. Wait for it to get cleared. */
+	uint32_t abstractcs;
+	int result = wait_for_idle(target, &abstractcs);
+	if (result != ERROR_OK)
+		return result;
+	LOG_DEBUG_REG(target, DM_ABSTRACTCS, abstractcs);
+	return ERROR_OK;
+}
+
 static int examine_dm(struct target *target)
 {
 	dm013_info_t *dm = get_dm(target);
@@ -2033,7 +2053,12 @@ static int examine_dm(struct target *target)
 
 			if (get_field(s, DM_DMSTATUS_ANYHAVERESET)) {
 				dmcontrol = DM_DMCONTROL_DMACTIVE | DM_DMCONTROL_ACKHAVERESET;
-				/* TODO: Check `abstractcs.busy` here. */
+				/* If `abstractcs.busy` is set, debugger should not
+				 * change `hartsel`.
+				 */
+				result = wait_for_idle_if_needed(target);
+				if (result != ERROR_OK)
+					return result;
 				dmcontrol = set_dmcontrol_hartsel(dmcontrol, i);
 				result = dm_write(target, DM_DMCONTROL, dmcontrol);
 				if (result != ERROR_OK)
@@ -2808,8 +2833,14 @@ static int riscv013_get_hart_state(struct target *target, enum riscv_hart_state 
 		 * message that a reset happened, that the target is running, and then
 		 * that it is halted again once the request goes through.
 		 */
-		if (target->state == TARGET_HALTED)
+		if (target->state == TARGET_HALTED) {
 			dmcontrol |= DM_DMCONTROL_HALTREQ;
+			/* `haltreq` should not be issued if `abstractcs.busy`
+			 * is set. */
+			int result = wait_for_idle_if_needed(target);
+			if (result != ERROR_OK)
+				return result;
+		}
 		dm_write(target, DM_DMCONTROL, dmcontrol);
 	}
 	if (get_field(dmstatus, DM_DMSTATUS_ALLNONEXISTENT)) {
@@ -2930,11 +2961,24 @@ static int assert_reset(struct target *target)
 		/* Run the user-supplied script if there is one. */
 		target_handle_event(target, TARGET_EVENT_RESET_ASSERT);
 	} else {
+		dm013_info_t *dm = get_dm(target);
+		if (!dm)
+			return ERROR_FAIL;
+
 		uint32_t control = set_field(0, DM_DMCONTROL_DMACTIVE, 1);
 		control = set_dmcontrol_hartsel(control, info->index);
 		control = set_field(control, DM_DMCONTROL_HALTREQ,
 				target->reset_halt ? 1 : 0);
 		control = set_field(control, DM_DMCONTROL_NDMRESET, 1);
+		/* If `abstractcs.busy` is set, debugger should not
+		 * change `hartsel` or set `haltreq`
+		 */
+		const bool hartsel_changed = (int)info->index != dm->current_hartid;
+		if (hartsel_changed || target->reset_halt) {
+			result = wait_for_idle_if_needed(target);
+			if (result != ERROR_OK)
+				return result;
+		}
 		result = dm_write(target, DM_DMCONTROL, control);
 		if (result != ERROR_OK)
 			return result;
@@ -2951,6 +2995,9 @@ static int assert_reset(struct target *target)
 static int deassert_reset(struct target *target)
 {
 	RISCV013_INFO(info);
+	dm013_info_t *dm = get_dm(target);
+	if (!dm)
+		return ERROR_FAIL;
 	int result;
 
 	select_dmi(target);
@@ -2959,6 +3006,15 @@ static int deassert_reset(struct target *target)
 	control = set_field(control, DM_DMCONTROL_DMACTIVE, 1);
 	control = set_field(control, DM_DMCONTROL_HALTREQ, target->reset_halt ? 1 : 0);
 	control = set_dmcontrol_hartsel(control, info->index);
+	/* If `abstractcs.busy` is set, debugger should not
+	 * change `hartsel`.
+	 */
+	const bool hartsel_changed = (int)info->index != dm->current_hartid;
+	if (hartsel_changed) {
+		result = wait_for_idle_if_needed(target);
+		if (result != ERROR_OK)
+			return result;
+	}
 	result = dm_write(target, DM_DMCONTROL, control);
 	if (result != ERROR_OK)
 		return result;
@@ -5013,6 +5069,11 @@ static int dm013_select_hart(struct target *target, int hart_index)
 	if (hart_index == dm->current_hartid)
 		return ERROR_OK;
 
+	/* `hartsel` should not be changed if `abstractcs.busy` is set. */
+	int result = wait_for_idle_if_needed(target);
+	if (result != ERROR_OK)
+		return result;
+
 	uint32_t dmcontrol = DM_DMCONTROL_DMACTIVE;
 	dmcontrol = set_dmcontrol_hartsel(dmcontrol, hart_index);
 	if (dm_write(target, DM_DMCONTROL, dmcontrol) != ERROR_OK) {
@@ -5107,6 +5168,11 @@ static int riscv013_halt_go(struct target *target)
 
 	LOG_TARGET_DEBUG(target, "halting hart");
 
+	/* `haltreq` should not be issued if `abstractcs.busy` is set. */
+	int result = wait_for_idle_if_needed(target);
+	if (result != ERROR_OK)
+		return result;
+
 	/* Issue the halt command, and then wait for the current hart to halt. */
 	uint32_t dmcontrol = DM_DMCONTROL_DMACTIVE | DM_DMCONTROL_HALTREQ;
 	dmcontrol = set_dmcontrol_hartsel(dmcontrol, dm->current_hartid);
@@ -5149,11 +5215,8 @@ static int riscv013_halt_go(struct target *target)
 				/* Only some harts were halted/unavailable. Read
 				 * dmstatus for this one to see what its status
 				 * is. */
-				riscv013_info_t *info = get_info(t);
-				dmcontrol = set_dmcontrol_hartsel(dmcontrol, info->index);
-				if (dm_write(target, DM_DMCONTROL, dmcontrol) != ERROR_OK)
+				if (dm013_select_target(target) != ERROR_OK)
 					return ERROR_FAIL;
-				dm->current_hartid = info->index;
 				if (dm_read(target, &t_dmstatus, DM_DMSTATUS) != ERROR_OK)
 					return ERROR_FAIL;
 			}
@@ -5375,6 +5438,10 @@ static int riscv013_step_or_resume_current_hart(struct target *target,
 	/* Issue the resume command, and then wait for the current hart to resume. */
 	uint32_t dmcontrol = DM_DMCONTROL_DMACTIVE | DM_DMCONTROL_RESUMEREQ;
 	dmcontrol = set_dmcontrol_hartsel(dmcontrol, dm->current_hartid);
+	/* `resumereq` should not be issued if `abstractcs.busy` is set. */
+	int result = wait_for_idle_if_needed(target);
+	if (result != ERROR_OK)
+		return result;
 	dm_write(target, DM_DMCONTROL, dmcontrol);
 
 	dmcontrol = set_field(dmcontrol, DM_DMCONTROL_RESUMEREQ, 0);
