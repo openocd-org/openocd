@@ -248,9 +248,6 @@ static int intel_load(struct pld_device *pld_device, const char *filename)
 	if (retval != ERROR_OK)
 		return retval;
 
-	if (retval != ERROR_OK)
-		return retval;
-
 	retval = intel_set_instr(tap, 0x002);
 	if (retval != ERROR_OK) {
 		free(bit_file.data);
