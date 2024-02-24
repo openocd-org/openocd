@@ -765,7 +765,7 @@ static void ublast_initial_wipeout(void)
 	tap_set_state(TAP_RESET);
 }
 
-static int ublast_execute_queue(void)
+static int ublast_execute_queue(struct jtag_command *cmd_queue)
 {
 	struct jtag_command *cmd;
 	static int first_call = 1;
@@ -776,7 +776,7 @@ static int ublast_execute_queue(void)
 		ublast_initial_wipeout();
 	}
 
-	for (cmd = jtag_command_queue; ret == ERROR_OK && cmd;
+	for (cmd = cmd_queue; ret == ERROR_OK && cmd;
 	     cmd = cmd->next) {
 		switch (cmd->type) {
 		case JTAG_RESET:

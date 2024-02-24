@@ -880,26 +880,21 @@ int mpsse_flush(struct mpsse_ctx *ctx)
 
 		retval = libusb_handle_events_timeout_completed(ctx->usb_ctx, &timeout_usb, NULL);
 		keep_alive();
-		if (retval == LIBUSB_ERROR_NO_DEVICE || retval == LIBUSB_ERROR_INTERRUPTED)
-			break;
-
-		if (retval != LIBUSB_SUCCESS) {
-			libusb_cancel_transfer(write_transfer);
-			if (read_transfer)
-				libusb_cancel_transfer(read_transfer);
-			while (!write_result.done || !read_result.done) {
-				retval = libusb_handle_events_timeout_completed(ctx->usb_ctx,
-								&timeout_usb, NULL);
-				if (retval != LIBUSB_SUCCESS)
-					break;
-			}
-		}
 
 		int64_t now = timeval_ms();
 		if (now - start > warn_after) {
 			LOG_WARNING("Haven't made progress in mpsse_flush() for %" PRId64
 					"ms.", now - start);
 			warn_after *= 2;
+		}
+
+		if (retval == LIBUSB_ERROR_INTERRUPTED)
+			continue;
+
+		if (retval != LIBUSB_SUCCESS) {
+			libusb_cancel_transfer(write_transfer);
+			if (read_transfer)
+				libusb_cancel_transfer(read_transfer);
 		}
 	}
 

@@ -33,7 +33,7 @@ struct cmd_queue_page {
 static struct cmd_queue_page *cmd_queue_pages;
 static struct cmd_queue_page *cmd_queue_pages_tail;
 
-struct jtag_command *jtag_command_queue;
+static struct jtag_command *jtag_command_queue;
 static struct jtag_command **next_command_pointer = &jtag_command_queue;
 
 void jtag_queue_command(struct jtag_command *cmd)
@@ -145,6 +145,11 @@ void jtag_command_queue_reset(void)
 
 	jtag_command_queue = NULL;
 	next_command_pointer = &jtag_command_queue;
+}
+
+struct jtag_command *jtag_command_queue_get(void)
+{
+	return jtag_command_queue;
 }
 
 /**

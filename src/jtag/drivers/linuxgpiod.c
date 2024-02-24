@@ -37,9 +37,7 @@ static const struct adapter_gpio_config *adapter_gpio_config;
  */
 static bool is_gpio_config_valid(enum adapter_gpio_config_index idx)
 {
-	return adapter_gpio_config[idx].chip_num >= 0
-		&& adapter_gpio_config[idx].chip_num < 1000
-		&& adapter_gpio_config[idx].gpio_num >= 0
+	return adapter_gpio_config[idx].chip_num < 1000
 		&& adapter_gpio_config[idx].gpio_num < 10000;
 }
 

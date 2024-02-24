@@ -233,7 +233,7 @@ static int angie_post_process_scan(struct angie_cmd *angie_cmd);
 static int angie_post_process_queue(struct angie *device);
 
 /* adapter driver functions */
-static int angie_execute_queue(void);
+static int angie_execute_queue(struct jtag_command *cmd_queue);
 static int angie_khz(int khz, int *jtag_speed);
 static int angie_speed(int speed);
 static int angie_speed_div(int speed, int *khz);
@@ -2037,9 +2037,9 @@ static int angie_post_process_queue(struct angie *device)
  * @return on success: ERROR_OK
  * @return on failure: ERROR_FAIL
  */
-static int angie_execute_queue(void)
+static int angie_execute_queue(struct jtag_command *cmd_queue)
 {
-	struct jtag_command *cmd = jtag_command_queue;
+	struct jtag_command *cmd = cmd_queue;
 	int ret;
 
 	while (cmd) {

@@ -1262,9 +1262,9 @@ static int rlink_scan(struct jtag_command *cmd, enum scan_type type,
 	return 0;
 }
 
-static int rlink_execute_queue(void)
+static int rlink_execute_queue(struct jtag_command *cmd_queue)
 {
-	struct jtag_command *cmd = jtag_command_queue;	/* currently processed command */
+	struct jtag_command *cmd = cmd_queue;	/* currently processed command */
 	int scan_size;
 	enum scan_type type;
 	uint8_t *buffer;

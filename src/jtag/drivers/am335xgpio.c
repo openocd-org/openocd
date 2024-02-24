@@ -86,9 +86,7 @@ static const struct adapter_gpio_config *adapter_gpio_config;
 
 static bool is_gpio_config_valid(const struct adapter_gpio_config *gpio_config)
 {
-	return gpio_config->chip_num >= 0
-		&& gpio_config->chip_num < AM335XGPIO_NUM_GPIO_CHIPS
-		&& gpio_config->gpio_num >= 0
+	return gpio_config->chip_num < AM335XGPIO_NUM_GPIO_CHIPS
 		&& gpio_config->gpio_num < AM335XGPIO_NUM_GPIO_PER_CHIP;
 }
 
@@ -249,10 +247,13 @@ static int am335xgpio_reset(int trst, int srst)
 	if (is_gpio_config_valid(&adapter_gpio_config[ADAPTER_GPIO_IDX_TRST]))
 		set_gpio_value(&adapter_gpio_config[ADAPTER_GPIO_IDX_TRST], trst);
 
-	LOG_DEBUG("am335xgpio_reset(%d, %d), trst_gpio: %d %d, srst_gpio: %d %d",
-		trst, srst,
-		adapter_gpio_config[ADAPTER_GPIO_IDX_TRST].chip_num, adapter_gpio_config[ADAPTER_GPIO_IDX_TRST].gpio_num,
-		adapter_gpio_config[ADAPTER_GPIO_IDX_SRST].chip_num, adapter_gpio_config[ADAPTER_GPIO_IDX_SRST].gpio_num);
+	LOG_DEBUG("trst %d gpio: %d %d, srst %d gpio: %d %d",
+		trst,
+		(int)adapter_gpio_config[ADAPTER_GPIO_IDX_TRST].chip_num,
+		(int)adapter_gpio_config[ADAPTER_GPIO_IDX_TRST].gpio_num,
+		srst,
+		(int)adapter_gpio_config[ADAPTER_GPIO_IDX_SRST].chip_num,
+		(int)adapter_gpio_config[ADAPTER_GPIO_IDX_SRST].gpio_num);
 	return ERROR_OK;
 }
 

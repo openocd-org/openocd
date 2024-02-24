@@ -1046,11 +1046,11 @@ static int vdebug_jtag_div(int speed, int *khz)
 	return ERROR_OK;
 }
 
-static int vdebug_jtag_execute_queue(void)
+static int vdebug_jtag_execute_queue(struct jtag_command *cmd_queue)
 {
 	int rc = ERROR_OK;
 
-	for (struct jtag_command *cmd = jtag_command_queue; rc == ERROR_OK && cmd; cmd = cmd->next) {
+	for (struct jtag_command *cmd = cmd_queue; rc == ERROR_OK && cmd; cmd = cmd->next) {
 		switch (cmd->type) {
 		case JTAG_RUNTEST:
 			rc = vdebug_jtag_runtest(cmd->cmd.runtest->num_cycles, cmd->cmd.runtest->end_state, !cmd->next);
