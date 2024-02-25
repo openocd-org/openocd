@@ -73,6 +73,8 @@ struct gdb_connection {
 	enum target_state frontend_state;
 	struct image *vflash_image;
 	bool closed;
+	/* set to prevent re-entrance from log messages during gdb_get_packet()
+	 * and gdb_put_packet(). */
 	bool busy;
 	int noack_mode;
 	/* set flag to true if you want the next stepi to return immediately.
@@ -3793,11 +3795,6 @@ static void gdb_async_notif(struct connection *connection)
 static void gdb_keep_client_alive(struct connection *connection)
 {
 	struct gdb_connection *gdb_con = connection->priv;
-
-	if (gdb_con->busy) {
-		/* do not send packets, retry asap */
-		return;
-	}
 
 	switch (gdb_con->output_flag) {
 	case GDB_OUTPUT_NO:
