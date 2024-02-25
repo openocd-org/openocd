@@ -3376,6 +3376,13 @@ static int gdb_v_packet(struct connection *connection,
 	if (strncmp(packet, "vFlashDone", 10) == 0) {
 		uint32_t written;
 
+		/* GDB command 'flash-erase' does not send a vFlashWrite,
+		 * so nothing to write here. */
+		if (!gdb_connection->vflash_image) {
+			gdb_put_packet(connection, "OK", 2);
+			return ERROR_OK;
+		}
+
 		/* process the flashing buffer. No need to erase as GDB
 		 * always issues a vFlashErase first. */
 		target_call_event_callbacks(target,
