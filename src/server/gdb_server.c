@@ -53,6 +53,8 @@
 enum gdb_output_flag {
 	/* GDB doesn't accept 'O' packets */
 	GDB_OUTPUT_NO,
+	/* GDB doesn't accept 'O' packets but accepts notifications */
+	GDB_OUTPUT_NOTIF,
 	/* GDB accepts 'O' packets */
 	GDB_OUTPUT_ALL,
 };
@@ -1486,9 +1488,6 @@ static int gdb_error(struct connection *connection, int retval)
 	return ERROR_OK;
 }
 
-/* We don't have to worry about the default 2 second timeout for GDB packets,
- * because GDB breaks up large memory reads into smaller reads.
- */
 static int gdb_read_memory_packet(struct connection *connection,
 		char const *packet, int packet_size)
 {
@@ -3477,7 +3476,7 @@ static void gdb_log_callback(void *priv, const char *file, unsigned line,
 	struct connection *connection = priv;
 	struct gdb_connection *gdb_con = connection->priv;
 
-	if (gdb_con->output_flag == GDB_OUTPUT_NO)
+	if (gdb_con->output_flag != GDB_OUTPUT_ALL)
 		/* No out allowed */
 		return;
 
@@ -3562,10 +3561,14 @@ static int gdb_input_inner(struct connection *connection)
 					retval = gdb_set_register_packet(connection, packet, packet_size);
 					break;
 				case 'm':
+					gdb_con->output_flag = GDB_OUTPUT_NOTIF;
 					retval = gdb_read_memory_packet(connection, packet, packet_size);
+					gdb_con->output_flag = GDB_OUTPUT_NO;
 					break;
 				case 'M':
+					gdb_con->output_flag = GDB_OUTPUT_NOTIF;
 					retval = gdb_write_memory_packet(connection, packet, packet_size);
+					gdb_con->output_flag = GDB_OUTPUT_NO;
 					break;
 				case 'z':
 				case 'Z':
@@ -3656,9 +3659,9 @@ static int gdb_input_inner(struct connection *connection)
 					retval = gdb_detach(connection);
 					break;
 				case 'X':
+					gdb_con->output_flag = GDB_OUTPUT_NOTIF;
 					retval = gdb_write_memory_binary_packet(connection, packet, packet_size);
-					if (retval != ERROR_OK)
-						return retval;
+					gdb_con->output_flag = GDB_OUTPUT_NO;
 					break;
 				case 'k':
 					if (gdb_con->extended_protocol) {
@@ -3754,6 +3757,39 @@ static int gdb_input(struct connection *connection)
 	return ERROR_OK;
 }
 
+/*
+ * Send custom notification packet as keep-alive during memory read/write.
+ *
+ * From gdb 7.0 (released 2009-10-06) an unknown notification received during
+ * memory read/write would be silently dropped.
+ * Before gdb 7.0 any character, with exclusion of "+-$", would be considered
+ * as junk and ignored.
+ * In both cases the reception will reset the timeout counter in gdb, thus
+ * working as a keep-alive.
+ * Check putpkt_binary() and getpkt_sane() in gdb commit
+ * 74531fed1f2d662debc2c209b8b3faddceb55960
+ *
+ * Enable remote debug in gdb with 'set debug remote 1' to either dump the junk
+ * characters in gdb pre-7.0 and the notification from gdb 7.0.
+ */
+static void gdb_async_notif(struct connection *connection)
+{
+	static unsigned char count;
+	unsigned char checksum = 0;
+	char buf[22];
+
+	int len = sprintf(buf, "%%oocd_keepalive:%2.2x", count++);
+	for (int i = 1; i < len; i++)
+		checksum += buf[i];
+	len += sprintf(buf + len, "#%2.2x", checksum);
+
+#ifdef _DEBUG_GDB_IO_
+	LOG_DEBUG("sending packet '%s'", buf);
+#endif
+
+	gdb_write(connection, buf, len);
+}
+
 static void gdb_keep_client_alive(struct connection *connection)
 {
 	struct gdb_connection *gdb_con = connection->priv;
@@ -3766,6 +3802,10 @@ static void gdb_keep_client_alive(struct connection *connection)
 	switch (gdb_con->output_flag) {
 	case GDB_OUTPUT_NO:
 		/* no need for keep-alive */
+		break;
+	case GDB_OUTPUT_NOTIF:
+		/* send asynchronous notification */
+		gdb_async_notif(connection);
 		break;
 	case GDB_OUTPUT_ALL:
 		/* send an empty O packet */
