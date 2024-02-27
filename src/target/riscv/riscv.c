@@ -1011,25 +1011,29 @@ static int maybe_add_trigger_t2_t6_for_wp(struct target *target,
 		struct trigger *trigger, struct match_triggers_tdata1_fields fields)
 {
 	RISCV_INFO(r);
-	int ret = ERROR_FAIL;
+	int ret = ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 
 	if (trigger->length > 0) {
 		/* Setting a load/store trigger ("watchpoint") on a range of addresses */
-
-		if (r->enable_napot_trigger && can_use_napot_match(trigger)) {
-			LOG_TARGET_DEBUG(target, "trying to setup NAPOT match trigger");
-			struct trigger_request_info napot = {
-				.tdata1 = fields.common | fields.size.any |
-					fields.chain.disable | fields.match.napot,
-				.tdata2 = trigger->address | ((trigger->length - 1) >> 1),
-				.tdata1_ignore_mask = fields.tdata1_ignore_mask
-			};
-			ret = try_setup_single_match_trigger(target, trigger, napot);
-			if (ret != ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
-				return ret;
+		if (can_use_napot_match(trigger)) {
+			if (r->wp_allow_napot_trigger) {
+				LOG_TARGET_DEBUG(target, "trying to setup NAPOT match trigger");
+				struct trigger_request_info napot = {
+					.tdata1 = fields.common | fields.size.any |
+						fields.chain.disable | fields.match.napot,
+					.tdata2 = trigger->address | ((trigger->length - 1) >> 1),
+					.tdata1_ignore_mask = fields.tdata1_ignore_mask
+				};
+				ret = try_setup_single_match_trigger(target, trigger, napot);
+				if (ret != ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
+					return ret;
+			} else {
+				LOG_TARGET_DEBUG(target, "NAPOT match triggers are disabled for watchpoints. "
+							 "Use 'riscv set_enable_trigger_feature napot wp' to enable it.");
+			}
 		}
 
-		if (r->enable_ge_lt_trigger) {
+		if (r->wp_allow_ge_lt_trigger) {
 			LOG_TARGET_DEBUG(target, "trying to setup GE+LT chained match trigger pair");
 			struct trigger_request_info ge_1 = {
 				.tdata1 = fields.common | fields.size.any | fields.chain.enable |
@@ -1063,10 +1067,13 @@ static int maybe_add_trigger_t2_t6_for_wp(struct target *target,
 			ret = try_setup_chained_match_triggers(target, trigger, lt_1, ge_2);
 			if (ret != ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
 				return ret;
+		} else {
+			LOG_TARGET_DEBUG(target, "LT+GE chained match triggers are disabled for watchpoints. "
+						 "Use 'riscv set_enable_trigger_feature ge_lt wp' to enable it.");
 		}
 	}
 
-	if (r->enable_equality_match_trigger) {
+	if (r->wp_allow_equality_match_trigger) {
 		LOG_TARGET_DEBUG(target, "trying to setup equality match trigger");
 		struct trigger_request_info eq = {
 			.tdata1 = fields.common | fields.size.any | fields.chain.disable |
@@ -1077,6 +1084,9 @@ static int maybe_add_trigger_t2_t6_for_wp(struct target *target,
 		ret = try_setup_single_match_trigger(target, trigger, eq);
 		if (ret != ERROR_OK)
 			return ret;
+	} else {
+		LOG_TARGET_DEBUG(target, "equality match triggers are disabled for watchpoints. "
+					 "Use 'riscv set_enable_trigger_feature eq wp' to enable it.");
 	}
 
 	if (ret == ERROR_OK && trigger->length > 1) {
@@ -4505,55 +4515,47 @@ COMMAND_HANDLER(riscv_exec_progbuf)
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(riscv_set_enable_eq_match_trigger)
+COMMAND_HANDLER(riscv_set_enable_trigger_feature)
 {
 	struct target *target = get_current_target(CMD_CTX);
 	RISCV_INFO(r);
 
-	if (CMD_ARGC == 0) {
-		command_print(CMD, "equality match trigger enabled: %s", r->enable_equality_match_trigger ? "on" : "off");
-		return ERROR_OK;
-	} else if (CMD_ARGC == 1) {
-		COMMAND_PARSE_ON_OFF(CMD_ARGV[0], r->enable_equality_match_trigger);
-		return ERROR_OK;
+	if (CMD_ARGC == 2) {
+		bool enable_for_wp = true;
+
+		if (!strcmp(CMD_ARGV[1], "wp"))
+			enable_for_wp = true;
+		else if (!strcmp(CMD_ARGV[1], "none"))
+			enable_for_wp = false;
+		else
+			return ERROR_COMMAND_SYNTAX_ERROR;
+
+		if (!strcmp(CMD_ARGV[0], "all")) {
+			r->wp_allow_equality_match_trigger = enable_for_wp;
+			r->wp_allow_napot_trigger = enable_for_wp;
+			r->wp_allow_ge_lt_trigger = enable_for_wp;
+		} else if (!strcmp(CMD_ARGV[0], "eq")) {
+			r->wp_allow_equality_match_trigger = enable_for_wp;
+		} else if (!strcmp(CMD_ARGV[0], "napot")) {
+			r->wp_allow_napot_trigger = enable_for_wp;
+		} else if (!strcmp(CMD_ARGV[0], "ge_lt")) {
+			r->wp_allow_ge_lt_trigger = enable_for_wp;
+		} else {
+			return ERROR_COMMAND_SYNTAX_ERROR;
+		}
+	} else if (CMD_ARGC != 0) {
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	LOG_ERROR("Command takes 0 or 1 parameters");
-	return ERROR_COMMAND_SYNTAX_ERROR;
-}
+	command_print(CMD, "Triggers feature configuration:\n"
+			   "Equality match trigger: for wp (%s)\n"
+			   "NAPOT trigger: for wp (%s)\n"
+			   "ge-lt chained triggers: for wp (%s)",
+			   r->wp_allow_equality_match_trigger ? "enabled" : "disabled",
+			   r->wp_allow_napot_trigger ? "enabled" : "disabled",
+			   r->wp_allow_ge_lt_trigger ? "enabled" : "disabled");
 
-COMMAND_HANDLER(riscv_set_enable_napot_trigger)
-{
-	struct target *target = get_current_target(CMD_CTX);
-	RISCV_INFO(r);
-
-	if (CMD_ARGC == 0) {
-		command_print(CMD, "NAPOT trigger enabled: %s", r->enable_napot_trigger ? "on" : "off");
-		return ERROR_OK;
-	} else if (CMD_ARGC == 1) {
-		COMMAND_PARSE_ON_OFF(CMD_ARGV[0], r->enable_napot_trigger);
-		return ERROR_OK;
-	}
-
-	LOG_ERROR("Command takes 0 or 1 parameters");
-	return ERROR_COMMAND_SYNTAX_ERROR;
-}
-
-COMMAND_HANDLER(riscv_set_enable_ge_lt_trigger)
-{
-	struct target *target = get_current_target(CMD_CTX);
-	RISCV_INFO(r);
-
-	if (CMD_ARGC == 0) {
-		command_print(CMD, "ge-lt triggers enabled: %s", r->enable_ge_lt_trigger ? "on" : "off");
-		return ERROR_OK;
-	} else if (CMD_ARGC == 1) {
-		COMMAND_PARSE_ON_OFF(CMD_ARGV[0], r->enable_ge_lt_trigger);
-		return ERROR_OK;
-	}
-
-	LOG_ERROR("Command takes 0 or 1 parameters");
-	return ERROR_COMMAND_SYNTAX_ERROR;
+	return ERROR_OK;
 }
 
 static const struct command_registration riscv_exec_command_handlers[] = {
@@ -4806,25 +4808,11 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 			"The final ebreak instruction is added automatically, if needed."
 	},
 	{
-		.name = "set_enable_eq_match_trigger",
-		.handler = riscv_set_enable_eq_match_trigger,
-		.mode = COMMAND_CONFIG,
-		.usage = "[on|off]",
-		.help = "When on, allow OpenOCD to use equality match trigger in wp."
-	},
-	{
-		.name = "set_enable_napot_trigger",
-		.handler = riscv_set_enable_napot_trigger,
-		.mode = COMMAND_CONFIG,
-		.usage = "[on|off]",
-		.help = "When on, allow OpenOCD to use NAPOT trigger in wp."
-	},
-	{
-		.name = "set_enable_ge_lt_trigger",
-		.handler = riscv_set_enable_ge_lt_trigger,
-		.mode = COMMAND_CONFIG,
-		.usage = "[on|off]",
-		.help = "When on, allow OpenOCD to use GE/LT triggers in wp."
+		.name = "set_enable_trigger_feature",
+		.handler = riscv_set_enable_trigger_feature,
+		.mode = COMMAND_ANY,
+		.usage = "[('eq'|'napot'|'ge_lt'|'all') ('wp'|'none')]",
+		.help = "Control whether OpenOCD is allowed to use certain RISC-V trigger features for watchpoints."
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -4962,9 +4950,9 @@ static void riscv_info_init(struct target *target, struct riscv_info *r)
 	r->riscv_ebreaks = true;
 	r->riscv_ebreaku = true;
 
-	r->enable_equality_match_trigger = true;
-	r->enable_ge_lt_trigger = true;
-	r->enable_napot_trigger = true;
+	r->wp_allow_equality_match_trigger = true;
+	r->wp_allow_ge_lt_trigger = true;
+	r->wp_allow_napot_trigger = true;
 }
 
 static int riscv_resume_go_all_harts(struct target *target)
