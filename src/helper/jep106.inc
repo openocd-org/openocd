@@ -2,13 +2,13 @@
 
 /*
  * The manufacturer's standard identification code list appears in JEP106.
- * Copyright (c) 2023 JEDEC. All rights reserved.
+ * Copyright (c) 2024 JEDEC. All rights reserved.
  *
  * JEP106 is regularly updated. For the current manufacturer's standard
  * identification code list, please visit the JEDEC website at www.jedec.org .
  */
 
-/* This file is aligned to revision JEP106BH September 2023. */
+/* This file is aligned to revision JEP106BI January 2024. */
 
 /* "NXP (Philips)" is reported below, while missing since JEP106BG */
 
@@ -1621,7 +1621,7 @@
 [12][0x5f - 1] = "Sitrus Technology",
 [12][0x60 - 1] = "AnHui Conner Storage Co Ltd",
 [12][0x61 - 1] = "Rochester Electronics",
-[12][0x62 - 1] = "Wuxi Petabyte Technologies Co Ltd",
+[12][0x62 - 1] = "Wuxi Smart Memories Technologies Co",
 [12][0x63 - 1] = "Star Memory",
 [12][0x64 - 1] = "Agile Memory Technology Co Ltd",
 [12][0x65 - 1] = "MEJEC",
@@ -1864,7 +1864,7 @@
 [14][0x56 - 1] = "Exacta Technologies Ltd",
 [14][0x57 - 1] = "Synology",
 [14][0x58 - 1] = "Trium Elektronik Bilgi Islem San Ve Dis",
-[14][0x59 - 1] = "Shenzhen Hippstor Technology Co Ltd",
+[14][0x59 - 1] = "Wuxi HippStor Technology Co Ltd",
 [14][0x5a - 1] = "SSCT",
 [14][0x5b - 1] = "Sichuan Heentai Semiconductor Co Ltd",
 [14][0x5c - 1] = "Zhejiang University",
@@ -1888,4 +1888,54 @@
 [14][0x6e - 1] = "Chemgdu EG Technology Co Ltd",
 [14][0x6f - 1] = "AGI Technology",
 [14][0x70 - 1] = "Syntiant",
+[14][0x71 - 1] = "AOC",
+[14][0x72 - 1] = "GamePP",
+[14][0x73 - 1] = "Yibai Electronic Technologies",
+[14][0x74 - 1] = "Hangzhou Rencheng Trading Co Ltd",
+[14][0x75 - 1] = "HOGE Technology Co Ltd",
+[14][0x76 - 1] = "United Micro Technology (Shenzhen) Co",
+[14][0x77 - 1] = "Fabric of Truth Inc",
+[14][0x78 - 1] = "Epitech",
+[14][0x79 - 1] = "Elitestek",
+[14][0x7a - 1] = "Cornelis Networks Inc",
+[14][0x7b - 1] = "WingSemi Technologies Co Ltd",
+[14][0x7c - 1] = "ForwardEdge ASIC",
+[14][0x7d - 1] = "Beijing Future Imprint Technology Co Ltd",
+[14][0x7e - 1] = "Fine Made Microelectronics Group Co Ltd",
+[15][0x01 - 1] = "Changxin Memory Technology (Shanghai)",
+[15][0x02 - 1] = "Synconv",
+[15][0x03 - 1] = "MULTIUNIT",
+[15][0x04 - 1] = "Zero ASIC Corporation",
+[15][0x05 - 1] = "NTT Innovative Devices Corporation",
+[15][0x06 - 1] = "Xbstor",
+[15][0x07 - 1] = "Shenzhen South Electron Co Ltd",
+[15][0x08 - 1] = "Iontra Inc",
+[15][0x09 - 1] = "SIEFFI Inc",
+[15][0x0a - 1] = "HK Winston Electronics Co Limited",
+[15][0x0b - 1] = "Anhui SunChip Semiconductor Technology",
+[15][0x0c - 1] = "HaiLa Technologies Inc",
+[15][0x0d - 1] = "AUTOTALKS",
+[15][0x0e - 1] = "Shenzhen Ranshuo Technology Co Limited",
+[15][0x0f - 1] = "ScaleFlux",
+[15][0x10 - 1] = "XC Memory",
+[15][0x11 - 1] = "Guangzhou Beimu Technology Co., Ltd",
+[15][0x12 - 1] = "Rays Semiconductor Nanjing Co Ltd",
+[15][0x13 - 1] = "Milli-Centi Intelligence Technology Jiangsu",
+[15][0x14 - 1] = "Zilia Technologioes",
+[15][0x15 - 1] = "Incore Semiconductors",
+[15][0x16 - 1] = "Kinetic Technologies",
+[15][0x17 - 1] = "Nanjing Houmo Technology Co Ltd",
+[15][0x18 - 1] = "Suzhou Yige Technology Co Ltd",
+[15][0x19 - 1] = "Shenzhen Techwinsemi Technology Co Ltd",
+[15][0x1a - 1] = "Pure Array Technology (Shanghai) Co. Ltd",
+[15][0x1b - 1] = "Shenzhen Techwinsemi Technology Udstore",
+[15][0x1c - 1] = "RISE MODE",
+[15][0x1d - 1] = "NEWREESTAR",
+[15][0x1e - 1] = "Hangzhou Hualan Microeletronique Co Ltd",
+[15][0x1f - 1] = "Senscomm Semiconductor Co Ltd",
+[15][0x20 - 1] = "Holt Integrated Circuits",
+[15][0x21 - 1] = "Tenstorrent Inc",
+[15][0x22 - 1] = "SkyeChip",
+[15][0x23 - 1] = "Guangzhou Kaishile Trading Co Ltd",
+[15][0x24 - 1] = "Jing Pai Digital Technology (Shenzhen) Co",
 /* EOF */

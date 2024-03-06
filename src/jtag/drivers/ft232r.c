@@ -803,9 +803,9 @@ static void syncbb_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int 
 		}
 }
 
-static int syncbb_execute_queue(void)
+static int syncbb_execute_queue(struct jtag_command *cmd_queue)
 {
-	struct jtag_command *cmd = jtag_command_queue; /* currently processed command */
+	struct jtag_command *cmd = cmd_queue; /* currently processed command */
 	int scan_size;
 	enum scan_type type;
 	uint8_t *buffer;

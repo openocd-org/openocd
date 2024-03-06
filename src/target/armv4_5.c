@@ -1264,7 +1264,7 @@ const struct command_registration arm_command_handlers[] = {
  * same way as a gdb for arm. This can be changed later on. User can still
  * set the specific architecture variant with the gdb command.
  */
-const char *arm_get_gdb_arch(struct target *target)
+const char *arm_get_gdb_arch(const struct target *target)
 {
 	return "arm";
 }

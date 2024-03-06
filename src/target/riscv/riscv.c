@@ -1744,7 +1744,7 @@ static int riscv_write_memory(struct target *target, target_addr_t address,
 	return tt->write_memory(target, address, size, count, buffer);
 }
 
-static const char *riscv_get_gdb_arch(struct target *target)
+static const char *riscv_get_gdb_arch(const struct target *target)
 {
 	switch (riscv_xlen(target)) {
 		case 32:
@@ -3851,7 +3851,7 @@ int riscv_init_registers(struct target *target)
 		.type = REG_TYPE_ARCH_DEFINED,
 		.id = "FPU_FD",
 		.type_class = REG_TYPE_CLASS_UNION,
-		.reg_type_union = &single_double_union
+		{ .reg_type_union = &single_double_union }
 	};
 	static struct reg_data_type type_uint8 = { .type = REG_TYPE_UINT8, .id = "uint8" };
 	static struct reg_data_type type_uint16 = { .type = REG_TYPE_UINT16, .id = "uint16" };

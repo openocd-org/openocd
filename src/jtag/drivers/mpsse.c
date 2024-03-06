@@ -265,6 +265,24 @@ static bool open_matching_device(struct mpsse_ctx *ctx, const uint16_t vids[], c
 	case 0x900:
 		ctx->type = TYPE_FT232H;
 		break;
+	case 0x2800:
+		ctx->type = TYPE_FT2233HP;
+		break;
+	case 0x2900:
+		ctx->type = TYPE_FT4233HP;
+		break;
+	case 0x3000:
+		ctx->type = TYPE_FT2232HP;
+		break;
+	case 0x3100:
+		ctx->type = TYPE_FT4232HP;
+		break;
+	case 0x3200:
+		ctx->type = TYPE_FT233HP;
+		break;
+	case 0x3300:
+		ctx->type = TYPE_FT232HP;
+		break;
 	default:
 		LOG_ERROR("unsupported FTDI chip type: 0x%04x", desc.bcdDevice);
 		goto error;
@@ -880,26 +898,21 @@ int mpsse_flush(struct mpsse_ctx *ctx)
 
 		retval = libusb_handle_events_timeout_completed(ctx->usb_ctx, &timeout_usb, NULL);
 		keep_alive();
-		if (retval == LIBUSB_ERROR_NO_DEVICE || retval == LIBUSB_ERROR_INTERRUPTED)
-			break;
-
-		if (retval != LIBUSB_SUCCESS) {
-			libusb_cancel_transfer(write_transfer);
-			if (read_transfer)
-				libusb_cancel_transfer(read_transfer);
-			while (!write_result.done || !read_result.done) {
-				retval = libusb_handle_events_timeout_completed(ctx->usb_ctx,
-								&timeout_usb, NULL);
-				if (retval != LIBUSB_SUCCESS)
-					break;
-			}
-		}
 
 		int64_t now = timeval_ms();
 		if (now - start > warn_after) {
 			LOG_WARNING("Haven't made progress in mpsse_flush() for %" PRId64
 					"ms.", now - start);
 			warn_after *= 2;
+		}
+
+		if (retval == LIBUSB_ERROR_INTERRUPTED)
+			continue;
+
+		if (retval != LIBUSB_SUCCESS) {
+			libusb_cancel_transfer(write_transfer);
+			if (read_transfer)
+				libusb_cancel_transfer(read_transfer);
 		}
 	}
 

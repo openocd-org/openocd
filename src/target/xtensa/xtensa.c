@@ -3442,7 +3442,7 @@ void xtensa_target_deinit(struct target *target)
 	free(xtensa->core_config);
 }
 
-const char *xtensa_get_gdb_arch(struct target *target)
+const char *xtensa_get_gdb_arch(const struct target *target)
 {
 	return "xtensa";
 }
@@ -3459,8 +3459,8 @@ static COMMAND_HELPER(xtensa_cmd_exe_do, struct target *target)
 	const char *parm = CMD_ARGV[0];
 	unsigned int parm_len = strlen(parm);
 	if ((parm_len >= 64) || (parm_len & 1)) {
-		LOG_ERROR("Invalid parameter length (%d): must be even, < 64 characters", parm_len);
-		return ERROR_FAIL;
+		command_print(CMD, "Invalid parameter length (%d): must be even, < 64 characters", parm_len);
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
 	uint8_t ops[32];
@@ -3480,7 +3480,7 @@ static COMMAND_HELPER(xtensa_cmd_exe_do, struct target *target)
 	 */
 	int status = xtensa_write_dirty_registers(target);
 	if (status != ERROR_OK) {
-		LOG_ERROR("%s: Failed to write back register cache.", target_name(target));
+		command_print(CMD, "%s: Failed to write back register cache.", target_name(target));
 		return ERROR_FAIL;
 	}
 	xtensa_reg_val_t exccause = xtensa_reg_get(target, XT_REG_IDX_EXCCAUSE);
@@ -3498,18 +3498,18 @@ static COMMAND_HELPER(xtensa_cmd_exe_do, struct target *target)
 	xtensa_queue_exec_ins_wide(xtensa, ops, oplen);	/* Handles endian-swap */
 	status = xtensa_dm_queue_execute(&xtensa->dbg_mod);
 	if (status != ERROR_OK) {
-		LOG_TARGET_ERROR(target, "exec: queue error %d", status);
+		command_print(CMD, "exec: queue error %d", status);
 	} else {
 		status = xtensa_core_status_check(target);
 		if (status != ERROR_OK)
-			LOG_TARGET_ERROR(target, "exec: status error %d", status);
+			command_print(CMD, "exec: status error %d", status);
 	}
 
 	/* Reread register cache and restore saved regs after instruction execution */
 	if (xtensa_fetch_all_regs(target) != ERROR_OK)
-		LOG_TARGET_ERROR(target, "post-exec: register fetch error");
+		command_print(CMD, "post-exec: register fetch error");
 	if (status != ERROR_OK) {
-		LOG_TARGET_ERROR(target, "post-exec: EXCCAUSE 0x%02" PRIx32,
+		command_print(CMD, "post-exec: EXCCAUSE 0x%02" PRIx32,
 			xtensa_reg_get(target, XT_REG_IDX_EXCCAUSE));
 	}
 	xtensa_reg_set(target, XT_REG_IDX_EXCCAUSE, exccause);
@@ -3534,8 +3534,8 @@ COMMAND_HELPER(xtensa_cmd_xtdef_do, struct xtensa *xtensa)
 	} else if (strcasecmp(core_name, "NX") == 0) {
 		xtensa->core_config->core_type = XT_NX;
 	} else {
-		LOG_ERROR("xtdef [LX|NX]\n");
-		return ERROR_COMMAND_SYNTAX_ERROR;
+		command_print(CMD, "xtdef [LX|NX]\n");
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 	return ERROR_OK;
 }
@@ -3592,7 +3592,7 @@ COMMAND_HELPER(xtensa_cmd_xtopt_do, struct xtensa *xtensa)
 		if (!xtensa_cmd_xtopt_legal_val("excmlevel", opt_val, 1, 6))
 			return ERROR_COMMAND_ARGUMENT_INVALID;
 		if (!xtensa->core_config->high_irq.enabled) {
-			LOG_ERROR("xtopt excmlevel requires hipriints\n");
+			command_print(CMD, "xtopt excmlevel requires hipriints\n");
 			return ERROR_COMMAND_ARGUMENT_INVALID;
 		}
 		xtensa->core_config->high_irq.excm_level = opt_val;
@@ -3605,7 +3605,7 @@ COMMAND_HELPER(xtensa_cmd_xtopt_do, struct xtensa *xtensa)
 				return ERROR_COMMAND_ARGUMENT_INVALID;
 		}
 		if (!xtensa->core_config->high_irq.enabled) {
-			LOG_ERROR("xtopt intlevels requires hipriints\n");
+			command_print(CMD, "xtopt intlevels requires hipriints\n");
 			return ERROR_COMMAND_ARGUMENT_INVALID;
 		}
 		xtensa->core_config->high_irq.level_num = opt_val;
@@ -3662,10 +3662,8 @@ COMMAND_HELPER(xtensa_cmd_xtmem_do, struct xtensa *xtensa)
 	int mem_access = 0;
 	bool is_dcache = false;
 
-	if (CMD_ARGC == 0) {
-		LOG_ERROR("xtmem <type> [parameters]\n");
+	if (CMD_ARGC == 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	const char *mem_name = CMD_ARGV[0];
 	if (strcasecmp(mem_name, "icache") == 0) {
@@ -3696,25 +3694,21 @@ COMMAND_HELPER(xtensa_cmd_xtmem_do, struct xtensa *xtensa)
 		memp = &xtensa->core_config->srom;
 		mem_access = XT_MEM_ACCESS_READ;
 	} else {
-		LOG_ERROR("xtmem types: <icache|dcache|l2cache|l2addr|iram|irom|dram|drom|sram|srom>\n");
+		command_print(CMD, "xtmem types: <icache|dcache|l2cache|l2addr|iram|irom|dram|drom|sram|srom>\n");
 		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
 	if (cachep) {
-		if ((CMD_ARGC != 4) && (CMD_ARGC != 5)) {
-			LOG_ERROR("xtmem <cachetype> <linebytes> <cachebytes> <ways> [writeback]\n");
+		if (CMD_ARGC != 4 && CMD_ARGC != 5)
 			return ERROR_COMMAND_SYNTAX_ERROR;
-		}
 		cachep->line_size = strtoul(CMD_ARGV[1], NULL, 0);
 		cachep->size = strtoul(CMD_ARGV[2], NULL, 0);
 		cachep->way_count = strtoul(CMD_ARGV[3], NULL, 0);
 		cachep->writeback = ((CMD_ARGC == 5) && is_dcache) ?
 			strtoul(CMD_ARGV[4], NULL, 0) : 0;
 	} else if (memp) {
-		if (CMD_ARGC != 3) {
-			LOG_ERROR("xtmem <memtype> <baseaddr> <bytes>\n");
+		if (CMD_ARGC != 3)
 			return ERROR_COMMAND_SYNTAX_ERROR;
-		}
 		struct xtensa_local_mem_region_config *memcfgp = &memp->regions[memp->count];
 		memcfgp->base = strtoul(CMD_ARGV[1], NULL, 0);
 		memcfgp->size = strtoul(CMD_ARGV[2], NULL, 0);
@@ -3734,10 +3728,8 @@ COMMAND_HANDLER(xtensa_cmd_xtmem)
 /* xtmpu <num FG seg> <min seg size> <lockable> <executeonly> */
 COMMAND_HELPER(xtensa_cmd_xtmpu_do, struct xtensa *xtensa)
 {
-	if (CMD_ARGC != 4) {
-		LOG_ERROR("xtmpu <num FG seg> <min seg size> <lockable> <executeonly>\n");
+	if (CMD_ARGC != 4)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	unsigned int nfgseg = strtoul(CMD_ARGV[0], NULL, 0);
 	unsigned int minsegsize = strtoul(CMD_ARGV[1], NULL, 0);
@@ -3745,16 +3737,16 @@ COMMAND_HELPER(xtensa_cmd_xtmpu_do, struct xtensa *xtensa)
 	unsigned int execonly = strtoul(CMD_ARGV[3], NULL, 0);
 
 	if ((nfgseg > 32)) {
-		LOG_ERROR("<nfgseg> must be within [0..32]\n");
+		command_print(CMD, "<nfgseg> must be within [0..32]\n");
 		return ERROR_COMMAND_ARGUMENT_INVALID;
 	} else if (minsegsize & (minsegsize - 1)) {
-		LOG_ERROR("<minsegsize> must be a power of 2 >= 32\n");
+		command_print(CMD, "<minsegsize> must be a power of 2 >= 32\n");
 		return ERROR_COMMAND_ARGUMENT_INVALID;
 	} else if (lockable > 1) {
-		LOG_ERROR("<lockable> must be 0 or 1\n");
+		command_print(CMD, "<lockable> must be 0 or 1\n");
 		return ERROR_COMMAND_ARGUMENT_INVALID;
 	} else if (execonly > 1) {
-		LOG_ERROR("<execonly> must be 0 or 1\n");
+		command_print(CMD, "<execonly> must be 0 or 1\n");
 		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
@@ -3775,18 +3767,16 @@ COMMAND_HANDLER(xtensa_cmd_xtmpu)
 /* xtmmu <NIREFILLENTRIES> <NDREFILLENTRIES> <IVARWAY56> <DVARWAY56> */
 COMMAND_HELPER(xtensa_cmd_xtmmu_do, struct xtensa *xtensa)
 {
-	if (CMD_ARGC != 2) {
-		LOG_ERROR("xtmmu <NIREFILLENTRIES> <NDREFILLENTRIES>\n");
+	if (CMD_ARGC != 2)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	unsigned int nirefillentries = strtoul(CMD_ARGV[0], NULL, 0);
 	unsigned int ndrefillentries = strtoul(CMD_ARGV[1], NULL, 0);
 	if ((nirefillentries != 16) && (nirefillentries != 32)) {
-		LOG_ERROR("<nirefillentries> must be 16 or 32\n");
+		command_print(CMD, "<nirefillentries> must be 16 or 32\n");
 		return ERROR_COMMAND_ARGUMENT_INVALID;
 	} else if ((ndrefillentries != 16) && (ndrefillentries != 32)) {
-		LOG_ERROR("<ndrefillentries> must be 16 or 32\n");
+		command_print(CMD, "<ndrefillentries> must be 16 or 32\n");
 		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
@@ -3809,13 +3799,13 @@ COMMAND_HELPER(xtensa_cmd_xtreg_do, struct xtensa *xtensa)
 	if (CMD_ARGC == 1) {
 		int32_t numregs = strtoul(CMD_ARGV[0], NULL, 0);
 		if ((numregs <= 0) || (numregs > UINT16_MAX)) {
-			LOG_ERROR("xtreg <numregs>: Invalid 'numregs' (%d)", numregs);
-			return ERROR_COMMAND_SYNTAX_ERROR;
+			command_print(CMD, "xtreg <numregs>: Invalid 'numregs' (%d)", numregs);
+			return ERROR_COMMAND_ARGUMENT_INVALID;
 		}
 		if ((xtensa->genpkt_regs_num > 0) && (numregs < (int32_t)xtensa->genpkt_regs_num)) {
-			LOG_ERROR("xtregs (%d) must be larger than numgenregs (%d) (if xtregfmt specified)",
+			command_print(CMD, "xtregs (%d) must be larger than numgenregs (%d) (if xtregfmt specified)",
 				numregs, xtensa->genpkt_regs_num);
-			return ERROR_COMMAND_SYNTAX_ERROR;
+			return ERROR_COMMAND_ARGUMENT_INVALID;
 		}
 		xtensa->total_regs_num = numregs;
 		xtensa->core_regs_num = 0;
@@ -3844,17 +3834,17 @@ COMMAND_HELPER(xtensa_cmd_xtreg_do, struct xtensa *xtensa)
 	const char *regname = CMD_ARGV[0];
 	unsigned int regnum = strtoul(CMD_ARGV[1], NULL, 0);
 	if (regnum > UINT16_MAX) {
-		LOG_ERROR("<regnum> must be a 16-bit number");
+		command_print(CMD, "<regnum> must be a 16-bit number");
 		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
 	if ((xtensa->num_optregs + xtensa->core_regs_num) >= xtensa->total_regs_num) {
 		if (xtensa->total_regs_num)
-			LOG_ERROR("'xtreg %s 0x%04x': Too many registers (%d expected, %d core %d extended)",
+			command_print(CMD, "'xtreg %s 0x%04x': Too many registers (%d expected, %d core %d extended)",
 				regname, regnum,
 				xtensa->total_regs_num, xtensa->core_regs_num, xtensa->num_optregs);
 		else
-			LOG_ERROR("'xtreg %s 0x%04x': Number of registers unspecified",
+			command_print(CMD, "'xtreg %s 0x%04x': Number of registers unspecified",
 				regname, regnum);
 		return ERROR_FAIL;
 	}
@@ -3934,7 +3924,7 @@ COMMAND_HELPER(xtensa_cmd_xtreg_do, struct xtensa *xtensa)
 				idx = XT_NX_REG_IDX_MESRCLR;
 			if (idx < XT_NX_REG_IDX_NUM) {
 				if (xtensa->nx_reg_idx[idx] != 0) {
-					LOG_ERROR("nx_reg_idx[%d] previously set to %d",
+					command_print(CMD, "nx_reg_idx[%d] previously set to %d",
 						idx, xtensa->nx_reg_idx[idx]);
 					return ERROR_FAIL;
 				}
@@ -3981,9 +3971,9 @@ COMMAND_HELPER(xtensa_cmd_xtregfmt_do, struct xtensa *xtensa)
 				if ((numgregs <= 0) ||
 					((numgregs > xtensa->total_regs_num) &&
 					(xtensa->total_regs_num > 0))) {
-					LOG_ERROR("xtregfmt: if specified, numgregs (%d) must be <= numregs (%d)",
+					command_print(CMD, "xtregfmt: if specified, numgregs (%d) must be <= numregs (%d)",
 						numgregs, xtensa->total_regs_num);
-					return ERROR_COMMAND_SYNTAX_ERROR;
+					return ERROR_COMMAND_ARGUMENT_INVALID;
 				}
 				xtensa->genpkt_regs_num = numgregs;
 			}
@@ -4099,7 +4089,7 @@ COMMAND_HELPER(xtensa_cmd_perfmon_dump_do, struct xtensa *xtensa)
 			"%-12" PRIu64 "%s",
 			result.value,
 			result.overflow ? " (overflow)" : "");
-		LOG_INFO("%s", result_buf);
+		command_print(CMD, "%s", result_buf);
 	}
 
 	return ERROR_OK;
@@ -4349,21 +4339,21 @@ COMMAND_HELPER(xtensa_cmd_tracedump_do, struct xtensa *xtensa, const char *fname
 	}
 
 	memsz = trace_config.memaddr_end - trace_config.memaddr_start + 1;
-	LOG_INFO("Total trace memory: %d words", memsz);
+	command_print(CMD, "Total trace memory: %d words", memsz);
 	if ((trace_config.addr &
 			((TRAXADDR_TWRAP_MASK << TRAXADDR_TWRAP_SHIFT) | TRAXADDR_TWSAT)) == 0) {
 		/*Memory hasn't overwritten itself yet. */
 		wmem = trace_config.addr & TRAXADDR_TADDR_MASK;
-		LOG_INFO("...but trace is only %d words", wmem);
+		command_print(CMD, "...but trace is only %d words", wmem);
 		if (wmem < memsz)
 			memsz = wmem;
 	} else {
 		if (trace_config.addr & TRAXADDR_TWSAT) {
-			LOG_INFO("Real trace is many times longer than that (overflow)");
+			command_print(CMD, "Real trace is many times longer than that (overflow)");
 		} else {
 			uint32_t trc_sz = (trace_config.addr >> TRAXADDR_TWRAP_SHIFT) & TRAXADDR_TWRAP_MASK;
 			trc_sz = (trc_sz * memsz) + (trace_config.addr & TRAXADDR_TADDR_MASK);
-			LOG_INFO("Real trace is %d words, but the start has been truncated.", trc_sz);
+			command_print(CMD, "Real trace is %d words, but the start has been truncated.", trc_sz);
 		}
 	}
 

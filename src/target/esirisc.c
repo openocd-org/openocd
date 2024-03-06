@@ -1248,7 +1248,7 @@ static int esirisc_arch_state(struct target *target)
 	return ERROR_OK;
 }
 
-static const char *esirisc_get_gdb_arch(struct target *target)
+static const char *esirisc_get_gdb_arch(const struct target *target)
 {
 	struct esirisc_common *esirisc = target_to_esirisc(target);
 
@@ -1486,6 +1486,32 @@ static struct reg_cache *esirisc_build_reg_cache(struct target *target)
 	return cache;
 }
 
+static void esirisc_free_reg_cache(struct target *target)
+{
+	struct esirisc_common *esirisc = target_to_esirisc(target);
+	struct reg_cache *cache = esirisc->reg_cache;
+	struct reg *reg_list = cache->reg_list;
+
+	for (int i = 0; i < esirisc->num_regs; ++i) {
+		struct reg *reg = reg_list + esirisc_regs[i].number;
+
+		free(reg->arch_info);
+		free(reg->value);
+		free(reg->reg_data_type);
+	}
+
+	for (size_t i = 0; i < ARRAY_SIZE(esirisc_csrs); ++i) {
+		struct reg *reg = reg_list + esirisc_csrs[i].number;
+
+		free(reg->arch_info);
+		free(reg->value);
+		free(reg->reg_data_type);
+	}
+
+	free(reg_list);
+	free(cache);
+}
+
 static int esirisc_identify(struct target *target)
 {
 	struct esirisc_common *esirisc = target_to_esirisc(target);
@@ -1582,6 +1608,19 @@ static int esirisc_init_target(struct command_context *cmd_ctx, struct target *t
 	esirisc->hwdc_save = HWDC_R | HWDC_E | HWDC_D;
 
 	return ERROR_OK;
+}
+
+static void esirisc_deinit_target(struct target *target)
+{
+	struct esirisc_common *esirisc = target_to_esirisc(target);
+
+	if (!target_was_examined(target))
+		return;
+
+	esirisc_free_reg_cache(target);
+
+	free(esirisc->gdb_arch);
+	free(esirisc);
 }
 
 static int esirisc_examine(struct target *target)
@@ -1822,5 +1861,6 @@ struct target_type esirisc_target = {
 
 	.target_create = esirisc_target_create,
 	.init_target = esirisc_init_target,
+	.deinit_target = esirisc_deinit_target,
 	.examine = esirisc_examine,
 };

@@ -116,10 +116,19 @@ int interface_jtag_add_dr_scan(struct jtag_tap *active, int in_num_fields,
 	/* count devices in bypass */
 
 	size_t bypass_devices = 0;
+	size_t all_devices = 0;
 
 	for (struct jtag_tap *tap = jtag_tap_next_enabled(NULL); tap; tap = jtag_tap_next_enabled(tap)) {
+		all_devices++;
+
 		if (tap->bypass)
 			bypass_devices++;
+	}
+
+	if (all_devices == bypass_devices) {
+		LOG_ERROR("At least one TAP shouldn't be in BYPASS mode");
+
+		return ERROR_FAIL;
 	}
 
 	struct jtag_command *cmd = cmd_queue_alloc(sizeof(struct jtag_command));

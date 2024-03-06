@@ -422,7 +422,7 @@ int xtensa_run_algorithm(struct target *target,
 	target_addr_t entry_point, target_addr_t exit_point,
 	unsigned int timeout_ms, void *arch_info);
 void xtensa_set_permissive_mode(struct target *target, bool state);
-const char *xtensa_get_gdb_arch(struct target *target);
+const char *xtensa_get_gdb_arch(const struct target *target);
 int xtensa_gdb_query_custom(struct target *target, const char *packet, char **response_p);
 
 COMMAND_HELPER(xtensa_cmd_xtdef_do, struct xtensa *xtensa);

@@ -46,7 +46,7 @@ enum arm_state armv8_dpm_get_core_state(struct arm_dpm *dpm)
 	dpm->last_el = el;
 
 	/* In Debug state, each bit gives the current Execution state of each EL */
-	if ((rw >> el) & 0b1)
+	if ((rw >> el) & 1)
 		return ARM_STATE_AARCH64;
 
 	return ARM_STATE_ARM;

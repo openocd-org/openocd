@@ -258,7 +258,7 @@ struct arm {
 };
 
 /** Convert target handle to generic ARM target state handle. */
-static inline struct arm *target_to_arm(struct target *target)
+static inline struct arm *target_to_arm(const struct target *target)
 {
 	assert(target);
 	return target->arch_info;
@@ -294,11 +294,11 @@ extern const struct command_registration arm_command_handlers[];
 extern const struct command_registration arm_all_profiles_command_handlers[];
 
 int arm_arch_state(struct target *target);
-const char *arm_get_gdb_arch(struct target *target);
+const char *arm_get_gdb_arch(const struct target *target);
 int arm_get_gdb_reg_list(struct target *target,
 		struct reg **reg_list[], int *reg_list_size,
 		enum target_register_class reg_class);
-const char *armv8_get_gdb_arch(struct target *target);
+const char *armv8_get_gdb_arch(const struct target *target);
 int armv8_get_gdb_reg_list(struct target *target,
 		struct reg **reg_list[], int *reg_list_size,
 		enum target_register_class reg_class);

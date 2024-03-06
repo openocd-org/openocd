@@ -70,6 +70,7 @@ EXTRA_DIST += \
 	LICENSES/preferred/GPL-2.0 \
 	LICENSES/preferred/LGPL-2.1 \
 	LICENSES/preferred/MIT \
+	LICENSES/stand-alone/Apache-2.0 \
 	LICENSES/stand-alone/GPL-3.0 \
 	tools/logger.pl \
 	tools/rlink_make_speed_table \

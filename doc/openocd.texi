@@ -3445,6 +3445,15 @@ Currently valid @var{variant} values include:
 The USB device description string of the adapter.
 This value is only used with the standard variant.
 @end deffn
+
+@deffn {Config Command} {openjtag vid_pid} vid pid
+The USB vendor ID and product ID of the adapter. If not specified, default
+0x0403:0x6001 is used.
+This value is only used with the standard variant.
+@example
+openjtag vid_pid 0x403 0x6014
+@end example
+@end deffn
 @end deffn
 
 
@@ -9026,9 +9035,10 @@ echo "Downloading kernel -- please wait"
 @end example
 @end deffn
 
-@deffn {Command} {log_output} [filename | "default"]
-Redirect logging to @var{filename} or set it back to default output;
-the default log output channel is stderr.
+@deffn {Command} {log_output} [filename | 'default']
+Redirect logging to @var{filename}. If used without an argument or
+@var{filename} is set to 'default' log output channel is set to
+stderr.
 @end deffn
 
 @deffn {Command} {add_script_search_dir} [directory]

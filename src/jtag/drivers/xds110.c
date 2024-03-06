@@ -1840,9 +1840,9 @@ static void xds110_execute_command(struct jtag_command *cmd)
 	}
 }
 
-static int xds110_execute_queue(void)
+static int xds110_execute_queue(struct jtag_command *cmd_queue)
 {
-	struct jtag_command *cmd = jtag_command_queue;
+	struct jtag_command *cmd = cmd_queue;
 
 	while (cmd) {
 		xds110_execute_command(cmd);
