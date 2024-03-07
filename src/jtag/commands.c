@@ -103,7 +103,7 @@ void *cmd_queue_alloc(size_t size)
 
 	if (*p_page) {
 		p_page = &cmd_queue_pages_tail;
-		if (CMD_QUEUE_PAGE_SIZE - (*p_page)->used < size)
+		if (CMD_QUEUE_PAGE_SIZE < (*p_page)->used + size)
 			p_page = &((*p_page)->next);
 	}
 

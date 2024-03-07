@@ -130,8 +130,8 @@ static struct xcf_status read_status(struct flash_bank *bank)
 	jtag_add_ir_scan(bank->target->tap, &scan, TAP_IDLE);
 	jtag_execute_queue();
 
-	ret.isc_error   = ((irdata[0] >> 7) & 3) == 0b01;
-	ret.prog_error  = ((irdata[0] >> 5) & 3) == 0b01;
+	ret.isc_error   = ((irdata[0] >> 7) & 3) == 1;
+	ret.prog_error  = ((irdata[0] >> 5) & 3) == 1;
 	ret.prog_busy   = ((irdata[0] >> 4) & 1) == 0;
 	ret.isc_mode    = ((irdata[0] >> 3) & 1) == 1;
 
@@ -528,7 +528,7 @@ static int isc_program_single_revision_btc(struct flash_bank *bank)
 {
 	uint8_t buf[4];
 	uint32_t btc = 0xFFFFFFFF;
-	btc &= ~0b1111;
+	btc &= ~0xF;
 	btc |= ((bank->num_sectors - 1) << 2);
 	btc &= ~(1 << 4);
 	h_u32_to_le(buf, btc);
