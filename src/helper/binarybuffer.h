@@ -11,7 +11,8 @@
 #ifndef OPENOCD_HELPER_BINARYBUFFER_H
 #define OPENOCD_HELPER_BINARYBUFFER_H
 
-#include "list.h"
+#include <helper/list.h>
+#include <helper/types.h>
 
 /** @file
  * Support functions to access arbitrary bits in a byte array

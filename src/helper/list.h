@@ -35,7 +35,7 @@
 
 /* begin OpenOCD changes */
 
-#include <helper/types.h>
+#include <stddef.h>
 
 struct list_head {
 	struct list_head *next;
