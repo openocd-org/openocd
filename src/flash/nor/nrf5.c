@@ -1071,7 +1071,7 @@ static int nrf5_erase(struct flash_bank *bank, unsigned int first,
 	}
 
 	/* For each sector to be erased */
-	for (unsigned int s = first; s <= last && res == ERROR_OK; s++) {
+	for (unsigned int s = first; s <= last; s++) {
 
 		if (chip->features & NRF5_FEATURE_SERIES_51
 				&& bank->sectors[s].is_protected == 1) {
