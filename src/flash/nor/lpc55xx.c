@@ -213,10 +213,16 @@ static int lpc55xx_probe(struct flash_bank *bank)
 	if (lpc55xx_info->flash_api_table == 0) {
 		uint32_t rom_api_table;
 
-		if (device_id == 0x502a11a1) { /* LPC55S36 */
-			rom_api_table = 0x1302fc00;
-		/* } else if (device_id == XXXX) /\* LPC55S6x/LPC55S2x/LPC552x *\/ {*/
-		/*	rom_api_table = 0x130010f0; */
+        if (device_id == 0x502a11a1) { /* LPC55S36 */
+            rom_api_table = 0x1302fc00;
+        } else if (device_id == 0x505a11a0) { /* LPC5536 */
+            rom_api_table = 0x1302fc00;
+        /* } else if (device_id == 0x505a0920) { /\* LPC5534 *\/ */
+            /* rom_api_table = XXX; */
+        } else {
+            LOG_ERROR("Unknown LPC55xx variant and ROM API table address not specified");
+            return ERROR_FAIL;
+        }
 		} else {
 			LOG_ERROR("Unknown LPC55xx variant and ROM API table address not specified");
 			return ERROR_FAIL;
