@@ -285,6 +285,7 @@ static struct ipdbg_hub *ipdbg_allocate_hub(uint8_t data_register_length, struct
 {
 	struct ipdbg_hub *new_hub = calloc(1, sizeof(struct ipdbg_hub));
 	if (!new_hub) {
+		free(virtual_ir);
 		LOG_ERROR("Out of memory");
 		return NULL;
 	}
@@ -292,6 +293,7 @@ static struct ipdbg_hub *ipdbg_allocate_hub(uint8_t data_register_length, struct
 	new_hub->name = strdup(name);
 	if (!new_hub->name) {
 		free(new_hub);
+		free(virtual_ir);
 		LOG_ERROR("Out of memory");
 		return NULL;
 	}
@@ -304,8 +306,10 @@ static struct ipdbg_hub *ipdbg_allocate_hub(uint8_t data_register_length, struct
 	new_hub->scratch_memory.fields = calloc(IPDBG_SCRATCH_MEMORY_SIZE, sizeof(struct scan_field));
 	new_hub->connections = calloc(max_tools, sizeof(struct connection *));
 
-	if (virtual_ir)
+	if (virtual_ir) {
+		new_hub->virtual_ir = virtual_ir;
 		new_hub->scratch_memory.vir_out_val = calloc(1, DIV_ROUND_UP(virtual_ir->length, 8));
+	}
 
 	if (!new_hub->scratch_memory.dr_out_vals || !new_hub->scratch_memory.dr_in_vals ||
 		!new_hub->scratch_memory.fields || (virtual_ir && !new_hub->scratch_memory.vir_out_val) ||
@@ -997,7 +1001,6 @@ static int ipdbg_create_hub(struct jtag_tap *tap, uint32_t user_instruction, uin
 	new_hub->xoff_mask            = BIT(data_register_length - 2);
 	new_hub->tool_mask            = (new_hub->xoff_mask - 1) >> 8;
 	new_hub->last_dn_tool         = new_hub->tool_mask;
-	new_hub->virtual_ir           = virtual_ir;
 	new_hub->max_tools            = ipdbg_max_tools_from_data_register_length(data_register_length);
 	new_hub->using_queue_size     = IPDBG_SCRATCH_MEMORY_SIZE;
 
@@ -1123,11 +1126,7 @@ COMMAND_HANDLER(handle_ipdbg_create_hub_command)
 		return ERROR_FAIL;
 	}
 
-	int retval = ipdbg_create_hub(tap, user_instruction, data_register_length, virtual_ir, hub_name, cmd);
-	if (retval != ERROR_OK)
-		free(virtual_ir);
-
-	return retval;
+	return ipdbg_create_hub(tap, user_instruction, data_register_length, virtual_ir, hub_name, cmd);
 }
 
 static const struct command_registration ipdbg_config_command_handlers[] = {
