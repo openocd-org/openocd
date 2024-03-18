@@ -12116,58 +12116,101 @@ waveform generator. These are synthesize-able hardware descriptions of
 logic circuits in addition to software for control, visualization and further analysis.
 In a session using JTAG for its transport protocol, OpenOCD supports the function
 of a JTAG-Host. The JTAG-Host is needed to connect the circuit over JTAG to the
-control-software. For more details see @url{http://ipdbg.org}.
+control-software. The JTAG-Hub is the circuit which transfers the data from JTAG to the
+different tools connected to the Hub. Hub implementations for most major FPGA vendors/families
+are provided. For more details see @url{http://ipdbg.org}.
 
-@deffn {Command} {ipdbg} [@option{-start|-stop}] @option{-tap @var{tapname}} @option{-hub @var{ir_value} [@var{dr_length}]} [@option{-vir [@var{vir_value} [@var{length} [@var{instr_code}]]]}] [@option{-port @var{number}}] [@option{-tool @var{number}}]
-Starts or stops a IPDBG JTAG-Host server. Arguments can be specified in any order.
+@deffn {Command} {ipdbg create-hub} @var{hub_name} @option{-tap @var{tapname}} @option{-ir @var{ir_value} [@var{dr_length}]} [@option{-vir [@var{vir_value} [@var{length} [@var{instr_code}]]]}]
+@deffnx {Command} {ipdbg create-hub} @var{hub_name} @option{-pld @var{pld_name} [@var{user}]} [@option{-vir [@var{vir_value} [@var{length} [@var{instr_code}]]]}]
+Creates a IPDBG JTAG Hub. The created hub is later used to start, stop and configure IPDBG JTAG Host servers.
+The first argument @var{hub_name} is the name of the created hub. It can be used later as a reference.
+
+The pld drivers are able to provide the tap and ir_value for the IPDBG JTAG-Host server. This will be used with the second variant with option @option{-pld}.
 
 Command options:
 @itemize @bullet
-@item @option{-start|-stop} starts or stops a IPDBG JTAG-Host server (default: start).
+@item @var{hub_name} the name of the IPDBG hub.
+This name is also used to create the object's command, referred to here
+as @command{$hub_name}, and in other places where the Hub needs to be identified.
+
 @item @option{-tap @var{tapname}} targeting the TAP @var{tapname}.
-@item @option{-hub @var{ir_value}} states that the JTAG hub is
-reachable with dr-scans while the JTAG instruction register has the value @var{ir_value}.
-@item @option{-port @var{number}} tcp port number where the JTAG-Host will listen. The default is 4242 which is used when the option is not given.
-@item @option{-tool @var{number}} number of the tool/feature. These corresponds to the ports "data_(up/down)_(0..6)" at the JtagHub. The default is 1 which is used when the option is not given.
-@item @option{-vir [@var{vir_value} [@var{length} [@var{instr_code}]]]} On some devices, the user data-register is reachable if there is a
-specific value in a second dr. This second dr is called vir (virtual ir). With this parameter given, the IPDBG satisfies this condition prior an
+
+@item @option{-ir @var{ir_value}} states that the JTAG hub is
+reachable with dr-scans while the JTAG instruction register has the value @var{ir_value}. Also known as  @verb{|USERx|} instructions.
+The optional @var{dr_length} is the length of the dr.
+Current JTAG-Hub implementation only supports dr_length=13, which is also the default value.
+
+@item @option{-vir [@var{vir_value} [@var{length} [@var{instr_code}]]]} To support more Hubs than USER registers in a single FPGA it is possible to
+use a mechanism known as virtual-ir where the user data-register is reachable if there is a specific value in a second dr.
+This second dr is called vir (virtual ir). With this parameter given, the IPDBG satisfies this condition prior an
 access to the IPDBG-Hub. The value shifted into the vir is given by the first parameter @var{vir_value} (default: 0x11). The second
 parameter @var{length} is the length of the vir data register (default: 5). With the @var{instr_code} (default: 0x00e) parameter the ir value to
 shift data through vir can be configured.
+
+@item @option{-pld @var{pld_name} [@var{user}]} The defined driver for the pld @var{pld_name} is used to get the tap and user instruction.
+The pld devices names can be shown by the command @command{pld devices}. With [@var{user}] one can select a different @verb{|USERx|}-Instruction.
+If the IPDBG JTAG-Hub is used without modification the default value of 1 which selects the first @verb{|USERx|} instruction is adequate.
+The @verb{|USERx|} instructions are vendor specific and don't change between families of the same vendor.
+So if there's a pld driver for your vendor it should work with your FPGA even when the driver is not compatible with your device for the remaining features.
+If your device/vendor is not supported you have to use the first variant.
+
+@end itemize
+
+@end deffn
+
+@deffn {Command} {$hub_name ipdbg start} @option{-tool @var{number}} @option{-port @var{number}}
+Starts a IPDBG JTAG-Host server. The remaining arguments can be specified in any order.
+
+Command options:
+@itemize @bullet
+@item @option{-port @var{number}} tcp port number where the JTAG-Host will listen. The default is 4242 which is used when the option is not given.
+@item @option{-tool @var{number}} number of the tool/feature. These corresponds to the ports "data_(up/down)_(0..6)" at the JtagHub. The default is 1 which is used when the option is not given.
 @end itemize
 @end deffn
-or
-@deffn {Command} {ipdbg} [@option{-start|-stop}] @option{-pld @var{name} [@var{user}]} [@option{-port @var{number}}] [@option{-tool @var{number}}]
-Also starts or stops a IPDBG JTAG-Host server. The pld drivers are able to provide the tap and hub/IR for the IPDBG JTAG-Host server.
-With the @option{-pld @var{name} [@var{user}]} the information from the pld-driver is used and the options @option{-tap} and @option{-hub} are not required.
-The defined driver for the pld @var{name} gets selected. (The pld devices names can be shown by the command @command{pld devices}).
 
-The @verb{|USERx|} instructions are vendor specific and don't change between families of the same vendor.
-So if there's a pld driver for your vendor it should work with your FPGA even when the driver is not compatible with your device for the remaining features. If your device/vendor is not supported you have to use the previous command.
-
-With [@var{user}] one can select a different @verb{|USERx|}-Instruction. If the IPDBG JTAG-Hub is used without modification the default value of 1 which selects the first @verb{|USERx|} instruction is adequate.
-
-The remaining options are described in the previous command.
+@deffn {Command} {$hub_name ipdbg stop} @option{-tool @var{number}}
+Stops a IPDBG JTAG-Host server.
+Command options:
+@itemize @bullet
+@item @option{-tool @var{number}} number of the tool/feature. These corresponds to the ports "data_(up/down)_(0..6)" at the JtagHub. The default is 1 which is used when the option is not given.
+@end itemize
 @end deffn
 
 Examples:
 @example
-ipdbg -start -tap xc6s.tap -hub 0x02 -port 4242 -tool 4
+ipdbg create-hub xc6s.ipdbghub -tap xc6s.tap -hub 0x02
+xc6s.ipdbghub ipdbg start -port 4242 -tool 4
 @end example
-Starts a server listening on tcp-port 4242 which connects to tool 4.
+Creates a IPDBG Hub and starts a server listening on tcp-port 4242 which connects to tool 4.
 The connection is through the TAP of a Xilinx Spartan 6 on USER1 instruction (tested with a papillion pro board).
 
 @example
-ipdbg -start -tap 10m50.tap -hub 0x00C -vir -port 60000 -tool 1
+ipdbg create-hub max10m50.ipdbghub -tap max10m50.tap -hub 0x00C -vir
+max10m50.ipdbghub ipdbg start -tool 1 -port 60000
 @end example
 Starts a server listening on tcp-port 60000 which connects to tool 1 (data_up_1/data_down_1).
 The connection is through the TAP of a Intel MAX10 virtual jtag component (sld_instance_index is 0; sld_ir_width is smaller than 5).
 
 @example
-ipdbg -start -pld xc7.pld -port 5555 -tool 0
+ipdbg create-hub xc7.ipdbghub -pld xc7.pld
+xc7.ipdbghub ipdbg start -port 5555 -tool 0
 @end example
 Starts a server listening on tcp-port 5555 which connects to tool 0 (data_up_0/data_down_0).
 The TAP and ir value used to reach the JTAG Hub is given by the pld driver.
+
+@deffn {Command} {$hub_name queuing} @option{-size @var{size}}
+Configure the queuing between IPDBG JTAG-Host and Hub.
+The maximum possible queue size is 1024 which is also the default.
+
+@itemize @bullet
+@item @option{-size @var{size}} max number of transfers in the queue.
+@end itemize
+@end deffn
+
+@example
+bitbang.ibdbghub queuing -size 32
+@end example
+Send a maximum of 32 transfers to the queue before executing them.
 
 
 @node Utility Commands

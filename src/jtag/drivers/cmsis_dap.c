@@ -944,7 +944,7 @@ static void cmsis_dap_swd_read_process(struct cmsis_dap *dap, enum cmsis_dap_blo
 	if (ack != SWD_ACK_OK) {
 		LOG_DEBUG("SWD ack not OK @ %d %s", transfer_count,
 			  ack == SWD_ACK_WAIT ? "WAIT" : ack == SWD_ACK_FAULT ? "FAULT" : "JUNK");
-		queued_retval = ack == SWD_ACK_WAIT ? ERROR_WAIT : ERROR_FAIL;
+		queued_retval = swd_ack_to_error_code(ack);
 		/* TODO: use results of transfers completed before the error occurred? */
 		goto skip;
 	}

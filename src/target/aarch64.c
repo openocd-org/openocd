@@ -93,6 +93,7 @@ static int aarch64_restore_system_control_reg(struct target *target)
 		case ARM_MODE_HYP:
 		case ARM_MODE_UND:
 		case ARM_MODE_SYS:
+		case ARM_MODE_MON:
 			instr = ARMV4_5_MCR(15, 0, 0, 1, 0, 0);
 			break;
 
@@ -172,6 +173,7 @@ static int aarch64_mmu_modify(struct target *target, int enable)
 	case ARM_MODE_HYP:
 	case ARM_MODE_UND:
 	case ARM_MODE_SYS:
+	case ARM_MODE_MON:
 		instr = ARMV4_5_MCR(15, 0, 0, 1, 0, 0);
 		break;
 
@@ -1043,6 +1045,7 @@ static int aarch64_post_debug_entry(struct target *target)
 	case ARM_MODE_HYP:
 	case ARM_MODE_UND:
 	case ARM_MODE_SYS:
+	case ARM_MODE_MON:
 		instr = ARMV4_5_MRC(15, 0, 0, 1, 0, 0);
 		break;
 
@@ -2891,13 +2894,8 @@ static int aarch64_jim_configure(struct target *target, struct jim_getopt_info *
 	 * options, JIM_OK if it correctly parsed the topmost option
 	 * and JIM_ERR if an error occurred during parameter evaluation.
 	 * For JIM_CONTINUE, we check our own params.
-	 *
-	 * adiv5_jim_configure() assumes 'private_config' to point to
-	 * 'struct adiv5_private_config'. Override 'private_config'!
 	 */
-	target->private_config = &pc->adiv5_config;
-	e = adiv5_jim_configure(target, goi);
-	target->private_config = pc;
+	e = adiv5_jim_configure_ext(target, goi, &pc->adiv5_config, ADI_CONFIGURE_DAP_COMPULSORY);
 	if (e != JIM_CONTINUE)
 		return e;
 
