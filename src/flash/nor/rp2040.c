@@ -256,13 +256,10 @@ static int rp2350_a0_lookup_symbol(struct target *target, uint16_t tag, uint16_t
 	return ERROR_FAIL;
 }
 
-static int rp2350_lookup_rom_symbol(struct target *target, uint16_t tag, uint16_t flags, uint16_t *symbol_out)
+static int rp2350_lookup_rom_symbol(struct target *target, uint32_t ptr_to_entry,
+									uint16_t tag, uint16_t flags, uint16_t *symbol_out)
 {
 	LOG_ROM_SYMBOL_DEBUG("Looking up ROM symbol '%c%c' in RP2350 A1 table", tag & 0xff, (tag >> 8) & 0xff);
-	uint32_t ptr_to_entry;
-	int err = target_read_u32(target, BOOTROM_MAGIC_ADDR + 4, &ptr_to_entry);
-	if (err != ERROR_OK)
-		return err;
 
 	/* On RP2350 A1, Each entry has a flag bitmap identifying the type of its
 	   contents. The entry contains one halfword of data for each set flag
@@ -272,7 +269,7 @@ static int rp2350_lookup_rom_symbol(struct target *target, uint16_t tag, uint16_
 	while (true) {
 		uint16_t entry_tag, entry_flags;
 
-		err = target_read_u16(target, ptr_to_entry, &entry_tag);
+		uint32_t err = target_read_u16(target, ptr_to_entry, &entry_tag);
 		if (err != ERROR_OK)
 			return err;
 		if (entry_tag == 0) {
@@ -341,7 +338,7 @@ static int rp2xxx_lookup_rom_symbol(struct target *target, uint16_t tag, uint16_
 		if (table_ptr < 0x7c00)
 			return rp2350_a0_lookup_symbol(target, tag, flags, symbol_out);
 		else
-			return rp2350_lookup_rom_symbol(target, tag, flags, symbol_out);
+			return rp2350_lookup_rom_symbol(target, table_ptr, tag, flags, symbol_out);
 
 	} else if (magic == BOOTROM_RP2040_MAGIC) {
 		return rp2040_lookup_rom_symbol(target, tag, flags, symbol_out);
