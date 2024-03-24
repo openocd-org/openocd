@@ -157,7 +157,7 @@ static int linuxgpiod_swd_write(int swclk, int swdio)
 	int retval;
 
 	if (!swdio_input) {
-		if (!last_stored || (swdio != last_swdio)) {
+		if (!last_stored || swdio != last_swdio) {
 			retval = gpiod_line_set_value(gpiod_line[ADAPTER_GPIO_IDX_SWDIO], swdio);
 			if (retval < 0)
 				LOG_WARNING("Fail set swdio");
@@ -165,7 +165,7 @@ static int linuxgpiod_swd_write(int swclk, int swdio)
 	}
 
 	/* write swclk last */
-	if (!last_stored || (swclk != last_swclk)) {
+	if (!last_stored || swclk != last_swclk) {
 		retval = gpiod_line_set_value(gpiod_line[ADAPTER_GPIO_IDX_SWCLK], swclk);
 		if (retval < 0)
 			LOG_WARNING("Fail set swclk");
