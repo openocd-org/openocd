@@ -320,12 +320,12 @@ static int helper_get_line(enum adapter_gpio_config_index idx)
 
 	switch (adapter_gpio_config[idx].pull) {
 	case ADAPTER_GPIO_PULL_NONE:
-#ifdef GPIOD_LINE_REQUEST_FLAG_BIAS_DISABLE
+#ifdef HAVE_LIBGPIOD1_FLAGS_BIAS
 		flags |= GPIOD_LINE_REQUEST_FLAG_BIAS_DISABLE;
 #endif
 		break;
 	case ADAPTER_GPIO_PULL_UP:
-#ifdef GPIOD_LINE_REQUEST_FLAG_BIAS_PULL_UP
+#ifdef HAVE_LIBGPIOD1_FLAGS_BIAS
 		flags |= GPIOD_LINE_REQUEST_FLAG_BIAS_PULL_UP;
 #else
 		LOG_WARNING("linuxgpiod: ignoring request for pull-up on %s: not supported by gpiod v%s",
@@ -333,7 +333,7 @@ static int helper_get_line(enum adapter_gpio_config_index idx)
 #endif
 		break;
 	case ADAPTER_GPIO_PULL_DOWN:
-#ifdef GPIOD_LINE_REQUEST_FLAG_BIAS_PULL_DOWN
+#ifdef HAVE_LIBGPIOD1_FLAGS_BIAS
 		flags |= GPIOD_LINE_REQUEST_FLAG_BIAS_PULL_DOWN;
 #else
 		LOG_WARNING("linuxgpiod: ignoring request for pull-down on %s: not supported by gpiod v%s",
