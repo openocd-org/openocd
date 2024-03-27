@@ -78,6 +78,9 @@ enum gdb_regno {
 	GDB_REGNO_FT11,
 	GDB_REGNO_FPR31 = GDB_REGNO_FT11,
 	GDB_REGNO_CSR0 = 65,
+	GDB_REGNO_FCSR = CSR_FCSR + GDB_REGNO_CSR0,
+	GDB_REGNO_FFLAGS = CSR_FFLAGS + GDB_REGNO_CSR0,
+	GDB_REGNO_FRM = CSR_FRM + GDB_REGNO_CSR0,
 	GDB_REGNO_VSTART = CSR_VSTART + GDB_REGNO_CSR0,
 	GDB_REGNO_VXSAT = CSR_VXSAT + GDB_REGNO_CSR0,
 	GDB_REGNO_VXRM = CSR_VXRM + GDB_REGNO_CSR0,
@@ -120,6 +123,6 @@ enum gdb_regno {
 	GDB_REGNO_COUNT
 };
 
-const char *gdb_regno_name(struct target *target, enum gdb_regno regno);
+const char *gdb_regno_name(const struct target *target, enum gdb_regno regno);
 
 #endif
