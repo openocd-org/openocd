@@ -7,5 +7,6 @@
 #include <helper/command.h>
 
 int ipdbg_register_commands(struct command_context *cmd_ctx);
+int ipdbg_server_free(void);
 
 #endif /* OPENOCD_IPDBG_IPDBG_H */

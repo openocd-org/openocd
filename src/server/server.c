@@ -23,6 +23,7 @@
 #include "openocd.h"
 #include "tcl_server.h"
 #include "telnet_server.h"
+#include "ipdbg.h"
 
 #include <signal.h>
 
@@ -714,6 +715,7 @@ void server_free(void)
 	tcl_service_free();
 	telnet_service_free();
 	jsp_service_free();
+	ipdbg_server_free();
 
 	free(bindto_name);
 }

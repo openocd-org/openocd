@@ -194,11 +194,11 @@ static const char *mem_ap_get_gdb_arch(const struct target *target)
  * reg[24]:     32 bits, fps
  * reg[25]:     32 bits, cpsr
  *
- * Set 'exist' only to reg[0..15], so initial response to GDB is correct
+ * GDB requires only reg[0..15]
  */
 #define NUM_REGS     26
+#define NUM_GDB_REGS 16
 #define MAX_REG_SIZE 96
-#define REG_EXIST(n) ((n) < 16)
 #define REG_SIZE(n)  ((((n) >= 16) && ((n) < 24)) ? 96 : 32)
 
 struct mem_ap_alloc_reg_list {
@@ -218,14 +218,14 @@ static int mem_ap_get_gdb_reg_list(struct target *target, struct reg **reg_list[
 	}
 
 	*reg_list = mem_ap_alloc->reg_list;
-	*reg_list_size = NUM_REGS;
+	*reg_list_size = (reg_class == REG_CLASS_ALL) ? NUM_REGS : NUM_GDB_REGS;
 	struct reg *regs = mem_ap_alloc->regs;
 
 	for (int i = 0; i < NUM_REGS; i++) {
 		regs[i].number = i;
 		regs[i].value = mem_ap_alloc->regs_value;
 		regs[i].size = REG_SIZE(i);
-		regs[i].exist = REG_EXIST(i);
+		regs[i].exist = true;
 		regs[i].type = &mem_ap_reg_arch_type;
 		(*reg_list)[i] = &regs[i];
 	}
