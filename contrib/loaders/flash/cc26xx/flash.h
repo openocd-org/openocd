@@ -247,6 +247,46 @@ static inline uint32_t flash_check_fsm_for_ready(void)
 }
 
 /******************************************************************************
+ *
+ * Get the number of banks
+ *
+ * This function returns the number of bank of the flash.
+ *
+ * Returns the number of banks
+ *
+ ******************************************************************************/
+static inline uint32_t flash_bank_count(void)
+{
+	uint32_t bank_count;
+
+	bank_count = (HWREG(FLASH_BASE + FLASH_O_FCFG_BANK) &
+		FLASH_FCFG_BANK_MAIN_NUM_BANK_M) >>
+		FLASH_FCFG_BANK_MAIN_NUM_BANK_S;
+
+	return bank_count;
+}
+
+/******************************************************************************
+ *
+ * Get the size of the bank.
+ *
+ * This function returns the size of the main bank in number of bytes.
+ *
+ * Returns the flash size in number of bytes.
+ *
+ ******************************************************************************/
+static inline uint8_t flash_bank_width(void)
+{
+	uint8_t bank_width;
+
+	bank_width = (uint8_t)(((HWREG(FLASH_BASE + FLASH_O_FCFG_BANK) &
+		FLASH_FCFG_BANK_MAIN_BANK_WIDTH_M) >>
+		FLASH_FCFG_BANK_MAIN_BANK_WIDTH_S) >> 3);
+
+	return bank_width;
+}
+
+/******************************************************************************
 *
 * Erase a flash sector.
 *
