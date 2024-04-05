@@ -2351,6 +2351,7 @@ static void cortex_m_dwt_addreg(struct target *t, struct reg *r, const struct dw
 	r->value = state->value;
 	r->arch_info = state;
 	r->type = &dwt_reg_type;
+	r->exist = true;
 }
 
 static void cortex_m_dwt_setup(struct cortex_m_common *cm, struct target *target)
