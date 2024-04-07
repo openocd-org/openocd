@@ -19,6 +19,35 @@
 #include <transport/transport.h>
 #include "bitbang.h"
 
+/*
+ * In case of libgpiod v1, use as much as possible API from v2 plus
+ * the dummy wrappers below.
+ */
+#ifdef HAVE_LIBGPIOD_V1
+
+#define gpiod_request_config            gpiod_line_request_config
+
+static struct gpiod_request_config *gpiod_request_config_new(void)
+{
+	static struct gpiod_request_config my;
+
+	my = (struct gpiod_request_config) { NULL, 0, 0 };
+
+	return &my;
+}
+
+static void gpiod_request_config_free(struct gpiod_request_config *config)
+{
+}
+
+static void gpiod_request_config_set_consumer(struct gpiod_request_config *config,
+	const char *consumer)
+{
+	config->consumer = consumer;
+}
+
+#endif /* HAVE_LIBGPIOD_V1 */
+
 static struct gpiod_chip *gpiod_chip[ADAPTER_GPIO_IDX_NUM] = {};
 static struct gpiod_line *gpiod_line[ADAPTER_GPIO_IDX_NUM] = {};
 
@@ -296,6 +325,15 @@ static int helper_get_line(enum adapter_gpio_config_index idx)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
+	struct gpiod_request_config *req_cfg = gpiod_request_config_new();
+	if (!req_cfg) {
+		LOG_ERROR("Cannot configure LinuxGPIOD line for %s", adapter_gpio_get_name(idx));
+		retval = ERROR_JTAG_INIT_FAILED;
+		goto err_out;
+	}
+
+	gpiod_request_config_set_consumer(req_cfg, "OpenOCD");
+
 	switch (adapter_gpio_config[idx].init_state) {
 	case ADAPTER_GPIO_INIT_STATE_INPUT:
 		dir = GPIOD_LINE_REQUEST_DIRECTION_INPUT;
@@ -348,19 +386,22 @@ static int helper_get_line(enum adapter_gpio_config_index idx)
 	if (adapter_gpio_config[idx].active_low)
 		flags |= GPIOD_LINE_REQUEST_FLAG_ACTIVE_LOW;
 
-	struct gpiod_line_request_config config = {
-		.consumer = "OpenOCD",
-		.request_type = dir,
-		.flags = flags,
-	};
+	req_cfg->request_type = dir;
+	req_cfg->flags = flags;
 
-	retval = gpiod_line_request(gpiod_line[idx], &config, val);
+	retval = gpiod_line_request(gpiod_line[idx], req_cfg, val);
 	if (retval < 0) {
 		LOG_ERROR("Error requesting gpio line %s", adapter_gpio_get_name(idx));
-		return ERROR_JTAG_INIT_FAILED;
+		retval = ERROR_JTAG_INIT_FAILED;
+		goto err_out;
 	}
 
-	return ERROR_OK;
+	retval = ERROR_OK;
+
+err_out:
+	gpiod_request_config_free(req_cfg);
+
+	return retval;
 }
 
 static int linuxgpiod_init(void)
