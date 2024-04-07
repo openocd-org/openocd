@@ -35,12 +35,17 @@
 #define GPIOD_LINE_DRIVE_OPEN_DRAIN     GPIOD_LINE_REQUEST_FLAG_OPEN_DRAIN
 #define GPIOD_LINE_DRIVE_OPEN_SOURCE    GPIOD_LINE_REQUEST_FLAG_OPEN_SOURCE
 
+#define GPIOD_LINE_BIAS_DISABLED        GPIOD_LINE_REQUEST_FLAG_BIAS_DISABLE
+#define GPIOD_LINE_BIAS_PULL_UP         GPIOD_LINE_REQUEST_FLAG_BIAS_PULL_UP
+#define GPIOD_LINE_BIAS_PULL_DOWN       GPIOD_LINE_REQUEST_FLAG_BIAS_PULL_DOWN
+
 #define gpiod_request_config            gpiod_line_request_config
 
 struct gpiod_line_settings {
 	int direction;
 	int value;
 	int drive;
+	int bias;
 };
 
 static struct gpiod_line_settings *gpiod_line_settings_new(void)
@@ -98,6 +103,30 @@ static void gpiod_request_config_set_consumer(struct gpiod_request_config *confi
 	config->consumer = consumer;
 }
 
+#ifdef HAVE_LIBGPIOD1_FLAGS_BIAS
+
+static int gpiod_line_settings_set_bias(struct gpiod_line_settings *settings, int bias)
+{
+	settings->bias = bias;
+
+	return 0;
+}
+
+#else /* HAVE_LIBGPIOD1_FLAGS_BIAS */
+
+static int gpiod_line_settings_set_bias(struct gpiod_line_settings *settings, int bias)
+{
+	if (bias == GPIOD_LINE_BIAS_DISABLED)
+		return 0;
+
+	LOG_WARNING("linuxgpiod: ignoring request for pull-%s: not supported by gpiod v%s",
+				(bias == GPIOD_LINE_BIAS_PULL_UP) ? "up" : "down",
+				gpiod_version_string());
+
+	return -1;
+}
+
+#endif /* HAVE_LIBGPIOD1_FLAGS_BIAS */
 #endif /* HAVE_LIBGPIOD_V1 */
 
 static struct gpiod_chip *gpiod_chip[ADAPTER_GPIO_IDX_NUM] = {};
@@ -416,25 +445,13 @@ static int helper_get_line(enum adapter_gpio_config_index idx)
 
 	switch (adapter_gpio_config[idx].pull) {
 	case ADAPTER_GPIO_PULL_NONE:
-#ifdef HAVE_LIBGPIOD1_FLAGS_BIAS
-		flags |= GPIOD_LINE_REQUEST_FLAG_BIAS_DISABLE;
-#endif
+		gpiod_line_settings_set_bias(line_settings, GPIOD_LINE_BIAS_DISABLED);
 		break;
 	case ADAPTER_GPIO_PULL_UP:
-#ifdef HAVE_LIBGPIOD1_FLAGS_BIAS
-		flags |= GPIOD_LINE_REQUEST_FLAG_BIAS_PULL_UP;
-#else
-		LOG_WARNING("linuxgpiod: ignoring request for pull-up on %s: not supported by gpiod v%s",
-			adapter_gpio_get_name(idx), gpiod_version_string());
-#endif
+		gpiod_line_settings_set_bias(line_settings, GPIOD_LINE_BIAS_PULL_UP);
 		break;
 	case ADAPTER_GPIO_PULL_DOWN:
-#ifdef HAVE_LIBGPIOD1_FLAGS_BIAS
-		flags |= GPIOD_LINE_REQUEST_FLAG_BIAS_PULL_DOWN;
-#else
-		LOG_WARNING("linuxgpiod: ignoring request for pull-down on %s: not supported by gpiod v%s",
-			adapter_gpio_get_name(idx), gpiod_version_string());
-#endif
+		gpiod_line_settings_set_bias(line_settings, GPIOD_LINE_BIAS_PULL_DOWN);
 		break;
 	}
 
@@ -442,7 +459,7 @@ static int helper_get_line(enum adapter_gpio_config_index idx)
 		flags |= GPIOD_LINE_REQUEST_FLAG_ACTIVE_LOW;
 
 	req_cfg->request_type = line_settings->direction;
-	req_cfg->flags = flags | line_settings->drive;
+	req_cfg->flags = flags | line_settings->drive | line_settings->bias;
 
 	retval = gpiod_line_request(gpiod_line[idx], req_cfg, line_settings->value);
 	if (retval < 0) {
