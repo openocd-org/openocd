@@ -275,12 +275,15 @@ static int linuxgpiod_quit(void)
 
 static int helper_get_line(enum adapter_gpio_config_index idx)
 {
+	char chip_path[24];
+
 	if (!is_gpio_config_valid(idx))
 		return ERROR_OK;
 
 	int dir = GPIOD_LINE_REQUEST_DIRECTION_INPUT, flags = 0, val = 0, retval;
 
-	gpiod_chip[idx] = gpiod_chip_open_by_number(adapter_gpio_config[idx].chip_num);
+	snprintf(chip_path, sizeof(chip_path), "/dev/gpiochip%u", adapter_gpio_config[idx].chip_num);
+	gpiod_chip[idx] = gpiod_chip_open(chip_path);
 	if (!gpiod_chip[idx]) {
 		LOG_ERROR("Cannot open LinuxGPIOD chip %d for %s", adapter_gpio_config[idx].chip_num,
 			adapter_gpio_get_name(idx));
