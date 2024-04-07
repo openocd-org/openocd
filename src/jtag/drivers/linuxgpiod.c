@@ -49,11 +49,25 @@ struct gpiod_line_settings {
 	int active_low;
 };
 
+struct gpiod_line_config {
+	unsigned int gpio_num;
+	struct gpiod_line_settings *line_settings;
+};
+
 static struct gpiod_line_settings *gpiod_line_settings_new(void)
 {
 	static struct gpiod_line_settings my;
 
 	my = (struct gpiod_line_settings) { 0 };
+
+	return &my;
+}
+
+static struct gpiod_line_config *gpiod_line_config_new(void)
+{
+	static struct gpiod_line_config my;
+
+	my = (struct gpiod_line_config) { 0 };
 
 	return &my;
 }
@@ -68,6 +82,10 @@ static struct gpiod_request_config *gpiod_request_config_new(void)
 }
 
 static void gpiod_line_settings_free(struct gpiod_line_settings *settings)
+{
+}
+
+static void gpiod_line_config_free(struct gpiod_line_config *config)
 {
 }
 
@@ -415,9 +433,10 @@ static int helper_get_line(enum adapter_gpio_config_index idx)
 	}
 
 	struct gpiod_line_settings *line_settings = gpiod_line_settings_new();
+	struct gpiod_line_config *line_config = gpiod_line_config_new();
 	struct gpiod_request_config *req_cfg = gpiod_request_config_new();
 
-	if (!line_settings || !req_cfg) {
+	if (!line_settings || !line_config || !req_cfg) {
 		LOG_ERROR("Cannot configure LinuxGPIOD line for %s", adapter_gpio_get_name(idx));
 		retval = ERROR_JTAG_INIT_FAILED;
 		goto err_out;
@@ -479,6 +498,7 @@ static int helper_get_line(enum adapter_gpio_config_index idx)
 
 err_out:
 	gpiod_line_settings_free(line_settings);
+	gpiod_line_config_free(line_config);
 	gpiod_request_config_free(req_cfg);
 
 	return retval;
