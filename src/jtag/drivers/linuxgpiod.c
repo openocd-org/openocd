@@ -46,6 +46,7 @@ struct gpiod_line_settings {
 	int value;
 	int drive;
 	int bias;
+	int active_low;
 };
 
 static struct gpiod_line_settings *gpiod_line_settings_new(void)
@@ -95,6 +96,13 @@ static int gpiod_line_settings_set_drive(struct gpiod_line_settings *settings, i
 	settings->drive = drive;
 
 	return 0;
+}
+
+static void gpiod_line_settings_set_active_low(struct gpiod_line_settings *settings,
+	bool active_low)
+{
+	if (active_low)
+		settings->active_low = GPIOD_LINE_REQUEST_FLAG_ACTIVE_LOW;
 }
 
 static void gpiod_request_config_set_consumer(struct gpiod_request_config *config,
@@ -455,11 +463,10 @@ static int helper_get_line(enum adapter_gpio_config_index idx)
 		break;
 	}
 
-	if (adapter_gpio_config[idx].active_low)
-		flags |= GPIOD_LINE_REQUEST_FLAG_ACTIVE_LOW;
+	gpiod_line_settings_set_active_low(line_settings, adapter_gpio_config[idx].active_low);
 
 	req_cfg->request_type = line_settings->direction;
-	req_cfg->flags = flags | line_settings->drive | line_settings->bias;
+	req_cfg->flags = flags | line_settings->drive | line_settings->bias | line_settings->active_low;
 
 	retval = gpiod_line_request(gpiod_line[idx], req_cfg, line_settings->value);
 	if (retval < 0) {
