@@ -31,11 +31,16 @@
 #define GPIOD_LINE_VALUE_INACTIVE       0
 #define GPIOD_LINE_VALUE_ACTIVE         1
 
+#define GPIOD_LINE_DRIVE_PUSH_PULL      0
+#define GPIOD_LINE_DRIVE_OPEN_DRAIN     GPIOD_LINE_REQUEST_FLAG_OPEN_DRAIN
+#define GPIOD_LINE_DRIVE_OPEN_SOURCE    GPIOD_LINE_REQUEST_FLAG_OPEN_SOURCE
+
 #define gpiod_request_config            gpiod_line_request_config
 
 struct gpiod_line_settings {
 	int direction;
 	int value;
+	int drive;
 };
 
 static struct gpiod_line_settings *gpiod_line_settings_new(void)
@@ -76,6 +81,13 @@ static int gpiod_line_settings_set_output_value(struct gpiod_line_settings *sett
 	int value)
 {
 	settings->value = value;
+
+	return 0;
+}
+
+static int gpiod_line_settings_set_drive(struct gpiod_line_settings *settings, int drive)
+{
+	settings->drive = drive;
 
 	return 0;
 }
@@ -392,12 +404,13 @@ static int helper_get_line(enum adapter_gpio_config_index idx)
 
 	switch (adapter_gpio_config[idx].drive) {
 	case ADAPTER_GPIO_DRIVE_MODE_PUSH_PULL:
+		gpiod_line_settings_set_drive(line_settings, GPIOD_LINE_DRIVE_PUSH_PULL);
 		break;
 	case ADAPTER_GPIO_DRIVE_MODE_OPEN_DRAIN:
-		flags |= GPIOD_LINE_REQUEST_FLAG_OPEN_DRAIN;
+		gpiod_line_settings_set_drive(line_settings, GPIOD_LINE_DRIVE_OPEN_DRAIN);
 		break;
 	case ADAPTER_GPIO_DRIVE_MODE_OPEN_SOURCE:
-		flags |= GPIOD_LINE_REQUEST_FLAG_OPEN_SOURCE;
+		gpiod_line_settings_set_drive(line_settings, GPIOD_LINE_DRIVE_OPEN_SOURCE);
 		break;
 	}
 
@@ -429,7 +442,7 @@ static int helper_get_line(enum adapter_gpio_config_index idx)
 		flags |= GPIOD_LINE_REQUEST_FLAG_ACTIVE_LOW;
 
 	req_cfg->request_type = line_settings->direction;
-	req_cfg->flags = flags;
+	req_cfg->flags = flags | line_settings->drive;
 
 	retval = gpiod_line_request(gpiod_line[idx], req_cfg, line_settings->value);
 	if (retval < 0) {
