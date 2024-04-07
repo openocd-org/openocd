@@ -25,7 +25,27 @@
  */
 #ifdef HAVE_LIBGPIOD_V1
 
+#define GPIOD_LINE_DIRECTION_INPUT      GPIOD_LINE_REQUEST_DIRECTION_INPUT
+#define GPIOD_LINE_DIRECTION_OUTPUT     GPIOD_LINE_REQUEST_DIRECTION_OUTPUT
+
+#define GPIOD_LINE_VALUE_INACTIVE       0
+#define GPIOD_LINE_VALUE_ACTIVE         1
+
 #define gpiod_request_config            gpiod_line_request_config
+
+struct gpiod_line_settings {
+	int direction;
+	int value;
+};
+
+static struct gpiod_line_settings *gpiod_line_settings_new(void)
+{
+	static struct gpiod_line_settings my;
+
+	my = (struct gpiod_line_settings) { 0 };
+
+	return &my;
+}
 
 static struct gpiod_request_config *gpiod_request_config_new(void)
 {
@@ -36,8 +56,28 @@ static struct gpiod_request_config *gpiod_request_config_new(void)
 	return &my;
 }
 
+static void gpiod_line_settings_free(struct gpiod_line_settings *settings)
+{
+}
+
 static void gpiod_request_config_free(struct gpiod_request_config *config)
 {
+}
+
+static int gpiod_line_settings_set_direction(struct gpiod_line_settings *settings,
+	int direction)
+{
+	settings->direction = direction;
+
+	return 0;
+}
+
+static int gpiod_line_settings_set_output_value(struct gpiod_line_settings *settings,
+	int value)
+{
+	settings->value = value;
+
+	return 0;
 }
 
 static void gpiod_request_config_set_consumer(struct gpiod_request_config *config,
@@ -309,7 +349,7 @@ static int helper_get_line(enum adapter_gpio_config_index idx)
 	if (!is_gpio_config_valid(idx))
 		return ERROR_OK;
 
-	int dir = GPIOD_LINE_REQUEST_DIRECTION_INPUT, flags = 0, val = 0, retval;
+	int flags = 0, retval;
 
 	snprintf(chip_path, sizeof(chip_path), "/dev/gpiochip%u", adapter_gpio_config[idx].chip_num);
 	gpiod_chip[idx] = gpiod_chip_open(chip_path);
@@ -325,8 +365,10 @@ static int helper_get_line(enum adapter_gpio_config_index idx)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
+	struct gpiod_line_settings *line_settings = gpiod_line_settings_new();
 	struct gpiod_request_config *req_cfg = gpiod_request_config_new();
-	if (!req_cfg) {
+
+	if (!line_settings || !req_cfg) {
 		LOG_ERROR("Cannot configure LinuxGPIOD line for %s", adapter_gpio_get_name(idx));
 		retval = ERROR_JTAG_INIT_FAILED;
 		goto err_out;
@@ -336,15 +378,15 @@ static int helper_get_line(enum adapter_gpio_config_index idx)
 
 	switch (adapter_gpio_config[idx].init_state) {
 	case ADAPTER_GPIO_INIT_STATE_INPUT:
-		dir = GPIOD_LINE_REQUEST_DIRECTION_INPUT;
+		gpiod_line_settings_set_direction(line_settings, GPIOD_LINE_DIRECTION_INPUT);
 		break;
 	case ADAPTER_GPIO_INIT_STATE_INACTIVE:
-		dir = GPIOD_LINE_REQUEST_DIRECTION_OUTPUT;
-		val = 0;
+		gpiod_line_settings_set_direction(line_settings, GPIOD_LINE_DIRECTION_OUTPUT);
+		gpiod_line_settings_set_output_value(line_settings, GPIOD_LINE_VALUE_INACTIVE);
 		break;
 	case ADAPTER_GPIO_INIT_STATE_ACTIVE:
-		dir = GPIOD_LINE_REQUEST_DIRECTION_OUTPUT;
-		val = 1;
+		gpiod_line_settings_set_direction(line_settings, GPIOD_LINE_DIRECTION_OUTPUT);
+		gpiod_line_settings_set_output_value(line_settings, GPIOD_LINE_VALUE_ACTIVE);
 		break;
 	}
 
@@ -386,10 +428,10 @@ static int helper_get_line(enum adapter_gpio_config_index idx)
 	if (adapter_gpio_config[idx].active_low)
 		flags |= GPIOD_LINE_REQUEST_FLAG_ACTIVE_LOW;
 
-	req_cfg->request_type = dir;
+	req_cfg->request_type = line_settings->direction;
 	req_cfg->flags = flags;
 
-	retval = gpiod_line_request(gpiod_line[idx], req_cfg, val);
+	retval = gpiod_line_request(gpiod_line[idx], req_cfg, line_settings->value);
 	if (retval < 0) {
 		LOG_ERROR("Error requesting gpio line %s", adapter_gpio_get_name(idx));
 		retval = ERROR_JTAG_INIT_FAILED;
@@ -399,6 +441,7 @@ static int helper_get_line(enum adapter_gpio_config_index idx)
 	retval = ERROR_OK;
 
 err_out:
+	gpiod_line_settings_free(line_settings);
 	gpiod_request_config_free(req_cfg);
 
 	return retval;
