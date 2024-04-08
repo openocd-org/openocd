@@ -12,7 +12,6 @@
 #include <helper/time_support.h>
 #include <jtag/jtag.h>
 #include "target/target.h"
-#include "target/target_type.h"
 #include "rtos.h"
 #include "helper/log.h"
 #include "helper/types.h"
@@ -363,7 +362,7 @@ static bool rtkernel_detect_rtos(struct target *target)
 static int rtkernel_create(struct target *target)
 {
 	for (size_t i = 0; i < ARRAY_SIZE(rtkernel_params_list); i++) {
-		if (strcmp(rtkernel_params_list[i].target_name, target->type->name) == 0) {
+		if (strcmp(rtkernel_params_list[i].target_name, target_type_name(target)) == 0) {
 			target->rtos->rtos_specific_params = (void *)&rtkernel_params_list[i];
 			return 0;
 		}

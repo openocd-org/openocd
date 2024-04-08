@@ -40,7 +40,6 @@
 
 /* START_DEPRECATED_TPIU */
 #include <target/cortex_m.h>
-#include <target/target_type.h>
 #define MSG "DEPRECATED \'tpiu config\' command: "
 /* END_DEPRECATED_TPIU */
 
@@ -645,8 +644,8 @@ COMMAND_HANDLER(handle_arm_tpiu_swo_enable)
 
 	/* START_DEPRECATED_TPIU */
 	if (obj->recheck_ap_cur_target) {
-		if (strcmp(target->type->name, "cortex_m") &&
-			strcmp(target->type->name, "hla_target")) {
+		if (strcmp(target_type_name(target), "cortex_m") &&
+			strcmp(target_type_name(target), "hla_target")) {
 			LOG_ERROR(MSG "Current target is not a Cortex-M nor a HLA");
 			return ERROR_FAIL;
 		}
@@ -1043,8 +1042,8 @@ COMMAND_HANDLER(handle_tpiu_deprecated_config_command)
 	struct arm_tpiu_swo_object *obj = NULL;
 	int retval;
 
-	if (strcmp(target->type->name, "cortex_m") &&
-		strcmp(target->type->name, "hla_target")) {
+	if (strcmp(target_type_name(target), "cortex_m") &&
+		strcmp(target_type_name(target), "hla_target")) {
 		LOG_ERROR(MSG "Current target is not a Cortex-M nor a HLA");
 		return ERROR_FAIL;
 	}

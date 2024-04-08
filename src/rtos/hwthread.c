@@ -7,7 +7,6 @@
 #include <helper/time_support.h>
 #include <jtag/jtag.h>
 #include "target/target.h"
-#include "target/target_type.h"
 #include "target/register.h"
 #include <target/smp.h>
 #include "rtos.h"

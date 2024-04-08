@@ -12,7 +12,6 @@
 #include <helper/time_support.h>
 #include <jtag/jtag.h>
 #include "target/target.h"
-#include "target/target_type.h"
 #include "rtos.h"
 #include "helper/log.h"
 #include "helper/types.h"
@@ -608,7 +607,7 @@ static int threadx_get_thread_detail(struct rtos *rtos,
 static int threadx_create(struct target *target)
 {
 	for (unsigned int i = 0; i < ARRAY_SIZE(threadx_params_list); i++)
-		if (strcmp(threadx_params_list[i].target_name, target->type->name) == 0) {
+		if (strcmp(threadx_params_list[i].target_name, target_type_name(target)) == 0) {
 			target->rtos->rtos_specific_params = (void *)&threadx_params_list[i];
 			target->rtos->current_thread = 0;
 			target->rtos->thread_details = NULL;
