@@ -5365,17 +5365,19 @@ COMMAND_HANDLER(handle_target_reset)
 		return ERROR_FAIL;
 	}
 
-	if (target->defer_examine)
-		target_reset_examined(target);
-
 	/* determine if we should halt or not. */
 	target->reset_halt = (a != 0);
 	/* When this happens - all workareas are invalid. */
 	target_free_all_working_areas_restore(target, 0);
 
 	/* do the assert */
-	if (n->value == NVP_ASSERT)
-		return target->type->assert_reset(target);
+	if (n->value == NVP_ASSERT) {
+		int retval = target->type->assert_reset(target);
+		if (target->defer_examine)
+			target_reset_examined(target);
+		return retval;
+	}
+
 	return target->type->deassert_reset(target);
 }
 
