@@ -1109,6 +1109,11 @@ static int cortex_m_halt_one(struct target *target)
 	int retval;
 	LOG_TARGET_DEBUG(target, "target->state: %s", target_state_name(target));
 
+	if (!target_was_examined(target)) {
+		LOG_TARGET_ERROR(target, "target non examined yet");
+		return ERROR_TARGET_NOT_EXAMINED;
+	}
+
 	if (target->state == TARGET_HALTED) {
 		LOG_TARGET_DEBUG(target, "target was already halted");
 		return ERROR_OK;
