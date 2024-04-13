@@ -1932,7 +1932,7 @@ static int cortex_a_assert_reset(struct target *target)
 	}
 
 	/* registers are now invalid */
-	if (target_was_examined(target))
+	if (armv7a->arm.core_cache)
 		register_cache_invalidate(armv7a->arm.core_cache);
 
 	target->state = TARGET_RESET;
