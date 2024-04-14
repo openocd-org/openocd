@@ -5260,7 +5260,8 @@ int riscv_get_register(struct target *target, riscv_reg_t *value,
 		return ERROR_FAIL;
 
 	buf_set_u64(reg->value, 0, reg->size, *value);
-	reg->valid = gdb_regno_cacheable(regid, /* is write? */ false);
+	reg->valid = gdb_regno_cacheable(regid, /* is write? */ false) &&
+		target->state == TARGET_HALTED;
 	reg->dirty = false;
 
 	LOG_TARGET_DEBUG(target, "Read %s: 0x%" PRIx64, reg->name, *value);
