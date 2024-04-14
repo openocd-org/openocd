@@ -3360,6 +3360,10 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 		return ERROR_NOT_IMPLEMENTED;
 	}
 
+	dm013_info_t *dm = get_dm(target);
+	if (!dm)
+		return ERROR_FAIL;
+
 	RISCV013_INFO(info);
 	target_addr_t next_address = address;
 	target_addr_t end_address = address + (increment ? count : 1) * size;
@@ -3408,7 +3412,7 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 					}
 					keep_alive();
 					dmi_status_t status = dmi_scan(target, NULL, &sbvalue[next_read_j],
-								       DMI_OP_READ, sbdata[j], 0, false);
+								       DMI_OP_READ, sbdata[j] + dm->base, 0, false);
 					/* By reading from sbdata0, we have just initiated another system bus read.
 					 * If necessary add a delay so the read can finish. */
 					if (j == 0 && info->bus_master_read_delay) {
