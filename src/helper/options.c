@@ -341,6 +341,10 @@ int parse_cmdline_args(struct command_context *cmd_ctx, int argc, char *argv[])
 		exit(0);
 	}
 
+	/* dump full command line */
+	for (int i = 0; i < argc; i++)
+		LOG_DEBUG("ARGV[%d] = \"%s\"", i, argv[i]);
+
 	/* paths specified on the command line take precedence over these
 	 * built-in paths
 	 */

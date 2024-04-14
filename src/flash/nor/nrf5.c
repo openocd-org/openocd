@@ -17,6 +17,7 @@
 #include <target/armv7m.h>
 #include <helper/types.h>
 #include <helper/time_support.h>
+#include <helper/bits.h>
 
 /* Both those values are constant across the current spectrum ofr nRF5 devices */
 #define WATCHDOG_REFRESH_REGISTER       0x40010600
@@ -42,32 +43,9 @@ enum nrf5_ficr_registers {
 	NRF51_FICR_SIZERAMBLOCK2	= NRF5_FICR_REG(0x040),
 	NRF51_FICR_SIZERAMBLOCK3	= NRF5_FICR_REG(0x044),
 
+	/* CONFIGID is documented on nRF51 series only.
+	 * On nRF52 is present but not documented */
 	NRF5_FICR_CONFIGID		= NRF5_FICR_REG(0x05C),
-	NRF5_FICR_DEVICEID0		= NRF5_FICR_REG(0x060),
-	NRF5_FICR_DEVICEID1		= NRF5_FICR_REG(0x064),
-	NRF5_FICR_ER0			= NRF5_FICR_REG(0x080),
-	NRF5_FICR_ER1			= NRF5_FICR_REG(0x084),
-	NRF5_FICR_ER2			= NRF5_FICR_REG(0x088),
-	NRF5_FICR_ER3			= NRF5_FICR_REG(0x08C),
-	NRF5_FICR_IR0			= NRF5_FICR_REG(0x090),
-	NRF5_FICR_IR1			= NRF5_FICR_REG(0x094),
-	NRF5_FICR_IR2			= NRF5_FICR_REG(0x098),
-	NRF5_FICR_IR3			= NRF5_FICR_REG(0x09C),
-	NRF5_FICR_DEVICEADDRTYPE	= NRF5_FICR_REG(0x0A0),
-	NRF5_FICR_DEVICEADDR0		= NRF5_FICR_REG(0x0A4),
-	NRF5_FICR_DEVICEADDR1		= NRF5_FICR_REG(0x0A8),
-
-	NRF51_FICR_OVERRIDEN		= NRF5_FICR_REG(0x0AC),
-	NRF51_FICR_NRF_1MBIT0		= NRF5_FICR_REG(0x0B0),
-	NRF51_FICR_NRF_1MBIT1		= NRF5_FICR_REG(0x0B4),
-	NRF51_FICR_NRF_1MBIT2		= NRF5_FICR_REG(0x0B8),
-	NRF51_FICR_NRF_1MBIT3		= NRF5_FICR_REG(0x0BC),
-	NRF51_FICR_NRF_1MBIT4		= NRF5_FICR_REG(0x0C0),
-	NRF51_FICR_BLE_1MBIT0		= NRF5_FICR_REG(0x0EC),
-	NRF51_FICR_BLE_1MBIT1		= NRF5_FICR_REG(0x0F0),
-	NRF51_FICR_BLE_1MBIT2		= NRF5_FICR_REG(0x0F4),
-	NRF51_FICR_BLE_1MBIT3		= NRF5_FICR_REG(0x0F8),
-	NRF51_FICR_BLE_1MBIT4		= NRF5_FICR_REG(0x0FC),
 
 	/* Following registers are available on nRF52 and on nRF51 since rev 3 */
 	NRF5_FICR_INFO_PART			= NRF5_FICR_REG(0x100),
@@ -84,9 +62,6 @@ enum nrf5_uicr_registers {
 #define NRF5_UICR_REG(offset) (NRF5_UICR_BASE + offset)
 
 	NRF51_UICR_CLENR0	= NRF5_UICR_REG(0x000),
-	NRF51_UICR_RBPCONF	= NRF5_UICR_REG(0x004),
-	NRF51_UICR_XTALFREQ	= NRF5_UICR_REG(0x008),
-	NRF51_UICR_FWID		= NRF5_UICR_REG(0x010),
 };
 
 enum nrf5_nvmc_registers {
@@ -120,10 +95,10 @@ struct nrf52_ficr_info {
 };
 
 enum nrf5_features {
-	NRF5_FEATURE_SERIES_51	= 1 << 0,
-	NRF5_FEATURE_SERIES_52	= 1 << 1,
-	NRF5_FEATURE_BPROT		= 1 << 2,
-	NRF5_FEATURE_ACL_PROT	= 1 << 3,
+	NRF5_FEATURE_SERIES_51	= BIT(0),
+	NRF5_FEATURE_SERIES_52	= BIT(1),
+	NRF5_FEATURE_BPROT		= BIT(2),
+	NRF5_FEATURE_ACL_PROT	= BIT(3),
 };
 
 struct nrf5_device_spec {
@@ -164,26 +139,20 @@ struct nrf5_info {
 .features      = NRF5_FEATURE_SERIES_51,            \
 }
 
-#define NRF5_DEVICE_DEF(id, pt, var, bcode, fsize, features) \
-{                                                   \
-.hwid          = (id),                              \
-.part          = pt,                                \
-.variant       = var,                               \
-.build_code    = bcode,                             \
-.flash_size_kb = (fsize),                           \
-.features      = features,                          \
-}
-
-/* The known devices table below is derived from the "nRF5x series
- * compatibility matrix" documents, which can be found in the "DocLib" of
- * nordic:
+/*
+ * The table maps known HWIDs to the part numbers, variant
+ * build code and some other info. For nRF51 rev 1 and 2 devices
+ * this is the only way how to get the part number and variant.
  *
- * https://www.nordicsemi.com/DocLib/Content/Comp_Matrix/nRF51/latest/COMP/nrf51/nRF51422_ic_revision_overview
- * https://www.nordicsemi.com/DocLib/Content/Comp_Matrix/nRF51/latest/COMP/nrf51/nRF51822_ic_revision_overview
- * https://www.nordicsemi.com/DocLib/Content/Comp_Matrix/nRF51/latest/COMP/nrf51/nRF51824_ic_revision_overview
- * https://www.nordicsemi.com/DocLib/Content/Comp_Matrix/nRF52810/latest/COMP/nrf52810/nRF52810_ic_revision_overview
- * https://www.nordicsemi.com/DocLib/Content/Comp_Matrix/nRF52832/latest/COMP/nrf52832/ic_revision_overview
- * https://www.nordicsemi.com/DocLib/Content/Comp_Matrix/nRF52840/latest/COMP/nrf52840/nRF52840_ic_revision_overview
+ * All tested nRF51 rev 3 devices have FICR INFO fields
+ * but the fields are not documented in RM so we keep HWIDs in
+ * this table.
+ *
+ * nRF52 and newer devices have FICR INFO documented, the autodetection
+ * can rely on it and HWIDs table is not used.
+ *
+ * The known devices table below is derived from the "nRF5x series
+ * compatibility matrix" documents.
  *
  * Up to date with Matrix v2.0, plus some additional HWIDs.
  *
@@ -248,19 +217,6 @@ static const struct nrf5_device_spec nrf5_known_devices_table[] = {
 
 	/* The driver fully autodetects nRF52 series devices by FICR INFO,
 	 * no need for nRF52xxx HWIDs in this table */
-#if 0
-	/* nRF52810 Devices */
-	NRF5_DEVICE_DEF(0x0142, "52810", "QFAA", "B0",    192,	NRF5_FEATURE_SERIES_52 | NRF5_FEATURE_BPROT),
-	NRF5_DEVICE_DEF(0x0143, "52810", "QCAA", "C0",    192,	NRF5_FEATURE_SERIES_52 | NRF5_FEATURE_BPROT),
-
-	/* nRF52832 Devices */
-	NRF5_DEVICE_DEF(0x00C7, "52832", "QFAA", "B0",    512,	NRF5_FEATURE_SERIES_52 | NRF5_FEATURE_BPROT),
-	NRF5_DEVICE_DEF(0x0139, "52832", "QFAA", "E0",    512,	NRF5_FEATURE_SERIES_52 | NRF5_FEATURE_BPROT),
-	NRF5_DEVICE_DEF(0x00E3, "52832", "CIAA", "B0",    512,	NRF5_FEATURE_SERIES_52 | NRF5_FEATURE_BPROT),
-
-	/* nRF52840 Devices */
-	NRF5_DEVICE_DEF(0x0150, "52840", "QIAA", "C0",    1024,	NRF5_FEATURE_SERIES_52 | NRF5_FEATURE_ACL_PROT),
-#endif
 };
 
 struct nrf5_device_package {
@@ -270,11 +226,16 @@ struct nrf5_device_package {
 
 /* Newer devices have FICR INFO.PACKAGE.
  * This table converts its value to two character code */
-static const struct nrf5_device_package nrf5_packages_table[] = {
+static const struct nrf5_device_package nrf52_packages_table[] = {
 	{ 0x2000, "QF" },
 	{ 0x2001, "CH" },
 	{ 0x2002, "CI" },
+	{ 0x2003, "QC" },
+	{ 0x2004, "QI/CA" },	/* differs nRF52805, 810, 811: CA, nRF52833, 840: QI */
 	{ 0x2005, "CK" },
+	{ 0x2007, "QD" },
+	{ 0x2008, "CJ" },
+	{ 0x2009, "CF" },
 };
 
 const struct flash_driver nrf5_flash, nrf51_flash;
@@ -282,27 +243,9 @@ const struct flash_driver nrf5_flash, nrf51_flash;
 static bool nrf5_bank_is_probed(const struct flash_bank *bank)
 {
 	struct nrf5_bank *nbank = bank->driver_priv;
-
 	assert(nbank);
 
 	return nbank->probed;
-}
-static int nrf5_probe(struct flash_bank *bank);
-
-static int nrf5_get_probed_chip_if_halted(struct flash_bank *bank, struct nrf5_info **chip)
-{
-	if (bank->target->state != TARGET_HALTED) {
-		LOG_ERROR("Target not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
-
-	struct nrf5_bank *nbank = bank->driver_priv;
-	*chip = nbank->chip;
-
-	if (nrf5_bank_is_probed(bank))
-		return ERROR_OK;
-
-	return nrf5_probe(bank);
 }
 
 static int nrf5_wait_for_nvmc(struct nrf5_info *chip)
@@ -431,9 +374,10 @@ static int nrf5_protect_check_clenr0(struct flash_bank *bank)
 {
 	int res;
 	uint32_t clenr0;
-	struct nrf5_bank *nbank = bank->driver_priv;
-	struct nrf5_info *chip = nbank->chip;
 
+	struct nrf5_bank *nbank = bank->driver_priv;
+	assert(nbank);
+	struct nrf5_info *chip = nbank->chip;
 	assert(chip);
 
 	res = target_read_u32(chip->target, NRF51_FICR_CLENR0,
@@ -462,8 +406,8 @@ static int nrf5_protect_check_clenr0(struct flash_bank *bank)
 static int nrf5_protect_check_bprot(struct flash_bank *bank)
 {
 	struct nrf5_bank *nbank = bank->driver_priv;
+	assert(nbank);
 	struct nrf5_info *chip = nbank->chip;
-
 	assert(chip);
 
 	static uint32_t nrf5_bprot_offsets[4] = { 0x600, 0x604, 0x610, 0x614 };
@@ -493,8 +437,8 @@ static int nrf5_protect_check(struct flash_bank *bank)
 		return ERROR_OK;
 
 	struct nrf5_bank *nbank = bank->driver_priv;
+	assert(nbank);
 	struct nrf5_info *chip = nbank->chip;
-
 	assert(chip);
 
 	if (chip->features & NRF5_FEATURE_BPROT)
@@ -512,8 +456,11 @@ static int nrf5_protect_clenr0(struct flash_bank *bank, int set, unsigned int fi
 {
 	int res;
 	uint32_t clenr0, ppfc;
+
 	struct nrf5_bank *nbank = bank->driver_priv;
+	assert(nbank);
 	struct nrf5_info *chip = nbank->chip;
+	assert(chip);
 
 	if (first != 0) {
 		LOG_ERROR("Code region 0 must start at the beginning of the bank");
@@ -570,18 +517,21 @@ error:
 static int nrf5_protect(struct flash_bank *bank, int set, unsigned int first,
 		unsigned int last)
 {
-	int res;
-	struct nrf5_info *chip;
-
 	/* UICR cannot be write protected so just bail out early */
 	if (bank->base == NRF5_UICR_BASE) {
 		LOG_ERROR("UICR page does not support protection");
 		return ERROR_FLASH_OPER_UNSUPPORTED;
 	}
 
-	res = nrf5_get_probed_chip_if_halted(bank, &chip);
-	if (res != ERROR_OK)
-		return res;
+	if (bank->target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	struct nrf5_bank *nbank = bank->driver_priv;
+	assert(nbank);
+	struct nrf5_info *chip = nbank->chip;
+	assert(chip);
 
 	if (chip->features & NRF5_FEATURE_SERIES_51)
 		return nrf5_protect_clenr0(bank, set, first, last);
@@ -607,9 +557,9 @@ static bool nrf5_info_variant_to_str(uint32_t variant, char *bf)
 
 static const char *nrf5_decode_info_package(uint32_t package)
 {
-	for (size_t i = 0; i < ARRAY_SIZE(nrf5_packages_table); i++) {
-		if (nrf5_packages_table[i].package == package)
-			return nrf5_packages_table[i].code;
+	for (size_t i = 0; i < ARRAY_SIZE(nrf52_packages_table); i++) {
+		if (nrf52_packages_table[i].package == package)
+			return nrf52_packages_table[i].code;
 	}
 	return "xx";
 }
@@ -642,7 +592,9 @@ static int get_nrf5_chip_type_str(const struct nrf5_info *chip, char *buf, unsig
 static int nrf5_info(struct flash_bank *bank, struct command_invocation *cmd)
 {
 	struct nrf5_bank *nbank = bank->driver_priv;
+	assert(nbank);
 	struct nrf5_info *chip = nbank->chip;
+	assert(chip);
 
 	char chip_type_str[256];
 	if (get_nrf5_chip_type_str(chip, chip_type_str, sizeof(chip_type_str)) != ERROR_OK)
@@ -676,11 +628,15 @@ static int nrf5_read_ficr_info(struct nrf5_info *chip)
 		chip->features = NRF5_FEATURE_SERIES_52;
 
 		switch (chip->ficr_info.part) {
+		case 0x52805:
 		case 0x52810:
+		case 0x52811:
 		case 0x52832:
 			chip->features |= NRF5_FEATURE_BPROT;
 			break;
 
+		case 0x52820:
+		case 0x52833:
 		case 0x52840:
 			chip->features |= NRF5_FEATURE_ACL_PROT;
 			break;
@@ -755,8 +711,11 @@ static int nrf5_get_ram_size(struct target *target, uint32_t *ram_size)
 static int nrf5_probe(struct flash_bank *bank)
 {
 	int res;
+
 	struct nrf5_bank *nbank = bank->driver_priv;
+	assert(nbank);
 	struct nrf5_info *chip = nbank->chip;
+	assert(chip);
 	struct target *target = chip->target;
 
 	uint32_t configid;
@@ -1024,11 +983,17 @@ static int nrf5_ll_flash_write(struct nrf5_info *chip, uint32_t address, const u
 static int nrf5_write(struct flash_bank *bank, const uint8_t *buffer,
 					uint32_t offset, uint32_t count)
 {
-	struct nrf5_info *chip;
+	int res;
 
-	int res = nrf5_get_probed_chip_if_halted(bank, &chip);
-	if (res != ERROR_OK)
-		return res;
+	if (bank->target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	struct nrf5_bank *nbank = bank->driver_priv;
+	assert(nbank);
+	struct nrf5_info *chip = nbank->chip;
+	assert(chip);
 
 	assert(offset % 4 == 0);
 	assert(count % 4 == 0);
@@ -1081,11 +1046,16 @@ static int nrf5_erase(struct flash_bank *bank, unsigned int first,
 		unsigned int last)
 {
 	int res;
-	struct nrf5_info *chip;
 
-	res = nrf5_get_probed_chip_if_halted(bank, &chip);
-	if (res != ERROR_OK)
-		return res;
+	if (bank->target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	struct nrf5_bank *nbank = bank->driver_priv;
+	assert(nbank);
+	struct nrf5_info *chip = nbank->chip;
+	assert(chip);
 
 	/* UICR CLENR0 based protection used on nRF51 prevents erase
 	 * absolutely silently. NVMC has no flag to indicate the protection
@@ -1101,7 +1071,7 @@ static int nrf5_erase(struct flash_bank *bank, unsigned int first,
 	}
 
 	/* For each sector to be erased */
-	for (unsigned int s = first; s <= last && res == ERROR_OK; s++) {
+	for (unsigned int s = first; s <= last; s++) {
 
 		if (chip->features & NRF5_FEATURE_SERIES_51
 				&& bank->sectors[s].is_protected == 1) {
@@ -1122,6 +1092,7 @@ static int nrf5_erase(struct flash_bank *bank, unsigned int first,
 static void nrf5_free_driver_priv(struct flash_bank *bank)
 {
 	struct nrf5_bank *nbank = bank->driver_priv;
+	assert(nbank);
 	struct nrf5_info *chip = nbank->chip;
 	if (!chip)
 		return;
@@ -1159,6 +1130,9 @@ FLASH_BANK_COMMAND_HANDLER(nrf5_flash_bank_command)
 {
 	struct nrf5_info *chip;
 	struct nrf5_bank *nbank = NULL;
+
+	if (bank->driver == &nrf51_flash)
+		LOG_WARNING("Flash driver 'nrf51' is deprecated! Use 'nrf5' instead.");
 
 	switch (bank->base) {
 	case NRF5_FLASH_BASE:
@@ -1210,11 +1184,15 @@ COMMAND_HANDLER(nrf5_handle_mass_erase_command)
 
 	assert(bank);
 
-	struct nrf5_info *chip;
+	if (target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
 
-	res = nrf5_get_probed_chip_if_halted(bank, &chip);
-	if (res != ERROR_OK)
-		return res;
+	struct nrf5_bank *nbank = bank->driver_priv;
+	assert(nbank);
+	struct nrf5_info *chip = nbank->chip;
+	assert(chip);
 
 	if (chip->features & NRF5_FEATURE_SERIES_51) {
 		uint32_t ppfc;
@@ -1245,137 +1223,6 @@ COMMAND_HANDLER(nrf5_handle_mass_erase_command)
 	return res;
 }
 
-COMMAND_HANDLER(nrf5_handle_info_command)
-{
-	int res;
-	struct flash_bank *bank = NULL;
-	struct target *target = get_current_target(CMD_CTX);
-
-	res = get_flash_bank_by_addr(target, NRF5_FLASH_BASE, true, &bank);
-	if (res != ERROR_OK)
-		return res;
-
-	assert(bank);
-
-	struct nrf5_info *chip;
-
-	res = nrf5_get_probed_chip_if_halted(bank, &chip);
-	if (res != ERROR_OK)
-		return res;
-
-	static struct {
-		const uint32_t address;
-		uint32_t value;
-	} ficr[] = {
-		{ .address = NRF5_FICR_CODEPAGESIZE	},
-		{ .address = NRF5_FICR_CODESIZE	},
-		{ .address = NRF51_FICR_CLENR0		},
-		{ .address = NRF51_FICR_PPFC		},
-		{ .address = NRF51_FICR_NUMRAMBLOCK	},
-		{ .address = NRF51_FICR_SIZERAMBLOCK0	},
-		{ .address = NRF51_FICR_SIZERAMBLOCK1	},
-		{ .address = NRF51_FICR_SIZERAMBLOCK2	},
-		{ .address = NRF51_FICR_SIZERAMBLOCK3	},
-		{ .address = NRF5_FICR_CONFIGID	},
-		{ .address = NRF5_FICR_DEVICEID0	},
-		{ .address = NRF5_FICR_DEVICEID1	},
-		{ .address = NRF5_FICR_ER0		},
-		{ .address = NRF5_FICR_ER1		},
-		{ .address = NRF5_FICR_ER2		},
-		{ .address = NRF5_FICR_ER3		},
-		{ .address = NRF5_FICR_IR0		},
-		{ .address = NRF5_FICR_IR1		},
-		{ .address = NRF5_FICR_IR2		},
-		{ .address = NRF5_FICR_IR3		},
-		{ .address = NRF5_FICR_DEVICEADDRTYPE	},
-		{ .address = NRF5_FICR_DEVICEADDR0	},
-		{ .address = NRF5_FICR_DEVICEADDR1	},
-		{ .address = NRF51_FICR_OVERRIDEN	},
-		{ .address = NRF51_FICR_NRF_1MBIT0	},
-		{ .address = NRF51_FICR_NRF_1MBIT1	},
-		{ .address = NRF51_FICR_NRF_1MBIT2	},
-		{ .address = NRF51_FICR_NRF_1MBIT3	},
-		{ .address = NRF51_FICR_NRF_1MBIT4	},
-		{ .address = NRF51_FICR_BLE_1MBIT0	},
-		{ .address = NRF51_FICR_BLE_1MBIT1	},
-		{ .address = NRF51_FICR_BLE_1MBIT2	},
-		{ .address = NRF51_FICR_BLE_1MBIT3	},
-		{ .address = NRF51_FICR_BLE_1MBIT4	},
-	}, uicr[] = {
-		{ .address = NRF51_UICR_CLENR0,		},
-		{ .address = NRF51_UICR_RBPCONF		},
-		{ .address = NRF51_UICR_XTALFREQ	},
-		{ .address = NRF51_UICR_FWID		},
-	};
-
-	for (size_t i = 0; i < ARRAY_SIZE(ficr); i++) {
-		res = target_read_u32(chip->target, ficr[i].address,
-				      &ficr[i].value);
-		if (res != ERROR_OK) {
-			LOG_ERROR("Couldn't read %" PRIx32, ficr[i].address);
-			return res;
-		}
-	}
-
-	for (size_t i = 0; i < ARRAY_SIZE(uicr); i++) {
-		res = target_read_u32(chip->target, uicr[i].address,
-				      &uicr[i].value);
-		if (res != ERROR_OK) {
-			LOG_ERROR("Couldn't read %" PRIx32, uicr[i].address);
-			return res;
-		}
-	}
-
-	command_print(CMD,
-		 "\n[factory information control block]\n\n"
-		 "code page size: %"PRIu32"B\n"
-		 "code memory size: %"PRIu32"kB\n"
-		 "code region 0 size: %"PRIu32"kB\n"
-		 "pre-programmed code: %s\n"
-		 "number of ram blocks: %"PRIu32"\n"
-		 "ram block 0 size: %"PRIu32"B\n"
-		 "ram block 1 size: %"PRIu32"B\n"
-		 "ram block 2 size: %"PRIu32"B\n"
-		 "ram block 3 size: %"PRIu32 "B\n"
-		 "config id: %" PRIx32 "\n"
-		 "device id: 0x%"PRIx32"%08"PRIx32"\n"
-		 "encryption root: 0x%08"PRIx32"%08"PRIx32"%08"PRIx32"%08"PRIx32"\n"
-		 "identity root: 0x%08"PRIx32"%08"PRIx32"%08"PRIx32"%08"PRIx32"\n"
-		 "device address type: 0x%"PRIx32"\n"
-		 "device address: 0x%"PRIx32"%08"PRIx32"\n"
-		 "override enable: %"PRIx32"\n"
-		 "NRF_1MBIT values: %"PRIx32" %"PRIx32" %"PRIx32" %"PRIx32" %"PRIx32"\n"
-		 "BLE_1MBIT values: %"PRIx32" %"PRIx32" %"PRIx32" %"PRIx32" %"PRIx32"\n"
-		 "\n[user information control block]\n\n"
-		 "code region 0 size: %"PRIu32"kB\n"
-		 "read back protection configuration: %"PRIx32"\n"
-		 "reset value for XTALFREQ: %"PRIx32"\n"
-		 "firmware id: 0x%04"PRIx32,
-		 ficr[0].value,
-		 (ficr[1].value * ficr[0].value) / 1024,
-		 (ficr[2].value == 0xFFFFFFFF) ? 0 : ficr[2].value / 1024,
-		 ((ficr[3].value & 0xFF) == 0x00) ? "present" : "not present",
-		 ficr[4].value,
-		 ficr[5].value,
-		 (ficr[6].value == 0xFFFFFFFF) ? 0 : ficr[6].value,
-		 (ficr[7].value == 0xFFFFFFFF) ? 0 : ficr[7].value,
-		 (ficr[8].value == 0xFFFFFFFF) ? 0 : ficr[8].value,
-		 ficr[9].value,
-		 ficr[10].value, ficr[11].value,
-		 ficr[12].value, ficr[13].value, ficr[14].value, ficr[15].value,
-		 ficr[16].value, ficr[17].value, ficr[18].value, ficr[19].value,
-		 ficr[20].value,
-		 ficr[21].value, ficr[22].value,
-		 ficr[23].value,
-		 ficr[24].value, ficr[25].value, ficr[26].value, ficr[27].value, ficr[28].value,
-		 ficr[29].value, ficr[30].value, ficr[31].value, ficr[32].value, ficr[33].value,
-		 (uicr[0].value == 0xFFFFFFFF) ? 0 : uicr[0].value / 1024,
-		 uicr[1].value & 0xFFFF,
-		 uicr[2].value & 0xFF,
-		 uicr[3].value & 0xFFFF);
-
-	return ERROR_OK;
-}
 
 static const struct command_registration nrf5_exec_command_handlers[] = {
 	{
@@ -1383,13 +1230,6 @@ static const struct command_registration nrf5_exec_command_handlers[] = {
 		.handler	= nrf5_handle_mass_erase_command,
 		.mode		= COMMAND_EXEC,
 		.help		= "Erase all flash contents of the chip.",
-		.usage		= "",
-	},
-	{
-		.name		= "info",
-		.handler	= nrf5_handle_info_command,
-		.mode		= COMMAND_EXEC,
-		.help		= "Show FICR and UICR info.",
 		.usage		= "",
 	},
 	COMMAND_REGISTRATION_DONE

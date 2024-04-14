@@ -114,6 +114,15 @@ extern int debug_level;
 				expr); \
 	} while (0)
 
+#define LOG_CUSTOM_LEVEL(level, expr ...) \
+	do { \
+		enum log_levels _level = level; \
+		if (debug_level >= _level) \
+			log_printf_lf(_level, \
+				__FILE__, __LINE__, __func__, \
+				expr); \
+	} while (0)
+
 #define LOG_INFO(expr ...) \
 	log_printf_lf(LOG_LVL_INFO, __FILE__, __LINE__, __func__, expr)
 

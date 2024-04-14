@@ -20,6 +20,11 @@
 #include <jtag/interface.h>
 #include <jtag/commands.h>
 
+#include <helper/time_support.h>
+
+/* Timeout for retrying on SWD WAIT in msec */
+#define SWD_WAIT_TIMEOUT 500
+
 /**
  * Function bitbang_stableclocks
  * issues a number of clock cycles while staying in a stable state.
@@ -474,7 +479,8 @@ static void bitbang_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_delay
 		return;
 	}
 
-	for (;;) {
+	int64_t timeout = timeval_ms() + SWD_WAIT_TIMEOUT;
+	for (unsigned int retry = 0;; retry++) {
 		uint8_t trn_ack_data_parity_trn[DIV_ROUND_UP(4 + 3 + 32 + 1 + 4, 8)];
 
 		cmd |= SWD_CMD_START | SWD_CMD_PARK;
@@ -488,16 +494,25 @@ static void bitbang_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_delay
 		uint32_t data = buf_get_u32(trn_ack_data_parity_trn, 1 + 3, 32);
 		int parity = buf_get_u32(trn_ack_data_parity_trn, 1 + 3 + 32, 1);
 
-		LOG_DEBUG_IO("%s %s read reg %X = %08" PRIx32,
-			  ack == SWD_ACK_OK ? "OK" : ack == SWD_ACK_WAIT ? "WAIT" : ack == SWD_ACK_FAULT ? "FAULT" : "JUNK",
-			  cmd & SWD_CMD_APNDP ? "AP" : "DP",
-			  (cmd & SWD_CMD_A32) >> 1,
-			  data);
+		LOG_CUSTOM_LEVEL((ack != SWD_ACK_OK && (retry == 0 || ack != SWD_ACK_WAIT))
+				? LOG_LVL_DEBUG : LOG_LVL_DEBUG_IO,
+			"%s %s read reg %X = %08" PRIx32,
+			ack == SWD_ACK_OK ? "OK" : ack == SWD_ACK_WAIT ? "WAIT" : ack == SWD_ACK_FAULT ? "FAULT" : "JUNK",
+			cmd & SWD_CMD_APNDP ? "AP" : "DP",
+			(cmd & SWD_CMD_A32) >> 1,
+			data);
 
-		if (ack == SWD_ACK_WAIT) {
+		if (ack == SWD_ACK_WAIT && timeval_ms() <= timeout) {
 			swd_clear_sticky_errors();
+			if (retry > 20)
+				alive_sleep(1);
+
 			continue;
-		} else if (ack != SWD_ACK_OK) {
+		}
+		if (retry > 1)
+			LOG_DEBUG("SWD WAIT: retried %u times", retry);
+
+		if (ack != SWD_ACK_OK) {
 			queued_retval = swd_ack_to_error_code(ack);
 			return;
 		}
@@ -524,12 +539,14 @@ static void bitbang_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay
 		return;
 	}
 
+	int64_t timeout = timeval_ms() + SWD_WAIT_TIMEOUT;
+
 	/* Devices do not reply to DP_TARGETSEL write cmd, ignore received ack */
 	bool check_ack = swd_cmd_returns_ack(cmd);
 
 	/* init the array to silence scan-build */
 	uint8_t trn_ack_data_parity_trn[DIV_ROUND_UP(4 + 3 + 32 + 1 + 4, 8)] = {0};
-	for (;;) {
+	for (unsigned int retry = 0;; retry++) {
 		buf_set_u32(trn_ack_data_parity_trn, 1 + 3 + 1, 32, value);
 		buf_set_u32(trn_ack_data_parity_trn, 1 + 3 + 1 + 32, 1, parity_u32(value));
 
@@ -554,22 +571,29 @@ static void bitbang_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay
 		bitbang_swd_exchange(false, trn_ack_data_parity_trn, 1 + 3 + 1, 32 + 1);
 
 		int ack = buf_get_u32(trn_ack_data_parity_trn, 1, 3);
+		LOG_CUSTOM_LEVEL((check_ack && ack != SWD_ACK_OK && (retry == 0 || ack != SWD_ACK_WAIT))
+				? LOG_LVL_DEBUG : LOG_LVL_DEBUG_IO,
+			"%s%s %s write reg %X = %08" PRIx32,
+			check_ack ? "" : "ack ignored ",
+			ack == SWD_ACK_OK ? "OK" : ack == SWD_ACK_WAIT ? "WAIT" : ack == SWD_ACK_FAULT ? "FAULT" : "JUNK",
+			cmd & SWD_CMD_APNDP ? "AP" : "DP",
+			(cmd & SWD_CMD_A32) >> 1,
+			buf_get_u32(trn_ack_data_parity_trn, 1 + 3 + 1, 32));
 
-		LOG_DEBUG_IO("%s%s %s write reg %X = %08" PRIx32,
-			  check_ack ? "" : "ack ignored ",
-			  ack == SWD_ACK_OK ? "OK" : ack == SWD_ACK_WAIT ? "WAIT" : ack == SWD_ACK_FAULT ? "FAULT" : "JUNK",
-			  cmd & SWD_CMD_APNDP ? "AP" : "DP",
-			  (cmd & SWD_CMD_A32) >> 1,
-			  buf_get_u32(trn_ack_data_parity_trn, 1 + 3 + 1, 32));
+		if (check_ack && ack == SWD_ACK_WAIT && timeval_ms() <= timeout) {
+			swd_clear_sticky_errors();
+			if (retry > 20)
+				alive_sleep(1);
 
-		if (check_ack) {
-			if (ack == SWD_ACK_WAIT) {
-				swd_clear_sticky_errors();
-				continue;
-			} else if (ack != SWD_ACK_OK) {
-				queued_retval = swd_ack_to_error_code(ack);
-				return;
-			}
+			continue;
+		}
+
+		if (retry > 1)
+			LOG_DEBUG("SWD WAIT: retried %u times", retry);
+
+		if (check_ack && ack != SWD_ACK_OK) {
+			queued_retval = swd_ack_to_error_code(ack);
+			return;
 		}
 
 		if (cmd & SWD_CMD_APNDP)

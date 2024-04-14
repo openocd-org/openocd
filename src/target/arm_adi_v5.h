@@ -788,6 +788,15 @@ struct adiv5_private_config {
 };
 
 extern int adiv5_verify_config(struct adiv5_private_config *pc);
+
+enum adiv5_configure_dap_optional {
+	ADI_CONFIGURE_DAP_COMPULSORY = false,
+	ADI_CONFIGURE_DAP_OPTIONAL = true
+};
+
+extern int adiv5_jim_configure_ext(struct target *target, struct jim_getopt_info *goi,
+								   struct adiv5_private_config *pc,
+								   enum adiv5_configure_dap_optional optional);
 extern int adiv5_jim_configure(struct target *target, struct jim_getopt_info *goi);
 
 struct adiv5_mem_ap_spot {
