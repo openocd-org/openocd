@@ -278,7 +278,6 @@ COMMAND_HANDLER(handle_transport_select)
 	if (session) {
 		if (!strcmp(session->name, CMD_ARGV[0])) {
 			LOG_WARNING("Transport \"%s\" was already selected", session->name);
-			command_print(CMD, "%s", session->name);
 			return ERROR_OK;
 		}
 		command_print(CMD, "Can't change session's transport after the initial selection was made");
@@ -301,7 +300,6 @@ COMMAND_HANDLER(handle_transport_select)
 			int retval = transport_select(CMD_CTX, CMD_ARGV[0]);
 			if (retval != ERROR_OK)
 				return retval;
-			command_print(CMD, "%s", session->name);
 			return ERROR_OK;
 		}
 	}
