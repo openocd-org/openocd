@@ -3194,43 +3194,46 @@ COMMAND_HANDLER(handle_cortex_m_reset_config_command)
 {
 	struct target *target = get_current_target(CMD_CTX);
 	struct cortex_m_common *cortex_m = target_to_cm(target);
-	int retval;
-	char *reset_config;
 
-	retval = cortex_m_verify_pointer(CMD, cortex_m);
+	int retval = cortex_m_verify_pointer(CMD, cortex_m);
 	if (retval != ERROR_OK)
 		return retval;
 
-	if (CMD_ARGC > 0) {
-		if (strcmp(*CMD_ARGV, "sysresetreq") == 0)
-			cortex_m->soft_reset_config = CORTEX_M_RESET_SYSRESETREQ;
+	if (!CMD_ARGC) {
+		char *reset_config;
 
-		else if (strcmp(*CMD_ARGV, "vectreset") == 0) {
-			if (target_was_examined(target)
-					&& !cortex_m->vectreset_supported)
-				LOG_TARGET_WARNING(target, "VECTRESET is not supported on your Cortex-M core!");
-			else
-				cortex_m->soft_reset_config = CORTEX_M_RESET_VECTRESET;
+		switch (cortex_m->soft_reset_config) {
+		case CORTEX_M_RESET_SYSRESETREQ:
+			reset_config = "sysresetreq";
+			break;
 
-		} else
-			return ERROR_COMMAND_SYNTAX_ERROR;
+		case CORTEX_M_RESET_VECTRESET:
+			reset_config = "vectreset";
+			break;
+
+		default:
+			reset_config = "unknown";
+			break;
+		}
+
+		command_print(CMD, "%s", reset_config);
+		return ERROR_OK;
+	} else if (CMD_ARGC != 1) {
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	switch (cortex_m->soft_reset_config) {
-	case CORTEX_M_RESET_SYSRESETREQ:
-		reset_config = "sysresetreq";
-		break;
-
-	case CORTEX_M_RESET_VECTRESET:
-		reset_config = "vectreset";
-		break;
-
-	default:
-		reset_config = "unknown";
-		break;
+	if (!strcmp(CMD_ARGV[0], "sysresetreq")) {
+		cortex_m->soft_reset_config = CORTEX_M_RESET_SYSRESETREQ;
+	} else if (!strcmp(CMD_ARGV[0], "vectreset")) {
+		if (target_was_examined(target)
+				&& !cortex_m->vectreset_supported)
+			LOG_TARGET_WARNING(target, "VECTRESET is not supported on your Cortex-M core");
+		else
+			cortex_m->soft_reset_config = CORTEX_M_RESET_VECTRESET;
+	} else {
+		command_print(CMD, "invalid reset config '%s'", CMD_ARGV[0]);
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
-
-	command_print(CMD, "cortex_m reset_config %s", reset_config);
 
 	return ERROR_OK;
 }
