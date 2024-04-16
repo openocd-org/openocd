@@ -5669,7 +5669,10 @@ static int riscv_set_or_write_register(struct target *target,
 		enum gdb_regno regid, riscv_reg_t value, bool write_through)
 {
 	RISCV_INFO(r);
+	assert(r);
 	assert(r->set_register);
+	if (r->dtm_version == DTM_DTMCS_VERSION_0_11)
+		return r->set_register(target, regid, value);
 
 	keep_alive();
 
@@ -5766,7 +5769,10 @@ int riscv_get_register(struct target *target, riscv_reg_t *value,
 		enum gdb_regno regid)
 {
 	RISCV_INFO(r);
+	assert(r);
 	assert(r->get_register);
+	if (r->dtm_version == DTM_DTMCS_VERSION_0_11)
+		return r->get_register(target, value, regid);
 
 	keep_alive();
 
@@ -6222,13 +6228,17 @@ const char *gdb_regno_name(const struct target *target, enum gdb_regno regno)
 	return NULL;
 }
 
+static struct target *get_target_from_reg(const struct reg *reg);
+
 /**
  * This function is the handler of user's request to read a register.
  */
-static int register_get(struct reg *reg)
+static int riscv013_reg_get(struct reg *reg)
 {
-	struct target *target = ((riscv_reg_info_t *)reg->arch_info)->target;
+	struct target *target = get_target_from_reg(reg);
 	RISCV_INFO(r);
+	assert(r);
+	assert(r->dtm_version == DTM_DTMCS_VERSION_1_0);
 
 	/* TODO: Hack to deal with gdb that thinks these registers still exist. */
 	if (reg->number > GDB_REGNO_XPR15 && reg->number <= GDB_REGNO_XPR31 &&
@@ -6266,10 +6276,12 @@ static int register_get(struct reg *reg)
 /**
  * This function is the handler of user's request to write a register.
  */
-static int register_set(struct reg *reg, uint8_t *buf)
+static int riscv013_reg_set(struct reg *reg, uint8_t *buf)
 {
-	struct target *target = ((riscv_reg_info_t *)reg->arch_info)->target;
+	struct target *target = get_target_from_reg(reg);
 	RISCV_INFO(r);
+	assert(r);
+	assert(r->dtm_version == DTM_DTMCS_VERSION_1_0);
 
 	char *str = buf_to_hex_str(buf, reg->size);
 	LOG_TARGET_DEBUG(target, "Write 0x%s to %s (valid=%d).",	str, reg->name,
@@ -6314,11 +6326,6 @@ static int register_set(struct reg *reg, uint8_t *buf)
 
 	return ERROR_OK;
 }
-
-static struct reg_arch_type riscv_reg_arch_type = {
-	.get = register_get,
-	.set = register_set
-};
 
 static int init_custom_register_names(struct list_head *expose_custom,
 		struct reg_name_table *custom_register_names)
@@ -6370,7 +6377,7 @@ static bool is_known_standard_csr(unsigned int csr_num)
 	return is_csr_in_buf[csr_num];
 }
 
-bool reg_is_initialized(const struct reg *reg)
+static bool reg_is_initialized(const struct reg *reg)
 {
 	assert(reg);
 	if (!reg->feature) {
@@ -6383,6 +6390,65 @@ bool reg_is_initialized(const struct reg *reg)
 	assert((!reg->exist && !reg->value) || (reg->exist && reg->value));
 	assert(reg->valid || !reg->dirty);
 	return true;
+}
+
+static struct target *get_target_from_reg(const struct reg *reg)
+{
+	assert(reg_is_initialized(reg));
+	return ((const riscv_reg_info_t *)reg->arch_info)->target;
+}
+
+static int riscv011_reg_get(struct reg *reg)
+{
+	struct target * const target = get_target_from_reg(reg);
+	RISCV_INFO(r);
+	assert(r);
+	assert(r->dtm_version == DTM_DTMCS_VERSION_0_11);
+	riscv_reg_t value;
+	const int result = r->get_register(target, &value, reg->number);
+	if (result != ERROR_OK)
+		return result;
+	buf_set_u64(reg->value, 0, reg->size, value);
+	return ERROR_OK;
+}
+
+static int riscv011_reg_set(struct reg *reg, uint8_t *buf)
+{
+	const riscv_reg_t value = buf_get_u64(buf, 0, reg->size);
+	struct target * const target = get_target_from_reg(reg);
+	RISCV_INFO(r);
+	assert(r);
+	assert(r->dtm_version == DTM_DTMCS_VERSION_0_11);
+	if (reg->number == GDB_REGNO_TDATA1 || reg->number == GDB_REGNO_TDATA2) {
+		r->manual_hwbp_set = true;
+		/* When enumerating triggers, we clear any triggers with DMODE set,
+		 * assuming they were left over from a previous debug session. So make
+		 * sure that is done before a user might be setting their own triggers.
+		 */
+		if (riscv_enumerate_triggers(target) != ERROR_OK)
+			return ERROR_FAIL;
+	}
+	return r->set_register(target, reg->number, value);
+}
+
+static struct reg_arch_type *gdb_regno_reg_type(const struct target *target,
+		uint32_t regno)
+{
+	RISCV_INFO(info);
+	assert(info);
+	if (info->dtm_version == DTM_DTMCS_VERSION_0_11) {
+		static struct reg_arch_type riscv011_reg_type = {
+			.get = riscv011_reg_get,
+			.set = riscv011_reg_set
+		};
+		return &riscv011_reg_type;
+	}
+
+	static struct reg_arch_type riscv013_reg_type = {
+		.get = riscv013_reg_get,
+		.set = riscv013_reg_set
+	};
+	return &riscv013_reg_type;
 }
 
 static struct reg_feature *gdb_regno_feature(uint32_t regno)
@@ -6758,7 +6824,7 @@ static int init_reg(struct target *target, uint32_t regno)
 	if (reg_is_initialized(reg))
 		return ERROR_OK;
 	reg->number = regno;
-	reg->type = &riscv_reg_arch_type;
+	reg->type = gdb_regno_reg_type(target, regno);
 	reg->dirty = false;
 	reg->valid = false;
 	reg->hidden = false;

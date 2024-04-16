@@ -1261,7 +1261,7 @@ static int register_read(struct target *target, riscv_reg_t *value, int regnum)
 	return ERROR_OK;
 }
 
-/* Write the register. No caching or games. */
+/* Write the register. */
 static int register_write(struct target *target, unsigned int number,
 		uint64_t value)
 {
@@ -1337,6 +1337,10 @@ static int get_register(struct target *target, riscv_reg_t *value,
 	maybe_write_tselect(target);
 
 	if (regid <= GDB_REGNO_XPR31) {
+		/* FIXME: Here the implementation assumes that the value
+		 * written to GPR will be the same as the value read back. This
+		 * is not true for a write of a non-zero value to x0.
+		 */
 		*value = reg_cache_get(target, regid);
 	} else if (regid == GDB_REGNO_PC || regid == GDB_REGNO_DPC) {
 		*value = info->dpc;
@@ -1368,16 +1372,32 @@ static int get_register(struct target *target, riscv_reg_t *value,
 			return result;
 	}
 
-	if (regid == GDB_REGNO_MSTATUS)
-		target->reg_cache->reg_list[regid].valid = true;
-
 	return ERROR_OK;
 }
 
+/* This function is intended to handle accesses to registers through register
+ * cache. */
 static int set_register(struct target *target, enum gdb_regno regid,
 		riscv_reg_t value)
 {
-	return register_write(target, regid, value);
+	assert(target->reg_cache);
+	assert(target->reg_cache->reg_list);
+	struct reg * const reg = &target->reg_cache->reg_list[regid];
+	assert(reg);
+	/* On RISC-V 0.11 targets valid value of some registers (e.g. `dcsr`)
+	 * is stored in `riscv011_info_t` itself, not in register cache. This
+	 * complicates register cache implementation.
+	 * Therefore, for now, caching registers in register cache is disabled
+	 * for all registers, except for reads of GPRs.
+	 */
+	assert(!reg->dirty);
+	int result = register_write(target, regid, value);
+	if (result != ERROR_OK)
+		return result;
+	reg_cache_set(target, regid, value);
+	/* FIXME: x0 (zero) should not be cached on writes. */
+	reg->valid = regid <= GDB_REGNO_XPR31;
+	return ERROR_OK;
 }
 
 static int halt(struct target *target)
