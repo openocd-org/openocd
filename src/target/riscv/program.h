@@ -41,7 +41,7 @@ int riscv_program_write(struct riscv_program *program);
 
 /* Executes a program, returning 0 if the program successfully executed.  Note
  * that this may cause registers to be saved or restored, which could result to
- * calls to things like riscv_save_register which itself could require a
+ * calls to things like riscv013_reg_save which itself could require a
  * program to execute.  That's OK, just make sure this eventually terminates.
  * */
 int riscv_program_exec(struct riscv_program *p, struct target *t);

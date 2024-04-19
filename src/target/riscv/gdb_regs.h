@@ -3,6 +3,8 @@
 #ifndef TARGET__RISCV__GDB_REGS_H
 #define TARGET__RISCV__GDB_REGS_H
 
+#include "encoding.h"
+
 /* gdb's register list is defined in riscv_gdb_reg_names gdb/riscv-tdep.c in
  * its source tree. We must interpret the numbers the same here. */
 enum gdb_regno {
@@ -122,7 +124,5 @@ enum gdb_regno {
 	GDB_REGNO_V28, GDB_REGNO_V29, GDB_REGNO_V30, GDB_REGNO_V31,
 	GDB_REGNO_COUNT
 };
-
-const char *gdb_regno_name(const struct target *target, enum gdb_regno regno);
 
 #endif
