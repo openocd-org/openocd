@@ -34,6 +34,8 @@
 
 #define DBUS						0x11
 
+#define RISCV_TRIGGER_HIT_NOT_FOUND ((int64_t)-1)
+
 static uint8_t ir_dtmcontrol[4] = {DTMCONTROL};
 struct scan_field select_dtmcontrol = {
 	.in_value = NULL,
@@ -1550,17 +1552,24 @@ int riscv_remove_watchpoint(struct target *target,
 /**
  * Look at the trigger hit bits to find out which trigger is the reason we're
  * halted.  Sets *unique_id to the unique ID of that trigger. If *unique_id is
- * ~0, no match was found.
+ * RISCV_TRIGGER_HIT_NOT_FOUND, no match was found.
  */
-static int riscv_hit_trigger_hit_bit(struct target *target, uint32_t *unique_id)
+
+static int riscv_trigger_detect_hit_bits(struct target *target, int64_t *unique_id)
 {
+	/* FIXME: this function assumes that we have only one trigger that can
+	 * have hit bit set. Debug spec allows hit bit to bit set if a trigger has
+	 * matched but did not fire. Such targets will receive erroneous results.
+	 */
+
+	// FIXME: Add hit bits support detection and caching
 	RISCV_INFO(r);
 
 	riscv_reg_t tselect;
 	if (riscv_get_register(target, &tselect, GDB_REGNO_TSELECT) != ERROR_OK)
 		return ERROR_FAIL;
 
-	*unique_id = ~0;
+	*unique_id = RISCV_TRIGGER_HIT_NOT_FOUND;
 	for (unsigned int i = 0; i < r->trigger_count; i++) {
 		if (r->trigger_unique_id[i] == -1)
 			continue;
@@ -1594,15 +1603,15 @@ static int riscv_hit_trigger_hit_bit(struct target *target, uint32_t *unique_id)
 				hit_mask = CSR_ETRIGGER_HIT(riscv_xlen(target));
 				break;
 			default:
-				LOG_TARGET_DEBUG(target, "Trigger %d has unknown type %d", i, type);
+				LOG_TARGET_DEBUG(target, "Trigger %u has unknown type %d", i, type);
 				continue;
 		}
 
-		/* Note: If we ever use chained triggers, then this logic needs
-		 * to be changed to ignore triggers that are not the last one in
-		 * the chain. */
+		/* FIXME: this logic needs to be changed to ignore triggers that are not
+		 * the last one in the chain. */
 		if (tdata1 & hit_mask) {
-			LOG_TARGET_DEBUG(target, "Trigger %d (unique_id=%d) has hit bit set.", i, r->trigger_unique_id[i]);
+			LOG_TARGET_DEBUG(target, "Trigger %u (unique_id=%" PRIi64 ") has hit bit set.",
+				i, r->trigger_unique_id[i]);
 			if (riscv_set_register(target, GDB_REGNO_TDATA1, tdata1 & ~hit_mask) != ERROR_OK)
 				return ERROR_FAIL;
 
@@ -2268,6 +2277,33 @@ int riscv_flush_registers(struct target *target)
 	return ERROR_OK;
 }
 
+static enum target_debug_reason
+derive_debug_reason_without_hitbit(const struct target *target, riscv_reg_t dpc)
+{
+	/* TODO: if we detect that etrigger/itrigger/icount is set, we should
+	 * just report DBG_REASON_UNKNOWN, since we can't disctiguish these
+	 * triggers from BP/WP or from other triggers of such type. However,
+	 * currently this renders existing testsuite as failing. We need to
+	 * fix the testsuite first
+	 */
+	// TODO: the code below does not handle context-aware trigger types
+	for (const struct breakpoint *bp = target->breakpoints; bp; bp = bp->next) {
+		// TODO: investigate if we need to handle bp length
+		if (bp->type == BKPT_HARD && bp->is_set && bp->address == dpc) {
+			// FIXME: bp->linked_brp is uninitialized
+			if (bp->asid) {
+				LOG_TARGET_ERROR(target,
+					"can't derive debug reason for context-aware breakpoint: "
+					"unique_id = %" PRIu32 ", address = %" TARGET_PRIxADDR
+					", asid = %" PRIx32 ", linked = %d",
+					bp->unique_id, bp->address, bp->asid, bp->linked_brp);
+				return DBG_REASON_UNDEFINED;
+			}
+			return DBG_REASON_BREAKPOINT;
+		}
+	}
+	return DBG_REASON_WATCHPOINT;
+}
 /**
  * Set OpenOCD's generic debug reason from the RISC-V halt reason.
  */
@@ -2280,13 +2316,52 @@ static int set_debug_reason(struct target *target, enum riscv_halt_reason halt_r
 			target->debug_reason = DBG_REASON_BREAKPOINT;
 			break;
 		case RISCV_HALT_TRIGGER:
-			if (riscv_hit_trigger_hit_bit(target, &r->trigger_hit) != ERROR_OK)
+			target->debug_reason = DBG_REASON_UNDEFINED;
+			if (riscv_trigger_detect_hit_bits(target, &r->trigger_hit) != ERROR_OK)
 				return ERROR_FAIL;
-			target->debug_reason = DBG_REASON_WATCHPOINT;
-			/* Check if we hit a hardware breakpoint. */
-			for (struct breakpoint *bp = target->breakpoints; bp; bp = bp->next) {
-				if (bp->unique_id == r->trigger_hit)
+			// FIXME: handle multiple hit bits
+			if (r->trigger_hit != RISCV_TRIGGER_HIT_NOT_FOUND) {
+				/* We scan for breakpoints first. If no breakpoints are found we still
+				 * assume that debug reason is DBG_REASON_BREAKPOINT, unless
+				 * there is a watchpoint match - This is to take
+				 * ETrigger/ITrigger/ICount into account
+				 */
+				LOG_TARGET_DEBUG(target,
+					"Active hit bit is detected, trying to find trigger owner.");
+				for (struct breakpoint *bp = target->breakpoints; bp; bp = bp->next) {
+					if (bp->unique_id == r->trigger_hit) {
+						target->debug_reason = DBG_REASON_BREAKPOINT;
+						LOG_TARGET_DEBUG(target,
+							"Breakpoint with unique_id = %" PRIu32 " owns the trigger.",
+							bp->unique_id);
+					}
+				}
+				if (target->debug_reason == DBG_REASON_UNDEFINED) {
+					// by default we report all triggers as breakpoints
 					target->debug_reason = DBG_REASON_BREAKPOINT;
+					for (struct watchpoint *wp = target->watchpoints; wp; wp = wp->next) {
+						if (wp->unique_id == r->trigger_hit) {
+							target->debug_reason = DBG_REASON_WATCHPOINT;
+							LOG_TARGET_DEBUG(target,
+								"Watchpoint with unique_id = %" PRIu32 " owns the trigger.",
+								wp->unique_id);
+						}
+					}
+				}
+			} else {
+				LOG_TARGET_DEBUG(target,
+					"No trigger hit found, deriving debug reason without it.");
+				riscv_reg_t dpc;
+				if (riscv_get_register(target, &dpc, GDB_REGNO_DPC) != ERROR_OK)
+					return ERROR_FAIL;
+				/* Here we don't have the hit bit set (likely, HW does not support it).
+				 * We are trying to guess the state. But here comes the problem:
+				 * if we have etrigger/itrigger/icount raised - we can't really
+				 * distinguish it from the breakpoint or watchpoint. There is not
+				 * much we can do here, except for checking current PC against pending
+				 * breakpoints and hope for the best)
+				 */
+				target->debug_reason = derive_debug_reason_without_hitbit(target, dpc);
 			}
 			break;
 		case RISCV_HALT_INTERRUPT:
