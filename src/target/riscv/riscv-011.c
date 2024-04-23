@@ -1280,7 +1280,7 @@ static int register_write(struct target *target, unsigned int number,
 	} else if (number <= GDB_REGNO_XPR31) {
 		cache_set_load(target, 0, number - GDB_REGNO_ZERO, SLOT0);
 		cache_set_jump(target, 1);
-	} else if (number == GDB_REGNO_PC) {
+	} else if (number == GDB_REGNO_PC || number == GDB_REGNO_DPC) {
 		info->dpc = value;
 		return ERROR_OK;
 	} else if (number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31) {
@@ -1338,7 +1338,7 @@ static int get_register(struct target *target, riscv_reg_t *value,
 
 	if (regid <= GDB_REGNO_XPR31) {
 		*value = reg_cache_get(target, regid);
-	} else if (regid == GDB_REGNO_PC) {
+	} else if (regid == GDB_REGNO_PC || regid == GDB_REGNO_DPC) {
 		*value = info->dpc;
 	} else if (regid >= GDB_REGNO_FPR0 && regid <= GDB_REGNO_FPR31) {
 		int result = update_mstatus_actual(target);
