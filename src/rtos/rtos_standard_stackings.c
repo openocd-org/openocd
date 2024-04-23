@@ -11,6 +11,7 @@
 
 #include "rtos.h"
 #include "target/armv7m.h"
+#include "target/cortex_m.h"
 #include "rtos_standard_stackings.h"
 
 static const struct stack_register_offset rtos_standard_cortex_m3_stack_offsets[ARMV7M_NUM_CORE_REGS] = {
@@ -73,6 +74,25 @@ static const struct stack_register_offset rtos_standard_cortex_m4f_fpu_stack_off
 	{ ARMV7M_XPSR, 0x80, 32 },		/* xPSR */
 };
 
+static const struct stack_register_offset rtos_standard_cortex_m33_stack_offsets[] = {
+	{ ARMV7M_R0,   0x24, 32 },		/* r0   */
+	{ ARMV7M_R1,   0x28, 32 },		/* r1   */
+	{ ARMV7M_R2,   0x2c, 32 },		/* r2   */
+	{ ARMV7M_R3,   0x30, 32 },		/* r3   */
+	{ ARMV7M_R4,   0x04, 32 },		/* r4   */
+	{ ARMV7M_R5,   0x08, 32 },		/* r5   */
+	{ ARMV7M_R6,   0x0c, 32 },		/* r6   */
+	{ ARMV7M_R7,   0x10, 32 },		/* r7   */
+	{ ARMV7M_R8,   0x14, 32 },		/* r8   */
+	{ ARMV7M_R9,   0x18, 32 },		/* r9   */
+	{ ARMV7M_R10,  0x1c, 32 },		/* r10  */
+	{ ARMV7M_R11,  0x20, 32 },		/* r11  */
+	{ ARMV7M_R12,  0x34, 32 },		/* r12  */
+	{ ARMV7M_R13,  -2,   32 },		/* sp   */
+	{ ARMV7M_R14,  0x38, 32 },		/* lr   */
+	{ ARMV7M_PC,   0x3c, 32 },		/* pc   */
+	{ ARMV7M_XPSR, 0x40, 32 },		/* xPSR */
+};
 
 static const struct stack_register_offset rtos_standard_cortex_r4_stack_offsets[] = {
 	{ 0,  0x08, 32 },		/* r0  (a1)   */
@@ -198,6 +218,14 @@ static target_addr_t rtos_standard_cortex_m4f_fpu_stack_align(struct target *tar
 		stack_ptr, XPSR_OFFSET);
 }
 
+static target_addr_t rtos_standard_cortex_m33_stack_align(struct target *target,
+	const uint8_t *stack_data, const struct rtos_register_stacking *stacking,
+	target_addr_t stack_ptr)
+{
+	const int XPSR_OFFSET = 0x40;
+	return rtos_cortex_m_stack_align(target, stack_data, stacking,
+		stack_ptr, XPSR_OFFSET);
+}
 
 const struct rtos_register_stacking rtos_standard_cortex_m3_stacking = {
 	.stack_registers_size = 0x40,
@@ -223,6 +251,14 @@ const struct rtos_register_stacking rtos_standard_cortex_m4f_fpu_stacking = {
 	.register_offsets = rtos_standard_cortex_m4f_fpu_stack_offsets
 };
 
+static const struct rtos_register_stacking rtos_standard_cortex_m33_stacking = {
+	.stack_registers_size = 0x48,
+	.stack_growth_direction = -1,
+	.num_output_registers = ARMV7M_NUM_CORE_REGS,
+	.calculate_process_stack = rtos_standard_cortex_m33_stack_align,
+	.register_offsets = rtos_standard_cortex_m33_stack_offsets
+};
+
 const struct rtos_register_stacking rtos_standard_cortex_r4_stacking = {
 	.stack_registers_size = 0x48,
 	.stack_growth_direction = -1,
@@ -230,3 +266,55 @@ const struct rtos_register_stacking rtos_standard_cortex_r4_stacking = {
 	.calculate_process_stack = rtos_generic_stack_align8,
 	.register_offsets = rtos_standard_cortex_r4_stack_offsets
 };
+
+const struct rtos_register_stacking *
+	rtos_standard_cortex_m_stacking_get(const struct rtos *rtos, int64_t stack_ptr)
+{
+	/* Check for armv7m with *enabled* FPU, i.e. a Cortex-M4F */
+	struct armv7m_common *armv7m_target = target_to_armv7m_safe(rtos->target);
+	if (!armv7m_target)
+		return NULL;
+
+	/* Detect an ARM v8M and return specific stacking */
+	if (armv7m_target->arm.arch == ARM_ARCH_V8M) {
+		/* Future development may require floating point
+		 * and/or secure context... by now standard stacking */
+		LOG_INFO("Stacking: Cortex-M33");
+		return &rtos_standard_cortex_m33_stacking;
+	}
+	/* Detect the presence of FPU */
+	bool fpu_enabled = false;
+	if (armv7m_target->fp_feature == FPV4_SP ||
+		armv7m_target->fp_feature == FPV5_SP ||
+		armv7m_target->fp_feature == FPV5_DP) {
+		/* Found ARM v7m target which includes a FPU */
+		uint32_t cpacr;
+		int retval = target_read_u32(rtos->target, FPU_CPACR, &cpacr);
+		if (retval != ERROR_OK) {
+			LOG_ERROR("Could not read CPACR register to check FPU state");
+			return NULL;
+		}
+		/* Check if CP10 and CP11 are set to full access so FPU is enabled. */
+		if (cpacr & 0x00F00000)
+			fpu_enabled = true;
+	}
+	if (fpu_enabled) {
+		/* Read the LR that contains EXC_RETURN */
+		uint32_t exc_return = 0;
+		int retval = target_read_u32(rtos->target, stack_ptr + 0x20, &exc_return);
+		if (retval != ERROR_OK) {
+			LOG_OUTPUT("Error reading stack frame from rtos thread\n");
+			return NULL;
+		}
+		/* Check if the stack frame contains FPU registers */
+		if ((exc_return & 0x10) == 0) {
+			LOG_INFO("Stacking: Cortex-M4F");
+			return &rtos_standard_cortex_m4f_fpu_stacking;
+		} else {
+			LOG_INFO("Stacking: Cortex-M4");
+			return &rtos_standard_cortex_m4f_stacking;
+		}
+	} else {
+		return &rtos_standard_cortex_m3_stacking;
+	}
+}

@@ -14,11 +14,19 @@ extern const struct rtos_register_stacking rtos_standard_cortex_m3_stacking;
 extern const struct rtos_register_stacking rtos_standard_cortex_m4f_stacking;
 extern const struct rtos_register_stacking rtos_standard_cortex_m4f_fpu_stacking;
 extern const struct rtos_register_stacking rtos_standard_cortex_r4_stacking;
+
 target_addr_t rtos_generic_stack_align8(struct target *target,
 	const uint8_t *stack_data, const struct rtos_register_stacking *stacking,
 	target_addr_t stack_ptr);
+
 target_addr_t rtos_cortex_m_stack_align(struct target *target,
 	const uint8_t *stack_data, const struct rtos_register_stacking *stacking,
 	target_addr_t stack_ptr, size_t xpsr_offset);
+
+const struct rtos_register_stacking *
+	rtos_standard_cortex_m_stacking_get(const struct rtos *rtos, int64_t stack_ptr);
+
+const struct rtos_register_stacking *
+	rtos_standard_nds32_stacking_get(const struct rtos *rtos, int64_t stack_ptr);
 
 #endif /* OPENOCD_RTOS_RTOS_STANDARD_STACKINGS_H */
