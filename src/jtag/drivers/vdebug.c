@@ -47,19 +47,20 @@
 #include "jtag/interface.h"
 #include "jtag/commands.h"
 #include "transport/transport.h"
+#include "target/target.h"
 #include "target/arm_adi_v5.h"
 #include "helper/time_support.h"
 #include "helper/replacements.h"
 #include "helper/log.h"
 #include "helper/list.h"
 
-#define VD_VERSION 48
+#define VD_VERSION 50
 #define VD_BUFFER_LEN 4024
 #define VD_CHEADER_LEN 24
 #define VD_SHEADER_LEN 16
 
 #define VD_MAX_MEMORIES 20
-#define VD_POLL_INTERVAL 500
+#define VD_POLL_INTERVAL 1000
 #define VD_SCALE_PSTOMS 1000000000
 
 /**
@@ -205,6 +206,7 @@ struct vd_client {
 	uint32_t poll_max;
 	uint32_t targ_time;
 	int hsocket;
+	int64_t poll_ts;
 	char server_name[32];
 	char bfm_path[128];
 	char mem_path[VD_MAX_MEMORIES][128];
@@ -839,6 +841,35 @@ static void vdebug_mem_close(int hsock, struct vd_shm *pm, uint8_t ndx)
 }
 
 
+/* function gets invoked through a callback every VD_POLL_INTERVAL ms
+ * if the idle time, measured by VD_POLL_INTERVAL - targ_time is more than poll_min
+ * the wait function is called and its time measured and wait cycles adjusted.
+ * The wait allows hardware to advance, when no data activity from the vdebug occurs
+ */
+static int vdebug_poll(void *priv)
+{
+	int64_t ts, te;
+
+	ts = timeval_ms();
+	if (ts - vdc.poll_ts - vdc.targ_time >= vdc.poll_min) {
+		vdebug_wait(vdc.hsocket, pbuf, vdc.poll_cycles);
+		te = timeval_ms();
+		LOG_DEBUG("poll after %" PRId64 "ms, busy %" PRIu32 "ms; wait %" PRIu32 " %" PRId64 "ms",
+			ts - vdc.poll_ts, vdc.targ_time, vdc.poll_cycles, te - ts);
+
+		if (te - ts + vdc.targ_time < vdc.poll_max / 2)
+			vdc.poll_cycles *= 2;
+		else if (te - ts + vdc.targ_time > vdc.poll_max)
+			vdc.poll_cycles /= 2;
+	} else {
+		LOG_DEBUG("poll after %" PRId64 "ms, busy %" PRIu32 "ms", ts - vdc.poll_ts, vdc.targ_time);
+	}
+	vdc.poll_ts = ts;
+	vdc.targ_time = 0;                 /* reset target time counter */
+
+	return ERROR_OK;
+}
+
 static int vdebug_init(void)
 {
 	vdc.hsocket = vdebug_socket_open(vdc.server_name, vdc.server_port);
@@ -858,6 +889,7 @@ static int vdebug_init(void)
 	}
 	vdc.trans_first = 1;
 	vdc.poll_cycles = vdc.poll_max;
+	vdc.poll_ts = timeval_ms();
 	uint32_t sig_mask = VD_SIG_RESET;
 	if (transport_is_jtag())
 		sig_mask |= VD_SIG_TRST | VD_SIG_TCKDIV;
@@ -876,6 +908,8 @@ static int vdebug_init(void)
 				LOG_ERROR("0x%x cannot connect to %s", rc, vdc.mem_path[i]);
 		}
 
+		target_register_timer_callback(vdebug_poll, VD_POLL_INTERVAL,
+									   TARGET_TIMER_TYPE_PERIODIC, &vdc);
 		LOG_INFO("vdebug %d connected to %s through %s:%" PRIu16,
 				 VD_VERSION, vdc.bfm_path, vdc.server_name, vdc.server_port);
 	}
@@ -885,6 +919,8 @@ static int vdebug_init(void)
 
 static int vdebug_quit(void)
 {
+	target_unregister_timer_callback(vdebug_poll, &vdc);
+
 	for (uint8_t i = 0; i < vdc.mem_ndx; i++)
 		if (vdc.mem_width[i])
 			vdebug_mem_close(vdc.hsocket, pbuf, i);
@@ -1299,16 +1335,16 @@ static const struct command_registration vdebug_command_handlers[] = {
 	{
 		.name = "batching",
 		.handler = &vdebug_set_batching,
-		.mode = COMMAND_CONFIG,
+		.mode = COMMAND_ANY,
 		.help = "set the transaction batching no|wr|rd [0|1|2]",
 		.usage = "<level>",
 	},
 	{
 		.name = "polling",
 		.handler = &vdebug_set_polling,
-		.mode = COMMAND_CONFIG,
-		.help = "set the polling pause, executing hardware cycles between min and max",
-		.usage = "<min cycles> <max cycles>",
+		.mode = COMMAND_ANY,
+		.help = "set the min idle time and max wait time in ms",
+		.usage = "<min_idle> <max_wait>",
 	},
 	COMMAND_REGISTRATION_DONE
 };
