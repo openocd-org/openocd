@@ -28,7 +28,7 @@ jobs:
     name: Test debug (Ubuntu)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install packages
         run: |
@@ -47,14 +47,14 @@ jobs:
 
       - name: Get the toolchain from cache (if available)
         id: cache-toolchain
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: /opt/riscv/toolchain
           key: "toolchain-${{env.TOOLCHAIN_URL}}"
 
       - name: Get spike from cache (if available)
         id: cache-spike
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: /opt/riscv/spike
           key: "spike-${{env.SPIKE_COMMIT}}"
@@ -130,7 +130,7 @@ jobs:
       - name: Archive test logs
         # Proceed even if there was a failed test
         if: ${{ success() || failure() }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: test-logs
           path: riscv-tests/debug/logs

@@ -11,7 +11,7 @@ jobs:
       CC: clang
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Install required packages (apt-get)
         run: |
           sudo apt-get update
@@ -30,7 +30,7 @@ jobs:
       CC: gcc
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Configure environment
         run: |
           TAG=$(git rev-parse --short HEAD)
@@ -55,7 +55,7 @@ jobs:
           make install
           tar zcvf ${{ env.NAME }}.tgz -C /tmp ${{ env.NAME }}
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ env.NAME }}
           path: ${{ env.NAME }}.tgz
