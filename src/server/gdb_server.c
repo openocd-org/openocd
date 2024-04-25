@@ -3879,7 +3879,7 @@ static int gdb_target_add_one(struct target *target)
 		return gdb_target_start(target, target->gdb_port_override);
 	}
 
-	if (strcmp(gdb_port, "disabled") == 0) {
+	if (strcmp(gdb_port_next, "disabled") == 0) {
 		LOG_INFO("gdb port disabled");
 		return ERROR_OK;
 	}
@@ -3908,6 +3908,8 @@ static int gdb_target_add_one(struct target *target)
 					gdb_port_next = strdup("0");
 				}
 			}
+		} else if (strcmp(gdb_port_next, "pipe") == 0) {
+			gdb_port_next = "disabled";
 		}
 	}
 	return retval;
