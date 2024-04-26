@@ -3712,7 +3712,7 @@ COMMAND_HANDLER(riscv_authdata_write)
 	return r->authdata_write(target, value, index);
 }
 
-static uint32_t riscv_get_dmi_address(const struct target *target, uint32_t dm_address)
+uint32_t riscv_get_dmi_address(const struct target *target, uint32_t dm_address)
 {
 	assert(target);
 	RISCV_INFO(r);

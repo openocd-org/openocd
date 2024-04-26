@@ -363,10 +363,10 @@ static uint32_t set_dmcontrol_hartsel(uint32_t initial, int hart_index)
 	return initial;
 }
 
-static unsigned int decode_dm(char *text, unsigned int address, unsigned int data)
+static unsigned int decode_dmi(const struct target *target, char *text, uint32_t address, uint32_t data)
 {
 	static const struct {
-		unsigned int address;
+		uint32_t address;
 		enum riscv_debug_reg_ordinal ordinal;
 	} description[] = {
 		{DM_DMCONTROL, DM_DMCONTROL_ORDINAL},
@@ -377,7 +377,7 @@ static unsigned int decode_dm(char *text, unsigned int address, unsigned int dat
 	};
 
 	for (unsigned i = 0; i < ARRAY_SIZE(description); i++) {
-		if (description[i].address == address) {
+		if (riscv_get_dmi_address(target, description[i].address) == address) {
 			const riscv_debug_reg_ctx_t context = {
 				.XLEN = { .value = 0, .is_set = false },
 				.DXLEN = { .value = 0, .is_set = false },
@@ -392,19 +392,7 @@ static unsigned int decode_dm(char *text, unsigned int address, unsigned int dat
 	return 0;
 }
 
-static unsigned int decode_dmi(struct target *target, char *text, unsigned int address,
-		unsigned int data)
-{
-	dm013_info_t *dm = get_dm(target);
-	if (!dm) {
-		if (text)
-			text[0] = '\0';
-		return 0;
-	}
-	return decode_dm(text, address - dm->base, data);
-}
-
-static void dump_field(struct target *target, int idle, const struct scan_field *field, bool discard_in)
+void riscv_decode_dmi_scan(const struct target *target, int idle, const struct scan_field *field, bool discard_in)
 {
 	static const char * const op_string[] = {"-", "r", "w", "?"};
 	static const char * const status_string[] = {"+", "?", "F", "b"};
@@ -412,32 +400,42 @@ static void dump_field(struct target *target, int idle, const struct scan_field 
 	if (debug_level < LOG_LVL_DEBUG)
 		return;
 
-	uint64_t out = buf_get_u64(field->out_value, 0, field->num_bits);
-	unsigned int out_op = get_field(out, DTM_DMI_OP);
-	unsigned int out_data = get_field(out, DTM_DMI_DATA);
-	unsigned int out_address = out >> DTM_DMI_ADDRESS_OFFSET;
+	assert(field->out_value);
+	const uint64_t out = buf_get_u64(field->out_value, 0, field->num_bits);
+	const unsigned int out_op = get_field(out, DTM_DMI_OP);
+	const uint32_t out_data = get_field(out, DTM_DMI_DATA);
+	const uint32_t out_address = out >> DTM_DMI_ADDRESS_OFFSET;
 
-	uint64_t in = buf_get_u64(field->in_value, 0, field->num_bits);
-	unsigned int in_op = get_field(in, DTM_DMI_OP);
-	unsigned int in_data = get_field(in, DTM_DMI_DATA);
-	unsigned int in_address = in >> DTM_DMI_ADDRESS_OFFSET;
+	if (field->in_value) {
+		const uint64_t in = buf_get_u64(field->in_value, 0, field->num_bits);
+		const unsigned int in_op = get_field(in, DTM_DMI_OP);
+		const uint32_t in_data = get_field(in, DTM_DMI_DATA);
+		const uint32_t in_address = in >> DTM_DMI_ADDRESS_OFFSET;
 
-	log_printf_lf(LOG_LVL_DEBUG, __FILE__, __LINE__, __func__,
-			"%db %s %08x @%02x -> %s %08x @%02x; %di",
-			field->num_bits, op_string[out_op], out_data, out_address,
-			status_string[in_op], in_data, in_address, idle);
+		LOG_DEBUG("%db %s %08" PRIx32 " @%02" PRIx32 " -> %s %08" PRIx32 " @%02" PRIx32 "; %di",
+				field->num_bits, op_string[out_op], out_data, out_address,
+				status_string[in_op], in_data, in_address, idle);
 
+		if (!discard_in && in_op == DTM_DMI_OP_SUCCESS) {
+			char in_decoded[decode_dmi(target, NULL, in_address, in_data) + 1];
+			decode_dmi(target, in_decoded, in_address, in_data);
+			/* FIXME: The current code assumes that the hardware
+			 * provides the read address in the dmi.address field
+			 * when returning the dmi.data. That is however not
+			 * required by the spec, and therefore not guaranteed.
+			 * See https://github.com/riscv-collab/riscv-openocd/issues/1043
+			 */
+			LOG_DEBUG("read: %s", in_decoded);
+		}
+	} else {
+		LOG_DEBUG("%db %s %08" PRIx32 " @%02" PRIx32 " -> ?; %di",
+				field->num_bits, op_string[out_op], out_data, out_address,
+				idle);
+	}
 	if (out_op == DTM_DMI_OP_WRITE) {
 		char out_decoded[decode_dmi(target, NULL, out_address, out_data) + 1];
 		decode_dmi(target, out_decoded, out_address, out_data);
-		log_printf_lf(LOG_LVL_DEBUG, __FILE__, __LINE__, __func__,
-				"write: %s", out_decoded);
-	}
-	if (!discard_in && in_op == DTM_DMI_OP_SUCCESS) {
-		char in_decoded[decode_dmi(target, NULL, in_address, in_data) + 1];
-		decode_dmi(target, in_decoded, in_address, in_data);
-		log_printf_lf(LOG_LVL_DEBUG, __FILE__, __LINE__, __func__,
-				"read: %s", in_decoded);
+		LOG_DEBUG("write: %s", out_decoded);
 	}
 }
 
@@ -578,7 +576,7 @@ static dmi_status_t dmi_scan(struct target *target, uint32_t *address_in,
 
 	if (address_in)
 		*address_in = buf_get_u32(in, DTM_DMI_ADDRESS_OFFSET, info->abits);
-	dump_field(target, idle_count, &field, /*discard_in*/ !data_in);
+	riscv_decode_dmi_scan(target, idle_count, &field, /*discard_in*/ !data_in);
 	return buf_get_u32(in, DTM_DMI_OP_OFFSET, DTM_DMI_OP_LENGTH);
 }
 
