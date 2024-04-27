@@ -1713,15 +1713,26 @@ static int oldriscv_step(struct target *target, int current, uint32_t address,
 	return tt->step(target, current, address, handle_breakpoints);
 }
 
-static int old_or_new_riscv_step(struct target *target, int current,
-		target_addr_t address, int handle_breakpoints)
+static int riscv_openocd_step_impl(struct target *target, int current,
+		target_addr_t address, int handle_breakpoints, int handle_callbacks);
+
+static int old_or_new_riscv_step_impl(struct target *target, int current,
+		target_addr_t address, int handle_breakpoints, int handle_callbacks)
 {
 	RISCV_INFO(r);
 	LOG_TARGET_DEBUG(target, "handle_breakpoints=%d", handle_breakpoints);
 	if (!r->get_hart_state)
 		return oldriscv_step(target, current, address, handle_breakpoints);
 	else
-		return riscv_openocd_step(target, current, address, handle_breakpoints);
+		return riscv_openocd_step_impl(target, current, address, handle_breakpoints,
+			handle_callbacks);
+}
+
+static int old_or_new_riscv_step(struct target *target, int current,
+		target_addr_t address, int handle_breakpoints)
+{
+	return old_or_new_riscv_step_impl(target, current, address,
+		handle_breakpoints, true /* handle callbacks*/);
 }
 
 static int riscv_examine(struct target *target)
@@ -2095,7 +2106,8 @@ static int resume_prep(struct target *target, int current,
 		/* To be able to run off a trigger, we perform a step operation and then
 		 * resume. If handle_breakpoints is true then step temporarily disables
 		 * pending breakpoints so we can safely perform the step. */
-		if (old_or_new_riscv_step(target, current, address, handle_breakpoints) != ERROR_OK)
+		if (old_or_new_riscv_step_impl(target, current, address, handle_breakpoints,
+				false /* callbacks are not called */) != ERROR_OK)
 			return ERROR_FAIL;
 	}
 
@@ -3298,8 +3310,8 @@ int riscv_openocd_poll(struct target *target)
 	return ERROR_OK;
 }
 
-int riscv_openocd_step(struct target *target, int current,
-	target_addr_t address, int handle_breakpoints)
+static int riscv_openocd_step_impl(struct target *target, int current,
+	target_addr_t address, int handle_breakpoints, int handle_callbacks)
 {
 	LOG_TARGET_DEBUG(target, "stepping hart");
 
@@ -3365,12 +3377,23 @@ _exit:
 
 	if (success) {
 		target->state = TARGET_RUNNING;
-		target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
+		if (handle_callbacks)
+			target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
+
 		target->state = TARGET_HALTED;
 		target->debug_reason = DBG_REASON_SINGLESTEP;
-		target_call_event_callbacks(target, TARGET_EVENT_HALTED);
+		if (handle_callbacks)
+			target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 	}
+
 	return success ? ERROR_OK : ERROR_FAIL;
+}
+
+int riscv_openocd_step(struct target *target, int current,
+	target_addr_t address, int handle_breakpoints)
+{
+	return riscv_openocd_step_impl(target, current, address, handle_breakpoints,
+		true /* handle_callbacks */);
 }
 
 /* Command Handlers */
