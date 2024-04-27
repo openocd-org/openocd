@@ -1415,6 +1415,7 @@ static int riscv_add_breakpoint(struct target *target, struct breakpoint *breakp
 					TARGET_PRIxADDR, breakpoint->length, breakpoint->address);
 			return ERROR_FAIL;
 		}
+		breakpoint->is_set = true;
 
 	} else if (breakpoint->type == BKPT_HARD) {
 		struct trigger trigger;
@@ -1422,12 +1423,13 @@ static int riscv_add_breakpoint(struct target *target, struct breakpoint *breakp
 		int const result = add_trigger(target, &trigger);
 		if (result != ERROR_OK)
 			return result;
+
+		int trigger_idx = find_first_trigger_by_id(target, breakpoint->unique_id);
+		breakpoint_hw_set(breakpoint, trigger_idx);
 	} else {
 		LOG_TARGET_INFO(target, "OpenOCD only supports hardware and software breakpoints.");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
-
-	breakpoint->is_set = true;
 	return ERROR_OK;
 }
 
@@ -1521,7 +1523,9 @@ int riscv_add_watchpoint(struct target *target, struct watchpoint *watchpoint)
 	int result = add_trigger(target, &trigger);
 	if (result != ERROR_OK)
 		return result;
-	watchpoint->is_set = true;
+
+	int trigger_idx = find_first_trigger_by_id(target, watchpoint->unique_id);
+	watchpoint_set(watchpoint, trigger_idx);
 
 	return ERROR_OK;
 }
