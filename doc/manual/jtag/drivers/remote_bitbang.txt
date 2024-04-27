@@ -77,7 +77,12 @@ The read responses are encoded in ASCII as either digit 0 or 1.
 If the use_remote_sleep option is set to 'yes', two additional requests may
 be sent:
 
-	D - Sleep for 1 millisecond
-	d - Sleep for 1 microsecond
+	Z - Sleep for 1 millisecond
+	z - Sleep for 1 microsecond
+
+NOTE: Previously these were specified as 'D' and 'd', which conflicts with the
+"SWD write 0 0" command defined above. Adapters that implement Dd for remote
+sleep must be updated to work with Zz.
+
 
  */

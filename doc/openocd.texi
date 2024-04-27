@@ -6805,6 +6805,24 @@ Note that in order for this command to take effect, the target needs to be reset
 supported.}
 @end deffn
 
+@deffn {Flash Driver} {eneispif}
+All versions of the KB1200 microcontrollers from ENE include internal
+flash. The eneispif flash driver supports the KB1200 family of devices. The driver
+automatically recognizes the specific version's flash parameters and
+autoconfigures itself. The flash bank starts at address 0x60000000. An optional additional
+parameter sets the address of eneispif controller, with the default address is 0x50101000.
+
+@example
+
+flash bank $_FLASHNAME eneispif 0x60000000 0 0 0 $_TARGETNAME \
+           0x50101000
+
+# Address defaults to 0x50101000
+flash bank $_FLASHNAME eneispif 0x60000000 0 0 0 $_TARGETNAME
+
+@end example
+@end deffn
+
 @deffn {Flash Driver} {esirisc}
 Members of the eSi-RISC family may optionally include internal flash programmed
 via the eSi-TSMC Flash interface. Additional parameters are required to
