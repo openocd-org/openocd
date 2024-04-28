@@ -153,7 +153,7 @@ static int arm_tpiu_swo_poll_trace(void *priv)
 		}
 	}
 
-	if (obj->out_filename && obj->out_filename[0] == ':')
+	if (obj->out_filename[0] == ':')
 		list_for_each_entry(c, &obj->connections, lh)
 			if (connection_write(c->connection, buf, size) != (int)size)
 				LOG_ERROR("Error writing to connection"); /* FIXME: which connection? */
@@ -201,7 +201,7 @@ static void arm_tpiu_swo_close_output(struct arm_tpiu_swo_object *obj)
 		fclose(obj->file);
 		obj->file = NULL;
 	}
-	if (obj->out_filename && obj->out_filename[0] == ':')
+	if (obj->out_filename[0] == ':')
 		remove_service(TCP_SERVICE_NAME, &obj->out_filename[1]);
 }
 
@@ -475,12 +475,13 @@ static int arm_tpiu_swo_configure(struct jim_getopt_info *goi, struct arm_tpiu_s
 						return JIM_ERR;
 					}
 				}
-				free(obj->out_filename);
-				obj->out_filename = strdup(s);
-				if (!obj->out_filename) {
+				char *out_filename = strdup(s);
+				if (!out_filename) {
 					LOG_ERROR("Out of memory");
 					return JIM_ERR;
 				}
+				free(obj->out_filename);
+				obj->out_filename = out_filename;
 			} else {
 				if (goi->argc)
 					goto err_no_params;
@@ -625,9 +626,18 @@ COMMAND_HANDLER(handle_arm_tpiu_swo_enable)
 		return ERROR_FAIL;
 	}
 
-	if (obj->pin_protocol == TPIU_SPPR_PROTOCOL_MANCHESTER || obj->pin_protocol == TPIU_SPPR_PROTOCOL_UART)
-		if (!obj->swo_pin_freq)
+	const bool output_external = !strcmp(obj->out_filename, "external");
+
+	if (obj->pin_protocol == TPIU_SPPR_PROTOCOL_MANCHESTER || obj->pin_protocol == TPIU_SPPR_PROTOCOL_UART) {
+		if (!obj->swo_pin_freq) {
+			if (output_external) {
+				command_print(CMD, "SWO pin frequency required when using external capturing");
+				return ERROR_FAIL;
+			}
+
 			LOG_DEBUG("SWO pin frequency not set, will be autodetected by the adapter");
+		}
+	}
 
 	struct target *target = get_current_target(CMD_CTX);
 
@@ -705,7 +715,7 @@ COMMAND_HANDLER(handle_arm_tpiu_swo_enable)
 	uint16_t prescaler = 1; /* dummy value */
 	unsigned int swo_pin_freq = obj->swo_pin_freq; /* could be replaced */
 
-	if (obj->out_filename && strcmp(obj->out_filename, "external") && obj->out_filename[0]) {
+	if (!output_external) {
 		if (obj->out_filename[0] == ':') {
 			struct arm_tpiu_swo_priv_connection *priv = malloc(sizeof(*priv));
 			if (!priv) {
@@ -947,6 +957,12 @@ static int jim_arm_tpiu_swo_create(Jim_Interp *interp, int argc, Jim_Obj *const 
 	adiv5_mem_ap_spot_init(&obj->spot);
 	obj->spot.base = TPIU_SWO_DEFAULT_BASE;
 	obj->port_width = 1;
+	obj->out_filename = strdup("external");
+	if (!obj->out_filename) {
+		LOG_ERROR("Out of memory");
+		free(obj);
+		return JIM_ERR;
+	}
 
 	Jim_Obj *n;
 	jim_getopt_obj(&goi, &n);
