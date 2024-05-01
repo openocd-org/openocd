@@ -283,6 +283,9 @@ static bool open_matching_device(struct mpsse_ctx *ctx, const uint16_t vids[], c
 	case 0x3300:
 		ctx->type = TYPE_FT232HP;
 		break;
+	case 0x3600:
+		ctx->type = TYPE_FT4232HA;
+		break;
 	default:
 		LOG_ERROR("unsupported FTDI chip type: 0x%04x", desc.bcdDevice);
 		goto error;
