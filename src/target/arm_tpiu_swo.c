@@ -161,7 +161,7 @@ static int arm_tpiu_swo_poll_trace(void *priv)
 	return ERROR_OK;
 }
 
-static void arm_tpiu_swo_handle_event(struct arm_tpiu_swo_object *obj, enum arm_tpiu_swo_event event)
+static int arm_tpiu_swo_handle_event(struct arm_tpiu_swo_object *obj, enum arm_tpiu_swo_event event)
 {
 	for (struct arm_tpiu_swo_event_action *ea = obj->event_action; ea; ea = ea->next) {
 		if (ea->event != event)
@@ -182,7 +182,7 @@ static void arm_tpiu_swo_handle_event(struct arm_tpiu_swo_object *obj, enum arm_
 		if (retval == JIM_RETURN)
 			retval = ea->interp->returnCode;
 		if (retval == JIM_OK || retval == ERROR_COMMAND_CLOSE_CONNECTION)
-			return;
+			return ERROR_OK;
 
 		Jim_MakeErrorMessage(ea->interp);
 		LOG_USER("Error executing event %s on TPIU/SWO %s:\n%s",
@@ -191,8 +191,10 @@ static void arm_tpiu_swo_handle_event(struct arm_tpiu_swo_object *obj, enum arm_
 			Jim_GetString(Jim_GetResult(ea->interp), NULL));
 		/* clean both error code and stacktrace before return */
 		Jim_Eval(ea->interp, "error \"\" \"\"");
-		return;
+		return ERROR_FAIL;
 	}
+
+	return ERROR_OK;
 }
 
 static void arm_tpiu_swo_close_output(struct arm_tpiu_swo_object *obj)
@@ -674,7 +676,9 @@ COMMAND_HANDLER(handle_arm_tpiu_swo_enable)
 	}
 
 	/* trigger the event before any attempt to R/W in the TPIU/SWO */
-	arm_tpiu_swo_handle_event(obj, TPIU_SWO_EVENT_PRE_ENABLE);
+	retval = arm_tpiu_swo_handle_event(obj, TPIU_SWO_EVENT_PRE_ENABLE);
+	if (retval != ERROR_OK)
+		return retval;
 
 	retval = wrap_read_u32(target, obj->ap, obj->spot.base + TPIU_DEVID_OFFSET, &value);
 	if (retval != ERROR_OK) {
@@ -800,7 +804,9 @@ COMMAND_HANDLER(handle_arm_tpiu_swo_enable)
 	if (retval != ERROR_OK)
 		goto error_exit;
 
-	arm_tpiu_swo_handle_event(obj, TPIU_SWO_EVENT_POST_ENABLE);
+	retval = arm_tpiu_swo_handle_event(obj, TPIU_SWO_EVENT_POST_ENABLE);
+	if (retval != ERROR_OK)
+		goto error_exit;
 
 	/* START_DEPRECATED_TPIU */
 	target_handle_event(target, TARGET_EVENT_TRACE_CONFIG);
