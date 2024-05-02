@@ -2845,7 +2845,9 @@ static int gdb_query_packet(struct connection *connection,
 
 			len = strtoul(separator + 1, NULL, 16);
 
+			gdb_connection->output_flag = GDB_OUTPUT_NOTIF;
 			retval = target_checksum_memory(target, addr, len, &checksum);
+			gdb_connection->output_flag = GDB_OUTPUT_NO;
 
 			if (retval == ERROR_OK) {
 				snprintf(gdb_reply, 10, "C%8.8" PRIx32 "", checksum);
