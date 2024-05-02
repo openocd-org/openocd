@@ -496,6 +496,24 @@ static void increase_dmi_busy_delay(struct target *target)
 	dtmcontrol_scan(target, DTM_DTMCS_DMIRESET, NULL /* discard result */);
 }
 
+static void decrement_reset_delays_counter(struct target *target, size_t finished_scans)
+{
+	RISCV_INFO(r);
+	if (r->reset_delays_wait < 0) {
+		assert(r->reset_delays_wait == -1);
+		return;
+	}
+	if ((size_t)r->reset_delays_wait >= finished_scans) {
+		r->reset_delays_wait -= finished_scans;
+		return;
+	}
+	r->reset_delays_wait = -1;
+	LOG_TARGET_DEBUG(target,
+			"resetting learned delays (reset_delays_wait counter expired)");
+	RISCV013_INFO(info);
+	info->dmi_busy_delay = 0;
+	info->ac_busy_delay = 0;
+}
 /**
  * exec: If this is set, assume the scan results in an execution, so more
  * run-test/idle cycles may be required.
@@ -505,7 +523,6 @@ static dmi_status_t dmi_scan(struct target *target, uint32_t *address_in,
 		bool exec)
 {
 	riscv013_info_t *info = get_info(target);
-	RISCV_INFO(r);
 	unsigned num_bits = info->abits + DTM_DMI_OP_LENGTH + DTM_DMI_DATA_LENGTH;
 	size_t num_bytes = (num_bits + 7) / 8;
 	uint8_t in[num_bytes];
@@ -517,14 +534,7 @@ static dmi_status_t dmi_scan(struct target *target, uint32_t *address_in,
 	};
 	riscv_bscan_tunneled_scan_context_t bscan_ctxt;
 
-	if (r->reset_delays_wait >= 0) {
-		r->reset_delays_wait--;
-		if (r->reset_delays_wait < 0) {
-			LOG_TARGET_DEBUG(target, "reset_delays_wait done");
-			info->dmi_busy_delay = 0;
-			info->ac_busy_delay = 0;
-		}
-	}
+	decrement_reset_delays_counter(target, 1);
 
 	memset(in, 0, num_bytes);
 	memset(out, 0, num_bytes);
@@ -2617,19 +2627,16 @@ static int sb_write_address(struct target *target, target_addr_t address,
 		(uint32_t)address, false, ensure_success);
 }
 
-static int batch_run(const struct target *target, struct riscv_batch *batch)
+static int batch_run(struct target *target, struct riscv_batch *batch)
 {
-	RISCV013_INFO(info);
 	RISCV_INFO(r);
-	if (r->reset_delays_wait >= 0) {
-		r->reset_delays_wait -= batch->used_scans;
-		if (r->reset_delays_wait <= 0) {
-			batch->idle_count = 0;
-			info->dmi_busy_delay = 0;
-			info->ac_busy_delay = 0;
-		}
-	}
-	return riscv_batch_run(batch);
+	const int result = riscv_batch_run(batch, /*resets_delays*/  r->reset_delays_wait >= 0,
+			r->reset_delays_wait);
+	/* TODO: `finished_scans` should be the number of scans that have
+	 * finished, not the number of scans scheduled. */
+	const size_t finished_scans = batch->used_scans;
+	decrement_reset_delays_counter(target, finished_scans);
+	return result;
 }
 
 static int sba_supports_access(struct target *target, unsigned int size_bytes)
