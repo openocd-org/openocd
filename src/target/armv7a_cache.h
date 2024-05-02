@@ -20,8 +20,6 @@ int armv7a_l1_d_cache_flush_virt(struct target *target, uint32_t virt,
 int armv7a_l1_i_cache_inval_all(struct target *target);
 int armv7a_l1_i_cache_inval_virt(struct target *target, uint32_t virt,
 					uint32_t size);
-int armv7a_cache_auto_flush_on_write(struct target *target, uint32_t virt,
-					uint32_t size);
 int armv7a_cache_auto_flush_all_data(struct target *target);
 int armv7a_cache_flush_virt(struct target *target, uint32_t virt,
 				uint32_t size);

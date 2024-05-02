@@ -2791,9 +2791,6 @@ static int cortex_a_write_memory(struct target *target, target_addr_t address,
 	LOG_DEBUG("Writing memory at address " TARGET_ADDR_FMT "; size %" PRIu32 "; count %" PRIu32,
 		address, size, count);
 
-	/* memory writes bypass the caches, must flush before writing */
-	armv7a_cache_auto_flush_on_write(target, address, size * count);
-
 	cortex_a_prep_memaccess(target, 0);
 	retval = cortex_a_write_cpu_memory(target, address, size, count, buffer);
 	cortex_a_post_memaccess(target, 0);

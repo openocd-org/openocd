@@ -391,27 +391,6 @@ int armv7a_cache_flush_virt(struct target *target, uint32_t virt,
 	return ERROR_OK;
 }
 
-/*
- * We assume that target core was chosen correctly. It means if same data
- * was handled by two cores, other core will loose the changes. Since it
- * is impossible to know (FIXME) which core has correct data, keep in mind
- * that some kind of data lost or corruption is possible.
- * Possible scenario:
- *  - core1 loaded and changed data on 0x12345678
- *  - we halted target and modified same data on core0
- *  - data on core1 will be lost.
- */
-int armv7a_cache_auto_flush_on_write(struct target *target, uint32_t virt,
-					uint32_t size)
-{
-	struct armv7a_common *armv7a = target_to_armv7a(target);
-
-	if (!armv7a->armv7a_mmu.armv7a_cache.auto_cache_enabled)
-		return ERROR_OK;
-
-	return armv7a_cache_flush_virt(target, virt, size);
-}
-
 COMMAND_HANDLER(arm7a_l1_cache_info_cmd)
 {
 	struct target *target = get_current_target(CMD_CTX);
