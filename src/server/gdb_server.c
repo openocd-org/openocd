@@ -1233,6 +1233,8 @@ static int gdb_get_reg_value_as_str(struct target *target, char *tstr, struct re
 			tstr[len] = '\0';
 			return ERROR_OK;
 	}
+	memset(tstr, '0', len);
+	tstr[len] = '\0';
 	return ERROR_FAIL;
 }
 
@@ -1277,7 +1279,9 @@ static int gdb_get_registers_packet(struct connection *connection,
 	for (i = 0; i < reg_list_size; i++) {
 		if (!reg_list[i] || reg_list[i]->exist == false || reg_list[i]->hidden)
 			continue;
-		if (gdb_get_reg_value_as_str(target, reg_packet_p, reg_list[i]) != ERROR_OK) {
+		retval = gdb_get_reg_value_as_str(target, reg_packet_p, reg_list[i]);
+		if (retval != ERROR_OK && gdb_report_register_access_error) {
+			LOG_DEBUG("Couldn't get register %s.", reg_list[i]->name);
 			free(reg_packet);
 			free(reg_list);
 			return gdb_error(connection, retval);
@@ -1395,7 +1399,9 @@ static int gdb_get_register_packet(struct connection *connection,
 
 	reg_packet = calloc(DIV_ROUND_UP(reg_list[reg_num]->size, 8) * 2 + 1, 1); /* plus one for string termination null */
 
-	if (gdb_get_reg_value_as_str(target, reg_packet, reg_list[reg_num]) != ERROR_OK) {
+	retval = gdb_get_reg_value_as_str(target, reg_packet, reg_list[reg_num]);
+	if (retval != ERROR_OK && gdb_report_register_access_error) {
+		LOG_DEBUG("Couldn't get register %s.", reg_list[reg_num]->name);
 		free(reg_packet);
 		free(reg_list);
 		return gdb_error(connection, retval);
