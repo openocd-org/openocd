@@ -128,9 +128,9 @@ static int gdb_actual_connections;
 /* set if we are sending a memory map to gdb
  * via qXfer:memory-map:read packet */
 /* enabled by default*/
-static int gdb_use_memory_map = 1;
+static bool gdb_use_memory_map = true;
 /* enabled by default*/
-static int gdb_flash_program = 1;
+static bool gdb_flash_program = true;
 
 /* if set, data aborts cause an error to be reported in memory read packets
  * see the code in gdb_read_memory_packet() for further explanations.
@@ -144,7 +144,7 @@ static int gdb_report_register_access_error;
 /* set if we are sending target descriptions to gdb
  * via qXfer:features:read packet */
 /* enabled by default */
-static int gdb_use_target_description = 1;
+static bool gdb_use_target_description = true;
 
 /* current processing free-run type, used by file-I/O */
 static char gdb_running_type;
@@ -2599,7 +2599,7 @@ static int gdb_get_target_description_chunk(struct target *target, struct target
 	return ERROR_OK;
 }
 
-static int gdb_target_description_supported(struct target *target, int *supported)
+static int gdb_target_description_supported(struct target *target, bool *supported)
 {
 	int retval = ERROR_OK;
 	struct reg **reg_list = NULL;
@@ -2631,9 +2631,9 @@ static int gdb_target_description_supported(struct target *target, int *supporte
 
 	if (supported) {
 		if (architecture || feature_list_size)
-			*supported = 1;
+			*supported = true;
 		else
-			*supported = 0;
+			*supported = false;
 	}
 
 error:
@@ -2867,20 +2867,20 @@ static int gdb_query_packet(struct connection *connection,
 		char *buffer = NULL;
 		int pos = 0;
 		int size = 0;
-		int gdb_target_desc_supported = 0;
+		bool gdb_target_desc_supported = false;
 
 		/* we need to test that the target supports target descriptions */
 		retval = gdb_target_description_supported(target, &gdb_target_desc_supported);
 		if (retval != ERROR_OK) {
 			LOG_INFO("Failed detecting Target Description Support, disabling");
-			gdb_target_desc_supported = 0;
+			gdb_target_desc_supported = false;
 		}
 
 		/* support may be disabled globally */
-		if (gdb_use_target_description == 0) {
+		if (!gdb_use_target_description) {
 			if (gdb_target_desc_supported)
 				LOG_WARNING("Target Descriptions Supported, but disabled");
-			gdb_target_desc_supported = 0;
+			gdb_target_desc_supported = false;
 		}
 
 		xml_printf(&retval,
@@ -2889,8 +2889,8 @@ static int gdb_query_packet(struct connection *connection,
 			&size,
 			"PacketSize=%x;qXfer:memory-map:read%c;qXfer:features:read%c;qXfer:threads:read+;QStartNoAckMode+;vContSupported+",
 			GDB_BUFFER_SIZE,
-			((gdb_use_memory_map == 1) && (flash_get_bank_count() > 0)) ? '+' : '-',
-			(gdb_target_desc_supported == 1) ? '+' : '-');
+			(gdb_use_memory_map && (flash_get_bank_count() > 0)) ? '+' : '-',
+			gdb_target_desc_supported ? '+' : '-');
 
 		if (retval != ERROR_OK) {
 			gdb_send_error(connection, 01);
@@ -3280,7 +3280,7 @@ static int gdb_v_packet(struct connection *connection,
 
 	/* if flash programming disabled - send a empty reply */
 
-	if (gdb_flash_program == 0) {
+	if (!gdb_flash_program) {
 		gdb_put_packet(connection, "", 0);
 		return ERROR_OK;
 	}
