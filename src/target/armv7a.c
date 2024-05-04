@@ -473,7 +473,7 @@ int armv7a_identify_cache(struct target *target)
 	/*  if no l2 cache initialize l1 data cache flush function function */
 	if (!armv7a->armv7a_mmu.armv7a_cache.flush_all_data_cache) {
 		armv7a->armv7a_mmu.armv7a_cache.flush_all_data_cache =
-			armv7a_cache_auto_flush_all_data;
+			armv7a_cache_flush_all_data;
 	}
 
 	armv7a->armv7a_mmu.armv7a_cache.info = 1;
@@ -525,7 +525,6 @@ int armv7a_init_arch_info(struct target *target, struct armv7a_common *armv7a)
 	armv7a->armv7a_mmu.armv7a_cache.info = -1;
 	armv7a->armv7a_mmu.armv7a_cache.outer_cache = NULL;
 	armv7a->armv7a_mmu.armv7a_cache.flush_all_data_cache = NULL;
-	armv7a->armv7a_mmu.armv7a_cache.auto_cache_enabled = 1;
 	return ERROR_OK;
 }
 
