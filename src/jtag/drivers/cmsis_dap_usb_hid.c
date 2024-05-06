@@ -121,8 +121,12 @@ static int cmsis_dap_hid_open(struct cmsis_dap *dap, uint16_t vids[], uint16_t p
 				break;
 
 			if (cur_dev->serial_number) {
-				size_t len = (strlen(serial) + 1) * sizeof(wchar_t);
-				wchar_t *wserial = malloc(len);
+				size_t len = mbstowcs(NULL, serial, 0) + 1;
+				wchar_t *wserial = malloc(len * sizeof(wchar_t));
+				if (!wserial) {
+					LOG_ERROR("unable to allocate serial number buffer");
+					return ERROR_FAIL;
+				}
 				mbstowcs(wserial, serial, len);
 
 				if (wcscmp(wserial, cur_dev->serial_number) == 0) {
