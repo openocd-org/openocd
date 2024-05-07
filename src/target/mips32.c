@@ -2109,7 +2109,7 @@ static int mips32_dsp_find_register_by_name(const char *reg_name)
  */
 static int mips32_dsp_get_all_regs(struct command_invocation *cmd, struct mips_ejtag *ejtag_info)
 {
-	uint32_t value;
+	uint32_t value = 0;
 	for (int i = 0; i < MIPS32NUMDSPREGS; i++) {
 		int retval = mips32_pracc_read_dsp_reg(ejtag_info, &value, i);
 		if (retval != ERROR_OK) {
@@ -2134,7 +2134,7 @@ static int mips32_dsp_get_all_regs(struct command_invocation *cmd, struct mips_e
  */
 static int mips32_dsp_get_register(struct command_invocation *cmd, struct mips_ejtag *ejtag_info)
 {
-	uint32_t value;
+	uint32_t value = 0;
 	int index = mips32_dsp_find_register_by_name(CMD_ARGV[0]);
 	if (index == MIPS32NUMDSPREGS) {
 		command_print(CMD, "ERROR: register '%s' not found", CMD_ARGV[0]);

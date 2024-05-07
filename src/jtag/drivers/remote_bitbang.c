@@ -230,13 +230,13 @@ static int remote_bitbang_sleep(unsigned int microseconds)
 	unsigned int us = microseconds % 1000;
 
 	for (unsigned int i = 0; i < ms; i++) {
-		tmp = remote_bitbang_queue('D', NO_FLUSH);
+		tmp = remote_bitbang_queue('Z', NO_FLUSH);
 		if (tmp != ERROR_OK)
 			return tmp;
 	}
 
 	for (unsigned int i = 0; i < us; i++) {
-		tmp = remote_bitbang_queue('d', NO_FLUSH);
+		tmp = remote_bitbang_queue('z', NO_FLUSH);
 		if (tmp != ERROR_OK)
 			return tmp;
 	}
