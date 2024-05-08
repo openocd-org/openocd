@@ -61,7 +61,7 @@ static int breakpoint_add_internal(struct target *target,
 		breakpoint = breakpoint->next;
 	}
 
-	(*breakpoint_p) = malloc(sizeof(struct breakpoint));
+	(*breakpoint_p) = calloc(1, sizeof(struct breakpoint));
 	(*breakpoint_p)->address = address;
 	(*breakpoint_p)->asid = 0;
 	(*breakpoint_p)->length = length;
@@ -123,7 +123,7 @@ static int context_breakpoint_add_internal(struct target *target,
 		breakpoint = breakpoint->next;
 	}
 
-	(*breakpoint_p) = malloc(sizeof(struct breakpoint));
+	(*breakpoint_p) = calloc(1, sizeof(struct breakpoint));
 	(*breakpoint_p)->address = 0;
 	(*breakpoint_p)->asid = asid;
 	(*breakpoint_p)->length = length;
@@ -177,7 +177,7 @@ static int hybrid_breakpoint_add_internal(struct target *target,
 		breakpoint_p = &breakpoint->next;
 		breakpoint = breakpoint->next;
 	}
-	(*breakpoint_p) = malloc(sizeof(struct breakpoint));
+	(*breakpoint_p) = calloc(1, sizeof(struct breakpoint));
 	(*breakpoint_p)->address = address;
 	(*breakpoint_p)->asid = asid;
 	(*breakpoint_p)->length = length;
@@ -301,8 +301,8 @@ static int breakpoint_free(struct target *data_target, struct target *breakpoint
 
 	retval = target_remove_breakpoint(breakpoint_target, breakpoint);
 	if (retval != ERROR_OK) {
-		LOG_TARGET_ERROR(breakpoint_target, "could not remove breakpoint #%d on this target",
-						breakpoint->number);
+		LOG_TARGET_ERROR(breakpoint_target, "could not remove breakpoint, BPID: %" PRIu32,
+						breakpoint->unique_id);
 		return retval;
 	}
 
@@ -439,8 +439,8 @@ static int watchpoint_free(struct target *target, struct watchpoint *watchpoint_
 		return ERROR_WATCHPOINT_NOT_FOUND;
 	retval = target_remove_watchpoint(target, watchpoint);
 	if (retval != ERROR_OK) {
-		LOG_TARGET_ERROR(target, "could not remove watchpoint #%d on this target",
-						 watchpoint->number);
+		LOG_TARGET_ERROR(target, "could not remove watchpoint, WPID: %" PRIu32,
+						watchpoint->unique_id);
 		return retval;
 	}
 
