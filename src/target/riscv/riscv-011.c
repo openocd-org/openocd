@@ -1584,8 +1584,6 @@ static int examine(struct target *target)
 		return result;
 
 	target_set_examined(target);
-	for (size_t i = 0; i < 32; ++i)
-		reg_cache_set(target, i, -1);
 	LOG_INFO("Examined RISCV core; XLEN=%d, misa=0x%" PRIx64,
 			riscv_xlen(target), r->misa);
 
