@@ -399,8 +399,7 @@ to be available anymore as of April 2012.
 @* Link @url{http://www.distortec.com/jtag-lock-pick-tiny-2} FT232H-based
 
 @item @b{GW16042}
-@* Link: @url{http://shop.gateworks.com/index.php?route=product/product&path=70_80&product_id=64}
-FT2232H-based
+@* Link: @url{https://www.gateworks.com/} FT2232H-based
 
 @end itemize
 @section USB-JTAG / Altera USB-Blaster compatibles
@@ -442,7 +441,7 @@ SWD and not JTAG, thus not supported.
 
 @itemize @bullet
 @item @b{Raisonance RLink}
-@* Link: @url{http://www.mcu-raisonance.com/~rlink-debugger-programmer__@/microcontrollers__tool~tool__T018:4cn9ziz4bnx6.html}
+@* Link: @url{https://www.raisonance.com/rlink.html}
 @item @b{STM32 Primer}
 @* Link: @url{http://www.stm32circle.com/resources/stm32primer.php}
 @item @b{STM32 Primer2}
