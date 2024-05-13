@@ -278,6 +278,7 @@ static int armv8_get_pauth_mask(struct armv8_common *armv8, uint64_t *mask)
 static int armv8_read_reg(struct armv8_common *armv8, int regnum, uint64_t *regval)
 {
 	struct arm_dpm *dpm = &armv8->dpm;
+	unsigned int curel = armv8_curel_from_core_mode(dpm->arm->core_mode);
 	int retval;
 	uint32_t value;
 	uint64_t value_64;
@@ -322,6 +323,11 @@ static int armv8_read_reg(struct armv8_common *armv8, int regnum, uint64_t *regv
 				ARMV8_MRS(SYSTEM_ELR_EL2, 0), &value_64);
 		break;
 	case ARMV8_ELR_EL3:
+		if (curel < SYSTEM_CUREL_EL3) {
+			LOG_DEBUG("ELR_EL3 not accessible in EL%u", curel);
+			retval = ERROR_FAIL;
+			break;
+		}
 		retval = dpm->instr_read_data_r0_64(dpm,
 				ARMV8_MRS(SYSTEM_ELR_EL3, 0), &value_64);
 		break;
@@ -396,6 +402,7 @@ static int armv8_read_reg_simdfp_aarch64(struct armv8_common *armv8, int regnum,
 static int armv8_write_reg(struct armv8_common *armv8, int regnum, uint64_t value_64)
 {
 	struct arm_dpm *dpm = &armv8->dpm;
+	unsigned int curel = armv8_curel_from_core_mode(dpm->arm->core_mode);
 	int retval;
 	uint32_t value;
 
@@ -443,6 +450,11 @@ static int armv8_write_reg(struct armv8_common *armv8, int regnum, uint64_t valu
 				ARMV8_MSR_GP(SYSTEM_ELR_EL2, 0), value_64);
 		break;
 	case ARMV8_ELR_EL3:
+		if (curel < SYSTEM_CUREL_EL3) {
+			LOG_DEBUG("ELR_EL3 not accessible in EL%u", curel);
+			retval = ERROR_FAIL;
+			break;
+		}
 		retval = dpm->instr_write_data_r0_64(dpm,
 				ARMV8_MSR_GP(SYSTEM_ELR_EL3, 0), value_64);
 		break;
