@@ -282,6 +282,9 @@ static int armv8_read_reg(struct armv8_common *armv8, int regnum, uint64_t *regv
 	uint32_t value;
 	uint64_t value_64;
 
+	if (!regval)
+		return ERROR_FAIL;
+
 	switch (regnum) {
 	case 0 ... 30:
 		retval = dpm->instr_read_data_dcc_64(dpm,
@@ -361,10 +364,8 @@ static int armv8_read_reg(struct armv8_common *armv8, int regnum, uint64_t *regv
 		break;
 	}
 
-	if (retval == ERROR_OK && regval)
+	if (retval == ERROR_OK)
 		*regval = value_64;
-	else
-		retval = ERROR_FAIL;
 
 	return retval;
 }
@@ -512,6 +513,9 @@ static int armv8_read_reg32(struct armv8_common *armv8, int regnum, uint64_t *re
 	uint32_t value = 0;
 	int retval;
 
+	if (!regval)
+		return ERROR_FAIL;
+
 	switch (regnum) {
 	case ARMV8_R0 ... ARMV8_R14:
 		/* return via DCC:  "MCR p14, 0, Rnum, c0, c5, 0" */
@@ -587,7 +591,7 @@ static int armv8_read_reg32(struct armv8_common *armv8, int regnum, uint64_t *re
 		break;
 	}
 
-	if (retval == ERROR_OK && regval)
+	if (retval == ERROR_OK)
 		*regval = value;
 
 	return retval;
