@@ -315,6 +315,11 @@ static int armv8_read_reg(struct armv8_common *armv8, int regnum, uint64_t *regv
 		value_64 = value;
 		break;
 	case ARMV8_ELR_EL1:
+		if (curel < SYSTEM_CUREL_EL1) {
+			LOG_DEBUG("ELR_EL1 not accessible in EL%u", curel);
+			retval = ERROR_FAIL;
+			break;
+		}
 		retval = dpm->instr_read_data_r0_64(dpm,
 				ARMV8_MRS(SYSTEM_ELR_EL1, 0), &value_64);
 		break;
@@ -463,6 +468,11 @@ static int armv8_write_reg(struct armv8_common *armv8, int regnum, uint64_t valu
 		break;
 	/* registers clobbered by taking exception in debug state */
 	case ARMV8_ELR_EL1:
+		if (curel < SYSTEM_CUREL_EL1) {
+			LOG_DEBUG("ELR_EL1 not accessible in EL%u", curel);
+			retval = ERROR_FAIL;
+			break;
+		}
 		retval = dpm->instr_write_data_r0_64(dpm,
 				ARMV8_MSR_GP(SYSTEM_ELR_EL1, 0), value_64);
 		break;
