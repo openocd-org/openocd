@@ -342,9 +342,13 @@ static int armv8_read_reg(struct armv8_common *armv8, int regnum, uint64_t *regv
 		value_64 = value;
 		break;
 	case ARMV8_ESR_EL2:
-		retval = dpm->instr_read_data_r0(dpm,
-				ARMV8_MRS(SYSTEM_ESR_EL2, 0), &value);
-		value_64 = value;
+		if (curel < SYSTEM_CUREL_EL2) {
+			LOG_DEBUG("ESR_EL2 not accessible in EL%u", curel);
+			retval = ERROR_FAIL;
+			break;
+		}
+		retval = dpm->instr_read_data_r0_64(dpm,
+				ARMV8_MRS(SYSTEM_ESR_EL2, 0), &value_64);
 		break;
 	case ARMV8_ESR_EL3:
 		if (curel < SYSTEM_CUREL_EL3) {
@@ -482,9 +486,13 @@ static int armv8_write_reg(struct armv8_common *armv8, int regnum, uint64_t valu
 				ARMV8_MSR_GP(SYSTEM_ESR_EL1, 0), value);
 		break;
 	case ARMV8_ESR_EL2:
-		value = value_64;
-		retval = dpm->instr_write_data_r0(dpm,
-				ARMV8_MSR_GP(SYSTEM_ESR_EL2, 0), value);
+		if (curel < SYSTEM_CUREL_EL2) {
+			LOG_DEBUG("ESR_EL2 not accessible in EL%u", curel);
+			retval = ERROR_FAIL;
+			break;
+		}
+		retval = dpm->instr_write_data_r0_64(dpm,
+				ARMV8_MSR_GP(SYSTEM_ESR_EL2, 0), value_64);
 		break;
 	case ARMV8_ESR_EL3:
 		if (curel < SYSTEM_CUREL_EL3) {
@@ -1553,7 +1561,7 @@ static const struct {
 
 	{ ARMV8_ELR_EL2, "ELR_EL2", 64, ARMV8_64_EL2H, REG_TYPE_CODE_PTR, "banked", "net.sourceforge.openocd.banked",
 														NULL},
-	{ ARMV8_ESR_EL2, "ESR_EL2", 32, ARMV8_64_EL2H, REG_TYPE_UINT32, "banked", "net.sourceforge.openocd.banked",
+	{ ARMV8_ESR_EL2, "ESR_EL2", 64, ARMV8_64_EL2H, REG_TYPE_UINT64, "banked", "net.sourceforge.openocd.banked",
 														NULL},
 	{ ARMV8_SPSR_EL2, "SPSR_EL2", 32, ARMV8_64_EL2H, REG_TYPE_UINT32, "banked", "net.sourceforge.openocd.banked",
 														NULL},
