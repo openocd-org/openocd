@@ -4209,7 +4209,7 @@ static void write_gmon(uint32_t *samples, uint32_t sample_num, const char *filen
 			uint32_t start_address, uint32_t end_address, struct target *target, uint32_t duration_ms)
 {
 	uint32_t i;
-	FILE *f = fopen(filename, "w");
+	FILE *f = fopen(filename, "wb");
 	if (!f)
 		return;
 	write_string(f, "gmon");
