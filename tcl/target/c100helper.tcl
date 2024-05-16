@@ -176,7 +176,7 @@ proc setupAmbaClk {} {
     mmw $CLKCORE_AHB_CLK_CNTRL [expr {($x << 16) + ($w << 8) + $y}] 0x0
     # wait for PLL to lock
     echo "Waiting for Amba PLL to lock"
-    while {[expr {[mrw $CLKCORE_PLL_STATUS] & $AHBCLK_PLL_LOCK]} == 0} { sleep 1 }
+    while {[mrw $CLKCORE_PLL_STATUS] & $AHBCLK_PLL_LOCK == 0} { sleep 1 }
     # remove the internal PLL bypass
     mmw $CLKCORE_AHB_CLK_CNTRL 0x0 $AHB_PLL_BY_CTRL
     # remove PLL from BYPASS mode using MUX
@@ -250,7 +250,7 @@ proc setupArmClk {} {
     mmw $CLKCORE_ARM_CLK_CNTRL [expr {($x << 16) + ($w << 8) + $y}] 0x0
     # wait for PLL to lock
     echo "Waiting for Amba PLL to lock"
-    while {[expr {[mrw $CLKCORE_PLL_STATUS] & $FCLK_PLL_LOCK]} == 0} { sleep 1 }
+    while {[mrw $CLKCORE_PLL_STATUS] & $FCLK_PLL_LOCK == 0} { sleep 1 }
     # remove the internal PLL bypass
     mmw $CLKCORE_ARM_CLK_CNTRL 0x0 $ARM_PLL_BY_CTRL
     # remove PLL from BYPASS mode using MUX
