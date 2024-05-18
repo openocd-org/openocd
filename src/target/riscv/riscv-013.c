@@ -1960,6 +1960,81 @@ static int wait_for_idle_if_needed(struct target *target)
 	return ERROR_OK;
 }
 
+static int reset_dm(struct target *target)
+{
+	/* TODO: This function returns an error when a DMI operation fails.
+	 * However, [3.14.2. Debug Module Control] states:
+	 * > 0 (inactive): ... Any accesses to the module may fail.
+	 *
+	 * Ignoring failures may introduce incompatibility with 0.13.
+	 * See https://github.com/riscv/riscv-debug-spec/issues/1021
+	 */
+	dm013_info_t *dm = get_dm(target);
+	assert(dm && "DM is expected to be already allocated.");
+	assert(!dm->was_reset && "Attempt to reset an already-reset debug module.");
+	/* `dmcontrol.hartsel` should be read first, in order not to
+	 * change it when requesting the reset, since changing it
+	 * without checking that `abstractcs.busy` is low is
+	 * prohibited.
+	 */
+	uint32_t dmcontrol;
+	int result = dm_read(target, &dmcontrol, DM_DMCONTROL);
+	if (result != ERROR_OK)
+		return result;
+
+	if (get_field32(dmcontrol, DM_DMCONTROL_DMACTIVE)) {
+		/* `dmcontrol.hartsel` is not changed. */
+		dmcontrol = (dmcontrol & DM_DMCONTROL_HARTSELLO) |
+			(dmcontrol & DM_DMCONTROL_HARTSELHI);
+		LOG_TARGET_DEBUG(target, "Initiating DM reset.");
+		result = dm_write(target, DM_DMCONTROL, dmcontrol);
+		if (result != ERROR_OK)
+			return result;
+
+		const time_t start = time(NULL);
+		LOG_TARGET_DEBUG(target, "Waiting for the DM to acknowledge reset.");
+		do {
+			result = dm_read(target, &dmcontrol, DM_DMCONTROL);
+			if (result != ERROR_OK)
+				return result;
+
+			if (time(NULL) - start > riscv_reset_timeout_sec) {
+				/* TODO: Introduce a separate timeout for this. */
+				LOG_TARGET_ERROR(target, "DM didn't acknowledge reset in %d s. "
+						"Increase the timeout with 'riscv set_reset_timeout_sec'.",
+						riscv_reset_timeout_sec);
+				return ERROR_TIMEOUT_REACHED;
+			}
+		} while (get_field32(dmcontrol, DM_DMCONTROL_DMACTIVE));
+		LOG_TARGET_DEBUG(target, "DM reset initiated.");
+	}
+
+	LOG_TARGET_DEBUG(target, "Activating the DM.");
+	result = dm_write(target, DM_DMCONTROL, DM_DMCONTROL_DMACTIVE);
+	if (result != ERROR_OK)
+		return result;
+
+	const time_t start = time(NULL);
+	LOG_TARGET_DEBUG(target, "Waiting for the DM to come out of reset.");
+	do {
+		result = dm_read(target, &dmcontrol, DM_DMCONTROL);
+		if (result != ERROR_OK)
+			return result;
+
+		if (time(NULL) - start > riscv_reset_timeout_sec) {
+			/* TODO: Introduce a separate timeout for this. */
+			LOG_TARGET_ERROR(target, "Debug Module did not become active in %d s. "
+					"Increase the timeout with 'riscv set_reset_timeout_sec'.",
+					riscv_reset_timeout_sec);
+			return ERROR_TIMEOUT_REACHED;
+		}
+	} while (!get_field32(dmcontrol, DM_DMCONTROL_DMACTIVE));
+
+	LOG_TARGET_DEBUG(target, "DM successfully reset.");
+	dm->was_reset = true;
+	return ERROR_OK;
+}
+
 static int examine_dm(struct target *target)
 {
 	dm013_info_t *dm = get_dm(target);
@@ -1970,34 +2045,16 @@ static int examine_dm(struct target *target)
 
 	int result = ERROR_FAIL;
 
-	uint32_t dmcontrol;
-	if (!dm->was_reset) {
-		/* First, the Debug Module is reset. However,
-		 * `dmcontrol.hartsel` should be read first, in order not to
-		 * change it when requesting the reset, since changing it
-		 * without checking that `abstractcs.busy` is low is
-		 * prohibited.
-		 */
-		result = dm_read(target, &dmcontrol, DM_DMCONTROL);
-		if (result != ERROR_OK)
-			return result;
-		/* Initiate the reset (`dmcontrol.dmactive == 0`) leaving
-		 * `dmcontrol.hartsel` the same.
-		 */
-		dmcontrol = (dmcontrol & DM_DMCONTROL_HARTSELLO) |
-			(dmcontrol & DM_DMCONTROL_HARTSELHI);
-		result = dm_write(target, DM_DMCONTROL, dmcontrol);
-		if (result != ERROR_OK)
-			return result;
-		/* FIXME: We should poll dmcontrol until dmactive becomes 0
-		 * See https://github.com/riscv/riscv-debug-spec/pull/566
-		 */
-	} else {
+	if (dm->was_reset) {
 		/* The DM was already reset when examining a different hart.
 		 * No need to reset it again. But for safety, assume that an abstract
 		 * command might be in progress at the moment.
 		 */
 		dm->abstract_cmd_maybe_busy = true;
+	} else {
+		result = reset_dm(target);
+		if (result != ERROR_OK)
+			return result;
 	}
 
 	dm->current_hartid = HART_INDEX_UNKNOWN;
@@ -2008,27 +2065,10 @@ static int examine_dm(struct target *target)
 	if (result != ERROR_OK)
 		return result;
 
-
+	uint32_t dmcontrol;
 	result = dm_read(target, &dmcontrol, DM_DMCONTROL);
 	if (result != ERROR_OK)
 		return result;
-
-	/* FIXME: We should poll for dmactive==1 as the debug module
-	 * may need some time to actually activate.
-	 * See https://github.com/riscv/riscv-debug-spec/pull/566
-	 */
-	if (!get_field(dmcontrol, DM_DMCONTROL_DMACTIVE)) {
-		LOG_TARGET_ERROR(target, "Debug Module did not become active.");
-		LOG_DEBUG_REG(target, DM_DMCONTROL, dmcontrol);
-		return ERROR_FAIL;
-	}
-
-	/* The DM has been reset and has successfully came out of the reset (dmactive=1):
-	 * - either the reset has been performed during this call to examine_dm() (above);
-	 * - or the reset had already happened in an earlier call of examine_dm() when
-	 *   examining a different hart.
-	 */
-	dm->was_reset = true;
 
 	dm->hasel_supported = get_field(dmcontrol, DM_DMCONTROL_HASEL);
 
