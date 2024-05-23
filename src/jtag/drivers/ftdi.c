@@ -852,7 +852,7 @@ COMMAND_HANDLER(ftdi_handle_get_signal_command)
 	uint16_t sig_data = 0;
 	sig = find_signal_by_name(CMD_ARGV[0]);
 	if (!sig) {
-		LOG_ERROR("interface configuration doesn't define signal '%s'", CMD_ARGV[0]);
+		command_print(CMD, "interface configuration doesn't define signal '%s'", CMD_ARGV[0]);
 		return ERROR_FAIL;
 	}
 
@@ -860,7 +860,7 @@ COMMAND_HANDLER(ftdi_handle_get_signal_command)
 	if (ret != ERROR_OK)
 		return ret;
 
-	LOG_USER("Signal %s = %#06x", sig->name, sig_data);
+	command_print(CMD, "%#06x", sig_data);
 
 	return ERROR_OK;
 }
