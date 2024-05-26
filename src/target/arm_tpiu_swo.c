@@ -907,21 +907,59 @@ static const struct command_registration arm_tpiu_swo_instance_command_handlers[
 	COMMAND_REGISTRATION_DONE
 };
 
-static int arm_tpiu_swo_create(Jim_Interp *interp, struct arm_tpiu_swo_object *obj)
+COMMAND_HANDLER(handle_arm_tpiu_swo_create)
 {
-	struct command_context *cmd_ctx;
-	Jim_Cmd *cmd;
-	int e;
+	int retval = ERROR_FAIL;
 
-	cmd_ctx = current_command_context(interp);
-	assert(cmd_ctx);
+	if (!CMD_ARGC)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	/* does this command exist? */
-	cmd = Jim_GetCommand(interp, Jim_NewStringObj(interp, obj->name, -1), JIM_NONE);
-	if (cmd) {
-		Jim_SetResultFormatted(interp, "cannot create TPIU object because a command with name '%s' already exists",
-			obj->name);
-		return JIM_ERR;
+	Jim_Cmd *jimcmd = Jim_GetCommand(CMD_CTX->interp, CMD_JIMTCL_ARGV[0], JIM_NONE);
+	if (jimcmd) {
+		command_print(CMD, "cannot create TPIU object because a command with name '%s' already exists",
+			CMD_ARGV[0]);
+		return ERROR_FAIL;
+	}
+
+	struct arm_tpiu_swo_object *obj = calloc(1, sizeof(struct arm_tpiu_swo_object));
+	if (!obj) {
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
+	}
+	INIT_LIST_HEAD(&obj->connections);
+	adiv5_mem_ap_spot_init(&obj->spot);
+	obj->spot.base = TPIU_SWO_DEFAULT_BASE;
+	obj->port_width = 1;
+	obj->out_filename = strdup("external");
+	if (!obj->out_filename) {
+		LOG_ERROR("Out of memory");
+		goto err_exit;
+	}
+
+	obj->name = strdup(CMD_ARGV[0]);
+	if (!obj->name) {
+		LOG_ERROR("Out of memory");
+		goto err_exit;
+	}
+
+	/* Do the rest as "configure" options */
+	struct jim_getopt_info goi;
+	jim_getopt_setup(&goi, CMD_CTX->interp, CMD_ARGC - 1, CMD_JIMTCL_ARGV + 1);
+	goi.is_configure = 1;
+	int e = arm_tpiu_swo_configure(&goi, obj);
+
+	int reslen;
+	const char *result = Jim_GetString(Jim_GetResult(CMD_CTX->interp), &reslen);
+	if (reslen > 0)
+		command_print(CMD, "%s", result);
+
+	if (e != JIM_OK)
+		goto err_exit;
+
+	if (!obj->spot.dap || obj->spot.ap_num == DP_APSEL_INVALID) {
+		command_print(CMD, "-dap and -ap-num required when creating TPIU");
+		goto err_exit;
 	}
 
 	/* now - create the new tpiu/swo name command */
@@ -935,69 +973,19 @@ static int arm_tpiu_swo_create(Jim_Interp *interp, struct arm_tpiu_swo_object *o
 		},
 		COMMAND_REGISTRATION_DONE
 	};
-	e = register_commands_with_data(cmd_ctx, NULL, obj_commands, obj);
-	if (e != ERROR_OK)
-		return JIM_ERR;
+	retval = register_commands_with_data(CMD_CTX, NULL, obj_commands, obj);
+	if (retval != ERROR_OK)
+		goto err_exit;
 
 	list_add_tail(&obj->lh, &all_tpiu_swo);
 
-	return JIM_OK;
-}
-
-static int jim_arm_tpiu_swo_create(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
-{
-	struct jim_getopt_info goi;
-	jim_getopt_setup(&goi, interp, argc - 1, argv + 1);
-	if (goi.argc < 1) {
-		Jim_WrongNumArgs(interp, 1, argv, "name ?option option ...?");
-		return JIM_ERR;
-	}
-
-	struct arm_tpiu_swo_object *obj = calloc(1, sizeof(struct arm_tpiu_swo_object));
-	if (!obj) {
-		LOG_ERROR("Out of memory");
-		return JIM_ERR;
-	}
-	INIT_LIST_HEAD(&obj->connections);
-	adiv5_mem_ap_spot_init(&obj->spot);
-	obj->spot.base = TPIU_SWO_DEFAULT_BASE;
-	obj->port_width = 1;
-	obj->out_filename = strdup("external");
-	if (!obj->out_filename) {
-		LOG_ERROR("Out of memory");
-		goto err_exit;
-	}
-
-	Jim_Obj *n;
-	jim_getopt_obj(&goi, &n);
-	obj->name = strdup(Jim_GetString(n, NULL));
-	if (!obj->name) {
-		LOG_ERROR("Out of memory");
-		goto err_exit;
-	}
-
-	/* Do the rest as "configure" options */
-	goi.is_configure = true;
-	int e = arm_tpiu_swo_configure(&goi, obj);
-	if (e != JIM_OK)
-		goto err_exit;
-
-	if (!obj->spot.dap || obj->spot.ap_num == DP_APSEL_INVALID) {
-		Jim_SetResultString(goi.interp, "-dap and -ap-num required when creating TPIU", -1);
-		goto err_exit;
-	}
-
-	e = arm_tpiu_swo_create(goi.interp, obj);
-	if (e != JIM_OK)
-		goto err_exit;
-
-	return JIM_OK;
+	return ERROR_OK;
 
 err_exit:
 	free(obj->name);
 	free(obj->out_filename);
 	free(obj);
-	return JIM_ERR;
+	return retval;
 }
 
 COMMAND_HANDLER(handle_arm_tpiu_swo_names)
@@ -1192,7 +1180,7 @@ static const struct command_registration arm_tpiu_swo_subcommand_handlers[] = {
 	{
 		.name = "create",
 		.mode = COMMAND_ANY,
-		.jim_handler = jim_arm_tpiu_swo_create,
+		.handler = handle_arm_tpiu_swo_create,
 		.usage = "name [-dap dap] [-ap-num num] [-baseaddr baseaddr]",
 		.help = "Creates a new TPIU or SWO object",
 	},
