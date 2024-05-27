@@ -124,7 +124,7 @@ FLASH_BANK_COMMAND_HANDLER(ambiqmicro_flash_bank_command)
 	if (CMD_ARGC < 6)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	ambiqmicro_info = calloc(sizeof(struct ambiqmicro_flash_bank), 1);
+	ambiqmicro_info = calloc(1, sizeof(struct ambiqmicro_flash_bank));
 
 	bank->driver_priv = ambiqmicro_info;
 

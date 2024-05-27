@@ -87,7 +87,7 @@ FLASH_BANK_COMMAND_HANDLER(max32xxx_flash_bank_command)
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
-	info = calloc(sizeof(struct max32xxx_flash_bank), 1);
+	info = calloc(1, sizeof(struct max32xxx_flash_bank));
 	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[2], info->flash_size);
 	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[6], info->flc_base);
 	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[7], info->sector_size);
