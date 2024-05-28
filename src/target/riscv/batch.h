@@ -24,8 +24,6 @@ struct riscv_batch {
 	size_t allocated_scans;
 	size_t used_scans;
 
-	size_t idle_count;
-
 	uint8_t *data_out;
 	uint8_t *data_in;
 	struct scan_field *fields;
@@ -44,26 +42,42 @@ struct riscv_batch {
 	/* The read keys. */
 	size_t *read_keys;
 	size_t read_keys_used;
+
+	/* Flag indicating that the last run of the batch finished without an error
+	 * from the underlying JTAG layer of OpenOCD - all scans were performed.
+	 * However, RISC-V DMI "busy" condition could still have occurred.
+	 */
+	bool was_run;
+	/* Idle count used on the last run. Only valid after `was_run` is set. */
+	size_t used_idle_count;
 };
 
 /* Allocates (or frees) a new scan set.  "scans" is the maximum number of JTAG
- * scans that can be issued to this object, and idle is the number of JTAG idle
- * cycles between every real scan. */
-struct riscv_batch *riscv_batch_alloc(struct target *target, size_t scans, size_t idle);
+ * scans that can be issued to this object. */
+struct riscv_batch *riscv_batch_alloc(struct target *target, size_t scans);
 void riscv_batch_free(struct riscv_batch *batch);
 
 /* Checks to see if this batch is full. */
 bool riscv_batch_full(struct riscv_batch *batch);
 
-/* Executes this batch of JTAG DTM DMI scans.
+/* Executes this batch of JTAG DTM DMI scans, starting form "start" scan.
  *
- * If resets_delays is true, the algorithm will stop inserting idle cycles
- * (JTAG Run-Test Idle) after "reset_delays_after" number of scans is
+ * If batch is run for the first time, it is expected that "start" is zero.
+ * It is expected that the batch ends with a DMI NOP operation.
+ *
+ * "idle_count" is the number of JTAG Run-Test-Idle cycles to add in-between
+ * the scans.
+ *
+ * If "resets_delays" is true, the algorithm will stop inserting idle cycles
+ * (JTAG Run-Test-Idle) after "reset_delays_after" number of scans is
  * performed.  This is useful for stress-testing of RISC-V algorithms in
  * OpenOCD that are based on batches.
  */
-int riscv_batch_run(struct riscv_batch *batch, bool resets_delays,
-		size_t reset_delays_after);
+int riscv_batch_run_from(struct riscv_batch *batch, size_t start_idx,
+		size_t idle_count, bool resets_delays, size_t reset_delays_after);
+
+/* Get the number of scans successfully executed form this batch. */
+size_t riscv_batch_finished_scans(const struct riscv_batch *batch);
 
 /* Adds a DM register write to this batch. */
 void riscv_batch_add_dm_write(struct riscv_batch *batch, uint64_t address, uint32_t data,
@@ -83,12 +97,12 @@ void riscv_batch_add_nop(struct riscv_batch *batch);
 size_t riscv_batch_available_scans(struct riscv_batch *batch);
 
 /* Return true iff the last scan in the batch returned DMI_OP_BUSY. */
-bool riscv_batch_dmi_busy_encountered(const struct riscv_batch *batch);
+bool riscv_batch_was_batch_busy(const struct riscv_batch *batch);
 
 /* TODO: The function is defined in `riscv-013.c`. This is done to reduce the
  * diff of the commit. The intention is to move the function definition to
  * a separate module (e.g. `riscv013-jtag-dtm.c/h`) in another commit. */
-void riscv_decode_dmi_scan(const struct target *target, int idle, const struct scan_field *field,
+void riscv_log_dmi_scan(const struct target *target, int idle, const struct scan_field *field,
 		bool discard_in);
 
 #endif
