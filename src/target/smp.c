@@ -119,7 +119,7 @@ COMMAND_HANDLER(default_handle_smp_command)
 			head->target->smp = 0;
 
 		/* fixes the target display to the debugger */
-		if (!list_empty(target->smp_targets))
+		if (!list_empty(target->smp_targets) && target->gdb_service)
 			target->gdb_service->target = target;
 
 		return ERROR_OK;

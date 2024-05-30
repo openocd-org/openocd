@@ -399,8 +399,7 @@ to be available anymore as of April 2012.
 @* Link @url{http://www.distortec.com/jtag-lock-pick-tiny-2} FT232H-based
 
 @item @b{GW16042}
-@* Link: @url{http://shop.gateworks.com/index.php?route=product/product&path=70_80&product_id=64}
-FT2232H-based
+@* Link: @url{https://www.gateworks.com/} FT2232H-based
 
 @end itemize
 @section USB-JTAG / Altera USB-Blaster compatibles
@@ -442,7 +441,7 @@ SWD and not JTAG, thus not supported.
 
 @itemize @bullet
 @item @b{Raisonance RLink}
-@* Link: @url{http://www.mcu-raisonance.com/~rlink-debugger-programmer__@/microcontrollers__tool~tool__T018:4cn9ziz4bnx6.html}
+@* Link: @url{https://www.raisonance.com/rlink.html}
 @item @b{STM32 Primer}
 @* Link: @url{http://www.stm32circle.com/resources/stm32primer.php}
 @item @b{STM32 Primer2}
@@ -9220,6 +9219,18 @@ read_memory 0x20000000 32 2
 @end example
 @end deffn
 
+@deffn {Command} {debug_reason}
+Displays the current debug reason:
+@code{debug-request},
+@code{breakpoint},
+@code{watchpoint},
+@code{watchpoint-and-breakpoint},
+@code{single-step},
+@code{target-not-halted},
+@code{program-exit},
+@code{exception-catch} or @code{undefined}.
+@end deffn
+
 @deffn {Command} {halt} [ms]
 @deffnx {Command} {wait_halt} [ms]
 The @command{halt} command first sends a halt request to the target,
@@ -9389,7 +9400,7 @@ Loads an image stored in memory by @command{fast_load_image} to the
 current target. Must be preceded by fast_load_image.
 @end deffn
 
-@deffn {Command} {fast_load_image} filename [address [@option{bin}|@option{ihex}|@option{elf}|@option{s19} [@option{min_addr} [@option{max_length}]]]]]]
+@deffn {Command} {fast_load_image} filename [address [@option{bin}|@option{ihex}|@option{elf}|@option{s19} [@option{min_addr} [@option{max_length}]]]]
 Normally you should be using @command{load_image} or GDB load. However, for
 testing purposes or when I/O overhead is significant(OpenOCD running on an embedded
 host), storing the image in memory and uploading the image to the target

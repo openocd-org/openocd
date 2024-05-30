@@ -378,12 +378,12 @@ static int linuxgpiod_init(void)
 			goto out_error;
 		}
 
-		if (helper_get_line(ADAPTER_GPIO_IDX_TDO) != ERROR_OK ||
-			helper_get_line(ADAPTER_GPIO_IDX_TDI) != ERROR_OK ||
-			helper_get_line(ADAPTER_GPIO_IDX_TCK) != ERROR_OK ||
-			helper_get_line(ADAPTER_GPIO_IDX_TMS) != ERROR_OK ||
-			helper_get_line(ADAPTER_GPIO_IDX_TRST) != ERROR_OK)
-				goto out_error;
+		if (helper_get_line(ADAPTER_GPIO_IDX_TDO) != ERROR_OK
+				|| helper_get_line(ADAPTER_GPIO_IDX_TDI) != ERROR_OK
+				|| helper_get_line(ADAPTER_GPIO_IDX_TCK) != ERROR_OK
+				|| helper_get_line(ADAPTER_GPIO_IDX_TMS) != ERROR_OK
+				|| helper_get_line(ADAPTER_GPIO_IDX_TRST) != ERROR_OK)
+			goto out_error;
 	}
 
 	if (transport_is_swd()) {
@@ -413,9 +413,9 @@ static int linuxgpiod_init(void)
 			goto out_error;
 	}
 
-	if (helper_get_line(ADAPTER_GPIO_IDX_SRST) != ERROR_OK ||
-		helper_get_line(ADAPTER_GPIO_IDX_LED) != ERROR_OK)
-			goto out_error;
+	if (helper_get_line(ADAPTER_GPIO_IDX_SRST) != ERROR_OK
+			|| helper_get_line(ADAPTER_GPIO_IDX_LED) != ERROR_OK)
+		goto out_error;
 
 	return ERROR_OK;
 

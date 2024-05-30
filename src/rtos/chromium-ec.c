@@ -14,7 +14,6 @@
 #include <helper/bits.h>
 #include <rtos/rtos.h>
 #include <target/target.h>
-#include <target/target_type.h>
 
 #include "rtos_standard_stackings.h"
 
@@ -120,7 +119,7 @@ static int chromium_ec_create(struct target *target)
 	size_t t;
 
 	for (t = 0; t < ARRAY_SIZE(chromium_ec_params_list); t++)
-		if (!strcmp(chromium_ec_params_list[t].target_name, target->type->name)) {
+		if (!strcmp(chromium_ec_params_list[t].target_name, target_type_name(target))) {
 			params = malloc(sizeof(*params));
 			if (!params) {
 				LOG_ERROR("Chromium-EC: out of memory");
@@ -133,11 +132,11 @@ static int chromium_ec_create(struct target *target)
 			target->rtos->thread_details = NULL;
 			target->rtos->thread_count = 0;
 
-			LOG_INFO("Chromium-EC: Using target: %s", target->type->name);
+			LOG_INFO("Chromium-EC: Using target: %s", target_type_name(target));
 			return ERROR_OK;
 		}
 
-	LOG_ERROR("Chromium-EC: target not supported: %s", target->type->name);
+	LOG_ERROR("Chromium-EC: target not supported: %s", target_type_name(target));
 	return ERROR_FAIL;
 }
 

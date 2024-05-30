@@ -1504,7 +1504,7 @@ static int target_init_one(struct command_context *cmd_ctx,
 	 */
 	if (type->mmu) {
 		if (!type->virt2phys) {
-			LOG_ERROR("type '%s' is missing virt2phys", type->name);
+			LOG_ERROR("type '%s' is missing virt2phys", target_name(target));
 			type->virt2phys = identity_virt2phys;
 		}
 	} else {
@@ -1513,7 +1513,7 @@ static int target_init_one(struct command_context *cmd_ctx,
 		 * ensure that virt2phys() is always an identity mapping.
 		 */
 		if (type->write_phys_memory || type->read_phys_memory || type->virt2phys)
-			LOG_WARNING("type '%s' has bad MMU hooks", type->name);
+			LOG_WARNING("type '%s' has bad MMU hooks", target_name(target));
 
 		type->mmu = no_mmu;
 		type->write_phys_memory = type->write_memory;
@@ -6719,6 +6719,13 @@ static const struct command_registration target_exec_command_handlers[] = {
 		.jim_handler = target_jim_write_memory,
 		.help = "Write Tcl list of 8/16/32/64 bit numbers to target memory",
 		.usage = "address width data ['phys']",
+	},
+	{
+		.name = "debug_reason",
+		.mode = COMMAND_EXEC,
+		.handler = handle_target_debug_reason,
+		.help = "displays the debug reason of this target",
+		.usage = "",
 	},
 	{
 		.name = "reset_nag",

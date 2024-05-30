@@ -20,7 +20,6 @@
 #include "rtos.h"
 #include "rtos_standard_stackings.h"
 #include "target/target.h"
-#include "target/target_type.h"
 #include "target/armv7m.h"
 #include "target/arc.h"
 

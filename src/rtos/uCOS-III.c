@@ -14,7 +14,6 @@
 #include <helper/types.h>
 #include <rtos/rtos.h>
 #include <target/target.h>
-#include <target/target_type.h>
 
 #include "rtos_ucos_iii_stackings.h"
 
@@ -253,7 +252,7 @@ static int ucos_iii_create(struct target *target)
 	struct ucos_iii_private *params;
 
 	for (size_t i = 0; i < ARRAY_SIZE(ucos_iii_params_list); i++)
-		if (strcmp(ucos_iii_params_list[i].target_name, target->type->name) == 0) {
+		if (strcmp(ucos_iii_params_list[i].target_name, target_type_name(target)) == 0) {
 			params = calloc(1, sizeof(*params));
 			if (!params) {
 				LOG_ERROR("uCOS-III: out of memory");
@@ -268,7 +267,7 @@ static int ucos_iii_create(struct target *target)
 			return ERROR_OK;
 		}
 
-	LOG_ERROR("uCOS-III: target not supported: %s", target->type->name);
+	LOG_ERROR("uCOS-III: target not supported: %s", target_type_name(target));
 	return ERROR_FAIL;
 }
 

@@ -10,7 +10,6 @@
 #include <helper/time_support.h>
 #include <jtag/jtag.h>
 #include "target/target.h"
-#include "target/target_type.h"
 #include "target/armv7m.h"
 #include "rtos.h"
 #include "helper/log.h"
@@ -1137,7 +1136,7 @@ static int ecos_get_symbol_list_to_lookup(struct symbol_table_elem *symbol_list[
 			ARRAY_SIZE(ecos_symbol_list), sizeof(struct symbol_table_elem));
 
 	/* If the target reference was passed into this function we could limit
-	 * the symbols we need to lookup to the target->type->name based
+	 * the symbols we need to lookup to the target_type_name(target) based
 	 * range. For the moment we need to provide a single vector with all of
 	 * the symbols across all of the supported architectures. */
 	for (i = 0; i < ARRAY_SIZE(ecos_symbol_list); i++) {
@@ -1189,8 +1188,8 @@ static int ecos_create(struct target *target)
 	for (unsigned int i = 0; i < ARRAY_SIZE(ecos_params_list); i++) {
 		const char * const *tnames = ecos_params_list[i].target_names;
 		while (*tnames) {
-			if (strcmp(*tnames, target->type->name) == 0) {
-				/* LOG_DEBUG("eCos: matched target \"%s\"", target->type->name); */
+			if (strcmp(*tnames, target_type_name(target)) == 0) {
+				/* LOG_DEBUG("eCos: matched target \"%s\"", target_type_name(target)); */
 				target->rtos->rtos_specific_params = (void *)&ecos_params_list[i];
 				ecos_params_list[i].flush_common = true;
 				ecos_params_list[i].stacking_info = NULL;
