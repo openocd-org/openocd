@@ -6885,7 +6885,7 @@ static void hide_csrs(const struct target *target)
 			struct reg * const reg = get_reg_cache_entry(target, regno);
 			const unsigned int csr_number = regno - GDB_REGNO_CSR0;
 			if (!reg->exist) {
-				LOG_TARGET_WARNING(target,
+				LOG_TARGET_DEBUG(target,
 						"Not hiding CSR %d: register does not exist.",
 						csr_number);
 				continue;
