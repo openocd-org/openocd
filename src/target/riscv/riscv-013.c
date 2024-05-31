@@ -170,21 +170,12 @@ typedef struct {
 	 * access. */
 	unsigned int dtmcs_idle;
 
-	/* This value is incremented every time a dbus access comes back as "busy".
-	 * It's used to determine how many run-test/idle cycles to feed the target
-	 * in between accesses. */
-	unsigned int dmi_busy_delay;
-
-	/* Number of run-test/idle cycles to add between consecutive bus master
-	 * reads/writes respectively. */
-	unsigned int bus_master_write_delay, bus_master_read_delay;
-
-	/* This value is increased every time we tried to execute two commands
-	 * consecutively, and the second one failed because the previous hadn't
-	 * completed yet.  It's used to add extra run-test/idle cycles after
-	 * starting a command, so we don't have to waste time checking for busy to
-	 * go low. */
-	unsigned int ac_busy_delay;
+	/* This structure is used to determine how many run-test/idle to use after
+	 * an access of corresponding "riscv_scan_delay_class".
+	 * Values are incremented every time an access results in a busy
+	 * response.
+	 */
+	struct riscv_scan_delays learned_delays;
 
 	bool abstract_read_csr_supported;
 	bool abstract_write_csr_supported;
@@ -479,15 +470,25 @@ static int dtmcontrol_scan(struct target *target, uint32_t out, uint32_t *in_ptr
 	return ERROR_OK;
 }
 
-static void increase_dmi_busy_delay(struct target *target)
+static int increase_dmi_busy_delay(struct target *target)
 {
-	riscv013_info_t *info = get_info(target);
-	info->dmi_busy_delay += info->dmi_busy_delay / 10 + 1;
-	LOG_TARGET_DEBUG(target, "dtmcs_idle=%d, dmi_busy_delay=%d, ac_busy_delay=%d",
-			info->dtmcs_idle, info->dmi_busy_delay,
-			info->ac_busy_delay);
+	RISCV013_INFO(info);
 
-	dtmcontrol_scan(target, DTM_DTMCS_DMIRESET, NULL /* discard result */);
+	int res = dtmcontrol_scan(target, DTM_DTMCS_DMIRESET,
+			NULL /* discard result */);
+	if (res != ERROR_OK)
+		return res;
+
+	res = riscv_scan_increase_delay(&info->learned_delays,
+			RISCV_DELAY_BASE);
+	return res;
+}
+
+static void reset_learned_delays(struct target *target)
+{
+	RISCV013_INFO(info);
+	assert(info);
+	memset(&info->learned_delays, 0, sizeof(info->learned_delays));
 }
 
 static void decrement_reset_delays_counter(struct target *target, size_t finished_scans)
@@ -504,9 +505,7 @@ static void decrement_reset_delays_counter(struct target *target, size_t finishe
 	r->reset_delays_wait = -1;
 	LOG_TARGET_DEBUG(target,
 			"resetting learned delays (reset_delays_wait counter expired)");
-	RISCV013_INFO(info);
-	info->dmi_busy_delay = 0;
-	info->ac_busy_delay = 0;
+	reset_learned_delays(target);
 }
 /**
  * exec: If this is set, assume the scan results in an execution, so more
@@ -555,9 +554,9 @@ static dmi_status_t dmi_scan(struct target *target, uint32_t *address_in,
 		jtag_add_dr_scan(target->tap, 1, &field, TAP_IDLE);
 	}
 
-	int idle_count = info->dmi_busy_delay;
-	if (exec)
-		idle_count += info->ac_busy_delay;
+	int idle_count = exec
+		? riscv_scan_get_delay(&info->learned_delays, RISCV_DELAY_ABSTRACT_COMMAND)
+		: riscv_scan_get_delay(&info->learned_delays, RISCV_DELAY_BASE);
 
 	if (idle_count)
 		jtag_add_runtest(idle_count, TAP_IDLE);
@@ -636,7 +635,9 @@ static int dmi_op_timeout(struct target *target, uint32_t *data_in,
 		status = dmi_scan(target, NULL, NULL, op, address, data_out,
 				exec);
 		if (status == DMI_STATUS_BUSY) {
-			increase_dmi_busy_delay(target);
+			int result = increase_dmi_busy_delay(target);
+			if (result != ERROR_OK)
+				return result;
 			if (dmi_busy_encountered)
 				*dmi_busy_encountered = true;
 		} else if (status == DMI_STATUS_SUCCESS) {
@@ -662,7 +663,9 @@ static int dmi_op_timeout(struct target *target, uint32_t *data_in,
 			status = dmi_scan(target, NULL, data_in, DMI_OP_NOP, address, 0,
 					false);
 			if (status == DMI_STATUS_BUSY) {
-				increase_dmi_busy_delay(target);
+				int result = increase_dmi_busy_delay(target);
+				if (result != ERROR_OK)
+					return result;
 				if (dmi_busy_encountered)
 					*dmi_busy_encountered = true;
 			} else if (status == DMI_STATUS_SUCCESS) {
@@ -838,13 +841,11 @@ static int dmstatus_read(struct target *target, uint32_t *dmstatus,
 	return result;
 }
 
-static void increase_ac_busy_delay(struct target *target)
+static int increase_ac_busy_delay(struct target *target)
 {
 	riscv013_info_t *info = get_info(target);
-	info->ac_busy_delay += info->ac_busy_delay / 10 + 1;
-	LOG_TARGET_DEBUG(target, "dtmcs_idle=%d, dmi_busy_delay=%d, ac_busy_delay=%d",
-			info->dtmcs_idle, info->dmi_busy_delay,
-			info->ac_busy_delay);
+	return riscv_scan_increase_delay(&info->learned_delays,
+			RISCV_DELAY_ABSTRACT_COMMAND);
 }
 
 static uint32_t __attribute__((unused)) abstract_register_size(unsigned width)
@@ -912,13 +913,13 @@ static int dm013_select_target(struct target *target)
 	return dm013_select_hart(target, info->index);
 }
 
-#define EXECUTE_ABSTRACT_COMMAND_BATCH_SIZE 2
+#define ABSTRACT_COMMAND_BATCH_SIZE 2
 
 static size_t abstract_cmd_fill_batch(struct riscv_batch *batch,
 		uint32_t command)
 {
 	assert(riscv_batch_available_scans(batch)
-			>= EXECUTE_ABSTRACT_COMMAND_BATCH_SIZE);
+			>= ABSTRACT_COMMAND_BATCH_SIZE);
 	riscv_batch_add_dm_write(batch, DM_COMMAND, command, /* read_back */ true,
 			RISCV_DELAY_ABSTRACT_COMMAND);
 	return riscv_batch_add_dm_read(batch, DM_ABSTRACTCS, RISCV_DELAY_BASE);
@@ -936,7 +937,9 @@ static int abstract_cmd_batch_check_and_clear_cmderr(struct target *target,
 		res = wait_for_idle(target, &abstractcs);
 		if (res != ERROR_OK)
 			goto clear_cmderr;
-		increase_ac_busy_delay(target);
+		res = increase_ac_busy_delay(target);
+		if (res != ERROR_OK)
+			goto clear_cmderr;
 	}
 	*cmderr = get_field32(abstractcs, DM_ABSTRACTCS_CMDERR);
 	if (*cmderr == CMDERR_NONE)
@@ -976,7 +979,7 @@ static int execute_abstract_command(struct target *target, uint32_t command,
 		return ERROR_FAIL;
 
 	struct riscv_batch *batch = riscv_batch_alloc(target,
-			EXECUTE_ABSTRACT_COMMAND_BATCH_SIZE);
+			ABSTRACT_COMMAND_BATCH_SIZE);
 	const size_t abstractcs_read_key = abstract_cmd_fill_batch(batch, command);
 
 	/* Abstract commands are executed while running the batch. */
@@ -1204,7 +1207,7 @@ static int register_write_abstract(struct target *target, enum gdb_regno number,
 	assert(size_bits % 32 == 0);
 	const unsigned int size_in_words = size_bits / 32;
 	const unsigned int batch_size = size_in_words
-		+ EXECUTE_ABSTRACT_COMMAND_BATCH_SIZE;
+		+ ABSTRACT_COMMAND_BATCH_SIZE;
 	struct riscv_batch * const batch = riscv_batch_alloc(target, batch_size);
 
 	abstract_data_write_fill_batch(batch, value, /*index*/ 0, size_bits);
@@ -2758,29 +2761,13 @@ static int sb_write_address(struct target *target, target_addr_t address,
 		(uint32_t)address, false, ensure_success);
 }
 
-/* TODO: store delays in "struct riscv_scan_delays" and remove this function. */
-struct riscv_scan_delays get_scan_delays(struct target *target)
-{
-	RISCV013_INFO(info);
-	assert(info);
-	struct riscv_scan_delays delays;
-	riscv_scan_set_delay(&delays, RISCV_DELAY_BASE, info->dmi_busy_delay);
-	riscv_scan_set_delay(&delays, RISCV_DELAY_ABSTRACT_COMMAND, info->dmi_busy_delay +
-		info->ac_busy_delay);
-	riscv_scan_set_delay(&delays, RISCV_DELAY_SYSBUS_READ, info->dmi_busy_delay +
-		info->bus_master_read_delay);
-	riscv_scan_set_delay(&delays, RISCV_DELAY_SYSBUS_WRITE, info->dmi_busy_delay +
-		info->bus_master_write_delay);
-	return delays;
-}
-
 static int batch_run(struct target *target, struct riscv_batch *batch)
 {
 	RISCV_INFO(r);
+	RISCV013_INFO(info);
 	select_dmi(target);
 	riscv_batch_add_nop(batch);
-	const int result = riscv_batch_run_from(batch, 0,
-			get_scan_delays(target),
+	const int result = riscv_batch_run_from(batch, 0, &info->learned_delays,
 			/*resets_delays*/  r->reset_delays_wait >= 0,
 			r->reset_delays_wait);
 	/* TODO: To use `riscv_batch_finished_scans()` here, it is needed for
@@ -2797,18 +2784,18 @@ static int batch_run(struct target *target, struct riscv_batch *batch)
 static int batch_run_timeout(struct target *target, struct riscv_batch *batch)
 {
 	RISCV013_INFO(info);
-
 	select_dmi(target);
 	riscv_batch_add_nop(batch);
 
 	size_t finished_scans = 0;
 	const time_t start = time(NULL);
-	const unsigned int old_dmi_busy_delay = info->dmi_busy_delay;
+	const unsigned int old_base_delay = riscv_scan_get_delay(&info->learned_delays,
+			RISCV_DELAY_BASE);
 	int result;
 	do {
 		RISCV_INFO(r);
 		result = riscv_batch_run_from(batch, finished_scans,
-				get_scan_delays(target),
+				&info->learned_delays,
 				/*resets_delays*/  r->reset_delays_wait >= 0,
 				r->reset_delays_wait);
 		const size_t new_finished_scans = riscv_batch_finished_scans(batch);
@@ -2821,16 +2808,20 @@ static int batch_run_timeout(struct target *target, struct riscv_batch *batch)
 			assert(finished_scans == batch->used_scans);
 			return ERROR_OK;
 		}
-		increase_dmi_busy_delay(target);
+		result = increase_dmi_busy_delay(target);
+		if (result != ERROR_OK)
+			return result;
 	} while (time(NULL) - start < riscv_command_timeout_sec);
 
 	assert(result == ERROR_OK);
 	assert(riscv_batch_was_batch_busy(batch));
 
 	/* Reset dmi_busy_delay, so the value doesn't get too big. */
-	LOG_TARGET_DEBUG(target, "dmi_busy_delay is restored to %u.",
-			old_dmi_busy_delay);
-	info->dmi_busy_delay = old_dmi_busy_delay;
+	LOG_TARGET_DEBUG(target, "%s delay is restored to %u.",
+			riscv_scan_delay_class_name(RISCV_DELAY_BASE),
+			old_base_delay);
+	riscv_scan_set_delay(&info->learned_delays, RISCV_DELAY_BASE,
+			old_base_delay);
 
 	LOG_TARGET_ERROR(target, "DMI operation didn't complete in %d seconds. "
 			"The target is either really slow or broken. You could increase "
@@ -2969,7 +2960,11 @@ static int sample_memory_bus_v1(struct target *target,
 		 * with a larger DMI delay. */
 		unsigned int sbcs_read_op = riscv_batch_get_dmi_read_op(batch, sbcs_read_index);
 		if (sbcs_read_op == DTM_DMI_OP_BUSY) {
-			increase_dmi_busy_delay(target);
+			result = increase_dmi_busy_delay(target);
+			if (result != ERROR_OK) {
+				riscv_batch_free(batch);
+				return result;
+			}
 			continue;
 		}
 
@@ -2977,9 +2972,12 @@ static int sample_memory_bus_v1(struct target *target,
 		if (get_field(sbcs_read, DM_SBCS_SBBUSYERROR)) {
 			/* Discard this batch when we encounter "busy error" state on the System Bus level.
 			 * We'll try next time with a larger System Bus read delay. */
-			info->bus_master_read_delay += info->bus_master_read_delay / 10 + 1;
 			dm_write(target, DM_SBCS, sbcs_read | DM_SBCS_SBBUSYERROR | DM_SBCS_SBERROR);
+			int res = riscv_scan_increase_delay(&info->learned_delays,
+					RISCV_DELAY_SYSBUS_READ);
 			riscv_batch_free(batch);
+			if (res != ERROR_OK)
+				return res;
 			continue;
 		}
 		if (get_field(sbcs_read, DM_SBCS_SBERROR)) {
@@ -3140,11 +3138,7 @@ static int init_target(struct command_context *cmd_ctx,
 	riscv013_info_t *info = get_info(target);
 
 	info->progbufsize = -1;
-
-	info->dmi_busy_delay = 0;
-	info->bus_master_read_delay = 0;
-	info->bus_master_write_delay = 0;
-	info->ac_busy_delay = 0;
+	reset_learned_delays(target);
 
 	/* Assume all these abstract commands are supported until we learn
 	 * otherwise.
@@ -3231,7 +3225,8 @@ static int deassert_reset(struct target *target)
 		return result;
 
 	uint32_t dmstatus;
-	const int orig_dmi_busy_delay = info->dmi_busy_delay;
+	const unsigned int orig_base_delay = riscv_scan_get_delay(&info->learned_delays,
+			RISCV_DELAY_BASE);
 	time_t start = time(NULL);
 	LOG_TARGET_DEBUG(target, "Waiting for hart to come out of reset.");
 	do {
@@ -3264,7 +3259,8 @@ static int deassert_reset(struct target *target)
 	} while (get_field(dmstatus, DM_DMSTATUS_ALLUNAVAIL) &&
 			!get_field(dmstatus, DM_DMSTATUS_ALLHAVERESET));
 
-	info->dmi_busy_delay = orig_dmi_busy_delay;
+	riscv_scan_set_delay(&info->learned_delays, RISCV_DELAY_BASE,
+			orig_base_delay);
 
 	if (target->reset_halt) {
 		target->state = TARGET_HALTED;
@@ -3593,10 +3589,12 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 		if (sb_write_address(target, next_address, true) != ERROR_OK)
 			return ERROR_FAIL;
 
-		if (info->bus_master_read_delay) {
+		unsigned int bus_master_read_delay = riscv_scan_get_delay(&info->learned_delays,
+				RISCV_DELAY_SYSBUS_READ);
+		if (bus_master_read_delay) {
 			LOG_TARGET_DEBUG(target, "Waiting %d cycles for bus master read delay",
-					info->bus_master_read_delay);
-			jtag_add_runtest(info->bus_master_read_delay, TAP_IDLE);
+					bus_master_read_delay);
+			jtag_add_runtest(bus_master_read_delay, TAP_IDLE);
 			if (jtag_execute_queue() != ERROR_OK) {
 				LOG_TARGET_ERROR(target, "Failed to scan idle sequence");
 				return ERROR_FAIL;
@@ -3626,10 +3624,12 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 								       DMI_OP_READ, sbdata[j] + dm->base, 0, false);
 					/* By reading from sbdata0, we have just initiated another system bus read.
 					 * If necessary add a delay so the read can finish. */
-					if (j == 0 && info->bus_master_read_delay) {
+					bus_master_read_delay = riscv_scan_get_delay(&info->learned_delays,
+							RISCV_DELAY_SYSBUS_READ);
+					if (j == 0 && bus_master_read_delay) {
 						LOG_TARGET_DEBUG(target, "Waiting %d cycles for bus master read delay",
-								info->bus_master_read_delay);
-						jtag_add_runtest(info->bus_master_read_delay, TAP_IDLE);
+								bus_master_read_delay);
+						jtag_add_runtest(bus_master_read_delay, TAP_IDLE);
 						if (jtag_execute_queue() != ERROR_OK) {
 							LOG_TARGET_ERROR(target, "Failed to scan idle sequence");
 							return ERROR_FAIL;
@@ -3716,9 +3716,10 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 					return ERROR_FAIL;
 			}
 
-			info->bus_master_read_delay += info->bus_master_read_delay / 10 + 1;
-			LOG_TARGET_DEBUG(target, "Increasing bus_master_read_delay to %d.",
-					info->bus_master_read_delay);
+			int res = riscv_scan_increase_delay(&info->learned_delays,
+					RISCV_DELAY_SYSBUS_READ);
+			if (res != ERROR_OK)
+				return res;
 			continue;
 		}
 
@@ -4134,8 +4135,12 @@ static int read_memory_progbuf_inner_on_ac_busy(struct target *target,
 		uint32_t start_index, uint32_t *elements_read,
 		struct memory_access_info access)
 {
-	increase_ac_busy_delay(target);
-	riscv013_clear_abstract_error(target);
+	int res = riscv013_clear_abstract_error(target);
+	if (res != ERROR_OK)
+		return res;
+	res = increase_ac_busy_delay(target);
+	if (res != ERROR_OK)
+		return res;
 
 	if (dm_write(target, DM_ABSTRACTAUTO, 0) != ERROR_OK)
 		return ERROR_FAIL;
@@ -4833,8 +4838,11 @@ static int write_memory_bus_v1(struct target *target, target_addr_t address,
 			LOG_TARGET_DEBUG(target, "Sbbusyerror encountered during system bus write.");
 			/* Clear the sticky error flag. */
 			dm_write(target, DM_SBCS, sbcs | DM_SBCS_SBBUSYERROR);
-			/* Slow down before trying again. */
-			info->bus_master_write_delay += info->bus_master_write_delay / 10 + 1;
+			/* Slow down before trying again.
+			 * FIXME: Possible overflow is ignored here.
+			 */
+			riscv_scan_increase_delay(&info->learned_delays,
+					RISCV_DELAY_SYSBUS_WRITE);
 		}
 
 		if (get_field(sbcs, DM_SBCS_SBBUSYERROR) || dmi_busy_encountered) {
@@ -4945,8 +4953,12 @@ static int write_memory_progbuf_teardown(struct target *target)
 static int write_memory_progbuf_handle_busy(struct target *target,
 		target_addr_t *address_p, uint32_t size, const uint8_t *buffer)
 {
-	riscv013_clear_abstract_error(target);
-	increase_ac_busy_delay(target);
+	int res = riscv013_clear_abstract_error(target);
+	if (res != ERROR_OK)
+		return res;
+	res = increase_ac_busy_delay(target);
+	if (res != ERROR_OK)
+		return res;
 
 	if (write_memory_progbuf_teardown(target) != ERROR_OK)
 		return ERROR_FAIL;
