@@ -104,12 +104,18 @@ AS_IF([test -x "$srcdir/guess-rev.sh"], [
 AC_MSG_RESULT([$build_release])
 
 # Adapter drivers
-# 1st column -- configure option
-# 2nd column -- description
-# 3rd column -- symbol used for both config.h and automake
+# 1st column -- Basename for the configure option generated with AC_ARG_ENABLE.
+#               For example, "buspirate" generates options "--enable-buspirate[=yes/no]"
+#               and "--disable-buspirate".
+# 2nd column -- Description for the configure option. For example, "Bus Pirate"
+#               generates "Enable building support for the Bus Pirate (default is auto)".
+# 3rd column -- Basename for the config.h and Automake symbols.
+#               For example, basename "BUS_PIRATE" generates "BUILD_BUS_PIRATE" with AC_DEFINE
+#               for config.h and "BUS_PIRATE" with AM_CONDITIONAL for Automake.
 m4_define([ADAPTER_ARG], [m4_argn([1], $1)])
 m4_define([ADAPTER_DESC], [m4_argn([2], $1)])
 m4_define([ADAPTER_SYM], [m4_argn([3], $1)])
+# AC_ARG_ENABLE uses prefix "enable_" to name the corresponding option variable.
 m4_define([ADAPTER_VAR], [enable_[]ADAPTER_ARG($1)])
 m4_define([ADAPTER_OPT], [m4_translit(ADAPTER_ARG($1), [_], [-])])
 
@@ -264,6 +270,7 @@ AC_ARG_ADAPTERS([
   LIBFTDI_USB1_ADAPTERS
   LIBGPIOD_ADAPTERS,
   SERIAL_PORT_ADAPTERS,
+  PCIE_ADAPTERS,
   LIBJAYLINK_ADAPTERS
   ],[auto])
 
@@ -340,12 +347,10 @@ AC_ARG_ENABLE([sysfsgpio],
   AS_HELP_STRING([--enable-sysfsgpio], [Enable building support for programming driven via sysfs gpios.]),
   [build_sysfsgpio=$enableval], [build_sysfsgpio=no])
 
-AC_ARG_ENABLE([xlnx_pcie_xvc],
-  AS_HELP_STRING([--enable-xlnx-pcie-xvc], [Enable building support for Xilinx XVC/PCIe.]),
-  [build_xlnx_pcie_xvc=$enableval], [build_xlnx_pcie_xvc=no])
-
 AS_CASE([$host_os],
-  [linux*], [],
+  [linux*], [
+    is_linux=yes
+  ],
   [
     AS_IF([test "x$build_sysfsgpio" = "xyes"], [
       AC_MSG_ERROR([sysfsgpio is only available on linux])
@@ -353,10 +358,6 @@ AS_CASE([$host_os],
 
     AS_IF([test "x$enable_linuxgpiod" = "xyes"], [
       AC_MSG_ERROR([linuxgpiod is only available on linux])
-    ])
-
-    AS_IF([test "x$build_xlnx_pcie_xvc" = "xyes"], [
-      AC_MSG_ERROR([xlnx_pcie_xvc is only available on linux])
     ])
 
     AS_CASE([$host_os], [freebsd*], [],
@@ -619,13 +620,6 @@ AS_IF([test "x$build_sysfsgpio" = "xyes"], [
   AC_DEFINE([BUILD_SYSFSGPIO], [0], [0 if you don't want SysfsGPIO driver.])
 ])
 
-AS_IF([test "x$build_xlnx_pcie_xvc" = "xyes"], [
-  build_xlnx_pcie_xvc=yes
-  AC_DEFINE([BUILD_XLNX_PCIE_XVC], [1], [1 if you want the Xilinx XVC/PCIe driver.])
-], [
-  AC_DEFINE([BUILD_XLNX_PCIE_XVC], [0], [0 if you don't want Xilinx XVC/PCIe driver.])
-])
-
 PKG_CHECK_MODULES([LIBUSB1], [libusb-1.0], [
 	use_libusb1=yes
 	AC_DEFINE([HAVE_LIBUSB1], [1], [Define if you have libusb-1.x])
@@ -687,11 +681,11 @@ PKG_CHECK_MODULES([LIBGPIOD], [libgpiod < 2.0], [
 PKG_CHECK_MODULES([LIBJAYLINK], [libjaylink >= 0.2],
 	[use_libjaylink=yes], [use_libjaylink=no])
 
-# Arg $1: The adapter name, used to derive option and variable names for the adapter.
-# Arg $2: Whether the adapter can be enabled, for example, because
-#         its prerequisites are installed in the system.
+# Arg $1: An array of adapter triplets, used to derive option and variable names for each adapter.
+# Arg $2: Whether the adapters can be enabled, for example, because
+#         their prerequisites are installed in the system.
 # Arg $3: What prerequisites are missing, to be shown in an error message
-#         if the adapter was requested but cannot be enabled.
+#         if an adapter was requested but cannot be enabled.
 m4_define([PROCESS_ADAPTERS], [
   m4_foreach([adapter], [$1], [
 	AS_IF([test $2], [
@@ -702,7 +696,7 @@ m4_define([PROCESS_ADAPTERS], [
 		])
 	], [
 		AS_IF([test "x$ADAPTER_VAR([adapter])" = "xyes"], [
-			AC_MSG_ERROR([$3 is required for the ADAPTER_DESC([adapter])])
+			AC_MSG_ERROR([$3 is required for [adapter] ADAPTER_DESC([adapter]).])
 		])
 		ADAPTER_VAR([adapter])=no
 		AC_DEFINE([BUILD_]ADAPTER_SYM([adapter]), [0], [0 if you do not want the ]ADAPTER_DESC([adapter]).)
@@ -718,6 +712,7 @@ PROCESS_ADAPTERS([LIBFTDI_ADAPTERS], ["x$use_libftdi" = "xyes"], [libftdi])
 PROCESS_ADAPTERS([LIBFTDI_USB1_ADAPTERS], ["x$use_libftdi" = "xyes" -a "x$use_libusb1" = "xyes"], [libftdi and libusb-1.x])
 PROCESS_ADAPTERS([LIBGPIOD_ADAPTERS], ["x$use_libgpiod" = "xyes"], [libgpiod])
 PROCESS_ADAPTERS([LIBJAYLINK_ADAPTERS], ["x$use_internal_libjaylink" = "xyes" -o "x$use_libjaylink" = "xyes"], [libjaylink-0.2])
+PROCESS_ADAPTERS([PCIE_ADAPTERS], ["x$is_linux" = "xyes"], [Linux build])
 PROCESS_ADAPTERS([DUMMY_ADAPTER], [true], [unused])
 
 AS_IF([test "x$enable_linuxgpiod" != "xno"], [
@@ -774,7 +769,6 @@ AM_CONDITIONAL([GW16012], [test "x$build_gw16012" = "xyes"])
 AM_CONDITIONAL([REMOTE_BITBANG], [test "x$build_remote_bitbang" = "xyes"])
 AM_CONDITIONAL([BUSPIRATE], [test "x$enable_buspirate" != "xno"])
 AM_CONDITIONAL([SYSFSGPIO], [test "x$build_sysfsgpio" = "xyes"])
-AM_CONDITIONAL([XLNX_PCIE_XVC], [test "x$build_xlnx_pcie_xvc" = "xyes"])
 AM_CONDITIONAL([USE_LIBUSB1], [test "x$use_libusb1" = "xyes"])
 AM_CONDITIONAL([IS_CYGWIN], [test "x$is_cygwin" = "xyes"])
 AM_CONDITIONAL([IS_MINGW], [test "x$is_mingw" = "xyes"])
