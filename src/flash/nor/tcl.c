@@ -1298,6 +1298,7 @@ COMMAND_HANDLER(handle_flash_bank_command)
 	if (retval != ERROR_OK) {
 		LOG_ERROR("'%s' driver rejected flash bank at " TARGET_ADDR_FMT
 				"; usage: %s", driver_name, c->base, driver->usage);
+		free(c->name);
 		free(c);
 		return retval;
 	}
