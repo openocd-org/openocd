@@ -2997,14 +2997,14 @@ static int handle_target(void *priv)
 				target_call_event_callbacks(target, TARGET_EVENT_GDB_HALT);
 			}
 			if (target->backoff.times > 0) {
-				LOG_USER("Polling target %s failed, trying to reexamine", target_name(target));
+				LOG_TARGET_ERROR(target, "Polling failed, trying to reexamine");
 				target_reset_examined(target);
 				retval = target_examine_one(target);
 				/* Target examination could have failed due to unstable connection,
 				 * but we set the examined flag anyway to repoll it later */
 				if (retval != ERROR_OK) {
 					target_set_examined(target);
-					LOG_USER("Examination failed, GDB will be halted. Polling again in %dms",
+					LOG_TARGET_ERROR(target, "Examination failed, GDB will be halted. Polling again in %dms",
 						 target->backoff.times * polling_interval);
 					return retval;
 				}
@@ -4691,9 +4691,8 @@ void target_handle_event(struct target *target, enum target_event e)
 
 			if (retval != JIM_OK) {
 				Jim_MakeErrorMessage(teap->interp);
-				LOG_USER("Error executing event %s on target %s:\n%s",
+				LOG_TARGET_ERROR(target, "Execution of event %s failed:\n%s",
 						  target_event_name(e),
-						  target_name(target),
 						  Jim_GetString(Jim_GetResult(teap->interp), NULL));
 				/* clean both error code and stacktrace before return */
 				Jim_Eval(teap->interp, "error \"\" \"\"");
