@@ -1067,15 +1067,15 @@ static int gdb_new_connection(struct connection *connection)
 			target_state_name(target));
 
 	if (!target_was_examined(target)) {
-		LOG_ERROR("Target %s not examined yet, refuse gdb connection %d!",
-				  target_name(target), gdb_connection->unique_index);
+		LOG_TARGET_ERROR(target, "Target not examined yet, refuse gdb connection %d!",
+				  gdb_connection->unique_index);
 		return ERROR_TARGET_NOT_EXAMINED;
 	}
 	gdb_actual_connections++;
 
 	if (target->state != TARGET_HALTED)
-		LOG_WARNING("GDB connection %d on target %s not halted",
-					gdb_actual_connections, target_name(target));
+		LOG_TARGET_WARNING(target, "GDB connection %d not halted",
+					gdb_actual_connections);
 
 	/* DANGER! If we fail subsequently, we must remove this handler,
 	 * otherwise we occasionally see crashes as the timer can invoke the
@@ -1102,9 +1102,8 @@ static int gdb_connection_closed(struct connection *connection)
 	log_remove_callback(gdb_log_callback, connection);
 
 	gdb_actual_connections--;
-	LOG_DEBUG("{%d} GDB Close, Target: %s, state: %s, gdb_actual_connections=%d",
+	LOG_TARGET_DEBUG(target, "{%d} GDB Close, state: %s, gdb_actual_connections=%d",
 		gdb_connection->unique_index,
-		target_name(target),
 		target_state_name(target),
 		gdb_actual_connections);
 
@@ -2350,7 +2349,7 @@ static int smp_reg_list_noread(struct target *target,
 					}
 				}
 				if (!found) {
-					LOG_DEBUG("[%s] %s not found in combined list", target_name(target), a->name);
+					LOG_TARGET_DEBUG(target, "%s not found in combined list", a->name);
 					if (local_list_size >= combined_allocated) {
 						combined_allocated *= 2;
 						local_list = realloc(local_list, combined_allocated * sizeof(struct reg *));
@@ -2398,9 +2397,8 @@ static int smp_reg_list_noread(struct target *target,
 				}
 			}
 			if (!found) {
-				LOG_WARNING("Register %s does not exist in %s, which is part of an SMP group where "
-					    "this register does exist.",
-					    a->name, target_name(head->target));
+				LOG_TARGET_WARNING(head->target, "Register %s does not exist, which is part of an SMP group where "
+					    "this register does exist.", a->name);
 			}
 		}
 		free(reg_list);
@@ -3012,17 +3010,17 @@ static bool gdb_handle_vcont_packet(struct connection *connection, const char *p
 	/* simple case, a continue packet */
 	if (parse[0] == 'c') {
 		gdb_running_type = 'c';
-		LOG_DEBUG("target %s continue", target_name(target));
+		LOG_TARGET_DEBUG(target, "target continue");
 		gdb_connection->output_flag = GDB_OUTPUT_ALL;
 		retval = target_resume(target, 1, 0, 0, 0);
 		if (retval == ERROR_TARGET_NOT_HALTED)
-			LOG_INFO("target %s was not halted when resume was requested", target_name(target));
+			LOG_TARGET_INFO(target, "target was not halted when resume was requested");
 
 		/* poll target in an attempt to make its internal state consistent */
 		if (retval != ERROR_OK) {
 			retval = target_poll(target);
 			if (retval != ERROR_OK)
-				LOG_DEBUG("error polling target %s after failed resume", target_name(target));
+				LOG_TARGET_DEBUG(target, "error polling target after failed resume");
 		}
 
 		/*
@@ -3100,7 +3098,7 @@ static bool gdb_handle_vcont_packet(struct connection *connection, const char *p
 			}
 		}
 
-		LOG_DEBUG("target %s single-step thread %"PRIx64, target_name(ct), thread_id);
+		LOG_TARGET_DEBUG(ct, "single-step thread %" PRIx64, thread_id);
 		gdb_connection->output_flag = GDB_OUTPUT_ALL;
 		target_call_event_callbacks(ct, TARGET_EVENT_GDB_START);
 
@@ -3142,13 +3140,13 @@ static bool gdb_handle_vcont_packet(struct connection *connection, const char *p
 
 		retval = target_step(ct, current_pc, 0, 0);
 		if (retval == ERROR_TARGET_NOT_HALTED)
-			LOG_INFO("target %s was not halted when step was requested", target_name(ct));
+			LOG_TARGET_INFO(ct, "target was not halted when step was requested");
 
 		/* if step was successful send a reply back to gdb */
 		if (retval == ERROR_OK) {
 			retval = target_poll(ct);
 			if (retval != ERROR_OK)
-				LOG_DEBUG("error polling target %s after successful step", target_name(ct));
+				LOG_TARGET_DEBUG(ct, "error polling target after successful step");
 			/* send back signal information */
 			gdb_signal_reply(ct, connection);
 			/* stop forwarding log packets! */
@@ -3839,7 +3837,7 @@ static int gdb_target_start(struct target *target, const char *port)
 	if (!gdb_service)
 		return -ENOMEM;
 
-	LOG_INFO("starting gdb server for %s on %s", target_name(target), port);
+	LOG_TARGET_INFO(target, "starting gdb server on %s", port);
 
 	gdb_service->target = target;
 	gdb_service->core[0] = -1;
@@ -3867,20 +3865,20 @@ static int gdb_target_add_one(struct target *target)
 
 	/* skip targets that cannot handle a gdb connections (e.g. mem_ap) */
 	if (!target_supports_gdb_connection(target)) {
-		LOG_DEBUG("skip gdb server for target %s", target_name(target));
+		LOG_TARGET_DEBUG(target, "skip gdb server");
 		return ERROR_OK;
 	}
 
 	if (target->gdb_port_override) {
 		if (strcmp(target->gdb_port_override, "disabled") == 0) {
-			LOG_INFO("gdb port disabled");
+			LOG_TARGET_INFO(target, "gdb port disabled");
 			return ERROR_OK;
 		}
 		return gdb_target_start(target, target->gdb_port_override);
 	}
 
 	if (strcmp(gdb_port_next, "disabled") == 0) {
-		LOG_INFO("gdb port disabled");
+		LOG_TARGET_INFO(target, "gdb port disabled");
 		return ERROR_OK;
 	}
 
