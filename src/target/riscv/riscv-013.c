@@ -4802,31 +4802,19 @@ static int write_memory_bus_v1(struct target *target, target_addr_t address,
 
 		/* Execute the batch of writes */
 		result = batch_run(target, batch);
-		riscv_batch_free(batch);
-		if (result != ERROR_OK)
+		if (result != ERROR_OK) {
+			riscv_batch_free(batch);
 			return result;
+		}
 
-		/* Read sbcs value.
-		 * At the same time, detect if DMI busy has occurred during the batch write. */
-		bool dmi_busy_encountered;
-		if (dm_op(target, &sbcs, &dmi_busy_encountered, DMI_OP_READ,
-				DM_SBCS, 0, false, true) != ERROR_OK)
-			return ERROR_FAIL;
+		bool dmi_busy_encountered = riscv_batch_was_batch_busy(batch);
+		riscv_batch_free(batch);
 		if (dmi_busy_encountered)
 			LOG_TARGET_DEBUG(target, "DMI busy encountered during system bus write.");
 
-		/* Wait until sbbusy goes low */
-		time_t start = time(NULL);
-		while (get_field(sbcs, DM_SBCS_SBBUSY)) {
-			if (time(NULL) - start > riscv_command_timeout_sec) {
-				LOG_TARGET_ERROR(target, "Timed out after %ds waiting for sbbusy to go low (sbcs=0x%x). "
-						  "Increase the timeout with riscv set_command_timeout_sec.",
-						  riscv_command_timeout_sec, sbcs);
-				return ERROR_FAIL;
-			}
-			if (dm_read(target, &sbcs, DM_SBCS) != ERROR_OK)
-				return ERROR_FAIL;
-		}
+		result = read_sbcs_nonbusy(target, &sbcs);
+		if (result != ERROR_OK)
+			return result;
 
 		if (get_field(sbcs, DM_SBCS_SBBUSYERROR)) {
 			/* We wrote while the target was busy. */
