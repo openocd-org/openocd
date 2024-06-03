@@ -87,8 +87,11 @@ static COMMAND_HELPER(handle_jtag_command_drscan_fields, struct scan_field *fiel
 			LOG_ERROR("Out of memory");
 			return ERROR_FAIL;
 		}
+
 		fields[field_count].out_value = t;
-		str_to_buf(CMD_ARGV[i + 1], strlen(CMD_ARGV[i + 1]), t, bits, 0);
+		int ret = CALL_COMMAND_HANDLER(command_parse_str_to_buf, CMD_ARGV[i + 1], t, bits, 0);
+		if (ret != ERROR_OK)
+			return ret;
 		fields[field_count].in_value = t;
 		field_count++;
 	}

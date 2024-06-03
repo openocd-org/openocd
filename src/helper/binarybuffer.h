@@ -14,6 +14,9 @@
 #include <helper/list.h>
 #include <helper/types.h>
 
+#define ERROR_INVALID_NUMBER         (-1700)
+#define ERROR_NUMBER_EXCEEDS_BUFFER  (-1701)
+
 /** @file
  * Support functions to access arbitrary bits in a byte array
  */
@@ -189,8 +192,18 @@ void *buf_set_ones(void *buf, unsigned size);
 void *buf_set_buf(const void *src, unsigned src_start,
 		  void *dst, unsigned dst_start, unsigned len);
 
-int str_to_buf(const char *str, unsigned len,
-		void *bin_buf, unsigned buf_size, unsigned radix);
+/**
+ * Parse an unsigned number (provided as a zero-terminated string)
+ * into a bit buffer whose size is buf_len bits.
+ * @param str Input number, zero-terminated string
+ * @param _buf Output buffer, allocated by the caller
+ * @param buf_len Output buffer size in bits
+ * @param radix Base of the input number - 16, 10, 8 or 0.
+ *              0 means auto-detect the radix.
+ */
+int str_to_buf(const char *str, void *_buf, unsigned int buf_len,
+	unsigned int radix, unsigned int *_detected_radix);
+
 char *buf_to_hex_str(const void *buf, unsigned size);
 
 /* read a uint32_t from a buffer in target memory endianness */

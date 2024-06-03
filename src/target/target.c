@@ -3128,11 +3128,18 @@ COMMAND_HANDLER(handle_reg_command)
 	/* set register value */
 	if (CMD_ARGC == 2) {
 		uint8_t *buf = malloc(DIV_ROUND_UP(reg->size, 8));
-		if (!buf)
+		if (!buf) {
+			LOG_ERROR("Failed to allocate memory");
 			return ERROR_FAIL;
-		str_to_buf(CMD_ARGV[1], strlen(CMD_ARGV[1]), buf, reg->size, 0);
+		}
 
-		int retval = reg->type->set(reg, buf);
+		int retval = CALL_COMMAND_HANDLER(command_parse_str_to_buf, CMD_ARGV[1], buf, reg->size, 0);
+		if (retval != ERROR_OK) {
+			free(buf);
+			return retval;
+		}
+
+		retval = reg->type->set(reg, buf);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("Could not write to register '%s'", reg->name);
 		} else {
@@ -4788,63 +4795,64 @@ static int target_jim_get_reg(Jim_Interp *interp, int argc,
 	return JIM_OK;
 }
 
-static int target_jim_set_reg(Jim_Interp *interp, int argc,
-		Jim_Obj * const *argv)
+COMMAND_HANDLER(handle_set_reg_command)
 {
-	if (argc != 2) {
-		Jim_WrongNumArgs(interp, 1, argv, "dict");
-		return JIM_ERR;
-	}
+	if (CMD_ARGC != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	int tmp;
 #if JIM_VERSION >= 80
-	Jim_Obj **dict = Jim_DictPairs(interp, argv[1], &tmp);
+	Jim_Obj **dict = Jim_DictPairs(CMD_CTX->interp, CMD_JIMTCL_ARGV[0], &tmp);
 
 	if (!dict)
-		return JIM_ERR;
+		return ERROR_FAIL;
 #else
 	Jim_Obj **dict;
-	int ret = Jim_DictPairs(interp, argv[1], &dict, &tmp);
+	int ret = Jim_DictPairs(CMD_CTX->interp, CMD_JIMTCL_ARGV[0], &dict, &tmp);
 
 	if (ret != JIM_OK)
-		return ret;
+		return ERROR_FAIL;
 #endif
 
 	const unsigned int length = tmp;
-	struct command_context *cmd_ctx = current_command_context(interp);
-	assert(cmd_ctx);
-	const struct target *target = get_current_target(cmd_ctx);
+
+	const struct target *target = get_current_target(CMD_CTX);
+	assert(target);
 
 	for (unsigned int i = 0; i < length; i += 2) {
 		const char *reg_name = Jim_String(dict[i]);
 		const char *reg_value = Jim_String(dict[i + 1]);
-		struct reg *reg = register_get_by_name(target->reg_cache, reg_name,
-			false);
+		struct reg *reg = register_get_by_name(target->reg_cache, reg_name, false);
 
 		if (!reg || !reg->exist) {
-			Jim_SetResultFormatted(interp, "unknown register '%s'", reg_name);
-			return JIM_ERR;
+			command_print(CMD, "unknown register '%s'", reg_name);
+			return ERROR_FAIL;
 		}
 
 		uint8_t *buf = malloc(DIV_ROUND_UP(reg->size, 8));
-
 		if (!buf) {
 			LOG_ERROR("Failed to allocate memory");
-			return JIM_ERR;
+			return ERROR_FAIL;
 		}
 
-		str_to_buf(reg_value, strlen(reg_value), buf, reg->size, 0);
-		int retval = reg->type->set(reg, buf);
+		int retval = CALL_COMMAND_HANDLER(command_parse_str_to_buf,
+			reg_value, buf, reg->size, 0);
+		if (retval != ERROR_OK) {
+			free(buf);
+			return retval;
+		}
+
+		retval = reg->type->set(reg, buf);
 		free(buf);
 
 		if (retval != ERROR_OK) {
-			Jim_SetResultFormatted(interp, "failed to set '%s' to register '%s'",
+			command_print(CMD, "failed to set '%s' to register '%s'",
 				reg_value, reg_name);
-			return JIM_ERR;
+			return retval;
 		}
 	}
 
-	return JIM_OK;
+	return ERROR_OK;
 }
 
 /**
@@ -5584,7 +5592,7 @@ static const struct command_registration target_instance_command_handlers[] = {
 	{
 		.name = "set_reg",
 		.mode = COMMAND_EXEC,
-		.jim_handler = target_jim_set_reg,
+		.handler = handle_set_reg_command,
 		.help = "Set target register values",
 		.usage = "dict",
 	},
@@ -6719,7 +6727,7 @@ static const struct command_registration target_exec_command_handlers[] = {
 	{
 		.name = "set_reg",
 		.mode = COMMAND_EXEC,
-		.jim_handler = target_jim_set_reg,
+		.handler = handle_set_reg_command,
 		.help = "Set target register values",
 		.usage = "dict",
 	},
