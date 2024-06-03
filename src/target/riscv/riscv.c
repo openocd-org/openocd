@@ -140,10 +140,15 @@ struct tdata1_cache {
 };
 
 /* Wall-clock timeout for a command/access. Settable via RISC-V Target commands.*/
-int riscv_command_timeout_sec = DEFAULT_COMMAND_TIMEOUT_SEC;
+static int riscv_command_timeout_sec_value = DEFAULT_COMMAND_TIMEOUT_SEC;
 
-/* Wall-clock timeout after reset. Settable via RISC-V Target commands.*/
-int riscv_reset_timeout_sec = DEFAULT_RESET_TIMEOUT_SEC;
+/* DEPRECATED Wall-clock timeout after reset. Settable via RISC-V Target commands.*/
+static int riscv_reset_timeout_sec = DEFAULT_COMMAND_TIMEOUT_SEC;
+
+int riscv_get_command_timeout_sec(void)
+{
+	return MAX(riscv_command_timeout_sec_value, riscv_reset_timeout_sec);
+}
 
 static bool riscv_enable_virt2phys = true;
 
@@ -3853,13 +3858,14 @@ COMMAND_HANDLER(riscv_set_command_timeout_sec)
 		return ERROR_FAIL;
 	}
 
-	riscv_command_timeout_sec = timeout;
+	riscv_command_timeout_sec_value = timeout;
 
 	return ERROR_OK;
 }
 
 COMMAND_HANDLER(riscv_set_reset_timeout_sec)
 {
+	LOG_WARNING("The command 'riscv set_reset_timeout_sec' is deprecated! Please, use 'riscv set_command_timeout_sec'.");
 	if (CMD_ARGC != 1) {
 		LOG_ERROR("Command takes exactly 1 parameter.");
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -5066,7 +5072,7 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.handler = riscv_set_reset_timeout_sec,
 		.mode = COMMAND_ANY,
 		.usage = "[sec]",
-		.help = "Set the wall-clock timeout (in seconds) after reset is deasserted"
+		.help = "DEPRECATED. Use 'riscv set_command_timeout_sec' instead."
 	},
 	{
 		.name = "set_mem_access",

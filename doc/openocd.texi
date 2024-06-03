@@ -11290,11 +11290,6 @@ Set the wall-clock timeout (in seconds) for individual commands. The default
 should work fine for all but the slowest targets (eg. simulators).
 @end deffn
 
-@deffn {Command} {riscv set_reset_timeout_sec} [seconds]
-Set the maximum time to wait for a hart to come out of reset after reset is
-deasserted.
-@end deffn
-
 @deffn {Command} {riscv set_mem_access} method1 [method2] [method3]
 Specify which RISC-V memory access method(s) shall be used, and in which order
 of priority. At least one method must be specified.
