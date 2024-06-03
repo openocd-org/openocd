@@ -190,14 +190,32 @@ int riscv_batch_run_from(struct riscv_batch *batch, size_t start_idx,
 size_t riscv_batch_finished_scans(const struct riscv_batch *batch);
 
 /* Adds a DM register write to this batch. */
-void riscv_batch_add_dm_write(struct riscv_batch *batch, uint64_t address, uint32_t data,
+void riscv_batch_add_dmi_write(struct riscv_batch *batch, uint64_t address, uint32_t data,
 	bool read_back, enum riscv_scan_delay_class delay_class);
+
+static inline void
+riscv_batch_add_dm_write(struct riscv_batch *batch, uint64_t address, uint32_t data,
+	bool read_back, enum riscv_scan_delay_class delay_type)
+{
+	return riscv_batch_add_dmi_write(batch,
+			riscv_get_dmi_address(batch->target, address), data,
+			read_back, delay_type);
+}
 
 /* DM register reads must be handled in two parts: the first one schedules a read and
  * provides a key, the second one actually obtains the result of the read -
  * status (op) and the actual data. */
-size_t riscv_batch_add_dm_read(struct riscv_batch *batch, uint64_t address,
+size_t riscv_batch_add_dmi_read(struct riscv_batch *batch, uint64_t address,
 		enum riscv_scan_delay_class delay_class);
+
+static inline size_t
+riscv_batch_add_dm_read(struct riscv_batch *batch, uint64_t address,
+		enum riscv_scan_delay_class delay_type)
+{
+	return riscv_batch_add_dmi_read(batch,
+			riscv_get_dmi_address(batch->target, address), delay_type);
+}
+
 unsigned int riscv_batch_get_dmi_read_op(const struct riscv_batch *batch, size_t key);
 uint32_t riscv_batch_get_dmi_read_data(const struct riscv_batch *batch, size_t key);
 
@@ -213,7 +231,7 @@ bool riscv_batch_was_batch_busy(const struct riscv_batch *batch);
 /* TODO: The function is defined in `riscv-013.c`. This is done to reduce the
  * diff of the commit. The intention is to move the function definition to
  * a separate module (e.g. `riscv013-jtag-dtm.c/h`) in another commit. */
-void riscv_log_dmi_scan(const struct target *target, int idle, const struct scan_field *field,
-		bool discard_in);
+void riscv_log_dmi_scan(const struct target *target, int idle,
+		const struct scan_field *field);
 
 #endif

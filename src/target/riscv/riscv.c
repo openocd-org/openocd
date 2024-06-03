@@ -5587,16 +5587,16 @@ int riscv_execute_progbuf(struct target *target, uint32_t *cmderr)
 	return r->execute_progbuf(target, cmderr);
 }
 
-void riscv_fill_dm_write(struct target *target, char *buf, uint64_t a, uint32_t d)
+void riscv_fill_dmi_write(struct target *target, char *buf, uint64_t a, uint32_t d)
 {
 	RISCV_INFO(r);
-	r->fill_dm_write(target, buf, a, d);
+	r->fill_dmi_write(target, buf, a, d);
 }
 
-void riscv_fill_dm_read(struct target *target, char *buf, uint64_t a)
+void riscv_fill_dmi_read(struct target *target, char *buf, uint64_t a)
 {
 	RISCV_INFO(r);
-	r->fill_dm_read(target, buf, a);
+	r->fill_dmi_read(target, buf, a);
 }
 
 void riscv_fill_dm_nop(struct target *target, char *buf)

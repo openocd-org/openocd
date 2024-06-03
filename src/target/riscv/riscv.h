@@ -226,8 +226,8 @@ struct riscv_info {
 	int (*execute_progbuf)(struct target *target, uint32_t *cmderr);
 	int (*invalidate_cached_progbuf)(struct target *target);
 	int (*get_dmi_scan_length)(struct target *target);
-	void (*fill_dm_write)(struct target *target, char *buf, uint64_t a, uint32_t d);
-	void (*fill_dm_read)(struct target *target, char *buf, uint64_t a);
+	void (*fill_dmi_write)(struct target *target, char *buf, uint64_t a, uint32_t d);
+	void (*fill_dmi_read)(struct target *target, char *buf, uint64_t a);
 	void (*fill_dm_nop)(struct target *target, char *buf);
 
 	int (*authdata_read)(struct target *target, uint32_t *value, unsigned int index);
@@ -408,8 +408,8 @@ int riscv_write_progbuf(struct target *target, int index, riscv_insn_t insn);
 int riscv_execute_progbuf(struct target *target, uint32_t *cmderr);
 
 void riscv_fill_dm_nop(struct target *target, char *buf);
-void riscv_fill_dm_write(struct target *target, char *buf, uint64_t a, uint32_t d);
-void riscv_fill_dm_read(struct target *target, char *buf, uint64_t a);
+void riscv_fill_dmi_write(struct target *target, char *buf, uint64_t a, uint32_t d);
+void riscv_fill_dmi_read(struct target *target, char *buf, uint64_t a);
 int riscv_get_dmi_scan_length(struct target *target);
 
 uint32_t riscv_get_dmi_address(const struct target *target, uint32_t dm_address);

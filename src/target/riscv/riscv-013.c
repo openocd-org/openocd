@@ -56,10 +56,7 @@ static int riscv013_invalidate_cached_progbuf(struct target *target);
 static int riscv013_execute_progbuf(struct target *target, uint32_t *cmderr);
 static void riscv013_fill_dmi_write(struct target *target, char *buf, uint64_t a, uint32_t d);
 static void riscv013_fill_dmi_read(struct target *target, char *buf, uint64_t a);
-static void riscv013_fill_dmi_nop(struct target *target, char *buf);
 static int riscv013_get_dmi_scan_length(struct target *target);
-static void riscv013_fill_dm_write(struct target *target, char *buf, uint64_t a, uint32_t d);
-static void riscv013_fill_dm_read(struct target *target, char *buf, uint64_t a);
 static void riscv013_fill_dm_nop(struct target *target, char *buf);
 static unsigned int register_size(struct target *target, enum gdb_regno number);
 static int register_read_direct(struct target *target, riscv_reg_t *value,
@@ -376,7 +373,9 @@ static unsigned int decode_dmi(const struct target *target, char *text, uint32_t
 	return 0;
 }
 
-void riscv_log_dmi_scan(const struct target *target, int idle, const struct scan_field *field, bool discard_in)
+/* TODO: Move this function to "batch.c" and make it static. */
+void riscv_log_dmi_scan(const struct target *target, int idle,
+		const struct scan_field *field)
 {
 	static const char * const op_string[] = {"-", "r", "w", "?"};
 	static const char * const status_string[] = {"+", "?", "F", "b"};
@@ -400,7 +399,7 @@ void riscv_log_dmi_scan(const struct target *target, int idle, const struct scan
 				field->num_bits, op_string[out_op], out_data, out_address,
 				status_string[in_op], in_data, in_address, idle);
 
-		if (!discard_in && in_op == DTM_DMI_OP_SUCCESS) {
+		if (in_op == DTM_DMI_OP_SUCCESS) {
 			char in_decoded[decode_dmi(target, NULL, in_address, in_data) + 1];
 			decode_dmi(target, in_decoded, in_address, in_data);
 			/* FIXME: The current code assumes that the hardware
@@ -506,220 +505,6 @@ static void decrement_reset_delays_counter(struct target *target, size_t finishe
 			"resetting learned delays (reset_delays_wait counter expired)");
 	reset_learned_delays(target);
 }
-/**
- * exec: If this is set, assume the scan results in an execution, so more
- * run-test/idle cycles may be required.
- */
-static dmi_status_t dmi_scan(struct target *target, uint32_t *address_in,
-		uint32_t *data_in, dmi_op_t op, uint32_t address_out, uint32_t data_out,
-		bool exec)
-{
-	riscv013_info_t *info = get_info(target);
-	unsigned num_bits = info->abits + DTM_DMI_OP_LENGTH + DTM_DMI_DATA_LENGTH;
-	size_t num_bytes = (num_bits + 7) / 8;
-	uint8_t in[num_bytes];
-	uint8_t out[num_bytes];
-	struct scan_field field = {
-		.num_bits = num_bits,
-		.out_value = out,
-		.in_value = in
-	};
-	riscv_bscan_tunneled_scan_context_t bscan_ctxt;
-
-	decrement_reset_delays_counter(target, 1);
-
-	memset(in, 0, num_bytes);
-	memset(out, 0, num_bytes);
-
-	if (info->abits == 0) {
-		LOG_TARGET_ERROR(target, "Can't access DMI because addrbits=0.");
-		return DMI_STATUS_FAILED;
-	}
-
-	buf_set_u32(out, DTM_DMI_OP_OFFSET, DTM_DMI_OP_LENGTH, op);
-	buf_set_u32(out, DTM_DMI_DATA_OFFSET, DTM_DMI_DATA_LENGTH, data_out);
-	buf_set_u32(out, DTM_DMI_ADDRESS_OFFSET, info->abits, address_out);
-
-	/* I wanted to place this code in a different function, but the way JTAG command
-	   queueing works in the jtag handling functions, the scan fields either have to be
-	   heap allocated, global/static, or else they need to stay on the stack until
-	   the jtag_execute_queue() call.  Heap or static fields in this case doesn't seem
-	   the best fit.  Declaring stack based field values in a subsidiary function call wouldn't
-	   work. */
-	if (bscan_tunnel_ir_width != 0) {
-		riscv_add_bscan_tunneled_scan(target, &field, &bscan_ctxt);
-	} else {
-		/* Assume dbus is already selected. */
-		jtag_add_dr_scan(target->tap, 1, &field, TAP_IDLE);
-	}
-
-	int idle_count = exec
-		? riscv_scan_get_delay(&info->learned_delays, RISCV_DELAY_ABSTRACT_COMMAND)
-		: riscv_scan_get_delay(&info->learned_delays, RISCV_DELAY_BASE);
-
-	if (idle_count)
-		jtag_add_runtest(idle_count, TAP_IDLE);
-
-	int retval = jtag_execute_queue();
-	if (retval != ERROR_OK) {
-		LOG_ERROR("dmi_scan failed jtag scan");
-		if (data_in)
-			*data_in = ~0;
-		return DMI_STATUS_FAILED;
-	}
-
-	if (bscan_tunnel_ir_width != 0) {
-		/* need to right-shift "in" by one bit, because of clock skew between BSCAN TAP and DM TAP */
-		buffer_shr(in, num_bytes, 1);
-	}
-
-	if (data_in)
-		*data_in = buf_get_u32(in, DTM_DMI_DATA_OFFSET, DTM_DMI_DATA_LENGTH);
-
-	if (address_in)
-		*address_in = buf_get_u32(in, DTM_DMI_ADDRESS_OFFSET, info->abits);
-	riscv_log_dmi_scan(target, idle_count, &field, /*discard_in*/ !data_in);
-	return buf_get_u32(in, DTM_DMI_OP_OFFSET, DTM_DMI_OP_LENGTH);
-}
-
-/**
- * @param target
- * @param data_in  The data we received from the target.
- * @param dmi_busy_encountered
- *                 If non-NULL, will be updated to reflect whether DMI busy was
- *                 encountered while executing this operation or not.
- * @param op       The operation to perform (read/write/nop).
- * @param address  The address argument to that operation.
- * @param data_out The data to send to the target.
- * @param timeout_sec
- * @param exec     When true, this scan will execute something, so extra RTI
- *                 cycles may be added.
- * @param ensure_success
- *                 Scan a nop after the requested operation, ensuring the
- *                 DMI operation succeeded.
- */
-static int dmi_op_timeout(struct target *target, uint32_t *data_in,
-		bool *dmi_busy_encountered, int op, uint32_t address,
-		uint32_t data_out, int timeout_sec, bool exec, bool ensure_success)
-{
-	select_dmi(target);
-
-	dmi_status_t status;
-
-	if (dmi_busy_encountered)
-		*dmi_busy_encountered = false;
-
-	const char *op_name;
-	switch (op) {
-		case DMI_OP_NOP:
-			op_name = "nop";
-			break;
-		case DMI_OP_READ:
-			op_name = "read";
-			break;
-		case DMI_OP_WRITE:
-			op_name = "write";
-			break;
-		default:
-			LOG_ERROR("Invalid DMI operation: %d", op);
-			return ERROR_FAIL;
-	}
-
-	keep_alive();
-
-	time_t start = time(NULL);
-	/* This first loop performs the request.  Note that if for some reason this
-	 * stays busy, it is actually due to the previous access. */
-	while (1) {
-		status = dmi_scan(target, NULL, NULL, op, address, data_out,
-				exec);
-		if (status == DMI_STATUS_BUSY) {
-			int result = increase_dmi_busy_delay(target);
-			if (result != ERROR_OK)
-				return result;
-			if (dmi_busy_encountered)
-				*dmi_busy_encountered = true;
-		} else if (status == DMI_STATUS_SUCCESS) {
-			break;
-		} else {
-			dtmcontrol_scan(target, DTM_DTMCS_DMIRESET, NULL /* discard result */);
-			break;
-		}
-		if (time(NULL) - start > timeout_sec)
-			return ERROR_TIMEOUT_REACHED;
-	}
-
-	if (status != DMI_STATUS_SUCCESS) {
-		LOG_TARGET_ERROR(target, "Failed DMI %s at 0x%x; status=%d", op_name, address, status);
-		return ERROR_FAIL;
-	}
-
-	if (ensure_success) {
-		/* This second loop ensures the request succeeded, and gets back data.
-		 * Note that NOP can result in a 'busy' result as well, but that would be
-		 * noticed on the next DMI access we do. */
-		while (1) {
-			status = dmi_scan(target, NULL, data_in, DMI_OP_NOP, address, 0,
-					false);
-			if (status == DMI_STATUS_BUSY) {
-				int result = increase_dmi_busy_delay(target);
-				if (result != ERROR_OK)
-					return result;
-				if (dmi_busy_encountered)
-					*dmi_busy_encountered = true;
-			} else if (status == DMI_STATUS_SUCCESS) {
-				break;
-			} else {
-				if (data_in) {
-					LOG_TARGET_ERROR(target,
-							"Failed DMI %s (NOP) at 0x%x; value=0x%x, status=%d",
-							op_name, address, *data_in, status);
-				} else {
-					LOG_TARGET_ERROR(target,
-							"Failed DMI %s (NOP) at 0x%x; status=%d", op_name, address,
-							status);
-				}
-				dtmcontrol_scan(target, DTM_DTMCS_DMIRESET, NULL /* discard result */);
-				return ERROR_FAIL;
-			}
-			if (time(NULL) - start > timeout_sec)
-				return ERROR_TIMEOUT_REACHED;
-		}
-	}
-
-	return ERROR_OK;
-}
-
-static int dmi_op(struct target *target, uint32_t *data_in,
-		bool *dmi_busy_encountered, int op, uint32_t address,
-		uint32_t data_out, bool exec, bool ensure_success)
-{
-	int result = dmi_op_timeout(target, data_in, dmi_busy_encountered, op,
-			address, data_out, riscv_get_command_timeout_sec(), exec, ensure_success);
-	if (result == ERROR_TIMEOUT_REACHED) {
-		LOG_TARGET_ERROR(target, "DMI operation didn't complete in %d seconds. The target is "
-				"either really slow or broken. You could increase the "
-				"timeout with riscv set_command_timeout_sec.",
-				riscv_get_command_timeout_sec());
-		return ERROR_FAIL;
-	}
-	return result;
-}
-
-static int dmi_read(struct target *target, uint32_t *value, uint32_t address)
-{
-	return dmi_op(target, value, NULL, DMI_OP_READ, address, 0, false, true);
-}
-
-static int dmi_read_exec(struct target *target, uint32_t *value, uint32_t address)
-{
-	return dmi_op(target, value, NULL, DMI_OP_READ, address, 0, true, true);
-}
-
-static int dmi_write(struct target *target, uint32_t address, uint32_t value)
-{
-	return dmi_op(target, NULL, NULL, DMI_OP_WRITE, address, value, false, true);
-}
 
 static uint32_t riscv013_get_dmi_address(const struct target *target, uint32_t address)
 {
@@ -731,12 +516,22 @@ static uint32_t riscv013_get_dmi_address(const struct target *target, uint32_t a
 	return address + base;
 }
 
+static int batch_run_timeout(struct target *target, struct riscv_batch *batch);
+
+static int dmi_read(struct target *target, uint32_t *value, uint32_t address)
+{
+	struct riscv_batch *batch = riscv_batch_alloc(target, 1);
+	riscv_batch_add_dmi_read(batch, address, RISCV_DELAY_BASE);
+	int res = batch_run_timeout(target, batch);
+	if (res == ERROR_OK && value)
+		*value = riscv_batch_get_dmi_read_data(batch, 0);
+	riscv_batch_free(batch);
+	return res;
+}
+
 static int dm_read(struct target *target, uint32_t *value, uint32_t address)
 {
-	dm013_info_t *dm = get_dm(target);
-	if (!dm)
-		return ERROR_FAIL;
-	return dmi_read(target, value, address + dm->base);
+	return dmi_read(target, value, riscv013_get_dmi_address(target, address));
 }
 
 static int dm_read_exec(struct target *target, uint32_t *value, uint32_t address)
@@ -744,16 +539,29 @@ static int dm_read_exec(struct target *target, uint32_t *value, uint32_t address
 	dm013_info_t *dm = get_dm(target);
 	if (!dm)
 		return ERROR_FAIL;
+	struct riscv_batch *batch = riscv_batch_alloc(target, 1);
+	riscv_batch_add_dm_read(batch, address, RISCV_DELAY_ABSTRACT_COMMAND);
 	dm->abstract_cmd_maybe_busy = true;
-	return dmi_read_exec(target, value, address + dm->base);
+	int res = batch_run_timeout(target, batch);
+	if (res == ERROR_OK && value)
+		*value = riscv_batch_get_dmi_read_data(batch, 0);
+	riscv_batch_free(batch);
+	return res;
+}
+
+static int dmi_write(struct target *target, uint32_t address, uint32_t value)
+{
+	struct riscv_batch *batch = riscv_batch_alloc(target, 1);
+	riscv_batch_add_dmi_write(batch, address, value, /*read_back*/ true,
+			RISCV_DELAY_BASE);
+	int res = batch_run_timeout(target, batch);
+	riscv_batch_free(batch);
+	return res;
 }
 
 static int dm_write(struct target *target, uint32_t address, uint32_t value)
 {
-	dm013_info_t *dm = get_dm(target);
-	if (!dm)
-		return ERROR_FAIL;
-	return dmi_write(target, address + dm->base, value);
+	return dmi_write(target, riscv013_get_dmi_address(target, address), value);
 }
 
 static bool check_dbgbase_exists(struct target *target)
@@ -918,8 +726,6 @@ clear_cmderr:
 		LOG_TARGET_ERROR(target, "could not clear abstractcs error");
 	return res;
 }
-
-static int batch_run_timeout(struct target *target, struct riscv_batch *batch);
 
 static int execute_abstract_command(struct target *target, uint32_t command,
 		uint32_t *cmderr)
@@ -3095,8 +2901,8 @@ static int init_target(struct command_context *cmd_ctx,
 	generic_info->write_progbuf = &riscv013_write_progbuf;
 	generic_info->execute_progbuf = &riscv013_execute_progbuf;
 	generic_info->invalidate_cached_progbuf = &riscv013_invalidate_cached_progbuf;
-	generic_info->fill_dm_write = &riscv013_fill_dm_write;
-	generic_info->fill_dm_read = &riscv013_fill_dm_read;
+	generic_info->fill_dmi_write = &riscv013_fill_dmi_write;
+	generic_info->fill_dmi_read = &riscv013_fill_dmi_read;
 	generic_info->fill_dm_nop = &riscv013_fill_dm_nop;
 	generic_info->get_dmi_scan_length = &riscv013_get_dmi_scan_length;
 	generic_info->authdata_read = &riscv013_authdata_read;
@@ -5533,7 +5339,7 @@ static void riscv013_fill_dmi_read(struct target *target, char *buf, uint64_t a)
 	buf_set_u64((unsigned char *)buf, DTM_DMI_ADDRESS_OFFSET, info->abits, a);
 }
 
-static void riscv013_fill_dmi_nop(struct target *target, char *buf)
+static void riscv013_fill_dm_nop(struct target *target, char *buf)
 {
 	RISCV013_INFO(info);
 	buf_set_u64((unsigned char *)buf, DTM_DMI_OP_OFFSET, DTM_DMI_OP_LENGTH, DMI_OP_NOP);
@@ -5545,27 +5351,6 @@ static int riscv013_get_dmi_scan_length(struct target *target)
 {
 	RISCV013_INFO(info);
 	return info->abits + DTM_DMI_DATA_LENGTH + DTM_DMI_OP_LENGTH;
-}
-
-void riscv013_fill_dm_write(struct target *target, char *buf, uint64_t a, uint32_t d)
-{
-	dm013_info_t *dm = get_dm(target);
-	if (!dm)
-		return;
-	riscv013_fill_dmi_write(target, buf, a + dm->base, d);
-}
-
-void riscv013_fill_dm_read(struct target *target, char *buf, uint64_t a)
-{
-	dm013_info_t *dm = get_dm(target);
-	if (!dm)
-		return;
-	riscv013_fill_dmi_read(target, buf, a + dm->base);
-}
-
-void riscv013_fill_dm_nop(struct target *target, char *buf)
-{
-	riscv013_fill_dmi_nop(target, buf);
 }
 
 static int maybe_execute_fence_i(struct target *target)
