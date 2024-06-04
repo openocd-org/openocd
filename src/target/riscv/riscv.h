@@ -159,11 +159,11 @@ struct riscv_info {
 	 * >= 0: unique_id of the breakpoint/watchpoint that is using it.
 	 * Note that in RTOS mode the triggers are the same across all harts the
 	 * target controls, while otherwise only a single hart is controlled. */
-	int trigger_unique_id[RISCV_MAX_HWBPS];
+	int64_t trigger_unique_id[RISCV_MAX_HWBPS];
 
 	/* The unique id of the trigger that caused the most recent halt. If the
 	 * most recent halt was not caused by a trigger, then this is -1. */
-	uint32_t trigger_hit;
+	int64_t trigger_hit;
 
 	/* The number of entries in the program buffer. */
 	int progbuf_size;
