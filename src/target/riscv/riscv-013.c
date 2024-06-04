@@ -101,12 +101,6 @@ typedef enum {
 	DMI_STATUS_BUSY = DTM_DMI_OP_BUSY
 } dmi_status_t;
 
-typedef enum slot {
-	SLOT0,
-	SLOT1,
-	SLOT_LAST,
-} slot_t;
-
 /*** Debug Bus registers. ***/
 
 /* TODO: CMDERR_* defines can removed */
