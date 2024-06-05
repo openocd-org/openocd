@@ -294,3 +294,25 @@ proc "mips_m4k smp_off" {args} {
 	echo "DEPRECATED! use 'mips_m4k smp off' not 'mips_m4k smp_off'"
 	eval mips_m4k smp off $args
 }
+
+lappend _telnet_autocomplete_skip _post_init_target_cortex_a_cache_auto
+proc _post_init_target_cortex_a_cache_auto {} {
+	set cortex_a_found 0
+
+	foreach t [target names] {
+		if { [$t cget -type] != "cortex_a" } { continue }
+		set cortex_a_found 1
+		lappend ::_telnet_autocomplete_skip "$t cache auto"
+		proc "$t cache auto" { enable } {
+			echo "DEPRECATED! Don't use anymore '[dict get [info frame 0] proc] $enable' as it's always enabled"
+		}
+	}
+
+	if { $cortex_a_found } {
+		lappend ::_telnet_autocomplete_skip "cache auto"
+		proc "cache auto" { enable } {
+			echo "DEPRECATED! Don't use anymore 'cache auto $enable' as it's always enabled"
+		}
+	}
+}
+lappend post_init_commands _post_init_target_cortex_a_cache_auto

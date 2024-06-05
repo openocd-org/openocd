@@ -18,7 +18,6 @@
 #include "target/target.h"
 #include "target/cortex_m.h"
 #include "target/breakpoints.h"
-#include "target/target_type.h"
 #include "target/algorithm.h"
 
 /**************************************************************************************************

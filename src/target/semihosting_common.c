@@ -1802,10 +1802,8 @@ static int semihosting_service_input_handler(struct connection *connection)
 static int semihosting_service_connection_closed_handler(struct connection *connection)
 {
 	struct semihosting_tcp_service *service = connection->service->priv;
-	if (service) {
+	if (service)
 		free(service->name);
-		free(service);
-	}
 
 	return ERROR_OK;
 }

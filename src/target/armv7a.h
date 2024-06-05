@@ -65,8 +65,6 @@ struct armv7a_cache_common {
 	struct armv7a_arch_cache arch[6];	/* cache info, L1 - L7 */
 	int i_cache_enabled;
 	int d_u_cache_enabled;
-	int auto_cache_enabled;			/* openocd automatic
-						 * cache handling */
 	/* outer unified cache if some */
 	void *outer_cache;
 	int (*flush_all_data_cache)(struct target *target);

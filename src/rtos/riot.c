@@ -12,7 +12,6 @@
 #include <helper/time_support.h>
 #include <jtag/jtag.h>
 #include "target/target.h"
-#include "target/target_type.h"
 #include "rtos.h"
 #include "helper/log.h"
 #include "helper/types.h"
@@ -391,7 +390,7 @@ static int riot_create(struct target *target)
 
 	/* lookup if target is supported by RIOT */
 	while ((i < RIOT_NUM_PARAMS) &&
-		(strcmp(riot_params_list[i].target_name, target->type->name) != 0)) {
+		(strcmp(riot_params_list[i].target_name, target_type_name(target)) != 0)) {
 		i++;
 	}
 	if (i >= RIOT_NUM_PARAMS) {

@@ -40,7 +40,6 @@
 
 /* START_DEPRECATED_TPIU */
 #include <target/cortex_m.h>
-#include <target/target_type.h>
 #define MSG "DEPRECATED \'tpiu config\' command: "
 /* END_DEPRECATED_TPIU */
 
@@ -153,7 +152,7 @@ static int arm_tpiu_swo_poll_trace(void *priv)
 		}
 	}
 
-	if (obj->out_filename && obj->out_filename[0] == ':')
+	if (obj->out_filename[0] == ':')
 		list_for_each_entry(c, &obj->connections, lh)
 			if (connection_write(c->connection, buf, size) != (int)size)
 				LOG_ERROR("Error writing to connection"); /* FIXME: which connection? */
@@ -161,7 +160,7 @@ static int arm_tpiu_swo_poll_trace(void *priv)
 	return ERROR_OK;
 }
 
-static void arm_tpiu_swo_handle_event(struct arm_tpiu_swo_object *obj, enum arm_tpiu_swo_event event)
+static int arm_tpiu_swo_handle_event(struct arm_tpiu_swo_object *obj, enum arm_tpiu_swo_event event)
 {
 	for (struct arm_tpiu_swo_event_action *ea = obj->event_action; ea; ea = ea->next) {
 		if (ea->event != event)
@@ -182,7 +181,7 @@ static void arm_tpiu_swo_handle_event(struct arm_tpiu_swo_object *obj, enum arm_
 		if (retval == JIM_RETURN)
 			retval = ea->interp->returnCode;
 		if (retval == JIM_OK || retval == ERROR_COMMAND_CLOSE_CONNECTION)
-			return;
+			return ERROR_OK;
 
 		Jim_MakeErrorMessage(ea->interp);
 		LOG_USER("Error executing event %s on TPIU/SWO %s:\n%s",
@@ -191,8 +190,10 @@ static void arm_tpiu_swo_handle_event(struct arm_tpiu_swo_object *obj, enum arm_
 			Jim_GetString(Jim_GetResult(ea->interp), NULL));
 		/* clean both error code and stacktrace before return */
 		Jim_Eval(ea->interp, "error \"\" \"\"");
-		return;
+		return ERROR_FAIL;
 	}
+
+	return ERROR_OK;
 }
 
 static void arm_tpiu_swo_close_output(struct arm_tpiu_swo_object *obj)
@@ -201,7 +202,7 @@ static void arm_tpiu_swo_close_output(struct arm_tpiu_swo_object *obj)
 		fclose(obj->file);
 		obj->file = NULL;
 	}
-	if (obj->out_filename && obj->out_filename[0] == ':')
+	if (obj->out_filename[0] == ':')
 		remove_service(TCP_SERVICE_NAME, &obj->out_filename[1]);
 }
 
@@ -475,12 +476,13 @@ static int arm_tpiu_swo_configure(struct jim_getopt_info *goi, struct arm_tpiu_s
 						return JIM_ERR;
 					}
 				}
-				free(obj->out_filename);
-				obj->out_filename = strdup(s);
-				if (!obj->out_filename) {
+				char *out_filename = strdup(s);
+				if (!out_filename) {
 					LOG_ERROR("Out of memory");
 					return JIM_ERR;
 				}
+				free(obj->out_filename);
+				obj->out_filename = out_filename;
 			} else {
 				if (goi->argc)
 					goto err_no_params;
@@ -625,16 +627,25 @@ COMMAND_HANDLER(handle_arm_tpiu_swo_enable)
 		return ERROR_FAIL;
 	}
 
-	if (obj->pin_protocol == TPIU_SPPR_PROTOCOL_MANCHESTER || obj->pin_protocol == TPIU_SPPR_PROTOCOL_UART)
-		if (!obj->swo_pin_freq)
+	const bool output_external = !strcmp(obj->out_filename, "external");
+
+	if (obj->pin_protocol == TPIU_SPPR_PROTOCOL_MANCHESTER || obj->pin_protocol == TPIU_SPPR_PROTOCOL_UART) {
+		if (!obj->swo_pin_freq) {
+			if (output_external) {
+				command_print(CMD, "SWO pin frequency required when using external capturing");
+				return ERROR_FAIL;
+			}
+
 			LOG_DEBUG("SWO pin frequency not set, will be autodetected by the adapter");
+		}
+	}
 
 	struct target *target = get_current_target(CMD_CTX);
 
 	/* START_DEPRECATED_TPIU */
 	if (obj->recheck_ap_cur_target) {
-		if (strcmp(target->type->name, "cortex_m") &&
-			strcmp(target->type->name, "hla_target")) {
+		if (strcmp(target_type_name(target), "cortex_m") &&
+			strcmp(target_type_name(target), "hla_target")) {
 			LOG_ERROR(MSG "Current target is not a Cortex-M nor a HLA");
 			return ERROR_FAIL;
 		}
@@ -664,7 +675,9 @@ COMMAND_HANDLER(handle_arm_tpiu_swo_enable)
 	}
 
 	/* trigger the event before any attempt to R/W in the TPIU/SWO */
-	arm_tpiu_swo_handle_event(obj, TPIU_SWO_EVENT_PRE_ENABLE);
+	retval = arm_tpiu_swo_handle_event(obj, TPIU_SWO_EVENT_PRE_ENABLE);
+	if (retval != ERROR_OK)
+		return retval;
 
 	retval = wrap_read_u32(target, obj->ap, obj->spot.base + TPIU_DEVID_OFFSET, &value);
 	if (retval != ERROR_OK) {
@@ -705,7 +718,7 @@ COMMAND_HANDLER(handle_arm_tpiu_swo_enable)
 	uint16_t prescaler = 1; /* dummy value */
 	unsigned int swo_pin_freq = obj->swo_pin_freq; /* could be replaced */
 
-	if (obj->out_filename && strcmp(obj->out_filename, "external") && obj->out_filename[0]) {
+	if (!output_external) {
 		if (obj->out_filename[0] == ':') {
 			struct arm_tpiu_swo_priv_connection *priv = malloc(sizeof(*priv));
 			if (!priv) {
@@ -790,7 +803,9 @@ COMMAND_HANDLER(handle_arm_tpiu_swo_enable)
 	if (retval != ERROR_OK)
 		goto error_exit;
 
-	arm_tpiu_swo_handle_event(obj, TPIU_SWO_EVENT_POST_ENABLE);
+	retval = arm_tpiu_swo_handle_event(obj, TPIU_SWO_EVENT_POST_ENABLE);
+	if (retval != ERROR_OK)
+		goto error_exit;
 
 	/* START_DEPRECATED_TPIU */
 	target_handle_event(target, TARGET_EVENT_TRACE_CONFIG);
@@ -947,6 +962,12 @@ static int jim_arm_tpiu_swo_create(Jim_Interp *interp, int argc, Jim_Obj *const 
 	adiv5_mem_ap_spot_init(&obj->spot);
 	obj->spot.base = TPIU_SWO_DEFAULT_BASE;
 	obj->port_width = 1;
+	obj->out_filename = strdup("external");
+	if (!obj->out_filename) {
+		LOG_ERROR("Out of memory");
+		free(obj);
+		return JIM_ERR;
+	}
 
 	Jim_Obj *n;
 	jim_getopt_obj(&goi, &n);
@@ -1021,8 +1042,8 @@ COMMAND_HANDLER(handle_tpiu_deprecated_config_command)
 	struct arm_tpiu_swo_object *obj = NULL;
 	int retval;
 
-	if (strcmp(target->type->name, "cortex_m") &&
-		strcmp(target->type->name, "hla_target")) {
+	if (strcmp(target_type_name(target), "cortex_m") &&
+		strcmp(target_type_name(target), "hla_target")) {
 		LOG_ERROR(MSG "Current target is not a Cortex-M nor a HLA");
 		return ERROR_FAIL;
 	}
