@@ -23,10 +23,4 @@ jobs:
             sudo apt-get install patchutils python3-ply python3-git
       - name: Run checkpatch
         run: |
-            git diff --patch FETCH_HEAD \
-            | filterdiff \
-                -x "a/src/jtag/drivers/libjaylink/*" \
-                -x "a/tools/git2cl/*" \
-                -x "a/.github/*" \
-                -x "a/HACKING" \
-            | ./tools/scripts/checkpatch.pl --no-signoff -
+            ./tools/scripts/checkpatch.pl --no-signoff --git FETCH_HEAD..HEAD
