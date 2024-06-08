@@ -117,20 +117,24 @@ struct nrf5_map {
 
 struct nrf5_info {
 	unsigned int refcount;
+	bool chip_probed;
 
 	struct nrf5_bank {
 		struct nrf5_info *chip;
 		bool probed;
 	} bank[2];
+
 	struct target *target;
 
-	/* chip identification stored in nrf5_probe() for use in nrf5_info() */
+	/* chip identification stored in nrf5_probe_chip()
+	 * for use in nrf5_info() and nrf5_setup_bank() */
 	bool ficr_info_valid;
 	struct nrf52_ficr_info ficr_info;
 	const struct nrf5_device_spec *spec;
 	uint16_t hwid;
 	enum nrf5_features features;
-	unsigned int flash_size_kb;
+	uint32_t flash_page_size;
+	uint32_t flash_num_sectors;
 	unsigned int ram_size_kb;
 
 	const struct nrf5_map *map;
@@ -344,6 +348,16 @@ static bool nrf5_bank_is_probed(const struct flash_bank *bank)
 	assert(nbank);
 
 	return nbank->probed;
+}
+
+static bool nrf5_chip_is_probed(const struct flash_bank *bank)
+{
+	struct nrf5_bank *nbank = bank->driver_priv;
+	assert(nbank);
+	struct nrf5_info *chip = nbank->chip;
+	assert(chip);
+
+	return chip->chip_probed;
 }
 
 static bool nrf5_bank_is_uicr(const struct nrf5_bank *nbank)
@@ -709,8 +723,9 @@ static int nrf5_info(struct flash_bank *bank, struct command_invocation *cmd)
 	if (nrf5_get_chip_type_str(chip, chip_type_str, sizeof(chip_type_str)) != ERROR_OK)
 		return ERROR_FAIL;
 
+	unsigned int flash_size_kb = chip->flash_num_sectors * chip->flash_page_size / 1024;
 	command_print_sameline(cmd, "%s %ukB Flash, %ukB RAM",
-			chip_type_str, chip->flash_size_kb, chip->ram_size_kb);
+			chip_type_str, flash_size_kb, chip->ram_size_kb);
 	return ERROR_OK;
 }
 
@@ -838,7 +853,7 @@ static int nrf51_get_ram_size(struct target *target, uint32_t *ram_size)
 	return res;
 }
 
-static int nrf5_probe(struct flash_bank *bank)
+static int nrf5_probe_chip(struct flash_bank *bank)
 {
 	int res = ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 
@@ -968,9 +983,8 @@ static int nrf5_probe(struct flash_bank *bank)
 	}
 
 	/* The value stored in FICR CODEPAGESIZE is the number of bytes in one page of FLASH. */
-	uint32_t flash_page_size;
 	res = target_read_u32(chip->target, ficr_base + ficr_offsets->codepagesize,
-				&flash_page_size);
+				&chip->flash_page_size);
 	if (res != ERROR_OK) {
 		LOG_ERROR("Couldn't read code page size");
 		return res;
@@ -978,61 +992,81 @@ static int nrf5_probe(struct flash_bank *bank)
 
 	/* Note the register name is misleading,
 	 * FICR CODESIZE is the number of pages in flash memory, not the number of bytes! */
-	uint32_t num_sectors;
 	res = target_read_u32(chip->target, ficr_base + ficr_offsets->codesize,
-				&num_sectors);
+				&chip->flash_num_sectors);
 	if (res != ERROR_OK) {
 		LOG_ERROR("Couldn't read code memory size");
 		return res;
 	}
 
-	chip->flash_size_kb = num_sectors * flash_page_size / 1024;
+	char chip_type_str[256];
+	if (nrf5_get_chip_type_str(chip, chip_type_str, sizeof(chip_type_str)) != ERROR_OK)
+		return ERROR_FAIL;
 
-	if (!chip->bank[0].probed && !chip->bank[1].probed) {
-		char chip_type_str[256];
-		if (nrf5_get_chip_type_str(chip, chip_type_str, sizeof(chip_type_str)) != ERROR_OK)
-			return ERROR_FAIL;
-		const bool device_is_unknown = (!chip->spec && !chip->ficr_info_valid);
-		LOG_INFO("%s%s %ukB Flash, %ukB RAM",
-				device_is_unknown ? "Unknown device: " : "",
-				chip_type_str,
-				chip->flash_size_kb,
-				chip->ram_size_kb);
-	}
+	unsigned int flash_size_kb = chip->flash_num_sectors * chip->flash_page_size / 1024;
+	const bool device_is_unknown = (!chip->spec && !chip->ficr_info_valid);
+	LOG_INFO("%s%s %ukB Flash, %ukB RAM",
+			device_is_unknown ? "Unknown device: " : "",
+			chip_type_str,
+			flash_size_kb,
+			chip->ram_size_kb);
 
-	free(bank->sectors);
+	chip->chip_probed = true;
+	return ERROR_OK;
+}
+
+static int nrf5_setup_bank(struct flash_bank *bank)
+{
+	struct nrf5_bank *nbank = bank->driver_priv;
+	assert(nbank);
+	struct nrf5_info *chip = nbank->chip;
+	assert(chip);
 
 	if (bank->base == chip->map->flash_base) {
+		unsigned int flash_size_kb = chip->flash_num_sectors * chip->flash_page_size / 1024;
 		/* Sanity check */
-		if (chip->spec && chip->flash_size_kb != chip->spec->flash_size_kb)
+		if (chip->spec && flash_size_kb != chip->spec->flash_size_kb)
 			LOG_WARNING("Chip's reported Flash capacity does not match expected one");
-		if (chip->ficr_info_valid && chip->flash_size_kb != chip->ficr_info.flash)
+		if (chip->ficr_info_valid && flash_size_kb != chip->ficr_info.flash)
 			LOG_WARNING("Chip's reported Flash capacity does not match FICR INFO.FLASH");
 
-		bank->num_sectors = num_sectors;
-		bank->size = num_sectors * flash_page_size;
+		bank->num_sectors = chip->flash_num_sectors;
+		bank->size = chip->flash_num_sectors * chip->flash_page_size;
 
-		bank->sectors = alloc_block_array(0, flash_page_size, num_sectors);
+		bank->sectors = alloc_block_array(0, chip->flash_page_size, bank->num_sectors);
 		if (!bank->sectors)
 			return ERROR_FAIL;
 
 		chip->bank[0].probed = true;
 
-	} else {
+	} else if (bank->base == chip->map->uicr_base) {
 		/* UICR bank */
 		bank->num_sectors = 1;
-		bank->size = flash_page_size;
+		bank->size = chip->flash_page_size;
 
-		bank->sectors = alloc_block_array(0, flash_page_size, num_sectors);
+		bank->sectors = alloc_block_array(0, chip->flash_page_size, bank->num_sectors);
 		if (!bank->sectors)
 			return ERROR_FAIL;
 
 		bank->sectors[0].is_protected = 0;
 
 		chip->bank[1].probed = true;
+	} else {
+		LOG_ERROR("Invalid nRF bank address " TARGET_ADDR_FMT, bank->base);
+		return ERROR_FLASH_BANK_INVALID;
 	}
 
 	return ERROR_OK;
+}
+
+static int nrf5_probe(struct flash_bank *bank)
+{
+	/* probe always reads actual info from the device */
+	int res = nrf5_probe_chip(bank);
+	if (res != ERROR_OK)
+		return res;
+
+	return nrf5_setup_bank(bank);
 }
 
 static int nrf5_auto_probe(struct flash_bank *bank)
@@ -1040,7 +1074,13 @@ static int nrf5_auto_probe(struct flash_bank *bank)
 	if (nrf5_bank_is_probed(bank))
 		return ERROR_OK;
 
-	return nrf5_probe(bank);
+	if (!nrf5_chip_is_probed(bank)) {
+		int res = nrf5_probe_chip(bank);
+		if (res != ERROR_OK)
+			return res;
+	}
+
+	return nrf5_setup_bank(bank);
 }
 
 
@@ -1372,8 +1412,8 @@ FLASH_BANK_COMMAND_HANDLER(nrf5_flash_bank_command)
 	case NRF53NET_UICR_BASE:
 		break;
 	default:
-		LOG_ERROR("Invalid bank address " TARGET_ADDR_FMT, bank->base);
-		return ERROR_FAIL;
+		LOG_ERROR("Invalid nRF bank address " TARGET_ADDR_FMT, bank->base);
+		return ERROR_FLASH_BANK_INVALID;
 	}
 
 	chip = nrf5_get_chip(bank->target);
