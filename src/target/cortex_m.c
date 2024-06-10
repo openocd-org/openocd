@@ -797,6 +797,42 @@ static int cortex_m_examine_exception_reason(struct target *target)
 	return retval;
 }
 
+/* Errata 3092511 workaround
+ * Cortex-M7 can halt in an incorrect address when breakpoint
+ * and exception occurs simultaneously */
+static int cortex_m_erratum_check_breakpoint(struct target *target)
+{
+	struct cortex_m_common *cortex_m = target_to_cm(target);
+	struct armv7m_common *armv7m = &cortex_m->armv7m;
+	struct arm *arm = &armv7m->arm;
+
+	uint32_t pc = buf_get_u32(arm->pc->value, 0, 32);
+
+	/* To reduce the workaround processing cost we assume FPB is in sync
+	 * with OpenOCD breakpoints. If the target app writes to FPB
+	 * OpenOCD will resume after the break set by app */
+	struct breakpoint *bkpt = breakpoint_find(target, pc);
+	if (bkpt) {
+		LOG_TARGET_DEBUG(target, "Erratum 3092511: breakpoint confirmed");
+		return ERROR_OK;
+	}
+	if (pc >= 0xe0000000u)
+		/* not executable area, do not read instruction @ pc */
+		return ERROR_OK;
+
+	uint16_t insn;
+	int retval = target_read_u16(target, pc, &insn);
+	if (retval != ERROR_OK)
+		return ERROR_OK;	/* do not propagate the error, just avoid workaround */
+
+	if ((insn & 0xff00) == (ARMV5_T_BKPT(0) & 0xff00)) {
+		LOG_TARGET_DEBUG(target, "Erratum 3092511: breakpoint embedded in code confirmed");
+		return ERROR_OK;
+	}
+	LOG_TARGET_DEBUG(target, "Erratum 3092511: breakpoint not found, proceed with resume");
+	return ERROR_TARGET_HALTED_DO_RESUME;
+}
+
 static int cortex_m_debug_entry(struct target *target)
 {
 	uint32_t xpsr;
@@ -883,6 +919,17 @@ static int cortex_m_debug_entry(struct target *target)
 		secure_state ? "Secure" : "Non-Secure",
 		target_state_name(target));
 
+	/* Errata 3092511 workaround
+	 * Cortex-M7 can halt in an incorrect address when breakpoint
+	 * and exception occurs simultaneously */
+	if (cortex_m->incorrect_halt_erratum
+			&& armv7m->exception_number
+			&& cortex_m->nvic_dfsr == (DFSR_BKPT | DFSR_HALTED)) {
+		retval = cortex_m_erratum_check_breakpoint(target);
+		if (retval != ERROR_OK)
+			return retval;
+	}
+
 	if (armv7m->post_debug_entry) {
 		retval = armv7m->post_debug_entry(target);
 		if (retval != ERROR_OK)
@@ -959,6 +1006,28 @@ static int cortex_m_poll_one(struct target *target)
 
 		if ((prev_target_state == TARGET_RUNNING) || (prev_target_state == TARGET_RESET)) {
 			retval = cortex_m_debug_entry(target);
+
+			/* Errata 3092511 workaround
+			 * Cortex-M7 can halt in an incorrect address when breakpoint
+			 * and exception occurs simultaneously */
+			if (retval == ERROR_TARGET_HALTED_DO_RESUME) {
+				struct arm *arm = &armv7m->arm;
+				LOG_TARGET_INFO(target, "Resuming after incorrect halt @ PC 0x%08" PRIx32
+					", ARM Cortex-M7 erratum 3092511",
+					buf_get_u32(arm->pc->value, 0, 32));
+				/* We don't need to restore registers, just restart the core */
+				cortex_m_set_maskints_for_run(target);
+				retval = cortex_m_write_debug_halt_mask(target, 0, C_HALT);
+				if (retval != ERROR_OK)
+					return retval;
+
+				target->debug_reason = DBG_REASON_NOTHALTED;
+				/* registers are now invalid */
+				register_cache_invalidate(armv7m->arm.core_cache);
+
+				target->state = TARGET_RUNNING;
+				return ERROR_OK;
+			}
 
 			/* arm_semihosting needs to know registers, don't run if debug entry returned error */
 			if (retval == ERROR_OK && arm_semihosting(target, &retval) != 0)
@@ -1582,7 +1651,7 @@ static int cortex_m_step(struct target *target, int current,
 		cortex_m->dcb_dhcsr, cortex_m->nvic_icsr);
 
 	retval = cortex_m_debug_entry(target);
-	if (retval != ERROR_OK)
+	if (retval != ERROR_OK && retval != ERROR_TARGET_HALTED_DO_RESUME)
 		return retval;
 	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 
@@ -2560,14 +2629,22 @@ int cortex_m_examine(struct target *target)
 				(uint8_t)((cpuid >> 0) & 0xf));
 
 		cortex_m->maskints_erratum = false;
+		cortex_m->incorrect_halt_erratum = false;
 		if (impl_part == CORTEX_M7_PARTNO) {
 			uint8_t rev, patch;
 			rev = (cpuid >> 20) & 0xf;
 			patch = (cpuid >> 0) & 0xf;
 			if ((rev == 0) && (patch < 2)) {
-				LOG_TARGET_WARNING(target, "Silicon bug: single stepping may enter pending exception handler!");
+				LOG_TARGET_WARNING(target, "Erratum 702596: single stepping may enter pending exception handler!");
 				cortex_m->maskints_erratum = true;
 			}
+			/* TODO: add revision check when a Cortex-M7 revision with fixed 3092511 is out */
+			LOG_TARGET_WARNING(target, "Erratum 3092511: Cortex-M7 can halt in an incorrect address when breakpoint and exception occurs simultaneously");
+			cortex_m->incorrect_halt_erratum = true;
+			if (armv7m->is_hla_target)
+				LOG_WARNING("No erratum 3092511 workaround on hla adapter");
+			else
+				LOG_INFO("The erratum 3092511 workaround will resume after an incorrect halt");
 		}
 		LOG_TARGET_DEBUG(target, "cpuid: 0x%8.8" PRIx32 "", cpuid);
 

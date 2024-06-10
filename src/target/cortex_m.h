@@ -256,6 +256,10 @@ struct cortex_m_common {
 	/* Whether this target has the erratum that makes C_MASKINTS not apply to
 	 * already pending interrupts */
 	bool maskints_erratum;
+
+	/* Errata 3092511 Cortex-M7 can halt in an incorrect address when breakpoint
+	 * and exception occurs simultaneously */
+	bool incorrect_halt_erratum;
 };
 
 static inline bool is_cortex_m_or_hla(const struct cortex_m_common *cortex_m)
