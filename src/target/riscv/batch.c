@@ -29,11 +29,12 @@ struct riscv_batch *riscv_batch_alloc(struct target *target, size_t scans)
 	out->allocated_scans = scans;
 	out->last_scan = RISCV_SCAN_TYPE_INVALID;
 	out->was_run = false;
-	out->used_idle_count = 0;
+	out->used_delay = 0;
 
 	out->data_out = NULL;
 	out->data_in = NULL;
 	out->fields = NULL;
+	out->delay_classes = NULL;
 	out->bscan_ctxt = NULL;
 	out->read_keys = NULL;
 
@@ -53,6 +54,11 @@ struct riscv_batch *riscv_batch_alloc(struct target *target, size_t scans)
 	out->fields = malloc(sizeof(*out->fields) * scans);
 	if (!out->fields) {
 		LOG_ERROR("Failed to allocate fields in RISC-V batch.");
+		goto alloc_error;
+	}
+	out->delay_classes = malloc(sizeof(*out->delay_classes) * scans);
+	if (!out->delay_classes) {
+		LOG_ERROR("Failed to allocate delay_classes in RISC-V batch.");
 		goto alloc_error;
 	}
 	if (bscan_tunnel_ir_width != 0) {
@@ -80,6 +86,7 @@ void riscv_batch_free(struct riscv_batch *batch)
 	free(batch->data_in);
 	free(batch->data_out);
 	free(batch->fields);
+	free(batch->delay_classes);
 	free(batch->bscan_ctxt);
 	free(batch->read_keys);
 	free(batch);
@@ -101,28 +108,51 @@ static bool riscv_batch_was_scan_busy(const struct riscv_batch *batch,
 	return get_field(in, DTM_DMI_OP) == DTM_DMI_OP_BUSY;
 }
 
-static void add_idle_if_increased(struct riscv_batch *batch, size_t new_idle_count)
+static void add_idle_before_batch(const struct riscv_batch *batch, size_t start_idx,
+		struct riscv_scan_delays delays)
 {
 	if (!batch->was_run)
 		return;
-	if (batch->used_idle_count <= new_idle_count)
+	/* Get the delay type of the scan that resulted in the busy response.
+	 * Since DMI interactions always end with a NOP, if "start_idx" is zero
+	 * the base delay value is used.
+	 */
+	const enum riscv_scan_delay_class delay_class = start_idx > 0
+		? batch->delay_classes[start_idx - 1]
+		: RISCV_DELAY_BASE;
+	const unsigned int new_delay = riscv_scan_get_delay(delays, delay_class);
+	if (new_delay <= batch->used_delay)
 		return;
-	const size_t idle_change = new_idle_count - batch->used_idle_count;
-	LOG_TARGET_DEBUG(batch->target,
-			"Idle count increased. Adding %zu idle cycles before the batch.",
+	const unsigned int idle_change = new_delay - batch->used_delay;
+	LOG_TARGET_DEBUG(batch->target, "Adding %u idle cycles before the batch.",
 			idle_change);
+	assert(idle_change <= INT_MAX);
 	jtag_add_runtest(idle_change, TAP_IDLE);
 }
 
+static int get_delay(const struct riscv_batch *batch, size_t scan_idx,
+		struct riscv_scan_delays delays)
+{
+	assert(batch);
+	assert(scan_idx < batch->used_scans);
+	const enum riscv_scan_delay_class delay_class =
+		batch->delay_classes[scan_idx];
+	const unsigned int delay =  riscv_scan_get_delay(delays, delay_class);
+	assert(delay <= INT_MAX);
+	return delay;
+}
+
 int riscv_batch_run_from(struct riscv_batch *batch, size_t start_idx,
-		size_t idle_count, bool resets_delays, size_t reset_delays_after)
+		struct riscv_scan_delays delays, bool resets_delays,
+		size_t reset_delays_after)
 {
 	assert(batch->used_scans);
 	assert(batch->last_scan == RISCV_SCAN_TYPE_NOP);
 	assert(!batch->was_run || riscv_batch_was_scan_busy(batch, start_idx));
 	assert(start_idx == 0 || !riscv_batch_was_scan_busy(batch, start_idx - 1));
 
-	add_idle_if_increased(batch, idle_count);
+	if (batch->was_run)
+		add_idle_before_batch(batch, start_idx, delays);
 
 	LOG_TARGET_DEBUG(batch->target, "Running batch of scans [%zu, %zu)",
 			start_idx, batch->used_scans);
@@ -135,8 +165,10 @@ int riscv_batch_run_from(struct riscv_batch *batch, size_t start_idx,
 
 		const bool delays_were_reset = resets_delays
 			&& (i >= reset_delays_after);
-		if (idle_count > 0 && !delays_were_reset)
-			jtag_add_runtest(idle_count, TAP_IDLE);
+		const int delay = get_delay(batch, i, delays);
+
+		if (!delays_were_reset)
+			jtag_add_runtest(delay, TAP_IDLE);
 	}
 
 	keep_alive();
@@ -156,17 +188,19 @@ int riscv_batch_run_from(struct riscv_batch *batch, size_t start_idx,
 		}
 	}
 
-	for (size_t i = start_idx; i < batch->used_scans; ++i)
-		riscv_log_dmi_scan(batch->target, idle_count, batch->fields + i,
+	for (size_t i = start_idx; i < batch->used_scans; ++i) {
+		const int delay = get_delay(batch, i, delays);
+		riscv_log_dmi_scan(batch->target, delay, batch->fields + i,
 				/*discard_in*/ false);
+	}
 
 	batch->was_run = true;
-	batch->used_idle_count = idle_count;
+	batch->used_delay = get_delay(batch, batch->used_scans - 1, delays);
 	return ERROR_OK;
 }
 
 void riscv_batch_add_dm_write(struct riscv_batch *batch, uint64_t address, uint32_t data,
-	bool read_back)
+		bool read_back, enum riscv_scan_delay_class delay_class)
 {
 	assert(batch->used_scans < batch->allocated_scans);
 	struct scan_field *field = batch->fields + batch->used_scans;
@@ -179,11 +213,13 @@ void riscv_batch_add_dm_write(struct riscv_batch *batch, uint64_t address, uint3
 	} else {
 		field->in_value = NULL;
 	}
+	batch->delay_classes[batch->used_scans] = delay_class;
 	batch->last_scan = RISCV_SCAN_TYPE_WRITE;
 	batch->used_scans++;
 }
 
-size_t riscv_batch_add_dm_read(struct riscv_batch *batch, uint64_t address)
+size_t riscv_batch_add_dm_read(struct riscv_batch *batch, uint64_t address,
+		enum riscv_scan_delay_class delay_class)
 {
 	assert(batch->used_scans < batch->allocated_scans);
 	struct scan_field *field = batch->fields + batch->used_scans;
@@ -192,6 +228,7 @@ size_t riscv_batch_add_dm_read(struct riscv_batch *batch, uint64_t address)
 	field->in_value  = (void *)(batch->data_in  + batch->used_scans * DMI_SCAN_BUF_SIZE);
 	riscv_fill_dm_read(batch->target, (char *)field->out_value, address);
 	riscv_fill_dm_nop(batch->target, (char *)field->in_value);
+	batch->delay_classes[batch->used_scans] = delay_class;
 	batch->last_scan = RISCV_SCAN_TYPE_READ;
 	batch->used_scans++;
 
@@ -228,6 +265,9 @@ void riscv_batch_add_nop(struct riscv_batch *batch)
 	field->in_value  = (void *)(batch->data_in  + batch->used_scans * DMI_SCAN_BUF_SIZE);
 	riscv_fill_dm_nop(batch->target, (char *)field->out_value);
 	riscv_fill_dm_nop(batch->target, (char *)field->in_value);
+	/* DMI NOP never triggers any debug module operation,
+	 * so the shortest (base) delay can be used. */
+	batch->delay_classes[batch->used_scans] = RISCV_DELAY_BASE;
 	batch->last_scan = RISCV_SCAN_TYPE_NOP;
 	batch->used_scans++;
 }
