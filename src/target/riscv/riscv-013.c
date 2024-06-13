@@ -435,6 +435,9 @@ static void select_dmi(struct target *target)
 		select_dmi_via_bscan(target);
 		return;
 	}
+	if (buf_cmp(target->tap->cur_instr, select_dbus.out_value,
+				target->tap->ir_length) == 0)
+		return;
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
 }
 
