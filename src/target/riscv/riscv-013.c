@@ -2777,6 +2777,7 @@ struct riscv_scan_delays get_scan_delays(struct target *target)
 static int batch_run(struct target *target, struct riscv_batch *batch)
 {
 	RISCV_INFO(r);
+	select_dmi(target);
 	riscv_batch_add_nop(batch);
 	const int result = riscv_batch_run_from(batch, 0,
 			get_scan_delays(target),
@@ -2797,6 +2798,7 @@ static int batch_run_timeout(struct target *target, struct riscv_batch *batch)
 {
 	RISCV013_INFO(info);
 
+	select_dmi(target);
 	riscv_batch_add_nop(batch);
 
 	size_t finished_scans = 0;
