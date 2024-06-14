@@ -34,7 +34,7 @@
 #define NULINK2_USB_PID1  (0x5200)
 #define NULINK2_USB_PID2  (0x5201)
 
-struct nulink_usb_handle_s {
+struct nulink_usb_handle {
 	hid_device *dev_handle;
 	uint16_t max_packet_size;
 	uint8_t usbcmdidx;
@@ -87,7 +87,7 @@ enum nulink_connect {
 
 static int nulink_usb_xfer_rw(void *handle, uint8_t *buf)
 {
-	struct nulink_usb_handle_s *h = handle;
+	struct nulink_usb_handle *h = handle;
 
 	assert(handle);
 
@@ -107,7 +107,7 @@ static int nulink_usb_xfer_rw(void *handle, uint8_t *buf)
 
 static int nulink1_usb_xfer(void *handle, uint8_t *buf, int size)
 {
-	struct nulink_usb_handle_s *h = handle;
+	struct nulink_usb_handle *h = handle;
 
 	assert(handle);
 
@@ -120,7 +120,7 @@ static int nulink1_usb_xfer(void *handle, uint8_t *buf, int size)
 
 static int nulink2_usb_xfer(void *handle, uint8_t *buf, int size)
 {
-	struct nulink_usb_handle_s *h = handle;
+	struct nulink_usb_handle *h = handle;
 
 	assert(handle);
 
@@ -133,7 +133,7 @@ static int nulink2_usb_xfer(void *handle, uint8_t *buf, int size)
 
 static void nulink1_usb_init_buffer(void *handle, uint32_t size)
 {
-	struct nulink_usb_handle_s *h = handle;
+	struct nulink_usb_handle *h = handle;
 
 	h->cmdidx = 0;
 
@@ -149,7 +149,7 @@ static void nulink1_usb_init_buffer(void *handle, uint32_t size)
 
 static void nulink2_usb_init_buffer(void *handle, uint32_t size)
 {
-	struct nulink_usb_handle_s *h = handle;
+	struct nulink_usb_handle *h = handle;
 
 	h->cmdidx = 0;
 
@@ -165,7 +165,7 @@ static void nulink2_usb_init_buffer(void *handle, uint32_t size)
 
 static inline int nulink_usb_xfer(void *handle, uint8_t *buf, int size)
 {
-	struct nulink_usb_handle_s *h = handle;
+	struct nulink_usb_handle *h = handle;
 
 	assert(handle);
 
@@ -174,7 +174,7 @@ static inline int nulink_usb_xfer(void *handle, uint8_t *buf, int size)
 
 static inline void nulink_usb_init_buffer(void *handle, uint32_t size)
 {
-	struct nulink_usb_handle_s *h = handle;
+	struct nulink_usb_handle *h = handle;
 
 	assert(handle);
 
@@ -183,7 +183,7 @@ static inline void nulink_usb_init_buffer(void *handle, uint32_t size)
 
 static int nulink_usb_version(void *handle)
 {
-	struct nulink_usb_handle_s *h = handle;
+	struct nulink_usb_handle *h = handle;
 
 	LOG_DEBUG("nulink_usb_version");
 
@@ -219,7 +219,7 @@ static int nulink_usb_version(void *handle)
 
 static int nulink_usb_idcode(void *handle, uint32_t *idcode)
 {
-	struct nulink_usb_handle_s *h = handle;
+	struct nulink_usb_handle *h = handle;
 
 	LOG_DEBUG("nulink_usb_idcode");
 
@@ -243,7 +243,7 @@ static int nulink_usb_idcode(void *handle, uint32_t *idcode)
 
 static int nulink_usb_write_debug_reg(void *handle, uint32_t addr, uint32_t val)
 {
-	struct nulink_usb_handle_s *h = handle;
+	struct nulink_usb_handle *h = handle;
 
 	LOG_DEBUG("nulink_usb_write_debug_reg 0x%08" PRIX32 " 0x%08" PRIX32, addr, val);
 
@@ -278,7 +278,7 @@ static int nulink_usb_write_debug_reg(void *handle, uint32_t addr, uint32_t val)
 
 static enum target_state nulink_usb_state(void *handle)
 {
-	struct nulink_usb_handle_s *h = handle;
+	struct nulink_usb_handle *h = handle;
 
 	assert(handle);
 
@@ -299,7 +299,7 @@ static enum target_state nulink_usb_state(void *handle)
 
 static int nulink_usb_assert_srst(void *handle, int srst)
 {
-	struct nulink_usb_handle_s *h = handle;
+	struct nulink_usb_handle *h = handle;
 
 	LOG_DEBUG("nulink_usb_assert_srst");
 
@@ -324,7 +324,7 @@ static int nulink_usb_assert_srst(void *handle, int srst)
 
 static int nulink_usb_reset(void *handle)
 {
-	struct nulink_usb_handle_s *h = handle;
+	struct nulink_usb_handle *h = handle;
 
 	LOG_DEBUG("nulink_usb_reset");
 
@@ -349,7 +349,7 @@ static int nulink_usb_reset(void *handle)
 
 static int nulink_usb_run(void *handle)
 {
-	struct nulink_usb_handle_s *h = handle;
+	struct nulink_usb_handle *h = handle;
 
 	LOG_DEBUG("nulink_usb_run");
 
@@ -365,7 +365,7 @@ static int nulink_usb_run(void *handle)
 
 static int nulink_usb_halt(void *handle)
 {
-	struct nulink_usb_handle_s *h = handle;
+	struct nulink_usb_handle *h = handle;
 
 	LOG_DEBUG("nulink_usb_halt");
 
@@ -385,7 +385,7 @@ static int nulink_usb_halt(void *handle)
 
 static int nulink_usb_step(void *handle)
 {
-	struct nulink_usb_handle_s *h = handle;
+	struct nulink_usb_handle *h = handle;
 
 	LOG_DEBUG("nulink_usb_step");
 
@@ -405,7 +405,7 @@ static int nulink_usb_step(void *handle)
 
 static int nulink_usb_read_reg(void *handle, unsigned int regsel, uint32_t *val)
 {
-	struct nulink_usb_handle_s *h = handle;
+	struct nulink_usb_handle *h = handle;
 
 	assert(handle);
 
@@ -444,7 +444,7 @@ static int nulink_usb_read_reg(void *handle, unsigned int regsel, uint32_t *val)
 
 static int nulink_usb_write_reg(void *handle, unsigned int regsel, uint32_t val)
 {
-	struct nulink_usb_handle_s *h = handle;
+	struct nulink_usb_handle *h = handle;
 
 	assert(handle);
 
@@ -483,7 +483,7 @@ static int nulink_usb_read_mem8(void *handle, uint32_t addr, uint16_t len,
 	int res = ERROR_OK;
 	uint32_t offset = 0;
 	uint32_t bytes_remaining = 12;
-	struct nulink_usb_handle_s *h = handle;
+	struct nulink_usb_handle *h = handle;
 
 	LOG_DEBUG("nulink_usb_read_mem8: addr 0x%08" PRIx32 ", len %" PRId16, addr, len);
 
@@ -568,7 +568,7 @@ static int nulink_usb_write_mem8(void *handle, uint32_t addr, uint16_t len,
 	int res = ERROR_OK;
 	uint32_t offset = 0;
 	uint32_t bytes_remaining = 12;
-	struct nulink_usb_handle_s *h = handle;
+	struct nulink_usb_handle *h = handle;
 
 	LOG_DEBUG("nulink_usb_write_mem8: addr 0x%08" PRIx32 ", len %" PRIu16, addr, len);
 
@@ -675,7 +675,7 @@ static int nulink_usb_read_mem32(void *handle, uint32_t addr, uint16_t len,
 {
 	int res = ERROR_OK;
 	uint32_t bytes_remaining = 12;
-	struct nulink_usb_handle_s *h = handle;
+	struct nulink_usb_handle *h = handle;
 
 	assert(handle);
 
@@ -744,7 +744,7 @@ static int nulink_usb_write_mem32(void *handle, uint32_t addr, uint16_t len,
 {
 	int res = ERROR_OK;
 	uint32_t bytes_remaining = 12;
-	struct nulink_usb_handle_s *h = handle;
+	struct nulink_usb_handle *h = handle;
 
 	assert(handle);
 
@@ -819,7 +819,7 @@ static int nulink_usb_read_mem(void *handle, uint32_t addr, uint32_t size,
 		uint32_t count, uint8_t *buffer)
 {
 	int retval = ERROR_OK;
-	struct nulink_usb_handle_s *h = handle;
+	struct nulink_usb_handle *h = handle;
 
 	/* calculate byte count */
 	count *= size;
@@ -879,7 +879,7 @@ static int nulink_usb_write_mem(void *handle, uint32_t addr, uint32_t size,
 		uint32_t count, const uint8_t *buffer)
 {
 	int retval = ERROR_OK;
-	struct nulink_usb_handle_s *h = handle;
+	struct nulink_usb_handle *h = handle;
 
 	if (addr < ARM_SRAM_BASE) {
 		LOG_DEBUG("nulink_usb_write_mem: address below ARM_SRAM_BASE, not supported.\n");
@@ -950,7 +950,7 @@ static int nulink_usb_override_target(const char *targetname)
 
 static int nulink_speed(void *handle, int khz, bool query)
 {
-	struct nulink_usb_handle_s *h = handle;
+	struct nulink_usb_handle *h = handle;
 	unsigned long max_ice_clock = khz;
 
 	LOG_DEBUG("nulink_speed: query %s", query ? "yes" : "no");
@@ -1004,7 +1004,7 @@ static int nulink_speed(void *handle, int khz, bool query)
 
 static int nulink_usb_close(void *handle)
 {
-	struct nulink_usb_handle_s *h = handle;
+	struct nulink_usb_handle *h = handle;
 
 	LOG_DEBUG("nulink_usb_close");
 
@@ -1018,7 +1018,7 @@ static int nulink_usb_close(void *handle)
 	return ERROR_OK;
 }
 
-static int nulink_usb_open(struct hl_interface_param_s *param, void **fd)
+static int nulink_usb_open(struct hl_interface_param *param, void **fd)
 {
 	struct hid_device_info *devs, *cur_dev;
 	uint16_t target_vid = 0;
@@ -1040,7 +1040,7 @@ static int nulink_usb_open(struct hl_interface_param_s *param, void **fd)
 		return ERROR_FAIL;
 	}
 
-	struct nulink_usb_handle_s *h = calloc(1, sizeof(*h));
+	struct nulink_usb_handle *h = calloc(1, sizeof(*h));
 	if (!h) {
 		LOG_ERROR("Out of memory");
 		goto error_open;
@@ -1154,7 +1154,7 @@ error_open:
 	return ERROR_FAIL;
 }
 
-struct hl_layout_api_s nulink_usb_layout_api = {
+struct hl_layout_api nulink_usb_layout_api = {
 	.open = nulink_usb_open,
 	.close = nulink_usb_close,
 	.idcode = nulink_usb_idcode,

@@ -15,18 +15,18 @@
 #include <target/arm_tpiu_swo.h>
 
 /** */
-struct hl_interface_s;
-struct hl_interface_param_s;
+struct hl_interface;
+struct hl_interface_param;
 
 /** */
-extern struct hl_layout_api_s stlink_usb_layout_api;
-extern struct hl_layout_api_s icdi_usb_layout_api;
-extern struct hl_layout_api_s nulink_usb_layout_api;
+extern struct hl_layout_api stlink_usb_layout_api;
+extern struct hl_layout_api icdi_usb_layout_api;
+extern struct hl_layout_api nulink_usb_layout_api;
 
 /** */
-struct hl_layout_api_s {
+struct hl_layout_api {
 	/** */
-	int (*open)(struct hl_interface_param_s *param, void **handle);
+	int (*open)(struct hl_interface_param *param, void **handle);
 	/** */
 	int (*close)(void *handle);
 	/** */
@@ -121,16 +121,16 @@ struct hl_layout {
 	/** */
 	char *name;
 	/** */
-	int (*open)(struct hl_interface_s *adapter);
+	int (*open)(struct hl_interface *adapter);
 	/** */
-	int (*close)(struct hl_interface_s *adapter);
+	int (*close)(struct hl_interface *adapter);
 	/** */
-	struct hl_layout_api_s *api;
+	struct hl_layout_api *api;
 };
 
 /** */
 const struct hl_layout *hl_layout_get_list(void);
 /** */
-int hl_layout_init(struct hl_interface_s *adapter);
+int hl_layout_init(struct hl_interface *adapter);
 
 #endif /* OPENOCD_JTAG_HLA_HLA_LAYOUT_H */
