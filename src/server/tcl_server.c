@@ -330,7 +330,7 @@ static const struct command_registration tcl_command_handlers[] = {
 		.mode = COMMAND_CONFIG,
 		.help = "Specify port on which to listen "
 			"for incoming Tcl syntax.  "
-			"Read help on 'gdb_port'.",
+			"Read help on 'gdb port'.",
 		.usage = "[port_num]",
 	},
 	{

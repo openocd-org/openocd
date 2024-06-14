@@ -930,8 +930,8 @@ a board with an Atmel AT91SAM7X256 microcontroller:
 source [find interface/ftdi/signalyzer.cfg]
 
 # GDB can also flash my flash!
-gdb_memory_map enable
-gdb_flash_program enable
+gdb memory_map enable
+gdb flash_program enable
 
 source [find target/sam7x256.cfg]
 @end example
@@ -940,8 +940,8 @@ Here is the command line equivalent of that configuration:
 
 @example
 openocd -f interface/ftdi/signalyzer.cfg \
-        -c "gdb_memory_map enable" \
-        -c "gdb_flash_program enable" \
+        -c "gdb memory_map enable" \
+        -c "gdb flash_program enable" \
         -f target/sam7x256.cfg
 @end example
 
@@ -2183,12 +2183,12 @@ In such cases, just specify the relevant port number as "disabled".
 You can request the operating system to select one of the available
 ports for the server by specifying the relevant port number as "0".
 
-@anchor{gdb_port}
-@deffn {Config Command} {gdb_port} [number]
+@anchor{gdb port}
+@deffn {Config Command} {gdb port} [number]
 @cindex GDB server
 Normally gdb listens to a TCP/IP port, but GDB can also
 communicate via pipes(stdin/out or named pipes). The name
-"gdb_port" stuck because it covers probably more than 90% of
+"gdb port" stuck because it covers probably more than 90% of
 the normal use cases.
 
 No arguments reports GDB port. "pipe" means listen to stdin
@@ -2203,7 +2203,7 @@ Output pipe is the same name as input pipe, but with 'o' appended,
 e.g. /var/gdb, /var/gdbo.
 
 The GDB port for the first target will be the base port, the
-second target will listen on gdb_port + 1, and so on.
+second target will listen on port + 1, and so on.
 When not specified during the configuration stage,
 the port @var{number} defaults to 3333.
 When @var{number} is not a numeric value, incrementing it to compute
@@ -2212,7 +2212,7 @@ the next port number does not work. In this case, specify the proper
 commands @command{target create} or @command{$target_name configure}.
 @xref{gdbportoverride,,option -gdb-port}.
 
-Note: when using "gdb_port pipe", increasing the default remote timeout in
+Note: when using "gdb port pipe", increasing the default remote timeout in
 gdb (with 'set remotetimeout') is recommended. An insufficient timeout may
 cause initialization to fail with "Unknown remote qXfer reply: OK".
 @end deffn
@@ -2246,7 +2246,7 @@ The ones listed here are static and global.
 @xref{targetevents,,Target Events}, about configuring target-specific event handling.
 
 @anchor{gdbbreakpointoverride}
-@deffn {Command} {gdb_breakpoint_override} [@option{hard}|@option{soft}|@option{disable}]
+@deffn {Command} {gdb breakpoint_override} [@option{hard}|@option{soft}|@option{disable}]
 Force breakpoint type for gdb @command{break} commands.
 This option supports GDB GUIs which don't
 distinguish hard versus soft breakpoints, if the default OpenOCD and
@@ -2255,41 +2255,41 @@ breakpoints if the memory map has been set up for flash regions.
 @end deffn
 
 @anchor{gdbflashprogram}
-@deffn {Config Command} {gdb_flash_program} (@option{enable}|@option{disable})
+@deffn {Config Command} {gdb flash_program} (@option{enable}|@option{disable})
 Set to @option{enable} to cause OpenOCD to program the flash memory when a
 vFlash packet is received.
 The default behaviour is @option{enable}.
 @end deffn
 
-@deffn {Config Command} {gdb_memory_map} (@option{enable}|@option{disable})
+@deffn {Config Command} {gdb memory_map} (@option{enable}|@option{disable})
 Set to @option{enable} to cause OpenOCD to send the memory configuration to GDB when
 requested. GDB will then know when to set hardware breakpoints, and program flash
-using the GDB load command. @command{gdb_flash_program enable} must also be enabled
+using the GDB load command. @command{gdb flash_program enable} must also be enabled
 for flash programming to work.
 Default behaviour is @option{enable}.
-@xref{gdbflashprogram,,gdb_flash_program}.
+@xref{gdbflashprogram,,gdb flash_program}.
 @end deffn
 
-@deffn {Config Command} {gdb_report_data_abort} (@option{enable}|@option{disable})
+@deffn {Config Command} {gdb report_data_abort} (@option{enable}|@option{disable})
 Specifies whether data aborts cause an error to be reported
 by GDB memory read packets.
 The default behaviour is @option{disable};
 use @option{enable} see these errors reported.
 @end deffn
 
-@deffn {Config Command} {gdb_report_register_access_error} (@option{enable}|@option{disable})
+@deffn {Config Command} {gdb report_register_access_error} (@option{enable}|@option{disable})
 Specifies whether register accesses requested by GDB register read/write
 packets report errors or not.
 The default behaviour is @option{disable};
 use @option{enable} see these errors reported.
 @end deffn
 
-@deffn {Config Command} {gdb_target_description} (@option{enable}|@option{disable})
+@deffn {Config Command} {gdb target_description} (@option{enable}|@option{disable})
 Set to @option{enable} to cause OpenOCD to send the target descriptions to gdb via qXfer:features:read packet.
 The default behaviour is @option{enable}.
 @end deffn
 
-@deffn {Command} {gdb_save_tdesc}
+@deffn {Command} {gdb save_tdesc}
 Saves the target description file to the local file system.
 
 The file name is @i{target_name}.xml.
@@ -5198,11 +5198,11 @@ where it is a mandatory configuration for the target run control.
 for instruction on how to declare and control a CTI instance.
 
 @anchor{gdbportoverride}
-@item @code{-gdb-port} @var{number} -- see command @command{gdb_port} for the
+@item @code{-gdb-port} @var{number} -- @xref{gdb port,,command gdb port} for the
 possible values of the parameter @var{number}, which are not only numeric values.
 Use this option to override, for this target only, the global parameter set with
-command @command{gdb_port}.
-@xref{gdb_port,,command gdb_port}.
+command @command{gdb port}.
+@xref{gdb port,,command gdb port}.
 
 @item @code{-gdb-max-connections} @var{number} -- EXPERIMENTAL: set the maximum
 number of GDB connections that are allowed for the target. Default is 1.
@@ -12417,7 +12417,7 @@ target remote localhost:3333
 A pipe connection is typically started as follows:
 @example
 target extended-remote | \
-       openocd -c "gdb_port pipe; log_output openocd.log"
+       openocd -c "gdb port pipe; log_output openocd.log"
 @end example
 This would cause GDB to run OpenOCD and communicate using pipes (stdin/stdout).
 Using this method has the advantage of GDB starting/stopping OpenOCD for the debug
@@ -12501,7 +12501,7 @@ using @command{gdb -x filename}.
 By default the target memory map is sent to GDB. This can be disabled by
 the following OpenOCD configuration option:
 @example
-gdb_memory_map disable
+gdb memory_map disable
 @end example
 For this to function correctly a valid flash configuration must also be set
 in OpenOCD. For faster performance you should also configure a valid
@@ -12509,8 +12509,8 @@ working area.
 
 Informing GDB of the memory map of the target will enable GDB to protect any
 flash areas of the target and use hardware breakpoints by default. This means
-that the OpenOCD option @command{gdb_breakpoint_override} is not required when
-using a memory map. @xref{gdbbreakpointoverride,,gdb_breakpoint_override}.
+that the OpenOCD option @command{gdb breakpoint_override} is not required when
+using a memory map. @xref{gdbbreakpointoverride,,gdb breakpoint_override}.
 
 To view the configured memory map in GDB, use the GDB command @option{info mem}.
 All other unassigned addresses within GDB are treated as RAM.
@@ -12521,7 +12521,7 @@ This can be changed to the old behaviour by using the following GDB command
 set mem inaccessible-by-default off
 @end example
 
-If @command{gdb_flash_program enable} is also used, GDB will be able to
+If @command{gdb flash_program enable} is also used, GDB will be able to
 program any flash memory using the vFlash interface.
 
 GDB will look at the target memory map when a load command is given, if any
@@ -12560,9 +12560,9 @@ $_TARGETNAME configure -event gdb-attach @{@}
 @end example
 
 If any of installed flash banks does not support probe on running target,
-switch off gdb_memory_map:
+switch off gdb memory_map:
 @example
-gdb_memory_map disable
+gdb memory_map disable
 @end example
 
 Ensure GDB is configured without interrupt-on-connect.
@@ -12571,7 +12571,7 @@ Some GDB versions set it by default, some does not.
 set remote interrupt-on-connect off
 @end example
 
-If you switched gdb_memory_map off, you may want to setup GDB memory map
+If you switched gdb memory_map off, you may want to setup GDB memory map
 manually or issue @command{set mem inaccessible-by-default off}
 
 Now you can issue GDB command @command{target extended-remote ...} and inspect memory
