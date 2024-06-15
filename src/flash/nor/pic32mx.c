@@ -92,7 +92,7 @@ struct pic32mx_flash_bank {
  * DEVID values as per PIC32MX Flash Programming Specification Rev N
  */
 
-static const struct pic32mx_devs_s {
+static const struct pic32mx_devs {
 	uint32_t devid;
 	const char *name;
 } pic32mx_devs[] = {

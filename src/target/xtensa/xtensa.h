@@ -97,7 +97,7 @@ enum xtensa_ar_scratch_set_e {
 	XT_AR_SCRATCH_NUM
 };
 
-struct xtensa_keyval_info_s {
+struct xtensa_keyval_info {
 	char *chrval;
 	int intval;
 };
@@ -283,7 +283,7 @@ struct xtensa {
 	bool halt_request;
 	uint32_t nx_stop_cause;
 	uint32_t nx_reg_idx[XT_NX_REG_IDX_NUM];
-	struct xtensa_keyval_info_s scratch_ars[XT_AR_SCRATCH_NUM];
+	struct xtensa_keyval_info scratch_ars[XT_AR_SCRATCH_NUM];
 	bool regs_fetched;	/* true after first register fetch completed successfully */
 };
 

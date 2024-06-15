@@ -32,18 +32,18 @@ struct flash_sector {
 	uint32_t size;
 	/**
 	 * Indication of erasure status: 0 = not erased, 1 = erased,
-	 * other = unknown.  Set by @c flash_driver_s::erase_check only.
+	 * other = unknown.  Set by @c flash_driver::erase_check only.
 	 *
 	 * This information must be considered stale immediately.
-	 * Don't set it in flash_driver_s::erase or a device mass_erase
-	 * Don't clear it in flash_driver_s::write
+	 * Don't set it in flash_driver::erase or a device mass_erase
+	 * Don't clear it in flash_driver::write
 	 * The flag is not used in a protection block
 	 */
 	int is_erased;
 	/**
 	 * Indication of protection status: 0 = unprotected/unlocked,
 	 * 1 = protected/locked, other = unknown.  Set by
-	 * @c flash_driver_s::protect_check.
+	 * @c flash_driver::protect_check.
 	 *
 	 * This information must be considered stale immediately.
 	 * A million things could make it stale: power cycle,
@@ -67,7 +67,7 @@ struct flash_sector {
  * a major interface.
  *
  * This structure will be passed as a parameter to the callbacks in the
- * flash_driver_s structure, some of which may modify the contents of
+ * flash_driver structure, some of which may modify the contents of
  * this structure of the area of flash that it defines.  Driver writers
  * may use the @c driver_priv member to store additional data on a
  * per-bank basis, if required.

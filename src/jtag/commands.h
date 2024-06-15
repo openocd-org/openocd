@@ -15,7 +15,7 @@
 #define OPENOCD_JTAG_COMMANDS_H
 
 /**
- * The inferred type of a scan_command_s structure, indicating whether
+ * The inferred type of a scan_command structure, indicating whether
  * the command has the host scan in from the device, the host scan out
  * to the device, or both.
  */
@@ -29,7 +29,7 @@ enum scan_type {
 };
 
 /**
- * The scan_command provide a means of encapsulating a set of scan_field_s
+ * The scan_command provide a means of encapsulating a set of scan_field
  * structures that should be scanned in/out to the device.
  */
 struct scan_command {
@@ -123,7 +123,7 @@ union jtag_command_container {
 
 /**
  * The type of the @c jtag_command_container contained by a
- * @c jtag_command_s structure.
+ * @c jtag_command structure.
  */
 enum jtag_command_type {
 	JTAG_SCAN         = 1,
