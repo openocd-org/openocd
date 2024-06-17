@@ -95,3 +95,21 @@ proc "gdb_save_tdesc" {} {
 	echo "DEPRECATED! use 'gdb save_tdesc', not 'gdb_save_tdesc'"
 	eval gdb save_tdesc
 }
+
+lappend _telnet_autocomplete_skip "tcl_port"
+proc "tcl_port" {args} {
+	echo "DEPRECATED! use 'tcl port' not 'tcl_port'"
+	eval tcl port $args
+}
+
+lappend _telnet_autocomplete_skip "tcl_notifications"
+proc "tcl_notifications" {state} {
+	echo "DEPRECATED! use 'tcl notifications' not 'tcl_notifications'"
+	eval tcl notifications $state
+}
+
+lappend _telnet_autocomplete_skip "tcl_trace"
+proc "tcl_trace" {state} {
+	echo "DEPRECATED! use 'tcl trace' not 'tcl_trace'"
+	eval tcl trace $state
+}

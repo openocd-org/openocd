@@ -2217,7 +2217,7 @@ gdb (with 'set remotetimeout') is recommended. An insufficient timeout may
 cause initialization to fail with "Unknown remote qXfer reply: OK".
 @end deffn
 
-@deffn {Config Command} {tcl_port} [number]
+@deffn {Config Command} {tcl port} [number]
 Specify or query the port used for a simplified RPC
 connection that can be used by clients to issue TCL commands and get the
 output from the Tcl engine.
@@ -10588,7 +10588,7 @@ the destination of the trace data:
 @item @option{external} -- configure TPIU/SWO to let user capture trace
 output externally, either with an additional UART or with a logic analyzer (default);
 @item @option{-} -- configure TPIU/SWO and debug adapter to gather trace data
-and forward it to @command{tcl_trace} command;
+and forward it to @command{tcl trace} command;
 @item @option{:}@var{port} -- configure TPIU/SWO and debug adapter to gather
 trace data, open a TCP server at port @var{port} and send the trace data to
 each connected client;
@@ -12776,7 +12776,7 @@ OpenOCD provides a simple RPC server that allows to run arbitrary Tcl
 commands and receive the results.
 
 To access it, your application needs to connect to a configured TCP port
-(see @command{tcl_port}). Then it can pass any string to the
+(see @command{tcl port}). Then it can pass any string to the
 interpreter terminating it with @code{0x1a} and wait for the return
 value (it will be terminated with @code{0x1a} as well). This can be
 repeated as many times as desired without reopening the connection.
@@ -12802,7 +12802,7 @@ type target_state state [state-name]
 type target_reset mode [reset-mode]
 @end verbatim
 
-@deffn {Command} {tcl_notifications} [on/off]
+@deffn {Command} {tcl notifications} [on/off]
 Toggle output of target notifications to the current Tcl RPC server.
 Only available from the Tcl RPC server.
 Defaults to off.
@@ -12821,7 +12821,7 @@ Target trace data is emitted as a Tcl associative array in the following format.
 type target_trace data [trace-data-hex-encoded]
 @end verbatim
 
-@deffn {Command} {tcl_trace} [on/off]
+@deffn {Command} {tcl trace} [on/off]
 Toggle output of target trace data to the current Tcl RPC server.
 Only available from the Tcl RPC server.
 Defaults to off.
