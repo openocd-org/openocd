@@ -2179,8 +2179,6 @@ only during configuration (before those ports are opened).
 For reasons including security, you may wish to prevent remote
 access using one or more of these ports.
 In such cases, just specify the relevant port number as "disabled".
-If you disable all access through TCP/IP, you will need to
-use the command line @option{-pipe} option.
 
 You can request the operating system to select one of the available
 ports for the server by specifying the relevant port number as "0".
