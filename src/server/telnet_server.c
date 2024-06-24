@@ -982,7 +982,7 @@ static const struct command_registration telnet_command_handlers[] = {
 	{
 		.name = "exit",
 		.handler = handle_exit_command,
-		.mode = COMMAND_EXEC,
+		.mode = COMMAND_ANY,
 		.usage = "",
 		.help = "exit telnet session",
 	},
