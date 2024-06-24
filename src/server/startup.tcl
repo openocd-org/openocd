@@ -113,3 +113,9 @@ proc "tcl_trace" {state} {
 	echo "DEPRECATED! use 'tcl trace' not 'tcl_trace'"
 	eval tcl trace $state
 }
+
+lappend _telnet_autocomplete_skip "telnet_port"
+proc "telnet_port" {args} {
+	echo "DEPRECATED! use 'telnet port', not 'telnet_port'"
+	eval telnet port $args
+}

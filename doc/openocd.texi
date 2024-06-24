@@ -2227,7 +2227,7 @@ the port @var{number} defaults to 6666.
 When specified as "disabled", this service is not activated.
 @end deffn
 
-@deffn {Config Command} {telnet_port} [number]
+@deffn {Config Command} {telnet port} [number]
 Specify or query the
 port on which to listen for incoming telnet connections.
 This port is intended for interaction with one human through TCL commands.
