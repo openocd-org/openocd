@@ -331,7 +331,7 @@ union xtensa_reg_val_u {
 	uint8_t buf[4];
 };
 
-static const struct xtensa_keyval_info_s xt_qerr[XT_QERR_NUM] = {
+static const struct xtensa_keyval_info xt_qerr[XT_QERR_NUM] = {
 	{ .chrval = "E00", .intval = ERROR_FAIL },
 	{ .chrval = "E01", .intval = ERROR_FAIL },
 	{ .chrval = "E02", .intval = ERROR_COMMAND_ARGUMENT_INVALID },

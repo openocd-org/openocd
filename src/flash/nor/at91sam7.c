@@ -560,7 +560,7 @@ static int at91sam7_read_part_info(struct flash_bank *bank)
 		if (bnk > 0) {
 			if (!t_bank->next) {
 				/* create a new flash bank element */
-				struct flash_bank *fb = calloc(sizeof(struct flash_bank), 1);
+				struct flash_bank *fb = calloc(1, sizeof(struct flash_bank));
 				if (!fb) {
 					LOG_ERROR("No memory for flash bank");
 					return ERROR_FAIL;
@@ -748,7 +748,7 @@ FLASH_BANK_COMMAND_HANDLER(at91sam7_flash_bank_command)
 		if (bnk > 0) {
 			if (!t_bank->next) {
 				/* create a new bank element */
-				struct flash_bank *fb = calloc(sizeof(struct flash_bank), 1);
+				struct flash_bank *fb = calloc(1, sizeof(struct flash_bank));
 				if (!fb) {
 					LOG_ERROR("No memory for flash bank");
 					return ERROR_FAIL;

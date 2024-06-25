@@ -453,7 +453,7 @@ FLASH_BANK_COMMAND_HANDLER(stellaris_flash_bank_command)
 	if (CMD_ARGC < 6)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	stellaris_info = calloc(sizeof(struct stellaris_flash_bank), 1);
+	stellaris_info = calloc(1, sizeof(struct stellaris_flash_bank));
 	bank->base = 0x0;
 	bank->driver_priv = stellaris_info;
 

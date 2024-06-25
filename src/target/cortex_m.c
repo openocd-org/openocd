@@ -931,8 +931,12 @@ static int cortex_m_poll_one(struct target *target)
 		if (target->state != TARGET_RESET) {
 			target->state = TARGET_RESET;
 			LOG_TARGET_INFO(target, "external reset detected");
+			/* In case of an unexpected S_RESET_ST set TARGET_RESET state
+			 * and keep it until the next poll to allow its detection */
+			return ERROR_OK;
 		}
-		return ERROR_OK;
+		/* S_RESET_ST was expected (in a reset command). Continue processing
+		 * to quickly get out of TARGET_RESET state */
 	}
 
 	if (target->state == TARGET_RESET) {
@@ -2655,8 +2659,8 @@ int cortex_m_examine(struct target *target)
 		if (retval != ERROR_OK)
 			return retval;
 
-		if (armv7m->trace_config.itm_deferred_config)
-			armv7m_trace_itm_config(target);
+		/* Configure ITM */
+		armv7m_trace_itm_config(target);
 
 		/* NOTE: FPB and DWT are both optional. */
 

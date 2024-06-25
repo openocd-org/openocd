@@ -23,7 +23,7 @@
 
 #include <target/target.h>
 
-static struct hl_interface_s hl_if = {
+static struct hl_interface hl_if = {
 	.param = {
 		.device_desc = NULL,
 		.vid = { 0 },

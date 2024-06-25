@@ -298,7 +298,7 @@ static int arc_jtag_read_registers(struct arc_jtag *jtag_info, uint32_t type,
 			ARC_JTAG_READ_FROM_CORE_REG : ARC_JTAG_READ_FROM_AUX_REG);
 	arc_jtag_enque_set_transaction(jtag_info, transaction, TAP_DRPAUSE);
 
-	uint8_t *data_buf = calloc(sizeof(uint8_t), count * 4);
+	uint8_t *data_buf = calloc(count * 4, sizeof(uint8_t));
 
 	arc_jtag_enque_register_rw(jtag_info, addr, data_buf, NULL, count);
 
@@ -498,7 +498,7 @@ int arc_jtag_read_memory(struct arc_jtag *jtag_info, uint32_t addr,
 	if (!count)
 		return ERROR_OK;
 
-	data_buf = calloc(sizeof(uint8_t), count * 4);
+	data_buf = calloc(count * 4, sizeof(uint8_t));
 	arc_jtag_enque_reset_transaction(jtag_info);
 
 	/* We are reading from memory. */
