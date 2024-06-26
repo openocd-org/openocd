@@ -15,19 +15,21 @@ else
     exit 1
 fi
 
-SKIP_SUBMODULE=0
+WITH_SUBMODULES=0
 
 case "$#" in
     0) ;;
-    1) if [ "$1" = "nosubmodule" ]; then
-           SKIP_SUBMODULE=1
-       else
+    1) if [ "$1" = "with-submodules" ]; then
+           WITH_SUBMODULES=1
+       elif [ "$1" = "nosubmodule" ]; then
+           WITH_SUBMODULES=0
+       elif [ -n "$1" ]; then
            echo "$0: Illegal argument $1" >&2
-           echo "USAGE: $0 [nosubmodule]" >&2
+           echo "USAGE: $0 [with-submodules]" >&2
            exit 1
        fi;;
    *)  echo "$0: Wrong number of command-line arguments." >&2
-       echo "USAGE: $0 [nosubmodule]" >&2
+       echo "USAGE: $0 [with-submodules]" >&2
        exit 1;;
 esac
 
@@ -42,12 +44,12 @@ autoheader --warnings=all
 automake --warnings=all --gnu --add-missing --copy
 )
 
-if [ "$SKIP_SUBMODULE" -ne 0 ]; then
-    echo "Skipping submodule setup"
-else
+if [ "$WITH_SUBMODULES" -ne 0 ]; then
     echo "Setting up submodules"
     git submodule sync
     git submodule update --init
+else
+    echo "Skipping submodule setup"
 fi
 
 if [ -x src/jtag/drivers/libjaylink/autogen.sh ]; then
