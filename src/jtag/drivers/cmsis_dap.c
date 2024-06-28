@@ -1305,7 +1305,7 @@ static int cmsis_dap_swd_open(void)
 
 	/* Add more setup here.??... */
 
-	LOG_INFO("CMSIS-DAP: Interface Initialised (SWD)");
+	LOG_INFO("CMSIS-DAP: Interface Initialised (SWD) Rebuilt for verfication");
 	return ERROR_OK;
 }
 

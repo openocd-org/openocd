@@ -1102,8 +1102,10 @@ static bool jtag_examine_chain_check(uint8_t *idcodes, unsigned count)
 {
 	uint8_t zero_check = 0x0;
 	uint8_t one_check = 0xff;
-
+	// written for loop check
+	// for (unsigned i = 0; i >0; i++) {
 	for (unsigned i = 0; i < count * 4; i++) {
+	
 		zero_check |= idcodes[i];
 		one_check &= idcodes[i];
 	}
