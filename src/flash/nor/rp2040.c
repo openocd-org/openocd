@@ -331,8 +331,8 @@ static int rp2xxx_lookup_rom_symbol(struct target *target, uint16_t tag, uint16_
 		/* Distinguish old-style RP2350 ROM table (A0, and earlier A1 builds)
 		   based on position of table -- a high address means it is shared with
 		   RISC-V, i.e. new-style. */
-		uint32_t table_ptr;
-		err = target_read_u32(target, BOOTROM_MAGIC_ADDR + 4, &table_ptr);
+		uint16_t table_ptr;
+		err = target_read_u16(target, BOOTROM_MAGIC_ADDR + 4, &table_ptr);
 		if (err != ERROR_OK)
 			return err;
 		if (table_ptr < 0x7c00)
