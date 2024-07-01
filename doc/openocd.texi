@@ -7345,12 +7345,13 @@ flash bank $_FLASHNAME npcx 0x64000000 0 0 0 $_TARGETNAME
 @end deffn
 
 @deffn {Flash Driver} {nrf5}
-All members of the nRF51 microcontroller families from Nordic Semiconductor
-include internal flash and use ARM Cortex-M0 core. nRF52 family powered
-by ARM Cortex-M4 or M4F core is supported too. nRF52832 is fully supported
-including BPROT flash protection scheme. nRF52833 and nRF52840 devices are
-supported with the exception of security extensions (flash access control list
-- ACL).
+Supports all members of the nRF51, nRF52 and nRF53 microcontroller families from
+Nordic Semiconductor. nRF91 family is supported too. One driver handles both
+the main flash and the UICR area.
+
+Flash protection is handled on nRF51 family and nRF52805, nRF52810, nRF52811,
+nRF52832 devices. Flash access control list (ACL) protection scheme of the newer
+devices is not supported.
 
 @example
 flash bank $_FLASHNAME nrf5 0 0x00000000 0 0 $_TARGETNAME
@@ -8827,8 +8828,8 @@ The file format must be inferred by the driver.
 
 @section PLD/FPGA Drivers, Options, and Commands
 
-Drivers may support PLD-specific options to the @command{pld device}
-definition command, and may also define commands usable only with
+Drivers may support PLD-specific options to the @command{pld create}
+command, and may also define commands usable only with
 that particular type of PLD.
 
 @deffn {FPGA Driver} {virtex2} [@option{-no_jstart}]
@@ -8914,13 +8915,12 @@ For the option @option{-family} @var{name} is one of @var{trion|titanium}.
 @end deffn
 
 
-@deffn {FPGA Driver} {intel} [@option{-family} <name>]
+@deffn {FPGA Driver} {intel} @option{-family} <name>
 This driver can be used to load the bitstream into Intel (former Altera) FPGAs.
-The families Cyclone III, Cyclone IV, Cyclone V, Cyclone 10, Arria II are supported.
+The families Cyclone III, Cyclone IV, Cyclone V, Cyclone 10 and Arria II are supported.
 @c Arria V and Arria 10, MAX II, MAX V, MAX10)
 
-For the option @option{-family} @var{name} is one of @var{cycloneiii cycloneiv cyclonev cyclone10 arriaii}.
-This is needed when the JTAG ID of the device is ambiguous (same ID is used for chips in different families).
+The option @option{-family} @var{name} is one of @var{cycloneiii cycloneiv cyclonev cyclone10 arriaii}.
 
 As input file format the driver supports a '.rbf' (raw bitstream file) file. The '.rbf' file can be generated
 from a '.sof' file with @verb{|quartus_cpf -c blinker.sof blinker.rbf|}
@@ -11376,7 +11376,6 @@ tunneled DR scan consists of:
 @item A width+1 stream of bits for the tunneled TDI. The plus one is because there is a one-clock skew between TDI of Xilinx chain and TDO from tunneled chain.
 @item 3 bits of zero that the tunnel uses to go back to idle state.
 @end enumerate
-
 @end deffn
 
 @deffn {Command} {riscv set_bscan_tunnel_ir} value

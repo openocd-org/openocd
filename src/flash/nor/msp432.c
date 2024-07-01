@@ -937,7 +937,7 @@ static int msp432_probe(struct flash_bank *bank)
 
 	if (is_main && MSP432P4 == msp432_bank->family_type) {
 		/* Create the info flash bank needed by MSP432P4 variants */
-		struct flash_bank *info = calloc(sizeof(struct flash_bank), 1);
+		struct flash_bank *info = calloc(1, sizeof(struct flash_bank));
 		if (!info)
 			return ERROR_FAIL;
 

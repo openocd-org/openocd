@@ -286,13 +286,13 @@ static uint8_t dtc_entry_download;
 static int dtc_load_from_buffer(struct libusb_device_handle *hdev_param, const uint8_t *buffer,
 		size_t length)
 {
-	struct header_s {
+	struct header {
 		uint8_t type;
 		uint8_t length;
 	};
 
 	int usb_err;
-	struct header_s *header;
+	struct header *header;
 	uint8_t lut_start = 0xc0;
 
 	dtc_entry_download = 0;
@@ -311,7 +311,7 @@ static int dtc_load_from_buffer(struct libusb_device_handle *hdev_param, const u
 			exit(1);
 		}
 
-		header = (struct header_s *)buffer;
+		header = (struct header *)buffer;
 		buffer += sizeof(*header);
 		length -= sizeof(*header);
 

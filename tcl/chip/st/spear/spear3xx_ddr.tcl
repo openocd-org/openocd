@@ -10,7 +10,7 @@
 
 proc sp3xx_ddr_init {ddr_type {ddr_chips 1}} {
 	if { $ddr_chips != 1 && $ddr_chips != 2 } {
-		error "Only 1 or 2 DDR chips permitted. Wrong value "$ddr_chips
+		error "Only 1 or 2 DDR chips permitted. Wrong value $ddr_chips"
 	}
 
 	if { $ddr_type == "mt47h64m16_3_333_cl5_async" } {
@@ -21,7 +21,7 @@ proc sp3xx_ddr_init {ddr_type {ddr_chips 1}} {
 	#	????? $ddr_chips
 	#	set ddr_size 0x?????
 	} else {
-		error "sp3xx_ddr_init: unrecognized DDR type "$ddr_type
+		error "sp3xx_ddr_init: unrecognized DDR type $ddr_type"
 	}
 
 	# MPMC START

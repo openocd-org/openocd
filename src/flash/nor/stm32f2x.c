@@ -1020,7 +1020,7 @@ static int stm32x_probe(struct flash_bank *bank)
 		assert(num_sectors > 0);
 
 		bank->num_sectors = num_sectors;
-		bank->sectors = calloc(sizeof(struct flash_sector), num_sectors);
+		bank->sectors = calloc(num_sectors, sizeof(struct flash_sector));
 
 		if (stm32x_otp_is_f7(bank))
 			bank->size = STM32F7_OTP_SIZE;

@@ -114,12 +114,18 @@ static int remote_bitbang_fill_buf(enum block_bool block)
 				contiguous_available_space);
 		if (first && block == BLOCK)
 			socket_nonblock(remote_bitbang_fd);
-		first = false;
 		if (count > 0) {
 			remote_bitbang_recv_buf_end += count;
 			if (remote_bitbang_recv_buf_end == sizeof(remote_bitbang_recv_buf))
 				remote_bitbang_recv_buf_end = 0;
 		} else if (count == 0) {
+			/* When read_socket returns 0, socket reached EOF and there is
+			 * no data to read. But if request was blocking, the caller
+			 * expected some data. Such situations should be treated as ERROR. */
+			if (first && block == BLOCK) {
+				LOG_ERROR("remote_bitbang: socket closed by remote");
+				return ERROR_FAIL;
+			}
 			return ERROR_OK;
 		} else if (count < 0) {
 #ifdef _WIN32
@@ -133,6 +139,7 @@ static int remote_bitbang_fill_buf(enum block_bool block)
 				return ERROR_FAIL;
 			}
 		}
+		first = false;
 	}
 
 	return ERROR_OK;

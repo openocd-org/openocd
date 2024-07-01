@@ -965,8 +965,7 @@ static int jim_arm_tpiu_swo_create(Jim_Interp *interp, int argc, Jim_Obj *const 
 	obj->out_filename = strdup("external");
 	if (!obj->out_filename) {
 		LOG_ERROR("Out of memory");
-		free(obj);
-		return JIM_ERR;
+		goto err_exit;
 	}
 
 	Jim_Obj *n;
@@ -974,8 +973,7 @@ static int jim_arm_tpiu_swo_create(Jim_Interp *interp, int argc, Jim_Obj *const 
 	obj->name = strdup(Jim_GetString(n, NULL));
 	if (!obj->name) {
 		LOG_ERROR("Out of memory");
-		free(obj);
-		return JIM_ERR;
+		goto err_exit;
 	}
 
 	/* Do the rest as "configure" options */

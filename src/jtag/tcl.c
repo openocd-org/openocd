@@ -760,8 +760,9 @@ static const struct command_registration jtag_subcommand_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.handler = handle_jtag_configure,
 		.help = "Return any Tcl handler for the specified "
-			"TAP event.",
-		.usage = "tap_name '-event' event_name",
+			"TAP event or the value of the IDCODE found in hardware.",
+		.usage = "tap_name '-event' event_name | "
+		    "tap_name '-idcode'",
 	},
 	{
 		.name = "names",
