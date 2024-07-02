@@ -399,8 +399,8 @@ AS_CASE([$host_os],
 ])
 
 AC_ARG_ENABLE([internal-jimtcl],
-  AS_HELP_STRING([--disable-internal-jimtcl], [Disable building internal jimtcl]),
-  [use_internal_jimtcl=$enableval], [use_internal_jimtcl=yes])
+  AS_HELP_STRING([--enable-internal-jimtcl], [Enable building internal jimtcl (deprecated)]),
+  [use_internal_jimtcl=$enableval], [use_internal_jimtcl=no])
 
 AC_ARG_ENABLE([jimtcl-maintainer],
   AS_HELP_STRING([--enable-jimtcl-maintainer], [Enable maintainer mode when building internal jimtcl]),
@@ -877,6 +877,10 @@ AS_IF([test "x$enable_jlink" != "xno"], [
     AC_MSG_WARN([Using the internal libjaylink is deprecated and will not be possible in the future.])
   ]])
 )
+
+AS_IF([test "x$use_internal_jimtcl" = "xyes"], [
+  AC_MSG_WARN([Using the internal jimtcl is deprecated and will not be possible in the future.])
+])
 
 echo
 echo
