@@ -19,5 +19,9 @@ int riscv013_set_register(struct target *target, enum gdb_regno rid,
 		riscv_reg_t value);
 int riscv013_set_register_buf(struct target *target, enum gdb_regno regno,
 		const uint8_t *value);
+uint32_t riscv013_access_register_command(struct target *target, uint32_t number,
+		unsigned int size, uint32_t flags);
+int riscv013_execute_abstract_command(struct target *target, uint32_t command,
+		uint32_t *cmderr);
 
 #endif /* OPENOCD_TARGET_RISCV_RISCV_013_H */

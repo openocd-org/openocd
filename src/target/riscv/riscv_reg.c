@@ -376,8 +376,19 @@ static bool is_known_standard_csr(unsigned int csr_num)
 	return is_csr_in_buf[csr_num];
 }
 
-static bool gdb_regno_exist(const struct target *target, uint32_t regno)
+bool riscv_reg_impl_gdb_regno_exist(const struct target *target, uint32_t regno)
 {
+	switch (regno) {
+	case GDB_REGNO_VLENB:
+	case GDB_REGNO_MTOPI:
+	case GDB_REGNO_MTOPEI:
+		assert(false
+				&& "Existence of other registers is determined "
+				"depending on existence of these ones, so "
+				"whether these register exist or not should be "
+				"set explicitly.");
+	};
+
 	if (regno <= GDB_REGNO_XPR15 ||
 			regno == GDB_REGNO_PC ||
 			regno == GDB_REGNO_PRIV)
@@ -403,7 +414,6 @@ static bool gdb_regno_exist(const struct target *target, uint32_t regno)
 		case CSR_VL:
 		case CSR_VCSR:
 		case CSR_VTYPE:
-		case CSR_VLENB:
 			return vlenb_exists(target);
 		case CSR_SCOUNTEREN:
 		case CSR_SSTATUS:
@@ -599,14 +609,15 @@ static int resize_reg(const struct target *target, uint32_t regno, bool exist,
 	return ERROR_OK;
 }
 
-static int set_reg_exist(const struct target *target, uint32_t regno, bool exist)
+int riscv_reg_impl_set_exist(const struct target *target, uint32_t regno, bool exist)
 {
 	const struct reg *reg = riscv_reg_impl_cache_entry(target, regno);
 	assert(riscv_reg_impl_is_initialized(reg));
 	return resize_reg(target, regno, exist, reg->size);
 }
 
-int riscv_reg_impl_init_one(struct target *target, uint32_t regno, const struct reg_arch_type *reg_type)
+int riscv_reg_impl_init_cache_entry(struct target *target, uint32_t regno,
+		bool exist, const struct reg_arch_type *reg_type)
 {
 	struct reg * const reg = riscv_reg_impl_cache_entry(target, regno);
 	if (riscv_reg_impl_is_initialized(reg))
@@ -634,8 +645,7 @@ int riscv_reg_impl_init_one(struct target *target, uint32_t regno, const struct 
 		reg_arch_info->target = target;
 		reg_arch_info->custom_number = gdb_regno_custom_number(target, regno);
 	}
-	return resize_reg(target, regno, gdb_regno_exist(target, regno),
-			gdb_regno_size(target, regno));
+	return resize_reg(target, regno, exist,	gdb_regno_size(target, regno));
 }
 
 static int init_custom_register_names(struct list_head *expose_custom,
@@ -725,7 +735,7 @@ int riscv_reg_impl_expose_csrs(const struct target *target)
 						csr_number);
 				continue;
 			}
-			if (set_reg_exist(target, regno, /*exist*/ true) != ERROR_OK)
+			if (riscv_reg_impl_set_exist(target, regno, /*exist*/ true) != ERROR_OK)
 				return ERROR_FAIL;
 			LOG_TARGET_DEBUG(target, "Exposing additional CSR %d (name=%s)",
 					csr_number, reg->name);
@@ -834,15 +844,8 @@ static int riscv_set_or_write_register(struct target *target,
 		return riscv_set_or_write_register(target, GDB_REGNO_DCSR, dcsr, write_through);
 	}
 
-	if (!target->reg_cache) {
-		assert(!target_was_examined(target));
-		LOG_TARGET_DEBUG(target,
-				"No cache, writing to target: %s <- 0x%" PRIx64,
-				riscv_reg_gdb_regno_name(target, regid), value);
-		return riscv013_set_register(target, regid, value);
-	}
-
 	struct reg *reg = riscv_reg_impl_cache_entry(target, regid);
+	assert(riscv_reg_impl_is_initialized(reg));
 
 	if (!reg->exist) {
 		LOG_TARGET_DEBUG(target, "Register %s does not exist.", reg->name);
@@ -935,21 +938,15 @@ int riscv_reg_get(struct target *target, riscv_reg_t *value,
 	RISCV_INFO(r);
 	assert(r);
 	if (r->dtm_version == DTM_DTMCS_VERSION_0_11)
-		return riscv013_get_register(target, value, regid);
+		return riscv011_get_register(target, value, regid);
 
 	keep_alive();
 
 	if (regid == GDB_REGNO_PC)
 		return riscv_reg_get(target, value, GDB_REGNO_DPC);
 
-	if (!target->reg_cache) {
-		assert(!target_was_examined(target));
-		LOG_TARGET_DEBUG(target, "No cache, reading %s from target",
-				riscv_reg_gdb_regno_name(target, regid));
-		return riscv013_get_register(target, value, regid);
-	}
-
 	struct reg *reg = riscv_reg_impl_cache_entry(target, regid);
+	assert(riscv_reg_impl_is_initialized(reg));
 	if (!reg->exist) {
 		LOG_TARGET_DEBUG(target, "Register %s does not exist.", reg->name);
 		return ERROR_FAIL;
