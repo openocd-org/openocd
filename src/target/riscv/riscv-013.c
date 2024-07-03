@@ -23,6 +23,9 @@
 #include "helper/time_support.h"
 #include "helper/list.h"
 #include "riscv.h"
+#include "riscv-013.h"
+#include "riscv_reg.h"
+#include "riscv-013_reg.h"
 #include "debug_defines.h"
 #include "rtos/rtos.h"
 #include "program.h"
@@ -37,10 +40,6 @@ static int riscv013_step_or_resume_current_hart(struct target *target,
 static int riscv013_clear_abstract_error(struct target *target);
 
 /* Implementations of the functions in struct riscv_info. */
-static int riscv013_get_register(struct target *target,
-		riscv_reg_t *value, enum gdb_regno rid);
-static int riscv013_set_register(struct target *target, enum gdb_regno regid,
-		riscv_reg_t value);
 static int dm013_select_hart(struct target *target, int hart_index);
 static int riscv013_halt_prep(struct target *target);
 static int riscv013_halt_go(struct target *target);
@@ -1104,7 +1103,7 @@ static uint32_t access_register_command(struct target *target, uint32_t number,
 			break;
 		default:
 			LOG_TARGET_ERROR(target, "%d-bit register %s not supported.",
-					size, gdb_regno_name(target, number));
+					size, riscv_reg_gdb_regno_name(target, number));
 			assert(0);
 	}
 
@@ -1290,7 +1289,7 @@ static int examine_progbuf(struct target *target)
 		return ERROR_OK;
 	}
 
-	if (riscv_save_register(target, GDB_REGNO_S0) != ERROR_OK)
+	if (riscv013_reg_save(target, GDB_REGNO_S0) != ERROR_OK)
 		return ERROR_FAIL;
 
 	struct riscv_program program;
@@ -1365,12 +1364,12 @@ static int prep_for_register_access(struct target *target,
 	}
 
 	LOG_TARGET_DEBUG(target, "Preparing mstatus to access %s",
-			gdb_regno_name(target, regno));
+			riscv_reg_gdb_regno_name(target, regno));
 
 	assert(target->state == TARGET_HALTED &&
 			"The target must be halted to modify and then restore mstatus");
 
-	if (riscv_get_register(target, orig_mstatus, GDB_REGNO_MSTATUS) != ERROR_OK)
+	if (riscv_reg_get(target, orig_mstatus, GDB_REGNO_MSTATUS) != ERROR_OK)
 		return ERROR_FAIL;
 
 	riscv_reg_t new_mstatus = *orig_mstatus;
@@ -1381,11 +1380,11 @@ static int prep_for_register_access(struct target *target,
 
 	new_mstatus = set_field(new_mstatus, field_mask, 1);
 
-	if (riscv_write_register(target, GDB_REGNO_MSTATUS, new_mstatus) != ERROR_OK)
+	if (riscv_reg_write(target, GDB_REGNO_MSTATUS, new_mstatus) != ERROR_OK)
 		return ERROR_FAIL;
 
 	LOG_TARGET_DEBUG(target, "Prepared to access %s (mstatus=0x%" PRIx64 ")",
-			gdb_regno_name(target, regno), new_mstatus);
+			riscv_reg_gdb_regno_name(target, regno), new_mstatus);
 	return ERROR_OK;
 }
 
@@ -1397,7 +1396,7 @@ static int cleanup_after_register_access(struct target *target,
 		return ERROR_OK;
 
 	LOG_TARGET_DEBUG(target, "Restoring mstatus to 0x%" PRIx64, mstatus);
-	return riscv_write_register(target, GDB_REGNO_MSTATUS, mstatus);
+	return riscv_reg_write(target, GDB_REGNO_MSTATUS, mstatus);
 }
 
 typedef enum {
@@ -1616,7 +1615,7 @@ static int fpr_read_progbuf(struct target *target, uint64_t *value,
 
 	const unsigned int freg = number - GDB_REGNO_FPR0;
 
-	if (riscv_save_register(target, GDB_REGNO_S0) != ERROR_OK)
+	if (riscv013_reg_save(target, GDB_REGNO_S0) != ERROR_OK)
 		return ERROR_FAIL;
 
 	struct riscv_program program;
@@ -1646,7 +1645,7 @@ static int csr_read_progbuf(struct target *target, uint64_t *value,
 	assert(target->state == TARGET_HALTED);
 	assert(number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095);
 
-	if (riscv_save_register(target, GDB_REGNO_S0) != ERROR_OK)
+	if (riscv013_reg_save(target, GDB_REGNO_S0) != ERROR_OK)
 		return ERROR_FAIL;
 
 	struct riscv_program program;
@@ -1674,7 +1673,7 @@ static int register_read_progbuf(struct target *target, uint64_t *value,
 		return csr_read_progbuf(target, value, number);
 
 	LOG_TARGET_ERROR(target, "Unexpected read of %s via program buffer.",
-			gdb_regno_name(target, number));
+			riscv_reg_gdb_regno_name(target, number));
 	return ERROR_FAIL;
 }
 
@@ -1714,7 +1713,7 @@ static int fpr_write_progbuf(struct target *target, enum gdb_regno number,
 	assert(number >= GDB_REGNO_FPR0 && number <= GDB_REGNO_FPR31);
 	const unsigned int freg = number - GDB_REGNO_FPR0;
 
-	if (riscv_save_register(target, GDB_REGNO_S0) != ERROR_OK)
+	if (riscv013_reg_save(target, GDB_REGNO_S0) != ERROR_OK)
 		return ERROR_FAIL;
 
 	struct riscv_program program;
@@ -1744,11 +1743,11 @@ static int vtype_write_progbuf(struct target *target, riscv_reg_t value)
 {
 	assert(target->state == TARGET_HALTED);
 
-	if (riscv_save_register(target, GDB_REGNO_S0) != ERROR_OK)
+	if (riscv013_reg_save(target, GDB_REGNO_S0) != ERROR_OK)
 		return ERROR_FAIL;
 	if (register_write_abstract(target, GDB_REGNO_S0, value) != ERROR_OK)
 		return ERROR_FAIL;
-	if (riscv_save_register(target, GDB_REGNO_S1) != ERROR_OK)
+	if (riscv013_reg_save(target, GDB_REGNO_S1) != ERROR_OK)
 		return ERROR_FAIL;
 
 	struct riscv_program program;
@@ -1765,11 +1764,11 @@ static int vl_write_progbuf(struct target *target, riscv_reg_t value)
 {
 	assert(target->state == TARGET_HALTED);
 
-	if (riscv_save_register(target, GDB_REGNO_S0) != ERROR_OK)
+	if (riscv013_reg_save(target, GDB_REGNO_S0) != ERROR_OK)
 		return ERROR_FAIL;
 	if (register_write_abstract(target, GDB_REGNO_S0, value) != ERROR_OK)
 		return ERROR_FAIL;
-	if (riscv_save_register(target, GDB_REGNO_S1) != ERROR_OK)
+	if (riscv013_reg_save(target, GDB_REGNO_S1) != ERROR_OK)
 		return ERROR_FAIL;
 
 	struct riscv_program program;
@@ -1788,7 +1787,7 @@ static int csr_write_progbuf(struct target *target, enum gdb_regno number,
 	assert(target->state == TARGET_HALTED);
 	assert(number >= GDB_REGNO_CSR0 && number <= GDB_REGNO_CSR4095);
 
-	if (riscv_save_register(target, GDB_REGNO_S0) != ERROR_OK)
+	if (riscv013_reg_save(target, GDB_REGNO_S0) != ERROR_OK)
 		return ERROR_FAIL;
 	if (register_write_abstract(target, GDB_REGNO_S0, value) != ERROR_OK)
 		return ERROR_FAIL;
@@ -1820,7 +1819,7 @@ static int register_write_progbuf(struct target *target, enum gdb_regno number,
 		return csr_write_progbuf(target, number, value);
 
 	LOG_TARGET_ERROR(target, "Unexpected write to %s via program buffer.",
-			gdb_regno_name(target, number));
+			riscv_reg_gdb_regno_name(target, number));
 	return ERROR_FAIL;
 }
 
@@ -1832,7 +1831,7 @@ static int register_write_direct(struct target *target, enum gdb_regno number,
 		riscv_reg_t value)
 {
 	LOG_TARGET_DEBUG(target, "Writing 0x%" PRIx64 " to %s", value,
-			gdb_regno_name(target, number));
+			riscv_reg_gdb_regno_name(target, number));
 
 	if (target->state != TARGET_HALTED)
 		return register_write_abstract(target, number, value);
@@ -1850,7 +1849,7 @@ static int register_write_direct(struct target *target, enum gdb_regno number,
 		return ERROR_FAIL;
 
 	if (result == ERROR_OK)
-		LOG_TARGET_DEBUG(target, "%s <- 0x%" PRIx64, gdb_regno_name(target, number),
+		LOG_TARGET_DEBUG(target, "%s <- 0x%" PRIx64, riscv_reg_gdb_regno_name(target, number),
 				value);
 
 	return result;
@@ -1860,7 +1859,7 @@ static int register_write_direct(struct target *target, enum gdb_regno number,
 static int register_read_direct(struct target *target, riscv_reg_t *value,
 		enum gdb_regno number)
 {
-	LOG_TARGET_DEBUG(target, "Reading %s", gdb_regno_name(target, number));
+	LOG_TARGET_DEBUG(target, "Reading %s", riscv_reg_gdb_regno_name(target, number));
 
 	if (target->state != TARGET_HALTED)
 		return register_read_abstract(target, value, number);
@@ -1879,7 +1878,7 @@ static int register_read_direct(struct target *target, riscv_reg_t *value,
 		return ERROR_FAIL;
 
 	if (result == ERROR_OK)
-		LOG_TARGET_DEBUG(target, "%s = 0x%" PRIx64, gdb_regno_name(target, number),
+		LOG_TARGET_DEBUG(target, "%s = 0x%" PRIx64, riscv_reg_gdb_regno_name(target, number),
 				*value);
 
 	return result;
@@ -1919,7 +1918,7 @@ static int set_dcsr_ebreak(struct target *target, bool step)
 	RISCV013_INFO(info);
 	riscv_reg_t original_dcsr, dcsr;
 	/* We want to twiddle some bits in the debug CSR so debugging works. */
-	if (riscv_get_register(target, &dcsr, GDB_REGNO_DCSR) != ERROR_OK)
+	if (riscv_reg_get(target, &dcsr, GDB_REGNO_DCSR) != ERROR_OK)
 		return ERROR_FAIL;
 	original_dcsr = dcsr;
 	dcsr = set_field(dcsr, CSR_DCSR_STEP, step);
@@ -1929,7 +1928,7 @@ static int set_dcsr_ebreak(struct target *target, bool step)
 	dcsr = set_field(dcsr, CSR_DCSR_EBREAKVS, r->riscv_ebreaku && riscv_supports_extension(target, 'H'));
 	dcsr = set_field(dcsr, CSR_DCSR_EBREAKVU, r->riscv_ebreaku && riscv_supports_extension(target, 'H'));
 	if (dcsr != original_dcsr &&
-			riscv_set_register(target, GDB_REGNO_DCSR, dcsr) != ERROR_OK)
+			riscv_reg_set(target, GDB_REGNO_DCSR, dcsr) != ERROR_OK)
 		return ERROR_FAIL;
 	info->dcsr_ebreak_is_set = true;
 	return ERROR_OK;
@@ -2404,7 +2403,7 @@ static int examine(struct target *target)
 	}
 
 	/* Now init registers based on what we discovered. */
-	if (riscv_init_registers(target) != ERROR_OK)
+	if (riscv013_reg_init_all(target) != ERROR_OK)
 		return ERROR_FAIL;
 
 	if (set_dcsr_ebreak(target, false) != ERROR_OK)
@@ -2564,14 +2563,14 @@ static int try_set_vsew(struct target *target, unsigned int *debug_vsew)
 	/* Set standard element width to match XLEN, for vmv instruction to move
 	 * the least significant bits into a GPR.
 	 */
-	if (riscv_write_register(target, GDB_REGNO_VTYPE, encoded_vsew << 3) != ERROR_OK)
+	if (riscv_reg_write(target, GDB_REGNO_VTYPE, encoded_vsew << 3) != ERROR_OK)
 		return ERROR_FAIL;
 
 	if (encoded_vsew == 3 && r->vsew64_supported == YNM_MAYBE) {
 		/* Check that it's supported. */
 		riscv_reg_t vtype;
 
-		if (riscv_get_register(target, &vtype, GDB_REGNO_VTYPE) != ERROR_OK)
+		if (riscv_reg_get(target, &vtype, GDB_REGNO_VTYPE) != ERROR_OK)
 			return ERROR_FAIL;
 		if (vtype >> (riscv_xlen(target) - 1)) {
 			r->vsew64_supported = YNM_NO;
@@ -2604,9 +2603,9 @@ static int prep_for_vector_access(struct target *target,
 		return ERROR_FAIL;
 
 	/* Save vtype and vl. */
-	if (riscv_get_register(target, orig_vtype, GDB_REGNO_VTYPE) != ERROR_OK)
+	if (riscv_reg_get(target, orig_vtype, GDB_REGNO_VTYPE) != ERROR_OK)
 		return ERROR_FAIL;
-	if (riscv_get_register(target, orig_vl, GDB_REGNO_VL) != ERROR_OK)
+	if (riscv_reg_get(target, orig_vl, GDB_REGNO_VL) != ERROR_OK)
 		return ERROR_FAIL;
 
 	if (try_set_vsew(target, debug_vsew) != ERROR_OK)
@@ -2615,22 +2614,22 @@ static int prep_for_vector_access(struct target *target,
 	 * instruction, for the vslide1down instruction.
 	 * Set it so the entire V register is updated. */
 	*debug_vl = DIV_ROUND_UP(r->vlenb * 8, *debug_vsew);
-	return riscv_write_register(target, GDB_REGNO_VL, *debug_vl);
+	return riscv_reg_write(target, GDB_REGNO_VL, *debug_vl);
 }
 
 static int cleanup_after_vector_access(struct target *target,
 		riscv_reg_t mstatus, riscv_reg_t vtype, riscv_reg_t vl)
 {
 	/* Restore vtype and vl. */
-	if (riscv_write_register(target, GDB_REGNO_VTYPE, vtype) != ERROR_OK)
+	if (riscv_reg_write(target, GDB_REGNO_VTYPE, vtype) != ERROR_OK)
 		return ERROR_FAIL;
-	if (riscv_write_register(target, GDB_REGNO_VL, vl) != ERROR_OK)
+	if (riscv_reg_write(target, GDB_REGNO_VL, vl) != ERROR_OK)
 		return ERROR_FAIL;
 	return cleanup_after_register_access(target, mstatus, GDB_REGNO_VL);
 }
 
-static int riscv013_get_register_buf(struct target *target,
-		uint8_t *value, enum gdb_regno regno)
+int riscv013_get_register_buf(struct target *target, uint8_t *value,
+		enum gdb_regno regno)
 {
 	assert(regno >= GDB_REGNO_V0 && regno <= GDB_REGNO_V31);
 
@@ -2644,7 +2643,7 @@ static int riscv013_get_register_buf(struct target *target,
 				&debug_vl, &debug_vsew) != ERROR_OK)
 		return ERROR_FAIL;
 
-	if (riscv_save_register(target, GDB_REGNO_S0) != ERROR_OK)
+	if (riscv013_reg_save(target, GDB_REGNO_S0) != ERROR_OK)
 		return ERROR_FAIL;
 
 	unsigned int vnum = regno - GDB_REGNO_V0;
@@ -2673,7 +2672,7 @@ static int riscv013_get_register_buf(struct target *target,
 		} else {
 			LOG_TARGET_ERROR(target,
 					"Failed to execute vmv/vslide1down while reading %s",
-					gdb_regno_name(target, regno));
+					riscv_reg_gdb_regno_name(target, regno));
 			break;
 		}
 	}
@@ -2684,8 +2683,8 @@ static int riscv013_get_register_buf(struct target *target,
 	return result;
 }
 
-static int riscv013_set_register_buf(struct target *target,
-		enum gdb_regno regno, const uint8_t *value)
+int riscv013_set_register_buf(struct target *target, enum gdb_regno regno,
+		const uint8_t *value)
 {
 	assert(regno >= GDB_REGNO_V0 && regno <= GDB_REGNO_V31);
 
@@ -2699,7 +2698,7 @@ static int riscv013_set_register_buf(struct target *target,
 				&debug_vl, &debug_vsew) != ERROR_OK)
 		return ERROR_FAIL;
 
-	if (riscv_save_register(target, GDB_REGNO_S0) != ERROR_OK)
+	if (riscv013_reg_save(target, GDB_REGNO_S0) != ERROR_OK)
 		return ERROR_FAIL;
 
 	unsigned int vnum = regno - GDB_REGNO_V0;
@@ -3098,10 +3097,6 @@ static int init_target(struct command_context *cmd_ctx,
 	LOG_TARGET_DEBUG(target, "Init.");
 	RISCV_INFO(generic_info);
 
-	generic_info->get_register = &riscv013_get_register;
-	generic_info->set_register = &riscv013_set_register;
-	generic_info->get_register_buf = &riscv013_get_register_buf;
-	generic_info->set_register_buf = &riscv013_set_register_buf;
 	generic_info->select_target = &dm013_select_target;
 	generic_info->get_hart_state = &riscv013_get_hart_state;
 	generic_info->resume_go = &riscv013_resume_go;
@@ -4439,11 +4434,11 @@ static int read_memory_progbuf_inner_fill_progbuf(struct target *target,
 {
 	const bool is_repeated_read = increment == 0;
 
-	if (riscv_save_register(target, GDB_REGNO_S0) != ERROR_OK)
+	if (riscv013_reg_save(target, GDB_REGNO_S0) != ERROR_OK)
 		return ERROR_FAIL;
-	if (riscv_save_register(target, GDB_REGNO_S1) != ERROR_OK)
+	if (riscv013_reg_save(target, GDB_REGNO_S1) != ERROR_OK)
 		return ERROR_FAIL;
-	if (is_repeated_read &&	riscv_save_register(target, GDB_REGNO_A0) != ERROR_OK)
+	if (is_repeated_read &&	riscv013_reg_save(target, GDB_REGNO_A0) != ERROR_OK)
 		return ERROR_FAIL;
 
 	struct riscv_program program;
@@ -4536,7 +4531,7 @@ static int read_memory_progbuf_inner(struct target *target,
 static int read_memory_progbuf_inner_one(struct target *target,
 		struct memory_access_info access, bool mprven)
 {
-	if (riscv_save_register(target, GDB_REGNO_S1) != ERROR_OK)
+	if (riscv013_reg_save(target, GDB_REGNO_S1) != ERROR_OK)
 		return ERROR_FAIL;
 
 	struct riscv_program program;
@@ -5079,9 +5074,9 @@ static int riscv_program_store_mprv(struct riscv_program *p, enum gdb_regno d,
 static int write_memory_progbuf_fill_progbuf(struct target *target,
 		uint32_t size, bool mprven)
 {
-	if (riscv_save_register(target, GDB_REGNO_S0) != ERROR_OK)
+	if (riscv013_reg_save(target, GDB_REGNO_S0) != ERROR_OK)
 		return ERROR_FAIL;
-	if (riscv_save_register(target, GDB_REGNO_S1) != ERROR_OK)
+	if (riscv013_reg_save(target, GDB_REGNO_S1) != ERROR_OK)
 		return ERROR_FAIL;
 
 	struct riscv_program program;
@@ -5252,7 +5247,7 @@ struct target_type riscv013_target = {
 };
 
 /*** 0.13-specific implementations of various RISC-V helper functions. ***/
-static int riscv013_get_register(struct target *target,
+int riscv013_get_register(struct target *target,
 		riscv_reg_t *value, enum gdb_regno rid)
 {
 	/* It would be beneficial to move this redirection to the
@@ -5261,14 +5256,14 @@ static int riscv013_get_register(struct target *target,
 	 */
 	if (rid == GDB_REGNO_PRIV) {
 		uint64_t dcsr;
-		if (riscv_get_register(target, &dcsr, GDB_REGNO_DCSR) != ERROR_OK)
+		if (riscv_reg_get(target, &dcsr, GDB_REGNO_DCSR) != ERROR_OK)
 			return ERROR_FAIL;
 		*value = set_field(0, VIRT_PRIV_V, get_field(dcsr, CSR_DCSR_V));
 		*value = set_field(*value, VIRT_PRIV_PRV, get_field(dcsr, CSR_DCSR_PRV));
 		return ERROR_OK;
 	}
 
-	LOG_TARGET_DEBUG(target, "reading register %s",	gdb_regno_name(target, rid));
+	LOG_TARGET_DEBUG(target, "reading register %s",	riscv_reg_gdb_regno_name(target, rid));
 
 	if (dm013_select_target(target) != ERROR_OK)
 		return ERROR_FAIL;
@@ -5281,11 +5276,11 @@ static int riscv013_get_register(struct target *target,
 	return ERROR_OK;
 }
 
-static int riscv013_set_register(struct target *target, enum gdb_regno rid,
+int riscv013_set_register(struct target *target, enum gdb_regno rid,
 		riscv_reg_t value)
 {
 	LOG_TARGET_DEBUG(target, "writing 0x%" PRIx64 " to register %s",
-			value, gdb_regno_name(target, rid));
+			value, riscv_reg_gdb_regno_name(target, rid));
 
 	if (dm013_select_target(target) != ERROR_OK)
 		return ERROR_FAIL;
@@ -5649,7 +5644,7 @@ static int riscv013_on_step_or_resume(struct target *target, bool step)
 	if (set_dcsr_ebreak(target, step) != ERROR_OK)
 		return ERROR_FAIL;
 
-	if (riscv_flush_registers(target) != ERROR_OK)
+	if (riscv_reg_flush_all(target) != ERROR_OK)
 		return ERROR_FAIL;
 	return ERROR_OK;
 }
@@ -5663,7 +5658,7 @@ static int riscv013_step_or_resume_current_hart(struct target *target,
 	}
 	LOG_TARGET_DEBUG(target, "resuming (for step?=%d)", step);
 
-	if (riscv_flush_registers(target) != ERROR_OK)
+	if (riscv_reg_flush_all(target) != ERROR_OK)
 		return ERROR_FAIL;
 
 	dm013_info_t *dm = get_dm(target);
