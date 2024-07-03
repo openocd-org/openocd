@@ -14,14 +14,10 @@ bin_PROGRAMS += %D%/openocd
 
 %C%_openocd_LDADD += $(MINGWLDADD)
 
-if INTERNAL_JIMTCL
-%C%_openocd_LDADD += $(top_builddir)/jimtcl/libjim.a
-else
 if HAVE_JIMTCL_PKG_CONFIG
 %C%_openocd_LDADD += $(JIMTCL_LIBS)
 else
 %C%_openocd_LDADD += -ljim
-endif
 endif
 
 %C%_libopenocd_la_CPPFLAGS =

@@ -398,14 +398,6 @@ AS_CASE([$host_os],
     ])
 ])
 
-AC_ARG_ENABLE([internal-jimtcl],
-  AS_HELP_STRING([--enable-internal-jimtcl], [Enable building internal jimtcl (deprecated)]),
-  [use_internal_jimtcl=$enableval], [use_internal_jimtcl=no])
-
-AC_ARG_ENABLE([jimtcl-maintainer],
-  AS_HELP_STRING([--enable-jimtcl-maintainer], [Enable maintainer mode when building internal jimtcl]),
-  [use_internal_jimtcl_maintainer=$enableval], [use_internal_jimtcl_maintainer=no])
-
 AC_ARG_ENABLE([remote-bitbang],
   AS_HELP_STRING([--enable-remote-bitbang], [Enable building support for the Remote Bitbang driver]),
   [build_remote_bitbang=$enableval], [build_remote_bitbang=yes])
@@ -595,26 +587,13 @@ AS_IF([test "x$build_gw16012" = "xyes"], [
   AC_DEFINE([BUILD_GW16012], [0], [0 if you don't want the Gateworks GW16012 driver.])
 ])
 
-AS_IF([test "x$use_internal_jimtcl" = "xyes"], [
-  AS_IF([test -f "$srcdir/jimtcl/configure"], [
-    AS_IF([test "x$use_internal_jimtcl_maintainer" = "xyes"], [
-      jimtcl_config_options="--disable-install-jim --with-ext=json --minimal --disable-ssl --maintainer"
-    ], [
-      jimtcl_config_options="--disable-install-jim --with-ext=json --minimal --disable-ssl"
-    ])
-    AX_CONFIG_SUBDIR_OPTION([jimtcl], [$jimtcl_config_options])
+PKG_CHECK_MODULES([JIMTCL], [jimtcl >= 0.79], [
+    have_jimtcl_pkg_config=yes
   ], [
-    AC_MSG_ERROR([jimtcl not found, run git submodule init and git submodule update.])
-  ])
-], [
-  PKG_CHECK_MODULES([JIMTCL], [jimtcl >= 0.79], [
-      have_jimtcl_pkg_config=yes
-    ], [
-      have_jimtcl_pkg_config=no
-      AC_CHECK_HEADER([jim.h], [], [
-        AC_MSG_ERROR([jimtcl is required but not found via pkg-config and system includes])
-      ])
-  ])
+    have_jimtcl_pkg_config=no
+    AC_CHECK_HEADER([jim.h], [], [
+      AC_MSG_ERROR([jimtcl is required but not found via pkg-config and system includes])
+    ])
 ])
 
 AS_IF([test "x$build_remote_bitbang" = "xyes"], [
@@ -785,7 +764,6 @@ AM_CONDITIONAL([RSHIM], [test "x$build_rshim" = "xyes"])
 AM_CONDITIONAL([DMEM], [test "x$build_dmem" = "xyes"])
 AM_CONDITIONAL([HAVE_CAPSTONE], [test "x$enable_capstone" != "xno"])
 
-AM_CONDITIONAL([INTERNAL_JIMTCL], [test "x$use_internal_jimtcl" = "xyes"])
 AM_CONDITIONAL([HAVE_JIMTCL_PKG_CONFIG], [test "x$have_jimtcl_pkg_config" = "xyes"])
 
 AM_CONDITIONAL([USE_GCOV], [test "x$enable_gcov" = "xyes"])

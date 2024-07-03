@@ -28,14 +28,6 @@ dist_man_MANS =
 EXTRA_DIST =
 DISTCLEANFILES =
 
-if INTERNAL_JIMTCL
-SUBDIRS += jimtcl
-DIST_SUBDIRS += jimtcl
-EXTRA_DIST += jimtcl/configure.gnu
-# jimtcl from 0.79 to 0.82 miss cleaning jsmn.o
-DISTCLEANFILES += jimtcl/jsmn/jsmn.o
-endif
-
 SUBDIRS += testing
 DIST_SUBDIRS += testing
 
@@ -43,18 +35,12 @@ DIST_SUBDIRS += testing
 AM_CFLAGS = $(GCC_WARNINGS)
 AM_LDFLAGS =
 
-AM_CPPFLAGS = $(HOST_CPPFLAGS)\
-			  -I$(top_srcdir)/src \
-			  -I$(top_builddir)/src \
-			  -DPKGDATADIR=\"$(pkgdatadir)\" \
-			  -DBINDIR=\"$(bindir)\"
-
-if INTERNAL_JIMTCL
-AM_CPPFLAGS += -I$(top_srcdir)/jimtcl \
-			   -I$(top_builddir)/jimtcl
-else
-AM_CPPFLAGS += $(JIMTCL_CFLAGS)
-endif
+AM_CPPFLAGS = $(HOST_CPPFLAGS) \
+	-I$(top_srcdir)/src \
+	-I$(top_builddir)/src \
+	-DPKGDATADIR=\"$(pkgdatadir)\" \
+	-DBINDIR=\"$(bindir)\" \
+	$(JIMTCL_CFLAGS)
 
 if USE_GCOV
 AM_CFLAGS += --coverage
