@@ -29,7 +29,7 @@ struct riscv_batch *riscv_batch_alloc(struct target *target, size_t scans)
 	out->allocated_scans = scans;
 	out->last_scan = RISCV_SCAN_TYPE_INVALID;
 	out->was_run = false;
-	out->used_delay = 0;
+	out->last_scan_delay = 0;
 
 	out->data_out = NULL;
 	out->data_in = NULL;
@@ -109,7 +109,7 @@ static bool riscv_batch_was_scan_busy(const struct riscv_batch *batch,
 }
 
 static void add_idle_before_batch(const struct riscv_batch *batch, size_t start_idx,
-		struct riscv_scan_delays delays)
+		const struct riscv_scan_delays *delays)
 {
 	if (!batch->was_run)
 		return;
@@ -121,9 +121,9 @@ static void add_idle_before_batch(const struct riscv_batch *batch, size_t start_
 		? batch->delay_classes[start_idx - 1]
 		: RISCV_DELAY_BASE;
 	const unsigned int new_delay = riscv_scan_get_delay(delays, delay_class);
-	if (new_delay <= batch->used_delay)
+	if (new_delay <= batch->last_scan_delay)
 		return;
-	const unsigned int idle_change = new_delay - batch->used_delay;
+	const unsigned int idle_change = new_delay - batch->last_scan_delay;
 	LOG_TARGET_DEBUG(batch->target, "Adding %u idle cycles before the batch.",
 			idle_change);
 	assert(idle_change <= INT_MAX);
@@ -131,19 +131,19 @@ static void add_idle_before_batch(const struct riscv_batch *batch, size_t start_
 }
 
 static int get_delay(const struct riscv_batch *batch, size_t scan_idx,
-		struct riscv_scan_delays delays)
+		const struct riscv_scan_delays *delays)
 {
 	assert(batch);
 	assert(scan_idx < batch->used_scans);
 	const enum riscv_scan_delay_class delay_class =
 		batch->delay_classes[scan_idx];
-	const unsigned int delay =  riscv_scan_get_delay(delays, delay_class);
+	const unsigned int delay = riscv_scan_get_delay(delays, delay_class);
 	assert(delay <= INT_MAX);
 	return delay;
 }
 
 int riscv_batch_run_from(struct riscv_batch *batch, size_t start_idx,
-		struct riscv_scan_delays delays, bool resets_delays,
+		const struct riscv_scan_delays *delays, bool resets_delays,
 		size_t reset_delays_after)
 {
 	assert(batch->used_scans);
@@ -195,7 +195,7 @@ int riscv_batch_run_from(struct riscv_batch *batch, size_t start_idx,
 	}
 
 	batch->was_run = true;
-	batch->used_delay = get_delay(batch, batch->used_scans - 1, delays);
+	batch->last_scan_delay = get_delay(batch, batch->used_scans - 1, delays);
 	return ERROR_OK;
 }
 

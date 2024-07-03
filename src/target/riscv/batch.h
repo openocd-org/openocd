@@ -25,40 +25,66 @@ enum riscv_scan_delay_class {
 	/* Delay for System Bus read operation: */
 	RISCV_DELAY_SYSBUS_READ,
 	/* Delay for System Bus write operation: */
-	RISCV_DELAY_SYSBUS_WRITE,
+	RISCV_DELAY_SYSBUS_WRITE
 };
 
+static inline const char *
+riscv_scan_delay_class_name(enum riscv_scan_delay_class delay_class)
+{
+	switch (delay_class) {
+	case RISCV_DELAY_BASE:
+		return "DM access";
+	case RISCV_DELAY_ABSTRACT_COMMAND:
+		return "Abstract Command";
+	case RISCV_DELAY_SYSBUS_READ:
+		return "System Bus read";
+	case RISCV_DELAY_SYSBUS_WRITE:
+		return "System Bus write";
+	}
+	assert(0);
+	return NULL;
+}
+
+/* The scan delay values are passed to "jtag_add_runtest()", which accepts an
+ * "int".  Therefore, the passed value should be no greater than "INT_MAX".
+ *
+ * Since the resulting delay value can be a sum of two individual delays,
+ * individual delays are limited to "INT_MAX / 2" to prevent overflow of the
+ * final sum.
+ */
+#define RISCV_SCAN_DELAY_MAX (INT_MAX / 2)
+
 struct riscv_scan_delays {
-	/* The purpose of these delays is to be passed to "jtag_add_runtest()",
-	 * which accepts an "int".
-	 * Therefore, they should be no greater then "INT_MAX".
-	 */
 	unsigned int base_delay;
 	unsigned int ac_delay;
 	unsigned int sb_read_delay;
 	unsigned int sb_write_delay;
 };
 
-static inline unsigned int riscv_scan_get_delay(struct riscv_scan_delays delays,
+static inline unsigned int
+riscv_scan_get_delay(const struct riscv_scan_delays *delays,
 		enum riscv_scan_delay_class delay_class)
 {
 	switch (delay_class) {
 	case RISCV_DELAY_BASE:
-		return delays.base_delay;
+		return delays->base_delay;
 	case RISCV_DELAY_ABSTRACT_COMMAND:
-		return delays.ac_delay;
+		return delays->base_delay + delays->ac_delay;
 	case RISCV_DELAY_SYSBUS_READ:
-		return delays.sb_read_delay;
+		return delays->base_delay + delays->sb_read_delay;
 	case RISCV_DELAY_SYSBUS_WRITE:
-		return delays.sb_write_delay;
+		return delays->base_delay + delays->sb_write_delay;
 	}
+	assert(0);
 	return 0;
 }
 
 static inline void riscv_scan_set_delay(struct riscv_scan_delays *delays,
 		enum riscv_scan_delay_class delay_class, unsigned int delay)
 {
-	assert(delay <= INT_MAX);
+	assert(delay <= RISCV_SCAN_DELAY_MAX);
+	LOG_DEBUG("%s delay is set to %u.",
+			riscv_scan_delay_class_name(delay_class), delay);
 	switch (delay_class) {
 	case RISCV_DELAY_BASE:
 		delays->base_delay = delay;
@@ -73,6 +99,25 @@ static inline void riscv_scan_set_delay(struct riscv_scan_delays *delays,
 		delays->sb_write_delay = delay;
 		return;
 	}
+	assert(0);
+}
+
+static inline int riscv_scan_increase_delay(struct riscv_scan_delays *delays,
+		enum riscv_scan_delay_class delay_class)
+{
+	const unsigned int delay = riscv_scan_get_delay(delays, delay_class);
+	const unsigned int delay_step = delay / 10 + 1;
+	if (delay > RISCV_SCAN_DELAY_MAX - delay_step) {
+		/* It's not clear if this issue actually occurs in real
+		 * use-cases, so stick with a simple solution until the
+		 * first bug report.
+		 */
+		LOG_ERROR("Delay for %s (%d) is not increased anymore (maximum was reached).",
+				riscv_scan_delay_class_name(delay_class), delay);
+		return ERROR_FAIL;
+	}
+	riscv_scan_set_delay(delays, delay_class, delay + delay_step);
+	return ERROR_OK;
 }
 
 /* A batch of multiple JTAG scans, which are grouped together to avoid the
@@ -113,7 +158,7 @@ struct riscv_batch {
 	/* Number of RTI cycles used by the last scan on the last run.
 	 * Only valid when `was_run` is set.
 	 */
-	unsigned int used_delay;
+	unsigned int last_scan_delay;
 };
 
 /* Allocates (or frees) a new scan set.  "scans" is the maximum number of JTAG
@@ -138,7 +183,7 @@ bool riscv_batch_full(struct riscv_batch *batch);
  * OpenOCD that are based on batches.
  */
 int riscv_batch_run_from(struct riscv_batch *batch, size_t start_idx,
-		struct riscv_scan_delays delays, bool resets_delays,
+		const struct riscv_scan_delays *delays, bool resets_delays,
 		size_t reset_delays_after);
 
 /* Get the number of scans successfully executed form this batch. */
