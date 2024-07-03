@@ -406,11 +406,6 @@ AC_ARG_ENABLE([jimtcl-maintainer],
   AS_HELP_STRING([--enable-jimtcl-maintainer], [Enable maintainer mode when building internal jimtcl]),
   [use_internal_jimtcl_maintainer=$enableval], [use_internal_jimtcl_maintainer=no])
 
-AC_ARG_ENABLE([internal-libjaylink],
-  AS_HELP_STRING([--enable-internal-libjaylink],
-  [Enable building internal libjaylink]),
-  [use_internal_libjaylink=$enableval], [use_internal_libjaylink=no])
-
 AC_ARG_ENABLE([remote-bitbang],
   AS_HELP_STRING([--enable-remote-bitbang], [Enable building support for the Remote Bitbang driver]),
   [build_remote_bitbang=$enableval], [build_remote_bitbang=yes])
@@ -727,7 +722,7 @@ PROCESS_ADAPTERS([HIDAPI_USB1_ADAPTERS], ["x$use_hidapi" = "xyes" -a "x$use_libu
 PROCESS_ADAPTERS([LIBFTDI_ADAPTERS], ["x$use_libftdi" = "xyes"], [libftdi])
 PROCESS_ADAPTERS([LIBFTDI_USB1_ADAPTERS], ["x$use_libftdi" = "xyes" -a "x$use_libusb1" = "xyes"], [libftdi and libusb-1.x])
 PROCESS_ADAPTERS([LIBGPIOD_ADAPTERS], ["x$use_libgpiod" = "xyes"], [Linux libgpiod])
-PROCESS_ADAPTERS([LIBJAYLINK_ADAPTERS], ["x$use_internal_libjaylink" = "xyes" -o "x$use_libjaylink" = "xyes"], [libjaylink-0.2])
+PROCESS_ADAPTERS([LIBJAYLINK_ADAPTERS], ["x$use_libjaylink" = "xyes"], [libjaylink-0.2])
 PROCESS_ADAPTERS([PCIE_ADAPTERS], ["x$is_linux" = "xyes"], [Linux build])
 PROCESS_ADAPTERS([SERIAL_PORT_ADAPTERS], ["x$can_build_buspirate" = "xyes"],
                                          [internal error: validation should happen beforehand])
@@ -749,17 +744,6 @@ AS_IF([test "x$enable_stlink" != "xno" -o "x$enable_ti_icdi" != "xno" -o "x$enab
 AM_CONDITIONAL([HLADAPTER_STLINK], [test "x$enable_stlink" != "xno"])
 AM_CONDITIONAL([HLADAPTER_ICDI], [test "x$enable_ti_icdi" != "xno"])
 AM_CONDITIONAL([HLADAPTER_NULINK], [test "x$enable_nulink" != "xno"])
-
-AS_IF([test "x$enable_jlink" != "xno"], [
-  AS_IF([test "x$use_internal_libjaylink" = "xyes"], [
-    AS_IF([test -f "$srcdir/src/jtag/drivers/libjaylink/configure.ac"], [
-      AX_CONFIG_SUBDIR_OPTION([src/jtag/drivers/libjaylink],
-		[--enable-subproject-build])
-    ], [
-      AC_MSG_ERROR([Internal libjaylink not found, run 'git submodule init' and 'git submodule update'.])
-    ])
-  ])
-])
 
 # Presto needs the bitq module
 AS_IF([test "x$enable_presto" != "xno"], [
@@ -803,7 +787,6 @@ AM_CONDITIONAL([HAVE_CAPSTONE], [test "x$enable_capstone" != "xno"])
 
 AM_CONDITIONAL([INTERNAL_JIMTCL], [test "x$use_internal_jimtcl" = "xyes"])
 AM_CONDITIONAL([HAVE_JIMTCL_PKG_CONFIG], [test "x$have_jimtcl_pkg_config" = "xyes"])
-AM_CONDITIONAL([INTERNAL_LIBJAYLINK], [test "x$use_internal_libjaylink" = "xyes"])
 
 AM_CONDITIONAL([USE_GCOV], [test "x$enable_gcov" = "xyes"])
 
@@ -868,11 +851,6 @@ AC_CONFIG_FILES([
 ])
 AC_OUTPUT
 
-AS_IF([test "x$enable_jlink" != "xno"], [
-  AS_IF([test "x$use_internal_libjaylink" = "xyes"], [
-    AC_MSG_WARN([Using the internal libjaylink is deprecated and will not be possible in the future.])
-  ]])
-)
 
 AS_IF([test "x$use_internal_jimtcl" = "xyes"], [
   AC_MSG_WARN([Using the internal jimtcl is deprecated and will not be possible in the future.])

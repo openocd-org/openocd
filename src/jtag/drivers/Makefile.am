@@ -50,13 +50,6 @@ endif
 
 if JLINK
 DRIVERFILES += %D%/jlink.c
-if INTERNAL_LIBJAYLINK
-SUBDIRS += %D%/libjaylink
-DIST_SUBDIRS += %D%/libjaylink
-
-%C%_libocdjtagdrivers_la_LIBADD += %D%/libjaylink/libjaylink/libjaylink.la
-%C%_libocdjtagdrivers_la_CPPFLAGS += -I$(builddir)/%D%/libjaylink/libjaylink -I$(srcdir)/%D%/libjaylink
-endif
 endif
 
 if BITBANG
