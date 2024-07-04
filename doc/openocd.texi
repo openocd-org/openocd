@@ -9273,11 +9273,19 @@ power consumption (because the CPU is needlessly clocked).
 @deffn {Command} {resume} [address]
 Resume the target at its current code position,
 or the optional @var{address} if it is provided.
+
+@b{NOTE:} targets are expected to temporary disable breakpoints
+if they match the address of the current code position
+or the @var{address} provided by user.
 @end deffn
 
 @deffn {Command} {step} [address]
 Single-step the target at its current code position,
 or the optional @var{address} if it is provided.
+
+@b{NOTE:} targets are expected to temporary disable breakpoints
+if they match the address of the current code position
+or the @var{address} provided by user.
 @end deffn
 
 @anchor{resetcommand}
