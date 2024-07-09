@@ -2742,12 +2742,16 @@ static int batch_run(struct target *target, struct riscv_batch *batch)
 	const int result = riscv_batch_run_from(batch, 0, &info->learned_delays,
 			/*resets_delays*/  r->reset_delays_wait >= 0,
 			r->reset_delays_wait);
+	if (result != ERROR_OK)
+		return result;
 	/* TODO: To use `riscv_batch_finished_scans()` here, it is needed for
 	 * all scans to not discard input, meaning
 	 * "riscv_batch_add_dm_write(..., false)" should not be used. */
 	const size_t finished_scans = batch->used_scans;
 	decrement_reset_delays_counter(target, finished_scans);
-	return result;
+	if (riscv_batch_was_batch_busy(batch))
+		return increase_dmi_busy_delay(target);
+	return ERROR_OK;
 }
 
 /* It is expected that during creation of the batch
@@ -2770,12 +2774,12 @@ static int batch_run_timeout(struct target *target, struct riscv_batch *batch)
 				&info->learned_delays,
 				/*resets_delays*/  r->reset_delays_wait >= 0,
 				r->reset_delays_wait);
+		if (result != ERROR_OK)
+			return result;
 		const size_t new_finished_scans = riscv_batch_finished_scans(batch);
 		assert(new_finished_scans >= finished_scans);
 		decrement_reset_delays_counter(target, new_finished_scans - finished_scans);
 		finished_scans = new_finished_scans;
-		if (result != ERROR_OK)
-			return result;
 		if (!riscv_batch_was_batch_busy(batch)) {
 			assert(finished_scans == batch->used_scans);
 			return ERROR_OK;
