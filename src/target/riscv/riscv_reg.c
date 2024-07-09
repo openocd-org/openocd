@@ -397,6 +397,14 @@ static bool gdb_regno_exist(const struct target *target, uint32_t regno)
 		case CSR_FRM:
 		case CSR_FCSR:
 			return riscv_supports_extension(target, 'F');
+		case CSR_VSTART:
+		case CSR_VXSAT:
+		case CSR_VXRM:
+		case CSR_VL:
+		case CSR_VCSR:
+		case CSR_VTYPE:
+		case CSR_VLENB:
+			return vlenb_exists(target);
 		case CSR_SCOUNTEREN:
 		case CSR_SSTATUS:
 		case CSR_STVEC:
