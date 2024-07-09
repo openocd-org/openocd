@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
 
-#ifndef TARGET__RISCV__PROGRAM_H
-#define TARGET__RISCV__PROGRAM_H
+#ifndef OPENOCD_TARGET_RISCV_PROGRAM_H
+#define OPENOCD_TARGET_RISCV_PROGRAM_H
 
 #include "riscv.h"
 
@@ -77,4 +77,4 @@ int riscv_program_ebreak(struct riscv_program *p);
 
 int riscv_program_addi(struct riscv_program *p, enum gdb_regno d, enum gdb_regno s, int16_t i);
 
-#endif
+#endif /* OPENOCD_TARGET_RISCV_PROGRAM_H */

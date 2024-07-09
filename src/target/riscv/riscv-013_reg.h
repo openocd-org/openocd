@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
 
-#ifndef OPENOCD_TARGET_RISCV_RISCV_REG_013_H
-#define OPENOCD_TARGET_RISCV_RISCV_REG_013_H
+#ifndef OPENOCD_TARGET_RISCV_RISCV_013_REG_H
+#define OPENOCD_TARGET_RISCV_RISCV_013_REG_H
 
 #include "target/target.h"
 #include "gdb_regs.h"
@@ -28,4 +28,4 @@ int riscv013_reg_init_all(struct target *target);
  */
 int riscv013_reg_save(struct target *target, enum gdb_regno regid);
 
-#endif /*OPENOCD_TARGET_RISCV_RISCV_REG_013_H*/
+#endif /* OPENOCD_TARGET_RISCV_RISCV_013_REG_H */

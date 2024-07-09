@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
 
-#ifndef TARGET__RISCV__SCANS_H
-#define TARGET__RISCV__SCANS_H
+#ifndef OPENOCD_TARGET_RISCV_BATCH_H
+#define OPENOCD_TARGET_RISCV_BATCH_H
 
 #include "target/target.h"
 #include "jtag/jtag.h"
@@ -216,4 +216,4 @@ bool riscv_batch_was_batch_busy(const struct riscv_batch *batch);
 void riscv_log_dmi_scan(const struct target *target, int idle, const struct scan_field *field,
 		bool discard_in);
 
-#endif
+#endif /* OPENOCD_TARGET_RISCV_BATCH_H */

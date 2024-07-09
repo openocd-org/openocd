@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
 
-#ifndef FIELD_HELPERS_H
-#define FIELD_HELPERS_H
+#ifndef OPENOCD_TARGET_RISCV_FIELD_HELPERS_H
+#define OPENOCD_TARGET_RISCV_FIELD_HELPERS_H
 
 #include <stdint.h>
 #include <assert.h>
@@ -44,4 +44,4 @@ static inline uint32_t field_value32(uint32_t mask, uint32_t val)
 	return set_field32(0, mask, val);
 }
 
-#endif
+#endif /* OPENOCD_TARGET_RISCV_FIELD_HELPERS_H */
