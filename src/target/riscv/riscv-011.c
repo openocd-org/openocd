@@ -741,7 +741,7 @@ static int wait_for_debugint_clear(struct target *target, bool ignore_first)
 
 		if (!bits.interrupt)
 			return ERROR_OK;
-		if (time(NULL) - start > riscv_command_timeout_sec) {
+		if (time(NULL) - start > riscv_get_command_timeout_sec()) {
 			LOG_ERROR("Timed out waiting for debug int to clear."
 				  "Increase timeout with riscv set_command_timeout_sec.");
 			return ERROR_FAIL;
@@ -1025,7 +1025,7 @@ static int wait_for_state(struct target *target, enum target_state state)
 			return result;
 		if (target->state == state)
 			return ERROR_OK;
-		if (time(NULL) - start > riscv_command_timeout_sec) {
+		if (time(NULL) - start > riscv_get_command_timeout_sec()) {
 			LOG_ERROR("Timed out waiting for state %d. "
 				  "Increase timeout with riscv set_command_timeout_sec.", state);
 			return ERROR_FAIL;
@@ -1186,7 +1186,7 @@ static int full_step(struct target *target, bool announce)
 			return result;
 		if (target->state != TARGET_DEBUG_RUNNING)
 			break;
-		if (time(NULL) - start > riscv_command_timeout_sec) {
+		if (time(NULL) - start > riscv_get_command_timeout_sec()) {
 			LOG_ERROR("Timed out waiting for step to complete."
 					"Increase timeout with riscv set_command_timeout_sec");
 			return ERROR_FAIL;
@@ -2344,10 +2344,10 @@ static int wait_for_authbusy(struct target *target)
 		uint32_t dminfo = dbus_read(target, DMINFO);
 		if (!get_field(dminfo, DMINFO_AUTHBUSY))
 			break;
-		if (time(NULL) - start > riscv_command_timeout_sec) {
+		if (time(NULL) - start > riscv_get_command_timeout_sec()) {
 			LOG_ERROR("Timed out after %ds waiting for authbusy to go low (dminfo=0x%x). "
 					"Increase the timeout with riscv set_command_timeout_sec.",
-					riscv_command_timeout_sec,
+					riscv_get_command_timeout_sec(),
 					dminfo);
 			return ERROR_FAIL;
 		}

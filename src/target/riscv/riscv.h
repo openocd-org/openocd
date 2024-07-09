@@ -22,8 +22,7 @@ struct riscv_program;
 #define RISCV_MAX_HWBPS 16
 #define RISCV_MAX_DMS 100
 
-#define DEFAULT_COMMAND_TIMEOUT_SEC		2
-#define DEFAULT_RESET_TIMEOUT_SEC		30
+#define DEFAULT_COMMAND_TIMEOUT_SEC 5
 
 #define RISCV_SATP_MODE(xlen)  ((xlen) == 32 ? SATP32_MODE : SATP64_MODE)
 #define RISCV_SATP_PPN(xlen)  ((xlen) == 32 ? SATP32_PPN : SATP64_PPN)
@@ -340,10 +339,7 @@ typedef struct {
 } virt2phys_info_t;
 
 /* Wall-clock timeout for a command/access. Settable via RISC-V Target commands.*/
-extern int riscv_command_timeout_sec;
-
-/* Wall-clock timeout after reset. Settable via RISC-V Target commands.*/
-extern int riscv_reset_timeout_sec;
+int riscv_get_command_timeout_sec(void);
 
 extern bool riscv_enable_virtual;
 
