@@ -3570,6 +3570,9 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 	target_addr_t next_address = address;
 	target_addr_t end_address = address + (increment ? count : 1) * size;
 
+	/* TODO: Reading all the elements in a single batch will boost the
+	 * performance.
+	 */
 	while (next_address < end_address) {
 		uint32_t sbcs_write = set_field(0, DM_SBCS_SBREADONADDR, 1);
 		sbcs_write |= sb_sbaccess(size);
@@ -3600,77 +3603,44 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 		 * completed. */
 
 		static int sbdata[4] = {DM_SBDATA0, DM_SBDATA1, DM_SBDATA2, DM_SBDATA3};
+		/* TODO: The only purpose of "sbvalue" is to be passed to
+		 * "log_memory_access()".  If "log_memory_access()" were to
+		 * accept "uint8_t *" instead of "uint32_t *", "sbvalue" would
+		 * be unnecessary.
+		 */
 		uint32_t sbvalue[4] = {0};
 		assert(size <= 16);
-		target_addr_t next_read = address - 1;
-		uint32_t buffer_offset = 0;
-		int next_read_j = 0;
 		for (uint32_t i = (next_address - address) / size; i < count - 1; i++) {
-			for (int j = (size - 1) / 4; j >= 0; j--) {
-				unsigned attempt = 0;
-				while (1) {
-					if (attempt++ > 100) {
-						LOG_TARGET_ERROR(target, "DMI keeps being busy in while reading memory"
-							" just past " TARGET_ADDR_FMT, next_read);
-						return ERROR_FAIL;
-					}
-					keep_alive();
-					dmi_status_t status = dmi_scan(target, NULL, &sbvalue[next_read_j],
-								       DMI_OP_READ, sbdata[j] + dm->base, 0, false);
-					/* By reading from sbdata0, we have just initiated another system bus read.
-					 * If necessary add a delay so the read can finish. */
-					bus_master_read_delay = riscv_scan_get_delay(&info->learned_delays,
-							RISCV_DELAY_SYSBUS_READ);
-					if (j == 0 && bus_master_read_delay) {
-						LOG_TARGET_DEBUG(target, "Waiting %d cycles for bus master read delay",
-								bus_master_read_delay);
-						jtag_add_runtest(bus_master_read_delay, TAP_IDLE);
-						if (jtag_execute_queue() != ERROR_OK) {
-							LOG_TARGET_ERROR(target, "Failed to scan idle sequence");
-							return ERROR_FAIL;
-						}
-					}
+			const uint32_t size_in_words = DIV_ROUND_UP(size, 4);
+			struct riscv_batch *batch = riscv_batch_alloc(target, size_in_words);
+			/* Read of sbdata0 must be performed as last because it
+			 * starts the new bus data transfer
+			 * (in case "sbcs.sbreadondata" was set above).
+			 * We don't want to start the next bus read before we
+			 * fetch all the data from the last bus read. */
+			for (uint32_t j = size_in_words - 1; j > 0; --j)
+				riscv_batch_add_dm_read(batch, sbdata[j], RISCV_DELAY_BASE);
+			riscv_batch_add_dm_read(batch, sbdata[0], RISCV_DELAY_SYSBUS_READ);
 
-					if (status == DMI_STATUS_BUSY)
-						increase_dmi_busy_delay(target);
-					else if (status == DMI_STATUS_SUCCESS)
-						break;
-					else
-						return ERROR_FAIL;
-				}
-				if (next_read != address - 1) {
-					buf_set_u32(buffer + buffer_offset, 0, 8 * MIN(size, 4), sbvalue[next_read_j]);
-					if (next_read_j == 0) {
-						log_memory_access(next_read, sbvalue, size, true);
-						memset(sbvalue, 0, size);
-					}
-				}
-				next_read_j = j;
-				next_read = address + i * increment + next_read_j * 4;
-				buffer_offset = i * size + next_read_j * 4;
+			int res = batch_run_timeout(target, batch);
+			if (res != ERROR_OK) {
+				riscv_batch_free(batch);
+				return res;
 			}
+
+			const size_t last_key = batch->read_keys_used - 1;
+			for (size_t k = 0; k <= last_key; ++k) {
+				sbvalue[k] = riscv_batch_get_dmi_read_data(batch,
+						last_key - k);
+				buf_set_u32(buffer + i * size + k * 4, 0, 8 * size, sbvalue[k]);
+			}
+			riscv_batch_free(batch);
+			const target_addr_t read_addr = address + i * increment;
+			log_memory_access(read_addr, sbvalue, size, true);
 		}
 
 		uint32_t sbcs_read = 0;
 		if (count > 1) {
-			unsigned attempt = 0;
-			while (1) {
-				if (attempt++ > 100) {
-					LOG_TARGET_ERROR(target, "DMI keeps being busy in while reading memory"
-						" just past " TARGET_ADDR_FMT, next_read);
-					return ERROR_FAIL;
-				}
-				dmi_status_t status = dmi_scan(target, NULL, &sbvalue[0], DMI_OP_NOP, 0, 0, false);
-				if (status == DMI_STATUS_BUSY)
-					increase_dmi_busy_delay(target);
-				else if (status == DMI_STATUS_SUCCESS)
-					break;
-				else
-					return ERROR_FAIL;
-			}
-			buf_set_u32(buffer + buffer_offset, 0, 8 * MIN(size, 4), sbvalue[0]);
-			log_memory_access(next_read, sbvalue, size, true);
-
 			/* "Writes to sbcs while sbbusy is high result in undefined behavior.
 			 * A debugger must not write to sbcs until it reads sbbusy as 0." */
 			if (read_sbcs_nonbusy(target, &sbcs_read) != ERROR_OK)
