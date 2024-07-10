@@ -11524,6 +11524,21 @@ as in the mie CSR (defined in the RISC-V Privileged Spec).
 For details on this trigger type, see the RISC-V Debug Specification.
 @end deffn
 
+@deffn {Command} {riscv reserve_trigger} [index @option{on|off}]
+Manages the set of reserved triggers. Reserving a trigger results in OpenOCD
+not using it internally (e.g. skipping it when setting a watchpoint or a
+hardware breakpoint), so that the user or the application has unfettered
+control over the trigger. By default there are no reserved triggers.
+
+@enumerate
+@item @var{index} specifies the index of a trigger to reserve or free up.
+@item The second argument specifies whether the trigger should be reserved
+(@var{on}) or a prior reservation cancelled (@var{off}).
+@item If called without parameters, returns indices of reserved triggers.
+@end enumerate
+
+@end deffn
+
 @deffn {Command} {riscv itrigger clear}
 Clear the type 4 trigger that was set using @command{riscv itrigger set}.
 @end deffn

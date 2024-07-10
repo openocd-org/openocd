@@ -272,9 +272,7 @@ struct riscv_info {
 	struct reg_data_type_union vector_union;
 	struct reg_data_type type_vector;
 
-	/* Set when trigger registers are changed by the user. This indicates we need
-	 * to beware that we may hit a trigger that we didn't realize had been set. */
-	bool manual_hwbp_set;
+	bool *reserved_triggers;
 
 	/* Memory access methods to use, ordered by priority, highest to lowest. */
 	int mem_access_methods[RISCV_NUM_MEM_ACCESS_METHODS];
