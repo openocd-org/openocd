@@ -1,17 +1,15 @@
-Building OpenOCD for Windows
-----------------------------
+# Building OpenOCD for Windows
 
 You can build OpenOCD for Windows natively with either MinGW-w64/MSYS
-or Cygwin (plain MinGW might work with --disable-werror but is not
+or Cygwin (plain MinGW might work with `--disable-werror` but is not
 recommended as it doesn't provide enough C99 compatibility).
 Alternatively, one can cross-compile it using MinGW-w64 on a *nix
-host. See README.md for the generic instructions.
+host. See [README](README.md) for the generic instructions.
 
 Also, the MSYS2 project provides both ready-made binaries and an easy
 way to self-compile from their software repository out of the box.
 
-USB adapters
-------------
+# USB adapters
 
 For the adapters that use a HID-based protocol, e.g. CMSIS-DAP, you do
 not need to perform any additional configuration.
@@ -19,9 +17,7 @@ not need to perform any additional configuration.
 For all the others you usually need to have WinUSB.sys (or
 libusbK.sys) driver installed. Some vendor software (e.g. for
 ST-LINKv2) does it on its own. For the other cases the easiest way to
-assign WinUSB to a device is to use the latest Zadig installer:
-
-  http://zadig.akeo.ie
+assign WinUSB to a device is to use the latest Zadig installer: <https://zadig.akeo.ie>
 
 When using a composite USB device, it's often necessary to assign
 WinUSB.sys to the composite parent instead of the specific
@@ -30,7 +26,7 @@ Zadig installer.
 
 If you need to use the same adapter with other applications that may
 require another driver, a solution for Windows Vista and above is to
-activate the IgnoreHWSerNum registry setting for the USB device.
+activate the `IgnoreHWSerNum` registry setting for the USB device.
 
 That setting forces Windows to associate the driver per port instead of
 per serial number, the same behaviour as when the device does not contain
@@ -40,5 +36,5 @@ port depending on which application to use.
 
 For more information, see:
 
-  https://learn.microsoft.com/en-us/windows-hardware/drivers/usbcon/usb-device-specific-registry-settings
-  http://www.ftdichip.com/Support/Knowledgebase/index.html?ignorehardwareserialnumber.htm
+- <https://learn.microsoft.com/en-us/windows-hardware/drivers/usbcon/usb-device-specific-registry-settings>
+- <https://www.ftdichip.com/Support/Knowledgebase/index.html?ignorehardwareserialnumber.htm>
