@@ -1,54 +1,50 @@
-Building OpenOCD for macOS
---------------------------
+# Building OpenOCD for macOS
 
 There are a few prerequisites you will need first:
 
 - Xcode (install from the AppStore)
 - Command Line Tools (install from Xcode -> Preferences -> Downloads)
-- Gentoo Prefix (http://www.gentoo.org/proj/en/gentoo-alt/prefix/bootstrap.xml)
-  or
-- Homebrew (http://mxcl.github.io/homebrew/)
-  or
-- MacPorts (http://www.macports.org/install.php)
-
+- One of the following tools:
+  - Gentoo Prefix (<https://wiki.gentoo.org/wiki/Project:Prefix/Bootstrap>)
+  - Homebrew (<https://brew.sh/>)
+  - MacPorts (<https://www.macports.org/install.php>)
 
 If you're building manually you need Texinfo version 5.0 or later. The
-simplest way to get it is to use Homebrew (brew install texinfo) and
-then ``export PATH=/usr/local/opt/texinfo/bin:$PATH``.
-
+simplest way to get it is to use Homebrew (`brew install texinfo`) and
+then `export PATH=/usr/local/opt/texinfo/bin:$PATH`.
 
 With Gentoo Prefix you can build the release version or the latest
 devel version (-9999) the usual way described in the Gentoo
 documentation. Alternatively, install the prerequisites and build
 manually from the sources.
 
-
 With Homebrew you can either run:
-  brew install [--HEAD] openocd (where optional --HEAD asks brew to
-                                 install the current git version)
-    or
-  brew install libtool automake libusb [hidapi] [libftdi]
-    (to install the needed dependencies and then proceed with the
+
+    brew install [--HEAD] openocd (where optional --HEAD asks brew to
+                                 install the current Git version)
+
+or
+
+    brew install libtool automake libusb [hidapi] [libftdi] (to install the needed dependencies and then proceed with the
      manual building procedure)
 
-
 For building with MacPorts you need to run:
-  sudo port install libtool automake autoconf pkgconfig \
-    libusb [libftdi1]
 
-You should also specify LDFLAGS and CPPFLAGS to allow configure to use
-MacPorts' libraries, so run configure like this:
-  LDFLAGS=-L/opt/local/lib CPPFLAGS=-I/opt/local/include ./configure [options]
+    sudo port install libtool automake autoconf pkgconfig libusb [libftdi1]
 
+You should also specify LDFLAGS and CPPFLAGS to allow `configure` to use
+MacPorts' libraries, so run configure like this: `LDFLAGS=-L/opt/local/lib CPPFLAGS=-I/opt/local/include ./configure [options]`
 
-See README.md for the generic building instructions.
+See [README](README.md) for the generic building instructions.
 
 If you're using a USB adapter and have a driver kext matched to it,
 you will need to unload it prior to running OpenOCD. E.g. with Apple
 driver (OS X 10.9 or later) for FTDI run:
-  sudo kextunload -b com.apple.driver.AppleUSBFTDI
-for FTDI vendor driver use:
-  sudo kextunload FTDIUSBSerialDriver.kext
 
-To learn more on the topic please refer to the official libusb FAQ:
-https://github.com/libusb/libusb/wiki/FAQ
+    sudo kextunload -b com.apple.driver.AppleUSBFTDI
+
+for FTDI vendor driver use:
+
+    sudo kextunload FTDIUSBSerialDriver.kext
+
+To learn more on the topic please refer to the official libusb FAQ: <https://github.com/libusb/libusb/wiki/FAQ>
