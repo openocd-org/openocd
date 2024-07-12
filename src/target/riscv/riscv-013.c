@@ -731,17 +731,6 @@ static uint32_t riscv013_get_dmi_address(const struct target *target, uint32_t a
 	return address + base;
 }
 
-static int dm_op(struct target *target, uint32_t *data_in,
-		bool *dmi_busy_encountered, int op, uint32_t address,
-		uint32_t data_out, bool exec, bool ensure_success)
-{
-	dm013_info_t *dm = get_dm(target);
-	if (!dm)
-		return ERROR_FAIL;
-	return dmi_op(target, data_in, dmi_busy_encountered, op, address + dm->base,
-			data_out, exec, ensure_success);
-}
-
 static int dm_read(struct target *target, uint32_t *value, uint32_t address)
 {
 	dm013_info_t *dm = get_dm(target);
@@ -2716,21 +2705,42 @@ static uint32_t sb_sbaccess(unsigned int size_bytes)
 	return 0;
 }
 
-static int sb_write_address(struct target *target, target_addr_t address,
-							bool ensure_success)
+static unsigned int get_sbaadress_reg_count(const struct target *target)
 {
 	RISCV013_INFO(info);
-	unsigned int sbasize = get_field(info->sbcs, DM_SBCS_SBASIZE);
+	const unsigned int sbasize = get_field(info->sbcs, DM_SBCS_SBASIZE);
+	return DIV_ROUND_UP(sbasize, 32);
+}
+
+static void batch_fill_sb_write_address(const struct target *target,
+		struct riscv_batch *batch, target_addr_t address,
+		enum riscv_scan_delay_class sbaddr0_delay)
+{
 	/* There currently is no support for >64-bit addresses in OpenOCD. */
-	if (sbasize > 96)
-		dm_op(target, NULL, NULL, DMI_OP_WRITE, DM_SBADDRESS3, 0, false, false);
-	if (sbasize > 64)
-		dm_op(target, NULL, NULL, DMI_OP_WRITE, DM_SBADDRESS2, 0, false, false);
-	if (sbasize > 32)
-		dm_op(target, NULL, NULL, DMI_OP_WRITE, DM_SBADDRESS1,
-			(uint32_t)(address >> 32), false, false);
-	return dm_op(target, NULL, NULL, DMI_OP_WRITE, DM_SBADDRESS0,
-		(uint32_t)address, false, ensure_success);
+	assert(sizeof(target_addr_t) == sizeof(uint64_t));
+	const uint32_t addresses[] = {DM_SBADDRESS0, DM_SBADDRESS1, DM_SBADDRESS2, DM_SBADDRESS3};
+	const uint32_t values[] = {(uint32_t)address, (uint32_t)(address >> 32), 0, 0};
+	const unsigned int reg_count = get_sbaadress_reg_count(target);
+	assert(reg_count > 0);
+	assert(reg_count <= ARRAY_SIZE(addresses));
+	assert(ARRAY_SIZE(addresses) == ARRAY_SIZE(values));
+
+	for (unsigned int i = reg_count - 1; i > 0; --i)
+		riscv_batch_add_dm_write(batch, addresses[i], values[i], /* read back */ true,
+				RISCV_DELAY_BASE);
+	riscv_batch_add_dm_write(batch, addresses[0], values[0], /* read back */ true,
+			sbaddr0_delay);
+}
+
+static int sb_write_address(struct target *target, target_addr_t address,
+		enum riscv_scan_delay_class sbaddr0_delay)
+{
+	struct riscv_batch *batch = riscv_batch_alloc(target,
+			get_sbaadress_reg_count(target));
+	batch_fill_sb_write_address(target, batch, address, sbaddr0_delay);
+	const int res = batch_run_timeout(target, batch);
+	riscv_batch_free(batch);
+	return res;
 }
 
 static int batch_run(struct target *target, struct riscv_batch *batch)
@@ -3555,20 +3565,8 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 			return ERROR_FAIL;
 
 		/* This address write will trigger the first read. */
-		if (sb_write_address(target, next_address, true) != ERROR_OK)
+		if (sb_write_address(target, next_address, RISCV_DELAY_SYSBUS_READ) != ERROR_OK)
 			return ERROR_FAIL;
-
-		unsigned int bus_master_read_delay = riscv_scan_get_delay(&info->learned_delays,
-				RISCV_DELAY_SYSBUS_READ);
-		if (bus_master_read_delay) {
-			LOG_TARGET_DEBUG(target, "Waiting %d cycles for bus master read delay",
-					bus_master_read_delay);
-			jtag_add_runtest(bus_master_read_delay, TAP_IDLE);
-			if (jtag_execute_queue() != ERROR_OK) {
-				LOG_TARGET_ERROR(target, "Failed to scan idle sequence");
-				return ERROR_FAIL;
-			}
-		}
 
 		/* First read has been started. Optimistically assume that it has
 		 * completed. */
@@ -4681,9 +4679,10 @@ static int write_memory_bus_v1(struct target *target, target_addr_t address,
 	target_addr_t next_address = address;
 	target_addr_t end_address = address + count * size;
 
-	int result;
+	int result = sb_write_address(target, next_address, RISCV_DELAY_BASE);
+	if (result != ERROR_OK)
+		return result;
 
-	sb_write_address(target, next_address, true);
 	while (next_address < end_address) {
 		LOG_TARGET_DEBUG(target, "Transferring burst starting at address 0x%" TARGET_PRIxADDR,
 				next_address);
