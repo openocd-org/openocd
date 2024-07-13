@@ -5813,7 +5813,7 @@ static int target_create(struct jim_getopt_info *goi)
 	}
 
 	target->dbgmsg          = NULL;
-	target->dbg_msg_enabled = 0;
+	target->dbg_msg_enabled = false;
 
 	target->endianness = TARGET_ENDIAN_UNKNOWN;
 

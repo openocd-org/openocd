@@ -279,7 +279,8 @@ static int cortex_m_fast_read_all_regs(struct target *target)
 
 	/* because the DCB_DCRDR is used for the emulated dcc channel
 	 * we have to save/restore the DCB_DCRDR when used */
-	if (target->dbg_msg_enabled) {
+	bool dbg_msg_enabled = target->dbg_msg_enabled;
+	if (dbg_msg_enabled) {
 		retval = mem_ap_read_u32(armv7m->debug_ap, DCB_DCRDR, &dcrdr);
 		if (retval != ERROR_OK)
 			return retval;
@@ -332,7 +333,7 @@ static int cortex_m_fast_read_all_regs(struct target *target)
 	if (retval != ERROR_OK)
 		return retval;
 
-	if (target->dbg_msg_enabled) {
+	if (dbg_msg_enabled) {
 		/* restore DCB_DCRDR - this needs to be in a separate
 		 * transaction otherwise the emulated DCC channel breaks */
 		retval = mem_ap_write_atomic_u32(armv7m->debug_ap, DCB_DCRDR, dcrdr);

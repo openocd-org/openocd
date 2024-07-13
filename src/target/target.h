@@ -160,7 +160,7 @@ struct target {
 	struct watchpoint *watchpoints;		/* list of watchpoints */
 	struct trace *trace_info;			/* generic trace information */
 	struct debug_msg_receiver *dbgmsg;	/* list of debug message receivers */
-	uint32_t dbg_msg_enabled;			/* debug message status */
+	bool dbg_msg_enabled;				/* debug message status */
 	void *arch_info;					/* architecture specific information */
 	void *private_config;				/* pointer to target specific config data (for jim_configure hook) */
 	struct target *next;				/* next target in list */
