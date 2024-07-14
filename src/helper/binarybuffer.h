@@ -194,15 +194,14 @@ void *buf_set_buf(const void *src, unsigned src_start,
 
 /**
  * Parse an unsigned number (provided as a zero-terminated string)
- * into a bit buffer whose size is buf_len bits.
+ * into a bit buffer whose size is buf_len bits. The base of the
+ * number is detected between decimal, hexadecimal and octal.
  * @param str Input number, zero-terminated string
  * @param _buf Output buffer, allocated by the caller
  * @param buf_len Output buffer size in bits
- * @param radix Base of the input number - 16, 10, 8 or 0.
- *              0 means auto-detect the radix.
+ * @returns Error on invalid or overflowing number
  */
-int str_to_buf(const char *str, void *_buf, unsigned int buf_len,
-	unsigned int radix, unsigned int *_detected_radix);
+int str_to_buf(const char *str, void *_buf, unsigned int buf_len);
 
 char *buf_to_hex_str(const void *buf, unsigned size);
 

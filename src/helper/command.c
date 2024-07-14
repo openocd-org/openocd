@@ -1365,7 +1365,7 @@ COMMAND_HELPER(command_parse_str_to_buf, const char *str, void *buf, unsigned in
 	assert(str);
 	assert(buf);
 
-	int ret = str_to_buf(str, buf, buf_len, 0, NULL);
+	int ret = str_to_buf(str, buf, buf_len);
 	if (ret == ERROR_OK)
 		return ret;
 

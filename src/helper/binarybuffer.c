@@ -225,49 +225,37 @@ static bool str_has_octal_prefix(const char *s)
  */
 static unsigned int str_radix_guess(const char *str)
 {
-	assert(str);
-
 	if (str_has_hex_prefix(str))
 		return 16;
 
 	if (str_has_octal_prefix(str))
 		return 8;
 
-	/* Otherwise assume a decadic number. */
+	/* Otherwise assume a decimal number. */
 	return 10;
 }
 
 /** Strip leading "0x" or "0X" from hex numbers or "0" from octal numbers. */
-static void str_strip_number_prefix_if_present(const char **_str, unsigned int radix)
+static const char *str_strip_number_prefix(const char *str, unsigned int radix)
 {
-	assert(radix == 16 || radix == 10 || radix == 8);
-	assert(_str);
-
-	const char *str = *_str;
-	assert(str);
-
-	if (radix == 16 && str_has_hex_prefix(str))
-		str += 2;
-	else if (radix == 8 && str_has_octal_prefix(str))
-		str += 1;
-
-	/* No prefix to strip for radix == 10. */
-
-	*_str = str;
+	switch (radix) {
+	case 16:
+		return str + 2;
+	case 8:
+		return str + 1;
+	case 10:
+	default:
+		return str;
+	}
 }
 
-int str_to_buf(const char *str, void *_buf, unsigned int buf_len,
-	unsigned int radix, unsigned int *_detected_radix)
+int str_to_buf(const char *str, void *_buf, unsigned int buf_len)
 {
-	assert(radix == 0 || radix == 8 || radix == 10 || radix == 16);
+	assert(str);
 
-	if (radix == 0)
-		radix = str_radix_guess(str);
+	unsigned int radix = str_radix_guess(str);
 
-	if (_detected_radix)
-		*_detected_radix = radix;
-
-	str_strip_number_prefix_if_present(&str, radix);
+	str = str_strip_number_prefix(str, radix);
 
 	const size_t str_len = strlen(str);
 	if (str_len == 0)
