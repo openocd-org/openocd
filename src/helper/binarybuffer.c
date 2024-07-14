@@ -175,19 +175,6 @@ uint32_t flip_u32(uint32_t value, unsigned int num)
 	return c;
 }
 
-static int ceil_f_to_u32(float x)
-{
-	if (x < 0)	/* return zero for negative numbers */
-		return 0;
-
-	uint32_t y = x;	/* cut off fraction */
-
-	if ((x - y) > 0.0)	/* if there was a fractional part, increase by one */
-		y++;
-
-	return y;
-}
-
 char *buf_to_hex_str(const void *_buf, unsigned buf_len)
 {
 	unsigned len_bytes = DIV_ROUND_UP(buf_len, 8);
@@ -252,7 +239,10 @@ static const char *str_strip_number_prefix(const char *str, unsigned int radix)
 int str_to_buf(const char *str, void *_buf, unsigned int buf_bitsize)
 {
 	assert(str);
+	assert(_buf);
+	assert(buf_bitsize > 0);
 
+	uint8_t *buf = _buf;
 	unsigned int radix = str_radix_guess(str);
 
 	str = str_strip_number_prefix(str, radix);
@@ -261,86 +251,49 @@ int str_to_buf(const char *str, void *_buf, unsigned int buf_bitsize)
 	if (str_len == 0)
 		return ERROR_INVALID_NUMBER;
 
-	float factor = 0.0;
-	if (radix == 16)
-		factor = 0.5;	/* log(16) / log(256) = 0.5 */
-	else if (radix == 10)
-		factor = 0.41524;	/* log(10) / log(256) = 0.41524 */
-	else if (radix == 8)
-		factor = 0.375;	/* log(8) / log(256) = 0.375 */
-	else
-		assert(false);
-
-	const unsigned int b256_len = ceil_f_to_u32(str_len * factor);
-
-	/* Allocate a buffer for digits in base-256 notation */
-	uint8_t *b256_buf = calloc(b256_len, 1);
-	if (!b256_buf) {
-		LOG_ERROR("Unable to allocate memory");
-		return ERROR_FAIL;
-	}
+	const size_t buf_len = DIV_ROUND_UP(buf_bitsize, 8);
+	memset(buf, 0, buf_len);
 
 	/* Go through the zero-terminated buffer
 	 * of input digits (ASCII) */
-	for (unsigned int i = 0; str[i]; i++) {
-		uint32_t tmp = str[i];
-		if ((tmp >= '0') && (tmp <= '9')) {
-			tmp = (tmp - '0');
-		} else if ((tmp >= 'a') && (tmp <= 'f')) {
-			tmp = (tmp - 'a' + 10);
-		} else if ((tmp >= 'A') && (tmp <= 'F')) {
-			tmp = (tmp - 'A' + 10);
+	for (; *str; str++) {
+		unsigned int tmp;
+		const char c = *str;
+
+		if ((c >= '0') && (c <= '9')) {
+			tmp = c - '0';
+		} else if ((c >= 'a') && (c <= 'f')) {
+			tmp = c - 'a' + 10;
+		} else if ((c >= 'A') && (c <= 'F')) {
+			tmp = c - 'A' + 10;
 		} else {
 			/* Characters other than [0-9,a-f,A-F] are invalid */
-			free(b256_buf);
 			return ERROR_INVALID_NUMBER;
 		}
 
-		if (tmp >= radix) {
-			/* Encountered a digit that is invalid for the current radix */
-			free(b256_buf);
+		/* Error on invalid digit for current radix */
+		if (tmp >= radix)
 			return ERROR_INVALID_NUMBER;
-		}
 
-		/* Add the current digit (tmp) to the intermediate result
-		 * in b256_buf (base-256 digits) */
-		for (unsigned int j = 0; j < b256_len; j++) {
-			tmp += (uint32_t)b256_buf[j] * radix;
-			b256_buf[j] = (uint8_t)(tmp & 0xFFu);
+		/* Add the current digit (tmp) to the intermediate result in buf */
+		for (unsigned int j = 0; j < buf_len; j++) {
+			tmp += buf[j] * radix;
+			buf[j] = tmp & 0xFFu;
 			tmp >>= 8;
 		}
 
-		/* The b256_t buffer is large enough to contain the whole result. */
-		assert(tmp == 0);
+		/* buf should be large enough to contain the whole result. */
+		if (tmp != 0)
+			return ERROR_NUMBER_EXCEEDS_BUFFER;
 	}
 
-	/* The result must not contain more bits than buf_bitsize. */
-	/* Check the whole bytes: */
-	for (unsigned int j = DIV_ROUND_UP(buf_bitsize, 8); j < b256_len; j++) {
-		if (b256_buf[j] != 0x0) {
-			free(b256_buf);
-			return ERROR_NUMBER_EXCEEDS_BUFFER;
-		}
-	}
-	/* Check the partial byte: */
+	/* Check the partial most significant byte */
 	if (buf_bitsize % 8) {
 		const uint8_t mask = 0xFFu << (buf_bitsize % 8);
-		if ((b256_buf[(buf_bitsize / 8)] & mask) != 0x0) {
-			free(b256_buf);
+		if ((buf[buf_len - 1] & mask) != 0x0)
 			return ERROR_NUMBER_EXCEEDS_BUFFER;
-		}
 	}
 
-	/* Copy the digits to the output buffer */
-	uint8_t *buf = _buf;
-	for (unsigned int j = 0; j < DIV_ROUND_UP(buf_bitsize, 8); j++) {
-		if (j < b256_len)
-			buf[j] = b256_buf[j];
-		else
-			buf[j] = 0;
-	}
-
-	free(b256_buf);
 	return ERROR_OK;
 }
 
