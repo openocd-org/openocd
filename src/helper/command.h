@@ -519,14 +519,12 @@ COMMAND_HELPER(handle_command_parse_bool, bool *out, const char *label);
 
 /**
  * Parse a number (base 10, base 16 or base 8) and store the result
- * into a bit buffer.
+ * into a bit buffer. Use the prefixes '0' and '0x' for base 8 and 16,
+ * otherwise defaults to base 10.
  *
  * In case of parsing error, a user-readable error message is produced.
- *
- * If radix = 0 is given, the function guesses the radix by looking at the number prefix.
  */
-COMMAND_HELPER(command_parse_str_to_buf, const char *str, void *buf, unsigned int buf_len,
-	unsigned int radix);
+COMMAND_HELPER(command_parse_str_to_buf, const char *str, void *buf, unsigned int buf_len);
 
 /** parses an on/off command argument */
 #define COMMAND_PARSE_ON_OFF(in, out) \

@@ -3133,7 +3133,7 @@ COMMAND_HANDLER(handle_reg_command)
 			return ERROR_FAIL;
 		}
 
-		int retval = CALL_COMMAND_HANDLER(command_parse_str_to_buf, CMD_ARGV[1], buf, reg->size, 0);
+		int retval = CALL_COMMAND_HANDLER(command_parse_str_to_buf, CMD_ARGV[1], buf, reg->size);
 		if (retval != ERROR_OK) {
 			free(buf);
 			return retval;
@@ -4835,8 +4835,7 @@ COMMAND_HANDLER(handle_set_reg_command)
 			return ERROR_FAIL;
 		}
 
-		int retval = CALL_COMMAND_HANDLER(command_parse_str_to_buf,
-			reg_value, buf, reg->size, 0);
+		int retval = CALL_COMMAND_HANDLER(command_parse_str_to_buf, reg_value, buf, reg->size);
 		if (retval != ERROR_OK) {
 			free(buf);
 			return retval;
