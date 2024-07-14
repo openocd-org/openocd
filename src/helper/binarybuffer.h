@@ -198,10 +198,10 @@ void *buf_set_buf(const void *src, unsigned src_start,
  * number is detected between decimal, hexadecimal and octal.
  * @param str Input number, zero-terminated string
  * @param _buf Output buffer, allocated by the caller
- * @param buf_len Output buffer size in bits
+ * @param buf_bitsize Output buffer size in bits
  * @returns Error on invalid or overflowing number
  */
-int str_to_buf(const char *str, void *_buf, unsigned int buf_len);
+int str_to_buf(const char *str, void *_buf, unsigned int buf_bitsize);
 
 char *buf_to_hex_str(const void *buf, unsigned size);
 

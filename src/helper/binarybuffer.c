@@ -249,7 +249,7 @@ static const char *str_strip_number_prefix(const char *str, unsigned int radix)
 	}
 }
 
-int str_to_buf(const char *str, void *_buf, unsigned int buf_len)
+int str_to_buf(const char *str, void *_buf, unsigned int buf_bitsize)
 {
 	assert(str);
 
@@ -314,18 +314,18 @@ int str_to_buf(const char *str, void *_buf, unsigned int buf_len)
 		assert(tmp == 0);
 	}
 
-	/* The result must not contain more bits than buf_len. */
+	/* The result must not contain more bits than buf_bitsize. */
 	/* Check the whole bytes: */
-	for (unsigned int j = DIV_ROUND_UP(buf_len, 8); j < b256_len; j++) {
+	for (unsigned int j = DIV_ROUND_UP(buf_bitsize, 8); j < b256_len; j++) {
 		if (b256_buf[j] != 0x0) {
 			free(b256_buf);
 			return ERROR_NUMBER_EXCEEDS_BUFFER;
 		}
 	}
 	/* Check the partial byte: */
-	if (buf_len % 8) {
-		const uint8_t mask = 0xFFu << (buf_len % 8);
-		if ((b256_buf[(buf_len / 8)] & mask) != 0x0) {
+	if (buf_bitsize % 8) {
+		const uint8_t mask = 0xFFu << (buf_bitsize % 8);
+		if ((b256_buf[(buf_bitsize / 8)] & mask) != 0x0) {
 			free(b256_buf);
 			return ERROR_NUMBER_EXCEEDS_BUFFER;
 		}
@@ -333,7 +333,7 @@ int str_to_buf(const char *str, void *_buf, unsigned int buf_len)
 
 	/* Copy the digits to the output buffer */
 	uint8_t *buf = _buf;
-	for (unsigned j = 0; j < DIV_ROUND_UP(buf_len, 8); j++) {
+	for (unsigned int j = 0; j < DIV_ROUND_UP(buf_bitsize, 8); j++) {
 		if (j < b256_len)
 			buf[j] = b256_buf[j];
 		else
