@@ -5198,7 +5198,7 @@ where it is a mandatory configuration for the target run control.
 for instruction on how to declare and control a CTI instance.
 
 @anchor{gdbportoverride}
-@item @code{-gdb-port} @var{number} -- @xref{gdb port,,command gdb port} for the
+@item @code{-gdb-port} @var{number} -- @xref{gdb port,,command gdb port}, for the
 possible values of the parameter @var{number}, which are not only numeric values.
 Use this option to override, for this target only, the global parameter set with
 command @command{gdb port}.
