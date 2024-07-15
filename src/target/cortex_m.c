@@ -989,6 +989,18 @@ static int cortex_m_poll_one(struct target *target)
 			 * and keep it until the next poll to allow its detection */
 			return ERROR_OK;
 		}
+
+		/* refresh status bits */
+		retval = cortex_m_read_dhcsr_atomic_sticky(target);
+		if (retval != ERROR_OK)
+			return retval;
+
+		/* If still under reset, quit and re-check at next poll */
+		if (cortex_m->dcb_dhcsr_cumulated_sticky & S_RESET_ST) {
+			cortex_m->dcb_dhcsr_cumulated_sticky &= ~S_RESET_ST;
+			return ERROR_OK;
+		}
+
 		/* S_RESET_ST was expected (in a reset command). Continue processing
 		 * to quickly get out of TARGET_RESET state */
 	}
