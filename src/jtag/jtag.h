@@ -107,7 +107,7 @@ struct jtag_tap {
 	bool disabled_after_reset;
 	/** Is this TAP currently enabled? */
 	bool enabled;
-	int ir_length; /**< size of instruction register */
+	unsigned int ir_length; /**< size of instruction register */
 	uint32_t ir_capture_value;
 	uint8_t *expected; /**< Capture-IR expected value */
 	uint32_t ir_capture_mask;

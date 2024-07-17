@@ -224,10 +224,10 @@ static int irscan(struct target *t, uint8_t *out,
 	if (ir_len != t->tap->ir_length) {
 		retval = ERROR_FAIL;
 		if (t->tap->enabled)
-			LOG_ERROR("%s tap enabled but tap irlen=%d",
+			LOG_ERROR("%s tap enabled but tap irlen=%u",
 					__func__, t->tap->ir_length);
 		else
-			LOG_ERROR("%s tap not enabled and irlen=%d",
+			LOG_ERROR("%s tap not enabled and irlen=%u",
 					__func__, t->tap->ir_length);
 		return retval;
 	}

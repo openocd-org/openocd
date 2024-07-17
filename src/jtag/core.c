@@ -1396,7 +1396,7 @@ static int jtag_validate_ircapture(void)
 					&& tap->ir_length < JTAG_IRLEN_MAX) {
 				tap->ir_length++;
 			}
-			LOG_WARNING("AUTO %s - use \"jtag newtap %s %s -irlen %d "
+			LOG_WARNING("AUTO %s - use \"jtag newtap %s %s -irlen %u "
 					"-expected-id 0x%08" PRIx32 "\"",
 					tap->dotted_name, tap->chip, tap->tapname, tap->ir_length, tap->idcode);
 		}
@@ -1472,7 +1472,7 @@ void jtag_tap_init(struct jtag_tap *tap)
 	jtag_tap_add(tap);
 
 	LOG_DEBUG("Created Tap: %s @ abs position %u, "
-			"irlen %d, capture: 0x%x mask: 0x%x", tap->dotted_name,
+			"irlen %u, capture: 0x%x mask: 0x%x", tap->dotted_name,
 			tap->abs_chain_position, tap->ir_length,
 			(unsigned) tap->ir_capture_value,
 			(unsigned) tap->ir_capture_mask);

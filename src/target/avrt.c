@@ -153,7 +153,7 @@ static int mcu_write_ir(struct jtag_tap *tap, uint8_t *ir_in, uint8_t *ir_out,
 		LOG_ERROR("invalid tap");
 		return ERROR_FAIL;
 	}
-	if (ir_len != tap->ir_length) {
+	if ((unsigned int)ir_len != tap->ir_length) {
 		LOG_ERROR("invalid ir_len");
 		return ERROR_FAIL;
 	}
