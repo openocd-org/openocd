@@ -128,7 +128,7 @@ static int xlnx_pcie_xvc_execute_stableclocks(struct jtag_command *cmd)
 	size_t write;
 	int err;
 
-	LOG_DEBUG("stableclocks %i cycles", cmd->cmd.runtest->num_cycles);
+	LOG_DEBUG("stableclocks %u cycles", cmd->cmd.runtest->num_cycles);
 
 	while (left) {
 		write = MIN(XLNX_XVC_MAX_BITS, left);
@@ -167,7 +167,7 @@ static int xlnx_pcie_xvc_execute_runtest(struct jtag_command *cmd)
 {
 	int err = ERROR_OK;
 
-	LOG_DEBUG("runtest %i cycles, end in %i",
+	LOG_DEBUG("runtest %u cycles, end in %i",
 		  cmd->cmd.runtest->num_cycles,
 		  cmd->cmd.runtest->end_state);
 
@@ -200,16 +200,15 @@ static int xlnx_pcie_xvc_execute_runtest(struct jtag_command *cmd)
 
 static int xlnx_pcie_xvc_execute_pathmove(struct jtag_command *cmd)
 {
-	size_t num_states = cmd->cmd.pathmove->num_states;
+	unsigned int num_states = cmd->cmd.pathmove->num_states;
 	tap_state_t *path = cmd->cmd.pathmove->path;
 	int err = ERROR_OK;
-	size_t i;
 
-	LOG_DEBUG("pathmove: %i states, end in %i",
+	LOG_DEBUG("pathmove: %u states, end in %i",
 		  cmd->cmd.pathmove->num_states,
 		  cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]);
 
-	for (i = 0; i < num_states; i++) {
+	for (unsigned int i = 0; i < num_states; i++) {
 		if (path[i] == tap_state_transition(tap_get_state(), false)) {
 			err = xlnx_pcie_xvc_transact(1, 1, 0, NULL);
 		} else if (path[i] == tap_state_transition(tap_get_state(), true)) {

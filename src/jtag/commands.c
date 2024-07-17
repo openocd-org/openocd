@@ -166,10 +166,9 @@ void jtag_scan_field_clone(struct scan_field *dst, const struct scan_field *src)
 
 enum scan_type jtag_scan_type(const struct scan_command *cmd)
 {
-	int i;
 	int type = 0;
 
-	for (i = 0; i < cmd->num_fields; i++) {
+	for (unsigned int i = 0; i < cmd->num_fields; i++) {
 		if (cmd->fields[i].in_value)
 			type |= SCAN_IN;
 		if (cmd->fields[i].out_value)
@@ -182,10 +181,9 @@ enum scan_type jtag_scan_type(const struct scan_command *cmd)
 int jtag_scan_size(const struct scan_command *cmd)
 {
 	int bit_count = 0;
-	int i;
 
 	/* count bits in scan command */
-	for (i = 0; i < cmd->num_fields; i++)
+	for (unsigned int i = 0; i < cmd->num_fields; i++)
 		bit_count += cmd->fields[i].num_bits;
 
 	return bit_count;
@@ -194,18 +192,17 @@ int jtag_scan_size(const struct scan_command *cmd)
 int jtag_build_buffer(const struct scan_command *cmd, uint8_t **buffer)
 {
 	int bit_count = 0;
-	int i;
 
 	bit_count = jtag_scan_size(cmd);
 	*buffer = calloc(1, DIV_ROUND_UP(bit_count, 8));
 
 	bit_count = 0;
 
-	LOG_DEBUG_IO("%s num_fields: %i",
+	LOG_DEBUG_IO("%s num_fields: %u",
 			cmd->ir_scan ? "IRSCAN" : "DRSCAN",
 			cmd->num_fields);
 
-	for (i = 0; i < cmd->num_fields; i++) {
+	for (unsigned int i = 0; i < cmd->num_fields; i++) {
 		if (cmd->fields[i].out_value) {
 			if (LOG_LEVEL_IS(LOG_LVL_DEBUG_IO)) {
 				char *char_buf = buf_to_hex_str(cmd->fields[i].out_value,
@@ -213,14 +210,14 @@ int jtag_build_buffer(const struct scan_command *cmd, uint8_t **buffer)
 						? DEBUG_JTAG_IOZ
 								: cmd->fields[i].num_bits);
 
-				LOG_DEBUG("fields[%i].out_value[%i]: 0x%s", i,
+				LOG_DEBUG("fields[%u].out_value[%i]: 0x%s", i,
 						cmd->fields[i].num_bits, char_buf);
 				free(char_buf);
 			}
 			buf_set_buf(cmd->fields[i].out_value, 0, *buffer,
 					bit_count, cmd->fields[i].num_bits);
 		} else {
-			LOG_DEBUG_IO("fields[%i].out_value[%i]: NULL",
+			LOG_DEBUG_IO("fields[%u].out_value[%i]: NULL",
 					i, cmd->fields[i].num_bits);
 		}
 
@@ -234,14 +231,13 @@ int jtag_build_buffer(const struct scan_command *cmd, uint8_t **buffer)
 
 int jtag_read_buffer(uint8_t *buffer, const struct scan_command *cmd)
 {
-	int i;
 	int bit_count = 0;
 	int retval;
 
 	/* we return ERROR_OK, unless a check fails, or a handler reports a problem */
 	retval = ERROR_OK;
 
-	for (i = 0; i < cmd->num_fields; i++) {
+	for (unsigned int i = 0; i < cmd->num_fields; i++) {
 		/* if neither in_value nor in_handler
 		 * are specified we don't have to examine this field
 		 */
@@ -256,7 +252,7 @@ int jtag_read_buffer(uint8_t *buffer, const struct scan_command *cmd)
 						? DEBUG_JTAG_IOZ
 								: num_bits);
 
-				LOG_DEBUG("fields[%i].in_value[%i]: 0x%s",
+				LOG_DEBUG("fields[%u].in_value[%i]: 0x%s",
 						i, num_bits, char_buf);
 				free(char_buf);
 			}

@@ -36,7 +36,7 @@ struct scan_command {
 	/** instruction/not data scan */
 	bool ir_scan;
 	/** number of fields in *fields array */
-	int num_fields;
+	unsigned int num_fields;
 	/** pointer to an array of data scan fields */
 	struct scan_field *fields;
 	/** state in which JTAG commands should finish */
@@ -50,14 +50,14 @@ struct statemove_command {
 
 struct pathmove_command {
 	/** number of states in *path */
-	int num_states;
+	unsigned int num_states;
 	/** states that have to be passed */
 	tap_state_t *path;
 };
 
 struct runtest_command {
 	/** number of cycles to spend in Run-Test/Idle state */
-	int num_cycles;
+	unsigned int num_cycles;
 	/** state in which JTAG commands should finish */
 	tap_state_t end_state;
 };
@@ -65,7 +65,7 @@ struct runtest_command {
 
 struct stableclocks_command {
 	/** number of clock cycles that should be sent */
-	int num_cycles;
+	unsigned int num_cycles;
 };
 
 
@@ -100,7 +100,7 @@ struct sleep_command {
  */
 struct tms_command {
 	/** How many bits should be clocked out. */
-	unsigned num_bits;
+	unsigned int num_bits;
 	/** The bits to clock out; the LSB is bit 0 of bits[0]. */
 	const uint8_t *bits;
 };

@@ -436,7 +436,7 @@ void jtag_add_tlr(void);
  *   - ERROR_JTAG_TRANSITION_INVALID -- The path includes invalid
  *     state transitions.
  */
-void jtag_add_pathmove(int num_states, const tap_state_t *path);
+void jtag_add_pathmove(unsigned int num_states, const tap_state_t *path);
 
 /**
  * jtag_add_statemove() moves from the current state to @a goal_state.
@@ -459,7 +459,7 @@ int jtag_add_statemove(tap_state_t goal_state);
  *	via TAP_IDLE.
  * @param endstate The final state.
  */
-void jtag_add_runtest(int num_cycles, tap_state_t endstate);
+void jtag_add_runtest(unsigned int num_cycles, tap_state_t endstate);
 
 /**
  * A reset of the TAP state machine can be requested.
@@ -495,7 +495,7 @@ int jtag_add_tms_seq(unsigned nbits, const uint8_t *seq, enum tap_state t);
  * first checks that the state in which the clocks are to be issued is
  * stable, then queues up num_cycles clocks for transmission.
  */
-void jtag_add_clocks(int num_cycles);
+void jtag_add_clocks(unsigned int num_cycles);
 
 /**
  * For software FIFO implementations, the queued commands can be executed

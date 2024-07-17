@@ -1701,15 +1701,17 @@ static int ulink_queue_reset(struct ulink *device, struct jtag_command *cmd)
  */
 static int ulink_queue_pathmove(struct ulink *device, struct jtag_command *cmd)
 {
-	int ret, i, num_states, batch_size, state_count;
+	int ret, state_count;
 	tap_state_t *path;
 	uint8_t tms_sequence;
 
-	num_states = cmd->cmd.pathmove->num_states;
+	unsigned int num_states = cmd->cmd.pathmove->num_states;
 	path = cmd->cmd.pathmove->path;
 	state_count = 0;
 
 	while (num_states > 0) {
+		unsigned int batch_size;
+
 		tms_sequence = 0;
 
 		/* Determine batch size */
@@ -1718,7 +1720,7 @@ static int ulink_queue_pathmove(struct ulink *device, struct jtag_command *cmd)
 		else
 			batch_size = num_states;
 
-		for (i = 0; i < batch_size; i++) {
+		for (unsigned int i = 0; i < batch_size; i++) {
 			if (tap_state_transition(tap_get_state(), false) == path[state_count]) {
 				/* Append '0' transition: clear bit 'i' in tms_sequence */
 				buf_set_u32(&tms_sequence, i, 1, 0x0);
@@ -1774,14 +1776,13 @@ static int ulink_queue_sleep(struct ulink *device, struct jtag_command *cmd)
 static int ulink_queue_stableclocks(struct ulink *device, struct jtag_command *cmd)
 {
 	int ret;
-	unsigned num_cycles;
 
 	if (!tap_is_state_stable(tap_get_state())) {
 		LOG_ERROR("JTAG_STABLECLOCKS: state not stable");
 		return ERROR_FAIL;
 	}
 
-	num_cycles = cmd->cmd.stableclocks->num_cycles;
+	unsigned int num_cycles = cmd->cmd.stableclocks->num_cycles;
 
 	/* TMS stays either high (Test Logic Reset state) or low (all other states) */
 	if (tap_get_state() == TAP_RESET)

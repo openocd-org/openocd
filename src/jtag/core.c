@@ -514,7 +514,7 @@ int jtag_add_tms_seq(unsigned nbits, const uint8_t *seq, enum tap_state state)
 	return retval;
 }
 
-void jtag_add_pathmove(int num_states, const tap_state_t *path)
+void jtag_add_pathmove(unsigned int num_states, const tap_state_t *path)
 {
 	tap_state_t cur_state = cmd_queue_cur_state;
 
@@ -525,7 +525,7 @@ void jtag_add_pathmove(int num_states, const tap_state_t *path)
 		return;
 	}
 
-	for (int i = 0; i < num_states; i++) {
+	for (unsigned int i = 0; i < num_states; i++) {
 		if (path[i] == TAP_RESET) {
 			LOG_ERROR("BUG: TAP_RESET is not a valid state for pathmove sequences");
 			jtag_set_error(ERROR_JTAG_STATE_INVALID);
@@ -589,14 +589,14 @@ int jtag_add_statemove(tap_state_t goal_state)
 	return ERROR_OK;
 }
 
-void jtag_add_runtest(int num_cycles, tap_state_t state)
+void jtag_add_runtest(unsigned int num_cycles, tap_state_t state)
 {
 	jtag_prelude(state);
 	jtag_set_error(interface_jtag_add_runtest(num_cycles, state));
 }
 
 
-void jtag_add_clocks(int num_cycles)
+void jtag_add_clocks(unsigned int num_cycles)
 {
 	if (!tap_is_state_stable(cmd_queue_cur_state)) {
 		LOG_ERROR("jtag_add_clocks() called with TAP in unstable state \"%s\"",
@@ -960,7 +960,7 @@ int default_interface_jtag_execute_queue(void)
 				LOG_DEBUG_IO("JTAG %s SCAN to %s",
 						cmd->cmd.scan->ir_scan ? "IR" : "DR",
 						tap_state_name(cmd->cmd.scan->end_state));
-				for (int i = 0; i < cmd->cmd.scan->num_fields; i++) {
+				for (unsigned int i = 0; i < cmd->cmd.scan->num_fields; i++) {
 					struct scan_field *field = cmd->cmd.scan->fields + i;
 					if (field->out_value) {
 						char *str = buf_to_hex_str(field->out_value, field->num_bits);

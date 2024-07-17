@@ -44,8 +44,8 @@ static uint8_t usb_out_buffer[ARMJTAGEW_OUT_BUFFER_SIZE];
 /* Queue command functions */
 static void armjtagew_end_state(tap_state_t state);
 static void armjtagew_state_move(void);
-static void armjtagew_path_move(int num_states, tap_state_t *path);
-static void armjtagew_runtest(int num_cycles);
+static void armjtagew_path_move(unsigned int num_states, tap_state_t *path);
+static void armjtagew_runtest(unsigned int num_cycles);
 static void armjtagew_scan(bool ir_scan,
 		enum scan_type type,
 		uint8_t *buffer,
@@ -95,7 +95,7 @@ static int armjtagew_execute_queue(struct jtag_command *cmd_queue)
 	while (cmd) {
 		switch (cmd->type) {
 			case JTAG_RUNTEST:
-				LOG_DEBUG_IO("runtest %i cycles, end in %i",
+				LOG_DEBUG_IO("runtest %u cycles, end in %i",
 						cmd->cmd.runtest->num_cycles,
 						cmd->cmd.runtest->end_state);
 
@@ -111,7 +111,7 @@ static int armjtagew_execute_queue(struct jtag_command *cmd_queue)
 				break;
 
 			case JTAG_PATHMOVE:
-				LOG_DEBUG_IO("pathmove: %i states, end in %i",
+				LOG_DEBUG_IO("pathmove: %u states, end in %i",
 						cmd->cmd.pathmove->num_states,
 						cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]);
 
@@ -279,11 +279,9 @@ static void armjtagew_state_move(void)
 	tap_set_state(tap_get_end_state());
 }
 
-static void armjtagew_path_move(int num_states, tap_state_t *path)
+static void armjtagew_path_move(unsigned int num_states, tap_state_t *path)
 {
-	int i;
-
-	for (i = 0; i < num_states; i++) {
+	for (unsigned int i = 0; i < num_states; i++) {
 		/*
 		 * TODO: The ARM-JTAG-EW hardware delays TDI with 3 TCK cycles when in RTCK mode.
 		 * Either handle that here, or update the documentation with examples
@@ -305,10 +303,8 @@ static void armjtagew_path_move(int num_states, tap_state_t *path)
 	tap_set_end_state(tap_get_state());
 }
 
-static void armjtagew_runtest(int num_cycles)
+static void armjtagew_runtest(unsigned int num_cycles)
 {
-	int i;
-
 	tap_state_t saved_end_state = tap_get_end_state();
 
 	/* only do a state_move when we're not already in IDLE */
@@ -318,7 +314,7 @@ static void armjtagew_runtest(int num_cycles)
 	}
 
 	/* execute num_cycles */
-	for (i = 0; i < num_cycles; i++)
+	for (unsigned int i = 0; i < num_cycles; i++)
 		armjtagew_tap_append_step(0, 0);
 
 	/* finish in end_state */

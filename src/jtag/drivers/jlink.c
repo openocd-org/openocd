@@ -80,9 +80,9 @@ static struct device_config tmp_config;
 /* Queue command functions */
 static void jlink_end_state(tap_state_t state);
 static void jlink_state_move(void);
-static void jlink_path_move(int num_states, tap_state_t *path);
-static void jlink_stableclocks(int num_cycles);
-static void jlink_runtest(int num_cycles);
+static void jlink_path_move(unsigned int num_states, tap_state_t *path);
+static void jlink_stableclocks(unsigned int num_cycles);
+static void jlink_runtest(unsigned int num_cycles);
 static void jlink_reset(int trst, int srst);
 static int jlink_reset_safe(int trst, int srst);
 static int jlink_swd_run_queue(void);
@@ -140,7 +140,7 @@ static void jlink_execute_statemove(struct jtag_command *cmd)
 
 static void jlink_execute_pathmove(struct jtag_command *cmd)
 {
-	LOG_DEBUG_IO("pathmove: %i states, end in %i",
+	LOG_DEBUG_IO("pathmove: %u states, end in %i",
 		cmd->cmd.pathmove->num_states,
 		cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]);
 
@@ -159,7 +159,7 @@ static void jlink_execute_scan(struct jtag_command *cmd)
 		LOG_DEBUG("discarding trailing empty field");
 	}
 
-	if (cmd->cmd.scan->num_fields == 0) {
+	if (!cmd->cmd.scan->num_fields) {
 		LOG_DEBUG("empty scan, doing nothing");
 		return;
 	}
@@ -181,9 +181,9 @@ static void jlink_execute_scan(struct jtag_command *cmd)
 	struct scan_field *field = cmd->cmd.scan->fields;
 	unsigned scan_size = 0;
 
-	for (int i = 0; i < cmd->cmd.scan->num_fields; i++, field++) {
+	for (unsigned int i = 0; i < cmd->cmd.scan->num_fields; i++, field++) {
 		scan_size += field->num_bits;
-		LOG_DEBUG_IO("%s%s field %d/%d %d bits",
+		LOG_DEBUG_IO("%s%s field %u/%u %d bits",
 			field->in_value ? "in" : "",
 			field->out_value ? "out" : "",
 			i,
@@ -885,12 +885,11 @@ static void jlink_state_move(void)
 	tap_set_state(tap_get_end_state());
 }
 
-static void jlink_path_move(int num_states, tap_state_t *path)
+static void jlink_path_move(unsigned int num_states, tap_state_t *path)
 {
-	int i;
 	uint8_t tms = 0xff;
 
-	for (i = 0; i < num_states; i++) {
+	for (unsigned int i = 0; i < num_states; i++) {
 		if (path[i] == tap_state_transition(tap_get_state(), false))
 			jlink_clock_data(NULL, 0, NULL, 0, NULL, 0, 1);
 		else if (path[i] == tap_state_transition(tap_get_state(), true))
@@ -907,17 +906,15 @@ static void jlink_path_move(int num_states, tap_state_t *path)
 	tap_set_end_state(tap_get_state());
 }
 
-static void jlink_stableclocks(int num_cycles)
+static void jlink_stableclocks(unsigned int num_cycles)
 {
-	int i;
-
 	uint8_t tms = tap_get_state() == TAP_RESET;
 	/* Execute num_cycles. */
-	for (i = 0; i < num_cycles; i++)
+	for (unsigned int i = 0; i < num_cycles; i++)
 		jlink_clock_data(NULL, 0, &tms, 0, NULL, 0, 1);
 }
 
-static void jlink_runtest(int num_cycles)
+static void jlink_runtest(unsigned int num_cycles)
 {
 	tap_state_t saved_end_state = tap_get_end_state();
 

@@ -1669,7 +1669,6 @@ static void xds110_execute_tlr_reset(struct jtag_command *cmd)
 
 static void xds110_execute_pathmove(struct jtag_command *cmd)
 {
-	uint32_t i;
 	uint32_t num_states;
 	uint8_t *path;
 
@@ -1685,7 +1684,7 @@ static void xds110_execute_pathmove(struct jtag_command *cmd)
 	}
 
 	/* Convert requested path states into XDS API states */
-	for (i = 0; i < num_states; i++)
+	for (unsigned int i = 0; i < num_states; i++)
 		path[i] = (uint8_t)xds_jtag_state[cmd->cmd.pathmove->path[i]];
 
 	if (xds110.firmware >= OCD_FIRMWARE_VERSION) {
@@ -1704,7 +1703,6 @@ static void xds110_execute_pathmove(struct jtag_command *cmd)
 
 static void xds110_queue_scan(struct jtag_command *cmd)
 {
-	int i;
 	uint32_t offset;
 	uint32_t total_fields;
 	uint32_t total_bits;
@@ -1715,7 +1713,7 @@ static void xds110_queue_scan(struct jtag_command *cmd)
 	/* Calculate the total number of bits to scan */
 	total_bits = 0;
 	total_fields = 0;
-	for (i = 0; i < cmd->cmd.scan->num_fields; i++) {
+	for (unsigned int i = 0; i < cmd->cmd.scan->num_fields; i++) {
 		total_fields++;
 		total_bits += (uint32_t)cmd->cmd.scan->fields[i].num_bits;
 	}
@@ -1756,7 +1754,7 @@ static void xds110_queue_scan(struct jtag_command *cmd)
 	buffer = &xds110.txn_requests[xds110.txn_request_size];
 	/* Clear data out buffer to default value of all zeros */
 	memset((void *)buffer, 0x00, total_bytes);
-	for (i = 0; i < cmd->cmd.scan->num_fields; i++) {
+	for (unsigned int i = 0; i < cmd->cmd.scan->num_fields; i++) {
 		if (cmd->cmd.scan->fields[i].out_value) {
 			/* Copy over data to scan out into request buffer */
 			bit_copy(buffer, offset, cmd->cmd.scan->fields[i].out_value, 0,
@@ -1775,7 +1773,7 @@ static void xds110_queue_scan(struct jtag_command *cmd)
 
 static void xds110_queue_runtest(struct jtag_command *cmd)
 {
-	uint32_t clocks = (uint32_t)cmd->cmd.stableclocks->num_cycles;
+	uint32_t clocks = cmd->cmd.stableclocks->num_cycles;
 	uint8_t end_state = (uint8_t)xds_jtag_state[cmd->cmd.runtest->end_state];
 
 	/* Check if new request would be too large to fit */
@@ -1794,7 +1792,7 @@ static void xds110_queue_runtest(struct jtag_command *cmd)
 
 static void xds110_queue_stableclocks(struct jtag_command *cmd)
 {
-	uint32_t clocks = (uint32_t)cmd->cmd.stableclocks->num_cycles;
+	uint32_t clocks = cmd->cmd.stableclocks->num_cycles;
 
 	/* Check if new request would be too large to fit */
 	if ((xds110.txn_request_size + 1 + sizeof(clocks) + 1) > MAX_DATA_BLOCK)
