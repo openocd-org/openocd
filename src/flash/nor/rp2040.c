@@ -938,8 +938,95 @@ FLASH_BANK_COMMAND_HANDLER(rp2040_flash_bank_command)
 	return ERROR_OK;
 }
 
+
+COMMAND_HANDLER(rp2040_rom_api_call_handler)
+{
+	if (CMD_ARGC < 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	struct target *target = get_current_target(CMD->ctx);
+
+	struct flash_bank *bank;
+	for (bank = flash_bank_list(); bank; bank = bank->next) {
+		if (bank->driver != &rp2040_flash)
+			continue;
+
+		if (bank->target == target)
+			break;
+	}
+
+	if (!bank) {
+		command_print(CMD, "[%s] No associated RP2xxx flash bank found",
+					  target_name(target));
+		return ERROR_FAIL;
+	}
+
+	int retval = rp2040_flash_auto_probe(bank);
+	if (retval != ERROR_OK) {
+		command_print(CMD, "auto_probe failed");
+		return retval;
+	}
+
+	uint16_t tag = MAKE_TAG(CMD_ARGV[0][0], CMD_ARGV[0][1]);
+
+	uint32_t args[4] = { 0 };
+	for (unsigned int i = 0; i + 1 < CMD_ARGC && i < ARRAY_SIZE(args); i++)
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[i + 1], args[i]);
+
+	retval = setup_for_raw_flash_cmd(bank);
+	if (retval != ERROR_OK)
+		goto cleanup_and_return;
+
+	uint16_t symtype_func = is_arm(target_to_arm(target))
+				 ? RT_FLAG_FUNC_ARM_SEC : RT_FLAG_FUNC_RISCV;
+
+	uint16_t fc;
+	retval = rp2xxx_lookup_rom_symbol(target, tag, symtype_func, &fc);
+	if (retval != ERROR_OK) {
+		command_print(CMD, "Function %.2s not found in RP2xxx ROM.",
+					  CMD_ARGV[0]);
+		goto cleanup_and_return;
+	}
+
+	/* command_print() output gets lost if the command is called
+	 * in an event handler, use LOG_INFO instead */
+	LOG_INFO("RP2xxx ROM API function %.2s @ %04" PRIx16, CMD_ARGV[0], fc);
+
+	struct rp2040_flash_bank *priv = bank->driver_priv;
+	retval = rp2xxx_call_rom_func(target, priv, fc, args, ARRAY_SIZE(args));
+	if (retval != ERROR_OK)
+		command_print(CMD, "RP2xxx ROM API call failed");
+
+cleanup_and_return:
+	cleanup_after_raw_flash_cmd(bank);
+	return retval;
+}
+
+static const struct command_registration rp2040_exec_command_handlers[] = {
+	{
+		.name = "rom_api_call",
+		.mode = COMMAND_EXEC,
+		.help = "arbitrary ROM API call",
+		.usage = "fc [p0 [p1 [p2 [p3]]]]",
+		.handler = rp2040_rom_api_call_handler,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+static const struct command_registration rp2040_command_handler[] = {
+	{
+		.name = "rp2xxx",
+		.mode = COMMAND_ANY,
+		.help = "rp2xxx flash controller commands",
+		.usage = "",
+		.chain = rp2040_exec_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 const struct flash_driver rp2040_flash = {
 	.name = "rp2040_flash",
+	.commands = rp2040_command_handler,
 	.flash_bank_command = rp2040_flash_bank_command,
 	.erase =  rp2040_flash_erase,
 	.write = rp2040_flash_write,
