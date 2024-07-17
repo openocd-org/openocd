@@ -88,7 +88,7 @@ static enum reset_types jtag_reset_config = RESET_NONE;
 tap_state_t cmd_queue_cur_state = TAP_RESET;
 
 static bool jtag_verify_capture_ir = true;
-static int jtag_verify = 1;
+static bool jtag_verify = true;
 
 /* how long the OpenOCD should wait before attempting JTAG communication after reset lines
  *deasserted (in ms) */
