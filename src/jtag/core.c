@@ -212,7 +212,7 @@ unsigned jtag_tap_count_enabled(void)
 /** Append a new TAP to the chain of all taps. */
 static void jtag_tap_add(struct jtag_tap *t)
 {
-	unsigned jtag_num_taps = 0;
+	unsigned int jtag_num_taps = 0;
 
 	struct jtag_tap **tap = &__jtag_all_taps;
 	while (*tap) {
@@ -1471,7 +1471,7 @@ void jtag_tap_init(struct jtag_tap *tap)
 	jtag_register_event_callback(&jtag_reset_callback, tap);
 	jtag_tap_add(tap);
 
-	LOG_DEBUG("Created Tap: %s @ abs position %d, "
+	LOG_DEBUG("Created Tap: %s @ abs position %u, "
 			"irlen %d, capture: 0x%x mask: 0x%x", tap->dotted_name,
 			tap->abs_chain_position, tap->ir_length,
 			(unsigned) tap->ir_capture_value,

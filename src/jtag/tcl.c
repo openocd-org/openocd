@@ -814,7 +814,7 @@ COMMAND_HANDLER(handle_scan_chain_command)
 		expected_mask = buf_get_u32(tap->expected_mask, 0, tap->ir_length);
 
 		command_print(CMD,
-			"%2d %-18s     %c     0x%08x %s %5d 0x%02x  0x%02x",
+			"%2u %-18s     %c     0x%08x %s %5d 0x%02x  0x%02x",
 			tap->abs_chain_position,
 			tap->dotted_name,
 			tap->enabled ? 'Y' : 'n',
