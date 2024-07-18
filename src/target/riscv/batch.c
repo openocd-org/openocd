@@ -190,8 +190,7 @@ int riscv_batch_run_from(struct riscv_batch *batch, size_t start_idx,
 
 	for (size_t i = start_idx; i < batch->used_scans; ++i) {
 		const int delay = get_delay(batch, i, delays);
-		riscv_log_dmi_scan(batch->target, delay, batch->fields + i,
-				/*discard_in*/ false);
+		riscv_log_dmi_scan(batch->target, delay, batch->fields + i);
 	}
 
 	batch->was_run = true;
@@ -199,14 +198,14 @@ int riscv_batch_run_from(struct riscv_batch *batch, size_t start_idx,
 	return ERROR_OK;
 }
 
-void riscv_batch_add_dm_write(struct riscv_batch *batch, uint64_t address, uint32_t data,
+void riscv_batch_add_dmi_write(struct riscv_batch *batch, uint64_t address, uint32_t data,
 		bool read_back, enum riscv_scan_delay_class delay_class)
 {
 	assert(batch->used_scans < batch->allocated_scans);
 	struct scan_field *field = batch->fields + batch->used_scans;
 	field->num_bits = riscv_get_dmi_scan_length(batch->target);
 	field->out_value = (void *)(batch->data_out + batch->used_scans * DMI_SCAN_BUF_SIZE);
-	riscv_fill_dm_write(batch->target, (char *)field->out_value, address, data);
+	riscv_fill_dmi_write(batch->target, (char *)field->out_value, address, data);
 	if (read_back) {
 		field->in_value = (void *)(batch->data_in + batch->used_scans * DMI_SCAN_BUF_SIZE);
 		riscv_fill_dm_nop(batch->target, (char *)field->in_value);
@@ -218,7 +217,7 @@ void riscv_batch_add_dm_write(struct riscv_batch *batch, uint64_t address, uint3
 	batch->used_scans++;
 }
 
-size_t riscv_batch_add_dm_read(struct riscv_batch *batch, uint64_t address,
+size_t riscv_batch_add_dmi_read(struct riscv_batch *batch, uint64_t address,
 		enum riscv_scan_delay_class delay_class)
 {
 	assert(batch->used_scans < batch->allocated_scans);
@@ -226,7 +225,7 @@ size_t riscv_batch_add_dm_read(struct riscv_batch *batch, uint64_t address,
 	field->num_bits = riscv_get_dmi_scan_length(batch->target);
 	field->out_value = (void *)(batch->data_out + batch->used_scans * DMI_SCAN_BUF_SIZE);
 	field->in_value  = (void *)(batch->data_in  + batch->used_scans * DMI_SCAN_BUF_SIZE);
-	riscv_fill_dm_read(batch->target, (char *)field->out_value, address);
+	riscv_fill_dmi_read(batch->target, (char *)field->out_value, address);
 	riscv_fill_dm_nop(batch->target, (char *)field->in_value);
 	batch->delay_classes[batch->used_scans] = delay_class;
 	batch->last_scan = RISCV_SCAN_TYPE_READ;
