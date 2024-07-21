@@ -183,7 +183,7 @@ static void jlink_execute_scan(struct jtag_command *cmd)
 
 	for (unsigned int i = 0; i < cmd->cmd.scan->num_fields; i++, field++) {
 		scan_size += field->num_bits;
-		LOG_DEBUG_IO("%s%s field %u/%u %d bits",
+		LOG_DEBUG_IO("%s%s field %u/%u %u bits",
 			field->in_value ? "in" : "",
 			field->out_value ? "out" : "",
 			i,

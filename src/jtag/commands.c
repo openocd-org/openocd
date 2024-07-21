@@ -210,14 +210,14 @@ int jtag_build_buffer(const struct scan_command *cmd, uint8_t **buffer)
 						? DEBUG_JTAG_IOZ
 								: cmd->fields[i].num_bits);
 
-				LOG_DEBUG("fields[%u].out_value[%i]: 0x%s", i,
+				LOG_DEBUG("fields[%u].out_value[%u]: 0x%s", i,
 						cmd->fields[i].num_bits, char_buf);
 				free(char_buf);
 			}
 			buf_set_buf(cmd->fields[i].out_value, 0, *buffer,
 					bit_count, cmd->fields[i].num_bits);
 		} else {
-			LOG_DEBUG_IO("fields[%u].out_value[%i]: NULL",
+			LOG_DEBUG_IO("fields[%u].out_value[%u]: NULL",
 					i, cmd->fields[i].num_bits);
 		}
 
@@ -242,7 +242,7 @@ int jtag_read_buffer(uint8_t *buffer, const struct scan_command *cmd)
 		 * are specified we don't have to examine this field
 		 */
 		if (cmd->fields[i].in_value) {
-			int num_bits = cmd->fields[i].num_bits;
+			const unsigned int num_bits = cmd->fields[i].num_bits;
 			uint8_t *captured = buf_set_buf(buffer, bit_count,
 					malloc(DIV_ROUND_UP(num_bits, 8)), 0, num_bits);
 
@@ -252,7 +252,7 @@ int jtag_read_buffer(uint8_t *buffer, const struct scan_command *cmd)
 						? DEBUG_JTAG_IOZ
 								: num_bits);
 
-				LOG_DEBUG("fields[%u].in_value[%i]: 0x%s",
+				LOG_DEBUG("fields[%u].in_value[%u]: 0x%s",
 						i, num_bits, char_buf);
 				free(char_buf);
 			}

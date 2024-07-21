@@ -1772,11 +1772,11 @@ static void cmsis_dap_execute_scan(struct jtag_command *cmd)
 	cmsis_dap_end_state(cmd->cmd.scan->end_state);
 
 	struct scan_field *field = cmd->cmd.scan->fields;
-	unsigned scan_size = 0;
+	unsigned int scan_size = 0;
 
 	for (unsigned int i = 0; i < cmd->cmd.scan->num_fields; i++, field++) {
 		scan_size += field->num_bits;
-		LOG_DEBUG_IO("%s%s field %u/%u %d bits",
+		LOG_DEBUG_IO("%s%s field %u/%u %u bits",
 			field->in_value ? "in" : "",
 			field->out_value ? "out" : "",
 			i,

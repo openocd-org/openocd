@@ -86,7 +86,7 @@ extern tap_state_t cmd_queue_cur_state;
  */
 struct scan_field {
 	/** The number of bits this field specifies */
-	int num_bits;
+	unsigned int num_bits;
 	/** A pointer to value to be scanned into the device */
 	const uint8_t *out_value;
 	/** A pointer to a 32-bit memory location for data scanned out */

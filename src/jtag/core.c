@@ -964,12 +964,12 @@ int default_interface_jtag_execute_queue(void)
 					struct scan_field *field = cmd->cmd.scan->fields + i;
 					if (field->out_value) {
 						char *str = buf_to_hex_str(field->out_value, field->num_bits);
-						LOG_DEBUG_IO("  %db out: %s", field->num_bits, str);
+						LOG_DEBUG_IO("  %ub out: %s", field->num_bits, str);
 						free(str);
 					}
 					if (field->in_value) {
 						char *str = buf_to_hex_str(field->in_value, field->num_bits);
-						LOG_DEBUG_IO("  %db  in: %s", field->num_bits, str);
+						LOG_DEBUG_IO("  %ub  in: %s", field->num_bits, str);
 						free(str);
 					}
 				}
@@ -1337,7 +1337,7 @@ static int jtag_validate_ircapture(void)
 	int retval;
 
 	/* when autoprobing, accommodate huge IR lengths */
-	int total_ir_length = 0;
+	unsigned int total_ir_length = 0;
 	for (tap = jtag_tap_next_enabled(NULL); tap; tap = jtag_tap_next_enabled(tap)) {
 		if (tap->ir_length == 0)
 			total_ir_length += JTAG_IRLEN_MAX;

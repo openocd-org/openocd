@@ -19,7 +19,7 @@ struct bitq_interface *bitq_interface; /* low level bit queue interface */
 struct bitq_state {
 	struct jtag_command *cmd; /* command currently processed */
 	unsigned int field_idx; /* index of field currently being processed */
-	int bit_pos; /* position of bit currently being processed */
+	unsigned int bit_pos; /* position of bit currently being processed */
 	int status; /* processing status */
 };
 static struct bitq_state bitq_in_state;
@@ -142,11 +142,10 @@ static void bitq_runtest(unsigned int num_cycles)
 
 static void bitq_scan_field(struct scan_field *field, int do_pause)
 {
-	int bit_cnt;
 	int tdo_req;
 
 	const uint8_t *out_ptr;
-	uint8_t  out_mask;
+	uint8_t out_mask;
 
 	if (field->in_value)
 		tdo_req = 1;
@@ -155,7 +154,7 @@ static void bitq_scan_field(struct scan_field *field, int do_pause)
 
 	if (!field->out_value) {
 		/* just send zeros and request data from TDO */
-		for (bit_cnt = field->num_bits; bit_cnt > 1; bit_cnt--)
+		for (unsigned int i = 0; i < (field->num_bits - 1); i++)
 			bitq_io(0, 0, tdo_req);
 
 		bitq_io(do_pause, 0, tdo_req);
@@ -163,7 +162,7 @@ static void bitq_scan_field(struct scan_field *field, int do_pause)
 		/* send data, and optionally request TDO */
 		out_mask = 0x01;
 		out_ptr  = field->out_value;
-		for (bit_cnt = field->num_bits; bit_cnt > 1; bit_cnt--) {
+		for (unsigned int i = 0; i < (field->num_bits - 1); i++) {
 			bitq_io(0, ((*out_ptr) & out_mask) != 0, tdo_req);
 			if (out_mask == 0x80) {
 				out_mask = 0x01;
