@@ -178,9 +178,9 @@ enum scan_type jtag_scan_type(const struct scan_command *cmd)
 	return type;
 }
 
-int jtag_scan_size(const struct scan_command *cmd)
+unsigned int jtag_scan_size(const struct scan_command *cmd)
 {
-	int bit_count = 0;
+	unsigned int bit_count = 0;
 
 	/* count bits in scan command */
 	for (unsigned int i = 0; i < cmd->num_fields; i++)
@@ -191,9 +191,7 @@ int jtag_scan_size(const struct scan_command *cmd)
 
 int jtag_build_buffer(const struct scan_command *cmd, uint8_t **buffer)
 {
-	int bit_count = 0;
-
-	bit_count = jtag_scan_size(cmd);
+	unsigned int bit_count = jtag_scan_size(cmd);
 	*buffer = calloc(1, DIV_ROUND_UP(bit_count, 8));
 
 	bit_count = 0;

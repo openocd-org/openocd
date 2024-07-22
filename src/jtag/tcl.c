@@ -212,8 +212,8 @@ COMMAND_HANDLER(handle_jtag_flush_count)
 	if (CMD_ARGC != 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	int count = jtag_get_flush_queue_count();
-	command_print_sameline(CMD, "%d", count);
+	const unsigned int count = jtag_get_flush_queue_count();
+	command_print_sameline(CMD, "%u", count);
 
 	return ERROR_OK;
 }

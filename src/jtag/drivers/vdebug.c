@@ -970,8 +970,8 @@ static int vdebug_jtag_scan(struct scan_command *cmd, uint8_t f_flush)
 	uint8_t num_pre = tap_get_tms_path_len(cur, state);
 	uint8_t tms_post = tap_get_tms_path(state, cmd->end_state);
 	uint8_t num_post = tap_get_tms_path_len(state, cmd->end_state);
-	int num_bits = jtag_scan_size(cmd);
-	LOG_DEBUG_IO("scan len:%d fields:%u ir/!dr:%d state cur:%x end:%x",
+	const unsigned int num_bits = jtag_scan_size(cmd);
+	LOG_DEBUG_IO("scan len:%u fields:%u ir/!dr:%d state cur:%x end:%x",
 			  num_bits, cmd->num_fields, cmd->ir_scan, cur, cmd->end_state);
 	for (unsigned int i = 0; i < cmd->num_fields; i++) {
 		uint8_t cur_num_pre = i == 0 ? num_pre : 0;

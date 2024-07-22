@@ -157,7 +157,7 @@ struct jtag_command *jtag_command_queue_get(void);
 
 void jtag_scan_field_clone(struct scan_field *dst, const struct scan_field *src);
 enum scan_type jtag_scan_type(const struct scan_command *cmd);
-int jtag_scan_size(const struct scan_command *cmd);
+unsigned int jtag_scan_size(const struct scan_command *cmd);
 int jtag_read_buffer(uint8_t *buffer, const struct scan_command *cmd);
 int jtag_build_buffer(const struct scan_command *cmd, uint8_t **buffer);
 

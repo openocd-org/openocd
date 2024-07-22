@@ -152,8 +152,8 @@ struct jtag_tap *jtag_tap_by_string(const char *dotted_name);
 struct jtag_tap *jtag_tap_by_jim_obj(Jim_Interp *interp, Jim_Obj *obj);
 struct jtag_tap *jtag_tap_by_position(unsigned int abs_position);
 struct jtag_tap *jtag_tap_next_enabled(struct jtag_tap *p);
-unsigned jtag_tap_count_enabled(void);
-unsigned jtag_tap_count(void);
+unsigned int jtag_tap_count_enabled(void);
+unsigned int jtag_tap_count(void);
 
 /*
  * - TRST_ASSERTED triggers two sets of callbacks, after operations to
@@ -229,17 +229,17 @@ enum reset_types {
 enum reset_types jtag_get_reset_config(void);
 void jtag_set_reset_config(enum reset_types type);
 
-void jtag_set_nsrst_delay(unsigned delay);
-unsigned jtag_get_nsrst_delay(void);
+void jtag_set_nsrst_delay(unsigned int delay);
+unsigned int jtag_get_nsrst_delay(void);
 
-void jtag_set_ntrst_delay(unsigned delay);
-unsigned jtag_get_ntrst_delay(void);
+void jtag_set_ntrst_delay(unsigned int delay);
+unsigned int jtag_get_ntrst_delay(void);
 
-void jtag_set_nsrst_assert_width(unsigned delay);
-unsigned jtag_get_nsrst_assert_width(void);
+void jtag_set_nsrst_assert_width(unsigned int delay);
+unsigned int jtag_get_nsrst_assert_width(void);
 
-void jtag_set_ntrst_assert_width(unsigned delay);
-unsigned jtag_get_ntrst_assert_width(void);
+void jtag_set_ntrst_assert_width(unsigned int delay);
+unsigned int jtag_get_ntrst_assert_width(void);
 
 /** @returns The current state of TRST. */
 int jtag_get_trst(void);
@@ -488,7 +488,7 @@ void jtag_add_reset(int req_tlr_or_trst, int srst);
 
 void jtag_add_sleep(uint32_t us);
 
-int jtag_add_tms_seq(unsigned nbits, const uint8_t *seq, enum tap_state t);
+int jtag_add_tms_seq(unsigned int nbits, const uint8_t *seq, enum tap_state t);
 
 /**
  * Function jtag_add_clocks
@@ -523,7 +523,7 @@ int jtag_execute_queue(void);
 void jtag_execute_queue_noclear(void);
 
 /** @returns the number of times the scan queue has been flushed */
-int jtag_get_flush_queue_count(void);
+unsigned int jtag_get_flush_queue_count(void);
 
 /** Report Tcl event to all TAPs */
 void jtag_notify_event(enum jtag_event);
