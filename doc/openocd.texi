@@ -2958,6 +2958,11 @@ Display free device internal memory.
 Set the JTAG command version to be used. Without argument, show the actual JTAG
 command version.
 @end deffn
+@deffn {Command} {jlink targetpower}  [@option{0}|@option{1}|@option{on}|@option{off}]
+Switch the 5@ V target power supply on or off.
+Without argument, show the state of the target power supply.
+The target power supply is usually connected to pin 19 of the 20-pin connector.
+@end deffn
 @deffn {Command} {jlink config}
 Display the device configuration.
 @end deffn
