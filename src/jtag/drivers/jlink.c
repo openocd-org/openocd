@@ -1069,12 +1069,26 @@ COMMAND_HANDLER(jlink_handle_jlink_jtag_command)
 
 COMMAND_HANDLER(jlink_handle_target_power_command)
 {
-	if (CMD_ARGC != 1)
+	if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_SET_TARGET_POWER)) {
 		command_print(CMD, "Target power supply is not supported by the "
 			"device");
+		return ERROR_OK;
+	}
+
+	if (!CMD_ARGC) {
+		uint32_t state;
+		int ret = jaylink_get_hardware_info(devh, JAYLINK_HW_INFO_TARGET_POWER,
+			&state);
+
+		if (ret != JAYLINK_OK) {
+			command_print(CMD, "Failed to retrieve target power state");
+			return ERROR_FAIL;
+		}
+
+		command_print(CMD, "%d", (bool)state);
 		return ERROR_OK;
 	}
 
@@ -1859,7 +1873,7 @@ static const struct command_registration jlink_subcommand_handlers[] = {
 		.handler = &jlink_handle_target_power_command,
 		.mode = COMMAND_EXEC,
 		.help = "set the target power supply",
-		.usage = "<0|1|on|off>"
+		.usage = "[0|1|on|off]"
 	},
 	{
 		.name = "freemem",
