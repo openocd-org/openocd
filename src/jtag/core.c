@@ -364,7 +364,13 @@ void jtag_add_ir_scan_noverify(struct jtag_tap *active, const struct scan_field 
 {
 	jtag_prelude(state);
 
-	int retval = interface_jtag_add_ir_scan(active, in_fields, state);
+	struct scan_fields_on_tap tap_fields = {
+		.tap = active,
+		.fields = in_fields,
+		.num_fields = 1,
+	};
+	int retval = interface_jtag_add_scan(/*ir_scan*/ true, &tap_fields,
+			/*n_active_taps*/ 1, state);
 	jtag_set_error(retval);
 }
 
@@ -405,6 +411,18 @@ void jtag_add_plain_ir_scan(int num_bits, const uint8_t *out_bits, uint8_t *in_b
 
 	int retval = interface_jtag_add_plain_ir_scan(
 			num_bits, out_bits, in_bits, state);
+	jtag_set_error(retval);
+}
+
+void jtag_add_multitap_ir_scan(size_t n_active_taps,
+		const struct scan_fields_on_tap *fields_on_taps, enum tap_state state)
+{
+	assert(state != TAP_RESET);
+
+	jtag_prelude(state);
+
+	int retval = interface_jtag_add_scan(/*ir_scan*/ true, fields_on_taps,
+			n_active_taps, state);
 	jtag_set_error(retval);
 }
 
@@ -463,8 +481,13 @@ void jtag_add_dr_scan(struct jtag_tap *active,
 
 	jtag_prelude(state);
 
-	int retval;
-	retval = interface_jtag_add_dr_scan(active, in_num_fields, in_fields, state);
+	struct scan_fields_on_tap tap_fields = {
+		.tap = active,
+		.fields = in_fields,
+		.num_fields = in_num_fields,
+	};
+	int retval = interface_jtag_add_scan(/*ir_scan*/ false, &tap_fields,
+			/*n_active_taps*/ 1, state);
 	jtag_set_error(retval);
 }
 
@@ -478,6 +501,18 @@ void jtag_add_plain_dr_scan(int num_bits, const uint8_t *out_bits, uint8_t *in_b
 
 	int retval;
 	retval = interface_jtag_add_plain_dr_scan(num_bits, out_bits, in_bits, state);
+	jtag_set_error(retval);
+}
+
+void jtag_add_multitap_dr_scan(size_t n_active_taps,
+		const struct scan_fields_on_tap *fields_on_taps, enum tap_state state)
+{
+	assert(state != TAP_RESET);
+
+	jtag_prelude(state);
+
+	int retval = interface_jtag_add_scan(/*ir_scan*/ false, fields_on_taps,
+			n_active_taps, state);
 	jtag_set_error(retval);
 }
 

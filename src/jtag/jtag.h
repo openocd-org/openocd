@@ -98,6 +98,12 @@ struct scan_field {
 	uint8_t *check_mask;
 };
 
+struct scan_fields_on_tap {
+	const struct jtag_tap *tap;
+	const struct scan_field *fields;
+	size_t num_fields;
+};
+
 struct jtag_tap {
 	char *chip;
 	char *tapname;
@@ -311,6 +317,8 @@ void jtag_add_ir_scan_noverify(struct jtag_tap *tap,
 void jtag_add_plain_ir_scan(int num_bits, const uint8_t *out_bits, uint8_t *in_bits,
 		enum tap_state endstate);
 
+void jtag_add_multitap_ir_scan(size_t n_active_taps,
+		const struct scan_fields_on_tap *fields_on_taps, enum tap_state state);
 /**
  * Generate a DR SCAN using the fields passed to the function.
  * For connected TAPs, the function checks in_fields and uses fields
@@ -330,6 +338,8 @@ void jtag_add_dr_scan_check(struct jtag_tap *tap, int num_fields,
 void jtag_add_plain_dr_scan(int num_bits,
 		const uint8_t *out_bits, uint8_t *in_bits, enum tap_state endstate);
 
+void jtag_add_multitap_dr_scan(size_t n_active_taps,
+		const struct scan_fields_on_tap *fields_on_taps, enum tap_state state);
 /**
  * Defines the type of data passed to the jtag_callback_t interface.
  * The underlying type must allow storing an @c int or pointer type.

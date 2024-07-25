@@ -44,141 +44,159 @@ static void jtag_callback_queue_reset(void)
 	jtag_callback_queue_tail = NULL;
 }
 
-/**
- * see jtag_add_ir_scan()
- *
- */
-int interface_jtag_add_ir_scan(struct jtag_tap *active,
-		const struct scan_field *in_fields, enum tap_state state)
+static int
+check_ir_scan_fields_on_tap(struct scan_fields_on_tap tap_fields)
 {
-	size_t num_taps = jtag_tap_count_enabled();
+	unsigned int ir_length = 0;
+	for (size_t i = 0; i < tap_fields.num_fields; ++i)
+		ir_length += tap_fields.fields[i].num_bits;
+	if (ir_length == tap_fields.tap->ir_length)
+		return ERROR_OK;
 
-	struct jtag_command *cmd = cmd_queue_alloc(sizeof(struct jtag_command));
-	struct scan_command *scan = cmd_queue_alloc(sizeof(struct scan_command));
-	struct scan_field *out_fields = cmd_queue_alloc(num_taps  * sizeof(struct scan_field));
+	LOG_ERROR("BUG: %u bits are to be scanned into the IR of TAP %s with IR "
+			"length of %u.", ir_length, jtag_tap_name(tap_fields.tap),
+			tap_fields.tap->ir_length);
+	return ERROR_FAIL;
+}
 
-	jtag_queue_command(cmd);
+static int
+check_fields_on_taps(bool ir_scan, const struct scan_fields_on_tap *tap_fields,
+		size_t count)
+{
+	for (size_t i = 0; i < count; ++i) {
+		if (!tap_fields[i].tap->enabled) {
+			LOG_ERROR("BUG: TAP %s is disabled.",
+					jtag_tap_name(tap_fields[i].tap));
+			return ERROR_FAIL;
+		}
+		if (ir_scan && check_ir_scan_fields_on_tap(tap_fields[i]) != ERROR_OK)
+			return ERROR_FAIL;
+	}
+	for (size_t i = 1; i < count; ++i) {
+		if (tap_fields[i - 1].tap->abs_chain_position
+				>= tap_fields[i].tap->abs_chain_position) {
+			LOG_ERROR("BUG: Expecting TAPs %s and %s to be passed "
+					"in the same order as in the chain.",
+					jtag_tap_name(tap_fields[i - 1].tap),
+					jtag_tap_name(tap_fields[i].tap));
+			return ERROR_FAIL;
+		}
+	}
+	return ERROR_OK;
+}
 
-	cmd->type = JTAG_SCAN;
-	cmd->cmd.scan = scan;
+static size_t get_num_fields(const struct scan_fields_on_tap *tap_fields,
+		size_t count)
+{
+	size_t num_fields = 0;
+	for (size_t i = 0; i < count; ++i)
+		num_fields += tap_fields[i].num_fields;
+	return num_fields;
+}
 
-	scan->ir_scan = true;
-	scan->num_fields = num_taps;	/* one field per device */
-	scan->fields = out_fields;
-	scan->end_state = state;
+static void fill_bypass_scan_field(struct scan_field *field, bool ir_scan,
+		const struct jtag_tap *tap)
+{
+	field->in_value = NULL; /* do not collect input for tap's in bypass */
+	if (!ir_scan) {
+		field->num_bits = 1;
+		field->out_value = NULL;
+		return;
+	}
+	field->num_bits = tap->ir_length;
+	uint8_t *out_value = cmd_queue_alloc(DIV_ROUND_UP(tap->ir_length, 8));
+	if (tap->ir_bypass_value)
+		buf_set_u64(out_value, 0, tap->ir_length, tap->ir_bypass_value);
+	else
+		buf_set_ones(out_value, tap->ir_length);
+	field->out_value = out_value;
+}
 
-	struct scan_field *field = out_fields;	/* keep track where we insert data */
+/* The total length of "fields" should be equal to "tap->ir_length".
+ * This is achived by definiton for TAPs in bypass (see
+ * "fill_bypass_scan_field()") and pre-validated in "check_fields_on_taps()"
+ * for active TAPs.*/
+static void set_tap_cur_instr(struct jtag_tap *tap, struct scan_field *fields)
+{
+	size_t i = 0;
+	for (unsigned int dst_offset = 0; dst_offset < tap->ir_length;
+			dst_offset += fields[i].num_bits, ++i) {
+		assert(fields[i].num_bits <= tap->ir_length - dst_offset);
+		buf_set_buf(fields[i].out_value, 0, tap->cur_instr, dst_offset,
+				fields[i].num_bits);
+	}
+}
 
-	/* loop over all enabled TAPs */
+static int fill_scan_fields(struct scan_field *out_fields, bool ir_scan,
+		const struct scan_fields_on_tap *tap_fields)
+{
+	const struct scan_fields_on_tap *in = tap_fields;
+	struct scan_field *out = out_fields;
+	for (struct jtag_tap *tap = jtag_tap_next_enabled(NULL); tap;
+			tap = jtag_tap_next_enabled(tap)) {
+		bool bypass = tap != in->tap;
 
-	for (struct jtag_tap *tap = jtag_tap_next_enabled(NULL); tap; tap = jtag_tap_next_enabled(tap)) {
-		/* search the input field list for fields for the current TAP */
+		if (ir_scan) {
+			tap->bypass = bypass;
+		} else if (tap->bypass != bypass) {
+			LOG_ERROR("TAP %s %s expected to be in BYPASS",
+					jtag_tap_name(tap), bypass ? "is" : "is not");
+			return ERROR_FAIL;
+		}
 
-		if (tap == active) {
-			/* if TAP is listed in input fields, copy the value */
-			tap->bypass = false;
-
-			jtag_scan_field_clone(field, in_fields);
+		size_t n_fields;
+		if (bypass) {
+			fill_bypass_scan_field(out, ir_scan, tap);
+			n_fields = 1;
 		} else {
-			/* if a TAP isn't listed in input fields, set it to BYPASS */
-
-			tap->bypass = true;
-
-			field->num_bits = tap->ir_length;
-			if (tap->ir_bypass_value) {
-				uint8_t *v = cmd_queue_alloc(DIV_ROUND_UP(tap->ir_length, 8));
-				buf_set_u64(v, 0, tap->ir_length, tap->ir_bypass_value);
-				field->out_value = v;
-			} else {
-				field->out_value = buf_set_ones(cmd_queue_alloc(DIV_ROUND_UP(tap->ir_length, 8)), tap->ir_length);
-			}
-			field->in_value = NULL; /* do not collect input for tap's in bypass */
+			for (size_t i = 0; i < in->num_fields; ++i)
+				jtag_scan_field_clone(out + i, in->fields + i);
+			n_fields = in->num_fields;
+			++in;
 		}
 
 		/* update device information */
-		buf_cpy(field->out_value, tap->cur_instr, tap->ir_length);
+		if (ir_scan)
+			set_tap_cur_instr(tap, out);
 
-		field++;
+		out += n_fields;
 	}
-	/* paranoia: jtag_tap_count_enabled() and jtag_tap_next_enabled() not in sync */
-	assert(field == out_fields + num_taps);
-
 	return ERROR_OK;
 }
 
 /**
- * see jtag_add_dr_scan()
+ * see jtag_add_ir/dr_scan()
  *
  */
-int interface_jtag_add_dr_scan(struct jtag_tap *active, int in_num_fields,
-		const struct scan_field *in_fields, enum tap_state state)
+int interface_jtag_add_scan(bool ir_scan, const struct scan_fields_on_tap *tap_fields,
+		size_t n_active_taps, enum tap_state state)
 {
-	/* count devices in bypass */
-
-	size_t bypass_devices = 0;
-	size_t all_devices = 0;
-
-	for (struct jtag_tap *tap = jtag_tap_next_enabled(NULL); tap; tap = jtag_tap_next_enabled(tap)) {
-		all_devices++;
-
-		if (tap->bypass)
-			bypass_devices++;
-	}
-
-	if (all_devices == bypass_devices) {
-		LOG_ERROR("At least one TAP shouldn't be in BYPASS mode");
-
+	int res = check_fields_on_taps(ir_scan, tap_fields, n_active_taps);
+	if (res != ERROR_OK)
 		return ERROR_FAIL;
-	}
 
+	size_t bypass_taps = jtag_tap_count_enabled() - n_active_taps;
+	size_t num_fields = bypass_taps + get_num_fields(tap_fields, n_active_taps);
+
+	struct scan_field *out_fields = cmd_queue_alloc(num_fields * sizeof(struct scan_field));
 	struct jtag_command *cmd = cmd_queue_alloc(sizeof(struct jtag_command));
 	struct scan_command *scan = cmd_queue_alloc(sizeof(struct scan_command));
-	struct scan_field *out_fields = cmd_queue_alloc((in_num_fields + bypass_devices) * sizeof(struct scan_field));
+
+
+	res = fill_scan_fields(out_fields, ir_scan, tap_fields);
+	if (res != ERROR_OK)
+		return res;
 
 	jtag_queue_command(cmd);
 
 	cmd->type = JTAG_SCAN;
 	cmd->cmd.scan = scan;
 
-	scan->ir_scan = false;
-	scan->num_fields = in_num_fields + bypass_devices;
+	scan->ir_scan = ir_scan;
+	scan->num_fields = num_fields;
 	scan->fields = out_fields;
+
 	scan->end_state = state;
-
-	struct scan_field *field = out_fields;	/* keep track where we insert data */
-
-	/* loop over all enabled TAPs */
-
-	for (struct jtag_tap *tap = jtag_tap_next_enabled(NULL); tap; tap = jtag_tap_next_enabled(tap)) {
-		/* if TAP is not bypassed insert matching input fields */
-
-		if (!tap->bypass) {
-			assert(active == tap);
-#ifndef NDEBUG
-			/* remember initial position for assert() */
-			struct scan_field *start_field = field;
-#endif /* NDEBUG */
-
-			for (int j = 0; j < in_num_fields; j++) {
-				jtag_scan_field_clone(field, in_fields + j);
-
-				field++;
-			}
-
-			assert(field > start_field);	/* must have at least one input field per not bypassed TAP */
-		}
-
-		/* if a TAP is bypassed, generated a dummy bit*/
-		else {
-			field->num_bits = 1;
-			field->out_value = NULL;
-			field->in_value = NULL;
-
-			field++;
-		}
-	}
-
-	assert(field == out_fields + scan->num_fields); /* no superfluous input fields permitted */
 
 	return ERROR_OK;
 }

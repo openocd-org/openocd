@@ -36,15 +36,11 @@
 /* and it may provide additional declarations that must be defined. */
 #include <jtag/drivers/minidriver_imp.h>
 
-int interface_jtag_add_ir_scan(struct jtag_tap *active,
-		const struct scan_field *fields,
-		enum tap_state endstate);
+int interface_jtag_add_scan(bool ir_scan,
+		const struct scan_fields_on_tap *tap_fields,
+		size_t n_active_taps, enum tap_state state);
 int interface_jtag_add_plain_ir_scan(
 		int num_bits, const uint8_t *out_bits, uint8_t *in_bits,
-		enum tap_state endstate);
-
-int interface_jtag_add_dr_scan(struct jtag_tap *active,
-		int num_fields, const struct scan_field *fields,
 		enum tap_state endstate);
 int interface_jtag_add_plain_dr_scan(
 		int num_bits, const uint8_t *out_bits, uint8_t *in_bits,
