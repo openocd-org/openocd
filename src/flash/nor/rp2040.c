@@ -510,11 +510,10 @@ static int rp2xxx_call_rom_func_batch(struct target *target, struct rp2040_flash
 	}
 	if (err != ERROR_OK) {
 		LOG_ERROR("Failed to call ROM function batch\n");
-		/* This case is hit when loading new ROM images on FPGA, but can also be
-		   hit on real hardware if you swap two devices with different ROM
-		   versions without restarting OpenOCD: */
-		LOG_INFO("Repopulating ROM address cache after failed ROM call");
-		/* We ignore the error because we have already failed, this is just
+		/* This case is hit when loading new ROM images on FPGA, but can also be hit on real
+		   hardware if you swap two devices with different ROM versions without restarting OpenOCD: */
+		LOG_ROM_SYMBOL_DEBUG("Repopulating ROM address cache after failed ROM call");
+		/* We ignore the error on this next call because we have already failed, this is just
 		   recovery for the next attempt. */
 		(void)rp2xxx_populate_rom_pointer_cache(target, priv);
 		return err;
@@ -757,6 +756,7 @@ static int rp2040_flash_write(struct flash_bank *bank, const uint8_t *buffer, ui
 			write_size /* count */
 		};
 		err = rp2xxx_call_rom_func(target, priv, priv->jump_flash_range_program, args, ARRAY_SIZE(args));
+		keep_alive();
 		if (err != ERROR_OK) {
 			LOG_ERROR("Failed to invoke flash programming code on target");
 			break;
@@ -820,19 +820,50 @@ static int rp2040_flash_erase(struct flash_bank *bank, unsigned int first, unsig
 	if (err != ERROR_OK)
 		goto cleanup_and_return;
 
-	LOG_DEBUG("Remote call flash_range_erase");
+	uint32_t offset_next = bank->sectors[first].offset;
+	uint32_t offset_last = bank->sectors[last].offset + bank->sectors[last].size - bank->sectors[first].offset;
 
-	uint32_t args[4] = {
-		bank->sectors[first].offset, /* addr */
-		bank->sectors[last].offset + bank->sectors[last].size - bank->sectors[first].offset, /* count */
-		65536, /* block_size */
-		0xd8   /* block_cmd */
-	};
+	/* Break erase into multiple calls to avoid timeout on large erase. Choose 128k chunk which has
+	   fairly low ROM call overhead and empirically seems to avoid the default keep_alive() limit
+	   as well as our ROM call timeout. */
+	const uint32_t erase_chunk_size = 128 * 1024;
 
-	/* This ROM function will use the optimal mixture of 4k 20h and 64k D8h
-	   erases, without over-erase, as long as you just tell OpenOCD that your
-	   flash is made up of 4k sectors instead of letting it try to guess. */
-	err = rp2xxx_call_rom_func(bank->target, priv, priv->jump_flash_range_erase, args, ARRAY_SIZE(args));
+	/* Promote log level for long erases to provide feedback */
+	bool requires_loud_prints = offset_last - offset_next >= 2 * erase_chunk_size;
+	enum log_levels chunk_log_level = requires_loud_prints ? LOG_LVL_INFO : LOG_LVL_DEBUG;
+
+	while (offset_next < offset_last) {
+		uint32_t remaining = offset_last - offset_next;
+		uint32_t call_size = remaining < erase_chunk_size ? remaining : erase_chunk_size;
+		/* Shorten the first call of a large erase if necessary to align subsequent calls */
+		if (offset_next % erase_chunk_size != 0 && call_size == erase_chunk_size)
+			call_size = erase_chunk_size - offset_next % erase_chunk_size;
+
+		LOG_CUSTOM_LEVEL(chunk_log_level,
+			"  Erase chunk: 0x%08" PRIx32 " -> 0x%08" PRIx32,
+			offset_next,
+			offset_next + call_size - 1
+		);
+
+		/* This ROM function uses the optimal mixture of 4k 20h and 64k D8h erases, without
+		   over-erase. This is why we force the flash_bank sector size attribute to 4k even if
+		   OpenOCD prefers to give the block size instead. */
+		uint32_t args[4] = {
+			offset_next,
+			call_size,
+			65536, /* block_size */
+			0xd8   /* block_cmd */
+		};
+
+		err = rp2xxx_call_rom_func(bank->target, priv, priv->jump_flash_range_erase, args, ARRAY_SIZE(args));
+		keep_alive();
+
+		if (err != ERROR_OK)
+			break;
+
+		offset_next += call_size;
+	}
+
 
 cleanup_and_return:
 	cleanup_after_raw_flash_cmd(bank);
