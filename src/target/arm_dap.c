@@ -412,6 +412,16 @@ err:
 	return retval;
 }
 
+static struct adiv5_dap *target_to_dap(const struct target *target)
+{
+	struct adiv5_private_config *pc = target->private_config;
+
+	if (!target->has_dap || !target->dap_configured || !pc)
+		return NULL;
+
+	return pc->dap;
+}
+
 COMMAND_HANDLER(handle_dap_names)
 {
 	if (CMD_ARGC != 0)
@@ -432,12 +442,11 @@ COMMAND_HANDLER(handle_dap_init)
 COMMAND_HANDLER(handle_dap_info_command)
 {
 	struct target *target = get_current_target(CMD_CTX);
-	struct arm *arm = target_to_arm(target);
-	struct adiv5_dap *dap = arm->dap;
+	struct adiv5_dap *dap = target_to_dap(target);
 	uint64_t apsel;
 
 	if (!dap) {
-		LOG_ERROR("DAP instance not available. Probably a HLA target...");
+		command_print(CMD, "target %s has no DAP", target_name(target));
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
