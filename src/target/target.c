@@ -3950,7 +3950,7 @@ static int handle_bp_command_list(struct command_invocation *cmd)
 }
 
 static int handle_bp_command_set(struct command_invocation *cmd,
-		target_addr_t addr, uint32_t asid, uint32_t length, int hw)
+		target_addr_t addr, uint32_t asid, unsigned int length, int hw)
 {
 	struct target *target = get_current_target(cmd->ctx);
 	int retval;
@@ -4067,7 +4067,7 @@ COMMAND_HANDLER(handle_wp_command)
 		while (watchpoint) {
 			char wp_type = (watchpoint->rw == WPT_READ ? 'r' : (watchpoint->rw == WPT_WRITE ? 'w' : 'a'));
 			command_print(CMD, "address: " TARGET_ADDR_FMT
-					", len: 0x%8.8" PRIx32
+					", len: 0x%8.8x"
 					", r/w/a: %c, value: 0x%8.8" PRIx64
 					", mask: 0x%8.8" PRIx64,
 					watchpoint->address,

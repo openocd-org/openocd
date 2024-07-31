@@ -26,7 +26,7 @@ enum watchpoint_rw {
 struct breakpoint {
 	target_addr_t address;
 	uint32_t asid;
-	int length;
+	unsigned int length;
 	enum breakpoint_type type;
 	bool is_set;
 	unsigned int number;
@@ -40,7 +40,7 @@ struct breakpoint {
 
 struct watchpoint {
 	target_addr_t address;
-	uint32_t length;
+	unsigned int length;
 	uint64_t mask;
 	uint64_t value;
 	enum watchpoint_rw rw;
@@ -52,11 +52,12 @@ struct watchpoint {
 
 int breakpoint_clear_target(struct target *target);
 int breakpoint_add(struct target *target,
-		target_addr_t address, uint32_t length, enum breakpoint_type type);
+		target_addr_t address, unsigned int length, enum breakpoint_type type);
 int context_breakpoint_add(struct target *target,
-		uint32_t asid, uint32_t length, enum breakpoint_type type);
+		uint32_t asid, unsigned int length, enum breakpoint_type type);
 int hybrid_breakpoint_add(struct target *target,
-		target_addr_t address, uint32_t asid, uint32_t length, enum breakpoint_type type);
+		target_addr_t address, uint32_t asid, unsigned int length,
+		enum breakpoint_type type);
 int breakpoint_remove(struct target *target, target_addr_t address);
 int breakpoint_remove_all(struct target *target);
 
@@ -70,7 +71,7 @@ static inline void breakpoint_hw_set(struct breakpoint *breakpoint, unsigned int
 
 int watchpoint_clear_target(struct target *target);
 int watchpoint_add(struct target *target,
-		target_addr_t address, uint32_t length,
+		target_addr_t address, unsigned int length,
 		enum watchpoint_rw rw, uint64_t value, uint64_t mask);
 int watchpoint_remove(struct target *target, target_addr_t address);
 int watchpoint_remove_all(struct target *target);
