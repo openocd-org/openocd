@@ -795,11 +795,12 @@ int dap_dp_init(struct adiv5_dap *dap)
 	dap->dp_ctrl_stat = CDBGPWRUPREQ | CSYSPWRUPREQ;
 
 	/*
-	 * This write operation clears the sticky error bit in jtag mode only and
-	 * is ignored in swd mode. It also powers-up system and debug domains in
-	 * both jtag and swd modes, if not done before.
+	 * This write operation clears the sticky error and overrun bits in jtag
+	 * mode only and is ignored in swd mode. It also powers-up system and
+	 * debug domains in both jtag and swd modes, if not done before.
 	 */
-	retval = dap_queue_dp_write(dap, DP_CTRL_STAT, dap->dp_ctrl_stat | SSTICKYERR);
+	retval = dap_queue_dp_write(dap, DP_CTRL_STAT,
+				    dap->dp_ctrl_stat | SSTICKYERR | SSTICKYORUN);
 	if (retval != ERROR_OK)
 		return retval;
 
