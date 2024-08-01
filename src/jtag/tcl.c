@@ -35,6 +35,7 @@
 #include <helper/nvp.h>
 #include <helper/time_support.h>
 #include "transport/transport.h"
+#include "drivers/minidriver_imp.h"
 
 /**
  * @file
@@ -74,104 +75,353 @@ static bool scan_is_safe(enum tap_state state)
 	}
 }
 
-static COMMAND_HELPER(handle_jtag_command_drscan_fields, struct scan_field *fields)
+static COMMAND_HELPER(parse_tap_names, unsigned int *cur_arg_p,
+		unsigned int *n_active_taps_p, const struct jtag_tap **taps,
+		const char * const *end_args)
 {
-	unsigned int field_count = 0;
-	for (unsigned int i = 1; i < CMD_ARGC; i += 2) {
-		unsigned int bits;
-		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[i], bits);
-		fields[field_count].num_bits = bits;
-
-		void *t = malloc(DIV_ROUND_UP(bits, 8));
-		if (!t) {
-			LOG_ERROR("Out of memory");
-			return ERROR_FAIL;
-		}
-
-		fields[field_count].out_value = t;
-		int ret = CALL_COMMAND_HANDLER(command_parse_str_to_buf, CMD_ARGV[i + 1], t, bits);
-		if (ret != ERROR_OK)
-			return ret;
-		fields[field_count].in_value = t;
-		field_count++;
+	unsigned int cur_arg = *cur_arg_p;
+	unsigned int n_active_taps = 0;
+	for (; cur_arg < CMD_ARGC; ++n_active_taps) {
+		for (const char * const *end_arg_p = end_args;
+				*end_arg_p; ++end_arg_p)
+			if (strcmp(CMD_ARGV[cur_arg], *end_arg_p) == 0)
+				goto exit;
+		const char *tap_name = CMD_ARGV[cur_arg++];
+		struct jtag_tap *tap = jtag_tap_by_string(tap_name);
+		if (!tap)
+			return ERROR_COMMAND_ARGUMENT_INVALID;
+		taps[n_active_taps] = tap;
 	}
-
+exit:
+	if (n_active_taps == 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	*n_active_taps_p = n_active_taps;
+	*cur_arg_p = cur_arg;
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(handle_jtag_command_drscan)
+struct scan_print_info {
+	struct command_invocation *cmd;
+	size_t n_active_taps;
+	const struct scan_fields_on_tap *tap_scans;
+	bool ir_scan;
+};
+
+static int cmp_scan_fields_on_tap(const void *lhs, const void *rhs)
 {
-	/*
-	 * CMD_ARGV[0] = device
-	 * CMD_ARGV[1] = num_bits
-	 * CMD_ARGV[2] = hex string
-	 * ... repeat num bits and hex string ...
-	 *
-	 * ... optionally:
-	 * CMD_ARGV[CMD_ARGC-2] = "-endstate"
-	 * CMD_ARGV[CMD_ARGC-1] = statename
-	 */
+	return ((const struct scan_fields_on_tap *)lhs)->tap->abs_chain_position
+		- ((const struct scan_fields_on_tap *)rhs)->tap->abs_chain_position;
+}
 
-	if (CMD_ARGC < 3 || (CMD_ARGC % 2) != 1)
+static const char *buf_to_hex_str_err_fmt = "Unable to allocate memory for a "
+	"hexadecimal string represantation of %u-bit long buffer.";
+
+static int print_ir_tap_scan(struct command_invocation *cmd,
+		const struct scan_fields_on_tap *tap_field, const char *separator)
+{
+	assert(tap_field->num_fields == 1);
+	unsigned int num_bits = tap_field->fields->num_bits;
+	char *in_str = buf_to_hex_str(tap_field->fields->in_value, num_bits);
+	if (!in_str) {
+		command_print(cmd, buf_to_hex_str_err_fmt, num_bits);
+		return ERROR_FAIL;
+	}
+	command_print_sameline(cmd, "%s %s%s", jtag_tap_name(tap_field->tap),
+			in_str, separator);
+	free(in_str);
+	return ERROR_OK;
+}
+
+static int print_dr_tap_scan(struct command_invocation *cmd,
+		const struct scan_fields_on_tap *tap_field, const char *separator)
+{
+	command_print_sameline(cmd, "%s ",
+			jtag_tap_name(tap_field->tap));
+	const char *field_separator = "";
+	for (size_t i = 0; i < tap_field->num_fields; ++i) {
+		unsigned int num_bits = tap_field->fields[i].num_bits;
+		char *in_str = buf_to_hex_str(tap_field->fields[i].in_value,
+				num_bits);
+		if (!in_str) {
+			command_print(cmd, buf_to_hex_str_err_fmt, num_bits);
+			return ERROR_FAIL;
+		}
+		command_print_sameline(cmd, "%s%s", field_separator, in_str);
+		free(in_str);
+		field_separator = " ";
+	}
+	command_print_sameline(cmd, "%s", separator);
+	return ERROR_OK;
+}
+
+static int print_scans(jtag_callback_data_t arg_info, jtag_callback_data_t arg2,
+		jtag_callback_data_t arg3, jtag_callback_data_t arg4)
+{
+	const struct scan_print_info *info =
+		(const struct scan_print_info *)arg_info;
+	command_print_sameline(info->cmd, "%s ", info->ir_scan ? "IR" : "DR");
+	assert(info->n_active_taps > 0);
+	unsigned int last_i = info->n_active_taps - 1;
+	for (unsigned int i = 0; i < last_i; ++i) {
+		int res = (info->ir_scan ? print_ir_tap_scan : print_dr_tap_scan)
+			(info->cmd, &info->tap_scans[i], " ");
+		if (res != ERROR_OK)
+			return res;
+	}
+	return (info->ir_scan ? print_ir_tap_scan : print_dr_tap_scan)(info->cmd,
+			&info->tap_scans[last_i], "\n");
+}
+
+static COMMAND_HELPER(parse_ir_scan_fields_on_tap, unsigned int *cur_arg_p,
+		struct scan_fields_on_tap *tap_scan, const struct jtag_tap *tap)
+{
+	unsigned int cur_arg = *cur_arg_p;
+
+	struct scan_field *field = cmd_queue_alloc(sizeof(*field));
+	const char *ir_val_str = CMD_ARGV[cur_arg++];
+	size_t bits = tap->ir_length;
+	uint8_t *value = cmd_queue_alloc(DIV_ROUND_UP(bits, 8));
+	int ret = CALL_COMMAND_HANDLER(command_parse_str_to_buf, ir_val_str,
+			value, bits);
+	if (ret != ERROR_OK)
+		return ret;
+	field->num_bits = bits;
+	field->in_value = value;
+	field->out_value = value;
+	tap_scan->fields = field;
+	tap_scan->num_fields = 1;
+	tap_scan->tap = tap;
+
+	*cur_arg_p = cur_arg;
+	return ERROR_OK;
+}
+
+static COMMAND_HELPER(parse_dr_scan_fields_on_tap, unsigned int *cur_arg_p,
+		struct scan_fields_on_tap *tap_scan, const struct jtag_tap *tap)
+{
+	unsigned int cur_arg = *cur_arg_p;
+
+	char *arg_copy = strdup(CMD_ARGV[cur_arg++]);
+	if (!arg_copy) {
+		command_print(CMD, "Out of memory.");
+		return ERROR_FAIL;
+	}
+	size_t min_chars_per_field = 3;
+	size_t max_fields = DIV_ROUND_UP(strlen(arg_copy),
+			min_chars_per_field);
+	struct scan_field *fields = cmd_queue_alloc(max_fields
+			* sizeof(*fields));
+	char *val_str = NULL;
+	size_t num_fields = 0;
+	const char *separators = ",";
+	int ret;
+	for (char *field_str = strtok(arg_copy, separators);
+			field_str; field_str = strtok(NULL, separators)) {
+		val_str = realloc(val_str, strlen(field_str));
+		if (!val_str) {
+			command_print(CMD, "Out of memory.");
+			ret = ERROR_FAIL;
+			goto cleanup;
+		}
+		int signed_bits;
+		if (sscanf(field_str, "%i:%s", &signed_bits, val_str) != 2) {
+			command_print(CMD, "Scan field should be passed as "
+					"'<bits>:<value>', not '%s'", arg_copy);
+			ret = ERROR_COMMAND_ARGUMENT_INVALID;
+			goto cleanup;
+		}
+		if (signed_bits <= 0) {
+			command_print(CMD, "Length of a scan field in bits "
+				       "should be a positive integer.");
+			ret = ERROR_COMMAND_ARGUMENT_UNDERFLOW;
+			goto cleanup;
+		}
+		unsigned int bits = signed_bits;
+		if (bits / 8 / 1024 > 640) {
+			command_print(CMD,
+					"%d-bits long scan fields are not supported. "
+					"640K of memory should be enough for anybody.", bits);
+			ret = ERROR_COMMAND_ARGUMENT_OVERFLOW;
+			goto cleanup;
+		}
+		uint8_t *value = cmd_queue_alloc(DIV_ROUND_UP(bits, 8));
+		ret = CALL_COMMAND_HANDLER(command_parse_str_to_buf, val_str,
+				value, bits);
+		if (ret != ERROR_OK)
+			goto cleanup;
+		fields[num_fields].num_bits = bits;
+		fields[num_fields].in_value = value;
+		fields[num_fields].out_value = value;
+		++num_fields;
+	}
+	if (num_fields == 0) {
+		command_print(CMD, "There are no fields in '%s'", arg_copy);
+		ret = ERROR_COMMAND_ARGUMENT_INVALID;
+		goto cleanup;
+	}
+	tap_scan->fields = fields;
+	tap_scan->num_fields = num_fields;
+	tap_scan->tap = tap;
+
+	*cur_arg_p = cur_arg;
+	ret = ERROR_OK;
+cleanup:
+	free(val_str);
+	free(arg_copy);
+	return ret;
+}
+
+#define JTAG_EXECUTE_SCAN_ENDSTATE_NEXT_ARG "-endstate"
+
+static COMMAND_HELPER(parse_endstate, unsigned int *cur_arg_p, enum tap_state *endstate)
+{
+	unsigned int cur_arg = *cur_arg_p;
+	*endstate = TAP_IDLE;
+	if (cur_arg == CMD_ARGC
+			|| strcmp(CMD_ARGV[cur_arg], JTAG_EXECUTE_SCAN_ENDSTATE_NEXT_ARG))
+		return ERROR_OK;
+	if (++cur_arg == CMD_ARGC)
 		return ERROR_COMMAND_SYNTAX_ERROR;
+	const char *endstate_name = CMD_ARGV[cur_arg++];
+	*endstate = tap_state_by_name(endstate_name);
+	if (!scan_is_safe(*endstate)) {
+		command_print(CMD, "endstate: %s is not stable", endstate_name);
+		return ERROR_COMMAND_ARGUMENT_INVALID;
+	}
+	*cur_arg_p = cur_arg;
+	return ERROR_OK;
+}
 
-	struct jtag_tap *tap = jtag_tap_by_string(CMD_ARGV[0]);
-	if (!tap) {
-		command_print(CMD, "Tap '%s' could not be found", CMD_ARGV[0]);
+static COMMAND_HELPER(validate_fields_on_taps, struct scan_fields_on_tap *tap_fields,
+		unsigned int n_active_taps)
+{
+	qsort(tap_fields, n_active_taps, sizeof(*tap_fields), cmp_scan_fields_on_tap);
+
+	for (unsigned int i = 1; i < n_active_taps; ++i) {
+		const struct jtag_tap *curr_tap = tap_fields[i].tap;
+		const struct jtag_tap *prev_tap = tap_fields[i - 1].tap;
+		if (curr_tap->abs_chain_position == prev_tap->abs_chain_position) {
+			command_print(CMD, "TAP %s is passed more then once.",
+					jtag_tap_name(curr_tap));
+			return ERROR_COMMAND_ARGUMENT_INVALID;
+		}
+	}
+	return ERROR_OK;
+}
+
+#define JTAG_EXECUTE_SCAN_IR_START_ARG "-ir"
+#define JTAG_EXECUTE_SCAN_DR_START_ARG "-dr"
+
+static COMMAND_HELPER(parse_scan_fields, unsigned int *cur_arg_p, bool ir_scan,
+		unsigned int n_active_taps, const struct jtag_tap **taps,
+		const char * const *end_args)
+{
+	unsigned int cur_arg = *cur_arg_p;
+
+	const char *start_arg = ir_scan
+		? JTAG_EXECUTE_SCAN_IR_START_ARG
+		: JTAG_EXECUTE_SCAN_DR_START_ARG;
+	if (cur_arg == CMD_ARGC || strcmp(CMD_ARGV[cur_arg++], start_arg))
+		return ERROR_OK;
+
+	unsigned int i = 0;
+	int ret = ERROR_OK;
+	struct scan_fields_on_tap *tap_fields = cmd_queue_alloc((CMD_ARGC - cur_arg) *
+			sizeof(*tap_fields));
+	for (; cur_arg < CMD_ARGC && i < n_active_taps; ++i) {
+		for (const char * const *end_arg_p = end_args; *end_arg_p;
+				++end_arg_p)
+			if (strcmp(CMD_ARGV[cur_arg], *end_arg_p) == 0)
+				goto exit;
+		if (strcmp(CMD_ARGV[cur_arg], JTAG_EXECUTE_SCAN_ENDSTATE_NEXT_ARG) == 0)
+			goto exit;
+		ret = CALL_COMMAND_HANDLER((ir_scan ? parse_ir_scan_fields_on_tap : parse_dr_scan_fields_on_tap),
+				&cur_arg, &tap_fields[i], taps[i]);
+		if (ret != ERROR_OK)
+			return ret;
+	}
+exit:
+	if (i != n_active_taps) {
+		command_print(CMD,
+				"Scan fields should be specified for each active TAP.");
 		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
-	if (tap->bypass) {
-		command_print(CMD, "Can't execute as the selected tap is in BYPASS");
-		return ERROR_FAIL;
+	enum tap_state endstate;
+	ret = CALL_COMMAND_HANDLER(parse_endstate, &cur_arg, &endstate);
+	if (ret != ERROR_OK)
+		return ret;
+
+	ret = CALL_COMMAND_HANDLER(validate_fields_on_taps, tap_fields, n_active_taps);
+	if (ret != ERROR_OK)
+		return ret;
+
+	(ir_scan ? jtag_add_multitap_ir_scan : jtag_add_multitap_dr_scan)(n_active_taps, tap_fields, endstate);
+	struct scan_print_info *print_info = cmd_queue_alloc(sizeof(*print_info));
+	print_info->cmd = CMD,
+	print_info->ir_scan = ir_scan,
+	print_info->n_active_taps = n_active_taps,
+	print_info->tap_scans = tap_fields,
+	jtag_add_callback4(print_scans, (jtag_callback_data_t)print_info, 0, 0, 0);
+
+	*cur_arg_p = cur_arg;
+	return ERROR_OK;
+}
+
+#define JTAG_EXECUTE_SCAN_START_ARG "scan"
+
+static COMMAND_HELPER(parse_one_scan, unsigned int *cur_arg_p)
+{
+	unsigned int cur_arg = *cur_arg_p;
+	unsigned int min_args_per_tap = 2;
+	unsigned int max_n_taps = DIV_ROUND_UP(CMD_ARGC - cur_arg, min_args_per_tap);
+	const struct jtag_tap **taps = cmd_queue_alloc(max_n_taps * sizeof(*taps));
+	unsigned int n_active_taps;
+	static const char * const end_args[] = {
+		JTAG_EXECUTE_SCAN_IR_START_ARG,
+		JTAG_EXECUTE_SCAN_DR_START_ARG,
+		JTAG_EXECUTE_SCAN_START_ARG,
+		NULL
+	};
+	int res = CALL_COMMAND_HANDLER(parse_tap_names, &cur_arg,
+			&n_active_taps, taps, end_args);
+	if (res != ERROR_OK)
+		return res;
+	res = CALL_COMMAND_HANDLER(parse_scan_fields, &cur_arg,
+			/* ir_scan */ true, n_active_taps, taps, end_args);
+	if (res != ERROR_OK)
+		return res;
+	res = CALL_COMMAND_HANDLER(parse_scan_fields, &cur_arg,
+			/* ir_scan */ false, n_active_taps, taps, end_args);
+	if (res != ERROR_OK)
+		return res;
+	*cur_arg_p = cur_arg;
+	return ERROR_OK;
+}
+
+static COMMAND_HELPER(jtag_execute_parse_one_command, unsigned int *cur_arg_p)
+{
+	unsigned int cur_arg = *cur_arg_p;
+	/* TODO: support other command types. */
+	if (strcmp(JTAG_EXECUTE_SCAN_START_ARG, CMD_ARGV[cur_arg++]))
+		return ERROR_COMMAND_ARGUMENT_INVALID;
+	int res = CALL_COMMAND_HANDLER(parse_one_scan, &cur_arg);
+	if (res == ERROR_OK)
+		*cur_arg_p = cur_arg;
+	return res;
+}
+
+COMMAND_HANDLER(handle_jtag_execute)
+{
+	int res;
+	unsigned int cur_arg = 0;
+	while (cur_arg < CMD_ARGC) {
+		res = CALL_COMMAND_HANDLER(jtag_execute_parse_one_command, &cur_arg);
+		jtag_set_error(res);
+		if (res != ERROR_OK)
+			break;
 	}
-
-	enum tap_state endstate = TAP_IDLE;
-	if (CMD_ARGC > 3 && !strcmp("-endstate", CMD_ARGV[CMD_ARGC - 2])) {
-		const char *state_name = CMD_ARGV[CMD_ARGC - 1];
-		endstate = tap_state_by_name(state_name);
-		if (endstate < 0) {
-			command_print(CMD, "endstate: %s invalid", state_name);
-			return ERROR_COMMAND_ARGUMENT_INVALID;
-		}
-
-		if (!scan_is_safe(endstate))
-			LOG_WARNING("drscan with unsafe endstate \"%s\"", state_name);
-
-		CMD_ARGC -= 2;
-	}
-
-	unsigned int num_fields = (CMD_ARGC - 1) / 2;
-	struct scan_field *fields = calloc(num_fields, sizeof(struct scan_field));
-	if (!fields) {
-		LOG_ERROR("Out of memory");
-		return ERROR_FAIL;
-	}
-
-	int retval = CALL_COMMAND_HANDLER(handle_jtag_command_drscan_fields, fields);
-	if (retval != ERROR_OK)
-		goto fail;
-
-	jtag_add_dr_scan(tap, num_fields, fields, endstate);
-
-	retval = jtag_execute_queue();
-	if (retval != ERROR_OK) {
-		command_print(CMD, "drscan: jtag execute failed");
-		goto fail;
-	}
-
-	for (unsigned int i = 0; i < num_fields; i++) {
-		char *str = buf_to_hex_str(fields[i].in_value, fields[i].num_bits);
-		command_print(CMD, "%s", str);
-		free(str);
-	}
-
-fail:
-	for (unsigned int i = 0; i < num_fields; i++)
-		free(fields[i].in_value);
-	free(fields);
-
-	return retval;
+	return jtag_execute_queue();
 }
 
 COMMAND_HANDLER(handle_jtag_command_pathmove)
@@ -223,20 +473,11 @@ COMMAND_HANDLER(handle_jtag_flush_count)
  *
  * There's a minor compatibility issue, these all show up twice;
  * that's not desirable:
- *  - jtag drscan ... NOT DOCUMENTED!
- *  - drscan ...
+ *  - jtag pathmove ...
+ *  - pathmove ...
  *
- * The "irscan" command (for example) doesn't show twice.
  */
 static const struct command_registration jtag_command_handlers_to_move[] = {
-	{
-		.name = "drscan",
-		.mode = COMMAND_EXEC,
-		.handler = handle_jtag_command_drscan,
-		.help = "Execute Data Register (DR) scan for one TAP.  "
-			"Other TAPs must be in BYPASS mode.",
-		.usage = "tap_name (num_bits value)+ ['-endstate' state_name]",
-	},
 	{
 		.name = "flush_count",
 		.mode = COMMAND_EXEC,
@@ -775,6 +1016,17 @@ static const struct command_registration jtag_subcommand_handlers[] = {
 		.usage = "",
 	},
 	{
+		.name = "execute",
+		.mode = COMMAND_ANY,
+		.handler = handle_jtag_execute,
+		.help = "Execute a chain of JTAG commands",
+		.usage = "['scan' tap_name+ ['" JTAG_EXECUTE_SCAN_IR_START_ARG
+			"' ir_value+ ['" JTAG_EXECUTE_SCAN_ENDSTATE_NEXT_ARG
+			"' tap_state]] ['" JTAG_EXECUTE_SCAN_DR_START_ARG
+			"' scan_fields+ ['" JTAG_EXECUTE_SCAN_ENDSTATE_NEXT_ARG
+			"' tap_state]]]+",
+	},
+	{
 		.chain = jtag_command_handlers_to_move,
 	},
 	COMMAND_REGISTRATION_DONE
@@ -904,96 +1156,6 @@ COMMAND_HANDLER(handle_runtest_command)
 
 	jtag_add_runtest(num_clocks, TAP_IDLE);
 	return jtag_execute_queue();
-}
-
-/*
- * For "irscan" or "drscan" commands, the "end" (really, "next") state
- * should be stable ... and *NOT* a shift state, otherwise free-running
- * jtag clocks could change the values latched by the update state.
- * Not surprisingly, this is the same constraint as SVF; the "irscan"
- * and "drscan" commands are a write-only subset of what SVF provides.
- */
-
-COMMAND_HANDLER(handle_irscan_command)
-{
-	int i;
-	struct scan_field *fields;
-	struct jtag_tap *tap = NULL;
-	enum tap_state endstate;
-
-	if ((CMD_ARGC < 2) || (CMD_ARGC % 2))
-		return ERROR_COMMAND_SYNTAX_ERROR;
-
-	/* optional "-endstate" "statename" at the end of the arguments,
-	 * so that e.g. IRPAUSE can let us load the data register before
-	 * entering RUN/IDLE to execute the instruction we load here.
-	 */
-	endstate = TAP_IDLE;
-
-	if (CMD_ARGC >= 4) {
-		/* have at least one pair of numbers.
-		 * is last pair the magic text? */
-		if (strcmp("-endstate", CMD_ARGV[CMD_ARGC - 2]) == 0) {
-			endstate = tap_state_by_name(CMD_ARGV[CMD_ARGC - 1]);
-			if (endstate == TAP_INVALID)
-				return ERROR_COMMAND_SYNTAX_ERROR;
-			if (!scan_is_safe(endstate))
-				LOG_WARNING("unstable irscan endstate \"%s\"",
-					CMD_ARGV[CMD_ARGC - 1]);
-			CMD_ARGC -= 2;
-		}
-	}
-
-	int num_fields = CMD_ARGC / 2;
-	if (num_fields > 1) {
-		/* we really should be looking at plain_ir_scan if we want
-		 * anything more fancy.
-		 */
-		LOG_ERROR("Specify a single value for tap");
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
-	fields = calloc(num_fields, sizeof(*fields));
-
-	int retval;
-	for (i = 0; i < num_fields; i++) {
-		tap = jtag_tap_by_string(CMD_ARGV[i*2]);
-		if (!tap) {
-			free(fields);
-			command_print(CMD, "Tap: %s unknown", CMD_ARGV[i*2]);
-
-			return ERROR_FAIL;
-		}
-		uint64_t value;
-		retval = parse_u64(CMD_ARGV[i * 2 + 1], &value);
-		if (retval != ERROR_OK)
-			goto error_return;
-
-		unsigned int field_size = tap->ir_length;
-		fields[i].num_bits = field_size;
-		uint8_t *v = calloc(1, DIV_ROUND_UP(field_size, 8));
-		if (!v) {
-			LOG_ERROR("Out of memory");
-			goto error_return;
-		}
-
-		buf_set_u64(v, 0, field_size, value);
-		fields[i].out_value = v;
-		fields[i].in_value = NULL;
-	}
-
-	/* did we have an endstate? */
-	jtag_add_ir_scan(tap, fields, endstate);
-
-	retval = jtag_execute_queue();
-
-error_return:
-	for (i = 0; i < num_fields; i++)
-		free((void *)fields[i].out_value);
-
-	free(fields);
-
-	return retval;
 }
 
 COMMAND_HANDLER(handle_verify_ircapture_command)
@@ -1147,15 +1309,6 @@ static const struct command_registration jtag_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.help = "Move to Run-Test/Idle, and issue TCK for num_cycles.",
 		.usage = "num_cycles"
-	},
-	{
-		.name = "irscan",
-		.handler = handle_irscan_command,
-		.mode = COMMAND_EXEC,
-		.help = "Execute Instruction Register (IR) scan.  The "
-			"specified opcodes are put into each TAP's IR, "
-			"and other TAPs are put in BYPASS.",
-		.usage = "[tap_name instruction]* ['-endstate' state_name]",
 	},
 	{
 		.name = "verify_ircapture",

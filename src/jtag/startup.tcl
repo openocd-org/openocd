@@ -1304,4 +1304,42 @@ proc "ipdbg -stop" {args} {
 	eval $hub_name ipdbg stop -tool $tool_num
 }
 
+#TODO: Deprecate in favor of 'jtag execute scan -ir ...'
+proc irscan {tap_name instruction args} {
+	set usage {tap_name instruction ['-endstate' state_name]}
+	set endstate RUN/IDLE
+	if {[llength $args] != 0} {
+		if {[lindex $args 0] ne {-endstate}} {
+			error $usage
+		}
+		set endstate [lindex $args 1]
+	}
+	jtag execute scan $tap_name -ir $instruction -endstate $endstate
+	return
+}
+
+#TODO: Deprecate in favor of 'jtag execute scan -dr ...'
+proc drscan {tap_name args} {
+	set usage {tap_name (num_bits value)+ ['-endstate' state_name]}
+	if {[lindex $args end-1] eq {-endstate}} {
+		set endstate [lindex $args end]
+		set field_args [lrange $args 0 end-2]
+	} else {
+		set endstate RUN/IDLE
+		set field_args $args
+	}
+	if {[llength $field_args] == 0} { error $usage }
+	set scan_fields ""
+	set field_sep ""
+	foreach {num_bits value} $field_args {
+		set scan_fields "${scan_fields}${field_sep}${num_bits}:${value}"
+		set field_sep ","
+	}
+	set res [jtag execute scan $tap_name -dr $scan_fields -endstate $endstate]
+	tailcall join [lrange $res 2 end] \n
+}
+
+lappend _telnet_autocomplete_skip {jtag drscan}
+proc {jtag drscan} args {tailcall drscan {*}$args}
+
 # END MIGRATION AIDS

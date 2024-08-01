@@ -12431,6 +12431,32 @@ Instructions often need some time
 to execute before they take effect.
 @end deffn
 
+@deffn {Command} {jtag execute} [@option{scan} @var{tap_name}+
+[@option{-ir} @var{ir_value}+ [@option{-endstate} @var{tap_state}]]
+[@option{-dr} @var{scan_fields}+ [@option{-endstate} @var{tap_state}]]]
+
+Executes a queue of commands:
+@itemize @bullet
+@item @option{scan} queues a JTAG scan.
+@itemize @bullet
+@item A list of TAP names (@var{tap_name}) specifyes active TAPs for the scan.
+@item @option{-ir} indicates instruction register scan.
+@item For an instruction register scan, a single @var{ir_value} should be
+specified for each active TAP.
+@item For an instruction register scan, inactive TAPs are placed into bypass.
+@item @option{-dr} indicates data register scan.
+@item For a data register scan, a single list of fields to scan should be
+specified for each active TAP. Each element of this list (@var{scan_fields})
+should be a coma-separated list of pairs of numbers, separated by a semicolon
+(e.g. 32:0 or 31:0,1:1). The first number in a pair is the number of bits in
+the field. The second one is the value.
+@item For a data register scan, a single bit is shifted into inactive TAPs.
+@item @var{tap_state} specifies the state the in which the chain should end up
+after the scan.
+@end itemize
+@end itemize
+@end deffn
+
 @c tms_sequence (short|long)
 @c ... temporary, debug-only, other than USBprog bug workaround...
 
@@ -12452,8 +12478,8 @@ Default is enabled.
 @cindex TAP state names
 
 The @var{tap_state} names used by OpenOCD in the @command{drscan},
-@command{irscan}, and @command{pathmove} commands are the same
-as those used in SVF boundary scan documents, except that
+@command{irscan}, @command{pathmove}, and @command{jtag execute} commands
+are the same as those used in SVF boundary scan documents, except that
 SVF uses @sc{idle} instead of @sc{run/idle}.
 
 @itemize @bullet
