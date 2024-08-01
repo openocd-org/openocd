@@ -189,6 +189,7 @@ static const struct {
 	{ CTI_APPCLEAR,	"APPCLR" },
 	{ CTI_APPPULSE,	"APPPULSE" },
 	{ CTI_INACK,	"INACK" },
+	{ CTI_DEVCTL,	"DEVCTL" },
 };
 
 static int cti_find_reg_offset(const char *name)
