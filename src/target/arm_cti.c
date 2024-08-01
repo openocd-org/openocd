@@ -196,9 +196,7 @@ static const struct {
 
 static int cti_find_reg_offset(const char *name)
 {
-	unsigned int i;
-
-	for (i = 0; i < ARRAY_SIZE(cti_names); i++) {
+	for (size_t i = 0; i < ARRAY_SIZE(cti_names); i++) {
 		if (!strcmp(name, cti_names[i].label))
 			return cti_names[i].offset;
 	}
@@ -227,7 +225,7 @@ COMMAND_HANDLER(handle_cti_dump)
 	struct adiv5_ap *ap = cti->ap;
 	int retval = ERROR_OK;
 
-	for (int i = 0; (retval == ERROR_OK) && (i < (int)ARRAY_SIZE(cti_names)); i++)
+	for (size_t i = 0; (retval == ERROR_OK) && (i < ARRAY_SIZE(cti_names)); i++)
 		retval = mem_ap_read_u32(ap,
 				cti->spot.base + cti_names[i].offset, cti_names[i].p_val);
 
@@ -237,7 +235,7 @@ COMMAND_HANDLER(handle_cti_dump)
 	if (retval != ERROR_OK)
 		return JIM_ERR;
 
-	for (int i = 0; i < (int)ARRAY_SIZE(cti_names); i++)
+	for (size_t i = 0; i < ARRAY_SIZE(cti_names); i++)
 		command_print(CMD, "%8.8s (0x%04"PRIx32") 0x%08"PRIx32,
 				cti_names[i].label, cti_names[i].offset, *cti_names[i].p_val);
 
@@ -322,7 +320,6 @@ COMMAND_HANDLER(handle_cti_ack)
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], event);
 
 	int retval = arm_cti_ack_events(cti, 1 << event);
-
 
 	if (retval != ERROR_OK)
 		return retval;
@@ -437,6 +434,7 @@ static int cti_configure(struct jim_getopt_info *goi, struct arm_cti *cti)
 
 	return JIM_OK;
 }
+
 static int cti_create(struct jim_getopt_info *goi)
 {
 	struct command_context *cmd_ctx;
@@ -537,7 +535,6 @@ COMMAND_HANDLER(cti_handle_names)
 
 	return ERROR_OK;
 }
-
 
 static const struct command_registration cti_subcommand_handlers[] = {
 	{
