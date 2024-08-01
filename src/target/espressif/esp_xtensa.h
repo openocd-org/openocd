@@ -37,6 +37,9 @@ void esp_xtensa_queue_tdi_idle(struct target *target);
 int esp_xtensa_breakpoint_add(struct target *target, struct breakpoint *breakpoint);
 int esp_xtensa_breakpoint_remove(struct target *target, struct breakpoint *breakpoint);
 int esp_xtensa_poll(struct target *target);
+int esp_xtensa_profiling(struct target *target, uint32_t *samples,
+	uint32_t max_num_samples, uint32_t *num_samples, uint32_t seconds);
+
 int esp_xtensa_on_halt(struct target *target);
 
 #endif	/* OPENOCD_TARGET_ESP_XTENSA_H */

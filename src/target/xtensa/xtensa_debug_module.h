@@ -75,6 +75,7 @@ enum xtensa_dm_reg {
 	XDMREG_DELAYCNT,
 	XDMREG_MEMADDRSTART,
 	XDMREG_MEMADDREND,
+	XDMREG_DEBUGPC,/*Unsupported, undocumented, may not be present*/
 	XDMREG_EXTTIMELO,
 	XDMREG_EXTTIMEHI,
 	XDMREG_TRAXRSVD48,
@@ -184,6 +185,7 @@ struct xtensa_dm_reg_offsets {
 	{ .nar = 0x07, .apb = 0x001c },	/* XDMREG_DELAYCNT */		\
 	{ .nar = 0x08, .apb = 0x0020 },	/* XDMREG_MEMADDRSTART */	\
 	{ .nar = 0x09, .apb = 0x0024 },	/* XDMREG_MEMADDREND */		\
+	{ .nar = 0x0f, .apb = 0x003c },	/* XDMREG_DEBUGPC */		\
 	{ .nar = 0x10, .apb = 0x0040 },	/* XDMREG_EXTTIMELO */		\
 	{ .nar = 0x11, .apb = 0x0044 },	/* XDMREG_EXTTIMEHI */		\
 	{ .nar = 0x12, .apb = 0x0048 },	/* XDMREG_TRAXRSVD48 */		\
