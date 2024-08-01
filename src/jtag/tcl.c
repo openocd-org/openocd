@@ -1017,7 +1017,7 @@ static const struct command_registration jtag_subcommand_handlers[] = {
 	},
 	{
 		.name = "execute",
-		.mode = COMMAND_ANY,
+		.mode = COMMAND_EXEC,
 		.handler = handle_jtag_execute,
 		.help = "Execute a chain of JTAG commands",
 		.usage = "['scan' tap_name+ ['" JTAG_EXECUTE_SCAN_IR_START_ARG
