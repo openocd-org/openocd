@@ -16,6 +16,7 @@
 #include "target/target.h"
 #include "target/algorithm.h"
 #include "target/target_type.h"
+#include <helper/align.h>
 #include <helper/log.h>
 #include "jtag/jtag.h"
 #include "target/register.h"
@@ -3349,6 +3350,9 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 		return ERROR_NOT_IMPLEMENTED;
 	}
 
+	assert(size <= 16);
+	assert(IS_PWR_OF_2(size));
+
 	dm013_info_t *dm = get_dm(target);
 	if (!dm)
 		return ERROR_FAIL;
@@ -3384,7 +3388,6 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 		 * be unnecessary.
 		 */
 		uint32_t sbvalue[4] = {0};
-		assert(size <= 16);
 		for (uint32_t i = (next_address - address) / size; i < count - 1; i++) {
 			const uint32_t size_in_words = DIV_ROUND_UP(size, 4);
 			struct riscv_batch *batch = riscv_batch_alloc(target, size_in_words);
@@ -3405,10 +3408,10 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 
 			const size_t last_key = batch->read_keys_used - 1;
 			for (size_t k = 0; k <= last_key; ++k) {
-				sbvalue[k] = riscv_batch_get_dmi_read_data(batch,
-						last_key - k);
-				buf_set_u32(buffer + i * size + k * 4, 0, 8 * size, sbvalue[k]);
+				sbvalue[k] = riscv_batch_get_dmi_read_data(batch, last_key - k);
+				buf_set_u32(buffer + i * size + k * 4, 0, MIN(32, 8 * size), sbvalue[k]);
 			}
+
 			riscv_batch_free(batch);
 			const target_addr_t read_addr = address + i * increment;
 			log_memory_access(read_addr, sbvalue, size, true);
