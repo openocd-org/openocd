@@ -887,7 +887,10 @@ static int rp2040_flash_probe(struct flash_bank *bank)
 	bank->write_end_alignment = 256;
 
 	// Max size -- up to two devices (two chip selects) in adjacent 24-bit address windows
-	bank->size = 32 * 1024 * 1024;
+	if (bank->size == 0) {
+		/* TODO: get real flash size */
+		bank->size = 32 * 1024 * 1024;
+	}
 
 	bank->num_sectors = bank->size / 4096;
 
