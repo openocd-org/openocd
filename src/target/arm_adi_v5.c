@@ -1532,6 +1532,7 @@ static const struct dap_part_nums {
 	{ ARM_ID, 0xc17, "Cortex-R7 Debug",            "(Debug Unit)", },
 	{ ARM_ID, 0xd03, "Cortex-A53 Debug",           "(Debug Unit)", },
 	{ ARM_ID, 0xd04, "Cortex-A35 Debug",           "(Debug Unit)", },
+	{ ARM_ID, 0xd05, "Cortex-A55 Debug",           "(Debug Unit)", },
 	{ ARM_ID, 0xd07, "Cortex-A57 Debug",           "(Debug Unit)", },
 	{ ARM_ID, 0xd08, "Cortex-A72 Debug",           "(Debug Unit)", },
 	{ ARM_ID, 0xd0b, "Cortex-A76 Debug",           "(Debug Unit)", },
