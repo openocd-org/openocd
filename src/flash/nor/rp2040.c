@@ -821,7 +821,7 @@ static int rp2040_flash_erase(struct flash_bank *bank, unsigned int first, unsig
 		goto cleanup_and_return;
 
 	uint32_t offset_next = bank->sectors[first].offset;
-	uint32_t offset_last = bank->sectors[last].offset + bank->sectors[last].size - bank->sectors[first].offset;
+	uint32_t offset_last = bank->sectors[last].offset + bank->sectors[last].size;
 
 	/* Break erase into multiple calls to avoid timeout on large erase. Choose 128k chunk which has
 	   fairly low ROM call overhead and empirically seems to avoid the default keep_alive() limit
