@@ -564,6 +564,20 @@ static int jlink_open_device(uint32_t ifaces, bool *found_device)
 
 	if (!use_serial_number && !use_usb_address && !use_usb_location && num_devices > 1) {
 		LOG_ERROR("Multiple devices found, specify the desired device");
+		LOG_INFO("Found devices:");
+		for (size_t i = 0; devs[i]; i++) {
+			uint32_t serial;
+			ret = jaylink_device_get_serial_number(devs[i], &serial);
+			if (ret == JAYLINK_ERR_NOT_AVAILABLE) {
+				continue;
+			} else if (ret != JAYLINK_OK) {
+				LOG_WARNING("jaylink_device_get_serial_number() failed: %s",
+					jaylink_strerror(ret));
+				continue;
+			}
+			LOG_INFO("Device %zu serial: %" PRIu32, i, serial);
+		}
+
 		jaylink_free_devices(devs, true);
 		jaylink_exit(jayctx);
 		return ERROR_JTAG_INIT_FAILED;
