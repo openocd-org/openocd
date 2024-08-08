@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
 
-#ifndef OPENOCD_TARGET_RISCV_RISCV_REG_011_H
-#define OPENOCD_TARGET_RISCV_RISCV_REG_011_H
+#ifndef OPENOCD_TARGET_RISCV_RISCV_011_REG_H
+#define OPENOCD_TARGET_RISCV_RISCV_011_REG_H
 
 #include "target/target.h"
 
@@ -16,4 +16,4 @@
  */
 int riscv011_reg_init_all(struct target *target);
 
-#endif /*OPENOCD_TARGET_RISCV_RISCV_REG_011_H*/
+#endif /* OPENOCD_TARGET_RISCV_RISCV_011_REG_H */

@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
 
-#ifndef TARGET__RISCV__ASM_H
-#define TARGET__RISCV__ASM_H
+#ifndef OPENOCD_TARGET_RISCV_ASM_H
+#define OPENOCD_TARGET_RISCV_ASM_H
 
 #include "riscv.h"
 
@@ -37,4 +37,4 @@ static uint32_t store(const struct target *target, unsigned int src,
 	return 0; /* Silence -Werror=return-type */
 }
 
-#endif
+#endif /* OPENOCD_TARGET_RISCV_ASM_H */

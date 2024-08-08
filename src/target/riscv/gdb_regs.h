@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
 
-#ifndef TARGET__RISCV__GDB_REGS_H
-#define TARGET__RISCV__GDB_REGS_H
+#ifndef OPENOCD_TARGET_RISCV_GDB_REGS_H
+#define OPENOCD_TARGET_RISCV_GDB_REGS_H
 
 #include "encoding.h"
 
@@ -125,4 +125,4 @@ enum gdb_regno {
 	GDB_REGNO_COUNT
 };
 
-#endif
+#endif /* OPENOCD_TARGET_RISCV_GDB_REGS_H */

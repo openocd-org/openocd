@@ -20,4 +20,4 @@ int riscv013_set_register(struct target *target, enum gdb_regno rid,
 int riscv013_set_register_buf(struct target *target, enum gdb_regno regno,
 		const uint8_t *value);
 
-#endif /*OPENOCD_TARGET_RISCV_RISCV_013_H*/
+#endif /* OPENOCD_TARGET_RISCV_RISCV_013_H */

@@ -1,5 +1,8 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
 
+#ifndef OPENOCD_TARGET_RISCV_OPCODES_H
+#define OPENOCD_TARGET_RISCV_OPCODES_H
+
 #include "encoding.h"
 
 #define ZERO	0
@@ -339,3 +342,4 @@ static uint32_t vslide1down_vx(unsigned int vd, unsigned int vs2,
 	return ((vm & 1) << 25) | inst_rs2(vs2) | inst_rs1(rs1) | inst_rd(vd) | MATCH_VSLIDE1DOWN_VX;
 }
 
+#endif /* OPENOCD_TARGET_RISCV_OPCODES_H */

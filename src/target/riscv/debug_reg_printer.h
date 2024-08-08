@@ -1,5 +1,8 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
 
+#ifndef OPENOCD_TARGET_RISCV_DEBUG_REG_PRINTER_H
+#define OPENOCD_TARGET_RISCV_DEBUG_REG_PRINTER_H
+
 #include "debug_defines.h"
 
 enum riscv_debug_reg_show {
@@ -33,3 +36,5 @@ enum riscv_debug_reg_show {
 unsigned int riscv_debug_reg_to_s(char *buf, enum riscv_debug_reg_ordinal reg_ordinal,
 		riscv_debug_reg_ctx_t context, uint64_t value,
 		enum riscv_debug_reg_show show);
+
+#endif /* OPENOCD_TARGET_RISCV_DEBUG_REG_PRINTER_H */
