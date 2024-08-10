@@ -627,16 +627,13 @@ static int rp2350_init_arm_core0(struct target *target, struct rp2040_flash_bank
 	return err;
 }
 
-static int setup_for_raw_flash_cmd(struct flash_bank *bank)
+static int setup_for_raw_flash_cmd(struct target *target, struct rp2040_flash_bank *priv)
 {
-	struct rp2040_flash_bank *priv = bank->driver_priv;
-	struct target *target = bank->target;
-
 	int err = ERROR_OK;
 
 	if (!priv->stack) {
 		/* target_alloc_working_area always allocates multiples of 4 bytes, so no worry about alignment */
-		err = target_alloc_working_area(bank->target, RP2XXX_MAX_ALGO_STACK_USAGE, &priv->stack);
+		err = target_alloc_working_area(target, RP2XXX_MAX_ALGO_STACK_USAGE, &priv->stack);
 		if (err != ERROR_OK) {
 			LOG_ERROR("Could not allocate stack for flash programming code -- insufficient space");
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
@@ -644,7 +641,7 @@ static int setup_for_raw_flash_cmd(struct flash_bank *bank)
 	}
 
 	if (!priv->ram_algo_space) {
-		err = target_alloc_working_area(bank->target, RP2XXX_MAX_RAM_ALGO_SIZE, &priv->ram_algo_space);
+		err = target_alloc_working_area(target, RP2XXX_MAX_RAM_ALGO_SIZE, &priv->ram_algo_space);
 		if (err != ERROR_OK) {
 			LOG_ERROR("Could not allocate RAM code space for ROM calls -- insufficient space");
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
@@ -692,7 +689,7 @@ static int setup_for_raw_flash_cmd(struct flash_bank *bank)
 			.sp = priv->stack->address + priv->stack->size
 		}
 	};
-	err = rp2xxx_call_rom_func_batch(bank->target, priv, calls, 2);
+	err = rp2xxx_call_rom_func_batch(target, priv, calls, 2);
 	if (err != ERROR_OK) {
 		LOG_ERROR("RP2040 flash: failed to exit flash XIP mode");
 		return err;
@@ -701,15 +698,13 @@ static int setup_for_raw_flash_cmd(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-static void cleanup_after_raw_flash_cmd(struct flash_bank *bank)
+static void cleanup_after_raw_flash_cmd(struct target *target, struct rp2040_flash_bank *priv)
 {
 	/* OpenOCD is prone to trashing work-area allocations on target state
 	   transitions, which leaves us with stale work area pointers in our
 	   driver state. Best to clean up our allocations manually after
 	   completing each flash call, so we know to make fresh ones next time. */
 	LOG_DEBUG("Cleaning up after flash operations");
-	struct rp2040_flash_bank *priv = bank->driver_priv;
-	struct target *target = bank->target;
 	if (priv->stack) {
 		target_free_working_area(target, priv->stack);
 		priv->stack = 0;
@@ -728,7 +723,7 @@ static int rp2040_flash_write(struct flash_bank *bank, const uint8_t *buffer, ui
 	struct target *target = bank->target;
 	struct working_area *bounce;
 
-	int err = setup_for_raw_flash_cmd(bank);
+	int err = setup_for_raw_flash_cmd(target, priv);
 	if (err != ERROR_OK)
 		goto cleanup_and_return;
 
@@ -780,7 +775,7 @@ static int rp2040_flash_write(struct flash_bank *bank, const uint8_t *buffer, ui
 	// accesses, but there's no harm in calling it anyway.
 
 	LOG_DEBUG("Flushing flash cache after write behind");
-	err = rp2xxx_call_rom_func(bank->target, priv, priv->jump_flush_cache, NULL, 0);
+	err = rp2xxx_call_rom_func(target, priv, priv->jump_flush_cache, NULL, 0);
 
 	rp2xxx_rom_call_batch_record_t finishing_calls[3] = {
 		{
@@ -805,18 +800,19 @@ static int rp2040_flash_write(struct flash_bank *bank, const uint8_t *buffer, ui
 		goto cleanup_and_return;
 	}
 cleanup_and_return:
-	cleanup_after_raw_flash_cmd(bank);
+	cleanup_after_raw_flash_cmd(target, priv);
 	return err;
 }
 
 static int rp2040_flash_erase(struct flash_bank *bank, unsigned int first, unsigned int last)
 {
 	struct rp2040_flash_bank *priv = bank->driver_priv;
+	struct target *target = bank->target;
 	uint32_t start_addr = bank->sectors[first].offset;
 	uint32_t length = bank->sectors[last].offset + bank->sectors[last].size - start_addr;
 	LOG_DEBUG("RP2040 erase %d bytes starting at 0x%" PRIx32, length, start_addr);
 
-	int err = setup_for_raw_flash_cmd(bank);
+	int err = setup_for_raw_flash_cmd(target, priv);
 	if (err != ERROR_OK)
 		goto cleanup_and_return;
 
@@ -855,7 +851,7 @@ static int rp2040_flash_erase(struct flash_bank *bank, unsigned int first, unsig
 			0xd8   /* block_cmd */
 		};
 
-		err = rp2xxx_call_rom_func(bank->target, priv, priv->jump_flash_range_erase, args, ARRAY_SIZE(args));
+		err = rp2xxx_call_rom_func(target, priv, priv->jump_flash_range_erase, args, ARRAY_SIZE(args));
 		keep_alive();
 
 		if (err != ERROR_OK)
@@ -866,7 +862,7 @@ static int rp2040_flash_erase(struct flash_bank *bank, unsigned int first, unsig
 
 
 cleanup_and_return:
-	cleanup_after_raw_flash_cmd(bank);
+	cleanup_after_raw_flash_cmd(target, priv);
 	return err;
 }
 
@@ -973,7 +969,8 @@ COMMAND_HANDLER(rp2040_rom_api_call_handler)
 	for (unsigned int i = 0; i + 1 < CMD_ARGC && i < ARRAY_SIZE(args); i++)
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[i + 1], args[i]);
 
-	retval = setup_for_raw_flash_cmd(bank);
+	struct rp2040_flash_bank *priv = bank->driver_priv;
+	retval = setup_for_raw_flash_cmd(target, priv);
 	if (retval != ERROR_OK)
 		goto cleanup_and_return;
 
@@ -992,14 +989,49 @@ COMMAND_HANDLER(rp2040_rom_api_call_handler)
 	 * in an event handler, use LOG_INFO instead */
 	LOG_INFO("RP2xxx ROM API function %.2s @ %04" PRIx16, CMD_ARGV[0], fc);
 
-	struct rp2040_flash_bank *priv = bank->driver_priv;
 	retval = rp2xxx_call_rom_func(target, priv, fc, args, ARRAY_SIZE(args));
 	if (retval != ERROR_OK)
 		command_print(CMD, "RP2xxx ROM API call failed");
 
 cleanup_and_return:
-	cleanup_after_raw_flash_cmd(bank);
+	cleanup_after_raw_flash_cmd(target, priv);
 	return retval;
+}
+
+COMMAND_HANDLER(rp2040_switch_target_handler)
+{
+	if (CMD_ARGC != 2)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	struct target *old_target = get_target(CMD_ARGV[0]);
+	if (!old_target) {
+		command_print(CMD, "Unrecognised old target %s", CMD_ARGV[0]);
+		return ERROR_COMMAND_ARGUMENT_INVALID;
+	}
+
+	struct target *new_target = get_target(CMD_ARGV[1]);
+	if (!new_target) {
+		command_print(CMD, "Unrecognised new target %s", CMD_ARGV[1]);
+		return ERROR_COMMAND_ARGUMENT_INVALID;
+	}
+
+	struct flash_bank *bank;
+	for (bank = flash_bank_list(); bank; bank = bank->next) {
+		if (bank->driver == &rp2040_flash) {
+			if (bank->target == old_target) {
+				bank->target = new_target;
+				struct rp2040_flash_bank *priv = bank->driver_priv;
+				priv->probed = false;
+				return ERROR_OK;
+			} else if (bank->target == new_target) {
+				return ERROR_OK;
+			}
+		}
+	}
+
+	command_print(CMD, "Neither old nor new target %s found in flash bank list",
+				  CMD_ARGV[0]);
+	return ERROR_FAIL;
 }
 
 static const struct command_registration rp2040_exec_command_handlers[] = {
@@ -1009,6 +1041,13 @@ static const struct command_registration rp2040_exec_command_handlers[] = {
 		.help = "arbitrary ROM API call",
 		.usage = "fc [p0 [p1 [p2 [p3]]]]",
 		.handler = rp2040_rom_api_call_handler,
+	},
+	{
+		.name = "_switch_target",
+		.mode = COMMAND_EXEC,
+		.help = "internal use",
+		.usage = "old_target new_target",
+		.handler = rp2040_switch_target_handler,
 	},
 	COMMAND_REGISTRATION_DONE
 };
