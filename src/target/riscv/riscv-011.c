@@ -273,38 +273,6 @@ static uint16_t dram_address(unsigned int index)
 		return 0x40 + index - 0x10;
 }
 
-static int dtmcontrol_scan(struct target *target, uint32_t out, uint32_t *in_ptr)
-{
-	struct scan_field field;
-	uint8_t in_value[4];
-	uint8_t out_value[4] = { 0 };
-
-	buf_set_u32(out_value, 0, 32, out);
-
-	jtag_add_ir_scan(target->tap, &select_dtmcontrol, TAP_IDLE);
-
-	field.num_bits = 32;
-	field.out_value = out_value;
-	field.in_value = in_value;
-	jtag_add_dr_scan(target->tap, 1, &field, TAP_IDLE);
-
-	/* Always return to dbus. */
-	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
-
-	int retval = jtag_execute_queue();
-	if (retval != ERROR_OK) {
-		LOG_ERROR("failed jtag scan: %d", retval);
-		return retval;
-	}
-
-	uint32_t in = buf_get_u32(field.in_value, 0, 32);
-	LOG_DEBUG("DTMCONTROL: 0x%x -> 0x%x", out, in);
-
-	if (in_ptr)
-		*in_ptr = in;
-	return ERROR_OK;
-}
-
 static uint32_t idcode_scan(struct target *target)
 {
 	struct scan_field field;
