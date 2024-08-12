@@ -9621,6 +9621,12 @@ Add or replace help text on the given @var{command_name}.
 Add or replace usage text on the given @var{command_name}.
 @end deffn
 
+@deffn {Command} {ms}
+Returns current time since the Epoch in ms
+(See: @url{https://en.wikipedia.org/wiki/Epoch_(computing)}).
+Useful to compute delays in TCL.
+@end deffn
+
 @node Architecture and Core Commands
 @chapter Architecture and Core Commands
 @cindex Architecture Specific Commands
