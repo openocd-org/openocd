@@ -73,6 +73,9 @@
 #define RP2XXX_MAX_ALGO_STACK_USAGE 1024
 #define RP2XXX_MAX_RAM_ALGO_SIZE 1024
 
+#define RP2XXX_ROM_API_FIXED_FLASH_PAGE		256
+#define RP2XXX_ROM_API_FIXED_FLASH_SECTOR	4096
+
 // Calling bootrom functions on Arm RP2350 requires the redundancy
 // coprocessor (RCP) to be initialised. Usually this is done first thing by
 // the bootrom, but the debugger may skip this, e.g. by resetting the cores
@@ -758,17 +761,19 @@ static int rp2040_flash_write(struct flash_bank *bank, const uint8_t *buffer, ui
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	struct working_area *bounce;
+	struct working_area *bounce = NULL;
 
 	int err = setup_for_raw_flash_cmd(target, priv);
 	if (err != ERROR_OK)
 		goto cleanup_and_return;
 
-	// Allocate as much memory as possible, rounded down to a whole number of flash pages
-	const unsigned int chunk_size = target_get_working_area_avail(target) & ~0xffu;
-	if (chunk_size == 0 || target_alloc_working_area(target, chunk_size, &bounce) != ERROR_OK) {
+	unsigned int avail_pages = target_get_working_area_avail(target) / RP2XXX_ROM_API_FIXED_FLASH_PAGE;
+	/* We try to allocate working area rounded down to device page size,
+	 * al least 1 page, at most the write data size */
+	unsigned int chunk_size = MIN(MAX(avail_pages, 1) * RP2XXX_ROM_API_FIXED_FLASH_PAGE, count);
+	err = target_alloc_working_area(target, chunk_size, &bounce);
+	if (err != ERROR_OK) {
 		LOG_ERROR("Could not allocate bounce buffer for flash programming. Can't continue");
-		err = ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		goto cleanup_and_return;
 	}
 
@@ -787,7 +792,8 @@ static int rp2040_flash_write(struct flash_bank *bank, const uint8_t *buffer, ui
 			bounce->address, /* data */
 			write_size /* count */
 		};
-		err = rp2xxx_call_rom_func(target, priv, priv->jump_flash_range_program, args, ARRAY_SIZE(args));
+		err = rp2xxx_call_rom_func(target, priv, priv->jump_flash_range_program,
+								   args, ARRAY_SIZE(args));
 		keep_alive();
 		if (err != ERROR_OK) {
 			LOG_ERROR("Failed to invoke flash programming code on target");
@@ -798,7 +804,6 @@ static int rp2040_flash_write(struct flash_bank *bank, const uint8_t *buffer, ui
 		offset += write_size;
 		count -= write_size;
 	}
-	target_free_working_area(target, bounce);
 
 	if (err != ERROR_OK)
 		goto cleanup_and_return;
@@ -837,6 +842,8 @@ static int rp2040_flash_write(struct flash_bank *bank, const uint8_t *buffer, ui
 		goto cleanup_and_return;
 	}
 cleanup_and_return:
+	target_free_working_area(target, bounce);
+
 	cleanup_after_raw_flash_cmd(target, priv);
 	return err;
 }
@@ -1113,8 +1120,8 @@ static int rp2040_flash_probe(struct flash_bank *bank)
 		return retval;
 
 	/* the Boot ROM flash_range_program() routine requires page alignment */
-	bank->write_start_alignment = 256;
-	bank->write_end_alignment = 256;
+	bank->write_start_alignment = RP2XXX_ROM_API_FIXED_FLASH_PAGE;
+	bank->write_end_alignment = RP2XXX_ROM_API_FIXED_FLASH_PAGE;
 
 	uint32_t flash_id = 0;
 	if (priv->size_override) {
@@ -1168,7 +1175,7 @@ static int rp2040_flash_probe(struct flash_bank *bank)
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
-	bank->num_sectors = bank->size / 4096;
+	bank->num_sectors = bank->size / RP2XXX_ROM_API_FIXED_FLASH_SECTOR;
 
 	if (priv->size_override) {
 		LOG_INFO("%s, QSPI Flash size override = %u KiB in %u sectors",
@@ -1180,7 +1187,7 @@ static int rp2040_flash_probe(struct flash_bank *bank)
 	}
 
 	free(bank->sectors);
-	bank->sectors = alloc_block_array(0, 4096, bank->num_sectors);
+	bank->sectors = alloc_block_array(0, RP2XXX_ROM_API_FIXED_FLASH_SECTOR, bank->num_sectors);
 	if (!bank->sectors)
 		return ERROR_FAIL;
 
