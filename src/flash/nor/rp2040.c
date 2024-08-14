@@ -732,6 +732,42 @@ static int setup_for_raw_flash_cmd(struct target *target, struct rp2040_flash_ba
 	return ERROR_OK;
 }
 
+static int rp2xxx_invalidate_cache_restore_xip(struct target *target, struct rp2040_flash_bank *priv)
+{
+	// Flash content has changed. We can now do a bit of poking to make
+	// the new flash contents visible to us via memory-mapped (XIP) interface
+	// in the 0x1... memory region.
+
+	LOG_DEBUG("Flushing flash cache after write behind");
+
+	rp2xxx_rom_call_batch_record_t finishing_calls[2] = {
+		{
+			.pc = priv->jump_flush_cache,
+			.sp = priv->stack->address + priv->stack->size
+		},
+		{
+			.sp = priv->stack->address + priv->stack->size
+		},
+	};
+
+	int num_finishing_calls = 1;
+	// Note on RP2350 it's not *required* to call flash_enter_cmd_xip, since
+	// the ROM leaves flash XIPable by default in between direct-mode
+	// accesses
+	if (IS_RP2040(priv->id)) {
+		finishing_calls[num_finishing_calls++].pc = priv->jump_enter_cmd_xip;
+	} else if (priv->jump_flash_reset_address_trans) {
+		// Note flash_reset_address_trans function does not exist on older devices
+		finishing_calls[num_finishing_calls++].pc = priv->jump_flash_reset_address_trans;
+	}
+
+	int retval = rp2xxx_call_rom_func_batch(target, priv, finishing_calls, num_finishing_calls);
+	if (retval != ERROR_OK)
+		LOG_ERROR("RP2040 write: failed to flush flash cache/restore XIP");
+
+	return retval;
+}
+
 static void cleanup_after_raw_flash_cmd(struct target *target, struct rp2040_flash_bank *priv)
 {
 	/* OpenOCD is prone to trashing work-area allocations on target state
@@ -805,44 +841,11 @@ static int rp2040_flash_write(struct flash_bank *bank, const uint8_t *buffer, ui
 		count -= write_size;
 	}
 
-	if (err != ERROR_OK)
-		goto cleanup_and_return;
-
-	// Flash is successfully programmed. We can now do a bit of poking to make
-	// the new flash contents visible to us via memory-mapped (XIP) interface
-	// in the 0x1... memory region.
-	//
-	// Note on RP2350 it's not *required* to call flash_enter_cmd_xip, since
-	// the ROM leaves flash XIPable by default in between direct-mode
-	// accesses, but there's no harm in calling it anyway.
-
-	LOG_DEBUG("Flushing flash cache after write behind");
-	err = rp2xxx_call_rom_func(target, priv, priv->jump_flush_cache, NULL, 0);
-
-	rp2xxx_rom_call_batch_record_t finishing_calls[3] = {
-		{
-			.pc = priv->jump_flush_cache,
-			.sp = priv->stack->address + priv->stack->size
-		},
-		{
-			.pc = priv->jump_enter_cmd_xip,
-			.sp = priv->stack->address + priv->stack->size
-		},
-		{
-			.pc = priv->jump_flash_reset_address_trans,
-			.sp = priv->stack->address + priv->stack->size
-		}
-	};
-	// Note the last function does not exist on older devices:
-	int num_finishing_calls = priv->jump_flash_reset_address_trans ? 3 : 2;
-
-	err = rp2xxx_call_rom_func_batch(target, priv, finishing_calls, num_finishing_calls);
-	if (err != ERROR_OK) {
-		LOG_ERROR("RP2040 write: failed to flush flash cache");
-		goto cleanup_and_return;
-	}
 cleanup_and_return:
 	target_free_working_area(target, bounce);
+
+	/* Don't propagate error or user gets fooled the flash write failed */
+	(void)rp2xxx_invalidate_cache_restore_xip(target, priv);
 
 	cleanup_after_raw_flash_cmd(target, priv);
 	return err;
@@ -912,6 +915,9 @@ static int rp2040_flash_erase(struct flash_bank *bank, unsigned int first, unsig
 
 
 cleanup_and_return:
+	/* Don't propagate error or user gets fooled the flash erase failed */
+	(void)rp2xxx_invalidate_cache_restore_xip(target, priv);
+
 	cleanup_after_raw_flash_cmd(target, priv);
 	return err;
 }
