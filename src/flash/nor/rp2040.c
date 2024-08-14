@@ -9,6 +9,7 @@
 #include <target/algorithm.h>
 #include <target/armv7m.h>
 #include "spi.h"
+#include "sfdp.h"
 #include <target/cortex_m.h>
 
 /* this is 'M' 'u', 1 (version) */
@@ -42,6 +43,32 @@
 #define ACCESSCTRL_LOCK_DEBUG_BITS 0x00000008u
 #define ACCESSCTRL_CFGRESET_OFFSET 0x40060008u
 #define ACCESSCTRL_WRITE_PASSWORD  0xacce0000u
+
+#define RP2040_SSI_DR0			0x18000060
+#define RP2040_QSPI_CTRL		0x4001800c
+
+#define RP2040_QSPI_CTRL_OUTOVER_MASK	(3ul << 8)
+#define RP2040_QSPI_CTRL_OUTOVER_LOW	(2ul << 8)
+#define RP2040_QSPI_CTRL_OUTOVER_HIGH	(3ul << 8)
+
+#define RP2350_QMI_DIRECT_CSR		0x400d0000
+#define RP2350_QMI_DIRECT_TX		0x400d0004
+#define RP2350_QMI_DIRECT_RX		0x400d0008
+
+#define RP2350_QMI_DIRECT_CSR_EN			BIT(0)
+#define RP2350_QMI_DIRECT_CSR_ASSERT_CS0N	BIT(2)
+#define RP2350_QMI_DIRECT_TX_NOPUSH			BIT(20)
+#define RP2350_QMI_DIRECT_TX_OE				BIT(19)
+
+#define RP2XXX_SYSINFO_CHIP_ID		0x40000000
+#define RP2XXX_CHIP_ID_PART_MANUFACTURER(id) ((id) & 0x0fffffff)
+#define RP2XXX_CHIP_ID_MANUFACTURER			0x493
+#define RP2XXX_MK_PART(part)				(((part) << 12) | (RP2XXX_CHIP_ID_MANUFACTURER << 1) | 1)
+#define RP2040_CHIP_ID_PART					0x0002
+#define IS_RP2040(id)	(RP2XXX_CHIP_ID_PART_MANUFACTURER(id) == RP2XXX_MK_PART(RP2040_CHIP_ID_PART))
+#define RP2350_CHIP_ID_PART					0x0004
+#define IS_RP2350(id)	(RP2XXX_CHIP_ID_PART_MANUFACTURER(id) == RP2XXX_MK_PART(RP2350_CHIP_ID_PART))
+#define RP2XXX_CHIP_ID_REVISION(id)			((id) >> 28)
 
 #define RP2XXX_MAX_ALGO_STACK_USAGE 1024
 #define RP2XXX_MAX_RAM_ALGO_SIZE 1024
@@ -156,10 +183,9 @@ typedef struct rp2xxx_rom_call_batch_record {
 } rp2xxx_rom_call_batch_record_t;
 
 struct rp2040_flash_bank {
-	/* flag indicating successful flash probe */
-	bool probed;
-	/* stack used by Boot ROM calls */
-	struct working_area *stack;
+	bool probed;						/* flag indicating successful flash probe */
+	uint32_t id;						/* cached SYSINFO CHIP_ID */
+	struct working_area *stack;			/* stack used by Boot ROM calls */
 	/* static code scratchpad used for RAM algorithms -- allocated in advance
 	   so that higher-level calls can just grab all remaining workarea: */
 	struct working_area *ram_algo_space;
@@ -172,6 +198,11 @@ struct rp2040_flash_bank {
 	uint16_t jump_flash_reset_address_trans;
 	uint16_t jump_enter_cmd_xip;
 	uint16_t jump_bootrom_reset_state;
+
+	char dev_name[20];
+	bool size_override;
+	struct flash_device spi_dev;		/* detected model of SPI flash */
+	unsigned int sfdp_dummy, sfdp_dummy_detect;
 };
 
 #ifndef LOG_ROM_SYMBOL_DEBUG
@@ -869,37 +900,276 @@ cleanup_and_return:
 /* -----------------------------------------------------------------------------
    Driver probing etc */
 
+
+static int rp2040_ssel_active(struct target *target, bool active)
+{
+	uint32_t state = active ? RP2040_QSPI_CTRL_OUTOVER_LOW : RP2040_QSPI_CTRL_OUTOVER_HIGH;
+	uint32_t val;
+
+	int err = target_read_u32(target, RP2040_QSPI_CTRL, &val);
+	if (err != ERROR_OK)
+		return err;
+
+	val = (val & ~RP2040_QSPI_CTRL_OUTOVER_MASK) | state;
+
+	err = target_write_u32(target, RP2040_QSPI_CTRL, val);
+	if (err != ERROR_OK)
+		return err;
+
+	return ERROR_OK;
+}
+
+static int rp2040_spi_tx_rx(struct target *target,
+		const uint8_t *tx, unsigned int tx_len,
+		unsigned int dummy_len,
+		uint8_t *rx, unsigned int rx_len)
+{
+	int retval, retval2;
+
+	retval = rp2040_ssel_active(target, true);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("QSPI select failed");
+		goto deselect;
+	}
+
+	unsigned int tx_cnt = 0;
+	unsigned int rx_cnt = 0;
+	unsigned int xfer_len = tx_len + dummy_len + rx_len;
+	while (rx_cnt < xfer_len) {
+		int in_flight = tx_cnt - rx_cnt;
+		if (tx_cnt < xfer_len && in_flight < 14) {
+			uint32_t dr = tx_cnt < tx_len ? tx[tx_cnt] : 0;
+			retval = target_write_u32(target, RP2040_SSI_DR0, dr);
+			if (retval != ERROR_OK)
+				break;
+
+			tx_cnt++;
+			continue;
+		}
+		uint32_t dr;
+		retval = target_read_u32(target, RP2040_SSI_DR0, &dr);
+		if (retval != ERROR_OK)
+			break;
+
+		if (rx_cnt >= tx_len + dummy_len)
+			rx[rx_cnt - tx_len - dummy_len] = (uint8_t)dr;
+
+		rx_cnt++;
+	}
+
+deselect:
+	retval2 = rp2040_ssel_active(target, false);
+
+	if (retval != ERROR_OK) {
+		LOG_ERROR("QSPI Tx/Rx failed");
+		return retval;
+	}
+	if (retval2 != ERROR_OK)
+		LOG_ERROR("QSPI deselect failed");
+
+	return retval2;
+}
+
+static int rp2350_spi_tx_rx(struct target *target,
+		const uint8_t *tx, unsigned int tx_len,
+		unsigned int dummy_len,
+		uint8_t *rx, unsigned int rx_len)
+{
+	uint32_t direct_csr;
+	int retval = target_read_u32(target, RP2350_QMI_DIRECT_CSR, &direct_csr);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("QMI DIRECT_CSR read failed");
+		return retval;
+	}
+	direct_csr |= RP2350_QMI_DIRECT_CSR_EN | RP2350_QMI_DIRECT_CSR_ASSERT_CS0N;
+	retval = target_write_u32(target, RP2350_QMI_DIRECT_CSR, direct_csr);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("QMI DIRECT mode enable failed");
+		goto deselect;
+	}
+
+	unsigned int tx_cnt = 0;
+	unsigned int rx_cnt = 0;
+	unsigned int xfer_len = tx_len + dummy_len + rx_len;
+	while (tx_cnt < xfer_len || rx_cnt < rx_len) {
+		int in_flight = tx_cnt - tx_len - dummy_len - rx_cnt;
+		if (tx_cnt < xfer_len && in_flight < 4) {
+			uint32_t tx_cmd;
+			if (tx_cnt < tx_len)
+				tx_cmd = tx[tx_cnt] | RP2350_QMI_DIRECT_TX_NOPUSH | RP2350_QMI_DIRECT_TX_OE;
+			else if (tx_cnt < tx_len + dummy_len)
+				tx_cmd = RP2350_QMI_DIRECT_TX_NOPUSH;
+			else
+				tx_cmd = 0;
+
+			retval = target_write_u32(target, RP2350_QMI_DIRECT_TX, tx_cmd);
+			if (retval != ERROR_OK)
+				break;
+
+			tx_cnt++;
+			continue;
+		}
+		if (rx_cnt < rx_len) {
+			uint32_t dr;
+			retval = target_read_u32(target, RP2350_QMI_DIRECT_RX, &dr);
+			if (retval != ERROR_OK)
+				break;
+
+			rx[rx_cnt] = (uint8_t)dr;
+			rx_cnt++;
+		}
+	}
+
+deselect:
+	direct_csr &= ~(RP2350_QMI_DIRECT_CSR_EN | RP2350_QMI_DIRECT_CSR_ASSERT_CS0N);
+	int retval2 = target_write_u32(target, RP2350_QMI_DIRECT_CSR, direct_csr);
+
+	if (retval != ERROR_OK) {
+		LOG_ERROR("QSPI Tx/Rx failed");
+		return retval;
+	}
+	if (retval2 != ERROR_OK)
+		LOG_ERROR("QMI DIRECT mode disable failed");
+
+	return retval2;
+}
+
+static int rp2xxx_spi_tx_rx(struct flash_bank *bank,
+		const uint8_t *tx, unsigned int tx_len,
+		unsigned int dummy_len,
+		uint8_t *rx, unsigned int rx_len)
+{
+	struct rp2040_flash_bank *priv = bank->driver_priv;
+	struct target *target = bank->target;
+
+	if (IS_RP2040(priv->id))
+		return rp2040_spi_tx_rx(target, tx, tx_len, dummy_len, rx, rx_len);
+	else if (IS_RP2350(priv->id))
+		return rp2350_spi_tx_rx(target, tx, tx_len, dummy_len, rx, rx_len);
+	else
+		return ERROR_FAIL;
+}
+
+static int rp2xxx_read_sfdp_block(struct flash_bank *bank, uint32_t addr,
+		unsigned int words, uint32_t *buffer)
+{
+	struct rp2040_flash_bank *priv = bank->driver_priv;
+
+	uint8_t cmd[4] = { SPIFLASH_READ_SFDP };
+	uint8_t data[4 * words + priv->sfdp_dummy_detect];
+
+	h_u24_to_be(&cmd[1], addr);
+
+	int retval = rp2xxx_spi_tx_rx(bank, cmd, sizeof(cmd), priv->sfdp_dummy,
+								  data, 4 * words + priv->sfdp_dummy_detect);
+	if (retval != ERROR_OK)
+		return retval;
+
+	if (priv->sfdp_dummy_detect) {
+		for (unsigned int i = 0; i < priv->sfdp_dummy_detect; i++)
+			if (le_to_h_u32(&data[i]) == SFDP_MAGIC) {
+				priv->sfdp_dummy_detect = 0;
+				priv->sfdp_dummy = i;
+				break;
+			}
+		for (unsigned int i = 0; i < words; i++)
+			buffer[i] = le_to_h_u32(&data[4 * i + priv->sfdp_dummy]);
+	} else {
+		for (unsigned int i = 0; i < words; i++)
+			buffer[i] = le_to_h_u32(&data[4 * i]);
+	}
+	return retval;
+}
+
 static int rp2040_flash_probe(struct flash_bank *bank)
 {
 	struct rp2040_flash_bank *priv = bank->driver_priv;
 	struct target *target = bank->target;
 
-	int err = rp2xxx_populate_rom_pointer_cache(target, priv);
-	if (err != ERROR_OK)
-		return err;
+	int retval = target_read_u32(target, RP2XXX_SYSINFO_CHIP_ID, &priv->id);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("SYSINFO CHIP_ID read failed");
+		return retval;
+	}
+	if (!IS_RP2040(priv->id) && !IS_RP2350(priv->id)) {
+		LOG_ERROR("Unknown SYSINFO CHIP_ID 0x%08" PRIx32, priv->id);
+		return ERROR_FLASH_BANK_INVALID;
+	}
+
+	retval = rp2xxx_populate_rom_pointer_cache(target, priv);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* the Boot ROM flash_range_program() routine requires page alignment */
 	bank->write_start_alignment = 256;
 	bank->write_end_alignment = 256;
 
-	// Max size -- up to two devices (two chip selects) in adjacent 24-bit address windows
+	uint32_t flash_id = 0;
+	if (priv->size_override) {
+		priv->spi_dev.name = "size override";
+		LOG_DEBUG("SPI flash autodetection disabled, using configured size");
+	} else {
+		bank->size = 0;
+
+		(void)setup_for_raw_flash_cmd(target, priv);
+		/* ignore error, flash size detection could work anyway */
+
+		const uint8_t cmd[] = { SPIFLASH_READ_ID };
+		uint8_t data[3];
+		retval = rp2xxx_spi_tx_rx(bank, cmd, sizeof(cmd), 0, data, sizeof(data));
+		if (retval == ERROR_OK) {
+			flash_id = le_to_h_u24(data);
+
+			/* search for a SPI flash Device ID match */
+			for (const struct flash_device *p = flash_devices; p->name ; p++) {
+				if (p->device_id == flash_id) {
+					priv->spi_dev = *p;
+					bank->size = p->size_in_bytes;
+					break;
+				}
+			}
+		}
+
+		if (bank->size == 0) {
+			priv->sfdp_dummy_detect = 8;
+			priv->sfdp_dummy = 0;
+			retval = spi_sfdp(bank, &priv->spi_dev, &rp2xxx_read_sfdp_block);
+			if (retval == ERROR_OK)
+				bank->size = priv->spi_dev.size_in_bytes;
+		}
+
+		cleanup_after_raw_flash_cmd(target, priv);
+	}
+
+	snprintf(priv->dev_name, sizeof(priv->dev_name), "%s rev %u",
+			 IS_RP2350(priv->id) ? "RP2350" : "RP2040",
+			 RP2XXX_CHIP_ID_REVISION(priv->id));
+
 	if (bank->size == 0) {
-		/* TODO: get real flash size */
-		bank->size = 32 * 1024 * 1024;
+		LOG_ERROR("%s, QSPI Flash id = 0x%06" PRIx32 " not recognised",
+				  priv->dev_name, flash_id);
+		return ERROR_FLASH_BANK_INVALID;
 	}
 
 	bank->num_sectors = bank->size / 4096;
 
-	LOG_INFO("RP2040 Flash Probe: %d bytes @" TARGET_ADDR_FMT ", in %d sectors\n",
-		bank->size, bank->base, bank->num_sectors);
+	if (priv->size_override) {
+		LOG_INFO("%s, QSPI Flash size override = %u KiB in %u sectors",
+				 priv->dev_name, bank->size / 1024, bank->num_sectors);
+	} else {
+		LOG_INFO("%s, QSPI Flash %s id = 0x%06" PRIx32 " size = %u KiB in %u sectors",
+				 priv->dev_name, priv->spi_dev.name, flash_id,
+				 bank->size / 1024, bank->num_sectors);
+	}
+
+	free(bank->sectors);
 	bank->sectors = alloc_block_array(0, 4096, bank->num_sectors);
 	if (!bank->sectors)
 		return ERROR_FAIL;
 
-	if (err == ERROR_OK)
-		priv->probed = true;
+	priv->probed = true;
 
-	return err;
+	return ERROR_OK;
 }
 
 static int rp2040_flash_auto_probe(struct flash_bank *bank)
@@ -927,6 +1197,7 @@ FLASH_BANK_COMMAND_HANDLER(rp2040_flash_bank_command)
 	priv = malloc(sizeof(struct rp2040_flash_bank));
 	memset(priv, 0, sizeof(struct rp2040_flash_bank));
 	priv->probed = false;
+	priv->size_override = bank->size != 0;
 
 	/* Set up driver_priv */
 	bank->driver_priv = priv;
