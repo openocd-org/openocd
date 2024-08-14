@@ -752,6 +752,12 @@ static int rp2040_flash_write(struct flash_bank *bank, const uint8_t *buffer, ui
 
 	struct rp2040_flash_bank *priv = bank->driver_priv;
 	struct target *target = bank->target;
+
+	if (target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
 	struct working_area *bounce;
 
 	int err = setup_for_raw_flash_cmd(target, priv);
@@ -839,6 +845,12 @@ static int rp2040_flash_erase(struct flash_bank *bank, unsigned int first, unsig
 {
 	struct rp2040_flash_bank *priv = bank->driver_priv;
 	struct target *target = bank->target;
+
+	if (target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
 	uint32_t start_addr = bank->sectors[first].offset;
 	uint32_t length = bank->sectors[last].offset + bank->sectors[last].size - start_addr;
 	LOG_DEBUG("RP2040 erase %d bytes starting at 0x%" PRIx32, length, start_addr);
@@ -1109,6 +1121,11 @@ static int rp2040_flash_probe(struct flash_bank *bank)
 		priv->spi_dev.name = "size override";
 		LOG_DEBUG("SPI flash autodetection disabled, using configured size");
 	} else {
+		if (target->state != TARGET_HALTED) {
+			LOG_ERROR("Target not halted");
+			return ERROR_TARGET_NOT_HALTED;
+		}
+
 		bank->size = 0;
 
 		(void)setup_for_raw_flash_cmd(target, priv);
@@ -1239,6 +1256,11 @@ COMMAND_HANDLER(rp2040_rom_api_call_handler)
 	uint32_t args[4] = { 0 };
 	for (unsigned int i = 0; i + 1 < CMD_ARGC && i < ARRAY_SIZE(args); i++)
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[i + 1], args[i]);
+
+	if (target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
 
 	struct rp2040_flash_bank *priv = bank->driver_priv;
 	retval = setup_for_raw_flash_cmd(target, priv);
