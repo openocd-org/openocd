@@ -12,7 +12,6 @@
 #include "spi.h"
 #include "sfdp.h"
 
-#define SFDP_MAGIC			0x50444653
 #define SFDP_ACCESS_PROT	0xFF
 #define SFDP_BASIC_FLASH	0xFF00
 #define SFDP_4BYTE_ADDR		0xFF84
