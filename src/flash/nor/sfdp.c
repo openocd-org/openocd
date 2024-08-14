@@ -99,7 +99,7 @@ int spi_sfdp(struct flash_bank *bank, struct flash_device *dev,
 		goto err;
 
 	for (k = 0; k < nph; k++) {
-		uint8_t words = (pheaders[k].revision >> 24) & 0xFF;
+		unsigned int words = (pheaders[k].revision >> 24) & 0xFF;
 		uint16_t id = (((pheaders[k].ptr) >> 16) & 0xFF00) | (pheaders[k].revision & 0xFF);
 		uint32_t ptr = pheaders[k].ptr & 0xFFFFFF;
 
