@@ -66,7 +66,7 @@ static const struct flash_driver * const flash_drivers[] = {
 	&psoc6_flash,
 	&qn908x_flash,
 	&renesas_rpchf_flash,
-	&rp2040_flash,
+	&rp2xxx_flash,
 	&sh_qspi_flash,
 	&sim3x_flash,
 	&stellaris_flash,
