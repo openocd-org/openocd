@@ -233,11 +233,13 @@ static int rp2040_lookup_rom_symbol(struct target *target, uint16_t tag, uint16_
 		err = target_read_u16(target, ptr_to_entry, &entry_tag);
 		if (err != ERROR_OK)
 			return err;
+
 		if (entry_tag == tag) {
 			/* 16 bit symbol is next */
 			err = target_read_u16(target, ptr_to_entry + 2, symbol_out);
 			if (err != ERROR_OK)
 				return err;
+
 			LOG_ROM_SYMBOL_DEBUG(" -> found: 0x%04x", *symbol_out);
 			return ERROR_OK;
 		}
@@ -277,10 +279,12 @@ static int rp2350_a0_lookup_symbol(struct target *target, uint16_t tag, uint16_t
 		err = target_read_u16(target, ptr_to_entry, &entry_tag);
 		if (err != ERROR_OK)
 			return err;
+
 		if (entry_tag == tag) {
 			err = target_read_u16(target, ptr_to_entry + 2, symbol_out);
 			if (err != ERROR_OK)
 				return err;
+
 			LOG_ROM_SYMBOL_DEBUG(" -> found: 0x%04x", *symbol_out);
 			return ERROR_OK;
 		}
@@ -303,9 +307,10 @@ static int rp2350_lookup_rom_symbol(struct target *target, uint32_t ptr_to_entry
 	while (true) {
 		uint16_t entry_tag, entry_flags;
 
-		uint32_t err = target_read_u16(target, ptr_to_entry, &entry_tag);
+		int err = target_read_u16(target, ptr_to_entry, &entry_tag);
 		if (err != ERROR_OK)
 			return err;
+
 		if (entry_tag == 0) {
 			*symbol_out = 0;
 			return ERROR_FAIL;
@@ -315,6 +320,7 @@ static int rp2350_lookup_rom_symbol(struct target *target, uint32_t ptr_to_entry
 		err = target_read_u16(target, ptr_to_entry, &entry_flags);
 		if (err != ERROR_OK)
 			return err;
+
 		ptr_to_entry += 2;
 
 		uint16_t matching_flags = flags & entry_flags;
@@ -338,6 +344,7 @@ static int rp2350_lookup_rom_symbol(struct target *target, uint32_t ptr_to_entry
 			err = target_read_u16(target, ptr_to_entry, symbol_out);
 			if (err != ERROR_OK)
 				return err;
+
 			LOG_ROM_SYMBOL_DEBUG(" -> found: 0x%04x", *symbol_out);
 			return ERROR_OK;
 		}
@@ -426,18 +433,23 @@ static int rp2xxx_populate_rom_pointer_cache(struct target *target, struct rp2xx
 
 	// From this point are optional functions which do not exist on e.g. RP2040
 	// or pre-production RP2350 ROM versions:
+	if (IS_RP2040(priv->id)) {
+		priv->jump_bootrom_reset_state = 0;
+		priv->jump_flash_reset_address_trans = 0;
+		return ERROR_OK;
+	}
 
 	err = rp2xxx_lookup_rom_symbol(target, FUNC_BOOTROM_STATE_RESET, symtype_func, &priv->jump_bootrom_reset_state);
 	if (err != ERROR_OK) {
 		priv->jump_bootrom_reset_state = 0;
-		LOG_WARNING("Function FUNC_BOOTROM_STATE_RESET not found in RP2xxx ROM. (probably an RP2040 or an RP2350 A0)");
+		LOG_WARNING("Function FUNC_BOOTROM_STATE_RESET not found in RP2xxx ROM. (probably an RP2350 A0)");
 	}
 
 	err = rp2xxx_lookup_rom_symbol(target, FUNC_FLASH_RESET_ADDRESS_TRANS,
 								   symtype_func, &priv->jump_flash_reset_address_trans);
 	if (err != ERROR_OK) {
 		priv->jump_flash_reset_address_trans = 0;
-		LOG_WARNING("Function FUNC_FLASH_RESET_ADDRESS_TRANS not found in RP2xxx ROM. (probably an RP2040 or an RP2350 A0)");
+		LOG_WARNING("Function FUNC_FLASH_RESET_ADDRESS_TRANS not found in RP2xxx ROM. (probably an RP2350 A0)");
 	}
 	return ERROR_OK;
 }
@@ -465,7 +477,7 @@ static int rp2xxx_call_rom_func_batch(struct target *target, struct rp2xxx_flash
 	for (unsigned int i = 0; i < n_calls; ++i) {
 		LOG_DEBUG("  func @ %" PRIx32, calls[i].pc);
 		LOG_DEBUG("    sp = %" PRIx32, calls[i].sp);
-		for (int j = 0; j < 4; ++j)
+		for (unsigned int j = 0; j < 4; ++j)
 			LOG_DEBUG("    a%d = %" PRIx32, j, calls[i].args[j]);
 	}
 	LOG_DEBUG("Calling on core \"%s\"", target->cmd_name);
@@ -607,14 +619,22 @@ static int rp2350_init_arm_core0(struct target *target, struct rp2xxx_flash_bank
 	// Flash algorithms (and the RCP init stub called by this function) must
 	// run in the Secure state, so flip the state now before attempting to
 	// execute any code on the core.
+	int retval;
 	uint32_t dscsr;
-	(void)target_read_u32(target, DCB_DSCSR, &dscsr);
+	retval = target_read_u32(target, DCB_DSCSR, &dscsr);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("RP2350 init ARM core: DSCSR read failed");
+		return retval;
+	}
+
 	LOG_DEBUG("DSCSR:  %08x\n", dscsr);
 	if (!(dscsr & DSCSR_CDS)) {
 		LOG_DEBUG("Setting Current Domain Secure in DSCSR\n");
-		(void)target_write_u32(target, DCB_DSCSR, (dscsr & ~DSCSR_CDSKEY) | DSCSR_CDS);
-		(void)target_read_u32(target, DCB_DSCSR, &dscsr);
-		LOG_DEBUG("DSCSR*: %08x\n", dscsr);
+		retval = target_write_u32(target, DCB_DSCSR, (dscsr & ~DSCSR_CDSKEY) | DSCSR_CDS);
+		if (retval != ERROR_OK) {
+			LOG_ERROR("RP2350 init ARM core: DSCSR read failed");
+			return retval;
+		}
 	}
 
 	if (!priv->stack) {
@@ -682,8 +702,7 @@ static int setup_for_raw_flash_cmd(struct target *target, struct rp2xxx_flash_ba
 		}
 	}
 
-	// hacky RP2350 check -- either RISC-V or v8-M
-	if (is_arm(target_to_arm(target)) ? target_to_arm(target)->arch == ARM_ARCH_V8M : true) {
+	if (IS_RP2350(priv->id)) {
 		err = rp2350_init_accessctrl(target);
 		if (err != ERROR_OK) {
 			LOG_ERROR("Failed to init ACCESSCTRL before ROM call");
@@ -861,16 +880,16 @@ static int rp2xxx_flash_erase(struct flash_bank *bank, unsigned int first, unsig
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	uint32_t start_addr = bank->sectors[first].offset;
-	uint32_t length = bank->sectors[last].offset + bank->sectors[last].size - start_addr;
-	LOG_DEBUG("erase %d bytes starting at 0x%" PRIx32, length, start_addr);
+	uint32_t offset_start = bank->sectors[first].offset;
+	uint32_t offset_last = bank->sectors[last].offset + bank->sectors[last].size;
+	uint32_t length = offset_last - offset_start;
+	LOG_DEBUG("erase %d bytes starting at 0x%" PRIx32, length, offset_start);
 
 	int err = setup_for_raw_flash_cmd(target, priv);
 	if (err != ERROR_OK)
 		goto cleanup_and_return;
 
-	uint32_t offset_next = bank->sectors[first].offset;
-	uint32_t offset_last = bank->sectors[last].offset + bank->sectors[last].size;
+	uint32_t offset_next = offset_start;
 
 	/* Break erase into multiple calls to avoid timeout on large erase. Choose 128k chunk which has
 	   fairly low ROM call overhead and empirically seems to avoid the default keep_alive() limit
