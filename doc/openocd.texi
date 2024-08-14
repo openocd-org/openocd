@@ -7872,15 +7872,29 @@ locked, but can still mass erase the whole flash.
 @end deffn
 @end deffn
 
-@deffn {Flash Driver} {rp2040}
-Supports RP2040 "Raspberry Pi Pico" microcontroller.
-RP2040 is a dual-core device with two CM0+ cores. Both cores share the same
-Flash/RAM/MMIO address space.  Non-volatile storage is achieved with an
-external QSPI flash; a Boot ROM provides helper functions.
+@deffn {Flash Driver} {rp2xxx}
+Supports RP2040 "Raspberry Pi Pico" microcontroller and RP2350 Pico 2
+RP2040 is a dual-core device with two CM0+ cores.
+RP2350 is a dual-core device with two slots switched to either Cortex-M33
+or Hazard3 RISC-V core.
+Both cores share the same Flash/RAM/MMIO address space.
+Non-volatile storage is achieved with an external QSPI flash;
+a Boot ROM provides helper functions.
 
 @example
-flash bank $_FLASHNAME rp2040_flash $_FLASHBASE $_FLASHSIZE 1 32 $_TARGETNAME
+flash bank $_FLASHNAME rp2xxx $_FLASHBASE $_FLASHSIZE 0 0 $_TARGETNAME
 @end example
+
+@deffn {Command} {rp2xxx rom_api_call} fc [p0 [p1 [p2 [p3]]]]
+A utility for calling ROM API function with two characters lookup code
+@var{fc} and up to 4 optional parameters @var{p0 p1 p2 p3}.
+The call is supported on the target where the flash bank is configured
+(core0).
+@end deffn
+
+@deffn {Command} {rp2xxx _switch_target} old_target new_target
+A command used internally by rp2350.cfg when the core type is switched.
+@end deffn
 @end deffn
 
 @deffn {Flash Driver} {rsl10}
