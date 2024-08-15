@@ -10,7 +10,7 @@ AUTOMAKE_OPTIONS = gnu 1.6
 AM_DISTCHECK_CONFIGURE_FLAGS = --disable-install-jim
 
 # do not run Jim Tcl tests (esp. during distcheck)
-check-recursive: SUBDIRS :=
+check-recursive: SUBDIRS := $(SUBDIRS:jimtcl=)
 
 nobase_dist_pkgdata_DATA = \
 	contrib/libdcc/dcc_stdio.c \
@@ -35,6 +35,9 @@ EXTRA_DIST += jimtcl/configure.gnu
 # jimtcl from 0.79 to 0.82 miss cleaning jsmn.o
 DISTCLEANFILES += jimtcl/jsmn/jsmn.o
 endif
+
+SUBDIRS += testing
+DIST_SUBDIRS += testing
 
 # common flags used in openocd build
 AM_CFLAGS = $(GCC_WARNINGS)
