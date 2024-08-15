@@ -1982,23 +1982,23 @@ int target_alloc_working_area_try(struct target *target, uint32_t size, struct w
 
 		if (!enabled) {
 			if (target->working_area_phys_spec) {
-				LOG_DEBUG("MMU disabled, using physical "
+				LOG_TARGET_DEBUG(target, "MMU disabled, using physical "
 					"address for working memory " TARGET_ADDR_FMT,
 					target->working_area_phys);
 				target->working_area = target->working_area_phys;
 			} else {
-				LOG_ERROR("No working memory available. "
+				LOG_TARGET_ERROR(target, "No working memory available. "
 					"Specify -work-area-phys to target.");
 				return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 			}
 		} else {
 			if (target->working_area_virt_spec) {
-				LOG_DEBUG("MMU enabled, using virtual "
+				LOG_TARGET_DEBUG(target, "MMU enabled, using virtual "
 					"address for working memory " TARGET_ADDR_FMT,
 					target->working_area_virt);
 				target->working_area = target->working_area_virt;
 			} else {
-				LOG_ERROR("No working memory available. "
+				LOG_TARGET_ERROR(target, "No working memory available. "
 					"Specify -work-area-virt to target.");
 				return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 			}
@@ -2036,8 +2036,8 @@ int target_alloc_working_area_try(struct target *target, uint32_t size, struct w
 	/* Split the working area into the requested size */
 	target_split_working_area(c, size);
 
-	LOG_DEBUG("allocated new working area of %" PRIu32 " bytes at address " TARGET_ADDR_FMT,
-			  size, c->address);
+	LOG_TARGET_DEBUG(target, "allocated new working area of %" PRIu32
+			" bytes at address " TARGET_ADDR_FMT, size, c->address);
 
 	if (target->backup_working_area) {
 		if (!c->backup) {
@@ -2069,7 +2069,8 @@ int target_alloc_working_area(struct target *target, uint32_t size, struct worki
 
 	retval = target_alloc_working_area_try(target, size, area);
 	if (retval == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
-		LOG_WARNING("not enough working area available(requested %"PRIu32")", size);
+		LOG_TARGET_WARNING(target,
+				"not enough working area available(requested %" PRIu32 ")", size);
 	return retval;
 
 }
@@ -2081,8 +2082,8 @@ static int target_restore_working_area(struct target *target, struct working_are
 	if (target->backup_working_area && area->backup) {
 		retval = target_write_memory(target, area->address, 4, area->size / 4, area->backup);
 		if (retval != ERROR_OK)
-			LOG_ERROR("failed to restore %" PRIu32 " bytes of working area at address " TARGET_ADDR_FMT,
-					area->size, area->address);
+			LOG_TARGET_ERROR(target, "failed to restore %" PRIu32 " bytes of working "
+					"area at address " TARGET_ADDR_FMT, area->size, area->address);
 	}
 
 	return retval;
@@ -2472,10 +2473,8 @@ static int target_read_buffer_default(struct target *target, target_addr_t addre
 
 int target_checksum_memory(struct target *target, target_addr_t address, uint32_t size, uint32_t *crc)
 {
-	uint8_t *buffer;
-	int retval;
-	uint32_t i;
-	uint32_t checksum = 0;
+	assert(target);
+	assert(crc);
 	if (!target_was_examined(target)) {
 		LOG_ERROR("Target not examined yet");
 		return ERROR_FAIL;
@@ -2485,31 +2484,41 @@ int target_checksum_memory(struct target *target, target_addr_t address, uint32_
 		return ERROR_FAIL;
 	}
 
-	retval = target->type->checksum_memory(target, address, size, &checksum);
-	if (retval != ERROR_OK) {
-		buffer = malloc(size);
-		if (!buffer) {
-			LOG_ERROR("error allocating buffer for section (%" PRIu32 " bytes)", size);
-			return ERROR_COMMAND_SYNTAX_ERROR;
-		}
-		retval = target_read_buffer(target, address, size, buffer);
-		if (retval != ERROR_OK) {
-			free(buffer);
-			return retval;
-		}
+	if (target->type->checksum_memory) {
 
-		/* convert to target endianness */
-		for (i = 0; i < (size/sizeof(uint32_t)); i++) {
-			uint32_t target_data;
-			target_data = target_buffer_get_u32(target, &buffer[i*sizeof(uint32_t)]);
-			target_buffer_set_u32(target, &buffer[i*sizeof(uint32_t)], target_data);
-		}
+		if (target->type->checksum_memory(target, address, size, crc) == ERROR_OK)
+			return ERROR_OK;
 
-		retval = image_calculate_checksum(buffer, size, &checksum);
-		free(buffer);
+		LOG_TARGET_WARNING(target,
+				"target-specific checksum_memory routine failed, attempting generic "
+				"routine as a fallback");
+	} else {
+		LOG_TARGET_WARNING(target,
+				"does not implement checksum_memory, using genertic routine as a fallback");
 	}
 
-	*crc = checksum;
+	uint8_t *buffer = malloc(size);
+	if (!buffer) {
+		LOG_ERROR("error allocating buffer of %" PRIu32 " bytes", size);
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	int retval = target_read_buffer(target, address, size, buffer);
+	if (retval != ERROR_OK) {
+		free(buffer);
+		return retval;
+	}
+
+	/* convert to target endianness */
+	/* FIXME: we should handle cases when size is not multiple of sizeof(uint32_t) */
+	for (uint32_t i = 0; i < (size / sizeof(uint32_t)); i++) {
+		uint32_t target_data;
+		target_data = target_buffer_get_u32(target, &buffer[i * sizeof(uint32_t)]);
+		target_buffer_set_u32(target, &buffer[i * sizeof(uint32_t)], target_data);
+	}
+
+	retval = image_calculate_checksum(buffer, size, crc);
+	free(buffer);
 
 	return retval;
 }
@@ -6336,7 +6345,7 @@ COMMAND_HANDLER(handle_test_mem_access_command)
 	struct working_area *wa = NULL;
 	retval = target_alloc_working_area(target, num_bytes, &wa);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("Not enough working area");
+		LOG_TARGET_ERROR(target, "Not enough working area");
 		return ERROR_FAIL;
 	}
 
@@ -6347,7 +6356,7 @@ COMMAND_HANDLER(handle_test_mem_access_command)
 
 	retval = target_write_memory(target, wa->address, 1, num_bytes, test_pattern);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("Test pattern write failed");
+		LOG_TARGET_ERROR(target, "Test pattern write failed");
 		goto out;
 	}
 
@@ -6414,7 +6423,7 @@ out:
 
 	retval = target_alloc_working_area(target, num_bytes, &wa);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("Not enough working area");
+		LOG_TARGET_ERROR(target, "Not enough working area");
 		return ERROR_FAIL;
 	}
 
