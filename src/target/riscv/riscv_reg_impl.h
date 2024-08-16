@@ -13,7 +13,7 @@
  * This file describes the helpers to use during register cache initialization
  * of a RISC-V target. Each cache entry proceedes through the following stages:
  *  - not allocated before `riscv_reg_impl_init_cache()`
- *  - not initialized before the call to `riscv_reg_impl_init_one()` with appropriate regno.
+ *  - not initialized before the call to `riscv_reg_impl_init_cache_entry()` with appropriate regno.
  *  - initialized until `riscv_reg_free_all()` is called.
  */
 static inline bool riscv_reg_impl_is_initialized(const struct reg *reg)
@@ -37,8 +37,18 @@ static inline bool riscv_reg_impl_is_initialized(const struct reg *reg)
 int riscv_reg_impl_init_cache(struct target *target);
 
 /** Initialize register. */
-int riscv_reg_impl_init_one(struct target *target, uint32_t regno,
-		const struct reg_arch_type *reg_type);
+int riscv_reg_impl_init_cache_entry(struct target *target, uint32_t regno,
+		bool exist, const struct reg_arch_type *reg_type);
+
+/**
+ * For most registers, returns whether they exist or not.
+ * For some registers the "exist" bit should be set explicitly.
+ */
+bool riscv_reg_impl_gdb_regno_exist(const struct target *target, uint32_t regno);
+
+/** Mark register as existing or not. */
+int riscv_reg_impl_set_exist(const struct target *target,
+		uint32_t regno, bool exist);
 
 /** Return the entry in the register cache of the target. */
 struct reg *riscv_reg_impl_cache_entry(const struct target *target,

@@ -38,7 +38,9 @@ static const struct reg_arch_type *riscv011_gdb_regno_reg_type(uint32_t regno)
 
 static int riscv011_init_reg(struct target *target, uint32_t regno)
 {
-	return riscv_reg_impl_init_one(target, regno, riscv011_gdb_regno_reg_type(regno));
+	return riscv_reg_impl_init_cache_entry(target, regno,
+			riscv_reg_impl_gdb_regno_exist(target, regno),
+			riscv011_gdb_regno_reg_type(regno));
 }
 
 int riscv011_reg_init_all(struct target *target)

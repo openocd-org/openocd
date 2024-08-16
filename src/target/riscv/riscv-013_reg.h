@@ -13,10 +13,11 @@
  */
 
 /**
- * Init initialize register cache. After this function all registers can be
- * safely accessed via functions described here and in `riscv_reg.h`.
+ * This function assumes target is halted.
+ * After this function all registers can be safely accessed via functions
+ * described here and in `riscv_reg.h`.
  */
-int riscv013_reg_init_all(struct target *target);
+int riscv013_reg_examine_all(struct target *target);
 
 /**
  * This function is used to save the value of a register in cache. The register
