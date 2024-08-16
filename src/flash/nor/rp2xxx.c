@@ -223,7 +223,7 @@ static int rp2040_lookup_rom_symbol(struct target *target, uint16_t tag, uint16_
 	}
 
 	uint16_t ptr_to_entry;
-	const unsigned int offset_magic_to_table_ptr = flags == RT_FLAG_DATA ? 6 : 4;
+	unsigned int offset_magic_to_table_ptr = flags == RT_FLAG_DATA ? 6 : 4;
 	int err = target_read_u16(target, BOOTROM_MAGIC_ADDR + offset_magic_to_table_ptr, &ptr_to_entry);
 	if (err != ERROR_OK)
 		return err;
@@ -390,8 +390,8 @@ static int rp2xxx_lookup_rom_symbol(struct target *target, uint16_t tag, uint16_
 
 static int rp2xxx_populate_rom_pointer_cache(struct target *target, struct rp2xxx_flash_bank *priv)
 {
-	const uint16_t symtype_func = is_arm(target_to_arm(target))
-									 ? RT_FLAG_FUNC_ARM_SEC : RT_FLAG_FUNC_RISCV;
+	uint16_t symtype_func = is_arm(target_to_arm(target))
+							 ? RT_FLAG_FUNC_ARM_SEC : RT_FLAG_FUNC_RISCV;
 	int err;
 	err = rp2xxx_lookup_rom_symbol(target, FUNC_FLASH_EXIT_XIP,
 								   symtype_func, &priv->jump_flash_exit_xip);
