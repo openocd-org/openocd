@@ -179,11 +179,11 @@ static const uint8_t rp2xxx_rom_call_batch_algo_riscv[ROM_CALL_BATCH_ALGO_SIZE_B
 // <_args>:
 };
 
-typedef struct rp2xxx_rom_call_batch_record {
+struct rp2xxx_rom_call_batch_record {
 	uint32_t pc;
 	uint32_t sp;
 	uint32_t args[4];
-} rp2xxx_rom_call_batch_record_t;
+};
 
 struct rp2xxx_flash_bank {
 	bool probed;						/* flag indicating successful flash probe */
@@ -457,18 +457,18 @@ static int rp2xxx_populate_rom_pointer_cache(struct target *target, struct rp2xx
 // Call a list of PC + SP + r0-r3 function call tuples with a single OpenOCD
 // algorithm invocation, to amortise the algorithm overhead over multiple calls:
 static int rp2xxx_call_rom_func_batch(struct target *target, struct rp2xxx_flash_bank *priv,
-	rp2xxx_rom_call_batch_record_t *calls, unsigned int n_calls)
+	struct rp2xxx_rom_call_batch_record *calls, unsigned int n_calls)
 {
-	// Note +1 is for the null terminator
-	unsigned int batch_words = 1 + (ROM_CALL_BATCH_ALGO_SIZE_BYTES +
-							n_calls * sizeof(rp2xxx_rom_call_batch_record_t)
-						   ) / sizeof(uint32_t);
+	// Note + sizeof(uint32_t) is for the null terminator
+	unsigned int batch_size = ROM_CALL_BATCH_ALGO_SIZE_BYTES
+						+ n_calls * sizeof(struct rp2xxx_rom_call_batch_record)
+						+ sizeof(uint32_t);
 
 	if (!priv->ram_algo_space) {
 		LOG_ERROR("No RAM code space allocated for ROM call");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
-	if (priv->ram_algo_space->size < batch_words * sizeof(uint32_t)) {
+	if (priv->ram_algo_space->size < batch_size) {
 		LOG_ERROR("RAM code space too small for call batch size of %u\n", n_calls);
 		return ERROR_BUF_TOO_SMALL;
 	}
@@ -501,30 +501,29 @@ static int rp2xxx_call_rom_func_batch(struct target *target, struct rp2xxx_flash
 		algo_code = rp2xxx_rom_call_batch_algo_riscv;
 	}
 
+	uint8_t *batch_bf = malloc(batch_size);
+	if (!batch_bf) {
+		LOG_ERROR("No memory for batch buffer");
+		return ERROR_FAIL;
+	}
+	memcpy(batch_bf, algo_code, ROM_CALL_BATCH_ALGO_SIZE_BYTES);
+	unsigned int words = n_calls * sizeof(struct rp2xxx_rom_call_batch_record)
+						/ sizeof(uint32_t);
+	target_buffer_set_u32_array(target,
+							&batch_bf[ROM_CALL_BATCH_ALGO_SIZE_BYTES], words,
+							(const uint32_t *)calls);
+	/* Null terminator */
+	target_buffer_set_u32(target, &batch_bf[batch_size - sizeof(uint32_t)], 0);
+
 	int err = target_write_buffer(target,
 		priv->ram_algo_space->address,
-		ROM_CALL_BATCH_ALGO_SIZE_BYTES,
-		algo_code
+		batch_size,
+		batch_bf
 	);
+	free(batch_bf);
+
 	if (err != ERROR_OK) {
 		LOG_ERROR("Failed to write ROM batch algorithm to RAM code space\n");
-		return err;
-	}
-	err = target_write_buffer(target,
-		priv->ram_algo_space->address + ROM_CALL_BATCH_ALGO_SIZE_BYTES,
-		n_calls * sizeof(rp2xxx_rom_call_batch_record_t),
-		(const uint8_t *)calls
-	);
-	if (err != ERROR_OK) {
-		LOG_ERROR("Failed to write ROM batch records to RAM code space\n");
-		return err;
-	}
-	err = target_write_u32(target,
-		priv->ram_algo_space->address + (batch_words - 1) * sizeof(uint32_t),
-		0
-	);
-	if (err != ERROR_OK) {
-		LOG_ERROR("Failed to write null terminator for ROM batch records\n");
 		return err;
 	}
 
@@ -579,7 +578,7 @@ static int rp2xxx_call_rom_func(struct target *target, struct rp2xxx_flash_bank 
 	}
 	target_addr_t stacktop = priv->stack->address + priv->stack->size;
 
-	rp2xxx_rom_call_batch_record_t call = {
+	struct rp2xxx_rom_call_batch_record call = {
 		.pc = func_offset,
 		.sp = stacktop
 	};
@@ -732,7 +731,7 @@ static int setup_for_raw_flash_cmd(struct target *target, struct rp2xxx_flash_ba
 	}
 
 	LOG_DEBUG("Connecting flash IOs and issuing XIP exit sequence to flash");
-	rp2xxx_rom_call_batch_record_t calls[2] = {
+	struct rp2xxx_rom_call_batch_record calls[2] = {
 		{
 			.pc = priv->jump_connect_internal_flash,
 			.sp = priv->stack->address + priv->stack->size
@@ -759,7 +758,7 @@ static int rp2xxx_invalidate_cache_restore_xip(struct target *target, struct rp2
 
 	LOG_DEBUG("Flushing flash cache after write behind");
 
-	rp2xxx_rom_call_batch_record_t finishing_calls[2] = {
+	struct rp2xxx_rom_call_batch_record finishing_calls[2] = {
 		{
 			.pc = priv->jump_flush_cache,
 			.sp = priv->stack->address + priv->stack->size
