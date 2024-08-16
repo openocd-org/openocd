@@ -433,41 +433,6 @@ static void select_dmi(struct target *target)
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
 }
 
-static int dtmcontrol_scan(struct target *target, uint32_t out, uint32_t *in_ptr)
-{
-	struct scan_field field;
-	uint8_t in_value[4];
-	uint8_t out_value[4] = { 0 };
-
-	if (bscan_tunnel_ir_width != 0)
-		return dtmcontrol_scan_via_bscan(target, out, in_ptr);
-
-	buf_set_u32(out_value, 0, 32, out);
-
-	jtag_add_ir_scan(target->tap, &select_dtmcontrol, TAP_IDLE);
-
-	field.num_bits = 32;
-	field.out_value = out_value;
-	field.in_value = in_value;
-	jtag_add_dr_scan(target->tap, 1, &field, TAP_IDLE);
-
-	/* Always return to dmi. */
-	select_dmi(target);
-
-	int retval = jtag_execute_queue();
-	if (retval != ERROR_OK) {
-		LOG_ERROR("failed jtag scan: %d", retval);
-		return retval;
-	}
-
-	uint32_t in = buf_get_u32(field.in_value, 0, 32);
-	LOG_DEBUG("DTMCS: 0x%x -> 0x%x", out, in);
-
-	if (in_ptr)
-		*in_ptr = in;
-	return ERROR_OK;
-}
-
 static int increase_dmi_busy_delay(struct target *target)
 {
 	RISCV013_INFO(info);

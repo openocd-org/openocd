@@ -383,22 +383,23 @@ int dtmcontrol_scan_via_bscan(struct target *target, uint32_t out, uint32_t *in_
 	return ERROR_OK;
 }
 
-static int dtmcontrol_scan(struct target *target, uint32_t out, uint32_t *in_ptr)
+/* TODO: rename "dtmcontrol"-> "dtmcs" */
+int dtmcontrol_scan(struct target *target, uint32_t out, uint32_t *in_ptr)
 {
-	struct scan_field field;
-	uint8_t in_value[4];
-	uint8_t out_value[4] = { 0 };
+	uint8_t value[4];
 
 	if (bscan_tunnel_ir_width != 0)
 		return dtmcontrol_scan_via_bscan(target, out, in_ptr);
 
-	buf_set_u32(out_value, 0, 32, out);
+	buf_set_u32(value, 0, 32, out);
 
 	jtag_add_ir_scan(target->tap, &select_dtmcontrol, TAP_IDLE);
 
-	field.num_bits = 32;
-	field.out_value = out_value;
-	field.in_value = in_value;
+	struct scan_field field = {
+		.num_bits = 32,
+		.out_value = value,
+		.in_value = in_ptr ? value : NULL
+	};
 	jtag_add_dr_scan(target->tap, 1, &field, TAP_IDLE);
 
 	/* Always return to dbus. */
@@ -406,15 +407,18 @@ static int dtmcontrol_scan(struct target *target, uint32_t out, uint32_t *in_ptr
 
 	int retval = jtag_execute_queue();
 	if (retval != ERROR_OK) {
-		LOG_TARGET_ERROR(target, "dtmcontrol scan failed, error code = %d", retval);
+		LOG_TARGET_ERROR(target, "dtmcs scan failed, error code = %d", retval);
 		return retval;
 	}
 
-	uint32_t in = buf_get_u32(field.in_value, 0, 32);
-	LOG_DEBUG("DTMCONTROL: 0x%x -> 0x%x", out, in);
-
-	if (in_ptr)
+	if (in_ptr) {
+		assert(field.in_value);
+		uint32_t in = buf_get_u32(field.in_value, 0, 32);
+		LOG_TARGET_DEBUG(target, "DTMCS: 0x%" PRIx32 " -> 0x%" PRIx32, out, in);
 		*in_ptr = in;
+	} else {
+		LOG_TARGET_DEBUG(target, "DTMCS: 0x%" PRIx32 " -> ?", out);
+	}
 	return ERROR_OK;
 }
 
