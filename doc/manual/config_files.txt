@@ -1,0 +1,117 @@
+/** @page config_files Configuration Files
+
+This page gives an overview of the different configuration files, what purpose they serve and how they are structured.
+The goal of this guide is to ensure well-structured and consistent configuration files.
+
+All configuration files are stored in the @c tcl directory of the project directory.
+These files must follow the @ref styletcl and @ref naming_convention.
+There are different types of configuration files:
+
+- @ref interface_configs
+- @ref target_configs
+- @ref board_configs
+
+@note This guideline must be followed for new configuration files.
+There may be configuration files that do not comply with this guide for legacy reasons.
+
+
+@section interface_configs Interface
+
+This configuration file represents a debug (interface) adapter.
+This is usually a USB device that provides an interface to one or more transports such as JTAG or SWD.
+Other interfaces like ethernet or parallel port are also represented.
+
+A debug adapter configuration file must use the following scheme:
+
+@verbatim
+tcl/interface/[vendor]/<adapter name>.cfg
+@endverbatim
+
+The `vendor` directory for debug adapters is often omitted because multiple adapters from the same vendor can be represented by a common configuration file.
+One counter example are FTDI-based debug adapters.
+There are various devices, either standalone or development boards which use FTDI chips but use different chip models or settings.
+Their corresponding configuration files are stored in the `ftdi` folder.
+
+The name of the `vendor` folder can also be a more generic term such as `parport` as it is used for parallel port based debug adapters.
+
+If it is foreseeable that new configuration files will be added in the future, create a `vendor` directory even if there is only a single file at the moment.
+This prevents that files have to be moved in the future.
+
+@section target_configs Target
+
+This configuration file represents an actual chip.
+For example, a microcontroller, FPGA, CPLD, or system on chip (SoC).
+A target configuration file always represents an entire device series or family.
+
+A target configuration file must use the following scheme:
+
+@verbatim
+tcl/target/<vendor>/<target name>.cfg
+@endverbatim
+
+Use the device series or family as `target name`.
+For example, the configuration file for the nRF54L series from Nordic Semiconductor is located here:
+
+@verbatim
+tcl/target/nordic/nrf54l.cfg
+@endverbatim
+
+If there are many similarities between different targets, use a common file to share large pieces of code.
+Do not use a single file to represent multiple device series or families.
+
+@section board_configs Board
+
+This configuration file represents a circuit board, for example, a development board.
+A board may also contain an on-board debug adapter.
+
+A board configuration file includes existing target and, if available, interface configuration files, since a target is used on many boards.
+
+Reuse existing target and interface configuration files whenever possible.
+If a board needs an external debug adapter, do @b not write adapter specific configuration files.
+
+
+A board configuration file must use the following scheme:
+
+@verbatim
+tcl/board/<vendor>/<board name>[-suffix].cfg
+@endverbatim
+
+For example, the board configuration file for the NUCLEO-U083RC from STMicroelectronics is located here:
+
+@verbatim
+tcl/board/st/nucleo-u083rc.cfg
+@endverbatim
+
+In case a board supports different features, a `suffix` can be used to indicate this.
+Make sure that the suffix is short and meaningful.
+
+For example, the on-board debug adapter of the FRDM-KV11Z development board can be flashed with a SEGGER J-Link compatible firmware.
+Hence, there is the following configuration file:
+
+@verbatim
+tcl/board/nxp/frdm-kv11z-jlink.cfg
+@endverbatim
+
+The use of a suffix should be chosen carefully.
+In many cases it is sufficient to make a certain feature accessible via a variable.
+
+Use a single configuration file for each board.
+If there are many similarities between different boards, use a common file to share large pieces of code.
+
+
+@section naming_convention Naming Convention
+
+
+The following naming conventions for configuration files and directories must be used:
+
+- Use only lower-case letters and digits for directory and filenames
+- Use hyphen characters between consecutive words in identifiers (e.g. `more-than-one-word`)
+
+- Use a common abbreviation for the vendor name, such as
+  - @c ti for Texas Instruments
+  - @c st for STMicroelectronics
+  - @c silabs for Silicon Labs
+
+An extensive list of abbreviations for vendor names can be found [here](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/devicetree/bindings/vendor-prefixes.yaml).
+
+ */
