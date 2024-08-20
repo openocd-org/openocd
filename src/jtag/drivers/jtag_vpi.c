@@ -461,7 +461,7 @@ static int jtag_vpi_stableclocks(unsigned int num_cycles)
 	unsigned int cycles_remain = num_cycles;
 	int nb_bits;
 	int retval;
-	const int CYCLES_ONE_BATCH = sizeof(tms_bits) * 8;
+	const unsigned int CYCLES_ONE_BATCH = sizeof(tms_bits) * 8;
 
 	/* use TMS=1 in TAP RESET state, TMS=0 in all other stable states */
 	memset(&tms_bits, (tap_get_state() == TAP_RESET) ? 0xff : 0x00, sizeof(tms_bits));
