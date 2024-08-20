@@ -87,8 +87,11 @@ static COMMAND_HELPER(handle_jtag_command_drscan_fields, struct scan_field *fiel
 			LOG_ERROR("Out of memory");
 			return ERROR_FAIL;
 		}
+
 		fields[field_count].out_value = t;
-		str_to_buf(CMD_ARGV[i + 1], strlen(CMD_ARGV[i + 1]), t, bits, 0);
+		int ret = CALL_COMMAND_HANDLER(command_parse_str_to_buf, CMD_ARGV[i + 1], t, bits, 0);
+		if (ret != ERROR_OK)
+			return ret;
 		fields[field_count].in_value = t;
 		field_count++;
 	}
@@ -209,8 +212,8 @@ COMMAND_HANDLER(handle_jtag_flush_count)
 	if (CMD_ARGC != 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	int count = jtag_get_flush_queue_count();
-	command_print_sameline(CMD, "%d", count);
+	const unsigned int count = jtag_get_flush_queue_count();
+	command_print_sameline(CMD, "%u", count);
 
 	return ERROR_OK;
 }
@@ -445,11 +448,11 @@ static COMMAND_HELPER(handle_jtag_newtap_args, struct jtag_tap *tap)
 			if (!CMD_ARGC)
 				return ERROR_COMMAND_ARGUMENT_INVALID;
 
-			COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], tap->ir_length);
+			COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], tap->ir_length);
 			CMD_ARGC--;
 			CMD_ARGV++;
-			if (tap->ir_length > (int)(8 * sizeof(tap->ir_capture_value)))
-				LOG_WARNING("%s: huge IR length %d", tap->dotted_name, tap->ir_length);
+			if (tap->ir_length > (8 * sizeof(tap->ir_capture_value)))
+				LOG_WARNING("%s: huge IR length %u", tap->dotted_name, tap->ir_length);
 			break;
 
 		case NTAP_OPT_IRMASK:
@@ -811,13 +814,13 @@ COMMAND_HANDLER(handle_scan_chain_command)
 		expected_mask = buf_get_u32(tap->expected_mask, 0, tap->ir_length);
 
 		command_print(CMD,
-			"%2d %-18s     %c     0x%08x %s %5d 0x%02x  0x%02x",
+			"%2u %-18s     %c     0x%08x %s %5u 0x%02x  0x%02x",
 			tap->abs_chain_position,
 			tap->dotted_name,
 			tap->enabled ? 'Y' : 'n',
 			(unsigned int)(tap->idcode),
 			expected_id,
-			(unsigned int)(tap->ir_length),
+			tap->ir_length,
 			(unsigned int)(expected),
 			(unsigned int)(expected_mask));
 
@@ -969,7 +972,7 @@ COMMAND_HANDLER(handle_irscan_command)
 		if (retval != ERROR_OK)
 			goto error_return;
 
-		int field_size = tap->ir_length;
+		unsigned int field_size = tap->ir_length;
 		fields[i].num_bits = field_size;
 		uint8_t *v = calloc(1, DIV_ROUND_UP(field_size, 8));
 		if (!v) {

@@ -319,42 +319,53 @@ COMMAND_HANDLER(interface_handle_hla_command)
 	return ERROR_OK;
 }
 
-static const struct command_registration hl_interface_command_handlers[] = {
+static const struct command_registration hl_interface_subcommand_handlers[] = {
 	{
-	 .name = "hla_device_desc",
+	 .name = "device_desc",
 	 .handler = &hl_interface_handle_device_desc_command,
 	 .mode = COMMAND_CONFIG,
 	 .help = "set the device description of the adapter",
 	 .usage = "description_string",
 	 },
 	{
-	 .name = "hla_layout",
+	 .name = "layout",
 	 .handler = &hl_interface_handle_layout_command,
 	 .mode = COMMAND_CONFIG,
 	 .help = "set the layout of the adapter",
 	 .usage = "layout_name",
 	 },
 	{
-	 .name = "hla_vid_pid",
+	 .name = "vid_pid",
 	 .handler = &hl_interface_handle_vid_pid_command,
 	 .mode = COMMAND_CONFIG,
 	 .help = "the vendor and product ID of the adapter",
 	 .usage = "(vid pid)*",
 	 },
 	{
-	 .name = "hla_stlink_backend",
+	 .name = "stlink_backend",
 	 .handler = &hl_interface_handle_stlink_backend_command,
 	 .mode = COMMAND_CONFIG,
 	 .help = "select which ST-Link backend to use",
 	 .usage = "usb | tcp [port]",
 	},
 	 {
-	 .name = "hla_command",
+	 .name = "command",
 	 .handler = &interface_handle_hla_command,
 	 .mode = COMMAND_EXEC,
 	 .help = "execute a custom adapter-specific command",
 	 .usage = "<command>",
 	 },
+	COMMAND_REGISTRATION_DONE
+};
+
+static const struct command_registration hl_interface_command_handlers[] = {
+	{
+		.name = "hla",
+		.mode = COMMAND_ANY,
+		.help = "perform hla management",
+		.chain = hl_interface_subcommand_handlers,
+		.usage = "",
+	},
 	COMMAND_REGISTRATION_DONE
 };
 

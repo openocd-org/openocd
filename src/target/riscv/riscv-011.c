@@ -376,7 +376,7 @@ static void dump_field(const struct scan_field *field)
 
 	log_printf_lf(LOG_LVL_DEBUG,
 			__FILE__, __LINE__, "scan",
-			"%db %s %c%c:%08x @%02x -> %s %c%c:%08x @%02x",
+			"%ub %s %c%c:%08x @%02x -> %s %c%c:%08x @%02x",
 			field->num_bits,
 			op_string[out_op], out_interrupt, out_haltnot, out_data,
 			out_address,

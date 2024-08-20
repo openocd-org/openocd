@@ -203,7 +203,7 @@ static void amt_jtagaccel_state_move(void)
 	tap_set_state(end_state);
 }
 
-static void amt_jtagaccel_runtest(int num_cycles)
+static void amt_jtagaccel_runtest(unsigned int num_cycles)
 {
 	int i = 0;
 	uint8_t aw_scan_tms_5;

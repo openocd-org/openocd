@@ -381,7 +381,7 @@ static int osbdm_quit(void)
 static int osbdm_add_pathmove(
 	struct queue *queue,
 	tap_state_t *path,
-	int num_states)
+	unsigned int num_states)
 {
 	assert(num_states <= 32);
 
@@ -392,7 +392,7 @@ static int osbdm_add_pathmove(
 	}
 
 	uint32_t tms = 0;
-	for (int i = 0; i < num_states; i++) {
+	for (unsigned int i = 0; i < num_states; i++) {
 		if (tap_state_transition(tap_get_state(), 1) == path[i]) {
 			tms |= (1 << i);
 		} else if (tap_state_transition(tap_get_state(), 0) == path[i]) {
@@ -451,7 +451,7 @@ static int osbdm_add_statemove(
 
 static int osbdm_add_stableclocks(
 	struct queue *queue,
-	int count)
+	unsigned int count)
 {
 	if (!tap_is_state_stable(tap_get_state())) {
 		LOG_ERROR("BUG: current state (%s) is not stable",
@@ -489,7 +489,7 @@ static int osbdm_add_tms(
 static int osbdm_add_scan(
 	struct queue *queue,
 	struct scan_field *fields,
-	int num_fields,
+	unsigned int num_fields,
 	tap_state_t end_state,
 	bool ir_scan)
 {
@@ -508,7 +508,7 @@ static int osbdm_add_scan(
 
 	/* Add scan */
 	tap_set_end_state(end_state);
-	for (int idx = 0; idx < num_fields; idx++) {
+	for (unsigned int idx = 0; idx < num_fields; idx++) {
 		struct sequence *next = queue_add_tail(queue, fields[idx].num_bits);
 		if (!next) {
 			LOG_ERROR("Can't allocate bit sequence");
@@ -536,7 +536,7 @@ static int osbdm_add_scan(
 
 static int osbdm_add_runtest(
 	struct queue *queue,
-	int num_cycles,
+	unsigned int num_cycles,
 	tap_state_t end_state)
 {
 	if (osbdm_add_statemove(queue, TAP_IDLE, 0) != ERROR_OK)

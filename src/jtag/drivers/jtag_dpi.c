@@ -163,7 +163,7 @@ out:
 	return ret;
 }
 
-static int jtag_dpi_runtest(int cycles)
+static int jtag_dpi_runtest(unsigned int num_cycles)
 {
 	char buf[20];
 	uint8_t *data_buf = last_ir_buf, *read_scan;
@@ -189,7 +189,7 @@ static int jtag_dpi_runtest(int cycles)
 		return ERROR_FAIL;
 	}
 	snprintf(buf, sizeof(buf), "ib %d\n", num_bits);
-	while (cycles > 0) {
+	while (num_cycles > 0) {
 		ret = write_sock(buf, strlen(buf));
 		if (ret != ERROR_OK) {
 			LOG_ERROR("write_sock() fail, file %s, line %d",
@@ -209,7 +209,7 @@ static int jtag_dpi_runtest(int cycles)
 			goto out;
 		}
 
-		cycles -= num_bits + 6;
+		num_cycles -= num_bits + 6;
 	}
 
 out:
@@ -217,9 +217,9 @@ out:
 	return ret;
 }
 
-static int jtag_dpi_stableclocks(int cycles)
+static int jtag_dpi_stableclocks(unsigned int num_cycles)
 {
-	return jtag_dpi_runtest(cycles);
+	return jtag_dpi_runtest(num_cycles);
 }
 
 static int jtag_dpi_execute_queue(struct jtag_command *cmd_queue)

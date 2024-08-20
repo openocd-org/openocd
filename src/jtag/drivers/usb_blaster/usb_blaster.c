@@ -474,11 +474,9 @@ static void ublast_tms(struct tms_command *cmd)
  */
 static void ublast_path_move(struct pathmove_command *cmd)
 {
-	int i;
-
-	LOG_DEBUG_IO("(num_states=%d, last_state=%d)",
+	LOG_DEBUG_IO("(num_states=%u, last_state=%d)",
 		  cmd->num_states, cmd->path[cmd->num_states - 1]);
-	for (i = 0; i < cmd->num_states; i++) {
+	for (unsigned int i = 0; i < cmd->num_states; i++) {
 		if (tap_state_transition(tap_get_state(), false) == cmd->path[i])
 			ublast_clock_tms(0);
 		if (tap_state_transition(tap_get_state(), true) == cmd->path[i])
@@ -675,19 +673,19 @@ static void ublast_queue_tdi(uint8_t *bits, int nb_bits, enum scan_type scan)
 	ublast_idle_clock();
 }
 
-static void ublast_runtest(int cycles, tap_state_t state)
+static void ublast_runtest(unsigned int num_cycles, tap_state_t state)
 {
-	LOG_DEBUG_IO("%s(cycles=%i, end_state=%d)", __func__, cycles, state);
+	LOG_DEBUG_IO("%s(cycles=%u, end_state=%d)", __func__, num_cycles, state);
 
 	ublast_state_move(TAP_IDLE, 0);
-	ublast_queue_tdi(NULL, cycles, SCAN_OUT);
+	ublast_queue_tdi(NULL, num_cycles, SCAN_OUT);
 	ublast_state_move(state, 0);
 }
 
-static void ublast_stableclocks(int cycles)
+static void ublast_stableclocks(unsigned int num_cycles)
 {
-	LOG_DEBUG_IO("%s(cycles=%i)", __func__, cycles);
-	ublast_queue_tdi(NULL, cycles, SCAN_OUT);
+	LOG_DEBUG_IO("%s(cycles=%u)", __func__, num_cycles);
+	ublast_queue_tdi(NULL, num_cycles, SCAN_OUT);
 }
 
 /**

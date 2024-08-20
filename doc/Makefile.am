@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 info_TEXINFOS += %D%/openocd.texi
 %C%_openocd_TEXINFOS = %D%/fdl.texi
 

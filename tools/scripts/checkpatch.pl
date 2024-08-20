@@ -3769,7 +3769,11 @@ sub process {
 		}
 
 # check we are in a valid source file if not then ignore this hunk
+		if (!$OpenOCD) {
 		next if ($realfile !~ /\.(h|c|s|S|sh|dtsi|dts)$/);
+		} else { # !$OpenOCD
+		next if ($realfile !~ /\.(h|c|s|S|sh|dtsi|dts|tcl|cfg|ac|am)$/);
+		} # !$OpenOCD
 
 # check for using SPDX-License-Identifier on the wrong line number
 		if ($realline != $checklicenseline &&

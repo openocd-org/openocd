@@ -483,7 +483,7 @@ static int esirisc_add_breakpoint(struct target *target, struct breakpoint *brea
 	 * The default linker scripts provided by the eSi-RISC toolchain do
 	 * not specify attributes on memory regions, which results in
 	 * incorrect application of software breakpoints by GDB. Targets
-	 * must be configured with `gdb_breakpoint_override hard` as
+	 * must be configured with `gdb breakpoint_override hard` as
 	 * software breakpoints are not supported.
 	 */
 	if (breakpoint->type != BKPT_HARD)

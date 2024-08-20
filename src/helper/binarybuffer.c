@@ -102,7 +102,6 @@ bool buf_cmp_mask(const void *_buf1, const void *_buf2,
 	return buf_cmp_trailing(buf1[last], buf2[last], mask[last], trailing);
 }
 
-
 void *buf_set_ones(void *_buf, unsigned size)
 {
 	uint8_t *buf = _buf;
@@ -206,36 +205,75 @@ char *buf_to_hex_str(const void *_buf, unsigned buf_len)
 	return str;
 }
 
-/** identify radix, and skip radix-prefix (0, 0x or 0X) */
-static void str_radix_guess(const char **_str, unsigned *_str_len,
-	unsigned *_radix)
+static bool str_has_hex_prefix(const char *s)
 {
-	unsigned radix = *_radix;
-	if (radix != 0)
-		return;
-	const char *str = *_str;
-	unsigned str_len = *_str_len;
-	if (str[0] == '0' && (str[1] == 'x' || str[1] == 'X')) {
-		radix = 16;
-		str += 2;
-		str_len -= 2;
-	} else if ((str[0] == '0') && (str_len != 1)) {
-		radix = 8;
-		str += 1;
-		str_len -= 1;
-	} else
-		radix = 10;
-	*_str = str;
-	*_str_len = str_len;
-	*_radix = radix;
+	/* Starts with "0x" or "0X" */
+	return (s[0] == '0') && (s[1] == 'x' || s[1] == 'X');
 }
 
-int str_to_buf(const char *str, unsigned str_len,
-	void *_buf, unsigned buf_len, unsigned radix)
+static bool str_has_octal_prefix(const char *s)
 {
-	str_radix_guess(&str, &str_len, &radix);
+	/* - starts with '0',
+	 * - has at least two characters, and
+	 * - the second character is not 'x' or 'X' */
+	return (s[0] == '0') && (s[1] != '\0') && (s[1] != 'x') && (s[1] != 'X');
+}
 
-	float factor;
+/**
+ * Try to identify the radix of the number by looking at its prefix.
+ * No further validation of the number is preformed.
+ */
+static unsigned int str_radix_guess(const char *str)
+{
+	assert(str);
+
+	if (str_has_hex_prefix(str))
+		return 16;
+
+	if (str_has_octal_prefix(str))
+		return 8;
+
+	/* Otherwise assume a decadic number. */
+	return 10;
+}
+
+/** Strip leading "0x" or "0X" from hex numbers or "0" from octal numbers. */
+static void str_strip_number_prefix_if_present(const char **_str, unsigned int radix)
+{
+	assert(radix == 16 || radix == 10 || radix == 8);
+	assert(_str);
+
+	const char *str = *_str;
+	assert(str);
+
+	if (radix == 16 && str_has_hex_prefix(str))
+		str += 2;
+	else if (radix == 8 && str_has_octal_prefix(str))
+		str += 1;
+
+	/* No prefix to strip for radix == 10. */
+
+	*_str = str;
+}
+
+int str_to_buf(const char *str, void *_buf, unsigned int buf_len,
+	unsigned int radix, unsigned int *_detected_radix)
+{
+	assert(radix == 0 || radix == 8 || radix == 10 || radix == 16);
+
+	if (radix == 0)
+		radix = str_radix_guess(str);
+
+	if (_detected_radix)
+		*_detected_radix = radix;
+
+	str_strip_number_prefix_if_present(&str, radix);
+
+	const size_t str_len = strlen(str);
+	if (str_len == 0)
+		return ERROR_INVALID_NUMBER;
+
+	float factor = 0.0;
 	if (radix == 16)
 		factor = 0.5;	/* log(16) / log(256) = 0.5 */
 	else if (radix == 10)
@@ -243,41 +281,69 @@ int str_to_buf(const char *str, unsigned str_len,
 	else if (radix == 8)
 		factor = 0.375;	/* log(8) / log(256) = 0.375 */
 	else
-		return 0;
+		assert(false);
 
-	/* copy to zero-terminated buffer */
-	char *charbuf = strndup(str, str_len);
+	const unsigned int b256_len = ceil_f_to_u32(str_len * factor);
 
-	/* number of digits in base-256 notation */
-	unsigned b256_len = ceil_f_to_u32(str_len * factor);
+	/* Allocate a buffer for digits in base-256 notation */
 	uint8_t *b256_buf = calloc(b256_len, 1);
+	if (!b256_buf) {
+		LOG_ERROR("Unable to allocate memory");
+		return ERROR_FAIL;
+	}
 
-	/* go through zero terminated buffer
-	 * input digits (ASCII) */
-	unsigned i;
-	for (i = 0; charbuf[i]; i++) {
-		uint32_t tmp = charbuf[i];
-		if ((tmp >= '0') && (tmp <= '9'))
+	/* Go through the zero-terminated buffer
+	 * of input digits (ASCII) */
+	for (unsigned int i = 0; str[i]; i++) {
+		uint32_t tmp = str[i];
+		if ((tmp >= '0') && (tmp <= '9')) {
 			tmp = (tmp - '0');
-		else if ((tmp >= 'a') && (tmp <= 'f'))
+		} else if ((tmp >= 'a') && (tmp <= 'f')) {
 			tmp = (tmp - 'a' + 10);
-		else if ((tmp >= 'A') && (tmp <= 'F'))
+		} else if ((tmp >= 'A') && (tmp <= 'F')) {
 			tmp = (tmp - 'A' + 10);
-		else
-			continue;	/* skip characters other than [0-9,a-f,A-F] */
+		} else {
+			/* Characters other than [0-9,a-f,A-F] are invalid */
+			free(b256_buf);
+			return ERROR_INVALID_NUMBER;
+		}
 
-		if (tmp >= radix)
-			continue;	/* skip digits invalid for the current radix */
+		if (tmp >= radix) {
+			/* Encountered a digit that is invalid for the current radix */
+			free(b256_buf);
+			return ERROR_INVALID_NUMBER;
+		}
 
-		/* base-256 digits */
-		for (unsigned j = 0; j < b256_len; j++) {
+		/* Add the current digit (tmp) to the intermediate result
+		 * in b256_buf (base-256 digits) */
+		for (unsigned int j = 0; j < b256_len; j++) {
 			tmp += (uint32_t)b256_buf[j] * radix;
-			b256_buf[j] = (uint8_t)(tmp & 0xFF);
+			b256_buf[j] = (uint8_t)(tmp & 0xFFu);
 			tmp >>= 8;
 		}
 
+		/* The b256_t buffer is large enough to contain the whole result. */
+		assert(tmp == 0);
 	}
 
+	/* The result must not contain more bits than buf_len. */
+	/* Check the whole bytes: */
+	for (unsigned int j = DIV_ROUND_UP(buf_len, 8); j < b256_len; j++) {
+		if (b256_buf[j] != 0x0) {
+			free(b256_buf);
+			return ERROR_NUMBER_EXCEEDS_BUFFER;
+		}
+	}
+	/* Check the partial byte: */
+	if (buf_len % 8) {
+		const uint8_t mask = 0xFFu << (buf_len % 8);
+		if ((b256_buf[(buf_len / 8)] & mask) != 0x0) {
+			free(b256_buf);
+			return ERROR_NUMBER_EXCEEDS_BUFFER;
+		}
+	}
+
+	/* Copy the digits to the output buffer */
 	uint8_t *buf = _buf;
 	for (unsigned j = 0; j < DIV_ROUND_UP(buf_len, 8); j++) {
 		if (j < b256_len)
@@ -286,14 +352,8 @@ int str_to_buf(const char *str, unsigned str_len,
 			buf[j] = 0;
 	}
 
-	/* mask out bits that don't belong to the buffer */
-	if (buf_len % 8)
-		buf[(buf_len / 8)] &= 0xff >> (8 - (buf_len % 8));
-
 	free(b256_buf);
-	free(charbuf);
-
-	return i;
+	return ERROR_OK;
 }
 
 void bit_copy_queue_init(struct bit_copy_queue *q)

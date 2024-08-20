@@ -982,7 +982,7 @@ static const struct command_registration telnet_command_handlers[] = {
 	{
 		.name = "exit",
 		.handler = handle_exit_command,
-		.mode = COMMAND_EXEC,
+		.mode = COMMAND_ANY,
 		.usage = "",
 		.help = "exit telnet session",
 	},
@@ -992,7 +992,7 @@ static const struct command_registration telnet_command_handlers[] = {
 		.mode = COMMAND_CONFIG,
 		.help = "Specify port on which to listen "
 			"for incoming telnet connections.  "
-			"Read help on 'gdb_port'.",
+			"Read help on 'gdb port'.",
 		.usage = "[port_num]",
 	},
 	COMMAND_REGISTRATION_DONE

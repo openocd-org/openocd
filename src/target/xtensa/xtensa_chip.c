@@ -103,7 +103,7 @@ static int xtensa_chip_target_create(struct target *target, Jim_Interp *interp)
 		LOG_DEBUG("DAP: ap_num %" PRId64 " DAP %p\n", pc->ap_num, pc->dap);
 	} else {
 		xtensa_chip_dm_cfg.tap = target->tap;
-		LOG_DEBUG("JTAG: %s:%s pos %d", target->tap->chip, target->tap->tapname,
+		LOG_DEBUG("JTAG: %s:%s pos %u", target->tap->chip, target->tap->tapname,
 			target->tap->abs_chain_position);
 	}
 

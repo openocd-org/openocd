@@ -709,7 +709,7 @@ static int em357_probe(struct flash_bank *bank)
 
 	em357_info->ppage_size = 4;
 
-	LOG_INFO("flash size = %d KiB", num_pages*page_size/1024);
+	LOG_INFO("flash size = %d KiB", num_pages * page_size / 1024);
 
 	free(bank->sectors);
 

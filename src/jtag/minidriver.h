@@ -51,8 +51,8 @@ int interface_jtag_add_plain_dr_scan(
 		tap_state_t endstate);
 
 int interface_jtag_add_tlr(void);
-int interface_jtag_add_pathmove(int num_states, const tap_state_t *path);
-int interface_jtag_add_runtest(int num_cycles, tap_state_t endstate);
+int interface_jtag_add_pathmove(unsigned int num_states, const tap_state_t *path);
+int interface_jtag_add_runtest(unsigned int num_cycles, tap_state_t endstate);
 
 int interface_add_tms_seq(unsigned num_bits,
 		const uint8_t *bits, enum tap_state state);
@@ -67,7 +67,7 @@ int interface_add_tms_seq(unsigned num_bits,
  */
 int interface_jtag_add_reset(int trst, int srst);
 int interface_jtag_add_sleep(uint32_t us);
-int interface_jtag_add_clocks(int num_cycles);
+int interface_jtag_add_clocks(unsigned int num_cycles);
 int interface_jtag_execute_queue(void);
 
 /**

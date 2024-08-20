@@ -5,7 +5,7 @@
 #
 # program utility proc
 # usage: program filename
-# optional args: verify, reset, exit and address
+# optional args: preverify, verify, reset, exit and address
 #
 
 lappend _telnet_autocomplete_skip program_error
@@ -101,8 +101,8 @@ proc program {filename args} {
 	return
 }
 
-add_help_text program "write an image to flash, address is only required for binary images. verify, reset, exit are optional"
-add_usage_text program "<filename> \[address\] \[pre-verify\] \[verify\] \[reset\] \[exit\]"
+add_help_text program "write an image to flash, address is only required for binary images. preverify, verify, reset, exit are optional"
+add_usage_text program "<filename> \[address\] \[preverify\] \[verify\] \[reset\] \[exit\]"
 
 # stm32[f0x|f3x] uses the same flash driver as the stm32f1x
 proc stm32f0x args { eval stm32f1x $args }

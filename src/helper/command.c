@@ -1360,6 +1360,46 @@ int command_parse_bool_arg(const char *in, bool *out)
 	return ERROR_COMMAND_SYNTAX_ERROR;
 }
 
+static const char *radix_to_str(unsigned int radix)
+{
+	switch (radix) {
+		case 16: return "hexadecimal";
+		case 10: return "decadic";
+		case 8: return "octal";
+	}
+	assert(false);
+	return "";
+}
+
+COMMAND_HELPER(command_parse_str_to_buf, const char *str, void *buf, unsigned int buf_len,
+	unsigned int radix)
+{
+	assert(str);
+	assert(buf);
+
+	int ret = str_to_buf(str, buf, buf_len, radix, NULL);
+	if (ret == ERROR_OK)
+		return ret;
+
+	/* Provide a clear error message to the user */
+	if (ret == ERROR_INVALID_NUMBER) {
+		if (radix == 0) {
+			/* Any radix is accepted, so don't include it in the error message. */
+			command_print(CMD, "'%s' is not a valid number", str);
+		} else {
+			/* Specific radix is required - tell the user what it is. */
+			command_print(CMD, "'%s' is not a valid number (requiring %s number)",
+				str, radix_to_str(radix));
+		}
+	} else if (ret == ERROR_NUMBER_EXCEEDS_BUFFER) {
+		command_print(CMD, "Number %s exceeds %u bits", str, buf_len);
+	} else {
+		command_print(CMD, "Could not parse number '%s'", str);
+	}
+
+	return ERROR_COMMAND_ARGUMENT_INVALID;
+}
+
 COMMAND_HELPER(handle_command_parse_bool, bool *out, const char *label)
 {
 	switch (CMD_ARGC) {

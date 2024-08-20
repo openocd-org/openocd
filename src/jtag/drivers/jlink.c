@@ -80,9 +80,9 @@ static struct device_config tmp_config;
 /* Queue command functions */
 static void jlink_end_state(tap_state_t state);
 static void jlink_state_move(void);
-static void jlink_path_move(int num_states, tap_state_t *path);
-static void jlink_stableclocks(int num_cycles);
-static void jlink_runtest(int num_cycles);
+static void jlink_path_move(unsigned int num_states, tap_state_t *path);
+static void jlink_stableclocks(unsigned int num_cycles);
+static void jlink_runtest(unsigned int num_cycles);
 static void jlink_reset(int trst, int srst);
 static int jlink_reset_safe(int trst, int srst);
 static int jlink_swd_run_queue(void);
@@ -140,7 +140,7 @@ static void jlink_execute_statemove(struct jtag_command *cmd)
 
 static void jlink_execute_pathmove(struct jtag_command *cmd)
 {
-	LOG_DEBUG_IO("pathmove: %i states, end in %i",
+	LOG_DEBUG_IO("pathmove: %u states, end in %i",
 		cmd->cmd.pathmove->num_states,
 		cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]);
 
@@ -159,7 +159,7 @@ static void jlink_execute_scan(struct jtag_command *cmd)
 		LOG_DEBUG("discarding trailing empty field");
 	}
 
-	if (cmd->cmd.scan->num_fields == 0) {
+	if (!cmd->cmd.scan->num_fields) {
 		LOG_DEBUG("empty scan, doing nothing");
 		return;
 	}
@@ -181,9 +181,9 @@ static void jlink_execute_scan(struct jtag_command *cmd)
 	struct scan_field *field = cmd->cmd.scan->fields;
 	unsigned scan_size = 0;
 
-	for (int i = 0; i < cmd->cmd.scan->num_fields; i++, field++) {
+	for (unsigned int i = 0; i < cmd->cmd.scan->num_fields; i++, field++) {
 		scan_size += field->num_bits;
-		LOG_DEBUG_IO("%s%s field %d/%d %d bits",
+		LOG_DEBUG_IO("%s%s field %u/%u %u bits",
 			field->in_value ? "in" : "",
 			field->out_value ? "out" : "",
 			i,
@@ -885,12 +885,11 @@ static void jlink_state_move(void)
 	tap_set_state(tap_get_end_state());
 }
 
-static void jlink_path_move(int num_states, tap_state_t *path)
+static void jlink_path_move(unsigned int num_states, tap_state_t *path)
 {
-	int i;
 	uint8_t tms = 0xff;
 
-	for (i = 0; i < num_states; i++) {
+	for (unsigned int i = 0; i < num_states; i++) {
 		if (path[i] == tap_state_transition(tap_get_state(), false))
 			jlink_clock_data(NULL, 0, NULL, 0, NULL, 0, 1);
 		else if (path[i] == tap_state_transition(tap_get_state(), true))
@@ -907,17 +906,15 @@ static void jlink_path_move(int num_states, tap_state_t *path)
 	tap_set_end_state(tap_get_state());
 }
 
-static void jlink_stableclocks(int num_cycles)
+static void jlink_stableclocks(unsigned int num_cycles)
 {
-	int i;
-
 	uint8_t tms = tap_get_state() == TAP_RESET;
 	/* Execute num_cycles. */
-	for (i = 0; i < num_cycles; i++)
+	for (unsigned int i = 0; i < num_cycles; i++)
 		jlink_clock_data(NULL, 0, &tms, 0, NULL, 0, 1);
 }
 
-static void jlink_runtest(int num_cycles)
+static void jlink_runtest(unsigned int num_cycles)
 {
 	tap_state_t saved_end_state = tap_get_end_state();
 
@@ -964,23 +961,18 @@ static int jlink_reset_safe(int trst, int srst)
 
 COMMAND_HANDLER(jlink_usb_command)
 {
-	int tmp;
-
 	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	if (sscanf(CMD_ARGV[0], "%i", &tmp) != 1) {
-		command_print(CMD, "Invalid USB address: %s", CMD_ARGV[0]);
-		return ERROR_COMMAND_ARGUMENT_INVALID;
-	}
+	unsigned int tmp;
+	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], tmp);
 
-	if (tmp < JAYLINK_USB_ADDRESS_0 || tmp > JAYLINK_USB_ADDRESS_3) {
+	if (tmp > JAYLINK_USB_ADDRESS_3) {
 		command_print(CMD, "Invalid USB address: %s", CMD_ARGV[0]);
 		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
 	usb_address = tmp;
-
 	use_usb_address = true;
 
 	return ERROR_OK;
@@ -1038,38 +1030,35 @@ COMMAND_HANDLER(jlink_handle_free_memory_command)
 
 COMMAND_HANDLER(jlink_handle_jlink_jtag_command)
 {
-	int tmp;
-	int version;
-
 	if (!CMD_ARGC) {
+		unsigned int version;
+
 		switch (jtag_command_version) {
-			case JAYLINK_JTAG_VERSION_2:
-				version = 2;
-				break;
-			case JAYLINK_JTAG_VERSION_3:
-				version = 3;
-				break;
-			default:
-				return ERROR_FAIL;
+		case JAYLINK_JTAG_VERSION_2:
+			version = 2;
+			break;
+		case JAYLINK_JTAG_VERSION_3:
+			version = 3;
+			break;
+		default:
+			return ERROR_FAIL;
 		}
 
-		command_print(CMD, "JTAG command version: %i", version);
+		command_print(CMD, "JTAG command version: %u", version);
 	} else if (CMD_ARGC == 1) {
-		if (sscanf(CMD_ARGV[0], "%i", &tmp) != 1) {
-			command_print(CMD, "Invalid argument: %s", CMD_ARGV[0]);
-			return ERROR_COMMAND_ARGUMENT_INVALID;
-		}
+		uint8_t tmp;
+		COMMAND_PARSE_NUMBER(u8, CMD_ARGV[0], tmp);
 
 		switch (tmp) {
-			case 2:
-				jtag_command_version = JAYLINK_JTAG_VERSION_2;
-				break;
-			case 3:
-				jtag_command_version = JAYLINK_JTAG_VERSION_3;
-				break;
-			default:
-				command_print(CMD, "Invalid argument: %s", CMD_ARGV[0]);
-				return ERROR_COMMAND_ARGUMENT_INVALID;
+		case 2:
+			jtag_command_version = JAYLINK_JTAG_VERSION_2;
+			break;
+		case 3:
+			jtag_command_version = JAYLINK_JTAG_VERSION_3;
+			break;
+		default:
+			command_print(CMD, "Invalid argument: %s", CMD_ARGV[0]);
+			return ERROR_COMMAND_ARGUMENT_INVALID;
 		}
 	} else {
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -1080,10 +1069,7 @@ COMMAND_HANDLER(jlink_handle_jlink_jtag_command)
 
 COMMAND_HANDLER(jlink_handle_target_power_command)
 {
-	int ret;
-	int enable;
-
-	if (CMD_ARGC != 1)
+	if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_SET_TARGET_POWER)) {
@@ -1092,16 +1078,24 @@ COMMAND_HANDLER(jlink_handle_target_power_command)
 		return ERROR_OK;
 	}
 
-	if (!strcmp(CMD_ARGV[0], "on")) {
-		enable = true;
-	} else if (!strcmp(CMD_ARGV[0], "off")) {
-		enable = false;
-	} else {
-		command_print(CMD, "Invalid argument: %s", CMD_ARGV[0]);
-		return ERROR_FAIL;
+	if (!CMD_ARGC) {
+		uint32_t state;
+		int ret = jaylink_get_hardware_info(devh, JAYLINK_HW_INFO_TARGET_POWER,
+			&state);
+
+		if (ret != JAYLINK_OK) {
+			command_print(CMD, "Failed to retrieve target power state");
+			return ERROR_FAIL;
+		}
+
+		command_print(CMD, "%d", (bool)state);
+		return ERROR_OK;
 	}
 
-	ret = jaylink_set_target_power(devh, enable);
+	bool enable;
+	COMMAND_PARSE_ON_OFF(CMD_ARGV[0], enable);
+
+	int ret = jaylink_set_target_power(devh, enable);
 
 	if (ret != JAYLINK_OK) {
 		command_print(CMD, "jaylink_set_target_power() failed: %s",
@@ -1410,8 +1404,6 @@ static int config_trace(bool enabled, enum tpiu_pin_protocol pin_protocol,
 
 COMMAND_HANDLER(jlink_handle_config_usb_address_command)
 {
-	uint8_t tmp;
-
 	if (!jaylink_has_cap(caps, JAYLINK_DEV_CAP_READ_CONFIG)) {
 		command_print(CMD, "Reading configuration is not supported by the "
 			"device");
@@ -1421,10 +1413,8 @@ COMMAND_HANDLER(jlink_handle_config_usb_address_command)
 	if (!CMD_ARGC) {
 		show_config_usb_address(CMD);
 	} else if (CMD_ARGC == 1) {
-		if (sscanf(CMD_ARGV[0], "%" SCNd8, &tmp) != 1) {
-			command_print(CMD, "Invalid USB address: %s", CMD_ARGV[0]);
-			return ERROR_COMMAND_ARGUMENT_INVALID;
-		}
+		uint8_t tmp;
+		COMMAND_PARSE_NUMBER(u8, CMD_ARGV[0], tmp);
 
 		if (tmp > JAYLINK_USB_ADDRESS_3) {
 			command_print(CMD, "Invalid USB address: %u", tmp);
@@ -1883,7 +1873,7 @@ static const struct command_registration jlink_subcommand_handlers[] = {
 		.handler = &jlink_handle_target_power_command,
 		.mode = COMMAND_EXEC,
 		.help = "set the target power supply",
-		.usage = "<on|off>"
+		.usage = "[0|1|on|off]"
 	},
 	{
 		.name = "freemem",

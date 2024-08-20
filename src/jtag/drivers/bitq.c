@@ -18,8 +18,8 @@ struct bitq_interface *bitq_interface; /* low level bit queue interface */
 /* state of input queue */
 struct bitq_state {
 	struct jtag_command *cmd; /* command currently processed */
-	int field_idx; /* index of field currently being processed */
-	int bit_pos; /* position of bit currently being processed */
+	unsigned int field_idx; /* index of field currently being processed */
+	unsigned int bit_pos; /* position of bit currently being processed */
 	int status; /* processing status */
 };
 static struct bitq_state bitq_in_state;
@@ -108,9 +108,7 @@ static void bitq_state_move(tap_state_t new_state)
 
 static void bitq_path_move(struct pathmove_command *cmd)
 {
-	int i;
-
-	for (i = 0; i < cmd->num_states; i++) {
+	for (unsigned int i = 0; i < cmd->num_states; i++) {
 		if (tap_state_transition(tap_get_state(), false) == cmd->path[i])
 			bitq_io(0, 0, 0);
 		else if (tap_state_transition(tap_get_state(), true) == cmd->path[i])
@@ -127,16 +125,14 @@ static void bitq_path_move(struct pathmove_command *cmd)
 	tap_set_end_state(tap_get_state());
 }
 
-static void bitq_runtest(int num_cycles)
+static void bitq_runtest(unsigned int num_cycles)
 {
-	int i;
-
 	/* only do a state_move when we're not already in IDLE */
 	if (tap_get_state() != TAP_IDLE)
 		bitq_state_move(TAP_IDLE);
 
 	/* execute num_cycles */
-	for (i = 0; i < num_cycles; i++)
+	for (unsigned int i = 0; i < num_cycles; i++)
 		bitq_io(0, 0, 0);
 
 	/* finish in end_state */
@@ -146,11 +142,10 @@ static void bitq_runtest(int num_cycles)
 
 static void bitq_scan_field(struct scan_field *field, int do_pause)
 {
-	int bit_cnt;
 	int tdo_req;
 
 	const uint8_t *out_ptr;
-	uint8_t  out_mask;
+	uint8_t out_mask;
 
 	if (field->in_value)
 		tdo_req = 1;
@@ -159,7 +154,7 @@ static void bitq_scan_field(struct scan_field *field, int do_pause)
 
 	if (!field->out_value) {
 		/* just send zeros and request data from TDO */
-		for (bit_cnt = field->num_bits; bit_cnt > 1; bit_cnt--)
+		for (unsigned int i = 0; i < (field->num_bits - 1); i++)
 			bitq_io(0, 0, tdo_req);
 
 		bitq_io(do_pause, 0, tdo_req);
@@ -167,7 +162,7 @@ static void bitq_scan_field(struct scan_field *field, int do_pause)
 		/* send data, and optionally request TDO */
 		out_mask = 0x01;
 		out_ptr  = field->out_value;
-		for (bit_cnt = field->num_bits; bit_cnt > 1; bit_cnt--) {
+		for (unsigned int i = 0; i < (field->num_bits - 1); i++) {
 			bitq_io(0, ((*out_ptr) & out_mask) != 0, tdo_req);
 			if (out_mask == 0x80) {
 				out_mask = 0x01;
@@ -190,13 +185,12 @@ static void bitq_scan_field(struct scan_field *field, int do_pause)
 
 static void bitq_scan(struct scan_command *cmd)
 {
-	int i;
-
 	if (cmd->ir_scan)
 		bitq_state_move(TAP_IRSHIFT);
 	else
 		bitq_state_move(TAP_DRSHIFT);
 
+	unsigned int i;
 	for (i = 0; i < cmd->num_fields - 1; i++)
 		bitq_scan_field(&cmd->fields[i], 0);
 
@@ -226,7 +220,7 @@ int bitq_execute_queue(struct jtag_command *cmd_queue)
 			break;
 
 		case JTAG_RUNTEST:
-			LOG_DEBUG_IO("runtest %i cycles, end in %i", cmd->cmd.runtest->num_cycles, cmd->cmd.runtest->end_state);
+			LOG_DEBUG_IO("runtest %u cycles, end in %i", cmd->cmd.runtest->num_cycles, cmd->cmd.runtest->end_state);
 			bitq_end_state(cmd->cmd.runtest->end_state);
 			bitq_runtest(cmd->cmd.runtest->num_cycles);
 			break;
@@ -238,7 +232,7 @@ int bitq_execute_queue(struct jtag_command *cmd_queue)
 			break;
 
 		case JTAG_PATHMOVE:
-			LOG_DEBUG_IO("pathmove: %i states, end in %i", cmd->cmd.pathmove->num_states,
+			LOG_DEBUG_IO("pathmove: %u states, end in %i", cmd->cmd.pathmove->num_states,
 					cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]);
 			bitq_path_move(cmd->cmd.pathmove);
 			break;

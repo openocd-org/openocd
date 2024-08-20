@@ -58,11 +58,12 @@ static int esirisc_jtag_get_padding(void)
 	return padding;
 }
 
-static int esirisc_jtag_count_bits(int num_fields, struct scan_field *fields)
+static int esirisc_jtag_count_bits(unsigned int num_fields,
+		struct scan_field *fields)
 {
 	int bit_count = 0;
 
-	for (int i = 0; i < num_fields; ++i)
+	for (unsigned int i = 0; i < num_fields; ++i)
 		bit_count += fields[i].num_bits;
 
 	return bit_count;

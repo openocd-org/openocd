@@ -27,11 +27,11 @@ static int buspirate_reset(int trst, int srst);
 
 static void buspirate_end_state(tap_state_t state);
 static void buspirate_state_move(void);
-static void buspirate_path_move(int num_states, tap_state_t *path);
-static void buspirate_runtest(int num_cycles);
+static void buspirate_path_move(unsigned int num_states, tap_state_t *path);
+static void buspirate_runtest(unsigned int num_cycles);
 static void buspirate_scan(bool ir_scan, enum scan_type type,
 	uint8_t *buffer, int scan_size, struct scan_command *command);
-static void buspirate_stableclocks(int num_cycles);
+static void buspirate_stableclocks(unsigned int num_cycles);
 
 #define CMD_UNKNOWN       0x00
 #define CMD_PORT_MODE     0x01
@@ -162,7 +162,7 @@ static int buspirate_execute_queue(struct jtag_command *cmd_queue)
 	while (cmd) {
 		switch (cmd->type) {
 		case JTAG_RUNTEST:
-			LOG_DEBUG_IO("runtest %i cycles, end in %s",
+			LOG_DEBUG_IO("runtest %u cycles, end in %s",
 				cmd->cmd.runtest->num_cycles,
 				tap_state_name(cmd->cmd.runtest
 					->end_state));
@@ -180,7 +180,7 @@ static int buspirate_execute_queue(struct jtag_command *cmd_queue)
 			buspirate_state_move();
 			break;
 		case JTAG_PATHMOVE:
-			LOG_DEBUG_IO("pathmove: %i states, end in %s",
+			LOG_DEBUG_IO("pathmove: %u states, end in %s",
 				cmd->cmd.pathmove->num_states,
 				tap_state_name(cmd->cmd.pathmove
 					->path[cmd->cmd.pathmove
@@ -210,7 +210,7 @@ static int buspirate_execute_queue(struct jtag_command *cmd_queue)
 			jtag_sleep(cmd->cmd.sleep->us);
 				break;
 		case JTAG_STABLECLOCKS:
-			LOG_DEBUG_IO("stable clock %i cycles", cmd->cmd.stableclocks->num_cycles);
+			LOG_DEBUG_IO("stable clock %u cycles", cmd->cmd.stableclocks->num_cycles);
 			buspirate_stableclocks(cmd->cmd.stableclocks->num_cycles);
 				break;
 		default:
@@ -580,11 +580,9 @@ static void buspirate_state_move(void)
 	tap_set_state(tap_get_end_state());
 }
 
-static void buspirate_path_move(int num_states, tap_state_t *path)
+static void buspirate_path_move(unsigned int num_states, tap_state_t *path)
 {
-	int i;
-
-	for (i = 0; i < num_states; i++) {
+	for (unsigned int i = 0; i < num_states; i++) {
 		if (tap_state_transition(tap_get_state(), false) == path[i]) {
 			buspirate_tap_append(0, 0);
 		} else if (tap_state_transition(tap_get_state(), true)
@@ -604,10 +602,8 @@ static void buspirate_path_move(int num_states, tap_state_t *path)
 	tap_set_end_state(tap_get_state());
 }
 
-static void buspirate_runtest(int num_cycles)
+static void buspirate_runtest(unsigned int num_cycles)
 {
-	int i;
-
 	tap_state_t saved_end_state = tap_get_end_state();
 
 	/* only do a state_move when we're not already in IDLE */
@@ -616,7 +612,7 @@ static void buspirate_runtest(int num_cycles)
 		buspirate_state_move();
 	}
 
-	for (i = 0; i < num_cycles; i++)
+	for (unsigned int i = 0; i < num_cycles; i++)
 		buspirate_tap_append(0, 0);
 
 	LOG_DEBUG_IO("runtest: cur_state %s end_state %s",
@@ -658,14 +654,13 @@ static void buspirate_scan(bool ir_scan, enum scan_type type,
 		buspirate_state_move();
 }
 
-static void buspirate_stableclocks(int num_cycles)
+static void buspirate_stableclocks(unsigned int num_cycles)
 {
-	int i;
 	int tms = (tap_get_state() == TAP_RESET ? 1 : 0);
 
 	buspirate_tap_make_space(0, num_cycles);
 
-	for (i = 0; i < num_cycles; i++)
+	for (unsigned int i = 0; i < num_cycles; i++)
 		buspirate_tap_append(tms, 0);
 }
 

@@ -1752,7 +1752,7 @@ static void cmsis_dap_execute_scan(struct jtag_command *cmd)
 		LOG_DEBUG("discarding trailing empty field");
 	}
 
-	if (cmd->cmd.scan->num_fields == 0) {
+	if (!cmd->cmd.scan->num_fields) {
 		LOG_DEBUG("empty scan, doing nothing");
 		return;
 	}
@@ -1772,11 +1772,11 @@ static void cmsis_dap_execute_scan(struct jtag_command *cmd)
 	cmsis_dap_end_state(cmd->cmd.scan->end_state);
 
 	struct scan_field *field = cmd->cmd.scan->fields;
-	unsigned scan_size = 0;
+	unsigned int scan_size = 0;
 
-	for (int i = 0; i < cmd->cmd.scan->num_fields; i++, field++) {
+	for (unsigned int i = 0; i < cmd->cmd.scan->num_fields; i++, field++) {
 		scan_size += field->num_bits;
-		LOG_DEBUG_IO("%s%s field %d/%d %d bits",
+		LOG_DEBUG_IO("%s%s field %u/%u %u bits",
 			field->in_value ? "in" : "",
 			field->out_value ? "out" : "",
 			i,
@@ -1872,16 +1872,16 @@ static void cmsis_dap_execute_pathmove(struct jtag_command *cmd)
 	cmsis_dap_pathmove(cmd->cmd.pathmove->num_states, cmd->cmd.pathmove->path);
 }
 
-static void cmsis_dap_stableclocks(int num_cycles)
+static void cmsis_dap_stableclocks(unsigned int num_cycles)
 {
 	uint8_t tms = tap_get_state() == TAP_RESET;
 	/* TODO: Perform optimizations? */
 	/* Execute num_cycles. */
-	for (int i = 0; i < num_cycles; i++)
+	for (unsigned int i = 0; i < num_cycles; i++)
 		cmsis_dap_add_tms_sequence(&tms, 1);
 }
 
-static void cmsis_dap_runtest(int num_cycles)
+static void cmsis_dap_runtest(unsigned int num_cycles)
 {
 	tap_state_t saved_end_state = tap_get_end_state();
 
@@ -1901,7 +1901,7 @@ static void cmsis_dap_runtest(int num_cycles)
 
 static void cmsis_dap_execute_runtest(struct jtag_command *cmd)
 {
-	LOG_DEBUG_IO("runtest %i cycles, end in %i", cmd->cmd.runtest->num_cycles,
+	LOG_DEBUG_IO("runtest %u cycles, end in %i", cmd->cmd.runtest->num_cycles,
 		      cmd->cmd.runtest->end_state);
 
 	cmsis_dap_end_state(cmd->cmd.runtest->end_state);
@@ -1910,13 +1910,13 @@ static void cmsis_dap_execute_runtest(struct jtag_command *cmd)
 
 static void cmsis_dap_execute_stableclocks(struct jtag_command *cmd)
 {
-	LOG_DEBUG_IO("stableclocks %i cycles", cmd->cmd.runtest->num_cycles);
+	LOG_DEBUG_IO("stableclocks %u cycles", cmd->cmd.runtest->num_cycles);
 	cmsis_dap_stableclocks(cmd->cmd.runtest->num_cycles);
 }
 
 static void cmsis_dap_execute_tms(struct jtag_command *cmd)
 {
-	LOG_DEBUG_IO("TMS: %d bits", cmd->cmd.tms->num_bits);
+	LOG_DEBUG_IO("TMS: %u bits", cmd->cmd.tms->num_bits);
 	cmsis_dap_cmd_dap_swj_sequence(cmd->cmd.tms->num_bits, cmd->cmd.tms->bits);
 }
 

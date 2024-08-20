@@ -1,24 +1,21 @@
-.TH "OPENOCD" "1" "November 24, 2009"
+.TH "OPENOCD" "1" "June 18, 2024"
 .SH "NAME"
 openocd \- A free and open on\-chip debugging, in\-system programming and
-boundary\-scan testing tool for ARM and MIPS systems
+boundary\-scan testing tool for microcontrollers and other embedded devices
 .SH "SYNOPSIS"
-.B openocd \fR[\fB\-fsdlcphv\fR] [\fB\-\-file\fR <filename>] [\fB\-\-search\fR <dirname>] [\fB\-\-debug\fR <debuglevel>] [\fB\-\-log_output\fR <filename>] [\fB\-\-command\fR <cmd>] [\fB\-\-pipe\fR] [\fB\-\-help\fR] [\fB\-\-version\fR]
+.B openocd \fR[\fB\-fsdlchv\fR] [\fB\-\-file\fR <filename>] [\fB\-\-search\fR <dirname>] [\fB\-\-debug\fR <debuglevel>] [\fB\-\-log_output\fR <filename>] [\fB\-\-command\fR <cmd>] [\fB\-\-help\fR] [\fB\-\-version\fR]
 .SH "DESCRIPTION"
 .B OpenOCD
 is an on\-chip debugging, in\-system programming and boundary\-scan
-testing tool for various ARM and MIPS systems.
+testing tool for various microcontrollers and other embedded devices.
 .PP
-The debugger uses an IEEE 1149\-1 compliant JTAG TAP bus master to access
-on\-chip debug functionality available on ARM based microcontrollers or
-system-on-chip solutions. For MIPS systems the EJTAG interface is supported.
+Various different types of debug adapters as well as transport protocols like
+JTAG and SWD are supported by OpenOCD, please check the \fIopenocd\fR info page
+for the complete list.
 .PP
 User interaction is realized through a telnet command line interface,
 a gdb (the GNU debugger) remote protocol server, and a simplified RPC
 connection that can be used to interface with OpenOCD's Jim Tcl engine.
-.PP
-OpenOCD supports various different types of JTAG interfaces/programmers,
-please check the \fIopenocd\fR info page for the complete list.
 .SH "OPTIONS"
 .TP
 .B "\-f, \-\-file <filename>"
@@ -68,8 +65,6 @@ Note that you will need to explicitly invoke
 .I init
 if the command requires access to a target or flash.
 .TP
-.B "\-p, \-\-pipe"
-Use pipes when talking to gdb.
 .TP
 .B "\-h, \-\-help"
 Show a help text and exit.
@@ -82,8 +77,6 @@ Please report any bugs on the mailing list at
 .SH "LICENCE"
 .B OpenOCD
 is covered by the GNU General Public License (GPL), version 2 or later.
-.SH "SEE ALSO"
-.BR jtag (1)
 .PP
 The full documentation for
 .B openocd
