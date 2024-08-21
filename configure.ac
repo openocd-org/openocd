@@ -402,6 +402,10 @@ AC_ARG_ENABLE([remote-bitbang],
   AS_HELP_STRING([--enable-remote-bitbang], [Enable building support for the Remote Bitbang driver]),
   [build_remote_bitbang=$enableval], [build_remote_bitbang=yes])
 
+AC_ARG_ENABLE([syntacore-extensions],
+  AS_HELP_STRING([--enable-syntacore-extensions], [Enable Syntacore extensions.]),
+  [syntacore_extensions=$enableval], [syntacore_extensions=no])
+
 AS_CASE(["${host_cpu}"],
   [i?86|x86*], [],
   [
@@ -645,6 +649,13 @@ AS_IF([test "x$enable_capstone" == xno], [
 	AC_DEFINE([HAVE_CAPSTONE], [0], [0 if you don't have Capstone disassembly framework.])
 ])
 
+AS_IF([test "x$enable_syntacore_extensions" = xyes], [
+		PKG_CHECK_MODULES([JANSSON], [jansson])
+		AC_DEFINE([SYNTACORE_EXTENSIONS],[1], [1 if SYNTACORE_EXTENSIONS support is included.])
+	], [
+		AC_DEFINE([SYNTACORE_EXTENSIONS],[0], [0 if SYNTACORE_EXTENSIONS support is excluded.])
+])
+
 for hidapi_lib in hidapi hidapi-hidraw hidapi-libusb; do
 	PKG_CHECK_MODULES([HIDAPI],[$hidapi_lib],[
 		use_hidapi=yes
@@ -763,6 +774,8 @@ AM_CONDITIONAL([USE_LIBJAYLINK], [test "x$use_libjaylink" = "xyes"])
 AM_CONDITIONAL([RSHIM], [test "x$build_rshim" = "xyes"])
 AM_CONDITIONAL([DMEM], [test "x$build_dmem" = "xyes"])
 AM_CONDITIONAL([HAVE_CAPSTONE], [test "x$enable_capstone" != "xno"])
+
+AM_CONDITIONAL([SYNTACORE_EXTENSIONS], [test "x$enable_syntacore_extensions" = "xyes"])
 
 AM_CONDITIONAL([HAVE_JIMTCL_PKG_CONFIG], [test "x$have_jimtcl_pkg_config" = "xyes"])
 
