@@ -730,7 +730,7 @@ int riscv_reg_impl_expose_csrs(const struct target *target)
 			struct reg * const reg = riscv_reg_impl_cache_entry(target, regno);
 			const unsigned int csr_number = regno - GDB_REGNO_CSR0;
 			if (reg->exist) {
-				LOG_TARGET_WARNING(target,
+				LOG_TARGET_DEBUG(target,
 						"Not exposing CSR %d: register already exists.",
 						csr_number);
 				continue;
