@@ -2622,7 +2622,7 @@ static const struct command_registration stm32l4_exec_command_handlers[] = {
 		.name = "option_write",
 		.handler = stm32l4_handle_option_write_command,
 		.mode = COMMAND_EXEC,
-		.usage = "bank_id reg_offset value mask",
+		.usage = "bank_id reg_offset value [mask]",
 		.help = "Write device option bit fields with provided value.",
 	},
 	{
