@@ -8075,7 +8075,7 @@ The above example will read out the FLASH_OPTR register which contains the RDP
 option byte, Watchdog configuration, BOR level etc.
 @end deffn
 
-@deffn {Command} {stm32l4x option_write} num reg_offset reg_mask
+@deffn {Command} {stm32l4x option_write} num reg_offset value [reg_mask]
 Write an option byte register of the stm32l4x device.
 The @var{num} parameter is a value shown by @command{flash banks}, @var{reg_offset}
 is the register offset of the Option byte to write, and @var{reg_mask} is the mask
