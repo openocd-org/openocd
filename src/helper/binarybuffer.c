@@ -192,50 +192,12 @@ char *buf_to_hex_str(const void *_buf, unsigned buf_len)
 	return str;
 }
 
-static bool str_has_hex_prefix(const char *s)
-{
-	/* Starts with "0x" or "0X" */
-	return (s[0] == '0') && (s[1] == 'x' || s[1] == 'X');
-}
-
-static bool str_has_octal_prefix(const char *s)
-{
-	/* - starts with '0',
-	 * - has at least two characters, and
-	 * - the second character is not 'x' or 'X' */
-	return (s[0] == '0') && (s[1] != '\0') && (s[1] != 'x') && (s[1] != 'X');
-}
-
-/**
- * Try to identify the radix of the number by looking at its prefix.
- * No further validation of the number is preformed.
+/*
+ * TCL standard prefix is '0b', '0o', '0d' or '0x' respectively for binary,
+ * octal, decimal or hexadecimal.
+ * The prefix '0' is interpreted by TCL <= 8.6 as octal, but is ignored and
+ * interpreted as part of a decimal number by JimTCL and by TCL >= 9.
  */
-static unsigned int str_radix_guess(const char *str)
-{
-	if (str_has_hex_prefix(str))
-		return 16;
-
-	if (str_has_octal_prefix(str))
-		return 8;
-
-	/* Otherwise assume a decimal number. */
-	return 10;
-}
-
-/** Strip leading "0x" or "0X" from hex numbers or "0" from octal numbers. */
-static const char *str_strip_number_prefix(const char *str, unsigned int radix)
-{
-	switch (radix) {
-	case 16:
-		return str + 2;
-	case 8:
-		return str + 1;
-	case 10:
-	default:
-		return str;
-	}
-}
-
 int str_to_buf(const char *str, void *_buf, unsigned int buf_bitsize)
 {
 	assert(str);
@@ -243,9 +205,34 @@ int str_to_buf(const char *str, void *_buf, unsigned int buf_bitsize)
 	assert(buf_bitsize > 0);
 
 	uint8_t *buf = _buf;
-	unsigned int radix = str_radix_guess(str);
+	unsigned int radix = 10; /* default when no prefix */
 
-	str = str_strip_number_prefix(str, radix);
+	if (str[0] == '0') {
+		switch (str[1]) {
+		case 'b':
+		case 'B':
+			radix = 2;
+			str += 2;
+			break;
+		case 'o':
+		case 'O':
+			radix = 8;
+			str += 2;
+			break;
+		case 'd':
+		case 'D':
+			radix = 10;
+			str += 2;
+			break;
+		case 'x':
+		case 'X':
+			radix = 16;
+			str += 2;
+			break;
+		default:
+			break;
+		}
+	}
 
 	const size_t str_len = strlen(str);
 	if (str_len == 0)
