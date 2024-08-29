@@ -254,7 +254,7 @@ static int jtag_vpi_path_move(struct pathmove_command *cmd)
 
 	memset(trans, 0, DIV_ROUND_UP(cmd->num_states, 8));
 
-	for (int i = 0; i < cmd->num_states; i++) {
+	for (unsigned int i = 0; i < cmd->num_states; i++) {
 		if (tap_state_transition(tap_get_state(), true) == cmd->path[i])
 			buf_set_u32(trans, i, 1, 1);
 		tap_set_state(cmd->path[i]);
@@ -440,7 +440,7 @@ static int jtag_vpi_scan(struct scan_command *cmd)
 	return ERROR_OK;
 }
 
-static int jtag_vpi_runtest(int cycles, tap_state_t state)
+static int jtag_vpi_runtest(unsigned int num_cycles, tap_state_t state)
 {
 	int retval;
 
@@ -448,22 +448,20 @@ static int jtag_vpi_runtest(int cycles, tap_state_t state)
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = jtag_vpi_queue_tdi(NULL, cycles, NO_TAP_SHIFT);
+	retval = jtag_vpi_queue_tdi(NULL, num_cycles, NO_TAP_SHIFT);
 	if (retval != ERROR_OK)
 		return retval;
 
 	return jtag_vpi_state_move(state);
 }
 
-static int jtag_vpi_stableclocks(int cycles)
+static int jtag_vpi_stableclocks(unsigned int num_cycles)
 {
 	uint8_t tms_bits[4];
-	int cycles_remain = cycles;
+	unsigned int cycles_remain = num_cycles;
 	int nb_bits;
 	int retval;
-	const int CYCLES_ONE_BATCH = sizeof(tms_bits) * 8;
-
-	assert(cycles >= 0);
+	const unsigned int CYCLES_ONE_BATCH = sizeof(tms_bits) * 8;
 
 	/* use TMS=1 in TAP RESET state, TMS=0 in all other stable states */
 	memset(&tms_bits, (tap_get_state() == TAP_RESET) ? 0xff : 0x00, sizeof(tms_bits));

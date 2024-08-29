@@ -33,7 +33,7 @@
  * this function checks the current stable state to decide on the value of TMS
  * to use.
  */
-static int bitbang_stableclocks(int num_cycles);
+static int bitbang_stableclocks(unsigned int num_cycles);
 
 static void bitbang_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay_clk);
 
@@ -95,7 +95,7 @@ static int bitbang_execute_tms(struct jtag_command *cmd)
 	unsigned num_bits = cmd->cmd.tms->num_bits;
 	const uint8_t *bits = cmd->cmd.tms->bits;
 
-	LOG_DEBUG_IO("TMS: %d bits", num_bits);
+	LOG_DEBUG_IO("TMS: %u bits", num_bits);
 
 	int tms = 0;
 	for (unsigned i = 0; i < num_bits; i++) {
@@ -113,7 +113,7 @@ static int bitbang_execute_tms(struct jtag_command *cmd)
 
 static int bitbang_path_move(struct pathmove_command *cmd)
 {
-	int num_states = cmd->num_states;
+	unsigned int num_states = cmd->num_states;
 	int state_count;
 	int tms = 0;
 
@@ -147,10 +147,8 @@ static int bitbang_path_move(struct pathmove_command *cmd)
 	return ERROR_OK;
 }
 
-static int bitbang_runtest(int num_cycles)
+static int bitbang_runtest(unsigned int num_cycles)
 {
-	int i;
-
 	tap_state_t saved_end_state = tap_get_end_state();
 
 	/* only do a state_move when we're not already in IDLE */
@@ -161,7 +159,7 @@ static int bitbang_runtest(int num_cycles)
 	}
 
 	/* execute num_cycles */
-	for (i = 0; i < num_cycles; i++) {
+	for (unsigned int i = 0; i < num_cycles; i++) {
 		if (bitbang_interface->write(0, 0, 0) != ERROR_OK)
 			return ERROR_FAIL;
 		if (bitbang_interface->write(1, 0, 0) != ERROR_OK)
@@ -179,13 +177,12 @@ static int bitbang_runtest(int num_cycles)
 	return ERROR_OK;
 }
 
-static int bitbang_stableclocks(int num_cycles)
+static int bitbang_stableclocks(unsigned int num_cycles)
 {
 	int tms = (tap_get_state() == TAP_RESET ? 1 : 0);
-	int i;
 
 	/* send num_cycles clocks onto the cable */
-	for (i = 0; i < num_cycles; i++) {
+	for (unsigned int i = 0; i < num_cycles; i++) {
 		if (bitbang_interface->write(1, tms, 0) != ERROR_OK)
 			return ERROR_FAIL;
 		if (bitbang_interface->write(0, tms, 0) != ERROR_OK)
@@ -319,7 +316,7 @@ int bitbang_execute_queue(struct jtag_command *cmd_queue)
 	while (cmd) {
 		switch (cmd->type) {
 			case JTAG_RUNTEST:
-				LOG_DEBUG_IO("runtest %i cycles, end in %s",
+				LOG_DEBUG_IO("runtest %u cycles, end in %s",
 						cmd->cmd.runtest->num_cycles,
 						tap_state_name(cmd->cmd.runtest->end_state));
 				bitbang_end_state(cmd->cmd.runtest->end_state);
@@ -343,7 +340,7 @@ int bitbang_execute_queue(struct jtag_command *cmd_queue)
 					return ERROR_FAIL;
 				break;
 			case JTAG_PATHMOVE:
-				LOG_DEBUG_IO("pathmove: %i states, end in %s",
+				LOG_DEBUG_IO("pathmove: %u states, end in %s",
 						cmd->cmd.pathmove->num_states,
 						tap_state_name(cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]));
 				if (bitbang_path_move(cmd->cmd.pathmove) != ERROR_OK)

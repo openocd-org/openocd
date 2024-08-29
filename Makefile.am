@@ -50,6 +50,8 @@ AM_CPPFLAGS = $(HOST_CPPFLAGS)\
 if INTERNAL_JIMTCL
 AM_CPPFLAGS += -I$(top_srcdir)/jimtcl \
 			   -I$(top_builddir)/jimtcl
+else
+AM_CPPFLAGS += $(JIMTCL_CFLAGS)
 endif
 EXTRA_DIST += \
 	BUGS \

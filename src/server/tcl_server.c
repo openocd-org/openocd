@@ -323,29 +323,40 @@ COMMAND_HANDLER(handle_tcl_trace_command)
 	}
 }
 
-static const struct command_registration tcl_command_handlers[] = {
+static const struct command_registration tcl_subcommand_handlers[] = {
 	{
-		.name = "tcl_port",
+		.name = "port",
 		.handler = handle_tcl_port_command,
 		.mode = COMMAND_CONFIG,
 		.help = "Specify port on which to listen "
 			"for incoming Tcl syntax.  "
-			"Read help on 'gdb_port'.",
+			"Read help on 'gdb port'.",
 		.usage = "[port_num]",
 	},
 	{
-		.name = "tcl_notifications",
+		.name = "notifications",
 		.handler = handle_tcl_notifications_command,
 		.mode = COMMAND_EXEC,
 		.help = "Target Notification output",
 		.usage = "[on|off]",
 	},
 	{
-		.name = "tcl_trace",
+		.name = "trace",
 		.handler = handle_tcl_trace_command,
 		.mode = COMMAND_EXEC,
 		.help = "Target trace output",
 		.usage = "[on|off]",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+static const struct command_registration tcl_command_handlers[] = {
+	{
+		.name = "tcl",
+		.mode = COMMAND_ANY,
+		.help = "tcl command group",
+		.usage = "",
+		.chain = tcl_subcommand_handlers,
 	},
 	COMMAND_REGISTRATION_DONE
 };

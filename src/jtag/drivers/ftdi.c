@@ -383,10 +383,9 @@ static void ftdi_end_state(tap_state_t state)
 
 static void ftdi_execute_runtest(struct jtag_command *cmd)
 {
-	int i;
-	static const uint8_t zero;
+	uint8_t zero = 0;
 
-	LOG_DEBUG_IO("runtest %i cycles, end in %s",
+	LOG_DEBUG_IO("runtest %u cycles, end in %s",
 		cmd->cmd.runtest->num_cycles,
 		tap_state_name(cmd->cmd.runtest->end_state));
 
@@ -394,7 +393,7 @@ static void ftdi_execute_runtest(struct jtag_command *cmd)
 		move_to_state(TAP_IDLE);
 
 	/* TODO: Reuse ftdi_execute_stableclocks */
-	i = cmd->cmd.runtest->num_cycles;
+	unsigned int i = cmd->cmd.runtest->num_cycles;
 	while (i > 0) {
 		/* there are no state transitions in this code, so omit state tracking */
 		unsigned this_len = i > 7 ? 7 : i;
@@ -407,7 +406,7 @@ static void ftdi_execute_runtest(struct jtag_command *cmd)
 	if (tap_get_state() != tap_get_end_state())
 		move_to_state(tap_get_end_state());
 
-	LOG_DEBUG_IO("runtest: %i, end in %s",
+	LOG_DEBUG_IO("runtest: %u, end in %s",
 		cmd->cmd.runtest->num_cycles,
 		tap_state_name(tap_get_end_state()));
 }
@@ -430,7 +429,7 @@ static void ftdi_execute_statemove(struct jtag_command *cmd)
  */
 static void ftdi_execute_tms(struct jtag_command *cmd)
 {
-	LOG_DEBUG_IO("TMS: %d bits", cmd->cmd.tms->num_bits);
+	LOG_DEBUG_IO("TMS: %u bits", cmd->cmd.tms->num_bits);
 
 	/* TODO: Missing tap state tracking, also missing from ft2232.c! */
 	DO_CLOCK_TMS_CS_OUT(mpsse_ctx,
@@ -444,9 +443,9 @@ static void ftdi_execute_tms(struct jtag_command *cmd)
 static void ftdi_execute_pathmove(struct jtag_command *cmd)
 {
 	tap_state_t *path = cmd->cmd.pathmove->path;
-	int num_states  = cmd->cmd.pathmove->num_states;
+	unsigned int num_states  = cmd->cmd.pathmove->num_states;
 
-	LOG_DEBUG_IO("pathmove: %i states, current: %s  end: %s", num_states,
+	LOG_DEBUG_IO("pathmove: %u states, current: %s  end: %s", num_states,
 		tap_state_name(tap_get_state()),
 		tap_state_name(path[num_states-1]));
 
@@ -504,7 +503,7 @@ static void ftdi_execute_scan(struct jtag_command *cmd)
 		LOG_DEBUG_IO("discarding trailing empty field");
 	}
 
-	if (cmd->cmd.scan->num_fields == 0) {
+	if (!cmd->cmd.scan->num_fields) {
 		LOG_DEBUG_IO("empty scan, doing nothing");
 		return;
 	}
@@ -522,9 +521,9 @@ static void ftdi_execute_scan(struct jtag_command *cmd)
 	struct scan_field *field = cmd->cmd.scan->fields;
 	unsigned scan_size = 0;
 
-	for (int i = 0; i < cmd->cmd.scan->num_fields; i++, field++) {
+	for (unsigned int i = 0; i < cmd->cmd.scan->num_fields; i++, field++) {
 		scan_size += field->num_bits;
-		LOG_DEBUG_IO("%s%s field %d/%d %d bits",
+		LOG_DEBUG_IO("%s%s field %u/%u %u bits",
 			field->in_value ? "in" : "",
 			field->out_value ? "out" : "",
 			i,
@@ -644,7 +643,7 @@ static void ftdi_execute_stableclocks(struct jtag_command *cmd)
 	/* this is only allowed while in a stable state.  A check for a stable
 	 * state was done in jtag_add_clocks()
 	 */
-	int num_cycles = cmd->cmd.stableclocks->num_cycles;
+	unsigned int num_cycles = cmd->cmd.stableclocks->num_cycles;
 
 	/* 7 bits of either ones or zeros. */
 	uint8_t tms = tap_get_state() == TAP_RESET ? 0x7f : 0x00;
@@ -658,7 +657,7 @@ static void ftdi_execute_stableclocks(struct jtag_command *cmd)
 		num_cycles -= this_len;
 	}
 
-	LOG_DEBUG_IO("clocks %i while in %s",
+	LOG_DEBUG_IO("clocks %u while in %s",
 		cmd->cmd.stableclocks->num_cycles,
 		tap_state_name(tap_get_state()));
 }

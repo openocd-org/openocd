@@ -869,7 +869,7 @@ static void rlink_state_move(void)
 
 static void rlink_path_move(struct pathmove_command *cmd)
 {
-	int num_states = cmd->num_states;
+	unsigned int num_states = cmd->num_states;
 	int state_count;
 	int tms = 0;
 
@@ -896,10 +896,8 @@ static void rlink_path_move(struct pathmove_command *cmd)
 	tap_set_end_state(tap_get_state());
 }
 
-static void rlink_runtest(int num_cycles)
+static void rlink_runtest(unsigned int num_cycles)
 {
-	int i;
-
 	tap_state_t saved_end_state = tap_get_end_state();
 
 	/* only do a state_move when we're not already in RTI */
@@ -909,7 +907,7 @@ static void rlink_runtest(int num_cycles)
 	}
 
 	/* execute num_cycles */
-	for (i = 0; i < num_cycles; i++)
+	for (unsigned int i = 0; i < num_cycles; i++)
 		tap_state_queue_append(0);
 
 	/* finish in end_state */
@@ -1323,7 +1321,7 @@ static int rlink_execute_queue(struct jtag_command *cmd_queue)
 				rlink_state_move();
 				break;
 			case JTAG_PATHMOVE:
-				LOG_DEBUG_IO("pathmove: %i states, end in %i",
+				LOG_DEBUG_IO("pathmove: %u states, end in %i",
 						cmd->cmd.pathmove->num_states,
 						cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]);
 				rlink_path_move(cmd->cmd.pathmove);

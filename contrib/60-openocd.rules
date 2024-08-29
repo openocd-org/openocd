@@ -29,6 +29,27 @@ ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6014", MODE="660", GROUP="plugdev", 
 # Original FT231XQ VID:PID
 ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6015", MODE="660", GROUP="plugdev", TAG+="uaccess"
 
+# Original FT2233HP VID:PID
+ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6040", MODE="660", GROUP="plugdev", TAG+="uaccess"
+
+# Original FT4233HP VID:PID
+ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6041", MODE="660", GROUP="plugdev", TAG+="uaccess"
+
+# Original FT2232HP VID:PID
+ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6042", MODE="660", GROUP="plugdev", TAG+="uaccess"
+
+# Original FT4232HP VID:PID
+ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6043", MODE="660", GROUP="plugdev", TAG+="uaccess"
+
+# Original FT233HP VID:PID
+ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6044", MODE="660", GROUP="plugdev", TAG+="uaccess"
+
+# Original FT232HP VID:PID
+ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6045", MODE="660", GROUP="plugdev", TAG+="uaccess"
+
+# Original FT4232HA VID:PID
+ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6048", MODE="660", GROUP="plugdev", TAG+="uaccess"
+
 # DISTORTEC JTAG-lock-pick Tiny 2
 ATTRS{idVendor}=="0403", ATTRS{idProduct}=="8220", MODE="660", GROUP="plugdev", TAG+="uaccess"
 

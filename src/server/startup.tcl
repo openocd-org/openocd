@@ -41,3 +41,75 @@ proc _telnet_autocomplete_helper pattern {
 
 	return [lsort $cmds]
 }
+
+lappend _telnet_autocomplete_skip "gdb_sync"
+proc "gdb_sync" {} {
+	echo "DEPRECATED! use 'gdb sync', not 'gdb_sync'"
+	eval gdb sync
+}
+
+lappend _telnet_autocomplete_skip "gdb_port"
+proc "gdb_port" {args} {
+	echo "DEPRECATED! use 'gdb port', not 'gdb_port'"
+	eval gdb port $args
+}
+
+lappend _telnet_autocomplete_skip "gdb_memory_map"
+proc "gdb_memory_map" {state} {
+	echo "DEPRECATED! use 'gdb memory_map', not 'gdb_memory_map'"
+	eval gdb memory_map $state
+}
+
+lappend _telnet_autocomplete_skip "gdb_flash_program"
+proc "gdb_flash_program" {state} {
+	echo "DEPRECATED! use 'gdb flash_program', not 'gdb_flash_program'"
+	eval gdb flash_program $state
+}
+
+lappend _telnet_autocomplete_skip "gdb_report_data_abort"
+proc "gdb_report_data_abort" {state} {
+	echo "DEPRECATED! use 'gdb report_data_abort', not 'gdb_report_data_abort'"
+	eval gdb report_data_abort $state
+}
+
+lappend _telnet_autocomplete_skip "gdb_report_register_access_error"
+proc "gdb_report_register_access_error" {state} {
+	echo "DEPRECATED! use 'gdb report_register_access_error', not 'gdb_report_register_access_error'"
+	eval gdb report_register_access_error $state
+}
+
+lappend _telnet_autocomplete_skip "gdb_breakpoint_override"
+proc "gdb_breakpoint_override" {override} {
+	echo "DEPRECATED! use 'gdb breakpoint_override', not 'gdb_breakpoint_override'"
+	eval gdb breakpoint_override $override
+}
+
+lappend _telnet_autocomplete_skip "gdb_target_description"
+proc "gdb_target_description" {state} {
+	echo "DEPRECATED! use 'gdb target_description', not 'gdb_target_description'"
+	eval gdb target_description $state
+}
+
+lappend _telnet_autocomplete_skip "gdb_save_tdesc"
+proc "gdb_save_tdesc" {} {
+	echo "DEPRECATED! use 'gdb save_tdesc', not 'gdb_save_tdesc'"
+	eval gdb save_tdesc
+}
+
+lappend _telnet_autocomplete_skip "tcl_port"
+proc "tcl_port" {args} {
+	echo "DEPRECATED! use 'tcl port' not 'tcl_port'"
+	eval tcl port $args
+}
+
+lappend _telnet_autocomplete_skip "tcl_notifications"
+proc "tcl_notifications" {state} {
+	echo "DEPRECATED! use 'tcl notifications' not 'tcl_notifications'"
+	eval tcl notifications $state
+}
+
+lappend _telnet_autocomplete_skip "tcl_trace"
+proc "tcl_trace" {state} {
+	echo "DEPRECATED! use 'tcl trace' not 'tcl_trace'"
+	eval tcl trace $state
+}

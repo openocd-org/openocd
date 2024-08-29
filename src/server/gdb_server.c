@@ -1599,7 +1599,7 @@ static int gdb_read_memory_packet(struct connection *connection,
 		 * cmd = view%20audit-trail&database = gdb&pr = 2395
 		 *
 		 * For now, the default is to fix up things to make current GDB versions work.
-		 * This can be overwritten using the gdb_report_data_abort <'enable'|'disable'> command.
+		 * This can be overwritten using the "gdb report_data_abort <'enable'|'disable'>" command.
 		 */
 		memset(buffer, 0, len);
 		retval = ERROR_OK;
@@ -4034,7 +4034,7 @@ COMMAND_HANDLER(handle_gdb_sync_command)
 
 	if (!current_gdb_connection) {
 		command_print(CMD,
-			"gdb_sync command can only be run from within gdb using \"monitor gdb_sync\"");
+			"gdb sync command can only be run from within gdb using \"monitor gdb sync\"");
 		return ERROR_FAIL;
 	}
 
@@ -4043,7 +4043,6 @@ COMMAND_HANDLER(handle_gdb_sync_command)
 	return ERROR_OK;
 }
 
-/* daemon configuration command gdb_port */
 COMMAND_HANDLER(handle_gdb_port_command)
 {
 	int retval = CALL_COMMAND_HANDLER(server_pipe_command, &gdb_port);
@@ -4090,7 +4089,6 @@ COMMAND_HANDLER(handle_gdb_report_register_access_error)
 	return ERROR_OK;
 }
 
-/* gdb_breakpoint_override */
 COMMAND_HANDLER(handle_gdb_breakpoint_override_command)
 {
 	if (CMD_ARGC == 0) {
@@ -4167,9 +4165,9 @@ out:
 	return retval;
 }
 
-static const struct command_registration gdb_command_handlers[] = {
+static const struct command_registration gdb_subcommand_handlers[] = {
 	{
-		.name = "gdb_sync",
+		.name = "sync",
 		.handler = handle_gdb_sync_command,
 		.mode = COMMAND_ANY,
 		.help = "next stepi will return immediately allowing "
@@ -4178,7 +4176,7 @@ static const struct command_registration gdb_command_handlers[] = {
 		.usage = ""
 	},
 	{
-		.name = "gdb_port",
+		.name = "port",
 		.handler = handle_gdb_port_command,
 		.mode = COMMAND_CONFIG,
 		.help = "Normally gdb listens to a TCP/IP port. Each subsequent GDB "
@@ -4191,35 +4189,35 @@ static const struct command_registration gdb_command_handlers[] = {
 		.usage = "[port_num]",
 	},
 	{
-		.name = "gdb_memory_map",
+		.name = "memory_map",
 		.handler = handle_gdb_memory_map_command,
 		.mode = COMMAND_CONFIG,
 		.help = "enable or disable memory map",
 		.usage = "('enable'|'disable')"
 	},
 	{
-		.name = "gdb_flash_program",
+		.name = "flash_program",
 		.handler = handle_gdb_flash_program_command,
 		.mode = COMMAND_CONFIG,
 		.help = "enable or disable flash program",
 		.usage = "('enable'|'disable')"
 	},
 	{
-		.name = "gdb_report_data_abort",
+		.name = "report_data_abort",
 		.handler = handle_gdb_report_data_abort_command,
 		.mode = COMMAND_CONFIG,
 		.help = "enable or disable reporting data aborts",
 		.usage = "('enable'|'disable')"
 	},
 	{
-		.name = "gdb_report_register_access_error",
+		.name = "report_register_access_error",
 		.handler = handle_gdb_report_register_access_error,
 		.mode = COMMAND_CONFIG,
 		.help = "enable or disable reporting register access errors",
 		.usage = "('enable'|'disable')"
 	},
 	{
-		.name = "gdb_breakpoint_override",
+		.name = "breakpoint_override",
 		.handler = handle_gdb_breakpoint_override_command,
 		.mode = COMMAND_ANY,
 		.help = "Display or specify type of breakpoint "
@@ -4227,17 +4225,28 @@ static const struct command_registration gdb_command_handlers[] = {
 		.usage = "('hard'|'soft'|'disable')"
 	},
 	{
-		.name = "gdb_target_description",
+		.name = "target_description",
 		.handler = handle_gdb_target_description_command,
 		.mode = COMMAND_CONFIG,
 		.help = "enable or disable target description",
 		.usage = "('enable'|'disable')"
 	},
 	{
-		.name = "gdb_save_tdesc",
+		.name = "save_tdesc",
 		.handler = handle_gdb_save_tdesc_command,
 		.mode = COMMAND_EXEC,
 		.help = "Save the target description file",
+		.usage = "",
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
+static const struct command_registration gdb_command_handlers[] = {
+	{
+		.name = "gdb",
+		.mode = COMMAND_ANY,
+		.help = "GDB commands",
+		.chain = gdb_subcommand_handlers,
 		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE

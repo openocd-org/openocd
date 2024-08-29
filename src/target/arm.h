@@ -58,11 +58,12 @@ enum arm_arch {
 	ARM_ARCH_V8M,
 };
 
-/** Known ARM implementor IDs */
-enum arm_implementor {
-	ARM_IMPLEMENTOR_ARM = 0x41,
-	ARM_IMPLEMENTOR_INFINEON = 0x49,
-	ARM_IMPLEMENTOR_REALTEK = 0x72,
+/** Known ARM implementer IDs */
+enum arm_implementer {
+	ARM_IMPLEMENTER_ARM = 0x41,
+	ARM_IMPLEMENTER_INFINEON = 0x49,
+	ARM_IMPLEMENTER_ARM_CHINA = 0x63,
+	ARM_IMPLEMENTER_REALTEK = 0x72,
 };
 
 /**

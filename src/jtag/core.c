@@ -39,7 +39,7 @@
 #include "server/ipdbg.h"
 
 /** The number of JTAG queue flushes (for profiling and debugging purposes). */
-static int jtag_flush_queue_count;
+static unsigned int jtag_flush_queue_count;
 
 /* Sleep this # of ms after flushing the queue */
 static int jtag_flush_queue_sleep;
@@ -88,14 +88,14 @@ static enum reset_types jtag_reset_config = RESET_NONE;
 tap_state_t cmd_queue_cur_state = TAP_RESET;
 
 static bool jtag_verify_capture_ir = true;
-static int jtag_verify = 1;
+static bool jtag_verify = true;
 
 /* how long the OpenOCD should wait before attempting JTAG communication after reset lines
  *deasserted (in ms) */
-static int adapter_nsrst_delay;	/* default to no nSRST delay */
-static int jtag_ntrst_delay;/* default to no nTRST delay */
-static int adapter_nsrst_assert_width;	/* width of assertion */
-static int jtag_ntrst_assert_width;	/* width of assertion */
+static unsigned int adapter_nsrst_delay;	/* default to no nSRST delay */
+static unsigned int jtag_ntrst_delay;/* default to no nTRST delay */
+static unsigned int adapter_nsrst_assert_width;	/* width of assertion */
+static unsigned int jtag_ntrst_assert_width;	/* width of assertion */
 
 /**
  * Contains a single callback along with a pointer that will be passed
@@ -186,10 +186,10 @@ struct jtag_tap *jtag_all_taps(void)
 	return __jtag_all_taps;
 };
 
-unsigned jtag_tap_count(void)
+unsigned int jtag_tap_count(void)
 {
 	struct jtag_tap *t = jtag_all_taps();
-	unsigned n = 0;
+	unsigned int n = 0;
 	while (t) {
 		n++;
 		t = t->next_tap;
@@ -197,10 +197,10 @@ unsigned jtag_tap_count(void)
 	return n;
 }
 
-unsigned jtag_tap_count_enabled(void)
+unsigned int jtag_tap_count_enabled(void)
 {
 	struct jtag_tap *t = jtag_all_taps();
-	unsigned n = 0;
+	unsigned int n = 0;
 	while (t) {
 		if (t->enabled)
 			n++;
@@ -212,7 +212,7 @@ unsigned jtag_tap_count_enabled(void)
 /** Append a new TAP to the chain of all taps. */
 static void jtag_tap_add(struct jtag_tap *t)
 {
-	unsigned jtag_num_taps = 0;
+	unsigned int jtag_num_taps = 0;
 
 	struct jtag_tap **tap = &__jtag_all_taps;
 	while (*tap) {
@@ -499,7 +499,7 @@ void jtag_add_tlr(void)
  *
  * @todo Update naming conventions to stop assuming everything is JTAG.
  */
-int jtag_add_tms_seq(unsigned nbits, const uint8_t *seq, enum tap_state state)
+int jtag_add_tms_seq(unsigned int nbits, const uint8_t *seq, enum tap_state state)
 {
 	int retval;
 
@@ -514,7 +514,7 @@ int jtag_add_tms_seq(unsigned nbits, const uint8_t *seq, enum tap_state state)
 	return retval;
 }
 
-void jtag_add_pathmove(int num_states, const tap_state_t *path)
+void jtag_add_pathmove(unsigned int num_states, const tap_state_t *path)
 {
 	tap_state_t cur_state = cmd_queue_cur_state;
 
@@ -525,7 +525,7 @@ void jtag_add_pathmove(int num_states, const tap_state_t *path)
 		return;
 	}
 
-	for (int i = 0; i < num_states; i++) {
+	for (unsigned int i = 0; i < num_states; i++) {
 		if (path[i] == TAP_RESET) {
 			LOG_ERROR("BUG: TAP_RESET is not a valid state for pathmove sequences");
 			jtag_set_error(ERROR_JTAG_STATE_INVALID);
@@ -567,12 +567,12 @@ int jtag_add_statemove(tap_state_t goal_state)
 		/* nothing to do */;
 
 	else if (tap_is_state_stable(cur_state) && tap_is_state_stable(goal_state)) {
-		unsigned tms_bits  = tap_get_tms_path(cur_state, goal_state);
-		unsigned tms_count = tap_get_tms_path_len(cur_state, goal_state);
+		unsigned int tms_bits  = tap_get_tms_path(cur_state, goal_state);
+		unsigned int tms_count = tap_get_tms_path_len(cur_state, goal_state);
 		tap_state_t moves[8];
 		assert(tms_count < ARRAY_SIZE(moves));
 
-		for (unsigned i = 0; i < tms_count; i++, tms_bits >>= 1) {
+		for (unsigned int i = 0; i < tms_count; i++, tms_bits >>= 1) {
 			bool bit = tms_bits & 1;
 
 			cur_state = tap_state_transition(cur_state, bit);
@@ -589,14 +589,14 @@ int jtag_add_statemove(tap_state_t goal_state)
 	return ERROR_OK;
 }
 
-void jtag_add_runtest(int num_cycles, tap_state_t state)
+void jtag_add_runtest(unsigned int num_cycles, tap_state_t state)
 {
 	jtag_prelude(state);
 	jtag_set_error(interface_jtag_add_runtest(num_cycles, state));
 }
 
 
-void jtag_add_clocks(int num_cycles)
+void jtag_add_clocks(unsigned int num_cycles)
 {
 	if (!tap_is_state_stable(cmd_queue_cur_state)) {
 		LOG_ERROR("jtag_add_clocks() called with TAP in unstable state \"%s\"",
@@ -960,16 +960,16 @@ int default_interface_jtag_execute_queue(void)
 				LOG_DEBUG_IO("JTAG %s SCAN to %s",
 						cmd->cmd.scan->ir_scan ? "IR" : "DR",
 						tap_state_name(cmd->cmd.scan->end_state));
-				for (int i = 0; i < cmd->cmd.scan->num_fields; i++) {
+				for (unsigned int i = 0; i < cmd->cmd.scan->num_fields; i++) {
 					struct scan_field *field = cmd->cmd.scan->fields + i;
 					if (field->out_value) {
 						char *str = buf_to_hex_str(field->out_value, field->num_bits);
-						LOG_DEBUG_IO("  %db out: %s", field->num_bits, str);
+						LOG_DEBUG_IO("  %ub out: %s", field->num_bits, str);
 						free(str);
 					}
 					if (field->in_value) {
 						char *str = buf_to_hex_str(field->in_value, field->num_bits);
-						LOG_DEBUG_IO("  %db  in: %s", field->num_bits, str);
+						LOG_DEBUG_IO("  %ub  in: %s", field->num_bits, str);
 						free(str);
 					}
 				}
@@ -1029,7 +1029,7 @@ void jtag_execute_queue_noclear(void)
 	}
 }
 
-int jtag_get_flush_queue_count(void)
+unsigned int jtag_get_flush_queue_count(void)
 {
 	return jtag_flush_queue_count;
 }
@@ -1081,7 +1081,7 @@ void jtag_sleep(uint32_t us)
 /* a larger IR length than we ever expect to autoprobe */
 #define JTAG_IRLEN_MAX          60
 
-static int jtag_examine_chain_execute(uint8_t *idcode_buffer, unsigned num_idcode)
+static int jtag_examine_chain_execute(uint8_t *idcode_buffer, unsigned int num_idcode)
 {
 	struct scan_field field = {
 		.num_bits = num_idcode * 32,
@@ -1090,7 +1090,7 @@ static int jtag_examine_chain_execute(uint8_t *idcode_buffer, unsigned num_idcod
 	};
 
 	/* initialize to the end of chain ID value */
-	for (unsigned i = 0; i < num_idcode; i++)
+	for (unsigned int i = 0; i < num_idcode; i++)
 		buf_set_u32(idcode_buffer, i * 32, 32, END_OF_CHAIN_FLAG);
 
 	jtag_add_plain_dr_scan(field.num_bits, field.out_value, field.in_value, TAP_DRPAUSE);
@@ -1098,12 +1098,12 @@ static int jtag_examine_chain_execute(uint8_t *idcode_buffer, unsigned num_idcod
 	return jtag_execute_queue();
 }
 
-static bool jtag_examine_chain_check(uint8_t *idcodes, unsigned count)
+static bool jtag_examine_chain_check(uint8_t *idcodes, unsigned int count)
 {
 	uint8_t zero_check = 0x0;
 	uint8_t one_check = 0xff;
 
-	for (unsigned i = 0; i < count * 4; i++) {
+	for (unsigned int i = 0; i < count * 4; i++) {
 		zero_check |= idcodes[i];
 		one_check &= idcodes[i];
 	}
@@ -1158,7 +1158,8 @@ static bool jtag_idcode_is_final(uint32_t idcode)
  * with the JTAG chain earlier, gives more helpful/explicit error messages.
  * Returns TRUE iff garbage was found.
  */
-static bool jtag_examine_chain_end(uint8_t *idcodes, unsigned count, unsigned max)
+static bool jtag_examine_chain_end(uint8_t *idcodes, unsigned int count,
+	unsigned int max)
 {
 	bool triggered = false;
 	for (; count < max - 31; count += 32) {
@@ -1185,26 +1186,26 @@ static bool jtag_examine_chain_match_tap(const struct jtag_tap *tap)
 	uint32_t idcode = tap->idcode & mask;
 
 	/* Loop over the expected identification codes and test for a match */
-	for (unsigned ii = 0; ii < tap->expected_ids_cnt; ii++) {
-		uint32_t expected = tap->expected_ids[ii] & mask;
+	for (unsigned int i = 0; i < tap->expected_ids_cnt; i++) {
+		uint32_t expected = tap->expected_ids[i] & mask;
 
 		if (idcode == expected)
 			return true;
 
 		/* treat "-expected-id 0" as a "don't-warn" wildcard */
-		if (tap->expected_ids[ii] == 0)
+		if (tap->expected_ids[i] == 0)
 			return true;
 	}
 
 	/* If none of the expected ids matched, warn */
 	jtag_examine_chain_display(LOG_LVL_WARNING, "UNEXPECTED",
 		tap->dotted_name, tap->idcode);
-	for (unsigned ii = 0; ii < tap->expected_ids_cnt; ii++) {
+	for (unsigned int i = 0; i < tap->expected_ids_cnt; i++) {
 		char msg[32];
 
-		snprintf(msg, sizeof(msg), "expected %u of %u", ii + 1, tap->expected_ids_cnt);
+		snprintf(msg, sizeof(msg), "expected %u of %u", i + 1, tap->expected_ids_cnt);
 		jtag_examine_chain_display(LOG_LVL_ERROR, msg,
-			tap->dotted_name, tap->expected_ids[ii]);
+			tap->dotted_name, tap->expected_ids[i]);
 	}
 	return false;
 }
@@ -1215,7 +1216,7 @@ static bool jtag_examine_chain_match_tap(const struct jtag_tap *tap)
 static int jtag_examine_chain(void)
 {
 	int retval;
-	unsigned max_taps = jtag_tap_count();
+	unsigned int max_taps = jtag_tap_count();
 
 	/* Autoprobe up to this many. */
 	if (max_taps < JTAG_MAX_AUTO_TAPS)
@@ -1243,9 +1244,9 @@ static int jtag_examine_chain(void)
 	/* Point at the 1st predefined tap, if any */
 	struct jtag_tap *tap = jtag_tap_next_enabled(NULL);
 
-	unsigned bit_count = 0;
-	unsigned autocount = 0;
-	for (unsigned i = 0; i < max_taps; i++) {
+	unsigned int bit_count = 0;
+	unsigned int autocount = 0;
+	for (unsigned int i = 0; i < max_taps; i++) {
 		assert(bit_count < max_taps * 32);
 		uint32_t idcode = buf_get_u32(idcode_buffer, bit_count, 32);
 
@@ -1337,7 +1338,7 @@ static int jtag_validate_ircapture(void)
 	int retval;
 
 	/* when autoprobing, accommodate huge IR lengths */
-	int total_ir_length = 0;
+	unsigned int total_ir_length = 0;
 	for (tap = jtag_tap_next_enabled(NULL); tap; tap = jtag_tap_next_enabled(tap)) {
 		if (tap->ir_length == 0)
 			total_ir_length += JTAG_IRLEN_MAX;
@@ -1396,7 +1397,7 @@ static int jtag_validate_ircapture(void)
 					&& tap->ir_length < JTAG_IRLEN_MAX) {
 				tap->ir_length++;
 			}
-			LOG_WARNING("AUTO %s - use \"jtag newtap %s %s -irlen %d "
+			LOG_WARNING("AUTO %s - use \"jtag newtap %s %s -irlen %u "
 					"-expected-id 0x%08" PRIx32 "\"",
 					tap->dotted_name, tap->chip, tap->tapname, tap->ir_length, tap->idcode);
 		}
@@ -1445,8 +1446,8 @@ done:
 
 void jtag_tap_init(struct jtag_tap *tap)
 {
-	unsigned ir_len_bits;
-	unsigned ir_len_bytes;
+	unsigned int ir_len_bits;
+	unsigned int ir_len_bytes;
 
 	/* if we're autoprobing, cope with potentially huge ir_length */
 	ir_len_bits = tap->ir_length ? tap->ir_length : JTAG_IRLEN_MAX;
@@ -1471,8 +1472,8 @@ void jtag_tap_init(struct jtag_tap *tap)
 	jtag_register_event_callback(&jtag_reset_callback, tap);
 	jtag_tap_add(tap);
 
-	LOG_DEBUG("Created Tap: %s @ abs position %d, "
-			"irlen %d, capture: 0x%x mask: 0x%x", tap->dotted_name,
+	LOG_DEBUG("Created Tap: %s @ abs position %u, "
+			"irlen %u, capture: 0x%x mask: 0x%x", tap->dotted_name,
 			tap->abs_chain_position, tap->ir_length,
 			(unsigned) tap->ir_capture_value,
 			(unsigned) tap->ir_capture_mask);
@@ -1749,37 +1750,36 @@ int jtag_get_srst(void)
 	return jtag_srst == 1;
 }
 
-void jtag_set_nsrst_delay(unsigned delay)
+void jtag_set_nsrst_delay(unsigned int delay)
 {
 	adapter_nsrst_delay = delay;
 }
-unsigned jtag_get_nsrst_delay(void)
+unsigned int jtag_get_nsrst_delay(void)
 {
 	return adapter_nsrst_delay;
 }
-void jtag_set_ntrst_delay(unsigned delay)
+void jtag_set_ntrst_delay(unsigned int delay)
 {
 	jtag_ntrst_delay = delay;
 }
-unsigned jtag_get_ntrst_delay(void)
+unsigned int jtag_get_ntrst_delay(void)
 {
 	return jtag_ntrst_delay;
 }
 
-
-void jtag_set_nsrst_assert_width(unsigned delay)
+void jtag_set_nsrst_assert_width(unsigned int delay)
 {
 	adapter_nsrst_assert_width = delay;
 }
-unsigned jtag_get_nsrst_assert_width(void)
+unsigned int jtag_get_nsrst_assert_width(void)
 {
 	return adapter_nsrst_assert_width;
 }
-void jtag_set_ntrst_assert_width(unsigned delay)
+void jtag_set_ntrst_assert_width(unsigned int delay)
 {
 	jtag_ntrst_assert_width = delay;
 }
-unsigned jtag_get_ntrst_assert_width(void)
+unsigned int jtag_get_ntrst_assert_width(void)
 {
 	return jtag_ntrst_assert_width;
 }

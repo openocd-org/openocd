@@ -8,9 +8,7 @@
  * identification code list, please visit the JEDEC website at www.jedec.org .
  */
 
-/* This file is aligned to revision JEP106BI January 2024. */
-
-/* "NXP (Philips)" is reported below, while missing since JEP106BG */
+/* This file is aligned to revision JEP106BJ.01 July 2024. */
 
 [0][0x01 - 1] = "AMD",
 [0][0x02 - 1] = "AMI",
@@ -30,7 +28,7 @@
 [0][0x10 - 1] = "NEC",
 [0][0x11 - 1] = "RCA",
 [0][0x12 - 1] = "Raytheon",
-[0][0x13 - 1] = "Conexant (Rockwell)",
+[0][0x13 - 1] = "Synaptics",
 [0][0x14 - 1] = "Seeq",
 [0][0x15 - 1] = "NXP (Philips)",
 [0][0x16 - 1] = "Synertek",
@@ -1045,7 +1043,7 @@
 [8][0x17 - 1] = "Axell Corporation",
 [8][0x18 - 1] = "Essencore Limited",
 [8][0x19 - 1] = "Phytium",
-[8][0x1a - 1] = "Xi'an UniIC Semiconductors Co Ltd",
+[8][0x1a - 1] = "UniIC Semiconductors Co Ltd",
 [8][0x1b - 1] = "Ambiq Micro",
 [8][0x1c - 1] = "eveRAM Technology Inc",
 [8][0x1d - 1] = "Infomax",
@@ -1452,7 +1450,7 @@
 [11][0x34 - 1] = "Acacia Communications",
 [11][0x35 - 1] = "Beijinjinshengyihe Technology Co Ltd",
 [11][0x36 - 1] = "Zyzyx",
-[11][0x37 - 1] = "T-HEAD Semiconductor Co Ltd",
+[11][0x37 - 1] = "C-SKY Microsystems Co Ltd",
 [11][0x38 - 1] = "Shenzhen Hystou Technology Co Ltd",
 [11][0x39 - 1] = "Syzexion",
 [11][0x3a - 1] = "Kembona",
@@ -1938,4 +1936,31 @@
 [15][0x22 - 1] = "SkyeChip",
 [15][0x23 - 1] = "Guangzhou Kaishile Trading Co Ltd",
 [15][0x24 - 1] = "Jing Pai Digital Technology (Shenzhen) Co",
+[15][0x25 - 1] = "Memoritek",
+[15][0x26 - 1] = "Zhejiang Hikstor Technology Co Ltd",
+[15][0x27 - 1] = "Memoritek PTE Ltd",
+[15][0x28 - 1] = "Longsailing Semiconductor Co Ltd",
+[15][0x29 - 1] = "LX Semicon",
+[15][0x2a - 1] = "Shenzhen Techwinsemi Technology Co Ltd",
+[15][0x2b - 1] = "AOC",
+[15][0x2c - 1] = "GOEPEL Electronic GmbH",
+[15][0x2d - 1] = "Shenzhen G-Bong Technology Co Ltd",
+[15][0x2e - 1] = "Openedges Technology Inc",
+[15][0x2f - 1] = "EA Semi Shangahi Limited",
+[15][0x30 - 1] = "EMBCORF",
+[15][0x31 - 1] = "Shenzhen MicroBT Electronics Technology",
+[15][0x32 - 1] = "Shanghai Simor Chip Semiconductor Co",
+[15][0x33 - 1] = "Xllbyte",
+[15][0x34 - 1] = "Guangzhou Maidite Electronics Co Ltd.",
+[15][0x35 - 1] = "Zhejiang Changchun Technology Co Ltd",
+[15][0x36 - 1] = "Beijing Cloud Security Technology Co Ltd",
+[15][0x37 - 1] = "SSTC Technology and Distribution Inc",
+[15][0x38 - 1] = "Shenzhen Panmin Technology Co Ltd",
+[15][0x39 - 1] = "ITE Tech Inc",
+[15][0x3a - 1] = "Beijing Zettastone Technology Co Ltd",
+[15][0x3b - 1] = "Powerchip Micro Device",
+[15][0x3c - 1] = "Shenzhen Ysemi Computing Co Ltd",
+[15][0x3d - 1] = "Shenzhen Titan Micro Electronics Co Ltd",
+[15][0x3e - 1] = "Shenzhen Macroflash Technology Co Ltd",
+[15][0x3f - 1] = "Advantech Group",
 /* EOF */

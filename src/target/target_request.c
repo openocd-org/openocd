@@ -164,7 +164,7 @@ static int add_debug_msg_receiver(struct command_context *cmd_ctx, struct target
 	(*p)->next = NULL;
 
 	/* enable callback */
-	target->dbg_msg_enabled = 1;
+	target->dbg_msg_enabled = true;
 
 	return ERROR_OK;
 }
@@ -225,7 +225,7 @@ int delete_debug_msg_receiver(struct command_context *cmd_ctx, struct target *ta
 				free(c);
 				if (!*p) {
 					/* disable callback */
-					target->dbg_msg_enabled = 0;
+					target->dbg_msg_enabled = false;
 				}
 				return ERROR_OK;
 			} else

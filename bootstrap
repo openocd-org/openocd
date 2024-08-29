@@ -38,8 +38,8 @@ if [ -n "$SKIP_SUBMODULE" ]; then
     echo "Skipping submodule setup"
 else
     echo "Setting up submodules"
-    git submodule init
-    git submodule update
+    git submodule sync
+    git submodule update --init
 fi
 
 if [ -x src/jtag/drivers/libjaylink/autogen.sh ]; then

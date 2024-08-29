@@ -1126,6 +1126,36 @@ proc "cmsis_dap_usb" {args} {
 	eval cmsis-dap usb $args
 }
 
+lappend _telnet_autocomplete_skip "hla_layout"
+proc "hla_layout" {layout} {
+	echo "DEPRECATED! use 'hla layout', not 'hla_layout'"
+	eval hla layout $layout
+}
+
+lappend _telnet_autocomplete_skip "hla_device_desc"
+proc "hla_device_desc" {desc} {
+	echo "DEPRECATED! use 'hla device_desc', not 'hla_device_desc'"
+	eval hla device_desc $desc
+}
+
+lappend _telnet_autocomplete_skip "hla_vid_pid"
+proc "hla_vid_pid" {args} {
+	echo "DEPRECATED! use 'hla vid_pid', not 'hla_vid_pid'"
+	eval hla vid_pid $args
+}
+
+lappend _telnet_autocomplete_skip "hla_command"
+proc "hla_command" {command} {
+	echo "DEPRECATED! use 'hla command', not 'hla_command'"
+	eval hla command $command
+}
+
+lappend _telnet_autocomplete_skip "hla_stlink_backend"
+proc "hla_stlink_backend" {args} {
+	echo "DEPRECATED! use 'hla stlink_backend', not 'hla_stlink_backend'"
+	eval hla stlink_backend $args
+}
+
 lappend _telnet_autocomplete_skip "kitprog_init_acquire_psoc"
 proc "kitprog_init_acquire_psoc" {} {
 	echo "DEPRECATED! use 'kitprog init_acquire_psoc', not 'kitprog_init_acquire_psoc'"
