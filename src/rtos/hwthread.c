@@ -133,7 +133,7 @@ static int hwthread_update_threads(struct rtos *rtos)
 			if (!target_was_examined(curr))
 				continue;
 
-			threadid_t tid = threads_found + 1;
+			threadid_t tid = threadid_from_target(curr);
 			hwthread_fill_thread(rtos, curr, threads_found, tid);
 
 			/* find an interesting thread to set as current */
