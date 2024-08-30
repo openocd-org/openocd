@@ -45,21 +45,31 @@
 #include <windows.h>
 #endif
 
-/* parallel port cable description
- */
+// Parallel port cable description.
 struct cable {
 	const char *name;
-	uint8_t TDO_MASK;	/* status port bit containing current TDO value */
-	uint8_t TRST_MASK;	/* data port bit for TRST */
-	uint8_t TMS_MASK;	/* data port bit for TMS */
-	uint8_t TCK_MASK;	/* data port bit for TCK */
-	uint8_t TDI_MASK;	/* data port bit for TDI */
-	uint8_t SRST_MASK;	/* data port bit for SRST */
-	uint8_t OUTPUT_INVERT;	/* data port bits that should be inverted */
-	uint8_t INPUT_INVERT;	/* status port that should be inverted */
-	uint8_t PORT_INIT;	/* initialize data port with this value */
-	uint8_t PORT_EXIT;	/* de-initialize data port with this value */
-	uint8_t LED_MASK;	/* data port bit for LED */
+	// Status port bit containing current TDO value.
+	uint8_t tdo_mask;
+	// Data port bit for TRST.
+	uint8_t trst_mask;
+	// Data port bit for TMD.
+	uint8_t tms_mask;
+	// Data port bit for TCK.
+	uint8_t tck_mask;
+	// Data port bit for TDI.
+	uint8_t tdi_mask;
+	// Data port bit for SRST.
+	uint8_t srst_mask;
+	// Data port bits that should be inverted.
+	uint8_t output_invert;
+	// Status port that should be inverted.
+	uint8_t input_invert;
+	// Initialize data port with this value.
+	uint8_t port_init;
+	// De-initialize data port with this value.
+	uint8_t port_exit;
+	// Data port bit for LED.
+	uint8_t led_mask;
 };
 
 static const struct cable cables[] = {
@@ -87,15 +97,14 @@ static const struct cable cables[] = {
 	{ NULL,				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }
 };
 
-/* configuration */
+// Configuration variables.
 static char *parport_cable;
 static uint16_t parport_port;
 static bool parport_exit;
 static uint32_t parport_toggling_time_ns = 1000;
 static int wait_states;
 
-/* interface variables
- */
+// Interface variables.
 static const struct cable *cable;
 static uint8_t dataport_value;
 
@@ -116,7 +125,7 @@ static bb_value_t parport_read(void)
 	data = inb(statusport);
 #endif
 
-	if ((data ^ cable->INPUT_INVERT) & cable->TDO_MASK)
+	if ((data ^ cable->input_invert) & cable->tdo_mask)
 		return BB_HIGH;
 	else
 		return BB_LOW;
@@ -125,7 +134,7 @@ static bb_value_t parport_read(void)
 static inline void parport_write_data(void)
 {
 	uint8_t output;
-	output = dataport_value ^ cable->OUTPUT_INVERT;
+	output = dataport_value ^ cable->output_invert;
 
 #if PARPORT_USE_PPDEV == 1
 	ioctl(device_handle, PPWDATA, &output);
@@ -143,19 +152,19 @@ static int parport_write(int tck, int tms, int tdi)
 	int i = wait_states + 1;
 
 	if (tck)
-		dataport_value |= cable->TCK_MASK;
+		dataport_value |= cable->tck_mask;
 	else
-		dataport_value &= ~cable->TCK_MASK;
+		dataport_value &= ~cable->tck_mask;
 
 	if (tms)
-		dataport_value |= cable->TMS_MASK;
+		dataport_value |= cable->tms_mask;
 	else
-		dataport_value &= ~cable->TMS_MASK;
+		dataport_value &= ~cable->tms_mask;
 
 	if (tdi)
-		dataport_value |= cable->TDI_MASK;
+		dataport_value |= cable->tdi_mask;
 	else
-		dataport_value &= ~cable->TDI_MASK;
+		dataport_value &= ~cable->tdi_mask;
 
 	while (i-- > 0)
 		parport_write_data();
@@ -163,33 +172,32 @@ static int parport_write(int tck, int tms, int tdi)
 	return ERROR_OK;
 }
 
-/* (1) assert or (0) deassert reset lines */
+// (1) assert or (0) deassert reset lines.
 static int parport_reset(int trst, int srst)
 {
 	LOG_DEBUG("trst: %i, srst: %i", trst, srst);
 
 	if (trst == 0)
-		dataport_value |= cable->TRST_MASK;
+		dataport_value |= cable->trst_mask;
 	else if (trst == 1)
-		dataport_value &= ~cable->TRST_MASK;
+		dataport_value &= ~cable->trst_mask;
 
 	if (srst == 0)
-		dataport_value |= cable->SRST_MASK;
+		dataport_value |= cable->srst_mask;
 	else if (srst == 1)
-		dataport_value &= ~cable->SRST_MASK;
+		dataport_value &= ~cable->srst_mask;
 
 	parport_write_data();
 
 	return ERROR_OK;
 }
 
-/* turn LED on parport adapter on (true) or off (true) */
 static int parport_led(bool on)
 {
 	if (on)
-		dataport_value |= cable->LED_MASK;
+		dataport_value |= cable->led_mask;
 	else
-		dataport_value &= ~cable->LED_MASK;
+		dataport_value &= ~cable->led_mask;
 
 	parport_write_data();
 
@@ -204,7 +212,7 @@ static int parport_speed(int speed)
 
 static int parport_khz(int khz, int *jtag_speed)
 {
-	if (khz == 0) {
+	if (!khz) {
 		LOG_DEBUG("RCLK not supported");
 		return ERROR_FAIL;
 	}
@@ -248,10 +256,10 @@ static int parport_get_giveio_access(void)
 #endif
 
 static struct bitbang_interface parport_bitbang = {
-		.read = &parport_read,
-		.write = &parport_write,
-		.blink = &parport_led,
-	};
+	.read = &parport_read,
+	.write = &parport_write,
+	.blink = &parport_led,
+};
 
 static int parport_init(void)
 {
@@ -268,7 +276,7 @@ static int parport_init(void)
 	}
 
 	while (cur_cable->name) {
-		if (strcmp(cur_cable->name, parport_cable) == 0) {
+		if (!strcmp(cur_cable->name, parport_cable)) {
 			cable = cur_cable;
 			break;
 		}
@@ -280,7 +288,7 @@ static int parport_init(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	dataport_value = cable->PORT_INIT;
+	dataport_value = cable->port_init;
 
 #if PARPORT_USE_PPDEV == 1
 	if (device_handle > 0) {
@@ -332,7 +340,7 @@ static int parport_init(void)
 #endif /* not __FreeBSD__, __FreeBSD_kernel__ */
 
 #else /* not PARPORT_USE_PPDEV */
-	if (parport_port == 0) {
+	if (!parport_port) {
 		parport_port = 0x378;
 		LOG_WARNING("No parport port specified, using default '0x378' (LPT1)");
 	}
@@ -351,7 +359,7 @@ static int parport_init(void)
 	}
 	LOG_DEBUG("...privileges granted");
 
-	/* make sure parallel port is in right mode (clear tristate and interrupt */
+	// Make sure parallel port is in right mode (clear tristate and interrupt.
 	#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
 		outb(parport_port + 2, 0x0);
 	#else
@@ -378,7 +386,7 @@ static int parport_quit(void)
 		return ERROR_FAIL;
 
 	if (parport_exit) {
-		dataport_value = cable->PORT_EXIT;
+		dataport_value = cable->port_exit;
 		parport_write_data();
 	}
 
@@ -388,13 +396,13 @@ static int parport_quit(void)
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(parport_handle_parport_port_command)
+COMMAND_HANDLER(parport_handle_port_command)
 {
 	if (CMD_ARGC == 1) {
-		/* only if the port wasn't overwritten by cmdline */
-		if (parport_port == 0)
+		// Only if the port wasn't overwritten by cmdline.
+		if (!parport_port) {
 			COMMAND_PARSE_NUMBER(u16, CMD_ARGV[0], parport_port);
-		else {
+		} else {
 			LOG_ERROR("The parport port was already configured!");
 			return ERROR_FAIL;
 		}
@@ -405,14 +413,14 @@ COMMAND_HANDLER(parport_handle_parport_port_command)
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(parport_handle_parport_cable_command)
+COMMAND_HANDLER(parport_handle_cable_command)
 {
-	if (CMD_ARGC == 0)
+	if (!CMD_ARGC)
 		return ERROR_OK;
 
-	/* only if the cable name wasn't overwritten by cmdline */
+	// Only if the cable name wasn't overwritten by cmdline.
 	if (!parport_cable) {
-		/* REVISIT first verify that it's listed in cables[] ... */
+		// TODO: REVISIT first verify that it's listed in cables[].
 		parport_cable = malloc(strlen(CMD_ARGV[0]) + sizeof(char));
 		if (!parport_cable) {
 			LOG_ERROR("Out of memory");
@@ -421,7 +429,7 @@ COMMAND_HANDLER(parport_handle_parport_cable_command)
 		strcpy(parport_cable, CMD_ARGV[0]);
 	}
 
-	/* REVISIT it's probably worth returning the current value ... */
+	//  TODO: REVISIT it's probably worth returning the current value.
 
 	return ERROR_OK;
 }
@@ -436,7 +444,7 @@ COMMAND_HANDLER(parport_handle_write_on_exit_command)
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(parport_handle_parport_toggling_time_command)
+COMMAND_HANDLER(parport_handle_toggling_time_command)
 {
 	if (CMD_ARGC == 1) {
 		uint32_t ns;
@@ -445,7 +453,7 @@ COMMAND_HANDLER(parport_handle_parport_toggling_time_command)
 		if (retval != ERROR_OK)
 			return retval;
 
-		if (ns == 0) {
+		if (!ns) {
 			LOG_ERROR("0 ns is not a valid parport toggling time");
 			return ERROR_FAIL;
 		}
@@ -453,9 +461,11 @@ COMMAND_HANDLER(parport_handle_parport_toggling_time_command)
 		parport_toggling_time_ns = ns;
 		retval = adapter_get_speed(&wait_states);
 		if (retval != ERROR_OK) {
-			/* if adapter_get_speed fails then the clock_mode
-			 * has not been configured, this happens if parport_toggling_time is
-			 * called before the adapter speed is set */
+			/*
+			 * If adapter_get_speed fails then the clock_mode has
+			 * not been configured, this happens if toggling_time is
+			 * called before the adapter speed is set.
+			 */
 			LOG_INFO("no parport speed set - defaulting to zero wait states");
 			wait_states = 0;
 		}
@@ -470,7 +480,7 @@ COMMAND_HANDLER(parport_handle_parport_toggling_time_command)
 static const struct command_registration parport_subcommand_handlers[] = {
 	{
 		.name = "port",
-		.handler = parport_handle_parport_port_command,
+		.handler = parport_handle_port_command,
 		.mode = COMMAND_CONFIG,
 		.help = "Display the address of the I/O port (e.g. 0x378) "
 			"or the number of the '/dev/parport' device used.  "
@@ -479,11 +489,11 @@ static const struct command_registration parport_subcommand_handlers[] = {
 	},
 	{
 		.name = "cable",
-		.handler = parport_handle_parport_cable_command,
+		.handler = parport_handle_cable_command,
 		.mode = COMMAND_CONFIG,
 		.help = "Set the layout of the parallel port cable "
 			"used to connect to the target.",
-		/* REVISIT there's no way to list layouts we know ... */
+		// TODO: REVISIT there's no way to list layouts we know.
 		.usage = "[layout]",
 	},
 	{
@@ -496,7 +506,7 @@ static const struct command_registration parport_subcommand_handlers[] = {
 	},
 	{
 		.name = "toggling_time",
-		.handler = parport_handle_parport_toggling_time_command,
+		.handler = parport_handle_toggling_time_command,
 		.mode = COMMAND_CONFIG,
 		.help = "Displays or assigns how many nanoseconds it "
 			"takes for the hardware to toggle TCK.",
