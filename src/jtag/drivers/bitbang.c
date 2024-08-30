@@ -309,7 +309,7 @@ int bitbang_execute_queue(struct jtag_command *cmd_queue)
 	retval = ERROR_OK;
 
 	if (bitbang_interface->blink) {
-		if (bitbang_interface->blink(1) != ERROR_OK)
+		if (bitbang_interface->blink(true) != ERROR_OK)
 			return ERROR_FAIL;
 	}
 
@@ -377,7 +377,7 @@ int bitbang_execute_queue(struct jtag_command *cmd_queue)
 		cmd = cmd->next;
 	}
 	if (bitbang_interface->blink) {
-		if (bitbang_interface->blink(0) != ERROR_OK)
+		if (bitbang_interface->blink(false) != ERROR_OK)
 			return ERROR_FAIL;
 	}
 
@@ -396,7 +396,7 @@ static void bitbang_swd_exchange(bool rnw, uint8_t buf[], unsigned int offset, u
 {
 	if (bitbang_interface->blink) {
 		/* FIXME: we should manage errors */
-		bitbang_interface->blink(1);
+		bitbang_interface->blink(true);
 	}
 
 	for (unsigned int i = offset; i < bit_cnt + offset; i++) {
@@ -418,7 +418,7 @@ static void bitbang_swd_exchange(bool rnw, uint8_t buf[], unsigned int offset, u
 
 	if (bitbang_interface->blink) {
 		/* FIXME: we should manage errors */
-		bitbang_interface->blink(0);
+		bitbang_interface->blink(false);
 	}
 }
 

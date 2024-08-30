@@ -275,10 +275,10 @@ static int am335xgpio_swdio_read(void)
 	return get_gpio_value(&adapter_gpio_config[ADAPTER_GPIO_IDX_SWDIO]);
 }
 
-static int am335xgpio_blink(int on)
+static int am335xgpio_blink(bool on)
 {
 	if (is_gpio_config_valid(&adapter_gpio_config[ADAPTER_GPIO_IDX_LED]))
-		set_gpio_value(&adapter_gpio_config[ADAPTER_GPIO_IDX_LED], on);
+		set_gpio_value(&adapter_gpio_config[ADAPTER_GPIO_IDX_LED], on ? 1 : 0);
 
 	return ERROR_OK;
 }

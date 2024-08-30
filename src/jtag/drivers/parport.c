@@ -183,8 +183,8 @@ static int parport_reset(int trst, int srst)
 	return ERROR_OK;
 }
 
-/* turn LED on parport adapter on (1) or off (0) */
-static int parport_led(int on)
+/* turn LED on parport adapter on (true) or off (true) */
+static int parport_led(bool on)
 {
 	if (on)
 		dataport_value |= cable->LED_MASK;
@@ -364,7 +364,7 @@ static int parport_init(void)
 		return ERROR_FAIL;
 	if (parport_write(0, 0, 0) != ERROR_OK)
 		return ERROR_FAIL;
-	if (parport_led(1) != ERROR_OK)
+	if (parport_led(true) != ERROR_OK)
 		return ERROR_FAIL;
 
 	bitbang_interface = &parport_bitbang;
@@ -374,7 +374,7 @@ static int parport_init(void)
 
 static int parport_quit(void)
 {
-	if (parport_led(0) != ERROR_OK)
+	if (parport_led(false) != ERROR_OK)
 		return ERROR_FAIL;
 
 	if (parport_exit) {

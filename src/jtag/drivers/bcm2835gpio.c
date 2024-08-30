@@ -419,10 +419,10 @@ static void bcm2835gpio_munmap(void)
 	}
 }
 
-static int bcm2835gpio_blink(int on)
+static int bcm2835gpio_blink(bool on)
 {
 	if (is_gpio_config_valid(ADAPTER_GPIO_IDX_LED))
-		set_gpio_value(&adapter_gpio_config[ADAPTER_GPIO_IDX_LED], on);
+		set_gpio_value(&adapter_gpio_config[ADAPTER_GPIO_IDX_LED], on ? 1 : 0);
 
 	return ERROR_OK;
 }
