@@ -160,9 +160,7 @@ target_addr_t rtos_cortex_m_stack_align(struct target *target,
 
 	new_stack_ptr = stack_ptr - stacking->stack_growth_direction *
 		stacking->stack_registers_size;
-	xpsr = (target->endianness == TARGET_LITTLE_ENDIAN) ?
-			le_to_h_u32(&stack_data[xpsr_offset]) :
-			be_to_h_u32(&stack_data[xpsr_offset]);
+	xpsr = target_buffer_get_u32(target, &stack_data[xpsr_offset]);
 	if ((xpsr & ALIGN_NEEDED) != 0) {
 		LOG_DEBUG("XPSR(0x%08" PRIx32 ") indicated stack alignment was necessary\r\n",
 			xpsr);
