@@ -3730,6 +3730,8 @@ sub process {
 				# OpenOCD specific: Begin
 				} elsif ($realfile =~ /\.(am|cfg|tcl)$/) {
 					$comment = '#';
+				} elsif ($realfile =~ /\.(ld)$/) {
+					$comment = '/*';
 				# OpenOCD specific: End
 				}
 
