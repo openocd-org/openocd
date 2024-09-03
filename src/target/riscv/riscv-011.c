@@ -2356,6 +2356,16 @@ static int riscv011_authdata_write(struct target *target, uint32_t value, unsign
 	return ERROR_OK;
 }
 
+static bool riscv011_get_impebreak(const struct target *target)
+{
+	return false;
+}
+
+static unsigned int riscv011_get_progbufsize(const struct target *target)
+{
+	return 0;
+}
+
 static int init_target(struct command_context *cmd_ctx,
 		struct target *target)
 {
@@ -2365,6 +2375,8 @@ static int init_target(struct command_context *cmd_ctx,
 	generic_info->authdata_read = &riscv011_authdata_read;
 	generic_info->authdata_write = &riscv011_authdata_write;
 	generic_info->print_info = &riscv011_print_info;
+	generic_info->get_impebreak = &riscv011_get_impebreak;
+	generic_info->get_progbufsize = &riscv011_get_progbufsize;
 
 	generic_info->version_specific = calloc(1, sizeof(riscv011_info_t));
 	if (!generic_info->version_specific)

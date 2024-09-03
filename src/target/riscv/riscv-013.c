@@ -67,6 +67,8 @@ static int read_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer, uint32_t increment);
 static int write_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, const uint8_t *buffer);
+static bool riscv013_get_impebreak(const struct target *target);
+static unsigned int riscv013_get_progbufsize(const struct target *target);
 
 typedef enum {
 	HALT_GROUP,
@@ -153,7 +155,9 @@ typedef struct {
 	/* Number of abstract command data registers. */
 	unsigned datacount;
 	/* Number of words in the Program Buffer. */
-	unsigned progbufsize;
+	unsigned int progbufsize;
+	/* Hart contains an implicit ebreak at the end of the program buffer. */
+	bool impebreak;
 
 	/* We cache the read-only bits of sbcs here. */
 	uint32_t sbcs;
@@ -1310,9 +1314,7 @@ static unsigned int register_size(struct target *target, enum gdb_regno number)
 static bool has_sufficient_progbuf(struct target *target, unsigned size)
 {
 	RISCV013_INFO(info);
-	RISCV_INFO(r);
-
-	return info->progbufsize + r->impebreak >= size;
+	return info->progbufsize + info->impebreak >= size;
 }
 
 /**
@@ -2037,14 +2039,13 @@ static int examine(struct target *target)
 	LOG_TARGET_INFO(target, "datacount=%d progbufsize=%d",
 			info->datacount, info->progbufsize);
 
-	RISCV_INFO(r);
-	r->impebreak = get_field(dmstatus, DM_DMSTATUS_IMPEBREAK);
+	info->impebreak = get_field(dmstatus, DM_DMSTATUS_IMPEBREAK);
 
 	if (!has_sufficient_progbuf(target, 2)) {
 		LOG_TARGET_WARNING(target, "We won't be able to execute fence instructions on this "
 				"target. Memory may not always appear consistent. "
 				"(progbufsize=%d, impebreak=%d)", info->progbufsize,
-				r->impebreak);
+				info->impebreak);
 	}
 
 	if (info->progbufsize < 4 && riscv_enable_virtual) {
@@ -2060,6 +2061,8 @@ static int examine(struct target *target)
 	enum riscv_hart_state state_at_examine_start;
 	if (riscv_get_hart_state(target, &state_at_examine_start) != ERROR_OK)
 		return ERROR_FAIL;
+
+	RISCV_INFO(r);
 	const bool hart_halted_at_examine_start = state_at_examine_start == RISCV_STATE_HALTED;
 	if (!hart_halted_at_examine_start) {
 		r->prepped = true;
@@ -2072,10 +2075,6 @@ static int examine(struct target *target)
 
 	target->state = TARGET_HALTED;
 	target->debug_reason = hart_halted_at_examine_start ? DBG_REASON_UNDEFINED : DBG_REASON_DBGRQ;
-
-	/* Without knowing anything else we can at least mess with the
-	 * program buffer. */
-	r->progbuf_size = info->progbufsize;
 
 	result = riscv013_reg_examine_all(target);
 	if (result != ERROR_OK)
@@ -2817,6 +2816,8 @@ static int init_target(struct command_context *cmd_ctx,
 	generic_info->read_memory = read_memory;
 	generic_info->data_bits = &riscv013_data_bits;
 	generic_info->print_info = &riscv013_print_info;
+	generic_info->get_impebreak = &riscv013_get_impebreak;
+	generic_info->get_progbufsize = &riscv013_get_progbufsize;
 
 	generic_info->handle_became_unavailable = &handle_became_unavailable;
 	generic_info->tick = &tick;
@@ -4870,6 +4871,18 @@ static int write_memory(struct target *target, target_addr_t address,
 	LOG_TARGET_ERROR(target, "Target %s: Failed to write memory (addr=0x%" PRIx64 ")", target_name(target), address);
 	LOG_TARGET_ERROR(target, "  progbuf=%s, sysbus=%s, abstract=%s", progbuf_result, sysbus_result, abstract_result);
 	return ret;
+}
+
+static bool riscv013_get_impebreak(const struct target *target)
+{
+	RISCV013_INFO(r);
+	return r->impebreak;
+}
+
+static unsigned int riscv013_get_progbufsize(const struct target *target)
+{
+	RISCV013_INFO(r);
+	return r->progbufsize;
 }
 
 static int arch_state(struct target *target)

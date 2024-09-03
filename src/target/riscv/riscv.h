@@ -167,12 +167,6 @@ struct riscv_info {
 	 * most recent halt was not caused by a trigger, then this is -1. */
 	int64_t trigger_hit;
 
-	/* The number of entries in the program buffer. */
-	int progbuf_size;
-
-	/* This hart contains an implicit ebreak at the end of the program buffer. */
-	bool impebreak;
-
 	bool triggers_enumerated;
 
 	/* Decremented every scan, and when it reaches 0 we clear the learned
@@ -235,6 +229,9 @@ struct riscv_info {
 
 	int (*dmi_read)(struct target *target, uint32_t *value, uint32_t address);
 	int (*dmi_write)(struct target *target, uint32_t address, uint32_t value);
+
+	bool (*get_impebreak)(const struct target *target);
+	unsigned int (*get_progbufsize)(const struct target *target);
 
 	/* Get the DMI address of target's DM's register.
 	 * The function should return the passed address

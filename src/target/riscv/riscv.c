@@ -5569,7 +5569,7 @@ static enum riscv_halt_reason riscv_halt_reason(struct target *target)
 size_t riscv_progbuf_size(struct target *target)
 {
 	RISCV_INFO(r);
-	return r->progbuf_size;
+	return r->get_progbufsize(target);
 }
 
 int riscv_write_progbuf(struct target *target, int index, riscv_insn_t insn)
