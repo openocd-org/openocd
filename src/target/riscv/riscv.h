@@ -32,8 +32,6 @@ struct riscv_program;
 
 #define PG_MAX_LEVEL 5
 
-#define RISCV_NUM_MEM_ACCESS_METHODS  3
-
 #define RISCV_BATCH_ALLOC_SIZE 128
 
 extern struct target_type riscv011_target;
@@ -52,12 +50,12 @@ typedef enum {
 	YNM_NO
 } yes_no_maybe_t;
 
-enum riscv_mem_access_method {
-	RISCV_MEM_ACCESS_UNSPECIFIED,
+typedef enum riscv_mem_access_method {
 	RISCV_MEM_ACCESS_PROGBUF,
 	RISCV_MEM_ACCESS_SYSBUS,
-	RISCV_MEM_ACCESS_ABSTRACT
-};
+	RISCV_MEM_ACCESS_ABSTRACT,
+	RISCV_MEM_ACCESS_MAX_METHODS_NUM
+} riscv_mem_access_method_t;
 
 enum riscv_halt_reason {
 	RISCV_HALT_INTERRUPT,
@@ -272,13 +270,13 @@ struct riscv_info {
 	bool *reserved_triggers;
 
 	/* Memory access methods to use, ordered by priority, highest to lowest. */
-	int mem_access_methods[RISCV_NUM_MEM_ACCESS_METHODS];
+	riscv_mem_access_method_t mem_access_methods[RISCV_MEM_ACCESS_MAX_METHODS_NUM];
+
+	unsigned int num_enabled_mem_access_methods;
 
 	/* Different memory regions may need different methods but single configuration is applied
 	 * for all. Following flags are used to warn only once about failing memory access method. */
-	bool mem_access_progbuf_warn;
-	bool mem_access_sysbus_warn;
-	bool mem_access_abstract_warn;
+	bool mem_access_warn[RISCV_MEM_ACCESS_MAX_METHODS_NUM];
 
 	/* In addition to the ones in the standard spec, we'll also expose additional
 	 * CSRs in this list. */
