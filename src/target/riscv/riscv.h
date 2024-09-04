@@ -367,7 +367,7 @@ int dtmcontrol_scan(struct target *target, uint32_t out, uint32_t *in_ptr);
 extern struct scan_field *bscan_tunneled_select_dmi;
 extern uint32_t bscan_tunneled_select_dmi_num_fields;
 typedef enum { BSCAN_TUNNEL_NESTED_TAP, BSCAN_TUNNEL_DATA_REGISTER } bscan_tunnel_type_t;
-extern int bscan_tunnel_ir_width;
+extern uint8_t bscan_tunnel_ir_width;
 
 void select_dmi_via_bscan(struct target *target);
 

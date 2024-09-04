@@ -11387,10 +11387,15 @@ Display/set the current core displayed in GDB. This is needed only if
 @code{riscv smp} was used.
 @end deffn
 
-@deffn {Command} {riscv use_bscan_tunnel} value
+@deffn {Command} {riscv use_bscan_tunnel} width [type]
 Enable or disable use of a BSCAN tunnel to reach the Debug Module. Supply the
-width of the DM transport TAP's instruction register to enable. Supply a
-value of 0 to disable.
+@var{width} of the DM transport TAP's instruction register to enable. The
+@var{width} should fit into 7 bits. Supply a value of 0 to disable.
+Pass a second argument (optional) to indicate Bscan Tunnel Type:
+@enumerate
+@item 0:(default) NESTED_TAP
+@item 1: DATA_REGISTER
+@end enumerate
 
 This BSCAN tunnel interface is specific to SiFive IP. Anybody may implement
 it, but currently there is no good documentation on it. In a nutshell, this
