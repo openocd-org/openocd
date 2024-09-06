@@ -45,7 +45,6 @@ static int riscv013_reg_get(struct reg *reg)
 static int riscv013_reg_set(struct reg *reg, uint8_t *buf)
 {
 	struct target *target = riscv_reg_impl_get_target(reg);
-	RISCV_INFO(r);
 
 	char *str = buf_to_hex_str(buf, reg->size);
 	LOG_TARGET_DEBUG(target, "Write 0x%s to %s (valid=%d).", str, reg->name,
@@ -57,17 +56,6 @@ static int riscv013_reg_set(struct reg *reg, uint8_t *buf)
 			riscv_supports_extension(target, 'E') &&
 			buf_get_u64(buf, 0, reg->size) == 0)
 		return ERROR_OK;
-
-	if (reg->number == GDB_REGNO_TDATA1 ||
-			reg->number == GDB_REGNO_TDATA2) {
-		r->manual_hwbp_set = true;
-		/* When enumerating triggers, we clear any triggers with DMODE set,
-		 * assuming they were left over from a previous debug session. So make
-		 * sure that is done before a user might be setting their own triggers.
-		 */
-		if (riscv_enumerate_triggers(target) != ERROR_OK)
-			return ERROR_FAIL;
-	}
 
 	if (reg->number >= GDB_REGNO_V0 && reg->number <= GDB_REGNO_V31) {
 		if (riscv013_set_register_buf(target, reg->number, buf) != ERROR_OK)
