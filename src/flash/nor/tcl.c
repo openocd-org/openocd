@@ -36,7 +36,7 @@ COMMAND_HELPER(flash_command_get_bank_probe_optional, unsigned int name_index,
 	if (*bank)
 		return ERROR_OK;
 
-	unsigned bank_num;
+	unsigned int bank_num;
 	COMMAND_PARSE_NUMBER(uint, name, bank_num);
 
 	if (do_probe) {
@@ -48,7 +48,7 @@ COMMAND_HELPER(flash_command_get_bank_probe_optional, unsigned int name_index,
 	}
 }
 
-COMMAND_HELPER(flash_command_get_bank, unsigned name_index,
+COMMAND_HELPER(flash_command_get_bank, unsigned int name_index,
 	struct flash_bank **bank)
 {
 	return CALL_COMMAND_HANDLER(flash_command_get_bank_probe_optional,
@@ -518,7 +518,7 @@ COMMAND_HANDLER(handle_flash_fill_command)
 	uint64_t pattern;
 	uint32_t count;
 	struct target *target = get_current_target(CMD_CTX);
-	unsigned i;
+	unsigned int i;
 	uint32_t wordsize;
 	int retval;
 
@@ -1316,7 +1316,7 @@ COMMAND_HANDLER(handle_flash_banks_command)
 	if (CMD_ARGC != 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	unsigned n = 0;
+	unsigned int n = 0;
 	for (struct flash_bank *p = flash_bank_list(); p; p = p->next, n++) {
 		command_print(CMD, "#%d : %s (%s) at " TARGET_ADDR_FMT ", size 0x%8.8" PRIx32 ", "
 			"buswidth %u, chipwidth %u", p->bank_number,

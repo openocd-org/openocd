@@ -531,7 +531,7 @@ static int fespi_write(struct flash_bank *bank, const uint8_t *buffer,
 		bin_size = sizeof(riscv64_bin);
 	}
 
-	unsigned data_wa_size = 0;
+	unsigned int data_wa_size = 0;
 	if (target_alloc_working_area(target, bin_size, &algorithm_wa) == ERROR_OK) {
 		retval = target_write_buffer(target, algorithm_wa->address,
 				bin_size, bin);

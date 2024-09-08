@@ -1274,7 +1274,7 @@ COMMAND_HANDLER(handle_lpc3180_select_command)
 	if ((CMD_ARGC < 1) || (CMD_ARGC > 3))
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	unsigned num;
+	unsigned int num;
 	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], num);
 	struct nand_device *nand = get_nand_device_by_num(num);
 	if (!nand) {

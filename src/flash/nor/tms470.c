@@ -16,7 +16,7 @@
  * ---------------------------------------------------------------------- */
 
 struct tms470_flash_bank {
-	unsigned ordinal;
+	unsigned int ordinal;
 
 	/* device identification register */
 	uint32_t device_ident_reg;
@@ -391,7 +391,7 @@ static int tms470_try_flash_keys(struct target *target, const uint32_t *key_set)
 	/* only perform the key match when 3VSTAT is clear */
 	target_read_u32(target, 0xFFE8BC0C, &fmmstat);
 	if (!(fmmstat & 0x08)) {
-		unsigned i;
+		unsigned int i;
 		uint32_t fmbptr, fmbac2, orig_fmregopt;
 
 		target_write_u32(target, 0xFFE8BC04, fmmstat & ~0x07);
@@ -455,7 +455,7 @@ static int tms470_unlock_flash(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
 	const uint32_t *p_key_sets[5];
-	unsigned i, key_set_count;
+	unsigned int i, key_set_count;
 
 	if (keys_set) {
 		key_set_count = 5;

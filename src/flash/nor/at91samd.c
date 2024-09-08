@@ -365,7 +365,7 @@ static const struct samd_family *samd_find_family(uint32_t id)
 	uint8_t family = SAMD_GET_FAMILY(id);
 	uint8_t series = SAMD_GET_SERIES(id);
 
-	for (unsigned i = 0; i < ARRAY_SIZE(samd_families); i++) {
+	for (unsigned int i = 0; i < ARRAY_SIZE(samd_families); i++) {
 		if (samd_families[i].processor == processor &&
 			samd_families[i].series == series &&
 			samd_families[i].family == family)
@@ -387,7 +387,7 @@ static const struct samd_part *samd_find_part(uint32_t id)
 	if (!family)
 		return NULL;
 
-	for (unsigned i = 0; i < family->num_parts; i++) {
+	for (unsigned int i = 0; i < family->num_parts; i++) {
 		if (family->parts[i].id == devsel)
 			return &family->parts[i];
 	}

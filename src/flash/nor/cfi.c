@@ -806,7 +806,7 @@ int cfi_flash_bank_cmd(struct flash_bank *bank, unsigned int argc, const char **
 	}
 	bank->driver_priv = cfi_info;
 
-	for (unsigned i = 6; i < argc; i++) {
+	for (unsigned int i = 6; i < argc; i++) {
 		if (strcmp(argv[i], "x16_as_x8") == 0)
 			cfi_info->x16_as_x8 = true;
 		else if (strcmp(argv[i], "data_swap") == 0)

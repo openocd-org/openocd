@@ -164,7 +164,7 @@ int default_flash_verify(struct flash_bank *bank,
 void flash_bank_add(struct flash_bank *bank)
 {
 	/* put flash bank in linked list */
-	unsigned bank_num = 0;
+	unsigned int bank_num = 0;
 	if (flash_banks) {
 		/* find last flash bank */
 		struct flash_bank *p = flash_banks;
@@ -242,8 +242,8 @@ void flash_free_all_banks(void)
 
 struct flash_bank *get_flash_bank_by_name_noprobe(const char *name)
 {
-	unsigned requested = get_flash_name_index(name);
-	unsigned found = 0;
+	unsigned int requested = get_flash_name_index(name);
+	unsigned int found = 0;
 
 	struct flash_bank *bank;
 	for (bank = flash_banks; bank; bank = bank->next) {

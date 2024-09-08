@@ -256,7 +256,7 @@
 struct kinetis_flash_bank {
 	struct kinetis_chip *k_chip;
 	bool probed;
-	unsigned bank_number;		/* bank number in particular chip */
+	unsigned int bank_number;	/* bank number in particular chip */
 	struct flash_bank *bank;
 
 	uint32_t sector_size;
@@ -285,9 +285,9 @@ struct kinetis_chip {
 	uint32_t fcfg2_maxaddr0_shifted;
 	uint32_t fcfg2_maxaddr1_shifted;
 
-	unsigned num_pflash_blocks, num_nvm_blocks;
-	unsigned pflash_sector_size, nvm_sector_size;
-	unsigned max_flash_prog_size;
+	unsigned int num_pflash_blocks, num_nvm_blocks;
+	unsigned int pflash_sector_size, nvm_sector_size;
+	unsigned int max_flash_prog_size;
 
 	uint32_t pflash_base;
 	uint32_t pflash_size;
@@ -337,7 +337,7 @@ struct kinetis_chip {
 
 	char name[40];
 
-	unsigned num_banks;
+	unsigned int num_banks;
 	struct kinetis_flash_bank banks[KINETIS_MAX_BANKS];
 };
 
@@ -425,7 +425,7 @@ static int kinetis_probe_chip_s32k(struct kinetis_chip *k_chip);
 static int kinetis_auto_probe(struct flash_bank *bank);
 
 
-static int kinetis_mdm_write_register(struct adiv5_dap *dap, unsigned reg, uint32_t value)
+static int kinetis_mdm_write_register(struct adiv5_dap *dap, unsigned int reg, uint32_t value)
 {
 	LOG_DEBUG("MDM_REG[0x%02x] <- %08" PRIX32, reg, value);
 
@@ -453,7 +453,7 @@ static int kinetis_mdm_write_register(struct adiv5_dap *dap, unsigned reg, uint3
 	return ERROR_OK;
 }
 
-static int kinetis_mdm_read_register(struct adiv5_dap *dap, unsigned reg, uint32_t *result)
+static int kinetis_mdm_read_register(struct adiv5_dap *dap, unsigned int reg, uint32_t *result)
 {
 	struct adiv5_ap *ap = dap_get_ap(dap, MDM_AP);
 	if (!ap) {
@@ -479,7 +479,7 @@ static int kinetis_mdm_read_register(struct adiv5_dap *dap, unsigned reg, uint32
 	return ERROR_OK;
 }
 
-static int kinetis_mdm_poll_register(struct adiv5_dap *dap, unsigned reg,
+static int kinetis_mdm_poll_register(struct adiv5_dap *dap, unsigned int reg,
 			uint32_t mask, uint32_t value, uint32_t timeout_ms)
 {
 	uint32_t val;
@@ -977,7 +977,7 @@ static void kinetis_free_driver_priv(struct flash_bank *bank)
 
 static int kinetis_create_missing_banks(struct kinetis_chip *k_chip)
 {
-	unsigned num_blocks;
+	unsigned int num_blocks;
 	struct kinetis_flash_bank *k_bank;
 	struct flash_bank *bank;
 	char base_name[69], name[87], num[11];
@@ -1463,7 +1463,7 @@ static int kinetis_fill_fcf(struct flash_bank *bank, uint8_t *fcf)
 	uint32_t fprot = 0xffffffff;
 	uint8_t fsec = 0xfe;		 /* set MCU unsecure */
 	uint8_t fdprot = 0xff;
-	unsigned num_blocks;
+	unsigned int num_blocks;
 	uint32_t pflash_bit;
 	uint8_t dflash_bit;
 	struct flash_bank *bank_iter;
@@ -2269,12 +2269,12 @@ static int kinetis_probe_chip(struct kinetis_chip *k_chip)
 	uint32_t ee_size = 0;
 	uint32_t pflash_size_k, nvm_size_k, dflash_size_k;
 	uint32_t pflash_size_m;
-	unsigned num_blocks = 0;
-	unsigned maxaddr_shift = 13;
+	unsigned int num_blocks = 0;
+	unsigned int maxaddr_shift = 13;
 	struct target *target = k_chip->target;
 
-	unsigned familyid = 0, subfamid = 0;
-	unsigned cpu_mhz = 120;
+	unsigned int familyid = 0, subfamid = 0;
+	unsigned int cpu_mhz = 120;
 	bool use_nvm_marking = false;
 	char flash_marking[12], nvm_marking[2];
 	char name[40];
@@ -2895,7 +2895,7 @@ static int kinetis_probe(struct flash_bank *bank)
 {
 	int result;
 	uint8_t fcfg2_maxaddr0, fcfg2_pflsh, fcfg2_maxaddr1;
-	unsigned num_blocks, first_nvm_bank;
+	unsigned int num_blocks, first_nvm_bank;
 	uint32_t size_k;
 	struct kinetis_flash_bank *k_bank = bank->driver_priv;
 	struct kinetis_chip *k_chip;
@@ -2940,7 +2940,7 @@ static int kinetis_probe(struct flash_bank *bank)
 
 	} else if (k_bank->bank_number < num_blocks) {
 		/* nvm, banks start at address 0x10000000 */
-		unsigned nvm_ord = k_bank->bank_number - first_nvm_bank;
+		unsigned int nvm_ord = k_bank->bank_number - first_nvm_bank;
 		uint32_t limit;
 
 		k_bank->flash_class = FC_FLEX_NVM;
@@ -3139,8 +3139,8 @@ static int kinetis_blank_check(struct flash_bank *bank)
 COMMAND_HANDLER(kinetis_nvm_partition)
 {
 	int result;
-	unsigned bank_idx;
-	unsigned num_blocks, first_nvm_bank;
+	unsigned int bank_idx;
+	unsigned int num_blocks, first_nvm_bank;
 	unsigned long par, log2 = 0, ee1 = 0, ee2 = 0;
 	enum { SHOW_INFO, DF_SIZE, EEBKP_SIZE } sz_type = SHOW_INFO;
 	bool enable;

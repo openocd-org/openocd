@@ -859,7 +859,7 @@ static int sim3x_flash_info(struct flash_bank *bank, struct command_invocation *
  *  reg 3:2  - register
  *  reg 1:0  - no effect
  */
-static int ap_write_register(struct adiv5_dap *dap, unsigned reg, uint32_t value)
+static int ap_write_register(struct adiv5_dap *dap, unsigned int reg, uint32_t value)
 {
 	LOG_DEBUG("DAP_REG[0x%02x] <- %08" PRIX32, reg, value);
 
@@ -886,7 +886,7 @@ static int ap_write_register(struct adiv5_dap *dap, unsigned reg, uint32_t value
 	return ERROR_OK;
 }
 
-static int ap_read_register(struct adiv5_dap *dap, unsigned reg, uint32_t *result)
+static int ap_read_register(struct adiv5_dap *dap, unsigned int reg, uint32_t *result)
 {
 	struct adiv5_ap *ap = dap_get_ap(dap, SIM3X_AP);
 	if (!ap) {
@@ -912,7 +912,7 @@ static int ap_read_register(struct adiv5_dap *dap, unsigned reg, uint32_t *resul
 	return ERROR_OK;
 }
 
-static int ap_poll_register(struct adiv5_dap *dap, unsigned reg, uint32_t mask, uint32_t value, int timeout)
+static int ap_poll_register(struct adiv5_dap *dap, unsigned int reg, uint32_t mask, uint32_t value, int timeout)
 {
 	uint32_t val;
 	int retval;

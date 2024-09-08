@@ -11,14 +11,14 @@
 #include "common.h"
 #include <helper/log.h>
 
-unsigned get_flash_name_index(const char *name)
+unsigned int get_flash_name_index(const char *name)
 {
 	const char *name_index = strrchr(name, '.');
 	if (!name_index)
 		return 0;
 	if (name_index[1] < '0' || name_index[1] > '9')
 		return ~0U;
-	unsigned requested;
+	unsigned int requested;
 	int retval = parse_uint(name_index + 1, &requested);
 	/* detect parsing error by forcing past end of bank list */
 	return (retval == ERROR_OK) ? requested : ~0U;
@@ -26,7 +26,7 @@ unsigned get_flash_name_index(const char *name)
 
 bool flash_driver_name_matches(const char *name, const char *expected)
 {
-	unsigned blen = strlen(name);
+	unsigned int blen = strlen(name);
 	/* only match up to the length of the driver name... */
 	if (strncmp(name, expected, blen) != 0)
 		return false;

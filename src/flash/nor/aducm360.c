@@ -79,7 +79,7 @@ static int aducm360_build_sector_list(struct flash_bank *bank)
 	/* sector size is 512 */
 	bank->num_sectors = bank->size / FLASH_SECTOR_SIZE;
 	bank->sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
-	for (unsigned i = 0; i < bank->num_sectors; ++i) {
+	for (unsigned int i = 0; i < bank->num_sectors; ++i) {
 		bank->sectors[i].offset = offset;
 		bank->sectors[i].size = FLASH_SECTOR_SIZE;
 		offset += bank->sectors[i].size;
