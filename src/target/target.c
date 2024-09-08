@@ -6007,7 +6007,7 @@ static int get_target_with_common_rtos_type(struct command_invocation *cmd,
 
 COMMAND_HANDLER(handle_target_smp)
 {
-	static int smp_group = 1;
+	static unsigned int smp_group = 1;
 
 	if (CMD_ARGC == 0) {
 		LOG_DEBUG("Empty SMP target");
