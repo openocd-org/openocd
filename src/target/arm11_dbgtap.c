@@ -567,8 +567,8 @@ static int arm11_run_instr_data_to_core_noack_inner(struct jtag_tap *tap,
 	chain5_fields[2].in_value               = NULL;
 
 	uint8_t *readies;
-	unsigned readies_num = count;
-	unsigned bytes = sizeof(*readies)*readies_num;
+	unsigned int readies_num = count;
+	unsigned int bytes = sizeof(*readies) * readies_num;
 
 	readies = malloc(bytes);
 	if (!readies) {
@@ -592,7 +592,7 @@ static int arm11_run_instr_data_to_core_noack_inner(struct jtag_tap *tap,
 
 	int retval = jtag_execute_queue();
 	if (retval == ERROR_OK) {
-		unsigned error_count = 0;
+		unsigned int error_count = 0;
 
 		for (size_t i = 0; i < readies_num; i++) {
 			if (readies[i] != 1)
@@ -1042,7 +1042,7 @@ static int arm11_dpm_instr_read_data_r0(struct arm_dpm *dpm,
  * and watchpoint operations instead of running them right away.  Since we
  * pre-allocated our vector, we don't need to worry about space.
  */
-static int arm11_bpwp_enable(struct arm_dpm *dpm, unsigned index_t,
+static int arm11_bpwp_enable(struct arm_dpm *dpm, unsigned int index_t,
 	uint32_t addr, uint32_t control)
 {
 	struct arm11_common *arm11 = dpm_to_arm11(dpm);
@@ -1079,7 +1079,7 @@ static int arm11_bpwp_enable(struct arm_dpm *dpm, unsigned index_t,
 	return ERROR_OK;
 }
 
-static int arm11_bpwp_disable(struct arm_dpm *dpm, unsigned index_t)
+static int arm11_bpwp_disable(struct arm_dpm *dpm, unsigned int index_t)
 {
 	struct arm11_common *arm11 = dpm_to_arm11(dpm);
 	struct arm11_sc7_action *action;

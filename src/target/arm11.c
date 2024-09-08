@@ -478,7 +478,7 @@ static int arm11_resume(struct target *target, int current,
 	/* activate all breakpoints */
 	if (true) {
 		struct breakpoint *bp;
-		unsigned brp_num = 0;
+		unsigned int brp_num = 0;
 
 		for (bp = target->breakpoints; bp; bp = bp->next) {
 			struct arm11_sc7_action brp[2];

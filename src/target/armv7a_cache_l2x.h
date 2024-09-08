@@ -122,16 +122,16 @@ struct outer_cache_fns {
 	void (*resume)(void);
 
 	/* This is an ARM L2C thing */
-	void (*write_sec)(unsigned long, unsigned);
+	void (*write_sec)(unsigned long, unsigned int);
 	void (*configure)(const struct l2x0_regs *);
 };
 
 struct l2c_init_data {
 	const char *type;
-	unsigned way_size_0;
-	unsigned num_lock;
+	unsigned int way_size_0;
+	unsigned int num_lock;
 
-	void (*enable)(uint32_t, uint32_t, unsigned);
+	void (*enable)(uint32_t, uint32_t, unsigned int);
 	void (*fixup)(uint32_t, uint32_t, struct outer_cache_fns *);
 	void (*save)(uint32_t);
 	void (*configure)(uint32_t);

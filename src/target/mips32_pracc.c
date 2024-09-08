@@ -370,7 +370,7 @@ int mips32_pracc_queue_exec(struct mips_ejtag *ejtag_info, struct pracc_queue_in
 		return ERROR_FAIL;
 	}
 
-	unsigned num_clocks =
+	unsigned int num_clocks =
 		((uint64_t)(ejtag_info->scan_delay) * adapter_get_speed_khz() + 500000) / 1000000;
 
 	uint32_t ejtag_ctrl = ejtag_info->ejtag_ctrl & ~EJTAG_CTRL_PRACC;
@@ -1362,7 +1362,7 @@ int mips32_pracc_fastdata_xfer(struct mips_ejtag *ejtag_info, struct working_are
 	pracc_swap16_array(ejtag_info, jmp_code, ARRAY_SIZE(jmp_code));
 
 	/* execute jump code, with no address check */
-	for (unsigned i = 0; i < ARRAY_SIZE(jmp_code); i++) {
+	for (unsigned int i = 0; i < ARRAY_SIZE(jmp_code); i++) {
 		int retval = wait_for_pracc_rw(ejtag_info);
 		if (retval != ERROR_OK)
 			return retval;
@@ -1397,7 +1397,7 @@ int mips32_pracc_fastdata_xfer(struct mips_ejtag *ejtag_info, struct working_are
 	mips_ejtag_set_instr(ejtag_info, EJTAG_INST_FASTDATA);
 	mips_ejtag_fastdata_scan(ejtag_info, 1, &val);
 
-	unsigned num_clocks = 0;	/* like in legacy code */
+	unsigned int num_clocks = 0;	/* like in legacy code */
 	if (ejtag_info->mode != 0)
 		num_clocks = ((uint64_t)(ejtag_info->scan_delay) * adapter_get_speed_khz() + 500000) / 1000000;
 

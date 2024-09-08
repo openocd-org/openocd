@@ -220,9 +220,9 @@ enum dsp563xx_reg_idx {
 };
 
 static const struct {
-	unsigned id;
+	unsigned int id;
 	const char *name;
-	unsigned bits;
+	unsigned int bits;
 	/* effective addressing mode encoding */
 	uint8_t eame;
 	uint32_t instr_mask;

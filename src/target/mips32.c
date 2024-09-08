@@ -34,7 +34,7 @@ static const char *mips_isa_strings[] = {
  * based on gdb-7.6.2/gdb/features/mips-{fpu,cp0,cpu,dsp}.xml
  */
 static const struct {
-	unsigned id;
+	unsigned int id;
 	const char *name;
 	enum reg_type type;
 	const char *group;
@@ -1187,7 +1187,7 @@ int mips32_read_config_regs(struct target *target)
 		mips32->isa_imp = MIPS32_MIPS16;
 		LOG_USER("ISA implemented: %s%s", "MIPS32, MIPS16", buf);
 	} else if (ejtag_info->config_regs >= 4) {	/* config3 implemented */
-		unsigned isa_imp = (ejtag_info->config[3] & MIPS32_CONFIG3_ISA_MASK) >> MIPS32_CONFIG3_ISA_SHIFT;
+		unsigned int isa_imp = (ejtag_info->config[3] & MIPS32_CONFIG3_ISA_MASK) >> MIPS32_CONFIG3_ISA_SHIFT;
 		if (isa_imp == 1) {
 			mips32->isa_imp = MMIPS32_ONLY;
 			LOG_USER("ISA implemented: %s%s", "microMIPS32", buf);

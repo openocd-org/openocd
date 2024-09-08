@@ -516,7 +516,7 @@ static int arc_get_gdb_reg_list(struct target *target, struct reg **reg_list[],
 		unsigned long i = 0;
 		struct reg_cache *reg_cache = target->reg_cache;
 		while (reg_cache) {
-			for (unsigned j = 0; j < reg_cache->num_regs; j++, i++)
+			for (unsigned int j = 0; j < reg_cache->num_regs; j++, i++)
 				(*reg_list)[i] =  &reg_cache->reg_list[j];
 			reg_cache = reg_cache->next;
 		}
@@ -527,7 +527,7 @@ static int arc_get_gdb_reg_list(struct target *target, struct reg **reg_list[],
 		unsigned long gdb_reg_number = 0;
 		struct reg_cache *reg_cache = target->reg_cache;
 		while (reg_cache) {
-			for (unsigned j = 0;
+			for (unsigned int j = 0;
 				 j < reg_cache->num_regs && gdb_reg_number <= arc->last_general_reg;
 				 j++) {
 				if (reg_cache->reg_list[j].exist) {

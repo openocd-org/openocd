@@ -685,7 +685,7 @@ target_addr_t target_address_max(struct target *target);
  *
  * This routine is a wrapper for target->type->address_bits.
  */
-unsigned target_address_bits(struct target *target);
+unsigned int target_address_bits(struct target *target);
 
 /**
  * Return the number of data bits this target supports.
@@ -778,8 +778,8 @@ int target_arch_state(struct target *target);
 void target_handle_event(struct target *t, enum target_event e);
 
 void target_handle_md_output(struct command_invocation *cmd,
-	struct target *target, target_addr_t address, unsigned size,
-	unsigned count, const uint8_t *buffer);
+	struct target *target, target_addr_t address, unsigned int size,
+	unsigned int count, const uint8_t *buffer);
 
 int target_profiling_default(struct target *target, uint32_t *samples, uint32_t
 		max_num_samples, uint32_t *num_samples, uint32_t seconds);

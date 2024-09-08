@@ -167,7 +167,7 @@ int arm_dpm_modeswitch(struct arm_dpm *dpm, enum arm_mode mode)
 }
 
 /* Read 64bit VFP registers */
-static int dpm_read_reg_u64(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
+static int dpm_read_reg_u64(struct arm_dpm *dpm, struct reg *r, unsigned int regnum)
 {
 	int retval = ERROR_FAIL;
 	uint32_t value_r0, value_r1;
@@ -205,7 +205,7 @@ static int dpm_read_reg_u64(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
 }
 
 /* just read the register -- rely on the core mode being right */
-int arm_dpm_read_reg(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
+int arm_dpm_read_reg(struct arm_dpm *dpm, struct reg *r, unsigned int regnum)
 {
 	uint32_t value;
 	int retval;
@@ -272,7 +272,7 @@ int arm_dpm_read_reg(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
 }
 
 /* Write 64bit VFP registers */
-static int dpm_write_reg_u64(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
+static int dpm_write_reg_u64(struct arm_dpm *dpm, struct reg *r, unsigned int regnum)
 {
 	int retval = ERROR_FAIL;
 	uint32_t value_r0 = buf_get_u32(r->value, 0, 32);
@@ -308,7 +308,7 @@ static int dpm_write_reg_u64(struct arm_dpm *dpm, struct reg *r, unsigned regnum
 }
 
 /* just write the register -- rely on the core mode being right */
-static int dpm_write_reg(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
+static int dpm_write_reg(struct arm_dpm *dpm, struct reg *r, unsigned int regnum)
 {
 	int retval;
 	uint32_t value = buf_get_u32(r->value, 0, 32);
@@ -386,7 +386,7 @@ int arm_dpm_read_current_registers(struct arm_dpm *dpm)
 		return retval;
 
 	/* read R0 and R1 first (it's used for scratch), then CPSR */
-	for (unsigned i = 0; i < 2; i++) {
+	for (unsigned int i = 0; i < 2; i++) {
 		r = arm->core_cache->reg_list + i;
 		if (!r->valid) {
 			retval = arm_dpm_read_reg(dpm, r, i);
@@ -404,7 +404,7 @@ int arm_dpm_read_current_registers(struct arm_dpm *dpm)
 	arm_set_cpsr(arm, cpsr);
 
 	/* REVISIT we can probably avoid reading R1..R14, saving time... */
-	for (unsigned i = 2; i < 16; i++) {
+	for (unsigned int i = 2; i < 16; i++) {
 		r = arm_reg_current(arm, i);
 		if (r->valid)
 			continue;
@@ -501,7 +501,7 @@ int arm_dpm_write_dirty_registers(struct arm_dpm *dpm, bool bpwp)
 	 * cope with the hand-crafted breakpoint code.
 	 */
 	if (arm->target->type->add_breakpoint == dpm_add_breakpoint) {
-		for (unsigned i = 0; i < dpm->nbp; i++) {
+		for (unsigned int i = 0; i < dpm->nbp; i++) {
 			struct dpm_bp *dbp = dpm->dbp + i;
 			struct breakpoint *bp = dbp->bp;
 
@@ -513,7 +513,7 @@ int arm_dpm_write_dirty_registers(struct arm_dpm *dpm, bool bpwp)
 	}
 
 	/* enable/disable watchpoints */
-	for (unsigned i = 0; i < dpm->nwp; i++) {
+	for (unsigned int i = 0; i < dpm->nwp; i++) {
 		struct dpm_wp *dwp = dpm->dwp + i;
 		struct watchpoint *wp = dwp->wp;
 
@@ -538,9 +538,9 @@ int arm_dpm_write_dirty_registers(struct arm_dpm *dpm, bool bpwp)
 		did_write = false;
 
 		/* check everything except our scratch registers R0 and R1 */
-		for (unsigned i = 2; i < cache->num_regs; i++) {
+		for (unsigned int i = 2; i < cache->num_regs; i++) {
 			struct arm_reg *r;
-			unsigned regnum;
+			unsigned int regnum;
 
 			/* also skip PC, CPSR, and non-dirty */
 			if (i == 15)
@@ -625,7 +625,7 @@ int arm_dpm_write_dirty_registers(struct arm_dpm *dpm, bool bpwp)
 	arm->pc->dirty = false;
 
 	/* flush R0 and R1 (our scratch registers) */
-	for (unsigned i = 0; i < 2; i++) {
+	for (unsigned int i = 0; i < 2; i++) {
 		retval = dpm_write_reg(dpm, &cache->reg_list[i], i);
 		if (retval != ERROR_OK)
 			goto done;
@@ -643,7 +643,7 @@ done:
  * or MODE_ANY.
  */
 static enum arm_mode dpm_mapmode(struct arm *arm,
-	unsigned num, enum arm_mode mode)
+	unsigned int num, enum arm_mode mode)
 {
 	enum arm_mode amode = arm->core_mode;
 
@@ -793,7 +793,7 @@ static int arm_dpm_full_context(struct target *target)
 		 * Pick some mode with unread registers and read them all.
 		 * Repeat until done.
 		 */
-		for (unsigned i = 0; i < cache->num_regs; i++) {
+		for (unsigned int i = 0; i < cache->num_regs; i++) {
 			struct arm_reg *r;
 
 			if (!cache->reg_list[i].exist || cache->reg_list[i].valid)
@@ -921,7 +921,7 @@ static int dpm_add_breakpoint(struct target *target, struct breakpoint *bp)
 	if (bp->type == BKPT_SOFT)
 		LOG_DEBUG("using HW bkpt, not SW...");
 
-	for (unsigned i = 0; i < dpm->nbp; i++) {
+	for (unsigned int i = 0; i < dpm->nbp; i++) {
 		if (!dpm->dbp[i].bp) {
 			retval = dpm_bpwp_setup(dpm, &dpm->dbp[i].bpwp,
 					bp->address, bp->length);
@@ -940,7 +940,7 @@ static int dpm_remove_breakpoint(struct target *target, struct breakpoint *bp)
 	struct arm_dpm *dpm = arm->dpm;
 	int retval = ERROR_COMMAND_SYNTAX_ERROR;
 
-	for (unsigned i = 0; i < dpm->nbp; i++) {
+	for (unsigned int i = 0; i < dpm->nbp; i++) {
 		if (dpm->dbp[i].bp == bp) {
 			dpm->dbp[i].bp = NULL;
 			dpm->dbp[i].bpwp.dirty = true;
@@ -954,7 +954,7 @@ static int dpm_remove_breakpoint(struct target *target, struct breakpoint *bp)
 	return retval;
 }
 
-static int dpm_watchpoint_setup(struct arm_dpm *dpm, unsigned index_t,
+static int dpm_watchpoint_setup(struct arm_dpm *dpm, unsigned int index_t,
 	struct watchpoint *wp)
 {
 	int retval;
@@ -997,7 +997,7 @@ static int dpm_add_watchpoint(struct target *target, struct watchpoint *wp)
 	int retval = ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 
 	if (dpm->bpwp_enable) {
-		for (unsigned i = 0; i < dpm->nwp; i++) {
+		for (unsigned int i = 0; i < dpm->nwp; i++) {
 			if (!dpm->dwp[i].wp) {
 				retval = dpm_watchpoint_setup(dpm, i, wp);
 				break;
@@ -1014,7 +1014,7 @@ static int dpm_remove_watchpoint(struct target *target, struct watchpoint *wp)
 	struct arm_dpm *dpm = arm->dpm;
 	int retval = ERROR_COMMAND_SYNTAX_ERROR;
 
-	for (unsigned i = 0; i < dpm->nwp; i++) {
+	for (unsigned int i = 0; i < dpm->nwp; i++) {
 		if (dpm->dwp[i].wp == wp) {
 			dpm->dwp[i].wp = NULL;
 			dpm->dwp[i].bpwp.dirty = true;
@@ -1161,7 +1161,7 @@ int arm_dpm_initialize(struct arm_dpm *dpm)
 {
 	/* Disable all breakpoints and watchpoints at startup. */
 	if (dpm->bpwp_disable) {
-		unsigned i;
+		unsigned int i;
 
 		for (i = 0; i < dpm->nbp; i++) {
 			dpm->dbp[i].bpwp.number = i;

@@ -36,7 +36,7 @@ static const char * const armv8_state_strings[] = {
 
 static const struct {
 	const char *name;
-	unsigned psr;
+	unsigned int psr;
 } armv8_mode_data[] = {
 	{
 		.name = "USR",
@@ -105,9 +105,9 @@ static const struct {
 };
 
 /** Map PSR mode bits to the name of an ARM processor operating mode. */
-const char *armv8_mode_name(unsigned psr_mode)
+const char *armv8_mode_name(unsigned int psr_mode)
 {
-	for (unsigned i = 0; i < ARRAY_SIZE(armv8_mode_data); i++) {
+	for (unsigned int i = 0; i < ARRAY_SIZE(armv8_mode_data); i++) {
 		if (armv8_mode_data[i].psr == psr_mode)
 			return armv8_mode_data[i].name;
 	}
@@ -683,7 +683,7 @@ static int armv8_read_reg_simdfp_aarch32(struct armv8_common *armv8, int regnum,
 	struct arm_dpm *dpm = &armv8->dpm;
 	struct reg *reg_r1 = dpm->arm->core_cache->reg_list + ARMV8_R1;
 	uint32_t value_r0 = 0, value_r1 = 0;
-	unsigned num = (regnum - ARMV8_V0) << 1;
+	unsigned int num = (regnum - ARMV8_V0) << 1;
 
 	switch (regnum) {
 	case ARMV8_V0 ... ARMV8_V15:
@@ -817,7 +817,7 @@ static int armv8_write_reg_simdfp_aarch32(struct armv8_common *armv8, int regnum
 	struct arm_dpm *dpm = &armv8->dpm;
 	struct reg *reg_r1 = dpm->arm->core_cache->reg_list + ARMV8_R1;
 	uint32_t value_r0 = 0, value_r1 = 0;
-	unsigned num = (regnum - ARMV8_V0) << 1;
+	unsigned int num = (regnum - ARMV8_V0) << 1;
 
 	switch (regnum) {
 	case ARMV8_V0 ... ARMV8_V15:
@@ -1506,9 +1506,9 @@ static struct reg_data_type aarch64_flags_cpsr[] = {
 };
 
 static const struct {
-	unsigned id;
+	unsigned int id;
 	const char *name;
-	unsigned bits;
+	unsigned int bits;
 	enum arm_mode mode;
 	enum reg_type type;
 	const char *group;
@@ -1611,10 +1611,10 @@ static const struct {
 };
 
 static const struct {
-	unsigned id;
-	unsigned mapping;
+	unsigned int id;
+	unsigned int mapping;
 	const char *name;
-	unsigned bits;
+	unsigned int bits;
 	enum arm_mode mode;
 	enum reg_type type;
 	const char *group;
@@ -1881,7 +1881,7 @@ struct reg_cache *armv8_build_reg_cache(struct target *target)
 	return cache;
 }
 
-struct reg *armv8_reg_current(struct arm *arm, unsigned regnum)
+struct reg *armv8_reg_current(struct arm *arm, unsigned int regnum)
 {
 	struct reg *r;
 
