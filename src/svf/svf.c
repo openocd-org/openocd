@@ -245,7 +245,7 @@ static int svf_last_printed_percentage = -1;
 #define SVF_BUF_LOG(_lvl, _buf, _nbits, _desc)							\
 	svf_hexbuf_print(LOG_LVL_##_lvl,  __FILE__, __LINE__, __func__, _buf, _nbits, _desc)
 
-static void svf_hexbuf_print(int dbg_lvl, const char *file, unsigned line,
+static void svf_hexbuf_print(int dbg_lvl, const char *file, unsigned int line,
 							 const char *function, const uint8_t *buf,
 							 int bit_len, const char *desc)
 {
@@ -316,7 +316,7 @@ static void svf_free_xxd_para(struct svf_xxr_para *para)
 int svf_add_statemove(tap_state_t state_to)
 {
 	tap_state_t state_from = cmd_queue_cur_state;
-	unsigned index_var;
+	unsigned int index_var;
 
 	/* when resetting, be paranoid and ignore current state */
 	if (state_to == TAP_RESET) {

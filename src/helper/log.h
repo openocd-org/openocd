@@ -48,12 +48,12 @@ enum log_levels {
 	LOG_LVL_DEBUG_IO = 4,
 };
 
-void log_printf(enum log_levels level, const char *file, unsigned line,
+void log_printf(enum log_levels level, const char *file, unsigned int line,
 		const char *function, const char *format, ...)
 __attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 5, 6)));
-void log_vprintf_lf(enum log_levels level, const char *file, unsigned line,
+void log_vprintf_lf(enum log_levels level, const char *file, unsigned int line,
 		const char *function, const char *format, va_list args);
-void log_printf_lf(enum log_levels level, const char *file, unsigned line,
+void log_printf_lf(enum log_levels level, const char *file, unsigned int line,
 		const char *function, const char *format, ...)
 __attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 5, 6)));
 
@@ -73,7 +73,7 @@ void busy_sleep(uint64_t ms);
 
 void log_socket_error(const char *socket_desc);
 
-typedef void (*log_callback_fn)(void *priv, const char *file, unsigned line,
+typedef void (*log_callback_fn)(void *priv, const char *file, unsigned int line,
 		const char *function, const char *string);
 
 struct log_callback {
@@ -89,7 +89,7 @@ char *alloc_vprintf(const char *fmt, va_list ap);
 char *alloc_printf(const char *fmt, ...)
 	__attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 1, 2)));
 
-char *find_nonprint_char(char *buf, unsigned buf_len);
+char *find_nonprint_char(char *buf, unsigned int buf_len);
 
 extern int debug_level;
 

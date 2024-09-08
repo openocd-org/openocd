@@ -320,7 +320,7 @@ static int hwthread_get_thread_reg(struct rtos *rtos, int64_t thread_id,
 
 	rtos_reg->number = reg->number;
 	rtos_reg->size = reg->size;
-	unsigned bytes = (reg->size + 7) / 8;
+	unsigned int bytes = (reg->size + 7) / 8;
 	assert(bytes <= sizeof(rtos_reg->value));
 	memcpy(rtos_reg->value, reg->value, bytes);
 
