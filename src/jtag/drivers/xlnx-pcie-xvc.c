@@ -43,7 +43,7 @@
 
 struct xlnx_pcie_xvc {
 	int fd;
-	unsigned offset;
+	unsigned int offset;
 	char *device;
 };
 

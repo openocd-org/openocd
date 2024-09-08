@@ -92,13 +92,13 @@ static int bitbang_state_move(int skip)
  */
 static int bitbang_execute_tms(struct jtag_command *cmd)
 {
-	unsigned num_bits = cmd->cmd.tms->num_bits;
+	unsigned int num_bits = cmd->cmd.tms->num_bits;
 	const uint8_t *bits = cmd->cmd.tms->bits;
 
 	LOG_DEBUG_IO("TMS: %u bits", num_bits);
 
 	int tms = 0;
-	for (unsigned i = 0; i < num_bits; i++) {
+	for (unsigned int i = 0; i < num_bits; i++) {
 		tms = ((bits[i/8] >> (i % 8)) & 1);
 		if (bitbang_interface->write(0, tms, 0) != ERROR_OK)
 			return ERROR_FAIL;
@@ -193,10 +193,10 @@ static int bitbang_stableclocks(unsigned int num_cycles)
 }
 
 static int bitbang_scan(bool ir_scan, enum scan_type type, uint8_t *buffer,
-		unsigned scan_size)
+		unsigned int scan_size)
 {
 	tap_state_t saved_end_state = tap_get_end_state();
-	unsigned bit_cnt;
+	unsigned int bit_cnt;
 
 	if (!((!ir_scan &&
 			(tap_get_state() == TAP_DRSHIFT)) ||
@@ -254,7 +254,7 @@ static int bitbang_scan(bool ir_scan, enum scan_type type, uint8_t *buffer,
 		if (type != SCAN_OUT && bitbang_interface->buf_size &&
 				(buffered == bitbang_interface->buf_size ||
 				 bit_cnt == scan_size - 1)) {
-			for (unsigned i = bit_cnt + 1 - buffered; i <= bit_cnt; i++) {
+			for (unsigned int i = bit_cnt + 1 - buffered; i <= bit_cnt; i++) {
 				switch (bitbang_interface->read_sample()) {
 					case BB_LOW:
 						buffer[i/8] &= ~(1 << (i % 8));

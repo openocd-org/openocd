@@ -843,7 +843,7 @@ COMMAND_HANDLER(handle_jtag_ntrst_delay_command)
 	if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	if (CMD_ARGC == 1) {
-		unsigned delay;
+		unsigned int delay;
 		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], delay);
 
 		jtag_set_ntrst_delay(delay);
@@ -857,7 +857,7 @@ COMMAND_HANDLER(handle_jtag_ntrst_assert_width_command)
 	if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	if (CMD_ARGC == 1) {
-		unsigned delay;
+		unsigned int delay;
 		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], delay);
 
 		jtag_set_ntrst_assert_width(delay);
@@ -873,7 +873,7 @@ COMMAND_HANDLER(handle_jtag_rclk_command)
 
 	int retval = ERROR_OK;
 	if (CMD_ARGC == 1) {
-		unsigned khz = 0;
+		unsigned int khz = 0;
 		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], khz);
 
 		retval = adapter_config_rclk(khz);
@@ -899,7 +899,7 @@ COMMAND_HANDLER(handle_runtest_command)
 	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	unsigned num_clocks;
+	unsigned int num_clocks;
 	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], num_clocks);
 
 	jtag_add_runtest(num_clocks, TAP_IDLE);

@@ -158,7 +158,7 @@ retry_write:
 
 static int jtag_vpi_receive_cmd(struct vpi_cmd *vpi)
 {
-	unsigned bytes_buffered = 0;
+	unsigned int bytes_buffered = 0;
 	while (bytes_buffered < sizeof(struct vpi_cmd)) {
 		int bytes_to_receive = sizeof(struct vpi_cmd) - bytes_buffered;
 		int retval = read_socket(sockfd, ((char *)vpi) + bytes_buffered, bytes_to_receive);

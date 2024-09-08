@@ -53,7 +53,7 @@ static int jtag_libusb_error(int err)
 bool jtag_libusb_match_ids(struct libusb_device_descriptor *dev_desc,
 		const uint16_t vids[], const uint16_t pids[])
 {
-	for (unsigned i = 0; vids[i]; i++) {
+	for (unsigned int i = 0; vids[i]; i++) {
 		if (dev_desc->idVendor == vids[i] &&
 			dev_desc->idProduct == pids[i]) {
 			return true;

@@ -343,7 +343,7 @@ static const struct name_mapping {
 
 const char *tap_state_name(tap_state_t state)
 {
-	unsigned i;
+	unsigned int i;
 
 	for (i = 0; i < ARRAY_SIZE(tap_name_mapping); i++) {
 		if (tap_name_mapping[i].symbol == state)
@@ -354,7 +354,7 @@ const char *tap_state_name(tap_state_t state)
 
 tap_state_t tap_state_by_name(const char *name)
 {
-	unsigned i;
+	unsigned int i;
 
 	for (i = 0; i < ARRAY_SIZE(tap_name_mapping); i++) {
 		/* be nice to the human */
@@ -376,11 +376,11 @@ tap_state_t jtag_debug_state_machine_(const void *tms_buf, const void *tdi_buf,
 {
 	const uint8_t *tms_buffer;
 	const uint8_t *tdi_buffer;
-	unsigned tap_bytes;
-	unsigned cur_byte;
-	unsigned cur_bit;
+	unsigned int tap_bytes;
+	unsigned int cur_byte;
+	unsigned int cur_bit;
 
-	unsigned tap_out_bits;
+	unsigned int tap_out_bits;
 	char tms_str[33];
 	char tdi_str[33];
 
@@ -400,7 +400,7 @@ tap_state_t jtag_debug_state_machine_(const void *tms_buf, const void *tdi_buf,
 	for (cur_byte = 0; cur_byte < tap_bytes; cur_byte++) {
 		for (cur_bit = 0; cur_bit < 8; cur_bit++) {
 			/* make sure we do not run off the end of the buffers */
-			unsigned tap_bit = cur_byte * 8 + cur_bit;
+			unsigned int tap_bit = cur_byte * 8 + cur_bit;
 			if (tap_bit == tap_bits)
 				break;
 

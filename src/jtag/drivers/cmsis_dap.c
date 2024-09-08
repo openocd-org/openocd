@@ -2153,7 +2153,7 @@ COMMAND_HANDLER(cmsis_dap_handle_cmd_command)
 {
 	uint8_t *command = cmsis_dap_handle->command;
 
-	for (unsigned i = 0; i < CMD_ARGC; i++)
+	for (unsigned int i = 0; i < CMD_ARGC; i++)
 		COMMAND_PARSE_NUMBER(u8, CMD_ARGV[i], command[i]);
 
 	int retval = cmsis_dap_xfer(cmsis_dap_handle, CMD_ARGC);
@@ -2185,7 +2185,7 @@ COMMAND_HANDLER(cmsis_dap_handle_vid_pid_command)
 		CMD_ARGC -= 1;
 	}
 
-	unsigned i;
+	unsigned int i;
 	for (i = 0; i < CMD_ARGC; i += 2) {
 		COMMAND_PARSE_NUMBER(u16, CMD_ARGV[i], cmsis_dap_vid[i >> 1]);
 		COMMAND_PARSE_NUMBER(u16, CMD_ARGV[i + 1], cmsis_dap_pid[i >> 1]);

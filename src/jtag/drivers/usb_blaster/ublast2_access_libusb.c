@@ -30,7 +30,7 @@
 #define SECTION_BUFFERSIZE		16384
 
 static int ublast2_libusb_read(struct ublast_lowlevel *low, uint8_t *buf,
-			      unsigned size, uint32_t *bytes_read)
+			      unsigned int size, uint32_t *bytes_read)
 {
 	int ret, tmp = 0;
 

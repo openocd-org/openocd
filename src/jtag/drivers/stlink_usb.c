@@ -3740,7 +3740,7 @@ static int stlink_open(struct hl_interface_param *param, enum stlink_mode mode, 
 
 	h->st_mode = mode;
 
-	for (unsigned i = 0; param->vid[i]; i++) {
+	for (unsigned int i = 0; param->vid[i]; i++) {
 		LOG_DEBUG("transport: %d vid: 0x%04x pid: 0x%04x serial: %s",
 			  h->st_mode, param->vid[i], param->pid[i],
 			  adapter_get_required_serial() ? adapter_get_required_serial() : "");
