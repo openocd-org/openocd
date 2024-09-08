@@ -191,26 +191,26 @@ static uint32_t fld(unsigned int dest, unsigned int base, uint16_t offset)
 	return imm_i(offset) | inst_rs1(base) | inst_rd(dest) | MATCH_FLD;
 }
 
-static uint32_t fmv_x_w(unsigned dest, unsigned src) __attribute__ ((unused));
-static uint32_t fmv_x_w(unsigned dest, unsigned src)
+static uint32_t fmv_x_w(unsigned int dest, unsigned int src) __attribute__ ((unused));
+static uint32_t fmv_x_w(unsigned int dest, unsigned int src)
 {
 	return inst_rs1(src) | inst_rd(dest) | MATCH_FMV_X_W;
 }
 
-static uint32_t fmv_x_d(unsigned dest, unsigned src) __attribute__ ((unused));
-static uint32_t fmv_x_d(unsigned dest, unsigned src)
+static uint32_t fmv_x_d(unsigned int dest, unsigned int src) __attribute__ ((unused));
+static uint32_t fmv_x_d(unsigned int dest, unsigned int src)
 {
 	return inst_rs1(src) | inst_rd(dest) | MATCH_FMV_X_D;
 }
 
-static uint32_t fmv_w_x(unsigned dest, unsigned src) __attribute__ ((unused));
-static uint32_t fmv_w_x(unsigned dest, unsigned src)
+static uint32_t fmv_w_x(unsigned int dest, unsigned int src) __attribute__ ((unused));
+static uint32_t fmv_w_x(unsigned int dest, unsigned int src)
 {
 	return inst_rs1(src) | inst_rd(dest) | MATCH_FMV_W_X;
 }
 
-static uint32_t fmv_d_x(unsigned dest, unsigned src) __attribute__ ((unused));
-static uint32_t fmv_d_x(unsigned dest, unsigned src)
+static uint32_t fmv_d_x(unsigned int dest, unsigned int src) __attribute__ ((unused));
+static uint32_t fmv_d_x(unsigned int dest, unsigned int src)
 {
 	return inst_rs1(src) | inst_rd(dest) | MATCH_FMV_D_X;
 }

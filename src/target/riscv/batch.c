@@ -127,7 +127,7 @@ int riscv_batch_run(struct riscv_batch *batch)
 	return ERROR_OK;
 }
 
-void riscv_batch_add_dmi_write(struct riscv_batch *batch, unsigned address, uint64_t data)
+void riscv_batch_add_dmi_write(struct riscv_batch *batch, unsigned int address, uint64_t data)
 {
 	assert(batch->used_scans < batch->allocated_scans);
 	struct scan_field *field = batch->fields + batch->used_scans;
@@ -140,7 +140,7 @@ void riscv_batch_add_dmi_write(struct riscv_batch *batch, unsigned address, uint
 	batch->used_scans++;
 }
 
-size_t riscv_batch_add_dmi_read(struct riscv_batch *batch, unsigned address)
+size_t riscv_batch_add_dmi_read(struct riscv_batch *batch, unsigned int address)
 {
 	assert(batch->used_scans < batch->allocated_scans);
 	struct scan_field *field = batch->fields + batch->used_scans;
@@ -156,7 +156,7 @@ size_t riscv_batch_add_dmi_read(struct riscv_batch *batch, unsigned address)
 	return batch->read_keys_used++;
 }
 
-unsigned riscv_batch_get_dmi_read_op(struct riscv_batch *batch, size_t key)
+unsigned int riscv_batch_get_dmi_read_op(struct riscv_batch *batch, size_t key)
 {
 	assert(key < batch->read_keys_used);
 	size_t index = batch->read_keys[key];

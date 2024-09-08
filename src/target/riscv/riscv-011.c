@@ -474,7 +474,7 @@ static uint64_t dbus_read(struct target *target, uint16_t address)
 	 * While somewhat nonintuitive, this is an efficient way to get the data.
 	 */
 
-	unsigned i = 0;
+	unsigned int i = 0;
 	do {
 		status = dbus_scan(target, &address_in, &value, DBUS_OP_READ, address, 0);
 		if (status == DBUS_STATUS_BUSY)
@@ -495,7 +495,7 @@ static uint64_t dbus_read(struct target *target, uint16_t address)
 static void dbus_write(struct target *target, uint16_t address, uint64_t value)
 {
 	dbus_status_t status = DBUS_STATUS_BUSY;
-	unsigned i = 0;
+	unsigned int i = 0;
 	while (status == DBUS_STATUS_BUSY && i++ < 256) {
 		status = dbus_scan(target, NULL, NULL, DBUS_OP_WRITE, address, value);
 		if (status == DBUS_STATUS_BUSY)
@@ -656,13 +656,13 @@ static void scans_add_read(scans_t *scans, slot_t slot, bool set_interrupt)
 }
 
 static uint32_t scans_get_u32(scans_t *scans, unsigned int index,
-		unsigned first, unsigned num)
+		unsigned int first, unsigned int num)
 {
 	return buf_get_u32(scans->in + scans->scan_size * index, first, num);
 }
 
 static uint64_t scans_get_u64(scans_t *scans, unsigned int index,
-		unsigned first, unsigned num)
+		unsigned int first, unsigned int num)
 {
 	return buf_get_u64(scans->in + scans->scan_size * index, first, num);
 }
@@ -699,7 +699,7 @@ static bits_t read_bits(struct target *target)
 	};
 
 	do {
-		unsigned i = 0;
+		unsigned int i = 0;
 		do {
 			status = dbus_scan(target, &address_in, &value, DBUS_OP_READ, 0, 0);
 			if (status == DBUS_STATUS_BUSY) {
@@ -1296,7 +1296,7 @@ static int register_write(struct target *target, unsigned int number,
 		int result = update_mstatus_actual(target);
 		if (result != ERROR_OK)
 			return result;
-		unsigned i = 0;
+		unsigned int i = 0;
 		if ((info->mstatus_actual & MSTATUS_FS) == 0) {
 			info->mstatus_actual = set_field(info->mstatus_actual, MSTATUS_FS, 1);
 			cache_set_load(target, i++, S0, SLOT1);
@@ -1352,7 +1352,7 @@ static int get_register(struct target *target, riscv_reg_t *value, int regid)
 		int result = update_mstatus_actual(target);
 		if (result != ERROR_OK)
 			return result;
-		unsigned i = 0;
+		unsigned int i = 0;
 		if ((info->mstatus_actual & MSTATUS_FS) == 0) {
 			info->mstatus_actual = set_field(info->mstatus_actual, MSTATUS_FS, 1);
 			cache_set_load(target, i++, S0, SLOT1);
@@ -1538,7 +1538,7 @@ static int examine(struct target *target)
 	/* 0x00000000  0x00000000:00000003  0x00000000:00000003:ffffffff:ffffffff */
 	cache_set32(target, 4, sw(S1, ZERO, DEBUG_RAM_START + 4));
 	cache_set_jump(target, 5);
-	for (unsigned i = 6; i < info->dramsize; i++)
+	for (unsigned int i = 6; i < info->dramsize; i++)
 		cache_set32(target, i, i * 0x01020304);
 
 	cache_write(target, 0, false);
@@ -1569,7 +1569,7 @@ static int examine(struct target *target)
 	LOG_DEBUG("Discovered XLEN is %d", riscv_xlen(target));
 
 	if (read_remote_csr(target, &r->misa, CSR_MISA) != ERROR_OK) {
-		const unsigned old_csr_misa = 0xf10;
+		const unsigned int old_csr_misa = 0xf10;
 		LOG_WARNING("Failed to read misa at 0x%x; trying 0x%x.", CSR_MISA,
 				old_csr_misa);
 		if (read_remote_csr(target, &r->misa, old_csr_misa) != ERROR_OK) {
@@ -1651,7 +1651,7 @@ static riscv_error_t handle_halt_routine(struct target *target)
 
 	unsigned int dbus_busy = 0;
 	unsigned int interrupt_set = 0;
-	unsigned result = 0;
+	unsigned int result = 0;
 	uint64_t value = 0;
 	reg_cache_set(target, 0, 0);
 	/* The first scan result is the result from something old we don't care
@@ -2016,7 +2016,7 @@ static int read_memory(struct target *target, target_addr_t address,
 	cache_write(target, CACHE_NO_READ, false);
 
 	riscv011_info_t *info = get_info(target);
-	const unsigned max_batch_size = 256;
+	const unsigned int max_batch_size = 256;
 	scans_t *scans = scans_new(target, max_batch_size);
 	if (!scans)
 		return ERROR_FAIL;
@@ -2174,7 +2174,7 @@ static int write_memory(struct target *target, target_addr_t address,
 	if (setup_write_memory(target, size) != ERROR_OK)
 		return ERROR_FAIL;
 
-	const unsigned max_batch_size = 256;
+	const unsigned int max_batch_size = 256;
 	scans_t *scans = scans_new(target, max_batch_size);
 	if (!scans)
 		return ERROR_FAIL;

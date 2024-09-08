@@ -48,7 +48,7 @@ static int riscv013_on_step(struct target *target);
 static int riscv013_resume_prep(struct target *target);
 static bool riscv013_is_halted(struct target *target);
 static enum riscv_halt_reason riscv013_halt_reason(struct target *target);
-static int riscv013_write_debug_buffer(struct target *target, unsigned index,
+static int riscv013_write_debug_buffer(struct target *target, unsigned int index,
 		riscv_insn_t d);
 static riscv_insn_t riscv013_read_debug_buffer(struct target *target, unsigned
 		index);
@@ -59,7 +59,7 @@ static int riscv013_dmi_write_u64_bits(struct target *target);
 static void riscv013_fill_dmi_nop_u64(struct target *target, char *buf);
 static int register_read(struct target *target, uint64_t *value, uint32_t number);
 static int register_read_direct(struct target *target, uint64_t *value, uint32_t number);
-static int register_write_direct(struct target *target, unsigned number,
+static int register_write_direct(struct target *target, unsigned int number,
 		uint64_t value);
 static int read_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer, uint32_t increment);
@@ -156,13 +156,13 @@ typedef struct {
 
 typedef struct {
 	/* The indexed used to address this hart in its DM. */
-	unsigned index;
+	unsigned int index;
 	/* Number of address bits in the dbus register. */
-	unsigned abits;
+	unsigned int abits;
 	/* Number of abstract command data registers. */
-	unsigned datacount;
+	unsigned int datacount;
 	/* Number of words in the Program Buffer. */
-	unsigned progbufsize;
+	unsigned int progbufsize;
 
 	/* We cache the read-only bits of sbcs here. */
 	uint32_t sbcs;
@@ -209,7 +209,7 @@ typedef struct {
 	int16_t dataaddr;
 
 	/* The width of the hartsel field. */
-	unsigned hartsellen;
+	unsigned int hartsellen;
 
 	/* DM that provides access to this target. */
 	dm013_info_t *dm;
@@ -290,10 +290,10 @@ static uint32_t set_hartsel(uint32_t initial, uint32_t index)
 	return initial;
 }
 
-static void decode_dmi(char *text, unsigned address, unsigned data)
+static void decode_dmi(char *text, unsigned int address, unsigned int data)
 {
 	static const struct {
-		unsigned address;
+		unsigned int address;
 		uint64_t mask;
 		const char *name;
 	} description[] = {
@@ -350,10 +350,10 @@ static void decode_dmi(char *text, unsigned address, unsigned data)
 	};
 
 	text[0] = 0;
-	for (unsigned i = 0; i < ARRAY_SIZE(description); i++) {
+	for (unsigned int i = 0; i < ARRAY_SIZE(description); i++) {
 		if (description[i].address == address) {
 			uint64_t mask = description[i].mask;
-			unsigned value = get_field(data, mask);
+			unsigned int value = get_field(data, mask);
 			if (value) {
 				if (i > 0)
 					*(text++) = ' ';
@@ -468,7 +468,7 @@ static dmi_status_t dmi_scan(struct target *target, uint32_t *address_in,
 {
 	riscv013_info_t *info = get_info(target);
 	RISCV_INFO(r);
-	unsigned num_bits = info->abits + DTM_DMI_OP_LENGTH + DTM_DMI_DATA_LENGTH;
+	unsigned int num_bits = info->abits + DTM_DMI_OP_LENGTH + DTM_DMI_DATA_LENGTH;
 	size_t num_bytes = (num_bits + 7) / 8;
 	uint8_t in[num_bytes];
 	uint8_t out[num_bytes];
@@ -680,7 +680,7 @@ static int dmi_write_exec(struct target *target, uint32_t address,
 }
 
 static int dmstatus_read_timeout(struct target *target, uint32_t *dmstatus,
-		bool authenticated, unsigned timeout_sec)
+		bool authenticated, unsigned int timeout_sec)
 {
 	int result = dmi_op_timeout(target, dmstatus, NULL, DMI_OP_READ,
 			DM_DMSTATUS, 0, timeout_sec, false, true);
@@ -717,7 +717,7 @@ static void increase_ac_busy_delay(struct target *target)
 			info->ac_busy_delay);
 }
 
-static uint32_t __attribute__((unused)) abstract_register_size(unsigned width)
+static uint32_t __attribute__((unused)) abstract_register_size(unsigned int width)
 {
 	switch (width) {
 		case 32:
@@ -807,12 +807,12 @@ static int execute_abstract_command(struct target *target, uint32_t command)
 	return ERROR_OK;
 }
 
-static riscv_reg_t read_abstract_arg(struct target *target, unsigned index,
-		unsigned size_bits)
+static riscv_reg_t read_abstract_arg(struct target *target, unsigned int index,
+		unsigned int size_bits)
 {
 	riscv_reg_t value = 0;
 	uint32_t v;
-	unsigned offset = index * size_bits / 32;
+	unsigned int offset = index * size_bits / 32;
 	switch (size_bits) {
 		default:
 			LOG_ERROR("Unsupported size: %d bits", size_bits);
@@ -828,10 +828,10 @@ static riscv_reg_t read_abstract_arg(struct target *target, unsigned index,
 	return value;
 }
 
-static int write_abstract_arg(struct target *target, unsigned index,
-		riscv_reg_t value, unsigned size_bits)
+static int write_abstract_arg(struct target *target, unsigned int index,
+		riscv_reg_t value, unsigned int size_bits)
 {
-	unsigned offset = index * size_bits / 32;
+	unsigned int offset = index * size_bits / 32;
 	switch (size_bits) {
 		default:
 			LOG_ERROR("Unsupported size: %d bits", size_bits);
@@ -849,7 +849,7 @@ static int write_abstract_arg(struct target *target, unsigned index,
  * @par size in bits
  */
 static uint32_t access_register_command(struct target *target, uint32_t number,
-		unsigned size, uint32_t flags)
+		unsigned int size, uint32_t flags)
 {
 	uint32_t command = set_field(0, DM_COMMAND_CMDTYPE, 0);
 	switch (size) {
@@ -891,7 +891,7 @@ static uint32_t access_register_command(struct target *target, uint32_t number,
 }
 
 static int register_read_abstract(struct target *target, uint64_t *value,
-		uint32_t number, unsigned size)
+		uint32_t number, unsigned int size)
 {
 	RISCV013_INFO(info);
 
@@ -929,7 +929,7 @@ static int register_read_abstract(struct target *target, uint64_t *value,
 }
 
 static int register_write_abstract(struct target *target, uint32_t number,
-		uint64_t value, unsigned size)
+		uint64_t value, unsigned int size)
 {
 	RISCV013_INFO(info);
 
@@ -968,7 +968,7 @@ static int register_write_abstract(struct target *target, uint32_t number,
  * Sets the AAMSIZE field of a memory access abstract command based on
  * the width (bits).
  */
-static uint32_t abstract_memory_size(unsigned width)
+static uint32_t abstract_memory_size(unsigned int width)
 {
 	switch (width) {
 		case 8:
@@ -991,7 +991,7 @@ static uint32_t abstract_memory_size(unsigned width)
  * Creates a memory access abstract command.
  */
 static uint32_t access_memory_command(struct target *target, bool virtual,
-		unsigned width, bool postincrement, bool write)
+		unsigned int width, bool postincrement, bool write)
 {
 	uint32_t command = set_field(0, AC_ACCESS_MEMORY_CMDTYPE, 2);
 	command = set_field(command, AC_ACCESS_MEMORY_AAMVIRTUAL, virtual);
@@ -1134,7 +1134,7 @@ typedef struct {
 static int scratch_reserve(struct target *target,
 		scratch_mem_t *scratch,
 		struct riscv_program *program,
-		unsigned size_bytes)
+		unsigned int size_bytes)
 {
 	riscv_addr_t alignment = 1;
 	while (alignment < size_bytes)
@@ -1166,7 +1166,7 @@ static int scratch_reserve(struct target *target,
 		return ERROR_FAIL;
 
 	/* Allow for ebreak at the end of the program. */
-	unsigned program_size = (program->instruction_count + 1) * 4;
+	unsigned int program_size = (program->instruction_count + 1) * 4;
 	scratch->hart_address = (info->progbuf_address + program_size + alignment - 1) &
 		~(alignment - 1);
 	if ((info->progbuf_writable == YNM_YES) &&
@@ -1271,7 +1271,7 @@ static int scratch_write64(struct target *target, scratch_mem_t *scratch,
 }
 
 /** Return register size in bits. */
-static unsigned register_size(struct target *target, unsigned number)
+static unsigned int register_size(struct target *target, unsigned int number)
 {
 	/* If reg_cache hasn't been initialized yet, make a guess. We need this for
 	 * when this function is called during examine(). */
@@ -1281,7 +1281,7 @@ static unsigned register_size(struct target *target, unsigned number)
 		return riscv_xlen(target);
 }
 
-static bool has_sufficient_progbuf(struct target *target, unsigned size)
+static bool has_sufficient_progbuf(struct target *target, unsigned int size)
 {
 	RISCV013_INFO(info);
 	RISCV_INFO(r);
@@ -1293,7 +1293,7 @@ static bool has_sufficient_progbuf(struct target *target, unsigned size)
  * Immediately write the new value to the requested register. This mechanism
  * bypasses any caches.
  */
-static int register_write_direct(struct target *target, unsigned number,
+static int register_write_direct(struct target *target, unsigned int number,
 		uint64_t value)
 {
 	LOG_DEBUG("{%d} %s <- 0x%" PRIx64, riscv_current_hartid(target),
@@ -1834,7 +1834,7 @@ static int riscv013_hart_count(struct target *target)
 }
 
 /* Try to find out the widest memory access size depending on the selected memory access methods. */
-static unsigned riscv013_data_bits(struct target *target)
+static unsigned int riscv013_data_bits(struct target *target)
 {
 	RISCV013_INFO(info);
 	RISCV_INFO(r);
@@ -1904,12 +1904,12 @@ static COMMAND_HELPER(riscv013_print_info, struct target *target)
 }
 
 static int prep_for_vector_access(struct target *target, uint64_t *vtype,
-		uint64_t *vl, unsigned *debug_vl)
+		uint64_t *vl, unsigned int *debug_vl)
 {
 	RISCV_INFO(r);
 	/* TODO: this continuous save/restore is terrible for performance. */
 	/* Write vtype and vl. */
-	unsigned encoded_vsew;
+	unsigned int encoded_vsew;
 	switch (riscv_xlen(target)) {
 		case 32:
 			encoded_vsew = 2;
@@ -1965,12 +1965,12 @@ static int riscv013_get_register_buf(struct target *target,
 		return ERROR_FAIL;
 
 	uint64_t vtype, vl;
-	unsigned debug_vl;
+	unsigned int debug_vl;
 	if (prep_for_vector_access(target, &vtype, &vl, &debug_vl) != ERROR_OK)
 		return ERROR_FAIL;
 
-	unsigned vnum = regno - GDB_REGNO_V0;
-	unsigned xlen = riscv_xlen(target);
+	unsigned int vnum = regno - GDB_REGNO_V0;
+	unsigned int xlen = riscv_xlen(target);
 
 	struct riscv_program program;
 	riscv_program_init(&program, target);
@@ -1978,7 +1978,7 @@ static int riscv013_get_register_buf(struct target *target,
 	riscv_program_insert(&program, vslide1down_vx(vnum, vnum, S0, true));
 
 	int result = ERROR_OK;
-	for (unsigned i = 0; i < debug_vl; i++) {
+	for (unsigned int i = 0; i < debug_vl; i++) {
 		/* Executing the program might result in an exception if there is some
 		 * issue with the vector implementation/instructions we're using. If that
 		 * happens, attempt to restore as usual. We may have clobbered the
@@ -2024,18 +2024,18 @@ static int riscv013_set_register_buf(struct target *target,
 		return ERROR_FAIL;
 
 	uint64_t vtype, vl;
-	unsigned debug_vl;
+	unsigned int debug_vl;
 	if (prep_for_vector_access(target, &vtype, &vl, &debug_vl) != ERROR_OK)
 		return ERROR_FAIL;
 
-	unsigned vnum = regno - GDB_REGNO_V0;
-	unsigned xlen = riscv_xlen(target);
+	unsigned int vnum = regno - GDB_REGNO_V0;
+	unsigned int xlen = riscv_xlen(target);
 
 	struct riscv_program program;
 	riscv_program_init(&program, target);
 	riscv_program_insert(&program, vslide1down_vx(vnum, vnum, S0, true));
 	int result = ERROR_OK;
-	for (unsigned i = 0; i < debug_vl; i++) {
+	for (unsigned int i = 0; i < debug_vl; i++) {
 		if (register_write_direct(target, GDB_REGNO_S0,
 					buf_get_u64(value, xlen * i, xlen)) != ERROR_OK)
 			return ERROR_FAIL;
@@ -2476,7 +2476,7 @@ static int execute_fence(struct target *target)
 }
 
 static void log_memory_access(target_addr_t address, uint64_t value,
-		unsigned size_bytes, bool read)
+		unsigned int size_bytes, bool read)
 {
 	if (debug_level < LOG_LVL_DEBUG)
 		return;
@@ -2524,7 +2524,7 @@ static int read_memory_bus_word(struct target *target, target_addr_t address,
 static target_addr_t sb_read_address(struct target *target)
 {
 	RISCV013_INFO(info);
-	unsigned sbasize = get_field(info->sbcs, DM_SBCS_SBASIZE);
+	unsigned int sbasize = get_field(info->sbcs, DM_SBCS_SBASIZE);
 	target_addr_t address = 0;
 	uint32_t v;
 	if (sbasize > 32) {
@@ -2717,7 +2717,7 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 		for (uint32_t i = (next_address - address) / size; i < count - 1; i++) {
 			for (int j = (size - 1) / 4; j >= 0; j--) {
 				uint32_t value;
-				unsigned attempt = 0;
+				unsigned int attempt = 0;
 				while (1) {
 					if (attempt++ > 100) {
 						LOG_ERROR("DMI keeps being busy in while reading memory just past " TARGET_ADDR_FMT,
@@ -2745,7 +2745,7 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 		uint32_t sbcs_read = 0;
 		if (count > 1) {
 			uint32_t value;
-			unsigned attempt = 0;
+			unsigned int attempt = 0;
 			while (1) {
 				if (attempt++ > 100) {
 					LOG_ERROR("DMI keeps being busy in while reading memory just past " TARGET_ADDR_FMT,
@@ -2793,7 +2793,7 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 			continue;
 		}
 
-		unsigned error = get_field(sbcs_read, DM_SBCS_SBERROR);
+		unsigned int error = get_field(sbcs_read, DM_SBCS_SBERROR);
 		if (error == 0) {
 			next_address = end_address;
 		} else {
@@ -2959,7 +2959,7 @@ static int read_memory_abstract(struct target *target, target_addr_t address,
 	memset(buffer, 0, count * size);
 
 	/* Convert the size (bytes) to width (bits) */
-	unsigned width = size << 3;
+	unsigned int width = size << 3;
 
 	/* Create the command (physical address, postincrement, read) */
 	uint32_t command = access_memory_command(target, false, width, use_aampostincrement, false);
@@ -3035,7 +3035,7 @@ static int write_memory_abstract(struct target *target, target_addr_t address,
 			  size, address);
 
 	/* Convert the size (bytes) to width (bits) */
-	unsigned width = size << 3;
+	unsigned int width = size << 3;
 
 	/* Create the command (physical address, postincrement, write) */
 	uint32_t command = access_memory_command(target, false, width, use_aampostincrement, true);
@@ -3145,7 +3145,7 @@ static int read_memory_progbuf_inner(struct target *target, target_addr_t addres
 
 	/* read_addr is the next address that the hart will read from, which is the
 	 * value in s0. */
-	unsigned index = 2;
+	unsigned int index = 2;
 	while (index < count) {
 		riscv_addr_t read_addr = address + index * increment;
 		LOG_DEBUG("i=%d, count=%d, read_addr=0x%" PRIx64, index, count, read_addr);
@@ -3162,8 +3162,8 @@ static int read_memory_progbuf_inner(struct target *target, target_addr_t addres
 		if (!batch)
 			return ERROR_FAIL;
 
-		unsigned reads = 0;
-		for (unsigned j = index; j < count; j++) {
+		unsigned int reads = 0;
+		for (unsigned int j = index; j < count; j++) {
 			if (size > 4)
 				riscv_batch_add_dmi_read(batch, DM_DATA1);
 			riscv_batch_add_dmi_read(batch, DM_DATA0);
@@ -3186,8 +3186,8 @@ static int read_memory_progbuf_inner(struct target *target, target_addr_t addres
 				return ERROR_FAIL;
 		info->cmderr = get_field(abstractcs, DM_ABSTRACTCS_CMDERR);
 
-		unsigned next_index;
-		unsigned ignore_last = 0;
+		unsigned int next_index;
+		unsigned int ignore_last = 0;
 		switch (info->cmderr) {
 			case CMDERR_NONE:
 				LOG_DEBUG("successful (partial?) memory read");
@@ -3256,9 +3256,9 @@ static int read_memory_progbuf_inner(struct target *target, target_addr_t addres
 
 		/* Now read whatever we got out of the batch. */
 		dmi_status_t status = DMI_STATUS_SUCCESS;
-		unsigned read = 0;
+		unsigned int read = 0;
 		assert(index >= 2);
-		for (unsigned j = index - 2; j < index + reads; j++) {
+		for (unsigned int j = index - 2; j < index + reads; j++) {
 			assert(j < count);
 			LOG_DEBUG("index=%d, reads=%d, next_index=%d, ignore_last=%d, j=%d",
 				index, reads, next_index, ignore_last, j);
@@ -3867,9 +3867,9 @@ static int write_memory_progbuf(struct target *target, target_addr_t address,
 			goto error;
 
 		/* To write another word, we put it in S1 and execute the program. */
-		unsigned start = (cur_addr - address) / size;
-		for (unsigned i = start; i < count; ++i) {
-			unsigned offset = size*i;
+		unsigned int start = (cur_addr - address) / size;
+		for (unsigned int i = start; i < count; ++i) {
+			unsigned int offset = size * i;
 			const uint8_t *t_buffer = buffer + offset;
 
 			uint64_t value = buf_get_u64(t_buffer, 0, 8 * size);
@@ -4160,18 +4160,18 @@ static int select_prepped_harts(struct target *target, bool *use_hasel)
 	}
 
 	assert(dm->hart_count);
-	unsigned hawindow_count = (dm->hart_count + 31) / 32;
+	unsigned int hawindow_count = (dm->hart_count + 31) / 32;
 	uint32_t hawindow[hawindow_count];
 
 	memset(hawindow, 0, sizeof(uint32_t) * hawindow_count);
 
 	target_list_t *entry;
-	unsigned total_selected = 0;
+	unsigned int total_selected = 0;
 	list_for_each_entry(entry, &dm->target_list, list) {
 		struct target *t = entry->target;
 		struct riscv_info *r = riscv_info(t);
 		riscv013_info_t *info = get_info(t);
-		unsigned index = info->index;
+		unsigned int index = info->index;
 		LOG_DEBUG("index=%d, coreid=%d, prepped=%d", index, t->coreid, r->prepped);
 		r->selected = r->prepped;
 		if (r->prepped) {
@@ -4188,7 +4188,7 @@ static int select_prepped_harts(struct target *target, bool *use_hasel)
 		return ERROR_OK;
 	}
 
-	for (unsigned i = 0; i < hawindow_count; i++) {
+	for (unsigned int i = 0; i < hawindow_count; i++) {
 		if (dmi_write(target, DM_HAWINDOWSEL, i) != ERROR_OK)
 			return ERROR_FAIL;
 		if (dmi_write(target, DM_HAWINDOW, hawindow[i]) != ERROR_OK)
@@ -4346,7 +4346,7 @@ static enum riscv_halt_reason riscv013_halt_reason(struct target *target)
 	return RISCV_HALT_UNKNOWN;
 }
 
-int riscv013_write_debug_buffer(struct target *target, unsigned index, riscv_insn_t data)
+int riscv013_write_debug_buffer(struct target *target, unsigned int index, riscv_insn_t data)
 {
 	dm013_info_t *dm = get_dm(target);
 	if (!dm)
@@ -4361,7 +4361,7 @@ int riscv013_write_debug_buffer(struct target *target, unsigned index, riscv_ins
 	return ERROR_OK;
 }
 
-riscv_insn_t riscv013_read_debug_buffer(struct target *target, unsigned index)
+riscv_insn_t riscv013_read_debug_buffer(struct target *target, unsigned int index)
 {
 	uint32_t value;
 	dmi_read(target, &value, DM_PROGBUF0 + index);

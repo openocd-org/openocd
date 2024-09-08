@@ -61,7 +61,7 @@ enum riscv_halt_reason {
 
 typedef struct {
 	struct target *target;
-	unsigned custom_number;
+	unsigned int custom_number;
 } riscv_reg_info_t;
 
 #define RISCV_SAMPLE_BUF_TIMESTAMP_BEFORE	0x80
@@ -90,7 +90,7 @@ typedef struct {
 struct riscv_info {
 	unsigned int common_magic;
 
-	unsigned dtm_version;
+	unsigned int dtm_version;
 
 	struct command_context *cmd_ctx;
 	void *version_specific;
@@ -159,9 +159,9 @@ struct riscv_info {
 	int (*halt_go)(struct target *target);
 	int (*on_step)(struct target *target);
 	enum riscv_halt_reason (*halt_reason)(struct target *target);
-	int (*write_debug_buffer)(struct target *target, unsigned index,
+	int (*write_debug_buffer)(struct target *target, unsigned int index,
 			riscv_insn_t d);
-	riscv_insn_t (*read_debug_buffer)(struct target *target, unsigned index);
+	riscv_insn_t (*read_debug_buffer)(struct target *target, unsigned int index);
 	int (*execute_debug_buffer)(struct target *target);
 	int (*dmi_write_u64_bits)(struct target *target);
 	void (*fill_dmi_write_u64)(struct target *target, char *buf, int a, uint64_t d);
@@ -184,7 +184,7 @@ struct riscv_info {
 
 	/* How many harts are attached to the DM that this target is attached to? */
 	int (*hart_count)(struct target *target);
-	unsigned (*data_bits)(struct target *target);
+	unsigned int (*data_bits)(struct target *target);
 
 	COMMAND_HELPER((*print_info), struct target *target);
 
@@ -239,14 +239,14 @@ typedef struct {
 typedef struct {
 	const char *name;
 	int level;
-	unsigned va_bits;
-	unsigned pte_shift;
-	unsigned vpn_shift[PG_MAX_LEVEL];
-	unsigned vpn_mask[PG_MAX_LEVEL];
-	unsigned pte_ppn_shift[PG_MAX_LEVEL];
-	unsigned pte_ppn_mask[PG_MAX_LEVEL];
-	unsigned pa_ppn_shift[PG_MAX_LEVEL];
-	unsigned pa_ppn_mask[PG_MAX_LEVEL];
+	unsigned int va_bits;
+	unsigned int pte_shift;
+	unsigned int vpn_shift[PG_MAX_LEVEL];
+	unsigned int vpn_mask[PG_MAX_LEVEL];
+	unsigned int pte_ppn_shift[PG_MAX_LEVEL];
+	unsigned int pte_ppn_mask[PG_MAX_LEVEL];
+	unsigned int pa_ppn_shift[PG_MAX_LEVEL];
+	unsigned int pa_ppn_mask[PG_MAX_LEVEL];
 } virt2phys_info_t;
 
 /* Wall-clock timeout for a command/access. Settable via RISC-V Target commands.*/
@@ -307,7 +307,7 @@ int riscv_openocd_deassert_reset(struct target *target);
 bool riscv_supports_extension(struct target *target, char letter);
 
 /* Returns XLEN for the given (or current) hart. */
-unsigned riscv_xlen(const struct target *target);
+unsigned int riscv_xlen(const struct target *target);
 int riscv_xlen_of_hart(const struct target *target);
 
 /* Sets the current hart, which is the hart that will actually be used when
