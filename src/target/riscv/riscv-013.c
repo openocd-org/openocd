@@ -1537,7 +1537,7 @@ static int set_haltgroup(struct target *target, bool *supported)
 	uint32_t read;
 	if (dmi_read(target, &read, DM_DMCS2) != ERROR_OK)
 		return ERROR_FAIL;
-	*supported = get_field(read, DM_DMCS2_GROUP) == (unsigned)target->smp;
+	*supported = get_field(read, DM_DMCS2_GROUP) == target->smp;
 	return ERROR_OK;
 }
 

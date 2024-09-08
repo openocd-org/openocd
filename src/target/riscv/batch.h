@@ -65,7 +65,7 @@ void riscv_batch_add_dmi_write(struct riscv_batch *batch, unsigned int address, 
  * provides a key, the second one actually obtains the result of the read -
  * status (op) and the actual data. */
 size_t riscv_batch_add_dmi_read(struct riscv_batch *batch, unsigned int address);
-unsigned int riscv_batch_get_dmi_read_op(struct riscv_batch *batch, size_t key);
+uint32_t riscv_batch_get_dmi_read_op(struct riscv_batch *batch, size_t key);
 uint32_t riscv_batch_get_dmi_read_data(struct riscv_batch *batch, size_t key);
 
 /* Scans in a NOP. */
