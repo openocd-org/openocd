@@ -239,8 +239,8 @@ static int tms470_read_part_info(struct flash_bank *bank)
 			break;
 
 		default:
-			LOG_WARNING("Could not identify part 0x%02x as a member of the TMS470 family.",
-					(unsigned)part_number);
+			LOG_WARNING("Could not identify part 0x%02" PRIx32 " as a member of the TMS470 family.",
+					part_number);
 			return ERROR_FLASH_OPERATION_FAILED;
 	}
 

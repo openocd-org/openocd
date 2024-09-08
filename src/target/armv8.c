@@ -961,7 +961,7 @@ void armv8_set_cpsr(struct arm *arm, uint32_t cpsr)
 	arm->core_state = state;
 	arm->core_mode = mode;
 
-	LOG_DEBUG("set CPSR %#8.8x: %s mode, %s state", (unsigned) cpsr,
+	LOG_DEBUG("set CPSR %#8.8" PRIx32 ": %s mode, %s state", cpsr,
 		armv8_mode_name(arm->core_mode),
 		armv8_state_strings[arm->core_state]);
 }

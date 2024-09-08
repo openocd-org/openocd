@@ -1473,10 +1473,9 @@ void jtag_tap_init(struct jtag_tap *tap)
 	jtag_tap_add(tap);
 
 	LOG_DEBUG("Created Tap: %s @ abs position %u, "
-			"irlen %u, capture: 0x%x mask: 0x%x", tap->dotted_name,
+			"irlen %u, capture: 0x%" PRIx32 " mask: 0x%" PRIx32, tap->dotted_name,
 			tap->abs_chain_position, tap->ir_length,
-			(unsigned) tap->ir_capture_value,
-			(unsigned) tap->ir_capture_mask);
+			tap->ir_capture_value, tap->ir_capture_mask);
 }
 
 void jtag_tap_free(struct jtag_tap *tap)

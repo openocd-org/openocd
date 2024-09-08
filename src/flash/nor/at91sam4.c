@@ -1501,7 +1501,7 @@ do_retry:
 		case AT91C_EFC_FCMD_CLB:
 			n = (private->size_bytes / private->page_size);
 			if (argument >= n)
-				LOG_ERROR("*BUG*: Embedded flash has only %u pages", (unsigned)(n));
+				LOG_ERROR("*BUG*: Embedded flash has only %" PRIu32 " pages", n);
 			break;
 
 		case AT91C_EFC_FCMD_SFB:
@@ -2374,8 +2374,8 @@ static int sam4_read_this_reg(struct sam4_chip *chip, uint32_t *goes_here)
 
 	r = target_read_u32(chip->target, reg->address, goes_here);
 	if (r != ERROR_OK) {
-		LOG_ERROR("Cannot read SAM4 register: %s @ 0x%08x, Err: %d",
-			reg->name, (unsigned)(reg->address), r);
+		LOG_ERROR("Cannot read SAM4 register: %s @ 0x%08" PRIx32 ", Err: %d",
+			reg->name, reg->address, r);
 	}
 	return r;
 }
@@ -2390,8 +2390,8 @@ static int sam4_read_all_regs(struct sam4_chip *chip)
 		r = sam4_read_this_reg(chip,
 				sam4_get_reg_ptr(&(chip->cfg), reg));
 		if (r != ERROR_OK) {
-			LOG_ERROR("Cannot read SAM4 register: %s @ 0x%08x, Error: %d",
-				reg->name, ((unsigned)(reg->address)), r);
+			LOG_ERROR("Cannot read SAM4 register: %s @ 0x%08" PRIx32 ", Error: %d",
+				reg->name, reg->address, r);
 			return r;
 		}
 		reg++;

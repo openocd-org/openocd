@@ -595,8 +595,7 @@ static int cortex_a_bpwp_enable(struct arm_dpm *dpm, unsigned index_t,
 	vr += 4 * index_t;
 	cr += 4 * index_t;
 
-	LOG_DEBUG("A: bpwp enable, vr %08x cr %08x",
-		(unsigned) vr, (unsigned) cr);
+	LOG_DEBUG("A: bpwp enable, vr %08" PRIx32 " cr %08" PRIx32, vr, cr);
 
 	retval = mem_ap_write_atomic_u32(a->armv7a_common.debug_ap,
 			vr, addr);
@@ -625,7 +624,7 @@ static int cortex_a_bpwp_disable(struct arm_dpm *dpm, unsigned index_t)
 	}
 	cr += 4 * index_t;
 
-	LOG_DEBUG("A: bpwp disable, cr %08x", (unsigned) cr);
+	LOG_DEBUG("A: bpwp disable, cr %08" PRIx32, cr);
 
 	/* clear control register */
 	return mem_ap_write_atomic_u32(a->armv7a_common.debug_ap, cr, 0);

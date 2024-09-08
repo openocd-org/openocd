@@ -441,8 +441,7 @@ static int dpmv8_bpwp_enable(struct arm_dpm *dpm, unsigned index_t,
 	vr += 16 * index_t;
 	cr += 16 * index_t;
 
-	LOG_DEBUG("A8: bpwp enable, vr %08x cr %08x",
-		(unsigned) vr, (unsigned) cr);
+	LOG_DEBUG("A8: bpwp enable, vr %08" PRIx32 " cr %08" PRIx32, vr, cr);
 
 	retval = mem_ap_write_atomic_u32(armv8->debug_ap, vr, addr);
 	if (retval != ERROR_OK)
@@ -469,7 +468,7 @@ static int dpmv8_bpwp_disable(struct arm_dpm *dpm, unsigned index_t)
 	}
 	cr += 16 * index_t;
 
-	LOG_DEBUG("A: bpwp disable, cr %08x", (unsigned) cr);
+	LOG_DEBUG("A: bpwp disable, cr %08" PRIx32, cr);
 
 	/* clear control register */
 	return mem_ap_write_atomic_u32(armv8->debug_ap, cr, 0);

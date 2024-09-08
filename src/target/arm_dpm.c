@@ -198,8 +198,7 @@ static int dpm_read_reg_u64(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
 		buf_set_u32(r->value + 4, 0, 32, value_r1);
 		r->valid = true;
 		r->dirty = false;
-		LOG_DEBUG("READ: %s, %8.8x, %8.8x", r->name,
-				(unsigned) value_r0, (unsigned) value_r1);
+		LOG_DEBUG("READ: %s, %8.8" PRIx32 ", %8.8" PRIx32, r->name, value_r0, value_r1);
 	}
 
 	return retval;
@@ -266,7 +265,7 @@ int arm_dpm_read_reg(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
 		buf_set_u32(r->value, 0, 32, value);
 		r->valid = true;
 		r->dirty = false;
-		LOG_DEBUG("READ: %s, %8.8x", r->name, (unsigned) value);
+		LOG_DEBUG("READ: %s, %8.8" PRIx32, r->name, value);
 	}
 
 	return retval;
@@ -302,8 +301,7 @@ static int dpm_write_reg_u64(struct arm_dpm *dpm, struct reg *r, unsigned regnum
 
 	if (retval == ERROR_OK) {
 		r->dirty = false;
-		LOG_DEBUG("WRITE: %s, %8.8x, %8.8x", r->name,
-				(unsigned) value_r0, (unsigned) value_r1);
+		LOG_DEBUG("WRITE: %s, %8.8" PRIx32 ", %8.8" PRIx32, r->name, value_r0, value_r1);
 	}
 
 	return retval;
@@ -351,7 +349,7 @@ static int dpm_write_reg(struct arm_dpm *dpm, struct reg *r, unsigned regnum)
 
 	if (retval == ERROR_OK) {
 		r->dirty = false;
-		LOG_DEBUG("WRITE: %s, %8.8x", r->name, (unsigned) value);
+		LOG_DEBUG("WRITE: %s, %8.8" PRIx32, r->name, value);
 	}
 
 	return retval;

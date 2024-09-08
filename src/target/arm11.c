@@ -43,7 +43,7 @@ static int arm11_check_init(struct arm11_common *arm11)
 	CHECK_RETVAL(arm11_read_dscr(arm11));
 
 	if (!(arm11->dscr & DSCR_HALT_DBG_MODE)) {
-		LOG_DEBUG("DSCR %08x", (unsigned) arm11->dscr);
+		LOG_DEBUG("DSCR %08" PRIx32, arm11->dscr);
 		LOG_DEBUG("Bringing target into debug mode");
 
 		arm11->dscr |= DSCR_HALT_DBG_MODE;
@@ -241,8 +241,7 @@ static int arm11_leave_debug_state(struct arm11_common *arm11, bool bpwp)
 			registers hold data that was written by one side (CPU or JTAG) and not
 			read out by the other side.
 			*/
-			LOG_ERROR("wDTR/rDTR inconsistent (DSCR %08x)",
-				(unsigned) arm11->dscr);
+			LOG_ERROR("wDTR/rDTR inconsistent (DSCR %08" PRIx32 ")", arm11->dscr);
 			return ERROR_FAIL;
 		}
 	}
@@ -516,7 +515,7 @@ static int arm11_resume(struct target *target, int current,
 	while (1) {
 		CHECK_RETVAL(arm11_read_dscr(arm11));
 
-		LOG_DEBUG("DSCR %08x", (unsigned) arm11->dscr);
+		LOG_DEBUG("DSCR %08" PRIx32, arm11->dscr);
 
 		if (arm11->dscr & DSCR_CORE_RESTARTED)
 			break;
@@ -662,7 +661,7 @@ static int arm11_step(struct target *target, int current,
 				| DSCR_CORE_HALTED;
 
 			CHECK_RETVAL(arm11_read_dscr(arm11));
-			LOG_DEBUG("DSCR %08x e", (unsigned) arm11->dscr);
+			LOG_DEBUG("DSCR %08" PRIx32 " e", arm11->dscr);
 
 			if ((arm11->dscr & mask) == mask)
 				break;
@@ -1012,10 +1011,8 @@ static int arm11_write_memory_inner(struct target *target,
 			return retval;
 
 		if (address + size * count != r0) {
-			LOG_ERROR("Data transfer failed. Expected end "
-				"address 0x%08x, got 0x%08x",
-				(unsigned) (address + size * count),
-				(unsigned) r0);
+			LOG_ERROR("Data transfer failed. Expected end address 0x%08" PRIx32 ", got 0x%08" PRIx32,
+				address + size * count, r0);
 
 			if (burst)
 				LOG_ERROR(

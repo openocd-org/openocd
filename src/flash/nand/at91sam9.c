@@ -389,9 +389,8 @@ static int at91sam9_read_page(struct nand_device *nand, uint32_t page,
 				uint32_t bit = parity & 0x0F;
 
 				data[word] ^= (0x1) << bit;
-				LOG_INFO("Data word %d, bit %d corrected.",
-					(unsigned) word,
-					(unsigned) bit);
+				LOG_INFO("Data word %" PRIu32 ", bit %" PRIu32 " corrected.",
+					word, bit);
 			}
 		}
 

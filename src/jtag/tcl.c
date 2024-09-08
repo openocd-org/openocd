@@ -803,10 +803,8 @@ COMMAND_HANDLER(handle_scan_chain_command)
 	while (tap) {
 		uint32_t expected, expected_mask, ii;
 
-		snprintf(expected_id, sizeof(expected_id), "0x%08x",
-			(unsigned)((tap->expected_ids_cnt > 0)
-				   ? tap->expected_ids[0]
-				   : 0));
+		snprintf(expected_id, sizeof(expected_id), "0x%08" PRIx32,
+			(tap->expected_ids_cnt > 0) ? tap->expected_ids[0] : 0);
 		if (tap->ignore_version)
 			expected_id[2] = '*';
 
@@ -825,8 +823,7 @@ COMMAND_HANDLER(handle_scan_chain_command)
 			(unsigned int)(expected_mask));
 
 		for (ii = 1; ii < tap->expected_ids_cnt; ii++) {
-			snprintf(expected_id, sizeof(expected_id), "0x%08x",
-				(unsigned) tap->expected_ids[ii]);
+			snprintf(expected_id, sizeof(expected_id), "0x%08" PRIx32, tap->expected_ids[ii]);
 			if (tap->ignore_version)
 				expected_id[2] = '*';
 

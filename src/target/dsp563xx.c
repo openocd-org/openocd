@@ -1135,7 +1135,7 @@ static int dsp563xx_resume(struct target *target,
 		current = 0;
 	}
 
-	LOG_DEBUG("%s %08X %08X", __func__, current, (unsigned) address);
+	LOG_DEBUG("%s %08X %08" TARGET_PRIXADDR, __func__, current, address);
 
 	err = dsp563xx_restore_context(target);
 	if (err != ERROR_OK)
@@ -1199,7 +1199,7 @@ static int dsp563xx_step_ex(struct target *target,
 		current = 0;
 	}
 
-	LOG_DEBUG("%s %08X %08X", __func__, current, (unsigned) address);
+	LOG_DEBUG("%s %08X %08" PRIX32, __func__, current, address);
 
 	err = dsp563xx_jtag_debug_request(target);
 	if (err != ERROR_OK)
@@ -1260,15 +1260,15 @@ static int dsp563xx_step_ex(struct target *target,
 			err = dsp563xx_once_reg_read(target->tap, 1, DSP563XX_ONCE_OPABFR, &dr_in);
 			if (err != ERROR_OK)
 				return err;
-			LOG_DEBUG("fetch: %08X", (unsigned) dr_in&0x00ffffff);
+			LOG_DEBUG("fetch: %08" PRIX32, dr_in & 0x00ffffff);
 			err = dsp563xx_once_reg_read(target->tap, 1, DSP563XX_ONCE_OPABDR, &dr_in);
 			if (err != ERROR_OK)
 				return err;
-			LOG_DEBUG("decode: %08X", (unsigned) dr_in&0x00ffffff);
+			LOG_DEBUG("decode: %08" PRIX32, dr_in & 0x00ffffff);
 			err = dsp563xx_once_reg_read(target->tap, 1, DSP563XX_ONCE_OPABEX, &dr_in);
 			if (err != ERROR_OK)
 				return err;
-			LOG_DEBUG("execute: %08X", (unsigned) dr_in&0x00ffffff);
+			LOG_DEBUG("execute: %08" PRIX32, dr_in & 0x00ffffff);
 
 			/* reset trace mode */
 			err = dsp563xx_once_reg_write(target->tap, 1, DSP563XX_ONCE_OSCR, 0x000000);

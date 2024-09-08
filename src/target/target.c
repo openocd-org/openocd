@@ -3851,11 +3851,11 @@ static COMMAND_HELPER(handle_verify_image_command_internal, enum verify_mode ver
 					for (t = 0; t < buf_cnt; t++) {
 						if (data[t] != buffer[t]) {
 							command_print(CMD,
-										  "diff %d address 0x%08x. Was 0x%02x instead of 0x%02x",
-										  diffs,
-										  (unsigned)(t + image.sections[i].base_address),
-										  data[t],
-										  buffer[t]);
+								"diff %d address " TARGET_ADDR_FMT ". Was 0x%02" PRIx8 " instead of 0x%02" PRIx8,
+								diffs,
+								t + image.sections[i].base_address,
+								data[t],
+								buffer[t]);
 							if (diffs++ >= 127) {
 								command_print(CMD, "More than 128 errors, the rest are not printed.");
 								free(data);

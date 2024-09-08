@@ -266,18 +266,18 @@ static int evaluate_srs(uint32_t opcode,
 		case 0x08400000:
 			snprintf(instruction->text, 128, "0x%8.8" PRIx32
 				"\t0x%8.8" PRIx32
-				"\tSRS%s\tSP%s, #%d",
+				"\tSRS%s\tSP%s, #%" PRIu32,
 				address, opcode,
 				mode, wback,
-				(unsigned)(opcode & 0x1f));
+				opcode & 0x1f);
 			break;
 		case 0x08100000:
 			snprintf(instruction->text, 128, "0x%8.8" PRIx32
 				"\t0x%8.8" PRIx32
-				"\tRFE%s\tr%d%s",
+				"\tRFE%s\tr%" PRIu32 "%s",
 				address, opcode,
 				mode,
-				(unsigned)((opcode >> 16) & 0xf), wback);
+				(opcode >> 16) & 0xf, wback);
 			break;
 		default:
 			return evaluate_unknown(opcode, address, instruction);
@@ -842,7 +842,7 @@ static int evaluate_media(uint32_t opcode, uint32_t address,
 	/* halfword pack */
 	if ((opcode & 0x01f00020) == 0x00800000) {
 		char *type, *shift;
-		unsigned imm = (unsigned) (opcode >> 7) & 0x1f;
+		unsigned int imm = (opcode >> 7) & 0x1f;
 
 		if (opcode & (1 << 6)) {
 			type = "TB";
@@ -865,7 +865,7 @@ static int evaluate_media(uint32_t opcode, uint32_t address,
 	/* word saturate */
 	if ((opcode & 0x01a00020) == 0x00a00000) {
 		char *shift;
-		unsigned imm = (unsigned) (opcode >> 7) & 0x1f;
+		unsigned int imm = (opcode >> 7) & 0x1f;
 
 		if (opcode & (1 << 6)) {
 			shift = "ASR";
@@ -2046,8 +2046,7 @@ int arm_evaluate_opcode(uint32_t opcode, uint32_t address,
 			return evaluate_cdp_mcr_mrc(opcode, address, instruction);
 	}
 
-	LOG_ERROR("ARM: should never reach this point (opcode=%08x)",
-			(unsigned) opcode);
+	LOG_ERROR("ARM: should never reach this point (opcode=%08" PRIx32 ")", opcode);
 	return -1;
 }
 

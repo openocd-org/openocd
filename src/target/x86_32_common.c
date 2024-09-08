@@ -1360,8 +1360,8 @@ static void handle_iod_output(struct command_invocation *cmd,
 		if (i % line_modulo == 0) {
 			output_len += snprintf(output + output_len,
 					sizeof(output) - output_len,
-					"0x%8.8x: ",
-					(unsigned)(address + (i*size)));
+					"0x%8.8" PRIx32 ": ",
+					address + (i * size));
 		}
 
 		uint32_t value = 0;

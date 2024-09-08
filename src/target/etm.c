@@ -320,9 +320,8 @@ struct reg_cache *etm_build_reg_cache(struct target *target,
 		etm_reg_add(0x20, jtag_info, reg_cache, arch_info,
 			etm_core + 1, 1);
 		etm_get_reg(reg_list + 1);
-		etm_ctx->id = buf_get_u32(
-				arch_info[1].value, 0, 32);
-		LOG_DEBUG("ETM ID: %08x", (unsigned) etm_ctx->id);
+		etm_ctx->id = buf_get_u32(arch_info[1].value, 0, 32);
+		LOG_DEBUG("ETM ID: %08" PRIx32, etm_ctx->id);
 		bcd_vers = 0x10 + (((etm_ctx->id) >> 4) & 0xff);
 
 	} else {
@@ -1495,7 +1494,7 @@ COMMAND_HANDLER(handle_etm_info_command)
 	etm_get_reg(etm_sys_config_reg);
 	config = buf_get_u32(etm_sys_config_reg->value, 0, 32);
 
-	LOG_DEBUG("ETM SYS CONFIG %08x", (unsigned) config);
+	LOG_DEBUG("ETM SYS CONFIG %08" PRIx32, config);
 
 	max_port_size = config & 0x7;
 	if (etm->bcd_vers >= 0x30)

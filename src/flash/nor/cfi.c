@@ -2219,8 +2219,7 @@ static int cfi_read(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, u
 	uint8_t current_word[CFI_MAX_BUS_WIDTH];
 	int retval;
 
-	LOG_DEBUG("reading buffer of %i byte at 0x%8.8x",
-		(int)count, (unsigned)offset);
+	LOG_DEBUG("reading buffer of %" PRIi32 " byte at 0x%8.8" PRIx32, count, offset);
 
 	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");

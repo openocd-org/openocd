@@ -1056,8 +1056,8 @@ static int stellaris_write_block(struct flash_bank *bank,
 			target_free_working_area(target, write_algorithm);
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
-		LOG_DEBUG("retry target_alloc_working_area(%s, size=%u)",
-				target_name(target), (unsigned) buffer_size);
+		LOG_DEBUG("retry target_alloc_working_area(%s, size=%" PRIu32 ")",
+				target_name(target), buffer_size);
 	}
 
 	target_write_buffer(target, write_algorithm->address,
