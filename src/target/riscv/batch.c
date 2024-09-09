@@ -6,6 +6,7 @@
 
 #include "batch.h"
 #include "debug_defines.h"
+#include "debug_reg_printer.h"
 #include "riscv.h"
 #include "field_helpers.h"
 
@@ -140,6 +141,83 @@ static int get_delay(const struct riscv_batch *batch, size_t scan_idx,
 	const unsigned int delay = riscv_scan_get_delay(delays, delay_class);
 	assert(delay <= INT_MAX);
 	return delay;
+}
+
+static unsigned int decode_dmi(const struct target *target, char *text, uint32_t address, uint32_t data)
+{
+	static const struct {
+		uint32_t address;
+		enum riscv_debug_reg_ordinal ordinal;
+	} description[] = {
+		{DM_DMCONTROL, DM_DMCONTROL_ORDINAL},
+		{DM_DMSTATUS, DM_DMSTATUS_ORDINAL},
+		{DM_ABSTRACTCS, DM_ABSTRACTCS_ORDINAL},
+		{DM_COMMAND, DM_COMMAND_ORDINAL},
+		{DM_SBCS, DM_SBCS_ORDINAL}
+	};
+
+	for (unsigned int i = 0; i < ARRAY_SIZE(description); i++) {
+		if (riscv_get_dmi_address(target, description[i].address) == address) {
+			const riscv_debug_reg_ctx_t context = {
+				.XLEN = { .value = 0, .is_set = false },
+				.DXLEN = { .value = 0, .is_set = false },
+				.abits = { .value = 0, .is_set = false },
+			};
+			return riscv_debug_reg_to_s(text, description[i].ordinal,
+					context, data, RISCV_DEBUG_REG_HIDE_ALL_0);
+		}
+	}
+	if (text)
+		text[0] = '\0';
+	return 0;
+}
+
+static void riscv_log_dmi_scan(const struct target *target, int idle,
+		const struct scan_field *field)
+{
+	static const char * const op_string[] = {"-", "r", "w", "?"};
+	static const char * const status_string[] = {"+", "?", "F", "b"};
+
+	if (debug_level < LOG_LVL_DEBUG)
+		return;
+
+	assert(field->out_value);
+	const uint64_t out = buf_get_u64(field->out_value, 0, field->num_bits);
+	const unsigned int out_op = get_field(out, DTM_DMI_OP);
+	const uint32_t out_data = get_field(out, DTM_DMI_DATA);
+	const uint32_t out_address = out >> DTM_DMI_ADDRESS_OFFSET;
+
+	if (field->in_value) {
+		const uint64_t in = buf_get_u64(field->in_value, 0, field->num_bits);
+		const unsigned int in_op = get_field(in, DTM_DMI_OP);
+		const uint32_t in_data = get_field(in, DTM_DMI_DATA);
+		const uint32_t in_address = in >> DTM_DMI_ADDRESS_OFFSET;
+
+		LOG_DEBUG("%db %s %08" PRIx32 " @%02" PRIx32 " -> %s %08" PRIx32 " @%02" PRIx32 "; %di",
+				field->num_bits, op_string[out_op], out_data, out_address,
+				status_string[in_op], in_data, in_address, idle);
+
+		if (in_op == DTM_DMI_OP_SUCCESS) {
+			char in_decoded[decode_dmi(target, NULL, in_address, in_data) + 1];
+			decode_dmi(target, in_decoded, in_address, in_data);
+			/* FIXME: The current code assumes that the hardware
+			 * provides the read address in the dmi.address field
+			 * when returning the dmi.data. That is however not
+			 * required by the spec, and therefore not guaranteed.
+			 * See https://github.com/riscv-collab/riscv-openocd/issues/1043
+			 */
+			LOG_DEBUG("read: %s", in_decoded);
+		}
+	} else {
+		LOG_DEBUG("%db %s %08" PRIx32 " @%02" PRIx32 " -> ?; %di",
+				field->num_bits, op_string[out_op], out_data, out_address,
+				idle);
+	}
+	if (out_op == DTM_DMI_OP_WRITE) {
+		char out_decoded[decode_dmi(target, NULL, out_address, out_data) + 1];
+		decode_dmi(target, out_decoded, out_address, out_data);
+		LOG_DEBUG("write: %s", out_decoded);
+	}
 }
 
 int riscv_batch_run_from(struct riscv_batch *batch, size_t start_idx,
