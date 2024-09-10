@@ -1887,7 +1887,7 @@ static int xds110_speed(int speed)
 
 		} else {
 
-			const double XDS110_TCK_PULSE_INCREMENT = 66.0;
+			const double xds110_tck_pulse_increment = 66.0;
 			freq_to_use = speed * 1000; /* Hz */
 			delay_count = 0;
 
@@ -1908,7 +1908,7 @@ static int xds110_speed(int speed)
 			double current_value = max_freq_pulse_duration;
 
 			while (current_value < freq_to_pulse_width_in_ns) {
-				current_value += XDS110_TCK_PULSE_INCREMENT;
+				current_value += xds110_tck_pulse_increment;
 				++delay_count;
 			}
 
@@ -1919,9 +1919,9 @@ static int xds110_speed(int speed)
 			if (delay_count) {
 				double diff_freq_1 = freq_to_use -
 					(one_giga / (max_freq_pulse_duration +
-					(XDS110_TCK_PULSE_INCREMENT * delay_count)));
+					(xds110_tck_pulse_increment * delay_count)));
 				double diff_freq_2 = (one_giga / (max_freq_pulse_duration +
-					(XDS110_TCK_PULSE_INCREMENT * (delay_count - 1)))) -
+					(xds110_tck_pulse_increment * (delay_count - 1)))) -
 					freq_to_use;
 
 				/* One less count value yields a better match */
