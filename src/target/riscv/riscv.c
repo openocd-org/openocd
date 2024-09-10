@@ -3759,7 +3759,7 @@ static int riscv_openocd_step_impl(struct target *target, int current,
 		return ERROR_FAIL;
 
 	RISCV_INFO(r);
-	bool *wps_to_enable = calloc(sizeof(*wps_to_enable), r->trigger_count);
+	bool *wps_to_enable = calloc(r->trigger_count, sizeof(*wps_to_enable));
 	if (disable_watchpoints(target, wps_to_enable) != ERROR_OK) {
 		LOG_TARGET_ERROR(target, "Failed to temporarily disable "
 				"watchpoints before single-step.");
@@ -5790,7 +5790,7 @@ int riscv_enumerate_triggers(struct target *target)
 	r->trigger_count = t;
 	LOG_TARGET_INFO(target, "Found %d triggers", r->trigger_count);
 	free(r->reserved_triggers);
-	r->reserved_triggers = calloc(sizeof(*r->reserved_triggers), t);
+	r->reserved_triggers = calloc(t, sizeof(*r->reserved_triggers));
 	create_wp_trigger_cache(target);
 	return ERROR_OK;
 }
