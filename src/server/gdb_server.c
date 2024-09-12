@@ -1781,18 +1781,9 @@ static int gdb_breakpoint_watchpoint_packet(struct connection *connection,
 		case 1:
 			if (packet[0] == 'Z') {
 				retval = breakpoint_add(target, address, size, bp_type);
-				if (retval == ERROR_NOT_IMPLEMENTED) {
-					/* Send empty reply to report that breakpoints of this type are not supported */
-					gdb_put_packet(connection, "", 0);
-				} else if (retval != ERROR_OK) {
-					retval = gdb_error(connection, retval);
-					if (retval != ERROR_OK)
-						return retval;
-				} else
-					gdb_put_packet(connection, "OK", 2);
 			} else {
-				breakpoint_remove(target, address);
-				gdb_put_packet(connection, "OK", 2);
+				assert(packet[0] == 'z');
+				retval = breakpoint_remove(target, address);
 			}
 			break;
 		case 2:
@@ -1801,26 +1792,26 @@ static int gdb_breakpoint_watchpoint_packet(struct connection *connection,
 		{
 			if (packet[0] == 'Z') {
 				retval = watchpoint_add(target, address, size, wp_type, 0, WATCHPOINT_IGNORE_DATA_VALUE_MASK);
-				if (retval == ERROR_NOT_IMPLEMENTED) {
-					/* Send empty reply to report that watchpoints of this type are not supported */
-					gdb_put_packet(connection, "", 0);
-				} else if (retval != ERROR_OK) {
-					retval = gdb_error(connection, retval);
-					if (retval != ERROR_OK)
-						return retval;
-				} else
-					gdb_put_packet(connection, "OK", 2);
 			} else {
-				watchpoint_remove(target, address);
-				gdb_put_packet(connection, "OK", 2);
+				assert(packet[0] == 'z');
+				retval = watchpoint_remove(target, address);
 			}
 			break;
 		}
 		default:
+		{
+			retval = ERROR_NOT_IMPLEMENTED;
 			break;
+		}
 	}
 
-	return ERROR_OK;
+	if (retval == ERROR_NOT_IMPLEMENTED) {
+		/* Send empty reply to report that watchpoints of this type are not supported */
+		return gdb_put_packet(connection, "", 0);
+	}
+	if (retval != ERROR_OK)
+		return gdb_error(connection, retval);
+	return gdb_put_packet(connection, "OK", 2);
 }
 
 /* print out a string and allocate more space as needed,
