@@ -74,7 +74,7 @@ bool buf_cmp(const void *_buf1, const void *_buf2, unsigned size)
 
 	unsigned last = size / 8;
 	if (memcmp(_buf1, _buf2, last) != 0)
-		return false;
+		return true;
 
 	unsigned trailing = size % 8;
 	if (!trailing)
