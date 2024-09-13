@@ -57,49 +57,49 @@ void *buf_cpy(const void *from, void *_to, unsigned size)
 	return _to;
 }
 
-static bool buf_cmp_masked(uint8_t a, uint8_t b, uint8_t m)
+static bool buf_eq_masked(uint8_t a, uint8_t b, uint8_t m)
 {
-	return (a & m) != (b & m);
+	return (a & m) == (b & m);
 }
-static bool buf_cmp_trailing(uint8_t a, uint8_t b, uint8_t m, unsigned trailing)
+static bool buf_eq_trailing(uint8_t a, uint8_t b, uint8_t m, unsigned trailing)
 {
 	uint8_t mask = (1 << trailing) - 1;
-	return buf_cmp_masked(a, b, mask & m);
+	return buf_eq_masked(a, b, mask & m);
 }
 
-bool buf_cmp(const void *_buf1, const void *_buf2, unsigned size)
+bool buf_eq(const void *_buf1, const void *_buf2, unsigned size)
 {
 	if (!_buf1 || !_buf2)
-		return _buf1 != _buf2;
+		return _buf1 == _buf2;
 
 	unsigned last = size / 8;
 	if (memcmp(_buf1, _buf2, last) != 0)
-		return true;
+		return false;
 
 	unsigned trailing = size % 8;
 	if (!trailing)
-		return false;
+		return true;
 
 	const uint8_t *buf1 = _buf1, *buf2 = _buf2;
-	return buf_cmp_trailing(buf1[last], buf2[last], 0xff, trailing);
+	return buf_eq_trailing(buf1[last], buf2[last], 0xff, trailing);
 }
 
-bool buf_cmp_mask(const void *_buf1, const void *_buf2,
+bool buf_eq_mask(const void *_buf1, const void *_buf2,
 	const void *_mask, unsigned size)
 {
 	if (!_buf1 || !_buf2)
-		return _buf1 != _buf2 || _buf1 != _mask;
+		return _buf1 == _buf2 && _buf1 == _mask;
 
 	const uint8_t *buf1 = _buf1, *buf2 = _buf2, *mask = _mask;
 	unsigned last = size / 8;
 	for (unsigned i = 0; i < last; i++) {
-		if (buf_cmp_masked(buf1[i], buf2[i], mask[i]))
-			return true;
+		if (!buf_eq_masked(buf1[i], buf2[i], mask[i]))
+			return false;
 	}
 	unsigned trailing = size % 8;
 	if (!trailing)
-		return false;
-	return buf_cmp_trailing(buf1[last], buf2[last], mask[last], trailing);
+		return true;
+	return buf_eq_trailing(buf1[last], buf2[last], mask[last], trailing);
 }
 
 void *buf_set_ones(void *_buf, unsigned size)
