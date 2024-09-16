@@ -4596,7 +4596,7 @@ static int target_jim_write_memory(Jim_Interp *interp, int argc,
 	}
 
 	struct command_context *cmd_ctx = current_command_context(interp);
-	assert(cmd_ctx != NULL);
+	assert(cmd_ctx);
 	struct target *target = get_current_target(cmd_ctx);
 
 	const size_t buffersize = 4096;
@@ -4739,7 +4739,7 @@ static int target_jim_get_reg(Jim_Interp *interp, int argc,
 		return JIM_ERR;
 
 	struct command_context *cmd_ctx = current_command_context(interp);
-	assert(cmd_ctx != NULL);
+	assert(cmd_ctx);
 	const struct target *target = get_current_target(cmd_ctx);
 
 	for (int i = 0; i < length; i++) {
