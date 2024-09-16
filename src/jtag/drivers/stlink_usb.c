@@ -2754,7 +2754,7 @@ static int stlink_usb_read_mem32_noaddrinc(void *handle, uint8_t ap_num, uint32_
 {
 	struct stlink_usb_handle *h = handle;
 
-	assert(handle != NULL);
+	assert(handle);
 
 	if (!(h->version.flags & STLINK_F_HAS_MEM_RD_NO_INC))
 		return ERROR_COMMAND_NOTFOUND;
@@ -2796,7 +2796,7 @@ static int stlink_usb_write_mem32_noaddrinc(void *handle, uint8_t ap_num, uint32
 {
 	struct stlink_usb_handle *h = handle;
 
-	assert(handle != NULL);
+	assert(handle);
 
 	if (!(h->version.flags & STLINK_F_HAS_MEM_WR_NO_INC))
 		return ERROR_COMMAND_NOTFOUND;
@@ -3947,7 +3947,7 @@ static int stlink_usb_rw_misc_out(void *handle, uint32_t items, const uint8_t *b
 
 	LOG_DEBUG_IO("%s(%" PRIu32 ")", __func__, items);
 
-	assert(handle != NULL);
+	assert(handle);
 
 	if (!(h->version.flags & STLINK_F_HAS_RW_MISC))
 		return ERROR_COMMAND_NOTFOUND;
@@ -3968,7 +3968,7 @@ static int stlink_usb_rw_misc_in(void *handle, uint32_t items, uint8_t *buffer)
 
 	LOG_DEBUG_IO("%s(%" PRIu32 ")", __func__, items);
 
-	assert(handle != NULL);
+	assert(handle);
 
 	if (!(h->version.flags & STLINK_F_HAS_RW_MISC))
 		return ERROR_COMMAND_NOTFOUND;
