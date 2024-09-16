@@ -150,6 +150,7 @@ struct cortex_m_part_info {
 #define VC_CORERESET	BIT(0)
 
 /* DCB_DSCSR bit and field definitions */
+#define DSCSR_CDSKEY	BIT(17)
 #define DSCSR_CDS		BIT(16)
 
 /* NVIC registers */

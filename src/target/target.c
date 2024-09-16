@@ -3130,7 +3130,7 @@ COMMAND_HANDLER(handle_reg_command)
 			return ERROR_FAIL;
 		}
 
-		int retval = CALL_COMMAND_HANDLER(command_parse_str_to_buf, CMD_ARGV[1], buf, reg->size, 0);
+		int retval = CALL_COMMAND_HANDLER(command_parse_str_to_buf, CMD_ARGV[1], buf, reg->size);
 		if (retval != ERROR_OK) {
 			free(buf);
 			return retval;
@@ -3934,7 +3934,7 @@ static int handle_bp_command_list(struct command_invocation *cmd)
 }
 
 static int handle_bp_command_set(struct command_invocation *cmd,
-		target_addr_t addr, uint32_t asid, uint32_t length, int hw)
+		target_addr_t addr, uint32_t asid, unsigned int length, int hw)
 {
 	struct target *target = get_current_target(cmd->ctx);
 	int retval;
@@ -4051,7 +4051,7 @@ COMMAND_HANDLER(handle_wp_command)
 		while (watchpoint) {
 			char wp_type = (watchpoint->rw == WPT_READ ? 'r' : (watchpoint->rw == WPT_WRITE ? 'w' : 'a'));
 			command_print(CMD, "address: " TARGET_ADDR_FMT
-					", len: 0x%8.8" PRIx32
+					", len: 0x%8.8x"
 					", r/w/a: %c, value: 0x%8.8" PRIx64
 					", mask: 0x%8.8" PRIx64,
 					watchpoint->address,
@@ -4193,7 +4193,7 @@ static void write_gmon(uint32_t *samples, uint32_t sample_num, const char *filen
 			uint32_t start_address, uint32_t end_address, struct target *target, uint32_t duration_ms)
 {
 	uint32_t i;
-	FILE *f = fopen(filename, "w");
+	FILE *f = fopen(filename, "wb");
 	if (!f)
 		return;
 	write_string(f, "gmon");
@@ -4819,8 +4819,7 @@ COMMAND_HANDLER(handle_set_reg_command)
 			return ERROR_FAIL;
 		}
 
-		int retval = CALL_COMMAND_HANDLER(command_parse_str_to_buf,
-			reg_value, buf, reg->size, 0);
+		int retval = CALL_COMMAND_HANDLER(command_parse_str_to_buf, reg_value, buf, reg->size);
 		if (retval != ERROR_OK) {
 			free(buf);
 			return retval;

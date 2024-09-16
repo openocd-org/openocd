@@ -39,7 +39,7 @@ static int bpwp_unique_id;
 
 static int breakpoint_add_internal(struct target *target,
 	target_addr_t address,
-	uint32_t length,
+	unsigned int length,
 	enum breakpoint_type type)
 {
 	struct breakpoint *breakpoint = target->breakpoints;
@@ -102,7 +102,7 @@ fail:
 
 static int context_breakpoint_add_internal(struct target *target,
 	uint32_t asid,
-	uint32_t length,
+	unsigned int length,
 	enum breakpoint_type type)
 {
 	struct breakpoint *breakpoint = target->breakpoints;
@@ -152,7 +152,7 @@ static int context_breakpoint_add_internal(struct target *target,
 static int hybrid_breakpoint_add_internal(struct target *target,
 	target_addr_t address,
 	uint32_t asid,
-	uint32_t length,
+	unsigned int length,
 	enum breakpoint_type type)
 {
 	struct breakpoint *breakpoint = target->breakpoints;
@@ -208,7 +208,7 @@ static int hybrid_breakpoint_add_internal(struct target *target,
 
 int breakpoint_add(struct target *target,
 	target_addr_t address,
-	uint32_t length,
+	unsigned int length,
 	enum breakpoint_type type)
 {
 	if (target->smp && type == BKPT_HARD) {
@@ -232,7 +232,7 @@ int breakpoint_add(struct target *target,
 
 int context_breakpoint_add(struct target *target,
 	uint32_t asid,
-	uint32_t length,
+	unsigned int length,
 	enum breakpoint_type type)
 {
 	if (target->smp) {
@@ -256,7 +256,7 @@ int context_breakpoint_add(struct target *target,
 int hybrid_breakpoint_add(struct target *target,
 	target_addr_t address,
 	uint32_t asid,
-	uint32_t length,
+	unsigned int length,
 	enum breakpoint_type type)
 {
 	if (target->smp) {
@@ -542,7 +542,7 @@ struct breakpoint *breakpoint_find(struct target *target, target_addr_t address)
 }
 
 static int watchpoint_add_internal(struct target *target, target_addr_t address,
-		uint32_t length, enum watchpoint_rw rw, uint64_t value, uint64_t mask)
+		unsigned int length, enum watchpoint_rw rw, uint32_t value, uint32_t mask)
 {
 	struct watchpoint *watchpoint = target->watchpoints;
 	struct watchpoint **watchpoint_p = &target->watchpoints;
@@ -598,7 +598,7 @@ bye:
 	}
 
 	LOG_TARGET_DEBUG(target, "added %s watchpoint at " TARGET_ADDR_FMT
-			" of length 0x%8.8" PRIx32 " (WPID: %d)",
+			" of length 0x%8.8x (WPID: %d)",
 		watchpoint_rw_strings[(*watchpoint_p)->rw],
 		(*watchpoint_p)->address,
 		(*watchpoint_p)->length,
@@ -608,7 +608,7 @@ bye:
 }
 
 int watchpoint_add(struct target *target, target_addr_t address,
-		uint32_t length, enum watchpoint_rw rw, uint64_t value, uint64_t mask)
+		unsigned int length, enum watchpoint_rw rw, uint64_t value, uint64_t mask)
 {
 	if (target->smp) {
 		struct target_list *head;

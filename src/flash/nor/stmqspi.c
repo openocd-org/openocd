@@ -1807,7 +1807,7 @@ err:
 
 /* Read SFDP parameter block */
 static int read_sfdp_block(struct flash_bank *bank, uint32_t addr,
-	uint32_t words, uint32_t *buffer)
+	unsigned int words, uint32_t *buffer)
 {
 	struct target *target = bank->target;
 	struct stmqspi_flash_bank *stmqspi_info = bank->driver_priv;
@@ -1848,7 +1848,7 @@ static int read_sfdp_block(struct flash_bank *bank, uint32_t addr,
 		}
 	}
 
-	LOG_DEBUG("%s: addr=0x%08" PRIx32 " words=0x%08" PRIx32 " dummy=%u",
+	LOG_DEBUG("%s: addr=0x%08" PRIx32 " words=0x%08x dummy=%u",
 		__func__, addr, words, *dummy);
 
 	/* Abort any previous operation */

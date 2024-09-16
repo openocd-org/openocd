@@ -1038,6 +1038,7 @@ static int kinetis_create_missing_banks(struct kinetis_chip *k_chip)
 		bank->target = k_chip->target;
 		bank->driver = &kinetis_flash;
 		bank->default_padded_value = bank->erased_value = 0xff;
+		bank->minimal_write_gap = FLASH_WRITE_GAP_SECTOR;
 
 		snprintf(name, sizeof(name), "%s.%s%s",
 			 base_name, class, num);

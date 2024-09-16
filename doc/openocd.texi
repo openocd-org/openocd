@@ -8104,7 +8104,7 @@ The above example will read out the FLASH_OPTR register which contains the RDP
 option byte, Watchdog configuration, BOR level etc.
 @end deffn
 
-@deffn {Command} {stm32l4x option_write} num reg_offset reg_mask
+@deffn {Command} {stm32l4x option_write} num reg_offset value [reg_mask]
 Write an option byte register of the stm32l4x device.
 The @var{num} parameter is a value shown by @command{flash banks}, @var{reg_offset}
 is the register offset of the Option byte to write, and @var{reg_mask} is the mask
@@ -9302,11 +9302,19 @@ power consumption (because the CPU is needlessly clocked).
 @deffn {Command} {resume} [address]
 Resume the target at its current code position,
 or the optional @var{address} if it is provided.
+
+@b{NOTE:} targets are expected to temporary disable breakpoints
+if they match the address of the current code position
+or the @var{address} provided by user.
 @end deffn
 
 @deffn {Command} {step} [address]
 Single-step the target at its current code position,
 or the optional @var{address} if it is provided.
+
+@b{NOTE:} targets are expected to temporary disable breakpoints
+if they match the address of the current code position
+or the @var{address} provided by user.
 @end deffn
 
 @anchor{resetcommand}
@@ -9562,11 +9570,12 @@ Channels are exposed via raw TCP/IP connections. One or more RTT servers can be
 assigned to each channel to make them accessible to an unlimited number
 of TCP/IP connections.
 
-@deffn {Command} {rtt setup} address size ID
+@deffn {Command} {rtt setup} address size [ID]
 Configure RTT for the currently selected target.
 Once RTT is started, OpenOCD searches for a control block with the
 identifier @var{ID} starting at the memory address @var{address} within the next
 @var{size} bytes.
+ID defaults to the string "SEGGER RTT"
 @end deffn
 
 @deffn {Command} {rtt start}
@@ -9609,7 +9618,7 @@ on the target device.
 @example
 resume
 
-rtt setup 0x20000000 2048 "SEGGER RTT"
+rtt setup 0x20000000 2048
 rtt start
 
 rtt server start 9090 0
@@ -9648,6 +9657,12 @@ Add or replace help text on the given @var{command_name}.
 
 @deffn {Command} {add_usage_text} 'command_name' 'help-string'
 Add or replace usage text on the given @var{command_name}.
+@end deffn
+
+@deffn {Command} {ms}
+Returns current time since the Epoch in ms
+(See: @url{https://en.wikipedia.org/wiki/Epoch_(computing)}).
+Useful to compute delays in TCL.
 @end deffn
 
 @node Architecture and Core Commands
@@ -11822,8 +11837,8 @@ on @url{https://www.nxp.com}.
 @subsection Xtensa Configuration Commands
 
 @deffn {Config Command} {xtensa xtdef} (@option{LX}|@option{NX})
-Configure the Xtensa target architecture. Currently, Xtensa support is limited
-to LX6, LX7, and NX cores.
+Configure the Xtensa target architecture to LX or NX. Currently, Xtensa LX support
+is limited to LX6 and newer cores.
 @end deffn
 
 @deffn {Config Command} {xtensa xtopt} option value

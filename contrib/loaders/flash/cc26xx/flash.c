@@ -42,7 +42,7 @@ typedef uint32_t (*flash_sector_erase_pntr_t) (uint32_t);
 *
 ******************************************************************************/
 static void issue_fsm_command(flash_state_command_t command);
-static void enable_sectors_for_write(void);
+static void enable_sectors_for_write(uint32_t);
 static uint32_t scale_cycle_values(uint32_t specified_timing,
 	uint32_t scale_value);
 static void set_write_mode(void);
@@ -80,42 +80,51 @@ uint32_t flash_bank_erase(bool force_precondition)
 	uint32_t error_return;
 	uint32_t sector_address;
 	uint32_t reg_val;
+	uint32_t bank_no;
+	uint32_t top_bank_start_addr = (HWREG(FLASH_BASE + FLASH_O_FCFG_B1_START) &
+					FLASH_FCFG_B1_START_B1_START_ADDR_M)
+					>> FLASH_FCFG_B1_START_B1_START_ADDR_S;
 
-	/* Enable all sectors for erase. */
-	enable_sectors_for_write();
+	for (bank_no = 0; bank_no < flash_bank_count(); bank_no++) {
+		/* Enable all sectors for erase. */
+		enable_sectors_for_write(bank_no);
 
-	/* Clear the Status register. */
-	issue_fsm_command(FAPI_CLEAR_STATUS);
+		/* Clear the Status register. */
+		issue_fsm_command(FAPI_CLEAR_STATUS);
 
-	/* Enable erase of all sectors and enable precondition if required. */
-	reg_val = HWREG(FLASH_BASE + FLASH_O_FSM_ST_MACHINE);
-	HWREG(FLASH_BASE + FLASH_O_FSM_WR_ENA) = FSM_REG_WRT_ENABLE;
-	HWREG(FLASH_BASE + FLASH_O_FSM_SECTOR1) = 0x00000000;
-	HWREG(FLASH_BASE + FLASH_O_FSM_SECTOR2) = 0x00000000;
-	if (force_precondition)
-		HWREG(FLASH_BASE + FLASH_O_FSM_ST_MACHINE) |=
-			FLASH_FSM_ST_MACHINE_DO_PRECOND;
-	HWREG(FLASH_BASE + FLASH_O_FSM_WR_ENA) = FSM_REG_WRT_DISABLE;
-
-	/* Issue the bank erase command to the FSM. */
-	issue_fsm_command(FAPI_ERASE_BANK);
-
-	/* Wait for erase to finish. */
-	while (flash_check_fsm_for_ready() == FAPI_STATUS_FSM_BUSY)
-		;
-
-	/* Update status. */
-	error_return = flash_check_fsm_for_error();
-
-	/* Disable sectors for erase. */
-	flash_disable_sectors_for_write();
-
-	/* Set configured precondition mode since it may have been forced on. */
-	if (!(reg_val & FLASH_FSM_ST_MACHINE_DO_PRECOND)) {
+		/* Enable erase of all sectors and enable precondition if required. */
+		reg_val = HWREG(FLASH_BASE + FLASH_O_FSM_ST_MACHINE);
 		HWREG(FLASH_BASE + FLASH_O_FSM_WR_ENA) = FSM_REG_WRT_ENABLE;
-		HWREG(FLASH_BASE + FLASH_O_FSM_ST_MACHINE) &=
-			~FLASH_FSM_ST_MACHINE_DO_PRECOND;
+		HWREG(FLASH_BASE + FLASH_O_FSM_SECTOR1) = 0x00000000;
+		HWREG(FLASH_BASE + FLASH_O_FSM_SECTOR2) = 0x00000000;
+		if (force_precondition)
+			HWREG(FLASH_BASE + FLASH_O_FSM_ST_MACHINE) |=
+				FLASH_FSM_ST_MACHINE_DO_PRECOND;
 		HWREG(FLASH_BASE + FLASH_O_FSM_WR_ENA) = FSM_REG_WRT_DISABLE;
+
+		// Write address to FADDR register.
+		HWREG(FLASH_BASE + FLASH_O_FADDR) = ADDR_OFFSET + (bank_no * top_bank_start_addr);
+
+		/* Issue the bank erase command to the FSM. */
+		issue_fsm_command(FAPI_ERASE_BANK);
+
+		/* Wait for erase to finish. */
+		while (flash_check_fsm_for_ready() == FAPI_STATUS_FSM_BUSY)
+			;
+
+		/* Update status. */
+		error_return = flash_check_fsm_for_error();
+
+		/* Set configured precondition mode since it may have been forced on. */
+		if (!(reg_val & FLASH_FSM_ST_MACHINE_DO_PRECOND)) {
+			HWREG(FLASH_BASE + FLASH_O_FSM_WR_ENA) = FSM_REG_WRT_ENABLE;
+			HWREG(FLASH_BASE + FLASH_O_FSM_ST_MACHINE) &=
+				~FLASH_FSM_ST_MACHINE_DO_PRECOND;
+			HWREG(FLASH_BASE + FLASH_O_FSM_WR_ENA) = FSM_REG_WRT_DISABLE;
+		}
+
+		if (error_return != FAPI_STATUS_SUCCESS)
+			break;
 	}
 
 	/* Program security data to default values in the customer configuration */
@@ -127,6 +136,9 @@ uint32_t flash_bank_erase(bool force_precondition)
 							(sector_address + CCFG_OFFSET_SECURITY),
 							CCFG_SIZE_SECURITY);
 	}
+
+	/* Disable sectors for erase. */
+	flash_disable_sectors_for_write();
 
 	/* Return status of operation. */
 	return error_return;
@@ -161,23 +173,34 @@ uint32_t flash_program(uint8_t *data_buffer, uint32_t address, uint32_t count)
 ******************************************************************************/
 void flash_disable_sectors_for_write(void)
 {
+	uint32_t bank_no;
+
 	/* Configure flash back to read mode */
 	set_read_mode();
 
-	/* Disable Level 1 Protection. */
-	HWREG(FLASH_BASE + FLASH_O_FBPROT) = FLASH_FBPROT_PROTL1DIS;
+	for (bank_no = 0; bank_no < flash_bank_count(); bank_no++) {
 
-	/* Disable all sectors for erase and programming. */
-	HWREG(FLASH_BASE + FLASH_O_FBSE) = 0x0000;
+		/* Select flash bank. */
+		HWREG(FLASH_BASE + FLASH_O_FMAC) = bank_no;
 
-	/* Enable Level 1 Protection. */
-	HWREG(FLASH_BASE + FLASH_O_FBPROT) = 0;
+		/* Disable Level 1 Protection. */
+		HWREG(FLASH_BASE + FLASH_O_FBPROT) = FLASH_FBPROT_PROTL1DIS;
 
-	/* Protect sectors from sector erase. */
-	HWREG(FLASH_BASE + FLASH_O_FSM_WR_ENA) = FSM_REG_WRT_ENABLE;
-	HWREG(FLASH_BASE + FLASH_O_FSM_SECTOR1) = 0xFFFFFFFF;
-	HWREG(FLASH_BASE + FLASH_O_FSM_SECTOR2) = 0xFFFFFFFF;
-	HWREG(FLASH_BASE + FLASH_O_FSM_WR_ENA) = FSM_REG_WRT_DISABLE;
+		/* Disable all sectors for erase and programming. */
+		HWREG(FLASH_BASE + FLASH_O_FBSE) = 0x0000;
+
+		/* Enable Level 1 Protection. */
+		HWREG(FLASH_BASE + FLASH_O_FBPROT) = 0;
+
+		/* Protect sectors from sector erase. */
+		HWREG(FLASH_BASE + FLASH_O_FSM_WR_ENA) = FSM_REG_WRT_ENABLE;
+		HWREG(FLASH_BASE + FLASH_O_FSM_SECTOR1) = 0xFFFFFFFF;
+		HWREG(FLASH_BASE + FLASH_O_FSM_SECTOR2) = 0xFFFFFFFF;
+		HWREG(FLASH_BASE + FLASH_O_FSM_WR_ENA) = FSM_REG_WRT_DISABLE;
+	}
+
+	// Select bank 0
+	HWREG(FLASH_BASE + FLASH_O_FMAC) = 0x0;
 }
 
 /******************************************************************************
@@ -214,7 +237,7 @@ static void issue_fsm_command(flash_state_command_t command)
 * the FLASH_O_FSM_SECTOR1 register.
 *
 ******************************************************************************/
-static void enable_sectors_for_write(void)
+static void enable_sectors_for_write(uint32_t bank_no)
 {
 	/* Trim flash module for program/erase operation. */
 	trim_for_write();
@@ -223,7 +246,7 @@ static void enable_sectors_for_write(void)
 	set_write_mode();
 
 	/* Select flash bank. */
-	HWREG(FLASH_BASE + FLASH_O_FMAC) = 0x00;
+	HWREG(FLASH_BASE + FLASH_O_FMAC) = bank_no;
 
 	/* Disable Level 1 Protection. */
 	HWREG(FLASH_BASE + FLASH_O_FBPROT) = FLASH_FBPROT_PROTL1DIS;

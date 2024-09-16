@@ -157,48 +157,44 @@ int arm_cti_clear_channel(struct arm_cti *self, uint32_t channel)
 	return arm_cti_write_reg(self, CTI_APPCLEAR, CTI_CHNL(channel));
 }
 
-static uint32_t cti_regs[28];
-
 static const struct {
 	uint32_t offset;
 	const char *label;
-	uint32_t *p_val;
 } cti_names[] = {
-	{ CTI_CTR,		"CTR",		&cti_regs[0] },
-	{ CTI_GATE,		"GATE",		&cti_regs[1] },
-	{ CTI_INEN0,	"INEN0",	&cti_regs[2] },
-	{ CTI_INEN1,	"INEN1",	&cti_regs[3] },
-	{ CTI_INEN2,	"INEN2",	&cti_regs[4] },
-	{ CTI_INEN3,	"INEN3",	&cti_regs[5] },
-	{ CTI_INEN4,	"INEN4",	&cti_regs[6] },
-	{ CTI_INEN5,	"INEN5",	&cti_regs[7] },
-	{ CTI_INEN6,	"INEN6",	&cti_regs[8] },
-	{ CTI_INEN7,	"INEN7",	&cti_regs[9] },
-	{ CTI_INEN8,	"INEN8",	&cti_regs[10] },
-	{ CTI_OUTEN0,	"OUTEN0",	&cti_regs[11] },
-	{ CTI_OUTEN1,	"OUTEN1",	&cti_regs[12] },
-	{ CTI_OUTEN2,	"OUTEN2",	&cti_regs[13] },
-	{ CTI_OUTEN3,	"OUTEN3",	&cti_regs[14] },
-	{ CTI_OUTEN4,	"OUTEN4",	&cti_regs[15] },
-	{ CTI_OUTEN5,	"OUTEN5",	&cti_regs[16] },
-	{ CTI_OUTEN6,	"OUTEN6",	&cti_regs[17] },
-	{ CTI_OUTEN7,	"OUTEN7",	&cti_regs[18] },
-	{ CTI_OUTEN8,	"OUTEN8",	&cti_regs[19] },
-	{ CTI_TRIN_STATUS,	"TRIN",	&cti_regs[20] },
-	{ CTI_TROUT_STATUS,	"TROUT", &cti_regs[21] },
-	{ CTI_CHIN_STATUS,	"CHIN",	&cti_regs[22] },
-	{ CTI_CHOU_STATUS,	"CHOUT", &cti_regs[23] },
-	{ CTI_APPSET,	"APPSET",	&cti_regs[24] },
-	{ CTI_APPCLEAR,	"APPCLR",	&cti_regs[25] },
-	{ CTI_APPPULSE,	"APPPULSE",	&cti_regs[26] },
-	{ CTI_INACK,	"INACK",	&cti_regs[27] },
+	{ CTI_CTR,	"CTR" },
+	{ CTI_GATE,	"GATE" },
+	{ CTI_INEN0,	"INEN0" },
+	{ CTI_INEN1,	"INEN1" },
+	{ CTI_INEN2,	"INEN2" },
+	{ CTI_INEN3,	"INEN3" },
+	{ CTI_INEN4,	"INEN4" },
+	{ CTI_INEN5,	"INEN5" },
+	{ CTI_INEN6,	"INEN6" },
+	{ CTI_INEN7,	"INEN7" },
+	{ CTI_INEN8,	"INEN8" },
+	{ CTI_OUTEN0,	"OUTEN0" },
+	{ CTI_OUTEN1,	"OUTEN1" },
+	{ CTI_OUTEN2,	"OUTEN2" },
+	{ CTI_OUTEN3,	"OUTEN3" },
+	{ CTI_OUTEN4,	"OUTEN4" },
+	{ CTI_OUTEN5,	"OUTEN5" },
+	{ CTI_OUTEN6,	"OUTEN6" },
+	{ CTI_OUTEN7,	"OUTEN7" },
+	{ CTI_OUTEN8,	"OUTEN8" },
+	{ CTI_TRIN_STATUS,	"TRIN" },
+	{ CTI_TROUT_STATUS,	"TROUT" },
+	{ CTI_CHIN_STATUS,	"CHIN" },
+	{ CTI_CHOU_STATUS,	"CHOUT" },
+	{ CTI_APPSET,	"APPSET" },
+	{ CTI_APPCLEAR,	"APPCLR" },
+	{ CTI_APPPULSE,	"APPPULSE" },
+	{ CTI_INACK,	"INACK" },
+	{ CTI_DEVCTL,	"DEVCTL" },
 };
 
 static int cti_find_reg_offset(const char *name)
 {
-	unsigned int i;
-
-	for (i = 0; i < ARRAY_SIZE(cti_names); i++) {
+	for (size_t i = 0; i < ARRAY_SIZE(cti_names); i++) {
 		if (!strcmp(name, cti_names[i].label))
 			return cti_names[i].offset;
 	}
@@ -226,10 +222,11 @@ COMMAND_HANDLER(handle_cti_dump)
 	struct arm_cti *cti = CMD_DATA;
 	struct adiv5_ap *ap = cti->ap;
 	int retval = ERROR_OK;
+	uint32_t values[ARRAY_SIZE(cti_names)];
 
-	for (int i = 0; (retval == ERROR_OK) && (i < (int)ARRAY_SIZE(cti_names)); i++)
+	for (size_t i = 0; (retval == ERROR_OK) && (i < ARRAY_SIZE(cti_names)); i++)
 		retval = mem_ap_read_u32(ap,
-				cti->spot.base + cti_names[i].offset, cti_names[i].p_val);
+				cti->spot.base + cti_names[i].offset, &values[i]);
 
 	if (retval == ERROR_OK)
 		retval = dap_run(ap->dap);
@@ -237,9 +234,9 @@ COMMAND_HANDLER(handle_cti_dump)
 	if (retval != ERROR_OK)
 		return JIM_ERR;
 
-	for (int i = 0; i < (int)ARRAY_SIZE(cti_names); i++)
+	for (size_t i = 0; i < ARRAY_SIZE(cti_names); i++)
 		command_print(CMD, "%8.8s (0x%04"PRIx32") 0x%08"PRIx32,
-				cti_names[i].label, cti_names[i].offset, *cti_names[i].p_val);
+				cti_names[i].label, cti_names[i].offset, values[i]);
 
 	return JIM_OK;
 }
@@ -322,7 +319,6 @@ COMMAND_HANDLER(handle_cti_ack)
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], event);
 
 	int retval = arm_cti_ack_events(cti, 1 << event);
-
 
 	if (retval != ERROR_OK)
 		return retval;
@@ -437,6 +433,7 @@ static int cti_configure(struct jim_getopt_info *goi, struct arm_cti *cti)
 
 	return JIM_OK;
 }
+
 static int cti_create(struct jim_getopt_info *goi)
 {
 	struct command_context *cmd_ctx;
@@ -537,7 +534,6 @@ COMMAND_HANDLER(cti_handle_names)
 
 	return ERROR_OK;
 }
-
 
 static const struct command_registration cti_subcommand_handlers[] = {
 	{

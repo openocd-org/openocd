@@ -116,6 +116,10 @@
 /* FMC Sequential Pump Information */
 #define FLASH_O_FSEQPMP                                             0x000020A8
 
+#define FLASH_O_FADDR                                               0x00002110
+
+#define FLASH_O_FWPWRITE0                                           0x00002120
+
 /* FMC FSM Command */
 #define FLASH_O_FSM_CMD                                             0x0000220C
 
@@ -179,8 +183,13 @@
 /* FMC FSM Sector Erased  2 */
 #define FLASH_O_FSM_SECTOR2                                         0x000022C4
 
+#define FLASH_O_FCFG_BANK                                           0x00002400
+
 /* FMC Flash Bank 0 Starting Address */
 #define FLASH_O_FCFG_B0_START                                       0x00002410
+
+/* FMC Flash Bank 1 Starting Address */
+#define FLASH_O_FCFG_B1_START                                       0x00002414
 
 /* FMC Flash Bank 0 Sector Size 0 */
 #define FLASH_O_FCFG_B0_SSIZE0                                      0x00002430
@@ -1352,5 +1361,17 @@
 * 0: DCDC or GLDO are generating VDDR
 * 1: DCDC and GLDO are bypassed and an external regulator supplies VDDR */
 #define AON_PMCTL_PWRCTL_EXT_REG_MODE                               0x00000002
+
+/* Field:   [3:0] MAIN_NUM_BANK */
+#define FLASH_FCFG_BANK_MAIN_NUM_BANK_M 0x0000000F
+#define FLASH_FCFG_BANK_MAIN_NUM_BANK_S 0
+
+/* Field:  [23:0] B1_START_ADDR */
+#define FLASH_FCFG_B1_START_B1_START_ADDR_M 0x00FFFFFF
+#define FLASH_FCFG_B1_START_B1_START_ADDR_S 0
+
+/* Field:  [15:4] MAIN_BANK_WIDTH */
+#define FLASH_FCFG_BANK_MAIN_BANK_WIDTH_M 0x0000FFF0
+#define FLASH_FCFG_BANK_MAIN_BANK_WIDTH_S 4
 
 #endif /* #ifndef OPENOCD_LOADERS_FLASH_CC26XX_HW_REGS_H */

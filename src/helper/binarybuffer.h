@@ -34,6 +34,7 @@
 static inline void buf_set_u32(uint8_t *_buffer,
 	unsigned first, unsigned num, uint32_t value)
 {
+	assert(num >= 1 && num <= 32);
 	uint8_t *buffer = _buffer;
 
 	if ((num == 32) && (first == 0)) {
@@ -64,6 +65,7 @@ static inline void buf_set_u32(uint8_t *_buffer,
 static inline void buf_set_u64(uint8_t *_buffer,
 	unsigned first, unsigned num, uint64_t value)
 {
+	assert(num >= 1 && num <= 64);
 	uint8_t *buffer = _buffer;
 
 	if ((num == 32) && (first == 0)) {
@@ -102,6 +104,7 @@ static inline void buf_set_u64(uint8_t *_buffer,
 static inline uint32_t buf_get_u32(const uint8_t *_buffer,
 	unsigned first, unsigned num)
 {
+	assert(num >= 1 && num <= 32);
 	const uint8_t *buffer = _buffer;
 
 	if ((num == 32) && (first == 0)) {
@@ -131,6 +134,7 @@ static inline uint32_t buf_get_u32(const uint8_t *_buffer,
 static inline uint64_t buf_get_u64(const uint8_t *_buffer,
 	unsigned first, unsigned num)
 {
+	assert(num >= 1 && num <= 64);
 	const uint8_t *buffer = _buffer;
 
 	if ((num == 32) && (first == 0)) {
@@ -194,15 +198,14 @@ void *buf_set_buf(const void *src, unsigned src_start,
 
 /**
  * Parse an unsigned number (provided as a zero-terminated string)
- * into a bit buffer whose size is buf_len bits.
+ * into a bit buffer whose size is buf_len bits. The base of the
+ * number is detected between decimal, hexadecimal and octal.
  * @param str Input number, zero-terminated string
  * @param _buf Output buffer, allocated by the caller
- * @param buf_len Output buffer size in bits
- * @param radix Base of the input number - 16, 10, 8 or 0.
- *              0 means auto-detect the radix.
+ * @param buf_bitsize Output buffer size in bits
+ * @returns Error on invalid or overflowing number
  */
-int str_to_buf(const char *str, void *_buf, unsigned int buf_len,
-	unsigned int radix, unsigned int *_detected_radix);
+int str_to_buf(const char *str, void *_buf, unsigned int buf_bitsize);
 
 char *buf_to_hex_str(const void *buf, unsigned size);
 
