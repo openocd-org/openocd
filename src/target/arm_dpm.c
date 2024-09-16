@@ -59,7 +59,7 @@ static int dpm_mrc(struct target *target, int cpnum,
 			ARMV4_5_MRC(cpnum, op1, 0, crn, crm, op2),
 			value);
 
-	/* (void) */ dpm->finish(dpm);
+	dpm->finish(dpm);
 	return retval;
 }
 
@@ -82,7 +82,7 @@ static int dpm_mrrc(struct target *target, int cpnum,
 			ARMV5_T_MRRC(cpnum, op, 0, 1, crm),
 			value);
 
-	/* (void) */ dpm->finish(dpm);
+	dpm->finish(dpm);
 	return retval;
 }
 
@@ -107,7 +107,7 @@ static int dpm_mcr(struct target *target, int cpnum,
 			ARMV4_5_MCR(cpnum, op1, 0, crn, crm, op2),
 			value);
 
-	/* (void) */ dpm->finish(dpm);
+	dpm->finish(dpm);
 	return retval;
 }
 
@@ -129,7 +129,7 @@ static int dpm_mcrr(struct target *target, int cpnum,
 	retval = dpm->instr_write_data_r0_r1(dpm,
 			ARMV5_T_MCRR(cpnum, op, 0, 1, crm), value);
 
-	/* (void) */ dpm->finish(dpm);
+	dpm->finish(dpm);
 
 	return retval;
 }
@@ -422,7 +422,7 @@ int arm_dpm_read_current_registers(struct arm_dpm *dpm)
 	 */
 
 fail:
-	/* (void) */ dpm->finish(dpm);
+	dpm->finish(dpm);
 	return retval;
 }
 
@@ -632,7 +632,7 @@ int arm_dpm_write_dirty_registers(struct arm_dpm *dpm, bool bpwp)
 		cache->reg_list[i].dirty = false;
 	}
 
-	/* (void) */ dpm->finish(dpm);
+	dpm->finish(dpm);
 done:
 	return retval;
 }
@@ -719,10 +719,10 @@ static int arm_dpm_read_core_reg(struct target *target, struct reg *r,
 	/* always clean up, regardless of error */
 
 	if (mode != ARM_MODE_ANY)
-		/* (void) */ arm_dpm_modeswitch(dpm, ARM_MODE_ANY);
+		arm_dpm_modeswitch(dpm, ARM_MODE_ANY);
 
 fail:
-	/* (void) */ dpm->finish(dpm);
+	dpm->finish(dpm);
 	return retval;
 }
 
@@ -761,10 +761,10 @@ static int arm_dpm_write_core_reg(struct target *target, struct reg *r,
 	/* always clean up, regardless of error */
 
 	if (mode != ARM_MODE_ANY)
-		/* (void) */ arm_dpm_modeswitch(dpm, ARM_MODE_ANY);
+		arm_dpm_modeswitch(dpm, ARM_MODE_ANY);
 
 fail:
-	/* (void) */ dpm->finish(dpm);
+	dpm->finish(dpm);
 	return retval;
 }
 
@@ -831,7 +831,7 @@ static int arm_dpm_full_context(struct target *target)
 	} while (did_read);
 
 	retval = arm_dpm_modeswitch(dpm, ARM_MODE_ANY);
-	/* (void) */ dpm->finish(dpm);
+	dpm->finish(dpm);
 done:
 	return retval;
 }

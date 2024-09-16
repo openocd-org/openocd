@@ -1010,7 +1010,7 @@ static void armv8_show_fault_registers32(struct armv8_common *armv8)
 		", IFAR: %8.8" PRIx32, ifsr, ifar);
 
 done:
-	/* (void) */ dpm->finish(dpm);
+	dpm->finish(dpm);
 }
 
 static __attribute__((unused)) void armv8_show_fault_registers(struct target *target)

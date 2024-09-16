@@ -500,7 +500,7 @@ static int dpmv8_mrc(struct target *target, int cpnum,
 			ARMV4_5_MRC(cpnum, op1, 0, crn, crm, op2),
 			value);
 
-	/* (void) */ dpm->finish(dpm);
+	dpm->finish(dpm);
 	return retval;
 }
 
@@ -525,7 +525,7 @@ static int dpmv8_mcr(struct target *target, int cpnum,
 			ARMV4_5_MCR(cpnum, op1, 0, crn, crm, op2),
 			value);
 
-	/* (void) */ dpm->finish(dpm);
+	dpm->finish(dpm);
 	return retval;
 }
 
@@ -991,7 +991,7 @@ static int armv8_dpm_read_core_reg(struct target *target, struct reg *r,
 		goto fail;
 
 fail:
-	/* (void) */ dpm->finish(dpm);
+	dpm->finish(dpm);
 	return retval;
 }
 
@@ -1085,7 +1085,7 @@ static int armv8_dpm_full_context(struct target *target)
 	} while (did_read);
 
 	retval = armv8_dpm_modeswitch(dpm, ARM_MODE_ANY);
-	/* (void) */ dpm->finish(dpm);
+	dpm->finish(dpm);
 done:
 	return retval;
 }
