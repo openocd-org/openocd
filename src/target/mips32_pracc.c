@@ -212,7 +212,7 @@ static int mips32_pracc_exec(struct mips_ejtag *ejtag_info, struct pracc_queue_i
 			store_pending--;
 
 		} else {					/* read/fetch access */
-			 if (!final_check) {			/* executing function code */
+			if (!final_check) {			/* executing function code */
 				/* check address */
 				if (ejtag_info->pa_addr != (MIPS32_PRACC_TEXT + code_count * 4)) {
 					LOG_DEBUG("reading at unexpected address %" PRIx32 ", expected %x",
@@ -243,7 +243,7 @@ static int mips32_pracc_exec(struct mips_ejtag *ejtag_info, struct pracc_queue_i
 				if (code_count == ctx->code_count)	/* last instruction, start final check */
 					final_check = 1;
 
-			 } else {	/* final check after function code shifted out */
+			} else {	/* final check after function code shifted out */
 					/* check address */
 				if (ejtag_info->pa_addr == MIPS32_PRACC_TEXT) {
 					if (!pass) {	/* first pass through pracc text */
@@ -275,7 +275,7 @@ static int mips32_pracc_exec(struct mips_ejtag *ejtag_info, struct pracc_queue_i
 					}
 				instr = MIPS32_NOP;	/* shift out NOPs instructions */
 				code_count++;
-			 }
+			}
 
 			/* Send instruction out */
 			mips_ejtag_set_instr(ejtag_info, EJTAG_INST_DATA);

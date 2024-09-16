@@ -348,7 +348,7 @@ static const struct command_registration hl_interface_subcommand_handlers[] = {
 	 .help = "select which ST-Link backend to use",
 	 .usage = "usb | tcp [port]",
 	},
-	 {
+	{
 	 .name = "command",
 	 .handler = &interface_handle_hla_command,
 	 .mode = COMMAND_EXEC,

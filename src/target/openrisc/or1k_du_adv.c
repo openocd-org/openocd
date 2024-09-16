@@ -362,7 +362,7 @@ static int adbg_ctrl_read(struct or1k_jtag *jtag_info, uint32_t regidx,
 	default:
 		LOG_ERROR("Illegal debug chain selected (%i) while doing control read",
 			  jtag_info->or1k_jtag_module_selected);
-		 return ERROR_FAIL;
+		return ERROR_FAIL;
 	}
 
 	/* Zero MSB = op for module, not top-level debug unit */
