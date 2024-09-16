@@ -389,7 +389,7 @@ int rtos_thread_packet(struct connection *connection, char const *packet, int pa
 		return ERROR_OK;
 	} else if (strncmp(packet, "qSymbol", 7) == 0) {
 		if (rtos_qsymbol(connection, packet, packet_size) == 1) {
-			if (target->rtos_auto_detect == true) {
+			if (target->rtos_auto_detect) {
 				target->rtos_auto_detect = false;
 				target->rtos->type->create(target);
 			}

@@ -606,7 +606,7 @@ static void ulink_clear_queue(struct ulink *device)
 
 		/* IN payload MUST be freed ONLY if no other commands use the
 		 * payload_in_start buffer */
-		if (current->free_payload_in_start == true) {
+		if (current->free_payload_in_start) {
 			free(current->payload_in_start);
 			current->payload_in_start = NULL;
 			current->payload_in = NULL;
@@ -1861,7 +1861,7 @@ static int ulink_post_process_queue(struct ulink *device)
 
 		/* Check if a corresponding OpenOCD command is stored for this
 		 * OpenULINK command */
-		if ((current->needs_postprocessing == true) && (openocd_cmd)) {
+		if (current->needs_postprocessing && openocd_cmd) {
 			switch (openocd_cmd->type) {
 			    case JTAG_SCAN:
 				    ret = ulink_post_process_scan(current);
@@ -2131,7 +2131,7 @@ static int ulink_init(void)
 			download_firmware = true;
 	}
 
-	if (download_firmware == true) {
+	if (download_firmware) {
 		LOG_INFO("Loading OpenULINK firmware. This is reversible by power-cycling"
 			" ULINK device.");
 		ret = ulink_load_firmware_and_renumerate(&ulink_handle,

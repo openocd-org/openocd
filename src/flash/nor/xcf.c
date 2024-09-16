@@ -143,28 +143,27 @@ static int isc_enter(struct flash_bank *bank)
 
 	struct xcf_status status = read_status(bank);
 
-	if (true == status.isc_mode)
+	if (status.isc_mode)
 		return ERROR_OK;
-	else {
-		struct scan_field scan;
 
-		scan.check_mask = NULL;
-		scan.check_value = NULL;
-		scan.num_bits = 16;
-		scan.out_value = cmd_isc_enable;
-		scan.in_value = NULL;
+	struct scan_field scan;
 
-		jtag_add_ir_scan(bank->target->tap, &scan, TAP_IDLE);
-		jtag_execute_queue();
+	scan.check_mask = NULL;
+	scan.check_value = NULL;
+	scan.num_bits = 16;
+	scan.out_value = cmd_isc_enable;
+	scan.in_value = NULL;
 
-		status = read_status(bank);
-		if (!status.isc_mode) {
-			LOG_ERROR("*** XCF: FAILED to enter ISC mode");
-			return ERROR_FLASH_OPERATION_FAILED;
-		}
+	jtag_add_ir_scan(bank->target->tap, &scan, TAP_IDLE);
+	jtag_execute_queue();
 
-		return ERROR_OK;
+	status = read_status(bank);
+	if (!status.isc_mode) {
+		LOG_ERROR("*** XCF: FAILED to enter ISC mode");
+		return ERROR_FLASH_OPERATION_FAILED;
 	}
+
+	return ERROR_OK;
 }
 
 static int isc_leave(struct flash_bank *bank)
@@ -174,27 +173,26 @@ static int isc_leave(struct flash_bank *bank)
 
 	if (!status.isc_mode)
 		return ERROR_OK;
-	else {
-		struct scan_field scan;
 
-		scan.check_mask = NULL;
-		scan.check_value = NULL;
-		scan.num_bits = 16;
-		scan.out_value = cmd_isc_disable;
-		scan.in_value = NULL;
+	struct scan_field scan;
 
-		jtag_add_ir_scan(bank->target->tap, &scan, TAP_IDLE);
-		jtag_execute_queue();
-		alive_sleep(1);	/* device needs 50 uS to leave ISC mode */
+	scan.check_mask = NULL;
+	scan.check_value = NULL;
+	scan.num_bits = 16;
+	scan.out_value = cmd_isc_disable;
+	scan.in_value = NULL;
 
-		status = read_status(bank);
-		if (status.isc_mode) {
-			LOG_ERROR("*** XCF: FAILED to leave ISC mode");
-			return ERROR_FLASH_OPERATION_FAILED;
-		}
+	jtag_add_ir_scan(bank->target->tap, &scan, TAP_IDLE);
+	jtag_execute_queue();
+	alive_sleep(1);	/* device needs 50 uS to leave ISC mode */
 
-		return ERROR_OK;
+	status = read_status(bank);
+	if (status.isc_mode) {
+		LOG_ERROR("*** XCF: FAILED to leave ISC mode");
+		return ERROR_FLASH_OPERATION_FAILED;
 	}
+
+	return ERROR_OK;
 }
 
 static int sector_state(uint8_t wrpt, int sector)
