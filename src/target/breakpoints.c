@@ -542,7 +542,7 @@ struct breakpoint *breakpoint_find(struct target *target, target_addr_t address)
 }
 
 static int watchpoint_add_internal(struct target *target, target_addr_t address,
-		unsigned int length, enum watchpoint_rw rw, uint32_t value, uint32_t mask)
+		unsigned int length, enum watchpoint_rw rw, uint64_t value, uint64_t mask)
 {
 	struct watchpoint *watchpoint = target->watchpoints;
 	struct watchpoint **watchpoint_p = &target->watchpoints;
