@@ -1966,7 +1966,7 @@ int armv8_get_gdb_reg_list(struct target *target,
 			*reg_list = malloc(sizeof(struct reg *) * (*reg_list_size));
 
 			for (i = 0; i < *reg_list_size; i++)
-					(*reg_list)[i] = armv8_reg_current(arm, i);
+				(*reg_list)[i] = armv8_reg_current(arm, i);
 			return ERROR_OK;
 
 		case REG_CLASS_ALL:
@@ -1974,7 +1974,7 @@ int armv8_get_gdb_reg_list(struct target *target,
 			*reg_list = malloc(sizeof(struct reg *) * (*reg_list_size));
 
 			for (i = 0; i < *reg_list_size; i++)
-					(*reg_list)[i] = armv8_reg_current(arm, i);
+				(*reg_list)[i] = armv8_reg_current(arm, i);
 
 			return ERROR_OK;
 

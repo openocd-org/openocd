@@ -384,15 +384,15 @@ static int psoc4_get_silicon_id(struct flash_bank *bank, uint32_t *silicon_id, u
 	 * bit 7..0   family ID (lowest 8 bits)
 	 */
 	if (silicon_id)
-			*silicon_id = ((part0 & 0x0000ffff) << 16)
-				    | ((part0 & 0x00ff0000) >> 8)
-				    | (part1 & 0x000000ff);
+		*silicon_id = ((part0 & 0x0000ffff) << 16)
+					  | ((part0 & 0x00ff0000) >> 8)
+					  | (part1 & 0x000000ff);
 
 	if (family_id)
-			*family_id = part1 & 0x0fff;
+		*family_id = part1 & 0x0fff;
 
 	if (protection)
-			*protection = (part1 >> 12) & 0x0f;
+		*protection = (part1 >> 12) & 0x0f;
 
 	return ERROR_OK;
 }

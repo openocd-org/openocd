@@ -751,9 +751,9 @@ static int fespi_probe(struct flash_bank *bank)
 				target_device->name, bank->base);
 
 	} else {
-	  LOG_DEBUG("Assuming FESPI as specified at address " TARGET_ADDR_FMT
-			  " with ctrl at " TARGET_ADDR_FMT, fespi_info->ctrl_base,
-			  bank->base);
+		LOG_DEBUG("Assuming FESPI as specified at address " TARGET_ADDR_FMT
+				  " with ctrl at " TARGET_ADDR_FMT, fespi_info->ctrl_base,
+				  bank->base);
 	}
 
 	/* read and decode flash ID; returns in SW mode */

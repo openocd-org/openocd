@@ -154,9 +154,8 @@ static int hwthread_update_threads(struct rtos *rtos)
 				if (curr->debug_reason == DBG_REASON_SINGLESTEP) {
 					current_reason = curr->debug_reason;
 					current_thread = tid;
-				} else
-				/* multiple breakpoints, prefer gdbs' threadid */
-				if (curr->debug_reason == DBG_REASON_BREAKPOINT) {
+				} else if (curr->debug_reason == DBG_REASON_BREAKPOINT) {
+					/* multiple breakpoints, prefer gdbs' threadid */
 					if (tid == rtos->current_threadid)
 						current_thread = tid;
 				}
@@ -176,8 +175,7 @@ static int hwthread_update_threads(struct rtos *rtos)
 						curr->debug_reason == DBG_REASON_BREAKPOINT) {
 					current_reason = curr->debug_reason;
 					current_thread = tid;
-				} else
-				if (curr->debug_reason == DBG_REASON_DBGRQ) {
+				} else if (curr->debug_reason == DBG_REASON_DBGRQ) {
 					if (tid == rtos->current_threadid)
 						current_thread = tid;
 				}

@@ -388,7 +388,7 @@ static int arc_build_reg_cache(struct target *target)
 	}
 
 	list_for_each_entry(reg_desc, &arc->aux_reg_descriptions, list) {
-		 CHECK_RETVAL(arc_init_reg(target, &reg_list[i],  reg_desc, i));
+		CHECK_RETVAL(arc_init_reg(target, &reg_list[i], reg_desc, i));
 
 		LOG_TARGET_DEBUG(target, "reg n=%3li name=%3s group=%s feature=%s", i,
 			reg_list[i].name, reg_list[i].group,
@@ -464,7 +464,7 @@ static int arc_build_bcr_reg_cache(struct target *target)
 	}
 
 	list_for_each_entry(reg_desc, &arc->bcr_reg_descriptions, list) {
-		 CHECK_RETVAL(arc_init_reg(target, &reg_list[i], reg_desc, gdb_regnum));
+		CHECK_RETVAL(arc_init_reg(target, &reg_list[i], reg_desc, gdb_regnum));
 		/* BCRs always semantically, they are just read-as-zero, if there is
 		 * not real register. */
 		reg_list[i].exist = true;
@@ -719,14 +719,14 @@ static int arc_configure(struct target *target)
 	LOG_TARGET_DEBUG(target, "Configuring ARC ICCM and DCCM");
 
 	/* Configuring DCCM if DCCM_BUILD and AUX_DCCM are known registers. */
-	if (arc_reg_get_by_name(target->reg_cache, "dccm_build", true) &&
-	    arc_reg_get_by_name(target->reg_cache, "aux_dccm", true))
-				CHECK_RETVAL(arc_configure_dccm(target));
+	if (arc_reg_get_by_name(target->reg_cache, "dccm_build", true)
+		    && arc_reg_get_by_name(target->reg_cache, "aux_dccm", true))
+		CHECK_RETVAL(arc_configure_dccm(target));
 
 	/* Configuring ICCM if ICCM_BUILD and AUX_ICCM are known registers. */
-	if (arc_reg_get_by_name(target->reg_cache, "iccm_build", true) &&
-	    arc_reg_get_by_name(target->reg_cache, "aux_iccm", true))
-				CHECK_RETVAL(arc_configure_iccm(target));
+	if (arc_reg_get_by_name(target->reg_cache, "iccm_build", true)
+			&& arc_reg_get_by_name(target->reg_cache, "aux_iccm", true))
+		CHECK_RETVAL(arc_configure_iccm(target));
 
 	return ERROR_OK;
 }
@@ -1067,9 +1067,7 @@ static int arc_poll(struct target *target)
 			LOG_TARGET_DEBUG(target, "Discrepancy of STATUS32[0] HALT bit and ARC_JTAG_STAT_RU, "
 						"target is still running");
 		}
-
 	} else if (target->state == TARGET_DEBUG_RUNNING) {
-
 		target->state = TARGET_HALTED;
 		LOG_TARGET_DEBUG(target, "ARC core is in debug running mode");
 

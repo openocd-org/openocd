@@ -1005,7 +1005,7 @@ static int kinetis_ke_write(struct flash_bank *bank, const uint8_t *buffer,
 
 	result = kinetis_ke_stop_watchdog(bank->target);
 	if (result != ERROR_OK)
-			return result;
+		return result;
 
 	result = kinetis_ke_prepare_flash(bank);
 	if (result != ERROR_OK)
