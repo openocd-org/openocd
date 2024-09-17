@@ -68,6 +68,37 @@ namespace eval jtag_dummy_testing {
 			jtag newtap "tap$i" tap -irlen 1
 		}
 		init
+		dummy update_context
+		dummy_set_default_handlers
+
+		namespace eval ::testing_helpers {
+			variable old_check_for_error [list [info args check_for_error] [info body check_for_error]]
+
+			proc check_for_error {expctd_code msg_ptrn script} {
+				variable old_check_for_error
+				dummy_expect_no_operations
+				uplevel 1 "apply {$old_check_for_error} {$expctd_code} {$msg_ptrn} {$script}"
+				dummy_set_default_handlers
+			}
+		}
+	}
+
+	proc dummy_set_default_handlers {} {
+		namespace eval ::dummy {
+			proc state_transition {state tdi} {}
+			proc get_tdo {} {return {tdo: 0}}
+		}
+	}
+
+	proc dummy_expect_no_operations {} {
+		namespace eval ::dummy {
+			proc state_transition {state tdi} {
+				error "Expecting no JTAG transitions."
+			}
+			proc get_tdo {} {
+				error "Expecting reads of TDO."
+			}
+		}
 	}
 
 	namespace export setup

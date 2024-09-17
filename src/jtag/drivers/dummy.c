@@ -22,8 +22,31 @@ static int clock_count;		/* count clocks in any stable state, only stable states
 
 static uint32_t dummy_data;
 
+static struct command_context *dummy_context;
+
+int dummy_read_output_handler(struct command_context *context,
+		const char *data)
+{
+	LOG_DEBUG_IO("%s", data);
+	enum bb_value *tdo_bb = context->output_handler_priv;
+	int tdo;
+	if (sscanf(data, "tdo: %d", &tdo) != 1)
+		return ERROR_OK;
+	*tdo_bb = tdo ? BB_HIGH : BB_LOW;
+	return ERROR_OK;
+}
+
 static enum bb_value dummy_read(void)
 {
+	if (dummy_context) {
+		enum bb_value tdo;
+		struct command_context *read_ctxt = copy_command_context(dummy_context);
+		command_set_output_handler(read_ctxt, dummy_read_output_handler, &tdo);
+		if (command_run_line(read_ctxt, "dummy::get_tdo") != ERROR_OK)
+			tdo = BB_ERROR;
+		command_done(read_ctxt);
+		return tdo;
+	}
 	int data = 1 & dummy_data;
 	dummy_data = (dummy_data >> 1) | (1 << 31);
 	return data ? BB_HIGH : BB_LOW;
@@ -36,7 +59,13 @@ static int dummy_write(int tck, int tms, int tdi)
 		if (tck) {
 			enum tap_state old_state = dummy_state;
 			dummy_state = tap_state_transition(old_state, tms);
-
+			if (dummy_context) {
+				int res = command_run_linef(dummy_context,
+						"dummy::state_transition %s %d",
+						tap_state_name(dummy_state), tdi);
+				if (res != ERROR_OK)
+					return res;
+			}
 			if (old_state != dummy_state) {
 				if (clock_count) {
 					LOG_DEBUG("dummy_tap: %d stable clocks", clock_count);
@@ -119,12 +148,38 @@ static int dummy_quit(void)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(handle_update_context)
+{
+	if (CMD_ARGC)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	dummy_context = CMD_CTX;
+	return ERROR_OK;
+}
+
+static const struct command_registration dummy_subcommand_handlers[] = {
+	{
+		.name = "update_context",
+		.handler = handle_update_context,
+		.mode = COMMAND_ANY,
+		.help = "sets context for dummy handler execution.",
+		.usage = "('state_transition'|'tdo_read') handler",
+	},
+	COMMAND_REGISTRATION_DONE,
+};
+
 static const struct command_registration dummy_command_handlers[] = {
 	{
 		.name = "dummy",
 		.mode = COMMAND_ANY,
 		.help = "dummy interface driver commands",
 		.chain = hello_command_handlers,
+		.usage = "",
+	},
+	{
+		.name = "dummy",
+		.mode = COMMAND_ANY,
+		.help = "dummy interface driver commands",
+		.chain = dummy_subcommand_handlers,
 		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE,
