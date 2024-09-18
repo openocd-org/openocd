@@ -254,6 +254,7 @@ extern const struct flash_driver cc26xx_flash;
 extern const struct flash_driver cc3220sf_flash;
 extern const struct flash_driver cfi_flash;
 extern const struct flash_driver dsp5680xx_flash;
+extern const struct flash_driver dw_spi_flash;
 extern const struct flash_driver efm32_flash;
 extern const struct flash_driver em357_flash;
 extern const struct flash_driver eneispif_flash;

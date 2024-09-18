@@ -6421,6 +6421,75 @@ flash bank $_FLASHNAME fespi 0x20000000 0 0 0 $_TARGETNAME
 @end example
 @end deffn
 
+@deffn {Flash Driver} {dw-spi}
+@cindex DesignWare SPI controller driver
+@cindex DW-SPI
+Driver for SPI NOR flash chips connected via DesignWare SPI Core, used
+in number of MCUs.
+Currently, only MIPS M4K CPU architecture is supported.
+
+The flash size is autodetected based on the table of known JEDEC IDs hardcoded
+in the OpenOCD sources. When flash size is set to @var{0}, probed Flash
+size is used.
+
+This driver requires configuring DRAM controller first, setting up a
+working area big enough to hold read/write buffers and switching Flash
+chip to 32bit mode via Tcl commands.
+
+@quotation Note
+If chip contains Boot controller, its 24/32bit setting must match
+Flash chip. If Flash chip's reset line is not connected to JTAG adapter,
+CPU reset may cause these configurations to be out of sync.
+@end quotation
+
+
+Mandatory driver's arguments are
+
+@itemize
+@item @var{-freq} ... core frequency in Hz, used in communication speed
+calculation.
+@item @var{-simc} ... @var{SIMC} register block absolute address.
+This value is the same as for Linux's driver device tree register field.
+@item @var{-spi_mst} ... @var{SPI_MST} register address. When available,
+it is used for switching between SPI Boot and Master controllers. This
+value is the same as for Linux's driver device tree register field
+second argument. Set to @var{0} if SPI Boot controller not available.
+@item @var{-if_owner_offset} ... offset of @var{if_owner} field inside
+@var{SPI_MST} register. Set to @var{0} if SPI Boot controller not available.
+@end itemize
+
+Optional driver's arguments are
+
+@itemize
+@item @var{-speed} ... SPI device communication speed in Hz. Minimal
+speed depends on the @var{-freq} variable and has the value of
+@var{freq/0xfffe}. The default value is @var{1000000}.
+@item @var{-chip_select} ... Chip select pin. The default value
+is @var{0}.
+@item @var{-timeout} ... flash communication timeout in
+seconds. The default value is @var{600}.
+@end itemize
+
+For some SoCs there are shortcuts for mandatory arguments
+
+@itemize
+@item @var{-jaguar2} ... configuration for MSCC Jaguar2 SoC family.
+@item @var{-ocelot} ... configuration for MSCC Ocelot SoC family.
+@end itemize
+
+Driver provides shortcut arguments for MSCC @var{-jaguar2} and
+@var{-ocelot} network switch SOCs, which set the correct values for @var{-freq},
+@var{-simc}, @var{-spi_mst} and @var{-if_owner_offset} arguments.
+
+Example of equivalent configurations for Jaguar2 SoC
+
+@example
+flash bank $_FLASHNAME dw-spi 0x40000000 0x02000000 4 4 $_TARGETNAME -freq 250000000 -simc 0x70101000 -spi_mst 0x70000024 -if_owner_offset 6 -speed 3000000
+flash bank $_FLASHNAME dw-spi 0x40000000 0x02000000 4 4 $_TARGETNAME -jaguar2 -speed 3000000
+@end example
+
+@end deffn
+
 @subsection Internal Flash (Microcontrollers)
 
 @deffn {Flash Driver} {aduc702x}
