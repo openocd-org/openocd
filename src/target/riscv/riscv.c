@@ -621,8 +621,17 @@ static int find_first_trigger_by_id(struct target *target, int unique_id)
 	return -1;
 }
 
-static int set_trigger(struct target *target, unsigned int idx, riscv_reg_t tdata1, riscv_reg_t tdata2,
-	riscv_reg_t tdata1_ignore_mask)
+static unsigned int count_trailing_ones(riscv_reg_t reg)
+{
+	assert(sizeof(riscv_reg_t) * 8 == 64);
+	for (unsigned int i = 0; i < 64; i++) {
+		if ((1 & (reg >> i)) == 0)
+			return i;
+	}
+	return 64;
+}
+
+static int set_trigger(struct target *target, unsigned int idx, riscv_reg_t tdata1, riscv_reg_t tdata2)
 {
 	RISCV_INFO(r);
 	assert(r->reserved_triggers);
@@ -655,20 +664,51 @@ static int set_trigger(struct target *target, unsigned int idx, riscv_reg_t tdat
 		return ERROR_FAIL;
 	if (riscv_reg_get(target, &tdata2_rb, GDB_REGNO_TDATA2) != ERROR_OK)
 		return ERROR_FAIL;
-	bool tdata1_config_denied = (tdata1 & ~tdata1_ignore_mask) != (tdata1_rb & ~tdata1_ignore_mask);
-	bool tdata2_config_denied = tdata2 != tdata2_rb;
-	if (tdata1_config_denied || tdata2_config_denied) {
+
+	const uint32_t type = get_field(tdata1, CSR_TDATA1_TYPE(riscv_xlen(target)));
+	const bool is_mcontrol = type == CSR_TDATA1_TYPE_MCONTROL;
+
+	/* Determine if tdata1 supports what we need.
+	 * For mcontrol triggers, we don't care about
+	 * the value in the read-only "maskmax" field.
+	 */
+	const riscv_reg_t tdata1_ignore_mask = is_mcontrol ? CSR_MCONTROL_MASKMAX(riscv_xlen(target)) : 0;
+	const bool tdata1_config_denied = (tdata1 & ~tdata1_ignore_mask) != (tdata1_rb & ~tdata1_ignore_mask);
+
+	/* Determine if tdata1.maxmask is sufficient
+	 * (only relevant for mcontrol triggers and NAPOT match type)
+	 */
+	bool unsupported_napot_range = false;
+	riscv_reg_t maskmax_value = 0;
+	if (!tdata1_config_denied) {
+		const bool is_napot_match = get_field(tdata1_rb, CSR_MCONTROL_MATCH) == CSR_MCONTROL_MATCH_NAPOT;
+		if (is_mcontrol && is_napot_match) {
+			maskmax_value = get_field(tdata1_rb, CSR_MCONTROL_MASKMAX(riscv_xlen(target)));
+			const unsigned int napot_size = count_trailing_ones(tdata2) + 1;
+			if (maskmax_value < napot_size)
+				unsupported_napot_range = true;
+		}
+	}
+
+	const bool tdata2_config_denied = tdata2 != tdata2_rb;
+	if (tdata1_config_denied || tdata2_config_denied || unsupported_napot_range) {
 		LOG_TARGET_DEBUG(target, "Trigger %u doesn't support what we need.", idx);
 
 		if (tdata1_config_denied)
 			LOG_TARGET_DEBUG(target,
-				"After writing 0x%" PRIx64 " to tdata1 it contains 0x%" PRIx64 "; tdata1_ignore_mask=0x%" PRIx64,
-				tdata1, tdata1_rb, tdata1_ignore_mask);
+				"After writing 0x%" PRIx64 " to tdata1 it contains 0x%" PRIx64,
+				tdata1, tdata1_rb);
 
 		if (tdata2_config_denied)
 			LOG_TARGET_DEBUG(target,
-				"wrote 0x%" PRIx64 " to tdata2 but read back 0x%" PRIx64,
+				"After writing 0x%" PRIx64 " to tdata2 it contains 0x%" PRIx64,
 				tdata2, tdata2_rb);
+
+		if (unsupported_napot_range)
+			LOG_TARGET_DEBUG(target,
+				"The requested NAPOT match range (tdata2=0x%" PRIx64 ") exceeds maskmax_value=0x%" PRIx64,
+				tdata2, maskmax_value);
+
 		if (riscv_reg_set(target, GDB_REGNO_TDATA1, 0) != ERROR_OK)
 			return ERROR_FAIL;
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
@@ -717,7 +757,7 @@ static int maybe_add_trigger_t1(struct target *target, struct trigger *trigger)
 	tdata1 = set_field(tdata1, bpcontrol_bpaction, 0); /* cause bp exception */
 	tdata1 = set_field(tdata1, bpcontrol_bpmatch, 0); /* exact match */
 	tdata2 = trigger->address;
-	ret = set_trigger(target, idx, tdata1, tdata2, 0);
+	ret = set_trigger(target, idx, tdata1, tdata2);
 	if (ret != ERROR_OK)
 		return ret;
 	r->trigger_unique_id[idx] = trigger->unique_id;
@@ -727,13 +767,11 @@ static int maybe_add_trigger_t1(struct target *target, struct trigger *trigger)
 struct trigger_request_info {
 	riscv_reg_t tdata1;
 	riscv_reg_t tdata2;
-	riscv_reg_t tdata1_ignore_mask;
 };
 
 static void log_trigger_request_info(struct trigger_request_info trig_info)
 {
-	LOG_DEBUG("tdata1=%" PRIx64 ", tdata2=%" PRIx64 ", tdata1_ignore_mask=%" PRIx64,
-			trig_info.tdata1, trig_info.tdata2, trig_info.tdata1_ignore_mask);
+	LOG_DEBUG("tdata1=%" PRIx64 ", tdata2=%" PRIx64, trig_info.tdata1, trig_info.tdata2);
 };
 
 static struct tdata1_cache *tdata1_cache_alloc(struct list_head *tdata1_cache_head, riscv_reg_t tdata1)
@@ -816,12 +854,12 @@ static bool wp_triggers_cache_search(struct target *target, unsigned int idx,
 }
 
 static int try_use_trigger_and_cache_result(struct target *target, unsigned int idx, riscv_reg_t tdata1,
-	riscv_reg_t tdata2, riscv_reg_t tdata1_ignore_mask)
+	riscv_reg_t tdata2)
 {
 	if (wp_triggers_cache_search(target, idx, tdata1, tdata2))
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 
-	int ret = set_trigger(target, idx, tdata1, tdata2, tdata1_ignore_mask);
+	int ret = set_trigger(target, idx, tdata1, tdata2);
 
 	/* Add these values to the cache to remember that they are not supported. */
 	if (ret == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
@@ -844,8 +882,7 @@ static int try_setup_single_match_trigger(struct target *target,
 	for (unsigned int idx = 0;
 			find_next_free_trigger(target, trigger_type, false, &idx) == ERROR_OK;
 			++idx) {
-		ret = try_use_trigger_and_cache_result(target, idx, trig_info.tdata1, trig_info.tdata2,
-			trig_info.tdata1_ignore_mask);
+		ret = try_use_trigger_and_cache_result(target, idx, trig_info.tdata1, trig_info.tdata2);
 
 		if (ret == ERROR_OK) {
 			r->trigger_unique_id[idx] = trigger->unique_id;
@@ -873,16 +910,14 @@ static int try_setup_chained_match_triggers(struct target *target,
 	for (unsigned int idx = 0;
 			find_next_free_trigger(target, trigger_type, true, &idx) == ERROR_OK;
 			++idx) {
-		ret = try_use_trigger_and_cache_result(target, idx, t1.tdata1, t1.tdata2,
-			t1.tdata1_ignore_mask);
+		ret = try_use_trigger_and_cache_result(target, idx, t1.tdata1, t1.tdata2);
 
 		if (ret == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
 			continue;
 		else if (ret != ERROR_OK)
 			return ret;
 
-		ret = try_use_trigger_and_cache_result(target, idx + 1, t2.tdata1, t2.tdata2,
-			t2.tdata1_ignore_mask);
+		ret = try_use_trigger_and_cache_result(target, idx + 1, t2.tdata1, t2.tdata2);
 
 		if (ret == ERROR_OK) {
 			r->trigger_unique_id[idx] = trigger->unique_id;
@@ -890,7 +925,7 @@ static int try_setup_chained_match_triggers(struct target *target,
 			return ERROR_OK;
 		}
 		/* Undo the setting of the previous trigger */
-		int ret_undo = set_trigger(target, idx, 0, 0, 0);
+		int ret_undo = set_trigger(target, idx, 0, 0);
 		if (ret_undo != ERROR_OK)
 			return ret_undo;
 
@@ -918,7 +953,6 @@ struct match_triggers_tdata1_fields {
 		riscv_reg_t ge;
 		riscv_reg_t eq;
 	} match;
-	riscv_reg_t tdata1_ignore_mask;
 };
 
 static struct match_triggers_tdata1_fields fill_match_triggers_tdata1_fields_t2(struct target *target,
@@ -951,8 +985,7 @@ static struct match_triggers_tdata1_fields fill_match_triggers_tdata1_fields_t2(
 			.lt = field_value(CSR_MCONTROL_MATCH, CSR_MCONTROL_MATCH_LT),
 			.ge = field_value(CSR_MCONTROL_MATCH, CSR_MCONTROL_MATCH_GE),
 			.eq = field_value(CSR_MCONTROL_MATCH, CSR_MCONTROL_MATCH_EQUAL)
-		},
-		.tdata1_ignore_mask = CSR_MCONTROL_MASKMAX(riscv_xlen(target))
+		}
 	};
 	return result;
 }
@@ -989,8 +1022,7 @@ static struct match_triggers_tdata1_fields fill_match_triggers_tdata1_fields_t6(
 			.lt = field_value(CSR_MCONTROL6_MATCH, CSR_MCONTROL6_MATCH_LT),
 			.ge = field_value(CSR_MCONTROL6_MATCH, CSR_MCONTROL6_MATCH_GE),
 			.eq = field_value(CSR_MCONTROL6_MATCH, CSR_MCONTROL6_MATCH_EQUAL)
-		},
-		.tdata1_ignore_mask = 0
+		}
 	};
 	return result;
 }
@@ -1009,8 +1041,7 @@ static int maybe_add_trigger_t2_t6_for_wp(struct target *target,
 				struct trigger_request_info napot = {
 					.tdata1 = fields.common | fields.size.any |
 						fields.chain.disable | fields.match.napot,
-					.tdata2 = trigger->address | ((trigger->length - 1) >> 1),
-					.tdata1_ignore_mask = fields.tdata1_ignore_mask
+					.tdata2 = trigger->address | ((trigger->length - 1) >> 1)
 				};
 				ret = try_setup_single_match_trigger(target, trigger, napot);
 				if (ret != ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
@@ -1026,14 +1057,12 @@ static int maybe_add_trigger_t2_t6_for_wp(struct target *target,
 			struct trigger_request_info ge_1 = {
 				.tdata1 = fields.common | fields.size.any | fields.chain.enable |
 					fields.match.ge,
-				.tdata2 = trigger->address,
-				.tdata1_ignore_mask = fields.tdata1_ignore_mask
+				.tdata2 = trigger->address
 			};
 			struct trigger_request_info lt_2 = {
 				.tdata1 = fields.common | fields.size.any | fields.chain.disable |
 					fields.match.lt,
-				.tdata2 = trigger->address + trigger->length,
-				.tdata1_ignore_mask = fields.tdata1_ignore_mask
+				.tdata2 = trigger->address + trigger->length
 			};
 			ret = try_setup_chained_match_triggers(target, trigger, ge_1, lt_2);
 			if (ret != ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
@@ -1043,14 +1072,12 @@ static int maybe_add_trigger_t2_t6_for_wp(struct target *target,
 			struct trigger_request_info lt_1 = {
 				.tdata1 = fields.common | fields.size.any | fields.chain.enable |
 					fields.match.lt,
-				.tdata2 = trigger->address + trigger->length,
-				.tdata1_ignore_mask = fields.tdata1_ignore_mask
+				.tdata2 = trigger->address + trigger->length
 			};
 			struct trigger_request_info ge_2 = {
 				.tdata1 = fields.common | fields.size.any | fields.chain.disable |
 					fields.match.ge,
-				.tdata2 = trigger->address,
-				.tdata1_ignore_mask = fields.tdata1_ignore_mask
+				.tdata2 = trigger->address
 			};
 			ret = try_setup_chained_match_triggers(target, trigger, lt_1, ge_2);
 			if (ret != ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
@@ -1066,8 +1093,7 @@ static int maybe_add_trigger_t2_t6_for_wp(struct target *target,
 		struct trigger_request_info eq = {
 			.tdata1 = fields.common | fields.size.any | fields.chain.disable |
 				fields.match.eq,
-			.tdata2 = trigger->address,
-			.tdata1_ignore_mask = fields.tdata1_ignore_mask
+			.tdata2 = trigger->address
 		};
 		ret = try_setup_single_match_trigger(target, trigger, eq);
 		if (ret != ERROR_OK)
@@ -1104,8 +1130,7 @@ static int maybe_add_trigger_t2_t6_for_bp(struct target *target,
 	struct trigger_request_info eq = {
 		.tdata1 = fields.common | fields.size.any | fields.chain.disable |
 			fields.match.eq,
-		.tdata2 = trigger->address,
-		.tdata1_ignore_mask = fields.tdata1_ignore_mask
+		.tdata2 = trigger->address
 	};
 
 	return try_setup_single_match_trigger(target, trigger, eq);
@@ -1148,7 +1173,7 @@ static int maybe_add_trigger_t3(struct target *target, bool vs, bool vu,
 	ret = find_next_free_trigger(target, CSR_TDATA1_TYPE_ICOUNT, false, &idx);
 	if (ret != ERROR_OK)
 		return ret;
-	ret = set_trigger(target, idx, tdata1, 0, 0);
+	ret = set_trigger(target, idx, tdata1, 0);
 	if (ret != ERROR_OK)
 		return ret;
 	r->trigger_unique_id[idx] = unique_id;
@@ -1181,7 +1206,7 @@ static int maybe_add_trigger_t4(struct target *target, bool vs, bool vu,
 	ret = find_next_free_trigger(target, CSR_TDATA1_TYPE_ITRIGGER, false, &idx);
 	if (ret != ERROR_OK)
 		return ret;
-	ret = set_trigger(target, idx, tdata1, tdata2, 0);
+	ret = set_trigger(target, idx, tdata1, tdata2);
 	if (ret != ERROR_OK)
 		return ret;
 	r->trigger_unique_id[idx] = unique_id;
@@ -1213,7 +1238,7 @@ static int maybe_add_trigger_t5(struct target *target, bool vs, bool vu,
 	ret = find_next_free_trigger(target, CSR_TDATA1_TYPE_ETRIGGER, false, &idx);
 	if (ret != ERROR_OK)
 		return ret;
-	ret = set_trigger(target, idx, tdata1, tdata2, 0);
+	ret = set_trigger(target, idx, tdata1, tdata2);
 	if (ret != ERROR_OK)
 		return ret;
 	r->trigger_unique_id[idx] = unique_id;
