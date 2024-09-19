@@ -179,3 +179,75 @@ int esp_xtensa_breakpoint_remove(struct target *target, struct breakpoint *break
 	return xtensa_breakpoint_remove(target, breakpoint);
 	/* flash breakpoints will be handled in another patch */
 }
+
+int esp_xtensa_profiling(struct target *target, uint32_t *samples,
+	uint32_t max_num_samples, uint32_t *num_samples, uint32_t seconds)
+{
+	struct timeval timeout, now;
+	struct xtensa *xtensa = target_to_xtensa(target);
+	int retval = ERROR_OK;
+	int res;
+
+	/* Vary samples per pass to avoid sampling a periodic function periodically */
+	#define MIN_PASS 200
+	#define MAX_PASS 1000
+
+	gettimeofday(&timeout, NULL);
+	timeval_add_time(&timeout, seconds, 0);
+
+	uint8_t buf[sizeof(uint32_t) * MAX_PASS];
+
+	/* Capture one sample to verify the register is present and working */
+	xtensa_queue_dbg_reg_read(xtensa, XDMREG_DEBUGPC, buf);
+	res = xtensa_dm_queue_execute(&xtensa->dbg_mod);
+	if (res != ERROR_OK) {
+		LOG_TARGET_INFO(target, "Failed to read DEBUGPC, fallback to stop-and-go");
+		return target_profiling_default(target, samples, max_num_samples, num_samples, seconds);
+	} else if (buf[0] == 0 && buf[1] == 0 && buf[2] == 0 && buf[3] == 0) {
+		LOG_TARGET_INFO(target, "NULL DEBUGPC, fallback to stop-and-go");
+		return target_profiling_default(target, samples, max_num_samples, num_samples, seconds);
+	}
+
+	LOG_TARGET_INFO(target, "Starting XTENSA DEBUGPC profiling. Sampling as fast as we can...");
+
+	/* Make sure the target is running */
+	target_poll(target);
+	if (target->state == TARGET_HALTED)
+		retval = target_resume(target, 1, 0, 0, 0);
+
+	if (retval != ERROR_OK) {
+		LOG_TARGET_ERROR(target, "Error while resuming target");
+		return retval;
+	}
+
+	uint32_t sample_count = 0;
+
+	for (;;) {
+		uint32_t remaining = max_num_samples - sample_count;
+		uint32_t this_pass = rand() % (MAX_PASS - MIN_PASS) + MIN_PASS;
+		this_pass = this_pass > remaining ? remaining : this_pass;
+		for (uint32_t i = 0; i < this_pass; ++i)
+			xtensa_queue_dbg_reg_read(xtensa, XDMREG_DEBUGPC, buf + i * sizeof(uint32_t));
+		res = xtensa_dm_queue_execute(&xtensa->dbg_mod);
+		if (res != ERROR_OK) {
+			LOG_TARGET_ERROR(target, "Failed to read DEBUGPC!");
+			return res;
+		}
+
+		for (uint32_t i = 0; i < this_pass; ++i) {
+			uint32_t sample32 = buf_get_u32(buf + i * sizeof(uint32_t), 0, 32);
+			samples[sample_count++] = sample32;
+		}
+		gettimeofday(&now, NULL);
+		if (sample_count >= max_num_samples || timeval_compare(&now, &timeout) > 0) {
+			LOG_TARGET_INFO(target, "Profiling completed. %" PRIu32 " samples.", sample_count);
+			break;
+		}
+	}
+
+	*num_samples = sample_count;
+	return retval;
+
+	#undef MIN_PASS
+	#undef MAX_PASS
+}

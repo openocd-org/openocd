@@ -39,6 +39,7 @@
 #define CTI_CHIN_STATUS		0x138
 #define CTI_CHOU_STATUS		0x13C
 #define CTI_GATE			0x140
+#define CTI_DEVCTL			0x150
 #define CTI_UNLOCK			0xFB0
 
 #define CTI_CHNL(x)			(1 << x)

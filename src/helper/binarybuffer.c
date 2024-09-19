@@ -74,7 +74,7 @@ bool buf_cmp(const void *_buf1, const void *_buf2, unsigned size)
 
 	unsigned last = size / 8;
 	if (memcmp(_buf1, _buf2, last) != 0)
-		return false;
+		return true;
 
 	unsigned trailing = size % 8;
 	if (!trailing)
@@ -175,19 +175,6 @@ uint32_t flip_u32(uint32_t value, unsigned int num)
 	return c;
 }
 
-static int ceil_f_to_u32(float x)
-{
-	if (x < 0)	/* return zero for negative numbers */
-		return 0;
-
-	uint32_t y = x;	/* cut off fraction */
-
-	if ((x - y) > 0.0)	/* if there was a fractional part, increase by one */
-		y++;
-
-	return y;
-}
-
 char *buf_to_hex_str(const void *_buf, unsigned buf_len)
 {
 	unsigned len_bytes = DIV_ROUND_UP(buf_len, 8);
@@ -205,154 +192,95 @@ char *buf_to_hex_str(const void *_buf, unsigned buf_len)
 	return str;
 }
 
-static bool str_has_hex_prefix(const char *s)
-{
-	/* Starts with "0x" or "0X" */
-	return (s[0] == '0') && (s[1] == 'x' || s[1] == 'X');
-}
-
-static bool str_has_octal_prefix(const char *s)
-{
-	/* - starts with '0',
-	 * - has at least two characters, and
-	 * - the second character is not 'x' or 'X' */
-	return (s[0] == '0') && (s[1] != '\0') && (s[1] != 'x') && (s[1] != 'X');
-}
-
-/**
- * Try to identify the radix of the number by looking at its prefix.
- * No further validation of the number is preformed.
+/*
+ * TCL standard prefix is '0b', '0o', '0d' or '0x' respectively for binary,
+ * octal, decimal or hexadecimal.
+ * The prefix '0' is interpreted by TCL <= 8.6 as octal, but is ignored and
+ * interpreted as part of a decimal number by JimTCL and by TCL >= 9.
  */
-static unsigned int str_radix_guess(const char *str)
+int str_to_buf(const char *str, void *_buf, unsigned int buf_bitsize)
 {
 	assert(str);
+	assert(_buf);
+	assert(buf_bitsize > 0);
 
-	if (str_has_hex_prefix(str))
-		return 16;
+	uint8_t *buf = _buf;
+	unsigned int radix = 10; /* default when no prefix */
 
-	if (str_has_octal_prefix(str))
-		return 8;
-
-	/* Otherwise assume a decadic number. */
-	return 10;
-}
-
-/** Strip leading "0x" or "0X" from hex numbers or "0" from octal numbers. */
-static void str_strip_number_prefix_if_present(const char **_str, unsigned int radix)
-{
-	assert(radix == 16 || radix == 10 || radix == 8);
-	assert(_str);
-
-	const char *str = *_str;
-	assert(str);
-
-	if (radix == 16 && str_has_hex_prefix(str))
-		str += 2;
-	else if (radix == 8 && str_has_octal_prefix(str))
-		str += 1;
-
-	/* No prefix to strip for radix == 10. */
-
-	*_str = str;
-}
-
-int str_to_buf(const char *str, void *_buf, unsigned int buf_len,
-	unsigned int radix, unsigned int *_detected_radix)
-{
-	assert(radix == 0 || radix == 8 || radix == 10 || radix == 16);
-
-	if (radix == 0)
-		radix = str_radix_guess(str);
-
-	if (_detected_radix)
-		*_detected_radix = radix;
-
-	str_strip_number_prefix_if_present(&str, radix);
+	if (str[0] == '0') {
+		switch (str[1]) {
+		case 'b':
+		case 'B':
+			radix = 2;
+			str += 2;
+			break;
+		case 'o':
+		case 'O':
+			radix = 8;
+			str += 2;
+			break;
+		case 'd':
+		case 'D':
+			radix = 10;
+			str += 2;
+			break;
+		case 'x':
+		case 'X':
+			radix = 16;
+			str += 2;
+			break;
+		default:
+			break;
+		}
+	}
 
 	const size_t str_len = strlen(str);
 	if (str_len == 0)
 		return ERROR_INVALID_NUMBER;
 
-	float factor = 0.0;
-	if (radix == 16)
-		factor = 0.5;	/* log(16) / log(256) = 0.5 */
-	else if (radix == 10)
-		factor = 0.41524;	/* log(10) / log(256) = 0.41524 */
-	else if (radix == 8)
-		factor = 0.375;	/* log(8) / log(256) = 0.375 */
-	else
-		assert(false);
-
-	const unsigned int b256_len = ceil_f_to_u32(str_len * factor);
-
-	/* Allocate a buffer for digits in base-256 notation */
-	uint8_t *b256_buf = calloc(b256_len, 1);
-	if (!b256_buf) {
-		LOG_ERROR("Unable to allocate memory");
-		return ERROR_FAIL;
-	}
+	const size_t buf_len = DIV_ROUND_UP(buf_bitsize, 8);
+	memset(buf, 0, buf_len);
 
 	/* Go through the zero-terminated buffer
 	 * of input digits (ASCII) */
-	for (unsigned int i = 0; str[i]; i++) {
-		uint32_t tmp = str[i];
-		if ((tmp >= '0') && (tmp <= '9')) {
-			tmp = (tmp - '0');
-		} else if ((tmp >= 'a') && (tmp <= 'f')) {
-			tmp = (tmp - 'a' + 10);
-		} else if ((tmp >= 'A') && (tmp <= 'F')) {
-			tmp = (tmp - 'A' + 10);
+	for (; *str; str++) {
+		unsigned int tmp;
+		const char c = *str;
+
+		if ((c >= '0') && (c <= '9')) {
+			tmp = c - '0';
+		} else if ((c >= 'a') && (c <= 'f')) {
+			tmp = c - 'a' + 10;
+		} else if ((c >= 'A') && (c <= 'F')) {
+			tmp = c - 'A' + 10;
 		} else {
 			/* Characters other than [0-9,a-f,A-F] are invalid */
-			free(b256_buf);
 			return ERROR_INVALID_NUMBER;
 		}
 
-		if (tmp >= radix) {
-			/* Encountered a digit that is invalid for the current radix */
-			free(b256_buf);
+		/* Error on invalid digit for current radix */
+		if (tmp >= radix)
 			return ERROR_INVALID_NUMBER;
-		}
 
-		/* Add the current digit (tmp) to the intermediate result
-		 * in b256_buf (base-256 digits) */
-		for (unsigned int j = 0; j < b256_len; j++) {
-			tmp += (uint32_t)b256_buf[j] * radix;
-			b256_buf[j] = (uint8_t)(tmp & 0xFFu);
+		/* Add the current digit (tmp) to the intermediate result in buf */
+		for (unsigned int j = 0; j < buf_len; j++) {
+			tmp += buf[j] * radix;
+			buf[j] = tmp & 0xFFu;
 			tmp >>= 8;
 		}
 
-		/* The b256_t buffer is large enough to contain the whole result. */
-		assert(tmp == 0);
-	}
-
-	/* The result must not contain more bits than buf_len. */
-	/* Check the whole bytes: */
-	for (unsigned int j = DIV_ROUND_UP(buf_len, 8); j < b256_len; j++) {
-		if (b256_buf[j] != 0x0) {
-			free(b256_buf);
+		/* buf should be large enough to contain the whole result. */
+		if (tmp != 0)
 			return ERROR_NUMBER_EXCEEDS_BUFFER;
-		}
 	}
-	/* Check the partial byte: */
-	if (buf_len % 8) {
-		const uint8_t mask = 0xFFu << (buf_len % 8);
-		if ((b256_buf[(buf_len / 8)] & mask) != 0x0) {
-			free(b256_buf);
+
+	/* Check the partial most significant byte */
+	if (buf_bitsize % 8) {
+		const uint8_t mask = 0xFFu << (buf_bitsize % 8);
+		if ((buf[buf_len - 1] & mask) != 0x0)
 			return ERROR_NUMBER_EXCEEDS_BUFFER;
-		}
 	}
 
-	/* Copy the digits to the output buffer */
-	uint8_t *buf = _buf;
-	for (unsigned j = 0; j < DIV_ROUND_UP(buf_len, 8); j++) {
-		if (j < b256_len)
-			buf[j] = b256_buf[j];
-		else
-			buf[j] = 0;
-	}
-
-	free(b256_buf);
 	return ERROR_OK;
 }
 

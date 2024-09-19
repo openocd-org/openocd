@@ -89,7 +89,7 @@ static COMMAND_HELPER(handle_jtag_command_drscan_fields, struct scan_field *fiel
 		}
 
 		fields[field_count].out_value = t;
-		int ret = CALL_COMMAND_HANDLER(command_parse_str_to_buf, CMD_ARGV[i + 1], t, bits, 0);
+		int ret = CALL_COMMAND_HANDLER(command_parse_str_to_buf, CMD_ARGV[i + 1], t, bits);
 		if (ret != ERROR_OK)
 			return ret;
 		fields[field_count].in_value = t;

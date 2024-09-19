@@ -421,4 +421,5 @@ struct target_type esp32s3_target = {
 	.deinit_target = esp_xtensa_target_deinit,
 
 	.commands = esp32s3_command_handlers,
+	.profiling = esp_xtensa_profiling,
 };
