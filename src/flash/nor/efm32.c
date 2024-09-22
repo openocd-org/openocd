@@ -48,6 +48,7 @@
 #define EFM32_MSC_LOCK_BITS             (EFM32_MSC_INFO_BASE+0x4000)
 #define EFM32_MSC_LOCK_BITS_EXTRA       (EFM32_MSC_LOCK_BITS+LOCKWORDS_SZ)
 #define EFM32_MSC_DEV_INFO              (EFM32_MSC_INFO_BASE+0x8000)
+#define EFM32_MSC_BOOTLOADER            (EFM32_MSC_INFO_BASE+0x10000)
 
 /* PAGE_SIZE is not present in Zero, Happy and the original Gecko MCU */
 #define EFM32_MSC_DI_PAGE_SIZE          (EFM32_MSC_DEV_INFO+0x1e7)
@@ -82,6 +83,7 @@ enum efm32_bank_index {
 	EFM32_BANK_INDEX_MAIN,
 	EFM32_BANK_INDEX_USER_DATA,
 	EFM32_BANK_INDEX_LOCK_BITS,
+	EFM32_BANK_INDEX_BOOTLOADER,
 	EFM32_N_BANKS
 };
 
@@ -94,6 +96,8 @@ static int efm32x_get_bank_index(target_addr_t base)
 			return EFM32_BANK_INDEX_USER_DATA;
 		case EFM32_MSC_LOCK_BITS:
 			return EFM32_BANK_INDEX_LOCK_BITS;
+		case EFM32_MSC_BOOTLOADER:
+			return EFM32_BANK_INDEX_BOOTLOADER;
 		default:
 			return ERROR_FAIL;
 	}
@@ -673,6 +677,11 @@ static int efm32x_get_page_lock(struct flash_bank *bank, size_t page)
 		case EFM32_MSC_LOCK_BITS:
 			dw = efm32x_info->lb_page[126];
 			mask = 0x2;
+			break;
+		case EFM32_MSC_BOOTLOADER:
+			// There is no lockbit for bootloader page?  So just return same as user data page.
+			dw = efm32x_info->lb_page[126];
+			mask = 0x1;
 			break;
 	}
 
