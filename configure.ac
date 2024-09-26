@@ -436,7 +436,7 @@ AS_CASE([$host],
     # In case enable_buspirate=auto, make sure it will not be built.
     enable_buspirate=no
 
-    AC_SUBST([HOST_CPPFLAGS], [-D__USE_MINGW_ANSI_STDIO])
+    AC_SUBST([HOST_CPPFLAGS], ["-D__USE_MINGW_ANSI_STDIO -DFD_SETSIZE=128"])
   ],
   [*darwin*], [
     is_darwin=yes
