@@ -45,17 +45,22 @@ static enum command_mode get_command_mode(Jim_Interp *interp, const char *cmd_na
 /* set of functions to wrap jimtcl internal data */
 static inline bool jimcmd_is_proc(Jim_Cmd *cmd)
 {
+#if defined(JIM_CMD_ISPROC)
+	// JIM_VERSION >= 84
+	return cmd->flags & JIM_CMD_ISPROC;
+#else
 	return cmd->isproc;
+#endif
 }
 
 bool jimcmd_is_oocd_command(Jim_Cmd *cmd)
 {
-	return !cmd->isproc && cmd->u.native.cmdProc == jim_command_dispatch;
+	return !jimcmd_is_proc(cmd) && cmd->u.native.cmdProc == jim_command_dispatch;
 }
 
 void *jimcmd_privdata(Jim_Cmd *cmd)
 {
-	return cmd->isproc ? NULL : cmd->u.native.privData;
+	return jimcmd_is_proc(cmd) ? NULL : cmd->u.native.privData;
 }
 
 static int command_retval_set(Jim_Interp *interp, int retval)
