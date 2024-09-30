@@ -3870,9 +3870,10 @@ COMMAND_HANDLER(riscv_set_mem_access)
 	int sysbus_cnt = 0;
 	int abstract_cnt = 0;
 
-	if (CMD_ARGC < 1 || CMD_ARGC > RISCV_NUM_MEM_ACCESS_METHODS) {
-		LOG_ERROR("Command takes 1 to %d parameters", RISCV_NUM_MEM_ACCESS_METHODS);
-		return ERROR_COMMAND_SYNTAX_ERROR;
+	if (CMD_ARGC < 1 || CMD_ARGC > RISCV_MEM_ACCESS_MAX_METHODS_NUM) {
+		command_print(CMD, "Command takes 1 to %d parameters",
+				RISCV_MEM_ACCESS_MAX_METHODS_NUM);
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
 	/* Check argument validity */
@@ -3895,8 +3896,7 @@ COMMAND_HANDLER(riscv_set_mem_access)
 	}
 
 	/* Args are valid, store them */
-	for (unsigned int i = 0; i < RISCV_NUM_MEM_ACCESS_METHODS; i++)
-		r->mem_access_methods[i] = RISCV_MEM_ACCESS_UNSPECIFIED;
+	r->num_enabled_mem_access_methods = CMD_ARGC;
 	for (unsigned int i = 0; i < CMD_ARGC; i++) {
 		if (strcmp("progbuf", CMD_ARGV[i]) == 0)
 			r->mem_access_methods[i] = RISCV_MEM_ACCESS_PROGBUF;
@@ -3907,9 +3907,8 @@ COMMAND_HANDLER(riscv_set_mem_access)
 	}
 
 	/* Reset warning flags */
-	r->mem_access_progbuf_warn = true;
-	r->mem_access_sysbus_warn = true;
-	r->mem_access_abstract_warn = true;
+	for (size_t i = 0; i < RISCV_MEM_ACCESS_MAX_METHODS_NUM; ++i)
+		r->mem_access_warn[i] = true;
 
 	return ERROR_OK;
 }
@@ -5451,9 +5450,9 @@ static void riscv_info_init(struct target *target, struct riscv_info *r)
 	r->mem_access_methods[1] = RISCV_MEM_ACCESS_SYSBUS;
 	r->mem_access_methods[2] = RISCV_MEM_ACCESS_ABSTRACT;
 
-	r->mem_access_progbuf_warn = true;
-	r->mem_access_sysbus_warn = true;
-	r->mem_access_abstract_warn = true;
+	r->num_enabled_mem_access_methods = RISCV_MEM_ACCESS_MAX_METHODS_NUM;
+	for (size_t i = 0; i < RISCV_MEM_ACCESS_MAX_METHODS_NUM; ++i)
+		r->mem_access_warn[i] = true;
 
 	INIT_LIST_HEAD(&r->expose_csr);
 	INIT_LIST_HEAD(&r->expose_custom);
