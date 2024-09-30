@@ -505,7 +505,7 @@ void log_socket_error(const char *socket_desc)
  * Find the first non-printable character in the char buffer, return a pointer to it.
  * If no such character exists, return NULL.
  */
-char *find_nonprint_char(char *buf, unsigned int buf_len)
+const char *find_nonprint_char(const char *buf, unsigned int buf_len)
 {
 	for (unsigned int i = 0; i < buf_len; i++) {
 		if (!isprint(buf[i]))

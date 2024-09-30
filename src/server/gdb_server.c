@@ -335,7 +335,7 @@ static int gdb_putback_char(struct connection *connection, int last_char)
 /* The only way we can detect that the socket is closed is the first time
  * we write to it, we will fail. Subsequent write operations will
  * succeed. Shudder! */
-static int gdb_write(struct connection *connection, void *data, int len)
+static int gdb_write(struct connection *connection, const void *data, int len)
 {
 	struct gdb_connection *gdb_con = connection->priv;
 	if (gdb_con->closed) {
@@ -351,7 +351,7 @@ static int gdb_write(struct connection *connection, void *data, int len)
 	return ERROR_SERVER_REMOTE_CLOSED;
 }
 
-static void gdb_log_incoming_packet(struct connection *connection, char *packet)
+static void gdb_log_incoming_packet(struct connection *connection, const char *packet)
 {
 	if (!LOG_LEVEL_IS(LOG_LVL_DEBUG))
 		return;
@@ -384,7 +384,7 @@ static void gdb_log_incoming_packet(struct connection *connection, char *packet)
 	}
 }
 
-static void gdb_log_outgoing_packet(struct connection *connection, char *packet_buf,
+static void gdb_log_outgoing_packet(struct connection *connection, const char *packet_buf,
 	unsigned int packet_len, unsigned char checksum)
 {
 	if (!LOG_LEVEL_IS(LOG_LVL_DEBUG))
@@ -402,7 +402,7 @@ static void gdb_log_outgoing_packet(struct connection *connection, char *packet_
 }
 
 static int gdb_put_packet_inner(struct connection *connection,
-		char *buffer, int len)
+		const char *buffer, int len)
 {
 	int i;
 	unsigned char my_checksum = 0;
@@ -522,7 +522,7 @@ static int gdb_put_packet_inner(struct connection *connection,
 	return ERROR_OK;
 }
 
-int gdb_put_packet(struct connection *connection, char *buffer, int len)
+int gdb_put_packet(struct connection *connection, const char *buffer, int len)
 {
 	struct gdb_connection *gdb_con = connection->priv;
 	gdb_con->busy = true;

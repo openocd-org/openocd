@@ -89,7 +89,7 @@ char *alloc_vprintf(const char *fmt, va_list ap);
 char *alloc_printf(const char *fmt, ...)
 	__attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 1, 2)));
 
-char *find_nonprint_char(char *buf, unsigned int buf_len);
+const char *find_nonprint_char(const char *buf, unsigned int buf_len);
 
 extern int debug_level;
 
