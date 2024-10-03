@@ -84,6 +84,9 @@ patches
 .cproject
 .settings
 
+# VSCode stuff
+.vscode
+
 # Emacs temp files
 *~
 
