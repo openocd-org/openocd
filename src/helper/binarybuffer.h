@@ -172,8 +172,8 @@ static inline uint64_t buf_get_u64(const uint8_t *_buffer,
  */
 uint32_t flip_u32(uint32_t value, unsigned width);
 
-bool buf_cmp(const void *buf1, const void *buf2, unsigned size);
-bool buf_cmp_mask(const void *buf1, const void *buf2,
+bool buf_eq(const void *buf1, const void *buf2, unsigned size);
+bool buf_eq_mask(const void *buf1, const void *buf2,
 		const void *mask, unsigned size);
 
 /**

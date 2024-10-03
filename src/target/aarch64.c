@@ -193,6 +193,20 @@ static int aarch64_mmu_modify(struct target *target, int enable)
 	return retval;
 }
 
+static int aarch64_read_prsr(struct target *target, uint32_t *prsr)
+{
+	struct armv8_common *armv8 = target_to_armv8(target);
+	int retval;
+
+	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
+			armv8->debug_base + CPUV8_DBG_PRSR, prsr);
+	if (retval != ERROR_OK)
+		return retval;
+
+	armv8->sticky_reset |= *prsr & PRSR_SR;
+	return ERROR_OK;
+}
+
 /*
  * Basic debug access, very low level assumes state is saved
  */
@@ -213,8 +227,7 @@ static int aarch64_init_debug_access(struct target *target)
 
 	/* Clear Sticky Power Down status Bit in PRSR to enable access to
 	   the registers in the Core Power Domain */
-	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + CPUV8_DBG_PRSR, &dummy);
+	retval = aarch64_read_prsr(target, &dummy);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -281,12 +294,10 @@ static int aarch64_set_dscr_bits(struct target *target, unsigned long bit_mask, 
 static int aarch64_check_state_one(struct target *target,
 		uint32_t mask, uint32_t val, int *p_result, uint32_t *p_prsr)
 {
-	struct armv8_common *armv8 = target_to_armv8(target);
 	uint32_t prsr;
 	int retval;
 
-	retval = mem_ap_read_atomic_u32(armv8->debug_ap,
-			armv8->debug_base + CPUV8_DBG_PRSR, &prsr);
+	retval = aarch64_read_prsr(target, &prsr);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -506,16 +517,28 @@ static int update_halt_gdb(struct target *target, enum target_debug_reason debug
 
 static int aarch64_poll(struct target *target)
 {
+	struct armv8_common *armv8 = target_to_armv8(target);
 	enum target_state prev_target_state;
 	int retval = ERROR_OK;
-	int halted;
+	uint32_t prsr;
 
-	retval = aarch64_check_state_one(target,
-				PRSR_HALT, PRSR_HALT, &halted, NULL);
+	retval = aarch64_read_prsr(target, &prsr);
 	if (retval != ERROR_OK)
 		return retval;
 
-	if (halted) {
+	if (armv8->sticky_reset) {
+		armv8->sticky_reset = false;
+		if (target->state != TARGET_RESET) {
+			target->state = TARGET_RESET;
+			LOG_TARGET_INFO(target, "external reset detected");
+			if (armv8->arm.core_cache) {
+				register_cache_invalidate(armv8->arm.core_cache);
+				register_cache_invalidate(armv8->arm.core_cache->next);
+			}
+		}
+	}
+
+	if (prsr & PRSR_HALT) {
 		prev_target_state = target->state;
 		if (prev_target_state != TARGET_HALTED) {
 			enum target_debug_reason debug_reason = target->debug_reason;
@@ -546,8 +569,11 @@ static int aarch64_poll(struct target *target)
 				break;
 			}
 		}
-	} else
+	} else if (prsr & PRSR_RESET) {
+		target->state = TARGET_RESET;
+	} else {
 		target->state = TARGET_RUNNING;
+	}
 
 	return retval;
 }
@@ -663,8 +689,7 @@ static int aarch64_prepare_restart_one(struct target *target)
 
 	if (retval == ERROR_OK) {
 		/* clear sticky bits in PRSR, SDR is now 0 */
-		retval = mem_ap_read_atomic_u32(armv8->debug_ap,
-				armv8->debug_base + CPUV8_DBG_PRSR, &tmp);
+		retval = aarch64_read_prsr(target, &tmp);
 	}
 
 	return retval;

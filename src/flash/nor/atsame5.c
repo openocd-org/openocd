@@ -85,6 +85,9 @@
 #define SAME_SERIES_51		0x01
 #define SAME_SERIES_53		0x03
 #define SAME_SERIES_54		0x04
+#define PIC32CXSG_SERIES_41	0x07
+#define PIC32CXSG_SERIES_60	0x00
+#define PIC32CXSG_SERIES_61	0x02
 
 /* Device ID macros */
 #define SAMD_GET_PROCESSOR(id) (id >> 28)
@@ -148,6 +151,27 @@ static const struct samd_part same54_parts[] = {
 	{ 0x03, "SAME54N19A", 512, 192 },
 };
 
+/* See PIC32CX SG41/SG60/SG61 Family Silicon Errata and Datasheet Clarifications
+ * DS80000985G */
+/* Known PIC32CX-SG41 parts. */
+static const struct samd_part pic32cxsg41_parts[] = {
+	{ 0x00, "PIC32CX1025SG41128", 1024, 256 },
+	{ 0x01, "PIC32CX1025SG41100", 1024, 256 },
+	{ 0x02, "PIC32CX1025SG41064", 1024, 256 },
+};
+
+/* Known PIC32CX-SG60 parts. */
+static const struct samd_part pic32cxsg60_parts[] = {
+	{ 0x00, "PIC32CX1025SG60128", 1024, 256 },
+	{ 0x01, "PIC32CX1025SG60100", 1024, 256 },
+};
+
+/* Known PIC32CX-SG61 parts. */
+static const struct samd_part pic32cxsg61_parts[] = {
+	{ 0x00, "PIC32CX1025SG61128", 1024, 256 },
+	{ 0x01, "PIC32CX1025SG61100", 1024, 256 },
+};
+
 /* Each family of parts contains a parts table in the DEVSEL field of DID.  The
  * processor ID, family ID, and series ID are used to determine which exact
  * family this is and then we can use the corresponding table. */
@@ -169,6 +193,12 @@ static const struct samd_family samd_families[] = {
 		same53_parts, ARRAY_SIZE(same53_parts) },
 	{ SAMD_PROCESSOR_M4, SAMD_FAMILY_E, SAME_SERIES_54,
 		same54_parts, ARRAY_SIZE(same54_parts) },
+	{ SAMD_PROCESSOR_M4, SAMD_FAMILY_E, PIC32CXSG_SERIES_41,
+		pic32cxsg41_parts, ARRAY_SIZE(pic32cxsg41_parts) },
+	{ SAMD_PROCESSOR_M4, SAMD_FAMILY_E, PIC32CXSG_SERIES_60,
+		pic32cxsg60_parts, ARRAY_SIZE(pic32cxsg60_parts) },
+	{ SAMD_PROCESSOR_M4, SAMD_FAMILY_E, PIC32CXSG_SERIES_61,
+		pic32cxsg61_parts, ARRAY_SIZE(pic32cxsg61_parts) },
 };
 
 struct samd_info {
