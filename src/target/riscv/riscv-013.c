@@ -5282,8 +5282,7 @@ static int riscv013_invalidate_cached_progbuf(struct target *target)
 	}
 
 	LOG_TARGET_DEBUG(target, "Invalidating progbuf cache");
-	for (unsigned int i = 0; i < 15; i++)
-		dm->progbuf_cache[i] = 0;
+	memset(dm->progbuf_cache, 0, sizeof(dm->progbuf_cache));
 	return ERROR_OK;
 }
 
