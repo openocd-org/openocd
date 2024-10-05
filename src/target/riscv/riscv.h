@@ -129,6 +129,38 @@ struct reg_name_table {
 	char **reg_names;
 };
 
+typedef struct riscv_mem_access_args {
+	target_addr_t address;
+
+	const uint8_t *write_buffer;
+	uint8_t *read_buffer;
+
+	uint32_t size;
+	uint32_t count;
+	uint32_t increment;
+} riscv_mem_access_args_t;
+
+static inline bool
+riscv_mem_access_is_valid(const riscv_mem_access_args_t args)
+{
+	return !args.read_buffer != !args.write_buffer;
+}
+
+static inline bool
+riscv_mem_access_is_read(const riscv_mem_access_args_t args)
+{
+	assert(riscv_mem_access_is_valid(args));
+	return !args.write_buffer && args.read_buffer;
+}
+
+static inline bool
+riscv_mem_access_is_write(const riscv_mem_access_args_t args)
+{
+	assert(riscv_mem_access_is_valid(args));
+	return !args.read_buffer && args.write_buffer;
+}
+
+
 struct riscv_info {
 	unsigned int common_magic;
 
@@ -256,8 +288,8 @@ struct riscv_info {
 						 riscv_sample_config_t *config,
 						 int64_t until_ms);
 
-	int (*read_memory)(struct target *target, target_addr_t address,
-			uint32_t size, uint32_t count, uint8_t *buffer, uint32_t increment);
+	int (*read_memory)(struct target *target, const riscv_mem_access_args_t args);
+	int (*write_memory)(struct target *target, const riscv_mem_access_args_t args);
 
 	unsigned int (*data_bits)(struct target *target);
 
