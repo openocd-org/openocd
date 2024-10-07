@@ -3092,36 +3092,48 @@ static int read_sbcs_nonbusy(struct target *target, uint32_t *sbcs)
 	}
 }
 
+/* TODO: return mem_access_result_t */
 static int modify_privilege(struct target *target, uint64_t *mstatus, uint64_t *mstatus_old)
 {
-	if (riscv_virt2phys_mode_is_hw(target)
-			&& has_sufficient_progbuf(target, 5)) {
-		/* Read DCSR */
-		uint64_t dcsr;
-		if (register_read_direct(target, &dcsr, GDB_REGNO_DCSR) != ERROR_OK)
-			return ERROR_FAIL;
+	assert(mstatus);
+	assert(mstatus_old);
+	if (!riscv_virt2phys_mode_is_hw(target))
+		return ERROR_OK;
 
-		/* Read and save MSTATUS */
-		if (register_read_direct(target, mstatus, GDB_REGNO_MSTATUS) != ERROR_OK)
-			return ERROR_FAIL;
-		*mstatus_old = *mstatus;
-
-		/* If we come from m-mode with mprv set, we want to keep mpp */
-		if (get_field(dcsr, CSR_DCSR_PRV) < 3) {
-			/* MPP = PRIV */
-			*mstatus = set_field(*mstatus, MSTATUS_MPP, get_field(dcsr, CSR_DCSR_PRV));
-
-			/* MPRV = 1 */
-			*mstatus = set_field(*mstatus, MSTATUS_MPRV, 1);
-
-			/* Write MSTATUS */
-			if (*mstatus != *mstatus_old)
-				if (register_write_direct(target, GDB_REGNO_MSTATUS, *mstatus) != ERROR_OK)
-					return ERROR_FAIL;
-		}
+	/* TODO: handle error in this case
+	 * modify_privilege function used only for program buffer memory access.
+	 * Privilege modification requires progbuf size to be at least 5 */
+	if (!has_sufficient_progbuf(target, 5)) {
+		LOG_TARGET_WARNING(target, "Can't modify privilege to provide "
+				"hardware translation: program buffer too small.");
+		return ERROR_OK;
 	}
 
-	return ERROR_OK;
+	/* Read DCSR */
+	riscv_reg_t dcsr;
+	if (register_read_direct(target, &dcsr, GDB_REGNO_DCSR) != ERROR_OK)
+		return ERROR_FAIL;
+
+	/* Read and save MSTATUS */
+	if (register_read_direct(target, mstatus, GDB_REGNO_MSTATUS) != ERROR_OK)
+		return ERROR_FAIL;
+	*mstatus_old = *mstatus;
+
+	/* If we come from m-mode with mprv set, we want to keep mpp */
+	if (get_field(dcsr, CSR_DCSR_PRV) == PRV_M)
+		return ERROR_OK;
+
+	/* mstatus.mpp <- dcsr.prv */
+	*mstatus = set_field(*mstatus, MSTATUS_MPP, get_field(dcsr, CSR_DCSR_PRV));
+
+	/* mstatus.mprv <- 1 */
+	*mstatus = set_field(*mstatus, MSTATUS_MPRV, 1);
+
+	/* Write MSTATUS */
+	if (*mstatus == *mstatus_old)
+		return ERROR_OK;
+
+	return register_write_direct(target, GDB_REGNO_MSTATUS, *mstatus);
 }
 
 static int read_memory_bus_v0(struct target *target, target_addr_t address,
