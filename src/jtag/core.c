@@ -881,9 +881,9 @@ static int jtag_check_value_inner(uint8_t *captured, uint8_t *in_check_value,
 	int compare_failed;
 
 	if (in_check_mask)
-		compare_failed = buf_cmp_mask(captured, in_check_value, in_check_mask, num_bits);
+		compare_failed = !buf_eq_mask(captured, in_check_value, in_check_mask, num_bits);
 	else
-		compare_failed = buf_cmp(captured, in_check_value, num_bits);
+		compare_failed = !buf_eq(captured, in_check_value, num_bits);
 
 	if (compare_failed) {
 		char *captured_str, *in_check_value_str;

@@ -932,7 +932,7 @@ static int svf_check_tdo(void)
 		index_var = svf_check_tdo_para[i].buffer_offset;
 		len = svf_check_tdo_para[i].bit_len;
 		if ((svf_check_tdo_para[i].enabled)
-				&& buf_cmp_mask(&svf_tdi_buffer[index_var], &svf_tdo_buffer[index_var],
+				&& !buf_eq_mask(&svf_tdi_buffer[index_var], &svf_tdo_buffer[index_var],
 				&svf_mask_buffer[index_var], len)) {
 			LOG_ERROR("tdo check error at line %d",
 				svf_check_tdo_para[i].line_num);

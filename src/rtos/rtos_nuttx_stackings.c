@@ -9,60 +9,100 @@
 #include "rtos_nuttx_stackings.h"
 #include "rtos_standard_stackings.h"
 #include <target/riscv/riscv.h>
+#include <helper/bits.h>
 
-/* see arch/arm/include/armv7-m/irq_cmnvector.h */
+/* The cortex_m target uses nuttx_tcbinfo_stack_read which uses a symbol
+ * provided by Nuttx to read the registers from memory and place them directly
+ * in the order we need. This is because the register offsets change with
+ * different versions of Nuttx, FPU vs non-FPU and ARMv7 vs ARMv8.
+ * This allows a single function to work with many versions.
+ */
 static const struct stack_register_offset nuttx_stack_offsets_cortex_m[] = {
-	{ ARMV7M_R0, 0x28, 32 },		/* r0   */
-	{ ARMV7M_R1, 0x2c, 32 },		/* r1   */
-	{ ARMV7M_R2, 0x30, 32 },		/* r2   */
-	{ ARMV7M_R3, 0x34, 32 },		/* r3   */
-	{ ARMV7M_R4, 0x08, 32 },		/* r4   */
-	{ ARMV7M_R5, 0x0c, 32 },		/* r5   */
-	{ ARMV7M_R6, 0x10, 32 },		/* r6   */
-	{ ARMV7M_R7, 0x14, 32 },		/* r7   */
-	{ ARMV7M_R8, 0x18, 32 },		/* r8   */
-	{ ARMV7M_R9, 0x1c, 32 },		/* r9   */
-	{ ARMV7M_R10, 0x20, 32 },		/* r10  */
-	{ ARMV7M_R11, 0x24, 32 },		/* r11  */
-	{ ARMV7M_R12, 0x38, 32 },		/* r12  */
-	{ ARMV7M_R13, 0, 32 },			/* sp   */
-	{ ARMV7M_R14, 0x3c, 32 },		/* lr   */
-	{ ARMV7M_PC, 0x40, 32 },		/* pc   */
-	{ ARMV7M_XPSR, 0x44, 32 },		/* xPSR */
+	{ ARMV7M_R0,    0, 32 },		/* r0   */
+	{ ARMV7M_R1,    4, 32 },		/* r1   */
+	{ ARMV7M_R2,    8, 32 },		/* r2   */
+	{ ARMV7M_R3,   12, 32 },		/* r3   */
+	{ ARMV7M_R4,   16, 32 },		/* r4   */
+	{ ARMV7M_R5,   20, 32 },		/* r5   */
+	{ ARMV7M_R6,   24, 32 },		/* r6   */
+	{ ARMV7M_R7,   28, 32 },		/* r7   */
+	{ ARMV7M_R8,   32, 32 },		/* r8   */
+	{ ARMV7M_R9,   36, 32 },		/* r9   */
+	{ ARMV7M_R10,  40, 32 },		/* r10  */
+	{ ARMV7M_R11,  44, 32 },		/* r11  */
+	{ ARMV7M_R12,  48, 32 },		/* r12  */
+	{ ARMV7M_R13,  52, 32 },		/* sp   */
+	{ ARMV7M_R14,  56, 32 },		/* lr   */
+	{ ARMV7M_PC,   60, 32 },		/* pc   */
+	{ ARMV7M_XPSR, 64, 32 },		/* xPSR */
 };
+
+/* The Nuttx stack frame for most architectures has some registers placed
+ * by hardware and some by software. The hardware register order and number does not change
+ * but the software registers may change with different versions of Nuttx.
+ * For example with ARMv7, nuttx-12.3.0 added a new register which changed all
+ * the offsets. We can either create separate offset tables for each version of Nuttx
+ * which will break again in the future, or read the offsets from the TCB info.
+ * Nuttx provides a symbol (g_reg_offs) which holds all the offsets for each stored register.
+ * This offset table is stored in GDB org.gnu.gdb.xxx feature order.
+ * The same order we need.
+ * Please refer:
+ * https://sourceware.org/gdb/current/onlinedocs/gdb/ARM-Features.html
+ * https://sourceware.org/gdb/current/onlinedocs/gdb/RISC_002dV-Features.html
+ */
+static int nuttx_cortex_m_tcbinfo_stack_read(struct target *target,
+	int64_t stack_ptr, const struct rtos_register_stacking *stacking,
+	uint8_t *stack_data)
+{
+	struct rtos *rtos = target->rtos;
+	target_addr_t xcpreg_off = rtos->symbols[NX_SYM_REG_OFFSETS].address;
+
+	for (int i = 0; i < stacking->num_output_registers; ++i) {
+		uint16_t stack_reg_offset;
+		int ret = target_read_u16(rtos->target, xcpreg_off + 2 * i, &stack_reg_offset);
+		if (ret != ERROR_OK) {
+			LOG_ERROR("Failed to read stack_reg_offset: ret = %d", ret);
+			return ret;
+		}
+		if (stack_reg_offset != UINT16_MAX && stacking->register_offsets[i].offset >= 0) {
+			ret = target_read_buffer(target,
+				stack_ptr + stack_reg_offset,
+				stacking->register_offsets[i].width_bits / 8,
+				&stack_data[stacking->register_offsets[i].offset]);
+			if (ret != ERROR_OK) {
+				LOG_ERROR("Failed to read register: ret = %d", ret);
+				return ret;
+			}
+		}
+	}
+
+	/* Offset match nuttx_stack_offsets_cortex_m */
+	const int XPSR_OFFSET = 64;
+	const int SP_OFFSET = 52;
+	/* Nuttx stack frames (produced in exception_common) store the SP of the ISR minus
+	 * the hardware stack frame size. This SP may include an additional 4 byte alignment
+	 * depending in xPSR[9]. The Nuttx stack frame stores post alignment since the
+	 * hardware will add/remove automatically on both enter/exit.
+	 * We need to adjust the SP to get the real SP of the stack.
+	 * See Arm Reference manual "Stack alignment on exception entry"
+	 */
+	uint32_t xpsr = target_buffer_get_u32(target, &stack_data[XPSR_OFFSET]);
+	if (xpsr & BIT(9)) {
+		uint32_t sp = target_buffer_get_u32(target, &stack_data[SP_OFFSET]);
+		target_buffer_set_u32(target, &stack_data[SP_OFFSET], sp - 4 * stacking->stack_growth_direction);
+	}
+
+	return ERROR_OK;
+}
 
 const struct rtos_register_stacking nuttx_stacking_cortex_m = {
-	.stack_registers_size = 0x48,
+	/* nuttx_tcbinfo_stack_read transforms the stack into just output registers */
+	.stack_registers_size = ARRAY_SIZE(nuttx_stack_offsets_cortex_m) * 4,
 	.stack_growth_direction = -1,
-	.num_output_registers = 17,
+	.num_output_registers = ARRAY_SIZE(nuttx_stack_offsets_cortex_m),
+	.read_stack = nuttx_cortex_m_tcbinfo_stack_read,
+	.calculate_process_stack = NULL, /* Stack alignment done in nuttx_cortex_m_tcbinfo_stack_read */
 	.register_offsets = nuttx_stack_offsets_cortex_m,
-};
-
-static const struct stack_register_offset nuttx_stack_offsets_cortex_m_fpu[] = {
-	{ ARMV7M_R0, 0x6c, 32 },		/* r0   */
-	{ ARMV7M_R1, 0x70, 32 },		/* r1   */
-	{ ARMV7M_R2, 0x74, 32 },		/* r2   */
-	{ ARMV7M_R3, 0x78, 32 },		/* r3   */
-	{ ARMV7M_R4, 0x08, 32 },		/* r4   */
-	{ ARMV7M_R5, 0x0c, 32 },		/* r5   */
-	{ ARMV7M_R6, 0x10, 32 },		/* r6   */
-	{ ARMV7M_R7, 0x14, 32 },		/* r7   */
-	{ ARMV7M_R8, 0x18, 32 },		/* r8   */
-	{ ARMV7M_R9, 0x1c, 32 },		/* r9   */
-	{ ARMV7M_R10, 0x20, 32 },		/* r10  */
-	{ ARMV7M_R11, 0x24, 32 },		/* r11  */
-	{ ARMV7M_R12, 0x7c, 32 },		/* r12  */
-	{ ARMV7M_R13, 0, 32 },			/* sp   */
-	{ ARMV7M_R14, 0x80, 32 },		/* lr   */
-	{ ARMV7M_PC, 0x84, 32 },		/* pc   */
-	{ ARMV7M_XPSR, 0x88, 32 },		/* xPSR */
-};
-
-const struct rtos_register_stacking nuttx_stacking_cortex_m_fpu = {
-	.stack_registers_size = 0x8c,
-	.stack_growth_direction = -1,
-	.num_output_registers = 17,
-	.register_offsets = nuttx_stack_offsets_cortex_m_fpu,
 };
 
 static const struct stack_register_offset nuttx_stack_offsets_riscv[] = {
