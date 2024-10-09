@@ -857,6 +857,12 @@ AS_IF([test "x$use_internal_jimtcl" = "xyes"], [
   AC_MSG_WARN([Using the internal jimtcl is deprecated and will not be possible in the future.])
 ])
 
+AS_IF([test "x$enable_amtjtagaccel" != "xno"], [
+  echo
+  echo
+  AC_MSG_WARN([Amontec JTAG-Accelerator adapter is deprecated and support will be removed in the next release!])
+])
+
 echo
 echo
 echo OpenOCD configuration summary

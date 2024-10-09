@@ -2508,6 +2508,8 @@ enabled when OpenOCD is configured, in order to be made
 available at run time.
 
 @deffn {Interface Driver} {amt_jtagaccel}
+@b{Note: This adapter is deprecated and support will be removed in the next release!}
+
 Amontec Chameleon in its JTAG Accelerator configuration,
 connected to a PC's EPP mode parallel port.
 This defines some driver-specific commands:
