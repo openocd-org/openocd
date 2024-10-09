@@ -2929,6 +2929,8 @@ image. To be used with USB-Blaster II only.
 @end deffn
 
 @deffn {Interface Driver} {gw16012}
+@b{Note: This adapter is deprecated and support will be removed in the next release!}
+
 Gateworks GW16012 JTAG programmer.
 This has one driver-specific command:
 

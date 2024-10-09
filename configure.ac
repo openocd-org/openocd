@@ -862,6 +862,11 @@ AS_IF([test "x$enable_amtjtagaccel" != "xno"], [
   echo
   AC_MSG_WARN([Amontec JTAG-Accelerator adapter is deprecated and support will be removed in the next release!])
 ])
+AS_IF([test "x$build_gw16012" = "xyes"], [
+  echo
+  echo
+  AC_MSG_WARN([Gateworks GW16012 JTAG adapter is deprecated and support will be removed in the next release!])
+])
 
 echo
 echo

@@ -461,6 +461,8 @@ static int gw16012_init(void)
 {
 	uint8_t status_port;
 
+	LOG_WARNING("This adapter is deprecated and support will be removed in the next release!");
+
 	if (gw16012_init_device() != ERROR_OK)
 		return ERROR_JTAG_INIT_FAILED;
 
