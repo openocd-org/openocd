@@ -40,6 +40,7 @@ set COMMAND_LINE_OPTIONS [dict create \
   --bindto "value:value. issue bindto configuration command. Default is 0.0.0.0. Pass empty string to disable." \
   --bitbang-port "devel:value:port. rbb port (for connection to spike simulator)" \
   --configure-hook "value:file. TCL script to execute during configuration phase. The file is loaded right before init" \
+  --target-type "value:value. type of OpenOCD targets" \
   --debug-adapter-index "value:index. specify selected adapter" \
   --debug-adapter-serial "value:serial. specify serial number of debug adapter" \
   --disable-interactive-mode "flag. disables interactive selection of debug adapter" \
@@ -95,6 +96,7 @@ set SETTINGS(unlock_usb_devices) ""
 set SETTINGS(jtag_topology_string) ""
 set SETTINGS(bindto) 0.0.0.0
 set SETTINGS(configure_hook) ""
+set SETTINGS(target_type) riscv
 set SETTINGS(load_extra_scripts) 1
 set SETTINGS(extra_run_commands) []
 set SETTINGS(extra_spike_args) []
@@ -252,6 +254,8 @@ for { set i 0 } { $i < $argc } { incr i } {
     set SETTINGS(adapter_index) $optarg
   } elseif { $option == $COMMAND_LINE_ARG(--configure-hook) } {
     set SETTINGS(configure_hook) $optarg
+  } elseif { $option == $COMMAND_LINE_ARG(--target-type) } {
+    set SETTINGS(target_type) $optarg
   } elseif { $option == $COMMAND_LINE_ARG(--i-know-what-im-doing) } {
     set SETTINGS(unlock_usb_devices) $optarg
   } elseif { $option == $COMMAND_LINE_ARG(--jtag-topology) } {
@@ -776,6 +780,8 @@ proc buildOpenOCDCommandLine {DebugInterfaceCfg AdapterSerial JtagTopologyString
     lappend OpenOCDArgs -c
     lappend OpenOCDArgs "sc_target_config no_ocd_targets 1"
   }
+  lappend OpenOCDArgs -c
+  lappend OpenOCDArgs "sc_target_config target_type $SETTINGS(target_type)"
 
   lappend OpenOCDArgs [deriveDesiredVerbosityOption]
 

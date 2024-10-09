@@ -454,6 +454,53 @@ int riscv_openocd_step(
 	int handle_breakpoints
 );
 
+struct riscv_private_config *alloc_default_riscv_private_config(void);
+int riscv_create_target(struct target *target, Jim_Interp *interp);
+
+int riscv_jim_configure(struct target *target,
+		struct jim_getopt_info *goi);
+
+int riscv_init_target(struct command_context *cmd_ctx,
+		struct target *target);
+void riscv_deinit_target(struct target *target);
+int riscv_examine(struct target *target);
+int riscv_target_resume(struct target *target, int current,
+		target_addr_t address, int handle_breakpoints, int debug_execution);
+int riscv_assert_reset(struct target *target);;
+int riscv_deassert_reset(struct target *target);
+int riscv_read_memory(struct target *target, target_addr_t address,
+		uint32_t size, uint32_t count, uint8_t *buffer);
+int riscv_write_memory(struct target *target, target_addr_t address,
+		uint32_t size, uint32_t count, const uint8_t *buffer);
+int riscv_write_phys_memory(struct target *target, target_addr_t phys_address,
+			uint32_t size, uint32_t count, const uint8_t *buffer);
+int riscv_read_phys_memory(struct target *target, target_addr_t phys_address,
+			uint32_t size, uint32_t count, uint8_t *buffer);
+int riscv_checksum_memory(struct target *target,
+		target_addr_t address, uint32_t count,
+		uint32_t *checksum);
+int riscv_mmu(struct target *target, int *enabled);
+int riscv_virt2phys(struct target *target, target_addr_t virtual, target_addr_t *physical);
+const char *riscv_get_gdb_arch(const struct target *target);
+int riscv_get_gdb_reg_list_noread(struct target *target,
+		struct reg **reg_list[], int *reg_list_size,
+		enum target_register_class reg_class);
+int riscv_get_gdb_reg_list(struct target *target,
+		struct reg **reg_list[], int *reg_list_size,
+		enum target_register_class reg_class);
+int riscv_add_breakpoint(struct target *target, struct breakpoint *breakpoint);
+int riscv_remove_breakpoint(struct target *target,
+		struct breakpoint *breakpoint);
+int riscv_hit_watchpoint(struct target *target, struct watchpoint **hit_watchpoint);
+int riscv_arch_state(struct target *target);
+int riscv_run_algorithm(struct target *target, int num_mem_params,
+		struct mem_param *mem_params, int num_reg_params,
+		struct reg_param *reg_params, target_addr_t entry_point,
+		target_addr_t exit_point, unsigned int timeout_ms, void *arch_info);
+extern const struct command_registration riscv_command_handlers[];
+unsigned int riscv_xlen_nonconst(struct target *target);
+unsigned int riscv_data_bits(struct target *target);
+
 /*** RISC-V Interface ***/
 
 bool riscv_supports_extension(const struct target *target, char letter);

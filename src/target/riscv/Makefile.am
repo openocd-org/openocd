@@ -26,6 +26,7 @@ noinst_LTLIBRARIES += %D%/libriscv.la
        %D%/riscv.c \
        %D%/riscv_reg.c \
        %D%/riscv_semihosting.c \
+       %D%/scr5.c \
        %D%/debug_defines.c \
        %D%/debug_reg_printer.c
 

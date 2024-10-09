@@ -5081,6 +5081,7 @@ And two debug interfaces cores:
 @item @code{quark_d20xx} -- an Intel Quark D20xx core.
 @item @code{quark_x10xx} -- an Intel Quark X10xx core.
 @item @code{riscv} -- a RISC-V core.
+@item @code{scr5} -- Syntacore SCR5 core.
 @item @code{stm8} -- implements an STM8 core.
 @item @code{testee} -- a dummy target for cases without a real CPU, e.g. CPLD.
 @item @code{xscale} -- this is actually an architecture,
@@ -11781,6 +11782,26 @@ using the @var{riscv exec_progbuf} command to execute fences or CMO instructions
 @deffn {Command} {riscv re_examine}
 Enforce (re)examination of target.
 @end deffn
+
+@subsection Syntacore SCR5 target type
+
+Syntacore SCR5 processors implement custom TLB interface. This interface makes
+it possible to set up translation without standart page tables by manipulating
+TLB entries directly.
+
+To make OpenOCD aware of this additional interface, Syntacore SCR5 CPUs should
+use target type @code{scr5}. To configure TLB parameters, the following
+@code{$target_name configure} options are awailable:
+
+@itemize
+@item @code{-scr5-tlb-csr-base} @var{address}
+Specifies the start address of SCR5 TLB CSRs. Defaults to @code{0xbc0}.
+
+@item @code{-scr5-tlb-n-entries} @var{number}
+The number of entries in the cache per chanel. There is no default -- the
+option should be configured.
+
+@end itemize
 
 @section ARC Architecture
 @cindex ARC

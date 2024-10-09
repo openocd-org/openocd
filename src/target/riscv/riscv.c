@@ -469,7 +469,7 @@ static struct target_type *get_target_type(struct target *target)
 	}
 }
 
-static struct riscv_private_config *alloc_default_riscv_private_config(void)
+struct riscv_private_config *alloc_default_riscv_private_config(void)
 {
 	struct riscv_private_config * const config = malloc(sizeof(*config));
 	if (!config) {
@@ -483,7 +483,7 @@ static struct riscv_private_config *alloc_default_riscv_private_config(void)
 	return config;
 }
 
-static int riscv_create_target(struct target *target, Jim_Interp *interp)
+int riscv_create_target(struct target *target, Jim_Interp *interp)
 {
 	LOG_TARGET_DEBUG(target, "riscv_create_target()");
 	struct riscv_private_config *config = target->private_config;
@@ -612,7 +612,7 @@ static struct jim_nvp nvp_config_opts[] = {
 	{ .name = NULL, .value = RISCV_CFG_INVALID }
 };
 
-static int riscv_jim_configure(struct target *target,
+int riscv_jim_configure(struct target *target,
 		struct jim_getopt_info *goi)
 {
 	struct riscv_private_config *config = target->private_config;
@@ -651,7 +651,7 @@ static int riscv_jim_configure(struct target *target,
 	return JIM_ERR;
 }
 
-static int riscv_init_target(struct command_context *cmd_ctx,
+int riscv_init_target(struct command_context *cmd_ctx,
 		struct target *target)
 {
 	LOG_TARGET_DEBUG(target, "riscv_init_target()");
@@ -704,7 +704,7 @@ static void free_wp_triggers_cache(struct target *target)
 	free(r->wp_triggers_negative_cache);
 }
 
-static void riscv_deinit_target(struct target *target)
+void riscv_deinit_target(struct target *target)
 {
 	LOG_TARGET_DEBUG(target, "riscv_deinit_target()");
 
@@ -1595,7 +1595,7 @@ int riscv_read_by_any_size(struct target *target, target_addr_t address, uint32_
 	return ERROR_FAIL;
 }
 
-static int riscv_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
+int riscv_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
 {
 	LOG_TARGET_DEBUG(target, "@0x%" TARGET_PRIxADDR, breakpoint->address);
 	assert(breakpoint);
@@ -1680,7 +1680,7 @@ static int remove_trigger(struct target *target, int unique_id)
 	return ERROR_OK;
 }
 
-static int riscv_remove_breakpoint(struct target *target,
+int riscv_remove_breakpoint(struct target *target,
 		struct breakpoint *breakpoint)
 {
 	if (breakpoint->type == BKPT_SOFT) {
@@ -2343,7 +2343,7 @@ static int verify_loadstore(struct target *target,
  * The GDB server uses this information to tell GDB what data address has
  * been hit, which enables GDB to print the hit variable along with its old
  * and new value. */
-static int riscv_hit_watchpoint(struct target *target, struct watchpoint **hit_watchpoint)
+int riscv_hit_watchpoint(struct target *target, struct watchpoint **hit_watchpoint)
 {
 	RISCV_INFO(r);
 
@@ -2459,7 +2459,7 @@ static int old_or_new_riscv_step(struct target *target, int current,
 		handle_breakpoints, true /* handle callbacks*/);
 }
 
-static int riscv_examine(struct target *target)
+int riscv_examine(struct target *target)
 {
 	LOG_TARGET_DEBUG(target, "Starting examination");
 	if (target_was_examined(target)) {
@@ -2744,7 +2744,7 @@ int riscv_halt(struct target *target)
 	return result;
 }
 
-static int riscv_assert_reset(struct target *target)
+int riscv_assert_reset(struct target *target)
 {
 	LOG_TARGET_DEBUG(target, "");
 	struct target_type *tt = get_target_type(target);
@@ -2758,7 +2758,7 @@ static int riscv_assert_reset(struct target *target)
 	return tt->assert_reset(target);
 }
 
-static int riscv_deassert_reset(struct target *target)
+int riscv_deassert_reset(struct target *target)
 {
 	LOG_TARGET_DEBUG(target, "");
 	struct target_type *tt = get_target_type(target);
@@ -2967,7 +2967,7 @@ static int riscv_resume(
 	return result;
 }
 
-static int riscv_target_resume(struct target *target, int current,
+int riscv_target_resume(struct target *target, int current,
 		target_addr_t address, int handle_breakpoints, int debug_execution)
 {
 	if (target->state != TARGET_HALTED) {
@@ -3003,7 +3003,7 @@ static int riscv_effective_privilege_mode(struct target *target, int *v_mode, in
 	return ERROR_OK;
 }
 
-static int riscv_mmu(struct target *target, int *enabled)
+int riscv_mmu(struct target *target, int *enabled)
 {
 	*enabled = 0;
 
@@ -3302,7 +3302,7 @@ static int riscv_virt2phys_v(struct target *target, target_addr_t virtual, targe
 	return ERROR_OK;
 }
 
-static int riscv_virt2phys(struct target *target, target_addr_t virtual, target_addr_t *physical)
+int riscv_virt2phys(struct target *target, target_addr_t virtual, target_addr_t *physical)
 {
 	int enabled;
 	if (riscv_mmu(target, &enabled) != ERROR_OK)
@@ -3375,7 +3375,7 @@ static int check_virt_memory_access(struct target *target, target_addr_t address
 	return ERROR_OK;
 }
 
-static int riscv_read_phys_memory(struct target *target, target_addr_t phys_address,
+int riscv_read_phys_memory(struct target *target, target_addr_t phys_address,
 			uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	const riscv_mem_access_args_t args = {
@@ -3389,7 +3389,7 @@ static int riscv_read_phys_memory(struct target *target, target_addr_t phys_addr
 	return r->access_memory(target, args);
 }
 
-static int riscv_write_phys_memory(struct target *target, target_addr_t phys_address,
+int riscv_write_phys_memory(struct target *target, target_addr_t phys_address,
 			uint32_t size, uint32_t count, const uint8_t *buffer)
 {
 	const riscv_mem_access_args_t args = {
@@ -3464,7 +3464,7 @@ static int riscv_rw_memory(struct target *target, const riscv_mem_access_args_t 
 	return ERROR_OK;
 }
 
-static int riscv_read_memory(struct target *target, target_addr_t address,
+int riscv_read_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer)
 {
 	const riscv_mem_access_args_t args = {
@@ -3478,7 +3478,7 @@ static int riscv_read_memory(struct target *target, target_addr_t address,
 	return riscv_rw_memory(target, args);
 }
 
-static int riscv_write_memory(struct target *target, target_addr_t address,
+int riscv_write_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, const uint8_t *buffer)
 {
 	const riscv_mem_access_args_t args = {
@@ -3492,7 +3492,7 @@ static int riscv_write_memory(struct target *target, target_addr_t address,
 	return riscv_rw_memory(target, args);
 }
 
-static const char *riscv_get_gdb_arch(const struct target *target)
+const char *riscv_get_gdb_arch(const struct target *target)
 {
 	switch (riscv_xlen(target)) {
 		case 32:
@@ -3547,7 +3547,7 @@ static int riscv_get_gdb_reg_list_internal(struct target *target,
 	return ERROR_OK;
 }
 
-static int riscv_get_gdb_reg_list_noread(struct target *target,
+int riscv_get_gdb_reg_list_noread(struct target *target,
 		struct reg **reg_list[], int *reg_list_size,
 		enum target_register_class reg_class)
 {
@@ -3555,7 +3555,7 @@ static int riscv_get_gdb_reg_list_noread(struct target *target,
 			reg_class, false);
 }
 
-static int riscv_get_gdb_reg_list(struct target *target,
+int riscv_get_gdb_reg_list(struct target *target,
 		struct reg **reg_list[], int *reg_list_size,
 		enum target_register_class reg_class)
 {
@@ -3563,7 +3563,7 @@ static int riscv_get_gdb_reg_list(struct target *target,
 			reg_class, true);
 }
 
-static int riscv_arch_state(struct target *target)
+int riscv_arch_state(struct target *target)
 {
 	assert(target->state == TARGET_HALTED);
 	const bool semihosting_active = target->semihosting &&
@@ -3580,7 +3580,7 @@ static int riscv_arch_state(struct target *target)
 }
 
 /* Algorithm must end with a software breakpoint instruction. */
-static int riscv_run_algorithm(struct target *target, int num_mem_params,
+int riscv_run_algorithm(struct target *target, int num_mem_params,
 		struct mem_param *mem_params, int num_reg_params,
 		struct reg_param *reg_params, target_addr_t entry_point,
 		target_addr_t exit_point, unsigned int timeout_ms, void *arch_info)
@@ -3749,7 +3749,7 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 	return ERROR_OK;
 }
 
-static int riscv_checksum_memory(struct target *target,
+int riscv_checksum_memory(struct target *target,
 		target_addr_t address, uint32_t count,
 		uint32_t *checksum)
 {
@@ -5822,7 +5822,7 @@ static const struct command_registration riscv_exec_command_handlers[] = {
  * sense, but for now all semihosting commands are prefixed with `arm`.
  */
 
-static const struct command_registration riscv_command_handlers[] = {
+const struct command_registration riscv_command_handlers[] = {
 	{
 		.name = "riscv",
 		.mode = COMMAND_ANY,
@@ -5843,12 +5843,12 @@ static const struct command_registration riscv_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-static unsigned int riscv_xlen_nonconst(struct target *target)
+unsigned int riscv_xlen_nonconst(struct target *target)
 {
 	return riscv_xlen(target);
 }
 
-static unsigned int riscv_data_bits(struct target *target)
+unsigned int riscv_data_bits(struct target *target)
 {
 	RISCV_INFO(r);
 	if (r->data_bits)

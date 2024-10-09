@@ -95,6 +95,7 @@ static struct target_type *target_types[] = {
 	&quark_d20xx_target,
 	&stm8_target,
 	&riscv_target,
+	&scr5_target,
 	&mem_ap_target,
 	&esirisc_target,
 	&arcv2_target,
