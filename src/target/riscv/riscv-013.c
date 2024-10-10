@@ -357,10 +357,31 @@ static void select_dmi(struct target *target)
 		select_dmi_via_bscan(target);
 		return;
 	}
-	if (buf_eq(target->tap->cur_instr, select_dbus.out_value,
-				target->tap->ir_length))
-		return;
-	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
+	if (!target->tap->enabled)
+		LOG_TARGET_ERROR(target, "BUG: Target's TAP '%s' is disabled!",
+				jtag_tap_name(target->tap));
+
+	bool need_ir_scan = false;
+	/* FIXME: make "tap" a const pointer. */
+	for (struct jtag_tap *tap = jtag_tap_next_enabled(NULL);
+			tap; tap = jtag_tap_next_enabled(tap)) {
+		if (tap != target->tap) {
+			/* Different TAP than ours - check if it is in bypass */
+			if (!tap->bypass) {
+				need_ir_scan = true;
+				break;
+			}
+		} else {
+			/* Our TAP - check if the correct instruction is already loaded */
+			if (!buf_eq(target->tap->cur_instr, select_dbus.out_value, target->tap->ir_length)) {
+				need_ir_scan = true;
+				break;
+			}
+		}
+	}
+
+	if (need_ir_scan)
+		jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
 }
 
 static int increase_dmi_busy_delay(struct target *target)
