@@ -553,8 +553,8 @@ int target_halt(struct target *target)
  * hand the infrastructure for running such helpers might use this
  * procedure but rely on hardware breakpoint to detect termination.)
  */
-int target_resume(struct target *target, int current, target_addr_t address,
-		int handle_breakpoints, int debug_execution)
+int target_resume(struct target *target, bool current, target_addr_t address,
+		bool handle_breakpoints, bool debug_execution)
 {
 	int retval;
 
@@ -579,7 +579,8 @@ int target_resume(struct target *target, int current, target_addr_t address,
 	 * in the correct order.
 	 */
 	bool save_poll_mask = jtag_poll_mask();
-	retval = target->type->resume(target, current, address, handle_breakpoints, debug_execution);
+	retval = target->type->resume(target, current, address, handle_breakpoints,
+		debug_execution);
 	jtag_poll_unmask(save_poll_mask);
 
 	if (retval != ERROR_OK)
@@ -1408,7 +1409,7 @@ bool target_supports_gdb_connection(const struct target *target)
 }
 
 int target_step(struct target *target,
-		int current, target_addr_t address, int handle_breakpoints)
+		bool current, target_addr_t address, bool handle_breakpoints)
 {
 	int retval;
 
@@ -2309,7 +2310,7 @@ int target_profiling_default(struct target *target, uint32_t *samples,
 			uint32_t t = buf_get_u32(reg->value, 0, 32);
 			samples[sample_count++] = t;
 			/* current pc, addr = 0, do not handle breakpoints, not debugging */
-			retval = target_resume(target, 1, 0, 0, 0);
+			retval = target_resume(target, true, 0, false, false);
 			target_poll(target);
 			alive_sleep(10); /* sleep 10ms, i.e. <100 samples/second. */
 		} else if (target->state == TARGET_RUNNING) {
@@ -3303,7 +3304,7 @@ COMMAND_HANDLER(handle_reset_command)
 
 COMMAND_HANDLER(handle_resume_command)
 {
-	int current = 1;
+	bool current = true;
 	if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
@@ -3315,10 +3316,10 @@ COMMAND_HANDLER(handle_resume_command)
 	target_addr_t addr = 0;
 	if (CMD_ARGC == 1) {
 		COMMAND_PARSE_ADDRESS(CMD_ARGV[0], addr);
-		current = 0;
+		current = false;
 	}
 
-	return target_resume(target, current, addr, 1, 0);
+	return target_resume(target, current, addr, true, false);
 }
 
 COMMAND_HANDLER(handle_step_command)
@@ -3340,7 +3341,7 @@ COMMAND_HANDLER(handle_step_command)
 
 	struct target *target = get_current_target(CMD_CTX);
 
-	return target_step(target, current_pc, addr, 1);
+	return target_step(target, current_pc, addr, true);
 }
 
 void target_handle_md_output(struct command_invocation *cmd,
@@ -4379,7 +4380,7 @@ COMMAND_HANDLER(handle_profile_command)
 	} else if (target->state == TARGET_HALTED && !halted_before_profiling) {
 		/* The target was running before we started and is halted now. Resume
 		 * it, for consistency. */
-		retval = target_resume(target, 1, 0, 0, 0);
+		retval = target_resume(target, true, 0, false, false);
 		if (retval != ERROR_OK) {
 			free(samples);
 			return retval;

@@ -30,8 +30,8 @@
 #endif
 
 
-static int arm11_step(struct target *target, int current,
-		target_addr_t address, int handle_breakpoints);
+static int arm11_step(struct target *target, bool current,
+		target_addr_t address, bool handle_breakpoints);
 
 
 /** Check and if necessary take control of the system
@@ -401,7 +401,8 @@ static int arm11_halt(struct target *target)
 	return ERROR_OK;
 }
 
-static uint32_t arm11_nextpc(struct arm11_common *arm11, int current, uint32_t address)
+static uint32_t arm11_nextpc(struct arm11_common *arm11, bool current,
+		uint32_t address)
 {
 	void *value = arm11->arm.pc->value;
 
@@ -435,8 +436,8 @@ static uint32_t arm11_nextpc(struct arm11_common *arm11, int current, uint32_t a
 	return address;
 }
 
-static int arm11_resume(struct target *target, int current,
-	target_addr_t address, int handle_breakpoints, int debug_execution)
+static int arm11_resume(struct target *target, bool current,
+	target_addr_t address, bool handle_breakpoints, bool debug_execution)
 {
 	/*	  LOG_DEBUG("current %d  address %08x  handle_breakpoints %d  debug_execution %d", */
 	/*	current, address, handle_breakpoints, debug_execution); */
@@ -469,7 +470,7 @@ static int arm11_resume(struct target *target, int current,
 		for (bp = target->breakpoints; bp; bp = bp->next) {
 			if (bp->address == address) {
 				LOG_DEBUG("must step over %08" TARGET_PRIxADDR "", bp->address);
-				arm11_step(target, 1, 0, 0);
+				arm11_step(target, true, 0, false);
 				break;
 			}
 		}
@@ -543,8 +544,8 @@ static int arm11_resume(struct target *target, int current,
 	return ERROR_OK;
 }
 
-static int arm11_step(struct target *target, int current,
-	target_addr_t address, int handle_breakpoints)
+static int arm11_step(struct target *target, bool current,
+	target_addr_t address, bool handle_breakpoints)
 {
 	LOG_DEBUG("target->state: %s",
 		target_state_name(target));
@@ -569,13 +570,13 @@ static int arm11_step(struct target *target, int current,
 
 	/* skip over BKPT */
 	if ((next_instruction & 0xFFF00070) == 0xe1200070) {
-		address = arm11_nextpc(arm11, 0, address + 4);
+		address = arm11_nextpc(arm11, false, address + 4);
 		LOG_DEBUG("Skipping BKPT %08" TARGET_PRIxADDR, address);
 	}
 	/* skip over Wait for interrupt / Standby
 	 * mcr	15, 0, r?, cr7, cr0, {4} */
 	else if ((next_instruction & 0xFFFF0FFF) == 0xee070f90) {
-		address = arm11_nextpc(arm11, 0, address + 4);
+		address = arm11_nextpc(arm11, false, address + 4);
 		LOG_DEBUG("Skipping WFI %08" TARGET_PRIxADDR, address);
 	}
 	/* ignore B to self */

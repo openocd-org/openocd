@@ -65,7 +65,7 @@ static int quark_d20xx_reset_deassert(struct target *t)
 		}
 		/* resume target if reset mode is run */
 		if (!t->reset_halt) {
-			retval = lakemont_resume(t, 1, 0, 0, 0);
+			retval = lakemont_resume(t, true, 0, false, false);
 			if (retval != ERROR_OK) {
 				LOG_ERROR("%s could not resume target", __func__);
 				return retval;

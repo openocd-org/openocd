@@ -27,14 +27,14 @@ struct esp_xtensa_smp_common {
 
 int esp_xtensa_smp_poll(struct target *target);
 int esp_xtensa_smp_resume(struct target *target,
-	int current,
+	bool current,
 	target_addr_t address,
-	int handle_breakpoints,
-	int debug_execution);
+	bool handle_breakpoints,
+	bool debug_execution);
 int esp_xtensa_smp_step(struct target *target,
-	int current,
+	bool current,
 	target_addr_t address,
-	int handle_breakpoints);
+	bool handle_breakpoints);
 int esp_xtensa_smp_assert_reset(struct target *target);
 int esp_xtensa_smp_deassert_reset(struct target *target);
 int esp_xtensa_smp_soft_reset_halt(struct target *target);

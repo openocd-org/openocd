@@ -42,10 +42,10 @@ struct target_type {
 	/* halt will log a warning, but return ERROR_OK if the target is already halted. */
 	int (*halt)(struct target *target);
 	/* See target.c target_resume() for documentation. */
-	int (*resume)(struct target *target, int current, target_addr_t address,
-			int handle_breakpoints, int debug_execution);
-	int (*step)(struct target *target, int current, target_addr_t address,
-			int handle_breakpoints);
+	int (*resume)(struct target *target, bool current, target_addr_t address,
+			bool handle_breakpoints, bool debug_execution);
+	int (*step)(struct target *target, bool current, target_addr_t address,
+			bool handle_breakpoints);
 	/* target reset control. assert reset can be invoked when OpenOCD and
 	 * the target is out of sync.
 	 *

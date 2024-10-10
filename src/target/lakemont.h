@@ -84,10 +84,10 @@ int lakemont_init_arch_info(struct target *t, struct x86_32_common *x86_32);
 int lakemont_poll(struct target *t);
 int lakemont_arch_state(struct target *t);
 int lakemont_halt(struct target *t);
-int lakemont_resume(struct target *t, int current, target_addr_t address,
-			int handle_breakpoints, int debug_execution);
-int lakemont_step(struct target *t, int current,
-			target_addr_t address, int handle_breakpoints);
+int lakemont_resume(struct target *t, bool current, target_addr_t address,
+		bool handle_breakpoints, bool debug_execution);
+int lakemont_step(struct target *t, bool current,
+		target_addr_t address, bool handle_breakpoints);
 int lakemont_reset_assert(struct target *t);
 int lakemont_reset_deassert(struct target *t);
 int lakemont_update_after_probemode_entry(struct target *t);

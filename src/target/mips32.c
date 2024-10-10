@@ -588,7 +588,7 @@ static int mips32_run_and_wait(struct target *target, target_addr_t entry_point,
 	int retval;
 	/* This code relies on the target specific  resume() and  poll()->debug_entry()
 	 * sequence to write register values to the processor and the read them back */
-	retval = target_resume(target, 0, entry_point, 0, 1);
+	retval = target_resume(target, false, entry_point, false, true);
 	if (retval != ERROR_OK)
 		return retval;
 

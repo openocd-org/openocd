@@ -1096,16 +1096,15 @@ static int riscv_hit_watchpoint(struct target *target, struct watchpoint **hit_w
 	return ERROR_FAIL;
 }
 
-
-static int oldriscv_step(struct target *target, int current, uint32_t address,
-		int handle_breakpoints)
+static int oldriscv_step(struct target *target, bool current, uint32_t address,
+		bool handle_breakpoints)
 {
 	struct target_type *tt = get_target_type(target);
 	return tt->step(target, current, address, handle_breakpoints);
 }
 
-static int old_or_new_riscv_step(struct target *target, int current,
-		target_addr_t address, int handle_breakpoints)
+static int old_or_new_riscv_step(struct target *target, bool current,
+		target_addr_t address, bool handle_breakpoints)
 {
 	RISCV_INFO(r);
 	LOG_DEBUG("handle_breakpoints=%d", handle_breakpoints);
@@ -1114,7 +1113,6 @@ static int old_or_new_riscv_step(struct target *target, int current,
 	else
 		return riscv_openocd_step(target, current, address, handle_breakpoints);
 }
-
 
 static int riscv_examine(struct target *target)
 {
@@ -1395,8 +1393,8 @@ static int enable_triggers(struct target *target, riscv_reg_t *state)
 /**
  * Get everything ready to resume.
  */
-static int resume_prep(struct target *target, int current,
-		target_addr_t address, int handle_breakpoints, int debug_execution)
+static int resume_prep(struct target *target, bool current,
+		target_addr_t address, bool handle_breakpoints, bool debug_execution)
 {
 	RISCV_INFO(r);
 	LOG_DEBUG("[%d]", target->coreid);
@@ -1434,8 +1432,8 @@ static int resume_prep(struct target *target, int current,
  * Resume all the harts that have been prepped, as close to instantaneous as
  * possible.
  */
-static int resume_go(struct target *target, int current,
-		target_addr_t address, int handle_breakpoints, int debug_execution)
+static int resume_go(struct target *target, bool current,
+		target_addr_t address, bool handle_breakpoints, bool debug_execution)
 {
 	RISCV_INFO(r);
 	int result;
@@ -1465,10 +1463,10 @@ static int resume_finish(struct target *target)
  */
 static int riscv_resume(
 		struct target *target,
-		int current,
+		bool current,
 		target_addr_t address,
-		int handle_breakpoints,
-		int debug_execution,
+		bool handle_breakpoints,
+		bool debug_execution,
 		bool single_hart)
 {
 	LOG_DEBUG("handle_breakpoints=%d", handle_breakpoints);
@@ -1515,8 +1513,8 @@ static int riscv_resume(
 	return result;
 }
 
-static int riscv_target_resume(struct target *target, int current, target_addr_t address,
-		int handle_breakpoints, int debug_execution)
+static int riscv_target_resume(struct target *target, bool current,
+		target_addr_t address, bool handle_breakpoints, bool debug_execution)
 {
 	return riscv_resume(target, current, address, handle_breakpoints,
 			debug_execution, false);
@@ -1904,7 +1902,7 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 
 	/* Run algorithm */
 	LOG_DEBUG("resume at 0x%" TARGET_PRIxADDR, entry_point);
-	if (riscv_resume(target, 0, entry_point, 0, 0, true) != ERROR_OK)
+	if (riscv_resume(target, false, entry_point, false, false, true) != ERROR_OK)
 		return ERROR_FAIL;
 
 	int64_t start = timeval_ms();
@@ -2245,7 +2243,7 @@ int riscv_openocd_poll(struct target *target)
 			riscv_halt(target);
 		} else if (should_resume) {
 			LOG_DEBUG("resume all");
-			riscv_resume(target, true, 0, 0, 0, false);
+			riscv_resume(target, true, 0, false, false, false);
 		}
 
 		/* Sample memory if any target is running. */
@@ -2287,7 +2285,7 @@ int riscv_openocd_poll(struct target *target)
 				target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 				break;
 			case SEMIHOSTING_HANDLED:
-				if (riscv_resume(target, true, 0, 0, 0, false) != ERROR_OK)
+				if (riscv_resume(target, true, 0, false, false, false) != ERROR_OK)
 					return ERROR_FAIL;
 				break;
 			case SEMIHOSTING_ERROR:
@@ -2300,8 +2298,8 @@ int riscv_openocd_poll(struct target *target)
 	return ERROR_OK;
 }
 
-int riscv_openocd_step(struct target *target, int current,
-		target_addr_t address, int handle_breakpoints)
+int riscv_openocd_step(struct target *target, bool current,
+		target_addr_t address, bool handle_breakpoints)
 {
 	LOG_DEBUG("stepping rtos hart");
 

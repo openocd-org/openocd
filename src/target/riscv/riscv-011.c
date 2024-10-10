@@ -1192,7 +1192,7 @@ static int full_step(struct target *target, bool announce)
 	return ERROR_OK;
 }
 
-static int resume(struct target *target, int debug_execution, bool step)
+static int resume(struct target *target, bool debug_execution, bool step)
 {
 	if (debug_execution) {
 		LOG_ERROR("TODO: debug_execution is true");
@@ -1439,8 +1439,8 @@ static int strict_step(struct target *target, bool announce)
 	return ERROR_OK;
 }
 
-static int step(struct target *target, int current, target_addr_t address,
-		int handle_breakpoints)
+static int step(struct target *target, bool current, target_addr_t address,
+		bool handle_breakpoints)
 {
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
 
@@ -1929,8 +1929,9 @@ static int riscv011_poll(struct target *target)
 	return poll_target(target, true);
 }
 
-static int riscv011_resume(struct target *target, int current,
-		target_addr_t address, int handle_breakpoints, int debug_execution)
+static int riscv011_resume(struct target *target, bool current,
+		target_addr_t address, bool handle_breakpoints,
+		bool debug_execution)
 {
 	RISCV_INFO(r);
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);

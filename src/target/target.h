@@ -386,8 +386,8 @@ int target_unregister_trace_callback(
  * yet it is possible to detect error conditions.
  */
 int target_poll(struct target *target);
-int target_resume(struct target *target, int current, target_addr_t address,
-		int handle_breakpoints, int debug_execution);
+int target_resume(struct target *target, bool current, target_addr_t address,
+		bool handle_breakpoints, bool debug_execution);
 int target_halt(struct target *target);
 int target_call_event_callbacks(struct target *target, enum target_event event);
 int target_call_reset_callbacks(struct target *target, enum target_reset_mode reset_mode);
@@ -536,7 +536,7 @@ bool target_supports_gdb_connection(const struct target *target);
  * This routine is a wrapper for target->type->step.
  */
 int target_step(struct target *target,
-		int current, target_addr_t address, int handle_breakpoints);
+		bool current, target_addr_t address, bool handle_breakpoints);
 /**
  * Run an algorithm on the @a target given.
  *

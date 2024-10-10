@@ -980,9 +980,9 @@ static int stm8_single_step_core(struct target *target)
 	return ERROR_OK;
 }
 
-static int stm8_resume(struct target *target, int current,
-		target_addr_t address, int handle_breakpoints,
-		int debug_execution)
+static int stm8_resume(struct target *target, bool current,
+		target_addr_t address, bool handle_breakpoints,
+		bool debug_execution)
 {
 	struct stm8_common *stm8 = target_to_stm8(target);
 	struct breakpoint *breakpoint = NULL;
@@ -1004,7 +1004,7 @@ static int stm8_resume(struct target *target, int current,
 		stm8_set_hwbreak(target, comparator_list);
 	}
 
-	/* current = 1: continue on current pc,
+	/* current = true: continue on current pc,
 	   otherwise continue at <address> */
 	if (!current) {
 		buf_set_u32(stm8->core_cache->reg_list[STM8_PC].value,
@@ -1290,8 +1290,8 @@ static int stm8_arch_state(struct target *target)
 	return ERROR_OK;
 }
 
-static int stm8_step(struct target *target, int current,
-		target_addr_t address, int handle_breakpoints)
+static int stm8_step(struct target *target, bool current,
+		target_addr_t address, bool handle_breakpoints)
 {
 	LOG_DEBUG("%x " TARGET_ADDR_FMT " %x",
 		current, address, handle_breakpoints);
@@ -1305,7 +1305,7 @@ static int stm8_step(struct target *target, int current,
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	/* current = 1: continue on current pc, otherwise continue at <address> */
+	/* current = true: continue on current pc, otherwise continue at <address> */
 	if (!current) {
 		buf_set_u32(stm8->core_cache->reg_list[STM8_PC].value, 0, 32, address);
 		stm8->core_cache->reg_list[STM8_PC].dirty = true;
@@ -1789,7 +1789,7 @@ static int stm8_run_and_wait(struct target *target, uint32_t entry_point,
 	/* This code relies on the target specific resume() and
 	   poll()->debug_entry() sequence to write register values to the
 	   processor and the read them back */
-	retval = target_resume(target, 0, entry_point, 0, 1);
+	retval = target_resume(target, false, entry_point, false, true);
 	if (retval != ERROR_OK)
 		return retval;
 

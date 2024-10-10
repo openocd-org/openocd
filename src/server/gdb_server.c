@@ -909,7 +909,7 @@ static void gdb_fileio_reply(struct target *target, struct connection *connectio
 
 		/* encounter unknown syscall, continue */
 		gdb_connection->frontend_state = TARGET_RUNNING;
-		target_resume(target, 1, 0x0, 0, 0);
+		target_resume(target, true, 0x0, false, false);
 		return;
 	}
 
@@ -919,7 +919,7 @@ static void gdb_fileio_reply(struct target *target, struct connection *connectio
 	if (program_exited) {
 		/* Use target_resume() to let target run its own exit syscall handler. */
 		gdb_connection->frontend_state = TARGET_RUNNING;
-		target_resume(target, 1, 0x0, 0, 0);
+		target_resume(target, true, 0x0, false, false);
 	} else {
 		gdb_connection->frontend_state = TARGET_HALTED;
 		rtos_update_threads(target);
@@ -1704,7 +1704,7 @@ static int gdb_step_continue_packet(struct connection *connection,
 		char const *packet, int packet_size)
 {
 	struct target *target = get_target_from_connection(connection);
-	int current = 0;
+	bool current = false;
 	uint64_t address = 0x0;
 	int retval = ERROR_OK;
 
@@ -1713,17 +1713,17 @@ static int gdb_step_continue_packet(struct connection *connection,
 	if (packet_size > 1)
 		address = strtoull(packet + 1, NULL, 16);
 	else
-		current = 1;
+		current = true;
 
 	gdb_running_type = packet[0];
 	if (packet[0] == 'c') {
 		LOG_DEBUG("continue");
 		/* resume at current address, don't handle breakpoints, not debugging */
-		retval = target_resume(target, current, address, 0, 0);
+		retval = target_resume(target, current, address, false, false);
 	} else if (packet[0] == 's') {
 		LOG_DEBUG("step");
 		/* step at current or address, don't handle breakpoints */
-		retval = target_step(target, current, address, 0);
+		retval = target_step(target, current, address, false);
 	}
 	return retval;
 }
@@ -3003,7 +3003,7 @@ static bool gdb_handle_vcont_packet(struct connection *connection, const char *p
 		gdb_running_type = 'c';
 		LOG_TARGET_DEBUG(target, "target continue");
 		gdb_connection->output_flag = GDB_OUTPUT_ALL;
-		retval = target_resume(target, 1, 0, 0, 0);
+		retval = target_resume(target, true, 0, false, false);
 		if (retval == ERROR_TARGET_NOT_HALTED)
 			LOG_TARGET_INFO(target, "target was not halted when resume was requested");
 
@@ -3031,7 +3031,7 @@ static bool gdb_handle_vcont_packet(struct connection *connection, const char *p
 		bool fake_step = false;
 
 		struct target *ct = target;
-		int current_pc = 1;
+		bool current_pc = true;
 		int64_t thread_id;
 		parse++;
 		if (parse[0] == ':') {
@@ -3129,7 +3129,7 @@ static bool gdb_handle_vcont_packet(struct connection *connection, const char *p
 			return true;
 		}
 
-		retval = target_step(ct, current_pc, 0, 0);
+		retval = target_step(ct, current_pc, 0, false);
 		if (retval == ERROR_TARGET_NOT_HALTED)
 			LOG_TARGET_INFO(ct, "target was not halted when step was requested");
 
@@ -3457,9 +3457,9 @@ static int gdb_fileio_response_packet(struct connection *connection,
 
 	/* After File-I/O ends, keep continue or step */
 	if (gdb_running_type == 'c')
-		retval = target_resume(target, 1, 0x0, 0, 0);
+		retval = target_resume(target, true, 0x0, false, false);
 	else if (gdb_running_type == 's')
-		retval = target_step(target, 1, 0x0, 0);
+		retval = target_step(target, true, 0x0, false);
 	else
 		retval = ERROR_FAIL;
 

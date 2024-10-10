@@ -294,9 +294,9 @@ int riscv_halt(struct target *target);
 
 int riscv_openocd_step(
 	struct target *target,
-	int current,
+	bool current,
 	target_addr_t address,
-	int handle_breakpoints
+	bool handle_breakpoints
 );
 
 int riscv_openocd_assert_reset(struct target *target);

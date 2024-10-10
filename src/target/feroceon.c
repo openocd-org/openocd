@@ -526,7 +526,7 @@ static int feroceon_bulk_write_memory(struct target *target,
 	arm->core_state = ARM_STATE_ARM;
 
 	embeddedice_write_reg(&arm7_9->eice_cache->reg_list[EICE_COMMS_DATA], 0);
-	arm7_9_resume(target, 0, arm7_9->dcc_working_area->address, 1, 1);
+	arm7_9_resume(target, false, arm7_9->dcc_working_area->address, true, true);
 
 	/* send data over */
 	x = 0;

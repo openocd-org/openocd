@@ -1100,7 +1100,7 @@ static int arc_assert_reset(struct target *target)
 			/* Resume the target and continue from the current
 			 * PC register value. */
 			LOG_TARGET_DEBUG(target, "Starting CPU execution after reset");
-			CHECK_RETVAL(target_resume(target, 1, 0, 0, 0));
+			CHECK_RETVAL(target_resume(target, true, 0, false, false));
 		}
 		target->state = TARGET_RESET;
 
@@ -1246,7 +1246,7 @@ exit:
 	return retval;
 }
 
-static int arc_enable_interrupts(struct target *target, int enable)
+static int arc_enable_interrupts(struct target *target, bool enable)
 {
 	uint32_t value;
 
@@ -1269,8 +1269,8 @@ static int arc_enable_interrupts(struct target *target, int enable)
 	return ERROR_OK;
 }
 
-static int arc_resume(struct target *target, int current, target_addr_t address,
-	int handle_breakpoints, int debug_execution)
+static int arc_resume(struct target *target, bool current, target_addr_t address,
+		bool handle_breakpoints, bool debug_execution)
 {
 	struct arc_common *arc = target_to_arc(target);
 	uint32_t resume_pc = 0;
@@ -1297,7 +1297,7 @@ static int arc_resume(struct target *target, int current, target_addr_t address,
 		CHECK_RETVAL(arc_enable_watchpoints(target));
 	}
 
-	/* current = 1: continue on current PC, otherwise continue at <address> */
+	/* current = true: continue on current PC, otherwise continue at <address> */
 	if (!current) {
 		target_buffer_set_u32(target, pc->value, address);
 		pc->dirty = true;
@@ -2030,7 +2030,7 @@ static int arc_hit_watchpoint(struct target *target, struct watchpoint **hit_wat
 
 /* Helper function which switches core to single_step mode by
  * doing aux r/w operations.  */
-static int arc_config_step(struct target *target, int enable_step)
+static int arc_config_step(struct target *target, bool enable_step)
 {
 	uint32_t value;
 
@@ -2071,10 +2071,10 @@ static int arc_single_step_core(struct target *target)
 	CHECK_RETVAL(arc_debug_entry(target));
 
 	/* disable interrupts while stepping */
-	CHECK_RETVAL(arc_enable_interrupts(target, 0));
+	CHECK_RETVAL(arc_enable_interrupts(target, false));
 
 	/* configure single step mode */
-	CHECK_RETVAL(arc_config_step(target, 1));
+	CHECK_RETVAL(arc_config_step(target, true));
 
 	/* exit debug mode */
 	CHECK_RETVAL(arc_exit_debug(target));
@@ -2082,8 +2082,8 @@ static int arc_single_step_core(struct target *target)
 	return ERROR_OK;
 }
 
-static int arc_step(struct target *target, int current, target_addr_t address,
-	int handle_breakpoints)
+static int arc_step(struct target *target, bool current, target_addr_t address,
+	bool handle_breakpoints)
 {
 	/* get pointers to arch-specific information */
 	struct arc_common *arc = target_to_arc(target);
@@ -2095,7 +2095,7 @@ static int arc_step(struct target *target, int current, target_addr_t address,
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	/* current = 1: continue on current pc, otherwise continue at <address> */
+	/* current = true: continue on current pc, otherwise continue at <address> */
 	if (!current) {
 		buf_set_u32(pc->value, 0, 32, address);
 		pc->dirty = true;
@@ -2120,10 +2120,10 @@ static int arc_step(struct target *target, int current, target_addr_t address,
 	CHECK_RETVAL(target_call_event_callbacks(target, TARGET_EVENT_RESUMED));
 
 	/* disable interrupts while stepping */
-	CHECK_RETVAL(arc_enable_interrupts(target, 0));
+	CHECK_RETVAL(arc_enable_interrupts(target, false));
 
 	/* do a single step */
-	CHECK_RETVAL(arc_config_step(target, 1));
+	CHECK_RETVAL(arc_config_step(target, true));
 
 	/* make sure we done our step */
 	alive_sleep(1);

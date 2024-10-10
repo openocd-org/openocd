@@ -589,8 +589,8 @@ static int aarch64_halt(struct target *target)
 	return aarch64_halt_one(target, HALT_SYNC);
 }
 
-static int aarch64_restore_one(struct target *target, int current,
-	uint64_t *address, int handle_breakpoints, int debug_execution)
+static int aarch64_restore_one(struct target *target, bool current,
+	uint64_t *address, bool handle_breakpoints, bool debug_execution)
 {
 	struct armv8_common *armv8 = target_to_armv8(target);
 	struct arm *arm = &armv8->arm;
@@ -602,7 +602,7 @@ static int aarch64_restore_one(struct target *target, int current,
 	if (!debug_execution)
 		target_free_all_working_areas(target);
 
-	/* current = 1: continue on current pc, otherwise continue at <address> */
+	/* current = true: continue on current pc, otherwise continue at <address> */
 	resume_pc = buf_get_u64(arm->pc->value, 0, 64);
 	if (!current)
 		resume_pc = *address;
@@ -753,7 +753,8 @@ static int aarch64_restart_one(struct target *target, enum restart_mode mode)
 /*
  * prepare all but the current target for restart
  */
-static int aarch64_prep_restart_smp(struct target *target, int handle_breakpoints, struct target **p_first)
+static int aarch64_prep_restart_smp(struct target *target,
+		bool handle_breakpoints, struct target **p_first)
 {
 	int retval = ERROR_OK;
 	struct target_list *head;
@@ -772,7 +773,8 @@ static int aarch64_prep_restart_smp(struct target *target, int handle_breakpoint
 			continue;
 
 		/*  resume at current address, not in step mode */
-		retval = aarch64_restore_one(curr, 1, &address, handle_breakpoints, 0);
+		retval = aarch64_restore_one(curr, true, &address, handle_breakpoints,
+			false);
 		if (retval == ERROR_OK)
 			retval = aarch64_prepare_restart_one(curr);
 		if (retval != ERROR_OK) {
@@ -799,7 +801,7 @@ static int aarch64_step_restart_smp(struct target *target)
 
 	LOG_DEBUG("%s", target_name(target));
 
-	retval = aarch64_prep_restart_smp(target, 0, &first);
+	retval = aarch64_prep_restart_smp(target, false, &first);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -864,8 +866,8 @@ static int aarch64_step_restart_smp(struct target *target)
 	return retval;
 }
 
-static int aarch64_resume(struct target *target, int current,
-	target_addr_t address, int handle_breakpoints, int debug_execution)
+static int aarch64_resume(struct target *target, bool current,
+	target_addr_t address, bool handle_breakpoints, bool debug_execution)
 {
 	int retval = 0;
 	uint64_t addr = address;
@@ -1113,8 +1115,8 @@ static int aarch64_post_debug_entry(struct target *target)
 /*
  * single-step a target
  */
-static int aarch64_step(struct target *target, int current, target_addr_t address,
-	int handle_breakpoints)
+static int aarch64_step(struct target *target, bool current, target_addr_t address,
+	bool handle_breakpoints)
 {
 	struct armv8_common *armv8 = target_to_armv8(target);
 	struct aarch64_common *aarch64 = target_to_aarch64(target);
@@ -1147,7 +1149,7 @@ static int aarch64_step(struct target *target, int current, target_addr_t addres
 	if (retval != ERROR_OK)
 		return retval;
 
-	if (target->smp && (current == 1)) {
+	if (target->smp && current) {
 		/*
 		 * isolate current target so that it doesn't get resumed
 		 * together with the others
@@ -1164,7 +1166,7 @@ static int aarch64_step(struct target *target, int current, target_addr_t addres
 	}
 
 	/* all other targets running, restore and restart the current target */
-	retval = aarch64_restore_one(target, current, &address, 0, 0);
+	retval = aarch64_restore_one(target, current, &address, false, false);
 	if (retval == ERROR_OK)
 		retval = aarch64_restart_one(target, RESTART_LAZY);
 
