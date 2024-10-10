@@ -38,6 +38,7 @@ endif
 
 # common flags used in openocd build
 AM_CFLAGS = $(GCC_WARNINGS)
+AM_LDFLAGS =
 
 AM_CPPFLAGS = $(HOST_CPPFLAGS)\
 			  -I$(top_srcdir)/src \
@@ -51,6 +52,12 @@ AM_CPPFLAGS += -I$(top_srcdir)/jimtcl \
 else
 AM_CPPFLAGS += $(JIMTCL_CFLAGS)
 endif
+
+if USE_GCOV
+AM_CFLAGS += --coverage
+AM_LDFLAGS += --coverage
+endif
+
 EXTRA_DIST += \
 	BUGS \
 	HACKING \

@@ -171,6 +171,9 @@ m4_define([DUMMY_ADAPTER],
 m4_define([OPTIONAL_LIBRARIES],
 	[[[capstone], [Use Capstone disassembly framework], []]])
 
+m4_define([COVERAGE],
+	[[[gcov], [Collect coverage using gcov], []]])
+
 AC_ARG_ENABLE([doxygen-html],
   AS_HELP_STRING([--disable-doxygen-html],
     [Disable building Doxygen manual as HTML.]),
@@ -198,6 +201,19 @@ AC_ARG_ENABLE([wextra],
 AC_ARG_ENABLE([werror],
   AS_HELP_STRING([--disable-werror], [Do not treat warnings as errors]),
   [gcc_werror=$enableval], [gcc_werror=$gcc_warnings])
+
+AC_ARG_ENABLE([gcov],
+  AS_HELP_STRING([--enable-gcov], [Enable runtime coverage collection via gcov]),
+  [enable_gcov=$enableval], [enable_gcov=no])
+
+AS_IF([test "x$enable_gcov" = "xyes"], [
+  AC_DEFINE([USE_GCOV], [1], [1 to enable coverage collection using gcov.])
+  dnl When collecting coverage, disable optimizations.
+  dnl This overrides the "-O2" that autoconf uses by default:
+  CFLAGS+=" -O0"
+], [
+  AC_DEFINE([USE_GCOV], [0], [0 to leave coverage collection disabled.])
+])
 
 # set default verbose options, overridden by following options
 debug_usb_io=no
@@ -787,6 +803,8 @@ AM_CONDITIONAL([INTERNAL_JIMTCL], [test "x$use_internal_jimtcl" = "xyes"])
 AM_CONDITIONAL([HAVE_JIMTCL_PKG_CONFIG], [test "x$have_jimtcl_pkg_config" = "xyes"])
 AM_CONDITIONAL([INTERNAL_LIBJAYLINK], [test "x$use_internal_libjaylink" = "xyes"])
 
+AM_CONDITIONAL([USE_GCOV], [test "x$enable_gcov" = "xyes"])
+
 # Look for environ alternatives.  Possibility #1: is environ in unistd.h or stdlib.h?
 AC_MSG_CHECKING([for environ in unistd.h and stdlib.h])
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
@@ -862,7 +880,8 @@ m4_foreach([adapter], [USB1_ADAPTERS,
 	LIBGPIOD_ADAPTERS,
 	LIBJAYLINK_ADAPTERS, PCIE_ADAPTERS, SERIAL_PORT_ADAPTERS,
 	DUMMY_ADAPTER,
-	OPTIONAL_LIBRARIES],
+	OPTIONAL_LIBRARIES,
+	COVERAGE],
 	[s=m4_format(["%-40s"], ADAPTER_DESC([adapter]))
 	AS_CASE([$ADAPTER_VAR([adapter])],
 		[auto], [
