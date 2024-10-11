@@ -3061,6 +3061,27 @@ static int riscv_virt2phys(struct target *target, target_addr_t virtual, target_
 			virtual, physical);
 }
 
+static int check_access_request(struct target *target, target_addr_t address,
+			uint32_t size, uint32_t count, bool is_write)
+{
+	const bool is_misaligned = address % size != 0;
+	// TODO: This assumes that size of each page is 4 KiB, which is not necessarily the case.
+	const bool crosses_page_boundary = RISCV_PGBASE(address + size * count - 1) != RISCV_PGBASE(address);
+	if (is_misaligned && crosses_page_boundary) {
+		int mmu_enabled;
+		int result = riscv_mmu(target, &mmu_enabled);
+		if (result != ERROR_OK)
+			return result;
+		if (mmu_enabled) {
+			LOG_TARGET_ERROR(target, "Mis-aligned memory %s (address=0x%" TARGET_PRIxADDR ", size=%d, count=%d)"
+				" would access an element across page boundary. This is not supported.",
+				 is_write ? "write" : "read", address, size, count);
+			return ERROR_FAIL;
+		}
+	}
+	return ERROR_OK;
+}
+
 static int riscv_read_phys_memory(struct target *target, target_addr_t phys_address,
 			uint32_t size, uint32_t count, uint8_t *buffer)
 {
@@ -3076,15 +3097,32 @@ static int riscv_read_memory(struct target *target, target_addr_t address,
 		return ERROR_OK;
 	}
 
-	target_addr_t physical_addr;
-	int result = target->type->virt2phys(target, address, &physical_addr);
-	if (result != ERROR_OK) {
-		LOG_TARGET_ERROR(target, "Address translation failed.");
+	int result = check_access_request(target, address, size, count, false);
+	if (result != ERROR_OK)
 		return result;
-	}
 
 	RISCV_INFO(r);
-	return r->read_memory(target, physical_addr, size, count, buffer, size);
+	uint32_t current_count = 0;
+	while (current_count < count) {
+		target_addr_t physical_addr;
+		result = target->type->virt2phys(target, address, &physical_addr);
+		if (result != ERROR_OK) {
+			LOG_TARGET_ERROR(target, "Address translation failed.");
+			return result;
+		}
+
+		/* TODO: For simplicity, this algorithm assumes the worst case - the smallest possible page size,
+		 * which is  4 KiB. The algorithm can be improved to detect the real page size, and allow to use larger
+		 * memory transfers and avoid extra unnecessary virt2phys address translations. */
+		uint32_t chunk_count = MIN(count - current_count, (RISCV_PGSIZE - RISCV_PGOFFSET(address)) / size);
+		result = r->read_memory(target, physical_addr, size, chunk_count, buffer + current_count * size, size);
+		if (result != ERROR_OK)
+			return result;
+
+		current_count += chunk_count;
+		address += chunk_count * size;
+	}
+	return ERROR_OK;
 }
 
 static int riscv_write_phys_memory(struct target *target, target_addr_t phys_address,
@@ -3104,17 +3142,32 @@ static int riscv_write_memory(struct target *target, target_addr_t address,
 		return ERROR_OK;
 	}
 
-	target_addr_t physical_addr;
-	int result = target->type->virt2phys(target, address, &physical_addr);
-	if (result != ERROR_OK) {
-		LOG_TARGET_ERROR(target, "Address translation failed.");
+	int result = check_access_request(target, address, size, count, true);
+	if (result != ERROR_OK)
 		return result;
-	}
 
 	struct target_type *tt = get_target_type(target);
 	if (!tt)
 		return ERROR_FAIL;
-	return tt->write_memory(target, physical_addr, size, count, buffer);
+
+	uint32_t current_count = 0;
+	while (current_count < count) {
+		target_addr_t physical_addr;
+		result = target->type->virt2phys(target, address, &physical_addr);
+		if (result != ERROR_OK) {
+			LOG_TARGET_ERROR(target, "Address translation failed.");
+			return result;
+		}
+
+		uint32_t chunk_count = MIN(count - current_count, (RISCV_PGSIZE - RISCV_PGOFFSET(address)) / size);
+		result = tt->write_memory(target, physical_addr, size, chunk_count, buffer + current_count * size);
+		if (result != ERROR_OK)
+			return result;
+
+		current_count += chunk_count;
+		address += chunk_count * size;
+	}
+	return ERROR_OK;
 }
 
 static const char *riscv_get_gdb_arch(const struct target *target)
