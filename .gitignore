@@ -11,10 +11,6 @@
 *.la
 *.in
 
-# generated source files
-src/jtag/minidriver_imp.h
-src/jtag/jtag_minidriver.h
-
 # coverage files (gcov)
 *.gcda
 *.gcno
