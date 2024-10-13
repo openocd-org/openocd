@@ -3061,23 +3061,17 @@ static int riscv_virt2phys(struct target *target, target_addr_t virtual, target_
 			virtual, physical);
 }
 
-static int check_access_request(struct target *target, target_addr_t address,
+static int check_virt_memory_access(struct target *target, target_addr_t address,
 			uint32_t size, uint32_t count, bool is_write)
 {
 	const bool is_misaligned = address % size != 0;
 	// TODO: This assumes that size of each page is 4 KiB, which is not necessarily the case.
 	const bool crosses_page_boundary = RISCV_PGBASE(address + size * count - 1) != RISCV_PGBASE(address);
 	if (is_misaligned && crosses_page_boundary) {
-		int mmu_enabled;
-		int result = riscv_mmu(target, &mmu_enabled);
-		if (result != ERROR_OK)
-			return result;
-		if (mmu_enabled) {
-			LOG_TARGET_ERROR(target, "Mis-aligned memory %s (address=0x%" TARGET_PRIxADDR ", size=%d, count=%d)"
-				" would access an element across page boundary. This is not supported.",
-				 is_write ? "write" : "read", address, size, count);
-			return ERROR_FAIL;
-		}
+		LOG_TARGET_ERROR(target, "Mis-aligned memory %s (address=0x%" TARGET_PRIxADDR ", size=%d, count=%d)"
+			" would access an element across page boundary. This is not supported.",
+			is_write ? "write" : "read", address, size, count);
+		return ERROR_FAIL;
 	}
 	return ERROR_OK;
 }
@@ -3097,11 +3091,20 @@ static int riscv_read_memory(struct target *target, target_addr_t address,
 		return ERROR_OK;
 	}
 
-	int result = check_access_request(target, address, size, count, false);
+	int mmu_enabled;
+	int result = riscv_mmu(target, &mmu_enabled);
 	if (result != ERROR_OK)
 		return result;
 
 	RISCV_INFO(r);
+
+	if (!mmu_enabled)
+		return r->read_memory(target, address, size, count, buffer, size);
+
+	result = check_virt_memory_access(target, address, size, count, false);
+	if (result != ERROR_OK)
+		return result;
+
 	uint32_t current_count = 0;
 	while (current_count < count) {
 		target_addr_t physical_addr;
@@ -3142,13 +3145,21 @@ static int riscv_write_memory(struct target *target, target_addr_t address,
 		return ERROR_OK;
 	}
 
-	int result = check_access_request(target, address, size, count, true);
+	int mmu_enabled;
+	int result = riscv_mmu(target, &mmu_enabled);
 	if (result != ERROR_OK)
 		return result;
 
 	struct target_type *tt = get_target_type(target);
 	if (!tt)
 		return ERROR_FAIL;
+
+	if (!mmu_enabled)
+		return tt->write_memory(target, address, size, count, buffer);
+
+	result = check_virt_memory_access(target, address, size, count, true);
+	if (result != ERROR_OK)
+		return result;
 
 	uint32_t current_count = 0;
 	while (current_count < count) {
