@@ -150,11 +150,11 @@ typedef struct {
 
 typedef struct {
 	/* The indexed used to address this hart in its DM. */
-	unsigned index;
+	unsigned int index;
 	/* Number of address bits in the dbus register. */
-	unsigned abits;
+	unsigned int abits;
 	/* Number of abstract command data registers. */
-	unsigned datacount;
+	unsigned int datacount;
 	/* Number of words in the Program Buffer. */
 	unsigned int progbufsize;
 	/* Hart contains an implicit ebreak at the end of the program buffer. */
@@ -514,7 +514,7 @@ static int increase_ac_busy_delay(struct target *target)
 			RISCV_DELAY_ABSTRACT_COMMAND);
 }
 
-static uint32_t __attribute__((unused)) abstract_register_size(unsigned width)
+static uint32_t __attribute__((unused)) abstract_register_size(unsigned int width)
 {
 	switch (width) {
 		case 32:
@@ -738,10 +738,10 @@ static void abstract_data_write_fill_batch(struct riscv_batch *batch,
 }
 
 /* TODO: reuse "abstract_data_write_fill_batch()" here*/
-static int write_abstract_arg(struct target *target, unsigned index,
-		riscv_reg_t value, unsigned size_bits)
+static int write_abstract_arg(struct target *target, unsigned int index,
+		riscv_reg_t value, unsigned int size_bits)
 {
-	unsigned offset = index * size_bits / 32;
+	unsigned int offset = index * size_bits / 32;
 	switch (size_bits) {
 		default:
 			LOG_TARGET_ERROR(target, "Unsupported size: %d bits", size_bits);
@@ -759,7 +759,7 @@ static int write_abstract_arg(struct target *target, unsigned index,
  * @par size in bits
  */
 uint32_t riscv013_access_register_command(struct target *target, uint32_t number,
-		unsigned size, uint32_t flags)
+		unsigned int size, uint32_t flags)
 {
 	uint32_t command = set_field(0, DM_COMMAND_CMDTYPE, 0);
 	switch (size) {
@@ -907,7 +907,7 @@ cleanup:
  * Sets the AAMSIZE field of a memory access abstract command based on
  * the width (bits).
  */
-static uint32_t abstract_memory_size(unsigned width)
+static uint32_t abstract_memory_size(unsigned int width)
 {
 	switch (width) {
 		case 8:
@@ -1089,7 +1089,7 @@ typedef struct {
 static int scratch_reserve(struct target *target,
 		scratch_mem_t *scratch,
 		struct riscv_program *program,
-		unsigned size_bytes)
+		unsigned int size_bytes)
 {
 	riscv_addr_t alignment = 1;
 	while (alignment < size_bytes)
@@ -1121,7 +1121,7 @@ static int scratch_reserve(struct target *target,
 		return ERROR_FAIL;
 
 	/* Allow for ebreak at the end of the program. */
-	unsigned program_size = (program->instruction_count + 1) * 4;
+	unsigned int program_size = (program->instruction_count + 1) * 4;
 	scratch->hart_address = (info->progbuf_address + program_size + alignment - 1) &
 		~(alignment - 1);
 	if ((info->progbuf_writable == YNM_YES) &&
@@ -1237,7 +1237,7 @@ static unsigned int register_size(struct target *target, enum gdb_regno number)
 		return riscv_xlen(target);
 }
 
-static bool has_sufficient_progbuf(struct target *target, unsigned size)
+static bool has_sufficient_progbuf(struct target *target, unsigned int size)
 {
 	RISCV013_INFO(info);
 	return info->progbufsize + info->impebreak >= size;
@@ -2085,7 +2085,7 @@ static int riscv013_authdata_write(struct target *target, uint32_t value, unsign
 }
 
 /* Try to find out the widest memory access size depending on the selected memory access methods. */
-static unsigned riscv013_data_bits(struct target *target)
+static unsigned int riscv013_data_bits(struct target *target)
 {
 	RISCV013_INFO(info);
 	RISCV_INFO(r);
@@ -3022,7 +3022,7 @@ static int read_memory_bus_word(struct target *target, target_addr_t address,
 static target_addr_t sb_read_address(struct target *target)
 {
 	RISCV013_INFO(info);
-	unsigned sbasize = get_field(info->sbcs, DM_SBCS_SBASIZE);
+	unsigned int sbasize = get_field(info->sbcs, DM_SBCS_SBASIZE);
 	target_addr_t address = 0;
 	uint32_t v;
 	if (sbasize > 32) {
@@ -3296,7 +3296,7 @@ static int read_memory_bus_v1(struct target *target, target_addr_t address,
 			continue;
 		}
 
-		unsigned error = get_field(sbcs_read, DM_SBCS_SBERROR);
+		unsigned int error = get_field(sbcs_read, DM_SBCS_SBERROR);
 		if (error == DM_SBCS_SBERROR_NONE) {
 			next_address = end_address;
 		} else {
@@ -3535,7 +3535,7 @@ read_memory_abstract(struct target *target, target_addr_t address,
 	memset(buffer, 0, count * size);
 
 	/* Convert the size (bytes) to width (bits) */
-	unsigned width = size << 3;
+	unsigned int width = size << 3;
 
 	/* Create the command (physical address, postincrement, read) */
 	uint32_t command = access_memory_command(target, false, width, use_aampostincrement, false);
@@ -3632,7 +3632,7 @@ write_memory_abstract(struct target *target, target_addr_t address,
 			  size, address);
 
 	/* Convert the size (bytes) to width (bits) */
-	unsigned width = size << 3;
+	unsigned int width = size << 3;
 
 	/* Create the command (physical address, postincrement, write) */
 	uint32_t command = access_memory_command(target, false, width, use_aampostincrement, true);
@@ -5047,13 +5047,13 @@ static int select_prepped_harts(struct target *target)
 	}
 
 	assert(dm->hart_count);
-	unsigned hawindow_count = (dm->hart_count + 31) / 32;
+	unsigned int hawindow_count = (dm->hart_count + 31) / 32;
 	uint32_t *hawindow = calloc(hawindow_count, sizeof(uint32_t));
 	if (!hawindow)
 		return ERROR_FAIL;
 
 	target_list_t *entry;
-	unsigned total_selected = 0;
+	unsigned int total_selected = 0;
 	unsigned int selected_index = 0;
 	list_for_each_entry(entry, &dm->target_list, list) {
 		struct target *t = entry->target;
@@ -5085,7 +5085,7 @@ static int select_prepped_harts(struct target *target)
 		return ERROR_FAIL;
 	}
 
-	for (unsigned i = 0; i < hawindow_count; i++) {
+	for (unsigned int i = 0; i < hawindow_count; i++) {
 		if (dm_write(target, DM_HAWINDOWSEL, i) != ERROR_OK) {
 			free(hawindow);
 			return ERROR_FAIL;

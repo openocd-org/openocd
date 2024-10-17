@@ -245,7 +245,7 @@ struct riscv_info {
 	int (*read_memory)(struct target *target, target_addr_t address,
 			uint32_t size, uint32_t count, uint8_t *buffer, uint32_t increment);
 
-	unsigned (*data_bits)(struct target *target);
+	unsigned int (*data_bits)(struct target *target);
 
 	COMMAND_HELPER((*print_info), struct target *target);
 
@@ -320,15 +320,15 @@ typedef struct {
 typedef struct {
 	const char *name;
 	int level;
-	unsigned va_bits;
+	unsigned int va_bits;
 	/* log2(PTESIZE) */
-	unsigned pte_shift;
-	unsigned vpn_shift[PG_MAX_LEVEL];
-	unsigned vpn_mask[PG_MAX_LEVEL];
-	unsigned pte_ppn_shift[PG_MAX_LEVEL];
-	unsigned pte_ppn_mask[PG_MAX_LEVEL];
-	unsigned pa_ppn_shift[PG_MAX_LEVEL];
-	unsigned pa_ppn_mask[PG_MAX_LEVEL];
+	unsigned int pte_shift;
+	unsigned int vpn_shift[PG_MAX_LEVEL];
+	unsigned int vpn_mask[PG_MAX_LEVEL];
+	unsigned int pte_ppn_shift[PG_MAX_LEVEL];
+	unsigned int pte_ppn_mask[PG_MAX_LEVEL];
+	unsigned int pa_ppn_shift[PG_MAX_LEVEL];
+	unsigned int pa_ppn_mask[PG_MAX_LEVEL];
 } virt2phys_info_t;
 
 /* Wall-clock timeout for a command/access. Settable via RISC-V Target commands.*/
@@ -381,7 +381,7 @@ int riscv_openocd_step(
 bool riscv_supports_extension(const struct target *target, char letter);
 
 /* Returns XLEN for the given (or current) hart. */
-unsigned riscv_xlen(const struct target *target);
+unsigned int riscv_xlen(const struct target *target);
 
 /* Returns VLENB for the given (or current) hart. */
 unsigned int riscv_vlenb(const struct target *target);
