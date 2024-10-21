@@ -251,6 +251,7 @@ extern const struct flash_driver ath79_flash;
 extern const struct flash_driver atsame5_flash;
 extern const struct flash_driver atsamv_flash;
 extern const struct flash_driver avr_flash;
+extern const struct flash_driver bl602_flash;
 extern const struct flash_driver bluenrgx_flash;
 extern const struct flash_driver cc26xx_flash;
 extern const struct flash_driver cc3220sf_flash;

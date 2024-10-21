@@ -7132,6 +7132,34 @@ flash erase_sector 0 0 last # It will perform a mass erase
 Triggering a mass erase is also useful when users want to disable readout protection.
 @end deffn
 
+@deffn {Flash Driver} {bl602}
+Supports RISC-V chips Bouffalo Lab BL602, BL702 and BL702L series.
+Both internal and external flashes are supported. The driver automatically
+recognizes the specific version's flash parameters and autoconfigures itself.
+Due to how the SFlash and XIP in those chips works, it is recommended to probe
+the flash before usage, and reset the chip after work with flash is finished.
+
+This driver does not generate boot header which is required to have working
+firmware. This header must be inside of ELF with proper Load Memory Address
+and other parts of firmware must have proper LMA based on boot header configuration.
+
+The @var{bl602} driver needs following parameters,
+which must appear in the following order:
+
+@itemize
+@item @var{chip_type} ... required, may be
+@option{bl602},
+@option{bl702},
+@option{bl702l}
+@end itemize
+
+Example:
+
+@example
+flash bank $_FLASHNAME bl602 0x23000000 0 0 0 $_TARGETNAME bl602
+@end example
+@end deffn
+
 @deffn {Flash Driver} {cc26xx}
 All versions of the SimpleLink CC13xx and CC26xx microcontrollers from Texas
 Instruments include internal flash. The cc26xx flash driver supports both the
