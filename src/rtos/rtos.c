@@ -103,7 +103,7 @@ int rtos_create(struct jim_getopt_info *goi, struct target *target)
 	Jim_Obj *res;
 	int e;
 
-	if (!goi->isconfigure && goi->argc != 0) {
+	if (!goi->is_configure && goi->argc != 0) {
 		Jim_WrongNumArgs(goi->interp, goi->argc, goi->argv, "NO PARAMS");
 		return JIM_ERR;
 	}

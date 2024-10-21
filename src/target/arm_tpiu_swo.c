@@ -358,7 +358,7 @@ static int arm_tpiu_swo_configure(struct jim_getopt_info *goi, struct arm_tpiu_s
 {
 	assert(obj);
 
-	if (goi->isconfigure && obj->enabled) {
+	if (goi->is_configure && obj->enabled) {
 		Jim_SetResultFormatted(goi->interp, "Cannot configure TPIU/SWO; %s is enabled!", obj->name);
 		return JIM_ERR;
 	}
@@ -382,7 +382,7 @@ static int arm_tpiu_swo_configure(struct jim_getopt_info *goi, struct arm_tpiu_s
 
 		switch (n->value) {
 		case CFG_PORT_WIDTH:
-			if (goi->isconfigure) {
+			if (goi->is_configure) {
 				jim_wide port_width;
 				e = jim_getopt_wide(goi, &port_width);
 				if (e != JIM_OK)
@@ -399,7 +399,7 @@ static int arm_tpiu_swo_configure(struct jim_getopt_info *goi, struct arm_tpiu_s
 			}
 			break;
 		case CFG_PROTOCOL:
-			if (goi->isconfigure) {
+			if (goi->is_configure) {
 				struct jim_nvp *p;
 				e = jim_getopt_nvp(goi, nvp_arm_tpiu_swo_protocol_opts, &p);
 				if (e != JIM_OK)
@@ -418,7 +418,7 @@ static int arm_tpiu_swo_configure(struct jim_getopt_info *goi, struct arm_tpiu_s
 			}
 			break;
 		case CFG_FORMATTER:
-			if (goi->isconfigure) {
+			if (goi->is_configure) {
 				struct jim_nvp *p;
 				e = jim_getopt_nvp(goi, nvp_arm_tpiu_swo_bool_opts, &p);
 				if (e != JIM_OK)
@@ -437,7 +437,7 @@ static int arm_tpiu_swo_configure(struct jim_getopt_info *goi, struct arm_tpiu_s
 			}
 			break;
 		case CFG_TRACECLKIN:
-			if (goi->isconfigure) {
+			if (goi->is_configure) {
 				jim_wide clk;
 				e = jim_getopt_wide(goi, &clk);
 				if (e != JIM_OK)
@@ -450,7 +450,7 @@ static int arm_tpiu_swo_configure(struct jim_getopt_info *goi, struct arm_tpiu_s
 			}
 			break;
 		case CFG_BITRATE:
-			if (goi->isconfigure) {
+			if (goi->is_configure) {
 				jim_wide clk;
 				e = jim_getopt_wide(goi, &clk);
 				if (e != JIM_OK)
@@ -463,7 +463,7 @@ static int arm_tpiu_swo_configure(struct jim_getopt_info *goi, struct arm_tpiu_s
 			}
 			break;
 		case CFG_OUTFILE:
-			if (goi->isconfigure) {
+			if (goi->is_configure) {
 				const char *s;
 				e = jim_getopt_string(goi, &s, NULL);
 				if (e != JIM_OK)
@@ -491,7 +491,7 @@ static int arm_tpiu_swo_configure(struct jim_getopt_info *goi, struct arm_tpiu_s
 			}
 			break;
 		case CFG_EVENT:
-			if (goi->isconfigure) {
+			if (goi->is_configure) {
 				if (goi->argc < 2) {
 					Jim_WrongNumArgs(goi->interp, goi->argc, goi->argv, "-event ?event-name? ?EVENT-BODY?");
 					return JIM_ERR;
@@ -521,7 +521,7 @@ static int arm_tpiu_swo_configure(struct jim_getopt_info *goi, struct arm_tpiu_s
 					ea = ea->next;
 				}
 
-				if (goi->isconfigure) {
+				if (goi->is_configure) {
 					if (!ea) {
 						ea = calloc(1, sizeof(*ea));
 						if (!ea) {
@@ -560,7 +560,7 @@ static int jim_arm_tpiu_swo_configure(Jim_Interp *interp, int argc, Jim_Obj * co
 	struct jim_getopt_info goi;
 
 	jim_getopt_setup(&goi, interp, argc - 1, argv + 1);
-	goi.isconfigure = !strcmp(c->name, "configure");
+	goi.is_configure = !strcmp(c->name, "configure");
 	if (goi.argc < 1) {
 		Jim_WrongNumArgs(goi.interp, goi.argc, goi.argv,
 			"missing: -option ...");
@@ -977,7 +977,7 @@ static int jim_arm_tpiu_swo_create(Jim_Interp *interp, int argc, Jim_Obj *const 
 	}
 
 	/* Do the rest as "configure" options */
-	goi.isconfigure = 1;
+	goi.is_configure = true;
 	int e = arm_tpiu_swo_configure(&goi, obj);
 	if (e != JIM_OK)
 		goto err_exit;
