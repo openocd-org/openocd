@@ -2837,6 +2837,12 @@ static int assert_reset(struct target *target)
 	return riscv013_invalidate_cached_progbuf(target);
 }
 
+static bool dcsr_ebreak_config_equals_reset_value(const struct target *target)
+{
+	RISCV_INFO(r);
+	return !(r->riscv_ebreakm || r->riscv_ebreaks || r->riscv_ebreaku);
+}
+
 static int deassert_reset(struct target *target)
 {
 	RISCV013_INFO(info);
@@ -2903,7 +2909,7 @@ static int deassert_reset(struct target *target)
 		target->state = TARGET_RUNNING;
 		target->debug_reason = DBG_REASON_NOTHALTED;
 	}
-	info->dcsr_ebreak_is_set = false;
+	info->dcsr_ebreak_is_set = dcsr_ebreak_config_equals_reset_value(target);
 
 	/* Ack reset and clear DM_DMCONTROL_HALTREQ if previously set */
 	control = 0;
