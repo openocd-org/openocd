@@ -358,16 +358,32 @@ struct riscv_info {
 
 	bool range_trigger_fallback_encountered;
 
-	bool riscv_ebreakm;
-	bool riscv_ebreaks;
-	bool riscv_ebreaku;
-
 	bool wp_allow_equality_match_trigger;
 	bool wp_allow_napot_trigger;
 	bool wp_allow_ge_lt_trigger;
 
 	bool autofence;
 };
+
+enum riscv_priv_mode {
+	RISCV_MODE_M,
+	RISCV_MODE_S,
+	RISCV_MODE_U,
+	RISCV_MODE_VS,
+	RISCV_MODE_VU,
+	N_RISCV_MODE
+};
+
+struct riscv_private_config {
+	bool dcsr_ebreak_fields[N_RISCV_MODE];
+};
+
+static inline struct riscv_private_config
+*riscv_private_config(const struct target *target)
+{
+	assert(target->private_config);
+	return target->private_config;
+}
 
 COMMAND_HELPER(riscv_print_info_line, const char *section, const char *key,
 			   unsigned int value);
