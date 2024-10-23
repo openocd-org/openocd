@@ -309,7 +309,7 @@ int rtos_qsymbol(struct connection *connection, char const *packet, int packet_s
 	reply_len += 2 * strlen(next_suffix);            /* hexify(..., next_suffix, ...) */
 	reply_len += 1;                                  /* Terminating NUL */
 	if (reply_len > sizeof(reply)) {
-		LOG_ERROR("ERROR: RTOS symbol '%s%s' name is too long for GDB!", next_sym->symbol_name, next_suffix);
+		LOG_ERROR("RTOS symbol '%s%s' name is too long for GDB", next_sym->symbol_name, next_suffix);
 		goto done;
 	}
 
