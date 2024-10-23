@@ -11356,16 +11356,18 @@ This command can be used to change the memory access methods if the default
 behavior is not suitable for a particular target.
 @end deffn
 
-@deffn {Command} {riscv set_enable_virtual} on|off
-When on, memory accesses are performed on physical or virtual memory depending
-on the current system configuration. When off (default), all memory accessses are performed
-on physical memory.
-@end deffn
-
-@deffn {Command} {riscv set_enable_virt2phys} on|off
-When on (default), memory accesses are performed on physical or virtual memory
-depending on the current satp configuration. When off, all memory accessses are
-performed on physical memory.
+@deffn {Command} {riscv virt2phys_mode} [@option{hw}|@option{sw}|@option{off}]
+Configure how OpenOCD translates virtual addresses to physical:
+@itemize @bullet
+@item @option{sw} - OpenOCD translates virtual addresses explicitly by
+traversing the page table entries (by performing physical memory accesses to
+read the respective entries). This is the default mode.
+@item @option{hw} - Virtual addresses are translated implicitly by hardware.
+(Virtual memory access will fail with an error if the hardware doesn't
+support the necessary functionality.)
+@item @option{off} - Virtual addresses are not translated (identity mapping is assumed).
+@end itemize
+Returns current translation mode if called without arguments.
 @end deffn
 
 @deffn {Command} {riscv resume_order} normal|reversed

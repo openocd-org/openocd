@@ -139,6 +139,35 @@ struct tdata1_cache {
 	struct list_head elem_tdata1;
 };
 
+bool riscv_virt2phys_mode_is_hw(const struct target *target)
+{
+	assert(target);
+	RISCV_INFO(r);
+	return r->virt2phys_mode == RISCV_VIRT2PHYS_MODE_HW;
+}
+
+bool riscv_virt2phys_mode_is_sw(const struct target *target)
+{
+	assert(target);
+	RISCV_INFO(r);
+	return r->virt2phys_mode == RISCV_VIRT2PHYS_MODE_SW;
+}
+
+const char *riscv_virt2phys_mode_to_str(riscv_virt2phys_mode_t mode)
+{
+	assert(mode == RISCV_VIRT2PHYS_MODE_OFF
+			|| mode == RISCV_VIRT2PHYS_MODE_SW
+			|| mode == RISCV_VIRT2PHYS_MODE_HW);
+
+	static const char *const names[] = {
+		[RISCV_VIRT2PHYS_MODE_HW] = "hw",
+		[RISCV_VIRT2PHYS_MODE_SW] = "sw",
+		[RISCV_VIRT2PHYS_MODE_OFF] = "off",
+	};
+
+	return names[mode];
+}
+
 /* Wall-clock timeout for a command/access. Settable via RISC-V Target commands.*/
 static int riscv_command_timeout_sec_value = DEFAULT_COMMAND_TIMEOUT_SEC;
 
@@ -149,10 +178,6 @@ int riscv_get_command_timeout_sec(void)
 {
 	return MAX(riscv_command_timeout_sec_value, riscv_reset_timeout_sec);
 }
-
-static bool riscv_enable_virt2phys = true;
-
-bool riscv_enable_virtual;
 
 static enum {
 	RO_NORMAL,
@@ -2714,7 +2739,7 @@ static int riscv_mmu(struct target *target, int *enabled)
 {
 	*enabled = 0;
 
-	if (!riscv_enable_virt2phys)
+	if (!riscv_virt2phys_mode_is_sw(target))
 		return ERROR_OK;
 
 	/* Don't use MMU in explicit or effective M (machine) mode */
@@ -3938,16 +3963,6 @@ COMMAND_HANDLER(riscv_set_mem_access)
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(riscv_set_enable_virtual)
-{
-	if (CMD_ARGC != 1) {
-		LOG_ERROR("Command takes exactly 1 parameter");
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-	COMMAND_PARSE_ON_OFF(CMD_ARGV[0], riscv_enable_virtual);
-	return ERROR_OK;
-}
-
 static int parse_ranges(struct list_head *ranges, const char *tcl_arg, const char *reg_type, unsigned int max_val)
 {
 	char *args = strdup(tcl_arg);
@@ -4456,16 +4471,6 @@ COMMAND_HANDLER(riscv_set_maskisr)
 		command_print(CMD, "riscv interrupt mask %s", n->name);
 	}
 
-	return ERROR_OK;
-}
-
-COMMAND_HANDLER(riscv_set_enable_virt2phys)
-{
-	if (CMD_ARGC != 1) {
-		LOG_ERROR("Command takes exactly 1 parameter");
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-	COMMAND_PARSE_ON_OFF(CMD_ARGV[0], riscv_enable_virt2phys);
 	return ERROR_OK;
 }
 
@@ -5093,6 +5098,36 @@ COMMAND_HANDLER(handle_reserve_trigger)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(handle_riscv_virt2phys_mode)
+{
+	struct riscv_info *info = riscv_info(get_current_target(CMD_CTX));
+	if (CMD_ARGC == 0) {
+		riscv_virt2phys_mode_t mode = info->virt2phys_mode;
+		command_print(CMD, "%s", riscv_virt2phys_mode_to_str(mode));
+		return ERROR_OK;
+	}
+
+	if (CMD_ARGC != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	// TODO: add auto mode to allow OpenOCD choose translation mode
+	if (!strcmp(CMD_ARGV[0],
+			riscv_virt2phys_mode_to_str(RISCV_VIRT2PHYS_MODE_SW))) {
+		info->virt2phys_mode = RISCV_VIRT2PHYS_MODE_SW;
+	} else if (!strcmp(CMD_ARGV[0],
+			riscv_virt2phys_mode_to_str(RISCV_VIRT2PHYS_MODE_HW))) {
+		info->virt2phys_mode = RISCV_VIRT2PHYS_MODE_HW;
+	} else if (!strcmp(CMD_ARGV[0],
+			riscv_virt2phys_mode_to_str(RISCV_VIRT2PHYS_MODE_OFF))) {
+		info->virt2phys_mode = RISCV_VIRT2PHYS_MODE_OFF;
+	} else {
+		command_print(CMD, "Unsupported address translation mode: %s", CMD_ARGV[0]);
+		return ERROR_COMMAND_ARGUMENT_INVALID;
+	}
+
+	return ERROR_OK;
+}
+
 static const struct command_registration riscv_exec_command_handlers[] = {
 	{
 		.name = "dump_sample_buf",
@@ -5143,15 +5178,6 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.usage = "method1 [method2] [method3]",
 		.help = "Set which memory access methods shall be used and in which order "
 			"of priority. Method can be one of: 'progbuf', 'sysbus' or 'abstract'."
-	},
-	{
-		.name = "set_enable_virtual",
-		.handler = riscv_set_enable_virtual,
-		.mode = COMMAND_ANY,
-		.usage = "on|off",
-		.help = "When on, memory accesses are performed on physical or virtual "
-				"memory depending on the current system configuration. "
-				"When off (default), all memory accessses are performed on physical memory."
 	},
 	{
 		.name = "expose_csrs",
@@ -5278,14 +5304,6 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.usage = "['off'|'steponly']",
 	},
 	{
-		.name = "set_enable_virt2phys",
-		.handler = riscv_set_enable_virt2phys,
-		.mode = COMMAND_ANY,
-		.usage = "on|off",
-		.help = "When on (default), enable translation from virtual address to "
-			"physical address."
-	},
-	{
 		.name = "set_ebreakm",
 		.handler = riscv_set_ebreakm,
 		.mode = COMMAND_ANY,
@@ -5352,6 +5370,16 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.usage = "[index ('on'|'off')]",
 		.help = "Controls which RISC-V triggers shall not be touched by OpenOCD.",
+	},
+	{
+		.name = "virt2phys_mode",
+		.handler = handle_riscv_virt2phys_mode,
+		.mode = COMMAND_ANY,
+		.usage = "['sw'|'hw'|'off']",
+		.help = "Configure the virtual address translation mode: "
+				"sw - translate vaddr to paddr by manually traversing page tables, "
+				"hw - translate vaddr to paddr by hardware, "
+				"off - no address translation."
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -5468,6 +5496,8 @@ static void riscv_info_init(struct target *target, struct riscv_info *r)
 	memset(r->trigger_unique_id, 0xff, sizeof(r->trigger_unique_id));
 
 	r->xlen = -1;
+
+	r->virt2phys_mode = RISCV_VIRT2PHYS_MODE_SW;
 
 	r->isrmask_mode = RISCV_ISRMASK_OFF;
 
