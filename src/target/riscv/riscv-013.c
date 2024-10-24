@@ -1995,11 +1995,11 @@ static int examine(struct target *target)
 				info->impebreak);
 	}
 
-	if (info->progbufsize < 4 && riscv_enable_virtual) {
-		LOG_TARGET_ERROR(target, "set_enable_virtual is not available on this target. It "
-				"requires a program buffer size of at least 4. (progbufsize=%d) "
-				"Use `riscv set_enable_virtual off` to continue."
-					, info->progbufsize);
+	if (info->progbufsize < 4 && riscv_virt2phys_mode_is_hw(target)) {
+		LOG_TARGET_ERROR(target, "software address translation "
+				"is not available on this target. It requires a "
+				"program buffer size of at least 4. (progbufsize=%d) "
+				"Use `riscv set_enable_virtual off` to continue.", info->progbufsize);
 	}
 
 	/* Don't call any riscv_* functions until after we've counted the number of
@@ -3075,7 +3075,8 @@ static int read_sbcs_nonbusy(struct target *target, uint32_t *sbcs)
 
 static int modify_privilege(struct target *target, uint64_t *mstatus, uint64_t *mstatus_old)
 {
-	if (riscv_enable_virtual && has_sufficient_progbuf(target, 5)) {
+	if (riscv_virt2phys_mode_is_hw(target)
+			&& has_sufficient_progbuf(target, 5)) {
 		/* Read DCSR */
 		uint64_t dcsr;
 		if (register_read_direct(target, &dcsr, GDB_REGNO_DCSR) != ERROR_OK)
@@ -4280,7 +4281,8 @@ read_memory_progbuf(struct target *target, target_addr_t address,
 	if (modify_privilege(target, &mstatus, &mstatus_old) != ERROR_OK)
 		return MEM_ACCESS_FAILED_PRIV_MOD_FAILED;
 
-	const bool mprven = riscv_enable_virtual && get_field(mstatus, MSTATUS_MPRV);
+	const bool mprven = riscv_virt2phys_mode_is_hw(target)
+			&& get_field(mstatus, MSTATUS_MPRV);
 	const struct memory_access_info access = {
 		.target_address = address,
 		.increment = increment,
@@ -4852,7 +4854,8 @@ write_memory_progbuf(struct target *target, target_addr_t address,
 	if (modify_privilege(target, &mstatus, &mstatus_old) != ERROR_OK)
 		return MEM_ACCESS_FAILED_PRIV_MOD_FAILED;
 
-	const bool mprven = riscv_enable_virtual && get_field(mstatus, MSTATUS_MPRV);
+	const bool mprven = riscv_virt2phys_mode_is_hw(target)
+			&& get_field(mstatus, MSTATUS_MPRV);
 
 	int result = write_memory_progbuf_inner(target, address, size, count, buffer, mprven);
 

@@ -57,6 +57,14 @@ typedef enum riscv_mem_access_method {
 	RISCV_MEM_ACCESS_MAX_METHODS_NUM
 } riscv_mem_access_method_t;
 
+typedef enum riscv_virt2phys_mode {
+	RISCV_VIRT2PHYS_MODE_HW,
+	RISCV_VIRT2PHYS_MODE_SW,
+	RISCV_VIRT2PHYS_MODE_OFF
+} riscv_virt2phys_mode_t;
+
+const char *riscv_virt2phys_mode_to_str(riscv_virt2phys_mode_t mode);
+
 enum riscv_halt_reason {
 	RISCV_HALT_INTERRUPT,
 	RISCV_HALT_EBREAK,
@@ -164,6 +172,9 @@ struct riscv_info {
 	/* The unique id of the trigger that caused the most recent halt. If the
 	 * most recent halt was not caused by a trigger, then this is -1. */
 	int64_t trigger_hit;
+
+	/* The configured approach to translate virtual addresses to physical */
+	riscv_virt2phys_mode_t virt2phys_mode;
 
 	bool triggers_enumerated;
 
@@ -331,10 +342,11 @@ typedef struct {
 	unsigned int pa_ppn_mask[PG_MAX_LEVEL];
 } virt2phys_info_t;
 
+bool riscv_virt2phys_mode_is_hw(const struct target *target);
+bool riscv_virt2phys_mode_is_sw(const struct target *target);
+
 /* Wall-clock timeout for a command/access. Settable via RISC-V Target commands.*/
 int riscv_get_command_timeout_sec(void);
-
-extern bool riscv_enable_virtual;
 
 /* Everything needs the RISC-V specific info structure, so here's a nice macro
  * that provides that. */
