@@ -4040,6 +4040,7 @@ sub process {
 			}
 		}
 
+if (!$OpenOCD) {
 # check for missing blank lines after struct/union declarations
 # with exceptions for various attributes and macros
 		if ($prevline =~ /^[\+ ]};?\s*$/ &&
@@ -4059,6 +4060,7 @@ sub process {
 				fix_insert_line($fixlinenr, "\+");
 			}
 		}
+} # !$OpenOCD
 
 # check for multiple consecutive blank lines
 		if ($prevline =~ /^[\+ ]\s*$/ &&
@@ -4073,6 +4075,7 @@ sub process {
 			$last_blank_line = $linenr;
 		}
 
+if (!$OpenOCD) {
 # check for missing blank lines after declarations
 # (declarations must have the same indentation and not be at the start of line)
 		if (($prevline =~ /\+(\s+)\S/) && $sline =~ /^\+$1\S/) {
@@ -4118,6 +4121,7 @@ sub process {
 				}
 			}
 		}
+} # !$OpenOCD
 
 # check for spaces at the beginning of a line.
 # Exceptions:

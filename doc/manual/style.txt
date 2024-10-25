@@ -45,7 +45,7 @@ OpenOCD project.
 - use TAB characters for indentation; do NOT use spaces.
 - displayed TAB width is 4 characters.
 - use Unix line endings ('\\n'); do NOT use DOS endings ('\\r\\n')
-- limit adjacent empty lines to at most two (2).
+- do NOT use multiple empty lines.
 - remove any trailing empty lines at the end of source files
 - do not "comment out" code from the tree nor put it within a block
   @code
