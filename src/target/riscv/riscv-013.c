@@ -50,8 +50,7 @@ static bool riscv013_is_halted(struct target *target);
 static enum riscv_halt_reason riscv013_halt_reason(struct target *target);
 static int riscv013_write_debug_buffer(struct target *target, unsigned int index,
 		riscv_insn_t d);
-static riscv_insn_t riscv013_read_debug_buffer(struct target *target, unsigned
-		index);
+static riscv_insn_t riscv013_read_debug_buffer(struct target *target, unsigned int index);
 static int riscv013_execute_debug_buffer(struct target *target);
 static void riscv013_fill_dmi_write_u64(struct target *target, char *buf, int a, uint64_t d);
 static void riscv013_fill_dmi_read_u64(struct target *target, char *buf, int a);
