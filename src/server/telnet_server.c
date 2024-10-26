@@ -93,7 +93,7 @@ static int telnet_output(struct command_context *cmd_ctx, const char *line)
 	return telnet_outputline(connection, line);
 }
 
-static void telnet_log_callback(void *priv, const char *file, unsigned line,
+static void telnet_log_callback(void *priv, const char *file, unsigned int line,
 	const char *function, const char *string)
 {
 	struct connection *connection = priv;

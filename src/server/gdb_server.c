@@ -116,7 +116,7 @@ static int gdb_error(struct connection *connection, int retval);
 static char *gdb_port;
 static char *gdb_port_next;
 
-static void gdb_log_callback(void *priv, const char *file, unsigned line,
+static void gdb_log_callback(void *priv, const char *file, unsigned int line,
 		const char *function, const char *string);
 
 static void gdb_sig_halted(struct connection *connection);
@@ -360,7 +360,7 @@ static void gdb_log_incoming_packet(struct connection *connection, const char *p
 	struct gdb_connection *gdb_connection = connection->priv;
 
 	/* Avoid dumping non-printable characters to the terminal */
-	const unsigned packet_len = strlen(packet);
+	const unsigned int packet_len = strlen(packet);
 	const char *nonprint = find_nonprint_char(packet, packet_len);
 	if (nonprint) {
 		/* Does packet at least have a prefix that is printable?
@@ -1203,7 +1203,7 @@ static void gdb_target_to_reg(struct target *target,
 
 	int i;
 	for (i = 0; i < str_len; i += 2) {
-		unsigned t;
+		unsigned int t;
 		if (sscanf(tstr + i, "%02x", &t) != 1) {
 			LOG_ERROR("BUG: unable to convert register value");
 			exit(-1);
@@ -1948,8 +1948,8 @@ static int gdb_memory_map(struct connection *connection,
 		compare_bank);
 
 	for (unsigned int i = 0; i < target_flash_banks; i++) {
-		unsigned sector_size = 0;
-		unsigned group_len = 0;
+		unsigned int sector_size = 0;
+		unsigned int group_len = 0;
 
 		p = banks[i];
 
@@ -3469,7 +3469,7 @@ static int gdb_fileio_response_packet(struct connection *connection,
 	return ERROR_OK;
 }
 
-static void gdb_log_callback(void *priv, const char *file, unsigned line,
+static void gdb_log_callback(void *priv, const char *file, unsigned int line,
 		const char *function, const char *string)
 {
 	struct connection *connection = priv;
