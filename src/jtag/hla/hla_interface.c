@@ -76,7 +76,7 @@ int hl_interface_init_target(struct target *t)
 	if (res != ERROR_OK)
 		return res;
 
-	unsigned ii, limit = t->tap->expected_ids_cnt;
+	unsigned int ii, limit = t->tap->expected_ids_cnt;
 	int found = 0;
 
 	for (ii = 0; ii < limit; ii++) {
@@ -264,7 +264,7 @@ COMMAND_HANDLER(hl_interface_handle_vid_pid_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	unsigned i;
+	unsigned int i;
 	for (i = 0; i < CMD_ARGC; i += 2) {
 		COMMAND_PARSE_NUMBER(u16, CMD_ARGV[i], hl_if.param.vid[i / 2]);
 		COMMAND_PARSE_NUMBER(u16, CMD_ARGV[i + 1], hl_if.param.pid[i / 2]);
