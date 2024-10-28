@@ -4086,7 +4086,7 @@ static int parse_ranges(struct list_head *ranges, const char *tcl_arg, const cha
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 
-		high = high > low ? high : low;
+		high = MAX(high, low);
 
 		if (high > max_val) {
 			LOG_ERROR("Cannot expose %s register number %u, maximum allowed value is %u.", reg_type, high, max_val);

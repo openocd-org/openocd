@@ -3566,7 +3566,7 @@ read_memory_abstract(struct target *target, target_addr_t address,
 	uint8_t *p = buffer;
 	int result = ERROR_OK;
 	bool updateaddr = true;
-	unsigned int width32 = (width < 32) ? 32 : width;
+	unsigned int width32 = MAX(width, 32);
 	for (uint32_t c = 0; c < count; c++) {
 		/* Update the address if it is the first time or aampostincrement is not supported by the target. */
 		if (updateaddr) {
