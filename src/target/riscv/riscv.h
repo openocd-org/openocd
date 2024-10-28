@@ -29,6 +29,9 @@ struct riscv_program;
 #define RISCV_HGATP_MODE(xlen)  ((xlen) == 32 ? HGATP32_MODE : HGATP64_MODE)
 #define RISCV_HGATP_PPN(xlen)  ((xlen) == 32 ? HGATP32_PPN : HGATP64_PPN)
 #define RISCV_PGSHIFT 12
+#define RISCV_PGSIZE BIT(RISCV_PGSHIFT)
+#define RISCV_PGBASE(addr) ((addr) & ~(RISCV_PGSIZE - 1))
+#define RISCV_PGOFFSET(addr) ((addr) & (RISCV_PGSIZE - 1))
 
 #define PG_MAX_LEVEL 5
 
