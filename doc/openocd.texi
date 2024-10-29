@@ -11631,6 +11631,19 @@ riscv exec_progbuf 0x0330000f 0x0000100f
 riscv exec_progbuf 0x94a20405
 @end example
 
+@deffn {Command} {riscv autofence} [on|off]
+When on (default), OpenOCD will automatically execute RISC-V fence instructions
+(@var{fence.i} and @var{fence rw, rw}) in these cases:
+@itemize @bullet
+@item before step or resume,
+@item before memory read via the Program Buffer,
+@item after memory write via the Program Buffer.
+@end itemize
+When off, users need to take care of memory coherency themselves, for example
+using the @var{riscv exec_progbuf} command to execute fences or CMO instructions
+(RISC-V Cache Management Operations).
+@end deffn
+
 @section ARC Architecture
 @cindex ARC
 

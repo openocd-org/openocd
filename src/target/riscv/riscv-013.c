@@ -2913,10 +2913,14 @@ static int deassert_reset(struct target *target)
 	return dm_write(target, DM_DMCONTROL, control);
 }
 
-static int execute_fence(struct target *target)
+static int execute_autofence(struct target *target)
 {
 	if (dm013_select_target(target) != ERROR_OK)
 		return ERROR_FAIL;
+
+	RISCV_INFO(r);
+	if (!r->autofence)
+		return ERROR_OK;
 
 	/* FIXME: For non-coherent systems we need to flush the caches right
 	 * here, but there's no ISA-defined way of doing that. */
@@ -2939,8 +2943,9 @@ static int execute_fence(struct target *target)
 				LOG_TARGET_ERROR(target, "Unexpected error during fence execution");
 				return ERROR_FAIL;
 			}
-			LOG_TARGET_DEBUG(target, "Unable to execute fence");
+			LOG_TARGET_DEBUG(target, "Unable to execute fence.i and fence rw, rw");
 		}
+		LOG_TARGET_DEBUG(target, "Successfully executed fence.i and fence rw, rw");
 		return ERROR_OK;
 	}
 
@@ -2954,6 +2959,7 @@ static int execute_fence(struct target *target)
 			}
 			LOG_TARGET_DEBUG(target, "Unable to execute fence.i");
 		}
+		LOG_TARGET_DEBUG(target, "Successfully executed fence.i");
 
 		riscv_program_init(&program, target);
 		riscv_program_fence_rw_rw(&program);
@@ -2964,6 +2970,7 @@ static int execute_fence(struct target *target)
 			}
 			LOG_TARGET_DEBUG(target, "Unable to execute fence rw, rw");
 		}
+		LOG_TARGET_DEBUG(target, "Successfully executed fence rw, rw");
 		return ERROR_OK;
 	}
 
@@ -4273,7 +4280,7 @@ read_memory_progbuf(struct target *target, target_addr_t address,
 
 	memset(buffer, 0, count*size);
 
-	if (execute_fence(target) != ERROR_OK)
+	if (execute_autofence(target) != ERROR_OK)
 		return MEM_ACCESS_SKIPPED_FENCE_EXEC_FAILED;
 
 	uint64_t mstatus = 0;
@@ -4864,7 +4871,7 @@ write_memory_progbuf(struct target *target, target_addr_t address,
 		if (register_write_direct(target, GDB_REGNO_MSTATUS, mstatus_old))
 			return MEM_ACCESS_FAILED;
 
-	if (execute_fence(target) != ERROR_OK)
+	if (execute_autofence(target) != ERROR_OK)
 		return MEM_ACCESS_SKIPPED_FENCE_EXEC_FAILED;
 
 	return result == ERROR_OK ? MEM_ACCESS_OK : MEM_ACCESS_FAILED;
@@ -5351,18 +5358,12 @@ static int riscv013_get_dmi_scan_length(struct target *target)
 	return info->abits + DTM_DMI_DATA_LENGTH + DTM_DMI_OP_LENGTH;
 }
 
-static int maybe_execute_fence_i(struct target *target)
-{
-	if (has_sufficient_progbuf(target, 2))
-		return execute_fence(target);
-	return ERROR_OK;
-}
-
 /* Helper Functions. */
 static int riscv013_on_step_or_resume(struct target *target, bool step)
 {
-	if (maybe_execute_fence_i(target) != ERROR_OK)
-		return ERROR_FAIL;
+	if (has_sufficient_progbuf(target, 2))
+		if (execute_autofence(target) != ERROR_OK)
+			return ERROR_FAIL;
 
 	if (set_dcsr_ebreak(target, step) != ERROR_OK)
 		return ERROR_FAIL;
