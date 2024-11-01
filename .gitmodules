@@ -1,6 +1,3 @@
-[submodule "tools/git2cl"]
-	path = tools/git2cl
-	url = https://git.savannah.nongnu.org/git/git2cl.git
 [submodule "jimtcl"]
 	path = jimtcl
 	url = https://github.com/msteveb/jimtcl.git
