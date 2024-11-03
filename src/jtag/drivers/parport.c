@@ -255,7 +255,7 @@ static int parport_get_giveio_access(void)
 }
 #endif
 
-static struct bitbang_interface parport_bitbang = {
+static const struct bitbang_interface parport_bitbang = {
 	.read = &parport_read,
 	.write = &parport_write,
 	.blink = &parport_led,

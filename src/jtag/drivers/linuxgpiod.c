@@ -191,7 +191,7 @@ static int linuxgpiod_blink(bool on)
 	return retval;
 }
 
-static struct bitbang_interface linuxgpiod_bitbang = {
+static const struct bitbang_interface linuxgpiod_bitbang = {
 	.read = linuxgpiod_read,
 	.write = linuxgpiod_write,
 	.swdio_read = linuxgpiod_swdio_read,

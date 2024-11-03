@@ -565,7 +565,7 @@ struct adapter_driver sysfsgpio_adapter_driver = {
 	.swd_ops = &bitbang_swd,
 };
 
-static struct bitbang_interface sysfsgpio_bitbang = {
+static const struct bitbang_interface sysfsgpio_bitbang = {
 	.read = sysfsgpio_read,
 	.write = sysfsgpio_write,
 	.swdio_read = sysfsgpio_swdio_read,
