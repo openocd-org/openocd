@@ -427,7 +427,7 @@ static int bcm2835gpio_blink(bool on)
 	return ERROR_OK;
 }
 
-static struct bitbang_interface bcm2835gpio_bitbang = {
+static const struct bitbang_interface bcm2835gpio_bitbang_swd_write_generic = {
 	.read = bcm2835gpio_read,
 	.write = bcm2835gpio_write,
 	.swdio_read = bcm2835_swdio_read,
@@ -436,11 +436,19 @@ static struct bitbang_interface bcm2835gpio_bitbang = {
 	.blink = bcm2835gpio_blink,
 };
 
+static const struct bitbang_interface bcm2835gpio_bitbang_swd_write_fast = {
+	.read = bcm2835gpio_read,
+	.write = bcm2835gpio_write,
+	.swdio_read = bcm2835_swdio_read,
+	.swdio_drive = bcm2835_swdio_drive,
+	.swd_write = bcm2835gpio_swd_write_fast,
+	.blink = bcm2835gpio_blink,
+};
+
 static int bcm2835gpio_init(void)
 {
 	LOG_INFO("BCM2835 GPIO JTAG/SWD bitbang driver");
 
-	bitbang_interface = &bcm2835gpio_bitbang;
 	adapter_gpio_config = adapter_gpio_get_config();
 
 	if (transport_is_jtag() && !bcm2835gpio_jtag_mode_possible()) {
@@ -509,6 +517,8 @@ LOG_INFO("pads conf set to %08x", pads_base[BCM2835_PADS_GPIO_0_27_OFFSET]);
 		initialize_gpio(ADAPTER_GPIO_IDX_TRST);
 	}
 
+	const struct bitbang_interface *bcm2835gpio_bitbang = &bcm2835gpio_bitbang_swd_write_generic;
+
 	if (transport_is_swd()) {
 		/* swdio and its buffer should be initialized in the order that prevents
 		 * two outputs from being connected together. This will occur if the
@@ -529,15 +539,17 @@ LOG_INFO("pads conf set to %08x", pads_base[BCM2835_PADS_GPIO_0_27_OFFSET]);
 		if (adapter_gpio_config[ADAPTER_GPIO_IDX_SWCLK].drive == ADAPTER_GPIO_DRIVE_MODE_PUSH_PULL &&
 				adapter_gpio_config[ADAPTER_GPIO_IDX_SWDIO].drive == ADAPTER_GPIO_DRIVE_MODE_PUSH_PULL) {
 			LOG_DEBUG("BCM2835 GPIO using fast mode for SWD write");
-			bcm2835gpio_bitbang.swd_write = bcm2835gpio_swd_write_fast;
+			bcm2835gpio_bitbang = &bcm2835gpio_bitbang_swd_write_fast;
 		} else {
 			LOG_DEBUG("BCM2835 GPIO using generic mode for SWD write");
-			bcm2835gpio_bitbang.swd_write = bcm2835gpio_swd_write_generic;
+			assert(bcm2835gpio_bitbang == &bcm2835gpio_bitbang_swd_write_generic);
 		}
 	}
 
 	initialize_gpio(ADAPTER_GPIO_IDX_SRST);
 	initialize_gpio(ADAPTER_GPIO_IDX_LED);
+
+	bitbang_interface = bcm2835gpio_bitbang;
 
 	return ERROR_OK;
 }
