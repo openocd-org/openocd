@@ -272,9 +272,13 @@ AC_ARG_ENABLE([dmem],
 m4_define([AC_ARG_ADAPTERS], [
   m4_foreach([adapter], [$1],
 	[AC_ARG_ENABLE(ADAPTER_OPT([adapter]),
-		AS_HELP_STRING([--enable-ADAPTER_OPT([adapter])],
+		AS_HELP_STRING([--enable-ADAPTER_OPT([adapter])[[[=yes/no/auto]]]],
 			[Enable building support for the ]ADAPTER_DESC([adapter])[ (default is $2)]),
-		[], [ADAPTER_VAR([adapter])=$2])
+		[case "${enableval}" in
+			yes|no|auto) ;;
+			*) AC_MSG_ERROR([Option --enable-ADAPTER_OPT([adapter]) has invalid value "${enableval}".]) ;;
+			esac],
+		[ADAPTER_VAR([adapter])=$2])
   ])
 ])
 
