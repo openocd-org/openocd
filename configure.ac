@@ -177,8 +177,8 @@ m4_define([REMOTE_BITBANG_ADAPTER],
 m4_define([LIBJAYLINK_ADAPTERS],
 	[[[jlink], [SEGGER J-Link Programmer], [JLINK]]])
 
-m4_define([PCIE_ADAPTERS],
-	[[[xlnx_pcie_xvc], [Xilinx XVC/PCIe], [XLNX_XVC]]])
+m4_define([XVC_ADAPTERS],
+	[[[xlnx_xvc], [Xilinx XVC PCIe and AXI drives], [XLNX_XVC]]])
 
 m4_define([SERIAL_PORT_ADAPTERS],
 	[[[buspirate], [Bus Pirate], [BUS_PIRATE]]])
@@ -335,7 +335,7 @@ AC_ARG_ADAPTERS([
   JTAG_DPI_ADAPTER,
   JTAG_VPI_ADAPTER,
   RSHIM_ADAPTER,
-  PCIE_ADAPTERS,
+  XVC_ADAPTERS,
   LIBJAYLINK_ADAPTERS
   ],[auto])
 
@@ -644,7 +644,7 @@ PROCESS_ADAPTERS([DMEM_ADAPTER], ["x$is_linux" = "xyes"], [Linux /dev/mem])
 PROCESS_ADAPTERS([SYSFSGPIO_ADAPTER], ["x$is_linux" = "xyes"], [Linux sysfs])
 PROCESS_ADAPTERS([REMOTE_BITBANG_ADAPTER], [true], [unused])
 PROCESS_ADAPTERS([LIBJAYLINK_ADAPTERS], ["x$use_internal_libjaylink" = "xyes" -o "x$use_libjaylink" = "xyes"], [libjaylink-0.2])
-PROCESS_ADAPTERS([PCIE_ADAPTERS], ["x$is_linux" = "xyes" -a "x$ac_cv_header_linux_pci_h" = "xyes"], [Linux build])
+PROCESS_ADAPTERS([XVC_ADAPTERS], ["x$is_linux" = "xyes" -a "x$ac_cv_header_linux_pci_h" = "xyes"], [Linux build])
 PROCESS_ADAPTERS([SERIAL_PORT_ADAPTERS], ["x$can_build_buspirate" = "xyes"],
                                          [internal error: validation should happen beforehand])
 PROCESS_ADAPTERS([LINUXSPIDEV_ADAPTER], ["x$is_linux" = "xyes" -a "x$ac_cv_header_linux_spi_spidev_h" = "xyes"],
@@ -840,7 +840,8 @@ m4_foreach([adapterTuple], [USB1_ADAPTERS,
 	DMEM_ADAPTER,
 	SYSFSGPIO_ADAPTER,
 	REMOTE_BITBANG_ADAPTER,
-	LIBJAYLINK_ADAPTERS, PCIE_ADAPTERS, SERIAL_PORT_ADAPTERS,
+	LIBJAYLINK_ADAPTERS, XVC_ADAPTERS,
+	SERIAL_PORT_ADAPTERS,
 	LINUXSPIDEV_ADAPTER,
 	VDEBUG_ADAPTER,
 	JTAG_DPI_ADAPTER,

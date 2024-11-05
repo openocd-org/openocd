@@ -411,6 +411,7 @@ extern struct adapter_driver usbprog_adapter_driver;
 extern struct adapter_driver vdebug_adapter_driver;
 extern struct adapter_driver vsllink_adapter_driver;
 extern struct adapter_driver xds110_adapter_driver;
+extern struct adapter_driver xlnx_axi_xvc_adapter_driver;
 extern struct adapter_driver xlnx_pcie_xvc_adapter_driver;
 
 #endif /* OPENOCD_JTAG_INTERFACE_H */

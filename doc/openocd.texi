@@ -613,6 +613,12 @@ emulation model of target hardware.
 
 @item @b{xlnx_pcie_xvc}
 @* A JTAG driver exposing Xilinx Virtual Cable over PCI Express to OpenOCD as JTAG/SWD interface.
+@* Link: @url{https://www.xilinx.com/products/intellectual-property/debug-bridge.html}
+
+@item @b{xlnx_axi_xvc}
+@* A JTAG driver exposing JTAG to OpenOCD over AXI-mapped registers.
+@* Link: @url{https://docs.amd.com/r/en-US/pg437-axi-jtag/Introduction}
+@* Link: @url{https://china.xilinx.com/support/documentation/application_notes/xapp1251-xvc-zynq-petalinux.pdf}
 
 @item @b{linuxspidev}
 @* A SPI based SWD driver using Linux SPI devices.
@@ -3349,6 +3355,21 @@ of lscpi -D (first column) for the corresponding device.
 
 The string will be of the format "DDDD:BB:SS.F" such as "0000:65:00.1".
 
+@end deffn
+@end deffn
+
+@deffn {Interface Driver} {xlnx_axi_xvc}
+This driver supports the Xilinx JTAG mapping over AXI using the AXI to JTAG
+Converter or the AXI-to-JTAG mode of the debug bridge.
+It is commonly found in Xilinx MPSoC based designs. It allows debugging
+fabric based JTAG/SWD devices such as Cortex-M1/M3 or RISC-V softcores. Access to this
+is exposed via extended capability registers in the AXI-mapped configuration space.
+
+@deffn {Config Command} {xlnx_axi_xvc dev_addr} addr
+Specifies the address of the AXI-mapped registers via parameter @var{addr}.
+
+The correct value for @var{addr} is specified in the "Address Editor" tab
+in Vivado.
 @end deffn
 @end deffn
 

@@ -413,6 +413,12 @@ proc xlnx_pcie_xvc_config args {
 	eval xlnx_pcie_xvc config $args
 }
 
+lappend _telnet_autocomplete_skip xlnx_axi_xvc_config
+proc xlnx_axi_xvc_config args {
+	echo "DEPRECATED! use 'xlnx_axi_xvc config' not 'xlnx_axi_xvc_config'"
+	eval xlnx_axi_xvc config $args
+}
+
 lappend _telnet_autocomplete_skip ulink_download_firmware
 proc ulink_download_firmware args {
 	echo "DEPRECATED! use 'ulink download_firmware' not 'ulink_download_firmware'"
