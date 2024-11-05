@@ -3927,10 +3927,9 @@ int riscv_openocd_step(struct target *target, int current,
 /* Command Handlers */
 COMMAND_HANDLER(riscv_set_command_timeout_sec)
 {
-	if (CMD_ARGC != 1) {
-		LOG_ERROR("Command takes exactly 1 parameter.");
+	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
+
 	int timeout = atoi(CMD_ARGV[0]);
 	if (timeout <= 0) {
 		LOG_ERROR("%s is not a valid integer argument for command.", CMD_ARGV[0]);
@@ -3945,10 +3944,9 @@ COMMAND_HANDLER(riscv_set_command_timeout_sec)
 COMMAND_HANDLER(riscv_set_reset_timeout_sec)
 {
 	LOG_WARNING("The command 'riscv set_reset_timeout_sec' is deprecated! Please, use 'riscv set_command_timeout_sec'.");
-	if (CMD_ARGC != 1) {
-		LOG_ERROR("Command takes exactly 1 parameter.");
+	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
+
 	int timeout = atoi(CMD_ARGV[0]);
 	if (timeout <= 0) {
 		LOG_ERROR("%s is not a valid integer argument for command.", CMD_ARGV[0]);
@@ -4137,10 +4135,8 @@ static int parse_ranges(struct list_head *ranges, const char *tcl_arg, const cha
 
 COMMAND_HANDLER(riscv_set_expose_csrs)
 {
-	if (CMD_ARGC == 0) {
-		LOG_ERROR("Command expects parameters.");
+	if (CMD_ARGC == 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	struct target *target = get_current_target(CMD_CTX);
 	RISCV_INFO(info);
@@ -4157,10 +4153,8 @@ COMMAND_HANDLER(riscv_set_expose_csrs)
 
 COMMAND_HANDLER(riscv_set_expose_custom)
 {
-	if (CMD_ARGC == 0) {
-		LOG_ERROR("Command expects parameters.");
+	if (CMD_ARGC == 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	struct target *target = get_current_target(CMD_CTX);
 	RISCV_INFO(info);
@@ -4177,10 +4171,8 @@ COMMAND_HANDLER(riscv_set_expose_custom)
 
 COMMAND_HANDLER(riscv_hide_csrs)
 {
-	if (CMD_ARGC == 0) {
-		LOG_ERROR("Command expects parameters");
+	if (CMD_ARGC == 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	struct target *target = get_current_target(CMD_CTX);
 	RISCV_INFO(info);
@@ -4198,14 +4190,10 @@ COMMAND_HANDLER(riscv_hide_csrs)
 COMMAND_HANDLER(riscv_authdata_read)
 {
 	unsigned int index = 0;
-	if (CMD_ARGC == 0) {
-		/* nop */
-	} else if (CMD_ARGC == 1) {
+	if (CMD_ARGC == 1)
 		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], index);
-	} else {
-		LOG_ERROR("Command takes at most one parameter.");
+	else if (CMD_ARGC != 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	struct target *target = get_current_target(CMD_CTX);
 	if (!target) {
@@ -4409,10 +4397,8 @@ COMMAND_HANDLER(riscv_reset_delays)
 
 COMMAND_HANDLER(riscv_set_ir)
 {
-	if (CMD_ARGC != 2) {
-		LOG_ERROR("Command takes exactly 2 arguments");
+	if (CMD_ARGC != 2)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	uint32_t value;
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], value);
@@ -4431,10 +4417,8 @@ COMMAND_HANDLER(riscv_set_ir)
 
 COMMAND_HANDLER(riscv_resume_order)
 {
-	if (CMD_ARGC > 1) {
-		LOG_ERROR("Command takes at most one argument");
+	if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	if (!strcmp(CMD_ARGV[0], "normal")) {
 		resume_order = RO_NORMAL;
@@ -4483,12 +4467,11 @@ COMMAND_HANDLER(riscv_set_bscan_tunnel_ir)
 {
 	int ir_id = 0;
 
-	if (CMD_ARGC > 1) {
-		LOG_ERROR("Command takes at most one arguments");
+	if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	} else if (CMD_ARGC == 1) {
+
+	if (CMD_ARGC == 1)
 		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], ir_id);
-	}
 
 	LOG_INFO("Bscan tunnel IR 0x%x selected", ir_id);
 
@@ -4534,7 +4517,6 @@ COMMAND_HANDLER(riscv_set_ebreakm)
 		return ERROR_OK;
 	}
 
-	LOG_ERROR("Command takes 0 or 1 parameters");
 	return ERROR_COMMAND_SYNTAX_ERROR;
 }
 
@@ -4551,7 +4533,6 @@ COMMAND_HANDLER(riscv_set_ebreaks)
 		return ERROR_OK;
 	}
 
-	LOG_ERROR("Command takes 0 or 1 parameters");
 	return ERROR_COMMAND_SYNTAX_ERROR;
 }
 
@@ -4568,17 +4549,15 @@ COMMAND_HANDLER(riscv_set_ebreaku)
 		return ERROR_OK;
 	}
 
-	LOG_ERROR("Command takes 0 or 1 parameters");
 	return ERROR_COMMAND_SYNTAX_ERROR;
 }
 
 COMMAND_HELPER(riscv_clear_trigger, int trigger_id, const char *name)
 {
 	struct target *target = get_current_target(CMD_CTX);
-	if (CMD_ARGC != 1) {
-		LOG_ERROR("clear command takes no extra arguments.");
+	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
+
 	if (find_first_trigger_by_id(target, trigger_id) < 0) {
 		LOG_TARGET_ERROR(target, "No %s is set. Nothing to clear.", name);
 		return ERROR_FAIL;
@@ -4588,10 +4567,8 @@ COMMAND_HELPER(riscv_clear_trigger, int trigger_id, const char *name)
 
 COMMAND_HANDLER(riscv_itrigger)
 {
-	if (CMD_ARGC < 1) {
-		LOG_ERROR("Command takes at least 1 parameter");
+	if (CMD_ARGC < 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	struct target *target = get_current_target(CMD_CTX);
 	const int ITRIGGER_UNIQUE_ID = -CSR_TDATA1_TYPE_ITRIGGER;
@@ -4655,10 +4632,8 @@ COMMAND_HANDLER(riscv_itrigger)
 
 COMMAND_HANDLER(riscv_icount)
 {
-	if (CMD_ARGC < 1) {
-		LOG_ERROR("Command takes at least 1 parameter");
+	if (CMD_ARGC < 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	struct target *target = get_current_target(CMD_CTX);
 	const int ICOUNT_UNIQUE_ID = -CSR_TDATA1_TYPE_ICOUNT;
@@ -4722,10 +4697,8 @@ COMMAND_HANDLER(riscv_icount)
 
 COMMAND_HANDLER(riscv_etrigger)
 {
-	if (CMD_ARGC < 1) {
-		LOG_ERROR("Command takes at least 1 parameter");
+	if (CMD_ARGC < 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	struct target *target = get_current_target(CMD_CTX);
 	const int ETRIGGER_UNIQUE_ID = -CSR_TDATA1_TYPE_ETRIGGER;
@@ -4789,14 +4762,8 @@ COMMAND_HANDLER(handle_repeat_read)
 	struct target *target = get_current_target(CMD_CTX);
 	RISCV_INFO(r);
 
-	if (CMD_ARGC < 2) {
-		LOG_ERROR("Command requires at least count and address arguments.");
+	if (CMD_ARGC < 2 || CMD_ARGC > 3)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-	if (CMD_ARGC > 3) {
-		LOG_ERROR("Command takes at most 3 arguments.");
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	uint32_t count;
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], count);
@@ -4842,10 +4809,8 @@ COMMAND_HANDLER(handle_memory_sample_command)
 		return ERROR_OK;
 	}
 
-	if (CMD_ARGC < 2) {
-		LOG_ERROR("Command requires at least bucket and address arguments.");
+	if (CMD_ARGC < 2)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	uint32_t bucket;
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], bucket);
@@ -4891,10 +4856,9 @@ COMMAND_HANDLER(handle_dump_sample_buf_command)
 	struct target *target = get_current_target(CMD_CTX);
 	RISCV_INFO(r);
 
-	if (CMD_ARGC > 1) {
-		LOG_ERROR("Command takes at most 1 arguments.");
+	if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
+
 	bool base64 = false;
 	if (CMD_ARGC > 0) {
 		if (!strcmp(CMD_ARGV[0], "base64")) {
@@ -5000,10 +4964,8 @@ COMMAND_HANDLER(handle_info)
 
 COMMAND_HANDLER(riscv_exec_progbuf)
 {
-	if (CMD_ARGC < 1 || CMD_ARGC > 16) {
-		LOG_ERROR("Command 'exec_progbuf' takes 1 to 16 arguments.");
+	if (CMD_ARGC < 1 || CMD_ARGC > 16)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
 
 	struct target *target = get_current_target(CMD_CTX);
 
@@ -5208,14 +5170,14 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.name = "set_command_timeout_sec",
 		.handler = riscv_set_command_timeout_sec,
 		.mode = COMMAND_ANY,
-		.usage = "[sec]",
+		.usage = "sec",
 		.help = "Set the wall-clock timeout (in seconds) for individual commands"
 	},
 	{
 		.name = "set_reset_timeout_sec",
 		.handler = riscv_set_reset_timeout_sec,
 		.mode = COMMAND_ANY,
-		.usage = "[sec]",
+		.usage = "sec",
 		.help = "DEPRECATED. Use 'riscv set_command_timeout_sec' instead."
 	},
 	{
@@ -5230,7 +5192,7 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.name = "expose_csrs",
 		.handler = riscv_set_expose_csrs,
 		.mode = COMMAND_CONFIG,
-		.usage = "n0[-m0|=name0][,n1[-m1|=name1]]...",
+		.usage = "n0[-m0|=name0][,n1[-m1|=name1]]...[,n15[-m15|=name15]]",
 		.help = "Configure a list of inclusive ranges for CSRs to expose in "
 				"addition to the standard ones. This must be executed before "
 				"`init`."
@@ -5239,7 +5201,7 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.name = "expose_custom",
 		.handler = riscv_set_expose_custom,
 		.mode = COMMAND_CONFIG,
-		.usage = "n0[-m0|=name0][,n1[-m1|=name1]]...",
+		.usage = "n0[-m0|=name0][,n1[-m1|=name1]]...[,n15[-m15|=name15]]",
 		.help = "Configure a list of inclusive ranges for custom registers to "
 			"expose. custom0 is accessed as abstract register number 0xc000, "
 			"etc. This must be executed before `init`."
@@ -5324,7 +5286,7 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.name = "set_ir",
 		.handler = riscv_set_ir,
 		.mode = COMMAND_ANY,
-		.usage = "[idcode|dtmcs|dmi] value",
+		.usage = "idcode|dtmcs|dmi value",
 		.help = "Set IR value for specified JTAG register."
 	},
 	{
@@ -5338,7 +5300,7 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.name = "set_bscan_tunnel_ir",
 		.handler = riscv_set_bscan_tunnel_ir,
 		.mode = COMMAND_CONFIG,
-		.usage = "value",
+		.usage = "[value]",
 		.help = "Specify the JTAG TAP IR used to access the bscan tunnel. "
 			"By default it is 0x23 << (ir_length - 6), which map some "
 			"Xilinx FPGA (IR USER4)"
