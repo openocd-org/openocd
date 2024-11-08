@@ -127,8 +127,6 @@ endif
 if ANGIE
   angiedir = $(pkgdatadir)/angie
   DRIVERFILES     += %D%/angie.c
-  DRIVERFILES     += %D%/angie/include/msgtypes.h
-  EXTRA_DIST      += %D%/angie/README
   dist_angie_DATA  = %D%/angie/angie_firmware.bin
   dist_angie_DATA += %D%/angie/angie_bitstream.bit
   %C%_libocdjtagdrivers_la_LIBADD += -lm
