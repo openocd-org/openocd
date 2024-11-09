@@ -341,7 +341,7 @@ int interface_jtag_add_sleep(uint32_t us)
 }
 
 /* add callback to end of queue */
-void interface_jtag_add_callback4(jtag_callback_t callback,
+static void interface_jtag_add_callback4(jtag_callback_t callback,
 		jtag_callback_data_t data0, jtag_callback_data_t data1,
 		jtag_callback_data_t data2, jtag_callback_data_t data3)
 {
@@ -395,7 +395,7 @@ static int jtag_convert_to_callback4(jtag_callback_data_t data0,
 	return ERROR_OK;
 }
 
-void interface_jtag_add_callback(jtag_callback1_t callback, jtag_callback_data_t data0)
+static void interface_jtag_add_callback(jtag_callback1_t callback, jtag_callback_data_t data0)
 {
 	jtag_add_callback4(jtag_convert_to_callback4, data0, (jtag_callback_data_t)callback, 0, 0);
 }
