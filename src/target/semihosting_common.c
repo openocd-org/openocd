@@ -92,6 +92,8 @@ static int semihosting_common_fileio_info(struct target *target,
 	struct gdb_fileio_info *fileio_info);
 static int semihosting_common_fileio_end(struct target *target, int result,
 	int fileio_errno, bool ctrl_c);
+static void semihosting_set_field(struct target *target, uint64_t value, size_t index, uint8_t *fields);
+static int semihosting_write_fields(struct target *target, size_t number, uint8_t *fields);
 
 /**
  * Initialize common semihosting support.
@@ -298,7 +300,12 @@ static inline int semihosting_getchar(struct semihosting *semihosting, int fd)
  */
 static char *semihosting_user_op_params;
 
-const char *semihosting_opcode_to_str(const uint64_t opcode)
+/**
+ * @brief Convert the syscall opcode to a human-readable string
+ * @param[in] opcode Syscall opcode
+ * @return String representation of syscall opcode
+ */
+static const char *semihosting_opcode_to_str(const uint64_t opcode)
 {
 	switch (opcode) {
 		case SEMIHOSTING_SYS_CLOSE:
@@ -1729,8 +1736,7 @@ int semihosting_read_fields(struct target *target, size_t number,
 /**
  * Write all fields of a command from buffer to target.
  */
-int semihosting_write_fields(struct target *target, size_t number,
-	uint8_t *fields)
+static int semihosting_write_fields(struct target *target, size_t number, uint8_t *fields)
 {
 	struct semihosting *semihosting = target->semihosting;
 	/* Use 4-byte multiples to trigger fast memory access. */
@@ -1754,9 +1760,7 @@ uint64_t semihosting_get_field(struct target *target, size_t index,
 /**
  * Store a field in the buffer, considering register size and endianness.
  */
-void semihosting_set_field(struct target *target, uint64_t value,
-	size_t index,
-	uint8_t *fields)
+static void semihosting_set_field(struct target *target, uint64_t value, size_t index, uint8_t *fields)
 {
 	struct semihosting *semihosting = target->semihosting;
 	if (semihosting->word_size_bytes == 8)
