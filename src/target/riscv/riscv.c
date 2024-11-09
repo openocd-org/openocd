@@ -4008,74 +4008,96 @@ COMMAND_HANDLER(riscv_set_mem_access)
 	return ERROR_OK;
 }
 
-static int parse_ranges(struct list_head *ranges, const char *tcl_arg, const char *reg_type, unsigned int max_val)
-{
-	char *args = strdup(tcl_arg);
-	if (!args)
-		return ERROR_FAIL;
 
-	/* For backward compatibility, allow multiple parameters within one TCL argument, separated by ',' */
-	char *arg = strtok(args, ",");
-	while (arg) {
+static bool parse_csr_address(const char *reg_address_str, unsigned int *reg_addr)
+{
+	*reg_addr = -1;
+	/* skip initial spaces */
+	while (isspace(reg_address_str[0]))
+		++reg_address_str;
+	/* try to detect if string starts with 0x or 0X */
+	bool is_hex_address = strncmp(reg_address_str, "0x", 2) == 0 ||
+		strncmp(reg_address_str, "0X", 2) == 0;
+
+	unsigned int scanned_chars;
+	if (is_hex_address) {
+		reg_address_str += 2;
+		if (sscanf(reg_address_str, "%x%n", reg_addr, &scanned_chars) != 1)
+			return false;
+	} else {
+		/* If we are here and register address string starts with zero, this is
+		 * an indication that most likely user has an incorrect input because:
+		 * - decimal numbers typically do not start with "0"
+		 * - octals are not supported by our interface
+		 * - hexadecimal numbers should have "0x" prefix
+		 * Thus such input is rejected. */
+		if (reg_address_str[0] == '0' && strlen(reg_address_str) > 1)
+			return false;
+		if (sscanf(reg_address_str, "%u%n", reg_addr, &scanned_chars) != 1)
+			return false;
+	}
+	return scanned_chars == strlen(reg_address_str);
+}
+
+static int parse_reg_ranges_impl(struct list_head *ranges, char *args,
+		const char *reg_type, unsigned int max_val, char ** const name_buffer)
+{
+	/* For backward compatibility, allow multiple parameters within one TCL
+	 * argument, separated by ',' */
+	for (char *arg = strtok(args, ","); arg; arg = strtok(NULL, ",")) {
 		unsigned int low = 0;
 		unsigned int high = 0;
 		char *name = NULL;
 
 		char *dash = strchr(arg, '-');
 		char *equals = strchr(arg, '=');
-		unsigned int pos;
 
 		if (!dash && !equals) {
 			/* Expecting single register number. */
-			if (sscanf(arg, "%u%n", &low, &pos) != 1 || pos != strlen(arg)) {
+			if (!parse_csr_address(arg, &low)) {
 				LOG_ERROR("Failed to parse single register number from '%s'.", arg);
-				free(args);
 				return ERROR_COMMAND_SYNTAX_ERROR;
 			}
 		} else if (dash && !equals) {
 			/* Expecting register range - two numbers separated by a dash: ##-## */
-			*dash = 0;
-			dash++;
-			if (sscanf(arg, "%u%n", &low, &pos) != 1 || pos != strlen(arg)) {
-				LOG_ERROR("Failed to parse single register number from '%s'.", arg);
-				free(args);
+			*dash = '\0';
+			if (!parse_csr_address(arg, &low)) {
+				LOG_ERROR("Failed to parse '%s' - not a valid decimal or hexadecimal number.",
+					arg);
 				return ERROR_COMMAND_SYNTAX_ERROR;
 			}
-			if (sscanf(dash, "%u%n", &high, &pos) != 1 || pos != strlen(dash)) {
-				LOG_ERROR("Failed to parse single register number from '%s'.", dash);
-				free(args);
+			const char *high_num_in = dash + 1;
+			if (!parse_csr_address(high_num_in, &high)) {
+				LOG_ERROR("Failed to parse '%s' - not a valid decimal or hexadecimal number.",
+					high_num_in);
 				return ERROR_COMMAND_SYNTAX_ERROR;
 			}
 			if (high < low) {
 				LOG_ERROR("Incorrect range encountered [%u, %u].", low, high);
-				free(args);
 				return ERROR_FAIL;
 			}
 		} else if (!dash && equals) {
 			/* Expecting single register number with textual name specified: ##=name */
-			*equals = 0;
-			equals++;
-			if (sscanf(arg, "%u%n", &low, &pos) != 1 || pos != strlen(arg)) {
-				LOG_ERROR("Failed to parse single register number from '%s'.", arg);
-				free(args);
+			*equals = '\0';
+			if (!parse_csr_address(arg, &low)) {
+				LOG_ERROR("Failed to parse '%s' - not a valid decimal or hexadecimal number.",
+					arg);
 				return ERROR_COMMAND_SYNTAX_ERROR;
 			}
 
-			name = calloc(1, strlen(equals) + strlen(reg_type) + 2);
+			const char * const reg_name_in = equals + 1;
+			*name_buffer = calloc(1, strlen(reg_name_in) + strlen(reg_type) + 2);
+			name = *name_buffer;
 			if (!name) {
-				LOG_ERROR("Failed to allocate register name.");
-				free(args);
+				LOG_ERROR("Out of memory");
 				return ERROR_FAIL;
 			}
 
-			/* Register prefix: "csr_" or "custom_" */
-			strcpy(name, reg_type);
-			name[strlen(reg_type)] = '_';
-
-			if (sscanf(equals, "%[_a-zA-Z0-9]%n", name + strlen(reg_type) + 1, &pos) != 1 || pos != strlen(equals)) {
-				LOG_ERROR("Failed to parse register name from '%s'.", equals);
-				free(args);
-				free(name);
+			unsigned int scanned_chars;
+			char *scan_dst = name + strlen(reg_type) + 1;
+			if (sscanf(reg_name_in, "%[_a-zA-Z0-9]%n", scan_dst, &scanned_chars) != 1 ||
+				scanned_chars != strlen(reg_name_in)) {
+				LOG_ERROR("Invalid characters in register name '%s'.", reg_name_in);
 				return ERROR_COMMAND_SYNTAX_ERROR;
 			}
 		} else {
@@ -4087,9 +4109,8 @@ static int parse_ranges(struct list_head *ranges, const char *tcl_arg, const cha
 		high = MAX(high, low);
 
 		if (high > max_val) {
-			LOG_ERROR("Cannot expose %s register number %u, maximum allowed value is %u.", reg_type, high, max_val);
-			free(name);
-			free(args);
+			LOG_ERROR("Cannot expose %s register number 0x%x, maximum allowed value is 0x%x.",
+				reg_type, high, max_val);
 			return ERROR_FAIL;
 		}
 
@@ -4107,30 +4128,40 @@ static int parse_ranges(struct list_head *ranges, const char *tcl_arg, const cha
 
 			if (entry->name && name && (strcasecmp(entry->name, name) == 0)) {
 				LOG_ERROR("Duplicate register name \"%s\" found.", name);
-				free(name);
-				free(args);
 				return ERROR_FAIL;
 			}
 		}
 
 		range_list_t *range = calloc(1, sizeof(range_list_t));
 		if (!range) {
-			LOG_ERROR("Failed to allocate range list.");
-			free(name);
-			free(args);
+			LOG_ERROR("Out of memory");
 			return ERROR_FAIL;
 		}
 
 		range->low = low;
 		range->high = high;
 		range->name = name;
+		/* ownership over name_buffer contents is transferred to list item here */
+		*name_buffer = NULL;
 		list_add(&range->list, ranges);
-
-		arg = strtok(NULL, ",");
 	}
 
-	free(args);
 	return ERROR_OK;
+}
+
+static int parse_reg_ranges(struct list_head *ranges, const char *tcl_arg,
+		const char *reg_type, unsigned int max_val)
+{
+	char *args = strdup(tcl_arg);
+	if (!args) {
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
+	}
+	char *name_buffer = NULL;
+	int result = parse_reg_ranges_impl(ranges, args, reg_type, max_val, &name_buffer);
+	free(name_buffer);
+	free(args);
+	return result;
 }
 
 COMMAND_HANDLER(riscv_set_expose_csrs)
@@ -4143,7 +4174,7 @@ COMMAND_HANDLER(riscv_set_expose_csrs)
 	int ret = ERROR_OK;
 
 	for (unsigned int i = 0; i < CMD_ARGC; i++) {
-		ret = parse_ranges(&info->expose_csr, CMD_ARGV[i], "csr", 0xfff);
+		ret = parse_reg_ranges(&info->expose_csr, CMD_ARGV[i], "csr", 0xfff);
 		if (ret != ERROR_OK)
 			break;
 	}
@@ -4161,7 +4192,7 @@ COMMAND_HANDLER(riscv_set_expose_custom)
 	int ret = ERROR_OK;
 
 	for (unsigned int i = 0; i < CMD_ARGC; i++) {
-		ret = parse_ranges(&info->expose_custom, CMD_ARGV[i], "custom", 0x3fff);
+		ret = parse_reg_ranges(&info->expose_custom, CMD_ARGV[i], "custom", 0x3fff);
 		if (ret != ERROR_OK)
 			break;
 	}
@@ -4179,7 +4210,7 @@ COMMAND_HANDLER(riscv_hide_csrs)
 	int ret = ERROR_OK;
 
 	for (unsigned int i = 0; i < CMD_ARGC; i++) {
-		ret = parse_ranges(&info->hide_csr, CMD_ARGV[i], "csr", 0xfff);
+		ret = parse_reg_ranges(&info->hide_csr, CMD_ARGV[i], "csr", 0xfff);
 		if (ret != ERROR_OK)
 			break;
 	}
