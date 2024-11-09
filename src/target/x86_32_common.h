@@ -309,8 +309,6 @@ int x86_32_common_read_memory(struct target *t, target_addr_t addr,
 			uint32_t size, uint32_t count, uint8_t *buf);
 int x86_32_common_write_memory(struct target *t, target_addr_t addr,
 			uint32_t size, uint32_t count, const uint8_t *buf);
-int x86_32_common_read_io(struct target *t, uint32_t addr,
-			uint32_t size, uint8_t *buf);
 int x86_32_common_write_io(struct target *t, uint32_t addr,
 			uint32_t size, const uint8_t *buf);
 int x86_32_common_add_breakpoint(struct target *t, struct breakpoint *bp);
