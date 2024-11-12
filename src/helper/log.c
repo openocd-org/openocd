@@ -53,7 +53,7 @@ static const char * const log_strings[6] = {
 static int count;
 
 /* forward the log to the listeners */
-static void log_forward(const char *file, unsigned line, const char *function, const char *string)
+static void log_forward(const char *file, unsigned int line, const char *function, const char *string)
 {
 	struct log_callback *cb, *next;
 	cb = log_callbacks;
@@ -133,7 +133,7 @@ static void log_puts(enum log_levels level,
 
 void log_printf(enum log_levels level,
 	const char *file,
-	unsigned line,
+	unsigned int line,
 	const char *function,
 	const char *format,
 	...)
@@ -156,7 +156,7 @@ void log_printf(enum log_levels level,
 	va_end(ap);
 }
 
-void log_vprintf_lf(enum log_levels level, const char *file, unsigned line,
+void log_vprintf_lf(enum log_levels level, const char *file, unsigned int line,
 		const char *function, const char *format, va_list args)
 {
 	char *tmp;
@@ -182,7 +182,7 @@ void log_vprintf_lf(enum log_levels level, const char *file, unsigned line,
 
 void log_printf_lf(enum log_levels level,
 	const char *file,
-	unsigned line,
+	unsigned int line,
 	const char *function,
 	const char *format,
 	...)
@@ -505,7 +505,7 @@ void log_socket_error(const char *socket_desc)
  * Find the first non-printable character in the char buffer, return a pointer to it.
  * If no such character exists, return NULL.
  */
-char *find_nonprint_char(char *buf, unsigned buf_len)
+const char *find_nonprint_char(const char *buf, unsigned int buf_len)
 {
 	for (unsigned int i = 0; i < buf_len; i++) {
 		if (!isprint(buf[i]))

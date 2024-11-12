@@ -487,7 +487,7 @@ static int psoc6_get_info(struct flash_bank *bank, struct command_invocation *cm
 {
 	struct psoc6_target_info *psoc6_info = bank->driver_priv;
 
-	if (psoc6_info->is_probed == false)
+	if (!psoc6_info->is_probed)
 		return ERROR_FAIL;
 
 	int hr = get_silicon_id(bank->target, &psoc6_info->silicon_id, &psoc6_info->protection);

@@ -54,7 +54,7 @@ int interface_jtag_add_tlr(void);
 int interface_jtag_add_pathmove(unsigned int num_states, const tap_state_t *path);
 int interface_jtag_add_runtest(unsigned int num_cycles, tap_state_t endstate);
 
-int interface_add_tms_seq(unsigned num_bits,
+int interface_add_tms_seq(unsigned int num_bits,
 		const uint8_t *bits, enum tap_state state);
 
 /**

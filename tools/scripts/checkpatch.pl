@@ -3728,7 +3728,7 @@ sub process {
 				} elsif ($realfile =~ /\.rst$/) {
 					$comment = '..';
 				# OpenOCD specific: Begin
-				} elsif ($realfile =~ /\.(am|cfg|tcl)$/) {
+				} elsif (($realfile =~ /\.(am|cfg|tcl)$/) || ($realfile =~ /\/Makefile$/)) {
 					$comment = '#';
 				} elsif ($realfile =~ /\.(ld)$/) {
 					$comment = '/*';

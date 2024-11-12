@@ -251,7 +251,7 @@ static int remote_bitbang_sleep(unsigned int microseconds)
 	return remote_bitbang_flush();
 }
 
-static int remote_bitbang_blink(int on)
+static int remote_bitbang_blink(bool on)
 {
 	char c = on ? 'B' : 'b';
 	return remote_bitbang_queue(c, FLUSH_SEND_BUF);

@@ -45,7 +45,7 @@ struct bitbang_interface {
 	int (*write)(int tck, int tms, int tdi);
 
 	/** Blink led (optional). */
-	int (*blink)(int on);
+	int (*blink)(bool on);
 
 	/** Sample SWDIO and return the value. */
 	int (*swdio_read)(void);

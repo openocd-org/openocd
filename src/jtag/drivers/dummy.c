@@ -72,7 +72,7 @@ static int dummy_reset(int trst, int srst)
 	return ERROR_OK;
 }
 
-static int dummy_led(int on)
+static int dummy_led(bool on)
 {
 	return ERROR_OK;
 }

@@ -190,6 +190,9 @@ typedef struct {
 	uint8_t dataaccess;
 	int16_t dataaddr;
 
+	/* The width of the hartsel field. */
+	unsigned int hartsellen;
+
 	/* DM that provides access to this target. */
 	dm013_info_t *dm;
 
@@ -2600,7 +2603,7 @@ static int sample_memory_bus_v1(struct target *target,
 		/* Discard the batch when we encounter a busy state on the DMI level.
 		 * It's too much hassle to try to recover partial data. We'll try again
 		 * with a larger DMI delay. */
-		unsigned int sbcs_read_op = riscv_batch_get_dmi_read_op(batch, sbcs_read_index);
+		const uint32_t sbcs_read_op = riscv_batch_get_dmi_read_op(batch, sbcs_read_index);
 		if (sbcs_read_op == DTM_DMI_OP_BUSY) {
 			result = increase_dmi_busy_delay(target);
 			if (result != ERROR_OK) {

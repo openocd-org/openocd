@@ -176,8 +176,8 @@ struct transport *get_current_transport(void)
 COMMAND_HELPER(transport_list_parse, char ***vector)
 {
 	char **argv;
-	unsigned n = CMD_ARGC;
-	unsigned j = 0;
+	unsigned int n = CMD_ARGC;
+	unsigned int j = 0;
 
 	*vector = NULL;
 
@@ -189,7 +189,7 @@ COMMAND_HELPER(transport_list_parse, char ***vector)
 	if (!argv)
 		return ERROR_FAIL;
 
-	for (unsigned i = 0; i < n; i++) {
+	for (unsigned int i = 0; i < n; i++) {
 		struct transport *t;
 
 		for (t = transport_list; t; t = t->next) {
@@ -208,7 +208,7 @@ COMMAND_HELPER(transport_list_parse, char ***vector)
 	return ERROR_OK;
 
 fail:
-	for (unsigned i = 0; i < n; i++)
+	for (unsigned int i = 0; i < n; i++)
 		free(argv[i]);
 	free(argv);
 	return ERROR_FAIL;

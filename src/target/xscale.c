@@ -840,7 +840,7 @@ static int xscale_debug_entry(struct target *target)
 	struct arm *arm = &xscale->arm;
 	uint32_t pc;
 	uint32_t buffer[10];
-	unsigned i;
+	unsigned int i;
 	int retval;
 	uint32_t moe;
 
@@ -1515,7 +1515,7 @@ static int xscale_deassert_reset(struct target *target)
 	 */
 	{
 		uint32_t address;
-		unsigned buf_cnt;
+		unsigned int buf_cnt;
 		const uint8_t *buffer = xscale_debug_handler;
 		int retval;
 
@@ -1539,11 +1539,11 @@ static int xscale_deassert_reset(struct target *target)
 		 * coprocessors, trace data, etc.
 		 */
 		address = xscale->handler_address;
-		for (unsigned binary_size = sizeof(xscale_debug_handler);
+		for (unsigned int binary_size = sizeof(xscale_debug_handler);
 			binary_size > 0;
 			binary_size -= buf_cnt, buffer += buf_cnt) {
 			uint32_t cache_line[8];
-			unsigned i;
+			unsigned int i;
 
 			buf_cnt = binary_size;
 			if (buf_cnt > 32)
@@ -3215,7 +3215,7 @@ COMMAND_HANDLER(xscale_handle_idcache_command)
 
 static const struct {
 	char name[15];
-	unsigned mask;
+	unsigned int mask;
 } vec_ids[] = {
 	{ "fiq",		DCSR_TF, },
 	{ "irq",		DCSR_TI, },
@@ -3250,7 +3250,7 @@ COMMAND_HANDLER(xscale_handle_vector_catch_command)
 			}
 		}
 		while (CMD_ARGC-- > 0) {
-			unsigned i;
+			unsigned int i;
 			for (i = 0; i < ARRAY_SIZE(vec_ids); i++) {
 				if (strcmp(CMD_ARGV[CMD_ARGC], vec_ids[i].name))
 					continue;
@@ -3268,7 +3268,7 @@ COMMAND_HANDLER(xscale_handle_vector_catch_command)
 	}
 
 	dcsr_value = buf_get_u32(dcsr_reg->value, 0, 32);
-	for (unsigned i = 0; i < ARRAY_SIZE(vec_ids); i++) {
+	for (unsigned int i = 0; i < ARRAY_SIZE(vec_ids); i++) {
 		command_print(CMD, "%15s: %s", vec_ids[i].name,
 			(dcsr_value & vec_ids[i].mask) ? "catch" : "ignore");
 	}

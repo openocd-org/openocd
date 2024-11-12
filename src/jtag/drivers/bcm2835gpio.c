@@ -31,16 +31,28 @@ static off_t bcm2835_peri_base = 0x20000000;
 #define BCM2835_GPIO_MODE_OUTPUT 1
 
 /* GPIO setup macros */
-#define MODE_GPIO(g) (*(pio_base+((g)/10))>>(((g)%10)*3) & 7)
-#define INP_GPIO(g) do { *(pio_base+((g)/10)) &= ~(7<<(((g)%10)*3)); } while (0)
-#define SET_MODE_GPIO(g, m) do { /* clear the mode bits first, then set as necessary */ \
-		INP_GPIO(g);						\
-		*(pio_base+((g)/10)) |=  ((m)<<(((g)%10)*3)); } while (0)
+#define MODE_GPIO(_g) ({                                   \
+	typeof(_g) g = (_g);                                   \
+	*(pio_base + (g / 10)) >> ((g % 10) * 3) & 7;          \
+})
+
+#define INP_GPIO(_g) do {                                  \
+	typeof(_g) g1 = (_g);                                  \
+	*(pio_base + (g1 / 10)) &= ~(7 << ((g1 % 10) * 3));    \
+} while (0)
+
+#define SET_MODE_GPIO(_g, m) do {                          \
+	typeof(_g) g = (_g);                                   \
+	/* clear the mode bits first, then set as necessary */ \
+	INP_GPIO(g);                                           \
+	*(pio_base + (g / 10)) |= ((m) << ((g % 10) * 3));     \
+} while (0)
+
 #define OUT_GPIO(g) SET_MODE_GPIO(g, BCM2835_GPIO_MODE_OUTPUT)
 
-#define GPIO_SET (*(pio_base+7))  /* sets   bits which are 1, ignores bits which are 0 */
-#define GPIO_CLR (*(pio_base+10)) /* clears bits which are 1, ignores bits which are 0 */
-#define GPIO_LEV (*(pio_base+13)) /* current level of the pin */
+#define GPIO_SET (*(pio_base + 7))  /* sets   bits which are 1, ignores bits which are 0 */
+#define GPIO_CLR (*(pio_base + 10)) /* clears bits which are 1, ignores bits which are 0 */
+#define GPIO_LEV (*(pio_base + 13)) /* current level of the pin */
 
 static int dev_mem_fd;
 static volatile uint32_t *pio_base = MAP_FAILED;
@@ -175,7 +187,6 @@ static bb_value_t bcm2835gpio_read(void)
 	unsigned int shift = adapter_gpio_config[ADAPTER_GPIO_IDX_TDO].gpio_num;
 	uint32_t value = (GPIO_LEV >> shift) & 1;
 	return value ^ (adapter_gpio_config[ADAPTER_GPIO_IDX_TDO].active_low ? BB_HIGH : BB_LOW);
-
 }
 
 static int bcm2835gpio_write(int tck, int tms, int tdi)
@@ -408,10 +419,10 @@ static void bcm2835gpio_munmap(void)
 	}
 }
 
-static int bcm2835gpio_blink(int on)
+static int bcm2835gpio_blink(bool on)
 {
 	if (is_gpio_config_valid(ADAPTER_GPIO_IDX_LED))
-		set_gpio_value(&adapter_gpio_config[ADAPTER_GPIO_IDX_LED], on);
+		set_gpio_value(&adapter_gpio_config[ADAPTER_GPIO_IDX_LED], on ? 1 : 0);
 
 	return ERROR_OK;
 }

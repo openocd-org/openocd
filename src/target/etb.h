@@ -32,7 +32,7 @@ struct etb {
 	uint32_t ram_width;
 
 	/** how much trace buffer to fill after trigger */
-	unsigned trigger_percent;
+	unsigned int trigger_percent;
 };
 
 struct etb_reg {

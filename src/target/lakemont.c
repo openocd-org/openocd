@@ -67,7 +67,7 @@ static const struct {
 	const char *name;
 	uint64_t op;
 	uint8_t pm_idx;
-	unsigned bits;
+	unsigned int bits;
 	enum reg_type type;
 	const char *group;
 	const char *feature;
@@ -597,7 +597,7 @@ static int read_all_core_hw_regs(struct target *t)
 {
 	int err;
 	uint32_t regval;
-	unsigned i;
+	unsigned int i;
 	struct x86_32_common *x86_32 = target_to_x86_32(t);
 	for (i = 0; i < (x86_32->cache->num_regs); i++) {
 		if (regs[i].pm_idx == NOT_AVAIL_REG)
@@ -616,7 +616,7 @@ static int read_all_core_hw_regs(struct target *t)
 static int write_all_core_hw_regs(struct target *t)
 {
 	int err;
-	unsigned i;
+	unsigned int i;
 	struct x86_32_common *x86_32 = target_to_x86_32(t);
 	for (i = 0; i < (x86_32->cache->num_regs); i++) {
 		if (regs[i].pm_idx == NOT_AVAIL_REG)

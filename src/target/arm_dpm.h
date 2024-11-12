@@ -19,7 +19,7 @@
  */
 
 struct dpm_bpwp {
-	unsigned number;
+	unsigned int number;
 	uint32_t address;
 	uint32_t control;
 	/* true if hardware state needs flushing */
@@ -109,7 +109,7 @@ struct arm_dpm {
 			uint32_t opcode, uint64_t *data);
 
 	struct reg *(*arm_reg_current)(struct arm *arm,
-			unsigned regnum);
+			unsigned int regnum);
 
 	/* BREAKPOINT/WATCHPOINT SUPPORT */
 
@@ -119,7 +119,7 @@ struct arm_dpm {
 	 * must currently be disabled.  Indices 0..15 are used for
 	 * breakpoints; indices 16..31 are for watchpoints.
 	 */
-	int (*bpwp_enable)(struct arm_dpm *dpm, unsigned index_value,
+	int (*bpwp_enable)(struct arm_dpm *dpm, unsigned int index_value,
 			uint32_t addr, uint32_t control);
 
 	/**
@@ -127,15 +127,15 @@ struct arm_dpm {
 	 * hardware control registers.  Indices are the same ones
 	 * accepted by bpwp_enable().
 	 */
-	int (*bpwp_disable)(struct arm_dpm *dpm, unsigned index_value);
+	int (*bpwp_disable)(struct arm_dpm *dpm, unsigned int index_value);
 
 	/* The breakpoint and watchpoint arrays are private to the
 	 * DPM infrastructure.  There are nbp indices in the dbp
 	 * array.  There are nwp indices in the dwp array.
 	 */
 
-	unsigned nbp;
-	unsigned nwp;
+	unsigned int nbp;
+	unsigned int nwp;
 	struct dpm_bp *dbp;
 	struct dpm_wp *dwp;
 
@@ -158,7 +158,7 @@ struct arm_dpm {
 int arm_dpm_setup(struct arm_dpm *dpm);
 int arm_dpm_initialize(struct arm_dpm *dpm);
 
-int arm_dpm_read_reg(struct arm_dpm *dpm, struct reg *r, unsigned regnum);
+int arm_dpm_read_reg(struct arm_dpm *dpm, struct reg *r, unsigned int regnum);
 int arm_dpm_read_current_registers(struct arm_dpm *dpm);
 int arm_dpm_modeswitch(struct arm_dpm *dpm, enum arm_mode mode);
 

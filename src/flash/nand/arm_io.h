@@ -27,7 +27,7 @@ struct arm_nand_data {
 	struct working_area *copy_area;
 
 	/** The chunk size is the page size or ECC chunk. */
-	unsigned chunk_size;
+	unsigned int chunk_size;
 
 	/** Where data is read from or written to. */
 	uint32_t data;

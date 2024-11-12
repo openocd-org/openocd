@@ -806,7 +806,7 @@ int cfi_flash_bank_cmd(struct flash_bank *bank, unsigned int argc, const char **
 	}
 	bank->driver_priv = cfi_info;
 
-	for (unsigned i = 6; i < argc; i++) {
+	for (unsigned int i = 6; i < argc; i++) {
 		if (strcmp(argv[i], "x16_as_x8") == 0)
 			cfi_info->x16_as_x8 = true;
 		else if (strcmp(argv[i], "data_swap") == 0)
@@ -2219,8 +2219,7 @@ static int cfi_read(struct flash_bank *bank, uint8_t *buffer, uint32_t offset, u
 	uint8_t current_word[CFI_MAX_BUS_WIDTH];
 	int retval;
 
-	LOG_DEBUG("reading buffer of %i byte at 0x%8.8x",
-		(int)count, (unsigned)offset);
+	LOG_DEBUG("reading buffer of %" PRIi32 " byte at 0x%8.8" PRIx32, count, offset);
 
 	if (bank->target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");

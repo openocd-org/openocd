@@ -134,7 +134,7 @@ struct kinetis_ke_flash_bank {
 
 #define MDM_ACCESS_TIMEOUT	3000 /* iterations */
 
-static int kinetis_ke_mdm_write_register(struct adiv5_dap *dap, unsigned reg, uint32_t value)
+static int kinetis_ke_mdm_write_register(struct adiv5_dap *dap, unsigned int reg, uint32_t value)
 {
 	LOG_DEBUG("MDM_REG[0x%02x] <- %08" PRIX32, reg, value);
 
@@ -161,7 +161,7 @@ static int kinetis_ke_mdm_write_register(struct adiv5_dap *dap, unsigned reg, ui
 	return ERROR_OK;
 }
 
-static int kinetis_ke_mdm_read_register(struct adiv5_dap *dap, unsigned reg, uint32_t *result)
+static int kinetis_ke_mdm_read_register(struct adiv5_dap *dap, unsigned int reg, uint32_t *result)
 {
 	struct adiv5_ap *ap = dap_get_ap(dap, 1);
 	if (!ap) {
@@ -187,7 +187,7 @@ static int kinetis_ke_mdm_read_register(struct adiv5_dap *dap, unsigned reg, uin
 	return ERROR_OK;
 }
 
-static int kinetis_ke_mdm_poll_register(struct adiv5_dap *dap, unsigned reg, uint32_t mask, uint32_t value)
+static int kinetis_ke_mdm_poll_register(struct adiv5_dap *dap, unsigned int reg, uint32_t mask, uint32_t value)
 {
 	uint32_t val;
 	int retval;

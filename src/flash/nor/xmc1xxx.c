@@ -84,7 +84,7 @@ static int xmc1xxx_erase(struct flash_bank *bank, unsigned int first,
 	struct working_area *workarea;
 	struct reg_param reg_params[3];
 	struct armv7m_algorithm armv7m_algo;
-	unsigned i;
+	unsigned int i;
 	int retval;
 	const uint8_t erase_code[] = {
 #include "../../../contrib/loaders/flash/xmc1xxx/erase.inc"
@@ -159,7 +159,7 @@ static int xmc1xxx_erase_check(struct flash_bank *bank)
 	struct reg_param reg_params[3];
 	struct armv7m_algorithm armv7m_algo;
 	uint16_t val;
-	unsigned i;
+	unsigned int i;
 	int retval;
 	const uint8_t erase_check_code[] = {
 #include "../../../contrib/loaders/flash/xmc1xxx/erase_check.inc"
@@ -245,7 +245,7 @@ static int xmc1xxx_write(struct flash_bank *bank, const uint8_t *buffer,
 	struct reg_param reg_params[4];
 	struct armv7m_algorithm armv7m_algo;
 	uint32_t block_count = DIV_ROUND_UP(byte_count, NVM_BLOCK_SIZE);
-	unsigned i;
+	unsigned int i;
 	int retval;
 	const uint8_t write_code[] = {
 #include "../../../contrib/loaders/flash/xmc1xxx/write.inc"

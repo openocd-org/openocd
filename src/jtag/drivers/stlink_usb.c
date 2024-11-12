@@ -2754,7 +2754,7 @@ static int stlink_usb_read_mem32_noaddrinc(void *handle, uint8_t ap_num, uint32_
 {
 	struct stlink_usb_handle *h = handle;
 
-	assert(handle != NULL);
+	assert(handle);
 
 	if (!(h->version.flags & STLINK_F_HAS_MEM_RD_NO_INC))
 		return ERROR_COMMAND_NOTFOUND;
@@ -2796,7 +2796,7 @@ static int stlink_usb_write_mem32_noaddrinc(void *handle, uint8_t ap_num, uint32
 {
 	struct stlink_usb_handle *h = handle;
 
-	assert(handle != NULL);
+	assert(handle);
 
 	if (!(h->version.flags & STLINK_F_HAS_MEM_WR_NO_INC))
 		return ERROR_COMMAND_NOTFOUND;
@@ -3740,7 +3740,7 @@ static int stlink_open(struct hl_interface_param *param, enum stlink_mode mode, 
 
 	h->st_mode = mode;
 
-	for (unsigned i = 0; param->vid[i]; i++) {
+	for (unsigned int i = 0; param->vid[i]; i++) {
 		LOG_DEBUG("transport: %d vid: 0x%04x pid: 0x%04x serial: %s",
 			  h->st_mode, param->vid[i], param->pid[i],
 			  adapter_get_required_serial() ? adapter_get_required_serial() : "");
@@ -3947,7 +3947,7 @@ static int stlink_usb_rw_misc_out(void *handle, uint32_t items, const uint8_t *b
 
 	LOG_DEBUG_IO("%s(%" PRIu32 ")", __func__, items);
 
-	assert(handle != NULL);
+	assert(handle);
 
 	if (!(h->version.flags & STLINK_F_HAS_RW_MISC))
 		return ERROR_COMMAND_NOTFOUND;
@@ -3968,7 +3968,7 @@ static int stlink_usb_rw_misc_in(void *handle, uint32_t items, uint8_t *buffer)
 
 	LOG_DEBUG_IO("%s(%" PRIu32 ")", __func__, items);
 
-	assert(handle != NULL);
+	assert(handle);
 
 	if (!(h->version.flags & STLINK_F_HAS_RW_MISC))
 		return ERROR_COMMAND_NOTFOUND;

@@ -379,7 +379,7 @@ static int davinci_writepage_tail(struct nand_device *nand,
 static int davinci_write_page_ecc1(struct nand_device *nand, uint32_t page,
 	uint8_t *data, uint32_t data_size, uint8_t *oob, uint32_t oob_size)
 {
-	unsigned oob_offset;
+	unsigned int oob_offset;
 	struct davinci_nand *info = nand->controller_priv;
 	struct target *target = nand->target;
 	const uint32_t fcr_addr = info->aemif + NANDFCR;

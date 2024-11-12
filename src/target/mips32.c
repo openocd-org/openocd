@@ -31,10 +31,10 @@ static const char *mips_isa_strings[] = {
 
 /*
  * GDB registers
- * based on gdb-7.6.2/gdb/features/mips-{fpu,cp0,cpu}.xml
+ * based on gdb-7.6.2/gdb/features/mips-{fpu,cp0,cpu,dsp}.xml
  */
 static const struct {
-	unsigned id;
+	unsigned int id;
 	const char *name;
 	enum reg_type type;
 	const char *group;
@@ -156,6 +156,22 @@ static const struct {
 		"org.gnu.gdb.mips.cpu", 0 },
 	{ MIPS32_REGLIST_C0_GUESTCTL1_INDEX, "guestCtl1", REG_TYPE_INT, NULL,
 		"org.gnu.gdb.mips.cp0", 0 },
+
+	{ MIPS32_REGLIST_DSP_INDEX + 0, "hi1", REG_TYPE_INT, NULL,
+		"org.gnu.gdb.mips.dsp", 0 },
+	{ MIPS32_REGLIST_DSP_INDEX + 1, "lo1", REG_TYPE_INT, NULL,
+		"org.gnu.gdb.mips.dsp", 0 },
+	{ MIPS32_REGLIST_DSP_INDEX + 2, "hi2", REG_TYPE_INT, NULL,
+		"org.gnu.gdb.mips.dsp", 0 },
+	{ MIPS32_REGLIST_DSP_INDEX + 3, "lo2", REG_TYPE_INT, NULL,
+		"org.gnu.gdb.mips.dsp", 0 },
+	{ MIPS32_REGLIST_DSP_INDEX + 4, "hi3", REG_TYPE_INT, NULL,
+		"org.gnu.gdb.mips.dsp", 0 },
+	{ MIPS32_REGLIST_DSP_INDEX + 5, "lo3", REG_TYPE_INT, NULL,
+		"org.gnu.gdb.mips.dsp", 0 },
+
+	{ MIPS32_REGLIST_DSP_DSPCTL_INDEX, "dspctl", REG_TYPE_INT, NULL,
+		"org.gnu.gdb.mips.dsp", 0 },
 };
 
 #define MIPS32_NUM_REGS ARRAY_SIZE(mips32_regs)
@@ -211,13 +227,11 @@ static const struct {
 static const struct {
 	const char *name;
 } mips32_dsp_regs[MIPS32NUMDSPREGS] = {
-	{ "hi0"},
 	{ "hi1"},
-	{ "hi2"},
-	{ "hi3"},
-	{ "lo0"},
 	{ "lo1"},
+	{ "hi2"},
 	{ "lo2"},
+	{ "hi3"},
 	{ "lo3"},
 	{ "control"},
 };
@@ -328,7 +342,12 @@ static int mips32_read_core_reg(struct target *target, unsigned int num)
 	if (num >= MIPS32_NUM_REGS)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	if (num >= MIPS32_REGLIST_C0_INDEX) {
+	if (num >= MIPS32_REGLIST_DSP_INDEX) {
+		/* DSP */
+		cnum = num - MIPS32_REGLIST_DSP_INDEX;
+		reg_value = mips32->core_regs.dsp[cnum];
+		buf_set_u32(mips32->core_cache->reg_list[num].value, 0, 32, reg_value);
+	} else if (num >= MIPS32_REGLIST_C0_INDEX) {
 		/* CP0 */
 		cnum = num - MIPS32_REGLIST_C0_INDEX;
 		reg_value = mips32->core_regs.cp0[cnum];
@@ -371,7 +390,12 @@ static int mips32_write_core_reg(struct target *target, unsigned int num)
 	if (num >= MIPS32_NUM_REGS)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	if (num >= MIPS32_REGLIST_C0_INDEX) {
+	if (num >= MIPS32_REGLIST_DSP_INDEX) {
+		/* DSP */
+		cnum = num - MIPS32_REGLIST_DSP_INDEX;
+		reg_value = buf_get_u32(mips32->core_cache->reg_list[num].value, 0, 32);
+		mips32->core_regs.dsp[cnum] = (uint32_t)reg_value;
+	} else if (num >= MIPS32_REGLIST_C0_INDEX) {
 		/* CP0 */
 		cnum = num - MIPS32_REGLIST_C0_INDEX;
 		reg_value = buf_get_u32(mips32->core_cache->reg_list[num].value, 0, 32);
@@ -1026,10 +1050,20 @@ int mips32_cpu_probe(struct target *target)
 /* reads dsp implementation info from CP0 Config3 register {DSPP, DSPREV}*/
 static void mips32_read_config_dsp(struct mips32_common *mips32, struct mips_ejtag *ejtag_info)
 {
-	uint32_t dsp_present = ((ejtag_info->config[3] & MIPS32_CONFIG3_DSPP_MASK) >> MIPS32_CONFIG3_DSPP_SHIFT);
+	uint32_t retval, status_value, dsp_present;
+	bool dsp_enabled;
+
+	retval = mips32_cp0_read(ejtag_info, &status_value, MIPS32_C0_STATUS, 0);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("Failed to read cp0 status register");
+		return;
+	}
+
+	dsp_present = ((ejtag_info->config[3] & MIPS32_CONFIG3_DSPP_MASK) >> MIPS32_CONFIG3_DSPP_SHIFT);
+	dsp_enabled = (status_value & BIT(MIPS32_CP0_STATUS_MX_SHIFT)) != 0;
 	if (dsp_present) {
 		mips32->dsp_imp = ((ejtag_info->config[3] & MIPS32_CONFIG3_DSPREV_MASK) >> MIPS32_CONFIG3_DSPREV_SHIFT) + 1;
-		LOG_USER("DSP implemented: %s, rev %d", "yes", mips32->dsp_imp);
+		LOG_USER("DSP implemented: rev %d, %s", mips32->dsp_imp, dsp_enabled ? "enabled" : "disabled");
 	} else {
 		LOG_USER("DSP implemented: %s", "no");
 	}
@@ -1153,7 +1187,7 @@ int mips32_read_config_regs(struct target *target)
 		mips32->isa_imp = MIPS32_MIPS16;
 		LOG_USER("ISA implemented: %s%s", "MIPS32, MIPS16", buf);
 	} else if (ejtag_info->config_regs >= 4) {	/* config3 implemented */
-		unsigned isa_imp = (ejtag_info->config[3] & MIPS32_CONFIG3_ISA_MASK) >> MIPS32_CONFIG3_ISA_SHIFT;
+		unsigned int isa_imp = (ejtag_info->config[3] & MIPS32_CONFIG3_ISA_MASK) >> MIPS32_CONFIG3_ISA_SHIFT;
 		if (isa_imp == 1) {
 			mips32->isa_imp = MMIPS32_ONLY;
 			LOG_USER("ISA implemented: %s%s", "microMIPS32", buf);
@@ -1747,13 +1781,11 @@ static int mips32_pracc_read_dsp_reg(struct mips_ejtag *ejtag_info, uint32_t *va
 	};
 
 	uint32_t dsp_read_code[] = {
-		MIPS32_MFHI(isa, t0),		/* mfhi t0 ($ac0) - OPCODE - 0x00004010 */
 		MIPS32_DSP_MFHI(t0, 1),		/* mfhi	t0,$ac1 - OPCODE - 0x00204010 */
-		MIPS32_DSP_MFHI(t0, 2),		/* mfhi	t0,$ac2 - OPCODE - 0x00404010 */
-		MIPS32_DSP_MFHI(t0, 3),		/* mfhi	t0,$ac3 - OPCODE - 0x00604010*/
-		MIPS32_MFLO(isa, t0),		/* mflo t0 ($ac0) - OPCODE - 0x00004012 */
 		MIPS32_DSP_MFLO(t0, 1),		/* mflo	t0,$ac1 - OPCODE - 0x00204012 */
+		MIPS32_DSP_MFHI(t0, 2),		/* mfhi	t0,$ac2 - OPCODE - 0x00404010 */
 		MIPS32_DSP_MFLO(t0, 2),		/* mflo	t0,$ac2 - OPCODE - 0x00404012 */
+		MIPS32_DSP_MFHI(t0, 3),		/* mfhi	t0,$ac3 - OPCODE - 0x00604010*/
 		MIPS32_DSP_MFLO(t0, 3),		/* mflo	t0,$ac3 - OPCODE - 0x00604012 */
 		MIPS32_DSP_RDDSP(t0, 0x3F),	/* rddsp t0, 0x3f (DSPCtl) - OPCODE - 0x7c3f44b8 */
 	};
@@ -1824,13 +1856,11 @@ static int mips32_pracc_write_dsp_reg(struct mips_ejtag *ejtag_info, uint32_t va
 	};
 
 	uint32_t dsp_write_code[] = {
-		MIPS32_MTHI(isa, t0),		/* mthi t0 ($ac0) - OPCODE - 0x01000011 */
 		MIPS32_DSP_MTHI(t0, 1),		/* mthi t0, $ac1 - OPCODE - 0x01000811 */
-		MIPS32_DSP_MTHI(t0, 2),		/* mthi t0, $ac2 - OPCODE - 0x01001011 */
-		MIPS32_DSP_MTHI(t0, 3),		/* mthi t0, $ac3 - OPCODE - 0x01001811 */
-		MIPS32_MTLO(isa, t0),		/* mtlo t0 ($ac0) - OPCODE - 0x01000013 */
 		MIPS32_DSP_MTLO(t0, 1),		/* mtlo t0, $ac1 - OPCODE - 0x01000813 */
+		MIPS32_DSP_MTHI(t0, 2),		/* mthi t0, $ac2 - OPCODE - 0x01001011 */
 		MIPS32_DSP_MTLO(t0, 2),		/* mtlo t0, $ac2 - OPCODE - 0x01001013 */
+		MIPS32_DSP_MTHI(t0, 3),		/* mthi t0, $ac3 - OPCODE - 0x01001811 */
 		MIPS32_DSP_MTLO(t0, 3),		/* mtlo t0, $ac3 - OPCODE - 0x01001813 */
 		MIPS32_DSP_WRDSP(t0, 0x1F), /* wrdsp t0, 0x1f (DSPCtl) - OPCODE - 0x7d00fcf8*/
 	};
@@ -2107,15 +2137,18 @@ static int mips32_dsp_find_register_by_name(const char *reg_name)
  *
  * @return ERROR_OK on success; error code on failure.
  */
-static int mips32_dsp_get_all_regs(struct command_invocation *cmd, struct mips_ejtag *ejtag_info)
+static int mips32_dsp_get_all_regs(struct command_invocation *cmd, struct mips32_common *mips32)
 {
 	uint32_t value = 0;
+	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
 	for (int i = 0; i < MIPS32NUMDSPREGS; i++) {
 		int retval = mips32_pracc_read_dsp_reg(ejtag_info, &value, i);
 		if (retval != ERROR_OK) {
 			command_print(CMD, "couldn't access reg %s", mips32_dsp_regs[i].name);
 			return retval;
 		}
+		mips32->core_regs.dsp[i] = value;
+		mips32->core_cache->reg_list[MIPS32_REGLIST_DSP_INDEX + i].dirty = 1;
 		command_print(CMD, "%*s: 0x%8.8x", 7, mips32_dsp_regs[i].name, value);
 	}
 	return ERROR_OK;
@@ -2132,20 +2165,28 @@ static int mips32_dsp_get_all_regs(struct command_invocation *cmd, struct mips_e
  *
  * @return ERROR_OK on success; error code on failure.
  */
-static int mips32_dsp_get_register(struct command_invocation *cmd, struct mips_ejtag *ejtag_info)
+static int mips32_dsp_get_register(struct command_invocation *cmd, struct mips32_common *mips32)
 {
 	uint32_t value = 0;
 	int index = mips32_dsp_find_register_by_name(CMD_ARGV[0]);
+	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
 	if (index == MIPS32NUMDSPREGS) {
 		command_print(CMD, "ERROR: register '%s' not found", CMD_ARGV[0]);
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	int retval = mips32_pracc_read_dsp_reg(ejtag_info, &value, index);
-	if (retval != ERROR_OK)
+	if (retval != ERROR_OK) {
 		command_print(CMD, "ERROR: Could not access dsp register %s", CMD_ARGV[0]);
-	else
-		command_print(CMD, "0x%8.8x", value);
+		return retval;
+	}
+
+	command_print(CMD, "0x%8.8x", value);
+
+	if (mips32->core_regs.dsp[index] != value) {
+		mips32->core_regs.dsp[index] = value;
+		mips32->core_cache->reg_list[MIPS32_REGLIST_DSP_INDEX + index].dirty = 1;
+	}
 
 	return retval;
 }
@@ -2162,9 +2203,10 @@ static int mips32_dsp_get_register(struct command_invocation *cmd, struct mips_e
  *
  * @return ERROR_OK on success; error code on failure.
  */
-static int mips32_dsp_set_register(struct command_invocation *cmd, struct mips_ejtag *ejtag_info)
+static int mips32_dsp_set_register(struct command_invocation *cmd, struct mips32_common *mips32)
 {
 	uint32_t value;
+	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
 	int index = mips32_dsp_find_register_by_name(CMD_ARGV[0]);
 	if (index == MIPS32NUMDSPREGS) {
 		command_print(CMD, "ERROR: register '%s' not found", CMD_ARGV[0]);
@@ -2174,8 +2216,13 @@ static int mips32_dsp_set_register(struct command_invocation *cmd, struct mips_e
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], value);
 
 	int retval = mips32_pracc_write_dsp_reg(ejtag_info, value, index);
-	if (retval != ERROR_OK)
+	if (retval != ERROR_OK) {
 		command_print(CMD, "Error: could not write to dsp register %s", CMD_ARGV[0]);
+		return retval;
+	}
+
+	mips32->core_regs.dsp[index] = value;
+	mips32->core_cache->reg_list[MIPS32_REGLIST_DSP_INDEX + index].dirty = 1;
 
 	return retval;
 }
@@ -2193,7 +2240,6 @@ COMMAND_HANDLER(mips32_handle_dsp_command)
 	int retval, tmp;
 	struct target *target = get_current_target(CMD_CTX);
 	struct mips32_common *mips32 = target_to_mips32(target);
-	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
 
 	retval = mips32_verify_pointer(CMD, mips32);
 	if (retval != ERROR_OK)
@@ -2217,10 +2263,10 @@ COMMAND_HANDLER(mips32_handle_dsp_command)
 
 	switch (CMD_ARGC) {
 		case 0:
-			retval = mips32_dsp_get_all_regs(CMD, ejtag_info);
+			retval = mips32_dsp_get_all_regs(CMD, mips32);
 			break;
 		case 1:
-			retval = mips32_dsp_get_register(CMD, ejtag_info);
+			retval = mips32_dsp_get_register(CMD, mips32);
 			break;
 		case 2:
 			tmp = *CMD_ARGV[0];
@@ -2228,7 +2274,7 @@ COMMAND_HANDLER(mips32_handle_dsp_command)
 				command_print(CMD, "Error: invalid dsp command format");
 				retval = ERROR_COMMAND_ARGUMENT_INVALID;
 			} else {
-				retval = mips32_dsp_set_register(CMD, ejtag_info);
+				retval = mips32_dsp_set_register(CMD, mips32);
 			}
 			break;
 		default:

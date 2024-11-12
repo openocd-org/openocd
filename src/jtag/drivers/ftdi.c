@@ -396,7 +396,7 @@ static void ftdi_execute_runtest(struct jtag_command *cmd)
 	unsigned int i = cmd->cmd.runtest->num_cycles;
 	while (i > 0) {
 		/* there are no state transitions in this code, so omit state tracking */
-		unsigned this_len = i > 7 ? 7 : i;
+		unsigned int this_len = i > 7 ? 7 : i;
 		DO_CLOCK_TMS_CS_OUT(mpsse_ctx, &zero, 0, this_len, false, ftdi_jtag_mode);
 		i -= this_len;
 	}
@@ -450,7 +450,7 @@ static void ftdi_execute_pathmove(struct jtag_command *cmd)
 		tap_state_name(path[num_states-1]));
 
 	int state_count = 0;
-	unsigned bit_count = 0;
+	unsigned int bit_count = 0;
 	uint8_t tms_byte = 0;
 
 	LOG_DEBUG_IO("-");
@@ -519,7 +519,7 @@ static void ftdi_execute_scan(struct jtag_command *cmd)
 	ftdi_end_state(cmd->cmd.scan->end_state);
 
 	struct scan_field *field = cmd->cmd.scan->fields;
-	unsigned scan_size = 0;
+	unsigned int scan_size = 0;
 
 	for (unsigned int i = 0; i < cmd->cmd.scan->num_fields; i++, field++) {
 		scan_size += field->num_bits;
@@ -652,7 +652,7 @@ static void ftdi_execute_stableclocks(struct jtag_command *cmd)
 	 * the correct level and remain there during the scan */
 	while (num_cycles > 0) {
 		/* there are no state transitions in this code, so omit state tracking */
-		unsigned this_len = num_cycles > 7 ? 7 : num_cycles;
+		unsigned int this_len = num_cycles > 7 ? 7 : num_cycles;
 		DO_CLOCK_TMS_CS_OUT(mpsse_ctx, &tms, 0, this_len, false, ftdi_jtag_mode);
 		num_cycles -= this_len;
 	}
@@ -1126,7 +1126,7 @@ COMMAND_HANDLER(ftdi_handle_layout_signal_command)
 	uint16_t input_mask = 0;
 	bool invert_oe = false;
 	uint16_t oe_mask = 0;
-	for (unsigned i = 1; i < CMD_ARGC; i += 2) {
+	for (unsigned int i = 1; i < CMD_ARGC; i += 2) {
 		if (strcmp("-data", CMD_ARGV[i]) == 0) {
 			invert_data = false;
 			COMMAND_PARSE_NUMBER(u16, CMD_ARGV[i + 1], data_mask);
@@ -1255,7 +1255,7 @@ COMMAND_HANDLER(ftdi_handle_vid_pid_command)
 		CMD_ARGC -= 1;
 	}
 
-	unsigned i;
+	unsigned int i;
 	for (i = 0; i < CMD_ARGC; i += 2) {
 		COMMAND_PARSE_NUMBER(u16, CMD_ARGV[i], ftdi_vid[i >> 1]);
 		COMMAND_PARSE_NUMBER(u16, CMD_ARGV[i + 1], ftdi_pid[i >> 1]);

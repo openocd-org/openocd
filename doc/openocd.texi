@@ -2489,7 +2489,7 @@ This command is only available if your libusb1 is at least version 1.0.16.
 Specifies the @var{serial_string} of the adapter to use.
 If this command is not specified, serial strings are not checked.
 Only the following adapter drivers use the serial string from this command:
-arm-jtag-ew, cmsis_dap, esp_usb_jtag, ft232r, ftdi, hla (stlink, ti-icdi), jlink, kitprog, opendus,
+arm-jtag-ew, cmsis_dap, esp_usb_jtag, ft232r, ftdi, hla (ti-icdi), jlink, kitprog, opendus,
 openjtag, osbdm, presto, rlink, st-link, usb_blaster (ublast2), usbprog, vsllink, xds110.
 @end deffn
 
@@ -3235,21 +3235,12 @@ version reported is V2.J21.S4.
 Currently Not Supported.
 @end deffn
 
-@deffn {Config Command} {hla layout} (@option{stlink}|@option{icdi}|@option{nulink})
+@deffn {Config Command} {hla layout} (@option{icdi}|@option{nulink})
 Specifies the adapter layout to use.
 @end deffn
 
 @deffn {Config Command} {hla vid_pid} [vid pid]+
 Pairs of vendor IDs and product IDs of the device.
-@end deffn
-
-@deffn {Config Command} {hla stlink_backend} (usb | tcp [port])
-@emph{ST-Link only:} Choose between 'exclusive' USB communication (the default backend) or
-'shared' mode using ST-Link TCP server (the default port is 7184).
-
-@emph{Note:} ST-Link TCP server is a binary application provided by ST
-available from @url{https://www.st.com/en/development-tools/st-link-server.html,
-ST-LINK server software module}.
 @end deffn
 
 @deffn {Command} {hla command} command
@@ -3261,8 +3252,11 @@ passed as is to the underlying adapter layout handler.
 @anchor{st_link_dap_interface}
 @deffn {Interface Driver} {st-link}
 This is a driver that supports STMicroelectronics adapters ST-LINK/V2
-(from firmware V2J24), STLINK-V3 and STLINK-V3PWR, thanks to a new API that provides
+(from 2015 firmware V2J24), STLINK-V3 and STLINK-V3PWR, thanks to a new API that provides
 directly access the arm ADIv5 DAP.
+
+The older API that requires HLA transport is deprecated and will be dropped
+from OpenOCD. In mean time it's still available by using @file{interface/stlink-hla.cfg}.
 
 The new API provide access to multiple AP on the same DAP, but the
 maximum number of the AP port is limited by the specific firmware version
@@ -10706,7 +10700,7 @@ baud with our custom divisor to get 12MHz)
 @item OpenOCD invocation line:
 @example
 openocd -f interface/stlink.cfg \
--c "transport select hla_swd" \
+-c "transport select dapdirect_swd" \
 -f target/stm32l1.cfg \
 -c "stm32l1.tpiu configure -protocol uart" \
 -c "stm32l1.tpiu configure -traceclk 24000000 -pin-freq 12000000" \

@@ -261,7 +261,7 @@ static int hwthread_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
 
 	int j = 0;
 	for (int i = 0; i < reg_list_size; i++) {
-		if (!reg_list[i] || reg_list[i]->exist == false || reg_list[i]->hidden)
+		if (!reg_list[i] || !reg_list[i]->exist || reg_list[i]->hidden)
 			continue;
 		j++;
 	}
@@ -274,7 +274,7 @@ static int hwthread_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
 
 	j = 0;
 	for (int i = 0; i < reg_list_size; i++) {
-		if (!reg_list[i] || reg_list[i]->exist == false || reg_list[i]->hidden)
+		if (!reg_list[i] || !reg_list[i]->exist || reg_list[i]->hidden)
 			continue;
 		if (!reg_list[i]->valid) {
 			retval = reg_list[i]->type->get(reg_list[i]);
@@ -326,7 +326,7 @@ static int hwthread_get_thread_reg_value(struct rtos *rtos, int64_t thread_id,
 		return ERROR_FAIL;
 
 	*size = reg->size;
-	unsigned bytes = DIV_ROUND_UP(reg->size, 8);
+	unsigned int bytes = DIV_ROUND_UP(reg->size, 8);
 	*value = malloc(bytes);
 	if (!*value) {
 		LOG_ERROR("Failed to allocate memory for %d-bit register.", reg->size);

@@ -389,9 +389,8 @@ static int at91sam9_read_page(struct nand_device *nand, uint32_t page,
 				uint32_t bit = parity & 0x0F;
 
 				data[word] ^= (0x1) << bit;
-				LOG_INFO("Data word %d, bit %d corrected.",
-					(unsigned) word,
-					(unsigned) bit);
+				LOG_INFO("Data word %" PRIu32 ", bit %" PRIu32 " corrected.",
+					word, bit);
 			}
 		}
 
@@ -533,7 +532,7 @@ COMMAND_HANDLER(handle_at91sam9_cle_command)
 {
 	struct nand_device *nand = NULL;
 	struct at91sam9_nand *info = NULL;
-	unsigned num, address_line;
+	unsigned int num, address_line;
 
 	if (CMD_ARGC != 2) {
 		command_print(CMD, "incorrect number of arguments for 'at91sam9 cle' command");
@@ -563,7 +562,7 @@ COMMAND_HANDLER(handle_at91sam9_ale_command)
 {
 	struct nand_device *nand = NULL;
 	struct at91sam9_nand *info = NULL;
-	unsigned num, address_line;
+	unsigned int num, address_line;
 
 	if (CMD_ARGC != 2)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -591,7 +590,7 @@ COMMAND_HANDLER(handle_at91sam9_rdy_busy_command)
 {
 	struct nand_device *nand = NULL;
 	struct at91sam9_nand *info = NULL;
-	unsigned num, base_pioc, pin_num;
+	unsigned int num, base_pioc, pin_num;
 
 	if (CMD_ARGC != 3)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -622,7 +621,7 @@ COMMAND_HANDLER(handle_at91sam9_ce_command)
 {
 	struct nand_device *nand = NULL;
 	struct at91sam9_nand *info = NULL;
-	unsigned num, base_pioc, pin_num;
+	unsigned int num, base_pioc, pin_num;
 
 	if (CMD_ARGC != 3)
 		return ERROR_COMMAND_SYNTAX_ERROR;

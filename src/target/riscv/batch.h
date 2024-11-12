@@ -216,7 +216,7 @@ riscv_batch_add_dm_read(struct riscv_batch *batch, uint64_t address,
 			riscv_get_dmi_address(batch->target, address), delay_type);
 }
 
-unsigned int riscv_batch_get_dmi_read_op(const struct riscv_batch *batch, size_t key);
+uint32_t riscv_batch_get_dmi_read_op(const struct riscv_batch *batch, size_t key);
 uint32_t riscv_batch_get_dmi_read_data(const struct riscv_batch *batch, size_t key);
 
 /* Scans in a NOP. */

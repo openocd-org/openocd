@@ -114,7 +114,7 @@ static int evaluate_pld(uint32_t opcode,
 	if ((opcode & 0x0d30f000) == 0x0510f000) {
 		uint8_t rn;
 		uint8_t u;
-		unsigned offset;
+		unsigned int offset;
 
 		instruction->type = ARM_PLD;
 		rn = (opcode & 0xf0000) >> 16;
@@ -266,18 +266,18 @@ static int evaluate_srs(uint32_t opcode,
 		case 0x08400000:
 			snprintf(instruction->text, 128, "0x%8.8" PRIx32
 				"\t0x%8.8" PRIx32
-				"\tSRS%s\tSP%s, #%d",
+				"\tSRS%s\tSP%s, #%" PRIu32,
 				address, opcode,
 				mode, wback,
-				(unsigned)(opcode & 0x1f));
+				opcode & 0x1f);
 			break;
 		case 0x08100000:
 			snprintf(instruction->text, 128, "0x%8.8" PRIx32
 				"\t0x%8.8" PRIx32
-				"\tRFE%s\tr%d%s",
+				"\tRFE%s\tr%" PRIu32 "%s",
 				address, opcode,
 				mode,
-				(unsigned)((opcode >> 16) & 0xf), wback);
+				(opcode >> 16) & 0xf, wback);
 			break;
 		default:
 			return evaluate_unknown(opcode, address, instruction);
@@ -701,9 +701,9 @@ static int evaluate_load_store(uint32_t opcode,
 
 static int evaluate_extend(uint32_t opcode, uint32_t address, char *cp)
 {
-	unsigned rm = (opcode >> 0) & 0xf;
-	unsigned rd = (opcode >> 12) & 0xf;
-	unsigned rn = (opcode >> 16) & 0xf;
+	unsigned int rm = (opcode >> 0) & 0xf;
+	unsigned int rd = (opcode >> 12) & 0xf;
+	unsigned int rn = (opcode >> 16) & 0xf;
 	char *type, *rot;
 
 	switch ((opcode >> 24) & 0x3) {
@@ -842,7 +842,7 @@ static int evaluate_media(uint32_t opcode, uint32_t address,
 	/* halfword pack */
 	if ((opcode & 0x01f00020) == 0x00800000) {
 		char *type, *shift;
-		unsigned imm = (unsigned) (opcode >> 7) & 0x1f;
+		unsigned int imm = (opcode >> 7) & 0x1f;
 
 		if (opcode & (1 << 6)) {
 			type = "TB";
@@ -865,7 +865,7 @@ static int evaluate_media(uint32_t opcode, uint32_t address,
 	/* word saturate */
 	if ((opcode & 0x01a00020) == 0x00a00000) {
 		char *shift;
-		unsigned imm = (unsigned) (opcode >> 7) & 0x1f;
+		unsigned int imm = (opcode >> 7) & 0x1f;
 
 		if (opcode & (1 << 6)) {
 			shift = "ASR";
@@ -892,7 +892,7 @@ static int evaluate_media(uint32_t opcode, uint32_t address,
 
 	/* multiplies */
 	if ((opcode & 0x01f00080) == 0x01000000) {
-		unsigned rn = (opcode >> 12) & 0xf;
+		unsigned int rn = (opcode >> 12) & 0xf;
 
 		if (rn != 0xf)
 			sprintf(cp, "SML%cD%s%s\tr%d, r%d, r%d, r%d",
@@ -925,7 +925,7 @@ static int evaluate_media(uint32_t opcode, uint32_t address,
 		return ERROR_OK;
 	}
 	if ((opcode & 0x01f00000) == 0x01500000) {
-		unsigned rn = (opcode >> 12) & 0xf;
+		unsigned int rn = (opcode >> 12) & 0xf;
 
 		switch (opcode & 0xc0) {
 			case 3:
@@ -1001,8 +1001,8 @@ static int evaluate_media(uint32_t opcode, uint32_t address,
 			return ERROR_OK;
 	}
 	if (mnemonic) {
-		unsigned rm = (opcode >> 0) & 0xf;
-		unsigned rd = (opcode >> 12) & 0xf;
+		unsigned int rm = (opcode >> 0) & 0xf;
+		unsigned int rd = (opcode >> 12) & 0xf;
 
 		sprintf(cp, "%s%s\tr%d, r%d", mnemonic, COND(opcode), rm, rd);
 		return ERROR_OK;
@@ -2046,8 +2046,7 @@ int arm_evaluate_opcode(uint32_t opcode, uint32_t address,
 			return evaluate_cdp_mcr_mrc(opcode, address, instruction);
 	}
 
-	LOG_ERROR("ARM: should never reach this point (opcode=%08x)",
-			(unsigned) opcode);
+	LOG_ERROR("ARM: should never reach this point (opcode=%08" PRIx32 ")", opcode);
 	return -1;
 }
 
@@ -2748,7 +2747,7 @@ static int evaluate_cond_branch_thumb(uint16_t opcode,
 static int evaluate_cb_thumb(uint16_t opcode, uint32_t address,
 			     struct arm_instruction *instruction)
 {
-	unsigned offset;
+	unsigned int offset;
 
 	/* added in Thumb2 */
 	offset = (opcode >> 3) & 0x1f;
@@ -2859,7 +2858,7 @@ static int evaluate_hint_thumb(uint16_t opcode, uint32_t address,
 static int evaluate_ifthen_thumb(uint16_t opcode, uint32_t address,
 				 struct arm_instruction *instruction)
 {
-	unsigned cond = (opcode >> 4) & 0x0f;
+	unsigned int cond = (opcode >> 4) & 0x0f;
 	char *x = "", *y = "", *z = "";
 
 	if (opcode & 0x01)

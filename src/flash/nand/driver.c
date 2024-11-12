@@ -33,7 +33,7 @@ static struct nand_flash_controller *nand_flash_controllers[] = {
 
 struct nand_flash_controller *nand_driver_find_by_name(const char *name)
 {
-	for (unsigned i = 0; nand_flash_controllers[i]; i++) {
+	for (unsigned int i = 0; nand_flash_controllers[i]; i++) {
 		struct nand_flash_controller *controller = nand_flash_controllers[i];
 		if (strcmp(name, controller->name) == 0)
 			return controller;
@@ -42,7 +42,7 @@ struct nand_flash_controller *nand_driver_find_by_name(const char *name)
 }
 int nand_driver_walk(nand_driver_walker_t f, void *x)
 {
-	for (unsigned i = 0; nand_flash_controllers[i]; i++) {
+	for (unsigned int i = 0; nand_flash_controllers[i]; i++) {
 		int retval = (*f)(nand_flash_controllers[i], x);
 		if (retval != ERROR_OK)
 			return retval;

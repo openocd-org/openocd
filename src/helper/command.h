@@ -77,7 +77,7 @@ struct command_invocation {
 	struct command_context *ctx;
 	struct command *current;
 	const char *name;
-	unsigned argc;
+	unsigned int argc;
 	const char **argv;
 	Jim_Obj * const *jimtcl_argv;
 	Jim_Obj *output;
@@ -414,7 +414,7 @@ int parse_llong(const char *str, long long *ul);
 #define DECLARE_PARSE_WRAPPER(name, type) \
 		int parse ## name(const char *str, type * ul)
 
-DECLARE_PARSE_WRAPPER(_uint, unsigned);
+DECLARE_PARSE_WRAPPER(_uint, unsigned int);
 DECLARE_PARSE_WRAPPER(_u64, uint64_t);
 DECLARE_PARSE_WRAPPER(_u32, uint32_t);
 DECLARE_PARSE_WRAPPER(_u16, uint16_t);

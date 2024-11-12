@@ -32,7 +32,7 @@
  * @param value Up to 32 bits that will be copied to _buffer.
  */
 static inline void buf_set_u32(uint8_t *_buffer,
-	unsigned first, unsigned num, uint32_t value)
+	unsigned int first, unsigned int num, uint32_t value)
 {
 	assert(num >= 1 && num <= 32);
 	uint8_t *buffer = _buffer;
@@ -43,7 +43,7 @@ static inline void buf_set_u32(uint8_t *_buffer,
 		buffer[1] = (value >> 8) & 0xff;
 		buffer[0] = (value >> 0) & 0xff;
 	} else {
-		for (unsigned i = first; i < first + num; i++) {
+		for (unsigned int i = first; i < first + num; i++) {
 			if (((value >> (i - first)) & 1) == 1)
 				buffer[i / 8] |= 1 << (i % 8);
 			else
@@ -63,7 +63,7 @@ static inline void buf_set_u32(uint8_t *_buffer,
  * @param value Up to 64 bits that will be copied to _buffer.
  */
 static inline void buf_set_u64(uint8_t *_buffer,
-	unsigned first, unsigned num, uint64_t value)
+	unsigned int first, unsigned int num, uint64_t value)
 {
 	assert(num >= 1 && num <= 64);
 	uint8_t *buffer = _buffer;
@@ -83,7 +83,7 @@ static inline void buf_set_u64(uint8_t *_buffer,
 		buffer[1] = (value >> 8) & 0xff;
 		buffer[0] = (value >> 0) & 0xff;
 	} else {
-		for (unsigned i = first; i < first + num; i++) {
+		for (unsigned int i = first; i < first + num; i++) {
 			if (((value >> (i - first)) & 1) == 1)
 				buffer[i / 8] |= 1 << (i % 8);
 			else
@@ -102,7 +102,7 @@ static inline void buf_set_u64(uint8_t *_buffer,
  * @returns Up to 32-bits that were read from @c _buffer.
  */
 static inline uint32_t buf_get_u32(const uint8_t *_buffer,
-	unsigned first, unsigned num)
+	unsigned int first, unsigned int num)
 {
 	assert(num >= 1 && num <= 32);
 	const uint8_t *buffer = _buffer;
@@ -114,7 +114,7 @@ static inline uint32_t buf_get_u32(const uint8_t *_buffer,
 				(((uint32_t)buffer[0]) << 0);
 	} else {
 		uint32_t result = 0;
-		for (unsigned i = first; i < first + num; i++) {
+		for (unsigned int i = first; i < first + num; i++) {
 			if (((buffer[i / 8] >> (i % 8)) & 1) == 1)
 				result |= 1U << (i - first);
 		}
@@ -132,7 +132,7 @@ static inline uint32_t buf_get_u32(const uint8_t *_buffer,
  * @returns Up to 64-bits that were read from @c _buffer.
  */
 static inline uint64_t buf_get_u64(const uint8_t *_buffer,
-	unsigned first, unsigned num)
+	unsigned int first, unsigned int num)
 {
 	assert(num >= 1 && num <= 64);
 	const uint8_t *buffer = _buffer;
@@ -153,7 +153,7 @@ static inline uint64_t buf_get_u64(const uint8_t *_buffer,
 				(((uint64_t)buffer[0]) << 0));
 	} else {
 		uint64_t result = 0;
-		for (unsigned i = first; i < first + num; i++) {
+		for (unsigned int i = first; i < first + num; i++) {
 			if (((buffer[i / 8] >> (i % 8)) & 1) == 1)
 				result = result | ((uint64_t)1 << (uint64_t)(i - first));
 		}
@@ -170,11 +170,11 @@ static inline uint64_t buf_get_u64(const uint8_t *_buffer,
  * @param width The number of bits in value (2-32).
  * @returns A 32-bit word with @c value in reversed bit-order.
  */
-uint32_t flip_u32(uint32_t value, unsigned width);
+uint32_t flip_u32(uint32_t value, unsigned int width);
 
-bool buf_eq(const void *buf1, const void *buf2, unsigned size);
+bool buf_eq(const void *buf1, const void *buf2, unsigned int size);
 bool buf_eq_mask(const void *buf1, const void *buf2,
-		const void *mask, unsigned size);
+		const void *mask, unsigned int size);
 
 /**
  * Copies @c size bits out of @c from and into @c to.  Any extra
@@ -183,7 +183,7 @@ bool buf_eq_mask(const void *buf1, const void *buf2,
  * @param to The buffer that will receive the copy of @c from.
  * @param size The number of bits to copy.
  */
-void *buf_cpy(const void *from, void *to, unsigned size);
+void *buf_cpy(const void *from, void *to, unsigned int size);
 
 /**
  * Set the contents of @c buf with @c count bits, all set to 1.
@@ -191,10 +191,10 @@ void *buf_cpy(const void *from, void *to, unsigned size);
  * @param size The number of bits.
  * @returns The original buffer (@c buf).
  */
-void *buf_set_ones(void *buf, unsigned size);
+void *buf_set_ones(void *buf, unsigned int size);
 
-void *buf_set_buf(const void *src, unsigned src_start,
-		  void *dst, unsigned dst_start, unsigned len);
+void *buf_set_buf(const void *src, unsigned int src_start,
+		  void *dst, unsigned int dst_start, unsigned int len);
 
 /**
  * Parse an unsigned number (provided as a zero-terminated string)
@@ -207,7 +207,7 @@ void *buf_set_buf(const void *src, unsigned src_start,
  */
 int str_to_buf(const char *str, void *_buf, unsigned int buf_bitsize);
 
-char *buf_to_hex_str(const void *buf, unsigned size);
+char *buf_to_hex_str(const void *buf, unsigned int size);
 
 /* read a uint32_t from a buffer in target memory endianness */
 static inline uint32_t fast_target_buffer_get_u32(const void *p, bool le)
@@ -215,8 +215,8 @@ static inline uint32_t fast_target_buffer_get_u32(const void *p, bool le)
 	return le ? le_to_h_u32(p) : be_to_h_u32(p);
 }
 
-static inline void bit_copy(uint8_t *dst, unsigned dst_offset, const uint8_t *src,
-	unsigned src_offset, unsigned bit_count)
+static inline void bit_copy(uint8_t *dst, unsigned int dst_offset, const uint8_t *src,
+	unsigned int src_offset, unsigned int bit_count)
 {
 	buf_set_buf(src, src_offset, dst, dst_offset, bit_count);
 }
@@ -227,16 +227,16 @@ struct bit_copy_queue {
 
 struct bit_copy_queue_entry {
 	uint8_t *dst;
-	unsigned dst_offset;
+	unsigned int dst_offset;
 	const uint8_t *src;
-	unsigned src_offset;
-	unsigned bit_count;
+	unsigned int src_offset;
+	unsigned int bit_count;
 	struct list_head list;
 };
 
 void bit_copy_queue_init(struct bit_copy_queue *q);
-int bit_copy_queued(struct bit_copy_queue *q, uint8_t *dst, unsigned dst_offset, const uint8_t *src,
-		    unsigned src_offset, unsigned bit_count);
+int bit_copy_queued(struct bit_copy_queue *q, uint8_t *dst, unsigned int dst_offset, const uint8_t *src,
+		    unsigned int src_offset, unsigned int bit_count);
 void bit_copy_execute(struct bit_copy_queue *q);
 void bit_copy_discard(struct bit_copy_queue *q);
 
@@ -244,6 +244,6 @@ void bit_copy_discard(struct bit_copy_queue *q);
  * used in ti-icdi driver and gdb server */
 size_t unhexify(uint8_t *bin, const char *hex, size_t count);
 size_t hexify(char *hex, const uint8_t *bin, size_t count, size_t out_maxlen);
-void buffer_shr(void *_buf, unsigned buf_len, unsigned count);
+void buffer_shr(void *_buf, unsigned int buf_len, unsigned int count);
 
 #endif /* OPENOCD_HELPER_BINARYBUFFER_H */

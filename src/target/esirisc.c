@@ -283,7 +283,7 @@ static int esirisc_save_context(struct target *target)
 
 	LOG_DEBUG("-");
 
-	for (unsigned i = 0; i < esirisc->reg_cache->num_regs; ++i) {
+	for (unsigned int i = 0; i < esirisc->reg_cache->num_regs; ++i) {
 		struct reg *reg = esirisc->reg_cache->reg_list + i;
 		struct esirisc_reg *reg_info = reg->arch_info;
 
@@ -300,7 +300,7 @@ static int esirisc_restore_context(struct target *target)
 
 	LOG_DEBUG("-");
 
-	for (unsigned i = 0; i < esirisc->reg_cache->num_regs; ++i) {
+	for (unsigned int i = 0; i < esirisc->reg_cache->num_regs; ++i) {
 		struct reg *reg = esirisc->reg_cache->reg_list + i;
 		struct esirisc_reg *reg_info = reg->arch_info;
 

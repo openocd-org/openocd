@@ -717,7 +717,8 @@ struct range {
 };
 
 static void bitmap_to_ranges(unsigned long *bitmap, unsigned int nbits,
-		struct range *ranges, unsigned int *ranges_count) {
+		struct range *ranges, unsigned int *ranges_count)
+{
 	*ranges_count = 0;
 	bool last_bit = 0, cur_bit;
 	for (unsigned int i = 0; i < nbits; i++) {

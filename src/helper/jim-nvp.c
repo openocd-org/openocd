@@ -21,6 +21,7 @@
 #endif
 
 #include "jim-nvp.h"
+#include <stdio.h>
 #include <string.h>
 
 int jim_get_nvp(Jim_Interp *interp,

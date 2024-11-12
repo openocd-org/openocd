@@ -138,11 +138,11 @@ enum mxc_nf_finalize_action {
 };
 
 struct mxc_nf_flags {
-	unsigned target_little_endian:1;
-	unsigned nand_readonly:1;
-	unsigned one_kb_sram:1;
-	unsigned hw_ecc_enabled:1;
-	unsigned biswap_enabled:1;
+	unsigned int target_little_endian:1;
+	unsigned int nand_readonly:1;
+	unsigned int one_kb_sram:1;
+	unsigned int hw_ecc_enabled:1;
+	unsigned int biswap_enabled:1;
 };
 
 struct mxc_nf_controller {

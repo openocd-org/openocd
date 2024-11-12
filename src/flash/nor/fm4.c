@@ -107,7 +107,7 @@ static int fm4_flash_erase(struct flash_bank *bank, unsigned int first,
 	struct working_area *workarea;
 	struct reg_param reg_params[4];
 	struct armv7m_algorithm armv7m_algo;
-	unsigned i;
+	unsigned int i;
 	int retval;
 	const uint8_t erase_sector_code[] = {
 #include "../../../contrib/loaders/flash/fm4/erase.inc"
@@ -207,7 +207,7 @@ static int fm4_flash_write(struct flash_bank *bank, const uint8_t *buffer,
 	struct armv7m_algorithm armv7m_algo;
 	uint32_t halfword_count = DIV_ROUND_UP(byte_count, 2);
 	uint32_t result;
-	unsigned i;
+	unsigned int i;
 	int retval, retval2 = ERROR_OK;
 	const uint8_t write_block_code[] = {
 #include "../../../contrib/loaders/flash/fm4/write.inc"

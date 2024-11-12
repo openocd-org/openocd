@@ -287,9 +287,9 @@ static int esirisc_trace_init(struct target *target)
 }
 
 static int esirisc_trace_buf_get_u32(uint8_t *buffer, uint32_t size,
-		unsigned *pos, unsigned count, uint32_t *value)
+		unsigned int *pos, unsigned int count, uint32_t *value)
 {
-	const unsigned num_bits = size * 8;
+	const unsigned int num_bits = size * 8;
 
 	if (*pos+count > num_bits)
 		return ERROR_FAIL;
@@ -301,7 +301,7 @@ static int esirisc_trace_buf_get_u32(uint8_t *buffer, uint32_t size,
 }
 
 static int esirisc_trace_buf_get_pc(struct target *target, uint8_t *buffer, uint32_t size,
-		unsigned *pos, uint32_t *value)
+		unsigned int *pos, uint32_t *value)
 {
 	struct esirisc_common *esirisc = target_to_esirisc(target);
 	struct esirisc_trace *trace_info = &esirisc->trace_info;
@@ -380,7 +380,7 @@ static int esirisc_trace_analyze_full(struct command_invocation *cmd, uint8_t *b
 	const uint32_t num_bits = size * 8;
 	int retval;
 
-	unsigned pos = 0;
+	unsigned int pos = 0;
 	while (pos < num_bits) {
 		uint32_t id;
 
@@ -484,7 +484,7 @@ static int esirisc_trace_analyze_simple(struct command_invocation *cmd, uint8_t 
 	const uint32_t num_bits = size * 8;
 	int retval;
 
-	unsigned pos = 0;
+	unsigned int pos = 0;
 	while (pos < num_bits) {
 		uint32_t pc;
 

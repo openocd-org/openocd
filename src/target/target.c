@@ -1449,14 +1449,14 @@ int target_gdb_fileio_end(struct target *target, int retcode, int fileio_errno, 
 
 target_addr_t target_address_max(struct target *target)
 {
-	unsigned bits = target_address_bits(target);
+	unsigned int bits = target_address_bits(target);
 	if (sizeof(target_addr_t) * 8 == bits)
 		return (target_addr_t) -1;
 	else
 		return (((target_addr_t) 1) << bits) - 1;
 }
 
-unsigned target_address_bits(struct target *target)
+unsigned int target_address_bits(struct target *target)
 {
 	if (target->type->address_bits)
 		return target->type->address_bits(target);
@@ -3032,14 +3032,14 @@ COMMAND_HANDLER(handle_reg_command)
 
 		unsigned int count = 0;
 		while (cache) {
-			unsigned i;
+			unsigned int i;
 
 			command_print(CMD, "===== %s", cache->name);
 
 			for (i = 0, reg = cache->reg_list;
 					i < cache->num_regs;
 					i++, reg++, count++) {
-				if (reg->exist == false || reg->hidden)
+				if (!reg->exist || reg->hidden)
 					continue;
 				/* only print cached values if they are valid */
 				if (reg->valid) {
@@ -3067,13 +3067,13 @@ COMMAND_HANDLER(handle_reg_command)
 
 	/* access a single register by its ordinal number */
 	if ((CMD_ARGV[0][0] >= '0') && (CMD_ARGV[0][0] <= '9')) {
-		unsigned num;
+		unsigned int num;
 		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], num);
 
 		struct reg_cache *cache = target->reg_cache;
 		unsigned int count = 0;
 		while (cache) {
-			unsigned i;
+			unsigned int i;
 			for (i = 0; i < cache->num_regs; i++) {
 				if (count++ == num) {
 					reg = &cache->reg_list[i];
@@ -3191,7 +3191,7 @@ COMMAND_HANDLER(handle_wait_halt_command)
 	if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	unsigned ms = DEFAULT_HALT_TIMEOUT;
+	unsigned int ms = DEFAULT_HALT_TIMEOUT;
 	if (1 == CMD_ARGC) {
 		int retval = parse_uint(CMD_ARGV[0], &ms);
 		if (retval != ERROR_OK)
@@ -3254,7 +3254,7 @@ COMMAND_HANDLER(handle_halt_command)
 		return retval;
 
 	if (CMD_ARGC == 1) {
-		unsigned wait_local;
+		unsigned int wait_local;
 		retval = parse_uint(CMD_ARGV[0], &wait_local);
 		if (retval != ERROR_OK)
 			return ERROR_COMMAND_SYNTAX_ERROR;
@@ -3339,13 +3339,13 @@ COMMAND_HANDLER(handle_step_command)
 
 void target_handle_md_output(struct command_invocation *cmd,
 		struct target *target, target_addr_t address, unsigned size,
-		unsigned count, const uint8_t *buffer, bool include_address)
+		unsigned int count, const uint8_t *buffer, bool include_address)
 {
-	const unsigned line_bytecnt = 32;
-	unsigned line_modulo = line_bytecnt / size;
+	const unsigned int line_bytecnt = 32;
+	unsigned int line_modulo = line_bytecnt / size;
 
 	char output[line_bytecnt * 4 + 1];
-	unsigned output_len = 0;
+	unsigned int output_len = 0;
 
 	const char *value_fmt;
 	switch (size) {
@@ -3406,7 +3406,7 @@ COMMAND_HANDLER(handle_md_command)
 	if (CMD_ARGC < 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	unsigned size = 0;
+	unsigned int size = 0;
 	switch (CMD_NAME[2]) {
 	case 'd':
 		size = 8;
@@ -3439,7 +3439,7 @@ COMMAND_HANDLER(handle_md_command)
 	target_addr_t address;
 	COMMAND_PARSE_ADDRESS(CMD_ARGV[0], address);
 
-	unsigned count = 1;
+	unsigned int count = 1;
 	if (CMD_ARGC == 2)
 		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[1], count);
 
@@ -3466,22 +3466,22 @@ typedef int (*target_write_fn)(struct target *target,
 static int target_fill_mem(struct target *target,
 		target_addr_t address,
 		target_write_fn fn,
-		unsigned data_size,
+		unsigned int data_size,
 		/* value */
 		uint64_t b,
 		/* count */
-		unsigned c)
+		unsigned int c)
 {
 	/* We have to write in reasonably large chunks to be able
 	 * to fill large memory areas with any sane speed */
-	const unsigned chunk_size = 16384;
+	const unsigned int chunk_size = 16384;
 	uint8_t *target_buf = malloc(chunk_size * data_size);
 	if (!target_buf) {
 		LOG_ERROR("Out of memory");
 		return ERROR_FAIL;
 	}
 
-	for (unsigned i = 0; i < chunk_size; i++) {
+	for (unsigned int i = 0; i < chunk_size; i++) {
 		switch (data_size) {
 		case 8:
 			target_buffer_set_u64(target, target_buf + i * data_size, b);
@@ -3502,8 +3502,8 @@ static int target_fill_mem(struct target *target,
 
 	int retval = ERROR_OK;
 
-	for (unsigned x = 0; x < c; x += chunk_size) {
-		unsigned current;
+	for (unsigned int x = 0; x < c; x += chunk_size) {
+		unsigned int current;
 		current = c - x;
 		if (current > chunk_size)
 			current = chunk_size;
@@ -3540,12 +3540,12 @@ COMMAND_HANDLER(handle_mw_command)
 	uint64_t value;
 	COMMAND_PARSE_NUMBER(u64, CMD_ARGV[1], value);
 
-	unsigned count = 1;
+	unsigned int count = 1;
 	if (CMD_ARGC == 3)
 		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[2], count);
 
 	struct target *target = get_current_target(CMD_CTX);
-	unsigned wordsize;
+	unsigned int wordsize;
 	switch (CMD_NAME[2]) {
 		case 'd':
 			wordsize = 8;
@@ -3841,11 +3841,11 @@ static COMMAND_HELPER(handle_verify_image_command_internal, enum verify_mode ver
 					for (t = 0; t < buf_cnt; t++) {
 						if (data[t] != buffer[t]) {
 							command_print(CMD,
-										  "diff %d address 0x%08x. Was 0x%02x instead of 0x%02x",
-										  diffs,
-										  (unsigned)(t + image.sections[i].base_address),
-										  data[t],
-										  buffer[t]);
+								"diff %d address " TARGET_ADDR_FMT ". Was 0x%02" PRIx8 " instead of 0x%02" PRIx8,
+								diffs,
+								t + image.sections[i].base_address,
+								data[t],
+								buffer[t]);
 							if (diffs++ >= 127) {
 								command_print(CMD, "More than 128 errors, the rest are not printed.");
 								free(data);
@@ -4580,7 +4580,7 @@ static int target_jim_write_memory(Jim_Interp *interp, int argc,
 	}
 
 	struct command_context *cmd_ctx = current_command_context(interp);
-	assert(cmd_ctx != NULL);
+	assert(cmd_ctx);
 	struct target *target = get_current_target(cmd_ctx);
 
 	const size_t buffersize = 4096;
@@ -4723,7 +4723,7 @@ static int target_jim_get_reg(Jim_Interp *interp, int argc,
 		return JIM_ERR;
 
 	struct command_context *cmd_ctx = current_command_context(interp);
-	assert(cmd_ctx != NULL);
+	assert(cmd_ctx);
 	const struct target *target = get_current_target(cmd_ctx);
 
 	for (int i = 0; i < length; i++) {
@@ -5991,7 +5991,7 @@ static int get_target_with_common_rtos_type(struct command_invocation *cmd,
 
 COMMAND_HANDLER(handle_target_smp)
 {
-	static int smp_group = 1;
+	static unsigned int smp_group = 1;
 
 	if (CMD_ARGC == 0) {
 		LOG_DEBUG("Empty SMP target");

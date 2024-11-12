@@ -13,7 +13,7 @@
 
 static inline void interface_jtag_add_scan_check_alloc(struct scan_field *field)
 {
-	unsigned num_bytes = DIV_ROUND_UP(field->num_bits, 8);
+	unsigned int num_bytes = DIV_ROUND_UP(field->num_bits, 8);
 	field->in_value = cmd_queue_alloc(num_bytes);
 }
 

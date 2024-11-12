@@ -158,7 +158,7 @@ static char *hexdump(uint8_t *buf, unsigned int size)
 	return str;
 }
 
-static int ublast_buf_read(uint8_t *buf, unsigned size, uint32_t *bytes_read)
+static int ublast_buf_read(uint8_t *buf, unsigned int size, uint32_t *bytes_read)
 {
 	int ret = info.drv->read(info.drv, buf, size, bytes_read);
 	char *str = hexdump(buf, *bytes_read);

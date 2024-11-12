@@ -91,7 +91,7 @@ static const struct flash_driver * const flash_drivers[] = {
 
 const struct flash_driver *flash_driver_find_by_name(const char *name)
 {
-	for (unsigned i = 0; flash_drivers[i]; i++) {
+	for (unsigned int i = 0; flash_drivers[i]; i++) {
 		if (strcmp(name, flash_drivers[i]->name) == 0)
 			return flash_drivers[i];
 	}

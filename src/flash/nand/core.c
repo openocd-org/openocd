@@ -165,8 +165,8 @@ static struct nand_ecclayout nand_oob_8 = {
  */
 static struct nand_device *get_nand_device_by_name(const char *name)
 {
-	unsigned requested = get_flash_name_index(name);
-	unsigned found = 0;
+	unsigned int requested = get_flash_name_index(name);
+	unsigned int found = 0;
 
 	struct nand_device *nand;
 	for (nand = nand_devices; nand; nand = nand->next) {
@@ -194,7 +194,7 @@ struct nand_device *get_nand_device_by_num(int num)
 	return NULL;
 }
 
-COMMAND_HELPER(nand_command_get_device, unsigned name_index,
+COMMAND_HELPER(nand_command_get_device, unsigned int name_index,
 	struct nand_device **nand)
 {
 	const char *str = CMD_ARGV[name_index];
@@ -202,7 +202,7 @@ COMMAND_HELPER(nand_command_get_device, unsigned name_index,
 	if (*nand)
 		return ERROR_OK;
 
-	unsigned num;
+	unsigned int num;
 	COMMAND_PARSE_NUMBER(uint, str, num);
 	*nand = get_nand_device_by_num(num);
 	if (!*nand) {
