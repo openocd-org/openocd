@@ -418,32 +418,45 @@ void server_keep_clients_alive(void)
 				s->keep_client_alive(c);
 }
 
+/* server_loop：负责gdb server的主循环，监听服务的文件描述符并处理连接请求，
+ * 直到gdb server关闭，用于管理服务和连接的I/O操作
+ */
 int server_loop(struct command_context *command_context)
 {
-	struct service *service;
+	struct service *service; //指向服务的指针，用于遍历和操作不同的服务
 
-	bool poll_ok = true;
+	bool poll_ok = true; //布尔值，表示轮询状态
 
 	/* used in select() */
-	fd_set read_fds;
-	int fd_max;
+	fd_set read_fds; //fd_set类型，用于select系统调用，表示监听的文件描述符集合
+	int fd_max; //表示文件描述符的最大值，用于select系统调用
 
 	/* used in accept() */
-	int retval;
+	int retval; //用于存储函数调用的返回值
 
-	int64_t next_event = timeval_ms() + polling_period;
+	//下一次时间的时间戳(当前时间加上轮询周期)，用于定时时间处理
+	int64_t next_event = timeval_ms() + polling_period; 
 
+/* 如果不是win32，将SIGPIPE信号设置为忽略
+ * 当尝试向一个关闭的socket连接写数据时，会触发SIGPIPE，将其忽略避免程序异常退出
+ */
 #ifndef _WIN32
 	if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)
 		LOG_ERROR("couldn't set SIGPIPE to SIG_IGN");
 #endif
 
+	//服务器进入主循环
 	while (shutdown_openocd == CONTINUE_MAIN_LOOP) {
 		/* monitor sockets for activity */
+		//清空read_fds，并将fd_max设置为0，准备重新添加需要监听的文件描述符
 		fd_max = 0;
 		FD_ZERO(&read_fds);
 
 		/* add service and connection fds to read_fds */
+		/* 遍历所有服务，将它们的文件描述符service->next添加到read_fds集合，以便监听
+		 * 更新fd_max以确保它是当前文件描述符的最大值
+		 * 检查服务的connect,如果存在连接，则进一步处理连接的文件描述符
+		*/
 		for (service = services; service; service = service->next) {
 			if (service->fd != -1) {
 				/* listen for new connections */
@@ -455,7 +468,9 @@ int server_loop(struct command_context *command_context)
 
 			if (service->connections) {
 				struct connection *c;
-
+                
+				//遍历所有连接，并将每个连接的文件描述符c->fd添加到read_fds集合中，以便监听
+				//更新fd_max，确保fd_max为文件描述符最大值
 				for (c = service->connections; c; c = c->next) {
 					/* check for activity on the connection */
 					FD_SET(c->fd, &read_fds);
@@ -470,29 +485,36 @@ int server_loop(struct command_context *command_context)
 		if (poll_ok) {
 			/* we're just polling this iteration, this is faster on embedded
 			 * hosts */
-			tv.tv_usec = 0;
+			tv.tv_usec = 0;//tv.tv_sec = 0和tv.tv_usec = 0表示0超时，即立即返回，相当于非阻塞轮询
+			
+			//调用socket_select监听文件描述符集合中的活动，并将结果存储在reval中
 			retval = socket_select(fd_max + 1, &read_fds, NULL, NULL, &tv);
 		} else {
 			/* Timeout socket_select() when a target timer expires or every polling_period */
+			//如果poll_ok为false，则根据next_event和当前时间计算超时时间timeout_ms，用于控制select的阻塞时长
 			int timeout_ms = next_event - timeval_ms();
 			if (timeout_ms < 0)
 				timeout_ms = 0;
-			else if (timeout_ms > polling_period)
-				timeout_ms = polling_period;
-			tv.tv_usec = timeout_ms * 1000;
+			else if (timeout_ms > polling_period)  
+				timeout_ms = polling_period;   //最大等待时间
+			tv.tv_usec = timeout_ms * 1000; //微秒数
 			/* Only while we're sleeping we'll let others run */
+			//调用socket_select以阻塞模式等待，直到有文件描述符准备好或超时时间到达
 			retval = socket_select(fd_max + 1, &read_fds, NULL, NULL, &tv);
 		}
-
+        /* 错误处理：检查retval是否为-1，表示select调用失败
+		 * 在select失败的情况下，检查错误类型，确保了在非严重错误时服务器能够正常运行，
+		 * 而在严重错误时，停止循环并返回错误
+		 */
 		if (retval == -1) {
 #ifdef _WIN32
 
-			errno = WSAGetLastError();
+			errno = WSAGetLastError();  //获取select错误代码
 
-			if (errno == WSAEINTR)
+			if (errno == WSAEINTR)  //错误是WSAEINTR，清空read_fds文件描述符集合
 				FD_ZERO(&read_fds);
-			else {
-				LOG_ERROR("error during select: %s", strerror(errno));
+			else {  //记录日志并返回ERROR_FAIL，表示不可恢复的错误
+				LOG_ERROR("error during select: %s", strerror(errno)); 
 				return ERROR_FAIL;
 			}
 #else
@@ -505,7 +527,16 @@ int server_loop(struct command_context *command_context)
 			}
 #endif
 		}
-
+        
+		/* 超时检测：retval == 0表示select 超时，没有任何文件描述符变为可用
+		 * 超时处理：
+		 * target_call_timer_callbacks()执行已到期的定时器回调函数
+		 * target_timer_next_event()获取下一次事件的时间戳，更新next_event
+		 * process_jim_events(command_context)处理Jim TCL事件
+		 * FD_ZERO(&read_fds)清空read_fds,因为在某些操作系统中，read_fds可能在超时后保持不变
+		 * 设置轮询标志：将poll_ok设置为false，表示下次循环使用阻塞等待模式
+		 * 如果 retval不为0，表示有事件发生，则设置为true，下次循环使用非阻塞轮询模式
+		*/
 		if (retval == 0) {
 			/* Execute callbacks of expired timers when
 			 * - there was nothing to do if poll_ok was true
@@ -530,9 +561,14 @@ int server_loop(struct command_context *command_context)
 		 * re-poll if we did something this time around.
 		 *
 		 * This greatly improves performance of DCC.
+		 * 如果target_got_message()返回true，表示有未处理的目标消息，则将poll_OK设置为true,以便尽快处理
 		 */
 		poll_ok = poll_ok || target_got_message();
-
+        
+		/* 遍历所有服务,处理监听上的新连接请求
+		 * 如果服务的max_connections不是-1，调用add_connection函数增加新连接
+		 * 如果服务类型为CONNECTION_TCP，拒绝新连接(通过accept获取连接后立即关闭)，并记录日志
+		*/
 		for (service = services; service; service = service->next) {
 			/* handle new connections on listeners */
 			if ((service->fd != -1)
@@ -556,6 +592,10 @@ int server_loop(struct command_context *command_context)
 			}
 
 			/* handle activity on connections */
+			/* 遍历服务的所有活动连接，检查连线是否在read_fds中设置了活动标志或存在input_pending
+			 * 对每个活跃的连接调用service->input函数处理输入数据
+			 *
+			*/
 			if (service->connections) {
 				struct connection *c;
 
@@ -568,12 +608,12 @@ int server_loop(struct command_context *command_context)
 									service->type == CONNECTION_STDINOUT) {
 								/* if connection uses a pipe then
 								 * shutdown openocd on error */
-								shutdown_openocd = SHUTDOWN_REQUESTED;
+								shutdown_openocd = SHUTDOWN_REQUESTED;  //触发服务器关闭
 							}
 							remove_connection(service, c);
 							LOG_INFO("dropped '%s' connection",
 								service->name);
-							c = next;
+							c = next;  //继续处理
 							continue;
 						}
 					}
@@ -582,20 +622,25 @@ int server_loop(struct command_context *command_context)
 			}
 		}
 
+/* WIN32平台消息处理:
+ * 使用PeekMessage检查消息队列中的消息
+*/
 #ifdef _WIN32
 		MSG msg;
 		while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
 			if (msg.message == WM_QUIT)
-				shutdown_openocd = SHUTDOWN_WITH_SIGNAL_CODE;
+				shutdown_openocd = SHUTDOWN_WITH_SIGNAL_CODE; //请求服务器关闭
 		}
 #endif
 	}
 
 	/* when quit for signal or CTRL-C, run (eventually user implemented) "shutdown" */
+	//处理退出信号
 	if (shutdown_openocd == SHUTDOWN_WITH_SIGNAL_CODE)
-		command_run_line(command_context, "shutdown");
-
-	return shutdown_openocd == SHUTDOWN_WITH_ERROR_CODE ? ERROR_FAIL : ERROR_OK;
+		command_run_line(command_context, "shutdown"); //触发服务器关闭流程
+    
+	//返回退出状态:异常退出/正常退出
+	return shutdown_openocd == SHUTDOWN_WITH_ERROR_CODE ? ERROR_FAIL : ERROR_OK;  
 }
 
 static void sig_handler(int sig)
