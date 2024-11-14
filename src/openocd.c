@@ -50,6 +50,8 @@ static const char openocd_startup_tcl[] = {
 0 /* Terminate with zero */
 };
 
+//jim_version_command 是一个命令处理函数，返回 OpenOCD 的版本信息
+//接收三个参数：interp 是解释器对象，argc 是参数个数，argv 是参数数组
 /* Give scripts and TELNET a way to find out what version this is */
 static int jim_version_command(Jim_Interp *interp, int argc,
 	Jim_Obj * const *argv)
