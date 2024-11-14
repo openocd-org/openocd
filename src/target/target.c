@@ -1602,24 +1602,42 @@ static int target_init_one(struct command_context *cmd_ctx,
 	return ERROR_OK;
 }
 
+//target_init 函数: 用于初始化所有目标（targets）以及相关的用户命令和定时器回调
 static int target_init(struct command_context *cmd_ctx)
-{
+{       
+	/* target_init 函数接受一个 command_context 结构体指针 cmd_ctx，用于管理命令上下文
+         * target 是指向 struct target 的指针，用于遍历所有目标
+         * retval 用于存储函数调用的返回值 */
 	struct target *target;
 	int retval;
 
+	/* 使用 for 循环遍历 all_targets 链表（所有目标的链表）。
+         * 对于每个目标，调用target_init_one函数进行单独的初始化，将cmd_ctx和当前目标target作为参数
+         * 如果target_init_one返回的结果不是ERROR_OK，则立即返回该错误码，表示初始化失败，并中止后续操作
+	 */
 	for (target = all_targets; target; target = target->next) {
 		retval = target_init_one(cmd_ctx, target);
 		if (retval != ERROR_OK)
 			return retval;
 	}
 
+	// 检查 all_targets 是否为空
+        //如果没有目标(all_targets 为 NULL)，直接返回 ERROR_OK，表示初始化完成(因为没有目标需要初始化)
 	if (!all_targets)
 		return ERROR_OK;
-
+        
+	//调用 target_register_user_commands 函数，在命令上下文中注册目标相关的用户命令
+        //如果注册命令失败（返回值不是 ERROR_OK），则返回错误码，表示初始化失败
 	retval = target_register_user_commands(cmd_ctx);
 	if (retval != ERROR_OK)
 		return retval;
-
+        
+	/* 调用 target_register_timer_callback 注册一个定时器回调，用于周期性地轮询目标状态。
+	 *	&handle_target 是回调函数指针。
+         *      polling_interval 是回调执行的时间间隔。
+         *      TARGET_TIMER_TYPE_PERIODIC 表示这是一个周期性定时器。
+         *      cmd_ctx->interp 是解释器指针，用于管理脚本或事件。
+         *      如果注册定时器失败，则返回错误码，表示初始化失败 */
 	retval = target_register_timer_callback(&handle_target,
 			polling_interval, TARGET_TIMER_TYPE_PERIODIC, cmd_ctx->interp);
 	if (retval != ERROR_OK)
@@ -1627,34 +1645,55 @@ static int target_init(struct command_context *cmd_ctx)
 
 	return ERROR_OK;
 }
-
+/* handle_target_init_command函数：用于初始化调试目标 
+ */
 COMMAND_HANDLER(handle_target_init_command)
 {
 	int retval;
-
+        /* 1、参数检查：如果命令参数数量 CMD_ARGC 不为 0，返回 ERROR_COMMAND_SYNTAX_ERROR，表示命令语法错误
+         * target init 命令不应接受任何参数 */
 	if (CMD_ARGC != 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-
+        
+	//target_initialized 是一个静态布尔变量，默认初始化为 false
 	static bool target_initialized;
+
+	/* 2、重复初始化检查：如果 target_initialized 为 true，表示 target init 已经被调用过，
+         * 记录一条日志并返回 ERROR_OK。这样可以避免重复初始化
+         * 如果 target_initialized 为 false，将其设置为 true，表示已经进行过初始化，以防止后续重复调用 */
 	if (target_initialized) {
 		LOG_INFO("'target init' has already been called");
 		return ERROR_OK;
 	}
 	target_initialized = true;
 
+	//顺序初始化：依次执行 init_targets、init_target_events 和 init_board 命令
+	/* 调用 command_run_line 执行 init_targets 命令，用于初始化目标
+ 	 * CMD_CTX 表示当前命令上下文
+	 * 如果返回值不为 ERROR_OK，表示初始化失败，立即返回错误码 retval，中止后续操作
+         */
 	retval = command_run_line(CMD_CTX, "init_targets");
 	if (retval != ERROR_OK)
 		return retval;
 
+	/* 执行 init_target_events 命令，用于初始化目标事件。
+         * 同样，如果命令执行失败，则返回错误码，停止后续步骤 */
 	retval = command_run_line(CMD_CTX, "init_target_events");
 	if (retval != ERROR_OK)
 		return retval;
-
+        
+	/* 执行 init_board 命令，用于初始化板级设置（Board initialization）。
+         * 如果执行失败，则返回错误码，停止继续操作 */
 	retval = command_run_line(CMD_CTX, "init_board");
 	if (retval != ERROR_OK)
 		return retval;
 
+	/* 4、日志记录：在初始化前记录日志
+         * 记录调试日志，表示开始初始化目标
+         * 调用 target_init 函数完成目标初始化，并将 CMD_CTX 作为参数传递
+         * 返回 target_init 的结果，表示初始化是否成功 */
 	LOG_DEBUG("Initializing targets...");
+	// 5、目标初始化：调用 target_init 完成最终的目标初始化
 	return target_init(CMD_CTX);
 }
 
