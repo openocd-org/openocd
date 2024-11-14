@@ -426,7 +426,8 @@ static struct command_context *setup_command_handler(Jim_Interp *interp)
          * 调用 command_init 函数初始化命令上下文 cmd_ctx，
 	 * 并传入启动 TCL 脚本 openocd_startup_tcl 和解释器 interp
          * cmd_ctx 是 struct command_context 类型的指针，用于存储命令的上下文信息，
-	 * 初始化后可以用来注册和处理命令*/
+	 * 初始化后可以用来注册和处理命令
+	 * 其他函数可以通过访问该变量来获取命令上下文，以便执行命令和管理命令系统 */
 	struct command_context *cmd_ctx = command_init(openocd_startup_tcl, interp);
 
 	
