@@ -311,6 +311,15 @@ static int openocd_register_commands(struct command_context *cmd_ctx)
  * workaround for syntax change of "expr" in jimtcl 0.81
  * replace "expr" with openocd version that prints the deprecated msg
  */
+/* 该结构体定义了一个名为 jim_scripobj 的数据结构，用于存储脚本相关的信息
+ * 用于 Jim TCL 解释器内部的脚本处理
+ * token：指向某个类型的指针，可能是脚本解析的标记信息
+ * filename_obj：指向 Jim_Obj 类型的指针，存储脚本文件的名称
+ * subst_flags：整数标志，用于标记脚本中的替换规则或其他特性
+ * in_use：整数标志，表示该脚本是否正在使用
+ * firstline：存储脚本的起始行号
+ * linenr：当前的行号
+ * missing：标记是否有未解析的部分，可能用于检查脚本完整性 */
 struct jim_scriptobj {
 	void *token;
 	Jim_Obj *filename_obj;
@@ -322,33 +331,59 @@ struct jim_scriptobj {
 	int missing;
 };
 
+/* jim_expr_command 是一个静态函数，用于处理 expr 命令，执行表达式的求值操作
+ * 它接受 Jim_Interp *interp（TCL解释器指针）、参数数量 argc 以及参数数组 argv 
+ * 支持单一参数的简单表达式求值。
+ * 对于多个参数，将它们拼接成一个表达式后再计算，并给出语法弃用的警告。
+ * 若参数数量不符合预期，返回错误信息 */
 static int jim_expr_command(Jim_Interp *interp, int argc, Jim_Obj * const *argv)
-{
+{       
+	//检查参数数量：
+	//如果参数数量 argc 为 2，则调用 Jim_EvalExpression(interp, argv[1]) 直接计算表达式的值
 	if (argc == 2)
 		return Jim_EvalExpression(interp, argv[1]);
-
+        
+	/* 如果参数数量大于 2，将从第二个参数开始的参数拼接成一个整体表达式，并存储在 obj 中
+         * Jim_ConcatObj 用于将多个参数组合成一个对象，Jim_String 用于获取该对象的字符串表示 */
 	if (argc > 2) {
 		Jim_Obj *obj = Jim_ConcatObj(interp, argc - 1, argv + 1);
 		Jim_IncrRefCount(obj);
 		const char *s = Jim_String(obj);
+
+		/* 检查当前脚本对象是否存在并具有类型 "script"
+                 * 如果是，则获取 jim_scripobj 的内部表示并设置 subst_flags 标志为 1，
+		 * 并将 filename_obj 设置为 emptyObj */
 		struct jim_scriptobj *script = Jim_GetIntRepPtr(interp->currentScriptObj);
 		if (interp->currentScriptObj == interp->emptyObj ||
 				strcmp(interp->currentScriptObj->typePtr->name, "script") ||
 				script->subst_flags ||
 				script->filename_obj == interp->emptyObj)
 			LOG_WARNING("DEPRECATED! use 'expr { %s }' not 'expr %s'", s, s);
+		/* 如果当前脚本对象不是 "script" 类型，记录一个警告日志，提示使用 {} 包含的 expr 表达式，
+		 * 而不是直接表达式,表示此处的表达式语法已被弃用，建议用户使用更安全的表达方式 */
 		else
 			LOG_WARNING("DEPRECATED! (%s:%d) use 'expr { %s }' not 'expr %s'",
 						Jim_String(script->filename_obj), script->linenr, s, s);
+		/* 执行表达式计算，并将结果存储在 retcode 中
+                 * 调用 Jim_DecrRefCount 释放 obj 的引用计数，避免内存泄漏 */
 		int retcode = Jim_EvalExpression(interp, obj);
 		Jim_DecrRefCount(interp, obj);
 		return retcode;
 	}
-
+	
+        // 如果参数数量不符合预期，调用 Jim_WrongNumArgs 输出错误信息，
+	// 告知用户正确的参数格式, 返回 JIM_ERR 表示命令执行失败
 	Jim_WrongNumArgs(interp, 1, argv, "expression ?...?");
 	return JIM_ERR;
 }
 
+/* 这是一个命令注册数组 expr_handler，用于将 expr 命令注册到 OpenOCD 的命令系统中
+ * 每个数组元素是一个 command_registration 结构，包含命令的名称、处理函数、模式和帮助信息
+ * .name：命令名称 "expr"
+ * .handler：指向命令处理函数 jim_expr_command，用于计算表达式的值
+ * .mode：COMMAND_ANY 表示该命令可以在任何模式下执行
+ * .help：简短的帮助信息，描述命令的用途
+ * COMMAND_REGISTRATION_DONE 是数组的结束标志 */
 static const struct command_registration expr_handler[] = {
 	{
 		.name = "expr",
@@ -360,6 +395,11 @@ static const struct command_registration expr_handler[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
+/* 这个函数 workaround_for_jimtcl_expr 用于将 expr_handler 中定义的命令注册到 OpenOCD 的命令系统中
+ * 调用 register_commands 函数，将 expr_handler 注册到指定的命令上下文 cmd_ctx 中, 
+ * NULL 表示没有指定父命令 */
+
+返回值表示注册是否成功。
 static int workaround_for_jimtcl_expr(struct command_context *cmd_ctx)
 {
 	return register_commands(cmd_ctx, NULL, expr_handler);
