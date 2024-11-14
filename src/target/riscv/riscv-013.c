@@ -2902,6 +2902,15 @@ static int deassert_reset(struct target *target)
 	riscv_scan_set_delay(&info->learned_delays, RISCV_DELAY_BASE,
 			orig_base_delay);
 
+	/* Ack reset and clear DM_DMCONTROL_HALTREQ if previously set */
+	control = 0;
+	control = set_field(control, DM_DMCONTROL_DMACTIVE, 1);
+	control = set_field(control, DM_DMCONTROL_ACKHAVERESET, 1);
+	control = set_dmcontrol_hartsel(control, info->index);
+	result = dm_write(target, DM_DMCONTROL, control);
+	if (result != ERROR_OK)
+		return result;
+
 	if (target->reset_halt) {
 		target->state = TARGET_HALTED;
 		target->debug_reason = DBG_REASON_DBGRQ;
@@ -2910,13 +2919,7 @@ static int deassert_reset(struct target *target)
 		target->debug_reason = DBG_REASON_NOTHALTED;
 	}
 	info->dcsr_ebreak_is_set = dcsr_ebreak_config_equals_reset_value(target);
-
-	/* Ack reset and clear DM_DMCONTROL_HALTREQ if previously set */
-	control = 0;
-	control = set_field(control, DM_DMCONTROL_DMACTIVE, 1);
-	control = set_field(control, DM_DMCONTROL_ACKHAVERESET, 1);
-	control = set_dmcontrol_hartsel(control, info->index);
-	return dm_write(target, DM_DMCONTROL, control);
+	return ERROR_OK;
 }
 
 static int execute_fence(struct target *target)
