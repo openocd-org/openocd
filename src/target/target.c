@@ -2410,6 +2410,7 @@ int target_arch_state(struct target *target)
 	return retval;
 }
 
+//默认的GDB文件I/O信息获取函数
 static int target_get_gdb_fileio_info_default(struct target *target,
 		struct gdb_fileio_info *fileio_info)
 {
@@ -2420,28 +2421,58 @@ static int target_get_gdb_fileio_info_default(struct target *target,
 	return ERROR_FAIL;
 }
 
+//默认的GDB文件I/O结束处理函数,表示文件I/O结束时不需要进行特殊处理
 static int target_gdb_fileio_end_default(struct target *target,
 		int retcode, int fileio_errno, bool ctrl_c)
 {
 	return ERROR_OK;
 }
 
+/* target_profiling_default 函数，用于对目标设备执行性能分析，
+ * 采集程序计数器PC的值，以观察目标设备的执行情况
+ * target：指向目标设备的指针, samples：指向用于存储采样数据的缓冲区
+ * num_samples：指向采样数量的变量
+ * seconds：性能分析的持续时间（以秒为单位）
+ * 定义了 timeout 和 now 两个时间结构体变量，用于管理采样的超时时间
+ *
+*/ 
 int target_profiling_default(struct target *target, uint32_t *samples,
 		uint32_t max_num_samples, uint32_t *num_samples, uint32_t seconds)
 {
 	struct timeval timeout, now;
-
+    
+	// 1\ 设置超时时间,确定采样的最长持续时间
+	//使用 gettimeofday 获取当前时间并存储在 timeout 中，
+	//然后调用 timeval_add_time 将 seconds 添加到 timeout，设置采样的超时时间
 	gettimeofday(&timeout, NULL);
 	timeval_add_time(&timeout, seconds, 0);
 
+	//记录日志，表明性能分析即将开始，并提示目标设备将在每次采样时暂停和恢复
 	LOG_INFO("Starting profiling. Halting and resuming the"
 			" target as often as we can...");
 
+	/* 初始化采样计数 sample_count 为 0
+	 * 使用 register_get_by_name 获取程序计数器（PC）寄存器，用于在采样时读取其值
+	 * 初始化返回值 retval 为 ERROR_OK
+	 */
 	uint32_t sample_count = 0;
 	/* hopefully it is safe to cache! We want to stop/restart as quickly as possible. */
 	struct reg *reg = register_get_by_name(target->reg_cache, "pc", true);
 
 	int retval = ERROR_OK;
+	/* 2\ 采样循环:轮询目标状态,获取PC值,存储到samplies缓冲区中
+	 *      暂停并读取PC值后继续运行目标,以实现高频采样
+	 *      在目标处于运行状态时暂停目标,以便读取PC值
+	 * 无限循环中：
+	 * 	  调用 target_poll 轮询目标状态
+     * 	  如果目标状态为 TARGET_HALTED（暂停状态）：
+     *        1) 使用 buf_get_u32 读取 PC 寄存器的值，并将其存储到 samples 数组中
+     *        2) 调用 target_resume 让目标继续执行
+	 *  	  3) 再次轮询目标状态，并休眠10毫秒,避免采样过于频繁，目标采样频率约为100次/秒
+     *    如果目标状态为TARGET_RUNNING运行状态，则调用 target_halt 暂停目标，以便获取 PC 值
+     *    如果目标既不是暂停状态也不是运行状态，记录日志并退出循环。
+     *    检查 retval 是否为 ERROR_OK，若出现错误则退出循环
+	 */
 	for (;;) {
 		target_poll(target);
 		if (target->state == TARGET_HALTED) {
@@ -2463,13 +2494,21 @@ int target_profiling_default(struct target *target, uint32_t *samples,
 		if (retval != ERROR_OK)
 			break;
 
+		/* 3\ 采样终止条件:达到最大采样数量或超过时间后停止采样
+		 * 获取当前时间 now
+		 * 检查采样终止条件：如果采样数达到 max_num_samples，或者当前时间超过 timeout，
+		 * 则记录日志表示采样完成，并退出循环
+		 * 
+		 */
 		gettimeofday(&now, NULL);
 		if ((sample_count >= max_num_samples) || timeval_compare(&now, &timeout) >= 0) {
 			LOG_INFO("Profiling completed. %" PRIu32 " samples.", sample_count);
 			break;
 		}
 	}
-
+    /* 4\ 结果存储:将采样数写入num_samples并将结果返回
+	 * 将采样数存储在 num_samples 中，返回 retval 以指示函数是否成功执行
+	 */
 	*num_samples = sample_count;
 	return retval;
 }
@@ -2501,7 +2540,7 @@ int target_write_buffer(struct target *target, target_addr_t address, uint32_t s
 
 	return target->type->write_buffer(target, address, size, buffer);
 }
-
+//target_write_buffer_default 函数:默认的写入缓冲区函数，用于向目标设备的内存中写入数据
 static int target_write_buffer_default(struct target *target,
 	target_addr_t address, uint32_t count, const uint8_t *buffer)
 {
