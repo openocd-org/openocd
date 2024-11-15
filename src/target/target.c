@@ -1542,6 +1542,10 @@ static int target_profiling(struct target *target, uint32_t *samples,
 
 static int handle_target(void *priv);
 
+/* target_init_one函数:用于初始化单个目标(target), 该函数包含对目标的基本设置、检查和初始化操作
+ * target_init_one 函数接受两个参数：cmd_ctx命令上下文和 target需要初始化的目标
+ * 该函数是静态的，仅在本文件内可见
+ */
 static int target_init_one(struct command_context *cmd_ctx,
 		struct target *target)
 {
