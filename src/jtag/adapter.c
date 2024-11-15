@@ -120,20 +120,34 @@ static void adapter_driver_gpios_init(void)
  * Do low-level setup like initializing registers, output signals,
  * and clocking.
  */
+ /* 初始化调试器
+  */
 int adapter_init(struct command_context *cmd_ctx)
-{
+{   
+	/* 检查调试器是否已经初始化:
+	 * 如果已经初始化,直接返回ERROR_OK,避免重复初始化
+	 */
 	if (is_adapter_initialized())
 		return ERROR_OK;
-
+	
+	/* 检查是否有指定的调试器驱动:
+	 * 如果没有对应调试器驱动,记录错误日志并返回ERROR_JTAG_INVALID_INTERFACE
+	 */
 	if (!adapter_driver) {
 		/* nothing was previously specified by "adapter driver" command */
 		LOG_ERROR("Debug Adapter has to be specified, "
 			"see \"adapter driver\" command");
 		return ERROR_JTAG_INVALID_INTERFACE;
 	}
-
+    
+	//调试器接口初始化
 	adapter_driver_gpios_init();
 
+	/* 设定调试器的默认时钟速率
+	 * 如果时钟模式未选定,记录警告信息
+	 * 调用adapter_config_khz设置默认时钟速率,单位为赫兹
+	 * 如果设置失败,返回ERROR_JTAG_INIT_FAILED
+	 */
 	int retval;
 
 	if (adapter_config.clock_mode == CLOCK_MODE_UNSELECTED) {
@@ -147,11 +161,17 @@ int adapter_init(struct command_context *cmd_ctx)
 			return ERROR_JTAG_INIT_FAILED;
 	}
 
+	/* 调试器驱动初始化
+	 * 如果初始化成功,设置adapter_config.adapter_initialized为true
+	 */
 	retval = adapter_driver->init();
 	if (retval != ERROR_OK)
 		return retval;
 	adapter_config.adapter_initialized = true;
 
+	/* 检查调试器是否支持可配置速度
+	 * 如果调试器不支持可配置速度,记录
+	 */
 	if (!adapter_driver->speed) {
 		LOG_INFO("This adapter doesn't support configurable speed");
 		return ERROR_OK;
