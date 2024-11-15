@@ -1548,18 +1548,30 @@ static int handle_target(void *priv);
  */
 static int target_init_one(struct command_context *cmd_ctx,
 		struct target *target)
-{
+{	
+	//1\ 调用 target_reset_examined 函数，重置目标的检查状态
+	//target->examined = false
 	target_reset_examined(target);
 
+	/* 2\ 获取目标的类型 type，并检查该类型的 examine 和 check_reset 函数指针
+	 * default_examine函数执行target_set_examined(target),将目标检查状态设置为已检查
+	 * 是默认检查函数,用于标记目标已经被检查过
+	 * default_check_reset不执行任何操作,直接返回ERROR_OK,
+	 * 作为默认复位检查函数,在没有特定的复位检查需求时被使用
+	*/
 	struct target_type *type = target->type;
 	if (!type->examine)
 		type->examine = default_examine;
 
 	if (!type->check_reset)
 		type->check_reset = default_check_reset;
-
+	
+	//使用 assert 断言确保 init_target 函数指针不为空
 	assert(type->init_target);
 
+	//3\ 目标初始化
+	//调用 type->init_target 进行目标初始化，将 cmd_ctx 和 target 作为参数传递
+	//如果初始化失败，记录一条错误日志并返回错误码 retval
 	int retval = type->init_target(cmd_ctx, target);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("target '%s' init failed", target_name(target));
@@ -1568,6 +1580,12 @@ static int target_init_one(struct command_context *cmd_ctx,
 
 	/* Sanity-check MMU support ... stub in what we must, to help
 	 * implement it in stages, but warn if we need to do so.
+	 */
+	/*4\ 检查目标是否支持 MMU（内存管理单元）
+     * 如果支持 MMU，但没有定义 virt2phys（虚拟地址到物理地址的映射函数），
+	 * 记录错误并将 virt2phys 设置为 identity_virt2phys（默认的身份映射函数）
+     * 如果不支持 MMU，则确保 virt2phys 始终设置为 identity_virt2phys，
+	 * 使虚拟地址与物理地址保持一致
 	 */
 	if (type->mmu) {
 		if (!type->virt2phys) {
@@ -1579,6 +1597,11 @@ static int target_init_one(struct command_context *cmd_ctx,
 		 * distinction between physical and virtual addresses, and
 		 * ensure that virt2phys() is always an identity mapping.
 		 */
+		 /* 内存读写检查
+		  * 如果不支持 MMU，且定义了 write_phys_memory 或 read_phys_memory，则记录警告
+		  * 将write_phys_memory和read_phys_memory设置为默认的write_memory和read_memory
+		  * virt2phys 也设置为 identity_virt2phys，确保一致的映射行为
+		  */
 		if (type->write_phys_memory || type->read_phys_memory || type->virt2phys)
 			LOG_WARNING("type '%s' has bad MMU hooks", type->name);
 
@@ -1588,6 +1611,13 @@ static int target_init_one(struct command_context *cmd_ctx,
 		type->virt2phys = identity_virt2phys;
 	}
 
+	/* 5\ 默认缓冲区与 GDB 接口设置
+	 * 为目标设置默认的缓冲区读写函数和 GDB（GNU 调试器）接口函数
+     * 如果 read_buffer 函数指针为空，则设置为 target_read_buffer_default
+	 * 如果 write_buffer 函数指针为空，则设置为 target_write_buffer_default
+	 * 如果 get_gdb_reg_info 函数指针为空，则设置为 target_get_gdb_reg_info_default
+     * 如果 get_gdb_fileio_info 函数指针为空，则设置为 target_get_gdb_fileio_info_default
+     * 如果 profiling 函数指针为空，则设置为 target_profiling_default。*/
 	if (!target->type->read_buffer)
 		target->type->read_buffer = target_read_buffer_default;
 
@@ -2537,13 +2567,30 @@ int target_read_buffer(struct target *target, target_addr_t address, uint32_t si
 	return target->type->read_buffer(target, address, size, buffer);
 }
 
+/* target_read_buffer_default 函数:默认的读取缓冲区函数，用于从目标设备的内存中读取数据
+ * target_read_buffer_default 函数用于从指定的 address 处读取 count 个字节的数据到 buffer 中
+ * target 是指向目标设备的指针, address 是读取的起始地址, count 是要读取的数据字节数
+ * buffer 是存放读取数据的缓冲区指针
+ */
 static int target_read_buffer_default(struct target *target, target_addr_t address, uint32_t count, uint8_t *buffer)
-{
+{	
+	//size 用于在循环中表示每次读取的块大小
+	//data_bytes 表示目标设备的数据字节数，通过 target_data_bits 函数获得
 	uint32_t size;
 	unsigned int data_bytes = target_data_bits(target) / 8;
 
 	/* Align up to maximum bytes. The loop condition makes sure the next pass
 	 * will have something to do with the size we leave to it. */
+	/* 对齐到最大字节数
+	 * 这个 for 循环通过调整 size 来对齐读取操作，以便尽可能读取大块数据，从而提高读取效率
+	 * size 从 1 开始，逐步增加到 data_bytes，并检查 count 是否足够大，以保证有足够的数据可以读取
+	 * address & size 确保地址对齐，以避免读取跨越对齐边界
+	 * 如果 address & size 不为 0，则调用 target_read_memory 函数读取一个 size 大小的块
+	 * 成功后，更新 address、count 和 buffer 指针，以准备下一次读取
+	 * 如果读取失败，直接返回错误码。
+	 *
+	 *
+	 */
 	for (size = 1;
 			size < data_bytes && count >= size * 2 + (address & size);
 			size *= 2) {
@@ -2558,6 +2605,13 @@ static int target_read_buffer_default(struct target *target, target_addr_t addre
 	}
 
 	/* Read the data with as large access size as possible. */
+	/* 按照最大的对齐块读取数据
+	 * 第二个 for 循环尝试使用尽可能大的块大小读取数据
+	 * aligned 计算当前 size 对齐的字节数
+	 * 如果 aligned 大于 0，调用 target_read_memory 函数批量读取对齐块的数据
+	 * 成功读取后，更新 address、count 和 buffer 指针
+	 * 如果读取失败，则返回错误码
+	 */
 	for (; size > 0; size /= 2) {
 		uint32_t aligned = count - count % size;
 		if (aligned > 0) {
