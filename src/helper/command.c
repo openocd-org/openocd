@@ -551,6 +551,11 @@ static int run_command(struct command_context *context,
 	return retval;
 }
 
+/*  command_run_line 函数，用于在 OpenOCD 的命令上下文中执行一行命令，
+ * 支持通过脚本解释器(如 Jim-Tcl)来执行命令
+ * command_run_line 接受两个参数：
+ * context：指向当前的命令上下文     line：要执行的命令行
+ */
 int command_run_line(struct command_context *context, char *line)
 {
 	/* all the parent commands have been registered with the interpreter
@@ -558,6 +563,9 @@ int command_run_line(struct command_context *context, char *line)
 	 * results
 	 */
 	/* run the line thru a script engine */
+	/* retval 用于存储函数返回值，初始设为 ERROR_FAIL，表示失败
+	 * retcode 用于存储 Jim-Tcl 执行结果的返回码
+     */
 	int retval = ERROR_FAIL;
 	int retcode;
 	/* Beware! This code needs to be reentrant. It is also possible
@@ -565,27 +573,55 @@ int command_run_line(struct command_context *context, char *line)
 	 * happen when the Jim Tcl interpreter is provided by eCos for
 	 * instance.
 	 */
+	 /* 将 current_target_override 的当前值保存到 saved_target_override 变量中
+      * 将 current_target_override 设为 NULL，清除目标覆盖（override）状态，
+	  * 以确保每次运行命令行时不会受到之前设置的干扰
+	  */
 	struct target *saved_target_override = context->current_target_override;
 	context->current_target_override = NULL;
 
+	/* 获取 Jim-Tcl 解释器 interp
+	 * 保存当前的命令上下文 old_context
+	 * 删除解释器中与 "retval" 相关的数据，然后将 retval 关联到 "retval" 变量上，
+	 * 以便后续执行命令时获取返回值
+	 */
 	Jim_Interp *interp = context->interp;
 	struct command_context *old_context = Jim_GetAssocData(interp, "context");
 	Jim_DeleteAssocData(interp, "context");
 	retcode = Jim_SetAssocData(interp, "context", NULL, context);
+
+	/* 判断retcode是否为JIM_OK,即Jim_SetAssocData 操作是否成功
+	 * 删除解释器中与 "retval" 相关的数据
+	 * 将 retval 关联到 "retval" 变量, 用于保存命令执行结果
+	 */
 	if (retcode == JIM_OK) {
 		/* associated the return value */
 		Jim_DeleteAssocData(interp, "retval");
 		retcode = Jim_SetAssocData(interp, "retval", NULL, &retval);
+		/* 如果 Jim_SetAssocData 操作成功，调用 Jim_Eval_Named 执行 line 命令
+	     * Jim_Eval_Named 将 line 作为脚本进行解释执行
+	     * 执行完毕后，删除与 "retval" 关联的数据
+	     */
 		if (retcode == JIM_OK) {
 			retcode = Jim_Eval_Named(interp, line, 0, 0);
 
 			Jim_DeleteAssocData(interp, "retval");
 		}
+		/* 删除与 "context" 相关的关联数据
+		 * 将 old_context 恢复到 "context" 中
+		 * 如果Jim_Eval_Named执行成功，将retcode设为inner_retcode，表示最终的执行状态
+		 */
 		Jim_DeleteAssocData(interp, "context");
 		int inner_retcode = Jim_SetAssocData(interp, "context", NULL, old_context);
 		if (retcode == JIM_OK)
 			retcode = inner_retcode;
 	}
+	/* 恢复 current_target_override
+	 * 如果 retcode 表示命令成功执行（JIM_OK）：
+	 *	获取 Jim-Tcl 执行结果的字符串 result 及其长度 reslen。
+	 * 如果 result 不为空，则将结果输出到命令行。
+	 *	将 retval 设为 ERROR_OK 表示执行成功
+	 */
 	context->current_target_override = saved_target_override;
 	if (retcode == JIM_OK) {
 		const char *result;
@@ -597,6 +633,11 @@ int command_run_line(struct command_context *context, char *line)
 			command_output_text(context, "\n");
 		}
 		retval = ERROR_OK;
+	
+	/* 如果retcode为JIM_EXIT忽略
+	 * 如果retcode为ERROR_COMMAND_CLOSE_CONNECTION，指示需要关闭连接
+     * 否则，生成错误消息并记录日志
+	 * 如果 retval 为 ERROR_OK，返回 ERROR_FAIL，表示失败 */
 	} else if (retcode == JIM_EXIT) {
 		/* ignore.
 		 * exit(Jim_GetExitCode(interp)); */

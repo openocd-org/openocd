@@ -1617,7 +1617,7 @@ static int target_init_one(struct command_context *cmd_ctx,
 	 * 如果 write_buffer 函数指针为空，则设置为 target_write_buffer_default
 	 * 如果 get_gdb_reg_info 函数指针为空，则设置为 target_get_gdb_reg_info_default
      * 如果 get_gdb_fileio_info 函数指针为空，则设置为 target_get_gdb_fileio_info_default
-     * 如果 profiling 函数指针为空，则设置为 target_profiling_default。*/
+     * 如果 profiling 函数指针为空，则设置为 target_profiling_default */
 	if (!target->type->read_buffer)
 		target->type->read_buffer = target_read_buffer_default;
 
