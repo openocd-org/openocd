@@ -209,7 +209,7 @@ int nand_correct_data(struct nand_device *nand, u_char *dat,
 int nand_register_commands(struct command_context *cmd_ctx);
 
 /** helper for parsing a nand device command argument string */
-COMMAND_HELPER(nand_command_get_device, unsigned name_index,
+COMMAND_HELPER(nand_command_get_device, unsigned int name_index,
 	struct nand_device **nand);
 
 

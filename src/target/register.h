@@ -145,7 +145,7 @@ struct reg_cache {
 	const char *name;
 	struct reg_cache *next;
 	struct reg *reg_list;
-	unsigned num_regs;
+	unsigned int num_regs;
 };
 
 struct reg_arch_type {

@@ -43,9 +43,9 @@ unsigned int dump_swit;
  * NOTE that this specific encoding could be space-optimized; and that
  * trace data streams could also be history-sensitive.
  */
-static void show_task(int port, unsigned data)
+static void show_task(int port, unsigned int data)
 {
-	unsigned code = data >> 16;
+	unsigned int code = data >> 16;
 	char buf[16];
 
 	if (dump_swit)
@@ -77,7 +77,7 @@ static void show_task(int port, unsigned data)
 
 static void show_reserved(FILE *f, char *label, int c)
 {
-	unsigned i;
+	unsigned int i;
 
 	if (dump_swit)
 		return;
@@ -96,9 +96,9 @@ static void show_reserved(FILE *f, char *label, int c)
 	printf("\n");
 }
 
-static bool read_varlen(FILE *f, int c, unsigned *value)
+static bool read_varlen(FILE *f, int c, unsigned int *value)
 {
-	unsigned size;
+	unsigned int size;
 	unsigned char buf[4];
 
 	*value = 0;
@@ -135,8 +135,8 @@ err:
 
 static void show_hard(FILE *f, int c)
 {
-	unsigned type = c >> 3;
-	unsigned value;
+	unsigned int type = c >> 3;
+	unsigned int value;
 	char *label;
 
 	if (dump_swit)
@@ -230,16 +230,16 @@ static void show_hard(FILE *f, int c)
  */
 struct {
 	int port;
-	void (*show)(int port, unsigned data);
+	void (*show)(int port, unsigned int data);
 } format[] = {
 	{ .port = 31,  .show = show_task, },
 };
 
 static void show_swit(FILE *f, int c)
 {
-	unsigned port = c >> 3;
-	unsigned value = 0;
-	unsigned i;
+	unsigned int port = c >> 3;
+	unsigned int value = 0;
+	unsigned int i;
 
 	if (port + 1 == dump_swit) {
 		if (!read_varlen(f, c, &value))
@@ -272,7 +272,7 @@ static void show_swit(FILE *f, int c)
 
 static void show_timestamp(FILE *f, int c)
 {
-	unsigned counter = 0;
+	unsigned int counter = 0;
 	char *label = "";
 	bool delayed = false;
 

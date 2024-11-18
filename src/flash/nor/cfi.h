@@ -58,10 +58,10 @@ struct cfi_flash_bank {
 	void *alt_ext;
 
 	/* calculated timeouts */
-	unsigned word_write_timeout;
-	unsigned buf_write_timeout;
-	unsigned block_erase_timeout;
-	unsigned chip_erase_timeout;
+	unsigned int word_write_timeout;
+	unsigned int buf_write_timeout;
+	unsigned int block_erase_timeout;
+	unsigned int chip_erase_timeout;
 
 	/* memory accessors */
 	int (*write_mem)(struct flash_bank *bank, target_addr_t addr,

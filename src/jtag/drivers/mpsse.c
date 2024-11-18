@@ -64,13 +64,13 @@ struct mpsse_ctx {
 	uint8_t interface;
 	enum ftdi_chip_type type;
 	uint8_t *write_buffer;
-	unsigned write_size;
-	unsigned write_count;
+	unsigned int write_size;
+	unsigned int write_count;
 	uint8_t *read_buffer;
-	unsigned read_size;
-	unsigned read_count;
+	unsigned int read_size;
+	unsigned int read_count;
 	uint8_t *read_chunk;
-	unsigned read_chunk_size;
+	unsigned int read_chunk_size;
 	struct bit_copy_queue read_queue;
 	int retval;
 };
@@ -444,13 +444,13 @@ void mpsse_purge(struct mpsse_ctx *ctx)
 	}
 }
 
-static unsigned buffer_write_space(struct mpsse_ctx *ctx)
+static unsigned int buffer_write_space(struct mpsse_ctx *ctx)
 {
 	/* Reserve one byte for SEND_IMMEDIATE */
 	return ctx->write_size - ctx->write_count - 1;
 }
 
-static unsigned buffer_read_space(struct mpsse_ctx *ctx)
+static unsigned int buffer_read_space(struct mpsse_ctx *ctx)
 {
 	return ctx->read_size - ctx->read_count;
 }
@@ -462,8 +462,8 @@ static void buffer_write_byte(struct mpsse_ctx *ctx, uint8_t data)
 	ctx->write_buffer[ctx->write_count++] = data;
 }
 
-static unsigned buffer_write(struct mpsse_ctx *ctx, const uint8_t *out, unsigned out_offset,
-	unsigned bit_count)
+static unsigned int buffer_write(struct mpsse_ctx *ctx, const uint8_t *out, unsigned int out_offset,
+	unsigned int bit_count)
 {
 	LOG_DEBUG_IO("%d bits", bit_count);
 	assert(ctx->write_count + DIV_ROUND_UP(bit_count, 8) <= ctx->write_size);
@@ -472,8 +472,8 @@ static unsigned buffer_write(struct mpsse_ctx *ctx, const uint8_t *out, unsigned
 	return bit_count;
 }
 
-static unsigned buffer_add_read(struct mpsse_ctx *ctx, uint8_t *in, unsigned in_offset,
-	unsigned bit_count, unsigned offset)
+static unsigned int buffer_add_read(struct mpsse_ctx *ctx, uint8_t *in, unsigned int in_offset,
+	unsigned int bit_count, unsigned int offset)
 {
 	LOG_DEBUG_IO("%d bits, offset %d", bit_count, offset);
 	assert(ctx->read_count + DIV_ROUND_UP(bit_count, 8) <= ctx->read_size);
@@ -483,20 +483,20 @@ static unsigned buffer_add_read(struct mpsse_ctx *ctx, uint8_t *in, unsigned in_
 	return bit_count;
 }
 
-void mpsse_clock_data_out(struct mpsse_ctx *ctx, const uint8_t *out, unsigned out_offset,
-	unsigned length, uint8_t mode)
+void mpsse_clock_data_out(struct mpsse_ctx *ctx, const uint8_t *out, unsigned int out_offset,
+	unsigned int length, uint8_t mode)
 {
 	mpsse_clock_data(ctx, out, out_offset, NULL, 0, length, mode);
 }
 
-void mpsse_clock_data_in(struct mpsse_ctx *ctx, uint8_t *in, unsigned in_offset, unsigned length,
+void mpsse_clock_data_in(struct mpsse_ctx *ctx, uint8_t *in, unsigned int in_offset, unsigned int length,
 	uint8_t mode)
 {
 	mpsse_clock_data(ctx, NULL, 0, in, in_offset, length, mode);
 }
 
-void mpsse_clock_data(struct mpsse_ctx *ctx, const uint8_t *out, unsigned out_offset, uint8_t *in,
-	unsigned in_offset, unsigned length, uint8_t mode)
+void mpsse_clock_data(struct mpsse_ctx *ctx, const uint8_t *out, unsigned int out_offset, uint8_t *in,
+	unsigned int in_offset, unsigned int length, uint8_t mode)
 {
 	/* TODO: Fix MSB first modes */
 	LOG_DEBUG_IO("%s%s %d bits", in ? "in" : "", out ? "out" : "", length);
@@ -531,7 +531,7 @@ void mpsse_clock_data(struct mpsse_ctx *ctx, const uint8_t *out, unsigned out_of
 			length = 0;
 		} else {
 			/* Byte transfer */
-			unsigned this_bytes = length / 8;
+			unsigned int this_bytes = length / 8;
 			/* MPSSE command limit */
 			if (this_bytes > 65536)
 				this_bytes = 65536;
@@ -558,7 +558,7 @@ void mpsse_clock_data(struct mpsse_ctx *ctx, const uint8_t *out, unsigned out_of
 							this_bytes * 8,
 							0);
 				if (!out && !in)
-					for (unsigned n = 0; n < this_bytes; n++)
+					for (unsigned int n = 0; n < this_bytes; n++)
 						buffer_write_byte(ctx, 0x00);
 				length -= this_bytes * 8;
 			}
@@ -566,14 +566,14 @@ void mpsse_clock_data(struct mpsse_ctx *ctx, const uint8_t *out, unsigned out_of
 	}
 }
 
-void mpsse_clock_tms_cs_out(struct mpsse_ctx *ctx, const uint8_t *out, unsigned out_offset,
-	unsigned length, bool tdi, uint8_t mode)
+void mpsse_clock_tms_cs_out(struct mpsse_ctx *ctx, const uint8_t *out, unsigned int out_offset,
+	unsigned int length, bool tdi, uint8_t mode)
 {
 	mpsse_clock_tms_cs(ctx, out, out_offset, NULL, 0, length, tdi, mode);
 }
 
-void mpsse_clock_tms_cs(struct mpsse_ctx *ctx, const uint8_t *out, unsigned out_offset, uint8_t *in,
-	unsigned in_offset, unsigned length, bool tdi, uint8_t mode)
+void mpsse_clock_tms_cs(struct mpsse_ctx *ctx, const uint8_t *out, unsigned int out_offset, uint8_t *in,
+	unsigned int in_offset, unsigned int length, bool tdi, uint8_t mode)
 {
 	LOG_DEBUG_IO("%sout %d bits, tdi=%d", in ? "in" : "", length, tdi);
 	assert(out);
@@ -593,7 +593,7 @@ void mpsse_clock_tms_cs(struct mpsse_ctx *ctx, const uint8_t *out, unsigned out_
 			ctx->retval = mpsse_flush(ctx);
 
 		/* Byte transfer */
-		unsigned this_bits = length;
+		unsigned int this_bits = length;
 		/* MPSSE command limit */
 		/* NOTE: there's a report of an FT2232 bug in this area, where shifting
 		 * exactly 7 bits can make problems with TMS signaling for the last
@@ -783,7 +783,7 @@ int mpsse_set_frequency(struct mpsse_ctx *ctx, int frequency)
 struct transfer_result {
 	struct mpsse_ctx *ctx;
 	bool done;
-	unsigned transferred;
+	unsigned int transferred;
 };
 
 static LIBUSB_CALL void read_cb(struct libusb_transfer *transfer)
@@ -791,16 +791,16 @@ static LIBUSB_CALL void read_cb(struct libusb_transfer *transfer)
 	struct transfer_result *res = transfer->user_data;
 	struct mpsse_ctx *ctx = res->ctx;
 
-	unsigned packet_size = ctx->max_packet_size;
+	unsigned int packet_size = ctx->max_packet_size;
 
 	DEBUG_PRINT_BUF(transfer->buffer, transfer->actual_length);
 
 	/* Strip the two status bytes sent at the beginning of each USB packet
 	 * while copying the chunk buffer to the read buffer */
-	unsigned num_packets = DIV_ROUND_UP(transfer->actual_length, packet_size);
-	unsigned chunk_remains = transfer->actual_length;
-	for (unsigned i = 0; i < num_packets && chunk_remains > 2; i++) {
-		unsigned this_size = packet_size - 2;
+	unsigned int num_packets = DIV_ROUND_UP(transfer->actual_length, packet_size);
+	unsigned int chunk_remains = transfer->actual_length;
+	for (unsigned int i = 0; i < num_packets && chunk_remains > 2; i++) {
+		unsigned int this_size = packet_size - 2;
 		if (this_size > chunk_remains - 2)
 			this_size = chunk_remains - 2;
 		if (this_size > ctx->read_count - res->transferred)

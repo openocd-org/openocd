@@ -454,17 +454,17 @@ struct dap_ops {
 	int (*send_sequence)(struct adiv5_dap *dap, enum swd_special_seq seq);
 
 	/** DP register read. */
-	int (*queue_dp_read)(struct adiv5_dap *dap, unsigned reg,
+	int (*queue_dp_read)(struct adiv5_dap *dap, unsigned int reg,
 			uint32_t *data);
 	/** DP register write. */
-	int (*queue_dp_write)(struct adiv5_dap *dap, unsigned reg,
+	int (*queue_dp_write)(struct adiv5_dap *dap, unsigned int reg,
 			uint32_t data);
 
 	/** AP register read. */
-	int (*queue_ap_read)(struct adiv5_ap *ap, unsigned reg,
+	int (*queue_ap_read)(struct adiv5_ap *ap, unsigned int reg,
 			uint32_t *data);
 	/** AP register write. */
-	int (*queue_ap_write)(struct adiv5_ap *ap, unsigned reg,
+	int (*queue_ap_write)(struct adiv5_ap *ap, unsigned int reg,
 			uint32_t data);
 
 	/** AP operation abort. */
@@ -553,7 +553,7 @@ static inline int dap_send_sequence(struct adiv5_dap *dap,
  * @return ERROR_OK for success, else a fault code.
  */
 static inline int dap_queue_dp_read(struct adiv5_dap *dap,
-		unsigned reg, uint32_t *data)
+		unsigned int reg, uint32_t *data)
 {
 	assert(dap->ops);
 	return dap->ops->queue_dp_read(dap, reg, data);
@@ -571,7 +571,7 @@ static inline int dap_queue_dp_read(struct adiv5_dap *dap,
  * @return ERROR_OK for success, else a fault code.
  */
 static inline int dap_queue_dp_write(struct adiv5_dap *dap,
-		unsigned reg, uint32_t data)
+		unsigned int reg, uint32_t data)
 {
 	assert(dap->ops);
 	return dap->ops->queue_dp_write(dap, reg, data);
@@ -588,7 +588,7 @@ static inline int dap_queue_dp_write(struct adiv5_dap *dap,
  * @return ERROR_OK for success, else a fault code.
  */
 static inline int dap_queue_ap_read(struct adiv5_ap *ap,
-		unsigned reg, uint32_t *data)
+		unsigned int reg, uint32_t *data)
 {
 	assert(ap->dap->ops);
 	if (ap->refcount == 0) {
@@ -608,7 +608,7 @@ static inline int dap_queue_ap_read(struct adiv5_ap *ap,
  * @return ERROR_OK for success, else a fault code.
  */
 static inline int dap_queue_ap_write(struct adiv5_ap *ap,
-		unsigned reg, uint32_t data)
+		unsigned int reg, uint32_t data)
 {
 	assert(ap->dap->ops);
 	if (ap->refcount == 0) {
@@ -659,7 +659,7 @@ static inline int dap_sync(struct adiv5_dap *dap)
 	return ERROR_OK;
 }
 
-static inline int dap_dp_read_atomic(struct adiv5_dap *dap, unsigned reg,
+static inline int dap_dp_read_atomic(struct adiv5_dap *dap, unsigned int reg,
 				     uint32_t *value)
 {
 	int retval;
@@ -671,7 +671,7 @@ static inline int dap_dp_read_atomic(struct adiv5_dap *dap, unsigned reg,
 	return dap_run(dap);
 }
 
-static inline int dap_dp_poll_register(struct adiv5_dap *dap, unsigned reg,
+static inline int dap_dp_poll_register(struct adiv5_dap *dap, unsigned int reg,
 				       uint32_t mask, uint32_t value, int timeout)
 {
 	assert(timeout > 0);

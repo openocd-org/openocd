@@ -202,14 +202,14 @@ static int max32xxx_protect_check(struct flash_bank *bank)
 		return ERROR_FLASH_BANK_NOT_PROBED;
 
 	if (!info->max326xx) {
-		for (unsigned i = 0; i < bank->num_sectors; i++)
+		for (unsigned int i = 0; i < bank->num_sectors; i++)
 			bank->sectors[i].is_protected = -1;
 
 		return ERROR_FLASH_OPER_UNSUPPORTED;
 	}
 
 	/* Check the protection */
-	for (unsigned i = 0; i < bank->num_sectors; i++) {
+	for (unsigned int i = 0; i < bank->num_sectors; i++) {
 		if (i%32 == 0)
 			target_read_u32(target, info->flc_base + FLSH_PROT + ((i/32)*4), &temp_reg);
 
@@ -360,7 +360,7 @@ static int max32xxx_write_block(struct flash_bank *bank, const uint8_t *buffer,
 	struct armv7m_algorithm armv7m_info;
 	int retval = ERROR_OK;
 	/* power of two, and multiple of word size */
-	static const unsigned buf_min = 128;
+	static const unsigned int buf_min = 128;
 
 	/* for small buffers it's faster not to download an algorithm */
 	if (wcount * 4 < buf_min)
@@ -388,8 +388,8 @@ static int max32xxx_write_block(struct flash_bank *bank, const uint8_t *buffer,
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
 
-		LOG_DEBUG("retry target_alloc_working_area(%s, size=%u)",
-			target_name(target), (unsigned) buffer_size);
+		LOG_DEBUG("retry target_alloc_working_area(%s, size=%" PRIu32 ")",
+			target_name(target), buffer_size);
 	}
 
 	target_write_buffer(target, write_algorithm->address, sizeof(write_code),
@@ -903,7 +903,7 @@ COMMAND_HANDLER(max32xxx_handle_protection_check_command)
 	}
 
 	LOG_WARNING("s:<sector number> a:<address> p:<protection bit>");
-	for (unsigned i = 0; i < bank->num_sectors; i += 4) {
+	for (unsigned int i = 0; i < bank->num_sectors; i += 4) {
 		LOG_WARNING("s:%03d a:0x%06x p:%d | s:%03d a:0x%06x p:%d | s:%03d a:0x%06x p:%d | s:%03d a:0x%06x p:%d",
 		(i+0), (i+0)*info->sector_size, bank->sectors[(i+0)].is_protected,
 		(i+1), (i+1)*info->sector_size, bank->sectors[(i+1)].is_protected,

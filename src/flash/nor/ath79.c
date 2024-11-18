@@ -513,7 +513,7 @@ static int ath79_erase(struct flash_bank *bank, unsigned int first,
 	if (ath79_info->dev->erase_cmd == 0x00)
 		return ERROR_FLASH_OPER_UNSUPPORTED;
 
-	for (unsigned sector = first; sector <= last; sector++) {
+	for (unsigned int sector = first; sector <= last; sector++) {
 		if (bank->sectors[sector].is_protected) {
 			LOG_ERROR("Flash sector %u protected", sector);
 			return ERROR_FAIL;

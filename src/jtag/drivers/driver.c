@@ -234,7 +234,7 @@ int interface_jtag_add_tlr(void)
 	return ERROR_OK;
 }
 
-int interface_add_tms_seq(unsigned num_bits, const uint8_t *seq, enum tap_state state)
+int interface_add_tms_seq(unsigned int num_bits, const uint8_t *seq, enum tap_state state)
 {
 	struct jtag_command *cmd;
 

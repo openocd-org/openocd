@@ -220,10 +220,10 @@ static const struct reg_arch_type etm_scan6_type = {
 /* Look up register by ID ... most ETM instances only
  * support a subset of the possible registers.
  */
-static struct reg *etm_reg_lookup(struct etm_context *etm_ctx, unsigned id)
+static struct reg *etm_reg_lookup(struct etm_context *etm_ctx, unsigned int id)
 {
 	struct reg_cache *cache = etm_ctx->reg_cache;
-	unsigned i;
+	unsigned int i;
 
 	for (i = 0; i < cache->num_regs; i++) {
 		struct etm_reg *reg = cache->reg_list[i].arch_info;
@@ -238,9 +238,9 @@ static struct reg *etm_reg_lookup(struct etm_context *etm_ctx, unsigned id)
 	return NULL;
 }
 
-static void etm_reg_add(unsigned bcd_vers, struct arm_jtag *jtag_info,
+static void etm_reg_add(unsigned int bcd_vers, struct arm_jtag *jtag_info,
 	struct reg_cache *cache, struct etm_reg *ereg,
-	const struct etm_reg_info *r, unsigned nreg)
+	const struct etm_reg_info *r, unsigned int nreg)
 {
 	struct reg *reg = cache->reg_list;
 
@@ -281,7 +281,7 @@ struct reg_cache *etm_build_reg_cache(struct target *target,
 	struct reg_cache *reg_cache = malloc(sizeof(struct reg_cache));
 	struct reg *reg_list = NULL;
 	struct etm_reg *arch_info = NULL;
-	unsigned bcd_vers, config;
+	unsigned int bcd_vers, config;
 
 	/* the actual registers are kept in two arrays */
 	reg_list = calloc(128, sizeof(struct reg));
@@ -320,9 +320,8 @@ struct reg_cache *etm_build_reg_cache(struct target *target,
 		etm_reg_add(0x20, jtag_info, reg_cache, arch_info,
 			etm_core + 1, 1);
 		etm_get_reg(reg_list + 1);
-		etm_ctx->id = buf_get_u32(
-				arch_info[1].value, 0, 32);
-		LOG_DEBUG("ETM ID: %08x", (unsigned) etm_ctx->id);
+		etm_ctx->id = buf_get_u32(arch_info[1].value, 0, 32);
+		LOG_DEBUG("ETM ID: %08" PRIx32, etm_ctx->id);
 		bcd_vers = 0x10 + (((etm_ctx->id) >> 4) & 0xff);
 
 	} else {
@@ -1495,7 +1494,7 @@ COMMAND_HANDLER(handle_etm_info_command)
 	etm_get_reg(etm_sys_config_reg);
 	config = buf_get_u32(etm_sys_config_reg->value, 0, 32);
 
-	LOG_DEBUG("ETM SYS CONFIG %08x", (unsigned) config);
+	LOG_DEBUG("ETM SYS CONFIG %08" PRIx32, config);
 
 	max_port_size = config & 0x7;
 	if (etm->bcd_vers >= 0x30)
@@ -1591,7 +1590,7 @@ COMMAND_HANDLER(handle_etm_status_command)
 		if (!reg)
 			return ERROR_FAIL;
 		if (etm_get_reg(reg) == ERROR_OK) {
-			unsigned s = buf_get_u32(reg->value, 0, reg->size);
+			unsigned int s = buf_get_u32(reg->value, 0, reg->size);
 
 			command_print(CMD, "etm: %s%s%s%s",
 				/* bit(1) == progbit */

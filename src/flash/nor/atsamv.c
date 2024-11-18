@@ -55,8 +55,8 @@
 
 struct samv_flash_bank {
 	bool      probed;
-	unsigned size_bytes;
-	unsigned gpnvm[SAMV_NUM_GPNVM_BITS];
+	unsigned int size_bytes;
+	unsigned int gpnvm[SAMV_NUM_GPNVM_BITS];
 };
 
 /* The actual sector size of the SAMV7 flash memory is 128K bytes.
@@ -82,7 +82,7 @@ static int samv_efc_get_result(struct target *target, uint32_t *v)
 }
 
 static int samv_efc_start_command(struct target *target,
-		unsigned command, unsigned argument)
+		unsigned int command, unsigned int argument)
 {
 	uint32_t v;
 	samv_efc_get_status(target, &v);
@@ -100,7 +100,7 @@ static int samv_efc_start_command(struct target *target,
 }
 
 static int samv_efc_perform_command(struct target *target,
-		unsigned command, unsigned argument, uint32_t *status)
+		unsigned int command, unsigned int argument, uint32_t *status)
 {
 	int r;
 	uint32_t v;
@@ -166,7 +166,7 @@ static int samv_erase_pages(struct target *target,
 			first_page | erase_pages, status);
 }
 
-static int samv_get_gpnvm(struct target *target, unsigned gpnvm, unsigned *out)
+static int samv_get_gpnvm(struct target *target, unsigned int gpnvm, unsigned int *out)
 {
 	uint32_t v;
 	int r;
@@ -190,10 +190,10 @@ static int samv_get_gpnvm(struct target *target, unsigned gpnvm, unsigned *out)
 	return r;
 }
 
-static int samv_clear_gpnvm(struct target *target, unsigned gpnvm)
+static int samv_clear_gpnvm(struct target *target, unsigned int gpnvm)
 {
 	int r;
-	unsigned v;
+	unsigned int v;
 
 	if (gpnvm >= SAMV_NUM_GPNVM_BITS) {
 		LOG_ERROR("invalid gpnvm %d, max: %d", gpnvm, SAMV_NUM_GPNVM_BITS);
@@ -209,10 +209,10 @@ static int samv_clear_gpnvm(struct target *target, unsigned gpnvm)
 	return r;
 }
 
-static int samv_set_gpnvm(struct target *target, unsigned gpnvm)
+static int samv_set_gpnvm(struct target *target, unsigned int gpnvm)
 {
 	int r;
-	unsigned v;
+	unsigned int v;
 	if (gpnvm >= SAMV_NUM_GPNVM_BITS) {
 		LOG_ERROR("invalid gpnvm %d, max: %d", gpnvm, SAMV_NUM_GPNVM_BITS);
 		return ERROR_FAIL;
@@ -231,7 +231,7 @@ static int samv_set_gpnvm(struct target *target, unsigned gpnvm)
 }
 
 static int samv_flash_unlock(struct target *target,
-		unsigned start_sector, unsigned end_sector)
+		unsigned int start_sector, unsigned int end_sector)
 {
 	int r;
 	uint32_t status;
@@ -251,7 +251,7 @@ static int samv_flash_unlock(struct target *target,
 }
 
 static int samv_flash_lock(struct target *target,
-		unsigned start_sector, unsigned end_sector)
+		unsigned int start_sector, unsigned int end_sector)
 {
 	uint32_t status;
 	uint32_t pg;
@@ -419,7 +419,7 @@ static int samv_protect(struct flash_bank *bank, int set, unsigned int first,
 }
 
 static int samv_page_read(struct target *target,
-		unsigned page_num, uint8_t *buf)
+		unsigned int page_num, uint8_t *buf)
 {
 	uint32_t addr = SAMV_FLASH_BASE + page_num * SAMV_PAGE_SIZE;
 	int r = target_read_memory(target, addr, 4, SAMV_PAGE_SIZE / 4, buf);
@@ -430,7 +430,7 @@ static int samv_page_read(struct target *target,
 }
 
 static int samv_page_write(struct target *target,
-		unsigned pagenum, const uint8_t *buf)
+		unsigned int pagenum, const uint8_t *buf)
 {
 	uint32_t status;
 	const uint32_t addr = SAMV_FLASH_BASE + pagenum * SAMV_PAGE_SIZE;
@@ -618,7 +618,7 @@ COMMAND_HANDLER(samv_handle_gpnvm_command)
 			return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	unsigned v = 0;
+	unsigned int v = 0;
 	if (!strcmp("show", CMD_ARGV[0])) {
 		if (who == -1) {
 showall:

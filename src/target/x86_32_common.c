@@ -1330,14 +1330,14 @@ static int write_hw_reg_from_cache(struct target *t, int num)
 
 /* x86 32 commands */
 static void handle_iod_output(struct command_invocation *cmd,
-		struct target *target, uint32_t address, unsigned size,
-		unsigned count, const uint8_t *buffer)
+		struct target *target, uint32_t address, unsigned int size,
+		unsigned int count, const uint8_t *buffer)
 {
-	const unsigned line_bytecnt = 32;
-	unsigned line_modulo = line_bytecnt / size;
+	const unsigned int line_bytecnt = 32;
+	unsigned int line_modulo = line_bytecnt / size;
 
 	char output[line_bytecnt * 4 + 1];
-	unsigned output_len = 0;
+	unsigned int output_len = 0;
 
 	const char *value_fmt;
 	switch (size) {
@@ -1356,12 +1356,12 @@ static void handle_iod_output(struct command_invocation *cmd,
 		return;
 	}
 
-	for (unsigned i = 0; i < count; i++) {
+	for (unsigned int i = 0; i < count; i++) {
 		if (i % line_modulo == 0) {
 			output_len += snprintf(output + output_len,
 					sizeof(output) - output_len,
-					"0x%8.8x: ",
-					(unsigned)(address + (i*size)));
+					"0x%8.8" PRIx32 ": ",
+					address + (i * size));
 		}
 
 		uint32_t value = 0;
@@ -1399,7 +1399,7 @@ COMMAND_HANDLER(handle_iod_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	unsigned size = 0;
+	unsigned int size = 0;
 	switch (CMD_NAME[2]) {
 	case 'w':
 		size = 4;
@@ -1413,7 +1413,7 @@ COMMAND_HANDLER(handle_iod_command)
 	default:
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
-	unsigned count = 1;
+	unsigned int count = 1;
 	uint8_t *buffer = calloc(count, size);
 	struct target *target = get_current_target(CMD_CTX);
 	int retval = x86_32_common_read_io(target, address, size, buffer);
@@ -1425,7 +1425,7 @@ COMMAND_HANDLER(handle_iod_command)
 
 static int target_fill_io(struct target *target,
 		uint32_t address,
-		unsigned data_size,
+		unsigned int data_size,
 		/* value */
 		uint32_t b)
 {
@@ -1458,7 +1458,7 @@ COMMAND_HANDLER(handle_iow_command)
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], value);
 	struct target *target = get_current_target(CMD_CTX);
 
-	unsigned wordsize;
+	unsigned int wordsize;
 	switch (CMD_NAME[2]) {
 		case 'w':
 			wordsize = 4;

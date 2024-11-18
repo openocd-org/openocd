@@ -28,7 +28,7 @@ static struct ftdi_context *ublast_getftdic(struct ublast_lowlevel *low)
 }
 
 static int ublast_ftdi_read(struct ublast_lowlevel *low, uint8_t *buf,
-			    unsigned size, uint32_t *bytes_read)
+			    unsigned int size, uint32_t *bytes_read)
 {
 	int retval;
 	int timeout = 100;

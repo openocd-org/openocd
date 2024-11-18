@@ -493,7 +493,7 @@ int mips64_ejtag_config_step(struct mips_ejtag *ejtag_info, bool enable_step)
 		MIPS64_NOP,
 	};
 	const uint32_t *code = enable_step ? code_enable : code_disable;
-	unsigned code_len = enable_step ? ARRAY_SIZE(code_enable) :
+	unsigned int code_len = enable_step ? ARRAY_SIZE(code_enable) :
 					  ARRAY_SIZE(code_disable);
 
 	return mips64_pracc_exec(ejtag_info,

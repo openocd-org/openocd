@@ -111,7 +111,7 @@ size_t strnlen(const char *s, size_t maxlen);
 
 #ifndef HAVE_USLEEP
 #ifdef _WIN32
-static inline unsigned usleep(unsigned int usecs)
+static inline unsigned int usleep(unsigned int usecs)
 {
 	Sleep((usecs/1000));
 	return 0;

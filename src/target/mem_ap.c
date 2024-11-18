@@ -75,7 +75,6 @@ static void mem_ap_deinit_target(struct target *target)
 
 	free(target->private_config);
 	free(target->arch_info);
-	return;
 }
 
 static int mem_ap_arch_state(struct target *target)

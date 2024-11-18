@@ -74,7 +74,7 @@ static void armv7a_show_fault_registers(struct target *target)
 		", IFAR: %8.8" PRIx32, ifsr, ifar);
 
 done:
-	/* (void) */ dpm->finish(dpm);
+	dpm->finish(dpm);
 }
 
 

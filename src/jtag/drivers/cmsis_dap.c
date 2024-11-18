@@ -563,7 +563,7 @@ static int cmsis_dap_cmd_dap_delay(uint16_t delay_us)
 static int cmsis_dap_metacmd_targetsel(uint32_t instance_id)
 {
 	uint8_t *command = cmsis_dap_handle->command;
-	const uint32_t SEQ_RD = 0x80, SEQ_WR = 0x00;
+	const uint32_t seq_rd = 0x80, seq_wr = 0x00;
 
 	/* SWD multi-drop requires a transfer ala CMD_DAP_TFER,
 	but with no expectation of an SWD ACK response.  In
@@ -579,14 +579,14 @@ static int cmsis_dap_metacmd_targetsel(uint32_t instance_id)
 	command[idx++] = 3;	/* sequence count */
 
 	/* sequence 0: packet request for TARGETSEL */
-	command[idx++] = SEQ_WR | 8;
+	command[idx++] = seq_wr | 8;
 	command[idx++] = SWD_CMD_START | swd_cmd(false, false, DP_TARGETSEL) | SWD_CMD_STOP | SWD_CMD_PARK;
 
 	/* sequence 1: read Trn ACK Trn, no expectation for target to ACK  */
-	command[idx++] = SEQ_RD | 5;
+	command[idx++] = seq_rd | 5;
 
 	/* sequence 2: WDATA plus parity */
-	command[idx++] = SEQ_WR | (32 + 1);
+	command[idx++] = seq_wr | (32 + 1);
 	h_u32_to_le(command + idx, instance_id);
 	idx += 4;
 	command[idx++] = parity_u32(instance_id);
@@ -2153,7 +2153,7 @@ COMMAND_HANDLER(cmsis_dap_handle_cmd_command)
 {
 	uint8_t *command = cmsis_dap_handle->command;
 
-	for (unsigned i = 0; i < CMD_ARGC; i++)
+	for (unsigned int i = 0; i < CMD_ARGC; i++)
 		COMMAND_PARSE_NUMBER(u8, CMD_ARGV[i], command[i]);
 
 	int retval = cmsis_dap_xfer(cmsis_dap_handle, CMD_ARGC);
@@ -2185,7 +2185,7 @@ COMMAND_HANDLER(cmsis_dap_handle_vid_pid_command)
 		CMD_ARGC -= 1;
 	}
 
-	unsigned i;
+	unsigned int i;
 	for (i = 0; i < CMD_ARGC; i += 2) {
 		COMMAND_PARSE_NUMBER(u16, CMD_ARGV[i], cmsis_dap_vid[i >> 1]);
 		COMMAND_PARSE_NUMBER(u16, CMD_ARGV[i + 1], cmsis_dap_pid[i >> 1]);

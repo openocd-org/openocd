@@ -31,12 +31,12 @@
  * @return Success or failure of the operation
  */
 static int arm_code_to_working_area(struct target *target,
-	const uint32_t *code, unsigned code_size,
-	unsigned additional, struct working_area **area)
+	const uint32_t *code, unsigned int code_size,
+	unsigned int additional, struct working_area **area)
 {
 	uint8_t code_buf[code_size];
 	int retval;
-	unsigned size = code_size + additional;
+	unsigned int size = code_size + additional;
 
 	/* REVISIT this assumes size doesn't ever change.
 	 * That's usually correct; but there are boards with

@@ -143,8 +143,8 @@ enum {
 	ARM_VFP_V3_FPSCR,
 };
 
-const char *arm_mode_name(unsigned psr_mode);
-bool is_arm_mode(unsigned psr_mode);
+const char *arm_mode_name(unsigned int psr_mode);
+bool is_arm_mode(unsigned int psr_mode);
 
 /** The PSR "T" and "J" bits define the mode of "classic ARM" cores. */
 enum arm_state {
@@ -325,7 +325,7 @@ int arm_blank_check_memory(struct target *target,
 		struct target_memory_check_block *blocks, int num_blocks, uint8_t erased_value);
 
 void arm_set_cpsr(struct arm *arm, uint32_t cpsr);
-struct reg *arm_reg_current(struct arm *arm, unsigned regnum);
-struct reg *armv8_reg_current(struct arm *arm, unsigned regnum);
+struct reg *arm_reg_current(struct arm *arm, unsigned int regnum);
+struct reg *armv8_reg_current(struct arm *arm, unsigned int regnum);
 
 #endif /* OPENOCD_TARGET_ARM_H */

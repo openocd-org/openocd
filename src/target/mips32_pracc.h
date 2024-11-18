@@ -45,7 +45,7 @@ struct pa_list {
 
 struct pracc_queue_info {
 	struct mips_ejtag *ejtag_info;
-	unsigned isa;
+	unsigned int isa;
 	int retval;
 	int code_count;
 	int store_count;

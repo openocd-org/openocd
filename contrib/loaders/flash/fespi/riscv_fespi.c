@@ -103,7 +103,7 @@ static void fespi_disable_hw_mode(volatile uint32_t *ctrl_base);
 static void fespi_enable_hw_mode(volatile uint32_t *ctrl_base);
 static int fespi_wip(volatile uint32_t *ctrl_base);
 static int fespi_write_buffer(volatile uint32_t *ctrl_base,
-		const uint8_t *buffer, unsigned offset, unsigned len,
+		const uint8_t *buffer, unsigned int offset, unsigned int len,
 		uint32_t flash_info);
 
 /* Can set bits 3:0 in result. */
@@ -113,7 +113,7 @@ static int fespi_write_buffer(volatile uint32_t *ctrl_base,
  *               after pprog_cmd
  */
 int flash_fespi(volatile uint32_t *ctrl_base, uint32_t page_size,
-		const uint8_t *buffer, unsigned offset, uint32_t count,
+		const uint8_t *buffer, unsigned int offset, uint32_t count,
 		uint32_t flash_info)
 {
 	int result;
@@ -163,12 +163,12 @@ err:
 	return result;
 }
 
-static uint32_t fespi_read_reg(volatile uint32_t *ctrl_base, unsigned address)
+static uint32_t fespi_read_reg(volatile uint32_t *ctrl_base, unsigned int address)
 {
 	return ctrl_base[address / 4];
 }
 
-static void fespi_write_reg(volatile uint32_t *ctrl_base, unsigned address, uint32_t value)
+static void fespi_write_reg(volatile uint32_t *ctrl_base, unsigned int address, uint32_t value)
 {
 	ctrl_base[address / 4] = value;
 }
@@ -188,7 +188,7 @@ static void fespi_enable_hw_mode(volatile uint32_t *ctrl_base)
 /* Can set bits 7:4 in result. */
 static int fespi_txwm_wait(volatile uint32_t *ctrl_base)
 {
-	unsigned timeout = TIMEOUT;
+	unsigned int timeout = TIMEOUT;
 
 	while (timeout--) {
 		uint32_t ip = fespi_read_reg(ctrl_base, FESPI_REG_IP);
@@ -209,7 +209,7 @@ static void fespi_set_dir(volatile uint32_t *ctrl_base, bool dir)
 /* Can set bits 11:8 in result. */
 static int fespi_tx(volatile uint32_t *ctrl_base, uint8_t in)
 {
-	unsigned timeout = TIMEOUT;
+	unsigned int timeout = TIMEOUT;
 
 	while (timeout--) {
 		uint32_t txfifo = fespi_read_reg(ctrl_base, FESPI_REG_TXFIFO);
@@ -224,7 +224,7 @@ static int fespi_tx(volatile uint32_t *ctrl_base, uint8_t in)
 /* Can set bits 15:12 in result. */
 static int fespi_rx(volatile uint32_t *ctrl_base, uint8_t *out)
 {
-	unsigned timeout = TIMEOUT;
+	unsigned int timeout = TIMEOUT;
 
 	while (timeout--) {
 		uint32_t value = fespi_read_reg(ctrl_base, FESPI_REG_RXFIFO);
@@ -252,7 +252,7 @@ static int fespi_wip(volatile uint32_t *ctrl_base)
 	if (result != ERROR_OK)
 		return result | ERROR_STACK(0x20000);
 
-	unsigned timeout = TIMEOUT;
+	unsigned int timeout = TIMEOUT;
 	while (timeout--) {
 		result = fespi_tx(ctrl_base, 0);
 		if (result != ERROR_OK)
@@ -273,7 +273,7 @@ static int fespi_wip(volatile uint32_t *ctrl_base)
 
 /* Can set bits 23:20 in result. */
 static int fespi_write_buffer(volatile uint32_t *ctrl_base,
-		const uint8_t *buffer, unsigned offset, unsigned len,
+		const uint8_t *buffer, unsigned int offset, unsigned int len,
 		uint32_t flash_info)
 {
 	int result = fespi_tx(ctrl_base, SPIFLASH_WRITE_ENABLE);
@@ -304,7 +304,7 @@ static int fespi_write_buffer(volatile uint32_t *ctrl_base,
 	if (result != ERROR_OK)
 		return result | ERROR_STACK(0x600000);
 
-	for (unsigned i = 0; i < len; i++) {
+	for (unsigned int i = 0; i < len; i++) {
 		result = fespi_tx(ctrl_base, buffer[i]);
 		if (result != ERROR_OK)
 			return result | ERROR_STACK(0x700000);

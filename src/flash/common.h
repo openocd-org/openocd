@@ -17,7 +17,7 @@
  * name provides a suffix but it does not parse as an unsigned integer,
  * the routine returns ~0U.  This will prevent further matching.
  */
-unsigned get_flash_name_index(const char *name);
+unsigned int get_flash_name_index(const char *name);
 /**
  * Attempt to match the @c expected name with the @c name of a driver.
  * @param name The name of the driver (from the bank's device structure).

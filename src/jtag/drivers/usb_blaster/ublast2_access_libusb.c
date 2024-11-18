@@ -30,7 +30,7 @@
 #define SECTION_BUFFERSIZE		16384
 
 static int ublast2_libusb_read(struct ublast_lowlevel *low, uint8_t *buf,
-			      unsigned size, uint32_t *bytes_read)
+			      unsigned int size, uint32_t *bytes_read)
 {
 	int ret, tmp = 0;
 
@@ -215,7 +215,7 @@ static int ublast2_libusb_init(struct ublast_lowlevel *low)
 	const uint16_t vids_renum[] = { low->ublast_vid, 0 };
 	const uint16_t pids_renum[] = { low->ublast_pid, 0 };
 
-	if (renumeration == false) {
+	if (!renumeration) {
 		if (jtag_libusb_open(vids_renum, pids_renum, NULL, &low->libusb_dev, NULL) != ERROR_OK) {
 			LOG_ERROR("Altera USB-Blaster II not found");
 			return ERROR_FAIL;

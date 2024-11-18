@@ -159,7 +159,7 @@ tap_state_t jtag_debug_state_machine_(const void *tms_buf, const void *tdi_buf,
  * @returns the final TAP state; pass as @a start_tap_state in following call.
  */
 static inline tap_state_t jtag_debug_state_machine(const void *tms_buf,
-		const void *tdi_buf, unsigned tap_len, tap_state_t start_tap_state)
+		const void *tdi_buf, unsigned int tap_len, tap_state_t start_tap_state)
 {
 	if (LOG_LEVEL_IS(LOG_LVL_DEBUG_IO))
 		return jtag_debug_state_machine_(tms_buf, tdi_buf, tap_len, start_tap_state);
@@ -183,7 +183,7 @@ struct jtag_interface {
 	/**
 	 * Bit vector listing capabilities exposed by this driver.
 	 */
-	unsigned supported;
+	unsigned int supported;
 #define DEBUG_CAP_TMS_SEQ	(1 << 0)
 
 	/**

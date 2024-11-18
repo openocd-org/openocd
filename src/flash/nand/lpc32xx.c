@@ -1386,8 +1386,7 @@ static int lpc32xx_read_page_mlc(struct nand_device *nand, uint32_t page,
 
 		if (mlc_isr & 0x8) {
 			if (mlc_isr & 0x40) {
-				LOG_ERROR("uncorrectable error detected: "
-					"0x%2.2x", (unsigned)mlc_isr);
+				LOG_ERROR("uncorrectable error detected: 0x%2.2" PRIx32, mlc_isr);
 				return ERROR_NAND_OPERATION_FAILED;
 			}
 
@@ -1743,7 +1742,7 @@ COMMAND_HANDLER(handle_lpc32xx_select_command)
 	if ((CMD_ARGC < 1) || (CMD_ARGC > 3))
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	unsigned num;
+	unsigned int num;
 	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], num);
 	struct nand_device *nand = get_nand_device_by_num(num);
 	if (!nand) {

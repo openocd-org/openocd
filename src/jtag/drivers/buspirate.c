@@ -1442,7 +1442,7 @@ static void buspirate_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_del
 			data);
 
 	switch (ack) {
-	 case SWD_ACK_OK:
+	case SWD_ACK_OK:
 		if (parity != parity_u32(data)) {
 			LOG_DEBUG("Read data parity mismatch %x %x", parity, parity_u32(data));
 			queued_retval = ERROR_FAIL;
@@ -1453,15 +1453,15 @@ static void buspirate_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_del
 		if (cmd & SWD_CMD_APNDP)
 			buspirate_swd_idle_clocks(ap_delay_clk);
 		return;
-	 case SWD_ACK_WAIT:
+	case SWD_ACK_WAIT:
 		LOG_DEBUG("SWD_ACK_WAIT");
 		buspirate_swd_clear_sticky_errors();
 		return;
-	 case SWD_ACK_FAULT:
+	case SWD_ACK_FAULT:
 		LOG_DEBUG("SWD_ACK_FAULT");
 		queued_retval = ack;
 		return;
-	 default:
+	default:
 		LOG_DEBUG("No valid acknowledge: ack=%d", ack);
 		queued_retval = ack;
 		return;
@@ -1500,19 +1500,19 @@ static void buspirate_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_del
 			value);
 
 	switch (ack) {
-	 case SWD_ACK_OK:
+	case SWD_ACK_OK:
 		if (cmd & SWD_CMD_APNDP)
 			buspirate_swd_idle_clocks(ap_delay_clk);
 		return;
-	 case SWD_ACK_WAIT:
+	case SWD_ACK_WAIT:
 		LOG_DEBUG("SWD_ACK_WAIT");
 		buspirate_swd_clear_sticky_errors();
 		return;
-	 case SWD_ACK_FAULT:
+	case SWD_ACK_FAULT:
 		LOG_DEBUG("SWD_ACK_FAULT");
 		queued_retval = ack;
 		return;
-	 default:
+	default:
 		LOG_DEBUG("No valid acknowledge: ack=%d", ack);
 		queued_retval = ack;
 		return;

@@ -178,14 +178,14 @@ static int linuxgpiod_swd_write(int swclk, int swdio)
 	return ERROR_OK;
 }
 
-static int linuxgpiod_blink(int on)
+static int linuxgpiod_blink(bool on)
 {
 	int retval;
 
 	if (!is_gpio_config_valid(ADAPTER_GPIO_IDX_LED))
 		return ERROR_OK;
 
-	retval = gpiod_line_set_value(gpiod_line[ADAPTER_GPIO_IDX_LED], on);
+	retval = gpiod_line_set_value(gpiod_line[ADAPTER_GPIO_IDX_LED], on ? 1 : 0);
 	if (retval < 0)
 		LOG_WARNING("Fail set led");
 	return retval;

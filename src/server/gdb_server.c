@@ -116,7 +116,7 @@ static int gdb_error(struct connection *connection, int retval);
 static char *gdb_port;
 static char *gdb_port_next;
 
-static void gdb_log_callback(void *priv, const char *file, unsigned line,
+static void gdb_log_callback(void *priv, const char *file, unsigned int line,
 		const char *function, const char *string);
 
 static void gdb_sig_halted(struct connection *connection);
@@ -376,7 +376,7 @@ static int gdb_putback_char(struct connection *connection, int last_char)
 /* The only way we can detect that the socket is closed is the first time
  * we write to it, we will fail. Subsequent write operations will
  * succeed. Shudder! */
-static int gdb_write(struct connection *connection, void *data, int len)
+static int gdb_write(struct connection *connection, const void *data, int len)
 {
 	struct gdb_connection *gdb_con = connection->priv;
 	if (gdb_con->closed) {
@@ -392,7 +392,7 @@ static int gdb_write(struct connection *connection, void *data, int len)
 	return ERROR_SERVER_REMOTE_CLOSED;
 }
 
-static void gdb_log_incoming_packet(struct connection *connection, char *packet)
+static void gdb_log_incoming_packet(struct connection *connection, const char *packet)
 {
 	if (!LOG_LEVEL_IS(LOG_LVL_DEBUG))
 		return;
@@ -401,7 +401,7 @@ static void gdb_log_incoming_packet(struct connection *connection, char *packet)
 	struct gdb_connection *gdb_connection = connection->priv;
 
 	/* Avoid dumping non-printable characters to the terminal */
-	const unsigned packet_len = strlen(packet);
+	const unsigned int packet_len = strlen(packet);
 	const char *nonprint = find_nonprint_char(packet, packet_len);
 	if (nonprint) {
 		/* Does packet at least have a prefix that is printable?
@@ -425,7 +425,7 @@ static void gdb_log_incoming_packet(struct connection *connection, char *packet)
 	}
 }
 
-static void gdb_log_outgoing_packet(struct connection *connection, char *packet_buf,
+static void gdb_log_outgoing_packet(struct connection *connection, const char *packet_buf,
 	unsigned int packet_len, unsigned char checksum)
 {
 	if (!LOG_LEVEL_IS(LOG_LVL_DEBUG))
@@ -443,7 +443,7 @@ static void gdb_log_outgoing_packet(struct connection *connection, char *packet_
 }
 
 static int gdb_put_packet_inner(struct connection *connection,
-		char *buffer, int len)
+		const char *buffer, int len)
 {
 	int i;
 	unsigned char my_checksum = 0;
@@ -565,7 +565,7 @@ static int gdb_put_packet_inner(struct connection *connection,
 	return ERROR_OK;
 }
 
-int gdb_put_packet(struct connection *connection, char *buffer, int len)
+int gdb_put_packet(struct connection *connection, const char *buffer, int len)
 {
 	struct gdb_connection *gdb_con = connection->priv;
 	gdb_con->busy = true;
@@ -1249,7 +1249,7 @@ static void gdb_target_to_reg(struct target *target,
 
 	int i;
 	for (i = 0; i < str_len; i += 2) {
-		unsigned t;
+		unsigned int t;
 		if (sscanf(tstr + i, "%02x", &t) != 1) {
 			LOG_ERROR("BUG: unable to convert register value");
 			exit(-1);
@@ -1308,7 +1308,7 @@ static int gdb_get_registers_packet(struct connection *connection,
 		return gdb_error(connection, retval);
 
 	for (i = 0; i < reg_list_size; i++) {
-		if (!reg_list[i] || reg_list[i]->exist == false || reg_list[i]->hidden)
+		if (!reg_list[i] || !reg_list[i]->exist || reg_list[i]->hidden)
 			continue;
 		reg_packet_size += DIV_ROUND_UP(reg_list[i]->size, 8) * 2;
 	}
@@ -1322,7 +1322,7 @@ static int gdb_get_registers_packet(struct connection *connection,
 	reg_packet_p = reg_packet;
 
 	for (i = 0; i < reg_list_size; i++) {
-		if (!reg_list[i] || reg_list[i]->exist == false || reg_list[i]->hidden)
+		if (!reg_list[i] || !reg_list[i]->exist || reg_list[i]->hidden)
 			continue;
 		retval = gdb_get_reg_value_as_str(target, reg_packet_p, reg_list[i]);
 		if (retval != ERROR_OK && gdb_report_register_access_error) {
@@ -2005,8 +2005,8 @@ static int gdb_memory_map(struct connection *connection,
 		compare_bank);
 
 	for (unsigned int i = 0; i < target_flash_banks; i++) {
-		unsigned sector_size = 0;
-		unsigned group_len = 0;
+		unsigned int sector_size = 0;
+		unsigned int group_len = 0;
 
 		p = banks[i];
 
@@ -2311,7 +2311,7 @@ static int get_reg_features_list(struct target *target, char const **feature_lis
 	*feature_list = calloc(1, sizeof(char *));
 
 	for (int i = 0; i < reg_list_size; i++) {
-		if (reg_list[i]->exist == false || reg_list[i]->hidden)
+		if (!reg_list[i]->exist || reg_list[i]->hidden)
 			continue;
 
 		if (reg_list[i]->feature
@@ -2521,7 +2521,7 @@ static int gdb_generate_target_description(struct target *target, char **tdesc_o
 			int i;
 			for (i = 0; i < reg_list_size; i++) {
 
-				if (reg_list[i]->exist == false || reg_list[i]->hidden)
+				if (!reg_list[i]->exist || reg_list[i]->hidden)
 					continue;
 
 				if (strcmp(reg_list[i]->feature->name, features[current_feature]))
@@ -3563,7 +3563,7 @@ static int gdb_fileio_response_packet(struct connection *connection,
 	return ERROR_OK;
 }
 
-static void gdb_log_callback(void *priv, const char *file, unsigned line,
+static void gdb_log_callback(void *priv, const char *file, unsigned int line,
 		const char *function, const char *string)
 {
 	struct connection *connection = priv;

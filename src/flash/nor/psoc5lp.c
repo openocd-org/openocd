@@ -102,10 +102,10 @@
 
 struct psoc5lp_device {
 	uint32_t id;
-	unsigned fam;
-	unsigned speed_mhz;
-	unsigned flash_kb;
-	unsigned eeprom_kb;
+	unsigned int fam;
+	unsigned int speed_mhz;
+	unsigned int flash_kb;
+	unsigned int eeprom_kb;
 };
 
 /*
@@ -245,7 +245,7 @@ static int psoc5lp_find_device(struct target *target,
 	const struct psoc5lp_device **device)
 {
 	uint32_t device_id;
-	unsigned i;
+	unsigned int i;
 	int retval;
 
 	*device = NULL;
@@ -381,9 +381,9 @@ static int psoc5lp_spc_load_byte(struct target *target,
 }
 
 static int psoc5lp_spc_load_row(struct target *target,
-	uint8_t array_id, const uint8_t *data, unsigned row_size)
+	uint8_t array_id, const uint8_t *data, unsigned int row_size)
 {
-	unsigned i;
+	unsigned int i;
 	int retval;
 
 	retval = psoc5lp_spc_write_opcode(target, SPC_LOAD_ROW);
@@ -853,7 +853,7 @@ static int psoc5lp_eeprom_write(struct flash_bank *bank,
 {
 	struct target *target = bank->target;
 	uint8_t temp[2];
-	unsigned row;
+	unsigned int row;
 	int retval;
 
 	if (offset % EEPROM_ROW_SIZE != 0) {
@@ -1124,7 +1124,7 @@ static int psoc5lp_write(struct flash_bank *bank, const uint8_t *buffer,
 	struct working_area *code_area, *even_row_area, *odd_row_area;
 	uint32_t row_size;
 	uint8_t temp[2], buf[12], ecc_bytes[ROW_ECC_SIZE];
-	unsigned array_id, row;
+	unsigned int array_id, row;
 	int i, retval;
 
 	if (offset + byte_count > bank->size) {
@@ -1183,7 +1183,7 @@ static int psoc5lp_write(struct flash_bank *bank, const uint8_t *buffer,
 		     row < ROWS_PER_BLOCK && byte_count > 0; row++) {
 			bool even_row = (row % 2 == 0);
 			struct working_area *data_area = even_row ? even_row_area : odd_row_area;
-			unsigned len = MIN(ROW_SIZE, byte_count);
+			unsigned int len = MIN(ROW_SIZE, byte_count);
 
 			LOG_DEBUG("Writing load command for array %u row %u at " TARGET_ADDR_FMT,
 				array_id, row, data_area->address);
@@ -1307,8 +1307,8 @@ static int psoc5lp_protect_check(struct flash_bank *bank)
 {
 	struct psoc5lp_flash_bank *psoc_bank = bank->driver_priv;
 	uint8_t row_data[ROW_SIZE];
-	const unsigned protection_bytes_per_sector = ROWS_PER_SECTOR * 2 / 8;
-	unsigned i, k, num_sectors;
+	const unsigned int protection_bytes_per_sector = ROWS_PER_SECTOR * 2 / 8;
+	unsigned int i, k, num_sectors;
 	int retval;
 
 	if (bank->target->state != TARGET_HALTED) {

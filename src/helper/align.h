@@ -24,7 +24,7 @@
 #define IS_PWR_OF_2(x)                  \
 ({                                      \
 	typeof(x) _x = (x);                 \
-	_x == 0 || (_x & (_x - 1)) == 0;    \
+	_x != 0 && (_x & (_x - 1)) == 0;    \
 })
 
 #endif /* OPENOCD_HELPER_ALIGN_H */

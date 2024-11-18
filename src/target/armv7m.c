@@ -74,9 +74,9 @@ const int armv7m_msp_reg_map[ARMV7M_NUM_CORE_REGS] = {
  * doesn't include basepri or faultmask registers.
  */
 static const struct {
-	unsigned id;
+	unsigned int id;
 	const char *name;
-	unsigned bits;
+	unsigned int bits;
 	enum reg_type type;
 	const char *group;
 	const char *feature;
@@ -530,7 +530,7 @@ int armv7m_start_algorithm(struct target *target,
 	}
 
 	/* Store all non-debug execution registers to armv7m_algorithm_info context */
-	for (unsigned i = 0; i < armv7m->arm.core_cache->num_regs; i++) {
+	for (unsigned int i = 0; i < armv7m->arm.core_cache->num_regs; i++) {
 		struct reg *reg = &armv7m->arm.core_cache->reg_list[i];
 		if (!reg->exist)
 			continue;

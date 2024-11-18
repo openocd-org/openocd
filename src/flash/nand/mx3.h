@@ -86,10 +86,10 @@ enum mx_nf_finalize_action {
 };
 
 struct mx3_nf_flags {
-	unsigned target_little_endian:1;
-	unsigned nand_readonly:1;
-	unsigned one_kb_sram:1;
-	unsigned hw_ecc_enabled:1;
+	unsigned int target_little_endian:1;
+	unsigned int nand_readonly:1;
+	unsigned int one_kb_sram:1;
+	unsigned int hw_ecc_enabled:1;
 };
 
 struct mx3_nf_controller {

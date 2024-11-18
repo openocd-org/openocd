@@ -242,7 +242,7 @@ int arm11_add_debug_scan_n(struct arm11_common *arm11,
 static void arm11_add_debug_inst(struct arm11_common *arm11,
 	uint32_t inst, uint8_t *flag, tap_state_t state)
 {
-	JTAG_DEBUG("INST <= 0x%08x", (unsigned) inst);
+	JTAG_DEBUG("INST <= 0x%08" PRIx32, inst);
 
 	struct scan_field itr[2];
 
@@ -282,9 +282,7 @@ int arm11_read_dscr(struct arm11_common *arm11)
 	CHECK_RETVAL(jtag_execute_queue());
 
 	if (arm11->dscr != dscr)
-		JTAG_DEBUG("DSCR  = %08x (OLD %08x)",
-			(unsigned) dscr,
-			(unsigned) arm11->dscr);
+		JTAG_DEBUG("DSCR  = %08" PRIx32 " (OLD %08" PRIx32 ")", dscr, arm11->dscr);
 
 	arm11->dscr = dscr;
 
@@ -317,9 +315,7 @@ int arm11_write_dscr(struct arm11_common *arm11, uint32_t dscr)
 
 	CHECK_RETVAL(jtag_execute_queue());
 
-	JTAG_DEBUG("DSCR <= %08x (OLD %08x)",
-		(unsigned) dscr,
-		(unsigned) arm11->dscr);
+	JTAG_DEBUG("DSCR <= %08" PRIx32 " (OLD %08" PRIx32 ")", dscr, arm11->dscr);
 
 	arm11->dscr = dscr;
 
@@ -509,8 +505,8 @@ int arm11_run_instr_data_to_core(struct arm11_common *arm11,
 
 		CHECK_RETVAL(jtag_execute_queue());
 
-		JTAG_DEBUG("DTR  _data %08x  ready %d  n_retry %d",
-			(unsigned) _data, ready, n_retry);
+		JTAG_DEBUG("DTR  _data %08" PRIx32 "  ready %d  n_retry %d",
+			_data, ready, n_retry);
 
 		int64_t then = 0;
 
@@ -571,8 +567,8 @@ static int arm11_run_instr_data_to_core_noack_inner(struct jtag_tap *tap,
 	chain5_fields[2].in_value               = NULL;
 
 	uint8_t *readies;
-	unsigned readies_num = count;
-	unsigned bytes = sizeof(*readies)*readies_num;
+	unsigned int readies_num = count;
+	unsigned int bytes = sizeof(*readies) * readies_num;
 
 	readies = malloc(bytes);
 	if (!readies) {
@@ -596,7 +592,7 @@ static int arm11_run_instr_data_to_core_noack_inner(struct jtag_tap *tap,
 
 	int retval = jtag_execute_queue();
 	if (retval == ERROR_OK) {
-		unsigned error_count = 0;
+		unsigned int error_count = 0;
 
 		for (size_t i = 0; i < readies_num; i++) {
 			if (readies[i] != 1)
@@ -754,8 +750,8 @@ int arm11_run_instr_data_from_core(struct arm11_common *arm11,
 
 			CHECK_RETVAL(jtag_execute_queue());
 
-			JTAG_DEBUG("DTR  _data %08x  ready %d  n_retry %d",
-				(unsigned) _data, ready, n_retry);
+			JTAG_DEBUG("DTR  _data %08" PRIx32 "  ready %d  n_retry %d",
+				_data, ready, n_retry);
 
 			int64_t then = 0;
 
@@ -878,9 +874,8 @@ int arm11_sc7_run(struct arm11_common *arm11, struct arm11_sc7_action *actions, 
 		/* Timeout here so we don't get stuck. */
 		int i_n = 0;
 		while (1) {
-			JTAG_DEBUG("SC7 <= c%-3d Data %08x %s",
-				(unsigned) address_out,
-				(unsigned) data_out,
+			JTAG_DEBUG("SC7 <= c%-3" PRIu8 " Data %08" PRIx32 " %s",
+				address_out, data_out,
 				n_rw ? "write" : "read");
 
 			arm11_add_dr_scan_vc(arm11->arm.target->tap, ARRAY_SIZE(chain7_fields),
@@ -908,7 +903,7 @@ int arm11_sc7_run(struct arm11_common *arm11, struct arm11_sc7_action *actions, 
 		}
 
 		if (!n_rw)
-			JTAG_DEBUG("SC7 => Data %08x", (unsigned) data_in);
+			JTAG_DEBUG("SC7 => Data %08" PRIx32, data_in);
 
 		if (i > 0) {
 			if (actions[i - 1].address != address_in)
@@ -1047,7 +1042,7 @@ static int arm11_dpm_instr_read_data_r0(struct arm_dpm *dpm,
  * and watchpoint operations instead of running them right away.  Since we
  * pre-allocated our vector, we don't need to worry about space.
  */
-static int arm11_bpwp_enable(struct arm_dpm *dpm, unsigned index_t,
+static int arm11_bpwp_enable(struct arm_dpm *dpm, unsigned int index_t,
 	uint32_t addr, uint32_t control)
 {
 	struct arm11_common *arm11 = dpm_to_arm11(dpm);
@@ -1084,7 +1079,7 @@ static int arm11_bpwp_enable(struct arm_dpm *dpm, unsigned index_t,
 	return ERROR_OK;
 }
 
-static int arm11_bpwp_disable(struct arm_dpm *dpm, unsigned index_t)
+static int arm11_bpwp_disable(struct arm_dpm *dpm, unsigned int index_t)
 {
 	struct arm11_common *arm11 = dpm_to_arm11(dpm);
 	struct arm11_sc7_action *action;

@@ -21,7 +21,7 @@
 #include "mips64.h"
 
 static const struct {
-	unsigned id;
+	unsigned int id;
 	const char *name;
 	enum reg_type type;
 	const char *group;
@@ -332,8 +332,8 @@ int mips64_save_context(struct target *target)
 	if (retval != ERROR_OK)
 		return retval;
 
-	for (unsigned i = 0; i < MIPS64_NUM_REGS; i++)
-			retval = mips64->read_core_reg(target, i);
+	for (unsigned int i = 0; i < MIPS64_NUM_REGS; i++)
+		retval = mips64->read_core_reg(target, i);
 
 	return retval;
 }
@@ -343,7 +343,7 @@ int mips64_restore_context(struct target *target)
 	struct mips64_common *mips64 = target->arch_info;
 	struct mips_ejtag *ejtag_info = &mips64->ejtag_info;
 
-	for (unsigned i = 0; i < MIPS64_NUM_REGS; i++) {
+	for (unsigned int i = 0; i < MIPS64_NUM_REGS; i++) {
 		if (mips64->core_cache->reg_list[i].dirty)
 			mips64->write_core_reg(target, i);
 	}
@@ -379,7 +379,7 @@ int mips64_build_reg_cache(struct target *target)
 	struct reg_cache **cache_p, *cache;
 	struct mips64_core_reg *arch_info = NULL;
 	struct reg *reg_list = NULL;
-	unsigned i;
+	unsigned int i;
 
 	cache = calloc(1, sizeof(*cache));
 	if (!cache) {

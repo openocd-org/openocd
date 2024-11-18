@@ -217,7 +217,7 @@ COMMAND_HANDLER(handle_xsvf_command)
 
 	bool collecting_path = false;
 	tap_state_t path[XSTATE_MAX_PATH];
-	unsigned pathlen = 0;
+	unsigned int pathlen = 0;
 
 	/* a flag telling whether to clock TCK during waits,
 	 * or simply sleep, controlled by virt2

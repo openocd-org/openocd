@@ -171,7 +171,7 @@ struct arm_instruction {
 	uint32_t opcode;
 
 	/* return value ... Thumb-2 sizes vary */
-	unsigned instruction_size;
+	unsigned int instruction_size;
 
 	union {
 		struct arm_b_bl_bx_blx_instr b_bl_bx_blx;
