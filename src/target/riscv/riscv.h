@@ -321,6 +321,8 @@ struct riscv_info {
 	bool wp_allow_equality_match_trigger;
 	bool wp_allow_napot_trigger;
 	bool wp_allow_ge_lt_trigger;
+
+	bool autofence;
 };
 
 COMMAND_HELPER(riscv_print_info_line, const char *section, const char *key,

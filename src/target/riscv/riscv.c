@@ -4504,6 +4504,22 @@ COMMAND_HANDLER(riscv_set_maskisr)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(riscv_set_autofence)
+{
+	struct target *target = get_current_target(CMD_CTX);
+	RISCV_INFO(r);
+
+	if (CMD_ARGC == 0) {
+		command_print(CMD, "autofence: %s", r->autofence ? "on" : "off");
+		return ERROR_OK;
+	} else if (CMD_ARGC == 1) {
+		COMMAND_PARSE_ON_OFF(CMD_ARGV[0], r->autofence);
+		return ERROR_OK;
+	}
+
+	return ERROR_COMMAND_SYNTAX_ERROR;
+}
+
 COMMAND_HANDLER(riscv_set_ebreakm)
 {
 	struct target *target = get_current_target(CMD_CTX);
@@ -5390,6 +5406,15 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 				"hw - translate vaddr to paddr by hardware, "
 				"off - no address translation."
 	},
+	{
+		.name = "autofence",
+		.handler = riscv_set_autofence,
+		.mode = COMMAND_ANY,
+		.usage = "[on|off]",
+		.help = "When on (default), OpenOCD will automatically execute fence instructions in some situations. "
+			"When off, users need to take care of memory coherency themselves, for example by using "
+			"`riscv exec_progbuf` to execute fence or CMO instructions."
+	},
 	COMMAND_REGISTRATION_DONE
 };
 
@@ -5531,6 +5556,8 @@ static void riscv_info_init(struct target *target, struct riscv_info *r)
 	r->wp_allow_equality_match_trigger = true;
 	r->wp_allow_ge_lt_trigger = true;
 	r->wp_allow_napot_trigger = true;
+
+	r->autofence = true;
 }
 
 static int riscv_resume_go_all_harts(struct target *target)
