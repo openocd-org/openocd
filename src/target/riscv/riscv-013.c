@@ -5392,7 +5392,9 @@ static int riscv013_step_or_resume_current_hart(struct target *target,
 		LOG_TARGET_ERROR(target, "Hart is not halted!");
 		return ERROR_FAIL;
 	}
-	LOG_TARGET_DEBUG(target, "resuming (for step?=%d)", step);
+
+	LOG_TARGET_DEBUG(target, "resuming (operation=%s)",
+		step ? "single-step" : "resume");
 
 	if (riscv_reg_flush_all(target) != ERROR_OK)
 		return ERROR_FAIL;
@@ -5425,16 +5427,26 @@ static int riscv013_step_or_resume_current_hart(struct target *target,
 		return ERROR_OK;
 	}
 
-	dm_write(target, DM_DMCONTROL, dmcontrol);
+	LOG_TARGET_ERROR(target, "Failed to %s. dmstatus=0x%08x",
+		step ? "single-step" : "resume", dmstatus);
 
-	LOG_TARGET_ERROR(target, "unable to resume");
+	dm_write(target, DM_DMCONTROL, dmcontrol);
+	LOG_TARGET_ERROR(target,
+		"  cancelling the resume request (dmcontrol.resumereq <- 0)");
+
 	if (dmstatus_read(target, &dmstatus, true) != ERROR_OK)
 		return ERROR_FAIL;
-	LOG_TARGET_ERROR(target, "  dmstatus=0x%08x", dmstatus);
+
+	LOG_TARGET_ERROR(target, "  dmstatus after cancellation=0x%08x", dmstatus);
 
 	if (step) {
-		LOG_TARGET_ERROR(target, "  was stepping, halting");
-		riscv_halt(target);
+		LOG_TARGET_ERROR(target,
+			"  trying to recover from a failed single-step, by requesting halt");
+		if (riscv_halt(target) == ERROR_OK)
+			LOG_TARGET_ERROR(target, "  halt completed after failed single-step");
+		else
+			LOG_TARGET_ERROR(target, "  could not halt, something is wrong with the taget");
+		// TODO: returning ERROR_OK is questionable, this code needs to be revised
 		return ERROR_OK;
 	}
 
