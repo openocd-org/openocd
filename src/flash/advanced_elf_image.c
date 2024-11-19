@@ -23,7 +23,7 @@
 #endif
 
 #include "advanced_elf_image.h"
-#include <log.h>
+#include <helper/log.h>
 
 void advanced_elf_image_close(struct advanced_elf_image *image)
 {

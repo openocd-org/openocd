@@ -758,8 +758,18 @@ int flash_write_unlock_verify(struct target *target, struct image *image,
 	struct imagesection **sections = malloc(sizeof(struct imagesection *) *
 			image->num_sections);
 
+	unsigned int total_size = 0;
 	for (unsigned int i = 0; i < image->num_sections; i++)
+	{
 		sections[i] = &image->sections[i];
+		total_size += sections[i]->size;
+	}
+
+	if (target->report_flash_progress)
+	{
+		LOG_INFO("Programming FLASH (%d sections, %d bytes)...",
+		image->num_sections, total_size);
+	}
 
 	qsort(sections, image->num_sections, sizeof(struct imagesection *),
 		compare_section);
@@ -772,6 +782,12 @@ int flash_write_unlock_verify(struct target *target, struct image *image,
 		target_addr_t run_address = sections[section]->base_address + section_offset;
 		uint32_t run_size = sections[section]->size - section_offset;
 		int pad_bytes = 0;
+
+		if (!section_offset && target->report_flash_progress)
+		{
+			LOG_INFO("Programming FLASH section %d/%d (%d bytes) at "TARGET_ADDR_FMT"...",
+			section + 1, image->num_sections, sections[section]->size, sections[section]->base_address);
+		}
 
 		if (sections[section]->size ==  0) {
 			LOG_WARNING("empty section %d", section);

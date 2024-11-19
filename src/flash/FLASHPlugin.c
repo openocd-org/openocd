@@ -99,7 +99,7 @@ struct loaded_plugin
     struct plugin_timeouts timeouts;
 };
 
-int save_region(struct target *target, struct memory_backup *region, Elf32_Addr sh_addr, Elf32_Size sh_size, int sectionNumber)
+int save_region(struct target *target, struct memory_backup *region, Elf32_Addr sh_addr, uint32_t sh_size, int sectionNumber)
 {
     region->base_address = sh_addr;
     region->size = sh_size;
@@ -505,9 +505,13 @@ static int plugin_write(struct flash_bank *bank,
                     retval = ERROR_FLASH_BANK_INVALID;   
                     break;
                 }
-                
+
                 if (target->report_flash_progress)
-                    report_flash_progress("flash_write_progress_sync", bank->base + offset + done, bank->base + offset + done + doneNow, bank->name);
+                    LOG_INFO("%s:0x%" TARGET_PRIXADDR "|0x%" TARGET_PRIXADDR "|%s",
+                             "flash_write_progress_sync",
+                             bank->base + offset + done,
+                             bank->base + offset + done + doneNow,
+                             bank->name);
 
                 done += doneNow;
             }
@@ -698,10 +702,14 @@ static int plugin_erase(struct flash_bank *bank, unsigned first, unsigned last)
                 LOG_ERROR("FLASHPlugin_EraseSectors() returned %d", result);
                 retval = ERROR_FLASH_BANK_INVALID;
             }
-            
+
             if (target->report_flash_progress)
-                report_flash_progress("flash_erase_progress", bank->base + bank->sectors[first].offset, bank->base + bank->sectors[first + result - 1].offset + bank->sectors[first + result - 1].size, bank->name);
-            
+                LOG_INFO("%s:0x%" TARGET_PRIXADDR "|0x%" TARGET_PRIXADDR "|%s",
+                         "flash_erase_progress",
+                         bank->base + bank->sectors[first].offset,
+                         bank->base + bank->sectors[first + result - 1].offset + bank->sectors[first + result - 1].size,
+                         bank->name);
+
             first += result;
         }
     }

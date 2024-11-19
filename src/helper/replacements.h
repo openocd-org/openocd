@@ -253,6 +253,29 @@ typedef struct {
 	Elf32_Half e_shstrndx;			/* Section header string table index */
 } Elf32_Ehdr;
 
+typedef struct {
+	Elf32_Word	sh_name;	/* Section name (index into the
+							section header string table). */
+	Elf32_Word	sh_type;	/* Section type. */
+	Elf32_Word	sh_flags;	/* Section flags. */
+	Elf32_Addr	sh_addr;	/* Address in memory image. */
+	Elf32_Off	sh_offset;	/* Offset in file. */
+	Elf32_Size	sh_size;	/* Size in bytes. */
+	Elf32_Word	sh_link;	/* Index of a related section. */
+	Elf32_Word	sh_info;	/* Depends on section type. */
+	Elf32_Size	sh_addralign;/* Alignment in bytes. */
+	Elf32_Size	sh_entsize;	/* Size of each entry in section. */
+} Elf32_Shdr;
+
+typedef struct {
+	Elf32_Word	st_name;	/* String table index of name. */
+	Elf32_Addr	st_value;	/* Symbol value. */
+	Elf32_Size	st_size;	/* Size of associated object. */
+	unsigned char	st_info;/* Type and binding information. */
+	unsigned char	st_other;/* Reserved (not used). */
+	Elf32_Half	st_shndx;	/* Section index of symbol. */
+} Elf32_Sym;
+
 #define ELFMAG			"\177ELF"
 #define SELFMAG			4
 

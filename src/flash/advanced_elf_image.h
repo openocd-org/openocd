@@ -32,7 +32,7 @@ struct advanced_elf_image
     int num_sections;
     
     char *strtab;
-    int strtab_size;
+    Elf32_Word strtab_size;
     
     Elf32_Sym *symbols;
     int num_symbols;
@@ -43,5 +43,3 @@ void advanced_elf_image_close(struct advanced_elf_image *image);
 
 uint32_t advanced_elf_image_find_symbol(struct advanced_elf_image *image, const char *symbol_name);
 int advanced_elf_image_read_section(struct advanced_elf_image *image, int section, void *buf, size_t buf_size, size_t *done);
-
-

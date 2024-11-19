@@ -185,6 +185,7 @@ struct target {
 										 * and must be detected when symbols are offered */
 	struct backoff_timer backoff;
 	int smp;							/* Unique non-zero number for each SMP group */
+	int report_flash_progress;			/* If set to 1, FLASH writing operations will generate detailed progress messages */
 	struct list_head *smp_targets;		/* list all targets in this smp group/cluster
 										 * The head of the list is shared between the
 										 * cluster, thus here there is a pointer */
