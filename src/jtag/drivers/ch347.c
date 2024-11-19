@@ -81,13 +81,15 @@
 #define JTAGIO_STA_OUT_TCK  (0x01)
 #define JTAGIO_STA_OUT_TRST (0x20)
 #define TDI_H				JTAGIO_STA_OUT_TDI
-#define TDI_L				0
 #define TMS_H				JTAGIO_STA_OUT_TMS
-#define TMS_L				0
 #define TCK_H				JTAGIO_STA_OUT_TCK
-#define TCK_L				0
 #define TRST_H				JTAGIO_STA_OUT_TRST
+#define TDI_L				0
+#define TMS_L				0
+#define TCK_L				0
 #define TRST_L				0
+
+#define VENDOR_VERSION	0x5F
 
 /* Format: CMD(1byte) + Length(2bytes) + Data(Nbytes) */
 #define HW_TDO_BUF_SIZE					4096
@@ -204,6 +206,16 @@ static uint32_t CH347OpenDevice(uint64_t iIndex)
 		LOG_ERROR("ch347 unable to claim interface");
 		return false;
 	}
+
+	char ver;
+	if (jtag_libusb_control_transfer(ch347_handle,
+				LIBUSB_ENDPOINT_IN | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
+				VENDOR_VERSION, 0, 0, &ver, sizeof(ver), usb_write_timeout, NULL) != ERROR_OK)
+	{
+		LOG_ERROR("ch347 unable to get firmware version");
+		return false;
+	}
+	LOG_INFO("CH347 found (Firmware=0x%02X)", ver);
 
 	return true;
 }
@@ -1066,7 +1078,7 @@ static int ch347_init(void)
 
 		tap_set_state(TAP_RESET);
 	} else { /* swd init */
-		CH347SWD_INIT(ugIndex, 1);
+		CH347SWD_INIT(ugIndex, 0);
 	}
 	return ERROR_OK;
 }
