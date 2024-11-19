@@ -492,6 +492,71 @@ COMMAND_HANDLER(handle_dap_info_command)
 	return retval;
 }
 
+COMMAND_HANDLER(handle_dap_readmemap)
+{
+	if (CMD_ARGC != 4)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	// Write size of the written word in CSW register
+	struct target *target = get_current_target(CMD_CTX);
+	struct arm *arm = target_to_arm(target);
+	struct adiv5_dap *dap = arm->dap;
+	uint32_t apbaseaddr, flags, addr, data;
+	int num_items;
+	int retval;
+
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], apbaseaddr);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], addr);
+	COMMAND_PARSE_NUMBER(int, CMD_ARGV[2], num_items);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[3], flags);
+
+	struct adiv5_ap *ap = dap_get_ap(dap, apbaseaddr >> 24);
+	if (!ap) {
+		LOG_DEBUG("Failed to get AP");
+		return ERROR_FAIL;
+	}
+	// Read 'items' words
+	char *separator = "";
+	command_print_sameline(CMD, "O.K.:");
+	for (int i = 0; i < num_items; i++) {
+		retval = mem_ap_read_atomic_u32(ap, addr, &data);
+		if (retval != ERROR_OK)
+			return retval;
+		addr += 4;
+		command_print_sameline(CMD, "%s0x%08" PRIx32, separator, data);
+		separator = ",";
+	}
+
+	dap_put_ap(ap);
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(handle_dap_readapex)
+{
+	struct target *target = get_current_target(CMD_CTX);
+	struct arm *arm = target_to_arm(target);
+	struct adiv5_dap *dap = arm->dap;
+	uint32_t apbaseaddr, regaddr, data;
+
+	if (CMD_ARGC != 2)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], apbaseaddr);
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], regaddr);
+
+	struct adiv5_ap *ap = dap_get_ap(dap, apbaseaddr >> 24);
+	if (!ap) {
+		LOG_DEBUG("Failed to get AP");
+		return ERROR_FAIL;
+	}
+	dap_queue_ap_read(ap, regaddr, &data);
+	dap_run(dap);
+	dap_put_ap(ap);
+	command_print(CMD, "O.K.:0x%08" PRIx32, data);
+
+	return ERROR_OK;
+}
+
 static const struct command_registration dap_subcommand_handlers[] = {
 	{
 		.name = "create",
@@ -532,6 +597,20 @@ static const struct command_registration dap_commands[] = {
 		.help = "DAP commands",
 		.chain = dap_subcommand_handlers,
 		.usage = "",
+	},
+	{
+		.name = "ReadMemAP",
+		.handler = handle_dap_readmemap,
+		.mode = COMMAND_EXEC,
+		.help = "reads memory after MEM-AP",
+		.usage = "APBaseAddr Addr NumItems Flags",
+	},
+	{
+		.name = "ReadAPEx",
+		.handler = handle_dap_readapex,
+		.mode = COMMAND_EXEC,
+		.help = "reads the specified CoreSight DAP-AP registers",
+		.usage = "APBaseAddr RegAddr",
 	},
 	COMMAND_REGISTRATION_DONE
 };

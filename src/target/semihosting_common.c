@@ -242,7 +242,10 @@ static ssize_t semihosting_redirect_read(struct semihosting *semihosting, void *
 	service->error = ERROR_OK;
 	semihosting->tcp_connection->input_pending = true;
 
+	/* On windows, we need to set the socket blocking */
+	socket_block(semihosting->tcp_connection->fd);
 	int retval = connection_read(semihosting->tcp_connection, buf, size);
+	socket_nonblock(semihosting->tcp_connection->fd);
 
 	if (retval <= 0)
 		service->error = ERROR_SERVER_REMOTE_CLOSED;

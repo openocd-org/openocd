@@ -350,20 +350,19 @@ static const struct stm32l4_rev stm32g49_g4axx_revs[] = {
 	{ 0x1000, "A" },
 };
 
-static const struct stm32l4_rev stm32u53_u54xx_revs[] = {
-	{ 0x1000, "A" }, { 0x1001, "Z" },
+static const struct stm32l4_rev stm32u59_u5axx_revs[] = {
+	{ 0x1000, "A" }, { 0x1001, "Z" }, { 0x1003, "Y" }, { 0x2000, "B" },
 };
 
 static const struct stm32l4_rev stm32u57_u58xx_revs[] = {
-	{ 0x1000, "A" }, { 0x1001, "Z" }, { 0x1003, "Y" }, { 0x2000, "B" },
-	{ 0x2001, "X" }, { 0x3000, "C" }, { 0x3001, "W" },
+	{ 0x1000, "A" }, { 0x1001, "Z" }, { 0x1003, "Y" }, { 0x2000, "B" }, { 0x2001, "X" },
 };
 
-static const struct stm32l4_rev stm32u59_u5axx_revs[] = {
-	{ 0x3001, "X" },
+static const struct stm32l4_rev stm32u5f_u5gxx_revs[] = {
+	{ 0x1000, "A" }, { 0x1001, "Z" },
 };
 
-static const struct stm32l4_rev stm32wba5x_revs[] = {
+static const struct stm32l4_rev stm32wbaxx_revs[] = {
 	{ 0x1000, "A" },
 };
 
@@ -381,6 +380,10 @@ static const struct stm32l4_rev stm32wb3xx_revs[] = {
 
 static const struct stm32l4_rev stm32wle_wl5xx_revs[] = {
 	{ 0x1000, "1.0" },
+};
+
+static const struct stm32l4_rev stm32u53_u54xx_revs[] = {
+	{ 0x1000, "A" },
 };
 
 static const struct stm32l4_part_info stm32l4_parts[] = {
@@ -625,10 +628,22 @@ static const struct stm32l4_part_info stm32l4_parts[] = {
 	  .otp_size              = 512,
 	},
 	{
-	  .id                    = DEVID_STM32WBA5X,
-	  .revs                  = stm32wba5x_revs,
-	  .num_revs              = ARRAY_SIZE(stm32wba5x_revs),
-	  .device_str            = "STM32WBA5x",
+	  .id                    = DEVID_STM32U5F_U5GXX,
+	  .revs                  = stm32u5f_u5gxx_revs,
+	  .num_revs              = ARRAY_SIZE(stm32u5f_u5gxx_revs),
+	  .device_str            = "STM32U5F/U5Gxx",
+	  .max_flash_size_kb     = 4096,
+	  .flags                 = F_HAS_DUAL_BANK | F_QUAD_WORD_PROG | F_HAS_TZ | F_HAS_L5_FLASH_REGS,
+	  .flash_regs_base       = 0x40022000,
+	  .fsize_addr            = 0x0BFA07A0,
+	  .otp_base              = 0x0BFA0000,
+	  .otp_size              = 512,
+	},
+	{
+	  .id                    = DEVID_STM32WBAXX,
+	  .revs                  = stm32wbaxx_revs,
+	  .num_revs              = ARRAY_SIZE(stm32wbaxx_revs),
+	  .device_str            = "STM32WBAx",
 	  .max_flash_size_kb     = 1024,
 	  .flags                 = F_QUAD_WORD_PROG | F_HAS_TZ | F_HAS_L5_FLASH_REGS,
 	  .flash_regs_base       = 0x40022000,
@@ -652,7 +667,7 @@ static const struct stm32l4_part_info stm32l4_parts[] = {
 	  .id                    = DEVID_STM32WB5XX,
 	  .revs                  = stm32wb5xx_revs,
 	  .num_revs              = ARRAY_SIZE(stm32wb5xx_revs),
-	  .device_str            = "STM32WB5x",
+	  .device_str            = "STM32WB5x/WB3x",
 	  .max_flash_size_kb     = 1024,
 	  .flags                 = F_NONE,
 	  .flash_regs_base       = 0x58004000,
@@ -683,6 +698,18 @@ static const struct stm32l4_part_info stm32l4_parts[] = {
 	  .fsize_addr            = 0x1FFF75E0,
 	  .otp_base              = 0x1FFF7000,
 	  .otp_size              = 1024,
+	},
+	{
+	  .id                    = DEVID_STM32U53_U54XX,
+	  .revs                  = stm32u53_u54xx_revs,
+	  .num_revs              = ARRAY_SIZE(stm32u53_u54xx_revs),
+	  .device_str            = "STM32U53/U54xx",
+	  .max_flash_size_kb     = 512,
+	  .flags                 = F_HAS_DUAL_BANK | F_QUAD_WORD_PROG | F_HAS_TZ | F_HAS_L5_FLASH_REGS,
+	  .flash_regs_base       = 0x40022000,
+	  .fsize_addr            = 0x0BFA07A0,
+	  .otp_base              = 0x0BFA0000,
+	  .otp_size              = 512,
 	},
 };
 
@@ -925,7 +952,9 @@ static int stm32l4_set_secbb(struct flash_bank *bank, uint32_t value)
 
 	const uint8_t secbb_regs[] = {
 			FLASH_SECBB1(1), FLASH_SECBB1(2), FLASH_SECBB1(3), FLASH_SECBB1(4), /* bank 1 SECBB register offsets */
-			FLASH_SECBB2(1), FLASH_SECBB2(2), FLASH_SECBB2(3), FLASH_SECBB2(4)  /* bank 2 SECBB register offsets */
+			FLASH_SECBB1(5), FLASH_SECBB1(6), FLASH_SECBB1(7), FLASH_SECBB1(8),
+			FLASH_SECBB2(1), FLASH_SECBB2(2), FLASH_SECBB2(3), FLASH_SECBB2(4), /* bank 2 SECBB register offsets */
+			FLASH_SECBB2(5), FLASH_SECBB2(6), FLASH_SECBB2(7), FLASH_SECBB2(8)
 	};
 
 
@@ -1713,13 +1742,46 @@ err_lock:
 	return retval2;
 }
 
+int stm32l4_read(struct flash_bank *bank,
+	uint8_t *buffer, uint32_t offset, uint32_t count)
+{
+	struct stm32l4_flash_bank *stm32l4_info = bank->driver_priv;
+	int retval;
+
+	if (bank->target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	if (stm32l4_info->tzen) {
+		/* set all FLASH pages as secure */
+		retval = stm32l4_set_secbb(bank, FLASH_SECBB_SECURE);
+		if (retval != ERROR_OK) {
+			/* restore all FLASH pages as non-secure */
+			stm32l4_set_secbb(bank, FLASH_SECBB_NON_SECURE); /* ignore the return value */
+			return retval;
+		}
+	}
+
+	int retval2 = target_read_buffer(bank->target, offset + bank->base, count, buffer);
+
+	if (stm32l4_info->tzen) {
+		/* restore all FLASH pages as non-secure */
+		retval= stm32l4_set_secbb(bank, FLASH_SECBB_NON_SECURE);
+		if (retval != ERROR_OK)
+			return retval;
+	}
+
+	return retval2;
+}
+
 static int stm32l4_read_idcode(struct flash_bank *bank, uint32_t *id)
 {
 	int retval = ERROR_OK;
 	struct target *target = bank->target;
 
 	/* try reading possible IDCODE registers, in the following order */
-	uint32_t dbgmcu_idcode[] = {DBGMCU_IDCODE_L4_G4, DBGMCU_IDCODE_G0, DBGMCU_IDCODE_L5};
+	uint32_t dbgmcu_idcode[] = {DBGMCU_IDCODE_L4_G4, DBGMCU_IDCODE_L5, DBGMCU_IDCODE_G0};
 
 	for (unsigned int i = 0; i < ARRAY_SIZE(dbgmcu_idcode); i++) {
 		retval = target_read_u32(target, dbgmcu_idcode[i], id);
@@ -1760,6 +1822,36 @@ static int stm32l4_read_idcode(struct flash_bank *bank, uint32_t *id)
 
 	LOG_ERROR("can't get the device id");
 	return (retval == ERROR_OK) ? ERROR_FAIL : retval;
+}
+
+static const char *get_stm32l4_device_str(struct flash_bank *bank)
+{
+	struct stm32l4_flash_bank *stm32l4_info = bank->driver_priv;
+	const struct stm32l4_part_info *part_info = stm32l4_info->part_info;
+	assert(part_info);
+
+	if (part_info->id == DEVID_STM32WB5XX) {
+		uint32_t partno_codif;
+		int retval = target_read_u32(bank->target, PARTNO_CODIFICATION, &partno_codif);
+
+		/* if retval != ERROR_OK return the default device name (device_str) */
+		if (retval == ERROR_OK && partno_codif != 0xFFFFFFFF) {
+			/* PARTNO_CODIFICATION first 2 bytes are ASCII codes for the first 2
+			 * digits of the device name */
+			switch (partno_codif) {
+			case 0x00003535:
+				return "STM32WB55x";
+			case 0x00003035:
+				return "STM32WB50x";
+			case 0x00003533:
+				return "STM32WB35x";
+			case 0x00003033:
+				return "STM32WB30x";
+			}
+		}
+	}
+
+	return part_info->device_str;
 }
 
 static const char *get_stm32l4_rev_str(struct flash_bank *bank)
@@ -1825,11 +1917,12 @@ static int stm32l4_probe(struct flash_bank *bank)
 	}
 
 	part_info = stm32l4_info->part_info;
+	const char *device_str = get_stm32l4_device_str(bank);
 	const char *rev_str = get_stm32l4_rev_str(bank);
 	const uint16_t rev_id = stm32l4_info->idcode >> 16;
 
 	LOG_INFO("device idcode = 0x%08" PRIx32 " (%s - Rev %s : 0x%04x)",
-			stm32l4_info->idcode, part_info->device_str, rev_str, rev_id);
+			stm32l4_info->idcode, device_str, rev_str, rev_id);
 
 	stm32l4_info->flash_regs_base = stm32l4_info->part_info->flash_regs_base;
 	stm32l4_info->data_width = (part_info->flags & F_QUAD_WORD_PROG) ? 16 : 8;
@@ -2041,6 +2134,7 @@ static int stm32l4_probe(struct flash_bank *bank)
 	case DEVID_STM32U53_U54XX:
 	case DEVID_STM32U57_U58XX:
 	case DEVID_STM32U59_U5AXX:
+	case DEVID_STM32U5F_U5GXX:
 		/* according to RM0456 Rev 4, Chapter 7.3.1 and 7.9.13
 		 * U53x/U54x have 512K max flash size:
 		 *   512K variants are always in DUAL BANK mode
@@ -2048,7 +2142,7 @@ static int stm32l4_probe(struct flash_bank *bank)
 		 * U57x/U58x have 2M max flash size:
 		 *   2M variants are always in DUAL BANK mode
 		 *   1M variants can be in DUAL BANK mode if FLASH_OPTR:DUALBANK is set
-		 * U59x/U5Ax have 4M max flash size:
+		 * U59x/U5Ax/U5Fx/U5Gx have 4M max flash size:
 		 *   4M variants are always in DUAL BANK mode
 		 *   2M variants can be in DUAL BANK mode if FLASH_OPTR:DUALBANK is set
 		 * Note: flash banks are always contiguous
@@ -2062,11 +2156,18 @@ static int stm32l4_probe(struct flash_bank *bank)
 			stm32l4_info->bank1_sectors = num_pages / 2;
 		}
 		break;
-	case DEVID_STM32WBA5X:
+	case DEVID_STM32WBAXX:
 		/* single bank flash */
 		page_size_kb = 8;
 		num_pages = flash_size_kb / page_size_kb;
 		stm32l4_info->bank1_sectors = num_pages;
+
+		/**
+		 * by default use the non-secure registers,
+		 * switch secure registers if TZ is enabled and RDP is LEVEL_0
+		 */
+		if (stm32l4_info->tzen && stm32l4_info->rdp == RDP_LEVEL_0)
+			stm32l4_info->flash_regs = stm32l5_s_flash_regs;
 		break;
 	case DEVID_STM32WB5XX:
 	case DEVID_STM32WB3XX:
@@ -2189,7 +2290,7 @@ static int get_stm32l4_info(struct flash_bank *bank, struct command_invocation *
 
 	if (part_info) {
 		const uint16_t rev_id = stm32l4_info->idcode >> 16;
-		command_print_sameline(cmd, "%s - Rev %s : 0x%04x", part_info->device_str,
+		command_print_sameline(cmd, "%s - Rev %s : 0x%04x", get_stm32l4_device_str(bank),
 				get_stm32l4_rev_str(bank), rev_id);
 		if (stm32l4_info->probed)
 			command_print_sameline(cmd, " - %s-bank", get_stm32l4_bank_type_str(bank));
@@ -2674,7 +2775,7 @@ const struct flash_driver stm32l4x_flash = {
 	.erase = stm32l4_erase,
 	.protect = stm32l4_protect,
 	.write = stm32l4_write,
-	.read = default_flash_read,
+	.read = stm32l4_read,
 	.probe = stm32l4_probe,
 	.auto_probe = stm32l4_auto_probe,
 	.erase_check = default_flash_blank_check,

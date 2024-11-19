@@ -5035,6 +5035,33 @@ COMMAND_HANDLER(stlink_dap_backend_command)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(stlink_dap_interface_command)
+{
+	/* default values */
+	bool use_stlink_tcp = false;
+	uint16_t stlink_tcp_port = 7184;
+
+	LOG_INFO("DEPRECATED! use 'st-link backend' not 'st-link interface'");
+
+	if (CMD_ARGC == 0 || CMD_ARGC > 2)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	else if (strcmp(CMD_ARGV[0], "usb") == 0) {
+		if (CMD_ARGC > 1)
+			return ERROR_COMMAND_SYNTAX_ERROR;
+		/* else use_stlink_tcp = false (already the case ) */
+	} else if (strcmp(CMD_ARGV[0], "server") == 0) {
+		use_stlink_tcp = true;
+		if (CMD_ARGC == 2)
+			COMMAND_PARSE_NUMBER(u16, CMD_ARGV[1], stlink_tcp_port);
+	} else
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	stlink_dap_param.use_stlink_tcp = use_stlink_tcp;
+	stlink_dap_param.stlink_tcp_port = stlink_tcp_port;
+
+	return ERROR_OK;
+}
+
 #define BYTES_PER_LINE 16
 COMMAND_HANDLER(stlink_dap_cmd_command)
 {
@@ -5087,6 +5114,13 @@ static const struct command_registration stlink_dap_subcommand_handlers[] = {
 		.mode = COMMAND_CONFIG,
 		.help = "select which ST-Link backend to use",
 		.usage = "usb | tcp [port]",
+	},
+	{
+		.name = "interface",
+		.handler = &stlink_dap_interface_command,
+		.mode = COMMAND_CONFIG,
+		.help = "select which ST-Link backend to use",
+		.usage = "usb | server [port]",
 	},
 	{
 		.name = "cmd",

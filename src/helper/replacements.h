@@ -232,6 +232,7 @@ typedef uint16_t Elf32_Half;
 typedef uint32_t Elf32_Off;
 typedef uint32_t Elf32_Word;
 typedef uint32_t Elf32_Size;
+typedef uint16_t Elf32_Section;
 
 #define EI_NIDENT   16
 
@@ -262,6 +263,34 @@ typedef struct {
 #define EI_DATA			5		/* Data encoding byte index */
 #define ELFDATA2LSB		1		/* 2's complement, little endian */
 #define ELFDATA2MSB		2		/* 2's complement, big endian */
+
+typedef struct {
+	Elf32_Word sh_name;			/* Section name (string tbl index) */
+	Elf32_Word sh_type;			/* Section type */
+	Elf32_Word sh_flags;		/* Section flags */
+	Elf32_Addr sh_addr;			/* Section virtual addr at execution */
+	Elf32_Off sh_offset;		/* Section file offset */
+	Elf32_Word sh_size;			/* Section size in bytes */
+	Elf32_Word sh_link;			/* Link to another section */
+	Elf32_Word sh_info;			/* Additional section information */
+	Elf32_Word sh_addralign;	/* Section alignment */
+	Elf32_Word sh_entsize;		/* Entry size if section holds table */
+} Elf32_Shdr;
+
+#define SHT_SYMTAB	  2		/* Symbol table */
+
+#define SHF_WRITE	     BIT(0)	/* Writable */
+#define SHF_ALLOC	     BIT(1)	/* Occupies memory during execution */
+#define SHF_EXECINSTR	 BIT(2)	/* Executable */
+
+typedef struct {
+	Elf32_Word st_name;		/* Symbol name (string tbl index) */
+	Elf32_Addr st_value;	/* Symbol value */
+	Elf32_Word st_size;		/* Symbol size */
+	unsigned char st_info;	/* Symbol type and binding */
+	unsigned char st_other;	/* Symbol visibility */
+	Elf32_Section st_shndx;	/* Section index */
+} Elf32_Sym;
 
 typedef struct {
 	Elf32_Word p_type;		/* Segment type */

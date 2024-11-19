@@ -752,6 +752,9 @@ struct adiv5_ap *dap_get_config_ap(struct adiv5_dap *dap, uint64_t ap_num);
 /* Decrement AP refcount and release the AP when refcount reaches zero */
 int dap_put_ap(struct adiv5_ap *ap);
 
+/* Get DAP debug base address */
+int dap_get_debugbase(struct adiv5_ap *ap, target_addr_t *dbgbase, uint32_t *apid);
+
 /** Check if SWD multidrop configuration is valid */
 static inline bool dap_is_multidrop(struct adiv5_dap *dap)
 {

@@ -1244,6 +1244,29 @@ static int cortex_m_soft_reset_halt(struct target *target)
 	if (retval != ERROR_OK)
 		return retval;
 
+	/* Enter Debug state before setting 1 to AIRCR_VECTRESET */
+	retval = cortex_m_write_debug_halt_mask(target, C_HALT, 0);
+	if (retval != ERROR_OK)
+		return retval;
+
+	/* Ensure core halted */
+	while (timeout < 100) {
+		retval = cortex_m_read_dhcsr_atomic_sticky(target);
+		if (retval == ERROR_OK) {
+			if (cortex_m->dcb_dhcsr & S_HALT) {
+				LOG_TARGET_DEBUG(target, "core halted, DHCSR 0x%08" PRIx32, cortex_m->dcb_dhcsr);
+				cortex_m_poll(target);
+				return ERROR_OK;
+			} else {
+					LOG_TARGET_DEBUG(target, "waiting for system reset-halt, "
+										"DHCSR 0x%08" PRIx32 ", %d ms",
+										cortex_m->dcb_dhcsr, timeout);
+			}
+		}
+		timeout++;
+		alive_sleep(1);
+	}
+
 	/* Enter debug state on reset; restore DEMCR in endreset_event() */
 	retval = mem_ap_write_u32(armv7m->debug_ap, DCB_DEMCR,
 			TRCENA | VC_HARDERR | VC_BUSERR | VC_CORERESET);
@@ -1259,6 +1282,9 @@ static int cortex_m_soft_reset_halt(struct target *target)
 
 	/* registers are now invalid */
 	register_cache_invalidate(cortex_m->armv7m.arm.core_cache);
+
+	/* reset timeout to 0 */
+	timeout = 0;
 
 	while (timeout < 100) {
 		retval = cortex_m_read_dhcsr_atomic_sticky(target);
