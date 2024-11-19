@@ -129,7 +129,8 @@ m4_define([USB1_ADAPTERS],
 	[[armjtagew], [Olimex ARM-JTAG-EW Programmer], [ARMJTAGEW]],
 	[[rlink], [Raisonance RLink JTAG Programmer], [RLINK]],
 	[[usbprog], [USBProg JTAG Programmer], [USBPROG]],
-	[[esp_usb_jtag], [Espressif JTAG Programmer], [ESP_USB_JTAG]]])
+	[[esp_usb_jtag], [Espressif JTAG Programmer], [ESP_USB_JTAG]],
+  [[ch347], [Mode 3 of the CH347 devices], [CH347]]])
 
 m4_define([HIDAPI_ADAPTERS],
 	[[[cmsis_dap], [CMSIS-DAP Compliant Debugger], [CMSIS_DAP_HID]],
