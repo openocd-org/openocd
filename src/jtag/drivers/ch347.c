@@ -28,7 +28,7 @@
  *            _____________                                                *
  *           |             |____JTAG(TDO,TDI,TMS,TCK,TRST)                 *
  *      USB__|    CH347T   |                                               *
- *           |_____________|____SWD(SWCLK,SWDIO)                           *
+ *           |_____________|____SWD(SWCLK/TCK,SWDIO/TMS)                   *
  *           |             |                                               *
  *           |_____________|____UART(TXD1,RXD1,RTS1,CTS1,DTR1)             *
  *            ______|______                                                *
@@ -55,6 +55,7 @@
 #endif
 
 /* project specific includes */
+#include <jtag/adapter.h>
 #include <jtag/interface.h>
 #include <jtag/commands.h>
 #include <jtag/swd.h>
@@ -65,11 +66,11 @@
 #include "libusb_helper.h"
 
 /* system includes */
-#include <stdlib.h>
 #include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include <sys/time.h>
 #include <time.h>
-#include <unistd.h>
 
 #define KHZ(n)	((n)*UINT64_C(1000))
 #define MHZ(n)	((n)*UINT64_C(1000000))
@@ -173,25 +174,38 @@ static bool swd_mode;
 
 #include <jtag/drivers/libusb_helper.h>
 
-#define CH347_EPOUT 0x06u
-#define CH347_EPIN  0x86u
+#define CH347_EPOUT           0x06u
+#define CH347_EPIN            0x86u
+#define CH347_MPHSI_INTERFACE 2
 
 bool ugOpen;
 unsigned long ugIndex;
 struct libusb_device_handle *ch347_handle;
 
-static const uint16_t ch347_vids[] = {0x1a86, 0};
-static const uint16_t ch347_pids[] = {0x55dd, 0};
+uint32_t usb_write_timeout = 500;
+uint32_t usb_read_timeout = 500;
+static uint16_t ch347_vid = 0x1a86; /* WCH */
+static uint16_t ch347_pid = 0x55dd; /* CH347 */
 
 static uint32_t CH347OpenDevice(uint64_t iIndex)
 {
-	if (jtag_libusb_open(ch347_vids, ch347_pids,
-						 &ch347_handle, NULL) != ERROR_OK)
+	uint16_t vids[] = {ch347_vid, 0};
+	uint16_t pids[] = {ch347_pid, 0};
+
+	if (jtag_libusb_open(vids, pids, &ch347_handle, NULL))
 	{
+		LOG_ERROR("ch347 not found: vid=%04x, pid=%04x",
+				  ch347_vid, ch347_pid);
 		return false;
-	} else {
-		return true;
 	}
+
+	if (libusb_claim_interface(ch347_handle, CH347_MPHSI_INTERFACE))
+	{
+		LOG_ERROR("ch347 unable to claim interface");
+		return false;
+	}
+
+	return true;
 }
 
 static bool CH347WriteData(uint64_t iIndex, uint8_t *data, uint32_t *length)
@@ -201,7 +215,7 @@ static bool CH347WriteData(uint64_t iIndex, uint8_t *data, uint32_t *length)
 								 CH347_EPOUT,
 								 (char *)data,
 								 (int)(*length),
-								 100, &tmp);
+								 usb_write_timeout, &tmp);
 	*length = (uint32_t)tmp;
 
 	if (!ret)
@@ -217,7 +231,7 @@ static bool CH347ReadData(uint64_t iIndex, uint8_t *data, uint32_t *length)
 								CH347_EPIN,
 								(char *)data,
 								(int)(*length),
-								100, &tmp);
+								usb_read_timeout, &tmp);
 
 	*length = (uint32_t)tmp;
 
@@ -1025,7 +1039,7 @@ static int ch347_init(void)
 {
 	DevIsOpened = CH347OpenDevice(ugIndex);
 	ugIndex = DevIsOpened;
-	if (DevIsOpened == -1) {
+	if (DevIsOpened < 0) {
 		LOG_ERROR("CH347 open error");
 		return ERROR_FAIL;
 	}
@@ -1049,13 +1063,12 @@ static int ch347_init(void)
 
 		bit_copy_queue_init(&ch347.read_queue);
 
-		/* CH347SetTimeout(ugIndex, 500, 500); */
 
 		tap_set_state(TAP_RESET);
 	} else { /* swd init */
 		CH347SWD_INIT(ugIndex, 1);
 	}
-	return 0;
+	return ERROR_OK;
 }
 
 /**
@@ -1205,7 +1218,17 @@ static int ch347_trst_out(unsigned char status)
 
 COMMAND_HANDLER(ch347_handle_vid_pid_command)
 {
-	/* TODO */
+	if (CMD_ARGC > 2) {
+		LOG_WARNING("ignoring extra IDs in ch347_vid_pid "
+					"(maximum is 1 pair)");
+		CMD_ARGC = 2;
+	}
+	if (CMD_ARGC == 2) {
+		COMMAND_PARSE_NUMBER(u16, CMD_ARGV[0], ch347_vid);
+		COMMAND_PARSE_NUMBER(u16, CMD_ARGV[1], ch347_pid);
+	} else
+		LOG_WARNING("incomplete ch347_vid_pid configuration");
+
 	return ERROR_OK;
 }
 
@@ -1220,14 +1243,14 @@ COMMAND_HANDLER(ch347_trst)
 static const struct command_registration ch347_subcommand_handlers[] = {
 	{
 		.name = "vid_pid",
-		.handler = &ch347_handle_vid_pid_command,
+		.handler = ch347_handle_vid_pid_command,
 		.mode = COMMAND_CONFIG,
-		.help = "",
-		.usage = "",
+		.help = "the VID and PID of the adapter",
+		.usage = "vid pid",
 	},
 	{
 		.name = "jtag_ntrst_delay",
-		.handler = &ch347_trst,
+		.handler = ch347_trst,
 		.mode = COMMAND_ANY,
 		.help = "set the trst of the CH347 device that is used as JTAG",
 		.usage = "[milliseconds]",
@@ -1258,7 +1281,7 @@ static int ch347_swd_init(void)
 	ch347_swd_context.queued_retval = ERROR_OK;
 	/* 0XE8 + 2byte len + N byte cmds */
 	ch347_swd_context.send_len = CH347_CMD_HEADER;
-	/*  0XE8 + 2byte len + N byte ack + data */
+	/* 0XE8 + 2byte len + N byte ack + data */
 	ch347_swd_context.need_recv_len = CH347_CMD_HEADER;
 	ch347_swd_context.ch347_cmd_buf = malloc(128 * sizeof(CH347_SWD_IO));
 	if (ch347_swd_context.ch347_cmd_buf) {
@@ -1612,8 +1635,7 @@ skip_idle:
 		if (pswd_io->usbcmd == CH347_CMD_SWD_SEQ_W) {
 			if (recv_buf[recv_len++] != CH347_CMD_SWD_SEQ_W) {
 				ch347_swd_context.queued_retval = ERROR_FAIL;
-				LOG_ERROR("CH347 usb write/read failed %d",
-					  __LINE__);
+				LOG_ERROR("CH347 usb write/read failed %d", __LINE__);
 				goto skip;
 			}
 		} else { /* read/write Reg */
@@ -1629,8 +1651,7 @@ skip_idle:
 				if (ack != SWD_ACK_OK && check_ack) {
 					ch347_swd_context.queued_retval =
 						swd_ack_to_error_code(ack);
-					LOG_ERROR("CH347 ack != SWD_ACK_OK %d",
-						  __LINE__);
+					LOG_ERROR("CH347 ack != SWD_ACK_OK %d", __LINE__);
 					goto skip;
 				}
 				if (pswd_io->cmd & SWD_CMD_RNW) {
@@ -1639,8 +1660,7 @@ skip_idle:
 					parity = buf_get_u32(
 						&recv_buf[recv_len], 32, 1);
 					if (parity != parity_u32(data)) {
-						LOG_ERROR("CH347 SWD read data parity mismatch %d",
-							  __LINE__);
+						LOG_ERROR("CH347 SWD read data parity mismatch %d", __LINE__);
 						ch347_swd_context.queued_retval = ERROR_FAIL;
 						goto skip;
 					}
@@ -1672,7 +1692,7 @@ skip_idle:
 				if (ack != SWD_ACK_OK && check_ack) {
 					ch347_swd_context.queued_retval =
 						swd_ack_to_error_code(ack);
-					LOG_ERROR("CH347 SWD read data parity mismatch%d", __LINE__);
+					LOG_ERROR("CH347 SWD read data parity mismatch %d", __LINE__);
 					goto skip;
 				}
 				LOG_DEBUG_IO("%s%s %s %s reg %X = %08X\n" PRIx32,
