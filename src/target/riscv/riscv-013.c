@@ -3427,26 +3427,32 @@ bool is_mem_access_failed(mem_access_result_t status)
 {
 	#define MEM_ACCESS_RESULT_HANDLER(name, kind, msg) \
 		case name: return kind == MEM_ACCESS_RESULT_TYPE_FAILED;
+
 	switch (status) {
 		LIST_OF_MEM_ACCESS_RESULTS
 	}
+
 	#undef MEM_ACCESS_RESULT_HANDLER
+
 	LOG_ERROR("Unknown memory access status: %d", status);
-	assert(false);
-	return false;
+	assert(false && "Unknown memory access status");
+	return true;
 }
 
 bool is_mem_access_skipped(mem_access_result_t status)
 {
 	#define MEM_ACCESS_RESULT_HANDLER(name, kind, msg) \
 		case name: return kind == MEM_ACCESS_RESULT_TYPE_SKIPPED;
+
 	switch (status) {
 		LIST_OF_MEM_ACCESS_RESULTS
 	}
+
 	#undef MEM_ACCESS_RESULT_HANDLER
+
 	LOG_ERROR("Unknown memory access status: %d", status);
-	assert(false);
-	return false;
+	assert(false && "Unknown memory access status");
+	return true;
 }
 
 const char *mem_access_result_to_str(mem_access_result_t status)
