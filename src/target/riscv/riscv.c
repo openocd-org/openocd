@@ -648,12 +648,12 @@ static int find_first_trigger_by_id(struct target *target, int unique_id)
 
 static unsigned int count_trailing_ones(riscv_reg_t reg)
 {
-	assert(sizeof(riscv_reg_t) * 8 == 64);
-	for (unsigned int i = 0; i < 64; i++) {
+	const unsigned int riscv_reg_bits = sizeof(riscv_reg_t) * CHAR_BIT;
+	for (unsigned int i = 0; i < riscv_reg_bits; i++) {
 		if ((1 & (reg >> i)) == 0)
 			return i;
 	}
-	return 64;
+	return riscv_reg_bits;
 }
 
 static int set_trigger(struct target *target, unsigned int idx, riscv_reg_t tdata1, riscv_reg_t tdata2)
@@ -1586,21 +1586,75 @@ int riscv_remove_watchpoint(struct target *target,
 	return ERROR_OK;
 }
 
+typedef enum {
+	M6_HIT_ERROR,
+	M6_HIT_NOT_SUPPORTED,
+	M6_NOT_HIT,
+	M6_HIT_BEFORE,
+	M6_HIT_AFTER,
+	M6_HIT_IMM_AFTER
+} mctrl6hitstatus;
+
+static mctrl6hitstatus check_mcontrol6_hit_status(struct target *target,
+		riscv_reg_t tdata1, uint64_t hit_mask)
+{
+	const uint32_t hit0 = get_field(tdata1, CSR_MCONTROL6_HIT0);
+	const uint32_t hit1 = get_field(tdata1, CSR_MCONTROL6_HIT1);
+	const uint32_t hit_info = (hit1 << 1) | hit0;
+	if (hit_info == CSR_MCONTROL6_HIT0_BEFORE)
+		return M6_HIT_BEFORE;
+
+	if (hit_info == CSR_MCONTROL6_HIT0_AFTER)
+		return M6_HIT_AFTER;
+
+	if (hit_info == CSR_MCONTROL6_HIT0_IMMEDIATELY_AFTER)
+		return M6_HIT_IMM_AFTER;
+
+	if (hit_info == CSR_MCONTROL6_HIT0_FALSE) {
+		/* hit[1..0] equals 0, which can mean one of the following:
+		 * - "hit" bits are supported and this trigger has not fired
+		 * - "hit" bits are not supported on this trigger
+		 * To distinguish these two cases, try writing all non-zero bit
+		 * patterns to hit[1..0] to determine if the "hit" bits are supported:
+		 */
+		riscv_reg_t tdata1_tests[] = {
+			set_field(tdata1, CSR_MCONTROL6_HIT0, 1),
+			set_field(tdata1, CSR_MCONTROL6_HIT1, 1),
+			set_field(tdata1, CSR_MCONTROL6_HIT0, 1) | field_value(CSR_MCONTROL6_HIT1, 1)
+		};
+		riscv_reg_t tdata1_test_rb;
+		for (uint64_t i = 0; i < ARRAY_SIZE(tdata1_tests); ++i) {
+			if (riscv_reg_set(target, GDB_REGNO_TDATA1, tdata1_tests[i]) != ERROR_OK)
+				return M6_HIT_ERROR;
+			if (riscv_reg_get(target, &tdata1_test_rb, GDB_REGNO_TDATA1) != ERROR_OK)
+				return M6_HIT_ERROR;
+			if (tdata1_test_rb == tdata1_tests[i]) {
+				if (riscv_reg_set(target, GDB_REGNO_TDATA1, tdata1_test_rb & ~hit_mask) != ERROR_OK)
+					return M6_HIT_ERROR;
+				return M6_NOT_HIT;
+			}
+		}
+	}
+	return M6_HIT_NOT_SUPPORTED;
+}
+
 /**
  * Look at the trigger hit bits to find out which trigger is the reason we're
  * halted.  Sets *unique_id to the unique ID of that trigger. If *unique_id is
  * RISCV_TRIGGER_HIT_NOT_FOUND, no match was found.
  */
 
-static int riscv_trigger_detect_hit_bits(struct target *target, int64_t *unique_id)
+static int riscv_trigger_detect_hit_bits(struct target *target, int64_t *unique_id,
+		bool *need_single_step)
 {
 	/* FIXME: this function assumes that we have only one trigger that can
 	 * have hit bit set. Debug spec allows hit bit to bit set if a trigger has
 	 * matched but did not fire. Such targets will receive erroneous results.
 	 */
 
-	// FIXME: Add hit bits support detection and caching
 	RISCV_INFO(r);
+	assert(need_single_step);
+	*need_single_step = false;
 
 	riscv_reg_t tselect;
 	if (riscv_reg_get(target, &tselect, GDB_REGNO_TSELECT) != ERROR_OK)
@@ -1626,9 +1680,21 @@ static int riscv_trigger_detect_hit_bits(struct target *target, int64_t *unique_
 				break;
 			case CSR_TDATA1_TYPE_MCONTROL:
 				hit_mask = CSR_MCONTROL_HIT;
+				*need_single_step = true;
 				break;
 			case CSR_TDATA1_TYPE_MCONTROL6:
 				hit_mask = CSR_MCONTROL6_HIT0 | CSR_MCONTROL6_HIT1;
+				if (r->tinfo_version == CSR_TINFO_VERSION_0) {
+					*need_single_step = true;
+				} else if (r->tinfo_version == RISCV_TINFO_VERSION_UNKNOWN
+					|| r->tinfo_version == CSR_TINFO_VERSION_1) {
+					mctrl6hitstatus hits_status = check_mcontrol6_hit_status(target,
+								tdata1, hit_mask);
+					if (hits_status == M6_HIT_ERROR)
+						return ERROR_FAIL;
+					if (hits_status == M6_HIT_BEFORE || hits_status == M6_HIT_NOT_SUPPORTED)
+						*need_single_step = true;
+				}
 				break;
 			case CSR_TDATA1_TYPE_ICOUNT:
 				hit_mask = CSR_ICOUNT_HIT;
@@ -1647,8 +1713,9 @@ static int riscv_trigger_detect_hit_bits(struct target *target, int64_t *unique_
 		/* FIXME: this logic needs to be changed to ignore triggers that are not
 		 * the last one in the chain. */
 		if (tdata1 & hit_mask) {
-			LOG_TARGET_DEBUG(target, "Trigger %u (unique_id=%" PRIi64 ") has hit bit set.",
-				i, r->trigger_unique_id[i]);
+			LOG_TARGET_DEBUG(target, "Trigger %u (unique_id=%" PRIi64
+			") has hit bit set. (need_single_step=%s)",
+				i, r->trigger_unique_id[i], (*need_single_step) ? "yes" : "no");
 			if (riscv_reg_set(target, GDB_REGNO_TDATA1, tdata1 & ~hit_mask) != ERROR_OK)
 				return ERROR_FAIL;
 
@@ -2310,13 +2377,15 @@ static int set_debug_reason(struct target *target, enum riscv_halt_reason halt_r
 {
 	RISCV_INFO(r);
 	r->trigger_hit = -1;
+	r->need_single_step = false;
 	switch (halt_reason) {
 		case RISCV_HALT_EBREAK:
 			target->debug_reason = DBG_REASON_BREAKPOINT;
 			break;
 		case RISCV_HALT_TRIGGER:
 			target->debug_reason = DBG_REASON_UNDEFINED;
-			if (riscv_trigger_detect_hit_bits(target, &r->trigger_hit) != ERROR_OK)
+			if (riscv_trigger_detect_hit_bits(target, &r->trigger_hit,
+					&r->need_single_step) != ERROR_OK)
 				return ERROR_FAIL;
 			// FIXME: handle multiple hit bits
 			if (r->trigger_hit != RISCV_TRIGGER_HIT_NOT_FOUND) {
@@ -2578,10 +2647,19 @@ static int resume_prep(struct target *target, int current,
 	if (handle_breakpoints) {
 		/* To be able to run off a trigger, we perform a step operation and then
 		 * resume. If handle_breakpoints is true then step temporarily disables
-		 * pending breakpoints so we can safely perform the step. */
-		if (old_or_new_riscv_step_impl(target, current, address, handle_breakpoints,
-				false /* callbacks are not called */) != ERROR_OK)
-			return ERROR_FAIL;
+		 * pending breakpoints so we can safely perform the step.
+		 *
+		 * Two cases where single step is needed before resuming:
+		 * 1. ebreak used in software breakpoint;
+		 * 2. a trigger that is taken just before the instruction that triggered it is retired.
+		 */
+		if (target->debug_reason == DBG_REASON_BREAKPOINT
+		    || (target->debug_reason == DBG_REASON_WATCHPOINT
+			&& r->need_single_step)) {
+			if (old_or_new_riscv_step_impl(target, current, address, handle_breakpoints,
+					false /* callbacks are not called */) != ERROR_OK)
+				return ERROR_FAIL;
+		}
 	}
 
 	if (r->get_hart_state) {
@@ -5846,6 +5924,19 @@ int riscv_enumerate_triggers(struct target *target)
 		free(r->reserved_triggers);
 		r->reserved_triggers = NULL;
 		return ERROR_OK;
+	}
+
+	/* Obtaining tinfo.version value once.
+	 * No need to enumerate per-trigger.
+	 * See https://github.com/riscv/riscv-debug-spec/pull/1081.
+	 */
+	riscv_reg_t tinfo;
+	if (riscv_reg_get(target, &tinfo, GDB_REGNO_TINFO) == ERROR_OK) {
+		r->tinfo_version = get_field(tinfo, CSR_TINFO_VERSION);
+		LOG_TARGET_DEBUG(target, "Trigger tinfo.version = %d.", r->tinfo_version);
+	} else {
+		r->tinfo_version = RISCV_TINFO_VERSION_UNKNOWN;
+		LOG_TARGET_DEBUG(target, "Trigger tinfo.version is unknown.");
 	}
 
 	unsigned int t = 0;

@@ -123,6 +123,7 @@ typedef struct {
 } range_list_t;
 
 #define DTM_DTMCS_VERSION_UNKNOWN ((unsigned int)-1)
+#define RISCV_TINFO_VERSION_UNKNOWN (-1)
 
 struct reg_name_table {
 	unsigned int num_entries;
@@ -162,6 +163,17 @@ struct riscv_info {
 
 	/* record the tinfo of each trigger */
 	unsigned int trigger_tinfo[RISCV_MAX_TRIGGERS];
+
+	/* Version of the implemented Sdtrig extension */
+	int tinfo_version;
+
+	/* Record if single-step is needed prior to resuming
+	 * from a software breakpoint or trigger.
+	 * Single-step is needed if the instruction that
+	 * caused the halt was not retired. That is,
+	 * when we halted "before" that instruction.
+	 */
+	bool need_single_step;
 
 	/* For each physical trigger contains:
 	 * -1: the hwbp is available
