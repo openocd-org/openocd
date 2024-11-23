@@ -727,6 +727,124 @@ COMMAND_HANDLER(handle_flash_md_command)
 	return retval;
 }
 
+COMMAND_HANDLER(handle_flash_read_memory_command)
+{
+	/*
+	 * CMD_ARGV[0] = memory address
+	 * CMD_ARGV[1] = desired element width in bits
+	 * CMD_ARGV[2] = number of elements to read
+	 */
+
+	if (CMD_ARGC != 3)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	/* Arg 1: Memory address. */
+	target_addr_t addr;
+	COMMAND_PARSE_NUMBER(u64, CMD_ARGV[0], addr);
+
+	/* Arg 2: Bit width of one element. */
+	unsigned int width_bits;
+	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[1], width_bits);
+
+	/* Arg 3: Number of elements to read. */
+	unsigned int count;
+	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[2], count);
+
+	switch (width_bits) {
+	case 8:
+	case 16:
+	case 32:
+	case 64:
+		break;
+	default:
+		command_print(CMD, "invalid width, must be 8, 16, 32 or 64");
+		return ERROR_COMMAND_ARGUMENT_INVALID;
+	}
+
+	if (count > 65536) {
+		command_print(CMD, "too large read request, exceeds 64K elements");
+		return ERROR_COMMAND_ARGUMENT_INVALID;
+	}
+
+	const unsigned int width = width_bits / 8;
+	/* -1 is needed to handle cases when (addr + count * width) results in zero
+	 * due to overflow.
+	 */
+	if ((addr + count * width - 1) < addr) {
+		command_print(CMD, "memory region wraps over address zero");
+		return ERROR_COMMAND_ARGUMENT_INVALID;
+	}
+
+	struct target *target = get_current_target(CMD_CTX);
+	struct flash_bank *bank;
+	int retval = get_flash_bank_by_addr(target, addr, true, &bank);
+	if (retval != ERROR_OK)
+		return retval;
+
+	uint32_t offset = addr - bank->base;
+	uint32_t sizebytes = count * width_bits;
+	if (offset + sizebytes > bank->size) {
+		command_print(CMD, "cannot cross flash bank borders");
+		return ERROR_FAIL;
+	}
+
+	const size_t buffer_size = 4096;
+	uint8_t *buffer = malloc(buffer_size);
+
+	if (!buffer) {
+		command_print(CMD, "failed to allocate memory");
+		return ERROR_FAIL;
+	}
+
+	char *separator = "";
+	while (count > 0) {
+		const unsigned int max_chunk_len = buffer_size / width;
+		const size_t chunk_len = MIN(count, max_chunk_len);
+
+		retval = flash_driver_read(bank, buffer, offset, chunk_len * width);
+
+		if (retval != ERROR_OK) {
+			LOG_DEBUG("read at " TARGET_ADDR_FMT " with width=%u and count=%zu failed",
+				addr, width_bits, chunk_len);
+			/*
+			 * FIXME: we append the errmsg to the list of value already read.
+			 * Add a way to flush and replace old output, but LOG_DEBUG() it
+			 */
+			command_print(CMD, "failed to read memory");
+			free(buffer);
+			return retval;
+		}
+
+		for (size_t i = 0; i < chunk_len ; i++) {
+			uint64_t v = 0;
+
+			switch (width) {
+			case 8:
+				v = target_buffer_get_u64(target, &buffer[i * width]);
+				break;
+			case 4:
+				v = target_buffer_get_u32(target, &buffer[i * width]);
+				break;
+			case 2:
+				v = target_buffer_get_u16(target, &buffer[i * width]);
+				break;
+			case 1:
+				v = buffer[i];
+				break;
+			}
+
+			command_print_sameline(CMD, "%s0x%" PRIx64, separator, v);
+			separator = " ";
+		}
+
+		count -= chunk_len;
+		offset += chunk_len * width;
+	}
+
+	free(buffer);
+
+	return ERROR_OK;
+}
 
 COMMAND_HANDLER(handle_flash_write_bank_command)
 {
@@ -1169,6 +1287,13 @@ static const struct command_registration flash_exec_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.usage = "address [count]",
 		.help = "Display words from flash.",
+	},
+	{
+		.name = "read_memory",
+		.mode = COMMAND_EXEC,
+		.handler = handle_flash_read_memory_command,
+		.help = "Read Tcl list of 8/16/32/64 bit numbers from flash memory",
+		.usage = "address width count",
 	},
 	{
 		.name = "write_bank",

@@ -5870,6 +5870,24 @@ The flash bank to use is inferred from the @var{address} of
 each block, and the specified length must stay within that bank.
 @end deffn
 
+@deffn {Command} {flash read_memory} address width count
+This function provides an efficient way to read flash memory from a Tcl script.
+A Tcl list containing the requested memory elements is returned by this function.
+
+@itemize
+@item @var{address} ... flash memory address
+@item @var{width} ... memory access bit size, can be 8, 16, 32 or 64
+@item @var{count} ... number of elements to read
+@end itemize
+
+For example, the following command reads two 32 bit words from the flash
+memory at address 0x08000000:
+
+@example
+flash read_memory 0x08000000 32 2
+@end example
+@end deffn
+
 @deffn {Command} {flash write_bank} num filename [offset]
 Write the binary @file{filename} to flash bank @var{num},
 starting at @var{offset} bytes from the beginning of the bank. If @var{offset}
