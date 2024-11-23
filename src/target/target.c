@@ -4448,7 +4448,7 @@ COMMAND_HANDLER(handle_target_read_memory)
 	}
 
 	if (count > 65536) {
-		command_print(CMD, "read_memory: too large read request, exceeds 64K elements");
+		command_print(CMD, "too large read request, exceeds 64K elements");
 		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
@@ -4457,7 +4457,7 @@ COMMAND_HANDLER(handle_target_read_memory)
 	 * due to overflow.
 	 */
 	if ((addr + count * width - 1) < addr) {
-		command_print(CMD, "read_memory: memory region wraps over address zero");
+		command_print(CMD, "memory region wraps over address zero");
 		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
@@ -4484,13 +4484,13 @@ COMMAND_HANDLER(handle_target_read_memory)
 			retval = target_read_memory(target, addr, width, chunk_len, buffer);
 
 		if (retval != ERROR_OK) {
-			LOG_DEBUG("read_memory: read at " TARGET_ADDR_FMT " with width=%u and count=%zu failed",
+			LOG_DEBUG("read at " TARGET_ADDR_FMT " with width=%u and count=%zu failed",
 				addr, width_bits, chunk_len);
 			/*
 			 * FIXME: we append the errmsg to the list of value already read.
 			 * Add a way to flush and replace old output, but LOG_DEBUG() it
 			 */
-			command_print(CMD, "read_memory: failed to read memory");
+			command_print(CMD, "failed to read memory");
 			free(buffer);
 			return retval;
 		}
