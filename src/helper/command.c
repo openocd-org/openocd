@@ -673,7 +673,7 @@ COMMAND_HANDLER(handle_echo)
 	}
 
 	if (CMD_ARGC != 1)
-		return ERROR_FAIL;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	LOG_USER("%s", CMD_ARGV[0]);
 	return ERROR_OK;
