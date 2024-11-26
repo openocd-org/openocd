@@ -380,10 +380,9 @@ static int mqx_update_threads(
 		rtos->thread_details[i].threadid = task_id;
 		rtos->thread_details[i].exists = true;
 		/* set thread name */
-		rtos->thread_details[i].thread_name_str = malloc(strlen((void *)task_name) + 1);
+		rtos->thread_details[i].thread_name_str = strdup((char *)task_name);
 		if (!rtos->thread_details[i].thread_name_str)
 			return ERROR_FAIL;
-		strcpy(rtos->thread_details[i].thread_name_str, (void *)task_name);
 		/* set thread extra info
 		 * - task state
 		 * - task address
