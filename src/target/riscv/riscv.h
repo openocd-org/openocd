@@ -302,8 +302,7 @@ struct riscv_info {
 						 riscv_sample_config_t *config,
 						 int64_t until_ms);
 
-	int (*read_memory)(struct target *target, const riscv_mem_access_args_t args);
-	int (*write_memory)(struct target *target, const riscv_mem_access_args_t args);
+	int (*access_memory)(struct target *target, const riscv_mem_access_args_t args);
 
 	unsigned int (*data_bits)(struct target *target);
 

@@ -2325,6 +2325,15 @@ error:
 	return ERROR_FAIL;
 }
 
+static int access_memory(struct target *target, const riscv_mem_access_args_t args)
+{
+	assert(riscv_mem_access_is_valid(args));
+	const bool is_write = riscv_mem_access_is_write(args);
+	if (is_write)
+		return write_memory(target, args);
+	return read_memory(target, args);
+}
+
 static int arch_state(struct target *target)
 {
 	return ERROR_OK;
@@ -2416,9 +2425,7 @@ static int init_target(struct command_context *cmd_ctx,
 {
 	LOG_DEBUG("init");
 	RISCV_INFO(generic_info);
-	/* TODO: replace read and write with single access function*/
-	generic_info->read_memory = read_memory;
-	generic_info->write_memory = write_memory;
+	generic_info->access_memory = access_memory;
 	generic_info->authdata_read = &riscv011_authdata_read;
 	generic_info->authdata_write = &riscv011_authdata_write;
 	generic_info->print_info = &riscv011_print_info;
