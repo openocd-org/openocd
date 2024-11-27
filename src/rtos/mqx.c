@@ -319,7 +319,7 @@ static int mqx_update_threads(
 		i < (uint32_t)rtos->thread_count;
 		i++
 	) {
-		uint8_t task_name[MQX_THREAD_NAME_LENGTH + 1];
+		char task_name[MQX_THREAD_NAME_LENGTH + 1];
 		uint32_t task_addr = 0, task_template = 0, task_state = 0;
 		uint32_t task_name_addr = 0, task_id = 0, task_errno = 0;
 		uint32_t state_index = 0;
@@ -380,7 +380,7 @@ static int mqx_update_threads(
 		rtos->thread_details[i].threadid = task_id;
 		rtos->thread_details[i].exists = true;
 		/* set thread name */
-		rtos->thread_details[i].thread_name_str = strdup((char *)task_name);
+		rtos->thread_details[i].thread_name_str = strdup(task_name);
 		if (!rtos->thread_details[i].thread_name_str)
 			return ERROR_FAIL;
 		/* set thread extra info
