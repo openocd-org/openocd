@@ -4164,12 +4164,16 @@ static int parse_reg_ranges_impl(struct list_head *ranges, char *args,
 			}
 
 			const char * const reg_name_in = equals + 1;
-			*name_buffer = calloc(1, strlen(reg_name_in) + strlen(reg_type) + 2);
+			const size_t reg_type_len = strlen(reg_type);
+			/* format is: <reg_type>_<reg_name_in>\0 */
+			*name_buffer = calloc(1, strlen(reg_name_in) + reg_type_len + 2);
 			name = *name_buffer;
 			if (!name) {
 				LOG_ERROR("Out of memory");
 				return ERROR_FAIL;
 			}
+			strcpy(name, reg_type);
+			name[reg_type_len] = '_';
 
 			unsigned int scanned_chars;
 			char *scan_dst = name + strlen(reg_type) + 1;
