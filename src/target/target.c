@@ -30,6 +30,7 @@
 #include "config.h"
 #endif
 
+#include <stdlib.h>
 #include <helper/align.h>
 #include <helper/list.h>
 #include <helper/nvp.h>
@@ -4155,8 +4156,8 @@ static void write_string(FILE *f, char *s)
 typedef unsigned char UNIT[2];  /* unit of profiling */
 
 /* Dump a gmon.out histogram file. */
-static void write_gmon(const uint32_t *samples, uint32_t sample_num, const char *filename, bool with_range,
-			uint32_t start_address, uint32_t end_address, struct target *target, uint32_t duration_ms)
+static void write_gmon(const uint32_t *samples, uint32_t sample_num, const char *filename,
+			struct target *target, uint32_t duration_ms)
 {
 	uint32_t i;
 	FILE *f = fopen(filename, "wb");
@@ -4172,35 +4173,10 @@ static void write_gmon(const uint32_t *samples, uint32_t sample_num, const char 
 	write_data(f, &zero, 1);
 
 	/* figure out bucket size */
-	uint32_t min;
-	uint32_t max;
-	if (with_range) {
-		min = start_address;
-		max = end_address;
-	} else {
-		min = samples[0];
-		max = samples[0];
-		for (i = 0; i < sample_num; i++) {
-			if (min > samples[i])
-				min = samples[i];
-			if (max < samples[i])
-				max = samples[i];
-		}
-
-		/* max should be (largest sample + 1)
-		 * Refer to binutils/gprof/hist.c (find_histogram_for_pc) */
-		if (max < UINT32_MAX)
-			max++;
-
-		/* gprof requires (max - min) >= 2 */
-		while ((max - min) < 2) {
-			if (max < UINT32_MAX)
-				max++;
-			else
-				min--;
-		}
-	}
-
+	uint32_t min = samples[0];
+	/* max should be (largest sample + 1)
+	 * Refer to binutils/gprof/hist.c (find_histogram_for_pc) */
+	uint32_t max = samples[sample_num - 1] + 1;
 	uint32_t address_space = max - min;
 
 	/* FIXME: What is the reasonable number of buckets?
@@ -4260,6 +4236,14 @@ static void write_gmon(const uint32_t *samples, uint32_t sample_num, const char 
 	fclose(f);
 }
 
+// comparison function for qsort(). Returns -1, 0 or +1
+static int compare_pc32(const void *p1, const void *p2)
+{
+	uint32_t lhs = *(const uint32_t *)p1;
+	uint32_t rhs = *(const uint32_t *)p2;
+	return (lhs > rhs) - (lhs < rhs);
+}
+
 /* profiling samples the CPU PC as quickly as OpenOCD is able,
  * which will be used as a random sampling of PC */
 COMMAND_HANDLER(handle_profile_command)
@@ -4308,7 +4292,7 @@ COMMAND_HANDLER(handle_profile_command)
 		free(samples);
 		return retval;
 	}
-	uint32_t duration_ms = timeval_ms() - timestart_ms;
+	uint64_t duration_ms = timeval_ms() - timestart_ms;
 
 	assert(num_of_samples <= MAX_PROFILE_SAMPLE_NUM);
 
@@ -4342,9 +4326,27 @@ COMMAND_HANDLER(handle_profile_command)
 		return retval;
 	}
 
-	write_gmon(samples, num_of_samples, CMD_ARGV[1],
-		   with_range, start_address, end_address, target, duration_ms);
-	command_print(CMD, "Wrote %s", CMD_ARGV[1]);
+	if (with_range) {
+		uint32_t num_filtered_samples = 0;
+		for (uint32_t in = 0; in < num_of_samples; ++in) {
+			uint32_t sample = samples[in];
+			if (sample >= start_address && sample < end_address)
+				samples[num_filtered_samples++] = sample;
+		}
+		duration_ms = (duration_ms * num_filtered_samples + num_of_samples / 2) / num_of_samples;
+		if (duration_ms < 1)
+			duration_ms = 0;
+		num_of_samples = num_filtered_samples;
+	}
+
+	if (num_of_samples) {
+		qsort(samples, num_of_samples, sizeof(samples[0]), compare_pc32);
+
+		write_gmon(samples, num_of_samples, CMD_ARGV[1], target, duration_ms);
+		command_print(CMD, "Wrote %s", CMD_ARGV[1]);
+	} else {
+		command_print(CMD, "Wrote no samples");
+	}
 
 	free(samples);
 	return retval;
