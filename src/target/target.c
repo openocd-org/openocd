@@ -4155,7 +4155,7 @@ static void write_string(FILE *f, char *s)
 typedef unsigned char UNIT[2];  /* unit of profiling */
 
 /* Dump a gmon.out histogram file. */
-static void write_gmon(uint32_t *samples, uint32_t sample_num, const char *filename, bool with_range,
+static void write_gmon(const uint32_t *samples, uint32_t sample_num, const char *filename, bool with_range,
 			uint32_t start_address, uint32_t end_address, struct target *target, uint32_t duration_ms)
 {
 	uint32_t i;
