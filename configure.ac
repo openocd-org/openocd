@@ -415,8 +415,8 @@ AS_CASE(["${host_cpu}"],
 
 can_build_buspirate=yes
 
-AS_CASE([$host],
-  [*-cygwin*], [
+AS_CASE([$host_os],
+  [cygwin*], [
     is_win32=yes
     parport_use_ppdev=no
 
@@ -436,7 +436,7 @@ AS_CASE([$host],
       ])
     ])
   ],
-  [*-mingw* | *-msys*], [
+  [mingw* | msys*], [
     is_mingw=yes
     is_win32=yes
     parport_use_ppdev=no
@@ -455,7 +455,7 @@ AS_CASE([$host],
 
     AC_SUBST([HOST_CPPFLAGS], ["-D__USE_MINGW_ANSI_STDIO -DFD_SETSIZE=128"])
   ],
-  [*darwin*], [
+  [darwin*], [
     is_darwin=yes
 
     AS_IF([test "x$parport_use_giveio" = "xyes"], [
