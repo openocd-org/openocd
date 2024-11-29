@@ -1209,14 +1209,8 @@ static int scratch_read64(struct target *target, scratch_mem_t *scratch,
 				};
 				if (read_memory(target, args) != ERROR_OK)
 					return ERROR_FAIL;
-				*value = buffer[0] |
-					(((uint64_t) buffer[1]) << 8) |
-					(((uint64_t) buffer[2]) << 16) |
-					(((uint64_t) buffer[3]) << 24) |
-					(((uint64_t) buffer[4]) << 32) |
-					(((uint64_t) buffer[5]) << 40) |
-					(((uint64_t) buffer[6]) << 48) |
-					(((uint64_t) buffer[7]) << 56);
+				*value = buf_get_u64(buffer,
+						/* first = */ 0, /* bit_num = */ 64);
 			}
 			break;
 	}
@@ -4536,27 +4530,21 @@ static int write_memory_bus_v1(struct target *target, const riscv_mem_access_arg
 
 			uint32_t sbvalue[4] = { 0 };
 			if (args.size > 12) {
-				sbvalue[3] = ((uint32_t)p[12]) |
-						(((uint32_t)p[13]) << 8) |
-						(((uint32_t)p[14]) << 16) |
-						(((uint32_t)p[15]) << 24);
+				sbvalue[3] = buf_get_u32(&p[12],
+						/* first = */ 0, /* bit_num = */ 32);
 				riscv_batch_add_dm_write(batch, DM_SBDATA3, sbvalue[3], false,
 						RISCV_DELAY_BASE);
 			}
 
 			if (args.size > 8) {
-				sbvalue[2] = ((uint32_t)p[8]) |
-						(((uint32_t)p[9]) << 8) |
-						(((uint32_t)p[10]) << 16) |
-						(((uint32_t)p[11]) << 24);
+				sbvalue[2] = buf_get_u32(&p[8],
+						/* first = */ 0, /* bit_num = */ 32);
 				riscv_batch_add_dm_write(batch, DM_SBDATA2, sbvalue[2], false,
 						RISCV_DELAY_BASE);
 			}
 			if (args.size > 4) {
-				sbvalue[1] = ((uint32_t)p[4]) |
-						(((uint32_t)p[5]) << 8) |
-						(((uint32_t)p[6]) << 16) |
-						(((uint32_t)p[7]) << 24);
+				sbvalue[1] = buf_get_u32(&p[4],
+						/* first = */ 0, /* bit_num = */ 32);
 				riscv_batch_add_dm_write(batch, DM_SBDATA1, sbvalue[1], false,
 						RISCV_DELAY_BASE);
 			}
