@@ -4159,7 +4159,6 @@ typedef unsigned char UNIT[2];  /* unit of profiling */
 static void write_gmon(const uint32_t *samples, uint32_t sample_num, const char *filename,
 			struct target *target, uint32_t duration_ms)
 {
-	uint32_t i;
 	FILE *f = fopen(filename, "wb");
 	if (!f)
 		return;
@@ -4185,24 +4184,6 @@ static void write_gmon(const uint32_t *samples, uint32_t sample_num, const char 
 	uint32_t num_buckets = address_space / sizeof(UNIT);
 	if (num_buckets > max_buckets)
 		num_buckets = max_buckets;
-	int *buckets = malloc(sizeof(int) * num_buckets);
-	if (!buckets) {
-		fclose(f);
-		return;
-	}
-	memset(buckets, 0, sizeof(int) * num_buckets);
-	for (i = 0; i < sample_num; i++) {
-		uint32_t address = samples[i];
-
-		if ((address < min) || (max <= address))
-			continue;
-
-		long long a = address - min;
-		long long b = num_buckets;
-		long long c = address_space;
-		int index_t = (a * b) / c; /* danger!!!! int32 overflows */
-		buckets[index_t]++;
-	}
 
 	/* append binary memory gmon.out &profile_hist_hdr ((char*)&profile_hist_hdr + sizeof(struct gmon_hist_hdr)) */
 	write_long(f, min, target);			/* low_pc */
@@ -4211,27 +4192,29 @@ static void write_gmon(const uint32_t *samples, uint32_t sample_num, const char 
 	float sample_rate = sample_num / (duration_ms / 1000.0);
 	write_long(f, sample_rate, target);
 	write_string(f, "seconds");
-	for (i = 0; i < (15-strlen("seconds")); i++)
+	for (size_t i = strlen("seconds"); i < 15; i++)
 		write_data(f, &zero, 1);
 	write_string(f, "s");
 
 	/*append binary memory gmon.out profile_hist_data (profile_hist_data + profile_hist_hdr.hist_size) */
-
-	char *data = malloc(2 * num_buckets);
-	if (data) {
-		for (i = 0; i < num_buckets; i++) {
-			int val;
-			val = buckets[i];
-			if (val > 65535)
-				val = 65535;
-			data[i * 2] = val&0xff;
-			data[i * 2 + 1] = (val >> 8) & 0xff;
+	bool saturated_once = false;
+	for (uint32_t i = 0, bidx = 0; bidx < num_buckets; ++bidx) {
+		long long bmax = min + (long long)address_space * (bidx + 1) / num_buckets;
+		uint32_t val = i;
+		while (i < sample_num && samples[i] < bmax)
+			++i;
+		val = i - val;
+		if (val > UINT16_MAX) {
+			val = UINT16_MAX;
+			if (!saturated_once)
+				LOG_WARNING("profiler bucket saturated, will read as 65535");
+			saturated_once = true;
 		}
-		free(buckets);
-		write_data(f, data, num_buckets * 2);
-		free(data);
-	} else
-		free(buckets);
+
+		uint8_t data[2];
+		h_u16_to_le(data, val);
+		write_data(f, data, 2);
+	}
 
 	fclose(f);
 }
