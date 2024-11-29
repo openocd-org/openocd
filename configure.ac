@@ -290,11 +290,10 @@ AC_ARG_ADAPTERS([
   LIBFTDI_USB1_ADAPTERS,
   LIBGPIOD_ADAPTERS,
   SERIAL_PORT_ADAPTERS,
+  DUMMY_ADAPTER,
   PCIE_ADAPTERS,
   LIBJAYLINK_ADAPTERS
   ],[auto])
-
-AC_ARG_ADAPTERS([DUMMY_ADAPTER],[no])
 
 AC_ARG_ENABLE([parport],
   AS_HELP_STRING([--enable-parport], [Enable building the pc parallel port driver]),
