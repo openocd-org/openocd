@@ -835,7 +835,9 @@ AS_IF([test "x$gcc_warnings" = "xyes"], [
 AC_SUBST(EXTRA_DIST_NEWS, ["$(echo $srcdir/NEWS-*)"])
 
 AC_CONFIG_FILES([
-  Makefile
+  Makefile \
+  testing/Makefile \
+  testing/tcl_commands/Makefile
 ])
 AC_OUTPUT
 
