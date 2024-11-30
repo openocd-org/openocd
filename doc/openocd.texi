@@ -6608,6 +6608,50 @@ the flash.
 @end deffn
 @end deffn
 
+@deffn {Flash Driver} {artery}
+@cindex artery
+This driver supports Artery Technology devices from the following series:
+
+@itemize
+@item AT32F403A / AT32F407
+@item AT32F413
+@item AT32F415
+@item AT32F421
+@item AT32F423
+@item AT32F425
+@item AT32F435 / AT32F437
+@item AT32WB415
+@end itemize
+
+Devices with dual-bank flash memory are currently not supported.
+Also, access to user data in the user system data (USD) area is not supported.
+
+The driver supports flash write protection and flash access protection (FAP).
+For the FAP, only the low-level protection is implemented.
+
+@b{Note:} a change of the flash write protection or FAP requires a device reset for the changes to take effect.
+
+The @var{artery} driver provides the following additional commands:
+
+@deffn {Command} {artery fap enable} <bank>
+Enable low-level flash access protection (FAP).
+@end deffn
+
+@deffn {Command} {artery fap disable} <bank>
+Disable flash access protection (FAP).
+@end deffn
+
+@deffn {Command} {artery fap state} <bank>
+Get the flash access protection (FAP) state.
+The state is a boolean value that indicates whether the FAP is configured in level 'low' or higher.
+@end deffn
+
+@deffn {Command} {artery mass_erase} <bank>
+Erase entire bank.
+@end deffn
+
+@end deffn
+
 @deffn {Flash Driver} {at91samd}
 @cindex at91samd
 All members of the ATSAM D2x, D1x, D0x, ATSAMR, ATSAML and ATSAMC microcontroller

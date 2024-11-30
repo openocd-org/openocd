@@ -12,6 +12,7 @@ NOR_DRIVERS = \
 	%D%/aduc702x.c \
 	%D%/aducm360.c \
 	%D%/ambiqmicro.c \
+	%D%/artery.c \
 	%D%/at91sam4.c \
 	%D%/at91sam4l.c \
 	%D%/at91samd.c \
@@ -85,6 +86,7 @@ NOR_DRIVERS = \
 	%D%/xmc4xxx.c
 
 NORHEADERS = \
+	%D%/artery.h \
 	%D%/core.h \
 	%D%/cc3220sf.h \
 	%D%/bluenrg-x.h \
