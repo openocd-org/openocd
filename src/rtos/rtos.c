@@ -608,7 +608,7 @@ int rtos_generic_stack_read(struct target *target,
 	int retval;
 
 	if (stack_ptr == 0) {
-		LOG_ERROR("Error: null stack pointer in thread");
+		LOG_ERROR("null stack pointer in thread");
 		return -5;
 	}
 	/* Read the stack */
