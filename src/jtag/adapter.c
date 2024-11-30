@@ -392,18 +392,22 @@ COMMAND_HANDLER(handle_adapter_name)
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(handle_adapter_list_command)
+COMMAND_HANDLER(dump_adapter_driver_list)
 {
-	if (strcmp(CMD_NAME, "list") == 0 && CMD_ARGC > 0)
-		return ERROR_COMMAND_SYNTAX_ERROR;
-
-	command_print(CMD, "The following debug adapters are available:");
 	for (unsigned int i = 0; adapter_drivers[i]; i++) {
 		const char *name = adapter_drivers[i]->name;
 		command_print(CMD, "%u: %s", i + 1, name);
 	}
 
 	return ERROR_OK;
+}
+
+COMMAND_HANDLER(handle_adapter_list_command)
+{
+	if (CMD_ARGC)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	return CALL_COMMAND_HANDLER(dump_adapter_driver_list);
 }
 
 COMMAND_HANDLER(handle_adapter_driver_command)
@@ -440,7 +444,8 @@ COMMAND_HANDLER(handle_adapter_driver_command)
 	 */
 	LOG_ERROR("The specified debug interface was not found (%s)",
 				CMD_ARGV[0]);
-	CALL_COMMAND_HANDLER(handle_adapter_list_command);
+	command_print(CMD, "The following adapter drivers are available:");
+	CALL_COMMAND_HANDLER(dump_adapter_driver_list);
 	return ERROR_JTAG_INVALID_INTERFACE;
 }
 
