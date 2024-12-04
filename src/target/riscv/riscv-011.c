@@ -1972,9 +1972,16 @@ static int deassert_reset(struct target *target)
 		return wait_for_state(target, TARGET_RUNNING);
 }
 
-static int read_memory(struct target *target, target_addr_t address,
-		uint32_t size, uint32_t count, uint8_t *buffer, uint32_t increment)
+static int read_memory(struct target *target, const riscv_mem_access_args_t args)
 {
+	assert(riscv_mem_access_is_read(args));
+
+	const target_addr_t address = args.address;
+	const uint32_t size = args.size;
+	const uint32_t count = args.count;
+	const uint32_t increment = args.increment;
+	uint8_t * const buffer = args.read_buffer;
+
 	if (increment != size) {
 		LOG_ERROR("read_memory with custom increment not implemented");
 		return ERROR_NOT_IMPLEMENTED;
@@ -2142,9 +2149,20 @@ static int setup_write_memory(struct target *target, uint32_t size)
 	return ERROR_OK;
 }
 
-static int write_memory(struct target *target, target_addr_t address,
-		uint32_t size, uint32_t count, const uint8_t *buffer)
+static int write_memory(struct target *target, const riscv_mem_access_args_t args)
 {
+	assert(riscv_mem_access_is_write(args));
+
+	if (args.increment != args.size) {
+		LOG_TARGET_ERROR(target, "Write increment size has to be equal to element size");
+		return ERROR_NOT_IMPLEMENTED;
+	}
+
+	const target_addr_t address = args.address;
+	const uint32_t size = args.size;
+	const uint32_t count = args.count;
+	const uint8_t * const buffer = args.write_buffer;
+
 	riscv011_info_t *info = get_info(target);
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
 
@@ -2371,7 +2389,9 @@ static int init_target(struct command_context *cmd_ctx,
 {
 	LOG_DEBUG("init");
 	RISCV_INFO(generic_info);
+	/* TODO: replace read and write with single access function*/
 	generic_info->read_memory = read_memory;
+	generic_info->write_memory = write_memory;
 	generic_info->authdata_read = &riscv011_authdata_read;
 	generic_info->authdata_write = &riscv011_authdata_write;
 	generic_info->print_info = &riscv011_print_info;
@@ -2405,8 +2425,6 @@ struct target_type riscv011_target = {
 
 	.assert_reset = assert_reset,
 	.deassert_reset = deassert_reset,
-
-	.write_memory = write_memory,
 
 	.arch_state = arch_state,
 };
