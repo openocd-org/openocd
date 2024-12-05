@@ -2728,6 +2728,13 @@ static int handle_became_unavailable(struct target *target,
 		enum riscv_hart_state previous_riscv_state)
 {
 	RISCV013_INFO(info);
+
+	if (riscv_reg_cache_any_dirty(target, LOG_LVL_WARNING))
+		LOG_TARGET_WARNING(target, "Discarding values of dirty registers "
+				"(due to target becoming unavailable).");
+
+	riscv_reg_cache_invalidate_all(target);
+
 	info->dcsr_ebreak_is_set = false;
 	return ERROR_OK;
 }
@@ -5434,6 +5441,8 @@ static int riscv013_step_or_resume_current_hart(struct target *target,
 
 	if (riscv_reg_flush_all(target) != ERROR_OK)
 		return ERROR_FAIL;
+
+	riscv_reg_cache_invalidate_all(target);
 
 	dm013_info_t *dm = get_dm(target);
 	/* Issue the resume command, and then wait for the current hart to resume. */

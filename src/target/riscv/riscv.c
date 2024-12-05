@@ -290,7 +290,6 @@ static const virt2phys_info_t sv57x4 = {
 
 static enum riscv_halt_reason riscv_halt_reason(struct target *target);
 static void riscv_info_init(struct target *target, struct riscv_info *r);
-static void riscv_invalidate_register_cache(struct target *target);
 static int riscv_step_rtos_hart(struct target *target);
 
 static void riscv_sample_buf_maybe_add_timestamp(struct target *target, bool before)
@@ -2485,10 +2484,15 @@ static int riscv_halt_go_all_harts(struct target *target)
 				return ERROR_FAIL;
 		}
 	} else {
+		// Safety check:
+		if (riscv_reg_cache_any_dirty(target, LOG_LVL_ERROR))
+			LOG_TARGET_INFO(target, "BUG: Registers should not be dirty while "
+					"the target is not halted!");
+
+		riscv_reg_cache_invalidate_all(target);
+
 		if (r->halt_go(target) != ERROR_OK)
 			return ERROR_FAIL;
-
-		riscv_invalidate_register_cache(target);
 	}
 
 	return ERROR_OK;
@@ -2572,7 +2576,11 @@ static int riscv_assert_reset(struct target *target)
 	struct target_type *tt = get_target_type(target);
 	if (!tt)
 		return ERROR_FAIL;
-	riscv_invalidate_register_cache(target);
+
+	if (riscv_reg_cache_any_dirty(target, LOG_LVL_INFO))
+		LOG_TARGET_INFO(target, "Discarding values of dirty registers.");
+
+	riscv_reg_cache_invalidate_all(target);
 	return tt->assert_reset(target);
 }
 
@@ -2699,7 +2707,15 @@ static int resume_go(struct target *target, int current,
 static int resume_finish(struct target *target, int debug_execution)
 {
 	assert(target->state == TARGET_HALTED);
-	register_cache_invalidate(target->reg_cache);
+	if (riscv_reg_cache_any_dirty(target, LOG_LVL_ERROR)) {
+		/* If this happens, it means there is a bug in the previous
+		 * register-flushing algorithm: not all registers were flushed
+		 * back to the target in preparation for the resume.*/
+		LOG_TARGET_ERROR(target,
+				"BUG: registers should have been flushed by this point.");
+	}
+
+	riscv_reg_cache_invalidate_all(target);
 
 	target->state = debug_execution ? TARGET_DEBUG_RUNNING : TARGET_RUNNING;
 	target->debug_reason = DBG_REASON_NOTHALTED;
@@ -4001,7 +4017,15 @@ static int riscv_openocd_step_impl(struct target *target, int current,
 		LOG_TARGET_ERROR(target, "Unable to step rtos hart.");
 	}
 
-	register_cache_invalidate(target->reg_cache);
+	if (riscv_reg_cache_any_dirty(target, LOG_LVL_ERROR)) {
+		/* If this happens, it means there is a bug in the previous
+		 * register-flushing algorithm: not all registers were flushed
+		 * back to the target prior to single-step. */
+		LOG_TARGET_ERROR(target,
+				"BUG: registers should have been flushed by this point.");
+	}
+
+	riscv_reg_cache_invalidate_all(target);
 
 	if (info->isrmask_mode == RISCV_ISRMASK_STEPONLY)
 		if (riscv_interrupts_restore(target, current_mstatus) != ERROR_OK) {
@@ -5177,7 +5201,7 @@ COMMAND_HANDLER(riscv_exec_progbuf)
 	if (riscv_reg_flush_all(target) != ERROR_OK)
 		return ERROR_FAIL;
 	int error = riscv_program_exec(&prog, target);
-	riscv_invalidate_register_cache(target);
+	riscv_reg_cache_invalidate_all(target);
 
 	if (error != ERROR_OK) {
 		LOG_TARGET_ERROR(target, "exec_progbuf: Program buffer execution failed.");
@@ -5731,8 +5755,6 @@ static int riscv_resume_go_all_harts(struct target *target)
 	} else {
 		LOG_TARGET_DEBUG(target, "Hart requested resume, but was already resumed.");
 	}
-
-	riscv_invalidate_register_cache(target);
 	return ERROR_OK;
 }
 
@@ -5824,17 +5846,6 @@ unsigned int riscv_vlenb(const struct target *target)
 {
 	RISCV_INFO(r);
 	return r->vlenb;
-}
-
-static void riscv_invalidate_register_cache(struct target *target)
-{
-	/* Do not invalidate the register cache if it is not yet set up
-	 * (e.g. when the target failed to get examined). */
-	if (!target->reg_cache)
-		return;
-
-	LOG_TARGET_DEBUG(target, "Invalidating register cache.");
-	register_cache_invalidate(target->reg_cache);
 }
 
 int riscv_get_hart_state(struct target *target, enum riscv_hart_state *state)
