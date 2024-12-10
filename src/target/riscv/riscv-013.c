@@ -3501,41 +3501,39 @@ static mem_access_result_t mem_should_skip_progbuf(struct target *target,
 	const riscv_mem_access_args_t args)
 {
 	assert(riscv_mem_access_is_valid(args));
+	const char *const access_type =
+			riscv_mem_access_is_read(args) ? "read" : "write";
 
-	const bool is_read = riscv_mem_access_is_read(args);
 	if (!has_sufficient_progbuf(target, 1)) {
 		LOG_TARGET_DEBUG(target, "Skipping mem %s via progbuf "
-				"- progbuf not present", is_read ? "read" : "write");
+				"- progbuf not present", access_type);
 		return MEM_ACCESS_SKIPPED_PROGBUF_NOT_PRESENT;
 	}
 	if (!has_sufficient_progbuf(target, 3)) {
-		LOG_TARGET_DEBUG(target, "Skipping mem %s via progbuf - insufficient progbuf size.",
-				is_read ? "read" : "write");
+		LOG_TARGET_DEBUG(target, "Skipping mem %s via progbuf - "
+				"insufficient progbuf size.", access_type);
 		return MEM_ACCESS_SKIPPED_PROGBUF_INSUFFICIENT;
 	}
 	if (target->state != TARGET_HALTED) {
-		LOG_TARGET_DEBUG(target,
-			"Skipping mem %s via progbuf - target not halted.",
-			is_read ? "read" : "write");
+		LOG_TARGET_DEBUG(target, "Skipping mem %s via progbuf - "
+				"target not halted.", access_type);
 		return MEM_ACCESS_SKIPPED_TARGET_NOT_HALTED;
 	}
 	if (riscv_xlen(target) < args.size * 8) {
-		LOG_TARGET_DEBUG(target,
-			"Skipping mem %s via progbuf - "
-			"XLEN (%d) is too short for %d-bit memory access.",
-			is_read ? "read" : "write", riscv_xlen(target), args.size * 8);
+		LOG_TARGET_DEBUG(target, "Skipping mem %s via progbuf - "
+				"XLEN (%d) is too short for %d-bit memory args.",
+				access_type, riscv_xlen(target), args.size * 8);
 		return MEM_ACCESS_SKIPPED_XLEN_TOO_SHORT;
 	}
 	if (args.size > 8) {
-		LOG_TARGET_DEBUG(target,
-			"Skipping mem %s via progbuf - unsupported size.",
-			is_read ? "read" : "write");
+		LOG_TARGET_DEBUG(target, "Skipping mem %s via progbuf - "
+				"unsupported size.", access_type);
 		return MEM_ACCESS_SKIPPED_UNSUPPORTED_ACCESS_SIZE;
 	}
-	if ((sizeof(args.address) * 8 > riscv_xlen(target)) && (args.address >> riscv_xlen(target))) {
-		LOG_TARGET_DEBUG(target,
-			"Skipping mem %s via progbuf - progbuf only supports %u-bit address.",
-			is_read ? "read" : "write", riscv_xlen(target));
+	if ((sizeof(args.address) * 8 > riscv_xlen(target))
+			&& (args.address >> riscv_xlen(target))) {
+		LOG_TARGET_DEBUG(target, "Skipping mem %s via progbuf - "
+			"progbuf only supports %u-bit address.", access_type, riscv_xlen(target));
 		return MEM_ACCESS_SKIPPED_TOO_LARGE_ADDRESS;
 	}
 
@@ -3549,21 +3547,26 @@ mem_should_skip_sysbus(struct target *target, const riscv_mem_access_args_t args
 
 	RISCV013_INFO(info);
 	const bool is_read = riscv_mem_access_is_read(args);
+	const char *const access_type = is_read ? "read" : "write";
+
 	if (!sba_supports_access(target, args.size)) {
-		LOG_TARGET_DEBUG(target, "Skipping mem %s via system bus - unsupported size.",
-				is_read ? "read" : "write");
+		LOG_TARGET_DEBUG(target, "Skipping mem %s via system bus - "
+				"unsupported size.", access_type);
 		return MEM_ACCESS_SKIPPED_UNSUPPORTED_ACCESS_SIZE;
 	}
 	unsigned int sbasize = get_field(info->sbcs, DM_SBCS_SBASIZE);
-	if ((sizeof(args.address) * 8 > sbasize) && (args.address >> sbasize)) {
-		LOG_TARGET_DEBUG(target, "Skipping mem %s via system bus - sba only supports %u-bit address.",
-				is_read ? "read" : "write", sbasize);
+	if ((sizeof(args.address) * 8 > sbasize)
+			&& (args.address >> sbasize)) {
+		LOG_TARGET_DEBUG(target, "Skipping mem %s via system bus - "
+				"sba only supports %u-bit address.", access_type, sbasize);
 		return MEM_ACCESS_SKIPPED_TOO_LARGE_ADDRESS;
 	}
 	if (is_read && args.increment != args.size
-			&& (get_field(info->sbcs, DM_SBCS_SBVERSION) == 0 || args.increment != 0)) {
-		LOG_TARGET_DEBUG(target, "Skipping mem read via system bus - "
-				"sba reads only support size==increment or also size==0 for sba v1.");
+			&& (get_field(info->sbcs, DM_SBCS_SBVERSION) == 0
+			|| args.increment != 0)) {
+		LOG_TARGET_DEBUG(target, "Skipping mem %s via system bus - "
+				"sba %ss only support (size == increment) or also "
+				"size==0 for sba v1.", access_type, access_type);
 		return MEM_ACCESS_SKIPPED_UNSUPPORTED_INCREMENT_SIZE;
 	}
 
@@ -3576,21 +3579,25 @@ mem_should_skip_abstract(struct target *target, const riscv_mem_access_args_t ar
 	assert(riscv_mem_access_is_valid(args));
 
 	const bool is_read = riscv_mem_access_is_read(args);
+	const char *const access_type = is_read ? "read" : "write";
 	if (args.size > 8) {
 		/* TODO: Add 128b support if it's ever used. Involves modifying
 				 read/write_abstract_arg() to work on two 64b values. */
-		LOG_TARGET_DEBUG(target, "Skipping mem %s via abstract access - unsupported size: %d bits",
-				is_read ? "read" : "write", args.size * 8);
+		LOG_TARGET_DEBUG(target, "Skipping mem %s via abstract access - "
+				"unsupported size: %d bits", access_type, args.size * 8);
 		return MEM_ACCESS_SKIPPED_UNSUPPORTED_ACCESS_SIZE;
 	}
-	if ((sizeof(args.address) * 8 > riscv_xlen(target)) && (args.address >> riscv_xlen(target))) {
-		LOG_TARGET_DEBUG(target, "Skipping mem %s via abstract access - abstract access only supports %u-bit address.",
-				is_read ? "read" : "write", riscv_xlen(target));
+	if ((sizeof(args.address) * 8 > riscv_xlen(target))
+			&& (args.address >> riscv_xlen(target))) {
+		LOG_TARGET_DEBUG(target, "Skipping mem %s via abstract access - "
+				"abstract access only supports %u-bit address.",
+				access_type, riscv_xlen(target));
 		return MEM_ACCESS_SKIPPED_TOO_LARGE_ADDRESS;
 	}
 	if (is_read && args.size != args.increment) {
-		LOG_TARGET_ERROR(target, "Skipping mem read via abstract access - "
-				"abstract command reads only support size==increment.");
+		LOG_TARGET_ERROR(target, "Skipping mem %s via abstract access - "
+				"abstract command %ss only support (size == increment).",
+				access_type, access_type);
 		return MEM_ACCESS_SKIPPED_UNSUPPORTED_INCREMENT_SIZE;
 	}
 	return MEM_ACCESS_OK;
