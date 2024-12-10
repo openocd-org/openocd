@@ -58,12 +58,18 @@ struct cmsis_dap {
 	bool trace_enabled;
 };
 
+/* Read mode */
+enum cmsis_dap_blocking {
+	CMSIS_DAP_NON_BLOCKING,
+	CMSIS_DAP_BLOCKING
+};
+
 struct cmsis_dap_backend {
 	const char *name;
 	int (*open)(struct cmsis_dap *dap, uint16_t vids[], uint16_t pids[], const char *serial);
 	void (*close)(struct cmsis_dap *dap);
 	int (*read)(struct cmsis_dap *dap, int transfer_timeout_ms,
-			    struct timeval *wait_timeout);
+				enum cmsis_dap_blocking blocking);
 	int (*write)(struct cmsis_dap *dap, int len, int timeout_ms);
 	int (*packet_buffer_alloc)(struct cmsis_dap *dap, unsigned int pkt_sz);
 	void (*packet_buffer_free)(struct cmsis_dap *dap);

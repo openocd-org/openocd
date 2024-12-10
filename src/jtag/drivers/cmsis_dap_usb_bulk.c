@@ -441,7 +441,7 @@ static void LIBUSB_CALL cmsis_dap_usb_callback(struct libusb_transfer *transfer)
 }
 
 static int cmsis_dap_usb_read(struct cmsis_dap *dap, int transfer_timeout_ms,
-							  struct timeval *wait_timeout)
+							  enum cmsis_dap_blocking blocking)
 {
 	int transferred = 0;
 	int err;
@@ -464,20 +464,23 @@ static int cmsis_dap_usb_read(struct cmsis_dap *dap, int transfer_timeout_ms,
 		}
 	}
 
-	struct timeval tv = {
-		.tv_sec = transfer_timeout_ms / 1000,
-		.tv_usec = transfer_timeout_ms % 1000 * 1000
-	};
+	struct timeval tv;
+	if (blocking == CMSIS_DAP_NON_BLOCKING) {
+		tv.tv_sec = 0;
+		tv.tv_usec = 0;
+	} else {
+		tv.tv_sec = transfer_timeout_ms / 1000;
+		tv.tv_usec = transfer_timeout_ms % 1000 * 1000;
+	}
 
 	while (tr->status == CMSIS_DAP_TRANSFER_PENDING) {
-		err = libusb_handle_events_timeout_completed(dap->bdata->usb_ctx,
-												 wait_timeout ? wait_timeout : &tv,
+		err = libusb_handle_events_timeout_completed(dap->bdata->usb_ctx, &tv,
 												 &tr->status);
 		if (err) {
 			LOG_ERROR("error handling USB events: %s", libusb_strerror(err));
 			return ERROR_FAIL;
 		}
-		if (wait_timeout)
+		if (tv.tv_sec == 0 && tv.tv_usec == 0)
 			break;
 	}
 
