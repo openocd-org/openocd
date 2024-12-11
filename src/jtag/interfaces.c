@@ -123,6 +123,9 @@ struct adapter_driver *adapter_drivers[] = {
 #if BUILD_LINUXGPIOD == 1
 		&linuxgpiod_adapter_driver,
 #endif
+#if BUILD_LINUXSPIDEV == 1
+		&linuxspidev_adapter_driver,
+#endif
 #if BUILD_XLNX_PCIE_XVC == 1
 		&xlnx_pcie_xvc_adapter_driver,
 #endif

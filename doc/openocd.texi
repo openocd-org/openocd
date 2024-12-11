@@ -614,6 +614,9 @@ emulation model of target hardware.
 @item @b{xlnx_pcie_xvc}
 @* A JTAG driver exposing Xilinx Virtual Cable over PCI Express to OpenOCD as JTAG/SWD interface.
 
+@item @b{linuxspidev}
+@* A SPI based SWD driver using Linux SPI devices.
+
 @item @b{linuxgpiod}
 @* A bitbang JTAG driver using Linux GPIO through library libgpiod.
 
@@ -3401,6 +3404,70 @@ See @file{interface/beaglebone-swd-native.cfg} for a sample configuration file.
 
 @end deffn
 
+@deffn {Interface Driver} {linuxspidev}
+Linux provides userspace access to SPI through spidev. Full duplex SPI
+transactions are used to simultaneously read and write to/from the target to
+emulate the SWD transport.
+
+@deffn {Config Command} {spidev path} path
+Specifies the path to the spidev device.
+@end deffn
+
+@deffn {Config Command} {spidev mode} value
+Set the mode of the spi port with optional bit flags (default=3).
+See /usr/include/linux/spi/spidev.h for all of the SPI mode options.
+@end deffn
+
+@deffn {Config Command} {spidev queue_entries} value
+Set the maximum number of queued transactions per spi exchange (default=64).
+More queued transactions may offer greater performance when the target doesn't
+need to wait. On the contrary higher numbers will reduce performance when the
+target requests a wait as all queued transactions will need to be exchanged
+before spidev can see the wait request.
+@end deffn
+
+See @file{tcl/interface/spidev_example.cfg} for a sample configuration file.
+
+Electrical connections:
+@example
++--------------+                +--------------+
+|              |     1K         |              |
+|          MOSI|---/\/\/\---+   |              |
+|     Host     |            |   |    Target    |
+|          MISO|------------+---|SWDIO         |
+|              |                |              |
+|           SCK|----------------|SWDCLK        |
+|              |                |              |
++--------------+                +--------------+
+@end example
+
+The 1K resistor works well with most MCUs up to 3 MHz. A lower resistance
+could be used to achieve higher speeds granted that the target SWDIO pin has
+enough drive strength to pull the signal high while being pulled low by this
+resistor.
+
+If you are having trouble here are some tips:
+
+@itemize @bullet
+
+@item @b{Make sure MISO and MOSI are tied together with a 1K resistor.}
+MISO should be attached to the target.
+
+@item @b{Make sure that your host and target are using the same I/O voltage}
+(for example both are using 3.3 volts).
+
+@item @b{Your host's SPI port may not idle low.}
+This will lead to an additional clock edge being sent to the target, causing
+the host and target being 1 clock off from each other. Try setting
+SPI_MOSI_IDLE_LOW in spi_mode. Try using a different spi_mode (0 - 3).
+
+@item @b{Your target may pull SWDIO and/or SWDCLK high.}
+This will create an extra edge when the host releases control of the SPI port
+at the end of a transaction. You'll need to confirm this with a scope or meter.
+Try installing 10K resistors on SWDIO and SWDCLK to ground to stop this.
+
+@end itemize
+@end deffn
 
 @deffn {Interface Driver} {linuxgpiod}
 Linux provides userspace access to GPIO through libgpiod since Linux kernel
