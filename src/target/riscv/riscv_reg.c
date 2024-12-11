@@ -888,6 +888,34 @@ static int riscv_set_or_write_register(struct target *target,
 	return ERROR_OK;
 }
 
+bool riscv_reg_cache_any_dirty(const struct target *target, int log_level)
+{
+	bool any_dirty = false;
+
+	if (!target->reg_cache)
+		return any_dirty;
+
+	for (unsigned int number = 0; number < target->reg_cache->num_regs; ++number) {
+		const struct reg * const reg = riscv_reg_impl_cache_entry(target, number);
+		assert(riscv_reg_impl_is_initialized(reg));
+		if (reg->dirty) {
+			log_printf_lf(log_level, __FILE__, __LINE__, __func__,
+					"[%s] Register %s is dirty!", target_name(target), reg->name);
+			any_dirty = true;
+		}
+	}
+	return any_dirty;
+}
+
+void riscv_reg_cache_invalidate_all(struct target *target)
+{
+	if (!target->reg_cache)
+		return;
+
+	LOG_TARGET_DEBUG(target, "Invalidating register cache.");
+	register_cache_invalidate(target->reg_cache);
+}
+
 /**
  * This function is used to change the value of a register. The new value may
  * be cached, and may not be written until the hart is resumed.

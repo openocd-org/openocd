@@ -22,6 +22,17 @@ void riscv_reg_free_all(struct target *target);
 /** Write all dirty registers to the target. */
 int riscv_reg_flush_all(struct target *target);
 /**
+ * Check whether there are any dirty registers in the OpenOCD's register cache.
+ * In addition, all dirty registers will be reported to the log using the
+ * supplied "log_level".
+ */
+bool riscv_reg_cache_any_dirty(const struct target *target, int log_level);
+/**
+ * Invalidate all registers - forget their cached register values.
+ * WARNING: If a register was dirty, its walue will be silently lost!
+ */
+void riscv_reg_cache_invalidate_all(struct target *target);
+/**
  * Set the register value. For cacheable registers, only the cache is updated
  * (write-back mode).
  */

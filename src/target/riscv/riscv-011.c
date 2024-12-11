@@ -1136,7 +1136,7 @@ static int execute_resume(struct target *target, bool step)
 	}
 
 	target->state = TARGET_RUNNING;
-	register_cache_invalidate(target->reg_cache);
+	riscv_reg_cache_invalidate_all(target);
 
 	return ERROR_OK;
 }
