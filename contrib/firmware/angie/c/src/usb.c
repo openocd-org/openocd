@@ -55,7 +55,7 @@ __code struct usb_config_descriptor config_descriptor = {
 							((NUM_ENDPOINTS * 2) * sizeof(struct usb_endpoint_descriptor)),
 	.bnuminterfaces =		2,
 	.bconfigurationvalue =	1,
-	.iconfiguration =		4,	/* String describing this configuration */
+	.iconfiguration =		2,	/* String describing this configuration */
 	.bmattributes =			0x80,	/* Only MSB set according to USB spec */
 	.maxpower =				50	/* 100 mA */
 };
@@ -69,7 +69,7 @@ __code struct usb_interface_descriptor interface_descriptor00 = {
 	.binterfaceclass =		0XFF,
 	.binterfacesubclass =	0x00,
 	.binterfaceprotocol =	0x00,
-	.iinterface =			5
+	.iinterface =			0
 };
 
 __code struct usb_endpoint_descriptor bulk_ep2_endpoint_descriptor = {
@@ -99,7 +99,7 @@ __code struct usb_interface_descriptor interface_descriptor01 = {
 	.binterfaceclass =		0x0A,
 	.binterfacesubclass =	0x00,
 	.binterfaceprotocol =	0x00,
-	.iinterface =			6
+	.iinterface =			0
 };
 
 __code struct usb_endpoint_descriptor bulk_ep6_out_endpoint_descriptor = {
@@ -200,8 +200,8 @@ void ep6_isr(void)__interrupt	EP6_ISR
 }
 void ep8_isr(void)__interrupt	EP8_ISR
 {
-	EXIF &= ~0x10;  /* Clear USBINT: Main global interrupt */
-	EPIRQ = 0x80;	/* Clear individual EP8IN IRQ */
+	EXIF &= ~0x10;		/* Clear USBINT: Main global interrupt */
+	EPIRQ = 0x80;		/* Clear individual EP8IN IRQ */
 }
 void ibn_isr(void)__interrupt	IBN_ISR
 {
@@ -761,16 +761,16 @@ void ep_init(void)
 
 void i2c_recieve(void)
 {
-	PIN_SDA_DIR = 0;
 	if (EP6FIFOBUF[0] == 1) {
-		uint8_t rdwr = EP6FIFOBUF[0];   //read
-		uint8_t data_count = EP6FIFOBUF[1]; //data sent count
+		uint8_t rdwr = EP6FIFOBUF[0];   //read: 1
+		uint8_t reg_byte_check = EP6FIFOBUF[1]; //register given: 1 else: 0
 		uint8_t count = EP6FIFOBUF[2];  //requested data count
 		uint8_t adr = EP6FIFOBUF[3];    //address
 		uint8_t address = get_address(adr, rdwr);   //address byte (read command)
 		uint8_t address_2 = get_address(adr, 0);   //address byte 2 (write command)
 
-		printf("%d\n", address - 1);
+		/* i2c bus state byte */
+		EP8FIFOBUF[0] = get_status();
 
 		/*  start:   */
 		start_cd();
@@ -780,12 +780,10 @@ void i2c_recieve(void)
 		uint8_t ack = get_ack();
 
 		/*   send data   */
-		if (data_count) { //if there is a byte reg
-			for (uint8_t i = 0; i < data_count; i++) {
-				send_byte(EP6FIFOBUF[i + 4]);
-				/*  ack():  */
-				ack = get_ack();
-			}
+		for (int i = 0; i < reg_byte_check; i++) {
+			send_byte(EP6FIFOBUF[i + 4]);
+			/*  ack():  */
+			ack = get_ack();
 		}
 
 		/*  repeated start:  */
@@ -796,14 +794,14 @@ void i2c_recieve(void)
 		ack = get_ack();
 
 		/*   receive data   */
-		for (uint8_t i = 0; i < count - 1; i++) {
+		for (int i = 1; i < count; i++) {
 			EP8FIFOBUF[i] = receive_byte();
 
 			/*  send ack: */
 			send_ack();
 		}
 
-		EP8FIFOBUF[count - 1] = receive_byte();
+		EP8FIFOBUF[count] = receive_byte();
 
 		/*  send Nack:  */
 		send_nack();
@@ -811,44 +809,46 @@ void i2c_recieve(void)
 		/*   stop   */
 		stop_cd();
 
-		EP8BCH = 0; //EP8
+		EP8BCH = (count + 1) >> 8; //EP8
 		syncdelay(3);
-		EP8BCL = count; //EP8
+		EP8BCL = count + 1; //EP8
 
 		EP6BCL = 0x80; //EP6
 		syncdelay(3);
 		EP6BCL = 0x80; //EP6
 	} else {
-		uint8_t rdwr = EP6FIFOBUF[0];   //write
+		uint8_t rdwr = EP6FIFOBUF[0];   //write: 0
 		uint8_t count = EP6FIFOBUF[1];  //data count
 		uint8_t adr = EP6FIFOBUF[2];    //address
 		uint8_t address = get_address(adr, rdwr);   //address byte (read command)
 		uint8_t ack_cnt = 0;
 
-/*  start():   */
+		// i2c bus state byte
+		EP8FIFOBUF[0] = get_status();
+
+		/*  start():   */
 		start_cd();
-/*  address:   */
+		/*  address:   */
 		send_byte(address);   //write
-/*  ack():  */
+		/*  ack():  */
 		if (!get_ack())
 			ack_cnt++;
-/*   send data  */
-		for (uint8_t i = 0; i < count; i++) {
+		/*   send data  */
+		for (int i = 0; i < count; i++) {
 			send_byte(EP6FIFOBUF[i + 3]);
-
 			/*  get ack:  */
 			if (!get_ack())
 				ack_cnt++;
 		}
 
-/*   stop   */
+		/*   stop   */
 		stop_cd();
 
-		EP8FIFOBUF[0] = ack_cnt;
+		EP8FIFOBUF[1] = ack_cnt;
 
 		EP8BCH = 0; //EP8
 		syncdelay(3);
-		EP8BCL = 1; //EP8
+		EP8BCL = 2; //EP8
 
 		EP6BCL = 0x80; //EP6
 		syncdelay(3);

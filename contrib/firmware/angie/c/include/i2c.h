@@ -14,6 +14,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
+bool get_status(void);
 void start_cd(void);
 void repeated_start(void);
 void stop_cd(void);

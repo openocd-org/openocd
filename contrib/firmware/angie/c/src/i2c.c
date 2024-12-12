@@ -12,6 +12,19 @@
 #include "delay.h"
 #include "reg_ezusb.h"
 
+bool get_status(void)
+{
+	PIN_SDA_DIR = 1;
+	OEA = 0xF7;
+	delay_us(1);
+	bool sda_state = PIN_SDA;
+	PIN_T0 = sda_state;
+	delay_us(1);
+	OEA = 0xFF;
+	delay_us(1);
+	return sda_state;
+}
+
 void start_cd(void)
 {
 	PIN_SDA_DIR = 0;    // SP6 SDA: OUT

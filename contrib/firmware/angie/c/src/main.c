@@ -11,9 +11,9 @@
 *****************************************************************************/
 
 #include "usb.h"
+#include "serial.h"
 #include "delay.h"
 #include "reg_ezusb.h"
-#include <serial.h>
 #include <stdio.h>
 
 extern void sudav_isr(void)__interrupt	SUDAV_ISR;
