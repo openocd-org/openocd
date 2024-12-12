@@ -20,124 +20,108 @@
 #include <stdio.h>
 #include "i2c.h"
 
-/* Also update external declarations in "include/usb.h" if making changes to
- * these variables!
- */
-volatile bool ep1_out;
-volatile bool ep1_in;
-volatile bool ep6_out;
-
 volatile __xdata __at 0xE6B8 struct setup_data setup_data;
 
 /* Define number of endpoints (except Control Endpoint 0) in a central place.
  * Be sure to include the necessary endpoint descriptors!
  */
-#define NUM_ENDPOINTS 3
+#define NUM_ENDPOINTS 2
+
 
 __code struct usb_device_descriptor device_descriptor = {
-	.blength =		sizeof(struct usb_device_descriptor),
-	.bdescriptortype =	DESCRIPTOR_TYPE_DEVICE,
-	.bcdusb =			0x0200,	    /* BCD: 02.00 (Version 2.0 USB spec) */
-	.bdeviceclass =		0xEF,
-	.bdevicesubclass =	0x02,
-	.bdeviceprotocol =	0x01,
-	.bmaxpacketsize0 =	64,
-	.idvendor =			0x584e,
-	.idproduct =		0x414f,
-	.bcddevice =		0x0000,
-	.imanufacturer =	1,
-	.iproduct =			2,
-	.iserialnumber =	3,
+	.blength =				sizeof(struct usb_device_descriptor),
+	.bdescriptortype =		DESCRIPTOR_TYPE_DEVICE,
+	.bcdusb =				0x0200,	    /* BCD: 02.00 (Version 2.0 USB spec) */
+	.bdeviceclass =			0xEF,
+	.bdevicesubclass =		0x02,
+	.bdeviceprotocol =		0x01,
+	.bmaxpacketsize0 =		64,
+	.idvendor =				0x584e,
+	.idproduct =			0x414f,
+	.bcddevice =			0x0000,
+	.imanufacturer =		1,
+	.iproduct =				2,
+	.iserialnumber =		3,
 	.bnumconfigurations =	1
 };
 
 /* WARNING: ALL config, interface and endpoint descriptors MUST be adjacent! */
-
 __code struct usb_config_descriptor config_descriptor = {
-	.blength =		sizeof(struct usb_config_descriptor),
-	.bdescriptortype =	DESCRIPTOR_TYPE_CONFIGURATION,
-	.wtotallength =		sizeof(struct usb_config_descriptor) +
-		3 * sizeof(struct usb_interface_descriptor) +
-		((NUM_ENDPOINTS + 2) * sizeof(struct usb_endpoint_descriptor)),
-	.bnuminterfaces =	2,
+	.blength =				sizeof(struct usb_config_descriptor),
+	.bdescriptortype =		DESCRIPTOR_TYPE_CONFIGURATION,
+	.wtotallength =			sizeof(struct usb_config_descriptor) +
+							2 * sizeof(struct usb_interface_descriptor) +
+							((NUM_ENDPOINTS * 2) * sizeof(struct usb_endpoint_descriptor)),
+	.bnuminterfaces =		2,
 	.bconfigurationvalue =	1,
-	.iconfiguration =	1,	/* String describing this configuration */
-	.bmattributes =		0x80,	/* Only MSB set according to USB spec */
-	.maxpower =		50	/* 100 mA */
+	.iconfiguration =		4,	/* String describing this configuration */
+	.bmattributes =			0x80,	/* Only MSB set according to USB spec */
+	.maxpower =				50	/* 100 mA */
 };
 
 __code struct usb_interface_descriptor interface_descriptor00 = {
-	.blength = sizeof(struct usb_interface_descriptor),
-	.bdescriptortype =	DESCRIPTOR_TYPE_INTERFACE,
-	.binterfacenumber =	0,
+	.blength =				sizeof(struct usb_interface_descriptor),
+	.bdescriptortype =		DESCRIPTOR_TYPE_INTERFACE,
+	.binterfacenumber =		0,
 	.balternatesetting =	0,
-	.bnumendpoints =	NUM_ENDPOINTS,
-	.binterfaceclass =	0XFF,
+	.bnumendpoints =		NUM_ENDPOINTS,
+	.binterfaceclass =		0XFF,
 	.binterfacesubclass =	0x00,
 	.binterfaceprotocol =	0x00,
-	.iinterface =		4
-};
-
-__code struct usb_endpoint_descriptor bulk_ep1_out_endpoint_descriptor = {
-	.blength =		sizeof(struct usb_endpoint_descriptor),
-	.bdescriptortype =	0x05,
-	.bendpointaddress =	(1 | USB_DIR_OUT),
-	.bmattributes =		0x02,
-	.wmaxpacketsize =	64,
-	.binterval =		0
-};
-
-__code struct usb_endpoint_descriptor bulk_ep1_in_endpoint_descriptor = {
-	.blength =		sizeof(struct usb_endpoint_descriptor),
-	.bdescriptortype =	0x05,
-	.bendpointaddress =	(1 | USB_DIR_IN),
-	.bmattributes =		0x02,
-	.wmaxpacketsize =	64,
-	.binterval =		0
+	.iinterface =			5
 };
 
 __code struct usb_endpoint_descriptor bulk_ep2_endpoint_descriptor = {
-	.blength =		sizeof(struct usb_endpoint_descriptor),
-	.bdescriptortype =	0x05,
-	.bendpointaddress =	(2 | USB_DIR_OUT),
-	.bmattributes =		0x02,
-	.wmaxpacketsize =	512,
-	.binterval =		0
+	.blength =				sizeof(struct usb_endpoint_descriptor),
+	.bdescriptortype =		0x05,
+	.bendpointaddress =		(2 | USB_DIR_OUT),
+	.bmattributes =			0x02,
+	.wmaxpacketsize =		512,
+	.binterval =			0
+};
+
+__code struct usb_endpoint_descriptor bulk_ep4_endpoint_descriptor = {
+	.blength =				sizeof(struct usb_endpoint_descriptor),
+	.bdescriptortype =		0x05,
+	.bendpointaddress =		(4 | USB_DIR_IN),
+	.bmattributes =			0x02,
+	.wmaxpacketsize =		512,
+	.binterval =			0
 };
 
 __code struct usb_interface_descriptor interface_descriptor01 = {
-	.blength = sizeof(struct usb_interface_descriptor),
-	.bdescriptortype =	DESCRIPTOR_TYPE_INTERFACE,
-	.binterfacenumber =	1,
+	.blength =				sizeof(struct usb_interface_descriptor),
+	.bdescriptortype =		DESCRIPTOR_TYPE_INTERFACE,
+	.binterfacenumber =		1,
 	.balternatesetting =	0,
-	.bnumendpoints =	2,
-	.binterfaceclass =	0x0A,
+	.bnumendpoints =		NUM_ENDPOINTS,
+	.binterfaceclass =		0x0A,
 	.binterfacesubclass =	0x00,
 	.binterfaceprotocol =	0x00,
-	.iinterface =		0x00
+	.iinterface =			6
 };
 
 __code struct usb_endpoint_descriptor bulk_ep6_out_endpoint_descriptor = {
-	.blength =		sizeof(struct usb_endpoint_descriptor),
-	.bdescriptortype =	0x05,
-	.bendpointaddress =	(6 | USB_DIR_OUT),
-	.bmattributes =		0x02,
-	.wmaxpacketsize =	512,
-	.binterval =		0
+	.blength =				sizeof(struct usb_endpoint_descriptor),
+	.bdescriptortype =		0x05,
+	.bendpointaddress =		(6 | USB_DIR_OUT),
+	.bmattributes =			0x02,
+	.wmaxpacketsize =		512,
+	.binterval =			0
 };
 
 __code struct usb_endpoint_descriptor bulk_ep8_in_endpoint_descriptor = {
-	.blength =		sizeof(struct usb_endpoint_descriptor),
-	.bdescriptortype =	0x05,
-	.bendpointaddress =	(8 | USB_DIR_IN),
-	.bmattributes =		0x02,
-	.wmaxpacketsize =	512,
-	.binterval =		0
+	.blength =				sizeof(struct usb_endpoint_descriptor),
+	.bdescriptortype =		0x05,
+	.bendpointaddress =		(8 | USB_DIR_IN),
+	.bmattributes =			0x02,
+	.wmaxpacketsize =		512,
+	.binterval =			0
 };
 __code struct usb_language_descriptor language_descriptor = {
-	.blength =		4,
-	.bdescriptortype =	DESCRIPTOR_TYPE_STRING,
-	.wlangid =		{0x0409} /* US English */
+	.blength =				4,
+	.bdescriptortype =		DESCRIPTOR_TYPE_STRING,
+	.wlangid =				{0x0409} /* US English */
 };
 
 __code struct usb_string_descriptor strmanufacturer =
@@ -195,15 +179,9 @@ void ep0out_isr(void)__interrupt	EP0OUT_ISR
 }
 void ep1in_isr(void)__interrupt	EP1IN_ISR
 {
-	ep1_in = true;
-	EXIF &= ~0x10;  /* Clear USBINT: Main global interrupt */
-	EPIRQ = 0x04;	/* Clear individual EP1IN IRQ */
 }
 void ep1out_isr(void)__interrupt	EP1OUT_ISR
 {
-	ep1_out = true;
-	EXIF &= ~0x10;  /* Clear USBINT: Main global interrupt */
-	EPIRQ = 0x08;	/* Clear individual EP1OUT IRQ */
 }
 void ep2_isr(void)__interrupt	EP2_ISR
 {
@@ -213,10 +191,11 @@ void ep4_isr(void)__interrupt	EP4_ISR
 }
 void ep6_isr(void)__interrupt	EP6_ISR
 {
-	ep6_out = true;
+	REVCTL = 0;     /* REVCTL.0 and REVCTL.1 set to 0 */
+	i2c_recieve();  /* Execute I2C communication */
 	EXIF &= ~0x10;  /* Clear USBINT: Main global interrupt */
 	EPIRQ = 0x40;	/* Clear individual EP6OUT IRQ */
-
+	REVCTL = 0x3;   /* REVCTL.0 and REVCTL.1 set to 1 */
 }
 void ep8_isr(void)__interrupt	EP8_ISR
 {
@@ -523,15 +502,28 @@ bool usb_handle_get_descriptor(void)
 void usb_handle_set_interface(void)
 {
 	/* Reset Data Toggle */
-	usb_reset_data_toggle(USB_DIR_IN  | 4);
 	usb_reset_data_toggle(USB_DIR_OUT | 2);
-
-	/* Unstall & clear busy flag of all valid IN endpoints */
-	EP1INCS = 0 | EPBSY;
+	usb_reset_data_toggle(USB_DIR_IN  | 4);
+	usb_reset_data_toggle(USB_DIR_OUT | 6);
+	usb_reset_data_toggle(USB_DIR_IN  | 8);
 
 	/* Unstall all valid OUT endpoints, reset bytecounts */
-	EP1OUTCS = 0;
-	EP1OUTBC = 0;
+	EP2CS = 0;
+	EP4CS = 0;
+	EP6CS = 0;
+	EP8CS = 0;
+	syncdelay(3);
+	EP2BCH = 0;
+	EP2BCL = 0x80;
+	syncdelay(3);
+	EP4BCH = 0;
+	EP4BCL = 0x80;
+	syncdelay(3);
+	EP6BCH = 0;
+	EP6BCL = 0x80;
+	syncdelay(3);
+	EP8BCH = 0;
+	EP8BCL = 0x80;
 	syncdelay(3);
 }
 
@@ -672,8 +664,9 @@ void usb_handle_setup_data(void)
 	case GET_INTERFACE:
 		/* ANGIE only has one interface, return its number */
 		EP0BUF[0] = interface_descriptor00.binterfacenumber;
+		EP0BUF[1] = interface_descriptor01.binterfacenumber;
 		EP0BCH = 0;
-		EP0BCL = 1;
+		EP0BCL = 2;
 		syncdelay(3);
 		break;
 	case SET_INTERFACE:
@@ -695,29 +688,21 @@ void usb_handle_setup_data(void)
  */
 void ep_init(void)
 {
-	EP1INCFG = 0xA0;
+	EP1INCFG = 0x00;  /* non VALID */
 	syncdelay(3);
-	EP1OUTCFG = 0xA0;
-	syncdelay(3);
-	EP2CFG = 0xA0;
-	syncdelay(3);
-	EP4CFG = 0x00;
-	syncdelay(3);
-	EP6CFG = 0xA2;
-	syncdelay(3);
-	EP8CFG = 0xE2;
+	EP1OUTCFG = 0x00;  /* non VALID */
 	syncdelay(3);
 
-	/* arm EP1-OUT */
-	EP1OUTBC = 0;
+	/* JTAG */
+	EP2CFG = 0xA2;  /* VALID | OUT | BULK | 512 Bytes | Double buffer */
 	syncdelay(3);
-	EP1OUTBC = 0;
+	EP4CFG = 0xE2;  /* VALID | IN | BULK | 512 Bytes | Double buffer */
 	syncdelay(3);
 
-	/* arm EP1-IN */
-	EP1INBC = 0;
+	/* I2C */
+	EP6CFG = 0xA2;  /* VALID | OUT | BULK | 512 Bytes | Double buffer */
 	syncdelay(3);
-	EP1INBC = 0;
+	EP8CFG = 0xE2;  /* VALID | IN | BULK | 512 Bytes | Double buffer */
 	syncdelay(3);
 
 	/* arm EP6-OUT */
@@ -726,16 +711,30 @@ void ep_init(void)
 	EP6BCL = 0x80;
 	syncdelay(3);
 
+	/* REVCTL.0 and REVCTL.1 set to 1 */
+	REVCTL = 0x3;
+	/* Arm both EP2 buffers to “prime the pump” */
+	OUTPKTEND = 0x82;
+	syncdelay(3);
+	OUTPKTEND = 0x82;
+	syncdelay(3);
+
 	/* Standard procedure to reset FIFOs */
 	FIFORESET = BMNAKALL;	/* NAK all transfers during the reset */
 	syncdelay(3);
-	FIFORESET = 0x02;		/* reset EP2 FIFO */
+	FIFORESET = BMNAKALL | 0x02;		/* reset EP2 FIFO */
+	syncdelay(3);
+	FIFORESET = BMNAKALL | 0x04;		/* reset EP4 FIFO */
 	syncdelay(3);
 	FIFORESET = 0x00;		/* deactivate the NAK all */
 	syncdelay(3);
+
+	/* configure EP2 in AUTO mode with 8-bit interface */
 	EP2FIFOCFG = 0x00;
 	syncdelay(3);
-	EP2FIFOCFG = BMAUTOOUT;	/* Automatic 8-bit GPIF OUT mode */
+	EP2FIFOCFG = BMAUTOOUT;	/* 8-bit Auto OUT mode */
+	syncdelay(3);
+	EP4FIFOCFG = BMAUTOIN | BMZEROLENIN;	/* 8-bit Auto IN mode */
 	syncdelay(3);
 }
 
@@ -841,9 +840,6 @@ void i2c_recieve(void)
  **/
 void interrupt_init(void)
 {
-	/* Enable Interrupts */
-	EA = 1;
-
 	/* Enable USB interrupt (EIE register) */
 	EUSB = 1;
 	EICON |= 0x20;
@@ -851,17 +847,20 @@ void interrupt_init(void)
 	/* Enable INT 2 & 4 Autovectoring */
 	INTSETUP |= (AV2EN | AV4EN);
 
-	/* Enable individual EP1OUT&IN & EP6&8 interrupts */
-	EPIE |= 0xCC;
+	/* Enable individual EP6&8 interrupts */
+	EPIE |= 0xC0;
 
 	/* Clear individual USB interrupt IRQ */
-	EPIRQ = 0xCC;
+	EPIRQ = 0xC0;
 
 	/* Enable SUDAV interrupt */
 	USBIEN |= SUDAVI;
 
 	/* Clear SUDAV interrupt */
 	USBIRQ = SUDAVI;
+
+	/* Enable Interrupts */
+	EA = 1;
 }
 
 /**
@@ -870,25 +869,12 @@ void interrupt_init(void)
 void io_init(void)
 {
 	/* PORT A */
-	PORTACFG = 0x01;	/* 0: normal ou 1: alternate function (each bit) */
-	OEA = 0xEF;	/* all OUT exept INIT_B IN */
+	PORTACFG = 0x0;	/* 0: normal ou 1: alternate function (each bit) */
+	OEA = 0xEF;
 	IOA = 0xFF;
 
-	/* PORT B */
-	OEB = 0xEF;	/* all OUT exept TDO */
-	IOB = 0xFF;
-	PIN_TRST = 1;
-	PIN_TMS = 0;
-	PIN_TCK = 0;
-	PIN_TDI = 0;
-	PIN_SRST = 1;
-
 	/* PORT C */
-	PORTCCFG = 0x00;	/* 0: normal ou 1: alternate function (each bit) */
+	PORTCCFG = 0x0;	/* 0: normal ou 1: alternate function (each bit) */
 	OEC = 0xFF;
 	IOC = 0xFF;
-
-	/* PORT D */
-	OED = 0xFF;
-	IOD = 0xFF;
 }
