@@ -12,7 +12,6 @@
 
 #include "usb.h"
 #include "delay.h"
-#include "protocol.h"
 #include "reg_ezusb.h"
 #include <serial.h>
 #include <stdio.h>
@@ -65,7 +64,7 @@ void gpif_init(void);
 int main(void)
 {
 	CPUCS = ((CPUCS & ~bmclkspd) | (CLK_48M << 3) | CLKOE);	/* required for sio0_init */
-	sio0_init(57600);	/* needed for printf */
+	sio0_init(115200);	/* needed for printf */
 
 	ep_init();
 	gpif_init();
@@ -74,12 +73,10 @@ int main(void)
 
 	/* Perform ReNumeration */
 	USBCS |= (DISCON | RENUM);
-	delay_ms(250);
+	delay_ms(50);
 	USBCS &= ~DISCON;
 
-	/* Begin executing command(s). This function never returns. */
-	command_loop();
-
-	/* Never reached, but SDCC complains about missing return statement */
-	return 0;
+	/* stay here */
+	while (1)
+		;
 }

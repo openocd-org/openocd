@@ -11,14 +11,16 @@
 *****************************************************************************/
 
 #include "usb.h"
-#include "stdint.h"
 #include "delay.h"
 #include "io.h"
 #include "reg_ezusb.h"
-#include <fx2macros.h>
-#include <serial.h>
-#include <stdio.h>
+#include "fx2macros.h"
+#include "serial.h"
 #include "i2c.h"
+#include <stdint.h>
+#include <stdio.h>
+
+// #define PRINTF_DEBUG
 
 volatile __xdata __at 0xE6B8 struct setup_data setup_data;
 
@@ -26,7 +28,6 @@ volatile __xdata __at 0xE6B8 struct setup_data setup_data;
  * Be sure to include the necessary endpoint descriptors!
  */
 #define NUM_ENDPOINTS 2
-
 
 __code struct usb_device_descriptor device_descriptor = {
 	.blength =				sizeof(struct usb_device_descriptor),
@@ -543,14 +544,14 @@ void set_gpif_cnt(uint32_t count)
  * Vendor commands handling:
 */
 #define VR_CFGOPEN		0xB0
-#define VR_CFGCLOSE		0xB1
+#define VR_DATAOUTOPEN	0xB2
 
 uint8_t	ix;
 uint8_t bcnt;
 uint8_t __xdata *eptr;
 uint16_t wcnt;
 uint32_t __xdata gcnt;
-bool usb_handle_send_bitstream(void)
+bool usb_handle_vcommands(void)
 {
 	eptr = EP0BUF;						/* points to EP0BUF 64-byte register */
 	wcnt = setup_data.wlength;			/* total transfer count */
@@ -574,43 +575,63 @@ bool usb_handle_send_bitstream(void)
 		/* Angie board FPGA bitstream download */
 		switch ((setup_data.wvalue) & 0x00C0) {
 		case 0x00:
-			PIN_PROGRAM_B = 0;		/* Apply RPGM- pulse */
-			GPIFWFSELECT = 0xF2;	/* Restore Config mode waveforms select */
-			syncdelay(3);
-			EP2FIFOCFG = BMAUTOOUT;	/* and Automatic 8-bit GPIF OUT mode */
-			syncdelay(3);
-			PIN_PROGRAM_B = 1;		/* Negate RPGM- pulse */
-			delay_ms(10);			/* FPGA init time < 10mS */
-			set_gpif_cnt(gcnt);		/* Initialize GPIF interface transfer count */
+			/* Apply RPGM- pulse */
+			PIN_PROGRAM_B = 0;
+			syncdelay(1);
+			/* Negate RPGM- pulse */
+			PIN_PROGRAM_B = 1;
+			/* FPGA init time < 10mS */
+			delay_ms(10);
+			/* Initialize GPIF interface transfer count */
+			set_gpif_cnt(gcnt);
 			PIN_RDWR_B = 0;
-			PIN_CSI_B = 0;
-			GPIFTRIG = GPIF_EP2;	/* Trigger GPIF OUT transfer on EP2 */
-			syncdelay(3);
+			PIN_SDA = 0;
+			/* Trigger GPIF OUT transfer on EP2 */
+			GPIFTRIG = GPIF_EP2;
+			while (!(GPIFTRIG & BMGPIFDONE)) // poll GPIFTRIG.7 GPIF Done bit
+				;
+			PIN_SDA = 1;
+			PIN_RDWR_B = 1;
+			#ifdef PRINTF_DEBUG
+			printf("Program SP6 Done.\n");
+			#endif
+			/* Choose wich Waveform to use */
+			GPIFWFSELECT = 0xF6;
 			break;
 		default:
 			break;
 		}
 		break;
-	case VR_CFGCLOSE:
-		ix = 10;
-		/* wait until GPIF transaction has been completed */
-		while ((GPIFTRIG & BMGPIFDONE) == 0) {
-			if (ix-- == 0) {
-				break;
-			}
-			delay_ms(1);
-		}
-		switch ((setup_data.wvalue) & 0x00C0) {
-			case 0x00:
-				PIN_CSI_B = 1;
-				PIN_RDWR_B = 1;
-				IFCONFIG &= 0xFC; /* Exit gpif mode */
-				break;
-			default:
-				break;
-		}
+	case VR_DATAOUTOPEN:
+		/* Clear bytecount / to allow new data in / to stops NAKing */
 		EP0BCH = 0;
-		EP0BCL = (uint8_t)(setup_data.wlength);	/* Signal buffer is filled */
+		EP0BCL = 0;
+		while (EP0CS & EPBSY)
+			; /* wait to finish transferring in EP0BUF, until not busy */
+		gcnt  = ((uint32_t)(eptr[0]) << 24) | ((uint32_t)(eptr[1]) << 16)
+		| ((uint32_t)(eptr[2]) << 8) | (uint32_t)(eptr[3]);
+		/* Angie board FPGA bitstream download */
+		PIN_RDWR_B = 0;
+		/* Initialize GPIF interface transfer count */
+		GPIFTCB3 = (uint8_t)(((uint32_t)(gcnt) >> 24) & 0x000000ff);
+		GPIFTCB2 = (uint8_t)(((uint32_t)(gcnt) >> 16) & 0x000000ff);
+		GPIFTCB1 = (uint8_t)(((uint32_t)(gcnt) >> 8) & 0x000000ff);
+		GPIFTCB0 = (uint8_t)((uint32_t)(gcnt) & 0x000000ff);
+		/* Trigger GPIF OUT transfer on EP2 */
+		GPIFTRIG = GPIF_EP2;
+		while (!(GPIFTRIG & BMGPIFDONE)) // poll GPIFTRIG.7 GPIF Done bit
+			;
+		PIN_RDWR_B = 1;
+		/* Initialize GPIF interface transfer count */
+		GPIFTCB3 = (uint8_t)(((uint32_t)(gcnt) >> 24) & 0x000000ff);
+		GPIFTCB2 = (uint8_t)(((uint32_t)(gcnt) >> 16) & 0x000000ff);
+		GPIFTCB1 = (uint8_t)(((uint32_t)(gcnt) >> 8) & 0x000000ff);
+		GPIFTCB0 = (uint8_t)((uint32_t)(gcnt) & 0x000000ff);
+		/* Initialize AUTOIN transfer count */
+		EP4AUTOINLENH = (uint8_t)(((uint32_t)(gcnt) >> 8) & 0x000000ff);
+		EP4AUTOINLENL = (uint8_t)((uint32_t)(gcnt) & 0x000000ff);
+		/* Trigger GPIF IN transfer on EP4 */
+		GPIFTRIG = BMGPIFREAD | GPIF_EP4;
 		break;
 	default:
 		return true;	/* Error: unknown VR command */
@@ -677,7 +698,7 @@ void usb_handle_setup_data(void)
 		break;
 	default:
 		/* if not Vendor command, Stall EndPoint 0 */
-		if (usb_handle_send_bitstream())
+		if (usb_handle_vcommands())
 			STALL_EP0();
 		break;
 	}
