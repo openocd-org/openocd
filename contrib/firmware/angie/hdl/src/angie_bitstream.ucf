@@ -1,8 +1,8 @@
 ## SPDX-License-Identifier: BSD-3-Clause
 ##--------------------------------------------------------------------------
-## Project Context: nanoXplore USB-JTAG Adapter Board, Spartan6
-## Design Name:     NJTAG USB-JTAG Adapter FPGA source code
-## Module Name:     _angie_openocd.ucf
+## Project Context: nanoXplore USB to JTAG/I2C Adapter Board, Spartan6
+## Design Name:     ANGIE USB to JTAG/I2C Adapter FPGA source code
+## Module Name:     angie_bitstream.ucf
 ## Target Device:   XC6SLX9-2 TQ144
 ## Tool versions:   ISE Webpack 13.2 -> 14.2
 ## Author:          Ahmed BOUDJELIDA    nanoXplore SAS
@@ -10,41 +10,65 @@
 # WARNING: PullUps on JTAG inputs should be enabled after configuration
 # (bitgen option) since the pins are not connected.
 
-net TRST	LOC = 'P48' ;
-net TMS		LOC = 'P43' ;
-net TCK		LOC = 'P44' ;
-net TDI		LOC = 'P45' ;
-net TDO     LOC = 'P46' ;
-net SRST    LOC = 'P61' ;
+CONFIG VCCAUX = "3.3";
 
-net SDA		LOC = 'P50' ;
-net SCL     LOC = 'P51' ;
-net SDA_DIR	LOC = 'P56' ;
-net SCL_DIR	LOC = 'P57' ;
+# Timing
+# net IH24        period = 40; # Constrain at 25MHz
+# net IH40        period = 25; # Constrain at 40MHz
+# DCMs placement on Spartan6
+# INST S6MOD_CKMUL.H48_DCM    LOC = DCM0;
 
-net SI_TDO	LOC = 'P16' ;
-net SO_TRST	LOC = 'P32' ;
-net SO_TMS	LOC = 'P27' ;
-net SO_TCK	LOC = 'P30' ;
-net SO_TDI	LOC = 'P26' ;
-net SO_SRST	LOC = 'P12' ;
+# Clock 48MHz
+net IFCLK_I            LOC = 'P123' ;
 
-net SO_SDA_OUT	LOC = 'P140' ;
-net SO_SDA_IN	LOC = 'P1' ;
-net SO_SCL	LOC = 'P137';
+net GD_IO<0> 	     LOC = 'P48' ;
+net GD_IO<1>		 LOC = 'P43' ;
+net GD_IO<2>         LOC = 'P44' ;
+net GD_IO<3>		 LOC = 'P45' ;
+net GD_IO<4>         LOC = 'P46' ;
+net GD_IO<5>         LOC = 'P61' ;
+net GD_IO<6>         LOC = 'P62' ;
+net GD_IO<7>         LOC = 'P65' ;
 
-net ST_0	LOC = 'P29' ;
-net ST_1	LOC = 'P21' ;
-net ST_2	LOC = 'P11' ;
+net PA2_I            LOC = 'P47' ;
+#net PA3_I            LOC = 'P64' ;
+net JPW_I            LOC = 'P14' ;
 
-net ST_4	LOC = 'P134' ;
-net ST_5	LOC = 'P139' ;
+net GCTL0_I          LOC = 'P70' ;
+#net GCTL1_I          LOC = 'P55' ;
+#net GCTL2_I          LOC = 'P67' ;
+net GRDY1_I          LOC = 'P118' ;
 
-net FTP<0>	LOC = 'P121' ;
-net FTP<1>	LOC = 'P120' ;
-net FTP<2>	LOC = 'P119' ;
-net FTP<3>	LOC = 'P116' ;
-net FTP<4>	LOC = 'P111' ;
-net FTP<5>	LOC = 'P112' ;
-net FTP<6>	LOC = 'P115' ;
-net FTP<7>	LOC = 'P114' ;
+#net SDA_IO		     LOC = 'P50' ;
+net SDA_IO		    LOC = 'P64' ; #PA3
+#net SCL_I           LOC = 'P51' ;
+net SCL_I           LOC = 'P39' ; #PA4 switch
+net SDA_DIR_I	    LOC = 'P66' ; #PA0 switch
+#net SCL_DIR_I	     LOC = 'P57' ;
+
+net SO_SDA_OUT_O	LOC = 'P140' ;
+net SO_SDA_IN_I	    LOC = 'P1' ;
+net SO_SCL_O	    LOC = 'P137' ;
+
+net SO_TRST_O	    LOC = 'P32' ;
+net SO_TMS_O	    LOC = 'P27' ;
+net SO_TCK_O        LOC = 'P30' ;
+net SO_TDI_O        LOC = 'P26' ;
+net SO_SRST_O       LOC = 'P12' ;
+net SI_TDO_I        LOC = 'P16' ;
+
+net ST_0_O	        LOC = 'P29' ;
+net ST_1_O	        LOC = 'P21' ;
+net ST_2_O	        LOC = 'P11' ;
+net ST_3_O	        LOC = 'P7' ;
+net ST_4_O	        LOC = 'P134' ;
+net ST_5_O	        LOC = 'P139' ;
+
+net FTP_O<0>	    LOC = 'P121' ;
+net FTP_O<1>	    LOC = 'P120' ;
+net FTP_O<2>	    LOC = 'P119' ;
+net FTP_O<3>	    LOC = 'P116' ;
+net FTP_O<4>	    LOC = 'P111' ;
+net FTP_O<5>	    LOC = 'P112' ;
+net FTP_O<6>	    LOC = 'P115' ;
+net FTP_O<7>	    LOC = 'P114' ;
