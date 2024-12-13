@@ -26,6 +26,7 @@
 #define FUNC_FLASH_FLUSH_CACHE         MAKE_TAG('F', 'C')
 #define FUNC_FLASH_ENTER_CMD_XIP       MAKE_TAG('C', 'X')
 #define FUNC_BOOTROM_STATE_RESET       MAKE_TAG('S', 'R')
+#define FUNC_BOOTROM_SET_STACK         MAKE_TAG('S', 'S')
 #define FUNC_FLASH_RESET_ADDRESS_TRANS MAKE_TAG('R', 'A')
 
 /* ROM table flags for RP2350 A1 ROM onwards */
@@ -201,6 +202,7 @@ struct rp2xxx_flash_bank {
 	uint16_t jump_flash_reset_address_trans;
 	uint16_t jump_enter_cmd_xip;
 	uint16_t jump_bootrom_reset_state;
+	uint16_t jump_bootrom_set_varm_stack;
 
 	char dev_name[20];
 	bool size_override;
@@ -443,6 +445,15 @@ static int rp2xxx_populate_rom_pointer_cache(struct target *target, struct rp2xx
 	if (err != ERROR_OK) {
 		priv->jump_bootrom_reset_state = 0;
 		LOG_WARNING("Function FUNC_BOOTROM_STATE_RESET not found in RP2xxx ROM. (probably an RP2350 A0)");
+	}
+
+	if (!is_arm(target_to_arm(target))) {
+		err = rp2xxx_lookup_rom_symbol(target, FUNC_BOOTROM_SET_STACK, symtype_func,
+									   &priv->jump_bootrom_set_varm_stack);
+		if (err != ERROR_OK) {
+			priv->jump_bootrom_set_varm_stack = 0;
+			LOG_WARNING("Function FUNC_BOOTROM_SET_STACK not found in RP2xxx ROM. (probably an RP2350 A0)");
+		}
 	}
 
 	err = rp2xxx_lookup_rom_symbol(target, FUNC_FLASH_RESET_ADDRESS_TRANS,
@@ -720,11 +731,47 @@ static int setup_for_raw_flash_cmd(struct target *target, struct rp2xxx_flash_ba
 		if (!priv->jump_bootrom_reset_state) {
 			LOG_WARNING("RP2350 flash: no bootrom_reset_method\n");
 		} else {
+			/* This is mainly required to clear varmulet_enclosing_cpu pointers on RISC-V, in case
+			   an Arm -> RISC-V call has been interrupted (these pointers are used to handle
+			   reentrant calls to the ROM emulator) */
 			LOG_DEBUG("Clearing core 0 ROM state");
 			err = rp2xxx_call_rom_func(target, priv, priv->jump_bootrom_reset_state,
 									   reset_args, ARRAY_SIZE(reset_args));
 			if (err != ERROR_OK) {
 				LOG_ERROR("RP2350 flash: failed to call reset core state");
+				return err;
+			}
+		}
+		if (!is_arm(target_to_arm(target)) && priv->jump_bootrom_set_varm_stack) {
+			/* Pass {0, 0} to set_varmulet_user_stack() to enable automatic emulation of Arm APIs
+			   using the ROM's default stacks. Usually the bootrom does this before exiting to user
+			   code, but it needs to be done manually when the USB bootloader has been interrupted. */
+			LOG_DEBUG("Enabling default Arm emulator stacks for RISC-V ROM calls\n");
+			struct working_area *set_stack_mem_args;
+			err = target_alloc_working_area(target, 2 * sizeof(uint32_t), &set_stack_mem_args);
+			if (err != ERROR_OK) {
+				LOG_ERROR("Failed to allocate memory for arguments to set_varmulet_user_stack()");
+				return err;
+			}
+
+			err = target_write_u32(target, set_stack_mem_args->address, 0);
+			if (err == ERROR_OK)
+				err = target_write_u32(target, set_stack_mem_args->address + 4, 0);
+
+			if (err != ERROR_OK) {
+				LOG_ERROR("Failed to initialise memory arguments for set_varmulet_user_stack()");
+				target_free_working_area(target, set_stack_mem_args);
+				return err;
+			}
+
+			uint32_t set_stack_register_args[1] = {
+				set_stack_mem_args->address
+			};
+			err = rp2xxx_call_rom_func(target, priv, priv->jump_bootrom_set_varm_stack,
+									   set_stack_register_args, ARRAY_SIZE(set_stack_register_args));
+			target_free_working_area(target, set_stack_mem_args);
+			if (err != ERROR_OK) {
+				LOG_ERROR("Failed to initialise Arm emulation stacks for RISC-V: 0x%08" PRIx32, err);
 				return err;
 			}
 		}
