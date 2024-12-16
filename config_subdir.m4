@@ -7,6 +7,6 @@ AC_DEFUN([AX_CONFIG_SUBDIR_OPTION],
 AC_CONFIG_SUBDIRS([$1])
 
 m4_ifblank([$2], [rm -f $srcdir/$1/configure.gnu],
-[echo -e '#!/bin/sh\nexec "`dirname "'\$'0"`/configure" '"$2"' "'\$'@"' > "$srcdir/$1/configure.gnu"
+[printf '#!/bin/sh\nexec "`dirname "'\$'0"`/configure" '"$2"' "'\$'@"\n' > "$srcdir/$1/configure.gnu"
 ])
 ])
