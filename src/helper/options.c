@@ -303,8 +303,12 @@ int parse_cmdline_args(struct command_context *cmd_ctx, int argc, char *argv[])
 				break;
 			}
 			case 'l':		/* --log_output | -l */
-				command_run_linef(cmd_ctx, "log_output %s", optarg);
+			{
+				int retval = command_run_linef(cmd_ctx, "log_output %s", optarg);
+				if (retval != ERROR_OK)
+					return retval;
 				break;
+			}
 			case 'c':		/* --command | -c */
 				add_config_command(optarg);
 				break;
