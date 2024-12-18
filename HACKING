@@ -118,6 +118,22 @@ patch:
   make
   @endcode
 
+- Code coverage analysis
+
+  By inspecting the code coverage, you can identify potential gaps in your testing
+  and use that information to improve your test scenarios.
+
+  Example usage:
+  @code
+  mkdir build-gcov; cd build-gcov
+  ../configure --enable-gcov [...]
+  make
+  # ... Now execute your test scenarios to collect OpenOCD code coverage ...
+  lcov --capture --directory ./src --output-file openocd-coverage.info
+  genhtml openocd-coverage.info --output-directory coverage_report
+  # ... Open coverage_report/index.html in a web browser ...
+  @endcode
+
 Please consider performing these additional checks where appropriate
 (especially Clang Static Analyzer for big portions of new code) and
 mention the results (e.g. "Valgrind-clean, no new Clang analyzer

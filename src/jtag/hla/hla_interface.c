@@ -30,7 +30,6 @@ static struct hl_interface hl_if = {
 		.pid = { 0 },
 		.transport = HL_TRANSPORT_UNKNOWN,
 		.connect_under_reset = false,
-		.initial_interface_speed = -1,
 		.use_stlink_tcp = false,
 		.stlink_tcp_port = 7184,
 	},
@@ -165,11 +164,8 @@ static int hl_interface_speed(int speed)
 	if (!hl_if.layout->api->speed)
 		return ERROR_OK;
 
-	if (!hl_if.handle) {
-		/* pass speed as initial param as interface not open yet */
-		hl_if.param.initial_interface_speed = speed;
+	if (!hl_if.handle)
 		return ERROR_OK;
-	}
 
 	hl_if.layout->api->speed(hl_if.handle, speed, false);
 

@@ -2359,7 +2359,7 @@ static int adiv5_jim_spot_configure(struct jim_getopt_info *goi,
 
 	switch (n->value) {
 	case CFG_DAP:
-		if (goi->isconfigure) {
+		if (goi->is_configure) {
 			Jim_Obj *o_t;
 			struct adiv5_dap *dap;
 			e = jim_getopt_obj(goi, &o_t);
@@ -2388,7 +2388,7 @@ static int adiv5_jim_spot_configure(struct jim_getopt_info *goi,
 		break;
 
 	case CFG_AP_NUM:
-		if (goi->isconfigure) {
+		if (goi->is_configure) {
 			/* jim_wide is a signed 64 bits int, ap_num is unsigned with max 52 bits */
 			jim_wide ap_num;
 			e = jim_getopt_wide(goi, &ap_num);
@@ -2415,7 +2415,7 @@ static int adiv5_jim_spot_configure(struct jim_getopt_info *goi,
 		LOG_WARNING("DEPRECATED! use \'-baseaddr' not \'-ctibase\'");
 		/* fall through */
 	case CFG_BASEADDR:
-		if (goi->isconfigure) {
+		if (goi->is_configure) {
 			jim_wide base;
 			e = jim_getopt_wide(goi, &base);
 			if (e != JIM_OK)

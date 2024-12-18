@@ -45,6 +45,7 @@
 
 /* PS register bits (NX) */
 #define XT_PS_DIEXC_MSK                         BIT(2)
+#define XT_PS_DI_MSK                            BIT(3)
 
 /* MS register bits (NX) */
 #define XT_MS_DE_MSK                            BIT(5)

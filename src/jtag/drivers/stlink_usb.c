@@ -3781,7 +3781,7 @@ static int stlink_open(struct hl_interface_param *param, enum stlink_mode mode, 
 	}
 
 	/* initialize the debug hardware */
-	err = stlink_usb_init_mode(h, param->connect_under_reset, param->initial_interface_speed);
+	err = stlink_usb_init_mode(h, param->connect_under_reset, adapter_get_speed_khz());
 
 	if (err != ERROR_OK) {
 		LOG_ERROR("init mode failed (unable to connect to the target)");
@@ -5174,7 +5174,6 @@ static int stlink_dap_speed(int speed)
 		return ERROR_JTAG_NOT_IMPLEMENTED;
 	}
 
-	stlink_dap_param.initial_interface_speed = speed;
 	stlink_speed(stlink_dap_handle, speed, false);
 	return ERROR_OK;
 }

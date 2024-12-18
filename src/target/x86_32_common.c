@@ -677,7 +677,7 @@ int x86_32_common_write_memory(struct target *t, target_addr_t addr,
 	return retval;
 }
 
-int x86_32_common_read_io(struct target *t, uint32_t addr,
+static int x86_32_common_read_io(struct target *t, uint32_t addr,
 			uint32_t size, uint8_t *buf)
 {
 	struct x86_32_common *x86_32 = target_to_x86_32(t);

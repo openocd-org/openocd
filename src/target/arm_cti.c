@@ -468,7 +468,7 @@ static int cti_create(struct jim_getopt_info *goi)
 	adiv5_mem_ap_spot_init(&cti->spot);
 
 	/* Do the rest as "configure" options */
-	goi->isconfigure = 1;
+	goi->is_configure = true;
 	e = cti_configure(goi, cti);
 	if (e != JIM_OK) {
 		free(cti);

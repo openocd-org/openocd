@@ -75,6 +75,8 @@ struct mpsse_ctx {
 	int retval;
 };
 
+static void mpsse_purge(struct mpsse_ctx *ctx);
+
 /* Returns true if the string descriptor indexed by str_index in device matches string */
 static bool string_descriptor_equal(struct libusb_device_handle *device, uint8_t str_index,
 	const char *string)
@@ -421,7 +423,7 @@ bool mpsse_is_high_speed(struct mpsse_ctx *ctx)
 	return ctx->type != TYPE_FT2232C;
 }
 
-void mpsse_purge(struct mpsse_ctx *ctx)
+static void mpsse_purge(struct mpsse_ctx *ctx)
 {
 	int err;
 	LOG_DEBUG("-");
@@ -709,7 +711,7 @@ void mpsse_loopback_config(struct mpsse_ctx *ctx, bool enable)
 	single_byte_boolean_helper(ctx, enable, 0x84, 0x85);
 }
 
-void mpsse_set_divisor(struct mpsse_ctx *ctx, uint16_t divisor)
+static void mpsse_set_divisor(struct mpsse_ctx *ctx, uint16_t divisor)
 {
 	LOG_DEBUG("%d", divisor);
 
@@ -726,7 +728,7 @@ void mpsse_set_divisor(struct mpsse_ctx *ctx, uint16_t divisor)
 	buffer_write_byte(ctx, divisor >> 8);
 }
 
-int mpsse_divide_by_5_config(struct mpsse_ctx *ctx, bool enable)
+static int mpsse_divide_by_5_config(struct mpsse_ctx *ctx, bool enable)
 {
 	if (!mpsse_is_high_speed(ctx))
 		return ERROR_FAIL;
@@ -737,7 +739,7 @@ int mpsse_divide_by_5_config(struct mpsse_ctx *ctx, bool enable)
 	return ERROR_OK;
 }
 
-int mpsse_rtck_config(struct mpsse_ctx *ctx, bool enable)
+static int mpsse_rtck_config(struct mpsse_ctx *ctx, bool enable)
 {
 	if (!mpsse_is_high_speed(ctx))
 		return ERROR_FAIL;

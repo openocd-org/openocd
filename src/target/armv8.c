@@ -1021,12 +1021,6 @@ static __attribute__((unused)) void armv8_show_fault_registers(struct target *ta
 		armv8_show_fault_registers32(armv8);
 }
 
-/*  method adapted to cortex A : reused arm v4 v5 method*/
-int armv8_mmu_translate_va(struct target *target,  target_addr_t va, target_addr_t *val)
-{
-	return ERROR_OK;
-}
-
 static void armv8_decode_cacheability(int attr)
 {
 	if (attr == 0) {

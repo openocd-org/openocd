@@ -143,7 +143,7 @@ endif
 if ARMJTAGEW
 DRIVERFILES += %D%/arm-jtag-ew.c
 endif
-if BUSPIRATE
+if BUS_PIRATE
 DRIVERFILES += %D%/buspirate.c
 endif
 if REMOTE_BITBANG

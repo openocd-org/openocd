@@ -4921,7 +4921,7 @@ static int target_configure(struct jim_getopt_info *goi, struct target *target)
 		switch (n->value) {
 		case TCFG_TYPE:
 			/* not settable */
-			if (goi->isconfigure) {
+			if (goi->is_configure) {
 				Jim_SetResultFormatted(goi->interp,
 						"not settable: %s", n->name);
 				return JIM_ERR;
@@ -4950,7 +4950,7 @@ no_params:
 				return e;
 			}
 
-			if (goi->isconfigure) {
+			if (goi->is_configure) {
 				if (goi->argc != 1) {
 					Jim_WrongNumArgs(goi->interp, goi->argc, goi->argv, "-event ?event-name? ?EVENT-BODY?");
 					return JIM_ERR;
@@ -4973,7 +4973,7 @@ no_params:
 					teap = teap->next;
 				}
 
-				if (goi->isconfigure) {
+				if (goi->is_configure) {
 					/* START_DEPRECATED_TPIU */
 					if (n->value == TARGET_EVENT_TRACE_CONFIG)
 						LOG_INFO("DEPRECATED target event %s; use TPIU events {pre,post}-{enable,disable}", n->name);
@@ -5021,7 +5021,7 @@ no_params:
 			break;
 
 		case TCFG_WORK_AREA_VIRT:
-			if (goi->isconfigure) {
+			if (goi->is_configure) {
 				target_free_all_working_areas(target);
 				e = jim_getopt_wide(goi, &w);
 				if (e != JIM_OK)
@@ -5037,7 +5037,7 @@ no_params:
 			break;
 
 		case TCFG_WORK_AREA_PHYS:
-			if (goi->isconfigure) {
+			if (goi->is_configure) {
 				target_free_all_working_areas(target);
 				e = jim_getopt_wide(goi, &w);
 				if (e != JIM_OK)
@@ -5053,7 +5053,7 @@ no_params:
 			break;
 
 		case TCFG_WORK_AREA_SIZE:
-			if (goi->isconfigure) {
+			if (goi->is_configure) {
 				target_free_all_working_areas(target);
 				e = jim_getopt_wide(goi, &w);
 				if (e != JIM_OK)
@@ -5068,7 +5068,7 @@ no_params:
 			break;
 
 		case TCFG_WORK_AREA_BACKUP:
-			if (goi->isconfigure) {
+			if (goi->is_configure) {
 				target_free_all_working_areas(target);
 				e = jim_getopt_wide(goi, &w);
 				if (e != JIM_OK)
@@ -5085,7 +5085,7 @@ no_params:
 
 
 		case TCFG_ENDIAN:
-			if (goi->isconfigure) {
+			if (goi->is_configure) {
 				e = jim_getopt_nvp(goi, nvp_target_endian, &n);
 				if (e != JIM_OK) {
 					jim_getopt_nvp_unknown(goi, nvp_target_endian, 1);
@@ -5106,7 +5106,7 @@ no_params:
 			break;
 
 		case TCFG_COREID:
-			if (goi->isconfigure) {
+			if (goi->is_configure) {
 				e = jim_getopt_wide(goi, &w);
 				if (e != JIM_OK)
 					return e;
@@ -5120,7 +5120,7 @@ no_params:
 			break;
 
 		case TCFG_CHAIN_POSITION:
-			if (goi->isconfigure) {
+			if (goi->is_configure) {
 				Jim_Obj *o_t;
 				struct jtag_tap *tap;
 
@@ -5147,7 +5147,7 @@ no_params:
 			/* loop for more e*/
 			break;
 		case TCFG_DBGBASE:
-			if (goi->isconfigure) {
+			if (goi->is_configure) {
 				e = jim_getopt_wide(goi, &w);
 				if (e != JIM_OK)
 					return e;
@@ -5177,7 +5177,7 @@ no_params:
 			break;
 
 		case TCFG_GDB_PORT:
-			if (goi->isconfigure) {
+			if (goi->is_configure) {
 				struct command_context *cmd_ctx = current_command_context(goi->interp);
 				if (cmd_ctx->mode != COMMAND_CONFIG) {
 					Jim_SetResultString(goi->interp, "-gdb-port must be configured before 'init'", -1);
@@ -5199,7 +5199,7 @@ no_params:
 			break;
 
 		case TCFG_GDB_MAX_CONNECTIONS:
-			if (goi->isconfigure) {
+			if (goi->is_configure) {
 				struct command_context *cmd_ctx = current_command_context(goi->interp);
 				if (cmd_ctx->mode != COMMAND_CONFIG) {
 					Jim_SetResultString(goi->interp, "-gdb-max-connections must be configured before 'init'", -1);
@@ -5230,7 +5230,7 @@ static int jim_target_configure(Jim_Interp *interp, int argc, Jim_Obj * const *a
 	struct jim_getopt_info goi;
 
 	jim_getopt_setup(&goi, interp, argc - 1, argv + 1);
-	goi.isconfigure = !strcmp(c->name, "configure");
+	goi.is_configure = !strcmp(c->name, "configure");
 	if (goi.argc < 1) {
 		Jim_WrongNumArgs(goi.interp, goi.argc, goi.argv,
 				 "missing: -option ...");
@@ -5807,7 +5807,7 @@ static int target_create(struct jim_getopt_info *goi)
 	target->gdb_max_connections = 1;
 
 	/* Do the rest as "configure" options */
-	goi->isconfigure = 1;
+	goi->is_configure = true;
 	e = target_configure(goi, target);
 
 	if (e == JIM_OK) {

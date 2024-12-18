@@ -195,13 +195,6 @@ int rtt_get_polling_interval(unsigned int *interval);
 int rtt_set_polling_interval(unsigned int interval);
 
 /**
- * Get whether RTT is started.
- *
- * @returns Whether RTT is started.
- */
-bool rtt_started(void);
-
-/**
  * Get whether RTT is configured.
  *
  * @returns Whether RTT is configured.
