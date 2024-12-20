@@ -28,7 +28,7 @@ static struct pld_driver *pld_drivers[] = {
 
 static struct pld_device *pld_devices;
 
-struct pld_device *get_pld_device_by_num(int num)
+static struct pld_device *get_pld_device_by_num(int num)
 {
 	struct pld_device *p;
 	int i = 0;

@@ -188,13 +188,6 @@ struct semihosting {
 	int (*post_result)(struct target *target);
 };
 
-/**
- * @brief Convert the syscall opcode to a human-readable string
- * @param[in] opcode Syscall opcode
- * @return String representation of syscall opcode
- */
-const char *semihosting_opcode_to_str(uint64_t opcode);
-
 int semihosting_common_init(struct target *target, void *setup,
 	void *post_result);
 int semihosting_common(struct target *target);
@@ -202,12 +195,7 @@ int semihosting_common(struct target *target);
 /* utility functions which may also be used by semihosting extensions (custom vendor-defined syscalls) */
 int semihosting_read_fields(struct target *target, size_t number,
 	uint8_t *fields);
-int semihosting_write_fields(struct target *target, size_t number,
-	uint8_t *fields);
 uint64_t semihosting_get_field(struct target *target, size_t index,
-	uint8_t *fields);
-void semihosting_set_field(struct target *target, uint64_t value,
-	size_t index,
 	uint8_t *fields);
 
 extern const struct command_registration semihosting_common_handlers[];

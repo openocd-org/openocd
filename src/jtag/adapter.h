@@ -97,9 +97,6 @@ int adapter_get_speed(int *speed);
  */
 int adapter_get_speed_readable(int *speed);
 
-/** Attempt to configure the adapter for the specified kHz. */
-int adapter_config_khz(unsigned int khz);
-
 /**
  * Attempt to enable RTCK/RCLK. If that fails, fallback to the
  * specified frequency.

@@ -3251,6 +3251,9 @@ sub process {
 
 # Check for Gerrit Change-Ids not in any patch context
 		if ($realfile eq '' && !$has_patch_separator && $line =~ /^\s*change-id:/i) {
+			# OpenOCD specific: Begin: exclude gerrit's Change-Id line from commit description
+			$in_commit_log = 0;
+			# OpenOCD specific: End
 			if (ERROR("GERRIT_CHANGE_ID",
 			          "Remove Gerrit Change-Id's before submitting upstream\n" . $herecurr) &&
 			    $fix) {

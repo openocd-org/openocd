@@ -54,7 +54,6 @@ struct esirisc_jtag {
 
 bool esirisc_jtag_is_debug_active(struct esirisc_jtag *jtag_info);
 bool esirisc_jtag_is_stopped(struct esirisc_jtag *jtag_info);
-uint8_t esirisc_jtag_get_eid(struct esirisc_jtag *jtag_info);
 
 int esirisc_jtag_read_byte(struct esirisc_jtag *jtag_info,
 		uint32_t address, uint8_t *data);
@@ -81,7 +80,6 @@ int esirisc_jtag_write_csr(struct esirisc_jtag *jtag_info,
 		uint8_t bank, uint8_t csr, uint32_t data);
 
 int esirisc_jtag_enable_debug(struct esirisc_jtag *jtag_info);
-int esirisc_jtag_disable_debug(struct esirisc_jtag *jtag_info);
 
 int esirisc_jtag_assert_reset(struct esirisc_jtag *jtag_info);
 int esirisc_jtag_deassert_reset(struct esirisc_jtag *jtag_info);

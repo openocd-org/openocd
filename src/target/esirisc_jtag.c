@@ -19,6 +19,8 @@
 
 #include "esirisc_jtag.h"
 
+static uint8_t esirisc_jtag_get_eid(struct esirisc_jtag *jtag_info);
+
 static void esirisc_jtag_set_instr(struct esirisc_jtag *jtag_info, uint32_t new_instr)
 {
 	struct jtag_tap *tap = jtag_info->tap;
@@ -221,7 +223,7 @@ bool esirisc_jtag_is_stopped(struct esirisc_jtag *jtag_info)
 	return !!(jtag_info->status & 1<<6);	/* S */
 }
 
-uint8_t esirisc_jtag_get_eid(struct esirisc_jtag *jtag_info)
+static uint8_t esirisc_jtag_get_eid(struct esirisc_jtag *jtag_info)
 {
 	return jtag_info->status & 0x3f;		/* EID */
 }
@@ -490,7 +492,7 @@ int esirisc_jtag_enable_debug(struct esirisc_jtag *jtag_info)
 	return esirisc_jtag_send_ctrl(jtag_info, DEBUG_ENABLE_DEBUG);
 }
 
-int esirisc_jtag_disable_debug(struct esirisc_jtag *jtag_info)
+static __attribute__((unused)) int esirisc_jtag_disable_debug(struct esirisc_jtag *jtag_info)
 {
 	return esirisc_jtag_send_ctrl(jtag_info, DEBUG_DISABLE_DEBUG);
 }

@@ -1727,7 +1727,7 @@ int xtensa_do_step(struct target *target, int current, target_addr_t address, in
 	xtensa_reg_val_t dbreakc[XT_WATCHPOINTS_NUM_MAX];
 	xtensa_reg_val_t icountlvl, cause;
 	xtensa_reg_val_t oldps, oldpc, cur_pc;
-	bool ps_lowered = false;
+	bool ps_modified = false;
 
 	LOG_TARGET_DEBUG(target, "current=%d, address=" TARGET_ADDR_FMT ", handle_breakpoints=%i",
 		current, address, handle_breakpoints);
@@ -1783,14 +1783,23 @@ int xtensa_do_step(struct target *target, int current, target_addr_t address, in
 	 * RFI >= DBGLEVEL.
 	 */
 	if (xtensa->stepping_isr_mode == XT_STEPPING_ISR_OFF) {
-		if (!xtensa->core_config->high_irq.enabled) {
-			LOG_TARGET_WARNING(
-				target,
-				"disabling IRQs while stepping is not implemented w/o high prio IRQs option!");
-			return ERROR_FAIL;
+		if (xtensa->core_config->core_type == XT_LX) {
+			if (!xtensa->core_config->high_irq.enabled) {
+				LOG_TARGET_WARNING(target,
+						"disabling IRQs while stepping is not implemented w/o high prio IRQs option!");
+				return ERROR_FAIL;
+			}
+			/* Update ICOUNTLEVEL accordingly */
+			icountlvl = MIN((oldps & 0xF) + 1, xtensa->core_config->debug.irq_level);
+		} else {
+			/* Xtensa NX does not have the ICOUNTLEVEL feature present in Xtensa LX
+			 * and instead disable interrupts while stepping. This could change
+			 * the timing of the system while under debug */
+			xtensa_reg_val_t newps = oldps | XT_PS_DI_MSK;
+			xtensa_reg_set(target, XT_REG_IDX_PS, newps);
+			icountlvl = xtensa->core_config->debug.irq_level;
+			ps_modified = true;
 		}
-		/* Update ICOUNTLEVEL accordingly */
-		icountlvl = MIN((oldps & 0xF) + 1, xtensa->core_config->debug.irq_level);
 	} else {
 		icountlvl = xtensa->core_config->debug.irq_level;
 	}
@@ -1815,7 +1824,7 @@ int xtensa_do_step(struct target *target, int current, target_addr_t address, in
 		xtensa_cause_clear(target);	/* so we don't recurse into the same routine */
 	if (xtensa->core_config->core_type == XT_LX && ((oldps & 0xf) >= icountlvl)) {
 		/* Lower interrupt level to allow stepping, but flag eps[dbglvl] to be restored */
-		ps_lowered = true;
+		ps_modified = true;
 		uint32_t newps = (oldps & ~0xf) | (icountlvl - 1);
 		xtensa_reg_set(target, xtensa->eps_dbglevel_idx, newps);
 		LOG_TARGET_DEBUG(target,
@@ -1916,11 +1925,12 @@ int xtensa_do_step(struct target *target, int current, target_addr_t address, in
 	}
 
 	/* Restore int level */
-	if (ps_lowered) {
+	if (ps_modified) {
 		LOG_DEBUG("Restoring %s after stepping: 0x%08" PRIx32,
-			xtensa->core_cache->reg_list[xtensa->eps_dbglevel_idx].name,
-			oldps);
-		xtensa_reg_set(target, xtensa->eps_dbglevel_idx, oldps);
+			xtensa->core_cache->reg_list[(xtensa->core_config->core_type == XT_LX) ?
+				xtensa->eps_dbglevel_idx : XT_REG_IDX_PS].name, oldps);
+		xtensa_reg_set(target, (xtensa->core_config->core_type == XT_LX) ?
+			xtensa->eps_dbglevel_idx : XT_REG_IDX_PS, oldps);
 	}
 
 	/* write ICOUNTLEVEL back to zero */
@@ -3000,13 +3010,13 @@ static int xtensa_build_reg_cache(struct target *target)
 	/* Construct empty-register list for handling unknown register requests */
 	xtensa->empty_regs = calloc(xtensa->dbregs_num, sizeof(struct reg));
 	if (!xtensa->empty_regs) {
-		LOG_TARGET_ERROR(target, "ERROR: Out of memory");
+		LOG_TARGET_ERROR(target, "Out of memory");
 		goto fail;
 	}
 	for (unsigned int i = 0; i < xtensa->dbregs_num; i++) {
 		xtensa->empty_regs[i].name = calloc(8, sizeof(char));
 		if (!xtensa->empty_regs[i].name) {
-			LOG_TARGET_ERROR(target, "ERROR: Out of memory");
+			LOG_TARGET_ERROR(target, "Out of memory");
 			goto fail;
 		}
 		sprintf((char *)xtensa->empty_regs[i].name, "?0x%04x", i & 0x0000FFFF);
@@ -3024,7 +3034,7 @@ static int xtensa_build_reg_cache(struct target *target)
 	if (xtensa->regmap_contiguous && xtensa->contiguous_regs_desc) {
 		xtensa->contiguous_regs_list = calloc(xtensa->total_regs_num, sizeof(struct reg *));
 		if (!xtensa->contiguous_regs_list) {
-			LOG_TARGET_ERROR(target, "ERROR: Out of memory");
+			LOG_TARGET_ERROR(target, "Out of memory");
 			goto fail;
 		}
 		for (unsigned int i = 0; i < xtensa->total_regs_num; i++) {
@@ -4189,11 +4199,6 @@ COMMAND_HELPER(xtensa_cmd_mask_interrupts_do, struct xtensa *xtensa)
 			st = "UNKNOWN";
 		command_print(CMD, "Current ISR step mode: %s", st);
 		return ERROR_OK;
-	}
-
-	if (xtensa->core_config->core_type == XT_NX) {
-		command_print(CMD, "ERROR: ISR step mode only supported on Xtensa LX");
-		return ERROR_FAIL;
 	}
 
 	/* Masking is ON -> interrupts during stepping are OFF, and vice versa */

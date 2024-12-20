@@ -375,6 +375,13 @@ int openocd_main(int argc, char *argv[])
 
 	log_exit();
 
+#if USE_GCOV
+	/* Always explicitly dump coverage data before terminating.
+	 * Otherwise coverage would not be dumped when exit_on_signal occurs. */
+	void __gcov_dump(void);
+	__gcov_dump();
+#endif
+
 	if (ret == ERROR_FAIL)
 		return EXIT_FAILURE;
 	else if (ret != ERROR_OK)

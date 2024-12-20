@@ -51,6 +51,8 @@ static void jtag_add_scan_check(struct jtag_tap *active,
 		tap_state_t state),
 		int in_num_fields, struct scan_field *in_fields, tap_state_t state);
 
+static int jtag_error_clear(void);
+
 /**
  * The jtag_error variable is set when an error occurs while executing
  * the queue.  Application code may set this using jtag_set_error(),
@@ -127,7 +129,11 @@ void jtag_set_error(int error)
 	jtag_error = error;
 }
 
-int jtag_error_clear(void)
+/**
+ * Resets jtag_error to ERROR_OK, returning its previous value.
+ * @returns The previous value of @c jtag_error.
+ */
+static int jtag_error_clear(void)
 {
 	int temp = jtag_error;
 	jtag_error = ERROR_OK;
@@ -186,7 +192,7 @@ struct jtag_tap *jtag_all_taps(void)
 	return __jtag_all_taps;
 };
 
-unsigned int jtag_tap_count(void)
+static unsigned int jtag_tap_count(void)
 {
 	struct jtag_tap *t = jtag_all_taps();
 	unsigned int n = 0;

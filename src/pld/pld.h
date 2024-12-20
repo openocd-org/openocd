@@ -54,7 +54,6 @@ struct pld_device {
 
 int pld_register_commands(struct command_context *cmd_ctx);
 
-struct pld_device *get_pld_device_by_num(int num);
 struct pld_device *get_pld_device_by_name(const char *name);
 struct pld_device *get_pld_device_by_name_or_numstr(const char *str);
 

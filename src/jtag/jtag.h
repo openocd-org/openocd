@@ -154,7 +154,6 @@ struct jtag_tap *jtag_tap_by_position(unsigned int abs_position);
 /* FIXME: "jtag_tap_next_enabled()" should accept a const pointer. */
 struct jtag_tap *jtag_tap_next_enabled(struct jtag_tap *p);
 unsigned int jtag_tap_count_enabled(void);
-unsigned int jtag_tap_count(void);
 
 /*
  * - TRST_ASSERTED triggers two sets of callbacks, after operations to
@@ -569,11 +568,6 @@ void jtag_sleep(uint32_t us);
  * called with a non-zero error code.
  */
 void jtag_set_error(int error);
-/**
- * Resets jtag_error to ERROR_OK, returning its previous value.
- * @returns The previous value of @c jtag_error.
- */
-int jtag_error_clear(void);
 
 /**
  * Return true if it's safe for a background polling task to access the

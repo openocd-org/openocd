@@ -297,11 +297,6 @@ int rtt_write_channel(unsigned int channel_index, const uint8_t *buffer,
 		length, NULL);
 }
 
-bool rtt_started(void)
-{
-	return rtt.started;
-}
-
 bool rtt_configured(void)
 {
 	return rtt.configured;

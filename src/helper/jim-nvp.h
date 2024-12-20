@@ -19,6 +19,7 @@
 #ifndef OPENOCD_HELPER_JIM_NVP_H
 #define OPENOCD_HELPER_JIM_NVP_H
 
+#include <stdbool.h>
 #include <jim.h>
 
 /** Name Value Pairs, aka: NVP
@@ -136,7 +137,7 @@ struct jim_getopt_info {
 	Jim_Interp *interp;
 	int argc;
 	Jim_Obj *const *argv;
-	int isconfigure;		/* non-zero if configure */
+	bool is_configure;
 };
 
 /** GetOpt - how to.

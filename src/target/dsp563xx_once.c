@@ -34,6 +34,8 @@
 #define JTAG_INSTR_DEBUG_REQUEST	0x07
 #define JTAG_INSTR_BYPASS		0x0F
 
+static int dsp563xx_once_reg_read_ex(struct jtag_tap *tap, int flush, uint8_t reg, uint8_t len, uint32_t *data);
+
 /** */
 static inline int dsp563xx_write_dr(struct jtag_tap *tap, uint8_t *dr_in, uint8_t *dr_out, int dr_len, int rti)
 {
@@ -185,7 +187,7 @@ int dsp563xx_once_read_register(struct jtag_tap *tap, int flush, struct once_reg
 }
 
 /** once read register with register len */
-int dsp563xx_once_reg_read_ex(struct jtag_tap *tap, int flush, uint8_t reg, uint8_t len, uint32_t *data)
+static int dsp563xx_once_reg_read_ex(struct jtag_tap *tap, int flush, uint8_t reg, uint8_t len, uint32_t *data)
 {
 	int err;
 

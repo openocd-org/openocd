@@ -172,6 +172,9 @@ m4_define([DUMMY_ADAPTER],
 m4_define([OPTIONAL_LIBRARIES],
 	[[[capstone], [Use Capstone disassembly framework], []]])
 
+m4_define([COVERAGE],
+	[[[gcov], [Collect coverage using gcov], []]])
+
 AC_ARG_ENABLE([doxygen-html],
   AS_HELP_STRING([--disable-doxygen-html],
     [Disable building Doxygen manual as HTML.]),
@@ -199,6 +202,19 @@ AC_ARG_ENABLE([wextra],
 AC_ARG_ENABLE([werror],
   AS_HELP_STRING([--disable-werror], [Do not treat warnings as errors]),
   [gcc_werror=$enableval], [gcc_werror=$gcc_warnings])
+
+AC_ARG_ENABLE([gcov],
+  AS_HELP_STRING([--enable-gcov], [Enable runtime coverage collection via gcov]),
+  [enable_gcov=$enableval], [enable_gcov=no])
+
+AS_IF([test "x$enable_gcov" = "xyes"], [
+  AC_DEFINE([USE_GCOV], [1], [1 to enable coverage collection using gcov.])
+  dnl When collecting coverage, disable optimizations.
+  dnl This overrides the "-O2" that autoconf uses by default:
+  CFLAGS+=" -O0"
+], [
+  AC_DEFINE([USE_GCOV], [0], [0 to leave coverage collection disabled.])
+])
 
 # set default verbose options, overridden by following options
 debug_usb_io=no
@@ -257,9 +273,13 @@ AC_ARG_ENABLE([dmem],
 m4_define([AC_ARG_ADAPTERS], [
   m4_foreach([adapter], [$1],
 	[AC_ARG_ENABLE(ADAPTER_OPT([adapter]),
-		AS_HELP_STRING([--enable-ADAPTER_OPT([adapter])],
+		AS_HELP_STRING([--enable-ADAPTER_OPT([adapter])[[[=yes/no/auto]]]],
 			[Enable building support for the ]ADAPTER_DESC([adapter])[ (default is $2)]),
-		[], [ADAPTER_VAR([adapter])=$2])
+		[case "${enableval}" in
+			yes|no|auto) ;;
+			*) AC_MSG_ERROR([Option --enable-ADAPTER_OPT([adapter]) has invalid value "${enableval}".]) ;;
+			esac],
+		[ADAPTER_VAR([adapter])=$2])
   ])
 ])
 
@@ -268,7 +288,7 @@ AC_ARG_ADAPTERS([
   HIDAPI_ADAPTERS,
   HIDAPI_USB1_ADAPTERS,
   LIBFTDI_ADAPTERS,
-  LIBFTDI_USB1_ADAPTERS
+  LIBFTDI_USB1_ADAPTERS,
   LIBGPIOD_ADAPTERS,
   SERIAL_PORT_ADAPTERS,
   PCIE_ADAPTERS,
@@ -357,10 +377,6 @@ AS_CASE([$host_os],
       AC_MSG_ERROR([sysfsgpio is only available on linux])
     ])
 
-    AS_IF([test "x$enable_linuxgpiod" = "xyes"], [
-      AC_MSG_ERROR([linuxgpiod is only available on linux])
-    ])
-
     AS_CASE([$host_os], [freebsd*], [],
     [
       AS_IF([test "x$build_rshim" = "xyes"], [
@@ -399,6 +415,8 @@ AS_CASE(["${host_cpu}"],
     parport_use_ppdev=yes
 ])
 
+can_build_buspirate=yes
+
 AS_CASE([$host],
   [*-cygwin*], [
     is_win32=yes
@@ -430,12 +448,12 @@ AS_CASE([$host],
     ])
     parport_use_giveio=yes
 
-    AS_IF([test "x$enable_buspirate" = "xyes"], [
-      AC_MSG_ERROR([buspirate currently not supported by MinGW32 hosts])
+    AS_IF([test "x$ADAPTER_VAR([buspirate])" = "xyes"], [
+      AC_MSG_ERROR([The Bus Pirate adapter is currently not supported by MinGW32 hosts.])
     ])
 
     # In case enable_buspirate=auto, make sure it will not be built.
-    enable_buspirate=no
+    can_build_buspirate=no
 
     AC_SUBST([HOST_CPPFLAGS], ["-D__USE_MINGW_ANSI_STDIO -DFD_SETSIZE=128"])
   ],
@@ -579,12 +597,6 @@ AS_IF([test "x$build_gw16012" = "xyes"], [
   AC_DEFINE([BUILD_GW16012], [0], [0 if you don't want the Gateworks GW16012 driver.])
 ])
 
-AS_IF([test "x$enable_buspirate" != "xno"], [
-  AC_DEFINE([BUILD_BUSPIRATE], [1], [1 if you want the Buspirate JTAG driver.])
-], [
-  AC_DEFINE([BUILD_BUSPIRATE], [0], [0 if you don't want the Buspirate JTAG driver.])
-])
-
 AS_IF([test "x$use_internal_jimtcl" = "xyes"], [
   AS_IF([test -f "$srcdir/jimtcl/configure"], [
     AS_IF([test "x$use_internal_jimtcl_maintainer" = "xyes"], [
@@ -697,7 +709,7 @@ m4_define([PROCESS_ADAPTERS], [
 		])
 	], [
 		AS_IF([test "x$ADAPTER_VAR([adapter])" = "xyes"], [
-			AC_MSG_ERROR([$3 is required for [adapter] ADAPTER_DESC([adapter]).])
+			AC_MSG_ERROR([$3 is required for [adapter] "ADAPTER_DESC([adapter])".])
 		])
 		ADAPTER_VAR([adapter])=no
 		AC_DEFINE([BUILD_]ADAPTER_SYM([adapter]), [0], [0 if you do not want the ]ADAPTER_DESC([adapter]).)
@@ -711,9 +723,11 @@ PROCESS_ADAPTERS([HIDAPI_ADAPTERS], ["x$use_hidapi" = "xyes"], [hidapi])
 PROCESS_ADAPTERS([HIDAPI_USB1_ADAPTERS], ["x$use_hidapi" = "xyes" -a "x$use_libusb1" = "xyes"], [hidapi and libusb-1.x])
 PROCESS_ADAPTERS([LIBFTDI_ADAPTERS], ["x$use_libftdi" = "xyes"], [libftdi])
 PROCESS_ADAPTERS([LIBFTDI_USB1_ADAPTERS], ["x$use_libftdi" = "xyes" -a "x$use_libusb1" = "xyes"], [libftdi and libusb-1.x])
-PROCESS_ADAPTERS([LIBGPIOD_ADAPTERS], ["x$use_libgpiod" = "xyes"], [libgpiod])
+PROCESS_ADAPTERS([LIBGPIOD_ADAPTERS], ["x$use_libgpiod" = "xyes"], [Linux libgpiod])
 PROCESS_ADAPTERS([LIBJAYLINK_ADAPTERS], ["x$use_internal_libjaylink" = "xyes" -o "x$use_libjaylink" = "xyes"], [libjaylink-0.2])
 PROCESS_ADAPTERS([PCIE_ADAPTERS], ["x$is_linux" = "xyes"], [Linux build])
+PROCESS_ADAPTERS([SERIAL_PORT_ADAPTERS], ["x$can_build_buspirate" = "xyes"],
+                                         [internal error: validation should happen beforehand])
 PROCESS_ADAPTERS([DUMMY_ADAPTER], [true], [unused])
 
 AS_IF([test "x$enable_linuxgpiod" != "xno"], [
@@ -768,7 +782,6 @@ AM_CONDITIONAL([USB_BLASTER_DRIVER], [test "x$enable_usb_blaster" != "xno" -o "x
 AM_CONDITIONAL([AMTJTAGACCEL], [test "x$build_amtjtagaccel" = "xyes"])
 AM_CONDITIONAL([GW16012], [test "x$build_gw16012" = "xyes"])
 AM_CONDITIONAL([REMOTE_BITBANG], [test "x$build_remote_bitbang" = "xyes"])
-AM_CONDITIONAL([BUSPIRATE], [test "x$enable_buspirate" != "xno"])
 AM_CONDITIONAL([SYSFSGPIO], [test "x$build_sysfsgpio" = "xyes"])
 AM_CONDITIONAL([USE_LIBUSB1], [test "x$use_libusb1" = "xyes"])
 AM_CONDITIONAL([IS_CYGWIN], [test "x$is_cygwin" = "xyes"])
@@ -787,6 +800,8 @@ AM_CONDITIONAL([HAVE_CAPSTONE], [test "x$enable_capstone" != "xno"])
 AM_CONDITIONAL([INTERNAL_JIMTCL], [test "x$use_internal_jimtcl" = "xyes"])
 AM_CONDITIONAL([HAVE_JIMTCL_PKG_CONFIG], [test "x$have_jimtcl_pkg_config" = "xyes"])
 AM_CONDITIONAL([INTERNAL_LIBJAYLINK], [test "x$use_internal_libjaylink" = "xyes"])
+
+AM_CONDITIONAL([USE_GCOV], [test "x$enable_gcov" = "xyes"])
 
 # Look for environ alternatives.  Possibility #1: is environ in unistd.h or stdlib.h?
 AC_MSG_CHECKING([for environ in unistd.h and stdlib.h])
@@ -863,7 +878,8 @@ m4_foreach([adapter], [USB1_ADAPTERS,
 	LIBGPIOD_ADAPTERS,
 	LIBJAYLINK_ADAPTERS, PCIE_ADAPTERS, SERIAL_PORT_ADAPTERS,
 	DUMMY_ADAPTER,
-	OPTIONAL_LIBRARIES],
+	OPTIONAL_LIBRARIES,
+	COVERAGE],
 	[s=m4_format(["%-40s"], ADAPTER_DESC([adapter]))
 	AS_CASE([$ADAPTER_VAR([adapter])],
 		[auto], [
@@ -874,6 +890,11 @@ m4_foreach([adapter], [USB1_ADAPTERS,
 		],
 		[no], [
 			echo "$s"no
+		],
+		[
+			AC_MSG_ERROR(m4_normalize([
+				Error in [adapter] "ADAPTER_ARG([adapter])": Variable "ADAPTER_VAR([adapter])"
+				has invalid value "$ADAPTER_VAR([adapter])".]))
 	])
 ])
 echo

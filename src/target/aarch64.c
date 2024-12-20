@@ -2940,7 +2940,7 @@ static int aarch64_jim_configure(struct target *target, struct jim_getopt_info *
 
 		switch (n->value) {
 		case CFG_CTI: {
-			if (goi->isconfigure) {
+			if (goi->is_configure) {
 				Jim_Obj *o_cti;
 				struct arm_cti *cti;
 				e = jim_getopt_obj(goi, &o_cti);
