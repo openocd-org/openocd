@@ -756,7 +756,7 @@ static int swd_init(struct command_context *ctx)
 }
 
 static struct transport swd_transport = {
-	.name = "swd",
+	.id = TRANSPORT_SWD,
 	.select = swd_select,
 	.init = swd_init,
 };

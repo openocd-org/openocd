@@ -12,7 +12,26 @@
 #include "config.h"
 #endif
 
+#include "helper/bits.h"
 #include "helper/command.h"
+
+#define TRANSPORT_JTAG                  BIT(0)
+#define TRANSPORT_SWD                   BIT(1)
+#define TRANSPORT_HLA_JTAG              BIT(2)
+#define TRANSPORT_HLA_SWD               BIT(3)
+#define TRANSPORT_DAPDIRECT_JTAG        BIT(4)
+#define TRANSPORT_DAPDIRECT_SWD         BIT(5)
+#define TRANSPORT_SWIM                  BIT(6)
+
+/* mask for valid ID */
+#define TRANSPORT_VALID_MASK            \
+	(TRANSPORT_JTAG |                   \
+	 TRANSPORT_SWD |                    \
+	 TRANSPORT_HLA_JTAG |               \
+	 TRANSPORT_HLA_SWD |                \
+	 TRANSPORT_DAPDIRECT_JTAG |         \
+	 TRANSPORT_DAPDIRECT_SWD |          \
+	 TRANSPORT_SWIM)
 
 /**
  * Wrapper for transport lifecycle operations.
@@ -34,11 +53,10 @@
  */
 struct transport {
 	/**
-	 * Each transport has a unique name, used to select it
-	 * from among the alternatives.  Examples might include
-	 * "jtag", * "swd", "AVR_ISP" and more.
+	 * Each transport has a unique ID, used to select it
+	 * from among the alternatives.
 	 */
-	const char *name;
+	unsigned int id;
 
 	/**
 	 * When a transport is selected, this method registers
@@ -74,6 +92,8 @@ struct transport {
 int transport_register(struct transport *new_transport);
 
 struct transport *get_current_transport(void);
+
+const char *get_current_transport_name(void);
 
 int transport_register_commands(struct command_context *ctx);
 

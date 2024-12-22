@@ -136,7 +136,7 @@ static int swim_transport_init(struct command_context *cmd_ctx)
 }
 
 static struct transport swim_transport = {
-	.name = "swim",
+	.id = TRANSPORT_SWIM,
 	.select = swim_transport_select,
 	.init = swim_transport_init,
 };

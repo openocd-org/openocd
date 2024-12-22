@@ -207,13 +207,13 @@ static int dapdirect_init(struct command_context *ctx)
 }
 
 static struct transport dapdirect_jtag_transport = {
-	.name = "dapdirect_jtag",
+	.id = TRANSPORT_DAPDIRECT_JTAG,
 	.select = dapdirect_jtag_select,
 	.init = dapdirect_init,
 };
 
 static struct transport dapdirect_swd_transport = {
-	.name = "dapdirect_swd",
+	.id = TRANSPORT_DAPDIRECT_SWD,
 	.select = dapdirect_swd_select,
 	.init = dapdirect_init,
 };

@@ -177,15 +177,20 @@ static int hl_transport_init(struct command_context *cmd_ctx)
 		return ERROR_FAIL;
 	}
 
-	LOG_DEBUG("current transport %s", transport->name);
+	LOG_DEBUG("current transport %s", get_current_transport_name());
 
 	/* get selected transport as enum */
-	tr = HL_TRANSPORT_UNKNOWN;
-
-	if (strcmp(transport->name, "hla_swd") == 0)
+	switch (transport->id) {
+	case TRANSPORT_HLA_SWD:
 		tr = HL_TRANSPORT_SWD;
-	else if (strcmp(transport->name, "hla_jtag") == 0)
+		break;
+	case TRANSPORT_HLA_JTAG:
 		tr = HL_TRANSPORT_JTAG;
+		break;
+	default:
+		tr = HL_TRANSPORT_UNKNOWN;
+		break;
+	}
 
 	int retval = hl_interface_open(tr);
 
@@ -213,14 +218,14 @@ static int hl_swd_transport_select(struct command_context *cmd_ctx)
 }
 
 static struct transport hl_swd_transport = {
-	.name = "hla_swd",
+	.id = TRANSPORT_HLA_SWD,
 	.select = hl_swd_transport_select,
 	.init = hl_transport_init,
 	.override_target = hl_interface_override_target,
 };
 
 static struct transport hl_jtag_transport = {
-	.name = "hla_jtag",
+	.id = TRANSPORT_HLA_JTAG,
 	.select = hl_jtag_transport_select,
 	.init = hl_transport_init,
 	.override_target = hl_interface_override_target,

@@ -1823,7 +1823,7 @@ static int jtag_select(struct command_context *ctx)
 }
 
 static struct transport jtag_transport = {
-	.name = "jtag",
+	.id = TRANSPORT_JTAG,
 	.select = jtag_select,
 	.init = jtag_init,
 };
@@ -1868,7 +1868,7 @@ int adapter_resets(int trst, int srst)
 			   transport_is_swim()) {
 		if (trst == TRST_ASSERT) {
 			LOG_ERROR("transport %s has no trst signal",
-				get_current_transport()->name);
+				get_current_transport_name());
 			return ERROR_FAIL;
 		}
 
@@ -1884,7 +1884,7 @@ int adapter_resets(int trst, int srst)
 		return ERROR_OK;
 
 	LOG_ERROR("reset is not supported on transport %s",
-		get_current_transport()->name);
+		get_current_transport_name());
 
 	return ERROR_FAIL;
 }
@@ -1903,7 +1903,7 @@ int adapter_assert_reset(void)
 		return adapter_system_reset(1);
 	else if (get_current_transport())
 		LOG_ERROR("reset is not supported on %s",
-			get_current_transport()->name);
+			get_current_transport_name());
 	else
 		LOG_ERROR("transport is not selected");
 	return ERROR_FAIL;
@@ -1920,7 +1920,7 @@ int adapter_deassert_reset(void)
 		return adapter_system_reset(0);
 	else if (get_current_transport())
 		LOG_ERROR("reset is not supported on %s",
-			get_current_transport()->name);
+			get_current_transport_name());
 	else
 		LOG_ERROR("transport is not selected");
 	return ERROR_FAIL;

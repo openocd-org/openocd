@@ -30,6 +30,8 @@
  * messaging and error handling.
  */
 
+#include <helper/align.h>
+#include <helper/bits.h>
 #include <helper/log.h>
 #include <helper/replacements.h>
 #include <transport/transport.h>
@@ -43,6 +45,20 @@ extern struct command_context *global_cmd_ctx;
  */
 
 /** List of transports known to OpenOCD. */
+static const struct {
+	unsigned int id;
+	const char *name;
+} transport_names[] = {
+	{ TRANSPORT_JTAG,           "jtag",           },
+	{ TRANSPORT_SWD,            "swd",            },
+	{ TRANSPORT_HLA_JTAG,       "hla_jtag",       },
+	{ TRANSPORT_HLA_SWD,        "hla_swd",        },
+	{ TRANSPORT_DAPDIRECT_JTAG, "dapdirect_jtag", },
+	{ TRANSPORT_DAPDIRECT_SWD,  "dapdirect_swd",  },
+	{ TRANSPORT_SWIM,           "swim",           },
+};
+
+/** List of transports registered in OpenOCD. */
 static struct transport *transport_list;
 
 /**
@@ -60,12 +76,26 @@ static bool transport_single_is_autoselected;
 /** * The transport being used for the current OpenOCD session.  */
 static struct transport *session;
 
+static const char *transport_name(unsigned int id)
+{
+	for (unsigned int i = 0; i < ARRAY_SIZE(transport_names); i++)
+		if (id == transport_names[i].id)
+			return transport_names[i].name;
+
+	return NULL;
+}
+
+static bool is_transport_id_valid(unsigned int id)
+{
+	return (id != 0) && ((id & ~TRANSPORT_VALID_MASK) == 0) && IS_PWR_OF_2(id);
+}
+
 static int transport_select(struct command_context *ctx, const char *name)
 {
 	/* name may only identify a known transport;
 	 * caller guarantees session's transport isn't yet set.*/
 	for (struct transport *t = transport_list; t; t = t->next) {
-		if (strcmp(t->name, name) == 0) {
+		if (!strcmp(transport_name(t->id), name)) {
 			int retval = t->select(ctx);
 			/* select() registers commands specific to this
 			 * transport, and may also reset the link, e.g.
@@ -74,7 +104,7 @@ static int transport_select(struct command_context *ctx, const char *name)
 			if (retval == ERROR_OK)
 				session = t;
 			else
-				LOG_ERROR("Error selecting '%s' as transport", t->name);
+				LOG_ERROR("Error selecting '%s' as transport", name);
 			return retval;
 		}
 	}
@@ -136,20 +166,28 @@ int transport_register(struct transport *new_transport)
 {
 	struct transport *t;
 
+	if (!is_transport_id_valid(new_transport->id)) {
+		LOG_ERROR("invalid transport ID 0x%x", new_transport->id);
+		return ERROR_FAIL;
+	}
+
 	for (t = transport_list; t; t = t->next) {
-		if (strcmp(t->name, new_transport->name) == 0) {
-			LOG_ERROR("transport name already used");
+		if (t->id == new_transport->id) {
+			LOG_ERROR("transport '%s' already registered",
+					  transport_name(t->id));
 			return ERROR_FAIL;
 		}
 	}
 
 	if (!new_transport->select || !new_transport->init)
-		LOG_ERROR("invalid transport %s", new_transport->name);
+		LOG_ERROR("invalid transport %s",
+				  transport_name(new_transport->id));
 
 	/* splice this into the list */
 	new_transport->next = transport_list;
 	transport_list = new_transport;
-	LOG_DEBUG("register '%s'", new_transport->name);
+	LOG_DEBUG("register '%s' (ID %d)",
+			  transport_name(new_transport->id), new_transport->id);
 
 	return ERROR_OK;
 }
@@ -164,6 +202,14 @@ struct transport *get_current_transport(void)
 {
 	/* REVISIT -- constify */
 	return session;
+}
+
+const char *get_current_transport_name(void)
+{
+	if (!session || !is_transport_id_valid(session->id))
+		NULL;
+
+	return transport_name(session->id);
 }
 
 /*-----------------------------------------------------------------------*/
@@ -191,7 +237,7 @@ COMMAND_HANDLER(handle_transport_init)
 	if (transport_single_is_autoselected)
 		LOG_WARNING("DEPRECATED: auto-selecting transport \"%s\". "
 			"Use 'transport select %s' to suppress this message.",
-			session->name, session->name);
+			transport_name(session->id), transport_name(session->id));
 
 	return session->init(CMD_CTX);
 }
@@ -204,7 +250,7 @@ COMMAND_HANDLER(handle_transport_list)
 	command_print(CMD, "The following transports are available:");
 
 	for (struct transport *t = transport_list; t; t = t->next)
-		command_print(CMD, "\t%s", t->name);
+		command_print(CMD, "\t%s", transport_name(t->id));
 
 	return ERROR_OK;
 }
@@ -234,19 +280,19 @@ COMMAND_HANDLER(handle_transport_select)
 			if (retval != ERROR_OK)
 				return retval;
 		}
-		command_print(CMD, "%s", session->name);
+		command_print(CMD, "%s", transport_name(session->id));
 		return ERROR_OK;
 	}
 
 	/* assign transport */
 	if (session) {
-		if (!strcmp(session->name, CMD_ARGV[0])) {
+		if (!strcmp(transport_name(session->id), CMD_ARGV[0])) {
 			if (transport_single_is_autoselected) {
 				/* Nothing to do, but also nothing to complain */
 				transport_single_is_autoselected = false;
 				return ERROR_OK;
 			}
-			LOG_WARNING("Transport \"%s\" was already selected", session->name);
+			LOG_WARNING("Transport \"%s\" was already selected", CMD_ARGV[0]);
 			return ERROR_OK;
 		}
 		command_print(CMD, "Can't change session's transport after the initial selection was made");
