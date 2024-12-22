@@ -125,18 +125,34 @@ static int transport_select(struct command_context *ctx, const char *name)
 int allow_transports(struct command_context *ctx, unsigned int transport_ids,
 	unsigned int transport_preferred_id)
 {
-	/* NOTE:  caller is required to provide only a list
-	 * of *valid* transports
-	 *
-	 * REVISIT should we validate that?  and insist there's
-	 * at least one valid element in that list?
-	 *
-	 * ... allow removals, e.g. external strapping prevents use
-	 * of one transport; C code should be definitive about what
-	 * can be used when all goes well.
-	 */
 	if (allowed_transports || session) {
 		LOG_ERROR("Can't modify the set of allowed transports.");
+		return ERROR_FAIL;
+	}
+
+	/* validate the values in transport_ids and transport_preferred_id */
+	if (transport_ids == 0 || (transport_ids & ~TRANSPORT_VALID_MASK) != 0) {
+		LOG_ERROR("BUG: Unknown transport IDs %lu", transport_ids & ~TRANSPORT_VALID_MASK);
+		return ERROR_FAIL;
+	}
+
+	if ((transport_ids & transport_preferred_id) == 0
+		|| !IS_PWR_OF_2(transport_preferred_id)) {
+		LOG_ERROR("BUG: Invalid adapter transport_preferred_id");
+		return ERROR_FAIL;
+	}
+
+	unsigned int mask = transport_ids &
+		(TRANSPORT_JTAG | TRANSPORT_HLA_JTAG | TRANSPORT_DAPDIRECT_JTAG);
+	if (mask && !IS_PWR_OF_2(mask)) {
+		LOG_ERROR("BUG: Multiple JTAG transports");
+		return ERROR_FAIL;
+	}
+
+	mask = transport_ids &
+		(TRANSPORT_SWD | TRANSPORT_HLA_SWD | TRANSPORT_DAPDIRECT_SWD);
+	if (mask && !IS_PWR_OF_2(mask)) {
+		LOG_ERROR("BUG: Multiple SWD transports");
 		return ERROR_FAIL;
 	}
 
