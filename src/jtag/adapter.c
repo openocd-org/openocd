@@ -392,25 +392,6 @@ COMMAND_HANDLER(handle_adapter_name)
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(adapter_transports_command)
-{
-	char **transports;
-	int retval;
-
-	retval = CALL_COMMAND_HANDLER(transport_list_parse, &transports);
-	if (retval != ERROR_OK)
-		return retval;
-
-	retval = allow_transports(CMD_CTX, (const char **)transports);
-
-	if (retval != ERROR_OK) {
-		for (unsigned int i = 0; transports[i]; i++)
-			free(transports[i]);
-		free(transports);
-	}
-	return retval;
-}
-
 COMMAND_HANDLER(handle_adapter_list_command)
 {
 	if (strcmp(CMD_NAME, "list") == 0 && CMD_ARGC > 0)
@@ -1136,13 +1117,6 @@ static const struct command_registration adapter_command_handlers[] = {
 		.help = "srst adapter command group",
 		.usage = "",
 		.chain = adapter_srst_command_handlers,
-	},
-	{
-		.name = "transports",
-		.handler = adapter_transports_command,
-		.mode = COMMAND_CONFIG,
-		.help = "Declare transports the adapter supports.",
-		.usage = "transport ...",
 	},
 	{
 		.name = "usb",

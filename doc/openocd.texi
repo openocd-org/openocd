@@ -2415,12 +2415,6 @@ target.
 List the debug adapter drivers that have been built into
 the running copy of OpenOCD.
 @end deffn
-@deffn {Config Command} {adapter transports} transport_name+
-Specifies the transports supported by this debug adapter.
-The adapter driver builds-in similar knowledge; use this only
-when external configuration (such as jumpering) changes what
-the hardware can support.
-@end deffn
 
 @anchor{adapter gpio}
 @deffn {Config Command} {adapter gpio [ @
