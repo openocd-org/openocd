@@ -2497,7 +2497,7 @@ This command is only available if your libusb1 is at least version 1.0.16.
 Specifies the @var{serial_string} of the adapter to use.
 If this command is not specified, serial strings are not checked.
 Only the following adapter drivers use the serial string from this command:
-arm-jtag-ew, cmsis_dap, esp_usb_jtag, ft232r, ftdi, hla (ti-icdi), jlink, kitprog, opendus,
+arm-jtag-ew, cmsis_dap, esp_usb_jtag, ft232r, ftdi, hla (stlink, ti-icdi), jlink, kitprog, opendus,
 openjtag, osbdm, presto, rlink, st-link, usb_blaster (ublast2), usbprog, vsllink, xds110.
 @end deffn
 
@@ -3205,21 +3205,33 @@ that OpenOCD would normally use to access the target.
 
 Currently supported adapters include the STMicroelectronics ST-LINK, TI ICDI
 and Nuvoton Nu-Link.
+
 ST-LINK firmware version >= V2.J21.S4 recommended due to issues with earlier
 versions of firmware where serial number is reset after first use.  Suggest
 using ST firmware update utility to upgrade ST-LINK firmware even if current
 version reported is V2.J21.S4.
+The ST-LINK firmware update utility is available for download from
+@url{https://www.st.com/en/development-tools/stsw-link007.html, ST website}.
 
 @deffn {Config Command} {hla device_desc} description
 Currently Not Supported.
 @end deffn
 
-@deffn {Config Command} {hla layout} (@option{icdi}|@option{nulink})
+@deffn {Config Command} {hla layout} (@option{stlink}|@option{icdi}|@option{nulink})
 Specifies the adapter layout to use.
 @end deffn
 
 @deffn {Config Command} {hla vid_pid} [vid pid]+
 Pairs of vendor IDs and product IDs of the device.
+@end deffn
+
+@deffn {Config Command} {hla stlink_backend} (usb | tcp [port])
+@emph{ST-Link only:} Choose between 'exclusive' USB communication (the default backend) or
+'shared' mode using ST-Link TCP server (the default port is 7184).
+
+@emph{Note:} ST-Link TCP server is a binary application provided by ST
+available from @url{https://www.st.com/en/development-tools/st-link-server.html,
+ST-LINK server software module}.
 @end deffn
 
 @deffn {Command} {hla command} command
@@ -3236,6 +3248,11 @@ directly access the arm ADIv5 DAP.
 
 The older API that requires HLA transport is deprecated and will be dropped
 from OpenOCD. In mean time it's still available by using @file{interface/stlink-hla.cfg}.
+The HLA interface file can be put as first command line argument to
+force using is in place of the default DAP API.
+@example
+openocd -f interface/stlink-hla.cfg -f board/st_nucleo_f4.cfg
+@end example
 
 The new API provide access to multiple AP on the same DAP, but the
 maximum number of the AP port is limited by the specific firmware version

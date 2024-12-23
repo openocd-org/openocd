@@ -5143,7 +5143,12 @@ static int stlink_dap_init(void)
 
 	if ((mode != STLINK_MODE_DEBUG_SWIM) &&
 		!(stlink_dap_handle->version.flags & STLINK_F_HAS_DAP_REG)) {
-		LOG_ERROR("ST-Link version does not support DAP direct transport");
+		LOG_ERROR("The firmware in the ST-Link adapter only supports deprecated HLA.");
+		LOG_ERROR("Please consider updating the ST-Link firmware with a version");
+		LOG_ERROR("newer that V2J24 (2015), available for downloading on ST website:");
+		LOG_ERROR("  https://www.st.com/en/development-tools/stsw-link007.html");
+		LOG_ERROR("In mean time, you can re-run OpenOCD for ST-Link HLA as:");
+		LOG_ERROR("  openocd -f interface/stlink-hla.cfg ...");
 		return ERROR_FAIL;
 	}
 	return ERROR_OK;
