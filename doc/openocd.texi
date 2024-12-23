@@ -3816,13 +3816,6 @@ Not all adapters and adapter drivers support SWD multi-drop. Only the following
 adapter drivers are SWD multi-drop capable:
 cmsis_dap (use an adapter with CMSIS-DAP version 2.0), ftdi, all bitbang based.
 
-@subsection SPI Transport
-@cindex SPI
-@cindex Serial Peripheral Interface
-The Serial Peripheral Interface (SPI) is a general purpose transport
-which uses four wire signaling. Some processors use it as part of a
-solution for flash programming.
-
 @anchor{swimtransport}
 @subsection SWIM Transport
 @cindex SWIM
