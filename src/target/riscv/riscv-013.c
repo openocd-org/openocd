@@ -353,29 +353,28 @@ static uint32_t set_dmcontrol_hartsel(uint32_t initial, int hart_index)
 
 /*** Utility functions. ***/
 
-static void select_dmi(struct target *target)
+static void select_dmi(struct jtag_tap *tap)
 {
 	if (bscan_tunnel_ir_width != 0) {
-		select_dmi_via_bscan(target);
+		select_dmi_via_bscan(tap);
 		return;
 	}
-	if (!target->tap->enabled)
-		LOG_TARGET_ERROR(target, "BUG: Target's TAP '%s' is disabled!",
-				jtag_tap_name(target->tap));
+	if (!tap->enabled)
+		LOG_ERROR("BUG: Target's TAP '%s' is disabled!", jtag_tap_name(tap));
 
 	bool need_ir_scan = false;
 	/* FIXME: make "tap" a const pointer. */
-	for (struct jtag_tap *tap = jtag_tap_next_enabled(NULL);
-			tap; tap = jtag_tap_next_enabled(tap)) {
-		if (tap != target->tap) {
+	for (struct jtag_tap *other_tap = jtag_tap_next_enabled(NULL);
+			other_tap; other_tap = jtag_tap_next_enabled(other_tap)) {
+		if (other_tap != tap) {
 			/* Different TAP than ours - check if it is in bypass */
-			if (!tap->bypass) {
+			if (!other_tap->bypass) {
 				need_ir_scan = true;
 				break;
 			}
 		} else {
 			/* Our TAP - check if the correct instruction is already loaded */
-			if (!buf_eq(target->tap->cur_instr, select_dbus.out_value, target->tap->ir_length)) {
+			if (!buf_eq(tap->cur_instr, select_dbus.out_value, tap->ir_length)) {
 				need_ir_scan = true;
 				break;
 			}
@@ -383,14 +382,14 @@ static void select_dmi(struct target *target)
 	}
 
 	if (need_ir_scan)
-		jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
+		jtag_add_ir_scan(tap, &select_dbus, TAP_IDLE);
 }
 
 static int increase_dmi_busy_delay(struct target *target)
 {
 	RISCV013_INFO(info);
 
-	int res = dtmcontrol_scan(target, DTM_DTMCS_DMIRESET,
+	int res = dtmcs_scan(target->tap, DTM_DTMCS_DMIRESET,
 			NULL /* discard result */);
 	if (res != ERROR_OK)
 		return res;
@@ -1921,7 +1920,7 @@ static int examine(struct target *target)
 	LOG_TARGET_DEBUG(target, "dbgbase=0x%x", target->dbgbase);
 
 	uint32_t dtmcontrol;
-	if (dtmcontrol_scan(target, 0, &dtmcontrol) != ERROR_OK || dtmcontrol == 0) {
+	if (dtmcs_scan(target->tap, 0, &dtmcontrol) != ERROR_OK || dtmcontrol == 0) {
 		LOG_TARGET_ERROR(target, "Could not scan dtmcontrol. Check JTAG connectivity/board power.");
 		return ERROR_FAIL;
 	}
@@ -2413,7 +2412,7 @@ static int batch_run(struct target *target, struct riscv_batch *batch)
 {
 	RISCV_INFO(r);
 	RISCV013_INFO(info);
-	select_dmi(target);
+	select_dmi(target->tap);
 	riscv_batch_add_nop(batch);
 	const int result = riscv_batch_run_from(batch, 0, &info->learned_delays,
 			/*resets_delays*/  r->reset_delays_wait >= 0,
@@ -2436,7 +2435,7 @@ static int batch_run(struct target *target, struct riscv_batch *batch)
 static int batch_run_timeout(struct target *target, struct riscv_batch *batch)
 {
 	RISCV013_INFO(info);
-	select_dmi(target);
+	select_dmi(target->tap);
 	riscv_batch_add_nop(batch);
 
 	size_t finished_scans = 0;
@@ -2819,7 +2818,7 @@ static int assert_reset(struct target *target)
 	RISCV013_INFO(info);
 	int result;
 
-	select_dmi(target);
+	select_dmi(target->tap);
 
 	if (target_has_event_action(target, TARGET_EVENT_RESET_ASSERT)) {
 		/* Run the user-supplied script if there is one. */
@@ -2873,7 +2872,7 @@ static int deassert_reset(struct target *target)
 		return ERROR_FAIL;
 	int result;
 
-	select_dmi(target);
+	select_dmi(target->tap);
 	/* Clear the reset, but make sure haltreq is still set */
 	uint32_t control = 0;
 	control = set_field(control, DM_DMCONTROL_DMACTIVE, 1);
@@ -4359,7 +4358,7 @@ read_memory_progbuf(struct target *target, const riscv_mem_access_args_t args)
 	if (dm013_select_target(target) != ERROR_OK)
 		return MEM_ACCESS_SKIPPED_TARGET_SELECT_FAILED;
 
-	select_dmi(target);
+	select_dmi(target->tap);
 
 	memset(args.read_buffer, 0, args.count * args.size);
 

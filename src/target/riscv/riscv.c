@@ -310,18 +310,18 @@ static void riscv_sample_buf_maybe_add_timestamp(struct target *target, bool bef
 
 static int riscv_resume_go_all_harts(struct target *target);
 
-void select_dmi_via_bscan(struct target *target)
+void select_dmi_via_bscan(struct jtag_tap *tap)
 {
-	jtag_add_ir_scan(target->tap, &select_user4, TAP_IDLE);
+	jtag_add_ir_scan(tap, &select_user4, TAP_IDLE);
 	if (bscan_tunnel_type == BSCAN_TUNNEL_DATA_REGISTER)
-		jtag_add_dr_scan(target->tap, bscan_tunnel_data_register_select_dmi_num_fields,
+		jtag_add_dr_scan(tap, bscan_tunnel_data_register_select_dmi_num_fields,
 										bscan_tunnel_data_register_select_dmi, TAP_IDLE);
 	else /* BSCAN_TUNNEL_NESTED_TAP */
-		jtag_add_dr_scan(target->tap, bscan_tunnel_nested_tap_select_dmi_num_fields,
+		jtag_add_dr_scan(tap, bscan_tunnel_nested_tap_select_dmi_num_fields,
 										bscan_tunnel_nested_tap_select_dmi, TAP_IDLE);
 }
 
-int dtmcontrol_scan_via_bscan(struct target *target, uint32_t out, uint32_t *in_ptr)
+static int dtmcs_scan_via_bscan(struct jtag_tap *tap, uint32_t out, uint32_t *in_ptr)
 {
 	/* On BSCAN TAP: Select IR=USER4, issue tunneled IR scan via BSCAN TAP's DR */
 	uint8_t tunneled_dr_width[4] = {32};
@@ -386,10 +386,10 @@ int dtmcontrol_scan_via_bscan(struct target *target, uint32_t out, uint32_t *in_
 		tunneled_dr[0].out_value = bscan_one;
 		tunneled_dr[0].in_value = NULL;
 	}
-	jtag_add_ir_scan(target->tap, &select_user4, TAP_IDLE);
-	jtag_add_dr_scan(target->tap, ARRAY_SIZE(tunneled_ir), tunneled_ir, TAP_IDLE);
-	jtag_add_dr_scan(target->tap, ARRAY_SIZE(tunneled_dr), tunneled_dr, TAP_IDLE);
-	select_dmi_via_bscan(target);
+	jtag_add_ir_scan(tap, &select_user4, TAP_IDLE);
+	jtag_add_dr_scan(tap, ARRAY_SIZE(tunneled_ir), tunneled_ir, TAP_IDLE);
+	jtag_add_dr_scan(tap, ARRAY_SIZE(tunneled_dr), tunneled_dr, TAP_IDLE);
+	select_dmi_via_bscan(tap);
 
 	int retval = jtag_execute_queue();
 	if (retval != ERROR_OK) {
@@ -407,40 +407,42 @@ int dtmcontrol_scan_via_bscan(struct target *target, uint32_t out, uint32_t *in_
 }
 
 /* TODO: rename "dtmcontrol"-> "dtmcs" */
-int dtmcontrol_scan(struct target *target, uint32_t out, uint32_t *in_ptr)
+int dtmcs_scan(struct jtag_tap *tap, uint32_t out, uint32_t *in_ptr)
 {
 	uint8_t value[4];
 
 	if (bscan_tunnel_ir_width != 0)
-		return dtmcontrol_scan_via_bscan(target, out, in_ptr);
+		return dtmcs_scan_via_bscan(tap, out, in_ptr);
 
 	buf_set_u32(value, 0, 32, out);
 
-	jtag_add_ir_scan(target->tap, &select_dtmcontrol, TAP_IDLE);
+	jtag_add_ir_scan(tap, &select_dtmcontrol, TAP_IDLE);
 
 	struct scan_field field = {
 		.num_bits = 32,
 		.out_value = value,
 		.in_value = in_ptr ? value : NULL
 	};
-	jtag_add_dr_scan(target->tap, 1, &field, TAP_IDLE);
+	jtag_add_dr_scan(tap, 1, &field, TAP_IDLE);
 
 	/* Always return to dbus. */
-	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
+	jtag_add_ir_scan(tap, &select_dbus, TAP_IDLE);
 
 	int retval = jtag_execute_queue();
 	if (retval != ERROR_OK) {
-		LOG_TARGET_ERROR(target, "dtmcs scan failed, error code = %d", retval);
+		LOG_ERROR("'dtmcs' scan failed on TAP %s, error code = %d",
+				jtag_tap_name(tap), retval);
 		return retval;
 	}
 
 	if (in_ptr) {
 		assert(field.in_value);
 		uint32_t in = buf_get_u32(field.in_value, 0, 32);
-		LOG_TARGET_DEBUG(target, "DTMCS: 0x%" PRIx32 " -> 0x%" PRIx32, out, in);
+		LOG_DEBUG("TAP %s: DTMCS: 0x%" PRIx32 " -> 0x%" PRIx32,
+				jtag_tap_name(tap), out, in);
 		*in_ptr = in;
 	} else {
-		LOG_TARGET_DEBUG(target, "DTMCS: 0x%" PRIx32 " -> ?", out);
+		LOG_DEBUG("TAP %s: DTMCS: 0x%" PRIx32 " -> ?", jtag_tap_name(tap), out);
 	}
 	return ERROR_OK;
 }
@@ -2469,7 +2471,7 @@ static int riscv_examine(struct target *target)
 
 	RISCV_INFO(info);
 	uint32_t dtmcontrol;
-	if (dtmcontrol_scan(target, 0, &dtmcontrol) != ERROR_OK || dtmcontrol == 0) {
+	if (dtmcs_scan(target->tap, 0, &dtmcontrol) != ERROR_OK || dtmcontrol == 0) {
 		LOG_TARGET_ERROR(target, "Could not read dtmcontrol. Check JTAG connectivity/board power.");
 		return ERROR_FAIL;
 	}
@@ -6255,10 +6257,10 @@ int riscv_enumerate_triggers(struct target *target)
 	return ERROR_OK;
 }
 
-void riscv_add_bscan_tunneled_scan(struct target *target, const struct scan_field *field,
+void riscv_add_bscan_tunneled_scan(struct jtag_tap *tap, const struct scan_field *field,
 					riscv_bscan_tunneled_scan_context_t *ctxt)
 {
-	jtag_add_ir_scan(target->tap, &select_user4, TAP_IDLE);
+	jtag_add_ir_scan(tap, &select_user4, TAP_IDLE);
 
 	memset(ctxt->tunneled_dr, 0, sizeof(ctxt->tunneled_dr));
 	if (bscan_tunnel_type == BSCAN_TUNNEL_DATA_REGISTER) {
@@ -6291,5 +6293,5 @@ void riscv_add_bscan_tunneled_scan(struct target *target, const struct scan_fiel
 		ctxt->tunneled_dr[3].num_bits = 3;
 		ctxt->tunneled_dr[3].out_value = bscan_zero;
 	}
-	jtag_add_dr_scan(target->tap, ARRAY_SIZE(ctxt->tunneled_dr), ctxt->tunneled_dr, TAP_IDLE);
+	jtag_add_dr_scan(tap, ARRAY_SIZE(ctxt->tunneled_dr), ctxt->tunneled_dr, TAP_IDLE);
 }

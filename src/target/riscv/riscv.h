@@ -432,14 +432,14 @@ extern struct scan_field select_dtmcontrol;
 extern struct scan_field select_dbus;
 extern struct scan_field select_idcode;
 
-int dtmcontrol_scan(struct target *target, uint32_t out, uint32_t *in_ptr);
+int dtmcs_scan(struct jtag_tap *tap, uint32_t out, uint32_t *in_ptr);
 
 extern struct scan_field *bscan_tunneled_select_dmi;
 extern uint32_t bscan_tunneled_select_dmi_num_fields;
 typedef enum { BSCAN_TUNNEL_NESTED_TAP, BSCAN_TUNNEL_DATA_REGISTER } bscan_tunnel_type_t;
 extern uint8_t bscan_tunnel_ir_width;
 
-void select_dmi_via_bscan(struct target *target);
+void select_dmi_via_bscan(struct jtag_tap *tap);
 
 /*** OpenOCD Interface */
 int riscv_openocd_poll(struct target *target);
@@ -495,7 +495,7 @@ void riscv_semihosting_init(struct target *target);
 
 enum semihosting_result riscv_semihosting(struct target *target, int *retval);
 
-void riscv_add_bscan_tunneled_scan(struct target *target, const struct scan_field *field,
+void riscv_add_bscan_tunneled_scan(struct jtag_tap *tap, const struct scan_field *field,
 		riscv_bscan_tunneled_scan_context_t *ctxt);
 
 int riscv_read_by_any_size(struct target *target, target_addr_t address, uint32_t size, uint8_t *buffer);
