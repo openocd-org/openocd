@@ -2005,13 +2005,6 @@ static int examine(struct target *target)
 				info->impebreak);
 	}
 
-	if (info->progbufsize < 4 && riscv_virt2phys_mode_is_hw(target)) {
-		LOG_TARGET_ERROR(target, "software address translation "
-				"is not available on this target. It requires a "
-				"program buffer size of at least 4. (progbufsize=%d) "
-				"Use `riscv set_enable_virtual off` to continue.", info->progbufsize);
-	}
-
 	/* Don't call any riscv_* functions until after we've counted the number of
 	 * cores and initialized registers. */
 
@@ -3109,47 +3102,69 @@ static int read_sbcs_nonbusy(struct target *target, uint32_t *sbcs)
 }
 
 /* TODO: return mem_access_result_t */
-static int modify_privilege(struct target *target, uint64_t *mstatus, uint64_t *mstatus_old)
+static int modify_privilege_for_virt2phys_mode(struct target *target, riscv_reg_t *mstatus, riscv_reg_t *mstatus_old,
+		riscv_reg_t *dcsr, riscv_reg_t *dcsr_old)
 {
 	assert(mstatus);
 	assert(mstatus_old);
+	assert(dcsr);
+	assert(dcsr_old);
 	if (!riscv_virt2phys_mode_is_hw(target))
 		return ERROR_OK;
 
-	/* TODO: handle error in this case
-	 * modify_privilege function used only for program buffer memory access.
-	 * Privilege modification requires progbuf size to be at least 5 */
-	if (!has_sufficient_progbuf(target, 5)) {
-		LOG_TARGET_WARNING(target, "Can't modify privilege to provide "
-				"hardware translation: program buffer too small.");
-		return ERROR_OK;
-	}
-
-	/* Read DCSR */
-	riscv_reg_t dcsr;
-	if (register_read_direct(target, &dcsr, GDB_REGNO_DCSR) != ERROR_OK)
+	/* Read and save DCSR */
+	if (riscv_reg_get(target, dcsr, GDB_REGNO_DCSR) != ERROR_OK)
 		return ERROR_FAIL;
+	*dcsr_old = *dcsr;
 
 	/* Read and save MSTATUS */
-	if (register_read_direct(target, mstatus, GDB_REGNO_MSTATUS) != ERROR_OK)
+	if (riscv_reg_get(target, mstatus, GDB_REGNO_MSTATUS) != ERROR_OK)
 		return ERROR_FAIL;
 	*mstatus_old = *mstatus;
 
 	/* If we come from m-mode with mprv set, we want to keep mpp */
-	if (get_field(dcsr, CSR_DCSR_PRV) == PRV_M)
+	if (get_field(*dcsr, CSR_DCSR_PRV) == PRV_M)
 		return ERROR_OK;
 
 	/* mstatus.mpp <- dcsr.prv */
-	*mstatus = set_field(*mstatus, MSTATUS_MPP, get_field(dcsr, CSR_DCSR_PRV));
+	*mstatus = set_field(*mstatus, MSTATUS_MPP, get_field(*dcsr, CSR_DCSR_PRV));
 
 	/* mstatus.mprv <- 1 */
 	*mstatus = set_field(*mstatus, MSTATUS_MPRV, 1);
 
 	/* Write MSTATUS */
-	if (*mstatus == *mstatus_old)
+	if (*mstatus != *mstatus_old &&
+			riscv_reg_set(target, GDB_REGNO_MSTATUS, *mstatus) != ERROR_OK)
+		return ERROR_FAIL;
+
+	/* dcsr.mprven <- 1 */
+	*dcsr = set_field(*dcsr, CSR_DCSR_MPRVEN, CSR_DCSR_MPRVEN_ENABLED);
+
+	/* Write DCSR */
+	if (*dcsr != *dcsr_old &&
+			riscv_reg_set(target, GDB_REGNO_DCSR, *dcsr) != ERROR_OK)
+		return ERROR_FAIL;
+
+	return ERROR_OK;
+}
+
+static int restore_privilege_from_virt2phys_mode(struct target *target, riscv_reg_t mstatus, riscv_reg_t mstatus_old,
+		riscv_reg_t dcsr, riscv_reg_t dcsr_old)
+{
+	if (!riscv_virt2phys_mode_is_hw(target))
 		return ERROR_OK;
 
-	return register_write_direct(target, GDB_REGNO_MSTATUS, *mstatus);
+	/* Restore MSTATUS */
+	if (mstatus != mstatus_old &&
+			riscv_reg_set(target, GDB_REGNO_MSTATUS, mstatus_old) != ERROR_OK)
+		return ERROR_FAIL;
+
+	/* Restore DCSR */
+	if (dcsr != dcsr_old &&
+			riscv_reg_set(target, GDB_REGNO_DCSR, dcsr_old) != ERROR_OK)
+		return ERROR_FAIL;
+
+	return ERROR_OK;
 }
 
 static int read_memory_bus_v0(struct target *target, const riscv_mem_access_args_t args)
@@ -4188,25 +4203,8 @@ static int read_word_from_s1(struct target *target,
 	return ERROR_OK;
 }
 
-static int riscv_program_load_mprv(struct riscv_program *p, enum gdb_regno d,
-		enum gdb_regno b, int offset, unsigned int size, bool mprven)
-{
-	if (mprven && riscv_program_csrrsi(p, GDB_REGNO_ZERO, CSR_DCSR_MPRVEN,
-				GDB_REGNO_DCSR) != ERROR_OK)
-		return ERROR_FAIL;
-
-	if (riscv_program_load(p, d, b, offset, size) != ERROR_OK)
-		return ERROR_FAIL;
-
-	if (mprven && riscv_program_csrrci(p, GDB_REGNO_ZERO, CSR_DCSR_MPRVEN,
-				GDB_REGNO_DCSR) != ERROR_OK)
-		return ERROR_FAIL;
-
-	return ERROR_OK;
-}
-
 static int read_memory_progbuf_inner_fill_progbuf(struct target *target,
-		uint32_t increment, uint32_t size, bool mprven)
+		uint32_t increment, uint32_t size)
 {
 	const bool is_repeated_read = increment == 0;
 
@@ -4220,8 +4218,7 @@ static int read_memory_progbuf_inner_fill_progbuf(struct target *target,
 	struct riscv_program program;
 
 	riscv_program_init(&program, target);
-	if (riscv_program_load_mprv(&program, GDB_REGNO_S1, GDB_REGNO_S0, 0, size,
-				mprven) != ERROR_OK)
+	if (riscv_program_load(&program, GDB_REGNO_S1, GDB_REGNO_S0, 0, size) != ERROR_OK)
 		return ERROR_FAIL;
 	if (is_repeated_read) {
 		if (riscv_program_addi(&program, GDB_REGNO_A0, GDB_REGNO_A0, 1)
@@ -4246,14 +4243,12 @@ static int read_memory_progbuf_inner_fill_progbuf(struct target *target,
  * re-read the data only if `abstract command busy` or `DMI busy`
  * is encountered in the process.
  */
-static int read_memory_progbuf_inner(struct target *target,
-		const riscv_mem_access_args_t args, bool mprven)
+static int read_memory_progbuf_inner(struct target *target, const riscv_mem_access_args_t args)
 {
 	assert(riscv_mem_access_is_read(args));
 	assert(args.count > 1 && "If count == 1, read_memory_progbuf_inner_one must be called");
 
-	if (read_memory_progbuf_inner_fill_progbuf(target, args.increment,
-				args.size, mprven) != ERROR_OK)
+	if (read_memory_progbuf_inner_fill_progbuf(target, args.increment, args.size) != ERROR_OK)
 		return ERROR_FAIL;
 
 	if (read_memory_progbuf_inner_startup(target, args.address,
@@ -4305,8 +4300,7 @@ static int read_memory_progbuf_inner(struct target *target,
  * Only need to save/restore one GPR to read a single word, and the progbuf
  * program doesn't need to increment.
  */
-static int read_memory_progbuf_inner_one(struct target *target,
-		const riscv_mem_access_args_t args, bool mprven)
+static int read_memory_progbuf_inner_one(struct target *target, const riscv_mem_access_args_t args)
 {
 	assert(riscv_mem_access_is_read(args));
 
@@ -4316,8 +4310,7 @@ static int read_memory_progbuf_inner_one(struct target *target,
 	struct riscv_program program;
 
 	riscv_program_init(&program, target);
-	if (riscv_program_load_mprv(&program, GDB_REGNO_S1, GDB_REGNO_S1, 0,
-				args.size, mprven) != ERROR_OK)
+	if (riscv_program_load(&program, GDB_REGNO_S1, GDB_REGNO_S1, 0, args.size) != ERROR_OK)
 		return ERROR_FAIL;
 	if (riscv_program_ebreak(&program) != ERROR_OK)
 		return ERROR_FAIL;
@@ -4363,19 +4356,18 @@ read_memory_progbuf(struct target *target, const riscv_mem_access_args_t args)
 	if (execute_autofence(target) != ERROR_OK)
 		return MEM_ACCESS_SKIPPED_FENCE_EXEC_FAILED;
 
-	uint64_t mstatus = 0;
-	uint64_t mstatus_old = 0;
-	if (modify_privilege(target, &mstatus, &mstatus_old) != ERROR_OK)
+	riscv_reg_t mstatus = 0;
+	riscv_reg_t mstatus_old = 0;
+	riscv_reg_t dcsr = 0;
+	riscv_reg_t dcsr_old = 0;
+	if (modify_privilege_for_virt2phys_mode(target, &mstatus, &mstatus_old, &dcsr, &dcsr_old) != ERROR_OK)
 		return MEM_ACCESS_FAILED_PRIV_MOD_FAILED;
 
-	const bool mprven = riscv_virt2phys_mode_is_hw(target)
-			&& get_field(mstatus, MSTATUS_MPRV);
 	int result = (args.count == 1) ?
-		read_memory_progbuf_inner_one(target, args, mprven) :
-		read_memory_progbuf_inner(target, args, mprven);
+		read_memory_progbuf_inner_one(target, args) :
+		read_memory_progbuf_inner(target, args);
 
-	if (mstatus != mstatus_old &&
-			register_write_direct(target, GDB_REGNO_MSTATUS, mstatus_old) != ERROR_OK)
+	if (restore_privilege_from_virt2phys_mode(target, mstatus, mstatus_old, dcsr, dcsr_old) != ERROR_OK)
 		return MEM_ACCESS_FAILED;
 
 	return (result == ERROR_OK) ? MEM_ACCESS_OK : MEM_ACCESS_FAILED;
@@ -4833,25 +4825,7 @@ static int write_memory_progbuf_try_to_write(struct target *target,
 	return result;
 }
 
-static int riscv_program_store_mprv(struct riscv_program *p, enum gdb_regno d,
-		enum gdb_regno b, int offset, unsigned int size, bool mprven)
-{
-	if (mprven && riscv_program_csrrsi(p, GDB_REGNO_ZERO, CSR_DCSR_MPRVEN,
-				GDB_REGNO_DCSR) != ERROR_OK)
-		return ERROR_FAIL;
-
-	if (riscv_program_store(p, d, b, offset, size) != ERROR_OK)
-		return ERROR_FAIL;
-
-	if (mprven && riscv_program_csrrci(p, GDB_REGNO_ZERO, CSR_DCSR_MPRVEN,
-				GDB_REGNO_DCSR) != ERROR_OK)
-		return ERROR_FAIL;
-
-	return ERROR_OK;
-}
-
-static int write_memory_progbuf_fill_progbuf(struct target *target,
-		uint32_t size, bool mprven)
+static int write_memory_progbuf_fill_progbuf(struct target *target, uint32_t size)
 {
 	if (riscv013_reg_save(target, GDB_REGNO_S0) != ERROR_OK)
 		return ERROR_FAIL;
@@ -4861,8 +4835,7 @@ static int write_memory_progbuf_fill_progbuf(struct target *target,
 	struct riscv_program program;
 
 	riscv_program_init(&program, target);
-	if (riscv_program_store_mprv(&program, GDB_REGNO_S1, GDB_REGNO_S0, 0, size,
-				mprven) != ERROR_OK)
+	if (riscv_program_store(&program, GDB_REGNO_S1, GDB_REGNO_S0, 0, size) != ERROR_OK)
 		return ERROR_FAIL;
 
 	if (riscv_program_addi(&program, GDB_REGNO_S0, GDB_REGNO_S0, size) != ERROR_OK)
@@ -4874,12 +4847,11 @@ static int write_memory_progbuf_fill_progbuf(struct target *target,
 	return riscv_program_write(&program);
 }
 
-static int write_memory_progbuf_inner(struct target *target, const riscv_mem_access_args_t args, bool mprven)
+static int write_memory_progbuf_inner(struct target *target, const riscv_mem_access_args_t args)
 {
 	assert(riscv_mem_access_is_write(args));
 
-	if (write_memory_progbuf_fill_progbuf(target, args.size,
-				mprven) != ERROR_OK)
+	if (write_memory_progbuf_fill_progbuf(target, args.size) != ERROR_OK)
 		return ERROR_FAIL;
 
 	target_addr_t addr_on_target = args.address;
@@ -4923,18 +4895,15 @@ write_memory_progbuf(struct target *target, const riscv_mem_access_args_t args)
 
 	uint64_t mstatus = 0;
 	uint64_t mstatus_old = 0;
-	if (modify_privilege(target, &mstatus, &mstatus_old) != ERROR_OK)
+	uint64_t dcsr = 0;
+	uint64_t dcsr_old = 0;
+	if (modify_privilege_for_virt2phys_mode(target, &mstatus, &mstatus_old, &dcsr, &dcsr_old) != ERROR_OK)
 		return MEM_ACCESS_FAILED_PRIV_MOD_FAILED;
 
-	const bool mprven = riscv_virt2phys_mode_is_hw(target)
-			&& get_field(mstatus, MSTATUS_MPRV);
+	int result = write_memory_progbuf_inner(target, args);
 
-	int result = write_memory_progbuf_inner(target, args, mprven);
-
-	/* Restore MSTATUS */
-	if (mstatus != mstatus_old)
-		if (register_write_direct(target, GDB_REGNO_MSTATUS, mstatus_old))
-			return MEM_ACCESS_FAILED;
+	if (restore_privilege_from_virt2phys_mode(target, mstatus, mstatus_old, dcsr, dcsr_old) != ERROR_OK)
+		return MEM_ACCESS_FAILED;
 
 	if (execute_autofence(target) != ERROR_OK)
 		return MEM_ACCESS_SKIPPED_FENCE_EXEC_FAILED;
