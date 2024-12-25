@@ -630,6 +630,15 @@ static int abstract_cmd_batch_check_and_clear_cmderr(struct target *target,
 		if (res != ERROR_OK)
 			goto clear_cmderr;
 	}
+
+	dm013_info_t * const dm = get_dm(target);
+	if (!dm) {
+		LOG_ERROR("BUG: Target %s is not assigned to any RISC-V debug module",
+				target_name(target));
+		return ERROR_FAIL;
+	}
+	dm->abstract_cmd_maybe_busy = false;
+
 	*cmderr = get_field32(abstractcs, DM_ABSTRACTCS_CMDERR);
 	if (*cmderr == CMDERR_NONE)
 		return ERROR_OK;
