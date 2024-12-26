@@ -3131,7 +3131,7 @@ static int read_sbcs_nonbusy(struct target *target, uint32_t *sbcs)
 	}
 }
 
-/* TODO: return mem_access_result_t */
+/* TODO: return struct mem_access_result */
 static int modify_privilege_for_virt2phys_mode(struct target *target, riscv_reg_t *mstatus, riscv_reg_t *mstatus_old,
 		riscv_reg_t *dcsr, riscv_reg_t *dcsr_old)
 {
@@ -3458,13 +3458,13 @@ static void log_mem_access_result(struct target *target, bool success, riscv_mem
 		LOG_TARGET_DEBUG(target, "%s", msg);
 }
 
-typedef enum {
+enum mem_access_result_type {
 	MEM_ACCESS_RESULT_TYPE_OK,
 	MEM_ACCESS_RESULT_TYPE_DISABLED,
 	MEM_ACCESS_RESULT_TYPE_SKIPPED,
 	MEM_ACCESS_RESULT_TYPE_FAILED,
 	MEM_ACCESS_RESULT_TYPE_ENUM_SIZE,
-} mem_access_result_type_t;
+};
 
 #define LIST_OF_MEM_ACCESS_RESULTS \
 	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_OK, OK, "ok") \
@@ -3526,42 +3526,65 @@ typedef enum {
 
 
 #define MEM_ACCESS_RESULT_HANDLER(name, kind, msg) name,
-typedef enum {
+enum mem_access_result_enum {
 	LIST_OF_MEM_ACCESS_RESULTS
-} mem_access_result_t;
+};
 #undef MEM_ACCESS_RESULT_HANDLER
 
-bool is_mem_access_failed(mem_access_result_t status)
+/* Structure is intentionally used to contain the memory access result,
+   for type safety - to avoid implicit conversions to integers. */
+struct mem_access_result {
+	enum mem_access_result_enum value;
+};
+
+bool is_mem_access_ok(struct mem_access_result status)
+{
+	#define MEM_ACCESS_RESULT_HANDLER(name, kind, msg) \
+		case name: return MEM_ACCESS_RESULT_TYPE_##kind \
+					== MEM_ACCESS_RESULT_TYPE_OK;
+
+	switch (status.value) {
+		LIST_OF_MEM_ACCESS_RESULTS
+	}
+	#undef MEM_ACCESS_RESULT_HANDLER
+
+	LOG_ERROR("Unknown memory access status: %d", status.value);
+	assert(false && "Unknown memory access status");
+	return false;
+}
+
+bool is_mem_access_failed(struct mem_access_result status)
 {
 	#define MEM_ACCESS_RESULT_HANDLER(name, kind, msg) \
 		case name: return MEM_ACCESS_RESULT_TYPE_##kind \
 					== MEM_ACCESS_RESULT_TYPE_FAILED;
 
-	switch (status) {
+	switch (status.value) {
 		LIST_OF_MEM_ACCESS_RESULTS
 	}
 	#undef MEM_ACCESS_RESULT_HANDLER
-	LOG_ERROR("Unknown memory access status: %d", status);
+
+	LOG_ERROR("Unknown memory access status: %d", status.value);
 	assert(false && "Unknown memory access status");
 	return true;
 }
 
-bool is_mem_access_skipped(mem_access_result_t status)
+bool is_mem_access_skipped(struct mem_access_result status)
 {
 	#define MEM_ACCESS_RESULT_HANDLER(name, kind, msg) \
 		case name: return MEM_ACCESS_RESULT_TYPE_##kind \
 					== MEM_ACCESS_RESULT_TYPE_SKIPPED;
 
-	switch (status) {
+	switch (status.value) {
 		LIST_OF_MEM_ACCESS_RESULTS
 	}
 	#undef MEM_ACCESS_RESULT_HANDLER
-	LOG_ERROR("Unknown memory access status: %d", status);
+	LOG_ERROR("Unknown memory access status: %d", status.value);
 	assert(false && "Unknown memory access status");
 	return true;
 }
 
-const char *mem_access_result_to_str(mem_access_result_t status)
+const char *mem_access_result_to_str(struct mem_access_result status)
 {
 	#define MEM_ACCESS_RESULT_HANDLER(name, kind, msg) \
 		[name] = msg,
@@ -3570,11 +3593,17 @@ const char *mem_access_result_to_str(mem_access_result_t status)
 	};
 	#undef MEM_ACCESS_RESULT_HANDLER
 
-	assert(status < ARRAY_SIZE(table));
-	return table[status];
+	assert(status.value < ARRAY_SIZE(table));
+	return table[status.value];
 }
 
-static mem_access_result_t mem_should_skip_progbuf(struct target *target,
+static struct mem_access_result mem_access_result(enum mem_access_result_enum value)
+{
+	struct mem_access_result result = {.value = value};
+	return result;
+}
+
+static struct mem_access_result mem_should_skip_progbuf(struct target *target,
 	const riscv_mem_access_args_t args)
 {
 	assert(riscv_mem_access_is_valid(args));
@@ -3584,40 +3613,40 @@ static mem_access_result_t mem_should_skip_progbuf(struct target *target,
 	if (!has_sufficient_progbuf(target, 1)) {
 		LOG_TARGET_DEBUG(target, "Skipping mem %s via progbuf "
 				"- progbuf not present", access_type);
-		return MEM_ACCESS_SKIPPED_PROGBUF_NOT_PRESENT;
+		return mem_access_result(MEM_ACCESS_SKIPPED_PROGBUF_NOT_PRESENT);
 	}
 	if (!has_sufficient_progbuf(target, 3)) {
 		LOG_TARGET_DEBUG(target, "Skipping mem %s via progbuf - "
 				"insufficient progbuf size.", access_type);
-		return MEM_ACCESS_SKIPPED_PROGBUF_INSUFFICIENT;
+		return mem_access_result(MEM_ACCESS_SKIPPED_PROGBUF_INSUFFICIENT);
 	}
 	if (target->state != TARGET_HALTED) {
 		LOG_TARGET_DEBUG(target, "Skipping mem %s via progbuf - "
 				"target not halted.", access_type);
-		return MEM_ACCESS_SKIPPED_TARGET_NOT_HALTED;
+		return mem_access_result(MEM_ACCESS_SKIPPED_TARGET_NOT_HALTED);
 	}
 	if (riscv_xlen(target) < args.size * 8) {
 		LOG_TARGET_DEBUG(target, "Skipping mem %s via progbuf - "
 				"XLEN (%d) is too short for %d-bit memory args.",
 				access_type, riscv_xlen(target), args.size * 8);
-		return MEM_ACCESS_SKIPPED_XLEN_TOO_SHORT;
+		return mem_access_result(MEM_ACCESS_SKIPPED_XLEN_TOO_SHORT);
 	}
 	if (args.size > 8) {
 		LOG_TARGET_DEBUG(target, "Skipping mem %s via progbuf - "
 				"unsupported size.", access_type);
-		return MEM_ACCESS_SKIPPED_UNSUPPORTED_ACCESS_SIZE;
+		return mem_access_result(MEM_ACCESS_SKIPPED_UNSUPPORTED_ACCESS_SIZE);
 	}
 	if ((sizeof(args.address) * 8 > riscv_xlen(target))
 			&& (args.address >> riscv_xlen(target))) {
 		LOG_TARGET_DEBUG(target, "Skipping mem %s via progbuf - "
 			"progbuf only supports %u-bit address.", access_type, riscv_xlen(target));
-		return MEM_ACCESS_SKIPPED_TOO_LARGE_ADDRESS;
+		return mem_access_result(MEM_ACCESS_SKIPPED_TOO_LARGE_ADDRESS);
 	}
 
-	return MEM_ACCESS_OK;
+	return mem_access_result(MEM_ACCESS_OK);
 }
 
-static mem_access_result_t
+static struct mem_access_result
 mem_should_skip_sysbus(struct target *target, const riscv_mem_access_args_t args)
 {
 	assert(riscv_mem_access_is_valid(args));
@@ -3629,14 +3658,14 @@ mem_should_skip_sysbus(struct target *target, const riscv_mem_access_args_t args
 	if (!sba_supports_access(target, args.size)) {
 		LOG_TARGET_DEBUG(target, "Skipping mem %s via system bus - "
 				"unsupported size.", access_type);
-		return MEM_ACCESS_SKIPPED_UNSUPPORTED_ACCESS_SIZE;
+		return mem_access_result(MEM_ACCESS_SKIPPED_UNSUPPORTED_ACCESS_SIZE);
 	}
 	unsigned int sbasize = get_field(info->sbcs, DM_SBCS_SBASIZE);
 	if ((sizeof(args.address) * 8 > sbasize)
 			&& (args.address >> sbasize)) {
 		LOG_TARGET_DEBUG(target, "Skipping mem %s via system bus - "
 				"sba only supports %u-bit address.", access_type, sbasize);
-		return MEM_ACCESS_SKIPPED_TOO_LARGE_ADDRESS;
+		return mem_access_result(MEM_ACCESS_SKIPPED_TOO_LARGE_ADDRESS);
 	}
 	if (is_read && args.increment != args.size
 			&& (get_field(info->sbcs, DM_SBCS_SBVERSION) == 0
@@ -3644,13 +3673,13 @@ mem_should_skip_sysbus(struct target *target, const riscv_mem_access_args_t args
 		LOG_TARGET_DEBUG(target, "Skipping mem %s via system bus - "
 				"sba %ss only support (size == increment) or also "
 				"size==0 for sba v1.", access_type, access_type);
-		return MEM_ACCESS_SKIPPED_UNSUPPORTED_INCREMENT_SIZE;
+		return mem_access_result(MEM_ACCESS_SKIPPED_UNSUPPORTED_INCREMENT_SIZE);
 	}
 
-	return MEM_ACCESS_OK;
+	return mem_access_result(MEM_ACCESS_OK);
 }
 
-static mem_access_result_t
+static struct mem_access_result
 mem_should_skip_abstract(struct target *target, const riscv_mem_access_args_t args)
 {
 	assert(riscv_mem_access_is_valid(args));
@@ -3662,22 +3691,22 @@ mem_should_skip_abstract(struct target *target, const riscv_mem_access_args_t ar
 				 read/write_abstract_arg() to work on two 64b values. */
 		LOG_TARGET_DEBUG(target, "Skipping mem %s via abstract access - "
 				"unsupported size: %d bits", access_type, args.size * 8);
-		return MEM_ACCESS_SKIPPED_UNSUPPORTED_ACCESS_SIZE;
+		return mem_access_result(MEM_ACCESS_SKIPPED_UNSUPPORTED_ACCESS_SIZE);
 	}
 	if ((sizeof(args.address) * 8 > riscv_xlen(target))
 			&& (args.address >> riscv_xlen(target))) {
 		LOG_TARGET_DEBUG(target, "Skipping mem %s via abstract access - "
 				"abstract access only supports %u-bit address.",
 				access_type, riscv_xlen(target));
-		return MEM_ACCESS_SKIPPED_TOO_LARGE_ADDRESS;
+		return mem_access_result(MEM_ACCESS_SKIPPED_TOO_LARGE_ADDRESS);
 	}
 	if (is_read && args.size != args.increment) {
 		LOG_TARGET_ERROR(target, "Skipping mem %s via abstract access - "
 				"abstract command %ss only support (size == increment).",
 				access_type, access_type);
-		return MEM_ACCESS_SKIPPED_UNSUPPORTED_INCREMENT_SIZE;
+		return mem_access_result(MEM_ACCESS_SKIPPED_UNSUPPORTED_INCREMENT_SIZE);
 	}
-	return MEM_ACCESS_OK;
+	return mem_access_result(MEM_ACCESS_OK);
 }
 
 /*
@@ -3685,7 +3714,7 @@ mem_should_skip_abstract(struct target *target, const riscv_mem_access_args_t ar
  * supported are 1, 2, and 4 bytes despite the spec's support of 8 and 16 byte
  * aamsize fields in the memory access abstract command.
  */
-static mem_access_result_t
+static struct mem_access_result
 read_memory_abstract(struct target *target, const riscv_mem_access_args_t args)
 {
 	assert(riscv_mem_access_is_read(args));
@@ -3713,7 +3742,7 @@ read_memory_abstract(struct target *target, const riscv_mem_access_args_t args)
 			result = write_abstract_arg(target, 1, args.address + c * args.size, riscv_xlen(target));
 			if (result != ERROR_OK) {
 				LOG_TARGET_ERROR(target, "Failed to write arg1.");
-				return MEM_ACCESS_FAILED_DM_ACCESS_FAILED;
+				return mem_access_result(MEM_ACCESS_FAILED_DM_ACCESS_FAILED);
 			}
 		}
 
@@ -3729,7 +3758,7 @@ read_memory_abstract(struct target *target, const riscv_mem_access_args_t args)
 				riscv_reg_t new_address;
 				result = read_abstract_arg(target, &new_address, 1, riscv_xlen(target));
 				if (result != ERROR_OK)
-					return MEM_ACCESS_FAILED_DM_ACCESS_FAILED;
+					return mem_access_result(MEM_ACCESS_FAILED_DM_ACCESS_FAILED);
 
 				if (new_address == args.address + args.size) {
 					LOG_TARGET_DEBUG(target, "aampostincrement is supported on this target.");
@@ -3753,13 +3782,13 @@ read_memory_abstract(struct target *target, const riscv_mem_access_args_t args)
 		 * (1) Only the 1st access can result in a 'skip'
 		 * (2) Analyze cmderr value */
 		if (result != ERROR_OK)
-			return MEM_ACCESS_SKIPPED_ABSTRACT_ACCESS_CMDERR;
+			return mem_access_result(MEM_ACCESS_SKIPPED_ABSTRACT_ACCESS_CMDERR);
 
 		/* Copy arg0 to buffer (rounded width up to nearest 32) */
 		riscv_reg_t value;
 		result = read_abstract_arg(target, &value, 0, width32);
 		if (result != ERROR_OK)
-			return MEM_ACCESS_FAILED_DM_ACCESS_FAILED;
+			return mem_access_result(MEM_ACCESS_FAILED_DM_ACCESS_FAILED);
 		buf_set_u64(p, 0, 8 * args.size, value);
 
 		if (info->has_aampostincrement == YNM_YES)
@@ -3767,7 +3796,7 @@ read_memory_abstract(struct target *target, const riscv_mem_access_args_t args)
 		p += args.size;
 	}
 
-	return MEM_ACCESS_OK;
+	return mem_access_result(MEM_ACCESS_OK);
 }
 
 /*
@@ -3775,7 +3804,7 @@ read_memory_abstract(struct target *target, const riscv_mem_access_args_t args)
  * sizes supported are 1, 2, and 4 bytes despite the spec's support of 8 and 16
  * byte aamsize fields in the memory access abstract command.
  */
-static mem_access_result_t
+static struct mem_access_result
 write_memory_abstract(struct target *target, const riscv_mem_access_args_t args)
 {
 	assert(riscv_mem_access_is_write(args));
@@ -3799,7 +3828,7 @@ write_memory_abstract(struct target *target, const riscv_mem_access_args_t args)
 		result = write_abstract_arg(target, 0, value, riscv_xlen(target));
 		if (result != ERROR_OK) {
 			LOG_TARGET_ERROR(target, "Failed to write arg0.");
-			return MEM_ACCESS_FAILED_DM_ACCESS_FAILED;
+			return mem_access_result(MEM_ACCESS_FAILED_DM_ACCESS_FAILED);
 		}
 
 		/* Update the address if it is the first time or aampostincrement is not supported by the target. */
@@ -3808,7 +3837,7 @@ write_memory_abstract(struct target *target, const riscv_mem_access_args_t args)
 			result = write_abstract_arg(target, 1, args.address + c * args.size, riscv_xlen(target));
 			if (result != ERROR_OK) {
 				LOG_TARGET_ERROR(target, "Failed to write arg1.");
-				return MEM_ACCESS_FAILED_DM_ACCESS_FAILED;
+				return mem_access_result(MEM_ACCESS_FAILED_DM_ACCESS_FAILED);
 			}
 		}
 
@@ -3824,7 +3853,7 @@ write_memory_abstract(struct target *target, const riscv_mem_access_args_t args)
 				riscv_reg_t new_address;
 				result = read_abstract_arg(target, &new_address, 1, riscv_xlen(target));
 				if (result != ERROR_OK)
-					return MEM_ACCESS_FAILED_DM_ACCESS_FAILED;
+					return mem_access_result(MEM_ACCESS_FAILED_DM_ACCESS_FAILED);
 
 				if (new_address == args.address + args.size) {
 					LOG_TARGET_DEBUG(target, "aampostincrement is supported on this target.");
@@ -3848,14 +3877,14 @@ write_memory_abstract(struct target *target, const riscv_mem_access_args_t args)
 		 * (1) Only the 1st access can result in a 'skip'
 		 * (2) Analyze cmderr value */
 		if (result != ERROR_OK)
-			return MEM_ACCESS_SKIPPED_ABSTRACT_ACCESS_CMDERR;
+			return mem_access_result(MEM_ACCESS_SKIPPED_ABSTRACT_ACCESS_CMDERR);
 
 		if (info->has_aampostincrement == YNM_YES)
 			updateaddr = false;
 		p += args.size;
 	}
 
-	return MEM_ACCESS_OK;
+	return mem_access_result(MEM_ACCESS_OK);
 }
 
 /**
@@ -4231,7 +4260,7 @@ static int read_word_from_dm_data_regs(struct target *target,
 	return result;
 }
 
-static mem_access_result_t read_word_from_s1(struct target *target,
+static struct mem_access_result read_word_from_s1(struct target *target,
 		const riscv_mem_access_args_t args, uint32_t index)
 {
 	assert(riscv_mem_access_is_read(args));
@@ -4239,9 +4268,9 @@ static mem_access_result_t read_word_from_s1(struct target *target,
 	uint64_t value;
 
 	if (register_read_direct(target, &value, GDB_REGNO_S1) != ERROR_OK)
-		return MEM_ACCESS_FAILED_REG_READ_FAILED;
+		return mem_access_result(MEM_ACCESS_FAILED_REG_READ_FAILED);
 	set_buffer_and_log_read(args, index, value);
-	return MEM_ACCESS_OK;
+	return mem_access_result(MEM_ACCESS_OK);
 }
 
 static int read_memory_progbuf_inner_fill_progbuf(struct target *target,
@@ -4284,7 +4313,7 @@ static int read_memory_progbuf_inner_fill_progbuf(struct target *target,
  * re-read the data only if `abstract command busy` or `DMI busy`
  * is encountered in the process.
  */
-static mem_access_result_t
+static struct mem_access_result
 read_memory_progbuf_inner(struct target *target, const riscv_mem_access_args_t args)
 {
 	assert(riscv_mem_access_is_read(args));
@@ -4292,11 +4321,11 @@ read_memory_progbuf_inner(struct target *target, const riscv_mem_access_args_t a
 
 	if (read_memory_progbuf_inner_fill_progbuf(target,
 			args.increment, args.size) != ERROR_OK)
-		return MEM_ACCESS_SKIPPED_PROGBUF_FILL_FAILED;
+		return mem_access_result(MEM_ACCESS_SKIPPED_PROGBUF_FILL_FAILED);
 
 	if (read_memory_progbuf_inner_startup(target, args.address,
 			args.increment, /*index*/ 0) != ERROR_OK)
-		return MEM_ACCESS_FAILED_PROGBUF_STARTUP_FAILED;
+		return mem_access_result(MEM_ACCESS_FAILED_PROGBUF_STARTUP_FAILED);
 	/* The program in program buffer is executed twice during
 	 * read_memory_progbuf_inner_startup().
 	 * Here:
@@ -4314,13 +4343,13 @@ read_memory_progbuf_inner(struct target *target, const riscv_mem_access_args_t a
 		if (read_memory_progbuf_inner_try_to_read(target, args, &elements_read,
 					index, loop_count) != ERROR_OK) {
 			dm_write(target, DM_ABSTRACTAUTO, 0);
-			return MEM_ACCESS_FAILED_PROGBUF_INNER_FAILED;
+			return mem_access_result(MEM_ACCESS_FAILED_PROGBUF_INNER_FAILED);
 		}
 		if (elements_read == 0) {
 			if (read_memory_progbuf_inner_ensure_forward_progress(target, args,
 						index) != ERROR_OK) {
 				dm_write(target, DM_ABSTRACTAUTO, 0);
-				return MEM_ACCESS_FAILED_NO_FORWARD_PROGRESS;
+				return mem_access_result(MEM_ACCESS_FAILED_NO_FORWARD_PROGRESS);
 			}
 			elements_read = 1;
 		}
@@ -4328,12 +4357,12 @@ read_memory_progbuf_inner(struct target *target, const riscv_mem_access_args_t a
 		assert(index <= loop_count);
 	}
 	if (dm_write(target, DM_ABSTRACTAUTO, 0) != ERROR_OK)
-		return MEM_ACCESS_FAILED_DM_ACCESS_FAILED;
+		return mem_access_result(MEM_ACCESS_FAILED_DM_ACCESS_FAILED);
 
 	/* Read the penultimate word. */
 	if (read_word_from_dm_data_regs(target,
 			args, args.count - 2) != ERROR_OK)
-		return MEM_ACCESS_FAILED_DM_ACCESS_FAILED;
+		return mem_access_result(MEM_ACCESS_FAILED_DM_ACCESS_FAILED);
 	/* Read the last word. */
 	return read_word_from_s1(target, args, args.count - 1);
 }
@@ -4342,13 +4371,13 @@ read_memory_progbuf_inner(struct target *target, const riscv_mem_access_args_t a
  * Only need to save/restore one GPR to read a single word, and the progbuf
  * program doesn't need to increment.
  */
-static mem_access_result_t
+static struct mem_access_result
 read_memory_progbuf_inner_one(struct target *target, const riscv_mem_access_args_t args)
 {
 	assert(riscv_mem_access_is_read(args));
 
 	if (riscv013_reg_save(target, GDB_REGNO_S1) != ERROR_OK)
-		return MEM_ACCESS_SKIPPED_REG_SAVE_FAILED;
+		return mem_access_result(MEM_ACCESS_SKIPPED_REG_SAVE_FAILED);
 
 	struct riscv_program program;
 
@@ -4356,21 +4385,21 @@ read_memory_progbuf_inner_one(struct target *target, const riscv_mem_access_args
 	if (riscv_program_load(&program, GDB_REGNO_S1, GDB_REGNO_S1,
 			/* offset = */ 0, args.size) != ERROR_OK
 			|| riscv_program_ebreak(&program) != ERROR_OK)
-		return MEM_ACCESS_SKIPPED_PROGBUF_FILL_FAILED;
+		return mem_access_result(MEM_ACCESS_SKIPPED_PROGBUF_FILL_FAILED);
 
 	if (riscv_program_write(&program) != ERROR_OK)
-		return MEM_ACCESS_SKIPPED_PROGRAM_WRITE_FAILED;
+		return mem_access_result(MEM_ACCESS_SKIPPED_PROGRAM_WRITE_FAILED);
 
 	/* Write address to S1, and execute buffer. */
 	if (write_abstract_arg(target, /* index = */ 0,
 			args.address, riscv_xlen(target)) != ERROR_OK)
-		return MEM_ACCESS_SKIPPED_WRITE_ABSTRACT_ARG_FAILED;
+		return mem_access_result(MEM_ACCESS_SKIPPED_WRITE_ABSTRACT_ARG_FAILED);
 	uint32_t command = riscv013_access_register_command(target, GDB_REGNO_S1,
 			riscv_xlen(target), AC_ACCESS_REGISTER_WRITE |
 			AC_ACCESS_REGISTER_TRANSFER | AC_ACCESS_REGISTER_POSTEXEC);
 	uint32_t cmderr;
 	if (riscv013_execute_abstract_command(target, command, &cmderr) != ERROR_OK)
-		return MEM_ACCESS_FAILED_EXECUTE_ABSTRACT_FAILED;
+		return mem_access_result(MEM_ACCESS_FAILED_EXECUTE_ABSTRACT_FAILED);
 
 	return read_word_from_s1(target, args, 0);
 }
@@ -4378,7 +4407,7 @@ read_memory_progbuf_inner_one(struct target *target, const riscv_mem_access_args
 /**
  * Read the requested memory, silently handling memory access errors.
  */
-static mem_access_result_t
+static struct mem_access_result
 read_memory_progbuf(struct target *target, const riscv_mem_access_args_t args)
 {
 	assert(riscv_mem_access_is_read(args));
@@ -4387,21 +4416,21 @@ read_memory_progbuf(struct target *target, const riscv_mem_access_args_t args)
 	memset(args.read_buffer, 0, args.count * args.size);
 
 	if (execute_autofence(target) != ERROR_OK)
-		return MEM_ACCESS_SKIPPED_FENCE_EXEC_FAILED;
+		return mem_access_result(MEM_ACCESS_SKIPPED_FENCE_EXEC_FAILED);
 
 	return (args.count == 1) ?
 			read_memory_progbuf_inner_one(target, args) :
 			read_memory_progbuf_inner(target, args);
 }
 
-static mem_access_result_t
+static struct mem_access_result
 write_memory_progbuf(struct target *target, const riscv_mem_access_args_t args);
 
-static mem_access_result_t
+static struct mem_access_result
 access_memory_progbuf(struct target *target, const riscv_mem_access_args_t args)
 {
-	mem_access_result_t skip_reason = mem_should_skip_progbuf(target, args);
-	if (skip_reason != MEM_ACCESS_OK)
+	struct mem_access_result skip_reason = mem_should_skip_progbuf(target, args);
+	if (!is_mem_access_ok(skip_reason))
 		return skip_reason;
 
 	const bool is_read = riscv_mem_access_is_read(args);
@@ -4411,7 +4440,7 @@ access_memory_progbuf(struct target *target, const riscv_mem_access_args_t args)
 			args.size, args.address);
 
 	if (dm013_select_target(target) != ERROR_OK)
-		return MEM_ACCESS_SKIPPED_TARGET_SELECT_FAILED;
+		return mem_access_result(MEM_ACCESS_SKIPPED_TARGET_SELECT_FAILED);
 
 	riscv_reg_t mstatus = 0;
 	riscv_reg_t mstatus_old = 0;
@@ -4419,15 +4448,15 @@ access_memory_progbuf(struct target *target, const riscv_mem_access_args_t args)
 	riscv_reg_t dcsr_old = 0;
 	if (modify_privilege_for_virt2phys_mode(target,
 			&mstatus, &mstatus_old, &dcsr, &dcsr_old) != ERROR_OK)
-		return MEM_ACCESS_SKIPPED_PRIV_MOD_FAILED;
+		return mem_access_result(MEM_ACCESS_SKIPPED_PRIV_MOD_FAILED);
 
-	mem_access_result_t result = is_read ?
+	struct mem_access_result result = is_read ?
 			read_memory_progbuf(target, args) :
 			write_memory_progbuf(target, args);
 
 	if (restore_privilege_from_virt2phys_mode(target,
 			mstatus, mstatus_old, dcsr, dcsr_old) != ERROR_OK)
-		return MEM_ACCESS_FAILED_PRIV_MOD_FAILED;
+		return mem_access_result(MEM_ACCESS_FAILED_PRIV_MOD_FAILED);
 
 	return result;
 }
@@ -4437,13 +4466,13 @@ write_memory_bus_v0(struct target *target, const riscv_mem_access_args_t args);
 static int
 write_memory_bus_v1(struct target *target, const riscv_mem_access_args_t args);
 
-static mem_access_result_t
+static struct mem_access_result
 access_memory_sysbus(struct target *target, const riscv_mem_access_args_t args)
 {
 	assert(riscv_mem_access_is_valid(args));
 
-	mem_access_result_t skip_reason = mem_should_skip_sysbus(target, args);
-	if (skip_reason != MEM_ACCESS_OK)
+	struct mem_access_result skip_reason = mem_should_skip_sysbus(target, args);
+	if (!is_mem_access_ok(skip_reason))
 		return skip_reason;
 
 	RISCV013_INFO(info);
@@ -4458,19 +4487,20 @@ access_memory_sysbus(struct target *target, const riscv_mem_access_args_t args)
 				write_memory_bus_v1(target, args);
 	} else {
 		LOG_TARGET_ERROR(target, "Unknown system bus version: %" PRIu64, sbver);
-		return MEM_ACCESS_SKIPPED_UNKNOWN_SYSBUS_VERSION;
+		return mem_access_result(MEM_ACCESS_SKIPPED_UNKNOWN_SYSBUS_VERSION);
 	}
 
-	return ret == ERROR_OK ? MEM_ACCESS_OK : MEM_ACCESS_SKIPPED_SYSBUS_ACCESS_FAILED;
+	return mem_access_result(ret == ERROR_OK ?
+			MEM_ACCESS_OK : MEM_ACCESS_SKIPPED_SYSBUS_ACCESS_FAILED);
 }
 
-static mem_access_result_t
+static struct mem_access_result
 access_memory_abstract(struct target *target, const riscv_mem_access_args_t args)
 {
 	assert(riscv_mem_access_is_valid(args));
 
-	mem_access_result_t skip_reason = mem_should_skip_abstract(target, args);
-	if (skip_reason != MEM_ACCESS_OK)
+	struct mem_access_result skip_reason = mem_should_skip_abstract(target, args);
+	if (!is_mem_access_ok(skip_reason))
 		return skip_reason;
 
 	const bool is_read = riscv_mem_access_is_read(args);
@@ -4501,10 +4531,10 @@ riscv013_access_memory(struct target *target, const riscv_mem_access_args_t args
 		return ERROR_FAIL;
 	}
 
-	mem_access_result_t skip_reason[] = {
-		[RISCV_MEM_ACCESS_PROGBUF] = MEM_ACCESS_DISABLED,
-		[RISCV_MEM_ACCESS_SYSBUS] = MEM_ACCESS_DISABLED,
-		[RISCV_MEM_ACCESS_ABSTRACT] = MEM_ACCESS_DISABLED,
+	struct mem_access_result skip_reason[] = {
+		[RISCV_MEM_ACCESS_PROGBUF] = mem_access_result(MEM_ACCESS_DISABLED),
+		[RISCV_MEM_ACCESS_SYSBUS] = mem_access_result(MEM_ACCESS_DISABLED),
+		[RISCV_MEM_ACCESS_ABSTRACT] = mem_access_result(MEM_ACCESS_DISABLED),
 	};
 
 	RISCV_INFO(r);
@@ -4529,7 +4559,7 @@ riscv013_access_memory(struct target *target, const riscv_mem_access_args_t args
 		if (is_mem_access_failed(skip_reason[method]))
 			goto failure;
 
-		const bool success = (skip_reason[method] == MEM_ACCESS_OK);
+		const bool success = is_mem_access_ok(skip_reason[method]);
 		log_mem_access_result(target, success, method, is_read);
 		if (success)
 			return ERROR_OK;
@@ -4941,19 +4971,19 @@ static int write_memory_progbuf_fill_progbuf(struct target *target, uint32_t siz
 	return riscv_program_write(&program);
 }
 
-static mem_access_result_t
+static struct mem_access_result
 write_memory_progbuf_inner(struct target *target,
 		const riscv_mem_access_args_t args)
 {
 	assert(riscv_mem_access_is_write(args));
 
 	if (write_memory_progbuf_fill_progbuf(target, args.size) != ERROR_OK)
-		return MEM_ACCESS_SKIPPED_PROGBUF_FILL_FAILED;
+		return mem_access_result(MEM_ACCESS_SKIPPED_PROGBUF_FILL_FAILED);
 
 	target_addr_t addr_on_target = args.address;
 	if (write_memory_progbuf_startup(target, &addr_on_target,
 			args.write_buffer, args.size) != ERROR_OK)
-		return MEM_ACCESS_FAILED_PROGBUF_STARTUP_FAILED;
+		return mem_access_result(MEM_ACCESS_FAILED_PROGBUF_STARTUP_FAILED);
 
 	const target_addr_t end_addr = args.address + (target_addr_t)args.size * args.count;
 
@@ -4963,7 +4993,7 @@ write_memory_progbuf_inner(struct target *target,
 		if (write_memory_progbuf_try_to_write(target, &next_addr_on_target,
 					end_addr, args.size, curr_buff) != ERROR_OK) {
 			write_memory_progbuf_teardown(target);
-			return MEM_ACCESS_FAILED_PROGBUF_INNER_FAILED;
+			return mem_access_result(MEM_ACCESS_FAILED_PROGBUF_INNER_FAILED);
 		}
 		/* write_memory_progbuf_try_to_write() ensures that at least one item
 		 * gets successfully written even when busy condition is encountered.
@@ -4973,18 +5003,19 @@ write_memory_progbuf_inner(struct target *target,
 	}
 
 	return write_memory_progbuf_teardown(target) == ERROR_OK ?
-			MEM_ACCESS_OK : MEM_ACCESS_FAILED_PROGBUF_TEARDOWN_FAILED;
+			mem_access_result(MEM_ACCESS_OK) :
+			mem_access_result(MEM_ACCESS_FAILED_PROGBUF_TEARDOWN_FAILED);
 }
 
-static mem_access_result_t
+static struct mem_access_result
 write_memory_progbuf(struct target *target, const riscv_mem_access_args_t args)
 {
 	assert(riscv_mem_access_is_write(args));
 
-	mem_access_result_t result = write_memory_progbuf_inner(target, args);
+	struct mem_access_result result = write_memory_progbuf_inner(target, args);
 
 	if (execute_autofence(target) != ERROR_OK)
-		return MEM_ACCESS_FAILED_FENCE_EXEC_FAILED;
+		return mem_access_result(MEM_ACCESS_FAILED_FENCE_EXEC_FAILED);
 
 	return result;
 }
