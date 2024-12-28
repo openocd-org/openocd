@@ -12675,7 +12675,7 @@ If your device/vendor is not supported you have to use the first variant.
 
 @end deffn
 
-@deffn {Command} {$hub_name ipdbg start} @option{-tool @var{number}} @option{-port @var{number}}
+@deffn {Command} {$hub_name start} @option{-tool @var{number}} @option{-port @var{number}}
 Starts a IPDBG JTAG-Host server. The remaining arguments can be specified in any order.
 
 Command options:
@@ -12685,7 +12685,7 @@ Command options:
 @end itemize
 @end deffn
 
-@deffn {Command} {$hub_name ipdbg stop} @option{-tool @var{number}}
+@deffn {Command} {$hub_name stop} @option{-tool @var{number}}
 Stops a IPDBG JTAG-Host server.
 Command options:
 @itemize @bullet
@@ -12696,21 +12696,21 @@ Command options:
 Examples:
 @example
 ipdbg create-hub xc6s.ipdbghub -tap xc6s.tap -hub 0x02
-xc6s.ipdbghub ipdbg start -port 4242 -tool 4
+xc6s.ipdbghub start -port 4242 -tool 4
 @end example
 Creates a IPDBG Hub and starts a server listening on tcp-port 4242 which connects to tool 4.
 The connection is through the TAP of a Xilinx Spartan 6 on USER1 instruction (tested with a papillion pro board).
 
 @example
 ipdbg create-hub max10m50.ipdbghub -tap max10m50.tap -hub 0x00C -vir
-max10m50.ipdbghub ipdbg start -tool 1 -port 60000
+max10m50.ipdbghub start -tool 1 -port 60000
 @end example
 Starts a server listening on tcp-port 60000 which connects to tool 1 (data_up_1/data_down_1).
 The connection is through the TAP of a Intel MAX10 virtual jtag component (sld_instance_index is 0; sld_ir_width is smaller than 5).
 
 @example
 ipdbg create-hub xc7.ipdbghub -pld xc7.pld
-xc7.ipdbghub ipdbg start -port 5555 -tool 0
+xc7.ipdbghub start -port 5555 -tool 0
 @end example
 Starts a server listening on tcp-port 5555 which connects to tool 0 (data_up_0/data_down_0).
 The TAP and ir value used to reach the JTAG Hub is given by the pld driver.

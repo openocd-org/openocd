@@ -1205,7 +1205,7 @@ proc "pld device" {driver tap_name {opt 0}} {
 
 lappend _telnet_autocomplete_skip "ipdbg -start"
 proc "ipdbg -start" {args} {
-	echo "DEPRECATED! use 'ipdbg create-hub' and 'chip.ipdbghub ipdbg start ...', not 'ipdbg -start ...'"
+	echo "DEPRECATED! use 'ipdbg create-hub' and 'chip.ipdbghub start ...', not 'ipdbg -start ...'"
 	set tap_name ""
 	set pld_name ""
 	set tool_num "1"
@@ -1271,17 +1271,14 @@ proc "ipdbg -start" {args} {
 		return
 	}
 
-	echo "name: $hub_name"
-	echo "ipdbg create-hub $hub_name $args"
-
 	catch {eval ipdbg create-hub $hub_name $args}
 
-	eval $hub_name ipdbg start -tool $tool_num -port $port_num
+	eval $hub_name start -tool $tool_num -port $port_num
 }
 
 lappend _telnet_autocomplete_skip "ipdbg -stop"
 proc "ipdbg -stop" {args} {
-	echo "DEPRECATED! use 'chip.ipdbghub ipdbg stop ...', not 'ipdbg -stop ...'"
+	echo "DEPRECATED! use 'chip.ipdbghub stop ...', not 'ipdbg -stop ...'"
 	set tap_name ""
 	set pld_name ""
 	set tool_num "1"
@@ -1328,7 +1325,11 @@ proc "ipdbg -stop" {args} {
 		return
 	}
 
-	eval $hub_name ipdbg stop -tool $tool_num
+	eval $hub_name stop -tool $tool_num
+}
+
+proc ipdbg {cmd args} {
+	tailcall "ipdbg $cmd" {*}$args
 }
 
 # END MIGRATION AIDS
