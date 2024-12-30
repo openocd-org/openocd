@@ -80,30 +80,31 @@ static const struct {
 	enum reg_type type;
 	const char *group;
 	const char *feature;
+	struct reg_data_type *data_type;
 } armv7m_regs[] = {
-	{ ARMV7M_R0, "r0", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile" },
-	{ ARMV7M_R1, "r1", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile" },
-	{ ARMV7M_R2, "r2", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile" },
-	{ ARMV7M_R3, "r3", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile" },
-	{ ARMV7M_R4, "r4", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile" },
-	{ ARMV7M_R5, "r5", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile" },
-	{ ARMV7M_R6, "r6", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile" },
-	{ ARMV7M_R7, "r7", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile" },
-	{ ARMV7M_R8, "r8", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile" },
-	{ ARMV7M_R9, "r9", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile" },
-	{ ARMV7M_R10, "r10", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile" },
-	{ ARMV7M_R11, "r11", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile" },
-	{ ARMV7M_R12, "r12", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile" },
-	{ ARMV7M_R13, "sp", 32, REG_TYPE_DATA_PTR, "general", "org.gnu.gdb.arm.m-profile" },
-	{ ARMV7M_R14, "lr", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile" },
-	{ ARMV7M_PC, "pc", 32, REG_TYPE_CODE_PTR, "general", "org.gnu.gdb.arm.m-profile" },
-	{ ARMV7M_XPSR, "xpsr", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile" },
+	{ ARMV7M_R0, "r0", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile", NULL, },
+	{ ARMV7M_R1, "r1", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile", NULL, },
+	{ ARMV7M_R2, "r2", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile", NULL, },
+	{ ARMV7M_R3, "r3", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile", NULL, },
+	{ ARMV7M_R4, "r4", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile", NULL, },
+	{ ARMV7M_R5, "r5", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile", NULL, },
+	{ ARMV7M_R6, "r6", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile", NULL, },
+	{ ARMV7M_R7, "r7", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile", NULL, },
+	{ ARMV7M_R8, "r8", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile", NULL, },
+	{ ARMV7M_R9, "r9", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile", NULL, },
+	{ ARMV7M_R10, "r10", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile", NULL, },
+	{ ARMV7M_R11, "r11", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile", NULL, },
+	{ ARMV7M_R12, "r12", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile", NULL, },
+	{ ARMV7M_R13, "sp", 32, REG_TYPE_DATA_PTR, "general", "org.gnu.gdb.arm.m-profile", NULL, },
+	{ ARMV7M_R14, "lr", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile", NULL, },
+	{ ARMV7M_PC, "pc", 32, REG_TYPE_CODE_PTR, "general", "org.gnu.gdb.arm.m-profile", NULL, },
+	{ ARMV7M_XPSR, "xpsr", 32, REG_TYPE_INT, "general", "org.gnu.gdb.arm.m-profile", NULL, },
 
-	{ ARMV7M_MSP, "msp", 32, REG_TYPE_DATA_PTR, "system", "org.gnu.gdb.arm.m-system" },
-	{ ARMV7M_PSP, "psp", 32, REG_TYPE_DATA_PTR, "system", "org.gnu.gdb.arm.m-system" },
+	{ ARMV7M_MSP, "msp", 32, REG_TYPE_DATA_PTR, "system", "org.gnu.gdb.arm.m-system", NULL, },
+	{ ARMV7M_PSP, "psp", 32, REG_TYPE_DATA_PTR, "system", "org.gnu.gdb.arm.m-system", NULL, },
 
 	/* A working register for packing/unpacking special regs, hidden from gdb */
-	{ ARMV7M_PMSK_BPRI_FLTMSK_CTRL, "pmsk_bpri_fltmsk_ctrl", 32, REG_TYPE_INT, NULL, NULL },
+	{ ARMV7M_PMSK_BPRI_FLTMSK_CTRL, "pmsk_bpri_fltmsk_ctrl", 32, REG_TYPE_INT, NULL, NULL, NULL },
 
 	/* WARNING: If you use armv7m_write_core_reg() on one of 4 following
 	 * special registers, the new data go to ARMV7M_PMSK_BPRI_FLTMSK_CTRL
@@ -111,52 +112,52 @@ static const struct {
 	 * To trigger write to CPU HW register, add
 	 *		armv7m_write_core_reg(,,ARMV7M_PMSK_BPRI_FLTMSK_CTRL,);
 	 */
-	{ ARMV7M_PRIMASK, "primask", 1, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.m-system" },
-	{ ARMV7M_BASEPRI, "basepri", 8, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.m-system" },
-	{ ARMV7M_FAULTMASK, "faultmask", 1, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.m-system" },
-	{ ARMV7M_CONTROL, "control", 3, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.m-system" },
+	{ ARMV7M_PRIMASK, "primask", 1, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.m-system", NULL, },
+	{ ARMV7M_BASEPRI, "basepri", 8, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.m-system", NULL, },
+	{ ARMV7M_FAULTMASK, "faultmask", 1, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.m-system", NULL, },
+	{ ARMV7M_CONTROL, "control", 3, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.m-system", NULL, },
 
 	/* ARMv8-M security extension (TrustZone) specific registers */
-	{ ARMV8M_MSP_NS, "msp_ns", 32, REG_TYPE_DATA_PTR, "stack", "org.gnu.gdb.arm.secext" },
-	{ ARMV8M_PSP_NS, "psp_ns", 32, REG_TYPE_DATA_PTR, "stack", "org.gnu.gdb.arm.secext" },
-	{ ARMV8M_MSP_S, "msp_s", 32, REG_TYPE_DATA_PTR, "stack", "org.gnu.gdb.arm.secext" },
-	{ ARMV8M_PSP_S, "psp_s", 32, REG_TYPE_DATA_PTR, "stack", "org.gnu.gdb.arm.secext" },
-	{ ARMV8M_MSPLIM_S, "msplim_s", 32, REG_TYPE_DATA_PTR, "stack", "org.gnu.gdb.arm.secext" },
-	{ ARMV8M_PSPLIM_S, "psplim_s", 32, REG_TYPE_DATA_PTR, "stack", "org.gnu.gdb.arm.secext" },
-	{ ARMV8M_MSPLIM_NS, "msplim_ns", 32, REG_TYPE_DATA_PTR, "stack", "org.gnu.gdb.arm.secext" },
-	{ ARMV8M_PSPLIM_NS, "psplim_ns", 32, REG_TYPE_DATA_PTR, "stack", "org.gnu.gdb.arm.secext" },
+	{ ARMV8M_MSP_NS, "msp_ns", 32, REG_TYPE_DATA_PTR, "stack", "org.gnu.gdb.arm.secext", NULL, },
+	{ ARMV8M_PSP_NS, "psp_ns", 32, REG_TYPE_DATA_PTR, "stack", "org.gnu.gdb.arm.secext", NULL, },
+	{ ARMV8M_MSP_S, "msp_s", 32, REG_TYPE_DATA_PTR, "stack", "org.gnu.gdb.arm.secext", NULL, },
+	{ ARMV8M_PSP_S, "psp_s", 32, REG_TYPE_DATA_PTR, "stack", "org.gnu.gdb.arm.secext", NULL, },
+	{ ARMV8M_MSPLIM_S, "msplim_s", 32, REG_TYPE_DATA_PTR, "stack", "org.gnu.gdb.arm.secext", NULL, },
+	{ ARMV8M_PSPLIM_S, "psplim_s", 32, REG_TYPE_DATA_PTR, "stack", "org.gnu.gdb.arm.secext", NULL, },
+	{ ARMV8M_MSPLIM_NS, "msplim_ns", 32, REG_TYPE_DATA_PTR, "stack", "org.gnu.gdb.arm.secext", NULL, },
+	{ ARMV8M_PSPLIM_NS, "psplim_ns", 32, REG_TYPE_DATA_PTR, "stack", "org.gnu.gdb.arm.secext", NULL, },
 
-	{ ARMV8M_PMSK_BPRI_FLTMSK_CTRL_S, "pmsk_bpri_fltmsk_ctrl_s", 32, REG_TYPE_INT, NULL, NULL },
-	{ ARMV8M_PRIMASK_S, "primask_s", 1, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.secext" },
-	{ ARMV8M_BASEPRI_S, "basepri_s", 8, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.secext" },
-	{ ARMV8M_FAULTMASK_S, "faultmask_s", 1, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.secext" },
-	{ ARMV8M_CONTROL_S, "control_s", 3, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.secext" },
+	{ ARMV8M_PMSK_BPRI_FLTMSK_CTRL_S, "pmsk_bpri_fltmsk_ctrl_s", 32, REG_TYPE_INT, NULL, NULL, NULL, },
+	{ ARMV8M_PRIMASK_S, "primask_s", 1, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.secext", NULL, },
+	{ ARMV8M_BASEPRI_S, "basepri_s", 8, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.secext", NULL, },
+	{ ARMV8M_FAULTMASK_S, "faultmask_s", 1, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.secext", NULL, },
+	{ ARMV8M_CONTROL_S, "control_s", 3, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.secext", NULL, },
 
-	{ ARMV8M_PMSK_BPRI_FLTMSK_CTRL_NS, "pmsk_bpri_fltmsk_ctrl_ns", 32, REG_TYPE_INT, NULL, NULL },
-	{ ARMV8M_PRIMASK_NS, "primask_ns", 1, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.secext" },
-	{ ARMV8M_BASEPRI_NS, "basepri_ns", 8, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.secext" },
-	{ ARMV8M_FAULTMASK_NS, "faultmask_ns", 1, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.secext" },
-	{ ARMV8M_CONTROL_NS, "control_ns", 3, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.secext" },
+	{ ARMV8M_PMSK_BPRI_FLTMSK_CTRL_NS, "pmsk_bpri_fltmsk_ctrl_ns", 32, REG_TYPE_INT, NULL, NULL, NULL, },
+	{ ARMV8M_PRIMASK_NS, "primask_ns", 1, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.secext", NULL, },
+	{ ARMV8M_BASEPRI_NS, "basepri_ns", 8, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.secext", NULL, },
+	{ ARMV8M_FAULTMASK_NS, "faultmask_ns", 1, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.secext", NULL, },
+	{ ARMV8M_CONTROL_NS, "control_ns", 3, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.secext", NULL, },
 
 	/* FPU registers */
-	{ ARMV7M_D0, "d0", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp" },
-	{ ARMV7M_D1, "d1", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp" },
-	{ ARMV7M_D2, "d2", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp" },
-	{ ARMV7M_D3, "d3", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp" },
-	{ ARMV7M_D4, "d4", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp" },
-	{ ARMV7M_D5, "d5", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp" },
-	{ ARMV7M_D6, "d6", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp" },
-	{ ARMV7M_D7, "d7", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp" },
-	{ ARMV7M_D8, "d8", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp" },
-	{ ARMV7M_D9, "d9", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp" },
-	{ ARMV7M_D10, "d10", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp" },
-	{ ARMV7M_D11, "d11", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp" },
-	{ ARMV7M_D12, "d12", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp" },
-	{ ARMV7M_D13, "d13", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp" },
-	{ ARMV7M_D14, "d14", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp" },
-	{ ARMV7M_D15, "d15", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp" },
+	{ ARMV7M_D0, "d0", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp", NULL, },
+	{ ARMV7M_D1, "d1", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp", NULL, },
+	{ ARMV7M_D2, "d2", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp", NULL, },
+	{ ARMV7M_D3, "d3", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp", NULL, },
+	{ ARMV7M_D4, "d4", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp", NULL, },
+	{ ARMV7M_D5, "d5", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp", NULL, },
+	{ ARMV7M_D6, "d6", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp", NULL, },
+	{ ARMV7M_D7, "d7", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp", NULL, },
+	{ ARMV7M_D8, "d8", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp", NULL, },
+	{ ARMV7M_D9, "d9", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp", NULL, },
+	{ ARMV7M_D10, "d10", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp", NULL, },
+	{ ARMV7M_D11, "d11", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp", NULL, },
+	{ ARMV7M_D12, "d12", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp", NULL, },
+	{ ARMV7M_D13, "d13", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp", NULL, },
+	{ ARMV7M_D14, "d14", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp", NULL, },
+	{ ARMV7M_D15, "d15", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp", NULL, },
 
-	{ ARMV7M_FPSCR, "fpscr", 32, REG_TYPE_INT, "float", "org.gnu.gdb.arm.vfp" },
+	{ ARMV7M_FPSCR, "fpscr", 32, REG_TYPE_INT, "float", "org.gnu.gdb.arm.vfp", NULL, },
 };
 
 #define ARMV7M_NUM_REGS ARRAY_SIZE(armv7m_regs)
@@ -811,10 +812,14 @@ struct reg_cache *armv7m_build_reg_cache(struct target *target)
 			LOG_TARGET_ERROR(target, "unable to allocate feature list");
 
 		reg_list[i].reg_data_type = calloc(1, sizeof(struct reg_data_type));
-		if (reg_list[i].reg_data_type)
-			reg_list[i].reg_data_type->type = armv7m_regs[i].type;
-		else
+		if (reg_list[i].reg_data_type) {
+			if (armv7m_regs[i].data_type)
+				*reg_list[i].reg_data_type = *armv7m_regs[i].data_type;
+			else
+				reg_list[i].reg_data_type->type = armv7m_regs[i].type;
+		} else {
 			LOG_TARGET_ERROR(target, "unable to allocate reg type list");
+		}
 	}
 
 	arm->cpsr = reg_list + ARMV7M_XPSR;
