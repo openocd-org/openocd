@@ -62,6 +62,7 @@ enum {
 	ARMV7M_REGSEL_PMSK_BPRI_FLTMSK_CTRL = 0x14,
 	ARMV8M_REGSEL_PMSK_BPRI_FLTMSK_CTRL_S = 0x22,
 	ARMV8M_REGSEL_PMSK_BPRI_FLTMSK_CTRL_NS = 0x23,
+	ARMV8M_REGSEL_VPR = 0x24,
 	ARMV7M_REGSEL_FPSCR = 0x21,
 
 	/* 32bit Floating-point registers */
@@ -196,12 +197,15 @@ enum {
 	/* Floating-point status register */
 	ARMV7M_FPSCR,
 
+	/* Vector Predication Status and Control Register */
+	ARMV8M_VPR,
+
 	/* for convenience add registers' block delimiters */
 	ARMV7M_LAST_REG,
 	ARMV7M_CORE_FIRST_REG = ARMV7M_R0,
 	ARMV7M_CORE_LAST_REG = ARMV7M_XPSR,
 	ARMV7M_FPU_FIRST_REG = ARMV7M_D0,
-	ARMV7M_FPU_LAST_REG = ARMV7M_FPSCR,
+	ARMV7M_FPU_LAST_REG = ARMV8M_VPR,
 	ARMV8M_FIRST_REG = ARMV8M_MSP_NS,
 	ARMV8M_LAST_REG = ARMV8M_CONTROL_NS,
 };

@@ -65,6 +65,28 @@ const int armv7m_msp_reg_map[ARMV7M_NUM_CORE_REGS] = {
 	ARMV7M_XPSR,
 };
 
+static struct reg_data_type_bitfield armv8m_vpr_bits[] = {
+	{  0, 15, REG_TYPE_UINT },
+	{ 16, 19, REG_TYPE_UINT },
+	{ 20, 23, REG_TYPE_UINT },
+};
+
+static struct reg_data_type_flags_field armv8m_vpr_fields[] = {
+	{ "P0",     armv8m_vpr_bits + 0, armv8m_vpr_fields + 1, },
+	{ "MASK01", armv8m_vpr_bits + 1, armv8m_vpr_fields + 2, },
+	{ "MASK23", armv8m_vpr_bits + 2, NULL },
+};
+
+static struct reg_data_type_flags armv8m_vpr_flags[] = {
+	{ 4, armv8m_vpr_fields },
+};
+
+static struct reg_data_type armv8m_flags_vpr[] = {
+	{ REG_TYPE_ARCH_DEFINED, "vpr_reg", REG_TYPE_CLASS_FLAGS,
+		{ .reg_type_flags = armv8m_vpr_flags },
+	},
+};
+
 /*
  * These registers are not memory-mapped.  The ARMv7-M profile includes
  * memory mapped registers too, such as for the NVIC (interrupt controller)
@@ -158,6 +180,8 @@ static const struct {
 	{ ARMV7M_D15, "d15", 64, REG_TYPE_IEEE_DOUBLE, "float", "org.gnu.gdb.arm.vfp", NULL, },
 
 	{ ARMV7M_FPSCR, "fpscr", 32, REG_TYPE_INT, "float", "org.gnu.gdb.arm.vfp", NULL, },
+
+	{ ARMV8M_VPR, "vpr", 32, REG_TYPE_INT, "float", "org.gnu.gdb.arm.m-profile-mve", armv8m_flags_vpr, },
 };
 
 #define ARMV7M_NUM_REGS ARRAY_SIZE(armv7m_regs)
@@ -272,6 +296,9 @@ uint32_t armv7m_map_id_to_regsel(unsigned int arm_reg_id)
 
 	case ARMV7M_FPSCR:
 		return ARMV7M_REGSEL_FPSCR;
+
+	case ARMV8M_VPR:
+		return ARMV8M_REGSEL_VPR;
 
 	case ARMV7M_D0 ... ARMV7M_D15:
 		return ARMV7M_REGSEL_S0 + 2 * (arm_reg_id - ARMV7M_D0);
