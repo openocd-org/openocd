@@ -513,7 +513,7 @@ AS_IF([test "x$build_dmem" = "xyes"], [
   AC_DEFINE([BUILD_DMEM], [0], [0 if you don't want to debug via Direct Mem.])
 ])
 
-AS_IF([test "x$ADAPTER_VAR([dummy])" = "xyes"], [
+AS_IF([test "x$ADAPTER_VAR([dummy])" != "xno"], [
   build_bitbang=yes
 ])
 
