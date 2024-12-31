@@ -14,6 +14,7 @@
 
 #include "helper/bits.h"
 #include "helper/command.h"
+#include "helper/list.h"
 
 #define TRANSPORT_JTAG                  BIT(0)
 #define TRANSPORT_SWD                   BIT(1)
@@ -84,9 +85,9 @@ struct transport {
 	int (*override_target)(const char **targetname);
 
 	/**
-	 * Transports are stored in a singly linked list.
+	 * Transports are stored in a linked list.
 	 */
-	struct transport *next;
+	struct list_head lh;
 };
 
 int transport_register(struct transport *new_transport);

@@ -32,6 +32,7 @@
 
 #include <helper/align.h>
 #include <helper/bits.h>
+#include <helper/list.h>
 #include <helper/log.h>
 #include <helper/replacements.h>
 #include <transport/transport.h>
@@ -59,7 +60,7 @@ static const struct {
 };
 
 /** List of transports registered in OpenOCD. */
-static struct transport *transport_list;
+static OOCD_LIST_HEAD(transport_list);
 
 /**
  * Bitmask of transport IDs which the currently selected debug adapter supports.
@@ -98,7 +99,8 @@ static int transport_select(struct command_context *ctx, const char *name)
 {
 	/* name may only identify a known transport;
 	 * caller guarantees session's transport isn't yet set.*/
-	for (struct transport *t = transport_list; t; t = t->next) {
+	struct transport *t;
+	list_for_each_entry(t, &transport_list, lh) {
 		if (!strcmp(transport_name(t->id), name)) {
 			int retval = t->select(ctx);
 			/* select() registers commands specific to this
@@ -193,7 +195,7 @@ int transport_register(struct transport *new_transport)
 		return ERROR_FAIL;
 	}
 
-	for (t = transport_list; t; t = t->next) {
+	list_for_each_entry(t, &transport_list, lh) {
 		if (t->id == new_transport->id) {
 			LOG_ERROR("transport '%s' already registered",
 					  transport_name(t->id));
@@ -206,8 +208,7 @@ int transport_register(struct transport *new_transport)
 				  transport_name(new_transport->id));
 
 	/* splice this into the list */
-	new_transport->next = transport_list;
-	transport_list = new_transport;
+	list_add(&new_transport->lh, &transport_list);
 	LOG_DEBUG("register '%s' (ID %d)",
 			  transport_name(new_transport->id), new_transport->id);
 
@@ -270,7 +271,8 @@ COMMAND_HANDLER(handle_transport_list)
 
 	command_print(CMD, "The following transports are available:");
 
-	for (struct transport *t = transport_list; t; t = t->next)
+	struct transport *t;
+	list_for_each_entry(t, &transport_list, lh)
 		command_print(CMD, "\t%s", transport_name(t->id));
 
 	return ERROR_OK;
