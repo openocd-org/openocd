@@ -18,7 +18,7 @@
 #include "transport/transport.h"
 #include "jtag/interface.h"
 
-static LIST_HEAD(all_dap);
+static OOCD_LIST_HEAD(all_dap);
 
 extern struct adapter_driver *adapter_driver;
 

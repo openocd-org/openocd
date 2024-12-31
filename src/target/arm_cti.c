@@ -25,7 +25,7 @@ struct arm_cti {
 	struct adiv5_ap *ap;
 };
 
-static LIST_HEAD(all_cti);
+static OOCD_LIST_HEAD(all_cti);
 
 const char *arm_cti_name(struct arm_cti *self)
 {

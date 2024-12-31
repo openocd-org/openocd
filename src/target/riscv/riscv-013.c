@@ -214,7 +214,7 @@ typedef struct {
 	dm013_info_t *dm;
 } riscv013_info_t;
 
-static LIST_HEAD(dm_list);
+static OOCD_LIST_HEAD(dm_list);
 
 static riscv013_info_t *get_info(const struct target *target)
 {

@@ -126,7 +126,7 @@ struct arm_tpiu_swo_priv_connection {
 	struct arm_tpiu_swo_object *obj;
 };
 
-static LIST_HEAD(all_tpiu_swo);
+static OOCD_LIST_HEAD(all_tpiu_swo);
 
 #define ARM_TPIU_SWO_TRACE_BUF_SIZE	4096
 

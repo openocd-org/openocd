@@ -431,7 +431,7 @@ static int jtagdp_overrun_check(struct adiv5_dap *dap)
 	struct dap_cmd *el, *tmp, *prev = NULL;
 	int found_wait = 0;
 	int64_t time_now;
-	LIST_HEAD(replay_list);
+	OOCD_LIST_HEAD(replay_list);
 
 	/* make sure all queued transactions are complete */
 	retval = jtag_execute_queue();
