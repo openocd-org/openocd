@@ -59,7 +59,7 @@ static const struct {
 	{ TRANSPORT_SWIM,           "swim",           },
 };
 
-/** List of transports registered in OpenOCD. */
+/** List of transports registered in OpenOCD, alphabetically sorted per name. */
 static OOCD_LIST_HEAD(transport_list);
 
 /**
@@ -207,8 +207,14 @@ int transport_register(struct transport *new_transport)
 		LOG_ERROR("invalid transport %s",
 				  transport_name(new_transport->id));
 
-	/* splice this into the list */
-	list_add(&new_transport->lh, &transport_list);
+	/* splice this into the list, sorted in alphabetic order */
+	list_for_each_entry(t, &transport_list, lh) {
+		if (strcmp(transport_name(t->id),
+				   transport_name(new_transport->id)) >= 0)
+			break;
+	}
+	list_add_tail(&new_transport->lh, &t->lh);
+
 	LOG_DEBUG("register '%s' (ID %d)",
 			  transport_name(new_transport->id), new_transport->id);
 
