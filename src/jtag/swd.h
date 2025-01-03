@@ -270,6 +270,7 @@ struct swd_driver {
 	 * @param Where to store value to read from register
 	 * @param ap_delay_hint Number of idle cycles that may be
 	 * needed after an AP access to avoid WAITs
+	 * or zero in case of DP read.
 	 */
 	void (*read_reg)(uint8_t cmd, uint32_t *value, uint32_t ap_delay_hint);
 
@@ -280,6 +281,7 @@ struct swd_driver {
 	 * @param Value to be written to the register
 	 * @param ap_delay_hint Number of idle cycles that may be
 	 * needed after an AP access to avoid WAITs
+	 * or zero in case of DP write.
 	 */
 	void (*write_reg)(uint8_t cmd, uint32_t value, uint32_t ap_delay_hint);
 
