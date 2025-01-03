@@ -50,8 +50,16 @@
 /*
  * Relevant specifications from ARM include:
  *
- * ARM(tm) Debug Interface v5 Architecture Specification    ARM IHI 0031F
+ * ARM(tm) Debug Interface v5 Architecture Specification    ARM IHI 0031G
+ * https://developer.arm.com/documentation/ihi0031/latest/
+ *
  * ARM(tm) Debug Interface v6 Architecture Specification    ARM IHI 0074C
+ * https://developer.arm.com/documentation/ihi0074/latest/
+ *
+ * Note that diagrams B4-1 to B4-7 in both ADI specifications show
+ * SWCLK signal mostly in wrong polarity. See detailed SWD timing
+ * https://developer.arm.com/documentation/dui0499/b/arm-dstream-target-interface-connections/swd-timing-requirements
+ *
  * CoreSight(tm) v1.0 Architecture Specification            ARM IHI 0029B
  *
  * CoreSight(tm) DAP-Lite TRM, ARM DDI 0316D
