@@ -2414,6 +2414,17 @@ target.
 @deffn {Command} {adapter list}
 List the debug adapter drivers that have been built into
 the running copy of OpenOCD.
+
+The output is formatted as a Tcl dictionary indexed by the adapter name
+and containing the transports in a Tcl list.
+@example
+dummy  @{ jtag @}
+ftdi   @{ jtag swd @}
+@end example
+This format is easily handled by Tcl scripts:
+@example
+dict get [adapter list] ftdi
+@end example
 @end deffn
 
 @anchor{adapter gpio}

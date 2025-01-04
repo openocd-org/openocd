@@ -393,9 +393,21 @@ COMMAND_HANDLER(handle_adapter_name)
 
 COMMAND_HANDLER(dump_adapter_driver_list)
 {
+	int max_len = 0;
+	for (unsigned int i = 0; adapter_drivers[i]; i++) {
+		int len = strlen(adapter_drivers[i]->name);
+		if (max_len < len)
+			max_len = len;
+	}
+
 	for (unsigned int i = 0; adapter_drivers[i]; i++) {
 		const char *name = adapter_drivers[i]->name;
-		command_print(CMD, "%u: %s", i + 1, name);
+		const char * const *transports = adapter_drivers[i]->transports;
+
+		command_print_sameline(CMD, "%-*s {", max_len, name);
+		for (unsigned int j = 0; transports[j]; j++)
+			command_print_sameline(CMD, " %s", transports[j]);
+		command_print(CMD, " }");
 	}
 
 	return ERROR_OK;
