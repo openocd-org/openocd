@@ -52,6 +52,11 @@ static struct transport *transport_list;
  */
 static const char * const *allowed_transports;
 
+/**
+ * Adapter supports a single transport; it has been auto-selected
+ */
+static bool transport_single_is_autoselected;
+
 /** * The transport being used for the current OpenOCD session.  */
 static struct transport *session;
 
@@ -104,7 +109,8 @@ int allow_transports(struct command_context *ctx, const char * const *vector)
 
 	/* autoselect if there's no choice ... */
 	if (!vector[1]) {
-		LOG_INFO("only one transport option; autoselecting '%s'", vector[0]);
+		LOG_DEBUG("only one transport option; autoselecting '%s'", vector[0]);
+		transport_single_is_autoselected = true;
 		return transport_select(ctx, vector[0]);
 	}
 
@@ -182,6 +188,11 @@ COMMAND_HANDLER(handle_transport_init)
 		return ERROR_FAIL;
 	}
 
+	if (transport_single_is_autoselected)
+		LOG_WARNING("DEPRECATED: auto-selecting transport \"%s\". "
+			"Use 'transport select %s' to suppress this message.",
+			session->name, session->name);
+
 	return session->init(CMD_CTX);
 }
 
@@ -216,8 +227,9 @@ COMMAND_HANDLER(handle_transport_select)
 				command_print(CMD, "Debug adapter does not support any transports? Check config file order.");
 				return ERROR_FAIL;
 			}
-			LOG_INFO("auto-selecting first available session transport \"%s\". "
-				"To override use 'transport select <transport>'.", allowed_transports[0]);
+			LOG_WARNING("DEPRECATED: auto-selecting transport \"%s\". "
+				"Use 'transport select %s' to suppress this message.",
+				allowed_transports[0], allowed_transports[0]);
 			int retval = transport_select(CMD_CTX, allowed_transports[0]);
 			if (retval != ERROR_OK)
 				return retval;
@@ -229,6 +241,11 @@ COMMAND_HANDLER(handle_transport_select)
 	/* assign transport */
 	if (session) {
 		if (!strcmp(session->name, CMD_ARGV[0])) {
+			if (transport_single_is_autoselected) {
+				/* Nothing to do, but also nothing to complain */
+				transport_single_is_autoselected = false;
+				return ERROR_OK;
+			}
 			LOG_WARNING("Transport \"%s\" was already selected", session->name);
 			return ERROR_OK;
 		}
