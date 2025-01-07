@@ -37,6 +37,57 @@
 static int riscv_semihosting_setup(struct target *target, int enable);
 static int riscv_semihosting_post_result(struct target *target);
 
+static int riscv_semihosting_detect_magic_sequence(struct target *target,
+	const target_addr_t pc, bool *sequence_found)
+{
+	assert(sequence_found);
+
+	/* The semihosting "magic" sequence must be the exact three instructions
+	 * listed below. All these instructions, including the ebreak, must be
+	 * uncompressed (4 bytes long). */
+	const uint32_t magic[] = {
+		0x01f01013,	/* slli    zero,zero,0x1f */
+		0x00100073,	/* ebreak */
+		0x40705013	/* srai    zero,zero,0x7 */
+	};
+
+	LOG_TARGET_DEBUG(target, "Checking for RISC-V semihosting sequence "
+		"at PC = 0x%" TARGET_PRIxADDR, pc);
+
+	/* Read three uncompressed instructions:
+	 * The previous, the current one (pointed to by PC) and the next one. */
+	const target_addr_t sequence_start_address = pc - 4;
+	for (int i = 0; i < 3; i++) {
+		uint8_t buf[4];
+
+		/* Instruction memories may not support arbitrary read size.
+		 * Use any size that will work. */
+		const target_addr_t address = sequence_start_address + (4 * i);
+		int result = riscv_read_by_any_size(target, address, 4, buf);
+		if (result != ERROR_OK) {
+			*sequence_found = false;
+			return result;
+		}
+
+		/* RISC-V instruction layout in memory is always little endian,
+		 * regardless of the endianness of the whole system. */
+		const uint32_t value = le_to_h_u32(buf);
+
+		LOG_TARGET_DEBUG(target, "compare 0x%08" PRIx32 " from 0x%" PRIx64 " against 0x%08" PRIx32,
+			value, address, magic[i]);
+		if (value != magic[i]) {
+			LOG_TARGET_DEBUG(target, "Not a RISC-V semihosting sequence");
+			*sequence_found = false;
+			return ERROR_OK;
+		}
+	}
+
+	LOG_TARGET_DEBUG(target, "RISC-V semihosting sequence found "
+		"at PC = 0x%" TARGET_PRIxADDR, pc);
+	*sequence_found = true;
+	return ERROR_OK;
+}
+
 /**
  * Initialize RISC-V semihosting. Use common ARM code.
  */
@@ -60,41 +111,31 @@ enum semihosting_result riscv_semihosting(struct target *target, int *retval)
 	assert(semihosting);
 
 	if (!semihosting->is_active) {
-		LOG_TARGET_DEBUG(target, "   -> NONE (!semihosting->is_active)");
+		LOG_TARGET_DEBUG(target, "Semihosting outcome: NONE (semihosting not enabled)");
 		return SEMIHOSTING_NONE;
 	}
 
 	riscv_reg_t pc;
 	int result = riscv_reg_get(target, &pc, GDB_REGNO_PC);
-	if (result != ERROR_OK)
+	if (result != ERROR_OK) {
+		LOG_TARGET_DEBUG(target, "Semihosting outcome: ERROR (failed to read PC)");
 		return SEMIHOSTING_ERROR;
-
-	/*
-	 * The instructions that trigger a semihosting call,
-	 * always uncompressed, should look like:
-	 */
-	uint32_t magic[] = {
-		0x01f01013,	/* slli    zero,zero,0x1f */
-		0x00100073,	/* ebreak */
-		0x40705013	/* srai    zero,zero,0x7 */
-	};
-
-	/* Read three uncompressed instructions: The previous, the current one (pointed to by PC) and the next one */
-	for (int i = 0; i < 3; i++) {
-		uint8_t buf[4];
-		/* Instruction memories may not support arbitrary read size. Use any size that will work. */
-		target_addr_t address = (pc - 4) + 4 * i;
-		*retval = riscv_read_by_any_size(target, address, 4, buf);
-		if (*retval != ERROR_OK)
-			return SEMIHOSTING_ERROR;
-		uint32_t value = target_buffer_get_u32(target, buf);
-		LOG_TARGET_DEBUG(target, "compare 0x%08x from 0x%" PRIx64 " against 0x%08x",
-			value, address, magic[i]);
-		if (value != magic[i]) {
-			LOG_TARGET_DEBUG(target, "   -> NONE (no magic)");
-			return SEMIHOSTING_NONE;
-		}
 	}
+
+	bool sequence_found;
+	*retval = riscv_semihosting_detect_magic_sequence(target, pc, &sequence_found);
+	if (*retval != ERROR_OK) {
+		LOG_TARGET_DEBUG(target, "Semihosting outcome: ERROR (during magic seq. detection)");
+		return SEMIHOSTING_ERROR;
+	}
+
+	if (!sequence_found) {
+		LOG_TARGET_DEBUG(target, "Semihosting outcome: NONE (no magic sequence)");
+		return SEMIHOSTING_NONE;
+	}
+
+	/* Otherwise we have a semihosting call (and semihosting is enabled).
+	 * Proceed with the semihosting. */
 
 	/*
 	 * Perform semihosting call if we are not waiting on a fileio
@@ -108,12 +149,14 @@ enum semihosting_result riscv_semihosting(struct target *target, int *retval)
 		result = riscv_reg_get(target, &r0, GDB_REGNO_A0);
 		if (result != ERROR_OK) {
 			LOG_TARGET_ERROR(target, "Could not read semihosting operation code (register a0)");
+			LOG_TARGET_DEBUG(target, "Semihosting outcome: ERROR (failed to read a0)");
 			return SEMIHOSTING_ERROR;
 		}
 
 		result = riscv_reg_get(target, &r1, GDB_REGNO_A1);
 		if (result != ERROR_OK) {
 			LOG_TARGET_ERROR(target, "Could not read semihosting operation code (register a1)");
+			LOG_TARGET_DEBUG(target, "Semihosting outcome: ERROR (failed to read a1)");
 			return SEMIHOSTING_ERROR;
 		}
 
@@ -128,11 +171,13 @@ enum semihosting_result riscv_semihosting(struct target *target, int *retval)
 			*retval = semihosting_common(target);
 			if (*retval != ERROR_OK) {
 				LOG_TARGET_ERROR(target, "Failed semihosting operation (0x%02X)", semihosting->op);
+				LOG_TARGET_DEBUG(target, "Semihosting outcome: ERROR (error during semihosting processing)");
 				return SEMIHOSTING_ERROR;
 			}
 		} else {
 			/* Unknown operation number, not a semihosting call. */
 			LOG_TARGET_ERROR(target, "Unknown semihosting operation requested (op = 0x%x)", semihosting->op);
+			LOG_TARGET_DEBUG(target, "Semihosting outcome: NONE (unknown semihosting opcode)");
 			return SEMIHOSTING_NONE;
 		}
 	}
@@ -147,11 +192,11 @@ enum semihosting_result riscv_semihosting(struct target *target, int *retval)
 	 * operation to complete.
 	 */
 	if (semihosting->is_resumable && !semihosting->hit_fileio) {
-		LOG_TARGET_DEBUG(target, "   -> HANDLED");
+		LOG_TARGET_DEBUG(target, "Semihosting outcome: HANDLED");
 		return SEMIHOSTING_HANDLED;
 	}
 
-	LOG_TARGET_DEBUG(target, "   -> WAITING");
+	LOG_TARGET_DEBUG(target, "Semihosting outcome: WAITING");
 	return SEMIHOSTING_WAITING;
 }
 
