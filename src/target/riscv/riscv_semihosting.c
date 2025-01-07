@@ -57,10 +57,7 @@ void riscv_semihosting_init(struct target *target)
 enum semihosting_result riscv_semihosting(struct target *target, int *retval)
 {
 	struct semihosting *semihosting = target->semihosting;
-	if (!semihosting) {
-		LOG_TARGET_DEBUG(target, "   -> NONE (!semihosting)");
-		return SEMIHOSTING_NONE;
-	}
+	assert(semihosting);
 
 	if (!semihosting->is_active) {
 		LOG_TARGET_DEBUG(target, "   -> NONE (!semihosting->is_active)");
@@ -170,19 +167,16 @@ static int riscv_semihosting_setup(struct target *target, int enable)
 	LOG_TARGET_DEBUG(target, "enable=%d", enable);
 
 	struct semihosting *semihosting = target->semihosting;
-	if (semihosting)
-		semihosting->setup_time = clock();
+	assert(semihosting);
 
+	semihosting->setup_time = clock();
 	return ERROR_OK;
 }
 
 static int riscv_semihosting_post_result(struct target *target)
 {
 	struct semihosting *semihosting = target->semihosting;
-	if (!semihosting) {
-		/* If not enabled, silently ignored. */
-		return 0;
-	}
+	assert(semihosting);
 
 	LOG_TARGET_DEBUG(target, "Result: 0x%" PRIx64, semihosting->result);
 	riscv_reg_set(target, GDB_REGNO_A0, semihosting->result);
