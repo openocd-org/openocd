@@ -1,0 +1,7 @@
+The loader relies on the romapi provided by HPMicro devices.
+
+- hpm_common.h and all the hpm_romapi_*.c/h are reused from hpm_sdk
+(v1.9.0 https://github.com/hpmicro/hpm_sdk/releases).
+
+Due to different coding rules, these source code needs to be updated
+accordingly to pass the coding rule check for openocd.
