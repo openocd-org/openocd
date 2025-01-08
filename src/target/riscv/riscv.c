@@ -5890,28 +5890,28 @@ int riscv_execute_progbuf(struct target *target, uint32_t *cmderr)
 	return r->execute_progbuf(target, cmderr);
 }
 
-void riscv_fill_dmi_write(struct target *target, char *buf, uint64_t a, uint32_t d)
+void riscv_fill_dmi_write(const struct target *target, uint8_t *buf, uint32_t a, uint32_t d)
 {
 	RISCV_INFO(r);
 	r->fill_dmi_write(target, buf, a, d);
 }
 
-void riscv_fill_dmi_read(struct target *target, char *buf, uint64_t a)
+void riscv_fill_dmi_read(const struct target *target, uint8_t *buf, uint32_t a)
 {
 	RISCV_INFO(r);
 	r->fill_dmi_read(target, buf, a);
 }
 
-void riscv_fill_dm_nop(struct target *target, char *buf)
+void riscv_fill_dm_nop(const struct target *target, uint8_t *buf)
 {
 	RISCV_INFO(r);
 	r->fill_dm_nop(target, buf);
 }
 
-int riscv_get_dmi_scan_length(struct target *target)
+unsigned int riscv_get_dmi_address_bits(const struct target *target)
 {
 	RISCV_INFO(r);
-	return r->get_dmi_scan_length(target);
+	return r->get_dmi_address_bits(target);
 }
 
 static int check_if_trigger_exists(struct target *target, unsigned int index)
