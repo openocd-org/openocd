@@ -232,6 +232,23 @@ static int openocd_register_commands(struct command_context *cmd_ctx)
 
 struct command_context *global_cmd_ctx;
 
+static int (* const command_registrants[])(struct command_context *cmd_ctx_value) = {
+	openocd_register_commands,
+	server_register_commands,
+	gdb_register_commands,
+	log_register_commands,
+	rtt_server_register_commands,
+	transport_register_commands,
+	adapter_register_commands,
+	target_register_commands,
+	flash_register_commands,
+	nand_register_commands,
+	pld_register_commands,
+	cti_register_commands,
+	dap_register_commands,
+	arm_tpiu_swo_register_commands,
+};
+
 static struct command_context *setup_command_handler(Jim_Interp *interp)
 {
 	log_init();
@@ -240,25 +257,7 @@ static struct command_context *setup_command_handler(Jim_Interp *interp)
 	struct command_context *cmd_ctx = command_init(openocd_startup_tcl, interp);
 
 	/* register subsystem commands */
-	typedef int (*command_registrant_t)(struct command_context *cmd_ctx_value);
-	static const command_registrant_t command_registrants[] = {
-		&openocd_register_commands,
-		&server_register_commands,
-		&gdb_register_commands,
-		&log_register_commands,
-		&rtt_server_register_commands,
-		&transport_register_commands,
-		&adapter_register_commands,
-		&target_register_commands,
-		&flash_register_commands,
-		&nand_register_commands,
-		&pld_register_commands,
-		&cti_register_commands,
-		&dap_register_commands,
-		&arm_tpiu_swo_register_commands,
-		NULL
-	};
-	for (unsigned int i = 0; command_registrants[i]; i++) {
+	for (unsigned int i = 0; i < ARRAY_SIZE(command_registrants); i++) {
 		int retval = (*command_registrants[i])(cmd_ctx);
 		if (retval != ERROR_OK) {
 			command_done(cmd_ctx);
