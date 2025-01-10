@@ -17,12 +17,12 @@
 struct target;
 struct command_context;
 
-typedef enum target_req_cmd {
+enum target_req_cmd {
 	TARGET_REQ_TRACEMSG,
 	TARGET_REQ_DEBUGMSG,
 	TARGET_REQ_DEBUGCHAR,
 /*	TARGET_REQ_SEMIHOSTING, */
-} target_req_cmd_t;
+};
 
 struct debug_msg_receiver {
 	struct command_context *cmd_ctx;

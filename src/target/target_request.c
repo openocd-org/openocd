@@ -107,7 +107,7 @@ static int target_hexmsg(struct target *target, int size, uint32_t length)
  */
 int target_request(struct target *target, uint32_t request)
 {
-	target_req_cmd_t target_req_cmd = request & 0xff;
+	enum target_req_cmd target_req_cmd = request & 0xff;
 
 	assert(target->type->target_request_data);
 
