@@ -748,7 +748,7 @@ static void openjtag_execute_scan(struct jtag_command *cmd)
 static void openjtag_execute_runtest(struct jtag_command *cmd)
 {
 
-	tap_state_t end_state = cmd->cmd.runtest->end_state;
+	enum tap_state end_state = cmd->cmd.runtest->end_state;
 	tap_set_end_state(end_state);
 
 	/* only do a state_move when we're not already in IDLE */

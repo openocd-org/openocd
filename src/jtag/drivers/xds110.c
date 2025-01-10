@@ -172,7 +172,7 @@
 #define CMD_RUNTEST      3
 #define CMD_STABLECLOCKS 4
 
-/* Array to convert from OpenOCD tap_state_t to XDS JTAG state */
+/* Array to convert from OpenOCD enum tap_state to XDS JTAG state */
 static const uint32_t xds_jtag_state[] = {
 	XDS_JTAG_STATE_EXIT2_DR,   /* TAP_DREXIT2   = 0x0 */
 	XDS_JTAG_STATE_EXIT1_DR,   /* TAP_DREXIT1   = 0x1 */

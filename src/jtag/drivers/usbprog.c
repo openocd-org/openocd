@@ -34,7 +34,7 @@
 #define TCK_BIT                 2
 #define TMS_BIT                 1
 
-static void usbprog_end_state(tap_state_t state);
+static void usbprog_end_state(enum tap_state state);
 static void usbprog_state_move(void);
 static void usbprog_path_move(struct pathmove_command *cmd);
 static void usbprog_runtest(unsigned int num_cycles);
@@ -168,7 +168,7 @@ static int usbprog_quit(void)
 }
 
 /*************** jtag execute commands **********************/
-static void usbprog_end_state(tap_state_t state)
+static void usbprog_end_state(enum tap_state state)
 {
 	if (tap_is_state_stable(state))
 		tap_set_end_state(state);
@@ -257,7 +257,7 @@ static void usbprog_runtest(unsigned int num_cycles)
 
 static void usbprog_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size)
 {
-	tap_state_t saved_end_state = tap_get_end_state();
+	enum tap_state saved_end_state = tap_get_end_state();
 
 	if (ir_scan)
 		usbprog_end_state(TAP_IRSHIFT);

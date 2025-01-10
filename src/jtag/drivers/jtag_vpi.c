@@ -272,7 +272,7 @@ static int jtag_vpi_tms(struct tms_command *cmd)
 	return jtag_vpi_tms_seq(cmd->bits, cmd->num_bits);
 }
 
-static int jtag_vpi_state_move(tap_state_t state)
+static int jtag_vpi_state_move(enum tap_state state)
 {
 	if (tap_get_state() == state)
 		return ERROR_OK;
@@ -440,7 +440,7 @@ static int jtag_vpi_scan(struct scan_command *cmd)
 	return ERROR_OK;
 }
 
-static int jtag_vpi_runtest(unsigned int num_cycles, tap_state_t state)
+static int jtag_vpi_runtest(unsigned int num_cycles, enum tap_state state)
 {
 	int retval;
 

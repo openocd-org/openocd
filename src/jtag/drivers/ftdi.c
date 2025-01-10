@@ -238,9 +238,9 @@ static int ftdi_get_signal(const struct signal *s, uint16_t *value_out)
  *
  * @param goal_state is the destination state for the move.
  */
-static void move_to_state(tap_state_t goal_state)
+static void move_to_state(enum tap_state goal_state)
 {
-	tap_state_t start_state = tap_get_state();
+	enum tap_state start_state = tap_get_state();
 
 	/*	goal_state is 1/2 of a tuple/pair of states which allow convenient
 		lookup of the required TMS pattern to move to this state from the
@@ -299,7 +299,7 @@ static int ftdi_khz(int khz, int *jtag_speed)
 	return ERROR_OK;
 }
 
-static void ftdi_end_state(tap_state_t state)
+static void ftdi_end_state(enum tap_state state)
 {
 	if (tap_is_state_stable(state))
 		tap_set_end_state(state);
@@ -370,7 +370,7 @@ static void ftdi_execute_tms(struct jtag_command *cmd)
 
 static void ftdi_execute_pathmove(struct jtag_command *cmd)
 {
-	tap_state_t *path = cmd->cmd.pathmove->path;
+	enum tap_state *path = cmd->cmd.pathmove->path;
 	unsigned int num_states  = cmd->cmd.pathmove->num_states;
 
 	LOG_DEBUG_IO("pathmove: %u states, current: %s  end: %s", num_states,

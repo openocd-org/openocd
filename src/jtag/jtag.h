@@ -34,7 +34,7 @@
  * Fix those drivers to map as appropriate ... then pick some
  * sane set of numbers here (where 0/uninitialized == INVALID).
  */
-typedef enum tap_state {
+enum tap_state {
 	TAP_INVALID = -1,
 
 	/* Proper ARM recommended numbers */
@@ -54,7 +54,7 @@ typedef enum tap_state {
 	TAP_IRUPDATE = 0xd,
 	TAP_IRCAPTURE = 0xe,
 	TAP_RESET = 0x0f,
-} tap_state_t;
+};
 
 /**
  * Defines arguments for reset functions
@@ -68,13 +68,13 @@ typedef enum tap_state {
  * Function tap_state_name
  * Returns a string suitable for display representing the JTAG tap_state
  */
-const char *tap_state_name(tap_state_t state);
+const char *tap_state_name(enum tap_state state);
 
 /** Provides user-friendly name lookup of TAP states. */
-tap_state_t tap_state_by_name(const char *name);
+enum tap_state tap_state_by_name(const char *name);
 
 /** The current TAP state of the pending JTAG command queue. */
-extern tap_state_t cmd_queue_cur_state;
+extern enum tap_state cmd_queue_cur_state;
 
 /**
  * This structure defines a single scan field in the scan. It provides
@@ -295,20 +295,20 @@ int jtag_init_inner(struct command_context *cmd_ctx);
  *
  */
 void jtag_add_ir_scan(struct jtag_tap *tap,
-		struct scan_field *fields, tap_state_t endstate);
+		struct scan_field *fields, enum tap_state endstate);
 /**
  * The same as jtag_add_ir_scan except no verification is performed out
  * the output values.
  */
 void jtag_add_ir_scan_noverify(struct jtag_tap *tap,
-		const struct scan_field *fields, tap_state_t state);
+		const struct scan_field *fields, enum tap_state state);
 /**
  * Scan out the bits in ir scan mode.
  *
  * If in_bits == NULL, discard incoming bits.
  */
 void jtag_add_plain_ir_scan(int num_bits, const uint8_t *out_bits, uint8_t *in_bits,
-		tap_state_t endstate);
+		enum tap_state endstate);
 
 /**
  * Generate a DR SCAN using the fields passed to the function.
@@ -317,17 +317,17 @@ void jtag_add_plain_ir_scan(int num_bits, const uint8_t *out_bits, uint8_t *in_b
  * 1-bit field.  The bypass status of TAPs is set by jtag_add_ir_scan().
  */
 void jtag_add_dr_scan(struct jtag_tap *tap, int num_fields,
-		const struct scan_field *fields, tap_state_t endstate);
+		const struct scan_field *fields, enum tap_state endstate);
 /** A version of jtag_add_dr_scan() that uses the check_value/mask fields */
 void jtag_add_dr_scan_check(struct jtag_tap *tap, int num_fields,
-		struct scan_field *fields, tap_state_t endstate);
+		struct scan_field *fields, enum tap_state endstate);
 /**
  * Scan out the bits in ir scan mode.
  *
  * If in_bits == NULL, discard incoming bits.
  */
 void jtag_add_plain_dr_scan(int num_bits,
-		const uint8_t *out_bits, uint8_t *in_bits, tap_state_t endstate);
+		const uint8_t *out_bits, uint8_t *in_bits, enum tap_state endstate);
 
 /**
  * Defines the type of data passed to the jtag_callback_t interface.
@@ -435,7 +435,7 @@ void jtag_add_tlr(void);
  *   - ERROR_JTAG_TRANSITION_INVALID -- The path includes invalid
  *     state transitions.
  */
-void jtag_add_pathmove(unsigned int num_states, const tap_state_t *path);
+void jtag_add_pathmove(unsigned int num_states, const enum tap_state *path);
 
 /**
  * jtag_add_statemove() moves from the current state to @a goal_state.
@@ -446,7 +446,7 @@ void jtag_add_pathmove(unsigned int num_states, const tap_state_t *path);
  * Moves from the current state to the goal \a state.
  * Both states must be stable.
  */
-int jtag_add_statemove(tap_state_t goal_state);
+int jtag_add_statemove(enum tap_state goal_state);
 
 /**
  * Goes to TAP_IDLE (if we're not already there), cycle
@@ -458,7 +458,7 @@ int jtag_add_statemove(tap_state_t goal_state);
  *	via TAP_IDLE.
  * @param endstate The final state.
  */
-void jtag_add_runtest(unsigned int num_cycles, tap_state_t endstate);
+void jtag_add_runtest(unsigned int num_cycles, enum tap_state endstate);
 
 /**
  * A reset of the TAP state machine can be requested.

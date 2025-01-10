@@ -60,7 +60,7 @@ const struct bitbang_interface *bitbang_interface;
 #define CLOCK_IDLE() 0
 
 /* The bitbang driver leaves the TCK 0 when in idle */
-static void bitbang_end_state(tap_state_t state)
+static void bitbang_end_state(enum tap_state state)
 {
 	assert(tap_is_state_stable(state));
 	tap_set_end_state(state);
@@ -149,7 +149,7 @@ static int bitbang_path_move(struct pathmove_command *cmd)
 
 static int bitbang_runtest(unsigned int num_cycles)
 {
-	tap_state_t saved_end_state = tap_get_end_state();
+	enum tap_state saved_end_state = tap_get_end_state();
 
 	/* only do a state_move when we're not already in IDLE */
 	if (tap_get_state() != TAP_IDLE) {
@@ -195,7 +195,7 @@ static int bitbang_stableclocks(unsigned int num_cycles)
 static int bitbang_scan(bool ir_scan, enum scan_type type, uint8_t *buffer,
 		unsigned int scan_size)
 {
-	tap_state_t saved_end_state = tap_get_end_state();
+	enum tap_state saved_end_state = tap_get_end_state();
 	unsigned int bit_cnt;
 
 	if (!((!ir_scan &&

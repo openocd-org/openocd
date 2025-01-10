@@ -171,7 +171,7 @@ static int xlnx_pcie_xvc_execute_runtest(struct jtag_command *cmd)
 		  cmd->cmd.runtest->num_cycles,
 		  cmd->cmd.runtest->end_state);
 
-	tap_state_t tmp_state = tap_get_end_state();
+	enum tap_state tmp_state = tap_get_end_state();
 
 	if (tap_get_state() != TAP_IDLE) {
 		tap_set_end_state(TAP_IDLE);
@@ -201,7 +201,7 @@ static int xlnx_pcie_xvc_execute_runtest(struct jtag_command *cmd)
 static int xlnx_pcie_xvc_execute_pathmove(struct jtag_command *cmd)
 {
 	unsigned int num_states = cmd->cmd.pathmove->num_states;
-	tap_state_t *path = cmd->cmd.pathmove->path;
+	enum tap_state *path = cmd->cmd.pathmove->path;
 	int err = ERROR_OK;
 
 	LOG_DEBUG("pathmove: %u states, end in %i",
@@ -232,7 +232,7 @@ static int xlnx_pcie_xvc_execute_pathmove(struct jtag_command *cmd)
 static int xlnx_pcie_xvc_execute_scan(struct jtag_command *cmd)
 {
 	enum scan_type type = jtag_scan_type(cmd->cmd.scan);
-	tap_state_t saved_end_state = cmd->cmd.scan->end_state;
+	enum tap_state saved_end_state = cmd->cmd.scan->end_state;
 	bool ir_scan = cmd->cmd.scan->ir_scan;
 	uint32_t tdi, tms, tdo;
 	uint8_t *buf, *rd_ptr;

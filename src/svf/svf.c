@@ -75,10 +75,10 @@ static const char *svf_trst_mode_name[4] = {
 };
 
 struct svf_statemove {
-	tap_state_t from;
-	tap_state_t to;
+	enum tap_state from;
+	enum tap_state to;
 	uint32_t num_of_moves;
-	tap_state_t paths[8];
+	enum tap_state paths[8];
 };
 
 /*
@@ -155,10 +155,10 @@ struct svf_xxr_para {
 
 struct svf_para {
 	float frequency;
-	tap_state_t ir_end_state;
-	tap_state_t dr_end_state;
-	tap_state_t runtest_run_state;
-	tap_state_t runtest_end_state;
+	enum tap_state ir_end_state;
+	enum tap_state dr_end_state;
+	enum tap_state runtest_run_state;
+	enum tap_state runtest_end_state;
 	enum trst_mode trst_mode;
 
 	struct svf_xxr_para hir_para;
@@ -313,9 +313,9 @@ static void svf_free_xxd_para(struct svf_xxr_para *para)
 	}
 }
 
-int svf_add_statemove(tap_state_t state_to)
+int svf_add_statemove(enum tap_state state_to)
 {
-	tap_state_t state_from = cmd_queue_cur_state;
+	enum tap_state state_from = cmd_queue_cur_state;
 	unsigned int index_var;
 
 	/* when resetting, be paranoid and ignore current state */
@@ -816,7 +816,7 @@ parse_char:
 	return ERROR_OK;
 }
 
-bool svf_tap_state_is_stable(tap_state_t state)
+bool svf_tap_state_is_stable(enum tap_state state)
 {
 	return (state == TAP_RESET) || (state == TAP_IDLE)
 			|| (state == TAP_DRPAUSE) || (state == TAP_IRPAUSE);
@@ -995,7 +995,7 @@ static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 	uint8_t **pbuffer_tmp;
 	struct scan_field field;
 	/* for STATE */
-	tap_state_t *path = NULL, state;
+	enum tap_state *path = NULL, state;
 	/* flag padding commands skipped due to -tap command */
 	int padding_command_skipped = 0;
 
@@ -1498,7 +1498,7 @@ xxr_common:
 			}
 			if (num_of_argu > 2) {
 				/* STATE pathstate1 ... stable_state */
-				path = malloc((num_of_argu - 1) * sizeof(tap_state_t));
+				path = malloc((num_of_argu - 1) * sizeof(enum tap_state));
 				if (!path) {
 					LOG_ERROR("not enough memory");
 					return ERROR_FAIL;

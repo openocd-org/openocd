@@ -23,7 +23,7 @@ int svf_register_commands(struct command_context *cmd_ctx);
  * SVF specification for single-argument STATE commands (and also used
  * for various other state transitions).
  */
-int svf_add_statemove(tap_state_t goal_state);
+int svf_add_statemove(enum tap_state goal_state);
 
 /**
  * svf_tap_state_is_stable() returns true for stable non-SHIFT states
@@ -31,6 +31,6 @@ int svf_add_statemove(tap_state_t goal_state);
  * @param state The TAP state in question
  * @return true iff the state is stable and not a SHIFT state.
  */
-bool svf_tap_state_is_stable(tap_state_t state);
+bool svf_tap_state_is_stable(enum tap_state state);
 
 #endif /* OPENOCD_SVF_SVF_H */

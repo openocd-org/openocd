@@ -622,7 +622,7 @@ static const struct command_registration ft232r_command_handlers[] = {
  * Synchronous bitbang protocol implementation.
  */
 
-static void syncbb_end_state(tap_state_t state)
+static void syncbb_end_state(enum tap_state state)
 {
 	if (tap_is_state_stable(state))
 		tap_set_end_state(state);
@@ -705,7 +705,7 @@ static void syncbb_path_move(struct pathmove_command *cmd)
 static void syncbb_runtest(unsigned int num_cycles)
 {
 
-	tap_state_t saved_end_state = tap_get_end_state();
+	enum tap_state saved_end_state = tap_get_end_state();
 
 	/* only do a state_move when we're not already in IDLE */
 	if (tap_get_state() != TAP_IDLE) {
@@ -747,7 +747,7 @@ static void syncbb_stableclocks(unsigned int num_cycles)
 
 static void syncbb_scan(bool ir_scan, enum scan_type type, uint8_t *buffer, int scan_size)
 {
-	tap_state_t saved_end_state = tap_get_end_state();
+	enum tap_state saved_end_state = tap_get_end_state();
 	int bit_cnt, bit0_index;
 
 	if (!((!ir_scan && (tap_get_state() == TAP_DRSHIFT)) || (ir_scan && (tap_get_state() == TAP_IRSHIFT)))) {

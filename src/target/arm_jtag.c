@@ -19,7 +19,7 @@
 #endif
 
 int arm_jtag_set_instr_inner(struct jtag_tap *tap,
-		uint32_t new_instr, void *no_verify_capture, tap_state_t end_state)
+		uint32_t new_instr, void *no_verify_capture, enum tap_state end_state)
 {
 	struct scan_field field;
 	uint8_t t[4] = { 0 };
@@ -41,7 +41,7 @@ int arm_jtag_set_instr_inner(struct jtag_tap *tap,
 	return ERROR_OK;
 }
 
-int arm_jtag_scann_inner(struct arm_jtag *jtag_info, uint32_t new_scan_chain, tap_state_t end_state)
+int arm_jtag_scann_inner(struct arm_jtag *jtag_info, uint32_t new_scan_chain, enum tap_state end_state)
 {
 	int retval = ERROR_OK;
 

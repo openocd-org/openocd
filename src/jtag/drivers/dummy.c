@@ -14,7 +14,7 @@
 #include "hello.h"
 
 /* my private tap controller state, which tracks state for calling code */
-static tap_state_t dummy_state = TAP_RESET;
+static enum tap_state dummy_state = TAP_RESET;
 
 static int dummy_clock;		/* edge detector */
 
@@ -34,7 +34,7 @@ static int dummy_write(int tck, int tms, int tdi)
 	/* TAP standard: "state transitions occur on rising edge of clock" */
 	if (tck != dummy_clock) {
 		if (tck) {
-			tap_state_t old_state = dummy_state;
+			enum tap_state old_state = dummy_state;
 			dummy_state = tap_state_transition(old_state, tms);
 
 			if (old_state != dummy_state) {
