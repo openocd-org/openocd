@@ -206,7 +206,7 @@ static void restore_gpio(enum adapter_gpio_config_index idx)
 	}
 }
 
-static bb_value_t am335xgpio_read(void)
+static enum bb_value am335xgpio_read(void)
 {
 	return get_gpio_value(&adapter_gpio_config[ADAPTER_GPIO_IDX_TDO]) ? BB_HIGH : BB_LOW;
 }

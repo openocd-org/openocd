@@ -182,7 +182,7 @@ static void initialize_gpio(enum adapter_gpio_config_index idx)
 	bcm2835_gpio_synchronize();
 }
 
-static bb_value_t bcm2835gpio_read(void)
+static enum bb_value bcm2835gpio_read(void)
 {
 	unsigned int shift = adapter_gpio_config[ADAPTER_GPIO_IDX_TDO].gpio_num;
 	uint32_t value = (GPIO_LEV >> shift) & 1;

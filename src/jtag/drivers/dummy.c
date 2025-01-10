@@ -22,7 +22,7 @@ static int clock_count;		/* count clocks in any stable state, only stable states
 
 static uint32_t dummy_data;
 
-static bb_value_t dummy_read(void)
+static enum bb_value dummy_read(void)
 {
 	int data = 1 & dummy_data;
 	dummy_data = (dummy_data >> 1) | (1 << 31);

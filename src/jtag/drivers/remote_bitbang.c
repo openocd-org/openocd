@@ -176,7 +176,7 @@ static int remote_bitbang_quit(void)
 	return ERROR_OK;
 }
 
-static bb_value_t char_to_int(int c)
+static enum bb_value char_to_int(int c)
 {
 	switch (c) {
 		case '0':
@@ -198,7 +198,7 @@ static int remote_bitbang_sample(void)
 	return remote_bitbang_queue('R', NO_FLUSH);
 }
 
-static bb_value_t remote_bitbang_read_sample(void)
+static enum bb_value remote_bitbang_read_sample(void)
 {
 	if (remote_bitbang_recv_buf_empty()) {
 		if (remote_bitbang_fill_buf(BLOCK) != ERROR_OK)
