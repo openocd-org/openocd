@@ -175,7 +175,7 @@ struct etm_context {
 };
 
 /* PIPESTAT values */
-typedef enum {
+enum etmv1_pipestat {
 	STAT_IE = 0x0,
 	STAT_ID = 0x1,
 	STAT_IN = 0x2,
@@ -184,10 +184,10 @@ typedef enum {
 	STAT_BD = 0x5,
 	STAT_TR = 0x6,
 	STAT_TD = 0x7
-} etmv1_pipestat_t;
+};
 
 /* branch reason values */
-typedef enum {
+enum etmv1_branch_reason {
 	BR_NORMAL  = 0x0, /* Normal PC change : periodic synchro (ETMv1.1) */
 	BR_ENABLE  = 0x1, /* Trace has been enabled */
 	BR_RESTART = 0x2, /* Trace restarted after a FIFO overflow */
@@ -196,7 +196,7 @@ typedef enum {
 	BR_RSVD5   = 0x5, /* reserved */
 	BR_RSVD6   = 0x6, /* reserved */
 	BR_RSVD7   = 0x7, /* reserved */
-} etmv1_branch_reason_t;
+};
 
 struct reg_cache *etm_build_reg_cache(struct target *target,
 		struct arm_jtag *jtag_info, struct etm_context *etm_ctx);
