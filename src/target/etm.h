@@ -126,7 +126,7 @@ struct etm_capture_driver {
 	const char *name;
 	const struct command_registration *commands;
 	int (*init)(struct etm_context *etm_ctx);
-	trace_status_t (*status)(struct etm_context *etm_ctx);
+	enum trace_status (*status)(struct etm_context *etm_ctx);
 	int (*read_trace)(struct etm_context *etm_ctx);
 	int (*start_capture)(struct etm_context *etm_ctx);
 	int (*stop_capture)(struct etm_context *etm_ctx);
@@ -153,7 +153,7 @@ struct etm_context {
 	struct reg_cache *reg_cache;		/* ETM register cache */
 	struct etm_capture_driver *capture_driver;	/* driver used to access ETM data */
 	void *capture_driver_priv;	/* capture driver private data */
-	trace_status_t capture_status;	/* current state of capture run */
+	enum trace_status capture_status;	/* current state of capture run */
 	struct etmv1_trace_data *trace_data;	/* trace data */
 	uint32_t trace_depth;		/* number of cycles to be analyzed, 0 if no data available */
 	uint32_t control;	/* shadow of ETM_CTRL */
