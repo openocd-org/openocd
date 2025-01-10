@@ -95,35 +95,27 @@ enum rtt_channel_type {
 	RTT_CHANNEL_TYPE_DOWN
 };
 
-typedef int (*rtt_source_find_ctrl_block)(struct target *target,
+/** RTT source. */
+struct rtt_source {
+	int (*find_cb)(struct target *target,
 		target_addr_t *address, size_t size, const char *id, bool *found,
 		void *user_data);
-typedef int (*rtt_source_read_ctrl_block)(struct target *target,
+	int (*read_cb)(struct target *target,
 		target_addr_t address, struct rtt_control *ctrl_block,
 		void *user_data);
-typedef int (*rtt_source_read_channel_info)(struct target *target,
+	int (*read_channel_info)(struct target *target,
 		const struct rtt_control *ctrl, unsigned int channel,
 		enum rtt_channel_type type, struct rtt_channel_info *info,
 		void *user_data);
-typedef int (*rtt_source_start)(struct target *target,
+	int (*start)(struct target *target,
 		const struct rtt_control *ctrl, void *user_data);
-typedef int (*rtt_source_stop)(struct target *target, void *user_data);
-typedef int (*rtt_source_read)(struct target *target,
+	int (*stop)(struct target *target, void *user_data);
+	int (*read)(struct target *target,
 		const struct rtt_control *ctrl, struct rtt_sink_list **sinks,
 		size_t num_channels, void *user_data);
-typedef int (*rtt_source_write)(struct target *target,
+	int (*write)(struct target *target,
 		struct rtt_control *ctrl, unsigned int channel,
 		const uint8_t *buffer, size_t *length, void *user_data);
-
-/** RTT source. */
-struct rtt_source {
-	rtt_source_find_ctrl_block find_cb;
-	rtt_source_read_ctrl_block read_cb;
-	rtt_source_read_channel_info read_channel_info;
-	rtt_source_start start;
-	rtt_source_stop stop;
-	rtt_source_read read;
-	rtt_source_write write;
 };
 
 /**
