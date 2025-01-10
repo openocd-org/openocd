@@ -145,12 +145,12 @@ static int remote_bitbang_fill_buf(enum block_bool block)
 	return ERROR_OK;
 }
 
-typedef enum {
+enum flush_bool {
 	NO_FLUSH,
 	FLUSH_SEND_BUF
-} flush_bool_t;
+};
 
-static int remote_bitbang_queue(int c, flush_bool_t flush)
+static int remote_bitbang_queue(int c, enum flush_bool flush)
 {
 	remote_bitbang_send_buf[remote_bitbang_send_buf_used++] = c;
 	if (flush == FLUSH_SEND_BUF ||
