@@ -178,14 +178,13 @@ struct riscv_info {
 
 	/* It's possible that each core has a different supported ISA set. */
 	int xlen;
+	/* TODO: use the value from the register cache instead. */
 	riscv_reg_t misa;
-	/* Cached value of vlenb. 0 indicates there is no vector support.
+	/* TODO: use the value from the register cache instead.
+	 * Cached value of vlenb. 0 indicates there is no vector support.
 	 * Note that you can have vector support without misa.V set, because
 	 * Zve* extensions implement vector registers without setting misa.V. */
 	unsigned int vlenb;
-
-	bool mtopi_readable;
-	bool mtopei_readable;
 
 	/* The number of triggers per hart. */
 	unsigned int trigger_count;

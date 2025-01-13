@@ -266,12 +266,7 @@ static int examine_misa(struct target *target)
 
 static int examine_mtopi(struct target *target)
 {
-	RISCV_INFO(r);
-
 	/* Assume the registers exist */
-	r->mtopi_readable = true;
-	r->mtopei_readable = true;
-
 	int res = assume_reg_exist(target, GDB_REGNO_MTOPI);
 	if (res != ERROR_OK)
 		return res;
@@ -281,19 +276,17 @@ static int examine_mtopi(struct target *target)
 
 	riscv_reg_t value;
 	if (riscv_reg_get(target, &value, GDB_REGNO_MTOPI) != ERROR_OK) {
-		r->mtopi_readable = false;
-		r->mtopei_readable = false;
-	} else if (riscv_reg_get(target, &value, GDB_REGNO_MTOPEI) != ERROR_OK) {
-		LOG_TARGET_INFO(target, "S?aia detected without IMSIC");
-		r->mtopei_readable = false;
-	} else {
-		LOG_TARGET_INFO(target, "S?aia detected with IMSIC");
+		res = riscv_reg_impl_set_exist(target, GDB_REGNO_MTOPI, false);
+		if (res != ERROR_OK)
+			return res;
+		return riscv_reg_impl_set_exist(target, GDB_REGNO_MTOPEI, false);
 	}
-	res = riscv_reg_impl_set_exist(target, GDB_REGNO_MTOPI, r->mtopi_readable);
-	if (res != ERROR_OK)
-		return res;
-
-	return riscv_reg_impl_set_exist(target, GDB_REGNO_MTOPEI, r->mtopei_readable);
+	if (riscv_reg_get(target, &value, GDB_REGNO_MTOPEI) != ERROR_OK) {
+		LOG_TARGET_INFO(target, "S?aia detected without IMSIC");
+		return riscv_reg_impl_set_exist(target, GDB_REGNO_MTOPEI, false);
+	}
+	LOG_TARGET_INFO(target, "S?aia detected with IMSIC");
+	return ERROR_OK;
 }
 
 /**
