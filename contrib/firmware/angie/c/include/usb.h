@@ -104,7 +104,7 @@ struct usb_endpoint_descriptor {
 struct usb_language_descriptor {
 	uint8_t blength;		/**< Size of this descriptor in bytes. */
 	uint8_t bdescriptortype;	/**< STRING descriptor type. */
-	uint16_t wlangid[];		/**< LANGID codes. */
+	uint16_t wlangid;		/**< LANGID codes. */
 };
 
 /** USB String Descriptor. See USB 2.0 Spec */

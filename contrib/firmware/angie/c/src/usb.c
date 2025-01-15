@@ -19,6 +19,7 @@
 #include "i2c.h"
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 // #define PRINTF_DEBUG
 
@@ -122,7 +123,7 @@ __code struct usb_endpoint_descriptor bulk_ep8_in_endpoint_descriptor = {
 __code struct usb_language_descriptor language_descriptor = {
 	.blength =				4,
 	.bdescriptortype =		DESCRIPTOR_TYPE_STRING,
-	.wlangid =				{0x0409} /* US English */
+	.wlangid =				0x0409 /* US English */
 };
 
 __code struct usb_string_descriptor strmanufacturer =
@@ -134,15 +135,11 @@ __code struct usb_string_descriptor strproduct =
 __code struct usb_string_descriptor strserialnumber =
 	STR_DESCR(6, '0', '0', '0', '0', '0', '1');
 
-__code struct usb_string_descriptor strconfigdescr  =
-	STR_DESCR(12, 'J', 'T', 'A', 'G', ' ', 'A', 'd', 'a', 'p', 't', 'e', 'r');
-
 /* Table containing pointers to string descriptors */
-__code struct usb_string_descriptor *__code en_string_descriptors[4] = {
+__code struct usb_string_descriptor *__code en_string_descriptors[3] = {
 	&strmanufacturer,
 	&strproduct,
-	&strserialnumber,
-	&strconfigdescr
+	&strserialnumber
 };
 void sudav_isr(void)__interrupt SUDAV_ISR
 {
@@ -196,7 +193,6 @@ void ep6_isr(void)__interrupt	EP6_ISR
 	i2c_recieve();  /* Execute I2C communication */
 	EXIF &= ~0x10;  /* Clear USBINT: Main global interrupt */
 	EPIRQ = 0x40;	/* Clear individual EP6OUT IRQ */
-	REVCTL = 0x3;   /* REVCTL.0 and REVCTL.1 set to 1 */
 }
 void ep8_isr(void)__interrupt	EP8_ISR
 {
@@ -329,63 +325,6 @@ void usb_reset_data_toggle(uint8_t ep)
 }
 
 /**
- * Handle GET_STATUS request.
- *
- * @return on success: true
- * @return on failure: false
- */
-bool usb_handle_get_status(void)
-{
-	uint8_t *ep_cs;
-	switch (setup_data.bmrequesttype) {
-	case GS_DEVICE:
-		/* Two byte response: Byte 0, Bit 0 = self-powered, Bit 1 = remote wakeup.
-		 *                    Byte 1: reserved, reset to zero */
-		EP0BUF[0] = 0;
-		EP0BUF[1] = 0;
-
-		/* Send response */
-		EP0BCH = 0;
-		syncdelay(3);
-		EP0BCL = 2;
-		syncdelay(3);
-		break;
-	case GS_INTERFACE:
-		/* Always return two zero bytes according to USB 1.1 spec, p. 191 */
-		EP0BUF[0] = 0;
-		EP0BUF[1] = 0;
-
-		/* Send response */
-		EP0BCH = 0;
-		syncdelay(3);
-		EP0BCL = 2;
-		syncdelay(3);
-		break;
-	case GS_ENDPOINT:
-		/* Get stall bit for endpoint specified in low byte of wIndex */
-		ep_cs = usb_get_endpoint_cs_reg(setup_data.windex & 0xff);
-
-		if (*ep_cs & EPSTALL)
-			EP0BUF[0] = 0x01;
-		else
-			EP0BUF[0] = 0x00;
-
-		/* Second byte sent has to be always zero */
-		EP0BUF[1] = 0;
-
-		/* Send response */
-		EP0BCH = 0;
-		syncdelay(3);
-		EP0BCL = 2;
-		syncdelay(3);
-		break;
-	default:
-		return false;
-	}
-	return true;
-}
-
-/**
  * Handle CLEAR_FEATURE request.
  *
  * @return on success: true
@@ -480,12 +419,17 @@ bool usb_handle_get_descriptor(void)
 	case DESCRIPTOR_TYPE_STRING:
 		if (setup_data.windex == 0) {
 			/* Supply language descriptor */
-			SUDPTRH = HI8(&language_descriptor);
-			SUDPTRL = LO8(&language_descriptor);
+			__xdata struct usb_language_descriptor temp_descriptor;
+			memcpy(&temp_descriptor, &language_descriptor, sizeof(language_descriptor));
+			SUDPTRH = HI8(&temp_descriptor);
+			SUDPTRL = LO8(&temp_descriptor);
 		} else if (setup_data.windex == 0x0409 /* US English */) {
 			/* Supply string descriptor */
-			SUDPTRH = HI8(en_string_descriptors[descriptor_index - 1]);
-			SUDPTRL = LO8(en_string_descriptors[descriptor_index - 1]);
+			__xdata uint8_t temp_descriptors[3];
+			memcpy(temp_descriptors, en_string_descriptors[descriptor_index - 1],
+				   ((struct usb_string_descriptor *)en_string_descriptors[descriptor_index - 1])->blength);
+			SUDPTRH = HI8(temp_descriptors);
+			SUDPTRL = LO8(temp_descriptors);
 		} else {
 			return false;
 		}
@@ -610,6 +554,8 @@ bool usb_handle_vcommands(void)
 			; /* wait to finish transferring in EP0BUF, until not busy */
 		gcnt  = ((uint32_t)(eptr[0]) << 24) | ((uint32_t)(eptr[1]) << 16)
 		| ((uint32_t)(eptr[2]) << 8) | (uint32_t)(eptr[3]);
+		/* REVCTL.0 and REVCTL.1 set to 1 */
+		REVCTL = 0x3;
 		/* Angie board FPGA bitstream download */
 		PIN_RDWR_B = 0;
 		/* Initialize GPIF interface transfer count */
@@ -632,6 +578,10 @@ bool usb_handle_vcommands(void)
 		EP4AUTOINLENL = (uint8_t)((uint32_t)(gcnt) & 0x000000ff);
 		/* Trigger GPIF IN transfer on EP4 */
 		GPIFTRIG = BMGPIFREAD | GPIF_EP4;
+		while (!(GPIFTRIG & BMGPIFDONE)) // poll GPIFTRIG.7 GPIF Done bit
+			;
+		/* REVCTL.0 and REVCTL.1 set to 0 */
+		REVCTL = 0;
 		break;
 	default:
 		return true;	/* Error: unknown VR command */
@@ -646,8 +596,12 @@ void usb_handle_setup_data(void)
 {
 	switch (setup_data.brequest) {
 	case GET_STATUS:
-		if (!usb_handle_get_status())
-			STALL_EP0();
+		EP0BUF[0] = 0;
+		EP0BUF[1] = 0;
+		/* Send response */
+		EP0BCH = 0;
+		EP0BCL = 2;
+		syncdelay(3);
 		break;
 	case CLEAR_FEATURE:
 		if (!usb_handle_clear_feature())
@@ -880,7 +834,9 @@ void interrupt_init(void)
 	/* Clear SUDAV interrupt */
 	USBIRQ = SUDAVI;
 
-	/* Enable Interrupts */
+	/* Enable Interrupts (Do not confuse this with
+	 * EA External Access pin, see ANGIE Schematic)
+	 */
 	EA = 1;
 }
 
