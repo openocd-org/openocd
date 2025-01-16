@@ -31,7 +31,6 @@
 #include "debug_defines.h"
 #include "rtos/rtos.h"
 #include "program.h"
-#include "asm.h"
 #include "batch.h"
 #include "debug_reg_printer.h"
 #include "field_helpers.h"

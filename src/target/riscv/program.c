@@ -10,7 +10,6 @@
 #include "program.h"
 #include "helper/log.h"
 
-#include "asm.h"
 #include "debug_defines.h"
 #include "encoding.h"
 

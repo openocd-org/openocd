@@ -26,7 +26,6 @@
 #include "riscv.h"
 #include "riscv_reg.h"
 #include "riscv-011_reg.h"
-#include "asm.h"
 #include "gdb_regs.h"
 #include "field_helpers.h"
 
@@ -247,6 +246,32 @@ static unsigned int slot_offset(const struct target *target, slot_t slot)
 	}
 	LOG_ERROR("slot_offset called with xlen=%d, slot=%d",
 			riscv_xlen(target), slot);
+	assert(0);
+	return 0; /* Silence -Werror=return-type */
+}
+
+static uint32_t load(const struct target *target, unsigned int rd,
+		unsigned int base, uint16_t offset)
+{
+	switch (riscv_xlen(target)) {
+		case 32:
+			return lw(rd, base, offset);
+		case 64:
+			return ld(rd, base, offset);
+	}
+	assert(0);
+	return 0; /* Silence -Werror=return-type */
+}
+
+static uint32_t store(const struct target *target, unsigned int src,
+		unsigned int base, uint16_t offset)
+{
+	switch (riscv_xlen(target)) {
+		case 32:
+			return sw(src, base, offset);
+		case 64:
+			return sd(src, base, offset);
+	}
 	assert(0);
 	return 0; /* Silence -Werror=return-type */
 }
