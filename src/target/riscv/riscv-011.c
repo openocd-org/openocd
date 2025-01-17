@@ -1074,9 +1074,18 @@ static int maybe_write_tselect(struct target *target)
 	return ERROR_OK;
 }
 
+static uint64_t set_ebreakx_fields(uint64_t dcsr, const struct target *target)
+{
+	const struct riscv_private_config * const config = riscv_private_config(target);
+	dcsr = set_field(dcsr, DCSR_EBREAKM, config->dcsr_ebreak_fields[RISCV_MODE_M]);
+	dcsr = set_field(dcsr, DCSR_EBREAKS, config->dcsr_ebreak_fields[RISCV_MODE_S]);
+	dcsr = set_field(dcsr, DCSR_EBREAKU, config->dcsr_ebreak_fields[RISCV_MODE_U]);
+	dcsr = set_field(dcsr, DCSR_EBREAKH, 1);
+	return dcsr;
+}
+
 static int execute_resume(struct target *target, bool step)
 {
-	RISCV_INFO(r);
 	riscv011_info_t *info = get_info(target);
 
 	LOG_DEBUG("step=%d", step);
@@ -1108,10 +1117,7 @@ static int execute_resume(struct target *target, bool step)
 		}
 	}
 
-	info->dcsr = set_field(info->dcsr, DCSR_EBREAKM, r->riscv_ebreakm);
-	info->dcsr = set_field(info->dcsr, DCSR_EBREAKS, r->riscv_ebreaks);
-	info->dcsr = set_field(info->dcsr, DCSR_EBREAKU, r->riscv_ebreaku);
-	info->dcsr = set_field(info->dcsr, DCSR_EBREAKH, 1);
+	info->dcsr = set_ebreakx_fields(info->dcsr, target);
 	info->dcsr &= ~DCSR_HALT;
 
 	if (step)
@@ -1928,7 +1934,6 @@ static int riscv011_resume(struct target *target, int current,
 
 static int assert_reset(struct target *target)
 {
-	RISCV_INFO(r);
 	riscv011_info_t *info = get_info(target);
 	/* TODO: Maybe what I implemented here is more like soft_reset_halt()? */
 
@@ -1942,10 +1947,7 @@ static int assert_reset(struct target *target)
 
 	/* Not sure what we should do when there are multiple cores.
 	 * Here just reset the single hart we're talking to. */
-	info->dcsr = set_field(info->dcsr, DCSR_EBREAKM, r->riscv_ebreakm);
-	info->dcsr = set_field(info->dcsr, DCSR_EBREAKS, r->riscv_ebreaks);
-	info->dcsr = set_field(info->dcsr, DCSR_EBREAKU, r->riscv_ebreaku);
-	info->dcsr = set_field(info->dcsr, DCSR_EBREAKH, 1);
+	info->dcsr = set_ebreakx_fields(info->dcsr, target);
 	info->dcsr |= DCSR_HALT;
 	if (target->reset_halt)
 		info->dcsr |= DCSR_NDRESET;

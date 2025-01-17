@@ -46,6 +46,10 @@ proc {riscv set_enable_virt2phys} on_off {
 	return {}
 }
 
+foreach mode {m s u} {
+	lappend _telnet_autocomplete_skip "riscv set_ebreak$mode"
+}
+
 proc riscv {cmd args} {
 	tailcall "riscv $cmd" {*}$args
 }

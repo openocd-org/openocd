@@ -467,9 +467,30 @@ static struct target_type *get_target_type(struct target *target)
 	}
 }
 
+static struct riscv_private_config *alloc_default_riscv_private_config(void)
+{
+	struct riscv_private_config * const config = malloc(sizeof(*config));
+	if (!config) {
+		LOG_ERROR("Out of memory!");
+		return NULL;
+	}
+
+	for (unsigned int i = 0; i < ARRAY_SIZE(config->dcsr_ebreak_fields); ++i)
+		config->dcsr_ebreak_fields[i] = true;
+
+	return config;
+}
+
 static int riscv_create_target(struct target *target, Jim_Interp *interp)
 {
 	LOG_TARGET_DEBUG(target, "riscv_create_target()");
+	struct riscv_private_config *config = target->private_config;
+	if (!config) {
+		config = alloc_default_riscv_private_config();
+		if (!config)
+			return ERROR_FAIL;
+		target->private_config = config;
+	}
 	target->arch_info = calloc(1, sizeof(struct riscv_info));
 	if (!target->arch_info) {
 		LOG_TARGET_ERROR(target, "Failed to allocate RISC-V target structure.");
@@ -477,6 +498,155 @@ static int riscv_create_target(struct target *target, Jim_Interp *interp)
 	}
 	riscv_info_init(target, target->arch_info);
 	return ERROR_OK;
+}
+
+static struct jim_nvp nvp_ebreak_config_opts[] = {
+	{ .name = "m", .value = RISCV_MODE_M },
+	{ .name = "s", .value = RISCV_MODE_S },
+	{ .name = "u", .value = RISCV_MODE_U },
+	{ .name = "vs", .value = RISCV_MODE_VS },
+	{ .name = "vu", .value = RISCV_MODE_VU },
+	{ .name = NULL, .value = N_RISCV_MODE }
+};
+
+#define RISCV_EBREAK_MODE_INVALID -1
+
+static struct jim_nvp nvp_ebreak_mode_opts[] = {
+	{ .name = "exception", .value = false },
+	{ .name = "halt", .value = true },
+	{ .name = NULL, .value = RISCV_EBREAK_MODE_INVALID }
+};
+
+static int jim_configure_ebreak(struct riscv_private_config *config, struct jim_getopt_info *goi)
+{
+	if (goi->argc == 0) {
+		Jim_WrongNumArgs(goi->interp, 1, goi->argv - 1,
+				"[?execution_mode?] ?ebreak_action?");
+		return JIM_ERR;
+	}
+	struct jim_nvp *common_mode_nvp;
+	if (jim_nvp_name2value_obj(goi->interp, nvp_ebreak_mode_opts, goi->argv[0],
+				&common_mode_nvp) == JIM_OK) {
+		/* Here a common "ebreak" action is processed, e.g:
+		 * "riscv.cpu configure -ebreak halt"
+		 */
+		for (int ebreak_ctl_i = 0; ebreak_ctl_i < N_RISCV_MODE; ++ebreak_ctl_i)
+			config->dcsr_ebreak_fields[ebreak_ctl_i] = common_mode_nvp->value;
+		return jim_getopt_obj(goi, NULL);
+	}
+
+	/* Here a "ebreak" action for a specific execution mode is processed, e.g:
+	 * "riscv.cpu configure -ebreak m halt"
+	 */
+	if (goi->argc < 2) {
+		Jim_WrongNumArgs(goi->interp, 2, goi->argv - 2,
+				"?ebreak_action?");
+		return JIM_ERR;
+	}
+	struct jim_nvp *ctrl_nvp;
+	if (jim_getopt_nvp(goi, nvp_ebreak_config_opts, &ctrl_nvp) != JIM_OK) {
+		jim_getopt_nvp_unknown(goi, nvp_ebreak_config_opts, /*hadprefix*/ true);
+		return JIM_ERR;
+	}
+	struct jim_nvp *mode_nvp;
+	if (jim_getopt_nvp(goi, nvp_ebreak_mode_opts, &mode_nvp) != JIM_OK) {
+		jim_getopt_nvp_unknown(goi, nvp_ebreak_mode_opts, /*hadprefix*/ true);
+		return JIM_ERR;
+	}
+	config->dcsr_ebreak_fields[ctrl_nvp->value] = mode_nvp->value;
+	return JIM_OK;
+}
+
+/**
+ * Obtain dcsr.ebreak* configuration as a Tcl dictionary.
+ * Print the resulting string to the "buffer" and return the string length.
+ * The "buffer" can be NULL, in which case only the length is computed but
+ * nothing is written.
+ */
+static int ebreak_config_to_tcl_dict(const struct riscv_private_config *config,
+		char *buffer)
+{
+	int len = 0;
+	const char *separator = "";
+	for (int ebreak_ctl_i = 0; ebreak_ctl_i < N_RISCV_MODE;
+			++ebreak_ctl_i) {
+		const char * const format = "%s%s %s";
+		const char * const priv_mode =
+			jim_nvp_value2name_simple(nvp_ebreak_config_opts, ebreak_ctl_i)->name;
+		const char * const mode = jim_nvp_value2name_simple(nvp_ebreak_mode_opts,
+				config->dcsr_ebreak_fields[ebreak_ctl_i])->name;
+		if (!buffer)
+			len += snprintf(NULL, 0, format, separator, priv_mode, mode);
+		else
+			len += sprintf(buffer + len, format, separator, priv_mode, mode);
+
+		separator = "\n";
+	}
+	return len;
+}
+
+static int jim_report_ebreak_config(const struct riscv_private_config *config,
+		Jim_Interp *interp)
+{
+	const int len = ebreak_config_to_tcl_dict(config, NULL);
+	char *str = malloc(len + 1);
+	if (!str) {
+		LOG_ERROR("Unable to allocate a string of %d bytes.", len + 1);
+		return JIM_ERR;
+	}
+	ebreak_config_to_tcl_dict(config, str);
+	Jim_SetResultString(interp, str, len);
+	free(str);
+	return JIM_OK;
+}
+
+enum riscv_cfg_opts {
+	RISCV_CFG_EBREAK,
+	RISCV_CFG_INVALID = -1
+};
+
+static struct jim_nvp nvp_config_opts[] = {
+	{ .name = "-ebreak", .value = RISCV_CFG_EBREAK },
+	{ .name = NULL, .value = RISCV_CFG_INVALID }
+};
+
+static int riscv_jim_configure(struct target *target,
+		struct jim_getopt_info *goi)
+{
+	struct riscv_private_config *config = target->private_config;
+	if (!config) {
+		config = alloc_default_riscv_private_config();
+		if (!config)
+			return JIM_ERR;
+		target->private_config = config;
+	}
+	if (!goi->argc)
+		return JIM_OK;
+
+	struct jim_nvp *n;
+	int e = jim_nvp_name2value_obj(goi->interp, nvp_config_opts,
+				goi->argv[0], &n);
+	if (e != JIM_OK)
+		return JIM_CONTINUE;
+
+	e = jim_getopt_obj(goi, NULL);
+	if (e != JIM_OK)
+		return e;
+
+	if (!goi->is_configure && goi->argc > 0) {
+		/* Expecting no arguments */
+		Jim_WrongNumArgs(goi->interp, 2, goi->argv - 2, "");
+		return JIM_ERR;
+	}
+	switch (n->value) {
+	case RISCV_CFG_EBREAK:
+		return goi->is_configure
+			? jim_configure_ebreak(config, goi)
+			: jim_report_ebreak_config(config, goi->interp);
+	default:
+		assert(false && "'jim_getopt_nvp' should have returned an error.");
+	}
+	return JIM_ERR;
 }
 
 static int riscv_init_target(struct command_context *cmd_ctx,
@@ -535,6 +705,8 @@ static void free_wp_triggers_cache(struct target *target)
 static void riscv_deinit_target(struct target *target)
 {
 	LOG_TARGET_DEBUG(target, "riscv_deinit_target()");
+
+	free(target->private_config);
 
 	struct riscv_info *info = target->arch_info;
 	struct target_type *tt = get_target_type(target);
@@ -4697,52 +4869,69 @@ COMMAND_HANDLER(riscv_set_autofence)
 	return ERROR_COMMAND_SYNTAX_ERROR;
 }
 
-COMMAND_HANDLER(riscv_set_ebreakm)
+COMMAND_HELPER(ebreakx_deprecation_helper, enum riscv_priv_mode mode)
 {
-	struct target *target = get_current_target(CMD_CTX);
-	RISCV_INFO(r);
-
+	struct target * const target = get_current_target(CMD_CTX);
+	struct riscv_private_config * const config = riscv_private_config(target);
+	const char *mode_str;
+	switch (mode) {
+	case RISCV_MODE_M:
+		mode_str = "m";
+		break;
+	case RISCV_MODE_S:
+		mode_str = "s";
+		break;
+	case RISCV_MODE_U:
+		mode_str = "u";
+		break;
+	default:
+		assert(0 && "Unexpected execution mode");
+		mode_str = "unexpected";
+	}
+	if (CMD_ARGC > 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	if (CMD_ARGC == 0) {
-		command_print(CMD, "riscv_ebreakm enabled: %s", r->riscv_ebreakm ? "on" : "off");
-		return ERROR_OK;
-	} else if (CMD_ARGC == 1) {
-		COMMAND_PARSE_ON_OFF(CMD_ARGV[0], r->riscv_ebreakm);
+		LOG_WARNING("DEPRECATED! use '%s cget -ebreak' not '%s'",
+				target_name(target), CMD_NAME);
+		command_print(CMD, "riscv_ebreak%s enabled: %s", mode_str,
+				config->dcsr_ebreak_fields[mode] ? "on" : "off");
 		return ERROR_OK;
 	}
+	assert(CMD_ARGC == 1);
+	command_print(CMD, "DEPRECATED! use '%s configure -ebreak %s' not '%s'",
+			target_name(target), mode_str, CMD_NAME);
+	bool ebreak_ctl;
+	COMMAND_PARSE_ON_OFF(CMD_ARGV[0], ebreak_ctl);
+	config->dcsr_ebreak_fields[mode] = ebreak_ctl;
+	switch (mode) {
+	case RISCV_MODE_S:
+		config->dcsr_ebreak_fields[RISCV_MODE_VS] = ebreak_ctl;
+		break;
+	case RISCV_MODE_U:
+		config->dcsr_ebreak_fields[RISCV_MODE_VU] = ebreak_ctl;
+		break;
+	default:
+		break;
+	}
+	return ERROR_OK;
+}
 
-	return ERROR_COMMAND_SYNTAX_ERROR;
+COMMAND_HANDLER(riscv_set_ebreakm)
+{
+	return CALL_COMMAND_HANDLER(ebreakx_deprecation_helper,
+			RISCV_MODE_M);
 }
 
 COMMAND_HANDLER(riscv_set_ebreaks)
 {
-	struct target *target = get_current_target(CMD_CTX);
-	RISCV_INFO(r);
-
-	if (CMD_ARGC == 0) {
-		command_print(CMD, "riscv_ebreaks enabled: %s", r->riscv_ebreaks ? "on" : "off");
-		return ERROR_OK;
-	} else if (CMD_ARGC == 1) {
-		COMMAND_PARSE_ON_OFF(CMD_ARGV[0], r->riscv_ebreaks);
-		return ERROR_OK;
-	}
-
-	return ERROR_COMMAND_SYNTAX_ERROR;
+	return CALL_COMMAND_HANDLER(ebreakx_deprecation_helper,
+			RISCV_MODE_S);
 }
 
 COMMAND_HANDLER(riscv_set_ebreaku)
 {
-	struct target *target = get_current_target(CMD_CTX);
-	RISCV_INFO(r);
-
-	if (CMD_ARGC == 0) {
-		command_print(CMD, "riscv_ebreaku enabled: %s", r->riscv_ebreaku ? "on" : "off");
-		return ERROR_OK;
-	} else if (CMD_ARGC == 1) {
-		COMMAND_PARSE_ON_OFF(CMD_ARGV[0], r->riscv_ebreaku);
-		return ERROR_OK;
-	}
-
-	return ERROR_COMMAND_SYNTAX_ERROR;
+	return CALL_COMMAND_HANDLER(ebreakx_deprecation_helper,
+			RISCV_MODE_U);
 }
 
 COMMAND_HELPER(riscv_clear_trigger, int trigger_id, const char *name)
@@ -5517,24 +5706,24 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.handler = riscv_set_ebreakm,
 		.mode = COMMAND_ANY,
 		.usage = "[on|off]",
-		.help = "Control dcsr.ebreakm. When off, M-mode ebreak instructions "
-			"don't trap to OpenOCD. Defaults to on."
+		.help = "DEPRECATED! use '<target_name> configure -ebreak' or "
+			"'<target_name> cget -ebreak'"
 	},
 	{
 		.name = "set_ebreaks",
 		.handler = riscv_set_ebreaks,
 		.mode = COMMAND_ANY,
 		.usage = "[on|off]",
-		.help = "Control dcsr.ebreaks. When off, S-mode ebreak instructions "
-			"don't trap to OpenOCD. Defaults to on."
+		.help = "DEPRECATED! use '<target_name> configure -ebreak' or "
+			"'<target_name> cget -ebreak'"
 	},
 	{
 		.name = "set_ebreaku",
 		.handler = riscv_set_ebreaku,
 		.mode = COMMAND_ANY,
 		.usage = "[on|off]",
-		.help = "Control dcsr.ebreaku. When off, U-mode ebreak instructions "
-			"don't trap to OpenOCD. Defaults to on."
+		.help = "DEPRECATED! use '<target_name> configure -ebreak' or "
+			"'<target_name> cget -ebreak'"
 	},
 	{
 		.name = "etrigger",
@@ -5654,6 +5843,7 @@ struct target_type riscv_target = {
 	.name = "riscv",
 
 	.target_create = riscv_create_target,
+	.target_jim_configure = riscv_jim_configure,
 	.init_target = riscv_init_target,
 	.deinit_target = riscv_deinit_target,
 	.examine = riscv_examine,
@@ -5732,10 +5922,6 @@ static void riscv_info_init(struct target *target, struct riscv_info *r)
 	INIT_LIST_HEAD(&r->hide_csr);
 
 	r->vsew64_supported = YNM_MAYBE;
-
-	r->riscv_ebreakm = true;
-	r->riscv_ebreaks = true;
-	r->riscv_ebreaku = true;
 
 	r->wp_allow_equality_match_trigger = true;
 	r->wp_allow_ge_lt_trigger = true;

@@ -1611,7 +1611,6 @@ static int set_dcsr_ebreak(struct target *target, bool step)
 	if (dm013_select_target(target) != ERROR_OK)
 		return ERROR_FAIL;
 
-	RISCV_INFO(r);
 	RISCV013_INFO(info);
 	riscv_reg_t original_dcsr, dcsr;
 	/* We want to twiddle some bits in the debug CSR so debugging works. */
@@ -1619,11 +1618,12 @@ static int set_dcsr_ebreak(struct target *target, bool step)
 		return ERROR_FAIL;
 	original_dcsr = dcsr;
 	dcsr = set_field(dcsr, CSR_DCSR_STEP, step);
-	dcsr = set_field(dcsr, CSR_DCSR_EBREAKM, r->riscv_ebreakm);
-	dcsr = set_field(dcsr, CSR_DCSR_EBREAKS, r->riscv_ebreaks && riscv_supports_extension(target, 'S'));
-	dcsr = set_field(dcsr, CSR_DCSR_EBREAKU, r->riscv_ebreaku && riscv_supports_extension(target, 'U'));
-	dcsr = set_field(dcsr, CSR_DCSR_EBREAKVS, r->riscv_ebreaku && riscv_supports_extension(target, 'H'));
-	dcsr = set_field(dcsr, CSR_DCSR_EBREAKVU, r->riscv_ebreaku && riscv_supports_extension(target, 'H'));
+	const struct riscv_private_config * const config = riscv_private_config(target);
+	dcsr = set_field(dcsr, CSR_DCSR_EBREAKM, config->dcsr_ebreak_fields[RISCV_MODE_M]);
+	dcsr = set_field(dcsr, CSR_DCSR_EBREAKS, config->dcsr_ebreak_fields[RISCV_MODE_S]);
+	dcsr = set_field(dcsr, CSR_DCSR_EBREAKU, config->dcsr_ebreak_fields[RISCV_MODE_U]);
+	dcsr = set_field(dcsr, CSR_DCSR_EBREAKVS, config->dcsr_ebreak_fields[RISCV_MODE_VS]);
+	dcsr = set_field(dcsr, CSR_DCSR_EBREAKVU, config->dcsr_ebreak_fields[RISCV_MODE_VU]);
 	if (dcsr != original_dcsr &&
 			riscv_reg_set(target, GDB_REGNO_DCSR, dcsr) != ERROR_OK)
 		return ERROR_FAIL;
@@ -2858,8 +2858,11 @@ static int assert_reset(struct target *target)
 
 static bool dcsr_ebreak_config_equals_reset_value(const struct target *target)
 {
-	RISCV_INFO(r);
-	return !(r->riscv_ebreakm || r->riscv_ebreaks || r->riscv_ebreaku);
+	const struct riscv_private_config * const config = riscv_private_config(target);
+	for (int i = 0; i < N_RISCV_MODE; ++i)
+		if (config->dcsr_ebreak_fields[i])
+			return false;
+	return true;
 }
 
 static int deassert_reset(struct target *target)

@@ -11225,6 +11225,25 @@ follows:
 </feature>
 @end example
 
+@subsection RISC-V @code{$target_name configure} options
+@itemize
+@item @code{-ebreak} [@option{m}|@option{s}|@option{u}|@option{vs}|@option{vu}]
+@option{exception}|@option{halt} -- sets the desired behavior of @code{ebreak}
+instruction on the target. Defaults to @option{halt} in all execution modes.
+
+@itemize
+@item The last argument specifies which action should be taken when a hart
+executes a @code{ebreak}.
+
+@item The first argument specifies in which execution mode the @code{ebreak}
+behavior should change. If this option is omitted the configuration affects
+all execution modes.
+
+@item @code{cget} returns a TCL @code{dict} of execution mode - @code{ebreak}
+action pairs.
+@end itemize
+@end itemize
+
 @subsection RISC-V Debug Configuration Commands
 
 @deffn {Command} {riscv dump_sample_buf} [base64]
@@ -11432,21 +11451,6 @@ Selects whether interrupts will be disabled when single stepping. The default co
 This feature is only useful on hardware that always steps into interrupts and doesn't support dcsr.stepie=0.
 Keep in mind, disabling the option does not guarantee that single stepping will go into interrupt handlers.
 To make that happen, dcsr.stepie would have to be written to 1 as well.
-@end deffn
-
-@deffn {Command} {riscv set_ebreakm} [on|off]
-Control dcsr.ebreakm. When on (default), M-mode ebreak instructions trap to
-OpenOCD. When off, they generate a breakpoint exception handled internally.
-@end deffn
-
-@deffn {Command} {riscv set_ebreaks} [on|off]
-Control dcsr.ebreaks. When on (default), S-mode ebreak instructions trap to
-OpenOCD. When off, they generate a breakpoint exception handled internally.
-@end deffn
-
-@deffn {Command} {riscv set_ebreaku} [on|off]
-Control dcsr.ebreaku. When on (default), U-mode ebreak instructions trap to
-OpenOCD. When off, they generate a breakpoint exception handled internally.
 @end deffn
 
 The commands below can be used to prevent OpenOCD from using certain RISC-V trigger features.
