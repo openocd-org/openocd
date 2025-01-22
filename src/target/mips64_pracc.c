@@ -76,12 +76,12 @@ static int mips64_pracc_exec_read(struct mips64_pracc_context *ctx, uint64_t add
 		offset = (address - MIPS64_PRACC_PARAM_IN) / MIPS64_PRACC_DATA_STEP;
 
 		if (offset >= MIPS64_PRACC_PARAM_IN_SIZE) {
-			LOG_ERROR("Error: iparam size exceeds MIPS64_PRACC_PARAM_IN_SIZE");
+			LOG_ERROR("iparam size exceeds MIPS64_PRACC_PARAM_IN_SIZE");
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 
 		if (!ctx->local_iparam) {
-			LOG_ERROR("Error: unexpected reading of input parameter");
+			LOG_ERROR("unexpected reading of input parameter");
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 
@@ -93,7 +93,7 @@ static int mips64_pracc_exec_read(struct mips64_pracc_context *ctx, uint64_t add
 
 		offset = (address - MIPS64_PRACC_PARAM_OUT) / MIPS64_PRACC_DATA_STEP;
 		if (!ctx->local_oparam) {
-			LOG_ERROR("Error: unexpected reading of output parameter");
+			LOG_ERROR("unexpected reading of output parameter");
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 
@@ -181,7 +181,7 @@ static int mips64_pracc_exec_write(struct mips64_pracc_context *ctx, uint64_t ad
 		&& (address < MIPS64_PRACC_PARAM_IN + ctx->num_iparam * MIPS64_PRACC_DATA_STEP)) {
 		offset = (address - MIPS64_PRACC_PARAM_IN) / MIPS64_PRACC_DATA_STEP;
 		if (!ctx->local_iparam) {
-			LOG_ERROR("Error: unexpected writing of input parameter");
+			LOG_ERROR("unexpected writing of input parameter");
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 		ctx->local_iparam[offset] = data;
@@ -189,14 +189,14 @@ static int mips64_pracc_exec_write(struct mips64_pracc_context *ctx, uint64_t ad
 		&& (address < MIPS64_PRACC_PARAM_OUT + ctx->num_oparam * MIPS64_PRACC_DATA_STEP)) {
 		offset = (address - MIPS64_PRACC_PARAM_OUT) / MIPS64_PRACC_DATA_STEP;
 		if (!ctx->local_oparam) {
-			LOG_ERROR("Error: unexpected writing of output parameter");
+			LOG_ERROR("unexpected writing of output parameter");
 			return ERROR_JTAG_DEVICE_ERROR;
 		}
 		ctx->local_oparam[offset] = data;
 	} else if (address == MIPS64_PRACC_STACK) {
 		/* save data onto our stack */
 		if (ctx->stack_offset >= STACK_DEPTH) {
-			LOG_ERROR("Error: PrAcc stack depth exceeded");
+			LOG_ERROR("PrAcc stack depth exceeded");
 			return ERROR_FAIL;
 		}
 		ctx->stack[ctx->stack_offset++] = data;

@@ -160,11 +160,11 @@ static int esirisc_disable_interrupts(struct target *target)
 	uint32_t etc;
 	int retval;
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	retval = esirisc_jtag_read_csr(jtag_info, CSR_THREAD, CSR_THREAD_ETC, &etc);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to read Thread CSR: ETC", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to read Thread CSR: ETC");
 		return retval;
 	}
 
@@ -172,7 +172,7 @@ static int esirisc_disable_interrupts(struct target *target)
 
 	retval = esirisc_jtag_write_csr(jtag_info, CSR_THREAD, CSR_THREAD_ETC, etc);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to write Thread CSR: ETC", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to write Thread CSR: ETC");
 		return retval;
 	}
 
@@ -187,11 +187,11 @@ static int esirisc_enable_interrupts(struct target *target)
 	uint32_t etc;
 	int retval;
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	retval = esirisc_jtag_read_csr(jtag_info, CSR_THREAD, CSR_THREAD_ETC, &etc);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to read Thread CSR: ETC", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to read Thread CSR: ETC");
 		return retval;
 	}
 
@@ -199,7 +199,7 @@ static int esirisc_enable_interrupts(struct target *target)
 
 	retval = esirisc_jtag_write_csr(jtag_info, CSR_THREAD, CSR_THREAD_ETC, etc);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to write Thread CSR: ETC", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to write Thread CSR: ETC");
 		return retval;
 	}
 
@@ -212,12 +212,12 @@ static int esirisc_save_interrupts(struct target *target)
 	struct esirisc_common *esirisc = target_to_esirisc(target);
 	struct esirisc_jtag *jtag_info = &esirisc->jtag_info;
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	int retval = esirisc_jtag_read_csr(jtag_info, CSR_THREAD, CSR_THREAD_ETC,
 			&esirisc->etc_save);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to read Thread CSR: ETC", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to read Thread CSR: ETC");
 		return retval;
 	}
 
@@ -229,12 +229,12 @@ static int esirisc_restore_interrupts(struct target *target)
 	struct esirisc_common *esirisc = target_to_esirisc(target);
 	struct esirisc_jtag *jtag_info = &esirisc->jtag_info;
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	int retval = esirisc_jtag_write_csr(jtag_info, CSR_THREAD, CSR_THREAD_ETC,
 			esirisc->etc_save);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to write Thread CSR: ETC", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to write Thread CSR: ETC");
 		return retval;
 	}
 
@@ -247,12 +247,12 @@ static int esirisc_save_hwdc(struct target *target)
 	struct esirisc_common *esirisc = target_to_esirisc(target);
 	struct esirisc_jtag *jtag_info = &esirisc->jtag_info;
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	int retval = esirisc_jtag_read_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_HWDC,
 			&esirisc->hwdc_save);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to read Thread CSR: HWDC", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to read Thread CSR: HWDC");
 		return retval;
 	}
 
@@ -265,12 +265,12 @@ static int esirisc_restore_hwdc(struct target *target)
 	struct esirisc_common *esirisc = target_to_esirisc(target);
 	struct esirisc_jtag *jtag_info = &esirisc->jtag_info;
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	int retval = esirisc_jtag_write_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_HWDC,
 			esirisc->hwdc_save);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to write Debug CSR: HWDC", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to write Debug CSR: HWDC");
 		return retval;
 	}
 
@@ -281,7 +281,7 @@ static int esirisc_save_context(struct target *target)
 {
 	struct esirisc_common *esirisc = target_to_esirisc(target);
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	for (unsigned int i = 0; i < esirisc->reg_cache->num_regs; ++i) {
 		struct reg *reg = esirisc->reg_cache->reg_list + i;
@@ -298,7 +298,7 @@ static int esirisc_restore_context(struct target *target)
 {
 	struct esirisc_common *esirisc = target_to_esirisc(target);
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	for (unsigned int i = 0; i < esirisc->reg_cache->num_regs; ++i) {
 		struct reg *reg = esirisc->reg_cache->reg_list + i;
@@ -316,7 +316,7 @@ static int esirisc_flush_caches(struct target *target)
 	struct esirisc_common *esirisc = target_to_esirisc(target);
 	struct esirisc_jtag *jtag_info = &esirisc->jtag_info;
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	if (target->state != TARGET_HALTED) {
 		LOG_TARGET_ERROR(target, "not halted");
@@ -325,7 +325,7 @@ static int esirisc_flush_caches(struct target *target)
 
 	int retval = esirisc_jtag_flush_caches(jtag_info);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to flush caches", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to flush caches");
 		return retval;
 	}
 
@@ -337,7 +337,7 @@ static int esirisc_wait_debug_active(struct esirisc_common *esirisc, int ms)
 	struct esirisc_jtag *jtag_info = &esirisc->jtag_info;
 	int64_t t;
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(esirisc->target, "-");
 
 	t = timeval_ms();
 	for (;;) {
@@ -359,7 +359,7 @@ static int esirisc_read_memory(struct target *target, target_addr_t address,
 	struct esirisc_jtag *jtag_info = &esirisc->jtag_info;
 	int retval;
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	int num_bits = 8 * size;
 	for (uint32_t i = 0; i < count; ++i) {
@@ -383,12 +383,12 @@ static int esirisc_read_memory(struct target *target, target_addr_t address,
 				break;
 
 			default:
-				LOG_ERROR("%s: unsupported size: %" PRIu32, target_name(target), size);
+				LOG_TARGET_ERROR(target, "unsupported size: %" PRIu32, size);
 				return ERROR_FAIL;
 		}
 
 		if (retval != ERROR_OK) {
-			LOG_ERROR("%s: failed to read address: 0x%" TARGET_PRIxADDR, target_name(target),
+			LOG_TARGET_ERROR(target, "failed to read address: 0x%" TARGET_PRIxADDR,
 					address);
 			return retval;
 		}
@@ -408,7 +408,7 @@ static int esirisc_write_memory(struct target *target, target_addr_t address,
 	struct esirisc_jtag *jtag_info = &esirisc->jtag_info;
 	int retval;
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	int num_bits = 8 * size;
 	for (uint32_t i = 0; i < count; ++i) {
@@ -431,12 +431,12 @@ static int esirisc_write_memory(struct target *target, target_addr_t address,
 				break;
 
 			default:
-				LOG_ERROR("%s: unsupported size: %" PRIu32, target_name(target), size);
+				LOG_TARGET_ERROR(target, "unsupported size: %" PRIu32, size);
 				return ERROR_FAIL;
 		}
 
 		if (retval != ERROR_OK) {
-			LOG_ERROR("%s: failed to write address: 0x%" TARGET_PRIxADDR, target_name(target),
+			LOG_TARGET_ERROR(target, "failed to write address: 0x%" TARGET_PRIxADDR,
 					address);
 			return retval;
 		}
@@ -460,7 +460,7 @@ static int esirisc_next_breakpoint(struct target *target)
 	struct breakpoint **breakpoints_p = esirisc->breakpoints_p;
 	struct breakpoint **breakpoints_e = breakpoints_p + esirisc->num_breakpoints;
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	for (int bp_index = 0; breakpoints_p < breakpoints_e; ++breakpoints_p, ++bp_index)
 		if (!*breakpoints_p)
@@ -477,7 +477,7 @@ static int esirisc_add_breakpoint(struct target *target, struct breakpoint *brea
 	uint32_t ibc;
 	int retval;
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	/*
 	 * The default linker scripts provided by the eSi-RISC toolchain do
@@ -491,7 +491,7 @@ static int esirisc_add_breakpoint(struct target *target, struct breakpoint *brea
 
 	bp_index = esirisc_next_breakpoint(target);
 	if (bp_index < 0) {
-		LOG_ERROR("%s: out of hardware breakpoints", target_name(target));
+		LOG_TARGET_ERROR(target, "out of hardware breakpoints");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
@@ -502,14 +502,14 @@ static int esirisc_add_breakpoint(struct target *target, struct breakpoint *brea
 	retval = esirisc_jtag_write_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_IBA_N + bp_index,
 			breakpoint->address);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to write Debug CSR: IBA", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to write Debug CSR: IBA");
 		return retval;
 	}
 
 	/* enable instruction breakpoint */
 	retval = esirisc_jtag_read_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_IBC, &ibc);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to read Debug CSR: IBC", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to read Debug CSR: IBC");
 		return retval;
 	}
 
@@ -517,7 +517,7 @@ static int esirisc_add_breakpoint(struct target *target, struct breakpoint *brea
 
 	retval = esirisc_jtag_write_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_IBC, ibc);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to write Debug CSR: IBC", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to write Debug CSR: IBC");
 		return retval;
 	}
 
@@ -528,7 +528,7 @@ static int esirisc_add_breakpoints(struct target *target)
 {
 	struct breakpoint *breakpoint = target->breakpoints;
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	while (breakpoint) {
 		if (!breakpoint->is_set)
@@ -548,12 +548,12 @@ static int esirisc_remove_breakpoint(struct target *target, struct breakpoint *b
 	uint32_t ibc;
 	int retval;
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	/* disable instruction breakpoint */
 	retval = esirisc_jtag_read_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_IBC, &ibc);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to read Debug CSR: IBC", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to read Debug CSR: IBC");
 		return retval;
 	}
 
@@ -561,7 +561,7 @@ static int esirisc_remove_breakpoint(struct target *target, struct breakpoint *b
 
 	retval = esirisc_jtag_write_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_IBC, ibc);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to write Debug CSR: IBC", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to write Debug CSR: IBC");
 		return retval;
 	}
 
@@ -576,12 +576,12 @@ static int esirisc_remove_breakpoints(struct target *target)
 	struct esirisc_common *esirisc = target_to_esirisc(target);
 	struct esirisc_jtag *jtag_info = &esirisc->jtag_info;
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	/* clear instruction breakpoints */
 	int retval = esirisc_jtag_write_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_IBC, 0);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to write Debug CSR: IBC", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to write Debug CSR: IBC");
 		return retval;
 	}
 
@@ -596,7 +596,7 @@ static int esirisc_next_watchpoint(struct target *target)
 	struct watchpoint **watchpoints_p = esirisc->watchpoints_p;
 	struct watchpoint **watchpoints_e = watchpoints_p + esirisc->num_watchpoints;
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	for (int wp_index = 0; watchpoints_p < watchpoints_e; ++watchpoints_p, ++wp_index)
 		if (!*watchpoints_p)
@@ -613,11 +613,11 @@ static int esirisc_add_watchpoint(struct target *target, struct watchpoint *watc
 	uint32_t dbs, dbc;
 	int retval;
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	wp_index = esirisc_next_watchpoint(target);
 	if (wp_index < 0) {
-		LOG_ERROR("%s: out of hardware watchpoints", target_name(target));
+		LOG_TARGET_ERROR(target, "out of hardware watchpoints");
 		return ERROR_FAIL;
 	}
 
@@ -628,14 +628,14 @@ static int esirisc_add_watchpoint(struct target *target, struct watchpoint *watc
 	retval = esirisc_jtag_write_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_DBA_N + wp_index,
 			watchpoint->address);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to write Debug CSR: DBA", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to write Debug CSR: DBA");
 		return retval;
 	}
 
 	/* specify data breakpoint size */
 	retval = esirisc_jtag_read_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_DBS, &dbs);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to read Debug CSR: DBS", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to read Debug CSR: DBS");
 		return retval;
 	}
 
@@ -657,7 +657,7 @@ static int esirisc_add_watchpoint(struct target *target, struct watchpoint *watc
 			break;
 
 		default:
-			LOG_ERROR("%s: unsupported length: %" PRIu32, target_name(target),
+			LOG_TARGET_ERROR(target, "unsupported length: %" PRIu32,
 					watchpoint->length);
 			return ERROR_FAIL;
 	}
@@ -666,14 +666,14 @@ static int esirisc_add_watchpoint(struct target *target, struct watchpoint *watc
 
 	retval = esirisc_jtag_write_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_DBS, dbs);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to write Debug CSR: DBS", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to write Debug CSR: DBS");
 		return retval;
 	}
 
 	/* enable data breakpoint */
 	retval = esirisc_jtag_read_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_DBC, &dbc);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to read Debug CSR: DBC", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to read Debug CSR: DBC");
 		return retval;
 	}
 
@@ -692,8 +692,7 @@ static int esirisc_add_watchpoint(struct target *target, struct watchpoint *watc
 			break;
 
 		default:
-			LOG_ERROR("%s: unsupported rw: %" PRId32, target_name(target),
-					watchpoint->rw);
+			LOG_TARGET_ERROR(target, "unsupported rw: %" PRId32, watchpoint->rw);
 			return ERROR_FAIL;
 	}
 
@@ -701,7 +700,7 @@ static int esirisc_add_watchpoint(struct target *target, struct watchpoint *watc
 
 	retval = esirisc_jtag_write_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_DBC, dbc);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to write Debug CSR: DBC", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to write Debug CSR: DBC");
 		return retval;
 	}
 
@@ -712,7 +711,7 @@ static int esirisc_add_watchpoints(struct target *target)
 {
 	struct watchpoint *watchpoint = target->watchpoints;
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	while (watchpoint) {
 		if (!watchpoint->is_set)
@@ -732,12 +731,12 @@ static int esirisc_remove_watchpoint(struct target *target, struct watchpoint *w
 	uint32_t dbc;
 	int retval;
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	/* disable data breakpoint */
 	retval = esirisc_jtag_read_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_DBC, &dbc);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to read Debug CSR: DBC", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to read Debug CSR: DBC");
 		return retval;
 	}
 
@@ -745,7 +744,7 @@ static int esirisc_remove_watchpoint(struct target *target, struct watchpoint *w
 
 	retval = esirisc_jtag_write_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_DBC, dbc);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to write Debug CSR: DBC", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to write Debug CSR: DBC");
 		return retval;
 	}
 
@@ -760,12 +759,12 @@ static int esirisc_remove_watchpoints(struct target *target)
 	struct esirisc_common *esirisc = target_to_esirisc(target);
 	struct esirisc_jtag *jtag_info = &esirisc->jtag_info;
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	/* clear data breakpoints */
 	int retval = esirisc_jtag_write_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_DBC, 0);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to write Debug CSR: DBC", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to write Debug CSR: DBC");
 		return retval;
 	}
 
@@ -779,14 +778,14 @@ static int esirisc_halt(struct target *target)
 	struct esirisc_common *esirisc = target_to_esirisc(target);
 	struct esirisc_jtag *jtag_info = &esirisc->jtag_info;
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	if (target->state == TARGET_HALTED)
 		return ERROR_OK;
 
 	int retval = esirisc_jtag_break(jtag_info);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to halt target", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to halt target");
 		return retval;
 	}
 
@@ -802,11 +801,11 @@ static int esirisc_disable_step(struct target *target)
 	uint32_t dc;
 	int retval;
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	retval = esirisc_jtag_read_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_DC, &dc);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to read Debug CSR: DC", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to read Debug CSR: DC");
 		return retval;
 	}
 
@@ -814,7 +813,7 @@ static int esirisc_disable_step(struct target *target)
 
 	retval = esirisc_jtag_write_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_DC, dc);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to write Debug CSR: DC", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to write Debug CSR: DC");
 		return retval;
 	}
 
@@ -828,11 +827,11 @@ static int esirisc_enable_step(struct target *target)
 	uint32_t dc;
 	int retval;
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	retval = esirisc_jtag_read_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_DC, &dc);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to read Debug CSR: DC", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to read Debug CSR: DC");
 		return retval;
 	}
 
@@ -840,7 +839,7 @@ static int esirisc_enable_step(struct target *target)
 
 	retval = esirisc_jtag_write_csr(jtag_info, CSR_DEBUG, CSR_DEBUG_DC, dc);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to write Debug CSR: DC", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to write Debug CSR: DC");
 		return retval;
 	}
 
@@ -855,7 +854,7 @@ static int esirisc_resume_or_step(struct target *target, int current, target_add
 	struct breakpoint *breakpoint = NULL;
 	int retval;
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	if (target->state != TARGET_HALTED) {
 		LOG_TARGET_ERROR(target, "not halted");
@@ -901,7 +900,7 @@ static int esirisc_resume_or_step(struct target *target, int current, target_add
 
 	retval = esirisc_jtag_continue(jtag_info);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to resume target", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to resume target");
 		return retval;
 	}
 
@@ -921,7 +920,7 @@ static int esirisc_resume_or_step(struct target *target, int current, target_add
 static int esirisc_resume(struct target *target, int current, target_addr_t address,
 		int handle_breakpoints, int debug_execution)
 {
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	return esirisc_resume_or_step(target, current, address,
 			handle_breakpoints, debug_execution, false);
@@ -930,7 +929,7 @@ static int esirisc_resume(struct target *target, int current, target_addr_t addr
 static int esirisc_step(struct target *target, int current, target_addr_t address,
 		int handle_breakpoints)
 {
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	return esirisc_resume_or_step(target, current, address,
 			handle_breakpoints, 0, true);
@@ -942,20 +941,20 @@ static int esirisc_debug_step(struct target *target)
 	struct esirisc_jtag *jtag_info = &esirisc->jtag_info;
 	int retval;
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	esirisc_disable_interrupts(target);
 	esirisc_enable_step(target);
 
 	retval = esirisc_jtag_continue(jtag_info);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to resume target", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to resume target");
 		return retval;
 	}
 
 	retval = esirisc_wait_debug_active(esirisc, STEP_TIMEOUT);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: step timed out", target_name(target));
+		LOG_TARGET_ERROR(target, "step timed out");
 		return retval;
 	}
 
@@ -971,23 +970,23 @@ static int esirisc_debug_reset(struct target *target)
 	struct esirisc_jtag *jtag_info = &esirisc->jtag_info;
 	int retval;
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	retval = esirisc_jtag_assert_reset(jtag_info);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to assert reset", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to assert reset");
 		return retval;
 	}
 
 	retval = esirisc_jtag_deassert_reset(jtag_info);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to deassert reset", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to deassert reset");
 		return retval;
 	}
 
 	retval = esirisc_wait_debug_active(esirisc, RESET_TIMEOUT);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: reset timed out", target_name(target));
+		LOG_TARGET_ERROR(target, "reset timed out");
 		return retval;
 	}
 
@@ -1000,11 +999,11 @@ static int esirisc_debug_enable(struct target *target)
 	struct esirisc_jtag *jtag_info = &esirisc->jtag_info;
 	int retval;
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	retval = esirisc_jtag_enable_debug(jtag_info);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to enable debug mode", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to enable debug mode");
 		return retval;
 	}
 
@@ -1015,13 +1014,13 @@ static int esirisc_debug_enable(struct target *target)
 	 * targets, which will respond with all ones and appear active.
 	 */
 	if (esirisc_jtag_is_stopped(jtag_info)) {
-		LOG_INFO("%s: debug clock inactive; attempting debug reset", target_name(target));
+		LOG_TARGET_INFO(target, "debug clock inactive; attempting debug reset");
 		retval = esirisc_debug_reset(target);
 		if (retval != ERROR_OK)
 			return retval;
 
 		if (esirisc_jtag_is_stopped(jtag_info)) {
-			LOG_ERROR("%s: target unresponsive; giving up", target_name(target));
+			LOG_TARGET_ERROR(target, "target unresponsive; giving up");
 			return ERROR_FAIL;
 		}
 	}
@@ -1034,7 +1033,7 @@ static int esirisc_debug_entry(struct target *target)
 	struct esirisc_common *esirisc = target_to_esirisc(target);
 	struct breakpoint *breakpoint;
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	esirisc_save_context(target);
 
@@ -1087,12 +1086,12 @@ static int esirisc_poll(struct target *target)
 
 	retval = esirisc_jtag_enable_debug(jtag_info);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to poll target", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to poll target");
 		return retval;
 	}
 
 	if (esirisc_jtag_is_stopped(jtag_info)) {
-		LOG_ERROR("%s: target has stopped; reset required", target_name(target));
+		LOG_TARGET_ERROR(target, "target has stopped; reset required");
 		target->state = TARGET_UNKNOWN;
 		return ERROR_TARGET_FAILURE;
 	}
@@ -1122,7 +1121,7 @@ static int esirisc_assert_reset(struct target *target)
 	struct esirisc_jtag *jtag_info = &esirisc->jtag_info;
 	int retval;
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	if (jtag_get_reset_config() & RESET_HAS_SRST) {
 		jtag_add_reset(1, 1);
@@ -1134,7 +1133,7 @@ static int esirisc_assert_reset(struct target *target)
 
 		retval = esirisc_jtag_assert_reset(jtag_info);
 		if (retval != ERROR_OK) {
-			LOG_ERROR("%s: failed to assert reset", target_name(target));
+			LOG_TARGET_ERROR(target, "failed to assert reset");
 			return retval;
 		}
 	}
@@ -1153,19 +1152,19 @@ static int esirisc_reset_entry(struct target *target)
 	uint32_t eta, epc;
 	int retval;
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	/* read exception table address */
 	retval = esirisc_jtag_read_csr(jtag_info, CSR_THREAD, CSR_THREAD_ETA, &eta);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to read Thread CSR: ETA", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to read Thread CSR: ETA");
 		return retval;
 	}
 
 	/* read reset entry point */
 	retval = esirisc_jtag_read_word(jtag_info, eta + ENTRY_RESET, &epc);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to read address: 0x%" TARGET_PRIxADDR, target_name(target),
+		LOG_TARGET_ERROR(target, "failed to read address: 0x%" TARGET_PRIxADDR,
 				(target_addr_t)epc);
 		return retval;
 	}
@@ -1173,7 +1172,7 @@ static int esirisc_reset_entry(struct target *target)
 	/* write reset entry point */
 	retval = esirisc_jtag_write_csr(jtag_info, CSR_THREAD, CSR_THREAD_EPC, epc);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to write Thread CSR: EPC", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to write Thread CSR: EPC");
 		return retval;
 	}
 
@@ -1186,7 +1185,7 @@ static int esirisc_deassert_reset(struct target *target)
 	struct esirisc_jtag *jtag_info = &esirisc->jtag_info;
 	int retval;
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	if (jtag_get_reset_config() & RESET_HAS_SRST) {
 		jtag_add_reset(0, 0);
@@ -1202,14 +1201,14 @@ static int esirisc_deassert_reset(struct target *target)
 	} else {
 		retval = esirisc_jtag_deassert_reset(jtag_info);
 		if (retval != ERROR_OK) {
-			LOG_ERROR("%s: failed to deassert reset", target_name(target));
+			LOG_TARGET_ERROR(target, "failed to deassert reset");
 			return retval;
 		}
 	}
 
 	retval = esirisc_wait_debug_active(esirisc, RESET_TIMEOUT);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: reset timed out", target_name(target));
+		LOG_TARGET_ERROR(target, "reset timed out");
 		return retval;
 	}
 
@@ -1225,7 +1224,7 @@ static int esirisc_deassert_reset(struct target *target)
 	if (!target->reset_halt) {
 		retval = esirisc_jtag_continue(jtag_info);
 		if (retval != ERROR_OK) {
-			LOG_ERROR("%s: failed to resume target", target_name(target));
+			LOG_TARGET_ERROR(target, "failed to resume target");
 			return retval;
 		}
 	}
@@ -1241,7 +1240,7 @@ static int esirisc_arch_state(struct target *target)
 	uint32_t eid = buf_get_u32(esirisc->eid->value, 0, esirisc->eid->size);
 	uint32_t ed = buf_get_u32(esirisc->ed->value, 0, esirisc->ed->size);
 
-	LOG_USER("target halted due to %s, exception: %s\n"
+	LOG_TARGET_USER(target, "target halted due to %s, exception: %s\n"
 			"EPC: 0x%" PRIx32 ", ECAS: 0x%" PRIx32 ", EID: 0x%" PRIx32 ", ED: 0x%" PRIx32,
 			debug_reason_name(target), esirisc_exception_strings[eid], epc, ecas, eid, ed);
 
@@ -1252,7 +1251,7 @@ static const char *esirisc_get_gdb_arch(const struct target *target)
 {
 	struct esirisc_common *esirisc = target_to_esirisc(target);
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	/*
 	 * Targets with the UNIFIED_ADDRESS_SPACE option disabled employ a
@@ -1272,7 +1271,7 @@ static int esirisc_get_gdb_reg_list(struct target *target, struct reg **reg_list
 {
 	struct esirisc_common *esirisc = target_to_esirisc(target);
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	*reg_list_size = ESIRISC_NUM_REGS;
 
@@ -1302,11 +1301,11 @@ static int esirisc_read_reg(struct reg *reg)
 	struct target *target = esirisc->target;
 	uint32_t data;
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	int retval = esirisc_jtag_read_reg(jtag_info, reg->number, &data);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to read register: %s", target_name(target), reg->name);
+		LOG_TARGET_ERROR(target, "failed to read register: %s", reg->name);
 		return retval;
 	}
 
@@ -1325,11 +1324,11 @@ static int esirisc_write_reg(struct reg *reg)
 	struct target *target = esirisc->target;
 	uint32_t data = buf_get_u32(reg->value, 0, reg->size);
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	int retval = esirisc_jtag_write_reg(jtag_info, reg->number, data);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to write register: %s", target_name(target), reg->name);
+		LOG_TARGET_ERROR(target, "failed to write register: %s", reg->name);
 		return retval;
 	}
 
@@ -1347,11 +1346,11 @@ static int esirisc_read_csr(struct reg *reg)
 	struct target *target = esirisc->target;
 	uint32_t data;
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	int retval = esirisc_jtag_read_csr(jtag_info, reg_info->bank, reg_info->csr, &data);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to read CSR: %s", target_name(target), reg->name);
+		LOG_TARGET_ERROR(target, "failed to read CSR: %s", reg->name);
 		return retval;
 	}
 
@@ -1370,11 +1369,11 @@ static int esirisc_write_csr(struct reg *reg)
 	struct target *target = esirisc->target;
 	uint32_t data = buf_get_u32(reg->value, 0, reg->size);
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	int retval = esirisc_jtag_write_csr(jtag_info, reg_info->bank, reg_info->csr, data);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to write CSR: %s", target_name(target), reg->name);
+		LOG_TARGET_ERROR(target, "failed to write CSR: %s", reg->name);
 		return retval;
 	}
 
@@ -1390,7 +1389,7 @@ static int esirisc_get_reg(struct reg *reg)
 	struct esirisc_common *esirisc = reg_info->esirisc;
 	struct target *target = esirisc->target;
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	if (target->state != TARGET_HALTED)
 		return ERROR_TARGET_NOT_HALTED;
@@ -1405,7 +1404,7 @@ static int esirisc_set_reg(struct reg *reg, uint8_t *buf)
 	struct target *target = esirisc->target;
 	uint32_t value = buf_get_u32(buf, 0, reg->size);
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	if (target->state != TARGET_HALTED)
 		return ERROR_TARGET_NOT_HALTED;
@@ -1429,7 +1428,7 @@ static struct reg_cache *esirisc_build_reg_cache(struct target *target)
 	struct reg_cache *cache = malloc(sizeof(struct reg_cache));
 	struct reg *reg_list = calloc(ESIRISC_NUM_REGS, sizeof(struct reg));
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	cache->name = "eSi-RISC registers";
 	cache->next = NULL;
@@ -1519,11 +1518,11 @@ static int esirisc_identify(struct target *target)
 	uint32_t csr;
 	int retval;
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	retval = esirisc_jtag_read_csr(jtag_info, CSR_CONFIG, CSR_CONFIG_ARCH0, &csr);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to read Configuration CSR: ARCH0", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to read Configuration CSR: ARCH0");
 		return retval;
 	}
 
@@ -1532,7 +1531,7 @@ static int esirisc_identify(struct target *target)
 
 	retval = esirisc_jtag_read_csr(jtag_info, CSR_CONFIG, CSR_CONFIG_MEM, &csr);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to read Configuration CSR: MEM", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to read Configuration CSR: MEM");
 		return retval;
 	}
 
@@ -1541,7 +1540,7 @@ static int esirisc_identify(struct target *target)
 
 	retval = esirisc_jtag_read_csr(jtag_info, CSR_CONFIG, CSR_CONFIG_IC, &csr);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to read Configuration CSR: IC", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to read Configuration CSR: IC");
 		return retval;
 	}
 
@@ -1549,7 +1548,7 @@ static int esirisc_identify(struct target *target)
 
 	retval = esirisc_jtag_read_csr(jtag_info, CSR_CONFIG, CSR_CONFIG_DC, &csr);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to read Configuration CSR: DC", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to read Configuration CSR: DC");
 		return retval;
 	}
 
@@ -1557,7 +1556,7 @@ static int esirisc_identify(struct target *target)
 
 	retval = esirisc_jtag_read_csr(jtag_info, CSR_CONFIG, CSR_CONFIG_DBG, &csr);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to read Configuration CSR: DBG", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to read Configuration CSR: DBG");
 		return retval;
 	}
 
@@ -1566,7 +1565,7 @@ static int esirisc_identify(struct target *target)
 
 	retval = esirisc_jtag_read_csr(jtag_info, CSR_CONFIG, CSR_CONFIG_TRACE, &csr);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("%s: failed to read Configuration CSR: TRACE", target_name(target));
+		LOG_TARGET_ERROR(target, "failed to read Configuration CSR: TRACE");
 		return retval;
 	}
 
@@ -1584,8 +1583,7 @@ static int esirisc_target_create(struct target *target, Jim_Interp *interp)
 		return ERROR_FAIL;
 
 	if (tap->ir_length != INSTR_LENGTH) {
-		LOG_ERROR("%s: invalid IR length; expected %d", target_name(target),
-				INSTR_LENGTH);
+		LOG_TARGET_ERROR(target, "invalid IR length; expected %d", INSTR_LENGTH);
 		return ERROR_FAIL;
 	}
 
@@ -1629,7 +1627,7 @@ static int esirisc_examine(struct target *target)
 	struct esirisc_jtag *jtag_info = &esirisc->jtag_info;
 	int retval;
 
-	LOG_DEBUG("-");
+	LOG_TARGET_DEBUG(target, "-");
 
 	if (!target_was_examined(target)) {
 		retval = esirisc_debug_enable(target);
@@ -1649,7 +1647,7 @@ static int esirisc_examine(struct target *target)
 		} else {
 			retval = esirisc_jtag_break(jtag_info);
 			if (retval != ERROR_OK) {
-				LOG_ERROR("%s: failed to halt target", target_name(target));
+				LOG_TARGET_ERROR(target, "failed to halt target");
 				return retval;
 			}
 
@@ -1658,7 +1656,7 @@ static int esirisc_examine(struct target *target)
 
 		retval = esirisc_identify(target);
 		if (retval != ERROR_OK) {
-			LOG_ERROR("%s: failed to identify target", target_name(target));
+			LOG_TARGET_ERROR(target, "failed to identify target");
 			return retval;
 		}
 
@@ -1675,20 +1673,20 @@ static int esirisc_examine(struct target *target)
 		else {
 			retval = esirisc_jtag_continue(jtag_info);
 			if (retval != ERROR_OK) {
-				LOG_ERROR("%s: failed to resume target", target_name(target));
+				LOG_TARGET_ERROR(target, "failed to resume target");
 				return retval;
 			}
 		}
 
 		target_set_examined(target);
 
-		LOG_INFO("%s: %d bit, %d registers, %s%s%s", target_name(target),
+		LOG_TARGET_INFO(target, "%d bit, %d registers, %s%s%s",
 				esirisc->num_bits, esirisc->num_regs,
 				target_endianness(target),
 				esirisc->has_icache ? ", icache" : "",
 				esirisc->has_dcache ? ", dcache" : "");
 
-		LOG_INFO("%s: hardware has %d breakpoints, %d watchpoints%s", target_name(target),
+		LOG_TARGET_INFO(target, "hardware has %d breakpoints, %d watchpoints%s",
 				esirisc->num_breakpoints, esirisc->num_watchpoints,
 				esirisc->has_trace ? ", trace" : "");
 	}
@@ -1707,7 +1705,7 @@ COMMAND_HANDLER(handle_esirisc_cache_arch_command)
 		else if (strcmp(*CMD_ARGV, "von_neumann") == 0)
 			esirisc->cache_arch = ESIRISC_CACHE_VON_NEUMANN;
 		else {
-			LOG_ERROR("invalid cache_arch: %s", *CMD_ARGV);
+			LOG_TARGET_ERROR(target, "invalid cache_arch: %s", *CMD_ARGV);
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 	}
@@ -1724,7 +1722,7 @@ COMMAND_HANDLER(handle_esirisc_flush_caches_command)
 	int retval;
 
 	if (!esirisc_has_cache(esirisc)) {
-		LOG_ERROR("target does not support caching");
+		LOG_TARGET_ERROR(target, "target does not support caching");
 		return ERROR_FAIL;
 	}
 
@@ -1770,7 +1768,7 @@ COMMAND_HANDLER(handle_esirisc_hwdc_command)
 				while (CMD_ARGC-- > 0) {
 					int mask = esirisc_find_hwdc_mask(CMD_ARGV[CMD_ARGC]);
 					if (mask < 0) {
-						LOG_ERROR("invalid mask: %s", CMD_ARGV[CMD_ARGC]);
+						LOG_TARGET_ERROR(target, "invalid mask: %s", CMD_ARGV[CMD_ARGC]);
 						return ERROR_COMMAND_SYNTAX_ERROR;
 					}
 					esirisc->hwdc_save |= mask;

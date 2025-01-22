@@ -108,10 +108,10 @@ struct target *all_targets;
 static struct target_event_callback *target_event_callbacks;
 static struct target_timer_callback *target_timer_callbacks;
 static int64_t target_timer_next_event_value;
-static LIST_HEAD(target_reset_callback_list);
-static LIST_HEAD(target_trace_callback_list);
+static OOCD_LIST_HEAD(target_reset_callback_list);
+static OOCD_LIST_HEAD(target_trace_callback_list);
 static const unsigned int polling_interval = TARGET_DEFAULT_POLLING_INTERVAL;
-static LIST_HEAD(empty_smp_targets);
+static OOCD_LIST_HEAD(empty_smp_targets);
 
 enum nvp_assert {
 	NVP_DEASSERT,
@@ -5832,6 +5832,7 @@ static int target_create(struct jim_getopt_info *goi)
 		free(target->gdb_port_override);
 		free(target->trace_info);
 		free(target->type);
+		free(target->private_config);
 		free(target);
 		return e;
 	}
@@ -5849,6 +5850,7 @@ static int target_create(struct jim_getopt_info *goi)
 		free(target->gdb_port_override);
 		free(target->trace_info);
 		free(target->type);
+		free(target->private_config);
 		free(target);
 		return JIM_ERR;
 	}
@@ -5862,6 +5864,7 @@ static int target_create(struct jim_getopt_info *goi)
 			free(target->gdb_port_override);
 			free(target->trace_info);
 			free(target->type);
+			free(target->private_config);
 			free(target);
 			return JIM_ERR;
 		}

@@ -152,6 +152,9 @@ extern int debug_level;
 #define LOG_TARGET_INFO(target, fmt_str, ...) \
 	LOG_INFO("[%s] " fmt_str, target_name(target), ##__VA_ARGS__)
 
+#define LOG_TARGET_USER(target, fmt_str, ...) \
+	LOG_USER("[%s] " fmt_str, target_name(target), ##__VA_ARGS__)
+
 #define LOG_TARGET_WARNING(target, fmt_str, ...) \
 	LOG_WARNING("[%s] " fmt_str, target_name(target), ##__VA_ARGS__)
 

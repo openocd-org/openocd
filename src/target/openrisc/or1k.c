@@ -27,8 +27,8 @@
 #include "or1k.h"
 #include "or1k_du.h"
 
-LIST_HEAD(tap_list);
-LIST_HEAD(du_list);
+OOCD_LIST_HEAD(tap_list);
+OOCD_LIST_HEAD(du_list);
 
 static int or1k_remove_breakpoint(struct target *target,
 				  struct breakpoint *breakpoint);

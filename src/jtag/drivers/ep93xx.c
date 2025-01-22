@@ -55,7 +55,7 @@ struct adapter_driver ep93xx_adapter_driver = {
 	.jtag_ops = &ep93xx_interface,
 };
 
-static struct bitbang_interface ep93xx_bitbang = {
+static const struct bitbang_interface ep93xx_bitbang = {
 	.read = ep93xx_read,
 	.write = ep93xx_write,
 	.blink = NULL,

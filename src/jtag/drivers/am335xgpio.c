@@ -283,7 +283,7 @@ static int am335xgpio_blink(bool on)
 	return ERROR_OK;
 }
 
-static struct bitbang_interface am335xgpio_bitbang = {
+static const struct bitbang_interface am335xgpio_bitbang = {
 	.read = am335xgpio_read,
 	.write = am335xgpio_write,
 	.swdio_read = am335xgpio_swdio_read,

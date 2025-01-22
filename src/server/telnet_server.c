@@ -570,7 +570,7 @@ static void telnet_auto_complete(struct connection *connection)
 		struct list_head lh;
 	};
 
-	LIST_HEAD(matches);
+	OOCD_LIST_HEAD(matches);
 
 	/* - user command sequence, either at line beginning
 	 *   or we start over after these characters ';', '[', '{'

@@ -67,6 +67,6 @@ extern const struct swd_driver bitbang_swd;
 
 int bitbang_execute_queue(struct jtag_command *cmd_queue);
 
-extern struct bitbang_interface *bitbang_interface;
+extern const struct bitbang_interface *bitbang_interface;
 
 #endif /* OPENOCD_JTAG_DRIVERS_BITBANG_H */

@@ -503,7 +503,7 @@ static enum xtensa_reg_id xtensa_windowbase_offset_to_canonical(struct xtensa *x
 	} else if (reg_idx >= XT_REG_IDX_A0 && reg_idx <= XT_REG_IDX_A15) {
 		idx = reg_idx - XT_REG_IDX_A0;
 	} else {
-		LOG_ERROR("Error: can't convert register %d to non-windowbased register!", reg_idx);
+		LOG_ERROR("Can't convert register %d to non-windowbased register", reg_idx);
 		return -1;
 	}
 	/* Each windowbase value represents 4 registers on LX and 8 on NX */

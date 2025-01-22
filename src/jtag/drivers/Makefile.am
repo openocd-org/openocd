@@ -10,10 +10,8 @@ noinst_LTLIBRARIES += %D%/libocdjtagdrivers.la
 %C%_libocdjtagdrivers_la_CPPFLAGS = $(AM_CPPFLAGS)
 
 ULINK_FIRMWARE = %D%/OpenULINK
-ANGIE_FILES = %D%/angie
 
 EXTRA_DIST += $(ULINK_FIRMWARE) \
-	$(ANGIE_FILES) \
 	%D%/usb_blaster/README.CheapClone \
 	%D%/Makefile.rlink \
 	%D%/rlink_call.m4 \
@@ -125,12 +123,17 @@ ulinkdir = $(pkgdatadir)/OpenULINK
 dist_ulink_DATA = $(ULINK_FIRMWARE)/ulink_firmware.hex
 %C%_libocdjtagdrivers_la_LIBADD += -lm
 endif
+
 if ANGIE
-DRIVERFILES += %D%/angie.c
-angiedir = $(pkgdatadir)/angie
-dist_angie_DATA = $(ANGIE_FILES)/angie_firmware.bin $(ANGIE_FILES)/angie_bitstream.bit
-%C%_libocdjtagdrivers_la_LIBADD += -lm
+  angiedir = $(pkgdatadir)/angie  # This is only for dist_angie_DATA.
+  DRIVERFILES     += %D%/angie.c
+  DRIVERFILES     += %D%/angie/include/msgtypes.h
+  EXTRA_DIST      += %D%/angie/README
+  dist_angie_DATA  = %D%/angie/angie_firmware.bin
+  dist_angie_DATA += %D%/angie/angie_bitstream.bit
+  %C%_libocdjtagdrivers_la_LIBADD += -lm
 endif
+
 if VSLLINK
 DRIVERFILES += %D%/versaloon/usbtoxxx/usbtogpio.c
 DRIVERFILES += %D%/versaloon/usbtoxxx/usbtojtagraw.c
