@@ -11801,6 +11801,9 @@ Specifies the start address of SCR5 TLB CSRs. Defaults to @code{0xbc0}.
 The number of entries in the cache per chanel. There is no default -- the
 option should be configured.
 
+@item @code{"-scr5-tlb-lookup"} [@option{disable}|@option{enable}]
+Controls TLB lookup. Defaults to @option{enable}.
+
 @end itemize
 
 @section ARC Architecture

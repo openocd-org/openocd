@@ -14,6 +14,7 @@
 enum scr5_cfg_opts {
 	SCR5_CFG_TLB_CSR_BASE,
 	SCR5_CFG_TLB_N_ENTRIES,
+	SCR5_CFG_TLB_LOOKUP,
 	N_SCR5_CFG
 };
 
@@ -22,6 +23,7 @@ struct scr5_private_config {
 
 	bool configured[N_SCR5_CFG];
 
+	bool tlb_lookup;
 	unsigned int tlb_csr_base;
 	unsigned int tlb_n_entries;
 };
@@ -45,6 +47,9 @@ struct scr5_private_config *alloc_default_scr5_private_config(void)
 	free(riscv_pc);
 
 	memset(pc->configured, false, sizeof(pc->configured));
+
+	pc->tlb_lookup = true;
+	pc->configured[SCR5_CFG_TLB_LOOKUP] = true;
 
 	pc->tlb_csr_base = 0xbc0;
 	pc->configured[SCR5_CFG_TLB_CSR_BASE] = true;
@@ -106,7 +111,14 @@ static void scr5_deinit_target(struct target *target)
 static struct jim_nvp nvp_config_opts[] = {
 	{ .name = "-scr5-tlb-csr-base", .value = SCR5_CFG_TLB_CSR_BASE },
 	{ .name = "-scr5-tlb-n-entries", .value = SCR5_CFG_TLB_N_ENTRIES },
+	{ .name = "-scr5-tlb-lookup", .value = SCR5_CFG_TLB_LOOKUP },
 	{ .name = NULL, .value = N_SCR5_CFG }
+};
+
+static struct jim_nvp nvp_enable[] = {
+	{ .name = "disable", .value = false },
+	{ .name = "enable", .value = true },
+	{ .name = NULL, .value = -1 }
 };
 
 static int scr5_jim_configure(struct target *target,
@@ -173,6 +185,20 @@ static int scr5_jim_configure(struct target *target,
 		}
 		pc->tlb_n_entries = w;
 		break;
+	case SCR5_CFG_TLB_LOOKUP:
+		if (!goi->is_configure) {
+			if (goi->argc != 0)
+				goto cget_extra_args;
+			Jim_SetResultString(goi->interp,
+					jim_nvp_value2name_simple(nvp_enable, pc->tlb_lookup)->name, -1);
+			return JIM_OK;
+		}
+		struct jim_nvp *tlb_lookup;
+		e = jim_getopt_nvp(goi, nvp_enable, &tlb_lookup);
+		if (e != JIM_OK)
+			return e;
+		pc->tlb_lookup = tlb_lookup->value;
+		break;
 	default:
 		assert(false && "'jim_getopt_nvp' should have returned an error.");
 	}
@@ -188,6 +214,7 @@ static int scr5_search_tlb(struct target *target, target_addr_t virt_addr,
 		target_addr_t *phys_addr)
 {
 	const struct scr5_private_config * const pc = scr5_private_config(target);
+	assert(pc->tlb_lookup);
 	const unsigned int tlb_attr_csr = GDB_REGNO_CSR0 + pc->tlb_csr_base + 0;
 	const unsigned int tlb_va_csr = GDB_REGNO_CSR0 + pc->tlb_csr_base + 1;
 	const unsigned int tlb_scan_csr = GDB_REGNO_CSR0 + pc->tlb_csr_base + 3;
@@ -248,6 +275,12 @@ cleanup:
 static int scr5_virt2phys(struct target *target, target_addr_t virt_addr,
 		target_addr_t *phys_addr)
 {
+	const struct scr5_private_config * const pc = scr5_private_config(target);
+	if (!pc->tlb_lookup) {
+		LOG_TARGET_DEBUG(target, "TLB lookup is disabled in the configuration");
+		return riscv_virt2phys(target, virt_addr, phys_addr);
+	}
+
 	int mmu_enabled;
 	int res = riscv_mmu(target, &mmu_enabled);
 	if (res != ERROR_OK)
