@@ -172,6 +172,8 @@ m4_define([SERIAL_PORT_ADAPTERS],
 
 m4_define([LINUXSPIDEV_ADAPTER],
 	[[[linuxspidev], [Linux spidev driver], [LINUXSPIDEV]]])
+m4_define([VDEBUG_ADAPTER],
+	[[[vdebug], [Cadence Virtual Debug Interface], [VDEBUG]]])
 
 # The word 'Adapter' in "Dummy Adapter" below must begin with a capital letter
 # because there is an M4 macro called 'adapter'.
@@ -302,6 +304,7 @@ AC_ARG_ADAPTERS([
   LINUXSPIDEV_ADAPTER,
   SERIAL_PORT_ADAPTERS,
   DUMMY_ADAPTER,
+  VDEBUG_ADAPTER,
   PCIE_ADAPTERS,
   LIBJAYLINK_ADAPTERS
   ],[auto])
@@ -323,10 +326,6 @@ AC_ARG_ENABLE([parport_giveio],
 AC_ARG_ENABLE([jtag_vpi],
   AS_HELP_STRING([--enable-jtag_vpi], [Enable building support for JTAG VPI]),
   [build_jtag_vpi=$enableval], [build_jtag_vpi=no])
-
-AC_ARG_ENABLE([vdebug],
-  AS_HELP_STRING([--enable-vdebug], [Enable building support for Cadence Virtual Debug Interface]),
-  [build_vdebug=$enableval], [build_vdebug=no])
 
 AC_ARG_ENABLE([jtag_dpi],
   AS_HELP_STRING([--enable-jtag_dpi], [Enable building support for JTAG DPI]),
@@ -581,12 +580,6 @@ AS_IF([test "x$build_jtag_vpi" = "xyes"], [
   AC_DEFINE([BUILD_JTAG_VPI], [0], [0 if you don't want JTAG VPI.])
 ])
 
-AS_IF([test "x$build_vdebug" = "xyes"], [
-  AC_DEFINE([BUILD_VDEBUG], [1], [1 if you want Cadence vdebug interface.])
-], [
-  AC_DEFINE([BUILD_VDEBUG], [0], [0 if you don't want Cadence vdebug interface.])
-])
-
 AS_IF([test "x$build_jtag_dpi" = "xyes"], [
   AC_DEFINE([BUILD_JTAG_DPI], [1], [1 if you want JTAG DPI.])
 ], [
@@ -738,6 +731,7 @@ PROCESS_ADAPTERS([PCIE_ADAPTERS], ["x$is_linux" = "xyes"], [Linux build])
 PROCESS_ADAPTERS([SERIAL_PORT_ADAPTERS], ["x$can_build_buspirate" = "xyes"],
                                          [internal error: validation should happen beforehand])
 PROCESS_ADAPTERS([LINUXSPIDEV_ADAPTER], ["x$is_linux" = "xyes"], [Linux spidev])
+PROCESS_ADAPTERS([VDEBUG_ADAPTER], [true], [unused])
 PROCESS_ADAPTERS([DUMMY_ADAPTER], [true], [unused])
 
 AS_IF([test "x$enable_linuxgpiod" != "xno"], [
@@ -786,7 +780,6 @@ AM_CONDITIONAL([IMX_GPIO], [test "x$build_imx_gpio" = "xyes"])
 AM_CONDITIONAL([AM335XGPIO], [test "x$build_am335xgpio" = "xyes"])
 AM_CONDITIONAL([BITBANG], [test "x$build_bitbang" = "xyes"])
 AM_CONDITIONAL([JTAG_VPI], [test "x$build_jtag_vpi" = "xyes"])
-AM_CONDITIONAL([VDEBUG], [test "x$build_vdebug" = "xyes"])
 AM_CONDITIONAL([JTAG_DPI], [test "x$build_jtag_dpi" = "xyes"])
 AM_CONDITIONAL([USB_BLASTER_DRIVER], [test "x$enable_usb_blaster" != "xno" -o "x$enable_usb_blaster_2" != "xno"])
 AM_CONDITIONAL([AMTJTAGACCEL], [test "x$build_amtjtagaccel" = "xyes"])
@@ -892,6 +885,7 @@ m4_foreach([adapter], [USB1_ADAPTERS,
 	LIBGPIOD_ADAPTERS,
 	LIBJAYLINK_ADAPTERS, PCIE_ADAPTERS, SERIAL_PORT_ADAPTERS,
 	LINUXSPIDEV_ADAPTER,
+	VDEBUG_ADAPTER,
 	DUMMY_ADAPTER,
 	OPTIONAL_LIBRARIES,
 	COVERAGE],
