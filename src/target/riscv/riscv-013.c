@@ -56,10 +56,10 @@ static riscv_insn_t riscv013_read_progbuf(struct target *target, unsigned int
 		index);
 static int riscv013_invalidate_cached_progbuf(struct target *target);
 static int riscv013_execute_progbuf(struct target *target, uint32_t *cmderr);
-static void riscv013_fill_dmi_write(struct target *target, char *buf, uint64_t a, uint32_t d);
-static void riscv013_fill_dmi_read(struct target *target, char *buf, uint64_t a);
-static int riscv013_get_dmi_scan_length(struct target *target);
-static void riscv013_fill_dm_nop(struct target *target, char *buf);
+static void riscv013_fill_dmi_write(const struct target *target, uint8_t *buf, uint32_t a, uint32_t d);
+static void riscv013_fill_dmi_read(const struct target *target, uint8_t *buf, uint32_t a);
+static unsigned int riscv013_get_dmi_address_bits(const struct target *target);
+static void riscv013_fill_dm_nop(const struct target *target, uint8_t *buf);
 static unsigned int register_size(struct target *target, enum gdb_regno number);
 static int register_read_direct(struct target *target, riscv_reg_t *value,
 		enum gdb_regno number);
@@ -1950,6 +1950,29 @@ static int examine(struct target *target)
 	info->abits = get_field(dtmcontrol, DTM_DTMCS_ABITS);
 	info->dtmcs_idle = get_field(dtmcontrol, DTM_DTMCS_IDLE);
 
+	if (info->abits > RISCV013_DTMCS_ABITS_MAX) {
+		/* Max. address width given by the debug specification is exceeded */
+		LOG_TARGET_ERROR(target, "The target's debug bus (DMI) address width exceeds "
+			"the maximum:");
+		LOG_TARGET_ERROR(target, " found dtmcs.abits = %d; maximum is abits = %d.",
+			info->abits, RISCV013_DTMCS_ABITS_MAX);
+		return ERROR_FAIL;
+	}
+
+	if (info->abits < RISCV013_DTMCS_ABITS_MIN) {
+		/* The requirement for minimum DMI address width of 7 bits is part of
+		 * the RISC-V Debug spec since Jan-20-2017 (commit 03df6ee7). However,
+		 * implementations exist that implement narrower DMI address. For example
+		 * Spike as of Q1/2025 uses dmi.abits = 6.
+		 *
+		 * For that reason, warn the user but continue.
+		 */
+		LOG_TARGET_WARNING(target, "The target's debug bus (DMI) address width is "
+			"lower than the minimum:");
+		LOG_TARGET_WARNING(target, " found dtmcs.abits = %d; minimum is abits = %d.",
+			info->abits, RISCV013_DTMCS_ABITS_MIN);
+	}
+
 	if (!check_dbgbase_exists(target)) {
 		LOG_TARGET_ERROR(target, "Could not find debug module with DMI base address (dbgbase) = 0x%x", target->dbgbase);
 		return ERROR_FAIL;
@@ -2780,7 +2803,7 @@ static int init_target(struct command_context *cmd_ctx,
 	generic_info->fill_dmi_write = &riscv013_fill_dmi_write;
 	generic_info->fill_dmi_read = &riscv013_fill_dmi_read;
 	generic_info->fill_dm_nop = &riscv013_fill_dm_nop;
-	generic_info->get_dmi_scan_length = &riscv013_get_dmi_scan_length;
+	generic_info->get_dmi_address_bits = &riscv013_get_dmi_address_bits;
 	generic_info->authdata_read = &riscv013_authdata_read;
 	generic_info->authdata_write = &riscv013_authdata_write;
 	generic_info->dmi_read = &dmi_read;
@@ -5402,34 +5425,34 @@ static int riscv013_execute_progbuf(struct target *target, uint32_t *cmderr)
 	return riscv013_execute_abstract_command(target, run_program, cmderr);
 }
 
-static void riscv013_fill_dmi_write(struct target *target, char *buf, uint64_t a, uint32_t d)
+static void riscv013_fill_dmi_write(const struct target *target, uint8_t *buf, uint32_t a, uint32_t d)
 {
 	RISCV013_INFO(info);
-	buf_set_u64((unsigned char *)buf, DTM_DMI_OP_OFFSET, DTM_DMI_OP_LENGTH, DMI_OP_WRITE);
-	buf_set_u64((unsigned char *)buf, DTM_DMI_DATA_OFFSET, DTM_DMI_DATA_LENGTH, d);
-	buf_set_u64((unsigned char *)buf, DTM_DMI_ADDRESS_OFFSET, info->abits, a);
+	buf_set_u32(buf, DTM_DMI_OP_OFFSET, DTM_DMI_OP_LENGTH, DMI_OP_WRITE);
+	buf_set_u32(buf, DTM_DMI_DATA_OFFSET, DTM_DMI_DATA_LENGTH, d);
+	buf_set_u32(buf, DTM_DMI_ADDRESS_OFFSET, info->abits, a);
 }
 
-static void riscv013_fill_dmi_read(struct target *target, char *buf, uint64_t a)
+static void riscv013_fill_dmi_read(const struct target *target, uint8_t *buf, uint32_t a)
 {
 	RISCV013_INFO(info);
-	buf_set_u64((unsigned char *)buf, DTM_DMI_OP_OFFSET, DTM_DMI_OP_LENGTH, DMI_OP_READ);
-	buf_set_u64((unsigned char *)buf, DTM_DMI_DATA_OFFSET, DTM_DMI_DATA_LENGTH, 0);
-	buf_set_u64((unsigned char *)buf, DTM_DMI_ADDRESS_OFFSET, info->abits, a);
+	buf_set_u32(buf, DTM_DMI_OP_OFFSET, DTM_DMI_OP_LENGTH, DMI_OP_READ);
+	buf_set_u32(buf, DTM_DMI_DATA_OFFSET, DTM_DMI_DATA_LENGTH, 0);
+	buf_set_u32(buf, DTM_DMI_ADDRESS_OFFSET, info->abits, a);
 }
 
-static void riscv013_fill_dm_nop(struct target *target, char *buf)
+static void riscv013_fill_dm_nop(const struct target *target, uint8_t *buf)
 {
 	RISCV013_INFO(info);
-	buf_set_u64((unsigned char *)buf, DTM_DMI_OP_OFFSET, DTM_DMI_OP_LENGTH, DMI_OP_NOP);
-	buf_set_u64((unsigned char *)buf, DTM_DMI_DATA_OFFSET, DTM_DMI_DATA_LENGTH, 0);
-	buf_set_u64((unsigned char *)buf, DTM_DMI_ADDRESS_OFFSET, info->abits, 0);
+	buf_set_u32(buf, DTM_DMI_OP_OFFSET, DTM_DMI_OP_LENGTH, DMI_OP_NOP);
+	buf_set_u32(buf, DTM_DMI_DATA_OFFSET, DTM_DMI_DATA_LENGTH, 0);
+	buf_set_u32(buf, DTM_DMI_ADDRESS_OFFSET, info->abits, 0);
 }
 
-static int riscv013_get_dmi_scan_length(struct target *target)
+static unsigned int riscv013_get_dmi_address_bits(const struct target *target)
 {
 	RISCV013_INFO(info);
-	return info->abits + DTM_DMI_DATA_LENGTH + DTM_DMI_OP_LENGTH;
+	return info->abits;
 }
 
 /* Helper Functions. */

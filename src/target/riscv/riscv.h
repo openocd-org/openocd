@@ -125,6 +125,9 @@ typedef struct {
 #define DTM_DTMCS_VERSION_UNKNOWN ((unsigned int)-1)
 #define RISCV_TINFO_VERSION_UNKNOWN (-1)
 
+#define RISCV013_DTMCS_ABITS_MIN 7
+#define RISCV013_DTMCS_ABITS_MAX 32
+
 struct reg_name_table {
 	unsigned int num_entries;
 	char **reg_names;
@@ -275,10 +278,10 @@ struct riscv_info {
 	riscv_insn_t (*read_progbuf)(struct target *target, unsigned int index);
 	int (*execute_progbuf)(struct target *target, uint32_t *cmderr);
 	int (*invalidate_cached_progbuf)(struct target *target);
-	int (*get_dmi_scan_length)(struct target *target);
-	void (*fill_dmi_write)(struct target *target, char *buf, uint64_t a, uint32_t d);
-	void (*fill_dmi_read)(struct target *target, char *buf, uint64_t a);
-	void (*fill_dm_nop)(struct target *target, char *buf);
+	unsigned int (*get_dmi_address_bits)(const struct target *target);
+	void (*fill_dmi_write)(const struct target *target, uint8_t *buf, uint32_t a, uint32_t d);
+	void (*fill_dmi_read)(const struct target *target, uint8_t *buf, uint32_t a);
+	void (*fill_dm_nop)(const struct target *target, uint8_t *buf);
 
 	int (*authdata_read)(struct target *target, uint32_t *value, unsigned int index);
 	int (*authdata_write)(struct target *target, uint32_t value, unsigned int index);
@@ -478,10 +481,10 @@ riscv_insn_t riscv_read_progbuf(struct target *target, int index);
 int riscv_write_progbuf(struct target *target, int index, riscv_insn_t insn);
 int riscv_execute_progbuf(struct target *target, uint32_t *cmderr);
 
-void riscv_fill_dm_nop(struct target *target, char *buf);
-void riscv_fill_dmi_write(struct target *target, char *buf, uint64_t a, uint32_t d);
-void riscv_fill_dmi_read(struct target *target, char *buf, uint64_t a);
-int riscv_get_dmi_scan_length(struct target *target);
+void riscv_fill_dm_nop(const struct target *target, uint8_t *buf);
+void riscv_fill_dmi_write(const struct target *target, uint8_t *buf, uint32_t a, uint32_t d);
+void riscv_fill_dmi_read(const struct target *target, uint8_t *buf, uint32_t a);
+unsigned int riscv_get_dmi_address_bits(const struct target *target);
 
 uint32_t riscv_get_dmi_address(const struct target *target, uint32_t dm_address);
 
