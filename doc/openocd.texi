@@ -6225,6 +6225,22 @@ flash bank $_FLASHNAME cfi 0x00000000 0x02000000 2 4 $_TARGETNAME
 @c "cfi part_id" disabled
 @end deffn
 
+@deffn {Flash Driver} {hpm_xpi}
+All members of the HPMxxxx microcontroller family from HPMicro.
+Additional parameters are required to configure the driver: @option{io_base} is
+the base address of the configuration register interface, @option{opt0} and
+@option{opt1} are the options for the flash.
+
+@example
+flash bank $@{_FLASHNAME@}0 hpm_xpi base_address size_bytes 0 0 $_TARGETNAME \
+          io_base opt0 opt1
+@end example
+
+@deffn {Command} {hpm_xpi mass_erase} bank_id
+Erase all pages in data memory for the bank identified by @option{bank_id}.
+@end deffn
+@end deffn
+
 @anchor{jtagspi}
 @deffn {Flash Driver} {jtagspi}
 @cindex Generic JTAG2SPI driver
