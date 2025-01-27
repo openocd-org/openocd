@@ -204,9 +204,7 @@ static inline bool riscv_reg_impl_gdb_regno_cacheable(enum gdb_regno regno,
 		case GDB_REGNO_MISA:
 		case GDB_REGNO_DCSR:
 		case GDB_REGNO_DSCRATCH0:
-		case GDB_REGNO_MSTATUS:
 		case GDB_REGNO_MEPC:
-		case GDB_REGNO_MCAUSE:
 		case GDB_REGNO_SATP:
 			/*
 			 * WARL registers might not contain the value we just wrote, but
