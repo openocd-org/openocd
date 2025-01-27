@@ -2,7 +2,6 @@
 
 noinst_LTLIBRARIES += %D%/libriscv.la
 %C%_libriscv_la_SOURCES = \
-       %D%/asm.h \
        %D%/batch.h \
        %D%/debug_defines.h \
        %D%/debug_reg_printer.h \
