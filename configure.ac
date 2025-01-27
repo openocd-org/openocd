@@ -52,9 +52,16 @@ AC_SEARCH_LIBS([openpty], [util])
 
 AC_CHECK_HEADERS([sys/socket.h])
 AC_CHECK_HEADERS([elf.h])
-AC_EGREP_HEADER(Elf64_Ehdr, [elf.h], [
-  AC_DEFINE([HAVE_ELF64], [1], [Define to 1 if the system has the type `Elf64_Ehdr'.])
-])
+
+AC_CHECK_TYPE([Elf64_Ehdr],
+	AC_DEFINE([HAVE_ELF64], [1], [Define to 1 if the system has the type 'Elf64_Ehdr'.]),
+	[], [[#include <elf.h>]])
+
+AC_MSG_CHECKING([for glibc])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <features.h>]], [[int v = __GLIBC__;return 0;]])],
+	[have_glibc=yes], [have_glibc=no])
+AC_MSG_RESULT($have_glibc)
+
 AC_CHECK_HEADERS([fcntl.h])
 AC_CHECK_HEADERS([malloc.h])
 AC_CHECK_HEADERS([netdb.h])
@@ -164,6 +171,9 @@ m4_define([PCIE_ADAPTERS],
 m4_define([SERIAL_PORT_ADAPTERS],
 	[[[buspirate], [Bus Pirate], [BUS_PIRATE]]])
 
+m4_define([LINUXSPIDEV_ADAPTER],
+	[[[linuxspidev], [Linux spidev driver], [LINUXSPIDEV]]])
+
 # The word 'Adapter' in "Dummy Adapter" below must begin with a capital letter
 # because there is an M4 macro called 'adapter'.
 m4_define([DUMMY_ADAPTER],
@@ -258,7 +268,7 @@ AC_ARG_ENABLE([malloc_logging],
 
 AC_MSG_CHECKING([whether to enable malloc free space logging]);
 AC_MSG_RESULT([$debug_malloc])
-AS_IF([test "x$debug_malloc" = "xyes"], [
+AS_IF([test "x$debug_malloc" = "xyes" -a "x$have_glibc" = "xyes"], [
   AC_DEFINE([_DEBUG_FREE_SPACE_],[1], [Include malloc free space in logging])
 ])
 
@@ -290,6 +300,7 @@ AC_ARG_ADAPTERS([
   LIBFTDI_ADAPTERS,
   LIBFTDI_USB1_ADAPTERS,
   LIBGPIOD_ADAPTERS,
+  LINUXSPIDEV_ADAPTER,
   SERIAL_PORT_ADAPTERS,
   DUMMY_ADAPTER,
   PCIE_ADAPTERS,
@@ -389,8 +400,8 @@ AS_CASE([$host_os],
 ])
 
 AC_ARG_ENABLE([internal-jimtcl],
-  AS_HELP_STRING([--disable-internal-jimtcl], [Disable building internal jimtcl]),
-  [use_internal_jimtcl=$enableval], [use_internal_jimtcl=yes])
+  AS_HELP_STRING([--enable-internal-jimtcl], [Enable building internal jimtcl (deprecated)]),
+  [use_internal_jimtcl=$enableval], [use_internal_jimtcl=no])
 
 AC_ARG_ENABLE([jimtcl-maintainer],
   AS_HELP_STRING([--enable-jimtcl-maintainer], [Enable maintainer mode when building internal jimtcl]),
@@ -727,6 +738,7 @@ PROCESS_ADAPTERS([LIBJAYLINK_ADAPTERS], ["x$use_internal_libjaylink" = "xyes" -o
 PROCESS_ADAPTERS([PCIE_ADAPTERS], ["x$is_linux" = "xyes"], [Linux build])
 PROCESS_ADAPTERS([SERIAL_PORT_ADAPTERS], ["x$can_build_buspirate" = "xyes"],
                                          [internal error: validation should happen beforehand])
+PROCESS_ADAPTERS([LINUXSPIDEV_ADAPTER], ["x$is_linux" = "xyes"], [Linux spidev])
 PROCESS_ADAPTERS([DUMMY_ADAPTER], [true], [unused])
 
 AS_IF([test "x$enable_linuxgpiod" != "xno"], [
@@ -867,6 +879,10 @@ AS_IF([test "x$enable_jlink" != "xno"], [
   ]])
 )
 
+AS_IF([test "x$use_internal_jimtcl" = "xyes"], [
+  AC_MSG_WARN([Using the internal jimtcl is deprecated and will not be possible in the future.])
+])
+
 echo
 echo
 echo OpenOCD configuration summary
@@ -876,6 +892,7 @@ m4_foreach([adapter], [USB1_ADAPTERS,
 	LIBFTDI_USB1_ADAPTERS,
 	LIBGPIOD_ADAPTERS,
 	LIBJAYLINK_ADAPTERS, PCIE_ADAPTERS, SERIAL_PORT_ADAPTERS,
+	LINUXSPIDEV_ADAPTER,
 	DUMMY_ADAPTER,
 	OPTIONAL_LIBRARIES,
 	COVERAGE],

@@ -252,7 +252,7 @@ static int vdebug_socket_open(char *server_addr, uint32_t port)
 
 #ifdef _WIN32
 	hsock = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
-	if (hsock == INVALID_SOCKET)
+	if (hsock < 0)
 		rc = vdebug_socket_error();
 #elif defined __CYGWIN__
 	/* SO_RCVLOWAT unsupported on CYGWIN */

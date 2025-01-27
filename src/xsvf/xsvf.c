@@ -749,10 +749,10 @@ COMMAND_HANDLER(handle_xsvf_command)
 				int delay;
 
 				if (read(xsvf_fd, &wait_local, 1) < 0
-					|| read(xsvf_fd, &end, 1) < 0
-					|| read(xsvf_fd, delay_buf, 4) < 0) {
-						do_abort = 1;
-						break;
+						|| read(xsvf_fd, &end, 1) < 0
+						|| read(xsvf_fd, delay_buf, 4) < 0) {
+					do_abort = 1;
+					break;
 				}
 
 				wait_state = xsvf_to_tap(wait_local);

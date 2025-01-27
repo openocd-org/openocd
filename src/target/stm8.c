@@ -689,15 +689,13 @@ static int stm8_write_flash(struct target *target, enum mem_type type,
 			if (stm8->flash_ncr2)
 				stm8_write_u8(target, stm8->flash_ncr2, ~(PRG + opt));
 			blocksize = blocksize_param;
-		} else
-		if ((bytecnt >= 4) && ((address & 0x3) == 0)) {
+		} else if ((bytecnt >= 4) && ((address & 0x3) == 0)) {
 			if (stm8->flash_cr2)
 				stm8_write_u8(target, stm8->flash_cr2, WPRG + opt);
 			if (stm8->flash_ncr2)
 				stm8_write_u8(target, stm8->flash_ncr2, ~(WPRG + opt));
 			blocksize = 4;
-		} else
-		if (blocksize != 1) {
+		} else if (blocksize != 1) {
 			if (stm8->flash_cr2)
 				stm8_write_u8(target, stm8->flash_cr2, opt);
 			if (stm8->flash_ncr2)
@@ -1552,8 +1550,8 @@ static int stm8_set_watchpoint(struct target *target,
 	}
 
 	if (watchpoint->length != 1) {
-			LOG_ERROR("Only watchpoints of length 1 are supported");
-			return ERROR_TARGET_UNALIGNED_ACCESS;
+		LOG_ERROR("Only watchpoints of length 1 are supported");
+		return ERROR_TARGET_UNALIGNED_ACCESS;
 	}
 
 	enum hw_break_type enable = 0;
