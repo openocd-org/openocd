@@ -82,7 +82,7 @@ static int imx_gpio_swd_write(int swclk, int swdio);
 static int imx_gpio_init(void);
 static int imx_gpio_quit(void);
 
-static struct bitbang_interface imx_gpio_bitbang = {
+static const struct bitbang_interface imx_gpio_bitbang = {
 	.read = imx_gpio_read,
 	.write = imx_gpio_write,
 	.swdio_read = imx_gpio_swdio_read,

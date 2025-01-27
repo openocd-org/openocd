@@ -225,12 +225,6 @@ struct pending_scan_result {
 	unsigned int buffer_offset;
 };
 
-/* Read mode */
-enum cmsis_dap_blocking {
-	CMSIS_DAP_NON_BLOCKING,
-	CMSIS_DAP_BLOCKING
-};
-
 /* Each block in FIFO can contain up to pending_queue_len transfers */
 static unsigned int pending_queue_len;
 static unsigned int tfer_max_command_size;
@@ -321,7 +315,7 @@ static void cmsis_dap_flush_read(struct cmsis_dap *dap)
 	 * USB close/open so we need to flush up to 64 old packets
 	 * to be sure all buffers are empty */
 	for (i = 0; i < 64; i++) {
-		int retval = dap->backend->read(dap, 10, NULL);
+		int retval = dap->backend->read(dap, 10, CMSIS_DAP_BLOCKING);
 		if (retval == ERROR_TIMEOUT_REACHED)
 			break;
 	}
@@ -338,7 +332,7 @@ static int cmsis_dap_xfer(struct cmsis_dap *dap, int txlen)
 	if (dap->pending_fifo_block_count) {
 		LOG_ERROR("pending %u blocks, flushing", dap->pending_fifo_block_count);
 		while (dap->pending_fifo_block_count) {
-			dap->backend->read(dap, 10, NULL);
+			dap->backend->read(dap, 10, CMSIS_DAP_BLOCKING);
 			dap->pending_fifo_block_count--;
 		}
 		dap->pending_fifo_put_idx = 0;
@@ -351,7 +345,7 @@ static int cmsis_dap_xfer(struct cmsis_dap *dap, int txlen)
 		return retval;
 
 	/* get reply */
-	retval = dap->backend->read(dap, LIBUSB_TIMEOUT_MS, NULL);
+	retval = dap->backend->read(dap, LIBUSB_TIMEOUT_MS, CMSIS_DAP_BLOCKING);
 	if (retval < 0)
 		return retval;
 
@@ -885,7 +879,7 @@ static void cmsis_dap_swd_read_process(struct cmsis_dap *dap, enum cmsis_dap_blo
 
 	if (queued_retval != ERROR_OK) {
 		/* keep reading blocks until the pipeline is empty */
-		retval = dap->backend->read(dap, 10, NULL);
+		retval = dap->backend->read(dap, 10, CMSIS_DAP_BLOCKING);
 		if (retval == ERROR_TIMEOUT_REACHED || retval == 0) {
 			/* timeout means that we flushed the pipeline,
 			 * we can safely discard remaining pending requests */
@@ -896,11 +890,7 @@ static void cmsis_dap_swd_read_process(struct cmsis_dap *dap, enum cmsis_dap_blo
 	}
 
 	/* get reply */
-	struct timeval tv = {
-		.tv_sec = 0,
-		.tv_usec = 0
-	};
-	retval = dap->backend->read(dap, LIBUSB_TIMEOUT_MS, blocking ? NULL : &tv);
+	retval = dap->backend->read(dap, LIBUSB_TIMEOUT_MS, blocking);
 	bool timeout = (retval == ERROR_TIMEOUT_REACHED || retval == 0);
 	if (timeout && blocking == CMSIS_DAP_NON_BLOCKING)
 		return;

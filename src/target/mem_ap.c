@@ -34,13 +34,13 @@ static int mem_ap_target_create(struct target *target, Jim_Interp *interp)
 		return ERROR_FAIL;
 
 	if (pc->ap_num == DP_APSEL_INVALID) {
-		LOG_ERROR("AP number not specified");
+		LOG_TARGET_ERROR(target, "AP number not specified");
 		return ERROR_FAIL;
 	}
 
 	mem_ap = calloc(1, sizeof(struct mem_ap));
 	if (!mem_ap) {
-		LOG_ERROR("Out of memory");
+		LOG_TARGET_ERROR(target, "Out of memory");
 		return ERROR_FAIL;
 	}
 
@@ -58,7 +58,7 @@ static int mem_ap_target_create(struct target *target, Jim_Interp *interp)
 
 static int mem_ap_init_target(struct command_context *cmd_ctx, struct target *target)
 {
-	LOG_DEBUG("%s", __func__);
+	LOG_TARGET_DEBUG(target, "%s", __func__);
 	target->state = TARGET_UNKNOWN;
 	target->debug_reason = DBG_REASON_UNDEFINED;
 	return ERROR_OK;
@@ -68,7 +68,7 @@ static void mem_ap_deinit_target(struct target *target)
 {
 	struct mem_ap *mem_ap = target->arch_info;
 
-	LOG_DEBUG("%s", __func__);
+	LOG_TARGET_DEBUG(target, "%s", __func__);
 
 	if (mem_ap->ap)
 		dap_put_ap(mem_ap->ap);
@@ -79,7 +79,7 @@ static void mem_ap_deinit_target(struct target *target)
 
 static int mem_ap_arch_state(struct target *target)
 {
-	LOG_DEBUG("%s", __func__);
+	LOG_TARGET_DEBUG(target, "%s", __func__);
 	return ERROR_OK;
 }
 
@@ -95,7 +95,7 @@ static int mem_ap_poll(struct target *target)
 
 static int mem_ap_halt(struct target *target)
 {
-	LOG_DEBUG("%s", __func__);
+	LOG_TARGET_DEBUG(target, "%s", __func__);
 	target->state = TARGET_HALTED;
 	target->debug_reason = DBG_REASON_DBGRQ;
 	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
@@ -105,7 +105,7 @@ static int mem_ap_halt(struct target *target)
 static int mem_ap_resume(struct target *target, int current, target_addr_t address,
 		int handle_breakpoints, int debug_execution)
 {
-	LOG_DEBUG("%s", __func__);
+	LOG_TARGET_DEBUG(target, "%s", __func__);
 	target->state = TARGET_RUNNING;
 	target->debug_reason = DBG_REASON_NOTHALTED;
 	return ERROR_OK;
@@ -114,7 +114,7 @@ static int mem_ap_resume(struct target *target, int current, target_addr_t addre
 static int mem_ap_step(struct target *target, int current, target_addr_t address,
 				int handle_breakpoints)
 {
-	LOG_DEBUG("%s", __func__);
+	LOG_TARGET_DEBUG(target, "%s", __func__);
 	target->state = TARGET_HALTED;
 	target->debug_reason = DBG_REASON_DBGRQ;
 	target_call_event_callbacks(target, TARGET_EVENT_HALTED);
@@ -126,7 +126,7 @@ static int mem_ap_assert_reset(struct target *target)
 	target->state = TARGET_RESET;
 	target->debug_reason = DBG_REASON_UNDEFINED;
 
-	LOG_DEBUG("%s", __func__);
+	LOG_TARGET_DEBUG(target, "%s", __func__);
 	return ERROR_OK;
 }
 
@@ -138,7 +138,7 @@ static int mem_ap_examine(struct target *target)
 		if (!mem_ap->ap) {
 			mem_ap->ap = dap_get_ap(mem_ap->dap, mem_ap->ap_num);
 			if (!mem_ap->ap) {
-				LOG_ERROR("Cannot get AP");
+				LOG_TARGET_ERROR(target, "Cannot get AP");
 				return ERROR_FAIL;
 			}
 		}
@@ -162,7 +162,7 @@ static int mem_ap_deassert_reset(struct target *target)
 		target->debug_reason = DBG_REASON_NOTHALTED;
 	}
 
-	LOG_DEBUG("%s", __func__);
+	LOG_TARGET_DEBUG(target, "%s", __func__);
 	return ERROR_OK;
 }
 
@@ -212,7 +212,7 @@ static int mem_ap_get_gdb_reg_list(struct target *target, struct reg **reg_list[
 {
 	struct mem_ap_alloc_reg_list *mem_ap_alloc = calloc(1, sizeof(struct mem_ap_alloc_reg_list));
 	if (!mem_ap_alloc) {
-		LOG_ERROR("Out of memory");
+		LOG_TARGET_ERROR(target, "Out of memory");
 		return ERROR_FAIL;
 	}
 
@@ -237,7 +237,7 @@ static int mem_ap_read_memory(struct target *target, target_addr_t address,
 {
 	struct mem_ap *mem_ap = target->arch_info;
 
-	LOG_DEBUG("Reading memory at physical address " TARGET_ADDR_FMT
+	LOG_TARGET_DEBUG(target, "Reading memory at physical address " TARGET_ADDR_FMT
 		  "; size %" PRIu32 "; count %" PRIu32, address, size, count);
 
 	if (count == 0 || !buffer)
@@ -252,7 +252,7 @@ static int mem_ap_write_memory(struct target *target, target_addr_t address,
 {
 	struct mem_ap *mem_ap = target->arch_info;
 
-	LOG_DEBUG("Writing memory at physical address " TARGET_ADDR_FMT
+	LOG_TARGET_DEBUG(target, "Writing memory at physical address " TARGET_ADDR_FMT
 		  "; size %" PRIu32 "; count %" PRIu32, address, size, count);
 
 	if (count == 0 || !buffer)

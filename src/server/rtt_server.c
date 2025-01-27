@@ -28,6 +28,12 @@ struct rtt_service {
 	char *hello_message;
 };
 
+struct rtt_connection_data {
+	unsigned char buffer[64];
+	unsigned int length;
+	unsigned int offset;
+};
+
 static int read_callback(unsigned int channel, const uint8_t *buffer,
 		size_t length, void *user_data)
 {
@@ -56,7 +62,16 @@ static int rtt_new_connection(struct connection *connection)
 {
 	int ret;
 	struct rtt_service *service;
+	struct rtt_connection_data *data;
 
+	data = calloc(1, sizeof(struct rtt_connection_data));
+
+	if (!data) {
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
+	}
+
+	connection->priv = data;
 	service = connection->service->priv;
 
 	LOG_DEBUG("rtt: New connection for channel %u", service->channel);
@@ -79,31 +94,53 @@ static int rtt_connection_closed(struct connection *connection)
 	service = (struct rtt_service *)connection->service->priv;
 	rtt_unregister_sink(service->channel, &read_callback, connection);
 
-	LOG_DEBUG("rtt: Connection for channel %u closed", service->channel);
+	free(connection->priv);
 
+	LOG_DEBUG("rtt: Connection for channel %u closed", service->channel);
 	return ERROR_OK;
 }
 
 static int rtt_input(struct connection *connection)
 {
-	int bytes_read;
-	unsigned char buffer[1024];
 	struct rtt_service *service;
-	size_t length;
+	struct rtt_connection_data *data;
 
-	service = (struct rtt_service *)connection->service->priv;
-	bytes_read = connection_read(connection, buffer, sizeof(buffer));
+	data = connection->priv;
+	service = connection->service->priv;
 
-	if (!bytes_read)
-		return ERROR_SERVER_REMOTE_CLOSED;
-	else if (bytes_read < 0) {
-		LOG_ERROR("error during read: %s", strerror(errno));
-		return ERROR_SERVER_REMOTE_CLOSED;
+	if (!connection->input_pending) {
+		int bytes_read;
+
+		bytes_read = connection_read(connection, data->buffer, sizeof(data->buffer));
+
+		if (!bytes_read) {
+			return ERROR_SERVER_REMOTE_CLOSED;
+		} else if (bytes_read < 0) {
+			LOG_ERROR("error during read: %s", strerror(errno));
+			return ERROR_SERVER_REMOTE_CLOSED;
+		}
+
+		data->length = bytes_read;
+		data->offset = 0;
 	}
+	if (data->length > 0) {
+		unsigned char *ptr;
+		size_t length, to_write;
 
-	length = bytes_read;
-	rtt_write_channel(service->channel, buffer, &length);
+		ptr = data->buffer + data->offset;
+		length = data->length - data->offset;
+		to_write = length;
+		rtt_write_channel(service->channel, ptr, &length);
 
+		if (length < to_write) {
+			data->offset += length;
+			connection->input_pending = true;
+		} else {
+			data->offset = 0;
+			data->length = 0;
+			connection->input_pending = false;
+		}
+	}
 	return ERROR_OK;
 }
 
@@ -126,8 +163,10 @@ COMMAND_HANDLER(handle_rtt_start_command)
 
 	service = calloc(1, sizeof(struct rtt_service));
 
-	if (!service)
+	if (!service) {
+		LOG_ERROR("Out of memory");
 		return ERROR_FAIL;
+	}
 
 	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[1], service->channel);
 

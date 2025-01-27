@@ -248,7 +248,11 @@ enum arm_mode armv4_5_number_to_mode(int number)
 }
 
 static const char *arm_state_strings[] = {
-	"ARM", "Thumb", "Jazelle", "ThumbEE",
+	[ARM_STATE_ARM]      = "ARM",
+	[ARM_STATE_THUMB]    = "Thumb",
+	[ARM_STATE_JAZELLE]  = "Jazelle",
+	[ARM_STATE_THUMB_EE] = "ThumbEE",
+	[ARM_STATE_AARCH64]  = "AArch64",
 };
 
 /* Templates for ARM core registers.
@@ -430,6 +434,16 @@ const int armv4_5_core_reg_map[9][17] = {
 	}
 };
 
+static const char *arm_core_state_string(struct arm *arm)
+{
+	if (arm->core_state > ARRAY_SIZE(arm_state_strings)) {
+		LOG_ERROR("core_state exceeds table size");
+		return "Unknown";
+	}
+
+	return arm_state_strings[arm->core_state];
+}
+
 /**
  * Configures host-side ARM records to reflect the specified CPSR.
  * Later, code can use arm_reg_current() to map register numbers
@@ -484,7 +498,7 @@ void arm_set_cpsr(struct arm *arm, uint32_t cpsr)
 
 	LOG_DEBUG("set CPSR %#8.8" PRIx32 ": %s mode, %s state", cpsr,
 		arm_mode_name(mode),
-		arm_state_strings[arm->core_state]);
+		arm_core_state_string(arm));
 }
 
 /**
@@ -794,7 +808,7 @@ int arm_arch_state(struct target *target)
 
 	LOG_USER("target halted in %s state due to %s, current mode: %s\n"
 		"cpsr: 0x%8.8" PRIx32 " pc: 0x%8.8" PRIx32 "%s%s",
-		arm_state_strings[arm->core_state],
+		arm_core_state_string(arm),
 		debug_reason_name(target),
 		arm_mode_name(arm->core_mode),
 		buf_get_u32(arm->cpsr->value, 0, 32),
@@ -929,7 +943,7 @@ COMMAND_HANDLER(handle_arm_core_state_command)
 			arm->core_state = ARM_STATE_THUMB;
 	}
 
-	command_print(CMD, "core state: %s", arm_state_strings[arm->core_state]);
+	command_print(CMD, "core state: %s", arm_core_state_string(arm));
 
 	return ret;
 }

@@ -171,7 +171,7 @@ int armv7m_restore_context(struct target *target)
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct reg_cache *cache = armv7m->arm.core_cache;
 
-	LOG_DEBUG(" ");
+	LOG_TARGET_DEBUG(target, " ");
 
 	if (armv7m->pre_restore_context)
 		armv7m->pre_restore_context(target);
@@ -366,9 +366,9 @@ static int armv7m_read_core_reg(struct target *target, struct reg *r,
 			buf_set_u32(r->value + 4, 0, 32, reg_value);
 
 			uint64_t q = buf_get_u64(r->value, 0, 64);
-			LOG_DEBUG("read %s value 0x%016" PRIx64, r->name, q);
+			LOG_TARGET_DEBUG(target, "read %s value 0x%016" PRIx64, r->name, q);
 		} else {
-			LOG_DEBUG("read %s value 0x%08" PRIx32, r->name, reg_value);
+			LOG_TARGET_DEBUG(target, "read %s value 0x%08" PRIx32, r->name, reg_value);
 		}
 	}
 
@@ -436,9 +436,9 @@ static int armv7m_write_core_reg(struct target *target, struct reg *r,
 				goto out_error;
 
 			uint64_t q = buf_get_u64(value, 0, 64);
-			LOG_DEBUG("write %s value 0x%016" PRIx64, r->name, q);
+			LOG_TARGET_DEBUG(target, "write %s value 0x%016" PRIx64, r->name, q);
 		} else {
-			LOG_DEBUG("write %s value 0x%08" PRIx32, r->name, t);
+			LOG_TARGET_DEBUG(target, "write %s value 0x%08" PRIx32, r->name, t);
 		}
 	}
 
@@ -449,7 +449,7 @@ static int armv7m_write_core_reg(struct target *target, struct reg *r,
 
 out_error:
 	r->dirty = true;
-	LOG_ERROR("Error setting register %s", r->name);
+	LOG_TARGET_ERROR(target, "Error setting register %s", r->name);
 	return retval;
 }
 
@@ -520,7 +520,7 @@ int armv7m_start_algorithm(struct target *target,
 	 * at the exit point */
 
 	if (armv7m_algorithm_info->common_magic != ARMV7M_COMMON_MAGIC) {
-		LOG_ERROR("current target isn't an ARMV7M target");
+		LOG_TARGET_ERROR(target, "current target isn't an ARMV7M target");
 		return ERROR_TARGET_INVALID;
 	}
 
@@ -563,12 +563,12 @@ int armv7m_start_algorithm(struct target *target,
 /*		uint32_t regvalue; */
 
 		if (!reg) {
-			LOG_ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
+			LOG_TARGET_ERROR(target, "BUG: register '%s' not found", reg_params[i].reg_name);
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 
 		if (reg->size != reg_params[i].size) {
-			LOG_ERROR("BUG: register '%s' size doesn't match reg_params[i].size",
+			LOG_TARGET_ERROR(target, "BUG: register '%s' size doesn't match reg_params[i].size",
 				reg_params[i].reg_name);
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
@@ -600,10 +600,11 @@ int armv7m_start_algorithm(struct target *target,
 		/* we cannot set ARM_MODE_HANDLER, so use ARM_MODE_THREAD instead */
 		if (armv7m_algorithm_info->core_mode == ARM_MODE_HANDLER) {
 			armv7m_algorithm_info->core_mode = ARM_MODE_THREAD;
-			LOG_INFO("ARM_MODE_HANDLER not currently supported, using ARM_MODE_THREAD instead");
+			LOG_TARGET_INFO(target, "ARM_MODE_HANDLER not currently supported, using ARM_MODE_THREAD instead");
 		}
 
-		LOG_DEBUG("setting core_mode: 0x%2.2x", armv7m_algorithm_info->core_mode);
+		LOG_TARGET_DEBUG(target, "setting core_mode: 0x%2.2x",
+			armv7m_algorithm_info->core_mode);
 		buf_set_u32(armv7m->arm.core_cache->reg_list[ARMV7M_CONTROL].value,
 			0, 1, armv7m_algorithm_info->core_mode);
 		armv7m->arm.core_cache->reg_list[ARMV7M_CONTROL].dirty = true;
@@ -633,7 +634,7 @@ int armv7m_wait_algorithm(struct target *target,
 	 * at the exit point */
 
 	if (armv7m_algorithm_info->common_magic != ARMV7M_COMMON_MAGIC) {
-		LOG_ERROR("current target isn't an ARMV7M target");
+		LOG_TARGET_ERROR(target, "current target isn't an ARMV7M target");
 		return ERROR_TARGET_INVALID;
 	}
 
@@ -653,7 +654,7 @@ int armv7m_wait_algorithm(struct target *target,
 		/* PC value has been cached in cortex_m_debug_entry() */
 		uint32_t pc = buf_get_u32(armv7m->arm.pc->value, 0, 32);
 		if (pc != exit_point) {
-			LOG_DEBUG("failed algorithm halted at 0x%" PRIx32 ", expected 0x%" TARGET_PRIxADDR,
+			LOG_TARGET_DEBUG(target, "failed algorithm halted at 0x%" PRIx32 ", expected 0x%" TARGET_PRIxADDR,
 					  pc, exit_point);
 			return ERROR_TARGET_ALGO_EXIT;
 		}
@@ -678,12 +679,13 @@ int armv7m_wait_algorithm(struct target *target,
 					false);
 
 			if (!reg) {
-				LOG_ERROR("BUG: register '%s' not found", reg_params[i].reg_name);
+				LOG_TARGET_ERROR(target, "BUG: register '%s' not found",
+					reg_params[i].reg_name);
 				return ERROR_COMMAND_SYNTAX_ERROR;
 			}
 
 			if (reg->size != reg_params[i].size) {
-				LOG_ERROR(
+				LOG_TARGET_ERROR(target,
 					"BUG: register '%s' size doesn't match reg_params[i].size",
 					reg_params[i].reg_name);
 				return ERROR_COMMAND_SYNTAX_ERROR;
@@ -701,7 +703,7 @@ int armv7m_wait_algorithm(struct target *target,
 		uint32_t regvalue;
 		regvalue = buf_get_u32(reg->value, 0, 32);
 		if (regvalue != armv7m_algorithm_info->context[i]) {
-			LOG_DEBUG("restoring register %s with value 0x%8.8" PRIx32,
+			LOG_TARGET_DEBUG(target, "restoring register %s with value 0x%8.8" PRIx32,
 					  reg->name, armv7m_algorithm_info->context[i]);
 			buf_set_u32(reg->value,
 				0, 32, armv7m_algorithm_info->context[i]);
@@ -712,7 +714,7 @@ int armv7m_wait_algorithm(struct target *target,
 
 	/* restore previous core mode */
 	if (armv7m_algorithm_info->core_mode != armv7m->arm.core_mode) {
-		LOG_DEBUG("restoring core_mode: 0x%2.2x", armv7m_algorithm_info->core_mode);
+		LOG_TARGET_DEBUG(target, "restoring core_mode: 0x%2.2x", armv7m_algorithm_info->core_mode);
 		buf_set_u32(armv7m->arm.core_cache->reg_list[ARMV7M_CONTROL].value,
 			0, 1, armv7m_algorithm_info->core_mode);
 		armv7m->arm.core_cache->reg_list[ARMV7M_CONTROL].dirty = true;
@@ -738,9 +740,8 @@ int armv7m_arch_state(struct target *target)
 	ctrl = buf_get_u32(arm->core_cache->reg_list[ARMV7M_CONTROL].value, 0, 32);
 	sp = buf_get_u32(arm->core_cache->reg_list[ARMV7M_R13].value, 0, 32);
 
-	LOG_USER("[%s] halted due to %s, current mode: %s %s\n"
+	LOG_TARGET_USER(target, "halted due to %s, current mode: %s %s\n"
 		"xPSR: %#8.8" PRIx32 " pc: %#8.8" PRIx32 " %csp: %#8.8" PRIx32 "%s%s",
-		target_name(target),
 		debug_reason_name(target),
 		arm_mode_name(arm->core_mode),
 		armv7m_exception_string(armv7m->exception_number),
@@ -807,13 +808,13 @@ struct reg_cache *armv7m_build_reg_cache(struct target *target)
 			feature->name = armv7m_regs[i].feature;
 			reg_list[i].feature = feature;
 		} else
-			LOG_ERROR("unable to allocate feature list");
+			LOG_TARGET_ERROR(target, "unable to allocate feature list");
 
 		reg_list[i].reg_data_type = calloc(1, sizeof(struct reg_data_type));
 		if (reg_list[i].reg_data_type)
 			reg_list[i].reg_data_type->type = armv7m_regs[i].type;
 		else
-			LOG_ERROR("unable to allocate reg type list");
+			LOG_TARGET_ERROR(target, "unable to allocate reg type list");
 	}
 
 	arm->cpsr = reg_list + ARMV7M_XPSR;
@@ -918,7 +919,7 @@ int armv7m_checksum_memory(struct target *target,
 	if (retval == ERROR_OK)
 		*checksum = buf_get_u32(reg_params[0].value, 0, 32);
 	else
-		LOG_ERROR("error executing cortex_m crc algorithm");
+		LOG_TARGET_ERROR(target, "error executing cortex_m crc algorithm");
 
 	destroy_reg_param(&reg_params[0]);
 	destroy_reg_param(&reg_params[1]);
@@ -1003,7 +1004,7 @@ int armv7m_blank_check_memory(struct target *target,
 	uint32_t erased_word = erased_value | (erased_value << 8)
 			       | (erased_value << 16) | (erased_value << 24);
 
-	LOG_DEBUG("Starting erase check of %d blocks, parameters@"
+	LOG_TARGET_DEBUG(target, "Starting erase check of %d blocks, parameters@"
 		 TARGET_ADDR_FMT, blocks_to_check, erase_check_params->address);
 
 	armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
@@ -1044,7 +1045,8 @@ int armv7m_blank_check_memory(struct target *target,
 		blocks[i].result = result;
 	}
 	if (i && timed_out)
-		LOG_INFO("Slow CPU clock: %d blocks checked, %d remain. Continuing...", i, num_blocks-i);
+		LOG_TARGET_INFO(target, "Slow CPU clock: %d blocks checked, %d remain. Continuing...",
+			i, num_blocks - i);
 
 	retval = i;		/* return number of blocks really checked */
 
@@ -1085,7 +1087,7 @@ int armv7m_maybe_skip_bkpt_inst(struct target *target, bool *inst_found)
 				r->dirty = true;
 				r->valid = true;
 				result = true;
-				LOG_DEBUG("Skipping over BKPT instruction");
+				LOG_TARGET_DEBUG(target, "Skipping over BKPT instruction");
 			}
 		}
 	}

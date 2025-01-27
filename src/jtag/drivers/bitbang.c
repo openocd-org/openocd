@@ -37,7 +37,7 @@ static int bitbang_stableclocks(unsigned int num_cycles);
 
 static void bitbang_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay_clk);
 
-struct bitbang_interface *bitbang_interface;
+const struct bitbang_interface *bitbang_interface;
 
 /* DANGER!!!! clock absolutely *MUST* be 0 in idle or reset won't work!
  *

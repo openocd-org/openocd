@@ -2911,7 +2911,7 @@ static int riscv_resume(
 
 	struct list_head *targets;
 
-	LIST_HEAD(single_target_list);
+	OOCD_LIST_HEAD(single_target_list);
 	struct target_list single_target_entry = {
 		.lh = {NULL, NULL},
 		.target = target
@@ -4030,7 +4030,7 @@ int riscv_openocd_poll(struct target *target)
 
 	struct list_head *targets;
 
-	LIST_HEAD(single_target_list);
+	OOCD_LIST_HEAD(single_target_list);
 	struct target_list single_target_entry = {
 		.lh = {NULL, NULL},
 		.target = target

@@ -206,17 +206,13 @@ static void cmsis_dap_hid_close(struct cmsis_dap *dap)
 }
 
 static int cmsis_dap_hid_read(struct cmsis_dap *dap, int transfer_timeout_ms,
-							  struct timeval *wait_timeout)
+							  enum cmsis_dap_blocking blocking)
 {
-	int timeout_ms;
-	if (wait_timeout)
-		timeout_ms = wait_timeout->tv_usec / 1000 + wait_timeout->tv_sec * 1000;
-	else
-		timeout_ms = transfer_timeout_ms;
+	int wait_ms = (blocking == CMSIS_DAP_NON_BLOCKING) ? 0 : transfer_timeout_ms;
 
 	int retval = hid_read_timeout(dap->bdata->dev_handle,
 								  dap->packet_buffer, dap->packet_buffer_size,
-								  timeout_ms);
+								  wait_ms);
 	if (retval == 0) {
 		return ERROR_TIMEOUT_REACHED;
 	} else if (retval == -1) {

@@ -12,7 +12,7 @@
 #include <assert.h>
 #include <helper/list.h>
 
-static LIST_HEAD(threads);
+static OOCD_LIST_HEAD(threads);
 
 struct thread {
 	int id;

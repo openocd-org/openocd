@@ -35,7 +35,7 @@ static int arc_mem_write_block32(struct target *target, uint32_t addr,
 {
 	struct arc_common *arc = target_to_arc(target);
 
-	LOG_DEBUG("Write 4-byte memory block: addr=0x%08" PRIx32 ", count=%" PRIu32,
+	LOG_TARGET_DEBUG(target, "Write 4-byte memory block: addr=0x%08" PRIx32 ", count=%" PRIu32,
 			addr, count);
 
 	/* Check arguments */
@@ -66,7 +66,7 @@ static int arc_mem_write_block16(struct target *target, uint32_t addr,
 	uint8_t buffer_te[sizeof(uint32_t)];
 	uint8_t halfword_te[sizeof(uint16_t)];
 
-	LOG_DEBUG("Write 2-byte memory block: addr=0x%08" PRIx32 ", count=%" PRIu32,
+	LOG_TARGET_DEBUG(target, "Write 2-byte memory block: addr=0x%08" PRIx32 ", count=%" PRIu32,
 			addr, count);
 
 	/* Check arguments */
@@ -124,7 +124,7 @@ static int arc_mem_write_block8(struct target *target, uint32_t addr,
 	uint8_t buffer_te[sizeof(uint32_t)];
 
 
-	LOG_DEBUG("Write 1-byte memory block: addr=0x%08" PRIx32 ", count=%" PRIu32,
+	LOG_TARGET_DEBUG(target, "Write 1-byte memory block: addr=0x%08" PRIx32 ", count=%" PRIu32,
 			addr, count);
 
 	/* We will read data from memory, so we need to flush the cache. */
@@ -158,7 +158,7 @@ int arc_mem_write(struct target *target, target_addr_t address, uint32_t size,
 	int retval = ERROR_OK;
 	void *tunnel = NULL;
 
-	LOG_DEBUG("address: 0x%08" TARGET_PRIxADDR ", size: %" PRIu32 ", count: %" PRIu32,
+	LOG_TARGET_DEBUG(target, "address: 0x%08" TARGET_PRIxADDR ", size: %" PRIu32 ", count: %" PRIu32,
 		address, size, count);
 
 	if (target->state != TARGET_HALTED) {
@@ -182,7 +182,7 @@ int arc_mem_write(struct target *target, target_addr_t address, uint32_t size,
 		tunnel = calloc(1, count * size * sizeof(uint8_t));
 
 		if (!tunnel) {
-			LOG_ERROR("Unable to allocate memory");
+			LOG_TARGET_ERROR(target, "Unable to allocate memory");
 			return ERROR_FAIL;
 		}
 
@@ -220,7 +220,7 @@ static int arc_mem_read_block(struct target *target, target_addr_t addr,
 {
 	struct arc_common *arc = target_to_arc(target);
 
-	LOG_DEBUG("Read memory: addr=0x%08" TARGET_PRIxADDR ", size=%" PRIu32
+	LOG_TARGET_DEBUG(target, "Read memory: addr=0x%08" TARGET_PRIxADDR ", size=%" PRIu32
 			", count=%" PRIu32, addr, size, count);
 	assert(!(addr & 3));
 	assert(size == 4);
@@ -243,11 +243,11 @@ int arc_mem_read(struct target *target, target_addr_t address, uint32_t size,
 	uint32_t words_to_read, bytes_to_read;
 
 
-	LOG_DEBUG("Read memory: addr=0x%08" TARGET_PRIxADDR ", size=%" PRIu32
+	LOG_TARGET_DEBUG(target, "Read memory: addr=0x%08" TARGET_PRIxADDR ", size=%" PRIu32
 			", count=%" PRIu32, address, size, count);
 
 	if (target->state != TARGET_HALTED) {
-		LOG_WARNING("target not halted");
+		LOG_TARGET_WARNING(target, "target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -268,7 +268,7 @@ int arc_mem_read(struct target *target, target_addr_t address, uint32_t size,
 	tunnel_te = calloc(1, bytes_to_read);
 
 	if (!tunnel_he || !tunnel_te) {
-		LOG_ERROR("Unable to allocate memory");
+		LOG_TARGET_ERROR(target, "Unable to allocate memory");
 		free(tunnel_he);
 		free(tunnel_te);
 		return ERROR_FAIL;

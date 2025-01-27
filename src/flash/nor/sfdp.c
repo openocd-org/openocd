@@ -103,7 +103,7 @@ int spi_sfdp(struct flash_bank *bank, struct flash_device *dev,
 		uint16_t id = (((pheaders[k].ptr) >> 16) & 0xFF00) | (pheaders[k].revision & 0xFF);
 		uint32_t ptr = pheaders[k].ptr & 0xFFFFFF;
 
-		LOG_DEBUG("pheader %d len=0x%02" PRIx8 " id=0x%04" PRIx16
+		LOG_DEBUG("pheader %d len=0x%02x id=0x%04" PRIx16
 			" ptr=0x%06" PRIx32, k, words, id, ptr);
 
 		/* retrieve parameter table */

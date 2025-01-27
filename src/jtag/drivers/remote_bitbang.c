@@ -278,7 +278,7 @@ static int remote_bitbang_swd_write(int swclk, int swdio)
 	return remote_bitbang_queue(c, NO_FLUSH);
 }
 
-static struct bitbang_interface remote_bitbang_bitbang = {
+static const struct bitbang_interface remote_bitbang_bitbang = {
 	.buf_size = sizeof(remote_bitbang_recv_buf) - 1,
 	.sample = &remote_bitbang_sample,
 	.read_sample = &remote_bitbang_read_sample,
