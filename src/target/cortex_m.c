@@ -1849,10 +1849,12 @@ static int cortex_m_deassert_reset(struct target *target)
 		target_state_name(target),
 		target_was_examined(target) ? "" : " not");
 
-	/* deassert reset lines */
-	adapter_deassert_reset();
-
 	enum reset_types jtag_reset_config = jtag_get_reset_config();
+
+	/* deassert reset lines */
+	if (jtag_reset_config & RESET_HAS_SRST)
+		adapter_deassert_reset();
+
 
 	if ((jtag_reset_config & RESET_HAS_SRST) &&
 		!(jtag_reset_config & RESET_SRST_NO_GATING) &&
