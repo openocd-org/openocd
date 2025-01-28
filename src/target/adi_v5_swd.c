@@ -51,6 +51,10 @@ static struct adiv5_dap *swd_multidrop_selected_dap;
 
 static bool swd_multidrop_in_swd_state;
 
+enum swd_recovery_mode {
+	SWD_RECOVERY_QUEUE,
+	SWD_RECOVERY_RUN
+};
 
 static int swd_queue_dp_write_inner(struct adiv5_dap *dap, unsigned int reg,
 		uint32_t data);
@@ -64,21 +68,24 @@ static int swd_send_sequence(struct adiv5_dap *dap, enum swd_special_seq seq)
 	return swd->switch_seq(seq);
 }
 
-static void swd_finish_read(struct adiv5_dap *dap)
+static int swd_finish_read(struct adiv5_dap *dap)
 {
 	const struct swd_driver *swd = adiv5_dap_swd_driver(dap);
-	if (dap->last_read) {
-		swd->read_reg(swd_cmd(true, false, DP_RDBUFF), dap->last_read, 0);
-		dap->last_read = NULL;
-	}
+	if (!dap->last_read)
+		return ERROR_OK;
+
+	int retval = swd->read_reg(swd_cmd(true, false, DP_RDBUFF),
+							   dap->last_read, 0);
+	dap->last_read = NULL;
+	return retval;
 }
 
-static void swd_clear_sticky_errors(struct adiv5_dap *dap)
+static int swd_clear_sticky_errors(struct adiv5_dap *dap)
 {
 	const struct swd_driver *swd = adiv5_dap_swd_driver(dap);
 	assert(swd);
 
-	swd->write_reg(swd_cmd(false, false, DP_ABORT),
+	return swd->write_reg(swd_cmd(false, false, DP_ABORT),
 		STKCMPCLR | STKERRCLR | WDERRCLR | ORUNERRCLR, 0);
 }
 
@@ -130,7 +137,9 @@ static int swd_queue_dp_read_inner(struct adiv5_dap *dap, unsigned int reg,
 	if (retval != ERROR_OK)
 		return retval;
 
-	swd->read_reg(swd_cmd(true, false, reg), data, 0);
+	retval = swd->read_reg(swd_cmd(true, false, reg), data, 0);
+	if (retval != ERROR_OK)
+		return retval;
 
 	return check_sync(dap);
 }
@@ -138,16 +147,20 @@ static int swd_queue_dp_read_inner(struct adiv5_dap *dap, unsigned int reg,
 static int swd_queue_dp_write_inner(struct adiv5_dap *dap, unsigned int reg,
 		uint32_t data)
 {
-	int retval = ERROR_OK;
 	const struct swd_driver *swd = adiv5_dap_swd_driver(dap);
 	assert(swd);
 
-	swd_finish_read(dap);
+	int retval = swd_finish_read(dap);
+	if (retval != ERROR_OK)
+		return retval;
+
 
 	if (reg == DP_SELECT) {
 		dap->select = data | (dap->select & (0xffffffffull << 32));
 
-		swd->write_reg(swd_cmd(false, false, reg), data, 0);
+		retval = swd->write_reg(swd_cmd(false, false, reg), data, 0);
+		if (retval != ERROR_OK)
+			return retval;
 
 		retval = check_sync(dap);
 		dap->select_valid = (retval == ERROR_OK);
@@ -165,7 +178,9 @@ static int swd_queue_dp_write_inner(struct adiv5_dap *dap, unsigned int reg,
 		retval = swd_queue_dp_bankselect(dap, reg);
 
 	if (retval == ERROR_OK) {
-		swd->write_reg(swd_cmd(false, false, reg), data, 0);
+		retval = swd->write_reg(swd_cmd(false, false, reg), data, 0);
+		if (retval != ERROR_OK)
+			return retval;
 
 		retval = check_sync(dap);
 	}
@@ -216,13 +231,13 @@ static int swd_multidrop_select_inner(struct adiv5_dap *dap, uint32_t *dpidr_ptr
 
 	if (clear_sticky) {
 		/* Clear all sticky errors (including ORUN) */
-		swd_clear_sticky_errors(dap);
+		retval = swd_clear_sticky_errors(dap);
 	} else {
 		/* Ideally just clear ORUN flag which is set by reset */
 		retval = swd_queue_dp_write_inner(dap, DP_ABORT, ORUNERRCLR);
-		if (retval != ERROR_OK)
-			return retval;
 	}
+	if (retval != ERROR_OK)
+		return retval;
 
 	retval = swd_queue_dp_read_inner(dap, DP_DLPIDR, &dlpidr);
 	if (retval != ERROR_OK)
@@ -389,9 +404,11 @@ static int swd_connect_single(struct adiv5_dap *dap)
 		dap->do_reconnect = false;
 
 		/* force clear all sticky faults */
-		swd_clear_sticky_errors(dap);
+		retval = swd_clear_sticky_errors(dap);
 
-		retval = swd_run_inner(dap);
+		if (retval == ERROR_OK)
+			retval = swd_run_inner(dap);
+
 		if (retval != ERROR_WAIT)
 			break;
 
@@ -460,6 +477,18 @@ static int swd_connect(struct adiv5_dap *dap)
 	return status;
 }
 
+static int swd_error_recovery(struct adiv5_dap *dap, int err,
+							  enum swd_recovery_mode mode)
+{
+	/* TODO: do not reconnect on all errors, just clear sticky
+	 * after SWD FAULT */
+	if (err != ERROR_OK) {
+		dap->do_reconnect = true;
+		LOG_DEBUG_IO("Reconnect on next SWD op");
+	}
+	return err;
+}
+
 static int swd_check_reconnect(struct adiv5_dap *dap)
 {
 	if (dap->do_reconnect)
@@ -481,8 +510,11 @@ static int swd_queue_ap_abort(struct adiv5_dap *dap, uint8_t *ack)
 	if (retval != ERROR_OK)
 		return retval;
 
-	swd->write_reg(swd_cmd(false, false, DP_ABORT),
+	retval = swd->write_reg(swd_cmd(false, false, DP_ABORT),
 		DAPABORT | STKCMPCLR | STKERRCLR | WDERRCLR | ORUNERRCLR, 0);
+	if (retval != ERROR_OK)
+		return retval;
+
 	return check_sync(dap);
 }
 
@@ -497,7 +529,8 @@ static int swd_queue_dp_read(struct adiv5_dap *dap, unsigned int reg,
 	if (retval != ERROR_OK)
 		return retval;
 
-	return swd_queue_dp_read_inner(dap, reg, data);
+	retval = swd_queue_dp_read_inner(dap, reg, data);
+	return swd_error_recovery(dap, retval, SWD_RECOVERY_QUEUE);
 }
 
 static int swd_queue_dp_write(struct adiv5_dap *dap, unsigned int reg,
@@ -511,7 +544,8 @@ static int swd_queue_dp_write(struct adiv5_dap *dap, unsigned int reg,
 	if (retval != ERROR_OK)
 		return retval;
 
-	return swd_queue_dp_write_inner(dap, reg, data);
+	retval = swd_queue_dp_write_inner(dap, reg, data);
+	return swd_error_recovery(dap, retval, SWD_RECOVERY_QUEUE);
 }
 
 /** Select the AP register bank */
@@ -550,6 +584,7 @@ static int swd_queue_ap_bankselect(struct adiv5_ap *ap, unsigned int reg)
 		LOG_DEBUG_IO("AP BANK SELECT: %" PRIx32, (uint32_t)sel);
 
 		retval = swd_queue_dp_write(dap, DP_SELECT, (uint32_t)sel);
+		retval = swd_error_recovery(dap, retval, SWD_RECOVERY_QUEUE);
 		if (retval != ERROR_OK)
 			return retval;
 	}
@@ -558,6 +593,7 @@ static int swd_queue_ap_bankselect(struct adiv5_ap *ap, unsigned int reg)
 		LOG_DEBUG_IO("AP BANK SELECT1: %" PRIx32, (uint32_t)(sel >> 32));
 
 		retval = swd_queue_dp_write(dap, DP_SELECT1, (uint32_t)(sel >> 32));
+		retval = swd_error_recovery(dap, retval, SWD_RECOVERY_QUEUE);
 		if (retval != ERROR_OK)
 			return retval;
 	}
@@ -584,7 +620,12 @@ static int swd_queue_ap_read(struct adiv5_ap *ap, unsigned int reg,
 	if (retval != ERROR_OK)
 		return retval;
 
-	swd->read_reg(swd_cmd(true, true, reg), dap->last_read, ap->memaccess_tck);
+	retval = swd->read_reg(swd_cmd(true, true, reg),
+						   dap->last_read, ap->memaccess_tck);
+	retval = swd_error_recovery(dap, retval, SWD_RECOVERY_QUEUE);
+	if (retval != ERROR_OK)
+		return retval;
+
 	dap->last_read = data;
 
 	return check_sync(dap);
@@ -605,13 +646,19 @@ static int swd_queue_ap_write(struct adiv5_ap *ap, unsigned int reg,
 	if (retval != ERROR_OK)
 		return retval;
 
-	swd_finish_read(dap);
+	retval = swd_finish_read(dap);
+	retval = swd_error_recovery(dap, retval, SWD_RECOVERY_QUEUE);
+	if (retval != ERROR_OK)
+		return retval;
 
 	retval = swd_queue_ap_bankselect(ap, reg);
 	if (retval != ERROR_OK)
 		return retval;
 
-	swd->write_reg(swd_cmd(false, true, reg), data, ap->memaccess_tck);
+	retval = swd->write_reg(swd_cmd(false, true, reg), data, ap->memaccess_tck);
+	retval = swd_error_recovery(dap, retval, SWD_RECOVERY_QUEUE);
+	if (retval != ERROR_OK)
+		return retval;
 
 	return check_sync(dap);
 }
@@ -623,15 +670,13 @@ static int swd_run(struct adiv5_dap *dap)
 	if (retval != ERROR_OK)
 		return retval;
 
-	swd_finish_read(dap);
+	retval = swd_finish_read(dap);
+	retval = swd_error_recovery(dap, retval, SWD_RECOVERY_QUEUE);
+	if (retval != ERROR_OK)
+		return retval;
 
 	retval = swd_run_inner(dap);
-	if (retval != ERROR_OK) {
-		/* fault response */
-		dap->do_reconnect = true;
-	}
-
-	return retval;
+	return swd_error_recovery(dap, retval, SWD_RECOVERY_RUN);
 }
 
 /** Put the SWJ-DP back to JTAG mode */

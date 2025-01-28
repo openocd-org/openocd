@@ -736,14 +736,18 @@ static int vsllink_swd_switch_seq(enum swd_special_seq seq)
 	return ERROR_OK;
 }
 
-static void vsllink_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_delay_clk)
+static int vsllink_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_delay_clk)
 {
 	versaloon_interface.adaptors.swd.transact(0, cmd, value, NULL);
+
+	return ERROR_OK;	/* TODO: return error instead of queuing it */
 }
 
-static void vsllink_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay_clk)
+static int vsllink_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay_clk)
 {
 	versaloon_interface.adaptors.swd.transact(0, cmd, &value, NULL);
+
+	return ERROR_OK;	/* TODO: return error instead of queuing it */
 }
 
 static int vsllink_swd_run_queue(void)

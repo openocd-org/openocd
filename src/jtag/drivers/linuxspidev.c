@@ -107,7 +107,7 @@ static uint8_t *queue_rx_buf;
 static uint8_t *tx_flip_buf;
 
 static int spidev_swd_switch_seq(enum swd_special_seq seq);
-static void spidev_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay_clk);
+static int spidev_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay_clk);
 
 static void spi_exchange(const uint8_t *tx_data, uint8_t *rx_data, unsigned int len)
 {
@@ -485,16 +485,20 @@ static void spidev_swd_queue_cmd(uint8_t cmd, uint32_t *dst, uint32_t data, uint
 	queue_fill++;
 }
 
-static void spidev_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_delay_clk)
+static int spidev_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_delay_clk)
 {
 	assert(cmd & SWD_CMD_RNW);
 	spidev_swd_queue_cmd(cmd, value, 0, ap_delay_clk);
+
+	return ERROR_OK;	/* TODO: return error instead of queuing it */
 }
 
-static void spidev_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay_clk)
+static int spidev_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay_clk)
 {
 	assert(!(cmd & SWD_CMD_RNW));
 	spidev_swd_queue_cmd(cmd, NULL, value, ap_delay_clk);
+
+	return ERROR_OK;	/* TODO: return error instead of queuing it */
 }
 
 static int spidev_swd_switch_seq(enum swd_special_seq seq)

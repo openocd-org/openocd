@@ -629,16 +629,20 @@ static int kitprog_swd_init(void)
 	return ERROR_OK;
 }
 
-static void kitprog_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay_clk)
+static int kitprog_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay_clk)
 {
 	assert(!(cmd & SWD_CMD_RNW));
 	kitprog_swd_queue_cmd(cmd, NULL, value);
+
+	return ERROR_OK;	/* TODO: return error instead of queuing it */
 }
 
-static void kitprog_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_delay_clk)
+static int kitprog_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_delay_clk)
 {
 	assert(cmd & SWD_CMD_RNW);
 	kitprog_swd_queue_cmd(cmd, value, 0);
+
+	return ERROR_OK;	/* TODO: return error instead of queuing it */
 }
 
 /*************** swd lowlevel functions ********************/

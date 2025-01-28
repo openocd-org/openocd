@@ -780,9 +780,7 @@ static int xlnx_axi_xvc_swd_switch_seq(enum swd_special_seq seq)
 	return xlnx_xvc_swd_switch_seq(seq, AXI);
 }
 
-static int queued_retval;
-
-static void xlnx_xvc_swd_write_reg(uint8_t cmd, uint32_t value,
+static int xlnx_xvc_swd_write_reg(uint8_t cmd, uint32_t value,
 					uint32_t ap_delay_clk,
 					enum xlnx_xvc_type_t xvc_type);
 
@@ -792,7 +790,7 @@ static void swd_clear_sticky_errors(enum xlnx_xvc_type_t xvc_type)
 		STKCMPCLR | STKERRCLR | WDERRCLR | ORUNERRCLR, 0, xvc_type);
 }
 
-static void xlnx_xvc_swd_read_reg(uint8_t cmd, uint32_t *value,
+static int xlnx_xvc_swd_read_reg(uint8_t cmd, uint32_t *value,
 					uint32_t ap_delay_clk,
 					enum xlnx_xvc_type_t xvc_type)
 {
@@ -805,19 +803,19 @@ static void xlnx_xvc_swd_read_reg(uint8_t cmd, uint32_t *value,
 	/* cmd + ack */
 	err = xlnx_xvc_transact(12, cmd, 0, &res, xvc_type);
 	if (err != ERROR_OK)
-		goto err_out;
+		return err;
 
 	ack = MASK_ACK(res);
 
 	/* read data */
 	err = xlnx_xvc_transact(32, 0, 0, &res, xvc_type);
 	if (err != ERROR_OK)
-		goto err_out;
+		return err;
 
 	/* parity + trn */
 	err = xlnx_xvc_transact(2, 0, 0, &rpar, xvc_type);
 	if (err != ERROR_OK)
-		goto err_out;
+		return err;
 
 	LOG_DEBUG("%s %s %s reg %X = %08" PRIx32,
 		  ack == SWD_ACK_OK ? "OK" : ack == SWD_ACK_WAIT ?
@@ -830,45 +828,39 @@ static void xlnx_xvc_swd_read_reg(uint8_t cmd, uint32_t *value,
 	case SWD_ACK_OK:
 		if (MASK_PAR(rpar) != parity_u32(res)) {
 			LOG_DEBUG_IO("Wrong parity detected");
-			queued_retval = ERROR_FAIL;
-			return;
+			return ERROR_SWD_FAIL;
 		}
 		if (value)
 			*value = res;
 		if (cmd & SWD_CMD_APNDP)
-			err = xlnx_xvc_transact(ap_delay_clk, 0, 0, NULL, xvc_type);
-		queued_retval = err;
-		return;
+			return xlnx_xvc_transact(ap_delay_clk, 0, 0, NULL, xvc_type);
+		return ERROR_OK;
 	case SWD_ACK_WAIT:
 		LOG_DEBUG_IO("SWD_ACK_WAIT");
 		swd_clear_sticky_errors(xvc_type);
-		return;
+		return ERROR_WAIT;
 	case SWD_ACK_FAULT:
 		LOG_DEBUG_IO("SWD_ACK_FAULT");
-		queued_retval = ack;
-		return;
+		return ERROR_SWD_FAULT;
 	default:
 		LOG_DEBUG_IO("No valid acknowledge: ack=%02" PRIx32, ack);
-		queued_retval = ack;
-		return;
+		return ERROR_SWD_FAIL;
 	}
-err_out:
-	queued_retval = err;
 }
 
-static void xlnx_pcie_xvc_swd_read_reg(uint8_t cmd, uint32_t *value,
+static int xlnx_pcie_xvc_swd_read_reg(uint8_t cmd, uint32_t *value,
 					uint32_t ap_delay_clk)
 {
-	xlnx_xvc_swd_read_reg(cmd, value, ap_delay_clk, PCIE);
+	return xlnx_xvc_swd_read_reg(cmd, value, ap_delay_clk, PCIE);
 }
 
-static void xlnx_axi_xvc_swd_read_reg(uint8_t cmd, uint32_t *value,
+static int xlnx_axi_xvc_swd_read_reg(uint8_t cmd, uint32_t *value,
 					uint32_t ap_delay_clk)
 {
-	xlnx_xvc_swd_read_reg(cmd, value, ap_delay_clk, AXI);
+	return xlnx_xvc_swd_read_reg(cmd, value, ap_delay_clk, AXI);
 }
 
-static void xlnx_xvc_swd_write_reg(uint8_t cmd, uint32_t value,
+static int xlnx_xvc_swd_write_reg(uint8_t cmd, uint32_t value,
 					uint32_t ap_delay_clk,
 					enum xlnx_xvc_type_t xvc_type)
 {
@@ -881,19 +873,19 @@ static void xlnx_xvc_swd_write_reg(uint8_t cmd, uint32_t value,
 	/* cmd + trn + ack */
 	err = xlnx_xvc_transact(13, cmd, 0, &res, xvc_type);
 	if (err != ERROR_OK)
-		goto err_out;
+		return err;
 
 	ack = MASK_ACK(res);
 
 	/* write data */
 	err = xlnx_xvc_transact(32, value, 0, NULL, xvc_type);
 	if (err != ERROR_OK)
-		goto err_out;
+		return err;
 
 	/* parity + trn */
 	err = xlnx_xvc_transact(2, parity_u32(value), 0, NULL, xvc_type);
 	if (err != ERROR_OK)
-		goto err_out;
+		return err;
 
 	LOG_DEBUG("%s %s %s reg %X = %08" PRIx32,
 		  ack == SWD_ACK_OK ? "OK" : ack == SWD_ACK_WAIT ?
@@ -906,53 +898,37 @@ static void xlnx_xvc_swd_write_reg(uint8_t cmd, uint32_t value,
 	switch (ack) {
 	case SWD_ACK_OK:
 		if (cmd & SWD_CMD_APNDP)
-			err = xlnx_xvc_transact(ap_delay_clk, 0, 0, NULL, xvc_type);
-		queued_retval = err;
-		return;
+			return xlnx_xvc_transact(ap_delay_clk, 0, 0, NULL, xvc_type);
+		return ERROR_OK;
 	case SWD_ACK_WAIT:
 		LOG_DEBUG_IO("SWD_ACK_WAIT");
 		swd_clear_sticky_errors(xvc_type);
-		return;
+		return ERROR_WAIT;
 	case SWD_ACK_FAULT:
 		LOG_DEBUG_IO("SWD_ACK_FAULT");
-		queued_retval = ack;
-		return;
+		return ERROR_SWD_FAULT;
 	default:
 		LOG_DEBUG_IO("No valid acknowledge: ack=%02" PRIx32, ack);
-		queued_retval = ack;
-		return;
+		return ERROR_SWD_FAIL;
 	}
-
-err_out:
-	queued_retval = err;
 }
 
-static void xlnx_pcie_xvc_swd_write_reg(uint8_t cmd, uint32_t value,
+static int xlnx_pcie_xvc_swd_write_reg(uint8_t cmd, uint32_t value,
 					uint32_t ap_delay_clk)
 {
-	xlnx_xvc_swd_write_reg(cmd, value, ap_delay_clk, PCIE);
+	return xlnx_xvc_swd_write_reg(cmd, value, ap_delay_clk, PCIE);
 }
 
-static void xlnx_axi_xvc_swd_write_reg(uint8_t cmd, uint32_t value,
+static int xlnx_axi_xvc_swd_write_reg(uint8_t cmd, uint32_t value,
 					uint32_t ap_delay_clk)
 {
-	xlnx_xvc_swd_write_reg(cmd, value, ap_delay_clk, AXI);
+	return xlnx_xvc_swd_write_reg(cmd, value, ap_delay_clk, AXI);
 }
 
 static int xlnx_xvc_swd_run_queue(enum xlnx_xvc_type_t xvc_type)
 {
-	int err;
-
 	/* we want at least 8 idle cycles between each transaction */
-	err = xlnx_xvc_transact(8, 0, 0, NULL, xvc_type);
-	if (err != ERROR_OK)
-		return err;
-
-	err = queued_retval;
-	queued_retval = ERROR_OK;
-	LOG_DEBUG("SWD queue return value: %02x", err);
-
-	return err;
+	return xlnx_xvc_transact(8, 0, 0, NULL, xvc_type);
 }
 
 static int xlnx_pcie_xvc_swd_run_queue(void)

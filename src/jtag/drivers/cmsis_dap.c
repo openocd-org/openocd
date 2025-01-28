@@ -1138,16 +1138,20 @@ static void cmsis_dap_swd_queue_cmd(uint8_t cmd, uint32_t *dst, uint32_t data)
 	block->transfer_count++;
 }
 
-static void cmsis_dap_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay_clk)
+static int cmsis_dap_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay_clk)
 {
 	assert(!(cmd & SWD_CMD_RNW));
 	cmsis_dap_swd_queue_cmd(cmd, NULL, value);
+
+	return ERROR_OK;	/* TODO: return error instead of queuing it */
 }
 
-static void cmsis_dap_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_delay_clk)
+static int cmsis_dap_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_delay_clk)
 {
 	assert(cmd & SWD_CMD_RNW);
 	cmsis_dap_swd_queue_cmd(cmd, value, 0);
+
+	return ERROR_OK;	/* TODO: return error instead of queuing it */
 }
 
 static int cmsis_dap_get_serial_info(void)

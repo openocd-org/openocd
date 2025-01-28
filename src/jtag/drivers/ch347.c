@@ -2352,20 +2352,16 @@ static int ch347_swd_switch_seq(enum swd_special_seq seq)
 	}
 }
 
-static void ch347_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_delay_clk)
+static int ch347_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_delay_clk)
 {
 	assert(cmd & SWD_CMD_RNW);
-	int retval = ch347_swd_queue_cmd(cmd, value, 0, ap_delay_clk);
-	if (retval != ERROR_OK)
-		ch347_swd_context.queued_retval = retval;
+	return ch347_swd_queue_cmd(cmd, value, 0, ap_delay_clk);
 }
 
-static void ch347_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay_clk)
+static int ch347_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay_clk)
 {
 	assert(!(cmd & SWD_CMD_RNW));
-	int retval = ch347_swd_queue_cmd(cmd, NULL, value, ap_delay_clk);
-	if (retval != ERROR_OK)
-		ch347_swd_context.queued_retval = retval;
+	return ch347_swd_queue_cmd(cmd, NULL, value, ap_delay_clk);
 }
 
 static const struct swd_driver ch347_swd = {

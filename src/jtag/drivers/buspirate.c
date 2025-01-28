@@ -98,7 +98,6 @@ enum {
 
 /* SWD mode specific */
 static bool swd_mode;
-static int  queued_retval;
 static char swd_features;
 
 static int buspirate_fd = -1;
@@ -112,8 +111,8 @@ static enum tap_state last_tap_state = TAP_RESET;
 
 /* SWD interface */
 static int buspirate_swd_init(void);
-static void buspirate_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_delay_clk);
-static void buspirate_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay_clk);
+static int buspirate_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_delay_clk);
+static int buspirate_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay_clk);
 static int buspirate_swd_switch_seq(enum swd_special_seq seq);
 static int buspirate_swd_run_queue(void);
 
@@ -1398,17 +1397,12 @@ static void buspirate_swd_clear_sticky_errors(void)
 		STKCMPCLR | STKERRCLR | WDERRCLR | ORUNERRCLR, 0);
 }
 
-static void buspirate_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_delay_clk)
+static int buspirate_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_delay_clk)
 {
 	uint8_t tmp[16];
 
 	LOG_DEBUG("buspirate_swd_read_reg");
 	assert(cmd & SWD_CMD_RNW);
-
-	if (queued_retval != ERROR_OK) {
-		LOG_DEBUG("Skip buspirate_swd_read_reg because queued_retval=%d", queued_retval);
-		return;
-	}
 
 	cmd |= SWD_CMD_START | SWD_CMD_PARK;
 	uint8_t ack = buspirate_swd_write_header(cmd);
@@ -1442,40 +1436,32 @@ static void buspirate_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_del
 	case SWD_ACK_OK:
 		if (parity != parity_u32(data)) {
 			LOG_DEBUG("Read data parity mismatch %x %x", parity, parity_u32(data));
-			queued_retval = ERROR_FAIL;
-			return;
+			return ERROR_SWD_FAIL;
 		}
 		if (value)
 			*value = data;
 		if (cmd & SWD_CMD_APNDP)
 			buspirate_swd_idle_clocks(ap_delay_clk);
-		return;
+		return ERROR_OK;
 	case SWD_ACK_WAIT:
 		LOG_DEBUG("SWD_ACK_WAIT");
 		buspirate_swd_clear_sticky_errors();
-		return;
+		return ERROR_WAIT;
 	case SWD_ACK_FAULT:
 		LOG_DEBUG("SWD_ACK_FAULT");
-		queued_retval = ack;
-		return;
+		return ERROR_SWD_FAULT;
 	default:
 		LOG_DEBUG("No valid acknowledge: ack=%d", ack);
-		queued_retval = ack;
-		return;
+		return ERROR_SWD_FAIL;
 	}
 }
 
-static void buspirate_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay_clk)
+static int buspirate_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay_clk)
 {
 	uint8_t tmp[16];
 
 	LOG_DEBUG("buspirate_swd_write_reg");
 	assert(!(cmd & SWD_CMD_RNW));
-
-	if (queued_retval != ERROR_OK) {
-		LOG_DEBUG("Skip buspirate_swd_write_reg because queued_retval=%d", queued_retval);
-		return;
-	}
 
 	cmd |= SWD_CMD_START | SWD_CMD_PARK;
 	uint8_t ack = buspirate_swd_write_header(cmd);
@@ -1500,19 +1486,17 @@ static void buspirate_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_del
 	case SWD_ACK_OK:
 		if (cmd & SWD_CMD_APNDP)
 			buspirate_swd_idle_clocks(ap_delay_clk);
-		return;
+		return ERROR_OK;
 	case SWD_ACK_WAIT:
 		LOG_DEBUG("SWD_ACK_WAIT");
 		buspirate_swd_clear_sticky_errors();
-		return;
+		return ERROR_WAIT;
 	case SWD_ACK_FAULT:
 		LOG_DEBUG("SWD_ACK_FAULT");
-		queued_retval = ack;
-		return;
+		return ERROR_SWD_FAULT;
 	default:
 		LOG_DEBUG("No valid acknowledge: ack=%d", ack);
-		queued_retval = ack;
-		return;
+		return ERROR_SWD_FAIL;
 	}
 }
 
@@ -1523,8 +1507,5 @@ static int buspirate_swd_run_queue(void)
 	 * ensure that data is clocked through the AP. */
 	buspirate_swd_idle_clocks(8);
 
-	int retval = queued_retval;
-	queued_retval = ERROR_OK;
-	LOG_DEBUG("SWD queue return value: %02x", retval);
-	return retval;
+	return ERROR_OK;
 }

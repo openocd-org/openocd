@@ -424,13 +424,13 @@ static int eud_swd_init(void)
 	return eud_swd_prepare();
 }
 
-static void eud_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_delay_clk)
+static int eud_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_delay_clk)
 {
 	assert(cmd & SWD_CMD_RNW);
 
 	if (eud_queue_len >= ARRAY_SIZE(eud_queue)) {
-		eud_queued_retval = ERROR_FAIL;
-		return;
+		// REVISIT: run queue instead of fail
+		return ERROR_FAIL;
 	}
 
 	eud_queue[eud_queue_len++] = (struct eud_swd_transfer) {
@@ -438,15 +438,16 @@ static void eud_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_delay_clk
 		.read_value = value,
 		.ap_delay_clk = ap_delay_clk,
 	};
+	return ERROR_OK;
 }
 
-static void eud_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay_clk)
+static int eud_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay_clk)
 {
 	assert(!(cmd & SWD_CMD_RNW));
 
 	if (eud_queue_len >= ARRAY_SIZE(eud_queue)) {
-		eud_queued_retval = ERROR_FAIL;
-		return;
+		// REVISIT: run queue instead of fail
+		return ERROR_FAIL;
 	}
 
 	eud_queue[eud_queue_len++] = (struct eud_swd_transfer) {
@@ -454,6 +455,7 @@ static void eud_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay_clk
 		.value = value,
 		.ap_delay_clk = ap_delay_clk,
 	};
+	return ERROR_OK;
 }
 
 static int eud_swd_run_queue(void)

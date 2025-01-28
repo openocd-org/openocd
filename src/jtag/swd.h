@@ -271,8 +271,9 @@ struct swd_driver {
 	 * @param ap_delay_hint Number of idle cycles that may be
 	 * needed after an AP access to avoid WAITs
 	 * or zero in case of DP read.
+	 * @return ERROR_OK if the command was queued or executed or a fault code
 	 */
-	void (*read_reg)(uint8_t cmd, uint32_t *value, uint32_t ap_delay_hint);
+	int (*read_reg)(uint8_t cmd, uint32_t *value, uint32_t ap_delay_hint);
 
 	/**
 	 * Queued write of an AP or DP register.
@@ -282,8 +283,9 @@ struct swd_driver {
 	 * @param ap_delay_hint Number of idle cycles that may be
 	 * needed after an AP access to avoid WAITs
 	 * or zero in case of DP write.
+	 * @return ERROR_OK if the command was queued or executed or a fault code
 	 */
-	void (*write_reg)(uint8_t cmd, uint32_t value, uint32_t ap_delay_hint);
+	int (*write_reg)(uint8_t cmd, uint32_t value, uint32_t ap_delay_hint);
 
 	/**
 	 * Execute any queued transactions and collect the result.

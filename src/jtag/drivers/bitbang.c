@@ -35,7 +35,7 @@
  */
 static int bitbang_stableclocks(unsigned int num_cycles);
 
-static void bitbang_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay_clk);
+static int bitbang_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay_clk);
 
 const struct bitbang_interface *bitbang_interface;
 
@@ -386,8 +386,6 @@ int bitbang_execute_queue(struct jtag_command *cmd_queue)
 	return retval;
 }
 
-static int queued_retval;
-
 static int bitbang_swd_init(void)
 {
 	LOG_DEBUG("bitbang_swd_init");
@@ -469,14 +467,9 @@ static void swd_clear_sticky_errors(void)
 		STKCMPCLR | STKERRCLR | WDERRCLR | ORUNERRCLR, 0);
 }
 
-static void bitbang_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_delay_clk)
+static int bitbang_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_delay_clk)
 {
 	assert(cmd & SWD_CMD_RNW);
-
-	if (queued_retval != ERROR_OK) {
-		LOG_DEBUG("Skip bitbang_swd_read_reg because queued_retval=%d", queued_retval);
-		return;
-	}
 
 	int64_t timeout = timeval_ms() + SWD_WAIT_TIMEOUT;
 	for (unsigned int retry = 0;; retry++) {
@@ -511,32 +504,24 @@ static void bitbang_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_delay
 		if (retry > 1)
 			LOG_DEBUG("SWD WAIT: retried %u times", retry);
 
-		if (ack != SWD_ACK_OK) {
-			queued_retval = swd_ack_to_error_code(ack);
-			return;
-		}
+		if (ack != SWD_ACK_OK)
+			return swd_ack_to_error_code(ack);
 
 		if (parity != parity_u32(data)) {
 			LOG_ERROR("Wrong parity detected");
-			queued_retval = ERROR_FAIL;
-			return;
+			return ERROR_SWD_FAIL;
 		}
 		if (value)
 			*value = data;
 		if (cmd & SWD_CMD_APNDP)
 			bitbang_swd_exchange(true, NULL, 0, ap_delay_clk);
-		return;
+		return ERROR_OK;
 	}
 }
 
-static void bitbang_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay_clk)
+static int bitbang_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay_clk)
 {
 	assert(!(cmd & SWD_CMD_RNW));
-
-	if (queued_retval != ERROR_OK) {
-		LOG_DEBUG("Skip bitbang_swd_write_reg because queued_retval=%d", queued_retval);
-		return;
-	}
 
 	int64_t timeout = timeval_ms() + SWD_WAIT_TIMEOUT;
 
@@ -590,14 +575,12 @@ static void bitbang_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay
 		if (retry > 1)
 			LOG_DEBUG("SWD WAIT: retried %u times", retry);
 
-		if (check_ack && ack != SWD_ACK_OK) {
-			queued_retval = swd_ack_to_error_code(ack);
-			return;
-		}
+		if (check_ack && ack != SWD_ACK_OK)
+			return swd_ack_to_error_code(ack);
 
 		if (cmd & SWD_CMD_APNDP)
 			bitbang_swd_exchange(true, NULL, 0, ap_delay_clk);
-		return;
+		return ERROR_OK;
 	}
 }
 
@@ -607,10 +590,7 @@ static int bitbang_swd_run_queue(void)
 	 * ensure that data is clocked through the AP. */
 	bitbang_swd_exchange(true, NULL, 0, 8);
 
-	int retval = queued_retval;
-	queued_retval = ERROR_OK;
-	LOG_DEBUG_IO("SWD queue return value: %02x", retval);
-	return retval;
+	return ERROR_OK;
 }
 
 const struct swd_driver bitbang_swd = {
