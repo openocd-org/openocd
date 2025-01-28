@@ -3490,11 +3490,39 @@ typedef enum {
 			SKIPPED, "skipped (dm target select failed)") \
 	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_SKIPPED_FENCE_EXEC_FAILED, \
 			SKIPPED, "skipped (fence execution failed)") \
+	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_SKIPPED_SYSBUS_ACCESS_FAILED, \
+			SKIPPED, "skipped (sysbus access failed)") \
+	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_SKIPPED_REG_SAVE_FAILED, \
+			SKIPPED, "skipped (register save failed)") \
+	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_SKIPPED_UNKNOWN_SYSBUS_VERSION, \
+			SKIPPED, "skipped (unknown sysbus version)") \
+	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_SKIPPED_PROGRAM_WRITE_FAILED, \
+			SKIPPED, "skipped (program write failed)") \
+	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_SKIPPED_PROGBUF_FILL_FAILED, \
+			SKIPPED, "skipped (progbuf fill failed)") \
+	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_SKIPPED_WRITE_ABSTRACT_ARG_FAILED, \
+			SKIPPED, "skipped (abstract command argument write failed)") \
+	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_SKIPPED_PRIV_MOD_FAILED, \
+			SKIPPED, "skipped (privilege modification failed)") \
 	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_FAILED, FAILED, "failed") \
 	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_FAILED_DM_ACCESS_FAILED, \
 			FAILED, "failed (DM register access failed)") \
 	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_FAILED_PRIV_MOD_FAILED, \
-			FAILED, "failed (privilege modification failed)")
+			FAILED, "failed (privilege modification failed)") \
+	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_FAILED_REG_READ_FAILED, \
+			FAILED, "failed (register read failed)") \
+	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_FAILED_PROGBUF_STARTUP_FAILED, \
+			FAILED, "failed (progbuf startup failed)") \
+	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_FAILED_PROGBUF_INNER_FAILED, \
+			FAILED, "failed (progbuf inner failed)") \
+	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_FAILED_PROGBUF_TEARDOWN_FAILED, \
+			FAILED, "failed (progbuf teardown failed)") \
+	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_FAILED_EXECUTE_ABSTRACT_FAILED, \
+			FAILED, "failed (execute abstract failed)") \
+	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_FAILED_NO_FORWARD_PROGRESS, \
+			FAILED, "failed (no forward progress)") \
+	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_FAILED_FENCE_EXEC_FAILED, \
+			FAILED, "failed (fence execution failed)") \
 
 
 #define MEM_ACCESS_RESULT_HANDLER(name, kind, msg) name,
@@ -4203,7 +4231,7 @@ static int read_word_from_dm_data_regs(struct target *target,
 	return result;
 }
 
-static int read_word_from_s1(struct target *target,
+static mem_access_result_t read_word_from_s1(struct target *target,
 		const riscv_mem_access_args_t args, uint32_t index)
 {
 	assert(riscv_mem_access_is_read(args));
@@ -4211,9 +4239,9 @@ static int read_word_from_s1(struct target *target,
 	uint64_t value;
 
 	if (register_read_direct(target, &value, GDB_REGNO_S1) != ERROR_OK)
-		return ERROR_FAIL;
+		return MEM_ACCESS_FAILED_REG_READ_FAILED;
 	set_buffer_and_log_read(args, index, value);
-	return ERROR_OK;
+	return MEM_ACCESS_OK;
 }
 
 static int read_memory_progbuf_inner_fill_progbuf(struct target *target,
@@ -4256,18 +4284,19 @@ static int read_memory_progbuf_inner_fill_progbuf(struct target *target,
  * re-read the data only if `abstract command busy` or `DMI busy`
  * is encountered in the process.
  */
-static int read_memory_progbuf_inner(struct target *target, const riscv_mem_access_args_t args)
+static mem_access_result_t
+read_memory_progbuf_inner(struct target *target, const riscv_mem_access_args_t args)
 {
 	assert(riscv_mem_access_is_read(args));
 	assert(args.count > 1 && "If count == 1, read_memory_progbuf_inner_one must be called");
 
-	if (read_memory_progbuf_inner_fill_progbuf(target, args.increment, args.size) != ERROR_OK)
-		return ERROR_FAIL;
+	if (read_memory_progbuf_inner_fill_progbuf(target,
+			args.increment, args.size) != ERROR_OK)
+		return MEM_ACCESS_SKIPPED_PROGBUF_FILL_FAILED;
 
 	if (read_memory_progbuf_inner_startup(target, args.address,
-				args.increment, /*index*/ 0)
-			!= ERROR_OK)
-		return ERROR_FAIL;
+			args.increment, /*index*/ 0) != ERROR_OK)
+		return MEM_ACCESS_FAILED_PROGBUF_STARTUP_FAILED;
 	/* The program in program buffer is executed twice during
 	 * read_memory_progbuf_inner_startup().
 	 * Here:
@@ -4285,13 +4314,13 @@ static int read_memory_progbuf_inner(struct target *target, const riscv_mem_acce
 		if (read_memory_progbuf_inner_try_to_read(target, args, &elements_read,
 					index, loop_count) != ERROR_OK) {
 			dm_write(target, DM_ABSTRACTAUTO, 0);
-			return ERROR_FAIL;
+			return MEM_ACCESS_FAILED_PROGBUF_INNER_FAILED;
 		}
 		if (elements_read == 0) {
 			if (read_memory_progbuf_inner_ensure_forward_progress(target, args,
 						index) != ERROR_OK) {
 				dm_write(target, DM_ABSTRACTAUTO, 0);
-				return ERROR_FAIL;
+				return MEM_ACCESS_FAILED_NO_FORWARD_PROGRESS;
 			}
 			elements_read = 1;
 		}
@@ -4299,12 +4328,12 @@ static int read_memory_progbuf_inner(struct target *target, const riscv_mem_acce
 		assert(index <= loop_count);
 	}
 	if (dm_write(target, DM_ABSTRACTAUTO, 0) != ERROR_OK)
-		return ERROR_FAIL;
+		return MEM_ACCESS_FAILED_DM_ACCESS_FAILED;
 
 	/* Read the penultimate word. */
-	if (read_word_from_dm_data_regs(target, args, args.count - 2)
-			!= ERROR_OK)
-		return ERROR_FAIL;
+	if (read_word_from_dm_data_regs(target,
+			args, args.count - 2) != ERROR_OK)
+		return MEM_ACCESS_FAILED_DM_ACCESS_FAILED;
 	/* Read the last word. */
 	return read_word_from_s1(target, args, args.count - 1);
 }
@@ -4313,33 +4342,35 @@ static int read_memory_progbuf_inner(struct target *target, const riscv_mem_acce
  * Only need to save/restore one GPR to read a single word, and the progbuf
  * program doesn't need to increment.
  */
-static int read_memory_progbuf_inner_one(struct target *target, const riscv_mem_access_args_t args)
+static mem_access_result_t
+read_memory_progbuf_inner_one(struct target *target, const riscv_mem_access_args_t args)
 {
 	assert(riscv_mem_access_is_read(args));
 
 	if (riscv013_reg_save(target, GDB_REGNO_S1) != ERROR_OK)
-		return ERROR_FAIL;
+		return MEM_ACCESS_SKIPPED_REG_SAVE_FAILED;
 
 	struct riscv_program program;
 
 	riscv_program_init(&program, target);
-	if (riscv_program_load(&program, GDB_REGNO_S1, GDB_REGNO_S1, 0, args.size) != ERROR_OK)
-		return ERROR_FAIL;
-	if (riscv_program_ebreak(&program) != ERROR_OK)
-		return ERROR_FAIL;
+	if (riscv_program_load(&program, GDB_REGNO_S1, GDB_REGNO_S1,
+			/* offset = */ 0, args.size) != ERROR_OK
+			|| riscv_program_ebreak(&program) != ERROR_OK)
+		return MEM_ACCESS_SKIPPED_PROGBUF_FILL_FAILED;
+
 	if (riscv_program_write(&program) != ERROR_OK)
-		return ERROR_FAIL;
+		return MEM_ACCESS_SKIPPED_PROGRAM_WRITE_FAILED;
 
 	/* Write address to S1, and execute buffer. */
-	if (write_abstract_arg(target, 0, args.address, riscv_xlen(target))
-			!= ERROR_OK)
-		return ERROR_FAIL;
+	if (write_abstract_arg(target, /* index = */ 0,
+			args.address, riscv_xlen(target)) != ERROR_OK)
+		return MEM_ACCESS_SKIPPED_WRITE_ABSTRACT_ARG_FAILED;
 	uint32_t command = riscv013_access_register_command(target, GDB_REGNO_S1,
 			riscv_xlen(target), AC_ACCESS_REGISTER_WRITE |
 			AC_ACCESS_REGISTER_TRANSFER | AC_ACCESS_REGISTER_POSTEXEC);
 	uint32_t cmderr;
 	if (riscv013_execute_abstract_command(target, command, &cmderr) != ERROR_OK)
-		return ERROR_FAIL;
+		return MEM_ACCESS_FAILED_EXECUTE_ABSTRACT_FAILED;
 
 	return read_word_from_s1(target, args, 0);
 }
@@ -4358,11 +4389,9 @@ read_memory_progbuf(struct target *target, const riscv_mem_access_args_t args)
 	if (execute_autofence(target) != ERROR_OK)
 		return MEM_ACCESS_SKIPPED_FENCE_EXEC_FAILED;
 
-	int res = (args.count == 1) ?
+	return (args.count == 1) ?
 			read_memory_progbuf_inner_one(target, args) :
 			read_memory_progbuf_inner(target, args);
-
-	return res == ERROR_OK ? MEM_ACCESS_OK : MEM_ACCESS_FAILED;
 }
 
 static mem_access_result_t
@@ -4390,7 +4419,7 @@ access_memory_progbuf(struct target *target, const riscv_mem_access_args_t args)
 	riscv_reg_t dcsr_old = 0;
 	if (modify_privilege_for_virt2phys_mode(target,
 			&mstatus, &mstatus_old, &dcsr, &dcsr_old) != ERROR_OK)
-		return MEM_ACCESS_FAILED_PRIV_MOD_FAILED;
+		return MEM_ACCESS_SKIPPED_PRIV_MOD_FAILED;
 
 	mem_access_result_t result = is_read ?
 			read_memory_progbuf(target, args) :
@@ -4398,7 +4427,7 @@ access_memory_progbuf(struct target *target, const riscv_mem_access_args_t args)
 
 	if (restore_privilege_from_virt2phys_mode(target,
 			mstatus, mstatus_old, dcsr, dcsr_old) != ERROR_OK)
-		return MEM_ACCESS_FAILED;
+		return MEM_ACCESS_FAILED_PRIV_MOD_FAILED;
 
 	return result;
 }
@@ -4421,17 +4450,18 @@ access_memory_sysbus(struct target *target, const riscv_mem_access_args_t args)
 	int ret = ERROR_FAIL;
 	const bool is_read = riscv_mem_access_is_read(args);
 	const uint64_t sbver = get_field(info->sbcs, DM_SBCS_SBVERSION);
-	if (sbver == 0)
+	if (sbver == 0) {
 		ret = is_read ? read_memory_bus_v0(target, args) :
 				write_memory_bus_v0(target, args);
-	else if (sbver == 1)
+	} else if (sbver == 1) {
 		ret = is_read ? read_memory_bus_v1(target, args) :
 				write_memory_bus_v1(target, args);
-	else
-		LOG_TARGET_ERROR(target,
-			"Unknown system bus version: %" PRIu64, sbver);
+	} else {
+		LOG_TARGET_ERROR(target, "Unknown system bus version: %" PRIu64, sbver);
+		return MEM_ACCESS_SKIPPED_UNKNOWN_SYSBUS_VERSION;
+	}
 
-	return (ret == ERROR_OK) ? MEM_ACCESS_OK : MEM_ACCESS_FAILED;
+	return ret == ERROR_OK ? MEM_ACCESS_OK : MEM_ACCESS_SKIPPED_SYSBUS_ACCESS_FAILED;
 }
 
 static mem_access_result_t
@@ -4449,10 +4479,8 @@ access_memory_abstract(struct target *target, const riscv_mem_access_args_t args
 			TARGET_PRIxADDR, access_type, args.count,
 			args.size, args.address);
 
-	int result = is_read ? read_memory_abstract(target, args) :
+	return is_read ? read_memory_abstract(target, args) :
 			write_memory_abstract(target, args);
-
-	return result == ERROR_OK ? MEM_ACCESS_OK : MEM_ACCESS_FAILED;
 }
 
 static int
@@ -4913,16 +4941,19 @@ static int write_memory_progbuf_fill_progbuf(struct target *target, uint32_t siz
 	return riscv_program_write(&program);
 }
 
-static int write_memory_progbuf_inner(struct target *target, const riscv_mem_access_args_t args)
+static mem_access_result_t
+write_memory_progbuf_inner(struct target *target,
+		const riscv_mem_access_args_t args)
 {
 	assert(riscv_mem_access_is_write(args));
 
 	if (write_memory_progbuf_fill_progbuf(target, args.size) != ERROR_OK)
-		return ERROR_FAIL;
+		return MEM_ACCESS_SKIPPED_PROGBUF_FILL_FAILED;
 
 	target_addr_t addr_on_target = args.address;
-	if (write_memory_progbuf_startup(target, &addr_on_target, args.write_buffer, args.size) != ERROR_OK)
-		return ERROR_FAIL;
+	if (write_memory_progbuf_startup(target, &addr_on_target,
+			args.write_buffer, args.size) != ERROR_OK)
+		return MEM_ACCESS_FAILED_PROGBUF_STARTUP_FAILED;
 
 	const target_addr_t end_addr = args.address + (target_addr_t)args.size * args.count;
 
@@ -4932,7 +4963,7 @@ static int write_memory_progbuf_inner(struct target *target, const riscv_mem_acc
 		if (write_memory_progbuf_try_to_write(target, &next_addr_on_target,
 					end_addr, args.size, curr_buff) != ERROR_OK) {
 			write_memory_progbuf_teardown(target);
-			return ERROR_FAIL;
+			return MEM_ACCESS_FAILED_PROGBUF_INNER_FAILED;
 		}
 		/* write_memory_progbuf_try_to_write() ensures that at least one item
 		 * gets successfully written even when busy condition is encountered.
@@ -4941,7 +4972,8 @@ static int write_memory_progbuf_inner(struct target *target, const riscv_mem_acc
 		assert(next_addr_on_target - args.address <= (target_addr_t)args.size * args.count);
 	}
 
-	return write_memory_progbuf_teardown(target);
+	return write_memory_progbuf_teardown(target) == ERROR_OK ?
+			MEM_ACCESS_OK : MEM_ACCESS_FAILED_PROGBUF_TEARDOWN_FAILED;
 }
 
 static mem_access_result_t
@@ -4949,12 +4981,12 @@ write_memory_progbuf(struct target *target, const riscv_mem_access_args_t args)
 {
 	assert(riscv_mem_access_is_write(args));
 
-	int result = write_memory_progbuf_inner(target, args);
+	mem_access_result_t result = write_memory_progbuf_inner(target, args);
 
 	if (execute_autofence(target) != ERROR_OK)
-		return MEM_ACCESS_SKIPPED_FENCE_EXEC_FAILED;
+		return MEM_ACCESS_FAILED_FENCE_EXEC_FAILED;
 
-	return result == ERROR_OK ? MEM_ACCESS_OK : MEM_ACCESS_FAILED;
+	return result;
 }
 
 static bool riscv013_get_impebreak(const struct target *target)
