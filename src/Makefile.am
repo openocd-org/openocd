@@ -22,22 +22,21 @@ endif
 
 %C%_libopenocd_la_CPPFLAGS =
 
-# this is Syntacore-specific code
-if SYNTACORE_RELEASE
-%C%_libopenocd_la_CPPFLAGS += -DRELSTR=\"-`head -1 $(top_srcdir)/__sc_version.txt`\"
-%C%_libopenocd_la_CPPFLAGS += -DGITVERSION=\"`tail -1 $(top_srcdir)/__sc_version.txt`\"
-%C%_libopenocd_la_CPPFLAGS += -DPKGBLDDATE=\"`date +%F-%R`\"
-else
 # banner output includes RELSTR appended to $VERSION from the configure script
 # guess-rev.sh returns either a repository version ID or "-snapshot"
 if RELEASE
 %C%_libopenocd_la_CPPFLAGS += -DRELSTR=\"\"
 %C%_libopenocd_la_CPPFLAGS += -DGITVERSION=\"\"
 else
-%C%_libopenocd_la_CPPFLAGS += -DRELSTR=\"`$(top_srcdir)/guess-rev.sh $(top_srcdir)`\"
-%C%_libopenocd_la_CPPFLAGS += -DGITVERSION=\"`cd $(top_srcdir) && git describe`\"
+mpy_hints_path = $(top_builddir)/makepy_hints.json
+get_version = "import json; print(json.load(open('$(mpy_hints_path)'))['version'])"
+branch = $$(python -c $(get_version) | cut -d'+' -f2- | tr -c '[:alnum:]\n' _)
+revision = $$(git -C $(top_srcdir) rev-parse HEAD | head -c 8)
+maybe_dirty = $$([ -z "$$(git status --untracked-files=no --porcelain)" ] || echo -dirty)
+%C%_libopenocd_la_CPPFLAGS += -DRELSTR=\"-$(branch)-g$(revision)$(maybe_dirty)\"
+riscv_base = $$(git -C $(top_srcdir) merge-base origin/riscv HEAD | head -c 8)
+%C%_libopenocd_la_CPPFLAGS += -DGITVERSION=\"riscv-upstream-$(riscv_base)-cs-$(revision)$(maybe_dirty)\"
 %C%_libopenocd_la_CPPFLAGS += -DPKGBLDDATE=\"`date +%F-%R`\"
-endif
 endif
 
 # add default CPPFLAGS
