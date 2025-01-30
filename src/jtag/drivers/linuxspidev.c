@@ -230,10 +230,21 @@ static void spidev_free_queue(void)
 	tx_flip_buf = NULL;
 }
 
+static void spidev_clear_queue(void)
+{
+	queue_fill = 0;
+	queue_buf_fill = 0;
+
+	memset(queue_infos, 0, sizeof(struct queue_info) * max_queue_entries);
+	memset(queue_tx_buf, 0, queue_buf_size);
+	memset(queue_rx_buf, 0, queue_buf_size);
+	memset(tx_flip_buf, 0, queue_buf_size);
+}
+
 static int spidev_alloc_queue(unsigned int new_queue_entries)
 {
 	if (queue_fill || queue_buf_fill) {
-		LOG_ERROR("Can't realloc allocate queue when queue is in use");
+		LOG_ERROR("Can't realloc queue when queue is in use");
 		return ERROR_FAIL;
 	}
 
@@ -258,6 +269,8 @@ static int spidev_alloc_queue(unsigned int new_queue_entries)
 
 	max_queue_entries = new_queue_entries;
 	queue_buf_size = new_queue_buf_size;
+
+	spidev_clear_queue();
 
 	LOG_DEBUG("Set queue entries to %u (buffers %u bytes)", max_queue_entries, queue_buf_size);
 
@@ -400,12 +413,7 @@ static int spidev_swd_execute_queue(unsigned int end_idle_bytes)
 	}
 
 skip:
-	// Clear everything in the queue
-	queue_fill = 0;
-	queue_buf_fill = 0;
-	memset(queue_infos, 0, sizeof(queue_infos[0]) * max_queue_entries);
-	memset(queue_tx_buf, 0, queue_buf_size);
-	memset(queue_rx_buf, 0, queue_buf_size);
+	spidev_clear_queue();
 
 	int retval = queue_retval;
 	queue_retval = ERROR_OK;
