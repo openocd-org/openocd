@@ -36,23 +36,50 @@ static const struct reg_arch_type *riscv011_gdb_regno_reg_type(uint32_t regno)
 	return &riscv011_reg_type;
 }
 
-static int riscv011_init_reg(struct target *target, uint32_t regno)
-{
-	return riscv_reg_impl_init_cache_entry(target, regno,
-			riscv_reg_impl_gdb_regno_exist(target, regno),
-			riscv011_gdb_regno_reg_type(regno));
-}
 
 int riscv011_reg_init_all(struct target *target)
 {
-	if (riscv_reg_impl_init_cache(target) != ERROR_OK)
-		return ERROR_FAIL;
+	int res = riscv_reg_impl_init_cache(target);
+	if (res != ERROR_OK)
+		return res;
 
 	init_shared_reg_info(target);
 
-	for (uint32_t regno = 0; regno < target->reg_cache->num_regs; ++regno)
-		if (riscv011_init_reg(target, regno) != ERROR_OK)
-			return ERROR_FAIL;
+	RISCV_INFO(r);
+	assert(!r->vlenb
+			&& "VLENB discovery is not supported on RISC-V 0.11 targets");
+	assert(!r->mtopi_readable
+			&& "MTOPI discovery is not supported on RISC-V 0.11 targets");
+	assert(!r->mtopei_readable
+			&& "MTOPEI discovery is not supported on RISC-V 0.11 targets");
+	/* Existence of some registers depends on others.
+	 * E.g. the presence of "v0-31" registers is infered from "vlenb" being
+	 * non-zero.
+	 * Currently, discovery of the following registers is not supported on
+	 * RISC-V 0.11 targets. */
+	uint32_t non_discoverable_regs[] = {
+		GDB_REGNO_VLENB,
+		GDB_REGNO_MTOPI,
+		GDB_REGNO_MTOPEI
+	};
+	for (unsigned int i = 0; i < ARRAY_SIZE(non_discoverable_regs); ++i) {
+		const uint32_t regno = non_discoverable_regs[i];
+		res = riscv_reg_impl_init_cache_entry(target, regno,
+				/*exist*/ false, riscv011_gdb_regno_reg_type(regno));
+		if (res != ERROR_OK)
+			return res;
+	}
+
+	for (uint32_t regno = 0; regno < target->reg_cache->num_regs; ++regno) {
+		const struct reg * const reg = riscv_reg_impl_cache_entry(target, regno);
+		if (riscv_reg_impl_is_initialized(reg))
+			continue;
+		res = riscv_reg_impl_init_cache_entry(target, regno,
+				riscv_reg_impl_gdb_regno_exist(target, regno),
+				riscv011_gdb_regno_reg_type(regno));
+		if (res != ERROR_OK)
+			return res;
+	}
 
 	if (riscv_reg_impl_expose_csrs(target) != ERROR_OK)
 		return ERROR_FAIL;
