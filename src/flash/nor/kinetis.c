@@ -1489,7 +1489,22 @@ static int kinetis_fill_fcf(struct flash_bank *bank, uint8_t *fcf)
 
 		kinetis_auto_probe(bank_iter);
 
-		assert(bank_iter->prot_blocks);
+		if (bank_iter->num_prot_blocks == 0) {
+			if (k_bank->flash_class == FC_PFLASH) {
+				LOG_ERROR("BUG: PFLASH bank %u has no protection blocks",
+						  bank_idx);
+			} else {
+				LOG_DEBUG("skipping FLEX_NVM bank %u with no prot blocks (EE bkp only)",
+						  bank_idx);
+			}
+			continue;
+		}
+
+		if (!bank_iter->prot_blocks) {
+			LOG_ERROR("BUG: bank %u has NULL protection blocks array",
+					  bank_idx);
+			continue;
+		}
 
 		if (k_bank->flash_class == FC_PFLASH) {
 			for (unsigned int i = 0; i < bank_iter->num_prot_blocks; i++) {

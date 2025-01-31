@@ -2908,9 +2908,9 @@ static int aarch64_jim_configure(struct target *target, struct jim_getopt_info *
 
 	pc = (struct aarch64_private_config *)target->private_config;
 	if (!pc) {
-			pc = calloc(1, sizeof(struct aarch64_private_config));
-			pc->adiv5_config.ap_num = DP_APSEL_INVALID;
-			target->private_config = pc;
+		pc = calloc(1, sizeof(struct aarch64_private_config));
+		pc->adiv5_config.ap_num = DP_APSEL_INVALID;
+		target->private_config = pc;
 	}
 
 	/*

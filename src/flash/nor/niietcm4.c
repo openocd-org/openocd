@@ -311,7 +311,7 @@ static int niietcm4_uflash_page_erase(struct flash_bank *bank, int page_num, int
 	/* status check */
 	retval = niietcm4_uopstatus_check(bank);
 	if (retval != ERROR_OK)
-			return retval;
+		return retval;
 
 	return retval;
 }
@@ -394,7 +394,7 @@ COMMAND_HANDLER(niietcm4_handle_uflash_read_byte_command)
 	uint32_t uflash_data;
 
 	if (strcmp("info", CMD_ARGV[0]) == 0)
-			uflash_cmd = UFMC_MAGIC_KEY | UFMC_READ_IFB;
+		uflash_cmd = UFMC_MAGIC_KEY | UFMC_READ_IFB;
 	else if (strcmp("main", CMD_ARGV[0]) == 0)
 		uflash_cmd = UFMC_MAGIC_KEY | UFMC_READ;
 	else
@@ -539,7 +539,7 @@ COMMAND_HANDLER(niietcm4_handle_uflash_erase_command)
 	int mem_type;
 
 	if (strcmp("info", CMD_ARGV[0]) == 0)
-			mem_type = 1;
+		mem_type = 1;
 	else if (strcmp("main", CMD_ARGV[0]) == 0)
 		mem_type = 0;
 	else

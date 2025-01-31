@@ -30,6 +30,18 @@
 #else
 #error "malloc.h is required to use --enable-malloc-logging"
 #endif
+
+#ifdef __GLIBC__
+#if __GLIBC_PREREQ(2, 33)
+#define FORDBLKS_FORMAT " %zu"
+#else
+/* glibc older than 2.33 (2021-02-01) use mallinfo(). Overwrite it */
+#define mallinfo2 mallinfo
+#define FORDBLKS_FORMAT " %d"
+#endif
+#else
+#error "GNU glibc is required to use --enable-malloc-logging"
+#endif
 #endif
 
 int debug_level = LOG_LVL_INFO;
@@ -105,12 +117,11 @@ static void log_puts(enum log_levels level,
 		/* print with count and time information */
 		int64_t t = timeval_ms() - start;
 #ifdef _DEBUG_FREE_SPACE_
-		struct mallinfo info;
-		info = mallinfo();
+		struct mallinfo2 info = mallinfo2();
 #endif
 		fprintf(log_output, "%s%d %" PRId64 " %s:%d %s()"
 #ifdef _DEBUG_FREE_SPACE_
-			" %d"
+			FORDBLKS_FORMAT
 #endif
 			": %s", log_strings[level + 1], count, t, file, line, function,
 #ifdef _DEBUG_FREE_SPACE_
@@ -272,10 +283,10 @@ void log_init(void)
 	if (debug_env) {
 		int value;
 		int retval = parse_int(debug_env, &value);
-		if (retval == ERROR_OK &&
-				debug_level >= LOG_LVL_SILENT &&
-				debug_level <= LOG_LVL_DEBUG_IO)
-				debug_level = value;
+		if (retval == ERROR_OK
+				&& debug_level >= LOG_LVL_SILENT
+				&& debug_level <= LOG_LVL_DEBUG_IO)
+			debug_level = value;
 	}
 
 	if (!log_output)

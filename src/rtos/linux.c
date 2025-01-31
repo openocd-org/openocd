@@ -624,7 +624,7 @@ static struct threads *liste_add_task(struct threads *task_list, struct threads 
 {
 	t->next = NULL;
 
-	if (!*last)
+	if (!*last) {
 		if (!task_list) {
 			task_list = t;
 			return task_list;
@@ -637,7 +637,8 @@ static struct threads *liste_add_task(struct threads *task_list, struct threads 
 			temp->next = t;
 			*last = t;
 			return task_list;
-		} else {
+		}
+	} else {
 		(*last)->next = t;
 		*last = t;
 		return task_list;

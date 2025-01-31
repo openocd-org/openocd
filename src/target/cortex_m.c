@@ -2708,6 +2708,10 @@ int cortex_m_examine(struct target *target)
 			for (size_t idx = ARMV7M_FPU_FIRST_REG; idx <= ARMV7M_FPU_LAST_REG; idx++)
 				armv7m->arm.core_cache->reg_list[idx].exist = false;
 
+		/* TODO: MVE can be present without floating points. Revisit this test */
+		if (armv7m->fp_feature != FPV5_MVE_F && armv7m->fp_feature != FPV5_MVE_I)
+			armv7m->arm.core_cache->reg_list[ARMV8M_VPR].exist = false;
+
 		if (!cortex_m_has_tz(target))
 			for (size_t idx = ARMV8M_FIRST_REG; idx <= ARMV8M_LAST_REG; idx++)
 				armv7m->arm.core_cache->reg_list[idx].exist = false;

@@ -9,13 +9,34 @@ jobs:
     env:
       CFLAGS: -m32
       CC: clang
+      PKG_CONFIG_PATH: /opt/libjim32/lib/pkgconfig
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
       - name: Install required packages (apt-get)
         run: |
           sudo apt-get update
           sudo apt-get install clang gcc-multilib
+      - name: Get 32-bit JIM TCL from cache
+        id: cache-libjim32
+        uses: actions/cache@v4
+        with:
+          path: /opt/libjim32
+          key: libjim32
+      - if: ${{ steps.cache-libjim32.outputs.cache-hit != 'true' }}
+        name: Checkout JIM TCL
+        uses: actions/checkout@v4
+        with:
+          repository: msteveb/jimtcl
+          ref: 0.83
+          path: jimtcl
+      - if: ${{ steps.cache-libjim32.outputs.cache-hit != 'true' }}
+        name: Build 32-bit JIM TCL from source
+        run: |
+          cd jimtcl
+          ./configure --prefix=/opt/libjim32 --with-ext=json --minimal --disable-ssl
+          make -j`nproc`
+          make install
+      - name: Checkout Code
+        uses: actions/checkout@v4
       - run: ./bootstrap
       - run: ./configure --enable-remote-bitbang --enable-jtag_vpi --disable-target64
       - run: make -j`nproc`
@@ -39,7 +60,7 @@ jobs:
       - name: Install required packages (apt-get)
         run: |
           sudo apt-get update
-          sudo apt-get install libusb-1.0-0 libusb-1.0-0-dev
+          sudo apt-get install libusb-1.0-0 libusb-1.0-0-dev libjim-dev
       - run: ./bootstrap
       - run: ./configure --enable-remote-bitbang --enable-jtag_vpi --enable-ftdi-cjtag --prefix /tmp/${{ env.NAME }}
       - run: make -j`nproc`
