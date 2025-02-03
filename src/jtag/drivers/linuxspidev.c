@@ -337,6 +337,10 @@ static int spidev_quit(void)
 
 	close(spi_fd);
 	spi_fd = -1;
+
+	free(spi_path);
+	spi_path = NULL;
+
 	return ERROR_OK;
 }
 
