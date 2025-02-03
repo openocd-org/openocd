@@ -307,18 +307,6 @@ static int spidev_init(void)
 	LOG_INFO("Opened SPI device at %s in mode 0x%" PRIx32 " with %" PRIu8 " bits ",
 		spi_path, spi_mode, spi_bits);
 
-	// Set SPI read and write max speed.
-	int speed;
-	ret = adapter_get_speed(&speed);
-	if (ret != ERROR_OK) {
-		LOG_ERROR("Failed to get adapter speed");
-		return ERROR_JTAG_INIT_FAILED;
-	}
-
-	ret = spidev_speed(speed);
-	if (ret != ERROR_OK)
-		return ERROR_JTAG_INIT_FAILED;
-
 	if (max_queue_entries == 0) {
 		ret = spidev_alloc_queue(MAX_QUEUE_ENTRIES);
 		if (ret != ERROR_OK)
