@@ -631,6 +631,13 @@ static int adapter_system_reset(int req_srst)
 
 	/* Maybe change SRST signal state */
 	if (jtag_srst != req_srst) {
+		if (!adapter_driver->reset) {
+			if (req_srst)
+				LOG_ERROR("Adapter driver does not implement SRST handling");
+
+			return ERROR_NOT_IMPLEMENTED;
+		}
+
 		retval = adapter_driver->reset(0, req_srst);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("SRST error");
