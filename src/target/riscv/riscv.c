@@ -294,6 +294,10 @@ static enum riscv_halt_reason riscv_halt_reason(struct target *target);
 static void riscv_info_init(struct target *target, struct riscv_info *r);
 static int riscv_step_rtos_hart(struct target *target);
 
+static const riscv_reg_t mstatus_ie_mask = MSTATUS_MIE | MSTATUS_HIE | MSTATUS_SIE | MSTATUS_UIE;
+static int riscv_interrupts_disable(struct target *target, riscv_reg_t *old_mstatus);
+static int riscv_interrupts_restore(struct target *target, riscv_reg_t old_mstatus);
+
 static void riscv_sample_buf_maybe_add_timestamp(struct target *target, bool before)
 {
 	RISCV_INFO(r);
@@ -3645,9 +3649,8 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 	}
 
 	/* Disable Interrupts before attempting to run the algorithm. */
-	uint64_t current_mstatus;
-	uint64_t irq_disabled_mask = MSTATUS_MIE | MSTATUS_HIE | MSTATUS_SIE | MSTATUS_UIE;
-	if (riscv_interrupts_disable(target, irq_disabled_mask, &current_mstatus) != ERROR_OK)
+	riscv_reg_t current_mstatus;
+	if (riscv_interrupts_disable(target, &current_mstatus) != ERROR_OK)
 		return ERROR_FAIL;
 
 	/* Run algorithm */
@@ -4227,14 +4230,12 @@ static int riscv_openocd_step_impl(struct target *target, int current,
 	}
 
 	bool success = true;
-	uint64_t current_mstatus;
+	riscv_reg_t current_mstatus;
 	RISCV_INFO(info);
 
 	if (info->isrmask_mode == RISCV_ISRMASK_STEPONLY) {
 		/* Disable Interrupts before stepping. */
-		uint64_t irq_disabled_mask = MSTATUS_MIE | MSTATUS_HIE | MSTATUS_SIE | MSTATUS_UIE;
-		if (riscv_interrupts_disable(target, irq_disabled_mask,
-				&current_mstatus) != ERROR_OK) {
+		if (riscv_interrupts_disable(target, &current_mstatus) != ERROR_OK) {
 			success = false;
 			LOG_TARGET_ERROR(target, "Unable to disable interrupts.");
 			goto _exit;
@@ -6001,50 +6002,35 @@ static int riscv_resume_go_all_harts(struct target *target)
 	return ERROR_OK;
 }
 
-int riscv_interrupts_disable(struct target *target, uint64_t irq_mask, uint64_t *old_mstatus)
+static int riscv_interrupts_disable(struct target *target, riscv_reg_t *old_mstatus)
 {
 	LOG_TARGET_DEBUG(target, "Disabling interrupts.");
-	struct reg *reg_mstatus = register_get_by_name(target->reg_cache,
-			"mstatus", true);
-	if (!reg_mstatus) {
-		LOG_TARGET_ERROR(target, "Couldn't find mstatus!");
-		return ERROR_FAIL;
+	riscv_reg_t current_mstatus;
+	int ret = riscv_reg_get(target, &current_mstatus, GDB_REGNO_MSTATUS);
+	if (ret != ERROR_OK) {
+		LOG_TARGET_ERROR(target, "Failed to read mstatus!");
+		return ret;
 	}
-
-	int retval = reg_mstatus->type->get(reg_mstatus);
-	if (retval != ERROR_OK)
-		return retval;
-
-	RISCV_INFO(info);
-	uint8_t mstatus_bytes[8] = { 0 };
-	uint64_t current_mstatus = buf_get_u64(reg_mstatus->value, 0, reg_mstatus->size);
-	buf_set_u64(mstatus_bytes, 0, info->xlen, set_field(current_mstatus,
-				irq_mask, 0));
-
-	retval = reg_mstatus->type->set(reg_mstatus, mstatus_bytes);
-	if (retval != ERROR_OK)
-		return retval;
-
 	if (old_mstatus)
 		*old_mstatus = current_mstatus;
-
-	return ERROR_OK;
+	return riscv_reg_set(target, GDB_REGNO_MSTATUS, current_mstatus & ~mstatus_ie_mask);
 }
 
-int riscv_interrupts_restore(struct target *target, uint64_t old_mstatus)
+static int riscv_interrupts_restore(struct target *target, riscv_reg_t old_mstatus)
 {
 	LOG_TARGET_DEBUG(target, "Restoring interrupts.");
-	struct reg *reg_mstatus = register_get_by_name(target->reg_cache,
-			"mstatus", true);
-	if (!reg_mstatus) {
-		LOG_TARGET_ERROR(target, "Couldn't find mstatus!");
-		return ERROR_FAIL;
+	riscv_reg_t current_mstatus;
+	int ret = riscv_reg_get(target, &current_mstatus, GDB_REGNO_MSTATUS);
+	if (ret != ERROR_OK) {
+		LOG_TARGET_ERROR(target, "Failed to read mstatus!");
+		return ret;
 	}
-
-	RISCV_INFO(info);
-	uint8_t mstatus_bytes[8];
-	buf_set_u64(mstatus_bytes, 0, info->xlen, old_mstatus);
-	return reg_mstatus->type->set(reg_mstatus, mstatus_bytes);
+	if ((current_mstatus & mstatus_ie_mask) != 0) {
+		LOG_TARGET_WARNING(target, "Interrupt enable bits in mstatus changed during single-step.");
+		LOG_TARGET_WARNING(target, "OpenOCD might have affected the program when it restored the interrupt bits after single-step.");
+		LOG_TARGET_WARNING(target, "Hint: Use 'riscv set_maskisr off' to prevent OpenOCD from touching mstatus during single-step.");
+	}
+	return riscv_reg_set(target, GDB_REGNO_MSTATUS, current_mstatus | (old_mstatus & mstatus_ie_mask));
 }
 
 static int riscv_step_rtos_hart(struct target *target)

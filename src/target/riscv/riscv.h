@@ -503,7 +503,4 @@ void riscv_add_bscan_tunneled_scan(struct jtag_tap *tap, const struct scan_field
 int riscv_read_by_any_size(struct target *target, target_addr_t address, uint32_t size, uint8_t *buffer);
 int riscv_write_by_any_size(struct target *target, target_addr_t address, uint32_t size, uint8_t *buffer);
 
-int riscv_interrupts_disable(struct target *target, uint64_t ie_mask, uint64_t *old_mstatus);
-int riscv_interrupts_restore(struct target *target, uint64_t old_mstatus);
-
 #endif /* OPENOCD_TARGET_RISCV_RISCV_H */
