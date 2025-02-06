@@ -10,18 +10,6 @@ host. See README for the generic instructions.
 Also, the MSYS2 project provides both ready-made binaries and an easy
 way to self-compile from their software repository out of the box.
 
-Native MinGW-w64/MSYS compilation
------------------------------
-
-As MSYS doesn't come with pkg-config pre-installed, you need to add it
-manually. The easiest way to do that is to download pkg-config-lite
-from:
-
-  http://sourceforge.net/projects/pkgconfiglite/
-
-Then simply unzip the archive to the root directory of your MinGW-w64
-installation.
-
 USB adapters
 ------------
 
