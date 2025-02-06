@@ -125,7 +125,7 @@ dist_ulink_DATA = $(ULINK_FIRMWARE)/ulink_firmware.hex
 endif
 
 if ANGIE
-  angiedir = $(pkgdatadir)/angie  # This is only for dist_angie_DATA.
+  angiedir = $(pkgdatadir)/angie
   DRIVERFILES     += %D%/angie.c
   DRIVERFILES     += %D%/angie/include/msgtypes.h
   EXTRA_DIST      += %D%/angie/README
