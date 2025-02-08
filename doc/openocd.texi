@@ -2561,6 +2561,32 @@ and a specific set of GPIOs is used.
 @deffn {Interface Driver} {ch347}
 Driver for WCH CH347F and CH347T chips.
 When using the CH347T, it must be configured to operate in mode 3 (UART + JTAG).
+
+@b{WARNING:} WCH CH347T chips have rather poor performance
+with respect to the USB HS connection. Upgrade firmware to the latest version!
+@itemize @bullet
+@item Chip version 2.41:
+@itemize @minus
+@item JTAG timing is very weird, some clock pulses are
+much shorter then the requested clock frequency.
+@item SWD is not implemented.
+@end itemize
+@item Chip version 4.41:
+@itemize @minus
+@item SWD clock is limited to 1 MHz maximum.
+@item SWD reading AP reg CH347 erroneously drives
+SWDIO to H for 392 ns after the last ACK bit. Some devices get so upset
+that send wrong data with parity error. A resistor in the SWDIO circuit
+mitigates the problem.
+@item A long SWD operation causes that USB host disconnects the adapter.
+@end itemize
+@item Chip version 5.44:
+@itemize @minus
+@item Maximal SWD clock speed is 5 MHz
+@item A long SWD operation causes that USB host disconnects the adapter.
+@end itemize
+@end itemize
+
 This driver has these driver-specific command:
 
 @deffn {Config Command} {ch347 vid_pid} [vid pid]+

@@ -1402,13 +1402,34 @@ static int ch347_open_device(void)
 		firmware_version);
 
 	if (ch347.chip_variant == CH347T && ch347_device_descriptor.bcdDevice < BYTEWISE_MODE_VERSION) {
-		LOG_INFO("CH347 old version of the chip, JTAG only working in bitwise mode. For bytewise mode at least version %X.%X is needed.",
+		LOG_INFO("CH347T old version of the chip, JTAG only working in bitwise mode. For bytewise mode at least version %X.%X is needed.",
 			(BYTEWISE_MODE_VERSION >> 8) & 0xFF,
 			BYTEWISE_MODE_VERSION & 0xFF);
 		ch347.use_bitwise_mode = true;
 	} else {
 		ch347.use_bitwise_mode = false;
 	}
+
+	if (ch347.chip_variant == CH347T) {
+		if (swd_mode) {
+			if (ch347_device_descriptor.bcdDevice < 0x441)
+				LOG_WARNING("CH347T version older than 4.41 probably does not support SWD transport");
+
+			if (ch347_device_descriptor.bcdDevice == 0x441)
+				LOG_WARNING("If CH347T version 4.41 cannot connect or SWD fails often, insert a resistor to SWDIO circuit");
+
+		} else if (ch347_device_descriptor.bcdDevice == 0x241) {
+			LOG_WARNING("CH347T version 2.41 has very weird clock timing, may not work with a slower JTAG device");
+		}
+
+		if (ch347_device_descriptor.bcdDevice < 0x544)
+			LOG_INFO("Please upgrade CH347T firmware to a production version >= 5.44");
+
+	} else if (ch347.chip_variant == CH347F) {
+		if (ch347_device_descriptor.bcdDevice < 0x101)
+			LOG_INFO("Please upgrade CH347F firmware to a production version >= 1.1");
+	}
+
 	return ERROR_OK;
 }
 
