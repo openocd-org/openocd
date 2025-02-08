@@ -2076,13 +2076,13 @@ static bool ch347_chk_buf_size(uint8_t cmd, uint32_t ap_delay_clk)
 	return flush;
 }
 
-static int ch347_swd_run_queue(void);
+static int ch347_swd_run_queue_inner(void);
 
 static int ch347_swd_send_idle(uint32_t ap_delay_clk)
 {
 	struct ch347_swd_io *pswd_io = ch347_get_one_swd_io();
 	if (!pswd_io) {
-		int retval = ch347_swd_run_queue();
+		int retval = ch347_swd_run_queue_inner();
 		if (retval != ERROR_OK)
 			return retval;
 
@@ -2099,7 +2099,7 @@ static int ch347_swd_send_idle(uint32_t ap_delay_clk)
 	return ERROR_OK;
 }
 
-static int ch347_swd_run_queue(void)
+static int ch347_swd_run_queue_inner(void)
 {
 	LOG_DEBUG_IO("Executing %u queued transactions", ch347_swd_context.sent_cmd_count);
 	if (ch347_swd_context.queued_retval != ERROR_OK) {
@@ -2107,20 +2107,7 @@ static int ch347_swd_run_queue(void)
 		goto skip;
 	}
 
-	/* A transaction must be followed by another transaction or at least 8
-	   idle cycles to ensure that data is clocked through the AP. */
-	if ((ch347_swd_context.send_len + (1 + 2 + 1)) > CH347_MAX_SEND_BUF)
-		goto skip_idle;
-
-	if ((ch347_swd_context.need_recv_len + 1) > CH347_MAX_RECV_BUF)
-		goto skip_idle;
-
-	int retval = ch347_swd_send_idle((uint32_t)8);
-	if (retval != ERROR_OK)
-		return retval;
-
-skip_idle:
-	retval = ch347_swd_queue_flush();
+	int retval = ch347_swd_queue_flush();
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -2248,27 +2235,38 @@ skip:
 	return retval;
 }
 
+static int ch347_swd_run_queue(void)
+{
+	/* A transaction must be followed by another transaction or at least 8
+	   idle cycles to ensure that data is clocked through the AP. */
+	int retval = ch347_swd_send_idle(8);
+	if (retval != ERROR_OK)
+		return retval;
+
+	return ch347_swd_run_queue_inner();
+}
+
 static int ch347_swd_queue_cmd(uint8_t cmd, uint32_t *dst, uint32_t data, uint32_t ap_delay_clk)
 {
-	if (ap_delay_clk > 255)
-		LOG_DEBUG("ap_delay_clk = %d", ap_delay_clk);
-
 	int retval = ERROR_OK;
+	if (ap_delay_clk > 255)
+		ap_delay_clk = 255;	// limit imposed by spec. seq. size in one byte
+
 	if (ch347_swd_context.sent_cmd_count >= CH347_MAX_SEND_CMD)	{
-		retval = ch347_swd_run_queue();
+		retval = ch347_swd_run_queue_inner();
 		if (retval != ERROR_OK)
 			return retval;
 	}
 
 	if (!ch347_chk_buf_size(cmd, ap_delay_clk))	{
-		retval = ch347_swd_run_queue();
+		retval = ch347_swd_run_queue_inner();
 		if (retval != ERROR_OK)
 			return retval;
 	}
 
 	struct ch347_swd_io *pswd_io = ch347_get_one_swd_io();
 	if (!pswd_io) {
-		retval = ch347_swd_run_queue();
+		retval = ch347_swd_run_queue_inner();
 		if (retval != ERROR_OK)
 			return retval;
 
@@ -2294,12 +2292,10 @@ static int ch347_swd_queue_cmd(uint8_t cmd, uint32_t *dst, uint32_t data, uint32
 
 	ch347_swd_context.sent_cmd_count++;
 	list_add_tail(&pswd_io->list_entry, &ch347_swd_context.send_cmd_head);
+
 	// Insert idle cycles after AP accesses to avoid WAIT
-	if (cmd & SWD_CMD_APNDP) {
-		if (ap_delay_clk == 0)
-			LOG_DEBUG("ap_delay_clk == 0");
+	if (ap_delay_clk)
 		retval = ch347_swd_send_idle(ap_delay_clk);
-	}
 
 	return retval;
 }
