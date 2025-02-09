@@ -2153,28 +2153,31 @@ static int ch347_swd_run_queue_inner(void)
 				/* Devices do not reply to DP_TARGETSEL write
 				   cmd, ignore received ack */
 				check_ack = swd_cmd_returns_ack(pswd_io->cmd);
-				if (ack != SWD_ACK_OK && check_ack) {
-					ch347_swd_context.queued_retval = swd_ack_to_error_code(ack);
-					LOG_ERROR("ack != SWD_ACK_OK");
-					goto skip;
-				}
 				if (pswd_io->cmd & SWD_CMD_RNW) {
 					uint32_t data = buf_get_u32(&recv_buf[recv_len], 0, 32);
+
+					LOG_CUSTOM_LEVEL((check_ack && ack != SWD_ACK_OK)
+										? LOG_LVL_DEBUG : LOG_LVL_DEBUG_IO,
+									"%s%s %s read reg %X = %08" PRIx32,
+									check_ack ? "" : "ack ignored ",
+									ack == SWD_ACK_OK ? "OK" :
+										ack == SWD_ACK_WAIT ? "WAIT" :
+										ack == SWD_ACK_FAULT  ? "FAULT" : "JUNK",
+									pswd_io->cmd & SWD_CMD_APNDP ? "AP" : "DP",
+									(pswd_io->cmd & SWD_CMD_A32) >> 1,
+									data);
+
+					if (ack != SWD_ACK_OK && check_ack) {
+						ch347_swd_context.queued_retval = swd_ack_to_error_code(ack);
+						goto skip;
+					}
+
 					uint32_t parity = buf_get_u32(&recv_buf[recv_len], 32, 1);
 					if (parity != (uint32_t)parity_u32(data)) {
 						LOG_ERROR("SWD Read data parity mismatch");
 						ch347_swd_context.queued_retval = ERROR_FAIL;
 						goto skip;
 					}
-
-					LOG_DEBUG_IO("%s%s %s %s reg %X = %08X - " PRIx32,
-							 check_ack ? "" : "ack ignored ",
-							 ack == SWD_ACK_OK ? "OK" : ack == SWD_ACK_WAIT ? "WAIT" :
-								ack == SWD_ACK_FAULT  ? "FAULT" : "JUNK",
-							 pswd_io->cmd & SWD_CMD_APNDP ? "AP" : "DP",
-							 pswd_io->cmd & SWD_CMD_RNW ? "read" : "write",
-							 (pswd_io->cmd & SWD_CMD_A32) >> 1,
-							 data);
 
 					if (pswd_io->dst)
 						*pswd_io->dst = data;
@@ -2190,19 +2193,22 @@ static int ch347_swd_run_queue_inner(void)
 				/* Devices do not reply to DP_TARGETSEL write
 				   cmd, ignore received ack */
 				check_ack = swd_cmd_returns_ack(pswd_io->cmd);
+
+				LOG_CUSTOM_LEVEL((check_ack && ack != SWD_ACK_OK)
+									? LOG_LVL_DEBUG : LOG_LVL_DEBUG_IO,
+								 "%s%s %s write reg %X = %08" PRIx32,
+								 check_ack ? "" : "ack ignored ",
+								 ack == SWD_ACK_OK ? "OK" :
+									ack == SWD_ACK_WAIT ? "WAIT" :
+									ack == SWD_ACK_FAULT  ? "FAULT" : "JUNK",
+								 pswd_io->cmd & SWD_CMD_APNDP ? "AP" : "DP",
+								 (pswd_io->cmd & SWD_CMD_A32) >> 1,
+								 pswd_io->value);
+
 				if (ack != SWD_ACK_OK && check_ack) {
 					ch347_swd_context.queued_retval = swd_ack_to_error_code(ack);
-					LOG_ERROR("SWD Read data parity mismatch");
 					goto skip;
 				}
-				LOG_DEBUG_IO("%s%s %s %s reg %X = %08X - " PRIx32,
-						 check_ack ? "" : "ack ignored ",
-						 ack == SWD_ACK_OK ? "OK" : ack == SWD_ACK_WAIT ? "WAIT" :
-							ack == SWD_ACK_FAULT  ? "FAULT" : "JUNK",
-						 pswd_io->cmd & SWD_CMD_APNDP ? "AP" : "DP",
-						 pswd_io->cmd & SWD_CMD_RNW ? "read" : "write",
-						 (pswd_io->cmd & SWD_CMD_A32) >> 1,
-						 pswd_io->value);
 			} else {
 				ch347_swd_context.queued_retval = ERROR_FAIL;
 				LOG_ERROR("CH347 usb write/read failed recv_len = %d", recv_len);
