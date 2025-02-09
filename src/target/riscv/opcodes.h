@@ -4,15 +4,36 @@
 #define OPENOCD_TARGET_RISCV_OPCODES_H
 
 #include "encoding.h"
+#include <assert.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 #define ZERO	0
 #define T0      5
 #define S0      8
 #define S1      9
 
+#define MAX_GPR_NUM 31
+#define MAX_FPR_NUM 31
+#define MAX_VREG_NUM 31
+#define MAX_CSR_NUM 4095
+
+#define MIN_INT12 ((int16_t)(-0x800))
+#define MAX_INT12 ((int16_t)0x7ff)
+
+#define MIN_INT13 ((int16_t)(-0x1000))
+#define MAX_INT13 ((int16_t)0xfff)
+
+#define MIN_INT21 ((int16_t)(-0x100000))
+#define MAX_INT21 ((int16_t)0xfffff)
+
+#define MAX_UINT5 ((uint8_t)0x1f)
+#define MAX_UINT11 ((uint16_t)0x7ff)
+#define MAX_UINT12 ((uint16_t)0xfff)
+
 static uint32_t bits(uint32_t value, unsigned int hi, unsigned int lo)
 {
-	return (value >> lo) & ((1 << (hi+1-lo)) - 1);
+	return (value >> lo) & (((uint32_t)1 << (hi + 1 - lo)) - 1);
 }
 
 static uint32_t bit(uint32_t value, unsigned int b)
@@ -68,153 +89,246 @@ static uint32_t imm_j(uint32_t imm)
 	return (bits(imm, 19, 12) << 12) | (bit(imm, 11) << 20) | (bits(imm, 10, 1) << 21) | (bit(imm, 20) << 31);
 }
 
-static uint32_t jal(unsigned int rd, uint32_t imm) __attribute__ ((unused));
-static uint32_t jal(unsigned int rd, uint32_t imm)
+static uint32_t jal(unsigned int rd, int32_t imm) __attribute__ ((unused));
+static uint32_t jal(unsigned int rd, int32_t imm)
 {
-	return imm_j(imm) | inst_rd(rd) | MATCH_JAL;
+	assert(rd <= MAX_GPR_NUM);
+	assert((imm >= MIN_INT21) && (imm <= MAX_INT21));
+	assert((imm & 1) == 0);
+
+	return imm_j((uint32_t)imm) | inst_rd(rd) | MATCH_JAL;
 }
 
-static uint32_t csrsi(unsigned int csr, uint16_t imm) __attribute__ ((unused));
-static uint32_t csrsi(unsigned int csr, uint16_t imm)
+static uint32_t csrsi(unsigned int csr, uint8_t imm) __attribute__ ((unused));
+static uint32_t csrsi(unsigned int csr, uint8_t imm)
 {
+	assert(csr <= MAX_CSR_NUM);
+	assert(imm <= MAX_UINT5);
+
 	return imm_i(csr) | inst_rs1(imm) | MATCH_CSRRSI;
 }
 
-static uint32_t sw(unsigned int src, unsigned int base, uint16_t offset) __attribute__ ((unused));
-static uint32_t sw(unsigned int src, unsigned int base, uint16_t offset)
+static uint32_t sw(unsigned int src, unsigned int base, int16_t offset) __attribute__ ((unused));
+static uint32_t sw(unsigned int src, unsigned int base, int16_t offset)
 {
-	return imm_s(offset) | inst_rs2(src) | inst_rs1(base) | MATCH_SW;
+	assert(src <= MAX_GPR_NUM);
+	assert(base <= MAX_GPR_NUM);
+	assert((offset >= MIN_INT12) && (offset <= MAX_INT12));
+
+	return imm_s((uint16_t)offset) | inst_rs2(src) | inst_rs1(base) | MATCH_SW;
 }
 
-static uint32_t sd(unsigned int src, unsigned int base, uint16_t offset) __attribute__ ((unused));
-static uint32_t sd(unsigned int src, unsigned int base, uint16_t offset)
+static uint32_t sd(unsigned int src, unsigned int base, int16_t offset) __attribute__ ((unused));
+static uint32_t sd(unsigned int src, unsigned int base, int16_t offset)
 {
-	return imm_s(offset) | inst_rs2(src) | inst_rs1(base) | MATCH_SD;
+	assert(src <= MAX_GPR_NUM);
+	assert(base <= MAX_GPR_NUM);
+	assert((offset >= MIN_INT12) && (offset <= MAX_INT12));
+
+	return imm_s((uint16_t)offset) | inst_rs2(src) | inst_rs1(base) | MATCH_SD;
 }
 
-static uint32_t sh(unsigned int src, unsigned int base, uint16_t offset) __attribute__ ((unused));
-static uint32_t sh(unsigned int src, unsigned int base, uint16_t offset)
+static uint32_t sh(unsigned int src, unsigned int base, int16_t offset) __attribute__ ((unused));
+static uint32_t sh(unsigned int src, unsigned int base, int16_t offset)
 {
-	return imm_s(offset) | inst_rs2(src) | inst_rs1(base) | MATCH_SH;
+	assert(src <= MAX_GPR_NUM);
+	assert(base <= MAX_GPR_NUM);
+	assert((offset >= MIN_INT12) && (offset <= MAX_INT12));
+
+	return imm_s((uint16_t)offset) | inst_rs2(src) | inst_rs1(base) | MATCH_SH;
 }
 
-static uint32_t sb(unsigned int src, unsigned int base, uint16_t offset) __attribute__ ((unused));
-static uint32_t sb(unsigned int src, unsigned int base, uint16_t offset)
+static uint32_t sb(unsigned int src, unsigned int base, int16_t offset) __attribute__ ((unused));
+static uint32_t sb(unsigned int src, unsigned int base, int16_t offset)
 {
-	return imm_s(offset) | inst_rs2(src) | inst_rs1(base) | MATCH_SB;
+	assert(src <= MAX_GPR_NUM);
+	assert(base <= MAX_GPR_NUM);
+	assert((offset >= MIN_INT12) && (offset <= MAX_INT12));
+
+	return imm_s((uint16_t)offset) | inst_rs2(src) | inst_rs1(base) | MATCH_SB;
 }
 
-static uint32_t ld(unsigned int rd, unsigned int base, uint16_t offset) __attribute__ ((unused));
-static uint32_t ld(unsigned int rd, unsigned int base, uint16_t offset)
+static uint32_t ld(unsigned int rd, unsigned int base, int16_t offset) __attribute__ ((unused));
+static uint32_t ld(unsigned int rd, unsigned int base, int16_t offset)
 {
-	return imm_i(offset) | inst_rs1(base) | inst_rd(rd) | MATCH_LD;
+	assert(rd <= MAX_GPR_NUM);
+	assert(base <= MAX_GPR_NUM);
+	assert((offset >= MIN_INT12) && (offset <= MAX_INT12));
+
+	return imm_i((uint16_t)offset) | inst_rs1(base) | inst_rd(rd) | MATCH_LD;
 }
 
-static uint32_t lw(unsigned int rd, unsigned int base, uint16_t offset) __attribute__ ((unused));
-static uint32_t lw(unsigned int rd, unsigned int base, uint16_t offset)
+static uint32_t lw(unsigned int rd, unsigned int base, int16_t offset) __attribute__ ((unused));
+static uint32_t lw(unsigned int rd, unsigned int base, int16_t offset)
 {
-	return imm_i(offset) | inst_rs1(base) | inst_rd(rd) | MATCH_LW;
+	assert(rd <= MAX_GPR_NUM);
+	assert(base <= MAX_GPR_NUM);
+	assert((offset >= MIN_INT12) && (offset <= MAX_INT12));
+
+	return imm_i((uint16_t)offset) | inst_rs1(base) | inst_rd(rd) | MATCH_LW;
 }
 
-static uint32_t lh(unsigned int rd, unsigned int base, uint16_t offset) __attribute__ ((unused));
-static uint32_t lh(unsigned int rd, unsigned int base, uint16_t offset)
+static uint32_t lh(unsigned int rd, unsigned int base, int16_t offset) __attribute__ ((unused));
+static uint32_t lh(unsigned int rd, unsigned int base, int16_t offset)
 {
-	return imm_i(offset) | inst_rs1(base) | inst_rd(rd) | MATCH_LH;
+	assert(rd <= MAX_GPR_NUM);
+	assert(base <= MAX_GPR_NUM);
+	assert((offset >= MIN_INT12) && (offset <= MAX_INT12));
+
+	return imm_i((uint16_t)offset) | inst_rs1(base) | inst_rd(rd) | MATCH_LH;
 }
 
-static uint32_t lb(unsigned int rd, unsigned int base, uint16_t offset) __attribute__ ((unused));
-static uint32_t lb(unsigned int rd, unsigned int base, uint16_t offset)
+static uint32_t lb(unsigned int rd, unsigned int base, int16_t offset) __attribute__ ((unused));
+static uint32_t lb(unsigned int rd, unsigned int base, int16_t offset)
 {
-	return imm_i(offset) | inst_rs1(base) | inst_rd(rd) | MATCH_LB;
+	assert(rd <= MAX_GPR_NUM);
+	assert(base <= MAX_GPR_NUM);
+	assert((offset >= MIN_INT12) && (offset <= MAX_INT12));
+
+	return imm_i((uint16_t)offset) | inst_rs1(base) | inst_rd(rd) | MATCH_LB;
 }
 
 static uint32_t csrw(unsigned int source, unsigned int csr) __attribute__ ((unused));
 static uint32_t csrw(unsigned int source, unsigned int csr)
 {
+	assert(source <= MAX_GPR_NUM);
+	assert(csr <= MAX_CSR_NUM);
+
 	return imm_i(csr) | inst_rs1(source) | MATCH_CSRRW;
 }
 
-static uint32_t addi(unsigned int dest, unsigned int src, uint16_t imm) __attribute__ ((unused));
-static uint32_t addi(unsigned int dest, unsigned int src, uint16_t imm)
+static uint32_t addi(unsigned int dest, unsigned int src, int16_t imm) __attribute__ ((unused));
+static uint32_t addi(unsigned int dest, unsigned int src, int16_t imm)
 {
-	return imm_i(imm) | inst_rs1(src) | inst_rd(dest) | MATCH_ADDI;
+	assert(dest <= MAX_GPR_NUM);
+	assert(src <= MAX_GPR_NUM);
+	assert((imm >= MIN_INT12) && (imm <= MAX_INT12));
+
+	return imm_i((uint16_t)imm) | inst_rs1(src) | inst_rd(dest) | MATCH_ADDI;
 }
 
 static uint32_t csrr(unsigned int rd, unsigned int csr) __attribute__ ((unused));
 static uint32_t csrr(unsigned int rd, unsigned int csr)
 {
+	assert(rd <= MAX_GPR_NUM);
+	assert(csr <= MAX_CSR_NUM);
+
 	return imm_i(csr) | inst_rd(rd) | MATCH_CSRRS;
 }
 
 static uint32_t csrrs(unsigned int rd, unsigned int rs, unsigned int csr) __attribute__ ((unused));
 static uint32_t csrrs(unsigned int rd, unsigned int rs, unsigned int csr)
 {
+	assert(rd <= MAX_GPR_NUM);
+	assert(rs <= MAX_GPR_NUM);
+	assert(csr <= MAX_CSR_NUM);
+
 	return imm_i(csr) | inst_rs1(rs) | inst_rd(rd) | MATCH_CSRRS;
 }
 
 static uint32_t csrrw(unsigned int rd, unsigned int rs, unsigned int csr) __attribute__ ((unused));
 static uint32_t csrrw(unsigned int rd, unsigned int rs, unsigned int csr)
 {
+	assert(rd <= MAX_GPR_NUM);
+	assert(rs <= MAX_GPR_NUM);
+	assert(csr <= MAX_CSR_NUM);
+
 	return imm_i(csr) | inst_rs1(rs) | inst_rd(rd) | MATCH_CSRRW;
 }
 
-static uint32_t csrrci(unsigned int rd, unsigned int zimm, unsigned int csr) __attribute__ ((unused));
-static uint32_t csrrci(unsigned int rd, unsigned int zimm, unsigned int csr)
+static uint32_t csrrci(unsigned int rd, uint8_t zimm, unsigned int csr) __attribute__ ((unused));
+static uint32_t csrrci(unsigned int rd, uint8_t zimm, unsigned int csr)
 {
+	assert(rd <= MAX_GPR_NUM);
+	assert(zimm <= MAX_UINT5);
+	assert(csr <= MAX_CSR_NUM);
+
 	return imm_i(csr) | inst_rs1(zimm) | inst_rd(rd) | MATCH_CSRRCI;
 }
 
-static uint32_t csrrsi(unsigned int rd, unsigned int zimm, unsigned int csr) __attribute__ ((unused));
-static uint32_t csrrsi(unsigned int rd, unsigned int zimm, unsigned int csr)
+static uint32_t csrrsi(unsigned int rd, uint8_t zimm, unsigned int csr) __attribute__ ((unused));
+static uint32_t csrrsi(unsigned int rd, uint8_t zimm, unsigned int csr)
 {
+	assert(rd <= MAX_GPR_NUM);
+	assert(zimm <= MAX_UINT5);
+	assert(csr <= MAX_CSR_NUM);
+
 	return imm_i(csr) | inst_rs1(zimm) | inst_rd(rd) | MATCH_CSRRSI;
 }
 
-static uint32_t fsw(unsigned int src, unsigned int base, uint16_t offset) __attribute__ ((unused));
-static uint32_t fsw(unsigned int src, unsigned int base, uint16_t offset)
+static uint32_t fsw(unsigned int src, unsigned int base, int16_t offset) __attribute__ ((unused));
+static uint32_t fsw(unsigned int src, unsigned int base, int16_t offset)
 {
-	return imm_s(offset) | inst_rs2(src) | inst_rs1(base) | MATCH_FSW;
+	assert(src <= MAX_FPR_NUM);
+	assert(base <= MAX_GPR_NUM);
+	assert((offset >= MIN_INT12) && (offset <= MAX_INT12));
+
+	return imm_s((uint16_t)offset) | inst_rs2(src) | inst_rs1(base) | MATCH_FSW;
 }
 
-static uint32_t fsd(unsigned int src, unsigned int base, uint16_t offset) __attribute__ ((unused));
-static uint32_t fsd(unsigned int src, unsigned int base, uint16_t offset)
+static uint32_t fsd(unsigned int src, unsigned int base, int16_t offset) __attribute__ ((unused));
+static uint32_t fsd(unsigned int src, unsigned int base, int16_t offset)
 {
-	return imm_s(offset) | inst_rs2(src) | inst_rs1(base) | MATCH_FSD;
+	assert(src <= MAX_FPR_NUM);
+	assert(base <= MAX_GPR_NUM);
+	assert((offset >= MIN_INT12) && (offset <= MAX_INT12));
+
+	return imm_s((uint16_t)offset) | inst_rs2(src) | inst_rs1(base) | MATCH_FSD;
 }
 
-static uint32_t flw(unsigned int dest, unsigned int base, uint16_t offset) __attribute__ ((unused));
-static uint32_t flw(unsigned int dest, unsigned int base, uint16_t offset)
+static uint32_t flw(unsigned int dest, unsigned int base, int16_t offset) __attribute__ ((unused));
+static uint32_t flw(unsigned int dest, unsigned int base, int16_t offset)
 {
-	return imm_i(offset) | inst_rs1(base) | inst_rd(dest) | MATCH_FLW;
+	assert(dest <= MAX_FPR_NUM);
+	assert(base <= MAX_GPR_NUM);
+	assert((offset >= MIN_INT12) && (offset <= MAX_INT12));
+
+	return imm_i((uint16_t)offset) | inst_rs1(base) | inst_rd(dest) | MATCH_FLW;
 }
 
-static uint32_t fld(unsigned int dest, unsigned int base, uint16_t offset) __attribute__ ((unused));
-static uint32_t fld(unsigned int dest, unsigned int base, uint16_t offset)
+static uint32_t fld(unsigned int dest, unsigned int base, int16_t offset) __attribute__ ((unused));
+static uint32_t fld(unsigned int dest, unsigned int base, int16_t offset)
 {
-	return imm_i(offset) | inst_rs1(base) | inst_rd(dest) | MATCH_FLD;
+	assert(dest <= MAX_FPR_NUM);
+	assert(base <= MAX_GPR_NUM);
+	assert((offset >= MIN_INT12) && (offset <= MAX_INT12));
+
+	return imm_i((uint16_t)offset) | inst_rs1(base) | inst_rd(dest) | MATCH_FLD;
 }
 
 static uint32_t fmv_x_w(unsigned int dest, unsigned int src) __attribute__ ((unused));
 static uint32_t fmv_x_w(unsigned int dest, unsigned int src)
 {
+	assert(dest <= MAX_GPR_NUM);
+	assert(src <= MAX_FPR_NUM);
+
 	return inst_rs1(src) | inst_rd(dest) | MATCH_FMV_X_W;
 }
 
 static uint32_t fmv_x_d(unsigned int dest, unsigned int src) __attribute__ ((unused));
 static uint32_t fmv_x_d(unsigned int dest, unsigned int src)
 {
+	assert(dest <= MAX_GPR_NUM);
+	assert(src <= MAX_FPR_NUM);
+
 	return inst_rs1(src) | inst_rd(dest) | MATCH_FMV_X_D;
 }
 
 static uint32_t fmv_w_x(unsigned int dest, unsigned int src) __attribute__ ((unused));
 static uint32_t fmv_w_x(unsigned int dest, unsigned int src)
 {
+	assert(dest <= MAX_FPR_NUM);
+	assert(src <= MAX_GPR_NUM);
+
 	return inst_rs1(src) | inst_rd(dest) | MATCH_FMV_W_X;
 }
 
 static uint32_t fmv_d_x(unsigned int dest, unsigned int src) __attribute__ ((unused));
 static uint32_t fmv_d_x(unsigned int dest, unsigned int src)
 {
+	assert(dest <= MAX_FPR_NUM);
+	assert(src <= MAX_GPR_NUM);
+
 	return inst_rs1(src) | inst_rd(dest) | MATCH_FMV_D_X;
 }
 
@@ -241,59 +355,29 @@ static uint32_t fence_i(void)
 static uint32_t lui(unsigned int dest, uint32_t imm) __attribute__ ((unused));
 static uint32_t lui(unsigned int dest, uint32_t imm)
 {
+	assert(dest <= MAX_GPR_NUM);
+	assert(bits(imm, 11, 0) == 0);
+
 	return imm_u(imm) | inst_rd(dest) | MATCH_LUI;
 }
 
-/*
-static uint32_t csrci(unsigned int csr, uint16_t imm) __attribute__ ((unused));
-static uint32_t csrci(unsigned int csr, uint16_t imm)
+static uint32_t xori(unsigned int dest, unsigned int src, int16_t imm) __attribute__ ((unused));
+static uint32_t xori(unsigned int dest, unsigned int src, int16_t imm)
 {
-  return (csr << 20) |
-    (bits(imm, 4, 0) << 15) |
-    MATCH_CSRRCI;
-}
+	assert(dest <= MAX_GPR_NUM);
+	assert(src <= MAX_GPR_NUM);
+	assert((imm >= MIN_INT12) && (imm <= MAX_INT12));
 
-static uint32_t li(unsigned int dest, uint16_t imm) __attribute__ ((unused));
-static uint32_t li(unsigned int dest, uint16_t imm)
-{
-	return addi(dest, 0, imm);
-}
-
-static uint32_t fsd(unsigned int src, unsigned int base, uint16_t offset) __attribute__ ((unused));
-static uint32_t fsd(unsigned int src, unsigned int base, uint16_t offset)
-{
-  return (bits(offset, 11, 5) << 25) |
-    (bits(src, 4, 0) << 20) |
-    (base << 15) |
-    (bits(offset, 4, 0) << 7) |
-    MATCH_FSD;
-}
-
-static uint32_t ori(unsigned int dest, unsigned int src, uint16_t imm) __attribute__ ((unused));
-static uint32_t ori(unsigned int dest, unsigned int src, uint16_t imm)
-{
-  return (bits(imm, 11, 0) << 20) |
-    (src << 15) |
-    (dest << 7) |
-    MATCH_ORI;
-}
-
-static uint32_t nop(void) __attribute__ ((unused));
-static uint32_t nop(void)
-{
-  return addi(0, 0, 0);
-}
-*/
-
-static uint32_t xori(unsigned int dest, unsigned int src, uint16_t imm) __attribute__ ((unused));
-static uint32_t xori(unsigned int dest, unsigned int src, uint16_t imm)
-{
-	return imm_i(imm) | inst_rs1(src) | inst_rd(dest) | MATCH_XORI;
+	return imm_i((uint16_t)imm) | inst_rs1(src) | inst_rd(dest) | MATCH_XORI;
 }
 
 static uint32_t srli(unsigned int dest, unsigned int src, uint8_t shamt) __attribute__ ((unused));
 static uint32_t srli(unsigned int dest, unsigned int src, uint8_t shamt)
 {
+	assert(dest <= MAX_GPR_NUM);
+	assert(src <= MAX_GPR_NUM);
+	assert(shamt <= MAX_UINT5);
+
 	return inst_rs2(shamt) | inst_rs1(src) | inst_rd(dest) | MATCH_SRLI;
 }
 
@@ -307,39 +391,59 @@ static uint32_t fence_rw_rw(void)
 static uint32_t auipc(unsigned int dest) __attribute__((unused));
 static uint32_t auipc(unsigned int dest)
 {
+	assert(dest <= MAX_GPR_NUM);
+
 	return MATCH_AUIPC | inst_rd(dest);
 }
 
-static uint32_t vsetvli(unsigned int dest, unsigned int src, uint16_t imm) __attribute__((unused));
-static uint32_t vsetvli(unsigned int dest, unsigned int src, uint16_t imm)
+static uint32_t vsetvli(unsigned int dest, unsigned int src, uint16_t vtypei) __attribute__((unused));
+static uint32_t vsetvli(unsigned int dest, unsigned int src, uint16_t vtypei)
 {
-	return (bits(imm, 10, 0) << 20) | inst_rs1(src) | inst_rd(dest) | MATCH_VSETVLI;
+	assert(dest <= MAX_GPR_NUM);
+	assert(src <= MAX_GPR_NUM);
+	assert(vtypei <= MAX_UINT11);
+
+	return (bits(vtypei, 10, 0) << 20) | inst_rs1(src) | inst_rd(dest) | MATCH_VSETVLI;
 }
 
 static uint32_t vsetvl(unsigned int rd, unsigned int rs1, unsigned int rs2) __attribute__((unused));
 static uint32_t vsetvl(unsigned int rd, unsigned int rs1, unsigned int rs2)
 {
+	assert(rd <= MAX_GPR_NUM);
+	assert(rs1 <= MAX_GPR_NUM);
+	assert(rs2 <= MAX_GPR_NUM);
+
 	return inst_rd(rd) | inst_rs1(rs1) | inst_rs2(rs2) | MATCH_VSETVL;
 }
 
 static uint32_t vmv_x_s(unsigned int rd, unsigned int vs2) __attribute__((unused));
 static uint32_t vmv_x_s(unsigned int rd, unsigned int vs2)
 {
+	assert(rd <= MAX_GPR_NUM);
+	assert(vs2 <= MAX_VREG_NUM);
+
 	return inst_rs2(vs2) | inst_rd(rd) | MATCH_VMV_X_S;
 }
 
-static uint32_t vmv_s_x(unsigned int vd, unsigned int vs2) __attribute__((unused));
-static uint32_t vmv_s_x(unsigned int vd, unsigned int rs1)
+static uint32_t vmv_s_x(unsigned int vd, unsigned int rs2) __attribute__((unused));
+static uint32_t vmv_s_x(unsigned int vd, unsigned int rs2)
 {
-	return inst_rs1(rs1) | inst_rd(vd) | MATCH_VMV_S_X;
+	assert(vd <= MAX_VREG_NUM);
+	assert(rs2 <= MAX_GPR_NUM);
+
+	return inst_rs1(rs2) | inst_rd(vd) | MATCH_VMV_S_X;
 }
 
 static uint32_t vslide1down_vx(unsigned int vd, unsigned int vs2,
-		unsigned int rs1, unsigned int vm) __attribute__((unused));
+		unsigned int rs1, bool vm) __attribute__((unused));
 static uint32_t vslide1down_vx(unsigned int vd, unsigned int vs2,
-		unsigned int rs1, unsigned int vm)
+		unsigned int rs1, bool vm)
 {
-	return ((vm & 1) << 25) | inst_rs2(vs2) | inst_rs1(rs1) | inst_rd(vd) | MATCH_VSLIDE1DOWN_VX;
+	assert(vd <= MAX_VREG_NUM);
+	assert(vs2 <= MAX_VREG_NUM);
+	assert(rs1 <= MAX_GPR_NUM);
+
+	return (vm ? (1u << 25) : 0u) | inst_rs2(vs2) | inst_rs1(rs1) | inst_rd(vd) | MATCH_VSLIDE1DOWN_VX;
 }
 
 #endif /* OPENOCD_TARGET_RISCV_OPCODES_H */
