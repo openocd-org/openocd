@@ -18,7 +18,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install autotools-dev autoconf automake libtool pkg-config cmake texinfo texlive g++-mingw-w64-i686
       - name: Checkout Code
-        uses: actions/checkout@v1
+        uses: actions/checkout@v4
       - run: ./bootstrap
       - name: Prepare libusb1
         env:
@@ -66,6 +66,14 @@ jobs:
           cd libjaylink-${LIBJAYLINK_VER}
           ./autogen.sh
           echo "LIBJAYLINK_SRC=$PWD" >> $GITHUB_ENV
+      - name: Prepare jimtcl
+        env:
+          JIMTCL_VER: 0.83
+        run: |
+          mkdir -p $DL_DIR && cd $DL_DIR
+          wget https://github.com/msteveb/jimtcl/archive/refs/tags/${JIMTCL_VER}.tar.gz
+          tar -xzf ${JIMTCL_VER}.tar.gz
+          echo "JIMTCL_SRC=$PWD/jimtcl-${JIMTCL_VER}" >> $GITHUB_ENV
       - name: Package OpenOCD for windows
         env:
           MAKE_JOBS: 2
@@ -75,6 +83,7 @@ jobs:
           LIBFTDI_CONFIG: -DSTATICLIBS=OFF -DEXAMPLES=OFF -DFTDI_EEPROM=OFF
           CAPSTONE_CONFIG: "CAPSTONE_BUILD_CORE_ONLY=yes CAPSTONE_STATIC=yes CAPSTONE_SHARED=no"
           LIBJAYLINK_CONFIG: --enable-shared --disable-static
+          JIMTCL_CONFIG: --with-ext=json --minimal --disable-ssl
         run: |
           # check if there is tag pointing at HEAD, otherwise take the HEAD SHA-1 as OPENOCD_TAG
           OPENOCD_TAG="`git tag --points-at HEAD`"
@@ -102,11 +111,11 @@ jobs:
           echo "IS_PRE_RELEASE=$IS_PRE_RELEASE" >> $GITHUB_ENV
           echo "ARTIFACT_PATH=$PWD/$ARTIFACT" >> $GITHUB_ENV
       - name: Publish OpenOCD packaged for windows
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           path: ${{ env.ARTIFACT_PATH }}
       - name: Delete 'latest' Release
-        uses: dev-drprasad/delete-tag-and-release@v0.2.1
+        uses: dev-drprasad/delete-tag-and-release@v1.1
         with:
           delete_release: true
           tag_name: ${{ env.RELEASE_NAME }}
