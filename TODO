@@ -60,8 +60,6 @@ changes pending in gerrit.
   to replicate it in the drivers, apart in case the driver sets TRST
   independently
 - add .hla_ops to "adapter"
-- HLA is a API level (.hla_ops). Transport should simply be {jtag,swd},
-  not {hla_jtag,hla_swd}.
 
 @subsection thelistadapterjtagcore JTAG Core
 

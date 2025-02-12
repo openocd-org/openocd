@@ -42,7 +42,7 @@ openocd -f interface/ftdi/jtagkey2.cfg -c "transport select jtag" \
 ```
 
 ```
-openocd -f interface/stlink.cfg -c "transport select hla_swd" \
+openocd -f interface/stlink.cfg -c "transport select swd" \
         -f target/stm32l0.cfg
 ```
 

@@ -3783,10 +3783,8 @@ JTAG supports both debugging and boundary scan testing.
 Flash programming support is built on top of debug support.
 
 JTAG transport is selected with the command @command{transport select
-jtag}. Unless your adapter uses either @ref{hla_interface,the hla interface
-driver} (in which case the command is @command{transport select hla_jtag})
-or @ref{st_link_dap_interface,the st-link interface driver} (in which case
-the command is @command{transport select dapdirect_jtag}).
+jtag}. This command has to be used also for @ref{hla_interface,the hla interface
+driver} and @ref{st_link_dap_interface,the st-link interface driver}.
 
 @subsection SWD Transport
 @cindex SWD
@@ -3799,10 +3797,8 @@ Flash programming support is built on top of debug support.
 (Some processors support both JTAG and SWD.)
 
 SWD transport is selected with the command @command{transport select
-swd}. Unless your adapter uses either @ref{hla_interface,the hla interface
-driver} (in which case the command is @command{transport select hla_swd})
-or @ref{st_link_dap_interface,the st-link interface driver} (in which case
-the command is @command{transport select dapdirect_swd}).
+swd}. This command has to be used also for @ref{hla_interface,the hla interface
+driver} and @ref{st_link_dap_interface,the st-link interface driver}.
 
 @deffn {Config Command} {swd newdap} ...
 Declares a single DAP which uses SWD transport.
@@ -10889,7 +10885,7 @@ baud with our custom divisor to get 12MHz)
 @item OpenOCD invocation line:
 @example
 openocd -f interface/stlink.cfg \
--c "transport select dapdirect_swd" \
+-c "transport select swd" \
 -f target/stm32l1.cfg \
 -c "stm32l1.tpiu configure -protocol uart" \
 -c "stm32l1.tpiu configure -traceclk 24000000 -pin-freq 12000000" \

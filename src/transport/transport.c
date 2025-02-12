@@ -49,14 +49,16 @@ extern struct command_context *global_cmd_ctx;
 static const struct {
 	unsigned int id;
 	const char *name;
+	const char *full_name;
+	const char *deprecated_name;
 } transport_names[] = {
-	{ TRANSPORT_JTAG,           "jtag",           },
-	{ TRANSPORT_SWD,            "swd",            },
-	{ TRANSPORT_HLA_JTAG,       "hla_jtag",       },
-	{ TRANSPORT_HLA_SWD,        "hla_swd",        },
-	{ TRANSPORT_DAPDIRECT_JTAG, "dapdirect_jtag", },
-	{ TRANSPORT_DAPDIRECT_SWD,  "dapdirect_swd",  },
-	{ TRANSPORT_SWIM,           "swim",           },
+	{ TRANSPORT_JTAG,           "jtag", "jtag",             NULL,             },
+	{ TRANSPORT_SWD,            "swd",  "swd",              NULL,             },
+	{ TRANSPORT_HLA_JTAG,       "jtag", "jtag (hla)",       "hla_jtag",       },
+	{ TRANSPORT_HLA_SWD,        "swd",  "swd (hla)",        "hla_swd",        },
+	{ TRANSPORT_DAPDIRECT_JTAG, "jtag", "jtag (dapdirect)", "dapdirect_jtag", },
+	{ TRANSPORT_DAPDIRECT_SWD,  "swd",  "swd (dapdirect)",  "dapdirect_swd",  },
+	{ TRANSPORT_SWIM,           "swim", "swim",             NULL,             },
 };
 
 /** List of transports registered in OpenOCD, alphabetically sorted per name. */
@@ -90,18 +92,36 @@ const char *transport_name(unsigned int id)
 	return NULL;
 }
 
+static const char *transport_full_name(unsigned int id)
+{
+	for (unsigned int i = 0; i < ARRAY_SIZE(transport_names); i++)
+		if (id == transport_names[i].id)
+			return transport_names[i].full_name;
+
+	return NULL;
+}
+
+static const char *transport_deprecated_name(unsigned int id)
+{
+	for (unsigned int i = 0; i < ARRAY_SIZE(transport_names); i++)
+		if (id == transport_names[i].id)
+			return transport_names[i].deprecated_name;
+
+	return NULL;
+}
+
 static bool is_transport_id_valid(unsigned int id)
 {
 	return (id != 0) && ((id & ~TRANSPORT_VALID_MASK) == 0) && IS_PWR_OF_2(id);
 }
 
-static int transport_select(struct command_context *ctx, const char *name)
+static int transport_select(struct command_context *ctx, unsigned int transport_id)
 {
 	/* name may only identify a known transport;
 	 * caller guarantees session's transport isn't yet set.*/
 	struct transport *t;
 	list_for_each_entry(t, &transport_list, lh) {
-		if (!strcmp(transport_name(t->id), name)) {
+		if (t->id == transport_id) {
 			int retval = t->select(ctx);
 			/* select() registers commands specific to this
 			 * transport, and may also reset the link, e.g.
@@ -110,12 +130,14 @@ static int transport_select(struct command_context *ctx, const char *name)
 			if (retval == ERROR_OK)
 				session = t;
 			else
-				LOG_ERROR("Error selecting '%s' as transport", name);
+				LOG_ERROR("Error selecting '%s' as transport",
+					transport_full_name(transport_id));
 			return retval;
 		}
 	}
 
-	LOG_ERROR("No transport named '%s' is available.", name);
+	LOG_ERROR("No transport named '%s' is available.",
+		transport_full_name(transport_id));
 	return ERROR_FAIL;
 }
 
@@ -165,7 +187,7 @@ int allow_transports(struct command_context *ctx, unsigned int transport_ids,
 	if (IS_PWR_OF_2(transport_ids)) {
 		LOG_DEBUG("only one transport option; autoselecting '%s'", transport_name(transport_ids));
 		transport_single_is_autoselected = true;
-		return transport_select(ctx, transport_name(transport_ids));
+		return transport_select(ctx, transport_ids);
 	}
 
 	return ERROR_OK;
@@ -205,7 +227,7 @@ int transport_register(struct transport *new_transport)
 
 	if (!new_transport->select || !new_transport->init)
 		LOG_ERROR("invalid transport %s",
-				  transport_name(new_transport->id));
+				  transport_full_name(new_transport->id));
 
 	/* splice this into the list, sorted in alphabetic order */
 	list_for_each_entry(t, &transport_list, lh) {
@@ -216,7 +238,7 @@ int transport_register(struct transport *new_transport)
 	list_add_tail(&new_transport->lh, &t->lh);
 
 	LOG_DEBUG("register '%s' (ID %d)",
-			  transport_name(new_transport->id), new_transport->id);
+			  transport_full_name(new_transport->id), new_transport->id);
 
 	return ERROR_OK;
 }
@@ -238,7 +260,7 @@ const char *get_current_transport_name(void)
 	if (!session || !is_transport_id_valid(session->id))
 		NULL;
 
-	return transport_name(session->id);
+	return transport_full_name(session->id);
 }
 
 /*-----------------------------------------------------------------------*/
@@ -257,7 +279,7 @@ COMMAND_HANDLER(handle_transport_init)
 		LOG_ERROR("Transports available:");
 		for (unsigned int i = BIT(0); i & TRANSPORT_VALID_MASK; i <<= 1) {
 			if (i & allowed_transports)
-				LOG_ERROR("%s", transport_name(i));
+				LOG_ERROR("%s", transport_full_name(i));
 		}
 		return ERROR_FAIL;
 	}
@@ -265,7 +287,7 @@ COMMAND_HANDLER(handle_transport_init)
 	if (transport_single_is_autoselected)
 		LOG_WARNING("DEPRECATED: auto-selecting transport \"%s\". "
 			"Use 'transport select %s' to suppress this message.",
-			transport_name(session->id), transport_name(session->id));
+			transport_full_name(session->id), transport_name(session->id));
 
 	return session->init(CMD_CTX);
 }
@@ -278,8 +300,14 @@ COMMAND_HANDLER(handle_transport_list)
 	command_print(CMD, "The following transports are available:");
 
 	struct transport *t;
-	list_for_each_entry(t, &transport_list, lh)
-		command_print(CMD, "\t%s", transport_name(t->id));
+	const char *prev_name = NULL;
+	/* list is sorted, don't print duplicated transport names */
+	list_for_each_entry(t, &transport_list, lh) {
+		const char *name = transport_name(t->id);
+		if (!prev_name || strcmp(prev_name, name))
+			command_print(CMD, "\t%s", name);
+		prev_name = name;
+	}
 
 	return ERROR_OK;
 }
@@ -304,19 +332,21 @@ COMMAND_HANDLER(handle_transport_select)
 			}
 			LOG_WARNING("DEPRECATED: auto-selecting transport \"%s\". "
 				"Use 'transport select %s' to suppress this message.",
-				transport_name(preferred_transport),
+				transport_full_name(preferred_transport),
 				transport_name(preferred_transport));
-			int retval = transport_select(CMD_CTX, transport_name(preferred_transport));
+			int retval = transport_select(CMD_CTX, preferred_transport);
 			if (retval != ERROR_OK)
 				return retval;
 		}
-		command_print(CMD, "%s", transport_name(session->id));
+		command_print(CMD, "%s", transport_full_name(session->id));
 		return ERROR_OK;
 	}
 
 	/* assign transport */
 	if (session) {
-		if (!strcmp(transport_name(session->id), CMD_ARGV[0])) {
+		if (!strcmp(transport_name(session->id), CMD_ARGV[0])
+			|| (transport_deprecated_name(session->id)
+				&& !strcmp(transport_deprecated_name(session->id), CMD_ARGV[0]))) {
 			if (transport_single_is_autoselected) {
 				/* Nothing to do, but also nothing to complain */
 				transport_single_is_autoselected = false;
@@ -341,12 +371,17 @@ COMMAND_HANDLER(handle_transport_select)
 	}
 
 	for (unsigned int i = BIT(0); i & TRANSPORT_VALID_MASK; i <<= 1) {
-		if ((i & allowed_transports)
-			&& !strcmp(transport_name(i), CMD_ARGV[0])) {
-			int retval = transport_select(CMD_CTX, CMD_ARGV[0]);
-			if (retval != ERROR_OK)
-				return retval;
-			return ERROR_OK;
+		if (!(i & allowed_transports))
+			continue;
+
+		if (!strcmp(transport_name(i), CMD_ARGV[0]))
+			return transport_select(CMD_CTX, i);
+
+		if (transport_deprecated_name(i)
+			&& !strcmp(transport_deprecated_name(i), CMD_ARGV[0])) {
+			LOG_WARNING("DEPRECATED! use 'transport select %s', not 'transport select %s'",
+				transport_name(i), transport_deprecated_name(i));
+			return transport_select(CMD_CTX, i);
 		}
 	}
 
