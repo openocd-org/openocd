@@ -229,7 +229,8 @@ static struct jtag_interface opendous_interface = {
 
 struct adapter_driver opendous_adapter_driver = {
 	.name = "opendous",
-	.transports = jtag_only,
+	.transport_ids = TRANSPORT_JTAG,
+	.transport_preferred_id = TRANSPORT_JTAG,
 	.commands = opendous_command_handlers,
 
 	.init = opendous_init,

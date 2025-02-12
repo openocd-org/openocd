@@ -690,11 +690,10 @@ static const struct swd_driver xlnx_pcie_xvc_swd_ops = {
 	.run = xlnx_pcie_xvc_swd_run_queue,
 };
 
-static const char * const xlnx_pcie_xvc_transports[] = { "jtag", "swd", NULL };
-
 struct adapter_driver xlnx_pcie_xvc_adapter_driver = {
 	.name = "xlnx_pcie_xvc",
-	.transports = xlnx_pcie_xvc_transports,
+	.transport_ids = TRANSPORT_JTAG | TRANSPORT_SWD,
+	.transport_preferred_id = TRANSPORT_JTAG,
 	.commands = xlnx_pcie_xvc_command_handlers,
 
 	.init = &xlnx_pcie_xvc_init,

@@ -590,15 +590,14 @@ static int bcm2835gpio_quit(void)
 }
 
 
-static const char * const bcm2835_transports[] = { "jtag", "swd", NULL };
-
 static struct jtag_interface bcm2835gpio_interface = {
 	.supported = DEBUG_CAP_TMS_SEQ,
 	.execute_queue = bitbang_execute_queue,
 };
 struct adapter_driver bcm2835gpio_adapter_driver = {
 	.name = "bcm2835gpio",
-	.transports = bcm2835_transports,
+	.transport_ids = TRANSPORT_JTAG | TRANSPORT_SWD,
+	.transport_preferred_id = TRANSPORT_JTAG,
 	.commands = bcm2835gpio_command_handlers,
 
 	.init = bcm2835gpio_init,

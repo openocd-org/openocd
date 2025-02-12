@@ -590,7 +590,8 @@ static struct jtag_interface usbprog_interface = {
 
 struct adapter_driver usbprog_adapter_driver = {
 	.name = "usbprog",
-	.transports = jtag_only,
+	.transport_ids = TRANSPORT_JTAG,
+	.transport_preferred_id = TRANSPORT_JTAG,
 
 	.init = usbprog_init,
 	.quit = usbprog_quit,

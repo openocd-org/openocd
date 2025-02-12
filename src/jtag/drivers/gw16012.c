@@ -514,7 +514,8 @@ static struct jtag_interface gw16012_interface = {
 
 struct adapter_driver gw16012_adapter_driver = {
 	.name = "gw16012",
-	.transports = jtag_only,
+	.transport_ids = TRANSPORT_JTAG,
+	.transport_preferred_id = TRANSPORT_JTAG,
 	.commands = gw16012_command_handlers,
 
 	.init = gw16012_init,

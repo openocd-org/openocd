@@ -417,8 +417,6 @@ static const struct command_registration imx_gpio_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-static const char * const imx_gpio_transports[] = { "jtag", "swd", NULL };
-
 static struct jtag_interface imx_gpio_interface = {
 	.supported = DEBUG_CAP_TMS_SEQ,
 	.execute_queue = bitbang_execute_queue,
@@ -426,7 +424,8 @@ static struct jtag_interface imx_gpio_interface = {
 
 struct adapter_driver imx_gpio_adapter_driver = {
 	.name = "imx_gpio",
-	.transports = imx_gpio_transports,
+	.transport_ids = TRANSPORT_JTAG | TRANSPORT_SWD,
+	.transport_preferred_id = TRANSPORT_JTAG,
 	.commands = imx_gpio_command_handlers,
 
 	.init = imx_gpio_init,

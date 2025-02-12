@@ -931,7 +931,8 @@ static struct jtag_interface openjtag_interface = {
 
 struct adapter_driver openjtag_adapter_driver = {
 	.name = "openjtag",
-	.transports = jtag_only,
+	.transport_ids = TRANSPORT_JTAG,
+	.transport_preferred_id = TRANSPORT_JTAG,
 	.commands = openjtag_command_handlers,
 
 	.init = openjtag_init,

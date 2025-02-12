@@ -545,8 +545,6 @@ static const struct command_registration sysfsgpio_command_handlers[] = {
 static int sysfsgpio_init(void);
 static int sysfsgpio_quit(void);
 
-static const char * const sysfsgpio_transports[] = { "jtag", "swd", NULL };
-
 static struct jtag_interface sysfsgpio_interface = {
 	.supported = DEBUG_CAP_TMS_SEQ,
 	.execute_queue = bitbang_execute_queue,
@@ -554,7 +552,8 @@ static struct jtag_interface sysfsgpio_interface = {
 
 struct adapter_driver sysfsgpio_adapter_driver = {
 	.name = "sysfsgpio",
-	.transports = sysfsgpio_transports,
+	.transport_ids = TRANSPORT_JTAG | TRANSPORT_SWD,
+	.transport_preferred_id = TRANSPORT_JTAG,
 	.commands = sysfsgpio_command_handlers,
 
 	.init = sysfsgpio_init,

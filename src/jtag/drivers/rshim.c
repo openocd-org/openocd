@@ -508,11 +508,10 @@ static const struct dap_ops rshim_dap_ops = {
 	.quit = rshim_disconnect,
 };
 
-static const char *const rshim_dap_transport[] = { "dapdirect_swd", NULL };
-
 struct adapter_driver rshim_dap_adapter_driver = {
 	.name = "rshim",
-	.transports = rshim_dap_transport,
+	.transport_ids = TRANSPORT_DAPDIRECT_SWD,
+	.transport_preferred_id = TRANSPORT_DAPDIRECT_SWD,
 	.commands = rshim_dap_command_handlers,
 
 	.init = rshim_dap_init,

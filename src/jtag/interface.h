@@ -17,6 +17,7 @@
 #include <jtag/jtag.h>
 #include <jtag/swim.h>
 #include <target/arm_tpiu_swo.h>
+#include <transport/transport.h>
 
 /* @file
  * The "Cable Helper API" is what the cable drivers can use to help
@@ -208,8 +209,16 @@ struct adapter_driver {
 	/** The name of the interface driver. */
 	const char * const name;
 
-	/** transports supported in C code (NULL terminated vector) */
-	const char * const *transports;
+	/**
+	 * Bitmask of transport IDs supported in C code.
+	 */
+	unsigned int transport_ids;
+
+	/**
+	 * ID of transport that gets auto-selected when not specified by the user.
+	 * The auto-selection of transport is DEPRECATED.
+	 */
+	unsigned int transport_preferred_id;
 
 	/**
 	 * The interface driver may register additional commands to expose
@@ -353,8 +362,6 @@ struct adapter_driver {
 	/* SWIM APIs */
 	const struct swim_driver *swim_ops;
 };
-
-extern const char * const jtag_only[];
 
 int adapter_resets(int assert_trst, int assert_srst);
 int adapter_assert_reset(void);

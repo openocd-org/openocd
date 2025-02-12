@@ -1342,11 +1342,10 @@ static const struct dap_ops vdebug_dap_ops = {
 	.quit = NULL, /* optional */
 };
 
-static const char *const vdebug_transports[] = { "jtag", "dapdirect_swd", NULL };
-
 struct adapter_driver vdebug_adapter_driver = {
 	.name = "vdebug",
-	.transports = vdebug_transports,
+	.transport_ids = TRANSPORT_JTAG | TRANSPORT_DAPDIRECT_SWD,
+	.transport_preferred_id = TRANSPORT_JTAG,
 	.speed = vdebug_jtag_speed,
 	.khz = vdebug_jtag_khz,
 	.speed_div = vdebug_jtag_div,

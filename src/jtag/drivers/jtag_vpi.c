@@ -666,7 +666,8 @@ static struct jtag_interface jtag_vpi_interface = {
 
 struct adapter_driver jtag_vpi_adapter_driver = {
 	.name = "jtag_vpi",
-	.transports = jtag_only,
+	.transport_ids = TRANSPORT_JTAG,
+	.transport_preferred_id = TRANSPORT_JTAG,
 	.commands = jtag_vpi_command_handlers,
 
 	.init = jtag_vpi_init,

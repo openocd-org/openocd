@@ -534,15 +534,14 @@ static const struct swd_driver buspirate_swd = {
 	.run = buspirate_swd_run_queue,
 };
 
-static const char * const buspirate_transports[] = { "jtag", "swd", NULL };
-
 static struct jtag_interface buspirate_interface = {
 	.execute_queue = buspirate_execute_queue,
 };
 
 struct adapter_driver buspirate_adapter_driver = {
 	.name = "buspirate",
-	.transports = buspirate_transports,
+	.transport_ids = TRANSPORT_JTAG | TRANSPORT_SWD,
+	.transport_preferred_id = TRANSPORT_JTAG,
 	.commands = buspirate_command_handlers,
 
 	.init = buspirate_init,

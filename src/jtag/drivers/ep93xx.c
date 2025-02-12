@@ -46,7 +46,8 @@ static struct jtag_interface ep93xx_interface = {
 
 struct adapter_driver ep93xx_adapter_driver = {
 	.name = "ep93xx",
-	.transports = jtag_only,
+	.transport_ids = TRANSPORT_JTAG,
+	.transport_preferred_id = TRANSPORT_JTAG,
 
 	.init = ep93xx_init,
 	.quit = ep93xx_quit,

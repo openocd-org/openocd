@@ -350,8 +350,6 @@ static const struct command_registration am335xgpio_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-static const char * const am335xgpio_transports[] = { "jtag", "swd", NULL };
-
 static struct jtag_interface am335xgpio_interface = {
 	.supported = DEBUG_CAP_TMS_SEQ,
 	.execute_queue = bitbang_execute_queue,
@@ -494,7 +492,8 @@ static int am335xgpio_quit(void)
 
 struct adapter_driver am335xgpio_adapter_driver = {
 	.name = "am335xgpio",
-	.transports = am335xgpio_transports,
+	.transport_ids = TRANSPORT_JTAG | TRANSPORT_SWD,
+	.transport_preferred_id = TRANSPORT_JTAG,
 	.commands = am335xgpio_command_handlers,
 
 	.init = am335xgpio_init,

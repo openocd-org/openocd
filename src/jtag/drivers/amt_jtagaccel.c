@@ -579,7 +579,8 @@ static struct jtag_interface amt_jtagaccel_interface = {
 
 struct adapter_driver amt_jtagaccel_adapter_driver = {
 	.name = "amt_jtagaccel",
-	.transports = jtag_only,
+	.transport_ids = TRANSPORT_JTAG,
+	.transport_preferred_id = TRANSPORT_JTAG,
 	.commands = amtjtagaccel_command_handlers,
 
 	.init = amt_jtagaccel_init,

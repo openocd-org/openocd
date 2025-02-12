@@ -1057,7 +1057,8 @@ static struct jtag_interface usb_blaster_interface = {
 
 struct adapter_driver usb_blaster_adapter_driver = {
 	.name = "usb_blaster",
-	.transports = jtag_only,
+	.transport_ids = TRANSPORT_JTAG,
+	.transport_preferred_id = TRANSPORT_JTAG,
 	.commands = ublast_command_handlers,
 
 	.init = ublast_init,

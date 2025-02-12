@@ -186,7 +186,8 @@ static struct jtag_interface at91rm9200_interface = {
 
 struct adapter_driver at91rm9200_adapter_driver = {
 	.name = "at91rm9200",
-	.transports = jtag_only,
+	.transport_ids = TRANSPORT_JTAG,
+	.transport_preferred_id = TRANSPORT_JTAG,
 	.commands = at91rm9200_command_handlers,
 
 	.init = at91rm9200_init,

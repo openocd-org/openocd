@@ -1675,7 +1675,8 @@ static struct jtag_interface rlink_interface = {
 
 struct adapter_driver rlink_adapter_driver = {
 	.name = "rlink",
-	.transports = jtag_only,
+	.transport_ids = TRANSPORT_JTAG,
+	.transport_preferred_id = TRANSPORT_JTAG,
 
 	.init = rlink_init,
 	.quit = rlink_quit,

@@ -533,7 +533,8 @@ static struct jtag_interface parport_interface = {
 
 struct adapter_driver parport_adapter_driver = {
 	.name = "parport",
-	.transports = jtag_only,
+	.transport_ids = TRANSPORT_JTAG,
+	.transport_preferred_id = TRANSPORT_JTAG,
 	.commands = parport_command_handlers,
 
 	.init = parport_init,

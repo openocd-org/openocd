@@ -486,7 +486,8 @@ static struct jtag_interface armjtagew_interface = {
 
 struct adapter_driver armjtagew_adapter_driver = {
 	.name = "arm-jtag-ew",
-	.transports = jtag_only,
+	.transport_ids = TRANSPORT_JTAG,
+	.transport_preferred_id = TRANSPORT_JTAG,
 	.commands = armjtagew_command_handlers,
 
 	.init = armjtagew_init,

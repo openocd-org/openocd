@@ -604,11 +604,10 @@ static const struct dap_ops dmem_dap_ops = {
 	.run = dmem_dp_run,
 };
 
-static const char *const dmem_dap_transport[] = { "dapdirect_swd", NULL };
-
 struct adapter_driver dmem_dap_adapter_driver = {
 	.name = "dmem",
-	.transports = dmem_dap_transport,
+	.transport_ids = TRANSPORT_DAPDIRECT_SWD,
+	.transport_preferred_id = TRANSPORT_DAPDIRECT_SWD,
 	.commands = dmem_dap_command_handlers,
 
 	.init = dmem_dap_init,

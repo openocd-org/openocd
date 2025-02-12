@@ -5217,11 +5217,10 @@ static const struct swim_driver stlink_swim_ops = {
 	.reconnect = stlink_swim_op_reconnect,
 };
 
-static const char *const stlink_dap_transport[] = { "dapdirect_swd", "dapdirect_jtag", "swim", NULL };
-
 struct adapter_driver stlink_dap_adapter_driver = {
 	.name = "st-link",
-	.transports = stlink_dap_transport,
+	.transport_ids = TRANSPORT_DAPDIRECT_SWD | TRANSPORT_DAPDIRECT_JTAG | TRANSPORT_SWIM,
+	.transport_preferred_id = TRANSPORT_DAPDIRECT_SWD,
 	.commands = stlink_dap_command_handlers,
 
 	.init = stlink_dap_init,

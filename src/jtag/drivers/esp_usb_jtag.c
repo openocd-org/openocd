@@ -784,7 +784,8 @@ static struct jtag_interface esp_usb_jtag_interface = {
 
 struct adapter_driver esp_usb_adapter_driver = {
 	.name = "esp_usb_jtag",
-	.transports = jtag_only,
+	.transport_ids = TRANSPORT_JTAG,
+	.transport_preferred_id = TRANSPORT_JTAG,
 	.commands = esp_usb_jtag_commands,
 
 	.init = esp_usb_jtag_init,

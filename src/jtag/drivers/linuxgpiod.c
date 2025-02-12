@@ -425,8 +425,6 @@ out_error:
 	return ERROR_JTAG_INIT_FAILED;
 }
 
-static const char *const linuxgpiod_transport[] = { "swd", "jtag", NULL };
-
 static struct jtag_interface linuxgpiod_interface = {
 	.supported = DEBUG_CAP_TMS_SEQ,
 	.execute_queue = bitbang_execute_queue,
@@ -434,7 +432,8 @@ static struct jtag_interface linuxgpiod_interface = {
 
 struct adapter_driver linuxgpiod_adapter_driver = {
 	.name = "linuxgpiod",
-	.transports = linuxgpiod_transport,
+	.transport_ids = TRANSPORT_SWD | TRANSPORT_JTAG,
+	.transport_preferred_id = TRANSPORT_SWD,
 
 	.init = linuxgpiod_init,
 	.quit = linuxgpiod_quit,

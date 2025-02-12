@@ -231,8 +231,6 @@ static struct transport hl_jtag_transport = {
 	.override_target = hl_interface_override_target,
 };
 
-const char *hl_transports[] = { "hla_swd", "hla_jtag", NULL };
-
 static void hl_constructor(void) __attribute__ ((constructor));
 static void hl_constructor(void)
 {

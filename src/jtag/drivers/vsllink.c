@@ -913,8 +913,6 @@ static const struct command_registration vsllink_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-static const char * const vsllink_transports[] = {"jtag", "swd", NULL};
-
 static const struct swd_driver vsllink_swd_driver = {
 	.init = vsllink_swd_init,
 	.switch_seq = vsllink_swd_switch_seq,
@@ -930,7 +928,8 @@ static struct jtag_interface vsllink_interface = {
 
 struct adapter_driver vsllink_adapter_driver = {
 	.name = "vsllink",
-	.transports = vsllink_transports,
+	.transport_ids = TRANSPORT_JTAG | TRANSPORT_SWD,
+	.transport_preferred_id = TRANSPORT_JTAG,
 	.commands = vsllink_command_handlers,
 
 	.init = vsllink_init,

@@ -95,9 +95,12 @@ struct transport *get_current_transport(void);
 
 const char *get_current_transport_name(void);
 
+const char *transport_name(unsigned int id);
+
 int transport_register_commands(struct command_context *ctx);
 
-int allow_transports(struct command_context *ctx, const char * const *vector);
+int allow_transports(struct command_context *ctx, unsigned int transport_ids,
+	unsigned int transport_preferred_id);
 
 bool transport_is_jtag(void);
 bool transport_is_swd(void);

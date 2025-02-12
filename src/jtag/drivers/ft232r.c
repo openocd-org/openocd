@@ -900,7 +900,8 @@ static struct jtag_interface ft232r_interface = {
 
 struct adapter_driver ft232r_adapter_driver = {
 	.name = "ft232r",
-	.transports = jtag_only,
+	.transport_ids = TRANSPORT_JTAG,
+	.transport_preferred_id = TRANSPORT_JTAG,
 	.commands = ft232r_command_handlers,
 
 	.init = ft232r_init,

@@ -616,12 +616,10 @@ static const struct command_registration spidev_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-// Only SWD transport supported
-static const char *const spidev_transports[] = { "swd", NULL };
-
 struct adapter_driver linuxspidev_adapter_driver = {
 	.name = "linuxspidev",
-	.transports = spidev_transports,
+	.transport_ids = TRANSPORT_SWD,
+	.transport_preferred_id = TRANSPORT_SWD,
 	.commands = spidev_command_handlers,
 
 	.init = spidev_init,

@@ -2271,7 +2271,8 @@ static struct jtag_interface ulink_interface = {
 
 struct adapter_driver ulink_adapter_driver = {
 	.name = "ulink",
-	.transports = jtag_only,
+	.transport_ids = TRANSPORT_JTAG,
+	.transport_preferred_id = TRANSPORT_JTAG,
 	.commands = ulink_command_handlers,
 
 	.init = ulink_init,

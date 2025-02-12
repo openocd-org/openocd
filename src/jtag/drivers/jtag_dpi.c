@@ -398,7 +398,8 @@ static struct jtag_interface jtag_dpi_interface = {
 
 struct adapter_driver jtag_dpi_adapter_driver = {
 	.name = "jtag_dpi",
-	.transports = jtag_only,
+	.transport_ids = TRANSPORT_JTAG,
+	.transport_preferred_id = TRANSPORT_JTAG,
 	.commands = jtag_dpi_command_handlers,
 	.init = jtag_dpi_init,
 	.quit = jtag_dpi_quit,

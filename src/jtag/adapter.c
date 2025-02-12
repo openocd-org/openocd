@@ -16,6 +16,7 @@
 #include "minidriver.h"
 #include "interface.h"
 #include "interfaces.h"
+#include <helper/bits.h>
 #include <transport/transport.h>
 
 /**
@@ -24,7 +25,6 @@
  */
 
 struct adapter_driver *adapter_driver;
-const char * const jtag_only[] = { "jtag", NULL };
 
 enum adapter_clk_mode {
 	CLOCK_MODE_UNSELECTED = 0,
@@ -402,11 +402,12 @@ COMMAND_HANDLER(dump_adapter_driver_list)
 
 	for (unsigned int i = 0; adapter_drivers[i]; i++) {
 		const char *name = adapter_drivers[i]->name;
-		const char * const *transports = adapter_drivers[i]->transports;
+		unsigned int transport_ids = adapter_drivers[i]->transport_ids;
 
 		command_print_sameline(CMD, "%-*s {", max_len, name);
-		for (unsigned int j = 0; transports[j]; j++)
-			command_print_sameline(CMD, " %s", transports[j]);
+		for (unsigned int j = BIT(0); j & TRANSPORT_VALID_MASK; j <<= 1)
+			if (j & transport_ids)
+				command_print_sameline(CMD, " %s", transport_name(j));
 		command_print(CMD, " }");
 	}
 
@@ -447,7 +448,8 @@ COMMAND_HANDLER(handle_adapter_driver_command)
 
 		adapter_driver = adapter_drivers[i];
 
-		return allow_transports(CMD_CTX, adapter_driver->transports);
+		return allow_transports(CMD_CTX, adapter_driver->transport_ids,
+			adapter_driver->transport_preferred_id);
 	}
 
 	/* no valid adapter driver was found (i.e. the configuration option,

@@ -15,8 +15,6 @@
 struct target;
 /** */
 enum e_hl_transports;
-/** */
-extern const char *hl_transports[];
 
 #define HLA_MAX_USB_IDS 16
 

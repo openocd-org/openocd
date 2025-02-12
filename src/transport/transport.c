@@ -62,11 +62,15 @@ static const struct {
 static struct transport *transport_list;
 
 /**
- * NULL-terminated Vector of names of transports which the
- * currently selected debug adapter supports.  This is declared
- * by the time that adapter is fully set up.
+ * Bitmask of transport IDs which the currently selected debug adapter supports.
+ * This is declared by the time that adapter is fully set up.
  */
-static const char * const *allowed_transports;
+static unsigned int allowed_transports;
+
+/**
+ * Transport ID auto-selected when not specified by the user.
+ */
+static unsigned int preferred_transport;
 
 /**
  * Adapter supports a single transport; it has been auto-selected
@@ -76,7 +80,7 @@ static bool transport_single_is_autoselected;
 /** * The transport being used for the current OpenOCD session.  */
 static struct transport *session;
 
-static const char *transport_name(unsigned int id)
+const char *transport_name(unsigned int id)
 {
 	for (unsigned int i = 0; i < ARRAY_SIZE(transport_names); i++)
 		if (id == transport_names[i].id)
@@ -118,13 +122,14 @@ static int transport_select(struct command_context *ctx, const char *name)
  * to declare the set of transports supported by an adapter.  When
  * there is only one member of that set, it is automatically selected.
  */
-int allow_transports(struct command_context *ctx, const char * const *vector)
+int allow_transports(struct command_context *ctx, unsigned int transport_ids,
+	unsigned int transport_preferred_id)
 {
 	/* NOTE:  caller is required to provide only a list
-	 * of *valid* transport names
+	 * of *valid* transports
 	 *
 	 * REVISIT should we validate that?  and insist there's
-	 * at least one non-NULL element in that list?
+	 * at least one valid element in that list?
 	 *
 	 * ... allow removals, e.g. external strapping prevents use
 	 * of one transport; C code should be definitive about what
@@ -135,13 +140,14 @@ int allow_transports(struct command_context *ctx, const char * const *vector)
 		return ERROR_FAIL;
 	}
 
-	allowed_transports = vector;
+	allowed_transports = transport_ids;
+	preferred_transport = transport_preferred_id;
 
 	/* autoselect if there's no choice ... */
-	if (!vector[1]) {
-		LOG_DEBUG("only one transport option; autoselecting '%s'", vector[0]);
+	if (IS_PWR_OF_2(transport_ids)) {
+		LOG_DEBUG("only one transport option; autoselecting '%s'", transport_name(transport_ids));
 		transport_single_is_autoselected = true;
-		return transport_select(ctx, vector[0]);
+		return transport_select(ctx, transport_name(transport_ids));
 	}
 
 	return ERROR_OK;
@@ -226,10 +232,9 @@ COMMAND_HANDLER(handle_transport_init)
 
 		/* no session transport configured, print transports then fail */
 		LOG_ERROR("Transports available:");
-		const char * const *vector = allowed_transports;
-		while (*vector) {
-			LOG_ERROR("%s", *vector);
-			vector++;
+		for (unsigned int i = BIT(0); i & TRANSPORT_VALID_MASK; i <<= 1) {
+			if (i & allowed_transports)
+				LOG_ERROR("%s", transport_name(i));
 		}
 		return ERROR_FAIL;
 	}
@@ -275,8 +280,9 @@ COMMAND_HANDLER(handle_transport_select)
 			}
 			LOG_WARNING("DEPRECATED: auto-selecting transport \"%s\". "
 				"Use 'transport select %s' to suppress this message.",
-				allowed_transports[0], allowed_transports[0]);
-			int retval = transport_select(CMD_CTX, allowed_transports[0]);
+				transport_name(preferred_transport),
+				transport_name(preferred_transport));
+			int retval = transport_select(CMD_CTX, transport_name(preferred_transport));
 			if (retval != ERROR_OK)
 				return retval;
 		}
@@ -310,8 +316,9 @@ COMMAND_HANDLER(handle_transport_select)
 		return ERROR_FAIL;
 	}
 
-	for (unsigned int i = 0; allowed_transports[i]; i++) {
-		if (!strcmp(allowed_transports[i], CMD_ARGV[0])) {
+	for (unsigned int i = BIT(0); i & TRANSPORT_VALID_MASK; i <<= 1) {
+		if ((i & allowed_transports)
+			&& !strcmp(transport_name(i), CMD_ARGV[0])) {
 			int retval = transport_select(CMD_CTX, CMD_ARGV[0]);
 			if (retval != ERROR_OK)
 				return retval;

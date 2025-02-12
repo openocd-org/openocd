@@ -908,11 +908,10 @@ static const struct swd_driver kitprog_swd = {
 	.run = kitprog_swd_run_queue,
 };
 
-static const char * const kitprog_transports[] = { "swd", NULL };
-
 struct adapter_driver kitprog_adapter_driver = {
 	.name = "kitprog",
-	.transports = kitprog_transports,
+	.transport_ids = TRANSPORT_SWD,
+	.transport_preferred_id = TRANSPORT_SWD,
 	.commands = kitprog_command_handlers,
 
 	.init = kitprog_init,

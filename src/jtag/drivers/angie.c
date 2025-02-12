@@ -2388,7 +2388,8 @@ static struct jtag_interface angie_interface = {
 
 struct adapter_driver angie_adapter_driver = {
 	.name = "angie",
-	.transports = jtag_only,
+	.transport_ids = TRANSPORT_JTAG,
+	.transport_preferred_id = TRANSPORT_JTAG,
 
 	.init = angie_init,
 	.quit = angie_quit,

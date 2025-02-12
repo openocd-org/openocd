@@ -367,7 +367,8 @@ static const struct command_registration hl_interface_command_handlers[] = {
 
 struct adapter_driver hl_adapter_driver = {
 	.name = "hla",
-	.transports = hl_transports,
+	.transport_ids = TRANSPORT_HLA_SWD | TRANSPORT_HLA_JTAG,
+	.transport_preferred_id = TRANSPORT_HLA_SWD,
 	.commands = hl_interface_command_handlers,
 
 	.init = hl_interface_init,

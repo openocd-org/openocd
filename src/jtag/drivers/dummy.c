@@ -140,7 +140,8 @@ static struct jtag_interface dummy_interface = {
 
 struct adapter_driver dummy_adapter_driver = {
 	.name = "dummy",
-	.transports = jtag_only,
+	.transport_ids = TRANSPORT_JTAG,
+	.transport_preferred_id = TRANSPORT_JTAG,
 	.commands = dummy_command_handlers,
 
 	.init = &dummy_init,
