@@ -1116,23 +1116,26 @@ static int linux_thread_extra_info(struct target *target,
 
 	while (temp) {
 		if (temp->threadid == threadid) {
-			char *pid = " PID: ";
-			char *pid_current = "*PID: ";
-			char *name = "Name: ";
-			int str_size = strlen(pid) + strlen(name);
-			char *tmp_str = calloc(1, str_size + 50);
-			char *tmp_str_ptr = tmp_str;
-
-			/*  discriminate current task */
-			if (temp->status == 3)
-				tmp_str_ptr += sprintf(tmp_str_ptr, "%s",
-						pid_current);
-			else
-				tmp_str_ptr += sprintf(tmp_str_ptr, "%s", pid);
-
-			tmp_str_ptr += sprintf(tmp_str_ptr, "%d, ", (int)temp->pid);
-			sprintf(tmp_str_ptr, "%s", name);
-			sprintf(tmp_str_ptr, "%s", temp->name);
+			const char *pid = temp->status == 3
+				? "*PID: " /*  discriminate current task */
+				: " PID: ";
+			const char *name = "Name: ";
+			int str_size = strlen(pid) + strlen(name) + 50;
+			char *tmp_str = calloc(1, str_size);
+			if (!tmp_str) {
+				LOG_ERROR("Out of memory");
+				return ERROR_FAIL;
+			}
+			int res = snprintf(tmp_str, str_size, "%s%d, %s%s", pid,
+					(int)temp->pid, name, temp->name);
+			if (res < 0) {
+				LOG_ERROR("Failed to format the info: encoding error");
+				return ERROR_FAIL;
+			}
+			if (res >= str_size) {
+				LOG_ERROR("Failed to format the info: buffer is too small");
+				return ERROR_FAIL;
+			}
 			char *hex_str = calloc(1, strlen(tmp_str) * 2 + 1);
 			size_t pkt_len = hexify(hex_str, (const uint8_t *)tmp_str,
 				strlen(tmp_str), strlen(tmp_str) * 2 + 1);
