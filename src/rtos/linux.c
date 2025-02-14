@@ -1040,6 +1040,10 @@ static int linux_gdb_thread_packet(struct target *target,
 		return ERROR_TARGET_FAILURE;
 
 	char *out_str = calloc(MAX_THREADS * 17 + 10, 1);
+	if (!out_str) {
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
+	}
 	char *tmp_str = out_str;
 	tmp_str += sprintf(tmp_str, "m");
 	struct threads *temp = linux_os->thread_list;
