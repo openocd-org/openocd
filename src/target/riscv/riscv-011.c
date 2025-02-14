@@ -1889,8 +1889,16 @@ static int handle_halt(struct target *target, bool announce)
 
 	if (target->debug_reason == DBG_REASON_BREAKPOINT) {
 		int retval;
-		if (riscv_semihosting(target, &retval) != 0)
-			return retval;
+		/* Hotfix: Don't try to handle semihosting before the target is marked as examined. */
+		/* TODO: The code should be rearranged so that:
+		 * - Semihosting is not attempted before the target is examined.
+		 * - When the target is already halted on a semihosting magic sequence
+		 *   at the time when OpenOCD connects to it, this semihosting attempt
+		 *   gets handled right after the examination.
+		 */
+		if (target_was_examined(target))
+			if (riscv_semihosting(target, &retval) != SEMIHOSTING_NONE)
+				return retval;
 	}
 
 	if (announce)
