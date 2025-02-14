@@ -18,18 +18,18 @@
 #define MAX_VREG_NUM 31
 #define MAX_CSR_NUM 4095
 
-#define MIN_INT12 ((int16_t)(-0x800))
-#define MAX_INT12 ((int16_t)0x7ff)
+#define MIN_INT12 (-0x800)
+#define MAX_INT12 0x7ff
 
-#define MIN_INT13 ((int16_t)(-0x1000))
-#define MAX_INT13 ((int16_t)0xfff)
+#define MIN_INT13 (-0x1000)
+#define MAX_INT13 0xfff
 
-#define MIN_INT21 ((int16_t)(-0x100000))
-#define MAX_INT21 ((int16_t)0xfffff)
+#define MIN_INT21 (-0x100000)
+#define MAX_INT21 0xfffff
 
-#define MAX_UINT5 ((uint8_t)0x1f)
-#define MAX_UINT11 ((uint16_t)0x7ff)
-#define MAX_UINT12 ((uint16_t)0xfff)
+#define MAX_UINT5 0x1f
+#define MAX_UINT11 0x7ff
+#define MAX_UINT12 0xfff
 
 static uint32_t bits(uint32_t value, unsigned int hi, unsigned int lo)
 {
