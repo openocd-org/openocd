@@ -362,6 +362,10 @@ int rtos_thread_packet(struct connection *connection, char const *packet, int pa
 				str_size += strlen(detail->extra_info_str);
 
 			char *tmp_str = calloc(str_size + 9, sizeof(char));
+			if (!tmp_str) {
+				LOG_ERROR("Out of memory");
+				return ERROR_FAIL;
+			}
 			char *tmp_str_ptr = tmp_str;
 
 			if (detail->thread_name_str)
