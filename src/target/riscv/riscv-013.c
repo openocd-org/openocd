@@ -3465,40 +3465,39 @@ typedef enum {
 	MEM_ACCESS_RESULT_TYPE_OK,
 	MEM_ACCESS_RESULT_TYPE_DISABLED,
 	MEM_ACCESS_RESULT_TYPE_SKIPPED,
-	MEM_ACCESS_RESULT_TYPE_FAILED
+	MEM_ACCESS_RESULT_TYPE_FAILED,
+	MEM_ACCESS_RESULT_TYPE_ENUM_SIZE,
 } mem_access_result_type_t;
 
-#define LIST_OF_MEM_ACCESS_RESULTS                                                    \
-	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_OK,                                          \
-			MEM_ACCESS_RESULT_TYPE_OK, "ok")                                          \
-	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_DISABLED,                                    \
-			MEM_ACCESS_RESULT_TYPE_DISABLED, "disabled")                              \
-	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_SKIPPED_ABSTRACT_ACCESS_CMDERR,              \
-			MEM_ACCESS_RESULT_TYPE_SKIPPED, "skipped (abstract access cmderr)")       \
-	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_SKIPPED_PROGBUF_NOT_PRESENT,                 \
-			MEM_ACCESS_RESULT_TYPE_SKIPPED, "skipped (progbuf not present)")          \
-	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_SKIPPED_PROGBUF_INSUFFICIENT,                \
-			MEM_ACCESS_RESULT_TYPE_SKIPPED, "skipped (insufficient progbuf)")         \
-	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_SKIPPED_UNSUPPORTED_ACCESS_SIZE,             \
-			MEM_ACCESS_RESULT_TYPE_SKIPPED, "skipped (unsupported access size)")      \
-	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_SKIPPED_XLEN_TOO_SHORT,                      \
-			MEM_ACCESS_RESULT_TYPE_SKIPPED, "skipped (xlen too short)")               \
-	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_SKIPPED_TARGET_NOT_HALTED,                   \
-			MEM_ACCESS_RESULT_TYPE_SKIPPED, "skipped (target not halted)")            \
-	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_SKIPPED_TOO_LARGE_ADDRESS,                   \
-			MEM_ACCESS_RESULT_TYPE_SKIPPED, "skipped (address too large)")            \
-	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_SKIPPED_UNSUPPORTED_INCREMENT_SIZE,          \
-			MEM_ACCESS_RESULT_TYPE_SKIPPED, "skipped (increment size not supported)") \
-	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_SKIPPED_TARGET_SELECT_FAILED,                \
-			MEM_ACCESS_RESULT_TYPE_SKIPPED, "skipped (dm target select failed)")      \
-	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_SKIPPED_FENCE_EXEC_FAILED,                   \
-			MEM_ACCESS_RESULT_TYPE_SKIPPED, "skipped (fence execution failed)")       \
-	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_FAILED,                                      \
-			MEM_ACCESS_RESULT_TYPE_FAILED, "failed")                                  \
-	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_FAILED_DM_ACCESS_FAILED,                     \
-			MEM_ACCESS_RESULT_TYPE_FAILED, "failed (DM register access failed)")      \
-	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_FAILED_PRIV_MOD_FAILED,                      \
-			MEM_ACCESS_RESULT_TYPE_FAILED, "failed (privilege modification failed)")  \
+#define LIST_OF_MEM_ACCESS_RESULTS \
+	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_OK, OK, "ok") \
+	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_DISABLED, DISABLED, "disabled") \
+	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_SKIPPED, SKIPPED, "skipped") \
+	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_SKIPPED_ABSTRACT_ACCESS_CMDERR, \
+			SKIPPED, "skipped (abstract access cmderr)") \
+	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_SKIPPED_PROGBUF_NOT_PRESENT, \
+			SKIPPED, "skipped (progbuf not present)") \
+	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_SKIPPED_PROGBUF_INSUFFICIENT, \
+			SKIPPED, "skipped (insufficient progbuf)") \
+	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_SKIPPED_UNSUPPORTED_ACCESS_SIZE, \
+			SKIPPED, "skipped (unsupported access size)") \
+	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_SKIPPED_XLEN_TOO_SHORT, \
+			SKIPPED, "skipped (xlen too short)") \
+	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_SKIPPED_TARGET_NOT_HALTED, \
+			SKIPPED, "skipped (target not halted)") \
+	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_SKIPPED_TOO_LARGE_ADDRESS, \
+			SKIPPED, "skipped (address too large)") \
+	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_SKIPPED_UNSUPPORTED_INCREMENT_SIZE, \
+			SKIPPED, "skipped (increment size not supported)") \
+	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_SKIPPED_TARGET_SELECT_FAILED, \
+			SKIPPED, "skipped (dm target select failed)") \
+	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_SKIPPED_FENCE_EXEC_FAILED, \
+			SKIPPED, "skipped (fence execution failed)") \
+	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_FAILED, FAILED, "failed") \
+	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_FAILED_DM_ACCESS_FAILED, \
+			FAILED, "failed (DM register access failed)") \
+	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_FAILED_PRIV_MOD_FAILED, \
+			FAILED, "failed (privilege modification failed)")
 
 
 #define MEM_ACCESS_RESULT_HANDLER(name, kind, msg) name,
@@ -3510,14 +3509,13 @@ typedef enum {
 bool is_mem_access_failed(mem_access_result_t status)
 {
 	#define MEM_ACCESS_RESULT_HANDLER(name, kind, msg) \
-		case name: return kind == MEM_ACCESS_RESULT_TYPE_FAILED;
+		case name: return MEM_ACCESS_RESULT_TYPE_##kind \
+					== MEM_ACCESS_RESULT_TYPE_FAILED;
 
 	switch (status) {
 		LIST_OF_MEM_ACCESS_RESULTS
 	}
-
 	#undef MEM_ACCESS_RESULT_HANDLER
-
 	LOG_ERROR("Unknown memory access status: %d", status);
 	assert(false && "Unknown memory access status");
 	return true;
@@ -3526,14 +3524,13 @@ bool is_mem_access_failed(mem_access_result_t status)
 bool is_mem_access_skipped(mem_access_result_t status)
 {
 	#define MEM_ACCESS_RESULT_HANDLER(name, kind, msg) \
-		case name: return kind == MEM_ACCESS_RESULT_TYPE_SKIPPED;
+		case name: return MEM_ACCESS_RESULT_TYPE_##kind \
+					== MEM_ACCESS_RESULT_TYPE_SKIPPED;
 
 	switch (status) {
 		LIST_OF_MEM_ACCESS_RESULTS
 	}
-
 	#undef MEM_ACCESS_RESULT_HANDLER
-
 	LOG_ERROR("Unknown memory access status: %d", status);
 	assert(false && "Unknown memory access status");
 	return true;
