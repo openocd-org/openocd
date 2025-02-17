@@ -534,9 +534,12 @@ static int jim_configure_ebreak(struct riscv_private_config *config, struct jim_
 		/* Here a common "ebreak" action is processed, e.g:
 		 * "riscv.cpu configure -ebreak halt"
 		 */
+		int res = jim_getopt_obj(goi, NULL);
+		if (res != JIM_OK)
+			return res;
 		for (int ebreak_ctl_i = 0; ebreak_ctl_i < N_RISCV_MODE; ++ebreak_ctl_i)
 			config->dcsr_ebreak_fields[ebreak_ctl_i] = common_mode_nvp->value;
-		return jim_getopt_obj(goi, NULL);
+		return JIM_OK;
 	}
 
 	/* Here a "ebreak" action for a specific execution mode is processed, e.g:
