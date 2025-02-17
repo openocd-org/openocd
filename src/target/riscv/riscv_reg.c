@@ -346,22 +346,11 @@ static bool vlenb_exists(const struct target *target)
 	return riscv_vlenb(target) != 0;
 }
 
-static bool mtopi_exists(const struct target *target)
+static bool reg_exists(const struct target *target, uint32_t regno)
 {
-	RISCV_INFO(info)
-	/* TODO: The naming is quite unfortunate here. `mtopi_readable` refers
-	 * to how the fact that `mtopi` exists was deduced during examine.
-	 */
-	return info->mtopi_readable;
-}
-
-static bool mtopei_exists(const struct target *target)
-{
-	RISCV_INFO(info)
-	/* TODO: The naming is quite unfortunate here. `mtopei_readable` refers
-	 * to how the fact that `mtopei` exists was deduced during examine.
-	 */
-	return info->mtopei_readable;
+	const struct reg * const reg = riscv_reg_impl_cache_entry(target, regno);
+	assert(riscv_reg_impl_is_initialized(reg));
+	return reg->exist;
 }
 
 static bool is_known_standard_csr(unsigned int csr_num)
@@ -508,25 +497,25 @@ bool riscv_reg_impl_gdb_regno_exist(const struct target *target, uint32_t regno)
 		case CSR_MVIP:
 		case CSR_MIEH:
 		case CSR_MIPH:
-			return mtopi_exists(target);
+			return reg_exists(target, GDB_REGNO_MTOPI);
 		case CSR_MIDELEGH:
 		case CSR_MVIENH:
 		case CSR_MVIPH:
-			return mtopi_exists(target) &&
+			return reg_exists(target, GDB_REGNO_MTOPI) &&
 				riscv_xlen(target) == 32 &&
 				riscv_supports_extension(target, 'S');
 			/* Interrupts S-Mode CSRs. */
 		case CSR_SISELECT:
 		case CSR_SIREG:
 		case CSR_STOPI:
-			return mtopi_exists(target) &&
+			return reg_exists(target, GDB_REGNO_MTOPI) &&
 				riscv_supports_extension(target, 'S');
 		case CSR_STOPEI:
-			return mtopei_exists(target) &&
+			return reg_exists(target, GDB_REGNO_MTOPEI) &&
 				riscv_supports_extension(target, 'S');
 		case CSR_SIEH:
 		case CSR_SIPH:
-			return mtopi_exists(target) &&
+			return reg_exists(target, GDB_REGNO_MTOPI) &&
 				riscv_xlen(target) == 32 &&
 				riscv_supports_extension(target, 'S');
 			/* Interrupts Hypervisor and VS CSRs. */
@@ -537,10 +526,10 @@ bool riscv_reg_impl_gdb_regno_exist(const struct target *target, uint32_t regno)
 		case CSR_VSISELECT:
 		case CSR_VSIREG:
 		case CSR_VSTOPI:
-			return mtopi_exists(target) &&
+			return reg_exists(target, GDB_REGNO_MTOPI) &&
 				riscv_supports_extension(target, 'H');
 		case CSR_VSTOPEI:
-			return mtopei_exists(target) &&
+			return reg_exists(target, GDB_REGNO_MTOPEI) &&
 				riscv_supports_extension(target, 'H');
 		case CSR_HIDELEGH:
 		case CSR_HVIENH:
@@ -549,7 +538,7 @@ bool riscv_reg_impl_gdb_regno_exist(const struct target *target, uint32_t regno)
 		case CSR_HVIPRIO2H:
 		case CSR_VSIEH:
 		case CSR_VSIPH:
-			return mtopi_exists(target) &&
+			return reg_exists(target, GDB_REGNO_MTOPI) &&
 				riscv_xlen(target) == 32 &&
 				riscv_supports_extension(target, 'H');
 	}
