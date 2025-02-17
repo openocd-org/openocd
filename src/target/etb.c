@@ -454,12 +454,12 @@ static int etb_init(struct etm_context *etm_ctx)
 	return ERROR_OK;
 }
 
-static trace_status_t etb_status(struct etm_context *etm_ctx)
+static enum trace_status etb_status(struct etm_context *etm_ctx)
 {
 	struct etb *etb = etm_ctx->capture_driver_priv;
 	struct reg *control = &etb->reg_cache->reg_list[ETB_CTRL];
 	struct reg *status = &etb->reg_cache->reg_list[ETB_STATUS];
-	trace_status_t retval = 0;
+	enum trace_status retval = 0;
 	int etb_timeout = 100;
 
 	etb->etm_ctx = etm_ctx;

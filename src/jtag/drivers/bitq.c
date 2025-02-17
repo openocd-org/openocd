@@ -76,7 +76,7 @@ static void bitq_io(int tms, int tdi, int tdo_req)
 		bitq_in_proc();
 }
 
-static void bitq_end_state(tap_state_t state)
+static void bitq_end_state(enum tap_state state)
 {
 	if (!tap_is_state_stable(state)) {
 		LOG_ERROR("BUG: %i is not a valid end state", state);
@@ -85,7 +85,7 @@ static void bitq_end_state(tap_state_t state)
 	tap_set_end_state(state);
 }
 
-static void bitq_state_move(tap_state_t new_state)
+static void bitq_state_move(enum tap_state new_state)
 {
 	int i = 0;
 	uint8_t  tms_scan;

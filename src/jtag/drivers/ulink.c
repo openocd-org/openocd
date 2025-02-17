@@ -212,7 +212,7 @@ static int ulink_append_test_cmd(struct ulink *device);
 static int ulink_calculate_delay(enum ulink_delay_type type, long f, int *delay);
 
 /* Interface between OpenULINK and OpenOCD */
-static void ulink_set_end_state(tap_state_t endstate);
+static void ulink_set_end_state(enum tap_state endstate);
 static int ulink_queue_statemove(struct ulink *device);
 
 static int ulink_queue_scan(struct ulink *device, struct jtag_command *cmd);
@@ -1393,7 +1393,7 @@ static long ulink_calculate_frequency(enum ulink_delay_type type, int delay)
  *
  * @param endstate the state the end state follower should be set to.
  */
-static void ulink_set_end_state(tap_state_t endstate)
+static void ulink_set_end_state(enum tap_state endstate)
 {
 	if (tap_is_state_stable(endstate))
 		tap_set_end_state(endstate);
@@ -1702,7 +1702,7 @@ static int ulink_queue_reset(struct ulink *device, struct jtag_command *cmd)
 static int ulink_queue_pathmove(struct ulink *device, struct jtag_command *cmd)
 {
 	int ret, state_count;
-	tap_state_t *path;
+	enum tap_state *path;
 	uint8_t tms_sequence;
 
 	unsigned int num_states = cmd->cmd.pathmove->num_states;

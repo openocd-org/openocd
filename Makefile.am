@@ -7,7 +7,7 @@ AUTOMAKE_OPTIONS = gnu 1.6
 .DELETE_ON_ERROR:
 
 # make sure we pass the correct jimtcl flags to distcheck
-DISTCHECK_CONFIGURE_FLAGS = --disable-install-jim
+AM_DISTCHECK_CONFIGURE_FLAGS = --disable-install-jim
 
 # do not run Jim Tcl tests (esp. during distcheck)
 check-recursive: SUBDIRS :=

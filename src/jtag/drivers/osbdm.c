@@ -380,7 +380,7 @@ static int osbdm_quit(void)
 
 static int osbdm_add_pathmove(
 	struct queue *queue,
-	tap_state_t *path,
+	enum tap_state *path,
 	unsigned int num_states)
 {
 	assert(num_states <= 32);
@@ -415,7 +415,7 @@ static int osbdm_add_pathmove(
 
 static int osbdm_add_statemove(
 	struct queue *queue,
-	tap_state_t new_state,
+	enum tap_state new_state,
 	int skip_first)
 {
 	int len = 0;
@@ -490,7 +490,7 @@ static int osbdm_add_scan(
 	struct queue *queue,
 	struct scan_field *fields,
 	unsigned int num_fields,
-	tap_state_t end_state,
+	enum tap_state end_state,
 	bool ir_scan)
 {
 	/* Move to desired shift state */
@@ -537,7 +537,7 @@ static int osbdm_add_scan(
 static int osbdm_add_runtest(
 	struct queue *queue,
 	unsigned int num_cycles,
-	tap_state_t end_state)
+	enum tap_state end_state)
 {
 	if (osbdm_add_statemove(queue, TAP_IDLE, 0) != ERROR_OK)
 		return ERROR_FAIL;

@@ -31,13 +31,13 @@ behavior of the FTDI driver IIRC was to go via RTI.
 Conversely there may be other places in this code where the ARM11 code relies
 on the driver to hit through RTI when coming from Update-?R.
 */
-static const tap_state_t arm11_move_pi_to_si_via_ci[] = {
+static const enum tap_state arm11_move_pi_to_si_via_ci[] = {
 	TAP_IREXIT2, TAP_IRUPDATE, TAP_DRSELECT, TAP_IRSELECT, TAP_IRCAPTURE, TAP_IRSHIFT
 };
 
 /* REVISIT no error handling here! */
 static void arm11_add_ir_scan_vc(struct jtag_tap *tap, struct scan_field *fields,
-	tap_state_t state)
+	enum tap_state state)
 {
 	if (cmd_queue_cur_state == TAP_IRPAUSE)
 		jtag_add_pathmove(ARRAY_SIZE(arm11_move_pi_to_si_via_ci),
@@ -46,13 +46,13 @@ static void arm11_add_ir_scan_vc(struct jtag_tap *tap, struct scan_field *fields
 	jtag_add_ir_scan(tap, fields, state);
 }
 
-static const tap_state_t arm11_move_pd_to_sd_via_cd[] = {
+static const enum tap_state arm11_move_pd_to_sd_via_cd[] = {
 	TAP_DREXIT2, TAP_DRUPDATE, TAP_DRSELECT, TAP_DRCAPTURE, TAP_DRSHIFT
 };
 
 /* REVISIT no error handling here! */
 void arm11_add_dr_scan_vc(struct jtag_tap *tap, int num_fields, struct scan_field *fields,
-	tap_state_t state)
+	enum tap_state state)
 {
 	if (cmd_queue_cur_state == TAP_DRPAUSE)
 		jtag_add_pathmove(ARRAY_SIZE(arm11_move_pd_to_sd_via_cd),
@@ -121,7 +121,7 @@ static const char *arm11_ir_to_string(uint8_t ir)
  *
  * \remarks			This adds to the JTAG command queue but does \em not execute it.
  */
-void arm11_add_ir(struct arm11_common *arm11, uint8_t instr, tap_state_t state)
+void arm11_add_ir(struct arm11_common *arm11, uint8_t instr, enum tap_state state)
 {
 	struct jtag_tap *tap = arm11->arm.target->tap;
 
@@ -181,7 +181,7 @@ static void arm11_in_handler_scan_n(uint8_t *in_value)
  */
 
 int arm11_add_debug_scan_n(struct arm11_common *arm11,
-	uint8_t chain, tap_state_t state)
+	uint8_t chain, enum tap_state state)
 {
 	/* Don't needlessly switch the scan chain.
 	 * NOTE:  the ITRSEL instruction fakes SCREG changing;
@@ -240,7 +240,7 @@ int arm11_add_debug_scan_n(struct arm11_common *arm11,
  * to ensure that the rDTR is ready before that Run-Test/Idle state.
  */
 static void arm11_add_debug_inst(struct arm11_common *arm11,
-	uint32_t inst, uint8_t *flag, tap_state_t state)
+	uint32_t inst, uint8_t *flag, enum tap_state state)
 {
 	JTAG_DEBUG("INST <= 0x%08" PRIx32, inst);
 
@@ -542,7 +542,7 @@ int arm11_run_instr_data_to_core(struct arm11_common *arm11,
  *  https://lists.berlios.de/pipermail/openocd-development/2009-July/009698.html
  *  https://lists.berlios.de/pipermail/openocd-development/2009-August/009865.html
  */
-static const tap_state_t arm11_move_drpause_idle_drpause_with_delay[] = {
+static const enum tap_state arm11_move_drpause_idle_drpause_with_delay[] = {
 	TAP_DREXIT2, TAP_DRUPDATE, TAP_IDLE, TAP_IDLE, TAP_IDLE, TAP_DRSELECT, TAP_DRCAPTURE,
 	TAP_DRSHIFT
 };

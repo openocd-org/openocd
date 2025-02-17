@@ -115,7 +115,7 @@ static unsigned long dataport;
 static unsigned long statusport;
 #endif
 
-static bb_value_t parport_read(void)
+static enum bb_value parport_read(void)
 {
 	int data = 0;
 

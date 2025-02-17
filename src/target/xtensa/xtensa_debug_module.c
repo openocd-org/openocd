@@ -60,7 +60,7 @@ static void xtensa_dm_add_dr_scan(struct xtensa_debug_module *dm,
 	int len,
 	const uint8_t *src,
 	uint8_t *dest,
-	tap_state_t endstate)
+	enum tap_state endstate)
 {
 	struct scan_field field;
 

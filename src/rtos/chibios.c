@@ -421,9 +421,11 @@ static int chibios_update_threads(struct rtos *rtos)
 		else
 			state_desc = "Unknown";
 
-		curr_thrd_details->extra_info_str = malloc(strlen(
-					state_desc)+8);
-		sprintf(curr_thrd_details->extra_info_str, "State: %s", state_desc);
+		curr_thrd_details->extra_info_str = alloc_printf("State: %s", state_desc);
+		if (!curr_thrd_details->extra_info_str) {
+			LOG_ERROR("Could not allocate space for thread state description");
+			return -1;
+		}
 
 		curr_thrd_details->exists = true;
 

@@ -78,9 +78,9 @@ static struct device_config config;
 static struct device_config tmp_config;
 
 /* Queue command functions */
-static void jlink_end_state(tap_state_t state);
+static void jlink_end_state(enum tap_state state);
 static void jlink_state_move(void);
-static void jlink_path_move(unsigned int num_states, tap_state_t *path);
+static void jlink_path_move(unsigned int num_states, enum tap_state *path);
 static void jlink_stableclocks(unsigned int num_cycles);
 static void jlink_runtest(unsigned int num_cycles);
 static void jlink_reset(int trst, int srst);
@@ -875,7 +875,7 @@ static int jlink_quit(void)
 /***************************************************************************/
 /* Queue command implementations */
 
-static void jlink_end_state(tap_state_t state)
+static void jlink_end_state(enum tap_state state)
 {
 	if (tap_is_state_stable(state))
 		tap_set_end_state(state);
@@ -899,7 +899,7 @@ static void jlink_state_move(void)
 	tap_set_state(tap_get_end_state());
 }
 
-static void jlink_path_move(unsigned int num_states, tap_state_t *path)
+static void jlink_path_move(unsigned int num_states, enum tap_state *path)
 {
 	uint8_t tms = 0xff;
 
@@ -930,7 +930,7 @@ static void jlink_stableclocks(unsigned int num_cycles)
 
 static void jlink_runtest(unsigned int num_cycles)
 {
-	tap_state_t saved_end_state = tap_get_end_state();
+	enum tap_state saved_end_state = tap_get_end_state();
 
 	/* Only do a state_move when we're not already in IDLE. */
 	if (tap_get_state() != TAP_IDLE) {

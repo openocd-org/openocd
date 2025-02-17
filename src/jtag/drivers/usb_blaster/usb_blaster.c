@@ -494,7 +494,7 @@ static void ublast_path_move(struct pathmove_command *cmd)
  * Input the correct TMS sequence to the JTAG TAP so that we end up in the
  * target state. This assumes the current state (tap_get_state()) is correct.
  */
-static void ublast_state_move(tap_state_t state, int skip)
+static void ublast_state_move(enum tap_state state, int skip)
 {
 	uint8_t tms_scan;
 	int tms_len;
@@ -673,7 +673,7 @@ static void ublast_queue_tdi(uint8_t *bits, int nb_bits, enum scan_type scan)
 	ublast_idle_clock();
 }
 
-static void ublast_runtest(unsigned int num_cycles, tap_state_t state)
+static void ublast_runtest(unsigned int num_cycles, enum tap_state state)
 {
 	LOG_DEBUG_IO("%s(cycles=%u, end_state=%d)", __func__, num_cycles, state);
 

@@ -44,7 +44,7 @@ static int reset_jtag(void)
 {
 	int retval;
 
-	tap_state_t states[2];
+	enum tap_state states[2];
 
 	const char *cp = "RESET";
 

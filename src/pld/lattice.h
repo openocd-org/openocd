@@ -20,7 +20,7 @@ struct lattice_pld_device {
 	enum lattice_family_e family;
 };
 
-int lattice_set_instr(struct jtag_tap *tap, uint8_t new_instr, tap_state_t endstate);
+int lattice_set_instr(struct jtag_tap *tap, uint8_t new_instr, enum tap_state endstate);
 int lattice_read_u32_register(struct jtag_tap *tap, uint8_t cmd, uint32_t *in_val,
 							uint32_t out_val, bool do_idle);
 int lattice_read_u64_register(struct jtag_tap *tap, uint8_t cmd, uint64_t *in_val,

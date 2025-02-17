@@ -26,10 +26,10 @@ struct arm_jtag {
 
 int arm_jtag_set_instr_inner(struct jtag_tap *tap, uint32_t new_instr,
 		void *no_verify_capture,
-		tap_state_t end_state);
+		enum tap_state end_state);
 
 static inline int arm_jtag_set_instr(struct jtag_tap *tap,
-		uint32_t new_instr, void *no_verify_capture, tap_state_t end_state)
+		uint32_t new_instr, void *no_verify_capture, enum tap_state end_state)
 {
 	/* inline most common code path */
 	if (buf_get_u32(tap->cur_instr, 0, tap->ir_length) != (new_instr & (BIT(tap->ir_length) - 1)))
@@ -39,8 +39,8 @@ static inline int arm_jtag_set_instr(struct jtag_tap *tap,
 
 }
 
-int arm_jtag_scann_inner(struct arm_jtag *jtag_info, uint32_t new_scan_chain, tap_state_t end_state);
-static inline int arm_jtag_scann(struct arm_jtag *jtag_info, uint32_t new_scan_chain, tap_state_t end_state)
+int arm_jtag_scann_inner(struct arm_jtag *jtag_info, uint32_t new_scan_chain, enum tap_state end_state);
+static inline int arm_jtag_scann(struct arm_jtag *jtag_info, uint32_t new_scan_chain, enum tap_state end_state)
 {
 	/* inline most common code path */
 	int retval = ERROR_OK;

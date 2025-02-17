@@ -42,9 +42,9 @@ static uint8_t usb_in_buffer[ARMJTAGEW_IN_BUFFER_SIZE];
 static uint8_t usb_out_buffer[ARMJTAGEW_OUT_BUFFER_SIZE];
 
 /* Queue command functions */
-static void armjtagew_end_state(tap_state_t state);
+static void armjtagew_end_state(enum tap_state state);
 static void armjtagew_state_move(void);
-static void armjtagew_path_move(unsigned int num_states, tap_state_t *path);
+static void armjtagew_path_move(unsigned int num_states, enum tap_state *path);
 static void armjtagew_runtest(unsigned int num_cycles);
 static void armjtagew_scan(bool ir_scan,
 		enum scan_type type,
@@ -253,7 +253,7 @@ static int armjtagew_quit(void)
 /**************************************************************************
  * Queue command implementations */
 
-static void armjtagew_end_state(tap_state_t state)
+static void armjtagew_end_state(enum tap_state state)
 {
 	if (tap_is_state_stable(state))
 		tap_set_end_state(state);
@@ -279,7 +279,7 @@ static void armjtagew_state_move(void)
 	tap_set_state(tap_get_end_state());
 }
 
-static void armjtagew_path_move(unsigned int num_states, tap_state_t *path)
+static void armjtagew_path_move(unsigned int num_states, enum tap_state *path)
 {
 	for (unsigned int i = 0; i < num_states; i++) {
 		/*
@@ -305,7 +305,7 @@ static void armjtagew_path_move(unsigned int num_states, tap_state_t *path)
 
 static void armjtagew_runtest(unsigned int num_cycles)
 {
-	tap_state_t saved_end_state = tap_get_end_state();
+	enum tap_state saved_end_state = tap_get_end_state();
 
 	/* only do a state_move when we're not already in IDLE */
 	if (tap_get_state() != TAP_IDLE) {
@@ -329,7 +329,7 @@ static void armjtagew_scan(bool ir_scan,
 	int scan_size,
 	struct scan_command *command)
 {
-	tap_state_t saved_end_state;
+	enum tap_state saved_end_state;
 
 	armjtagew_tap_ensure_space(1, scan_size + 8);
 
