@@ -294,7 +294,8 @@ int riscv_batch_run_from(struct riscv_batch *batch, size_t start_idx,
 	unsigned int delay = 0 /* to silence maybe-uninitialized */;
 	for (size_t i = start_idx; i < batch->used_scans; ++i) {
 		if (bscan_tunnel_ir_width != 0)
-			riscv_add_bscan_tunneled_scan(batch->target, batch->fields + i, batch->bscan_ctxt + i);
+			riscv_add_bscan_tunneled_scan(batch->target->tap, batch->fields + i,
+							batch->bscan_ctxt + i);
 		else
 			jtag_add_dr_scan(batch->target->tap, 1, batch->fields + i, TAP_IDLE);
 
