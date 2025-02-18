@@ -136,16 +136,19 @@ m4_define([USB1_ADAPTERS],
 	[[ft232r], [Bitbang mode of FT232R based devices], [FT232R]],
 	[[vsllink], [Versaloon-Link JTAG Programmer], [VSLLINK]],
 	[[xds110], [TI XDS110 Debug Probe], [XDS110]],
-	[[cmsis_dap_v2], [CMSIS-DAP v2 Compliant Debugger], [CMSIS_DAP_USB]],
 	[[osbdm], [OSBDM (JTAG only) Programmer], [OSBDM]],
 	[[opendous], [eStick/opendous JTAG Programmer], [OPENDOUS]],
 	[[armjtagew], [Olimex ARM-JTAG-EW Programmer], [ARMJTAGEW]],
 	[[rlink], [Raisonance RLink JTAG Programmer], [RLINK]],
 	[[usbprog], [USBProg JTAG Programmer], [USBPROG]],
-	[[esp_usb_jtag], [Espressif JTAG Programmer], [ESP_USB_JTAG]]])
+	[[esp_usb_jtag], [Espressif JTAG Programmer], [ESP_USB_JTAG]],
+	[[cmsis_dap_v2], [CMSIS-DAP v2 compliant dongle (USB bulk)], [CMSIS_DAP_USB]]])
+
+# Please keep cmsis_dap_v2 the last in USB1_ADAPTERS
+# and cmsis_dap the first in HIDAPI_ADAPTERS
 
 m4_define([HIDAPI_ADAPTERS],
-	[[[cmsis_dap], [CMSIS-DAP Compliant Debugger], [CMSIS_DAP_HID]],
+	[[[cmsis_dap], [CMSIS-DAP v1 compliant dongle (HID)], [CMSIS_DAP_HID]],
 	[[nulink], [Nu-Link Programmer], [HLADAPTER_NULINK]]])
 
 m4_define([HIDAPI_USB1_ADAPTERS],
@@ -878,7 +881,7 @@ AS_IF([test "x$use_internal_jimtcl" = "xyes"], [
 echo
 echo
 echo OpenOCD configuration summary
-echo --------------------------------------------------
+echo ---------------------------------------------------
 m4_foreach([adapter], [USB1_ADAPTERS,
 	HIDAPI_ADAPTERS, HIDAPI_USB1_ADAPTERS, LIBFTDI_ADAPTERS,
 	LIBFTDI_USB1_ADAPTERS,
@@ -889,7 +892,7 @@ m4_foreach([adapter], [USB1_ADAPTERS,
 	DUMMY_ADAPTER,
 	OPTIONAL_LIBRARIES,
 	COVERAGE],
-	[s=m4_format(["%-40s"], ADAPTER_DESC([adapter]))
+	[s=m4_format(["%-41s"], ADAPTER_DESC([adapter]))
 	AS_CASE([$ADAPTER_VAR([adapter])],
 		[auto], [
 			echo "$s"yes '(auto)'
