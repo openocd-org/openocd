@@ -529,9 +529,8 @@ debuggers to ARM Cortex based targets @url{http://www.keil.com/support/man/docs/
 
 @section IBM PC Parallel Printer Port Based
 
-The two well-known ``JTAG Parallel Ports'' cables are the Xilinx DLC5
-and the Macraigor Wiggler. There are many clones and variations of
-these on the market.
+The two well-known JTAG parallel port cables are the Xilinx DLC5 and the Macraigor Wiggler.
+There are many clones and variations of these on the market.
 
 Note that parallel ports are becoming much less common, so if you
 have the choice you should probably avoid these adapters in favor
@@ -553,7 +552,7 @@ produced, PDF schematics are easily found and it is easy to make.
 @* Link: @url{http://www.ccac.rwth-aachen.de/~michaels/index.php/hardware/armjtag}
 
 @item @b{Wiggler_ntrst_inverted}
-@* Yet another variation - See the source code, src/jtag/parport.c
+@* Yet another variation, see configuration in @file{interface/parport/wiggler-ntrst-inverted.cfg}
 
 @item @b{old_amt_wiggler}
 @* Unknown - probably not on the market today
@@ -3193,61 +3192,64 @@ version, and target voltage.
 @end deffn
 
 @deffn {Interface Driver} {parport}
-Supports PC parallel port bit-banging cables:
-Wigglers, PLD download cable, and more.
-These interfaces have several commands, used to configure the driver
-before initializing the JTAG scan chain:
 
-@deffn {Config Command} {parport cable} name
-Set the layout of the parallel port cable used to connect to the target.
-This is a write-once setting.
-Currently valid cable @var{name} values include:
+This driver supports PC parallel port bit-banging adapters.
+Only JTAG is supported as transport protocol.
+The driver supports Linux, FreeBSD, and Windows.
+However, the Windows support is untested and unmaintained.
 
-@itemize @minus
-@item @b{altium} Altium Universal JTAG cable.
-@item @b{arm-jtag} Same as original wiggler except SRST and
-TRST connections reversed and TRST is also inverted.
-@item @b{chameleon} The Amontec Chameleon's CPLD when operated
-in configuration mode. This is only used to
-program the Chameleon itself, not a connected target.
-@item @b{dlc5} The Xilinx Parallel cable III.
-@item @b{flashlink} The ST Parallel cable.
-@item @b{lattice} Lattice ispDOWNLOAD Cable
-@item @b{old_amt_wiggler} The Wiggler configuration that comes with
-some versions of
-Amontec's Chameleon Programmer. The new version available from
-the website uses the original Wiggler layout ('@var{wiggler}')
-@item @b{triton} The parallel port adapter found on the
-``Karo Triton 1 Development Board''.
-This is also the layout used by the HollyGates design
-(see @uref{http://www.lartmaker.nl/projects/jtag/}).
-@item @b{wiggler} The original Wiggler layout, also supported by
-several clones, such as the Olimex ARM-JTAG
-@item @b{wiggler2} Same as original wiggler except an led is fitted on D5.
-@item @b{wiggler_ntrst_inverted} Same as original wiggler except TRST is inverted.
-@end itemize
+The pin configuration is handled by the generic command @ref{adapter gpio, @command{adapter gpio}}.
+In addition to the JTAG signals, the driver also supports the activity LED signal.
+
+The data and status pins of the parallel port are used as output and input pins, respectively.
+The pin direction is given in the following table.
+
+@multitable @columnfractions .2 .1 .1 .1 .1 .1 .1 .1 .1
+@headitem Pin direction
+@item Input
+@tab ~11
+@tab 10
+@tab 12
+@tab 13
+@tab 15
+@tab -
+@tab -
+@tab -
+@item Output
+@tab 9
+@tab 8
+@tab 7
+@tab 6
+@tab 5
+@tab 4
+@tab 3
+@tab 2
+@end multitable
+
+@deffn {Config Command} {parport port} port_number
+Configure the number of the parallel port.
+
+When using PPDEV to access the parallel port, use the number of the parallel port file @file{/dev/parport} (Linux) or @file{/dev/ppi} (FreeBSD).
+The default port number is 0.
+
+When using direct I/O, the number is the I/O port number.
+The default port number is 0x378 (LTP1).
 @end deffn
 
-@deffn {Config Command} {parport port} [port_number]
-Display either the address of the I/O port
-(default: 0x378 for LPT1) or the number of the @file{/dev/parport} device.
-If a parameter is provided, first switch to use that port.
-This is a write-once setting.
+@deffn {Config Command} {parport write_on_exit} (@option{on}|@option{off})
+@b{Note:} This command is deprecated and will be removed in the future.
+Use the command @command{adapter gpio} to configure the pin states before the adapter terminates its operation.
 
-When using PPDEV to access the parallel port, use the number of the parallel port:
-@option{parport port 0} (the default). If @option{parport port 0x378} is specified
-you may encounter a problem.
+Configure whether the driver sets the value specified by @command{adapter gpio} to the output pins on shutdown.
 @end deffn
 
-@deffn {Config Command} {parport toggling_time} [nanoseconds]
-Displays how many nanoseconds the hardware needs to toggle TCK;
-the parport driver uses this value to obey the
-@command{adapter speed} configuration.
-When the optional @var{nanoseconds} parameter is given,
-that setting is changed before displaying the current value.
+@deffn {Config Command} {parport toggling_time} time
+Configure how many nanoseconds the hardware needs to toggle TCK.
+The driver uses this value to obey the @command{adapter speed} configuration.
 
 The default setting should work reasonably well on commodity PC hardware.
 However, you may want to calibrate for your specific hardware.
+
 @quotation Tip
 To measure the toggling time with a logic analyzer or a digital storage
 oscilloscope, follow the procedure below:
@@ -3255,15 +3257,18 @@ oscilloscope, follow the procedure below:
 > parport toggling_time 1000
 > adapter speed 500
 @end example
+
 This sets the maximum JTAG clock speed of the hardware, but
 the actual speed probably deviates from the requested 500 kHz.
 Now, measure the time between the two closest spaced TCK transitions.
 You can use @command{runtest 1000} or something similar to generate a
 large set of samples.
 Update the setting to match your measurement:
+
 @example
 > parport toggling_time <measured nanoseconds>
 @end example
+
 Now the clock speed will be a better match for @command{adapter speed}
 command given in OpenOCD scripts and event handlers.
 
@@ -3275,20 +3280,6 @@ match with the rate you specified in the @command{adapter speed} command;
 be conservative.
 @end quotation
 @end deffn
-
-@deffn {Config Command} {parport write_on_exit} (@option{on}|@option{off})
-This will configure the parallel driver to write a known
-cable-specific value to the parallel interface on exiting OpenOCD.
-@end deffn
-
-For example, the interface configuration file for a
-classic ``Wiggler'' cable on LPT2 might look something like this:
-
-@example
-adapter driver parport
-parport port 0x278
-parport cable wiggler
-@end example
 @end deffn
 
 @deffn {Interface Driver} {presto}

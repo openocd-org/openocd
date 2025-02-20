@@ -359,6 +359,27 @@ proc parport_cable args {
 	eval parport cable $args
 }
 
+lappend _telnet_autocomplete_skip parport_select_cable
+proc parport_select_cable {cable} {
+	echo "DEPRECATED! Do not use 'parport cable' but use a cable configuration file in interface/parport"
+
+	switch $cable {
+		"wiggler" { source [find interface/parport/wiggler.cfg] }
+		"wiggler2" { source [find interface/parport/wiggler2.cfg] }
+		"wiggler_ntrst_inverted" { source [find interface/parport/wiggler-ntrst-inverted.cfg] }
+		"old_amt_wiggler" { source [find interface/parport/amt-wiggler-old.cfg ] }
+		"arm-jtag" { source [find interface/parport/arm-jtag.cfg] }
+		"chameleon" { source [find interface/parport/chameleon.cfg] }
+		"dlc5" { source [find interface/parport/dlc5.cfg] }
+		"triton" { source [find interface/parport/triton.cfg] }
+		"lattice" { source [find interface/parport/lattice.cfg] }
+		"flashlink" { source [find interface/parport/flashlink.cfg] }
+		"altium" { source [find interface/parport/altium.cfg] }
+		"aspo" { source [find interface/parport/aspo.cfg] }
+		default { error "invalid parallel port cable '$cable'" }
+	}
+}
+
 lappend _telnet_autocomplete_skip parport_write_on_exit
 proc parport_write_on_exit args {
 	echo "DEPRECATED! use 'parport write_on_exit' not 'parport_write_on_exit'"
