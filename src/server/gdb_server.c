@@ -3898,7 +3898,8 @@ static int gdb_target_add_one(struct target *target)
 				}
 			}
 		} else if (strcmp(gdb_port_next, "pipe") == 0) {
-			gdb_port_next = "disabled";
+			free(gdb_port_next);
+			gdb_port_next = strdup("disabled");
 		}
 	}
 	return retval;
