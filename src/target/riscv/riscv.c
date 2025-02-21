@@ -3142,7 +3142,7 @@ static int riscv_address_translate(struct target *target,
 			.increment = 4,
 			.count = (1 << info->pte_shift) / 4,
 		};
-		int retval = r->read_memory(target, args);
+		int retval = r->access_memory(target, args);
 		if (retval != ERROR_OK)
 			return ERROR_FAIL;
 
@@ -3386,7 +3386,7 @@ static int riscv_read_phys_memory(struct target *target, target_addr_t phys_addr
 		.increment = size,
 	};
 	RISCV_INFO(r);
-	return r->read_memory(target, args);
+	return r->access_memory(target, args);
 }
 
 static int riscv_write_phys_memory(struct target *target, target_addr_t phys_address,
@@ -3401,7 +3401,7 @@ static int riscv_write_phys_memory(struct target *target, target_addr_t phys_add
 	};
 
 	RISCV_INFO(r);
-	return r->write_memory(target, args);
+	return r->access_memory(target, args);
 }
 
 static int riscv_rw_memory(struct target *target, const riscv_mem_access_args_t args)
@@ -3421,12 +3421,8 @@ static int riscv_rw_memory(struct target *target, const riscv_mem_access_args_t 
 		return result;
 
 	RISCV_INFO(r);
-	if (!mmu_enabled) {
-		if (is_write)
-			return r->write_memory(target, args);
-		else
-			return r->read_memory(target, args);
-	}
+	if (!mmu_enabled)
+		return r->access_memory(target, args);
 
 	result = check_virt_memory_access(target, args.address,
 			args.size, args.count, is_write);
@@ -3453,13 +3449,12 @@ static int riscv_rw_memory(struct target *target, const riscv_mem_access_args_t 
 		riscv_mem_access_args_t current_access = args;
 		current_access.address = physical_addr;
 		current_access.count = chunk_count;
-		if (is_write) {
+		if (is_write)
 			current_access.write_buffer += current_count * args.size;
-			result = r->write_memory(target, current_access);
-		} else {
+		else
 			current_access.read_buffer += current_count * args.size;
-			result = r->read_memory(target, current_access);
-		}
+
+		result = r->access_memory(target, current_access);
 		if (result != ERROR_OK)
 			return result;
 
@@ -5172,7 +5167,7 @@ COMMAND_HANDLER(handle_repeat_read)
 		.count = count,
 		.increment = 0,
 	};
-	int result = r->read_memory(target, args);
+	int result = r->access_memory(target, args);
 	if (result == ERROR_OK) {
 		target_handle_md_output(cmd, target, address, size, count, buffer,
 			false);
