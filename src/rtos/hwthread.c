@@ -125,7 +125,7 @@ static int hwthread_update_threads(struct rtos *rtos)
 	if (current_threadid <= thread_list_size)
 		rtos->current_threadid = current_threadid;
 	else
-		LOG_WARNING("SMP node change, disconnect GDB from core/thread %" PRId64,
+		LOG_TARGET_WARNING(target, "SMP node change, disconnect GDB from core/thread %" PRId64,
 			    current_threadid);
 
 	/* create space for new thread details */
@@ -211,7 +211,8 @@ static int hwthread_update_threads(struct rtos *rtos)
 	else
 		rtos->current_thread = threadid_from_target(target);
 
-	LOG_DEBUG("current_thread=%i, threads_found=%d", (int)rtos->current_thread, threads_found);
+	LOG_TARGET_DEBUG(target, "current_thread=%i, threads_found=%d",
+			(int)rtos->current_thread, threads_found);
 	return 0;
 }
 
@@ -277,7 +278,8 @@ static int hwthread_get_thread_reg_list(struct rtos *rtos, int64_t thread_id,
 		if (!reg_list[i]->valid) {
 			retval = reg_list[i]->type->get(reg_list[i]);
 			if (retval != ERROR_OK) {
-				LOG_ERROR("Couldn't get register %s.", reg_list[i]->name);
+				LOG_TARGET_ERROR(curr, "Couldn't get register %s",
+					reg_list[i]->name);
 				free(reg_list);
 				free(*rtos_reg_list);
 				return retval;
@@ -304,7 +306,8 @@ static int hwthread_get_thread_reg_value(struct rtos *rtos, int64_t thread_id,
 
 	struct target *curr = hwthread_find_thread(target, thread_id);
 	if (!curr) {
-		LOG_ERROR("Couldn't find RTOS thread for id %" PRId64 ".", thread_id);
+		LOG_TARGET_ERROR(target, "Couldn't find RTOS thread for id %" PRId64,
+			thread_id);
 		return ERROR_FAIL;
 	}
 
@@ -315,8 +318,8 @@ static int hwthread_get_thread_reg_value(struct rtos *rtos, int64_t thread_id,
 
 	struct reg *reg = register_get_by_number(curr->reg_cache, reg_num, true);
 	if (!reg) {
-		LOG_ERROR("Couldn't find register %" PRIu32 " in thread %" PRId64 ".", reg_num,
-				thread_id);
+		LOG_TARGET_ERROR(curr, "Couldn't find register %" PRIu32 " in thread %" PRId64,
+			reg_num, thread_id);
 		return ERROR_FAIL;
 	}
 
@@ -382,17 +385,17 @@ static bool hwthread_detect_rtos(struct target *target)
 
 static int hwthread_thread_packet(struct connection *connection, const char *packet, int packet_size)
 {
-	struct target *target = get_target_from_connection(connection);
-
-	struct target *curr = NULL;
-	int64_t current_threadid;
-
 	if (packet[0] == 'H' && packet[1] == 'g') {
+		int64_t current_threadid;
 		sscanf(packet, "Hg%16" SCNx64, &current_threadid);
 
+		struct target *target = get_target_from_connection(connection);
+
 		if (current_threadid > 0) {
+			struct target *curr = NULL;
 			if (hwthread_target_for_threadid(connection, current_threadid, &curr) != ERROR_OK) {
-				LOG_ERROR("hwthread: cannot find thread id %"PRId64, current_threadid);
+				LOG_TARGET_ERROR(target, "hwthread: cannot find thread id %" PRId64,
+					current_threadid);
 				gdb_put_packet(connection, "E01", 3);
 				return ERROR_FAIL;
 			}
@@ -412,7 +415,7 @@ static int hwthread_thread_packet(struct connection *connection, const char *pac
 
 static int hwthread_create(struct target *target)
 {
-	LOG_INFO("Hardware thread awareness created");
+	LOG_TARGET_INFO(target, "Hardware thread awareness created");
 
 	target->rtos->rtos_specific_params = NULL;
 	target->rtos->current_thread = 0;

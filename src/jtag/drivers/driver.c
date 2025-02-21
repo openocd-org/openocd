@@ -49,7 +49,7 @@ static void jtag_callback_queue_reset(void)
  *
  */
 int interface_jtag_add_ir_scan(struct jtag_tap *active,
-		const struct scan_field *in_fields, tap_state_t state)
+		const struct scan_field *in_fields, enum tap_state state)
 {
 	size_t num_taps = jtag_tap_count_enabled();
 
@@ -111,7 +111,7 @@ int interface_jtag_add_ir_scan(struct jtag_tap *active,
  *
  */
 int interface_jtag_add_dr_scan(struct jtag_tap *active, int in_num_fields,
-		const struct scan_field *in_fields, tap_state_t state)
+		const struct scan_field *in_fields, enum tap_state state)
 {
 	/* count devices in bypass */
 
@@ -184,7 +184,7 @@ int interface_jtag_add_dr_scan(struct jtag_tap *active, int in_num_fields,
 }
 
 static int jtag_add_plain_scan(int num_bits, const uint8_t *out_bits,
-		uint8_t *in_bits, tap_state_t state, bool ir_scan)
+		uint8_t *in_bits, enum tap_state state, bool ir_scan)
 {
 	struct jtag_command *cmd = cmd_queue_alloc(sizeof(struct jtag_command));
 	struct scan_command *scan = cmd_queue_alloc(sizeof(struct scan_command));
@@ -207,19 +207,19 @@ static int jtag_add_plain_scan(int num_bits, const uint8_t *out_bits,
 	return ERROR_OK;
 }
 
-int interface_jtag_add_plain_dr_scan(int num_bits, const uint8_t *out_bits, uint8_t *in_bits, tap_state_t state)
+int interface_jtag_add_plain_dr_scan(int num_bits, const uint8_t *out_bits, uint8_t *in_bits, enum tap_state state)
 {
 	return jtag_add_plain_scan(num_bits, out_bits, in_bits, state, false);
 }
 
-int interface_jtag_add_plain_ir_scan(int num_bits, const uint8_t *out_bits, uint8_t *in_bits, tap_state_t state)
+int interface_jtag_add_plain_ir_scan(int num_bits, const uint8_t *out_bits, uint8_t *in_bits, enum tap_state state)
 {
 	return jtag_add_plain_scan(num_bits, out_bits, in_bits, state, true);
 }
 
 int interface_jtag_add_tlr(void)
 {
-	tap_state_t state = TAP_RESET;
+	enum tap_state state = TAP_RESET;
 
 	/* allocate memory for a new list member */
 	struct jtag_command *cmd = cmd_queue_alloc(sizeof(struct jtag_command));
@@ -259,7 +259,7 @@ int interface_add_tms_seq(unsigned int num_bits, const uint8_t *seq, enum tap_st
 	return ERROR_OK;
 }
 
-int interface_jtag_add_pathmove(unsigned int num_states, const tap_state_t *path)
+int interface_jtag_add_pathmove(unsigned int num_states, const enum tap_state *path)
 {
 	/* allocate memory for a new list member */
 	struct jtag_command *cmd = cmd_queue_alloc(sizeof(struct jtag_command));
@@ -270,7 +270,7 @@ int interface_jtag_add_pathmove(unsigned int num_states, const tap_state_t *path
 
 	cmd->cmd.pathmove = cmd_queue_alloc(sizeof(struct pathmove_command));
 	cmd->cmd.pathmove->num_states = num_states;
-	cmd->cmd.pathmove->path = cmd_queue_alloc(sizeof(tap_state_t) * num_states);
+	cmd->cmd.pathmove->path = cmd_queue_alloc(sizeof(enum tap_state) * num_states);
 
 	for (unsigned int i = 0; i < num_states; i++)
 		cmd->cmd.pathmove->path[i] = path[i];
@@ -278,7 +278,7 @@ int interface_jtag_add_pathmove(unsigned int num_states, const tap_state_t *path
 	return ERROR_OK;
 }
 
-int interface_jtag_add_runtest(unsigned int num_cycles, tap_state_t state)
+int interface_jtag_add_runtest(unsigned int num_cycles, enum tap_state state)
 {
 	/* allocate memory for a new list member */
 	struct jtag_command *cmd = cmd_queue_alloc(sizeof(struct jtag_command));

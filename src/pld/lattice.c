@@ -59,7 +59,7 @@ static const struct lattice_devices_elem lattice_devices[] = {
 	{0x010f4043,  362, LATTICE_CERTUS /* LFCPNX-100 */},
 };
 
-int lattice_set_instr(struct jtag_tap *tap, uint8_t new_instr, tap_state_t endstate)
+int lattice_set_instr(struct jtag_tap *tap, uint8_t new_instr, enum tap_state endstate)
 {
 	struct scan_field field;
 	field.num_bits = tap->ir_length;

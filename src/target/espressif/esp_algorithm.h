@@ -36,11 +36,13 @@
  * Procedure of executing stub on target includes:
  * 1) User prepares struct esp_algorithm_run_data and calls one of algorithm_run_xxx() functions.
  * 2) Routine allocates all necessary stub code and data sections.
- * 3) If a user specifies an initializer func esp_algorithm_usr_func_init_t it is called just before the stub starts.
- * 4) If user specifies stub communication func esp_algorithm_usr_func_t (@see esp_flash_write/read in ESP flash driver)
+ * 3) If a user specifies an initializer func esp_algorithm_run_data::usr_func_init
+ *    it is called just before the stub starts.
+ * 4) If user specifies stub communication func esp_algorithm_run_data::usr_func
+ *    (@see esp_flash_write/read in ESP flash driver)
  *    it is called just after the stub starts. When communication with stub is finished this function must return.
  * 5) OpenOCD waits for the stub to finish (hit exit breakpoint).
- * 6) If the user specified arguments cleanup func esp_algorithm_usr_func_done_t,
+ * 6) If the user specified arguments cleanup func esp_algorithm_run_data::usr_func_done,
  *    it is called just after the stub finishes.
  *
  * There are two options to run code on target under OpenOCD control:
@@ -190,60 +192,6 @@ struct esp_algorithm_reg_args {
 
 struct esp_algorithm_run_data;
 
-/**
- * @brief Algorithm run function.
- *
- * @param target Pointer to target.
- * @param run    Pointer to algo run data.
- * @param arg    Function specific argument.
- *
- * @return ERROR_OK on success, otherwise ERROR_XXX.
- */
-typedef int (*esp_algorithm_func_t)(struct target *target, struct esp_algorithm_run_data *run, void *arg);
-
-/**
- * @brief Host part of algorithm.
- *        This function will be called while stub is running on target.
- *        It can be used for communication with stub.
- *
- * @param target  Pointer to target.
- * @param usr_arg Function specific argument.
- *
- * @return ERROR_OK on success, otherwise ERROR_XXX.
- */
-typedef int (*esp_algorithm_usr_func_t)(struct target *target, void *usr_arg);
-
-/**
- * @brief Algorithm's arguments setup function.
- *        This function will be called just before stub start.
- *        It must return when all operations with running stub are completed.
- *        It can be used to prepare stub memory parameters.
- *
- * @param target  Pointer to target.
- * @param run     Pointer to algo run data.
- * @param usr_arg Function specific argument. The same as for esp_algorithm_usr_func_t.
- *
- * @return ERROR_OK on success, otherwise ERROR_XXX.
- */
-typedef int (*esp_algorithm_usr_func_init_t)(struct target *target,
-	struct esp_algorithm_run_data *run,
-	void *usr_arg);
-
-/**
- * @brief Algorithm's arguments cleanup function.
- *        This function will be called just after stub exit.
- *        It can be used to cleanup stub memory parameters.
- *
- * @param target  Pointer to target.
- * @param run     Pointer to algo run data.
- * @param usr_arg Function specific argument. The same as for esp_algorithm_usr_func_t.
- *
- * @return ERROR_OK on success, otherwise ERROR_XXX.
- */
-typedef void (*esp_algorithm_usr_func_done_t)(struct target *target,
-	struct esp_algorithm_run_data *run,
-	void *usr_arg);
-
 struct esp_algorithm_hw {
 	int (*algo_init)(struct target *target, struct esp_algorithm_run_data *run, uint32_t num_args, va_list ap);
 	int (*algo_cleanup)(struct target *target, struct esp_algorithm_run_data *run);
@@ -283,14 +231,61 @@ struct esp_algorithm_run_data {
 	};
 	/** Host side algorithm function argument. */
 	void *usr_func_arg;
-	/** Host side algorithm function. */
-	esp_algorithm_usr_func_t usr_func;
-	/** Host side algorithm function setup routine. */
-	esp_algorithm_usr_func_init_t usr_func_init;
-	/** Host side algorithm function cleanup routine. */
-	esp_algorithm_usr_func_done_t usr_func_done;
-	/** Algorithm run function: see algorithm_run_xxx for example. */
-	esp_algorithm_func_t algo_func;
+
+	/**
+	 * @brief Host part of algorithm.
+	 *        This function will be called while stub is running on target.
+	 *        It can be used for communication with stub.
+	 *
+	 * @param target  Pointer to target.
+	 * @param usr_arg Function specific argument.
+	 *
+	 * @return ERROR_OK on success, otherwise ERROR_XXX.
+	 */
+	int (*usr_func)(struct target *target, void *usr_arg);
+
+	/**
+	 * @brief Algorithm's arguments setup function.
+	 *        This function will be called just before stub start.
+	 *        It must return when all operations with running stub are completed.
+	 *        It can be used to prepare stub memory parameters.
+	 *
+	 * @param target  Pointer to target.
+	 * @param run     Pointer to algo run data.
+	 * @param usr_arg Function specific argument. The same as for usr_func.
+	 *
+	 * @return ERROR_OK on success, otherwise ERROR_XXX.
+	 */
+	int (*usr_func_init)(struct target *target,
+		struct esp_algorithm_run_data *run,
+		void *usr_arg);
+
+	/**
+	 * @brief Algorithm's arguments cleanup function.
+	 *        This function will be called just after stub exit.
+	 *        It can be used to cleanup stub memory parameters.
+	 *
+	 * @param target  Pointer to target.
+	 * @param run     Pointer to algo run data.
+	 * @param usr_arg Function specific argument. The same as for usr_func.
+	 *
+	 * @return ERROR_OK on success, otherwise ERROR_XXX.
+	 */
+	void (*usr_func_done)(struct target *target,
+		struct esp_algorithm_run_data *run,
+		void *usr_arg);
+
+	/**
+	 * @brief Algorithm run function.
+	 *
+	 * @param target Pointer to target.
+	 * @param run    Pointer to algo run data.
+	 * @param arg    Function specific argument.
+	 *
+	 * @return ERROR_OK on success, otherwise ERROR_XXX.
+	 */
+	int (*algo_func)(struct target *target, struct esp_algorithm_run_data *run, void *arg);
+
 	/** HW specific API */
 	const struct esp_algorithm_hw *hw;
 };

@@ -209,9 +209,7 @@ You'll also need:
 - make
 - libtool
 - pkg-config >= 0.23 or pkgconf
-
-OpenOCD uses jimtcl library; build from git can retrieve jimtcl as git
-submodule.
+- libjim >= 0.79
 
 Additionally, for building from git:
 

@@ -50,7 +50,7 @@ static const char * const openjtag_variant_names[] = {
 /*
  * OpenJTAG-OpenOCD state conversion
  */
-typedef enum openjtag_tap_state {
+enum openjtag_tap_state {
 	OPENJTAG_TAP_INVALID    = -1,
 	OPENJTAG_TAP_RESET  = 0,
 	OPENJTAG_TAP_IDLE   = 1,
@@ -68,7 +68,7 @@ typedef enum openjtag_tap_state {
 	OPENJTAG_TAP_PAUSE_IR   = 13,
 	OPENJTAG_TAP_EXIT2_IR   = 14,
 	OPENJTAG_TAP_UPDATE_IR  = 15,
-} openjtag_tap_state_t;
+};
 
 /* OPENJTAG access library includes */
 #include "libftdi_helper.h"
@@ -748,7 +748,7 @@ static void openjtag_execute_scan(struct jtag_command *cmd)
 static void openjtag_execute_runtest(struct jtag_command *cmd)
 {
 
-	tap_state_t end_state = cmd->cmd.runtest->end_state;
+	enum tap_state end_state = cmd->cmd.runtest->end_state;
 	tap_set_end_state(end_state);
 
 	/* only do a state_move when we're not already in IDLE */

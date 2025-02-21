@@ -1502,7 +1502,7 @@ static int cmsis_dap_execute_tlr_reset(struct jtag_command *cmd)
 }
 
 /* Set new end state */
-static void cmsis_dap_end_state(tap_state_t state)
+static void cmsis_dap_end_state(enum tap_state state)
 {
 	if (tap_is_state_stable(state))
 		tap_set_end_state(state);
@@ -1831,7 +1831,7 @@ static void cmsis_dap_execute_scan(struct jtag_command *cmd)
 		tap_state_name(tap_get_end_state()));
 }
 
-static void cmsis_dap_pathmove(int num_states, tap_state_t *path)
+static void cmsis_dap_pathmove(int num_states, enum tap_state *path)
 {
 	uint8_t tms0 = 0x00;
 	uint8_t tms1 = 0xff;
@@ -1873,7 +1873,7 @@ static void cmsis_dap_stableclocks(unsigned int num_cycles)
 
 static void cmsis_dap_runtest(unsigned int num_cycles)
 {
-	tap_state_t saved_end_state = tap_get_end_state();
+	enum tap_state saved_end_state = tap_get_end_state();
 
 	/* Only do a state_move when we're not already in IDLE. */
 	if (tap_get_state() != TAP_IDLE) {

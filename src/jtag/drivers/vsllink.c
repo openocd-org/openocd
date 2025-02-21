@@ -41,9 +41,9 @@ static struct pending_scan_result
 	pending_scan_results_buffer[MAX_PENDING_SCAN_RESULTS];
 
 /* Queue command functions */
-static void vsllink_end_state(tap_state_t state);
+static void vsllink_end_state(enum tap_state state);
 static void vsllink_state_move(void);
-static void vsllink_path_move(unsigned int num_states, tap_state_t *path);
+static void vsllink_path_move(unsigned int num_states, enum tap_state *path);
 static void vsllink_tms(int num_bits, const uint8_t *bits);
 static void vsllink_runtest(unsigned int num_cycles);
 static void vsllink_stableclocks(unsigned int num_cycles, int tms);
@@ -346,7 +346,7 @@ static int vsllink_init(void)
 /**************************************************************************
  * Queue command implementations */
 
-static void vsllink_end_state(tap_state_t state)
+static void vsllink_end_state(enum tap_state state)
 {
 	if (tap_is_state_stable(state))
 		tap_set_end_state(state);
@@ -371,7 +371,7 @@ static void vsllink_state_move(void)
 	tap_set_state(tap_get_end_state());
 }
 
-static void vsllink_path_move(unsigned int num_states, tap_state_t *path)
+static void vsllink_path_move(unsigned int num_states, enum tap_state *path)
 {
 	for (unsigned int i = 0; i < num_states; i++) {
 		if (path[i] == tap_state_transition(tap_get_state(), false))
@@ -407,7 +407,7 @@ static void vsllink_stableclocks(unsigned int num_cycles, int tms)
 
 static void vsllink_runtest(unsigned int num_cycles)
 {
-	tap_state_t saved_end_state = tap_get_end_state();
+	enum tap_state saved_end_state = tap_get_end_state();
 
 	if (tap_get_state() != TAP_IDLE) {
 		/* enter IDLE state */
@@ -427,7 +427,7 @@ static void vsllink_runtest(unsigned int num_cycles)
 static void vsllink_scan(bool ir_scan, enum scan_type type, uint8_t *buffer,
 	int scan_size, struct scan_command *command)
 {
-	tap_state_t saved_end_state;
+	enum tap_state saved_end_state;
 
 	saved_end_state = tap_get_end_state();
 

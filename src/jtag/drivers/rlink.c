@@ -842,7 +842,7 @@ static int tap_state_queue_append(uint8_t tms)
 	return 0;
 }
 
-static void rlink_end_state(tap_state_t state)
+static void rlink_end_state(enum tap_state state)
 {
 	if (tap_is_state_stable(state))
 		tap_set_end_state(state);
@@ -898,7 +898,7 @@ static void rlink_path_move(struct pathmove_command *cmd)
 
 static void rlink_runtest(unsigned int num_cycles)
 {
-	tap_state_t saved_end_state = tap_get_end_state();
+	enum tap_state saved_end_state = tap_get_end_state();
 
 	/* only do a state_move when we're not already in RTI */
 	if (tap_get_state() != TAP_IDLE) {
@@ -1019,7 +1019,7 @@ static int rlink_scan(struct jtag_command *cmd, enum scan_type type,
 		uint8_t *buffer, int scan_size)
 {
 	bool ir_scan;
-	tap_state_t saved_end_state;
+	enum tap_state saved_end_state;
 	int byte_bits;
 	int extra_bits;
 	int chunk_bits;

@@ -33,13 +33,13 @@ struct trace {
  * to *hardware* tracing ... split such "real" tracing out from
  * the contrib/libdcc support.
  */
-typedef enum trace_status {
+enum trace_status {
 	TRACE_IDLE = 0x0,
 	TRACE_RUNNING = 0x1,
 	TRACE_TRIGGERED = 0x2,
 	TRACE_COMPLETED = 0x4,
 	TRACE_OVERFLOWED = 0x8,
-} trace_status_t;
+};
 
 int trace_point(struct target *target, uint32_t number);
 int trace_register_commands(struct command_context *cmd_ctx);

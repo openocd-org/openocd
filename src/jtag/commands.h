@@ -40,26 +40,26 @@ struct scan_command {
 	/** pointer to an array of data scan fields */
 	struct scan_field *fields;
 	/** state in which JTAG commands should finish */
-	tap_state_t end_state;
+	enum tap_state end_state;
 };
 
 struct statemove_command {
 	/** state in which JTAG commands should finish */
-	tap_state_t end_state;
+	enum tap_state end_state;
 };
 
 struct pathmove_command {
 	/** number of states in *path */
 	unsigned int num_states;
 	/** states that have to be passed */
-	tap_state_t *path;
+	enum tap_state *path;
 };
 
 struct runtest_command {
 	/** number of cycles to spend in Run-Test/Idle state */
 	unsigned int num_cycles;
 	/** state in which JTAG commands should finish */
-	tap_state_t end_state;
+	enum tap_state end_state;
 };
 
 
@@ -78,7 +78,7 @@ struct reset_command {
 
 struct end_state_command {
 	/** state in which JTAG commands should finish */
-	tap_state_t end_state;
+	enum tap_state end_state;
 };
 
 struct sleep_command {

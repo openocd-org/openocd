@@ -230,10 +230,21 @@ static void spidev_free_queue(void)
 	tx_flip_buf = NULL;
 }
 
+static void spidev_clear_queue(void)
+{
+	queue_fill = 0;
+	queue_buf_fill = 0;
+
+	memset(queue_infos, 0, sizeof(struct queue_info) * max_queue_entries);
+	memset(queue_tx_buf, 0, queue_buf_size);
+	memset(queue_rx_buf, 0, queue_buf_size);
+	memset(tx_flip_buf, 0, queue_buf_size);
+}
+
 static int spidev_alloc_queue(unsigned int new_queue_entries)
 {
 	if (queue_fill || queue_buf_fill) {
-		LOG_ERROR("Can't realloc allocate queue when queue is in use");
+		LOG_ERROR("Can't realloc queue when queue is in use");
 		return ERROR_FAIL;
 	}
 
@@ -258,6 +269,8 @@ static int spidev_alloc_queue(unsigned int new_queue_entries)
 
 	max_queue_entries = new_queue_entries;
 	queue_buf_size = new_queue_buf_size;
+
+	spidev_clear_queue();
 
 	LOG_DEBUG("Set queue entries to %u (buffers %u bytes)", max_queue_entries, queue_buf_size);
 
@@ -307,18 +320,6 @@ static int spidev_init(void)
 	LOG_INFO("Opened SPI device at %s in mode 0x%" PRIx32 " with %" PRIu8 " bits ",
 		spi_path, spi_mode, spi_bits);
 
-	// Set SPI read and write max speed.
-	int speed;
-	ret = adapter_get_speed(&speed);
-	if (ret != ERROR_OK) {
-		LOG_ERROR("Failed to get adapter speed");
-		return ERROR_JTAG_INIT_FAILED;
-	}
-
-	ret = spidev_speed(speed);
-	if (ret != ERROR_OK)
-		return ERROR_JTAG_INIT_FAILED;
-
 	if (max_queue_entries == 0) {
 		ret = spidev_alloc_queue(MAX_QUEUE_ENTRIES);
 		if (ret != ERROR_OK)
@@ -337,6 +338,10 @@ static int spidev_quit(void)
 
 	close(spi_fd);
 	spi_fd = -1;
+
+	free(spi_path);
+	spi_path = NULL;
+
 	return ERROR_OK;
 }
 
@@ -408,12 +413,7 @@ static int spidev_swd_execute_queue(unsigned int end_idle_bytes)
 	}
 
 skip:
-	// Clear everything in the queue
-	queue_fill = 0;
-	queue_buf_fill = 0;
-	memset(queue_infos, 0, sizeof(queue_infos[0]) * max_queue_entries);
-	memset(queue_tx_buf, 0, queue_buf_size);
-	memset(queue_rx_buf, 0, queue_buf_size);
+	spidev_clear_queue();
 
 	int retval = queue_retval;
 	queue_retval = ERROR_OK;

@@ -60,14 +60,14 @@
 
 #ifdef HAVE_SYS_IOCTL_H
 /* Message used to program rshim via ioctl(). */
-typedef struct {
+struct rshim_ioctl_msg {
 	uint32_t addr;
 	uint64_t data;
-} __attribute__((packed)) rshim_ioctl_msg;
+} __attribute__((packed));
 
 enum {
-	RSH_IOC_READ = _IOWR('R', 0, rshim_ioctl_msg),
-	RSH_IOC_WRITE = _IOWR('R', 1, rshim_ioctl_msg),
+	RSH_IOC_READ = _IOWR('R', 0, struct rshim_ioctl_msg),
+	RSH_IOC_WRITE = _IOWR('R', 1, struct rshim_ioctl_msg),
 };
 #endif
 
@@ -104,7 +104,7 @@ static int rshim_dev_read(int chan, int addr, uint64_t *value)
 
 #ifdef HAVE_SYS_IOCTL_H
 	if (rc < 0 && errno == ENOSYS) {
-		rshim_ioctl_msg msg;
+		struct rshim_ioctl_msg msg;
 
 		msg.addr = addr;
 		msg.data = 0;
@@ -126,7 +126,7 @@ static int rshim_dev_write(int chan, int addr, uint64_t value)
 
 #ifdef HAVE_SYS_IOCTL_H
 	if (rc < 0 && errno == ENOSYS) {
-		rshim_ioctl_msg msg;
+		struct rshim_ioctl_msg msg;
 
 		msg.addr = addr;
 		msg.data = value;

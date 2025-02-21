@@ -219,7 +219,7 @@ static int angie_append_test_cmd(struct angie *device);
 static int angie_calculate_delay(enum angie_delay_type type, long f, int *delay);
 
 /* Interface between ANGIE and OpenOCD */
-static void angie_set_end_state(tap_state_t endstate);
+static void angie_set_end_state(enum tap_state endstate);
 static int angie_queue_statemove(struct angie *device);
 
 static int angie_queue_scan(struct angie *device, struct jtag_command *cmd);
@@ -1519,7 +1519,7 @@ static long angie_calculate_frequency(enum angie_delay_type type, int delay)
  *
  * @param endstate the state the end state follower should be set to.
  */
-static void angie_set_end_state(tap_state_t endstate)
+static void angie_set_end_state(enum tap_state endstate)
 {
 	if (tap_is_state_stable(endstate))
 		tap_set_end_state(endstate);
@@ -1837,7 +1837,7 @@ static int angie_reset(int trst, int srst)
 static int angie_queue_pathmove(struct angie *device, struct jtag_command *cmd)
 {
 	int ret, state_count;
-	tap_state_t *path;
+	enum tap_state *path;
 	uint8_t tms_sequence;
 
 	unsigned int num_states = cmd->cmd.pathmove->num_states;

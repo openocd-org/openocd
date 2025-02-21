@@ -28,7 +28,7 @@
 
 
 /** implementation of wrapper function tap_set_state() */
-void tap_set_state_impl(tap_state_t new_state);
+void tap_set_state_impl(enum tap_state new_state);
 
 /**
  * This function sets the state of a "state follower" which tracks the
@@ -55,9 +55,9 @@ void tap_set_state_impl(tap_state_t new_state);
 /**
  * This function gets the state of the "state follower" which tracks the
  * state of the TAPs connected to the cable. @see tap_set_state @return
- * tap_state_t The state the TAPs are in now.
+ * enum tap_state The state the TAPs are in now.
  */
-tap_state_t tap_get_state(void);
+enum tap_state tap_get_state(void);
 
 /**
  * This function sets the state of an "end state follower" which tracks
@@ -70,13 +70,13 @@ tap_state_t tap_get_state(void);
  * @param new_end_state The state the TAPs should enter at completion of
  * a pending TAP operation.
  */
-void tap_set_end_state(tap_state_t new_end_state);
+void tap_set_end_state(enum tap_state new_end_state);
 
 /**
  * For more information, @see tap_set_end_state
- * @return tap_state_t - The state the TAPs should be in at completion of the current TAP operation.
+ * @return enum tap_state - The state the TAPs should be in at completion of the current TAP operation.
  */
-tap_state_t tap_get_end_state(void);
+enum tap_state tap_get_end_state(void);
 
 /**
  * This function provides a "bit sequence" indicating what has to be
@@ -91,7 +91,7 @@ tap_state_t tap_get_end_state(void);
  * @return int The required TMS bit sequence, with the first bit in the
  * sequence at bit 0.
  */
-int tap_get_tms_path(tap_state_t from, tap_state_t to);
+int tap_get_tms_path(enum tap_state from, enum tap_state to);
 
 /**
  * Function int tap_get_tms_path_len
@@ -109,7 +109,7 @@ int tap_get_tms_path(tap_state_t from, tap_state_t to);
  * @param to is the resultant or final state
  * @return int - the total number of bits in a transition.
  */
-int tap_get_tms_path_len(tap_state_t from, tap_state_t to);
+int tap_get_tms_path_len(enum tap_state from, enum tap_state to);
 
 
 /**
@@ -125,30 +125,30 @@ int tap_get_tms_path_len(tap_state_t from, tap_state_t to);
  *  and terminate.
  * @return int - the array (or sequence) index as described above
  */
-int tap_move_ndx(tap_state_t astate);
+int tap_move_ndx(enum tap_state astate);
 
 /**
  * Function tap_is_state_stable
  * returns true if the \a astate is stable.
  */
-bool tap_is_state_stable(tap_state_t astate);
+bool tap_is_state_stable(enum tap_state astate);
 
 /**
  * Function tap_state_transition
  * takes a current TAP state and returns the next state according to the tms value.
  * @param current_state is the state of a TAP currently.
  * @param tms is either zero or non-zero, just like a real TMS line in a jtag interface.
- * @return tap_state_t - the next state a TAP would enter.
+ * @return enum tap_state - the next state a TAP would enter.
  */
-tap_state_t tap_state_transition(tap_state_t current_state, bool tms);
+enum tap_state tap_state_transition(enum tap_state current_state, bool tms);
 
 /** Allow switching between old and new TMS tables. @see tap_get_tms_path */
 void tap_use_new_tms_table(bool use_new);
 /** @returns True if new TMS table is active; false otherwise. */
 bool tap_uses_new_tms_table(void);
 
-tap_state_t jtag_debug_state_machine_(const void *tms_buf, const void *tdi_buf,
-		unsigned int tap_len, tap_state_t start_tap_state);
+enum tap_state jtag_debug_state_machine_(const void *tms_buf, const void *tdi_buf,
+		unsigned int tap_len, enum tap_state start_tap_state);
 
 /**
  * @brief Prints verbose TAP state transitions for the given TMS/TDI buffers.
@@ -158,8 +158,8 @@ tap_state_t jtag_debug_state_machine_(const void *tms_buf, const void *tdi_buf,
  * @param start_tap_state must specify the current TAP state.
  * @returns the final TAP state; pass as @a start_tap_state in following call.
  */
-static inline tap_state_t jtag_debug_state_machine(const void *tms_buf,
-		const void *tdi_buf, unsigned int tap_len, tap_state_t start_tap_state)
+static inline enum tap_state jtag_debug_state_machine(const void *tms_buf,
+		const void *tdi_buf, unsigned int tap_len, enum tap_state start_tap_state)
 {
 	if (LOG_LEVEL_IS(LOG_LVL_DEBUG_IO))
 		return jtag_debug_state_machine_(tms_buf, tdi_buf, tap_len, start_tap_state);

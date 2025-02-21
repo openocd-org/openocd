@@ -944,11 +944,11 @@ static int vdebug_jtag_path_move(struct pathmove_command *cmd, uint8_t f_flush)
 	return vdebug_jtag_tms_seq(tms, cmd->num_states, f_flush);
 }
 
-static int vdebug_jtag_tlr(tap_state_t state, uint8_t f_flush)
+static int vdebug_jtag_tlr(enum tap_state state, uint8_t f_flush)
 {
 	int rc = ERROR_OK;
 
-	tap_state_t cur = tap_get_state();
+	enum tap_state cur = tap_get_state();
 	uint8_t tms_pre = tap_get_tms_path(cur, state);
 	uint8_t num_pre = tap_get_tms_path_len(cur, state);
 	LOG_DEBUG_IO("tlr  from %x to %x", cur, state);
@@ -964,7 +964,7 @@ static int vdebug_jtag_scan(struct scan_command *cmd, uint8_t f_flush)
 {
 	int rc = ERROR_OK;
 
-	tap_state_t cur = tap_get_state();
+	enum tap_state cur = tap_get_state();
 	uint8_t state = cmd->ir_scan ? TAP_IRSHIFT : TAP_DRSHIFT;
 	uint8_t tms_pre = tap_get_tms_path(cur, state);
 	uint8_t num_pre = tap_get_tms_path_len(cur, state);
@@ -992,9 +992,9 @@ static int vdebug_jtag_scan(struct scan_command *cmd, uint8_t f_flush)
 	return rc;
 }
 
-static int vdebug_jtag_runtest(unsigned int num_cycles, tap_state_t state, uint8_t f_flush)
+static int vdebug_jtag_runtest(unsigned int num_cycles, enum tap_state state, uint8_t f_flush)
 {
-	tap_state_t cur = tap_get_state();
+	enum tap_state cur = tap_get_state();
 	uint8_t tms_pre = tap_get_tms_path(cur, state);
 	uint8_t num_pre = tap_get_tms_path_len(cur, state);
 	LOG_DEBUG_IO("idle len:%u state cur:%x end:%x", num_cycles, cur, state);

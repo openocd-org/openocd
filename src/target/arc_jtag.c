@@ -66,7 +66,7 @@ static void arc_jtag_enque_write_ir(struct arc_jtag *jtag_info, uint32_t
  * @param end_state	End state after reading.
  */
 static void arc_jtag_enque_read_dr(struct arc_jtag *jtag_info, uint8_t *data,
-		tap_state_t end_state)
+		enum tap_state end_state)
 {
 
 	assert(jtag_info);
@@ -88,7 +88,7 @@ static void arc_jtag_enque_read_dr(struct arc_jtag *jtag_info, uint8_t *data,
  * @param end_state	End state after writing.
  */
 static void arc_jtag_enque_write_dr(struct arc_jtag *jtag_info, uint32_t data,
-		tap_state_t end_state)
+		enum tap_state end_state)
 {
 	uint8_t out_value[sizeof(uint32_t)] = {0};
 
@@ -116,7 +116,7 @@ static void arc_jtag_enque_write_dr(struct arc_jtag *jtag_info, uint32_t data,
  * @param end_state	End state after writing.
  */
 static void arc_jtag_enque_set_transaction(struct arc_jtag *jtag_info,
-		uint32_t new_trans, tap_state_t end_state)
+		uint32_t new_trans, enum tap_state end_state)
 {
 	uint8_t out_value[sizeof(uint32_t)] = {0};
 

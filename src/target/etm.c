@@ -1567,7 +1567,7 @@ COMMAND_HANDLER(handle_etm_status_command)
 	struct target *target;
 	struct arm *arm;
 	struct etm_context *etm;
-	trace_status_t trace_status;
+	enum trace_status trace_status;
 
 	target = get_current_target(CMD_CTX);
 	arm = target_to_arm(target);

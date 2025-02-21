@@ -61,7 +61,7 @@ struct jtag_tap *jtag_tap_by_jim_obj(Jim_Interp *interp, Jim_Obj *o)
 	return t;
 }
 
-static bool scan_is_safe(tap_state_t state)
+static bool scan_is_safe(enum tap_state state)
 {
 	switch (state) {
 	    case TAP_RESET:
@@ -126,7 +126,7 @@ COMMAND_HANDLER(handle_jtag_command_drscan)
 		return ERROR_FAIL;
 	}
 
-	tap_state_t endstate = TAP_IDLE;
+	enum tap_state endstate = TAP_IDLE;
 	if (CMD_ARGC > 3 && !strcmp("-endstate", CMD_ARGV[CMD_ARGC - 2])) {
 		const char *state_name = CMD_ARGV[CMD_ARGC - 1];
 		endstate = tap_state_by_name(state_name);
@@ -176,7 +176,7 @@ fail:
 
 COMMAND_HANDLER(handle_jtag_command_pathmove)
 {
-	tap_state_t states[8];
+	enum tap_state states[8];
 
 	if (CMD_ARGC < 1 || CMD_ARGC > ARRAY_SIZE(states))
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -919,7 +919,7 @@ COMMAND_HANDLER(handle_irscan_command)
 	int i;
 	struct scan_field *fields;
 	struct jtag_tap *tap = NULL;
-	tap_state_t endstate;
+	enum tap_state endstate;
 
 	if ((CMD_ARGC < 2) || (CMD_ARGC % 2))
 		return ERROR_COMMAND_SYNTAX_ERROR;

@@ -48,8 +48,8 @@ static void jtag_add_scan_check(struct jtag_tap *active,
 		void (*jtag_add_scan)(struct jtag_tap *active,
 		int in_num_fields,
 		const struct scan_field *in_fields,
-		tap_state_t state),
-		int in_num_fields, struct scan_field *in_fields, tap_state_t state);
+		enum tap_state state),
+		int in_num_fields, struct scan_field *in_fields, enum tap_state state);
 
 static int jtag_error_clear(void);
 
@@ -87,7 +87,7 @@ static int jtag_srst = -1;
 static struct jtag_tap *__jtag_all_taps;
 
 static enum reset_types jtag_reset_config = RESET_NONE;
-tap_state_t cmd_queue_cur_state = TAP_RESET;
+enum tap_state cmd_queue_cur_state = TAP_RESET;
 
 static bool jtag_verify_capture_ir = true;
 static bool jtag_verify = true;
@@ -350,7 +350,7 @@ static void jtag_checks(void)
 	assert(jtag_trst == 0);
 }
 
-static void jtag_prelude(tap_state_t state)
+static void jtag_prelude(enum tap_state state)
 {
 	jtag_checks();
 
@@ -360,7 +360,7 @@ static void jtag_prelude(tap_state_t state)
 }
 
 void jtag_add_ir_scan_noverify(struct jtag_tap *active, const struct scan_field *in_fields,
-	tap_state_t state)
+	enum tap_state state)
 {
 	jtag_prelude(state);
 
@@ -371,13 +371,13 @@ void jtag_add_ir_scan_noverify(struct jtag_tap *active, const struct scan_field 
 static void jtag_add_ir_scan_noverify_callback(struct jtag_tap *active,
 	int dummy,
 	const struct scan_field *in_fields,
-	tap_state_t state)
+	enum tap_state state)
 {
 	jtag_add_ir_scan_noverify(active, in_fields, state);
 }
 
 /* If fields->in_value is filled out, then the captured IR value will be checked */
-void jtag_add_ir_scan(struct jtag_tap *active, struct scan_field *in_fields, tap_state_t state)
+void jtag_add_ir_scan(struct jtag_tap *active, struct scan_field *in_fields, enum tap_state state)
 {
 	assert(state != TAP_RESET);
 
@@ -396,7 +396,7 @@ void jtag_add_ir_scan(struct jtag_tap *active, struct scan_field *in_fields, tap
 }
 
 void jtag_add_plain_ir_scan(int num_bits, const uint8_t *out_bits, uint8_t *in_bits,
-	tap_state_t state)
+	enum tap_state state)
 {
 	assert(out_bits);
 	assert(state != TAP_RESET);
@@ -426,8 +426,8 @@ static void jtag_add_scan_check(struct jtag_tap *active, void (*jtag_add_scan)(
 		struct jtag_tap *active,
 		int in_num_fields,
 		const struct scan_field *in_fields,
-		tap_state_t state),
-	int in_num_fields, struct scan_field *in_fields, tap_state_t state)
+		enum tap_state state),
+	int in_num_fields, struct scan_field *in_fields, enum tap_state state)
 {
 	jtag_add_scan(active, in_num_fields, in_fields, state);
 
@@ -445,7 +445,7 @@ static void jtag_add_scan_check(struct jtag_tap *active, void (*jtag_add_scan)(
 void jtag_add_dr_scan_check(struct jtag_tap *active,
 	int in_num_fields,
 	struct scan_field *in_fields,
-	tap_state_t state)
+	enum tap_state state)
 {
 	if (jtag_verify)
 		jtag_add_scan_check(active, jtag_add_dr_scan, in_num_fields, in_fields, state);
@@ -457,7 +457,7 @@ void jtag_add_dr_scan_check(struct jtag_tap *active,
 void jtag_add_dr_scan(struct jtag_tap *active,
 	int in_num_fields,
 	const struct scan_field *in_fields,
-	tap_state_t state)
+	enum tap_state state)
 {
 	assert(state != TAP_RESET);
 
@@ -469,7 +469,7 @@ void jtag_add_dr_scan(struct jtag_tap *active,
 }
 
 void jtag_add_plain_dr_scan(int num_bits, const uint8_t *out_bits, uint8_t *in_bits,
-	tap_state_t state)
+	enum tap_state state)
 {
 	assert(out_bits);
 	assert(state != TAP_RESET);
@@ -520,9 +520,9 @@ int jtag_add_tms_seq(unsigned int nbits, const uint8_t *seq, enum tap_state stat
 	return retval;
 }
 
-void jtag_add_pathmove(unsigned int num_states, const tap_state_t *path)
+void jtag_add_pathmove(unsigned int num_states, const enum tap_state *path)
 {
-	tap_state_t cur_state = cmd_queue_cur_state;
+	enum tap_state cur_state = cmd_queue_cur_state;
 
 	/* the last state has to be a stable state */
 	if (!tap_is_state_stable(path[num_states - 1])) {
@@ -554,9 +554,9 @@ void jtag_add_pathmove(unsigned int num_states, const tap_state_t *path)
 	cmd_queue_cur_state = path[num_states - 1];
 }
 
-int jtag_add_statemove(tap_state_t goal_state)
+int jtag_add_statemove(enum tap_state goal_state)
 {
-	tap_state_t cur_state = cmd_queue_cur_state;
+	enum tap_state cur_state = cmd_queue_cur_state;
 
 	if (goal_state != cur_state) {
 		LOG_DEBUG("cur_state=%s goal_state=%s",
@@ -575,7 +575,7 @@ int jtag_add_statemove(tap_state_t goal_state)
 	else if (tap_is_state_stable(cur_state) && tap_is_state_stable(goal_state)) {
 		unsigned int tms_bits  = tap_get_tms_path(cur_state, goal_state);
 		unsigned int tms_count = tap_get_tms_path_len(cur_state, goal_state);
-		tap_state_t moves[8];
+		enum tap_state moves[8];
 		assert(tms_count < ARRAY_SIZE(moves));
 
 		for (unsigned int i = 0; i < tms_count; i++, tms_bits >>= 1) {
@@ -595,7 +595,7 @@ int jtag_add_statemove(tap_state_t goal_state)
 	return ERROR_OK;
 }
 
-void jtag_add_runtest(unsigned int num_cycles, tap_state_t state)
+void jtag_add_runtest(unsigned int num_cycles, enum tap_state state)
 {
 	jtag_prelude(state);
 	jtag_set_error(interface_jtag_add_runtest(num_cycles, state));
@@ -631,6 +631,13 @@ static int adapter_system_reset(int req_srst)
 
 	/* Maybe change SRST signal state */
 	if (jtag_srst != req_srst) {
+		if (!adapter_driver->reset) {
+			if (req_srst)
+				LOG_ERROR("Adapter driver does not implement SRST handling");
+
+			return ERROR_NOT_IMPLEMENTED;
+		}
+
 		retval = adapter_driver->reset(0, req_srst);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("SRST error");

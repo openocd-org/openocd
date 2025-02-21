@@ -906,5 +906,8 @@ const struct command_registration arc_monitor_command_handlers[] = {
 		.usage = "",
 		.chain = arc_core_command_handlers,
 	},
+	{
+		.chain = rtt_target_command_handlers,
+	},
 	COMMAND_REGISTRATION_DONE
 };

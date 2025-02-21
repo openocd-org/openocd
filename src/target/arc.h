@@ -22,6 +22,7 @@
 #include "target_request.h"
 #include "target_type.h"
 #include "helper/bits.h"
+#include "rtt/rtt.h"
 
 #include "arc_jtag.h"
 #include "arc_cmd.h"

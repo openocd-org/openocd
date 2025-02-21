@@ -161,11 +161,6 @@ int arc_mem_write(struct target *target, target_addr_t address, uint32_t size,
 	LOG_TARGET_DEBUG(target, "address: 0x%08" TARGET_PRIxADDR ", size: %" PRIu32 ", count: %" PRIu32,
 		address, size, count);
 
-	if (target->state != TARGET_HALTED) {
-		LOG_TARGET_ERROR(target, "not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
-
 	/* sanitize arguments */
 	if (((size != 4) && (size != 2) && (size != 1)) || !(count) || !(buffer))
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -245,11 +240,6 @@ int arc_mem_read(struct target *target, target_addr_t address, uint32_t size,
 
 	LOG_TARGET_DEBUG(target, "Read memory: addr=0x%08" TARGET_PRIxADDR ", size=%" PRIu32
 			", count=%" PRIu32, address, size, count);
-
-	if (target->state != TARGET_HALTED) {
-		LOG_TARGET_WARNING(target, "target not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
 
 	/* Sanitize arguments */
 	if (((size != 4) && (size != 2) && (size != 1)) || !(count) || !(buffer))

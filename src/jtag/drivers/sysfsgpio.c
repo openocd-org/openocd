@@ -255,7 +255,7 @@ static int sysfsgpio_swd_write(int swclk, int swdio)
  * The sysfs value will read back either '0' or '1'. The trick here is to call
  * lseek to bypass buffering in the sysfs kernel driver.
  */
-static bb_value_t sysfsgpio_read(void)
+static enum bb_value sysfsgpio_read(void)
 {
 	char buf[1];
 

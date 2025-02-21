@@ -272,7 +272,7 @@
 
 #define LPC11XX_REG_SECTORS	24
 
-typedef enum {
+enum lpc2000_variant {
 	LPC2000_V1,
 	LPC2000_V2,
 	LPC1700,
@@ -282,10 +282,10 @@ typedef enum {
 	LPC1500,
 	LPC54100,
 	LPC_AUTO,
-} lpc2000_variant;
+};
 
 struct lpc2000_flash_bank {
-	lpc2000_variant variant;
+	enum lpc2000_variant variant;
 	uint32_t cclk;
 	int cmd51_dst_boundary;
 	int calc_checksum;

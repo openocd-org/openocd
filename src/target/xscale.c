@@ -137,7 +137,7 @@ static int xscale_verify_pointer(struct command_invocation *cmd,
 	return ERROR_OK;
 }
 
-static int xscale_jtag_set_instr(struct jtag_tap *tap, uint32_t new_instr, tap_state_t end_state)
+static int xscale_jtag_set_instr(struct jtag_tap *tap, uint32_t new_instr, enum tap_state end_state)
 {
 	assert(tap);
 
@@ -232,7 +232,7 @@ static int xscale_receive(struct target *target, uint32_t *buffer, int num_words
 
 	struct xscale_common *xscale = target_to_xscale(target);
 	int retval = ERROR_OK;
-	tap_state_t path[3];
+	enum tap_state path[3];
 	struct scan_field fields[3];
 	uint8_t *field0 = malloc(num_words * 1);
 	uint8_t field0_check_value = 0x2;
@@ -330,8 +330,8 @@ static int xscale_receive(struct target *target, uint32_t *buffer, int num_words
 static int xscale_read_tx(struct target *target, int consume)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
-	tap_state_t path[3];
-	tap_state_t noconsume_path[6];
+	enum tap_state path[3];
+	enum tap_state noconsume_path[6];
 	int retval;
 	struct timeval timeout, now;
 	struct scan_field fields[3];
