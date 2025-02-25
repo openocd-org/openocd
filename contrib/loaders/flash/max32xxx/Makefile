@@ -1,21 +1,30 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
+TARGET=max32xxx_write
+ENTRY=algo_write
+
 BIN2C = ../../../../src/helper/bin2char.sh
 
-CROSS_COMPILE ?= arm-none-eabi-
-AS      = $(CROSS_COMPILE)as
-OBJCOPY = $(CROSS_COMPILE)objcopy
+PREFIX=arm-none-eabi
+CFLAGS=-mthumb -mcpu=cortex-m4 -Wa,-mimplicit-it=thumb
 
-all: max32xxx.inc
+all: $(TARGET).inc
 
-%.elf: %.s
-	$(AS) $< -o $@
+%.o: %.c
+	$(PREFIX)-gcc $(CFLAGS) -Os -Wall -c ${<} -o ${@}
+
+%.elf: %.o
+	$(PREFIX)-ld -nostdlib --entry $(ENTRY) ${<} -o ${@}
+	$(PREFIX)-size ${@}
 
 %.bin: %.elf
-	$(OBJCOPY) -Obinary $< $@
+	$(PREFIX)-objcopy -O binary ${<} ${@}
 
 %.inc: %.bin
 	$(BIN2C) < $< > $@
 
+%.dasm: %.o
+	$(PREFIX)-objdump -S ${<} > ${TARGET}.dasm
+
 clean:
-	-rm -f *.elf *.bin *.inc
+	rm -rf $(TARGET).bin $(TARGET).elf $(TARGET).o $(TARGET).dasm $(TARGET).inc
