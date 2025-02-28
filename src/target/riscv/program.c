@@ -20,7 +20,7 @@ int riscv_program_init(struct riscv_program *p, struct target *target)
 	p->target = target;
 	p->instruction_count = 0;
 
-	for (size_t i = 0; i < RISCV_MAX_PROGBUF_SIZE; ++i)
+	for (unsigned int i = 0; i < RISCV013_MAX_PROGBUF_SIZE; ++i)
 		p->progbuf[i] = (uint32_t)(-1);
 
 	p->execution_result = RISCV_PROGBUF_EXEC_RESULT_NOT_EXECUTED;
@@ -47,9 +47,9 @@ int riscv_program_exec(struct riscv_program *p, struct target *t)
 
 	if (riscv_program_ebreak(p) != ERROR_OK) {
 		LOG_TARGET_ERROR(t, "Unable to insert ebreak into program buffer");
-		for (size_t i = 0; i < riscv_progbuf_size(p->target); ++i)
+		for (unsigned int i = 0; i < riscv_progbuf_size(p->target); ++i)
 			LOG_TARGET_ERROR(t, "progbuf[%02x]: DASM(0x%08" PRIx32 ") [0x%08" PRIx32 "]",
-					(int)i, p->progbuf[i], p->progbuf[i]);
+					i, p->progbuf[i], p->progbuf[i]);
 		return ERROR_FAIL;
 	}
 
@@ -198,8 +198,8 @@ int riscv_program_insert(struct riscv_program *p, riscv_insn_t i)
 {
 	if (p->instruction_count >= riscv_progbuf_size(p->target)) {
 		LOG_TARGET_ERROR(p->target, "Unable to insert program into progbuf, "
-			"capacity would be exceeded (progbufsize=%d).",
-			(int)riscv_progbuf_size(p->target));
+			"capacity would be exceeded (progbufsize=%u).",
+			riscv_progbuf_size(p->target));
 		return ERROR_FAIL;
 	}
 

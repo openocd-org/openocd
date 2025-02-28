@@ -5,9 +5,7 @@
 
 #include "riscv.h"
 
-#define RISCV_MAX_PROGBUF_SIZE 32
-#define RISCV_REGISTER_COUNT 32
-#define RISCV_DSCRATCH_COUNT 2
+#define RISCV013_MAX_PROGBUF_SIZE 16
 
 typedef enum {
 	RISCV_PROGBUF_EXEC_RESULT_NOT_EXECUTED,
@@ -23,10 +21,10 @@ typedef enum {
 struct riscv_program {
 	struct target *target;
 
-	uint32_t progbuf[RISCV_MAX_PROGBUF_SIZE];
+	uint32_t progbuf[RISCV013_MAX_PROGBUF_SIZE];
 
 	/* Number of 32-bit instructions in the program. */
-	size_t instruction_count;
+	unsigned int instruction_count;
 
 	/* execution result of the program */
 	/* TODO: remove this field. We should make it a parameter to riscv_program_exec */

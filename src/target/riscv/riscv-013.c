@@ -5338,7 +5338,7 @@ static enum riscv_halt_reason riscv013_halt_reason(struct target *target)
 
 static int riscv013_write_progbuf(struct target *target, unsigned int index, riscv_insn_t data)
 {
-	assert(index < RISCV_MAX_PROGBUF_SIZE);
+	assert(index < RISCV013_MAX_PROGBUF_SIZE);
 
 	dm013_info_t *dm = get_dm(target);
 	if (!dm)
