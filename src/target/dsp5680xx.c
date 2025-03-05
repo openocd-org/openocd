@@ -993,8 +993,8 @@ static int dsp5680xx_poll(struct target *target)
 	return ERROR_OK;
 }
 
-static int dsp5680xx_resume(struct target *target, int current,
-			    target_addr_t address, int hb, int d)
+static int dsp5680xx_resume(struct target *target, bool current,
+		target_addr_t address, bool handle_breakpoints, bool debug_execution)
 {
 	if (target->state == TARGET_RUNNING) {
 		LOG_USER("Target already running.");
@@ -2048,7 +2048,7 @@ int dsp5680xx_f_wr(struct target *t, const uint8_t *b, uint32_t a, uint32_t coun
 	retval = core_tx_upper_data(target, tmp, &drscan_data);
 	err_check_propagate(retval);
 
-	retval = dsp5680xx_resume(target, 0, ram_addr, 0, 0);
+	retval = dsp5680xx_resume(target, false, ram_addr, false, false);
 	err_check_propagate(retval);
 
 	int counter = FLUSH_COUNT_FLASH;
@@ -2234,8 +2234,8 @@ int dsp5680xx_f_lock(struct target *target)
 	return retval;
 }
 
-static int dsp5680xx_step(struct target *target, int current, target_addr_t address,
-			  int handle_breakpoints)
+static int dsp5680xx_step(struct target *target, bool current, target_addr_t address,
+		bool handle_breakpoints)
 {
 	err_check(ERROR_FAIL, DSP5680XX_ERROR_NOT_IMPLEMENTED_STEP,
 		  "Not implemented yet.");

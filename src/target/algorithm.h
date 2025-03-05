@@ -35,8 +35,8 @@ void init_mem_param(struct mem_param *param,
 		uint32_t address, uint32_t size, enum param_direction dir);
 void destroy_mem_param(struct mem_param *param);
 
-void init_reg_param(struct reg_param *param,
-		char *reg_name, uint32_t size, enum param_direction dir);
+void init_reg_param(struct reg_param *param, const char *reg_name,
+	uint32_t size, enum param_direction dir);
 void destroy_reg_param(struct reg_param *param);
 
 #endif /* OPENOCD_TARGET_ALGORITHM_H */

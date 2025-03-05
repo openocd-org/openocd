@@ -2,18 +2,18 @@
 
 /*
  * The manufacturer's standard identification code list appears in JEP106.
- * Copyright (c) 2024 JEDEC. All rights reserved.
+ * Copyright (c) 2025 JEDEC. All rights reserved.
  *
  * JEP106 is regularly updated. For the current manufacturer's standard
  * identification code list, please visit the JEDEC website at www.jedec.org .
  */
 
-/* This file is aligned to revision JEP106BK September 2024. */
+/* This file is aligned to revision JEP106BL February 2025. */
 
 [0][0x01 - 1] = "AMD",
 [0][0x02 - 1] = "AMI",
 [0][0x03 - 1] = "Fairchild",
-[0][0x04 - 1] = "Fujitsu",
+[0][0x04 - 1] = "RAMXEED Limited",
 [0][0x05 - 1] = "GTE",
 [0][0x06 - 1] = "Harris",
 [0][0x07 - 1] = "Hitachi",
@@ -1373,7 +1373,7 @@
 [10][0x65 - 1] = "Esperanto Technologies",
 [10][0x66 - 1] = "JinSheng Electronic (Shenzhen) Co Ltd",
 [10][0x67 - 1] = "Shenzhen Shi Bolunshuai Technology",
-[10][0x68 - 1] = "Shanghai Rui Xuan Information Tech",
+[10][0x68 - 1] = "Shanghai Ruixuan Information Tech",
 [10][0x69 - 1] = "Fraunhofer IIS",
 [10][0x6a - 1] = "Kandou Bus SA",
 [10][0x6b - 1] = "Acer",
@@ -1745,7 +1745,7 @@
 [13][0x5f - 1] = "Guangdong OPPO Mobile Telecommunication",
 [13][0x60 - 1] = "Akeana",
 [13][0x61 - 1] = "Lyczar",
-[13][0x62 - 1] = "Shenzhen Qiji Technology Co Ltd",
+[13][0x62 - 1] = "QJTEK",
 [13][0x63 - 1] = "Shenzhen Shangzhaoyuan Technology",
 [13][0x64 - 1] = "Han Stor",
 [13][0x65 - 1] = "China Micro Semicon Co., Ltd.",
@@ -1893,7 +1893,7 @@
 [14][0x75 - 1] = "HOGE Technology Co Ltd",
 [14][0x76 - 1] = "United Micro Technology (Shenzhen) Co",
 [14][0x77 - 1] = "Fabric of Truth Inc",
-[14][0x78 - 1] = "Epitech",
+[14][0x78 - 1] = "Elpitech",
 [14][0x79 - 1] = "Elitestek",
 [14][0x7a - 1] = "Cornelis Networks Inc",
 [14][0x7b - 1] = "WingSemi Technologies Co Ltd",
@@ -1916,7 +1916,7 @@
 [15][0x0e - 1] = "Shenzhen Ranshuo Technology Co Limited",
 [15][0x0f - 1] = "ScaleFlux",
 [15][0x10 - 1] = "XC Memory",
-[15][0x11 - 1] = "Guangzhou Beimu Technology Co., Ltd",
+[15][0x11 - 1] = "Guangzhou Beimu Technology Co Ltd",
 [15][0x12 - 1] = "Rays Semiconductor Nanjing Co Ltd",
 [15][0x13 - 1] = "Milli-Centi Intelligence Technology Jiangsu",
 [15][0x14 - 1] = "Zilia Technologies",
@@ -1925,7 +1925,7 @@
 [15][0x17 - 1] = "Nanjing Houmo Technology Co Ltd",
 [15][0x18 - 1] = "Suzhou Yige Technology Co Ltd",
 [15][0x19 - 1] = "Shenzhen Techwinsemi Technology Co Ltd",
-[15][0x1a - 1] = "Pure Array Technology (Shanghai) Co. Ltd",
+[15][0x1a - 1] = "Pure Array Technology (Shanghai) Co Ltd",
 [15][0x1b - 1] = "Shenzhen Techwinsemi Technology Udstore",
 [15][0x1c - 1] = "RISE MODE",
 [15][0x1d - 1] = "NEWREESTAR",
@@ -2016,4 +2016,37 @@
 [15][0x72 - 1] = "KEYSOM",
 [15][0x73 - 1] = "Shenzhen YYF Info Tech Co Ltd",
 [15][0x74 - 1] = "Sharetronics Data Technology Co Ltd",
+[15][0x75 - 1] = "AptCore Limited",
+[15][0x76 - 1] = "Uchampion Semiconductor Co Ltd",
+[15][0x77 - 1] = "YCT Semiconductor",
+[15][0x78 - 1] = "FADU Inc",
+[15][0x79 - 1] = "Hefei CLT Microelectronics Co LTD",
+[15][0x7a - 1] = "Smart Technologies (BD) Ltd",
+[15][0x7b - 1] = "Zhangdian District Qunyuan Computer Firm",
+[15][0x7c - 1] = "Silicon Xpandas Electronics Co Ltd",
+[15][0x7d - 1] = "PC Components Y Multimedia S",
+[15][0x7e - 1] = "Shenzhen Tanlr Technology Group Co Ltd",
+[16][0x01 - 1] = "Shenzhen JIEQING Technology Co Ltd",
+[16][0x02 - 1] = "Orionix",
+[16][0x03 - 1] = "JoulWatt Technology Co Ltd",
+[16][0x04 - 1] = "Tenstorrent",
+[16][0x05 - 1] = "Unis Flash Memory Technology (Chengdu)",
+[16][0x06 - 1] = "Huatu Stars",
+[16][0x07 - 1] = "Ardor Gaming",
+[16][0x08 - 1] = "QuanZhou KunFang Semiconductor Co Ltd",
+[16][0x09 - 1] = "EIAI PLANET",
+[16][0x0a - 1] = "Ningbo Lingkai Semiconductor Technology Inc",
+[16][0x0b - 1] = "Shenzhen Hancun Technology Co Ltd",
+[16][0x0c - 1] = "Hongkong Manyi Technology Co Limited",
+[16][0x0d - 1] = "Shenzhen Storgon Technology Co Ltd",
+[16][0x0e - 1] = "YUNTU Microelectronics",
+[16][0x0f - 1] = "Essencore",
+[16][0x10 - 1] = "Shenzhen Xingyun Lianchuang Computer Tech",
+[16][0x11 - 1] = "ShenZhen Aoscar Digital Tech Co Ltd",
+[16][0x12 - 1] = "XOC Technologies Inc",
+[16][0x13 - 1] = "BOS Semiconductors",
+[16][0x14 - 1] = "Eliyan Corp",
+[16][0x15 - 1] = "Hangzhou Lishu Technology Co Ltd",
+[16][0x16 - 1] = "Tier IV Inc",
+[16][0x17 - 1] = "Wuhan Xuanluzhe Network Technology Co",
 /* EOF */

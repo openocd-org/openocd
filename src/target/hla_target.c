@@ -406,7 +406,8 @@ static int hl_deassert_reset(struct target *target)
 
 	target->SAVED_DCRDR = 0;  /* clear both DCC busy bits on initial resume */
 
-	return target->reset_halt ? ERROR_OK : target_resume(target, 1, 0, 0, 0);
+	return target->reset_halt ? ERROR_OK : target_resume(target, true, 0, false,
+		false);
 }
 
 static int adapter_halt(struct target *target)
@@ -434,9 +435,9 @@ static int adapter_halt(struct target *target)
 	return ERROR_OK;
 }
 
-static int adapter_resume(struct target *target, int current,
-		target_addr_t address, int handle_breakpoints,
-		int debug_execution)
+static int adapter_resume(struct target *target, bool current,
+		target_addr_t address, bool handle_breakpoints,
+		bool debug_execution)
 {
 	int res;
 	struct hl_interface *adapter = target_to_adapter(target);
@@ -525,8 +526,8 @@ static int adapter_resume(struct target *target, int current,
 	return ERROR_OK;
 }
 
-static int adapter_step(struct target *target, int current,
-		target_addr_t address, int handle_breakpoints)
+static int adapter_step(struct target *target, bool current,
+		target_addr_t address, bool handle_breakpoints)
 {
 	int res;
 	struct hl_interface *adapter = target_to_adapter(target);

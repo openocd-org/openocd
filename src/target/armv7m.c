@@ -642,7 +642,7 @@ int armv7m_start_algorithm(struct target *target,
 	/* save previous core mode */
 	armv7m_algorithm_info->core_mode = core_mode;
 
-	retval = target_resume(target, 0, entry_point, 1, 1);
+	retval = target_resume(target, false, entry_point, true, true);
 
 	return retval;
 }

@@ -846,8 +846,9 @@ static int esirisc_enable_step(struct target *target)
 	return ERROR_OK;
 }
 
-static int esirisc_resume_or_step(struct target *target, int current, target_addr_t address,
-		int handle_breakpoints, int debug_execution, bool step)
+static int esirisc_resume_or_step(struct target *target, bool current,
+		target_addr_t address, bool handle_breakpoints, bool debug_execution,
+		bool step)
 {
 	struct esirisc_common *esirisc = target_to_esirisc(target);
 	struct esirisc_jtag *jtag_info = &esirisc->jtag_info;
@@ -917,8 +918,8 @@ static int esirisc_resume_or_step(struct target *target, int current, target_add
 	return ERROR_OK;
 }
 
-static int esirisc_resume(struct target *target, int current, target_addr_t address,
-		int handle_breakpoints, int debug_execution)
+static int esirisc_resume(struct target *target, bool current,
+		target_addr_t address, bool handle_breakpoints, bool debug_execution)
 {
 	LOG_TARGET_DEBUG(target, "-");
 
@@ -926,13 +927,13 @@ static int esirisc_resume(struct target *target, int current, target_addr_t addr
 			handle_breakpoints, debug_execution, false);
 }
 
-static int esirisc_step(struct target *target, int current, target_addr_t address,
-		int handle_breakpoints)
+static int esirisc_step(struct target *target, bool current,
+		target_addr_t address, bool handle_breakpoints)
 {
 	LOG_TARGET_DEBUG(target, "-");
 
 	return esirisc_resume_or_step(target, current, address,
-			handle_breakpoints, 0, true);
+			handle_breakpoints, false, true);
 }
 
 static int esirisc_debug_step(struct target *target)

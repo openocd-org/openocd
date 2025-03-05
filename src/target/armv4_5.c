@@ -1514,7 +1514,7 @@ int armv4_5_run_algorithm_inner(struct target *target,
 		}
 	}
 
-	retval = target_resume(target, 0, entry_point, 1, 1);
+	retval = target_resume(target, false, entry_point, true, true);
 	if (retval != ERROR_OK)
 		return retval;
 	retval = run_it(target, exit_point, timeout_ms, arch_info);

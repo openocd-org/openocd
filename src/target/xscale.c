@@ -47,8 +47,8 @@
  */
 
 /* forward declarations */
-static int xscale_resume(struct target *, int current,
-	target_addr_t address, int handle_breakpoints, int debug_execution);
+static int xscale_resume(struct target *, bool current,
+	target_addr_t address, bool handle_breakpoints, bool debug_execution);
 static int xscale_debug_entry(struct target *);
 static int xscale_restore_banked(struct target *);
 static int xscale_get_reg(struct reg *reg);
@@ -997,7 +997,7 @@ static int xscale_debug_entry(struct target *target)
 		 * can only happen in fill mode. */
 		if (xscale->arch_debug_reason == XSCALE_DBG_REASON_TB_FULL) {
 			if (--xscale->trace.fill_counter > 0)
-				xscale_resume(target, 1, 0x0, 1, 0);
+				xscale_resume(target, true, 0x0, true, false);
 		} else	/* entered debug for other reason; reset counter */
 			xscale->trace.fill_counter = 0;
 	}
@@ -1106,8 +1106,8 @@ static void xscale_free_trace_data(struct xscale_common *xscale)
 	xscale->trace.data = NULL;
 }
 
-static int xscale_resume(struct target *target, int current,
-	target_addr_t address, int handle_breakpoints, int debug_execution)
+static int xscale_resume(struct target *target, bool current,
+	target_addr_t address, bool handle_breakpoints, bool debug_execution)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 	struct arm *arm = &xscale->arm;
@@ -1130,7 +1130,7 @@ static int xscale_resume(struct target *target, int current,
 	if (retval != ERROR_OK)
 		return retval;
 
-	/* current = 1: continue on current pc, otherwise continue at <address> */
+	/* current = true: continue on current pc, otherwise continue at <address> */
 	if (!current)
 		buf_set_u32(arm->pc->value, 0, 32, address);
 
@@ -1277,8 +1277,8 @@ static int xscale_resume(struct target *target, int current,
 	return ERROR_OK;
 }
 
-static int xscale_step_inner(struct target *target, int current,
-	uint32_t address, int handle_breakpoints)
+static int xscale_step_inner(struct target *target, bool current,
+	uint32_t address, bool handle_breakpoints)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 	struct arm *arm = &xscale->arm;
@@ -1372,8 +1372,8 @@ static int xscale_step_inner(struct target *target, int current,
 	return ERROR_OK;
 }
 
-static int xscale_step(struct target *target, int current,
-	target_addr_t address, int handle_breakpoints)
+static int xscale_step(struct target *target, bool current,
+	target_addr_t address, bool handle_breakpoints)
 {
 	struct arm *arm = target_to_arm(target);
 	struct breakpoint *breakpoint = NULL;
@@ -1386,7 +1386,7 @@ static int xscale_step(struct target *target, int current,
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	/* current = 1: continue on current pc, otherwise continue at <address> */
+	/* current = true: continue on current pc, otherwise continue at <address> */
 	if (!current)
 		buf_set_u32(arm->pc->value, 0, 32, address);
 
@@ -1598,7 +1598,7 @@ static int xscale_deassert_reset(struct target *target)
 			target->state = TARGET_HALTED;
 
 			/* resume the target */
-			xscale_resume(target, 1, 0x0, 1, 0);
+			xscale_resume(target, true, 0x0, true, false);
 		}
 	}
 

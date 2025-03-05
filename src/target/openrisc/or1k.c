@@ -775,9 +775,9 @@ static bool is_any_soft_breakpoint(struct target *target)
 	return false;
 }
 
-static int or1k_resume_or_step(struct target *target, int current,
-			       uint32_t address, int handle_breakpoints,
-			       int debug_execution, int step)
+static int or1k_resume_or_step(struct target *target, bool current,
+		uint32_t address, bool handle_breakpoints, bool debug_execution,
+		int step)
 {
 	struct or1k_common *or1k = target_to_or1k(target);
 	struct or1k_du *du_core = or1k_to_du(or1k);
@@ -885,9 +885,8 @@ static int or1k_resume_or_step(struct target *target, int current,
 	return ERROR_OK;
 }
 
-static int or1k_resume(struct target *target, int current,
-		       target_addr_t address, int handle_breakpoints,
-		       int debug_execution)
+static int or1k_resume(struct target *target, bool current,
+		target_addr_t address, bool handle_breakpoints, bool debug_execution)
 {
 	return or1k_resume_or_step(target, current, address,
 				   handle_breakpoints,
@@ -895,12 +894,12 @@ static int or1k_resume(struct target *target, int current,
 				   NO_SINGLE_STEP);
 }
 
-static int or1k_step(struct target *target, int current,
-		     target_addr_t address, int handle_breakpoints)
+static int or1k_step(struct target *target, bool current,
+		     target_addr_t address, bool handle_breakpoints)
 {
 	return or1k_resume_or_step(target, current, address,
 				   handle_breakpoints,
-				   0,
+				   false,
 				   SINGLE_STEP);
 
 }
@@ -1216,7 +1215,7 @@ static int or1k_profiling(struct target *target, uint32_t *samples,
 	/* Make sure the target is running */
 	target_poll(target);
 	if (target->state == TARGET_HALTED)
-		retval = target_resume(target, 1, 0, 0, 0);
+		retval = target_resume(target, true, 0, false, false);
 
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Error while resuming target");
