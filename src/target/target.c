@@ -5829,6 +5829,16 @@ static int target_create(struct jim_getopt_info *goi)
 	target->gdb_port_override = NULL;
 	target->gdb_max_connections = 1;
 
+	cp = Jim_GetString(new_cmd, NULL);
+	target->cmd_name = strdup(cp);
+	if (!target->cmd_name) {
+		LOG_ERROR("Out of memory");
+		free(target->trace_info);
+		free(target->type);
+		free(target);
+		return JIM_ERR;
+	}
+
 	/* Do the rest as "configure" options */
 	goi->is_configure = true;
 	e = target_configure(goi, target);
@@ -5863,19 +5873,6 @@ static int target_create(struct jim_getopt_info *goi)
 	if (target->endianness == TARGET_ENDIAN_UNKNOWN) {
 		/* default endian to little if not specified */
 		target->endianness = TARGET_LITTLE_ENDIAN;
-	}
-
-	cp = Jim_GetString(new_cmd, NULL);
-	target->cmd_name = strdup(cp);
-	if (!target->cmd_name) {
-		LOG_ERROR("Out of memory");
-		rtos_destroy(target);
-		free(target->gdb_port_override);
-		free(target->trace_info);
-		free(target->type);
-		free(target->private_config);
-		free(target);
-		return JIM_ERR;
 	}
 
 	if (target->type->target_create) {
