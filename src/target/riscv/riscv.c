@@ -37,6 +37,8 @@
 
 #define RISCV_TRIGGER_HIT_NOT_FOUND ((int64_t)-1)
 
+#define RISCV_HALT_GROUP_REPOLL_LIMIT 5
+
 static uint8_t ir_dtmcontrol[4] = {DTMCONTROL};
 struct scan_field select_dtmcontrol = {
 	.in_value = NULL,
@@ -4025,6 +4027,8 @@ int riscv_openocd_poll(struct target *target)
 {
 	LOG_TARGET_DEBUG(target, "Polling all harts.");
 
+	struct riscv_info *i = riscv_info(target);
+
 	struct list_head *targets;
 
 	OOCD_LIST_HEAD(single_target_list);
@@ -4046,6 +4050,7 @@ int riscv_openocd_poll(struct target *target)
 	unsigned int should_resume = 0;
 	unsigned int halted = 0;
 	unsigned int running = 0;
+	unsigned int cause_groups = 0;
 	struct target_list *entry;
 	foreach_smp_target(entry, targets) {
 		struct target *t = entry->target;
@@ -4093,6 +4098,59 @@ int riscv_openocd_poll(struct target *target)
 		LOG_TARGET_DEBUG(target, "resume all");
 		riscv_resume(target, true, 0, 0, 0, false);
 	} else if (halted && running) {
+		LOG_TARGET_DEBUG(target, "SMP group is in inconsistent state: %u halted, %u running",
+					halted, running);
+
+		/* The SMP group is in an inconsistent state - some harts in the group have halted
+		 * whereas others are running. The reasons for that (and corresponding
+		 * OpenOCD actions) could be:
+		 * 1) The targets are in the process of halting due to halt groups
+		 *    but not all of them halted --> poll again so that the halt reason of every
+		 *    hart can be accurately determined (e.g. semihosting).
+		 * 2) The targets do not support halt groups --> OpenOCD must halt
+		 *    the remaining harts by a standard halt request.
+		 * 3) The hart states got out of sync for some other unknown reason (problem?). -->
+		 *    Same as previous - try to halt the harts by a standard halt request
+		 *    to get them back in sync. */
+
+		/* Detect if the harts are just in the process of halting due to a halt group */
+		foreach_smp_target(entry, targets)
+		{
+			struct target *t = entry->target;
+			if (t->state == TARGET_HALTED) {
+				riscv_reg_t dcsr;
+				if (riscv_reg_get(t, &dcsr, GDB_REGNO_DCSR) != ERROR_OK)
+					return ERROR_FAIL;
+				if (get_field(dcsr, CSR_DCSR_CAUSE) == CSR_DCSR_CAUSE_GROUP)
+					cause_groups++;
+				else
+					/* This hart has halted due to something else than a halt group.
+					 * Don't continue checking the rest - exit early. */
+					break;
+			}
+		}
+		/* Condition: halted == cause_groups
+		 *
+		 * This condition indicates a paradox where:
+		 * - All currently halted harts show CSR_DCSR_CAUSE_GROUP
+		 * - However, no individual hart can be identified as the actual initiator of the halt condition
+		 *
+		 * Poll again so that the true halt reason can be discovered (e.g. CSR_DCSR_CAUSE_EBREAK) */
+		if (halted == cause_groups) {
+			LOG_TARGET_DEBUG(target, "The harts appear to just be in the process of halting due to a halt group.");
+			if (i->halt_group_repoll_count < RISCV_HALT_GROUP_REPOLL_LIMIT) {
+				/* Wait a little, then re-poll. */
+				i->halt_group_repoll_count++;
+				alive_sleep(10);
+				LOG_TARGET_DEBUG(target, "Re-polling the state of the SMP group.");
+				return riscv_openocd_poll(target);
+			}
+			/* We have already re-polled multiple times but the halt group is still inconsistent. */
+			LOG_TARGET_DEBUG(target, "Re-polled the SMP group %d times it is still not in a consistent state.",
+					RISCV_HALT_GROUP_REPOLL_LIMIT);
+		}
+
+		/* Halting the whole SMP group to bring it in sync. */
 		LOG_TARGET_DEBUG(target, "halt all; halted=%d",
 			halted);
 		riscv_halt(target);
@@ -4109,6 +4167,8 @@ int riscv_openocd_poll(struct target *target)
 			}
 		}
 	}
+
+	i->halt_group_repoll_count = 0;
 
 	/* Call tick() for every hart. What happens in tick() is opaque to this
 	 * layer. The reason it's outside the previous loop is that at this point

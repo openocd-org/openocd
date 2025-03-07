@@ -239,6 +239,7 @@ struct riscv_info {
 	/* Used by riscv_openocd_poll(). */
 	bool halted_needs_event_callback;
 	enum target_event halted_callback_event;
+	unsigned int halt_group_repoll_count;
 
 	enum riscv_isrmasking_mode isrmask_mode;
 
