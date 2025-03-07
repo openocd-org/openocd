@@ -5,9 +5,7 @@
 
 #include "riscv.h"
 
-#define RISCV_MAX_PROGBUF_SIZE 32
-#define RISCV_REGISTER_COUNT 32
-#define RISCV_DSCRATCH_COUNT 2
+#define RISCV013_MAX_PROGBUF_SIZE 16
 
 typedef enum {
 	RISCV_PROGBUF_EXEC_RESULT_NOT_EXECUTED,
@@ -23,10 +21,10 @@ typedef enum {
 struct riscv_program {
 	struct target *target;
 
-	uint32_t progbuf[RISCV_MAX_PROGBUF_SIZE];
+	uint32_t progbuf[RISCV013_MAX_PROGBUF_SIZE];
 
 	/* Number of 32-bit instructions in the program. */
-	size_t instruction_count;
+	unsigned int instruction_count;
 
 	/* execution result of the program */
 	/* TODO: remove this field. We should make it a parameter to riscv_program_exec */
@@ -52,22 +50,22 @@ int riscv_program_insert(struct riscv_program *p, riscv_insn_t i);
 /* Helpers to assemble various instructions.  Return 0 on success.  These might
  * assemble into a multi-instruction sequence that overwrites some other
  * register, but those will be properly saved and restored. */
-int riscv_program_ldr(struct riscv_program *p, enum gdb_regno d, enum gdb_regno a, int o);
-int riscv_program_lwr(struct riscv_program *p, enum gdb_regno d, enum gdb_regno a, int o);
-int riscv_program_lhr(struct riscv_program *p, enum gdb_regno d, enum gdb_regno a, int o);
-int riscv_program_lbr(struct riscv_program *p, enum gdb_regno d, enum gdb_regno a, int o);
-int riscv_program_load(struct riscv_program *p, enum gdb_regno d, enum gdb_regno b, int o,
+int riscv_program_ldr(struct riscv_program *p, enum gdb_regno d, enum gdb_regno a, int16_t o);
+int riscv_program_lwr(struct riscv_program *p, enum gdb_regno d, enum gdb_regno a, int16_t o);
+int riscv_program_lhr(struct riscv_program *p, enum gdb_regno d, enum gdb_regno a, int16_t o);
+int riscv_program_lbr(struct riscv_program *p, enum gdb_regno d, enum gdb_regno a, int16_t o);
+int riscv_program_load(struct riscv_program *p, enum gdb_regno d, enum gdb_regno b, int16_t o,
 		unsigned int s);
 
-int riscv_program_sdr(struct riscv_program *p, enum gdb_regno s, enum gdb_regno a, int o);
-int riscv_program_swr(struct riscv_program *p, enum gdb_regno s, enum gdb_regno a, int o);
-int riscv_program_shr(struct riscv_program *p, enum gdb_regno s, enum gdb_regno a, int o);
-int riscv_program_sbr(struct riscv_program *p, enum gdb_regno s, enum gdb_regno a, int o);
-int riscv_program_store(struct riscv_program *p, enum gdb_regno d, enum gdb_regno b, int o,
+int riscv_program_sdr(struct riscv_program *p, enum gdb_regno s, enum gdb_regno a, int16_t o);
+int riscv_program_swr(struct riscv_program *p, enum gdb_regno s, enum gdb_regno a, int16_t o);
+int riscv_program_shr(struct riscv_program *p, enum gdb_regno s, enum gdb_regno a, int16_t o);
+int riscv_program_sbr(struct riscv_program *p, enum gdb_regno s, enum gdb_regno a, int16_t o);
+int riscv_program_store(struct riscv_program *p, enum gdb_regno d, enum gdb_regno b, int16_t o,
 		unsigned int s);
 
-int riscv_program_csrrsi(struct riscv_program *p, enum gdb_regno d, unsigned int z, enum gdb_regno csr);
-int riscv_program_csrrci(struct riscv_program *p, enum gdb_regno d, unsigned int z, enum gdb_regno csr);
+int riscv_program_csrrsi(struct riscv_program *p, enum gdb_regno d, uint8_t z, enum gdb_regno csr);
+int riscv_program_csrrci(struct riscv_program *p, enum gdb_regno d, uint8_t z, enum gdb_regno csr);
 int riscv_program_csrr(struct riscv_program *p, enum gdb_regno d, enum gdb_regno csr);
 int riscv_program_csrw(struct riscv_program *p, enum gdb_regno s, enum gdb_regno csr);
 

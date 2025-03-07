@@ -6108,17 +6108,16 @@ static enum riscv_halt_reason riscv_halt_reason(struct target *target)
 	return r->halt_reason(target);
 }
 
-size_t riscv_progbuf_size(struct target *target)
+unsigned int riscv_progbuf_size(struct target *target)
 {
 	RISCV_INFO(r);
 	return r->get_progbufsize(target);
 }
 
-int riscv_write_progbuf(struct target *target, int index, riscv_insn_t insn)
+int riscv_write_progbuf(struct target *target, unsigned int index, riscv_insn_t insn)
 {
 	RISCV_INFO(r);
-	r->write_progbuf(target, index, insn);
-	return ERROR_OK;
+	return r->write_progbuf(target, index, insn);
 }
 
 riscv_insn_t riscv_read_progbuf(struct target *target, int index)

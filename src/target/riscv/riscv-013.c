@@ -4962,7 +4962,7 @@ static int write_memory_progbuf_fill_progbuf(struct target *target, uint32_t siz
 	if (riscv_program_store(&program, GDB_REGNO_S1, GDB_REGNO_S0, 0, size) != ERROR_OK)
 		return ERROR_FAIL;
 
-	if (riscv_program_addi(&program, GDB_REGNO_S0, GDB_REGNO_S0, size) != ERROR_OK)
+	if (riscv_program_addi(&program, GDB_REGNO_S0, GDB_REGNO_S0, (int16_t)size) != ERROR_OK)
 		return ERROR_FAIL;
 
 	if (riscv_program_ebreak(&program) != ERROR_OK)
@@ -5338,9 +5338,12 @@ static enum riscv_halt_reason riscv013_halt_reason(struct target *target)
 
 static int riscv013_write_progbuf(struct target *target, unsigned int index, riscv_insn_t data)
 {
+	assert(index < RISCV013_MAX_PROGBUF_SIZE);
+
 	dm013_info_t *dm = get_dm(target);
 	if (!dm)
 		return ERROR_FAIL;
+
 	if (dm->progbuf_cache[index] != data) {
 		if (dm_write(target, DM_PROGBUF0 + index, data) != ERROR_OK)
 			return ERROR_FAIL;

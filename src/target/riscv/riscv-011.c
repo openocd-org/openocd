@@ -251,7 +251,7 @@ static unsigned int slot_offset(const struct target *target, slot_t slot)
 }
 
 static uint32_t load(const struct target *target, unsigned int rd,
-		unsigned int base, uint16_t offset)
+		unsigned int base, int16_t offset)
 {
 	switch (riscv_xlen(target)) {
 		case 32:
@@ -264,7 +264,7 @@ static uint32_t load(const struct target *target, unsigned int rd,
 }
 
 static uint32_t store(const struct target *target, unsigned int src,
-		unsigned int base, uint16_t offset)
+		unsigned int base, int16_t offset)
 {
 	switch (riscv_xlen(target)) {
 		case 32:
@@ -280,14 +280,16 @@ static uint32_t load_slot(const struct target *target, unsigned int dest,
 		slot_t slot)
 {
 	unsigned int offset = DEBUG_RAM_START + 4 * slot_offset(target, slot);
-	return load(target, dest, ZERO, offset);
+	assert(offset <= MAX_INT12);
+	return load(target, dest, ZERO, (int16_t)offset);
 }
 
 static uint32_t store_slot(const struct target *target, unsigned int src,
 		slot_t slot)
 {
 	unsigned int offset = DEBUG_RAM_START + 4 * slot_offset(target, slot);
-	return store(target, src, ZERO, offset);
+	assert(offset <= MAX_INT12);
+	return store(target, src, ZERO, (int16_t)offset);
 }
 
 static uint16_t dram_address(unsigned int index)
@@ -599,9 +601,9 @@ static void scans_add_write32(scans_t *scans, uint16_t address, uint32_t data,
 static void scans_add_write_jump(scans_t *scans, uint16_t address,
 		bool set_interrupt)
 {
-	scans_add_write32(scans, address,
-			jal(0, (uint32_t) (DEBUG_ROM_RESUME - (DEBUG_RAM_START + 4*address))),
-			set_interrupt);
+	unsigned int jump_offset = DEBUG_ROM_RESUME - (DEBUG_RAM_START + 4 * address);
+	assert(jump_offset <= MAX_INT21);
+	scans_add_write32(scans, address, jal(0, (int32_t)jump_offset), set_interrupt);
 }
 
 /** Add a 32-bit dbus write for an instruction that loads from the indicated
@@ -780,22 +782,25 @@ static void cache_set(struct target *target, slot_t slot, uint64_t data)
 
 static void cache_set_jump(struct target *target, unsigned int index)
 {
-	cache_set32(target, index,
-			jal(0, (uint32_t) (DEBUG_ROM_RESUME - (DEBUG_RAM_START + 4*index))));
+	unsigned int jump_offset = DEBUG_ROM_RESUME - (DEBUG_RAM_START + 4 * index);
+	assert(jump_offset <= MAX_INT21);
+	cache_set32(target, index, jal(0, (int32_t)jump_offset));
 }
 
 static void cache_set_load(struct target *target, unsigned int index,
 		unsigned int reg, slot_t slot)
 {
-	uint16_t offset = DEBUG_RAM_START + 4 * slot_offset(target, slot);
-	cache_set32(target, index, load(target, reg, ZERO, offset));
+	unsigned int offset = DEBUG_RAM_START + 4 * slot_offset(target, slot);
+	assert(offset <= MAX_INT12);
+	cache_set32(target, index, load(target, reg, ZERO, (int16_t)offset));
 }
 
 static void cache_set_store(struct target *target, unsigned int index,
 		unsigned int reg, slot_t slot)
 {
-	uint16_t offset = DEBUG_RAM_START + 4 * slot_offset(target, slot);
-	cache_set32(target, index, store(target, reg, ZERO, offset));
+	unsigned int offset = DEBUG_RAM_START + 4 * slot_offset(target, slot);
+	assert(offset <= MAX_INT12);
+	cache_set32(target, index, store(target, reg, ZERO, (int16_t)offset));
 }
 
 static void dump_debug_ram(struct target *target)
@@ -1004,9 +1009,9 @@ static uint64_t cache_get(struct target *target, slot_t slot)
 static void dram_write_jump(struct target *target, unsigned int index,
 		bool set_interrupt)
 {
-	dram_write32(target, index,
-			jal(0, (uint32_t) (DEBUG_ROM_RESUME - (DEBUG_RAM_START + 4*index))),
-			set_interrupt);
+	unsigned int jump_offset = DEBUG_ROM_RESUME - (DEBUG_RAM_START + 4 * index);
+	assert(jump_offset <= MAX_INT21);
+	dram_write32(target, index, jal(0, (int32_t)jump_offset), set_interrupt);
 }
 
 static int wait_for_state(struct target *target, enum target_state state)
