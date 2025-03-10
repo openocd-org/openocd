@@ -1956,6 +1956,11 @@ static int examine(struct target *target)
 		return ERROR_FAIL;
 	}
 
+	if (info->abits == 0) {
+		LOG_TARGET_ERROR(target,
+				"dtmcs.abits is zero. Check JTAG connectivity/board power");
+		return ERROR_FAIL;
+	}
 	if (info->abits < RISCV013_DTMCS_ABITS_MIN) {
 		/* The requirement for minimum DMI address width of 7 bits is part of
 		 * the RISC-V Debug spec since Jan-20-2017 (commit 03df6ee7). However,
