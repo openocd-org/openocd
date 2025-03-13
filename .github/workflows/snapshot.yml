@@ -2,7 +2,10 @@
 
 # Copyright (C) 2020 by Tarek BOUCHKATI <tarek.bouchkati@gmail.com>
 
-on: push
+on:
+  push:
+    branches:
+      - riscv
 
 name: OpenOCD Snapshot
 
