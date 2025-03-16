@@ -187,7 +187,6 @@ int adapter_init(struct command_context *cmd_ctx)
 int adapter_quit(void)
 {
 	if (is_adapter_initialized() && adapter_driver->quit) {
-		/* close the JTAG interface */
 		int result = adapter_driver->quit();
 		if (result != ERROR_OK)
 			LOG_ERROR("failed: %d", result);
@@ -380,7 +379,7 @@ done:
 
 COMMAND_HANDLER(handle_adapter_name)
 {
-	/* return the name of the interface */
+	/* return the name of the adapter driver */
 	/* TCL code might need to know the exact type... */
 	/* FUTURE: we allow this as a means to "set" the interface. */
 
@@ -414,14 +413,14 @@ COMMAND_HANDLER(handle_adapter_driver_command)
 {
 	int retval;
 
-	/* check whether the interface is already configured */
+	/* check whether the adapter driver is already configured */
 	if (adapter_driver) {
-		LOG_WARNING("Interface already configured, ignoring");
+		LOG_WARNING("Adapter driver already configured, ignoring");
 		return ERROR_OK;
 	}
 
-	/* interface name is a mandatory argument */
-	if (CMD_ARGC != 1 || CMD_ARGV[0][0] == '\0')
+	/* adapter driver name is a mandatory argument */
+	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	for (unsigned int i = 0; adapter_drivers[i]; i++) {
@@ -439,10 +438,10 @@ COMMAND_HANDLER(handle_adapter_driver_command)
 		return allow_transports(CMD_CTX, adapter_driver->transports);
 	}
 
-	/* no valid interface was found (i.e. the configuration option,
-	 * didn't match one of the compiled-in interfaces
+	/* no valid adapter driver was found (i.e. the configuration option,
+	 * didn't match one of the compiled-in drivers
 	 */
-	LOG_ERROR("The specified debug interface was not found (%s)",
+	LOG_ERROR("The specified adapter driver was not found (%s)",
 				CMD_ARGV[0]);
 	command_print(CMD, "The following adapter drivers are available:");
 	CALL_COMMAND_HANDLER(dump_adapter_driver_list);
