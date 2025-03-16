@@ -8076,6 +8076,19 @@ code.
 
 @end deffn
 
+@deffn {Flash Driver} {nrf54}
+This driver supports the nRF54 microcontroller family from Nordic Semiconductor.
+These devices use a resistive random access memory (RRAM) and no flash memory technology.
+This technology requires no special erase operation, data can be arbitrarily manipulated.
+
+The UICR memory region is currently not supported by the driver.
+
+@example
+flash bank $_FLASHNAME nrf54 0 0x00000000 0 0 $_TARGETNAME
+@end example
+
+@end deffn
+
 @deffn {Flash Driver} {ocl}
 This driver is an implementation of the ``on chip flash loader''
 protocol proposed by Pavel Chromy.
