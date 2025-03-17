@@ -213,7 +213,7 @@ int esp_xtensa_profiling(struct target *target, uint32_t *samples,
 	/* Make sure the target is running */
 	target_poll(target);
 	if (target->state == TARGET_HALTED)
-		retval = target_resume(target, 1, 0, 0, 0);
+		retval = target_resume(target, true, 0, false, false);
 
 	if (retval != ERROR_OK) {
 		LOG_TARGET_ERROR(target, "Error while resuming target");

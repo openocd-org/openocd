@@ -102,8 +102,9 @@ static int mem_ap_halt(struct target *target)
 	return ERROR_OK;
 }
 
-static int mem_ap_resume(struct target *target, int current, target_addr_t address,
-		int handle_breakpoints, int debug_execution)
+static int mem_ap_resume(struct target *target, bool current,
+		target_addr_t address, bool handle_breakpoints,
+		bool debug_execution)
 {
 	LOG_TARGET_DEBUG(target, "%s", __func__);
 	target->state = TARGET_RUNNING;
@@ -111,8 +112,8 @@ static int mem_ap_resume(struct target *target, int current, target_addr_t addre
 	return ERROR_OK;
 }
 
-static int mem_ap_step(struct target *target, int current, target_addr_t address,
-				int handle_breakpoints)
+static int mem_ap_step(struct target *target, bool current,
+		target_addr_t address, bool handle_breakpoints)
 {
 	LOG_TARGET_DEBUG(target, "%s", __func__);
 	target->state = TARGET_HALTED;

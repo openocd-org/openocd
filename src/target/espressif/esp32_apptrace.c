@@ -708,7 +708,7 @@ int esp32_apptrace_safe_halt_targets(struct esp32_apptrace_cmd_ctx *ctx,
 			}
 			while (stat) {
 				/* allow this CPU to leave ERI write critical section */
-				res = target_resume(ctx->cpus[k], 1, 0, 1, 0);
+				res = target_resume(ctx->cpus[k], true, 0, true, false);
 				if (res != ERROR_OK) {
 					LOG_ERROR("Failed to resume target (%d)!", res);
 					breakpoint_remove(ctx->cpus[k], bp_addr);
@@ -796,7 +796,7 @@ static int esp32_apptrace_connect_targets(struct esp32_apptrace_cmd_ctx *ctx,
 				/* in SMP mode we need to call target_resume for one core only */
 				continue;
 			}
-			res = target_resume(ctx->cpus[k], 1, 0, 1, 0);
+			res = target_resume(ctx->cpus[k], true, 0, true, false);
 			if (res != ERROR_OK) {
 				command_print(ctx->cmd, "Failed to resume target (%d)!", res);
 				return res;
@@ -1352,7 +1352,7 @@ static int esp32_sysview_stop(struct esp32_apptrace_cmd_ctx *ctx)
 			/* in SMP mode we need to call target_resume for one core only */
 			continue;
 		}
-		res = target_resume(ctx->cpus[k], 1, 0, 1, 0);
+		res = target_resume(ctx->cpus[k], true, 0, true, false);
 		if (res != ERROR_OK) {
 			LOG_ERROR("sysview: Failed to resume target '%s' (%d)!", target_name(ctx->cpus[k]), res);
 			return res;

@@ -378,18 +378,20 @@ int xtensa_poll(struct target *target);
 void xtensa_on_poll(struct target *target);
 int xtensa_halt(struct target *target);
 int xtensa_resume(struct target *target,
-	int current,
+	bool current,
 	target_addr_t address,
-	int handle_breakpoints,
-	int debug_execution);
+	bool handle_breakpoints,
+	bool debug_execution);
 int xtensa_prepare_resume(struct target *target,
-	int current,
+	bool current,
 	target_addr_t address,
-	int handle_breakpoints,
-	int debug_execution);
+	bool handle_breakpoints,
+	bool debug_execution);
 int xtensa_do_resume(struct target *target);
-int xtensa_step(struct target *target, int current, target_addr_t address, int handle_breakpoints);
-int xtensa_do_step(struct target *target, int current, target_addr_t address, int handle_breakpoints);
+int xtensa_step(struct target *target, bool current, target_addr_t address,
+		bool handle_breakpoints);
+int xtensa_do_step(struct target *target, bool current, target_addr_t address,
+		bool handle_breakpoints);
 int xtensa_mmu_is_enabled(struct target *target, int *enabled);
 int xtensa_read_memory(struct target *target, target_addr_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 int xtensa_read_buffer(struct target *target, target_addr_t address, uint32_t count, uint8_t *buffer);

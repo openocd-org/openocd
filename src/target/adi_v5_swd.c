@@ -502,9 +502,6 @@ static int swd_queue_dp_read(struct adiv5_dap *dap, unsigned int reg,
 static int swd_queue_dp_write(struct adiv5_dap *dap, unsigned int reg,
 		uint32_t data)
 {
-	const struct swd_driver *swd = adiv5_dap_swd_driver(dap);
-	assert(swd);
-
 	int retval = swd_check_reconnect(dap);
 	if (retval != ERROR_OK)
 		return retval;
