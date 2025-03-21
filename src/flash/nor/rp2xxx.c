@@ -242,7 +242,7 @@ static int rp2040_lookup_rom_symbol(struct target *target, uint16_t tag, uint16_
 			if (err != ERROR_OK)
 				return err;
 
-			LOG_ROM_SYMBOL_DEBUG(" -> found: 0x%04x", *symbol_out);
+			LOG_ROM_SYMBOL_DEBUG(" -> found: 0x%04" PRIx16, *symbol_out);
 			return ERROR_OK;
 		}
 		ptr_to_entry += 4;
@@ -287,7 +287,7 @@ static int rp2350_a0_lookup_symbol(struct target *target, uint16_t tag, uint16_t
 			if (err != ERROR_OK)
 				return err;
 
-			LOG_ROM_SYMBOL_DEBUG(" -> found: 0x%04x", *symbol_out);
+			LOG_ROM_SYMBOL_DEBUG(" -> found: 0x%04" PRIx16, *symbol_out);
 			return ERROR_OK;
 		}
 		ptr_to_entry += 6;
@@ -347,7 +347,7 @@ static int rp2350_lookup_rom_symbol(struct target *target, uint32_t ptr_to_entry
 			if (err != ERROR_OK)
 				return err;
 
-			LOG_ROM_SYMBOL_DEBUG(" -> found: 0x%04x", *symbol_out);
+			LOG_ROM_SYMBOL_DEBUG(" -> found: 0x%04" PRIx16, *symbol_out);
 			return ERROR_OK;
 		}
 		/* Skip past this entry */
@@ -398,38 +398,38 @@ static int rp2xxx_populate_rom_pointer_cache(struct target *target, struct rp2xx
 	err = rp2xxx_lookup_rom_symbol(target, FUNC_FLASH_EXIT_XIP,
 								   symtype_func, &priv->jump_flash_exit_xip);
 	if (err != ERROR_OK) {
-		LOG_ERROR("Function FUNC_FLASH_EXIT_XIP not found in RP2xxx ROM.");
+		LOG_ERROR("Function FUNC_FLASH_EXIT_XIP not found in RP2xxx ROM");
 		return err;
 	}
 
 	err = rp2xxx_lookup_rom_symbol(target, FUNC_CONNECT_INTERNAL_FLASH,
 								   symtype_func, &priv->jump_connect_internal_flash);
 	if (err != ERROR_OK) {
-		LOG_ERROR("Function FUNC_CONNECT_INTERNAL_FLASH not found in RP2xxx ROM.");
+		LOG_ERROR("Function FUNC_CONNECT_INTERNAL_FLASH not found in RP2xxx ROM");
 		return err;
 	}
 
 	err = rp2xxx_lookup_rom_symbol(target, FUNC_FLASH_RANGE_ERASE, symtype_func, &priv->jump_flash_range_erase);
 	if (err != ERROR_OK) {
-		LOG_ERROR("Function FUNC_FLASH_RANGE_ERASE not found in RP2xxx ROM.");
+		LOG_ERROR("Function FUNC_FLASH_RANGE_ERASE not found in RP2xxx ROM");
 		return err;
 	}
 
 	err = rp2xxx_lookup_rom_symbol(target, FUNC_FLASH_RANGE_PROGRAM, symtype_func, &priv->jump_flash_range_program);
 	if (err != ERROR_OK) {
-		LOG_ERROR("Function FUNC_FLASH_RANGE_PROGRAM not found in RP2xxx ROM.");
+		LOG_ERROR("Function FUNC_FLASH_RANGE_PROGRAM not found in RP2xxx ROM");
 		return err;
 	}
 
 	err = rp2xxx_lookup_rom_symbol(target, FUNC_FLASH_FLUSH_CACHE, symtype_func, &priv->jump_flush_cache);
 	if (err != ERROR_OK) {
-		LOG_ERROR("Function FUNC_FLASH_FLUSH_CACHE not found in RP2xxx ROM.");
+		LOG_ERROR("Function FUNC_FLASH_FLUSH_CACHE not found in RP2xxx ROM");
 		return err;
 	}
 
 	err = rp2xxx_lookup_rom_symbol(target, FUNC_FLASH_ENTER_CMD_XIP, symtype_func, &priv->jump_enter_cmd_xip);
 	if (err != ERROR_OK) {
-		LOG_ERROR("Function FUNC_FLASH_ENTER_CMD_XIP not found in RP2xxx ROM.");
+		LOG_ERROR("Function FUNC_FLASH_ENTER_CMD_XIP not found in RP2xxx ROM");
 		return err;
 	}
 
@@ -480,18 +480,17 @@ static int rp2xxx_call_rom_func_batch(struct target *target, struct rp2xxx_flash
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 	if (priv->ram_algo_space->size < batch_size) {
-		LOG_ERROR("RAM code space too small for call batch size of %u\n", n_calls);
+		LOG_ERROR("RAM code space too small for call batch size of %u", n_calls);
 		return ERROR_BUF_TOO_SMALL;
 	}
 
-	LOG_DEBUG("Calling batch of %u ROM functions:", n_calls);
+	LOG_TARGET_DEBUG(target, "Calling batch of %u ROM functions:", n_calls);
 	for (unsigned int i = 0; i < n_calls; ++i) {
 		LOG_DEBUG("  func @ %" PRIx32, calls[i].pc);
 		LOG_DEBUG("    sp = %" PRIx32, calls[i].sp);
 		for (unsigned int j = 0; j < 4; ++j)
-			LOG_DEBUG("    a%d = %" PRIx32, j, calls[i].args[j]);
+			LOG_DEBUG("    a%u = %" PRIx32, j, calls[i].args[j]);
 	}
-	LOG_DEBUG("Calling on core \"%s\"", target->cmd_name);
 
 	if (n_calls <= 0) {
 		LOG_DEBUG("Returning early from call of 0 ROM functions");
@@ -534,7 +533,7 @@ static int rp2xxx_call_rom_func_batch(struct target *target, struct rp2xxx_flash
 	free(batch_bf);
 
 	if (err != ERROR_OK) {
-		LOG_ERROR("Failed to write ROM batch algorithm to RAM code space\n");
+		LOG_ERROR("Failed to write ROM batch algorithm to RAM code space");
 		return err;
 	}
 
@@ -565,7 +564,7 @@ static int rp2xxx_call_rom_func_batch(struct target *target, struct rp2xxx_flash
 		);
 	}
 	if (err != ERROR_OK) {
-		LOG_ERROR("Failed to call ROM function batch\n");
+		LOG_ERROR("Failed to call ROM function batch");
 		/* This case is hit when loading new ROM images on FPGA, but can also be hit on real
 		   hardware if you swap two devices with different ROM versions without restarting OpenOCD: */
 		LOG_ROM_SYMBOL_DEBUG("Repopulating ROM address cache after failed ROM call");
@@ -616,9 +615,9 @@ static int rp2350_init_accessctrl(struct target *target)
 		return ERROR_FAIL;
 	}
 	if (accessctrl_lock_reg & ACCESSCTRL_LOCK_DEBUG_BITS) {
-		LOG_ERROR("ACCESSCTRL is locked, so can't reset permissions. Following steps might fail.\n");
+		LOG_ERROR("ACCESSCTRL is locked, so can't reset permissions. Following steps might fail");
 	} else {
-		LOG_DEBUG("Reset ACCESSCTRL permissions via CFGRESET\n");
+		LOG_DEBUG("Reset ACCESSCTRL permissions via CFGRESET");
 		return target_write_u32(target, ACCESSCTRL_CFGRESET_OFFSET, ACCESSCTRL_WRITE_PASSWORD | 1u);
 	}
 	return ERROR_OK;
@@ -637,9 +636,9 @@ static int rp2350_init_arm_core0(struct target *target, struct rp2xxx_flash_bank
 		return retval;
 	}
 
-	LOG_DEBUG("DSCSR:  %08x\n", dscsr);
+	LOG_DEBUG("DSCSR: 0x%08" PRIx32, dscsr);
 	if (!(dscsr & DSCSR_CDS)) {
-		LOG_DEBUG("Setting Current Domain Secure in DSCSR\n");
+		LOG_DEBUG("Setting Current Domain Secure in DSCSR");
 		retval = target_write_u32(target, DCB_DSCSR, (dscsr & ~DSCSR_CDSKEY) | DSCSR_CDS);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("RP2350 init ARM core: DSCSR read failed");
@@ -664,12 +663,12 @@ static int rp2350_init_arm_core0(struct target *target, struct rp2xxx_flash_bank
 		rcp_init_code
 	);
 	if (err != ERROR_OK) {
-		LOG_ERROR("Failed to load rcp_init algorithm into RAM\n");
+		LOG_ERROR("Failed to load rcp_init algorithm into RAM");
 		return ERROR_FAIL;
 	}
 
-	LOG_DEBUG("Calling rcp_init on core \"%s\", code at 0x%" PRIx32 "\n",
-			  target->cmd_name, (uint32_t)priv->ram_algo_space->address);
+	LOG_TARGET_DEBUG(target, "Calling rcp_init, code at " TARGET_ADDR_FMT,
+					 priv->ram_algo_space->address);
 
 	/* Actually call the function */
 	struct armv7m_algorithm alg_info;
@@ -684,7 +683,7 @@ static int rp2350_init_arm_core0(struct target *target, struct rp2xxx_flash_bank
 			&alg_info
 	);
 	if (err != ERROR_OK) {
-		LOG_ERROR("Failed to invoke rcp_init\n");
+		LOG_ERROR("Failed to invoke rcp_init");
 		return err;
 	}
 
@@ -729,7 +728,7 @@ static int setup_for_raw_flash_cmd(struct target *target, struct rp2xxx_flash_ba
 				BOOTROM_STATE_RESET_CURRENT_CORE
 		};
 		if (!priv->jump_bootrom_reset_state) {
-			LOG_WARNING("RP2350 flash: no bootrom_reset_method\n");
+			LOG_WARNING("RP2350 flash: no bootrom_reset_method");
 		} else {
 			/* This is mainly required to clear varmulet_enclosing_cpu pointers on RISC-V, in case
 			   an Arm -> RISC-V call has been interrupted (these pointers are used to handle
@@ -746,7 +745,7 @@ static int setup_for_raw_flash_cmd(struct target *target, struct rp2xxx_flash_ba
 			/* Pass {0, 0} to set_varmulet_user_stack() to enable automatic emulation of Arm APIs
 			   using the ROM's default stacks. Usually the bootrom does this before exiting to user
 			   code, but it needs to be done manually when the USB bootloader has been interrupted. */
-			LOG_DEBUG("Enabling default Arm emulator stacks for RISC-V ROM calls\n");
+			LOG_DEBUG("Enabling default Arm emulator stacks for RISC-V ROM calls");
 			struct working_area *set_stack_mem_args;
 			err = target_alloc_working_area(target, 2 * sizeof(uint32_t), &set_stack_mem_args);
 			if (err != ERROR_OK) {
@@ -771,7 +770,7 @@ static int setup_for_raw_flash_cmd(struct target *target, struct rp2xxx_flash_ba
 									   set_stack_register_args, ARRAY_SIZE(set_stack_register_args));
 			target_free_working_area(target, set_stack_mem_args);
 			if (err != ERROR_OK) {
-				LOG_ERROR("Failed to initialise Arm emulation stacks for RISC-V: 0x%08" PRIx32, err);
+				LOG_ERROR("Failed to initialise Arm emulation stacks for RISC-V");
 				return err;
 			}
 		}
@@ -852,7 +851,7 @@ static void cleanup_after_raw_flash_cmd(struct target *target, struct rp2xxx_fla
 
 static int rp2xxx_flash_write(struct flash_bank *bank, const uint8_t *buffer, uint32_t offset, uint32_t count)
 {
-	LOG_DEBUG("Writing %d bytes starting at 0x%" PRIx32, count, offset);
+	LOG_DEBUG("Writing %" PRIu32 " bytes starting at 0x%" PRIx32, count, offset);
 
 	struct rp2xxx_flash_bank *priv = bank->driver_priv;
 	struct target *target = bank->target;
@@ -882,7 +881,8 @@ static int rp2xxx_flash_write(struct flash_bank *bank, const uint8_t *buffer, ui
 
 	while (count > 0) {
 		uint32_t write_size = count > chunk_size ? chunk_size : count;
-		LOG_DEBUG("Writing %d bytes to offset 0x%" PRIx32, write_size, offset);
+		LOG_DEBUG("Writing %" PRIu32 " bytes to offset 0x%" PRIx32,
+				  write_size, offset);
 		err = target_write_buffer(target, bounce->address, write_size, buffer);
 		if (err != ERROR_OK) {
 			LOG_ERROR("Could not load data into target bounce buffer");
@@ -929,7 +929,8 @@ static int rp2xxx_flash_erase(struct flash_bank *bank, unsigned int first, unsig
 	uint32_t offset_start = bank->sectors[first].offset;
 	uint32_t offset_last = bank->sectors[last].offset + bank->sectors[last].size;
 	uint32_t length = offset_last - offset_start;
-	LOG_DEBUG("erase %d bytes starting at 0x%" PRIx32, length, offset_start);
+	LOG_DEBUG("erase %" PRIu32 " bytes starting at 0x%" PRIx32,
+			  length, offset_start);
 
 	int err = setup_for_raw_flash_cmd(target, priv);
 	if (err != ERROR_OK)
@@ -1328,7 +1329,7 @@ COMMAND_HANDLER(rp2xxx_rom_api_call_handler)
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[i + 1], args[i]);
 
 	if (target->state != TARGET_HALTED) {
-		LOG_ERROR("Target not halted");
+		command_print(CMD, "Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
@@ -1343,7 +1344,7 @@ COMMAND_HANDLER(rp2xxx_rom_api_call_handler)
 	uint16_t fc;
 	retval = rp2xxx_lookup_rom_symbol(target, tag, symtype_func, &fc);
 	if (retval != ERROR_OK) {
-		command_print(CMD, "Function %.2s not found in RP2xxx ROM.",
+		command_print(CMD, "Function %.2s not found in RP2xxx ROM",
 					  CMD_ARGV[0]);
 		goto cleanup_and_return;
 	}
