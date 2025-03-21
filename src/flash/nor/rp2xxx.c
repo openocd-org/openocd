@@ -16,6 +16,7 @@
 #define BOOTROM_RP2040_MAGIC 0x01754d
 /* this is 'M' 'u', 2 (version) */
 #define BOOTROM_RP2350_MAGIC 0x02754d
+#define BOOTROM_MAGIC_MASK	 0xffffff
 #define BOOTROM_MAGIC_ADDR 0x00000010
 
 #define MAKE_TAG(a, b) (((b)<<8) | a)
@@ -368,7 +369,7 @@ static int rp2xxx_lookup_rom_symbol(struct target *target, uint16_t tag, uint16_
 		return err;
 
 	/* Ignore version */
-	magic &= 0xffffff;
+	magic &= BOOTROM_MAGIC_MASK;
 
 	if (magic == BOOTROM_RP2350_MAGIC) {
 		/* Distinguish old-style RP2350 ROM table (A0, and earlier A1 builds)
