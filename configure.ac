@@ -187,6 +187,9 @@ m4_define([JTAG_DPI_ADAPTER],
 m4_define([JTAG_VPI_ADAPTER],
 	[[[jtag_vpi], [JTAG VPI Adapter], [JTAG_VPI]]])
 
+m4_define([RSHIM_ADAPTER],
+	[[[rshim], [BlueField SoC via rshim], [RSHIM]]])
+
 # The word 'Adapter' in "Dummy Adapter" below must begin with a capital letter
 # because there is an M4 macro called 'adapter'.
 m4_define([DUMMY_ADAPTER],
@@ -285,10 +288,6 @@ AS_IF([test "x$debug_malloc" = "xyes" -a "x$have_glibc" = "xyes"], [
   AC_DEFINE([_DEBUG_FREE_SPACE_],[1], [Include malloc free space in logging])
 ])
 
-AC_ARG_ENABLE([rshim],
-  AS_HELP_STRING([--enable-rshim], [Enable building the rshim driver]),
-  [build_rshim=$enableval], [build_rshim=no])
-
 AC_ARG_ENABLE([dmem],
   AS_HELP_STRING([--enable-dmem], [Enable building the dmem driver]),
   [build_dmem=$enableval], [build_dmem=no])
@@ -320,6 +319,7 @@ AC_ARG_ADAPTERS([
   VDEBUG_ADAPTER,
   JTAG_DPI_ADAPTER,
   JTAG_VPI_ADAPTER,
+  RSHIM_ADAPTER,
   PCIE_ADAPTERS,
   LIBJAYLINK_ADAPTERS
   ],[auto])
@@ -383,19 +383,24 @@ AC_ARG_ENABLE([sysfsgpio],
   AS_HELP_STRING([--enable-sysfsgpio], [Enable building support for programming driven via sysfs gpios.]),
   [build_sysfsgpio=$enableval], [build_sysfsgpio=no])
 
+can_build_rshim=no
+
 AS_CASE([$host_os],
   [linux*], [
     is_linux=yes
+    can_build_rshim=yes
   ],
   [
     AS_IF([test "x$build_sysfsgpio" = "xyes"], [
       AC_MSG_ERROR([sysfsgpio is only available on linux])
     ])
 
-    AS_CASE([$host_os], [freebsd*], [],
+    AS_CASE([$host_os], [freebsd*], [
+      can_build_rshim=yes
+    ],
     [
-      AS_IF([test "x$build_rshim" = "xyes"], [
-        AC_MSG_ERROR([build_rshim is only available on linux or freebsd])
+      AS_IF([test "x$enable_rshim" = "xyes"], [
+        AC_MSG_ERROR([rshim is only available on linux or freebsd])
       ])
     ])
 
@@ -512,12 +517,6 @@ AS_IF([test "x$build_parport" = "xyes"], [
   AC_DEFINE([BUILD_PARPORT], [1], [1 if you want parport.])
 ], [
   AC_DEFINE([BUILD_PARPORT], [0], [0 if you don't want parport.])
-])
-
-AS_IF([test "x$build_rshim" = "xyes"], [
-  AC_DEFINE([BUILD_RSHIM], [1], [1 if you want to debug BlueField SoC via rshim.])
-], [
-  AC_DEFINE([BUILD_RSHIM], [0], [0 if you don't want to debug BlueField SoC via rshim.])
 ])
 
 AS_IF([test "x$build_dmem" = "xyes"], [
@@ -718,6 +717,8 @@ PROCESS_ADAPTERS([LINUXSPIDEV_ADAPTER], ["x$is_linux" = "xyes"], [Linux spidev])
 PROCESS_ADAPTERS([VDEBUG_ADAPTER], [true], [unused])
 PROCESS_ADAPTERS([JTAG_DPI_ADAPTER], [true], [unused])
 PROCESS_ADAPTERS([JTAG_VPI_ADAPTER], [true], [unused])
+PROCESS_ADAPTERS([RSHIM_ADAPTER], ["x$can_build_rshim" = "xyes"],
+                                  [internal error: validation should happen beforehand])
 PROCESS_ADAPTERS([DUMMY_ADAPTER], [true], [unused])
 
 AS_IF([test "x$enable_linuxgpiod" != "xno"], [
@@ -783,7 +784,6 @@ AM_CONDITIONAL([USE_LIBFTDI], [test "x$use_libftdi" = "xyes"])
 AM_CONDITIONAL([USE_LIBGPIOD], [test "x$use_libgpiod" = "xyes"])
 AM_CONDITIONAL([USE_HIDAPI], [test "x$use_hidapi" = "xyes"])
 AM_CONDITIONAL([USE_LIBJAYLINK], [test "x$use_libjaylink" = "xyes"])
-AM_CONDITIONAL([RSHIM], [test "x$build_rshim" = "xyes"])
 AM_CONDITIONAL([DMEM], [test "x$build_dmem" = "xyes"])
 AM_CONDITIONAL([HAVE_CAPSTONE], [test "x$enable_capstone" != "xno"])
 
@@ -876,6 +876,7 @@ m4_foreach([adapter], [USB1_ADAPTERS,
 	VDEBUG_ADAPTER,
 	JTAG_DPI_ADAPTER,
 	JTAG_VPI_ADAPTER,
+	RSHIM_ADAPTER,
 	DUMMY_ADAPTER,
 	OPTIONAL_LIBRARIES,
 	COVERAGE],
