@@ -31,6 +31,7 @@
 #endif
 
 #include <helper/align.h>
+#include <helper/list.h>
 #include <helper/nvp.h>
 #include <helper/time_support.h>
 #include <jtag/jtag.h>
@@ -51,6 +52,13 @@
 
 /* default halt wait timeout (ms) */
 #define DEFAULT_HALT_TIMEOUT 5000
+
+struct target_event_action {
+	enum target_event event;
+	Jim_Interp *interp;
+	Jim_Obj *body;
+	struct list_head list;
+};
 
 static int target_read_buffer_default(struct target *target, target_addr_t address,
 		uint32_t count, uint8_t *buffer);
@@ -2194,12 +2202,11 @@ static void target_destroy(struct target *target)
 
 	jtag_unregister_event_callback(jtag_enable_callback, target);
 
-	struct target_event_action *teap = target->event_action;
-	while (teap) {
-		struct target_event_action *next = teap->next;
+	struct target_event_action *teap, *temp;
+	list_for_each_entry_safe(teap, temp, &target->events_action, list) {
+		list_del(&teap->list);
 		Jim_DecrRefCount(teap->interp, teap->body);
 		free(teap);
-		teap = next;
 	}
 
 	target_free_all_working_areas(target);
@@ -4663,7 +4670,7 @@ void target_handle_event(struct target *target, enum target_event e)
 	struct target_event_action *teap;
 	int retval;
 
-	for (teap = target->event_action; teap; teap = teap->next) {
+	list_for_each_entry(teap, &target->events_action, list) {
 		if (teap->event == e) {
 			LOG_DEBUG("target: %s (%s) event: %d (%s) action: %s",
 					   target_name(target),
@@ -4826,7 +4833,7 @@ bool target_has_event_action(const struct target *target, enum target_event even
 {
 	struct target_event_action *teap;
 
-	for (teap = target->event_action; teap; teap = teap->next) {
+	list_for_each_entry(teap, &target->events_action, list) {
 		if (teap->event == event)
 			return true;
 	}
@@ -4946,13 +4953,14 @@ no_params:
 			{
 				struct target_event_action *teap;
 
-				teap = target->event_action;
 				/* replace existing? */
-				while (teap) {
+				list_for_each_entry(teap, &target->events_action, list)
 					if (teap->event == (enum target_event)n->value)
 						break;
-					teap = teap->next;
-				}
+
+				/* not found! */
+				if (&teap->list == &target->events_action)
+					teap = NULL;
 
 				if (goi->is_configure) {
 					/* START_DEPRECATED_TPIU */
@@ -4986,8 +4994,7 @@ no_params:
 
 					if (!replace) {
 						/* add to head of event list */
-						teap->next = target->event_action;
-						target->event_action = teap;
+						list_add(&teap->list, &target->events_action);
 					}
 					Jim_SetEmptyResult(goi->interp);
 				} else {
@@ -5402,19 +5409,19 @@ COMMAND_HANDLER(handle_target_wait_state)
 COMMAND_HANDLER(handle_target_event_list)
 {
 	struct target *target = get_current_target(CMD_CTX);
-	struct target_event_action *teap = target->event_action;
+	struct target_event_action *teap;
 
 	command_print(CMD, "Event actions for target %s\n",
 				   target_name(target));
 	command_print(CMD, "%-25s | Body", "Event");
 	command_print(CMD, "------------------------- | "
 			"----------------------------------------");
-	while (teap) {
+
+	list_for_each_entry(teap, &target->events_action, list)
 		command_print(CMD, "%-25s | %s",
 				target_event_name(teap->event),
 				Jim_GetString(teap->body, NULL));
-		teap = teap->next;
-	}
+
 	command_print(CMD, "***END***");
 	return ERROR_OK;
 }
@@ -5766,6 +5773,8 @@ static int target_create(struct jim_getopt_info *goi)
 	target->verbose_halt_msg	= true;
 
 	target->halt_issued			= false;
+
+	INIT_LIST_HEAD(&target->events_action);
 
 	/* initialize trace information */
 	target->trace_info = calloc(1, sizeof(struct trace));

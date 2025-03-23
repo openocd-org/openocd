@@ -139,7 +139,7 @@ struct target {
 	 */
 	bool running_alg;
 
-	struct target_event_action *event_action;
+	struct list_head events_action;
 
 	bool reset_halt;						/* attempt resetting the CPU into the halted mode? */
 	target_addr_t working_area;				/* working area (initialised RAM). Evaluated
@@ -293,13 +293,6 @@ enum target_event {
 	TARGET_EVENT_SEMIHOSTING_USER_CMD_0X105 = 0x105,
 	TARGET_EVENT_SEMIHOSTING_USER_CMD_0X106 = 0x106,
 	TARGET_EVENT_SEMIHOSTING_USER_CMD_0X107 = 0x107,
-};
-
-struct target_event_action {
-	enum target_event event;
-	Jim_Interp *interp;
-	Jim_Obj *body;
-	struct target_event_action *next;
 };
 
 bool target_has_event_action(const struct target *target, enum target_event event);
