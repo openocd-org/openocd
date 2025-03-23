@@ -4968,6 +4968,17 @@ no_params:
 						LOG_INFO("DEPRECATED target event %s; use TPIU events {pre,post}-{enable,disable}", n->name);
 					/* END_DEPRECATED_TPIU */
 
+					jim_getopt_obj(goi, &o);
+					if (Jim_Length(o) == 0) {
+						/* empty action, drop existing one */
+						if (teap) {
+							list_del(&teap->list);
+							Jim_DecrRefCount(teap->interp, teap->body);
+							free(teap);
+						}
+						break;
+					}
+
 					bool replace = true;
 					if (!teap) {
 						/* create new */
@@ -4976,7 +4987,6 @@ no_params:
 					}
 					teap->event = n->value;
 					teap->interp = goi->interp;
-					jim_getopt_obj(goi, &o);
 					if (teap->body)
 						Jim_DecrRefCount(teap->interp, teap->body);
 					teap->body  = Jim_DuplicateObj(goi->interp, o);
