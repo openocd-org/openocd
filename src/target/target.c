@@ -4608,6 +4608,7 @@ COMMAND_HANDLER(handle_target_write_memory)
 			int jimretval = Jim_GetWide(CMD_CTX->interp, tmp, &element_wide);
 			if (jimretval != JIM_OK) {
 				command_print(CMD, "invalid value \"%s\"", Jim_GetString(tmp, NULL));
+				free(buffer);
 				return ERROR_COMMAND_ARGUMENT_INVALID;
 			}
 
