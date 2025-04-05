@@ -5128,7 +5128,6 @@ no_params:
 					return JIM_ERR;
 				}
 
-				target_free_all_working_areas(target);
 				e = jim_getopt_obj(goi, &o_t);
 				if (e != JIM_OK)
 					return e;
