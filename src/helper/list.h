@@ -35,6 +35,7 @@
 
 /* begin OpenOCD changes */
 
+#include <assert.h>
 #include <stddef.h>
 
 struct list_head {
@@ -109,6 +110,9 @@ static inline void
 linux_list_add(struct list_head *new, struct list_head *prev,
 	struct list_head *next)
 {
+	assert(next);
+	assert(prev);
+
 	next->prev = new;
 	new->next = next;
 	new->prev = prev;
