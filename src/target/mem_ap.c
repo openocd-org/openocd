@@ -24,7 +24,7 @@ struct mem_ap {
 	uint64_t ap_num;
 };
 
-static int mem_ap_target_create(struct target *target, Jim_Interp *interp)
+static int mem_ap_target_create(struct target *target)
 {
 	struct mem_ap *mem_ap;
 	struct adiv5_private_config *pc;

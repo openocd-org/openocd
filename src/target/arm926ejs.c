@@ -702,7 +702,7 @@ int arm926ejs_init_arch_info(struct target *target, struct arm926ejs_common *arm
 	return ERROR_OK;
 }
 
-static int arm926ejs_target_create(struct target *target, Jim_Interp *interp)
+static int arm926ejs_target_create(struct target *target)
 {
 	struct arm926ejs_common *arm926ejs = calloc(1, sizeof(struct arm926ejs_common));
 

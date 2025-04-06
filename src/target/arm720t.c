@@ -412,7 +412,7 @@ static int arm720t_init_arch_info(struct target *target,
 	return ERROR_OK;
 }
 
-static int arm720t_target_create(struct target *target, Jim_Interp *interp)
+static int arm720t_target_create(struct target *target)
 {
 	struct arm720t_common *arm720t = calloc(1, sizeof(*arm720t));
 

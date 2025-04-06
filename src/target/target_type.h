@@ -194,7 +194,7 @@ struct target_type {
 	const struct command_registration *commands;
 
 	/* called when target is created */
-	int (*target_create)(struct target *target, Jim_Interp *interp);
+	int (*target_create)(struct target *target);
 
 	/* called for various config parameters */
 	/* returns JIM_CONTINUE - if option not understood */

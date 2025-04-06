@@ -38,7 +38,7 @@ int arm966e_init_arch_info(struct target *target, struct arm966e_common *arm966e
 	return ERROR_OK;
 }
 
-static int arm966e_target_create(struct target *target, Jim_Interp *interp)
+static int arm966e_target_create(struct target *target)
 {
 	struct arm966e_common *arm966e = calloc(1, sizeof(struct arm966e_common));
 

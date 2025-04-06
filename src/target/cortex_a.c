@@ -3126,7 +3126,7 @@ static int cortex_a_init_arch_info(struct target *target,
 	return ERROR_OK;
 }
 
-static int cortex_a_target_create(struct target *target, Jim_Interp *interp)
+static int cortex_a_target_create(struct target *target)
 {
 	struct cortex_a_common *cortex_a;
 	struct adiv5_private_config *pc;
@@ -3148,7 +3148,7 @@ static int cortex_a_target_create(struct target *target, Jim_Interp *interp)
 	return cortex_a_init_arch_info(target, cortex_a, pc->dap);
 }
 
-static int cortex_r4_target_create(struct target *target, Jim_Interp *interp)
+static int cortex_r4_target_create(struct target *target)
 {
 	struct cortex_a_common *cortex_a;
 	struct adiv5_private_config *pc;

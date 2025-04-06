@@ -5865,7 +5865,7 @@ COMMAND_HANDLER(handle_target_create)
 	}
 
 	if (target->type->target_create) {
-		retval = (*target->type->target_create)(target, CMD_CTX->interp);
+		retval = (*target->type->target_create)(target);
 		if (retval != ERROR_OK) {
 			LOG_DEBUG("target_create failed");
 			free(target->cmd_name);

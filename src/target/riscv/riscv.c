@@ -427,7 +427,7 @@ static struct target_type *get_target_type(struct target *target)
 	}
 }
 
-static int riscv_create_target(struct target *target, Jim_Interp *interp)
+static int riscv_create_target(struct target *target)
 {
 	LOG_DEBUG("riscv_create_target()");
 	target->arch_info = calloc(1, sizeof(struct riscv_info));

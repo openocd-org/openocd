@@ -32,7 +32,7 @@
 #include "lakemont.h"
 #include "x86_32_common.h"
 
-static int quark_d20xx_target_create(struct target *t, Jim_Interp *interp)
+static int quark_d20xx_target_create(struct target *t)
 {
 	struct x86_32_common *x86_32 = calloc(1, sizeof(struct x86_32_common));
 	if (!x86_32) {

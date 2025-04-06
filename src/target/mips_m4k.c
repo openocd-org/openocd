@@ -1158,7 +1158,7 @@ static int mips_m4k_init_arch_info(struct target *target,
 	return ERROR_OK;
 }
 
-static int mips_m4k_target_create(struct target *target, Jim_Interp *interp)
+static int mips_m4k_target_create(struct target *target)
 {
 	struct mips_m4k_common *mips_m4k = calloc(1, sizeof(struct mips_m4k_common));
 

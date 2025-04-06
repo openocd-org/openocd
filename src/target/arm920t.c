@@ -833,7 +833,7 @@ static int arm920t_init_arch_info(struct target *target,
 	return ERROR_OK;
 }
 
-static int arm920t_target_create(struct target *target, Jim_Interp *interp)
+static int arm920t_target_create(struct target *target)
 {
 	struct arm920t_common *arm920t;
 

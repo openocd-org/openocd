@@ -622,7 +622,7 @@ static void feroceon_common_setup(struct target *target)
 	arm7_9->wp1_used_default = -1;
 }
 
-static int feroceon_target_create(struct target *target, Jim_Interp *interp)
+static int feroceon_target_create(struct target *target)
 {
 	struct arm926ejs_common *arm926ejs = calloc(1, sizeof(struct arm926ejs_common));
 
@@ -640,7 +640,7 @@ static int feroceon_target_create(struct target *target, Jim_Interp *interp)
 	return ERROR_OK;
 }
 
-static int dragonite_target_create(struct target *target, Jim_Interp *interp)
+static int dragonite_target_create(struct target *target)
 {
 	struct arm966e_common *arm966e = calloc(1, sizeof(struct arm966e_common));
 

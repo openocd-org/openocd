@@ -855,7 +855,7 @@ static int eonce_pc_store(struct target *target)
 	return ERROR_OK;
 }
 
-static int dsp5680xx_target_create(struct target *target, Jim_Interp *interp)
+static int dsp5680xx_target_create(struct target *target)
 {
 	struct dsp5680xx_common *dsp5680xx =
 		calloc(1, sizeof(struct dsp5680xx_common));

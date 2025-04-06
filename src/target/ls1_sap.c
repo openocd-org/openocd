@@ -17,7 +17,7 @@ struct ls1_sap {
 	struct jtag_tap *tap;
 };
 
-static int ls1_sap_target_create(struct target *target, Jim_Interp *interp)
+static int ls1_sap_target_create(struct target *target)
 {
 	struct ls1_sap *ls1_sap = calloc(1, sizeof(struct ls1_sap));
 

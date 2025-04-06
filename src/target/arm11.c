@@ -1079,7 +1079,7 @@ static int arm11_remove_breakpoint(struct target *target,
 	return ERROR_OK;
 }
 
-static int arm11_target_create(struct target *target, Jim_Interp *interp)
+static int arm11_target_create(struct target *target)
 {
 	struct arm11_common *arm11;
 

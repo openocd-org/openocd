@@ -1424,7 +1424,7 @@ static void arc_deinit_target(struct target *target)
 }
 
 
-static int arc_target_create(struct target *target, Jim_Interp *interp)
+static int arc_target_create(struct target *target)
 {
 	struct arc_common *arc = calloc(1, sizeof(*arc));
 

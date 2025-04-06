@@ -880,7 +880,7 @@ static void dsp563xx_invalidate_x_context(struct target *target,
 	}
 }
 
-static int dsp563xx_target_create(struct target *target, Jim_Interp *interp)
+static int dsp563xx_target_create(struct target *target)
 {
 	struct dsp563xx_common *dsp563xx = calloc(1, sizeof(struct dsp563xx_common));
 

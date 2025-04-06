@@ -187,8 +187,7 @@ static int adapter_init_target(struct command_context *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int adapter_target_create(struct target *target,
-		Jim_Interp *interp)
+static int adapter_target_create(struct target *target)
 {
 	LOG_DEBUG("%s", __func__);
 	struct adiv5_private_config *pc = target->private_config;

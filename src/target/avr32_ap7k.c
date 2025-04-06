@@ -510,7 +510,7 @@ static int avr32_ap7k_init_target(struct command_context *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int avr32_ap7k_target_create(struct target *target, Jim_Interp *interp)
+static int avr32_ap7k_target_create(struct target *target)
 {
 	struct avr32_ap7k_common *ap7k = calloc(1, sizeof(struct
 			avr32_ap7k_common));

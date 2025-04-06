@@ -79,7 +79,7 @@ static int arm946e_init_arch_info(struct target *target,
 	return ERROR_OK;
 }
 
-static int arm946e_target_create(struct target *target, Jim_Interp *interp)
+static int arm946e_target_create(struct target *target)
 {
 	struct arm946e_common *arm946e = calloc(1, sizeof(struct arm946e_common));
 

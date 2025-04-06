@@ -1097,7 +1097,7 @@ static int or1k_init_target(struct command_context *cmd_ctx,
 	return ERROR_OK;
 }
 
-static int or1k_target_create(struct target *target, Jim_Interp *interp)
+static int or1k_target_create(struct target *target)
 {
 	if (!target->tap)
 		return ERROR_FAIL;

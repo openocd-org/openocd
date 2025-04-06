@@ -329,7 +329,7 @@ static int fa526_init_arch_info(struct target *target,
 	return ERROR_OK;
 }
 
-static int fa526_target_create(struct target *target, Jim_Interp *interp)
+static int fa526_target_create(struct target *target)
 {
 	struct arm920t_common *arm920t = calloc(1, sizeof(struct arm920t_common));
 

@@ -2814,7 +2814,7 @@ static int aarch64_init_arch_info(struct target *target,
 	return ERROR_OK;
 }
 
-static int armv8r_target_create(struct target *target, Jim_Interp *interp)
+static int armv8r_target_create(struct target *target)
 {
 	struct aarch64_private_config *pc = target->private_config;
 	struct aarch64_common *aarch64;
@@ -2833,7 +2833,7 @@ static int armv8r_target_create(struct target *target, Jim_Interp *interp)
 	return aarch64_init_arch_info(target, aarch64, pc->adiv5_config.dap);
 }
 
-static int aarch64_target_create(struct target *target, Jim_Interp *interp)
+static int aarch64_target_create(struct target *target)
 {
 	struct aarch64_private_config *pc = target->private_config;
 	struct aarch64_common *aarch64;

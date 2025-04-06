@@ -3012,7 +3012,7 @@ static int xscale_init_arch_info(struct target *target,
 	return ERROR_OK;
 }
 
-static int xscale_target_create(struct target *target, Jim_Interp *interp)
+static int xscale_target_create(struct target *target)
 {
 	struct xscale_common *xscale;
 

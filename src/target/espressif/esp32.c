@@ -326,7 +326,7 @@ static const struct esp_semihost_ops esp32_semihost_ops = {
 	.prepare = esp32_disable_wdts
 };
 
-static int esp32_target_create(struct target *target, Jim_Interp *interp)
+static int esp32_target_create(struct target *target)
 {
 	struct xtensa_debug_module_config esp32_dm_cfg = {
 		.dbg_ops = &esp32_dbg_ops,

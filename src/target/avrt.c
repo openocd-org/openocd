@@ -16,7 +16,7 @@
 #define AVR_JTAG_INS_LEN	4
 
 /* forward declarations */
-static int avr_target_create(struct target *target, Jim_Interp *interp);
+static int avr_target_create(struct target *target);
 static int avr_init_target(struct command_context *cmd_ctx, struct target *target);
 
 static int avr_arch_state(struct target *target);
@@ -68,7 +68,7 @@ struct target_type avr_target = {
 	.init_target = avr_init_target,
 };
 
-static int avr_target_create(struct target *target, Jim_Interp *interp)
+static int avr_target_create(struct target *target)
 {
 	struct avr_common *avr = calloc(1, sizeof(struct avr_common));
 

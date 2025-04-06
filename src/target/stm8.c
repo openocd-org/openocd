@@ -1106,8 +1106,7 @@ static int stm8_init_arch_info(struct target *target,
 	return ERROR_OK;
 }
 
-static int stm8_target_create(struct target *target,
-		Jim_Interp *interp)
+static int stm8_target_create(struct target *target)
 {
 
 	struct stm8_common *stm8 = calloc(1, sizeof(struct stm8_common));

@@ -1575,7 +1575,7 @@ static int esirisc_identify(struct target *target)
 	return ERROR_OK;
 }
 
-static int esirisc_target_create(struct target *target, Jim_Interp *interp)
+static int esirisc_target_create(struct target *target)
 {
 	struct jtag_tap *tap = target->tap;
 	struct esirisc_common *esirisc;

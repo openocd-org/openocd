@@ -1082,7 +1082,7 @@ static int mips_mips64_init_target(struct command_context *cmd_ctx,
 	return mips64_build_reg_cache(target);
 }
 
-static int mips_mips64_target_create(struct target *target, Jim_Interp *interp)
+static int mips_mips64_target_create(struct target *target)
 {
 	struct mips_mips64_common *mips_mips64;
 	struct mips64_common *mips64;

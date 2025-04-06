@@ -2916,7 +2916,7 @@ static int cortex_m_init_arch_info(struct target *target,
 	return ERROR_OK;
 }
 
-static int cortex_m_target_create(struct target *target, Jim_Interp *interp)
+static int cortex_m_target_create(struct target *target)
 {
 	struct adiv5_private_config *pc;
 
