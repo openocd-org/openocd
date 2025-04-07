@@ -416,7 +416,7 @@ AC_ARG_ENABLE([internal-libjaylink],
 
 AC_ARG_ENABLE([remote-bitbang],
   AS_HELP_STRING([--enable-remote-bitbang], [Enable building support for the Remote Bitbang driver]),
-  [build_remote_bitbang=$enableval], [build_remote_bitbang=yes])
+  [build_remote_bitbang=$enableval], [build_remote_bitbang=no])
 
 AS_CASE(["${host_cpu}"],
   [i?86|x86*], [],
