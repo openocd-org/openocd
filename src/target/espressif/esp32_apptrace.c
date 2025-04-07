@@ -649,7 +649,7 @@ static int esp32_apptrace_wait4halt(struct esp32_apptrace_cmd_ctx *ctx, struct t
 		if (res != ERROR_OK)
 			return res;
 		if (target->state == TARGET_HALTED) {
-			LOG_USER("%s: HALTED", target->cmd_name);
+			LOG_TARGET_USER(target, "HALTED");
 			break;
 		}
 		alive_sleep(500);

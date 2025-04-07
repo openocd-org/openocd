@@ -77,8 +77,6 @@ struct transport *get_current_transport(void);
 
 int transport_register_commands(struct command_context *ctx);
 
-COMMAND_HELPER(transport_list_parse, char ***vector);
-
 int allow_transports(struct command_context *ctx, const char * const *vector);
 
 bool transport_is_jtag(void);

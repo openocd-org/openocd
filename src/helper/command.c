@@ -41,6 +41,7 @@ static int jim_command_dispatch(Jim_Interp *interp, int argc, Jim_Obj * const *a
 static int help_add_command(struct command_context *cmd_ctx,
 	const char *cmd_name, const char *help_text, const char *usage_text);
 static int help_del_command(struct command_context *cmd_ctx, const char *cmd_name);
+static enum command_mode get_command_mode(Jim_Interp *interp, const char *cmd_name);
 
 /* set of functions to wrap jimtcl internal data */
 static inline bool jimcmd_is_proc(Jim_Cmd *cmd)
@@ -673,7 +674,7 @@ COMMAND_HANDLER(handle_echo)
 	}
 
 	if (CMD_ARGC != 1)
-		return ERROR_FAIL;
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	LOG_USER("%s", CMD_ARGV[0]);
 	return ERROR_OK;
@@ -779,24 +780,7 @@ static COMMAND_HELPER(command_help_show, struct help_entry *c,
 	if (is_match && show_help) {
 		char *msg;
 
-		/* TODO: factorize jim_command_mode() to avoid running jim command here */
-		char *request = alloc_printf("command mode %s", c->cmd_name);
-		if (!request) {
-			LOG_ERROR("Out of memory");
-			return ERROR_FAIL;
-		}
-		int retval = Jim_Eval(CMD_CTX->interp, request);
-		free(request);
-		enum command_mode mode = COMMAND_UNKNOWN;
-		if (retval != JIM_ERR) {
-			const char *result = Jim_GetString(Jim_GetResult(CMD_CTX->interp), NULL);
-			if (!strcmp(result, "any"))
-				mode = COMMAND_ANY;
-			else if (!strcmp(result, "config"))
-				mode = COMMAND_CONFIG;
-			else if (!strcmp(result, "exec"))
-				mode = COMMAND_EXEC;
-		}
+		enum command_mode mode = get_command_mode(CMD_CTX->interp, c->cmd_name);
 
 		/* Normal commands are runtime-only; highlight exceptions */
 		if (mode != COMMAND_EXEC) {
@@ -809,6 +793,7 @@ static COMMAND_HELPER(command_help_show, struct help_entry *c,
 				case COMMAND_ANY:
 					stage_msg = " (command valid any time)";
 					break;
+				case COMMAND_UNKNOWN:
 				default:
 					stage_msg = " (?mode error?)";
 					break;
@@ -817,11 +802,13 @@ static COMMAND_HELPER(command_help_show, struct help_entry *c,
 		} else
 			msg = alloc_printf("%s", c->help ? c->help : "");
 
-		if (msg) {
-			command_help_show_wrap(msg, n + 3, n + 3);
-			free(msg);
-		} else
-			return -ENOMEM;
+		if (!msg) {
+			LOG_ERROR("Out of memory");
+			return ERROR_FAIL;
+		}
+
+		command_help_show_wrap(msg, n + 3, n + 3);
+		free(msg);
 	}
 
 	return ERROR_OK;
@@ -936,35 +923,41 @@ static int jim_command_dispatch(Jim_Interp *interp, int argc, Jim_Obj * const *a
 	return retval;
 }
 
+static enum command_mode get_command_mode(Jim_Interp *interp, const char *cmd_name)
+{
+	if (!cmd_name)
+		return COMMAND_UNKNOWN;
+
+	Jim_Obj *s = Jim_NewStringObj(interp, cmd_name, -1);
+	Jim_IncrRefCount(s);
+	Jim_Cmd *cmd = Jim_GetCommand(interp, s, JIM_NONE);
+	Jim_DecrRefCount(interp, s);
+
+	if (!cmd || !(jimcmd_is_proc(cmd) || jimcmd_is_oocd_command(cmd)))
+		return COMMAND_UNKNOWN;
+
+	/* tcl proc */
+	if (jimcmd_is_proc(cmd))
+		return COMMAND_ANY;
+
+	struct command *c = jimcmd_privdata(cmd);
+	return c->mode;
+}
+
 static int jim_command_mode(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 {
 	struct command_context *cmd_ctx = current_command_context(interp);
-	enum command_mode mode;
+	enum command_mode mode = cmd_ctx->mode;
 
 	if (argc > 1) {
 		char *full_name = alloc_concatenate_strings(argc - 1, argv + 1);
 		if (!full_name)
 			return JIM_ERR;
-		Jim_Obj *s = Jim_NewStringObj(interp, full_name, -1);
-		Jim_IncrRefCount(s);
-		Jim_Cmd *cmd = Jim_GetCommand(interp, s, JIM_NONE);
-		Jim_DecrRefCount(interp, s);
+
+		mode = get_command_mode(interp, full_name);
+
 		free(full_name);
-		if (!cmd || !(jimcmd_is_proc(cmd) || jimcmd_is_oocd_command(cmd))) {
-			Jim_SetResultString(interp, "unknown", -1);
-			return JIM_OK;
-		}
-
-		if (jimcmd_is_proc(cmd)) {
-			/* tcl proc */
-			mode = COMMAND_ANY;
-		} else {
-			struct command *c = jimcmd_privdata(cmd);
-
-			mode = c->mode;
-		}
-	} else
-		mode = cmd_ctx->mode;
+	}
 
 	const char *mode_str;
 	switch (mode) {
@@ -977,6 +970,7 @@ static int jim_command_mode(Jim_Interp *interp, int argc, Jim_Obj *const *argv)
 		case COMMAND_EXEC:
 			mode_str = "exec";
 			break;
+		case COMMAND_UNKNOWN:
 		default:
 			mode_str = "unknown";
 			break;

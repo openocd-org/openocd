@@ -2367,7 +2367,9 @@ static int adiv5_jim_spot_configure(struct jim_getopt_info *goi,
 				return e;
 			dap = dap_instance_by_jim_obj(goi->interp, o_t);
 			if (!dap) {
-				Jim_SetResultString(goi->interp, "DAP name invalid!", -1);
+				const char *dap_name = Jim_GetString(o_t, NULL);
+				Jim_SetResultFormatted(goi->interp, "DAP '%s' not found",
+					dap_name);
 				return JIM_ERR;
 			}
 			if (*dap_p && *dap_p != dap) {

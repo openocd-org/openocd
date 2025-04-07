@@ -2857,6 +2857,14 @@ static void aarch64_deinit_target(struct target *target)
 	struct aarch64_common *aarch64 = target_to_aarch64(target);
 	struct armv8_common *armv8 = &aarch64->armv8_common;
 	struct arm_dpm *dpm = &armv8->dpm;
+	uint64_t address;
+
+	if (target->state == TARGET_HALTED) {
+		// Restore the previous state of the target (gp registers, MMU, caches, etc)
+		int retval = aarch64_restore_one(target, true, &address, false, false);
+		if (retval != ERROR_OK)
+			LOG_TARGET_ERROR(target, "Failed to restore target state");
+	}
 
 	if (armv8->debug_ap)
 		dap_put_ap(armv8->debug_ap);
