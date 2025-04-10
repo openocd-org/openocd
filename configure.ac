@@ -164,6 +164,9 @@ m4_define([LIBFTDI_USB1_ADAPTERS],
 m4_define([LIBGPIOD_ADAPTERS],
 	[[[linuxgpiod], [Linux GPIO bitbang through libgpiod], [LINUXGPIOD]]])
 
+m4_define([SYSFSGPIO_ADAPTER],
+	[[[sysfsgpio], [Linux GPIO bitbang through sysfs], [SYSFSGPIO]]])
+
 m4_define([REMOTE_BITBANG_ADAPTER],
 	[[[remote_bitbang], [Remote Bitbang driver], [REMOTE_BITBANG]]])
 
@@ -315,6 +318,7 @@ AC_ARG_ADAPTERS([
   LIBFTDI_ADAPTERS,
   LIBFTDI_USB1_ADAPTERS,
   LIBGPIOD_ADAPTERS,
+  SYSFSGPIO_ADAPTER,
   REMOTE_BITBANG_ADAPTER,
   LINUXSPIDEV_ADAPTER,
   SERIAL_PORT_ADAPTERS,
@@ -379,10 +383,6 @@ AC_ARG_ENABLE([gw16012],
   AS_HELP_STRING([--enable-gw16012], [Enable building support for the Gateworks GW16012 JTAG Programmer]),
   [build_gw16012=$enableval], [build_gw16012=no])
 
-AC_ARG_ENABLE([sysfsgpio],
-  AS_HELP_STRING([--enable-sysfsgpio], [Enable building support for programming driven via sysfs gpios.]),
-  [build_sysfsgpio=$enableval], [build_sysfsgpio=no])
-
 can_build_rshim=no
 
 AS_CASE([$host_os],
@@ -391,10 +391,6 @@ AS_CASE([$host_os],
     can_build_rshim=yes
   ],
   [
-    AS_IF([test "x$build_sysfsgpio" = "xyes"], [
-      AC_MSG_ERROR([sysfsgpio is only available on linux])
-    ])
-
     AS_CASE([$host_os], [freebsd*], [
       can_build_rshim=yes
     ],
@@ -604,13 +600,6 @@ AS_IF([test "x$use_internal_jimtcl" = "xyes"], [
   ])
 ])
 
-AS_IF([test "x$build_sysfsgpio" = "xyes"], [
-  build_bitbang=yes
-  AC_DEFINE([BUILD_SYSFSGPIO], [1], [1 if you want the SysfsGPIO driver.])
-], [
-  AC_DEFINE([BUILD_SYSFSGPIO], [0], [0 if you don't want SysfsGPIO driver.])
-])
-
 PKG_CHECK_MODULES([LIBUSB1], [libusb-1.0], [
 	use_libusb1=yes
 	AC_DEFINE([HAVE_LIBUSB1], [1], [Define if you have libusb-1.x])
@@ -702,6 +691,7 @@ PROCESS_ADAPTERS([HIDAPI_USB1_ADAPTERS], ["x$use_hidapi" = "xyes" -a "x$use_libu
 PROCESS_ADAPTERS([LIBFTDI_ADAPTERS], ["x$use_libftdi" = "xyes"], [libftdi])
 PROCESS_ADAPTERS([LIBFTDI_USB1_ADAPTERS], ["x$use_libftdi" = "xyes" -a "x$use_libusb1" = "xyes"], [libftdi and libusb-1.x])
 PROCESS_ADAPTERS([LIBGPIOD_ADAPTERS], ["x$use_libgpiod" = "xyes"], [Linux libgpiod])
+PROCESS_ADAPTERS([SYSFSGPIO_ADAPTER], ["x$is_linux" = "xyes"], [Linux sysfs])
 PROCESS_ADAPTERS([REMOTE_BITBANG_ADAPTER], [true], [unused])
 PROCESS_ADAPTERS([LIBJAYLINK_ADAPTERS], ["x$use_internal_libjaylink" = "xyes" -o "x$use_libjaylink" = "xyes"], [libjaylink-0.2])
 PROCESS_ADAPTERS([PCIE_ADAPTERS], ["x$is_linux" = "xyes"], [Linux build])
@@ -717,6 +707,10 @@ PROCESS_ADAPTERS([AMTJTAGACCEL_ADAPTER], [true], [unused])
 PROCESS_ADAPTERS([DUMMY_ADAPTER], [true], [unused])
 
 AS_IF([test "x$enable_linuxgpiod" != "xno"], [
+  build_bitbang=yes
+])
+
+AS_IF([test "x$enable_sysfsgpio" != "xno"], [
   build_bitbang=yes
 ])
 
@@ -767,7 +761,6 @@ AM_CONDITIONAL([AM335XGPIO], [test "x$build_am335xgpio" = "xyes"])
 AM_CONDITIONAL([BITBANG], [test "x$build_bitbang" = "xyes"])
 AM_CONDITIONAL([USB_BLASTER_DRIVER], [test "x$enable_usb_blaster" != "xno" -o "x$enable_usb_blaster_2" != "xno"])
 AM_CONDITIONAL([GW16012], [test "x$build_gw16012" = "xyes"])
-AM_CONDITIONAL([SYSFSGPIO], [test "x$build_sysfsgpio" = "xyes"])
 AM_CONDITIONAL([USE_LIBUSB1], [test "x$use_libusb1" = "xyes"])
 AM_CONDITIONAL([IS_CYGWIN], [test "x$is_cygwin" = "xyes"])
 AM_CONDITIONAL([IS_MINGW], [test "x$is_mingw" = "xyes"])
@@ -864,6 +857,7 @@ m4_foreach([adapter], [USB1_ADAPTERS,
 	HIDAPI_ADAPTERS, HIDAPI_USB1_ADAPTERS, LIBFTDI_ADAPTERS,
 	LIBFTDI_USB1_ADAPTERS,
 	LIBGPIOD_ADAPTERS,
+	SYSFSGPIO_ADAPTER,
 	REMOTE_BITBANG_ADAPTER,
 	LIBJAYLINK_ADAPTERS, PCIE_ADAPTERS, SERIAL_PORT_ADAPTERS,
 	LINUXSPIDEV_ADAPTER,
