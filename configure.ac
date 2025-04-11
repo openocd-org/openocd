@@ -190,6 +190,9 @@ m4_define([JTAG_VPI_ADAPTER],
 m4_define([RSHIM_ADAPTER],
 	[[[rshim], [BlueField SoC via rshim], [RSHIM]]])
 
+m4_define([AMTJTAGACCEL_ADAPTER],
+	[[[amtjtagaccel], [Amontec JTAG-Accelerator driver], [AMTJTAGACCEL]]])
+
 # The word 'Adapter' in "Dummy Adapter" below must begin with a capital letter
 # because there is an M4 macro called 'adapter'.
 m4_define([DUMMY_ADAPTER],
@@ -320,6 +323,7 @@ AC_ARG_ADAPTERS([
   JTAG_DPI_ADAPTER,
   JTAG_VPI_ADAPTER,
   RSHIM_ADAPTER,
+  AMTJTAGACCEL_ADAPTER,
   PCIE_ADAPTERS,
   LIBJAYLINK_ADAPTERS
   ],[auto])
@@ -337,10 +341,6 @@ AC_ARG_ENABLE([parport_giveio],
     AS_HELP_STRING([--enable-parport-giveio],
       [Enable use of giveio for parport (for CygWin only)]),
     [parport_use_giveio=$enableval], [parport_use_giveio=])
-
-AC_ARG_ENABLE([amtjtagaccel],
-  AS_HELP_STRING([--enable-amtjtagaccel], [Enable building the Amontec JTAG-Accelerator driver]),
-  [build_amtjtagaccel=$enableval], [build_amtjtagaccel=no])
 
 AS_CASE(["${host_cpu}"],
   [arm*|aarch64], [
@@ -576,12 +576,6 @@ AS_IF([test "x$parport_use_giveio" = "xyes"], [
   AC_DEFINE([PARPORT_USE_GIVEIO], [0], [0 if you don't want parport to use giveio.])
 ])
 
-AS_IF([test "x$build_amtjtagaccel" = "xyes"], [
-  AC_DEFINE([BUILD_AMTJTAGACCEL], [1], [1 if you want the Amontec JTAG-Accelerator driver.])
-], [
-  AC_DEFINE([BUILD_AMTJTAGACCEL], [0], [0 if you don't want the Amontec JTAG-Accelerator driver.])
-])
-
 AS_IF([test "x$build_gw16012" = "xyes"], [
   AC_DEFINE([BUILD_GW16012], [1], [1 if you want the Gateworks GW16012 driver.])
 ], [
@@ -719,6 +713,7 @@ PROCESS_ADAPTERS([JTAG_DPI_ADAPTER], [true], [unused])
 PROCESS_ADAPTERS([JTAG_VPI_ADAPTER], [true], [unused])
 PROCESS_ADAPTERS([RSHIM_ADAPTER], ["x$can_build_rshim" = "xyes"],
                                   [internal error: validation should happen beforehand])
+PROCESS_ADAPTERS([AMTJTAGACCEL_ADAPTER], [true], [unused])
 PROCESS_ADAPTERS([DUMMY_ADAPTER], [true], [unused])
 
 AS_IF([test "x$enable_linuxgpiod" != "xno"], [
@@ -771,7 +766,6 @@ AM_CONDITIONAL([IMX_GPIO], [test "x$build_imx_gpio" = "xyes"])
 AM_CONDITIONAL([AM335XGPIO], [test "x$build_am335xgpio" = "xyes"])
 AM_CONDITIONAL([BITBANG], [test "x$build_bitbang" = "xyes"])
 AM_CONDITIONAL([USB_BLASTER_DRIVER], [test "x$enable_usb_blaster" != "xno" -o "x$enable_usb_blaster_2" != "xno"])
-AM_CONDITIONAL([AMTJTAGACCEL], [test "x$build_amtjtagaccel" = "xyes"])
 AM_CONDITIONAL([GW16012], [test "x$build_gw16012" = "xyes"])
 AM_CONDITIONAL([SYSFSGPIO], [test "x$build_sysfsgpio" = "xyes"])
 AM_CONDITIONAL([USE_LIBUSB1], [test "x$use_libusb1" = "xyes"])
@@ -877,6 +871,7 @@ m4_foreach([adapter], [USB1_ADAPTERS,
 	JTAG_DPI_ADAPTER,
 	JTAG_VPI_ADAPTER,
 	RSHIM_ADAPTER,
+	AMTJTAGACCEL_ADAPTER,
 	DUMMY_ADAPTER,
 	OPTIONAL_LIBRARIES,
 	COVERAGE],
