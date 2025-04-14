@@ -27,12 +27,12 @@ providing documentation, either as part of the C code or stand-alone.
 Feedback would be welcome to improve the OpenOCD guidelines.
 
  */
-/** @page styletcl TCL Style Guide
+/** @page styletcl Tcl Style Guide
 
-OpenOCD needs to expand its Jim/TCL Style Guide.
+OpenOCD needs to expand its Jim Tcl Style Guide.
 
 Many of the guidelines listed on the @ref stylec page should apply to
-OpenOCD's Jim/TCL code as well.
+OpenOCD's Jim Tcl code as well.
 
  */
 /** @page stylec C Style Guide

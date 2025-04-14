@@ -6,7 +6,7 @@ OpenOCD presently produces several kinds of documentation:
 - The User's Guide:
   - Focuses on using the OpenOCD software.
   - Details the installation, usage, and customization.
-  - Provides descriptions of public Jim/TCL script commands.
+  - Provides descriptions of public Jim Tcl script commands.
   - Written using GNU texinfo.
   - Created with 'make pdf' or 'make html'.
   - See @subpage primertexinfo and @ref styletexinfo.

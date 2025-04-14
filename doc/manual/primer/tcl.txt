@@ -1,6 +1,6 @@
-/** @page primertcl OpenOCD TCL Primer
+/** @page primertcl OpenOCD Tcl Primer
 
-The @subpage scripting page provides additional TCL Primer material.
+The @subpage scripting page provides additional Tcl Primer material.
 
 @verbatim
 
@@ -8,15 +8,15 @@ The @subpage scripting page provides additional TCL Primer material.
 ****************************************
 
 This is a short introduction to 'un-scare' you about the language
-known as TCL. It is structured as a guided tour through the files
+known as Tcl. It is structured as a guided tour through the files
 written by me [Duane Ellis] - in early July 2008 for OpenOCD.
 
 Which uses the "JIM" embedded Tcl clone-ish language.
 
-Thing described here are *totally* TCL generic... not Jim specific.
+Thing described here are *totally* Tcl generic... not Jim specific.
 
 The goal of this document is to encourage you to add your own set of
-chips to the TCL package - and most importantly you should know where
+chips to the Tcl package - and most importantly you should know where
 you should put them - so they end up in an organized way.
 
 --Duane Ellis.
@@ -57,14 +57,14 @@ Definition:
 Open:  at91sam7x256.tcl
 === TCL TOUR ===
 
-A walk through --- For those who are new to TCL.
+A walk through --- For those who are new to Tcl.
 
 Examine the file: at91sam7x256.tcl
 
 It starts with:
 	source [find path/filename.tcl]
 
-In TCL - this is very important.
+In Tcl - this is very important.
 
 	Rule #1 Everything is a string.
 	Rule #2 If you think other wise See #1.
@@ -130,7 +130,7 @@ First, there is a "for" loop - at level 0
 This means it is evaluated when the file is parsed.
 
 == SIDEBAR: About The FOR command ==
-In TCL, "FOR" is a funny thing, it is not what you think it is.
+In Tcl, "FOR" is a funny thing, it is not what you think it is.
 
 Syntactically - FOR is a just a command, it is not language
 construct like for(;;) in C...
@@ -191,7 +191,7 @@ proc create_mask { MSB LSB } {
 Like "for" - PROC is really just a command that takes 3 parameters.
 The (1) NAME of the function, a (2) LIST of parameters, and a (3) BODY
 
-Again, this is at "level 0" so it is a global function.  (Yes, TCL
+Again, this is at "level 0" so it is a global function.  (Yes, Tcl
 supports local functions, you put them inside of a function}
 
 You'll see in some cases, I nest [brackets] a lot and in others I'm
@@ -257,7 +257,7 @@ For example - 'show_mmr32_reg' is given the NAME of the register to
 display. The assumption is - the NAME is a global variable holding the
 address of that MMR.
 
-The code does some tricks. The [set [set NAME]] is the TCL way
+The code does some tricks. The [set [set NAME]] is the Tcl way
 of doing double variable interpolation - like makefiles...
 
 In a makefile or shell script you may have seen this:
@@ -272,7 +272,7 @@ In a makefile or shell script you may have seen this:
      #BUILD = mac
      FOO = ${FOO_${BUILD}}
 
-The "double [set] square bracket" thing is the TCL way, nothing more.
+The "double [set] square bracket" thing is the Tcl way, nothing more.
 
 ----
 
@@ -352,7 +352,7 @@ tricks with interpretors.
 
 Function:   show_mmr32_bits()
 
-In this case, we use the special TCL command "upvar" which tcl's way
+In this case, we use the special Tcl command "upvar" which is the Tcl way
 of passing things by reference. In this case, we want to reach up into
 the callers lexical scope and find the array named "NAMES"
 
@@ -373,7 +373,7 @@ are basically identical...
 
 Second - there can be many of them.
 
-In this case - I do some more TCL tricks to dynamically
+In this case - I do some more Tcl tricks to dynamically
 create functions out of thin air.
 
 Some assumptions:
@@ -409,7 +409,7 @@ And - declare that variable as GLOBAL so the world can find it.
 Then - we dynamically create a function - based on the register name.
 
 Look carefully at how that is done. You'll notice the FUNCTION BODY is
-a string - not something in {braces}. Why? This is because we need TCL
+a string - not something in {braces}. Why? This is because we need Tcl
 to evaluate the contents of that string "*NOW*" - when $vn exists not
 later, when the function "show_FOO" is invoked.
 

@@ -4,11 +4,11 @@
 
 The scripting support is intended for developers of OpenOCD.
 It is not the intention that normal OpenOCD users will
-use tcl scripting extensively, write lots of clever scripts,
+use Tcl scripting extensively, write lots of clever scripts,
 or contribute back to OpenOCD.
 
 Target scripts can contain new procedures that end users may
-tinker to their needs without really understanding tcl.
+tinker to their needs without really understanding Tcl.
 
 Since end users are not expected to mess with the scripting
 language, the choice of language is not terribly important
@@ -38,16 +38,16 @@ Default implementation of procedures in tcl/procedures.tcl.
   and will have no externally visible consequences.
   Tcl has an advantage in that it's syntax is backwards
   compatible with the current OpenOCD syntax.
-- external scripting. Low level tcl functions will be defined
-  that return machine readable output. These low level tcl
-  functions constitute the tcl api. flash_banks is such
-  a low level tcl proc. "flash banks" is an example of
+- external scripting. Low level Tcl functions will be defined
+  that return machine readable output. These low level Tcl
+  functions constitute the Tcl api. flash_banks is such
+  a low level Tcl proc. "flash banks" is an example of
   a command that has human readable output. The human
   readable output is expected to change in between versions
   of OpenOCD. The output from flash_banks may not be
   in the preferred form for the client. The client then
   has two choices a) parse the output from flash_banks
-  or b) write a small piece of tcl to output the
+  or b) write a small piece of Tcl to output the
   flash_banks output to a more suitable form. The latter may
   be simpler.
 

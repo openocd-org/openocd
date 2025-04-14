@@ -43,7 +43,7 @@ with a script language:
 What follows hopefully shows how the plans to solve these problems
 materialized and help to explain the grand roadmap plan.
 
-@subsection serverdocsjim Why JimTCL? The Internal Script Language
+@subsection serverdocsjim Why Jim Tcl? The Internal Script Language
 
 At the time, the existing "command context schema" was proving itself
 insufficient.  However, the problem was also considered from another
@@ -57,14 +57,14 @@ OpenOCD. Yuck.  OpenOCD already has a complex enough build system, why
 make it worse?
 
 The goal was to add a simple language that would be moderately easy to
-work with and be self-contained.  JimTCL is a single C and single H
+work with and be self-contained.  Jim Tcl is a single C and single H
 file, allowing OpenOCD to avoid the spider web of dependent packages.
 
-@section serverdocstcl TCL Server Port
+@section serverdocstcl Tcl Server Port
 
-The TCL Server port was added in mid-2008.  With embedded TCL, we can
+The Tcl Server port was added in mid-2008.  With embedded Tcl, we can
 write scripts internally to help things, or we can write "C" code  that
-interfaces well with TCL.
+interfaces well with Tcl.
 
 From there, the developers wanted to create an external front-end that
 would be @a very usable and that @a any language could utilize,
@@ -78,7 +78,7 @@ also support a high degree of interoperability with multiple systems.
 They are not human-centric protocols; more correctly, they are rigid,
 terse, simple ASCII protocols that are easily parsable by a script.
 
-Thus, the TCL server -- a 'machine' type socket interface -- was added
+Thus, the Tcl server -- a 'machine' type socket interface -- was added
 with the hope was it would output simple "name-value" pair type
 data.  At the time, simple name/value pairs seemed reasonably easier to
 do at the time, though Maybe it should output JSON;
@@ -107,7 +107,7 @@ What works easier and is less work is what is already present in every
 platform?  The answer: A web browser.  In other words, OpenOCD could
 serve out embedded web pages via "localhost" to your browser.
 
-Long before OpenOCD had a TCL command line, Zylin AS built their ZY1000
+Long before OpenOCD had a Tcl command line, Zylin AS built their ZY1000
 device with a built-in HTTP server.  Later, they were willing to both
 contribute and integrate most of that work into the main tree.
 
@@ -128,8 +128,8 @@ every language has it's own set of wack-ness, parameter marshaling is
 painful.
 
 What about "callbacks" and structures, and other mess. Imagine
-debugging that system.  When JimTCL was introduced Spencer Oliver had
-quite a few well-put concerns (Summer 2008) about the idea of "TCL"
+debugging that system.  When Jim Tcl was introduced Spencer Oliver had
+quite a few well-put concerns (Summer 2008) about the idea of "Tcl"
 taking over OpenOCD.  His concern is and was: how do you debug
 something written in 2 different languages?  A "SWIG" front-end is
 unlikely to help that situation.
@@ -143,7 +143,7 @@ to Localhost or remote host, however one might want to make it work.
 
 A socket interface is very simple. One could write a Java application
 and serve it out via the embedded web server, could it - or something
-like it talk to the built in TCL server? Yes, absolutely! We are on to
+like it talk to the built in Tcl server? Yes, absolutely! We are on to
 something here.
 
 @subsection serverdocplatforms Platform Permutations
@@ -167,9 +167,9 @@ the Socket Approach is used.
 
 @subsection serverdocfuture Development Scale Out
 
-During 2008, Duane Ellis created some TCL scripts to display peripheral
-register contents. For example, look at the sam7 TCL scripts, and the
-stm32 TCL scripts.  The hope was others would create more.
+During 2008, Duane Ellis created some Tcl scripts to display peripheral
+register contents. For example, look at the sam7 Tcl scripts, and the
+stm32 Tcl scripts.  The hope was others would create more.
 
 
 A good example of this is display/view the peripheral registers on
@@ -208,7 +208,7 @@ upon it, sometimes that is the only scheme available.
 As a small group of developers, supporting all the platforms and
 targets in the debugger will be difficult, as there are enough problem
 with the plethora of Adapters, Chips, and different target boards.
-Yes, the TCL interface might be suitable, but it has not received much
+Yes, the Tcl interface might be suitable, but it has not received much
 love or attention.  Perhaps it will after you read and understand this.
 
 One reason might be, this adds one more host side requirement to make
@@ -247,8 +247,8 @@ Altogether, it provides a universally accessible GUI for OpenOCD.
 
 @section serverdocshtml Simple HTML Pages
 
-There is (or could be) a simple "Jim TCL" function to read a memory
-location. If that can be tied into a TCL script that can modify the
+There is (or could be) a simple "Jim Tcl" function to read a memory
+location. If that can be tied into a Tcl script that can modify the
 HTTP text, then we have a simple script-based web server with a JTAG
 engine under the hood.
 
@@ -275,7 +275,7 @@ bit-banging JTAG Adapter serving web pages.
 
 @subsection serverdocshtmladv Advanced HTML Pages
 
-Java or JavaScript could be used to talk back to the TCL port.  One
+Java or JavaScript could be used to talk back to the Tcl port.  One
 could write a Java, AJAX, FLASH, or some other developer friendly
 toolbox and get a real cross-platform GUI interface. Sure, the interface
 is not native - but it is 100% cross-platform!

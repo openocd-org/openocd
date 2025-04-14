@@ -21,7 +21,7 @@ portability API.
 
 /** @page helperjim OpenOCD Jim API
 
-The Jim API provides access to a small-footprint TCL implementation.
+The Jim API provides access to a small-footprint Tcl implementation.
 
 Visit http://jim.tcl.tk/ for more information on Jim.
 

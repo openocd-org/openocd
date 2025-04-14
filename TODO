@@ -12,14 +12,14 @@ may have evolved an idea since it was added here.
 
 Feel free to send patches to add or clarify items on this list, too.
 
-@section thelisttcl TCL
+@section thelisttcl Tcl
 
-This section provides possible things to improve with OpenOCD's TCL support.
+This section provides possible things to improve with OpenOCD's Tcl support.
 
 - Fix problem with incorrect line numbers reported for a syntax
   error in a reset init event.
 
-- organize the TCL configurations:
+- organize the Tcl configurations:
   - provide more directory structure for boards/targets?
   - factor configurations into layers (encapsulation and re-use)
 
@@ -27,15 +27,15 @@ This section provides possible things to improve with OpenOCD's TCL support.
   parameters.  Currently variables assigned through one such parameter
   command/script are unset before the next one is invoked.
 
-- Isolate all TCL command support:
+- Isolate all Tcl command support:
   - Pure C CLI implementations using --disable-builtin-tcl.
     - Allow developers to build new dongles using OpenOCD's JTAG core.
     - At first, provide only low-level JTAG support; target layer and
       above rely heavily on scripting event mechanisms.
-  - Allow full TCL support? add --with-tcl=/path/to/installed/tcl
-  - Move TCL support out of foo.[ch] and into foo_tcl.[ch] (other ideas?)
+  - Allow full Tcl support? add --with-tcl=/path/to/installed/tcl
+  - Move Tcl support out of foo.[ch] and into foo_tcl.[ch] (other ideas?)
     - See src/jtag/core.c and src/jtag/tcl.c for an example.
-    - allow some of these TCL command modules to be dynamically loadable?
+    - allow some of these Tcl command modules to be dynamically loadable?
 
 @section thelistadapter Adapter
 
@@ -75,7 +75,7 @@ directly in minidriver API for better embedded host performance.
 
 The following tasks have been suggested for adding new core JTAG support:
 
-- Improve autodetection of TAPs by supporting tcl escape procedures that
+- Improve autodetection of TAPs by supporting Tcl escape procedures that
   can configure discovered TAPs based on IDCODE value ... they could:
     - Remove guessing for irlen
     - Allow non-default irmask/ircapture values
@@ -133,7 +133,7 @@ TCP/IP packets handled by the server.
 - add BSDL support?
 
 A few possible options for the above:
-  -# Fake a TCL equivalent?
+  -# Fake a Tcl equivalent?
   -# Integrate an existing library?
   -# Write a new C implementation a la Jim?
 

@@ -8,10 +8,10 @@ layered architecture of JTAG interface and TAP support including:
 - debug target support (e.g. ARM, MIPS): single-stepping,
   breakpoints/watchpoints, gprof profiling, etc;
 - flash chip drivers (e.g. CFI, NAND, internal flash);
-- embedded TCL interpreter for easy scripting.
+- embedded Tcl interpreter for easy scripting.
 
 Several network interfaces are available for interacting with OpenOCD:
-telnet, TCL, and GDB. The GDB server enables OpenOCD to function as a
+telnet, Tcl, and GDB. The GDB server enables OpenOCD to function as a
 "remote target" for source-level debugging of embedded systems using
 the GNU GDB program (and the others who talk GDB protocol, e.g. IDA
 Pro).
