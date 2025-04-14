@@ -62,7 +62,7 @@ Documentation License''.
 * About::                            About OpenOCD
 * Developers::                       OpenOCD Developer Resources
 * Debug Adapter Hardware::           Debug Adapter Hardware
-* About Jim-Tcl::                    About Jim-Tcl
+* About Jim Tcl::                    About Jim Tcl
 * Running::                          Running OpenOCD
 * OpenOCD Project Setup::            OpenOCD Project Setup
 * Config File Guidelines::           Config File Guidelines
@@ -629,43 +629,43 @@ This is deprecated from Linux v5.3; prefer using @b{linuxgpiod}.
 
 @end itemize
 
-@node About Jim-Tcl
-@chapter About Jim-Tcl
-@cindex Jim-Tcl
+@node About Jim Tcl
+@chapter About Jim Tcl
+@cindex Jim Tcl
 @cindex tcl
 
-OpenOCD uses a small ``Tcl Interpreter'' known as Jim-Tcl.
+OpenOCD uses a small ``Tcl Interpreter'' known as Jim Tcl.
 This programming language provides a simple and extensible
 command interpreter.
 
-All commands presented in this Guide are extensions to Jim-Tcl.
+All commands presented in this Guide are extensions to Jim Tcl.
 You can use them as simple commands, without needing to learn
 much of anything about Tcl.
 Alternatively, you can write Tcl programs with them.
 
 You can learn more about Jim at its website, @url{http://jim.tcl.tk}.
 There is an active and responsive community, get on the mailing list
-if you have any questions. Jim-Tcl maintainers also lurk on the
+if you have any questions. Jim Tcl maintainers also lurk on the
 OpenOCD mailing list.
 
 @itemize @bullet
 @item @b{Jim vs. Tcl}
-@* Jim-Tcl is a stripped down version of the well known Tcl language,
-which can be found here: @url{http://www.tcl.tk}. Jim-Tcl has far
-fewer features. Jim-Tcl is several dozens of .C files and .H files and
+@* Jim Tcl is a stripped down version of the well known Tcl language,
+which can be found here: @url{http://www.tcl.tk}. Jim Tcl has far
+fewer features. Jim Tcl is several dozens of .C files and .H files and
 implements the basic Tcl command set. In contrast: Tcl 8.6 is a
 4.2 MB .zip file containing 1540 files.
 
 @item @b{Missing Features}
 @* Our practice has been: Add/clone the real Tcl feature if/when
-needed. We welcome Jim-Tcl improvements, not bloat. Also there
-are a large number of optional Jim-Tcl features that are not
+needed. We welcome Jim Tcl improvements, not bloat. Also there
+are a large number of optional Jim Tcl features that are not
 enabled in OpenOCD.
 
 @item @b{Scripts}
-@* OpenOCD configuration scripts are Jim-Tcl Scripts. OpenOCD's
+@* OpenOCD configuration scripts are Jim Tcl Scripts. OpenOCD's
 command interpreter today is a mixture of (newer)
-Jim-Tcl commands, and the (older) original command interpreter.
+Jim Tcl commands, and the (older) original command interpreter.
 
 @item @b{Commands}
 @* At the OpenOCD telnet command line (or via the GDB monitor command) one
@@ -674,10 +674,10 @@ Some of the commands documented in this guide are implemented
 as Tcl scripts, from a @file{startup.tcl} file internal to the server.
 
 @item @b{Historical Note}
-@* Jim-Tcl was introduced to OpenOCD in spring 2008. Fall 2010,
-before OpenOCD 0.5 release, OpenOCD switched to using Jim-Tcl
-as a Git submodule, which greatly simplified upgrading Jim-Tcl
-to benefit from new features and bugfixes in Jim-Tcl.
+@* Jim Tcl was introduced to OpenOCD in spring 2008. Fall 2010,
+before OpenOCD 0.5 release, OpenOCD switched to using Jim Tcl
+as a Git submodule, which greatly simplified upgrading Jim Tcl
+to benefit from new features and bugfixes in Jim Tcl.
 
 @item @b{Need a crash course in Tcl?}
 @*@xref{Tcl Crash Course}.
@@ -796,7 +796,7 @@ those channels.
 If you are having problems, you can enable internal debug messages via
 the @option{-d} option.
 
-Also it is possible to interleave Jim-Tcl commands w/config scripts using the
+Also it is possible to interleave Jim Tcl commands w/config scripts using the
 @option{-c} command line switch.
 
 To enable debug output (when reporting problems or working on OpenOCD
@@ -962,7 +962,7 @@ that can be tested in a later script.
 @end quotation
 
 Here we will focus on the simpler solution: one user config
-file, including basic configuration plus any TCL procedures
+file, including basic configuration plus any Tcl procedures
 to simplify your work.
 
 @section User Config Files
@@ -1432,7 +1432,7 @@ In addition to target-specific utility code, another way that
 board and target config files communicate is by following a
 convention on how to use certain variables.
 
-The full Tcl/Tk language supports ``namespaces'', but Jim-Tcl does not.
+The full Tcl/Tk language supports ``namespaces'', but Jim Tcl does not.
 Thus the rule we follow in OpenOCD is this: Variables that begin with
 a leading underscore are temporary in nature, and can be modified and
 used at will within a target configuration file.
@@ -1552,7 +1552,7 @@ configuration files for other JTAG tools
 Some of this code could probably be shared between different boards.
 For example, setting up a DRAM controller often doesn't differ by
 much except the bus width (16 bits or 32?) and memory timings, so a
-reusable TCL procedure loaded by the @file{target.cfg} file might take
+reusable Tcl procedure loaded by the @file{target.cfg} file might take
 those as parameters.
 Similarly with oscillator, PLL, and clock setup;
 and disabling the watchdog.
@@ -2137,7 +2137,7 @@ corresponding subsystems:
 @end deffn
 
 At last, @command{init} executes all the commands that are specified in
-the TCL list @var{post_init_commands}. The commands are executed in the
+the Tcl list @var{post_init_commands}. The commands are executed in the
 same order they occupy in the list. If one of the commands fails, then
 the error is propagated and OpenOCD fails too.
 @example
@@ -2222,7 +2222,7 @@ cause initialization to fail with "Unknown remote qXfer reply: OK".
 
 @deffn {Config Command} {tcl port} [number]
 Specify or query the port used for a simplified RPC
-connection that can be used by clients to issue TCL commands and get the
+connection that can be used by clients to issue Tcl commands and get the
 output from the Tcl engine.
 Intended as a machine interface.
 When not specified during the configuration stage,
@@ -2233,7 +2233,7 @@ When specified as "disabled", this service is not activated.
 @deffn {Config Command} {telnet port} [number]
 Specify or query the
 port on which to listen for incoming telnet connections.
-This port is intended for interaction with one human through TCL commands.
+This port is intended for interaction with one human through Tcl commands.
 When not specified during the configuration stage,
 the port @var{number} defaults to 4444.
 When specified as "disabled", this service is not activated.
@@ -2304,7 +2304,7 @@ The file name is @i{target_name}.xml.
 Hardware debuggers are parts of asynchronous systems,
 where significant events can happen at any time.
 The OpenOCD server needs to detect some of these events,
-so it can report them to through TCL command line
+so it can report them to through Tcl command line
 or to GDB.
 
 Examples of such events include:
@@ -2345,7 +2345,7 @@ specific information about the current state is printed.
 An optional parameter
 allows background polling to be enabled and disabled.
 
-You could use this from the TCL command shell, or
+You could use this from the Tcl command shell, or
 from GDB using @command{monitor poll} command.
 Leave background polling enabled while you're using GDB.
 @example
@@ -4527,7 +4527,7 @@ mechanism for debugger targets.)
 See the next section for information about the available events.
 
 The @code{configure} subcommand assigns an event handler,
-a TCL string which is evaluated when the event is triggered.
+a Tcl string which is evaluated when the event is triggered.
 The @code{cget} subcommand returns that handler.
 @end deffn
 
@@ -4786,7 +4786,7 @@ The instance number is in bits 28..31 of DLPIDR value.
 
 @deffn {Command} {dap names}
 This command returns a list of all registered DAP objects. It it useful mainly
-for TCL scripting.
+for Tcl scripting.
 @end deffn
 
 @deffn {Command} {dap info} [@var{num}|@option{root}]
@@ -5775,7 +5775,7 @@ until the programming session is finished.
 If you use @ref{programmingusinggdb,,Programming using GDB},
 the target is prepared automatically in the event gdb-flash-erase-start
 
-The jimtcl script @command{program} calls @command{reset init} explicitly.
+The Tcl script @command{program} calls @command{reset init} explicitly.
 
 @section Erasing, Reading, Writing to Flash
 @cindex flash erasing
@@ -7462,18 +7462,18 @@ mspm0_board_reset
 
 @end itemize
 
-@deffn {TCL proc} {mspm0_board_reset}
+@deffn {Tcl proc} {mspm0_board_reset}
 Performs an nRST toggle on the device.
 @end deffn
 
-@deffn {TCL proc} {mspm0_mass_erase}
+@deffn {Tcl proc} {mspm0_mass_erase}
 Sends the mass erase command to the SEC-AP mailbox and then performs
 an nRST toggle. Once the command has been fully processed by the ROM,
 all MAIN memory will be erased. NOTE: This command is not supported
 on MSPM0C* family of devices.
 @end deffn
 
-@deffn {TCL proc} {mspm0_factory_reset}
+@deffn {Tcl proc} {mspm0_factory_reset}
 Sends the factory reset command to the SEC-AP mailbox and then performs
 an nRST toggle. Once the command has been fully processed by the ROM,
 all MAIN memory will be erased and NONMAIN will be reset to its default
@@ -7772,7 +7772,7 @@ flash bank super_flash_toc2_cm4 psoc6 0x16007C00 0 0 0 \
 
 psoc6-specific commands
 @deffn {Command} {psoc6 reset_halt}
-Command can be used to simulate broken Vector Catch from gdbinit or tcl scripts.
+Command can be used to simulate broken Vector Catch from gdbinit or Tcl scripts.
 When invoked for CM0+ target, it will set break point at application entry point
 and issue SYSRESETREQ. This will reset both cores and all peripherals. CM0+ will
 reset CM4 during boot anyway so this is safe. On CM4 target, VECTRESET is used
@@ -8987,7 +8987,7 @@ OpenOCD implements numerous ways to program the target flash, whether internal o
 Programming can be achieved by either using @ref{programmingusinggdb,,Programming using GDB},
 or using the commands given in @ref{flashprogrammingcommands,,Flash Programming Commands}.
 
-@*To simplify using the flash commands directly a jimtcl script is available that handles the programming and verify stage.
+@*To simplify using the flash commands directly a Tcl script is available that handles the programming and verify stage.
 OpenOCD will program/verify/reset the target and optionally shutdown.
 
 The script is executed as follows and by default the following actions will be performed.
@@ -9269,7 +9269,7 @@ non-zero exit code to the parent process.
 If user types CTRL-C or kills OpenOCD, the command @command{shutdown}
 will be automatically executed to cause OpenOCD to exit.
 
-It is possible to specify, in the TCL list @var{pre_shutdown_commands} , a
+It is possible to specify, in the Tcl list @var{pre_shutdown_commands} , a
 set of commands to be automatically executed before @command{shutdown} , e.g.:
 @example
 lappend pre_shutdown_commands @{echo "Goodbye, my friend ..."@}
@@ -9858,7 +9858,7 @@ Add or replace usage text on the given @var{command_name}.
 @deffn {Command} {ms}
 Returns current time since the Epoch in ms
 (See: @url{https://en.wikipedia.org/wiki/Epoch_(computing)}).
-Useful to compute delays in TCL.
+Useful to compute delays in Tcl.
 @end deffn
 
 @node Architecture and Core Commands
@@ -10175,7 +10175,7 @@ of the CTI.
 
 @deffn {Command} {cti names}
 Prints a list of names of all CTI objects created. This command is mainly
-useful in TCL scripting.
+useful in Tcl scripting.
 @end deffn
 
 @section Generic ARM
@@ -10819,7 +10819,7 @@ protocol used for trace data:
 @end itemize
 
 @item @code{-event} @var{event_name} @var{event_body} -- assigns an event handler,
-a TCL string which is evaluated when the event is triggered. The events
+a Tcl string which is evaluated when the event is triggered. The events
 @code{pre-enable}, @code{post-enable}, @code{pre-disable} and @code{post-disable}
 are defined for TPIU/SWO.
 A typical use case for the event @code{pre-enable} is to enable the trace clock
@@ -11643,7 +11643,7 @@ capabilities than most of the other processors and in addition there is an
 extension interface that allows SoC designers to add custom registers and
 instructions. For the OpenOCD that mostly means that set of core and AUX
 registers in target will vary and is not fixed for a particular processor
-model. To enable extensibility several TCL commands are provided that allow to
+model. To enable extensibility several Tcl commands are provided that allow to
 describe those optional registers in OpenOCD configuration files. Moreover
 those commands allow for a dynamic target features discovery.
 
@@ -11798,12 +11798,12 @@ configuration comprises two categories:
 @end enumerate
 
 All common Xtensa support is built into the OpenOCD Xtensa target layer and
-is enabled through a combination of TCL scripts: the target-specific
+is enabled through a combination of Tcl scripts: the target-specific
 @file{target/xtensa.cfg} and a board-specific @file{board/xtensa-*.cfg},
 similar to other target architectures.
 
 Importantly, core-specific configuration information must be provided by
-the user, and takes the form of an @file{xtensa-core-XXX.cfg} TCL script that
+the user, and takes the form of an @file{xtensa-core-XXX.cfg} Tcl script that
 defines the core's configurable features through a series of Xtensa
 configuration commands (detailed below).
 
@@ -13376,7 +13376,7 @@ learning Tcl, the intent of this chapter is to give you some idea of
 how the Tcl scripts work.
 
 This chapter is written with two audiences in mind. (1) OpenOCD users
-who need to understand a bit more of how Jim-Tcl works so they can do
+who need to understand a bit more of how Jim Tcl works so they can do
 something useful, and (2) those that want to add a new command to
 OpenOCD.
 
@@ -13536,7 +13536,7 @@ Often many of those parameters are in @{curly-braces@} - thus the
 variables inside are not expanded or replaced until later.
 
 Remember that every Tcl command looks like the classic ``main( argc,
-argv )'' function in C. In JimTCL - they actually look like this:
+argv )'' function in C. In Jim Tcl - they actually look like this:
 
 @example
 int
