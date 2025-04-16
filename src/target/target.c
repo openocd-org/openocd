@@ -31,6 +31,7 @@
 #endif
 
 #include <helper/align.h>
+#include <helper/list.h>
 #include <helper/nvp.h>
 #include <helper/time_support.h>
 #include <jtag/jtag.h>
@@ -51,6 +52,13 @@
 
 /* default halt wait timeout (ms) */
 #define DEFAULT_HALT_TIMEOUT 5000
+
+struct target_event_action {
+	enum target_event event;
+	Jim_Interp *interp;
+	Jim_Obj *body;
+	struct list_head list;
+};
 
 static int target_read_buffer_default(struct target *target, target_addr_t address,
 		uint32_t count, uint8_t *buffer);
@@ -2200,12 +2208,11 @@ static void target_destroy(struct target *target)
 
 	jtag_unregister_event_callback(jtag_enable_callback, target);
 
-	struct target_event_action *teap = target->event_action;
-	while (teap) {
-		struct target_event_action *next = teap->next;
+	struct target_event_action *teap, *temp;
+	list_for_each_entry_safe(teap, temp, &target->events_action, list) {
+		list_del(&teap->list);
 		Jim_DecrRefCount(teap->interp, teap->body);
 		free(teap);
-		teap = next;
 	}
 
 	target_free_all_working_areas(target);
@@ -4431,15 +4438,17 @@ COMMAND_HANDLER(handle_target_read_memory)
 		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
-	const unsigned int width = width_bits / 8;
-
-	if ((addr + (count * width)) < addr) {
-		command_print(CMD, "read_memory: addr + count wraps to zero");
+	if (count > 65536) {
+		command_print(CMD, "too large read request, exceeds 64K elements");
 		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
-	if (count > 65536) {
-		command_print(CMD, "read_memory: too large read request, exceeds 64K elements");
+	const unsigned int width = width_bits / 8;
+	/* -1 is needed to handle cases when (addr + count * width) results in zero
+	 * due to overflow.
+	 */
+	if ((addr + count * width - 1) < addr) {
+		command_print(CMD, "memory region wraps over address zero");
 		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
@@ -4466,13 +4475,13 @@ COMMAND_HANDLER(handle_target_read_memory)
 			retval = target_read_memory(target, addr, width, chunk_len, buffer);
 
 		if (retval != ERROR_OK) {
-			LOG_DEBUG("read_memory: read at " TARGET_ADDR_FMT " with width=%u and count=%zu failed",
+			LOG_DEBUG("read at " TARGET_ADDR_FMT " with width=%u and count=%zu failed",
 				addr, width_bits, chunk_len);
 			/*
 			 * FIXME: we append the errmsg to the list of value already read.
 			 * Add a way to flush and replace old output, but LOG_DEBUG() it
 			 */
-			command_print(CMD, "read_memory: failed to read memory");
+			command_print(CMD, "failed to read memory");
 			free(buffer);
 			return retval;
 		}
@@ -4508,50 +4517,36 @@ COMMAND_HANDLER(handle_target_read_memory)
 	return ERROR_OK;
 }
 
-static int target_jim_write_memory(Jim_Interp *interp, int argc,
-		Jim_Obj * const *argv)
+COMMAND_HANDLER(handle_target_write_memory)
 {
 	/*
-	 * argv[1] = memory address
-	 * argv[2] = desired element width in bits
-	 * argv[3] = list of data to write
-	 * argv[4] = optional "phys"
+	 * CMD_ARGV[0] = memory address
+	 * CMD_ARGV[1] = desired element width in bits
+	 * CMD_ARGV[2] = list of data to write
+	 * CMD_ARGV[3] = optional "phys"
 	 */
 
-	if (argc < 4 || argc > 5) {
-		Jim_WrongNumArgs(interp, 1, argv, "address width data ['phys']");
-		return JIM_ERR;
-	}
+	if (CMD_ARGC < 3 || CMD_ARGC > 4)
+		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	/* Arg 1: Memory address. */
-	int e;
-	jim_wide wide_addr;
-	e = Jim_GetWide(interp, argv[1], &wide_addr);
-
-	if (e != JIM_OK)
-		return e;
-
-	target_addr_t addr = (target_addr_t)wide_addr;
+	target_addr_t addr;
+	COMMAND_PARSE_NUMBER(u64, CMD_ARGV[0], addr);
 
 	/* Arg 2: Bit width of one element. */
-	long l;
-	e = Jim_GetLong(interp, argv[2], &l);
+	unsigned int width_bits;
+	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[1], width_bits);
 
-	if (e != JIM_OK)
-		return e;
-
-	const unsigned int width_bits = l;
-	size_t count = Jim_ListLength(interp, argv[3]);
+	/* Arg 3: Elements to write. */
+	size_t count = Jim_ListLength(CMD_CTX->interp, CMD_JIMTCL_ARGV[2]);
 
 	/* Arg 4: Optional 'phys'. */
 	bool is_phys = false;
 
-	if (argc > 4) {
-		const char *phys = Jim_GetString(argv[4], NULL);
-
-		if (strcmp(phys, "phys")) {
-			Jim_SetResultFormatted(interp, "invalid argument '%s', must be 'phys'", phys);
-			return JIM_ERR;
+	if (CMD_ARGC == 4) {
+		if (strcmp(CMD_ARGV[3], "phys")) {
+			command_print(CMD, "invalid argument '%s', must be 'phys'", CMD_ARGV[3]);
+			return ERROR_COMMAND_ARGUMENT_INVALID;
 		}
 
 		is_phys = true;
@@ -4564,32 +4559,32 @@ static int target_jim_write_memory(Jim_Interp *interp, int argc,
 	case 64:
 		break;
 	default:
-		Jim_SetResultString(interp, "invalid width, must be 8, 16, 32 or 64", -1);
-		return JIM_ERR;
-	}
-
-	const unsigned int width = width_bits / 8;
-
-	if ((addr + (count * width)) < addr) {
-		Jim_SetResultString(interp, "write_memory: addr + len wraps to zero", -1);
-		return JIM_ERR;
+		command_print(CMD, "invalid width, must be 8, 16, 32 or 64");
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
 	if (count > 65536) {
-		Jim_SetResultString(interp, "write_memory: too large memory write request, exceeds 64K elements", -1);
-		return JIM_ERR;
+		command_print(CMD, "too large memory write request, exceeds 64K elements");
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
-	struct command_context *cmd_ctx = current_command_context(interp);
-	assert(cmd_ctx);
-	struct target *target = get_current_target(cmd_ctx);
+	const unsigned int width = width_bits / 8;
+	/* -1 is needed to handle cases when (addr + count * width) results in zero
+	 * due to overflow.
+	 */
+	if ((addr + count * width - 1) < addr) {
+		command_print(CMD, "memory region wraps over address zero");
+		return ERROR_COMMAND_ARGUMENT_INVALID;
+	}
+
+	struct target *target = get_current_target(CMD_CTX);
 
 	const size_t buffersize = 4096;
 	uint8_t *buffer = malloc(buffersize);
 
 	if (!buffer) {
 		LOG_ERROR("Failed to allocate memory");
-		return JIM_ERR;
+		return ERROR_FAIL;
 	}
 
 	size_t j = 0;
@@ -4599,9 +4594,14 @@ static int target_jim_write_memory(Jim_Interp *interp, int argc,
 		const size_t chunk_len = MIN(count, max_chunk_len);
 
 		for (size_t i = 0; i < chunk_len; i++, j++) {
-			Jim_Obj *tmp = Jim_ListGetIndex(interp, argv[3], j);
+			Jim_Obj *tmp = Jim_ListGetIndex(CMD_CTX->interp, CMD_JIMTCL_ARGV[2], j);
 			jim_wide element_wide;
-			Jim_GetWide(interp, tmp, &element_wide);
+			int jimretval = Jim_GetWide(CMD_CTX->interp, tmp, &element_wide);
+			if (jimretval != JIM_OK) {
+				command_print(CMD, "invalid value \"%s\"", Jim_GetString(tmp, NULL));
+				free(buffer);
+				return ERROR_COMMAND_ARGUMENT_INVALID;
+			}
 
 			const uint64_t v = element_wide;
 
@@ -4631,11 +4631,11 @@ static int target_jim_write_memory(Jim_Interp *interp, int argc,
 			retval = target_write_memory(target, addr, width, chunk_len, buffer);
 
 		if (retval != ERROR_OK) {
-			LOG_ERROR("write_memory: write at " TARGET_ADDR_FMT " with width=%u and count=%zu failed",
+			LOG_DEBUG("write at " TARGET_ADDR_FMT " with width=%u and count=%zu failed",
 				addr,  width_bits, chunk_len);
-			Jim_SetResultString(interp, "write_memory: failed to write memory", -1);
-			e = JIM_ERR;
-			break;
+			command_print(CMD, "failed to write memory");
+			free(buffer);
+			return retval;
 		}
 
 		addr += chunk_len * width;
@@ -4643,7 +4643,7 @@ static int target_jim_write_memory(Jim_Interp *interp, int argc,
 
 	free(buffer);
 
-	return e;
+	return ERROR_OK;
 }
 
 /* FIX? should we propagate errors here rather than printing them
@@ -4654,7 +4654,7 @@ void target_handle_event(struct target *target, enum target_event e)
 	struct target_event_action *teap;
 	int retval;
 
-	for (teap = target->event_action; teap; teap = teap->next) {
+	list_for_each_entry(teap, &target->events_action, list) {
 		if (teap->event == e) {
 			LOG_DEBUG("target: %s (%s) event: %d (%s) action: %s",
 					   target_name(target),
@@ -4693,63 +4693,46 @@ void target_handle_event(struct target *target, enum target_event e)
 	}
 }
 
-static int target_jim_get_reg(Jim_Interp *interp, int argc,
-		Jim_Obj * const *argv)
+COMMAND_HANDLER(handle_target_get_reg)
 {
+	if (CMD_ARGC < 1 || CMD_ARGC > 2)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
 	bool force = false;
+	Jim_Obj *next_argv = CMD_JIMTCL_ARGV[0];
 
-	if (argc == 3) {
-		const char *option = Jim_GetString(argv[1], NULL);
-
-		if (!strcmp(option, "-force")) {
-			argc--;
-			argv++;
-			force = true;
-		} else {
-			Jim_SetResultFormatted(interp, "invalid option '%s'", option);
-			return JIM_ERR;
+	if (CMD_ARGC == 2) {
+		if (strcmp(CMD_ARGV[0], "-force")) {
+			command_print(CMD, "invalid argument '%s', must be '-force'", CMD_ARGV[0]);
+			return ERROR_COMMAND_ARGUMENT_INVALID;
 		}
+
+		force = true;
+		next_argv = CMD_JIMTCL_ARGV[1];
 	}
 
-	if (argc != 2) {
-		Jim_WrongNumArgs(interp, 1, argv, "[-force] list");
-		return JIM_ERR;
-	}
+	const int length = Jim_ListLength(CMD_CTX->interp, next_argv);
 
-	const int length = Jim_ListLength(interp, argv[1]);
-
-	Jim_Obj *result_dict = Jim_NewDictObj(interp, NULL, 0);
-
-	if (!result_dict)
-		return JIM_ERR;
-
-	struct command_context *cmd_ctx = current_command_context(interp);
-	assert(cmd_ctx);
-	const struct target *target = get_current_target(cmd_ctx);
+	const struct target *target = get_current_target(CMD_CTX);
 
 	for (int i = 0; i < length; i++) {
-		Jim_Obj *elem = Jim_ListGetIndex(interp, argv[1], i);
-
-		if (!elem)
-			return JIM_ERR;
+		Jim_Obj *elem = Jim_ListGetIndex(CMD_CTX->interp, next_argv, i);
 
 		const char *reg_name = Jim_String(elem);
 
-		struct reg *reg = register_get_by_name(target->reg_cache, reg_name,
-			false);
+		struct reg *reg = register_get_by_name(target->reg_cache, reg_name, false);
 
 		if (!reg || !reg->exist) {
-			Jim_SetResultFormatted(interp, "unknown register '%s'", reg_name);
-			return JIM_ERR;
+			command_print(CMD, "unknown register '%s'", reg_name);
+			return ERROR_COMMAND_ARGUMENT_INVALID;
 		}
 
 		if (force || !reg->valid) {
 			int retval = reg->type->get(reg);
 
 			if (retval != ERROR_OK) {
-				Jim_SetResultFormatted(interp, "failed to read register '%s'",
-					reg_name);
-				return JIM_ERR;
+				command_print(CMD, "failed to read register '%s'", reg_name);
+				return retval;
 			}
 		}
 
@@ -4757,27 +4740,15 @@ static int target_jim_get_reg(Jim_Interp *interp, int argc,
 
 		if (!reg_value) {
 			LOG_ERROR("Failed to allocate memory");
-			return JIM_ERR;
+			return ERROR_FAIL;
 		}
 
-		char *tmp = alloc_printf("0x%s", reg_value);
+		command_print(CMD, "%s 0x%s", reg_name, reg_value);
 
 		free(reg_value);
-
-		if (!tmp) {
-			LOG_ERROR("Failed to allocate memory");
-			return JIM_ERR;
-		}
-
-		Jim_DictAddElement(interp, result_dict, elem,
-			Jim_NewStringObj(interp, tmp, -1));
-
-		free(tmp);
 	}
 
-	Jim_SetResult(interp, result_dict);
-
-	return JIM_OK;
+	return ERROR_OK;
 }
 
 COMMAND_HANDLER(handle_set_reg_command)
@@ -4846,7 +4817,7 @@ bool target_has_event_action(const struct target *target, enum target_event even
 {
 	struct target_event_action *teap;
 
-	for (teap = target->event_action; teap; teap = teap->next) {
+	list_for_each_entry(teap, &target->events_action, list) {
 		if (teap->event == event)
 			return true;
 	}
@@ -4966,19 +4937,31 @@ no_params:
 			{
 				struct target_event_action *teap;
 
-				teap = target->event_action;
 				/* replace existing? */
-				while (teap) {
+				list_for_each_entry(teap, &target->events_action, list)
 					if (teap->event == (enum target_event)n->value)
 						break;
-					teap = teap->next;
-				}
+
+				/* not found! */
+				if (&teap->list == &target->events_action)
+					teap = NULL;
 
 				if (goi->is_configure) {
 					/* START_DEPRECATED_TPIU */
 					if (n->value == TARGET_EVENT_TRACE_CONFIG)
 						LOG_INFO("DEPRECATED target event %s; use TPIU events {pre,post}-{enable,disable}", n->name);
 					/* END_DEPRECATED_TPIU */
+
+					jim_getopt_obj(goi, &o);
+					if (Jim_Length(o) == 0) {
+						/* empty action, drop existing one */
+						if (teap) {
+							list_del(&teap->list);
+							Jim_DecrRefCount(teap->interp, teap->body);
+							free(teap);
+						}
+						break;
+					}
 
 					bool replace = true;
 					if (!teap) {
@@ -4988,7 +4971,6 @@ no_params:
 					}
 					teap->event = n->value;
 					teap->interp = goi->interp;
-					jim_getopt_obj(goi, &o);
 					if (teap->body)
 						Jim_DecrRefCount(teap->interp, teap->body);
 					teap->body  = Jim_DuplicateObj(goi->interp, o);
@@ -5006,8 +4988,7 @@ no_params:
 
 					if (!replace) {
 						/* add to head of event list */
-						teap->next = target->event_action;
-						target->event_action = teap;
+						list_add(&teap->list, &target->events_action);
 					}
 					Jim_SetEmptyResult(goi->interp);
 				} else {
@@ -5422,19 +5403,19 @@ COMMAND_HANDLER(handle_target_wait_state)
 COMMAND_HANDLER(handle_target_event_list)
 {
 	struct target *target = get_current_target(CMD_CTX);
-	struct target_event_action *teap = target->event_action;
+	struct target_event_action *teap;
 
 	command_print(CMD, "Event actions for target %s\n",
 				   target_name(target));
 	command_print(CMD, "%-25s | Body", "Event");
 	command_print(CMD, "------------------------- | "
 			"----------------------------------------");
-	while (teap) {
+
+	list_for_each_entry(teap, &target->events_action, list)
 		command_print(CMD, "%-25s | %s",
 				target_event_name(teap->event),
 				Jim_GetString(teap->body, NULL));
-		teap = teap->next;
-	}
+
 	command_print(CMD, "***END***");
 	return ERROR_OK;
 }
@@ -5569,9 +5550,9 @@ static const struct command_registration target_instance_command_handlers[] = {
 	{
 		.name = "get_reg",
 		.mode = COMMAND_EXEC,
-		.jim_handler = target_jim_get_reg,
+		.handler = handle_target_get_reg,
 		.help = "Get register values from the target",
-		.usage = "list",
+		.usage = "[-force] list",
 	},
 	{
 		.name = "set_reg",
@@ -5590,7 +5571,7 @@ static const struct command_registration target_instance_command_handlers[] = {
 	{
 		.name = "write_memory",
 		.mode = COMMAND_EXEC,
-		.jim_handler = target_jim_write_memory,
+		.handler = handle_target_write_memory,
 		.help = "Write Tcl list of 8/16/32/64 bit numbers to target memory",
 		.usage = "address width data ['phys']",
 	},
@@ -5787,6 +5768,8 @@ static int target_create(struct jim_getopt_info *goi)
 
 	target->halt_issued			= false;
 
+	INIT_LIST_HEAD(&target->events_action);
+
 	/* initialize trace information */
 	target->trace_info = calloc(1, sizeof(struct trace));
 	if (!target->trace_info) {
@@ -5806,6 +5789,16 @@ static int target_create(struct jim_getopt_info *goi)
 
 	target->gdb_port_override = NULL;
 	target->gdb_max_connections = 1;
+
+	cp = Jim_GetString(new_cmd, NULL);
+	target->cmd_name = strdup(cp);
+	if (!target->cmd_name) {
+		LOG_ERROR("Out of memory");
+		free(target->trace_info);
+		free(target->type);
+		free(target);
+		return JIM_ERR;
+	}
 
 	/* Do the rest as "configure" options */
 	goi->is_configure = true;
@@ -5841,19 +5834,6 @@ static int target_create(struct jim_getopt_info *goi)
 	if (target->endianness == TARGET_ENDIAN_UNKNOWN) {
 		/* default endian to little if not specified */
 		target->endianness = TARGET_LITTLE_ENDIAN;
-	}
-
-	cp = Jim_GetString(new_cmd, NULL);
-	target->cmd_name = strdup(cp);
-	if (!target->cmd_name) {
-		LOG_ERROR("Out of memory");
-		rtos_destroy(target);
-		free(target->gdb_port_override);
-		free(target->trace_info);
-		free(target->type);
-		free(target->private_config);
-		free(target);
-		return JIM_ERR;
 	}
 
 	if (target->type->target_create) {
@@ -6707,9 +6687,9 @@ static const struct command_registration target_exec_command_handlers[] = {
 	{
 		.name = "get_reg",
 		.mode = COMMAND_EXEC,
-		.jim_handler = target_jim_get_reg,
+		.handler = handle_target_get_reg,
 		.help = "Get register values from the target",
-		.usage = "list",
+		.usage = "[-force] list",
 	},
 	{
 		.name = "set_reg",
@@ -6728,7 +6708,7 @@ static const struct command_registration target_exec_command_handlers[] = {
 	{
 		.name = "write_memory",
 		.mode = COMMAND_EXEC,
-		.jim_handler = target_jim_write_memory,
+		.handler = handle_target_write_memory,
 		.help = "Write Tcl list of 8/16/32/64 bit numbers to target memory",
 		.usage = "address width data ['phys']",
 	},

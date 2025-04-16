@@ -61,6 +61,7 @@ static int armv8_cache_d_inner_flush_level(struct armv8_common *armv8, struct ar
 				goto done;
 			c_way -= 1;
 		} while (c_way >= 0);
+		keep_alive();
 		c_index -= 1;
 	} while (c_index >= 0);
 
@@ -135,6 +136,36 @@ int armv8_cache_d_inner_flush_virt(struct armv8_common *armv8, target_addr_t va,
 
 done:
 	LOG_ERROR("d-cache invalidate failed");
+	dpm->finish(dpm);
+
+	return retval;
+}
+
+static int armv8_cache_i_inner_clean_inval_all(struct armv8_common *armv8)
+{
+	struct arm_dpm *dpm = armv8->arm.dpm;
+	int retval;
+
+	retval = armv8_i_cache_sanity_check(armv8);
+	if (retval != ERROR_OK)
+		return retval;
+
+	LOG_DEBUG("flushing cache");
+
+	retval = dpm->prepare(dpm);
+	if (retval != ERROR_OK)
+		goto done;
+
+	retval = dpm->instr_execute(dpm, armv8_opcode(armv8, ARMV8_OPC_ICIALLU));
+	if (retval != ERROR_OK)
+		goto done;
+
+	dpm->finish(dpm);
+	LOG_DEBUG("flushing cache done");
+	return retval;
+
+done:
+	LOG_ERROR("i-cache invalidate failed");
 	dpm->finish(dpm);
 
 	return retval;
@@ -249,6 +280,32 @@ static int  armv8_flush_all_data(struct target *target)
 		}
 	} else
 		retval = _armv8_flush_all_data(target);
+	return retval;
+}
+
+static int  armv8_flush_all_instruction(struct target *target)
+{
+	int retval = ERROR_FAIL;
+	/*  check that armv8_cache is correctly identify */
+	struct armv8_common *armv8 = target_to_armv8(target);
+	if (armv8->armv8_mmu.armv8_cache.info == -1) {
+		LOG_ERROR("trying to flush un-identified cache");
+		return retval;
+	}
+
+	if (target->smp) {
+		/* look if all the other target have been flushed in order to flush icache */
+		struct target_list *head;
+		foreach_smp_target(head, target->smp_targets) {
+			struct target *curr = head->target;
+			if (curr->state == TARGET_HALTED) {
+				LOG_TARGET_INFO(curr, "Wait flushing instruction l1.");
+				retval = armv8_cache_i_inner_clean_inval_all(target_to_armv8(curr));
+			}
+		}
+	} else {
+		retval = armv8_cache_i_inner_clean_inval_all(armv8);
+	}
 	return retval;
 }
 
@@ -410,6 +467,12 @@ int armv8_identify_cache(struct armv8_common *armv8)
 			armv8_handle_inner_cache_info_command;
 		armv8->armv8_mmu.armv8_cache.flush_all_data_cache =
 			armv8_flush_all_data;
+	}
+	if (!armv8->armv8_mmu.armv8_cache.invalidate_all_instruction_cache) {
+		armv8->armv8_mmu.armv8_cache.display_cache_info =
+			armv8_handle_inner_cache_info_command;
+		armv8->armv8_mmu.armv8_cache.invalidate_all_instruction_cache =
+			armv8_flush_all_instruction;
 	}
 
 done:

@@ -85,7 +85,8 @@ struct log_callback {
 int log_add_callback(log_callback_fn fn, void *priv);
 int log_remove_callback(log_callback_fn fn, void *priv);
 
-char *alloc_vprintf(const char *fmt, va_list ap);
+char *alloc_vprintf(const char *fmt, va_list ap)
+	__attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 1, 0)));
 char *alloc_printf(const char *fmt, ...)
 	__attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 1, 2)));
 

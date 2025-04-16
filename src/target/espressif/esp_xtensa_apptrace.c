@@ -277,7 +277,7 @@ static int esp_xtensa_swdbg_activate(struct target *target, int enab)
 	xtensa_dm_queue_tdi_idle(&xtensa->dbg_mod);
 	int res = xtensa_dm_queue_execute(&xtensa->dbg_mod);
 	if (res != ERROR_OK) {
-		LOG_ERROR("%s: writing DCR failed!", target->cmd_name);
+		LOG_TARGET_ERROR(target, "writing DCR failed");
 		return res;
 	}
 

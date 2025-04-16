@@ -2923,14 +2923,12 @@ static int cortex_a_examine_first(struct target *target)
 	armv7a->debug_ap->memaccess_tck = 80;
 
 	if (!target->dbgbase_set) {
-		LOG_DEBUG("%s's dbgbase is not set, trying to detect using the ROM table",
-			  target->cmd_name);
+		LOG_TARGET_DEBUG(target, "dbgbase is not set, trying to detect using the ROM table");
 		/* Lookup Processor DAP */
 		retval = dap_lookup_cs_component(armv7a->debug_ap, ARM_CS_C9_DEVTYPE_CORE_DEBUG,
 				&armv7a->debug_base, target->coreid);
 		if (retval != ERROR_OK) {
-			LOG_ERROR("Can't detect %s's dbgbase from the ROM table; you need to specify it explicitly.",
-				  target->cmd_name);
+			LOG_TARGET_ERROR(target, "Can't detect dbgbase from the ROM table; you need to specify it explicitly");
 			return retval;
 		}
 		LOG_DEBUG("Detected core %" PRId32 " dbgbase: " TARGET_ADDR_FMT,
@@ -2939,8 +2937,9 @@ static int cortex_a_examine_first(struct target *target)
 		armv7a->debug_base = target->dbgbase;
 
 	if ((armv7a->debug_base & (1UL<<31)) == 0)
-		LOG_WARNING("Debug base address for target %s has bit 31 set to 0. Access to debug registers will likely fail!\n"
-			    "Please fix the target configuration.", target_name(target));
+		LOG_TARGET_WARNING(target,
+			"Debug base address has bit 31 set to 0. Access to debug registers will likely fail!\n"
+			"Please fix the target configuration");
 
 	retval = mem_ap_read_atomic_u32(armv7a->debug_ap,
 			armv7a->debug_base + CPUDBG_DIDR, &didr);
