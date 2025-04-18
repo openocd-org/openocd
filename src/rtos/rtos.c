@@ -13,6 +13,7 @@
 #include "target/target.h"
 #include "helper/log.h"
 #include "helper/binarybuffer.h"
+#include "helper/types.h"
 #include "server/gdb_server.h"
 
 static const struct rtos_type *rtos_types[] = {
@@ -31,10 +32,7 @@ static const struct rtos_type *rtos_types[] = {
 	&rtkernel_rtos,
 	/* keep this as last, as it always matches with rtos auto */
 	&hwthread_rtos,
-	NULL
 };
-
-static int rtos_try_next(struct target *target);
 
 int rtos_smp_init(struct target *target)
 {
@@ -116,12 +114,12 @@ int rtos_create(struct command_invocation *cmd, struct target *target,
 		return os_alloc(target, rtos_types[0]);
 	}
 
-	for (int x = 0; rtos_types[x]; x++)
+	for (size_t x = 0; x < ARRAY_SIZE(rtos_types); x++)
 		if (strcmp(rtos_name, rtos_types[x]->name) == 0)
 			return os_alloc_create(target, rtos_types[x]);
 
 	char *all = NULL;
-	for (int x = 0; rtos_types[x]; x++) {
+	for (size_t x = 0; x < ARRAY_SIZE(rtos_types); x++) {
 		char *prev = all;
 		if (all)
 			all = alloc_printf("%s, %s", all, rtos_types[x]->name);
@@ -153,6 +151,29 @@ int gdb_thread_packet(struct connection *connection, char const *packet, int pac
 		return rtos_thread_packet(connection, packet, packet_size);	/* thread not
 										 *found*/
 	return target->rtos->gdb_thread_packet(connection, packet, packet_size);
+}
+
+static bool rtos_try_next(struct target *target)
+{
+	struct rtos *os = target->rtos;
+
+	if (!os)
+		return false;
+
+	for (size_t x = 0; x < ARRAY_SIZE(rtos_types) - 1; x++) {
+		if (os->type == rtos_types[x]) {
+			// Use next RTOS in the list
+			os->type = rtos_types[x + 1];
+
+			free(os->symbols);
+			os->symbols = NULL;
+
+			return true;
+		}
+	}
+
+	// No next RTOS to try
+	return false;
 }
 
 static struct symbol_table_elem *find_symbol(const struct rtos *os, const char *symbol)
@@ -665,28 +686,6 @@ int rtos_generic_stack_read(struct target *target,
 	free(stack_data);
 /*	LOG_OUTPUT("Output register string: %s\r\n", *hex_reg_list); */
 	return ERROR_OK;
-}
-
-static int rtos_try_next(struct target *target)
-{
-	struct rtos *os = target->rtos;
-	const struct rtos_type **type = rtos_types;
-
-	if (!os)
-		return 0;
-
-	while (*type && os->type != *type)
-		type++;
-
-	if (!*type || !*(++type))
-		return 0;
-
-	os->type = *type;
-
-	free(os->symbols);
-	os->symbols = NULL;
-
-	return 1;
 }
 
 int rtos_update_threads(struct target *target)
