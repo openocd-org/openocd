@@ -224,7 +224,6 @@ ARC_SRC = \
 	%D%/avr32_mem.h \
 	%D%/avr32_regs.h \
 	%D%/semihosting_common.h \
-	%D%/stm8.h \
 	%D%/lakemont.h \
 	%D%/x86_32_common.h \
 	%D%/arm_cti.h \
