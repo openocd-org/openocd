@@ -182,8 +182,7 @@ done:
 int armv7a_handle_cache_info_command(struct command_invocation *cmd,
 	struct armv7a_cache_common *armv7a_cache)
 {
-	struct armv7a_l2x_cache *l2x_cache = (struct armv7a_l2x_cache *)
-		(armv7a_cache->outer_cache);
+	struct armv7a_l2x_cache *l2x_cache = armv7a_cache->outer_cache;
 
 	int cl;
 

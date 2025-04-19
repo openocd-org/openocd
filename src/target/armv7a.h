@@ -66,7 +66,7 @@ struct armv7a_cache_common {
 	int i_cache_enabled;
 	int d_u_cache_enabled;
 	/* outer unified cache if some */
-	void *outer_cache;
+	struct armv7a_l2x_cache *outer_cache;
 	int (*flush_all_data_cache)(struct target *target);
 };
 

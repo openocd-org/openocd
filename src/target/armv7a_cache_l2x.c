@@ -21,8 +21,8 @@
 static int arm7a_l2x_sanity_check(struct target *target)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct armv7a_l2x_cache *l2x_cache = (struct armv7a_l2x_cache *)
-		(armv7a->armv7a_mmu.armv7a_cache.outer_cache);
+	struct armv7a_l2x_cache *l2x_cache =
+		armv7a->armv7a_mmu.armv7a_cache.outer_cache;
 
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("%s: target not halted", __func__);
@@ -42,8 +42,8 @@ static int arm7a_l2x_sanity_check(struct target *target)
 int arm7a_l2x_flush_all_data(struct target *target)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct armv7a_l2x_cache *l2x_cache = (struct armv7a_l2x_cache *)
-		(armv7a->armv7a_mmu.armv7a_cache.outer_cache);
+	struct armv7a_l2x_cache *l2x_cache =
+		armv7a->armv7a_mmu.armv7a_cache.outer_cache;
 	uint32_t l2_way_val;
 	int retval;
 
@@ -62,8 +62,8 @@ int armv7a_l2x_cache_flush_virt(struct target *target, target_addr_t virt,
 					uint32_t size)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct armv7a_l2x_cache *l2x_cache = (struct armv7a_l2x_cache *)
-		(armv7a->armv7a_mmu.armv7a_cache.outer_cache);
+	struct armv7a_l2x_cache *l2x_cache =
+		armv7a->armv7a_mmu.armv7a_cache.outer_cache;
 	/* FIXME: different controllers have different linelen? */
 	uint32_t i, linelen = 32;
 	int retval;
@@ -97,8 +97,8 @@ static int armv7a_l2x_cache_inval_virt(struct target *target, target_addr_t virt
 					uint32_t size)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct armv7a_l2x_cache *l2x_cache = (struct armv7a_l2x_cache *)
-		(armv7a->armv7a_mmu.armv7a_cache.outer_cache);
+	struct armv7a_l2x_cache *l2x_cache =
+		armv7a->armv7a_mmu.armv7a_cache.outer_cache;
 	/* FIXME: different controllers have different linelen */
 	uint32_t i, linelen = 32;
 	int retval;
@@ -132,8 +132,8 @@ static int armv7a_l2x_cache_clean_virt(struct target *target, target_addr_t virt
 					unsigned int size)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
-	struct armv7a_l2x_cache *l2x_cache = (struct armv7a_l2x_cache *)
-		(armv7a->armv7a_mmu.armv7a_cache.outer_cache);
+	struct armv7a_l2x_cache *l2x_cache =
+		armv7a->armv7a_mmu.armv7a_cache.outer_cache;
 	/* FIXME: different controllers have different linelen */
 	uint32_t i, linelen = 32;
 	int retval;
@@ -166,8 +166,7 @@ done:
 static int arm7a_handle_l2x_cache_info_command(struct command_invocation *cmd,
 	struct armv7a_cache_common *armv7a_cache)
 {
-	struct armv7a_l2x_cache *l2x_cache = (struct armv7a_l2x_cache *)
-		(armv7a_cache->outer_cache);
+	struct armv7a_l2x_cache *l2x_cache = armv7a_cache->outer_cache;
 
 	if (armv7a_cache->info == -1) {
 		command_print(cmd, "cache not yet identified");
