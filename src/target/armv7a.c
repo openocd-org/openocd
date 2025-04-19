@@ -179,54 +179,6 @@ done:
 	return retval;
 }
 
-/* FIXME: remove it */
-static int armv7a_l2x_cache_init(struct target *target, uint32_t base, uint32_t way)
-{
-	struct armv7a_l2x_cache *l2x_cache;
-	struct target_list *head;
-
-	struct armv7a_common *armv7a = target_to_armv7a(target);
-	l2x_cache = calloc(1, sizeof(struct armv7a_l2x_cache));
-	l2x_cache->base = base;
-	l2x_cache->way = way;
-	/*LOG_INFO("cache l2 initialized base %x  way %d",
-	l2x_cache->base,l2x_cache->way);*/
-	if (armv7a->armv7a_mmu.armv7a_cache.outer_cache)
-		LOG_INFO("outer cache already initialized\n");
-	armv7a->armv7a_mmu.armv7a_cache.outer_cache = l2x_cache;
-	/*  initialize all target in this cluster (smp target)
-	 *  l2 cache must be configured after smp declaration */
-	foreach_smp_target(head, target->smp_targets) {
-		struct target *curr = head->target;
-		if (curr != target) {
-			armv7a = target_to_armv7a(curr);
-			if (armv7a->armv7a_mmu.armv7a_cache.outer_cache)
-				LOG_ERROR("smp target : outer cache already initialized\n");
-			armv7a->armv7a_mmu.armv7a_cache.outer_cache = l2x_cache;
-		}
-	}
-	return JIM_OK;
-}
-
-/* FIXME: remove it */
-COMMAND_HANDLER(handle_cache_l2x)
-{
-	struct target *target = get_current_target(CMD_CTX);
-	uint32_t base, way;
-
-	if (CMD_ARGC != 2)
-		return ERROR_COMMAND_SYNTAX_ERROR;
-
-	/* command_print(CMD, "%s %s", CMD_ARGV[0], CMD_ARGV[1]); */
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], base);
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], way);
-
-	/* AP address is in bits 31:24 of DP_SELECT */
-	armv7a_l2x_cache_init(target, base, way);
-
-	return ERROR_OK;
-}
-
 int armv7a_handle_cache_info_command(struct command_invocation *cmd,
 	struct armv7a_cache_common *armv7a_cache)
 {
@@ -561,33 +513,7 @@ int armv7a_arch_state(struct target *target)
 	return ERROR_OK;
 }
 
-static const struct command_registration l2_cache_commands[] = {
-	{
-		.name = "l2x",
-		.handler = handle_cache_l2x,
-		.mode = COMMAND_EXEC,
-		.help = "configure l2x cache",
-		.usage = "[base_addr] [number_of_way]",
-	},
-	COMMAND_REGISTRATION_DONE
-
-};
-
-static const struct command_registration l2x_cache_command_handlers[] = {
-	{
-		.name = "cache_config",
-		.mode = COMMAND_EXEC,
-		.help = "cache configuration for a target",
-		.usage = "",
-		.chain = l2_cache_commands,
-	},
-	COMMAND_REGISTRATION_DONE
-};
-
 const struct command_registration armv7a_command_handlers[] = {
-	{
-		.chain = l2x_cache_command_handlers,
-	},
 	{
 		.chain = arm7a_cache_command_handlers,
 	},

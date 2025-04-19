@@ -316,3 +316,9 @@ proc _post_init_target_cortex_a_cache_auto {} {
 	}
 }
 lappend post_init_commands _post_init_target_cortex_a_cache_auto
+
+lappend _telnet_autocomplete_skip "cache_config l2x"
+proc "cache_config l2x" {args} {
+	echo "DEPRECATED! use 'cache l2x conf' not 'cache_config l2x'"
+	eval cache_config l2x $args
+}

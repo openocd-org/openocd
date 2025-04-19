@@ -10710,10 +10710,6 @@ Display/set the current core displayed in GDB
 Selects whether interrupts will be processed when single stepping
 @end deffn
 
-@deffn {Command} {cache_config l2x}  [base way]
-configure l2x cache
-@end deffn
-
 @deffn {Command} {cortex_a mmu dump} [@option{0}|@option{1}|@option{addr} address [@option{num_entries}]]
 Dump the MMU translation table from TTB0 or TTB1 register, or from physical
 memory location @var{address}. When dumping the table from @var{address}, print at most
