@@ -75,7 +75,6 @@ signal trst_clk, trst_rst, trst_d, trst_q : std_logic;
 signal tms_clk, tms_rst, tms_d, tms_q : std_logic;
 signal tdi_clk, tdi_rst, tdi_d, tdi_q : std_logic;
 signal tdo_clk, tdo_rst, tdo_d, tdo_q : std_logic;
-signal srst_clk, srst_rst, srst_d, srst_q : std_logic;
 
 ----------------------------------------clk_div
 signal clk_div_in, clk_div_out, reset_clk_div : std_logic;
@@ -188,14 +187,6 @@ port map (
    q => tdo_q
 );
 
-DFF_inst_SRST : DFF
-port map (
-   clk => srst_clk,
-   reset => srst_rst,
-   d => srst_d,
-   q => srst_q
-);
-
 -- Instantiate the FIFO OUT
 U0 : fifo_generator_v9_3
 port map (
@@ -233,7 +224,6 @@ trst_clk <= IFCLK_I;
 tms_clk <= IFCLK_I;
 tdi_clk <= IFCLK_I;
 tdo_clk <= IFCLK_I;
-srst_clk <= IFCLK_I;
 
 --------------- FIFOs
 clk_wr_o <= IFCLK_I;
@@ -308,7 +298,6 @@ begin
         tms_rst <= '1';
         tdi_rst <= '1';
         tdo_rst <= '1';
-        srst_rst <= '1';
     else
         reset_mae <= '0';   -- No Reset State Machine
         reset_mae2 <= '0';   -- Reset State Machine
@@ -320,7 +309,6 @@ begin
         tms_rst <= '0';
         tdi_rst <= '0';
         tdo_rst <= '0';
-        srst_rst <= '0';
     end if;
 end process;
 
@@ -419,8 +407,7 @@ ST_0_O <= '0';
 -- TDO : in
 ST_1_O <= '1';
 -- SRST : out
-ST_2_O <= srst_q;
-srst_d <= data_out_o(6);
+ST_2_O <= '1';
 SO_SRST_O <= '0';
 -- MOD : in
 ST_3_O <= '1';
