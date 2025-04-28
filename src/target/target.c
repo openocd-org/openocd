@@ -5706,7 +5706,7 @@ COMMAND_HANDLER(handle_target_create)
 	int retval = ERROR_OK;
 	int x;
 
-	if (CMD_ARGC < 4)
+	if (CMD_ARGC < 2)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	/* check if the target name clashes with an existing command name */
@@ -6051,7 +6051,7 @@ static const struct command_registration target_subcommand_handlers[] = {
 		.name = "create",
 		.mode = COMMAND_CONFIG,
 		.handler = handle_target_create,
-		.usage = "name type '-chain-position' name [options ...]",
+		.usage = "name type [options ...]",
 		.help = "Creates and selects a new target",
 	},
 	{
