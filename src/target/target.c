@@ -4926,7 +4926,8 @@ static COMMAND_HELPER(target_configure, struct target *target, unsigned int inde
 
 		case TCFG_EVENT:
 			if (index == CMD_ARGC) {
-				command_print(CMD, "missing event-name");
+				command_print(CMD, "expecting %s event-name event-body",
+						CMD_ARGV[index - 1]);
 				return ERROR_COMMAND_ARGUMENT_INVALID;
 			}
 
@@ -4939,7 +4940,8 @@ static COMMAND_HELPER(target_configure, struct target *target, unsigned int inde
 
 			if (is_configure) {
 				if (index == CMD_ARGC) {
-					command_print(CMD, "missing event-body");
+					command_print(CMD, "expecting %s %s event-body",
+							CMD_ARGV[index - 2], CMD_ARGV[index - 1]);
 					return ERROR_COMMAND_ARGUMENT_INVALID;
 				}
 			}
