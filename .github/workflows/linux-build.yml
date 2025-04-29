@@ -5,7 +5,7 @@ name: Linux Build
 jobs:
   # 32-bit, clang
   build32:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     env:
       CFLAGS: -m32
       CC: clang
