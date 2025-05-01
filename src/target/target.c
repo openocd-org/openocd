@@ -4889,16 +4889,18 @@ static COMMAND_HELPER(target_configure, struct target *target, unsigned int inde
 			goi.is_configure = is_configure;
 			int e = (*target->type->target_jim_configure)(target, &goi);
 			index = CMD_ARGC - goi.argc;
+
+			int reslen;
+			const char *result = Jim_GetString(Jim_GetResult(CMD_CTX->interp), &reslen);
+			if (reslen > 0)
+				command_print(CMD, "%s", result);
+
 			if (e == JIM_OK) {
 				/* more? */
 				continue;
 			}
 			if (e == JIM_ERR) {
 				/* An error */
-				int reslen;
-				const char *result = Jim_GetString(Jim_GetResult(CMD_CTX->interp), &reslen);
-				if (reslen > 0)
-					command_print(CMD, "%s", result);
 				return ERROR_FAIL;
 			}
 			/* otherwise we 'continue' below */
