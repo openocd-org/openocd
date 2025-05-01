@@ -258,7 +258,7 @@ struct transport *get_current_transport(void)
 const char *get_current_transport_name(void)
 {
 	if (!session || !is_transport_id_valid(session->id))
-		NULL;
+		return NULL;
 
 	return transport_full_name(session->id);
 }
