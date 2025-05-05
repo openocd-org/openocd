@@ -3,6 +3,7 @@
 noinst_LTLIBRARIES += %D%/libhelper.la
 
 %C%_libhelper_la_SOURCES = \
+	%D%/base64.c \
 	%D%/binarybuffer.c \
 	%D%/options.c \
 	%D%/time_support_common.c \
@@ -18,6 +19,7 @@ noinst_LTLIBRARIES += %D%/libhelper.la
 	%D%/jim-nvp.c \
 	%D%/nvp.c \
 	%D%/align.h \
+	%D%/base64.h \
 	%D%/binarybuffer.h \
 	%D%/bitfield.h \
 	%D%/bits.h \
