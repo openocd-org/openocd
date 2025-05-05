@@ -27,14 +27,14 @@ enum riscv_debug_reg_show {
  * (excluding '\0').
  *
  * Example:
- * const struct riscv_debug_reg_ctx_t context = {
+ * const struct struct riscv_debug_reg_ctx context = {
  *     .abits = { .value = <abits value>, .is_set = true }
  * };
  * char buf[riscv_debug_reg_to_s(NULL, DTM_DMI_ORDINAL, context, <dmi value>) + 1]
  * riscv_debug_reg_to_s(buf, DTM_DMI_ORDINAL, context, <dmi value>);
  */
 unsigned int riscv_debug_reg_to_s(char *buf, enum riscv_debug_reg_ordinal reg_ordinal,
-		riscv_debug_reg_ctx_t context, uint64_t value,
+		struct riscv_debug_reg_ctx context, uint64_t value,
 		enum riscv_debug_reg_show show);
 
 #endif /* OPENOCD_TARGET_RISCV_DEBUG_REG_PRINTER_H */

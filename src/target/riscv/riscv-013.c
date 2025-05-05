@@ -349,15 +349,15 @@ static void riscv013_dm_free(struct target *target)
 	info->dm = NULL;
 }
 
-static riscv_debug_reg_ctx_t get_riscv_debug_reg_ctx(const struct target *target)
+static struct riscv_debug_reg_ctx get_riscv_debug_reg_ctx(const struct target *target)
 {
 	if (!target_was_examined(target)) {
-		const riscv_debug_reg_ctx_t default_context = {0};
+		const struct riscv_debug_reg_ctx default_context = {0};
 		return default_context;
 	}
 
 	RISCV013_INFO(info);
-	const riscv_debug_reg_ctx_t context = {
+	const struct riscv_debug_reg_ctx context = {
 		.XLEN = { .value = riscv_xlen(target), .is_set = true },
 		.DXLEN = { .value = riscv_xlen(target), .is_set = true },
 		.abits = { .value = info->abits, .is_set = true },
@@ -370,7 +370,7 @@ static void log_debug_reg(struct target *target, enum riscv_debug_reg_ordinal re
 {
 	if (debug_level < LOG_LVL_DEBUG)
 		return;
-	const riscv_debug_reg_ctx_t context = get_riscv_debug_reg_ctx(target);
+	const struct riscv_debug_reg_ctx context = get_riscv_debug_reg_ctx(target);
 	char * const buf = malloc(riscv_debug_reg_to_s(NULL, reg, context, value, RISCV_DEBUG_REG_HIDE_UNNAMED_0) + 1);
 	if (!buf) {
 		LOG_ERROR("Unable to allocate memory.");

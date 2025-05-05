@@ -43,7 +43,7 @@ static unsigned int riscv_debug_reg_field_value_to_s(char *buf, unsigned int off
 }
 
 static unsigned int riscv_debug_reg_field_to_s(char *buf, unsigned int offset,
-		riscv_debug_reg_field_info_t field, riscv_debug_reg_ctx_t context,
+		struct riscv_debug_reg_field_info field, struct riscv_debug_reg_ctx context,
 		uint64_t field_value)
 {
 	const unsigned int name_len = get_len_or_sprintf(buf, offset, "%s=", field.name);
@@ -52,7 +52,7 @@ static unsigned int riscv_debug_reg_field_to_s(char *buf, unsigned int offset,
 			field.values, field_value);
 }
 
-static uint64_t riscv_debug_reg_field_value(riscv_debug_reg_field_info_t field, uint64_t value)
+static uint64_t riscv_debug_reg_field_value(struct riscv_debug_reg_field_info field, uint64_t value)
 {
 	assert(field.msb < 64);
 	assert(field.msb >= field.lsb);
@@ -61,14 +61,14 @@ static uint64_t riscv_debug_reg_field_value(riscv_debug_reg_field_info_t field, 
 }
 
 static unsigned int riscv_debug_reg_fields_to_s(char *buf, unsigned int offset,
-	struct riscv_debug_reg_field_list_t (*get_next)(riscv_debug_reg_ctx_t contex),
-	riscv_debug_reg_ctx_t context, uint64_t value,
+	struct riscv_debug_reg_field_list (*get_next)(struct riscv_debug_reg_ctx contex),
+	struct riscv_debug_reg_ctx context, uint64_t value,
 	enum riscv_debug_reg_show show)
 {
 	unsigned int curr = offset;
 	curr += get_len_or_sprintf(buf, curr, " {");
 	char *separator = "";
-	for (struct riscv_debug_reg_field_list_t list; get_next; get_next = list.get_next) {
+	for (struct riscv_debug_reg_field_list list; get_next; get_next = list.get_next) {
 		list = get_next(context);
 
 		uint64_t field_value = riscv_debug_reg_field_value(list.field, value);
@@ -89,12 +89,12 @@ static unsigned int riscv_debug_reg_fields_to_s(char *buf, unsigned int offset,
 }
 
 unsigned int riscv_debug_reg_to_s(char *buf, enum riscv_debug_reg_ordinal reg_ordinal,
-		riscv_debug_reg_ctx_t context, uint64_t value,
+		struct riscv_debug_reg_ctx context, uint64_t value,
 		enum riscv_debug_reg_show show)
 {
 	unsigned int length = 0;
 
-	riscv_debug_reg_info_t reg = get_riscv_debug_reg_info(reg_ordinal);
+	struct riscv_debug_reg_info reg = get_riscv_debug_reg_info(reg_ordinal);
 
 	length += get_len_or_sprintf(buf, length, "%s=", reg.name);
 	length += print_number(buf, length, value);

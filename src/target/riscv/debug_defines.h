@@ -3204,7 +3204,7 @@ enum riscv_debug_reg_ordinal {
 	AC_ACCESS_MEMORY_ORDINAL,
 	VIRT_PRIV_ORDINAL
 };
-typedef struct {
+struct riscv_debug_reg_ctx {
 	struct {
 		unsigned int value; int is_set;
 	} DXLEN;
@@ -3214,21 +3214,21 @@ typedef struct {
 	struct {
 		unsigned int value; int is_set;
 	} abits;
-} riscv_debug_reg_ctx_t;
+};
 
-typedef struct {
+struct riscv_debug_reg_field_info {
 	const char *name;
 	unsigned int lsb; // inclusive
 	unsigned int msb; // inclusive
 	const char **values; // If non-NULL, array of human-readable string for each possible value
-} riscv_debug_reg_field_info_t;
-typedef struct riscv_debug_reg_field_list_t {
-	riscv_debug_reg_field_info_t field;
-	struct riscv_debug_reg_field_list_t (*get_next)(riscv_debug_reg_ctx_t context);
-} riscv_debug_reg_field_list_t;
-typedef struct {
+};
+struct riscv_debug_reg_field_list {
+	struct riscv_debug_reg_field_info field;
+	struct riscv_debug_reg_field_list (*get_next)(struct riscv_debug_reg_ctx context);
+};
+struct riscv_debug_reg_info {
 	const char *name;
-	struct riscv_debug_reg_field_list_t (* const get_fields_head)(riscv_debug_reg_ctx_t context);
-} riscv_debug_reg_info_t;
-riscv_debug_reg_info_t get_riscv_debug_reg_info(enum riscv_debug_reg_ordinal reg_ordinal);
+	struct riscv_debug_reg_field_list (* const get_fields_head)(struct riscv_debug_reg_ctx context);
+};
+struct riscv_debug_reg_info get_riscv_debug_reg_info(enum riscv_debug_reg_ordinal reg_ordinal);
 #endif

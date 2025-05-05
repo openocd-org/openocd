@@ -4,9 +4,9 @@
 #include "debug_defines.h"
 #include <stddef.h>
 #include <assert.h>
-static riscv_debug_reg_field_list_t dtm_idcode_get_version(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dtm_idcode_get_version(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "Version",
 			.lsb = 0x1c,
@@ -18,9 +18,9 @@ static riscv_debug_reg_field_list_t dtm_idcode_get_version(riscv_debug_reg_ctx_t
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dtm_idcode_get_partnumber(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dtm_idcode_get_partnumber(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "PartNumber",
 			.lsb = 0xc,
@@ -32,9 +32,9 @@ static riscv_debug_reg_field_list_t dtm_idcode_get_partnumber(riscv_debug_reg_ct
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dtm_idcode_get_manufid(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dtm_idcode_get_manufid(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "ManufId",
 			.lsb = 1,
@@ -46,9 +46,9 @@ static riscv_debug_reg_field_list_t dtm_idcode_get_manufid(riscv_debug_reg_ctx_t
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dtm_idcode_get_1(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dtm_idcode_get_1(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "1",
 			.lsb = 0,
@@ -72,9 +72,9 @@ static const char *dtm_dtmcs_version_values[16] = {
 	[1] = "1_0",
 	[15] = "custom"
 };
-static riscv_debug_reg_field_list_t dtm_dtmcs_get_abits(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dtm_dtmcs_get_abits(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "abits",
 			.lsb = 4,
@@ -86,9 +86,9 @@ static riscv_debug_reg_field_list_t dtm_dtmcs_get_abits(riscv_debug_reg_ctx_t co
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dtm_dtmcs_get_errinfo(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dtm_dtmcs_get_errinfo(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "errinfo",
 			.lsb = 0x12,
@@ -100,9 +100,9 @@ static riscv_debug_reg_field_list_t dtm_dtmcs_get_errinfo(riscv_debug_reg_ctx_t 
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dtm_dtmcs_get_dtmhardreset(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dtm_dtmcs_get_dtmhardreset(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "dtmhardreset",
 			.lsb = 0x11,
@@ -114,9 +114,9 @@ static riscv_debug_reg_field_list_t dtm_dtmcs_get_dtmhardreset(riscv_debug_reg_c
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dtm_dtmcs_get_dmireset(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dtm_dtmcs_get_dmireset(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "dmireset",
 			.lsb = 0x10,
@@ -128,9 +128,9 @@ static riscv_debug_reg_field_list_t dtm_dtmcs_get_dmireset(riscv_debug_reg_ctx_t
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dtm_dtmcs_get_idle(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dtm_dtmcs_get_idle(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "idle",
 			.lsb = 0xc,
@@ -142,9 +142,9 @@ static riscv_debug_reg_field_list_t dtm_dtmcs_get_idle(riscv_debug_reg_ctx_t con
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dtm_dtmcs_get_dmistat(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dtm_dtmcs_get_dmistat(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "dmistat",
 			.lsb = 0xa,
@@ -156,9 +156,9 @@ static riscv_debug_reg_field_list_t dtm_dtmcs_get_dmistat(riscv_debug_reg_ctx_t 
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dtm_dtmcs_get_version(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dtm_dtmcs_get_version(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "version",
 			.lsb = 0,
@@ -171,10 +171,10 @@ static riscv_debug_reg_field_list_t dtm_dtmcs_get_version(riscv_debug_reg_ctx_t 
 }
 
 static const char *dtm_dmi_op_values[4] = {};
-static riscv_debug_reg_field_list_t dtm_dmi_get_address(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dtm_dmi_get_address(struct riscv_debug_reg_ctx context)
 {
 	assert(context.abits.is_set);
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "address",
 			.lsb = 0x22,
@@ -186,9 +186,9 @@ static riscv_debug_reg_field_list_t dtm_dmi_get_address(riscv_debug_reg_ctx_t co
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dtm_dmi_get_data(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dtm_dmi_get_data(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "data",
 			.lsb = 2,
@@ -200,9 +200,9 @@ static riscv_debug_reg_field_list_t dtm_dmi_get_data(riscv_debug_reg_ctx_t conte
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dtm_dmi_get_op(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dtm_dmi_get_op(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "op",
 			.lsb = 0,
@@ -276,9 +276,9 @@ static const char *csr_dcsr_mprven_values[2] = {
 	[0] = "disabled",
 	[1] = "enabled"
 };
-static riscv_debug_reg_field_list_t csr_dcsr_get_stoptime(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_dcsr_get_stoptime(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "stoptime",
 			.lsb = 9,
@@ -290,9 +290,9 @@ static riscv_debug_reg_field_list_t csr_dcsr_get_stoptime(riscv_debug_reg_ctx_t 
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_dcsr_get_cause(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_dcsr_get_cause(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "cause",
 			.lsb = 6,
@@ -304,9 +304,9 @@ static riscv_debug_reg_field_list_t csr_dcsr_get_cause(riscv_debug_reg_ctx_t con
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_dcsr_get_v(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_dcsr_get_v(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "v",
 			.lsb = 5,
@@ -318,9 +318,9 @@ static riscv_debug_reg_field_list_t csr_dcsr_get_v(riscv_debug_reg_ctx_t context
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_dcsr_get_mprven(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_dcsr_get_mprven(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "mprven",
 			.lsb = 4,
@@ -332,9 +332,9 @@ static riscv_debug_reg_field_list_t csr_dcsr_get_mprven(riscv_debug_reg_ctx_t co
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_dcsr_get_nmip(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_dcsr_get_nmip(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "nmip",
 			.lsb = 3,
@@ -346,9 +346,9 @@ static riscv_debug_reg_field_list_t csr_dcsr_get_nmip(riscv_debug_reg_ctx_t cont
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_dcsr_get_debugver(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_dcsr_get_debugver(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "debugver",
 			.lsb = 0x1c,
@@ -360,9 +360,9 @@ static riscv_debug_reg_field_list_t csr_dcsr_get_debugver(riscv_debug_reg_ctx_t 
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_dcsr_get_extcause(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_dcsr_get_extcause(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "extcause",
 			.lsb = 0x18,
@@ -374,9 +374,9 @@ static riscv_debug_reg_field_list_t csr_dcsr_get_extcause(riscv_debug_reg_ctx_t 
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_dcsr_get_step(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_dcsr_get_step(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "step",
 			.lsb = 2,
@@ -388,9 +388,9 @@ static riscv_debug_reg_field_list_t csr_dcsr_get_step(riscv_debug_reg_ctx_t cont
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_dcsr_get_cetrig(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_dcsr_get_cetrig(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "cetrig",
 			.lsb = 0x13,
@@ -402,9 +402,9 @@ static riscv_debug_reg_field_list_t csr_dcsr_get_cetrig(riscv_debug_reg_ctx_t co
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_dcsr_get_pelp(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_dcsr_get_pelp(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "pelp",
 			.lsb = 0x12,
@@ -416,9 +416,9 @@ static riscv_debug_reg_field_list_t csr_dcsr_get_pelp(riscv_debug_reg_ctx_t cont
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_dcsr_get_ebreakvs(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_dcsr_get_ebreakvs(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "ebreakvs",
 			.lsb = 0x11,
@@ -430,9 +430,9 @@ static riscv_debug_reg_field_list_t csr_dcsr_get_ebreakvs(riscv_debug_reg_ctx_t 
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_dcsr_get_ebreakvu(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_dcsr_get_ebreakvu(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "ebreakvu",
 			.lsb = 0x10,
@@ -444,9 +444,9 @@ static riscv_debug_reg_field_list_t csr_dcsr_get_ebreakvu(riscv_debug_reg_ctx_t 
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_dcsr_get_ebreakm(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_dcsr_get_ebreakm(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "ebreakm",
 			.lsb = 0xf,
@@ -458,9 +458,9 @@ static riscv_debug_reg_field_list_t csr_dcsr_get_ebreakm(riscv_debug_reg_ctx_t c
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_dcsr_get_ebreaks(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_dcsr_get_ebreaks(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "ebreaks",
 			.lsb = 0xd,
@@ -472,9 +472,9 @@ static riscv_debug_reg_field_list_t csr_dcsr_get_ebreaks(riscv_debug_reg_ctx_t c
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_dcsr_get_ebreaku(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_dcsr_get_ebreaku(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "ebreaku",
 			.lsb = 0xc,
@@ -486,9 +486,9 @@ static riscv_debug_reg_field_list_t csr_dcsr_get_ebreaku(riscv_debug_reg_ctx_t c
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_dcsr_get_stepie(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_dcsr_get_stepie(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "stepie",
 			.lsb = 0xb,
@@ -500,9 +500,9 @@ static riscv_debug_reg_field_list_t csr_dcsr_get_stepie(riscv_debug_reg_ctx_t co
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_dcsr_get_stopcount(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_dcsr_get_stopcount(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "stopcount",
 			.lsb = 0xa,
@@ -514,9 +514,9 @@ static riscv_debug_reg_field_list_t csr_dcsr_get_stopcount(riscv_debug_reg_ctx_t
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_dcsr_get_prv(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_dcsr_get_prv(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "prv",
 			.lsb = 0,
@@ -528,10 +528,10 @@ static riscv_debug_reg_field_list_t csr_dcsr_get_prv(riscv_debug_reg_ctx_t conte
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_dpc_get_dpc(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_dpc_get_dpc(struct riscv_debug_reg_ctx context)
 {
 	assert(context.DXLEN.is_set);
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "dpc",
 			.lsb = 0,
@@ -543,10 +543,10 @@ static riscv_debug_reg_field_list_t csr_dpc_get_dpc(riscv_debug_reg_ctx_t contex
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_dscratch0_get_dscratch0(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_dscratch0_get_dscratch0(struct riscv_debug_reg_ctx context)
 {
 	assert(context.DXLEN.is_set);
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "dscratch0",
 			.lsb = 0,
@@ -558,10 +558,10 @@ static riscv_debug_reg_field_list_t csr_dscratch0_get_dscratch0(riscv_debug_reg_
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_dscratch1_get_dscratch1(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_dscratch1_get_dscratch1(struct riscv_debug_reg_ctx context)
 {
 	assert(context.DXLEN.is_set);
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "dscratch1",
 			.lsb = 0,
@@ -573,10 +573,10 @@ static riscv_debug_reg_field_list_t csr_dscratch1_get_dscratch1(riscv_debug_reg_
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_tselect_get_index(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_tselect_get_index(struct riscv_debug_reg_ctx context)
 {
 	assert(context.XLEN.is_set);
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "index",
 			.lsb = 0,
@@ -603,10 +603,10 @@ static const char *csr_tdata1_dmode_values[2] = {
 	[0] = "both",
 	[1] = "dmode"
 };
-static riscv_debug_reg_field_list_t csr_tdata1_get_dmode(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_tdata1_get_dmode(struct riscv_debug_reg_ctx context)
 {
 	assert(context.XLEN.is_set);
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "dmode",
 			.lsb = (context.XLEN.value + -5),
@@ -618,10 +618,10 @@ static riscv_debug_reg_field_list_t csr_tdata1_get_dmode(riscv_debug_reg_ctx_t c
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_tdata1_get_type(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_tdata1_get_type(struct riscv_debug_reg_ctx context)
 {
 	assert(context.XLEN.is_set);
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "type",
 			.lsb = (context.XLEN.value + -4),
@@ -633,10 +633,10 @@ static riscv_debug_reg_field_list_t csr_tdata1_get_type(riscv_debug_reg_ctx_t co
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_tdata1_get_data(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_tdata1_get_data(struct riscv_debug_reg_ctx context)
 {
 	assert(context.XLEN.is_set);
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "data",
 			.lsb = 0,
@@ -648,10 +648,10 @@ static riscv_debug_reg_field_list_t csr_tdata1_get_data(riscv_debug_reg_ctx_t co
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_tdata2_get_data(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_tdata2_get_data(struct riscv_debug_reg_ctx context)
 {
 	assert(context.XLEN.is_set);
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "data",
 			.lsb = 0,
@@ -663,10 +663,10 @@ static riscv_debug_reg_field_list_t csr_tdata2_get_data(riscv_debug_reg_ctx_t co
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_tdata3_get_data(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_tdata3_get_data(struct riscv_debug_reg_ctx context)
 {
 	assert(context.XLEN.is_set);
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "data",
 			.lsb = 0,
@@ -682,9 +682,9 @@ static const char *csr_tinfo_version_values[256] = {
 	[0] = "0",
 	[1] = "1"
 };
-static riscv_debug_reg_field_list_t csr_tinfo_get_version(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_tinfo_get_version(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "version",
 			.lsb = 0x18,
@@ -696,9 +696,9 @@ static riscv_debug_reg_field_list_t csr_tinfo_get_version(riscv_debug_reg_ctx_t 
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_tinfo_get_info(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_tinfo_get_info(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "info",
 			.lsb = 0,
@@ -714,9 +714,9 @@ static const char *csr_tcontrol_mte_values[2] = {
 	[0] = "disabled",
 	[1] = "enabled"
 };
-static riscv_debug_reg_field_list_t csr_tcontrol_get_mpte(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_tcontrol_get_mpte(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "mpte",
 			.lsb = 7,
@@ -728,9 +728,9 @@ static riscv_debug_reg_field_list_t csr_tcontrol_get_mpte(riscv_debug_reg_ctx_t 
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_tcontrol_get_mte(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_tcontrol_get_mte(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "mte",
 			.lsb = 3,
@@ -742,9 +742,9 @@ static riscv_debug_reg_field_list_t csr_tcontrol_get_mte(riscv_debug_reg_ctx_t c
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_scontext_get_data(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_scontext_get_data(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "data",
 			.lsb = 0,
@@ -756,9 +756,9 @@ static riscv_debug_reg_field_list_t csr_scontext_get_data(riscv_debug_reg_ctx_t 
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_mcontext_get_hcontext(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_mcontext_get_hcontext(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "hcontext",
 			.lsb = 0,
@@ -804,10 +804,10 @@ static const char *csr_mcontrol_match_values[16] = {
 	[12] = "not_mask_low",
 	[13] = "not_mask_high"
 };
-static riscv_debug_reg_field_list_t csr_mcontrol_get_dmode(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_mcontrol_get_dmode(struct riscv_debug_reg_ctx context)
 {
 	assert(context.XLEN.is_set);
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "dmode",
 			.lsb = (context.XLEN.value + -5),
@@ -819,10 +819,10 @@ static riscv_debug_reg_field_list_t csr_mcontrol_get_dmode(riscv_debug_reg_ctx_t
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_mcontrol_get_type(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_mcontrol_get_type(struct riscv_debug_reg_ctx context)
 {
 	assert(context.XLEN.is_set);
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "type",
 			.lsb = (context.XLEN.value + -4),
@@ -834,10 +834,10 @@ static riscv_debug_reg_field_list_t csr_mcontrol_get_type(riscv_debug_reg_ctx_t 
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_mcontrol_get_maskmax(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_mcontrol_get_maskmax(struct riscv_debug_reg_ctx context)
 {
 	assert(context.XLEN.is_set);
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "maskmax",
 			.lsb = (context.XLEN.value + -0xb),
@@ -849,9 +849,9 @@ static riscv_debug_reg_field_list_t csr_mcontrol_get_maskmax(riscv_debug_reg_ctx
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_mcontrol_get_match(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_mcontrol_get_match(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "match",
 			.lsb = 7,
@@ -863,9 +863,9 @@ static riscv_debug_reg_field_list_t csr_mcontrol_get_match(riscv_debug_reg_ctx_t
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_mcontrol_get_m(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_mcontrol_get_m(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "m",
 			.lsb = 6,
@@ -877,9 +877,9 @@ static riscv_debug_reg_field_list_t csr_mcontrol_get_m(riscv_debug_reg_ctx_t con
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_mcontrol_get_s(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_mcontrol_get_s(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "s",
 			.lsb = 4,
@@ -891,9 +891,9 @@ static riscv_debug_reg_field_list_t csr_mcontrol_get_s(riscv_debug_reg_ctx_t con
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_mcontrol_get_u(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_mcontrol_get_u(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "u",
 			.lsb = 3,
@@ -905,9 +905,9 @@ static riscv_debug_reg_field_list_t csr_mcontrol_get_u(riscv_debug_reg_ctx_t con
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_mcontrol_get_sizehi(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_mcontrol_get_sizehi(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "sizehi",
 			.lsb = 0x15,
@@ -919,9 +919,9 @@ static riscv_debug_reg_field_list_t csr_mcontrol_get_sizehi(riscv_debug_reg_ctx_
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_mcontrol_get_hit(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_mcontrol_get_hit(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "hit",
 			.lsb = 0x14,
@@ -933,9 +933,9 @@ static riscv_debug_reg_field_list_t csr_mcontrol_get_hit(riscv_debug_reg_ctx_t c
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_mcontrol_get_execute(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_mcontrol_get_execute(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "execute",
 			.lsb = 2,
@@ -947,9 +947,9 @@ static riscv_debug_reg_field_list_t csr_mcontrol_get_execute(riscv_debug_reg_ctx
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_mcontrol_get_select(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_mcontrol_get_select(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "select",
 			.lsb = 0x13,
@@ -961,9 +961,9 @@ static riscv_debug_reg_field_list_t csr_mcontrol_get_select(riscv_debug_reg_ctx_
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_mcontrol_get_timing(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_mcontrol_get_timing(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "timing",
 			.lsb = 0x12,
@@ -975,9 +975,9 @@ static riscv_debug_reg_field_list_t csr_mcontrol_get_timing(riscv_debug_reg_ctx_
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_mcontrol_get_sizelo(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_mcontrol_get_sizelo(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "sizelo",
 			.lsb = 0x10,
@@ -989,9 +989,9 @@ static riscv_debug_reg_field_list_t csr_mcontrol_get_sizelo(riscv_debug_reg_ctx_
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_mcontrol_get_action(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_mcontrol_get_action(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "action",
 			.lsb = 0xc,
@@ -1003,9 +1003,9 @@ static riscv_debug_reg_field_list_t csr_mcontrol_get_action(riscv_debug_reg_ctx_
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_mcontrol_get_chain(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_mcontrol_get_chain(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "chain",
 			.lsb = 0xb,
@@ -1017,9 +1017,9 @@ static riscv_debug_reg_field_list_t csr_mcontrol_get_chain(riscv_debug_reg_ctx_t
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_mcontrol_get_store(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_mcontrol_get_store(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "store",
 			.lsb = 1,
@@ -1031,9 +1031,9 @@ static riscv_debug_reg_field_list_t csr_mcontrol_get_store(riscv_debug_reg_ctx_t
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_mcontrol_get_load(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_mcontrol_get_load(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "load",
 			.lsb = 0,
@@ -1092,10 +1092,10 @@ static const char *csr_mcontrol6_uncertainen_values[2] = {
 	[0] = "disabled",
 	[1] = "enabled"
 };
-static riscv_debug_reg_field_list_t csr_mcontrol6_get_dmode(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_mcontrol6_get_dmode(struct riscv_debug_reg_ctx context)
 {
 	assert(context.XLEN.is_set);
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "dmode",
 			.lsb = (context.XLEN.value + -5),
@@ -1107,10 +1107,10 @@ static riscv_debug_reg_field_list_t csr_mcontrol6_get_dmode(riscv_debug_reg_ctx_
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_mcontrol6_get_type(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_mcontrol6_get_type(struct riscv_debug_reg_ctx context)
 {
 	assert(context.XLEN.is_set);
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "type",
 			.lsb = (context.XLEN.value + -4),
@@ -1122,9 +1122,9 @@ static riscv_debug_reg_field_list_t csr_mcontrol6_get_type(riscv_debug_reg_ctx_t
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_mcontrol6_get_match(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_mcontrol6_get_match(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "match",
 			.lsb = 7,
@@ -1136,9 +1136,9 @@ static riscv_debug_reg_field_list_t csr_mcontrol6_get_match(riscv_debug_reg_ctx_
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_mcontrol6_get_m(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_mcontrol6_get_m(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "m",
 			.lsb = 6,
@@ -1150,9 +1150,9 @@ static riscv_debug_reg_field_list_t csr_mcontrol6_get_m(riscv_debug_reg_ctx_t co
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_mcontrol6_get_uncertainen(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_mcontrol6_get_uncertainen(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "uncertainen",
 			.lsb = 5,
@@ -1164,9 +1164,9 @@ static riscv_debug_reg_field_list_t csr_mcontrol6_get_uncertainen(riscv_debug_re
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_mcontrol6_get_s(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_mcontrol6_get_s(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "s",
 			.lsb = 4,
@@ -1178,9 +1178,9 @@ static riscv_debug_reg_field_list_t csr_mcontrol6_get_s(riscv_debug_reg_ctx_t co
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_mcontrol6_get_u(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_mcontrol6_get_u(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "u",
 			.lsb = 3,
@@ -1192,9 +1192,9 @@ static riscv_debug_reg_field_list_t csr_mcontrol6_get_u(riscv_debug_reg_ctx_t co
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_mcontrol6_get_uncertain(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_mcontrol6_get_uncertain(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "uncertain",
 			.lsb = 0x1a,
@@ -1206,9 +1206,9 @@ static riscv_debug_reg_field_list_t csr_mcontrol6_get_uncertain(riscv_debug_reg_
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_mcontrol6_get_hit1(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_mcontrol6_get_hit1(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "hit1",
 			.lsb = 0x19,
@@ -1220,9 +1220,9 @@ static riscv_debug_reg_field_list_t csr_mcontrol6_get_hit1(riscv_debug_reg_ctx_t
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_mcontrol6_get_vs(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_mcontrol6_get_vs(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "vs",
 			.lsb = 0x18,
@@ -1234,9 +1234,9 @@ static riscv_debug_reg_field_list_t csr_mcontrol6_get_vs(riscv_debug_reg_ctx_t c
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_mcontrol6_get_vu(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_mcontrol6_get_vu(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "vu",
 			.lsb = 0x17,
@@ -1248,9 +1248,9 @@ static riscv_debug_reg_field_list_t csr_mcontrol6_get_vu(riscv_debug_reg_ctx_t c
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_mcontrol6_get_hit0(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_mcontrol6_get_hit0(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "hit0",
 			.lsb = 0x16,
@@ -1262,9 +1262,9 @@ static riscv_debug_reg_field_list_t csr_mcontrol6_get_hit0(riscv_debug_reg_ctx_t
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_mcontrol6_get_select(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_mcontrol6_get_select(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "select",
 			.lsb = 0x15,
@@ -1276,9 +1276,9 @@ static riscv_debug_reg_field_list_t csr_mcontrol6_get_select(riscv_debug_reg_ctx
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_mcontrol6_get_execute(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_mcontrol6_get_execute(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "execute",
 			.lsb = 2,
@@ -1290,9 +1290,9 @@ static riscv_debug_reg_field_list_t csr_mcontrol6_get_execute(riscv_debug_reg_ct
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_mcontrol6_get_size(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_mcontrol6_get_size(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "size",
 			.lsb = 0x10,
@@ -1304,9 +1304,9 @@ static riscv_debug_reg_field_list_t csr_mcontrol6_get_size(riscv_debug_reg_ctx_t
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_mcontrol6_get_action(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_mcontrol6_get_action(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "action",
 			.lsb = 0xc,
@@ -1318,9 +1318,9 @@ static riscv_debug_reg_field_list_t csr_mcontrol6_get_action(riscv_debug_reg_ctx
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_mcontrol6_get_chain(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_mcontrol6_get_chain(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "chain",
 			.lsb = 0xb,
@@ -1332,9 +1332,9 @@ static riscv_debug_reg_field_list_t csr_mcontrol6_get_chain(riscv_debug_reg_ctx_
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_mcontrol6_get_store(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_mcontrol6_get_store(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "store",
 			.lsb = 1,
@@ -1346,9 +1346,9 @@ static riscv_debug_reg_field_list_t csr_mcontrol6_get_store(riscv_debug_reg_ctx_
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_mcontrol6_get_load(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_mcontrol6_get_load(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "load",
 			.lsb = 0,
@@ -1369,10 +1369,10 @@ static const char *csr_icount_action_values[64] = {
 	[8] = "external0",
 	[9] = "external1"
 };
-static riscv_debug_reg_field_list_t csr_icount_get_dmode(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_icount_get_dmode(struct riscv_debug_reg_ctx context)
 {
 	assert(context.XLEN.is_set);
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "dmode",
 			.lsb = (context.XLEN.value + -5),
@@ -1384,10 +1384,10 @@ static riscv_debug_reg_field_list_t csr_icount_get_dmode(riscv_debug_reg_ctx_t c
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_icount_get_type(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_icount_get_type(struct riscv_debug_reg_ctx context)
 {
 	assert(context.XLEN.is_set);
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "type",
 			.lsb = (context.XLEN.value + -4),
@@ -1399,9 +1399,9 @@ static riscv_debug_reg_field_list_t csr_icount_get_type(riscv_debug_reg_ctx_t co
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_icount_get_m(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_icount_get_m(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "m",
 			.lsb = 9,
@@ -1413,9 +1413,9 @@ static riscv_debug_reg_field_list_t csr_icount_get_m(riscv_debug_reg_ctx_t conte
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_icount_get_pending(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_icount_get_pending(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "pending",
 			.lsb = 8,
@@ -1427,9 +1427,9 @@ static riscv_debug_reg_field_list_t csr_icount_get_pending(riscv_debug_reg_ctx_t
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_icount_get_s(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_icount_get_s(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "s",
 			.lsb = 7,
@@ -1441,9 +1441,9 @@ static riscv_debug_reg_field_list_t csr_icount_get_s(riscv_debug_reg_ctx_t conte
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_icount_get_u(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_icount_get_u(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "u",
 			.lsb = 6,
@@ -1455,9 +1455,9 @@ static riscv_debug_reg_field_list_t csr_icount_get_u(riscv_debug_reg_ctx_t conte
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_icount_get_vs(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_icount_get_vs(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "vs",
 			.lsb = 0x1a,
@@ -1469,9 +1469,9 @@ static riscv_debug_reg_field_list_t csr_icount_get_vs(riscv_debug_reg_ctx_t cont
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_icount_get_vu(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_icount_get_vu(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "vu",
 			.lsb = 0x19,
@@ -1483,9 +1483,9 @@ static riscv_debug_reg_field_list_t csr_icount_get_vu(riscv_debug_reg_ctx_t cont
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_icount_get_hit(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_icount_get_hit(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "hit",
 			.lsb = 0x18,
@@ -1497,9 +1497,9 @@ static riscv_debug_reg_field_list_t csr_icount_get_hit(riscv_debug_reg_ctx_t con
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_icount_get_count(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_icount_get_count(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "count",
 			.lsb = 0xa,
@@ -1511,9 +1511,9 @@ static riscv_debug_reg_field_list_t csr_icount_get_count(riscv_debug_reg_ctx_t c
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_icount_get_action(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_icount_get_action(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "action",
 			.lsb = 0,
@@ -1534,10 +1534,10 @@ static const char *csr_itrigger_action_values[64] = {
 	[8] = "external0",
 	[9] = "external1"
 };
-static riscv_debug_reg_field_list_t csr_itrigger_get_hit(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_itrigger_get_hit(struct riscv_debug_reg_ctx context)
 {
 	assert(context.XLEN.is_set);
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "hit",
 			.lsb = (context.XLEN.value + -6),
@@ -1549,10 +1549,10 @@ static riscv_debug_reg_field_list_t csr_itrigger_get_hit(riscv_debug_reg_ctx_t c
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_itrigger_get_dmode(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_itrigger_get_dmode(struct riscv_debug_reg_ctx context)
 {
 	assert(context.XLEN.is_set);
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "dmode",
 			.lsb = (context.XLEN.value + -5),
@@ -1564,10 +1564,10 @@ static riscv_debug_reg_field_list_t csr_itrigger_get_dmode(riscv_debug_reg_ctx_t
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_itrigger_get_type(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_itrigger_get_type(struct riscv_debug_reg_ctx context)
 {
 	assert(context.XLEN.is_set);
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "type",
 			.lsb = (context.XLEN.value + -4),
@@ -1579,9 +1579,9 @@ static riscv_debug_reg_field_list_t csr_itrigger_get_type(riscv_debug_reg_ctx_t 
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_itrigger_get_m(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_itrigger_get_m(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "m",
 			.lsb = 9,
@@ -1593,9 +1593,9 @@ static riscv_debug_reg_field_list_t csr_itrigger_get_m(riscv_debug_reg_ctx_t con
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_itrigger_get_s(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_itrigger_get_s(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "s",
 			.lsb = 7,
@@ -1607,9 +1607,9 @@ static riscv_debug_reg_field_list_t csr_itrigger_get_s(riscv_debug_reg_ctx_t con
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_itrigger_get_u(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_itrigger_get_u(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "u",
 			.lsb = 6,
@@ -1621,9 +1621,9 @@ static riscv_debug_reg_field_list_t csr_itrigger_get_u(riscv_debug_reg_ctx_t con
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_itrigger_get_vs(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_itrigger_get_vs(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "vs",
 			.lsb = 0xc,
@@ -1635,9 +1635,9 @@ static riscv_debug_reg_field_list_t csr_itrigger_get_vs(riscv_debug_reg_ctx_t co
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_itrigger_get_vu(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_itrigger_get_vu(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "vu",
 			.lsb = 0xb,
@@ -1649,9 +1649,9 @@ static riscv_debug_reg_field_list_t csr_itrigger_get_vu(riscv_debug_reg_ctx_t co
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_itrigger_get_nmi(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_itrigger_get_nmi(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "nmi",
 			.lsb = 0xa,
@@ -1663,9 +1663,9 @@ static riscv_debug_reg_field_list_t csr_itrigger_get_nmi(riscv_debug_reg_ctx_t c
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_itrigger_get_action(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_itrigger_get_action(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "action",
 			.lsb = 0,
@@ -1686,10 +1686,10 @@ static const char *csr_etrigger_action_values[64] = {
 	[8] = "external0",
 	[9] = "external1"
 };
-static riscv_debug_reg_field_list_t csr_etrigger_get_hit(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_etrigger_get_hit(struct riscv_debug_reg_ctx context)
 {
 	assert(context.XLEN.is_set);
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "hit",
 			.lsb = (context.XLEN.value + -6),
@@ -1701,10 +1701,10 @@ static riscv_debug_reg_field_list_t csr_etrigger_get_hit(riscv_debug_reg_ctx_t c
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_etrigger_get_dmode(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_etrigger_get_dmode(struct riscv_debug_reg_ctx context)
 {
 	assert(context.XLEN.is_set);
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "dmode",
 			.lsb = (context.XLEN.value + -5),
@@ -1716,10 +1716,10 @@ static riscv_debug_reg_field_list_t csr_etrigger_get_dmode(riscv_debug_reg_ctx_t
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_etrigger_get_type(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_etrigger_get_type(struct riscv_debug_reg_ctx context)
 {
 	assert(context.XLEN.is_set);
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "type",
 			.lsb = (context.XLEN.value + -4),
@@ -1731,9 +1731,9 @@ static riscv_debug_reg_field_list_t csr_etrigger_get_type(riscv_debug_reg_ctx_t 
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_etrigger_get_m(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_etrigger_get_m(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "m",
 			.lsb = 9,
@@ -1745,9 +1745,9 @@ static riscv_debug_reg_field_list_t csr_etrigger_get_m(riscv_debug_reg_ctx_t con
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_etrigger_get_s(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_etrigger_get_s(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "s",
 			.lsb = 7,
@@ -1759,9 +1759,9 @@ static riscv_debug_reg_field_list_t csr_etrigger_get_s(riscv_debug_reg_ctx_t con
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_etrigger_get_u(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_etrigger_get_u(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "u",
 			.lsb = 6,
@@ -1773,9 +1773,9 @@ static riscv_debug_reg_field_list_t csr_etrigger_get_u(riscv_debug_reg_ctx_t con
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_etrigger_get_vs(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_etrigger_get_vs(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "vs",
 			.lsb = 0xc,
@@ -1787,9 +1787,9 @@ static riscv_debug_reg_field_list_t csr_etrigger_get_vs(riscv_debug_reg_ctx_t co
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_etrigger_get_vu(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_etrigger_get_vu(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "vu",
 			.lsb = 0xb,
@@ -1801,9 +1801,9 @@ static riscv_debug_reg_field_list_t csr_etrigger_get_vu(riscv_debug_reg_ctx_t co
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_etrigger_get_action(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_etrigger_get_action(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "action",
 			.lsb = 0,
@@ -1824,10 +1824,10 @@ static const char *csr_tmexttrigger_action_values[64] = {
 	[8] = "external0",
 	[9] = "external1"
 };
-static riscv_debug_reg_field_list_t csr_tmexttrigger_get_hit(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_tmexttrigger_get_hit(struct riscv_debug_reg_ctx context)
 {
 	assert(context.XLEN.is_set);
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "hit",
 			.lsb = (context.XLEN.value + -6),
@@ -1839,10 +1839,10 @@ static riscv_debug_reg_field_list_t csr_tmexttrigger_get_hit(riscv_debug_reg_ctx
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_tmexttrigger_get_dmode(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_tmexttrigger_get_dmode(struct riscv_debug_reg_ctx context)
 {
 	assert(context.XLEN.is_set);
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "dmode",
 			.lsb = (context.XLEN.value + -5),
@@ -1854,10 +1854,10 @@ static riscv_debug_reg_field_list_t csr_tmexttrigger_get_dmode(riscv_debug_reg_c
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_tmexttrigger_get_type(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_tmexttrigger_get_type(struct riscv_debug_reg_ctx context)
 {
 	assert(context.XLEN.is_set);
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "type",
 			.lsb = (context.XLEN.value + -4),
@@ -1869,9 +1869,9 @@ static riscv_debug_reg_field_list_t csr_tmexttrigger_get_type(riscv_debug_reg_ct
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_tmexttrigger_get_select(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_tmexttrigger_get_select(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "select",
 			.lsb = 6,
@@ -1883,9 +1883,9 @@ static riscv_debug_reg_field_list_t csr_tmexttrigger_get_select(riscv_debug_reg_
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_tmexttrigger_get_intctl(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_tmexttrigger_get_intctl(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "intctl",
 			.lsb = 0x16,
@@ -1897,9 +1897,9 @@ static riscv_debug_reg_field_list_t csr_tmexttrigger_get_intctl(riscv_debug_reg_
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_tmexttrigger_get_action(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_tmexttrigger_get_action(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "action",
 			.lsb = 0,
@@ -1920,9 +1920,9 @@ static const char *csr_textra32_sselect_values[4] = {
 	[1] = "scontext",
 	[2] = "asid"
 };
-static riscv_debug_reg_field_list_t csr_textra32_get_mhvalue(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_textra32_get_mhvalue(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "mhvalue",
 			.lsb = 0x1a,
@@ -1934,9 +1934,9 @@ static riscv_debug_reg_field_list_t csr_textra32_get_mhvalue(riscv_debug_reg_ctx
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_textra32_get_mhselect(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_textra32_get_mhselect(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "mhselect",
 			.lsb = 0x17,
@@ -1948,9 +1948,9 @@ static riscv_debug_reg_field_list_t csr_textra32_get_mhselect(riscv_debug_reg_ct
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_textra32_get_svalue(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_textra32_get_svalue(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "svalue",
 			.lsb = 2,
@@ -1962,9 +1962,9 @@ static riscv_debug_reg_field_list_t csr_textra32_get_svalue(riscv_debug_reg_ctx_
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_textra32_get_sbytemask(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_textra32_get_sbytemask(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "sbytemask",
 			.lsb = 0x12,
@@ -1976,9 +1976,9 @@ static riscv_debug_reg_field_list_t csr_textra32_get_sbytemask(riscv_debug_reg_c
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_textra32_get_sselect(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_textra32_get_sselect(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "sselect",
 			.lsb = 0,
@@ -1990,9 +1990,9 @@ static riscv_debug_reg_field_list_t csr_textra32_get_sselect(riscv_debug_reg_ctx
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_textra64_get_mhvalue(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_textra64_get_mhvalue(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "mhvalue",
 			.lsb = 0x33,
@@ -2004,9 +2004,9 @@ static riscv_debug_reg_field_list_t csr_textra64_get_mhvalue(riscv_debug_reg_ctx
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_textra64_get_mhselect(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_textra64_get_mhselect(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "mhselect",
 			.lsb = 0x30,
@@ -2018,9 +2018,9 @@ static riscv_debug_reg_field_list_t csr_textra64_get_mhselect(riscv_debug_reg_ct
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_textra64_get_sbytemask(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_textra64_get_sbytemask(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "sbytemask",
 			.lsb = 0x24,
@@ -2032,9 +2032,9 @@ static riscv_debug_reg_field_list_t csr_textra64_get_sbytemask(riscv_debug_reg_c
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_textra64_get_svalue(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_textra64_get_svalue(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "svalue",
 			.lsb = 2,
@@ -2046,9 +2046,9 @@ static riscv_debug_reg_field_list_t csr_textra64_get_svalue(riscv_debug_reg_ctx_
 	return result;
 }
 
-static riscv_debug_reg_field_list_t csr_textra64_get_sselect(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list csr_textra64_get_sselect(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "sselect",
 			.lsb = 0,
@@ -2087,9 +2087,9 @@ static const char *dm_dmstatus_version_values[16] = {
 	[3] = "1_0",
 	[15] = "custom"
 };
-static riscv_debug_reg_field_list_t dm_dmstatus_get_allhalted(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_dmstatus_get_allhalted(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "allhalted",
 			.lsb = 9,
@@ -2101,9 +2101,9 @@ static riscv_debug_reg_field_list_t dm_dmstatus_get_allhalted(riscv_debug_reg_ct
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_dmstatus_get_anyhalted(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_dmstatus_get_anyhalted(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "anyhalted",
 			.lsb = 8,
@@ -2115,9 +2115,9 @@ static riscv_debug_reg_field_list_t dm_dmstatus_get_anyhalted(riscv_debug_reg_ct
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_dmstatus_get_authenticated(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_dmstatus_get_authenticated(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "authenticated",
 			.lsb = 7,
@@ -2129,9 +2129,9 @@ static riscv_debug_reg_field_list_t dm_dmstatus_get_authenticated(riscv_debug_re
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_dmstatus_get_authbusy(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_dmstatus_get_authbusy(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "authbusy",
 			.lsb = 6,
@@ -2143,9 +2143,9 @@ static riscv_debug_reg_field_list_t dm_dmstatus_get_authbusy(riscv_debug_reg_ctx
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_dmstatus_get_hasresethaltreq(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_dmstatus_get_hasresethaltreq(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "hasresethaltreq",
 			.lsb = 5,
@@ -2157,9 +2157,9 @@ static riscv_debug_reg_field_list_t dm_dmstatus_get_hasresethaltreq(riscv_debug_
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_dmstatus_get_confstrptrvalid(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_dmstatus_get_confstrptrvalid(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "confstrptrvalid",
 			.lsb = 4,
@@ -2171,9 +2171,9 @@ static riscv_debug_reg_field_list_t dm_dmstatus_get_confstrptrvalid(riscv_debug_
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_dmstatus_get_ndmresetpending(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_dmstatus_get_ndmresetpending(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "ndmresetpending",
 			.lsb = 0x18,
@@ -2185,9 +2185,9 @@ static riscv_debug_reg_field_list_t dm_dmstatus_get_ndmresetpending(riscv_debug_
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_dmstatus_get_stickyunavail(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_dmstatus_get_stickyunavail(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "stickyunavail",
 			.lsb = 0x17,
@@ -2199,9 +2199,9 @@ static riscv_debug_reg_field_list_t dm_dmstatus_get_stickyunavail(riscv_debug_re
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_dmstatus_get_impebreak(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_dmstatus_get_impebreak(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "impebreak",
 			.lsb = 0x16,
@@ -2213,9 +2213,9 @@ static riscv_debug_reg_field_list_t dm_dmstatus_get_impebreak(riscv_debug_reg_ct
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_dmstatus_get_allhavereset(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_dmstatus_get_allhavereset(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "allhavereset",
 			.lsb = 0x13,
@@ -2227,9 +2227,9 @@ static riscv_debug_reg_field_list_t dm_dmstatus_get_allhavereset(riscv_debug_reg
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_dmstatus_get_anyhavereset(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_dmstatus_get_anyhavereset(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "anyhavereset",
 			.lsb = 0x12,
@@ -2241,9 +2241,9 @@ static riscv_debug_reg_field_list_t dm_dmstatus_get_anyhavereset(riscv_debug_reg
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_dmstatus_get_allresumeack(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_dmstatus_get_allresumeack(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "allresumeack",
 			.lsb = 0x11,
@@ -2255,9 +2255,9 @@ static riscv_debug_reg_field_list_t dm_dmstatus_get_allresumeack(riscv_debug_reg
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_dmstatus_get_anyresumeack(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_dmstatus_get_anyresumeack(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "anyresumeack",
 			.lsb = 0x10,
@@ -2269,9 +2269,9 @@ static riscv_debug_reg_field_list_t dm_dmstatus_get_anyresumeack(riscv_debug_reg
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_dmstatus_get_allnonexistent(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_dmstatus_get_allnonexistent(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "allnonexistent",
 			.lsb = 0xf,
@@ -2283,9 +2283,9 @@ static riscv_debug_reg_field_list_t dm_dmstatus_get_allnonexistent(riscv_debug_r
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_dmstatus_get_anynonexistent(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_dmstatus_get_anynonexistent(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "anynonexistent",
 			.lsb = 0xe,
@@ -2297,9 +2297,9 @@ static riscv_debug_reg_field_list_t dm_dmstatus_get_anynonexistent(riscv_debug_r
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_dmstatus_get_allunavail(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_dmstatus_get_allunavail(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "allunavail",
 			.lsb = 0xd,
@@ -2311,9 +2311,9 @@ static riscv_debug_reg_field_list_t dm_dmstatus_get_allunavail(riscv_debug_reg_c
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_dmstatus_get_anyunavail(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_dmstatus_get_anyunavail(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "anyunavail",
 			.lsb = 0xc,
@@ -2325,9 +2325,9 @@ static riscv_debug_reg_field_list_t dm_dmstatus_get_anyunavail(riscv_debug_reg_c
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_dmstatus_get_allrunning(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_dmstatus_get_allrunning(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "allrunning",
 			.lsb = 0xb,
@@ -2339,9 +2339,9 @@ static riscv_debug_reg_field_list_t dm_dmstatus_get_allrunning(riscv_debug_reg_c
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_dmstatus_get_anyrunning(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_dmstatus_get_anyrunning(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "anyrunning",
 			.lsb = 0xa,
@@ -2353,9 +2353,9 @@ static riscv_debug_reg_field_list_t dm_dmstatus_get_anyrunning(riscv_debug_reg_c
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_dmstatus_get_version(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_dmstatus_get_version(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "version",
 			.lsb = 0,
@@ -2383,9 +2383,9 @@ static const char *dm_dmcontrol_dmactive_values[2] = {
 	[0] = "inactive",
 	[1] = "active"
 };
-static riscv_debug_reg_field_list_t dm_dmcontrol_get_hartselhi(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_dmcontrol_get_hartselhi(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "hartselhi",
 			.lsb = 6,
@@ -2397,9 +2397,9 @@ static riscv_debug_reg_field_list_t dm_dmcontrol_get_hartselhi(riscv_debug_reg_c
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_dmcontrol_get_setkeepalive(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_dmcontrol_get_setkeepalive(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "setkeepalive",
 			.lsb = 5,
@@ -2411,9 +2411,9 @@ static riscv_debug_reg_field_list_t dm_dmcontrol_get_setkeepalive(riscv_debug_re
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_dmcontrol_get_clrkeepalive(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_dmcontrol_get_clrkeepalive(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "clrkeepalive",
 			.lsb = 4,
@@ -2425,9 +2425,9 @@ static riscv_debug_reg_field_list_t dm_dmcontrol_get_clrkeepalive(riscv_debug_re
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_dmcontrol_get_haltreq(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_dmcontrol_get_haltreq(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "haltreq",
 			.lsb = 0x1f,
@@ -2439,9 +2439,9 @@ static riscv_debug_reg_field_list_t dm_dmcontrol_get_haltreq(riscv_debug_reg_ctx
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_dmcontrol_get_resumereq(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_dmcontrol_get_resumereq(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "resumereq",
 			.lsb = 0x1e,
@@ -2453,9 +2453,9 @@ static riscv_debug_reg_field_list_t dm_dmcontrol_get_resumereq(riscv_debug_reg_c
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_dmcontrol_get_setresethaltreq(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_dmcontrol_get_setresethaltreq(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "setresethaltreq",
 			.lsb = 3,
@@ -2467,9 +2467,9 @@ static riscv_debug_reg_field_list_t dm_dmcontrol_get_setresethaltreq(riscv_debug
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_dmcontrol_get_hartreset(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_dmcontrol_get_hartreset(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "hartreset",
 			.lsb = 0x1d,
@@ -2481,9 +2481,9 @@ static riscv_debug_reg_field_list_t dm_dmcontrol_get_hartreset(riscv_debug_reg_c
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_dmcontrol_get_ackhavereset(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_dmcontrol_get_ackhavereset(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "ackhavereset",
 			.lsb = 0x1c,
@@ -2495,9 +2495,9 @@ static riscv_debug_reg_field_list_t dm_dmcontrol_get_ackhavereset(riscv_debug_re
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_dmcontrol_get_ackunavail(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_dmcontrol_get_ackunavail(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "ackunavail",
 			.lsb = 0x1b,
@@ -2509,9 +2509,9 @@ static riscv_debug_reg_field_list_t dm_dmcontrol_get_ackunavail(riscv_debug_reg_
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_dmcontrol_get_hasel(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_dmcontrol_get_hasel(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "hasel",
 			.lsb = 0x1a,
@@ -2523,9 +2523,9 @@ static riscv_debug_reg_field_list_t dm_dmcontrol_get_hasel(riscv_debug_reg_ctx_t
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_dmcontrol_get_clrresethaltreq(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_dmcontrol_get_clrresethaltreq(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "clrresethaltreq",
 			.lsb = 2,
@@ -2537,9 +2537,9 @@ static riscv_debug_reg_field_list_t dm_dmcontrol_get_clrresethaltreq(riscv_debug
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_dmcontrol_get_hartsello(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_dmcontrol_get_hartsello(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "hartsello",
 			.lsb = 0x10,
@@ -2551,9 +2551,9 @@ static riscv_debug_reg_field_list_t dm_dmcontrol_get_hartsello(riscv_debug_reg_c
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_dmcontrol_get_ndmreset(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_dmcontrol_get_ndmreset(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "ndmreset",
 			.lsb = 1,
@@ -2565,9 +2565,9 @@ static riscv_debug_reg_field_list_t dm_dmcontrol_get_ndmreset(riscv_debug_reg_ct
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_dmcontrol_get_dmactive(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_dmcontrol_get_dmactive(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "dmactive",
 			.lsb = 0,
@@ -2583,9 +2583,9 @@ static const char *dm_hartinfo_dataaccess_values[2] = {
 	[0] = "csr",
 	[1] = "memory"
 };
-static riscv_debug_reg_field_list_t dm_hartinfo_get_nscratch(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_hartinfo_get_nscratch(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "nscratch",
 			.lsb = 0x14,
@@ -2597,9 +2597,9 @@ static riscv_debug_reg_field_list_t dm_hartinfo_get_nscratch(riscv_debug_reg_ctx
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_hartinfo_get_dataaccess(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_hartinfo_get_dataaccess(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "dataaccess",
 			.lsb = 0x10,
@@ -2611,9 +2611,9 @@ static riscv_debug_reg_field_list_t dm_hartinfo_get_dataaccess(riscv_debug_reg_c
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_hartinfo_get_datasize(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_hartinfo_get_datasize(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "datasize",
 			.lsb = 0xc,
@@ -2625,9 +2625,9 @@ static riscv_debug_reg_field_list_t dm_hartinfo_get_datasize(riscv_debug_reg_ctx
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_hartinfo_get_dataaddr(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_hartinfo_get_dataaddr(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "dataaddr",
 			.lsb = 0,
@@ -2639,9 +2639,9 @@ static riscv_debug_reg_field_list_t dm_hartinfo_get_dataaddr(riscv_debug_reg_ctx
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_hawindowsel_get_hawindowsel(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_hawindowsel_get_hawindowsel(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "hawindowsel",
 			.lsb = 0,
@@ -2653,9 +2653,9 @@ static riscv_debug_reg_field_list_t dm_hawindowsel_get_hawindowsel(riscv_debug_r
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_hawindow_get_maskdata(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_hawindow_get_maskdata(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "maskdata",
 			.lsb = 0,
@@ -2685,9 +2685,9 @@ static const char *dm_abstractcs_cmderr_values[8] = {
 	[6] = "reserved",
 	[7] = "other"
 };
-static riscv_debug_reg_field_list_t dm_abstractcs_get_cmderr(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_abstractcs_get_cmderr(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "cmderr",
 			.lsb = 8,
@@ -2699,9 +2699,9 @@ static riscv_debug_reg_field_list_t dm_abstractcs_get_cmderr(riscv_debug_reg_ctx
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_abstractcs_get_progbufsize(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_abstractcs_get_progbufsize(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "progbufsize",
 			.lsb = 0x18,
@@ -2713,9 +2713,9 @@ static riscv_debug_reg_field_list_t dm_abstractcs_get_progbufsize(riscv_debug_re
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_abstractcs_get_busy(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_abstractcs_get_busy(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "busy",
 			.lsb = 0xc,
@@ -2727,9 +2727,9 @@ static riscv_debug_reg_field_list_t dm_abstractcs_get_busy(riscv_debug_reg_ctx_t
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_abstractcs_get_relaxedpriv(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_abstractcs_get_relaxedpriv(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "relaxedpriv",
 			.lsb = 0xb,
@@ -2741,9 +2741,9 @@ static riscv_debug_reg_field_list_t dm_abstractcs_get_relaxedpriv(riscv_debug_re
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_abstractcs_get_datacount(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_abstractcs_get_datacount(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "datacount",
 			.lsb = 0,
@@ -2755,9 +2755,9 @@ static riscv_debug_reg_field_list_t dm_abstractcs_get_datacount(riscv_debug_reg_
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_command_get_cmdtype(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_command_get_cmdtype(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "cmdtype",
 			.lsb = 0x18,
@@ -2769,9 +2769,9 @@ static riscv_debug_reg_field_list_t dm_command_get_cmdtype(riscv_debug_reg_ctx_t
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_command_get_control(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_command_get_control(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "control",
 			.lsb = 0,
@@ -2783,9 +2783,9 @@ static riscv_debug_reg_field_list_t dm_command_get_control(riscv_debug_reg_ctx_t
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_abstractauto_get_autoexecprogbuf(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_abstractauto_get_autoexecprogbuf(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "autoexecprogbuf",
 			.lsb = 0x10,
@@ -2797,9 +2797,9 @@ static riscv_debug_reg_field_list_t dm_abstractauto_get_autoexecprogbuf(riscv_de
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_abstractauto_get_autoexecdata(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_abstractauto_get_autoexecdata(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "autoexecdata",
 			.lsb = 0,
@@ -2811,9 +2811,9 @@ static riscv_debug_reg_field_list_t dm_abstractauto_get_autoexecdata(riscv_debug
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_confstrptr0_get_addr(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_confstrptr0_get_addr(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "addr",
 			.lsb = 0,
@@ -2825,9 +2825,9 @@ static riscv_debug_reg_field_list_t dm_confstrptr0_get_addr(riscv_debug_reg_ctx_
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_confstrptr1_get_addr(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_confstrptr1_get_addr(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "addr",
 			.lsb = 0,
@@ -2839,9 +2839,9 @@ static riscv_debug_reg_field_list_t dm_confstrptr1_get_addr(riscv_debug_reg_ctx_
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_confstrptr2_get_addr(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_confstrptr2_get_addr(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "addr",
 			.lsb = 0,
@@ -2853,9 +2853,9 @@ static riscv_debug_reg_field_list_t dm_confstrptr2_get_addr(riscv_debug_reg_ctx_
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_confstrptr3_get_addr(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_confstrptr3_get_addr(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "addr",
 			.lsb = 0,
@@ -2867,9 +2867,9 @@ static riscv_debug_reg_field_list_t dm_confstrptr3_get_addr(riscv_debug_reg_ctx_
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_nextdm_get_addr(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_nextdm_get_addr(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "addr",
 			.lsb = 0,
@@ -2881,9 +2881,9 @@ static riscv_debug_reg_field_list_t dm_nextdm_get_addr(riscv_debug_reg_ctx_t con
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_data0_get_data(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_data0_get_data(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "data",
 			.lsb = 0,
@@ -2895,9 +2895,9 @@ static riscv_debug_reg_field_list_t dm_data0_get_data(riscv_debug_reg_ctx_t cont
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_progbuf0_get_data(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_progbuf0_get_data(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "data",
 			.lsb = 0,
@@ -2909,9 +2909,9 @@ static riscv_debug_reg_field_list_t dm_progbuf0_get_data(riscv_debug_reg_ctx_t c
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_authdata_get_data(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_authdata_get_data(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "data",
 			.lsb = 0,
@@ -2931,9 +2931,9 @@ static const char *dm_dmcs2_hgselect_values[2] = {
 	[0] = "harts",
 	[1] = "triggers"
 };
-static riscv_debug_reg_field_list_t dm_dmcs2_get_dmexttrigger(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_dmcs2_get_dmexttrigger(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "dmexttrigger",
 			.lsb = 7,
@@ -2945,9 +2945,9 @@ static riscv_debug_reg_field_list_t dm_dmcs2_get_dmexttrigger(riscv_debug_reg_ct
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_dmcs2_get_group(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_dmcs2_get_group(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "group",
 			.lsb = 2,
@@ -2959,9 +2959,9 @@ static riscv_debug_reg_field_list_t dm_dmcs2_get_group(riscv_debug_reg_ctx_t con
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_dmcs2_get_grouptype(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_dmcs2_get_grouptype(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "grouptype",
 			.lsb = 0xb,
@@ -2973,9 +2973,9 @@ static riscv_debug_reg_field_list_t dm_dmcs2_get_grouptype(riscv_debug_reg_ctx_t
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_dmcs2_get_hgwrite(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_dmcs2_get_hgwrite(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "hgwrite",
 			.lsb = 1,
@@ -2987,9 +2987,9 @@ static riscv_debug_reg_field_list_t dm_dmcs2_get_hgwrite(riscv_debug_reg_ctx_t c
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_dmcs2_get_hgselect(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_dmcs2_get_hgselect(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "hgselect",
 			.lsb = 0,
@@ -3001,9 +3001,9 @@ static riscv_debug_reg_field_list_t dm_dmcs2_get_hgselect(riscv_debug_reg_ctx_t 
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_haltsum0_get_haltsum0(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_haltsum0_get_haltsum0(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "haltsum0",
 			.lsb = 0,
@@ -3015,9 +3015,9 @@ static riscv_debug_reg_field_list_t dm_haltsum0_get_haltsum0(riscv_debug_reg_ctx
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_haltsum1_get_haltsum1(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_haltsum1_get_haltsum1(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "haltsum1",
 			.lsb = 0,
@@ -3029,9 +3029,9 @@ static riscv_debug_reg_field_list_t dm_haltsum1_get_haltsum1(riscv_debug_reg_ctx
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_haltsum2_get_haltsum2(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_haltsum2_get_haltsum2(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "haltsum2",
 			.lsb = 0,
@@ -3043,9 +3043,9 @@ static riscv_debug_reg_field_list_t dm_haltsum2_get_haltsum2(riscv_debug_reg_ctx
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_haltsum3_get_haltsum3(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_haltsum3_get_haltsum3(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "haltsum3",
 			.lsb = 0,
@@ -3076,9 +3076,9 @@ static const char *dm_sbcs_sberror_values[8] = {
 	[4] = "size",
 	[7] = "other"
 };
-static riscv_debug_reg_field_list_t dm_sbcs_get_sbasize(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_sbcs_get_sbasize(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "sbasize",
 			.lsb = 5,
@@ -3090,9 +3090,9 @@ static riscv_debug_reg_field_list_t dm_sbcs_get_sbasize(riscv_debug_reg_ctx_t co
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_sbcs_get_sbaccess128(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_sbcs_get_sbaccess128(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "sbaccess128",
 			.lsb = 4,
@@ -3104,9 +3104,9 @@ static riscv_debug_reg_field_list_t dm_sbcs_get_sbaccess128(riscv_debug_reg_ctx_
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_sbcs_get_sbaccess64(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_sbcs_get_sbaccess64(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "sbaccess64",
 			.lsb = 3,
@@ -3118,9 +3118,9 @@ static riscv_debug_reg_field_list_t dm_sbcs_get_sbaccess64(riscv_debug_reg_ctx_t
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_sbcs_get_sbversion(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_sbcs_get_sbversion(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "sbversion",
 			.lsb = 0x1d,
@@ -3132,9 +3132,9 @@ static riscv_debug_reg_field_list_t dm_sbcs_get_sbversion(riscv_debug_reg_ctx_t 
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_sbcs_get_sbbusyerror(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_sbcs_get_sbbusyerror(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "sbbusyerror",
 			.lsb = 0x16,
@@ -3146,9 +3146,9 @@ static riscv_debug_reg_field_list_t dm_sbcs_get_sbbusyerror(riscv_debug_reg_ctx_
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_sbcs_get_sbbusy(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_sbcs_get_sbbusy(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "sbbusy",
 			.lsb = 0x15,
@@ -3160,9 +3160,9 @@ static riscv_debug_reg_field_list_t dm_sbcs_get_sbbusy(riscv_debug_reg_ctx_t con
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_sbcs_get_sbreadonaddr(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_sbcs_get_sbreadonaddr(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "sbreadonaddr",
 			.lsb = 0x14,
@@ -3174,9 +3174,9 @@ static riscv_debug_reg_field_list_t dm_sbcs_get_sbreadonaddr(riscv_debug_reg_ctx
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_sbcs_get_sbaccess32(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_sbcs_get_sbaccess32(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "sbaccess32",
 			.lsb = 2,
@@ -3188,9 +3188,9 @@ static riscv_debug_reg_field_list_t dm_sbcs_get_sbaccess32(riscv_debug_reg_ctx_t
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_sbcs_get_sbaccess(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_sbcs_get_sbaccess(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "sbaccess",
 			.lsb = 0x11,
@@ -3202,9 +3202,9 @@ static riscv_debug_reg_field_list_t dm_sbcs_get_sbaccess(riscv_debug_reg_ctx_t c
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_sbcs_get_sbautoincrement(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_sbcs_get_sbautoincrement(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "sbautoincrement",
 			.lsb = 0x10,
@@ -3216,9 +3216,9 @@ static riscv_debug_reg_field_list_t dm_sbcs_get_sbautoincrement(riscv_debug_reg_
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_sbcs_get_sbreadondata(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_sbcs_get_sbreadondata(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "sbreadondata",
 			.lsb = 0xf,
@@ -3230,9 +3230,9 @@ static riscv_debug_reg_field_list_t dm_sbcs_get_sbreadondata(riscv_debug_reg_ctx
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_sbcs_get_sberror(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_sbcs_get_sberror(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "sberror",
 			.lsb = 0xc,
@@ -3244,9 +3244,9 @@ static riscv_debug_reg_field_list_t dm_sbcs_get_sberror(riscv_debug_reg_ctx_t co
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_sbcs_get_sbaccess16(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_sbcs_get_sbaccess16(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "sbaccess16",
 			.lsb = 1,
@@ -3258,9 +3258,9 @@ static riscv_debug_reg_field_list_t dm_sbcs_get_sbaccess16(riscv_debug_reg_ctx_t
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_sbcs_get_sbaccess8(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_sbcs_get_sbaccess8(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "sbaccess8",
 			.lsb = 0,
@@ -3272,9 +3272,9 @@ static riscv_debug_reg_field_list_t dm_sbcs_get_sbaccess8(riscv_debug_reg_ctx_t 
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_sbaddress0_get_address(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_sbaddress0_get_address(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "address",
 			.lsb = 0,
@@ -3286,9 +3286,9 @@ static riscv_debug_reg_field_list_t dm_sbaddress0_get_address(riscv_debug_reg_ct
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_sbaddress1_get_address(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_sbaddress1_get_address(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "address",
 			.lsb = 0,
@@ -3300,9 +3300,9 @@ static riscv_debug_reg_field_list_t dm_sbaddress1_get_address(riscv_debug_reg_ct
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_sbaddress2_get_address(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_sbaddress2_get_address(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "address",
 			.lsb = 0,
@@ -3314,9 +3314,9 @@ static riscv_debug_reg_field_list_t dm_sbaddress2_get_address(riscv_debug_reg_ct
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_sbaddress3_get_address(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_sbaddress3_get_address(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "address",
 			.lsb = 0,
@@ -3328,9 +3328,9 @@ static riscv_debug_reg_field_list_t dm_sbaddress3_get_address(riscv_debug_reg_ct
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_sbdata0_get_data(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_sbdata0_get_data(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "data",
 			.lsb = 0,
@@ -3342,9 +3342,9 @@ static riscv_debug_reg_field_list_t dm_sbdata0_get_data(riscv_debug_reg_ctx_t co
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_sbdata1_get_data(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_sbdata1_get_data(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "data",
 			.lsb = 0,
@@ -3356,9 +3356,9 @@ static riscv_debug_reg_field_list_t dm_sbdata1_get_data(riscv_debug_reg_ctx_t co
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_sbdata2_get_data(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_sbdata2_get_data(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "data",
 			.lsb = 0,
@@ -3370,9 +3370,9 @@ static riscv_debug_reg_field_list_t dm_sbdata2_get_data(riscv_debug_reg_ctx_t co
 	return result;
 }
 
-static riscv_debug_reg_field_list_t dm_sbdata3_get_data(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list dm_sbdata3_get_data(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "data",
 			.lsb = 0,
@@ -3384,9 +3384,9 @@ static riscv_debug_reg_field_list_t dm_sbdata3_get_data(riscv_debug_reg_ctx_t co
 	return result;
 }
 
-static riscv_debug_reg_field_list_t shortname_get_field(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list shortname_get_field(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "field",
 			.lsb = 0,
@@ -3419,9 +3419,9 @@ static const char *ac_access_register_write_values[2] = {
 	[0] = "arg0",
 	[1] = "register"
 };
-static riscv_debug_reg_field_list_t ac_access_register_get_cmdtype(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list ac_access_register_get_cmdtype(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "cmdtype",
 			.lsb = 0x18,
@@ -3433,9 +3433,9 @@ static riscv_debug_reg_field_list_t ac_access_register_get_cmdtype(riscv_debug_r
 	return result;
 }
 
-static riscv_debug_reg_field_list_t ac_access_register_get_aarsize(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list ac_access_register_get_aarsize(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "aarsize",
 			.lsb = 0x14,
@@ -3447,9 +3447,9 @@ static riscv_debug_reg_field_list_t ac_access_register_get_aarsize(riscv_debug_r
 	return result;
 }
 
-static riscv_debug_reg_field_list_t ac_access_register_get_aarpostincrement(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list ac_access_register_get_aarpostincrement(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "aarpostincrement",
 			.lsb = 0x13,
@@ -3461,9 +3461,9 @@ static riscv_debug_reg_field_list_t ac_access_register_get_aarpostincrement(risc
 	return result;
 }
 
-static riscv_debug_reg_field_list_t ac_access_register_get_postexec(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list ac_access_register_get_postexec(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "postexec",
 			.lsb = 0x12,
@@ -3475,9 +3475,9 @@ static riscv_debug_reg_field_list_t ac_access_register_get_postexec(riscv_debug_
 	return result;
 }
 
-static riscv_debug_reg_field_list_t ac_access_register_get_transfer(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list ac_access_register_get_transfer(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "transfer",
 			.lsb = 0x11,
@@ -3489,9 +3489,9 @@ static riscv_debug_reg_field_list_t ac_access_register_get_transfer(riscv_debug_
 	return result;
 }
 
-static riscv_debug_reg_field_list_t ac_access_register_get_write(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list ac_access_register_get_write(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "write",
 			.lsb = 0x10,
@@ -3503,9 +3503,9 @@ static riscv_debug_reg_field_list_t ac_access_register_get_write(riscv_debug_reg
 	return result;
 }
 
-static riscv_debug_reg_field_list_t ac_access_register_get_regno(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list ac_access_register_get_regno(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "regno",
 			.lsb = 0,
@@ -3517,9 +3517,9 @@ static riscv_debug_reg_field_list_t ac_access_register_get_regno(riscv_debug_reg
 	return result;
 }
 
-static riscv_debug_reg_field_list_t ac_quick_access_get_cmdtype(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list ac_quick_access_get_cmdtype(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "cmdtype",
 			.lsb = 0x18,
@@ -3546,9 +3546,9 @@ static const char *ac_access_memory_write_values[2] = {
 	[0] = "arg0",
 	[1] = "memory"
 };
-static riscv_debug_reg_field_list_t ac_access_memory_get_cmdtype(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list ac_access_memory_get_cmdtype(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "cmdtype",
 			.lsb = 0x18,
@@ -3560,9 +3560,9 @@ static riscv_debug_reg_field_list_t ac_access_memory_get_cmdtype(riscv_debug_reg
 	return result;
 }
 
-static riscv_debug_reg_field_list_t ac_access_memory_get_aamvirtual(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list ac_access_memory_get_aamvirtual(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "aamvirtual",
 			.lsb = 0x17,
@@ -3574,9 +3574,9 @@ static riscv_debug_reg_field_list_t ac_access_memory_get_aamvirtual(riscv_debug_
 	return result;
 }
 
-static riscv_debug_reg_field_list_t ac_access_memory_get_aamsize(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list ac_access_memory_get_aamsize(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "aamsize",
 			.lsb = 0x14,
@@ -3588,9 +3588,9 @@ static riscv_debug_reg_field_list_t ac_access_memory_get_aamsize(riscv_debug_reg
 	return result;
 }
 
-static riscv_debug_reg_field_list_t ac_access_memory_get_aampostincrement(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list ac_access_memory_get_aampostincrement(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "aampostincrement",
 			.lsb = 0x13,
@@ -3602,9 +3602,9 @@ static riscv_debug_reg_field_list_t ac_access_memory_get_aampostincrement(riscv_
 	return result;
 }
 
-static riscv_debug_reg_field_list_t ac_access_memory_get_write(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list ac_access_memory_get_write(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "write",
 			.lsb = 0x10,
@@ -3616,9 +3616,9 @@ static riscv_debug_reg_field_list_t ac_access_memory_get_write(riscv_debug_reg_c
 	return result;
 }
 
-static riscv_debug_reg_field_list_t ac_access_memory_get_target_specific(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list ac_access_memory_get_target_specific(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "target-specific",
 			.lsb = 0xe,
@@ -3630,9 +3630,9 @@ static riscv_debug_reg_field_list_t ac_access_memory_get_target_specific(riscv_d
 	return result;
 }
 
-static riscv_debug_reg_field_list_t virt_priv_get_v(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list virt_priv_get_v(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "v",
 			.lsb = 2,
@@ -3644,9 +3644,9 @@ static riscv_debug_reg_field_list_t virt_priv_get_v(riscv_debug_reg_ctx_t contex
 	return result;
 }
 
-static riscv_debug_reg_field_list_t virt_priv_get_prv(riscv_debug_reg_ctx_t context)
+static struct riscv_debug_reg_field_list virt_priv_get_prv(struct riscv_debug_reg_ctx context)
 {
-	riscv_debug_reg_field_list_t result = {
+	struct riscv_debug_reg_field_list result = {
 		.field = {
 			.name = "prv",
 			.lsb = 0,
@@ -3658,9 +3658,9 @@ static riscv_debug_reg_field_list_t virt_priv_get_prv(riscv_debug_reg_ctx_t cont
 	return result;
 }
 
-riscv_debug_reg_info_t get_riscv_debug_reg_info(enum riscv_debug_reg_ordinal reg_ordinal)
+struct riscv_debug_reg_info get_riscv_debug_reg_info(enum riscv_debug_reg_ordinal reg_ordinal)
 {
-	static const riscv_debug_reg_info_t debug_reg_info[] = {
+	static const struct riscv_debug_reg_info debug_reg_info[] = {
 		[DTM_IDCODE_ORDINAL] = {
 			.name = "idcode",
 			.get_fields_head = dtm_idcode_get_1

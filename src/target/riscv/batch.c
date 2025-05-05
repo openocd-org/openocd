@@ -172,7 +172,7 @@ static unsigned int decode_dmi(const struct riscv_batch *batch, char *text,
 	for (unsigned int i = 0; i < ARRAY_SIZE(description); i++) {
 		if (riscv_get_dmi_address(batch->target, description[i].address)
 				== address) {
-			const riscv_debug_reg_ctx_t context = {
+			const struct riscv_debug_reg_ctx context = {
 				.XLEN = { .value = 0, .is_set = false },
 				.DXLEN = { .value = 0, .is_set = false },
 				.abits = { .value = 0, .is_set = false },
