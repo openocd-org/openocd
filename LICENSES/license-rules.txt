@@ -187,7 +187,21 @@ OpenOCD, can be broken down into:
       License-Text:
         Full license text
 
-2. Exceptions:
+2. Dual Licensing Only:
+
+   These licenses should only be used to dual license code with another
+   license in addition to a preferred license.  These licenses are available
+   from the directory::
+
+      LICENSES/dual/
+
+   in the OpenOCD source tree.
+
+   The files in this directory contain the full license text and
+   `Metatags`_.  The file names are identical to the SPDX license
+   identifier which shall be used for the license in source files.
+
+3. Exceptions:
 
    Some licenses can be amended with exceptions which grant certain rights
    which the original license does not.  These exceptions are available
@@ -244,7 +258,7 @@ OpenOCD, can be broken down into:
       License-Text:
         Full license text
 
-3. Stand-alone licenses:
+4. Stand-alone licenses:
 
    These licenses should only be used for stand-alone applications that are
    distributed with OpenOCD but are not included in the OpenOCD binary.

@@ -70,6 +70,7 @@ EXTRA_DIST += \
 	$(EXTRA_DIST_NEWS) \
 	Doxyfile.in \
 	LICENSES/license-rules.txt \
+	LICENSES/dual/CC-BY-4.0 \
 	LICENSES/exceptions/eCos-exception-2.0 \
 	LICENSES/preferred/BSD-1-Clause \
 	LICENSES/preferred/BSD-2-Clause \
