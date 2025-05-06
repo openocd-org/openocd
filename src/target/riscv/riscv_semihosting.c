@@ -109,6 +109,10 @@ enum semihosting_result riscv_semihosting(struct target *target, int *retval)
 {
 	struct semihosting *semihosting = target->semihosting;
 	assert(semihosting);
+	if (!semihosting->is_active) {
+		LOG_TARGET_DEBUG(target, "Semihosting outcome: NONE (semihosting not enabled)");
+		return SEMIHOSTING_NONE;
+	}
 
 	riscv_reg_t pc;
 	int result = riscv_reg_get(target, &pc, GDB_REGNO_PC);
@@ -122,23 +126,6 @@ enum semihosting_result riscv_semihosting(struct target *target, int *retval)
 	if (*retval != ERROR_OK) {
 		LOG_TARGET_DEBUG(target, "Semihosting outcome: ERROR (during magic seq. detection)");
 		return SEMIHOSTING_ERROR;
-	}
-
-	if (!semihosting->is_active) {
-		if (sequence_found) {
-			// If semihositing is encountered but disabled, provide an additional hint to the user.
-			LOG_TARGET_WARNING(target, "RISC-V semihosting call encountered in the program "
-				"but semihosting is disabled!");
-			LOG_TARGET_WARNING(target, "The target will remain halted (PC = 0x%" TARGET_PRIxADDR ").", pc);
-			LOG_TARGET_WARNING(target, "Hint: Restart your debug session and enable semihosting "
-				"by command 'arm semihosting enable'.");
-			// TODO: This can be improved: The ebreak halt cause detection and riscv_semihosting() call
-			// can be added also to "arm semihosting enable", which would allow the user to continue
-			// without restart of the debug session.
-		}
-
-		LOG_TARGET_DEBUG(target, "Semihosting outcome: NONE (semihosting not enabled)");
-		return SEMIHOSTING_NONE;
 	}
 
 	if (!sequence_found) {
