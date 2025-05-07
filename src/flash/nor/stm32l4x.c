@@ -287,7 +287,7 @@ struct stm32l4_wrp {
 };
 
 /* human readable list of families this drivers supports (sorted alphabetically) */
-static const char *device_families = "STM32C0/G0/G4/L4/L4+/L5/U0/U5/WB/WL";
+static const char *device_families = "STM32C0/G0/G4/L4/L4+/L5/U0/U3/U5/WB/WL";
 
 static const struct stm32l4_rev stm32l47_l48xx_revs[] = {
 	{ 0x1000, "1" }, { 0x1001, "2" }, { 0x1003, "3" }, { 0x1007, "4" }
@@ -348,6 +348,10 @@ static const struct stm32l4_rev stm32g0b_g0cxx_revs[] = {
 
 static const struct stm32l4_rev stm32u0xx_revs[] = {
 	{ 0x1000, "A" },
+};
+
+static const struct stm32l4_rev stm32u37_u38xx_revs[] = {
+	{ 0x1000, "A" }, { 0x1001, "Z" },
 };
 
 static const struct stm32l4_rev stm32g43_g44xx_revs[] = {
@@ -689,6 +693,18 @@ static const struct stm32l4_part_info stm32l4_parts[] = {
 	  .fsize_addr            = 0x1FFF6EA0,
 	  .otp_base              = 0x1FFF6800,
 	  .otp_size              = 1024,
+	},
+	{
+	  .id                    = DEVID_STM32U37_U38XX,
+	  .revs                  = stm32u37_u38xx_revs,
+	  .num_revs              = ARRAY_SIZE(stm32u37_u38xx_revs),
+	  .device_str            = "STM32U37/U38xx",
+	  .max_flash_size_kb     = 1024,
+	  .flags                 = F_HAS_DUAL_BANK | F_HAS_TZ | F_HAS_L5_FLASH_REGS | F_WRP_HAS_LOCK,
+	  .flash_regs_base       = 0x40022000,
+	  .fsize_addr            = 0x0BFA07A0,
+	  .otp_base              = 0x0BFA0000,
+	  .otp_size              = 512,
 	},
 	{
 	  .id                    = DEVID_STM32U59_U5AXX,
@@ -1380,6 +1396,10 @@ static int stm32l4_erase(struct flash_bank *bank, unsigned int first,
 	4. Wait for the BSY bit to be cleared
 	 */
 
+	retval = stm32l4_wait_status_busy(bank, FLASH_ERASE_TIMEOUT);
+	if (retval != ERROR_OK)
+		goto err_lock;
+
 	for (unsigned int i = first; i <= last; i++) {
 		uint32_t erase_flags;
 		erase_flags = FLASH_PER | FLASH_STRT;
@@ -1785,6 +1805,9 @@ static int stm32l4_write(struct flash_bank *bank, const uint8_t *buffer,
 	if (retval != ERROR_OK)
 		goto err_lock;
 
+	retval = stm32l4_wait_status_busy(bank, FLASH_WRITE_TIMEOUT);
+	if (retval != ERROR_OK)
+		goto err_lock;
 
 	/* For TrustZone enabled devices, when TZEN is set and RDP level is 0.5,
 	 * the debug is possible only in non-secure state.
@@ -2147,6 +2170,15 @@ static int stm32l4_probe(struct flash_bank *bank)
 
 		if ((is_max_flash_size && (stm32l4_info->optr & FLASH_L5_DBANK)) ||
 			(!is_max_flash_size && (stm32l4_info->optr & FLASH_L5_DB256))) {
+			stm32l4_info->dual_bank_mode = true;
+			stm32l4_info->bank1_sectors = num_pages / 2;
+		}
+		break;
+	case DEVID_STM32U37_U38XX:
+		page_size_kb = 4;
+		num_pages = flash_size_kb / page_size_kb;
+		stm32l4_info->bank1_sectors = num_pages;
+		if (is_max_flash_size || (stm32l4_info->optr & FLASH_U5_DUALBANK)) {
 			stm32l4_info->dual_bank_mode = true;
 			stm32l4_info->bank1_sectors = num_pages / 2;
 		}
