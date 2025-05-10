@@ -201,10 +201,6 @@ struct target_type {
 	/* otherwise: JIM_OK, or JIM_ERR, */
 	int (*target_jim_configure)(struct target *target, struct jim_getopt_info *goi);
 
-	/* target commands specifically handled by the target */
-	/* returns JIM_OK, or JIM_ERR, or JIM_CONTINUE - if option not understood */
-	int (*target_jim_commands)(struct target *target, struct jim_getopt_info *goi);
-
 	/**
 	 * This method is used to perform target setup that requires
 	 * JTAG access.
