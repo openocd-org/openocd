@@ -232,13 +232,13 @@ COMMAND_HANDLER(handle_cti_dump)
 		retval = dap_run(ap->dap);
 
 	if (retval != ERROR_OK)
-		return JIM_ERR;
+		return retval;
 
 	for (size_t i = 0; i < ARRAY_SIZE(cti_names); i++)
 		command_print(CMD, "%8.8s (0x%04"PRIx32") 0x%08"PRIx32,
 				cti_names[i].label, cti_names[i].offset, values[i]);
 
-	return JIM_OK;
+	return ERROR_OK;
 }
 
 COMMAND_HANDLER(handle_cti_enable)
