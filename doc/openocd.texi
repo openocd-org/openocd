@@ -11779,6 +11779,13 @@ all execution modes.
 @item @code{cget} returns a TCL @code{dict} of execution mode - @code{ebreak}
 action pairs.
 @end itemize
+
+@item @code{-cetrig} @option{off}|@option{on} -- determines how OpenOCD should
+configure the @code{cetrig} in the dcsr register. Defaults to @option{on}.
+
+@itemize
+@item @code{cget} returns the currently configured state for @code{-cetrig}.
+@end itemize
 @end itemize
 
 @subsection RISC-V Debug Configuration Commands

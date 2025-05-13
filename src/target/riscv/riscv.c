@@ -478,7 +478,7 @@ static struct target_type *get_target_type(struct target *target)
 
 static struct riscv_private_config *alloc_default_riscv_private_config(void)
 {
-	struct riscv_private_config * const config = malloc(sizeof(*config));
+	struct riscv_private_config * const config = calloc(1, sizeof(*config));
 	if (!config) {
 		LOG_ERROR("Out of memory!");
 		return NULL;
@@ -524,6 +524,12 @@ static struct jim_nvp nvp_ebreak_mode_opts[] = {
 	{ .name = "exception", .value = false },
 	{ .name = "halt", .value = true },
 	{ .name = NULL, .value = RISCV_EBREAK_MODE_INVALID }
+};
+
+static struct jim_nvp nvp_on_off_opts[] = {
+	{ .name = "off", .value = false },
+	{ .name = "on", .value = true },
+	{ .name = NULL, .value = -1 }
 };
 
 static int jim_configure_ebreak(struct riscv_private_config *config, struct jim_getopt_info *goi)
@@ -614,11 +620,13 @@ static int jim_report_ebreak_config(const struct riscv_private_config *config,
 
 enum riscv_cfg_opts {
 	RISCV_CFG_EBREAK,
+	RISCV_CFG_CETRIG,
 	RISCV_CFG_INVALID = -1
 };
 
 static struct jim_nvp nvp_config_opts[] = {
 	{ .name = "-ebreak", .value = RISCV_CFG_EBREAK },
+	{ .name = "-cetrig", .value = RISCV_CFG_CETRIG },
 	{ .name = NULL, .value = RISCV_CFG_INVALID }
 };
 
@@ -655,10 +663,24 @@ static int riscv_jim_configure(struct target *target,
 		return goi->is_configure
 			? jim_configure_ebreak(config, goi)
 			: jim_report_ebreak_config(config, goi->interp);
+	case RISCV_CFG_CETRIG:
+		if (goi->is_configure) {
+			struct jim_nvp *opt_nvp;
+			e = jim_getopt_nvp(goi, nvp_on_off_opts, &opt_nvp);
+			if (e != JIM_OK) {
+				jim_getopt_nvp_unknown(goi, nvp_on_off_opts, /*hadprefix*/ true);
+				return e;
+			}
+			config->dcsr_cetrig = opt_nvp->value;
+		} else {
+			Jim_SetResultString(goi->interp,
+				jim_nvp_value2name_simple(nvp_on_off_opts, config->dcsr_cetrig)->name, -1);
+		}
+		break;
 	default:
 		assert(false && "'jim_getopt_nvp' should have returned an error.");
 	}
-	return JIM_ERR;
+	return JIM_OK;
 }
 
 static int riscv_init_target(struct command_context *cmd_ctx,
@@ -2630,6 +2652,9 @@ static int set_debug_reason(struct target *target, enum riscv_halt_reason halt_r
 		break;
 	case RISCV_HALT_SINGLESTEP:
 		target->debug_reason = DBG_REASON_SINGLESTEP;
+		break;
+	case RISCV_HALT_CRITICAL_ERROR:
+		target->debug_reason = DBG_REASON_EXC_CATCH;
 		break;
 	case RISCV_HALT_UNKNOWN:
 		target->debug_reason = DBG_REASON_UNDEFINED;

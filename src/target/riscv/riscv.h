@@ -74,6 +74,7 @@ enum riscv_halt_reason {
 	RISCV_HALT_TRIGGER,
 	RISCV_HALT_UNKNOWN,
 	RISCV_HALT_GROUP,
+	RISCV_HALT_CRITICAL_ERROR,
 	RISCV_HALT_ERROR
 };
 
@@ -377,6 +378,7 @@ enum riscv_priv_mode {
 
 struct riscv_private_config {
 	bool dcsr_ebreak_fields[N_RISCV_MODE];
+	bool dcsr_cetrig;
 };
 
 static inline struct riscv_private_config
