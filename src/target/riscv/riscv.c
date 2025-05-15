@@ -3034,22 +3034,6 @@ static int riscv_mmu(struct target *target, bool *enabled)
 	unsigned int xlen = riscv_xlen(target);
 
 	if (v_mode) {
-		/* vsatp and hgatp registers are considered active for the
-		 * purposes of the address-translation algorithm unless the
-		 * effective privilege mode is U and hstatus.HU=0. */
-		if (effective_mode == PRV_U) {
-			riscv_reg_t hstatus;
-			if (riscv_reg_get(target, &hstatus, GDB_REGNO_HSTATUS) != ERROR_OK) {
-				LOG_TARGET_ERROR(target, "Failed to read hstatus register.");
-				return ERROR_FAIL;
-			}
-
-			if (get_field(hstatus, HSTATUS_HU) == 0)
-				/* In hypervisor mode regular satp translation
-				 * doesn't happen. */
-				return ERROR_OK;
-		}
-
 		riscv_reg_t vsatp;
 		if (riscv_reg_get(target, &vsatp, GDB_REGNO_VSATP) != ERROR_OK) {
 			LOG_TARGET_ERROR(target, "Failed to read vsatp register; priv=0x%" PRIx64,
