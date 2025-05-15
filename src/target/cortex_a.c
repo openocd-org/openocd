@@ -1380,6 +1380,19 @@ static int cortex_a_set_breakpoint(struct target *target,
 			buf_set_u32(code, 0, 32, ARMV5_BKPT(0x11));
 		}
 
+		/*
+		 * ARMv7-A/R fetches instructions in little-endian on both LE and BE CPUs.
+		 * But Cortex-R4 and Cortex-R5 big-endian require BE instructions.
+		 * https://developer.arm.com/documentation/den0042/a/Coding-for-Cortex-R-Processors/Endianness
+		 * https://developer.arm.com/documentation/den0013/d/Porting/Endianness
+		 */
+		if ((((cortex_a->cpuid & CPUDBG_CPUID_MASK) == CPUDBG_CPUID_CORTEX_R4) ||
+		    ((cortex_a->cpuid & CPUDBG_CPUID_MASK) == CPUDBG_CPUID_CORTEX_R5)) &&
+		    target->endianness == TARGET_BIG_ENDIAN) {
+			// In place swapping is allowed
+			buf_bswap32(code, code, 4);
+		}
+
 		retval = target_read_memory(target,
 				breakpoint->address & 0xFFFFFFFE,
 				breakpoint->length, 1,
