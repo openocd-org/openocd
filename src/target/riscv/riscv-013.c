@@ -538,6 +538,7 @@ static bool check_dbgbase_exists(struct target *target)
 {
 	uint32_t next_dm = 0;
 	unsigned int count = 1;
+	riscv013_info_t *info = get_info(target);
 
 	LOG_TARGET_DEBUG(target, "Searching for DM with DMI base address (dbgbase) = 0x%x", target->dbgbase);
 	while (1) {
@@ -550,6 +551,12 @@ static bool check_dbgbase_exists(struct target *target)
 		/* Check if it's last one in the chain. */
 		if (next_dm == 0) {
 			LOG_TARGET_ERROR(target, "Reached the end of DM chain (detected %u DMs in total).", count);
+			break;
+		}
+		if (next_dm >> info->abits) {
+			LOG_TARGET_ERROR(target, "The address of the next Debug Module does not fit into %u bits, "
+					"which is the width of the DMI bus address. This is a HW bug",
+					info->abits);
 			break;
 		}
 		/* Safety: Avoid looping forever in case of buggy nextdm values in the hardware. */
