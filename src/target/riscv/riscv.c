@@ -3034,6 +3034,8 @@ static int riscv_mmu(struct target *target, bool *enabled)
 	unsigned int xlen = riscv_xlen(target);
 
 	if (v_mode) {
+		/* In VU or VS mode, MMU is considered enabled when
+		 * either hgatp or vsatp mode is not OFF */
 		riscv_reg_t vsatp;
 		if (riscv_reg_get(target, &vsatp, GDB_REGNO_VSATP) != ERROR_OK) {
 			LOG_TARGET_ERROR(target, "Failed to read vsatp register; priv=0x%" PRIx64,
@@ -3041,7 +3043,7 @@ static int riscv_mmu(struct target *target, bool *enabled)
 			return ERROR_FAIL;
 		}
 		/* vsatp is identical to satp, so we can use the satp macros. */
-		if (RISCV_SATP_MODE(xlen) != SATP_MODE_OFF) {
+		if (get_field(vsatp, RISCV_SATP_MODE(xlen)) != SATP_MODE_OFF) {
 			LOG_TARGET_DEBUG(target, "VS-stage translation is enabled.");
 			*enabled = true;
 			return ERROR_OK;
@@ -3053,7 +3055,7 @@ static int riscv_mmu(struct target *target, bool *enabled)
 					priv);
 			return ERROR_FAIL;
 		}
-		if (RISCV_HGATP_MODE(xlen) != HGATP_MODE_OFF) {
+		if (get_field(hgatp, RISCV_HGATP_MODE(xlen)) != HGATP_MODE_OFF) {
 			LOG_TARGET_DEBUG(target, "G-stage address translation is enabled.");
 			*enabled = true;
 		} else {
