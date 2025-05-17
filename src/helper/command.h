@@ -80,7 +80,7 @@ struct command_invocation {
 	unsigned int argc;
 	const char **argv;
 	Jim_Obj * const *jimtcl_argv;
-	Jim_Obj *output;
+	char *output;
 };
 
 /**

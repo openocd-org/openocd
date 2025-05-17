@@ -354,14 +354,12 @@ void command_print_sameline(struct command_invocation *cmd, const char *format, 
 
 	string = alloc_vprintf(format, ap);
 	if (string && cmd) {
-		/* we want this collected in the log + we also want to pick it up as a tcl return
-		 * value.
-		 *
-		 * The latter bit isn't precisely neat, but will do for now.
-		 */
-		Jim_AppendString(cmd->ctx->interp, cmd->output, string, -1);
-		/* We already printed it above
-		 * command_output_text(context, string); */
+		char *output = cmd->output ? cmd->output : "";
+		output = alloc_printf("%s%s", output, string);
+		if (output) {
+			free(cmd->output);
+			cmd->output = output;
+		}
 		free(string);
 	}
 
@@ -377,16 +375,12 @@ void command_print(struct command_invocation *cmd, const char *format, ...)
 
 	string = alloc_vprintf(format, ap);
 	if (string && cmd) {
-		strcat(string, "\n");	/* alloc_vprintf guaranteed the buffer to be at least one
-					 *char longer */
-		/* we want this collected in the log + we also want to pick it up as a tcl return
-		 * value.
-		 *
-		 * The latter bit isn't precisely neat, but will do for now.
-		 */
-		Jim_AppendString(cmd->ctx->interp, cmd->output, string, -1);
-		/* We already printed it above
-		 * command_output_text(context, string); */
+		char *output = cmd->output ? cmd->output : "";
+		output = alloc_printf("%s%s\n", output, string);
+		if (output) {
+			free(cmd->output);
+			cmd->output = output;
+		}
 		free(string);
 	}
 
@@ -437,10 +431,8 @@ static int jim_exec_command(Jim_Interp *interp, struct command_context *context,
 		.argc = argc - 1,
 		.argv = words + 1,
 		.jimtcl_argv = argv + 1,
+		.output = NULL,
 	};
-
-	cmd.output = Jim_NewEmptyStringObj(context->interp);
-	Jim_IncrRefCount(cmd.output);
 
 	int retval = c->handler(&cmd);
 	if (retval == ERROR_COMMAND_SYNTAX_ERROR) {
@@ -452,19 +444,21 @@ static int jim_exec_command(Jim_Interp *interp, struct command_context *context,
 		if (retval != ERROR_OK)
 			LOG_DEBUG("Command '%s' failed with error code %d",
 						words[0], retval);
-		/*
-		 * Use the command output as the Tcl result.
-		 * Drop last '\n' to allow command output concatenation
-		 * while keep using command_print() everywhere.
-		 */
-		const char *output_txt = Jim_String(cmd.output);
-		int len = strlen(output_txt);
-		if (len && output_txt[len - 1] == '\n')
-			--len;
-		Jim_SetResultString(context->interp, output_txt, len);
+		if (cmd.output) {
+			/*
+			 * Use the command output as the Tcl result.
+			 * Drop last '\n' to allow command output concatenation
+			 * while keep using command_print() everywhere.
+			 */
+			int len = strlen(cmd.output);
+			if (len && cmd.output[len - 1] == '\n')
+				--len;
+			Jim_SetResultString(context->interp, cmd.output, len);
+		} else {
+			Jim_SetEmptyResult(context->interp);
+		}
 	}
-	Jim_DecrRefCount(context->interp, cmd.output);
-
+	free(cmd.output);
 	free(words);
 
 	if (retval == ERROR_OK)
