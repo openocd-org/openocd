@@ -23,6 +23,7 @@
 
 #include <stdint.h>
 #include <math.h>
+#include <string.h>
 
 #include <jtag/interface.h>
 #include <jtag/swd.h>
@@ -40,8 +41,6 @@ static struct jaylink_connection connlist[JAYLINK_MAX_CONNECTIONS];
 static enum jaylink_jtag_version jtag_command_version;
 static uint8_t caps[JAYLINK_DEV_EXT_CAPS_SIZE];
 
-static uint32_t serial_number;
-static bool use_serial_number;
 static bool use_usb_location;
 static enum jaylink_usb_address usb_address;
 static bool use_usb_address;
@@ -561,8 +560,9 @@ static int jlink_open_device(uint32_t ifaces, bool *found_device)
 	}
 
 	use_usb_location = !!adapter_usb_get_location();
+	const char *adapter_serial = adapter_get_required_serial();
 
-	if (!use_serial_number && !use_usb_address && !use_usb_location && num_devices > 1) {
+	if (!adapter_serial && !use_usb_address && !use_usb_location && num_devices > 1) {
 		LOG_ERROR("Multiple devices found, specify the desired device");
 		LOG_INFO("Found devices:");
 		for (size_t i = 0; devs[i]; i++) {
@@ -575,7 +575,12 @@ static int jlink_open_device(uint32_t ifaces, bool *found_device)
 					jaylink_strerror(ret));
 				continue;
 			}
-			LOG_INFO("Device %zu serial: %" PRIu32, i, serial);
+			char name[JAYLINK_NICKNAME_MAX_LENGTH];
+			int name_ret = jaylink_device_get_nickname(devs[i], name);
+			if (name_ret == JAYLINK_OK)
+				LOG_INFO("Device %zu serial: %" PRIu32 ", nickname %s", i, serial, name);
+			else
+				LOG_INFO("Device %zu serial: %" PRIu32, i, serial);
 		}
 
 		jaylink_free_devices(devs, true);
@@ -585,23 +590,39 @@ static int jlink_open_device(uint32_t ifaces, bool *found_device)
 
 	*found_device = false;
 
+	uint32_t serial_number;
+	ret = jaylink_parse_serial_number(adapter_serial, &serial_number);
+	if (ret != JAYLINK_OK)
+		serial_number = 0;
+
 	for (size_t i = 0; devs[i]; i++) {
 		struct jaylink_device *dev = devs[i];
 
-		if (use_serial_number) {
-			uint32_t tmp;
-			ret = jaylink_device_get_serial_number(dev, &tmp);
+		if (adapter_serial) {
+			/*
+			 * Treat adapter serial as a nickname first as it can also be numeric.
+			 * If it fails to match (optional) device nickname try to compare
+			 * adapter serial with the actual device serial number.
+			 */
+			char nickname[JAYLINK_NICKNAME_MAX_LENGTH];
+			ret = jaylink_device_get_nickname(dev, nickname);
+			if (ret != JAYLINK_OK || strcmp(nickname, adapter_serial) != 0) {
+				if (!serial_number)
+					continue;
 
-			if (ret == JAYLINK_ERR_NOT_AVAILABLE) {
-				continue;
-			} else if (ret != JAYLINK_OK) {
-				LOG_WARNING("jaylink_device_get_serial_number() failed: %s",
-					jaylink_strerror(ret));
-				continue;
+				uint32_t tmp;
+				ret = jaylink_device_get_serial_number(dev, &tmp);
+				if (ret == JAYLINK_ERR_NOT_AVAILABLE) {
+					continue;
+				} else if (ret != JAYLINK_OK) {
+					LOG_WARNING("jaylink_device_get_serial_number() failed: %s",
+						jaylink_strerror(ret));
+					continue;
+				}
+
+				if (serial_number != tmp)
+					continue;
 			}
-
-			if (serial_number != tmp)
-				continue;
 		}
 
 		if (use_usb_address) {
@@ -670,29 +691,15 @@ static int jlink_init(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
-	const char *serial = adapter_get_required_serial();
-	if (serial) {
-		ret = jaylink_parse_serial_number(serial, &serial_number);
-		if (ret == JAYLINK_ERR) {
-			LOG_ERROR("Invalid serial number: %s", serial);
-			jaylink_exit(jayctx);
-			return ERROR_JTAG_INIT_FAILED;
-		}
-		if (ret != JAYLINK_OK) {
-			LOG_ERROR("jaylink_parse_serial_number() failed: %s", jaylink_strerror(ret));
-			jaylink_exit(jayctx);
-			return ERROR_JTAG_INIT_FAILED;
-		}
-		use_serial_number = true;
+	if (adapter_get_required_serial())
 		use_usb_address = false;
-	}
 
 	bool found_device;
 	ret = jlink_open_device(JAYLINK_HIF_USB, &found_device);
 	if (ret != ERROR_OK)
 		return ret;
 
-	if (!found_device && use_serial_number) {
+	if (!found_device && adapter_get_required_serial()) {
 		ret = jlink_open_device(JAYLINK_HIF_TCP, &found_device);
 		if (ret != ERROR_OK)
 			return ret;

@@ -2499,6 +2499,9 @@ If this command is not specified, serial strings are not checked.
 Only the following adapter drivers use the serial string from this command:
 arm-jtag-ew, cmsis_dap, esp_usb_jtag, ft232r, ftdi, hla (stlink, ti-icdi), jlink, kitprog, opendus,
 openjtag, osbdm, presto, rlink, st-link, usb_blaster (ublast2), usbprog, vsllink, xds110.
+
+For jlink adapters, the @var{serial_string} is also compared
+against the adapter's nickname.
 @end deffn
 
 @section Interface Drivers
