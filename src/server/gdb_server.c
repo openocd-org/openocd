@@ -434,6 +434,10 @@ static int gdb_put_packet_inner(struct connection *connection,
 			gdb_putback_char(connection, reply);
 			LOG_DEBUG("Unexpected start of new packet");
 			break;
+		} else if (reply == 0x3) {
+			/* do not discard Ctrl-C */
+			gdb_putback_char(connection, reply);
+			break;
 		}
 
 		LOG_WARNING("Discard unexpected char %c", reply);
