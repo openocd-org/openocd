@@ -949,7 +949,8 @@ int xtensa_smpbreak_set(struct target *target, uint32_t set)
 	xtensa->smp_break = set;
 	if (target_was_examined(target))
 		res = xtensa_smpbreak_write(xtensa, xtensa->smp_break);
-	LOG_TARGET_DEBUG(target, "set smpbreak=%" PRIx32 ", state=%i", set, target->state);
+	LOG_TARGET_DEBUG(target, "set smpbreak=%" PRIx32 ", state %s", set,
+					 target_state_name(target));
 	return res;
 }
 

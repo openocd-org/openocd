@@ -870,7 +870,7 @@ static int stm8_poll(struct target *target)
 	uint8_t csr1, csr2;
 
 #ifdef LOG_STM8
-	LOG_DEBUG("target->state=%d", target->state);
+	LOG_DEBUG("target->state %s", target_state_name(target));
 #endif
 
 	/* read dm_csrx control regs */

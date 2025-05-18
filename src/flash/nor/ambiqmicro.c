@@ -309,9 +309,9 @@ static int ambiqmicro_exec_command(struct target *target,
 			 */
 			target_poll(target);
 			alive_sleep(100);
-			LOG_DEBUG("state = %d", target->state);
 		} else {
-			LOG_ERROR("Target not halted or running %d", target->state);
+			LOG_ERROR("Target not halted or running (state is %s)",
+					  target_state_name(target));
 			break;
 		}
 	}
