@@ -5439,7 +5439,8 @@ Displays the current target state:
 @code{debug-running},
 @code{halted},
 @code{reset},
-@code{running}, or @code{unknown}.
+@code{running},
+@code{unavailable} or @code{unknown}.
 (Also, @pxref{eventpolling,,Event Polling}.)
 @end deffn
 
