@@ -50,6 +50,8 @@
  * found in most modern embedded processors.
  */
 
+#define CTRL(c) ((c) - '@')
+
 enum gdb_output_flag {
 	/* GDB doesn't accept 'O' packets */
 	GDB_OUTPUT_NO,
@@ -434,7 +436,7 @@ static int gdb_put_packet_inner(struct connection *connection,
 			gdb_putback_char(connection, reply);
 			LOG_DEBUG("Unexpected start of new packet");
 			break;
-		} else if (reply == 0x3) {
+		} else if (reply == CTRL('C')) {
 			/* do not discard Ctrl-C */
 			gdb_putback_char(connection, reply);
 			break;
@@ -486,7 +488,7 @@ static int gdb_put_packet_inner(struct connection *connection,
 			gdb_con->output_flag = GDB_OUTPUT_NO;
 			gdb_log_incoming_packet(connection, "-");
 			LOG_WARNING("negative reply, retrying");
-		} else if (reply == 0x3) {
+		} else if (reply == CTRL('C')) {
 			gdb_con->ctrl_c = true;
 			gdb_log_incoming_packet(connection, "<Ctrl-C>");
 			retval = gdb_get_char(connection, &reply);
@@ -696,7 +698,7 @@ static int gdb_get_packet_inner(struct connection *connection,
 					gdb_log_incoming_packet(connection, "-");
 					LOG_WARNING("negative acknowledgment, but no packet pending");
 					break;
-				case 0x3:
+				case CTRL('C'):
 					gdb_log_incoming_packet(connection, "<Ctrl-C>");
 					gdb_con->ctrl_c = true;
 					*len = 0;
