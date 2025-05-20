@@ -43,10 +43,10 @@ enum shutdown_reason {
 	SHUTDOWN_WITH_ERROR_CODE,	/* set by shutdown command; quit with non-zero return code */
 	SHUTDOWN_WITH_SIGNAL_CODE	/* set by sig_handler; exec shutdown then exit with signal as return code */
 };
-static enum shutdown_reason shutdown_openocd = CONTINUE_MAIN_LOOP;
 
+static volatile sig_atomic_t shutdown_openocd = CONTINUE_MAIN_LOOP;
 /* store received signal to exit application by killing ourselves */
-static int last_signal;
+static volatile sig_atomic_t last_signal;
 
 /* set the polling period to 100ms */
 static int polling_period = 100;
@@ -604,6 +604,7 @@ static void sig_handler(int sig)
 	/* store only first signal that hits us */
 	if (shutdown_openocd == CONTINUE_MAIN_LOOP) {
 		shutdown_openocd = SHUTDOWN_WITH_SIGNAL_CODE;
+		assert(sig >= SIG_ATOMIC_MIN && sig <= SIG_ATOMIC_MAX);
 		last_signal = sig;
 		LOG_DEBUG("Terminating on Signal %d", sig);
 	} else
