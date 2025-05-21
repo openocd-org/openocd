@@ -7,7 +7,8 @@
 
 # Try flipping / and \ to find file if the filename does not
 # match the precise spelling
-proc find {filename} {
+# lappend _telnet_autocomplete_skip _find_internal
+proc _find_internal {filename} {
 	if {[catch {ocd_find $filename} t]==0} {
 		return $t
 	}
@@ -18,6 +19,49 @@ proc find {filename} {
 		return $t
 	}
 	# make sure error message matches original input string
+	return -code error "Can't find $filename"
+}
+
+proc find {filename} {
+	if {[catch {_find_internal $filename} t]==0} {
+		return $t
+	}
+
+	# Check in vendor specific folder:
+
+	# - path/to/a/certain/vendor_config_file
+	# - path/to/a/certain/vendor-config_file
+	# replaced with
+	# - path/to/a/certain/vendor/config_file
+	regsub {([/\\])([^/\\_-]*)[_-]([^/\\]*$)} $filename "\\1\\2\\1\\3" f
+	if {[catch {_find_internal $f} t]==0} {
+		echo "WARNING: '$filename' is deprecated, use '$f' instead"
+		return $t
+	}
+
+	foreach vendor {nordic ti st} {
+		# - path/to/a/certain/config_file
+		# replaced with
+		# - path/to/a/certain/${vendor}/config_file
+		regsub {([/\\])([^/\\]*$)} $filename "\\1$vendor\\1\\2" f
+		if {[catch {_find_internal $f} t]==0} {
+			echo "WARNING: '$filename' is deprecated, use '$f' instead"
+			return $t
+		}
+	}
+
+	# at last, check for explicit renaming
+	if {[catch {
+		source [_find_internal file_renaming.cfg]
+		set unixname [string map {\\ /} $filename]
+		regsub {^(.*/|)((board|chip|cpld|cpu|fpga|interface|target|test|tools)/.*.cfg$)} $unixname {{\1} {\2}} split
+		set newname [lindex $split 0][dict get $_file_renaming [lindex $split 1]]
+		_find_internal $newname
+	} t]==0} {
+		echo "WARNING: '$filename' is deprecated, use '$newname' instead"
+		return $t
+	}
+
 	return -code error "Can't find $filename"
 }
 add_usage_text find "<file>"
