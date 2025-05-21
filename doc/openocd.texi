@@ -3346,8 +3346,10 @@ The string will be of the format "DDDD:BB:SS.F" such as "0000:65:00.1".
 @end deffn
 
 @deffn {Interface Driver} {bcm2835gpio}
-This SoC is present in Raspberry Pi which is a cheap single-board computer
-exposing some GPIOs on its expansion header.
+This GPIO interface is present in Raspberry Pi 0-4 which is a cheap
+single-board computer exposing some GPIOs on its expansion header.
+
+@emph{Note:} for Raspberry Pi 5, use @b{linuxgpiod} not this driver.
 
 The driver accesses memory-mapped GPIO peripheral registers directly
 for maximum performance, but the only possible race condition is for
@@ -3386,9 +3388,7 @@ and drive strength is reduced to 4 mA (2 mA on RPi 4).
 @deffn {Config Command} {bcm2835gpio peripheral_base} @var{base}
 Set the peripheral base register address to access GPIOs.
 Ignored if @file{/dev/gpiomem} is used. For the RPi1, use
-0x20000000. For RPi2 and RPi3, use 0x3F000000. For RPi4, use 0xFE000000. A full
-list can be found in the
-@uref{https://www.raspberrypi.org/documentation/hardware/raspberrypi/peripheral_addresses.md, official guide}.
+0x20000000. For RPi2 and RPi3, use 0x3F000000. For RPi4, use 0xFE000000.
 @end deffn
 
 @end deffn
