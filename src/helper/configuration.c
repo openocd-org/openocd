@@ -71,17 +71,18 @@ char *find_file(const char *file)
 	full_path = alloc_printf("%s", file);
 	fp = fopen(full_path, mode);
 
-	while (!fp) {
-		free(full_path);
-		full_path = NULL;
-		dir = *search_dirs++;
+	if (script_search_dirs)
+		while (!fp) {
+			free(full_path);
+			full_path = NULL;
+			dir = *search_dirs++;
 
-		if (!dir)
-			break;
+			if (!dir)
+				break;
 
-		full_path = alloc_printf("%s/%s", dir, file);
-		fp = fopen(full_path, mode);
-	}
+			full_path = alloc_printf("%s/%s", dir, file);
+			fp = fopen(full_path, mode);
+		}
 
 	if (fp) {
 		fclose(fp);
