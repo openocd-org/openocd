@@ -190,6 +190,10 @@ ATTRS{idVendor}=="138e", ATTRS{idProduct}=="9000", MODE="660", GROUP="plugdev", 
 # Debug Board for Neo1973
 ATTRS{idVendor}=="1457", ATTRS{idProduct}=="5118", MODE="660", GROUP="plugdev", TAG+="uaccess"
 
+# Microchip RISC-V Debug
+ATTRS{idVendor}=="1514", ATTRS{idProduct}=="2008", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="1514", ATTRS{idProduct}=="200a", MODE="660", GROUP="plugdev", TAG+="uaccess"
+
 # OSBDM
 ATTRS{idVendor}=="15a2", ATTRS{idProduct}=="0042", MODE="660", GROUP="plugdev", TAG+="uaccess"
 ATTRS{idVendor}=="15a2", ATTRS{idProduct}=="0058", MODE="660", GROUP="plugdev", TAG+="uaccess"
