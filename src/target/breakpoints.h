@@ -86,5 +86,7 @@ static inline void watchpoint_set(struct watchpoint *watchpoint, unsigned int nu
 
 #define ERROR_BREAKPOINT_NOT_FOUND (-1600)
 #define ERROR_WATCHPOINT_NOT_FOUND (-1601)
+#define ERROR_BREAKPOINT_DUPLICATED (-1602)
+#define ERROR_BREAKPOINT_OVERLAPPED (-1603)
 
 #endif /* OPENOCD_TARGET_BREAKPOINTS_H */

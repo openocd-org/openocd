@@ -55,14 +55,14 @@ static int breakpoint_add_internal(struct target *target,
 			 */
 			LOG_TARGET_ERROR(target, "Duplicate Breakpoint address: " TARGET_ADDR_FMT " (BP %" PRIu32 ")",
 				address, breakpoint->unique_id);
-			return ERROR_TARGET_DUPLICATE_BREAKPOINT;
+			return ERROR_BREAKPOINT_DUPLICATED;
 		}
 		if (type == BKPT_SOFT &&
 				is_memory_regions_overlap(address, length, breakpoint->address, breakpoint->length)) {
-			LOG_TARGET_ERROR(target, "Breakpoint intersects with another one at " TARGET_ADDR_FMT
+			LOG_TARGET_ERROR(target, "Breakpoint overlaps another one at " TARGET_ADDR_FMT
 				" of length %u (BP %" PRIu32 ")", breakpoint->address,
 				breakpoint->length, breakpoint->unique_id);
-			return ERROR_TARGET_INTERSECT_BREAKPOINT;
+			return ERROR_BREAKPOINT_OVERLAPPED;
 		}
 		breakpoint_p = &breakpoint->next;
 		breakpoint = breakpoint->next;
@@ -124,7 +124,7 @@ static int context_breakpoint_add_internal(struct target *target,
 			 */
 			LOG_TARGET_ERROR(target, "Duplicate Breakpoint asid: 0x%08" PRIx32 " (BP %" PRIu32 ")",
 				asid, breakpoint->unique_id);
-			return ERROR_TARGET_DUPLICATE_BREAKPOINT;
+			return ERROR_BREAKPOINT_DUPLICATED;
 		}
 		breakpoint_p = &breakpoint->next;
 		breakpoint = breakpoint->next;
@@ -174,11 +174,11 @@ static int hybrid_breakpoint_add_internal(struct target *target,
 			 */
 			LOG_TARGET_ERROR(target, "Duplicate Hybrid Breakpoint asid: 0x%08" PRIx32 " (BP %" PRIu32 ")",
 				asid, breakpoint->unique_id);
-			return ERROR_TARGET_DUPLICATE_BREAKPOINT;
+			return ERROR_BREAKPOINT_DUPLICATED;
 		} else if ((breakpoint->address == address) && (breakpoint->asid == 0)) {
 			LOG_TARGET_ERROR(target, "Duplicate Breakpoint IVA: " TARGET_ADDR_FMT " (BP %" PRIu32 ")",
 				address, breakpoint->unique_id);
-			return ERROR_TARGET_DUPLICATE_BREAKPOINT;
+			return ERROR_BREAKPOINT_DUPLICATED;
 
 		}
 		breakpoint_p = &breakpoint->next;
