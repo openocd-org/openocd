@@ -9731,12 +9731,14 @@ hardware support for a handful of code breakpoints and data
 watchpoints.
 In addition, CPUs almost always support software breakpoints.
 
-@deffn {Command} {bp} [address len [@option{hw}]]
+@deffn {Command} {bp} [address [asid] len [@option{hw} | @option{hw_ctx}]]
 With no parameters, lists all active breakpoints.
 Else sets a breakpoint on code execution starting
 at @var{address} for @var{length} bytes.
-This is a software breakpoint, unless @option{hw} is specified
-in which case it will be a hardware breakpoint.
+This is a software breakpoint, unless @option{hw} or @option{hw_ctx}
+is specified in which case it will be a hardware, context or hybrid breakpoint.
+The context and hybrid breakpoints require an additional parameter @var{asid}:
+address space identifier.
 
 (@xref{arm9vectorcatch,,arm9 vector_catch}, or @pxref{xscalevectorcatch,,xscale vector_catch},
 for similar mechanisms that do not consume hardware breakpoints.)
