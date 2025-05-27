@@ -63,7 +63,7 @@ static const struct flash_ctrl_priv_data flash_priv_data_lp = {
 	.flash_regs_base = 0x40001000,
 	.flash_page_size = 2048,
 	.jtag_idcode = 0x0201E041,
-	.part_name = "BLUENRG-LP",
+	.part_name = "STM32WB07 (BLUENRG-LP)",
 };
 
 static const struct flash_ctrl_priv_data flash_priv_data_lps = {
@@ -73,7 +73,7 @@ static const struct flash_ctrl_priv_data flash_priv_data_lps = {
 	.flash_regs_base = 0x40001000,
 	.flash_page_size = 2048,
 	.jtag_idcode = 0x02028041,
-	.part_name = "BLUENRG-LPS",
+	.part_name = "STM32WB05 (BLUENRG-LPS)",
 };
 
 struct bluenrgx_flash_bank {
