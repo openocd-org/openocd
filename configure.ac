@@ -63,6 +63,8 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <features.h>]], [[int v = __GLIBC_
 AC_MSG_RESULT($have_glibc)
 
 AC_CHECK_HEADERS([fcntl.h])
+AC_CHECK_HEADERS([linux/pci.h])
+AC_CHECK_HEADERS([linux/spi/spidev.h])
 AC_CHECK_HEADERS([malloc.h])
 AC_CHECK_HEADERS([netdb.h])
 AC_CHECK_HEADERS([poll.h])
@@ -694,10 +696,11 @@ PROCESS_ADAPTERS([LIBGPIOD_ADAPTERS], ["x$use_libgpiod" = "xyes"], [Linux libgpi
 PROCESS_ADAPTERS([SYSFSGPIO_ADAPTER], ["x$is_linux" = "xyes"], [Linux sysfs])
 PROCESS_ADAPTERS([REMOTE_BITBANG_ADAPTER], [true], [unused])
 PROCESS_ADAPTERS([LIBJAYLINK_ADAPTERS], ["x$use_internal_libjaylink" = "xyes" -o "x$use_libjaylink" = "xyes"], [libjaylink-0.2])
-PROCESS_ADAPTERS([PCIE_ADAPTERS], ["x$is_linux" = "xyes"], [Linux build])
+PROCESS_ADAPTERS([PCIE_ADAPTERS], ["x$is_linux" = "xyes" -a "x$ac_cv_header_linux_pci_h" = "xyes"], [Linux build])
 PROCESS_ADAPTERS([SERIAL_PORT_ADAPTERS], ["x$can_build_buspirate" = "xyes"],
                                          [internal error: validation should happen beforehand])
-PROCESS_ADAPTERS([LINUXSPIDEV_ADAPTER], ["x$is_linux" = "xyes"], [Linux spidev])
+PROCESS_ADAPTERS([LINUXSPIDEV_ADAPTER], ["x$is_linux" = "xyes" -a "x$ac_cv_header_linux_spi_spidev_h" = "xyes"],
+                                        [Linux spidev])
 PROCESS_ADAPTERS([VDEBUG_ADAPTER], [true], [unused])
 PROCESS_ADAPTERS([JTAG_DPI_ADAPTER], [true], [unused])
 PROCESS_ADAPTERS([JTAG_VPI_ADAPTER], [true], [unused])
