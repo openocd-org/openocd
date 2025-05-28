@@ -414,7 +414,19 @@ static int cmsis_dap_usb_open(struct cmsis_dap *dap, uint16_t vids[], uint16_t p
 static void cmsis_dap_usb_close(struct cmsis_dap *dap)
 {
 	for (unsigned int i = 0; i < MAX_PENDING_REQUESTS; i++) {
-		libusb_free_transfer(dap->bdata->command_transfers[i].transfer);
+		if (dap->bdata->command_transfers[i].status == CMSIS_DAP_TRANSFER_PENDING) {
+			LOG_DEBUG("busy command USB transfer at %u", dap->pending_fifo_put_idx);
+			struct timeval tv = {
+				.tv_sec = 1,
+				.tv_usec = 1000
+			};
+			/* Complete pending commands */
+			int res = libusb_handle_events_timeout_completed(dap->bdata->usb_ctx, &tv, NULL);
+			if (res == 0)
+				libusb_free_transfer(dap->bdata->command_transfers[i].transfer);
+		} else {
+			libusb_free_transfer(dap->bdata->command_transfers[i].transfer);
+		}
 		libusb_free_transfer(dap->bdata->response_transfers[i].transfer);
 	}
 	cmsis_dap_usb_free(dap);
