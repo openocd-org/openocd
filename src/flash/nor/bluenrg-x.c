@@ -315,10 +315,10 @@ static int bluenrgx_write(struct flash_bank *bank, const uint8_t *buffer,
 	init_reg_param(&reg_params[4], "sp", 32, PARAM_OUT);
 	/* Put the 4th parameter at the location in the stack frame of target write() function.
 	 * See contrib/loaders/flash/bluenrg-x/bluenrg-x_write.lst
-	 * 34 ldr     r6, [sp, #80]
+	 * 34 ldr     r6, [sp, #88]
 	 *                     ^^^ offset
 	 */
-	init_mem_param(&mem_params[0], write_algorithm_stack->address + 80, 32, PARAM_OUT);
+	init_mem_param(&mem_params[0], write_algorithm_stack->address + 88, 32, PARAM_OUT);
 	/* Stack for target write algorithm - target write() function has
 	 * __attribute__((naked)) so it does not setup the new stack frame.
 	 * Therefore the stack frame uses the area from SP upwards!
