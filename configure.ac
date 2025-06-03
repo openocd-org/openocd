@@ -329,10 +329,13 @@ AC_ARG_ADAPTERS([
   JTAG_DPI_ADAPTER,
   JTAG_VPI_ADAPTER,
   RSHIM_ADAPTER,
-  AMTJTAGACCEL_ADAPTER,
   PCIE_ADAPTERS,
   LIBJAYLINK_ADAPTERS
   ],[auto])
+
+AC_ARG_ADAPTERS([
+  AMTJTAGACCEL_ADAPTER
+  ],[no])
 
 AC_ARG_ENABLE([parport],
   AS_HELP_STRING([--enable-parport], [Enable building the pc parallel port driver]),
