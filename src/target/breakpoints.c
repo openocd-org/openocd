@@ -417,6 +417,7 @@ int breakpoint_remove(struct target *target, target_addr_t address)
 		} else {
 			LOG_WARNING("No halted target found to remove software breakpoint at "
 					TARGET_ADDR_FMT ".", address);
+			return ERROR_TARGET_NOT_HALTED;
 		}
 	}
 
