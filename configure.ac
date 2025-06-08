@@ -197,6 +197,15 @@ m4_define([RSHIM_ADAPTER],
 m4_define([AMTJTAGACCEL_ADAPTER],
 	[[[amtjtagaccel], [Amontec JTAG-Accelerator driver], [AMTJTAGACCEL]]])
 
+m4_define([HOST_ARM_BITBANG_ADAPTERS],
+	[[[ep93xx], [Bitbanging on EP93xx-based SBCs], [EP93XX]],
+	[[at91rm9200], [Bitbanging on AT91RM9200-based SBCs], [AT91RM9200]]])
+
+m4_define([HOST_ARM_OR_AARCH64_BITBANG_ADAPTERS],
+	[[[bcm2835gpio], [Bitbanging on BCM2835 (as found in Raspberry Pi)], [BCM2835GPIO]],
+	[[imx_gpio], [Bitbanging on NXP IMX processors], [IMX_GPIO]],
+	[[am335xgpio], [Bitbanging on AM335x (as found in Beaglebones)], [AM335XGPIO]]])
+
 # The word 'Adapter' in "Dummy Adapter" below must begin with a capital letter
 # because there is an M4 macro called 'adapter'.
 m4_define([DUMMY_ADAPTER],
@@ -336,6 +345,16 @@ AC_ARG_ADAPTERS([
   AMTJTAGACCEL_ADAPTER
   ],[no])
 
+# The following adapters use bitbanging and can actually be built on all architectures,
+# which is useful to verify that they still build fine.
+# We could enable them automatically only on the architectures where they actually occur:
+# HOST_ARM_BITBANG_ADAPTERS:            when ${host_cpu} matches arm*
+# HOST_ARM_OR_AARCH64_BITBANG_ADAPTERS: when ${host_cpu} matches arm*|aarch64
+# However, conditionally changing the meaning of 'auto' requires
+# a more flexible logic around.
+AC_ARG_ADAPTERS([HOST_ARM_BITBANG_ADAPTERS],[no])
+AC_ARG_ADAPTERS([HOST_ARM_OR_AARCH64_BITBANG_ADAPTERS],[no])
+
 AC_ARG_ENABLE([parport],
   AS_HELP_STRING([--enable-parport], [Enable building the pc parallel port driver]),
   [build_parport=$enableval], [build_parport=no])
@@ -349,39 +368,6 @@ AC_ARG_ENABLE([parport_giveio],
     AS_HELP_STRING([--enable-parport-giveio],
       [Enable use of giveio for parport (for CygWin only)]),
     [parport_use_giveio=$enableval], [parport_use_giveio=])
-
-AS_CASE(["${host_cpu}"],
-  [arm*|aarch64], [
-    AC_ARG_ENABLE([bcm2835gpio],
-      AS_HELP_STRING([--enable-bcm2835gpio], [Enable building support for bitbanging on BCM2835 (as found in Raspberry Pi)]),
-      [build_bcm2835gpio=$enableval], [build_bcm2835gpio=no])
-    AC_ARG_ENABLE([imx_gpio],
-      AS_HELP_STRING([--enable-imx_gpio], [Enable building support for bitbanging on NXP IMX processors]),
-      [build_imx_gpio=$enableval], [build_imx_gpio=no])
-    AC_ARG_ENABLE([am335xgpio],
-      AS_HELP_STRING([--enable-am335xgpio], [Enable building support for bitbanging on AM335x (as found in Beaglebones)]),
-      [build_am335xgpio=$enableval], [build_am335xgpio=no])
-  ],
-  [
-    build_bcm2835gpio=no
-    build_imx_gpio=no
-    build_am335xgpio=no
-])
-
-AS_CASE(["${host_cpu}"],
-  [arm*], [
-    AC_ARG_ENABLE([ep93xx],
-      AS_HELP_STRING([--enable-ep93xx], [Enable building support for EP93xx based SBCs]),
-      [build_ep93xx=$enableval], [build_ep93xx=no])
-
-    AC_ARG_ENABLE([at91rm9200],
-      AS_HELP_STRING([--enable-at91rm9200], [Enable building support for AT91RM9200 based SBCs]),
-      [build_at91rm9200=$enableval], [build_at91rm9200=no])
-  ],
-  [
-    build_ep93xx=no
-    build_at91rm9200=no
-])
 
 AC_ARG_ENABLE([gw16012],
   AS_HELP_STRING([--enable-gw16012], [Enable building support for the Gateworks GW16012 JTAG Programmer]),
@@ -529,41 +515,6 @@ AS_IF([test "x$ADAPTER_VAR([dummy])" != "xno"], [
   build_bitbang=yes
 ])
 
-AS_IF([test "x$build_ep93xx" = "xyes"], [
-  build_bitbang=yes
-  AC_DEFINE([BUILD_EP93XX], [1], [1 if you want ep93xx.])
-], [
-  AC_DEFINE([BUILD_EP93XX], [0], [0 if you don't want ep93xx.])
-])
-
-AS_IF([test "x$build_at91rm9200" = "xyes"], [
-  build_bitbang=yes
-  AC_DEFINE([BUILD_AT91RM9200], [1], [1 if you want at91rm9200.])
-], [
-  AC_DEFINE([BUILD_AT91RM9200], [0], [0 if you don't want at91rm9200.])
-])
-
-AS_IF([test "x$build_bcm2835gpio" = "xyes"], [
-  build_bitbang=yes
-  AC_DEFINE([BUILD_BCM2835GPIO], [1], [1 if you want bcm2835gpio.])
-], [
-  AC_DEFINE([BUILD_BCM2835GPIO], [0], [0 if you don't want bcm2835gpio.])
-])
-
-AS_IF([test "x$build_imx_gpio" = "xyes"], [
-  build_bitbang=yes
-  AC_DEFINE([BUILD_IMX_GPIO], [1], [1 if you want imx_gpio.])
-], [
-  AC_DEFINE([BUILD_IMX_GPIO], [0], [0 if you don't want imx_gpio.])
-])
-
-AS_IF([test "x$build_am335xgpio" = "xyes"], [
-  build_bitbang=yes
-  AC_DEFINE([BUILD_AM335XGPIO], [1], [1 if you want am335xgpio.])
-], [
-  AC_DEFINE([BUILD_AM335XGPIO], [0], [0 if you don't want am335xgpio.])
-])
-
 AS_IF([test "x$parport_use_ppdev" = "xyes"], [
   AC_DEFINE([PARPORT_USE_PPDEV], [1], [1 if you want parport to use ppdev.])
 ], [
@@ -709,6 +660,8 @@ PROCESS_ADAPTERS([JTAG_VPI_ADAPTER], [true], [unused])
 PROCESS_ADAPTERS([RSHIM_ADAPTER], ["x$can_build_rshim" = "xyes"],
                                   [internal error: validation should happen beforehand])
 PROCESS_ADAPTERS([AMTJTAGACCEL_ADAPTER], [true], [unused])
+PROCESS_ADAPTERS([HOST_ARM_BITBANG_ADAPTERS], [true], [unused])
+PROCESS_ADAPTERS([HOST_ARM_OR_AARCH64_BITBANG_ADAPTERS], [true], [unused])
 PROCESS_ADAPTERS([DUMMY_ADAPTER], [true], [unused])
 
 AS_IF([test "x$enable_linuxgpiod" != "xno"], [
@@ -720,6 +673,26 @@ AS_IF([test "x$enable_sysfsgpio" != "xno"], [
 ])
 
 AS_IF([test "x$enable_remote_bitbang" != "xno"], [
+  build_bitbang=yes
+])
+
+AS_IF([test "x$enable_bcm2835gpio" != "xno"], [
+  build_bitbang=yes
+])
+
+AS_IF([test "x$enable_imx_gpio" != "xno"], [
+  build_bitbang=yes
+])
+
+AS_IF([test "x$enable_am335xgpio" != "xno"], [
+  build_bitbang=yes
+])
+
+AS_IF([test "x$enable_ep93xx" != "xno"], [
+  build_bitbang=yes
+])
+
+AS_IF([test "x$enable_at91rm9200" != "xno"], [
   build_bitbang=yes
 ])
 
@@ -758,11 +731,6 @@ AS_IF([test "x$enable_esp_usb_jtag" != "xno"], [
 AM_CONDITIONAL([RELEASE], [test "x$build_release" = "xyes"])
 AM_CONDITIONAL([PARPORT], [test "x$build_parport" = "xyes"])
 AM_CONDITIONAL([GIVEIO], [test "x$parport_use_giveio" = "xyes"])
-AM_CONDITIONAL([EP93XX], [test "x$build_ep93xx" = "xyes"])
-AM_CONDITIONAL([AT91RM9200], [test "x$build_at91rm9200" = "xyes"])
-AM_CONDITIONAL([BCM2835GPIO], [test "x$build_bcm2835gpio" = "xyes"])
-AM_CONDITIONAL([IMX_GPIO], [test "x$build_imx_gpio" = "xyes"])
-AM_CONDITIONAL([AM335XGPIO], [test "x$build_am335xgpio" = "xyes"])
 AM_CONDITIONAL([BITBANG], [test "x$build_bitbang" = "xyes"])
 AM_CONDITIONAL([USB_BLASTER_DRIVER], [test "x$enable_usb_blaster" != "xno" -o "x$enable_usb_blaster_2" != "xno"])
 AM_CONDITIONAL([GW16012], [test "x$build_gw16012" = "xyes"])
@@ -884,10 +852,12 @@ m4_foreach([adapter], [USB1_ADAPTERS,
 	JTAG_VPI_ADAPTER,
 	RSHIM_ADAPTER,
 	AMTJTAGACCEL_ADAPTER,
+	HOST_ARM_BITBANG_ADAPTERS,
+	HOST_ARM_OR_AARCH64_BITBANG_ADAPTERS,
 	DUMMY_ADAPTER,
 	OPTIONAL_LIBRARIES,
 	COVERAGE],
-	[s=m4_format(["%-41s"], ADAPTER_DESC([adapter]))
+	[s=m4_format(["%-49s"], ADAPTER_DESC([adapter]))
 	AS_CASE([$ADAPTER_VAR([adapter])],
 		[auto], [
 			echo "$s"yes '(auto)'
