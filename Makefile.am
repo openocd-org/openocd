@@ -1,8 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
-# not a GNU package. You can remove this line, if
-# have all needed files, that a GNU package needs
-AUTOMAKE_OPTIONS = gnu 1.6
+AUTOMAKE_OPTIONS = gnu 1.14
 
 .DELETE_ON_ERROR:
 

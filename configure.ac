@@ -24,7 +24,6 @@ AC_LANG([C])
 AC_PROG_CC
 # autoconf 2.70 obsoletes AC_PROG_CC_C99 and includes it in AC_PROG_CC
 m4_version_prereq([2.70],[],[AC_PROG_CC_C99])
-AM_PROG_CC_C_O
 AC_PROG_RANLIB
 
 # If macro PKG_PROG_PKG_CONFIG is not available, Autoconf generates a misleading error message,
