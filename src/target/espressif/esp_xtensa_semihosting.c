@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /***************************************************************************
  *   Copyright (c) 2020 Espressif Systems (Shanghai) Co. Ltd.              *
@@ -11,10 +11,10 @@
 #include <target/semihosting_common.h>
 #include <target/xtensa/xtensa_regs.h>
 #include <target/xtensa/xtensa.h>
-#include <target/espressif/esp_semihosting.h>
 #include "esp_xtensa.h"
 #include "esp_xtensa_semihosting.h"
 
+#define ESP_XTENSA_SYSCALL              0x41E0	/* XT_INS_BREAK(1, 14) */
 #define ESP_XTENSA_SYSCALL_SZ           3
 
 #define XTENSA_SYSCALL_OP_REG           XT_REG_IDX_A2
@@ -33,9 +33,6 @@ static int esp_xtensa_semihosting_post_result(struct target *target)
 	/* Even with the v2 and later, errno will not retrieved from A3 reg, it is safe to set */
 	xtensa_reg_set(target, XTENSA_SYSCALL_RETVAL_REG, target->semihosting->result);
 	xtensa_reg_set(target, XTENSA_SYSCALL_ERRNO_REG, target->semihosting->sys_errno);
-	/* To step over the BREAK instructions, PC needs to be incremented by 3 */
-	xtensa_reg_val_t oldpc = xtensa_reg_get(target, XT_REG_IDX_PC);
-	xtensa_reg_set(target, XT_REG_IDX_PC, oldpc + 3);	/* PC = PC+3 */
 	return ERROR_OK;
 }
 
@@ -52,7 +49,6 @@ static int esp_xtensa_semihosting_post_result(struct target *target)
  */
 int esp_xtensa_semihosting(struct target *target, int *retval)
 {
-	struct xtensa *xtensa = target_to_xtensa(target);
 	struct esp_xtensa_common *esp_xtensa = target_to_esp_xtensa(target);
 
 	xtensa_reg_val_t dbg_cause = xtensa_reg_get(target, XT_REG_IDX_DEBUGCAUSE);
@@ -68,7 +64,7 @@ int esp_xtensa_semihosting(struct target *target, int *retval)
 	}
 
 	uint32_t syscall_ins = buf_get_u32(brk_insn_buf, 0, 32);
-	if (syscall_ins != XT_INS_BREAK(xtensa, 1, 14)) {
+	if (syscall_ins != ESP_XTENSA_SYSCALL) {
 		*retval = ERROR_OK;
 		return SEMIHOSTING_NONE;
 	}
@@ -87,6 +83,7 @@ int esp_xtensa_semihosting(struct target *target, int *retval)
 	target->semihosting->param = a3;
 
 	*retval = semihosting_common(target);
+
 	/* Most operations are resumable, except the two exit calls. */
 	if (*retval != ERROR_OK) {
 		LOG_TARGET_ERROR(target, "Semihosting operation (op: 0x%x) error! Code: %d",
@@ -95,11 +92,10 @@ int esp_xtensa_semihosting(struct target *target, int *retval)
 	}
 
 	/* Resume if target it is resumable and we are not waiting on a fileio operation to complete. */
-	if (target->semihosting->is_resumable && !target->semihosting->hit_fileio) {
+	if (target->semihosting->is_resumable && !target->semihosting->hit_fileio)
 		target_to_esp_xtensa(target)->semihost.need_resume = true;
-		return SEMIHOSTING_HANDLED;
-	}
-	return SEMIHOSTING_WAITING;
+
+	return SEMIHOSTING_HANDLED;
 }
 
 static int xtensa_semihosting_init(struct target *target)

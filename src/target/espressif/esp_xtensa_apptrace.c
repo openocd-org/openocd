@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-or-later */
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 /***************************************************************************
  *   Xtensa application tracing module for OpenOCD                         *
@@ -15,11 +15,9 @@
 #endif
 
 #include <helper/align.h>
-#include <helper/crc16.h>
 #include <target/xtensa/xtensa.h>
 #include <target/xtensa/xtensa_debug_module.h>
 #include "esp_xtensa_apptrace.h"
-#include <target/target_type.h>
 
 /* TRAX is disabled, so we use its registers for our own purposes
  * | 31..XXXXXX..24 | 23 .(host_connect). 23 | 22 .(host_data). 22| 21..(block_id)..15 | 14..(block_len)..0 |
@@ -30,10 +28,6 @@
 /* if non-zero then apptrace code entered the critical section and the value is an address of the
  * critical section's exit point */
 #define XTENSA_APPTRACE_STAT_REG                XDMREG_TRIGGERPC
-#define XTENSA_APPTRACE_CRC_REG                 XDMREG_PM1
-
-#define XTENSA_APPTRACE_CRC_MSK                 0xFFFF
-#define XTENSA_APPTRACE_CRC_INDICATOR           (0xA55AU << 16)
 
 #define XTENSA_APPTRACE_BLOCK_LEN_MSK           0x7FFFUL
 #define XTENSA_APPTRACE_BLOCK_LEN(_l_)          ((_l_) & XTENSA_APPTRACE_BLOCK_LEN_MSK)
@@ -65,40 +59,7 @@ struct esp32_apptrace_hw esp_xtensa_apptrace_hw = {
 	.buffs_write = esp_xtensa_apptrace_buffs_write,
 	.leave_trace_crit_section_start = esp_xtensa_apptrace_leave_crit_section_start,
 	.leave_trace_crit_section_stop = esp_xtensa_apptrace_leave_crit_section_stop,
-	.apptrace_is_inited = NULL
 };
-
-static int esp_xtensa_apptrace_debug_reg_read(struct target *target, uint32_t reg, uint32_t *val)
-{
-	struct xtensa *xtensa = target_to_xtensa(target);
-	uint8_t tmp[4];
-
-	int res = xtensa_queue_dbg_reg_read(xtensa, reg, tmp);
-	if (res != ERROR_OK)
-		return res;
-	xtensa_dm_queue_tdi_idle(&xtensa->dbg_mod);
-	res = xtensa_dm_queue_execute(&xtensa->dbg_mod);
-	if (res != ERROR_OK) {
-		LOG_ERROR("Failed to exec JTAG queue!");
-		return res;
-	}
-	*val = buf_get_u32(tmp, 0, 32);
-	return ERROR_OK;
-}
-
-static int esp_xtensa_apptrace_debug_reg_write(struct target *target, uint32_t reg, uint32_t val)
-{
-	struct xtensa *xtensa = target_to_xtensa(target);
-
-	xtensa_queue_dbg_reg_write(xtensa, reg, val);
-	xtensa_dm_queue_tdi_idle(&xtensa->dbg_mod);
-	int res = xtensa_dm_queue_execute(&xtensa->dbg_mod);
-	if (res != ERROR_OK) {
-		LOG_ERROR("Failed to exec JTAG queue!");
-		return res;
-	}
-	return ERROR_OK;
-}
 
 uint32_t esp_xtensa_apptrace_block_max_size_get(struct target *target)
 {
@@ -169,22 +130,13 @@ static int esp_xtensa_apptrace_data_reverse_read(struct xtensa *xtensa,
 		if (res != ERROR_OK)
 			return res;
 	}
-
-	xtensa_dm_queue_tdi_idle(&xtensa->dbg_mod);
-	res = xtensa_dm_queue_execute(&xtensa->dbg_mod);
-	if (res != ERROR_OK) {
-		LOG_ERROR("Failed to exec JTAG queue!");
-		return res;
-	}
-
 	return ERROR_OK;
 }
 
 static int esp_xtensa_apptrace_data_normal_read(struct xtensa *xtensa,
 	uint32_t size,
 	uint8_t *buffer,
-	uint8_t *unal_bytes,
-	bool wait)
+	uint8_t *unal_bytes)
 {
 	int res = xtensa_queue_dbg_reg_write(xtensa, XDMREG_TRAXADDR, 0);
 	if (res != ERROR_OK)
@@ -199,20 +151,6 @@ static int esp_xtensa_apptrace_data_normal_read(struct xtensa *xtensa,
 		if (res != ERROR_OK)
 			return res;
 	}
-
-	if (wait) {
-		/* Workaround for esp32s3 data corruption while reading the high volume of data */
-		/* Don't have clear reason for this, might fix the priority issue with the target memory access and tracing */
-		usleep(5000 * (size / 256));
-	}
-
-	xtensa_dm_queue_tdi_idle(&xtensa->dbg_mod);
-	res = xtensa_dm_queue_execute(&xtensa->dbg_mod);
-	if (res != ERROR_OK) {
-		LOG_ERROR("Failed to exec JTAG queue!");
-		return res;
-	}
-
 	return ERROR_OK;
 }
 
@@ -223,56 +161,35 @@ int esp_xtensa_apptrace_data_read(struct target *target,
 	bool ack)
 {
 	struct xtensa *xtensa = target_to_xtensa(target);
-	uint32_t tmp = XTENSA_APPTRACE_HOST_CONNECT | XTENSA_APPTRACE_BLOCK_ID(block_id) | XTENSA_APPTRACE_BLOCK_LEN(0);
+	int res;
+	uint32_t tmp = XTENSA_APPTRACE_HOST_CONNECT | XTENSA_APPTRACE_BLOCK_ID(block_id) |
+		XTENSA_APPTRACE_BLOCK_LEN(0);
 	uint8_t unal_bytes[4];
-	uint32_t target_crc16;
-	const int MAX_TRIES = 10;
-	bool wait = strcmp(target->type->name, "esp32s3") == 0;
 
-	int res = esp_xtensa_apptrace_debug_reg_read(target, XTENSA_APPTRACE_CRC_REG, &target_crc16);
+	LOG_DEBUG("Read data on target (%s)", target_name(target));
+	if (xtensa->core_config->trace.reversed_mem_access)
+		res = esp_xtensa_apptrace_data_reverse_read(xtensa, size, buffer, unal_bytes);
+	else
+		res = esp_xtensa_apptrace_data_normal_read(xtensa, size, buffer, unal_bytes);
 	if (res != ERROR_OK)
 		return res;
-
-	bool check_crc = (target_crc16 & XTENSA_APPTRACE_CRC_INDICATOR) == XTENSA_APPTRACE_CRC_INDICATOR ? true : false;
-
-	target_crc16 &= XTENSA_APPTRACE_CRC_MSK; /* clear the CRC indicator bits */
-	/* Sanity check */
-	if (target_crc16 == 0)
-		check_crc = false;
-
-	for (int i = 1; i <= MAX_TRIES; ++i) {
-		LOG_TARGET_DEBUG(target, "Read data from block %" PRIu32 " size %" PRIu32, block_id, size);
-		if (xtensa->core_config->trace.reversed_mem_access)
-			res = esp_xtensa_apptrace_data_reverse_read(xtensa, size, buffer, unal_bytes);
-		else
-			res = esp_xtensa_apptrace_data_normal_read(xtensa, size, buffer, unal_bytes, wait);
+	if (ack) {
+		LOG_DEBUG("Ack block %" PRIu32 " target (%s)!", block_id, target_name(target));
+		res = xtensa_queue_dbg_reg_write(xtensa, XTENSA_APPTRACE_CTRL_REG, tmp);
 		if (res != ERROR_OK)
 			return res;
-
-		if (!IS_ALIGNED(size, 4)) {
-			/* copy the last unaligned bytes */
-			memcpy(buffer + ALIGN_DOWN(size, 4), unal_bytes, size & 0x3UL);
-		}
-
-		LOG_TARGET_DEBUG(target, "target crc: %" PRIx32 " check_crc: %d", target_crc16, check_crc);
-
-		if (!check_crc)
-			break;
-
-		uint16_t crc16 = crc16_le(0, buffer, size);
-		if (crc16 == target_crc16)
-			break;
-
-		LOG_WARNING("[%d/%d] CRC mismatch! calculated: 0x%" PRIx16 " read: 0x%" PRIx32,
-			i, MAX_TRIES, crc16, target_crc16);
 	}
-
-	if (ack) {
-		LOG_TARGET_DEBUG(target, "Ack block %" PRIu32 " write 0x%" PRIx32 " to control reg", block_id, tmp);
-		res = esp_xtensa_apptrace_debug_reg_write(target, XTENSA_APPTRACE_CTRL_REG, tmp);
+	xtensa_dm_queue_tdi_idle(&xtensa->dbg_mod);
+	res = xtensa_dm_queue_execute(&xtensa->dbg_mod);
+	if (res != ERROR_OK) {
+		LOG_ERROR("Failed to exec JTAG queue!");
+		return res;
 	}
-
-	return res;
+	if (!IS_ALIGNED(size, 4)) {
+		/* copy the last unaligned bytes */
+		memcpy(buffer + ALIGN_DOWN(size, 4), unal_bytes, size & 0x3UL);
+	}
+	return ERROR_OK;
 }
 
 int esp_xtensa_apptrace_ctrl_reg_write(struct target *target,
@@ -281,11 +198,20 @@ int esp_xtensa_apptrace_ctrl_reg_write(struct target *target,
 	bool conn,
 	bool data)
 {
+	struct xtensa *xtensa = target_to_xtensa(target);
 	uint32_t tmp = (conn ? XTENSA_APPTRACE_HOST_CONNECT : 0) |
 		(data ? XTENSA_APPTRACE_HOST_DATA : 0) | XTENSA_APPTRACE_BLOCK_ID(block_id) |
 		XTENSA_APPTRACE_BLOCK_LEN(len);
 
-	return esp_xtensa_apptrace_debug_reg_write(target, XTENSA_APPTRACE_CTRL_REG, tmp);
+	xtensa_queue_dbg_reg_write(xtensa, XTENSA_APPTRACE_CTRL_REG, tmp);
+	xtensa_dm_queue_tdi_idle(&xtensa->dbg_mod);
+	int res = xtensa_dm_queue_execute(&xtensa->dbg_mod);
+	if (res != ERROR_OK) {
+		LOG_ERROR("Failed to exec JTAG queue!");
+		return res;
+	}
+
+	return ERROR_OK;
 }
 
 int esp_xtensa_apptrace_ctrl_reg_read(struct target *target,
@@ -293,10 +219,15 @@ int esp_xtensa_apptrace_ctrl_reg_read(struct target *target,
 	uint32_t *len,
 	bool *conn)
 {
-	uint32_t val;
-	int res = esp_xtensa_apptrace_debug_reg_read(target, XTENSA_APPTRACE_CTRL_REG, &val);
+	struct xtensa *xtensa = target_to_xtensa(target);
+	uint8_t tmp[4];
+
+	xtensa_queue_dbg_reg_read(xtensa, XTENSA_APPTRACE_CTRL_REG, tmp);
+	xtensa_dm_queue_tdi_idle(&xtensa->dbg_mod);
+	int res = xtensa_dm_queue_execute(&xtensa->dbg_mod);
 	if (res != ERROR_OK)
 		return res;
+	uint32_t val = target_buffer_get_u32(target, tmp);
 	if (block_id)
 		*block_id = XTENSA_APPTRACE_BLOCK_ID_GET(val);
 	if (len)
@@ -308,17 +239,43 @@ int esp_xtensa_apptrace_ctrl_reg_read(struct target *target,
 
 int esp_xtensa_apptrace_status_reg_read(struct target *target, uint32_t *stat)
 {
-	return esp_xtensa_apptrace_debug_reg_read(target, XTENSA_APPTRACE_STAT_REG, stat);
+	struct xtensa *xtensa = target_to_xtensa(target);
+	uint8_t tmp[4];
+
+	int res = xtensa_queue_dbg_reg_read(xtensa, XTENSA_APPTRACE_STAT_REG, tmp);
+	if (res != ERROR_OK)
+		return res;
+	xtensa_dm_queue_tdi_idle(&xtensa->dbg_mod);
+	res = xtensa_dm_queue_execute(&xtensa->dbg_mod);
+	if (res != ERROR_OK) {
+		LOG_ERROR("Failed to exec JTAG queue!");
+		return res;
+	}
+	*stat = buf_get_u32(tmp, 0, 32);
+	return ERROR_OK;
 }
 
 int esp_xtensa_apptrace_status_reg_write(struct target *target, uint32_t stat)
 {
-	return esp_xtensa_apptrace_debug_reg_write(target, XTENSA_APPTRACE_STAT_REG, stat);
+	struct xtensa *xtensa = target_to_xtensa(target);
+
+	xtensa_queue_dbg_reg_write(xtensa, XTENSA_APPTRACE_STAT_REG, stat);
+	xtensa_dm_queue_tdi_idle(&xtensa->dbg_mod);
+	int res = xtensa_dm_queue_execute(&xtensa->dbg_mod);
+	if (res != ERROR_OK) {
+		LOG_ERROR("Failed to exec JTAG queue!");
+		return res;
+	}
+	return ERROR_OK;
 }
 
 static int esp_xtensa_swdbg_activate(struct target *target, int enab)
 {
-	int res = esp_xtensa_apptrace_debug_reg_write(target, enab ? XDMREG_DCRSET : XDMREG_DCRCLR, OCDDCR_DEBUGSWACTIVE);
+	struct xtensa *xtensa = target_to_xtensa(target);
+
+	xtensa_queue_dbg_reg_write(xtensa, enab ? XDMREG_DCRSET : XDMREG_DCRCLR, OCDDCR_DEBUGSWACTIVE);
+	xtensa_dm_queue_tdi_idle(&xtensa->dbg_mod);
+	int res = xtensa_dm_queue_execute(&xtensa->dbg_mod);
 	if (res != ERROR_OK) {
 		LOG_TARGET_ERROR(target, "writing DCR failed");
 		return res;

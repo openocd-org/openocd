@@ -18,7 +18,7 @@
 #define ESP_SEMIHOSTING_SYS_BREAKPOINT_SET          0x103
 #define ESP_SEMIHOSTING_SYS_WATCHPOINT_SET          0x104
 #define ESP_SEMIHOSTING_SYS_SEEK                    0x105	/* custom lseek with whence */
-/* directory related syscalls */
+/* not implemented yet */
 #define ESP_SEMIHOSTING_SYS_MKDIR                   0x106
 #define ESP_SEMIHOSTING_SYS_OPENDIR                 0x107
 #define ESP_SEMIHOSTING_SYS_READDIR                 0x108
@@ -35,10 +35,21 @@
 #define ESP_SEMIHOSTING_SYS_FSYNC                   0x113
 #define ESP_SEMIHOSTING_SYS_LINK                    0x114
 #define ESP_SEMIHOSTING_SYS_UNLINK                  0x115
-/* esp-idf internal syscalls */
-#define ESP_SEMIHOSTING_SYS_PANIC_REASON            0x116
+
+/**
+ * Semihost calls handling operations.
+ */
+struct esp_semihost_ops {
+	/** Callback called before handling semihost call */
+	int (*prepare)(struct target *target);
+};
+
+struct esp_semihost_data {
+	bool need_resume;
+	struct esp_semihost_ops *ops;
+};
 
 int esp_semihosting_common(struct target *target);
-int esp_semihosting_post_reset(struct target *target);
+int esp_semihosting_basedir_command(struct command_invocation *cmd);
 
 #endif	/* OPENOCD_TARGET_ESP_SEMIHOSTING_H */

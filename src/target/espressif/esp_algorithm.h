@@ -104,8 +104,8 @@
  * But it still needs memory for stub trampoline, stack, and memory arguments.
  * Working areas can not be used due to possible memory layout conflicts with on-board stub code and data.
  * Debug stubs functionality provided by ESP IDF allows OpenOCD to overcome the above problem.
- * It provides a special control block which provides info necessary to safely allocate memory on target.
- * @see struct esp_dbg_stubs_ctl_data.
+ * It provides a special descriptor which provides info necessary to safely allocate memory on target.
+ * @see struct esp_dbg_stubs_desc.
  * That info is also used to locate memory for stub trampoline code.
  * User can execute target function at any address, but @see ESP IDF debug stubs also provide a way to pass to the host
  * an entry address of pre-defined registered stub functions.
@@ -119,10 +119,6 @@
 struct esp_algorithm_image {
 	/** Image. */
 	struct image image;
-	/** CODE section size. */
-	uint32_t code_size;
-	/** DATA section size. */
-	uint32_t data_size;
 	/** BSS section size. */
 	uint32_t bss_size;
 	/** IRAM start address in the linker script */
@@ -137,7 +133,6 @@ struct esp_algorithm_image {
 	bool reverse;
 };
 
-//#define ESP_STACK_HIGH_WATER_MARK  /* Comment out to see the stack usage of each stub command */
 #define ESP_IMAGE_ELF_PHF_EXEC			0x1
 
 /**
@@ -201,8 +196,6 @@ struct esp_algorithm_hw {
 	int (*algo_init)(struct target *target, struct esp_algorithm_run_data *run, uint32_t num_args, va_list ap);
 	int (*algo_cleanup)(struct target *target, struct esp_algorithm_run_data *run);
 	const uint8_t *(*stub_tramp_get)(struct target *target, size_t *size);
-	int (*run_onboard_func)(struct target *target, struct esp_algorithm_run_data *run, uint32_t func_addr,
-		uint32_t num_args, ...);
 };
 
 /**
@@ -295,13 +288,8 @@ struct esp_algorithm_run_data {
 
 	/** HW specific API */
 	const struct esp_algorithm_hw *hw;
-	/** Check If stub binary is already loaded to the target's reserved memory */
-	bool check_preloaded_binary;
-	/** True if stub binary is loaded to the target reserved memory */
-	bool run_preloaded_binary;
 };
 
-int esp_algorithm_check_preloaded_image(struct target *target, struct esp_algorithm_run_data *run);
 int esp_algorithm_load_func_image(struct target *target, struct esp_algorithm_run_data *run);
 int esp_algorithm_unload_func_image(struct target *target, struct esp_algorithm_run_data *run);
 
@@ -325,15 +313,9 @@ static inline int esp_algorithm_run_func_image_va(struct target *target,
 	uint32_t num_args,
 	va_list ap)
 {
-	int ret = ERROR_FAIL;
-
-	if (run->check_preloaded_binary)
-		ret = esp_algorithm_check_preloaded_image(target, run);
-	if (ret != ERROR_OK) {
-		ret = esp_algorithm_load_func_image(target, run);
-		if (ret != ERROR_OK)
-			return ret;
-	}
+	int ret = esp_algorithm_load_func_image(target, run);
+	if (ret != ERROR_OK)
+		return ret;
 	ret = esp_algorithm_exec_func_image_va(target, run, num_args, ap);
 	int rc = esp_algorithm_unload_func_image(target, run);
 	return ret != ERROR_OK ? ret : rc;
