@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
+/* SPDX-License-Identifier: GPL-2.0-or-later */
 
 /***************************************************************************
  *   ESP32-S2 target for OpenOCD                                           *
@@ -14,8 +14,11 @@
 #include <target/target.h>
 #include <target/target_type.h>
 #include <target/semihosting_common.h>
+#include <rtos/rtos.h>
+#include <flash/nor/esp_xtensa.h>
+#include "esp32_apptrace.h"
 #include "esp_xtensa.h"
-#include "esp_xtensa_semihosting.h"
+#include "esp_semihosting.h"
 
 #define ESP32_S2_RTC_DATA_LOW           0x50000000
 #define ESP32_S2_RTC_DATA_HIGH          0x50002000
@@ -69,6 +72,36 @@
 #define ESP32_S2_DR_REG_UART_BASE       0x3f400000
 #define ESP32_S2_REG_UART_BASE(i)       (ESP32_S2_DR_REG_UART_BASE + (i) * 0x10000)
 #define ESP32_S2_UART_DATE_REG(i)       (ESP32_S2_REG_UART_BASE(i) + 0x74)
+#define ESP32S2_RTC_CNTL_RESET_STATE_REG          (ESP32_S2_RTCCNTL_BASE + 0x38)
+
+/* RTC_CNTL_RESET_CAUSE_PROCPU : RO ;bitpos:[5:0] ;default: 0 ;
+ *description: reset cause of PRO CPU.*/
+#define ESP32S2_RTC_CNTL_RESET_CAUSE_PROCPU     0x0000003F
+#define ESP32S2_RTC_CNTL_RESET_CAUSE_PROCPU_M   ((ESP32S2_RTC_CNTL_RESET_CAUSE_PROCPU_V) << \
+		(ESP32S2_RTC_CNTL_RESET_CAUSE_PROCPU_S))
+#define ESP32S2_RTC_CNTL_RESET_CAUSE_PROCPU_V   0x3F
+#define ESP32S2_RTC_CNTL_RESET_CAUSE_PROCPU_S   0
+
+enum esp32s2_reset_reason {
+	ESP32S2_CHIP_POWER_ON_RESET   = 0x01,	/* Power on reset */
+	ESP32S2_CHIP_BROWN_OUT_RESET  = 0x01,	/* VDD voltage is not stable and resets the chip */
+	ESP32S2_CHIP_SUPER_WDT_RESET  = 0x01,	/* Super watch dog resets the chip */
+	ESP32S2_CORE_SW_RESET         = 0x03,	/* Software resets the digital core by RTC_CNTL_SW_SYS_RST */
+	ESP32S2_CORE_DEEP_SLEEP_RESET = 0x05,	/* Deep sleep reset the digital core */
+	ESP32S2_CORE_MWDT0_RESET      = 0x07,	/* Main watch dog 0 resets digital core */
+	ESP32S2_CORE_MWDT1_RESET      = 0x08,	/* Main watch dog 1 resets digital core */
+	ESP32S2_CORE_RTC_WDT_RESET    = 0x09,	/* RTC watch dog resets digital core */
+	ESP32S2_CPU0_MWDT0_RESET      = 0x0B,	/* Main watch dog 0 resets CPU 0 */
+	ESP32S2_CPU0_SW_RESET         = 0x0C,	/* Software resets CPU 0 by RTC_CNTL_SW_PROCPU_RST */
+	ESP32S2_CPU0_RTC_WDT_RESET    = 0x0D,	/* RTC watch dog resets CPU 0 */
+	ESP32S2_SYS_BROWN_OUT_RESET   = 0x0F,	/* VDD voltage is not stable and resets the digital core */
+	ESP32S2_SYS_RTC_WDT_RESET     = 0x10,	/* RTC watch dog resets digital core and rtc module */
+	ESP32S2_CPU0_MWDT1_RESET      = 0x11,	/* Main watch dog 1 resets CPU 0 */
+	ESP32S2_SYS_SUPER_WDT_RESET   = 0x12,	/* Super watch dog resets the digital core and rtc module */
+	ESP32S2_SYS_CLK_GLITCH_RESET  = 0x13,	/* Glitch on clock resets the digital core and rtc module */
+	ESP32S2_CORE_EFUSE_CRC_RESET  = 0x14,	/* eFuse CRC error resets the digital core */
+};
+
 struct esp32s2_common {
 	struct esp_xtensa_common esp_xtensa;
 };
@@ -272,8 +305,8 @@ static int esp32s2_soc_reset(struct target *target)
 		alive_sleep(10);
 		xtensa_poll(target);
 		if (timeval_ms() >= timeout) {
-			LOG_TARGET_ERROR(target, "Timed out waiting for CPU to be reset, target state %s",
-				target_state_name(target));
+			LOG_TARGET_ERROR(target, "Timed out waiting for CPU to be reset, target state=%d",
+				target->state);
 			return ERROR_TARGET_TIMEOUT;
 		}
 	}
@@ -284,6 +317,9 @@ static int esp32s2_soc_reset(struct target *target)
 		LOG_TARGET_ERROR(target, "Couldn't halt target before SoC reset");
 		return res;
 	}
+
+	esp_xtensa_reset_reason_read(target);
+
 	/* Unstall CPU */
 	res = esp32s2_unstall(target);
 	if (res != ERROR_OK)
@@ -297,6 +333,12 @@ static int esp32s2_soc_reset(struct target *target)
 	if (res != ERROR_OK) {
 		LOG_ERROR("Failed to write ESP32_S2_DPORT_PMS_OCCUPY_3 (%d)!", res);
 		return res;
+	}
+	/* Clear memory which is used by RTOS layer to get the task count */
+	if (target->rtos && target->rtos->type->post_reset_cleanup) {
+		res = (*target->rtos->type->post_reset_cleanup)(target);
+		if (res != ERROR_OK)
+			LOG_WARNING("Failed to do rtos-specific cleanup (%d)", res);
 	}
 	return ERROR_OK;
 }
@@ -393,18 +435,21 @@ static int esp32s2_poll(struct target *target)
 		if (old_state == TARGET_DEBUG_RUNNING) {
 			target_call_event_callbacks(target, TARGET_EVENT_DEBUG_HALTED);
 		} else {
-			if (esp_xtensa_semihosting(target, &ret) == SEMIHOSTING_HANDLED) {
+			int retval = esp_xtensa_semihosting(target, &ret);
+			if (retval == SEMIHOSTING_HANDLED) {
 				struct esp_xtensa_common *esp_xtensa = target_to_esp_xtensa(target);
 				if (ret == ERROR_OK && esp_xtensa->semihost.need_resume) {
 					esp_xtensa->semihost.need_resume = false;
-					/* Resume xtensa_resume will handle BREAK instruction. */
-					ret = target_resume(target, true, 0, true, false);
+					/* BREAK instruction will be handled in the xtensa_semihosting_post_result. */
+					ret = target_resume(target, true, 0, false, false);
 					if (ret != ERROR_OK) {
 						LOG_ERROR("Failed to resume target");
 						return ret;
 					}
 				}
 				return ret;
+			} else if (retval == SEMIHOSTING_WAITING) {
+			   /* nothing to do. Don’t return to allow sending halted event */
 			}
 			esp32s2_on_halt(target);
 			target_call_event_callbacks(target, TARGET_EVENT_HALTED);
@@ -418,6 +463,64 @@ static int esp32s2_virt2phys(struct target *target,
 	target_addr_t virtual, target_addr_t *physical)
 {
 	*physical = virtual;
+	return ERROR_OK;
+}
+
+static const char *esp32s2_reset_reason_str(int coreid, enum esp32s2_reset_reason reset_number)
+{
+	switch (reset_number) {
+	case ESP32S2_CHIP_POWER_ON_RESET:
+		return "Power on reset";
+	case ESP32S2_CORE_SW_RESET:
+		return "Software core reset";
+	case ESP32S2_CORE_DEEP_SLEEP_RESET:
+		return "Deep-sleep core reset";
+	case ESP32S2_CORE_MWDT0_RESET:
+		return "Main WDT0 core reset";
+	case ESP32S2_CORE_MWDT1_RESET:
+		return "Main WDT1 core reset";
+	case ESP32S2_CORE_RTC_WDT_RESET:
+		return "RTC WDT core reset";
+	case ESP32S2_CPU0_MWDT0_RESET:
+		return "Main WDT0 CPU0 reset";
+	case ESP32S2_CPU0_SW_RESET:
+		return "Software CPU0 reset";
+	case ESP32S2_CPU0_RTC_WDT_RESET:
+		return "RTC WDT CPU0 reset";
+	case ESP32S2_SYS_BROWN_OUT_RESET:
+		return "Brown-out core reset";
+	case ESP32S2_SYS_RTC_WDT_RESET:
+		return "RTC WDT core and rtc reset";
+	case ESP32S2_CPU0_MWDT1_RESET:
+		return "Main WDT1 resets CPU0";
+	case ESP32S2_SYS_SUPER_WDT_RESET:
+		return "Super WDT reset";
+	case ESP32S2_SYS_CLK_GLITCH_RESET:
+		return "Glitch on clock reset";
+	case ESP32S2_CORE_EFUSE_CRC_RESET:
+		return "eFuse CRC error reset";
+	}
+	return "Unknown reset cause";
+}
+
+static int esp32s2_reset_reason_fetch(struct target *target, int *rsn_id, const char **rsn_str)
+{
+	uint32_t rsn_val;
+
+	int ret = target_read_u32(target, ESP32S2_RTC_CNTL_RESET_STATE_REG, &rsn_val);
+	if (ret != ERROR_OK) {
+		LOG_TARGET_ERROR(target, "Error on read reset reason register (%d)!", ret);
+		return ret;
+	}
+	rsn_val &= ESP32S2_RTC_CNTL_RESET_CAUSE_PROCPU_M;
+	rsn_val >>= ESP32S2_RTC_CNTL_RESET_CAUSE_PROCPU_S;
+
+	/* sanity check for valid value */
+	if (rsn_val == 0)
+		return ERROR_FAIL;
+
+	*rsn_id = rsn_val;
+	*rsn_str = esp32s2_reset_reason_str(target->coreid, rsn_val);
 	return ERROR_OK;
 }
 
@@ -441,8 +544,15 @@ static const struct xtensa_power_ops esp32s2_pwr_ops = {
 	.queue_reg_write = xtensa_dm_queue_pwr_reg_write
 };
 
+static const struct esp_flash_breakpoint_ops esp32s2_spec_brp_ops = {
+	.breakpoint_prepare = esp_algo_flash_breakpoint_prepare,
+	.breakpoint_add = esp_algo_flash_breakpoint_add,
+	.breakpoint_remove = esp_algo_flash_breakpoint_remove,
+};
+
 static const struct esp_semihost_ops esp32s2_semihost_ops = {
-	.prepare = esp32s2_disable_wdts
+	.prepare = esp32s2_disable_wdts,
+	.post_reset = esp_semihosting_post_reset
 };
 
 static int esp32s2_target_create(struct target *target)
@@ -452,7 +562,11 @@ static int esp32s2_target_create(struct target *target)
 		.pwr_ops = &esp32s2_pwr_ops,
 		.tap = target->tap,
 		.queue_tdi_idle = NULL,
-		.queue_tdi_idle_arg = NULL
+		.queue_tdi_idle_arg = NULL,
+		.dap = NULL,
+		.debug_ap = NULL,
+		.debug_apsel = DP_APSEL_INVALID,
+		.ap_offset = 0,
 	};
 
 	/* creates xtensa object */
@@ -462,7 +576,14 @@ static int esp32s2_target_create(struct target *target)
 		return ERROR_FAIL;
 	}
 
-	int ret = esp_xtensa_init_arch_info(target, &esp32->esp_xtensa, &esp32s2_dm_cfg, &esp32s2_semihost_ops);
+	struct esp_ops esp32s2_ops = {
+		.flash_brps_ops = &esp32s2_spec_brp_ops,
+		.chip_ops = NULL,
+		.semihost_ops = &esp32s2_semihost_ops,
+		.reset_reason_fetch = esp32s2_reset_reason_fetch
+	};
+
+	int ret = esp_xtensa_init_arch_info(target, &esp32->esp_xtensa, &esp32s2_dm_cfg, &esp32s2_ops);
 	if (ret != ERROR_OK) {
 		LOG_ERROR("Failed to init arch info!");
 		free(esp32);
@@ -475,14 +596,30 @@ static int esp32s2_target_create(struct target *target)
 	return ERROR_OK;
 }
 
+static const struct command_registration esp_any_command_handlers[] = {
+	{
+		.mode = COMMAND_ANY,
+		.usage = "",
+		.chain = esp_command_handlers,
+	},
+	{
+		.mode = COMMAND_ANY,
+		.usage = "",
+		.chain = esp32_apptrace_command_handlers,
+	},
+	COMMAND_REGISTRATION_DONE
+};
+
 static const struct command_registration esp32s2_command_handlers[] = {
 	{
 		.chain = xtensa_command_handlers,
 	},
 	{
 		.name = "esp",
+		.mode = COMMAND_ANY,
+		.help = "ESP command group",
 		.usage = "",
-		.chain = esp32_apptrace_command_handlers,
+		.chain = esp_any_command_handlers,
 	},
 	{
 		.name = "arm",
@@ -531,6 +668,7 @@ struct target_type esp32s2_target = {
 
 	.add_watchpoint = xtensa_watchpoint_add,
 	.remove_watchpoint = xtensa_watchpoint_remove,
+	.hit_watchpoint = xtensa_watchpoint_hit,
 
 	.target_create = esp32s2_target_create,
 	.init_target = esp32s2_target_init,

@@ -11,6 +11,7 @@
 
 #include <target/xtensa/xtensa.h>
 #include "esp_xtensa_algorithm.h"
+#include "esp_xtensa_smp.h"
 
 static int esp_xtensa_algo_init(struct target *target, struct esp_algorithm_run_data *run,
 	uint32_t num_args, va_list ap);
@@ -21,6 +22,7 @@ const struct esp_algorithm_hw xtensa_algo_hw = {
 	.algo_init = esp_xtensa_algo_init,
 	.algo_cleanup = esp_xtensa_algo_cleanup,
 	.stub_tramp_get = esp_xtensa_stub_tramp_get,
+	.run_onboard_func = esp_xtensa_smp_run_onboard_func,
 };
 
 /* Generated from contrib/loaders/trampoline/espressif/xtensa/esp_xtensa_stub_tramp_win.S */

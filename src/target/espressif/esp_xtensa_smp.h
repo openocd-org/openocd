@@ -41,13 +41,11 @@ int esp_xtensa_smp_soft_reset_halt(struct target *target);
 int esp_xtensa_smp_on_halt(struct target *target);
 int esp_xtensa_smp_watchpoint_add(struct target *target, struct watchpoint *watchpoint);
 int esp_xtensa_smp_watchpoint_remove(struct target *target, struct watchpoint *watchpoint);
-int esp_xtensa_smp_handle_target_event(struct target *target, enum target_event event, void *priv);
 int esp_xtensa_smp_target_init(struct command_context *cmd_ctx, struct target *target);
 int esp_xtensa_smp_init_arch_info(struct target *target,
 	struct esp_xtensa_smp_common *esp_xtensa_smp,
 	struct xtensa_debug_module_config *dm_cfg,
-	const struct esp_xtensa_smp_chip_ops *chip_ops,
-	const struct esp_semihost_ops *semihost_ops);
+	struct esp_ops *esp_ops);
 int esp_xtensa_smp_run_func_image(struct target *target, struct esp_algorithm_run_data *run, uint32_t num_args, ...);
 int esp_xtensa_smp_run_onboard_func(struct target *target,
 	struct esp_algorithm_run_data *run,

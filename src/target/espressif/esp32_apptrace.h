@@ -45,6 +45,7 @@ struct esp32_apptrace_hw {
 		bool data);
 	int (*leave_trace_crit_section_start)(struct target *target);
 	int (*leave_trace_crit_section_stop)(struct target *target);
+	bool (*apptrace_is_inited)(struct target *target);
 };
 
 struct esp_apptrace_host2target_hdr {
@@ -81,6 +82,7 @@ struct esp32_apptrace_cmd_ctx {
 	/* TODO: use cores num from target */
 	unsigned int cores_num;
 	const struct esp32_apptrace_hw *hw;
+	const struct esp_algorithm_hw *algo_hw;
 	enum target_state target_state;
 	uint32_t last_blk_id;
 	struct list_head free_trace_blocks;
@@ -120,6 +122,7 @@ int esp_apptrace_usr_block_write(const struct esp32_apptrace_hw *hw, struct targ
 	uint32_t block_id,
 	const uint8_t *data,
 	uint32_t size);
+uint8_t *esp_apptrace_usr_block_get(struct target *target, uint8_t *buffer, uint32_t *size);
 
 extern const struct command_registration esp32_apptrace_command_handlers[];
 
