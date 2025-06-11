@@ -52,9 +52,16 @@ const struct cmsis_dap_backend cmsis_dap_hid_backend = {
 };
 #endif
 
+#if BUILD_CMSIS_DAP_TCP == 0
+const struct cmsis_dap_backend cmsis_dap_tcp_backend = {
+	.name = "tcp"
+};
+#endif
+
 static const struct cmsis_dap_backend *const cmsis_dap_backends[] = {
 	&cmsis_dap_usb_backend,
 	&cmsis_dap_hid_backend,
+	&cmsis_dap_tcp_backend,
 };
 
 /* USB Config */
@@ -2275,8 +2282,8 @@ static const struct command_registration cmsis_dap_subcommand_handlers[] = {
 		.name = "backend",
 		.handler = &cmsis_dap_handle_backend_command,
 		.mode = COMMAND_CONFIG,
-		.help = "set the communication backend to use (USB bulk or HID).",
-		.usage = "(auto | usb_bulk | hid)",
+		.help = "set the communication backend to use (USB bulk or HID, or TCP).",
+		.usage = "(auto | usb_bulk | hid | tcp)",
 	},
 	{
 		.name = "quirk",
@@ -2291,6 +2298,15 @@ static const struct command_registration cmsis_dap_subcommand_handlers[] = {
 		.chain = cmsis_dap_usb_subcommand_handlers,
 		.mode = COMMAND_ANY,
 		.help = "USB bulk backend-specific commands",
+		.usage = "<cmd>",
+	},
+#endif
+#if BUILD_CMSIS_DAP_TCP
+	{
+		.name = "tcp",
+		.chain = cmsis_dap_tcp_subcommand_handlers,
+		.mode = COMMAND_ANY,
+		.help = "TCP backend-specific commands",
 		.usage = "<cmd>",
 	},
 #endif

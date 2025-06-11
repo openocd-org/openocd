@@ -204,6 +204,9 @@ m4_define([RSHIM_ADAPTER],
 m4_define([AMTJTAGACCEL_ADAPTER],
 	[[[amtjtagaccel], [Amontec JTAG-Accelerator driver], [AMTJTAGACCEL]]])
 
+m4_define([CMSIS_DAP_TCP_ADAPTER],
+	[[[cmsis_dap_tcp], [CMSIS-DAP v2 compliant dongle (TCP)], [CMSIS_DAP_TCP]]])
+
 m4_define([HOST_ARM_BITBANG_ADAPTERS],
 	[[[ep93xx], [Bitbanging on EP93xx-based SBCs], [EP93XX]],
 	[[at91rm9200], [Bitbanging on AT91RM9200-based SBCs], [AT91RM9200]]])
@@ -327,7 +330,8 @@ AC_ARG_ADAPTERS([
   JTAG_VPI_ADAPTER,
   RSHIM_ADAPTER,
   XVC_ADAPTERS,
-  LIBJAYLINK_ADAPTERS
+  LIBJAYLINK_ADAPTERS,
+  CMSIS_DAP_TCP_ADAPTER
   ],[auto])
 
 AC_ARG_ADAPTERS([
@@ -623,6 +627,7 @@ PROCESS_ADAPTERS([LIBGPIOD_ADAPTERS], ["x$use_libgpiod" = "xyes"], [Linux libgpi
 PROCESS_ADAPTERS([DMEM_ADAPTER], ["x$is_linux" = "xyes"], [Linux /dev/mem])
 PROCESS_ADAPTERS([SYSFSGPIO_ADAPTER], ["x$is_linux" = "xyes"], [Linux sysfs])
 PROCESS_ADAPTERS([REMOTE_BITBANG_ADAPTER], [true], [unused])
+PROCESS_ADAPTERS([CMSIS_DAP_TCP_ADAPTER], [true], [unused])
 PROCESS_ADAPTERS([LIBJAYLINK_ADAPTERS], ["x$use_internal_libjaylink" = "xyes" -o "x$use_libjaylink" = "xyes"], [libjaylink-0.2])
 PROCESS_ADAPTERS([XVC_ADAPTERS], ["x$is_linux" = "xyes" -a "x$ac_cv_header_linux_pci_h" = "xyes"], [Linux build])
 PROCESS_ADAPTERS([SERIAL_PORT_ADAPTERS], ["x$can_build_buspirate" = "xyes"],
@@ -682,6 +687,8 @@ AS_IF([test "x$enable_stlink" != "xno" -o "x$enable_ti_icdi" != "xno" -o "x$enab
 AM_CONDITIONAL([HLADAPTER_STLINK], [test "x$enable_stlink" != "xno"])
 AM_CONDITIONAL([HLADAPTER_ICDI], [test "x$enable_ti_icdi" != "xno"])
 AM_CONDITIONAL([HLADAPTER_NULINK], [test "x$enable_nulink" != "xno"])
+AM_CONDITIONAL([CMSIS_DAP_CORE],
+   [test "x$enable_cmsis_dap" != "xno" -o "x$enable_cmsis_dap_v2" != "xno" -o "x$enable_cmsis_dap_tcp" != "xno"])
 
 AS_IF([test "x$enable_jlink" != "xno"], [
   AS_IF([test "x$use_internal_libjaylink" = "xyes"], [
@@ -832,6 +839,7 @@ m4_foreach([adapterTuple], [USB1_ADAPTERS,
 	AMTJTAGACCEL_ADAPTER,
 	HOST_ARM_BITBANG_ADAPTERS,
 	HOST_ARM_OR_AARCH64_BITBANG_ADAPTERS,
+	CMSIS_DAP_TCP_ADAPTER,
 	DUMMY_ADAPTER,
 	OPTIONAL_LIBRARIES,
 	COVERAGE],
