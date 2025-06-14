@@ -10,6 +10,8 @@
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
+
+#include <helper/types.h>
 #include "core.h"
 #include "driver.h"
 
@@ -29,12 +31,11 @@ static struct nand_flash_controller *nand_flash_controllers[] = {
 	&s3c2440_nand_controller,
 	&s3c2443_nand_controller,
 	&s3c6400_nand_controller,
-	NULL
 };
 
 struct nand_flash_controller *nand_driver_find_by_name(const char *name)
 {
-	for (unsigned int i = 0; nand_flash_controllers[i]; i++) {
+	for (size_t i = 0; i < ARRAY_SIZE(nand_flash_controllers); i++) {
 		struct nand_flash_controller *controller = nand_flash_controllers[i];
 		if (strcmp(name, controller->name) == 0)
 			return controller;
@@ -43,7 +44,7 @@ struct nand_flash_controller *nand_driver_find_by_name(const char *name)
 }
 int nand_driver_walk(nand_driver_walker_t f, void *x)
 {
-	for (unsigned int i = 0; nand_flash_controllers[i]; i++) {
+	for (size_t i = 0; i < ARRAY_SIZE(nand_flash_controllers); i++) {
 		int retval = (*f)(nand_flash_controllers[i], x);
 		if (retval != ERROR_OK)
 			return retval;
