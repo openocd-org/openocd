@@ -89,6 +89,7 @@ typedef int (*nand_driver_walker_t)(struct nand_flash_controller *c, void *);
  */
 int nand_driver_walk(nand_driver_walker_t f, void *x);
 
+// Keep in alphabetic order the list of drivers
 extern struct nand_flash_controller at91sam9_nand_controller;
 extern struct nand_flash_controller davinci_nand_controller;
 extern struct nand_flash_controller imx31_nand_flash_controller;
