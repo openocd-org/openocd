@@ -7,6 +7,8 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
+#include <helper/types.h>
 #include "imp.h"
 
 /**
@@ -89,12 +91,11 @@ static const struct flash_driver * const flash_drivers[] = {
 	&xcf_flash,
 	&xmc1xxx_flash,
 	&xmc4xxx_flash,
-	NULL,
 };
 
 const struct flash_driver *flash_driver_find_by_name(const char *name)
 {
-	for (unsigned int i = 0; flash_drivers[i]; i++) {
+	for (size_t i = 0; i < ARRAY_SIZE(flash_drivers); i++) {
 		if (strcmp(name, flash_drivers[i]->name) == 0)
 			return flash_drivers[i];
 	}
