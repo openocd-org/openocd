@@ -307,6 +307,7 @@ struct target_type {
 	unsigned int (*data_bits)(struct target *target);
 };
 
+// Keep in alphabetic order this list of targets
 extern struct target_type aarch64_target;
 extern struct target_type arcv2_target;
 extern struct target_type arm11_target;
