@@ -371,6 +371,7 @@ int adapter_config_trace(bool enabled, enum tpiu_pin_protocol pin_protocol,
 		unsigned int traceclkin_freq, uint16_t *prescaler);
 int adapter_poll_trace(uint8_t *buf, size_t *size);
 
+// Keep in alphabetic order this list of drivers
 extern struct adapter_driver am335xgpio_adapter_driver;
 extern struct adapter_driver amt_jtagaccel_adapter_driver;
 extern struct adapter_driver angie_adapter_driver;
