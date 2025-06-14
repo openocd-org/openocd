@@ -110,7 +110,6 @@ static struct target_type *target_types[] = {
 	&testee_target,
 	&xscale_target,
 	&xtensa_chip_target,
-	NULL,
 };
 
 struct target *all_targets;
@@ -5708,7 +5707,6 @@ static const struct command_registration target_instance_command_handlers[] = {
 COMMAND_HANDLER(handle_target_create)
 {
 	int retval = ERROR_OK;
-	int x;
 
 	if (CMD_ARGC < 2)
 		return ERROR_COMMAND_SYNTAX_ERROR;
@@ -5732,15 +5730,16 @@ COMMAND_HANDLER(handle_target_create)
 		LOG_INFO("The selected transport took over low-level target control. The results might differ compared to plain JTAG/SWD");
 	}
 	/* now does target type exist */
-	for (x = 0 ; target_types[x] ; x++) {
+	size_t x;
+	for (x = 0 ; x < ARRAY_SIZE(target_types) ; x++) {
 		if (strcmp(cp, target_types[x]->name) == 0) {
 			/* found */
 			break;
 		}
 	}
-	if (!target_types[x]) {
+	if (x == ARRAY_SIZE(target_types)) {
 		char *all = NULL;
-		for (x = 0 ; target_types[x] ; x++) {
+		for (x = 0 ; x < ARRAY_SIZE(target_types) ; x++) {
 			char *prev = all;
 			if (all)
 				all = alloc_printf("%s, %s", all, target_types[x]->name);
@@ -5942,7 +5941,7 @@ COMMAND_HANDLER(handle_target_types)
 	if (CMD_ARGC != 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	for (unsigned int x = 0; target_types[x]; x++)
+	for (size_t x = 0; x < ARRAY_SIZE(target_types); x++)
 		command_print(CMD, "%s", target_types[x]->name);
 
 	return ERROR_OK;
