@@ -17,20 +17,22 @@
 #include "server/gdb_server.h"
 
 static const struct rtos_type *rtos_types[] = {
-	&threadx_rtos,
-	&freertos_rtos,
-	&ecos_rtos,
-	&linux_rtos,
+	// Keep in alphabetic order this list of rtos, except hwthread
 	&chibios_rtos,
 	&chromium_ec_rtos,
+	&ecos_rtos,
 	&embkernel_rtos,
+	&freertos_rtos,
+	&linux_rtos,
 	&mqx_rtos,
-	&ucos_iii_rtos,
 	&nuttx_rtos,
 	&riot_rtos,
-	&zephyr_rtos,
 	&rtkernel_rtos,
-	/* keep this as last, as it always matches with rtos auto */
+	&threadx_rtos,
+	&ucos_iii_rtos,
+	&zephyr_rtos,
+
+	// keep this as last, as it always matches with rtos auto
 	&hwthread_rtos,
 };
 

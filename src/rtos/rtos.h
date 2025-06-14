@@ -136,6 +136,7 @@ int rtos_read_buffer(struct target *target, target_addr_t address,
 int rtos_write_buffer(struct target *target, target_addr_t address,
 		uint32_t size, const uint8_t *buffer);
 
+// Keep in alphabetic order this list of rtos
 extern const struct rtos_type chibios_rtos;
 extern const struct rtos_type chromium_ec_rtos;
 extern const struct rtos_type ecos_rtos;
