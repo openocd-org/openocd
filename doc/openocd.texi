@@ -9335,7 +9335,7 @@ Redirect logging to @var{filename}. If used without an argument or
 stderr.
 @end deffn
 
-@deffn {Command} {add_script_search_dir} [directory]
+@deffn {Command} {add_script_search_dir} directory
 Add @var{directory} to the file/script search path.
 @end deffn
 
