@@ -33,6 +33,14 @@ enum adapter_gpio_init_state {
 	ADAPTER_GPIO_INIT_STATE_INPUT,
 };
 
+/** Supported exit states for GPIO */
+enum adapter_gpio_exit_state {
+	ADAPTER_GPIO_EXIT_STATE_NO_CHANGE, /* Should be zero so it is the default state */
+	ADAPTER_GPIO_EXIT_STATE_INACTIVE,
+	ADAPTER_GPIO_EXIT_STATE_ACTIVE,
+	ADAPTER_GPIO_EXIT_STATE_INPUT,
+};
+
 /** Supported pull directions for GPIO */
 enum adapter_gpio_pull {
 	ADAPTER_GPIO_PULL_NONE,
@@ -61,6 +69,7 @@ struct adapter_gpio_config {
 	unsigned int chip_num;
 	enum adapter_gpio_drive_mode drive; /* For outputs only */
 	enum adapter_gpio_init_state init_state;
+	enum adapter_gpio_exit_state exit_state;
 	bool active_low;
 	enum adapter_gpio_pull pull;
 };

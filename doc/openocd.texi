@@ -2447,6 +2447,7 @@ dict get [adapter list] ftdi
         @option{-push-pull} | @option{-open-drain} | @option{-open-source} | @
         @option{-pull-none} | @option{-pull-up} | @option{-pull-down} | @
         @option{-init-inactive} | @option{-init-active} | @option{-init-input} @
+        @option{-exit-inactive} | @option{-exit-active} | @option{-exit-input} | @option{-exit-no-change} @
     ] ]}
 
 Define the GPIO mapping that the adapter will use. The following signals can be
@@ -2481,11 +2482,14 @@ equivalent to issuing the single command @command{gpio led 7 -chip 1
 signals which are inputs. The drive mode for the srst and trst signals must be
 set with the @command{adapter reset_config} command. It is not permissible to
 set the initial state of swdio_dir as it is derived from the initial state of
-swdio. The command @command{adapter gpio} prints the current configuration for
-all GPIOs while the command @command{adapter gpio gpio_name} prints the current
-configuration for gpio_name. Not all adapters support this generic GPIO mapping,
-some require their own commands to define the GPIOs used. Adapters that support
-the generic mapping may not support all of the listed options.
+swdio. Accordingly, the final state before the adapter terminates its operation,
+so-called “exit state”, can be set. By default the state and configuration of an
+output pin is not changed when the driver terminates its operation. The
+command @command{adapter gpio} prints the current configuration for all GPIOs
+while the command @command{adapter gpio gpio_name} prints the current configuration
+for gpio_name. Not all adapters support this generic GPIO mapping, some require
+their own commands to define the GPIOs used. Adapters that support the generic
+mapping may not support all of the listed options.
 @end deffn
 
 @deffn {Command} {adapter name}
