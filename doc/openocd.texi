@@ -1382,11 +1382,11 @@ Read the OpenOCD source code (and Developer's Guide)
 if you have a new kind of hardware interface
 and need to provide a driver for it.
 
-@deffn {Command} {find} 'filename'
+@deffn {Command} {find} filename
 Prints full path to @var{filename} according to OpenOCD search rules.
 @end deffn
 
-@deffn {Command} {ocd_find} 'filename'
+@deffn {Command} {ocd_find} filename
 Prints full path to @var{filename} according to OpenOCD search rules. This
 is a low level function used by the @command{find}. Usually you want
 to use @command{find}, instead.
