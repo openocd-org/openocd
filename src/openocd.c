@@ -170,7 +170,8 @@ COMMAND_HANDLER(handle_init_command)
 	jtag_poll_unmask(save_poll_mask);
 
 	/* initialize telnet subsystem */
-	gdb_target_add_all(all_targets);
+	if (gdb_target_add_all(all_targets) != ERROR_OK)
+		return ERROR_FAIL;
 
 	target_register_event_callback(log_target_callback_event_handler, CMD_CTX);
 
