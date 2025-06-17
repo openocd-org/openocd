@@ -167,6 +167,8 @@ struct cortex_m_part_info {
 #define NVIC_DFSR		0xE000ED30
 #define NVIC_MMFAR		0xE000ED34
 #define NVIC_BFAR		0xE000ED38
+#define MPU_CTRL		0xE000ED94
+#define SAU_CTRL		0xE000EDD0
 #define NVIC_SFSR		0xE000EDE4
 #define NVIC_SFAR		0xE000EDE8
 
@@ -183,6 +185,9 @@ struct cortex_m_part_info {
 #define DFSR_DWTTRAP		4
 #define DFSR_VCATCH			8
 #define DFSR_EXTERNAL		16
+
+#define MPU_CTRL_ENABLE		BIT(0)
+#define SAU_CTRL_ENABLE		BIT(0)
 
 #define FPCR_CODE 0
 #define FPCR_LITERAL 1
@@ -264,6 +269,15 @@ struct cortex_m_common {
 	bool incorrect_halt_erratum;
 };
 
+struct cortex_m_saved_security {
+	bool dscsr_dirty;
+	uint32_t dscsr;
+	bool sau_ctrl_dirty;
+	uint32_t sau_ctrl;
+	bool mpu_ctrl_dirty;
+	uint32_t mpu_ctrl;
+};
+
 static inline bool is_cortex_m_or_hla(const struct cortex_m_common *cortex_m)
 {
 	return cortex_m->common_magic == CORTEX_M_COMMON_MAGIC;
@@ -340,5 +354,18 @@ void cortex_m_enable_watchpoints(struct target *target);
 void cortex_m_deinit_target(struct target *target);
 int cortex_m_profiling(struct target *target, uint32_t *samples,
 	uint32_t max_num_samples, uint32_t *num_samples, uint32_t seconds);
+
+/**
+ * Forces Cortex-M core to the basic secure context with SAU and MPU off
+ * @param ssec pointer to save previous security state or NULL
+ * @returns error code or ERROR_OK if secure mode was set or is not applicable
+ * (not ARMv8M with security extension)
+ */
+int cortex_m_set_secure(struct target *target, struct cortex_m_saved_security *ssec);
+
+/**
+ * Restores saved security context to MPU_CTRL, SAU_CTRL and DSCSR
+ */
+int cortex_m_security_restore(struct target *target, struct cortex_m_saved_security *ssec);
 
 #endif /* OPENOCD_TARGET_CORTEX_M_H */

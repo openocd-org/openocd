@@ -2563,6 +2563,112 @@ static bool cortex_m_has_tz(struct target *target)
 	return (dauthstatus & DAUTHSTATUS_SID_MASK) != 0;
 }
 
+int cortex_m_set_secure(struct target *target, struct cortex_m_saved_security *ssec)
+{
+	if (ssec) {
+		ssec->dscsr_dirty = false;
+		ssec->sau_ctrl_dirty = false;
+		ssec->mpu_ctrl_dirty = false;
+	}
+
+	if (!cortex_m_has_tz(target))
+		return ERROR_OK;
+
+	uint32_t dscsr;
+	int retval = target_read_u32(target, DCB_DSCSR, &dscsr);
+	if (retval != ERROR_OK) {
+		LOG_TARGET_ERROR(target, "ARMv8M set secure: DSCSR read failed");
+		return retval;
+	}
+	if (!(dscsr & DSCSR_CDS)) {
+		if (ssec) {
+			ssec->dscsr_dirty = true;
+			ssec->dscsr = dscsr;
+		}
+		LOG_TARGET_DEBUG(target, "Setting Current Domain Secure in DSCSR");
+		retval = target_write_u32(target, DCB_DSCSR, DSCSR_CDS);
+		if (retval != ERROR_OK) {
+			LOG_TARGET_ERROR(target, "ARMv8M set secure: DSCSR write failed");
+			return retval;
+		}
+	}
+
+	uint32_t sau_ctrl;
+	retval = target_read_u32(target, SAU_CTRL, &sau_ctrl);
+	if (retval != ERROR_OK) {
+		LOG_TARGET_ERROR(target, "ARMv8M set secure: SAU_CTRL read failed");
+		return retval;
+	}
+	if (sau_ctrl & SAU_CTRL_ENABLE) {
+		if (ssec) {
+			ssec->sau_ctrl_dirty = true;
+			ssec->sau_ctrl = sau_ctrl;
+		}
+		retval = target_write_u32(target, SAU_CTRL, sau_ctrl & ~SAU_CTRL_ENABLE);
+		if (retval != ERROR_OK) {
+			LOG_TARGET_ERROR(target, "ARMv8M set secure: SAU_CTRL write failed");
+			return retval;
+		}
+	}
+
+	uint32_t mpu_ctrl;
+	retval = target_read_u32(target, MPU_CTRL, &mpu_ctrl);
+	if (retval != ERROR_OK) {
+		LOG_TARGET_ERROR(target, "ARMv8M set secure: MPU_CTRL read failed");
+		return retval;
+	}
+	if (mpu_ctrl & MPU_CTRL_ENABLE) {
+		if (ssec) {
+			ssec->mpu_ctrl_dirty = true;
+			ssec->mpu_ctrl = mpu_ctrl;
+		}
+		retval = target_write_u32(target, MPU_CTRL, mpu_ctrl & ~MPU_CTRL_ENABLE);
+		if (retval != ERROR_OK) {
+			LOG_TARGET_ERROR(target, "ARMv8M set secure: MPU_CTRL write failed");
+			return retval;
+		}
+	}
+	return ERROR_OK;
+}
+
+int cortex_m_security_restore(struct target *target, struct cortex_m_saved_security *ssec)
+{
+	int retval;
+	if (!cortex_m_has_tz(target))
+		return ERROR_OK;
+
+	if (!ssec)
+		return ERROR_OK;
+
+	if (ssec->mpu_ctrl_dirty) {
+		retval = target_write_u32(target, MPU_CTRL, ssec->mpu_ctrl);
+		if (retval != ERROR_OK) {
+			LOG_TARGET_ERROR(target, "ARMv8M security restore: MPU_CTRL write failed");
+			return retval;
+		}
+		ssec->mpu_ctrl_dirty = false;
+	}
+
+	if (ssec->sau_ctrl_dirty) {
+		retval = target_write_u32(target, SAU_CTRL, ssec->sau_ctrl);
+		if (retval != ERROR_OK) {
+			LOG_TARGET_ERROR(target, "ARMv8M security restore: SAU_CTRL write failed");
+			return retval;
+		}
+		ssec->sau_ctrl_dirty = false;
+	}
+
+	if (ssec->dscsr_dirty) {
+		LOG_TARGET_DEBUG(target, "Restoring Current Domain Security in DSCSR");
+		retval = target_write_u32(target, DCB_DSCSR, ssec->dscsr & ~DSCSR_CDSKEY);
+		if (retval != ERROR_OK) {
+			LOG_TARGET_ERROR(target, "ARMv8M set secure: DSCSR write failed");
+			return retval;
+		}
+		ssec->dscsr_dirty = false;
+	}
+	return ERROR_OK;
+}
 
 #define MVFR0          0xE000EF40
 #define MVFR0_SP_MASK  0x000000F0
