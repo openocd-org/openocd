@@ -209,6 +209,8 @@ struct rp2xxx_flash_bank {
 	bool size_override;
 	struct flash_device spi_dev;		/* detected model of SPI flash */
 	unsigned int sfdp_dummy, sfdp_dummy_detect;
+
+	struct cortex_m_saved_security saved_security;
 };
 
 #ifndef LOG_ROM_SYMBOL_DEBUG
@@ -630,21 +632,10 @@ static int rp2350_init_arm_core0(struct target *target, struct rp2xxx_flash_bank
 	// run in the Secure state, so flip the state now before attempting to
 	// execute any code on the core.
 	int retval;
-	uint32_t dscsr;
-	retval = target_read_u32(target, DCB_DSCSR, &dscsr);
+	retval = cortex_m_set_secure(target, &priv->saved_security);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("RP2350 init ARM core: DSCSR read failed");
+		LOG_ERROR("RP2350 init ARM core: set secure mode failed");
 		return retval;
-	}
-
-	LOG_DEBUG("DSCSR: 0x%08" PRIx32, dscsr);
-	if (!(dscsr & DSCSR_CDS)) {
-		LOG_DEBUG("Setting Current Domain Secure in DSCSR");
-		retval = target_write_u32(target, DCB_DSCSR, (dscsr & ~DSCSR_CDSKEY) | DSCSR_CDS);
-		if (retval != ERROR_OK) {
-			LOG_ERROR("RP2350 init ARM core: DSCSR read failed");
-			return retval;
-		}
 	}
 
 	if (!priv->stack) {
@@ -840,6 +831,15 @@ static void cleanup_after_raw_flash_cmd(struct target *target, struct rp2xxx_fla
 	   driver state. Best to clean up our allocations manually after
 	   completing each flash call, so we know to make fresh ones next time. */
 	LOG_DEBUG("Cleaning up after flash operations");
+
+	if (IS_RP2350(priv->id)) {
+		/* TODO: restore ACCESSCTRL */
+		if (is_arm(target_to_arm(target))) {
+			int retval = cortex_m_security_restore(target, &priv->saved_security);
+			if (retval != ERROR_OK)
+				LOG_WARNING("RP2xxx: security state was not restored properly. Debug 'resume' will probably fail, use 'reset' instead");
+		}
+	}
 	if (priv->stack) {
 		target_free_working_area(target, priv->stack);
 		priv->stack = 0;
