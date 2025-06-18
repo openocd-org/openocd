@@ -41,10 +41,18 @@
 #define BOOTROM_STATE_RESET_OTHER_CORE   0x02
 #define BOOTROM_STATE_RESET_GLOBAL_STATE 0x04
 
-#define ACCESSCTRL_LOCK_OFFSET     0x40060000u
-#define ACCESSCTRL_LOCK_DEBUG_BITS 0x00000008u
-#define ACCESSCTRL_CFGRESET_OFFSET 0x40060008u
-#define ACCESSCTRL_WRITE_PASSWORD  0xacce0000u
+#define ACCESSCTRL_LOCK_OFFSET			0x40060000u
+#define ACCESSCTRL_CFGRESET_OFFSET		0x40060008u
+#define ACCESSCTRL_GPIO_NSMASK0_OFFSET	0x4006000cu
+#define ACCESSCTRL_GPIO_ROM_OFFSET		0x40060014u
+#define ACCESSCTRL_GPIO_XIP_AUX_OFFSET	0x400600e8u
+
+#define ACCESSCTRL_SAVE_BASE			ACCESSCTRL_GPIO_NSMASK0_OFFSET
+#define ACCESSCTRL_SAVE_SIZE \
+			(ACCESSCTRL_GPIO_XIP_AUX_OFFSET + 4 - ACCESSCTRL_SAVE_BASE)
+
+#define ACCESSCTRL_LOCK_DEBUG_BITS		0x00000008u
+#define ACCESSCTRL_WRITE_PASSWORD		0xacce0000u
 
 #define RP2040_SSI_DR0			0x18000060
 #define RP2040_QSPI_CTRL		0x4001800c
@@ -211,6 +219,8 @@ struct rp2xxx_flash_bank {
 	unsigned int sfdp_dummy, sfdp_dummy_detect;
 
 	struct cortex_m_saved_security saved_security;
+	bool accessctrl_dirty;
+	uint8_t saved_accessctrl[ACCESSCTRL_SAVE_SIZE]; /* in target byte order */
 };
 
 #ifndef LOG_ROM_SYMBOL_DEBUG
@@ -601,8 +611,28 @@ static int rp2xxx_call_rom_func(struct target *target, struct rp2xxx_flash_bank 
 	return rp2xxx_call_rom_func_batch(target, priv, &call, 1);
 }
 
-static int rp2350_init_accessctrl(struct target *target)
+static int rp2350_save_accessctrl(struct target *target, struct rp2xxx_flash_bank *priv)
 {
+	return target_read_memory(target, ACCESSCTRL_SAVE_BASE, 4, ACCESSCTRL_SAVE_SIZE / 4,
+							  priv->saved_accessctrl);
+}
+
+static int rp2350_restore_accessctrl(struct target *target, struct rp2xxx_flash_bank *priv)
+{
+	// Add write passwords to all ACCESSCTRL regs from ACCESSCTRL_GPIO_ROM to the end
+	// (exclude not keyed ACCESSCTRL_GPIO_NSMASK0 and ACCESSCTRL_GPIO_NSMASK1
+	for (unsigned int i = ACCESSCTRL_GPIO_ROM_OFFSET - ACCESSCTRL_SAVE_BASE;
+			 i < ACCESSCTRL_SAVE_SIZE; i += 4)
+		target_buffer_set_u32(target, priv->saved_accessctrl + i,
+			target_buffer_get_u32(target, priv->saved_accessctrl + i) | ACCESSCTRL_WRITE_PASSWORD);
+
+	return target_write_memory(target, ACCESSCTRL_SAVE_BASE, 4, ACCESSCTRL_SAVE_SIZE / 4,
+							   priv->saved_accessctrl);
+}
+
+static int rp2350_init_accessctrl(struct target *target, struct rp2xxx_flash_bank *priv)
+{
+	priv->accessctrl_dirty = false;
 	// Attempt to reset ACCESSCTRL, in case Secure access to SRAM has been
 	// blocked, which will stop us from loading/running algorithms such as RCP
 	// init. (Also ROM, QMI regs are needed later)
@@ -620,6 +650,13 @@ static int rp2350_init_accessctrl(struct target *target)
 	if (accessctrl_lock_reg & ACCESSCTRL_LOCK_DEBUG_BITS) {
 		LOG_ERROR("ACCESSCTRL is locked, so can't reset permissions. Following steps might fail");
 	} else {
+		int retval = rp2350_save_accessctrl(target, priv);
+		if (retval == ERROR_OK)
+			priv->accessctrl_dirty = true;
+		// If the ACCESSCTRL backup copy is valid, mark it dirty
+		// as we immediately proceed to ACCESSCTRL config reset.
+		// Don't fail on save ACCESSCTRL error, not vital for ROM API call
+
 		LOG_DEBUG("Reset ACCESSCTRL permissions via CFGRESET");
 		return target_write_u32(target, ACCESSCTRL_CFGRESET_OFFSET, ACCESSCTRL_WRITE_PASSWORD | 1u);
 	}
@@ -704,7 +741,7 @@ static int setup_for_raw_flash_cmd(struct target *target, struct rp2xxx_flash_ba
 	}
 
 	if (IS_RP2350(priv->id)) {
-		err = rp2350_init_accessctrl(target);
+		err = rp2350_init_accessctrl(target, priv);
 		if (err != ERROR_OK) {
 			LOG_ERROR("Failed to init ACCESSCTRL before ROM call");
 			return err;
@@ -833,12 +870,19 @@ static void cleanup_after_raw_flash_cmd(struct target *target, struct rp2xxx_fla
 	LOG_DEBUG("Cleaning up after flash operations");
 
 	if (IS_RP2350(priv->id)) {
-		/* TODO: restore ACCESSCTRL */
-		if (is_arm(target_to_arm(target))) {
-			int retval = cortex_m_security_restore(target, &priv->saved_security);
-			if (retval != ERROR_OK)
-				LOG_WARNING("RP2xxx: security state was not restored properly. Debug 'resume' will probably fail, use 'reset' instead");
+		int retval1 = ERROR_OK;
+		if (priv->accessctrl_dirty) {
+			retval1 = rp2350_restore_accessctrl(target, priv);
+			priv->accessctrl_dirty = false;
 		}
+
+		int retval2 = ERROR_OK;
+		if (is_arm(target_to_arm(target)))
+			retval2 = cortex_m_security_restore(target, &priv->saved_security);
+
+		if (retval1 != ERROR_OK || retval2 != ERROR_OK)
+			LOG_WARNING("RP2xxx: security state was not restored properly. Debug 'resume' will probably fail, use 'reset' instead");
+		/* Don't fail on security restore error, not vital for flash operation */
 	}
 	if (priv->stack) {
 		target_free_working_area(target, priv->stack);
