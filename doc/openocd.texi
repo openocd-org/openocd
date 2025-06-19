@@ -9870,11 +9870,11 @@ Requests the current target to map the specified @var{virtual_address}
 to its corresponding physical address, and displays the result.
 @end deffn
 
-@deffn {Command} {add_help_text} 'command_name' 'help-string'
+@deffn {Command} {add_help_text} command_name help_string
 Add or replace help text on the given @var{command_name}.
 @end deffn
 
-@deffn {Command} {add_usage_text} 'command_name' 'help-string'
+@deffn {Command} {add_usage_text} command_name help_string
 Add or replace usage text on the given @var{command_name}.
 @end deffn
 
