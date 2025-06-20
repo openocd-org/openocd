@@ -263,7 +263,7 @@ static int armv7a_read_mpidr(struct target *target)
 			armv7a->multi_threading_processor == 1 ? "SMT" : "no SMT");
 
 	} else
-		LOG_ERROR("MPIDR not in multiprocessor format");
+		LOG_DEBUG("MPIDR not in multiprocessor format");
 
 done:
 	dpm->finish(dpm);
