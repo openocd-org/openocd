@@ -842,7 +842,7 @@ COMMAND_HANDLER(handle_armv4_5_reg_command)
 	}
 
 	if (!is_arm_mode(arm->core_mode)) {
-		LOG_ERROR("not a valid arm core mode - communication failure?");
+		command_print(CMD, "not a valid arm core mode - communication failure?");
 		return ERROR_FAIL;
 	}
 
@@ -954,7 +954,7 @@ COMMAND_HANDLER(handle_arm_disassemble_command)
 	struct target *target = get_current_target(CMD_CTX);
 
 	if (!target) {
-		LOG_ERROR("No target selected");
+		command_print(CMD, "No target selected");
 		return ERROR_FAIL;
 	}
 
