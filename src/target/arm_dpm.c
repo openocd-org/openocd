@@ -50,9 +50,8 @@ static int dpm_mrc(struct target *target, int cpnum,
 	if (retval != ERROR_OK)
 		return retval;
 
-	LOG_DEBUG("MRC p%d, %d, r0, c%d, c%d, %d", cpnum,
-		(int) op1, (int) crn,
-		(int) crm, (int) op2);
+	LOG_TARGET_DEBUG(target, "MRC p%d, %" PRId32 ", r0, c%" PRId32 ", c%" PRId32 ", %" PRId32,
+		cpnum, op1, crn, crm, op2);
 
 	/* read coprocessor register into R0; return via DCC */
 	retval = dpm->instr_read_data_r0(dpm,
@@ -74,8 +73,8 @@ static int dpm_mrrc(struct target *target, int cpnum,
 	if (retval != ERROR_OK)
 		return retval;
 
-	LOG_DEBUG("MRRC p%d, %d, r0, r1, c%d", cpnum,
-		 (int)op, (int)crm);
+	LOG_TARGET_DEBUG(target, "MRRC p%d, %" PRId32 ", r0, r1, c%" PRId32,
+		cpnum, op, crm);
 
 	/* read coprocessor register into R0, R1; return via DCC */
 	retval = dpm->instr_read_data_r0_r1(dpm,
@@ -98,9 +97,8 @@ static int dpm_mcr(struct target *target, int cpnum,
 	if (retval != ERROR_OK)
 		return retval;
 
-	LOG_DEBUG("MCR p%d, %d, r0, c%d, c%d, %d", cpnum,
-		(int) op1, (int) crn,
-		(int) crm, (int) op2);
+	LOG_TARGET_DEBUG(target, "MCR p%d, %" PRId32 ", r0, c%" PRId32 ", c%" PRId32 ", %" PRId32,
+		cpnum, op1, crn, crm, op2);
 
 	/* read DCC into r0; then write coprocessor register from R0 */
 	retval = dpm->instr_write_data_r0(dpm,
@@ -122,8 +120,8 @@ static int dpm_mcrr(struct target *target, int cpnum,
 	if (retval != ERROR_OK)
 		return retval;
 
-	LOG_DEBUG("MCRR p%d, %d, r0, r1, c%d", cpnum,
-		(int)op, (int)crm);
+	LOG_TARGET_DEBUG(target, "MCRR p%d, %" PRId32 ", r0, r1, c%" PRId32,
+		cpnum, op, crm);
 
 	/* read DCC into r0, r1; then write coprocessor register from R0, R1 */
 	retval = dpm->instr_write_data_r0_r1(dpm,
@@ -198,7 +196,8 @@ static int dpm_read_reg_u64(struct arm_dpm *dpm, struct reg *r, unsigned int reg
 		buf_set_u32(r->value + 4, 0, 32, value_r1);
 		r->valid = true;
 		r->dirty = false;
-		LOG_DEBUG("READ: %s, %8.8" PRIx32 ", %8.8" PRIx32, r->name, value_r0, value_r1);
+		LOG_TARGET_DEBUG(dpm->arm->target, "READ: %s, %8.8" PRIx32 ", %8.8" PRIx32,
+			r->name, value_r0, value_r1);
 	}
 
 	return retval;
@@ -237,10 +236,10 @@ int arm_dpm_read_reg(struct arm_dpm *dpm, struct reg *r, unsigned int regnum)
 					break;
 				case ARM_STATE_JAZELLE:
 					/* core-specific ... ? */
-					LOG_WARNING("Jazelle PC adjustment unknown");
+					LOG_TARGET_WARNING(dpm->arm->target, "Jazelle PC adjustment unknown");
 					break;
 				default:
-					LOG_WARNING("unknown core state");
+					LOG_TARGET_WARNING(dpm->arm->target, "unknown core state");
 					break;
 			}
 			break;
@@ -265,7 +264,8 @@ int arm_dpm_read_reg(struct arm_dpm *dpm, struct reg *r, unsigned int regnum)
 		buf_set_u32(r->value, 0, 32, value);
 		r->valid = true;
 		r->dirty = false;
-		LOG_DEBUG("READ: %s, %8.8" PRIx32, r->name, value);
+		LOG_TARGET_DEBUG(dpm->arm->target, "READ: %s, %8.8" PRIx32, r->name,
+			value);
 	}
 
 	return retval;
@@ -301,7 +301,8 @@ static int dpm_write_reg_u64(struct arm_dpm *dpm, struct reg *r, unsigned int re
 
 	if (retval == ERROR_OK) {
 		r->dirty = false;
-		LOG_DEBUG("WRITE: %s, %8.8" PRIx32 ", %8.8" PRIx32, r->name, value_r0, value_r1);
+		LOG_TARGET_DEBUG(dpm->arm->target, "WRITE: %s, %8.8" PRIx32 ", %8.8" PRIx32,
+			r->name, value_r0, value_r1);
 	}
 
 	return retval;
@@ -349,7 +350,8 @@ static int dpm_write_reg(struct arm_dpm *dpm, struct reg *r, unsigned int regnum
 
 	if (retval == ERROR_OK) {
 		r->dirty = false;
-		LOG_DEBUG("WRITE: %s, %8.8" PRIx32, r->name, value);
+		LOG_TARGET_DEBUG(dpm->arm->target, "WRITE: %s, %8.8" PRIx32, r->name,
+			value);
 	}
 
 	return retval;
@@ -463,9 +465,8 @@ static int dpm_maybe_update_bpwp(struct arm_dpm *dpm, bool bpwp,
 				xp->address, xp->control);
 
 	if (retval != ERROR_OK)
-		LOG_ERROR("%s: can't %s HW %spoint %d",
+		LOG_TARGET_ERROR(dpm->arm->target, "can't %s HW %spoint %d",
 			disable ? "disable" : "enable",
-			target_name(dpm->arm->target),
 			(xp->number < 16) ? "break" : "watch",
 			xp->number & 0xf);
 done:
@@ -670,7 +671,7 @@ static enum arm_mode dpm_mapmode(struct arm *arm,
 		case ARM_VFP_V3_D0 ... ARM_VFP_V3_FPSCR:
 			return mode;
 		default:
-			LOG_WARNING("invalid register #%u", num);
+			LOG_TARGET_WARNING(arm->target, "invalid register #%u", num);
 			break;
 	}
 	return ARM_MODE_ANY;
@@ -885,7 +886,7 @@ static int dpm_bpwp_setup(struct arm_dpm *dpm, struct dpm_bpwp *xp,
 			}
 		/* FALL THROUGH */
 		default:
-			LOG_ERROR("unsupported {break,watch}point length/alignment");
+			LOG_TARGET_ERROR(dpm->arm->target, "unsupported {break,watch}point length/alignment");
 			return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
@@ -899,7 +900,7 @@ static int dpm_bpwp_setup(struct arm_dpm *dpm, struct dpm_bpwp *xp,
 	xp->control = control;
 	xp->dirty = true;
 
-	LOG_DEBUG("BPWP: addr %8.8" PRIx32 ", control %" PRIx32 ", number %d",
+	LOG_TARGET_DEBUG(dpm->arm->target, "BPWP: addr %8.8" PRIx32 ", control %" PRIx32 ", number %d",
 		xp->address, control, xp->number);
 
 	/* hardware is updated in write_dirty_registers() */
@@ -919,7 +920,7 @@ static int dpm_add_breakpoint(struct target *target, struct breakpoint *bp)
 
 	/* FIXME we need a generic solution for software breakpoints. */
 	if (bp->type == BKPT_SOFT)
-		LOG_DEBUG("using HW bkpt, not SW...");
+		LOG_TARGET_DEBUG(dpm->arm->target, "using HW breakpoint instead of SW");
 
 	for (unsigned int i = 0; i < dpm->nbp; i++) {
 		if (!dpm->dbp[i].bp) {
@@ -963,7 +964,7 @@ static int dpm_watchpoint_setup(struct arm_dpm *dpm, unsigned int index_t,
 
 	/* this hardware doesn't support data value matching or masking */
 	if (wp->mask != WATCHPOINT_IGNORE_DATA_VALUE_MASK) {
-		LOG_DEBUG("watchpoint values and masking not supported");
+		LOG_TARGET_ERROR(dpm->arm->target, "watchpoint values and masking not supported");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
@@ -1143,8 +1144,8 @@ int arm_dpm_setup(struct arm_dpm *dpm)
 		return ERROR_FAIL;
 	}
 
-	LOG_INFO("%s: hardware has %d breakpoints, %d watchpoints",
-		target_name(target), dpm->nbp, dpm->nwp);
+	LOG_TARGET_INFO(target, "hardware has %d breakpoints, %d watchpoints",
+		dpm->nbp, dpm->nwp);
 
 	/* REVISIT ... and some of those breakpoints could match
 	 * execution context IDs...
@@ -1172,8 +1173,7 @@ int arm_dpm_initialize(struct arm_dpm *dpm)
 			(void) dpm->bpwp_disable(dpm, 16 + i);
 		}
 	} else
-		LOG_WARNING("%s: can't disable breakpoints and watchpoints",
-			target_name(dpm->arm->target));
+		LOG_TARGET_WARNING(dpm->arm->target, "can't disable breakpoints and watchpoints");
 
 	return ERROR_OK;
 }
