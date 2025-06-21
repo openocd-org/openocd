@@ -1779,6 +1779,7 @@ static int cortex_m_assert_reset(struct target *target)
 		int retval2;
 		retval2 = mem_ap_write_atomic_u32(armv7m->debug_ap, DCB_DEMCR,
 				TRCENA | VC_HARDERR | VC_BUSERR | VC_CORERESET);
+		target->debug_reason = DBG_REASON_DBGRQ;
 		if (retval != ERROR_OK || retval2 != ERROR_OK)
 			LOG_TARGET_INFO(target, "AP write error, reset will not halt");
 	}

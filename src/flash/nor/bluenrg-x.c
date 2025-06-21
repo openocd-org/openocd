@@ -19,6 +19,7 @@
 
 #define BLUENRG2_JTAG_REG	 (flash_priv_data_2.jtag_idcode_reg)
 #define BLUENRGLP_JTAG_REG	 (flash_priv_data_lp.jtag_idcode_reg)
+#define BLUENRGLPF_JTAG_REG	 (flash_priv_data_lpf.jtag_idcode_reg)
 
 #define DIE_ID_REG(bluenrgx_info)           (bluenrgx_info->flash_ptr->die_id_reg)
 #define JTAG_IDCODE_REG(bluenrgx_info)      (bluenrgx_info->flash_ptr->jtag_idcode_reg)
@@ -63,7 +64,7 @@ static const struct flash_ctrl_priv_data flash_priv_data_lp = {
 	.flash_regs_base = 0x40001000,
 	.flash_page_size = 2048,
 	.jtag_idcode = 0x0201E041,
-	.part_name = "BLUENRG-LP",
+	.part_name = "STM32WB07 (BLUENRG-LP)",
 };
 
 static const struct flash_ctrl_priv_data flash_priv_data_lps = {
@@ -73,7 +74,17 @@ static const struct flash_ctrl_priv_data flash_priv_data_lps = {
 	.flash_regs_base = 0x40001000,
 	.flash_page_size = 2048,
 	.jtag_idcode = 0x02028041,
-	.part_name = "BLUENRG-LPS",
+	.part_name = "STM32WB05 (BLUENRG-LPS)",
+};
+
+static const struct flash_ctrl_priv_data flash_priv_data_lpf = {
+	.die_id_reg = 0x40000000,
+	.jtag_idcode_reg = 0x40000004,
+	.flash_base = 0x10040000,
+	.flash_regs_base = 0x40001000,
+	.flash_page_size = 2048,
+	.jtag_idcode = 0x02032041,
+	.part_name = "STM32WB09 (BLUENRG-LPF)",
 };
 
 struct bluenrgx_flash_bank {
@@ -86,7 +97,9 @@ static const struct flash_ctrl_priv_data *flash_ctrl[] = {
 	&flash_priv_data_1,
 	&flash_priv_data_2,
 	&flash_priv_data_lp,
-	&flash_priv_data_lps};
+	&flash_priv_data_lps,
+	&flash_priv_data_lpf
+};
 
 /* flash_bank bluenrg-x 0 0 0 0 <target#> */
 FLASH_BANK_COMMAND_HANDLER(bluenrgx_flash_bank_command)
@@ -130,8 +143,45 @@ static inline int bluenrgx_write_flash_reg(struct flash_bank *bank, uint32_t reg
 	return target_write_u32(bank->target, bluenrgx_get_flash_reg(bank, reg_offset), value);
 }
 
-static int bluenrgx_erase(struct flash_bank *bank, unsigned int first,
-		unsigned int last)
+static int bluenrgx_wait_for_interrupt(struct flash_bank *bank, uint32_t interrupt_flag)
+{
+	bool flag_raised = false;
+	for (unsigned int j = 0; j < 100; j++) {
+		uint32_t value;
+		if (bluenrgx_read_flash_reg(bank, FLASH_REG_IRQRAW, &value) != ERROR_OK) {
+			LOG_ERROR("Register read failed");
+			return ERROR_FAIL;
+		}
+
+		if (value & interrupt_flag) {
+			flag_raised = true;
+			break;
+		}
+	}
+
+	/* clear the interrupt */
+	if (flag_raised) {
+		if (bluenrgx_write_flash_reg(bank, FLASH_REG_IRQRAW, interrupt_flag) != ERROR_OK) {
+			LOG_ERROR("Cannot clear interrupt flag");
+			return ERROR_FAIL;
+		}
+
+		return ERROR_OK;
+	}
+
+	LOG_ERROR("Erase command failed (timeout)");
+	return ERROR_TIMEOUT_REACHED;
+}
+
+static inline int bluenrgx_wait_for_command(struct flash_bank *bank)
+{
+	if (bluenrgx_wait_for_interrupt(bank, FLASH_INT_CMDSTART) == ERROR_OK)
+		return bluenrgx_wait_for_interrupt(bank, FLASH_INT_CMDDONE);
+
+	return ERROR_FAIL;
+}
+
+static int bluenrgx_erase(struct flash_bank *bank, unsigned int first, unsigned int last)
 {
 	int retval = ERROR_OK;
 	struct bluenrgx_flash_bank *bluenrgx_info = bank->driver_priv;
@@ -173,19 +223,8 @@ static int bluenrgx_erase(struct flash_bank *bank, unsigned int first,
 			return ERROR_FAIL;
 		}
 
-		for (unsigned int i = 0; i < 100; i++) {
-			uint32_t value;
-			if (bluenrgx_read_flash_reg(bank, FLASH_REG_IRQRAW, &value)) {
-				LOG_ERROR("Register write failed");
-				return ERROR_FAIL;
-			}
-			if (value & FLASH_INT_CMDDONE)
-				break;
-			if (i == 99) {
-				LOG_ERROR("Mass erase command failed (timeout)");
-				retval = ERROR_FAIL;
-			}
-		}
+		if (bluenrgx_wait_for_command(bank) != ERROR_OK)
+			return ERROR_FAIL;
 
 	} else {
 		command = FLASH_CMD_ERASE_PAGE;
@@ -209,19 +248,8 @@ static int bluenrgx_erase(struct flash_bank *bank, unsigned int first,
 				return ERROR_FAIL;
 			}
 
-			for (unsigned int j = 0; j < 100; j++) {
-				uint32_t value;
-				if (bluenrgx_read_flash_reg(bank, FLASH_REG_IRQRAW, &value)) {
-					LOG_ERROR("Register write failed");
-					return ERROR_FAIL;
-				}
-				if (value & FLASH_INT_CMDDONE)
-					break;
-				if (j == 99) {
-					LOG_ERROR("Erase command failed (timeout)");
-					retval = ERROR_FAIL;
-				}
-			}
+			if (bluenrgx_wait_for_command(bank) != ERROR_OK)
+				return ERROR_FAIL;
 		}
 	}
 
@@ -229,7 +257,7 @@ static int bluenrgx_erase(struct flash_bank *bank, unsigned int first,
 
 }
 
-static int bluenrgx_write(struct flash_bank *bank, const uint8_t *buffer,
+static int bluenrgx_write_with_loader(struct flash_bank *bank, const uint8_t *buffer,
 			  uint32_t offset, uint32_t count)
 {
 	struct bluenrgx_flash_bank *bluenrgx_info = bank->driver_priv;
@@ -250,22 +278,6 @@ static int bluenrgx_write(struct flash_bank *bank, const uint8_t *buffer,
 	static const uint8_t bluenrgx_flash_write_code[] = {
 #include "../../../contrib/loaders/flash/bluenrg-x/bluenrg-x_write.inc"
 	};
-
-	/* check preconditions */
-	if (!bluenrgx_info->probed)
-		return ERROR_FLASH_BANK_NOT_PROBED;
-
-	if ((offset + count) > bank->size) {
-		LOG_ERROR("Requested write past beyond of flash size: (offset+count) = %" PRIu32 ", size=%" PRIu32,
-			  (offset + count),
-			  bank->size);
-		return ERROR_FLASH_DST_OUT_OF_BANK;
-	}
-
-	if (bank->target->state != TARGET_HALTED) {
-		LOG_ERROR("Target not halted");
-		return ERROR_TARGET_NOT_HALTED;
-	}
 
 	if (target_alloc_working_area(target, sizeof(bluenrgx_flash_write_code),
 					  &write_algorithm) != ERROR_OK) {
@@ -302,10 +314,10 @@ static int bluenrgx_write(struct flash_bank *bank, const uint8_t *buffer,
 	init_reg_param(&reg_params[4], "sp", 32, PARAM_OUT);
 	/* Put the 4th parameter at the location in the stack frame of target write() function.
 	 * See contrib/loaders/flash/bluenrg-x/bluenrg-x_write.lst
-	 * 34 ldr     r6, [sp, #80]
+	 * 34 ldr     r6, [sp, #88]
 	 *                     ^^^ offset
 	 */
-	init_mem_param(&mem_params[0], write_algorithm_stack->address + 80, 32, PARAM_OUT);
+	init_mem_param(&mem_params[0], write_algorithm_stack->address + 88, 32, PARAM_OUT);
 	/* Stack for target write algorithm - target write() function has
 	 * __attribute__((naked)) so it does not setup the new stack frame.
 	 * Therefore the stack frame uses the area from SP upwards!
@@ -353,6 +365,7 @@ static int bluenrgx_write(struct flash_bank *bank, const uint8_t *buffer,
 		if (error != 0)
 			LOG_ERROR("flash write failed = %08" PRIx32, error);
 	}
+
 	if (retval == ERROR_OK) {
 		uint32_t rp;
 		/* Read back rp and check that is valid */
@@ -364,6 +377,7 @@ static int bluenrgx_write(struct flash_bank *bank, const uint8_t *buffer,
 			}
 		}
 	}
+
 	target_free_working_area(target, source);
 	target_free_working_area(target, write_algorithm);
 	target_free_working_area(target, write_algorithm_stack);
@@ -378,6 +392,80 @@ static int bluenrgx_write(struct flash_bank *bank, const uint8_t *buffer,
 	return retval;
 }
 
+static int bluenrgx_write_without_loader(struct flash_bank *bank, const uint8_t *buffer,
+			  uint32_t offset, uint32_t count)
+{
+	struct target *target = bank->target;
+	unsigned int data_count = count / FLASH_DATA_WIDTH;
+
+	while (data_count--) {
+		/* clear flags */
+		if (bluenrgx_write_flash_reg(bank, FLASH_REG_IRQRAW, 0x3f) != ERROR_OK) {
+			LOG_ERROR("Register write failed");
+			return ERROR_FAIL;
+		}
+
+		if (bluenrgx_write_flash_reg(bank, FLASH_REG_ADDRESS, offset >> 2) != ERROR_OK) {
+			LOG_ERROR("Register write failed");
+			return ERROR_FAIL;
+		}
+
+		if (target_write_memory(target, bluenrgx_get_flash_reg(bank, FLASH_REG_DATA0),
+								FLASH_WORD_LEN, FLASH_DATA_WIDTH_W, buffer) != ERROR_OK) {
+			LOG_ERROR("Failed to write data");
+			return ERROR_FAIL;
+		}
+
+		if (bluenrgx_write_flash_reg(bank, FLASH_REG_COMMAND, FLASH_CMD_BURSTWRITE) != ERROR_OK) {
+			LOG_ERROR("Failed");
+			return ERROR_FAIL;
+		}
+
+		if (bluenrgx_wait_for_command(bank) != ERROR_OK)
+			return ERROR_FAIL;
+
+		/* increment offset, and buffer */
+		offset += FLASH_DATA_WIDTH;
+		buffer += FLASH_DATA_WIDTH;
+	}
+
+	return ERROR_OK;
+}
+
+static int bluenrgx_write(struct flash_bank *bank, const uint8_t *buffer,
+			  uint32_t offset, uint32_t count)
+{
+	struct bluenrgx_flash_bank *bluenrgx_info = bank->driver_priv;
+	int retval = ERROR_OK;
+
+	/* check preconditions */
+	if (!bluenrgx_info->probed)
+		return ERROR_FLASH_BANK_NOT_PROBED;
+
+	if ((offset + count) > bank->size) {
+		LOG_ERROR("Requested write past beyond of flash size: (offset+count) = %" PRIu32 ", size=%" PRIu32,
+			  (offset + count),
+			  bank->size);
+		return ERROR_FLASH_DST_OUT_OF_BANK;
+	}
+
+	if (bank->target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	assert(offset % FLASH_WORD_LEN == 0);
+	assert(count % FLASH_WORD_LEN == 0);
+
+	retval = bluenrgx_write_with_loader(bank, buffer, offset, count);
+	/* if resources are not available write without a loader */
+	if (retval == ERROR_TARGET_RESOURCE_NOT_AVAILABLE) {
+		LOG_WARNING("falling back to programming without a flash loader (slower)");
+		retval = bluenrgx_write_without_loader(bank, buffer, offset, count);
+	}
+	return retval;
+}
+
 static int bluenrgx_probe(struct flash_bank *bank)
 {
 	struct bluenrgx_flash_bank *bluenrgx_info = bank->driver_priv;
@@ -387,7 +475,8 @@ static int bluenrgx_probe(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		return retval;
 
-	if ((idcode != flash_priv_data_lp.jtag_idcode) && (idcode != flash_priv_data_lps.jtag_idcode)) {
+	if (idcode != flash_priv_data_lp.jtag_idcode && idcode != flash_priv_data_lps.jtag_idcode
+			&& idcode != flash_priv_data_lpf.jtag_idcode) {
 		retval = target_read_u32(bank->target, BLUENRG2_JTAG_REG, &idcode);
 		if (retval != ERROR_OK)
 			return retval;
@@ -414,7 +503,7 @@ static int bluenrgx_probe(struct flash_bank *bank)
 		return retval;
 
 	bank->size = (size_info + 1) * FLASH_WORD_LEN;
-	bank->num_sectors = bank->size/FLASH_PAGE_SIZE(bluenrgx_info);
+	bank->num_sectors = bank->size / FLASH_PAGE_SIZE(bluenrgx_info);
 	bank->sectors = realloc(bank->sectors, sizeof(struct flash_sector) * bank->num_sectors);
 
 	for (unsigned int i = 0; i < bank->num_sectors; i++) {

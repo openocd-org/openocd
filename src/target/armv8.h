@@ -195,11 +195,6 @@ struct armv8_common {
 
 	const uint32_t *opcodes;
 
-	/* mdir */
-	uint8_t multi_processor_system;
-	uint8_t cluster_id;
-	uint8_t cpu_id;
-
 	/* armv8 aarch64 need below information for page translation */
 	uint8_t va_size;
 	uint8_t pa_size;

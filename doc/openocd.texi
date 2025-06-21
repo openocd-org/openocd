@@ -1382,11 +1382,11 @@ Read the OpenOCD source code (and Developer's Guide)
 if you have a new kind of hardware interface
 and need to provide a driver for it.
 
-@deffn {Command} {find} 'filename'
+@deffn {Command} {find} filename
 Prints full path to @var{filename} according to OpenOCD search rules.
 @end deffn
 
-@deffn {Command} {ocd_find} 'filename'
+@deffn {Command} {ocd_find} filename
 Prints full path to @var{filename} according to OpenOCD search rules. This
 is a low level function used by the @command{find}. Usually you want
 to use @command{find}, instead.
@@ -2499,6 +2499,9 @@ If this command is not specified, serial strings are not checked.
 Only the following adapter drivers use the serial string from this command:
 arm-jtag-ew, cmsis_dap, esp_usb_jtag, ft232r, ftdi, hla (stlink, ti-icdi), jlink, kitprog, opendus,
 openjtag, osbdm, presto, rlink, st-link, usb_blaster (ublast2), usbprog, vsllink, xds110.
+
+For jlink adapters, the @var{serial_string} is also compared
+against the adapter's nickname.
 @end deffn
 
 @section Interface Drivers
@@ -2508,6 +2511,8 @@ enabled when OpenOCD is configured, in order to be made
 available at run time.
 
 @deffn {Interface Driver} {amt_jtagaccel}
+@b{Note: This adapter is deprecated and support will be removed in the next release!}
+
 Amontec Chameleon in its JTAG Accelerator configuration,
 connected to a PC's EPP mode parallel port.
 This defines some driver-specific commands:
@@ -2927,6 +2932,8 @@ image. To be used with USB-Blaster II only.
 @end deffn
 
 @deffn {Interface Driver} {gw16012}
+@b{Note: This adapter is deprecated and support will be removed in the next release!}
+
 Gateworks GW16012 JTAG programmer.
 This has one driver-specific command:
 
@@ -9331,7 +9338,7 @@ Redirect logging to @var{filename}. If used without an argument or
 stderr.
 @end deffn
 
-@deffn {Command} {add_script_search_dir} [directory]
+@deffn {Command} {add_script_search_dir} directory
 Add @var{directory} to the file/script search path.
 @end deffn
 
@@ -9866,11 +9873,11 @@ Requests the current target to map the specified @var{virtual_address}
 to its corresponding physical address, and displays the result.
 @end deffn
 
-@deffn {Command} {add_help_text} 'command_name' 'help-string'
+@deffn {Command} {add_help_text} command_name help_string
 Add or replace help text on the given @var{command_name}.
 @end deffn
 
-@deffn {Command} {add_usage_text} 'command_name' 'help-string'
+@deffn {Command} {add_usage_text} command_name help_string
 Add or replace usage text on the given @var{command_name}.
 @end deffn
 

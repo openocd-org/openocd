@@ -169,7 +169,9 @@ git remote add review https://USERNAME:PASSWORD@review.openocd.org/p/openocd.git
 Gerrit server, even if you plan to use several local branches for different
 topics. It is possible because @c for/master is not a traditional Git
 branch.
-  -# You will need to install this hook, we will look into a better solution:
+  -# You will need to install this hook to automatically add the
+     field "Change-Id:" in the commit message, as required by Gerrit.
+     We will look into a better solution:
 @code
 wget https://review.openocd.org/tools/hooks/commit-msg
 mv commit-msg .git/hooks
@@ -246,6 +248,12 @@ doc: fix typos
 @code
 git pull --rebase origin master
 @endcode
+
+-# When you create a new version of an old patch, check that the new patch
+   keeps the same 'Change-Id:' field of the old patch.
+   This allows the Gerrit server to recognize the patch as a new version of
+   the older one and keeps track of the history and the review process.
+
 -# Send the patches to the Gerrit server for review:
 @code
 git push review

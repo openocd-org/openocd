@@ -28,7 +28,12 @@
 #define FLASH_CMD_WRITE      0x33
 #define FLASH_CMD_BURSTWRITE 0xCC
 #define FLASH_INT_CMDDONE    0x01
+#define FLASH_INT_CMDSTART   0x02
 
+/* Flash Controller constants */
 #define FLASH_WORD_LEN       4
+#define FLASH_DATA_WIDTH_W   4
+#define FLASH_DATA_WIDTH     16
+
 
 #endif /* OPENOCD_FLASH_NOR_BLUENRGX_H */

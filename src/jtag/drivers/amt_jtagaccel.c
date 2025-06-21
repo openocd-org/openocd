@@ -419,6 +419,8 @@ static int amt_jtagaccel_init(void)
 #endif
 	uint8_t ar_status;
 
+	LOG_WARNING("This adapter is deprecated and support will be removed in the next release!");
+
 #if PARPORT_USE_PPDEV == 1
 	if (device_handle > 0) {
 		LOG_ERROR("device is already opened");
