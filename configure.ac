@@ -206,8 +206,6 @@ m4_define([HOST_ARM_OR_AARCH64_BITBANG_ADAPTERS],
 	[[imx_gpio], [Bitbanging on NXP IMX processors], [IMX_GPIO]],
 	[[am335xgpio], [Bitbanging on AM335x (as found in Beaglebones)], [AM335XGPIO]]])
 
-# The word 'Adapter' in "Dummy Adapter" below must begin with a capital letter
-# because there is an M4 macro called 'adapter'.
 m4_define([DUMMY_ADAPTER],
 	[[[dummy], [Dummy Adapter], [DUMMY]]])
 
@@ -309,15 +307,15 @@ AC_ARG_ENABLE([dmem],
   [build_dmem=$enableval], [build_dmem=no])
 
 m4_define([AC_ARG_ADAPTERS], [
-  m4_foreach([adapter], [$1],
-	[AC_ARG_ENABLE(ADAPTER_OPT([adapter]),
-		AS_HELP_STRING([--enable-ADAPTER_OPT([adapter])[[[=yes/no/auto]]]],
-			[Enable building support for the ]ADAPTER_DESC([adapter])[ (default is $2)]),
+  m4_foreach([adapterTuple], [$1],
+	[AC_ARG_ENABLE(ADAPTER_OPT([adapterTuple]),
+		AS_HELP_STRING([--enable-ADAPTER_OPT([adapterTuple])[[[=yes/no/auto]]]],
+			[Enable building support for the ]ADAPTER_DESC([adapterTuple])[ (default is $2)]),
 		[case "${enableval}" in
 			yes|no|auto) ;;
-			*) AC_MSG_ERROR([Option --enable-ADAPTER_OPT([adapter]) has invalid value "${enableval}".]) ;;
+			*) AC_MSG_ERROR([Option --enable-ADAPTER_OPT([adapterTuple]) has invalid value "${enableval}".]) ;;
 			esac],
-		[ADAPTER_VAR([adapter])=$2])
+		[ADAPTER_VAR([adapterTuple])=$2])
   ])
 ])
 
@@ -622,21 +620,23 @@ PKG_CHECK_MODULES([LIBJAYLINK], [libjaylink >= 0.2],
 # Arg $3: What prerequisites are missing, to be shown in an error message
 #         if an adapter was requested but cannot be enabled.
 m4_define([PROCESS_ADAPTERS], [
-  m4_foreach([adapter], [$1], [
+  m4_foreach([adapterTuple], [$1], [
 	AS_IF([test $2], [
-		AS_IF([test "x$ADAPTER_VAR([adapter])" != "xno"], [
-			AC_DEFINE([BUILD_]ADAPTER_SYM([adapter]), [1], [1 if you want the ]ADAPTER_DESC([adapter]).)
+		AS_IF([test "x$ADAPTER_VAR([adapterTuple])" != "xno"], [
+			AC_DEFINE([BUILD_]ADAPTER_SYM([adapterTuple]), [1],
+			          [1 if you want the ]ADAPTER_DESC([adapterTuple]).)
 		], [
-			AC_DEFINE([BUILD_]ADAPTER_SYM([adapter]), [0], [0 if you do not want the ]ADAPTER_DESC([adapter]).)
+			AC_DEFINE([BUILD_]ADAPTER_SYM([adapterTuple]), [0],
+			          [0 if you do not want the ]ADAPTER_DESC([adapterTuple]).)
 		])
 	], [
-		AS_IF([test "x$ADAPTER_VAR([adapter])" = "xyes"], [
-			AC_MSG_ERROR([$3 is required for [adapter] "ADAPTER_DESC([adapter])".])
+		AS_IF([test "x$ADAPTER_VAR([adapterTuple])" = "xyes"], [
+			AC_MSG_ERROR([$3 is required for [adapterTuple] "ADAPTER_DESC([adapterTuple])".])
 		])
-		ADAPTER_VAR([adapter])=no
-		AC_DEFINE([BUILD_]ADAPTER_SYM([adapter]), [0], [0 if you do not want the ]ADAPTER_DESC([adapter]).)
+		ADAPTER_VAR([adapterTuple])=no
+		AC_DEFINE([BUILD_]ADAPTER_SYM([adapterTuple]), [0], [0 if you do not want the ]ADAPTER_DESC([adapterTuple]).)
 	])
-	AM_CONDITIONAL(ADAPTER_SYM([adapter]), [test "x$ADAPTER_VAR([adapter])" != "xno"])
+	AM_CONDITIONAL(ADAPTER_SYM([adapterTuple]), [test "x$ADAPTER_VAR([adapterTuple])" != "xno"])
   ])
 ])
 
@@ -839,7 +839,7 @@ echo
 echo
 echo OpenOCD configuration summary
 echo ---------------------------------------------------
-m4_foreach([adapter], [USB1_ADAPTERS,
+m4_foreach([adapterTuple], [USB1_ADAPTERS,
 	HIDAPI_ADAPTERS, HIDAPI_USB1_ADAPTERS, LIBFTDI_ADAPTERS,
 	LIBFTDI_USB1_ADAPTERS,
 	LIBGPIOD_ADAPTERS,
@@ -857,8 +857,8 @@ m4_foreach([adapter], [USB1_ADAPTERS,
 	DUMMY_ADAPTER,
 	OPTIONAL_LIBRARIES,
 	COVERAGE],
-	[s=m4_format(["%-49s"], ADAPTER_DESC([adapter]))
-	AS_CASE([$ADAPTER_VAR([adapter])],
+	[s=m4_format(["%-49s"], ADAPTER_DESC([adapterTuple]))
+	AS_CASE([$ADAPTER_VAR([adapterTuple])],
 		[auto], [
 			echo "$s"yes '(auto)'
 		],
@@ -870,8 +870,8 @@ m4_foreach([adapter], [USB1_ADAPTERS,
 		],
 		[
 			AC_MSG_ERROR(m4_normalize([
-				Error in [adapter] "ADAPTER_ARG([adapter])": Variable "ADAPTER_VAR([adapter])"
-				has invalid value "$ADAPTER_VAR([adapter])".]))
+				Error in [adapterTuple] "ADAPTER_ARG([adapterTuple])": Variable "ADAPTER_VAR([adapterTuple])"
+				has invalid value "$ADAPTER_VAR([adapterTuple])".]))
 	])
 ])
 echo
