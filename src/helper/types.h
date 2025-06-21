@@ -51,7 +51,7 @@
  * Compute the number of elements of a variable length array.
  * <code>
  * const char *strs[] = { "a", "b", "c" };
- * unsigned num_strs = ARRAY_SIZE(strs);
+ * size_t num_strs = ARRAY_SIZE(strs);
  * </code>
  */
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(*(x)))
