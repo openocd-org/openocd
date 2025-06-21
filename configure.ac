@@ -165,6 +165,9 @@ m4_define([LIBFTDI_USB1_ADAPTERS],
 m4_define([LIBGPIOD_ADAPTERS],
 	[[[linuxgpiod], [Linux GPIO bitbang through libgpiod], [LINUXGPIOD]]])
 
+m4_define([DMEM_ADAPTER],
+	[[[dmem], [CoreSight Direct Memory], [DMEM]]])
+
 m4_define([SYSFSGPIO_ADAPTER],
 	[[[sysfsgpio], [Linux GPIO bitbang through sysfs], [SYSFSGPIO]]])
 
@@ -302,10 +305,6 @@ AS_IF([test "x$debug_malloc" = "xyes" -a "x$have_glibc" = "xyes"], [
   AC_DEFINE([_DEBUG_FREE_SPACE_],[1], [Include malloc free space in logging])
 ])
 
-AC_ARG_ENABLE([dmem],
-  AS_HELP_STRING([--enable-dmem], [Enable building the dmem driver]),
-  [build_dmem=$enableval], [build_dmem=no])
-
 m4_define([AC_ARG_ADAPTERS], [
   m4_foreach([adapterTuple], [$1],
 	[AC_ARG_ENABLE(ADAPTER_OPT([adapterTuple]),
@@ -326,6 +325,7 @@ AC_ARG_ADAPTERS([
   LIBFTDI_ADAPTERS,
   LIBFTDI_USB1_ADAPTERS,
   LIBGPIOD_ADAPTERS,
+  DMEM_ADAPTER,
   SYSFSGPIO_ADAPTER,
   REMOTE_BITBANG_ADAPTER,
   LINUXSPIDEV_ADAPTER,
@@ -503,12 +503,6 @@ AS_IF([test "x$build_parport" = "xyes"], [
   AC_DEFINE([BUILD_PARPORT], [0], [0 if you don't want parport.])
 ])
 
-AS_IF([test "x$build_dmem" = "xyes"], [
-  AC_DEFINE([BUILD_DMEM], [1], [1 if you want to debug via Direct Mem.])
-], [
-  AC_DEFINE([BUILD_DMEM], [0], [0 if you don't want to debug via Direct Mem.])
-])
-
 AS_IF([test "x$ADAPTER_VAR([dummy])" != "xno"], [
   build_bitbang=yes
 ])
@@ -646,6 +640,7 @@ PROCESS_ADAPTERS([HIDAPI_USB1_ADAPTERS], ["x$use_hidapi" = "xyes" -a "x$use_libu
 PROCESS_ADAPTERS([LIBFTDI_ADAPTERS], ["x$use_libftdi" = "xyes"], [libftdi])
 PROCESS_ADAPTERS([LIBFTDI_USB1_ADAPTERS], ["x$use_libftdi" = "xyes" -a "x$use_libusb1" = "xyes"], [libftdi and libusb-1.x])
 PROCESS_ADAPTERS([LIBGPIOD_ADAPTERS], ["x$use_libgpiod" = "xyes"], [Linux libgpiod])
+PROCESS_ADAPTERS([DMEM_ADAPTER], ["x$is_linux" = "xyes"], [Linux /dev/mem])
 PROCESS_ADAPTERS([SYSFSGPIO_ADAPTER], ["x$is_linux" = "xyes"], [Linux sysfs])
 PROCESS_ADAPTERS([REMOTE_BITBANG_ADAPTER], [true], [unused])
 PROCESS_ADAPTERS([LIBJAYLINK_ADAPTERS], ["x$use_internal_libjaylink" = "xyes" -o "x$use_libjaylink" = "xyes"], [libjaylink-0.2])
@@ -744,7 +739,6 @@ AM_CONDITIONAL([USE_LIBFTDI], [test "x$use_libftdi" = "xyes"])
 AM_CONDITIONAL([USE_LIBGPIOD], [test "x$use_libgpiod" = "xyes"])
 AM_CONDITIONAL([USE_HIDAPI], [test "x$use_hidapi" = "xyes"])
 AM_CONDITIONAL([USE_LIBJAYLINK], [test "x$use_libjaylink" = "xyes"])
-AM_CONDITIONAL([DMEM], [test "x$build_dmem" = "xyes"])
 AM_CONDITIONAL([HAVE_CAPSTONE], [test "x$enable_capstone" != "xno"])
 
 AM_CONDITIONAL([INTERNAL_JIMTCL], [test "x$use_internal_jimtcl" = "xyes"])
@@ -843,6 +837,7 @@ m4_foreach([adapterTuple], [USB1_ADAPTERS,
 	HIDAPI_ADAPTERS, HIDAPI_USB1_ADAPTERS, LIBFTDI_ADAPTERS,
 	LIBFTDI_USB1_ADAPTERS,
 	LIBGPIOD_ADAPTERS,
+	DMEM_ADAPTER,
 	SYSFSGPIO_ADAPTER,
 	REMOTE_BITBANG_ADAPTER,
 	LIBJAYLINK_ADAPTERS, PCIE_ADAPTERS, SERIAL_PORT_ADAPTERS,
