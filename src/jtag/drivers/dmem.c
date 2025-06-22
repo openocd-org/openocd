@@ -93,14 +93,14 @@ static bool dmem_is_emulated_ap(struct adiv5_ap *ap, unsigned int *idx)
 	return false;
 }
 
-static void dmem_emu_set_ap_reg(uint64_t addr, uint32_t val)
+static void dmem_emu_set_ap_reg(uint32_t addr, uint32_t val)
 {
 	addr &= ~ARM_APB_PADDR31;
 
 	*(volatile uint32_t *)((uintptr_t)dmem_emu_virt_base_addr + addr) = val;
 }
 
-static uint32_t dmem_emu_get_ap_reg(uint64_t addr)
+static uint32_t dmem_emu_get_ap_reg(uint32_t addr)
 {
 	uint32_t val;
 
@@ -113,7 +113,7 @@ static uint32_t dmem_emu_get_ap_reg(uint64_t addr)
 
 static int dmem_emu_ap_q_read(unsigned int ap_idx, unsigned int reg, uint32_t *data)
 {
-	uint64_t addr;
+	uint32_t addr;
 	int ret = ERROR_OK;
 	struct dmem_emu_ap_info *ap_info = &dmem_emu_ap_list[ap_idx];
 
@@ -164,7 +164,7 @@ static int dmem_emu_ap_q_read(unsigned int ap_idx, unsigned int reg, uint32_t *d
 
 static int dmem_emu_ap_q_write(unsigned int ap_idx, unsigned int reg, uint32_t data)
 {
-	uint64_t addr;
+	uint32_t addr;
 	int ret = ERROR_OK;
 	struct dmem_emu_ap_info *ap_info = &dmem_emu_ap_list[ap_idx];
 
@@ -519,7 +519,7 @@ static int dmem_dap_init(void)
 						 MAP_SHARED, dmem_fd,
 						 dmem_mapped_start);
 	if (dmem_map_base == MAP_FAILED) {
-		LOG_ERROR("Mapping address 0x%lx for 0x%lx bytes failed!",
+		LOG_ERROR("Mapping address 0x%zx for 0x%zx bytes failed!",
 			dmem_mapped_start, dmem_mapped_size);
 		goto error_fail;
 	}
@@ -543,7 +543,7 @@ static int dmem_dap_init(void)
 									   MAP_SHARED, dmem_fd,
 									   dmem_mapped_start);
 		if (dmem_emu_map_base == MAP_FAILED) {
-			LOG_ERROR("Mapping EMU address 0x%lx for 0x%lx bytes failed!",
+			LOG_ERROR("Mapping EMU address 0x%" PRIx64 " for 0x%" PRIx64 " bytes failed!",
 					  dmem_emu_base_address, dmem_emu_size);
 			goto error_fail;
 		}
