@@ -796,6 +796,7 @@ int target_profiling_default(struct target *target, uint32_t *samples, uint32_t
 #define ERROR_TARGET_SIZE_NOT_SUPPORTED  (-314)
 #define ERROR_TARGET_PACKING_NOT_SUPPORTED  (-315)
 #define ERROR_TARGET_HALTED_DO_RESUME  (-316)	/* used to workaround incorrect debug halt */
+#define ERROR_TARGET_INTERSECT_BREAKPOINT (-317)
 
 extern bool get_target_reset_nag(void);
 

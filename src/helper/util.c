@@ -40,3 +40,26 @@ int util_init(struct command_context *cmd_ctx)
 {
 	return register_commands(cmd_ctx, NULL, util_command_handlers);
 }
+
+bool is_memory_regions_overlap(target_addr_t start1,
+	unsigned int size1,
+	target_addr_t start2,
+	unsigned int  size2)
+{
+	/* Two memory regions: [S1,E1] and [S2,E2] where:
+	 * E1 = S1 + size1 - 1, E2 = S2 + size2 - 1
+	 *
+	 * After normalization:
+	 *  Region 1: [0, size1 - 1]
+	 *  Region 2: [start2 - start1, (start2 - start1) + size2 - 1]
+	 *
+	 * Intersection cases:
+	 *  1. Normalized region 2 wraps around 0 (unsigned overflow)
+	 *  2. Start of normalized region 2 is within region 1
+	 */
+	start2 -= start1;
+	target_addr_t end1 = size1 - 1;
+	target_addr_t end2 = start2 + size2 - 1;
+
+	return start2 > end2 || start2 <= end1;
+}

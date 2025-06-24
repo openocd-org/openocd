@@ -10,5 +10,7 @@
 struct command_context;
 
 int util_init(struct command_context *cmd_ctx);
+bool is_memory_regions_overlap(target_addr_t start1, unsigned int size1,
+		target_addr_t start2, unsigned int size2);
 
 #endif /* OPENOCD_HELPER_UTIL_H */

@@ -16,6 +16,7 @@
 #include <helper/log.h>
 #include "breakpoints.h"
 #include "smp.h"
+#include "helper/util.h"
 
 enum breakpoint_watchpoint {
 	BREAKPOINT,
@@ -55,6 +56,13 @@ static int breakpoint_add_internal(struct target *target,
 			LOG_TARGET_ERROR(target, "Duplicate Breakpoint address: " TARGET_ADDR_FMT " (BP %" PRIu32 ")",
 				address, breakpoint->unique_id);
 			return ERROR_TARGET_DUPLICATE_BREAKPOINT;
+		}
+		if (type == BKPT_SOFT &&
+				is_memory_regions_overlap(address, length, breakpoint->address, breakpoint->length)) {
+			LOG_TARGET_ERROR(target, "Breakpoint intersects with another one at " TARGET_ADDR_FMT
+				" of length %u (BP %" PRIu32 ")", breakpoint->address,
+				breakpoint->length, breakpoint->unique_id);
+			return ERROR_TARGET_INTERSECT_BREAKPOINT;
 		}
 		breakpoint_p = &breakpoint->next;
 		breakpoint = breakpoint->next;
