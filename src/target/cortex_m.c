@@ -2613,6 +2613,21 @@ static bool cortex_m_has_tz(struct target *target)
 	return (dauthstatus & DAUTHSTATUS_SID_MASK) != 0;
 }
 
+static bool cortex_m_main_extension(struct target *target, uint32_t cpuid)
+{
+	/* Inspect architecture to differentiate main extension/baseline */
+	unsigned int extension = (cpuid & ARM_CPUID_ARCHITECTURE_MASK) >> ARM_CPUID_ARCHITECTURE_POS;
+
+	if (extension == ARM_CPUID_MAIN_EXTENSION)
+		return true;
+	else if (extension == ARM_CPUID_NO_MAIN_EXTENSION)
+		return false;
+
+	LOG_TARGET_WARNING(target, "Fail to detect target extension");
+
+	return false;
+}
+
 int cortex_m_set_secure(struct target *target, struct cortex_m_saved_security *ssec)
 {
 	if (ssec) {
@@ -2872,9 +2887,44 @@ int cortex_m_examine(struct target *target)
 		if (armv7m->fp_feature != FPV5_MVE_F && armv7m->fp_feature != FPV5_MVE_I)
 			armv7m->arm.core_cache->reg_list[ARMV8M_VPR].exist = false;
 
-		if (!cortex_m_has_tz(target))
-			for (size_t idx = ARMV8M_FIRST_REG; idx <= ARMV8M_LAST_REG; idx++)
+		if (cortex_m->core_info->arch == ARM_ARCH_V8M) {
+			bool cm_has_tz = cortex_m_has_tz(target);
+			bool main_ext = cortex_m_main_extension(target, cpuid);
+			bool baseline = !main_ext;
+
+			if (!cm_has_tz) {
+				for (size_t idx = ARMV8M_TZ_FIRST_REG; idx <= ARMV8M_TZ_LAST_REG; idx++)
+					armv7m->arm.core_cache->reg_list[idx].exist = false;
+
+				if (baseline) {
+					armv7m->arm.core_cache->reg_list[ARMV8M_MSPLIM].exist = false;
+					armv7m->arm.core_cache->reg_list[ARMV8M_PSPLIM].exist = false;
+				}
+			} else {
+				if (baseline) {
+					/* ARMV8M without main extension but with the security extension has
+					only two stack limit registers in Secure state */
+					armv7m->arm.core_cache->reg_list[ARMV8M_MSPLIM_NS].exist = false;
+					armv7m->arm.core_cache->reg_list[ARMV8M_PSPLIM_NS].exist = false;
+					armv7m->arm.core_cache->reg_list[ARMV8M_MSPLIM].exist = false;
+					armv7m->arm.core_cache->reg_list[ARMV8M_PSPLIM].exist = false;
+				} else {
+					/* There is no separate regsel for msplim/psplim of ARMV8M mainline
+					with the security extension that would point to correct alias
+					depending on security state of the processor, thus register marked
+					as non-existing letting to choose between S/NS alias manually */
+					armv7m->arm.core_cache->reg_list[ARMV8M_MSPLIM].exist = false;
+					armv7m->arm.core_cache->reg_list[ARMV8M_PSPLIM].exist = false;
+				}
+			}
+		} else {
+			/* Security extension and stack limit checking introduced in ARMV8M */
+			for (size_t idx = ARMV8M_TZ_FIRST_REG; idx <= ARMV8M_TZ_LAST_REG; idx++)
 				armv7m->arm.core_cache->reg_list[idx].exist = false;
+
+			armv7m->arm.core_cache->reg_list[ARMV8M_MSPLIM].exist = false;
+			armv7m->arm.core_cache->reg_list[ARMV8M_PSPLIM].exist = false;
+		}
 
 		if (!armv7m->is_hla_target) {
 			if (cortex_m->core_info->flags & CORTEX_M_F_TAR_AUTOINCR_BLOCK_4K)

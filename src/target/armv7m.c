@@ -139,6 +139,9 @@ static const struct {
 	{ ARMV7M_FAULTMASK, "faultmask", 1, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.m-system", NULL, },
 	{ ARMV7M_CONTROL, "control", 3, REG_TYPE_INT8, "system", "org.gnu.gdb.arm.m-system", NULL, },
 
+	{ ARMV8M_MSPLIM, "msplim", 32, REG_TYPE_DATA_PTR, "stack", "org.gnu.gdb.arm.m-system", NULL, },
+	{ ARMV8M_PSPLIM, "psplim", 32, REG_TYPE_DATA_PTR, "stack", "org.gnu.gdb.arm.m-system", NULL, },
+
 	/* ARMv8-M security extension (TrustZone) specific registers */
 	{ ARMV8M_MSP_NS, "msp_ns", 32, REG_TYPE_DATA_PTR, "stack", "org.gnu.gdb.arm.secext", NULL, },
 	{ ARMV8M_PSP_NS, "psp_ns", 32, REG_TYPE_DATA_PTR, "stack", "org.gnu.gdb.arm.secext", NULL, },
@@ -287,6 +290,12 @@ uint32_t armv7m_map_id_to_regsel(unsigned int arm_reg_id)
 
 	case ARMV8M_MSP_NS...ARMV8M_PSPLIM_NS:
 		return arm_reg_id - ARMV8M_MSP_NS + ARMV8M_REGSEL_MSP_NS;
+
+	case ARMV8M_PSPLIM:
+		return ARMV8M_REGSEL_PSPLIM;
+
+	case ARMV8M_MSPLIM:
+		return ARMV8M_REGSEL_MSPLIM;
 
 	case ARMV8M_PMSK_BPRI_FLTMSK_CTRL_S:
 		return ARMV8M_REGSEL_PMSK_BPRI_FLTMSK_CTRL_S;
