@@ -1282,76 +1282,77 @@ static int linux_thread_packet(struct connection *connection, char const *packet
 		target->rtos->rtos_specific_params;
 
 	switch (packet[0]) {
-		case 'T':		/* Is thread alive?*/
+	case 'T':		/* Is thread alive?*/
+		linux_gdb_t_packet(connection, target, packet, packet_size);
+		break;
 
-			linux_gdb_t_packet(connection, target, packet, packet_size);
-			break;
-		case 'H':		/* Set current thread */
-			/*  ( 'c' for step and continue, 'g' for all other operations )*/
-			/*LOG_INFO(" H packet received '%s'", packet);*/
-			linux_gdb_h_packet(connection, target, packet, packet_size);
-			break;
-		case 'q':
+	case 'H':		/* Set current thread */
+		/*  ( 'c' for step and continue, 'g' for all other operations )*/
+		/*LOG_INFO(" H packet received '%s'", packet);*/
+		linux_gdb_h_packet(connection, target, packet, packet_size);
+		break;
 
-			if (!strncmp(packet, "qSymbol", 7)) {
-				if (rtos_qsymbol(connection, packet, packet_size) == 1) {
-					linux_compute_virt2phys(target,
-							target->rtos->symbols[INIT_TASK].address);
-				}
-			} else if (!strncmp(packet, "qfThreadInfo", 12)) {
-				if (!linux_os->thread_list) {
-					retval = linux_gdb_thread_packet(target,
-							connection,
-							packet,
-							packet_size);
-				} else {
-					retval = linux_gdb_thread_update(target,
-							connection,
-							packet,
-							packet_size);
-				}
-			} else if (!strncmp(packet, "qsThreadInfo", 12)) {
-				gdb_put_packet(connection, "l", 1);
-			} else if (!strncmp(packet, "qThreadExtraInfo,", 17)) {
-				linux_thread_extra_info(target, connection, packet,
+	case 'q':
+		if (!strncmp(packet, "qSymbol", 7)) {
+			if (rtos_qsymbol(connection, packet, packet_size) == 1) {
+				linux_compute_virt2phys(target,
+						target->rtos->symbols[INIT_TASK].address);
+			}
+		} else if (!strncmp(packet, "qfThreadInfo", 12)) {
+			if (!linux_os->thread_list) {
+				retval = linux_gdb_thread_packet(target,
+						connection,
+						packet,
 						packet_size);
 			} else {
-				retval = GDB_THREAD_PACKET_NOT_CONSUMED;
+				retval = linux_gdb_thread_update(target,
+						connection,
+						packet,
+						packet_size);
 			}
-			break;
-
-		case 'Q':
-			/* previously response was : thread not found
-			 * gdb_put_packet(connection, "E01", 3); */
+		} else if (!strncmp(packet, "qsThreadInfo", 12)) {
+			gdb_put_packet(connection, "l", 1);
+		} else if (!strncmp(packet, "qThreadExtraInfo,", 17)) {
+			linux_thread_extra_info(target, connection, packet,
+					packet_size);
+		} else {
 			retval = GDB_THREAD_PACKET_NOT_CONSUMED;
-			break;
-		case 'c':
-		case 's':
-			if (linux_os->threads_lookup == 1) {
+		}
+		break;
+
+	case 'Q':
+		/* previously response was : thread not found
+		 * gdb_put_packet(connection, "E01", 3); */
+		retval = GDB_THREAD_PACKET_NOT_CONSUMED;
+		break;
+
+	case 'c':
+	case 's':
+		if (linux_os->threads_lookup == 1) {
+			ct = linux_os->current_threads;
+
+			while ((ct) && (ct->core_id) != target->coreid)
+				ct = ct->next;
+
+			if ((ct) && (ct->threadid == -1)) {
 				ct = linux_os->current_threads;
 
-				while ((ct) && (ct->core_id) != target->coreid)
+				while ((ct) && (ct->threadid == -1))
 					ct = ct->next;
-
-				if ((ct) && (ct->threadid == -1)) {
-					ct = linux_os->current_threads;
-
-					while ((ct) && (ct->threadid == -1))
-						ct = ct->next;
-				}
-
-				if ((ct) && (ct->threadid !=
-						 target->rtos->current_threadid)
-				&& (target->rtos->current_threadid != -1))
-					LOG_WARNING("WARNING! current GDB thread do not match "
-							"current thread running. "
-							"Switch thread in GDB to threadid %d",
-							(int)ct->threadid);
-
-				LOG_INFO("threads_needs_update = 1");
-				linux_os->threads_needs_update = 1;
 			}
-			break;
+
+			if ((ct) && (ct->threadid !=
+					 target->rtos->current_threadid)
+			&& (target->rtos->current_threadid != -1))
+				LOG_WARNING("WARNING! current GDB thread do not match "
+						"current thread running. "
+						"Switch thread in GDB to threadid %d",
+						(int)ct->threadid);
+
+			LOG_INFO("threads_needs_update = 1");
+			linux_os->threads_needs_update = 1;
+		}
+		break;
 	}
 
 	return retval;
