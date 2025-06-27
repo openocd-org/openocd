@@ -50,22 +50,22 @@ COMMAND_HANDLER(handle_nand_info_command)
 	int last = -1;
 
 	switch (CMD_ARGC) {
-		case 1:
-			first = 0;
-			last = INT32_MAX;
-			break;
-		case 2:
-			COMMAND_PARSE_NUMBER(int, CMD_ARGV[1], i);
-			first = i;
-			last = i;
-			i = 0;
-			break;
-		case 3:
-			COMMAND_PARSE_NUMBER(int, CMD_ARGV[1], first);
-			COMMAND_PARSE_NUMBER(int, CMD_ARGV[2], last);
-			break;
-		default:
-			return ERROR_COMMAND_SYNTAX_ERROR;
+	case 1:
+		first = 0;
+		last = INT32_MAX;
+		break;
+	case 2:
+		COMMAND_PARSE_NUMBER(int, CMD_ARGV[1], i);
+		first = i;
+		last = i;
+		i = 0;
+		break;
+	case 3:
+		COMMAND_PARSE_NUMBER(int, CMD_ARGV[1], first);
+		COMMAND_PARSE_NUMBER(int, CMD_ARGV[2], last);
+		break;
+	default:
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	struct nand_device *p;

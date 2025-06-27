@@ -310,15 +310,15 @@ int nand_probe(struct nand_device *nand)
 	retval = nand->controller->init(nand);
 	if (retval != ERROR_OK) {
 		switch (retval) {
-			case ERROR_NAND_OPERATION_FAILED:
-				LOG_DEBUG("controller initialization failed");
-				return ERROR_NAND_OPERATION_FAILED;
-			case ERROR_NAND_OPERATION_NOT_SUPPORTED:
-				LOG_ERROR("BUG: controller reported that it doesn't support default parameters");
-				return ERROR_NAND_OPERATION_FAILED;
-			default:
-				LOG_ERROR("BUG: unknown controller initialization failure");
-				return ERROR_NAND_OPERATION_FAILED;
+		case ERROR_NAND_OPERATION_FAILED:
+			LOG_DEBUG("controller initialization failed");
+			return ERROR_NAND_OPERATION_FAILED;
+		case ERROR_NAND_OPERATION_NOT_SUPPORTED:
+			LOG_ERROR("BUG: controller reported that it doesn't support default parameters");
+			return ERROR_NAND_OPERATION_FAILED;
+		default:
+			LOG_ERROR("BUG: unknown controller initialization failure");
+			return ERROR_NAND_OPERATION_FAILED;
 		}
 	}
 
@@ -449,18 +449,18 @@ int nand_probe(struct nand_device *nand)
 	/* erase size */
 	if (nand->device->erase_size == 0) {
 		switch ((id_buff[4] >> 4) & 3) {
-			case 0:
-				nand->erase_size = 64 << 10;
-				break;
-			case 1:
-				nand->erase_size = 128 << 10;
-				break;
-			case 2:
-				nand->erase_size = 256 << 10;
-				break;
-			case 3:
-				nand->erase_size = 512 << 10;
-				break;
+		case 0:
+			nand->erase_size = 64 << 10;
+			break;
+		case 1:
+			nand->erase_size = 128 << 10;
+			break;
+		case 2:
+			nand->erase_size = 256 << 10;
+			break;
+		case 3:
+			nand->erase_size = 512 << 10;
+			break;
 		}
 	} else
 		nand->erase_size = nand->device->erase_size;
@@ -469,18 +469,18 @@ int nand_probe(struct nand_device *nand)
 	retval = nand->controller->init(nand);
 	if (retval != ERROR_OK) {
 		switch (retval) {
-			case ERROR_NAND_OPERATION_FAILED:
-				LOG_DEBUG("controller initialization failed");
-				return ERROR_NAND_OPERATION_FAILED;
-			case ERROR_NAND_OPERATION_NOT_SUPPORTED:
-				LOG_ERROR("controller doesn't support requested parameters (buswidth: %i, address cycles: %i, page size: %i)",
-					nand->bus_width,
-					nand->address_cycles,
-					nand->page_size);
-				return ERROR_NAND_OPERATION_FAILED;
-			default:
-				LOG_ERROR("BUG: unknown controller initialization failure");
-				return ERROR_NAND_OPERATION_FAILED;
+		case ERROR_NAND_OPERATION_FAILED:
+			LOG_DEBUG("controller initialization failed");
+			return ERROR_NAND_OPERATION_FAILED;
+		case ERROR_NAND_OPERATION_NOT_SUPPORTED:
+			LOG_ERROR("controller doesn't support requested parameters (buswidth: %i, address cycles: %i, page size: %i)",
+				nand->bus_width,
+				nand->address_cycles,
+				nand->page_size);
+			return ERROR_NAND_OPERATION_FAILED;
+		default:
+			LOG_ERROR("BUG: unknown controller initialization failure");
+			return ERROR_NAND_OPERATION_FAILED;
 		}
 	}
 

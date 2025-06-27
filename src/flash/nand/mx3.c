@@ -256,23 +256,23 @@ static int imx31_command(struct nand_device *nand, uint8_t command)
 	}
 
 	switch (command) {
-		case NAND_CMD_READOOB:
-			command = NAND_CMD_READ0;
-			in_sram_address = MX3_NF_SPARE_BUFFER0;	/* set read point for
-								* data_read() and
-								* read_block_data() to
-								* spare area in SRAM
-								* buffer */
-			break;
-		case NAND_CMD_READ1:
-			command = NAND_CMD_READ0;
-			/*
-			 * offset == one half of page size
-			 */
-			in_sram_address = MX3_NF_MAIN_BUFFER0 + (nand->page_size >> 1);
-			break;
-		default:
-			in_sram_address = MX3_NF_MAIN_BUFFER0;
+	case NAND_CMD_READOOB:
+		command = NAND_CMD_READ0;
+		in_sram_address = MX3_NF_SPARE_BUFFER0;	/* set read point for
+												 * data_read() and
+												 * read_block_data() to
+												 * spare area in SRAM
+												 * buffer */
+		break;
+	case NAND_CMD_READ1:
+		command = NAND_CMD_READ0;
+		/*
+		 * offset == one half of page size
+		 */
+		in_sram_address = MX3_NF_MAIN_BUFFER0 + (nand->page_size >> 1);
+		break;
+	default:
+		in_sram_address = MX3_NF_MAIN_BUFFER0;
 	}
 
 	target_write_u16(target, MX3_NF_FCMD, command);
@@ -291,20 +291,20 @@ static int imx31_command(struct nand_device *nand, uint8_t command)
 	*/
 	sign_of_sequental_byte_read = 0;
 	switch (command) {
-		case NAND_CMD_READID:
-			mx3_nf_info->optype = MX3_NF_DATAOUT_NANDID;
-			mx3_nf_info->fin = MX3_NF_FIN_DATAOUT;
-			break;
-		case NAND_CMD_STATUS:
-			mx3_nf_info->optype = MX3_NF_DATAOUT_NANDSTATUS;
-			mx3_nf_info->fin = MX3_NF_FIN_DATAOUT;
-			break;
-		case NAND_CMD_READ0:
-			mx3_nf_info->fin = MX3_NF_FIN_DATAOUT;
-			mx3_nf_info->optype = MX3_NF_DATAOUT_PAGE;
-			break;
-		default:
-			mx3_nf_info->optype = MX3_NF_DATAOUT_PAGE;
+	case NAND_CMD_READID:
+		mx3_nf_info->optype = MX3_NF_DATAOUT_NANDID;
+		mx3_nf_info->fin = MX3_NF_FIN_DATAOUT;
+		break;
+	case NAND_CMD_STATUS:
+		mx3_nf_info->optype = MX3_NF_DATAOUT_NANDSTATUS;
+		mx3_nf_info->fin = MX3_NF_FIN_DATAOUT;
+		break;
+	case NAND_CMD_READ0:
+		mx3_nf_info->fin = MX3_NF_FIN_DATAOUT;
+		mx3_nf_info->optype = MX3_NF_DATAOUT_PAGE;
+		break;
+	default:
+		mx3_nf_info->optype = MX3_NF_DATAOUT_PAGE;
 	}
 	return ERROR_OK;
 }
@@ -647,46 +647,46 @@ static int do_data_output(struct nand_device *nand)
 	struct mx3_nf_controller *mx3_nf_info = nand->controller_priv;
 	struct target *target = nand->target;
 	switch (mx3_nf_info->fin) {
-		case MX3_NF_FIN_DATAOUT:
-			/*
-			 * start data output operation (set MX3_NF_BIT_OP_DONE==0)
-			 */
-			target_write_u16 (target, MX3_NF_CFG2,
-					MX3_NF_BIT_DATAOUT_TYPE(mx3_nf_info->optype));
-			{
-				int poll_result;
-				poll_result = poll_for_complete_op(target, "data output");
-				if (poll_result != ERROR_OK)
-					return poll_result;
+	case MX3_NF_FIN_DATAOUT:
+		/*
+		 * start data output operation (set MX3_NF_BIT_OP_DONE==0)
+		 */
+		target_write_u16 (target, MX3_NF_CFG2,
+				MX3_NF_BIT_DATAOUT_TYPE(mx3_nf_info->optype));
+		{
+			int poll_result;
+			poll_result = poll_for_complete_op(target, "data output");
+			if (poll_result != ERROR_OK)
+				return poll_result;
+		}
+		mx3_nf_info->fin = MX3_NF_FIN_NONE;
+		/*
+		 * ECC stuff
+		 */
+		if (mx3_nf_info->optype == MX3_NF_DATAOUT_PAGE
+				&& mx3_nf_info->flags.hw_ecc_enabled) {
+			uint16_t ecc_status;
+			target_read_u16 (target, MX3_NF_ECCSTATUS, &ecc_status);
+			switch (ecc_status & 0x000c) {
+			case 1 << 2:
+				LOG_DEBUG("main area read with 1 (correctable) error");
+				break;
+			case 2 << 2:
+				LOG_DEBUG("main area read with more than 1 (incorrectable) error");
+				return ERROR_NAND_OPERATION_FAILED;
 			}
-			mx3_nf_info->fin = MX3_NF_FIN_NONE;
-			/*
-			 * ECC stuff
-			 */
-			if (mx3_nf_info->optype == MX3_NF_DATAOUT_PAGE
-					&& mx3_nf_info->flags.hw_ecc_enabled) {
-				uint16_t ecc_status;
-				target_read_u16 (target, MX3_NF_ECCSTATUS, &ecc_status);
-				switch (ecc_status & 0x000c) {
-				case 1 << 2:
-					LOG_DEBUG("main area read with 1 (correctable) error");
-					break;
-				case 2 << 2:
-					LOG_DEBUG("main area read with more than 1 (incorrectable) error");
-					return ERROR_NAND_OPERATION_FAILED;
-				}
-				switch (ecc_status & 0x0003) {
-				case 1:
-					LOG_DEBUG("spare area read with 1 (correctable) error");
-					break;
-				case 2:
-					LOG_DEBUG("main area read with more than 1 (incorrectable) error");
-					return ERROR_NAND_OPERATION_FAILED;
-				}
+			switch (ecc_status & 0x0003) {
+			case 1:
+				LOG_DEBUG("spare area read with 1 (correctable) error");
+				break;
+			case 2:
+				LOG_DEBUG("main area read with more than 1 (incorrectable) error");
+				return ERROR_NAND_OPERATION_FAILED;
 			}
-			break;
-		case MX3_NF_FIN_NONE:
-			break;
+		}
+		break;
+	case MX3_NF_FIN_NONE:
+		break;
 	}
 	return ERROR_OK;
 }

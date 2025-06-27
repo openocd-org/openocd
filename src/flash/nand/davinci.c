@@ -256,17 +256,17 @@ static int davinci_write_page(struct nand_device *nand, uint32_t page,
 
 	/* If we're not given OOB, write 0xff where we don't write ECC codes. */
 	switch (nand->page_size) {
-		case 512:
-			oob_size = 16;
-			break;
-		case 2048:
-			oob_size = 64;
-			break;
-		case 4096:
-			oob_size = 128;
-			break;
-		default:
-			return ERROR_NAND_OPERATION_FAILED;
+	case 512:
+		oob_size = 16;
+		break;
+	case 2048:
+		oob_size = 64;
+		break;
+	case 4096:
+		oob_size = 128;
+		break;
+	default:
+		return ERROR_NAND_OPERATION_FAILED;
 	}
 	if (!oob) {
 		ooballoc = malloc(oob_size);
@@ -391,15 +391,15 @@ static int davinci_write_page_ecc1(struct nand_device *nand, uint32_t page,
 	 * for 16-bit OOB, those extra bytes are discontiguous.
 	 */
 	switch (nand->page_size) {
-		case 512:
-			oob_offset = 0;
-			break;
-		case 2048:
-			oob_offset = 40;
-			break;
-		default:
-			oob_offset = 80;
-			break;
+	case 512:
+		oob_offset = 0;
+		break;
+	case 2048:
+		oob_offset = 40;
+		break;
+	default:
+		oob_offset = 80;
+		break;
 	}
 
 	davinci_write_pagecmd(nand, NAND_CMD_SEQIN, page);
@@ -482,15 +482,15 @@ static int davinci_write_page_ecc4(struct nand_device *nand, uint32_t page,
 	 * the standard ECC logic can't handle.
 	 */
 	switch (nand->page_size) {
-		case 512:
-			l = ecc512;
-			break;
-		case 2048:
-			l = ecc2048;
-			break;
-		default:
-			l = ecc4096;
-			break;
+	case 512:
+		l = ecc512;
+		break;
+	case 2048:
+		l = ecc2048;
+		break;
+	default:
+		l = ecc4096;
+		break;
 	}
 
 	davinci_write_pagecmd(nand, NAND_CMD_SEQIN, page);
@@ -741,19 +741,19 @@ NAND_DEVICE_COMMAND_HANDLER(davinci_nand_device_command)
 	info->read_page = nand_read_page_raw;
 
 	switch (eccmode) {
-		case HWECC1:
-			/* ECC_HW, 1-bit corrections, 3 bytes ECC per 512 data bytes */
-			info->write_page = davinci_write_page_ecc1;
-			break;
-		case HWECC4:
-			/* ECC_HW, 4-bit corrections, 10 bytes ECC per 512 data bytes */
-			info->write_page = davinci_write_page_ecc4;
-			break;
-		case HWECC4_INFIX:
-			/* Same 4-bit ECC HW, with problematic page/ecc layout */
-			info->read_page = davinci_read_page_ecc4infix;
-			info->write_page = davinci_write_page_ecc4infix;
-			break;
+	case HWECC1:
+		/* ECC_HW, 1-bit corrections, 3 bytes ECC per 512 data bytes */
+		info->write_page = davinci_write_page_ecc1;
+		break;
+	case HWECC4:
+		/* ECC_HW, 4-bit corrections, 10 bytes ECC per 512 data bytes */
+		info->write_page = davinci_write_page_ecc4;
+		break;
+	case HWECC4_INFIX:
+		/* Same 4-bit ECC HW, with problematic page/ecc layout */
+		info->read_page = davinci_read_page_ecc4infix;
+		info->write_page = davinci_write_page_ecc4infix;
+		break;
 	}
 
 	return ERROR_OK;

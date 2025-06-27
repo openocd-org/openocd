@@ -338,26 +338,26 @@ static int mxc_command(struct nand_device *nand, uint8_t command)
 		return validate_target_result;
 
 	switch (command) {
-		case NAND_CMD_READOOB:
-			command = NAND_CMD_READ0;
-			/* set read point for data_read() and read_block_data() to
-			 * spare area in SRAM buffer
-			 */
-			if (nfc_is_v1())
-				in_sram_address = MXC_NF_V1_SPARE_BUFFER0;
-			else
-				in_sram_address = MXC_NF_V2_SPARE_BUFFER0;
-			break;
-		case NAND_CMD_READ1:
-			command = NAND_CMD_READ0;
-			/*
-			 * offset == one half of page size
-			 */
-			in_sram_address = MXC_NF_MAIN_BUFFER0 + (nand->page_size >> 1);
-			break;
-		default:
-			in_sram_address = MXC_NF_MAIN_BUFFER0;
-			break;
+	case NAND_CMD_READOOB:
+		command = NAND_CMD_READ0;
+		/* set read point for data_read() and read_block_data() to
+		 * spare area in SRAM buffer
+		 */
+		if (nfc_is_v1())
+			in_sram_address = MXC_NF_V1_SPARE_BUFFER0;
+		else
+			in_sram_address = MXC_NF_V2_SPARE_BUFFER0;
+		break;
+	case NAND_CMD_READ1:
+		command = NAND_CMD_READ0;
+		/*
+		 * offset == one half of page size
+		 */
+		in_sram_address = MXC_NF_MAIN_BUFFER0 + (nand->page_size >> 1);
+		break;
+	default:
+		in_sram_address = MXC_NF_MAIN_BUFFER0;
+		break;
 	}
 
 	target_write_u16(target, MXC_NF_FCMD, command);
@@ -374,24 +374,24 @@ static int mxc_command(struct nand_device *nand, uint8_t command)
 	sign_of_sequental_byte_read = 0;
 	/* Handle special read command and adjust NF_CFG2(FDO) */
 	switch (command) {
-		case NAND_CMD_READID:
-			mxc_nf_info->optype = MXC_NF_DATAOUT_NANDID;
-			mxc_nf_info->fin = MXC_NF_FIN_DATAOUT;
-			break;
-		case NAND_CMD_STATUS:
-			mxc_nf_info->optype = MXC_NF_DATAOUT_NANDSTATUS;
-			mxc_nf_info->fin = MXC_NF_FIN_DATAOUT;
-			target_write_u16 (target, MXC_NF_BUFADDR, 0);
-			in_sram_address = 0;
-			break;
-		case NAND_CMD_READ0:
-			mxc_nf_info->fin = MXC_NF_FIN_DATAOUT;
-			mxc_nf_info->optype = MXC_NF_DATAOUT_PAGE;
-			break;
-		default:
-			/* Other command use the default 'One page data out' FDO */
-			mxc_nf_info->optype = MXC_NF_DATAOUT_PAGE;
-			break;
+	case NAND_CMD_READID:
+		mxc_nf_info->optype = MXC_NF_DATAOUT_NANDID;
+		mxc_nf_info->fin = MXC_NF_FIN_DATAOUT;
+		break;
+	case NAND_CMD_STATUS:
+		mxc_nf_info->optype = MXC_NF_DATAOUT_NANDSTATUS;
+		mxc_nf_info->fin = MXC_NF_FIN_DATAOUT;
+		target_write_u16 (target, MXC_NF_BUFADDR, 0);
+		in_sram_address = 0;
+		break;
+	case NAND_CMD_READ0:
+		mxc_nf_info->fin = MXC_NF_FIN_DATAOUT;
+		mxc_nf_info->optype = MXC_NF_DATAOUT_PAGE;
+		break;
+	default:
+		/* Other command use the default 'One page data out' FDO */
+		mxc_nf_info->optype = MXC_NF_DATAOUT_PAGE;
+		break;
 	}
 	return ERROR_OK;
 }
@@ -857,20 +857,20 @@ static int ecc_status_v1(struct nand_device *nand)
 
 	target_read_u16(target, MXC_NF_ECCSTATUS, &ecc_status);
 	switch (ecc_status & 0x000c) {
-		case 1 << 2:
-			LOG_INFO("main area read with 1 (correctable) error");
-			break;
-		case 2 << 2:
-			LOG_INFO("main area read with more than 1 (incorrectable) error");
-			return ERROR_NAND_OPERATION_FAILED;
+	case 1 << 2:
+		LOG_INFO("main area read with 1 (correctable) error");
+		break;
+	case 2 << 2:
+		LOG_INFO("main area read with more than 1 (incorrectable) error");
+		return ERROR_NAND_OPERATION_FAILED;
 	}
 	switch (ecc_status & 0x0003) {
-		case 1:
-			LOG_INFO("spare area read with 1 (correctable) error");
-			break;
-		case 2:
-			LOG_INFO("main area read with more than 1 (incorrectable) error");
-			return ERROR_NAND_OPERATION_FAILED;
+	case 1:
+		LOG_INFO("spare area read with 1 (correctable) error");
+		break;
+	case 2:
+		LOG_INFO("main area read with more than 1 (incorrectable) error");
+		return ERROR_NAND_OPERATION_FAILED;
 	}
 	return ERROR_OK;
 }
@@ -904,31 +904,31 @@ static int do_data_output(struct nand_device *nand)
 	struct target *target = nand->target;
 	int poll_result;
 	switch (mxc_nf_info->fin) {
-		case MXC_NF_FIN_DATAOUT:
-			/*
-			 * start data output operation (set MXC_NF_BIT_OP_DONE==0)
-			 */
-			target_write_u16(target, MXC_NF_CFG2, MXC_NF_BIT_DATAOUT_TYPE(mxc_nf_info->optype));
-			poll_result = poll_for_complete_op(nand, "data output");
-			if (poll_result != ERROR_OK)
-				return poll_result;
+	case MXC_NF_FIN_DATAOUT:
+		/*
+		 * start data output operation (set MXC_NF_BIT_OP_DONE==0)
+		 */
+		target_write_u16(target, MXC_NF_CFG2, MXC_NF_BIT_DATAOUT_TYPE(mxc_nf_info->optype));
+		poll_result = poll_for_complete_op(nand, "data output");
+		if (poll_result != ERROR_OK)
+			return poll_result;
 
-			mxc_nf_info->fin = MXC_NF_FIN_NONE;
-			/*
-			 * ECC stuff
-			 */
-			if (mxc_nf_info->optype == MXC_NF_DATAOUT_PAGE && mxc_nf_info->flags.hw_ecc_enabled) {
-				int ecc_status;
-				if (nfc_is_v1())
-					ecc_status = ecc_status_v1(nand);
-				else
-					ecc_status = ecc_status_v2(nand);
-				if (ecc_status != ERROR_OK)
-					return ecc_status;
-			}
-			break;
-		case MXC_NF_FIN_NONE:
-			break;
+		mxc_nf_info->fin = MXC_NF_FIN_NONE;
+		/*
+		 * ECC stuff
+		 */
+		if (mxc_nf_info->optype == MXC_NF_DATAOUT_PAGE && mxc_nf_info->flags.hw_ecc_enabled) {
+			int ecc_status;
+			if (nfc_is_v1())
+				ecc_status = ecc_status_v1(nand);
+			else
+				ecc_status = ecc_status_v2(nand);
+			if (ecc_status != ERROR_OK)
+				return ecc_status;
+		}
+		break;
+	case MXC_NF_FIN_NONE:
+		break;
 	}
 	return ERROR_OK;
 }
