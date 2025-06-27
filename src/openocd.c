@@ -75,20 +75,20 @@ static int log_target_callback_event_handler(struct target *target,
 	void *priv)
 {
 	switch (event) {
-		case TARGET_EVENT_GDB_START:
-			target->verbose_halt_msg = false;
-			break;
-		case TARGET_EVENT_GDB_END:
-			target->verbose_halt_msg = true;
-			break;
-		case TARGET_EVENT_HALTED:
-			if (target->verbose_halt_msg) {
-				/* do not display information when debugger caused the halt */
-				target_arch_state(target);
-			}
-			break;
-		default:
-			break;
+	case TARGET_EVENT_GDB_START:
+		target->verbose_halt_msg = false;
+		break;
+	case TARGET_EVENT_GDB_END:
+		target->verbose_halt_msg = true;
+		break;
+	case TARGET_EVENT_HALTED:
+		if (target->verbose_halt_msg) {
+			/* do not display information when debugger caused the halt */
+			target_arch_state(target);
+		}
+		break;
+	default:
+		break;
 	}
 
 	return ERROR_OK;
