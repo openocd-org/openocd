@@ -1332,7 +1332,7 @@ static int linux_thread_packet(struct connection *connection, char const *packet
 			retval = GDB_THREAD_PACKET_NOT_CONSUMED;
 			break;
 		case 'c':
-		case 's': {
+		case 's':
 			if (linux_os->threads_lookup == 1) {
 				ct = linux_os->current_threads;
 
@@ -1357,11 +1357,7 @@ static int linux_thread_packet(struct connection *connection, char const *packet
 				LOG_INFO("threads_needs_update = 1");
 				linux_os->threads_needs_update = 1;
 			}
-		}
-
-		/* if a packet handler returned an error, exit input loop */
-		if (retval != ERROR_OK)
-			return retval;
+			break;
 	}
 
 	return retval;
