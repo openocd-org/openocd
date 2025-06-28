@@ -49,24 +49,24 @@ static inline int fileio_open_local(struct fileio *fileio)
 	ssize_t file_size;
 
 	switch (fileio->access) {
-		case FILEIO_READ:
-			strcpy(file_access, "r");
-			break;
-		case FILEIO_WRITE:
-			strcpy(file_access, "w");
-			break;
-		case FILEIO_READWRITE:
-			strcpy(file_access, "w+");
-			break;
-		case FILEIO_APPEND:
-			strcpy(file_access, "a");
-			break;
-		case FILEIO_APPENDREAD:
-			strcpy(file_access, "a+");
-			break;
-		default:
-			LOG_ERROR("BUG: access neither read, write nor readwrite");
-			return ERROR_COMMAND_SYNTAX_ERROR;
+	case FILEIO_READ:
+		strcpy(file_access, "r");
+		break;
+	case FILEIO_WRITE:
+		strcpy(file_access, "w");
+		break;
+	case FILEIO_READWRITE:
+		strcpy(file_access, "w+");
+		break;
+	case FILEIO_APPEND:
+		strcpy(file_access, "a");
+		break;
+	case FILEIO_APPENDREAD:
+		strcpy(file_access, "a+");
+		break;
+	default:
+		LOG_ERROR("BUG: access neither read, write nor readwrite");
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	/* win32 always opens in binary mode */

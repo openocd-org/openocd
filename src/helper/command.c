@@ -401,16 +401,16 @@ static bool command_can_run(struct command_context *cmd_ctx, struct command *c, 
 	/* Many commands may be run only before/after 'init' */
 	const char *when;
 	switch (c->mode) {
-		case COMMAND_CONFIG:
-			when = "before";
-			break;
-		case COMMAND_EXEC:
-			when = "after";
-			break;
-		/* handle the impossible with humor; it guarantees a bug report! */
-		default:
-			when = "if Cthulhu is summoned by";
-			break;
+	case COMMAND_CONFIG:
+		when = "before";
+		break;
+	case COMMAND_EXEC:
+		when = "after";
+		break;
+	/* handle the impossible with humor; it guarantees a bug report! */
+	default:
+		when = "if Cthulhu is summoned by";
+		break;
 	}
 	LOG_ERROR("The '%s' command must be used %s 'init'.",
 			full_name ? full_name : c->name, when);
@@ -732,16 +732,16 @@ static COMMAND_HELPER(command_help_show, struct help_entry *c,
 			const char *stage_msg = "";
 
 			switch (mode) {
-				case COMMAND_CONFIG:
-					stage_msg = " (configuration command)";
-					break;
-				case COMMAND_ANY:
-					stage_msg = " (command valid any time)";
-					break;
-				case COMMAND_UNKNOWN:
-				default:
-					stage_msg = " (?mode error?)";
-					break;
+			case COMMAND_CONFIG:
+				stage_msg = " (configuration command)";
+				break;
+			case COMMAND_ANY:
+				stage_msg = " (command valid any time)";
+				break;
+			case COMMAND_UNKNOWN:
+			default:
+				stage_msg = " (?mode error?)";
+				break;
 			}
 			msg = alloc_printf("%s%s", c->help ? c->help : "", stage_msg);
 		} else
@@ -902,19 +902,19 @@ COMMAND_HANDLER(handle_command_mode)
 
 	const char *mode_str;
 	switch (mode) {
-		case COMMAND_ANY:
-			mode_str = "any";
-			break;
-		case COMMAND_CONFIG:
-			mode_str = "config";
-			break;
-		case COMMAND_EXEC:
-			mode_str = "exec";
-			break;
-		case COMMAND_UNKNOWN:
-		default:
-			mode_str = "unknown";
-			break;
+	case COMMAND_ANY:
+		mode_str = "any";
+		break;
+	case COMMAND_CONFIG:
+		mode_str = "config";
+		break;
+	case COMMAND_EXEC:
+		mode_str = "exec";
+		break;
+	case COMMAND_UNKNOWN:
+	default:
+		mode_str = "unknown";
+		break;
 	}
 	command_print(CMD, "%s", mode_str);
 	return ERROR_OK;
@@ -1319,19 +1319,19 @@ COMMAND_HELPER(command_parse_str_to_buf, const char *str, void *buf, unsigned in
 COMMAND_HELPER(handle_command_parse_bool, bool *out, const char *label)
 {
 	switch (CMD_ARGC) {
-		case 1: {
-			const char *in = CMD_ARGV[0];
-			if (command_parse_bool_arg(in, out) != ERROR_OK) {
-				LOG_ERROR("%s: argument '%s' is not valid", CMD_NAME, in);
-				return ERROR_COMMAND_SYNTAX_ERROR;
-			}
-		}
-			/* fallthrough */
-		case 0:
-			LOG_INFO("%s is %s", label, *out ? "enabled" : "disabled");
-			break;
-		default:
+	case 1: {
+		const char *in = CMD_ARGV[0];
+		if (command_parse_bool_arg(in, out) != ERROR_OK) {
+			LOG_ERROR("%s: argument '%s' is not valid", CMD_NAME, in);
 			return ERROR_COMMAND_SYNTAX_ERROR;
+		}
+	}
+		/* fallthrough */
+	case 0:
+		LOG_INFO("%s is %s", label, *out ? "enabled" : "disabled");
+		break;
+	default:
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	return ERROR_OK;
 }
