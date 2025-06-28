@@ -608,30 +608,30 @@ static void stellaris_read_clock_info(struct flash_bank *bank)
 	stellaris_info->mck_desc = "";
 
 	switch (oscsrc) {
-		case 0:				/* MOSC */
-			mainfreq = rcc_xtal[xtal];
-			break;
-		case 1:				/* IOSC */
-			mainfreq = stellaris_info->iosc_freq;
-			stellaris_info->mck_desc = stellaris_info->iosc_desc;
-			break;
-		case 2:				/* IOSC/4 */
-			mainfreq = stellaris_info->iosc_freq / 4;
-			stellaris_info->mck_desc = stellaris_info->iosc_desc;
-			break;
-		case 3:				/* lowspeed */
-			/* Sandstorm doesn't have this 30K +/- 30% osc */
-			mainfreq = 30000;
-			stellaris_info->mck_desc = " (±30%)";
-			break;
-		case 8:				/* hibernation osc */
-			/* not all parts support hibernation */
-			mainfreq = 32768;
-			break;
+	case 0:				/* MOSC */
+		mainfreq = rcc_xtal[xtal];
+		break;
+	case 1:				/* IOSC */
+		mainfreq = stellaris_info->iosc_freq;
+		stellaris_info->mck_desc = stellaris_info->iosc_desc;
+		break;
+	case 2:				/* IOSC/4 */
+		mainfreq = stellaris_info->iosc_freq / 4;
+		stellaris_info->mck_desc = stellaris_info->iosc_desc;
+		break;
+	case 3:				/* lowspeed */
+		/* Sandstorm doesn't have this 30K +/- 30% osc */
+		mainfreq = 30000;
+		stellaris_info->mck_desc = " (±30%)";
+		break;
+	case 8:				/* hibernation osc */
+		/* not all parts support hibernation */
+		mainfreq = 32768;
+		break;
 
-		default: /* NOTREACHED */
-			mainfreq = 0;
-			break;
+	default: /* NOTREACHED */
+		mainfreq = 0;
+		break;
 	}
 
 	/* PLL is used if it's not bypassed; its output is 200 MHz
@@ -702,35 +702,35 @@ static int stellaris_read_part_info(struct flash_bank *bank)
 	}
 
 	switch (stellaris_info->target_class) {
-		case 0:				/* Sandstorm */
-			/*
-			 * Current (2009-August) parts seem to be rev C2 and use 12 MHz.
-			 * Parts before rev C0 used 15 MHz; some C0 parts use 15 MHz
-			 * (LM3S618), but some other C0 parts are 12 MHz (LM3S811).
-			 */
-			if (((did0 >> 8) & 0xff) < 2) {
-				stellaris_info->iosc_freq = 15000000;
-				stellaris_info->iosc_desc = " (±50%)";
-			}
-			break;
+	case 0:				/* Sandstorm */
+		/*
+		 * Current (2009-August) parts seem to be rev C2 and use 12 MHz.
+		 * Parts before rev C0 used 15 MHz; some C0 parts use 15 MHz
+		 * (LM3S618), but some other C0 parts are 12 MHz (LM3S811).
+		 */
+		if (((did0 >> 8) & 0xff) < 2) {
+			stellaris_info->iosc_freq = 15000000;
+			stellaris_info->iosc_desc = " (±50%)";
+		}
+		break;
 
-		case 1:			/* Fury */
-			break;
+	case 1:			/* Fury */
+		break;
 
-		case 4:			/* Tempest */
-		case 5:			/* Blizzard */
-		case 6:			/* Firestorm */
-		case 0xa:		/* Snowflake */
-			stellaris_info->iosc_freq = 16000000;	/* +/- 1% */
-			stellaris_info->iosc_desc = " (±1%)";
-			/* FALL THROUGH */
+	case 4:			/* Tempest */
+	case 5:			/* Blizzard */
+	case 6:			/* Firestorm */
+	case 0xa:		/* Snowflake */
+		stellaris_info->iosc_freq = 16000000;	/* +/- 1% */
+		stellaris_info->iosc_desc = " (±1%)";
+		/* FALL THROUGH */
 
-		case 3:			/* DustDevil */
-			stellaris_info->xtal_mask = 0x1f;
-			break;
+	case 3:			/* DustDevil */
+		stellaris_info->xtal_mask = 0x1f;
+		break;
 
-		default:
-			LOG_WARNING("Unknown did0 class");
+	default:
+		LOG_WARNING("Unknown did0 class");
 	}
 
 	for (i = 0; stellaris_parts[i].partno; i++) {

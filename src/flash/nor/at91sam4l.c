@@ -282,19 +282,19 @@ static int sam4l_probe(struct flash_bank *bank)
 	chip->ram_kb = sam4l_ram_sizes[0xF & (id >> 16)];
 
 	switch (0xF & (id >> 8)) {
-		case 0x07:
-			chip->flash_kb = 128;
-			break;
-		case 0x09:
-			chip->flash_kb = 256;
-			break;
-		case 0x0A:
-			chip->flash_kb = 512;
-			break;
-		default:
-			LOG_ERROR("Unknown flash size (chip ID is %08" PRIx32 "), assuming 128K", id);
-			chip->flash_kb = 128;
-			break;
+	case 0x07:
+		chip->flash_kb = 128;
+		break;
+	case 0x09:
+		chip->flash_kb = 256;
+		break;
+	case 0x0A:
+		chip->flash_kb = 512;
+		break;
+	default:
+		LOG_ERROR("Unknown flash size (chip ID is %08" PRIx32 "), assuming 128K", id);
+		chip->flash_kb = 128;
+		break;
 	}
 
 	/* Retrieve the Flash parameters */

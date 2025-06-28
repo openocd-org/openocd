@@ -2040,40 +2040,39 @@ do_retry:
 
 	/* Check command & argument */
 	switch (command) {
+	case AT91C_EFC_FCMD_WP:
+	case AT91C_EFC_FCMD_WPL:
+	case AT91C_EFC_FCMD_EWP:
+	case AT91C_EFC_FCMD_EWPL:
+	/* case AT91C_EFC_FCMD_EPL: */
+	/* case AT91C_EFC_FCMD_EPA: */
+	case AT91C_EFC_FCMD_SLB:
+	case AT91C_EFC_FCMD_CLB:
+		n = (private->size_bytes / private->page_size);
+		if (argument >= n)
+			LOG_ERROR("*BUG*: Embedded flash has only %" PRIu32 " pages", n);
+		break;
 
-		case AT91C_EFC_FCMD_WP:
-		case AT91C_EFC_FCMD_WPL:
-		case AT91C_EFC_FCMD_EWP:
-		case AT91C_EFC_FCMD_EWPL:
-		/* case AT91C_EFC_FCMD_EPL: */
-		/* case AT91C_EFC_FCMD_EPA: */
-		case AT91C_EFC_FCMD_SLB:
-		case AT91C_EFC_FCMD_CLB:
-			n = (private->size_bytes / private->page_size);
-			if (argument >= n)
-				LOG_ERROR("*BUG*: Embedded flash has only %" PRIu32 " pages", n);
-			break;
+	case AT91C_EFC_FCMD_SFB:
+	case AT91C_EFC_FCMD_CFB:
+		if (argument >= private->chip->details.n_gpnvms) {
+			LOG_ERROR("*BUG*: Embedded flash has only %d GPNVMs",
+					private->chip->details.n_gpnvms);
+		}
+		break;
 
-		case AT91C_EFC_FCMD_SFB:
-		case AT91C_EFC_FCMD_CFB:
-			if (argument >= private->chip->details.n_gpnvms) {
-				LOG_ERROR("*BUG*: Embedded flash has only %d GPNVMs",
-						private->chip->details.n_gpnvms);
-			}
-			break;
-
-		case AT91C_EFC_FCMD_GETD:
-		case AT91C_EFC_FCMD_EA:
-		case AT91C_EFC_FCMD_GLB:
-		case AT91C_EFC_FCMD_GFB:
-		case AT91C_EFC_FCMD_STUI:
-		case AT91C_EFC_FCMD_SPUI:
-			if (argument != 0)
-				LOG_ERROR("Argument is meaningless for cmd: %d", command);
-			break;
-		default:
-			LOG_ERROR("Unknown command %d", command);
-			break;
+	case AT91C_EFC_FCMD_GETD:
+	case AT91C_EFC_FCMD_EA:
+	case AT91C_EFC_FCMD_GLB:
+	case AT91C_EFC_FCMD_GFB:
+	case AT91C_EFC_FCMD_STUI:
+	case AT91C_EFC_FCMD_SPUI:
+		if (argument != 0)
+			LOG_ERROR("Argument is meaningless for cmd: %d", command);
+		break;
+	default:
+		LOG_ERROR("Unknown command %d", command);
+		break;
 	}
 
 	if (command == AT91C_EFC_FCMD_SPUI) {
@@ -2571,18 +2570,18 @@ static void sam3_explain_ckgr_mor(struct sam3_chip *chip)
 	chip->cfg.rc_freq = 0;
 	if (rcen) {
 		switch (v) {
-			case 0:
-				chip->cfg.rc_freq = 4 * 1000 * 1000;
-				break;
-			case 1:
-				chip->cfg.rc_freq = 8 * 1000 * 1000;
-				break;
-			case 2:
-				chip->cfg.rc_freq = 12 * 1000 * 1000;
-				break;
-			default:
-				chip->cfg.rc_freq = 0;
-				break;
+		case 0:
+			chip->cfg.rc_freq = 4 * 1000 * 1000;
+			break;
+		case 1:
+			chip->cfg.rc_freq = 8 * 1000 * 1000;
+			break;
+		case 2:
+			chip->cfg.rc_freq = 12 * 1000 * 1000;
+			break;
+		default:
+			chip->cfg.rc_freq = 0;
+			break;
 		}
 	}
 
@@ -2683,30 +2682,30 @@ static void sam3_explain_mckr(struct sam3_chip *chip)
 
 	css = sam3_reg_fieldname(chip, "CSS", chip->cfg.PMC_MCKR, 0, 2);
 	switch (css & 3) {
-		case 0:
-			fin = chip->cfg.slow_freq;
-			cp = "slowclk";
-			break;
-		case 1:
-			fin = chip->cfg.mainosc_freq;
-			cp  = "mainosc";
-			break;
-		case 2:
-			fin = chip->cfg.plla_freq;
-			cp  = "plla";
-			break;
-		case 3:
-			if (chip->cfg.CKGR_UCKR & (1 << 16)) {
-				fin = 480 * 1000 * 1000;
-				cp = "upll";
-			} else {
-				fin = 0;
-				cp  = "upll (*ERROR* UPLL is disabled)";
-			}
-			break;
-		default:
-			assert(0);
-			break;
+	case 0:
+		fin = chip->cfg.slow_freq;
+		cp = "slowclk";
+		break;
+	case 1:
+		fin = chip->cfg.mainosc_freq;
+		cp  = "mainosc";
+		break;
+	case 2:
+		fin = chip->cfg.plla_freq;
+		cp  = "plla";
+		break;
+	case 3:
+		if (chip->cfg.CKGR_UCKR & (1 << 16)) {
+			fin = 480 * 1000 * 1000;
+			cp = "upll";
+		} else {
+			fin = 0;
+			cp  = "upll (*ERROR* UPLL is disabled)";
+		}
+		break;
+	default:
+		assert(0);
+		break;
 	}
 
 	LOG_USER("%s (%3.03f Mhz)",
@@ -2714,41 +2713,41 @@ static void sam3_explain_mckr(struct sam3_chip *chip)
 		_tomhz(fin));
 	pres = sam3_reg_fieldname(chip, "PRES", chip->cfg.PMC_MCKR, 4, 3);
 	switch (pres & 0x07) {
-		case 0:
-			pdiv = 1;
-			cp = "selected clock";
-			break;
-		case 1:
-			pdiv = 2;
-			cp = "clock/2";
-			break;
-		case 2:
-			pdiv = 4;
-			cp = "clock/4";
-			break;
-		case 3:
-			pdiv = 8;
-			cp = "clock/8";
-			break;
-		case 4:
-			pdiv = 16;
-			cp = "clock/16";
-			break;
-		case 5:
-			pdiv = 32;
-			cp = "clock/32";
-			break;
-		case 6:
-			pdiv = 64;
-			cp = "clock/64";
-			break;
-		case 7:
-			pdiv = 6;
-			cp = "clock/6";
-			break;
-		default:
-			assert(0);
-			break;
+	case 0:
+		pdiv = 1;
+		cp = "selected clock";
+		break;
+	case 1:
+		pdiv = 2;
+		cp = "clock/2";
+		break;
+	case 2:
+		pdiv = 4;
+		cp = "clock/4";
+		break;
+	case 3:
+		pdiv = 8;
+		cp = "clock/8";
+		break;
+	case 4:
+		pdiv = 16;
+		cp = "clock/16";
+		break;
+	case 5:
+		pdiv = 32;
+		cp = "clock/32";
+		break;
+	case 6:
+		pdiv = 64;
+		cp = "clock/64";
+		break;
+	case 7:
+		pdiv = 6;
+		cp = "clock/6";
+		break;
+	default:
+		assert(0);
+		break;
 	}
 	LOG_USER("(%s)", cp);
 	fin = fin / pdiv;
@@ -3011,39 +3010,39 @@ FLASH_BANK_COMMAND_HANDLER(sam3_flash_bank_command)
 	}
 
 	switch (bank->base) {
-		/* at91sam3s and at91sam3n series only has bank 0*/
-		/* at91sam3u and at91sam3ax series has the same address for bank 0*/
-		case FLASH_BANK_BASE_S:
-		case FLASH_BANK0_BASE_U:
-			bank->driver_priv = &chip->details.bank[0];
-			bank->bank_number = 0;
-			chip->details.bank[0].chip = chip;
-			chip->details.bank[0].bank = bank;
-			break;
+	/* at91sam3s and at91sam3n series only has bank 0*/
+	/* at91sam3u and at91sam3ax series has the same address for bank 0*/
+	case FLASH_BANK_BASE_S:
+	case FLASH_BANK0_BASE_U:
+		bank->driver_priv = &chip->details.bank[0];
+		bank->bank_number = 0;
+		chip->details.bank[0].chip = chip;
+		chip->details.bank[0].bank = bank;
+		break;
 
-		/* Bank 1 of at91sam3u or at91sam3ax series */
-		case FLASH_BANK1_BASE_U:
-		case FLASH_BANK1_BASE_256K_AX:
-		case FLASH_BANK1_BASE_512K_AX:
-			bank->driver_priv = &chip->details.bank[1];
-			bank->bank_number = 1;
-			chip->details.bank[1].chip = chip;
-			chip->details.bank[1].bank = bank;
-			break;
+	/* Bank 1 of at91sam3u or at91sam3ax series */
+	case FLASH_BANK1_BASE_U:
+	case FLASH_BANK1_BASE_256K_AX:
+	case FLASH_BANK1_BASE_512K_AX:
+		bank->driver_priv = &chip->details.bank[1];
+		bank->bank_number = 1;
+		chip->details.bank[1].chip = chip;
+		chip->details.bank[1].bank = bank;
+		break;
 
-		default:
-			LOG_ERROR("Address " TARGET_ADDR_FMT " invalid bank address (try 0x%08x or 0x%08x "
-				"[at91sam3u series] or 0x%08x [at91sam3s series] or "
-				"0x%08x [at91sam3n series] or 0x%08x or 0x%08x or 0x%08x[at91sam3ax series] )",
-				bank->base,
-				FLASH_BANK0_BASE_U,
-				FLASH_BANK1_BASE_U,
-				FLASH_BANK_BASE_S,
-				FLASH_BANK_BASE_N,
-				FLASH_BANK0_BASE_AX,
-				FLASH_BANK1_BASE_256K_AX,
-				FLASH_BANK1_BASE_512K_AX);
-			return ERROR_FAIL;
+	default:
+		LOG_ERROR("Address " TARGET_ADDR_FMT " invalid bank address (try 0x%08x or 0x%08x "
+		"[at91sam3u series] or 0x%08x [at91sam3s series] or "
+		"0x%08x [at91sam3n series] or 0x%08x or 0x%08x or 0x%08x[at91sam3ax series] )",
+		bank->base,
+		FLASH_BANK0_BASE_U,
+		FLASH_BANK1_BASE_U,
+		FLASH_BANK_BASE_S,
+		FLASH_BANK_BASE_N,
+		FLASH_BANK0_BASE_AX,
+		FLASH_BANK1_BASE_256K_AX,
+		FLASH_BANK1_BASE_512K_AX);
+		return ERROR_FAIL;
 	}
 
 	/* we initialize after probing. */
@@ -3574,22 +3573,22 @@ COMMAND_HANDLER(sam3_handle_gpnvm_command)
 	}
 
 	switch (CMD_ARGC) {
-		case 0:
-			goto showall;
-		case 1:
+	case 0:
+		goto showall;
+	case 1:
+		who = -1;
+		break;
+	case 2:
+		if ((strcmp(CMD_ARGV[0], "show") == 0) && (strcmp(CMD_ARGV[1], "all") == 0)) {
 			who = -1;
-			break;
-		case 2:
-			if ((strcmp(CMD_ARGV[0], "show") == 0) && (strcmp(CMD_ARGV[1], "all") == 0)) {
-				who = -1;
-			} else {
-				uint32_t v32;
-				COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], v32);
-				who = v32;
-			}
-			break;
-		default:
-			return ERROR_COMMAND_SYNTAX_ERROR;
+		} else {
+			uint32_t v32;
+			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], v32);
+			who = v32;
+		}
+		break;
+	default:
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	if (strcmp("show", CMD_ARGV[0]) == 0) {
@@ -3641,26 +3640,26 @@ COMMAND_HANDLER(sam3_handle_slowclk_command)
 		return ERROR_OK;
 
 	switch (CMD_ARGC) {
-		case 0:
-			/* show */
-			break;
-		case 1:
-		{
-			/* set */
-			uint32_t v;
-			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], v);
-			if (v > 200000) {
-				/* absurd slow clock of 200Khz? */
-				command_print(CMD, "Absurd/illegal slow clock freq: %d\n", (int)(v));
-				return ERROR_COMMAND_SYNTAX_ERROR;
-			}
-			chip->cfg.slow_freq = v;
-			break;
-		}
-		default:
-			/* error */
-			command_print(CMD, "Too many parameters");
+	case 0:
+		/* show */
+		break;
+	case 1:
+	{
+		/* set */
+		uint32_t v;
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], v);
+		if (v > 200000) {
+			/* absurd slow clock of 200Khz? */
+			command_print(CMD, "Absurd/illegal slow clock freq: %d\n", (int)(v));
 			return ERROR_COMMAND_SYNTAX_ERROR;
+		}
+		chip->cfg.slow_freq = v;
+		break;
+	}
+	default:
+		/* error */
+		command_print(CMD, "Too many parameters");
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 	command_print(CMD, "Slowclk freq: %d.%03dkhz",
 		(int)(chip->cfg.slow_freq / 1000),

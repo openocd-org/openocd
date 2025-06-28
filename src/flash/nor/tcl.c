@@ -535,20 +535,20 @@ COMMAND_HANDLER(handle_flash_fill_command)
 		return retval;
 
 	switch (CMD_NAME[4]) {
-		case 'd':
-			wordsize = 8;
-			break;
-		case 'w':
-			wordsize = 4;
-			break;
-		case 'h':
-			wordsize = 2;
-			break;
-		case 'b':
-			wordsize = 1;
-			break;
-		default:
-			return ERROR_COMMAND_SYNTAX_ERROR;
+	case 'd':
+		wordsize = 8;
+		break;
+	case 'w':
+		wordsize = 4;
+		break;
+	case 'h':
+		wordsize = 2;
+		break;
+	case 'b':
+		wordsize = 1;
+		break;
+	default:
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	if ((wordsize < sizeof(pattern)) && (pattern >> (8 * wordsize) != 0)) {
@@ -588,25 +588,25 @@ COMMAND_HANDLER(handle_flash_fill_command)
 	uint8_t *ptr = buffer + padding_at_start;
 
 	switch (wordsize) {
-		case 8:
-			for (i = 0; i < count; i++, ptr += wordsize)
-				target_buffer_set_u64(target, ptr, pattern);
-			break;
-		case 4:
-			for (i = 0; i < count; i++, ptr += wordsize)
-				target_buffer_set_u32(target, ptr, pattern);
-			break;
-		case 2:
-			for (i = 0; i < count; i++, ptr += wordsize)
-				target_buffer_set_u16(target, ptr, pattern);
-			break;
-		case 1:
-			memset(ptr, pattern, count);
-			ptr += count;
-			break;
-		default:
-			LOG_ERROR("BUG: can't happen");
-			exit(-1);
+	case 8:
+		for (i = 0; i < count; i++, ptr += wordsize)
+			target_buffer_set_u64(target, ptr, pattern);
+		break;
+	case 4:
+		for (i = 0; i < count; i++, ptr += wordsize)
+			target_buffer_set_u32(target, ptr, pattern);
+		break;
+	case 2:
+		for (i = 0; i < count; i++, ptr += wordsize)
+			target_buffer_set_u16(target, ptr, pattern);
+		break;
+	case 1:
+		memset(ptr, pattern, count);
+		ptr += count;
+		break;
+	default:
+		LOG_ERROR("BUG: can't happen");
+		exit(-1);
 	}
 
 	if (padding_at_end) {
@@ -631,18 +631,18 @@ COMMAND_HANDLER(handle_flash_fill_command)
 		uint64_t readback = 0;
 
 		switch (wordsize) {
-			case 8:
-				readback = target_buffer_get_u64(target, ptr);
-				break;
-			case 4:
-				readback = target_buffer_get_u32(target, ptr);
-				break;
-			case 2:
-				readback = target_buffer_get_u16(target, ptr);
-				break;
-			case 1:
-				readback = *ptr;
-				break;
+		case 8:
+			readback = target_buffer_get_u64(target, ptr);
+			break;
+		case 4:
+			readback = target_buffer_get_u32(target, ptr);
+			break;
+		case 2:
+			readback = target_buffer_get_u16(target, ptr);
+			break;
+		case 1:
+			readback = *ptr;
+			break;
 		}
 		if (readback != pattern) {
 			LOG_ERROR(
@@ -683,17 +683,17 @@ COMMAND_HANDLER(handle_flash_md_command)
 
 	unsigned int wordsize;
 	switch (CMD_NAME[2]) {
-		case 'w':
-			wordsize = 4;
-			break;
-		case 'h':
-			wordsize = 2;
-			break;
-		case 'b':
-			wordsize = 1;
-			break;
-		default:
-			return ERROR_COMMAND_SYNTAX_ERROR;
+	case 'w':
+		wordsize = 4;
+		break;
+	case 'h':
+		wordsize = 2;
+		break;
+	case 'b':
+		wordsize = 1;
+		break;
+	default:
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	if (count == 0)

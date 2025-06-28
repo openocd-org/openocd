@@ -945,14 +945,14 @@ int cfi_erase(struct flash_bank *bank, unsigned int first,
 		return ERROR_FLASH_BANK_NOT_PROBED;
 
 	switch (cfi_info->pri_id) {
-		case 1:
-		case 3:
-			return cfi_intel_erase(bank, first, last);
-		case 2:
-			return cfi_spansion_erase(bank, first, last);
-		default:
-			LOG_ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
-			break;
+	case 1:
+	case 3:
+		return cfi_intel_erase(bank, first, last);
+	case 2:
+		return cfi_spansion_erase(bank, first, last);
+	default:
+		LOG_ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
+		break;
 	}
 
 	return ERROR_OK;
@@ -1084,12 +1084,12 @@ int cfi_protect(struct flash_bank *bank, int set, unsigned int first,
 		return ERROR_FLASH_BANK_NOT_PROBED;
 
 	switch (cfi_info->pri_id) {
-		case 1:
-		case 3:
-			return cfi_intel_protect(bank, set, first, last);
-		default:
-			LOG_WARNING("protect: cfi primary command set %i unsupported", cfi_info->pri_id);
-			return ERROR_OK;
+	case 1:
+	case 3:
+		return cfi_intel_protect(bank, set, first, last);
+	default:
+		LOG_WARNING("protect: cfi primary command set %i unsupported", cfi_info->pri_id);
+		return ERROR_OK;
 	}
 }
 
@@ -1100,16 +1100,16 @@ static uint32_t cfi_command_val(struct flash_bank *bank, uint8_t cmd)
 	uint8_t buf[CFI_MAX_BUS_WIDTH];
 	cfi_command(bank, cmd, buf);
 	switch (bank->bus_width) {
-		case 1:
-			return buf[0];
-		case 2:
-			return target_buffer_get_u16(target, buf);
-		case 4:
-			return target_buffer_get_u32(target, buf);
-		default:
-			LOG_ERROR("Unsupported bank buswidth %u, can't do block memory writes",
-					bank->bus_width);
-			return 0;
+	case 1:
+		return buf[0];
+	case 2:
+		return target_buffer_get_u16(target, buf);
+	case 4:
+		return target_buffer_get_u32(target, buf);
+	default:
+		LOG_ERROR("Unsupported bank buswidth %u, can't do block memory writes",
+				bank->bus_width);
+		return 0;
 	}
 }
 
@@ -1214,22 +1214,22 @@ static int cfi_intel_write_block(struct flash_bank *bank, const uint8_t *buffer,
 
 	/* prepare algorithm code for target endian */
 	switch (bank->bus_width) {
-		case 1:
-			target_code_src = word_8_code;
-			target_code_size = sizeof(word_8_code);
-			break;
-		case 2:
-			target_code_src = word_16_code;
-			target_code_size = sizeof(word_16_code);
-			break;
-		case 4:
-			target_code_src = word_32_code;
-			target_code_size = sizeof(word_32_code);
-			break;
-		default:
-			LOG_ERROR("Unsupported bank buswidth %u, can't do block memory writes",
-					bank->bus_width);
-			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	case 1:
+		target_code_src = word_8_code;
+		target_code_size = sizeof(word_8_code);
+		break;
+	case 2:
+		target_code_src = word_16_code;
+		target_code_size = sizeof(word_16_code);
+		break;
+	case 4:
+		target_code_src = word_32_code;
+		target_code_size = sizeof(word_32_code);
+		break;
+	default:
+		LOG_ERROR("Unsupported bank buswidth %u, can't do block memory writes",
+				bank->bus_width);
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
 	/* flash write code */
@@ -1448,22 +1448,22 @@ static int cfi_spansion_write_block_mips(struct flash_bank *bank, const uint8_t 
 	const uint32_t *target_code_src = NULL;
 
 	switch (bank->bus_width) {
-		case 2:
-			/* Check for DQ5 support */
-			if (cfi_info->status_poll_mask & (1 << 5)) {
-				target_code_src = mips_word_16_code;
-				target_code_size = sizeof(mips_word_16_code);
-			} else {
-				LOG_ERROR("Need DQ5 support");
-				return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-				/* target_code_src = mips_word_16_code_dq7only; */
-				/* target_code_size = sizeof(mips_word_16_code_dq7only); */
-			}
-			break;
-		default:
-			LOG_ERROR("Unsupported bank buswidth %u, can't do block memory writes",
-					bank->bus_width);
+	case 2:
+		/* Check for DQ5 support */
+		if (cfi_info->status_poll_mask & (1 << 5)) {
+			target_code_src = mips_word_16_code;
+			target_code_size = sizeof(mips_word_16_code);
+		} else {
+			LOG_ERROR("Need DQ5 support");
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+			/* target_code_src = mips_word_16_code_dq7only; */
+			/* target_code_size = sizeof(mips_word_16_code_dq7only); */
+		}
+		break;
+	default:
+		LOG_ERROR("Unsupported bank buswidth %u, can't do block memory writes",
+				bank->bus_width);
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
 	/* flash write code */
@@ -1800,49 +1800,49 @@ static int cfi_spansion_write_block(struct flash_bank *bank, const uint8_t *buff
 	const uint32_t *target_code_src = NULL;
 
 	switch (bank->bus_width) {
-		case 1:
+	case 1:
+		if (is_armv7m(target_to_armv7m(target))) {
+			LOG_ERROR("Unknown ARM architecture");
+			return ERROR_FAIL;
+		}
+		target_code_src = armv4_5_word_8_code;
+		target_code_size = sizeof(armv4_5_word_8_code);
+		break;
+	case 2:
+		/* Check for DQ5 support */
+		if (cfi_info->status_poll_mask & (1 << 5)) {
 			if (is_armv7m(target_to_armv7m(target))) {
-				LOG_ERROR("Unknown ARM architecture");
-				return ERROR_FAIL;
+				/* armv7m target */
+				target_code_src = armv7m_word_16_code;
+				target_code_size = sizeof(armv7m_word_16_code);
+			} else { /* armv4_5 target */
+				target_code_src = armv4_5_word_16_code;
+				target_code_size = sizeof(armv4_5_word_16_code);
 			}
-			target_code_src = armv4_5_word_8_code;
-			target_code_size = sizeof(armv4_5_word_8_code);
-			break;
-		case 2:
-			/* Check for DQ5 support */
-			if (cfi_info->status_poll_mask & (1 << 5)) {
-				if (is_armv7m(target_to_armv7m(target))) {
-					/* armv7m target */
-					target_code_src = armv7m_word_16_code;
-					target_code_size = sizeof(armv7m_word_16_code);
-				} else { /* armv4_5 target */
-					target_code_src = armv4_5_word_16_code;
-					target_code_size = sizeof(armv4_5_word_16_code);
-				}
-			} else {
-				/* No DQ5 support. Use DQ7 DATA# polling only. */
-				if (is_armv7m(target_to_armv7m(target))) {
-					/* armv7m target */
-					target_code_src = armv7m_word_16_code_dq7only;
-					target_code_size = sizeof(armv7m_word_16_code_dq7only);
-				} else { /* armv4_5 target */
-					target_code_src = armv4_5_word_16_code_dq7only;
-					target_code_size = sizeof(armv4_5_word_16_code_dq7only);
-				}
-			}
-			break;
-		case 4:
+		} else {
+			/* No DQ5 support. Use DQ7 DATA# polling only. */
 			if (is_armv7m(target_to_armv7m(target))) {
-				LOG_ERROR("Unknown ARM architecture");
-				return ERROR_FAIL;
+				/* armv7m target */
+				target_code_src = armv7m_word_16_code_dq7only;
+				target_code_size = sizeof(armv7m_word_16_code_dq7only);
+			} else { /* armv4_5 target */
+				target_code_src = armv4_5_word_16_code_dq7only;
+				target_code_size = sizeof(armv4_5_word_16_code_dq7only);
 			}
-			target_code_src = armv4_5_word_32_code;
-			target_code_size = sizeof(armv4_5_word_32_code);
-			break;
-		default:
-			LOG_ERROR("Unsupported bank buswidth %u, can't do block memory writes",
-					bank->bus_width);
-			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+		}
+		break;
+	case 4:
+		if (is_armv7m(target_to_armv7m(target))) {
+			LOG_ERROR("Unknown ARM architecture");
+			return ERROR_FAIL;
+		}
+		target_code_src = armv4_5_word_32_code;
+		target_code_size = sizeof(armv4_5_word_32_code);
+		break;
+	default:
+		LOG_ERROR("Unsupported bank buswidth %u, can't do block memory writes",
+				bank->bus_width);
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
 	/* flash write code */
@@ -2172,14 +2172,14 @@ int cfi_write_word(struct flash_bank *bank, uint8_t *word, uint32_t address)
 	struct cfi_flash_bank *cfi_info = bank->driver_priv;
 
 	switch (cfi_info->pri_id) {
-		case 1:
-		case 3:
-			return cfi_intel_write_word(bank, word, address);
-		case 2:
-			return cfi_spansion_write_word(bank, word, address);
-		default:
-			LOG_ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
-			break;
+	case 1:
+	case 3:
+		return cfi_intel_write_word(bank, word, address);
+	case 2:
+		return cfi_spansion_write_word(bank, word, address);
+	default:
+		LOG_ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
+		break;
 	}
 
 	return ERROR_FLASH_OPERATION_FAILED;
@@ -2197,14 +2197,14 @@ static int cfi_write_words(struct flash_bank *bank, const uint8_t *word,
 	}
 
 	switch (cfi_info->pri_id) {
-		case 1:
-		case 3:
-			return cfi_intel_write_words(bank, word, wordcount, address);
-		case 2:
-			return cfi_spansion_write_words(bank, word, wordcount, address);
-		default:
-			LOG_ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
-			break;
+	case 1:
+	case 3:
+		return cfi_intel_write_words(bank, word, wordcount, address);
+	case 2:
+		return cfi_spansion_write_words(bank, word, wordcount, address);
+	default:
+		LOG_ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
+		break;
 	}
 
 	return ERROR_FLASH_OPERATION_FAILED;
@@ -2345,18 +2345,18 @@ static int cfi_write(struct flash_bank *bank, const uint8_t *buffer, uint32_t of
 	/* handle blocks of bus_size aligned bytes */
 	blk_count = count & ~(bank->bus_width - 1);	/* round down, leave tail bytes */
 	switch (cfi_info->pri_id) {
-		/* try block writes (fails without working area) */
-		case 1:
-		case 3:
-			retval = cfi_intel_write_block(bank, buffer, write_p, blk_count);
-			break;
-		case 2:
-			retval = cfi_spansion_write_block(bank, buffer, write_p, blk_count);
-			break;
-		default:
-			LOG_ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
-			retval = ERROR_FLASH_OPERATION_FAILED;
-			break;
+	/* try block writes (fails without working area) */
+	case 1:
+	case 3:
+		retval = cfi_intel_write_block(bank, buffer, write_p, blk_count);
+		break;
+	case 2:
+		retval = cfi_spansion_write_block(bank, buffer, write_p, blk_count);
+		break;
+	default:
+		LOG_ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
+		retval = ERROR_FLASH_OPERATION_FAILED;
+		break;
 	}
 	if (retval == ERROR_OK) {
 		/* Increment pointers and decrease count on successful block write */
@@ -2581,22 +2581,22 @@ int cfi_probe(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		return retval;
 	switch (bank->chip_width) {
-		case 1:
-			cfi_info->manufacturer = *value_buf0;
-			cfi_info->device_id = *value_buf1;
-			break;
-		case 2:
-			cfi_info->manufacturer = target_buffer_get_u16(target, value_buf0);
-			cfi_info->device_id = target_buffer_get_u16(target, value_buf1);
-			break;
-		case 4:
-			cfi_info->manufacturer = target_buffer_get_u32(target, value_buf0);
-			cfi_info->device_id = target_buffer_get_u32(target, value_buf1);
-			break;
-		default:
-			LOG_ERROR("Unsupported bank chipwidth %u, can't probe memory",
-					bank->chip_width);
-			return ERROR_FLASH_OPERATION_FAILED;
+	case 1:
+		cfi_info->manufacturer = *value_buf0;
+		cfi_info->device_id = *value_buf1;
+		break;
+	case 2:
+		cfi_info->manufacturer = target_buffer_get_u16(target, value_buf0);
+		cfi_info->device_id = target_buffer_get_u16(target, value_buf1);
+		break;
+	case 4:
+		cfi_info->manufacturer = target_buffer_get_u32(target, value_buf0);
+		cfi_info->device_id = target_buffer_get_u32(target, value_buf1);
+		break;
+	default:
+		LOG_ERROR("Unsupported bank chipwidth %u, can't probe memory",
+				bank->chip_width);
+		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
 	LOG_INFO("Flash Manufacturer/Device: 0x%04x 0x%04x",
@@ -2734,25 +2734,25 @@ int cfi_probe(struct flash_bank *bank)
 		 * the sector layout to be able to apply fixups
 		 */
 		switch (cfi_info->pri_id) {
-			/* Intel command set (standard and extended) */
-			case 0x0001:
-			case 0x0003:
-				cfi_read_intel_pri_ext(bank);
-				break;
-			/* AMD/Spansion, Atmel, ... command set */
-			case 0x0002:
-				cfi_info->status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7;	/*
-												 *default
-												 *for
-												 *all
-												 *CFI
-												 *flashes
-												 **/
-				cfi_read_0002_pri_ext(bank);
-				break;
-			default:
-				LOG_ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
-				break;
+		/* Intel command set (standard and extended) */
+		case 0x0001:
+		case 0x0003:
+			cfi_read_intel_pri_ext(bank);
+			break;
+		/* AMD/Spansion, Atmel, ... command set */
+		case 0x0002:
+			cfi_info->status_poll_mask = CFI_STATUS_POLL_MASK_DQ5_DQ6_DQ7;	/*
+											 *default
+											 *for
+											 *all
+											 *CFI
+											 *flashes
+											 **/
+			cfi_read_0002_pri_ext(bank);
+			break;
+		default:
+			LOG_ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
+			break;
 		}
 
 		/* return to read array mode
@@ -2798,18 +2798,18 @@ int cfi_probe(struct flash_bank *bank)
 
 	/* apply fixups depending on the primary command set */
 	switch (cfi_info->pri_id) {
-		/* Intel command set (standard and extended) */
-		case 0x0001:
-		case 0x0003:
-			cfi_fixup(bank, cfi_0001_fixups);
-			break;
-		/* AMD/Spansion, Atmel, ... command set */
-		case 0x0002:
-			cfi_fixup(bank, cfi_0002_fixups);
-			break;
-		default:
-			LOG_ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
-			break;
+	/* Intel command set (standard and extended) */
+	case 0x0001:
+	case 0x0003:
+		cfi_fixup(bank, cfi_0001_fixups);
+		break;
+	/* AMD/Spansion, Atmel, ... command set */
+	case 0x0002:
+		cfi_fixup(bank, cfi_0002_fixups);
+		break;
+	default:
+		LOG_ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
+		break;
 	}
 
 	if ((cfi_info->dev_size * bank->bus_width / bank->chip_width) != bank->size) {
@@ -2939,14 +2939,14 @@ int cfi_protect_check(struct flash_bank *bank)
 		return ERROR_FLASH_BANK_NOT_PROBED;
 
 	switch (cfi_info->pri_id) {
-		case 1:
-		case 3:
-			return cfi_intel_protect_check(bank);
-		case 2:
-			return cfi_spansion_protect_check(bank);
-		default:
-			LOG_ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
-			break;
+	case 1:
+	case 3:
+		return cfi_intel_protect_check(bank);
+	case 2:
+		return cfi_spansion_protect_check(bank);
+	default:
+		LOG_ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
+		break;
 	}
 
 	return ERROR_OK;
@@ -3011,16 +3011,16 @@ int cfi_get_info(struct flash_bank *bank, struct command_invocation *cmd)
 			1 << cfi_info->max_buf_write_size);
 
 	switch (cfi_info->pri_id) {
-	    case 1:
-	    case 3:
-		    cfi_intel_info(bank, cmd);
-		    break;
-	    case 2:
-		    cfi_spansion_info(bank, cmd);
-		    break;
-	    default:
-		    LOG_ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
-		    break;
+	case 1:
+	case 3:
+	    cfi_intel_info(bank, cmd);
+	    break;
+	case 2:
+	    cfi_spansion_info(bank, cmd);
+	    break;
+	default:
+	    LOG_ERROR("cfi primary command set %i unsupported", cfi_info->pri_id);
+	    break;
 	}
 
 	return ERROR_OK;

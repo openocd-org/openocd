@@ -66,36 +66,36 @@ static int str9x_build_block_list(struct flash_bank *bank)
 	str9x_info->bank1 = 0;
 
 	switch (bank->size) {
-		case (256 * 1024):
-			b0_sectors = 4;
-			break;
-		case (512 * 1024):
-			b0_sectors = 8;
-			break;
-		case (1024 * 1024):
-			bank1start = 0x00100000;
-			str9x_info->variant = 1;
-			b0_sectors = 16;
-			break;
-		case (2048 * 1024):
-			bank1start = 0x00200000;
-			str9x_info->variant = 1;
-			b0_sectors = 32;
-			break;
-		case (128 * 1024):
-			str9x_info->variant = 1;
-			str9x_info->bank1 = 1;
-			b1_sectors = 8;
-			bank1start = bank->base;
-			break;
-		case (32 * 1024):
-			str9x_info->bank1 = 1;
-			b1_sectors = 4;
-			bank1start = bank->base;
-			break;
-		default:
-			LOG_ERROR("BUG: unknown bank->size encountered");
-			exit(-1);
+	case (256 * 1024):
+		b0_sectors = 4;
+		break;
+	case (512 * 1024):
+		b0_sectors = 8;
+		break;
+	case (1024 * 1024):
+		bank1start = 0x00100000;
+		str9x_info->variant = 1;
+		b0_sectors = 16;
+		break;
+	case (2048 * 1024):
+		bank1start = 0x00200000;
+		str9x_info->variant = 1;
+		b0_sectors = 32;
+		break;
+	case (128 * 1024):
+		str9x_info->variant = 1;
+		str9x_info->bank1 = 1;
+		b1_sectors = 8;
+		bank1start = bank->base;
+		break;
+	case (32 * 1024):
+		str9x_info->bank1 = 1;
+		b1_sectors = 4;
+		bank1start = bank->base;
+		break;
+	default:
+		LOG_ERROR("BUG: unknown bank->size encountered");
+		exit(-1);
 	}
 
 	num_sectors = b0_sectors + b1_sectors;

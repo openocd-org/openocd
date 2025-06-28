@@ -383,40 +383,40 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 
 		/* variant 2 has a uniform layout, only number of sectors differs */
 		switch (bank->size) {
-			case 4 * 1024:
-				lpc2000_info->cmd51_max_buffer = 1024;
-				bank->num_sectors = 1;
-				break;
-			case 8 * 1024:
-				lpc2000_info->cmd51_max_buffer = 1024;
-				bank->num_sectors = 2;
-				break;
-			case 16 * 1024:
-				bank->num_sectors = 4;
-				break;
-			case 32 * 1024:
-				bank->num_sectors = 8;
-				break;
-			case 64 * 1024:
-				bank->num_sectors = 9;
-				break;
-			case 128 * 1024:
-				bank->num_sectors = 11;
-				break;
-			case 256 * 1024:
-				bank->num_sectors = 15;
-				break;
-			case 500 * 1024:
-				bank->num_sectors = 27;
-				break;
-			case 512 * 1024:
-			case 504 * 1024:
-				bank->num_sectors = 28;
-				break;
-			default:
-				LOG_ERROR("BUG: unknown bank->size encountered");
-				exit(-1);
-				break;
+		case 4 * 1024:
+			lpc2000_info->cmd51_max_buffer = 1024;
+			bank->num_sectors = 1;
+			break;
+		case 8 * 1024:
+			lpc2000_info->cmd51_max_buffer = 1024;
+			bank->num_sectors = 2;
+			break;
+		case 16 * 1024:
+			bank->num_sectors = 4;
+			break;
+		case 32 * 1024:
+			bank->num_sectors = 8;
+			break;
+		case 64 * 1024:
+			bank->num_sectors = 9;
+			break;
+		case 128 * 1024:
+			bank->num_sectors = 11;
+			break;
+		case 256 * 1024:
+			bank->num_sectors = 15;
+			break;
+		case 500 * 1024:
+			bank->num_sectors = 27;
+			break;
+		case 512 * 1024:
+		case 504 * 1024:
+			bank->num_sectors = 28;
+			break;
+		default:
+			LOG_ERROR("BUG: unknown bank->size encountered");
+			exit(-1);
+			break;
 		}
 
 		bank->sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
@@ -448,37 +448,37 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 		lpc2000_info->iap_max_stack = 128;
 
 		switch (bank->size) {
-			case 4 * 1024:
-				lpc2000_info->cmd51_max_buffer = 256;
-				bank->num_sectors = 1;
-				break;
-			case 8 * 1024:
-				lpc2000_info->cmd51_max_buffer = 512;
-				bank->num_sectors = 2;
-				break;
-			case 16 * 1024:
-				lpc2000_info->cmd51_max_buffer = 512;
-				bank->num_sectors = 4;
-				break;
-			case 32 * 1024:
-				lpc2000_info->cmd51_max_buffer = 1024;
-				bank->num_sectors = 8;
-				break;
-			case 64 * 1024:
-				bank->num_sectors = 16;
-				break;
-			case 128 * 1024:
-				bank->num_sectors = 18;
+		case 4 * 1024:
+			lpc2000_info->cmd51_max_buffer = 256;
+			bank->num_sectors = 1;
 			break;
-			case 256 * 1024:
-				bank->num_sectors = 22;
-				break;
-			case 512 * 1024:
-				bank->num_sectors = 30;
-				break;
-			default:
-				LOG_ERROR("BUG: unknown bank->size encountered");
-				exit(-1);
+		case 8 * 1024:
+			lpc2000_info->cmd51_max_buffer = 512;
+			bank->num_sectors = 2;
+			break;
+		case 16 * 1024:
+			lpc2000_info->cmd51_max_buffer = 512;
+			bank->num_sectors = 4;
+			break;
+		case 32 * 1024:
+			lpc2000_info->cmd51_max_buffer = 1024;
+			bank->num_sectors = 8;
+			break;
+		case 64 * 1024:
+			bank->num_sectors = 16;
+			break;
+		case 128 * 1024:
+			bank->num_sectors = 18;
+			break;
+		case 256 * 1024:
+			bank->num_sectors = 22;
+			break;
+		case 512 * 1024:
+			bank->num_sectors = 30;
+			break;
+		default:
+			LOG_ERROR("BUG: unknown bank->size encountered");
+			exit(-1);
 		}
 
 		bank->sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
@@ -497,18 +497,18 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 		lpc2000_info->iap_max_stack = 208;
 
 		switch (bank->size) {
-			case 256 * 1024:
-				bank->num_sectors = 11;
-				break;
-			case 384 * 1024:
-				bank->num_sectors = 13;
-				break;
-			case 512 * 1024:
-				bank->num_sectors = 15;
-				break;
-			default:
-				LOG_ERROR("BUG: unknown bank->size encountered");
-				exit(-1);
+		case 256 * 1024:
+			bank->num_sectors = 11;
+			break;
+		case 384 * 1024:
+			bank->num_sectors = 13;
+			break;
+		case 512 * 1024:
+			bank->num_sectors = 15;
+			break;
+		default:
+			LOG_ERROR("BUG: unknown bank->size encountered");
+			exit(-1);
 		}
 
 		bank->sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
@@ -529,30 +529,30 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 		lpc2000_info->cmd51_max_buffer = 256;	/* smallest MCU in the series, LPC810, has 1 kB of SRAM */
 
 		switch (bank->size) {
-			case 4 * 1024:
-				bank->num_sectors = 4;
-				break;
-			case 8 * 1024:
-				bank->num_sectors = 8;
-				break;
-			case 16 * 1024:
-				bank->num_sectors = 16;
-				break;
-			case 30 * 1024:
-				lpc2000_info->cmd51_max_buffer = 1024;	/* For LPC8N04 and NHS31xx, have 8kB of SRAM */
-				bank->num_sectors = 30;			/* There have only 30kB of writable Flash out of 32kB */
-				break;
-			case 32 * 1024:
-				lpc2000_info->cmd51_max_buffer = 1024; /* For LPC824, has 8kB of SRAM */
-				bank->num_sectors = 32;
-				break;
-			case 64 * 1024:
-				lpc2000_info->cmd51_max_buffer = 1024; /* For LPC844, has 8kB of SRAM */
-				bank->num_sectors = 64;
-				break;
-			default:
-				LOG_ERROR("BUG: unknown bank->size encountered");
-				exit(-1);
+		case 4 * 1024:
+			bank->num_sectors = 4;
+			break;
+		case 8 * 1024:
+			bank->num_sectors = 8;
+			break;
+		case 16 * 1024:
+			bank->num_sectors = 16;
+			break;
+		case 30 * 1024:
+			lpc2000_info->cmd51_max_buffer = 1024;	/* For LPC8N04 and NHS31xx, have 8kB of SRAM */
+			bank->num_sectors = 30;			/* There have only 30kB of writable Flash out of 32kB */
+			break;
+		case 32 * 1024:
+			lpc2000_info->cmd51_max_buffer = 1024; /* For LPC824, has 8kB of SRAM */
+			bank->num_sectors = 32;
+			break;
+		case 64 * 1024:
+			lpc2000_info->cmd51_max_buffer = 1024; /* For LPC844, has 8kB of SRAM */
+			bank->num_sectors = 64;
+			break;
+		default:
+			LOG_ERROR("BUG: unknown bank->size encountered");
+			exit(-1);
 		}
 
 		bank->sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
@@ -602,18 +602,18 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 		lpc2000_info->iap_max_stack = 128;
 
 		switch (bank->size) {
-			case 64 * 1024:
-				bank->num_sectors = 16;
-				break;
-			case 128 * 1024:
-				bank->num_sectors = 32;
-				break;
-			case 256 * 1024:
-				bank->num_sectors = 64;
-				break;
-			default:
-				LOG_ERROR("BUG: unknown bank->size encountered");
-				exit(-1);
+		case 64 * 1024:
+			bank->num_sectors = 16;
+			break;
+		case 128 * 1024:
+			bank->num_sectors = 32;
+			break;
+		case 256 * 1024:
+			bank->num_sectors = 64;
+			break;
+		default:
+			LOG_ERROR("BUG: unknown bank->size encountered");
+			exit(-1);
 		}
 
 		bank->sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
@@ -633,15 +633,15 @@ static int lpc2000_build_sector_list(struct flash_bank *bank)
 		lpc2000_info->iap_max_stack = 128;
 
 		switch (bank->size) {
-			case 256 * 1024:
-				bank->num_sectors = 8;
-				break;
-			case 512 * 1024:
-				bank->num_sectors = 16;
-				break;
-			default:
-				LOG_ERROR("BUG: unknown bank->size encountered");
-				exit(-1);
+		case 256 * 1024:
+			bank->num_sectors = 8;
+			break;
+		case 512 * 1024:
+			bank->num_sectors = 16;
+			break;
+		default:
+			LOG_ERROR("BUG: unknown bank->size encountered");
+			exit(-1);
 		}
 
 		bank->sectors = malloc(sizeof(struct flash_sector) * bank->num_sectors);
@@ -686,24 +686,24 @@ static int lpc2000_iap_working_area_init(struct flash_bank *bank, struct working
 
 	/* write IAP code to working area */
 	switch (lpc2000_info->variant) {
-		case LPC800:
-		case LPC1100:
-		case LPC1500:
-		case LPC1700:
-		case LPC4300:
-		case LPC54100:
-		case LPC_AUTO:
-			target_buffer_set_u32(target, jump_gate, ARMV4_5_T_BX(12));
-			target_buffer_set_u32(target, jump_gate + 4, ARMV5_T_BKPT(0));
-			break;
-		case LPC2000_V1:
-		case LPC2000_V2:
-			target_buffer_set_u32(target, jump_gate, ARMV4_5_BX(12));
-			target_buffer_set_u32(target, jump_gate + 4, ARMV4_5_B(0xfffffe, 0));
-			break;
-		default:
-			LOG_ERROR("BUG: unknown lpc2000_info->variant encountered");
-			exit(-1);
+	case LPC800:
+	case LPC1100:
+	case LPC1500:
+	case LPC1700:
+	case LPC4300:
+	case LPC54100:
+	case LPC_AUTO:
+		target_buffer_set_u32(target, jump_gate, ARMV4_5_T_BX(12));
+		target_buffer_set_u32(target, jump_gate + 4, ARMV5_T_BKPT(0));
+		break;
+	case LPC2000_V1:
+	case LPC2000_V2:
+		target_buffer_set_u32(target, jump_gate, ARMV4_5_BX(12));
+		target_buffer_set_u32(target, jump_gate + 4, ARMV4_5_B(0xfffffe, 0));
+		break;
+	default:
+		LOG_ERROR("BUG: unknown lpc2000_info->variant encountered");
+		exit(-1);
 	}
 
 	int retval = target_write_memory(target, (*iap_working_area)->address, 4, 2, jump_gate);
@@ -729,36 +729,36 @@ static int lpc2000_iap_call(struct flash_bank *bank, struct working_area *iap_wo
 	uint32_t iap_entry_point = 0;	/* to make compiler happier */
 
 	switch (lpc2000_info->variant) {
-		case LPC800:
-		case LPC1100:
-		case LPC1700:
-		case LPC_AUTO:
-			armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
-			armv7m_info.core_mode = ARM_MODE_THREAD;
-			iap_entry_point = 0x1fff1ff1;
-			break;
-		case LPC1500:
-		case LPC54100:
-			armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
-			armv7m_info.core_mode = ARM_MODE_THREAD;
-			iap_entry_point = 0x03000205;
-			break;
-		case LPC2000_V1:
-		case LPC2000_V2:
-			arm_algo.common_magic = ARM_COMMON_MAGIC;
-			arm_algo.core_mode = ARM_MODE_SVC;
-			arm_algo.core_state = ARM_STATE_ARM;
-			iap_entry_point = 0x7ffffff1;
-			break;
-		case LPC4300:
-			armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
-			armv7m_info.core_mode = ARM_MODE_THREAD;
-			/* read out IAP entry point from ROM driver table at 0x10400100 */
-			target_read_u32(target, 0x10400100, &iap_entry_point);
-			break;
-		default:
-			LOG_ERROR("BUG: unknown lpc2000->variant encountered");
-			exit(-1);
+	case LPC800:
+	case LPC1100:
+	case LPC1700:
+	case LPC_AUTO:
+		armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
+		armv7m_info.core_mode = ARM_MODE_THREAD;
+		iap_entry_point = 0x1fff1ff1;
+		break;
+	case LPC1500:
+	case LPC54100:
+		armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
+		armv7m_info.core_mode = ARM_MODE_THREAD;
+		iap_entry_point = 0x03000205;
+		break;
+	case LPC2000_V1:
+	case LPC2000_V2:
+		arm_algo.common_magic = ARM_COMMON_MAGIC;
+		arm_algo.core_mode = ARM_MODE_SVC;
+		arm_algo.core_state = ARM_STATE_ARM;
+		iap_entry_point = 0x7ffffff1;
+		break;
+	case LPC4300:
+		armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
+		armv7m_info.core_mode = ARM_MODE_THREAD;
+		/* read out IAP entry point from ROM driver table at 0x10400100 */
+		target_read_u32(target, 0x10400100, &iap_entry_point);
+		break;
+	default:
+		LOG_ERROR("BUG: unknown lpc2000->variant encountered");
+		exit(-1);
 	}
 
 	if (lpc2000_info->iap_entry_alternative != 0x0)
@@ -791,43 +791,43 @@ static int lpc2000_iap_call(struct flash_bank *bank, struct working_area *iap_wo
 	buf_set_u32(reg_params[2].value, 0, 32, iap_entry_point);
 
 	switch (lpc2000_info->variant) {
-		case LPC800:
-		case LPC1100:
-		case LPC1500:
-		case LPC1700:
-		case LPC4300:
-		case LPC54100:
-		case LPC_AUTO:
-			/* IAP stack */
-			init_reg_param(&reg_params[3], "sp", 32, PARAM_OUT);
-			buf_set_u32(reg_params[3].value, 0, 32,
-				iap_working_area->address + IAP_CODE_LEN + lpc2000_info->iap_max_stack);
+	case LPC800:
+	case LPC1100:
+	case LPC1500:
+	case LPC1700:
+	case LPC4300:
+	case LPC54100:
+	case LPC_AUTO:
+		/* IAP stack */
+		init_reg_param(&reg_params[3], "sp", 32, PARAM_OUT);
+		buf_set_u32(reg_params[3].value, 0, 32,
+			iap_working_area->address + IAP_CODE_LEN + lpc2000_info->iap_max_stack);
 
-			/* return address */
-			init_reg_param(&reg_params[4], "lr", 32, PARAM_OUT);
-			buf_set_u32(reg_params[4].value, 0, 32, (iap_working_area->address + 0x04) | 1);
-			/* bit0 of LR = 1 to return in Thumb mode */
+		/* return address */
+		init_reg_param(&reg_params[4], "lr", 32, PARAM_OUT);
+		buf_set_u32(reg_params[4].value, 0, 32, (iap_working_area->address + 0x04) | 1);
+		/* bit0 of LR = 1 to return in Thumb mode */
 
-			target_run_algorithm(target, 2, mem_params, 5, reg_params, iap_working_area->address, 0, 10000,
-					&armv7m_info);
-			break;
-		case LPC2000_V1:
-		case LPC2000_V2:
-			/* IAP stack */
-			init_reg_param(&reg_params[3], "sp_svc", 32, PARAM_OUT);
-			buf_set_u32(reg_params[3].value, 0, 32,
-				iap_working_area->address + IAP_CODE_LEN + lpc2000_info->iap_max_stack);
+		target_run_algorithm(target, 2, mem_params, 5, reg_params, iap_working_area->address, 0, 10000,
+				&armv7m_info);
+		break;
+	case LPC2000_V1:
+	case LPC2000_V2:
+		/* IAP stack */
+		init_reg_param(&reg_params[3], "sp_svc", 32, PARAM_OUT);
+		buf_set_u32(reg_params[3].value, 0, 32,
+			iap_working_area->address + IAP_CODE_LEN + lpc2000_info->iap_max_stack);
 
-			/* return address */
-			init_reg_param(&reg_params[4], "lr_svc", 32, PARAM_OUT);
-			buf_set_u32(reg_params[4].value, 0, 32, iap_working_area->address + 0x04);
+		/* return address */
+		init_reg_param(&reg_params[4], "lr_svc", 32, PARAM_OUT);
+		buf_set_u32(reg_params[4].value, 0, 32, iap_working_area->address + 0x04);
 
-			target_run_algorithm(target, 2, mem_params, 5, reg_params, iap_working_area->address,
-					iap_working_area->address + 0x4, 10000, &arm_algo);
-			break;
-		default:
-			LOG_ERROR("BUG: unknown lpc2000->variant encountered");
-			exit(-1);
+		target_run_algorithm(target, 2, mem_params, 5, reg_params, iap_working_area->address,
+				iap_working_area->address + 0x4, 10000, &arm_algo);
+		break;
+	default:
+		LOG_ERROR("BUG: unknown lpc2000->variant encountered");
+		exit(-1);
 	}
 
 	int status_code = target_buffer_get_u32(target, mem_params[1].value);
@@ -877,24 +877,24 @@ static int lpc2000_iap_blank_check(struct flash_bank *bank, unsigned int first,
 		int status_code = lpc2000_iap_call(bank, iap_working_area, 53, param_table, result_table);
 
 		switch (status_code) {
-			case ERROR_FLASH_OPERATION_FAILED:
-				retval = ERROR_FLASH_OPERATION_FAILED;
-				break;
-			case LPC2000_CMD_SUCCESS:
-				bank->sectors[i].is_erased = 1;
-				break;
-			case LPC2000_SECTOR_NOT_BLANK:
-				bank->sectors[i].is_erased = 0;
-				break;
-			case LPC2000_INVALID_SECTOR:
-				bank->sectors[i].is_erased = 0;
-				break;
-			case LPC2000_BUSY:
-				retval = ERROR_FLASH_BUSY;
-				break;
-			default:
-				LOG_ERROR("BUG: unknown LPC2000 status code %i", status_code);
-				exit(-1);
+		case ERROR_FLASH_OPERATION_FAILED:
+			retval = ERROR_FLASH_OPERATION_FAILED;
+			break;
+		case LPC2000_CMD_SUCCESS:
+			bank->sectors[i].is_erased = 1;
+			break;
+		case LPC2000_SECTOR_NOT_BLANK:
+			bank->sectors[i].is_erased = 0;
+			break;
+		case LPC2000_INVALID_SECTOR:
+			bank->sectors[i].is_erased = 0;
+			break;
+		case LPC2000_BUSY:
+			retval = ERROR_FLASH_BUSY;
+			break;
+		default:
+			LOG_ERROR("BUG: unknown LPC2000 status code %i", status_code);
+			exit(-1);
 		}
 	}
 
@@ -1002,18 +1002,18 @@ static int lpc2000_erase(struct flash_bank *bank, unsigned int first,
 	/* Prepare sectors */
 	int status_code = lpc2000_iap_call(bank, iap_working_area, 50, param_table, result_table);
 	switch (status_code) {
-		case ERROR_FLASH_OPERATION_FAILED:
-			retval = ERROR_FLASH_OPERATION_FAILED;
-			break;
-		case LPC2000_CMD_SUCCESS:
-			break;
-		case LPC2000_INVALID_SECTOR:
-			retval = ERROR_FLASH_SECTOR_INVALID;
-			break;
-		default:
-			LOG_WARNING("lpc2000 prepare sectors returned %i", status_code);
-			retval = ERROR_FLASH_OPERATION_FAILED;
-			break;
+	case ERROR_FLASH_OPERATION_FAILED:
+		retval = ERROR_FLASH_OPERATION_FAILED;
+		break;
+	case LPC2000_CMD_SUCCESS:
+		break;
+	case LPC2000_INVALID_SECTOR:
+		retval = ERROR_FLASH_SECTOR_INVALID;
+		break;
+	default:
+		LOG_WARNING("lpc2000 prepare sectors returned %i", status_code);
+		retval = ERROR_FLASH_OPERATION_FAILED;
+		break;
 	}
 
 	if (retval == ERROR_OK) {
@@ -1024,18 +1024,18 @@ static int lpc2000_erase(struct flash_bank *bank, unsigned int first,
 
 		status_code = lpc2000_iap_call(bank, iap_working_area, 52, param_table, result_table);
 		switch (status_code) {
-			case ERROR_FLASH_OPERATION_FAILED:
-				retval = ERROR_FLASH_OPERATION_FAILED;
-				break;
-			case LPC2000_CMD_SUCCESS:
-				break;
-			case LPC2000_INVALID_SECTOR:
-				retval = ERROR_FLASH_SECTOR_INVALID;
-				break;
-			default:
-				LOG_WARNING("lpc2000 erase sectors returned %i", status_code);
-				retval = ERROR_FLASH_OPERATION_FAILED;
-				break;
+		case ERROR_FLASH_OPERATION_FAILED:
+			retval = ERROR_FLASH_OPERATION_FAILED;
+			break;
+		case LPC2000_CMD_SUCCESS:
+			break;
+		case LPC2000_INVALID_SECTOR:
+			retval = ERROR_FLASH_SECTOR_INVALID;
+			break;
+		default:
+			LOG_WARNING("lpc2000 erase sectors returned %i", status_code);
+			retval = ERROR_FLASH_OPERATION_FAILED;
+			break;
 		}
 	}
 
@@ -1145,18 +1145,18 @@ static int lpc2000_write(struct flash_bank *bank, const uint8_t *buffer, uint32_
 
 		int status_code = lpc2000_iap_call(bank, iap_working_area, 50, param_table, result_table);
 		switch (status_code) {
-			case ERROR_FLASH_OPERATION_FAILED:
-				retval = ERROR_FLASH_OPERATION_FAILED;
-				break;
-			case LPC2000_CMD_SUCCESS:
-				break;
-			case LPC2000_INVALID_SECTOR:
-				retval = ERROR_FLASH_SECTOR_INVALID;
-				break;
-			default:
-				LOG_WARNING("lpc2000 prepare sectors returned %i", status_code);
-				retval = ERROR_FLASH_OPERATION_FAILED;
-				break;
+		case ERROR_FLASH_OPERATION_FAILED:
+			retval = ERROR_FLASH_OPERATION_FAILED;
+			break;
+		case LPC2000_CMD_SUCCESS:
+			break;
+		case LPC2000_INVALID_SECTOR:
+			retval = ERROR_FLASH_SECTOR_INVALID;
+			break;
+		default:
+			LOG_WARNING("lpc2000 prepare sectors returned %i", status_code);
+			retval = ERROR_FLASH_OPERATION_FAILED;
+			break;
 		}
 
 		/* Exit if error occurred */
@@ -1187,18 +1187,18 @@ static int lpc2000_write(struct flash_bank *bank, const uint8_t *buffer, uint32_
 		param_table[3] = lpc2000_info->cclk;
 		status_code = lpc2000_iap_call(bank, iap_working_area, 51, param_table, result_table);
 		switch (status_code) {
-			case ERROR_FLASH_OPERATION_FAILED:
-				retval = ERROR_FLASH_OPERATION_FAILED;
-				break;
-			case LPC2000_CMD_SUCCESS:
-				break;
-			case LPC2000_INVALID_SECTOR:
-				retval = ERROR_FLASH_SECTOR_INVALID;
-				break;
-			default:
-				LOG_WARNING("lpc2000 returned %i", status_code);
-				retval = ERROR_FLASH_OPERATION_FAILED;
-				break;
+		case ERROR_FLASH_OPERATION_FAILED:
+			retval = ERROR_FLASH_OPERATION_FAILED;
+			break;
+		case LPC2000_CMD_SUCCESS:
+			break;
+		case LPC2000_INVALID_SECTOR:
+			retval = ERROR_FLASH_SECTOR_INVALID;
+			break;
+		default:
+			LOG_WARNING("lpc2000 returned %i", status_code);
+			retval = ERROR_FLASH_OPERATION_FAILED;
+			break;
 		}
 
 		/* Exit if error occurred */
@@ -1267,240 +1267,240 @@ static int lpc2000_auto_probe_flash(struct flash_bank *bank)
 	}
 
 	switch (part_id) {
-		case LPC1110_1:
-		case LPC1110_2:
-			lpc2000_info->variant = LPC1100;
-			bank->size = 4 * 1024;
-			break;
+	case LPC1110_1:
+	case LPC1110_2:
+		lpc2000_info->variant = LPC1100;
+		bank->size = 4 * 1024;
+		break;
 
-		case LPC1111_002_1:
-		case LPC1111_002_2:
-		case LPC1111_101_1:
-		case LPC1111_101_2:
-		case LPC1111_103_1:
-		case LPC1111_201_1:
-		case LPC1111_201_2:
-		case LPC1111_203_1:
-		case LPC11A11_001_1:
-		case LPC11E11_101:
-		case LPC1311:
-		case LPC1311_1:
-			lpc2000_info->variant = LPC1100;
-			bank->size = 8 * 1024;
-			break;
+	case LPC1111_002_1:
+	case LPC1111_002_2:
+	case LPC1111_101_1:
+	case LPC1111_101_2:
+	case LPC1111_103_1:
+	case LPC1111_201_1:
+	case LPC1111_201_2:
+	case LPC1111_203_1:
+	case LPC11A11_001_1:
+	case LPC11E11_101:
+	case LPC1311:
+	case LPC1311_1:
+		lpc2000_info->variant = LPC1100;
+		bank->size = 8 * 1024;
+		break;
 
-		case LPC1112_101_1:
-		case LPC1112_101_2:
-		case LPC1112_102_1:
-		case LPC1112_102_2:
-		case LPC1112_103_1:
-		case LPC1112_201_1:
-		case LPC1112_201_2:
-		case LPC1112_203_1:
-		case LPC11A02_1:
-		case LPC11C12_301_1:
-		case LPC11C22_301_1:
-		case LPC11A12_101_1:
-		case LPC11E12_201:
-		case LPC11U12_201_1:
-		case LPC11U12_201_2:
-		case LPC1342:
-			lpc2000_info->variant = LPC1100;
-			bank->size = 16 * 1024;
-			break;
+	case LPC1112_101_1:
+	case LPC1112_101_2:
+	case LPC1112_102_1:
+	case LPC1112_102_2:
+	case LPC1112_103_1:
+	case LPC1112_201_1:
+	case LPC1112_201_2:
+	case LPC1112_203_1:
+	case LPC11A02_1:
+	case LPC11C12_301_1:
+	case LPC11C22_301_1:
+	case LPC11A12_101_1:
+	case LPC11E12_201:
+	case LPC11U12_201_1:
+	case LPC11U12_201_2:
+	case LPC1342:
+		lpc2000_info->variant = LPC1100;
+		bank->size = 16 * 1024;
+		break;
 
-		case LPC1113_201_1:
-		case LPC1113_201_2:
-		case LPC1113_203_1:
-		case LPC1113_301_1:
-		case LPC1113_301_2:
-		case LPC1113_303_1:
-		case LPC11A13_201_1:
-		case LPC11E13_301:
-		case LPC11U13_201_1:
-		case LPC11U13_201_2:
-		case LPC11U23_301:
-			lpc2000_info->variant = LPC1100;
-			bank->size = 24 * 1024;
-			break;
+	case LPC1113_201_1:
+	case LPC1113_201_2:
+	case LPC1113_203_1:
+	case LPC1113_301_1:
+	case LPC1113_301_2:
+	case LPC1113_303_1:
+	case LPC11A13_201_1:
+	case LPC11E13_301:
+	case LPC11U13_201_1:
+	case LPC11U13_201_2:
+	case LPC11U23_301:
+		lpc2000_info->variant = LPC1100;
+		bank->size = 24 * 1024;
+		break;
 
-		case LPC1114_102_1:
-		case LPC1114_102_2:
-		case LPC1114_201_1:
-		case LPC1114_201_2:
-		case LPC1114_203_1:
-		case LPC1114_301_1:
-		case LPC1114_301_2:
-		case LPC1114_303_1:
-		case LPC11A04_1:
-		case LPC11A14_301_1:
-		case LPC11A14_301_2:
-		case LPC11C14_301_1:
-		case LPC11C24_301_1:
-		case LPC11E14_401:
-		case LPC11U14_201_1:
-		case LPC11U14_201_2:
-		case LPC11U24_301:
-		case LPC11U24_401:
-		case LPC1313:
-		case LPC1313_1:
-		case LPC1315:
-		case LPC1343:
-		case LPC1343_1:
-		case LPC1345:
-			lpc2000_info->variant = LPC1100;
-			bank->size = 32 * 1024;
-			break;
+	case LPC1114_102_1:
+	case LPC1114_102_2:
+	case LPC1114_201_1:
+	case LPC1114_201_2:
+	case LPC1114_203_1:
+	case LPC1114_301_1:
+	case LPC1114_301_2:
+	case LPC1114_303_1:
+	case LPC11A04_1:
+	case LPC11A14_301_1:
+	case LPC11A14_301_2:
+	case LPC11C14_301_1:
+	case LPC11C24_301_1:
+	case LPC11E14_401:
+	case LPC11U14_201_1:
+	case LPC11U14_201_2:
+	case LPC11U24_301:
+	case LPC11U24_401:
+	case LPC1313:
+	case LPC1313_1:
+	case LPC1315:
+	case LPC1343:
+	case LPC1343_1:
+	case LPC1345:
+		lpc2000_info->variant = LPC1100;
+		bank->size = 32 * 1024;
+		break;
 
-		case LPC1751_1:
-		case LPC1751_2:
-			lpc2000_info->variant = LPC1700;
-			bank->size = 32 * 1024;
-			break;
+	case LPC1751_1:
+	case LPC1751_2:
+		lpc2000_info->variant = LPC1700;
+		bank->size = 32 * 1024;
+		break;
 
-		case LPC11U34_311:
-			lpc2000_info->variant = LPC1100;
-			bank->size = 40 * 1024;
-			break;
+	case LPC11U34_311:
+		lpc2000_info->variant = LPC1100;
+		bank->size = 40 * 1024;
+		break;
 
-		case LPC1114_323_1:
-		case LPC11U34_421:
-		case LPC1316:
-		case LPC1346:
-			lpc2000_info->variant = LPC1100;
-			bank->size = 48 * 1024;
-			break;
+	case LPC1114_323_1:
+	case LPC11U34_421:
+	case LPC1316:
+	case LPC1346:
+		lpc2000_info->variant = LPC1100;
+		bank->size = 48 * 1024;
+		break;
 
-		case LPC1114_333_1:
-			lpc2000_info->variant = LPC1100;
-			bank->size = 56 * 1024;
-			break;
+	case LPC1114_333_1:
+		lpc2000_info->variant = LPC1100;
+		bank->size = 56 * 1024;
+		break;
 
-		case LPC1115_303_1:
-		case LPC11U35_401:
-		case LPC11U35_501:
-		case LPC11E66:
-		case LPC11U66:
-		case LPC1317:
-		case LPC1347:
-			lpc2000_info->variant = LPC1100;
-			bank->size = 64 * 1024;
-			break;
+	case LPC1115_303_1:
+	case LPC11U35_401:
+	case LPC11U35_501:
+	case LPC11E66:
+	case LPC11U66:
+	case LPC1317:
+	case LPC1347:
+		lpc2000_info->variant = LPC1100;
+		bank->size = 64 * 1024;
+		break;
 
-		case LPC1752:
-		case LPC4072:
-			lpc2000_info->variant = LPC1700;
-			bank->size = 64 * 1024;
-			break;
+	case LPC1752:
+	case LPC4072:
+		lpc2000_info->variant = LPC1700;
+		bank->size = 64 * 1024;
+		break;
 
-		case LPC11E36_501:
-		case LPC11U36_401:
-			lpc2000_info->variant = LPC1100;
-			bank->size = 96 * 1024;
-			break;
+	case LPC11E36_501:
+	case LPC11U36_401:
+		lpc2000_info->variant = LPC1100;
+		bank->size = 96 * 1024;
+		break;
 
-		case LPC11E37_401:
-		case LPC11E37_501:
-		case LPC11U37_401:
-		case LPC11U37H_401:
-		case LPC11U37_501:
-		case LPC11E67:
-		case LPC11E68:
-		case LPC11U67_1:
-		case LPC11U67_2:
-			lpc2000_info->variant = LPC1100;
-			bank->size = 128 * 1024;
-			break;
+	case LPC11E37_401:
+	case LPC11E37_501:
+	case LPC11U37_401:
+	case LPC11U37H_401:
+	case LPC11U37_501:
+	case LPC11E67:
+	case LPC11E68:
+	case LPC11U67_1:
+	case LPC11U67_2:
+		lpc2000_info->variant = LPC1100;
+		bank->size = 128 * 1024;
+		break;
 
-		case LPC1754:
-		case LPC1764:
-		case LPC1774:
-		case LPC4074:
-			lpc2000_info->variant = LPC1700;
-			bank->size = 128 * 1024;
-			break;
+	case LPC1754:
+	case LPC1764:
+	case LPC1774:
+	case LPC4074:
+		lpc2000_info->variant = LPC1700;
+		bank->size = 128 * 1024;
+		break;
 
-		case LPC11U68_1:
-		case LPC11U68_2:
-			lpc2000_info->variant = LPC1100;
-			bank->size = 256 * 1024;
-			break;
+	case LPC11U68_1:
+	case LPC11U68_2:
+		lpc2000_info->variant = LPC1100;
+		bank->size = 256 * 1024;
+		break;
 
-		case LPC1756:
-		case LPC1763:
-		case LPC1765:
-		case LPC1766:
-		case LPC1776:
-		case LPC1785:
-		case LPC1786:
-		case LPC4076:
-			lpc2000_info->variant = LPC1700;
-			bank->size = 256 * 1024;
-			break;
+	case LPC1756:
+	case LPC1763:
+	case LPC1765:
+	case LPC1766:
+	case LPC1776:
+	case LPC1785:
+	case LPC1786:
+	case LPC4076:
+		lpc2000_info->variant = LPC1700;
+		bank->size = 256 * 1024;
+		break;
 
-		case LPC1758:
-		case LPC1759:
-		case LPC1767:
-		case LPC1768:
-		case LPC1769:
-		case LPC1777:
-		case LPC1778:
-		case LPC1787:
-		case LPC1788:
-		case LPC4078:
-		case LPC4088:
-			lpc2000_info->variant = LPC1700;
-			bank->size = 512 * 1024;
-			break;
+	case LPC1758:
+	case LPC1759:
+	case LPC1767:
+	case LPC1768:
+	case LPC1769:
+	case LPC1777:
+	case LPC1778:
+	case LPC1787:
+	case LPC1788:
+	case LPC4078:
+	case LPC4088:
+		lpc2000_info->variant = LPC1700;
+		bank->size = 512 * 1024;
+		break;
 
-		case LPC810_021:
-			lpc2000_info->variant = LPC800;
-			bank->size = 4 * 1024;
-			break;
+	case LPC810_021:
+		lpc2000_info->variant = LPC800;
+		bank->size = 4 * 1024;
+		break;
 
-		case LPC811_001:
-			lpc2000_info->variant = LPC800;
-			bank->size = 8 * 1024;
-			break;
+	case LPC811_001:
+		lpc2000_info->variant = LPC800;
+		bank->size = 8 * 1024;
+		break;
 
-		case LPC812_101:
-		case LPC812_101_1:
-		case LPC812_101_2:
-		case LPC812_101_3:
-		case LPC822_101:
-		case LPC822_101_1:
-			lpc2000_info->variant = LPC800;
-			bank->size = 16 * 1024;
-			break;
+	case LPC812_101:
+	case LPC812_101_1:
+	case LPC812_101_2:
+	case LPC812_101_3:
+	case LPC822_101:
+	case LPC822_101_1:
+		lpc2000_info->variant = LPC800;
+		bank->size = 16 * 1024;
+		break;
 
-		case LPC824_201:
-		case LPC824_201_1:
-			lpc2000_info->variant = LPC800;
-			bank->size = 32 * 1024;
-			break;
+	case LPC824_201:
+	case LPC824_201_1:
+		lpc2000_info->variant = LPC800;
+		bank->size = 32 * 1024;
+		break;
 
-		case LPC8N04:
-		case NHS3100:
-		case NHS3152:
-		case NHS3153:
-			lpc2000_info->variant = LPC800;
-			bank->size = 30 * 1024;
-			break;
+	case LPC8N04:
+	case NHS3100:
+	case NHS3152:
+	case NHS3153:
+		lpc2000_info->variant = LPC800;
+		bank->size = 30 * 1024;
+		break;
 
-		case LPC844_201:
-		case LPC844_201_1:
-		case LPC844_201_2:
-		case LPC845_301:
-		case LPC845_301_1:
-		case LPC845_301_2:
-		case LPC845_301_3:
-			lpc2000_info->variant = LPC800;
-			bank->size = 64 * 1024;
-			break;
+	case LPC844_201:
+	case LPC844_201_1:
+	case LPC844_201_2:
+	case LPC845_301:
+	case LPC845_301_1:
+	case LPC845_301_2:
+	case LPC845_301_3:
+		lpc2000_info->variant = LPC800;
+		bank->size = 64 * 1024;
+		break;
 
-		default:
-			LOG_ERROR("BUG: unknown Part ID encountered: 0x%" PRIx32, part_id);
-			exit(-1);
+	default:
+		LOG_ERROR("BUG: unknown Part ID encountered: 0x%" PRIx32, part_id);
+		exit(-1);
 	}
 
 	return ERROR_OK;

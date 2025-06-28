@@ -1978,24 +1978,24 @@ static int read_flash_id(struct flash_bank *bank, uint32_t *id1, uint32_t *id2)
 		/* Read id: one particular flash chip (N25Q128) switches back to SPI mode when receiving
 		 * SPI_FLASH_READ_ID in QPI mode, hence try SPIFLASH_READ_MID first */
 		switch (type) {
-			case 0:
-				if (IS_OCTOSPI)
-					retval = octospi_cmd(bank, OCTOSPI_READ_MODE,
-						OCTOSPI_CCR_READ_MID, SPIFLASH_READ_MID);
-				else
-					retval = target_write_u32(target, io_base + QSPI_CCR, QSPI_CCR_READ_MID);
-				break;
+		case 0:
+			if (IS_OCTOSPI)
+				retval = octospi_cmd(bank, OCTOSPI_READ_MODE,
+					OCTOSPI_CCR_READ_MID, SPIFLASH_READ_MID);
+			else
+				retval = target_write_u32(target, io_base + QSPI_CCR, QSPI_CCR_READ_MID);
+			break;
 
-			case 1:
-				if (IS_OCTOSPI)
-					retval = octospi_cmd(bank, OCTOSPI_READ_MODE,
-						OCTOSPI_CCR_READ_ID, SPIFLASH_READ_ID);
-				else
-					retval = target_write_u32(target, io_base + QSPI_CCR, QSPI_CCR_READ_ID);
-				break;
+		case 1:
+			if (IS_OCTOSPI)
+				retval = octospi_cmd(bank, OCTOSPI_READ_MODE,
+					OCTOSPI_CCR_READ_ID, SPIFLASH_READ_ID);
+			else
+				retval = target_write_u32(target, io_base + QSPI_CCR, QSPI_CCR_READ_ID);
+			break;
 
-			default:
-				return ERROR_FAIL;
+		default:
+			return ERROR_FAIL;
 		}
 
 		if (retval != ERROR_OK)

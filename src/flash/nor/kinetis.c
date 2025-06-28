@@ -2145,24 +2145,24 @@ static int kinetis_probe_chip_s32k(struct kinetis_chip *k_chip)
 		k_chip->max_flash_prog_size = 512;
 
 		switch (k_chip->sim_sdid & KINETIS_SDID_S32K_DERIVATE_MASK) {
-			case KINETIS_SDID_S32K_DERIVATE_KXX6:
-				/* S32K116 CPU 48Mhz Flash 128KB RAM 17KB+2KB */
-				/* Non-Interleaved */
-				k_chip->pflash_size = 128 << 10;
-				k_chip->pflash_sector_size = 2 << 10;
-				/* Non-Interleaved */
-				k_chip->nvm_size = 32 << 10;
-				k_chip->nvm_sector_size = 2 << 10;
-				break;
-			case KINETIS_SDID_S32K_DERIVATE_KXX8:
-				/* S32K118 CPU 80Mhz Flash 256KB+32KB RAM 32KB+4KB */
-				/* Non-Interleaved */
-				k_chip->pflash_size = 256 << 10;
-				k_chip->pflash_sector_size = 2 << 10;
-				/* Non-Interleaved */
-				k_chip->nvm_size = 32 << 10;
-				k_chip->nvm_sector_size = 2 << 10;
-				break;
+		case KINETIS_SDID_S32K_DERIVATE_KXX6:
+			/* S32K116 CPU 48Mhz Flash 128KB RAM 17KB+2KB */
+			/* Non-Interleaved */
+			k_chip->pflash_size = 128 << 10;
+			k_chip->pflash_sector_size = 2 << 10;
+			/* Non-Interleaved */
+			k_chip->nvm_size = 32 << 10;
+			k_chip->nvm_sector_size = 2 << 10;
+			break;
+		case KINETIS_SDID_S32K_DERIVATE_KXX8:
+			/* S32K118 CPU 80Mhz Flash 256KB+32KB RAM 32KB+4KB */
+			/* Non-Interleaved */
+			k_chip->pflash_size = 256 << 10;
+			k_chip->pflash_sector_size = 2 << 10;
+			/* Non-Interleaved */
+			k_chip->nvm_size = 32 << 10;
+			k_chip->nvm_sector_size = 2 << 10;
+			break;
 		}
 		break;
 

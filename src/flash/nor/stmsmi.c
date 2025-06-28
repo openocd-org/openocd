@@ -531,21 +531,21 @@ static int stmsmi_probe(struct flash_bank *bank)
 	}
 
 	switch (bank->base - target_device->smi_base) {
-		case 0:
-			stmsmi_info->bank_num = SMI_SEL_BANK0;
-			break;
-		case SMI_BANK_SIZE:
-			stmsmi_info->bank_num = SMI_SEL_BANK1;
-			break;
-		case 2*SMI_BANK_SIZE:
-			stmsmi_info->bank_num = SMI_SEL_BANK2;
-			break;
-		case 3*SMI_BANK_SIZE:
-			stmsmi_info->bank_num = SMI_SEL_BANK3;
-			break;
-		default:
-			LOG_ERROR("Invalid SMI base address " TARGET_ADDR_FMT, bank->base);
-			return ERROR_FAIL;
+	case 0:
+		stmsmi_info->bank_num = SMI_SEL_BANK0;
+		break;
+	case SMI_BANK_SIZE:
+		stmsmi_info->bank_num = SMI_SEL_BANK1;
+		break;
+	case 2 * SMI_BANK_SIZE:
+		stmsmi_info->bank_num = SMI_SEL_BANK2;
+		break;
+	case 3 * SMI_BANK_SIZE:
+		stmsmi_info->bank_num = SMI_SEL_BANK3;
+		break;
+	default:
+		LOG_ERROR("Invalid SMI base address " TARGET_ADDR_FMT, bank->base);
+		return ERROR_FAIL;
 	}
 	io_base = target_device->io_base;
 	stmsmi_info->io_base = io_base;

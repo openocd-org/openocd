@@ -131,21 +131,21 @@ static int str7x_build_block_list(struct flash_bank *bank)
 	int b0_sectors = 0, b1_sectors = 0;
 
 	switch (bank->size) {
-		case 16 * 1024:
-			b1_sectors = 2;
-			break;
-		case 64 * 1024:
-			b0_sectors = 5;
-			break;
-		case 128 * 1024:
-			b0_sectors = 6;
-			break;
-		case 256 * 1024:
-			b0_sectors = 8;
-			break;
-		default:
-			LOG_ERROR("BUG: unknown bank->size encountered");
-			exit(-1);
+	case 16 * 1024:
+		b1_sectors = 2;
+		break;
+	case 64 * 1024:
+		b0_sectors = 5;
+		break;
+	case 128 * 1024:
+		b0_sectors = 6;
+		break;
+	case 256 * 1024:
+		b0_sectors = 8;
+		break;
+	default:
+		LOG_ERROR("BUG: unknown bank->size encountered");
+		exit(-1);
 	}
 
 	num_sectors = b0_sectors + b1_sectors;

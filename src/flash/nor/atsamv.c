@@ -245,21 +245,21 @@ static int samv_erase_pages(struct target *target,
 {
 	uint8_t erase_pages;
 	switch (num_pages) {
-		case 4:
-			erase_pages = 0x00;
-			break;
-		case 8:
-			erase_pages = 0x01;
-			break;
-		case 16:
-			erase_pages = 0x02;
-			break;
-		case 32:
-			erase_pages = 0x03;
-			break;
-		default:
-			erase_pages = 0x00;
-			break;
+	case 4:
+		erase_pages = 0x00;
+		break;
+	case 8:
+		erase_pages = 0x01;
+		break;
+	case 16:
+		erase_pages = 0x02;
+		break;
+	case 32:
+		erase_pages = 0x03;
+		break;
+	default:
+		erase_pages = 0x00;
+		break;
 	}
 
 	/* SAMV_EFC_FCMD_EPA
@@ -445,18 +445,18 @@ static int samv_probe(struct flash_bank *bank)
 
 	uint8_t nvm_size_code = (device_id >> 8) & 0xf;
 	switch (nvm_size_code) {
-		case 10:
-			bank->size = 512 * 1024;
-			break;
-		case 12:
-			bank->size = 1024 * 1024;
-			break;
-		case 14:
-			bank->size = 2048 * 1024;
-			break;
-		default:
-			LOG_ERROR("unrecognized flash size code: %d", nvm_size_code);
-			return ERROR_FAIL;
+	case 10:
+		bank->size = 512 * 1024;
+		break;
+	case 12:
+		bank->size = 1024 * 1024;
+		break;
+	case 14:
+		bank->size = 2048 * 1024;
+		break;
+	default:
+		LOG_ERROR("unrecognized flash size code: %d", nvm_size_code);
+		return ERROR_FAIL;
 	}
 
 	struct samv_flash_bank *samv_info = bank->driver_priv;
@@ -816,22 +816,22 @@ COMMAND_HANDLER(samv_handle_gpnvm_command)
 	int who = 0;
 
 	switch (CMD_ARGC) {
-		case 0:
-			goto showall;
-		case 1:
+	case 0:
+		goto showall;
+	case 1:
+		who = -1;
+		break;
+	case 2:
+		if (!strcmp(CMD_ARGV[0], "show") && !strcmp(CMD_ARGV[1], "all")) {
 			who = -1;
-			break;
-		case 2:
-			if (!strcmp(CMD_ARGV[0], "show") && !strcmp(CMD_ARGV[1], "all")) {
-				who = -1;
-			} else {
-				uint32_t v32;
-				COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], v32);
-				who = v32;
-			}
-			break;
-		default:
-			return ERROR_COMMAND_SYNTAX_ERROR;
+		} else {
+			uint32_t v32;
+			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], v32);
+			who = v32;
+		}
+		break;
+	default:
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	unsigned int v = 0;

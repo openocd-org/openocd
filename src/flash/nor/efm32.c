@@ -88,14 +88,14 @@ enum efm32_bank_index {
 static int efm32x_get_bank_index(target_addr_t base)
 {
 	switch (base) {
-		case EFM32_FLASH_BASE:
-			return EFM32_BANK_INDEX_MAIN;
-		case EFM32_MSC_USER_DATA:
-			return EFM32_BANK_INDEX_USER_DATA;
-		case EFM32_MSC_LOCK_BITS:
-			return EFM32_BANK_INDEX_LOCK_BITS;
-		default:
-			return ERROR_FAIL;
+	case EFM32_FLASH_BASE:
+		return EFM32_BANK_INDEX_MAIN;
+	case EFM32_MSC_USER_DATA:
+		return EFM32_BANK_INDEX_USER_DATA;
+	case EFM32_MSC_LOCK_BITS:
+		return EFM32_BANK_INDEX_LOCK_BITS;
+	default:
+		return ERROR_FAIL;
 	}
 }
 
@@ -282,14 +282,14 @@ static int efm32x_read_info(struct flash_bank *bank)
 	}
 
 	switch (efm32_info->family_data->series) {
-		case 0:
-			efm32x_info->reg_base = EFM32_MSC_REGBASE;
-			efm32x_info->reg_lock = EFM32_MSC_REG_LOCK;
-			break;
-		case 1:
-			efm32x_info->reg_base = EFM32_MSC_REGBASE_SERIES1;
-			efm32x_info->reg_lock = EFM32_MSC_REG_LOCK_SERIES1;
-			break;
+	case 0:
+		efm32x_info->reg_base = EFM32_MSC_REGBASE;
+		efm32x_info->reg_lock = EFM32_MSC_REG_LOCK;
+		break;
+	case 1:
+		efm32x_info->reg_base = EFM32_MSC_REGBASE_SERIES1;
+		efm32x_info->reg_lock = EFM32_MSC_REG_LOCK_SERIES1;
+		break;
 	}
 
 	if (efm32_info->family_data->msc_regbase != 0)
@@ -662,18 +662,18 @@ static int efm32x_get_page_lock(struct flash_bank *bank, size_t page)
 	uint32_t mask = 0;
 
 	switch (bank->base) {
-		case EFM32_FLASH_BASE:
-			dw = efm32x_info->lb_page[page >> 5];
-			mask = 1 << (page & 0x1f);
-			break;
-		case EFM32_MSC_USER_DATA:
-			dw = efm32x_info->lb_page[126];
-			mask = 0x1;
-			break;
-		case EFM32_MSC_LOCK_BITS:
-			dw = efm32x_info->lb_page[126];
-			mask = 0x2;
-			break;
+	case EFM32_FLASH_BASE:
+		dw = efm32x_info->lb_page[page >> 5];
+		mask = 1 << (page & 0x1f);
+		break;
+	case EFM32_MSC_USER_DATA:
+		dw = efm32x_info->lb_page[126];
+		mask = 0x1;
+		break;
+	case EFM32_MSC_LOCK_BITS:
+		dw = efm32x_info->lb_page[126];
+		mask = 0x2;
+		break;
 	}
 
 	return (dw & mask) ? 0 : 1;

@@ -420,17 +420,17 @@ static int psoc6_protect_check(struct flash_bank *bank)
 		return hr;
 
 	switch (psoc6_info->protection) {
-		case PROTECTION_VIRGIN:
-		case PROTECTION_NORMAL:
-			is_protected = 0;
-			break;
+	case PROTECTION_VIRGIN:
+	case PROTECTION_NORMAL:
+		is_protected = 0;
+		break;
 
-		case PROTECTION_UNKNOWN:
-		case PROTECTION_SECURE:
-		case PROTECTION_DEAD:
-		default:
-			is_protected = 1;
-			break;
+	case PROTECTION_UNKNOWN:
+	case PROTECTION_SECURE:
+	case PROTECTION_DEAD:
+	default:
+		is_protected = 1;
+		break;
 	}
 
 	for (unsigned int i = 0; i < bank->num_sectors; i++)
@@ -463,17 +463,17 @@ static int psoc6_protect(struct flash_bank *bank, int set, unsigned int first,
 static const char *protection_to_str(uint8_t protection)
 {
 	switch (protection) {
-		case PROTECTION_VIRGIN:
-			return "VIRGIN";
-		case PROTECTION_NORMAL:
-			return "NORMAL";
-		case PROTECTION_SECURE:
-			return "SECURE";
-		case PROTECTION_DEAD:
-			return "DEAD";
-		case PROTECTION_UNKNOWN:
-		default:
-			return "UNKNOWN";
+	case PROTECTION_VIRGIN:
+		return "VIRGIN";
+	case PROTECTION_NORMAL:
+		return "NORMAL";
+	case PROTECTION_SECURE:
+		return "SECURE";
+	case PROTECTION_DEAD:
+		return "DEAD";
+	case PROTECTION_UNKNOWN:
+	default:
+		return "UNKNOWN";
 	}
 }
 

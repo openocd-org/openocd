@@ -670,36 +670,36 @@ static int em357_probe(struct flash_bank *bank)
 	em357_info->probed = false;
 
 	switch (bank->size) {
-		case 0x10000:
-			/* 64k -- 64 1k pages */
-			num_pages = 64;
-			page_size = 1024;
-			break;
-		case 0x20000:
-			/* 128k -- 128 1k pages */
-			num_pages = 128;
-			page_size = 1024;
-			break;
-		case 0x30000:
-			/* 192k -- 96 2k pages */
-			num_pages = 96;
-			page_size = 2048;
-			break;
-		case 0x40000:
-			/* 256k -- 128 2k pages */
-			num_pages = 128;
-			page_size = 2048;
-			break;
-		case 0x80000:
-			/* 512k -- 256 2k pages */
-			num_pages = 256;
-			page_size = 2048;
-			break;
-		default:
-			LOG_WARNING("No size specified for em357 flash driver, assuming 192k!");
-			num_pages = 96;
-			page_size = 2048;
-			break;
+	case 0x10000:
+		/* 64k -- 64 1k pages */
+		num_pages = 64;
+		page_size = 1024;
+		break;
+	case 0x20000:
+		/* 128k -- 128 1k pages */
+		num_pages = 128;
+		page_size = 1024;
+		break;
+	case 0x30000:
+		/* 192k -- 96 2k pages */
+		num_pages = 96;
+		page_size = 2048;
+		break;
+	case 0x40000:
+		/* 256k -- 128 2k pages */
+		num_pages = 128;
+		page_size = 2048;
+		break;
+	case 0x80000:
+		/* 512k -- 256 2k pages */
+		num_pages = 256;
+		page_size = 2048;
+		break;
+	default:
+		LOG_WARNING("No size specified for em357 flash driver, assuming 192k!");
+		num_pages = 96;
+		page_size = 2048;
+		break;
 	}
 
 	/* Enable FPEC CLK */

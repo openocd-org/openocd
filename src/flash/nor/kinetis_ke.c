@@ -238,19 +238,18 @@ static int kinetis_ke_prepare_flash(struct flash_bank *bank)
 	 * Trim internal clock
 	 */
 	switch (KINETIS_KE_SRSID_SUBFAMID(kinfo->sim_srsid)) {
+	case KINETIS_KE_SRSID_KEX2:
+		/* Both KE02_20 and KE02_40 should get the same trim value */
+		trim_value = 0x4C;
+		break;
 
-		case KINETIS_KE_SRSID_KEX2:
-			/* Both KE02_20 and KE02_40 should get the same trim value */
-			trim_value = 0x4C;
-			break;
+	case KINETIS_KE_SRSID_KEX4:
+		trim_value = 0x54;
+		break;
 
-		case KINETIS_KE_SRSID_KEX4:
-			trim_value = 0x54;
-			break;
-
-		case KINETIS_KE_SRSID_KEX6:
-			trim_value = 0x58;
-			break;
+	case KINETIS_KE_SRSID_KEX6:
+		trim_value = 0x58;
+		break;
 	}
 
 	result = target_read_u8(target, ICS_C4, &c4);
@@ -293,54 +292,52 @@ static int kinetis_ke_prepare_flash(struct flash_bank *bank)
 	 * Configure SIM (bus clock)
 	 */
 	switch (KINETIS_KE_SRSID_SUBFAMID(kinfo->sim_srsid)) {
+	/* KE02 sub-family operates on SIM_BUSDIV */
+	case KINETIS_KE_SRSID_KEX2:
+		bus_reg_val = 0;
+		bus_reg_addr = SIM_BUSDIV;
+		bus_clock = 20000000;
+		break;
 
-		/* KE02 sub-family operates on SIM_BUSDIV */
-		case KINETIS_KE_SRSID_KEX2:
-			bus_reg_val = 0;
-			bus_reg_addr = SIM_BUSDIV;
-			bus_clock = 20000000;
+	/* KE04 and KE06 sub-family operates on SIM_CLKDIV
+	 * Clocks are divided by:
+	 * DIV1 = core clock = 48MHz
+	 * DIV2 = bus clock = 24Mhz
+	 * DIV3 = timer clocks
+	 * So we need to configure SIM_CLKDIV, DIV1 and DIV2 value
+	 */
+	case KINETIS_KE_SRSID_KEX4:
+		/* KE04 devices have the SIM_CLKDIV register at a different offset
+		 * depending on the pin count. */
+		switch (KINETIS_KE_SRSID_PINCOUNT(kinfo->sim_srsid)) {
+		/* 16, 20 and 24 pins */
+		case 1:
+		case 2:
+		case 3:
+			bus_reg_addr = SIM_CLKDIV_KE04_16_20_24;
 			break;
 
-		/* KE04 and KE06 sub-family operates on SIM_CLKDIV
-		 * Clocks are divided by:
-		 * DIV1 = core clock = 48MHz
-		 * DIV2 = bus clock = 24Mhz
-		 * DIV3 = timer clocks
-		 * So we need to configure SIM_CLKDIV, DIV1 and DIV2 value
-		 */
-		case KINETIS_KE_SRSID_KEX4:
-			/* KE04 devices have the SIM_CLKDIV register at a different offset
-			 * depending on the pin count. */
-			switch (KINETIS_KE_SRSID_PINCOUNT(kinfo->sim_srsid)) {
-
-				/* 16, 20 and 24 pins */
-				case 1:
-				case 2:
-				case 3:
-					bus_reg_addr = SIM_CLKDIV_KE04_16_20_24;
-					break;
-
-				/* 44, 64 and 80 pins */
-				case 5:
-				case 7:
-				case 8:
-					bus_reg_addr = SIM_CLKDIV_KE04_44_64_80;
-					break;
-
-				default:
-					LOG_ERROR("KE04 - Unknown pin count");
-					return ERROR_FAIL;
-			}
-
-			bus_reg_val = SIM_CLKDIV_OUTDIV2_MASK;
-			bus_clock = 24000000;
+		/* 44, 64 and 80 pins */
+		case 5:
+		case 7:
+		case 8:
+			bus_reg_addr = SIM_CLKDIV_KE04_44_64_80;
 			break;
 
-		case KINETIS_KE_SRSID_KEX6:
-			bus_reg_val = SIM_CLKDIV_OUTDIV2_MASK;
-			bus_reg_addr = SIM_CLKDIV_KE06;
-			bus_clock = 24000000;
-			break;
+		default:
+			LOG_ERROR("KE04 - Unknown pin count");
+			return ERROR_FAIL;
+		}
+
+		bus_reg_val = SIM_CLKDIV_OUTDIV2_MASK;
+		bus_clock = 24000000;
+		break;
+
+	case KINETIS_KE_SRSID_KEX6:
+		bus_reg_val = SIM_CLKDIV_OUTDIV2_MASK;
+		bus_reg_addr = SIM_CLKDIV_KE06;
+		bus_clock = 24000000;
+		break;
 	}
 
 	result = target_write_u32(target, bus_reg_addr, bus_reg_val);
@@ -357,20 +354,19 @@ static int kinetis_ke_prepare_flash(struct flash_bank *bank)
 	c2 &= ~ICS_C2_BDIV_MASK;
 
 	switch (KINETIS_KE_SRSID_SUBFAMID(kinfo->sim_srsid)) {
+	case KINETIS_KE_SRSID_KEX2:
+		/* Note: since there are two KE02 types, the KE02_40 @ 40MHz and the
+		 * KE02_20 @ 20MHz, we divide here the ~40MHz ICSFLLCLK down to 20MHz,
+		 * for compatibility.
+		 */
+		c2 |= ICS_C2_BDIV(1);
+		break;
 
-		case KINETIS_KE_SRSID_KEX2:
-			/* Note: since there are two KE02 types, the KE02_40 @ 40MHz and the
-			 * KE02_20 @ 20MHz, we divide here the ~40MHz ICSFLLCLK down to 20MHz,
-			 * for compatibility.
-			 */
-			c2 |= ICS_C2_BDIV(1);
-			break;
-
-		case KINETIS_KE_SRSID_KEX4:
-		case KINETIS_KE_SRSID_KEX6:
-			/* For KE04 and KE06, the ICSFLLCLK can be 48MHz. */
-			c2 |= ICS_C2_BDIV(0);
-			break;
+	case KINETIS_KE_SRSID_KEX4:
+	case KINETIS_KE_SRSID_KEX6:
+		/* For KE04 and KE06, the ICSFLLCLK can be 48MHz. */
+		c2 |= ICS_C2_BDIV(0);
+		break;
 	}
 
 	result = target_write_u8(target, ICS_C2, c2);
@@ -1052,21 +1048,21 @@ static int kinetis_ke_probe(struct flash_bank *bank)
 	}
 
 	switch (KINETIS_KE_SRSID_SUBFAMID(kinfo->sim_srsid)) {
-		case KINETIS_KE_SRSID_KEX2:
-			LOG_INFO("KE02 sub-family");
-			break;
+	case KINETIS_KE_SRSID_KEX2:
+		LOG_INFO("KE02 sub-family");
+		break;
 
-		case KINETIS_KE_SRSID_KEX4:
-			LOG_INFO("KE04 sub-family");
-			break;
+	case KINETIS_KE_SRSID_KEX4:
+		LOG_INFO("KE04 sub-family");
+		break;
 
-		case KINETIS_KE_SRSID_KEX6:
-			LOG_INFO("KE06 sub-family");
-			break;
+	case KINETIS_KE_SRSID_KEX6:
+		LOG_INFO("KE06 sub-family");
+		break;
 
-		default:
-			LOG_ERROR("Unsupported KE sub-family");
-			return ERROR_FLASH_OPER_UNSUPPORTED;
+	default:
+		LOG_ERROR("Unsupported KE sub-family");
+		return ERROR_FLASH_OPER_UNSUPPORTED;
 	}
 
 	/* We can only retrieve the ke0x part, but there is no way to know
@@ -1077,41 +1073,40 @@ static int kinetis_ke_probe(struct flash_bank *bank)
 	kinfo->sector_size = 512;
 
 	switch (KINETIS_KE_SRSID_SUBFAMID(kinfo->sim_srsid)) {
+	case KINETIS_KE_SRSID_KEX2:
+		/* Max. 64KB */
+		bank->size = 0x00010000;
+		bank->num_sectors = 128;
 
-		case KINETIS_KE_SRSID_KEX2:
-			/* Max. 64KB */
-			bank->size = 0x00010000;
-			bank->num_sectors = 128;
+		/* KE02 uses the FTMRH flash controller,
+		 * and registers have a different offset from the
+		 * FTMRE flash controller. Sort this out here.
+		 */
+		kinfo->ftmrx_fclkdiv_addr = 0x40020000;
+		kinfo->ftmrx_fccobix_addr = 0x40020002;
+		kinfo->ftmrx_fstat_addr = 0x40020006;
+		kinfo->ftmrx_fprot_addr = 0x40020008;
+		kinfo->ftmrx_fccobhi_addr = 0x4002000A;
+		kinfo->ftmrx_fccoblo_addr = 0x4002000B;
+		break;
 
-			/* KE02 uses the FTMRH flash controller,
-			 * and registers have a different offset from the
-			 * FTMRE flash controller. Sort this out here.
-			 */
-			kinfo->ftmrx_fclkdiv_addr = 0x40020000;
-			kinfo->ftmrx_fccobix_addr = 0x40020002;
-			kinfo->ftmrx_fstat_addr = 0x40020006;
-			kinfo->ftmrx_fprot_addr = 0x40020008;
-			kinfo->ftmrx_fccobhi_addr = 0x4002000A;
-			kinfo->ftmrx_fccoblo_addr = 0x4002000B;
-			break;
+	case KINETIS_KE_SRSID_KEX6:
+	case KINETIS_KE_SRSID_KEX4:
+		/* Max. 128KB */
+		bank->size = 0x00020000;
+		bank->num_sectors = 256;
 
-		case KINETIS_KE_SRSID_KEX6:
-		case KINETIS_KE_SRSID_KEX4:
-			/* Max. 128KB */
-			bank->size = 0x00020000;
-			bank->num_sectors = 256;
-
-			/* KE04 and KE06 use the FTMRE flash controller,
-			 * and registers have a different offset from the
-			 * FTMRH flash controller. Sort this out here.
-			 */
-			kinfo->ftmrx_fclkdiv_addr = 0x40020003;
-			kinfo->ftmrx_fccobix_addr = 0x40020001;
-			kinfo->ftmrx_fstat_addr = 0x40020005;
-			kinfo->ftmrx_fprot_addr = 0x4002000B;
-			kinfo->ftmrx_fccobhi_addr = 0x40020009;
-			kinfo->ftmrx_fccoblo_addr = 0x40020008;
-			break;
+		/* KE04 and KE06 use the FTMRE flash controller,
+		 * and registers have a different offset from the
+		 * FTMRH flash controller. Sort this out here.
+		 */
+		kinfo->ftmrx_fclkdiv_addr = 0x40020003;
+		kinfo->ftmrx_fccobix_addr = 0x40020001;
+		kinfo->ftmrx_fstat_addr = 0x40020005;
+		kinfo->ftmrx_fprot_addr = 0x4002000B;
+		kinfo->ftmrx_fccobhi_addr = 0x40020009;
+		kinfo->ftmrx_fccoblo_addr = 0x40020008;
+		break;
 	}
 
 	free(bank->sectors);

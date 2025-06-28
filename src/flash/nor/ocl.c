@@ -132,21 +132,21 @@ static int ocl_write(struct flash_bank *bank, const uint8_t *buffer, uint32_t of
 		/* copy data to DCC buffer in proper byte order and properly aligned */
 		for (i = 0; i < runlen; i++) {
 			switch (byteofs++) {
-				case 0:
-					*dcc_bufptr &= *(buffer++) | 0xffffff00;
-					break;
-				case 1:
-					*dcc_bufptr &= ((*(buffer++)) << 8) | 0xffff00ff;
-					break;
-				case 2:
-					*dcc_bufptr &= ((*(buffer++)) << 16) | 0xff00ffff;
-					break;
-				case 3:
-					*dcc_bufptr &= ((*(buffer++)) << 24) | 0x00ffffff;
-					chksum ^= *(dcc_bufptr++);
-					*dcc_bufptr = 0xffffffff;
-					byteofs = 0;
-					break;
+			case 0:
+				*dcc_bufptr &= *(buffer++) | 0xffffff00;
+				break;
+			case 1:
+				*dcc_bufptr &= ((*(buffer++)) << 8) | 0xffff00ff;
+				break;
+			case 2:
+				*dcc_bufptr &= ((*(buffer++)) << 16) | 0xff00ffff;
+				break;
+			case 3:
+				*dcc_bufptr &= ((*(buffer++)) << 24) | 0x00ffffff;
+				chksum ^= *(dcc_bufptr++);
+				*dcc_bufptr = 0xffffffff;
+				byteofs = 0;
+				break;
 			}
 		}
 

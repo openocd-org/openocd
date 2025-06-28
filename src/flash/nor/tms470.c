@@ -148,100 +148,100 @@ static int tms470_read_part_info(struct flash_bank *bank)
 	 * bank structure.
 	 */
 	switch (part_number) {
-		case 0x0a:
-			part_name = "TMS470R1A256";
+	case 0x0a:
+		part_name = "TMS470R1A256";
 
-			if (bank->base >= 0x00040000) {
-				LOG_ERROR("No %s flash bank contains base address "
-						TARGET_ADDR_FMT ".",
-						part_name,
-						bank->base);
-				return ERROR_FLASH_OPERATION_FAILED;
-			}
+		if (bank->base >= 0x00040000) {
+			LOG_ERROR("No %s flash bank contains base address "
+					TARGET_ADDR_FMT ".",
+					part_name,
+					bank->base);
+			return ERROR_FLASH_OPERATION_FAILED;
+		}
+		tms470_info->ordinal = 0;
+		bank->base = 0x00000000;
+		bank->size = 256 * 1024;
+		bank->num_sectors = TMS470R1A256_NUM_SECTORS;
+		bank->sectors = malloc(sizeof(tms470r1a256_sectors));
+		if (!bank->sectors)
+			return ERROR_FLASH_OPERATION_FAILED;
+		(void)memcpy(bank->sectors, tms470r1a256_sectors, sizeof(tms470r1a256_sectors));
+		break;
+
+	case 0x2b:
+		part_name = "TMS470R1A288";
+
+		if (bank->base < 0x00008000) {
 			tms470_info->ordinal = 0;
 			bank->base = 0x00000000;
-			bank->size = 256 * 1024;
-			bank->num_sectors = TMS470R1A256_NUM_SECTORS;
-			bank->sectors = malloc(sizeof(tms470r1a256_sectors));
+			bank->size = 32 * 1024;
+			bank->num_sectors = TMS470R1A288_BANK0_NUM_SECTORS;
+			bank->sectors = malloc(sizeof(tms470r1a288_bank0_sectors));
 			if (!bank->sectors)
 				return ERROR_FLASH_OPERATION_FAILED;
-			(void)memcpy(bank->sectors, tms470r1a256_sectors, sizeof(tms470r1a256_sectors));
-			break;
-
-		case 0x2b:
-			part_name = "TMS470R1A288";
-
-			if (bank->base < 0x00008000) {
-				tms470_info->ordinal = 0;
-				bank->base = 0x00000000;
-				bank->size = 32 * 1024;
-				bank->num_sectors = TMS470R1A288_BANK0_NUM_SECTORS;
-				bank->sectors = malloc(sizeof(tms470r1a288_bank0_sectors));
-				if (!bank->sectors)
-					return ERROR_FLASH_OPERATION_FAILED;
-				(void)memcpy(bank->sectors, tms470r1a288_bank0_sectors,
-						sizeof(tms470r1a288_bank0_sectors));
-			} else if ((bank->base >= 0x00040000) && (bank->base < 0x00080000)) {
-				tms470_info->ordinal = 1;
-				bank->base = 0x00040000;
-				bank->size = 256 * 1024;
-				bank->num_sectors = TMS470R1A288_BANK1_NUM_SECTORS;
-				bank->sectors = malloc(sizeof(tms470r1a288_bank1_sectors));
-				if (!bank->sectors)
-					return ERROR_FLASH_OPERATION_FAILED;
-				(void)memcpy(bank->sectors, tms470r1a288_bank1_sectors,
-						sizeof(tms470r1a288_bank1_sectors));
-			} else {
-				LOG_ERROR("No %s flash bank contains base address " TARGET_ADDR_FMT ".",
-						part_name, bank->base);
+			(void)memcpy(bank->sectors, tms470r1a288_bank0_sectors,
+					sizeof(tms470r1a288_bank0_sectors));
+		} else if ((bank->base >= 0x00040000) && (bank->base < 0x00080000)) {
+			tms470_info->ordinal = 1;
+			bank->base = 0x00040000;
+			bank->size = 256 * 1024;
+			bank->num_sectors = TMS470R1A288_BANK1_NUM_SECTORS;
+			bank->sectors = malloc(sizeof(tms470r1a288_bank1_sectors));
+			if (!bank->sectors)
 				return ERROR_FLASH_OPERATION_FAILED;
-			}
-			break;
-
-		case 0x2d:
-			part_name = "TMS470R1A384";
-
-			if (bank->base < 0x00020000) {
-				tms470_info->ordinal = 0;
-				bank->base = 0x00000000;
-				bank->size = 128 * 1024;
-				bank->num_sectors = TMS470R1A384_BANK0_NUM_SECTORS;
-				bank->sectors = malloc(sizeof(tms470r1a384_bank0_sectors));
-				if (!bank->sectors)
-					return ERROR_FLASH_OPERATION_FAILED;
-				(void)memcpy(bank->sectors, tms470r1a384_bank0_sectors,
-						sizeof(tms470r1a384_bank0_sectors));
-			} else if ((bank->base >= 0x00020000) && (bank->base < 0x00040000)) {
-				tms470_info->ordinal = 1;
-				bank->base = 0x00020000;
-				bank->size = 128 * 1024;
-				bank->num_sectors = TMS470R1A384_BANK1_NUM_SECTORS;
-				bank->sectors = malloc(sizeof(tms470r1a384_bank1_sectors));
-				if (!bank->sectors)
-					return ERROR_FLASH_OPERATION_FAILED;
-				(void)memcpy(bank->sectors, tms470r1a384_bank1_sectors,
-						sizeof(tms470r1a384_bank1_sectors));
-			} else if ((bank->base >= 0x00040000) && (bank->base < 0x00060000)) {
-				tms470_info->ordinal = 2;
-				bank->base = 0x00040000;
-				bank->size = 128 * 1024;
-				bank->num_sectors = TMS470R1A384_BANK2_NUM_SECTORS;
-				bank->sectors = malloc(sizeof(tms470r1a384_bank2_sectors));
-				if (!bank->sectors)
-					return ERROR_FLASH_OPERATION_FAILED;
-				(void)memcpy(bank->sectors, tms470r1a384_bank2_sectors,
-						sizeof(tms470r1a384_bank2_sectors));
-			} else {
-				LOG_ERROR("No %s flash bank contains base address " TARGET_ADDR_FMT ".",
-						part_name, bank->base);
-				return ERROR_FLASH_OPERATION_FAILED;
-			}
-			break;
-
-		default:
-			LOG_WARNING("Could not identify part 0x%02" PRIx32 " as a member of the TMS470 family.",
-					part_number);
+			(void)memcpy(bank->sectors, tms470r1a288_bank1_sectors,
+					sizeof(tms470r1a288_bank1_sectors));
+		} else {
+			LOG_ERROR("No %s flash bank contains base address " TARGET_ADDR_FMT ".",
+					part_name, bank->base);
 			return ERROR_FLASH_OPERATION_FAILED;
+		}
+		break;
+
+	case 0x2d:
+		part_name = "TMS470R1A384";
+
+		if (bank->base < 0x00020000) {
+			tms470_info->ordinal = 0;
+			bank->base = 0x00000000;
+			bank->size = 128 * 1024;
+			bank->num_sectors = TMS470R1A384_BANK0_NUM_SECTORS;
+			bank->sectors = malloc(sizeof(tms470r1a384_bank0_sectors));
+			if (!bank->sectors)
+				return ERROR_FLASH_OPERATION_FAILED;
+			(void)memcpy(bank->sectors, tms470r1a384_bank0_sectors,
+					sizeof(tms470r1a384_bank0_sectors));
+		} else if ((bank->base >= 0x00020000) && (bank->base < 0x00040000)) {
+			tms470_info->ordinal = 1;
+			bank->base = 0x00020000;
+			bank->size = 128 * 1024;
+			bank->num_sectors = TMS470R1A384_BANK1_NUM_SECTORS;
+			bank->sectors = malloc(sizeof(tms470r1a384_bank1_sectors));
+			if (!bank->sectors)
+				return ERROR_FLASH_OPERATION_FAILED;
+			(void)memcpy(bank->sectors, tms470r1a384_bank1_sectors,
+					sizeof(tms470r1a384_bank1_sectors));
+		} else if ((bank->base >= 0x00040000) && (bank->base < 0x00060000)) {
+			tms470_info->ordinal = 2;
+			bank->base = 0x00040000;
+			bank->size = 128 * 1024;
+			bank->num_sectors = TMS470R1A384_BANK2_NUM_SECTORS;
+			bank->sectors = malloc(sizeof(tms470r1a384_bank2_sectors));
+			if (!bank->sectors)
+				return ERROR_FLASH_OPERATION_FAILED;
+			(void)memcpy(bank->sectors, tms470r1a384_bank2_sectors,
+					sizeof(tms470r1a384_bank2_sectors));
+		} else {
+			LOG_ERROR("No %s flash bank contains base address " TARGET_ADDR_FMT ".",
+					part_name, bank->base);
+			return ERROR_FLASH_OPERATION_FAILED;
+		}
+		break;
+
+	default:
+		LOG_WARNING("Could not identify part 0x%02" PRIx32 " as a member of the TMS470 family.",
+				part_number);
+		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
 	/* turn off memory selects */

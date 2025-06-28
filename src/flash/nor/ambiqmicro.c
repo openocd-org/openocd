@@ -190,37 +190,36 @@ static int ambiqmicro_read_part_info(struct flash_bank *bank)
 	ambiqmicro_info->target_class = (part_num & 0xFF000000) >> 24;
 
 	switch (ambiqmicro_info->target_class) {
-		case 1:		/* 1 - Apollo */
-		case 5:		/* 5 - Apollo Bootloader */
-			bank->base = bank->bank_number * 0x40000;
-			ambiqmicro_info->pagesize = 2048;
-			ambiqmicro_info->flshsiz =
+	case 1:		/* 1 - Apollo */
+	case 5:		/* 5 - Apollo Bootloader */
+		bank->base = bank->bank_number * 0x40000;
+		ambiqmicro_info->pagesize = 2048;
+		ambiqmicro_info->flshsiz =
 			apollo_flash_size[(part_num & 0x00F00000) >> 20];
-			ambiqmicro_info->sramsiz =
+		ambiqmicro_info->sramsiz =
 			apollo_sram_size[(part_num & 0x000F0000) >> 16];
-			ambiqmicro_info->num_pages = ambiqmicro_info->flshsiz /
+		ambiqmicro_info->num_pages = ambiqmicro_info->flshsiz /
+		ambiqmicro_info->pagesize;
+		if (ambiqmicro_info->num_pages > 128) {
+			ambiqmicro_info->num_pages = 128;
+			ambiqmicro_info->flshsiz = 1024 * 256;
+		}
+		break;
+
+	default:
+		LOG_INFO("Unknown Class. Using Apollo-64 as default.");
+
+		bank->base = bank->bank_number * 0x40000;
+		ambiqmicro_info->pagesize = 2048;
+		ambiqmicro_info->flshsiz = apollo_flash_size[1];
+		ambiqmicro_info->sramsiz = apollo_sram_size[0];
+		ambiqmicro_info->num_pages = ambiqmicro_info->flshsiz /
 			ambiqmicro_info->pagesize;
-			if (ambiqmicro_info->num_pages > 128) {
-				ambiqmicro_info->num_pages = 128;
-				ambiqmicro_info->flshsiz = 1024 * 256;
-			}
-			break;
-
-		default:
-			LOG_INFO("Unknown Class. Using Apollo-64 as default.");
-
-			bank->base = bank->bank_number * 0x40000;
-			ambiqmicro_info->pagesize = 2048;
-			ambiqmicro_info->flshsiz = apollo_flash_size[1];
-			ambiqmicro_info->sramsiz = apollo_sram_size[0];
-			ambiqmicro_info->num_pages = ambiqmicro_info->flshsiz /
-			ambiqmicro_info->pagesize;
-			if (ambiqmicro_info->num_pages > 128) {
-				ambiqmicro_info->num_pages = 128;
-				ambiqmicro_info->flshsiz = 1024 * 256;
-			}
-			break;
-
+		if (ambiqmicro_info->num_pages > 128) {
+			ambiqmicro_info->num_pages = 128;
+			ambiqmicro_info->flshsiz = 1024 * 256;
+		}
+		break;
 	}
 
 	if (ambiqmicro_info->target_class < ARRAY_SIZE(ambiqmicro_parts))

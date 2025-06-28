@@ -87,14 +87,14 @@ static const char *product_name(const struct flash_bank *bank)
 {
 
 	switch (bank->target->tap->idcode & ID_MEANINGFUL_MASK) {
-		case ID_XCF08P:
-			return xcf_name_list[0];
-		case ID_XCF16P:
-			return xcf_name_list[1];
-		case ID_XCF32P:
-			return xcf_name_list[2];
-		default:
-			return xcf_name_list[3];
+	case ID_XCF08P:
+		return xcf_name_list[0];
+	case ID_XCF16P:
+		return xcf_name_list[1];
+	case ID_XCF32P:
+		return xcf_name_list[2];
+	default:
+		return xcf_name_list[3];
 	}
 }
 
@@ -601,18 +601,18 @@ static int xcf_probe(struct flash_bank *bank)
 	/* guess number of blocks using chip ID */
 	id = bank->target->tap->idcode;
 	switch (id & ID_MEANINGFUL_MASK) {
-		case ID_XCF08P:
-			bank->num_sectors = 1;
-			break;
-		case ID_XCF16P:
-			bank->num_sectors = 2;
-			break;
-		case ID_XCF32P:
-			bank->num_sectors = 4;
-			break;
-		default:
-			LOG_ERROR("Unknown flash device ID 0x%" PRIX32, id);
-			return ERROR_FAIL;
+	case ID_XCF08P:
+		bank->num_sectors = 1;
+		break;
+	case ID_XCF16P:
+		bank->num_sectors = 2;
+		break;
+	case ID_XCF32P:
+		bank->num_sectors = 4;
+		break;
+	default:
+		LOG_ERROR("Unknown flash device ID 0x%" PRIX32, id);
+		return ERROR_FAIL;
 	}
 
 	bank->sectors = malloc(bank->num_sectors * sizeof(struct flash_sector));

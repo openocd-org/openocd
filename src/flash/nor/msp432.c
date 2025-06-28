@@ -90,56 +90,56 @@ static int msp432_device_type(uint32_t family_type, uint32_t device_id,
 
 		/* Examine the device ID and hardware revision to get the device type */
 		switch (device_id) {
-			case 0xA000:
-			case 0xA001:
-			case 0xA002:
-			case 0xA003:
-			case 0xA004:
-			case 0xA005:
-				/* Device is definitely MSP432P401x, check hardware revision */
-				if (hardware_rev == 0x41 || hardware_rev == 0x42) {
-					/* Rev A or B of the silicon has been deprecated */
-					device_type = MSP432P401X_DEPR;
-				} else if (hardware_rev >= 0x43 && hardware_rev <= 0x49) {
-					/* Current and future revisions of the MSP432P401x device */
-					device_type = MSP432P401X;
-				} else {
-					/* Unknown or unanticipated hardware revision */
-					device_type = MSP432P401X_GUESS;
-				}
-				break;
-			case 0xA010:
-			case 0xA012:
-			case 0xA016:
-			case 0xA019:
-			case 0xA01F:
-			case 0xA020:
-			case 0xA022:
-			case 0xA026:
-			case 0xA029:
-			case 0xA02F:
-				/* Device is definitely MSP432P411x, check hardware revision */
-				if (hardware_rev >= 0x41 && hardware_rev <= 0x49) {
-					/* Current and future revisions of the MSP432P411x device */
-					device_type = MSP432P411X;
-				} else {
-					/* Unknown or unanticipated hardware revision */
-					device_type = MSP432P411X_GUESS;
-				}
-				break;
-			case 0xFFFF:
-				/* Device is very early silicon that has been deprecated */
+		case 0xA000:
+		case 0xA001:
+		case 0xA002:
+		case 0xA003:
+		case 0xA004:
+		case 0xA005:
+			/* Device is definitely MSP432P401x, check hardware revision */
+			if (hardware_rev == 0x41 || hardware_rev == 0x42) {
+				/* Rev A or B of the silicon has been deprecated */
 				device_type = MSP432P401X_DEPR;
-				break;
-			default:
-				if (device_id < 0xA010) {
-					/* Wild guess that this is an MSP432P401x */
-					device_type = MSP432P401X_GUESS;
-				} else {
-					/* Reasonable guess that this is a new variant */
-					device_type = MSP432P411X_GUESS;
-				}
-				break;
+			} else if (hardware_rev >= 0x43 && hardware_rev <= 0x49) {
+				/* Current and future revisions of the MSP432P401x device */
+				device_type = MSP432P401X;
+			} else {
+				/* Unknown or unanticipated hardware revision */
+				device_type = MSP432P401X_GUESS;
+			}
+			break;
+		case 0xA010:
+		case 0xA012:
+		case 0xA016:
+		case 0xA019:
+		case 0xA01F:
+		case 0xA020:
+		case 0xA022:
+		case 0xA026:
+		case 0xA029:
+		case 0xA02F:
+			/* Device is definitely MSP432P411x, check hardware revision */
+			if (hardware_rev >= 0x41 && hardware_rev <= 0x49) {
+				/* Current and future revisions of the MSP432P411x device */
+				device_type = MSP432P411X;
+			} else {
+				/* Unknown or unanticipated hardware revision */
+				device_type = MSP432P411X_GUESS;
+			}
+			break;
+		case 0xFFFF:
+			/* Device is very early silicon that has been deprecated */
+			device_type = MSP432P401X_DEPR;
+			break;
+		default:
+			if (device_id < 0xA010) {
+				/* Wild guess that this is an MSP432P401x */
+				device_type = MSP432P401X_GUESS;
+			} else {
+				/* Reasonable guess that this is a new variant */
+				device_type = MSP432P411X_GUESS;
+			}
+			break;
 		}
 	}
 
@@ -149,22 +149,22 @@ static int msp432_device_type(uint32_t family_type, uint32_t device_id,
 static const char *msp432_return_text(uint32_t return_code)
 {
 	switch (return_code) {
-		case FLASH_BUSY:
-			return "FLASH_BUSY";
-		case FLASH_SUCCESS:
-			return "FLASH_SUCCESS";
-		case FLASH_ERROR:
-			return "FLASH_ERROR";
-		case FLASH_TIMEOUT_ERROR:
-			return "FLASH_TIMEOUT_ERROR";
-		case FLASH_VERIFY_ERROR:
-			return "FLASH_VERIFY_WRONG";
-		case FLASH_WRONG_COMMAND:
-			return "FLASH_WRONG_COMMAND";
-		case FLASH_POWER_ERROR:
-			return "FLASH_POWER_ERROR";
-		default:
-			return "UNDEFINED_RETURN_CODE";
+	case FLASH_BUSY:
+		return "FLASH_BUSY";
+	case FLASH_SUCCESS:
+		return "FLASH_SUCCESS";
+	case FLASH_ERROR:
+		return "FLASH_ERROR";
+	case FLASH_TIMEOUT_ERROR:
+		return "FLASH_TIMEOUT_ERROR";
+	case FLASH_VERIFY_ERROR:
+		return "FLASH_VERIFY_WRONG";
+	case FLASH_WRONG_COMMAND:
+		return "FLASH_WRONG_COMMAND";
+	case FLASH_POWER_ERROR:
+		return "FLASH_POWER_ERROR";
+	default:
+		return "UNDEFINED_RETURN_CODE";
 	}
 }
 
@@ -244,14 +244,14 @@ static int msp432_wait_inactive(struct target *target, uint32_t buffer)
 	int retval;
 
 	switch (buffer) {
-		case 1: /* Buffer 1 */
-			status_addr = ALGO_BUFFER1_STATUS_ADDR;
-			break;
-		case 2: /* Buffer 2 */
-			status_addr = ALGO_BUFFER2_STATUS_ADDR;
-			break;
-		default:
-			return ERROR_FAIL;
+	case 1: /* Buffer 1 */
+		status_addr = ALGO_BUFFER1_STATUS_ADDR;
+		break;
+	case 2: /* Buffer 2 */
+		status_addr = ALGO_BUFFER2_STATUS_ADDR;
+		break;
+	default:
+		return ERROR_FAIL;
 	}
 
 	start_ms = timeval_ms();
@@ -295,27 +295,27 @@ static int msp432_init(struct flash_bank *bank)
 
 	/* Choose appropriate flash helper algorithm */
 	switch (msp432_bank->device_type) {
-		case MSP432P401X:
-		case MSP432P401X_DEPR:
-		case MSP432P401X_GUESS:
-		default:
-			loader_code = msp432p401x_algo;
-			loader_size = sizeof(msp432p401x_algo);
-			algo_entry_addr = P4_ALGO_ENTRY_ADDR;
-			break;
-		case MSP432P411X:
-		case MSP432P411X_GUESS:
-			loader_code = msp432p411x_algo;
-			loader_size = sizeof(msp432p411x_algo);
-			algo_entry_addr = P4_ALGO_ENTRY_ADDR;
-			break;
-		case MSP432E401Y:
-		case MSP432E411Y:
-		case MSP432E4X_GUESS:
-			loader_code = msp432e4x_algo;
-			loader_size = sizeof(msp432e4x_algo);
-			algo_entry_addr = E4_ALGO_ENTRY_ADDR;
-			break;
+	case MSP432P401X:
+	case MSP432P401X_DEPR:
+	case MSP432P401X_GUESS:
+	default:
+		loader_code = msp432p401x_algo;
+		loader_size = sizeof(msp432p401x_algo);
+		algo_entry_addr = P4_ALGO_ENTRY_ADDR;
+		break;
+	case MSP432P411X:
+	case MSP432P411X_GUESS:
+		loader_code = msp432p411x_algo;
+		loader_size = sizeof(msp432p411x_algo);
+		algo_entry_addr = P4_ALGO_ENTRY_ADDR;
+		break;
+	case MSP432E401Y:
+	case MSP432E411Y:
+	case MSP432E4X_GUESS:
+		loader_code = msp432e4x_algo;
+		loader_size = sizeof(msp432e4x_algo);
+		algo_entry_addr = E4_ALGO_ENTRY_ADDR;
+		break;
 	}
 
 	/* Issue warnings if this is a device we may not be able to flash */
@@ -980,43 +980,43 @@ static int msp432_info(struct flash_bank *bank, struct command_invocation *cmd)
 	struct msp432_bank *msp432_bank = bank->driver_priv;
 
 	switch (msp432_bank->device_type) {
-		case MSP432P401X_DEPR:
-			if (msp432_bank->device_id == 0xFFFF) {
-				/* Very early pre-production silicon currently deprecated */
-				command_print_sameline(cmd, "MSP432P401x pre-production device (deprecated silicon)\n"
-					SUPPORT_MESSAGE);
-			} else {
-				/* Revision A or B silicon, also deprecated */
-				command_print_sameline(cmd, "MSP432P401x Device Rev %c (deprecated silicon)\n"
-					SUPPORT_MESSAGE, (char)msp432_bank->hardware_rev);
-			}
-			break;
-		case MSP432P401X:
-			command_print_sameline(cmd, "MSP432P401x Device Rev %c\n",
-				(char)msp432_bank->hardware_rev);
-			break;
-		case MSP432P411X:
-			command_print_sameline(cmd, "MSP432P411x Device Rev %c\n",
-				(char)msp432_bank->hardware_rev);
-			break;
-		case MSP432E401Y:
-			command_print_sameline(cmd, "MSP432E401Y Device\n");
-			break;
-		case MSP432E411Y:
-			command_print_sameline(cmd, "MSP432E411Y Device\n");
-			break;
-		case MSP432E4X_GUESS:
-			command_print_sameline(cmd,
-				"Unrecognized MSP432E4 DID0 and DID1 IDs (%08" PRIX32 ", %08" PRIX32 ")",
-				msp432_bank->device_id, msp432_bank->hardware_rev);
-			break;
-		case MSP432P401X_GUESS:
-		case MSP432P411X_GUESS:
-		default:
-			command_print_sameline(cmd,
-				"Unrecognized MSP432P4 Device ID and Hardware Rev (%04" PRIX32 ", %02" PRIX32 ")",
-				msp432_bank->device_id, msp432_bank->hardware_rev);
-			break;
+	case MSP432P401X_DEPR:
+		if (msp432_bank->device_id == 0xFFFF) {
+			/* Very early pre-production silicon currently deprecated */
+			command_print_sameline(cmd, "MSP432P401x pre-production device (deprecated silicon)\n"
+				SUPPORT_MESSAGE);
+		} else {
+			/* Revision A or B silicon, also deprecated */
+			command_print_sameline(cmd, "MSP432P401x Device Rev %c (deprecated silicon)\n"
+				SUPPORT_MESSAGE, (char)msp432_bank->hardware_rev);
+		}
+		break;
+	case MSP432P401X:
+		command_print_sameline(cmd, "MSP432P401x Device Rev %c\n",
+			(char)msp432_bank->hardware_rev);
+		break;
+	case MSP432P411X:
+		command_print_sameline(cmd, "MSP432P411x Device Rev %c\n",
+			(char)msp432_bank->hardware_rev);
+		break;
+	case MSP432E401Y:
+		command_print_sameline(cmd, "MSP432E401Y Device\n");
+		break;
+	case MSP432E411Y:
+		command_print_sameline(cmd, "MSP432E411Y Device\n");
+		break;
+	case MSP432E4X_GUESS:
+		command_print_sameline(cmd,
+			"Unrecognized MSP432E4 DID0 and DID1 IDs (%08" PRIX32 ", %08" PRIX32 ")",
+			msp432_bank->device_id, msp432_bank->hardware_rev);
+		break;
+	case MSP432P401X_GUESS:
+	case MSP432P411X_GUESS:
+	default:
+		command_print_sameline(cmd,
+			"Unrecognized MSP432P4 Device ID and Hardware Rev (%04" PRIX32 ", %02" PRIX32 ")",
+			msp432_bank->device_id, msp432_bank->hardware_rev);
+		break;
 	}
 
 	return ERROR_OK;
