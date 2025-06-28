@@ -822,9 +822,9 @@ COMMAND_HANDLER(samv_handle_gpnvm_command)
 			who = -1;
 			break;
 		case 2:
-			if (!strcmp(CMD_ARGV[0], "show") && !strcmp(CMD_ARGV[1], "all"))
+			if (!strcmp(CMD_ARGV[0], "show") && !strcmp(CMD_ARGV[1], "all")) {
 				who = -1;
-			else {
+			} else {
 				uint32_t v32;
 				COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], v32);
 				who = v32;

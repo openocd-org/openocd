@@ -2080,9 +2080,6 @@ static void sam4_explain_ckgr_mor(struct sam4_chip *chip)
 	chip->cfg.rc_freq = 0;
 	if (rcen) {
 		switch (v) {
-			default:
-				chip->cfg.rc_freq = 0;
-				break;
 			case 0:
 				chip->cfg.rc_freq = 4 * 1000 * 1000;
 				break;
@@ -2091,6 +2088,9 @@ static void sam4_explain_ckgr_mor(struct sam4_chip *chip)
 				break;
 			case 2:
 				chip->cfg.rc_freq = 12 * 1000 * 1000;
+				break;
+			default:
+				chip->cfg.rc_freq = 0;
 				break;
 		}
 	}
@@ -2504,18 +2504,11 @@ FLASH_BANK_COMMAND_HANDLER(sam4_flash_bank_command)
 	}
 
 	switch (bank->base) {
-		default:
-			LOG_ERROR("Address 0x%08x invalid bank address (try 0x%08x"
-				"[at91sam4s series] )",
-				((unsigned int)(bank->base)),
-				((unsigned int)(FLASH_BANK_BASE_S)));
-			return ERROR_FAIL;
-
 		/* at91sam4s series only has bank 0*/
 		/* at91sam4sd series has the same address for bank 0 (FLASH_BANK0_BASE_SD)*/
 		case FLASH_BANK_BASE_S:
 		case FLASH_BANK_BASE_C:
-			bank->driver_priv = &(chip->details.bank[0]);
+			bank->driver_priv = &chip->details.bank[0];
 			bank->bank_number = 0;
 			chip->details.bank[0].chip = chip;
 			chip->details.bank[0].bank = bank;
@@ -2525,11 +2518,18 @@ FLASH_BANK_COMMAND_HANDLER(sam4_flash_bank_command)
 		case FLASH_BANK1_BASE_1024K_SD:
 		case FLASH_BANK1_BASE_2048K_SD:
 		case FLASH_BANK1_BASE_C32:
-			bank->driver_priv = &(chip->details.bank[1]);
+			bank->driver_priv = &chip->details.bank[1];
 			bank->bank_number = 1;
 			chip->details.bank[1].chip = chip;
 			chip->details.bank[1].bank = bank;
 			break;
+
+		default:
+			LOG_ERROR("Address " TARGET_ADDR_FMT " invalid bank address (try 0x%08x"
+				"[at91sam4s series] )",
+				bank->base,
+				FLASH_BANK_BASE_S);
+			return ERROR_FAIL;
 	}
 
 	/* we initialize after probing. */
@@ -3122,22 +3122,22 @@ COMMAND_HANDLER(sam4_handle_gpnvm_command)
 	}
 
 	switch (CMD_ARGC) {
-		default:
-			return ERROR_COMMAND_SYNTAX_ERROR;
 		case 0:
 			goto showall;
 		case 1:
 			who = -1;
 			break;
 		case 2:
-			if ((strcmp(CMD_ARGV[0], "show") == 0) && (strcmp(CMD_ARGV[1], "all") == 0))
+			if ((strcmp(CMD_ARGV[0], "show") == 0) && (strcmp(CMD_ARGV[1], "all") == 0)) {
 				who = -1;
-			else {
+			} else {
 				uint32_t v32;
 				COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], v32);
 				who = v32;
 			}
 			break;
+		default:
+			return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	if (strcmp("show", CMD_ARGV[0]) == 0) {

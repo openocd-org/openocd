@@ -2571,9 +2571,6 @@ static void sam3_explain_ckgr_mor(struct sam3_chip *chip)
 	chip->cfg.rc_freq = 0;
 	if (rcen) {
 		switch (v) {
-			default:
-				chip->cfg.rc_freq = 0;
-				break;
 			case 0:
 				chip->cfg.rc_freq = 4 * 1000 * 1000;
 				break;
@@ -2582,6 +2579,9 @@ static void sam3_explain_ckgr_mor(struct sam3_chip *chip)
 				break;
 			case 2:
 				chip->cfg.rc_freq = 12 * 1000 * 1000;
+				break;
+			default:
+				chip->cfg.rc_freq = 0;
 				break;
 		}
 	}
@@ -3011,25 +3011,11 @@ FLASH_BANK_COMMAND_HANDLER(sam3_flash_bank_command)
 	}
 
 	switch (bank->base) {
-		default:
-			LOG_ERROR("Address 0x%08x invalid bank address (try 0x%08x or 0x%08x "
-			"[at91sam3u series] or 0x%08x [at91sam3s series] or "
-			"0x%08x [at91sam3n series] or 0x%08x or 0x%08x or 0x%08x[at91sam3ax series] )",
-			((unsigned int)(bank->base)),
-			((unsigned int)(FLASH_BANK0_BASE_U)),
-			((unsigned int)(FLASH_BANK1_BASE_U)),
-			((unsigned int)(FLASH_BANK_BASE_S)),
-			((unsigned int)(FLASH_BANK_BASE_N)),
-			((unsigned int)(FLASH_BANK0_BASE_AX)),
-		    ((unsigned int)(FLASH_BANK1_BASE_256K_AX)),
-		    ((unsigned int)(FLASH_BANK1_BASE_512K_AX)));
-			return ERROR_FAIL;
-
 		/* at91sam3s and at91sam3n series only has bank 0*/
 		/* at91sam3u and at91sam3ax series has the same address for bank 0*/
 		case FLASH_BANK_BASE_S:
 		case FLASH_BANK0_BASE_U:
-			bank->driver_priv = &(chip->details.bank[0]);
+			bank->driver_priv = &chip->details.bank[0];
 			bank->bank_number = 0;
 			chip->details.bank[0].chip = chip;
 			chip->details.bank[0].bank = bank;
@@ -3039,11 +3025,25 @@ FLASH_BANK_COMMAND_HANDLER(sam3_flash_bank_command)
 		case FLASH_BANK1_BASE_U:
 		case FLASH_BANK1_BASE_256K_AX:
 		case FLASH_BANK1_BASE_512K_AX:
-			bank->driver_priv = &(chip->details.bank[1]);
+			bank->driver_priv = &chip->details.bank[1];
 			bank->bank_number = 1;
 			chip->details.bank[1].chip = chip;
 			chip->details.bank[1].bank = bank;
 			break;
+
+		default:
+			LOG_ERROR("Address " TARGET_ADDR_FMT " invalid bank address (try 0x%08x or 0x%08x "
+				"[at91sam3u series] or 0x%08x [at91sam3s series] or "
+				"0x%08x [at91sam3n series] or 0x%08x or 0x%08x or 0x%08x[at91sam3ax series] )",
+				bank->base,
+				FLASH_BANK0_BASE_U,
+				FLASH_BANK1_BASE_U,
+				FLASH_BANK_BASE_S,
+				FLASH_BANK_BASE_N,
+				FLASH_BANK0_BASE_AX,
+				FLASH_BANK1_BASE_256K_AX,
+				FLASH_BANK1_BASE_512K_AX);
+			return ERROR_FAIL;
 	}
 
 	/* we initialize after probing. */
@@ -3574,22 +3574,22 @@ COMMAND_HANDLER(sam3_handle_gpnvm_command)
 	}
 
 	switch (CMD_ARGC) {
-		default:
-			return ERROR_COMMAND_SYNTAX_ERROR;
 		case 0:
 			goto showall;
 		case 1:
 			who = -1;
 			break;
 		case 2:
-			if ((strcmp(CMD_ARGV[0], "show") == 0) && (strcmp(CMD_ARGV[1], "all") == 0))
+			if ((strcmp(CMD_ARGV[0], "show") == 0) && (strcmp(CMD_ARGV[1], "all") == 0)) {
 				who = -1;
-			else {
+			} else {
 				uint32_t v32;
 				COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], v32);
 				who = v32;
 			}
 			break;
+		default:
+			return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	if (strcmp("show", CMD_ARGV[0]) == 0) {

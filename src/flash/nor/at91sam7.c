@@ -199,8 +199,7 @@ static void at91sam7_read_clock_info(struct flash_bank *bank)
 			break;
 
 		case 1:			/* Main Clock */
-			if ((mcfr & CKGR_MCFR_MAINRDY) &&
-			(at91sam7_info->ext_freq == 0)) {
+			if ((mcfr & CKGR_MCFR_MAINRDY) && at91sam7_info->ext_freq == 0) {
 				at91sam7_info->mck_valid = 1;
 				tmp = RC_FREQ / 16ul * (mcfr & 0xffff);
 			} else if (at91sam7_info->ext_freq != 0) {
@@ -213,8 +212,7 @@ static void at91sam7_read_clock_info(struct flash_bank *bank)
 			break;
 
 		case 3:			/* PLL Clock */
-			if ((mcfr & CKGR_MCFR_MAINRDY) &&
-			(at91sam7_info->ext_freq == 0)) {
+			if ((mcfr & CKGR_MCFR_MAINRDY) && at91sam7_info->ext_freq == 0) {
 				target_read_u32(target, CKGR_PLLR, &pllr);
 				if (!(pllr & CKGR_PLLR_DIV))
 					break;	/* 0 Hz */
@@ -224,8 +222,7 @@ static void at91sam7_read_clock_info(struct flash_bank *bank)
 				 * as long as PLL is properly configured. */
 				tmp = mainfreq / (pllr & CKGR_PLLR_DIV)*
 						(((pllr & CKGR_PLLR_MUL) >> 16) + 1);
-			} else if ((at91sam7_info->ext_freq != 0) &&
-					((pllr&CKGR_PLLR_DIV) != 0)) {
+			} else if ((at91sam7_info->ext_freq != 0) && ((pllr & CKGR_PLLR_DIV) != 0)) {
 				at91sam7_info->mck_valid = 1;
 				tmp = at91sam7_info->ext_freq / (pllr&CKGR_PLLR_DIV)*
 						(((pllr & CKGR_PLLR_MUL) >> 16) + 1);
