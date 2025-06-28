@@ -1293,38 +1293,32 @@ static int linux_thread_packet(struct connection *connection, char const *packet
 			break;
 		case 'q':
 
-			if (strncmp(packet, "qSymbol", 7) == 0) {
+			if (!strncmp(packet, "qSymbol", 7)) {
 				if (rtos_qsymbol(connection, packet, packet_size) == 1) {
 					linux_compute_virt2phys(target,
 							target->rtos->symbols[INIT_TASK].address);
 				}
-
-				break;
-			} else if (strncmp(packet, "qfThreadInfo", 12) == 0) {
+			} else if (!strncmp(packet, "qfThreadInfo", 12)) {
 				if (!linux_os->thread_list) {
 					retval = linux_gdb_thread_packet(target,
 							connection,
 							packet,
 							packet_size);
-					break;
 				} else {
 					retval = linux_gdb_thread_update(target,
 							connection,
 							packet,
 							packet_size);
-					break;
 				}
-			} else if (strncmp(packet, "qsThreadInfo", 12) == 0) {
+			} else if (!strncmp(packet, "qsThreadInfo", 12)) {
 				gdb_put_packet(connection, "l", 1);
-				break;
-			} else if (strncmp(packet, "qThreadExtraInfo,", 17) == 0) {
+			} else if (!strncmp(packet, "qThreadExtraInfo,", 17)) {
 				linux_thread_extra_info(target, connection, packet,
 						packet_size);
-				break;
 			} else {
 				retval = GDB_THREAD_PACKET_NOT_CONSUMED;
-				break;
 			}
+			break;
 
 		case 'Q':
 			/* previously response was : thread not found
