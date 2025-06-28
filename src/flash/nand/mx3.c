@@ -663,7 +663,7 @@ static int do_data_output(struct nand_device *nand)
 			/*
 			 * ECC stuff
 			 */
-			if ((mx3_nf_info->optype == MX3_NF_DATAOUT_PAGE)
+			if (mx3_nf_info->optype == MX3_NF_DATAOUT_PAGE
 					&& mx3_nf_info->flags.hw_ecc_enabled) {
 				uint16_t ecc_status;
 				target_read_u16 (target, MX3_NF_ECCSTATUS, &ecc_status);

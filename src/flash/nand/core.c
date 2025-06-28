@@ -314,8 +314,7 @@ int nand_probe(struct nand_device *nand)
 				LOG_DEBUG("controller initialization failed");
 				return ERROR_NAND_OPERATION_FAILED;
 			case ERROR_NAND_OPERATION_NOT_SUPPORTED:
-				LOG_ERROR(
-				"BUG: controller reported that it doesn't support default parameters");
+				LOG_ERROR("BUG: controller reported that it doesn't support default parameters");
 				return ERROR_NAND_OPERATION_FAILED;
 			default:
 				LOG_ERROR("BUG: unknown controller initialization failure");
@@ -474,11 +473,10 @@ int nand_probe(struct nand_device *nand)
 				LOG_DEBUG("controller initialization failed");
 				return ERROR_NAND_OPERATION_FAILED;
 			case ERROR_NAND_OPERATION_NOT_SUPPORTED:
-				LOG_ERROR(
-				"controller doesn't support requested parameters (buswidth: %i, address cycles: %i, page size: %i)",
-				nand->bus_width,
-				nand->address_cycles,
-				nand->page_size);
+				LOG_ERROR("controller doesn't support requested parameters (buswidth: %i, address cycles: %i, page size: %i)",
+					nand->bus_width,
+					nand->address_cycles,
+					nand->page_size);
 				return ERROR_NAND_OPERATION_FAILED;
 			default:
 				LOG_ERROR("BUG: unknown controller initialization failure");
