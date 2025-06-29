@@ -1035,7 +1035,7 @@ static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 			}
 			break;
 		case FREQUENCY:
-			if ((num_of_argu != 1) && (num_of_argu != 3)) {
+			if (num_of_argu != 1 && num_of_argu != 3) {
 				LOG_ERROR("invalid parameter of %s", argus[0]);
 				return ERROR_FAIL;
 			}
@@ -1095,7 +1095,7 @@ static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 			goto xxr_common;
 xxr_common:
 			/* XXR length [TDI (tdi)] [TDO (tdo)][MASK (mask)] [SMASK (smask)] */
-			if ((num_of_argu > 10) || (num_of_argu % 2)) {
+			if (num_of_argu > 10 || (num_of_argu % 2)) {
 				LOG_ERROR("invalid parameter of %s", argus[0]);
 				return ERROR_FAIL;
 			}
@@ -1118,7 +1118,7 @@ xxr_common:
 			xxr_para_tmp->data_mask = 0;
 			for (i = 2; i < num_of_argu; i += 2) {
 				if ((strlen(argus[i + 1]) < 3) || (argus[i + 1][0] != '(') ||
-				(argus[i + 1][strlen(argus[i + 1]) - 1] != ')')) {
+						argus[i + 1][strlen(argus[i + 1]) - 1] != ')') {
 					LOG_ERROR("data section error");
 					return ERROR_FAIL;
 				}
@@ -1155,7 +1155,7 @@ xxr_common:
 			/* If a command changes the length of the last scan of the same type and the
 			 * MASK parameter is absent, */
 			/* the mask pattern used is all cares */
-			if (!(xxr_para_tmp->data_mask & XXR_MASK) && (i_tmp != xxr_para_tmp->len)) {
+			if (!(xxr_para_tmp->data_mask & XXR_MASK) && i_tmp != xxr_para_tmp->len) {
 				/* MASK not defined and length changed */
 				if (ERROR_OK !=
 				svf_adjust_array_length(&xxr_para_tmp->mask, i_tmp,
@@ -1263,8 +1263,9 @@ xxr_common:
 					i += svf_para.tdr_para.len;
 
 					svf_add_check_para(1, svf_buffer_index, i);
-				} else
+				} else {
 					svf_add_check_para(0, svf_buffer_index, i);
+				}
 				field.num_bits = i;
 				field.out_value = &svf_tdi_buffer[svf_buffer_index];
 				field.in_value = (xxr_para_tmp->data_mask & XXR_TDO) ? &svf_tdi_buffer[svf_buffer_index] : NULL;
@@ -1356,8 +1357,9 @@ xxr_common:
 					i += svf_para.tir_para.len;
 
 					svf_add_check_para(1, svf_buffer_index, i);
-				} else
+				} else {
 					svf_add_check_para(0, svf_buffer_index, i);
+				}
 				field.num_bits = i;
 				field.out_value = &svf_tdi_buffer[svf_buffer_index];
 				field.in_value = (xxr_para_tmp->data_mask & XXR_TDO) ? &svf_tdi_buffer[svf_buffer_index] : NULL;
@@ -1381,7 +1383,7 @@ xxr_common:
 			 * SEC]] [ENDSTATE end_state] */
 			/* RUNTEST [run_state] min_time SEC [MAXIMUM max_time SEC] [ENDSTATE
 			 * end_state] */
-			if ((num_of_argu < 3) || (num_of_argu > 11)) {
+			if (num_of_argu < 3 || num_of_argu > 11) {
 				LOG_ERROR("invalid parameter of %s", argus[0]);
 				return ERROR_FAIL;
 			}
