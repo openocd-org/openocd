@@ -702,71 +702,71 @@ static int svf_read_command_from_file(FILE *fd)
 	ch = svf_read_line[0];
 	while (!cmd_ok && (ch != 0)) {
 		switch (ch) {
-			case '!':
+		case '!':
+			slash = 0;
+			if (svf_getline(&svf_read_line, &svf_read_line_size, svf_fd) <= 0)
+				return ERROR_FAIL;
+			svf_line_number++;
+			i = -1;
+			break;
+		case '/':
+			if (++slash == 2) {
 				slash = 0;
-				if (svf_getline(&svf_read_line, &svf_read_line_size, svf_fd) <= 0)
+				if (svf_getline(&svf_read_line, &svf_read_line_size,
+					svf_fd) <= 0)
 					return ERROR_FAIL;
 				svf_line_number++;
 				i = -1;
+			}
+			break;
+		case ';':
+			slash = 0;
+			cmd_ok = 1;
+			break;
+		case '\n':
+			svf_line_number++;
+			if (svf_getline(&svf_read_line, &svf_read_line_size, svf_fd) <= 0)
+				return ERROR_FAIL;
+			i = -1;
+			/* fallthrough */
+		case '\r':
+			slash = 0;
+			/* Don't save '\r' and '\n' if no data is parsed */
+			if (!cmd_pos)
 				break;
-			case '/':
-				if (++slash == 2) {
-					slash = 0;
-					if (svf_getline(&svf_read_line, &svf_read_line_size,
-						svf_fd) <= 0)
-						return ERROR_FAIL;
-					svf_line_number++;
-					i = -1;
-				}
-				break;
-			case ';':
-				slash = 0;
-				cmd_ok = 1;
-				break;
-			case '\n':
-				svf_line_number++;
-				if (svf_getline(&svf_read_line, &svf_read_line_size, svf_fd) <= 0)
+			/* fallthrough */
+		default:
+			/* The parsing code currently expects a space
+			 * before parentheses -- "TDI (123)".  Also a
+			 * space afterwards -- "TDI (123) TDO(456)".
+			 * But such spaces are optional... instead of
+			 * parser updates, cope with that by adding the
+			 * spaces as needed.
+			 *
+			 * Ensure there are 3 bytes available, for:
+			 *  - current character
+			 *  - added space.
+			 *  - terminating NUL ('\0')
+			 */
+			if (cmd_pos + 3 > svf_command_buffer_size) {
+				svf_command_buffer = realloc(svf_command_buffer, cmd_pos + 3);
+				svf_command_buffer_size = cmd_pos + 3;
+				if (!svf_command_buffer) {
+					LOG_ERROR("not enough memory");
 					return ERROR_FAIL;
-				i = -1;
-				/* fallthrough */
-			case '\r':
-				slash = 0;
-				/* Don't save '\r' and '\n' if no data is parsed */
-				if (!cmd_pos)
-					break;
-				/* fallthrough */
-			default:
-				/* The parsing code currently expects a space
-				 * before parentheses -- "TDI (123)".  Also a
-				 * space afterwards -- "TDI (123) TDO(456)".
-				 * But such spaces are optional... instead of
-				 * parser updates, cope with that by adding the
-				 * spaces as needed.
-				 *
-				 * Ensure there are 3 bytes available, for:
-				 *  - current character
-				 *  - added space.
-				 *  - terminating NUL ('\0')
-				 */
-				if (cmd_pos + 3 > svf_command_buffer_size) {
-					svf_command_buffer = realloc(svf_command_buffer, cmd_pos + 3);
-					svf_command_buffer_size = cmd_pos + 3;
-					if (!svf_command_buffer) {
-						LOG_ERROR("not enough memory");
-						return ERROR_FAIL;
-					}
 				}
+			}
 
-				/* insert a space before '(' */
-				if ('(' == ch)
-					svf_command_buffer[cmd_pos++] = ' ';
+			/* insert a space before '(' */
+			if ('(' == ch)
+				svf_command_buffer[cmd_pos++] = ' ';
 
-				svf_command_buffer[cmd_pos++] = (char)toupper(ch);
+			svf_command_buffer[cmd_pos++] = (char)toupper(ch);
 
-				/* insert a space after ')' */
-				if (')' == ch)
-					svf_command_buffer[cmd_pos++] = ' ';
-				break;
+			/* insert a space after ')' */
+			if (')' == ch)
+				svf_command_buffer[cmd_pos++] = ' ';
+			break;
 		}
 		ch = svf_read_line[++i];
 	}
@@ -785,18 +785,18 @@ static int svf_parse_cmd_string(char *str, int len, char **argus, int *num_of_ar
 
 	while (pos < len) {
 		switch (str[pos]) {
-			case '!':
-			case '/':
-				LOG_ERROR("fail to parse svf command");
-				return ERROR_FAIL;
-			case '(':
-				in_bracket = true;
-				break;
-			case ')':
-				in_bracket = false;
-				break;
-			default:
-				break;
+		case '!':
+		case '/':
+			LOG_ERROR("fail to parse svf command");
+			return ERROR_FAIL;
+		case '(':
+			in_bracket = true;
+			break;
+		case ')':
+			in_bracket = false;
+			break;
+		default:
+			break;
 		}
 
 		if (!in_bracket && isspace((int)str[pos])) {
@@ -1292,327 +1292,327 @@ static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 	command = svf_find_string_in_array(argus[0],
 			(char **)svf_command_name, ARRAY_SIZE(svf_command_name));
 	switch (command) {
-		case ENDDR:
-		case ENDIR:
-			if (num_of_argu != 2) {
-				LOG_ERROR("invalid parameter of %s", argus[0]);
+	case ENDDR:
+	case ENDIR:
+		if (num_of_argu != 2) {
+			LOG_ERROR("invalid parameter of %s", argus[0]);
+			return ERROR_FAIL;
+		}
+
+		i_tmp = tap_state_by_name(argus[1]);
+
+		if (svf_tap_state_is_stable(i_tmp)) {
+			if (command == ENDIR) {
+				svf_para.ir_end_state = i_tmp;
+				LOG_DEBUG("\tIR end_state = %s",
+						tap_state_name(i_tmp));
+			} else {
+				svf_para.dr_end_state = i_tmp;
+				LOG_DEBUG("\tDR end_state = %s",
+						tap_state_name(i_tmp));
+			}
+		} else {
+			LOG_ERROR("%s: %s is not a stable state",
+					argus[0], argus[1]);
+			return ERROR_FAIL;
+		}
+		break;
+	case FREQUENCY:
+		if (num_of_argu != 1 && num_of_argu != 3) {
+			LOG_ERROR("invalid parameter of %s", argus[0]);
+			return ERROR_FAIL;
+		}
+		if (num_of_argu == 1) {
+			/* TODO: set jtag speed to full speed */
+			svf_para.frequency = 0;
+		} else {
+			if (strcmp(argus[2], "HZ")) {
+				LOG_ERROR("HZ not found in FREQUENCY command");
 				return ERROR_FAIL;
 			}
+			if (svf_execute_tap() != ERROR_OK)
+				return ERROR_FAIL;
+			svf_para.frequency = atof(argus[1]);
+			/* TODO: set jtag speed to */
+			if (svf_para.frequency > 0) {
+				command_run_linef(cmd_ctx,
+						"adapter speed %d",
+						(int)svf_para.frequency / 1000);
+				LOG_DEBUG("\tfrequency = %f", svf_para.frequency);
+			}
+		}
+		break;
+	case HDR:
+		if (svf_tap_is_specified) {
+			padding_command_skipped = 1;
+			break;
+		}
+		retval = svf_xxr_common(argus, num_of_argu, command, &svf_para.hdr_para);
+		if (retval != ERROR_OK)
+			return retval;
+		break;
+	case HIR:
+		if (svf_tap_is_specified) {
+			padding_command_skipped = 1;
+			break;
+		}
+		retval = svf_xxr_common(argus, num_of_argu, command, &svf_para.hir_para);
+		if (retval != ERROR_OK)
+			return retval;
+		break;
+	case TDR:
+		if (svf_tap_is_specified) {
+			padding_command_skipped = 1;
+			break;
+		}
+		retval = svf_xxr_common(argus, num_of_argu, command, &svf_para.tdr_para);
+		if (retval != ERROR_OK)
+			return retval;
+		break;
+	case TIR:
+		if (svf_tap_is_specified) {
+			padding_command_skipped = 1;
+			break;
+		}
+		retval = svf_xxr_common(argus, num_of_argu, command, &svf_para.tir_para);
+		if (retval != ERROR_OK)
+			return retval;
+		break;
+	case SDR:
+		retval = svf_xxr_common(argus, num_of_argu, command, &svf_para.sdr_para);
+		if (retval != ERROR_OK)
+			return retval;
+		break;
+	case SIR:
+		retval = svf_xxr_common(argus, num_of_argu, command, &svf_para.sir_para);
+		if (retval != ERROR_OK)
+			return retval;
+		break;
+	case PIO:
+	case PIOMAP:
+		LOG_ERROR("PIO and PIOMAP are not supported");
+		return ERROR_FAIL;
+	case RUNTEST:
+		/* RUNTEST [run_state] run_count run_clk [min_time SEC [MAXIMUM max_time
+		 * SEC]] [ENDSTATE end_state] */
+		/* RUNTEST [run_state] min_time SEC [MAXIMUM max_time SEC] [ENDSTATE
+		 * end_state] */
+		if (num_of_argu < 3 || num_of_argu > 11) {
+			LOG_ERROR("invalid parameter of %s", argus[0]);
+			return ERROR_FAIL;
+		}
+		/* init */
+		run_count = 0;
+		min_time = 0;
+		i = 1;
 
-			i_tmp = tap_state_by_name(argus[1]);
+		/* run_state */
+		i_tmp = tap_state_by_name(argus[i]);
+		if (i_tmp != TAP_INVALID) {
+			if (svf_tap_state_is_stable(i_tmp)) {
+				svf_para.runtest_run_state = i_tmp;
+
+				/* When a run_state is specified, the new
+				 * run_state becomes the default end_state.
+				 */
+				svf_para.runtest_end_state = i_tmp;
+				LOG_DEBUG("\trun_state = %s", tap_state_name(i_tmp));
+				i++;
+			} else {
+				LOG_ERROR("%s: %s is not a stable state", argus[0], tap_state_name(i_tmp));
+				return ERROR_FAIL;
+			}
+		}
+
+		/* run_count run_clk */
+		if (((i + 2) <= num_of_argu) && strcmp(argus[i + 1], "SEC")) {
+			if (!strcmp(argus[i + 1], "TCK")) {
+				/* clock source is TCK */
+				run_count = atoi(argus[i]);
+				LOG_DEBUG("\trun_count@TCK = %d", run_count);
+			} else {
+				LOG_ERROR("%s not supported for clock", argus[i + 1]);
+				return ERROR_FAIL;
+			}
+			i += 2;
+		}
+		/* min_time SEC */
+		if (((i + 2) <= num_of_argu) && !strcmp(argus[i + 1], "SEC")) {
+			min_time = atof(argus[i]);
+			LOG_DEBUG("\tmin_time = %fs", min_time);
+			i += 2;
+		}
+		/* MAXIMUM max_time SEC */
+		if (((i + 3) <= num_of_argu) &&
+		!strcmp(argus[i], "MAXIMUM") && !strcmp(argus[i + 2], "SEC")) {
+			float max_time = 0;
+			max_time = atof(argus[i + 1]);
+			LOG_DEBUG("\tmax_time = %fs", max_time);
+			i += 3;
+		}
+		/* ENDSTATE end_state */
+		if (((i + 2) <= num_of_argu) && !strcmp(argus[i], "ENDSTATE")) {
+			i_tmp = tap_state_by_name(argus[i + 1]);
 
 			if (svf_tap_state_is_stable(i_tmp)) {
-				if (command == ENDIR) {
-					svf_para.ir_end_state = i_tmp;
-					LOG_DEBUG("\tIR end_state = %s",
-							tap_state_name(i_tmp));
-				} else {
-					svf_para.dr_end_state = i_tmp;
-					LOG_DEBUG("\tDR end_state = %s",
-							tap_state_name(i_tmp));
-				}
+				svf_para.runtest_end_state = i_tmp;
+				LOG_DEBUG("\tend_state = %s", tap_state_name(i_tmp));
 			} else {
-				LOG_ERROR("%s: %s is not a stable state",
-						argus[0], argus[1]);
+				LOG_ERROR("%s: %s is not a stable state", argus[0], tap_state_name(i_tmp));
 				return ERROR_FAIL;
 			}
-			break;
-		case FREQUENCY:
-			if (num_of_argu != 1 && num_of_argu != 3) {
-				LOG_ERROR("invalid parameter of %s", argus[0]);
-				return ERROR_FAIL;
-			}
-			if (num_of_argu == 1) {
-				/* TODO: set jtag speed to full speed */
-				svf_para.frequency = 0;
-			} else {
-				if (strcmp(argus[2], "HZ")) {
-					LOG_ERROR("HZ not found in FREQUENCY command");
-					return ERROR_FAIL;
-				}
-				if (svf_execute_tap() != ERROR_OK)
-					return ERROR_FAIL;
-				svf_para.frequency = atof(argus[1]);
-				/* TODO: set jtag speed to */
-				if (svf_para.frequency > 0) {
-					command_run_linef(cmd_ctx,
-							"adapter speed %d",
-							(int)svf_para.frequency / 1000);
-					LOG_DEBUG("\tfrequency = %f", svf_para.frequency);
-				}
-			}
-			break;
-		case HDR:
-			if (svf_tap_is_specified) {
-				padding_command_skipped = 1;
-				break;
-			}
-			retval = svf_xxr_common(argus, num_of_argu, command, &svf_para.hdr_para);
-			if (retval != ERROR_OK)
-				return retval;
-			break;
-		case HIR:
-			if (svf_tap_is_specified) {
-				padding_command_skipped = 1;
-				break;
-			}
-			retval = svf_xxr_common(argus, num_of_argu, command, &svf_para.hir_para);
-			if (retval != ERROR_OK)
-				return retval;
-			break;
-		case TDR:
-			if (svf_tap_is_specified) {
-				padding_command_skipped = 1;
-				break;
-			}
-			retval = svf_xxr_common(argus, num_of_argu, command, &svf_para.tdr_para);
-			if (retval != ERROR_OK)
-				return retval;
-			break;
-		case TIR:
-			if (svf_tap_is_specified) {
-				padding_command_skipped = 1;
-				break;
-			}
-			retval = svf_xxr_common(argus, num_of_argu, command, &svf_para.tir_para);
-			if (retval != ERROR_OK)
-				return retval;
-			break;
-		case SDR:
-			retval = svf_xxr_common(argus, num_of_argu, command, &svf_para.sdr_para);
-			if (retval != ERROR_OK)
-				return retval;
-			break;
-		case SIR:
-			retval = svf_xxr_common(argus, num_of_argu, command, &svf_para.sir_para);
-			if (retval != ERROR_OK)
-				return retval;
-			break;
-		case PIO:
-		case PIOMAP:
-			LOG_ERROR("PIO and PIOMAP are not supported");
-			return ERROR_FAIL;
-		case RUNTEST:
-			/* RUNTEST [run_state] run_count run_clk [min_time SEC [MAXIMUM max_time
-			 * SEC]] [ENDSTATE end_state] */
-			/* RUNTEST [run_state] min_time SEC [MAXIMUM max_time SEC] [ENDSTATE
-			 * end_state] */
-			if (num_of_argu < 3 || num_of_argu > 11) {
-				LOG_ERROR("invalid parameter of %s", argus[0]);
-				return ERROR_FAIL;
-			}
-			/* init */
-			run_count = 0;
-			min_time = 0;
-			i = 1;
+			i += 2;
+		}
 
-			/* run_state */
-			i_tmp = tap_state_by_name(argus[i]);
-			if (i_tmp != TAP_INVALID) {
-				if (svf_tap_state_is_stable(i_tmp)) {
-					svf_para.runtest_run_state = i_tmp;
-
-					/* When a run_state is specified, the new
-					 * run_state becomes the default end_state.
-					 */
-					svf_para.runtest_end_state = i_tmp;
-					LOG_DEBUG("\trun_state = %s", tap_state_name(i_tmp));
-					i++;
-				} else {
-					LOG_ERROR("%s: %s is not a stable state", argus[0], tap_state_name(i_tmp));
-					return ERROR_FAIL;
-				}
-			}
-
-			/* run_count run_clk */
-			if (((i + 2) <= num_of_argu) && strcmp(argus[i + 1], "SEC")) {
-				if (!strcmp(argus[i + 1], "TCK")) {
-					/* clock source is TCK */
-					run_count = atoi(argus[i]);
-					LOG_DEBUG("\trun_count@TCK = %d", run_count);
-				} else {
-					LOG_ERROR("%s not supported for clock", argus[i + 1]);
-					return ERROR_FAIL;
-				}
-				i += 2;
-			}
-			/* min_time SEC */
-			if (((i + 2) <= num_of_argu) && !strcmp(argus[i + 1], "SEC")) {
-				min_time = atof(argus[i]);
-				LOG_DEBUG("\tmin_time = %fs", min_time);
-				i += 2;
-			}
-			/* MAXIMUM max_time SEC */
-			if (((i + 3) <= num_of_argu) &&
-			!strcmp(argus[i], "MAXIMUM") && !strcmp(argus[i + 2], "SEC")) {
-				float max_time = 0;
-				max_time = atof(argus[i + 1]);
-				LOG_DEBUG("\tmax_time = %fs", max_time);
-				i += 3;
-			}
-			/* ENDSTATE end_state */
-			if (((i + 2) <= num_of_argu) && !strcmp(argus[i], "ENDSTATE")) {
-				i_tmp = tap_state_by_name(argus[i + 1]);
-
-				if (svf_tap_state_is_stable(i_tmp)) {
-					svf_para.runtest_end_state = i_tmp;
-					LOG_DEBUG("\tend_state = %s", tap_state_name(i_tmp));
-				} else {
-					LOG_ERROR("%s: %s is not a stable state", argus[0], tap_state_name(i_tmp));
-					return ERROR_FAIL;
-				}
-				i += 2;
-			}
-
-			/* all parameter should be parsed */
-			if (i == num_of_argu) {
+		/* all parameter should be parsed */
+		if (i == num_of_argu) {
 #if 1
-				/* FIXME handle statemove failures */
-				uint32_t min_usec = 1000000 * min_time;
+			/* FIXME handle statemove failures */
+			uint32_t min_usec = 1000000 * min_time;
 
-				/* enter into run_state if necessary */
-				if (cmd_queue_cur_state != svf_para.runtest_run_state)
-					svf_add_statemove(svf_para.runtest_run_state);
+			/* enter into run_state if necessary */
+			if (cmd_queue_cur_state != svf_para.runtest_run_state)
+				svf_add_statemove(svf_para.runtest_run_state);
 
-				/* add clocks and/or min wait */
-				if (run_count > 0) {
-					if (!svf_nil)
-						jtag_add_clocks(run_count);
-				}
+			/* add clocks and/or min wait */
+			if (run_count > 0) {
+				if (!svf_nil)
+					jtag_add_clocks(run_count);
+			}
 
-				if (min_usec > 0) {
-					if (!svf_nil)
-						jtag_add_sleep(min_usec);
-				}
+			if (min_usec > 0) {
+				if (!svf_nil)
+					jtag_add_sleep(min_usec);
+			}
 
-				/* move to end_state if necessary */
-				if (svf_para.runtest_end_state != svf_para.runtest_run_state)
-					svf_add_statemove(svf_para.runtest_end_state);
+			/* move to end_state if necessary */
+			if (svf_para.runtest_end_state != svf_para.runtest_run_state)
+				svf_add_statemove(svf_para.runtest_end_state);
 
 #else
-				if (svf_para.runtest_run_state != TAP_IDLE) {
-					LOG_ERROR("cannot runtest in %s state",
-							tap_state_name(svf_para.runtest_run_state));
-					return ERROR_FAIL;
-				}
+			if (svf_para.runtest_run_state != TAP_IDLE) {
+				LOG_ERROR("cannot runtest in %s state",
+						tap_state_name(svf_para.runtest_run_state));
+				return ERROR_FAIL;
+			}
 
-				if (!svf_nil)
-					jtag_add_runtest(run_count, svf_para.runtest_end_state);
+			if (!svf_nil)
+				jtag_add_runtest(run_count, svf_para.runtest_end_state);
 #endif
-			} else {
-				LOG_ERROR("fail to parse parameter of RUNTEST, %d out of %d is parsed",
-						i,
-						num_of_argu);
+		} else {
+			LOG_ERROR("fail to parse parameter of RUNTEST, %d out of %d is parsed",
+					i,
+					num_of_argu);
+			return ERROR_FAIL;
+		}
+		break;
+	case STATE:
+		/* STATE [pathstate1 [pathstate2 ...[pathstaten]]] stable_state */
+		if (num_of_argu < 2) {
+			LOG_ERROR("invalid parameter of %s", argus[0]);
+			return ERROR_FAIL;
+		}
+		if (num_of_argu > 2) {
+			/* STATE pathstate1 ... stable_state */
+			path = malloc((num_of_argu - 1) * sizeof(enum tap_state));
+			if (!path) {
+				LOG_ERROR("not enough memory");
 				return ERROR_FAIL;
 			}
-			break;
-		case STATE:
-			/* STATE [pathstate1 [pathstate2 ...[pathstaten]]] stable_state */
-			if (num_of_argu < 2) {
-				LOG_ERROR("invalid parameter of %s", argus[0]);
-				return ERROR_FAIL;
-			}
-			if (num_of_argu > 2) {
-				/* STATE pathstate1 ... stable_state */
-				path = malloc((num_of_argu - 1) * sizeof(enum tap_state));
-				if (!path) {
-					LOG_ERROR("not enough memory");
+			num_of_argu--;	/* num of path */
+			i_tmp = 1;		/* path is from parameter 1 */
+			for (i = 0; i < num_of_argu; i++, i_tmp++) {
+				path[i] = tap_state_by_name(argus[i_tmp]);
+				if (path[i] == TAP_INVALID) {
+					LOG_ERROR("%s: %s is not a valid state", argus[0], argus[i_tmp]);
+					free(path);
 					return ERROR_FAIL;
 				}
-				num_of_argu--;	/* num of path */
-				i_tmp = 1;		/* path is from parameter 1 */
-				for (i = 0; i < num_of_argu; i++, i_tmp++) {
-					path[i] = tap_state_by_name(argus[i_tmp]);
-					if (path[i] == TAP_INVALID) {
-						LOG_ERROR("%s: %s is not a valid state", argus[0], argus[i_tmp]);
-						free(path);
-						return ERROR_FAIL;
-					}
-					/* OpenOCD refuses paths containing TAP_RESET */
-					if (path[i] == TAP_RESET) {
-						/* FIXME last state MUST be stable! */
-						if (i > 0) {
-							if (!svf_nil)
-								jtag_add_pathmove(i, path);
-						}
+				/* OpenOCD refuses paths containing TAP_RESET */
+				if (path[i] == TAP_RESET) {
+					/* FIXME last state MUST be stable! */
+					if (i > 0) {
 						if (!svf_nil)
-							jtag_add_tlr();
-						num_of_argu -= i + 1;
-						i = -1;
+							jtag_add_pathmove(i, path);
 					}
+					if (!svf_nil)
+						jtag_add_tlr();
+					num_of_argu -= i + 1;
+					i = -1;
 				}
-				if (num_of_argu > 0) {
-					/* execute last path if necessary */
-					if (svf_tap_state_is_stable(path[num_of_argu - 1])) {
-						/* last state MUST be stable state */
-						if (!svf_nil)
-							jtag_add_pathmove(num_of_argu, path);
-						LOG_DEBUG("\tmove to %s by path_move",
-								tap_state_name(path[num_of_argu - 1]));
-					} else {
-						LOG_ERROR("%s: %s is not a stable state",
-								argus[0],
-								tap_state_name(path[num_of_argu - 1]));
-						free(path);
-						return ERROR_FAIL;
-					}
-				}
-
-				free(path);
-				path = NULL;
-			} else {
-				/* STATE stable_state */
-				state = tap_state_by_name(argus[1]);
-				if (svf_tap_state_is_stable(state)) {
-					LOG_DEBUG("\tmove to %s by svf_add_statemove",
-							tap_state_name(state));
-					/* FIXME handle statemove failures */
-					svf_add_statemove(state);
+			}
+			if (num_of_argu > 0) {
+				/* execute last path if necessary */
+				if (svf_tap_state_is_stable(path[num_of_argu - 1])) {
+					/* last state MUST be stable state */
+					if (!svf_nil)
+						jtag_add_pathmove(num_of_argu, path);
+					LOG_DEBUG("\tmove to %s by path_move",
+							tap_state_name(path[num_of_argu - 1]));
 				} else {
 					LOG_ERROR("%s: %s is not a stable state",
-							argus[0], tap_state_name(state));
+							argus[0],
+							tap_state_name(path[num_of_argu - 1]));
+					free(path);
 					return ERROR_FAIL;
 				}
 			}
-			break;
-		case TRST:
-			/* TRST trst_mode */
-			if (num_of_argu != 2) {
-				LOG_ERROR("invalid parameter of %s", argus[0]);
-				return ERROR_FAIL;
-			}
-			if (svf_para.trst_mode != TRST_ABSENT) {
-				if (svf_execute_tap() != ERROR_OK)
-					return ERROR_FAIL;
-				i_tmp = svf_find_string_in_array(argus[1],
-						(char **)svf_trst_mode_name,
-						ARRAY_SIZE(svf_trst_mode_name));
-				switch (i_tmp) {
-				case TRST_ON:
-					if (!svf_nil)
-						jtag_add_reset(1, 0);
-					break;
-				case TRST_Z:
-				case TRST_OFF:
-					if (!svf_nil)
-						jtag_add_reset(0, 0);
-					break;
-				case TRST_ABSENT:
-					break;
-				default:
-					LOG_ERROR("unknown TRST mode: %s", argus[1]);
-					return ERROR_FAIL;
-				}
-				svf_para.trst_mode = i_tmp;
-				LOG_DEBUG("\ttrst_mode = %s", svf_trst_mode_name[svf_para.trst_mode]);
+
+			free(path);
+			path = NULL;
+		} else {
+			/* STATE stable_state */
+			state = tap_state_by_name(argus[1]);
+			if (svf_tap_state_is_stable(state)) {
+				LOG_DEBUG("\tmove to %s by svf_add_statemove",
+						tap_state_name(state));
+				/* FIXME handle statemove failures */
+				svf_add_statemove(state);
 			} else {
-				LOG_ERROR("can not accept TRST command if trst_mode is ABSENT");
+				LOG_ERROR("%s: %s is not a stable state",
+						argus[0], tap_state_name(state));
 				return ERROR_FAIL;
 			}
-			break;
-		default:
-			LOG_ERROR("invalid svf command: %s", argus[0]);
+		}
+		break;
+	case TRST:
+		/* TRST trst_mode */
+		if (num_of_argu != 2) {
+			LOG_ERROR("invalid parameter of %s", argus[0]);
 			return ERROR_FAIL;
+		}
+		if (svf_para.trst_mode != TRST_ABSENT) {
+			if (svf_execute_tap() != ERROR_OK)
+				return ERROR_FAIL;
+			i_tmp = svf_find_string_in_array(argus[1],
+					(char **)svf_trst_mode_name,
+					ARRAY_SIZE(svf_trst_mode_name));
+			switch (i_tmp) {
+			case TRST_ON:
+				if (!svf_nil)
+					jtag_add_reset(1, 0);
+				break;
+			case TRST_Z:
+			case TRST_OFF:
+				if (!svf_nil)
+					jtag_add_reset(0, 0);
+				break;
+			case TRST_ABSENT:
+				break;
+			default:
+				LOG_ERROR("unknown TRST mode: %s", argus[1]);
+				return ERROR_FAIL;
+			}
+			svf_para.trst_mode = i_tmp;
+			LOG_DEBUG("\ttrst_mode = %s", svf_trst_mode_name[svf_para.trst_mode]);
+		} else {
+			LOG_ERROR("can not accept TRST command if trst_mode is ABSENT");
+			return ERROR_FAIL;
+		}
+		break;
+	default:
+		LOG_ERROR("invalid svf command: %s", argus[0]);
+		return ERROR_FAIL;
 	}
 
 	if (!svf_quiet) {
