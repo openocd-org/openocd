@@ -979,10 +979,299 @@ static int svf_execute_tap(void)
 	return ERROR_OK;
 }
 
+static int svf_xxr_common(char **argus, int num_of_argu, char command, struct svf_xxr_para *xxr_para_tmp)
+{
+	int i, i_tmp;
+	uint8_t **pbuffer_tmp;
+	struct scan_field field;
+
+	/* XXR length [TDI (tdi)] [TDO (tdo)][MASK (mask)] [SMASK (smask)] */
+	if (num_of_argu > 10 || (num_of_argu % 2)) {
+		LOG_ERROR("invalid parameter of %s", argus[0]);
+		return ERROR_FAIL;
+	}
+	i_tmp = xxr_para_tmp->len;
+	xxr_para_tmp->len = atoi(argus[1]);
+	/* If we are to enlarge the buffers, all parts of xxr_para_tmp
+	 * need to be freed */
+	if (i_tmp < xxr_para_tmp->len) {
+		free(xxr_para_tmp->tdi);
+		xxr_para_tmp->tdi = NULL;
+		free(xxr_para_tmp->tdo);
+		xxr_para_tmp->tdo = NULL;
+		free(xxr_para_tmp->mask);
+		xxr_para_tmp->mask = NULL;
+		free(xxr_para_tmp->smask);
+		xxr_para_tmp->smask = NULL;
+	}
+
+	LOG_DEBUG("\tlength = %d", xxr_para_tmp->len);
+	xxr_para_tmp->data_mask = 0;
+	for (i = 2; i < num_of_argu; i += 2) {
+		if ((strlen(argus[i + 1]) < 3) || (argus[i + 1][0] != '(') ||
+				argus[i + 1][strlen(argus[i + 1]) - 1] != ')') {
+			LOG_ERROR("data section error");
+			return ERROR_FAIL;
+		}
+		argus[i + 1][strlen(argus[i + 1]) - 1] = '\0';
+		/* TDI, TDO, MASK, SMASK */
+		if (!strcmp(argus[i], "TDI")) {
+			/* TDI */
+			pbuffer_tmp = &xxr_para_tmp->tdi;
+			xxr_para_tmp->data_mask |= XXR_TDI;
+		} else if (!strcmp(argus[i], "TDO")) {
+			/* TDO */
+			pbuffer_tmp = &xxr_para_tmp->tdo;
+			xxr_para_tmp->data_mask |= XXR_TDO;
+		} else if (!strcmp(argus[i], "MASK")) {
+			/* MASK */
+			pbuffer_tmp = &xxr_para_tmp->mask;
+			xxr_para_tmp->data_mask |= XXR_MASK;
+		} else if (!strcmp(argus[i], "SMASK")) {
+			/* SMASK */
+			pbuffer_tmp = &xxr_para_tmp->smask;
+			xxr_para_tmp->data_mask |= XXR_SMASK;
+		} else {
+			LOG_ERROR("unknown parameter: %s", argus[i]);
+			return ERROR_FAIL;
+		}
+		if (ERROR_OK !=
+		svf_copy_hexstring_to_binary(&argus[i + 1][1], pbuffer_tmp, i_tmp,
+			xxr_para_tmp->len)) {
+			LOG_ERROR("fail to parse hex value");
+			return ERROR_FAIL;
+		}
+		SVF_BUF_LOG(DEBUG, *pbuffer_tmp, xxr_para_tmp->len, argus[i]);
+	}
+	/* If a command changes the length of the last scan of the same type and the
+	 * MASK parameter is absent, */
+	/* the mask pattern used is all cares */
+	if (!(xxr_para_tmp->data_mask & XXR_MASK) && i_tmp != xxr_para_tmp->len) {
+		/* MASK not defined and length changed */
+		if (ERROR_OK !=
+		svf_adjust_array_length(&xxr_para_tmp->mask, i_tmp,
+			xxr_para_tmp->len)) {
+			LOG_ERROR("fail to adjust length of array");
+			return ERROR_FAIL;
+		}
+		buf_set_ones(xxr_para_tmp->mask, xxr_para_tmp->len);
+	}
+	/* If TDO is absent, no comparison is needed, set the mask to 0 */
+	if (!(xxr_para_tmp->data_mask & XXR_TDO)) {
+		if (!xxr_para_tmp->tdo) {
+			if (ERROR_OK !=
+			svf_adjust_array_length(&xxr_para_tmp->tdo, i_tmp,
+				xxr_para_tmp->len)) {
+				LOG_ERROR("fail to adjust length of array");
+				return ERROR_FAIL;
+			}
+		}
+		if (!xxr_para_tmp->mask) {
+			if (ERROR_OK !=
+			svf_adjust_array_length(&xxr_para_tmp->mask, i_tmp,
+				xxr_para_tmp->len)) {
+				LOG_ERROR("fail to adjust length of array");
+				return ERROR_FAIL;
+			}
+		}
+		memset(xxr_para_tmp->mask, 0, (xxr_para_tmp->len + 7) >> 3);
+	}
+	/* do scan if necessary */
+	if (command == SDR) {
+		/* check buffer size first, reallocate if necessary */
+		i = svf_para.hdr_para.len + svf_para.sdr_para.len +
+				svf_para.tdr_para.len;
+		if ((svf_buffer_size - svf_buffer_index) < ((i + 7) >> 3)) {
+			/* reallocate buffer */
+			if (svf_realloc_buffers(svf_buffer_index + ((i + 7) >> 3)) != ERROR_OK) {
+				LOG_ERROR("not enough memory");
+				return ERROR_FAIL;
+			}
+		}
+
+		/* assemble dr data */
+		i = 0;
+		buf_set_buf(svf_para.hdr_para.tdi,
+				0,
+				&svf_tdi_buffer[svf_buffer_index],
+				i,
+				svf_para.hdr_para.len);
+		i += svf_para.hdr_para.len;
+		buf_set_buf(svf_para.sdr_para.tdi,
+				0,
+				&svf_tdi_buffer[svf_buffer_index],
+				i,
+				svf_para.sdr_para.len);
+		i += svf_para.sdr_para.len;
+		buf_set_buf(svf_para.tdr_para.tdi,
+				0,
+				&svf_tdi_buffer[svf_buffer_index],
+				i,
+				svf_para.tdr_para.len);
+		i += svf_para.tdr_para.len;
+
+		/* add check data */
+		if (svf_para.sdr_para.data_mask & XXR_TDO) {
+			/* assemble dr mask data */
+			i = 0;
+			buf_set_buf(svf_para.hdr_para.mask,
+					0,
+					&svf_mask_buffer[svf_buffer_index],
+					i,
+					svf_para.hdr_para.len);
+			i += svf_para.hdr_para.len;
+			buf_set_buf(svf_para.sdr_para.mask,
+					0,
+					&svf_mask_buffer[svf_buffer_index],
+					i,
+					svf_para.sdr_para.len);
+			i += svf_para.sdr_para.len;
+			buf_set_buf(svf_para.tdr_para.mask,
+					0,
+					&svf_mask_buffer[svf_buffer_index],
+					i,
+					svf_para.tdr_para.len);
+
+			/* assemble dr check data */
+			i = 0;
+			buf_set_buf(svf_para.hdr_para.tdo,
+					0,
+					&svf_tdo_buffer[svf_buffer_index],
+					i,
+					svf_para.hdr_para.len);
+			i += svf_para.hdr_para.len;
+			buf_set_buf(svf_para.sdr_para.tdo,
+					0,
+					&svf_tdo_buffer[svf_buffer_index],
+					i,
+					svf_para.sdr_para.len);
+			i += svf_para.sdr_para.len;
+			buf_set_buf(svf_para.tdr_para.tdo,
+					0,
+					&svf_tdo_buffer[svf_buffer_index],
+					i,
+					svf_para.tdr_para.len);
+			i += svf_para.tdr_para.len;
+
+			svf_add_check_para(1, svf_buffer_index, i);
+		} else {
+			svf_add_check_para(0, svf_buffer_index, i);
+		}
+		field.num_bits = i;
+		field.out_value = &svf_tdi_buffer[svf_buffer_index];
+		field.in_value = (xxr_para_tmp->data_mask & XXR_TDO) ? &svf_tdi_buffer[svf_buffer_index] : NULL;
+		if (!svf_nil) {
+			/* NOTE:  doesn't use SVF-specified state paths */
+			jtag_add_plain_dr_scan(field.num_bits,
+					field.out_value,
+					field.in_value,
+					svf_para.dr_end_state);
+		}
+
+		if (svf_addcycles)
+			jtag_add_clocks(svf_addcycles);
+
+		svf_buffer_index += (i + 7) >> 3;
+	} else if (command == SIR) {
+		/* check buffer size first, reallocate if necessary */
+		i = svf_para.hir_para.len + svf_para.sir_para.len +
+				svf_para.tir_para.len;
+		if ((svf_buffer_size - svf_buffer_index) < ((i + 7) >> 3)) {
+			if (svf_realloc_buffers(svf_buffer_index + ((i + 7) >> 3)) != ERROR_OK) {
+				LOG_ERROR("not enough memory");
+				return ERROR_FAIL;
+			}
+		}
+
+		/* assemble ir data */
+		i = 0;
+		buf_set_buf(svf_para.hir_para.tdi,
+				0,
+				&svf_tdi_buffer[svf_buffer_index],
+				i,
+				svf_para.hir_para.len);
+		i += svf_para.hir_para.len;
+		buf_set_buf(svf_para.sir_para.tdi,
+				0,
+				&svf_tdi_buffer[svf_buffer_index],
+				i,
+				svf_para.sir_para.len);
+		i += svf_para.sir_para.len;
+		buf_set_buf(svf_para.tir_para.tdi,
+				0,
+				&svf_tdi_buffer[svf_buffer_index],
+				i,
+				svf_para.tir_para.len);
+		i += svf_para.tir_para.len;
+
+		/* add check data */
+		if (svf_para.sir_para.data_mask & XXR_TDO) {
+			/* assemble dr mask data */
+			i = 0;
+			buf_set_buf(svf_para.hir_para.mask,
+					0,
+					&svf_mask_buffer[svf_buffer_index],
+					i,
+					svf_para.hir_para.len);
+			i += svf_para.hir_para.len;
+			buf_set_buf(svf_para.sir_para.mask,
+					0,
+					&svf_mask_buffer[svf_buffer_index],
+					i,
+					svf_para.sir_para.len);
+			i += svf_para.sir_para.len;
+			buf_set_buf(svf_para.tir_para.mask,
+					0,
+					&svf_mask_buffer[svf_buffer_index],
+					i,
+					svf_para.tir_para.len);
+
+			/* assemble dr check data */
+			i = 0;
+			buf_set_buf(svf_para.hir_para.tdo,
+					0,
+					&svf_tdo_buffer[svf_buffer_index],
+					i,
+					svf_para.hir_para.len);
+			i += svf_para.hir_para.len;
+			buf_set_buf(svf_para.sir_para.tdo,
+					0,
+					&svf_tdo_buffer[svf_buffer_index],
+					i,
+					svf_para.sir_para.len);
+			i += svf_para.sir_para.len;
+			buf_set_buf(svf_para.tir_para.tdo,
+					0,
+					&svf_tdo_buffer[svf_buffer_index],
+					i,
+					svf_para.tir_para.len);
+			i += svf_para.tir_para.len;
+
+			svf_add_check_para(1, svf_buffer_index, i);
+		} else {
+			svf_add_check_para(0, svf_buffer_index, i);
+		}
+		field.num_bits = i;
+		field.out_value = &svf_tdi_buffer[svf_buffer_index];
+		field.in_value = (xxr_para_tmp->data_mask & XXR_TDO) ? &svf_tdi_buffer[svf_buffer_index] : NULL;
+		if (!svf_nil) {
+			/* NOTE:  doesn't use SVF-specified state paths */
+			jtag_add_plain_ir_scan(field.num_bits,
+					field.out_value,
+					field.in_value,
+					svf_para.ir_end_state);
+		}
+
+		svf_buffer_index += (i + 7) >> 3;
+	}
+
+	return ERROR_OK;
+}
+
 static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 {
 	char *argus[256], command;
-	int num_of_argu = 0, i;
+	int num_of_argu = 0, i, retval;
 
 	/* tmp variable */
 	int i_tmp;
@@ -992,8 +1281,6 @@ static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 	float min_time;
 	/* for XXR */
 	struct svf_xxr_para *xxr_para_tmp;
-	uint8_t **pbuffer_tmp;
-	struct scan_field field;
 	/* for STATE */
 	enum tap_state *path = NULL, state;
 	/* flag padding commands skipped due to -tap command */
@@ -1094,285 +1381,9 @@ static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 			xxr_para_tmp = &svf_para.sir_para;
 			goto xxr_common;
 xxr_common:
-			/* XXR length [TDI (tdi)] [TDO (tdo)][MASK (mask)] [SMASK (smask)] */
-			if (num_of_argu > 10 || (num_of_argu % 2)) {
-				LOG_ERROR("invalid parameter of %s", argus[0]);
-				return ERROR_FAIL;
-			}
-			i_tmp = xxr_para_tmp->len;
-			xxr_para_tmp->len = atoi(argus[1]);
-			/* If we are to enlarge the buffers, all parts of xxr_para_tmp
-			 * need to be freed */
-			if (i_tmp < xxr_para_tmp->len) {
-				free(xxr_para_tmp->tdi);
-				xxr_para_tmp->tdi = NULL;
-				free(xxr_para_tmp->tdo);
-				xxr_para_tmp->tdo = NULL;
-				free(xxr_para_tmp->mask);
-				xxr_para_tmp->mask = NULL;
-				free(xxr_para_tmp->smask);
-				xxr_para_tmp->smask = NULL;
-			}
-
-			LOG_DEBUG("\tlength = %d", xxr_para_tmp->len);
-			xxr_para_tmp->data_mask = 0;
-			for (i = 2; i < num_of_argu; i += 2) {
-				if ((strlen(argus[i + 1]) < 3) || (argus[i + 1][0] != '(') ||
-						argus[i + 1][strlen(argus[i + 1]) - 1] != ')') {
-					LOG_ERROR("data section error");
-					return ERROR_FAIL;
-				}
-				argus[i + 1][strlen(argus[i + 1]) - 1] = '\0';
-				/* TDI, TDO, MASK, SMASK */
-				if (!strcmp(argus[i], "TDI")) {
-					/* TDI */
-					pbuffer_tmp = &xxr_para_tmp->tdi;
-					xxr_para_tmp->data_mask |= XXR_TDI;
-				} else if (!strcmp(argus[i], "TDO")) {
-					/* TDO */
-					pbuffer_tmp = &xxr_para_tmp->tdo;
-					xxr_para_tmp->data_mask |= XXR_TDO;
-				} else if (!strcmp(argus[i], "MASK")) {
-					/* MASK */
-					pbuffer_tmp = &xxr_para_tmp->mask;
-					xxr_para_tmp->data_mask |= XXR_MASK;
-				} else if (!strcmp(argus[i], "SMASK")) {
-					/* SMASK */
-					pbuffer_tmp = &xxr_para_tmp->smask;
-					xxr_para_tmp->data_mask |= XXR_SMASK;
-				} else {
-					LOG_ERROR("unknown parameter: %s", argus[i]);
-					return ERROR_FAIL;
-				}
-				if (ERROR_OK !=
-				svf_copy_hexstring_to_binary(&argus[i + 1][1], pbuffer_tmp, i_tmp,
-					xxr_para_tmp->len)) {
-					LOG_ERROR("fail to parse hex value");
-					return ERROR_FAIL;
-				}
-				SVF_BUF_LOG(DEBUG, *pbuffer_tmp, xxr_para_tmp->len, argus[i]);
-			}
-			/* If a command changes the length of the last scan of the same type and the
-			 * MASK parameter is absent, */
-			/* the mask pattern used is all cares */
-			if (!(xxr_para_tmp->data_mask & XXR_MASK) && i_tmp != xxr_para_tmp->len) {
-				/* MASK not defined and length changed */
-				if (ERROR_OK !=
-				svf_adjust_array_length(&xxr_para_tmp->mask, i_tmp,
-					xxr_para_tmp->len)) {
-					LOG_ERROR("fail to adjust length of array");
-					return ERROR_FAIL;
-				}
-				buf_set_ones(xxr_para_tmp->mask, xxr_para_tmp->len);
-			}
-			/* If TDO is absent, no comparison is needed, set the mask to 0 */
-			if (!(xxr_para_tmp->data_mask & XXR_TDO)) {
-				if (!xxr_para_tmp->tdo) {
-					if (ERROR_OK !=
-					svf_adjust_array_length(&xxr_para_tmp->tdo, i_tmp,
-						xxr_para_tmp->len)) {
-						LOG_ERROR("fail to adjust length of array");
-						return ERROR_FAIL;
-					}
-				}
-				if (!xxr_para_tmp->mask) {
-					if (ERROR_OK !=
-					svf_adjust_array_length(&xxr_para_tmp->mask, i_tmp,
-						xxr_para_tmp->len)) {
-						LOG_ERROR("fail to adjust length of array");
-						return ERROR_FAIL;
-					}
-				}
-				memset(xxr_para_tmp->mask, 0, (xxr_para_tmp->len + 7) >> 3);
-			}
-			/* do scan if necessary */
-			if (command == SDR) {
-				/* check buffer size first, reallocate if necessary */
-				i = svf_para.hdr_para.len + svf_para.sdr_para.len +
-						svf_para.tdr_para.len;
-				if ((svf_buffer_size - svf_buffer_index) < ((i + 7) >> 3)) {
-					/* reallocate buffer */
-					if (svf_realloc_buffers(svf_buffer_index + ((i + 7) >> 3)) != ERROR_OK) {
-						LOG_ERROR("not enough memory");
-						return ERROR_FAIL;
-					}
-				}
-
-				/* assemble dr data */
-				i = 0;
-				buf_set_buf(svf_para.hdr_para.tdi,
-						0,
-						&svf_tdi_buffer[svf_buffer_index],
-						i,
-						svf_para.hdr_para.len);
-				i += svf_para.hdr_para.len;
-				buf_set_buf(svf_para.sdr_para.tdi,
-						0,
-						&svf_tdi_buffer[svf_buffer_index],
-						i,
-						svf_para.sdr_para.len);
-				i += svf_para.sdr_para.len;
-				buf_set_buf(svf_para.tdr_para.tdi,
-						0,
-						&svf_tdi_buffer[svf_buffer_index],
-						i,
-						svf_para.tdr_para.len);
-				i += svf_para.tdr_para.len;
-
-				/* add check data */
-				if (svf_para.sdr_para.data_mask & XXR_TDO) {
-					/* assemble dr mask data */
-					i = 0;
-					buf_set_buf(svf_para.hdr_para.mask,
-							0,
-							&svf_mask_buffer[svf_buffer_index],
-							i,
-							svf_para.hdr_para.len);
-					i += svf_para.hdr_para.len;
-					buf_set_buf(svf_para.sdr_para.mask,
-							0,
-							&svf_mask_buffer[svf_buffer_index],
-							i,
-							svf_para.sdr_para.len);
-					i += svf_para.sdr_para.len;
-					buf_set_buf(svf_para.tdr_para.mask,
-							0,
-							&svf_mask_buffer[svf_buffer_index],
-							i,
-							svf_para.tdr_para.len);
-
-					/* assemble dr check data */
-					i = 0;
-					buf_set_buf(svf_para.hdr_para.tdo,
-							0,
-							&svf_tdo_buffer[svf_buffer_index],
-							i,
-							svf_para.hdr_para.len);
-					i += svf_para.hdr_para.len;
-					buf_set_buf(svf_para.sdr_para.tdo,
-							0,
-							&svf_tdo_buffer[svf_buffer_index],
-							i,
-							svf_para.sdr_para.len);
-					i += svf_para.sdr_para.len;
-					buf_set_buf(svf_para.tdr_para.tdo,
-							0,
-							&svf_tdo_buffer[svf_buffer_index],
-							i,
-							svf_para.tdr_para.len);
-					i += svf_para.tdr_para.len;
-
-					svf_add_check_para(1, svf_buffer_index, i);
-				} else {
-					svf_add_check_para(0, svf_buffer_index, i);
-				}
-				field.num_bits = i;
-				field.out_value = &svf_tdi_buffer[svf_buffer_index];
-				field.in_value = (xxr_para_tmp->data_mask & XXR_TDO) ? &svf_tdi_buffer[svf_buffer_index] : NULL;
-				if (!svf_nil) {
-					/* NOTE:  doesn't use SVF-specified state paths */
-					jtag_add_plain_dr_scan(field.num_bits,
-							field.out_value,
-							field.in_value,
-							svf_para.dr_end_state);
-				}
-
-				if (svf_addcycles)
-					jtag_add_clocks(svf_addcycles);
-
-				svf_buffer_index += (i + 7) >> 3;
-			} else if (command == SIR) {
-				/* check buffer size first, reallocate if necessary */
-				i = svf_para.hir_para.len + svf_para.sir_para.len +
-						svf_para.tir_para.len;
-				if ((svf_buffer_size - svf_buffer_index) < ((i + 7) >> 3)) {
-					if (svf_realloc_buffers(svf_buffer_index + ((i + 7) >> 3)) != ERROR_OK) {
-						LOG_ERROR("not enough memory");
-						return ERROR_FAIL;
-					}
-				}
-
-				/* assemble ir data */
-				i = 0;
-				buf_set_buf(svf_para.hir_para.tdi,
-						0,
-						&svf_tdi_buffer[svf_buffer_index],
-						i,
-						svf_para.hir_para.len);
-				i += svf_para.hir_para.len;
-				buf_set_buf(svf_para.sir_para.tdi,
-						0,
-						&svf_tdi_buffer[svf_buffer_index],
-						i,
-						svf_para.sir_para.len);
-				i += svf_para.sir_para.len;
-				buf_set_buf(svf_para.tir_para.tdi,
-						0,
-						&svf_tdi_buffer[svf_buffer_index],
-						i,
-						svf_para.tir_para.len);
-				i += svf_para.tir_para.len;
-
-				/* add check data */
-				if (svf_para.sir_para.data_mask & XXR_TDO) {
-					/* assemble dr mask data */
-					i = 0;
-					buf_set_buf(svf_para.hir_para.mask,
-							0,
-							&svf_mask_buffer[svf_buffer_index],
-							i,
-							svf_para.hir_para.len);
-					i += svf_para.hir_para.len;
-					buf_set_buf(svf_para.sir_para.mask,
-							0,
-							&svf_mask_buffer[svf_buffer_index],
-							i,
-							svf_para.sir_para.len);
-					i += svf_para.sir_para.len;
-					buf_set_buf(svf_para.tir_para.mask,
-							0,
-							&svf_mask_buffer[svf_buffer_index],
-							i,
-							svf_para.tir_para.len);
-
-					/* assemble dr check data */
-					i = 0;
-					buf_set_buf(svf_para.hir_para.tdo,
-							0,
-							&svf_tdo_buffer[svf_buffer_index],
-							i,
-							svf_para.hir_para.len);
-					i += svf_para.hir_para.len;
-					buf_set_buf(svf_para.sir_para.tdo,
-							0,
-							&svf_tdo_buffer[svf_buffer_index],
-							i,
-							svf_para.sir_para.len);
-					i += svf_para.sir_para.len;
-					buf_set_buf(svf_para.tir_para.tdo,
-							0,
-							&svf_tdo_buffer[svf_buffer_index],
-							i,
-							svf_para.tir_para.len);
-					i += svf_para.tir_para.len;
-
-					svf_add_check_para(1, svf_buffer_index, i);
-				} else {
-					svf_add_check_para(0, svf_buffer_index, i);
-				}
-				field.num_bits = i;
-				field.out_value = &svf_tdi_buffer[svf_buffer_index];
-				field.in_value = (xxr_para_tmp->data_mask & XXR_TDO) ? &svf_tdi_buffer[svf_buffer_index] : NULL;
-				if (!svf_nil) {
-					/* NOTE:  doesn't use SVF-specified state paths */
-					jtag_add_plain_ir_scan(field.num_bits,
-							field.out_value,
-							field.in_value,
-							svf_para.ir_end_state);
-				}
-
-				svf_buffer_index += (i + 7) >> 3;
-			}
+			retval = svf_xxr_common(argus, num_of_argu, command, xxr_para_tmp);
+			if (retval != ERROR_OK)
+				return retval;
 			break;
 		case PIO:
 		case PIOMAP:
