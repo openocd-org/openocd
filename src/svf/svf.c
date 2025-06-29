@@ -1279,8 +1279,6 @@ static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 	/* for RUNTEST */
 	int run_count;
 	float min_time;
-	/* for XXR */
-	struct svf_xxr_para *xxr_para_tmp;
 	/* for STATE */
 	enum tap_state *path = NULL, state;
 	/* flag padding commands skipped due to -tap command */
@@ -1351,37 +1349,44 @@ static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 				padding_command_skipped = 1;
 				break;
 			}
-			xxr_para_tmp = &svf_para.hdr_para;
-			goto xxr_common;
+			retval = svf_xxr_common(argus, num_of_argu, command, &svf_para.hdr_para);
+			if (retval != ERROR_OK)
+				return retval;
+			break;
 		case HIR:
 			if (svf_tap_is_specified) {
 				padding_command_skipped = 1;
 				break;
 			}
-			xxr_para_tmp = &svf_para.hir_para;
-			goto xxr_common;
+			retval = svf_xxr_common(argus, num_of_argu, command, &svf_para.hir_para);
+			if (retval != ERROR_OK)
+				return retval;
+			break;
 		case TDR:
 			if (svf_tap_is_specified) {
 				padding_command_skipped = 1;
 				break;
 			}
-			xxr_para_tmp = &svf_para.tdr_para;
-			goto xxr_common;
+			retval = svf_xxr_common(argus, num_of_argu, command, &svf_para.tdr_para);
+			if (retval != ERROR_OK)
+				return retval;
+			break;
 		case TIR:
 			if (svf_tap_is_specified) {
 				padding_command_skipped = 1;
 				break;
 			}
-			xxr_para_tmp = &svf_para.tir_para;
-			goto xxr_common;
+			retval = svf_xxr_common(argus, num_of_argu, command, &svf_para.tir_para);
+			if (retval != ERROR_OK)
+				return retval;
+			break;
 		case SDR:
-			xxr_para_tmp = &svf_para.sdr_para;
-			goto xxr_common;
+			retval = svf_xxr_common(argus, num_of_argu, command, &svf_para.sdr_para);
+			if (retval != ERROR_OK)
+				return retval;
+			break;
 		case SIR:
-			xxr_para_tmp = &svf_para.sir_para;
-			goto xxr_common;
-xxr_common:
-			retval = svf_xxr_common(argus, num_of_argu, command, xxr_para_tmp);
+			retval = svf_xxr_common(argus, num_of_argu, command, &svf_para.sir_para);
 			if (retval != ERROR_OK)
 				return retval;
 			break;
