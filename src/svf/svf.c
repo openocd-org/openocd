@@ -780,7 +780,8 @@ static int svf_read_command_from_file(FILE *fd)
 
 static int svf_parse_cmd_string(char *str, int len, char **argus, int *num_of_argu)
 {
-	int pos = 0, num = 0, space_found = 1, in_bracket = 0;
+	bool space_found = true, in_bracket = false;
+	int pos = 0, num = 0;
 
 	while (pos < len) {
 		switch (str[pos]) {
@@ -789,22 +790,23 @@ static int svf_parse_cmd_string(char *str, int len, char **argus, int *num_of_ar
 				LOG_ERROR("fail to parse svf command");
 				return ERROR_FAIL;
 			case '(':
-				in_bracket = 1;
-				goto parse_char;
+				in_bracket = true;
+				break;
 			case ')':
-				in_bracket = 0;
-				goto parse_char;
+				in_bracket = false;
+				break;
 			default:
-parse_char:
-				if (!in_bracket && isspace((int) str[pos])) {
-					space_found = 1;
-					str[pos] = '\0';
-				} else if (space_found) {
-					argus[num++] = &str[pos];
-					space_found = 0;
-				}
 				break;
 		}
+
+		if (!in_bracket && isspace((int)str[pos])) {
+			space_found = true;
+			str[pos] = '\0';
+		} else if (space_found) {
+			argus[num++] = &str[pos];
+			space_found = false;
+		}
+
 		pos++;
 	}
 
