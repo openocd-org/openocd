@@ -155,7 +155,7 @@ struct adapter_driver *adapter_drivers[] = {
 #if BUILD_XDS110 == 1
 		&xds110_adapter_driver,
 #endif
-#if BUILD_XLNX_PCIE_XVC == 1
+#if BUILD_XLNX_XVC == 1
 		&xlnx_pcie_xvc_adapter_driver,
 #endif
 

@@ -179,8 +179,8 @@ endif
 if LINUXSPIDEV
 DRIVERFILES += %D%/linuxspidev.c
 endif
-if XLNX_PCIE_XVC
-DRIVERFILES += %D%/xlnx-pcie-xvc.c
+if XLNX_XVC
+DRIVERFILES += %D%/xlnx-xvc.c
 endif
 if BCM2835GPIO
 DRIVERFILES += %D%/bcm2835gpio.c

@@ -178,7 +178,7 @@ m4_define([LIBJAYLINK_ADAPTERS],
 	[[[jlink], [SEGGER J-Link Programmer], [JLINK]]])
 
 m4_define([PCIE_ADAPTERS],
-	[[[xlnx_pcie_xvc], [Xilinx XVC/PCIe], [XLNX_PCIE_XVC]]])
+	[[[xlnx_pcie_xvc], [Xilinx XVC/PCIe], [XLNX_XVC]]])
 
 m4_define([SERIAL_PORT_ADAPTERS],
 	[[[buspirate], [Bus Pirate], [BUS_PIRATE]]])
