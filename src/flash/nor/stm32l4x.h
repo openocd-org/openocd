@@ -69,6 +69,9 @@
 #define FLASH_U5_DUALBANK		BIT(21)
 #define FLASH_TZEN				BIT(31)
 
+/* FLASH_WRPxyR register bits */
+#define FLASH_WRPXYR_UNLOCK		BIT(31)
+
 /* FLASH secure block based bank 1/2 register offsets */
 #define FLASH_SECBB1(X) (0x80 + 4 * (X - 1))
 #define FLASH_SECBB2(X) (0xA0 + 4 * (X - 1))

@@ -152,6 +152,9 @@
 /* this flag indicates that programming should be done in quad-word
  * the default programming word size is double-word */
 #define F_QUAD_WORD_PROG    BIT(4)
+/* the registers WRPxyR have UNLOCK bit - writing zero locks the write
+ * protection region permanently! */
+#define F_WRP_HAS_LOCK		BIT(5)
 /* end of STM32L4 flags ******************************************************/
 
 
@@ -500,7 +503,8 @@ static const struct stm32l4_part_info stm32l4_parts[] = {
 	  .num_revs              = ARRAY_SIZE(stm32u53_u54xx_revs),
 	  .device_str            = "STM32U535/U545",
 	  .max_flash_size_kb     = 512,
-	  .flags                 = F_HAS_DUAL_BANK | F_QUAD_WORD_PROG | F_HAS_TZ | F_HAS_L5_FLASH_REGS,
+	  .flags                 = F_HAS_DUAL_BANK | F_QUAD_WORD_PROG | F_HAS_TZ
+								| F_HAS_L5_FLASH_REGS | F_WRP_HAS_LOCK,
 	  .flash_regs_base       = 0x40022000,
 	  .fsize_addr            = 0x0BFA07A0,
 	  .otp_base              = 0x0BFA0000,
@@ -692,7 +696,8 @@ static const struct stm32l4_part_info stm32l4_parts[] = {
 	  .num_revs              = ARRAY_SIZE(stm32u59_u5axx_revs),
 	  .device_str            = "STM32U59/U5Axx",
 	  .max_flash_size_kb     = 4096,
-	  .flags                 = F_HAS_DUAL_BANK | F_QUAD_WORD_PROG | F_HAS_TZ | F_HAS_L5_FLASH_REGS,
+	  .flags                 = F_HAS_DUAL_BANK | F_QUAD_WORD_PROG | F_HAS_TZ
+								| F_HAS_L5_FLASH_REGS | F_WRP_HAS_LOCK,
 	  .flash_regs_base       = 0x40022000,
 	  .fsize_addr            = 0x0BFA07A0,
 	  .otp_base              = 0x0BFA0000,
@@ -704,7 +709,8 @@ static const struct stm32l4_part_info stm32l4_parts[] = {
 	  .num_revs              = ARRAY_SIZE(stm32u57_u58xx_revs),
 	  .device_str            = "STM32U57/U58xx",
 	  .max_flash_size_kb     = 2048,
-	  .flags                 = F_HAS_DUAL_BANK | F_QUAD_WORD_PROG | F_HAS_TZ | F_HAS_L5_FLASH_REGS,
+	  .flags                 = F_HAS_DUAL_BANK | F_QUAD_WORD_PROG | F_HAS_TZ
+								| F_HAS_L5_FLASH_REGS | F_WRP_HAS_LOCK,
 	  .flash_regs_base       = 0x40022000,
 	  .fsize_addr            = 0x0BFA07A0,
 	  .otp_base              = 0x0BFA0000,
@@ -716,7 +722,8 @@ static const struct stm32l4_part_info stm32l4_parts[] = {
 	  .num_revs              = ARRAY_SIZE(stm32u5f_u5gxx_revs),
 	  .device_str            = "STM32U5F/U5Gxx",
 	  .max_flash_size_kb     = 4096,
-	  .flags                 = F_HAS_DUAL_BANK | F_QUAD_WORD_PROG | F_HAS_TZ | F_HAS_L5_FLASH_REGS,
+	  .flags                 = F_HAS_DUAL_BANK | F_QUAD_WORD_PROG | F_HAS_TZ
+								| F_HAS_L5_FLASH_REGS | F_WRP_HAS_LOCK,
 	  .flash_regs_base       = 0x40022000,
 	  .fsize_addr            = 0x0BFA07A0,
 	  .otp_base              = 0x0BFA0000,
@@ -1287,6 +1294,8 @@ static int stm32l4_write_one_wrpxy(struct flash_bank *bank, struct stm32l4_wrp *
 	int wrp_end = wrpxy->last - wrpxy->offset;
 
 	uint32_t wrp_value = (wrp_start & stm32l4_info->wrpxxr_mask) | ((wrp_end & stm32l4_info->wrpxxr_mask) << 16);
+	if (stm32l4_info->part_info->flags & F_WRP_HAS_LOCK)
+		wrp_value |= FLASH_WRPXYR_UNLOCK;
 
 	return stm32l4_write_option(bank, stm32l4_info->flash_regs[wrpxy->reg_idx], wrp_value, 0xffffffff);
 }
