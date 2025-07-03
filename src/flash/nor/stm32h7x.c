@@ -9,6 +9,7 @@
 
 #include "imp.h"
 #include <helper/binarybuffer.h>
+#include <helper/bits.h>
 #include <target/algorithm.h>
 #include <target/cortex_m.h>
 
@@ -55,45 +56,45 @@ static const uint32_t stm32h7_flash_regs[STM32_FLASH_REG_INDEX_NUM] = {
 };
 
 /* FLASH_CR register bits */
-#define FLASH_LOCK     (1 << 0)
-#define FLASH_PG       (1 << 1)
-#define FLASH_SER      (1 << 2)
-#define FLASH_BER      (1 << 3)
+#define FLASH_LOCK     BIT(0)
+#define FLASH_PG       BIT(1)
+#define FLASH_SER      BIT(2)
+#define FLASH_BER      BIT(3)
 #define FLASH_PSIZE_8  (0 << 4)
 #define FLASH_PSIZE_16 (1 << 4)
 #define FLASH_PSIZE_32 (2 << 4)
 #define FLASH_PSIZE_64 (3 << 4)
-#define FLASH_FW       (1 << 6)
-#define FLASH_START    (1 << 7)
+#define FLASH_FW       BIT(6)
+#define FLASH_START    BIT(7)
 
 /* FLASH_SR register bits */
-#define FLASH_BSY      (1 << 0)  /* Operation in progress */
-#define FLASH_QW       (1 << 2)  /* Operation queue in progress */
-#define FLASH_WRPERR   (1 << 17) /* Write protection error */
-#define FLASH_PGSERR   (1 << 18) /* Programming sequence error */
-#define FLASH_STRBERR  (1 << 19) /* Strobe error */
-#define FLASH_INCERR   (1 << 21) /* Inconsistency error */
-#define FLASH_OPERR    (1 << 22) /* Operation error */
-#define FLASH_RDPERR   (1 << 23) /* Read Protection error */
-#define FLASH_RDSERR   (1 << 24) /* Secure Protection error */
-#define FLASH_SNECCERR (1 << 25) /* Single ECC error */
-#define FLASH_DBECCERR (1 << 26) /* Double ECC error */
+#define FLASH_BSY      BIT(0)  /* Operation in progress */
+#define FLASH_QW       BIT(2)  /* Operation queue in progress */
+#define FLASH_WRPERR   BIT(17) /* Write protection error */
+#define FLASH_PGSERR   BIT(18) /* Programming sequence error */
+#define FLASH_STRBERR  BIT(19) /* Strobe error */
+#define FLASH_INCERR   BIT(21) /* Inconsistency error */
+#define FLASH_OPERR    BIT(22) /* Operation error */
+#define FLASH_RDPERR   BIT(23) /* Read Protection error */
+#define FLASH_RDSERR   BIT(24) /* Secure Protection error */
+#define FLASH_SNECCERR BIT(25) /* Single ECC error */
+#define FLASH_DBECCERR BIT(26) /* Double ECC error */
 
 #define FLASH_ERROR (FLASH_WRPERR | FLASH_PGSERR | FLASH_STRBERR | FLASH_INCERR | FLASH_OPERR | \
 					 FLASH_RDPERR | FLASH_RDSERR | FLASH_SNECCERR | FLASH_DBECCERR)
 
 /* FLASH_OPTCR register bits */
-#define OPT_LOCK       (1 << 0)
-#define OPT_START      (1 << 1)
+#define OPT_LOCK       BIT(0)
+#define OPT_START      BIT(1)
 
 /* FLASH_OPTSR register bits */
-#define OPT_BSY        (1 << 0)
+#define OPT_BSY        BIT(0)
 #define OPT_RDP_POS    8
 #define OPT_RDP_MASK   (0xff << OPT_RDP_POS)
-#define OPT_OPTCHANGEERR (1 << 30)
+#define OPT_OPTCHANGEERR BIT(30)
 
 /* FLASH_OPTCCR register bits */
-#define OPT_CLR_OPTCHANGEERR (1 << 30)
+#define OPT_CLR_OPTCHANGEERR BIT(30)
 
 /* register unlock keys */
 #define KEY1           0x45670123
