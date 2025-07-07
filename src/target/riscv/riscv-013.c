@@ -2610,8 +2610,8 @@ static int sample_memory_bus_v1(struct target *target,
 {
 	RISCV013_INFO(info);
 	unsigned int sbasize = get_field(info->sbcs, DM_SBCS_SBASIZE);
-	if (sbasize > 64) {
-		LOG_TARGET_ERROR(target, "Memory sampling is only implemented for sbasize <= 64.");
+	if (sbasize == 0 || sbasize > 64) {
+		LOG_TARGET_ERROR(target, "Memory sampling is only implemented for non-zero sbasize <= 64.");
 		return ERROR_NOT_IMPLEMENTED;
 	}
 
