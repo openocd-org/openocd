@@ -428,7 +428,7 @@ static bool usb_connect(void)
 
 	/* Log the results */
 	if (result == 0)
-		LOG_INFO("XDS110: connected");
+		LOG_DEBUG("XDS110: connected");
 	else
 		LOG_ERROR("XDS110: failed to connect");
 
@@ -448,7 +448,7 @@ static void usb_disconnect(void)
 		xds110.ctx = NULL;
 	}
 
-	LOG_INFO("XDS110: disconnected");
+	LOG_DEBUG("XDS110: disconnected");
 }
 
 static bool usb_read(unsigned char *buffer, int size, int *bytes_read,
