@@ -37,12 +37,12 @@ static int read_rtt_channel(struct target *target,
 		return ret;
 
 	channel->address = address;
-	channel->name_addr = buf_get_u32(buf + 0, 0, 32);
-	channel->buffer_addr = buf_get_u32(buf + 4, 0, 32);
-	channel->size = buf_get_u32(buf + 8, 0, 32);
-	channel->write_pos = buf_get_u32(buf + 12, 0, 32);
-	channel->read_pos = buf_get_u32(buf + 16, 0, 32);
-	channel->flags = buf_get_u32(buf + 20, 0, 32);
+	channel->name_addr = target_buffer_get_u32(target, buf + 0);
+	channel->buffer_addr = target_buffer_get_u32(target, buf + 4);
+	channel->size = target_buffer_get_u32(target, buf + 8);
+	channel->write_pos = target_buffer_get_u32(target, buf + 12);
+	channel->read_pos = target_buffer_get_u32(target, buf + 16);
+	channel->flags = target_buffer_get_u32(target, buf + 20);
 
 	return ERROR_OK;
 }
@@ -230,10 +230,8 @@ int target_rtt_read_control_block(struct target *target,
 
 	memcpy(ctrl->id, buf, RTT_CB_MAX_ID_LENGTH);
 	ctrl->id[RTT_CB_MAX_ID_LENGTH - 1] = '\0';
-	ctrl->num_up_channels = buf_get_u32(buf + RTT_CB_MAX_ID_LENGTH + 0,
-		0, 32);
-	ctrl->num_down_channels = buf_get_u32(buf + RTT_CB_MAX_ID_LENGTH + 4,
-		0, 32);
+	ctrl->num_up_channels = target_buffer_get_u32(target, buf + RTT_CB_MAX_ID_LENGTH + 0);
+	ctrl->num_down_channels = target_buffer_get_u32(target, buf + RTT_CB_MAX_ID_LENGTH + 4);
 
 	return ERROR_OK;
 }
