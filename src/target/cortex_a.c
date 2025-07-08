@@ -109,13 +109,13 @@ static int cortex_a_restore_cp15_control_reg(struct target *target)
  * If !phys_access, switch to SVC mode and make sure MMU is on
  * If phys_access, switch off mmu
  */
-static int cortex_a_prep_memaccess(struct target *target, int phys_access)
+static int cortex_a_prep_memaccess(struct target *target, bool phys_access)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct cortex_a_common *cortex_a = target_to_cortex_a(target);
 	bool mmu_enabled = false;
 
-	if (phys_access == 0) {
+	if (!phys_access) {
 		arm_dpm_modeswitch(&armv7a->dpm, ARM_MODE_SVC);
 		cortex_a_mmu(target, &mmu_enabled);
 		if (mmu_enabled)
@@ -139,12 +139,12 @@ static int cortex_a_prep_memaccess(struct target *target, int phys_access)
  * If !phys_access, switch to previous mode
  * If phys_access, restore MMU setting
  */
-static int cortex_a_post_memaccess(struct target *target, int phys_access)
+static int cortex_a_post_memaccess(struct target *target, bool phys_access)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct cortex_a_common *cortex_a = target_to_cortex_a(target);
 
-	if (phys_access == 0) {
+	if (!phys_access) {
 		if (cortex_a->dacrfixup_mode == CORTEX_A_DACRFIXUP_ON) {
 			/* restore */
 			armv7a->arm.mcr(target, 15,
@@ -2770,9 +2770,9 @@ static int cortex_a_read_phys_memory(struct target *target,
 		address, size, count);
 
 	/* read memory through the CPU */
-	cortex_a_prep_memaccess(target, 1);
+	cortex_a_prep_memaccess(target, true);
 	retval = cortex_a_read_cpu_memory(target, address, size, count, buffer);
-	cortex_a_post_memaccess(target, 1);
+	cortex_a_post_memaccess(target, true);
 
 	return retval;
 }
@@ -2786,9 +2786,9 @@ static int cortex_a_read_memory(struct target *target, target_addr_t address,
 	LOG_DEBUG("Reading memory at address " TARGET_ADDR_FMT "; size %" PRIu32 "; count %" PRIu32,
 		address, size, count);
 
-	cortex_a_prep_memaccess(target, 0);
+	cortex_a_prep_memaccess(target, false);
 	retval = cortex_a_read_cpu_memory(target, address, size, count, buffer);
-	cortex_a_post_memaccess(target, 0);
+	cortex_a_post_memaccess(target, false);
 
 	return retval;
 }
@@ -2806,9 +2806,9 @@ static int cortex_a_write_phys_memory(struct target *target,
 		address, size, count);
 
 	/* write memory through the CPU */
-	cortex_a_prep_memaccess(target, 1);
+	cortex_a_prep_memaccess(target, true);
 	retval = cortex_a_write_cpu_memory(target, address, size, count, buffer);
-	cortex_a_post_memaccess(target, 1);
+	cortex_a_post_memaccess(target, true);
 
 	return retval;
 }
@@ -2822,9 +2822,9 @@ static int cortex_a_write_memory(struct target *target, target_addr_t address,
 	LOG_DEBUG("Writing memory at address " TARGET_ADDR_FMT "; size %" PRIu32 "; count %" PRIu32,
 		address, size, count);
 
-	cortex_a_prep_memaccess(target, 0);
+	cortex_a_prep_memaccess(target, false);
 	retval = cortex_a_write_cpu_memory(target, address, size, count, buffer);
-	cortex_a_post_memaccess(target, 0);
+	cortex_a_post_memaccess(target, false);
 	return retval;
 }
 
