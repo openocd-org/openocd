@@ -156,8 +156,8 @@ struct armv8_cache_common {
 	uint32_t iminline;
 	uint32_t dminline;
 	struct armv8_arch_cache arch[6];	/* cache info, L1 - L7 */
-	int i_cache_enabled;
-	int d_u_cache_enabled;
+	bool i_cache_enabled;
+	bool d_u_cache_enabled;
 
 	/* l2 external unified cache if some */
 	void *l2_cache;

@@ -199,8 +199,9 @@ static int arm720t_post_debug_entry(struct target *target)
 	LOG_DEBUG("cp15_control_reg: %8.8" PRIx32 "", arm720t->cp15_control_reg);
 
 	arm720t->armv4_5_mmu.mmu_enabled = arm720t->cp15_control_reg & 0x1U;
-	arm720t->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled = (arm720t->cp15_control_reg & 0x4U) ? 1 : 0;
-	arm720t->armv4_5_mmu.armv4_5_cache.i_cache_enabled = 0;
+	arm720t->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled =
+		arm720t->cp15_control_reg & 0x4U;
+	arm720t->armv4_5_mmu.armv4_5_cache.i_cache_enabled = false;
 
 	/* save i/d fault status and address register */
 	retval = arm720t_read_cp15(target, 0xee150f10, &arm720t->fsr_reg);
@@ -355,8 +356,8 @@ static int arm720t_soft_reset_halt(struct target *target)
 	if (retval != ERROR_OK)
 		return retval;
 	arm720t->armv4_5_mmu.mmu_enabled = false;
-	arm720t->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled = 0;
-	arm720t->armv4_5_mmu.armv4_5_cache.i_cache_enabled = 0;
+	arm720t->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled = false;
+	arm720t->armv4_5_mmu.armv4_5_cache.i_cache_enabled = false;
 
 	retval = target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 	if (retval != ERROR_OK)

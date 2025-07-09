@@ -1127,9 +1127,9 @@ static int cortex_a_post_debug_entry(struct target *target)
 		armv7a->armv7a_mmu.mmu_enabled = cortex_a->cp15_control_reg & 0x1U;
 	}
 	armv7a->armv7a_mmu.armv7a_cache.d_u_cache_enabled =
-		(cortex_a->cp15_control_reg & 0x4U) ? 1 : 0;
+		cortex_a->cp15_control_reg & 0x4U;
 	armv7a->armv7a_mmu.armv7a_cache.i_cache_enabled =
-		(cortex_a->cp15_control_reg & 0x1000U) ? 1 : 0;
+		cortex_a->cp15_control_reg & 0x1000U;
 	cortex_a->curr_mode = armv7a->arm.core_mode;
 
 	/* switch to SVC mode to read DACR */

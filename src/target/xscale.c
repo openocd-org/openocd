@@ -984,9 +984,9 @@ static int xscale_debug_entry(struct target *target)
 		buf_get_u32(xscale->reg_cache->reg_list[XSCALE_CTRL].value, 0, 32);
 	xscale->armv4_5_mmu.mmu_enabled = xscale->cp15_control_reg & 0x1U;
 	xscale->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled =
-		(xscale->cp15_control_reg & 0x4U) ? 1 : 0;
+		xscale->cp15_control_reg & 0x4U;
 	xscale->armv4_5_mmu.armv4_5_cache.i_cache_enabled =
-		(xscale->cp15_control_reg & 0x1000U) ? 1 : 0;
+		xscale->cp15_control_reg & 0x1000U;
 
 	/* tracing enabled, read collected trace data */
 	if (xscale->trace.mode != XSCALE_TRACE_DISABLED) {

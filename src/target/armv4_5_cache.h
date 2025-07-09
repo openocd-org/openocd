@@ -24,8 +24,8 @@ struct armv4_5_cache_common {
 	int separate;	/* separate caches or unified cache */
 	struct armv4_5_cachesize d_u_size;	/* data cache */
 	struct armv4_5_cachesize i_size; /* instruction cache */
-	int i_cache_enabled;
-	int d_u_cache_enabled;
+	bool i_cache_enabled;
+	bool d_u_cache_enabled;
 };
 
 int armv4_5_identify_cache(uint32_t cache_type_reg,

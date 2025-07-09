@@ -441,8 +441,10 @@ static int arm926ejs_post_debug_entry(struct target *target)
 	}
 
 	arm926ejs->armv4_5_mmu.mmu_enabled = arm926ejs->cp15_control_reg & 0x1U;
-	arm926ejs->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled = (arm926ejs->cp15_control_reg & 0x4U) ? 1 : 0;
-	arm926ejs->armv4_5_mmu.armv4_5_cache.i_cache_enabled = (arm926ejs->cp15_control_reg & 0x1000U) ? 1 : 0;
+	arm926ejs->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled =
+		arm926ejs->cp15_control_reg & 0x4U;
+	arm926ejs->armv4_5_mmu.armv4_5_cache.i_cache_enabled =
+		arm926ejs->cp15_control_reg & 0x1000U;
 
 	/* save i/d fault status and address register */
 	retval = arm926ejs->read_cp15(target, 0, 0, 5, 0, &arm926ejs->d_fsr);
@@ -576,8 +578,8 @@ int arm926ejs_soft_reset_halt(struct target *target)
 	if (retval != ERROR_OK)
 		return retval;
 	arm926ejs->armv4_5_mmu.mmu_enabled = false;
-	arm926ejs->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled = 0;
-	arm926ejs->armv4_5_mmu.armv4_5_cache.i_cache_enabled = 0;
+	arm926ejs->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled = false;
+	arm926ejs->armv4_5_mmu.armv4_5_cache.i_cache_enabled = false;
 
 	return target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 }

@@ -427,9 +427,9 @@ int arm920t_post_debug_entry(struct target *target)
 
 	arm920t->armv4_5_mmu.mmu_enabled = arm920t->cp15_control_reg & 0x1U;
 	arm920t->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled =
-		(arm920t->cp15_control_reg & 0x4U) ? 1 : 0;
+		arm920t->cp15_control_reg & 0x4U;
 	arm920t->armv4_5_mmu.armv4_5_cache.i_cache_enabled =
-		(arm920t->cp15_control_reg & 0x1000U) ? 1 : 0;
+		arm920t->cp15_control_reg & 0x1000U;
 
 	/* save i/d fault status and address register
 	 * FIXME use opcode macros */
@@ -778,8 +778,8 @@ int arm920t_soft_reset_halt(struct target *target)
 
 	arm920t_disable_mmu_caches(target, 1, 1, 1);
 	arm920t->armv4_5_mmu.mmu_enabled = false;
-	arm920t->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled = 0;
-	arm920t->armv4_5_mmu.armv4_5_cache.i_cache_enabled = 0;
+	arm920t->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled = false;
+	arm920t->armv4_5_mmu.armv4_5_cache.i_cache_enabled = false;
 
 	return target_call_event_callbacks(target, TARGET_EVENT_HALTED);
 }

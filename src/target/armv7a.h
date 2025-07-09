@@ -63,8 +63,8 @@ struct armv7a_cache_common {
 	uint32_t dminline;			/* minimum d-cache linelen */
 	uint32_t iminline;			/* minimum i-cache linelen */
 	struct armv7a_arch_cache arch[6];	/* cache info, L1 - L7 */
-	int i_cache_enabled;
-	int d_u_cache_enabled;
+	bool i_cache_enabled;
+	bool d_u_cache_enabled;
 	/* outer unified cache if some */
 	struct armv7a_l2x_cache *outer_cache;
 	int (*flush_all_data_cache)(struct target *target);
