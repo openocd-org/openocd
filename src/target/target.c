@@ -650,9 +650,9 @@ static int identity_virt2phys(struct target *target,
 	return ERROR_OK;
 }
 
-static int no_mmu(struct target *target, int *enabled)
+static int no_mmu(struct target *target, bool *enabled)
 {
-	*enabled = 0;
+	*enabled = false;
 	return ERROR_OK;
 }
 
@@ -1978,7 +1978,7 @@ int target_alloc_working_area_try(struct target *target, uint32_t size, struct w
 	/* Reevaluate working area address based on MMU state*/
 	if (!target->working_areas) {
 		int retval;
-		int enabled;
+		bool enabled;
 
 		retval = target->type->mmu(target, &enabled);
 		if (retval != ERROR_OK)

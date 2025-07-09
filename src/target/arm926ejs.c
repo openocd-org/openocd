@@ -749,7 +749,7 @@ static int arm926ejs_virt2phys(struct target *target, target_addr_t virtual, tar
 	return ERROR_OK;
 }
 
-static int arm926ejs_mmu(struct target *target, int *enabled)
+static int arm926ejs_mmu(struct target *target, bool *enabled)
 {
 	struct arm926ejs_common *arm926ejs = target_to_arm926(target);
 

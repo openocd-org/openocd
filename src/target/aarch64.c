@@ -50,7 +50,7 @@ static int aarch64_set_hybrid_breakpoint(struct target *target,
 	struct breakpoint *breakpoint);
 static int aarch64_unset_breakpoint(struct target *target,
 	struct breakpoint *breakpoint);
-static int aarch64_mmu(struct target *target, int *enabled);
+static int aarch64_mmu(struct target *target, bool *enabled);
 static int aarch64_virt2phys(struct target *target,
 	target_addr_t virt, target_addr_t *phys);
 static int aarch64_read_cpu_memory(struct target *target,
@@ -2528,7 +2528,7 @@ static int aarch64_read_phys_memory(struct target *target,
 static int aarch64_read_memory(struct target *target, target_addr_t address,
 	uint32_t size, uint32_t count, uint8_t *buffer)
 {
-	int mmu_enabled = 0;
+	bool mmu_enabled = false;
 	int retval;
 
 	/* determine if MMU was enabled on target stop */
@@ -2565,7 +2565,7 @@ static int aarch64_write_phys_memory(struct target *target,
 static int aarch64_write_memory(struct target *target, target_addr_t address,
 	uint32_t size, uint32_t count, const uint8_t *buffer)
 {
-	int mmu_enabled = 0;
+	bool mmu_enabled = false;
 	int retval;
 
 	/* determine if MMU was enabled on target stop */
@@ -2876,7 +2876,7 @@ static void aarch64_deinit_target(struct target *target)
 	free(aarch64);
 }
 
-static int aarch64_mmu(struct target *target, int *enabled)
+static int aarch64_mmu(struct target *target, bool *enabled)
 {
 	struct aarch64_common *aarch64 = target_to_aarch64(target);
 	struct armv8_common *armv8 = &aarch64->armv8_common;
@@ -2885,7 +2885,7 @@ static int aarch64_mmu(struct target *target, int *enabled)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 	if (armv8->is_armv8r)
-		*enabled = 0;
+		*enabled = false;
 	else
 		*enabled = target_to_aarch64(target)->armv8_common.armv8_mmu.mmu_enabled;
 	return ERROR_OK;

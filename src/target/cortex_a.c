@@ -68,7 +68,7 @@ static int cortex_a_unset_breakpoint(struct target *target,
 	struct breakpoint *breakpoint);
 static int cortex_a_wait_dscr_bits(struct target *target, uint32_t mask,
 	uint32_t value, uint32_t *dscr);
-static int cortex_a_mmu(struct target *target, int *enabled);
+static int cortex_a_mmu(struct target *target, bool *enabled);
 static int cortex_a_mmu_modify(struct target *target, int enable);
 static int cortex_a_virt2phys(struct target *target,
 	target_addr_t virt, target_addr_t *phys);
@@ -113,7 +113,7 @@ static int cortex_a_prep_memaccess(struct target *target, int phys_access)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct cortex_a_common *cortex_a = target_to_cortex_a(target);
-	int mmu_enabled = 0;
+	bool mmu_enabled = false;
 
 	if (phys_access == 0) {
 		arm_dpm_modeswitch(&armv7a->dpm, ARM_MODE_SVC);
@@ -153,7 +153,7 @@ static int cortex_a_post_memaccess(struct target *target, int phys_access)
 		}
 		arm_dpm_modeswitch(&armv7a->dpm, ARM_MODE_ANY);
 	} else {
-		int mmu_enabled = 0;
+		bool mmu_enabled = false;
 		cortex_a_mmu(target, &mmu_enabled);
 		if (mmu_enabled)
 			cortex_a_mmu_modify(target, 1);
@@ -3249,7 +3249,7 @@ static void cortex_a_deinit_target(struct target *target)
 	free(cortex_a);
 }
 
-static int cortex_a_mmu(struct target *target, int *enabled)
+static int cortex_a_mmu(struct target *target, bool *enabled)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 
@@ -3259,7 +3259,7 @@ static int cortex_a_mmu(struct target *target, int *enabled)
 	}
 
 	if (armv7a->is_armv7r)
-		*enabled = 0;
+		*enabled = false;
 	else
 		*enabled = target_to_cortex_a(target)->armv7a_common.armv7a_mmu.mmu_enabled;
 
@@ -3270,7 +3270,7 @@ static int cortex_a_virt2phys(struct target *target,
 	target_addr_t virt, target_addr_t *phys)
 {
 	int retval;
-	int mmu_enabled = 0;
+	bool mmu_enabled = false;
 
 	/*
 	 * If the MMU was not enabled at debug entry, there is no

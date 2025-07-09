@@ -392,7 +392,7 @@ int xtensa_step(struct target *target, bool current, target_addr_t address,
 		bool handle_breakpoints);
 int xtensa_do_step(struct target *target, bool current, target_addr_t address,
 		bool handle_breakpoints);
-int xtensa_mmu_is_enabled(struct target *target, int *enabled);
+int xtensa_mmu_is_enabled(struct target *target, bool *enabled);
 int xtensa_read_memory(struct target *target, target_addr_t address, uint32_t size, uint32_t count, uint8_t *buffer);
 int xtensa_read_buffer(struct target *target, target_addr_t address, uint32_t count, uint8_t *buffer);
 int xtensa_write_memory(struct target *target,

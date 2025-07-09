@@ -1556,7 +1556,7 @@ int xtensa_get_gdb_reg_list(struct target *target,
 	return ERROR_OK;
 }
 
-int xtensa_mmu_is_enabled(struct target *target, int *enabled)
+int xtensa_mmu_is_enabled(struct target *target, bool *enabled)
 {
 	struct xtensa *xtensa = target_to_xtensa(target);
 	*enabled = xtensa->core_config->mmu.itlb_entries_count > 0 ||

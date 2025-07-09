@@ -96,7 +96,7 @@ int x86_32_common_init_arch_info(struct target *t, struct x86_32_common *x86_32)
 	return ERROR_OK;
 }
 
-int x86_32_common_mmu(struct target *t, int *enabled)
+int x86_32_common_mmu(struct target *t, bool *enabled)
 {
 	*enabled = true;
 	return ERROR_OK;

@@ -529,7 +529,7 @@ int arm920t_arch_state(struct target *target)
 	return ERROR_OK;
 }
 
-static int arm920_mmu(struct target *target, int *enabled)
+static int arm920_mmu(struct target *target, bool *enabled)
 {
 	if (target->state != TARGET_HALTED) {
 		LOG_TARGET_ERROR(target, "not halted");

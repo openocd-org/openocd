@@ -1520,10 +1520,10 @@ static int riscv_target_resume(struct target *target, bool current,
 			debug_execution, false);
 }
 
-static int riscv_mmu(struct target *target, int *enabled)
+static int riscv_mmu(struct target *target, bool *enabled)
 {
 	if (!riscv_enable_virt2phys) {
-		*enabled = 0;
+		*enabled = false;
 		return ERROR_OK;
 	}
 
@@ -1542,7 +1542,7 @@ static int riscv_mmu(struct target *target, int *enabled)
 
 	if ((get_field(mstatus, MSTATUS_MPRV) ? get_field(mstatus, MSTATUS_MPP) : priv) == PRV_M) {
 		LOG_DEBUG("SATP/MMU ignored in Machine mode (mstatus=0x%" PRIx64 ").", mstatus);
-		*enabled = 0;
+		*enabled = false;
 		return ERROR_OK;
 	}
 
@@ -1550,16 +1550,16 @@ static int riscv_mmu(struct target *target, int *enabled)
 	if (riscv_get_register(target, &satp, GDB_REGNO_SATP) != ERROR_OK) {
 		LOG_DEBUG("Couldn't read SATP.");
 		/* If we can't read SATP, then there must not be an MMU. */
-		*enabled = 0;
+		*enabled = false;
 		return ERROR_OK;
 	}
 
 	if (get_field(satp, RISCV_SATP_MODE(riscv_xlen(target))) == SATP_MODE_OFF) {
 		LOG_DEBUG("MMU is disabled.");
-		*enabled = 0;
+		*enabled = false;
 	} else {
 		LOG_DEBUG("MMU is enabled.");
-		*enabled = 1;
+		*enabled = true;
 	}
 
 	return ERROR_OK;
@@ -1674,7 +1674,7 @@ static int riscv_address_translate(struct target *target,
 
 static int riscv_virt2phys(struct target *target, target_addr_t virtual, target_addr_t *physical)
 {
-	int enabled;
+	bool enabled;
 	if (riscv_mmu(target, &enabled) == ERROR_OK) {
 		if (!enabled)
 			return ERROR_FAIL;

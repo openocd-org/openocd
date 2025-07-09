@@ -264,7 +264,7 @@ struct target_type {
 	int (*write_phys_memory)(struct target *target, target_addr_t phys_address,
 			uint32_t size, uint32_t count, const uint8_t *buffer);
 
-	int (*mmu)(struct target *target, int *enabled);
+	int (*mmu)(struct target *target, bool *enabled);
 
 	/* after reset is complete, the target can check if things are properly set up.
 	 *

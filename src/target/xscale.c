@@ -3126,7 +3126,7 @@ static int xscale_virt2phys(struct target *target,
 	return ERROR_OK;
 }
 
-static int xscale_mmu(struct target *target, int *enabled)
+static int xscale_mmu(struct target *target, bool *enabled)
 {
 	struct xscale_common *xscale = target_to_xscale(target);
 

@@ -299,7 +299,7 @@ int x86_32_get_gdb_reg_list(struct target *t,
 			enum target_register_class reg_class);
 int x86_32_common_init_arch_info(struct target *target,
 			struct x86_32_common *x86_32);
-int x86_32_common_mmu(struct target *t, int *enabled);
+int x86_32_common_mmu(struct target *t, bool *enabled);
 int x86_32_common_virt2phys(struct target *t, target_addr_t address, target_addr_t *physical);
 int x86_32_common_read_phys_mem(struct target *t, target_addr_t phys_address,
 			uint32_t size, uint32_t count, uint8_t *buffer);
