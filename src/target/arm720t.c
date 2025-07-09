@@ -198,7 +198,7 @@ static int arm720t_post_debug_entry(struct target *target)
 		return retval;
 	LOG_DEBUG("cp15_control_reg: %8.8" PRIx32 "", arm720t->cp15_control_reg);
 
-	arm720t->armv4_5_mmu.mmu_enabled = (arm720t->cp15_control_reg & 0x1U) ? 1 : 0;
+	arm720t->armv4_5_mmu.mmu_enabled = arm720t->cp15_control_reg & 0x1U;
 	arm720t->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled = (arm720t->cp15_control_reg & 0x4U) ? 1 : 0;
 	arm720t->armv4_5_mmu.armv4_5_cache.i_cache_enabled = 0;
 
@@ -354,7 +354,7 @@ static int arm720t_soft_reset_halt(struct target *target)
 	retval = arm720t_disable_mmu_caches(target, 1, 1, 1);
 	if (retval != ERROR_OK)
 		return retval;
-	arm720t->armv4_5_mmu.mmu_enabled = 0;
+	arm720t->armv4_5_mmu.mmu_enabled = false;
 	arm720t->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled = 0;
 	arm720t->armv4_5_mmu.armv4_5_cache.i_cache_enabled = 0;
 
@@ -407,7 +407,7 @@ static int arm720t_init_arch_info(struct target *target,
 	arm720t->armv4_5_mmu.disable_mmu_caches = arm720t_disable_mmu_caches;
 	arm720t->armv4_5_mmu.enable_mmu_caches = arm720t_enable_mmu_caches;
 	arm720t->armv4_5_mmu.has_tiny_pages = 0;
-	arm720t->armv4_5_mmu.mmu_enabled = 0;
+	arm720t->armv4_5_mmu.mmu_enabled = false;
 
 	return ERROR_OK;
 }

@@ -21,7 +21,7 @@ struct armv4_5_mmu_common {
 	int (*enable_mmu_caches)(struct target *target, int mmu, int d_u_cache, int i_cache);
 	struct armv4_5_cache_common armv4_5_cache;
 	int has_tiny_pages;
-	int mmu_enabled;
+	bool mmu_enabled;
 };
 
 int armv4_5_mmu_translate_va(struct target *target,

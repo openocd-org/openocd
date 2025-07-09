@@ -81,7 +81,7 @@ struct armv7a_mmu_common {
 	int (*read_physical_memory)(struct target *target, target_addr_t address, uint32_t size,
 			uint32_t count, uint8_t *buffer);
 	struct armv7a_cache_common armv7a_cache;
-	uint32_t mmu_enabled;
+	bool mmu_enabled;
 };
 
 struct armv7a_common {

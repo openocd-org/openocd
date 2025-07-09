@@ -440,7 +440,7 @@ static int arm926ejs_post_debug_entry(struct target *target)
 		armv4_5_identify_cache(cache_type_reg, &arm926ejs->armv4_5_mmu.armv4_5_cache);
 	}
 
-	arm926ejs->armv4_5_mmu.mmu_enabled = (arm926ejs->cp15_control_reg & 0x1U) ? 1 : 0;
+	arm926ejs->armv4_5_mmu.mmu_enabled = arm926ejs->cp15_control_reg & 0x1U;
 	arm926ejs->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled = (arm926ejs->cp15_control_reg & 0x4U) ? 1 : 0;
 	arm926ejs->armv4_5_mmu.armv4_5_cache.i_cache_enabled = (arm926ejs->cp15_control_reg & 0x1000U) ? 1 : 0;
 
@@ -575,7 +575,7 @@ int arm926ejs_soft_reset_halt(struct target *target)
 	retval = arm926ejs_disable_mmu_caches(target, 1, 1, 1);
 	if (retval != ERROR_OK)
 		return retval;
-	arm926ejs->armv4_5_mmu.mmu_enabled = 0;
+	arm926ejs->armv4_5_mmu.mmu_enabled = false;
 	arm926ejs->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled = 0;
 	arm926ejs->armv4_5_mmu.armv4_5_cache.i_cache_enabled = 0;
 
@@ -689,7 +689,7 @@ int arm926ejs_init_arch_info(struct target *target, struct arm926ejs_common *arm
 	arm926ejs->armv4_5_mmu.disable_mmu_caches = arm926ejs_disable_mmu_caches;
 	arm926ejs->armv4_5_mmu.enable_mmu_caches = arm926ejs_enable_mmu_caches;
 	arm926ejs->armv4_5_mmu.has_tiny_pages = 1;
-	arm926ejs->armv4_5_mmu.mmu_enabled = 0;
+	arm926ejs->armv4_5_mmu.mmu_enabled = false;
 
 	arm7_9->examine_debug_reason = arm926ejs_examine_debug_reason;
 

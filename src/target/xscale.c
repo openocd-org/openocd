@@ -982,7 +982,7 @@ static int xscale_debug_entry(struct target *target)
 	xscale_get_reg(&xscale->reg_cache->reg_list[XSCALE_CTRL]);
 	xscale->cp15_control_reg =
 		buf_get_u32(xscale->reg_cache->reg_list[XSCALE_CTRL].value, 0, 32);
-	xscale->armv4_5_mmu.mmu_enabled = (xscale->cp15_control_reg & 0x1U) ? 1 : 0;
+	xscale->armv4_5_mmu.mmu_enabled = xscale->cp15_control_reg & 0x1U;
 	xscale->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled =
 		(xscale->cp15_control_reg & 0x4U) ? 1 : 0;
 	xscale->armv4_5_mmu.armv4_5_cache.i_cache_enabled =
@@ -3007,7 +3007,7 @@ static int xscale_init_arch_info(struct target *target,
 	xscale->armv4_5_mmu.disable_mmu_caches = xscale_disable_mmu_caches;
 	xscale->armv4_5_mmu.enable_mmu_caches = xscale_enable_mmu_caches;
 	xscale->armv4_5_mmu.has_tiny_pages = 1;
-	xscale->armv4_5_mmu.mmu_enabled = 0;
+	xscale->armv4_5_mmu.mmu_enabled = false;
 
 	return ERROR_OK;
 }

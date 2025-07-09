@@ -425,8 +425,7 @@ int arm920t_post_debug_entry(struct target *target)
 			&arm920t->armv4_5_mmu.armv4_5_cache);
 	}
 
-	arm920t->armv4_5_mmu.mmu_enabled =
-		(arm920t->cp15_control_reg & 0x1U) ? 1 : 0;
+	arm920t->armv4_5_mmu.mmu_enabled = arm920t->cp15_control_reg & 0x1U;
 	arm920t->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled =
 		(arm920t->cp15_control_reg & 0x4U) ? 1 : 0;
 	arm920t->armv4_5_mmu.armv4_5_cache.i_cache_enabled =
@@ -778,7 +777,7 @@ int arm920t_soft_reset_halt(struct target *target)
 	arm->pc->valid = true;
 
 	arm920t_disable_mmu_caches(target, 1, 1, 1);
-	arm920t->armv4_5_mmu.mmu_enabled = 0;
+	arm920t->armv4_5_mmu.mmu_enabled = false;
 	arm920t->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled = 0;
 	arm920t->armv4_5_mmu.armv4_5_cache.i_cache_enabled = 0;
 
@@ -819,7 +818,7 @@ static int arm920t_init_arch_info(struct target *target,
 	arm920t->armv4_5_mmu.disable_mmu_caches = arm920t_disable_mmu_caches;
 	arm920t->armv4_5_mmu.enable_mmu_caches = arm920t_enable_mmu_caches;
 	arm920t->armv4_5_mmu.has_tiny_pages = 1;
-	arm920t->armv4_5_mmu.mmu_enabled = 0;
+	arm920t->armv4_5_mmu.mmu_enabled = false;
 
 	/* disabling linefills leads to lockups, so keep them enabled for now
 	 * this doesn't affect correctness, but might affect timing issues, if

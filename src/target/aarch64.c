@@ -1100,10 +1100,9 @@ static int aarch64_post_debug_entry(struct target *target)
 		armv8_read_mpidr(armv8);
 	}
 	if (armv8->is_armv8r) {
-		armv8->armv8_mmu.mmu_enabled = 0;
+		armv8->armv8_mmu.mmu_enabled = false;
 	} else {
-		armv8->armv8_mmu.mmu_enabled =
-			(aarch64->system_control_reg & 0x1U) ? 1 : 0;
+		armv8->armv8_mmu.mmu_enabled = aarch64->system_control_reg & 0x1U;
 	}
 	armv8->armv8_mmu.armv8_cache.d_u_cache_enabled =
 		(aarch64->system_control_reg & 0x4U) ? 1 : 0;

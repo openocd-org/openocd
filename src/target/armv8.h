@@ -179,7 +179,7 @@ struct armv8_mmu_common {
 	int (*read_physical_memory)(struct target *target, target_addr_t address,
 			uint32_t size, uint32_t count, uint8_t *buffer);
 	struct armv8_cache_common armv8_cache;
-	uint32_t mmu_enabled;
+	bool mmu_enabled;
 };
 
 struct armv8_common {
