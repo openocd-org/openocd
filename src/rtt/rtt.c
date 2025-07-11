@@ -288,7 +288,7 @@ int rtt_set_polling_interval(unsigned int interval)
 int rtt_write_channel(unsigned int channel_index, const uint8_t *buffer,
 		size_t *length)
 {
-	if (channel_index >= rtt.ctrl.num_up_channels) {
+	if (channel_index >= rtt.ctrl.num_down_channels) {
 		LOG_WARNING("rtt: Down-channel %u is not available", channel_index);
 		return ERROR_OK;
 	}
