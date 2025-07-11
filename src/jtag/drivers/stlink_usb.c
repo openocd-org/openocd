@@ -4194,7 +4194,7 @@ static int stlink_dap_op_connect(struct adiv5_dap *dap)
 	uint32_t idcode;
 	int retval;
 
-	LOG_INFO("stlink_dap_op_connect(%sconnect)", dap->do_reconnect ? "re" : "");
+	LOG_DEBUG("%s(%sconnect)", __func__, dap->do_reconnect ? "re" : "");
 
 	/* Check if we should reset srst already when connecting, but not if reconnecting. */
 	if (!dap->do_reconnect) {
