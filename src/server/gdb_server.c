@@ -2010,6 +2010,15 @@ static int gdb_memory_map(struct connection *connection,
 				"length=\"0x%x\"/>\n",
 				p->base, p->size);
 		} else {
+			if (p->num_sectors == 0) {
+				xml_printf(&retval, &xml, &pos, &size,
+					"<memory type=\"flash\" "
+						"start=\"" TARGET_ADDR_FMT "\" "
+						"length=\"0x%x\">"
+						"<property name=\"blocksize\">0x%x</property>\n"
+					"</memory>\n", p->base, p->size, p->size);
+			}
+
 			/* Report adjacent groups of same-size sectors.  So for
 			 * example top boot CFI flash will list an initial region
 			 * with several large sectors (maybe 128KB) and several
