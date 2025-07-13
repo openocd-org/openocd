@@ -8486,10 +8486,8 @@ is the register offset of the Option byte to read.
 
 For example to read the FLASH_OPTR register:
 @example
-stm32l4x option_read 0 0x20
-# Option Register (for STM32L4x): <0x40022020> = 0xffeff8aa
-# Option Register (for STM32WBx): <0x58004020> = ...
-# The correct flash base address will be used automatically
+> stm32l4x option_read 0 0x20
+0xffeff8aa
 @end example
 
 The above example will read out the FLASH_OPTR register which contains the RDP

@@ -2441,19 +2441,18 @@ COMMAND_HANDLER(stm32l4_handle_option_read_command)
 	if (retval != ERROR_OK)
 		return retval;
 
-	uint32_t reg_offset, reg_addr;
+	uint32_t reg_offset;
 	uint32_t value = 0;
 
 	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], reg_offset);
-	reg_addr = stm32l4_get_flash_reg(bank, reg_offset);
 
 	retval = stm32l4_read_flash_reg(bank, reg_offset, &value);
 	if (retval != ERROR_OK)
 		return retval;
 
-	command_print(CMD, "Option Register: <0x%" PRIx32 "> = 0x%" PRIx32, reg_addr, value);
+	command_print(CMD, "0x%" PRIx32, value);
 
-	return retval;
+	return ERROR_OK;
 }
 
 COMMAND_HANDLER(stm32l4_handle_option_write_command)
