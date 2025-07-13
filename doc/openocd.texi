@@ -810,8 +810,7 @@ itself), use the @option{-d} command line switch. This sets the
 @option{debug_level} to "3", outputting the most information,
 including debug messages. The default setting is "2", outputting only
 informational messages, warnings and errors. You can also change this
-setting from within a telnet or gdb session using @command{debug_level<n>}
-(@pxref{debuglevel,,debug_level}).
+setting from within a telnet or gdb session using @ref{debuglevel,,@command{debug_level}}.
 
 You can redirect all output from the server to a file using the
 @option{-l <logfile>} switch.
@@ -9329,10 +9328,10 @@ will proceed to quit.
 @end deffn
 
 @anchor{debuglevel}
-@deffn {Command} {debug_level} [n]
+@deffn {Command} {debug_level} [number]
 @cindex message level
-Display debug level.
-If @var{n} (from 0..4) is provided, then set it to that level.
+Without arguments it displays the current debug level.
+If @var{number} (from 0..4) is provided, then set it to that level.
 This affects the kind of messages sent to the server log.
 Level 0 is error messages only;
 level 1 adds warnings;
