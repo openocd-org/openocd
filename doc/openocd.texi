@@ -8890,6 +8890,40 @@ Level is 2 which can't be unlocked at all).
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
+@deffn {Command} {stm32lx option_read} num reg_offset
+Reads an option byte register from the device.
+The @var{num} parameter is a value shown by @command{flash banks}, @var{reg_offset} is the register offset of the option byte to read.
+
+For example to read the FLASH_OPTR register:
+@example
+stm32lx option_read 0 0x0
+# Option Register (for STM32L0): 0xaa
+@end example
+
+The above example will read out the first 16-bit of the FLASH_OPTR register which contains the RDP and WPRMOD value.
+@end deffn
+
+@deffn {Command} {stm324x option_write} num reg_offset value [reg_mask]
+Write an option byte register of the device.
+The @var{num} parameter is a value shown by @command{flash banks}, @var{reg_offset} is the register offset of the option byte to write.
+@var{value} is the 16-bit value that is written into the register.
+The complementary value for the option byte register is calculated automatically.
+@var{reg_mask} is the mask to apply when writing the register (only bits with a '1' will be touched).
+
+@emph{Note:} To modify an entire 32-bit option byte register, two individual write operations are necessary.
+
+For example, to modify the first 16-bit of the FLASH_OPTR register use the following command:
+
+@example
+stm32lx option_write 0 0x00 0x100 0x100
+@end example
+
+The above example sets bit 8 (WPRMOD) on the FLASH_OPTR option byte register which enables PCROP.
+Due to the applied mask, all other bits are not changed.
+
+@emph{Note:} To apply the option bytes change immediately, use @command{stm32lx option_load}.
+@end deffn
+
 @deffn {Command} {stm32lx option_load} num
 Forces a re-load of the option byte registers.
 This command will cause a system reset of the device.

@@ -17,6 +17,7 @@
 
 #include "imp.h"
 #include <helper/binarybuffer.h>
+#include <helper/align.h>
 #include <target/algorithm.h>
 #include <target/armv7m.h>
 #include <target/cortex_m.h>
@@ -82,8 +83,8 @@
 /* option bytes */
 #define OPTION_BYTES_ADDRESS 0x1FF80000
 
-#define OPTION_BYTE_0_PR1 0xFFFF0000
-#define OPTION_BYTE_0_PR0 0xFF5500AA
+#define OPTION_BYTE_0_PR1 0x0000
+#define OPTION_BYTE_0_PR0 0x00AA
 
 static int stm32lx_unlock_program_memory(struct flash_bank *bank);
 static int stm32lx_lock_program_memory(struct flash_bank *bank);
@@ -95,6 +96,8 @@ static int stm32lx_lock(struct flash_bank *bank);
 static int stm32lx_unlock(struct flash_bank *bank);
 static int stm32lx_mass_erase(struct flash_bank *bank);
 static int stm32lx_wait_until_bsy_clear_timeout(struct flash_bank *bank, int timeout);
+static int stm32lx_write_option(struct flash_bank *bank, uint32_t reg_offset,
+	uint16_t value, uint16_t mask);
 static int stm32lx_update_part_info(struct flash_bank *bank, uint16_t flash_size_in_kb);
 
 struct stm32lx_rev {
@@ -369,6 +372,76 @@ COMMAND_HANDLER(stm32lx_handle_option_load_command)
 	retval = stm32lx_obl_launch(bank);
 	if (retval != ERROR_OK) {
 		command_print(CMD, "failed to load option bytes");
+		return retval;
+	}
+
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(stm32lx_handle_option_read_command)
+{
+	if (CMD_ARGC != 2)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	struct flash_bank *bank;
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
+
+	if (retval != ERROR_OK)
+		return retval;
+
+	uint32_t reg_offset;
+
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], reg_offset);
+
+	if (!IS_ALIGNED(reg_offset, 4)) {
+		command_print(CMD, "register offset must be word aligned");
+		return ERROR_COMMAND_ARGUMENT_INVALID;
+	}
+
+	uint16_t value;
+	retval = target_read_u16(bank->target, OPTION_BYTES_ADDRESS + reg_offset,
+		&value);
+
+	if (retval != ERROR_OK) {
+		command_print(CMD, "failed to read option bytes");
+		return retval;
+	}
+
+	command_print(CMD, "0x%" PRIx16 "", value);
+
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(stm32lx_handle_option_write_command)
+{
+	if (CMD_ARGC != 3 && CMD_ARGC != 4)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	struct flash_bank *bank;
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
+
+	if (retval != ERROR_OK)
+		return retval;
+
+	uint32_t reg_offset;
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], reg_offset);
+
+	uint16_t value;
+	COMMAND_PARSE_NUMBER(u16, CMD_ARGV[2], value);
+
+	if (!IS_ALIGNED(reg_offset, 4)) {
+		command_print(CMD, "register offset must be word aligned");
+		return ERROR_COMMAND_ARGUMENT_INVALID;
+	}
+
+	uint16_t mask = 0xffff;
+
+	if (CMD_ARGC > 3)
+		COMMAND_PARSE_NUMBER(u16, CMD_ARGV[3], mask);
+
+	retval = stm32lx_write_option(bank, reg_offset, value, mask);
+	if (retval != ERROR_OK) {
+		command_print(CMD, "failed to write option bytes");
 		return retval;
 	}
 
@@ -949,6 +1022,20 @@ static const struct command_registration stm32lx_exec_command_handlers[] = {
 		.usage = "bank_id",
 		.help = "Force re-load of device options (will cause device reset).",
 	},
+	{
+		.name = "option_read",
+		.handler = stm32lx_handle_option_read_command,
+		.mode = COMMAND_EXEC,
+		.usage = "bank_id reg_offset",
+		.help = "Read & Display device option bytes.",
+	},
+	{
+		.name = "option_write",
+		.handler = stm32lx_handle_option_write_command,
+		.mode = COMMAND_EXEC,
+		.usage = "bank_id reg_offset value [mask]",
+		.help = "Write device option bit fields with provided value.",
+	},
 	COMMAND_REGISTRATION_DONE
 };
 
@@ -1283,9 +1370,9 @@ static int stm32lx_obl_launch(struct flash_bank *bank)
 	return tries ? ERROR_OK : ERROR_FAIL;
 }
 
-static int stm32lx_lock(struct flash_bank *bank)
+static int stm32lx_write_option(struct flash_bank *bank, uint32_t reg_offset,
+	uint16_t value, uint16_t mask)
 {
-	int retval;
 	struct target *target = bank->target;
 
 	if (target->state != TARGET_HALTED) {
@@ -1293,34 +1380,31 @@ static int stm32lx_lock(struct flash_bank *bank)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	retval = stm32lx_unlock_options_bytes(bank);
-	if (retval != ERROR_OK)
-		return retval;
+	uint32_t option_data = 0;
 
-	/* set the RDP protection level to 1 */
-	retval = target_write_u32(target, OPTION_BYTES_ADDRESS, OPTION_BYTE_0_PR1);
-	if (retval != ERROR_OK)
-		return retval;
+	/*
+	 * We only read the current option bytes if the mask requires it. This is
+	 * important as the option bytes on the STM32L1 series cannot be read when
+	 * the device is locked.
+	 */
+	if (mask != 0xffff) {
+		int retval = target_read_u32(target, OPTION_BYTES_ADDRESS + reg_offset,
+			&option_data);
 
-	return ERROR_OK;
-}
-
-static int stm32lx_unlock(struct flash_bank *bank)
-{
-	int retval;
-	struct target *target = bank->target;
-
-	if (target->state != TARGET_HALTED) {
-		LOG_ERROR("Target not halted");
-		return ERROR_TARGET_NOT_HALTED;
+		if (retval != ERROR_OK)
+			return retval;
 	}
 
-	retval = stm32lx_unlock_options_bytes(bank);
+	int retval = stm32lx_unlock_options_bytes(bank);
 	if (retval != ERROR_OK)
 		return retval;
 
-	/* set the RDP protection level to 0 */
-	retval = target_write_u32(target, OPTION_BYTES_ADDRESS, OPTION_BYTE_0_PR0);
+	option_data = (option_data & ~mask) | (value & mask);
+	// Calculate the complementary value for both option bytes.
+	option_data = (~(option_data & 0xffff)) << 16 | (option_data & 0xffff);
+
+	retval = target_write_u32(target, OPTION_BYTES_ADDRESS + reg_offset,
+		option_data);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -1329,6 +1413,27 @@ static int stm32lx_unlock(struct flash_bank *bank)
 		return retval;
 
 	return ERROR_OK;
+}
+
+
+static int stm32lx_lock(struct flash_bank *bank)
+{
+	/*
+	 * Set the RDP protection level to 1.
+	 * Use the mask 0xffff to avoid reading the option bytes, see comment in
+	 * stm32lx_write_option().
+	 */
+	return stm32lx_write_option(bank, 0x00, OPTION_BYTE_0_PR1, 0xffff);
+}
+
+static int stm32lx_unlock(struct flash_bank *bank)
+{
+	/*
+	 * Set the RDP protection level to 0.
+	 * Use the mask 0xffff to avoid reading the option bytes, see comment in
+	 * stm32lx_write_option().
+	 */
+	return stm32lx_write_option(bank, 0x00, OPTION_BYTE_0_PR0, 0xffff);
 }
 
 static int stm32lx_mass_erase(struct flash_bank *bank)
