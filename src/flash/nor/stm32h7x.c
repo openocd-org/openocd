@@ -1237,10 +1237,9 @@ COMMAND_HANDLER(stm32h7_handle_option_read_command)
 	if (retval != ERROR_OK)
 		return retval;
 
-	command_print(CMD, "Option Register: <0x%" PRIx32 "> = 0x%" PRIx32,
-			stm32h7_get_flash_reg(bank, reg_offset), value);
+	command_print(CMD, "0x%" PRIx32, value);
 
-	return retval;
+	return ERROR_OK;
 }
 
 COMMAND_HANDLER(stm32h7_handle_option_write_command)
