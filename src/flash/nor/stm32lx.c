@@ -90,6 +90,7 @@ static int stm32lx_lock_program_memory(struct flash_bank *bank);
 static int stm32lx_enable_write_half_page(struct flash_bank *bank);
 static int stm32lx_erase_sector(struct flash_bank *bank, int sector);
 static int stm32lx_wait_until_bsy_clear(struct flash_bank *bank);
+static int stm32lx_obl_launch(struct flash_bank *bank);
 static int stm32lx_lock(struct flash_bank *bank);
 static int stm32lx_unlock(struct flash_bank *bank);
 static int stm32lx_mass_erase(struct flash_bank *bank);
@@ -352,6 +353,26 @@ COMMAND_HANDLER(stm32lx_handle_unlock_command)
 		command_print(CMD, "STM32Lx unlock failed");
 
 	return retval;
+}
+
+COMMAND_HANDLER(stm32lx_handle_option_load_command)
+{
+	if (CMD_ARGC != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	struct flash_bank *bank;
+	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
+
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = stm32lx_obl_launch(bank);
+	if (retval != ERROR_OK) {
+		command_print(CMD, "failed to load option bytes");
+		return retval;
+	}
+
+	return ERROR_OK;
 }
 
 static int stm32lx_protect_check(struct flash_bank *bank)
@@ -921,6 +942,13 @@ static const struct command_registration stm32lx_exec_command_handlers[] = {
 		.usage = "bank_id",
 		.help = "Lower the readout protection from Level 1 to 0.",
 	},
+	{
+		.name = "option_load",
+		.handler = stm32lx_handle_option_load_command,
+		.mode = COMMAND_EXEC,
+		.usage = "bank_id",
+		.help = "Force re-load of device options (will cause device reset).",
+	},
 	COMMAND_REGISTRATION_DONE
 };
 
@@ -1238,7 +1266,10 @@ static int stm32lx_obl_launch(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
 	struct stm32lx_flash_bank *stm32lx_info = bank->driver_priv;
-	int retval;
+
+	int retval = stm32lx_unlock_options_bytes(bank);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* This will fail as the target gets immediately rebooted */
 	target_write_u32(target, stm32lx_info->flash_base + FLASH_PECR,

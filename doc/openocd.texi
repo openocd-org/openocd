@@ -8422,6 +8422,12 @@ data). This is the only way to unlock a protected flash (unless RDP
 Level is 2 which can't be unlocked at all).
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
+
+@deffn {Command} {stm32lx option_load} num
+Forces a re-load of the option byte registers.
+This command will cause a system reset of the device.
+The @var{num} parameter is a value shown by @command{flash banks}.
+@end deffn
 @end deffn
 
 @deffn {Flash Driver} {stm32l4x}
