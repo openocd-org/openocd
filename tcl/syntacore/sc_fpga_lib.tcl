@@ -132,17 +132,6 @@ namespace eval _SC_INTERNALS {
             sc_lib_print "[sc_lib_write_reg mhpmevent${EventSelector} 0]"
             sc_lib_print "[sc_lib_write_reg mhpmcounter${EventSelector} 0]"
         }
-        set REG_LIST [reg]
-        if {[string match "* mcounteren *" "$REG_LIST"]} {
-          sc_lib_print "[sc_lib_write_reg mcounteren 0xffffffff]"
-        } else {
-          sc_lib_print "NOTE: mcounteren is not found on target"
-        }
-        if {[string match "* scounteren *" "$REG_LIST"]} {
-          sc_lib_print "[sc_lib_write_reg scounteren 0xffffffff]"
-        } else {
-          sc_lib_print "NOTE: scounteren is not found on target"
-        }
     }
 
     proc sc_lib_experimental_enable_pmu_counters { selectors_list
