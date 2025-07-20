@@ -388,7 +388,7 @@ AS_CASE([$host_os],
       ])
     ])
 
-    AS_IF([test "x$build_dmem" = "xyes"], [
+    AS_IF([test "x$enable_dmem" = "xyes"], [
       AC_MSG_ERROR([dmem is only available on linux])
     ])
 ])
