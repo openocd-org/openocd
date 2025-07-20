@@ -410,9 +410,8 @@ AS_CASE(["${host_cpu}"],
   [i?86|x86*], [],
   [
     AS_IF([test "x$parport_use_ppdev" = "xno"], [
-      AC_MSG_WARN([--disable-parport-ppdev is not supported by the host CPU])
+      AC_MSG_ERROR([--disable-parport-ppdev is not supported by the host CPU])
     ])
-    parport_use_ppdev=yes
 ])
 
 can_build_buspirate=yes
