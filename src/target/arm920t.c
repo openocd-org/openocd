@@ -12,6 +12,7 @@
 
 #include "arm920t.h"
 #include <helper/time_support.h>
+#include <helper/string_choices.h>
 #include "target_type.h"
 #include "register.h"
 #include "arm_opcodes.h"
@@ -509,10 +510,6 @@ static int arm920t_verify_pointer(struct command_invocation *cmd,
 /** Logs summary of ARM920 state for a halted target. */
 int arm920t_arch_state(struct target *target)
 {
-	static const char *state[] = {
-		"disabled", "enabled"
-	};
-
 	struct arm920t_common *arm920t = target_to_arm920(target);
 
 	if (arm920t->common_magic != ARM920T_COMMON_MAGIC) {
@@ -522,9 +519,9 @@ int arm920t_arch_state(struct target *target)
 
 	arm_arch_state(target);
 	LOG_USER("MMU: %s, D-Cache: %s, I-Cache: %s",
-		state[arm920t->armv4_5_mmu.mmu_enabled],
-		state[arm920t->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled],
-		state[arm920t->armv4_5_mmu.armv4_5_cache.i_cache_enabled]);
+		str_enabled_disabled(arm920t->armv4_5_mmu.mmu_enabled),
+		str_enabled_disabled(arm920t->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled),
+		str_enabled_disabled(arm920t->armv4_5_mmu.armv4_5_cache.i_cache_enabled));
 
 	return ERROR_OK;
 }

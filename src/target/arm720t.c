@@ -14,6 +14,7 @@
 
 #include "arm720t.h"
 #include <helper/time_support.h>
+#include <helper/string_choices.h>
 #include "target_type.h"
 #include "register.h"
 #include "arm_opcodes.h"
@@ -227,14 +228,10 @@ static int arm720t_arch_state(struct target *target)
 {
 	struct arm720t_common *arm720t = target_to_arm720(target);
 
-	static const char *state[] = {
-		"disabled", "enabled"
-	};
-
 	arm_arch_state(target);
 	LOG_USER("MMU: %s, Cache: %s",
-			 state[arm720t->armv4_5_mmu.mmu_enabled],
-			 state[arm720t->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled]);
+			 str_enabled_disabled(arm720t->armv4_5_mmu.mmu_enabled),
+			 str_enabled_disabled(arm720t->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled));
 
 	return ERROR_OK;
 }

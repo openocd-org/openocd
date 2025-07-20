@@ -22,6 +22,7 @@
 #include "arm_simulator.h"
 #include "arm_disassembler.h"
 #include <helper/time_support.h>
+#include <helper/string_choices.h>
 #include "register.h"
 #include "image.h"
 #include "arm_opcodes.h"
@@ -774,10 +775,6 @@ static int xscale_arch_state(struct target *target)
 	struct xscale_common *xscale = target_to_xscale(target);
 	struct arm *arm = &xscale->arm;
 
-	static const char *state[] = {
-		"disabled", "enabled"
-	};
-
 	static const char *arch_dbg_reason[] = {
 		"", "\n(processor reset)", "\n(trace buffer full)"
 	};
@@ -789,9 +786,9 @@ static int xscale_arch_state(struct target *target)
 
 	arm_arch_state(target);
 	LOG_USER("MMU: %s, D-Cache: %s, I-Cache: %s%s",
-		state[xscale->armv4_5_mmu.mmu_enabled],
-		state[xscale->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled],
-		state[xscale->armv4_5_mmu.armv4_5_cache.i_cache_enabled],
+		str_enabled_disabled(xscale->armv4_5_mmu.mmu_enabled),
+		str_enabled_disabled(xscale->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled),
+		str_enabled_disabled(xscale->armv4_5_mmu.armv4_5_cache.i_cache_enabled),
 		arch_dbg_reason[xscale->arch_debug_reason]);
 
 	return ERROR_OK;

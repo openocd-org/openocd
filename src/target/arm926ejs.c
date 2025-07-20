@@ -14,6 +14,7 @@
 
 #include "arm926ejs.h"
 #include <helper/time_support.h>
+#include <helper/string_choices.h>
 #include "target_type.h"
 #include "register.h"
 #include "arm_opcodes.h"
@@ -505,10 +506,6 @@ static int arm926ejs_verify_pointer(struct command_invocation *cmd,
 /** Logs summary of ARM926 state for a halted target. */
 int arm926ejs_arch_state(struct target *target)
 {
-	static const char *state[] = {
-		"disabled", "enabled"
-	};
-
 	struct arm926ejs_common *arm926ejs = target_to_arm926(target);
 
 	if (arm926ejs->common_magic != ARM926EJS_COMMON_MAGIC) {
@@ -518,9 +515,9 @@ int arm926ejs_arch_state(struct target *target)
 
 	arm_arch_state(target);
 	LOG_USER("MMU: %s, D-Cache: %s, I-Cache: %s",
-			 state[arm926ejs->armv4_5_mmu.mmu_enabled],
-			 state[arm926ejs->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled],
-			 state[arm926ejs->armv4_5_mmu.armv4_5_cache.i_cache_enabled]);
+			 str_enabled_disabled(arm926ejs->armv4_5_mmu.mmu_enabled),
+			 str_enabled_disabled(arm926ejs->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled),
+			 str_enabled_disabled(arm926ejs->armv4_5_mmu.armv4_5_cache.i_cache_enabled));
 
 	return ERROR_OK;
 }
