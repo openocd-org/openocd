@@ -168,7 +168,7 @@ static int arm7a_handle_l2x_cache_info_command(struct command_invocation *cmd,
 {
 	struct armv7a_l2x_cache *l2x_cache = armv7a_cache->outer_cache;
 
-	if (armv7a_cache->info == -1) {
+	if (!armv7a_cache->info_valid) {
 		command_print(cmd, "cache not yet identified");
 		return ERROR_OK;
 	}

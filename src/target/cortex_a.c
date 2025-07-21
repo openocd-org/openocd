@@ -1118,7 +1118,7 @@ static int cortex_a_post_debug_entry(struct target *target)
 	if (!armv7a->is_armv7r)
 		armv7a_read_ttbcr(target);
 
-	if (armv7a->armv7a_mmu.armv7a_cache.info == -1)
+	if (!armv7a->armv7a_mmu.armv7a_cache.info_valid)
 		armv7a_identify_cache(target);
 
 	if (armv7a->is_armv7r) {

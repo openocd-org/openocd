@@ -214,7 +214,7 @@ COMMAND_HANDLER(armv7a_mmu_dump_table)
 			max_pt_idx -= 1;
 		}
 	} else {
-		if (mmu->cached != 1) {
+		if (!mmu->cached) {
 			LOG_ERROR("TTB not cached!");
 			return ERROR_FAIL;
 		}
