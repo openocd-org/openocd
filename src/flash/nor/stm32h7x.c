@@ -18,14 +18,21 @@
 #define FLASH_WRITE_TIMEOUT 5
 #define MASS_ERASE_TIMEOUT 30000
 
+static const uint8_t stm32h7_flash_write_code[] = {
+#include "../../../contrib/loaders/flash/stm32/stm32h7x.inc"
+};
+
+static const uint8_t stm32h7rs_flash_write_code[] = {
+#include "../../../contrib/loaders/flash/stm32/stm32h7rx.inc"
+};
+
 enum stm32h7_flash_reg_index {
 	STM32_FLASH_ACR_INDEX,
 	STM32_FLASH_KEYR_INDEX,
 	STM32_FLASH_OPTKEYR_INDEX,
 	STM32_FLASH_SR_INDEX,
 	STM32_FLASH_CR_INDEX,
-	STM32_FLASH_ICR_INDEX,
-	STM32_FLASH_CCR_INDEX,
+	STM32_FLASH_ICR_CCR_INDEX,
 	STM32_FLASH_OPTCR_INDEX,
 	STM32_FLASH_OPTSR_INDEX,
 	STM32_FLASH_OPTSR_CUR_INDEX,
@@ -46,13 +53,25 @@ static const uint32_t stm32h7_flash_regs[STM32_FLASH_REG_INDEX_NUM] = {
 	[STM32_FLASH_OPTKEYR_INDEX]		= 0x08,
 	[STM32_FLASH_SR_INDEX]			= 0x10,
 	[STM32_FLASH_CR_INDEX]			= 0x0C,
-	[STM32_FLASH_CCR_INDEX]			= 0x14,
+	[STM32_FLASH_ICR_CCR_INDEX]		= 0x14,
 	[STM32_FLASH_OPTCR_INDEX]		= 0x18,
 	[STM32_FLASH_OPTSR_CUR_INDEX]	= 0x1C,
 	[STM32_FLASH_OPTSR_PRG_INDEX]	= 0x20,
 	[STM32_FLASH_OPTCCR_INDEX]		= 0x24,
 	[STM32_FLASH_WPSN_CUR_INDEX]	= 0x38,
 	[STM32_FLASH_WPSN_PRG_INDEX]	= 0x3C
+};
+
+static const uint32_t stm32h7rs_flash_regs[STM32_FLASH_REG_INDEX_NUM] = {
+	[STM32_FLASH_ACR_INDEX]			= 0x00,
+	[STM32_FLASH_KEYR_INDEX]		= 0x04,
+	[STM32_FLASH_OPTKEYR_INDEX]		= 0x100,
+	[STM32_FLASH_SR_INDEX]			= 0x14,
+	[STM32_FLASH_CR_INDEX]			= 0x10,
+	[STM32_FLASH_ICR_CCR_INDEX]		= 0x28,
+	[STM32_FLASH_OPTCR_INDEX]		= 0x104,
+	[STM32_FLASH_OPTSR_INDEX]		= 0x10C,
+	[STM32_FLASH_ISR_INDEX]			= 0x24,
 };
 
 /* FLASH_CR register bits */
@@ -66,6 +85,19 @@ static const uint32_t stm32h7_flash_regs[STM32_FLASH_REG_INDEX_NUM] = {
 #define FLASH_PSIZE_64 (3 << 4)
 #define FLASH_FW       BIT(6)
 #define FLASH_START    BIT(7)
+
+/* FLASH_ISR register bits for H7RS */
+#define FLASH_CRCRDERRF	BIT(28) /* CRC read error flag */
+#define FLASH_CRCENDF	BIT(27) /* CRC end flag */
+#define FLASH_DBECCERRF	BIT(26) /* ECC double error flag */
+#define FLASH_SNECCERRF	BIT(25) /* ECC single error flag */
+#define FLASH_RDSERRF	BIT(24) /* Read security error flag */
+#define FLASH_INCERRF	BIT(21) /* Inconsistency error flag */
+#define FLASH_OBLERRF	BIT(20) /* Option byte loading error flag */
+#define FLASH_STRBERRF	BIT(19) /* Strobe error flag */
+#define FLASH_PGSERRF	BIT(18) /* Programming sequence error flag */
+#define FLASH_WRPERRF	BIT(17) /* Write protection error flag */
+#define FLASH_EOPF		BIT(16) /* End-of-program flag */
 
 /* FLASH_SR register bits */
 #define FLASH_BSY      BIT(0)  /* Operation in progress */
@@ -82,6 +114,9 @@ static const uint32_t stm32h7_flash_regs[STM32_FLASH_REG_INDEX_NUM] = {
 
 #define FLASH_ERROR (FLASH_WRPERR | FLASH_PGSERR | FLASH_STRBERR | FLASH_INCERR | FLASH_OPERR | \
 					 FLASH_RDPERR | FLASH_RDSERR | FLASH_SNECCERR | FLASH_DBECCERR)
+/* Possible errors for H7RS */
+#define FLASH_ERROR_H7RS (FLASH_CRCRDERRF | FLASH_CRCENDF | FLASH_DBECCERRF | FLASH_SNECCERRF | FLASH_RDSERRF | \
+					 FLASH_INCERRF | FLASH_OBLERRF | FLASH_STRBERRF | FLASH_PGSERRF | FLASH_WRPERRF | FLASH_EOPF)
 
 /* FLASH_OPTCR register bits */
 #define OPT_LOCK       BIT(0)
@@ -114,6 +149,7 @@ static const uint32_t stm32h7_flash_regs[STM32_FLASH_REG_INDEX_NUM] = {
 #define DEVID_STM32H74_H75XX    0x450
 #define DEVID_STM32H7A_H7BXX    0x480
 #define DEVID_STM32H72_H73XX    0x483
+#define DEVID_STM32H7R_H7SXX	0x485
 
 struct stm32h7_rev {
 	uint16_t rev;
@@ -139,6 +175,9 @@ struct stm32h7_part_info {
 	/* function to compute flash_cr register values */
 	uint32_t (*compute_flash_cr)(uint32_t cmd, int snb);
 	int (*get_flash_error_status)(struct flash_bank *bank, uint32_t *status);
+	uint32_t flash_error;
+	const uint8_t *write_code;
+	size_t write_code_size;
 };
 
 struct stm32h7_flash_bank {
@@ -168,12 +207,16 @@ static const struct stm32h7_rev stm32h72_h73xx_revs[] = {
 	{ 0x1000, "A" }, { 0x1001, "Z" },
 };
 
+static const struct stm32h7_rev stm32h7r_h7sxx_revs[] = {
+	{ 0x1000, "A" }, { 0x2000, "B" },
+};
+
 static uint32_t stm32h74_h75xx_compute_flash_cr(uint32_t cmd, int snb)
 {
 	return cmd | (snb << 8);
 }
 
-static uint32_t stm32h7a_h7bxx_compute_flash_cr(uint32_t cmd, int snb)
+static uint32_t stm32h7a_h7b_h7r_h7sxx_compute_flash_cr(uint32_t cmd, int snb)
 {
 	/* save FW and START bits, to be right shifted by 2 bits later */
 	const uint32_t tmp = cmd & (FLASH_FW | FLASH_START);
@@ -185,6 +228,7 @@ static uint32_t stm32h7a_h7bxx_compute_flash_cr(uint32_t cmd, int snb)
 }
 
 static int stm32h7_get_flash_status(struct flash_bank *bank, uint32_t *status);
+static int stm32h7rs_get_flash_status(struct flash_bank *bank, uint32_t *status);
 
 static const struct stm32h7_part_info stm32h7_parts[] = {
 	{
@@ -202,6 +246,9 @@ static const struct stm32h7_part_info stm32h7_parts[] = {
 	.wps_mask			    = 0xFF,
 	.compute_flash_cr	    = stm32h74_h75xx_compute_flash_cr,
 	.get_flash_error_status = stm32h7_get_flash_status,
+	.flash_error			= FLASH_ERROR,
+	.write_code				= stm32h7_flash_write_code,
+	.write_code_size		= sizeof(stm32h7_flash_write_code),
 	},
 	{
 	.id					    = DEVID_STM32H7A_H7BXX,
@@ -216,8 +263,11 @@ static const struct stm32h7_part_info stm32h7_parts[] = {
 	.fsize_addr			    = 0x08FFF80C,
 	.wps_group_size		    = 4,
 	.wps_mask			    = 0xFFFFFFFF,
-	.compute_flash_cr	    = stm32h7a_h7bxx_compute_flash_cr,
+	.compute_flash_cr	    = stm32h7a_h7b_h7r_h7sxx_compute_flash_cr,
 	.get_flash_error_status = stm32h7_get_flash_status,
+	.flash_error			= FLASH_ERROR,
+	.write_code				= stm32h7_flash_write_code,
+	.write_code_size		= sizeof(stm32h7_flash_write_code),
 	},
 	{
 	.id					    = DEVID_STM32H72_H73XX,
@@ -234,6 +284,28 @@ static const struct stm32h7_part_info stm32h7_parts[] = {
 	.wps_mask			    = 0xFF,
 	.compute_flash_cr       = stm32h74_h75xx_compute_flash_cr,
 	.get_flash_error_status = stm32h7_get_flash_status,
+	.flash_error			= FLASH_ERROR,
+	.write_code				= stm32h7_flash_write_code,
+	.write_code_size		= sizeof(stm32h7_flash_write_code),
+	},
+	{
+	.id						= DEVID_STM32H7R_H7SXX,
+	.revs					= stm32h7r_h7sxx_revs,
+	.num_revs				= ARRAY_SIZE(stm32h7r_h7sxx_revs),
+	.device_str				= "STM32H7Rx/7Sx",
+	.page_size_kb			= 8,
+	.block_size				= 16,
+	.max_flash_size_kb		= 64,
+	.max_bank_size_kb		= 64,
+	.has_dual_bank			= false,
+	.fsize_addr				= 0x08FFF80C,
+	.wps_group_size			= 1,
+	.wps_mask				= 0xFF,
+	.compute_flash_cr		= stm32h7a_h7b_h7r_h7sxx_compute_flash_cr,
+	.get_flash_error_status	= stm32h7rs_get_flash_status,
+	.flash_error			= FLASH_ERROR_H7RS,
+	.write_code				= stm32h7rs_flash_write_code,
+	.write_code_size		= sizeof(stm32h7rs_flash_write_code),
 	},
 };
 
@@ -302,10 +374,16 @@ static int stm32h7_get_flash_status(struct flash_bank *bank, uint32_t *status)
 	return stm32h7_read_flash_reg_by_index(bank, STM32_FLASH_SR_INDEX, status);
 }
 
+static int stm32h7rs_get_flash_status(struct flash_bank *bank, uint32_t *status)
+{
+	return stm32h7_read_flash_reg_by_index(bank, STM32_FLASH_ISR_INDEX, status);
+}
+
 static int stm32h7_wait_flash_op_queue(struct flash_bank *bank, int timeout)
 {
 	uint32_t status;
 	int retval;
+	struct stm32h7_flash_bank *stm32h7_info = bank->driver_priv;
 
 	/* wait for flash operations completion */
 	for (;;) {
@@ -324,16 +402,16 @@ static int stm32h7_wait_flash_op_queue(struct flash_bank *bank, int timeout)
 	}
 
 	if (status & FLASH_WRPERR) {
-		LOG_ERROR("wait_flash_op_queue, WRPERR detected");
+		LOG_ERROR("wait_flash_op_queue, write protection error");
 		retval = ERROR_FAIL;
 	}
 
 	/* Clear error + EOP flags but report errors */
-	if (status & FLASH_ERROR) {
+	if (status & stm32h7_info->part_info->flash_error) {
 		if (retval == ERROR_OK)
 			retval = ERROR_FAIL;
 		/* If this operation fails, we ignore it and report the original retval */
-		stm32h7_write_flash_reg_by_index(bank, STM32_FLASH_CCR_INDEX, status);
+		stm32h7_write_flash_reg_by_index(bank, STM32_FLASH_ICR_CCR_INDEX, status);
 	}
 	return retval;
 }
@@ -611,23 +689,20 @@ static int stm32h7_write_block(struct flash_bank *bank, const uint8_t *buffer,
 	struct armv7m_algorithm armv7m_info;
 	int retval = ERROR_OK;
 
-	static const uint8_t stm32h7_flash_write_code[] = {
-#include "../../../contrib/loaders/flash/stm32/stm32h7x.inc"
-	};
-
-	if (target_alloc_working_area(target, sizeof(stm32h7_flash_write_code),
+	if (target_alloc_working_area(target, stm32h7_info->part_info->write_code_size,
 			&write_algorithm) != ERROR_OK) {
 		LOG_WARNING("no working area available, can't do block memory writes");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
 	retval = target_write_buffer(target, write_algorithm->address,
-			sizeof(stm32h7_flash_write_code),
-			stm32h7_flash_write_code);
+			stm32h7_info->part_info->write_code_size,
+			stm32h7_info->part_info->write_code);
 	if (retval != ERROR_OK) {
 		target_free_working_area(target, write_algorithm);
 		return retval;
 	}
+
 
 	/* memory buffer */
 	while (target_alloc_working_area_try(target, buffer_size, &source) != ERROR_OK) {
@@ -680,10 +755,10 @@ static int stm32h7_write_block(struct flash_bank *bank, const uint8_t *buffer,
 		if (flash_sr & FLASH_WRPERR)
 			LOG_ERROR("flash memory write protected");
 
-		if ((flash_sr & FLASH_ERROR) != 0) {
-			LOG_ERROR("flash write failed, FLASH_SR = 0x%08" PRIx32, flash_sr);
+		if ((flash_sr & stm32h7_info->part_info->flash_error) != 0) {
+			LOG_ERROR("flash write failed, status = 0x%08" PRIx32, flash_sr);
 			/* Clear error + EOP flags but report errors */
-			stm32h7_write_flash_reg_by_index(bank, STM32_FLASH_CCR_INDEX, flash_sr);
+			stm32h7_write_flash_reg_by_index(bank, STM32_FLASH_ICR_CCR_INDEX, flash_sr);
 			retval = ERROR_FAIL;
 		}
 	}
@@ -810,8 +885,11 @@ static int stm32h7_probe(struct flash_bank *bank)
 	LOG_DEBUG("device id = 0x%08" PRIx32, stm32h7_info->idcode);
 
 	device_id = stm32h7_info->idcode & 0xfff;
-
-	stm32h7_info->flash_regs = stm32h7_flash_regs;
+	if (device_id == DEVID_STM32H7R_H7SXX) {
+		stm32h7_info->flash_regs = stm32h7rs_flash_regs;
+	} else {
+		stm32h7_info->flash_regs = stm32h7_flash_regs;
+	}
 
 	for (unsigned int n = 0; n < ARRAY_SIZE(stm32h7_parts); n++) {
 		if (device_id == stm32h7_parts[n].id)
@@ -872,6 +950,7 @@ static int stm32h7_probe(struct flash_bank *bank)
 			flash_size_in_kb /= 2;
 		break;
 	case DEVID_STM32H72_H73XX:
+	case DEVID_STM32H7R_H7SXX:
 		break;
 	default:
 		LOG_ERROR("unsupported device");
