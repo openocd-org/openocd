@@ -33,7 +33,7 @@ jobs:
       - name: Install packages
         run: |
           sudo apt-get update
-          sudo apt-get install -y device-tree-compiler build-essential libjim-dev
+          sudo apt-get install -y device-tree-compiler build-essential libjim-dev expect
 
       - name: Get revisions of dependencies
         run: |

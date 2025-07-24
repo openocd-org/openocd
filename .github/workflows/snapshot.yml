@@ -16,7 +16,7 @@ jobs:
       - name: Install needed packages
         run: |
           sudo apt-get update
-          sudo apt-get install autotools-dev autoconf automake libtool pkg-config cmake texinfo texlive g++-mingw-w64-i686
+          sudo apt-get install autotools-dev autoconf automake libtool pkg-config cmake texinfo texlive g++-mingw-w64-i686 expect
       - name: Checkout Code
         uses: actions/checkout@v4
       - run: ./bootstrap

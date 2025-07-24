@@ -14,7 +14,7 @@ jobs:
       - name: Install required packages (apt-get)
         run: |
           sudo apt-get update
-          sudo apt-get install clang gcc-multilib
+          sudo apt-get install clang gcc-multilib expect
       - name: Get 32-bit JIM TCL from cache
         id: cache-libjim32
         uses: actions/cache@v4
@@ -60,7 +60,7 @@ jobs:
       - name: Install required packages (apt-get)
         run: |
           sudo apt-get update
-          sudo apt-get install libusb-1.0-0 libusb-1.0-0-dev libjim-dev
+          sudo apt-get install libusb-1.0-0 libusb-1.0-0-dev libjim-dev expect
       - run: ./bootstrap
       - run: ./configure --enable-remote-bitbang --enable-jtag_vpi --enable-ftdi-cjtag --prefix /tmp/${{ env.NAME }}
       - run: make -j`nproc`
