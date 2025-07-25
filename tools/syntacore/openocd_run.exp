@@ -52,6 +52,7 @@ set COMMAND_LINE_OPTIONS [dict create \
   --log-session "value:log_path. Path to session log" \
   --no-extra-scripts "flag. avoid loading of extra scripts (common routines to help with debugging)" \
   --no-targets "devel:flag. create only TAP, do not create OpenOCD targets" \
+  --platform "value:name. The name of the platform. Performs platform-specific initialization if appropriate plugin is available" \
   --reset-adapter "flag. enforce reset of debug adapter before use" \
   --run-command "value:command. extra TCL command to run. Can be specified multiple times. The command is run after init phase" \
   --run-script "value:file. additional TCL script to run. Can be specified multiple times. The script is run after init phase" \
@@ -101,6 +102,7 @@ set SETTINGS(load_extra_scripts) 1
 set SETTINGS(extra_run_commands) []
 set SETTINGS(extra_spike_args) []
 set SETTINGS(no_openocd_targets) 0
+set SETTINGS(platform) ""
 set SETTINGS(reset_adapter) 0
 
 set DEBUG_ADAPTER_INFO(adapter_string) ""
@@ -266,6 +268,8 @@ for { set i 0 } { $i < $argc } { incr i } {
     set SETTINGS(stand_db) $optarg
   } elseif { $option == $COMMAND_LINE_ARG(--no-targets) } {
     set SETTINGS(no_openocd_targets) 1
+  } elseif { $option == $COMMAND_LINE_ARG(--platform) } {
+    set SETTINGS(platform) $optarg
   } elseif { $option == $COMMAND_LINE_ARG(--reset-adapter) } {
     set SETTINGS(reset_adapter) 1
   } elseif { $option == $COMMAND_LINE_ARG(--help) } {
@@ -731,16 +735,19 @@ proc buildOpenOCDCommandLine {DebugInterfaceCfg AdapterSerial JtagTopologyString
       -c "sc_target_config jtag_topology ${JtagTopologyString}"]
   }
 
+  set ExtraLibraries [list]
   if {$SETTINGS(load_extra_scripts) == 1} {
-    set ExtraLibraries [list]
     lappend ExtraLibraries "[getOpenOCDRootDir]/share/openocd/scripts/syntacore/sc_fpga_lib.tcl"
-    foreach Lib $ExtraLibraries {
-      if {![file exists "$Lib"]} {
-        fatalError "unable to locate extra library: $Lib"
-      }
-      lappend OpenOCDArgs -f
-      lappend OpenOCDArgs "$Lib"
+  }
+  if {$SETTINGS(platform) ne ""} {
+    lappend ExtraLibraries "[getOpenOCDRootDir]/share/openocd/scripts/syntacore/scr_info.tcl"
+  }
+  foreach Lib $ExtraLibraries {
+    if {![file exists "$Lib"]} {
+      fatalError "unable to locate extra library: $Lib"
     }
+    lappend OpenOCDArgs -f
+    lappend OpenOCDArgs "$Lib"
   }
 
   if {$SETTINGS(ide_mode) == 1} {
@@ -782,6 +789,11 @@ proc buildOpenOCDCommandLine {DebugInterfaceCfg AdapterSerial JtagTopologyString
   }
   lappend OpenOCDArgs -c
   lappend OpenOCDArgs "sc_target_config target_type $SETTINGS(target_type)"
+
+  if {$SETTINGS(platform) ne ""} {
+    lappend OpenOCDArgs -c
+    lappend OpenOCDArgs "sc_target_config platform_extension $SETTINGS(platform)"
+  }
 
   lappend OpenOCDArgs [deriveDesiredVerbosityOption]
 
