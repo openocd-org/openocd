@@ -1037,9 +1037,8 @@ static int svf_xxr_common(char **argus, int num_of_argu, char command, struct sv
 			LOG_ERROR("unknown parameter: %s", argus[i]);
 			return ERROR_FAIL;
 		}
-		if (ERROR_OK !=
-		svf_copy_hexstring_to_binary(&argus[i + 1][1], pbuffer_tmp, i_tmp,
-			xxr_para_tmp->len)) {
+		if (svf_copy_hexstring_to_binary(&argus[i + 1][1], pbuffer_tmp, i_tmp,
+				xxr_para_tmp->len) != ERROR_OK) {
 			LOG_ERROR("fail to parse hex value");
 			return ERROR_FAIL;
 		}
@@ -1050,9 +1049,8 @@ static int svf_xxr_common(char **argus, int num_of_argu, char command, struct sv
 	/* the mask pattern used is all cares */
 	if (!(xxr_para_tmp->data_mask & XXR_MASK) && i_tmp != xxr_para_tmp->len) {
 		/* MASK not defined and length changed */
-		if (ERROR_OK !=
-		svf_adjust_array_length(&xxr_para_tmp->mask, i_tmp,
-			xxr_para_tmp->len)) {
+		if (svf_adjust_array_length(&xxr_para_tmp->mask, i_tmp, xxr_para_tmp->len)
+				!= ERROR_OK) {
 			LOG_ERROR("fail to adjust length of array");
 			return ERROR_FAIL;
 		}
@@ -1061,17 +1059,15 @@ static int svf_xxr_common(char **argus, int num_of_argu, char command, struct sv
 	/* If TDO is absent, no comparison is needed, set the mask to 0 */
 	if (!(xxr_para_tmp->data_mask & XXR_TDO)) {
 		if (!xxr_para_tmp->tdo) {
-			if (ERROR_OK !=
-			svf_adjust_array_length(&xxr_para_tmp->tdo, i_tmp,
-				xxr_para_tmp->len)) {
+			if (svf_adjust_array_length(&xxr_para_tmp->tdo, i_tmp, xxr_para_tmp->len)
+					!= ERROR_OK) {
 				LOG_ERROR("fail to adjust length of array");
 				return ERROR_FAIL;
 			}
 		}
 		if (!xxr_para_tmp->mask) {
-			if (ERROR_OK !=
-			svf_adjust_array_length(&xxr_para_tmp->mask, i_tmp,
-				xxr_para_tmp->len)) {
+			if (svf_adjust_array_length(&xxr_para_tmp->mask, i_tmp, xxr_para_tmp->len)
+					!= ERROR_OK) {
 				LOG_ERROR("fail to adjust length of array");
 				return ERROR_FAIL;
 			}
