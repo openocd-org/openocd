@@ -105,6 +105,10 @@ proc generateIdeCloak { } {
     vtype \
     vxrm \
     vxsat \
+    sedeleg \
+    sideleg \
+    uscratchcsw \
+    uscratchcswl \
   ]
 
   set CSRS_TO_HIDE [generateListOfCloakedAddresses $IDE_CSRS]
