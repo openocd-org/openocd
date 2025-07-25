@@ -230,7 +230,7 @@ COMMAND_HANDLER(jtagspi_handle_set)
 	*/
 	retval = CALL_COMMAND_HANDLER(flash_command_get_bank_probe_optional, 0,
 		&bank, false);
-	if (ERROR_OK != retval)
+	if (retval != ERROR_OK)
 		return retval;
 	info = bank->driver_priv;
 
@@ -420,7 +420,7 @@ COMMAND_HANDLER(jtagspi_handle_always_4byte)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
-	if (ERROR_OK != retval)
+	if (retval != ERROR_OK)
 		return retval;
 
 	jtagspi_info = bank->driver_priv;
