@@ -98,32 +98,32 @@ int main(void)
 
 		/* Perform requested task */
 		switch (g_cfg[g_curr_buf].cmd) {
-			case CMD_ERASE_ALL:
-				status = flashloader_erase_all();
-				break;
-			case CMD_PROGRAM:
-				status =
-					flashloader_program((uint8_t *)g_cfg[g_curr_buf].buf_addr,
-						g_cfg[g_curr_buf].dest, g_cfg[g_curr_buf].len);
-				break;
-			case CMD_ERASE_AND_PROGRAM:
-				status =
-					flashloader_erase_and_program((uint8_t *)g_cfg[g_curr_buf].buf_addr,
-						g_cfg[g_curr_buf].dest, g_cfg[g_curr_buf].len);
-				break;
-			case CMD_ERASE_AND_PROGRAM_WITH_RETAIN:
-				status =
-					flashloader_program_with_retain((uint8_t *)g_cfg[g_curr_buf].buf_addr,
-						g_cfg[g_curr_buf].dest, g_cfg[g_curr_buf].len);
-				break;
-			case CMD_ERASE_SECTORS:
-				status =
-					flashloader_erase_sectors(g_cfg[g_curr_buf].dest,
-						g_cfg[g_curr_buf].len);
-				break;
-			default:
-				status = STATUS_FAILED_UNKNOWN_COMMAND;
-				break;
+		case CMD_ERASE_ALL:
+			status = flashloader_erase_all();
+			break;
+		case CMD_PROGRAM:
+			status =
+				flashloader_program((uint8_t *)g_cfg[g_curr_buf].buf_addr,
+					g_cfg[g_curr_buf].dest, g_cfg[g_curr_buf].len);
+			break;
+		case CMD_ERASE_AND_PROGRAM:
+			status =
+				flashloader_erase_and_program((uint8_t *)g_cfg[g_curr_buf].buf_addr,
+					g_cfg[g_curr_buf].dest, g_cfg[g_curr_buf].len);
+			break;
+		case CMD_ERASE_AND_PROGRAM_WITH_RETAIN:
+			status =
+				flashloader_program_with_retain((uint8_t *)g_cfg[g_curr_buf].buf_addr,
+					g_cfg[g_curr_buf].dest, g_cfg[g_curr_buf].len);
+			break;
+		case CMD_ERASE_SECTORS:
+			status =
+				flashloader_erase_sectors(g_cfg[g_curr_buf].dest,
+					g_cfg[g_curr_buf].len);
+			break;
+		default:
+			status = STATUS_FAILED_UNKNOWN_COMMAND;
+			break;
 		}
 
 		restore_cache_state();

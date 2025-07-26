@@ -67,20 +67,20 @@ static bool __pcm_set_core_voltage_level_advanced(uint_fast8_t voltage_level,
 		reg_value = PCM->CTL0;
 
 		switch (pcm_get_power_state()) {
-			case PCM_AM_LF_VCORE1:
-			case PCM_AM_DCDC_VCORE1:
-			case PCM_AM_LDO_VCORE0:
-				PCM->CTL0 = (PCM_KEY | (PCM_AM_LDO_VCORE1)
-					| (reg_value & ~(PCM_CTL0_KEY_MASK | PCM_CTL0_AMR_MASK)));
-				break;
-			case PCM_AM_LF_VCORE0:
-			case PCM_AM_DCDC_VCORE0:
-			case PCM_AM_LDO_VCORE1:
-				PCM->CTL0 = (PCM_KEY | (PCM_AM_LDO_VCORE0)
-					| (reg_value & ~(PCM_CTL0_KEY_MASK | PCM_CTL0_AMR_MASK)));
-				break;
-			default:
-				break;
+		case PCM_AM_LF_VCORE1:
+		case PCM_AM_DCDC_VCORE1:
+		case PCM_AM_LDO_VCORE0:
+			PCM->CTL0 = (PCM_KEY | (PCM_AM_LDO_VCORE1)
+				| (reg_value & ~(PCM_CTL0_KEY_MASK | PCM_CTL0_AMR_MASK)));
+			break;
+		case PCM_AM_LF_VCORE0:
+		case PCM_AM_DCDC_VCORE0:
+		case PCM_AM_LDO_VCORE1:
+			PCM->CTL0 = (PCM_KEY | (PCM_AM_LDO_VCORE0)
+				| (reg_value & ~(PCM_CTL0_KEY_MASK | PCM_CTL0_AMR_MASK)));
+			break;
+		default:
+			break;
 		}
 
 		if (blocking) {
@@ -117,22 +117,22 @@ uint8_t pcm_get_power_mode(void)
 	current_power_state = pcm_get_power_state();
 
 	switch (current_power_state) {
-		case PCM_AM_DCDC_VCORE0:
-		case PCM_AM_DCDC_VCORE1:
-		case PCM_LPM0_DCDC_VCORE0:
-		case PCM_LPM0_DCDC_VCORE1:
-			return PCM_DCDC_MODE;
-		case PCM_LPM0_LF_VCORE0:
-		case PCM_LPM0_LF_VCORE1:
-		case PCM_AM_LF_VCORE1:
-		case PCM_AM_LF_VCORE0:
-			return PCM_LF_MODE;
-		case PCM_AM_LDO_VCORE0:
-		case PCM_AM_LDO_VCORE1:
-		case PCM_LPM0_LDO_VCORE0:
-		case PCM_LPM0_LDO_VCORE1:
-		default:
-			return PCM_LDO_MODE;
+	case PCM_AM_DCDC_VCORE0:
+	case PCM_AM_DCDC_VCORE1:
+	case PCM_LPM0_DCDC_VCORE0:
+	case PCM_LPM0_DCDC_VCORE1:
+		return PCM_DCDC_MODE;
+	case PCM_LPM0_LF_VCORE0:
+	case PCM_LPM0_LF_VCORE1:
+	case PCM_AM_LF_VCORE1:
+	case PCM_AM_LF_VCORE0:
+		return PCM_LF_MODE;
+	case PCM_AM_LDO_VCORE0:
+	case PCM_AM_LDO_VCORE1:
+	case PCM_LPM0_LDO_VCORE0:
+	case PCM_LPM0_LDO_VCORE1:
+	default:
+		return PCM_LDO_MODE;
 	}
 }
 
@@ -141,23 +141,23 @@ uint8_t pcm_get_core_voltage_level(void)
 	uint8_t current_power_state = pcm_get_power_state();
 
 	switch (current_power_state) {
-		case PCM_AM_LDO_VCORE1:
-		case PCM_AM_DCDC_VCORE1:
-		case PCM_AM_LF_VCORE1:
-		case PCM_LPM0_LDO_VCORE1:
-		case PCM_LPM0_DCDC_VCORE1:
-		case PCM_LPM0_LF_VCORE1:
-			return PCM_VCORE1;
-		case PCM_LPM3:
-			return PCM_VCORELPM3;
-		case PCM_AM_LDO_VCORE0:
-		case PCM_AM_DCDC_VCORE0:
-		case PCM_AM_LF_VCORE0:
-		case PCM_LPM0_LDO_VCORE0:
-		case PCM_LPM0_DCDC_VCORE0:
-		case PCM_LPM0_LF_VCORE0:
-		default:
-			return PCM_VCORE0;
+	case PCM_AM_LDO_VCORE1:
+	case PCM_AM_DCDC_VCORE1:
+	case PCM_AM_LF_VCORE1:
+	case PCM_LPM0_LDO_VCORE1:
+	case PCM_LPM0_DCDC_VCORE1:
+	case PCM_LPM0_LF_VCORE1:
+		return PCM_VCORE1;
+	case PCM_LPM3:
+		return PCM_VCORELPM3;
+	case PCM_AM_LDO_VCORE0:
+	case PCM_AM_DCDC_VCORE0:
+	case PCM_AM_LF_VCORE0:
+	case PCM_LPM0_LDO_VCORE0:
+	case PCM_LPM0_DCDC_VCORE0:
+	case PCM_LPM0_LF_VCORE0:
+	default:
+		return PCM_VCORE0;
 	}
 }
 
@@ -186,44 +186,44 @@ static bool __pcm_set_power_mode_advanced(uint_fast8_t power_mode,
 		reg_value = PCM->CTL0;
 
 		switch (current_power_state) {
-			case PCM_AM_DCDC_VCORE0:
-			case PCM_AM_LF_VCORE0:
-				PCM->CTL0 = (PCM_KEY | PCM_AM_LDO_VCORE0
-					| (reg_value & ~(PCM_CTL0_KEY_MASK | PCM_CTL0_AMR_MASK)));
-				break;
-			case PCM_AM_LF_VCORE1:
-			case PCM_AM_DCDC_VCORE1:
-				PCM->CTL0 = (PCM_KEY | PCM_AM_LDO_VCORE1
-					| (reg_value & ~(PCM_CTL0_KEY_MASK | PCM_CTL0_AMR_MASK)));
-				break;
-			case PCM_AM_LDO_VCORE1:
-				if (power_mode == PCM_DCDC_MODE) {
-					PCM->CTL0 = (PCM_KEY | PCM_AM_DCDC_VCORE1
-						| (reg_value & ~(PCM_CTL0_KEY_MASK
-						| PCM_CTL0_AMR_MASK)));
-				} else if (power_mode == PCM_LF_MODE) {
-					PCM->CTL0 = (PCM_KEY | PCM_AM_LF_VCORE1
-						| (reg_value & ~(PCM_CTL0_KEY_MASK
-						| PCM_CTL0_AMR_MASK)));
-				} else {
-					return false;
-				}
-				break;
-			case PCM_AM_LDO_VCORE0:
-				if (power_mode == PCM_DCDC_MODE) {
-					PCM->CTL0 = (PCM_KEY | PCM_AM_DCDC_VCORE0
-						| (reg_value & ~(PCM_CTL0_KEY_MASK
-						| PCM_CTL0_AMR_MASK)));
-				} else if (power_mode == PCM_LF_MODE) {
-					PCM->CTL0 = (PCM_KEY | PCM_AM_LF_VCORE0
-						| (reg_value & ~(PCM_CTL0_KEY_MASK
-						| PCM_CTL0_AMR_MASK)));
-				} else {
-					return false;
-				}
-				break;
-			default:
-				break;
+		case PCM_AM_DCDC_VCORE0:
+		case PCM_AM_LF_VCORE0:
+			PCM->CTL0 = (PCM_KEY | PCM_AM_LDO_VCORE0
+				| (reg_value & ~(PCM_CTL0_KEY_MASK | PCM_CTL0_AMR_MASK)));
+			break;
+		case PCM_AM_LF_VCORE1:
+		case PCM_AM_DCDC_VCORE1:
+			PCM->CTL0 = (PCM_KEY | PCM_AM_LDO_VCORE1
+				| (reg_value & ~(PCM_CTL0_KEY_MASK | PCM_CTL0_AMR_MASK)));
+			break;
+		case PCM_AM_LDO_VCORE1:
+			if (power_mode == PCM_DCDC_MODE) {
+				PCM->CTL0 = (PCM_KEY | PCM_AM_DCDC_VCORE1
+					| (reg_value & ~(PCM_CTL0_KEY_MASK
+					| PCM_CTL0_AMR_MASK)));
+			} else if (power_mode == PCM_LF_MODE) {
+				PCM->CTL0 = (PCM_KEY | PCM_AM_LF_VCORE1
+					| (reg_value & ~(PCM_CTL0_KEY_MASK
+					| PCM_CTL0_AMR_MASK)));
+			} else {
+				return false;
+			}
+			break;
+		case PCM_AM_LDO_VCORE0:
+			if (power_mode == PCM_DCDC_MODE) {
+				PCM->CTL0 = (PCM_KEY | PCM_AM_DCDC_VCORE0
+					| (reg_value & ~(PCM_CTL0_KEY_MASK
+					| PCM_CTL0_AMR_MASK)));
+			} else if (power_mode == PCM_LF_MODE) {
+				PCM->CTL0 = (PCM_KEY | PCM_AM_LF_VCORE0
+					| (reg_value & ~(PCM_CTL0_KEY_MASK
+					| PCM_CTL0_AMR_MASK)));
+			} else {
+				return false;
+			}
+			break;
+		default:
+			break;
 		}
 
 		if (blocking) {
@@ -257,76 +257,76 @@ static bool __pcm_set_power_state_advanced(uint_fast8_t power_state,
 		return true;
 
 	switch (power_state) {
-		case PCM_AM_LDO_VCORE0:
-			return __pcm_set_core_voltage_level_advanced(PCM_VCORE0, timeout,
-					blocking) && __pcm_set_power_mode_advanced(PCM_LDO_MODE,
-					timeout, blocking);
-		case PCM_AM_LDO_VCORE1:
-			return __pcm_set_core_voltage_level_advanced(PCM_VCORE1, timeout,
-					blocking) && __pcm_set_power_mode_advanced(PCM_LDO_MODE,
-					timeout, blocking);
-		case PCM_AM_DCDC_VCORE0:
-			return __pcm_set_core_voltage_level_advanced(PCM_VCORE0, timeout,
-					blocking) && __pcm_set_power_mode_advanced(PCM_DCDC_MODE,
-					timeout, blocking);
-		case PCM_AM_DCDC_VCORE1:
-			return __pcm_set_core_voltage_level_advanced(PCM_VCORE1, timeout,
-					blocking) && __pcm_set_power_mode_advanced(PCM_DCDC_MODE,
-					timeout, blocking);
-		case PCM_AM_LF_VCORE0:
-			return __pcm_set_core_voltage_level_advanced(PCM_VCORE0, timeout,
-					blocking) && __pcm_set_power_mode_advanced(PCM_LF_MODE,
-					timeout, blocking);
-		case PCM_AM_LF_VCORE1:
-			return __pcm_set_core_voltage_level_advanced(PCM_VCORE1, timeout,
-					blocking) && __pcm_set_power_mode_advanced(PCM_LF_MODE,
-					timeout, blocking);
-		case PCM_LPM0_LDO_VCORE0:
-			if (!__pcm_set_core_voltage_level_advanced(PCM_VCORE0, timeout,
-				blocking) || !__pcm_set_power_mode_advanced(PCM_LDO_MODE,
-				timeout, blocking))
-				break;
-			return pcm_goto_lpm0();
-		case PCM_LPM0_LDO_VCORE1:
-			if (!__pcm_set_core_voltage_level_advanced(PCM_VCORE1, timeout,
-				blocking) || !__pcm_set_power_mode_advanced(PCM_LDO_MODE,
-				timeout, blocking))
-				break;
-			return pcm_goto_lpm0();
-		case PCM_LPM0_DCDC_VCORE0:
-			if (!__pcm_set_core_voltage_level_advanced(PCM_VCORE0, timeout,
-				blocking) || !__pcm_set_power_mode_advanced(PCM_DCDC_MODE,
-				timeout, blocking))
-				break;
-			return pcm_goto_lpm0();
-		case PCM_LPM0_DCDC_VCORE1:
-			if (!__pcm_set_core_voltage_level_advanced(PCM_VCORE1, timeout,
-				blocking) || !__pcm_set_power_mode_advanced(PCM_DCDC_MODE,
-				timeout, blocking))
-				break;
-			return pcm_goto_lpm0();
-		case PCM_LPM0_LF_VCORE0:
-			if (!__pcm_set_core_voltage_level_advanced(PCM_VCORE0, timeout,
-				blocking) || !__pcm_set_power_mode_advanced(PCM_LF_MODE,
-				timeout, blocking))
-				break;
-			return pcm_goto_lpm0();
-		case PCM_LPM0_LF_VCORE1:
-			if (!__pcm_set_core_voltage_level_advanced(PCM_VCORE1, timeout,
-				blocking) || !__pcm_set_power_mode_advanced(PCM_LF_MODE,
-				timeout, blocking))
-				break;
-			return pcm_goto_lpm0();
-		case PCM_LPM3:
-			return pcm_goto_lpm3();
-		case PCM_LPM4:
-			return pcm_goto_lpm4();
-		case PCM_LPM45:
-			return pcm_shutdown_device(PCM_LPM45);
-		case PCM_LPM35_VCORE0:
-			return pcm_shutdown_device(PCM_LPM35_VCORE0);
-		default:
-			return false;
+	case PCM_AM_LDO_VCORE0:
+		return __pcm_set_core_voltage_level_advanced(PCM_VCORE0, timeout,
+				blocking) && __pcm_set_power_mode_advanced(PCM_LDO_MODE,
+				timeout, blocking);
+	case PCM_AM_LDO_VCORE1:
+		return __pcm_set_core_voltage_level_advanced(PCM_VCORE1, timeout,
+				blocking) && __pcm_set_power_mode_advanced(PCM_LDO_MODE,
+				timeout, blocking);
+	case PCM_AM_DCDC_VCORE0:
+		return __pcm_set_core_voltage_level_advanced(PCM_VCORE0, timeout,
+				blocking) && __pcm_set_power_mode_advanced(PCM_DCDC_MODE,
+				timeout, blocking);
+	case PCM_AM_DCDC_VCORE1:
+		return __pcm_set_core_voltage_level_advanced(PCM_VCORE1, timeout,
+				blocking) && __pcm_set_power_mode_advanced(PCM_DCDC_MODE,
+				timeout, blocking);
+	case PCM_AM_LF_VCORE0:
+		return __pcm_set_core_voltage_level_advanced(PCM_VCORE0, timeout,
+				blocking) && __pcm_set_power_mode_advanced(PCM_LF_MODE,
+				timeout, blocking);
+	case PCM_AM_LF_VCORE1:
+		return __pcm_set_core_voltage_level_advanced(PCM_VCORE1, timeout,
+				blocking) && __pcm_set_power_mode_advanced(PCM_LF_MODE,
+				timeout, blocking);
+	case PCM_LPM0_LDO_VCORE0:
+		if (!__pcm_set_core_voltage_level_advanced(PCM_VCORE0, timeout,
+			blocking) || !__pcm_set_power_mode_advanced(PCM_LDO_MODE,
+			timeout, blocking))
+			break;
+		return pcm_goto_lpm0();
+	case PCM_LPM0_LDO_VCORE1:
+		if (!__pcm_set_core_voltage_level_advanced(PCM_VCORE1, timeout,
+			blocking) || !__pcm_set_power_mode_advanced(PCM_LDO_MODE,
+			timeout, blocking))
+			break;
+		return pcm_goto_lpm0();
+	case PCM_LPM0_DCDC_VCORE0:
+		if (!__pcm_set_core_voltage_level_advanced(PCM_VCORE0, timeout,
+			blocking) || !__pcm_set_power_mode_advanced(PCM_DCDC_MODE,
+			timeout, blocking))
+			break;
+		return pcm_goto_lpm0();
+	case PCM_LPM0_DCDC_VCORE1:
+		if (!__pcm_set_core_voltage_level_advanced(PCM_VCORE1, timeout,
+			blocking) || !__pcm_set_power_mode_advanced(PCM_DCDC_MODE,
+			timeout, blocking))
+			break;
+		return pcm_goto_lpm0();
+	case PCM_LPM0_LF_VCORE0:
+		if (!__pcm_set_core_voltage_level_advanced(PCM_VCORE0, timeout,
+			blocking) || !__pcm_set_power_mode_advanced(PCM_LF_MODE,
+			timeout, blocking))
+			break;
+		return pcm_goto_lpm0();
+	case PCM_LPM0_LF_VCORE1:
+		if (!__pcm_set_core_voltage_level_advanced(PCM_VCORE1, timeout,
+			blocking) || !__pcm_set_power_mode_advanced(PCM_LF_MODE,
+			timeout, blocking))
+			break;
+		return pcm_goto_lpm0();
+	case PCM_LPM3:
+		return pcm_goto_lpm3();
+	case PCM_LPM4:
+		return pcm_goto_lpm4();
+	case PCM_LPM45:
+		return pcm_shutdown_device(PCM_LPM45);
+	case PCM_LPM35_VCORE0:
+		return pcm_shutdown_device(PCM_LPM35_VCORE0);
+	default:
+		return false;
 	}
 
 	return false;

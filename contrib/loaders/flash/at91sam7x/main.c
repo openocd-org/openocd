@@ -70,23 +70,23 @@ int main (void)
 	for (;;) {
 		cmd = dcc_rd();
 		switch (cmd&OCL_CMD_MASK) {
-			case OCL_PROBE:
-				dcc_wr(OCL_CMD_DONE | flash_init());
-				dcc_wr(0x100000); /* base */
-				dcc_wr(flash_page_count*flash_page_size); /* size */
-				dcc_wr(1); /* num_sectors */
-				dcc_wr(4096 | ((unsigned long) flash_page_size << 16)); /* buflen and bufalign */
-				break;
-			case OCL_ERASE_ALL:
-				dcc_wr(OCL_CMD_DONE | flash_erase_all());
-				break;
-			case OCL_FLASH_BLOCK:
-				cmd_flash(cmd);
-				break;
-			default:
-				/* unknown command */
-				dcc_wr(OCL_CMD_ERR);
-				break;
+		case OCL_PROBE:
+			dcc_wr(OCL_CMD_DONE | flash_init());
+			dcc_wr(0x100000); /* base */
+			dcc_wr(flash_page_count * flash_page_size); /* size */
+			dcc_wr(1); /* num_sectors */
+			dcc_wr(4096 | ((unsigned long)flash_page_size << 16)); /* buflen and bufalign */
+			break;
+		case OCL_ERASE_ALL:
+			dcc_wr(OCL_CMD_DONE | flash_erase_all());
+			break;
+		case OCL_FLASH_BLOCK:
+			cmd_flash(cmd);
+			break;
+		default:
+			/* unknown command */
+			dcc_wr(OCL_CMD_ERR);
+			break;
 		}
 	}
 

@@ -22,38 +22,38 @@ int flash_init(void)
 	nvpsiz = (inr(DBGU_CIDR) >> 8)&0xf;
 
 	switch (nvpsiz) {
-		case 3:
-			/* AT91SAM7x32 */
-			flash_page_count = 256;
-			flash_page_size = 128;
-			flash_lock_pages = 256/8;
-			break;
-		case 5:
-			/* AT91SAM7x64 */
-			flash_page_count = 512;
-			flash_page_size = 128;
-			flash_lock_pages = 512/16;
-			break;
-		case 7:
-			/* AT91SAM7x128*/
-			flash_page_count = 512;
-			flash_page_size = 256;
-			flash_lock_pages = 512/8;
-			break;
-		case 9:
-			/* AT91SAM7x256 */
-			flash_page_count = 1024;
-			flash_page_size = 256;
-			flash_lock_pages = 1024/16;
-			break;
-		case 10:
-			/* AT91SAM7x512 */
-			flash_page_count = 2048;
-			flash_page_size = 256;
-			flash_lock_pages = 2048/32;
-			break;
-		default:
-			return FLASH_STAT_INITE;
+	case 3:
+		/* AT91SAM7x32 */
+		flash_page_count = 256;
+		flash_page_size = 128;
+		flash_lock_pages = 256 / 8;
+		break;
+	case 5:
+		/* AT91SAM7x64 */
+		flash_page_count = 512;
+		flash_page_size = 128;
+		flash_lock_pages = 512 / 16;
+		break;
+	case 7:
+		/* AT91SAM7x128*/
+		flash_page_count = 512;
+		flash_page_size = 256;
+		flash_lock_pages = 512 / 8;
+		break;
+	case 9:
+		/* AT91SAM7x256 */
+		flash_page_count = 1024;
+		flash_page_size = 256;
+		flash_lock_pages = 1024 / 16;
+		break;
+	case 10:
+		/* AT91SAM7x512 */
+		flash_page_count = 2048;
+		flash_page_size = 256;
+		flash_lock_pages = 2048 / 32;
+		break;
+	default:
+		return FLASH_STAT_INITE;
 	}
 	return FLASH_STAT_OK;
 }

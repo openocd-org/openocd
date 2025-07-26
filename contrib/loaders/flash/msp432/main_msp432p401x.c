@@ -49,41 +49,41 @@ int main(void)
 
 	while (1) {
 		switch (FLASH_LOADER->FLASH_FUNCTION) {
-			case FLASH_INIT:
-				FLASH_LOADER->RETURN_CODE = FLASH_BUSY;
-				msp432_flash_init();
-				FLASH_LOADER->FLASH_FUNCTION = 0;
-				break;
-			case FLASH_MASS_ERASE:
-				FLASH_LOADER->RETURN_CODE = FLASH_BUSY;
-				msp432_flash_mass_erase();
-				FLASH_LOADER->FLASH_FUNCTION = 0;
-				break;
-			case FLASH_SECTOR_ERASE:
-				FLASH_LOADER->RETURN_CODE = FLASH_BUSY;
-				msp432_flash_sector_erase();
-				FLASH_LOADER->FLASH_FUNCTION = 0;
-				break;
-			case FLASH_PROGRAM:
-				FLASH_LOADER->RETURN_CODE = FLASH_BUSY;
-				msp432_flash_write();
-				FLASH_LOADER->FLASH_FUNCTION = 0;
-				break;
-			case FLASH_CONTINUOUS_PROGRAM:
-				FLASH_LOADER->RETURN_CODE = FLASH_BUSY;
-				msp432_flash_continous_write();
-				FLASH_LOADER->FLASH_FUNCTION = 0;
-				break;
-			case FLASH_EXIT:
-				FLASH_LOADER->RETURN_CODE = FLASH_BUSY;
-				msp432_flash_exit();
-				FLASH_LOADER->FLASH_FUNCTION = 0;
-				break;
-			case FLASH_NO_COMMAND:
-				break;
-			default:
-				FLASH_LOADER->RETURN_CODE = FLASH_WRONG_COMMAND;
-				break;
+		case FLASH_INIT:
+			FLASH_LOADER->RETURN_CODE = FLASH_BUSY;
+			msp432_flash_init();
+			FLASH_LOADER->FLASH_FUNCTION = 0;
+			break;
+		case FLASH_MASS_ERASE:
+			FLASH_LOADER->RETURN_CODE = FLASH_BUSY;
+			msp432_flash_mass_erase();
+			FLASH_LOADER->FLASH_FUNCTION = 0;
+			break;
+		case FLASH_SECTOR_ERASE:
+			FLASH_LOADER->RETURN_CODE = FLASH_BUSY;
+			msp432_flash_sector_erase();
+			FLASH_LOADER->FLASH_FUNCTION = 0;
+			break;
+		case FLASH_PROGRAM:
+			FLASH_LOADER->RETURN_CODE = FLASH_BUSY;
+			msp432_flash_write();
+			FLASH_LOADER->FLASH_FUNCTION = 0;
+			break;
+		case FLASH_CONTINUOUS_PROGRAM:
+			FLASH_LOADER->RETURN_CODE = FLASH_BUSY;
+			msp432_flash_continous_write();
+			FLASH_LOADER->FLASH_FUNCTION = 0;
+			break;
+		case FLASH_EXIT:
+			FLASH_LOADER->RETURN_CODE = FLASH_BUSY;
+			msp432_flash_exit();
+			FLASH_LOADER->FLASH_FUNCTION = 0;
+			break;
+		case FLASH_NO_COMMAND:
+			break;
+		default:
+			FLASH_LOADER->RETURN_CODE = FLASH_WRONG_COMMAND;
+			break;
 		}
 	}
 }
