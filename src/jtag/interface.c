@@ -86,8 +86,8 @@ int tap_move_ndx(enum tap_state astate)
 			ndx = 5;
 			break;
 		default:
-			LOG_ERROR("FATAL: unstable state \"%s\" in tap_move_ndx()",
-					tap_state_name(astate));
+			LOG_ERROR("FATAL: unstable state \"%s\" in %s()",
+					tap_state_name(astate), __func__);
 			exit(1);
 	}
 
