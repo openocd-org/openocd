@@ -117,57 +117,57 @@ static enum tap_state xsvf_to_tap(int xsvf_state)
 	enum tap_state ret;
 
 	switch (xsvf_state) {
-		case XSV_RESET:
-			ret = TAP_RESET;
-			break;
-		case XSV_IDLE:
-			ret = TAP_IDLE;
-			break;
-		case XSV_DRSELECT:
-			ret = TAP_DRSELECT;
-			break;
-		case XSV_DRCAPTURE:
-			ret = TAP_DRCAPTURE;
-			break;
-		case XSV_DRSHIFT:
-			ret = TAP_DRSHIFT;
-			break;
-		case XSV_DREXIT1:
-			ret = TAP_DREXIT1;
-			break;
-		case XSV_DRPAUSE:
-			ret = TAP_DRPAUSE;
-			break;
-		case XSV_DREXIT2:
-			ret = TAP_DREXIT2;
-			break;
-		case XSV_DRUPDATE:
-			ret = TAP_DRUPDATE;
-			break;
-		case XSV_IRSELECT:
-			ret = TAP_IRSELECT;
-			break;
-		case XSV_IRCAPTURE:
-			ret = TAP_IRCAPTURE;
-			break;
-		case XSV_IRSHIFT:
-			ret = TAP_IRSHIFT;
-			break;
-		case XSV_IREXIT1:
-			ret = TAP_IREXIT1;
-			break;
-		case XSV_IRPAUSE:
-			ret = TAP_IRPAUSE;
-			break;
-		case XSV_IREXIT2:
-			ret = TAP_IREXIT2;
-			break;
-		case XSV_IRUPDATE:
-			ret = TAP_IRUPDATE;
-			break;
-		default:
-			LOG_ERROR("UNKNOWN XSVF STATE 0x%02X", xsvf_state);
-			exit(1);
+	case XSV_RESET:
+		ret = TAP_RESET;
+		break;
+	case XSV_IDLE:
+		ret = TAP_IDLE;
+		break;
+	case XSV_DRSELECT:
+		ret = TAP_DRSELECT;
+		break;
+	case XSV_DRCAPTURE:
+		ret = TAP_DRCAPTURE;
+		break;
+	case XSV_DRSHIFT:
+		ret = TAP_DRSHIFT;
+		break;
+	case XSV_DREXIT1:
+		ret = TAP_DREXIT1;
+		break;
+	case XSV_DRPAUSE:
+		ret = TAP_DRPAUSE;
+		break;
+	case XSV_DREXIT2:
+		ret = TAP_DREXIT2;
+		break;
+	case XSV_DRUPDATE:
+		ret = TAP_DRUPDATE;
+		break;
+	case XSV_IRSELECT:
+		ret = TAP_IRSELECT;
+		break;
+	case XSV_IRCAPTURE:
+		ret = TAP_IRCAPTURE;
+		break;
+	case XSV_IRSHIFT:
+		ret = TAP_IRSHIFT;
+		break;
+	case XSV_IREXIT1:
+		ret = TAP_IREXIT1;
+		break;
+	case XSV_IRPAUSE:
+		ret = TAP_IRPAUSE;
+		break;
+	case XSV_IREXIT2:
+		ret = TAP_IREXIT2;
+		break;
+	case XSV_IRUPDATE:
+		ret = TAP_IRUPDATE;
+		break;
+	default:
+		LOG_ERROR("UNKNOWN XSVF STATE 0x%02X", xsvf_state);
+		exit(1);
 	}
 
 	return ret;
@@ -275,92 +275,91 @@ COMMAND_HANDLER(handle_xsvf_command)
 			enum tap_state mystate;
 
 			switch (opcode) {
-				case XCOMMENT:
-					/* ignore/show comments between XSTATE ops */
+			case XCOMMENT:
+				/* ignore/show comments between XSTATE ops */
+				break;
+			case XSTATE:
+				/* try to collect another transition */
+				if (pathlen == XSTATE_MAX_PATH) {
+					LOG_ERROR("XSVF: path too long");
+					do_abort = 1;
 					break;
-				case XSTATE:
-					/* try to collect another transition */
-					if (pathlen == XSTATE_MAX_PATH) {
-						LOG_ERROR("XSVF: path too long");
-						do_abort = 1;
-						break;
-					}
+				}
 
-					if (read(xsvf_fd, &uc, 1) < 0) {
-						do_abort = 1;
-						break;
-					}
+				if (read(xsvf_fd, &uc, 1) < 0) {
+					do_abort = 1;
+					break;
+				}
 
-					mystate = xsvf_to_tap(uc);
-					path[pathlen++] = mystate;
+				mystate = xsvf_to_tap(uc);
+				path[pathlen++] = mystate;
 
-					LOG_DEBUG("XSTATE 0x%02X %s", uc,
-					tap_state_name(mystate));
+				LOG_DEBUG("XSTATE 0x%02X %s", uc,
+				tap_state_name(mystate));
 
-					/* If path is incomplete, collect more */
-					if (!svf_tap_state_is_stable(mystate))
-						continue;
-
-					/* Else execute the path transitions we've
-					 * collected so far.
-					 *
-					 * NOTE:  Punting on the saved path is not
-					 * strictly correct, but we must to do this
-					 * unless jtag_add_pathmove() stops rejecting
-					 * paths containing RESET.  This is probably
-					 * harmless, since there aren't many options
-					 * for going from a stable state to reset;
-					 * at the worst, we may issue extra clocks
-					 * once we get to RESET.
-					 */
-					if (mystate == TAP_RESET) {
-						LOG_WARNING("XSVF: dodgey RESET");
-						path[0] = mystate;
-					}
-
-				/* FALL THROUGH */
-				default:
-					/* Execute the path we collected
-					 *
-					 * NOTE: OpenOCD requires something that XSVF
-					 * doesn't:  the last TAP state in the path
-					 * must be stable.  In practice, tools that
-					 * create XSVF seem to follow that rule too.
-					 */
-					collecting_path = false;
-
-					if (path[0] == TAP_RESET)
-						jtag_add_tlr();
-					else
-						jtag_add_pathmove(pathlen, path);
-
-					result = jtag_execute_queue();
-					if (result != ERROR_OK) {
-						LOG_ERROR("XSVF: pathmove error %d", result);
-						do_abort = 1;
-						break;
-					}
+				/* If path is incomplete, collect more */
+				if (!svf_tap_state_is_stable(mystate))
 					continue;
+
+				/* Else execute the path transitions we've
+				 * collected so far.
+				 *
+				 * NOTE:  Punting on the saved path is not
+				 * strictly correct, but we must to do this
+				 * unless jtag_add_pathmove() stops rejecting
+				 * paths containing RESET.  This is probably
+				 * harmless, since there aren't many options
+				 * for going from a stable state to reset;
+				 * at the worst, we may issue extra clocks
+				 * once we get to RESET.
+				 */
+				if (mystate == TAP_RESET) {
+					LOG_WARNING("XSVF: dodgey RESET");
+					path[0] = mystate;
+				}
+
+			/* FALL THROUGH */
+			default:
+				/* Execute the path we collected
+				 *
+				 * NOTE: OpenOCD requires something that XSVF
+				 * doesn't:  the last TAP state in the path
+				 * must be stable.  In practice, tools that
+				 * create XSVF seem to follow that rule too.
+				 */
+				collecting_path = false;
+
+				if (path[0] == TAP_RESET)
+					jtag_add_tlr();
+				else
+					jtag_add_pathmove(pathlen, path);
+
+				result = jtag_execute_queue();
+				if (result != ERROR_OK) {
+					LOG_ERROR("XSVF: pathmove error %d", result);
+					do_abort = 1;
+					break;
+				}
+				continue;
 			}
 		}
 
 		switch (opcode) {
-			case XCOMPLETE:
-				LOG_DEBUG("XCOMPLETE");
+		case XCOMPLETE:
+			LOG_DEBUG("XCOMPLETE");
+			result = jtag_execute_queue();
+			if (result != ERROR_OK)
+				tdo_mismatch = 1;
+			break;
 
-				result = jtag_execute_queue();
-				if (result != ERROR_OK)
-					tdo_mismatch = 1;
-				break;
+		case XTDOMASK:
+			LOG_DEBUG("XTDOMASK");
+			if (dr_in_mask &&
+					(xsvf_read_buffer(xsdrsize, xsvf_fd, dr_in_mask) != ERROR_OK))
+				do_abort = 1;
+			break;
 
-			case XTDOMASK:
-				LOG_DEBUG("XTDOMASK");
-				if (dr_in_mask &&
-						(xsvf_read_buffer(xsdrsize, xsvf_fd, dr_in_mask) != ERROR_OK))
-					do_abort = 1;
-				break;
-
-			case XRUNTEST:
+		case XRUNTEST:
 			{
 				uint8_t xruntest_buf[4];
 
@@ -374,7 +373,7 @@ COMMAND_HANDLER(handle_xsvf_command)
 			}
 			break;
 
-			case XREPEAT:
+		case XREPEAT:
 			{
 				uint8_t myrepeat;
 
@@ -387,7 +386,7 @@ COMMAND_HANDLER(handle_xsvf_command)
 			}
 			break;
 
-			case XSDRSIZE:
+		case XSDRSIZE:
 			{
 				uint8_t xsdrsize_buf[4];
 
@@ -409,8 +408,8 @@ COMMAND_HANDLER(handle_xsvf_command)
 			}
 			break;
 
-			case XSDR:		/* these two are identical except for the dr_in_buf */
-			case XSDRTDO:
+		case XSDR:		/* these two are identical except for the dr_in_buf */
+		case XSDRTDO:
 			{
 				int limit = xrepeat;
 				int matched = 0;
@@ -519,47 +518,47 @@ COMMAND_HANDLER(handle_xsvf_command)
 			}
 			break;
 
-			case XSETSDRMASKS:
-				LOG_ERROR("unsupported XSETSDRMASKS");
-				unsupported = 1;
-				break;
+		case XSETSDRMASKS:
+			LOG_ERROR("unsupported XSETSDRMASKS");
+			unsupported = 1;
+			break;
 
-			case XSDRINC:
-				LOG_ERROR("unsupported XSDRINC");
-				unsupported = 1;
-				break;
+		case XSDRINC:
+			LOG_ERROR("unsupported XSDRINC");
+			unsupported = 1;
+			break;
 
-			case XSDRB:
-				LOG_ERROR("unsupported XSDRB");
-				unsupported = 1;
-				break;
+		case XSDRB:
+			LOG_ERROR("unsupported XSDRB");
+			unsupported = 1;
+			break;
 
-			case XSDRC:
-				LOG_ERROR("unsupported XSDRC");
-				unsupported = 1;
-				break;
+		case XSDRC:
+			LOG_ERROR("unsupported XSDRC");
+			unsupported = 1;
+			break;
 
-			case XSDRE:
-				LOG_ERROR("unsupported XSDRE");
-				unsupported = 1;
-				break;
+		case XSDRE:
+			LOG_ERROR("unsupported XSDRE");
+			unsupported = 1;
+			break;
 
-			case XSDRTDOB:
-				LOG_ERROR("unsupported XSDRTDOB");
-				unsupported = 1;
-				break;
+		case XSDRTDOB:
+			LOG_ERROR("unsupported XSDRTDOB");
+			unsupported = 1;
+			break;
 
-			case XSDRTDOC:
-				LOG_ERROR("unsupported XSDRTDOC");
-				unsupported = 1;
-				break;
+		case XSDRTDOC:
+			LOG_ERROR("unsupported XSDRTDOC");
+			unsupported = 1;
+			break;
 
-			case XSDRTDOE:
-				LOG_ERROR("unsupported XSDRTDOE");
-				unsupported = 1;
-				break;
+		case XSDRTDOE:
+			LOG_ERROR("unsupported XSDRTDOE");
+			unsupported = 1;
+			break;
 
-			case XSTATE:
+		case XSTATE:
 			{
 				enum tap_state mystate;
 
@@ -604,50 +603,48 @@ COMMAND_HANDLER(handle_xsvf_command)
 			}
 			break;
 
-			case XENDIR:
-
-				if (read(xsvf_fd, &uc, 1) < 0) {
-					do_abort = 1;
-					break;
-				}
-
-				/* see page 22 of XSVF spec */
-				if (uc == 0) {
-					xendir = TAP_IDLE;
-				} else if (uc == 1) {
-					xendir = TAP_IRPAUSE;
-				} else {
-					LOG_ERROR("illegial XENDIR argument: 0x%02X", uc);
-					unsupported = 1;
-					break;
-				}
-
-				LOG_DEBUG("XENDIR 0x%02X %s", uc, tap_state_name(xendir));
+		case XENDIR:
+			if (read(xsvf_fd, &uc, 1) < 0) {
+				do_abort = 1;
 				break;
+			}
 
-			case XENDDR:
-
-				if (read(xsvf_fd, &uc, 1) < 0) {
-					do_abort = 1;
-					break;
-				}
-
-				/* see page 22 of XSVF spec */
-				if (uc == 0) {
-					xenddr = TAP_IDLE;
-				} else if (uc == 1) {
-					xenddr = TAP_DRPAUSE;
-				} else {
-					LOG_ERROR("illegial XENDDR argument: 0x%02X", uc);
-					unsupported = 1;
-					break;
-				}
-
-				LOG_DEBUG("XENDDR %02X %s", uc, tap_state_name(xenddr));
+			/* see page 22 of XSVF spec */
+			if (uc == 0) {
+				xendir = TAP_IDLE;
+			} else if (uc == 1) {
+				xendir = TAP_IRPAUSE;
+			} else {
+				LOG_ERROR("illegial XENDIR argument: 0x%02X", uc);
+				unsupported = 1;
 				break;
+			}
 
-			case XSIR:
-			case XSIR2:
+			LOG_DEBUG("XENDIR 0x%02X %s", uc, tap_state_name(xendir));
+			break;
+
+		case XENDDR:
+			if (read(xsvf_fd, &uc, 1) < 0) {
+				do_abort = 1;
+				break;
+			}
+
+			/* see page 22 of XSVF spec */
+			if (uc == 0) {
+				xenddr = TAP_IDLE;
+			} else if (uc == 1) {
+				xenddr = TAP_DRPAUSE;
+			} else {
+				LOG_ERROR("illegial XENDDR argument: 0x%02X", uc);
+				unsupported = 1;
+				break;
+			}
+
+			LOG_DEBUG("XENDDR %02X %s", uc, tap_state_name(xenddr));
+			break;
+
+		case XSIR:
+		case XSIR2:
 			{
 				uint8_t short_buf[2];
 				uint8_t *ir_buf;
@@ -710,7 +707,7 @@ COMMAND_HANDLER(handle_xsvf_command)
 			}
 			break;
 
-			case XCOMMENT:
+		case XCOMMENT:
 			{
 				unsigned int ndx = 0;
 				char comment[128];
@@ -732,7 +729,7 @@ COMMAND_HANDLER(handle_xsvf_command)
 			}
 			break;
 
-			case XWAIT:
+		case XWAIT:
 			{
 				/* expected in stream:
 				   XWAIT <uint8_t wait_state> <uint8_t end_state> <uint32_t usecs>
@@ -775,7 +772,7 @@ COMMAND_HANDLER(handle_xsvf_command)
 			}
 			break;
 
-			case XWAITSTATE:
+		case XWAITSTATE:
 			{
 				/* expected in stream:
 				 * XWAITSTATE <uint8_t wait_state> <uint8_t end_state> <uint32_t clock_count>
@@ -836,7 +833,7 @@ COMMAND_HANDLER(handle_xsvf_command)
 			}
 			break;
 
-			case LCOUNT:
+		case LCOUNT:
 			{
 				/* expected in stream:
 				 * LCOUNT <uint32_t loop_count>
@@ -853,7 +850,7 @@ COMMAND_HANDLER(handle_xsvf_command)
 			}
 			break;
 
-			case LDELAY:
+		case LDELAY:
 			{
 				/* expected in stream:
 				 * LDELAY <uint8_t wait_state> <uint32_t clock_count> <uint32_t usecs_to_sleep>
@@ -879,10 +876,10 @@ COMMAND_HANDLER(handle_xsvf_command)
 			}
 			break;
 
-			/* LSDR is more like XSDRTDO than it is like XSDR.  It uses LDELAY which
-			 * comes with clocks !AND! sleep requirements.
-			 */
-			case LSDR:
+		/* LSDR is more like XSDRTDO than it is like XSDR.  It uses LDELAY which
+		 * comes with clocks !AND! sleep requirements.
+		 */
+		case LSDR:
 			{
 				int limit = loop_count;
 				int matched = 0;
@@ -946,7 +943,7 @@ COMMAND_HANDLER(handle_xsvf_command)
 			}
 			break;
 
-			case XTRST:
+		case XTRST:
 			{
 				uint8_t trst_mode;
 
@@ -972,9 +969,9 @@ COMMAND_HANDLER(handle_xsvf_command)
 			}
 			break;
 
-			default:
-				LOG_ERROR("unknown xsvf command (0x%02X)", uc);
-				unsupported = 1;
+		default:
+			LOG_ERROR("unknown xsvf command (0x%02X)", uc);
+			unsupported = 1;
 		}
 
 		if (do_abort || unsupported || tdo_mismatch) {
