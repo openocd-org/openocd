@@ -2360,6 +2360,7 @@ static int cortex_a_write_cpu_memory(struct target *target,
 					count *= 2;
 					size = 2;
 				}
+				break;
 			case 0:
 			default:
 				break;
