@@ -1285,24 +1285,24 @@ static int ulink_calculate_delay(enum ulink_delay_type type, long f, int *delay)
 	t = 1.0 / (float)(f);
 
 	switch (type) {
-	    case DELAY_CLOCK_TCK:
-		    x = (t - (float)(6E-6)) / (float)(4E-6);
-		    break;
-	    case DELAY_CLOCK_TMS:
-		    x = (t - (float)(8.5E-6)) / (float)(4E-6);
-		    break;
-	    case DELAY_SCAN_IN:
-		    x = (t - (float)(8.8308E-6)) / (float)(4E-6);
-		    break;
-	    case DELAY_SCAN_OUT:
-		    x = (t - (float)(1.0527E-5)) / (float)(4E-6);
-		    break;
-	    case DELAY_SCAN_IO:
-		    x = (t - (float)(1.3132E-5)) / (float)(4E-6);
-		    break;
-	    default:
-		    return ERROR_FAIL;
-		    break;
+	case DELAY_CLOCK_TCK:
+	    x = (t - (float)(6E-6)) / (float)(4E-6);
+	    break;
+	case DELAY_CLOCK_TMS:
+	    x = (t - (float)(8.5E-6)) / (float)(4E-6);
+	    break;
+	case DELAY_SCAN_IN:
+	    x = (t - (float)(8.8308E-6)) / (float)(4E-6);
+	    break;
+	case DELAY_SCAN_OUT:
+	    x = (t - (float)(1.0527E-5)) / (float)(4E-6);
+	    break;
+	case DELAY_SCAN_IO:
+	    x = (t - (float)(1.3132E-5)) / (float)(4E-6);
+	    break;
+	default:
+	    return ERROR_FAIL;
+	    break;
 	}
 
 	/* Check if the delay value is negative. This happens when a frequency is
@@ -1345,38 +1345,38 @@ static long ulink_calculate_frequency(enum ulink_delay_type type, int delay)
 		return 0;
 
 	switch (type) {
-	    case DELAY_CLOCK_TCK:
-		    if (delay < 0)
-			    t = (float)(2.666E-6);
-		    else
-			    t = (float)(4E-6) * (float)(delay) + (float)(6E-6);
-		    break;
-	    case DELAY_CLOCK_TMS:
-		    if (delay < 0)
-			    t = (float)(5.666E-6);
-		    else
-			    t = (float)(4E-6) * (float)(delay) + (float)(8.5E-6);
-		    break;
-	    case DELAY_SCAN_IN:
-		    if (delay < 0)
-			    t = (float)(5.5E-6);
-		    else
-			    t = (float)(4E-6) * (float)(delay) + (float)(8.8308E-6);
-		    break;
-	    case DELAY_SCAN_OUT:
-		    if (delay < 0)
-			    t = (float)(7.0E-6);
-		    else
-			    t = (float)(4E-6) * (float)(delay) + (float)(1.0527E-5);
-		    break;
-	    case DELAY_SCAN_IO:
-		    if (delay < 0)
-			    t = (float)(9.926E-6);
-		    else
-			    t = (float)(4E-6) * (float)(delay) + (float)(1.3132E-5);
-		    break;
-	    default:
-		    return 0;
+	case DELAY_CLOCK_TCK:
+	    if (delay < 0)
+		    t = (float)(2.666E-6);
+	    else
+		    t = (float)(4E-6) * (float)(delay) + (float)(6E-6);
+	    break;
+	case DELAY_CLOCK_TMS:
+	    if (delay < 0)
+		    t = (float)(5.666E-6);
+	    else
+		    t = (float)(4E-6) * (float)(delay) + (float)(8.5E-6);
+	    break;
+	case DELAY_SCAN_IN:
+	    if (delay < 0)
+		    t = (float)(5.5E-6);
+	    else
+		    t = (float)(4E-6) * (float)(delay) + (float)(8.8308E-6);
+	    break;
+	case DELAY_SCAN_OUT:
+	    if (delay < 0)
+		    t = (float)(7.0E-6);
+	    else
+		    t = (float)(4E-6) * (float)(delay) + (float)(1.0527E-5);
+	    break;
+	case DELAY_SCAN_IO:
+	    if (delay < 0)
+		    t = (float)(9.926E-6);
+	    else
+		    t = (float)(4E-6) * (float)(delay) + (float)(1.3132E-5);
+	    break;
+	default:
+	    return 0;
 	}
 
 	f_float = 1.0 / t;
