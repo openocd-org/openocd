@@ -1208,15 +1208,13 @@ static int set_watchpoint(struct target *t, struct watchpoint *wp)
 	switch (wp->rw) {
 		case WPT_WRITE:
 			if (set_debug_regs(t, wp->address, wp_num,
-						DR7_BP_WRITE, wp->length) != ERROR_OK) {
+						DR7_BP_WRITE, wp->length) != ERROR_OK)
 				return ERROR_FAIL;
-			}
 			break;
 		case WPT_ACCESS:
 			if (set_debug_regs(t, wp->address, wp_num, DR7_BP_READWRITE,
-						wp->length) != ERROR_OK) {
+						wp->length) != ERROR_OK)
 				return ERROR_FAIL;
-			}
 			break;
 		default:
 			LOG_ERROR("%s only 'access' or 'write' watchpoints are supported", __func__);

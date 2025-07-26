@@ -2708,7 +2708,7 @@ static int xscale_analyze_trace(struct target *target, struct command_invocation
 
 				case 13:	/* Checkpointed Indirect Branch */
 					xscale_branch_address(trace_data, i, &branch_target);
-					if ((trace_data->num_checkpoints == 2) && (chkpt == 0))
+					if (trace_data->num_checkpoints == 2 && chkpt == 0)
 						chkpt_reg = trace_data->chkpt1;	/* 2 chkpts, this is
 										 *oldest */
 					else
@@ -2719,7 +2719,7 @@ static int xscale_analyze_trace(struct target *target, struct command_invocation
 					break;
 
 				case 12:	/* Checkpointed Direct Branch */
-					if ((trace_data->num_checkpoints == 2) && (chkpt == 0))
+					if (trace_data->num_checkpoints == 2 && chkpt == 0)
 						chkpt_reg = trace_data->chkpt1;	/* 2 chkpts, this is
 										 *oldest */
 					else

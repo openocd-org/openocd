@@ -933,7 +933,6 @@ static int etmv1_analyze_trace(struct etm_context *ctx, struct command_invocatio
 					ctx->current_pc = ctx->last_branch;
 					ctx->pipe_index++;
 					continue;
-					break;
 				case 0x2:	/* trace restarted after FIFO overflow */
 					command_print(cmd,
 						"--- trace restarted after FIFO overflow at 0x%8.8" PRIx32 " ---",
@@ -941,7 +940,6 @@ static int etmv1_analyze_trace(struct etm_context *ctx, struct command_invocatio
 					ctx->current_pc = ctx->last_branch;
 					ctx->pipe_index++;
 					continue;
-					break;
 				case 0x3:	/* exit from debug state */
 					command_print(cmd,
 						"--- exit from debug state at 0x%8.8" PRIx32 " ---",
@@ -949,7 +947,6 @@ static int etmv1_analyze_trace(struct etm_context *ctx, struct command_invocatio
 					ctx->current_pc = ctx->last_branch;
 					ctx->pipe_index++;
 					continue;
-					break;
 				case 0x4:	/* periodic synchronization point */
 					next_pc = ctx->last_branch;
 					/* if we had no valid PC prior to this synchronization point,
@@ -965,8 +962,7 @@ static int etmv1_analyze_trace(struct etm_context *ctx, struct command_invocatio
 					}
 					break;
 				default:	/* reserved */
-					LOG_ERROR(
-						"BUG: branch reason code 0x%" PRIx32 " is reserved",
+					LOG_ERROR("BUG: branch reason code 0x%" PRIx32 " is reserved",
 						ctx->last_branch_reason);
 					return ERROR_FAIL;
 			}

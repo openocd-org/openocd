@@ -2329,9 +2329,9 @@ int arm7_9_write_memory(struct target *target,
 				/* fast memory writes are only safe when the target is running
 				 * from a sufficiently high clock (32 kHz is usually too slow)
 				 */
-				if (arm7_9->fast_memory_access)
+				if (arm7_9->fast_memory_access) {
 					retval = arm7_9_execute_fast_sys_speed(target);
-				else {
+				} else {
 					retval = arm7_9_execute_sys_speed(target);
 
 					/*
@@ -2373,9 +2373,9 @@ int arm7_9_write_memory(struct target *target,
 					/* fast memory writes are only safe when the target is running
 					 * from a sufficiently high clock (32 kHz is usually too slow)
 					 */
-					if (arm7_9->fast_memory_access)
+					if (arm7_9->fast_memory_access) {
 						retval = arm7_9_execute_fast_sys_speed(target);
-					else {
+					} else {
 						retval = arm7_9_execute_sys_speed(target);
 
 						/*
@@ -2416,9 +2416,9 @@ int arm7_9_write_memory(struct target *target,
 					/* fast memory writes are only safe when the target is running
 					 * from a sufficiently high clock (32 kHz is usually too slow)
 					 */
-					if (arm7_9->fast_memory_access)
+					if (arm7_9->fast_memory_access) {
 						retval = arm7_9_execute_fast_sys_speed(target);
-					else {
+					} else {
 						retval = arm7_9_execute_sys_speed(target);
 
 						/*

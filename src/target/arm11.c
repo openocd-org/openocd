@@ -838,7 +838,6 @@ static int arm11_read_memory_inner(struct target *target,
 			break;
 
 		case 2:
-		{
 			arm11->arm.core_cache->reg_list[1].dirty = true;
 
 			for (size_t i = 0; i < count; i++) {
@@ -856,7 +855,6 @@ static int arm11_read_memory_inner(struct target *target,
 			}
 
 			break;
-		}
 
 		case 4:
 		{
@@ -928,7 +926,6 @@ static int arm11_write_memory_inner(struct target *target,
 
 	switch (size) {
 		case 1:
-		{
 			arm11->arm.core_cache->reg_list[1].dirty = true;
 
 			for (size_t i = 0; i < count; i++) {
@@ -948,10 +945,8 @@ static int arm11_write_memory_inner(struct target *target,
 			}
 
 			break;
-		}
 
 		case 2:
-		{
 			arm11->arm.core_cache->reg_list[1].dirty = true;
 
 			for (size_t i = 0; i < count; i++) {
@@ -974,9 +969,9 @@ static int arm11_write_memory_inner(struct target *target,
 			}
 
 			break;
-		}
 
-		case 4: {
+		case 4:
+		{
 			/* stream word data through DCC directly to memory */
 			/* increment:		STC p14,c5,[R0],#4 */
 			/* no increment:	STC p14,c5,[R0]*/

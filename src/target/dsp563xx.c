@@ -816,11 +816,9 @@ static int dsp563xx_write_register(struct target *target, int num, int force)
 					arch_info->instr_mask,
 					dsp563xx->core_regs[num]);
 
-				if ((err == ERROR_OK) && (arch_info->num == DSP563XX_REG_IDX_SP)) {
-					dsp563xx->core_cache->reg_list[DSP563XX_REG_IDX_SSH].valid =
-						0;
-					dsp563xx->core_cache->reg_list[DSP563XX_REG_IDX_SSL].valid =
-						0;
+				if (err == ERROR_OK && arch_info->num == DSP563XX_REG_IDX_SP) {
+					dsp563xx->core_cache->reg_list[DSP563XX_REG_IDX_SSH].valid = 0;
+					dsp563xx->core_cache->reg_list[DSP563XX_REG_IDX_SSL].valid = 0;
 				}
 
 				break;

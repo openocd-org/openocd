@@ -119,9 +119,9 @@ static int jsp_input(struct connection *connection)
 	while (bytes_read) {
 		switch (t_con->state) {
 			case TELNET_STATE_DATA:
-				if (*buf_p == 0xff)
+				if (*buf_p == 0xff) {
 					t_con->state = TELNET_STATE_IAC;
-				else {
+				} else {
 					int out_len = 1;
 					int in_len;
 					unsigned char in_buffer[10];
@@ -129,8 +129,7 @@ static int jsp_input(struct connection *connection)
 							       &out_len, buf_p, &in_len,
 							       in_buffer);
 					if (in_len)
-						telnet_write(connection,
-							     in_buffer, in_len);
+						telnet_write(connection, in_buffer, in_len);
 				}
 				break;
 			case TELNET_STATE_IAC:
