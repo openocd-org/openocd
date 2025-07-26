@@ -248,39 +248,39 @@ static int evaluate_srs(uint32_t opcode,
 	const char *mode = "";
 
 	switch ((opcode >> 23) & 0x3) {
-		case 0:
-			mode = "DA";
-			break;
-		case 1:
-			/* "IA" is default */
-			break;
-		case 2:
-			mode = "DB";
-			break;
-		case 3:
-			mode = "IB";
-			break;
+	case 0:
+		mode = "DA";
+		break;
+	case 1:
+		/* "IA" is default */
+		break;
+	case 2:
+		mode = "DB";
+		break;
+	case 3:
+		mode = "IB";
+		break;
 	}
 
 	switch (opcode & 0x0e500000) {
-		case 0x08400000:
-			snprintf(instruction->text, 128, "0x%8.8" PRIx32
-				"\t0x%8.8" PRIx32
-				"\tSRS%s\tSP%s, #%" PRIu32,
-				address, opcode,
-				mode, wback,
-				opcode & 0x1f);
-			break;
-		case 0x08100000:
-			snprintf(instruction->text, 128, "0x%8.8" PRIx32
-				"\t0x%8.8" PRIx32
-				"\tRFE%s\tr%" PRIu32 "%s",
-				address, opcode,
-				mode,
-				(opcode >> 16) & 0xf, wback);
-			break;
-		default:
-			return evaluate_unknown(opcode, address, instruction);
+	case 0x08400000:
+		snprintf(instruction->text, 128, "0x%8.8" PRIx32
+			"\t0x%8.8" PRIx32
+			"\tSRS%s\tSP%s, #%" PRIu32,
+			address, opcode,
+			mode, wback,
+			opcode & 0x1f);
+		break;
+	case 0x08100000:
+		snprintf(instruction->text, 128, "0x%8.8" PRIx32
+			"\t0x%8.8" PRIx32
+			"\tRFE%s\tr%" PRIu32 "%s",
+			address, opcode,
+			mode,
+			(opcode >> 16) & 0xf, wback);
+		break;
+	default:
+		return evaluate_unknown(opcode, address, instruction);
 	}
 	return ERROR_OK;
 }
@@ -631,21 +631,21 @@ static int evaluate_load_store(uint32_t opcode,
 			snprintf(offset, 32, ", %sr%i", (u) ? "" : "-", rm);
 		else {	/* +-<Rm>, <Shift>, #<shift_imm> */
 			switch (shift) {
-				case 0x0:		/* LSL */
-					snprintf(offset, 32, ", %sr%i, LSL #0x%x", (u) ? "" : "-", rm, shift_imm);
-					break;
-				case 0x1:		/* LSR */
-					snprintf(offset, 32, ", %sr%i, LSR #0x%x", (u) ? "" : "-", rm, shift_imm);
-					break;
-				case 0x2:		/* ASR */
-					snprintf(offset, 32, ", %sr%i, ASR #0x%x", (u) ? "" : "-", rm, shift_imm);
-					break;
-				case 0x3:		/* ROR */
-					snprintf(offset, 32, ", %sr%i, ROR #0x%x", (u) ? "" : "-", rm, shift_imm);
-					break;
-				case 0x4:		/* RRX */
-					snprintf(offset, 32, ", %sr%i, RRX", (u) ? "" : "-", rm);
-					break;
+			case 0x0:		/* LSL */
+				snprintf(offset, 32, ", %sr%i, LSL #0x%x", (u) ? "" : "-", rm, shift_imm);
+				break;
+			case 0x1:		/* LSR */
+				snprintf(offset, 32, ", %sr%i, LSR #0x%x", (u) ? "" : "-", rm, shift_imm);
+				break;
+			case 0x2:		/* ASR */
+				snprintf(offset, 32, ", %sr%i, ASR #0x%x", (u) ? "" : "-", rm, shift_imm);
+				break;
+			case 0x3:		/* ROR */
+				snprintf(offset, 32, ", %sr%i, ROR #0x%x", (u) ? "" : "-", rm, shift_imm);
+				break;
+			case 0x4:		/* RRX */
+				snprintf(offset, 32, ", %sr%i, RRX", (u) ? "" : "-", rm);
+				break;
 			}
 		}
 	}
@@ -707,33 +707,33 @@ static int evaluate_extend(uint32_t opcode, uint32_t address, char *cp)
 	char *type, *rot;
 
 	switch ((opcode >> 24) & 0x3) {
-		case 0:
-			type = "B16";
-			break;
-		case 1:
-			sprintf(cp, "UNDEFINED");
-			return ARM_UNDEFINED_INSTRUCTION;
-		case 2:
-			type = "B";
-			break;
-		default:
-			type = "H";
-			break;
+	case 0:
+		type = "B16";
+		break;
+	case 1:
+		sprintf(cp, "UNDEFINED");
+		return ARM_UNDEFINED_INSTRUCTION;
+	case 2:
+		type = "B";
+		break;
+	default:
+		type = "H";
+		break;
 	}
 
 	switch ((opcode >> 10) & 0x3) {
-		case 0:
-			rot = "";
-			break;
-		case 1:
-			rot = ", ROR #8";
-			break;
-		case 2:
-			rot = ", ROR #16";
-			break;
-		default:
-			rot = ", ROR #24";
-			break;
+	case 0:
+		rot = "";
+		break;
+	case 1:
+		rot = ", ROR #8";
+		break;
+	case 2:
+		rot = ", ROR #16";
+		break;
+	default:
+		rot = ", ROR #24";
+		break;
 	}
 
 	if (rn == 0xf) {
@@ -758,55 +758,55 @@ static int evaluate_p_add_sub(uint32_t opcode, uint32_t address, char *cp)
 	int type;
 
 	switch ((opcode >> 20) & 0x7) {
-		case 1:
-			prefix = "S";
-			break;
-		case 2:
-			prefix = "Q";
-			break;
-		case 3:
-			prefix = "SH";
-			break;
-		case 5:
-			prefix = "U";
-			break;
-		case 6:
-			prefix = "UQ";
-			break;
-		case 7:
-			prefix = "UH";
-			break;
-		default:
-			goto undef;
+	case 1:
+		prefix = "S";
+		break;
+	case 2:
+		prefix = "Q";
+		break;
+	case 3:
+		prefix = "SH";
+		break;
+	case 5:
+		prefix = "U";
+		break;
+	case 6:
+		prefix = "UQ";
+		break;
+	case 7:
+		prefix = "UH";
+		break;
+	default:
+		goto undef;
 	}
 
 	switch ((opcode >> 5) & 0x7) {
-		case 0:
-			op = "ADD16";
-			type = ARM_ADD;
-			break;
-		case 1:
-			op = "ADDSUBX";
-			type = ARM_ADD;
-			break;
-		case 2:
-			op = "SUBADDX";
-			type = ARM_SUB;
-			break;
-		case 3:
-			op = "SUB16";
-			type = ARM_SUB;
-			break;
-		case 4:
-			op = "ADD8";
-			type = ARM_ADD;
-			break;
-		case 7:
-			op = "SUB8";
-			type = ARM_SUB;
-			break;
-		default:
-			goto undef;
+	case 0:
+		op = "ADD16";
+		type = ARM_ADD;
+		break;
+	case 1:
+		op = "ADDSUBX";
+		type = ARM_ADD;
+		break;
+	case 2:
+		op = "SUBADDX";
+		type = ARM_SUB;
+		break;
+	case 3:
+		op = "SUB16";
+		type = ARM_SUB;
+		break;
+	case 4:
+		op = "ADD8";
+		type = ARM_ADD;
+		break;
+	case 7:
+		op = "SUB8";
+		type = ARM_SUB;
+		break;
+	default:
+		goto undef;
 	}
 
 	sprintf(cp, "%s%s%s\tr%d, r%d, r%d", prefix, op, COND(opcode),
@@ -928,14 +928,14 @@ static int evaluate_media(uint32_t opcode, uint32_t address,
 		unsigned int rn = (opcode >> 12) & 0xf;
 
 		switch (opcode & 0xc0) {
-			case 3:
-				if (rn == 0xf)
-					goto undef;
-			/* FALL THROUGH */
-			case 0:
-				break;
-			default:
+		case 3:
+			if (rn == 0xf)
 				goto undef;
+		/* FALL THROUGH */
+		case 0:
+			break;
+		default:
+			goto undef;
 		}
 
 		if (rn != 0xf)
@@ -959,46 +959,46 @@ static int evaluate_media(uint32_t opcode, uint32_t address,
 
 	/* simple matches against the remaining decode bits */
 	switch (opcode & 0x01f000f0) {
-		case 0x00a00030:
-		case 0x00e00030:
-			/* parallel halfword saturate */
-			sprintf(cp, "%cSAT16%s\tr%d, #%d, r%d",
-				(opcode & (1 << 22)) ? 'U' : 'S',
-				COND(opcode),
-				(int) (opcode >> 12) & 0xf,
-				(int) (opcode >> 16) & 0xf,
-				(int) (opcode >> 0) & 0xf);
-			return ERROR_OK;
-		case 0x00b00030:
-			mnemonic = "REV";
-			break;
-		case 0x00b000b0:
-			mnemonic = "REV16";
-			break;
-		case 0x00f000b0:
-			mnemonic = "REVSH";
-			break;
-		case 0x008000b0:
-			/* select bytes */
-			sprintf(cp, "SEL%s\tr%d, r%d, r%d", COND(opcode),
-				(int) (opcode >> 12) & 0xf,
-				(int) (opcode >> 16) & 0xf,
-				(int) (opcode >> 0) & 0xf);
-			return ERROR_OK;
-		case 0x01800010:
-			/* unsigned sum of absolute differences */
-			if (((opcode >> 12) & 0xf) == 0xf)
-				sprintf(cp, "USAD8%s\tr%d, r%d, r%d", COND(opcode),
-						(int) (opcode >> 16) & 0xf,
-						(int) (opcode >> 0) & 0xf,
-						(int) (opcode >> 8) & 0xf);
-			else
-				sprintf(cp, "USADA8%s\tr%d, r%d, r%d, r%d", COND(opcode),
-						(int) (opcode >> 16) & 0xf,
-						(int) (opcode >> 0) & 0xf,
-						(int) (opcode >> 8) & 0xf,
-						(int) (opcode >> 12) & 0xf);
-			return ERROR_OK;
+	case 0x00a00030:
+	case 0x00e00030:
+		/* parallel halfword saturate */
+		sprintf(cp, "%cSAT16%s\tr%d, #%d, r%d",
+			(opcode & (1 << 22)) ? 'U' : 'S',
+			COND(opcode),
+			(int)(opcode >> 12) & 0xf,
+			(int)(opcode >> 16) & 0xf,
+			(int)(opcode >> 0) & 0xf);
+		return ERROR_OK;
+	case 0x00b00030:
+		mnemonic = "REV";
+		break;
+	case 0x00b000b0:
+		mnemonic = "REV16";
+		break;
+	case 0x00f000b0:
+		mnemonic = "REVSH";
+		break;
+	case 0x008000b0:
+		/* select bytes */
+		sprintf(cp, "SEL%s\tr%d, r%d, r%d", COND(opcode),
+			(int)(opcode >> 12) & 0xf,
+			(int)(opcode >> 16) & 0xf,
+			(int)(opcode >> 0) & 0xf);
+		return ERROR_OK;
+	case 0x01800010:
+		/* unsigned sum of absolute differences */
+		if (((opcode >> 12) & 0xf) == 0xf)
+			sprintf(cp, "USAD8%s\tr%d, r%d, r%d", COND(opcode),
+					(int)(opcode >> 16) & 0xf,
+					(int)(opcode >> 0) & 0xf,
+					(int)(opcode >> 8) & 0xf);
+		else
+			sprintf(cp, "USADA8%s\tr%d, r%d, r%d, r%d", COND(opcode),
+					(int)(opcode >> 16) & 0xf,
+					(int)(opcode >> 0) & 0xf,
+					(int)(opcode >> 8) & 0xf,
+					(int)(opcode >> 12) & 0xf);
+		return ERROR_OK;
 	}
 	if (mnemonic) {
 		unsigned int rm = (opcode >> 0) & 0xf;
@@ -1280,22 +1280,22 @@ static int evaluate_mul_and_extra_ld_st(uint32_t opcode,
 			s = (opcode & 0x00100000) >> 20;
 
 			switch ((opcode & 0x00600000) >> 21) {
-				case 0x0:
-					instruction->type = ARM_UMULL;
-					mnemonic = "UMULL";
-					break;
-				case 0x1:
-					instruction->type = ARM_UMLAL;
-					mnemonic = "UMLAL";
-					break;
-				case 0x2:
-					instruction->type = ARM_SMULL;
-					mnemonic = "SMULL";
-					break;
-				case 0x3:
-					instruction->type = ARM_SMLAL;
-					mnemonic = "SMLAL";
-					break;
+			case 0x0:
+				instruction->type = ARM_UMULL;
+				mnemonic = "UMULL";
+				break;
+			case 0x1:
+				instruction->type = ARM_UMLAL;
+				mnemonic = "UMLAL";
+				break;
+			case 0x2:
+				instruction->type = ARM_SMULL;
+				mnemonic = "SMULL";
+				break;
+			case 0x3:
+				instruction->type = ARM_SMLAL;
+				mnemonic = "SMLAL";
+				break;
 			}
 
 			snprintf(instruction->text,
@@ -1480,22 +1480,22 @@ static int evaluate_misc_instr(uint32_t opcode,
 		rn = (opcode & 0xf0000) >> 16;
 
 		switch ((opcode & 0x00600000) >> 21) {
-			case 0x0:
-				instruction->type = ARM_QADD;
-				mnemonic = "QADD";
-				break;
-			case 0x1:
-				instruction->type = ARM_QSUB;
-				mnemonic = "QSUB";
-				break;
-			case 0x2:
-				instruction->type = ARM_QDADD;
-				mnemonic = "QDADD";
-				break;
-			case 0x3:
-				instruction->type = ARM_QDSUB;
-				mnemonic = "QDSUB";
-				break;
+		case 0x0:
+			instruction->type = ARM_QADD;
+			mnemonic = "QADD";
+			break;
+		case 0x1:
+			instruction->type = ARM_QSUB;
+			mnemonic = "QSUB";
+			break;
+		case 0x2:
+			instruction->type = ARM_QDADD;
+			mnemonic = "QDADD";
+			break;
+		case 0x3:
+			instruction->type = ARM_QDSUB;
+			mnemonic = "QDSUB";
+			break;
 		}
 
 		snprintf(instruction->text,
@@ -1527,21 +1527,21 @@ static int evaluate_misc_instr(uint32_t opcode,
 		char *mnemonic = NULL;
 
 		switch ((opcode & 0x600000) >> 21) {
-			case 0x1:
-				instruction->type = ARM_BKPT;
-				mnemonic = "BRKT";
-				immediate = ((opcode & 0x000fff00) >> 4) | (opcode & 0xf);
-				break;
-			case 0x2:
-				instruction->type = ARM_HVC;
-				mnemonic = "HVC";
-				immediate = ((opcode & 0x000fff00) >> 4) | (opcode & 0xf);
-				break;
-			case 0x3:
-				instruction->type = ARM_SMC;
-				mnemonic = "SMC";
-				immediate = (opcode & 0xf);
-				break;
+		case 0x1:
+			instruction->type = ARM_BKPT;
+			mnemonic = "BRKT";
+			immediate = ((opcode & 0x000fff00) >> 4) | (opcode & 0xf);
+			break;
+		case 0x2:
+			instruction->type = ARM_HVC;
+			mnemonic = "HVC";
+			immediate = ((opcode & 0x000fff00) >> 4) | (opcode & 0xf);
+			break;
+		case 0x3:
+			instruction->type = ARM_SMC;
+			mnemonic = "SMC";
+			immediate = (opcode & 0xf);
+			break;
 		}
 
 		snprintf(instruction->text,
@@ -1717,70 +1717,70 @@ static int evaluate_data_proc(uint32_t opcode,
 	instruction->info.data_proc.s = s;
 
 	switch (op) {
-		case 0x0:
-			instruction->type = ARM_AND;
-			mnemonic = "AND";
-			break;
-		case 0x1:
-			instruction->type = ARM_EOR;
-			mnemonic = "EOR";
-			break;
-		case 0x2:
-			instruction->type = ARM_SUB;
-			mnemonic = "SUB";
-			break;
-		case 0x3:
-			instruction->type = ARM_RSB;
-			mnemonic = "RSB";
-			break;
-		case 0x4:
-			instruction->type = ARM_ADD;
-			mnemonic = "ADD";
-			break;
-		case 0x5:
-			instruction->type = ARM_ADC;
-			mnemonic = "ADC";
-			break;
-		case 0x6:
-			instruction->type = ARM_SBC;
-			mnemonic = "SBC";
-			break;
-		case 0x7:
-			instruction->type = ARM_RSC;
-			mnemonic = "RSC";
-			break;
-		case 0x8:
-			instruction->type = ARM_TST;
-			mnemonic = "TST";
-			break;
-		case 0x9:
-			instruction->type = ARM_TEQ;
-			mnemonic = "TEQ";
-			break;
-		case 0xa:
-			instruction->type = ARM_CMP;
-			mnemonic = "CMP";
-			break;
-		case 0xb:
-			instruction->type = ARM_CMN;
-			mnemonic = "CMN";
-			break;
-		case 0xc:
-			instruction->type = ARM_ORR;
-			mnemonic = "ORR";
-			break;
-		case 0xd:
-			instruction->type = ARM_MOV;
-			mnemonic = "MOV";
-			break;
-		case 0xe:
-			instruction->type = ARM_BIC;
-			mnemonic = "BIC";
-			break;
-		case 0xf:
-			instruction->type = ARM_MVN;
-			mnemonic = "MVN";
-			break;
+	case 0x0:
+		instruction->type = ARM_AND;
+		mnemonic = "AND";
+		break;
+	case 0x1:
+		instruction->type = ARM_EOR;
+		mnemonic = "EOR";
+		break;
+	case 0x2:
+		instruction->type = ARM_SUB;
+		mnemonic = "SUB";
+		break;
+	case 0x3:
+		instruction->type = ARM_RSB;
+		mnemonic = "RSB";
+		break;
+	case 0x4:
+		instruction->type = ARM_ADD;
+		mnemonic = "ADD";
+		break;
+	case 0x5:
+		instruction->type = ARM_ADC;
+		mnemonic = "ADC";
+		break;
+	case 0x6:
+		instruction->type = ARM_SBC;
+		mnemonic = "SBC";
+		break;
+	case 0x7:
+		instruction->type = ARM_RSC;
+		mnemonic = "RSC";
+		break;
+	case 0x8:
+		instruction->type = ARM_TST;
+		mnemonic = "TST";
+		break;
+	case 0x9:
+		instruction->type = ARM_TEQ;
+		mnemonic = "TEQ";
+		break;
+	case 0xa:
+		instruction->type = ARM_CMP;
+		mnemonic = "CMP";
+		break;
+	case 0xb:
+		instruction->type = ARM_CMN;
+		mnemonic = "CMN";
+		break;
+	case 0xc:
+		instruction->type = ARM_ORR;
+		mnemonic = "ORR";
+		break;
+	case 0xd:
+		instruction->type = ARM_MOV;
+		mnemonic = "MOV";
+		break;
+	case 0xe:
+		instruction->type = ARM_BIC;
+		mnemonic = "BIC";
+		break;
+	case 0xf:
+		instruction->type = ARM_MVN;
+		mnemonic = "MVN";
+		break;
 	}
 
 	if (i) {/* immediate shifter operand (#<immediate>)*/
@@ -2065,28 +2065,28 @@ static int evaluate_b_bl_blx_thumb(uint16_t opcode,
 	target_address = address + 4 + (offset << 1);
 
 	switch (opc) {
-		/* unconditional branch */
-		case 0:
-			instruction->type = ARM_B;
-			mnemonic = "B";
-			break;
-		/* BLX suffix */
-		case 1:
-			instruction->type = ARM_BLX;
-			mnemonic = "BLX";
-			target_address &= 0xfffffffc;
-			break;
-		/* BL/BLX prefix */
-		case 2:
-			instruction->type = ARM_UNKNOWN_INSTRUCTION;
-			mnemonic = "prefix";
-			target_address = offset << 12;
-			break;
-		/* BL suffix */
-		case 3:
-			instruction->type = ARM_BL;
-			mnemonic = "BL";
-			break;
+	/* unconditional branch */
+	case 0:
+		instruction->type = ARM_B;
+		mnemonic = "B";
+		break;
+	/* BLX suffix */
+	case 1:
+		instruction->type = ARM_BLX;
+		mnemonic = "BLX";
+		target_address &= 0xfffffffc;
+		break;
+	/* BL/BLX prefix */
+	case 2:
+		instruction->type = ARM_UNKNOWN_INSTRUCTION;
+		mnemonic = "prefix";
+		target_address = offset << 12;
+		break;
+	/* BL suffix */
+	case 3:
+		instruction->type = ARM_BL;
+		mnemonic = "BL";
+		break;
 	}
 
 	/* TODO: deal correctly with dual opcode (prefixed) BL/BLX;
@@ -2158,21 +2158,21 @@ static int evaluate_shift_imm_thumb(uint16_t opcode,
 	char *mnemonic = NULL;
 
 	switch (opc) {
-		case 0:
-			instruction->type = ARM_MOV;
-			mnemonic = "LSLS";
-			instruction->info.data_proc.shifter_operand.immediate_shift.shift = 0;
-			break;
-		case 1:
-			instruction->type = ARM_MOV;
-			mnemonic = "LSRS";
-			instruction->info.data_proc.shifter_operand.immediate_shift.shift = 1;
-			break;
-		case 2:
-			instruction->type = ARM_MOV;
-			mnemonic = "ASRS";
-			instruction->info.data_proc.shifter_operand.immediate_shift.shift = 2;
-			break;
+	case 0:
+		instruction->type = ARM_MOV;
+		mnemonic = "LSLS";
+		instruction->info.data_proc.shifter_operand.immediate_shift.shift = 0;
+		break;
+	case 1:
+		instruction->type = ARM_MOV;
+		mnemonic = "LSRS";
+		instruction->info.data_proc.shifter_operand.immediate_shift.shift = 1;
+		break;
+	case 2:
+		instruction->type = ARM_MOV;
+		mnemonic = "ASRS";
+		instruction->info.data_proc.shifter_operand.immediate_shift.shift = 2;
+		break;
 	}
 
 	if ((imm == 0) && (opc != 0))
@@ -2208,24 +2208,24 @@ static int evaluate_data_proc_imm_thumb(uint16_t opcode,
 	instruction->info.data_proc.shifter_operand.immediate.immediate = imm;
 
 	switch (opc) {
-		case 0:
-			instruction->type = ARM_MOV;
-			mnemonic = "MOVS";
-			instruction->info.data_proc.rn = -1;
-			break;
-		case 1:
-			instruction->type = ARM_CMP;
-			mnemonic = "CMP";
-			instruction->info.data_proc.rd = -1;
-			break;
-		case 2:
-			instruction->type = ARM_ADD;
-			mnemonic = "ADDS";
-			break;
-		case 3:
-			instruction->type = ARM_SUB;
-			mnemonic = "SUBS";
-			break;
+	case 0:
+		instruction->type = ARM_MOV;
+		mnemonic = "MOVS";
+		instruction->info.data_proc.rn = -1;
+		break;
+	case 1:
+		instruction->type = ARM_CMP;
+		mnemonic = "CMP";
+		instruction->info.data_proc.rd = -1;
+		break;
+	case 2:
+		instruction->type = ARM_ADD;
+		mnemonic = "ADDS";
+		break;
+	case 3:
+		instruction->type = ARM_SUB;
+		mnemonic = "SUBS";
+		break;
 	}
 
 	snprintf(instruction->text, 128,
@@ -2262,131 +2262,131 @@ static int evaluate_data_proc_thumb(uint16_t opcode,
 		op >>= 2;
 
 		switch (op) {
-			case 0x0:
-				instruction->type = ARM_ADD;
-				mnemonic = "ADD";
-				break;
-			case 0x1:
-				instruction->type = ARM_CMP;
-				mnemonic = "CMP";
-				break;
-			case 0x2:
-				instruction->type = ARM_MOV;
-				mnemonic = "MOV";
-				if (rd == rm)
-					nop = true;
-				break;
-			case 0x3:
-				if ((opcode & 0x7) == 0x0) {
-					instruction->info.b_bl_bx_blx.reg_operand = rm;
-					if (h1) {
-						instruction->type = ARM_BLX;
-						snprintf(instruction->text, 128,
-								"0x%8.8" PRIx32
-								"  0x%4.4x    \tBLX\tr%i",
-								address, opcode, rm);
-					} else {
-						instruction->type = ARM_BX;
-						snprintf(instruction->text, 128,
-								"0x%8.8" PRIx32
-								"  0x%4.4x    \tBX\tr%i",
-								address, opcode, rm);
-					}
-				} else {
-					instruction->type = ARM_UNDEFINED_INSTRUCTION;
+		case 0x0:
+			instruction->type = ARM_ADD;
+			mnemonic = "ADD";
+			break;
+		case 0x1:
+			instruction->type = ARM_CMP;
+			mnemonic = "CMP";
+			break;
+		case 0x2:
+			instruction->type = ARM_MOV;
+			mnemonic = "MOV";
+			if (rd == rm)
+				nop = true;
+			break;
+		case 0x3:
+			if ((opcode & 0x7) == 0x0) {
+				instruction->info.b_bl_bx_blx.reg_operand = rm;
+				if (h1) {
+					instruction->type = ARM_BLX;
 					snprintf(instruction->text, 128,
 							"0x%8.8" PRIx32
-							"  0x%4.4x    \t"
-							"UNDEFINED INSTRUCTION",
-							address, opcode);
+							"  0x%4.4x    \tBLX\tr%i",
+							address, opcode, rm);
+				} else {
+					instruction->type = ARM_BX;
+					snprintf(instruction->text, 128,
+							"0x%8.8" PRIx32
+							"  0x%4.4x    \tBX\tr%i",
+							address, opcode, rm);
 				}
-				return ERROR_OK;
+			} else {
+				instruction->type = ARM_UNDEFINED_INSTRUCTION;
+				snprintf(instruction->text, 128,
+						"0x%8.8" PRIx32
+						"  0x%4.4x    \t"
+						"UNDEFINED INSTRUCTION",
+						address, opcode);
+			}
+			return ERROR_OK;
 		}
 	} else {
 		switch (op) {
-			case 0x0:
-				instruction->type = ARM_AND;
-				mnemonic = "ANDS";
-				break;
-			case 0x1:
-				instruction->type = ARM_EOR;
-				mnemonic = "EORS";
-				break;
-			case 0x2:
-				instruction->type = ARM_MOV;
-				mnemonic = "LSLS";
-				instruction->info.data_proc.variant = 2	/*register shift*/;
-				instruction->info.data_proc.shifter_operand.register_shift.shift = 0;
-				instruction->info.data_proc.shifter_operand.register_shift.rm = rd;
-				instruction->info.data_proc.shifter_operand.register_shift.rs = rm;
-				break;
-			case 0x3:
-				instruction->type = ARM_MOV;
-				mnemonic = "LSRS";
-				instruction->info.data_proc.variant = 2	/*register shift*/;
-				instruction->info.data_proc.shifter_operand.register_shift.shift = 1;
-				instruction->info.data_proc.shifter_operand.register_shift.rm = rd;
-				instruction->info.data_proc.shifter_operand.register_shift.rs = rm;
-				break;
-			case 0x4:
-				instruction->type = ARM_MOV;
-				mnemonic = "ASRS";
-				instruction->info.data_proc.variant = 2	/*register shift*/;
-				instruction->info.data_proc.shifter_operand.register_shift.shift = 2;
-				instruction->info.data_proc.shifter_operand.register_shift.rm = rd;
-				instruction->info.data_proc.shifter_operand.register_shift.rs = rm;
-				break;
-			case 0x5:
-				instruction->type = ARM_ADC;
-				mnemonic = "ADCS";
-				break;
-			case 0x6:
-				instruction->type = ARM_SBC;
-				mnemonic = "SBCS";
-				break;
-			case 0x7:
-				instruction->type = ARM_MOV;
-				mnemonic = "RORS";
-				instruction->info.data_proc.variant = 2	/*register shift*/;
-				instruction->info.data_proc.shifter_operand.register_shift.shift = 3;
-				instruction->info.data_proc.shifter_operand.register_shift.rm = rd;
-				instruction->info.data_proc.shifter_operand.register_shift.rs = rm;
-				break;
-			case 0x8:
-				instruction->type = ARM_TST;
-				mnemonic = "TST";
-				break;
-			case 0x9:
-				instruction->type = ARM_RSB;
-				mnemonic = "RSBS";
-				instruction->info.data_proc.variant = 0	/*immediate*/;
-				instruction->info.data_proc.shifter_operand.immediate.immediate = 0;
-				instruction->info.data_proc.rn = rm;
-				break;
-			case 0xA:
-				instruction->type = ARM_CMP;
-				mnemonic = "CMP";
-				break;
-			case 0xB:
-				instruction->type = ARM_CMN;
-				mnemonic = "CMN";
-				break;
-			case 0xC:
-				instruction->type = ARM_ORR;
-				mnemonic = "ORRS";
-				break;
-			case 0xD:
-				instruction->type = ARM_MUL;
-				mnemonic = "MULS";
-				break;
-			case 0xE:
-				instruction->type = ARM_BIC;
-				mnemonic = "BICS";
-				break;
-			case 0xF:
-				instruction->type = ARM_MVN;
-				mnemonic = "MVNS";
-				break;
+		case 0x0:
+			instruction->type = ARM_AND;
+			mnemonic = "ANDS";
+			break;
+		case 0x1:
+			instruction->type = ARM_EOR;
+			mnemonic = "EORS";
+			break;
+		case 0x2:
+			instruction->type = ARM_MOV;
+			mnemonic = "LSLS";
+			instruction->info.data_proc.variant = 2	/*register shift*/;
+			instruction->info.data_proc.shifter_operand.register_shift.shift = 0;
+			instruction->info.data_proc.shifter_operand.register_shift.rm = rd;
+			instruction->info.data_proc.shifter_operand.register_shift.rs = rm;
+			break;
+		case 0x3:
+			instruction->type = ARM_MOV;
+			mnemonic = "LSRS";
+			instruction->info.data_proc.variant = 2	/*register shift*/;
+			instruction->info.data_proc.shifter_operand.register_shift.shift = 1;
+			instruction->info.data_proc.shifter_operand.register_shift.rm = rd;
+			instruction->info.data_proc.shifter_operand.register_shift.rs = rm;
+			break;
+		case 0x4:
+			instruction->type = ARM_MOV;
+			mnemonic = "ASRS";
+			instruction->info.data_proc.variant = 2	/*register shift*/;
+			instruction->info.data_proc.shifter_operand.register_shift.shift = 2;
+			instruction->info.data_proc.shifter_operand.register_shift.rm = rd;
+			instruction->info.data_proc.shifter_operand.register_shift.rs = rm;
+			break;
+		case 0x5:
+			instruction->type = ARM_ADC;
+			mnemonic = "ADCS";
+			break;
+		case 0x6:
+			instruction->type = ARM_SBC;
+			mnemonic = "SBCS";
+			break;
+		case 0x7:
+			instruction->type = ARM_MOV;
+			mnemonic = "RORS";
+			instruction->info.data_proc.variant = 2	/*register shift*/;
+			instruction->info.data_proc.shifter_operand.register_shift.shift = 3;
+			instruction->info.data_proc.shifter_operand.register_shift.rm = rd;
+			instruction->info.data_proc.shifter_operand.register_shift.rs = rm;
+			break;
+		case 0x8:
+			instruction->type = ARM_TST;
+			mnemonic = "TST";
+			break;
+		case 0x9:
+			instruction->type = ARM_RSB;
+			mnemonic = "RSBS";
+			instruction->info.data_proc.variant = 0	/*immediate*/;
+			instruction->info.data_proc.shifter_operand.immediate.immediate = 0;
+			instruction->info.data_proc.rn = rm;
+			break;
+		case 0xA:
+			instruction->type = ARM_CMP;
+			mnemonic = "CMP";
+			break;
+		case 0xB:
+			instruction->type = ARM_CMN;
+			mnemonic = "CMN";
+			break;
+		case 0xC:
+			instruction->type = ARM_ORR;
+			mnemonic = "ORRS";
+			break;
+		case 0xD:
+			instruction->type = ARM_MUL;
+			mnemonic = "MULS";
+			break;
+		case 0xE:
+			instruction->type = ARM_BIC;
+			mnemonic = "BICS";
+			break;
+		case 0xF:
+			instruction->type = ARM_MVN;
+			mnemonic = "MVNS";
+			break;
 		}
 	}
 
@@ -2444,38 +2444,38 @@ static int evaluate_load_store_reg_thumb(uint16_t opcode,
 	char *mnemonic = NULL;
 
 	switch (opc) {
-		case 0:
-			instruction->type = ARM_STR;
-			mnemonic = "STR";
-			break;
-		case 1:
-			instruction->type = ARM_STRH;
-			mnemonic = "STRH";
-			break;
-		case 2:
-			instruction->type = ARM_STRB;
-			mnemonic = "STRB";
-			break;
-		case 3:
-			instruction->type = ARM_LDRSB;
-			mnemonic = "LDRSB";
-			break;
-		case 4:
-			instruction->type = ARM_LDR;
-			mnemonic = "LDR";
-			break;
-		case 5:
-			instruction->type = ARM_LDRH;
-			mnemonic = "LDRH";
-			break;
-		case 6:
-			instruction->type = ARM_LDRB;
-			mnemonic = "LDRB";
-			break;
-		case 7:
-			instruction->type = ARM_LDRSH;
-			mnemonic = "LDRSH";
-			break;
+	case 0:
+		instruction->type = ARM_STR;
+		mnemonic = "STR";
+		break;
+	case 1:
+		instruction->type = ARM_STRH;
+		mnemonic = "STRH";
+		break;
+	case 2:
+		instruction->type = ARM_STRB;
+		mnemonic = "STRB";
+		break;
+	case 3:
+		instruction->type = ARM_LDRSB;
+		mnemonic = "LDRSB";
+		break;
+	case 4:
+		instruction->type = ARM_LDR;
+		mnemonic = "LDR";
+		break;
+	case 5:
+		instruction->type = ARM_LDRH;
+		mnemonic = "LDRH";
+		break;
+	case 6:
+		instruction->type = ARM_LDRB;
+		mnemonic = "LDRB";
+		break;
+	case 7:
+		instruction->type = ARM_LDRSH;
+		mnemonic = "LDRSH";
+		break;
 	}
 
 	snprintf(instruction->text, 128,
@@ -2804,15 +2804,15 @@ static int evaluate_byterev_thumb(uint16_t opcode, uint32_t address,
 
 	/* added in ARMv6 */
 	switch ((opcode >> 6) & 3) {
-		case 0:
-			suffix = "";
-			break;
-		case 1:
-			suffix = "16";
-			break;
-		default:
-			suffix = "SH";
-			break;
+	case 0:
+		suffix = "";
+		break;
+	case 1:
+		suffix = "16";
+		break;
+	default:
+		suffix = "SH";
+		break;
 	}
 	snprintf(instruction->text, 128,
 			"0x%8.8" PRIx32 "  0x%4.4x    \tREV%s\tr%d, r%d",
@@ -2828,24 +2828,24 @@ static int evaluate_hint_thumb(uint16_t opcode, uint32_t address,
 	char *hint;
 
 	switch ((opcode >> 4) & 0x0f) {
-		case 0:
-			hint = "NOP";
-			break;
-		case 1:
-			hint = "YIELD";
-			break;
-		case 2:
-			hint = "WFE";
-			break;
-		case 3:
-			hint = "WFI";
-			break;
-		case 4:
-			hint = "SEV";
-			break;
-		default:
-			hint = "HINT (UNRECOGNIZED)";
-			break;
+	case 0:
+		hint = "NOP";
+		break;
+	case 1:
+		hint = "YIELD";
+		break;
+	case 2:
+		hint = "WFE";
+		break;
+	case 3:
+		hint = "WFI";
+		break;
+	case 4:
+		hint = "SEV";
+		break;
+	default:
+		hint = "HINT (UNRECOGNIZED)";
+		break;
 	}
 
 	snprintf(instruction->text, 128,
@@ -2928,36 +2928,36 @@ int thumb_evaluate_opcode(uint16_t opcode, uint32_t address, struct arm_instruct
 	/* Misc */
 	if ((opcode & 0xf000) == 0xb000) {
 		switch ((opcode >> 8) & 0x0f) {
-			case 0x0:
-				return evaluate_adjust_stack_thumb(opcode, address, instruction);
-			case 0x1:
-			case 0x3:
-			case 0x9:
-			case 0xb:
-				return evaluate_cb_thumb(opcode, address, instruction);
-			case 0x2:
-				return evaluate_extend_thumb(opcode, address, instruction);
-			case 0x4:
-			case 0x5:
-			case 0xc:
-			case 0xd:
-				return evaluate_load_store_multiple_thumb(opcode, address,
-					instruction);
-			case 0x6:
-				return evaluate_cps_thumb(opcode, address, instruction);
-			case 0xa:
-				if ((opcode & 0x00c0) == 0x0080)
-					break;
-				return evaluate_byterev_thumb(opcode, address, instruction);
-			case 0xe:
-				return evaluate_breakpoint_thumb(opcode, address, instruction);
-			case 0xf:
-				if (opcode & 0x000f)
-					return evaluate_ifthen_thumb(opcode, address,
-							instruction);
-				else
-					return evaluate_hint_thumb(opcode, address,
-							instruction);
+		case 0x0:
+			return evaluate_adjust_stack_thumb(opcode, address, instruction);
+		case 0x1:
+		case 0x3:
+		case 0x9:
+		case 0xb:
+			return evaluate_cb_thumb(opcode, address, instruction);
+		case 0x2:
+			return evaluate_extend_thumb(opcode, address, instruction);
+		case 0x4:
+		case 0x5:
+		case 0xc:
+		case 0xd:
+			return evaluate_load_store_multiple_thumb(opcode, address,
+				instruction);
+		case 0x6:
+			return evaluate_cps_thumb(opcode, address, instruction);
+		case 0xa:
+			if ((opcode & 0x00c0) == 0x0080)
+				break;
+			return evaluate_byterev_thumb(opcode, address, instruction);
+		case 0xe:
+			return evaluate_breakpoint_thumb(opcode, address, instruction);
+		case 0xf:
+			if (opcode & 0x000f)
+				return evaluate_ifthen_thumb(opcode, address,
+						instruction);
+			else
+				return evaluate_hint_thumb(opcode, address,
+						instruction);
 		}
 
 		instruction->type = ARM_UNDEFINED_INSTRUCTION;

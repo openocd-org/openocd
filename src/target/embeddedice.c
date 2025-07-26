@@ -219,69 +219,69 @@ struct reg_cache *embeddedice_build_reg_cache(struct target *target,
 	LOG_INFO("Embedded ICE version %d", eice_version);
 
 	switch (eice_version) {
-		case 1:
-			/* ARM7TDMI r3, ARM7TDMI-S r3
-			 *
-			 * REVISIT docs say ARM7TDMI-S r4 uses version 1 but
-			 * that it has 6-bit CTRL and 5-bit STAT... doc bug?
-			 * ARM7TDMI r4 docs say EICE v4.
-			 */
-			reg_list[EICE_DBG_CTRL].size = 3;
-			reg_list[EICE_DBG_STAT].size = 5;
+	case 1:
+		/* ARM7TDMI r3, ARM7TDMI-S r3
+		 *
+		 * REVISIT docs say ARM7TDMI-S r4 uses version 1 but
+		 * that it has 6-bit CTRL and 5-bit STAT... doc bug?
+		 * ARM7TDMI r4 docs say EICE v4.
+		 */
+		reg_list[EICE_DBG_CTRL].size = 3;
+		reg_list[EICE_DBG_STAT].size = 5;
+		break;
+	case 2:
+		/* ARM9TDMI */
+		reg_list[EICE_DBG_CTRL].size = 4;
+		reg_list[EICE_DBG_STAT].size = 5;
+		arm7_9->has_single_step = 1;
+		break;
+	case 3:
+		LOG_ERROR("EmbeddedICE v%d handling might be broken",
+				eice_version);
+		reg_list[EICE_DBG_CTRL].size = 6;
+		reg_list[EICE_DBG_STAT].size = 5;
+		arm7_9->has_single_step = 1;
+		arm7_9->has_monitor_mode = 1;
+		break;
+	case 4:
+		/* ARM7TDMI r4 */
+		reg_list[EICE_DBG_CTRL].size = 6;
+		reg_list[EICE_DBG_STAT].size = 5;
+		arm7_9->has_monitor_mode = 1;
+		break;
+	case 5:
+		/* ARM9E-S rev 1 */
+		reg_list[EICE_DBG_CTRL].size = 6;
+		reg_list[EICE_DBG_STAT].size = 5;
+		arm7_9->has_single_step = 1;
+		arm7_9->has_monitor_mode = 1;
+		break;
+	case 6:
+		/* ARM7EJ-S, ARM9E-S rev 2, ARM9EJ-S */
+		reg_list[EICE_DBG_CTRL].size = 6;
+		reg_list[EICE_DBG_STAT].size = 10;
+		/* DBG_STAT has MOE bits */
+		arm7_9->has_monitor_mode = 1;
+		break;
+	case 7:
+		LOG_ERROR("EmbeddedICE v%d handling might be broken",
+				eice_version);
+		reg_list[EICE_DBG_CTRL].size = 6;
+		reg_list[EICE_DBG_STAT].size = 5;
+		arm7_9->has_monitor_mode = 1;
+		break;
+	default:
+		/*
+		 * The Feroceon implementation has the version number
+		 * in some unusual bits.  Let feroceon.c validate it
+		 * and do the appropriate setup itself.
+		 */
+		if (strcmp(target_type_name(target), "feroceon") == 0 ||
+				strcmp(target_type_name(target), "dragonite") == 0)
 			break;
-		case 2:
-			/* ARM9TDMI */
-			reg_list[EICE_DBG_CTRL].size = 4;
-			reg_list[EICE_DBG_STAT].size = 5;
-			arm7_9->has_single_step = 1;
-			break;
-		case 3:
-			LOG_ERROR("EmbeddedICE v%d handling might be broken",
-					eice_version);
-			reg_list[EICE_DBG_CTRL].size = 6;
-			reg_list[EICE_DBG_STAT].size = 5;
-			arm7_9->has_single_step = 1;
-			arm7_9->has_monitor_mode = 1;
-			break;
-		case 4:
-			/* ARM7TDMI r4 */
-			reg_list[EICE_DBG_CTRL].size = 6;
-			reg_list[EICE_DBG_STAT].size = 5;
-			arm7_9->has_monitor_mode = 1;
-			break;
-		case 5:
-			/* ARM9E-S rev 1 */
-			reg_list[EICE_DBG_CTRL].size = 6;
-			reg_list[EICE_DBG_STAT].size = 5;
-			arm7_9->has_single_step = 1;
-			arm7_9->has_monitor_mode = 1;
-			break;
-		case 6:
-			/* ARM7EJ-S, ARM9E-S rev 2, ARM9EJ-S */
-			reg_list[EICE_DBG_CTRL].size = 6;
-			reg_list[EICE_DBG_STAT].size = 10;
-			/* DBG_STAT has MOE bits */
-			arm7_9->has_monitor_mode = 1;
-			break;
-		case 7:
-			LOG_ERROR("EmbeddedICE v%d handling might be broken",
-					eice_version);
-			reg_list[EICE_DBG_CTRL].size = 6;
-			reg_list[EICE_DBG_STAT].size = 5;
-			arm7_9->has_monitor_mode = 1;
-			break;
-		default:
-			/*
-			 * The Feroceon implementation has the version number
-			 * in some unusual bits.  Let feroceon.c validate it
-			 * and do the appropriate setup itself.
-			 */
-			if (strcmp(target_type_name(target), "feroceon") == 0 ||
-					strcmp(target_type_name(target), "dragonite") == 0)
-				break;
-			LOG_ERROR("unknown EmbeddedICE version "
-				"(comms ctrl: 0x%8.8" PRIx32 ")",
-				buf_get_u32(reg_list[EICE_COMMS_CTRL].value, 0, 32));
+		LOG_ERROR("unknown EmbeddedICE version "
+			"(comms ctrl: 0x%8.8" PRIx32 ")",
+			buf_get_u32(reg_list[EICE_COMMS_CTRL].value, 0, 32));
 	}
 
 	/* On Feroceon and Dragonite the second unit is seemingly missing. */

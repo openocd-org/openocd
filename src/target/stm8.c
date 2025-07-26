@@ -704,19 +704,19 @@ static int stm8_write_flash(struct target *target, enum mem_type type,
 	int res;
 
 	switch (type) {
-		case (FLASH):
-			stm8_unlock_flash(target);
-			break;
-		case (EEPROM):
-			stm8_unlock_eeprom(target);
-			break;
-		case (OPTION):
-			stm8_unlock_eeprom(target);
-			opt = OPT;
-			break;
-		default:
-			LOG_ERROR("BUG: wrong mem_type %d", type);
-			assert(0);
+	case (FLASH):
+		stm8_unlock_flash(target);
+		break;
+	case (EEPROM):
+		stm8_unlock_eeprom(target);
+		break;
+	case (OPTION):
+		stm8_unlock_eeprom(target);
+		opt = OPT;
+		break;
+	default:
+		LOG_ERROR("BUG: wrong mem_type %d", type);
+		assert(0);
 	}
 
 	if (size == 2) {
@@ -1601,17 +1601,17 @@ static int stm8_set_watchpoint(struct target *target,
 	enum hw_break_type enable = 0;
 
 	switch (watchpoint->rw) {
-		case WPT_READ:
-			enable = HWBRK_RD;
-			break;
-		case WPT_WRITE:
-			enable = HWBRK_WR;
-			break;
-		case WPT_ACCESS:
-			enable = HWBRK_ACC;
-			break;
-		default:
-			LOG_ERROR("BUG: watchpoint->rw neither read, write nor access");
+	case WPT_READ:
+		enable = HWBRK_RD;
+		break;
+	case WPT_WRITE:
+		enable = HWBRK_WR;
+		break;
+	case WPT_ACCESS:
+		enable = HWBRK_ACC;
+		break;
+	default:
+		LOG_ERROR("BUG: watchpoint->rw neither read, write nor access");
 	}
 
 	comparator_list[wp_num].used = true;

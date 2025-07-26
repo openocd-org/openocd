@@ -414,19 +414,19 @@ static uint32_t arm11_nextpc(struct arm11_common *arm11, bool current,
 	 * kill the return address
 	 */
 	switch (arm11->arm.core_state) {
-		case ARM_STATE_ARM:
-			address &= 0xFFFFFFFC;
-			break;
-		case ARM_STATE_THUMB:
-			/* When the return address is loaded into PC
-			 * bit 0 must be 1 to stay in Thumb state
-			 */
-			address |= 0x1;
-			break;
+	case ARM_STATE_ARM:
+		address &= 0xFFFFFFFC;
+		break;
+	case ARM_STATE_THUMB:
+		/* When the return address is loaded into PC
+		 * bit 0 must be 1 to stay in Thumb state
+		 */
+		address |= 0x1;
+		break;
 
-		/* catch-all for JAZELLE and THUMB_EE */
-		default:
-			break;
+	/* catch-all for JAZELLE and THUMB_EE */
+	default:
+		break;
 	}
 
 	buf_set_u32(value, 0, 32, address);
@@ -819,44 +819,44 @@ static int arm11_read_memory_inner(struct target *target,
 		return retval;
 
 	switch (size) {
-		case 1:
-			arm11->arm.core_cache->reg_list[1].dirty = true;
+	case 1:
+		arm11->arm.core_cache->reg_list[1].dirty = true;
 
-			for (size_t i = 0; i < count; i++) {
-				/* ldrb    r1, [r0], #1 */
-				/* ldrb    r1, [r0] */
-				CHECK_RETVAL(arm11_run_instr_no_data1(arm11,
-						!arm11_config_memrw_no_increment ? 0xe4d01001 : 0xe5d01000));
+		for (size_t i = 0; i < count; i++) {
+			/* ldrb    r1, [r0], #1 */
+			/* ldrb    r1, [r0] */
+			CHECK_RETVAL(arm11_run_instr_no_data1(arm11,
+					!arm11_config_memrw_no_increment ? 0xe4d01001 : 0xe5d01000));
 
-				uint32_t res;
-				/* MCR p14,0,R1,c0,c5,0 */
-				CHECK_RETVAL(arm11_run_instr_data_from_core(arm11, 0xEE001E15, &res, 1));
+			uint32_t res;
+			/* MCR p14,0,R1,c0,c5,0 */
+			CHECK_RETVAL(arm11_run_instr_data_from_core(arm11, 0xEE001E15, &res, 1));
 
-				*buffer++ = res;
-			}
+			*buffer++ = res;
+		}
 
-			break;
+		break;
 
-		case 2:
-			arm11->arm.core_cache->reg_list[1].dirty = true;
+	case 2:
+		arm11->arm.core_cache->reg_list[1].dirty = true;
 
-			for (size_t i = 0; i < count; i++) {
-				/* ldrh    r1, [r0], #2 */
-				CHECK_RETVAL(arm11_run_instr_no_data1(arm11,
-						!arm11_config_memrw_no_increment ? 0xe0d010b2 : 0xe1d010b0));
+		for (size_t i = 0; i < count; i++) {
+			/* ldrh    r1, [r0], #2 */
+			CHECK_RETVAL(arm11_run_instr_no_data1(arm11,
+					!arm11_config_memrw_no_increment ? 0xe0d010b2 : 0xe1d010b0));
 
-				uint32_t res;
+			uint32_t res;
 
-				/* MCR p14,0,R1,c0,c5,0 */
-				CHECK_RETVAL(arm11_run_instr_data_from_core(arm11, 0xEE001E15, &res, 1));
+			/* MCR p14,0,R1,c0,c5,0 */
+			CHECK_RETVAL(arm11_run_instr_data_from_core(arm11, 0xEE001E15, &res, 1));
 
-				uint16_t svalue = res;
-				memcpy(buffer + i * sizeof(uint16_t), &svalue, sizeof(uint16_t));
-			}
+			uint16_t svalue = res;
+			memcpy(buffer + i * sizeof(uint16_t), &svalue, sizeof(uint16_t));
+		}
 
-			break;
+		break;
 
-		case 4:
+	case 4:
 		{
 			uint32_t instr = !arm11_config_memrw_no_increment ? 0xecb05e01 : 0xed905e00;
 			/** \todo TODO: buffer cast to uint32_t* causes alignment warnings */
@@ -925,52 +925,52 @@ static int arm11_write_memory_inner(struct target *target,
 	bool burst = arm11->memwrite_burst && (count > 1);
 
 	switch (size) {
-		case 1:
-			arm11->arm.core_cache->reg_list[1].dirty = true;
+	case 1:
+		arm11->arm.core_cache->reg_list[1].dirty = true;
 
-			for (size_t i = 0; i < count; i++) {
-				/* load r1 from DCC with byte data */
-				/* MRC p14,0,r1,c0,c5,0 */
-				retval = arm11_run_instr_data_to_core1(arm11, 0xee101e15, *buffer++);
-				if (retval != ERROR_OK)
-					return retval;
+		for (size_t i = 0; i < count; i++) {
+			/* load r1 from DCC with byte data */
+			/* MRC p14,0,r1,c0,c5,0 */
+			retval = arm11_run_instr_data_to_core1(arm11, 0xee101e15, *buffer++);
+			if (retval != ERROR_OK)
+				return retval;
 
-				/* write r1 to memory */
-				/* strb    r1, [r0], #1 */
-				/* strb    r1, [r0] */
-				retval = arm11_run_instr_no_data1(arm11,
-						!no_increment ? 0xe4c01001 : 0xe5c01000);
-				if (retval != ERROR_OK)
-					return retval;
-			}
+			/* write r1 to memory */
+			/* strb    r1, [r0], #1 */
+			/* strb    r1, [r0] */
+			retval = arm11_run_instr_no_data1(arm11,
+					!no_increment ? 0xe4c01001 : 0xe5c01000);
+			if (retval != ERROR_OK)
+				return retval;
+		}
 
-			break;
+		break;
 
-		case 2:
-			arm11->arm.core_cache->reg_list[1].dirty = true;
+	case 2:
+		arm11->arm.core_cache->reg_list[1].dirty = true;
 
-			for (size_t i = 0; i < count; i++) {
-				uint16_t value;
-				memcpy(&value, buffer + i * sizeof(uint16_t), sizeof(uint16_t));
+		for (size_t i = 0; i < count; i++) {
+			uint16_t value;
+			memcpy(&value, buffer + i * sizeof(uint16_t), sizeof(uint16_t));
 
-				/* load r1 from DCC with halfword data */
-				/* MRC p14,0,r1,c0,c5,0 */
-				retval = arm11_run_instr_data_to_core1(arm11, 0xee101e15, value);
-				if (retval != ERROR_OK)
-					return retval;
+			/* load r1 from DCC with halfword data */
+			/* MRC p14,0,r1,c0,c5,0 */
+			retval = arm11_run_instr_data_to_core1(arm11, 0xee101e15, value);
+			if (retval != ERROR_OK)
+				return retval;
 
-				/* write r1 to memory */
-				/* strh    r1, [r0], #2 */
-				/* strh    r1, [r0] */
-				retval = arm11_run_instr_no_data1(arm11,
-						!no_increment ? 0xe0c010b2 : 0xe1c010b0);
-				if (retval != ERROR_OK)
-					return retval;
-			}
+			/* write r1 to memory */
+			/* strh    r1, [r0], #2 */
+			/* strh    r1, [r0] */
+			retval = arm11_run_instr_no_data1(arm11,
+					!no_increment ? 0xe0c010b2 : 0xe1c010b0);
+			if (retval != ERROR_OK)
+				return retval;
+		}
 
-			break;
+		break;
 
-		case 4:
+	case 4:
 		{
 			/* stream word data through DCC directly to memory */
 			/* increment:		STC p14,c5,[R0],#4 */
@@ -1159,34 +1159,34 @@ static int arm11_examine(struct target *target)
 
 	/* assume the manufacturer id is ok; check the part # */
 	switch ((device_id >> 12) & 0xFFFF) {
-		case 0x7B36:
-			type = "ARM1136";
-			break;
-		case 0x7B37:
-			type = "ARM11 MPCore";
-			break;
-		case 0x7B56:
-			type = "ARM1156";
-			break;
-		case 0x7B76:
-			arm11->arm.core_type = ARM_CORE_TYPE_SEC_EXT;
-			/* NOTE: could default arm11->hardware_step to true */
-			type = "ARM1176";
-			break;
-		default:
-			LOG_ERROR("unexpected ARM11 ID code");
-			return ERROR_FAIL;
+	case 0x7B36:
+		type = "ARM1136";
+		break;
+	case 0x7B37:
+		type = "ARM11 MPCore";
+		break;
+	case 0x7B56:
+		type = "ARM1156";
+		break;
+	case 0x7B76:
+		arm11->arm.core_type = ARM_CORE_TYPE_SEC_EXT;
+		/* NOTE: could default arm11->hardware_step to true */
+		type = "ARM1176";
+		break;
+	default:
+		LOG_ERROR("unexpected ARM11 ID code");
+		return ERROR_FAIL;
 	}
 	LOG_INFO("found %s", type);
 
 	/* unlikely this could ever fail, but ... */
 	switch ((didr >> 16) & 0x0F) {
-		case ARM11_DEBUG_V6:
-		case ARM11_DEBUG_V61:	/* supports security extensions */
-			break;
-		default:
-			LOG_ERROR("Only ARM v6 and v6.1 debug supported.");
-			return ERROR_FAIL;
+	case ARM11_DEBUG_V6:
+	case ARM11_DEBUG_V61:	/* supports security extensions */
+		break;
+	default:
+		LOG_ERROR("Only ARM v6 and v6.1 debug supported.");
+		return ERROR_FAIL;
 	}
 
 	arm11->brp = ((didr >> 24) & 0x0F) + 1;
@@ -1250,13 +1250,13 @@ COMMAND_HANDLER(arm11_handle_vcr)
 	struct arm11_common *arm11 = target_to_arm11(target);
 
 	switch (CMD_ARGC) {
-		case 0:
-			break;
-		case 1:
-			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], arm11->vcr);
-			break;
-		default:
-			return ERROR_COMMAND_SYNTAX_ERROR;
+	case 0:
+		break;
+	case 1:
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[0], arm11->vcr);
+		break;
+	default:
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	LOG_INFO("VCR 0x%08" PRIx32, arm11->vcr);

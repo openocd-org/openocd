@@ -192,30 +192,30 @@ bool is_arm_mode(unsigned int psr_mode)
 int arm_mode_to_number(enum arm_mode mode)
 {
 	switch (mode) {
-		case ARM_MODE_ANY:
-		/* map MODE_ANY to user mode */
-		case ARM_MODE_USR:
-			return 0;
-		case ARM_MODE_FIQ:
-			return 1;
-		case ARM_MODE_IRQ:
-			return 2;
-		case ARM_MODE_SVC:
-			return 3;
-		case ARM_MODE_ABT:
-			return 4;
-		case ARM_MODE_UND:
-			return 5;
-		case ARM_MODE_SYS:
-			return 6;
-		case ARM_MODE_MON:
-		case ARM_MODE_1176_MON:
-			return 7;
-		case ARM_MODE_HYP:
-			return 8;
-		default:
-			LOG_ERROR("invalid mode value encountered %d", mode);
-			return -1;
+	case ARM_MODE_ANY:
+	/* map MODE_ANY to user mode */
+	case ARM_MODE_USR:
+		return 0;
+	case ARM_MODE_FIQ:
+		return 1;
+	case ARM_MODE_IRQ:
+		return 2;
+	case ARM_MODE_SVC:
+		return 3;
+	case ARM_MODE_ABT:
+		return 4;
+	case ARM_MODE_UND:
+		return 5;
+	case ARM_MODE_SYS:
+		return 6;
+	case ARM_MODE_MON:
+	case ARM_MODE_1176_MON:
+		return 7;
+	case ARM_MODE_HYP:
+		return 8;
+	default:
+		LOG_ERROR("invalid mode value encountered %d", mode);
+		return -1;
 	}
 }
 
@@ -223,27 +223,27 @@ int arm_mode_to_number(enum arm_mode mode)
 enum arm_mode armv4_5_number_to_mode(int number)
 {
 	switch (number) {
-		case 0:
-			return ARM_MODE_USR;
-		case 1:
-			return ARM_MODE_FIQ;
-		case 2:
-			return ARM_MODE_IRQ;
-		case 3:
-			return ARM_MODE_SVC;
-		case 4:
-			return ARM_MODE_ABT;
-		case 5:
-			return ARM_MODE_UND;
-		case 6:
-			return ARM_MODE_SYS;
-		case 7:
-			return ARM_MODE_MON;
-		case 8:
-			return ARM_MODE_HYP;
-		default:
-			LOG_ERROR("mode index out of bounds %d", number);
-			return ARM_MODE_ANY;
+	case 0:
+		return ARM_MODE_USR;
+	case 1:
+		return ARM_MODE_FIQ;
+	case 2:
+		return ARM_MODE_IRQ;
+	case 3:
+		return ARM_MODE_SVC;
+	case 4:
+		return ARM_MODE_ABT;
+	case 5:
+		return ARM_MODE_UND;
+	case 6:
+		return ARM_MODE_SYS;
+	case 7:
+		return ARM_MODE_MON;
+	case 8:
+		return ARM_MODE_HYP;
+	default:
+		LOG_ERROR("mode index out of bounds %d", number);
+		return ARM_MODE_ANY;
 	}
 }
 
@@ -864,26 +864,26 @@ COMMAND_HANDLER(handle_armv4_5_reg_command)
 
 		/* label this bank of registers (or shadows) */
 		switch (arm_mode_data[mode].psr) {
-			case ARM_MODE_SYS:
+		case ARM_MODE_SYS:
+			continue;
+		case ARM_MODE_USR:
+			name = "System and User";
+			sep = "";
+			break;
+		case ARM_MODE_HYP:
+			if (arm->core_type != ARM_CORE_TYPE_VIRT_EXT)
 				continue;
-			case ARM_MODE_USR:
-				name = "System and User";
-				sep = "";
-				break;
-			case ARM_MODE_HYP:
-				if (arm->core_type != ARM_CORE_TYPE_VIRT_EXT)
-					continue;
-			/* FALLTHROUGH */
-			case ARM_MODE_MON:
-			case ARM_MODE_1176_MON:
-				if (arm->core_type != ARM_CORE_TYPE_SEC_EXT
-					&& arm->core_type != ARM_CORE_TYPE_VIRT_EXT)
-					continue;
-			/* FALLTHROUGH */
-			default:
-				name = arm_mode_data[mode].name;
-				shadow = "shadow ";
-				break;
+		/* FALLTHROUGH */
+		case ARM_MODE_MON:
+		case ARM_MODE_1176_MON:
+			if (arm->core_type != ARM_CORE_TYPE_SEC_EXT
+				&& arm->core_type != ARM_CORE_TYPE_VIRT_EXT)
+				continue;
+		/* FALLTHROUGH */
+		default:
+			name = arm_mode_data[mode].name;
+			shadow = "shadow ";
+			break;
 		}
 		command_print(CMD, "%s%s mode %sregisters",
 			sep, name, shadow);
@@ -974,26 +974,26 @@ COMMAND_HANDLER(handle_arm_disassemble_command)
 	}
 
 	switch (CMD_ARGC) {
-		case 3:
-			if (strcmp(CMD_ARGV[2], "thumb") != 0)
-				return ERROR_COMMAND_SYNTAX_ERROR;
-			thumb = true;
-		/* FALL THROUGH */
-		case 2:
-			COMMAND_PARSE_NUMBER(uint, CMD_ARGV[1], count);
-		/* FALL THROUGH */
-		case 1:
-			COMMAND_PARSE_ADDRESS(CMD_ARGV[0], address);
-			if (address & 0x01) {
-				if (!thumb) {
-					command_print(CMD, "Disassemble as Thumb");
-					thumb = true;
-				}
-				address &= ~1;
-			}
-			break;
-		default:
+	case 3:
+		if (strcmp(CMD_ARGV[2], "thumb") != 0)
 			return ERROR_COMMAND_SYNTAX_ERROR;
+		thumb = true;
+	/* FALL THROUGH */
+	case 2:
+		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[1], count);
+	/* FALL THROUGH */
+	case 1:
+		COMMAND_PARSE_ADDRESS(CMD_ARGV[0], address);
+		if (address & 0x01) {
+			if (!thumb) {
+				command_print(CMD, "Disassemble as Thumb");
+				thumb = true;
+			}
+			address &= ~1;
+		}
+		break;
+	default:
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	return arm_disassemble(CMD, target, address, count, thumb);
@@ -1314,14 +1314,14 @@ int arm_get_gdb_reg_list(struct target *target,
 
 	case REG_CLASS_ALL:
 		switch (arm->core_type) {
-			case ARM_CORE_TYPE_SEC_EXT:
-				*reg_list_size = 51;
-				break;
-			case ARM_CORE_TYPE_VIRT_EXT:
-				*reg_list_size = 53;
-				break;
-			default:
-				*reg_list_size = 48;
+		case ARM_CORE_TYPE_SEC_EXT:
+			*reg_list_size = 51;
+			break;
+		case ARM_CORE_TYPE_VIRT_EXT:
+			*reg_list_size = 53;
+			break;
+		default:
+			*reg_list_size = 48;
 		}
 		unsigned int list_size_core = *reg_list_size;
 		if (arm->arm_vfp_version == ARM_VFP_V3)

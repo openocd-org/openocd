@@ -171,24 +171,23 @@ static int dpm_read_reg_u64(struct arm_dpm *dpm, struct reg *r, unsigned int reg
 	uint32_t value_r0, value_r1;
 
 	switch (regnum) {
-		case ARM_VFP_V3_D0 ... ARM_VFP_V3_D31:
-			/* move from double word register to r0:r1: "vmov r0, r1, vm"
-			 * then read r0 via dcc
-			 */
-			retval = dpm->instr_read_data_r0(dpm,
-				ARMV4_5_VMOV(1, 1, 0, ((regnum - ARM_VFP_V3_D0) >> 4),
-				((regnum - ARM_VFP_V3_D0) & 0xf)), &value_r0);
-			if (retval != ERROR_OK)
-				break;
-
-			/* read r1 via dcc */
-			retval = dpm->instr_read_data_dcc(dpm,
-				ARMV4_5_MCR(14, 0, 1, 0, 5, 0),
-				&value_r1);
+	case ARM_VFP_V3_D0 ... ARM_VFP_V3_D31:
+		/* move from double word register to r0:r1: "vmov r0, r1, vm"
+		 * then read r0 via dcc
+		 */
+		retval = dpm->instr_read_data_r0(dpm,
+			ARMV4_5_VMOV(1, 1, 0, ((regnum - ARM_VFP_V3_D0) >> 4),
+			((regnum - ARM_VFP_V3_D0) & 0xf)), &value_r0);
+		if (retval != ERROR_OK)
 			break;
-		default:
 
-			break;
+		/* read r1 via dcc */
+		retval = dpm->instr_read_data_dcc(dpm,
+			ARMV4_5_MCR(14, 0, 1, 0, 5, 0),
+			&value_r1);
+		break;
+	default:
+		break;
 	}
 
 	if (retval == ERROR_OK) {
@@ -210,54 +209,54 @@ int arm_dpm_read_reg(struct arm_dpm *dpm, struct reg *r, unsigned int regnum)
 	int retval;
 
 	switch (regnum) {
-		case 0 ... 14:
-			/* return via DCC:  "MCR p14, 0, Rnum, c0, c5, 0" */
-			retval = dpm->instr_read_data_dcc(dpm,
-				ARMV4_5_MCR(14, 0, regnum, 0, 5, 0),
-				&value);
-			break;
-		case 15:/* PC
-			 * "MOV r0, pc"; then return via DCC */
-			retval = dpm->instr_read_data_r0(dpm, 0xe1a0000f, &value);
+	case 0 ... 14:
+		/* return via DCC:  "MCR p14, 0, Rnum, c0, c5, 0" */
+		retval = dpm->instr_read_data_dcc(dpm,
+			ARMV4_5_MCR(14, 0, regnum, 0, 5, 0),
+			&value);
+		break;
+	case 15:/* PC
+		 * "MOV r0, pc"; then return via DCC */
+		retval = dpm->instr_read_data_r0(dpm, 0xe1a0000f, &value);
 
-			/* NOTE: this seems like a slightly awkward place to update
-			 * this value ... but if the PC gets written (the only way
-			 * to change what we compute), the arch spec says subsequent
-			 * reads return values which are "unpredictable".  So this
-			 * is always right except in those broken-by-intent cases.
-			 */
-			switch (dpm->arm->core_state) {
-				case ARM_STATE_ARM:
-					value -= 8;
-					break;
-				case ARM_STATE_THUMB:
-				case ARM_STATE_THUMB_EE:
-					value -= 4;
-					break;
-				case ARM_STATE_JAZELLE:
-					/* core-specific ... ? */
-					LOG_TARGET_WARNING(dpm->arm->target, "Jazelle PC adjustment unknown");
-					break;
-				default:
-					LOG_TARGET_WARNING(dpm->arm->target, "unknown core state");
-					break;
-			}
+		/* NOTE: this seems like a slightly awkward place to update
+		 * this value ... but if the PC gets written (the only way
+		 * to change what we compute), the arch spec says subsequent
+		 * reads return values which are "unpredictable".  So this
+		 * is always right except in those broken-by-intent cases.
+		 */
+		switch (dpm->arm->core_state) {
+		case ARM_STATE_ARM:
+			value -= 8;
 			break;
-		case ARM_VFP_V3_D0 ... ARM_VFP_V3_D31:
-			return dpm_read_reg_u64(dpm, r, regnum);
-		case ARM_VFP_V3_FPSCR:
-			/* "VMRS r0, FPSCR"; then return via DCC */
-			retval = dpm->instr_read_data_r0(dpm,
-				ARMV4_5_VMRS(0), &value);
+		case ARM_STATE_THUMB:
+		case ARM_STATE_THUMB_EE:
+			value -= 4;
+			break;
+		case ARM_STATE_JAZELLE:
+			/* core-specific ... ? */
+			LOG_TARGET_WARNING(dpm->arm->target, "Jazelle PC adjustment unknown");
 			break;
 		default:
-			/* 16: "MRS r0, CPSR"; then return via DCC
-			 * 17: "MRS r0, SPSR"; then return via DCC
-			 */
-			retval = dpm->instr_read_data_r0(dpm,
-				ARMV4_5_MRS(0, regnum & 1),
-				&value);
+			LOG_TARGET_WARNING(dpm->arm->target, "unknown core state");
 			break;
+		}
+		break;
+	case ARM_VFP_V3_D0 ... ARM_VFP_V3_D31:
+		return dpm_read_reg_u64(dpm, r, regnum);
+	case ARM_VFP_V3_FPSCR:
+		/* "VMRS r0, FPSCR"; then return via DCC */
+		retval = dpm->instr_read_data_r0(dpm,
+			ARMV4_5_VMRS(0), &value);
+		break;
+	default:
+		/* 16: "MRS r0, CPSR"; then return via DCC
+		 * 17: "MRS r0, SPSR"; then return via DCC
+		 */
+		retval = dpm->instr_read_data_r0(dpm,
+			ARMV4_5_MRS(0, regnum & 1),
+			&value);
+		break;
 	}
 
 	if (retval == ERROR_OK) {
@@ -279,24 +278,23 @@ static int dpm_write_reg_u64(struct arm_dpm *dpm, struct reg *r, unsigned int re
 	uint32_t value_r1 = buf_get_u32(r->value + 4, 0, 32);
 
 	switch (regnum) {
-		case ARM_VFP_V3_D0 ... ARM_VFP_V3_D31:
-			/* write value_r1 to r1 via dcc */
-			retval = dpm->instr_write_data_dcc(dpm,
-				ARMV4_5_MRC(14, 0, 1, 0, 5, 0),
-				value_r1);
-			if (retval != ERROR_OK)
-				break;
-
-			/* write value_r0 to r0 via dcc then,
-			 * move to double word register from r0:r1: "vmov vm, r0, r1"
-			 */
-			retval = dpm->instr_write_data_r0(dpm,
-				ARMV4_5_VMOV(0, 1, 0, ((regnum - ARM_VFP_V3_D0) >> 4),
-				((regnum - ARM_VFP_V3_D0) & 0xf)), value_r0);
+	case ARM_VFP_V3_D0 ... ARM_VFP_V3_D31:
+		/* write value_r1 to r1 via dcc */
+		retval = dpm->instr_write_data_dcc(dpm,
+			ARMV4_5_MRC(14, 0, 1, 0, 5, 0),
+			value_r1);
+		if (retval != ERROR_OK)
 			break;
-		default:
 
-			break;
+		/* write value_r0 to r0 via dcc then,
+		 * move to double word register from r0:r1: "vmov vm, r0, r1"
+		 */
+		retval = dpm->instr_write_data_r0(dpm,
+			ARMV4_5_VMOV(0, 1, 0, ((regnum - ARM_VFP_V3_D0) >> 4),
+			((regnum - ARM_VFP_V3_D0) & 0xf)), value_r0);
+		break;
+	default:
+		break;
 	}
 
 	if (retval == ERROR_OK) {
@@ -315,37 +313,37 @@ static int dpm_write_reg(struct arm_dpm *dpm, struct reg *r, unsigned int regnum
 	uint32_t value = buf_get_u32(r->value, 0, 32);
 
 	switch (regnum) {
-		case 0 ... 14:
-			/* load register from DCC:  "MRC p14, 0, Rnum, c0, c5, 0" */
-			retval = dpm->instr_write_data_dcc(dpm,
-				ARMV4_5_MRC(14, 0, regnum, 0, 5, 0),
-				value);
-			break;
-		case 15:/* PC
-			 * read r0 from DCC; then "MOV pc, r0" */
-			retval = dpm->instr_write_data_r0(dpm, 0xe1a0f000, value);
-			break;
-		case ARM_VFP_V3_D0 ... ARM_VFP_V3_D31:
-			return dpm_write_reg_u64(dpm, r, regnum);
-		case ARM_VFP_V3_FPSCR:
-			/* move to r0 from DCC, then "VMSR FPSCR, r0" */
-			retval = dpm->instr_write_data_r0(dpm,
-				ARMV4_5_VMSR(0), value);
-			break;
-		default:
-			/* 16: read r0 from DCC, then "MSR r0, CPSR_cxsf"
-			 * 17: read r0 from DCC, then "MSR r0, SPSR_cxsf"
-			 */
-			retval = dpm->instr_write_data_r0(dpm,
-				ARMV4_5_MSR_GP(0, 0xf, regnum & 1),
-				value);
-			if (retval != ERROR_OK)
-				return retval;
+	case 0 ... 14:
+		/* load register from DCC:  "MRC p14, 0, Rnum, c0, c5, 0" */
+		retval = dpm->instr_write_data_dcc(dpm,
+			ARMV4_5_MRC(14, 0, regnum, 0, 5, 0),
+			value);
+		break;
+	case 15:/* PC
+		 * read r0 from DCC; then "MOV pc, r0" */
+		retval = dpm->instr_write_data_r0(dpm, 0xe1a0f000, value);
+		break;
+	case ARM_VFP_V3_D0 ... ARM_VFP_V3_D31:
+		return dpm_write_reg_u64(dpm, r, regnum);
+	case ARM_VFP_V3_FPSCR:
+		/* move to r0 from DCC, then "VMSR FPSCR, r0" */
+		retval = dpm->instr_write_data_r0(dpm,
+			ARMV4_5_VMSR(0), value);
+		break;
+	default:
+		/* 16: read r0 from DCC, then "MSR r0, CPSR_cxsf"
+		 * 17: read r0 from DCC, then "MSR r0, SPSR_cxsf"
+		 */
+		retval = dpm->instr_write_data_r0(dpm,
+			ARMV4_5_MSR_GP(0, 0xf, regnum & 1),
+			value);
+		if (retval != ERROR_OK)
+			return retval;
 
-			if (regnum == 16 && dpm->instr_cpsr_sync)
-				retval = dpm->instr_cpsr_sync(dpm);
+		if (regnum == 16 && dpm->instr_cpsr_sync)
+			retval = dpm->instr_cpsr_sync(dpm);
 
-			break;
+		break;
 	}
 
 	if (retval == ERROR_OK) {
@@ -655,24 +653,24 @@ static enum arm_mode dpm_mapmode(struct arm *arm,
 		return ARM_MODE_ANY;
 
 	switch (num) {
-		/* don't switch for non-shadowed registers (r0..r7, r15/pc, cpsr) */
-		case 0 ... 7:
-		case 15:
-		case 16:
-			break;
-		/* r8..r12 aren't shadowed for anything except FIQ */
-		case 8 ... 12:
-			if (mode == ARM_MODE_FIQ)
-				return mode;
-			break;
-		/* r13/sp, and r14/lr are always shadowed */
-		case 13:
-		case 14:
-		case ARM_VFP_V3_D0 ... ARM_VFP_V3_FPSCR:
+	/* don't switch for non-shadowed registers (r0..r7, r15/pc, cpsr) */
+	case 0 ... 7:
+	case 15:
+	case 16:
+		break;
+	/* r8..r12 aren't shadowed for anything except FIQ */
+	case 8 ... 12:
+		if (mode == ARM_MODE_FIQ)
 			return mode;
-		default:
-			LOG_TARGET_WARNING(arm->target, "invalid register #%u", num);
-			break;
+		break;
+	/* r13/sp, and r14/lr are always shadowed */
+	case 13:
+	case 14:
+	case ARM_VFP_V3_D0 ... ARM_VFP_V3_FPSCR:
+		return mode;
+	default:
+		LOG_TARGET_WARNING(arm->target, "invalid register #%u", num);
+		break;
 	}
 	return ARM_MODE_ANY;
 }
@@ -868,26 +866,26 @@ static int dpm_bpwp_setup(struct arm_dpm *dpm, struct dpm_bpwp *xp,
 	 * v7 hardware, unaligned 4-byte ones too.
 	 */
 	switch (length) {
-		case 1:
-			control |= (1 << (addr & 3)) << 5;
+	case 1:
+		control |= (1 << (addr & 3)) << 5;
+		break;
+	case 2:
+		/* require 2-byte alignment */
+		if (!(addr & 1)) {
+			control |= (3 << (addr & 2)) << 5;
 			break;
-		case 2:
-			/* require 2-byte alignment */
-			if (!(addr & 1)) {
-				control |= (3 << (addr & 2)) << 5;
-				break;
-			}
-		/* FALL THROUGH */
-		case 4:
-			/* require 4-byte alignment */
-			if (!(addr & 3)) {
-				control |= 0xf << 5;
-				break;
-			}
-		/* FALL THROUGH */
-		default:
-			LOG_TARGET_ERROR(dpm->arm->target, "unsupported {break,watch}point length/alignment");
-			return ERROR_COMMAND_SYNTAX_ERROR;
+		}
+	/* FALL THROUGH */
+	case 4:
+		/* require 4-byte alignment */
+		if (!(addr & 3)) {
+			control |= 0xf << 5;
+			break;
+		}
+	/* FALL THROUGH */
+	default:
+		LOG_TARGET_ERROR(dpm->arm->target, "unsupported {break,watch}point length/alignment");
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	/* other shared control bits:
@@ -974,15 +972,15 @@ static int dpm_watchpoint_setup(struct arm_dpm *dpm, unsigned int index_t,
 
 	control = dwp->bpwp.control;
 	switch (wp->rw) {
-		case WPT_READ:
-			control |= 1 << 3;
-			break;
-		case WPT_WRITE:
-			control |= 2 << 3;
-			break;
-		case WPT_ACCESS:
-			control |= 3 << 3;
-			break;
+	case WPT_READ:
+		control |= 1 << 3;
+		break;
+	case WPT_WRITE:
+		control |= 2 << 3;
+		break;
+	case WPT_ACCESS:
+		control |= 3 << 3;
+		break;
 	}
 	dwp->bpwp.control = control;
 
@@ -1032,17 +1030,17 @@ static int dpm_remove_watchpoint(struct target *target, struct watchpoint *wp)
 void arm_dpm_report_wfar(struct arm_dpm *dpm, uint32_t addr)
 {
 	switch (dpm->arm->core_state) {
-		case ARM_STATE_ARM:
-			addr -= 8;
-			break;
-		case ARM_STATE_THUMB:
-		case ARM_STATE_THUMB_EE:
-			addr -= 4;
-			break;
-		case ARM_STATE_JAZELLE:
-		case ARM_STATE_AARCH64:
-			/* ?? */
-			break;
+	case ARM_STATE_ARM:
+		addr -= 8;
+		break;
+	case ARM_STATE_THUMB:
+	case ARM_STATE_THUMB_EE:
+		addr -= 4;
+		break;
+	case ARM_STATE_JAZELLE:
+	case ARM_STATE_AARCH64:
+		/* ?? */
+		break;
 	}
 	dpm->wp_addr = addr;
 }
@@ -1061,21 +1059,21 @@ void arm_dpm_report_dscr(struct arm_dpm *dpm, uint32_t dscr)
 
 	/* Examine debug reason */
 	switch (DSCR_ENTRY(dscr)) {
-		case DSCR_ENTRY_HALT_REQ:	/* HALT request from debugger */
-		case DSCR_ENTRY_EXT_DBG_REQ:	/* EDBGRQ */
-			target->debug_reason = DBG_REASON_DBGRQ;
-			break;
-		case DSCR_ENTRY_BREAKPOINT:	/* HW breakpoint */
-		case DSCR_ENTRY_BKPT_INSTR:	/* vector catch */
-			target->debug_reason = DBG_REASON_BREAKPOINT;
-			break;
-		case DSCR_ENTRY_IMPRECISE_WATCHPT:	/* asynch watchpoint */
-		case DSCR_ENTRY_PRECISE_WATCHPT:/* precise watchpoint */
-			target->debug_reason = DBG_REASON_WATCHPOINT;
-			break;
-		default:
-			target->debug_reason = DBG_REASON_UNDEFINED;
-			break;
+	case DSCR_ENTRY_HALT_REQ:	/* HALT request from debugger */
+	case DSCR_ENTRY_EXT_DBG_REQ:	/* EDBGRQ */
+		target->debug_reason = DBG_REASON_DBGRQ;
+		break;
+	case DSCR_ENTRY_BREAKPOINT:	/* HW breakpoint */
+	case DSCR_ENTRY_BKPT_INSTR:	/* vector catch */
+		target->debug_reason = DBG_REASON_BREAKPOINT;
+		break;
+	case DSCR_ENTRY_IMPRECISE_WATCHPT:	/* asynch watchpoint */
+	case DSCR_ENTRY_PRECISE_WATCHPT:/* precise watchpoint */
+		target->debug_reason = DBG_REASON_WATCHPOINT;
+		break;
+	default:
+		target->debug_reason = DBG_REASON_UNDEFINED;
+		break;
 	}
 }
 

@@ -73,40 +73,40 @@ int armv7a_mmu_translate_va_pa(struct target *target, uint32_t va,
 			NS == 1 ? "not" : "",
 			SS == 0 ? "not" : "");
 		switch (OUTER) {
-			case 0:
-				LOG_INFO("outer: Non-Cacheable");
-				break;
-			case 1:
-				LOG_INFO("outer: Write-Back, Write-Allocate");
-				break;
-			case 2:
-				LOG_INFO("outer: Write-Through, No Write-Allocate");
-				break;
-			case 3:
-				LOG_INFO("outer: Write-Back, no Write-Allocate");
-				break;
+		case 0:
+			LOG_INFO("outer: Non-Cacheable");
+			break;
+		case 1:
+			LOG_INFO("outer: Write-Back, Write-Allocate");
+			break;
+		case 2:
+			LOG_INFO("outer: Write-Through, No Write-Allocate");
+			break;
+		case 3:
+			LOG_INFO("outer: Write-Back, no Write-Allocate");
+			break;
 		}
 		switch (INNER) {
-			case 0:
-				LOG_INFO("inner: Non-Cacheable");
-				break;
-			case 1:
-				LOG_INFO("inner: Strongly-ordered");
-				break;
-			case 3:
-				LOG_INFO("inner: Device");
-				break;
-			case 5:
-				LOG_INFO("inner: Write-Back, Write-Allocate");
-				break;
-			case 6:
-				LOG_INFO("inner:  Write-Through");
-				break;
-			case 7:
-				LOG_INFO("inner: Write-Back, no Write-Allocate");
-				break;
-			default:
-				LOG_INFO("inner: %" PRIx32 " ???", INNER);
+		case 0:
+			LOG_INFO("inner: Non-Cacheable");
+			break;
+		case 1:
+			LOG_INFO("inner: Strongly-ordered");
+			break;
+		case 3:
+			LOG_INFO("inner: Device");
+			break;
+		case 5:
+			LOG_INFO("inner: Write-Back, Write-Allocate");
+			break;
+		case 6:
+			LOG_INFO("inner:  Write-Through");
+			break;
+		case 7:
+			LOG_INFO("inner: Write-Back, no Write-Allocate");
+			break;
+		default:
+			LOG_INFO("inner: %" PRIx32 " ???", INNER);
 		}
 	}
 

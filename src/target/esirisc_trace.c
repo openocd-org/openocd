@@ -389,84 +389,87 @@ static int esirisc_trace_analyze_full(struct command_invocation *cmd, uint8_t *b
 			goto fail;
 
 		switch (id) {
-			case ESIRISC_TRACE_ID_EXECUTE:
-			case ESIRISC_TRACE_ID_STALL:
-			case ESIRISC_TRACE_ID_BRANCH:
-				command_print(cmd, "%s", esirisc_trace_id_strings[id]);
+		case ESIRISC_TRACE_ID_EXECUTE:
+		case ESIRISC_TRACE_ID_STALL:
+		case ESIRISC_TRACE_ID_BRANCH:
+			command_print(cmd, "%s", esirisc_trace_id_strings[id]);
+			break;
+
+		case ESIRISC_TRACE_ID_EXTENDED: {
+			uint32_t ext_id;
+
+			retval = esirisc_trace_buf_get_u32(buffer, size, &pos, 4, &ext_id);
+			if (retval != ERROR_OK)
+				goto fail;
+
+			switch (ext_id) {
+			case ESIRISC_TRACE_EXT_ID_STOP:
+			case ESIRISC_TRACE_EXT_ID_WAIT:
+			case ESIRISC_TRACE_EXT_ID_MULTICYCLE:
+				command_print(cmd, "%s", esirisc_trace_ext_id_strings[ext_id]);
 				break;
 
-			case ESIRISC_TRACE_ID_EXTENDED: {
-				uint32_t ext_id;
+			case ESIRISC_TRACE_EXT_ID_ERET:
+			case ESIRISC_TRACE_EXT_ID_PC:
+			case ESIRISC_TRACE_EXT_ID_INDIRECT:
+			case ESIRISC_TRACE_EXT_ID_END_PC: {
+				uint32_t pc;
 
-				retval = esirisc_trace_buf_get_u32(buffer, size, &pos, 4, &ext_id);
+				retval = esirisc_trace_buf_get_pc(target, buffer, size, &pos, &pc);
 				if (retval != ERROR_OK)
 					goto fail;
 
-				switch (ext_id) {
-					case ESIRISC_TRACE_EXT_ID_STOP:
-					case ESIRISC_TRACE_EXT_ID_WAIT:
-					case ESIRISC_TRACE_EXT_ID_MULTICYCLE:
-						command_print(cmd, "%s", esirisc_trace_ext_id_strings[ext_id]);
-						break;
+				command_print(cmd, "%s PC: 0x%" PRIx32,
+						esirisc_trace_ext_id_strings[ext_id], pc);
 
-					case ESIRISC_TRACE_EXT_ID_ERET:
-					case ESIRISC_TRACE_EXT_ID_PC:
-					case ESIRISC_TRACE_EXT_ID_INDIRECT:
-					case ESIRISC_TRACE_EXT_ID_END_PC: {
-						uint32_t pc;
-
-						retval = esirisc_trace_buf_get_pc(target, buffer, size, &pos, &pc);
-						if (retval != ERROR_OK)
-							goto fail;
-
-						command_print(cmd, "%s PC: 0x%" PRIx32,
-								esirisc_trace_ext_id_strings[ext_id], pc);
-
-						if (ext_id == ESIRISC_TRACE_EXT_ID_END_PC) {
-							command_print(cmd, "--- end of trace ---");
-							return ERROR_OK;
-						}
-						break;
-					}
-					case ESIRISC_TRACE_EXT_ID_EXCEPTION: {
-						uint32_t eid, epc;
-
-						retval = esirisc_trace_buf_get_u32(buffer, size, &pos, 6, &eid);
-						if (retval != ERROR_OK)
-							goto fail;
-
-						retval = esirisc_trace_buf_get_pc(target, buffer, size, &pos, &epc);
-						if (retval != ERROR_OK)
-							goto fail;
-
-						command_print(cmd, "%s EID: 0x%" PRIx32 ", EPC: 0x%" PRIx32,
-								esirisc_trace_ext_id_strings[ext_id], eid, epc);
-						break;
-					}
-					case ESIRISC_TRACE_EXT_ID_COUNT: {
-						uint32_t count;
-
-						retval = esirisc_trace_buf_get_u32(buffer, size, &pos, 6, &count);
-						if (retval != ERROR_OK)
-							goto fail;
-
-						command_print(cmd, "repeats %" PRIu32 " %s", count,
-								(count == 1) ? "time" : "times");
-						break;
-					}
-					case ESIRISC_TRACE_EXT_ID_END:
-						command_print(cmd, "--- end of trace ---");
-						return ERROR_OK;
-
-					default:
-						command_print(cmd, "invalid extended trace ID: %" PRIu32, ext_id);
-						return ERROR_FAIL;
+				if (ext_id == ESIRISC_TRACE_EXT_ID_END_PC) {
+					command_print(cmd, "--- end of trace ---");
+					return ERROR_OK;
 				}
 				break;
 			}
+
+			case ESIRISC_TRACE_EXT_ID_EXCEPTION: {
+				uint32_t eid, epc;
+
+				retval = esirisc_trace_buf_get_u32(buffer, size, &pos, 6, &eid);
+				if (retval != ERROR_OK)
+					goto fail;
+
+				retval = esirisc_trace_buf_get_pc(target, buffer, size, &pos, &epc);
+				if (retval != ERROR_OK)
+					goto fail;
+
+				command_print(cmd, "%s EID: 0x%" PRIx32 ", EPC: 0x%" PRIx32,
+						esirisc_trace_ext_id_strings[ext_id], eid, epc);
+				break;
+			}
+
+			case ESIRISC_TRACE_EXT_ID_COUNT: {
+				uint32_t count;
+
+				retval = esirisc_trace_buf_get_u32(buffer, size, &pos, 6, &count);
+				if (retval != ERROR_OK)
+					goto fail;
+
+				command_print(cmd, "repeats %" PRIu32 " %s", count,
+						(count == 1) ? "time" : "times");
+				break;
+			}
+
+			case ESIRISC_TRACE_EXT_ID_END:
+				command_print(cmd, "--- end of trace ---");
+				return ERROR_OK;
+
 			default:
-				command_print(cmd, "invalid trace ID: %" PRIu32, id);
+				command_print(cmd, "invalid extended trace ID: %" PRIu32, ext_id);
 				return ERROR_FAIL;
+			}
+			break;
+		}
+		default:
+			command_print(cmd, "invalid trace ID: %" PRIu32, id);
+			return ERROR_FAIL;
 		}
 	}
 
@@ -511,21 +514,21 @@ static int esirisc_trace_analyze(struct command_invocation *cmd, uint8_t *buffer
 	struct esirisc_trace *trace_info = &esirisc->trace_info;
 
 	switch (trace_info->format) {
-		case ESIRISC_TRACE_FORMAT_FULL:
-			command_print(cmd, "--- full pipeline ---");
-			return esirisc_trace_analyze_full(cmd, buffer, size);
+	case ESIRISC_TRACE_FORMAT_FULL:
+		command_print(cmd, "--- full pipeline ---");
+		return esirisc_trace_analyze_full(cmd, buffer, size);
 
-		case ESIRISC_TRACE_FORMAT_BRANCH:
-			command_print(cmd, "--- branches taken ---");
-			return esirisc_trace_analyze_full(cmd, buffer, size);
+	case ESIRISC_TRACE_FORMAT_BRANCH:
+		command_print(cmd, "--- branches taken ---");
+		return esirisc_trace_analyze_full(cmd, buffer, size);
 
-		case ESIRISC_TRACE_FORMAT_ICACHE:
-			command_print(cmd, "--- icache misses ---");
-			return esirisc_trace_analyze_simple(cmd, buffer, size);
+	case ESIRISC_TRACE_FORMAT_ICACHE:
+		command_print(cmd, "--- icache misses ---");
+		return esirisc_trace_analyze_simple(cmd, buffer, size);
 
-		default:
-			command_print(cmd, "invalid trace format: %i", trace_info->format);
-			return ERROR_FAIL;
+	default:
+		command_print(cmd, "invalid trace format: %i", trace_info->format);
+		return ERROR_FAIL;
 	}
 }
 

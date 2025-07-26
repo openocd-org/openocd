@@ -709,29 +709,29 @@ COMMAND_HANDLER(arc_handle_get_reg_field)
 	int retval = arc_reg_get_field(target, reg_name, field_name, &value);
 
 	switch (retval) {
-		case ERROR_OK:
-			break;
-		case ERROR_ARC_REGISTER_NOT_FOUND:
-			command_print(CMD,
-				"Register `%s' has not been found.", reg_name);
-			return ERROR_COMMAND_ARGUMENT_INVALID;
-		case ERROR_ARC_REGISTER_IS_NOT_STRUCT:
-			command_print(CMD,
-				"Register `%s' must have 'struct' type.", reg_name);
-			return ERROR_COMMAND_ARGUMENT_INVALID;
-		case ERROR_ARC_REGISTER_FIELD_NOT_FOUND:
-			command_print(CMD,
-				"Field `%s' has not been found in register `%s'.",
-				field_name, reg_name);
-			return ERROR_COMMAND_ARGUMENT_INVALID;
-		case ERROR_ARC_FIELD_IS_NOT_BITFIELD:
-			command_print(CMD,
-				"Field `%s' is not a 'bitfield' field in a structure.",
-				field_name);
-			return ERROR_COMMAND_ARGUMENT_INVALID;
-		default:
-			/* Pass through other errors. */
-			return retval;
+	case ERROR_OK:
+		break;
+	case ERROR_ARC_REGISTER_NOT_FOUND:
+		command_print(CMD,
+			"Register `%s' has not been found.", reg_name);
+		return ERROR_COMMAND_ARGUMENT_INVALID;
+	case ERROR_ARC_REGISTER_IS_NOT_STRUCT:
+		command_print(CMD,
+			"Register `%s' must have 'struct' type.", reg_name);
+		return ERROR_COMMAND_ARGUMENT_INVALID;
+	case ERROR_ARC_REGISTER_FIELD_NOT_FOUND:
+		command_print(CMD,
+			"Field `%s' has not been found in register `%s'.",
+			field_name, reg_name);
+		return ERROR_COMMAND_ARGUMENT_INVALID;
+	case ERROR_ARC_FIELD_IS_NOT_BITFIELD:
+		command_print(CMD,
+			"Field `%s' is not a 'bitfield' field in a structure.",
+			field_name);
+		return ERROR_COMMAND_ARGUMENT_INVALID;
+	default:
+		/* Pass through other errors. */
+		return retval;
 	}
 
 	command_print(CMD, "0x%" PRIx32, value);

@@ -893,17 +893,17 @@ static int mips_m4k_set_watchpoint(struct target *target,
 	}
 
 	switch (watchpoint->rw) {
-		case WPT_READ:
-			enable &= ~EJTAG_DBCN_NOLB;
-			break;
-		case WPT_WRITE:
-			enable &= ~EJTAG_DBCN_NOSB;
-			break;
-		case WPT_ACCESS:
-			enable &= ~(EJTAG_DBCN_NOLB | EJTAG_DBCN_NOSB);
-			break;
-		default:
-			LOG_ERROR("BUG: watchpoint->rw neither read, write nor access");
+	case WPT_READ:
+		enable &= ~EJTAG_DBCN_NOLB;
+		break;
+	case WPT_WRITE:
+		enable &= ~EJTAG_DBCN_NOSB;
+		break;
+	case WPT_ACCESS:
+		enable &= ~(EJTAG_DBCN_NOLB | EJTAG_DBCN_NOSB);
+		break;
+	default:
+		LOG_ERROR("BUG: watchpoint->rw neither read, write nor access");
 	}
 
 	watchpoint_set(watchpoint, wp_num);

@@ -130,86 +130,85 @@ static uint32_t arm_shifter_operand(struct arm_sim_interface *sim,
 static int pass_condition(uint32_t cpsr, uint32_t opcode)
 {
 	switch ((opcode & 0xf0000000) >> 28) {
-		case 0x0:	/* EQ */
-			if (cpsr & 0x40000000)
-				return 1;
-			else
-				return 0;
-		case 0x1:	/* NE */
-			if (!(cpsr & 0x40000000))
-				return 1;
-			else
-				return 0;
-		case 0x2:	/* CS */
-			if (cpsr & 0x20000000)
-				return 1;
-			else
-				return 0;
-		case 0x3:	/* CC */
-			if (!(cpsr & 0x20000000))
-				return 1;
-			else
-				return 0;
-		case 0x4:	/* MI */
-			if (cpsr & 0x80000000)
-				return 1;
-			else
-				return 0;
-		case 0x5:	/* PL */
-			if (!(cpsr & 0x80000000))
-				return 1;
-			else
-				return 0;
-		case 0x6:	/* VS */
-			if (cpsr & 0x10000000)
-				return 1;
-			else
-				return 0;
-		case 0x7:	/* VC */
-			if (!(cpsr & 0x10000000))
-				return 1;
-			else
-				return 0;
-		case 0x8:	/* HI */
-			if ((cpsr & 0x20000000) && !(cpsr & 0x40000000))
-				return 1;
-			else
-				return 0;
-		case 0x9:	/* LS */
-			if (!(cpsr & 0x20000000) || (cpsr & 0x40000000))
-				return 1;
-			else
-				return 0;
-		case 0xa:	/* GE */
-			if (((cpsr & 0x80000000) && (cpsr & 0x10000000))
-				|| (!(cpsr & 0x80000000) && !(cpsr & 0x10000000)))
-				return 1;
-			else
-				return 0;
-		case 0xb:	/* LT */
-			if (((cpsr & 0x80000000) && !(cpsr & 0x10000000))
-				|| (!(cpsr & 0x80000000) && (cpsr & 0x10000000)))
-				return 1;
-			else
-				return 0;
-		case 0xc:	/* GT */
-			if (!(cpsr & 0x40000000) &&
-				(((cpsr & 0x80000000) && (cpsr & 0x10000000))
-				|| (!(cpsr & 0x80000000) && !(cpsr & 0x10000000))))
-				return 1;
-			else
-				return 0;
-		case 0xd:	/* LE */
-			if ((cpsr & 0x40000000) ||
-				((cpsr & 0x80000000) && !(cpsr & 0x10000000))
-				|| (!(cpsr & 0x80000000) && (cpsr & 0x10000000)))
-				return 1;
-			else
-				return 0;
-		case 0xe:
-		case 0xf:
+	case 0x0:	/* EQ */
+		if (cpsr & 0x40000000)
 			return 1;
-
+		else
+			return 0;
+	case 0x1:	/* NE */
+		if (!(cpsr & 0x40000000))
+			return 1;
+		else
+			return 0;
+	case 0x2:	/* CS */
+		if (cpsr & 0x20000000)
+			return 1;
+		else
+			return 0;
+	case 0x3:	/* CC */
+		if (!(cpsr & 0x20000000))
+			return 1;
+		else
+			return 0;
+	case 0x4:	/* MI */
+		if (cpsr & 0x80000000)
+			return 1;
+		else
+			return 0;
+	case 0x5:	/* PL */
+		if (!(cpsr & 0x80000000))
+			return 1;
+		else
+			return 0;
+	case 0x6:	/* VS */
+		if (cpsr & 0x10000000)
+			return 1;
+		else
+			return 0;
+	case 0x7:	/* VC */
+		if (!(cpsr & 0x10000000))
+			return 1;
+		else
+			return 0;
+	case 0x8:	/* HI */
+		if ((cpsr & 0x20000000) && !(cpsr & 0x40000000))
+			return 1;
+		else
+			return 0;
+	case 0x9:	/* LS */
+		if (!(cpsr & 0x20000000) || (cpsr & 0x40000000))
+			return 1;
+		else
+			return 0;
+	case 0xa:	/* GE */
+		if (((cpsr & 0x80000000) && (cpsr & 0x10000000))
+			|| (!(cpsr & 0x80000000) && !(cpsr & 0x10000000)))
+			return 1;
+		else
+			return 0;
+	case 0xb:	/* LT */
+		if (((cpsr & 0x80000000) && !(cpsr & 0x10000000))
+			|| (!(cpsr & 0x80000000) && (cpsr & 0x10000000)))
+			return 1;
+		else
+			return 0;
+	case 0xc:	/* GT */
+		if (!(cpsr & 0x40000000) &&
+			(((cpsr & 0x80000000) && (cpsr & 0x10000000))
+			|| (!(cpsr & 0x80000000) && !(cpsr & 0x10000000))))
+			return 1;
+		else
+			return 0;
+	case 0xd:	/* LE */
+		if ((cpsr & 0x40000000) ||
+			((cpsr & 0x80000000) && !(cpsr & 0x10000000))
+			|| (!(cpsr & 0x80000000) && (cpsr & 0x10000000)))
+			return 1;
+		else
+			return 0;
+	case 0xe:
+	case 0xf:
+		return 1;
 	}
 
 	LOG_ERROR("BUG: should never get here");
@@ -510,18 +509,18 @@ static int arm_simulate_step_core(struct target *target,
 		}
 
 		switch (instruction.info.load_store_multiple.addressing_mode) {
-			case 0:	/* Increment after */
-				/* rn = rn; */
-				break;
-			case 1:	/* Increment before */
-				rn = rn + 4;
-				break;
-			case 2:	/* Decrement after */
-				rn = rn - (bits_set * 4) + 4;
-				break;
-			case 3:	/* Decrement before */
-				rn = rn - (bits_set * 4);
-				break;
+		case 0:	/* Increment after */
+			/* rn = rn; */
+			break;
+		case 1:	/* Increment before */
+			rn = rn + 4;
+			break;
+		case 2:	/* Decrement after */
+			rn = rn - (bits_set * 4) + 4;
+			break;
+		case 3:	/* Decrement before */
+			rn = rn - (bits_set * 4);
+			break;
 		}
 
 		for (i = 0; i < 16; i++) {
@@ -590,18 +589,18 @@ static int arm_simulate_step_core(struct target *target,
 			}
 
 			switch (instruction.info.load_store_multiple.addressing_mode) {
-				case 0:	/* Increment after */
-					/* rn = rn; */
-					break;
-				case 1:	/* Increment before */
-					rn = rn + 4;
-					break;
-				case 2:	/* Decrement after */
-					rn = rn - (bits_set * 4) + 4;
-					break;
-				case 3:	/* Decrement before */
-					rn = rn - (bits_set * 4);
-					break;
+			case 0:	/* Increment after */
+				/* rn = rn; */
+				break;
+			case 1:	/* Increment before */
+				rn = rn + 4;
+				break;
+			case 2:	/* Decrement after */
+				rn = rn - (bits_set * 4) + 4;
+				break;
+			case 3:	/* Decrement before */
+				rn = rn - (bits_set * 4);
+				break;
 			}
 
 			for (i = 0; i < 16; i++) {

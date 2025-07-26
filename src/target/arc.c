@@ -1892,18 +1892,18 @@ static int arc_set_watchpoint(struct target *target,
 
 	int enable = AP_AC_TT_DISABLE;
 	switch (watchpoint->rw) {
-		case WPT_READ:
-			enable = AP_AC_TT_READ;
-			break;
-		case WPT_WRITE:
-			enable = AP_AC_TT_WRITE;
-			break;
-		case WPT_ACCESS:
-			enable = AP_AC_TT_READWRITE;
-			break;
-		default:
-			LOG_TARGET_ERROR(target, "BUG: watchpoint->rw neither read, write nor access");
-			return ERROR_FAIL;
+	case WPT_READ:
+		enable = AP_AC_TT_READ;
+		break;
+	case WPT_WRITE:
+		enable = AP_AC_TT_WRITE;
+		break;
+	case WPT_ACCESS:
+		enable = AP_AC_TT_READWRITE;
+		break;
+	default:
+		LOG_TARGET_ERROR(target, "BUG: watchpoint->rw neither read, write nor access");
+		return ERROR_FAIL;
 	}
 
 	int retval =  arc_configure_actionpoint(target, wp_num,

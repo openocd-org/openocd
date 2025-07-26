@@ -1687,26 +1687,25 @@ COMMAND_HANDLER(mips32_handle_cp0_command)
 	}
 
 	switch (CMD_ARGC) {
-		case 0: /* No arg => print out all cp0 regs */
-			retval = mips32_cp0_get_all_regs(CMD, ejtag_info, mips32->cp0_mask);
-			break;
-		case 1: /* 1 arg => get cp0 #reg/#sel value by name */
-			retval = mips32_cp0_get_reg_by_name(CMD, ejtag_info, mips32->cp0_mask);
-			break;
-		case 2: /* 2 args => get cp0 reg/sel value or set value by name */
-			tmp = *CMD_ARGV[0];
-			if (isdigit(tmp)) /* starts from number then args are #reg and #sel */
-				retval = mips32_cp0_get_reg_by_number(CMD, ejtag_info);
-			else /* or set value by register name */
-				retval = mips32_cp0_set_reg_by_name(CMD, mips32, ejtag_info);
-
-			break;
-		case 3: /* 3 args => set cp0 reg/sel value*/
-			retval = mips32_cp0_set_reg_by_number(CMD, mips32, ejtag_info);
-			break;
-		default: /* Other argc => err */
-			retval = ERROR_COMMAND_SYNTAX_ERROR;
-			break;
+	case 0: /* No arg => print out all cp0 regs */
+		retval = mips32_cp0_get_all_regs(CMD, ejtag_info, mips32->cp0_mask);
+		break;
+	case 1: /* 1 arg => get cp0 #reg/#sel value by name */
+		retval = mips32_cp0_get_reg_by_name(CMD, ejtag_info, mips32->cp0_mask);
+		break;
+	case 2: /* 2 args => get cp0 reg/sel value or set value by name */
+		tmp = *CMD_ARGV[0];
+		if (isdigit(tmp)) /* starts from number then args are #reg and #sel */
+			retval = mips32_cp0_get_reg_by_number(CMD, ejtag_info);
+		else /* or set value by register name */
+			retval = mips32_cp0_set_reg_by_name(CMD, mips32, ejtag_info);
+		break;
+	case 3: /* 3 args => set cp0 reg/sel value*/
+		retval = mips32_cp0_set_reg_by_number(CMD, mips32, ejtag_info);
+		break;
+	default: /* Other argc => err */
+		retval = ERROR_COMMAND_SYNTAX_ERROR;
+		break;
 	}
 
 	return retval;
@@ -2003,20 +2002,20 @@ COMMAND_HANDLER(mips32_handle_cpuinfo_command)
 	uint32_t mmu_type = (config0 >> 7) & 7; /* MMU Type Info */
 	char *mmu;
 	switch (mmu_type) {
-		case MIPS32_MMU_TLB:
-			mmu = "TLB";
+	case MIPS32_MMU_TLB:
+		mmu = "TLB";
 		break;
-		case MIPS32_MMU_BAT:
-			mmu = "BAT";
+	case MIPS32_MMU_BAT:
+		mmu = "BAT";
 		break;
-		case MIPS32_MMU_FIXED:
-			mmu = "FIXED";
+	case MIPS32_MMU_FIXED:
+		mmu = "FIXED";
 		break;
-		case MIPS32_MMU_DUAL_VTLB_FTLB:
-			mmu = "DUAL VAR/FIXED";
+	case MIPS32_MMU_DUAL_VTLB_FTLB:
+		mmu = "DUAL VAR/FIXED";
 		break;
-		default:
-			mmu = "Unknown";
+	default:
+		mmu = "Unknown";
 	}
 	command_print(CMD, "MMU Type: %s", mmu);
 
@@ -2262,25 +2261,25 @@ COMMAND_HANDLER(mips32_handle_dsp_command)
 	}
 
 	switch (CMD_ARGC) {
-		case 0:
-			retval = mips32_dsp_get_all_regs(CMD, mips32);
-			break;
-		case 1:
-			retval = mips32_dsp_get_register(CMD, mips32);
-			break;
-		case 2:
-			tmp = *CMD_ARGV[0];
-			if (isdigit(tmp)) {
-				command_print(CMD, "Error: invalid dsp command format");
-				retval = ERROR_COMMAND_ARGUMENT_INVALID;
-			} else {
-				retval = mips32_dsp_set_register(CMD, mips32);
-			}
-			break;
-		default:
-			command_print(CMD, "Error: invalid argument format, required 0-2, given %d", CMD_ARGC);
+	case 0:
+		retval = mips32_dsp_get_all_regs(CMD, mips32);
+		break;
+	case 1:
+		retval = mips32_dsp_get_register(CMD, mips32);
+		break;
+	case 2:
+		tmp = *CMD_ARGV[0];
+		if (isdigit(tmp)) {
+			command_print(CMD, "Error: invalid dsp command format");
 			retval = ERROR_COMMAND_ARGUMENT_INVALID;
-			break;
+		} else {
+			retval = mips32_dsp_set_register(CMD, mips32);
+		}
+		break;
+	default:
+		command_print(CMD, "Error: invalid argument format, required 0-2, given %d", CMD_ARGC);
+		retval = ERROR_COMMAND_ARGUMENT_INVALID;
+		break;
 	}
 	return retval;
 }

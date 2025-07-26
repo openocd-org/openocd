@@ -74,15 +74,15 @@ static int target_hexmsg(struct target *target, int size, uint32_t length)
 	line_len = 0;
 	for (i = 0; i < length; i++) {
 		switch (size) {
-			case 4:
-				line_len += snprintf(line + line_len, 128 - line_len, "%8.8" PRIx32 " ", le_to_h_u32(data + (4*i)));
-				break;
-			case 2:
-				line_len += snprintf(line + line_len, 128 - line_len, "%4.4x ", le_to_h_u16(data + (2*i)));
-				break;
-			case 1:
-				line_len += snprintf(line + line_len, 128 - line_len, "%2.2x ", data[i]);
-				break;
+		case 4:
+			line_len += snprintf(line + line_len, 128 - line_len, "%8.8" PRIx32 " ", le_to_h_u32(data + (4 * i)));
+			break;
+		case 2:
+			line_len += snprintf(line + line_len, 128 - line_len, "%4.4x ", le_to_h_u16(data + (2 * i)));
+			break;
+		case 1:
+			line_len += snprintf(line + line_len, 128 - line_len, "%2.2x ", data[i]);
+			break;
 		}
 
 		if ((i%8 == 7) || (i == length - 1)) {
@@ -120,24 +120,24 @@ int target_request(struct target *target, uint32_t request)
 	}
 
 	switch (target_req_cmd) {
-		case TARGET_REQ_TRACEMSG:
-			trace_point(target, (request & 0xffffff00) >> 8);
-			break;
-		case TARGET_REQ_DEBUGMSG:
-			if (((request & 0xff00) >> 8) == 0)
-				target_asciimsg(target, (request & 0xffff0000) >> 16);
-			else
-				target_hexmsg(target, (request & 0xff00) >> 8, (request & 0xffff0000) >> 16);
-			break;
-		case TARGET_REQ_DEBUGCHAR:
-			target_charmsg(target, (request & 0x00ff0000) >> 16);
-			break;
-/*		case TARGET_REQ_SEMIHOSTING:
- *			break;
+	case TARGET_REQ_TRACEMSG:
+		trace_point(target, (request & 0xffffff00) >> 8);
+		break;
+	case TARGET_REQ_DEBUGMSG:
+		if (((request & 0xff00) >> 8) == 0)
+			target_asciimsg(target, (request & 0xffff0000) >> 16);
+		else
+			target_hexmsg(target, (request & 0xff00) >> 8, (request & 0xffff0000) >> 16);
+		break;
+	case TARGET_REQ_DEBUGCHAR:
+		target_charmsg(target, (request & 0x00ff0000) >> 16);
+		break;
+/*	case TARGET_REQ_SEMIHOSTING:
+ *		break;
  */
-		default:
-			LOG_ERROR("unknown target request: %2.2x", target_req_cmd);
-			break;
+	default:
+		LOG_ERROR("unknown target request: %2.2x", target_req_cmd);
+		break;
 	}
 
 	return ERROR_OK;

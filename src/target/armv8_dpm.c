@@ -426,17 +426,17 @@ static int dpmv8_bpwp_enable(struct arm_dpm *dpm, unsigned int index_t,
 	int retval;
 
 	switch (index_t) {
-		case 0 ... 15:	/* breakpoints */
-			vr += CPUV8_DBG_BVR_BASE;
-			cr += CPUV8_DBG_BCR_BASE;
-			break;
-		case 16 ... 31:	/* watchpoints */
-			vr += CPUV8_DBG_WVR_BASE;
-			cr += CPUV8_DBG_WCR_BASE;
-			index_t -= 16;
-			break;
-		default:
-			return ERROR_FAIL;
+	case 0 ... 15:	/* breakpoints */
+		vr += CPUV8_DBG_BVR_BASE;
+		cr += CPUV8_DBG_BCR_BASE;
+		break;
+	case 16 ... 31:	/* watchpoints */
+		vr += CPUV8_DBG_WVR_BASE;
+		cr += CPUV8_DBG_WCR_BASE;
+		index_t -= 16;
+		break;
+	default:
+		return ERROR_FAIL;
 	}
 	vr += 16 * index_t;
 	cr += 16 * index_t;
@@ -456,15 +456,15 @@ static int dpmv8_bpwp_disable(struct arm_dpm *dpm, unsigned int index_t)
 	uint32_t cr;
 
 	switch (index_t) {
-		case 0 ... 15:
-			cr = armv8->debug_base + CPUV8_DBG_BCR_BASE;
-			break;
-		case 16 ... 31:
-			cr = armv8->debug_base + CPUV8_DBG_WCR_BASE;
-			index_t -= 16;
-			break;
-		default:
-			return ERROR_FAIL;
+	case 0 ... 15:
+		cr = armv8->debug_base + CPUV8_DBG_BCR_BASE;
+		break;
+	case 16 ... 31:
+		cr = armv8->debug_base + CPUV8_DBG_WCR_BASE;
+		index_t -= 16;
+		break;
+	default:
+		return ERROR_FAIL;
 	}
 	cr += 16 * index_t;
 
@@ -1127,26 +1127,26 @@ static int dpmv8_bpwp_setup(struct arm_dpm *dpm, struct dpm_bpwp *xp,
 	 * v7 hardware, unaligned 4-byte ones too.
 	 */
 	switch (length) {
-		case 1:
-			control |= (1 << (addr & 3)) << 5;
+	case 1:
+		control |= (1 << (addr & 3)) << 5;
+		break;
+	case 2:
+		/* require 2-byte alignment */
+		if (!(addr & 1)) {
+			control |= (3 << (addr & 2)) << 5;
 			break;
-		case 2:
-			/* require 2-byte alignment */
-			if (!(addr & 1)) {
-				control |= (3 << (addr & 2)) << 5;
-				break;
-			}
-		/* FALL THROUGH */
-		case 4:
-			/* require 4-byte alignment */
-			if (!(addr & 3)) {
-				control |= 0xf << 5;
-				break;
-			}
-		/* FALL THROUGH */
-		default:
-			LOG_ERROR("unsupported {break,watch}point length/alignment");
-			return ERROR_COMMAND_SYNTAX_ERROR;
+		}
+	/* FALL THROUGH */
+	case 4:
+		/* require 4-byte alignment */
+		if (!(addr & 3)) {
+			control |= 0xf << 5;
+			break;
+		}
+	/* FALL THROUGH */
+	default:
+		LOG_ERROR("unsupported {break,watch}point length/alignment");
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	/* other shared control bits:
@@ -1233,15 +1233,15 @@ static int dpmv8_watchpoint_setup(struct arm_dpm *dpm, unsigned int index_t,
 
 	control = dwp->bpwp.control;
 	switch (wp->rw) {
-		case WPT_READ:
-			control |= 1 << 3;
-			break;
-		case WPT_WRITE:
-			control |= 2 << 3;
-			break;
-		case WPT_ACCESS:
-			control |= 3 << 3;
-			break;
+	case WPT_READ:
+		control |= 1 << 3;
+		break;
+	case WPT_WRITE:
+		control |= 2 << 3;
+		break;
+	case WPT_ACCESS:
+		control |= 3 << 3;
+		break;
 	}
 	dwp->bpwp.control = control;
 
@@ -1363,31 +1363,31 @@ void armv8_dpm_report_dscr(struct arm_dpm *dpm, uint32_t dscr)
 
 	/* Examine debug reason */
 	switch (DSCR_ENTRY(dscr)) {
-		/* FALL THROUGH -- assume a v6 core in abort mode */
-		case DSCRV8_ENTRY_EXT_DEBUG:	/* EDBGRQ */
-			target->debug_reason = DBG_REASON_DBGRQ;
-			break;
-		case DSCRV8_ENTRY_HALT_STEP_EXECLU:	/* HALT step */
-		case DSCRV8_ENTRY_HALT_STEP_NORMAL: /* Halt step*/
-		case DSCRV8_ENTRY_HALT_STEP:
-			target->debug_reason = DBG_REASON_SINGLESTEP;
-			break;
-		case DSCRV8_ENTRY_HLT:	/* HLT instruction (software breakpoint) */
-		case DSCRV8_ENTRY_BKPT:	/* SW BKPT (?) */
-		case DSCRV8_ENTRY_RESET_CATCH:	/* Reset catch */
-		case DSCRV8_ENTRY_OS_UNLOCK:  /*OS unlock catch*/
-		case DSCRV8_ENTRY_SW_ACCESS_DBG: /*SW access dbg register*/
-			target->debug_reason = DBG_REASON_BREAKPOINT;
-			break;
-		case DSCRV8_ENTRY_WATCHPOINT:	/* asynch watchpoint */
-			target->debug_reason = DBG_REASON_WATCHPOINT;
-			break;
-		case DSCRV8_ENTRY_EXCEPTION_CATCH:  /*exception catch*/
-			target->debug_reason = DBG_REASON_EXC_CATCH;
-			break;
-		default:
-			target->debug_reason = DBG_REASON_UNDEFINED;
-			break;
+	/* FALL THROUGH -- assume a v6 core in abort mode */
+	case DSCRV8_ENTRY_EXT_DEBUG:	/* EDBGRQ */
+		target->debug_reason = DBG_REASON_DBGRQ;
+		break;
+	case DSCRV8_ENTRY_HALT_STEP_EXECLU:	/* HALT step */
+	case DSCRV8_ENTRY_HALT_STEP_NORMAL: /* Halt step*/
+	case DSCRV8_ENTRY_HALT_STEP:
+		target->debug_reason = DBG_REASON_SINGLESTEP;
+		break;
+	case DSCRV8_ENTRY_HLT:	/* HLT instruction (software breakpoint) */
+	case DSCRV8_ENTRY_BKPT:	/* SW BKPT (?) */
+	case DSCRV8_ENTRY_RESET_CATCH:	/* Reset catch */
+	case DSCRV8_ENTRY_OS_UNLOCK:  /*OS unlock catch*/
+	case DSCRV8_ENTRY_SW_ACCESS_DBG: /*SW access dbg register*/
+		target->debug_reason = DBG_REASON_BREAKPOINT;
+		break;
+	case DSCRV8_ENTRY_WATCHPOINT:	/* asynch watchpoint */
+		target->debug_reason = DBG_REASON_WATCHPOINT;
+		break;
+	case DSCRV8_ENTRY_EXCEPTION_CATCH:  /*exception catch*/
+		target->debug_reason = DBG_REASON_EXC_CATCH;
+		break;
+	default:
+		target->debug_reason = DBG_REASON_UNDEFINED;
+		break;
 	}
 
 }

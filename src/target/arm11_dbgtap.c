@@ -85,30 +85,30 @@ static const char *arm11_ir_to_string(uint8_t ir)
 	const char *s = "unknown";
 
 	switch (ir) {
-		case ARM11_EXTEST:
-			s = "EXTEST";
-			break;
-		case ARM11_SCAN_N:
-			s = "SCAN_N";
-			break;
-		case ARM11_RESTART:
-			s = "RESTART";
-			break;
-		case ARM11_HALT:
-			s = "HALT";
-			break;
-		case ARM11_INTEST:
-			s = "INTEST";
-			break;
-		case ARM11_ITRSEL:
-			s = "ITRSEL";
-			break;
-		case ARM11_IDCODE:
-			s = "IDCODE";
-			break;
-		case ARM11_BYPASS:
-			s = "BYPASS";
-			break;
+	case ARM11_EXTEST:
+		s = "EXTEST";
+		break;
+	case ARM11_SCAN_N:
+		s = "SCAN_N";
+		break;
+	case ARM11_RESTART:
+		s = "RESTART";
+		break;
+	case ARM11_HALT:
+		s = "HALT";
+		break;
+	case ARM11_INTEST:
+		s = "INTEST";
+		break;
+	case ARM11_ITRSEL:
+		s = "ITRSEL";
+		break;
+	case ARM11_IDCODE:
+		s = "IDCODE";
+		break;
+	case ARM11_BYPASS:
+		s = "BYPASS";
+		break;
 	}
 	return s;
 }
@@ -1061,17 +1061,17 @@ static int arm11_bpwp_enable(struct arm_dpm *dpm, unsigned int index_t,
 	action[1].value = control;
 
 	switch (index_t) {
-	    case 0 ... 15:
-		    action[0].address = ARM11_SC7_BVR0 + index_t;
-		    action[1].address = ARM11_SC7_BCR0 + index_t;
-		    break;
-	    case 16 ... 32:
-		    index_t -= 16;
-		    action[0].address = ARM11_SC7_WVR0 + index_t;
-		    action[1].address = ARM11_SC7_WCR0 + index_t;
-		    break;
-	    default:
-		    return ERROR_FAIL;
+	case 0 ... 15:
+	    action[0].address = ARM11_SC7_BVR0 + index_t;
+	    action[1].address = ARM11_SC7_BCR0 + index_t;
+	    break;
+	case 16 ... 32:
+	    index_t -= 16;
+	    action[0].address = ARM11_SC7_WVR0 + index_t;
+	    action[1].address = ARM11_SC7_WCR0 + index_t;
+	    break;
+	default:
+	    return ERROR_FAIL;
 	}
 
 	arm11->bpwp_n += 2;
@@ -1090,15 +1090,15 @@ static int arm11_bpwp_disable(struct arm_dpm *dpm, unsigned int index_t)
 	action[0].value = 0;
 
 	switch (index_t) {
-	    case 0 ... 15:
-		    action[0].address = ARM11_SC7_BCR0 + index_t;
-		    break;
-	    case 16 ... 32:
-		    index_t -= 16;
-		    action[0].address = ARM11_SC7_WCR0 + index_t;
-		    break;
-	    default:
-		    return ERROR_FAIL;
+	case 0 ... 15:
+	    action[0].address = ARM11_SC7_BCR0 + index_t;
+	    break;
+	case 16 ... 32:
+	    index_t -= 16;
+	    action[0].address = ARM11_SC7_WCR0 + index_t;
+	    break;
+	default:
+	    return ERROR_FAIL;
 	}
 
 	arm11->bpwp_n += 1;

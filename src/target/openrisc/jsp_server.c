@@ -118,49 +118,49 @@ static int jsp_input(struct connection *connection)
 	buf_p = buffer;
 	while (bytes_read) {
 		switch (t_con->state) {
-			case TELNET_STATE_DATA:
-				if (*buf_p == 0xff) {
-					t_con->state = TELNET_STATE_IAC;
-				} else {
-					int out_len = 1;
-					int in_len;
-					unsigned char in_buffer[10];
-					or1k_adv_jtag_jsp_xfer(jsp_service->jtag_info,
-							       &out_len, buf_p, &in_len,
-							       in_buffer);
-					if (in_len)
-						telnet_write(connection, in_buffer, in_len);
-				}
+		case TELNET_STATE_DATA:
+			if (*buf_p == 0xff) {
+				t_con->state = TELNET_STATE_IAC;
+			} else {
+				int out_len = 1;
+				int in_len;
+				unsigned char in_buffer[10];
+				or1k_adv_jtag_jsp_xfer(jsp_service->jtag_info,
+						       &out_len, buf_p, &in_len,
+						       in_buffer);
+				if (in_len)
+					telnet_write(connection, in_buffer, in_len);
+			}
+			break;
+		case TELNET_STATE_IAC:
+			switch (*buf_p) {
+			case 0xfe:
+				t_con->state = TELNET_STATE_DONT;
 				break;
-			case TELNET_STATE_IAC:
-				switch (*buf_p) {
-				case 0xfe:
-					t_con->state = TELNET_STATE_DONT;
-					break;
-				case 0xfd:
-					t_con->state = TELNET_STATE_DO;
-					break;
-				case 0xfc:
-					t_con->state = TELNET_STATE_WONT;
-					break;
-				case 0xfb:
-					t_con->state = TELNET_STATE_WILL;
-					break;
-				}
+			case 0xfd:
+				t_con->state = TELNET_STATE_DO;
 				break;
-			case TELNET_STATE_SB:
+			case 0xfc:
+				t_con->state = TELNET_STATE_WONT;
 				break;
-			case TELNET_STATE_SE:
+			case 0xfb:
+				t_con->state = TELNET_STATE_WILL;
 				break;
-			case TELNET_STATE_WILL:
-			case TELNET_STATE_WONT:
-			case TELNET_STATE_DO:
-			case TELNET_STATE_DONT:
-				t_con->state = TELNET_STATE_DATA;
-				break;
-			default:
-				LOG_ERROR("unknown telnet state");
-				exit(-1);
+			}
+			break;
+		case TELNET_STATE_SB:
+			break;
+		case TELNET_STATE_SE:
+			break;
+		case TELNET_STATE_WILL:
+		case TELNET_STATE_WONT:
+		case TELNET_STATE_DO:
+		case TELNET_STATE_DONT:
+			t_con->state = TELNET_STATE_DATA;
+			break;
+		default:
+			LOG_ERROR("unknown telnet state");
+			exit(-1);
 		}
 
 		bytes_read--;

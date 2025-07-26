@@ -472,22 +472,22 @@ static int cortex_m_set_maskints_for_halt(struct target *target)
 {
 	struct cortex_m_common *cortex_m = target_to_cm(target);
 	switch (cortex_m->isrmasking_mode) {
-		case CORTEX_M_ISRMASK_AUTO:
-			/* interrupts taken at resume, whether for step or run -> no mask */
-			return cortex_m_set_maskints(target, false);
+	case CORTEX_M_ISRMASK_AUTO:
+		/* interrupts taken at resume, whether for step or run -> no mask */
+		return cortex_m_set_maskints(target, false);
 
-		case CORTEX_M_ISRMASK_OFF:
-			/* interrupts never masked */
-			return cortex_m_set_maskints(target, false);
+	case CORTEX_M_ISRMASK_OFF:
+		/* interrupts never masked */
+		return cortex_m_set_maskints(target, false);
 
-		case CORTEX_M_ISRMASK_ON:
-			/* interrupts always masked */
-			return cortex_m_set_maskints(target, true);
+	case CORTEX_M_ISRMASK_ON:
+		/* interrupts always masked */
+		return cortex_m_set_maskints(target, true);
 
-		case CORTEX_M_ISRMASK_STEPONLY:
-			/* interrupts masked for single step only -> mask now if MASKINTS
-			 * erratum, otherwise only mask before stepping */
-			return cortex_m_set_maskints(target, cortex_m->maskints_erratum);
+	case CORTEX_M_ISRMASK_STEPONLY:
+		/* interrupts masked for single step only -> mask now if MASKINTS
+		 * erratum, otherwise only mask before stepping */
+		return cortex_m_set_maskints(target, cortex_m->maskints_erratum);
 	}
 	return ERROR_OK;
 }
@@ -495,21 +495,21 @@ static int cortex_m_set_maskints_for_halt(struct target *target)
 static int cortex_m_set_maskints_for_run(struct target *target)
 {
 	switch (target_to_cm(target)->isrmasking_mode) {
-		case CORTEX_M_ISRMASK_AUTO:
-			/* interrupts taken at resume, whether for step or run -> no mask */
-			return cortex_m_set_maskints(target, false);
+	case CORTEX_M_ISRMASK_AUTO:
+		/* interrupts taken at resume, whether for step or run -> no mask */
+		return cortex_m_set_maskints(target, false);
 
-		case CORTEX_M_ISRMASK_OFF:
-			/* interrupts never masked */
-			return cortex_m_set_maskints(target, false);
+	case CORTEX_M_ISRMASK_OFF:
+		/* interrupts never masked */
+		return cortex_m_set_maskints(target, false);
 
-		case CORTEX_M_ISRMASK_ON:
-			/* interrupts always masked */
-			return cortex_m_set_maskints(target, true);
+	case CORTEX_M_ISRMASK_ON:
+		/* interrupts always masked */
+		return cortex_m_set_maskints(target, true);
 
-		case CORTEX_M_ISRMASK_STEPONLY:
-			/* interrupts masked for single step only -> no mask */
-			return cortex_m_set_maskints(target, false);
+	case CORTEX_M_ISRMASK_STEPONLY:
+		/* interrupts masked for single step only -> no mask */
+		return cortex_m_set_maskints(target, false);
 	}
 	return ERROR_OK;
 }
@@ -517,21 +517,21 @@ static int cortex_m_set_maskints_for_run(struct target *target)
 static int cortex_m_set_maskints_for_step(struct target *target)
 {
 	switch (target_to_cm(target)->isrmasking_mode) {
-		case CORTEX_M_ISRMASK_AUTO:
-			/* the auto-interrupt should already be done -> mask */
-			return cortex_m_set_maskints(target, true);
+	case CORTEX_M_ISRMASK_AUTO:
+		/* the auto-interrupt should already be done -> mask */
+		return cortex_m_set_maskints(target, true);
 
-		case CORTEX_M_ISRMASK_OFF:
-			/* interrupts never masked */
-			return cortex_m_set_maskints(target, false);
+	case CORTEX_M_ISRMASK_OFF:
+		/* interrupts never masked */
+		return cortex_m_set_maskints(target, false);
 
-		case CORTEX_M_ISRMASK_ON:
-			/* interrupts always masked */
-			return cortex_m_set_maskints(target, true);
+	case CORTEX_M_ISRMASK_ON:
+		/* interrupts always masked */
+		return cortex_m_set_maskints(target, true);
 
-		case CORTEX_M_ISRMASK_STEPONLY:
-			/* interrupts masked for single step only -> mask */
-			return cortex_m_set_maskints(target, true);
+	case CORTEX_M_ISRMASK_STEPONLY:
+		/* interrupts masked for single step only -> mask */
+		return cortex_m_set_maskints(target, true);
 	}
 	return ERROR_OK;
 }
@@ -739,61 +739,61 @@ static int cortex_m_examine_exception_reason(struct target *target)
 	if (retval != ERROR_OK)
 		return retval;
 	switch (armv7m->exception_number) {
-		case 2:	/* NMI */
-			break;
-		case 3:	/* Hard Fault */
-			retval = mem_ap_read_atomic_u32(armv7m->debug_ap, NVIC_HFSR, &except_sr);
+	case 2:	/* NMI */
+		break;
+	case 3:	/* Hard Fault */
+		retval = mem_ap_read_atomic_u32(armv7m->debug_ap, NVIC_HFSR, &except_sr);
+		if (retval != ERROR_OK)
+			return retval;
+		if (except_sr & 0x40000000) {
+			retval = mem_ap_read_u32(armv7m->debug_ap, NVIC_CFSR, &cfsr);
 			if (retval != ERROR_OK)
 				return retval;
-			if (except_sr & 0x40000000) {
-				retval = mem_ap_read_u32(armv7m->debug_ap, NVIC_CFSR, &cfsr);
-				if (retval != ERROR_OK)
-					return retval;
-			}
-			break;
-		case 4:	/* Memory Management */
-			retval = mem_ap_read_u32(armv7m->debug_ap, NVIC_CFSR, &except_sr);
-			if (retval != ERROR_OK)
-				return retval;
-			retval = mem_ap_read_u32(armv7m->debug_ap, NVIC_MMFAR, &except_ar);
-			if (retval != ERROR_OK)
-				return retval;
-			break;
-		case 5:	/* Bus Fault */
-			retval = mem_ap_read_u32(armv7m->debug_ap, NVIC_CFSR, &except_sr);
-			if (retval != ERROR_OK)
-				return retval;
-			retval = mem_ap_read_u32(armv7m->debug_ap, NVIC_BFAR, &except_ar);
-			if (retval != ERROR_OK)
-				return retval;
-			break;
-		case 6:	/* Usage Fault */
-			retval = mem_ap_read_u32(armv7m->debug_ap, NVIC_CFSR, &except_sr);
-			if (retval != ERROR_OK)
-				return retval;
-			break;
-		case 7:	/* Secure Fault */
-			retval = mem_ap_read_u32(armv7m->debug_ap, NVIC_SFSR, &except_sr);
-			if (retval != ERROR_OK)
-				return retval;
-			retval = mem_ap_read_u32(armv7m->debug_ap, NVIC_SFAR, &except_ar);
-			if (retval != ERROR_OK)
-				return retval;
-			break;
-		case 11:	/* SVCall */
-			break;
-		case 12:	/* Debug Monitor */
-			retval = mem_ap_read_u32(armv7m->debug_ap, NVIC_DFSR, &except_sr);
-			if (retval != ERROR_OK)
-				return retval;
-			break;
-		case 14:	/* PendSV */
-			break;
-		case 15:	/* SysTick */
-			break;
-		default:
-			except_sr = 0;
-			break;
+		}
+		break;
+	case 4:	/* Memory Management */
+		retval = mem_ap_read_u32(armv7m->debug_ap, NVIC_CFSR, &except_sr);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = mem_ap_read_u32(armv7m->debug_ap, NVIC_MMFAR, &except_ar);
+		if (retval != ERROR_OK)
+			return retval;
+		break;
+	case 5:	/* Bus Fault */
+		retval = mem_ap_read_u32(armv7m->debug_ap, NVIC_CFSR, &except_sr);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = mem_ap_read_u32(armv7m->debug_ap, NVIC_BFAR, &except_ar);
+		if (retval != ERROR_OK)
+			return retval;
+		break;
+	case 6:	/* Usage Fault */
+		retval = mem_ap_read_u32(armv7m->debug_ap, NVIC_CFSR, &except_sr);
+		if (retval != ERROR_OK)
+			return retval;
+		break;
+	case 7:	/* Secure Fault */
+		retval = mem_ap_read_u32(armv7m->debug_ap, NVIC_SFSR, &except_sr);
+		if (retval != ERROR_OK)
+			return retval;
+		retval = mem_ap_read_u32(armv7m->debug_ap, NVIC_SFAR, &except_ar);
+		if (retval != ERROR_OK)
+			return retval;
+		break;
+	case 11:	/* SVCall */
+		break;
+	case 12:	/* Debug Monitor */
+		retval = mem_ap_read_u32(armv7m->debug_ap, NVIC_DFSR, &except_sr);
+		if (retval != ERROR_OK)
+			return retval;
+		break;
+	case 14:	/* PendSV */
+		break;
+	case 15:	/* SysTick */
+		break;
+	default:
+		except_sr = 0;
+		break;
 	}
 	retval = dap_run(swjdp);
 	if (retval == ERROR_OK)
@@ -3217,17 +3217,17 @@ COMMAND_HANDLER(handle_cortex_m_reset_config_command)
 	}
 
 	switch (cortex_m->soft_reset_config) {
-		case CORTEX_M_RESET_SYSRESETREQ:
-			reset_config = "sysresetreq";
-			break;
+	case CORTEX_M_RESET_SYSRESETREQ:
+		reset_config = "sysresetreq";
+		break;
 
-		case CORTEX_M_RESET_VECTRESET:
-			reset_config = "vectreset";
-			break;
+	case CORTEX_M_RESET_VECTRESET:
+		reset_config = "vectreset";
+		break;
 
-		default:
-			reset_config = "unknown";
-			break;
+	default:
+		reset_config = "unknown";
+		break;
 	}
 
 	command_print(CMD, "cortex_m reset_config %s", reset_config);

@@ -580,17 +580,17 @@ static int cortex_a_bpwp_enable(struct arm_dpm *dpm, unsigned int index_t,
 	int retval;
 
 	switch (index_t) {
-		case 0 ... 15:	/* breakpoints */
-			vr += CPUDBG_BVR_BASE;
-			cr += CPUDBG_BCR_BASE;
-			break;
-		case 16 ... 31:	/* watchpoints */
-			vr += CPUDBG_WVR_BASE;
-			cr += CPUDBG_WCR_BASE;
-			index_t -= 16;
-			break;
-		default:
-			return ERROR_FAIL;
+	case 0 ... 15:	/* breakpoints */
+		vr += CPUDBG_BVR_BASE;
+		cr += CPUDBG_BCR_BASE;
+		break;
+	case 16 ... 31:	/* watchpoints */
+		vr += CPUDBG_WVR_BASE;
+		cr += CPUDBG_WCR_BASE;
+		index_t -= 16;
+		break;
+	default:
+		return ERROR_FAIL;
 	}
 	vr += 4 * index_t;
 	cr += 4 * index_t;
@@ -612,15 +612,15 @@ static int cortex_a_bpwp_disable(struct arm_dpm *dpm, unsigned int index_t)
 	uint32_t cr;
 
 	switch (index_t) {
-		case 0 ... 15:
-			cr = a->armv7a_common.debug_base + CPUDBG_BCR_BASE;
-			break;
-		case 16 ... 31:
-			cr = a->armv7a_common.debug_base + CPUDBG_WCR_BASE;
-			index_t -= 16;
-			break;
-		default:
-			return ERROR_FAIL;
+	case 0 ... 15:
+		cr = a->armv7a_common.debug_base + CPUDBG_BCR_BASE;
+		break;
+	case 16 ... 31:
+		cr = a->armv7a_common.debug_base + CPUDBG_WCR_BASE;
+		index_t -= 16;
+		break;
+	default:
+		return ERROR_FAIL;
 	}
 	cr += 4 * index_t;
 
@@ -860,22 +860,22 @@ static int cortex_a_internal_restore(struct target *target, bool current,
 	 * kill the return address
 	 */
 	switch (arm->core_state) {
-		case ARM_STATE_ARM:
-			resume_pc &= 0xFFFFFFFC;
-			break;
-		case ARM_STATE_THUMB:
-		case ARM_STATE_THUMB_EE:
-			/* When the return address is loaded into PC
-			 * bit 0 must be 1 to stay in Thumb state
-			 */
-			resume_pc |= 0x1;
-			break;
-		case ARM_STATE_JAZELLE:
-			LOG_ERROR("How do I resume into Jazelle state??");
-			return ERROR_FAIL;
-		case ARM_STATE_AARCH64:
-			LOG_ERROR("Shouldn't be in AARCH64 state");
-			return ERROR_FAIL;
+	case ARM_STATE_ARM:
+		resume_pc &= 0xFFFFFFFC;
+		break;
+	case ARM_STATE_THUMB:
+	case ARM_STATE_THUMB_EE:
+		/* When the return address is loaded into PC
+		 * bit 0 must be 1 to stay in Thumb state
+		 */
+		resume_pc |= 0x1;
+		break;
+	case ARM_STATE_JAZELLE:
+		LOG_ERROR("How do I resume into Jazelle state??");
+		return ERROR_FAIL;
+	case ARM_STATE_AARCH64:
+		LOG_ERROR("Shouldn't be in AARCH64 state");
+		return ERROR_FAIL;
 	}
 	LOG_DEBUG("resume pc = 0x%08" PRIx32, resume_pc);
 	buf_set_u32(arm->pc->value, 0, 32, resume_pc);
@@ -2350,20 +2350,20 @@ static int cortex_a_write_cpu_memory(struct target *target,
 	} else {
 		/* Use slow path. Adjust size for aligned accesses */
 		switch (address % 4) {
-			case 1:
-			case 3:
-				count *= size;
-				size = 1;
-				break;
-			case 2:
-				if (size == 4) {
-					count *= 2;
-					size = 2;
-				}
-				break;
-			case 0:
-			default:
-				break;
+		case 1:
+		case 3:
+			count *= size;
+			size = 1;
+			break;
+		case 2:
+			if (size == 4) {
+				count *= 2;
+				size = 2;
+			}
+			break;
+		case 0:
+		default:
+			break;
 		}
 		retval = cortex_a_write_cpu_memory_slow(target, size, count, buffer, &dscr);
 	}
@@ -2668,20 +2668,20 @@ static int cortex_a_read_cpu_memory(struct target *target,
 	} else {
 		/* Use slow path. Adjust size for aligned accesses */
 		switch (address % 4) {
-			case 1:
-			case 3:
-				count *= size;
-				size = 1;
-				break;
-			case 2:
-				if (size == 4) {
-					count *= 2;
-					size = 2;
-				}
-				break;
-			case 0:
-			default:
-				break;
+		case 1:
+		case 3:
+			count *= size;
+			size = 1;
+			break;
+		case 2:
+			if (size == 4) {
+				count *= 2;
+				size = 2;
+			}
+			break;
+		case 0:
+		default:
+			break;
 		}
 		retval = cortex_a_read_cpu_memory_slow(target, size, count, buffer, &dscr);
 	}

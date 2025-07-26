@@ -815,36 +815,35 @@ static int image_mot_buffer_complete_inner(struct image *image,
 				}
 			} else if (record_type >= 1 && record_type <= 3) {
 				switch (record_type) {
-					case 1:
-						/* S1 - 16 bit address data record */
-						sscanf(&lpsz_line[bytes_read], "%4" SCNx32, &address);
-						cal_checksum += (uint8_t)(address >> 8);
-						cal_checksum += (uint8_t)address;
-						bytes_read += 4;
-						count -= 2;
-						break;
+				case 1:
+					/* S1 - 16 bit address data record */
+					sscanf(&lpsz_line[bytes_read], "%4" SCNx32, &address);
+					cal_checksum += (uint8_t)(address >> 8);
+					cal_checksum += (uint8_t)address;
+					bytes_read += 4;
+					count -= 2;
+					break;
 
-					case 2:
-						/* S2 - 24 bit address data record */
-						sscanf(&lpsz_line[bytes_read], "%6" SCNx32, &address);
-						cal_checksum += (uint8_t)(address >> 16);
-						cal_checksum += (uint8_t)(address >> 8);
-						cal_checksum += (uint8_t)address;
-						bytes_read += 6;
-						count -= 3;
-						break;
+				case 2:
+					/* S2 - 24 bit address data record */
+					sscanf(&lpsz_line[bytes_read], "%6" SCNx32, &address);
+					cal_checksum += (uint8_t)(address >> 16);
+					cal_checksum += (uint8_t)(address >> 8);
+					cal_checksum += (uint8_t)address;
+					bytes_read += 6;
+					count -= 3;
+					break;
 
-					case 3:
-						/* S3 - 32 bit address data record */
-						sscanf(&lpsz_line[bytes_read], "%8" SCNx32, &address);
-						cal_checksum += (uint8_t)(address >> 24);
-						cal_checksum += (uint8_t)(address >> 16);
-						cal_checksum += (uint8_t)(address >> 8);
-						cal_checksum += (uint8_t)address;
-						bytes_read += 8;
-						count -= 4;
-						break;
-
+				case 3:
+					/* S3 - 32 bit address data record */
+					sscanf(&lpsz_line[bytes_read], "%8" SCNx32, &address);
+					cal_checksum += (uint8_t)(address >> 24);
+					cal_checksum += (uint8_t)(address >> 16);
+					cal_checksum += (uint8_t)(address >> 8);
+					cal_checksum += (uint8_t)address;
+					bytes_read += 8;
+					count -= 4;
+					break;
 				}
 
 				if (full_address != address) {

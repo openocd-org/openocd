@@ -819,19 +819,19 @@ int mips32_pracc_write_mem(struct mips_ejtag *ejtag_info, uint32_t addr, int siz
 	mips32_cp0_read(ejtag_info, &conf, 16, 0);
 
 	switch (KSEGX(addr)) {
-		case KUSEG:
-			cached = (conf & MIPS32_CONFIG0_KU_MASK) >> MIPS32_CONFIG0_KU_SHIFT;
-			break;
-		case KSEG0:
-			cached = (conf & MIPS32_CONFIG0_K0_MASK) >> MIPS32_CONFIG0_K0_SHIFT;
-			break;
-		case KSEG2:
-		case KSEG3:
-			cached = (conf & MIPS32_CONFIG0_K23_MASK) >> MIPS32_CONFIG0_K23_SHIFT;
-			break;
-		default:
-			/* what ? */
-			break;
+	case KUSEG:
+		cached = (conf & MIPS32_CONFIG0_KU_MASK) >> MIPS32_CONFIG0_KU_SHIFT;
+		break;
+	case KSEG0:
+		cached = (conf & MIPS32_CONFIG0_K0_MASK) >> MIPS32_CONFIG0_K0_SHIFT;
+		break;
+	case KSEG2:
+	case KSEG3:
+		cached = (conf & MIPS32_CONFIG0_K23_MASK) >> MIPS32_CONFIG0_K23_SHIFT;
+		break;
+	default:
+		/* what ? */
+		break;
 	}
 
 	/**
@@ -1256,19 +1256,19 @@ static int mips32_pracc_fastdata_xfer_synchronize_cache(struct mips_ejtag *ejtag
 	mips32_cp0_read(ejtag_info, &conf, 16, 0);
 
 	switch (KSEGX(addr)) {
-		case KUSEG:
-			cached = (conf & MIPS32_CONFIG0_KU_MASK) >> MIPS32_CONFIG0_KU_SHIFT;
-			break;
-		case KSEG0:
-			cached = (conf & MIPS32_CONFIG0_K0_MASK) >> MIPS32_CONFIG0_K0_SHIFT;
-			break;
-		case KSEG2:
-		case KSEG3:
-			cached = (conf & MIPS32_CONFIG0_K23_MASK) >> MIPS32_CONFIG0_K23_SHIFT;
-			break;
-		default:
-			/* what ? */
-			break;
+	case KUSEG:
+		cached = (conf & MIPS32_CONFIG0_KU_MASK) >> MIPS32_CONFIG0_KU_SHIFT;
+		break;
+	case KSEG0:
+		cached = (conf & MIPS32_CONFIG0_K0_MASK) >> MIPS32_CONFIG0_K0_SHIFT;
+		break;
+	case KSEG2:
+	case KSEG3:
+		cached = (conf & MIPS32_CONFIG0_K23_MASK) >> MIPS32_CONFIG0_K23_SHIFT;
+		break;
+	default:
+		/* what ? */
+		break;
 	}
 
     /**

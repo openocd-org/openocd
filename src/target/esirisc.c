@@ -367,24 +367,24 @@ static int esirisc_read_memory(struct target *target, target_addr_t address,
 		void *value_p;
 
 		switch (size) {
-			case sizeof(value.word):
-				value_p = &value.word;
-				retval = esirisc_jtag_read_word(jtag_info, address, value_p);
-				break;
+		case sizeof(value.word):
+			value_p = &value.word;
+			retval = esirisc_jtag_read_word(jtag_info, address, value_p);
+			break;
 
-			case sizeof(value.hword):
-				value_p = &value.hword;
-				retval = esirisc_jtag_read_hword(jtag_info, address, value_p);
-				break;
+		case sizeof(value.hword):
+			value_p = &value.hword;
+			retval = esirisc_jtag_read_hword(jtag_info, address, value_p);
+			break;
 
-			case sizeof(value.byte):
-				value_p = &value.byte;
-				retval = esirisc_jtag_read_byte(jtag_info, address, value_p);
-				break;
+		case sizeof(value.byte):
+			value_p = &value.byte;
+			retval = esirisc_jtag_read_byte(jtag_info, address, value_p);
+			break;
 
-			default:
-				LOG_TARGET_ERROR(target, "unsupported size: %" PRIu32, size);
-				return ERROR_FAIL;
+		default:
+			LOG_TARGET_ERROR(target, "unsupported size: %" PRIu32, size);
+			return ERROR_FAIL;
 		}
 
 		if (retval != ERROR_OK) {
@@ -415,24 +415,24 @@ static int esirisc_write_memory(struct target *target, target_addr_t address,
 		union esirisc_memory value;
 
 		switch (size) {
-			case sizeof(value.word):
-				value.word = buf_get_u32(buffer, 0, num_bits);
-				retval = esirisc_jtag_write_word(jtag_info, address, value.word);
-				break;
+		case sizeof(value.word):
+			value.word = buf_get_u32(buffer, 0, num_bits);
+			retval = esirisc_jtag_write_word(jtag_info, address, value.word);
+			break;
 
-			case sizeof(value.hword):
-				value.hword = buf_get_u32(buffer, 0, num_bits);
-				retval = esirisc_jtag_write_hword(jtag_info, address, value.hword);
-				break;
+		case sizeof(value.hword):
+			value.hword = buf_get_u32(buffer, 0, num_bits);
+			retval = esirisc_jtag_write_hword(jtag_info, address, value.hword);
+			break;
 
-			case sizeof(value.byte):
-				value.byte = buf_get_u32(buffer, 0, num_bits);
-				retval = esirisc_jtag_write_byte(jtag_info, address, value.byte);
-				break;
+		case sizeof(value.byte):
+			value.byte = buf_get_u32(buffer, 0, num_bits);
+			retval = esirisc_jtag_write_byte(jtag_info, address, value.byte);
+			break;
 
-			default:
-				LOG_TARGET_ERROR(target, "unsupported size: %" PRIu32, size);
-				return ERROR_FAIL;
+		default:
+			LOG_TARGET_ERROR(target, "unsupported size: %" PRIu32, size);
+			return ERROR_FAIL;
 		}
 
 		if (retval != ERROR_OK) {
@@ -641,25 +641,25 @@ static int esirisc_add_watchpoint(struct target *target, struct watchpoint *watc
 
 	uint32_t sn;
 	switch (watchpoint->length) {
-		case sizeof(uint64_t):
-			sn = 0x3;
-			break;
-		case sizeof(uint32_t):
-			sn = 0x2;
-			break;
+	case sizeof(uint64_t):
+		sn = 0x3;
+		break;
+	case sizeof(uint32_t):
+		sn = 0x2;
+		break;
 
-		case sizeof(uint16_t):
-			sn = 0x1;
-			break;
+	case sizeof(uint16_t):
+		sn = 0x1;
+		break;
 
-		case sizeof(uint8_t):
-			sn = 0x0;
-			break;
+	case sizeof(uint8_t):
+		sn = 0x0;
+		break;
 
-		default:
-			LOG_TARGET_ERROR(target, "unsupported length: %" PRIu32,
-					watchpoint->length);
-			return ERROR_FAIL;
+	default:
+		LOG_TARGET_ERROR(target, "unsupported length: %" PRIu32,
+				watchpoint->length);
+		return ERROR_FAIL;
 	}
 
 	dbs |= (sn << (2 * wp_index));		/* DBS.Sn */
@@ -679,21 +679,21 @@ static int esirisc_add_watchpoint(struct target *target, struct watchpoint *watc
 
 	uint32_t dn;
 	switch (watchpoint->rw) {
-		case WPT_READ:
-			dn = 0x1;
-			break;
+	case WPT_READ:
+		dn = 0x1;
+		break;
 
-		case WPT_WRITE:
-			dn = 0x2;
-			break;
+	case WPT_WRITE:
+		dn = 0x2;
+		break;
 
-		case WPT_ACCESS:
-			dn = 0x3;
-			break;
+	case WPT_ACCESS:
+		dn = 0x3;
+		break;
 
-		default:
-			LOG_TARGET_ERROR(target, "unsupported rw: %" PRId32, watchpoint->rw);
-			return ERROR_FAIL;
+	default:
+		LOG_TARGET_ERROR(target, "unsupported rw: %" PRId32, watchpoint->rw);
+		return ERROR_FAIL;
 	}
 
 	dbc |= (dn << (2 * wp_index));		/* DBC.Dn */
@@ -1046,33 +1046,33 @@ static int esirisc_debug_entry(struct target *target)
 
 		uint32_t eid = buf_get_u32(esirisc->eid->value, 0, esirisc->eid->size);
 		switch (eid) {
-			/*
-			 * InstBreakpoint exceptions are also raised when a core is
-			 * halted for debugging. The following is required to
-			 * determine if a breakpoint was encountered.
-			 */
-			case EID_INST_BREAKPOINT:
-				breakpoint = breakpoint_find(target,
-						buf_get_u32(esirisc->epc->value, 0, esirisc->epc->size));
-				target->debug_reason = (breakpoint) ?
-						DBG_REASON_BREAKPOINT : DBG_REASON_DBGRQ;
-				break;
+		/*
+		 * InstBreakpoint exceptions are also raised when a core is
+		 * halted for debugging. The following is required to
+		 * determine if a breakpoint was encountered.
+		 */
+		case EID_INST_BREAKPOINT:
+			breakpoint = breakpoint_find(target,
+					buf_get_u32(esirisc->epc->value, 0, esirisc->epc->size));
+			target->debug_reason = (breakpoint) ?
+					DBG_REASON_BREAKPOINT : DBG_REASON_DBGRQ;
+			break;
 
-			/*
-			 * eSi-RISC treats watchpoints similarly to breakpoints,
-			 * however GDB will not request to step over the current
-			 * instruction when a watchpoint fires. The following is
-			 * required to resume the target.
-			 */
-			case EID_DATA_BREAKPOINT:
-				esirisc_remove_watchpoints(target);
-				esirisc_debug_step(target);
-				esirisc_add_watchpoints(target);
-				target->debug_reason = DBG_REASON_WATCHPOINT;
-				break;
+		/*
+		 * eSi-RISC treats watchpoints similarly to breakpoints,
+		 * however GDB will not request to step over the current
+		 * instruction when a watchpoint fires. The following is
+		 * required to resume the target.
+		 */
+		case EID_DATA_BREAKPOINT:
+			esirisc_remove_watchpoints(target);
+			esirisc_debug_step(target);
+			esirisc_add_watchpoints(target);
+			target->debug_reason = DBG_REASON_WATCHPOINT;
+			break;
 
-			default:
-				target->debug_reason = DBG_REASON_DBGRQ;
+		default:
+			target->debug_reason = DBG_REASON_DBGRQ;
 		}
 	}
 

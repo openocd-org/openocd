@@ -442,28 +442,28 @@ COMMAND_HANDLER(handle_dap_info_command)
 	}
 
 	switch (CMD_ARGC) {
-		case 0:
-			apsel = dap->apsel;
-			break;
-		case 1:
-			if (!strcmp(CMD_ARGV[0], "root")) {
-				if (!is_adiv6(dap)) {
-					command_print(CMD, "Option \"root\" not allowed with ADIv5 DAP");
-					return ERROR_COMMAND_ARGUMENT_INVALID;
-				}
-				int retval = adiv6_dap_read_baseptr(CMD, dap, &apsel);
-				if (retval != ERROR_OK) {
-					command_print(CMD, "Failed reading DAP baseptr");
-					return retval;
-				}
-				break;
+	case 0:
+		apsel = dap->apsel;
+		break;
+	case 1:
+		if (!strcmp(CMD_ARGV[0], "root")) {
+			if (!is_adiv6(dap)) {
+				command_print(CMD, "Option \"root\" not allowed with ADIv5 DAP");
+				return ERROR_COMMAND_ARGUMENT_INVALID;
 			}
-			COMMAND_PARSE_NUMBER(u64, CMD_ARGV[0], apsel);
-			if (!is_ap_num_valid(dap, apsel))
-				return ERROR_COMMAND_SYNTAX_ERROR;
+			int retval = adiv6_dap_read_baseptr(CMD, dap, &apsel);
+			if (retval != ERROR_OK) {
+				command_print(CMD, "Failed reading DAP baseptr");
+				return retval;
+			}
 			break;
-		default:
+		}
+		COMMAND_PARSE_NUMBER(u64, CMD_ARGV[0], apsel);
+		if (!is_ap_num_valid(dap, apsel))
 			return ERROR_COMMAND_SYNTAX_ERROR;
+		break;
+	default:
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	struct adiv5_ap *ap = dap_get_ap(dap, apsel);

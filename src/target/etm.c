@@ -326,24 +326,24 @@ struct reg_cache *etm_build_reg_cache(struct target *target,
 
 	} else {
 		switch (config >> 28) {
-			case 7:
-			case 5:
-			case 3:
-				bcd_vers = 0x13;
-				break;
-			case 4:
-			case 2:
-				bcd_vers = 0x12;
-				break;
-			case 1:
-				bcd_vers = 0x11;
-				break;
-			case 0:
-				bcd_vers = 0x10;
-				break;
-			default:
-				LOG_WARNING("Bad ETMv1 protocol %d", config >> 28);
-				goto fail;
+		case 7:
+		case 5:
+		case 3:
+			bcd_vers = 0x13;
+			break;
+		case 4:
+		case 2:
+			bcd_vers = 0x12;
+			break;
+		case 1:
+			bcd_vers = 0x11;
+			break;
+		case 0:
+			bcd_vers = 0x10;
+			break;
+		default:
+			LOG_WARNING("Bad ETMv1 protocol %d", config >> 28);
+			goto fail;
 		}
 	}
 	etm_ctx->bcd_vers = bcd_vers;
@@ -923,48 +923,48 @@ static int etmv1_analyze_trace(struct etm_context *ctx, struct command_invocatio
 			ctx->pipe_index += 2;
 
 			switch (ctx->last_branch_reason) {
-				case 0x0:	/* normal PC change */
-					next_pc = ctx->last_branch;
-					break;
-				case 0x1:	/* tracing enabled */
+			case 0x0:	/* normal PC change */
+				next_pc = ctx->last_branch;
+				break;
+			case 0x1:	/* tracing enabled */
+				command_print(cmd,
+					"--- tracing enabled at 0x%8.8" PRIx32 " ---",
+					ctx->last_branch);
+				ctx->current_pc = ctx->last_branch;
+				ctx->pipe_index++;
+				continue;
+			case 0x2:	/* trace restarted after FIFO overflow */
+				command_print(cmd,
+					"--- trace restarted after FIFO overflow at 0x%8.8" PRIx32 " ---",
+					ctx->last_branch);
+				ctx->current_pc = ctx->last_branch;
+				ctx->pipe_index++;
+				continue;
+			case 0x3:	/* exit from debug state */
+				command_print(cmd,
+					"--- exit from debug state at 0x%8.8" PRIx32 " ---",
+					ctx->last_branch);
+				ctx->current_pc = ctx->last_branch;
+				ctx->pipe_index++;
+				continue;
+			case 0x4:	/* periodic synchronization point */
+				next_pc = ctx->last_branch;
+				/* if we had no valid PC prior to this synchronization point,
+				 * we have to move on with the next trace cycle
+				 */
+				if (!current_pc_ok) {
 					command_print(cmd,
-						"--- tracing enabled at 0x%8.8" PRIx32 " ---",
-						ctx->last_branch);
-					ctx->current_pc = ctx->last_branch;
+						"--- periodic synchronization point at 0x%8.8" PRIx32 " ---",
+						next_pc);
+					ctx->current_pc = next_pc;
 					ctx->pipe_index++;
 					continue;
-				case 0x2:	/* trace restarted after FIFO overflow */
-					command_print(cmd,
-						"--- trace restarted after FIFO overflow at 0x%8.8" PRIx32 " ---",
-						ctx->last_branch);
-					ctx->current_pc = ctx->last_branch;
-					ctx->pipe_index++;
-					continue;
-				case 0x3:	/* exit from debug state */
-					command_print(cmd,
-						"--- exit from debug state at 0x%8.8" PRIx32 " ---",
-						ctx->last_branch);
-					ctx->current_pc = ctx->last_branch;
-					ctx->pipe_index++;
-					continue;
-				case 0x4:	/* periodic synchronization point */
-					next_pc = ctx->last_branch;
-					/* if we had no valid PC prior to this synchronization point,
-					 * we have to move on with the next trace cycle
-					 */
-					if (!current_pc_ok) {
-						command_print(cmd,
-							"--- periodic synchronization point at 0x%8.8" PRIx32 " ---",
-							next_pc);
-						ctx->current_pc = next_pc;
-						ctx->pipe_index++;
-						continue;
-					}
-					break;
-				default:	/* reserved */
-					LOG_ERROR("BUG: branch reason code 0x%" PRIx32 " is reserved",
-						ctx->last_branch_reason);
-					return ERROR_FAIL;
+				}
+				break;
+			default:	/* reserved */
+				LOG_ERROR("BUG: branch reason code 0x%" PRIx32 " is reserved",
+					ctx->last_branch_reason);
+				return ERROR_FAIL;
 			}
 
 			/* if we got here the branch was a normal PC change
@@ -1144,21 +1144,21 @@ static COMMAND_HELPER(handle_etm_tracemode_command_update,
 	uint8_t context_id;
 	COMMAND_PARSE_NUMBER(u8, CMD_ARGV[1], context_id);
 	switch (context_id) {
-		case 0:
-			tracemode |= ETM_CTRL_CONTEXTID_NONE;
-			break;
-		case 8:
-			tracemode |= ETM_CTRL_CONTEXTID_8;
-			break;
-		case 16:
-			tracemode |= ETM_CTRL_CONTEXTID_16;
-			break;
-		case 32:
-			tracemode |= ETM_CTRL_CONTEXTID_32;
-			break;
-		default:
-			command_print(CMD, "invalid option '%s'", CMD_ARGV[1]);
-			return ERROR_COMMAND_SYNTAX_ERROR;
+	case 0:
+		tracemode |= ETM_CTRL_CONTEXTID_NONE;
+		break;
+	case 8:
+		tracemode |= ETM_CTRL_CONTEXTID_8;
+		break;
+	case 16:
+		tracemode |= ETM_CTRL_CONTEXTID_16;
+		break;
+	case 32:
+		tracemode |= ETM_CTRL_CONTEXTID_32;
+		break;
+	default:
+		command_print(CMD, "invalid option '%s'", CMD_ARGV[1]);
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	bool etmv1_cycle_accurate;
@@ -1201,14 +1201,14 @@ COMMAND_HANDLER(handle_etm_tracemode_command)
 	uint32_t tracemode = etm->control;
 
 	switch (CMD_ARGC) {
-		case 0:
-			break;
-		case 4:
-			CALL_COMMAND_HANDLER(handle_etm_tracemode_command_update,
-				&tracemode);
-			break;
-		default:
-			return ERROR_COMMAND_SYNTAX_ERROR;
+	case 0:
+		break;
+	case 4:
+		CALL_COMMAND_HANDLER(handle_etm_tracemode_command_update,
+			&tracemode);
+		break;
+	default:
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	/**
@@ -1219,33 +1219,33 @@ COMMAND_HANDLER(handle_etm_tracemode_command)
 	command_print(CMD, "current tracemode configuration:");
 
 	switch (tracemode & ETM_CTRL_TRACE_MASK) {
-		default:
-			command_print(CMD, "data tracing: none");
-			break;
-		case ETM_CTRL_TRACE_DATA:
-			command_print(CMD, "data tracing: data only");
-			break;
-		case ETM_CTRL_TRACE_ADDR:
-			command_print(CMD, "data tracing: address only");
-			break;
-		case ETM_CTRL_TRACE_DATA | ETM_CTRL_TRACE_ADDR:
-			command_print(CMD, "data tracing: address and data");
-			break;
+	default:
+		command_print(CMD, "data tracing: none");
+		break;
+	case ETM_CTRL_TRACE_DATA:
+		command_print(CMD, "data tracing: data only");
+		break;
+	case ETM_CTRL_TRACE_ADDR:
+		command_print(CMD, "data tracing: address only");
+		break;
+	case ETM_CTRL_TRACE_DATA | ETM_CTRL_TRACE_ADDR:
+		command_print(CMD, "data tracing: address and data");
+		break;
 	}
 
 	switch (tracemode & ETM_CTRL_CONTEXTID_MASK) {
-		case ETM_CTRL_CONTEXTID_NONE:
-			command_print(CMD, "contextid tracing: none");
-			break;
-		case ETM_CTRL_CONTEXTID_8:
-			command_print(CMD, "contextid tracing: 8 bit");
-			break;
-		case ETM_CTRL_CONTEXTID_16:
-			command_print(CMD, "contextid tracing: 16 bit");
-			break;
-		case ETM_CTRL_CONTEXTID_32:
-			command_print(CMD, "contextid tracing: 32 bit");
-			break;
+	case ETM_CTRL_CONTEXTID_NONE:
+		command_print(CMD, "contextid tracing: none");
+		break;
+	case ETM_CTRL_CONTEXTID_8:
+		command_print(CMD, "contextid tracing: 8 bit");
+		break;
+	case ETM_CTRL_CONTEXTID_16:
+		command_print(CMD, "contextid tracing: 16 bit");
+		break;
+	case ETM_CTRL_CONTEXTID_32:
+		command_print(CMD, "contextid tracing: 32 bit");
+		break;
 	}
 
 	if (tracemode & ETM_CTRL_CYCLE_ACCURATE)
@@ -1333,39 +1333,39 @@ COMMAND_HANDLER(handle_etm_config_command)
 	uint8_t port_width;
 	COMMAND_PARSE_NUMBER(u8, CMD_ARGV[1], port_width);
 	switch (port_width) {
-		/* before ETMv3.0 */
-		case 4:
-			portmode |= ETM_PORT_4BIT;
-			break;
-		case 8:
-			portmode |= ETM_PORT_8BIT;
-			break;
-		case 16:
-			portmode |= ETM_PORT_16BIT;
-			break;
-		/* ETMv3.0 and later*/
-		case 24:
-			portmode |= ETM_PORT_24BIT;
-			break;
-		case 32:
-			portmode |= ETM_PORT_32BIT;
-			break;
-		case 48:
-			portmode |= ETM_PORT_48BIT;
-			break;
-		case 64:
-			portmode |= ETM_PORT_64BIT;
-			break;
-		case 1:
-			portmode |= ETM_PORT_1BIT;
-			break;
-		case 2:
-			portmode |= ETM_PORT_2BIT;
-			break;
-		default:
-			command_print(CMD,
-				"unsupported ETM port width '%s'", CMD_ARGV[1]);
-			return ERROR_FAIL;
+	/* before ETMv3.0 */
+	case 4:
+		portmode |= ETM_PORT_4BIT;
+		break;
+	case 8:
+		portmode |= ETM_PORT_8BIT;
+		break;
+	case 16:
+		portmode |= ETM_PORT_16BIT;
+		break;
+	/* ETMv3.0 and later*/
+	case 24:
+		portmode |= ETM_PORT_24BIT;
+		break;
+	case 32:
+		portmode |= ETM_PORT_32BIT;
+		break;
+	case 48:
+		portmode |= ETM_PORT_48BIT;
+		break;
+	case 64:
+		portmode |= ETM_PORT_64BIT;
+		break;
+	case 1:
+		portmode |= ETM_PORT_1BIT;
+		break;
+	case 2:
+		portmode |= ETM_PORT_2BIT;
+		break;
+	default:
+		command_print(CMD,
+			"unsupported ETM port width '%s'", CMD_ARGV[1]);
+		return ERROR_FAIL;
 	}
 
 	if (strcmp("normal", CMD_ARGV[2]) == 0)
@@ -1496,38 +1496,38 @@ COMMAND_HANDLER(handle_etm_info_command)
 	if (etm->bcd_vers >= 0x30)
 		max_port_size |= (config >> 6) & 0x08;
 	switch (max_port_size) {
-		/* before ETMv3.0 */
-		case 0:
-			max_port_size = 4;
-			break;
-		case 1:
-			max_port_size = 8;
-			break;
-		case 2:
-			max_port_size = 16;
-			break;
-		/* ETMv3.0 and later*/
-		case 3:
-			max_port_size = 24;
-			break;
-		case 4:
-			max_port_size = 32;
-			break;
-		case 5:
-			max_port_size = 48;
-			break;
-		case 6:
-			max_port_size = 64;
-			break;
-		case 8:
-			max_port_size = 1;
-			break;
-		case 9:
-			max_port_size = 2;
-			break;
-		default:
-			LOG_ERROR("Illegal max_port_size");
-			return ERROR_FAIL;
+	/* before ETMv3.0 */
+	case 0:
+		max_port_size = 4;
+		break;
+	case 1:
+		max_port_size = 8;
+		break;
+	case 2:
+		max_port_size = 16;
+		break;
+	/* ETMv3.0 and later*/
+	case 3:
+		max_port_size = 24;
+		break;
+	case 4:
+		max_port_size = 32;
+		break;
+	case 5:
+		max_port_size = 48;
+		break;
+	case 6:
+		max_port_size = 64;
+		break;
+	case 8:
+		max_port_size = 1;
+		break;
+	case 9:
+		max_port_size = 2;
+		break;
+	default:
+		LOG_ERROR("Illegal max_port_size");
+		return ERROR_FAIL;
 	}
 	command_print(CMD, "max. port size: %i", max_port_size);
 
@@ -1966,19 +1966,19 @@ COMMAND_HANDLER(handle_etm_analyze_command)
 	if (retval != ERROR_OK) {
 		/* FIX! error should be reported inside etmv1_analyze_trace() */
 		switch (retval) {
-			case ERROR_ETM_ANALYSIS_FAILED:
-				command_print(CMD,
-					"further analysis failed (corrupted trace data or just end of data");
-				break;
-			case ERROR_TRACE_INSTRUCTION_UNAVAILABLE:
-				command_print(CMD,
-					"no instruction for current address available, analysis aborted");
-				break;
-			case ERROR_TRACE_IMAGE_UNAVAILABLE:
-				command_print(CMD, "no image available for trace analysis");
-				break;
-			default:
-				command_print(CMD, "unknown error");
+		case ERROR_ETM_ANALYSIS_FAILED:
+			command_print(CMD,
+				"further analysis failed (corrupted trace data or just end of data");
+			break;
+		case ERROR_TRACE_INSTRUCTION_UNAVAILABLE:
+			command_print(CMD,
+				"no instruction for current address available, analysis aborted");
+			break;
+		case ERROR_TRACE_IMAGE_UNAVAILABLE:
+			command_print(CMD, "no image available for trace analysis");
+			break;
+		default:
+			command_print(CMD, "unknown error");
 		}
 	}
 

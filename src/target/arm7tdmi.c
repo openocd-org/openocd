@@ -327,15 +327,15 @@ static void arm7tdmi_read_core_regs_target_buffer(struct target *target,
 		/* nothing fetched, STM still in EXECUTE (1 + i cycle), read databus */
 		if (mask & (1 << i)) {
 			switch (size) {
-				case 4:
-					arm7tdmi_clock_data_in_endianness(jtag_info, buf_u32++, 4, be);
-					break;
-				case 2:
-					arm7tdmi_clock_data_in_endianness(jtag_info, buf_u16++, 2, be);
-					break;
-				case 1:
-					arm7tdmi_clock_data_in_endianness(jtag_info, buf_u8++, 1, be);
-					break;
+			case 4:
+				arm7tdmi_clock_data_in_endianness(jtag_info, buf_u32++, 4, be);
+				break;
+			case 2:
+				arm7tdmi_clock_data_in_endianness(jtag_info, buf_u16++, 2, be);
+				break;
+			case 1:
+				arm7tdmi_clock_data_in_endianness(jtag_info, buf_u8++, 1, be);
+				break;
 			}
 		}
 	}

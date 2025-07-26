@@ -191,15 +191,15 @@ static void feroceon_read_core_regs_target_buffer(struct target *target,
 	for (i = 0; i <= 15; i++) {
 		if (mask & (1 << i)) {
 			switch (size) {
-				case 4:
-					arm9tdmi_clock_data_in_endianness(jtag_info, buf_u32++, 4, be);
-					break;
-				case 2:
-					arm9tdmi_clock_data_in_endianness(jtag_info, buf_u16++, 2, be);
-					break;
-				case 1:
-					arm9tdmi_clock_data_in_endianness(jtag_info, buf_u8++, 1, be);
-					break;
+			case 4:
+				arm9tdmi_clock_data_in_endianness(jtag_info, buf_u32++, 4, be);
+				break;
+			case 2:
+				arm9tdmi_clock_data_in_endianness(jtag_info, buf_u16++, 2, be);
+				break;
+			case 1:
+				arm9tdmi_clock_data_in_endianness(jtag_info, buf_u8++, 1, be);
+				break;
 			}
 		}
 	}

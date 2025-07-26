@@ -443,18 +443,18 @@ static int avr32_ap7k_read_memory(struct target *target, target_addr_t address,
 		return ERROR_TARGET_UNALIGNED_ACCESS;
 
 	switch (size) {
-		case 4:
-			return avr32_jtag_read_memory32(&ap7k->jtag, address, count,
-				(uint32_t *)(void *)buffer);
-			break;
-		case 2:
-			return avr32_jtag_read_memory16(&ap7k->jtag, address, count,
-				(uint16_t *)(void *)buffer);
-			break;
-		case 1:
-			return avr32_jtag_read_memory8(&ap7k->jtag, address, count, buffer);
-		default:
-			break;
+	case 4:
+		return avr32_jtag_read_memory32(&ap7k->jtag, address, count,
+			(uint32_t *)(void *)buffer);
+		break;
+	case 2:
+		return avr32_jtag_read_memory16(&ap7k->jtag, address, count,
+			(uint16_t *)(void *)buffer);
+		break;
+	case 1:
+		return avr32_jtag_read_memory8(&ap7k->jtag, address, count, buffer);
+	default:
+		break;
 	}
 
 	return ERROR_OK;
@@ -483,18 +483,18 @@ static int avr32_ap7k_write_memory(struct target *target, target_addr_t address,
 		return ERROR_TARGET_UNALIGNED_ACCESS;
 
 	switch (size) {
-		case 4:
-			return avr32_jtag_write_memory32(&ap7k->jtag, address, count,
-				(uint32_t *)(void *)buffer);
-			break;
-		case 2:
-			return avr32_jtag_write_memory16(&ap7k->jtag, address, count,
-				(uint16_t *)(void *)buffer);
-			break;
-		case 1:
-			return avr32_jtag_write_memory8(&ap7k->jtag, address, count, buffer);
-		default:
-			break;
+	case 4:
+		return avr32_jtag_write_memory32(&ap7k->jtag, address, count,
+			(uint32_t *)(void *)buffer);
+		break;
+	case 2:
+		return avr32_jtag_write_memory16(&ap7k->jtag, address, count,
+			(uint16_t *)(void *)buffer);
+		break;
+	case 1:
+		return avr32_jtag_write_memory8(&ap7k->jtag, address, count, buffer);
+	default:
+		break;
 	}
 
 	return ERROR_OK;

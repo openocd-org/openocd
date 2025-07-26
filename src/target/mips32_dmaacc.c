@@ -186,18 +186,18 @@ begin_ejtag_dma_read_b:
 
 	/* Handle the bigendian/littleendian */
 	switch (addr & 0x3) {
-		case 0:
-			*data = v & 0xff;
-			break;
-		case 1:
-			*data = (v >> 8) & 0xff;
-			break;
-		case 2:
-			*data = (v >> 16) & 0xff;
-			break;
-		case 3:
-			*data = (v >> 24) & 0xff;
-			break;
+	case 0:
+		*data = v & 0xff;
+		break;
+	case 1:
+		*data = (v >> 8) & 0xff;
+		break;
+	case 2:
+		*data = (v >> 16) & 0xff;
+		break;
+	case 3:
+		*data = (v >> 24) & 0xff;
+		break;
 	}
 
 	return ERROR_OK;
@@ -341,12 +341,12 @@ begin_ejtag_dma_write_b:
 int mips32_dmaacc_read_mem(struct mips_ejtag *ejtag_info, uint32_t addr, int size, int count, void *buf)
 {
 	switch (size) {
-		case 1:
-			return mips32_dmaacc_read_mem8(ejtag_info, addr, count, (uint8_t *)buf);
-		case 2:
-			return mips32_dmaacc_read_mem16(ejtag_info, addr, count, (uint16_t *)buf);
-		case 4:
-			return mips32_dmaacc_read_mem32(ejtag_info, addr, count, (uint32_t *)buf);
+	case 1:
+		return mips32_dmaacc_read_mem8(ejtag_info, addr, count, (uint8_t *)buf);
+	case 2:
+		return mips32_dmaacc_read_mem16(ejtag_info, addr, count, (uint16_t *)buf);
+	case 4:
+		return mips32_dmaacc_read_mem32(ejtag_info, addr, count, (uint32_t *)buf);
 	}
 
 	return ERROR_OK;
@@ -397,12 +397,12 @@ static int mips32_dmaacc_read_mem8(struct mips_ejtag *ejtag_info, uint32_t addr,
 int mips32_dmaacc_write_mem(struct mips_ejtag *ejtag_info, uint32_t addr, int size, int count, const void *buf)
 {
 	switch (size) {
-		case 1:
-			return mips32_dmaacc_write_mem8(ejtag_info, addr, count, buf);
-		case 2:
-			return mips32_dmaacc_write_mem16(ejtag_info, addr, count, buf);
-		case 4:
-			return mips32_dmaacc_write_mem32(ejtag_info, addr, count, buf);
+	case 1:
+		return mips32_dmaacc_write_mem8(ejtag_info, addr, count, buf);
+	case 2:
+		return mips32_dmaacc_write_mem16(ejtag_info, addr, count, buf);
+	case 4:
+		return mips32_dmaacc_write_mem32(ejtag_info, addr, count, buf);
 	}
 
 	return ERROR_OK;

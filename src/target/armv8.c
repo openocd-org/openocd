@@ -120,27 +120,27 @@ static uint8_t armv8_pa_size(uint32_t ps)
 {
 	uint8_t ret = 0;
 	switch (ps) {
-		case 0:
-			ret = 32;
-			break;
-		case 1:
-			ret = 36;
-			break;
-		case 2:
-			ret = 40;
-			break;
-		case 3:
-			ret = 42;
-			break;
-		case 4:
-			ret = 44;
-			break;
-		case 5:
-			ret = 48;
-			break;
-		default:
-			LOG_INFO("Unknown physical address size");
-			break;
+	case 0:
+		ret = 32;
+		break;
+	case 1:
+		ret = 36;
+		break;
+	case 2:
+		ret = 40;
+		break;
+	case 3:
+		ret = 42;
+		break;
+	case 4:
+		ret = 44;
+		break;
+	case 5:
+		ret = 48;
+		break;
+	default:
+		LOG_INFO("Unknown physical address size");
+		break;
 	}
 	return ret;
 }
@@ -1070,18 +1070,18 @@ static void armv8_decode_cacheability(int attr)
 		return;
 	}
 	switch (attr & 0xC) {
-		case 0:
-			LOG_USER_N("Write-Through Transient");
-			break;
-		case 0x4:
-			LOG_USER_N("Write-Back Transient");
-			break;
-		case 0x8:
-			LOG_USER_N("Write-Through Non-transient");
-			break;
-		case 0xC:
-			LOG_USER_N("Write-Back Non-transient");
-			break;
+	case 0:
+		LOG_USER_N("Write-Through Transient");
+		break;
+	case 0x4:
+		LOG_USER_N("Write-Back Transient");
+		break;
+	case 0x8:
+		LOG_USER_N("Write-Through Non-transient");
+		break;
+	case 0xC:
+		LOG_USER_N("Write-Back Non-transient");
+		break;
 	}
 	if (attr & 2)
 		LOG_USER_N(" Read-Allocate");
@@ -1108,18 +1108,18 @@ static void armv8_decode_memory_attr(int attr)
 			 "Non-transient");
 	} else if ((attr & 0xF0) == 0) {
 		switch (attr & 0xC) {
-			case 0:
-				LOG_USER_N("Device-nGnRnE Memory");
-				break;
-			case 0x4:
-				LOG_USER_N("Device-nGnRE Memory");
-				break;
-			case 0x8:
-				LOG_USER_N("Device-nGRE Memory");
-				break;
-			case 0xC:
-				LOG_USER_N("Device-GRE Memory");
-				break;
+		case 0:
+			LOG_USER_N("Device-nGnRnE Memory");
+			break;
+		case 0x4:
+			LOG_USER_N("Device-nGnRE Memory");
+			break;
+		case 0x8:
+			LOG_USER_N("Device-nGRE Memory");
+			break;
+		case 0xC:
+			LOG_USER_N("Device-GRE Memory");
+			break;
 		}
 		if (attr & 1)
 			LOG_USER(", XS=0");

@@ -221,88 +221,88 @@ static int arm926ejs_examine_debug_reason(struct target *target)
 	debug_reason = buf_get_u32(dbg_stat->value, 6, 4);
 
 	switch (debug_reason) {
-		case 0:
-			LOG_DEBUG("no *NEW* debug entry (?missed one?)");
-			/* ... since last restart or debug reset ... */
-			target->debug_reason = DBG_REASON_DBGRQ;
-			break;
-		case 1:
-			LOG_DEBUG("breakpoint from EICE unit 0");
-			target->debug_reason = DBG_REASON_BREAKPOINT;
-			break;
-		case 2:
-			LOG_DEBUG("breakpoint from EICE unit 1");
-			target->debug_reason = DBG_REASON_BREAKPOINT;
-			break;
-		case 3:
-			LOG_DEBUG("soft breakpoint (BKPT instruction)");
-			target->debug_reason = DBG_REASON_BREAKPOINT;
-			break;
-		case 4:
-			LOG_DEBUG("vector catch breakpoint");
-			target->debug_reason = DBG_REASON_BREAKPOINT;
-			break;
-		case 5:
-			LOG_DEBUG("external breakpoint");
-			target->debug_reason = DBG_REASON_BREAKPOINT;
-			break;
-		case 6:
-			LOG_DEBUG("watchpoint from EICE unit 0");
-			target->debug_reason = DBG_REASON_WATCHPOINT;
-			break;
-		case 7:
-			LOG_DEBUG("watchpoint from EICE unit 1");
-			target->debug_reason = DBG_REASON_WATCHPOINT;
-			break;
-		case 8:
-			LOG_DEBUG("external watchpoint");
-			target->debug_reason = DBG_REASON_WATCHPOINT;
-			break;
-		case 9:
-			LOG_DEBUG("internal debug request");
-			target->debug_reason = DBG_REASON_DBGRQ;
-			break;
-		case 10:
-			LOG_DEBUG("external debug request");
-			target->debug_reason = DBG_REASON_DBGRQ;
-			break;
-		case 11:
-			LOG_DEBUG("debug re-entry from system speed access");
-			/* This is normal when connecting to something that's
-			 * already halted, or in some related code paths, but
-			 * otherwise is surprising (and presumably wrong).
-			 */
-			switch (target->debug_reason) {
-			case DBG_REASON_DBGRQ:
-				break;
-			default:
-				LOG_ERROR("unexpected -- debug re-entry");
-				/* FALLTHROUGH */
-			case DBG_REASON_UNDEFINED:
-				target->debug_reason = DBG_REASON_DBGRQ;
-				break;
-			}
-			break;
-		case 12:
-			/* FIX!!!! here be dragons!!! We need to fail here so
-			 * the target will interpreted as halted but we won't
-			 * try to talk to it right now... a resume + halt seems
-			 * to sync things up again. Please send an email to
-			 * openocd development mailing list if you have hardware
-			 * to donate to look into this problem....
-			 */
-			LOG_WARNING("WARNING: mystery debug reason MOE = 0xc. Try issuing a resume + halt.");
-			target->debug_reason = DBG_REASON_DBGRQ;
+	case 0:
+		LOG_DEBUG("no *NEW* debug entry (?missed one?)");
+		/* ... since last restart or debug reset ... */
+		target->debug_reason = DBG_REASON_DBGRQ;
+		break;
+	case 1:
+		LOG_DEBUG("breakpoint from EICE unit 0");
+		target->debug_reason = DBG_REASON_BREAKPOINT;
+		break;
+	case 2:
+		LOG_DEBUG("breakpoint from EICE unit 1");
+		target->debug_reason = DBG_REASON_BREAKPOINT;
+		break;
+	case 3:
+		LOG_DEBUG("soft breakpoint (BKPT instruction)");
+		target->debug_reason = DBG_REASON_BREAKPOINT;
+		break;
+	case 4:
+		LOG_DEBUG("vector catch breakpoint");
+		target->debug_reason = DBG_REASON_BREAKPOINT;
+		break;
+	case 5:
+		LOG_DEBUG("external breakpoint");
+		target->debug_reason = DBG_REASON_BREAKPOINT;
+		break;
+	case 6:
+		LOG_DEBUG("watchpoint from EICE unit 0");
+		target->debug_reason = DBG_REASON_WATCHPOINT;
+		break;
+	case 7:
+		LOG_DEBUG("watchpoint from EICE unit 1");
+		target->debug_reason = DBG_REASON_WATCHPOINT;
+		break;
+	case 8:
+		LOG_DEBUG("external watchpoint");
+		target->debug_reason = DBG_REASON_WATCHPOINT;
+		break;
+	case 9:
+		LOG_DEBUG("internal debug request");
+		target->debug_reason = DBG_REASON_DBGRQ;
+		break;
+	case 10:
+		LOG_DEBUG("external debug request");
+		target->debug_reason = DBG_REASON_DBGRQ;
+		break;
+	case 11:
+		LOG_DEBUG("debug re-entry from system speed access");
+		/* This is normal when connecting to something that's
+		 * already halted, or in some related code paths, but
+		 * otherwise is surprising (and presumably wrong).
+		 */
+		switch (target->debug_reason) {
+		case DBG_REASON_DBGRQ:
 			break;
 		default:
-			LOG_WARNING("WARNING: unknown debug reason: 0x%x", debug_reason);
-			/* Oh agony! should we interpret this as a halt request or
-			 * that the target stopped on it's own accord?
-			 */
+			LOG_ERROR("unexpected -- debug re-entry");
+			/* FALLTHROUGH */
+		case DBG_REASON_UNDEFINED:
 			target->debug_reason = DBG_REASON_DBGRQ;
-			/* if we fail here, we won't talk to the target and it will
-			 * be reported to be in the halted state */
 			break;
+		}
+		break;
+	case 12:
+		/* FIX!!!! here be dragons!!! We need to fail here so
+		 * the target will interpreted as halted but we won't
+		 * try to talk to it right now... a resume + halt seems
+		 * to sync things up again. Please send an email to
+		 * openocd development mailing list if you have hardware
+		 * to donate to look into this problem....
+		 */
+		LOG_WARNING("WARNING: mystery debug reason MOE = 0xc. Try issuing a resume + halt.");
+		target->debug_reason = DBG_REASON_DBGRQ;
+		break;
+	default:
+		LOG_WARNING("WARNING: unknown debug reason: 0x%x", debug_reason);
+		/* Oh agony! should we interpret this as a halt request or
+		 * that the target stopped on it's own accord?
+		 */
+		target->debug_reason = DBG_REASON_DBGRQ;
+		/* if we fail here, we won't talk to the target and it will
+		 * be reported to be in the halted state */
+		break;
 	}
 
 	return ERROR_OK;

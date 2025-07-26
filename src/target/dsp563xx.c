@@ -741,37 +741,37 @@ static int dsp563xx_read_register(struct target *target, int num, int force)
 		arch_info = dsp563xx->core_cache->reg_list[num].arch_info;
 
 		switch (arch_info->num) {
-			case DSP563XX_REG_IDX_SSH:
-				err = dsp563xx_reg_ssh_read(target);
-				break;
-			case DSP563XX_REG_IDX_SSL:
-				err = dsp563xx_reg_ssl_read(target);
-				break;
-			case DSP563XX_REG_IDX_PC:
-				err = dsp563xx_reg_pc_read(target);
-				break;
-			case DSP563XX_REG_IDX_IPRC:
-			case DSP563XX_REG_IDX_IPRP:
-			case DSP563XX_REG_IDX_BCR:
-			case DSP563XX_REG_IDX_DCR:
-			case DSP563XX_REG_IDX_AAR0:
-			case DSP563XX_REG_IDX_AAR1:
-			case DSP563XX_REG_IDX_AAR2:
-			case DSP563XX_REG_IDX_AAR3:
-				err = dsp563xx_reg_read_high_io(target,
-						arch_info->instr_mask, &data);
-				if (err == ERROR_OK) {
-					dsp563xx->core_regs[num] = data;
-					dsp563xx->read_core_reg(target, num);
-				}
-				break;
-			default:
-				err = dsp563xx_reg_read(target, arch_info->eame, &data);
-				if (err == ERROR_OK) {
-					dsp563xx->core_regs[num] = data;
-					dsp563xx->read_core_reg(target, num);
-				}
-				break;
+		case DSP563XX_REG_IDX_SSH:
+			err = dsp563xx_reg_ssh_read(target);
+			break;
+		case DSP563XX_REG_IDX_SSL:
+			err = dsp563xx_reg_ssl_read(target);
+			break;
+		case DSP563XX_REG_IDX_PC:
+			err = dsp563xx_reg_pc_read(target);
+			break;
+		case DSP563XX_REG_IDX_IPRC:
+		case DSP563XX_REG_IDX_IPRP:
+		case DSP563XX_REG_IDX_BCR:
+		case DSP563XX_REG_IDX_DCR:
+		case DSP563XX_REG_IDX_AAR0:
+		case DSP563XX_REG_IDX_AAR1:
+		case DSP563XX_REG_IDX_AAR2:
+		case DSP563XX_REG_IDX_AAR3:
+			err = dsp563xx_reg_read_high_io(target,
+					arch_info->instr_mask, &data);
+			if (err == ERROR_OK) {
+				dsp563xx->core_regs[num] = data;
+				dsp563xx->read_core_reg(target, num);
+			}
+			break;
+		default:
+			err = dsp563xx_reg_read(target, arch_info->eame, &data);
+			if (err == ERROR_OK) {
+				dsp563xx->core_regs[num] = data;
+				dsp563xx->read_core_reg(target, num);
+			}
+			break;
 		}
 	}
 
@@ -793,35 +793,34 @@ static int dsp563xx_write_register(struct target *target, int num, int force)
 		dsp563xx->write_core_reg(target, num);
 
 		switch (arch_info->num) {
-			case DSP563XX_REG_IDX_SSH:
-				err = dsp563xx_reg_ssh_write(target);
-				break;
-			case DSP563XX_REG_IDX_PC:
-				/* pc is updated on resume, no need to write it here */
-				break;
-			case DSP563XX_REG_IDX_IPRC:
-			case DSP563XX_REG_IDX_IPRP:
-			case DSP563XX_REG_IDX_BCR:
-			case DSP563XX_REG_IDX_DCR:
-			case DSP563XX_REG_IDX_AAR0:
-			case DSP563XX_REG_IDX_AAR1:
-			case DSP563XX_REG_IDX_AAR2:
-			case DSP563XX_REG_IDX_AAR3:
-				err = dsp563xx_reg_write_high_io(target,
-					arch_info->instr_mask,
-					dsp563xx->core_regs[num]);
-				break;
-			default:
-				err = dsp563xx_reg_write(target,
-					arch_info->instr_mask,
-					dsp563xx->core_regs[num]);
+		case DSP563XX_REG_IDX_SSH:
+			err = dsp563xx_reg_ssh_write(target);
+			break;
+		case DSP563XX_REG_IDX_PC:
+			/* pc is updated on resume, no need to write it here */
+			break;
+		case DSP563XX_REG_IDX_IPRC:
+		case DSP563XX_REG_IDX_IPRP:
+		case DSP563XX_REG_IDX_BCR:
+		case DSP563XX_REG_IDX_DCR:
+		case DSP563XX_REG_IDX_AAR0:
+		case DSP563XX_REG_IDX_AAR1:
+		case DSP563XX_REG_IDX_AAR2:
+		case DSP563XX_REG_IDX_AAR3:
+			err = dsp563xx_reg_write_high_io(target,
+				arch_info->instr_mask,
+				dsp563xx->core_regs[num]);
+			break;
+		default:
+			err = dsp563xx_reg_write(target,
+				arch_info->instr_mask,
+				dsp563xx->core_regs[num]);
 
-				if (err == ERROR_OK && arch_info->num == DSP563XX_REG_IDX_SP) {
-					dsp563xx->core_cache->reg_list[DSP563XX_REG_IDX_SSH].valid = 0;
-					dsp563xx->core_cache->reg_list[DSP563XX_REG_IDX_SSL].valid = 0;
-				}
-
-				break;
+			if (err == ERROR_OK && arch_info->num == DSP563XX_REG_IDX_SP) {
+				dsp563xx->core_cache->reg_list[DSP563XX_REG_IDX_SSH].valid = 0;
+				dsp563xx->core_cache->reg_list[DSP563XX_REG_IDX_SSL].valid = 0;
+			}
+			break;
 		}
 	}
 
@@ -1488,14 +1487,14 @@ static int dsp563xx_get_default_memory(void)
 		return MEM_P;
 
 	switch (c[0]) {
-		case '1':
-			return MEM_X;
-		case '2':
-			return MEM_Y;
-		case '3':
-			return MEM_L;
-		default:
-			break;
+	case '1':
+		return MEM_X;
+	case '2':
+		return MEM_Y;
+	case '3':
+		return MEM_L;
+	default:
+		break;
 	}
 
 	return MEM_P;
@@ -1527,18 +1526,18 @@ static int dsp563xx_read_memory_core(struct target *target,
 	}
 
 	switch (mem_type) {
-		case MEM_X:
-			/* TODO: mark effected queued registers */
-			move_cmd = 0x61d800;
-			break;
-		case MEM_Y:
-			move_cmd = 0x69d800;
-			break;
-		case MEM_P:
-			move_cmd = 0x07d891;
-			break;
-		default:
-			return ERROR_COMMAND_SYNTAX_ERROR;
+	case MEM_X:
+		/* TODO: mark effected queued registers */
+		move_cmd = 0x61d800;
+		break;
+	case MEM_Y:
+		move_cmd = 0x69d800;
+		break;
+	case MEM_P:
+		move_cmd = 0x07d891;
+		break;
+	default:
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	/* we use r0 to store temporary data */
@@ -1708,19 +1707,19 @@ static int dsp563xx_write_memory_core(struct target *target,
 	}
 
 	switch (mem_type) {
-		case MEM_X:
-			/* invalidate affected x registers */
-			dsp563xx_invalidate_x_context(target, address, address + count - 1);
-			move_cmd = 0x615800;
-			break;
-		case MEM_Y:
-			move_cmd = 0x695800;
-			break;
-		case MEM_P:
-			move_cmd = 0x075891;
-			break;
-		default:
-			return ERROR_COMMAND_SYNTAX_ERROR;
+	case MEM_X:
+		/* invalidate affected x registers */
+		dsp563xx_invalidate_x_context(target, address, address + count - 1);
+		move_cmd = 0x615800;
+		break;
+	case MEM_Y:
+		move_cmd = 0x695800;
+		break;
+	case MEM_P:
+		move_cmd = 0x075891;
+		break;
+	default:
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	/* we use r0 to store temporary data */
@@ -1894,55 +1893,55 @@ static int dsp563xx_add_custom_watchpoint(struct target *target, uint32_t addres
 	if	(err == ERROR_OK) {
 		obcr_value |= OBCR_B0_OR_B1;
 		switch (mem_type) {
-			case MEM_X:
-				obcr_value |= OBCR_BP_MEM_X;
-				break;
-			case MEM_Y:
-				obcr_value |= OBCR_BP_MEM_Y;
-				break;
-			case MEM_P:
-				obcr_value |= OBCR_BP_MEM_P;
-				break;
-			default:
-				LOG_ERROR("Unknown mem_type parameter (%" PRIu32 ")", mem_type);
-				err = ERROR_TARGET_INVALID;
+		case MEM_X:
+			obcr_value |= OBCR_BP_MEM_X;
+			break;
+		case MEM_Y:
+			obcr_value |= OBCR_BP_MEM_Y;
+			break;
+		case MEM_P:
+			obcr_value |= OBCR_BP_MEM_P;
+			break;
+		default:
+			LOG_ERROR("Unknown mem_type parameter (%" PRIu32 ")", mem_type);
+			err = ERROR_TARGET_INVALID;
 		}
 	}
 
 	if (err == ERROR_OK) {
 		switch (rw) {
-			case WPT_READ:
-				obcr_value |= OBCR_BP_0(OBCR_BP_ON_READ);
-				break;
-			case WPT_WRITE:
-				obcr_value |= OBCR_BP_0(OBCR_BP_ON_WRITE);
-				break;
-			case WPT_ACCESS:
-				obcr_value |= OBCR_BP_0(OBCR_BP_ON_READ|OBCR_BP_ON_WRITE);
-				break;
-			default:
-				LOG_ERROR("Unsupported write mode (%d)", rw);
-				err = ERROR_TARGET_INVALID;
+		case WPT_READ:
+			obcr_value |= OBCR_BP_0(OBCR_BP_ON_READ);
+			break;
+		case WPT_WRITE:
+			obcr_value |= OBCR_BP_0(OBCR_BP_ON_WRITE);
+			break;
+		case WPT_ACCESS:
+			obcr_value |= OBCR_BP_0(OBCR_BP_ON_READ | OBCR_BP_ON_WRITE);
+			break;
+		default:
+			LOG_ERROR("Unsupported write mode (%d)", rw);
+			err = ERROR_TARGET_INVALID;
 		}
 	}
 
 	if (err == ERROR_OK) {
 		switch (cond) {
-			case EQUAL:
-				obcr_value |= OBCR_BP_0(OBCR_BP_CC_EQUAL);
-				break;
-			case NOT_EQUAL:
-				obcr_value |= OBCR_BP_0(OBCR_BP_CC_NOT_EQUAL);
-				break;
-			case LESS_THAN:
-				obcr_value |= OBCR_BP_0(OBCR_BP_CC_LESS_THAN);
-				break;
-			case GREATER:
-				obcr_value |= OBCR_BP_0(OBCR_BP_CC_GREATER_THAN);
-				break;
-			default:
-				LOG_ERROR("Unsupported condition code (%d)", cond);
-				err = ERROR_TARGET_INVALID;
+		case EQUAL:
+			obcr_value |= OBCR_BP_0(OBCR_BP_CC_EQUAL);
+			break;
+		case NOT_EQUAL:
+			obcr_value |= OBCR_BP_0(OBCR_BP_CC_NOT_EQUAL);
+			break;
+		case LESS_THAN:
+			obcr_value |= OBCR_BP_0(OBCR_BP_CC_LESS_THAN);
+			break;
+		case GREATER:
+			obcr_value |= OBCR_BP_0(OBCR_BP_CC_GREATER_THAN);
+			break;
+		default:
+			LOG_ERROR("Unsupported condition code (%d)", cond);
+			err = ERROR_TARGET_INVALID;
 		}
 	}
 
@@ -2004,17 +2003,17 @@ COMMAND_HANDLER(dsp563xx_add_watchpoint_command)
 
 	uint32_t mem_type = 0;
 	switch (CMD_NAME[2]) {
-		case 'x':
-			mem_type = MEM_X;
-			break;
-		case 'y':
-			mem_type = MEM_Y;
-			break;
-		case 'p':
-			mem_type = MEM_P;
-			break;
-		default:
-			return ERROR_COMMAND_SYNTAX_ERROR;
+	case 'x':
+		mem_type = MEM_X;
+		break;
+	case 'y':
+		mem_type = MEM_Y;
+		break;
+	case 'p':
+		mem_type = MEM_P;
+		break;
+	default:
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	if (CMD_ARGC < 2)
@@ -2026,35 +2025,35 @@ COMMAND_HANDLER(dsp563xx_add_watchpoint_command)
 
 	enum watchpoint_condition cond;
 	switch (CMD_ARGV[0][0]) {
-		case '>':
-			cond = GREATER;
-			break;
-		case '<':
-			cond = LESS_THAN;
-			break;
-		case '=':
-			cond = EQUAL;
-			break;
-		case '!':
-			cond = NOT_EQUAL;
-			break;
-		default:
-			return ERROR_COMMAND_SYNTAX_ERROR;
+	case '>':
+		cond = GREATER;
+		break;
+	case '<':
+		cond = LESS_THAN;
+		break;
+	case '=':
+		cond = EQUAL;
+		break;
+	case '!':
+		cond = NOT_EQUAL;
+		break;
+	default:
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	enum watchpoint_rw rw;
 	switch (CMD_ARGV[1][0]) {
-		case 'r':
-			rw = WPT_READ;
-			break;
-		case 'w':
-			rw = WPT_WRITE;
-			break;
-		case 'a':
-			rw = WPT_ACCESS;
-			break;
-		default:
-			return ERROR_COMMAND_SYNTAX_ERROR;
+	case 'r':
+		rw = WPT_READ;
+		break;
+	case 'w':
+		rw = WPT_WRITE;
+		break;
+	case 'a':
+		rw = WPT_ACCESS;
+		break;
+	default:
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	err = dsp563xx_add_custom_watchpoint(target, address, mem_type, rw, cond);
@@ -2095,28 +2094,28 @@ COMMAND_HANDLER(dsp563xx_mem_command)
 	uint8_t *buffer, *b;
 
 	switch (CMD_NAME[1]) {
-		case 'w':
-			read_mem = 0;
-			break;
-		case 'd':
-			read_mem = 1;
-			break;
-		default:
-			return ERROR_COMMAND_SYNTAX_ERROR;
+	case 'w':
+		read_mem = 0;
+		break;
+	case 'd':
+		read_mem = 1;
+		break;
+	default:
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	switch (CMD_NAME[3]) {
-		case 'x':
-			mem_type = MEM_X;
-			break;
-		case 'y':
-			mem_type = MEM_Y;
-			break;
-		case 'p':
-			mem_type = MEM_P;
-			break;
-		default:
-			return ERROR_COMMAND_SYNTAX_ERROR;
+	case 'x':
+		mem_type = MEM_X;
+		break;
+	case 'y':
+		mem_type = MEM_Y;
+		break;
+	case 'p':
+		mem_type = MEM_P;
+		break;
+	default:
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	if (CMD_ARGC > 0)

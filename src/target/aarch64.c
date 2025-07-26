@@ -613,22 +613,22 @@ static int aarch64_restore_one(struct target *target, bool current,
 	 * kill the return address
 	 */
 	switch (arm->core_state) {
-		case ARM_STATE_ARM:
-			resume_pc &= 0xFFFFFFFC;
-			break;
-		case ARM_STATE_AARCH64:
-			resume_pc &= 0xFFFFFFFFFFFFFFFCULL;
-			break;
-		case ARM_STATE_THUMB:
-		case ARM_STATE_THUMB_EE:
-			/* When the return address is loaded into PC
-			 * bit 0 must be 1 to stay in Thumb state
-			 */
-			resume_pc |= 0x1;
-			break;
-		case ARM_STATE_JAZELLE:
-			LOG_ERROR("How do I resume into Jazelle state??");
-			return ERROR_FAIL;
+	case ARM_STATE_ARM:
+		resume_pc &= 0xFFFFFFFC;
+		break;
+	case ARM_STATE_AARCH64:
+		resume_pc &= 0xFFFFFFFFFFFFFFFCULL;
+		break;
+	case ARM_STATE_THUMB:
+	case ARM_STATE_THUMB_EE:
+		/* When the return address is loaded into PC
+		 * bit 0 must be 1 to stay in Thumb state
+		 */
+		resume_pc |= 0x1;
+		break;
+	case ARM_STATE_JAZELLE:
+		LOG_ERROR("How do I resume into Jazelle state??");
+		return ERROR_FAIL;
 	}
 	LOG_DEBUG("resume pc = 0x%016" PRIx64, resume_pc);
 	buf_set_u64(arm->pc->value, 0, 64, resume_pc);
@@ -3026,14 +3026,14 @@ COMMAND_HANDLER(aarch64_handle_disassemble_command)
 	target_addr_t address;
 
 	switch (CMD_ARGC) {
-		case 2:
-			COMMAND_PARSE_NUMBER(int, CMD_ARGV[1], count);
-		/* FALL THROUGH */
-		case 1:
-			COMMAND_PARSE_ADDRESS(CMD_ARGV[0], address);
-			break;
-		default:
-			return ERROR_COMMAND_SYNTAX_ERROR;
+	case 2:
+		COMMAND_PARSE_NUMBER(int, CMD_ARGV[1], count);
+	/* FALL THROUGH */
+	case 1:
+		COMMAND_PARSE_ADDRESS(CMD_ARGV[0], address);
+		break;
+	default:
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	return a64_disassemble(CMD, target, address, count);
