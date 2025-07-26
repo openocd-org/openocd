@@ -821,11 +821,11 @@ static int syncbb_execute_queue(struct jtag_command *cmd_queue)
 			case JTAG_RESET:
 				LOG_DEBUG_IO("reset trst: %i srst %i", cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 
-				if ((cmd->cmd.reset->trst == 1) ||
-					(cmd->cmd.reset->srst &&
-					(jtag_get_reset_config() & RESET_SRST_PULLS_TRST))) {
+				if (cmd->cmd.reset->trst == 1 ||
+						(cmd->cmd.reset->srst &&
+						 (jtag_get_reset_config() & RESET_SRST_PULLS_TRST)))
 					tap_set_state(TAP_RESET);
-				}
+
 				ft232r_reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 				break;
 

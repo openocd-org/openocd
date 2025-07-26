@@ -332,33 +332,22 @@ static int dtc_load_from_buffer(struct libusb_device_handle *hdev_param, const u
 
 			case DTCLOAD_LOAD:
 				/* Send the DTC program to ST7 RAM. */
-				usb_err = ep1_memory_write(
-						hdev_param,
-						DTC_LOAD_BUFFER,
-						header->length + 1, buffer
-					);
+				usb_err = ep1_memory_write(hdev_param, DTC_LOAD_BUFFER,
+					header->length + 1, buffer);
 				if (usb_err < 0)
 					return usb_err;
 
 				/* Load it into the DTC. */
-				usb_err = ep1_generic_commandl(
-						hdev_param, 3,
-						EP1_CMD_DTC_LOAD,
-						(DTC_LOAD_BUFFER >> 8),
-						DTC_LOAD_BUFFER
-					);
+				usb_err = ep1_generic_commandl(hdev_param, 3, EP1_CMD_DTC_LOAD,
+					(DTC_LOAD_BUFFER >> 8),	DTC_LOAD_BUFFER);
 				if (usb_err < 0)
 					return usb_err;
 
 				break;
 
 			case DTCLOAD_RUN:
-				usb_err = ep1_generic_commandl(
-						hdev_param, 3,
-						EP1_CMD_DTC_CALL,
-						buffer[0],
-						EP1_CMD_DTC_WAIT
-					);
+				usb_err = ep1_generic_commandl(hdev_param, 3, EP1_CMD_DTC_CALL,
+					buffer[0], EP1_CMD_DTC_WAIT);
 				if (usb_err < 0)
 					return usb_err;
 
@@ -369,11 +358,8 @@ static int dtc_load_from_buffer(struct libusb_device_handle *hdev_param, const u
 				break;
 
 			case DTCLOAD_LUT:
-				usb_err = ep1_memory_write(
-						hdev_param,
-						ST7_USB_BUF_EP0OUT + lut_start,
-						header->length + 1, buffer
-					);
+				usb_err = ep1_memory_write(hdev_param,
+					ST7_USB_BUF_EP0OUT + lut_start, header->length + 1, buffer);
 				if (usb_err < 0)
 					return usb_err;
 				break;
@@ -1300,7 +1286,7 @@ static int rlink_execute_queue(struct jtag_command *cmd_queue)
 				LOG_DEBUG_IO("reset trst: %i srst %i",
 						cmd->cmd.reset->trst,
 						cmd->cmd.reset->srst);
-				if ((cmd->cmd.reset->trst == 1) ||
+				if (cmd->cmd.reset->trst == 1 ||
 						(cmd->cmd.reset->srst &&
 								(jtag_get_reset_config() & RESET_SRST_PULLS_TRST)))
 					tap_set_state(TAP_RESET);

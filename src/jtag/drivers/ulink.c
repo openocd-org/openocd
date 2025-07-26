@@ -528,26 +528,24 @@ static int ulink_allocate_payload(struct ulink_cmd *ulink_cmd, int size,
 			    LOG_ERROR("BUG: Duplicate payload allocation for OpenULINK command");
 			    free(payload);
 			    return ERROR_FAIL;
-		    } else {
-			    ulink_cmd->payload_out = payload;
-			    ulink_cmd->payload_out_size = size;
 		    }
+			ulink_cmd->payload_out = payload;
+			ulink_cmd->payload_out_size = size;
 		    break;
 	    case PAYLOAD_DIRECTION_IN:
 		    if (ulink_cmd->payload_in_start) {
 			    LOG_ERROR("BUG: Duplicate payload allocation for OpenULINK command");
 			    free(payload);
 			    return ERROR_FAIL;
-		    } else {
-			    ulink_cmd->payload_in_start = payload;
-			    ulink_cmd->payload_in = payload;
-			    ulink_cmd->payload_in_size = size;
-
-				/* By default, free payload_in_start in ulink_clear_queue(). Commands
-				 * that do not want this behavior (e. g. split scans) must turn it off
-				 * separately! */
-			    ulink_cmd->free_payload_in_start = true;
 		    }
+			ulink_cmd->payload_in_start = payload;
+			ulink_cmd->payload_in = payload;
+			ulink_cmd->payload_in_size = size;
+
+			/* By default, free payload_in_start in ulink_clear_queue(). Commands
+			 * that do not want this behavior (e. g. split scans) must turn it off
+			 * separately! */
+			ulink_cmd->free_payload_in_start = true;
 		    break;
 	}
 
@@ -903,7 +901,7 @@ static int ulink_append_scan_cmd(struct ulink *device, enum scan_type scan_type,
 		    ret = ulink_allocate_payload(cmd, scan_size_bytes + 5, PAYLOAD_DIRECTION_OUT);
 		    break;
 	    default:
-		    LOG_ERROR("BUG: ulink_append_scan_cmd() encountered an unknown scan type");
+		    LOG_ERROR("BUG: %s() encountered an unknown scan type", __func__);
 		    ret = ERROR_FAIL;
 		    break;
 	}
@@ -1832,8 +1830,7 @@ static int ulink_post_process_scan(struct ulink_cmd *ulink_cmd)
 		    ret = ERROR_OK;
 		    break;
 	    default:
-		    LOG_ERROR("BUG: ulink_post_process_scan() encountered an unknown"
-			" JTAG scan type");
+		    LOG_ERROR("BUG: %s() encountered an unknown JTAG scan type", __func__);
 		    ret = ERROR_FAIL;
 		    break;
 	}
@@ -1877,8 +1874,7 @@ static int ulink_post_process_queue(struct ulink *device)
 				    break;
 			    default:
 				    ret = ERROR_FAIL;
-				    LOG_ERROR("BUG: ulink_post_process_queue() encountered unknown JTAG "
-					"command type");
+				    LOG_ERROR("BUG: %s() encountered unknown JTAG command type", __func__);
 				    break;
 			}
 

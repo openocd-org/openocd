@@ -652,10 +652,9 @@ static int kitprog_swd_switch_seq(enum swd_special_seq seq)
 				if (kitprog_swd_seq(SEQUENCE_JTAG_TO_SWD) != ERROR_OK)
 					return ERROR_FAIL;
 				break;
-			} else {
-				LOG_DEBUG("JTAG to SWD not supported");
-				/* Fall through to fix target reset issue */
 			}
+			LOG_DEBUG("JTAG to SWD not supported");
+			/* Fall through to fix target reset issue */
 			/* fallthrough */
 		case LINE_RESET:
 			LOG_DEBUG("SWD line reset");
