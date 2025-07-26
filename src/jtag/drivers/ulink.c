@@ -523,30 +523,30 @@ static int ulink_allocate_payload(struct ulink_cmd *ulink_cmd, int size,
 	}
 
 	switch (direction) {
-	    case PAYLOAD_DIRECTION_OUT:
-		    if (ulink_cmd->payload_out) {
-			    LOG_ERROR("BUG: Duplicate payload allocation for OpenULINK command");
-			    free(payload);
-			    return ERROR_FAIL;
-		    }
-			ulink_cmd->payload_out = payload;
-			ulink_cmd->payload_out_size = size;
-		    break;
-	    case PAYLOAD_DIRECTION_IN:
-		    if (ulink_cmd->payload_in_start) {
-			    LOG_ERROR("BUG: Duplicate payload allocation for OpenULINK command");
-			    free(payload);
-			    return ERROR_FAIL;
-		    }
-			ulink_cmd->payload_in_start = payload;
-			ulink_cmd->payload_in = payload;
-			ulink_cmd->payload_in_size = size;
+	case PAYLOAD_DIRECTION_OUT:
+	    if (ulink_cmd->payload_out) {
+		    LOG_ERROR("BUG: Duplicate payload allocation for OpenULINK command");
+		    free(payload);
+		    return ERROR_FAIL;
+	    }
+		ulink_cmd->payload_out = payload;
+		ulink_cmd->payload_out_size = size;
+	    break;
+	case PAYLOAD_DIRECTION_IN:
+	    if (ulink_cmd->payload_in_start) {
+		    LOG_ERROR("BUG: Duplicate payload allocation for OpenULINK command");
+		    free(payload);
+		    return ERROR_FAIL;
+	    }
+		ulink_cmd->payload_in_start = payload;
+		ulink_cmd->payload_in = payload;
+		ulink_cmd->payload_in_size = size;
 
-			/* By default, free payload_in_start in ulink_clear_queue(). Commands
-			 * that do not want this behavior (e. g. split scans) must turn it off
-			 * separately! */
-			ulink_cmd->free_payload_in_start = true;
-		    break;
+		/* By default, free payload_in_start in ulink_clear_queue(). Commands
+		 * that do not want this behavior (e.g. split scans) must turn it off
+		 * separately! */
+		ulink_cmd->free_payload_in_start = true;
+	    break;
 	}
 
 	return ERROR_OK;
@@ -570,12 +570,12 @@ static int ulink_get_queue_size(struct ulink *device,
 
 	while (current) {
 		switch (direction) {
-		    case PAYLOAD_DIRECTION_OUT:
-			    sum += current->payload_out_size + 1;	/* + 1 byte for Command ID */
-			    break;
-		    case PAYLOAD_DIRECTION_IN:
-			    sum += current->payload_in_size;
-			    break;
+		case PAYLOAD_DIRECTION_OUT:
+		    sum += current->payload_out_size + 1;	/* + 1 byte for Command ID */
+		    break;
+		case PAYLOAD_DIRECTION_IN:
+		    sum += current->payload_in_size;
+		    break;
 		}
 
 		current = current->next;
@@ -879,31 +879,31 @@ static int ulink_append_scan_cmd(struct ulink *device, enum scan_type scan_type,
 
 	/* Allocate out_payload depending on scan type */
 	switch (scan_type) {
-	    case SCAN_IN:
-		    if (device->delay_scan_in < 0)
-			    cmd->id = CMD_SCAN_IN;
-		    else
-			    cmd->id = CMD_SLOW_SCAN_IN;
-		    ret = ulink_allocate_payload(cmd, 5, PAYLOAD_DIRECTION_OUT);
-		    break;
-	    case SCAN_OUT:
-		    if (device->delay_scan_out < 0)
-			    cmd->id = CMD_SCAN_OUT;
-		    else
-			    cmd->id = CMD_SLOW_SCAN_OUT;
-		    ret = ulink_allocate_payload(cmd, scan_size_bytes + 5, PAYLOAD_DIRECTION_OUT);
-		    break;
-	    case SCAN_IO:
-		    if (device->delay_scan_io < 0)
-			    cmd->id = CMD_SCAN_IO;
-		    else
-			    cmd->id = CMD_SLOW_SCAN_IO;
-		    ret = ulink_allocate_payload(cmd, scan_size_bytes + 5, PAYLOAD_DIRECTION_OUT);
-		    break;
-	    default:
-		    LOG_ERROR("BUG: %s() encountered an unknown scan type", __func__);
-		    ret = ERROR_FAIL;
-		    break;
+	case SCAN_IN:
+	    if (device->delay_scan_in < 0)
+		    cmd->id = CMD_SCAN_IN;
+	    else
+		    cmd->id = CMD_SLOW_SCAN_IN;
+	    ret = ulink_allocate_payload(cmd, 5, PAYLOAD_DIRECTION_OUT);
+	    break;
+	case SCAN_OUT:
+	    if (device->delay_scan_out < 0)
+		    cmd->id = CMD_SCAN_OUT;
+	    else
+		    cmd->id = CMD_SLOW_SCAN_OUT;
+	    ret = ulink_allocate_payload(cmd, scan_size_bytes + 5, PAYLOAD_DIRECTION_OUT);
+	    break;
+	case SCAN_IO:
+	    if (device->delay_scan_io < 0)
+		    cmd->id = CMD_SCAN_IO;
+	    else
+		    cmd->id = CMD_SLOW_SCAN_IO;
+	    ret = ulink_allocate_payload(cmd, scan_size_bytes + 5, PAYLOAD_DIRECTION_OUT);
+	    break;
+	default:
+	    LOG_ERROR("BUG: %s() encountered an unknown scan type", __func__);
+	    ret = ERROR_FAIL;
+	    break;
 	}
 
 	if (ret != ERROR_OK) {
@@ -1821,18 +1821,18 @@ static int ulink_post_process_scan(struct ulink_cmd *ulink_cmd)
 	int ret;
 
 	switch (jtag_scan_type(cmd->cmd.scan)) {
-	    case SCAN_IN:
-	    case SCAN_IO:
-		    ret = jtag_read_buffer(ulink_cmd->payload_in_start, cmd->cmd.scan);
-		    break;
-	    case SCAN_OUT:
-			/* Nothing to do for OUT scans */
-		    ret = ERROR_OK;
-		    break;
-	    default:
-		    LOG_ERROR("BUG: %s() encountered an unknown JTAG scan type", __func__);
-		    ret = ERROR_FAIL;
-		    break;
+	case SCAN_IN:
+	case SCAN_IO:
+		ret = jtag_read_buffer(ulink_cmd->payload_in_start, cmd->cmd.scan);
+		break;
+	case SCAN_OUT:
+		/* Nothing to do for OUT scans */
+		ret = ERROR_OK;
+		break;
+	default:
+		LOG_ERROR("BUG: %s() encountered an unknown JTAG scan type", __func__);
+		ret = ERROR_FAIL;
+		break;
 	}
 
 	return ret;
@@ -1860,22 +1860,22 @@ static int ulink_post_process_queue(struct ulink *device)
 		 * OpenULINK command */
 		if (current->needs_postprocessing && openocd_cmd) {
 			switch (openocd_cmd->type) {
-			    case JTAG_SCAN:
-				    ret = ulink_post_process_scan(current);
-				    break;
-			    case JTAG_TLR_RESET:
-			    case JTAG_RUNTEST:
-			    case JTAG_RESET:
-			    case JTAG_PATHMOVE:
-			    case JTAG_SLEEP:
-			    case JTAG_STABLECLOCKS:
-					/* Nothing to do for these commands */
-				    ret = ERROR_OK;
-				    break;
-			    default:
-				    ret = ERROR_FAIL;
-				    LOG_ERROR("BUG: %s() encountered unknown JTAG command type", __func__);
-				    break;
+			case JTAG_SCAN:
+			    ret = ulink_post_process_scan(current);
+			    break;
+			case JTAG_TLR_RESET:
+			case JTAG_RUNTEST:
+			case JTAG_RESET:
+			case JTAG_PATHMOVE:
+			case JTAG_SLEEP:
+			case JTAG_STABLECLOCKS:
+				/* Nothing to do for these commands */
+			    ret = ERROR_OK;
+			    break;
+			default:
+			    ret = ERROR_FAIL;
+			    LOG_ERROR("BUG: %s() encountered unknown JTAG command type", __func__);
+			    break;
 			}
 
 			if (ret != ERROR_OK)
@@ -1909,31 +1909,31 @@ static int ulink_execute_queue(struct jtag_command *cmd_queue)
 
 	while (cmd) {
 		switch (cmd->type) {
-		    case JTAG_SCAN:
-			    ret = ulink_queue_scan(ulink_handle, cmd);
-			    break;
-		    case JTAG_TLR_RESET:
-			    ret = ulink_queue_tlr_reset(ulink_handle, cmd);
-			    break;
-		    case JTAG_RUNTEST:
-			    ret = ulink_queue_runtest(ulink_handle, cmd);
-			    break;
-		    case JTAG_RESET:
-			    ret = ulink_queue_reset(ulink_handle, cmd);
-			    break;
-		    case JTAG_PATHMOVE:
-			    ret = ulink_queue_pathmove(ulink_handle, cmd);
-			    break;
-		    case JTAG_SLEEP:
-			    ret = ulink_queue_sleep(ulink_handle, cmd);
-			    break;
-		    case JTAG_STABLECLOCKS:
-			    ret = ulink_queue_stableclocks(ulink_handle, cmd);
-			    break;
-		    default:
-			    ret = ERROR_FAIL;
-			    LOG_ERROR("BUG: encountered unknown JTAG command type");
-			    break;
+		case JTAG_SCAN:
+		    ret = ulink_queue_scan(ulink_handle, cmd);
+		    break;
+		case JTAG_TLR_RESET:
+		    ret = ulink_queue_tlr_reset(ulink_handle, cmd);
+		    break;
+		case JTAG_RUNTEST:
+		    ret = ulink_queue_runtest(ulink_handle, cmd);
+		    break;
+		case JTAG_RESET:
+		    ret = ulink_queue_reset(ulink_handle, cmd);
+		    break;
+		case JTAG_PATHMOVE:
+		    ret = ulink_queue_pathmove(ulink_handle, cmd);
+		    break;
+		case JTAG_SLEEP:
+		    ret = ulink_queue_sleep(ulink_handle, cmd);
+		    break;
+		case JTAG_STABLECLOCKS:
+		    ret = ulink_queue_stableclocks(ulink_handle, cmd);
+		    break;
+		default:
+		    ret = ERROR_FAIL;
+		    LOG_ERROR("BUG: encountered unknown JTAG command type");
+		    break;
 		}
 
 		if (ret != ERROR_OK)

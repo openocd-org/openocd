@@ -179,14 +179,14 @@ static int remote_bitbang_quit(void)
 static enum bb_value char_to_int(int c)
 {
 	switch (c) {
-		case '0':
-			return BB_LOW;
-		case '1':
-			return BB_HIGH;
-		default:
-			remote_bitbang_quit();
-			LOG_ERROR("remote_bitbang: invalid read response: %c(%i)", c, c);
-			return BB_ERROR;
+	case '0':
+		return BB_LOW;
+	case '1':
+		return BB_HIGH;
+	default:
+		remote_bitbang_quit();
+		LOG_ERROR("remote_bitbang: invalid read response: %c(%i)", c, c);
+		return BB_ERROR;
 	}
 }
 

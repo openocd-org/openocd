@@ -249,27 +249,27 @@ static void jlink_execute_sleep(struct jtag_command *cmd)
 static int jlink_execute_command(struct jtag_command *cmd)
 {
 	switch (cmd->type) {
-		case JTAG_STABLECLOCKS:
-			jlink_execute_stableclocks(cmd);
-			break;
-		case JTAG_RUNTEST:
-			jlink_execute_runtest(cmd);
-			break;
-		case JTAG_TLR_RESET:
-			jlink_execute_statemove(cmd);
-			break;
-		case JTAG_PATHMOVE:
-			jlink_execute_pathmove(cmd);
-			break;
-		case JTAG_SCAN:
-			jlink_execute_scan(cmd);
-			break;
-		case JTAG_SLEEP:
-			jlink_execute_sleep(cmd);
-			break;
-		default:
-			LOG_ERROR("BUG: Unknown JTAG command type encountered");
-			return ERROR_JTAG_QUEUE_FAILED;
+	case JTAG_STABLECLOCKS:
+		jlink_execute_stableclocks(cmd);
+		break;
+	case JTAG_RUNTEST:
+		jlink_execute_runtest(cmd);
+		break;
+	case JTAG_TLR_RESET:
+		jlink_execute_statemove(cmd);
+		break;
+	case JTAG_PATHMOVE:
+		jlink_execute_pathmove(cmd);
+		break;
+	case JTAG_SCAN:
+		jlink_execute_scan(cmd);
+		break;
+	case JTAG_SLEEP:
+		jlink_execute_sleep(cmd);
+		break;
+	default:
+		LOG_ERROR("BUG: Unknown JTAG command type encountered");
+		return ERROR_JTAG_QUEUE_FAILED;
 	}
 
 	return ERROR_OK;
@@ -2118,44 +2118,44 @@ static int jlink_swd_switch_seq(enum swd_special_seq seq)
 	unsigned int s_len;
 
 	switch (seq) {
-		case LINE_RESET:
-			LOG_DEBUG_IO("SWD line reset");
-			s = swd_seq_line_reset;
-			s_len = swd_seq_line_reset_len;
-			break;
-		case JTAG_TO_SWD:
-			LOG_DEBUG("JTAG-to-SWD");
-			s = swd_seq_jtag_to_swd;
-			s_len = swd_seq_jtag_to_swd_len;
-			break;
-		case JTAG_TO_DORMANT:
-			LOG_DEBUG("JTAG-to-DORMANT");
-			s = swd_seq_jtag_to_dormant;
-			s_len = swd_seq_jtag_to_dormant_len;
-			break;
-		case SWD_TO_JTAG:
-			LOG_DEBUG("SWD-to-JTAG");
-			s = swd_seq_swd_to_jtag;
-			s_len = swd_seq_swd_to_jtag_len;
-			break;
-		case SWD_TO_DORMANT:
-			LOG_DEBUG("SWD-to-DORMANT");
-			s = swd_seq_swd_to_dormant;
-			s_len = swd_seq_swd_to_dormant_len;
-			break;
-		case DORMANT_TO_SWD:
-			LOG_DEBUG("DORMANT-to-SWD");
-			s = swd_seq_dormant_to_swd;
-			s_len = swd_seq_dormant_to_swd_len;
-			break;
-		case DORMANT_TO_JTAG:
-			LOG_DEBUG("DORMANT-to-JTAG");
-			s = swd_seq_dormant_to_jtag;
-			s_len = swd_seq_dormant_to_jtag_len;
-			break;
-		default:
-			LOG_ERROR("Sequence %d not supported", seq);
-			return ERROR_FAIL;
+	case LINE_RESET:
+		LOG_DEBUG_IO("SWD line reset");
+		s = swd_seq_line_reset;
+		s_len = swd_seq_line_reset_len;
+		break;
+	case JTAG_TO_SWD:
+		LOG_DEBUG("JTAG-to-SWD");
+		s = swd_seq_jtag_to_swd;
+		s_len = swd_seq_jtag_to_swd_len;
+		break;
+	case JTAG_TO_DORMANT:
+		LOG_DEBUG("JTAG-to-DORMANT");
+		s = swd_seq_jtag_to_dormant;
+		s_len = swd_seq_jtag_to_dormant_len;
+		break;
+	case SWD_TO_JTAG:
+		LOG_DEBUG("SWD-to-JTAG");
+		s = swd_seq_swd_to_jtag;
+		s_len = swd_seq_swd_to_jtag_len;
+		break;
+	case SWD_TO_DORMANT:
+		LOG_DEBUG("SWD-to-DORMANT");
+		s = swd_seq_swd_to_dormant;
+		s_len = swd_seq_swd_to_dormant_len;
+		break;
+	case DORMANT_TO_SWD:
+		LOG_DEBUG("DORMANT-to-SWD");
+		s = swd_seq_dormant_to_swd;
+		s_len = swd_seq_dormant_to_swd_len;
+		break;
+	case DORMANT_TO_JTAG:
+		LOG_DEBUG("DORMANT-to-JTAG");
+		s = swd_seq_dormant_to_jtag;
+		s_len = swd_seq_dormant_to_jtag_len;
+		break;
+	default:
+		LOG_ERROR("Sequence %d not supported", seq);
+		return ERROR_FAIL;
 	}
 
 	jlink_queue_data_out(s, s_len);

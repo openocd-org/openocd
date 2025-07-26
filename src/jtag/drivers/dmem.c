@@ -118,41 +118,41 @@ static int dmem_emu_ap_q_read(unsigned int ap_idx, unsigned int reg, uint32_t *d
 	struct dmem_emu_ap_info *ap_info = &dmem_emu_ap_list[ap_idx];
 
 	switch (reg) {
-		case ADIV5_MEM_AP_REG_CSW:
-			*data = ap_info->apbap_csw;
-			break;
-		case ADIV5_MEM_AP_REG_TAR:
-			*data = ap_info->apbap_tar;
-			break;
-		case ADIV5_MEM_AP_REG_CFG:
-			*data = 0;
-			break;
-		case ADIV5_MEM_AP_REG_BASE:
-			*data = 0;
-			break;
-		case ADIV5_AP_REG_IDR:
-			*data = 0;
-			break;
-		case ADIV5_MEM_AP_REG_BD0:
-		case ADIV5_MEM_AP_REG_BD1:
-		case ADIV5_MEM_AP_REG_BD2:
-		case ADIV5_MEM_AP_REG_BD3:
-			addr = (ap_info->apbap_tar & ~0xf) + (reg & 0x0C);
+	case ADIV5_MEM_AP_REG_CSW:
+		*data = ap_info->apbap_csw;
+		break;
+	case ADIV5_MEM_AP_REG_TAR:
+		*data = ap_info->apbap_tar;
+		break;
+	case ADIV5_MEM_AP_REG_CFG:
+		*data = 0;
+		break;
+	case ADIV5_MEM_AP_REG_BASE:
+		*data = 0;
+		break;
+	case ADIV5_AP_REG_IDR:
+		*data = 0;
+		break;
+	case ADIV5_MEM_AP_REG_BD0:
+	case ADIV5_MEM_AP_REG_BD1:
+	case ADIV5_MEM_AP_REG_BD2:
+	case ADIV5_MEM_AP_REG_BD3:
+		addr = (ap_info->apbap_tar & ~0xf) + (reg & 0x0C);
 
-			*data = dmem_emu_get_ap_reg(addr);
+		*data = dmem_emu_get_ap_reg(addr);
 
-			break;
-		case ADIV5_MEM_AP_REG_DRW:
-			addr = ap_info->apbap_tar;
+		break;
+	case ADIV5_MEM_AP_REG_DRW:
+		addr = ap_info->apbap_tar;
 
-			*data = dmem_emu_get_ap_reg(addr);
+		*data = dmem_emu_get_ap_reg(addr);
 
-			ap_info->apbap_tar += dmem_memap_tar_inc(ap_info->apbap_csw);
-			break;
-		default:
-			LOG_INFO("%s: Unknown reg: 0x%02x", __func__, reg);
-			ret = ERROR_FAIL;
-			break;
+		ap_info->apbap_tar += dmem_memap_tar_inc(ap_info->apbap_csw);
+		break;
+	default:
+		LOG_INFO("%s: Unknown reg: 0x%02x", __func__, reg);
+		ret = ERROR_FAIL;
+		break;
 	}
 
 	/* Track the last error code. */
@@ -169,46 +169,46 @@ static int dmem_emu_ap_q_write(unsigned int ap_idx, unsigned int reg, uint32_t d
 	struct dmem_emu_ap_info *ap_info = &dmem_emu_ap_list[ap_idx];
 
 	switch (reg) {
-		case ADIV5_MEM_AP_REG_CSW:
-			/*
-			 * This implementation only supports 32-bit accesses.
-			 * Force this by ensuring CSW_SIZE field indicates 32-BIT.
-			 */
-			ap_info->apbap_csw = ((data & ~CSW_SIZE_MASK) | CSW_32BIT);
-			break;
-		case ADIV5_MEM_AP_REG_TAR:
-			/*
-			 * This implementation only supports 32-bit accesses.
-			 * Force LS 2-bits of TAR to 00b
-			 */
-			ap_info->apbap_tar = (data & ~0x3);
-			break;
+	case ADIV5_MEM_AP_REG_CSW:
+		/*
+		 * This implementation only supports 32-bit accesses.
+		 * Force this by ensuring CSW_SIZE field indicates 32-BIT.
+		 */
+		ap_info->apbap_csw = ((data & ~CSW_SIZE_MASK) | CSW_32BIT);
+		break;
+	case ADIV5_MEM_AP_REG_TAR:
+		/*
+		 * This implementation only supports 32-bit accesses.
+		 * Force LS 2-bits of TAR to 00b
+		 */
+		ap_info->apbap_tar = (data & ~0x3);
+		break;
 
-		case ADIV5_MEM_AP_REG_CFG:
-		case ADIV5_MEM_AP_REG_BASE:
-		case ADIV5_AP_REG_IDR:
-			/* We don't use this, so we don't need to store */
-			break;
+	case ADIV5_MEM_AP_REG_CFG:
+	case ADIV5_MEM_AP_REG_BASE:
+	case ADIV5_AP_REG_IDR:
+		/* We don't use this, so we don't need to store */
+		break;
 
-		case ADIV5_MEM_AP_REG_BD0:
-		case ADIV5_MEM_AP_REG_BD1:
-		case ADIV5_MEM_AP_REG_BD2:
-		case ADIV5_MEM_AP_REG_BD3:
-			addr = (ap_info->apbap_tar & ~0xf) + (reg & 0x0C);
+	case ADIV5_MEM_AP_REG_BD0:
+	case ADIV5_MEM_AP_REG_BD1:
+	case ADIV5_MEM_AP_REG_BD2:
+	case ADIV5_MEM_AP_REG_BD3:
+		addr = (ap_info->apbap_tar & ~0xf) + (reg & 0x0C);
 
-			dmem_emu_set_ap_reg(addr, data);
+		dmem_emu_set_ap_reg(addr, data);
 
-			break;
-		case ADIV5_MEM_AP_REG_DRW:
-			addr = ap_info->apbap_tar;
-			dmem_emu_set_ap_reg(addr, data);
+		break;
+	case ADIV5_MEM_AP_REG_DRW:
+		addr = ap_info->apbap_tar;
+		dmem_emu_set_ap_reg(addr, data);
 
-			ap_info->apbap_tar += dmem_memap_tar_inc(ap_info->apbap_csw);
-			break;
-		default:
-			LOG_INFO("%s: Unknown reg: 0x%02x", __func__, reg);
-			ret = EINVAL;
-			break;
+		ap_info->apbap_tar += dmem_memap_tar_inc(ap_info->apbap_csw);
+		break;
+	default:
+		LOG_INFO("%s: Unknown reg: 0x%02x", __func__, reg);
+		ret = EINVAL;
+		break;
 	}
 
 	/* Track the last error code. */
@@ -242,13 +242,13 @@ static int dmem_dp_q_read(struct adiv5_dap *dap, unsigned int reg, uint32_t *dat
 		return ERROR_OK;
 
 	switch (reg) {
-		case DP_CTRL_STAT:
-			*data = CDBGPWRUPACK | CSYSPWRUPACK;
-			break;
+	case DP_CTRL_STAT:
+		*data = CDBGPWRUPACK | CSYSPWRUPACK;
+		break;
 
-		default:
-			*data = 0;
-			break;
+	default:
+		*data = 0;
+		break;
 	}
 
 	return ERROR_OK;

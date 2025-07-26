@@ -818,71 +818,71 @@ static int syncbb_execute_queue(struct jtag_command *cmd_queue)
 
 	while (cmd) {
 		switch (cmd->type) {
-			case JTAG_RESET:
-				LOG_DEBUG_IO("reset trst: %i srst %i", cmd->cmd.reset->trst, cmd->cmd.reset->srst);
+		case JTAG_RESET:
+			LOG_DEBUG_IO("reset trst: %i srst %i", cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 
-				if (cmd->cmd.reset->trst == 1 ||
-						(cmd->cmd.reset->srst &&
-						 (jtag_get_reset_config() & RESET_SRST_PULLS_TRST)))
-					tap_set_state(TAP_RESET);
+			if (cmd->cmd.reset->trst == 1 ||
+					(cmd->cmd.reset->srst &&
+					 (jtag_get_reset_config() & RESET_SRST_PULLS_TRST)))
+				tap_set_state(TAP_RESET);
 
-				ft232r_reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
-				break;
+			ft232r_reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
+			break;
 
-			case JTAG_RUNTEST:
-				LOG_DEBUG_IO("runtest %u cycles, end in %s", cmd->cmd.runtest->num_cycles,
-					tap_state_name(cmd->cmd.runtest->end_state));
+		case JTAG_RUNTEST:
+			LOG_DEBUG_IO("runtest %u cycles, end in %s", cmd->cmd.runtest->num_cycles,
+				tap_state_name(cmd->cmd.runtest->end_state));
 
-				syncbb_end_state(cmd->cmd.runtest->end_state);
-				syncbb_runtest(cmd->cmd.runtest->num_cycles);
-				break;
+			syncbb_end_state(cmd->cmd.runtest->end_state);
+			syncbb_runtest(cmd->cmd.runtest->num_cycles);
+			break;
 
-			case JTAG_STABLECLOCKS:
-				/* this is only allowed while in a stable state.  A check for a stable
-				 * state was done in jtag_add_clocks()
-				 */
-				syncbb_stableclocks(cmd->cmd.stableclocks->num_cycles);
-				break;
+		case JTAG_STABLECLOCKS:
+			/* this is only allowed while in a stable state.  A check for a stable
+			 * state was done in jtag_add_clocks()
+			 */
+			syncbb_stableclocks(cmd->cmd.stableclocks->num_cycles);
+			break;
 
-			case JTAG_TLR_RESET: /* renamed from JTAG_STATEMOVE */
-				LOG_DEBUG_IO("statemove end in %s", tap_state_name(cmd->cmd.statemove->end_state));
+		case JTAG_TLR_RESET: /* renamed from JTAG_STATEMOVE */
+			LOG_DEBUG_IO("statemove end in %s", tap_state_name(cmd->cmd.statemove->end_state));
 
-				syncbb_end_state(cmd->cmd.statemove->end_state);
-				syncbb_state_move(0);
-				break;
+			syncbb_end_state(cmd->cmd.statemove->end_state);
+			syncbb_state_move(0);
+			break;
 
-			case JTAG_PATHMOVE:
-				LOG_DEBUG_IO("pathmove: %u states, end in %s", cmd->cmd.pathmove->num_states,
-					tap_state_name(cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]));
+		case JTAG_PATHMOVE:
+			LOG_DEBUG_IO("pathmove: %u states, end in %s", cmd->cmd.pathmove->num_states,
+				tap_state_name(cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]));
 
-				syncbb_path_move(cmd->cmd.pathmove);
-				break;
+			syncbb_path_move(cmd->cmd.pathmove);
+			break;
 
-			case JTAG_SCAN:
-				LOG_DEBUG_IO("%s scan end in %s",  (cmd->cmd.scan->ir_scan) ? "IR" : "DR",
-					tap_state_name(cmd->cmd.scan->end_state));
+		case JTAG_SCAN:
+			LOG_DEBUG_IO("%s scan end in %s",  (cmd->cmd.scan->ir_scan) ? "IR" : "DR",
+				tap_state_name(cmd->cmd.scan->end_state));
 
-				syncbb_end_state(cmd->cmd.scan->end_state);
-				scan_size = jtag_build_buffer(cmd->cmd.scan, &buffer);
-				type = jtag_scan_type(cmd->cmd.scan);
-				syncbb_scan(cmd->cmd.scan->ir_scan, type, buffer, scan_size);
-				if (jtag_read_buffer(buffer, cmd->cmd.scan) != ERROR_OK)
-					retval = ERROR_JTAG_QUEUE_FAILED;
-				free(buffer);
-				break;
+			syncbb_end_state(cmd->cmd.scan->end_state);
+			scan_size = jtag_build_buffer(cmd->cmd.scan, &buffer);
+			type = jtag_scan_type(cmd->cmd.scan);
+			syncbb_scan(cmd->cmd.scan->ir_scan, type, buffer, scan_size);
+			if (jtag_read_buffer(buffer, cmd->cmd.scan) != ERROR_OK)
+				retval = ERROR_JTAG_QUEUE_FAILED;
+			free(buffer);
+			break;
 
-			case JTAG_SLEEP:
-				LOG_DEBUG_IO("sleep %" PRIu32, cmd->cmd.sleep->us);
+		case JTAG_SLEEP:
+			LOG_DEBUG_IO("sleep %" PRIu32, cmd->cmd.sleep->us);
 
-				jtag_sleep(cmd->cmd.sleep->us);
-				break;
+			jtag_sleep(cmd->cmd.sleep->us);
+			break;
 
-			case JTAG_TMS:
-				retval = syncbb_execute_tms(cmd);
-				break;
-			default:
-				LOG_ERROR("BUG: unknown JTAG command type encountered");
-				exit(-1);
+		case JTAG_TMS:
+			retval = syncbb_execute_tms(cmd);
+			break;
+		default:
+			LOG_ERROR("BUG: unknown JTAG command type encountered");
+			exit(-1);
 		}
 		if (ft232r_output_len > 0)
 			ft232r_send_recv();

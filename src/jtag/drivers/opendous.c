@@ -173,26 +173,26 @@ COMMAND_HANDLER(opendous_handle_opendous_info_command)
 COMMAND_HANDLER(opendous_handle_opendous_hw_jtag_command)
 {
 	switch (CMD_ARGC) {
-		case 0:
-			command_print(CMD, "opendous hw jtag  %i", opendous_hw_jtag_version);
-			break;
+	case 0:
+		command_print(CMD, "opendous hw jtag  %i", opendous_hw_jtag_version);
+		break;
 
-		case 1: {
-			int request_version = atoi(CMD_ARGV[0]);
-			switch (request_version) {
-				case 2:
-				case 3:
-					opendous_hw_jtag_version = request_version;
-					break;
-
-			default:
-				return ERROR_COMMAND_SYNTAX_ERROR;
-			}
+	case 1: {
+		int request_version = atoi(CMD_ARGV[0]);
+		switch (request_version) {
+		case 2:
+		case 3:
+			opendous_hw_jtag_version = request_version;
 			break;
-		}
 
 		default:
 			return ERROR_COMMAND_SYNTAX_ERROR;
+		}
+		break;
+	}
+
+	default:
+		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
 	return ERROR_OK;
@@ -248,66 +248,66 @@ static int opendous_execute_queue(struct jtag_command *cmd_queue)
 
 	while (cmd) {
 		switch (cmd->type) {
-			case JTAG_RUNTEST:
-				LOG_DEBUG_IO("runtest %u cycles, end in %i", cmd->cmd.runtest->num_cycles,
-					cmd->cmd.runtest->end_state);
+		case JTAG_RUNTEST:
+			LOG_DEBUG_IO("runtest %u cycles, end in %i", cmd->cmd.runtest->num_cycles,
+				cmd->cmd.runtest->end_state);
 
-				if (cmd->cmd.runtest->end_state != -1)
-					opendous_end_state(cmd->cmd.runtest->end_state);
-				opendous_runtest(cmd->cmd.runtest->num_cycles);
-				break;
+			if (cmd->cmd.runtest->end_state != -1)
+				opendous_end_state(cmd->cmd.runtest->end_state);
+			opendous_runtest(cmd->cmd.runtest->num_cycles);
+			break;
 
-			case JTAG_TLR_RESET:
-				LOG_DEBUG_IO("statemove end in %i", cmd->cmd.statemove->end_state);
+		case JTAG_TLR_RESET:
+			LOG_DEBUG_IO("statemove end in %i", cmd->cmd.statemove->end_state);
 
-				if (cmd->cmd.statemove->end_state != -1)
-					opendous_end_state(cmd->cmd.statemove->end_state);
-				opendous_state_move();
-				break;
+			if (cmd->cmd.statemove->end_state != -1)
+				opendous_end_state(cmd->cmd.statemove->end_state);
+			opendous_state_move();
+			break;
 
-			case JTAG_PATHMOVE:
-				LOG_DEBUG_IO("pathmove: %u states, end in %i",
-					cmd->cmd.pathmove->num_states,
-					cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]);
+		case JTAG_PATHMOVE:
+			LOG_DEBUG_IO("pathmove: %u states, end in %i",
+				cmd->cmd.pathmove->num_states,
+				cmd->cmd.pathmove->path[cmd->cmd.pathmove->num_states - 1]);
 
-				opendous_path_move(cmd->cmd.pathmove->num_states, cmd->cmd.pathmove->path);
-				break;
+			opendous_path_move(cmd->cmd.pathmove->num_states, cmd->cmd.pathmove->path);
+			break;
 
-			case JTAG_SCAN:
-				LOG_DEBUG_IO("scan end in %i", cmd->cmd.scan->end_state);
+		case JTAG_SCAN:
+			LOG_DEBUG_IO("scan end in %i", cmd->cmd.scan->end_state);
 
-				if (cmd->cmd.scan->end_state != -1)
-					opendous_end_state(cmd->cmd.scan->end_state);
+			if (cmd->cmd.scan->end_state != -1)
+				opendous_end_state(cmd->cmd.scan->end_state);
 
-				scan_size = jtag_build_buffer(cmd->cmd.scan, &buffer);
-				LOG_DEBUG_IO("scan input, length = %d", scan_size);
+			scan_size = jtag_build_buffer(cmd->cmd.scan, &buffer);
+			LOG_DEBUG_IO("scan input, length = %d", scan_size);
 
 #ifdef _DEBUG_USB_COMMS_
-				opendous_debug_buffer(buffer, (scan_size + 7) / 8);
+			opendous_debug_buffer(buffer, (scan_size + 7) / 8);
 #endif
-				type = jtag_scan_type(cmd->cmd.scan);
-				opendous_scan(cmd->cmd.scan->ir_scan, type, buffer, scan_size, cmd->cmd.scan);
-				break;
+			type = jtag_scan_type(cmd->cmd.scan);
+			opendous_scan(cmd->cmd.scan->ir_scan, type, buffer, scan_size, cmd->cmd.scan);
+			break;
 
-			case JTAG_RESET:
-				LOG_DEBUG_IO("reset trst: %i srst %i", cmd->cmd.reset->trst, cmd->cmd.reset->srst);
+		case JTAG_RESET:
+			LOG_DEBUG_IO("reset trst: %i srst %i", cmd->cmd.reset->trst, cmd->cmd.reset->srst);
 
-				opendous_tap_execute();
+			opendous_tap_execute();
 
-				if (cmd->cmd.reset->trst == 1)
-					tap_set_state(TAP_RESET);
-				opendous_reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
-				break;
+			if (cmd->cmd.reset->trst == 1)
+				tap_set_state(TAP_RESET);
+			opendous_reset(cmd->cmd.reset->trst, cmd->cmd.reset->srst);
+			break;
 
-			case JTAG_SLEEP:
-				LOG_DEBUG_IO("sleep %" PRIu32, cmd->cmd.sleep->us);
-				opendous_tap_execute();
-				jtag_sleep(cmd->cmd.sleep->us);
-				break;
+		case JTAG_SLEEP:
+			LOG_DEBUG_IO("sleep %" PRIu32, cmd->cmd.sleep->us);
+			opendous_tap_execute();
+			jtag_sleep(cmd->cmd.sleep->us);
+			break;
 
-			default:
-				LOG_ERROR("BUG: unknown JTAG command type encountered");
-				exit(-1);
+		default:
+			LOG_ERROR("BUG: unknown JTAG command type encountered");
+			exit(-1);
 		}
 		cmd = cmd->next;
 	}

@@ -597,30 +597,30 @@ static void ftdi_execute_stableclocks(struct jtag_command *cmd)
 static void ftdi_execute_command(struct jtag_command *cmd)
 {
 	switch (cmd->type) {
-		case JTAG_RUNTEST:
-			ftdi_execute_runtest(cmd);
-			break;
-		case JTAG_TLR_RESET:
-			ftdi_execute_statemove(cmd);
-			break;
-		case JTAG_PATHMOVE:
-			ftdi_execute_pathmove(cmd);
-			break;
-		case JTAG_SCAN:
-			ftdi_execute_scan(cmd);
-			break;
-		case JTAG_SLEEP:
-			ftdi_execute_sleep(cmd);
-			break;
-		case JTAG_STABLECLOCKS:
-			ftdi_execute_stableclocks(cmd);
-			break;
-		case JTAG_TMS:
-			ftdi_execute_tms(cmd);
-			break;
-		default:
-			LOG_ERROR("BUG: unknown JTAG command type encountered: %d", cmd->type);
-			break;
+	case JTAG_RUNTEST:
+		ftdi_execute_runtest(cmd);
+		break;
+	case JTAG_TLR_RESET:
+		ftdi_execute_statemove(cmd);
+		break;
+	case JTAG_PATHMOVE:
+		ftdi_execute_pathmove(cmd);
+		break;
+	case JTAG_SCAN:
+		ftdi_execute_scan(cmd);
+		break;
+	case JTAG_SLEEP:
+		ftdi_execute_sleep(cmd);
+		break;
+	case JTAG_STABLECLOCKS:
+		ftdi_execute_stableclocks(cmd);
+		break;
+	case JTAG_TMS:
+		ftdi_execute_tms(cmd);
+		break;
+	default:
+		LOG_ERROR("BUG: unknown JTAG command type encountered: %d", cmd->type);
+		break;
 	}
 }
 

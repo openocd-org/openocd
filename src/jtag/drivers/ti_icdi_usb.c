@@ -692,14 +692,14 @@ static int icdi_usb_open(struct hl_interface_param *param, void **fd)
 
 	switch (param->transport) {
 #if 0
-		/* TODO place holder as swd is not currently supported */
-		case HL_TRANSPORT_SWD:
+	/* TODO place holder as swd is not currently supported */
+	case HL_TRANSPORT_SWD:
 #endif
-		case HL_TRANSPORT_JTAG:
-			break;
-		default:
-			retval = ERROR_FAIL;
-			break;
+	case HL_TRANSPORT_JTAG:
+		break;
+	default:
+		retval = ERROR_FAIL;
+		break;
 	}
 
 	if (retval != ERROR_OK) {

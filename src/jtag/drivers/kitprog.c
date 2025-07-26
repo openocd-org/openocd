@@ -646,24 +646,24 @@ static void kitprog_swd_read_reg(uint8_t cmd, uint32_t *value, uint32_t ap_delay
 static int kitprog_swd_switch_seq(enum swd_special_seq seq)
 {
 	switch (seq) {
-		case JTAG_TO_SWD:
-			if (kitprog_handle->supports_jtag_to_swd) {
-				LOG_DEBUG("JTAG to SWD");
-				if (kitprog_swd_seq(SEQUENCE_JTAG_TO_SWD) != ERROR_OK)
-					return ERROR_FAIL;
-				break;
-			}
-			LOG_DEBUG("JTAG to SWD not supported");
-			/* Fall through to fix target reset issue */
-			/* fallthrough */
-		case LINE_RESET:
-			LOG_DEBUG("SWD line reset");
-			if (kitprog_swd_seq(SEQUENCE_LINE_RESET) != ERROR_OK)
+	case JTAG_TO_SWD:
+		if (kitprog_handle->supports_jtag_to_swd) {
+			LOG_DEBUG("JTAG to SWD");
+			if (kitprog_swd_seq(SEQUENCE_JTAG_TO_SWD) != ERROR_OK)
 				return ERROR_FAIL;
 			break;
-		default:
-			LOG_ERROR("Sequence %d not supported.", seq);
+		}
+		LOG_DEBUG("JTAG to SWD not supported");
+		/* Fall through to fix target reset issue */
+		/* fallthrough */
+	case LINE_RESET:
+		LOG_DEBUG("SWD line reset");
+		if (kitprog_swd_seq(SEQUENCE_LINE_RESET) != ERROR_OK)
 			return ERROR_FAIL;
+		break;
+	default:
+		LOG_ERROR("Sequence %d not supported.", seq);
+		return ERROR_FAIL;
 	}
 
 	return ERROR_OK;

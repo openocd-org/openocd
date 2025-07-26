@@ -1566,38 +1566,38 @@ static void debug_parse_cmsis_buf(const uint8_t *cmd, int cmdlen)
 		printf(" %02x", cmd[i]);
 	printf("\n");
 	switch (cmd[0]) {
-		case CMD_DAP_JTAG_SEQ: {
-			printf("cmsis-dap jtag sequence command %02x (n=%d)\n", cmd[0], cmd[1]);
-			/*
-			 * #1 = number of sequences
-			 * #2 = sequence info 1
-			 * #3...4+n_bytes-1 = sequence 1
-			 * #4+n_bytes = sequence info 2
-			 * #5+n_bytes = sequence 2 (single bit)
-			 */
-			int pos = 2;
-			for (int seq = 0; seq < cmd[1]; ++seq) {
-				uint8_t info = cmd[pos++];
-				int len = info & DAP_JTAG_SEQ_TCK;
-				if (len == 0)
-					len = 64;
-				printf("  sequence %d starting %d: info %02x (len=%d tms=%d read_tdo=%d): ",
-					seq, pos, info, len, info & DAP_JTAG_SEQ_TMS, info & DAP_JTAG_SEQ_TDO);
-				for (int i = 0; i < DIV_ROUND_UP(len, 8); ++i)
-					printf(" %02x", cmd[pos+i]);
-				pos += DIV_ROUND_UP(len, 8);
-				printf("\n");
-			}
-			if (pos != cmdlen) {
-				printf("BUFFER LENGTH MISMATCH looks like %d but %d specified", pos, cmdlen);
-				exit(-1);
-			}
-
-			break;
+	case CMD_DAP_JTAG_SEQ: {
+		printf("cmsis-dap jtag sequence command %02x (n=%d)\n", cmd[0], cmd[1]);
+		/*
+		 * #1 = number of sequences
+		 * #2 = sequence info 1
+		 * #3...4+n_bytes-1 = sequence 1
+		 * #4+n_bytes = sequence info 2
+		 * #5+n_bytes = sequence 2 (single bit)
+		 */
+		int pos = 2;
+		for (int seq = 0; seq < cmd[1]; ++seq) {
+			uint8_t info = cmd[pos++];
+			int len = info & DAP_JTAG_SEQ_TCK;
+			if (len == 0)
+				len = 64;
+			printf("  sequence %d starting %d: info %02x (len=%d tms=%d read_tdo=%d): ",
+				seq, pos, info, len, info & DAP_JTAG_SEQ_TMS, info & DAP_JTAG_SEQ_TDO);
+			for (int i = 0; i < DIV_ROUND_UP(len, 8); ++i)
+				printf(" %02x", cmd[pos + i]);
+			pos += DIV_ROUND_UP(len, 8);
+			printf("\n");
 		}
-		default:
-			LOG_DEBUG("unknown cmsis-dap command %02x", cmd[1]);
-			break;
+		if (pos != cmdlen) {
+			printf("BUFFER LENGTH MISMATCH looks like %d but %d specified", pos, cmdlen);
+			exit(-1);
+		}
+
+		break;
+	}
+	default:
+		LOG_DEBUG("unknown cmsis-dap command %02x", cmd[1]);
+		break;
 	}
 }
 #endif
@@ -1938,32 +1938,32 @@ static void cmsis_dap_execute_tms(struct jtag_command *cmd)
 static void cmsis_dap_execute_command(struct jtag_command *cmd)
 {
 	switch (cmd->type) {
-		case JTAG_SLEEP:
-			cmsis_dap_flush();
-			cmsis_dap_execute_sleep(cmd);
-			break;
-		case JTAG_TLR_RESET:
-			cmsis_dap_flush();
-			cmsis_dap_execute_tlr_reset(cmd);
-			break;
-		case JTAG_SCAN:
-			cmsis_dap_execute_scan(cmd);
-			break;
-		case JTAG_PATHMOVE:
-			cmsis_dap_execute_pathmove(cmd);
-			break;
-		case JTAG_RUNTEST:
-			cmsis_dap_execute_runtest(cmd);
-			break;
-		case JTAG_STABLECLOCKS:
-			cmsis_dap_execute_stableclocks(cmd);
-			break;
-		case JTAG_TMS:
-			cmsis_dap_execute_tms(cmd);
-			break;
-		default:
-			LOG_ERROR("BUG: unknown JTAG command type 0x%X encountered", cmd->type);
-			exit(-1);
+	case JTAG_SLEEP:
+		cmsis_dap_flush();
+		cmsis_dap_execute_sleep(cmd);
+		break;
+	case JTAG_TLR_RESET:
+		cmsis_dap_flush();
+		cmsis_dap_execute_tlr_reset(cmd);
+		break;
+	case JTAG_SCAN:
+		cmsis_dap_execute_scan(cmd);
+		break;
+	case JTAG_PATHMOVE:
+		cmsis_dap_execute_pathmove(cmd);
+		break;
+	case JTAG_RUNTEST:
+		cmsis_dap_execute_runtest(cmd);
+		break;
+	case JTAG_STABLECLOCKS:
+		cmsis_dap_execute_stableclocks(cmd);
+		break;
+	case JTAG_TMS:
+		cmsis_dap_execute_tms(cmd);
+		break;
+	default:
+		LOG_ERROR("BUG: unknown JTAG command type 0x%X encountered", cmd->type);
+		exit(-1);
 	}
 }
 
