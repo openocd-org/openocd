@@ -969,58 +969,58 @@ int default_interface_jtag_execute_queue(void)
 
 	while (debug_level >= LOG_LVL_DEBUG_IO && cmd) {
 		switch (cmd->type) {
-			case JTAG_SCAN:
-				LOG_DEBUG_IO("JTAG %s SCAN to %s",
-						cmd->cmd.scan->ir_scan ? "IR" : "DR",
-						tap_state_name(cmd->cmd.scan->end_state));
-				for (unsigned int i = 0; i < cmd->cmd.scan->num_fields; i++) {
-					struct scan_field *field = cmd->cmd.scan->fields + i;
-					if (field->out_value) {
-						char *str = buf_to_hex_str(field->out_value, field->num_bits);
-						LOG_DEBUG_IO("  %ub out: %s", field->num_bits, str);
-						free(str);
-					}
-					if (field->in_value) {
-						char *str = buf_to_hex_str(field->in_value, field->num_bits);
-						LOG_DEBUG_IO("  %ub  in: %s", field->num_bits, str);
-						free(str);
-					}
+		case JTAG_SCAN:
+			LOG_DEBUG_IO("JTAG %s SCAN to %s",
+					cmd->cmd.scan->ir_scan ? "IR" : "DR",
+					tap_state_name(cmd->cmd.scan->end_state));
+			for (unsigned int i = 0; i < cmd->cmd.scan->num_fields; i++) {
+				struct scan_field *field = cmd->cmd.scan->fields + i;
+				if (field->out_value) {
+					char *str = buf_to_hex_str(field->out_value, field->num_bits);
+					LOG_DEBUG_IO("  %ub out: %s", field->num_bits, str);
+					free(str);
 				}
-				break;
-			case JTAG_TLR_RESET:
-				LOG_DEBUG_IO("JTAG TLR RESET to %s",
-						tap_state_name(cmd->cmd.statemove->end_state));
-				break;
-			case JTAG_RUNTEST:
-				LOG_DEBUG_IO("JTAG RUNTEST %d cycles to %s",
-						cmd->cmd.runtest->num_cycles,
-						tap_state_name(cmd->cmd.runtest->end_state));
-				break;
-			case JTAG_RESET:
-				{
-					const char *reset_str[3] = {
-						"leave", "deassert", "assert"
-					};
-					LOG_DEBUG_IO("JTAG RESET %s TRST, %s SRST",
-							reset_str[cmd->cmd.reset->trst + 1],
-							reset_str[cmd->cmd.reset->srst + 1]);
+				if (field->in_value) {
+					char *str = buf_to_hex_str(field->in_value, field->num_bits);
+					LOG_DEBUG_IO("  %ub  in: %s", field->num_bits, str);
+					free(str);
 				}
-				break;
-			case JTAG_PATHMOVE:
-				LOG_DEBUG_IO("JTAG PATHMOVE (TODO)");
-				break;
-			case JTAG_SLEEP:
-				LOG_DEBUG_IO("JTAG SLEEP (TODO)");
-				break;
-			case JTAG_STABLECLOCKS:
-				LOG_DEBUG_IO("JTAG STABLECLOCKS (TODO)");
-				break;
-			case JTAG_TMS:
-				LOG_DEBUG_IO("JTAG TMS (TODO)");
-				break;
-			default:
-				LOG_ERROR("Unknown JTAG command: %d", cmd->type);
-				break;
+			}
+			break;
+		case JTAG_TLR_RESET:
+			LOG_DEBUG_IO("JTAG TLR RESET to %s",
+					tap_state_name(cmd->cmd.statemove->end_state));
+			break;
+		case JTAG_RUNTEST:
+			LOG_DEBUG_IO("JTAG RUNTEST %d cycles to %s",
+					cmd->cmd.runtest->num_cycles,
+					tap_state_name(cmd->cmd.runtest->end_state));
+			break;
+		case JTAG_RESET:
+			{
+				const char *reset_str[3] = {
+					"leave", "deassert", "assert"
+				};
+				LOG_DEBUG_IO("JTAG RESET %s TRST, %s SRST",
+						reset_str[cmd->cmd.reset->trst + 1],
+						reset_str[cmd->cmd.reset->srst + 1]);
+			}
+			break;
+		case JTAG_PATHMOVE:
+			LOG_DEBUG_IO("JTAG PATHMOVE (TODO)");
+			break;
+		case JTAG_SLEEP:
+			LOG_DEBUG_IO("JTAG SLEEP (TODO)");
+			break;
+		case JTAG_STABLECLOCKS:
+			LOG_DEBUG_IO("JTAG STABLECLOCKS (TODO)");
+			break;
+		case JTAG_TMS:
+			LOG_DEBUG_IO("JTAG TMS (TODO)");
+			break;
+		default:
+			LOG_ERROR("Unknown JTAG command: %d", cmd->type);
+			break;
 		}
 		cmd = cmd->next;
 	}
@@ -1551,22 +1551,22 @@ int jtag_init_inner(struct command_context *cmd_ctx)
 	 */
 	retval = jtag_examine_chain();
 	switch (retval) {
-		case ERROR_OK:
-			/* complete success */
-			break;
-		default:
-			/* For backward compatibility reasons, try coping with
-			 * configuration errors involving only ID mismatches.
-			 * We might be able to talk to the devices.
-			 *
-			 * Also the device might be powered down during startup.
-			 *
-			 * After OpenOCD starts, we can try to power on the device
-			 * and run a reset.
-			 */
-			LOG_ERROR("Trying to use configured scan chain anyway...");
-			issue_setup = false;
-			break;
+	case ERROR_OK:
+		/* complete success */
+		break;
+	default:
+		/* For backward compatibility reasons, try coping with
+		 * configuration errors involving only ID mismatches.
+		 * We might be able to talk to the devices.
+		 *
+		 * Also the device might be powered down during startup.
+		 *
+		 * After OpenOCD starts, we can try to power on the device
+		 * and run a reset.
+		 */
+		LOG_ERROR("Trying to use configured scan chain anyway...");
+		issue_setup = false;
+		break;
 	}
 
 	/* Now look at IR values.  Problems here will prevent real

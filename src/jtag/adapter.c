@@ -271,15 +271,15 @@ int adapter_config_rclk(unsigned int fallback_speed_khz)
 int adapter_get_speed(int *speed)
 {
 	switch (adapter_config.clock_mode) {
-		case CLOCK_MODE_KHZ:
-			adapter_khz_to_speed(adapter_get_speed_khz(), speed);
-			break;
-		case CLOCK_MODE_RCLK:
-			adapter_rclk_to_speed(adapter_config.rclk_fallback_speed_khz, speed);
-			break;
-		default:
-			LOG_ERROR("BUG: unknown adapter clock mode");
-			return ERROR_FAIL;
+	case CLOCK_MODE_KHZ:
+		adapter_khz_to_speed(adapter_get_speed_khz(), speed);
+		break;
+	case CLOCK_MODE_RCLK:
+		adapter_rclk_to_speed(adapter_config.rclk_fallback_speed_khz, speed);
+		break;
+	default:
+		LOG_ERROR("BUG: unknown adapter clock mode");
+		return ERROR_FAIL;
 	}
 	return ERROR_OK;
 }
@@ -615,34 +615,34 @@ next:
 
 	/* minimal JTAG has neither SRST nor TRST (so that's the default) */
 	switch (new_cfg & (RESET_HAS_TRST | RESET_HAS_SRST)) {
-		case RESET_HAS_SRST:
-			modes[0] = "srst_only";
-			break;
-		case RESET_HAS_TRST:
-			modes[0] = "trst_only";
-			break;
-		case RESET_TRST_AND_SRST:
-			modes[0] = "trst_and_srst";
-			break;
-		default:
-			modes[0] = "none";
-			break;
+	case RESET_HAS_SRST:
+		modes[0] = "srst_only";
+		break;
+	case RESET_HAS_TRST:
+		modes[0] = "trst_only";
+		break;
+	case RESET_TRST_AND_SRST:
+		modes[0] = "trst_and_srst";
+		break;
+	default:
+		modes[0] = "none";
+		break;
 	}
 
 	/* normally SRST and TRST are decoupled; but bugs happen ... */
 	switch (new_cfg & (RESET_SRST_PULLS_TRST | RESET_TRST_PULLS_SRST)) {
-		case RESET_SRST_PULLS_TRST:
-			modes[1] = "srst_pulls_trst";
-			break;
-		case RESET_TRST_PULLS_SRST:
-			modes[1] = "trst_pulls_srst";
-			break;
-		case RESET_SRST_PULLS_TRST | RESET_TRST_PULLS_SRST:
-			modes[1] = "combined";
-			break;
-		default:
-			modes[1] = "separate";
-			break;
+	case RESET_SRST_PULLS_TRST:
+		modes[1] = "srst_pulls_trst";
+		break;
+	case RESET_TRST_PULLS_SRST:
+		modes[1] = "trst_pulls_srst";
+		break;
+	case RESET_SRST_PULLS_TRST | RESET_TRST_PULLS_SRST:
+		modes[1] = "combined";
+		break;
+	default:
+		modes[1] = "separate";
+		break;
 	}
 
 	/* TRST-less connectors include Altera, Xilinx, and minimal JTAG */

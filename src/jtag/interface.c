@@ -67,28 +67,28 @@ int tap_move_ndx(enum tap_state astate)
 	int ndx;
 
 	switch (astate) {
-		case TAP_RESET:
-			ndx = 0;
-			break;
-		case TAP_IDLE:
-			ndx = 1;
-			break;
-		case TAP_DRSHIFT:
-			ndx = 2;
-			break;
-		case TAP_DRPAUSE:
-			ndx = 3;
-			break;
-		case TAP_IRSHIFT:
-			ndx = 4;
-			break;
-		case TAP_IRPAUSE:
-			ndx = 5;
-			break;
-		default:
-			LOG_ERROR("FATAL: unstable state \"%s\" in %s()",
-					tap_state_name(astate), __func__);
-			exit(1);
+	case TAP_RESET:
+		ndx = 0;
+		break;
+	case TAP_IDLE:
+		ndx = 1;
+		break;
+	case TAP_DRSHIFT:
+		ndx = 2;
+		break;
+	case TAP_DRPAUSE:
+		ndx = 3;
+		break;
+	case TAP_IRSHIFT:
+		ndx = 4;
+		break;
+	case TAP_IRPAUSE:
+		ndx = 5;
+		break;
+	default:
+		LOG_ERROR("FATAL: unstable state \"%s\" in %s()",
+				tap_state_name(astate), __func__);
+		exit(1);
 	}
 
 	return ndx;
@@ -205,16 +205,16 @@ bool tap_is_state_stable(enum tap_state astate)
 	 * (not value dependent like an array), and can also check bounds.
 	*/
 	switch (astate) {
-		case TAP_RESET:
-		case TAP_IDLE:
-		case TAP_DRSHIFT:
-		case TAP_DRPAUSE:
-		case TAP_IRSHIFT:
-		case TAP_IRPAUSE:
-			is_stable = true;
-			break;
-		default:
-			is_stable = false;
+	case TAP_RESET:
+	case TAP_IDLE:
+	case TAP_DRSHIFT:
+	case TAP_DRPAUSE:
+	case TAP_IRSHIFT:
+	case TAP_IRPAUSE:
+		is_stable = true;
+		break;
+	default:
+		is_stable = false;
 	}
 
 	return is_stable;
@@ -230,83 +230,83 @@ enum tap_state tap_state_transition(enum tap_state cur_state, bool tms)
 
 	if (tms) {
 		switch (cur_state) {
-			case TAP_RESET:
-				new_state = cur_state;
-				break;
-			case TAP_IDLE:
-			case TAP_DRUPDATE:
-			case TAP_IRUPDATE:
-				new_state = TAP_DRSELECT;
-				break;
-			case TAP_DRSELECT:
-				new_state = TAP_IRSELECT;
-				break;
-			case TAP_DRCAPTURE:
-			case TAP_DRSHIFT:
-				new_state = TAP_DREXIT1;
-				break;
-			case TAP_DREXIT1:
-			case TAP_DREXIT2:
-				new_state = TAP_DRUPDATE;
-				break;
-			case TAP_DRPAUSE:
-				new_state = TAP_DREXIT2;
-				break;
-			case TAP_IRSELECT:
-				new_state = TAP_RESET;
-				break;
-			case TAP_IRCAPTURE:
-			case TAP_IRSHIFT:
-				new_state = TAP_IREXIT1;
-				break;
-			case TAP_IREXIT1:
-			case TAP_IREXIT2:
-				new_state = TAP_IRUPDATE;
-				break;
-			case TAP_IRPAUSE:
-				new_state = TAP_IREXIT2;
-				break;
-			default:
-				LOG_ERROR("fatal: invalid argument cur_state=%d", cur_state);
-				exit(1);
-				break;
+		case TAP_RESET:
+			new_state = cur_state;
+			break;
+		case TAP_IDLE:
+		case TAP_DRUPDATE:
+		case TAP_IRUPDATE:
+			new_state = TAP_DRSELECT;
+			break;
+		case TAP_DRSELECT:
+			new_state = TAP_IRSELECT;
+			break;
+		case TAP_DRCAPTURE:
+		case TAP_DRSHIFT:
+			new_state = TAP_DREXIT1;
+			break;
+		case TAP_DREXIT1:
+		case TAP_DREXIT2:
+			new_state = TAP_DRUPDATE;
+			break;
+		case TAP_DRPAUSE:
+			new_state = TAP_DREXIT2;
+			break;
+		case TAP_IRSELECT:
+			new_state = TAP_RESET;
+			break;
+		case TAP_IRCAPTURE:
+		case TAP_IRSHIFT:
+			new_state = TAP_IREXIT1;
+			break;
+		case TAP_IREXIT1:
+		case TAP_IREXIT2:
+			new_state = TAP_IRUPDATE;
+			break;
+		case TAP_IRPAUSE:
+			new_state = TAP_IREXIT2;
+			break;
+		default:
+			LOG_ERROR("fatal: invalid argument cur_state=%d", cur_state);
+			exit(1);
+			break;
 		}
 	} else {
 		switch (cur_state) {
-			case TAP_RESET:
-			case TAP_IDLE:
-			case TAP_DRUPDATE:
-			case TAP_IRUPDATE:
-				new_state = TAP_IDLE;
-				break;
-			case TAP_DRSELECT:
-				new_state = TAP_DRCAPTURE;
-				break;
-			case TAP_DRCAPTURE:
-			case TAP_DRSHIFT:
-			case TAP_DREXIT2:
-				new_state = TAP_DRSHIFT;
-				break;
-			case TAP_DREXIT1:
-			case TAP_DRPAUSE:
-				new_state = TAP_DRPAUSE;
-				break;
-			case TAP_IRSELECT:
-				new_state = TAP_IRCAPTURE;
-				break;
-			case TAP_IRCAPTURE:
-			case TAP_IRSHIFT:
-			case TAP_IREXIT2:
-				new_state = TAP_IRSHIFT;
-				break;
-			case TAP_IREXIT1:
-			case TAP_IRPAUSE:
-				new_state = TAP_IRPAUSE;
-				break;
-			default:
-				LOG_ERROR("fatal: invalid argument cur_state=%d", cur_state);
-				exit(1);
-				break;
+		case TAP_RESET:
+		case TAP_IDLE:
+		case TAP_DRUPDATE:
+		case TAP_IRUPDATE:
+			new_state = TAP_IDLE;
+			break;
+		case TAP_DRSELECT:
+			new_state = TAP_DRCAPTURE;
+			break;
+		case TAP_DRCAPTURE:
+		case TAP_DRSHIFT:
+		case TAP_DREXIT2:
+			new_state = TAP_DRSHIFT;
+			break;
+		case TAP_DREXIT1:
+		case TAP_DRPAUSE:
+			new_state = TAP_DRPAUSE;
+			break;
+		case TAP_IRSELECT:
+			new_state = TAP_IRCAPTURE;
+			break;
+		case TAP_IRCAPTURE:
+		case TAP_IRSHIFT:
+		case TAP_IREXIT2:
+			new_state = TAP_IRSHIFT;
+			break;
+		case TAP_IREXIT1:
+		case TAP_IRPAUSE:
+			new_state = TAP_IRPAUSE;
+			break;
+		default:
+			LOG_ERROR("fatal: invalid argument cur_state=%d", cur_state);
+			exit(1);
+			break;
 		}
 	}
 

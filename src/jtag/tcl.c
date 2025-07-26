@@ -64,13 +64,13 @@ struct jtag_tap *jtag_tap_by_jim_obj(Jim_Interp *interp, Jim_Obj *o)
 static bool scan_is_safe(enum tap_state state)
 {
 	switch (state) {
-	    case TAP_RESET:
-	    case TAP_IDLE:
-	    case TAP_DRPAUSE:
-	    case TAP_IRPAUSE:
-		    return true;
-	    default:
-		    return false;
+	case TAP_RESET:
+	case TAP_IDLE:
+	case TAP_DRPAUSE:
+	case TAP_IRPAUSE:
+	    return true;
+	default:
+	    return false;
 	}
 }
 
@@ -558,18 +558,18 @@ static void jtag_tap_handle_event(struct jtag_tap *tap, enum jtag_event e)
 		}
 
 		switch (e) {
-		    case JTAG_TAP_EVENT_ENABLE:
-		    case JTAG_TAP_EVENT_DISABLE:
-				/* NOTE:  we currently assume the handlers
-				 * can't fail.  Right here is where we should
-				 * really be verifying the scan chains ...
-				 */
-			    tap->enabled = (e == JTAG_TAP_EVENT_ENABLE);
-			    LOG_INFO("JTAG tap: %s %s", tap->dotted_name,
+		case JTAG_TAP_EVENT_ENABLE:
+		case JTAG_TAP_EVENT_DISABLE:
+			/* NOTE:  we currently assume the handlers
+			 * can't fail.  Right here is where we should
+			 * really be verifying the scan chains ...
+			 */
+		    tap->enabled = (e == JTAG_TAP_EVENT_ENABLE);
+		    LOG_INFO("JTAG tap: %s %s", tap->dotted_name,
 				tap->enabled ? "enabled" : "disabled");
-			    break;
-		    default:
-			    break;
+		    break;
+		default:
+		    break;
 		}
 	}
 }
