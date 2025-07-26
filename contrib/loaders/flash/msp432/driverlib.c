@@ -117,12 +117,6 @@ uint8_t pcm_get_power_mode(void)
 	current_power_state = pcm_get_power_state();
 
 	switch (current_power_state) {
-		case PCM_AM_LDO_VCORE0:
-		case PCM_AM_LDO_VCORE1:
-		case PCM_LPM0_LDO_VCORE0:
-		case PCM_LPM0_LDO_VCORE1:
-		default:
-			return PCM_LDO_MODE;
 		case PCM_AM_DCDC_VCORE0:
 		case PCM_AM_DCDC_VCORE1:
 		case PCM_LPM0_DCDC_VCORE0:
@@ -133,6 +127,12 @@ uint8_t pcm_get_power_mode(void)
 		case PCM_AM_LF_VCORE1:
 		case PCM_AM_LF_VCORE0:
 			return PCM_LF_MODE;
+		case PCM_AM_LDO_VCORE0:
+		case PCM_AM_LDO_VCORE1:
+		case PCM_LPM0_LDO_VCORE0:
+		case PCM_LPM0_LDO_VCORE1:
+		default:
+			return PCM_LDO_MODE;
 	}
 }
 
@@ -141,14 +141,6 @@ uint8_t pcm_get_core_voltage_level(void)
 	uint8_t current_power_state = pcm_get_power_state();
 
 	switch (current_power_state) {
-		case PCM_AM_LDO_VCORE0:
-		case PCM_AM_DCDC_VCORE0:
-		case PCM_AM_LF_VCORE0:
-		case PCM_LPM0_LDO_VCORE0:
-		case PCM_LPM0_DCDC_VCORE0:
-		case PCM_LPM0_LF_VCORE0:
-		default:
-			return PCM_VCORE0;
 		case PCM_AM_LDO_VCORE1:
 		case PCM_AM_DCDC_VCORE1:
 		case PCM_AM_LF_VCORE1:
@@ -158,6 +150,14 @@ uint8_t pcm_get_core_voltage_level(void)
 			return PCM_VCORE1;
 		case PCM_LPM3:
 			return PCM_VCORELPM3;
+		case PCM_AM_LDO_VCORE0:
+		case PCM_AM_DCDC_VCORE0:
+		case PCM_AM_LF_VCORE0:
+		case PCM_LPM0_LDO_VCORE0:
+		case PCM_LPM0_DCDC_VCORE0:
+		case PCM_LPM0_LF_VCORE0:
+		default:
+			return PCM_VCORE0;
 	}
 }
 
@@ -196,7 +196,7 @@ static bool __pcm_set_power_mode_advanced(uint_fast8_t power_mode,
 				PCM->CTL0 = (PCM_KEY | PCM_AM_LDO_VCORE1
 					| (reg_value & ~(PCM_CTL0_KEY_MASK | PCM_CTL0_AMR_MASK)));
 				break;
-			case PCM_AM_LDO_VCORE1: {
+			case PCM_AM_LDO_VCORE1:
 				if (power_mode == PCM_DCDC_MODE) {
 					PCM->CTL0 = (PCM_KEY | PCM_AM_DCDC_VCORE1
 						| (reg_value & ~(PCM_CTL0_KEY_MASK
@@ -205,11 +205,11 @@ static bool __pcm_set_power_mode_advanced(uint_fast8_t power_mode,
 					PCM->CTL0 = (PCM_KEY | PCM_AM_LF_VCORE1
 						| (reg_value & ~(PCM_CTL0_KEY_MASK
 						| PCM_CTL0_AMR_MASK)));
-				} else
+				} else {
 					return false;
+				}
 				break;
-			}
-			case PCM_AM_LDO_VCORE0: {
+			case PCM_AM_LDO_VCORE0:
 				if (power_mode == PCM_DCDC_MODE) {
 					PCM->CTL0 = (PCM_KEY | PCM_AM_DCDC_VCORE0
 						| (reg_value & ~(PCM_CTL0_KEY_MASK
@@ -218,10 +218,10 @@ static bool __pcm_set_power_mode_advanced(uint_fast8_t power_mode,
 					PCM->CTL0 = (PCM_KEY | PCM_AM_LF_VCORE0
 						| (reg_value & ~(PCM_CTL0_KEY_MASK
 						| PCM_CTL0_AMR_MASK)));
-				} else
+				} else {
 					return false;
+				}
 				break;
-			}
 			default:
 				break;
 		}
@@ -231,8 +231,9 @@ static bool __pcm_set_power_mode_advanced(uint_fast8_t power_mode,
 				if (bool_timeout && !(--time_out))
 					return false;
 			}
-		} else
+		} else {
 			return true;
+		}
 
 		current_power_mode = pcm_get_power_mode();
 		current_power_state = pcm_get_power_state();

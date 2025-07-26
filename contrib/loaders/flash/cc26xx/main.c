@@ -103,20 +103,17 @@ int main(void)
 				break;
 			case CMD_PROGRAM:
 				status =
-					flashloader_program(
-						(uint8_t *)g_cfg[g_curr_buf].buf_addr,
+					flashloader_program((uint8_t *)g_cfg[g_curr_buf].buf_addr,
 						g_cfg[g_curr_buf].dest, g_cfg[g_curr_buf].len);
 				break;
 			case CMD_ERASE_AND_PROGRAM:
 				status =
-					flashloader_erase_and_program(
-						(uint8_t *)g_cfg[g_curr_buf].buf_addr,
+					flashloader_erase_and_program((uint8_t *)g_cfg[g_curr_buf].buf_addr,
 						g_cfg[g_curr_buf].dest, g_cfg[g_curr_buf].len);
 				break;
 			case CMD_ERASE_AND_PROGRAM_WITH_RETAIN:
 				status =
-					flashloader_program_with_retain(
-						(uint8_t *)g_cfg[g_curr_buf].buf_addr,
+					flashloader_program_with_retain((uint8_t *)g_cfg[g_curr_buf].buf_addr,
 						g_cfg[g_curr_buf].dest, g_cfg[g_curr_buf].len);
 				break;
 			case CMD_ERASE_SECTORS:
