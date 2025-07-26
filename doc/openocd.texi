@@ -2781,6 +2781,35 @@ minimal impact on the target system. Avoid floating inputs, conflicting outputs
 and initially asserted reset signals.
 @end deffn
 
+@deffn {Command} {ftdi oscan1_mode} on|off
+Enable or disable OScan1 mode. This mode is intended for use with an adapter,
+such as the ARM-JTAG-SWD by Olimex, that sits in between the FTDI chip and the
+target. The cJTAG prococol is composed of two wires: TCKC (clock) and TMSC (data).
+TMSC is a bidirectional signal which is time-multiplexed alternating TDI, TMS and
+TDO. The multiplexing is achieved by a tri-state buffer which puts TMSC in Hi-Z
+when the device is supposed to take the control of the line (TDO phase).
+
+The ARM-JTAG-SWD adapter uses standard TRST and TMS signals to control TMSC
+direction. TRST is used by the adapter as selector for the multiplexers which set
+the JTAG probe in 2-wire mode. Whatever signal is used for this purpose, it must
+be defined with the name JTAG_SEL using @command{ftdi layout_signal}. JTAG_SEL is
+set to 0 during OScan1 initialization.
+
+Some JTAG probes like the Digilent JTAG-HS2, support cJTAG by using a
+separate pin to control when TMS is driven onto TMSC. You can use such
+probes by defining the signal TMSC_EN using
+@command{ftdi layout_signal TMSC_EN -data <mask>}.
+@end deffn
+
+@deffn {Command} {ftdi jscan3_mode} on|off
+Enable or disable JScan3 mode. This mode uses the classic 4-wire JTAG protocol
+in chips whose JTAG port is only compliant with the cJTAG standard (IEEE 1149.7).
+
+Since cJTAG needs a 2-wire escape sequence to select the operating mode,
+a cJTAG adapter like ARM-JTAG-SWD by Olimex is still required. This means
+that a cJTAG probe configuration script must be used too.
+@end deffn
+
 @deffn {Command} {ftdi layout_signal} name [@option{-data}|@option{-ndata} data_mask] [@option{-input}|@option{-ninput} input_mask] [@option{-oe}|@option{-noe} oe_mask] [@option{-alias}|@option{-nalias} name]
 Creates a signal with the specified @var{name}, controlled by one or more FTDI
 GPIO pins via a range of possible buffer connections. The masks are FTDI GPIO
