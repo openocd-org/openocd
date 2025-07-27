@@ -704,13 +704,13 @@ static int stm8_write_flash(struct target *target, enum mem_type type,
 	int res;
 
 	switch (type) {
-	case (FLASH):
+	case FLASH:
 		stm8_unlock_flash(target);
 		break;
-	case (EEPROM):
+	case EEPROM:
 		stm8_unlock_eeprom(target);
 		break;
-	case (OPTION):
+	case OPTION:
 		stm8_unlock_eeprom(target);
 		opt = OPT;
 		break;
