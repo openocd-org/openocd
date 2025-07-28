@@ -410,7 +410,6 @@ static int samv_protect_check(struct flash_bank *bank)
 
 FLASH_BANK_COMMAND_HANDLER(samv_flash_bank_command)
 {
-	LOG_INFO("flash bank command");
 	struct samv_flash_bank *samv_info;
 	samv_info = calloc(1, sizeof(struct samv_flash_bank));
 	bank->driver_priv = samv_info;
@@ -510,12 +509,12 @@ static int samv_erase(struct flash_bank *bank, unsigned int first,
 	if ((first == 0) && ((last + 1) == bank->num_sectors))
 		return samv_efc_perform_command(bank->target, SAMV_EFC_FCMD_EA, 0, NULL);
 
-	LOG_INFO("erasing lock regions %u-%u...", first, last);
+	LOG_DEBUG("erasing lock regions %u-%u...", first, last);
 
 	for (unsigned int i = first; i <= last; i++) {
 		uint32_t status;
 		r = samv_erase_pages(bank->target, (i * page_count), page_count, &status);
-		LOG_INFO("erasing lock region %u", i);
+		LOG_DEBUG("erasing lock region %u", i);
 		if (r != ERROR_OK)
 			LOG_ERROR("error performing erase page @ lock region number %u", i);
 		if (status & (1 << 2)) {
