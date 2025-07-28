@@ -214,7 +214,7 @@ static int armv8_handle_inner_cache_info_command(struct command_invocation *cmd,
 {
 	int cl;
 
-	if (armv8_cache->info == -1) {
+	if (!armv8_cache->info_valid) {
 		command_print(cmd, "cache not yet identified");
 		return ERROR_OK;
 	}
@@ -262,7 +262,7 @@ static int  armv8_flush_all_data(struct target *target)
 	int retval = ERROR_FAIL;
 	/*  check that armv8_cache is correctly identify */
 	struct armv8_common *armv8 = target_to_armv8(target);
-	if (armv8->armv8_mmu.armv8_cache.info == -1) {
+	if (!armv8->armv8_mmu.armv8_cache.info_valid) {
 		LOG_ERROR("trying to flush un-identified cache");
 		return retval;
 	}
@@ -288,7 +288,7 @@ static int  armv8_flush_all_instruction(struct target *target)
 	int retval = ERROR_FAIL;
 	/*  check that armv8_cache is correctly identify */
 	struct armv8_common *armv8 = target_to_armv8(target);
-	if (armv8->armv8_mmu.armv8_cache.info == -1) {
+	if (!armv8->armv8_mmu.armv8_cache.info_valid) {
 		LOG_ERROR("trying to flush un-identified cache");
 		return retval;
 	}
@@ -459,7 +459,7 @@ int armv8_identify_cache(struct armv8_common *armv8)
 	if (retval != ERROR_OK)
 		goto done;
 
-	armv8->armv8_mmu.armv8_cache.info = 1;
+	armv8->armv8_mmu.armv8_cache.info_valid = true;
 
 	/*  if no l2 cache initialize l1 data cache flush function function */
 	if (!armv8->armv8_mmu.armv8_cache.flush_all_data_cache) {

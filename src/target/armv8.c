@@ -1303,7 +1303,7 @@ COMMAND_HANDLER(armv8_pauth_command)
 int armv8_handle_cache_info_command(struct command_invocation *cmd,
 	struct armv8_cache_common *armv8_cache)
 {
-	if (armv8_cache->info == -1) {
+	if (!armv8_cache->info_valid) {
 		command_print(cmd, "cache not yet identified");
 		return ERROR_OK;
 	}
@@ -1330,7 +1330,7 @@ int armv8_init_arch_info(struct target *target, struct armv8_common *armv8)
 	armv8->common_magic = ARMV8_COMMON_MAGIC;
 
 	armv8->armv8_mmu.armv8_cache.l2_cache = NULL;
-	armv8->armv8_mmu.armv8_cache.info = -1;
+	armv8->armv8_mmu.armv8_cache.info_valid = false;
 	armv8->armv8_mmu.armv8_cache.flush_all_data_cache = NULL;
 	armv8->armv8_mmu.armv8_cache.display_cache_info = NULL;
 	return ERROR_OK;

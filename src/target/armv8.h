@@ -151,7 +151,7 @@ struct armv8_arch_cache {
 };
 
 struct armv8_cache_common {
-	int info;
+	bool info_valid;
 	int loc;
 	uint32_t iminline;
 	uint32_t dminline;
