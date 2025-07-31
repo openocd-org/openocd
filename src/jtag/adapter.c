@@ -65,6 +65,7 @@ static const struct gpio_map {
 	[ADAPTER_GPIO_IDX_TRST] = { "trst", ADAPTER_GPIO_DIRECTION_OUTPUT, false, true, true },
 	[ADAPTER_GPIO_IDX_SRST] = { "srst", ADAPTER_GPIO_DIRECTION_OUTPUT, false, true, true },
 	[ADAPTER_GPIO_IDX_LED] = { "led", ADAPTER_GPIO_DIRECTION_OUTPUT, true, true, true },
+	[ADAPTER_GPIO_IDX_USER0] = { "user0", ADAPTER_GPIO_DIRECTION_BIDIRECTIONAL, true, true, true },
 };
 
 static int adapter_config_khz(unsigned int khz);

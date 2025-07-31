@@ -60,6 +60,7 @@ enum adapter_gpio_config_index {
 	ADAPTER_GPIO_IDX_SWCLK,
 	ADAPTER_GPIO_IDX_SRST,
 	ADAPTER_GPIO_IDX_LED,
+	ADAPTER_GPIO_IDX_USER0,
 	ADAPTER_GPIO_IDX_NUM, /* must be the last item */
 };
 

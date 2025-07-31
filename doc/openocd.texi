@@ -2440,7 +2440,7 @@ dict get [adapter list] ftdi
 @deffn {Config Command} {adapter gpio [ @
     @option{tdo} | @option{tdi} | @option{tms} | @option{tck} | @option{trst} | @
     @option{swdio} | @option{swdio_dir} | @option{swclk} | @option{srst} | @
-    @option{led} @
+    @option{led} | @option{user0} @
     [ @
         gpio_number | @option{-chip} chip_number | @
         @option{-active-high} | @option{-active-low} | @
@@ -2460,6 +2460,7 @@ JTAG transport signals
 @item @option{swdio_dir}: optional swdio buffer control signal
 @item @option{srst}: system reset signal
 @item @option{led}: optional activity led
+@item @option{user0}: optional, user-specific signal
 
 @end itemize
 
