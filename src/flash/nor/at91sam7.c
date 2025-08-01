@@ -277,7 +277,7 @@ static void at91sam7_set_flash_mode(struct flash_bank *bank, int mode)
 		if (at91sam7_info->mck_freq > 30000000ul)
 			fws = 1;
 
-		LOG_DEBUG("fmcn[%i]: %i", bank->bank_number, (int)(fmcn));
+		LOG_DEBUG("fmcn[%u]: %" PRIu32, bank->bank_number, fmcn);
 		fmr = fmcn << 16 | fws << 8;
 		target_write_u32(target, mc_fmr[bank->bank_number], fmr);
 	}
@@ -291,11 +291,11 @@ static uint32_t at91sam7_wait_status_busy(struct flash_bank *bank, uint32_t wait
 
 	while ((!((status = at91sam7_get_flash_status(bank->target,
 			bank->bank_number)) & waitbits)) && (timeout-- > 0)) {
-		LOG_DEBUG("status[%i]: 0x%" PRIx32, (int)bank->bank_number, status);
+		LOG_DEBUG("status[%u]: 0x%" PRIx32, bank->bank_number, status);
 		alive_sleep(1);
 	}
 
-	LOG_DEBUG("status[%i]: 0x%" PRIx32, bank->bank_number, status);
+	LOG_DEBUG("status[%u]: 0x%" PRIx32, bank->bank_number, status);
 
 	if (status & 0x0C) {
 		LOG_ERROR("status register: 0x%" PRIx32, status);
@@ -319,7 +319,7 @@ static int at91sam7_flash_command(struct flash_bank *bank, uint8_t cmd, uint16_t
 
 	fcr = (0x5A << 24) | ((pagen&0x3FF) << 8) | cmd;
 	target_write_u32(target, mc_fcr[bank->bank_number], fcr);
-	LOG_DEBUG("Flash command: 0x%" PRIx32 ", flash bank: %i, page number: %u",
+	LOG_DEBUG("Flash command: 0x%" PRIx32 ", flash bank: %u, page number: %" PRIu16,
 		fcr,
 		bank->bank_number + 1,
 		pagen);
