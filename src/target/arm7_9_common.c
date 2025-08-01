@@ -2135,8 +2135,6 @@ int arm7_9_read_memory(struct target *target,
 	reg[0] = address;
 	arm7_9->write_core_regs(target, 0x1, reg);
 
-	int j = 0;
-
 	switch (size) {
 		case 4:
 			while (num_accesses < count) {
@@ -2166,8 +2164,7 @@ int arm7_9_read_memory(struct target *target,
 				buffer += thisrun_accesses * 4;
 				num_accesses += thisrun_accesses;
 
-				if ((j++%1024) == 0)
-					keep_alive();
+				keep_alive();
 			}
 			break;
 		case 2:
@@ -2199,8 +2196,7 @@ int arm7_9_read_memory(struct target *target,
 				buffer += thisrun_accesses * 2;
 				num_accesses += thisrun_accesses;
 
-				if ((j++%1024) == 0)
-					keep_alive();
+				keep_alive();
 			}
 			break;
 		case 1:
@@ -2231,8 +2227,7 @@ int arm7_9_read_memory(struct target *target,
 				buffer += thisrun_accesses * 1;
 				num_accesses += thisrun_accesses;
 
-				if ((j++%1024) == 0)
-					keep_alive();
+				keep_alive();
 			}
 			break;
 	}

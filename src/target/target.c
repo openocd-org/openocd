@@ -3216,8 +3216,6 @@ COMMAND_HANDLER(handle_wait_halt_command)
 /* wait for target state to change. The trick here is to have a low
  * latency for short waits and not to suck up all the CPU time
  * on longer waits.
- *
- * After 500ms, keep_alive() is invoked
  */
 int target_wait_state(struct target *target, enum target_state state, unsigned int ms)
 {
@@ -3239,11 +3237,9 @@ int target_wait_state(struct target *target, enum target_state state, unsigned i
 				nvp_value2name(nvp_target_state, state)->name);
 		}
 
-		if (cur - then > 500) {
-			keep_alive();
-			if (openocd_is_shutdown_pending())
-				return ERROR_SERVER_INTERRUPTED;
-		}
+		keep_alive();
+		if (openocd_is_shutdown_pending())
+			return ERROR_SERVER_INTERRUPTED;
 
 		if ((cur-then) > ms) {
 			LOG_ERROR("timed out while waiting for target %s",

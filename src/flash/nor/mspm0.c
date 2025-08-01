@@ -737,10 +737,10 @@ static int mspm0_fctl_wait_cmd_ok(struct flash_bank *bank)
 			return retval;
 
 		elapsed_ms = timeval_ms() - start_ms;
-		if (elapsed_ms > 500)
-			keep_alive();
 		if (elapsed_ms > MSPM0_FLASH_TIMEOUT_MS)
 			break;
+
+		keep_alive();
 	}
 
 	if ((return_code & FCTL_STATCMD_CMDPASS_MASK) != FCTL_STATCMD_CMDPASS_STATPASS) {

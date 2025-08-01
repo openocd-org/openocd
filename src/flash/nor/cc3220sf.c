@@ -65,10 +65,10 @@ static int cc3220sf_mass_erase(struct flash_bank *bank)
 			done = true;
 		} else {
 			elapsed_ms = timeval_ms() - start_ms;
-			if (elapsed_ms > 500)
-				keep_alive();
 			if (elapsed_ms > FLASH_TIMEOUT)
 				break;
+
+			keep_alive();
 		}
 	}
 
@@ -152,10 +152,10 @@ static int cc3220sf_erase(struct flash_bank *bank, unsigned int first,
 				done = true;
 			} else {
 				elapsed_ms = timeval_ms() - start_ms;
-				if (elapsed_ms > 500)
-					keep_alive();
 				if (elapsed_ms > FLASH_TIMEOUT)
 					break;
+
+				keep_alive();
 			}
 		}
 

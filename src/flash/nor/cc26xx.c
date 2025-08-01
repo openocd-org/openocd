@@ -112,10 +112,10 @@ static int cc26xx_wait_algo_done(struct flash_bank *bank, uint32_t params_addr)
 			return retval;
 
 		elapsed_ms = timeval_ms() - start_ms;
-		if (elapsed_ms > 500)
-			keep_alive();
 		if (elapsed_ms > FLASH_TIMEOUT)
 			break;
+
+		keep_alive();
 	};
 
 	if (status != CC26XX_BUFFER_EMPTY) {
@@ -321,8 +321,6 @@ static int cc26xx_write(struct flash_bank *bank, const uint8_t *buffer,
 	struct cc26xx_bank *cc26xx_bank = bank->driver_priv;
 	struct cc26xx_algo_params algo_params[2];
 	uint32_t size = 0;
-	long long start_ms;
-	long long elapsed_ms;
 	uint32_t address;
 
 	uint32_t index;
@@ -343,7 +341,6 @@ static int cc26xx_write(struct flash_bank *bank, const uint8_t *buffer,
 
 	/* Write requested data, ping-ponging between two buffers */
 	index = 0;
-	start_ms = timeval_ms();
 	address = bank->base + offset;
 	while (count > 0) {
 
@@ -381,9 +378,7 @@ static int cc26xx_write(struct flash_bank *bank, const uint8_t *buffer,
 		buffer += size;
 		address += size;
 
-		elapsed_ms = timeval_ms() - start_ms;
-		if (elapsed_ms > 500)
-			keep_alive();
+		keep_alive();
 	}
 
 	/* If no error yet, wait for last buffer to finish */

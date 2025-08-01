@@ -219,10 +219,10 @@ static int msp432_wait_return_code(struct target *target)
 			return retval;
 
 		elapsed_ms = timeval_ms() - start_ms;
-		if (elapsed_ms > 500)
-			keep_alive();
 		if (elapsed_ms > FLASH_TIMEOUT)
 			break;
+
+		keep_alive();
 	};
 
 	if (return_code != FLASH_SUCCESS) {
@@ -261,10 +261,10 @@ static int msp432_wait_inactive(struct target *target, uint32_t buffer)
 			return retval;
 
 		elapsed_ms = timeval_ms() - start_ms;
-		if (elapsed_ms > 500)
-			keep_alive();
 		if (elapsed_ms > FLASH_TIMEOUT)
 			break;
+
+		keep_alive();
 	};
 
 	if (status_code != BUFFER_INACTIVE) {
@@ -678,8 +678,6 @@ static int msp432_write(struct flash_bank *bank, const uint8_t *buffer,
 	struct msp432_algo_params algo_params;
 	uint32_t size;
 	uint32_t data_ready = BUFFER_DATA_READY;
-	long long start_ms;
-	long long elapsed_ms;
 
 	bool is_info = bank->base == P4_FLASH_INFO_BASE;
 
@@ -753,7 +751,6 @@ static int msp432_write(struct flash_bank *bank, const uint8_t *buffer,
 	}
 
 	/* Write requested data, one buffer at a time */
-	start_ms = timeval_ms();
 	while (count > 0) {
 
 		if (count > ALGO_BUFFER_SIZE)
@@ -786,9 +783,7 @@ static int msp432_write(struct flash_bank *bank, const uint8_t *buffer,
 		count -= size;
 		buffer += size;
 
-		elapsed_ms = timeval_ms() - start_ms;
-		if (elapsed_ms > 500)
-			keep_alive();
+		keep_alive();
 	}
 
 	/* Confirm that the flash helper algorithm is finished */
