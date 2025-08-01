@@ -245,7 +245,7 @@ int mips_ejtag_enter_debug(struct mips_ejtag *ejtag_info)
 	/* break bit will be cleared by hardware */
 	ejtag_ctrl = ejtag_info->ejtag_ctrl;
 	mips_ejtag_drscan_32(ejtag_info, &ejtag_ctrl);
-	LOG_DEBUG("ejtag_ctrl: 0x%8.8" PRIx32 "", ejtag_ctrl);
+	LOG_DEBUG("ejtag_ctrl: 0x%8.8" PRIx32, ejtag_ctrl);
 	if ((ejtag_ctrl & EJTAG_CTRL_BRKST) == 0)
 		goto error;
 

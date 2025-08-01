@@ -584,7 +584,7 @@ static int etm_write_reg(struct reg *reg, uint32_t value)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	LOG_DEBUG("%s (%u): 0x%8.8" PRIx32 "", r->name, reg_addr, value);
+	LOG_DEBUG("%s (%u): 0x%8.8" PRIx32, r->name, reg_addr, value);
 
 	retval = arm_jtag_scann(etm_reg->jtag_info, 0x6, TAP_IDLE);
 	if (retval != ERROR_OK)
@@ -986,7 +986,7 @@ static int etmv1_analyze_trace(struct etm_context *ctx, struct command_invocatio
 					command_print(cmd, "data abort");
 				else {
 					command_print(cmd,
-						"exception vector 0x%2.2" PRIx32 "",
+						"exception vector 0x%2.2" PRIx32,
 						ctx->last_branch);
 					ctx->current_pc = ctx->last_branch;
 					ctx->pipe_index++;
@@ -1044,7 +1044,7 @@ static int etmv1_analyze_trace(struct etm_context *ctx, struct command_invocatio
 
 				if (ctx->ptr_ok)
 					command_print(cmd,
-						"address: 0x%8.8" PRIx32 "",
+						"address: 0x%8.8" PRIx32,
 						ctx->last_ptr);
 			}
 
@@ -1059,7 +1059,7 @@ static int etmv1_analyze_trace(struct etm_context *ctx, struct command_invocatio
 							if (etmv1_data(ctx, 4, &data) != 0)
 								return ERROR_ETM_ANALYSIS_FAILED;
 							command_print(cmd,
-								"data: 0x%8.8" PRIx32 "",
+								"data: 0x%8.8" PRIx32,
 								data);
 						}
 					}
@@ -1069,7 +1069,7 @@ static int etmv1_analyze_trace(struct etm_context *ctx, struct command_invocatio
 					if (etmv1_data(ctx, arm_access_size(&instruction),
 						&data) != 0)
 						return ERROR_ETM_ANALYSIS_FAILED;
-					command_print(cmd, "data: 0x%8.8" PRIx32 "", data);
+					command_print(cmd, "data: 0x%8.8" PRIx32, data);
 				}
 			}
 

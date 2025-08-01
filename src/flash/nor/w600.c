@@ -128,13 +128,13 @@ static int w600_start_do(struct flash_bank *bank, uint32_t cmd, uint32_t addr,
 	if (len > 0)
 		cmd |= QFLASH_CMD_DATALEN(len - 1) | QFLASH_CMD_DATA;
 
-	LOG_DEBUG("WRITE CMD: 0x%08" PRIx32 "", cmd);
+	LOG_DEBUG("WRITE CMD: 0x%08" PRIx32, cmd);
 	int retval = target_write_u32(target, QFLASH_CMD_INFO, cmd);
 	if (retval != ERROR_OK)
 		return retval;
 
 	addr |= QFLASH_START;
-	LOG_DEBUG("WRITE START: 0x%08" PRIx32 "", addr);
+	LOG_DEBUG("WRITE START: 0x%08" PRIx32, addr);
 	retval = target_write_u32(target, QFLASH_CMD_START, addr);
 	if (retval != ERROR_OK)
 		return retval;
@@ -148,7 +148,7 @@ static int w600_start_do(struct flash_bank *bank, uint32_t cmd, uint32_t addr,
 		LOG_DEBUG("READ START...");
 		retval = target_read_u32(target, QFLASH_CMD_START, &status);
 		if (retval == ERROR_OK)
-			LOG_DEBUG("READ START: 0x%08" PRIx32 "", status);
+			LOG_DEBUG("READ START: 0x%08" PRIx32, status);
 		else
 			LOG_DEBUG("READ START FAILED");
 
@@ -283,7 +283,7 @@ static int w600_probe(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		return retval;
 
-	LOG_INFO("flash_id id = 0x%08" PRIx32 "", flash_id);
+	LOG_INFO("flash_id id = 0x%08" PRIx32, flash_id);
 	w600_info->id = flash_id;
 	w600_info->param = NULL;
 	for (i = 0; i < ARRAY_SIZE(w600_param); i++) {
@@ -360,7 +360,7 @@ static int get_w600_info(struct flash_bank *bank, struct command_invocation *cmd
 	if (retval != ERROR_OK)
 		return retval;
 
-	command_print_sameline(cmd, "w600 : 0x%08" PRIx32 "", flash_id);
+	command_print_sameline(cmd, "w600 : 0x%08" PRIx32, flash_id);
 	return ERROR_OK;
 }
 

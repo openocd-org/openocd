@@ -427,7 +427,7 @@ static int arm926ejs_post_debug_entry(struct target *target)
 	retval = jtag_execute_queue();
 	if (retval != ERROR_OK)
 		return retval;
-	LOG_DEBUG("cp15_control_reg: %8.8" PRIx32 "", arm926ejs->cp15_control_reg);
+	LOG_DEBUG("cp15_control_reg: %8.8" PRIx32, arm926ejs->cp15_control_reg);
 
 	if (arm926ejs->armv4_5_mmu.armv4_5_cache.ctype == -1) {
 		uint32_t cache_type_reg;
@@ -458,7 +458,7 @@ static int arm926ejs_post_debug_entry(struct target *target)
 	if (retval != ERROR_OK)
 		return retval;
 
-	LOG_DEBUG("D FSR: 0x%8.8" PRIx32 ", D FAR: 0x%8.8" PRIx32 ", I FSR: 0x%8.8" PRIx32 "",
+	LOG_DEBUG("D FSR: 0x%8.8" PRIx32 ", D FAR: 0x%8.8" PRIx32 ", I FSR: 0x%8.8" PRIx32,
 		arm926ejs->d_fsr, arm926ejs->d_far, arm926ejs->i_fsr);
 
 	uint32_t cache_dbg_ctrl;

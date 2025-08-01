@@ -374,7 +374,7 @@ static int mips32_read_core_reg(struct target *target, unsigned int num)
 	mips32->core_cache->reg_list[num].valid = true;
 	mips32->core_cache->reg_list[num].dirty = false;
 
-	LOG_DEBUG("read core reg %i value 0x%" PRIx64 "", num, reg_value);
+	LOG_DEBUG("read core reg %i value 0x%" PRIx64, num, reg_value);
 
 	return ERROR_OK;
 }
@@ -419,7 +419,7 @@ static int mips32_write_core_reg(struct target *target, unsigned int num)
 		mips32->core_regs.gpr[cnum] = (uint32_t)reg_value;
 	}
 
-	LOG_DEBUG("write core reg %i value 0x%" PRIx64 "", num, reg_value);
+	LOG_DEBUG("write core reg %i value 0x%" PRIx64, num, reg_value);
 	mips32->core_cache->reg_list[num].valid = true;
 	mips32->core_cache->reg_list[num].dirty = false;
 
@@ -485,7 +485,7 @@ int mips32_arch_state(struct target *target)
 {
 	struct mips32_common *mips32 = target_to_mips32(target);
 
-	LOG_USER("target halted in %s mode due to %s, pc: 0x%8.8" PRIx32 "",
+	LOG_USER("target halted in %s mode due to %s, pc: 0x%8.8" PRIx32,
 		mips_isa_strings[mips32->isa_mode],
 		debug_reason_name(target),
 		buf_get_u32(mips32->core_cache->reg_list[MIPS32_REGLIST_C0_PC_INDEX].value, 0, 32));

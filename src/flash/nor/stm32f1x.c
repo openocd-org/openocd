@@ -170,7 +170,7 @@ static int stm32x_wait_status_busy(struct flash_bank *bank, int timeout)
 		retval = stm32x_get_flash_status(bank, &status);
 		if (retval != ERROR_OK)
 			return retval;
-		LOG_DEBUG("status: 0x%" PRIx32 "", status);
+		LOG_DEBUG("status: 0x%" PRIx32, status);
 		if ((status & FLASH_BSY) == 0)
 			break;
 		if (timeout-- <= 0) {
@@ -825,7 +825,7 @@ static int stm32x_probe(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		return retval;
 
-	LOG_INFO("device id = 0x%08" PRIx32 "", dbgmcu_idcode);
+	LOG_INFO("device id = 0x%08" PRIx32, dbgmcu_idcode);
 
 	uint16_t device_id = dbgmcu_idcode & 0xfff;
 	uint16_t rev_id = dbgmcu_idcode >> 16;
@@ -1444,8 +1444,8 @@ COMMAND_HANDLER(stm32x_handle_options_read_command)
 	if (optionbyte & (1 << OPT_ERROR))
 		command_print(CMD, "option byte complement error");
 
-	command_print(CMD, "option byte register = 0x%" PRIx32 "", optionbyte);
-	command_print(CMD, "write protection register = 0x%" PRIx32 "", protection);
+	command_print(CMD, "option byte register = 0x%" PRIx32, optionbyte);
+	command_print(CMD, "write protection register = 0x%" PRIx32, protection);
 
 	command_print(CMD, "read protection: %s",
 				(optionbyte & (1 << OPT_READOUT)) ? "on" : "off");
@@ -1465,7 +1465,7 @@ COMMAND_HANDLER(stm32x_handle_options_read_command)
 	if (stm32x_info->has_dual_banks)
 		command_print(CMD, "boot: bank %d", (optionbyte & (1 << OPT_BFB2)) ? 0 : 1);
 
-	command_print(CMD, "user data = 0x%02" PRIx16 "", user_data);
+	command_print(CMD, "user data = 0x%02" PRIx16, user_data);
 
 	return ERROR_OK;
 }

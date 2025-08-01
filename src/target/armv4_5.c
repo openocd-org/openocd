@@ -1564,7 +1564,7 @@ int armv4_5_run_algorithm_inner(struct target *target,
 		regvalue = buf_get_u32(ARMV4_5_CORE_REG_MODE(arm->core_cache,
 				arm_algorithm_info->core_mode, i).value, 0, 32);
 		if (regvalue != context[i]) {
-			LOG_DEBUG("restoring register %s with value 0x%8.8" PRIx32 "",
+			LOG_DEBUG("restoring register %s with value 0x%8.8" PRIx32,
 				ARMV4_5_CORE_REG_MODE(arm->core_cache,
 				arm_algorithm_info->core_mode, i).name, context[i]);
 			buf_set_u32(ARMV4_5_CORE_REG_MODE(arm->core_cache,

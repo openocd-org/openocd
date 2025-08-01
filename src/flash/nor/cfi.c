@@ -2722,7 +2722,7 @@ int cfi_probe(struct flash_bank *bank)
 				if (retval != ERROR_OK)
 					return retval;
 				LOG_DEBUG(
-					"erase region[%i]: %" PRIu32 " blocks of size 0x%" PRIx32 "",
+					"erase region[%i]: %" PRIu32 " blocks of size 0x%" PRIx32,
 					i,
 					(cfi_info->erase_region_info[i] & 0xffff) + 1,
 					(cfi_info->erase_region_info[i] >> 16) * 256);
@@ -2849,7 +2849,7 @@ int cfi_probe(struct flash_bank *bank)
 		}
 		if (offset != (cfi_info->dev_size * bank->bus_width / bank->chip_width)) {
 			LOG_WARNING(
-				"CFI size is 0x%" PRIx32 ", but total sector size is 0x%" PRIx32 "",
+				"CFI size is 0x%" PRIx32 ", but total sector size is 0x%" PRIx32,
 				(cfi_info->dev_size * bank->bus_width / bank->chip_width),
 				offset);
 		}

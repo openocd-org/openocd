@@ -283,7 +283,7 @@ static int mips64_write_core_reg(struct target *target, int num)
 
 	reg_value = buf_get_u64(mips64->core_cache->reg_list[num].value, 0, 64);
 	mips64->core_regs[num] = reg_value;
-	LOG_DEBUG("write core reg %i value 0x%" PRIx64 "", num, reg_value);
+	LOG_DEBUG("write core reg %i value 0x%" PRIx64, num, reg_value);
 	mips64->core_cache->reg_list[num].valid = true;
 	mips64->core_cache->reg_list[num].dirty = false;
 
@@ -361,7 +361,7 @@ int mips64_arch_state(struct target *target)
 		exit(-1);
 	}
 
-	LOG_USER("target halted due to %s, pc: 0x%" PRIx64 "",
+	LOG_USER("target halted due to %s, pc: 0x%" PRIx64,
 		 debug_reason_name(target), buf_get_u64(pc->value, 0, 64));
 
 	return ERROR_OK;

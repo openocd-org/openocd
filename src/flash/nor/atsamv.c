@@ -310,7 +310,7 @@ static int samv_probe(struct flash_bank *bank)
 	int r = samv_get_device_id(bank, &device_id);
 	if (r != ERROR_OK)
 		return r;
-	LOG_INFO("device id = 0x%08" PRIx32 "", device_id);
+	LOG_INFO("device id = 0x%08" PRIx32, device_id);
 
 	uint8_t eproc = (device_id >> 5) & 0x7;
 	if (eproc != 0) {

@@ -745,7 +745,7 @@ static int stm32lx_probe(struct flash_bank *bank)
 
 	stm32lx_info->idcode = device_id;
 
-	LOG_DEBUG("device id = 0x%08" PRIx32 "", device_id);
+	LOG_DEBUG("device id = 0x%08" PRIx32, device_id);
 
 	for (n = 0; n < ARRAY_SIZE(stm32lx_parts); n++) {
 		if ((device_id & 0xfff) == stm32lx_parts[n].id) {
@@ -1204,7 +1204,7 @@ static int stm32lx_wait_until_bsy_clear_timeout(struct flash_bank *bank, int tim
 		if (retval != ERROR_OK)
 			return retval;
 
-		LOG_DEBUG("status: 0x%" PRIx32 "", status);
+		LOG_DEBUG("status: 0x%" PRIx32, status);
 		if ((status & FLASH_SR__BSY) == 0)
 			break;
 

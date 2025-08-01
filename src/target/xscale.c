@@ -640,7 +640,7 @@ static int xscale_load_ic(struct target *target, uint32_t va, uint32_t buffer[8]
 	int word;
 	struct scan_field fields[2];
 
-	LOG_DEBUG("loading miniIC at 0x%8.8" PRIx32 "", va);
+	LOG_DEBUG("loading miniIC at 0x%8.8" PRIx32, va);
 
 	/* LDIC into IR */
 	xscale_jtag_set_instr(target->tap,
@@ -856,24 +856,24 @@ static int xscale_debug_entry(struct target *target)
 	buf_set_u32(arm->core_cache->reg_list[0].value, 0, 32, buffer[0]);
 	arm->core_cache->reg_list[0].dirty = true;
 	arm->core_cache->reg_list[0].valid = true;
-	LOG_DEBUG("r0: 0x%8.8" PRIx32 "", buffer[0]);
+	LOG_DEBUG("r0: 0x%8.8" PRIx32, buffer[0]);
 
 	/* move pc from buffer to register cache */
 	buf_set_u32(arm->pc->value, 0, 32, buffer[1]);
 	arm->pc->dirty = true;
 	arm->pc->valid = true;
-	LOG_DEBUG("pc: 0x%8.8" PRIx32 "", buffer[1]);
+	LOG_DEBUG("pc: 0x%8.8" PRIx32, buffer[1]);
 
 	/* move data from buffer to register cache */
 	for (i = 1; i <= 7; i++) {
 		buf_set_u32(arm->core_cache->reg_list[i].value, 0, 32, buffer[1 + i]);
 		arm->core_cache->reg_list[i].dirty = true;
 		arm->core_cache->reg_list[i].valid = true;
-		LOG_DEBUG("r%i: 0x%8.8" PRIx32 "", i, buffer[i + 1]);
+		LOG_DEBUG("r%i: 0x%8.8" PRIx32, i, buffer[i + 1]);
 	}
 
 	arm_set_cpsr(arm, buffer[9]);
-	LOG_DEBUG("cpsr: 0x%8.8" PRIx32 "", buffer[9]);
+	LOG_DEBUG("cpsr: 0x%8.8" PRIx32, buffer[9]);
 
 	if (!is_arm_mode(arm->core_mode)) {
 		target->state = TARGET_UNKNOWN;
@@ -1159,7 +1159,7 @@ static int xscale_resume(struct target *target, bool current,
 				uint32_t current_opcode;
 				target_read_u32(target, current_pc, &current_opcode);
 				LOG_ERROR(
-					"BUG: couldn't calculate PC of next instruction, current opcode was 0x%8.8" PRIx32 "",
+					"BUG: couldn't calculate PC of next instruction, current opcode was 0x%8.8" PRIx32,
 					current_opcode);
 			}
 
@@ -1184,7 +1184,7 @@ static int xscale_resume(struct target *target, bool current,
 				/* send register */
 				xscale_send_u32(target,
 					buf_get_u32(arm->core_cache->reg_list[i].value, 0, 32));
-				LOG_DEBUG("writing r%i with value 0x%8.8" PRIx32 "",
+				LOG_DEBUG("writing r%i with value 0x%8.8" PRIx32,
 					i, buf_get_u32(arm->core_cache->reg_list[i].value, 0, 32));
 			}
 
@@ -1248,7 +1248,7 @@ static int xscale_resume(struct target *target, bool current,
 	for (i = 7; i >= 0; i--) {
 		/* send register */
 		xscale_send_u32(target, buf_get_u32(arm->core_cache->reg_list[i].value, 0, 32));
-		LOG_DEBUG("writing r%i with value 0x%8.8" PRIx32 "",
+		LOG_DEBUG("writing r%i with value 0x%8.8" PRIx32,
 			i, buf_get_u32(arm->core_cache->reg_list[i].value, 0, 32));
 	}
 
@@ -1293,7 +1293,7 @@ static int xscale_step_inner(struct target *target, bool current,
 
 		target_read_u32(target, current_pc, &current_opcode);
 		LOG_ERROR(
-			"BUG: couldn't calculate PC of next instruction, current opcode was 0x%8.8" PRIx32 "",
+			"BUG: couldn't calculate PC of next instruction, current opcode was 0x%8.8" PRIx32,
 			current_opcode);
 		return retval;
 	}
@@ -1337,7 +1337,7 @@ static int xscale_step_inner(struct target *target, bool current,
 				buf_get_u32(arm->core_cache->reg_list[i].value, 0, 32));
 		if (retval != ERROR_OK)
 			return retval;
-		LOG_DEBUG("writing r%i with value 0x%8.8" PRIx32 "", i,
+		LOG_DEBUG("writing r%i with value 0x%8.8" PRIx32, i,
 			buf_get_u32(arm->core_cache->reg_list[i].value, 0, 32));
 	}
 
@@ -3557,7 +3557,7 @@ COMMAND_HANDLER(xscale_handle_cp15)
 		/* read cp15 control register */
 		xscale_get_reg(reg);
 		value = buf_get_u32(reg->value, 0, 32);
-		command_print(CMD, "%s (/%i): 0x%" PRIx32 "", reg->name, (int)(reg->size),
+		command_print(CMD, "%s (/%i): 0x%" PRIx32, reg->name, (int)(reg->size),
 			value);
 	} else if (CMD_ARGC == 2) {
 		uint32_t value;

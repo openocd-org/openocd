@@ -408,7 +408,7 @@ COMMAND_HANDLER(parport_handle_port_command)
 		}
 	}
 
-	command_print(CMD, "parport port = 0x%" PRIx16 "", parport_port);
+	command_print(CMD, "parport port = 0x%" PRIx16, parport_port);
 
 	return ERROR_OK;
 }

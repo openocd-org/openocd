@@ -279,7 +279,7 @@ static int lpc288x_write(struct flash_bank *bank, const uint8_t *buffer, uint32_
 			/* all writes must start on a sector boundary... */
 			if (offset % bank->sectors[i].size) {
 				LOG_INFO(
-					"offset 0x%" PRIx32 " breaks required alignment 0x%" PRIx32 "",
+					"offset 0x%" PRIx32 " breaks required alignment 0x%" PRIx32,
 					offset,
 					bank->sectors[i].size);
 				return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
@@ -293,7 +293,7 @@ static int lpc288x_write(struct flash_bank *bank, const uint8_t *buffer, uint32_
 
 	/* Range check... */
 	if (first_sector == 0xffffffff || last_sector == 0xffffffff) {
-		LOG_INFO("Range check failed %" PRIx32 " %" PRIx32 "", offset, count);
+		LOG_INFO("Range check failed %" PRIx32 " %" PRIx32, offset, count);
 		return ERROR_FLASH_DST_OUT_OF_BANK;
 	}
 

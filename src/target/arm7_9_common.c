@@ -643,7 +643,7 @@ int arm7_9_execute_sys_speed(struct target *target)
 			keep_alive();
 	}
 	if (timeout) {
-		LOG_ERROR("timeout waiting for SYSCOMP & DBGACK, last DBG_STATUS: %" PRIx32 "",
+		LOG_ERROR("timeout waiting for SYSCOMP & DBGACK, last DBG_STATUS: %" PRIx32,
 			buf_get_u32(dbg_stat->value, 0, dbg_stat->size));
 		return ERROR_TARGET_TIMEOUT;
 	}
@@ -1332,7 +1332,7 @@ static int arm7_9_debug_entry(struct target *target)
 	for (i = 0; i <= 15; i++) {
 		struct reg *r = arm_reg_current(arm, i);
 
-		LOG_DEBUG("r%i: 0x%8.8" PRIx32 "", i, context[i]);
+		LOG_DEBUG("r%i: 0x%8.8" PRIx32, i, context[i]);
 
 		buf_set_u32(r->value, 0, 32, context[i]);
 		/* r0 and r15 (pc) have to be restored later */
@@ -1340,7 +1340,7 @@ static int arm7_9_debug_entry(struct target *target)
 		r->valid = true;
 	}
 
-	LOG_DEBUG("entered debug state at PC 0x%" PRIx32 "", context[15]);
+	LOG_DEBUG("entered debug state at PC 0x%" PRIx32, context[15]);
 
 	/* exceptions other than USR & SYS have a saved program status register */
 	if (arm->spsr) {
@@ -1594,7 +1594,7 @@ static int arm7_9_restore_context(struct target *target)
 			struct arm_reg *reg_arch_info;
 			reg_arch_info = reg->arch_info;
 			if ((reg->dirty) && (reg_arch_info->mode != ARM_MODE_ANY)) {
-				LOG_DEBUG("writing SPSR of mode %i with value 0x%8.8" PRIx32 "",
+				LOG_DEBUG("writing SPSR of mode %i with value 0x%8.8" PRIx32,
 					i,
 					buf_get_u32(reg->value, 0, 32));
 				arm7_9->write_xpsr(target, buf_get_u32(reg->value, 0, 32), 1);
@@ -1744,7 +1744,7 @@ int arm7_9_resume(struct target *target,
 				uint32_t current_opcode;
 				target_read_u32(target, current_pc, &current_opcode);
 				LOG_ERROR(
-					"Couldn't calculate PC of next instruction, current opcode was 0x%8.8" PRIx32 "",
+					"Couldn't calculate PC of next instruction, current opcode was 0x%8.8" PRIx32,
 					current_opcode);
 				return retval;
 			}
@@ -1789,7 +1789,7 @@ int arm7_9_resume(struct target *target,
 			LOG_DEBUG("new PC after step: 0x%8.8" PRIx32,
 				buf_get_u32(arm->pc->value, 0, 32));
 
-			LOG_DEBUG("set breakpoint at 0x%8.8" TARGET_PRIxADDR "", breakpoint->address);
+			LOG_DEBUG("set breakpoint at 0x%8.8" TARGET_PRIxADDR, breakpoint->address);
 			retval = arm7_9_set_breakpoint(target, breakpoint);
 			if (retval != ERROR_OK)
 				return retval;
@@ -1937,7 +1937,7 @@ int arm7_9_step(struct target *target, bool current, target_addr_t address,
 		uint32_t current_opcode;
 		target_read_u32(target, current_pc, &current_opcode);
 		LOG_ERROR(
-			"Couldn't calculate PC of next instruction, current opcode was 0x%8.8" PRIx32 "",
+			"Couldn't calculate PC of next instruction, current opcode was 0x%8.8" PRIx32,
 			current_opcode);
 		return retval;
 	}
@@ -2116,7 +2116,7 @@ int arm7_9_read_memory(struct target *target,
 	int retval;
 	int last_reg = 0;
 
-	LOG_DEBUG("address: 0x%8.8" TARGET_PRIxADDR ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32 "",
+	LOG_DEBUG("address: 0x%8.8" TARGET_PRIxADDR ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32,
 		address, size, count);
 
 	if (target->state != TARGET_HALTED) {
@@ -2636,7 +2636,7 @@ int arm7_9_bulk_write_memory(struct target *target,
 		uint32_t endaddress = buf_get_u32(reg_params[0].value, 0, 32);
 		if (endaddress != (address + count*4)) {
 			LOG_ERROR(
-				"DCC write failed, expected end address 0x%08" TARGET_PRIxADDR " got 0x%0" PRIx32 "",
+				"DCC write failed, expected end address 0x%08" TARGET_PRIxADDR " got 0x%0" PRIx32,
 				(address + count*4),
 				endaddress);
 			retval = ERROR_FAIL;

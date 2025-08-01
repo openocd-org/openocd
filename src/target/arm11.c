@@ -469,7 +469,7 @@ static int arm11_resume(struct target *target, bool current,
 
 		for (bp = target->breakpoints; bp; bp = bp->next) {
 			if (bp->address == address) {
-				LOG_DEBUG("must step over %08" TARGET_PRIxADDR "", bp->address);
+				LOG_DEBUG("must step over %08" TARGET_PRIxADDR, bp->address);
 				arm11_step(target, true, 0, false);
 				break;
 			}
@@ -802,7 +802,7 @@ static int arm11_read_memory_inner(struct target *target,
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	LOG_DEBUG("ADDR %08" PRIx32 "  SIZE %08" PRIx32 "  COUNT %08" PRIx32 "",
+	LOG_DEBUG("ADDR %08" PRIx32 "  SIZE %08" PRIx32 "  COUNT %08" PRIx32,
 		address,
 		size,
 		count);
@@ -900,7 +900,7 @@ static int arm11_write_memory_inner(struct target *target,
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	LOG_DEBUG("ADDR %08" PRIx32 "  SIZE %08" PRIx32 "  COUNT %08" PRIx32 "",
+	LOG_DEBUG("ADDR %08" PRIx32 "  SIZE %08" PRIx32 "  COUNT %08" PRIx32,
 		address,
 		size,
 		count);
@@ -1264,7 +1264,7 @@ COMMAND_HANDLER(arm11_handle_vcr)
 			return ERROR_COMMAND_SYNTAX_ERROR;
 	}
 
-	LOG_INFO("VCR 0x%08" PRIx32 "", arm11->vcr);
+	LOG_INFO("VCR 0x%08" PRIx32, arm11->vcr);
 	return ERROR_OK;
 }
 

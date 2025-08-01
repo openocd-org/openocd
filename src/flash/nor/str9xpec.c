@@ -735,7 +735,7 @@ COMMAND_HANDLER(str9xpec_handle_part_id_command)
 
 	idcode = buf_get_u32(buffer, 0, 32);
 
-	command_print(CMD, "str9xpec part id: 0x%8.8" PRIx32 "", idcode);
+	command_print(CMD, "str9xpec part id: 0x%8.8" PRIx32, idcode);
 
 	free(buffer);
 

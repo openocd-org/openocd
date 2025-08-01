@@ -554,7 +554,7 @@ static int cortex_m_clear_halt(struct target *target)
 	retval = mem_ap_write_atomic_u32(armv7m->debug_ap, NVIC_DFSR, cortex_m->nvic_dfsr);
 	if (retval != ERROR_OK)
 		return retval;
-	LOG_TARGET_DEBUG(target, "NVIC_DFSR 0x%" PRIx32 "", cortex_m->nvic_dfsr);
+	LOG_TARGET_DEBUG(target, "NVIC_DFSR 0x%" PRIx32, cortex_m->nvic_dfsr);
 
 	return ERROR_OK;
 }
@@ -616,7 +616,7 @@ static int cortex_m_endreset_event(struct target *target)
 	retval = mem_ap_read_atomic_u32(armv7m->debug_ap, DCB_DEMCR, &dcb_demcr);
 	if (retval != ERROR_OK)
 		return retval;
-	LOG_TARGET_DEBUG(target, "DCB_DEMCR = 0x%8.8" PRIx32 "", dcb_demcr);
+	LOG_TARGET_DEBUG(target, "DCB_DEMCR = 0x%8.8" PRIx32, dcb_demcr);
 
 	/* this register is used for emulated dcc channel */
 	retval = mem_ap_write_u32(armv7m->debug_ap, DCB_DCRDR, 0);
@@ -1911,7 +1911,7 @@ int cortex_m_set_breakpoint(struct target *target, struct breakpoint *breakpoint
 		comparator_list[fp_num].fpcr_value = fpcr_value;
 		target_write_u32(target, comparator_list[fp_num].fpcr_address,
 			comparator_list[fp_num].fpcr_value);
-		LOG_TARGET_DEBUG(target, "fpc_num %i fpcr_value 0x%" PRIx32 "",
+		LOG_TARGET_DEBUG(target, "fpc_num %i fpcr_value 0x%" PRIx32,
 			fp_num,
 			comparator_list[fp_num].fpcr_value);
 		if (!cortex_m->fpb_enabled) {
@@ -2773,7 +2773,7 @@ int cortex_m_examine(struct target *target)
 			else
 				LOG_TARGET_INFO(target, "The erratum 3092511 workaround will resume after an incorrect halt");
 		}
-		LOG_TARGET_DEBUG(target, "cpuid: 0x%8.8" PRIx32 "", cpuid);
+		LOG_TARGET_DEBUG(target, "cpuid: 0x%8.8" PRIx32, cpuid);
 
 		if (cortex_m->core_info->flags & CORTEX_M_F_HAS_FPV4) {
 			uint32_t mvfr0;

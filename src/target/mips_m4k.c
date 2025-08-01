@@ -486,11 +486,11 @@ static int mips_m4k_internal_restore(struct target *target, bool current,
 	if (!debug_execution) {
 		target->state = TARGET_RUNNING;
 		target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
-		LOG_DEBUG("target resumed at 0x%" PRIx32 "", resume_pc);
+		LOG_DEBUG("target resumed at 0x%" PRIx32, resume_pc);
 	} else {
 		target->state = TARGET_DEBUG_RUNNING;
 		target_call_event_callbacks(target, TARGET_EVENT_DEBUG_RESUMED);
-		LOG_DEBUG("target debug resumed at 0x%" PRIx32 "", resume_pc);
+		LOG_DEBUG("target debug resumed at 0x%" PRIx32, resume_pc);
 	}
 
 	return ERROR_OK;
@@ -638,7 +638,7 @@ static int mips_m4k_set_breakpoint(struct target *target,
 				 ejtag_info->ejtag_ibm_offs, 0x00000000);
 		target_write_u32(target, comparator_list[bp_num].reg_address +
 				 ejtag_info->ejtag_ibc_offs, 1);
-		LOG_DEBUG("bpid: %" PRIu32 ", bp_num %i bp_value 0x%" PRIx32 "",
+		LOG_DEBUG("bpid: %" PRIu32 ", bp_num %i bp_value 0x%" PRIx32,
 				  breakpoint->unique_id,
 				  bp_num, comparator_list[bp_num].bp_value);
 	} else if (breakpoint->type == BKPT_SOFT) {
@@ -928,7 +928,7 @@ static int mips_m4k_set_watchpoint(struct target *target,
 	/* TODO: probably this value is ignored on 2.0 */
 	target_write_u32(target, comparator_list[wp_num].reg_address +
 			 ejtag_info->ejtag_dbv_offs, 0);
-	LOG_DEBUG("wp_num %i bp_value 0x%" PRIx32 "", wp_num, comparator_list[wp_num].bp_value);
+	LOG_DEBUG("wp_num %i bp_value 0x%" PRIx32, wp_num, comparator_list[wp_num].bp_value);
 
 	return ERROR_OK;
 }
@@ -1012,7 +1012,7 @@ static int mips_m4k_read_memory(struct target *target, target_addr_t address,
 	struct mips32_common *mips32 = target_to_mips32(target);
 	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
 
-	LOG_DEBUG("address: " TARGET_ADDR_FMT ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32 "",
+	LOG_DEBUG("address: " TARGET_ADDR_FMT ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32,
 			address, size, count);
 
 	if (target->state != TARGET_HALTED) {
@@ -1077,7 +1077,7 @@ static int mips_m4k_write_memory(struct target *target, target_addr_t address,
 	struct mips32_common *mips32 = target_to_mips32(target);
 	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
 
-	LOG_DEBUG("address: " TARGET_ADDR_FMT ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32 "",
+	LOG_DEBUG("address: " TARGET_ADDR_FMT ", size: 0x%8.8" PRIx32 ", count: 0x%8.8" PRIx32,
 			address, size, count);
 
 	if (target->state != TARGET_HALTED) {
@@ -1204,7 +1204,7 @@ static int mips_m4k_bulk_write_memory(struct target *target, target_addr_t addre
 	int retval;
 	int write_t = 1;
 
-	LOG_DEBUG("address: " TARGET_ADDR_FMT ", count: 0x%8.8" PRIx32 "",
+	LOG_DEBUG("address: " TARGET_ADDR_FMT ", count: 0x%8.8" PRIx32,
 			  address, count);
 
 	/* check alignment */
@@ -1270,7 +1270,7 @@ static int mips_m4k_bulk_read_memory(struct target *target, target_addr_t addres
 	int retval;
 	int write_t = 0;
 
-	LOG_DEBUG("address: " TARGET_ADDR_FMT ", count: 0x%8.8" PRIx32 "",
+	LOG_DEBUG("address: " TARGET_ADDR_FMT ", count: 0x%8.8" PRIx32,
 			address, count);
 
 	/* check alignment */

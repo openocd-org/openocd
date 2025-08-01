@@ -115,7 +115,7 @@ static int em357_wait_status_busy(struct flash_bank *bank, int timeout)
 		retval = em357_get_flash_status(bank, &status);
 		if (retval != ERROR_OK)
 			return retval;
-		LOG_DEBUG("status: 0x%" PRIx32 "", status);
+		LOG_DEBUG("status: 0x%" PRIx32, status);
 		if ((status & FLASH_BSY) == 0)
 			break;
 		if (timeout-- <= 0) {

@@ -125,7 +125,7 @@ static int tms470_read_part_info(struct flash_bank *bank)
 	/* read and parse the device identification register */
 	target_read_u32(target, 0xFFFFFFF0, &device_ident_reg);
 
-	LOG_INFO("device_ident_reg = 0x%08" PRIx32 "", device_ident_reg);
+	LOG_INFO("device_ident_reg = 0x%08" PRIx32, device_ident_reg);
 
 	if ((device_ident_reg & 7) == 0) {
 		LOG_WARNING("Cannot identify target as a TMS470 family.");
@@ -300,7 +300,7 @@ COMMAND_HANDLER(tms470_handle_flash_keyset_command)
 
 	if (keys_set) {
 		command_print(CMD,
-			"using flash keys 0x%08" PRIx32 ", 0x%08" PRIx32 ", 0x%08" PRIx32 ", 0x%08" PRIx32 "",
+			"using flash keys 0x%08" PRIx32 ", 0x%08" PRIx32 ", 0x%08" PRIx32 ", 0x%08" PRIx32,
 			flash_keys[0],
 			flash_keys[1],
 			flash_keys[2],
@@ -419,7 +419,7 @@ static int tms470_try_flash_keys(struct target *target, const uint32_t *key_set)
 			 */
 			target_read_u32(target, 0x00001FF0 + 4 * i, &tmp);
 
-			LOG_INFO("tms470 writing fmpkey = 0x%08" PRIx32 "", key_set[i]);
+			LOG_INFO("tms470 writing fmpkey = 0x%08" PRIx32, key_set[i]);
 			target_write_u32(target, 0xFFE89C0C, key_set[i]);
 		}
 
@@ -500,7 +500,7 @@ static int tms470_flash_initialize_internal_state_machine(struct flash_bank *ban
 	fmmac2 &= ~0x0007;
 	fmmac2 |= (tms470_info->ordinal & 7);
 	target_write_u32(target, 0xFFE8BC04, fmmac2);
-	LOG_DEBUG("set fmmac2 = 0x%04" PRIx32 "", fmmac2);
+	LOG_DEBUG("set fmmac2 = 0x%04" PRIx32, fmmac2);
 
 	/*
 	 * Disable level 1 sector protection by setting bit 15 of FMMAC1.
@@ -508,7 +508,7 @@ static int tms470_flash_initialize_internal_state_machine(struct flash_bank *ban
 	target_read_u32(target, 0xFFE8BC00, &fmmac1);
 	fmmac1 |= 0x8000;
 	target_write_u32(target, 0xFFE8BC00, fmmac1);
-	LOG_DEBUG("set fmmac1 = 0x%04" PRIx32 "", fmmac1);
+	LOG_DEBUG("set fmmac1 = 0x%04" PRIx32, fmmac1);
 
 	/*
 	 * FMTCREG = 0x2fc0;
@@ -542,7 +542,7 @@ static int tms470_flash_initialize_internal_state_machine(struct flash_bank *ban
 		LOG_DEBUG("set fmptr3 = 0x9b64");
 	}
 	target_write_u32(target, 0xFFE8A080, fmmaxep);
-	LOG_DEBUG("set fmmaxep = 0x%04" PRIx32 "", fmmaxep);
+	LOG_DEBUG("set fmmaxep = 0x%04" PRIx32, fmmaxep);
 
 	/*
 	 * FMPTR4 = 0xa000
@@ -562,56 +562,56 @@ static int tms470_flash_initialize_internal_state_machine(struct flash_bank *ban
 	sysclk = (plldis ? 1 : (glbctrl & 0x08) ? 4 : 8) * osc_mhz / (1 + (glbctrl & 7));
 	delay = (sysclk > 10) ? (sysclk + 1) / 2 : 5;
 	target_write_u32(target, 0xFFE8A018, (delay << 4) | (delay << 8));
-	LOG_DEBUG("set fmpsetup = 0x%04" PRIx32 "", (delay << 4) | (delay << 8));
+	LOG_DEBUG("set fmpsetup = 0x%04" PRIx32, (delay << 4) | (delay << 8));
 
 	/*
 	 * FMPVEVACCESS, based on delay.
 	 */
 	k = delay | (delay << 8);
 	target_write_u32(target, 0xFFE8A05C, k);
-	LOG_DEBUG("set fmpvevaccess = 0x%04" PRIx32 "", k);
+	LOG_DEBUG("set fmpvevaccess = 0x%04" PRIx32, k);
 
 	/*
 	 * FMPCHOLD, FMPVEVHOLD, FMPVEVSETUP, based on delay.
 	 */
 	k <<= 1;
 	target_write_u32(target, 0xFFE8A034, k);
-	LOG_DEBUG("set fmpchold = 0x%04" PRIx32 "", k);
+	LOG_DEBUG("set fmpchold = 0x%04" PRIx32, k);
 	target_write_u32(target, 0xFFE8A040, k);
-	LOG_DEBUG("set fmpvevhold = 0x%04" PRIx32 "", k);
+	LOG_DEBUG("set fmpvevhold = 0x%04" PRIx32, k);
 	target_write_u32(target, 0xFFE8A024, k);
-	LOG_DEBUG("set fmpvevsetup = 0x%04" PRIx32 "", k);
+	LOG_DEBUG("set fmpvevsetup = 0x%04" PRIx32, k);
 
 	/*
 	 * FMCVACCESS, based on delay.
 	 */
 	k = delay * 16;
 	target_write_u32(target, 0xFFE8A060, k);
-	LOG_DEBUG("set fmcvaccess = 0x%04" PRIx32 "", k);
+	LOG_DEBUG("set fmcvaccess = 0x%04" PRIx32, k);
 
 	/*
 	 * FMCSETUP, based on delay.
 	 */
 	k = 0x3000 | delay * 20;
 	target_write_u32(target, 0xFFE8A020, k);
-	LOG_DEBUG("set fmcsetup = 0x%04" PRIx32 "", k);
+	LOG_DEBUG("set fmcsetup = 0x%04" PRIx32, k);
 
 	/*
 	 * FMEHOLD, based on delay.
 	 */
 	k = (delay * 20) << 2;
 	target_write_u32(target, 0xFFE8A038, k);
-	LOG_DEBUG("set fmehold = 0x%04" PRIx32 "", k);
+	LOG_DEBUG("set fmehold = 0x%04" PRIx32, k);
 
 	/*
 	 * PWIDTH, CWIDTH, EWIDTH, based on delay.
 	 */
 	target_write_u32(target, 0xFFE8A050, delay * 8);
-	LOG_DEBUG("set fmpwidth = 0x%04" PRIx32 "", delay * 8);
+	LOG_DEBUG("set fmpwidth = 0x%04" PRIx32, delay * 8);
 	target_write_u32(target, 0xFFE8A058, delay * 1000);
-	LOG_DEBUG("set fmcwidth = 0x%04" PRIx32 "", delay * 1000);
+	LOG_DEBUG("set fmcwidth = 0x%04" PRIx32, delay * 1000);
 	target_write_u32(target, 0xFFE8A054, delay * 5400);
-	LOG_DEBUG("set fmewidth = 0x%04" PRIx32 "", delay * 5400);
+	LOG_DEBUG("set fmewidth = 0x%04" PRIx32, delay * 5400);
 
 	return result;
 }
@@ -625,7 +625,7 @@ static int tms470_flash_status(struct flash_bank *bank)
 	uint32_t fmmstat;
 
 	target_read_u32(target, 0xFFE8BC0C, &fmmstat);
-	LOG_DEBUG("set fmmstat = 0x%04" PRIx32 "", fmmstat);
+	LOG_DEBUG("set fmmstat = 0x%04" PRIx32, fmmstat);
 
 	if (fmmstat & 0x0080) {
 		LOG_WARNING("tms470 flash command: erase still active after busy clear.");
@@ -680,7 +680,7 @@ static int tms470_erase_sector(struct flash_bank *bank, int sector)
 	 */
 	target_read_u32(target, 0xFFFFFFDC, &glbctrl);
 	target_write_u32(target, 0xFFFFFFDC, glbctrl | 0x10);
-	LOG_DEBUG("set glbctrl = 0x%08" PRIx32 "", glbctrl | 0x10);
+	LOG_DEBUG("set glbctrl = 0x%08" PRIx32, glbctrl | 0x10);
 
 	/* Force normal read mode. */
 	target_read_u32(target, 0xFFE89C00, &orig_fmregopt);
@@ -697,11 +697,11 @@ static int tms470_erase_sector(struct flash_bank *bank, int sector)
 	if (sector < 16) {
 		target_read_u32(target, 0xFFE88008, &fmbsea);
 		target_write_u32(target, 0xFFE88008, fmbsea | (1 << sector));
-		LOG_DEBUG("set fmbsea = 0x%04" PRIx32 "", fmbsea | (1 << sector));
+		LOG_DEBUG("set fmbsea = 0x%04" PRIx32, fmbsea | (1 << sector));
 	} else {
 		target_read_u32(target, 0xFFE8800C, &fmbseb);
 		target_write_u32(target, 0xFFE8800C, fmbseb | (1 << (sector - 16)));
-		LOG_DEBUG("set fmbseb = 0x%04" PRIx32 "", fmbseb | (1 << (sector - 16)));
+		LOG_DEBUG("set fmbseb = 0x%04" PRIx32, fmbseb | (1 << (sector - 16)));
 	}
 	bank->sectors[sector].is_protected = 0;
 
@@ -729,17 +729,17 @@ static int tms470_erase_sector(struct flash_bank *bank, int sector)
 
 	if (sector < 16) {
 		target_write_u32(target, 0xFFE88008, fmbsea);
-		LOG_DEBUG("set fmbsea = 0x%04" PRIx32 "", fmbsea);
+		LOG_DEBUG("set fmbsea = 0x%04" PRIx32, fmbsea);
 		bank->sectors[sector].is_protected = fmbsea & (1 << sector) ? 0 : 1;
 	} else {
 		target_write_u32(target, 0xFFE8800C, fmbseb);
-		LOG_DEBUG("set fmbseb = 0x%04" PRIx32 "", fmbseb);
+		LOG_DEBUG("set fmbseb = 0x%04" PRIx32, fmbseb);
 		bank->sectors[sector].is_protected = fmbseb & (1 << (sector - 16)) ? 0 : 1;
 	}
 	target_write_u32(target, 0xFFE89C00, orig_fmregopt);
-	LOG_DEBUG("set fmregopt = 0x%08" PRIx32 "", orig_fmregopt);
+	LOG_DEBUG("set fmregopt = 0x%08" PRIx32, orig_fmregopt);
 	target_write_u32(target, 0xFFFFFFDC, glbctrl);
-	LOG_DEBUG("set glbctrl = 0x%08" PRIx32 "", glbctrl);
+	LOG_DEBUG("set glbctrl = 0x%08" PRIx32, glbctrl);
 
 	return result;
 }
@@ -920,7 +920,7 @@ static int tms470_write(struct flash_bank *bank, const uint8_t *buffer, uint32_t
 		uint16_t word = (((uint16_t) buffer[i]) << 8) | (uint16_t) buffer[i + 1];
 
 		if (word != 0xffff) {
-			LOG_INFO("writing 0x%04x at 0x%08" PRIx32 "", word, addr);
+			LOG_INFO("writing 0x%04x at 0x%08" PRIx32, word, addr);
 
 			/* clear status register */
 			target_write_u16(target, addr, 0x0040);
@@ -940,7 +940,7 @@ static int tms470_write(struct flash_bank *bank, const uint8_t *buffer, uint32_t
 			} while (fmmstat & 0x0100);
 
 			if (fmmstat & 0x3ff) {
-				LOG_ERROR("fmstat = 0x%04" PRIx32 "", fmmstat);
+				LOG_ERROR("fmstat = 0x%04" PRIx32, fmmstat);
 				LOG_ERROR(
 					"Could not program word 0x%04x at address 0x%08" PRIx32 ".",
 					word,
@@ -949,7 +949,7 @@ static int tms470_write(struct flash_bank *bank, const uint8_t *buffer, uint32_t
 				break;
 			}
 		} else
-			LOG_INFO("skipping 0xffff at 0x%08" PRIx32 "", addr);
+			LOG_INFO("skipping 0xffff at 0x%08" PRIx32, addr);
 	}
 
 	/* restore */

@@ -424,7 +424,7 @@ out_err:
 
 static void xlnx_xvc_execute_sleep(struct jtag_command *cmd)
 {
-	LOG_DEBUG("sleep %" PRIu32 "", cmd->cmd.sleep->us);
+	LOG_DEBUG("sleep %" PRIu32, cmd->cmd.sleep->us);
 	usleep(cmd->cmd.sleep->us);
 }
 

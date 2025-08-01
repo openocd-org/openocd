@@ -335,7 +335,7 @@ static int str7x_erase(struct flash_bank *bank, unsigned int first,
 	for (unsigned int i = first; i <= last; i++)
 		sectors |= str7x_info->sector_bits[i];
 
-	LOG_DEBUG("sectors: 0x%" PRIx32 "", sectors);
+	LOG_DEBUG("sectors: 0x%" PRIx32, sectors);
 
 	/* clear FLASH_ER register */
 	err = target_write_u32(target, str7x_get_flash_adr(bank, FLASH_ER), 0x0);

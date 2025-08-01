@@ -257,7 +257,7 @@ static int qn908x_update_reg(struct target *target, target_addr_t reg,
 	}
 	if (mask == 0xffffffff) {
 		LOG_DEBUG("Updated reg at " TARGET_ADDR_FMT ": ?? -> 0x%.08"
-				PRIx32 "", reg, new_value);
+				PRIx32, reg, new_value);
 	} else {
 		LOG_DEBUG("Updated reg at " TARGET_ADDR_FMT ": 0x%.08" PRIx32
 				" -> 0x%.08" PRIx32, reg, orig_value, new_value);

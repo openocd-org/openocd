@@ -1094,11 +1094,11 @@ static int stm8_resume(struct target *target, bool current,
 	if (!debug_execution) {
 		target->state = TARGET_RUNNING;
 		target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
-		LOG_DEBUG("target resumed at 0x%" PRIx32 "", resume_pc);
+		LOG_DEBUG("target resumed at 0x%" PRIx32, resume_pc);
 	} else {
 		target->state = TARGET_DEBUG_RUNNING;
 		target_call_event_callbacks(target, TARGET_EVENT_DEBUG_RESUMED);
-		LOG_DEBUG("target debug resumed at 0x%" PRIx32 "", resume_pc);
+		LOG_DEBUG("target debug resumed at 0x%" PRIx32, resume_pc);
 	}
 
 	return ERROR_OK;
@@ -1173,7 +1173,7 @@ static int stm8_read_core_reg(struct target *target, unsigned int num)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	reg_value = stm8->core_regs[num];
-	LOG_DEBUG("read core reg %i value 0x%" PRIx32 "", num, reg_value);
+	LOG_DEBUG("read core reg %i value 0x%" PRIx32, num, reg_value);
 	buf_set_u32(stm8->core_cache->reg_list[num].value, 0, 32, reg_value);
 	stm8->core_cache->reg_list[num].valid = true;
 	stm8->core_cache->reg_list[num].dirty = false;
@@ -1193,7 +1193,7 @@ static int stm8_write_core_reg(struct target *target, unsigned int num)
 
 	reg_value = buf_get_u32(stm8->core_cache->reg_list[num].value, 0, 32);
 	stm8->core_regs[num] = reg_value;
-	LOG_DEBUG("write core reg %i value 0x%" PRIx32 "", num, reg_value);
+	LOG_DEBUG("write core reg %i value 0x%" PRIx32, num, reg_value);
 	stm8->core_cache->reg_list[num].valid = true;
 	stm8->core_cache->reg_list[num].dirty = false;
 
@@ -1327,7 +1327,7 @@ static int stm8_arch_state(struct target *target)
 {
 	struct stm8_common *stm8 = target_to_stm8(target);
 
-	LOG_USER("target halted due to %s, pc: 0x%8.8" PRIx32 "",
+	LOG_USER("target halted due to %s, pc: 0x%8.8" PRIx32,
 		debug_reason_name(target),
 		buf_get_u32(stm8->core_cache->reg_list[STM8_PC].value, 0, 32));
 
@@ -1438,7 +1438,7 @@ static int stm8_set_breakpoint(struct target *target,
 		if (retval != ERROR_OK)
 			return retval;
 
-		LOG_DEBUG("bpid: %" PRIu32 ", bp_num %i bp_value 0x%" PRIx32 "",
+		LOG_DEBUG("bpid: %" PRIu32 ", bp_num %i bp_value 0x%" PRIx32,
 				  breakpoint->unique_id,
 				  bp_num, comparator_list[bp_num].bp_value);
 	} else if (breakpoint->type == BKPT_SOFT) {
@@ -1626,7 +1626,7 @@ static int stm8_set_watchpoint(struct target *target,
 
 	watchpoint_set(watchpoint, wp_num);
 
-	LOG_DEBUG("wp_num %i bp_value 0x%" PRIx32 "",
+	LOG_DEBUG("wp_num %i bp_value 0x%" PRIx32,
 			wp_num,
 			comparator_list[wp_num].bp_value);
 

@@ -502,7 +502,7 @@ void embeddedice_write_reg(struct reg *reg, uint32_t value)
 {
 	struct embeddedice_reg *ice_reg = reg->arch_info;
 
-	LOG_DEBUG("%i: 0x%8.8" PRIx32 "", ice_reg->addr, value);
+	LOG_DEBUG("%i: 0x%8.8" PRIx32, ice_reg->addr, value);
 
 	arm_jtag_scann(ice_reg->jtag_info, 0x2, TAP_IDLE);
 

@@ -197,7 +197,7 @@ static int arm720t_post_debug_entry(struct target *target)
 	retval = jtag_execute_queue();
 	if (retval != ERROR_OK)
 		return retval;
-	LOG_DEBUG("cp15_control_reg: %8.8" PRIx32 "", arm720t->cp15_control_reg);
+	LOG_DEBUG("cp15_control_reg: %8.8" PRIx32, arm720t->cp15_control_reg);
 
 	arm720t->armv4_5_mmu.mmu_enabled = arm720t->cp15_control_reg & 0x1U;
 	arm720t->armv4_5_mmu.armv4_5_cache.d_u_cache_enabled =

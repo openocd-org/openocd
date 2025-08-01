@@ -573,13 +573,13 @@ static void stellaris_read_clock_info(struct flash_bank *bank)
 	unsigned long mainfreq;
 
 	target_read_u32(target, SCB_BASE | RCC, &rcc);
-	LOG_DEBUG("Stellaris RCC %" PRIx32 "", rcc);
+	LOG_DEBUG("Stellaris RCC %" PRIx32, rcc);
 
 	target_read_u32(target, SCB_BASE | RCC2, &rcc2);
-	LOG_DEBUG("Stellaris RCC2 %" PRIx32 "", rcc);
+	LOG_DEBUG("Stellaris RCC2 %" PRIx32, rcc);
 
 	target_read_u32(target, SCB_BASE | PLLCFG, &pllcfg);
-	LOG_DEBUG("Stellaris PLLCFG %" PRIx32 "", pllcfg);
+	LOG_DEBUG("Stellaris PLLCFG %" PRIx32, pllcfg);
 
 	stellaris_info->rcc = rcc;
 	stellaris_info->rcc2 = rcc2;
@@ -659,7 +659,7 @@ static int stellaris_read_part_info(struct flash_bank *bank)
 	target_read_u32(target, SCB_BASE | DID1, &did1);
 	target_read_u32(target, SCB_BASE | DC0, &stellaris_info->dc0);
 	target_read_u32(target, SCB_BASE | DC1, &stellaris_info->dc1);
-	LOG_DEBUG("did0 0x%" PRIx32 ", did1 0x%" PRIx32 ", dc0 0x%" PRIx32 ", dc1 0x%" PRIx32 "",
+	LOG_DEBUG("did0 0x%" PRIx32 ", did1 0x%" PRIx32 ", dc0 0x%" PRIx32 ", dc1 0x%" PRIx32,
 		  did0, did1, stellaris_info->dc0, stellaris_info->dc1);
 
 	ver = DID0_VER(did0);
@@ -871,7 +871,7 @@ static int stellaris_erase(struct flash_bank *bank, unsigned int first,
 		/* Check access violations */
 		target_read_u32(target, FLASH_CRIS, &flash_cris);
 		if (flash_cris & (AMASK)) {
-			LOG_WARNING("Error erasing flash page %i,  flash_cris 0x%" PRIx32 "",
+			LOG_WARNING("Error erasing flash page %i,  flash_cris 0x%" PRIx32,
 					banknr, flash_cris);
 			target_write_u32(target, FLASH_CRIS, 0);
 			return ERROR_FLASH_OPERATION_FAILED;
@@ -967,7 +967,7 @@ static int stellaris_protect(struct flash_bank *bank, int set,
 		/* Check access violations */
 		target_read_u32(target, FLASH_CRIS, &flash_cris);
 		if (flash_cris & (AMASK)) {
-			LOG_WARNING("Error setting flash page protection,  flash_cris 0x%" PRIx32 "", flash_cris);
+			LOG_WARNING("Error setting flash page protection,  flash_cris 0x%" PRIx32, flash_cris);
 			target_write_u32(target, FLASH_CRIS, 0);
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
@@ -1035,7 +1035,7 @@ static int stellaris_write_block(struct flash_bank *bank,
 	if (wcount * 4 < buf_min)
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 
-	LOG_DEBUG("(bank=%p buffer=%p offset=%08" PRIx32 " wcount=%08" PRIx32 "",
+	LOG_DEBUG("(bank=%p buffer=%p offset=%08" PRIx32 " wcount=%08" PRIx32,
 			bank, buffer, offset, wcount);
 
 	/* flash write code */
@@ -1115,7 +1115,7 @@ static int stellaris_write(struct flash_bank *bank, const uint8_t *buffer,
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	LOG_DEBUG("(bank=%p buffer=%p offset=%08" PRIx32 " count=%08" PRIx32 "",
+	LOG_DEBUG("(bank=%p buffer=%p offset=%08" PRIx32 " count=%08" PRIx32,
 			bank, buffer, offset, count);
 
 	if (stellaris_info->did1 == 0)
@@ -1153,7 +1153,7 @@ static int stellaris_write(struct flash_bank *bank, const uint8_t *buffer,
 				/* if an error occurred, we examine the reason, and quit */
 				target_read_u32(target, FLASH_CRIS, &flash_cris);
 
-				LOG_ERROR("flash writing failed with CRIS: 0x%" PRIx32 "", flash_cris);
+				LOG_ERROR("flash writing failed with CRIS: 0x%" PRIx32, flash_cris);
 				return ERROR_FLASH_OPERATION_FAILED;
 			}
 		} else {
@@ -1165,7 +1165,7 @@ static int stellaris_write(struct flash_bank *bank, const uint8_t *buffer,
 
 	while (words_remaining > 0) {
 		if (!(address & 0xff))
-			LOG_DEBUG("0x%" PRIx32 "", address);
+			LOG_DEBUG("0x%" PRIx32, address);
 
 		/* Program one word */
 		target_write_u32(target, FLASH_FMA, address);
@@ -1189,7 +1189,7 @@ static int stellaris_write(struct flash_bank *bank, const uint8_t *buffer,
 		memcpy(last_word, buffer+bytes_written, bytes_remaining);
 
 		if (!(address & 0xff))
-			LOG_DEBUG("0x%" PRIx32 "", address);
+			LOG_DEBUG("0x%" PRIx32, address);
 
 		/* Program one word */
 		target_write_u32(target, FLASH_FMA, address);
@@ -1205,7 +1205,7 @@ static int stellaris_write(struct flash_bank *bank, const uint8_t *buffer,
 	/* Check access violations */
 	target_read_u32(target, FLASH_CRIS, &flash_cris);
 	if (flash_cris & (AMASK)) {
-		LOG_DEBUG("flash_cris 0x%" PRIx32 "", flash_cris);
+		LOG_DEBUG("flash_cris 0x%" PRIx32, flash_cris);
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 	return ERROR_OK;

@@ -555,7 +555,7 @@ static int feroceon_bulk_write_memory(struct target *target,
 		if (endaddress != address + count*4) {
 			LOG_ERROR("DCC write failed,"
 				" expected end address 0x%08" TARGET_PRIxADDR
-				" got 0x%0" PRIx32 "",
+				" got 0x%0" PRIx32,
 				address + count*4, endaddress);
 			retval = ERROR_FAIL;
 		}

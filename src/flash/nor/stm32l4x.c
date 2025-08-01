@@ -981,7 +981,7 @@ static int stm32l4_wait_status_busy(struct flash_bank *bank, int timeout)
 		retval = stm32l4_read_flash_reg_by_index(bank, STM32_FLASH_SR_INDEX, &status);
 		if (retval != ERROR_OK)
 			return retval;
-		LOG_DEBUG("status: 0x%" PRIx32 "", status);
+		LOG_DEBUG("status: 0x%" PRIx32, status);
 		if ((status & stm32l4_info->sr_bsy_mask) == 0)
 			break;
 		if (timeout-- <= 0) {
@@ -2419,7 +2419,7 @@ COMMAND_HANDLER(stm32l4_handle_option_read_command)
 	if (retval != ERROR_OK)
 		return retval;
 
-	command_print(CMD, "Option Register: <0x%" PRIx32 "> = 0x%" PRIx32 "", reg_addr, value);
+	command_print(CMD, "Option Register: <0x%" PRIx32 "> = 0x%" PRIx32, reg_addr, value);
 
 	return retval;
 }

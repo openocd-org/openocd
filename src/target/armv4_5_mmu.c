@@ -31,7 +31,7 @@ int armv4_5_mmu_translate_va(struct target *target,
 		return retval;
 	first_lvl_descriptor = target_buffer_get_u32(target, (uint8_t *)&first_lvl_descriptor);
 
-	LOG_DEBUG("1st lvl desc: %8.8" PRIx32 "", first_lvl_descriptor);
+	LOG_DEBUG("1st lvl desc: %8.8" PRIx32, first_lvl_descriptor);
 
 	if ((first_lvl_descriptor & 0x3) == 0) {
 		LOG_ERROR("Address translation failure");
@@ -68,7 +68,7 @@ int armv4_5_mmu_translate_va(struct target *target,
 
 	second_lvl_descriptor = target_buffer_get_u32(target, (uint8_t *)&second_lvl_descriptor);
 
-	LOG_DEBUG("2nd lvl desc: %8.8" PRIx32 "", second_lvl_descriptor);
+	LOG_DEBUG("2nd lvl desc: %8.8" PRIx32, second_lvl_descriptor);
 
 	if ((second_lvl_descriptor & 0x3) == 0) {
 		LOG_ERROR("Address translation failure");

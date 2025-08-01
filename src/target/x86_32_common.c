@@ -1027,7 +1027,7 @@ static int set_swbp(struct target *t, struct breakpoint *bp)
 	if (read_phys_mem(t, physaddr, 1, 1, bp->orig_instr))
 		return ERROR_FAIL;
 
-	LOG_DEBUG("set software breakpoint - orig byte=0x%02" PRIx8 "", *bp->orig_instr);
+	LOG_DEBUG("set software breakpoint - orig byte=0x%02" PRIx8, *bp->orig_instr);
 
 	/* just write the instruction trap byte */
 	if (write_phys_mem(t, physaddr, 1, 1, &opcode))
@@ -1040,7 +1040,7 @@ static int set_swbp(struct target *t, struct breakpoint *bp)
 	if (readback != SW_BP_OPCODE) {
 		LOG_ERROR("%s software breakpoint error at " TARGET_ADDR_FMT ", check memory",
 				__func__, bp->address);
-		LOG_ERROR("%s readback=0x%02" PRIx8 " orig=0x%02" PRIx8 "",
+		LOG_ERROR("%s readback=0x%02" PRIx8 " orig=0x%02" PRIx8,
 				__func__, readback, *bp->orig_instr);
 		return ERROR_FAIL;
 	}
@@ -1089,7 +1089,7 @@ static int unset_swbp(struct target *t, struct breakpoint *bp)
 	} else {
 		LOG_ERROR("%s software breakpoint remove error at " TARGET_ADDR_FMT ", check memory",
 				__func__, bp->address);
-		LOG_ERROR("%s current=0x%02" PRIx8 " orig=0x%02" PRIx8 "",
+		LOG_ERROR("%s current=0x%02" PRIx8 " orig=0x%02" PRIx8,
 				__func__, current_instr, *bp->orig_instr);
 		return ERROR_FAIL;
 	}

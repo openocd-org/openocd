@@ -324,7 +324,7 @@ static int evaluate_blx_imm(uint32_t opcode,
 
 	snprintf(instruction->text,
 			128,
-			"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tBLX 0x%8.8" PRIx32 "",
+			"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\tBLX 0x%8.8" PRIx32,
 			address,
 			opcode,
 			target_address);
@@ -596,7 +596,7 @@ static int evaluate_load_store(uint32_t opcode,
 	if (!i) {	/* #+-<offset_12> */
 		uint32_t offset_12 = (opcode & 0xfff);
 		if (offset_12)
-			snprintf(offset, 32, ", #%s0x%" PRIx32 "", (u) ? "" : "-", offset_12);
+			snprintf(offset, 32, ", #%s0x%" PRIx32, (u) ? "" : "-", offset_12);
 		else
 			snprintf(offset, 32, "%s", "");
 
@@ -1079,7 +1079,7 @@ static int evaluate_misc_load_store(uint32_t opcode,
 
 	if (i) {/* Immediate offset/index (#+-<offset_8>)*/
 		uint32_t offset_8 = ((opcode & 0xf00) >> 4) | (opcode & 0xf);
-		snprintf(offset, 32, "#%s0x%" PRIx32 "", (u) ? "" : "-", offset_8);
+		snprintf(offset, 32, "#%s0x%" PRIx32, (u) ? "" : "-", offset_8);
 
 		instruction->info.load_store.offset_mode = 0;
 		instruction->info.load_store.offset.offset = offset_8;
@@ -1546,7 +1546,7 @@ static int evaluate_misc_instr(uint32_t opcode,
 
 		snprintf(instruction->text,
 				128,
-				"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\t%s 0x%4.4" PRIx32 "",
+				"0x%8.8" PRIx32 "\t0x%8.8" PRIx32 "\t%s 0x%4.4" PRIx32,
 				address,
 				opcode,
 				mnemonic,
@@ -1790,7 +1790,7 @@ static int evaluate_data_proc(uint32_t opcode,
 
 		immediate = ror(immed_8, rotate_imm * 2);
 
-		snprintf(shifter_operand, 32, "#0x%" PRIx32 "", immediate);
+		snprintf(shifter_operand, 32, "#0x%" PRIx32, immediate);
 
 		instruction->info.data_proc.variant = 0;
 		instruction->info.data_proc.shifter_operand.immediate.immediate = immediate;
@@ -2628,7 +2628,7 @@ static int evaluate_breakpoint_thumb(uint16_t opcode,
 	instruction->type = ARM_BKPT;
 
 	snprintf(instruction->text, 128,
-			"0x%8.8" PRIx32 "  0x%4.4x  \tBKPT\t%#2.2" PRIx32 "",
+			"0x%8.8" PRIx32 "  0x%4.4x  \tBKPT\t%#2.2" PRIx32,
 			address, opcode, imm);
 
 	return ERROR_OK;

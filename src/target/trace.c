@@ -115,7 +115,7 @@ COMMAND_HANDLER(handle_trace_history_command)
 			if (trace->trace_history[i % trace->trace_history_size] < trace->num_trace_points) {
 				uint32_t address;
 				address = trace->trace_points[trace->trace_history[i % trace->trace_history_size]].address;
-				command_print(CMD, "trace point %i: 0x%8.8" PRIx32 "",
+				command_print(CMD, "trace point %i: 0x%8.8" PRIx32,
 						(int)(trace->trace_history[i % trace->trace_history_size]),
 						address);
 			} else

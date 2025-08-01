@@ -287,7 +287,7 @@ static int etb_write_reg(struct reg *reg, uint32_t value)
 	uint8_t reg_addr = etb_reg->addr & 0x7f;
 	struct scan_field fields[3];
 
-	LOG_DEBUG("%i: 0x%8.8" PRIx32 "", (int)(etb_reg->addr), value);
+	LOG_DEBUG("%i: 0x%8.8" PRIx32, (int)(etb_reg->addr), value);
 
 	etb_scann(etb_reg->etb, 0x0);
 	etb_set_instr(etb_reg->etb, 0xc);

@@ -291,14 +291,14 @@ static uint32_t at91sam7_wait_status_busy(struct flash_bank *bank, uint32_t wait
 
 	while ((!((status = at91sam7_get_flash_status(bank->target,
 			bank->bank_number)) & waitbits)) && (timeout-- > 0)) {
-		LOG_DEBUG("status[%i]: 0x%" PRIx32 "", (int)bank->bank_number, status);
+		LOG_DEBUG("status[%i]: 0x%" PRIx32, (int)bank->bank_number, status);
 		alive_sleep(1);
 	}
 
-	LOG_DEBUG("status[%i]: 0x%" PRIx32 "", bank->bank_number, status);
+	LOG_DEBUG("status[%i]: 0x%" PRIx32, bank->bank_number, status);
 
 	if (status & 0x0C) {
-		LOG_ERROR("status register: 0x%" PRIx32 "", status);
+		LOG_ERROR("status register: 0x%" PRIx32, status);
 		if (status & 0x4)
 			LOG_ERROR("Lock Error Bit Detected, Operation Abort");
 		if (status & 0x8)
@@ -915,7 +915,7 @@ static int at91sam7_write(struct flash_bank *bank, const uint8_t *buffer, uint32
 	dst_min_alignment = at91sam7_info->pagesize;
 
 	if (offset % dst_min_alignment) {
-		LOG_WARNING("offset 0x%" PRIx32 " breaks required alignment 0x%" PRIx32 "",
+		LOG_WARNING("offset 0x%" PRIx32 " breaks required alignment 0x%" PRIx32,
 			offset,
 			dst_min_alignment);
 		return ERROR_FLASH_DST_BREAKS_ALIGNMENT;

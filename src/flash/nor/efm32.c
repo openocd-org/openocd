@@ -430,7 +430,7 @@ static int efm32x_wait_status(struct flash_bank *bank, int timeout,
 		if (ret != ERROR_OK)
 			break;
 
-		LOG_DEBUG("status: 0x%" PRIx32 "", status);
+		LOG_DEBUG("status: 0x%" PRIx32, status);
 
 		if (((status & wait_mask) == 0) && (wait_for_set == 0))
 			break;

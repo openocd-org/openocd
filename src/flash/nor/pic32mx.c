@@ -608,7 +608,7 @@ static int pic32mx_write(struct flash_bank *bank, const uint8_t *buffer, uint32_
 	}
 
 	LOG_DEBUG("writing to flash at address " TARGET_ADDR_FMT " at offset 0x%8.8" PRIx32
-			" count: 0x%8.8" PRIx32 "", bank->base, offset, count);
+			" count: 0x%8.8" PRIx32, bank->base, offset, count);
 
 	if (offset & 0x3) {
 		LOG_WARNING("offset 0x%" PRIx32 "breaks required 4-byte alignment", offset);
@@ -900,7 +900,7 @@ COMMAND_HANDLER(pic32mx_handle_unlock_command)
 		mchip_cmd = MCHP_STATUS;
 		mips_ejtag_drscan_8(ejtag_info, &mchip_cmd);
 		if (timeout-- == 0) {
-			LOG_DEBUG("timeout waiting for unlock: 0x%" PRIx8 "", mchip_cmd);
+			LOG_DEBUG("timeout waiting for unlock: 0x%" PRIx8, mchip_cmd);
 			break;
 		}
 		alive_sleep(1);

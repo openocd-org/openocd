@@ -567,7 +567,7 @@ static int numicro_reg_unlock(struct target *target)
 	if (retval != ERROR_OK)
 		return retval;
 
-	LOG_DEBUG("protected = 0x%08" PRIx32 "", is_protected);
+	LOG_DEBUG("protected = 0x%08" PRIx32, is_protected);
 	if (is_protected == 0) {	/* means protected - so unlock it */
 		/* unlock flash registers */
 		retval = target_write_u32(target, NUMICRO_SYS_WRPROT - m_address_bias_offset, REG_KEY1);
@@ -828,7 +828,7 @@ static int numicro_protect_check(struct flash_bank *bank)
 	numicro_fmc_cmd(target, ISPCMD_READ, NUMICRO_CONFIG0 - m_address_bias_offset, 0, &config[0]);
 	numicro_fmc_cmd(target, ISPCMD_READ, NUMICRO_CONFIG1 - m_address_bias_offset, 0, &config[1]);
 
-	LOG_DEBUG("CONFIG0: 0x%" PRIx32 ",CONFIG1: 0x%" PRIx32 "", config[0], config[1]);
+	LOG_DEBUG("CONFIG0: 0x%" PRIx32 ",CONFIG1: 0x%" PRIx32, config[0], config[1]);
 
 	if ((config[0] & (1<<7)) == 0)
 		LOG_INFO("CBS=0: Boot From LPROM");
@@ -908,7 +908,7 @@ static int numicro_erase(struct flash_bank *bank, unsigned int first,
 		if (retval != ERROR_OK)
 			return retval;
 		if ((status & ISPCON_ISPFF) != 0) {
-			LOG_DEBUG("failure: 0x%" PRIx32 "", status);
+			LOG_DEBUG("failure: 0x%" PRIx32, status);
 			/* if bit is set, then must write to it to clear it. */
 			retval = target_write_u32(target, NUMICRO_FLASH_ISPCON - m_address_bias_offset, (status | ISPCON_ISPFF));
 			if (retval != ERROR_OK)
@@ -1007,7 +1007,7 @@ static int numicro_write(struct flash_bank *bank, const uint8_t *buffer,
 	if (retval != ERROR_OK)
 		return retval;
 	if ((status & ISPCON_ISPFF) != 0) {
-		LOG_DEBUG("failure: 0x%" PRIx32 "", status);
+		LOG_DEBUG("failure: 0x%" PRIx32, status);
 		/* if bit is set, then must write to it to clear it. */
 		retval = target_write_u32(target,
 					  NUMICRO_FLASH_ISPCON - m_address_bias_offset,
@@ -1037,7 +1037,7 @@ static int numicro_get_cpu_type(struct target *target, const struct numicro_cpu_
 		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
-	LOG_INFO("Device ID: 0x%08" PRIx32 "", part_id);
+	LOG_INFO("Device ID: 0x%08" PRIx32, part_id);
 	/* search part numbers */
 	for (size_t i = 0; i < ARRAY_SIZE(numicro_parts); i++) {
 		if (part_id == numicro_parts[i].partid) {

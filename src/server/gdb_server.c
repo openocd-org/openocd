@@ -1557,7 +1557,7 @@ static int gdb_read_memory_packet(struct connection *connection,
 
 	buffer = malloc(len);
 
-	LOG_DEBUG("addr: 0x%16.16" PRIx64 ", len: 0x%8.8" PRIx32 "", addr, len);
+	LOG_DEBUG("addr: 0x%16.16" PRIx64 ", len: 0x%8.8" PRIx32, addr, len);
 
 	retval = ERROR_NOT_IMPLEMENTED;
 	if (target->rtos)
@@ -1629,7 +1629,7 @@ static int gdb_write_memory_packet(struct connection *connection,
 
 	buffer = malloc(len);
 
-	LOG_DEBUG("addr: 0x%" PRIx64 ", len: 0x%8.8" PRIx32 "", addr, len);
+	LOG_DEBUG("addr: 0x%" PRIx64 ", len: 0x%8.8" PRIx32, addr, len);
 
 	if (unhexify(buffer, separator, len) != len)
 		LOG_ERROR("unable to decode memory packet");
@@ -1705,7 +1705,7 @@ static int gdb_write_memory_binary_packet(struct connection *connection,
 	}
 
 	if (len) {
-		LOG_DEBUG("addr: 0x%" PRIx64 ", len: 0x%8.8" PRIx32 "", addr, len);
+		LOG_DEBUG("addr: 0x%" PRIx64 ", len: 0x%8.8" PRIx32, addr, len);
 
 		retval = ERROR_NOT_IMPLEMENTED;
 		if (target->rtos)
@@ -2874,7 +2874,7 @@ static int gdb_query_packet(struct connection *connection,
 			gdb_connection->output_flag = GDB_OUTPUT_NO;
 
 			if (retval == ERROR_OK) {
-				snprintf(gdb_reply, 10, "C%8.8" PRIx32 "", checksum);
+				snprintf(gdb_reply, 10, "C%8.8" PRIx32, checksum);
 				gdb_put_packet(connection, gdb_reply, 9);
 			} else {
 				retval = gdb_error(connection, retval);

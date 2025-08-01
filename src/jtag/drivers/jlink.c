@@ -241,7 +241,7 @@ static void jlink_execute_scan(struct jtag_command *cmd)
 
 static void jlink_execute_sleep(struct jtag_command *cmd)
 {
-	LOG_DEBUG_IO("sleep %" PRIu32 "", cmd->cmd.sleep->us);
+	LOG_DEBUG_IO("sleep %" PRIu32, cmd->cmd.sleep->us);
 	jlink_flush();
 	jtag_sleep(cmd->cmd.sleep->us);
 }
