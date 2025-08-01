@@ -242,9 +242,3 @@ include %D%/openrisc/Makefile.am
 include %D%/riscv/Makefile.am
 include %D%/xtensa/Makefile.am
 include %D%/espressif/Makefile.am
-
-if SYNTACORE_EXTENSIONS
-include %D%/embargo/sc-ext/Makefile.am
-%C%_libtarget_la_LIBADD += %D%/embargo/sc-ext/libscext.la
-endif
-
