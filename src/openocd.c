@@ -33,10 +33,6 @@
 #include <server/gdb_server.h>
 #include <server/rtt_server.h>
 
-#if SYNTACORE_EXTENSIONS
-#include <target/embargo/sc-ext/cmd.h>
-#endif
-
 #ifdef HAVE_STRINGS_H
 #include <strings.h>
 #endif
@@ -251,9 +247,6 @@ static int (* const command_registrants[])(struct command_context *cmd_ctx_value
 	cti_register_commands,
 	dap_register_commands,
 	arm_tpiu_swo_register_commands,
-#if SYNTACORE_EXTENSIONS
-	&syntacore_extensions_register_commands,
-#endif
 };
 
 static struct command_context *setup_command_handler(Jim_Interp *interp)
@@ -368,9 +361,6 @@ int openocd_main(int argc, char *argv[])
 	/* free all DAP and CTI objects */
 	arm_cti_cleanup_all();
 	dap_cleanup_all();
-#if SYNTACORE_EXTENSIONS
-	syntacore_extensions_cleanup();
-#endif
 
 	adapter_quit();
 
