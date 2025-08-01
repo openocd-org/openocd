@@ -39,14 +39,22 @@
 #include "cmsis_dap.h"
 #include "libusb_helper.h"
 
-static const struct cmsis_dap_backend *const cmsis_dap_backends[] = {
-#if BUILD_CMSIS_DAP_USB == 1
-	&cmsis_dap_usb_backend,
+/* Create a dummy backend for 'backend' command if real one does not build */
+#if BUILD_CMSIS_DAP_USB == 0
+const struct cmsis_dap_backend cmsis_dap_usb_backend = {
+	.name = "usb_bulk",
+};
 #endif
 
-#if BUILD_CMSIS_DAP_HID == 1
-	&cmsis_dap_hid_backend,
+#if BUILD_CMSIS_DAP_HID == 0
+const struct cmsis_dap_backend cmsis_dap_hid_backend = {
+	.name = "hid"
+};
 #endif
+
+static const struct cmsis_dap_backend *const cmsis_dap_backends[] = {
+	&cmsis_dap_usb_backend,
+	&cmsis_dap_hid_backend,
 };
 
 /* USB Config */
@@ -261,26 +269,32 @@ static int cmsis_dap_open(void)
 		return ERROR_FAIL;
 	}
 
+	int retval = ERROR_FAIL;
 	if (cmsis_dap_backend >= 0) {
 		/* Use forced backend */
 		backend = cmsis_dap_backends[cmsis_dap_backend];
-		if (backend->open(dap, cmsis_dap_vid, cmsis_dap_pid, adapter_get_required_serial()) != ERROR_OK)
-			backend = NULL;
+		if (backend->open)
+			retval = backend->open(dap, cmsis_dap_vid, cmsis_dap_pid, adapter_get_required_serial());
+		else
+			LOG_ERROR("Requested CMSIS-DAP backend is disabled by configure");
+
 	} else {
 		/* Try all backends */
 		for (unsigned int i = 0; i < ARRAY_SIZE(cmsis_dap_backends); i++) {
 			backend = cmsis_dap_backends[i];
-			if (backend->open(dap, cmsis_dap_vid, cmsis_dap_pid, adapter_get_required_serial()) == ERROR_OK)
+			if (!backend->open)
+				continue;
+
+			retval = backend->open(dap, cmsis_dap_vid, cmsis_dap_pid, adapter_get_required_serial());
+			if (retval == ERROR_OK)
 				break;
-			else
-				backend = NULL;
 		}
 	}
 
-	if (!backend) {
+	if (retval != ERROR_OK) {
 		LOG_ERROR("unable to find a matching CMSIS-DAP device");
 		free(dap);
-		return ERROR_FAIL;
+		return retval;
 	}
 
 	dap->backend = backend;
@@ -293,7 +307,8 @@ static int cmsis_dap_open(void)
 static void cmsis_dap_close(struct cmsis_dap *dap)
 {
 	if (dap->backend) {
-		dap->backend->close(dap);
+		if (dap->backend->close)
+			dap->backend->close(dap);
 		dap->backend = NULL;
 	}
 
@@ -2192,22 +2207,27 @@ COMMAND_HANDLER(cmsis_dap_handle_vid_pid_command)
 
 COMMAND_HANDLER(cmsis_dap_handle_backend_command)
 {
-	if (CMD_ARGC == 1) {
-		if (strcmp(CMD_ARGV[0], "auto") == 0) {
-			cmsis_dap_backend = -1; /* autoselect */
-		} else {
-			for (unsigned int i = 0; i < ARRAY_SIZE(cmsis_dap_backends); i++) {
-				if (strcasecmp(cmsis_dap_backends[i]->name, CMD_ARGV[0]) == 0) {
+	if (CMD_ARGC != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	if (strcmp(CMD_ARGV[0], "auto") == 0) {
+		cmsis_dap_backend = -1; /* autoselect */
+	} else {
+		for (unsigned int i = 0; i < ARRAY_SIZE(cmsis_dap_backends); i++) {
+			if (strcasecmp(cmsis_dap_backends[i]->name, CMD_ARGV[0]) == 0) {
+				if (cmsis_dap_backends[i]->open) {
 					cmsis_dap_backend = i;
 					return ERROR_OK;
 				}
-			}
 
-			command_print(CMD, "invalid backend argument to cmsis-dap backend <backend>");
-			return ERROR_COMMAND_ARGUMENT_INVALID;
+				command_print(CMD, "Requested cmsis-dap backend %s is disabled by configure",
+							  cmsis_dap_backends[i]->name);
+				return ERROR_NOT_IMPLEMENTED;
+			}
 		}
-	} else {
-		return ERROR_COMMAND_SYNTAX_ERROR;
+
+		command_print(CMD, "invalid argument %s to cmsis-dap backend", CMD_ARGV[0]);
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
 	return ERROR_OK;

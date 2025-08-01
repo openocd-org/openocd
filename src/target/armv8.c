@@ -1686,12 +1686,12 @@ static int armv8_set_core_reg(struct reg *reg, uint8_t *buf)
 	struct arm_reg *armv8_reg = reg->arch_info;
 	struct target *target = armv8_reg->target;
 	struct arm *arm = target_to_arm(target);
-	uint64_t value = buf_get_u64(buf, 0, reg->size);
 
 	if (target->state != TARGET_HALTED)
 		return ERROR_TARGET_NOT_HALTED;
 
 	if (reg->size <= 64) {
+		uint64_t value = buf_get_u64(buf, 0, reg->size);
 		if (reg == arm->cpsr)
 			armv8_set_cpsr(arm, (uint32_t)value);
 		else {
@@ -1699,6 +1699,7 @@ static int armv8_set_core_reg(struct reg *reg, uint8_t *buf)
 			reg->valid = true;
 		}
 	} else if (reg->size <= 128) {
+		uint64_t value = buf_get_u64(buf, 0, 64);
 		uint64_t hvalue = buf_get_u64(buf + 8, 0, reg->size - 64);
 
 		buf_set_u64(reg->value, 0, 64, value);

@@ -370,7 +370,8 @@ static int esp32s2_on_halt(struct target *target)
 	return ret;
 }
 
-static int esp32s2_step(struct target *target, int current, target_addr_t address, int handle_breakpoints)
+static int esp32s2_step(struct target *target, bool current,
+		target_addr_t address, bool handle_breakpoints)
 {
 	int ret = xtensa_step(target, current, address, handle_breakpoints);
 	if (ret == ERROR_OK) {
@@ -397,7 +398,7 @@ static int esp32s2_poll(struct target *target)
 				if (ret == ERROR_OK && esp_xtensa->semihost.need_resume) {
 					esp_xtensa->semihost.need_resume = false;
 					/* Resume xtensa_resume will handle BREAK instruction. */
-					ret = target_resume(target, 1, 0, 1, 0);
+					ret = target_resume(target, true, 0, true, false);
 					if (ret != ERROR_OK) {
 						LOG_ERROR("Failed to resume target");
 						return ret;

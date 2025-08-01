@@ -162,6 +162,7 @@ struct armv8_cache_common {
 	/* l2 external unified cache if some */
 	void *l2_cache;
 	int (*flush_all_data_cache)(struct target *target);
+	int (*invalidate_all_instruction_cache)(struct target *target);
 	int (*display_cache_info)(struct command_invocation *cmd,
 			struct armv8_cache_common *armv8_cache);
 };

@@ -142,7 +142,7 @@ struct target {
 	 */
 	bool running_alg;
 
-	struct target_event_action *event_action;
+	struct list_head events_action;
 
 	bool reset_halt;						/* attempt resetting the CPU into the halted mode? */
 	target_addr_t working_area;				/* working area (initialised RAM). Evaluated
@@ -301,13 +301,6 @@ enum target_event {
 	TARGET_EVENT_SEMIHOSTING_USER_CMD_0X107 = 0x107,
 };
 
-struct target_event_action {
-	enum target_event event;
-	Jim_Interp *interp;
-	Jim_Obj *body;
-	struct target_event_action *next;
-};
-
 bool target_has_event_action(const struct target *target, enum target_event event);
 
 struct target_event_callback {
@@ -392,8 +385,8 @@ int target_unregister_trace_callback(
  * yet it is possible to detect error conditions.
  */
 int target_poll(struct target *target);
-int target_resume(struct target *target, int current, target_addr_t address,
-		int handle_breakpoints, int debug_execution);
+int target_resume(struct target *target, bool current, target_addr_t address,
+		bool handle_breakpoints, bool debug_execution);
 int target_halt(struct target *target);
 int target_call_event_callbacks(struct target *target, enum target_event event);
 int target_call_reset_callbacks(struct target *target, enum target_reset_mode reset_mode);
@@ -551,7 +544,7 @@ bool target_supports_gdb_connection(const struct target *target);
  * This routine is a wrapper for target->type->step.
  */
 int target_step(struct target *target,
-		int current, target_addr_t address, int handle_breakpoints);
+		bool current, target_addr_t address, bool handle_breakpoints);
 /**
  * Run an algorithm on the @a target given.
  *

@@ -140,8 +140,8 @@ int rtt_start(void)
 				addr);
 			rtt.ctrl.address = addr;
 		} else {
-			LOG_INFO("rtt: No control block found");
-			return ERROR_OK;
+			LOG_ERROR("rtt: No control block found");
+			return ERROR_FAIL;
 		}
 	}
 

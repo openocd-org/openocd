@@ -251,7 +251,7 @@ static unsigned int slot_offset(const struct target *target, slot_t slot)
 }
 
 static uint32_t load(const struct target *target, unsigned int rd,
-		unsigned int base, uint16_t offset)
+		unsigned int base, int16_t offset)
 {
 	switch (riscv_xlen(target)) {
 		case 32:
@@ -264,7 +264,7 @@ static uint32_t load(const struct target *target, unsigned int rd,
 }
 
 static uint32_t store(const struct target *target, unsigned int src,
-		unsigned int base, uint16_t offset)
+		unsigned int base, int16_t offset)
 {
 	switch (riscv_xlen(target)) {
 		case 32:
@@ -280,14 +280,16 @@ static uint32_t load_slot(const struct target *target, unsigned int dest,
 		slot_t slot)
 {
 	unsigned int offset = DEBUG_RAM_START + 4 * slot_offset(target, slot);
-	return load(target, dest, ZERO, offset);
+	assert(offset <= MAX_INT12);
+	return load(target, dest, ZERO, (int16_t)offset);
 }
 
 static uint32_t store_slot(const struct target *target, unsigned int src,
 		slot_t slot)
 {
 	unsigned int offset = DEBUG_RAM_START + 4 * slot_offset(target, slot);
-	return store(target, src, ZERO, offset);
+	assert(offset <= MAX_INT12);
+	return store(target, src, ZERO, (int16_t)offset);
 }
 
 static uint16_t dram_address(unsigned int index)
@@ -599,9 +601,9 @@ static void scans_add_write32(scans_t *scans, uint16_t address, uint32_t data,
 static void scans_add_write_jump(scans_t *scans, uint16_t address,
 		bool set_interrupt)
 {
-	scans_add_write32(scans, address,
-			jal(0, (uint32_t) (DEBUG_ROM_RESUME - (DEBUG_RAM_START + 4*address))),
-			set_interrupt);
+	unsigned int jump_offset = DEBUG_ROM_RESUME - (DEBUG_RAM_START + 4 * address);
+	assert(jump_offset <= MAX_INT21);
+	scans_add_write32(scans, address, jal(0, (int32_t)jump_offset), set_interrupt);
 }
 
 /** Add a 32-bit dbus write for an instruction that loads from the indicated
@@ -780,22 +782,25 @@ static void cache_set(struct target *target, slot_t slot, uint64_t data)
 
 static void cache_set_jump(struct target *target, unsigned int index)
 {
-	cache_set32(target, index,
-			jal(0, (uint32_t) (DEBUG_ROM_RESUME - (DEBUG_RAM_START + 4*index))));
+	unsigned int jump_offset = DEBUG_ROM_RESUME - (DEBUG_RAM_START + 4 * index);
+	assert(jump_offset <= MAX_INT21);
+	cache_set32(target, index, jal(0, (int32_t)jump_offset));
 }
 
 static void cache_set_load(struct target *target, unsigned int index,
 		unsigned int reg, slot_t slot)
 {
-	uint16_t offset = DEBUG_RAM_START + 4 * slot_offset(target, slot);
-	cache_set32(target, index, load(target, reg, ZERO, offset));
+	unsigned int offset = DEBUG_RAM_START + 4 * slot_offset(target, slot);
+	assert(offset <= MAX_INT12);
+	cache_set32(target, index, load(target, reg, ZERO, (int16_t)offset));
 }
 
 static void cache_set_store(struct target *target, unsigned int index,
 		unsigned int reg, slot_t slot)
 {
-	uint16_t offset = DEBUG_RAM_START + 4 * slot_offset(target, slot);
-	cache_set32(target, index, store(target, reg, ZERO, offset));
+	unsigned int offset = DEBUG_RAM_START + 4 * slot_offset(target, slot);
+	assert(offset <= MAX_INT12);
+	cache_set32(target, index, store(target, reg, ZERO, (int16_t)offset));
 }
 
 static void dump_debug_ram(struct target *target)
@@ -1004,9 +1009,9 @@ static uint64_t cache_get(struct target *target, slot_t slot)
 static void dram_write_jump(struct target *target, unsigned int index,
 		bool set_interrupt)
 {
-	dram_write32(target, index,
-			jal(0, (uint32_t) (DEBUG_ROM_RESUME - (DEBUG_RAM_START + 4*index))),
-			set_interrupt);
+	unsigned int jump_offset = DEBUG_ROM_RESUME - (DEBUG_RAM_START + 4 * index);
+	assert(jump_offset <= MAX_INT21);
+	dram_write32(target, index, jal(0, (int32_t)jump_offset), set_interrupt);
 }
 
 static int wait_for_state(struct target *target, enum target_state state)
@@ -1453,8 +1458,8 @@ static int strict_step(struct target *target, bool announce)
 	return ERROR_OK;
 }
 
-static int step(struct target *target, int current, target_addr_t address,
-		int handle_breakpoints)
+static int step(struct target *target, bool current, target_addr_t address,
+		bool handle_breakpoints)
 {
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
 
@@ -1884,8 +1889,16 @@ static int handle_halt(struct target *target, bool announce)
 
 	if (target->debug_reason == DBG_REASON_BREAKPOINT) {
 		int retval;
-		if (riscv_semihosting(target, &retval) != 0)
-			return retval;
+		/* Hotfix: Don't try to handle semihosting before the target is marked as examined. */
+		/* TODO: The code should be rearranged so that:
+		 * - Semihosting is not attempted before the target is examined.
+		 * - When the target is already halted on a semihosting magic sequence
+		 *   at the time when OpenOCD connects to it, this semihosting attempt
+		 *   gets handled right after the examination.
+		 */
+		if (target_was_examined(target))
+			if (riscv_semihosting(target, &retval) != SEMIHOSTING_NONE)
+				return retval;
 	}
 
 	if (announce)
@@ -1947,8 +1960,9 @@ static int riscv011_poll(struct target *target)
 	return poll_target(target, true);
 }
 
-static int riscv011_resume(struct target *target, int current,
-		target_addr_t address, int handle_breakpoints, int debug_execution)
+static int riscv011_resume(struct target *target, bool current,
+		target_addr_t address, bool handle_breakpoints,
+		bool debug_execution)
 {
 	RISCV_INFO(r);
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);

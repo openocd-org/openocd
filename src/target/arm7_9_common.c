@@ -1697,10 +1697,10 @@ static void arm7_9_enable_breakpoints(struct target *target)
 }
 
 int arm7_9_resume(struct target *target,
-	int current,
+	bool current,
 	target_addr_t address,
-	int handle_breakpoints,
-	int debug_execution)
+	bool handle_breakpoints,
+	bool debug_execution)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct arm *arm = &arm7_9->arm;
@@ -1717,7 +1717,7 @@ int arm7_9_resume(struct target *target,
 	if (!debug_execution)
 		target_free_all_working_areas(target);
 
-	/* current = 1: continue on current pc, otherwise continue at <address> */
+	/* current = true: continue on current pc, otherwise continue at <address> */
 	if (!current)
 		buf_set_u32(arm->pc->value, 0, 32, address);
 
@@ -1900,7 +1900,8 @@ void arm7_9_disable_eice_step(struct target *target)
 	embeddedice_store_reg(&arm7_9->eice_cache->reg_list[EICE_W1_CONTROL_VALUE]);
 }
 
-int arm7_9_step(struct target *target, int current, target_addr_t address, int handle_breakpoints)
+int arm7_9_step(struct target *target, bool current, target_addr_t address,
+		bool handle_breakpoints)
 {
 	struct arm7_9_common *arm7_9 = target_to_arm7_9(target);
 	struct arm *arm = &arm7_9->arm;
@@ -1912,7 +1913,7 @@ int arm7_9_step(struct target *target, int current, target_addr_t address, int h
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	/* current = 1: continue on current pc, otherwise continue at <address> */
+	/* current = true: continue on current pc, otherwise continue at <address> */
 	if (!current)
 		buf_set_u32(arm->pc->value, 0, 32, address);
 
