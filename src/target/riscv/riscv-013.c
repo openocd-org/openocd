@@ -592,15 +592,15 @@ static int increase_ac_busy_delay(struct target *target)
 static uint32_t __attribute__((unused)) abstract_register_size(unsigned int width)
 {
 	switch (width) {
-		case 32:
-			return set_field(0, AC_ACCESS_REGISTER_AARSIZE, 2);
-		case 64:
-			return set_field(0, AC_ACCESS_REGISTER_AARSIZE, 3);
-		case 128:
-			return set_field(0, AC_ACCESS_REGISTER_AARSIZE, 4);
-		default:
-			LOG_ERROR("Unsupported register width: %d", width);
-			return 0;
+	case 32:
+		return set_field(0, AC_ACCESS_REGISTER_AARSIZE, 2);
+	case 64:
+		return set_field(0, AC_ACCESS_REGISTER_AARSIZE, 3);
+	case 128:
+		return set_field(0, AC_ACCESS_REGISTER_AARSIZE, 4);
+	default:
+		LOG_ERROR("Unsupported register width: %d", width);
+		return 0;
 	}
 }
 
@@ -737,12 +737,12 @@ int riscv013_execute_abstract_command(struct target *target, uint32_t command,
 	*cmderr = CMDERR_NONE;
 	if (debug_level >= LOG_LVL_DEBUG) {
 		switch (get_field(command, DM_COMMAND_CMDTYPE)) {
-			case 0:
-				LOG_DEBUG_REG(target, AC_ACCESS_REGISTER, command);
-				break;
-			default:
-				LOG_TARGET_DEBUG(target, "command=0x%x", command);
-				break;
+		case 0:
+			LOG_DEBUG_REG(target, AC_ACCESS_REGISTER, command);
+			break;
+		default:
+			LOG_TARGET_DEBUG(target, "command=0x%x", command);
+			break;
 		}
 	}
 
@@ -854,14 +854,14 @@ static int write_abstract_arg(struct target *target, unsigned int index,
 {
 	unsigned int offset = index * size_bits / 32;
 	switch (size_bits) {
-		default:
-			LOG_TARGET_ERROR(target, "Unsupported size: %d bits", size_bits);
-			return ERROR_FAIL;
-		case 64:
-			dm_write(target, DM_DATA0 + offset + 1, (uint32_t)(value >> 32));
-			/* falls through */
-		case 32:
-			dm_write(target, DM_DATA0 + offset, (uint32_t)value);
+	default:
+		LOG_TARGET_ERROR(target, "Unsupported size: %d bits", size_bits);
+		return ERROR_FAIL;
+	case 64:
+		dm_write(target, DM_DATA0 + offset + 1, (uint32_t)(value >> 32));
+		/* falls through */
+	case 32:
+		dm_write(target, DM_DATA0 + offset, (uint32_t)value);
 	}
 	return ERROR_OK;
 }
@@ -874,16 +874,16 @@ uint32_t riscv013_access_register_command(struct target *target, uint32_t number
 {
 	uint32_t command = set_field(0, DM_COMMAND_CMDTYPE, 0);
 	switch (size) {
-		case 32:
-			command = set_field(command, AC_ACCESS_REGISTER_AARSIZE, 2);
-			break;
-		case 64:
-			command = set_field(command, AC_ACCESS_REGISTER_AARSIZE, 3);
-			break;
-		default:
-			LOG_TARGET_ERROR(target, "%d-bit register %s not supported.",
-					size, riscv_reg_gdb_regno_name(target, number));
-			assert(0);
+	case 32:
+		command = set_field(command, AC_ACCESS_REGISTER_AARSIZE, 2);
+		break;
+	case 64:
+		command = set_field(command, AC_ACCESS_REGISTER_AARSIZE, 3);
+		break;
+	default:
+		LOG_TARGET_ERROR(target, "%d-bit register %s not supported.",
+				size, riscv_reg_gdb_regno_name(target, number));
+		assert(0);
 	}
 
 	if (number <= GDB_REGNO_XPR31) {
@@ -1003,19 +1003,19 @@ cleanup:
 static uint32_t abstract_memory_size(unsigned int width)
 {
 	switch (width) {
-		case 8:
-			return set_field(0, AC_ACCESS_MEMORY_AAMSIZE, 0);
-		case 16:
-			return set_field(0, AC_ACCESS_MEMORY_AAMSIZE, 1);
-		case 32:
-			return set_field(0, AC_ACCESS_MEMORY_AAMSIZE, 2);
-		case 64:
-			return set_field(0, AC_ACCESS_MEMORY_AAMSIZE, 3);
-		case 128:
-			return set_field(0, AC_ACCESS_MEMORY_AAMSIZE, 4);
-		default:
-			LOG_ERROR("Unsupported memory width: %d", width);
-			return 0;
+	case 8:
+		return set_field(0, AC_ACCESS_MEMORY_AAMSIZE, 0);
+	case 16:
+		return set_field(0, AC_ACCESS_MEMORY_AAMSIZE, 1);
+	case 32:
+		return set_field(0, AC_ACCESS_MEMORY_AAMSIZE, 2);
+	case 64:
+		return set_field(0, AC_ACCESS_MEMORY_AAMSIZE, 3);
+	case 128:
+		return set_field(0, AC_ACCESS_MEMORY_AAMSIZE, 4);
+	default:
+		LOG_ERROR("Unsupported memory width: %d", width);
+		return 0;
 	}
 }
 
@@ -1251,38 +1251,38 @@ static int scratch_read64(struct target *target, scratch_mem_t *scratch,
 {
 	uint32_t v;
 	switch (scratch->memory_space) {
-		case SPACE_DM_DATA:
-			if (dm_read(target, &v, DM_DATA0 + scratch->debug_address) != ERROR_OK)
+	case SPACE_DM_DATA:
+		if (dm_read(target, &v, DM_DATA0 + scratch->debug_address) != ERROR_OK)
+			return ERROR_FAIL;
+		*value = v;
+		if (dm_read(target, &v, DM_DATA1 + scratch->debug_address) != ERROR_OK)
+			return ERROR_FAIL;
+		*value |= ((uint64_t)v) << 32;
+		break;
+	case SPACE_DMI_PROGBUF:
+		if (dm_read(target, &v, DM_PROGBUF0 + scratch->debug_address) != ERROR_OK)
+			return ERROR_FAIL;
+		*value = v;
+		if (dm_read(target, &v, DM_PROGBUF1 + scratch->debug_address) != ERROR_OK)
+			return ERROR_FAIL;
+		*value |= ((uint64_t)v) << 32;
+		break;
+	case SPACE_DMI_RAM:
+		{
+			uint8_t buffer[8] = {0};
+			const struct riscv_mem_access_args args = {
+				.address = scratch->debug_address,
+				.read_buffer = buffer,
+				.size = 4,
+				.count = 2,
+				.increment = 4,
+			};
+			if (riscv013_access_memory(target, args) != ERROR_OK)
 				return ERROR_FAIL;
-			*value = v;
-			if (dm_read(target, &v, DM_DATA1 + scratch->debug_address) != ERROR_OK)
-				return ERROR_FAIL;
-			*value |= ((uint64_t) v) << 32;
-			break;
-		case SPACE_DMI_PROGBUF:
-			if (dm_read(target, &v, DM_PROGBUF0 + scratch->debug_address) != ERROR_OK)
-				return ERROR_FAIL;
-			*value = v;
-			if (dm_read(target, &v, DM_PROGBUF1 + scratch->debug_address) != ERROR_OK)
-				return ERROR_FAIL;
-			*value |= ((uint64_t) v) << 32;
-			break;
-		case SPACE_DMI_RAM:
-			{
-				uint8_t buffer[8] = {0};
-				const struct riscv_mem_access_args args = {
-					.address = scratch->debug_address,
-					.read_buffer = buffer,
-					.size = 4,
-					.count = 2,
-					.increment = 4,
-				};
-				if (riscv013_access_memory(target, args) != ERROR_OK)
-					return ERROR_FAIL;
-				*value = buf_get_u64(buffer,
-						/* first = */ 0, /* bit_num = */ 64);
-			}
-			break;
+			*value = buf_get_u64(buffer,
+					/* first = */ 0, /* bit_num = */ 64);
+		}
+		break;
 	}
 	return ERROR_OK;
 }
@@ -1291,38 +1291,38 @@ static int scratch_write64(struct target *target, scratch_mem_t *scratch,
 		uint64_t value)
 {
 	switch (scratch->memory_space) {
-		case SPACE_DM_DATA:
-			dm_write(target, DM_DATA0 + scratch->debug_address, (uint32_t)value);
-			dm_write(target, DM_DATA1 + scratch->debug_address, (uint32_t)(value >> 32));
-			break;
-		case SPACE_DMI_PROGBUF:
-			dm_write(target, DM_PROGBUF0 + scratch->debug_address, (uint32_t)value);
-			dm_write(target, DM_PROGBUF1 + scratch->debug_address, (uint32_t)(value >> 32));
-			riscv013_invalidate_cached_progbuf(target);
-			break;
-		case SPACE_DMI_RAM:
-			{
-				uint8_t buffer[8] = {
-					value,
-					value >> 8,
-					value >> 16,
-					value >> 24,
-					value >> 32,
-					value >> 40,
-					value >> 48,
-					value >> 56
-				};
-				const struct riscv_mem_access_args args = {
-					.address = scratch->debug_address,
-					.write_buffer = buffer,
-					.size = 4,
-					.count = 2,
-					.increment = 4,
-				};
-				if (riscv013_access_memory(target, args) != ERROR_OK)
-					return ERROR_FAIL;
-			}
-			break;
+	case SPACE_DM_DATA:
+		dm_write(target, DM_DATA0 + scratch->debug_address, (uint32_t)value);
+		dm_write(target, DM_DATA1 + scratch->debug_address, (uint32_t)(value >> 32));
+		break;
+	case SPACE_DMI_PROGBUF:
+		dm_write(target, DM_PROGBUF0 + scratch->debug_address, (uint32_t)value);
+		dm_write(target, DM_PROGBUF1 + scratch->debug_address, (uint32_t)(value >> 32));
+		riscv013_invalidate_cached_progbuf(target);
+		break;
+	case SPACE_DMI_RAM:
+		{
+			uint8_t buffer[8] = {
+				value,
+				value >> 8,
+				value >> 16,
+				value >> 24,
+				value >> 32,
+				value >> 40,
+				value >> 48,
+				value >> 56
+			};
+			const struct riscv_mem_access_args args = {
+				.address = scratch->debug_address,
+				.write_buffer = buffer,
+				.size = 4,
+				.count = 2,
+				.increment = 4,
+			};
+			if (riscv013_access_memory(target, args) != ERROR_OK)
+				return ERROR_FAIL;
+		}
+		break;
 	}
 	return ERROR_OK;
 }
@@ -2451,16 +2451,16 @@ int riscv013_set_register_buf(struct target *target, enum gdb_regno regno,
 static uint32_t sb_sbaccess(unsigned int size_bytes)
 {
 	switch (size_bytes) {
-		case 1:
-			return set_field(0, DM_SBCS_SBACCESS, 0);
-		case 2:
-			return set_field(0, DM_SBCS_SBACCESS, 1);
-		case 4:
-			return set_field(0, DM_SBCS_SBACCESS, 2);
-		case 8:
-			return set_field(0, DM_SBCS_SBACCESS, 3);
-		case 16:
-			return set_field(0, DM_SBCS_SBACCESS, 4);
+	case 1:
+		return set_field(0, DM_SBCS_SBACCESS, 0);
+	case 2:
+		return set_field(0, DM_SBCS_SBACCESS, 1);
+	case 4:
+		return set_field(0, DM_SBCS_SBACCESS, 2);
+	case 8:
+		return set_field(0, DM_SBCS_SBACCESS, 3);
+	case 16:
+		return set_field(0, DM_SBCS_SBACCESS, 4);
 	}
 	assert(0);
 	return 0;
@@ -2581,18 +2581,18 @@ static int sba_supports_access(struct target *target, unsigned int size_bytes)
 {
 	RISCV013_INFO(info);
 	switch (size_bytes) {
-		case 1:
-			return get_field(info->sbcs, DM_SBCS_SBACCESS8);
-		case 2:
-			return get_field(info->sbcs, DM_SBCS_SBACCESS16);
-		case 4:
-			return get_field(info->sbcs, DM_SBCS_SBACCESS32);
-		case 8:
-			return get_field(info->sbcs, DM_SBCS_SBACCESS64);
-		case 16:
-			return get_field(info->sbcs, DM_SBCS_SBACCESS128);
-		default:
-			return 0;
+	case 1:
+		return get_field(info->sbcs, DM_SBCS_SBACCESS8);
+	case 2:
+		return get_field(info->sbcs, DM_SBCS_SBACCESS16);
+	case 4:
+		return get_field(info->sbcs, DM_SBCS_SBACCESS32);
+	case 8:
+		return get_field(info->sbcs, DM_SBCS_SBACCESS64);
+	case 16:
+		return get_field(info->sbcs, DM_SBCS_SBACCESS128);
+	default:
+		return 0;
 	}
 }
 
@@ -3113,19 +3113,19 @@ static void log_memory_access64(target_addr_t address, uint64_t value,
 	sprintf(fmt, "M[0x%" TARGET_PRIxADDR "] %ss 0x%%0%d" PRIx64,
 			address, is_read ? "read" : "write", size_bytes * 2);
 	switch (size_bytes) {
-		case 1:
-			value &= 0xff;
-			break;
-		case 2:
-			value &= 0xffff;
-			break;
-		case 4:
-			value &= 0xffffffffUL;
-			break;
-		case 8:
-			break;
-		default:
-			assert(false);
+	case 1:
+		value &= 0xff;
+		break;
+	case 2:
+		value &= 0xffff;
+		break;
+	case 4:
+		value &= 0xffffffffUL;
+		break;
+	case 8:
+		break;
+	default:
+		assert(false);
 	}
 	LOG_DEBUG(fmt, value);
 }
@@ -4580,19 +4580,19 @@ riscv013_access_memory(struct target *target, const struct riscv_mem_access_args
 	for (unsigned int i = 0; i < r->num_enabled_mem_access_methods; ++i) {
 		enum riscv_mem_access_method method = r->mem_access_methods[i];
 		switch (method) {
-			case RISCV_MEM_ACCESS_PROGBUF:
-				skip_reason[method] = access_memory_progbuf(target, args);
-				break;
-			case RISCV_MEM_ACCESS_SYSBUS:
-				skip_reason[method] = access_memory_sysbus(target, args);
-				break;
-			case RISCV_MEM_ACCESS_ABSTRACT:
-				skip_reason[method] = access_memory_abstract(target, args);
-				break;
-			default:
-				LOG_TARGET_ERROR(target, "Unknown memory access method: %d", method);
-				assert(false && "Unknown memory access method");
-				goto failure;
+		case RISCV_MEM_ACCESS_PROGBUF:
+			skip_reason[method] = access_memory_progbuf(target, args);
+			break;
+		case RISCV_MEM_ACCESS_SYSBUS:
+			skip_reason[method] = access_memory_sysbus(target, args);
+			break;
+		case RISCV_MEM_ACCESS_ABSTRACT:
+			skip_reason[method] = access_memory_abstract(target, args);
+			break;
+		default:
+			LOG_TARGET_ERROR(target, "Unknown memory access method: %d", method);
+			assert(false && "Unknown memory access method");
+			goto failure;
 		}
 
 		if (is_mem_access_failed(skip_reason[method]))

@@ -230,19 +230,25 @@ static unsigned int slot_offset(const struct target *target, slot_t slot)
 {
 	riscv011_info_t *info = get_info(target);
 	switch (riscv_xlen(target)) {
-		case 32:
-			switch (slot) {
-				case SLOT0: return 4;
-				case SLOT1: return 5;
-				case SLOT_LAST: return info->dramsize-1;
-			}
-			break;
-		case 64:
-			switch (slot) {
-				case SLOT0: return 4;
-				case SLOT1: return 6;
-				case SLOT_LAST: return info->dramsize-2;
-			}
+	case 32:
+		switch (slot) {
+		case SLOT0:
+			return 4;
+		case SLOT1:
+			return 5;
+		case SLOT_LAST:
+			return info->dramsize - 1;
+		}
+		break;
+	case 64:
+		switch (slot) {
+		case SLOT0:
+			return 4;
+		case SLOT1:
+			return 6;
+		case SLOT_LAST:
+			return info->dramsize - 2;
+		}
 	}
 	LOG_ERROR("slot_offset called with xlen=%d, slot=%d",
 			riscv_xlen(target), slot);
@@ -254,10 +260,10 @@ static uint32_t load(const struct target *target, unsigned int rd,
 		unsigned int base, int16_t offset)
 {
 	switch (riscv_xlen(target)) {
-		case 32:
-			return lw(rd, base, offset);
-		case 64:
-			return ld(rd, base, offset);
+	case 32:
+		return lw(rd, base, offset);
+	case 64:
+		return ld(rd, base, offset);
 	}
 	assert(0);
 	return 0; /* Silence -Werror=return-type */
@@ -267,10 +273,10 @@ static uint32_t store(const struct target *target, unsigned int src,
 		unsigned int base, int16_t offset)
 {
 	switch (riscv_xlen(target)) {
-		case 32:
-			return sw(src, base, offset);
-		case 64:
-			return sd(src, base, offset);
+	case 32:
+		return sw(src, base, offset);
+	case 64:
+		return sd(src, base, offset);
 	}
 	assert(0);
 	return 0; /* Silence -Werror=return-type */
@@ -641,13 +647,13 @@ static void scans_add_read(scans_t *scans, slot_t slot, bool set_interrupt)
 {
 	const struct target *target = scans->target;
 	switch (riscv_xlen(target)) {
-		case 32:
-			scans_add_read32(scans, slot_offset(target, slot), set_interrupt);
-			break;
-		case 64:
-			scans_add_read32(scans, slot_offset(target, slot), false);
-			scans_add_read32(scans, slot_offset(target, slot) + 1, set_interrupt);
-			break;
+	case 32:
+		scans_add_read32(scans, slot_offset(target, slot), set_interrupt);
+		break;
+	case 64:
+		scans_add_read32(scans, slot_offset(target, slot), false);
+		scans_add_read32(scans, slot_offset(target, slot) + 1, set_interrupt);
+		break;
 	}
 }
 
@@ -906,19 +912,19 @@ static int cache_write(struct target *target, unsigned int address, bool run)
 		dbus_status_t status = scans_get_u32(scans, i, DBUS_OP_START,
 				DBUS_OP_SIZE);
 		switch (status) {
-			case DBUS_STATUS_SUCCESS:
-				break;
-			case DBUS_STATUS_FAILED:
-				LOG_ERROR("Debug RAM write failed. Hardware error?");
-				scans_delete(scans);
-				return ERROR_FAIL;
-			case DBUS_STATUS_BUSY:
-				errors++;
-				break;
-			default:
-				LOG_ERROR("Got invalid bus access status: %d", status);
-				scans_delete(scans);
-				return ERROR_FAIL;
+		case DBUS_STATUS_SUCCESS:
+			break;
+		case DBUS_STATUS_FAILED:
+			LOG_ERROR("Debug RAM write failed. Hardware error?");
+			scans_delete(scans);
+			return ERROR_FAIL;
+		case DBUS_STATUS_BUSY:
+			errors++;
+			break;
+		default:
+			LOG_ERROR("Got invalid bus access status: %d", status);
+			scans_delete(scans);
+			return ERROR_FAIL;
 		}
 	}
 
@@ -1680,17 +1686,17 @@ static riscv_error_t handle_halt_routine(struct target *target)
 		uint32_t address = scans_get_u32(scans, i, DBUS_ADDRESS_START,
 				info->addrbits);
 		switch (status) {
-			case DBUS_STATUS_SUCCESS:
-				break;
-			case DBUS_STATUS_FAILED:
-				LOG_ERROR("Debug access failed. Hardware error?");
-				goto error;
-			case DBUS_STATUS_BUSY:
-				dbus_busy++;
-				break;
-			default:
-				LOG_ERROR("Got invalid bus access status: %d", status);
-				goto error;
+		case DBUS_STATUS_SUCCESS:
+			break;
+		case DBUS_STATUS_FAILED:
+			LOG_ERROR("Debug access failed. Hardware error?");
+			goto error;
+		case DBUS_STATUS_BUSY:
+			dbus_busy++;
+			break;
+		default:
+			LOG_ERROR("Got invalid bus access status: %d", status);
+			goto error;
 		}
 		if (data & DMCONTROL_INTERRUPT) {
 			interrupt_set++;
@@ -1699,111 +1705,111 @@ static riscv_error_t handle_halt_routine(struct target *target)
 		if (address == 4 || address == 5) {
 			unsigned int reg;
 			switch (result) {
-				case 0:
-					reg = 1;
-					break;
-				case 1:
-					reg = 2;
-					break;
-				case 2:
-					reg = 3;
-					break;
-				case 3:
-					reg = 4;
-					break;
-				case 4:
-					reg = 5;
-					break;
-				case 5:
-					reg = 6;
-					break;
-				case 6:
-					reg = 7;
-					break;
-					/* S0 */
-					/* S1 */
-				case 7:
-					reg = 10;
-					break;
-				case 8:
-					reg = 11;
-					break;
-				case 9:
-					reg = 12;
-					break;
-				case 10:
-					reg = 13;
-					break;
-				case 11:
-					reg = 14;
-					break;
-				case 12:
-					reg = 15;
-					break;
-				case 13:
-					reg = 16;
-					break;
-				case 14:
-					reg = 17;
-					break;
-				case 15:
-					reg = 18;
-					break;
-				case 16:
-					reg = 19;
-					break;
-				case 17:
-					reg = 20;
-					break;
-				case 18:
-					reg = 21;
-					break;
-				case 19:
-					reg = 22;
-					break;
-				case 20:
-					reg = 23;
-					break;
-				case 21:
-					reg = 24;
-					break;
-				case 22:
-					reg = 25;
-					break;
-				case 23:
-					reg = 26;
-					break;
-				case 24:
-					reg = 27;
-					break;
-				case 25:
-					reg = 28;
-					break;
-				case 26:
-					reg = 29;
-					break;
-				case 27:
-					reg = 30;
-					break;
-				case 28:
-					reg = 31;
-					break;
-				case 29:
-					reg = S1;
-					break;
-				case 30:
-					reg = S0;
-					break;
-				case 31:
-					reg = GDB_REGNO_DPC;
-					break;
-				case 32:
-					reg = GDB_REGNO_DCSR;
-					break;
-				default:
-					assert(0);
-					LOG_ERROR("Got invalid register result %d", result);
-					goto error;
+			case 0:
+				reg = 1;
+				break;
+			case 1:
+				reg = 2;
+				break;
+			case 2:
+				reg = 3;
+				break;
+			case 3:
+				reg = 4;
+				break;
+			case 4:
+				reg = 5;
+				break;
+			case 5:
+				reg = 6;
+				break;
+			case 6:
+				reg = 7;
+				break;
+				/* S0 */
+				/* S1 */
+			case 7:
+				reg = 10;
+				break;
+			case 8:
+				reg = 11;
+				break;
+			case 9:
+				reg = 12;
+				break;
+			case 10:
+				reg = 13;
+				break;
+			case 11:
+				reg = 14;
+				break;
+			case 12:
+				reg = 15;
+				break;
+			case 13:
+				reg = 16;
+				break;
+			case 14:
+				reg = 17;
+				break;
+			case 15:
+				reg = 18;
+				break;
+			case 16:
+				reg = 19;
+				break;
+			case 17:
+				reg = 20;
+				break;
+			case 18:
+				reg = 21;
+				break;
+			case 19:
+				reg = 22;
+				break;
+			case 20:
+				reg = 23;
+				break;
+			case 21:
+				reg = 24;
+				break;
+			case 22:
+				reg = 25;
+				break;
+			case 23:
+				reg = 26;
+				break;
+			case 24:
+				reg = 27;
+				break;
+			case 25:
+				reg = 28;
+				break;
+			case 26:
+				reg = 29;
+				break;
+			case 27:
+				reg = 30;
+				break;
+			case 28:
+				reg = 31;
+				break;
+			case 29:
+				reg = S1;
+				break;
+			case 30:
+				reg = S0;
+				break;
+			case 31:
+				reg = GDB_REGNO_DPC;
+				break;
+			case 32:
+				reg = GDB_REGNO_DCSR;
+				break;
+			default:
+				assert(0);
+				LOG_ERROR("Got invalid register result %d", result);
+				goto error;
 			}
 			if (riscv_xlen(target) == 32) {
 				reg_cache_set(target, reg, data & 0xffffffff);
@@ -1860,22 +1866,22 @@ static int handle_halt(struct target *target, bool announce)
 
 	int cause = get_field(info->dcsr, DCSR_CAUSE);
 	switch (cause) {
-		case DCSR_CAUSE_SWBP:
-			target->debug_reason = DBG_REASON_BREAKPOINT;
-			break;
-		case DCSR_CAUSE_HWBP:
-			target->debug_reason = DBG_REASON_WATCHPOINT;
-			break;
-		case DCSR_CAUSE_DEBUGINT:
-			target->debug_reason = DBG_REASON_DBGRQ;
-			break;
-		case DCSR_CAUSE_STEP:
-			target->debug_reason = DBG_REASON_SINGLESTEP;
-			break;
-		case DCSR_CAUSE_HALT:
-		default:
-			LOG_ERROR("Invalid halt cause %d in DCSR (0x%" PRIx64 ")",
-					cause, info->dcsr);
+	case DCSR_CAUSE_SWBP:
+		target->debug_reason = DBG_REASON_BREAKPOINT;
+		break;
+	case DCSR_CAUSE_HWBP:
+		target->debug_reason = DBG_REASON_WATCHPOINT;
+		break;
+	case DCSR_CAUSE_DEBUGINT:
+		target->debug_reason = DBG_REASON_DBGRQ;
+		break;
+	case DCSR_CAUSE_STEP:
+		target->debug_reason = DBG_REASON_SINGLESTEP;
+		break;
+	case DCSR_CAUSE_HALT:
+	default:
+		LOG_ERROR("Invalid halt cause %d in DCSR (0x%" PRIx64 ")",
+				cause, info->dcsr);
 	}
 
 	if (info->never_halted) {
@@ -2032,21 +2038,21 @@ static int read_memory(struct target *target, const struct riscv_mem_access_args
 
 	cache_set32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16));
 	switch (size) {
-		case 1:
-			cache_set32(target, 1, lb(S1, S0, 0));
-			cache_set32(target, 2, sw(S1, ZERO, DEBUG_RAM_START + 16));
-			break;
-		case 2:
-			cache_set32(target, 1, lh(S1, S0, 0));
-			cache_set32(target, 2, sw(S1, ZERO, DEBUG_RAM_START + 16));
-			break;
-		case 4:
-			cache_set32(target, 1, lw(S1, S0, 0));
-			cache_set32(target, 2, sw(S1, ZERO, DEBUG_RAM_START + 16));
-			break;
-		default:
-			LOG_ERROR("Unsupported size: %d", size);
-			return ERROR_FAIL;
+	case 1:
+		cache_set32(target, 1, lb(S1, S0, 0));
+		cache_set32(target, 2, sw(S1, ZERO, DEBUG_RAM_START + 16));
+		break;
+	case 2:
+		cache_set32(target, 1, lh(S1, S0, 0));
+		cache_set32(target, 2, sw(S1, ZERO, DEBUG_RAM_START + 16));
+		break;
+	case 4:
+		cache_set32(target, 1, lw(S1, S0, 0));
+		cache_set32(target, 2, sw(S1, ZERO, DEBUG_RAM_START + 16));
+		break;
+	default:
+		LOG_ERROR("Unsupported size: %d", size);
+		return ERROR_FAIL;
 	}
 	cache_set_jump(target, 3);
 	cache_write(target, CACHE_NO_READ, false);
@@ -2089,17 +2095,17 @@ static int read_memory(struct target *target, const struct riscv_mem_access_args
 			dbus_status_t status = scans_get_u32(scans, j, DBUS_OP_START,
 					DBUS_OP_SIZE);
 			switch (status) {
-				case DBUS_STATUS_SUCCESS:
-					break;
-				case DBUS_STATUS_FAILED:
-					LOG_ERROR("Debug RAM write failed. Hardware error?");
-					goto error;
-				case DBUS_STATUS_BUSY:
-					dbus_busy++;
-					break;
-				default:
-					LOG_ERROR("Got invalid bus access status: %d", status);
-					return ERROR_FAIL;
+			case DBUS_STATUS_SUCCESS:
+				break;
+			case DBUS_STATUS_FAILED:
+				LOG_ERROR("Debug RAM write failed. Hardware error?");
+				goto error;
+			case DBUS_STATUS_BUSY:
+				dbus_busy++;
+				break;
+			default:
+				LOG_ERROR("Got invalid bus access status: %d", status);
+				return ERROR_FAIL;
 			}
 			uint64_t data = scans_get_u64(scans, j, DBUS_DATA_START,
 					DBUS_DATA_SIZE);
@@ -2110,19 +2116,19 @@ static int read_memory(struct target *target, const struct riscv_mem_access_args
 			} else if (i + j > 1) {
 				uint32_t offset = size * (i + j - 2);
 				switch (size) {
-					case 1:
-						buffer[offset] = data;
-						break;
-					case 2:
-						buffer[offset] = data;
-						buffer[offset+1] = data >> 8;
-						break;
-					case 4:
-						buffer[offset] = data;
-						buffer[offset+1] = data >> 8;
-						buffer[offset+2] = data >> 16;
-						buffer[offset+3] = data >> 24;
-						break;
+				case 1:
+					buffer[offset] = data;
+					break;
+				case 2:
+					buffer[offset] = data;
+					buffer[offset + 1] = data >> 8;
+					break;
+				case 4:
+					buffer[offset] = data;
+					buffer[offset + 1] = data >> 8;
+					buffer[offset + 2] = data >> 16;
+					buffer[offset + 3] = data >> 24;
+					break;
 				}
 			}
 			LOG_DEBUG("j=%d status=%d data=%09" PRIx64, j, status, data);
@@ -2167,21 +2173,21 @@ error:
 static int setup_write_memory(struct target *target, uint32_t size)
 {
 	switch (size) {
-		case 1:
-			cache_set32(target, 0, lb(S0, ZERO, DEBUG_RAM_START + 16));
-			cache_set32(target, 1, sb(S0, T0, 0));
-			break;
-		case 2:
-			cache_set32(target, 0, lh(S0, ZERO, DEBUG_RAM_START + 16));
-			cache_set32(target, 1, sh(S0, T0, 0));
-			break;
-		case 4:
-			cache_set32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16));
-			cache_set32(target, 1, sw(S0, T0, 0));
-			break;
-		default:
-			LOG_ERROR("Unsupported size: %d", size);
-			return ERROR_FAIL;
+	case 1:
+		cache_set32(target, 0, lb(S0, ZERO, DEBUG_RAM_START + 16));
+		cache_set32(target, 1, sb(S0, T0, 0));
+		break;
+	case 2:
+		cache_set32(target, 0, lh(S0, ZERO, DEBUG_RAM_START + 16));
+		cache_set32(target, 1, sh(S0, T0, 0));
+		break;
+	case 4:
+		cache_set32(target, 0, lw(S0, ZERO, DEBUG_RAM_START + 16));
+		cache_set32(target, 1, sw(S0, T0, 0));
+		break;
+	default:
+		LOG_ERROR("Unsupported size: %d", size);
+		return ERROR_FAIL;
 	}
 	cache_set32(target, 2, addi(T0, T0, size));
 	cache_set_jump(target, 3);
@@ -2241,21 +2247,21 @@ static int write_memory(struct target *target, const struct riscv_mem_access_arg
 				uint32_t value;
 				uint32_t offset = size * (i + j);
 				switch (size) {
-					case 1:
-						value = buffer[offset];
-						break;
-					case 2:
-						value = buffer[offset] |
-							(buffer[offset+1] << 8);
-						break;
-					case 4:
-						value = buffer[offset] |
-							((uint32_t) buffer[offset+1] << 8) |
-							((uint32_t) buffer[offset+2] << 16) |
-							((uint32_t) buffer[offset+3] << 24);
-						break;
-					default:
-						goto error;
+				case 1:
+					value = buffer[offset];
+					break;
+				case 2:
+					value = buffer[offset] |
+						(buffer[offset + 1] << 8);
+					break;
+				case 4:
+					value = buffer[offset] |
+						((uint32_t)buffer[offset + 1] << 8) |
+						((uint32_t)buffer[offset + 2] << 16) |
+						((uint32_t)buffer[offset + 3] << 24);
+					break;
+				default:
+					goto error;
 				}
 
 				scans_add_write32(scans, 4, value, true);
@@ -2274,17 +2280,17 @@ static int write_memory(struct target *target, const struct riscv_mem_access_arg
 			dbus_status_t status = scans_get_u32(scans, j, DBUS_OP_START,
 					DBUS_OP_SIZE);
 			switch (status) {
-				case DBUS_STATUS_SUCCESS:
-					break;
-				case DBUS_STATUS_FAILED:
-					LOG_ERROR("Debug RAM write failed. Hardware error?");
-					goto error;
-				case DBUS_STATUS_BUSY:
-					dbus_busy++;
-					break;
-				default:
-					LOG_ERROR("Got invalid bus access status: %d", status);
-					return ERROR_FAIL;
+			case DBUS_STATUS_SUCCESS:
+				break;
+			case DBUS_STATUS_FAILED:
+				LOG_ERROR("Debug RAM write failed. Hardware error?");
+				goto error;
+			case DBUS_STATUS_BUSY:
+				dbus_busy++;
+				break;
+			default:
+				LOG_ERROR("Got invalid bus access status: %d", status);
+				return ERROR_FAIL;
 			}
 			int interrupt = scans_get_u32(scans, j, DBUS_DATA_START + 33, 1);
 			if (interrupt)

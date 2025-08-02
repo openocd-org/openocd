@@ -325,17 +325,17 @@ uint32_t gdb_regno_size(const struct target *target, uint32_t regno)
 	if (regno >= GDB_REGNO_CSR0 && regno <= GDB_REGNO_CSR4095) {
 		const unsigned int csr_number = regno - GDB_REGNO_CSR0;
 		switch (csr_number) {
-			case CSR_DCSR:
-			case CSR_MVENDORID:
-			case CSR_MCOUNTINHIBIT:
+		case CSR_DCSR:
+		case CSR_MVENDORID:
+		case CSR_MCOUNTINHIBIT:
 
-			case CSR_FFLAGS:
-			case CSR_FRM:
-			case CSR_FCSR:
+		case CSR_FFLAGS:
+		case CSR_FRM:
+		case CSR_FCSR:
 
-			case CSR_SCOUNTEREN:
-			case CSR_MCOUNTEREN:
-				return 32;
+		case CSR_SCOUNTEREN:
+		case CSR_MCOUNTEREN:
+			return 32;
 		}
 	}
 	return riscv_xlen(target);
@@ -393,154 +393,154 @@ bool riscv_reg_impl_gdb_regno_exist(const struct target *target, uint32_t regno)
 	assert(regno >= GDB_REGNO_CSR0 && regno <= GDB_REGNO_CSR4095);
 	const unsigned int csr_number = regno - GDB_REGNO_CSR0;
 	switch (csr_number) {
-		case CSR_FFLAGS:
-		case CSR_FRM:
-		case CSR_FCSR:
-			return riscv_supports_extension(target, 'F');
-		case CSR_VSTART:
-		case CSR_VXSAT:
-		case CSR_VXRM:
-		case CSR_VL:
-		case CSR_VCSR:
-		case CSR_VTYPE:
-			return vlenb_exists(target);
-		case CSR_SCOUNTEREN:
-		case CSR_SSTATUS:
-		case CSR_STVEC:
-		case CSR_SIP:
-		case CSR_SIE:
-		case CSR_SSCRATCH:
-		case CSR_SEPC:
-		case CSR_SCAUSE:
-		case CSR_STVAL:
-		case CSR_SATP:
-			return riscv_supports_extension(target, 'S');
-		case CSR_MEDELEG:
-		case CSR_MIDELEG:
-			/* "In systems with only M-mode, or with both M-mode and
-			 * U-mode but without U-mode trap support, the medeleg and
-			 * mideleg registers should not exist." */
-			return riscv_supports_extension(target, 'S') ||
-				riscv_supports_extension(target, 'N');
+	case CSR_FFLAGS:
+	case CSR_FRM:
+	case CSR_FCSR:
+		return riscv_supports_extension(target, 'F');
+	case CSR_VSTART:
+	case CSR_VXSAT:
+	case CSR_VXRM:
+	case CSR_VL:
+	case CSR_VCSR:
+	case CSR_VTYPE:
+		return vlenb_exists(target);
+	case CSR_SCOUNTEREN:
+	case CSR_SSTATUS:
+	case CSR_STVEC:
+	case CSR_SIP:
+	case CSR_SIE:
+	case CSR_SSCRATCH:
+	case CSR_SEPC:
+	case CSR_SCAUSE:
+	case CSR_STVAL:
+	case CSR_SATP:
+		return riscv_supports_extension(target, 'S');
+	case CSR_MEDELEG:
+	case CSR_MIDELEG:
+		/* "In systems with only M-mode, or with both M-mode and
+		 * U-mode but without U-mode trap support, the medeleg and
+		 * mideleg registers should not exist." */
+		return riscv_supports_extension(target, 'S') ||
+			riscv_supports_extension(target, 'N');
 
-		case CSR_PMPCFG1:
-		case CSR_PMPCFG3:
-		case CSR_CYCLEH:
-		case CSR_TIMEH:
-		case CSR_INSTRETH:
-		case CSR_HPMCOUNTER3H:
-		case CSR_HPMCOUNTER4H:
-		case CSR_HPMCOUNTER5H:
-		case CSR_HPMCOUNTER6H:
-		case CSR_HPMCOUNTER7H:
-		case CSR_HPMCOUNTER8H:
-		case CSR_HPMCOUNTER9H:
-		case CSR_HPMCOUNTER10H:
-		case CSR_HPMCOUNTER11H:
-		case CSR_HPMCOUNTER12H:
-		case CSR_HPMCOUNTER13H:
-		case CSR_HPMCOUNTER14H:
-		case CSR_HPMCOUNTER15H:
-		case CSR_HPMCOUNTER16H:
-		case CSR_HPMCOUNTER17H:
-		case CSR_HPMCOUNTER18H:
-		case CSR_HPMCOUNTER19H:
-		case CSR_HPMCOUNTER20H:
-		case CSR_HPMCOUNTER21H:
-		case CSR_HPMCOUNTER22H:
-		case CSR_HPMCOUNTER23H:
-		case CSR_HPMCOUNTER24H:
-		case CSR_HPMCOUNTER25H:
-		case CSR_HPMCOUNTER26H:
-		case CSR_HPMCOUNTER27H:
-		case CSR_HPMCOUNTER28H:
-		case CSR_HPMCOUNTER29H:
-		case CSR_HPMCOUNTER30H:
-		case CSR_HPMCOUNTER31H:
-		case CSR_MCYCLEH:
-		case CSR_MINSTRETH:
-		case CSR_MHPMCOUNTER4H:
-		case CSR_MHPMCOUNTER5H:
-		case CSR_MHPMCOUNTER6H:
-		case CSR_MHPMCOUNTER7H:
-		case CSR_MHPMCOUNTER8H:
-		case CSR_MHPMCOUNTER9H:
-		case CSR_MHPMCOUNTER10H:
-		case CSR_MHPMCOUNTER11H:
-		case CSR_MHPMCOUNTER12H:
-		case CSR_MHPMCOUNTER13H:
-		case CSR_MHPMCOUNTER14H:
-		case CSR_MHPMCOUNTER15H:
-		case CSR_MHPMCOUNTER16H:
-		case CSR_MHPMCOUNTER17H:
-		case CSR_MHPMCOUNTER18H:
-		case CSR_MHPMCOUNTER19H:
-		case CSR_MHPMCOUNTER20H:
-		case CSR_MHPMCOUNTER21H:
-		case CSR_MHPMCOUNTER22H:
-		case CSR_MHPMCOUNTER23H:
-		case CSR_MHPMCOUNTER24H:
-		case CSR_MHPMCOUNTER25H:
-		case CSR_MHPMCOUNTER26H:
-		case CSR_MHPMCOUNTER27H:
-		case CSR_MHPMCOUNTER28H:
-		case CSR_MHPMCOUNTER29H:
-		case CSR_MHPMCOUNTER30H:
-		case CSR_MHPMCOUNTER31H:
-			return riscv_xlen(target) == 32;
-		case CSR_MCOUNTEREN:
-			return riscv_supports_extension(target, 'U');
-			/* Interrupts M-Mode CSRs. */
-		case CSR_MISELECT:
-		case CSR_MIREG:
-		case CSR_MVIEN:
-		case CSR_MVIP:
-		case CSR_MIEH:
-		case CSR_MIPH:
-			return reg_exists(target, GDB_REGNO_MTOPI);
-		case CSR_MIDELEGH:
-		case CSR_MVIENH:
-		case CSR_MVIPH:
-			return reg_exists(target, GDB_REGNO_MTOPI) &&
-				riscv_xlen(target) == 32 &&
-				riscv_supports_extension(target, 'S');
-			/* Interrupts S-Mode CSRs. */
-		case CSR_SISELECT:
-		case CSR_SIREG:
-		case CSR_STOPI:
-			return reg_exists(target, GDB_REGNO_MTOPI) &&
-				riscv_supports_extension(target, 'S');
-		case CSR_STOPEI:
-			return reg_exists(target, GDB_REGNO_MTOPEI) &&
-				riscv_supports_extension(target, 'S');
-		case CSR_SIEH:
-		case CSR_SIPH:
-			return reg_exists(target, GDB_REGNO_MTOPI) &&
-				riscv_xlen(target) == 32 &&
-				riscv_supports_extension(target, 'S');
-			/* Interrupts Hypervisor and VS CSRs. */
-		case CSR_HVIEN:
-		case CSR_HVICTL:
-		case CSR_HVIPRIO1:
-		case CSR_HVIPRIO2:
-		case CSR_VSISELECT:
-		case CSR_VSIREG:
-		case CSR_VSTOPI:
-			return reg_exists(target, GDB_REGNO_MTOPI) &&
-				riscv_supports_extension(target, 'H');
-		case CSR_VSTOPEI:
-			return reg_exists(target, GDB_REGNO_MTOPEI) &&
-				riscv_supports_extension(target, 'H');
-		case CSR_HIDELEGH:
-		case CSR_HVIENH:
-		case CSR_HVIPH:
-		case CSR_HVIPRIO1H:
-		case CSR_HVIPRIO2H:
-		case CSR_VSIEH:
-		case CSR_VSIPH:
-			return reg_exists(target, GDB_REGNO_MTOPI) &&
-				riscv_xlen(target) == 32 &&
-				riscv_supports_extension(target, 'H');
+	case CSR_PMPCFG1:
+	case CSR_PMPCFG3:
+	case CSR_CYCLEH:
+	case CSR_TIMEH:
+	case CSR_INSTRETH:
+	case CSR_HPMCOUNTER3H:
+	case CSR_HPMCOUNTER4H:
+	case CSR_HPMCOUNTER5H:
+	case CSR_HPMCOUNTER6H:
+	case CSR_HPMCOUNTER7H:
+	case CSR_HPMCOUNTER8H:
+	case CSR_HPMCOUNTER9H:
+	case CSR_HPMCOUNTER10H:
+	case CSR_HPMCOUNTER11H:
+	case CSR_HPMCOUNTER12H:
+	case CSR_HPMCOUNTER13H:
+	case CSR_HPMCOUNTER14H:
+	case CSR_HPMCOUNTER15H:
+	case CSR_HPMCOUNTER16H:
+	case CSR_HPMCOUNTER17H:
+	case CSR_HPMCOUNTER18H:
+	case CSR_HPMCOUNTER19H:
+	case CSR_HPMCOUNTER20H:
+	case CSR_HPMCOUNTER21H:
+	case CSR_HPMCOUNTER22H:
+	case CSR_HPMCOUNTER23H:
+	case CSR_HPMCOUNTER24H:
+	case CSR_HPMCOUNTER25H:
+	case CSR_HPMCOUNTER26H:
+	case CSR_HPMCOUNTER27H:
+	case CSR_HPMCOUNTER28H:
+	case CSR_HPMCOUNTER29H:
+	case CSR_HPMCOUNTER30H:
+	case CSR_HPMCOUNTER31H:
+	case CSR_MCYCLEH:
+	case CSR_MINSTRETH:
+	case CSR_MHPMCOUNTER4H:
+	case CSR_MHPMCOUNTER5H:
+	case CSR_MHPMCOUNTER6H:
+	case CSR_MHPMCOUNTER7H:
+	case CSR_MHPMCOUNTER8H:
+	case CSR_MHPMCOUNTER9H:
+	case CSR_MHPMCOUNTER10H:
+	case CSR_MHPMCOUNTER11H:
+	case CSR_MHPMCOUNTER12H:
+	case CSR_MHPMCOUNTER13H:
+	case CSR_MHPMCOUNTER14H:
+	case CSR_MHPMCOUNTER15H:
+	case CSR_MHPMCOUNTER16H:
+	case CSR_MHPMCOUNTER17H:
+	case CSR_MHPMCOUNTER18H:
+	case CSR_MHPMCOUNTER19H:
+	case CSR_MHPMCOUNTER20H:
+	case CSR_MHPMCOUNTER21H:
+	case CSR_MHPMCOUNTER22H:
+	case CSR_MHPMCOUNTER23H:
+	case CSR_MHPMCOUNTER24H:
+	case CSR_MHPMCOUNTER25H:
+	case CSR_MHPMCOUNTER26H:
+	case CSR_MHPMCOUNTER27H:
+	case CSR_MHPMCOUNTER28H:
+	case CSR_MHPMCOUNTER29H:
+	case CSR_MHPMCOUNTER30H:
+	case CSR_MHPMCOUNTER31H:
+		return riscv_xlen(target) == 32;
+	case CSR_MCOUNTEREN:
+		return riscv_supports_extension(target, 'U');
+		/* Interrupts M-Mode CSRs. */
+	case CSR_MISELECT:
+	case CSR_MIREG:
+	case CSR_MVIEN:
+	case CSR_MVIP:
+	case CSR_MIEH:
+	case CSR_MIPH:
+		return reg_exists(target, GDB_REGNO_MTOPI);
+	case CSR_MIDELEGH:
+	case CSR_MVIENH:
+	case CSR_MVIPH:
+		return reg_exists(target, GDB_REGNO_MTOPI) &&
+			riscv_xlen(target) == 32 &&
+			riscv_supports_extension(target, 'S');
+		/* Interrupts S-Mode CSRs. */
+	case CSR_SISELECT:
+	case CSR_SIREG:
+	case CSR_STOPI:
+		return reg_exists(target, GDB_REGNO_MTOPI) &&
+			riscv_supports_extension(target, 'S');
+	case CSR_STOPEI:
+		return reg_exists(target, GDB_REGNO_MTOPEI) &&
+			riscv_supports_extension(target, 'S');
+	case CSR_SIEH:
+	case CSR_SIPH:
+		return reg_exists(target, GDB_REGNO_MTOPI) &&
+			riscv_xlen(target) == 32 &&
+			riscv_supports_extension(target, 'S');
+		/* Interrupts Hypervisor and VS CSRs. */
+	case CSR_HVIEN:
+	case CSR_HVICTL:
+	case CSR_HVIPRIO1:
+	case CSR_HVIPRIO2:
+	case CSR_VSISELECT:
+	case CSR_VSIREG:
+	case CSR_VSTOPI:
+		return reg_exists(target, GDB_REGNO_MTOPI) &&
+			riscv_supports_extension(target, 'H');
+	case CSR_VSTOPEI:
+		return reg_exists(target, GDB_REGNO_MTOPEI) &&
+			riscv_supports_extension(target, 'H');
+	case CSR_HIDELEGH:
+	case CSR_HVIENH:
+	case CSR_HVIPH:
+	case CSR_HVIPRIO1H:
+	case CSR_HVIPRIO2H:
+	case CSR_VSIEH:
+	case CSR_VSIPH:
+		return reg_exists(target, GDB_REGNO_MTOPI) &&
+			riscv_xlen(target) == 32 &&
+			riscv_supports_extension(target, 'H');
 	}
 	return is_known_standard_csr(csr_number);
 }

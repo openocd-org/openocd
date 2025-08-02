@@ -194,29 +194,29 @@ static inline bool riscv_reg_impl_gdb_regno_cacheable(enum gdb_regno regno,
 	/* Most CSRs won't change value on us, but we can't assume it about arbitrary
 	 * CSRs. */
 	switch (regno) {
-		case GDB_REGNO_DPC:
-		case GDB_REGNO_VSTART:
-		case GDB_REGNO_VXSAT:
-		case GDB_REGNO_VXRM:
-		case GDB_REGNO_VLENB:
-		case GDB_REGNO_VL:
-		case GDB_REGNO_VTYPE:
-		case GDB_REGNO_MISA:
-		case GDB_REGNO_DCSR:
-		case GDB_REGNO_DSCRATCH0:
-		case GDB_REGNO_MEPC:
-		case GDB_REGNO_SATP:
-			/*
-			 * WARL registers might not contain the value we just wrote, but
-			 * these ones won't spontaneously change their value either. *
-			 */
-			return !is_write;
+	case GDB_REGNO_DPC:
+	case GDB_REGNO_VSTART:
+	case GDB_REGNO_VXSAT:
+	case GDB_REGNO_VXRM:
+	case GDB_REGNO_VLENB:
+	case GDB_REGNO_VL:
+	case GDB_REGNO_VTYPE:
+	case GDB_REGNO_MISA:
+	case GDB_REGNO_DCSR:
+	case GDB_REGNO_DSCRATCH0:
+	case GDB_REGNO_MEPC:
+	case GDB_REGNO_SATP:
+		/*
+		 * WARL registers might not contain the value we just wrote, but
+		 * these ones won't spontaneously change their value either. *
+		 */
+		return !is_write;
 
-		case GDB_REGNO_TSELECT:	/* I think this should be above, but then it doesn't work. */
-		case GDB_REGNO_TDATA1:	/* Changes value when tselect is changed. */
-		case GDB_REGNO_TDATA2:  /* Changes value when tselect is changed. */
-		default:
-			return false;
+	case GDB_REGNO_TSELECT:	/* I think this should be above, but then it doesn't work. */
+	case GDB_REGNO_TDATA1:	/* Changes value when tselect is changed. */
+	case GDB_REGNO_TDATA2:  /* Changes value when tselect is changed. */
+	default:
+		return false;
 	}
 }
 #endif /* OPENOCD_TARGET_RISCV_RISCV_REG_IMPL_H */
