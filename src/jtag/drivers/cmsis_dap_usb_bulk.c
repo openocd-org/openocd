@@ -659,10 +659,10 @@ static void cmsis_dap_usb_cancel_all(struct cmsis_dap *dap)
 
 COMMAND_HANDLER(cmsis_dap_handle_usb_interface_command)
 {
-	if (CMD_ARGC == 1)
-		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], cmsis_dap_usb_interface);
-	else
-		LOG_ERROR("expected exactly one argument to cmsis_dap_usb_interface <interface_number>");
+	if (CMD_ARGC != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], cmsis_dap_usb_interface);
 
 	return ERROR_OK;
 }
@@ -673,7 +673,7 @@ const struct command_registration cmsis_dap_usb_subcommand_handlers[] = {
 		.handler = &cmsis_dap_handle_usb_interface_command,
 		.mode = COMMAND_CONFIG,
 		.help = "set the USB interface number to use (for USB bulk backend only)",
-		.usage = "<interface_number>",
+		.usage = "<number>",
 	},
 	COMMAND_REGISTRATION_DONE
 };

@@ -2578,7 +2578,7 @@ This is the default if @command{cmsis-dap backend} is not specified.
 @end itemize
 @end deffn
 
-@deffn {Config Command} {cmsis-dap usb interface} [number]
+@deffn {Config Command} {cmsis-dap usb interface} number
 Specifies the @var{number} of the USB interface to use in v2 mode (USB bulk).
 In most cases need not to be specified and interfaces are searched by
 interface string or for user class interface.
