@@ -2239,11 +2239,13 @@ COMMAND_HANDLER(cmsis_dap_handle_quirk_command)
 	if (CMD_ARGC > 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	if (CMD_ARGC == 1)
+	if (CMD_ARGC == 1) {
 		COMMAND_PARSE_ENABLE(CMD_ARGV[0], cmsis_dap_quirk_mode);
+		return ERROR_OK;
+	}
 
-	command_print(CMD, "CMSIS-DAP quirk workarounds %s",
-				  cmsis_dap_quirk_mode ? "enabled" : "disabled");
+	command_print(CMD, "%s", cmsis_dap_quirk_mode ? "enabled" : "disabled");
+
 	return ERROR_OK;
 }
 
