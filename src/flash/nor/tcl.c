@@ -332,6 +332,9 @@ COMMAND_HANDLER(handle_flash_erase_command)
 			"in %fs", first, last, p->bank_number, duration_elapsed(&bench));
 	}
 
+	if (retval != ERROR_OK)
+		command_print(CMD, "failed to erase sectors");
+
 	return retval;
 }
 
