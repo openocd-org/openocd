@@ -1931,19 +1931,12 @@ static int poll_target(struct target *target, bool announce)
 {
 	jtag_add_ir_scan(target->tap, &select_dbus, TAP_IDLE);
 
-	/* Inhibit debug logging during poll(), which isn't usually interesting and
-	 * just fills up the screen/logs with clutter. */
-	int old_debug_level = debug_level;
-	if (LOG_LEVEL_IS(LOG_LVL_DEBUG))
-		debug_level = LOG_LVL_INFO;
 	bits_t bits = {
 		.haltnot = 0,
 		.interrupt = 0
 	};
 	if (read_bits(target, &bits) != ERROR_OK)
 		return ERROR_FAIL;
-
-	debug_level = old_debug_level;
 
 	if (bits.haltnot && bits.interrupt) {
 		target->state = TARGET_DEBUG_RUNNING;
