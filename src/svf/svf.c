@@ -1620,7 +1620,7 @@ static int svf_run_command(struct command_context *cmd_ctx, char *cmd_str)
 			LOG_USER("(Above Padding command skipped, as per -tap argument)");
 	}
 
-	if (debug_level >= LOG_LVL_DEBUG) {
+	if (LOG_LEVEL_IS(LOG_LVL_DEBUG)) {
 		/* for convenient debugging, execute tap if possible */
 		if ((svf_buffer_index > 0) &&
 				(((command != STATE) && (command != RUNTEST)) ||

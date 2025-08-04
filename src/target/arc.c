@@ -769,7 +769,7 @@ static int arc_exit_debug(struct target *target)
 	target->state = TARGET_HALTED;
 	CHECK_RETVAL(target_call_event_callbacks(target, TARGET_EVENT_HALTED));
 
-	if (debug_level >= LOG_LVL_DEBUG) {
+	if (LOG_LEVEL_IS(LOG_LVL_DEBUG)) {
 		LOG_TARGET_DEBUG(target, "core stopped (halted) debug-reg: 0x%08" PRIx32, value);
 		CHECK_RETVAL(arc_jtag_read_aux_reg_one(&arc->jtag_info, AUX_STATUS32_REG, &value));
 		LOG_TARGET_DEBUG(target, "core STATUS32: 0x%08" PRIx32, value);
@@ -824,7 +824,7 @@ static int arc_halt(struct target *target)
 	CHECK_RETVAL(target_call_event_callbacks(target, TARGET_EVENT_HALTED));
 
 	/* some more debug information */
-	if (debug_level >= LOG_LVL_DEBUG) {
+	if (LOG_LEVEL_IS(LOG_LVL_DEBUG)) {
 		LOG_TARGET_DEBUG(target, "core stopped (halted) DEGUB-REG: 0x%08" PRIx32, value);
 		CHECK_RETVAL(arc_get_register_value(target, "status32", &value));
 		LOG_TARGET_DEBUG(target, "core STATUS32: 0x%08" PRIx32, value);
@@ -1148,7 +1148,7 @@ static int arc_arch_state(struct target *target)
 {
 	uint32_t pc_value;
 
-	if (debug_level < LOG_LVL_DEBUG)
+	if (!LOG_LEVEL_IS(LOG_LVL_DEBUG))
 		return ERROR_OK;
 
 	CHECK_RETVAL(arc_get_register_value(target, "pc", &pc_value));

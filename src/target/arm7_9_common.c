@@ -637,7 +637,7 @@ int arm7_9_execute_sys_speed(struct target *target)
 		if ((buf_get_u32(dbg_stat->value, EICE_DBG_STATUS_DBGACK, 1))
 				&& (buf_get_u32(dbg_stat->value, EICE_DBG_STATUS_SYSCOMP, 1)))
 			break;
-		if (debug_level >= 3)
+		if (LOG_LEVEL_IS(LOG_LVL_DEBUG))
 			alive_sleep(100);
 		else
 			keep_alive();
@@ -1088,7 +1088,7 @@ int arm7_9_soft_reset_halt(struct target *target)
 		retval = jtag_execute_queue();
 		if (retval != ERROR_OK)
 			return retval;
-		if (debug_level >= 3)
+		if (LOG_LEVEL_IS(LOG_LVL_DEBUG))
 			alive_sleep(100);
 		else
 			keep_alive();

@@ -967,7 +967,7 @@ int default_interface_jtag_execute_queue(void)
 	struct jtag_command *cmd = jtag_command_queue_get();
 	int result = adapter_driver->jtag_ops->execute_queue(cmd);
 
-	while (debug_level >= LOG_LVL_DEBUG_IO && cmd) {
+	while (LOG_LEVEL_IS(LOG_LVL_DEBUG_IO) && cmd) {
 		switch (cmd->type) {
 		case JTAG_SCAN:
 			LOG_DEBUG_IO("JTAG %s SCAN to %s",

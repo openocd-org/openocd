@@ -113,7 +113,7 @@ static void log_puts(enum log_levels level,
 	if (f)
 		file = f + 1;
 
-	if (debug_level >= LOG_LVL_DEBUG) {
+	if (LOG_LEVEL_IS(LOG_LVL_DEBUG)) {
 		/* print with count and time information */
 		int64_t t = timeval_ms() - start;
 #ifdef _DEBUG_FREE_SPACE_

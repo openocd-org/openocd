@@ -544,7 +544,7 @@ int arm926ejs_soft_reset_halt(struct target *target)
 				return retval;
 		} else
 			break;
-		if (debug_level >= 1) {
+		if (LOG_LEVEL_IS(LOG_LVL_WARNING)) {
 			/* do not eat all CPU, time out after 1 se*/
 			alive_sleep(100);
 		} else

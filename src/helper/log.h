@@ -101,7 +101,7 @@ extern int debug_level;
 
 #define LOG_DEBUG_IO(expr ...) \
 	do { \
-		if (debug_level >= LOG_LVL_DEBUG_IO) \
+		if (LOG_LEVEL_IS(LOG_LVL_DEBUG_IO)) \
 			log_printf_lf(LOG_LVL_DEBUG, \
 				__FILE__, __LINE__, __func__, \
 				expr); \
@@ -109,7 +109,7 @@ extern int debug_level;
 
 #define LOG_DEBUG(expr ...) \
 	do { \
-		if (debug_level >= LOG_LVL_DEBUG) \
+		if (LOG_LEVEL_IS(LOG_LVL_DEBUG)) \
 			log_printf_lf(LOG_LVL_DEBUG, \
 				__FILE__, __LINE__, __func__, \
 				expr); \
@@ -118,7 +118,7 @@ extern int debug_level;
 #define LOG_CUSTOM_LEVEL(level, expr ...) \
 	do { \
 		enum log_levels _level = level; \
-		if (debug_level >= _level) \
+		if (LOG_LEVEL_IS(_level)) \
 			log_printf_lf(_level, \
 				__FILE__, __LINE__, __func__, \
 				expr); \

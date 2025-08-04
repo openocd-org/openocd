@@ -539,7 +539,7 @@ static int ecos_check_app_info(struct rtos *rtos, struct ecos_params *param)
 		return -1;
 
 	if (param->flush_common) {
-		if (debug_level >= LOG_LVL_DEBUG) {
+		if (LOG_LEVEL_IS(LOG_LVL_DEBUG)) {
 			for (unsigned int idx = 0; idx < ARRAY_SIZE(ecos_symbol_list); idx++) {
 				LOG_DEBUG("eCos: %s 0x%016" PRIX64 " %s",
 					rtos->symbols[idx].optional ? "OPTIONAL" : "        ",
