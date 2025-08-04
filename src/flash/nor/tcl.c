@@ -275,7 +275,7 @@ COMMAND_HANDLER(handle_flash_erase_address_command)
 	if (retval == ERROR_OK)
 		retval = flash_erase_address_range(target, do_pad, address, length);
 
-	if ((retval == ERROR_OK) && (duration_measure(&bench) == ERROR_OK)) {
+	if (retval == ERROR_OK && duration_measure(&bench) == ERROR_OK) {
 		command_print(CMD, "erased address " TARGET_ADDR_FMT " (length %" PRIu32 ")"
 			" in %fs (%0.3f KiB/s)", address, length,
 			duration_elapsed(&bench), duration_kbps(&bench, length));
@@ -323,7 +323,7 @@ COMMAND_HANDLER(handle_flash_erase_command)
 
 	retval = flash_driver_erase(p, first, last);
 
-	if ((retval == ERROR_OK) && (duration_measure(&bench) == ERROR_OK)) {
+	if (retval == ERROR_OK && duration_measure(&bench) == ERROR_OK) {
 		command_print(CMD, "erased sectors %" PRIu32 " "
 			"through %" PRIu32 " on flash bank %u "
 			"in %fs", first, last, p->bank_number, duration_elapsed(&bench));
@@ -449,7 +449,7 @@ COMMAND_HANDLER(handle_flash_write_image_command)
 		return retval;
 	}
 
-	if ((retval == ERROR_OK) && (duration_measure(&bench) == ERROR_OK)) {
+	if (retval == ERROR_OK && duration_measure(&bench) == ERROR_OK) {
 		command_print(CMD, "wrote %" PRIu32 " bytes from file %s "
 			"in %fs (%0.3f KiB/s)", written, CMD_ARGV[0],
 			duration_elapsed(&bench), duration_kbps(&bench, written));
@@ -501,7 +501,7 @@ COMMAND_HANDLER(handle_flash_verify_image_command)
 		return retval;
 	}
 
-	if ((retval == ERROR_OK) && (duration_measure(&bench) == ERROR_OK)) {
+	if (retval == ERROR_OK && duration_measure(&bench) == ERROR_OK) {
 		command_print(CMD, "verified %" PRIu32 " bytes from file %s "
 			"in %fs (%0.3f KiB/s)", verified, CMD_ARGV[0],
 			duration_elapsed(&bench), duration_kbps(&bench, verified));
@@ -655,7 +655,7 @@ COMMAND_HANDLER(handle_flash_fill_command)
 		ptr += wordsize;
 	}
 
-	if ((retval == ERROR_OK) && (duration_measure(&bench) == ERROR_OK)) {
+	if (retval == ERROR_OK && duration_measure(&bench) == ERROR_OK) {
 		command_print(CMD, "wrote %" PRIu32 " bytes to " TARGET_ADDR_FMT
 			" in %fs (%0.3f KiB/s)", size_bytes, address,
 			duration_elapsed(&bench), duration_kbps(&bench, size_bytes));
@@ -950,7 +950,7 @@ COMMAND_HANDLER(handle_flash_write_bank_command)
 
 	free(buffer);
 
-	if ((retval == ERROR_OK) && (duration_measure(&bench) == ERROR_OK)) {
+	if (retval == ERROR_OK && duration_measure(&bench) == ERROR_OK) {
 		command_print(CMD, "wrote %zu bytes from file %s to flash bank %u"
 			" at offset 0x%8.8" PRIx32 " in %fs (%0.3f KiB/s)",
 			length, CMD_ARGV[1], bank->bank_number, offset,

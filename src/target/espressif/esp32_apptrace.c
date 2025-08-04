@@ -488,7 +488,7 @@ int esp32_apptrace_cmd_ctx_init(struct esp32_apptrace_cmd_ctx *cmd_ctx, struct c
 		cmd_ctx->stats.min_blk_read_time = 1000000.0;
 		cmd_ctx->stats.min_blk_proc_time = 1000000.0;
 	}
-	if (duration_start(&cmd_ctx->idle_time) != 0) {
+	if (duration_start(&cmd_ctx->idle_time) != ERROR_OK) {
 		command_print(cmd, "Failed to start idle time measurement!");
 		esp32_apptrace_cmd_ctx_cleanup(cmd_ctx);
 		return ERROR_FAIL;
@@ -905,7 +905,7 @@ static int esp32_apptrace_process_data(struct esp32_apptrace_cmd_ctx *ctx,
 	/* check for stop condition */
 	if (ctx->tot_len > cmd_data->skip_len && (ctx->tot_len - cmd_data->skip_len >= cmd_data->max_len)) {
 		ctx->running = 0;
-		if (duration_measure(&ctx->read_time) != 0) {
+		if (duration_measure(&ctx->read_time) != ERROR_OK) {
 			LOG_ERROR("Failed to stop trace read time measure!");
 			return ERROR_FAIL;
 		}
@@ -1005,7 +1005,7 @@ static int esp32_apptrace_check_connection(struct esp32_apptrace_cmd_ctx *ctx)
 			}
 			if (ctx->stop_tmo != -1.0) {
 				/* re-start idle time measurement */
-				if (duration_start(&ctx->idle_time) != 0) {
+				if (duration_start(&ctx->idle_time) != ERROR_OK) {
 					LOG_ERROR("Failed to re-start idle time measure!");
 					return ERROR_FAIL;
 				}
@@ -1082,7 +1082,7 @@ static int esp32_apptrace_poll(void *priv)
 			ctx->last_blk_id = max_block_id;
 		}
 		if (ctx->stop_tmo != -1.0) {
-			if (duration_measure(&ctx->idle_time) != 0) {
+			if (duration_measure(&ctx->idle_time) != ERROR_OK) {
 				ctx->running = 0;
 				LOG_ERROR("Failed to measure idle time!");
 				return ERROR_FAIL;
@@ -1102,7 +1102,7 @@ static int esp32_apptrace_poll(void *priv)
 		return ERROR_FAIL;
 	}
 	if (ctx->tot_len == 0) {
-		if (duration_start(&ctx->read_time) != 0) {
+		if (duration_start(&ctx->read_time) != ERROR_OK) {
 			ctx->running = 0;
 			LOG_ERROR("Failed to start trace read time measurement!");
 			return ERROR_FAIL;
@@ -1116,7 +1116,7 @@ static int esp32_apptrace_poll(void *priv)
 	}
 	if (s_time_stats_enable) {
 		/* read block */
-		if (duration_start(&blk_proc_time) != 0) {
+		if (duration_start(&blk_proc_time) != ERROR_OK) {
 			ctx->running = 0;
 			LOG_ERROR("Failed to start block read time measurement!");
 			return ERROR_FAIL;
@@ -1136,7 +1136,7 @@ static int esp32_apptrace_poll(void *priv)
 	block->data_len = target_state[fired_target_num].data_len;
 	ctx->raw_tot_len += block->data_len;
 	if (s_time_stats_enable) {
-		if (duration_measure(&blk_proc_time) != 0) {
+		if (duration_measure(&blk_proc_time) != ERROR_OK) {
 			ctx->running = 0;
 			LOG_ERROR("Failed to measure block read time!");
 			return ERROR_FAIL;
@@ -1148,7 +1148,7 @@ static int esp32_apptrace_poll(void *priv)
 		if (brt < ctx->stats.min_blk_read_time)
 			ctx->stats.min_blk_read_time = brt;
 
-		if (duration_start(&blk_proc_time) != 0) {
+		if (duration_start(&blk_proc_time) != ERROR_OK) {
 			ctx->running = 0;
 			LOG_ERROR("Failed to start block proc time measurement!");
 			return ERROR_FAIL;
@@ -1194,14 +1194,14 @@ static int esp32_apptrace_poll(void *priv)
 	}
 	if (ctx->stop_tmo != -1.0) {
 		/* start idle time measurement */
-		if (duration_start(&ctx->idle_time) != 0) {
+		if (duration_start(&ctx->idle_time) != ERROR_OK) {
 			ctx->running = 0;
 			LOG_ERROR("Failed to start idle time measure!");
 			return ERROR_FAIL;
 		}
 	}
 	if (s_time_stats_enable) {
-		if (duration_measure(&blk_proc_time) != 0) {
+		if (duration_measure(&blk_proc_time) != ERROR_OK) {
 			ctx->running = 0;
 			LOG_ERROR("Failed to stop block proc time measure!");
 			return ERROR_FAIL;
@@ -1223,7 +1223,7 @@ static inline bool is_sysview_mode(int mode)
 
 static void esp32_apptrace_cmd_stop(struct esp32_apptrace_cmd_ctx *ctx)
 {
-	if (duration_measure(&ctx->read_time) != 0)
+	if (duration_measure(&ctx->read_time) != ERROR_OK)
 		LOG_ERROR("Failed to stop trace read time measurement!");
 	int res = target_unregister_timer_callback(esp32_apptrace_poll, ctx);
 	if (res != ERROR_OK)
@@ -1362,7 +1362,7 @@ static int esp32_sysview_stop(struct esp32_apptrace_cmd_ctx *ctx)
 	}
 	/* wait for block switch (command sent), so we can disconnect from targets */
 	old_block_id = target_state[fired_target_num].block_id;
-	if (duration_start(&wait_time) != 0) {
+	if (duration_start(&wait_time) != ERROR_OK) {
 		LOG_ERROR("Failed to start trace stop timeout measurement!");
 		return ERROR_FAIL;
 	}
@@ -1418,7 +1418,7 @@ static int esp32_sysview_stop(struct esp32_apptrace_cmd_ctx *ctx)
 				old_block_id = target_state[fired_target_num].block_id;
 			}
 		}
-		if (duration_measure(&wait_time) != 0) {
+		if (duration_measure(&wait_time) != ERROR_OK) {
 			LOG_ERROR("Failed to start trace stop timeout measurement!");
 			return ERROR_FAIL;
 		}
@@ -1532,7 +1532,7 @@ static int esp32_cmd_apptrace_generic(struct command_invocation *cmd, int mode, 
 		esp32_apptrace_cmd_stop(&s_at_cmd_ctx);
 		return ERROR_OK;
 	} else if (strcmp(argv[0], "status") == 0) {
-		if (s_at_cmd_ctx.running && duration_measure(&s_at_cmd_ctx.read_time) != 0)
+		if (s_at_cmd_ctx.running && duration_measure(&s_at_cmd_ctx.read_time) != ERROR_OK)
 			LOG_ERROR("Failed to measure trace read time!");
 		esp32_apptrace_print_stats(&s_at_cmd_ctx);
 		return ERROR_OK;

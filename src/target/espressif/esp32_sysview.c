@@ -545,7 +545,7 @@ int esp32_sysview_process_data(struct esp32_apptrace_cmd_ctx *ctx,
 	if (ctx->tot_len > cmd_data->apptrace.skip_len &&
 		(ctx->tot_len - cmd_data->apptrace.skip_len >= cmd_data->apptrace.max_len)) {
 		ctx->running = 0;
-		if (duration_measure(&ctx->read_time) != 0) {
+		if (duration_measure(&ctx->read_time) != ERROR_OK) {
 			LOG_ERROR("Failed to stop trace read time measure!");
 			return ERROR_FAIL;
 		}

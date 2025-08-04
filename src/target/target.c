@@ -3630,7 +3630,7 @@ COMMAND_HANDLER(handle_load_image_command)
 		free(buffer);
 	}
 
-	if ((retval == ERROR_OK) && (duration_measure(&bench) == ERROR_OK)) {
+	if (retval == ERROR_OK && duration_measure(&bench) == ERROR_OK) {
 		command_print(CMD, "downloaded %" PRIu32 " bytes "
 				"in %fs (%0.3f KiB/s)", image_size,
 				duration_elapsed(&bench), duration_kbps(&bench, image_size));
@@ -3687,7 +3687,7 @@ COMMAND_HANDLER(handle_dump_image_command)
 
 	free(buffer);
 
-	if ((retval == ERROR_OK) && (duration_measure(&bench) == ERROR_OK)) {
+	if (retval == ERROR_OK && duration_measure(&bench) == ERROR_OK) {
 		size_t filesize;
 		retval = fileio_size(fileio, &filesize);
 		if (retval != ERROR_OK)
@@ -3838,7 +3838,7 @@ static COMMAND_HELPER(handle_verify_image_command_internal, enum verify_mode ver
 done:
 	if (diffs > 0)
 		retval = ERROR_FAIL;
-	if ((retval == ERROR_OK) && (duration_measure(&bench) == ERROR_OK)) {
+	if (retval == ERROR_OK && duration_measure(&bench) == ERROR_OK) {
 		command_print(CMD, "verified %" PRIu32 " bytes "
 				"in %fs (%0.3f KiB/s)", image_size,
 				duration_elapsed(&bench), duration_kbps(&bench, image_size));
@@ -6160,7 +6160,7 @@ COMMAND_HANDLER(handle_fast_load_image_command)
 		free(buffer);
 	}
 
-	if ((retval == ERROR_OK) && (duration_measure(&bench) == ERROR_OK)) {
+	if (retval == ERROR_OK && duration_measure(&bench) == ERROR_OK) {
 		command_print(CMD, "Loaded %" PRIu32 " bytes "
 				"in %fs (%0.3f KiB/s)", image_size,
 				duration_elapsed(&bench), duration_kbps(&bench, image_size));

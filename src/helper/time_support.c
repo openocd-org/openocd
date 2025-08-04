@@ -15,6 +15,8 @@
 #include "config.h"
 #endif
 
+#include <helper/log.h>
+
 #include "time_support.h"
 
 /* calculate difference between two struct timeval values */
@@ -68,16 +70,21 @@ int timeval_compare(const struct timeval *x, const struct timeval *y)
 
 int duration_start(struct duration *duration)
 {
-	return gettimeofday(&duration->start, NULL);
+	if (gettimeofday(&duration->start, NULL) != 0)
+		return ERROR_FAIL;
+
+	return ERROR_OK;
 }
 
 int duration_measure(struct duration *duration)
 {
 	struct timeval end;
-	int retval = gettimeofday(&end, NULL);
-	if (retval == 0)
-		timeval_subtract(&duration->elapsed, &end, &duration->start);
-	return retval;
+	if (gettimeofday(&end, NULL) != 0)
+		return ERROR_FAIL;
+
+	timeval_subtract(&duration->elapsed, &end, &duration->start);
+
+	return ERROR_OK;
 }
 
 float duration_elapsed(const struct duration *duration)

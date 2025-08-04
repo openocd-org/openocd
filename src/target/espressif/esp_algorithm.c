@@ -307,7 +307,7 @@ int esp_algorithm_load_func_image(struct target *target, struct esp_algorithm_ru
 	if (!run || !run->hw)
 		return ERROR_FAIL;
 
-	if (duration_start(&algo_time) != 0) {
+	if (duration_start(&algo_time) != ERROR_OK) {
 		LOG_ERROR("Failed to start algo time measurement!");
 		return ERROR_FAIL;
 	}
@@ -486,7 +486,7 @@ int esp_algorithm_load_func_image(struct target *target, struct esp_algorithm_ru
 		run->stub.stack_addr = run->stub.stack->address + run->stack_size;
 	}
 
-	if (duration_measure(&algo_time) != 0) {
+	if (duration_measure(&algo_time) != ERROR_OK) {
 		LOG_ERROR("Failed to stop algo run measurement!");
 		retval = ERROR_FAIL;
 		goto _on_error;
@@ -536,7 +536,7 @@ int esp_algorithm_load_onboard_func(struct target *target, target_addr_t func_ad
 	if (!run || !run->hw)
 		return ERROR_FAIL;
 
-	if (duration_start(&algo_time) != 0) {
+	if (duration_start(&algo_time) != ERROR_OK) {
 		LOG_ERROR("Failed to start algo time measurement!");
 		return ERROR_FAIL;
 	}
@@ -572,7 +572,7 @@ int esp_algorithm_load_onboard_func(struct target *target, target_addr_t func_ad
 		}
 	}
 
-	if (duration_measure(&algo_time) != 0) {
+	if (duration_measure(&algo_time) != ERROR_OK) {
 		LOG_ERROR("Failed to stop algo run measurement!");
 		return ERROR_FAIL;
 	}
