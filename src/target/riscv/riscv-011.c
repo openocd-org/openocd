@@ -391,7 +391,7 @@ static void dump_field(const struct scan_field *field)
 	static const char * const op_string[] = {"nop", "r", "w", "?"};
 	static const char * const status_string[] = {"+", "?", "F", "b"};
 
-	if (debug_level < LOG_LVL_DEBUG)
+	if (!LOG_LEVEL_IS(LOG_LVL_DEBUG))
 		return;
 
 	uint64_t out = buf_get_u64(field->out_value, 0, field->num_bits);
@@ -1934,7 +1934,7 @@ static int poll_target(struct target *target, bool announce)
 	/* Inhibit debug logging during poll(), which isn't usually interesting and
 	 * just fills up the screen/logs with clutter. */
 	int old_debug_level = debug_level;
-	if (debug_level >= LOG_LVL_DEBUG)
+	if (LOG_LEVEL_IS(LOG_LVL_DEBUG))
 		debug_level = LOG_LVL_INFO;
 	bits_t bits = {
 		.haltnot = 0,
