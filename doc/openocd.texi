@@ -11120,6 +11120,10 @@ Enable or disable trace output for all ITM stimulus ports.
 @subsection Cortex-M specific commands
 @cindex Cortex-M
 
+@deffn {Command} {cortex_m cache_info}
+Report information about the type and size of the cache, if present.
+@end deffn
+
 @deffn {Command} {cortex_m maskisr} (@option{auto}|@option{on}|@option{off}|@option{steponly})
 Control masking (disabling) interrupts during target step/resume.
 

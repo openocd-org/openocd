@@ -15,6 +15,7 @@
 #define OPENOCD_TARGET_CORTEX_M_H
 
 #include "armv7m.h"
+#include "helper/bitfield.h"
 #include "helper/bits.h"
 
 #define CORTEX_M_COMMON_MAGIC 0x1A451A45U
@@ -113,6 +114,45 @@ struct cortex_m_part_info {
 #define FPU_FPCCR	0xE000EF34
 #define FPU_FPCAR	0xE000EF38
 #define FPU_FPDSCR	0xE000EF3C
+
+// Cache
+#define CCR			0xE000ED14
+#define CLIDR		0xE000ED78
+#define CTR			0xE000ED7C
+#define CCSIDR		0xE000ED80
+#define CSSELR		0xE000ED84
+#define ICIMVAU		0xE000EF58
+#define DCCIMVAC	0xE000EF70
+
+#define CCR_IC_MASK							BIT(17)
+#define CCR_DC_MASK							BIT(16)
+
+#define CLIDR_ICB_MASK						GENMASK(31, 30)
+#define CLIDR_LOUU_MASK						GENMASK(29, 27)
+#define CLIDR_LOC_MASK						GENMASK(26, 24)
+#define CLIDR_LOUIS_MASK					GENMASK(23, 21)
+#define CLIDR_CTYPE_MASK(i)					(GENMASK(2, 0) << (3 * (i) - 3))
+
+#define CLIDR_CTYPE_I_CACHE					BIT(0)
+#define CLIDR_CTYPE_D_CACHE					BIT(1)
+#define CLIDR_CTYPE_UNIFIED_CACHE			BIT(2)
+
+#define CTR_FORMAT_MASK						GENMASK(31, 29)
+#define CTR_CWG_MASK						GENMASK(27, 24)
+#define CTR_ERG_MASK						GENMASK(23, 20)
+#define CTR_DMINLINE_MASK					GENMASK(19, 16)
+#define CTR_IMINLINE_MASK					GENMASK(3, 0)
+
+#define CTR_FORMAT_PROVIDED					0x04
+
+#define CCSIDR_NUMSETS_MASK					GENMASK(27, 13)
+#define CCSIDR_ASSOCIATIVITY_MASK			GENMASK(12, 3)
+#define CCSIDR_LINESIZE_MASK				GENMASK(2, 0)
+
+#define CSSELR_LEVEL_MASK					GENMASK(3, 1)
+#define CSSELR_IND_MASK						BIT(0)
+#define CSSELR_IND_DATA_OR_UNIFIED_CACHE    0
+#define CSSELR_IND_INSTRUCTION_CACHE        1
 
 #define TPIU_SSPSR	0xE0040000
 #define TPIU_CSPSR	0xE0040004

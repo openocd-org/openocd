@@ -15,6 +15,7 @@
 #define OPENOCD_TARGET_ARMV7M_H
 
 #include "arm.h"
+#include "armv7m_cache.h"
 #include "armv7m_trace.h"
 
 struct adiv5_ap;
@@ -238,6 +239,8 @@ struct armv7m_common {
 
 	/* hla_target uses a high level adapter that does not support all functions */
 	bool is_hla_target;
+
+	struct armv7m_cache_common armv7m_cache;
 
 	struct armv7m_trace_config trace_config;
 
