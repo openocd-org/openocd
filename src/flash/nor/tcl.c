@@ -384,15 +384,18 @@ COMMAND_HANDLER(handle_flash_protect_command)
 	}
 
 	retval = flash_driver_protect(p, set, first, last);
-	if (retval == ERROR_OK) {
-		command_print(CMD, "%s protection for %s %" PRIu32
-			" through %" PRIu32 " on flash bank %d",
-			(set) ? "set" : "cleared",
-			(p->num_prot_blocks) ? "blocks" : "sectors",
-			first, last, p->bank_number);
+	if (retval != ERROR_OK) {
+		command_print(CMD, "failed to %s protection", set ? "set" : "clear");
+		return retval;
 	}
 
-	return retval;
+	command_print(CMD, "%s protection for %s %" PRIu32
+		" through %" PRIu32 " on flash bank %d",
+		set ? "set" : "cleared",
+		p->num_prot_blocks ? "blocks" : "sectors",
+		first, last, p->bank_number);
+
+	return ERROR_OK;
 }
 
 COMMAND_HANDLER(handle_flash_write_image_command)
