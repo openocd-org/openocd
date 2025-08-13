@@ -17,6 +17,7 @@
 
 #include "imp.h"
 #include <helper/binarybuffer.h>
+#include <helper/bits.h>
 #include <helper/align.h>
 #include <target/algorithm.h>
 #include <target/armv7m.h>
@@ -35,34 +36,34 @@
 #define FLASH_WRPR		0x20
 
 /* FLASH_ACR bites */
-#define FLASH_ACR__LATENCY		(1<<0)
-#define FLASH_ACR__PRFTEN		(1<<1)
-#define FLASH_ACR__ACC64		(1<<2)
-#define FLASH_ACR__SLEEP_PD		(1<<3)
-#define FLASH_ACR__RUN_PD		(1<<4)
+#define FLASH_ACR__LATENCY		BIT(0)
+#define FLASH_ACR__PRFTEN		BIT(1)
+#define FLASH_ACR__ACC64		BIT(2)
+#define FLASH_ACR__SLEEP_PD		BIT(3)
+#define FLASH_ACR__RUN_PD		BIT(4)
 
 /* FLASH_PECR bits */
-#define FLASH_PECR__PELOCK		(1<<0)
-#define FLASH_PECR__PRGLOCK		(1<<1)
-#define FLASH_PECR__OPTLOCK		(1<<2)
-#define FLASH_PECR__PROG		(1<<3)
-#define FLASH_PECR__DATA		(1<<4)
-#define FLASH_PECR__FTDW		(1<<8)
-#define FLASH_PECR__ERASE		(1<<9)
-#define FLASH_PECR__FPRG		(1<<10)
-#define FLASH_PECR__EOPIE		(1<<16)
-#define FLASH_PECR__ERRIE		(1<<17)
-#define FLASH_PECR__OBL_LAUNCH	(1<<18)
+#define FLASH_PECR__PELOCK		BIT(0)
+#define FLASH_PECR__PRGLOCK		BIT(1)
+#define FLASH_PECR__OPTLOCK		BIT(2)
+#define FLASH_PECR__PROG		BIT(3)
+#define FLASH_PECR__DATA		BIT(4)
+#define FLASH_PECR__FTDW		BIT(8)
+#define FLASH_PECR__ERASE		BIT(9)
+#define FLASH_PECR__FPRG		BIT(10)
+#define FLASH_PECR__EOPIE		BIT(16)
+#define FLASH_PECR__ERRIE		BIT(17)
+#define FLASH_PECR__OBL_LAUNCH	BIT(18)
 
 /* FLASH_SR bits */
-#define FLASH_SR__BSY		(1<<0)
-#define FLASH_SR__EOP		(1<<1)
-#define FLASH_SR__ENDHV		(1<<2)
-#define FLASH_SR__READY		(1<<3)
-#define FLASH_SR__WRPERR	(1<<8)
-#define FLASH_SR__PGAERR	(1<<9)
-#define FLASH_SR__SIZERR	(1<<10)
-#define FLASH_SR__OPTVERR	(1<<11)
+#define FLASH_SR__BSY		BIT(0)
+#define FLASH_SR__EOP		BIT(1)
+#define FLASH_SR__ENDHV		BIT(2)
+#define FLASH_SR__READY		BIT(3)
+#define FLASH_SR__WRPERR	BIT(8)
+#define FLASH_SR__PGAERR	BIT(9)
+#define FLASH_SR__SIZERR	BIT(10)
+#define FLASH_SR__OPTVERR	BIT(11)
 
 /* Unlock keys */
 #define PEKEY1			0x89ABCDEF
