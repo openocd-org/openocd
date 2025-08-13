@@ -152,6 +152,21 @@ int win_select(int max_fd, fd_set *rfds, fd_set *wfds, fd_set *efds, struct time
 	FD_ZERO(&sock_write);
 	FD_ZERO(&sock_except);
 
+	/* On Windows, if all provided sets are empty/NULL an error code of -1 is returned
+	 * and WSAGetLastError() returns WSAEINVAL instead of delaying.
+	 * We check for this case, delay and return 0 instead of calling select(). */
+	if (rfds && rfds->fd_count == 0)
+		rfds = NULL;
+	if (wfds && wfds->fd_count == 0)
+		wfds = NULL;
+	if (efds && efds->fd_count == 0)
+		efds = NULL;
+	if (!rfds && !wfds && !efds && tv) {
+		sleep(tv->tv_sec);
+		usleep(tv->tv_usec);
+		return 0;
+	}
+
 	/* build an array of handles for non-sockets */
 	for (i = 0; i < max_fd; i++) {
 		if (SAFE_FD_ISSET(i, rfds) || SAFE_FD_ISSET(i, wfds) || SAFE_FD_ISSET(i, efds)) {
