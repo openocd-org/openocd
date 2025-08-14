@@ -63,15 +63,6 @@ void *jimcmd_privdata(Jim_Cmd *cmd)
 	return jimcmd_is_proc(cmd) ? NULL : cmd->u.native.privData;
 }
 
-static int command_retval_set(Jim_Interp *interp, int retval)
-{
-	int *return_retval = Jim_GetAssocData(interp, "retval");
-	if (return_retval)
-		*return_retval = retval;
-
-	return (retval == ERROR_OK) ? JIM_OK : retval;
-}
-
 extern struct command_context *global_cmd_ctx;
 
 /* dump a single line to the log for the command.
@@ -475,7 +466,15 @@ static int exec_command(Jim_Interp *interp, struct command_context *context,
 	Jim_DecrRefCount(context->interp, cmd.output);
 
 	free(words);
-	return command_retval_set(interp, retval);
+
+	int *return_retval = Jim_GetAssocData(interp, "retval");
+	if (return_retval)
+		*return_retval = retval;
+
+	if (retval == ERROR_OK)
+		return JIM_OK;
+
+	return retval;
 }
 
 int command_run_line(struct command_context *context, char *line)
