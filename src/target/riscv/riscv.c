@@ -274,7 +274,7 @@ static const virt2phys_info_t sv57 = {
 	.pte_ppn_shift = {10, 19, 28, 37, 46},
 	.pte_ppn_mask = {0x1ff, 0x1ff, 0x1ff, 0x1ff, 0xff},
 	.pa_ppn_shift = {12, 21, 30, 39, 48},
-	.pa_ppn_mask = {0x1ff, 0x1ff, 0x1ff, 0x1ff, 0xff},
+	.pa_ppn_mask = {0x1ff, 0x1ff, 0x1ff, 0x1ff, 0x1ff},
 };
 
 static const virt2phys_info_t sv57x4 = {
