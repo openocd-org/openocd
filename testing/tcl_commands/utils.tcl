@@ -32,7 +32,7 @@ namespace eval testing_helpers {
 	}
 
 	proc check_syntax_err script {
-		tailcall check_for_error -601 {} $script
+		tailcall check_for_error 1 {} $script
 	}
 
 	proc check_matches {pattern script} {
