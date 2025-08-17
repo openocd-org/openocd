@@ -356,7 +356,7 @@ AC_ARG_ENABLE([parport_ppdev],
 
 AC_ARG_ENABLE([parport_giveio],
     AS_HELP_STRING([--enable-parport-giveio],
-      [Enable use of giveio for parport (for CygWin only)]),
+      [Enable use of giveio for parport (deprecated, for CygWin only)]),
     [parport_use_giveio=$enableval], [parport_use_giveio=])
 
 AC_ARG_ENABLE([gw16012],
@@ -823,6 +823,12 @@ AS_IF([test "x$build_gw16012" = "xyes"], [
   echo
   echo
   AC_MSG_WARN([Gateworks GW16012 JTAG adapter is deprecated and support will be removed in the next release!])
+])
+
+AS_IF([test "x$parport_use_giveio" = "xyes" || test [ "x$enable_parport" != "xno" -a "x$parport_use_ppdev" = "xno"]], [
+  echo
+  echo
+  AC_MSG_WARN([Parallel port access with direct I/O is deprecated and support will be removed in the next release!])
 ])
 
 echo

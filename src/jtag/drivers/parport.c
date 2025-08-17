@@ -341,6 +341,8 @@ static int parport_init(void)
 #endif /* not __FreeBSD__, __FreeBSD_kernel__ */
 
 #else /* not PARPORT_USE_PPDEV */
+	LOG_WARNING("DEPRECATED: Parallel port access with direct I/O is deprecated and support will be removed in the next release");
+
 	if (!parport_port) {
 		parport_port = 0x378;
 		LOG_WARNING("No parallel port specified, using default 0x378 (LPT1)");

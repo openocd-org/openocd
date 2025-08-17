@@ -3225,6 +3225,7 @@ The default port number is 0.
 
 When using direct I/O, the number is the I/O port number.
 The default port number is 0x378 (LTP1).
+@b{Note:} Direct I/O support is deprecated and will be removed in the future.
 @end deffn
 
 @deffn {Config Command} {parport write_on_exit} (@option{on}|@option{off})
