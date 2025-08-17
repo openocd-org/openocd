@@ -47,8 +47,11 @@
 
 static const struct adapter_gpio_config *adapter_gpio_config;
 
+#if PARPORT_USE_PPDEV == 0
 static uint16_t parport_port;
+#endif
 static bool parport_write_exit_state;
+static char *parport_device_file;
 static uint32_t parport_toggling_time_ns = 1000;
 static int wait_states;
 
@@ -258,13 +261,13 @@ static int parport_init(void)
 			if (gpio.gpio_num < 10 || gpio.gpio_num > 15 || gpio.gpio_num == 14) {
 				LOG_ERROR("The '%s' signal pin must be 10, 11, 12, 13, or 15",
 					adapter_gpio_get_name(gpio_index));
-				return ERROR_FAIL;
+				goto init_fail;
 			}
 		} else {
 			if (gpio.gpio_num < 2 || gpio.gpio_num > 9) {
 				LOG_ERROR("The '%s' signal pin must be 2, 3, 4, 5, 6, 7, 8, or 9",
 					adapter_gpio_get_name(gpio_index));
-				return ERROR_FAIL;
+				goto init_fail;
 			}
 		}
 	}
@@ -292,35 +295,37 @@ static int parport_init(void)
 #if PARPORT_USE_PPDEV == 1
 	if (device_handle > 0) {
 		LOG_ERROR("Parallel port is already open");
-		return ERROR_JTAG_INIT_FAILED;
+		goto init_fail;
 	}
 
-	char device_path[256];
-
+	if (!parport_device_file) {
 #if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
-	snprintf(device_path, sizeof(device_path), "/dev/ppi%d", parport_port);
+		parport_device_file = strdup("/dev/ppi0");
 #else
-	snprintf(device_path, sizeof(device_path), "/dev/parport%d", parport_port);
-#endif /* __FreeBSD__, __FreeBSD_kernel__ */
+		parport_device_file = strdup("/dev/parport0");
+#endif
+		LOG_WARNING("No parallel port specified, using %s", parport_device_file);
+		LOG_WARNING("DEPRECATED! The lack of a parallel port specification is deprecated and will no longer work in the future");
+	}
 
-	LOG_DEBUG("Using parallel port %s", device_path);
+	LOG_DEBUG("Using parallel port %s", parport_device_file);
 
-	device_handle = open(device_path, O_WRONLY);
+	device_handle = open(parport_device_file, O_WRONLY);
 
 	if (device_handle < 0) {
 		int err = errno;
-		LOG_ERROR("Failed to open parallel port %s (errno = %d)", device_path,
-			err);
+		LOG_ERROR("Failed to open parallel port %s (errno = %d)",
+			parport_device_file, err);
 		LOG_ERROR("Check whether the device exists and if you have the required access rights");
-		return ERROR_JTAG_INIT_FAILED;
+		goto init_fail;
 	}
 
 #if !defined(__FreeBSD__) && !defined(__FreeBSD_kernel__)
 	int retval = ioctl(device_handle, PPCLAIM);
 
 	if (retval < 0) {
-		LOG_ERROR("Failed to claim parallel port %s", device_path);
-		return ERROR_JTAG_INIT_FAILED;
+		LOG_ERROR("Failed to claim parallel port %s", parport_device_file);
+		goto init_fail;
 	}
 
 	int value = PARPORT_MODE_COMPAT;
@@ -328,7 +333,7 @@ static int parport_init(void)
 
 	if (retval < 0) {
 		LOG_ERROR("Cannot set compatible mode to device");
-		return ERROR_JTAG_INIT_FAILED;
+		goto init_fail;
 	}
 
 	value = IEEE1284_MODE_COMPAT;
@@ -336,7 +341,7 @@ static int parport_init(void)
 
 	if (retval < 0) {
 		LOG_ERROR("Cannot set compatible 1284 mode to device");
-		return ERROR_JTAG_INIT_FAILED;
+		goto init_fail;
 	}
 #endif /* not __FreeBSD__, __FreeBSD_kernel__ */
 
@@ -359,7 +364,7 @@ static int parport_init(void)
 	if (ioperm(dataport, 3, 1) != 0) {
 #endif /* PARPORT_USE_GIVEIO */
 		LOG_ERROR("Missing privileges for direct I/O");
-		return ERROR_JTAG_INIT_FAILED;
+		goto init_fail;
 	}
 
 	// Make sure parallel port is in right mode (clear tristate and interrupt).
@@ -372,21 +377,27 @@ static int parport_init(void)
 #endif /* PARPORT_USE_PPDEV */
 
 	if (parport_reset(0, 0) != ERROR_OK)
-		return ERROR_FAIL;
+		goto init_fail;
 
 	if (parport_write(0, 0, 0) != ERROR_OK)
-		return ERROR_FAIL;
+		goto init_fail;
 
 	if (parport_led(true) != ERROR_OK)
-		return ERROR_FAIL;
+		goto init_fail;
 
 	bitbang_interface = &parport_bitbang;
 
 	return ERROR_OK;
+
+init_fail:
+	free(parport_device_file);
+	return ERROR_JTAG_INIT_FAILED;
 }
 
 static int parport_quit(void)
 {
+	free(parport_device_file);
+
 	// Deinitialize signal pin states.
 	for (size_t i = 0; i < ARRAY_SIZE(all_signals); i++) {
 		const enum adapter_gpio_config_index gpio_index = all_signals[i].gpio_index;
@@ -421,13 +432,46 @@ COMMAND_HANDLER(parport_handle_port_command)
 	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	// Only if the port wasn't overwritten by command-line.
+#if PARPORT_USE_PPDEV == 1
+	if (parport_device_file) {
+		LOG_ERROR("The parallel port device file is already configured");
+		return ERROR_FAIL;
+	}
+
+	char *tmp;
+
+	// We do not use the parse_xxx() or COMMAND_PARSE_xxx() functions here since
+	// they generate an error message if parsing fails.
+	char *endptr = NULL;
+	unsigned long port_number = strtoul(CMD_ARGV[0], &endptr, 0);
+
+	if (*endptr == '\0' && endptr != CMD_ARGV[0]) {
+		LOG_WARNING("DEPRECATED! Using a port number is deprecated, use the device file instead");
+
+#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+		tmp = alloc_printf("/dev/ppi%lu", port_number);
+#else
+		tmp = alloc_printf("/dev/parport%lu", port_number);
+#endif
+	} else {
+		tmp = strdup(CMD_ARGV[0]);
+	}
+
+	if (!tmp) {
+		LOG_ERROR("Failed to allocate memory");
+		return ERROR_FAIL;
+	}
+
+	free(parport_device_file);
+	parport_device_file = tmp;
+#else
 	if (parport_port > 0) {
 		command_print(CMD, "The parallel port is already configured");
 		return ERROR_FAIL;
 	}
 
 	COMMAND_PARSE_NUMBER(u16, CMD_ARGV[0], parport_port);
+#endif
 
 	return ERROR_OK;
 }
@@ -489,9 +533,8 @@ static const struct command_registration parport_subcommand_handlers[] = {
 		.name = "port",
 		.handler = parport_handle_port_command,
 		.mode = COMMAND_CONFIG,
-		.help = "Configure the address of the I/O port (e.g. 0x378) "
-			"or the number of the '/dev/parport' (Linux) or '/dev/ppi' (FreeBSD) device used",
-		.usage = "port_number",
+		.help = "Specify the device file of the parallel port",
+		.usage = "file",
 	},
 	{
 		.name = "cable",

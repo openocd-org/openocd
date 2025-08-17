@@ -3217,11 +3217,12 @@ The pin direction is given in the following table.
 @tab 2
 @end multitable
 
-@deffn {Config Command} {parport port} port_number
-Configure the number of the parallel port.
+@deffn {Config Command} {parport port} file
+Specify the device file of the parallel port device.
+The parallel port device file is usually @file{/dev/parportX} on Linux and @file{/dev/ppiX} on FreeBSD.
 
-When using PPDEV to access the parallel port, use the number of the parallel port file @file{/dev/parport} (Linux) or @file{/dev/ppi} (FreeBSD).
-The default port number is 0.
+For legacy reason, the port number @var{X} can be specified instead of the device file.
+@b{Note:} Using the port number is a deprecated feature and will be removed in the future.
 
 When using direct I/O, the number is the I/O port number.
 The default port number is 0x378 (LTP1).
