@@ -412,6 +412,8 @@ static int watchpoint_free(struct target *target, struct watchpoint *watchpoint_
 
 static int watchpoint_remove_all_internal(struct target *target)
 {
+	LOG_TARGET_DEBUG(target, "Delete all watchpoints");
+
 	struct watchpoint *watchpoint = target->watchpoints;
 	int retval = ERROR_OK;
 
@@ -463,27 +465,6 @@ int breakpoint_remove_all(struct target *target)
 int watchpoint_remove_all(struct target *target)
 {
 	return breakpoint_watchpoint_remove_all(target, WATCHPOINT);
-}
-
-int breakpoint_clear_target(struct target *target)
-{
-	int retval = ERROR_OK;
-
-	if (target->smp) {
-		struct target_list *head;
-
-		foreach_smp_target(head, target->smp_targets) {
-			struct target *curr = head->target;
-			int status = breakpoint_remove_all_internal(curr);
-
-			if (status != ERROR_OK)
-				retval = status;
-		}
-	} else {
-		retval = breakpoint_remove_all_internal(target);
-	}
-
-	return retval;
 }
 
 struct breakpoint *breakpoint_find(struct target *target, target_addr_t address)
@@ -638,23 +619,6 @@ int watchpoint_remove(struct target *target, target_addr_t address)
 		return ERROR_WATCHPOINT_NOT_FOUND;
 	}
 
-	return retval;
-}
-
-int watchpoint_clear_target(struct target *target)
-{
-	LOG_TARGET_DEBUG(target, "Delete all watchpoints");
-
-	struct watchpoint *watchpoint = target->watchpoints;
-	int retval = ERROR_OK;
-
-	while (watchpoint) {
-		struct watchpoint *tmp = watchpoint;
-		watchpoint = watchpoint->next;
-		int status = watchpoint_free(target, tmp);
-		if (status != ERROR_OK)
-			retval = status;
-	}
 	return retval;
 }
 

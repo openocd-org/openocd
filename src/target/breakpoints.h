@@ -50,7 +50,6 @@ struct watchpoint {
 	int unique_id;
 };
 
-int breakpoint_clear_target(struct target *target);
 int breakpoint_add(struct target *target,
 		target_addr_t address, unsigned int length, enum breakpoint_type type);
 int context_breakpoint_add(struct target *target,
@@ -69,7 +68,6 @@ static inline void breakpoint_hw_set(struct breakpoint *breakpoint, unsigned int
 	breakpoint->number = hw_number;
 }
 
-int watchpoint_clear_target(struct target *target);
 int watchpoint_add(struct target *target,
 		target_addr_t address, unsigned int length,
 		enum watchpoint_rw rw, uint64_t value, uint64_t mask);
