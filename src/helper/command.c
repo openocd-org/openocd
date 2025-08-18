@@ -345,44 +345,60 @@ void command_output_text(struct command_context *context, const char *data)
 		context->output_handler(context, data);
 }
 
+static void command_vprint(struct command_invocation *cmd,
+		va_list ap, const char *format, bool add_lf)
+{
+	/*
+	 * FIXME: Why this check on !cmd ?
+	 * Commit 7f260f5009a7 that introduces it, does not explain why!
+	 * Was author not confident on the code change?
+	 */
+	if (!cmd)
+		return;
+
+	// Quit on previous allocation error
+	if (cmd->output == CMD_PRINT_OOM)
+		return;
+
+	char *string = alloc_vprintf(format, ap);
+	if (!string)
+		goto alloc_error;
+
+	char *output = cmd->output ? cmd->output : "";
+	output = alloc_printf("%s%s%s", output, string, add_lf ? "\n" : "");
+	free(string);
+	if (!output)
+		goto alloc_error;
+
+	free(cmd->output);
+	cmd->output = output;
+
+	return;
+
+alloc_error:
+	LOG_ERROR("Out of memory");
+	free(cmd->output);
+	cmd->output = CMD_PRINT_OOM;
+}
+
 void command_print_sameline(struct command_invocation *cmd, const char *format, ...)
 {
-	char *string;
-
 	va_list ap;
 	va_start(ap, format);
 
-	string = alloc_vprintf(format, ap);
-	if (string && cmd) {
-		char *output = cmd->output ? cmd->output : "";
-		output = alloc_printf("%s%s", output, string);
-		if (output) {
-			free(cmd->output);
-			cmd->output = output;
-		}
-		free(string);
-	}
+	bool add_lf = false;
+	command_vprint(cmd, ap, format, add_lf);
 
 	va_end(ap);
 }
 
 void command_print(struct command_invocation *cmd, const char *format, ...)
 {
-	char *string;
-
 	va_list ap;
 	va_start(ap, format);
 
-	string = alloc_vprintf(format, ap);
-	if (string && cmd) {
-		char *output = cmd->output ? cmd->output : "";
-		output = alloc_printf("%s%s\n", output, string);
-		if (output) {
-			free(cmd->output);
-			cmd->output = output;
-		}
-		free(string);
-	}
+	bool add_lf = true;
+	command_vprint(cmd, ap, format, add_lf);
 
 	va_end(ap);
 }
@@ -435,6 +451,14 @@ static int jim_exec_command(Jim_Interp *interp, struct command_context *context,
 	};
 
 	int retval = c->handler(&cmd);
+
+	// Handle allocation error in command_print()
+	if (cmd.output == CMD_PRINT_OOM) {
+		cmd.output = NULL;
+		if (retval == ERROR_OK)
+			retval = ERROR_FAIL;
+	}
+
 	if (retval == ERROR_COMMAND_SYNTAX_ERROR) {
 		// Print command syntax
 		Jim_EvalObjPrefix(context->interp, Jim_NewStringObj(context->interp, "usage", -1), 1, argv);

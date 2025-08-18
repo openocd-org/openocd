@@ -84,6 +84,11 @@ struct command_invocation {
 };
 
 /**
+ * Assigned to command_invocation::output on allocation error
+ */
+#define CMD_PRINT_OOM ((char *)(-1L))
+
+/**
  * Return true if the command @c cmd is registered by OpenOCD.
  */
 bool jimcmd_is_oocd_command(Jim_Cmd *cmd);
