@@ -348,13 +348,7 @@ void command_output_text(struct command_context *context, const char *data)
 static void command_vprint(struct command_invocation *cmd,
 		va_list ap, const char *format, bool add_lf)
 {
-	/*
-	 * FIXME: Why this check on !cmd ?
-	 * Commit 7f260f5009a7 that introduces it, does not explain why!
-	 * Was author not confident on the code change?
-	 */
-	if (!cmd)
-		return;
+	assert(cmd);
 
 	// Quit on previous allocation error
 	if (cmd->output == CMD_PRINT_OOM)
