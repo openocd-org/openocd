@@ -190,7 +190,6 @@ Remember: OpenOCD runs on:
 -# FreeBSD
 -# Cygwin
 -# MinGW32
--# Ecos
 
 How can we get that to work?
 

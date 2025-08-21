@@ -39,13 +39,6 @@
 #include <poll.h>
 #endif
 
-#ifdef __ECOS
-/* missing from eCos */
-#ifndef EFAULT
-#define EFAULT 14	/* Bad address */
-#endif
-#endif
-
 #ifdef HAVE_NETINET_IN_H
 #include <netinet/in.h>
 #endif

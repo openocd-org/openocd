@@ -276,62 +276,6 @@ static inline int parity_u32(uint32_t x)
 #endif
 }
 
-#if defined(__ECOS)
-
-/* eCos plain lacks these definition... A series of upstream patches
- * could probably repair it, but it seems like too much work to be
- * worth it.
- */
-
-#if !defined(_STDINT_H)
-#define PRId32 "d"
-#define PRIi32 "i"
-#define PRIo32 "o"
-#define PRIu32 "u"
-#define PRIx32 "x"
-#define PRIX32 "X"
-#define SCNx32 "x"
-#define PRId8 PRId32
-#define SCNx64 "llx"
-#define PRId64 "lld"
-#define PRIi64 "lli"
-#define PRIo64 "llo"
-#define PRIu64 "llu"
-#define PRIx64 "llx"
-#define PRIX64 "llX"
-
-typedef CYG_ADDRWORD intptr_t;
-typedef int64_t intmax_t;
-typedef uint64_t uintmax_t;
-#define INT8_MAX 0x7f
-#define INT8_MIN (-INT8_MAX - 1)
-# define UINT8_MAX		(255)
-#define INT16_MAX 0x7fff
-#define INT16_MIN (-INT16_MAX - 1)
-# define UINT16_MAX		(65535)
-#define INT32_MAX 0x7fffffffL
-#define INT32_MIN (-INT32_MAX - 1L)
-# define UINT32_MAX		(4294967295U)
-#define INT64_MAX 0x7fffffffffffffffLL
-#define INT64_MIN (-INT64_MAX - 1LL)
-#define UINT64_MAX (__CONCAT(INT64_MAX, U) * 2ULL + 1ULL)
-#endif
-
-	#ifndef LLONG_MAX
-	#define ULLONG_MAX	UINT64_C(0xFFFFFFFFFFFFFFFF)
-	#define LLONG_MAX	INT64_C(0x7FFFFFFFFFFFFFFF)
-	#define LLONG_MIN	ULLONG_MAX
-	#endif
-
-
-#define ULLONG_MAX 18446744073709551615
-
-/* C99, eCos is C90 compliant (with bits of C99) */
-#define isblank(c) ((c) == ' ' || (c) == '\t')
-
-
-#endif
-
 typedef uint64_t target_addr_t;
 #define TARGET_ADDR_MAX UINT64_MAX
 #define TARGET_PRIdADDR PRId64
