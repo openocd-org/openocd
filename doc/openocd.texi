@@ -1440,7 +1440,6 @@ In addition to target-specific utility code, another way that
 board and target config files communicate is by following a
 convention on how to use certain variables.
 
-The full Tcl/Tk language supports ``namespaces'', but Jim Tcl does not.
 Thus the rule we follow in OpenOCD is this: Variables that begin with
 a leading underscore are temporary in nature, and can be modified and
 used at will within a target configuration file.
