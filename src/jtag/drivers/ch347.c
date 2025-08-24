@@ -793,11 +793,10 @@ static int ch347_cmd_start_next(uint8_t type)
 {
 	// different command type or non chainable command? (GPIO commands can't be concat)
 	uint8_t prev_type = ch347.scratchpad_cmd_type;
-	int retval = ERROR_OK;
 	if (prev_type != type || ch347_is_single_cmd_type(type)) {
 		// something written in the scratchpad? => store it as command
 		if (prev_type != 0 && ch347.scratchpad_idx > 0) {
-			retval = ch347_cmd_from_scratchpad();
+			int retval = ch347_cmd_from_scratchpad();
 			if (retval != ERROR_OK)
 				return retval;
 
@@ -813,7 +812,7 @@ static int ch347_cmd_start_next(uint8_t type)
 		/* before we can send non chainable command ("single" like GPIO command) we should send all
 			other commands because we can't send it together with other commands */
 		if (ch347_is_single_cmd_type(type)) {
-			retval = ch347_cmd_transmit_queue();
+			int retval = ch347_cmd_transmit_queue();
 			if (retval != ERROR_OK)
 				return retval;
 		}
@@ -822,7 +821,7 @@ static int ch347_cmd_start_next(uint8_t type)
 		ch347.scratchpad_cmd_type = type;
 	}
 
-	return retval;
+	return ERROR_OK;
 }
 
 /**
@@ -980,16 +979,15 @@ static int ch347_scratchpad_add_clock_tms(bool tms)
  */
 static int ch347_scratchpad_add_stableclocks(int count)
 {
-	int retval = ERROR_OK;
 	if (ch347.scratchpad_cmd_type == 0) {
-		retval = ch347_cmd_start_next(CH347_CMD_JTAG_BIT_OP);
+		int retval = ch347_cmd_start_next(CH347_CMD_JTAG_BIT_OP);
 		if (retval != ERROR_OK)
 			return retval;
 	}
 
 	bool tms = ch347.tms_pin == TMS_H;
 	for (int i = 0; i < count; i++) {
-		retval = ch347_scratchpad_add_clock_tms(tms);
+		int retval = ch347_scratchpad_add_clock_tms(tms);
 		if (retval != ERROR_OK)
 			return retval;
 	}
@@ -1197,7 +1195,7 @@ static int ch347_scratchpad_add_write_read(struct scan_command *cmd, uint8_t *bi
 static int ch347_scratchpad_add_run_test(int cycles, enum tap_state state)
 {
 	LOG_DEBUG_IO("cycles=%d, end_state=%d", cycles, state);
-	int retval = ERROR_OK;
+	int retval;
 	if (tap_get_state() != TAP_IDLE) {
 		retval = ch347_scratchpad_add_move_state(TAP_IDLE, 0);
 		if (retval != ERROR_OK)
@@ -1226,7 +1224,7 @@ static int ch347_scratchpad_add_scan(struct scan_command *cmd)
 	int scan_bits = jtag_build_buffer(cmd, &buf);
 
 	// add a move to IRSHIFT or DRSHIFT state
-	int retval = ERROR_OK;
+	int retval;
 	if (cmd->ir_scan)
 		retval = ch347_scratchpad_add_move_state(TAP_IRSHIFT, 0);
 	else
