@@ -863,7 +863,6 @@ static int ch347_single_read_get_byte(int read_buf_idx, uint8_t *byte)
 
 	if (read_buf_idx > CH347_SINGLE_CMD_MAX_READ || read_buf_idx < 0) {
 		LOG_ERROR("read_buf_idx out of range");
-		read_buf_idx = 0;
 		return ERROR_FAIL;
 	}
 
@@ -989,7 +988,6 @@ static int ch347_scratchpad_add_stableclocks(int count)
 	}
 
 	bool tms = ch347.tms_pin == TMS_H;
-	retval = ERROR_OK;
 	for (int i = 0; i < count; i++) {
 		retval = ch347_scratchpad_add_clock_tms(tms);
 		if (retval != ERROR_OK)
