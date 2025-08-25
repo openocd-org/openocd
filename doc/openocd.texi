@@ -6965,6 +6965,18 @@ This driver uses the same command names/syntax as @xref{at91sam3}.
 flash bank $_FLASHNAME atsamv 0x00400000 0 0 0 $_TARGETNAME
 @end example
 
+These families also have a user signature area located at the beginning
+of an embedded flash. This is a 512 bytes large page whose data are not
+erased by assering ERASE pin or by software ERASE command. It can be
+used to store configuration, keys, trimming values and so on. The area
+overlaps with the beginning of standard flash and uses special commands
+to perform write/read operations. OpenOCD locates the signature area
+at fake address above 32 bit address space, specifically at 0x100000000.
+
+@example
+flash bank $_SIGNATURENAME atsamv 0x100000000 0 0 0 $_TARGETNAME
+@end example
+
 @deffn {Command} {atsamv gpnvm} [@option{show} [@option{all}|number]]
 @deffnx {Command} {atsamv gpnvm} (@option{clr}|@option{set}) number
 With no parameters, @option{show} or @option{show all},
