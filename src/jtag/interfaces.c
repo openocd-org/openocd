@@ -110,6 +110,9 @@ struct adapter_driver *adapter_drivers[] = {
 #if BUILD_LINUXSPIDEV == 1
 		&linuxspidev_adapter_driver,
 #endif
+#if BUILD_OLYMPUSA == 1
+		&olympusa_adapter_driver,
+#endif
 #if BUILD_OPENDOUS == 1
 		&opendous_adapter_driver,
 #endif

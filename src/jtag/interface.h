@@ -396,6 +396,7 @@ extern struct adapter_driver jtag_vpi_adapter_driver;
 extern struct adapter_driver kitprog_adapter_driver;
 extern struct adapter_driver linuxgpiod_adapter_driver;
 extern struct adapter_driver linuxspidev_adapter_driver;
+extern struct adapter_driver olympusa_adapter_driver;
 extern struct adapter_driver opendous_adapter_driver;
 extern struct adapter_driver openjtag_adapter_driver;
 extern struct adapter_driver osbdm_adapter_driver;

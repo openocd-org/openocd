@@ -216,6 +216,9 @@ m4_define([HOST_ARM_OR_AARCH64_BITBANG_ADAPTERS],
 m4_define([DUMMY_ADAPTER],
 	[[[dummy], [Dummy Adapter], [DUMMY]]])
 
+m4_define([OLYMPUS_ADAPTERS],
+	[[[olympusa], [OlympusA JTAG Debugger], [OLYMPUSA]]])
+
 m4_define([OPTIONAL_LIBRARIES],
 	[[[capstone], [Use Capstone disassembly framework], []]])
 
@@ -327,7 +330,8 @@ AC_ARG_ADAPTERS([
   JTAG_VPI_ADAPTER,
   RSHIM_ADAPTER,
   XVC_ADAPTERS,
-  LIBJAYLINK_ADAPTERS
+  LIBJAYLINK_ADAPTERS,
+  OLYMPUS_ADAPTERS
   ],[auto])
 
 AC_ARG_ADAPTERS([
@@ -487,6 +491,12 @@ AS_IF([test "x$ADAPTER_VAR([dummy])" != "xno"], [
   build_bitbang=yes
 ])
 
+AS_IF([test "x$build_olympusa" = "xyes"], [
+  AC_DEFINE([BUILD_OLYMPUSA], [1], [1 if you want OlympusA.])
+], [
+  AC_DEFINE([BUILD_OLYMPUSA], [0], [0 if you don't want OlympusA.])
+])
+
 AS_IF([test "x$parport_use_ppdev" = "xyes"], [
   AC_DEFINE([PARPORT_USE_PPDEV], [1], [1 if you want parport to use ppdev.])
 ], [
@@ -639,6 +649,7 @@ PROCESS_ADAPTERS([AMTJTAGACCEL_ADAPTER], [true], [unused])
 PROCESS_ADAPTERS([HOST_ARM_BITBANG_ADAPTERS], [true], [unused])
 PROCESS_ADAPTERS([HOST_ARM_OR_AARCH64_BITBANG_ADAPTERS], [true], [unused])
 PROCESS_ADAPTERS([DUMMY_ADAPTER], [true], [unused])
+PROCESS_ADAPTERS([OLYMPUS_ADAPTERS], [true], [unused])
 
 AS_IF([test "x$enable_linuxgpiod" != "xno"], [
   build_bitbang=yes
@@ -833,6 +844,7 @@ m4_foreach([adapterTuple], [USB1_ADAPTERS,
 	HOST_ARM_BITBANG_ADAPTERS,
 	HOST_ARM_OR_AARCH64_BITBANG_ADAPTERS,
 	DUMMY_ADAPTER,
+	OLYMPUS_ADAPTERS,
 	OPTIONAL_LIBRARIES,
 	COVERAGE],
 	[s=m4_format(["%-49s"], ADAPTER_DESC([adapterTuple]))

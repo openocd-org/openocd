@@ -211,6 +211,10 @@ endif
 if CH347
 DRIVERFILES += %D%/ch347.c
 endif
+if OLYMPUSA
+DRIVERFILES += %D%/OlympusA/OlympusA.c
+%C%_libocdjtagdrivers_la_LIBADD += -L%D%/OlympusA -lInphiOlympus64
+endif
 
 DRIVERHEADERS = \
 	%D%/bitbang.h \

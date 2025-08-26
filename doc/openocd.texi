@@ -637,6 +637,9 @@ This is deprecated from Linux v5.3; prefer using @b{linuxgpiod}.
 @* A JTAG driver that works with the WCH CH347F and CH347T chips.
 When using the CH347T, it must be configured to operate in mode 3 (UART + JTAG).
 
+@item @b{olympusa}
+@* A JTAG driver that works with Marvell Olympus system.
+
 @end itemize
 
 @node About Jim Tcl
@@ -2617,6 +2620,10 @@ GPIO4 (Pin15 / ACT), GPIO5 (Pin9 / TRST) and GPIO6 (Pin2 / CTS1) are possible.
 ch347 activity_led n4
 @end example
 @end deffn
+@end deffn
+
+@deffn {Interface Driver} {olympusa}
+This is the Marvell Olympus based JTAG Adapter.
 @end deffn
 
 @deffn {Interface Driver} {cmsis-dap}
