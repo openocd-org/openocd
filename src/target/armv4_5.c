@@ -659,15 +659,14 @@ static const struct reg_arch_type arm_reg_type = {
 
 struct reg_cache *arm_build_reg_cache(struct target *target, struct arm *arm)
 {
-	int num_regs = ARRAY_SIZE(arm_core_regs);
-	int num_core_regs = num_regs;
+	unsigned int num_regs = ARRAY_SIZE(arm_core_regs);
+	unsigned int num_core_regs = num_regs;
 	if (arm->arm_vfp_version == ARM_VFP_V3)
 		num_regs += ARRAY_SIZE(arm_vfp_v3_regs);
 
 	struct reg_cache *cache = malloc(sizeof(struct reg_cache));
 	struct reg *reg_list = calloc(num_regs, sizeof(struct reg));
 	struct arm_reg *reg_arch_info = calloc(num_regs, sizeof(struct arm_reg));
-	int i;
 
 	if (!cache || !reg_list || !reg_arch_info) {
 		free(cache);
@@ -681,7 +680,7 @@ struct reg_cache *arm_build_reg_cache(struct target *target, struct arm *arm)
 	cache->reg_list = reg_list;
 	cache->num_regs = 0;
 
-	for (i = 0; i < num_core_regs; i++) {
+	for (unsigned int i = 0; i < num_core_regs; i++) {
 		/* Skip registers this core doesn't expose */
 		if (arm_core_regs[i].mode == ARM_MODE_MON
 			&& arm->core_type != ARM_CORE_TYPE_SEC_EXT
@@ -737,8 +736,7 @@ struct reg_cache *arm_build_reg_cache(struct target *target, struct arm *arm)
 		cache->num_regs++;
 	}
 
-	int j;
-	for (i = num_core_regs, j = 0; i < num_regs; i++, j++) {
+	for (unsigned int i = num_core_regs, j = 0; i < num_regs; i++, j++) {
 		reg_arch_info[i].num = arm_vfp_v3_regs[j].id;
 		reg_arch_info[i].mode = arm_vfp_v3_regs[j].mode;
 		reg_arch_info[i].target = target;
@@ -1413,7 +1411,6 @@ int armv4_5_run_algorithm_inner(struct target *target,
 	uint32_t context[17];
 	uint32_t cpsr;
 	int exit_breakpoint_size = 0;
-	int i;
 	int retval = ERROR_OK;
 
 	LOG_TARGET_DEBUG(target, "Running algorithm");
@@ -1442,7 +1439,7 @@ int armv4_5_run_algorithm_inner(struct target *target,
 	/* save r0..pc, cpsr-or-spsr, and then cpsr-for-sure;
 	 * they'll be restored later.
 	 */
-	for (i = 0; i <= 16; i++) {
+	for (unsigned int i = 0; i < ARRAY_SIZE(context); i++) {
 		struct reg *r;
 
 		r = &ARMV4_5_CORE_REG_MODE(arm->core_cache,
@@ -1454,7 +1451,7 @@ int armv4_5_run_algorithm_inner(struct target *target,
 	}
 	cpsr = buf_get_u32(arm->cpsr->value, 0, 32);
 
-	for (i = 0; i < num_mem_params; i++) {
+	for (int i = 0; i < num_mem_params; i++) {
 		if (mem_params[i].direction == PARAM_IN)
 			continue;
 		retval = target_write_buffer(target, mem_params[i].address, mem_params[i].size,
@@ -1463,7 +1460,7 @@ int armv4_5_run_algorithm_inner(struct target *target,
 			return retval;
 	}
 
-	for (i = 0; i < num_reg_params; i++) {
+	for (int i = 0; i < num_reg_params; i++) {
 		if (reg_params[i].direction == PARAM_IN)
 			continue;
 
@@ -1524,7 +1521,7 @@ int armv4_5_run_algorithm_inner(struct target *target,
 	if (retval != ERROR_OK)
 		return retval;
 
-	for (i = 0; i < num_mem_params; i++) {
+	for (int i = 0; i < num_mem_params; i++) {
 		if (mem_params[i].direction != PARAM_OUT) {
 			int retvaltemp = target_read_buffer(target, mem_params[i].address,
 					mem_params[i].size,
@@ -1534,7 +1531,7 @@ int armv4_5_run_algorithm_inner(struct target *target,
 		}
 	}
 
-	for (i = 0; i < num_reg_params; i++) {
+	for (int i = 0; i < num_reg_params; i++) {
 		if (reg_params[i].direction != PARAM_OUT) {
 
 			struct reg *reg = register_get_by_name(arm->core_cache,
@@ -1559,7 +1556,7 @@ int armv4_5_run_algorithm_inner(struct target *target,
 	}
 
 	/* restore everything we saved before (17 or 18 registers) */
-	for (i = 0; i <= 16; i++) {
+	for (unsigned int i = 0; i < ARRAY_SIZE(context); i++) {
 		uint32_t regvalue;
 		regvalue = buf_get_u32(ARMV4_5_CORE_REG_MODE(arm->core_cache,
 				arm_algorithm_info->core_mode, i).value, 0, 32);
