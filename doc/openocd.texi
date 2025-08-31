@@ -6955,6 +6955,84 @@ USER PAGE: 0xAEECFF80FE9A9239
 
 @end deffn
 
+@anchor{wbz451}
+@deffn {Flash Driver} {wbz451}
+@cindex wbz451
+All members of the WBZ45x, PIC32CX_BZ2 microcontroller
+families from Microchip include internal flash and use ARM's Cortex-M4 core.
+
+This driver supports:
+@itemize
+@item Row programming (1024 bytes per row)
+@item Page erase (1024 bytes per row)
+@item Skipping @code{0xFF}-only regions for faster flashing
+@end itemize
+
+The driver is located at: @file{src/flash/nor/wbz451.c}.
+
+@example
+flash bank $_FLASHNAME wbz451 0x01000000 0x00100000 0 0 $_TARGETNAME
+@end example
+
+@deffn {Command} {wbz451 dsu_reset_deassert}
+This command releases internal reset held by DSU
+and prepares reset vector catch in case of reset halt.
+Command is used internally in event reset-deassert-post.
+@end deffn
+@end deffn
+
+@anchor{wbz351}
+@deffn {Flash Driver} {wbz351}
+@cindex wbz351
+All members of the WBZ35x, PIC32CX_BZ3 microcontroller
+families from Microchip include internal flash and use ARM's Cortex-M4 core.
+
+This driver supports:
+@itemize
+@item Row programming (1024 bytes per row)
+@item Page erase (1024 bytes per row)
+@item Skipping @code{0xFF}-only regions for faster flashing
+@end itemize
+
+The driver is located at: @file{src/flash/nor/wbz351.c}.
+
+@example
+flash bank $_FLASHNAME wbz351 0x01000000 0x00080000 0 0 $_TARGETNAME
+@end example
+
+@deffn {Command} {wbz351 dsu_reset_deassert}
+This command releases internal reset held by DSU
+and prepares reset vector catch in case of reset halt.
+Command is used internally in event reset-deassert-post.
+@end deffn
+@end deffn
+
+@anchor{pic32wm}
+@deffn {Flash Driver} {pic32wm}
+@cindex pic32wm
+All members of the WBZ65x, PIC32CX_BZ6 microcontroller
+families from Microchip include internal flash and use ARM's Cortex-M4 core.
+
+This driver supports:
+@itemize
+@item Row programming (1024 bytes per row)
+@item Page erase (1024 bytes per row)
+@item Skipping @code{0xFF}-only regions for faster flashing
+@end itemize
+
+The driver is located at: @file{src/flash/nor/pic32wm.c}.
+
+@example
+flash bank $_FLASHNAME pic32wm 0x01000000 0x00200000 0 0 $_TARGETNAME
+@end example
+
+@deffn {Command} {pic32wm dsu_reset_deassert}
+This command releases internal reset held by DSU
+and prepares reset vector catch in case of reset halt.
+Command is used internally in event reset-deassert-post.
+@end deffn
+@end deffn
+
 @deffn {Flash Driver} {atsamv}
 @cindex atsamv
 All members of the ATSAMV7x, ATSAMS70, and ATSAME70 families from
