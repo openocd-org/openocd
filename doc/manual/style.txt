@@ -22,7 +22,6 @@ providing documentation, either as part of the C code or stand-alone.
 
 - @subpage styledoxygen
 - @subpage styletexinfo
-- @subpage stylelatex
 
 Feedback would be welcome to improve the OpenOCD guidelines.
 
@@ -450,13 +449,6 @@ to figure out how to use it is a bad sign, though it's OK to need to
 look at the User's guide to figure out what a config script is doing.
 
  */
-/** @page stylelatex LaTeX Style Guide
-
-This page needs to provide style guidelines for using LaTeX, the
-typesetting language used by The References for OpenOCD Hardware.
-Likewise, the @ref primerlatex for using this guide needs to be completed.
-
- */
 /** @page styleperl Perl Style Guide
 
 This page provides some style guidelines for using Perl, a scripting
@@ -510,7 +502,6 @@ documentation languages:
 - @ref stylec
 - @ref styledoxygen
 - @ref styletexinfo
-- @ref stylelatex
 - @ref styleperl
 - @ref styleautotools
 

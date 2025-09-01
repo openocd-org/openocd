@@ -16,7 +16,6 @@ OpenOCD presently produces several kinds of documentation:
   - Provides overview, usage, reference, and FAQ for each device.
   - Written using LaTeX language with custom macros.
   - Created with 'make references'.
-  - See @subpage primerlatex and @ref stylelatex.
 - The Manual:
   - Focuses on developing the OpenOCD software.
   - Details the architecture, driver interfaces, and processes.
@@ -43,19 +42,6 @@ the Texinfo web site for the Texinfo manual and more information.
 
 OpenOCD style guidelines for Texinfo documentation can be found on the
 @ref styletexinfo page.
-
- */
-/** @page primerlatex LaTeX Primer
-
-The OpenOCD project provides a number of reference guides using the
-LaTeX typesetting language.
-
-- OpenOCD Quick Reference Sheets
-- OpenOCD Hardware Reference Guides
-
-These documents have not yet been produced, so this Primer serves as
-a placeholder to describe how they are created and can be extended.
-The same holds true for the @ref stylelatex page.
 
  */
 /** @page primerdoxygen Doxygen Primer
@@ -118,7 +104,6 @@ This file contains the Doxygen source code for the @ref primerdocs.
 The @ref primerdocs page also contains the following sections:
 
 - @ref primertexinfo
-- @ref primerlatex
 - @ref primerdoxygen
 
  */
