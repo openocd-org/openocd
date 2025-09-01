@@ -239,7 +239,7 @@ needing a Git client:
 
 @uref{http://repo.or.cz/w/openocd.git}
 
-The @file{README} file contains the instructions for building the project
+The @file{README.md} file contains the instructions for building the project
 from the repository or a snapshot.
 
 Developers that want to contribute patches to the OpenOCD system are

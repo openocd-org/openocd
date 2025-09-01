@@ -41,7 +41,7 @@ MacPorts' libraries, so run configure like this:
   LDFLAGS=-L/opt/local/lib CPPFLAGS=-I/opt/local/include ./configure [options]
 
 
-See README for the generic building instructions.
+See README.md for the generic building instructions.
 
 If you're using a USB adapter and have a driver kext matched to it,
 you will need to unload it prior to running OpenOCD. E.g. with Apple

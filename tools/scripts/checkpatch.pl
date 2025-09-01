@@ -1417,14 +1417,14 @@ sub top_of_kernel_tree {
 	if (!$OpenOCD) {
 	my @tree_check = (
 		"COPYING", "CREDITS", "Kbuild", "MAINTAINERS", "Makefile",
-		"README", "Documentation", "arch", "include", "drivers",
+		"README.md", "Documentation", "arch", "include", "drivers",
 		"fs", "init", "ipc", "kernel", "lib", "scripts",
 	);
 	} # !$OpenOCD
 	# OpenOCD specific: Begin
 	my @tree_check = (
 		"AUTHORS", "BUGS", "COPYING", "HACKING", "Makefile.am",
-		"README", "contrib", "doc", "src", "tcl", "testing", "tools",
+		"README.md", "contrib", "doc", "src", "tcl", "testing", "tools",
 	);
 	# OpenOCD specific: End
 

@@ -16,7 +16,7 @@ AS_IF([test "x$MAKEINFO" = "x"], [
 ])
 AC_SUBST([MAKEINFO])
 
-AM_INIT_AUTOMAKE([-Wall -Wno-portability dist-bzip2 dist-zip subdir-objects])
+AM_INIT_AUTOMAKE([foreign -Wall -Wno-portability dist-bzip2 dist-zip subdir-objects])
 
 AC_CONFIG_HEADERS([config.h])
 

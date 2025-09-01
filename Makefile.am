@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
-AUTOMAKE_OPTIONS = gnu 1.14
+AUTOMAKE_OPTIONS = foreign 1.14
 
 .DELETE_ON_ERROR:
 
@@ -63,8 +63,8 @@ EXTRA_DIST += \
 	BUGS \
 	HACKING \
 	NEWTAPS \
-	README.Windows \
-	README.macOS \
+	README.Windows.md \
+	README.macOS.md \
 	$(EXTRA_DIST_NEWS) \
 	Doxyfile.in \
 	LICENSES/license-rules.txt \
