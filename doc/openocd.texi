@@ -7032,6 +7032,11 @@ All members of the ATSAMV7x, ATSAMS70, and ATSAME70 families from
 Atmel include internal flash and use ARM's Cortex-M7 core.
 This driver uses the same command names/syntax as @xref{at91sam3}.
 
+The same driver provides interface for PIC32CZ CA70 series. This
+Cortex-M7 family from Microchip is both binary and pin to pin compatible
+with Atmel's SAM series. The PIC series is a replacement of the original
+SAM series from Atmel after the company acquisition by Microchip.
+
 @example
 flash bank $_FLASHNAME atsamv 0x00400000 0 0 0 $_TARGETNAME
 @end example
