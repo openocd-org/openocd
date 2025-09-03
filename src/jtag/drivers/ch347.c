@@ -48,6 +48,7 @@
 #include <jtag/interface.h>
 #include <jtag/commands.h>
 #include <jtag/swd.h>
+#include <jtag/adapter.h>
 #include <helper/time_support.h>
 #include <helper/replacements.h>
 #include <helper/list.h>
@@ -1805,32 +1806,6 @@ COMMAND_HANDLER(ch347_handle_device_desc_command)
 	return ERROR_OK;
 }
 
-/**
- * @brief The command handler for configuring which GPIO pin is used as activity LED
- *
- * @return ERROR_OK at success; ERROR_COMMAND_SYNTAX_ERROR otherwise
- */
-COMMAND_HANDLER(ch347_handle_activity_led_command)
-{
-	if (CMD_ARGC != 1)
-		return ERROR_COMMAND_SYNTAX_ERROR;
-
-	uint8_t gpio;
-	if (CMD_ARGV[0][0] == 'n') {
-		COMMAND_PARSE_NUMBER(u8, &CMD_ARGV[0][1], gpio);
-		ch347_activity_led_active_high = false;
-	} else {
-		COMMAND_PARSE_NUMBER(u8, CMD_ARGV[0], gpio);
-		ch347_activity_led_active_high = true;
-	}
-
-	if (gpio >= GPIO_CNT || (BIT(gpio) & USEABLE_GPIOS) == 0)
-		return ERROR_COMMAND_ARGUMENT_INVALID;
-
-	ch347_activity_led_gpio_pin = gpio;
-	return ERROR_OK;
-}
-
 static const struct command_registration ch347_subcommand_handlers[] = {
 	{
 		.name = "vid_pid",
@@ -1846,13 +1821,6 @@ static const struct command_registration ch347_subcommand_handlers[] = {
 		.help = "set the USB device description of the CH347 device",
 		.usage = "description_string",
 	},
-	{
-		.name = "activity_led",
-		.handler = &ch347_handle_activity_led_command,
-		.mode = COMMAND_CONFIG,
-		.help = "if set this CH347 GPIO pin is the JTAG activity LED; start with n for active low output",
-		.usage = "[n]gpio_number",
-	},
 	COMMAND_REGISTRATION_DONE
 };
 
@@ -1866,6 +1834,25 @@ static const struct command_registration ch347_command_handlers[] = {
 	},
 	COMMAND_REGISTRATION_DONE
 };
+
+/**
+ * @brief Configure which GPIO pin is used as the activity LED.
+ *
+ * Updates the global activity LED GPIO pin and polarity settings
+ * based on the provided configuration. If the given GPIO is not
+ * usable, the function returns without making changes.
+ *
+ * @param led_config Pointer to the GPIO configuration structure for the LED pin
+ */
+static void ch347_configure_activity_led(const struct adapter_gpio_config *led_config)
+{
+	uint8_t gpio = led_config->gpio_num;
+	if (gpio >= GPIO_CNT || (BIT(gpio) & USEABLE_GPIOS) == 0)
+		return;
+
+	ch347_activity_led_gpio_pin = gpio;
+	ch347_activity_led_active_high = !led_config->active_low;
+}
 
 /**
  * @brief CH347 Initialization function
@@ -1892,6 +1879,8 @@ static int ch347_init(void)
 	INIT_LIST_HEAD(&ch347.scan_queue);
 
 	ch347.pack_size = UNSET;
+
+	ch347_configure_activity_led(&adapter_gpio_get_config()[ADAPTER_GPIO_IDX_LED]);
 
 	if (!swd_mode) {
 		tap_set_state(TAP_RESET);

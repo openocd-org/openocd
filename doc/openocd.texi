@@ -2590,6 +2590,9 @@ mitigates the problem.
 @end itemize
 @end itemize
 
+The driver supports activity LED through the generic
+command @ref{adapter gpio, @command{adapter gpio led}}.
+
 This driver has these driver-specific command:
 
 @deffn {Config Command} {ch347 vid_pid} [vid pid]+
@@ -2607,17 +2610,6 @@ string. If not specified the first found device with the correct vendor
 and product ID will be connected.
 @example
 ch347 device_desc "EasyDevKit"
-@end example
-@end deffn
-
-@deffn {Config Command} {ch347 activity_led} [n]gpio_number
-If specified the drive let an activity LED blink during JTAG operations.
-The number is the GPIO number of the CH347T chip. If prefixed with "n",
-then this GPIO should be low active. The example configures GPIO4 as
-low active activity LED. For the CH347T chip only GPIO3 (Pin11 / SCL),
-GPIO4 (Pin15 / ACT), GPIO5 (Pin9 / TRST) and GPIO6 (Pin2 / CTS1) are possible.
-@example
-ch347 activity_led n4
 @end example
 @end deffn
 @end deffn
