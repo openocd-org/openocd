@@ -25,7 +25,7 @@
 #endif
 
 #define IMAGE_MAX_ERROR_STRING		(256)
-#define IMAGE_MAX_SECTIONS			(512)
+#define IMAGE_MAX_SECTIONS			(2048)
 
 #define IMAGE_MEMORY_CACHE_SIZE		(2048)
 
