@@ -20,7 +20,6 @@
 #include "config.h"
 #endif
 
-#include <hidapi.h>
 #ifdef HAVE_NETDB_H
 #include <netdb.h>
 #endif
@@ -90,7 +89,7 @@ struct cmsis_dap_backend_data {
 };
 
 static char *cmsis_dap_tcp_host;
-static char *const cmsis_dap_tcp_port_default = STRINGIFY(CMSIS_DAP_TCP_PORT);
+static char cmsis_dap_tcp_port_default[] = STRINGIFY(CMSIS_DAP_TCP_PORT);
 static char *cmsis_dap_tcp_port = cmsis_dap_tcp_port_default;
 static int cmsis_dap_tcp_min_timeout_ms = DEFAULT_MIN_TIMEOUT_MS;
 
