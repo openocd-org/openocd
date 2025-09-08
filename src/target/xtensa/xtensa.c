@@ -3493,6 +3493,10 @@ static void xtensa_free_reg_cache(struct target *target)
 		free(xtensa->optregs);
 	}
 	xtensa->optregs = NULL;
+	free(xtensa->contiguous_regs_desc);
+	xtensa->contiguous_regs_desc = NULL;
+	free(xtensa->contiguous_regs_list);
+	xtensa->contiguous_regs_list = NULL;
 }
 
 void xtensa_target_deinit(struct target *target)
@@ -3896,6 +3900,10 @@ COMMAND_HELPER(xtensa_cmd_xtreg_do, struct xtensa *xtensa)
 		xtensa->total_regs_num = numregs;
 		xtensa->core_regs_num = 0;
 		xtensa->num_optregs = 0;
+		/* Prevent memory leak in case xtregs is called twice */
+		free(xtensa->optregs);
+		free(xtensa->contiguous_regs_desc);
+		xtensa->contiguous_regs_desc = NULL;
 		/* A little more memory than required, but saves a second initialization pass */
 		xtensa->optregs = calloc(xtensa->total_regs_num, sizeof(struct xtensa_reg_desc));
 		if (!xtensa->optregs) {
