@@ -474,7 +474,7 @@ static int gdb_put_packet_inner(struct connection *connection,
 
 		char local_buffer[1024];
 		local_buffer[0] = '$';
-		if ((size_t)len + 4 <= sizeof(local_buffer)) {
+		if ((size_t)len + 5 <= sizeof(local_buffer)) {
 			/* performance gain on smaller packets by only a single call to gdb_write() */
 			memcpy(local_buffer + 1, buffer, len++);
 			len += snprintf(local_buffer + len, sizeof(local_buffer) - len, "#%02x", my_checksum);
