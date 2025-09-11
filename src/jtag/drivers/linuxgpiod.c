@@ -52,8 +52,10 @@ static struct gpiod_line_settings *gpiod_line_settings_new(void)
 	struct gpiod_line_settings *rv;
 
 	rv = calloc(sizeof(struct gpiod_line_settings), 1);
-	if (!rv)
+	if (!rv) {
+		LOG_ERROR("No memory for gpiod line settings");
 		return NULL;
+	}
 
 	return rv;
 }
@@ -128,8 +130,10 @@ static struct gpiod_line_config *gpiod_line_config_new(void)
 	struct gpiod_line_config *rv;
 
 	rv = calloc(sizeof(struct gpiod_line_config), 1);
-	if (!rv)
+	if (!rv) {
+		LOG_ERROR("No memory for gpiod line config");
 		return NULL;
+	}
 
 	return rv;
 }
@@ -159,8 +163,10 @@ static struct gpiod_request_config *gpiod_request_config_new(void)
 	struct gpiod_request_config *rv;
 
 	rv = calloc(sizeof(struct gpiod_request_config), 1);
-	if (!rv)
+	if (!rv) {
+		LOG_ERROR("No memory for gpiod request config");
 		return NULL;
+	}
 
 	return rv;
 }
@@ -194,8 +200,10 @@ static struct gpiod_line_request *gpiod_chip_request_lines(struct gpiod_chip *ch
 	assert(req_cfg);
 
 	line_req = calloc(sizeof(struct gpiod_line_request), 1);
-	if (!line_req)
+	if (!line_req) {
+		LOG_ERROR("No memory for gpiod line request");
 		return NULL;
+	}
 
 	line_req->gpio_line = gpiod_chip_get_line(chip, line_cfg->gpio_num);
 	if (!line_req->gpio_line) {
