@@ -4745,7 +4745,7 @@ COMMAND_HANDLER(handle_target_get_reg)
 
 		const char *reg_name = Jim_String(elem);
 
-		struct reg *reg = register_get_by_name(target->reg_cache, reg_name, false);
+		struct reg *reg = register_get_by_name(target->reg_cache, reg_name, true);
 
 		if (!reg || !reg->exist) {
 			command_print(CMD, "unknown register '%s'", reg_name);
@@ -4803,7 +4803,7 @@ COMMAND_HANDLER(handle_set_reg_command)
 	for (unsigned int i = 0; i < length; i += 2) {
 		const char *reg_name = Jim_String(dict[i]);
 		const char *reg_value = Jim_String(dict[i + 1]);
-		struct reg *reg = register_get_by_name(target->reg_cache, reg_name, false);
+		struct reg *reg = register_get_by_name(target->reg_cache, reg_name, true);
 
 		if (!reg || !reg->exist) {
 			command_print(CMD, "unknown register '%s'", reg_name);
