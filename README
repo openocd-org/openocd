@@ -191,6 +191,11 @@ and compiling the OpenOCD source code. That file is provided by
 default for all GNU autotools packages. If you are not familiar with
 the GNU autotools, then you should read those instructions first.
 
+Note: if the INSTALL file is not present, it means you are using the
+source code from a development branch, not from an OpenOCD release.
+In this case, follow the instructions 'Compiling OpenOCD' below and
+the file will be created by the first command './bootstrap'.
+
 The remainder of this document tries to provide some instructions for
 those looking for a quick-install.
 
