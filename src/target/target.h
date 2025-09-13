@@ -775,7 +775,7 @@ void target_handle_event(struct target *t, enum target_event e);
 
 void target_handle_md_output(struct command_invocation *cmd,
 	struct target *target, target_addr_t address, unsigned int size,
-	unsigned int count, const uint8_t *buffer);
+	unsigned int count, const uint8_t *buffer, bool include_address);
 
 int target_profiling_default(struct target *target, uint32_t *samples, uint32_t
 		max_num_samples, uint32_t *num_samples, uint32_t seconds);

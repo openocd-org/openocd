@@ -2143,7 +2143,8 @@ COMMAND_HANDLER(dsp563xx_mem_command)
 		err = dsp563xx_read_memory(target, mem_type, address, sizeof(uint32_t),
 				count, buffer);
 		if (err == ERROR_OK)
-			target_handle_md_output(CMD, target, address, sizeof(uint32_t), count, buffer);
+			target_handle_md_output(CMD, target, address, sizeof(uint32_t),
+				count, buffer, true);
 
 	} else {
 		b = buffer;

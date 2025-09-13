@@ -5231,7 +5231,7 @@ COMMAND_HANDLER(handle_repeat_read)
 	};
 	int result = r->access_memory(target, args);
 	if (result == ERROR_OK)
-		target_handle_md_output(cmd, target, address, size, count, buffer);
+		target_handle_md_output(cmd, target, address, size, count, buffer, false);
 	free(buffer);
 	return result;
 }
