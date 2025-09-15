@@ -11573,11 +11573,9 @@ an error if current CPU does not support DSP.
 @section RISC-V Architecture
 
 @uref{http://riscv.org/, RISC-V} is a free and open ISA. OpenOCD supports JTAG
-debug of RV32 and RV64 cores in heterogeneous multicore systems of up to 32
-harts. (It's possible to increase this limit to 1024 by changing
-RISCV_MAX_HARTS in riscv.h.) OpenOCD primarily supports 0.13 of the RISC-V
-Debug Specification, but there is also support for legacy targets that
-implement version 0.11.
+debug of RV32 and RV64 cores in heterogeneous multicore systems of up to 2^20
+harts. OpenOCD primarily supports 0.13 of the RISC-V Debug Specification,
+but there is also support for legacy targets that implement version 0.11.
 
 @subsection RISC-V Terminology
 
@@ -11622,7 +11620,33 @@ follows:
 </feature>
 @end example
 
+@subsection RISC-V @code{$target_name configure} options
+@itemize
+@item @code{-ebreak} [@option{m}|@option{s}|@option{u}|@option{vs}|@option{vu}]
+@option{exception}|@option{halt} -- sets the desired behavior of @code{ebreak}
+instruction on the target. Defaults to @option{halt} in all execution modes.
+
+@itemize
+@item The last argument specifies which action should be taken when a hart
+executes a @code{ebreak}.
+
+@item The first argument specifies in which execution mode the @code{ebreak}
+behavior should change. If this option is omitted the configuration affects
+all execution modes.
+
+@item @code{cget} returns a TCL @code{dict} of execution mode - @code{ebreak}
+action pairs.
+@end itemize
+@end itemize
+
 @subsection RISC-V Debug Configuration Commands
+
+@deffn {Command} {riscv dump_sample_buf} [base64]
+Dump and clear the contents of the sample buffer. Which samples are collected
+is configured with @code{riscv memory_sample}. If the optional base64
+argument is passed, the raw buffer is dumped in base64 format, so that
+external tools can gather the data efficiently.
+@end deffn
 
 @deffn {Config Command} {riscv expose_csrs} n[-m|=name] [...]
 Configure which CSRs to expose in addition to the standard ones. The CSRs to expose
@@ -11638,13 +11662,13 @@ CSRs.
 
 @example
 # Expose a single RISC-V CSR number 128 under the name "csr128":
-$_TARGETNAME expose_csrs 128
+riscv expose_csrs 128
 
 # Expose multiple RISC-V CSRs 128..132 under names "csr128" through "csr132":
-$_TARGETNAME expose_csrs 128-132
+riscv expose_csrs 128-132
 
 # Expose a single RISC-V CSR number 1996 under custom name "csr_myregister":
-$_TARGETNAME expose_csrs 1996=myregister
+riscv expose_csrs 1996=myregister
 @end example
 @end deffn
 
@@ -11672,8 +11696,43 @@ $_TARGETNAME expose_custom 32=myregister
 @end example
 @end deffn
 
+@deffn {Config Command} {riscv hide_csrs} n[-m] [,n1[-m1]] [...]
+The RISC-V Specification defines many CSRs, and we may want to avoid showing
+each CSR to the user, as they may not be relevant to the task at hand. For
+example, we may choose not to show trigger or PMU registers for simple
+debugging scenarios. This command allows to mark individual registers or
+register ranges (inclusive) as "hidden". Such hidden registers won't be
+displayed in GDB or @code{reg} command output.
+
+@example
+
+# Hide range of RISC-V CSRs
+# CSR_TSELECT - 1952 and CSR_TDATA1 - 1953
+$_TARGETNAME riscv hide_csrs 1952-1953
+
+@end example
+@end deffn
+
+@deffn {Command} {riscv memory_sample} bucket address|clear [size=4]
+Configure OpenOCD to frequently read size bytes at the given addresses.
+Execute the command with no arguments to see the current configuration. Use
+clear to stop using a given bucket.
+
+OpenOCD will allocate a 1MB sample buffer, and when it fills up no more
+samples will be collected until it is emptied with @code{riscv
+dump_sample_buf}.
+@end deffn
+
+@deffn {Command} {riscv repeat_read} count address [size=4]
+Quickly read count words of the given size from address. This can be useful
+to read out a buffer that's memory-mapped to be accessed through a single
+address, or to sample a changing value in a memory-mapped device.
+@end deffn
+
 @deffn {Command} {riscv info}
-Displays some information OpenOCD detected about the target.
+Displays some information OpenOCD detected about the target. Output's format
+allows to use it directly with TCL's `array set` function. In case obtaining an
+info point failed, the corresponding value is displayed as "unavailable".
 @end deffn
 
 @deffn {Command} {riscv reset_delays} [wait]
@@ -11685,11 +11744,6 @@ after `wait` scans. It's only useful for testing OpenOCD itself.
 @deffn {Command} {riscv set_command_timeout_sec} [seconds]
 Set the wall-clock timeout (in seconds) for individual commands. The default
 should work fine for all but the slowest targets (eg. simulators).
-@end deffn
-
-@deffn {Command} {riscv set_reset_timeout_sec} [seconds]
-Set the maximum time to wait for a hart to come out of reset after reset is
-deasserted.
 @end deffn
 
 @deffn {Command} {riscv set_mem_access} method1 [method2] [method3]
@@ -11710,16 +11764,18 @@ This command can be used to change the memory access methods if the default
 behavior is not suitable for a particular target.
 @end deffn
 
-@deffn {Command} {riscv set_enable_virtual} on|off
-When on, memory accesses are performed on physical or virtual memory depending
-on the current system configuration. When off (default), all memory accessses are performed
-on physical memory.
-@end deffn
-
-@deffn {Command} {riscv set_enable_virt2phys} on|off
-When on (default), memory accesses are performed on physical or virtual memory
-depending on the current satp configuration. When off, all memory accessses are
-performed on physical memory.
+@deffn {Command} {riscv virt2phys_mode} [@option{hw}|@option{sw}|@option{off}]
+Configure how OpenOCD translates virtual addresses to physical:
+@itemize @bullet
+@item @option{sw} - OpenOCD translates virtual addresses explicitly by
+traversing the page table entries (by performing physical memory accesses to
+read the respective entries). This is the default mode.
+@item @option{hw} - Virtual addresses are translated implicitly by hardware.
+(Virtual memory access will fail with an error if the hardware doesn't
+support the necessary functionality.)
+@item @option{off} - Virtual addresses are not translated (identity mapping is assumed).
+@end itemize
+Returns current translation mode if called without arguments.
 @end deffn
 
 @deffn {Command} {riscv resume_order} normal|reversed
@@ -11756,10 +11812,15 @@ Display/set the current core displayed in GDB. This is needed only if
 @code{riscv smp} was used.
 @end deffn
 
-@deffn {Command} {riscv use_bscan_tunnel} value
+@deffn {Command} {riscv use_bscan_tunnel} width [type]
 Enable or disable use of a BSCAN tunnel to reach the Debug Module. Supply the
-width of the DM transport TAP's instruction register to enable. Supply a
-value of 0 to disable.
+@var{width} of the DM transport TAP's instruction register to enable. The
+@var{width} should fit into 7 bits. Supply a value of 0 to disable.
+Pass a second argument (optional) to indicate Bscan Tunnel Type:
+@enumerate
+@item 0:(default) NESTED_TAP
+@item 1: DATA_REGISTER
+@end enumerate
 
 This BSCAN tunnel interface is specific to SiFive IP. Anybody may implement
 it, but currently there is no good documentation on it. In a nutshell, this
@@ -11775,19 +11836,43 @@ tunneled DR scan consists of:
 @end enumerate
 @end deffn
 
-@deffn {Command} {riscv set_ebreakm} on|off
-Control dcsr.ebreakm. When on (default), M-mode ebreak instructions trap to
-OpenOCD. When off, they generate a breakpoint exception handled internally.
+@deffn {Command} {riscv set_bscan_tunnel_ir} value
+Allows the use_bscan_tunnel feature to target non Xilinx device by
+specifying the JTAG TAP IR used to access the bscan tunnel.
 @end deffn
 
-@deffn {Command} {riscv set_ebreaks} on|off
-Control dcsr.ebreaks. When on (default), S-mode ebreak instructions trap to
-OpenOCD. When off, they generate a breakpoint exception handled internally.
+@deffn {Command} {riscv set_maskisr} [@option{off}|@option{steponly}]
+Selects whether interrupts will be disabled when single stepping. The default configuration is @option{off}.
+This feature is only useful on hardware that always steps into interrupts and doesn't support dcsr.stepie=0.
+Keep in mind, disabling the option does not guarantee that single stepping will go into interrupt handlers.
+To make that happen, dcsr.stepie would have to be written to 1 as well.
 @end deffn
 
-@deffn {Command} {riscv set_ebreaku} on|off
-Control dcsr.ebreaku. When on (default), U-mode ebreak instructions trap to
-OpenOCD. When off, they generate a breakpoint exception handled internally.
+The commands below can be used to prevent OpenOCD from using certain RISC-V trigger features.
+For example in cases when there are known issues in the target hardware.
+
+@deffn {Command} {riscv set_enable_trigger_feature} [(@option{eq}|@option{napot}|@option{ge_lt}|@option{all}) (@option{wp}|@option{none})]
+Control which RISC-V trigger features can be used by OpenOCD placing watchpoints.
+All trigger features are allowed by default. Only new watchpoints, inserted after this command,
+are affected (watchpoints that were already placed before are not changed).
+
+The first argument selects one of the configurable RISC-V trigger features:
+
+@itemize @minus
+@item @option{eq}: Equality match trigger
+@item @option{napot}: NAPOT trigger
+@item @option{ge_lt}: Chained pair of `greater-equal` and `less-than` triggers
+@item @option{all}: All trigger features which were described above
+@end itemize
+
+The second argument configures how OpenOCD should use the selected trigger feature:
+
+@itemize @minus
+@item @option{wp}: Enable this trigger feature for watchpoints - allow OpenOCD to use it. (Default.)
+@item @option{none}: Disable the use of this trigger feature. OpenOCD will not attempt to use it.
+@end itemize
+
+With no parameters, prints current trigger features configuration.
 @end deffn
 
 @subsection RISC-V Authentication Commands
@@ -11800,25 +11885,156 @@ set challenge [riscv authdata_read]
 riscv authdata_write [expr @{$challenge + 1@}]
 @end example
 
-@deffn {Command} {riscv authdata_read}
-Return the 32-bit value read from authdata.
+@deffn {Command} {riscv authdata_read} [index=0]
+Return the 32-bit value read from authdata or authdata0 (index=0), or
+authdata1 (index=1).
 @end deffn
 
-@deffn {Command} {riscv authdata_write} value
-Write the 32-bit value to authdata.
+@deffn {Command} {riscv authdata_write} [index=0] value
+Write the 32-bit value to authdata or authdata0 (index=0), or authdata1
+(index=1).
 @end deffn
 
 @subsection RISC-V DMI Commands
 
-The following commands allow direct access to the Debug Module Interface, which
-can be used to interact with custom debug features.
+The following commands allow for direct low-level access to the registers
+of the Debug Module (DM). They can be useful to access custom features in the DM.
+
+@deffn {Command} {riscv dm_read} reg_address
+Perform a 32-bit read from the register indicated by reg_address from the DM of the
+current target.
+@end deffn
+
+@deffn {Command} {riscv dm_write} reg_address value
+Write the 32-bit value to the register indicated by reg_address from the DM of the
+current target.
+@end deffn
+
+The following commands allow for direct low-level access to the Debug Module
+Interface (DMI). They can be useful to access any device that resides on the DMI.
 
 @deffn {Command} {riscv dmi_read} address
-Perform a 32-bit DMI read at address, returning the value.
+Perform a 32-bit read from the given DMI address, returning the value.
 @end deffn
 
 @deffn {Command} {riscv dmi_write} address value
-Perform a 32-bit DMI write of value at address.
+Perform a 32-bit write to the given DMI address.
+@end deffn
+
+@subsection RISC-V Trigger Commands
+
+The RISC-V Debug Specification defines several optional trigger types that don't
+map cleanly onto OpenOCD's notion of hardware breakpoints. For the types that
+the target supports, these commands let you
+set those triggers directly. (It's also possible to do so by writing the
+appropriate CSRs.)
+
+@deffn {Command} {riscv etrigger set} [@option{m}] [@option{s}] [@option{u}] [@option{vs}] [@option{vu}] exception_codes
+Set an exception trigger (type 5) on the current target, which halts the target when it
+fires.  @option{m}, @option{s}, @option{u}, @option{vs}, and @option{vu} control
+which execution modes the trigger fires in. @var{exception_codes} is a bit
+field, where each bit corresponds to an exception code in mcause (defined in the
+RISC-V Privileged Spec). The etrigger will fire on the exceptions whose bits are
+set in @var{exception_codes}.
+
+For details on this trigger type, see the RISC-V Debug Specification.
+@end deffn
+
+@deffn {Command} {riscv etrigger clear}
+Clear the type 5 trigger that was set using @command{riscv etrigger set}.
+@end deffn
+
+@deffn {Command} {riscv icount set} [@option{m}] [@option{s}] [@option{u}] [@option{vs}] [@option{vu}] [@option{pending}] count
+Set an instruction count
+trigger (type 3) on the current target, which halts the target when it fires.
+@option{m}, @option{s}, @option{u}, @option{vs}, and @option{vu} control which
+execution modes the trigger fires in. If [@option{pending}] is passed then the
+pending bit is set, which is unlikely to be useful unless you're debugging the
+hardware implementation of this trigger.
+@var{count} sets the number of instructions to execute before the trigger is
+taken.
+
+For details on this trigger type, see the RISC-V Debug Specification.
+@end deffn
+
+@deffn {Command} {riscv icount clear}
+Clear the type 3 trigger that was set using @command{riscv icount set}.
+@end deffn
+
+@deffn {Command} {riscv itrigger set} [@option{m}] [@option{s}] [@option{u}] [@option{vs}] [@option{vu}] [@option{nmi}] mie_bits
+Set an interrupt trigger (type 4) on the current target, which halts the target when it
+fires.  @option{m}, @option{s}, @option{u}, @option{vs}, and @option{vu} control
+which execution modes the trigger fires in.  If [@option{nmi}] is passed then
+the trigger will fire on non-maskable interrupts in those modes. @var{mie_bits}
+controls which interrupts the trigger fires on, using the same bit assignments
+as in the mie CSR (defined in the RISC-V Privileged Spec).
+
+For details on this trigger type, see the RISC-V Debug Specification.
+@end deffn
+
+@deffn {Command} {riscv reserve_trigger} [index @option{on|off}]
+Manages the set of reserved triggers. Reserving a trigger results in OpenOCD
+not using it internally (e.g. skipping it when setting a watchpoint or a
+hardware breakpoint), so that the user or the application has unfettered
+control over the trigger. By default there are no reserved triggers.
+
+@enumerate
+@item @var{index} specifies the index of a trigger to reserve or free up.
+@item The second argument specifies whether the trigger should be reserved
+(@var{on}) or a prior reservation cancelled (@var{off}).
+@item If called without parameters, returns indices of reserved triggers.
+@end enumerate
+
+@end deffn
+
+@deffn {Command} {riscv itrigger clear}
+Clear the type 4 trigger that was set using @command{riscv itrigger set}.
+@end deffn
+
+@subsection RISC-V Program Buffer Commands
+
+Program Buffer is an optional feature of RISC-V targets - it is a mechanism that debuggers
+can use to execute sequences of arbitrary instructions (small programs) on the target.
+For details on the Program Buffer, please refer to the RISC-V Debug Specification.
+
+@deffn {Command} {riscv exec_progbuf} inst1 [inst2 [... inst16]]
+Execute the given sequence of instructions on the target using the Program Buffer.
+The command can only be used on halted targets.
+
+The instructions @var{inst1} .. @var{inst16} shall be specified in their binary form
+(as 32-bit integers). In case a pair of compressed (16-bit) instructions is used,
+the first instruction should be placed to the lower 16-bits of the 32-bit value.
+The terminating @var{ebreak} instruction needs not be specified - it is added
+automatically if needed.
+@end deffn
+
+Examples:
+
+@example
+# Execute 32-bit instructions "fence rw,rw" (0x0330000f)
+# and "fence.i" (0x0000100f) using the Program Buffer,
+# in this order:
+
+riscv exec_progbuf 0x0330000f 0x0000100f
+
+# Execute 16-bit instructions "c.addi s0,s0,1" (0x0405)
+# and "c.add s1,s1,s0" (0x94a2) using the Program Buffer,
+# in this order:
+
+riscv exec_progbuf 0x94a20405
+@end example
+
+@deffn {Command} {riscv autofence} [on|off]
+When on (default), OpenOCD will automatically execute RISC-V fence instructions
+(@var{fence.i} and @var{fence rw, rw}) in these cases:
+@itemize @bullet
+@item before step or resume,
+@item before memory read via the Program Buffer,
+@item after memory write via the Program Buffer.
+@end itemize
+When off, users need to take care of memory coherency themselves, for example
+using the @var{riscv exec_progbuf} command to execute fences or CMO instructions
+(RISC-V Cache Management Operations).
 @end deffn
 
 @section ARC Architecture
