@@ -4825,7 +4825,7 @@ COMMAND_HANDLER(riscv_set_ir)
 
 COMMAND_HANDLER(riscv_resume_order)
 {
-	if (CMD_ARGC > 1)
+	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	if (!strcmp(CMD_ARGV[0], "normal")) {
