@@ -172,6 +172,7 @@ Sleep
 WaitForSingleObject
 WSACleanup
 WSAGetLastError
+WSASetLastError
 WSAStartup
 dwHighDateTime
 dwLowDateTime
