@@ -20,6 +20,10 @@
 #include "config.h"
 #endif
 
+#ifdef HAVE_ARPA_INET_H
+#include <arpa/inet.h>
+#endif
+#include <errno.h>
 #ifdef HAVE_NETDB_H
 #include <netdb.h>
 #endif
@@ -28,10 +32,21 @@
 #endif
 #include <stdbool.h>
 #include <string.h>
+#ifdef HAVE_SYS_IOCTL_H
+#include <sys/ioctl.h>
+#endif
 #ifdef HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
 #endif
 #include <sys/types.h>
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#endif
 
 #include "helper/command.h"
 #include "helper/log.h"
@@ -193,19 +208,107 @@ static void cmsis_dap_tcp_close(struct cmsis_dap *dap)
 	cmsis_dap_tcp_free(dap);
 }
 
+static int socket_bytes_available(int sock, unsigned int *out_avail)
+{
+#ifdef _WIN32
+	u_long avail = 0;
+	if (ioctlsocket((SOCKET)sock, FIONREAD, &avail) == SOCKET_ERROR)
+		return -1;
+#else
+	int avail = 0;
+	if (ioctl(sock, FIONREAD, &avail) < 0)
+		return -1;
+#endif
+	*out_avail = avail;
+	return 0;
+}
+
 static inline int readall_socket(int handle, void *buffer, unsigned int count)
 {
 	// Return after all count bytes available, or timeout, or error.
 	return recv(handle, buffer, count, MSG_WAITALL);
 }
 
-static inline int peekall_socket(int handle, void *buffer, unsigned int count)
+static int peekall_socket(int handle, void *buffer, unsigned int count,
+		enum cmsis_dap_blocking blocking, unsigned int timeout_ms)
 {
-	/* Data remains unread on the socket until recv() is called later without
+	/* Windows doesn't support MSG_PEEK in combination with MSG_WAITALL:
+	 *	 return recv(handle, buffer, count, MSG_PEEK | MSG_WAITALL);
+	 *
+	 * So, use this method instead which should work for Windows and others.
+	 *
+	 * Data remains unread on the socket until recv() is called later without
 	 * the MSG_PEEK flag. Return after all count bytes available, or timeout,
 	 * or error.
 	 */
-	return recv(handle, buffer, count, MSG_PEEK | MSG_WAITALL);
+
+	if (count == 0)
+		return 0;
+
+	while (true) {
+		int ret;
+		unsigned int avail;
+		if (socket_bytes_available(handle, &avail) < 0)
+			return -1;
+
+		if (avail >= count) {
+			ret = recv(handle, (char *)buffer, (int)count, MSG_PEEK);
+			if (ret < 0) {
+#ifdef _WIN32
+				int err = WSAGetLastError();
+				if (err == WSAEINTR)
+					continue;
+				if (err == WSAEWOULDBLOCK)
+					return -1;
+#else
+				if (errno == EINTR)
+					continue;
+				if (errno == EAGAIN || errno == EWOULDBLOCK)
+					return -1;	// Timeout or nonblocking.
+#endif
+			}
+			return ret; // 0: Closed, <0: Other error, >0 Success.
+		}
+
+		// Not enough data available.
+		if (blocking == CMSIS_DAP_NON_BLOCKING) {
+#ifdef _WIN32
+			WSASetLastError(WSAEWOULDBLOCK);
+#else
+			errno = EAGAIN;
+#endif
+			return -1;
+		}
+
+		// Blocking wait.
+		fd_set rfds;
+		FD_ZERO(&rfds);
+		FD_SET(handle, &rfds);
+
+		struct timeval tv;
+		tv.tv_sec  = timeout_ms / 1000;
+		tv.tv_usec = (timeout_ms % 1000) * 1000;
+
+		ret = select(handle + 1, &rfds, NULL, NULL, &tv);
+		if (ret > 0)
+			continue;		// Readable
+
+		if (ret == 0) {		// Timeout
+#ifdef _WIN32
+			WSASetLastError(WSAEWOULDBLOCK);
+#else
+			errno = EAGAIN;
+#endif
+			return -1;
+		}
+
+		// Error
+#ifndef _WIN32
+		if (errno == EINTR)
+			continue;
+#endif
+		return ret;
+	}
 }
 
 static int cmsis_dap_tcp_read(struct cmsis_dap *dap, int transfer_timeout_ms,
@@ -232,7 +335,7 @@ static int cmsis_dap_tcp_read(struct cmsis_dap *dap, int transfer_timeout_ms,
 
 	// Peek at the header first to find the length.
 	int retval = peekall_socket(dap->bdata->sockfd, dap->packet_buffer,
-			HEADER_SIZE);
+			HEADER_SIZE, blocking, wait_ms);
 	LOG_DEBUG_IO("Reading header returned %d", retval);
 	if (retval == 0) {
 		LOG_DEBUG_IO("CMSIS-DAP: tcp timeout reached 1");
