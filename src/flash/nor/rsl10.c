@@ -155,11 +155,6 @@ static int rsl10_get_probed_chip_if_halted(struct flash_bank *bank, struct rsl10
 
 static int rsl10_protect_check(struct flash_bank *bank)
 {
-	struct rsl10_bank *nbank = bank->driver_priv;
-	struct rsl10_info *chip  = nbank->chip;
-
-	assert(chip);
-
 	uint32_t status;
 
 	int retval = target_read_u32(bank->target, RSL10_FLASH_REG_IF_STATUS, &status);

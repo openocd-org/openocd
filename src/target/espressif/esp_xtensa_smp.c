@@ -218,7 +218,7 @@ int esp_xtensa_smp_poll(struct target *target)
 					!esp_xtensa_smp->other_core_does_resume) {
 					esp_xtensa->semihost.need_resume = false;
 					/* Resume xtensa_resume will handle BREAK instruction. */
-					ret = target_resume(target, 1, 0, 1, 0);
+					ret = target_resume(target, true, 0, true, false);
 					if (ret != ERROR_OK) {
 						LOG_ERROR("Failed to resume target");
 						return ret;
@@ -229,7 +229,7 @@ int esp_xtensa_smp_poll(struct target *target)
 			/* check whether any core polled by esp_xtensa_smp_update_halt_gdb() requested resume */
 			if (target->smp && other_core_resume_req) {
 				/* Resume xtensa_resume will handle BREAK instruction. */
-				ret = target_resume(target, 1, 0, 1, 0);
+				ret = target_resume(target, true, 0, true, false);
 				if (ret != ERROR_OK) {
 					LOG_ERROR("Failed to resume target");
 					return ret;
@@ -334,8 +334,7 @@ static inline int esp_xtensa_smp_smpbreak_restore(struct target *target, uint32_
 }
 
 static int esp_xtensa_smp_resume_cores(struct target *target,
-	int handle_breakpoints,
-	int debug_execution)
+		bool handle_breakpoints, bool debug_execution)
 {
 	struct target_list *head;
 	struct target *curr;
@@ -348,7 +347,7 @@ static int esp_xtensa_smp_resume_cores(struct target *target,
 		if ((curr != target) && (curr->state != TARGET_RUNNING) && target_was_examined(curr)) {
 			/*  resume current address, not in SMP mode */
 			curr->smp = 0;
-			int res = esp_xtensa_smp_resume(curr, 1, 0, handle_breakpoints, debug_execution);
+			int res = esp_xtensa_smp_resume(curr, true, 0, handle_breakpoints, debug_execution);
 			curr->smp = 1;
 			if (res != ERROR_OK)
 				return res;
@@ -358,10 +357,10 @@ static int esp_xtensa_smp_resume_cores(struct target *target,
 }
 
 int esp_xtensa_smp_resume(struct target *target,
-	int current,
+	bool current,
 	target_addr_t address,
-	int handle_breakpoints,
-	int debug_execution)
+	bool handle_breakpoints,
+	bool debug_execution)
 {
 	int res;
 	uint32_t smp_break;
@@ -420,9 +419,9 @@ int esp_xtensa_smp_resume(struct target *target,
 }
 
 int esp_xtensa_smp_step(struct target *target,
-	int current,
+	bool current,
 	target_addr_t address,
-	int handle_breakpoints)
+	bool handle_breakpoints)
 {
 	int res;
 	uint32_t smp_break = 0;

@@ -145,10 +145,10 @@ int arm7_9_early_halt(struct target *target);
 int arm7_9_soft_reset_halt(struct target *target);
 
 int arm7_9_halt(struct target *target);
-int arm7_9_resume(struct target *target, int current, target_addr_t address,
-		int handle_breakpoints, int debug_execution);
-int arm7_9_step(struct target *target, int current, target_addr_t address,
-		int handle_breakpoints);
+int arm7_9_resume(struct target *target, bool current, target_addr_t address,
+		bool handle_breakpoints, bool debug_execution);
+int arm7_9_step(struct target *target, bool current, target_addr_t address,
+		bool handle_breakpoints);
 int arm7_9_read_memory(struct target *target, target_addr_t address,
 		uint32_t size, uint32_t count, uint8_t *buffer);
 int arm7_9_write_memory(struct target *target, target_addr_t address,

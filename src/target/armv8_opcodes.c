@@ -41,6 +41,7 @@ static const uint32_t a64_opcodes[ARMV8_OPC_NUM] = {
 		[ARMV8_OPC_STRH_IP]	= ARMV8_STRH_IP(1, 0),
 		[ARMV8_OPC_STRW_IP]	= ARMV8_STRW_IP(1, 0),
 		[ARMV8_OPC_STRD_IP]	= ARMV8_STRD_IP(1, 0),
+		[ARMV8_OPC_ICIALLU]	= ARMV8_SYS(SYSTEM_ICIALLU, 0x1F),
 };
 
 static const uint32_t t32_opcodes[ARMV8_OPC_NUM] = {
@@ -68,6 +69,7 @@ static const uint32_t t32_opcodes[ARMV8_OPC_NUM] = {
 		[ARMV8_OPC_STRB_IP]	= ARMV8_STRB_IP_T3(1, 0),
 		[ARMV8_OPC_STRH_IP]	= ARMV8_STRH_IP_T3(1, 0),
 		[ARMV8_OPC_STRW_IP]	= ARMV8_STRW_IP_T3(1, 0),
+		[ARMV8_OPC_ICIALLU]	= ARMV4_5_MCR(15, 0, 0, 7, 5, 0),
 };
 
 void armv8_select_opcodes(struct armv8_common *armv8, bool state_is_aarch64)

@@ -55,15 +55,15 @@ static int ls1_sap_halt(struct target *target)
 	return ERROR_OK;
 }
 
-static int ls1_sap_resume(struct target *target, int current, target_addr_t address,
-		int handle_breakpoints, int debug_execution)
+static int ls1_sap_resume(struct target *target, bool current,
+		target_addr_t address, bool handle_breakpoints, bool debug_execution)
 {
 	LOG_DEBUG("%s", __func__);
 	return ERROR_OK;
 }
 
-static int ls1_sap_step(struct target *target, int current, target_addr_t address,
-				int handle_breakpoints)
+static int ls1_sap_step(struct target *target, bool current,
+		target_addr_t address, bool handle_breakpoints)
 {
 	LOG_DEBUG("%s", __func__);
 	return ERROR_OK;

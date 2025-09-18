@@ -72,6 +72,8 @@
 #define SYSTEM_DCCISW			0x43F2
 #define SYSTEM_DCCSW			0x43D2
 #define SYSTEM_ICIVAU			0x5BA9
+/* Attention, SYSTEM_ICIALLU requires rt=0x1f */
+#define SYSTEM_ICIALLU			0x03A8
 #define SYSTEM_DCCVAU			0x5BD9
 #define SYSTEM_DCCIVAC			0x5BF1
 
@@ -207,6 +209,7 @@ enum armv8_opcode {
 	ARMV8_OPC_LDRH_IP,
 	ARMV8_OPC_LDRW_IP,
 	ARMV8_OPC_LDRD_IP,
+	ARMV8_OPC_ICIALLU,
 	ARMV8_OPC_NUM,
 };
 

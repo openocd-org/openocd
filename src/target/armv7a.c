@@ -101,14 +101,14 @@ static int armv7a_read_midr(struct target *target)
 	armv7a->arch = (midr >> 16) & 0xf;
 	armv7a->variant = (midr >> 20) & 0xf;
 	armv7a->implementor = (midr >> 24) & 0xff;
-	LOG_DEBUG("%s rev %" PRIx32 ", partnum %" PRIx32 ", arch %" PRIx32
-			 ", variant %" PRIx32 ", implementor %" PRIx32,
-		 target->cmd_name,
-		 armv7a->rev,
-		 armv7a->partnum,
-		 armv7a->arch,
-		 armv7a->variant,
-		 armv7a->implementor);
+	LOG_TARGET_DEBUG(target,
+		"rev %" PRIx32 ", partnum %" PRIx32 ", arch %" PRIx32
+		", variant %" PRIx32 ", implementor %" PRIx32,
+		armv7a->rev,
+		armv7a->partnum,
+		armv7a->arch,
+		armv7a->variant,
+		armv7a->implementor);
 
 done:
 	dpm->finish(dpm);

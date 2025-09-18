@@ -166,54 +166,6 @@ struct transport *get_current_transport(void)
  * Infrastructure for Tcl interface to transports.
  */
 
-/**
- * Makes and stores a copy of a set of transports passed as
- * parameters to a command.
- *
- * @param vector where the resulting copy is stored, as an argv-style
- *	NULL-terminated vector.
- */
-COMMAND_HELPER(transport_list_parse, char ***vector)
-{
-	char **argv;
-	unsigned int n = CMD_ARGC;
-	unsigned int j = 0;
-
-	*vector = NULL;
-
-	if (n < 1)
-		return ERROR_COMMAND_SYNTAX_ERROR;
-
-	/* our return vector must be NULL terminated */
-	argv = calloc(n + 1, sizeof(char *));
-	if (!argv)
-		return ERROR_FAIL;
-
-	for (unsigned int i = 0; i < n; i++) {
-		struct transport *t;
-
-		for (t = transport_list; t; t = t->next) {
-			if (strcmp(t->name, CMD_ARGV[i]) != 0)
-				continue;
-			argv[j++] = strdup(CMD_ARGV[i]);
-			break;
-		}
-		if (!t) {
-			LOG_ERROR("no such transport '%s'", CMD_ARGV[i]);
-			goto fail;
-		}
-	}
-
-	*vector = argv;
-	return ERROR_OK;
-
-fail:
-	for (unsigned int i = 0; i < n; i++)
-		free(argv[i]);
-	free(argv);
-	return ERROR_FAIL;
-}
-
 COMMAND_HANDLER(handle_transport_init)
 {
 	LOG_DEBUG("%s", __func__);

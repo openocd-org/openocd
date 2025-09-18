@@ -300,8 +300,8 @@ static int avr32_ap7k_deassert_reset(struct target *target)
 	return ERROR_OK;
 }
 
-static int avr32_ap7k_resume(struct target *target, int current,
-	target_addr_t address, int handle_breakpoints, int debug_execution)
+static int avr32_ap7k_resume(struct target *target, bool current,
+	target_addr_t address, bool handle_breakpoints, bool debug_execution)
 {
 	struct avr32_ap7k_common *ap7k = target_to_ap7k(target);
 	struct breakpoint *breakpoint = NULL;
@@ -321,7 +321,7 @@ static int avr32_ap7k_resume(struct target *target, int current,
 		*/
 	}
 
-	/* current = 1: continue on current pc, otherwise continue at <address> */
+	/* current = true: continue on current pc, otherwise continue at <address> */
 	if (!current) {
 #if 0
 		if (retval != ERROR_OK)
@@ -382,8 +382,8 @@ static int avr32_ap7k_resume(struct target *target, int current,
 	return ERROR_OK;
 }
 
-static int avr32_ap7k_step(struct target *target, int current,
-	target_addr_t address, int handle_breakpoints)
+static int avr32_ap7k_step(struct target *target, bool current,
+	target_addr_t address, bool handle_breakpoints)
 {
 	LOG_ERROR("%s: implement me", __func__);
 

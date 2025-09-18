@@ -239,6 +239,7 @@ struct riscv_info {
 	/* Used by riscv_openocd_poll(). */
 	bool halted_needs_event_callback;
 	enum target_event halted_callback_event;
+	unsigned int halt_group_repoll_count;
 
 	enum riscv_isrmasking_mode isrmask_mode;
 
@@ -449,9 +450,9 @@ int riscv_halt(struct target *target);
 
 int riscv_openocd_step(
 	struct target *target,
-	int current,
+	bool current,
 	target_addr_t address,
-	int handle_breakpoints
+	bool handle_breakpoints
 );
 
 struct riscv_private_config *alloc_default_riscv_private_config(void);
@@ -464,8 +465,8 @@ int riscv_init_target(struct command_context *cmd_ctx,
 		struct target *target);
 void riscv_deinit_target(struct target *target);
 int riscv_examine(struct target *target);
-int riscv_target_resume(struct target *target, int current,
-		target_addr_t address, int handle_breakpoints, int debug_execution);
+int riscv_target_resume(struct target *target, bool current,
+		target_addr_t address, bool handle_breakpoints, bool debug_execution);
 int riscv_assert_reset(struct target *target);;
 int riscv_deassert_reset(struct target *target);
 int riscv_read_memory(struct target *target, target_addr_t address,
@@ -520,10 +521,10 @@ int riscv_get_hart_state(struct target *target, enum riscv_hart_state *state);
 
 /* These helper functions let the generic program interface get target-specific
  * information. */
-size_t riscv_progbuf_size(struct target *target);
+unsigned int riscv_progbuf_size(struct target *target);
 
 riscv_insn_t riscv_read_progbuf(struct target *target, int index);
-int riscv_write_progbuf(struct target *target, int index, riscv_insn_t insn);
+int riscv_write_progbuf(struct target *target, unsigned int index, riscv_insn_t insn);
 int riscv_execute_progbuf(struct target *target, uint32_t *cmderr);
 
 void riscv_fill_dm_nop(const struct target *target, uint8_t *buf);
@@ -548,8 +549,5 @@ void riscv_add_bscan_tunneled_scan(struct jtag_tap *tap, const struct scan_field
 
 int riscv_read_by_any_size(struct target *target, target_addr_t address, uint32_t size, uint8_t *buffer);
 int riscv_write_by_any_size(struct target *target, target_addr_t address, uint32_t size, uint8_t *buffer);
-
-int riscv_interrupts_disable(struct target *target, uint64_t ie_mask, uint64_t *old_mstatus);
-int riscv_interrupts_restore(struct target *target, uint64_t old_mstatus);
 
 #endif /* OPENOCD_TARGET_RISCV_RISCV_H */

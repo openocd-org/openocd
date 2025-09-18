@@ -122,6 +122,7 @@ Jim_GetWide
 Jim_IncrRefCount
 Jim_InitStaticExtensions
 Jim_Interp
+Jim_Length
 Jim_ListAppendElement
 Jim_ListGetIndex
 Jim_ListLength

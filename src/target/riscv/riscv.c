@@ -37,6 +37,8 @@
 
 #define RISCV_TRIGGER_HIT_NOT_FOUND ((int64_t)-1)
 
+#define RISCV_HALT_GROUP_REPOLL_LIMIT 5
+
 static uint8_t ir_dtmcontrol[4] = {DTMCONTROL};
 struct scan_field select_dtmcontrol = {
 	.in_value = NULL,
@@ -292,6 +294,10 @@ static enum riscv_halt_reason riscv_halt_reason(struct target *target);
 static void riscv_info_init(struct target *target, struct riscv_info *r);
 static int riscv_step_rtos_hart(struct target *target);
 
+static const riscv_reg_t mstatus_ie_mask = MSTATUS_MIE | MSTATUS_HIE | MSTATUS_SIE | MSTATUS_UIE;
+static int riscv_interrupts_disable(struct target *target, riscv_reg_t *old_mstatus);
+static int riscv_interrupts_restore(struct target *target, riscv_reg_t old_mstatus);
+
 static void riscv_sample_buf_maybe_add_timestamp(struct target *target, bool before)
 {
 	RISCV_INFO(r);
@@ -532,9 +538,12 @@ static int jim_configure_ebreak(struct riscv_private_config *config, struct jim_
 		/* Here a common "ebreak" action is processed, e.g:
 		 * "riscv.cpu configure -ebreak halt"
 		 */
+		int res = jim_getopt_obj(goi, NULL);
+		if (res != JIM_OK)
+			return res;
 		for (int ebreak_ctl_i = 0; ebreak_ctl_i < N_RISCV_MODE; ++ebreak_ctl_i)
 			config->dcsr_ebreak_fields[ebreak_ctl_i] = common_mode_nvp->value;
-		return jim_getopt_obj(goi, NULL);
+		return JIM_OK;
 	}
 
 	/* Here a "ebreak" action for a specific execution mode is processed, e.g:
@@ -2428,8 +2437,8 @@ int riscv_hit_watchpoint(struct target *target, struct watchpoint **hit_watchpoi
 	return ERROR_FAIL;
 }
 
-static int oldriscv_step(struct target *target, int current, uint32_t address,
-		int handle_breakpoints)
+static int oldriscv_step(struct target *target, bool current, uint32_t address,
+		bool handle_breakpoints)
 {
 	struct target_type *tt = get_target_type(target);
 	if (!tt)
@@ -2437,14 +2446,15 @@ static int oldriscv_step(struct target *target, int current, uint32_t address,
 	return tt->step(target, current, address, handle_breakpoints);
 }
 
-static int riscv_openocd_step_impl(struct target *target, int current,
-		target_addr_t address, int handle_breakpoints, int handle_callbacks);
+static int riscv_openocd_step_impl(struct target *target, bool current,
+		target_addr_t address, bool handle_breakpoints, int handle_callbacks);
 
-static int old_or_new_riscv_step_impl(struct target *target, int current,
-		target_addr_t address, int handle_breakpoints, int handle_callbacks)
+static int old_or_new_riscv_step_impl(struct target *target, bool current,
+		target_addr_t address, bool handle_breakpoints, int handle_callbacks)
 {
 	RISCV_INFO(r);
-	LOG_TARGET_DEBUG(target, "handle_breakpoints=%d", handle_breakpoints);
+	LOG_TARGET_DEBUG(target, "handle_breakpoints=%s",
+			handle_breakpoints ? "true" : "false");
 	if (!r->get_hart_state)
 		return oldriscv_step(target, current, address, handle_breakpoints);
 	else
@@ -2452,8 +2462,8 @@ static int old_or_new_riscv_step_impl(struct target *target, int current,
 			handle_callbacks);
 }
 
-static int old_or_new_riscv_step(struct target *target, int current,
-		target_addr_t address, int handle_breakpoints)
+static int old_or_new_riscv_step(struct target *target, bool current,
+		target_addr_t address, bool handle_breakpoints)
 {
 	return old_or_new_riscv_step_impl(target, current, address,
 		handle_breakpoints, true /* handle callbacks*/);
@@ -2817,8 +2827,8 @@ static int enable_watchpoints(struct target *target, bool *wp_is_set)
 /**
  * Get everything ready to resume.
  */
-static int resume_prep(struct target *target, int current,
-		target_addr_t address, int handle_breakpoints, int debug_execution)
+static int resume_prep(struct target *target, bool current,
+		target_addr_t address, bool handle_breakpoints, bool debug_execution)
 {
 	assert(target->state == TARGET_HALTED);
 	RISCV_INFO(r);
@@ -2859,8 +2869,8 @@ static int resume_prep(struct target *target, int current,
  * Resume all the harts that have been prepped, as close to instantaneous as
  * possible.
  */
-static int resume_go(struct target *target, int current,
-		target_addr_t address, int handle_breakpoints, int debug_execution)
+static int resume_go(struct target *target, bool current,
+		target_addr_t address, bool handle_breakpoints, bool debug_execution)
 {
 	assert(target->state == TARGET_HALTED);
 	RISCV_INFO(r);
@@ -2878,7 +2888,7 @@ static int resume_go(struct target *target, int current,
 	return result;
 }
 
-static int resume_finish(struct target *target, int debug_execution)
+static int resume_finish(struct target *target, bool debug_execution)
 {
 	assert(target->state == TARGET_HALTED);
 	if (riscv_reg_cache_any_dirty(target, LOG_LVL_ERROR)) {
@@ -2903,10 +2913,10 @@ static int resume_finish(struct target *target, int debug_execution)
  */
 static int riscv_resume(
 		struct target *target,
-		int current,
+		bool current,
 		target_addr_t address,
-		int handle_breakpoints,
-		int debug_execution,
+		bool handle_breakpoints,
+		bool debug_execution,
 		bool single_hart)
 {
 	int result = ERROR_OK;
@@ -2967,8 +2977,8 @@ static int riscv_resume(
 	return result;
 }
 
-int riscv_target_resume(struct target *target, int current,
-		target_addr_t address, int handle_breakpoints, int debug_execution)
+int riscv_target_resume(struct target *target, bool current,
+		target_addr_t address, bool handle_breakpoints, bool debug_execution)
 {
 	if (target->state != TARGET_HALTED) {
 		LOG_TARGET_ERROR(target, "Not halted.");
@@ -3643,14 +3653,13 @@ int riscv_run_algorithm(struct target *target, int num_mem_params,
 	}
 
 	/* Disable Interrupts before attempting to run the algorithm. */
-	uint64_t current_mstatus;
-	uint64_t irq_disabled_mask = MSTATUS_MIE | MSTATUS_HIE | MSTATUS_SIE | MSTATUS_UIE;
-	if (riscv_interrupts_disable(target, irq_disabled_mask, &current_mstatus) != ERROR_OK)
+	riscv_reg_t current_mstatus;
+	if (riscv_interrupts_disable(target, &current_mstatus) != ERROR_OK)
 		return ERROR_FAIL;
 
 	/* Run algorithm */
-	LOG_TARGET_DEBUG(target, "Resume at 0x%" TARGET_PRIxADDR, entry_point);
-	if (riscv_resume(target, 0, entry_point, 0, 1, true) != ERROR_OK)
+	LOG_TARGET_DEBUG(target, "resume at 0x%" TARGET_PRIxADDR, entry_point);
+	if (riscv_resume(target, false, entry_point, false, true, true) != ERROR_OK)
 		return ERROR_FAIL;
 
 	int64_t start = timeval_ms();
@@ -4025,6 +4034,8 @@ int riscv_openocd_poll(struct target *target)
 {
 	LOG_TARGET_DEBUG(target, "Polling all harts.");
 
+	struct riscv_info *i = riscv_info(target);
+
 	struct list_head *targets;
 
 	OOCD_LIST_HEAD(single_target_list);
@@ -4046,6 +4057,7 @@ int riscv_openocd_poll(struct target *target)
 	unsigned int should_resume = 0;
 	unsigned int halted = 0;
 	unsigned int running = 0;
+	unsigned int cause_groups = 0;
 	struct target_list *entry;
 	foreach_smp_target(entry, targets) {
 		struct target *t = entry->target;
@@ -4093,6 +4105,59 @@ int riscv_openocd_poll(struct target *target)
 		LOG_TARGET_DEBUG(target, "resume all");
 		riscv_resume(target, true, 0, 0, 0, false);
 	} else if (halted && running) {
+		LOG_TARGET_DEBUG(target, "SMP group is in inconsistent state: %u halted, %u running",
+					halted, running);
+
+		/* The SMP group is in an inconsistent state - some harts in the group have halted
+		 * whereas others are running. The reasons for that (and corresponding
+		 * OpenOCD actions) could be:
+		 * 1) The targets are in the process of halting due to halt groups
+		 *    but not all of them halted --> poll again so that the halt reason of every
+		 *    hart can be accurately determined (e.g. semihosting).
+		 * 2) The targets do not support halt groups --> OpenOCD must halt
+		 *    the remaining harts by a standard halt request.
+		 * 3) The hart states got out of sync for some other unknown reason (problem?). -->
+		 *    Same as previous - try to halt the harts by a standard halt request
+		 *    to get them back in sync. */
+
+		/* Detect if the harts are just in the process of halting due to a halt group */
+		foreach_smp_target(entry, targets)
+		{
+			struct target *t = entry->target;
+			if (t->state == TARGET_HALTED) {
+				riscv_reg_t dcsr;
+				if (riscv_reg_get(t, &dcsr, GDB_REGNO_DCSR) != ERROR_OK)
+					return ERROR_FAIL;
+				if (get_field(dcsr, CSR_DCSR_CAUSE) == CSR_DCSR_CAUSE_GROUP)
+					cause_groups++;
+				else
+					/* This hart has halted due to something else than a halt group.
+					 * Don't continue checking the rest - exit early. */
+					break;
+			}
+		}
+		/* Condition: halted == cause_groups
+		 *
+		 * This condition indicates a paradox where:
+		 * - All currently halted harts show CSR_DCSR_CAUSE_GROUP
+		 * - However, no individual hart can be identified as the actual initiator of the halt condition
+		 *
+		 * Poll again so that the true halt reason can be discovered (e.g. CSR_DCSR_CAUSE_EBREAK) */
+		if (halted == cause_groups) {
+			LOG_TARGET_DEBUG(target, "The harts appear to just be in the process of halting due to a halt group.");
+			if (i->halt_group_repoll_count < RISCV_HALT_GROUP_REPOLL_LIMIT) {
+				/* Wait a little, then re-poll. */
+				i->halt_group_repoll_count++;
+				alive_sleep(10);
+				LOG_TARGET_DEBUG(target, "Re-polling the state of the SMP group.");
+				return riscv_openocd_poll(target);
+			}
+			/* We have already re-polled multiple times but the halt group is still inconsistent. */
+			LOG_TARGET_DEBUG(target, "Re-polled the SMP group %d times it is still not in a consistent state.",
+					RISCV_HALT_GROUP_REPOLL_LIMIT);
+		}
+
+		/* Halting the whole SMP group to bring it in sync. */
 		LOG_TARGET_DEBUG(target, "halt all; halted=%d",
 			halted);
 		riscv_halt(target);
@@ -4109,6 +4174,8 @@ int riscv_openocd_poll(struct target *target)
 			}
 		}
 	}
+
+	i->halt_group_repoll_count = 0;
 
 	/* Call tick() for every hart. What happens in tick() is opaque to this
 	 * layer. The reason it's outside the previous loop is that at this point
@@ -4133,8 +4200,8 @@ int riscv_openocd_poll(struct target *target)
 	return ERROR_OK;
 }
 
-static int riscv_openocd_step_impl(struct target *target, int current,
-	target_addr_t address, int handle_breakpoints, int handle_callbacks)
+static int riscv_openocd_step_impl(struct target *target, bool current,
+	target_addr_t address, bool handle_breakpoints, int handle_callbacks)
 {
 	LOG_TARGET_DEBUG(target, "stepping hart");
 
@@ -4167,14 +4234,12 @@ static int riscv_openocd_step_impl(struct target *target, int current,
 	}
 
 	bool success = true;
-	uint64_t current_mstatus;
+	riscv_reg_t current_mstatus;
 	RISCV_INFO(info);
 
 	if (info->isrmask_mode == RISCV_ISRMASK_STEPONLY) {
 		/* Disable Interrupts before stepping. */
-		uint64_t irq_disabled_mask = MSTATUS_MIE | MSTATUS_HIE | MSTATUS_SIE | MSTATUS_UIE;
-		if (riscv_interrupts_disable(target, irq_disabled_mask,
-				&current_mstatus) != ERROR_OK) {
+		if (riscv_interrupts_disable(target, &current_mstatus) != ERROR_OK) {
 			success = false;
 			LOG_TARGET_ERROR(target, "Unable to disable interrupts.");
 			goto _exit;
@@ -4228,8 +4293,8 @@ _exit:
 	return success ? ERROR_OK : ERROR_FAIL;
 }
 
-int riscv_openocd_step(struct target *target, int current,
-	target_addr_t address, int handle_breakpoints)
+int riscv_openocd_step(struct target *target, bool current,
+	target_addr_t address, bool handle_breakpoints)
 {
 	return riscv_openocd_step_impl(target, current, address, handle_breakpoints,
 		true /* handle_callbacks */);
@@ -5961,50 +6026,35 @@ static int riscv_resume_go_all_harts(struct target *target)
 	return ERROR_OK;
 }
 
-int riscv_interrupts_disable(struct target *target, uint64_t irq_mask, uint64_t *old_mstatus)
+static int riscv_interrupts_disable(struct target *target, riscv_reg_t *old_mstatus)
 {
 	LOG_TARGET_DEBUG(target, "Disabling interrupts.");
-	struct reg *reg_mstatus = register_get_by_name(target->reg_cache,
-			"mstatus", true);
-	if (!reg_mstatus) {
-		LOG_TARGET_ERROR(target, "Couldn't find mstatus!");
-		return ERROR_FAIL;
+	riscv_reg_t current_mstatus;
+	int ret = riscv_reg_get(target, &current_mstatus, GDB_REGNO_MSTATUS);
+	if (ret != ERROR_OK) {
+		LOG_TARGET_ERROR(target, "Failed to read mstatus!");
+		return ret;
 	}
-
-	int retval = reg_mstatus->type->get(reg_mstatus);
-	if (retval != ERROR_OK)
-		return retval;
-
-	RISCV_INFO(info);
-	uint8_t mstatus_bytes[8] = { 0 };
-	uint64_t current_mstatus = buf_get_u64(reg_mstatus->value, 0, reg_mstatus->size);
-	buf_set_u64(mstatus_bytes, 0, info->xlen, set_field(current_mstatus,
-				irq_mask, 0));
-
-	retval = reg_mstatus->type->set(reg_mstatus, mstatus_bytes);
-	if (retval != ERROR_OK)
-		return retval;
-
 	if (old_mstatus)
 		*old_mstatus = current_mstatus;
-
-	return ERROR_OK;
+	return riscv_reg_set(target, GDB_REGNO_MSTATUS, current_mstatus & ~mstatus_ie_mask);
 }
 
-int riscv_interrupts_restore(struct target *target, uint64_t old_mstatus)
+static int riscv_interrupts_restore(struct target *target, riscv_reg_t old_mstatus)
 {
 	LOG_TARGET_DEBUG(target, "Restoring interrupts.");
-	struct reg *reg_mstatus = register_get_by_name(target->reg_cache,
-			"mstatus", true);
-	if (!reg_mstatus) {
-		LOG_TARGET_ERROR(target, "Couldn't find mstatus!");
-		return ERROR_FAIL;
+	riscv_reg_t current_mstatus;
+	int ret = riscv_reg_get(target, &current_mstatus, GDB_REGNO_MSTATUS);
+	if (ret != ERROR_OK) {
+		LOG_TARGET_ERROR(target, "Failed to read mstatus!");
+		return ret;
 	}
-
-	RISCV_INFO(info);
-	uint8_t mstatus_bytes[8];
-	buf_set_u64(mstatus_bytes, 0, info->xlen, old_mstatus);
-	return reg_mstatus->type->set(reg_mstatus, mstatus_bytes);
+	if ((current_mstatus & mstatus_ie_mask) != 0) {
+		LOG_TARGET_WARNING(target, "Interrupt enable bits in mstatus changed during single-step.");
+		LOG_TARGET_WARNING(target, "OpenOCD might have affected the program when it restored the interrupt bits after single-step.");
+		LOG_TARGET_WARNING(target, "Hint: Use 'riscv set_maskisr off' to prevent OpenOCD from touching mstatus during single-step.");
+	}
+	return riscv_reg_set(target, GDB_REGNO_MSTATUS, current_mstatus | (old_mstatus & mstatus_ie_mask));
 }
 
 static int riscv_step_rtos_hart(struct target *target)
@@ -6068,17 +6118,16 @@ static enum riscv_halt_reason riscv_halt_reason(struct target *target)
 	return r->halt_reason(target);
 }
 
-size_t riscv_progbuf_size(struct target *target)
+unsigned int riscv_progbuf_size(struct target *target)
 {
 	RISCV_INFO(r);
 	return r->get_progbufsize(target);
 }
 
-int riscv_write_progbuf(struct target *target, int index, riscv_insn_t insn)
+int riscv_write_progbuf(struct target *target, unsigned int index, riscv_insn_t insn)
 {
 	RISCV_INFO(r);
-	r->write_progbuf(target, index, insn);
-	return ERROR_OK;
+	return r->write_progbuf(target, index, insn);
 }
 
 riscv_insn_t riscv_read_progbuf(struct target *target, int index)

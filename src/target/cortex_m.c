@@ -1359,7 +1359,7 @@ static int cortex_m_restore_one(struct target *target, bool current,
 		r->valid = true;
 	}
 
-	/* current = 1: continue on current pc, otherwise continue at <address> */
+	/* current = true: continue on current pc, otherwise continue at <address> */
 	r = armv7m->arm.pc;
 	if (!current) {
 		buf_set_u32(r->value, 0, 32, *address);
@@ -1444,7 +1444,7 @@ static int cortex_m_restore_smp(struct target *target, bool handle_breakpoints)
 			continue;
 
 		int retval = cortex_m_restore_one(curr, true, &address,
-										handle_breakpoints, false);
+			handle_breakpoints, false);
 		if (retval != ERROR_OK)
 			return retval;
 
@@ -1457,22 +1457,23 @@ static int cortex_m_restore_smp(struct target *target, bool handle_breakpoints)
 	return ERROR_OK;
 }
 
-static int cortex_m_resume(struct target *target, int current,
-						   target_addr_t address, int handle_breakpoints, int debug_execution)
+static int cortex_m_resume(struct target *target, bool current,
+	   target_addr_t address, bool handle_breakpoints, bool debug_execution)
 {
-	int retval = cortex_m_restore_one(target, !!current, &address, !!handle_breakpoints, !!debug_execution);
+	int retval = cortex_m_restore_one(target, current, &address,
+		handle_breakpoints, debug_execution);
 	if (retval != ERROR_OK) {
 		LOG_TARGET_ERROR(target, "context restore failed, aborting resume");
 		return retval;
 	}
 
 	if (target->smp && !debug_execution) {
-		retval = cortex_m_restore_smp(target, !!handle_breakpoints);
+		retval = cortex_m_restore_smp(target, handle_breakpoints);
 		if (retval != ERROR_OK)
 			LOG_TARGET_WARNING(target, "resume of a SMP target failed, trying to resume current one");
 	}
 
-	cortex_m_restart_one(target, !!debug_execution);
+	cortex_m_restart_one(target, debug_execution);
 	if (retval != ERROR_OK) {
 		LOG_TARGET_ERROR(target, "resume failed");
 		return retval;
@@ -1485,8 +1486,8 @@ static int cortex_m_resume(struct target *target, int current,
 }
 
 /* int irqstepcount = 0; */
-static int cortex_m_step(struct target *target, int current,
-	target_addr_t address, int handle_breakpoints)
+static int cortex_m_step(struct target *target, bool current,
+		target_addr_t address, bool handle_breakpoints)
 {
 	struct cortex_m_common *cortex_m = target_to_cm(target);
 	struct armv7m_common *armv7m = &cortex_m->armv7m;
@@ -1506,7 +1507,7 @@ static int cortex_m_step(struct target *target, int current,
 	if (target->smp && target->gdb_service)
 		target->gdb_service->target = target;
 
-	/* current = 1: continue on current pc, otherwise continue at <address> */
+	/* current = true: continue on current pc, otherwise continue at <address> */
 	if (!current) {
 		buf_set_u32(pc->value, 0, 32, address);
 		pc->dirty = true;
@@ -2316,7 +2317,7 @@ int cortex_m_profiling(struct target *target, uint32_t *samples,
 	/* Make sure the target is running */
 	target_poll(target);
 	if (target->state == TARGET_HALTED)
-		retval = target_resume(target, 1, 0, 0, 0);
+		retval = target_resume(target, true, 0, false, false);
 
 	if (retval != ERROR_OK) {
 		LOG_TARGET_ERROR(target, "Error while resuming target");

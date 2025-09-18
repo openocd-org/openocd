@@ -817,8 +817,8 @@ static int cortex_a_halt(struct target *target)
 	return ERROR_OK;
 }
 
-static int cortex_a_internal_restore(struct target *target, int current,
-	target_addr_t *address, int handle_breakpoints, int debug_execution)
+static int cortex_a_internal_restore(struct target *target, bool current,
+	target_addr_t *address, bool handle_breakpoints, bool debug_execution)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct arm *arm = &armv7a->arm;
@@ -849,7 +849,7 @@ static int cortex_a_internal_restore(struct target *target, int current,
 	}
 #endif
 
-	/* current = 1: continue on current pc, otherwise continue at <address> */
+	/* current = true: continue on current pc, otherwise continue at <address> */
 	resume_pc = buf_get_u32(arm->pc->value, 0, 32);
 	if (!current)
 		resume_pc = *address;
@@ -965,7 +965,7 @@ static int cortex_a_internal_restart(struct target *target)
 	return ERROR_OK;
 }
 
-static int cortex_a_restore_smp(struct target *target, int handle_breakpoints)
+static int cortex_a_restore_smp(struct target *target, bool handle_breakpoints)
 {
 	int retval = 0;
 	struct target_list *head;
@@ -976,16 +976,16 @@ static int cortex_a_restore_smp(struct target *target, int handle_breakpoints)
 		if ((curr != target) && (curr->state != TARGET_RUNNING)
 			&& target_was_examined(curr)) {
 			/*  resume current address , not in step mode */
-			retval += cortex_a_internal_restore(curr, 1, &address,
-					handle_breakpoints, 0);
+			retval += cortex_a_internal_restore(curr, true, &address,
+					handle_breakpoints, false);
 			retval += cortex_a_internal_restart(curr);
 		}
 	}
 	return retval;
 }
 
-static int cortex_a_resume(struct target *target, int current,
-	target_addr_t address, int handle_breakpoints, int debug_execution)
+static int cortex_a_resume(struct target *target, bool current,
+	target_addr_t address, bool handle_breakpoints, bool debug_execution)
 {
 	int retval = 0;
 	/* dummy resume for smp toggle in order to reduce gdb impact  */
@@ -997,7 +997,8 @@ static int cortex_a_resume(struct target *target, int current,
 		target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
 		return 0;
 	}
-	cortex_a_internal_restore(target, current, &address, handle_breakpoints, debug_execution);
+	cortex_a_internal_restore(target, current, &address, handle_breakpoints,
+		debug_execution);
 	if (target->smp) {
 		target->gdb_service->core[0] = -1;
 		retval = cortex_a_restore_smp(target, handle_breakpoints);
@@ -1168,8 +1169,8 @@ static int cortex_a_set_dscr_bits(struct target *target,
 	return retval;
 }
 
-static int cortex_a_step(struct target *target, int current, target_addr_t address,
-	int handle_breakpoints)
+static int cortex_a_step(struct target *target, bool current, target_addr_t address,
+	bool handle_breakpoints)
 {
 	struct cortex_a_common *cortex_a = target_to_cortex_a(target);
 	struct armv7a_common *armv7a = target_to_armv7a(target);
@@ -1184,7 +1185,7 @@ static int cortex_a_step(struct target *target, int current, target_addr_t addre
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	/* current = 1: continue on current pc, otherwise continue at <address> */
+	/* current = true: continue on current pc, otherwise continue at <address> */
 	r = arm->pc;
 	if (!current)
 		buf_set_u32(r->value, 0, 32, address);
@@ -1195,7 +1196,7 @@ static int cortex_a_step(struct target *target, int current, target_addr_t addre
 	 * But since Cortex-A uses breakpoint for single step,
 	 * we MUST handle breakpoints.
 	 */
-	handle_breakpoints = 1;
+	handle_breakpoints = true;
 	if (handle_breakpoints) {
 		breakpoint = breakpoint_find(target, address);
 		if (breakpoint)
@@ -1222,7 +1223,7 @@ static int cortex_a_step(struct target *target, int current, target_addr_t addre
 
 	target->debug_reason = DBG_REASON_SINGLESTEP;
 
-	retval = cortex_a_resume(target, 1, address, 0, 0);
+	retval = cortex_a_resume(target, true, address, false, false);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -2922,14 +2923,12 @@ static int cortex_a_examine_first(struct target *target)
 	armv7a->debug_ap->memaccess_tck = 80;
 
 	if (!target->dbgbase_set) {
-		LOG_DEBUG("%s's dbgbase is not set, trying to detect using the ROM table",
-			  target->cmd_name);
+		LOG_TARGET_DEBUG(target, "dbgbase is not set, trying to detect using the ROM table");
 		/* Lookup Processor DAP */
 		retval = dap_lookup_cs_component(armv7a->debug_ap, ARM_CS_C9_DEVTYPE_CORE_DEBUG,
 				&armv7a->debug_base, target->coreid);
 		if (retval != ERROR_OK) {
-			LOG_ERROR("Can't detect %s's dbgbase from the ROM table; you need to specify it explicitly.",
-				  target->cmd_name);
+			LOG_TARGET_ERROR(target, "Can't detect dbgbase from the ROM table; you need to specify it explicitly");
 			return retval;
 		}
 		LOG_DEBUG("Detected core %" PRId32 " dbgbase: " TARGET_ADDR_FMT,
@@ -2938,8 +2937,9 @@ static int cortex_a_examine_first(struct target *target)
 		armv7a->debug_base = target->dbgbase;
 
 	if ((armv7a->debug_base & (1UL<<31)) == 0)
-		LOG_WARNING("Debug base address for target %s has bit 31 set to 0. Access to debug registers will likely fail!\n"
-			    "Please fix the target configuration.", target_name(target));
+		LOG_TARGET_WARNING(target,
+			"Debug base address has bit 31 set to 0. Access to debug registers will likely fail!\n"
+			"Please fix the target configuration");
 
 	retval = mem_ap_read_atomic_u32(armv7a->debug_ap,
 			armv7a->debug_base + CPUDBG_DIDR, &didr);

@@ -30,9 +30,9 @@ static int mips_m4k_set_breakpoint(struct target *target,
 		struct breakpoint *breakpoint);
 static int mips_m4k_unset_breakpoint(struct target *target,
 		struct breakpoint *breakpoint);
-static int mips_m4k_internal_restore(struct target *target, int current,
-		target_addr_t address, int handle_breakpoints,
-		int debug_execution);
+static int mips_m4k_internal_restore(struct target *target, bool current,
+		target_addr_t address, bool handle_breakpoints,
+		bool debug_execution);
 static int mips_m4k_halt(struct target *target);
 static int mips_m4k_bulk_write_memory(struct target *target, target_addr_t address,
 		uint32_t count, const uint8_t *buffer);
@@ -398,7 +398,8 @@ static int mips_m4k_single_step_core(struct target *target)
 	return ERROR_OK;
 }
 
-static int mips_m4k_restore_smp(struct target *target, uint32_t address, int handle_breakpoints)
+static int mips_m4k_restore_smp(struct target *target, uint32_t address,
+		bool handle_breakpoints)
 {
 	int retval = ERROR_OK;
 	struct target_list *head;
@@ -408,8 +409,8 @@ static int mips_m4k_restore_smp(struct target *target, uint32_t address, int han
 		struct target *curr = head->target;
 		if ((curr != target) && (curr->state != TARGET_RUNNING)) {
 			/*  resume current address , not in step mode */
-			ret = mips_m4k_internal_restore(curr, 1, address,
-						   handle_breakpoints, 0);
+			ret = mips_m4k_internal_restore(curr, true, address,
+						   handle_breakpoints, false);
 
 			if (ret != ERROR_OK) {
 				LOG_TARGET_ERROR(curr, "failed to resume at address: 0x%" PRIx32,
@@ -421,8 +422,9 @@ static int mips_m4k_restore_smp(struct target *target, uint32_t address, int han
 	return retval;
 }
 
-static int mips_m4k_internal_restore(struct target *target, int current,
-		target_addr_t address, int handle_breakpoints, int debug_execution)
+static int mips_m4k_internal_restore(struct target *target, bool current,
+		target_addr_t address, bool handle_breakpoints,
+		bool debug_execution)
 {
 	struct mips32_common *mips32 = target_to_mips32(target);
 	struct mips_ejtag *ejtag_info = &mips32->ejtag_info;
@@ -440,7 +442,7 @@ static int mips_m4k_internal_restore(struct target *target, int current,
 		mips_m4k_enable_watchpoints(target);
 	}
 
-	/* current = 1: continue on current pc, otherwise continue at <address> */
+	/* current = true: continue on current pc, otherwise continue at <address> */
 	if (!current) {
 		mips_m4k_isa_filter(mips32->isa_imp, &address);
 		buf_set_u32(mips32->core_cache->reg_list[MIPS32_REGLIST_C0_PC_INDEX].value, 0, 32, address);
@@ -448,7 +450,7 @@ static int mips_m4k_internal_restore(struct target *target, int current,
 		mips32->core_cache->reg_list[MIPS32_REGLIST_C0_PC_INDEX].valid = true;
 	}
 
-	if ((mips32->isa_imp > 1) &&  debug_execution)	/* if more than one isa supported */
+	if (mips32->isa_imp > 1 && debug_execution)	/* if more than one isa supported */
 		buf_set_u32(mips32->core_cache->reg_list[MIPS32_REGLIST_C0_PC_INDEX].value, 0, 1, mips32->isa_mode);
 
 	if (!current)
@@ -494,8 +496,8 @@ static int mips_m4k_internal_restore(struct target *target, int current,
 	return ERROR_OK;
 }
 
-static int mips_m4k_resume(struct target *target, int current,
-		target_addr_t address, int handle_breakpoints, int debug_execution)
+static int mips_m4k_resume(struct target *target, bool current,
+		target_addr_t address, bool handle_breakpoints, bool debug_execution)
 {
 	int retval = ERROR_OK;
 
@@ -521,8 +523,8 @@ static int mips_m4k_resume(struct target *target, int current,
 	return retval;
 }
 
-static int mips_m4k_step(struct target *target, int current,
-		target_addr_t address, int handle_breakpoints)
+static int mips_m4k_step(struct target *target, bool current,
+		target_addr_t address, bool handle_breakpoints)
 {
 	/* get pointers to arch-specific information */
 	struct mips32_common *mips32 = target_to_mips32(target);
@@ -534,7 +536,7 @@ static int mips_m4k_step(struct target *target, int current,
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	/* current = 1: continue on current pc, otherwise continue at <address> */
+	/* current = true: continue on current pc, otherwise continue at <address> */
 	if (!current) {
 		mips_m4k_isa_filter(mips32->isa_imp, &address);
 		buf_set_u32(mips32->core_cache->reg_list[MIPS32_REGLIST_C0_PC_INDEX].value, 0, 32, address);

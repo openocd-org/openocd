@@ -22,10 +22,10 @@ static int avr_init_target(struct command_context *cmd_ctx, struct target *targe
 static int avr_arch_state(struct target *target);
 static int avr_poll(struct target *target);
 static int avr_halt(struct target *target);
-static int avr_resume(struct target *target, int current, target_addr_t address,
-		int handle_breakpoints, int debug_execution);
-static int avr_step(struct target *target, int current, target_addr_t address,
-		int handle_breakpoints);
+static int avr_resume(struct target *target, bool current, target_addr_t address,
+		bool handle_breakpoints, bool debug_execution);
+static int avr_step(struct target *target, bool current, target_addr_t address,
+		bool handle_breakpoints);
 
 static int avr_assert_reset(struct target *target);
 static int avr_deassert_reset(struct target *target);
@@ -105,14 +105,15 @@ static int avr_halt(struct target *target)
 	return ERROR_OK;
 }
 
-static int avr_resume(struct target *target, int current, target_addr_t address,
-		int handle_breakpoints, int debug_execution)
+static int avr_resume(struct target *target, bool current, target_addr_t address,
+		bool handle_breakpoints, bool debug_execution)
 {
 	LOG_DEBUG("%s", __func__);
 	return ERROR_OK;
 }
 
-static int avr_step(struct target *target, int current, target_addr_t address, int handle_breakpoints)
+static int avr_step(struct target *target, bool current, target_addr_t address,
+		bool handle_breakpoints)
 {
 	LOG_DEBUG("%s", __func__);
 	return ERROR_OK;

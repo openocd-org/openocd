@@ -2415,12 +2415,6 @@ target.
 List the debug adapter drivers that have been built into
 the running copy of OpenOCD.
 @end deffn
-@deffn {Config Command} {adapter transports} transport_name+
-Specifies the transports supported by this debug adapter.
-The adapter driver builds-in similar knowledge; use this only
-when external configuration (such as jumpering) changes what
-the hardware can support.
-@end deffn
 
 @anchor{adapter gpio}
 @deffn {Config Command} {adapter gpio [ @
@@ -3844,13 +3838,6 @@ DAPs are created.
 Not all adapters and adapter drivers support SWD multi-drop. Only the following
 adapter drivers are SWD multi-drop capable:
 cmsis_dap (use an adapter with CMSIS-DAP version 2.0), ftdi, all bitbang based.
-
-@subsection SPI Transport
-@cindex SPI
-@cindex Serial Peripheral Interface
-The Serial Peripheral Interface (SPI) is a general purpose transport
-which uses four wire signaling. Some processors use it as part of a
-solution for flash programming.
 
 @anchor{swimtransport}
 @subsection SWIM Transport
@@ -7429,6 +7416,76 @@ flash write_image bsl.bin 0x202000
 msp432 bsl lock
 @end example
 @end deffn
+@end deffn
+
+@deffn {Flash Driver} {mspm0}
+
+All Arm Cortex-M0+ MSPM0 microcontroller versions from Texas Instruments
+include internal flash. The mspm0 flash driver automatically recognizes the
+specific version's flash parameters and autoconfigures itself. The main
+program flash starts at address 0x0. Non-main flash starts at 0x41c00000.
+If present on the device, the optional region called "Data" starts at
+0x41d00000.
+
+@b{Warning}:
+
+@itemize @bullet
+@item @b{Reset while MCU operation:} When erasing all of MAIN memory, if the
+MCU is still executing from MAIN memory do not reset the device as it could
+cause a double hard-fault due to the missing interrupt vector table at the
+start of memory. To recover from such scenario reset or power-cycle the MCU.
+
+@item @b{No explicit protection support:} MSPM0 flash controller auto-protect
+themselves after every flash operation. As a result of this, OpenOCD does not
+explicitly provide any protection function and automatically un-protects
+required sections as flash operations are requested.
+@end itemize
+
+@b{Examples}:
+
+@itemize @bullet
+
+@item @b{Flash bank description:}
+@example
+flash bank $_FLASHNAME mspm0 0 0 0 0 $_TARGETNAME
+@end example
+
+@item @b{To erase and program the MAIN region:}
+@example
+halt
+flash erase_sector 0 0 last
+flash write_image MAIN.bin 0x0
+mspm0_board_reset
+@end example
+
+@item @b{To erase and program the NONMAIN region:}
+@example
+halt
+flash erase_sector 1 0 last
+flash write_image NONMAIN.bin 0x41C00000
+mspm0_board_reset
+@end example
+
+@end itemize
+
+@deffn {TCL proc} {mspm0_board_reset}
+Performs an nRST toggle on the device.
+@end deffn
+
+@deffn {TCL proc} {mspm0_mass_erase}
+Sends the mass erase command to the SEC-AP mailbox and then performs
+an nRST toggle. Once the command has been fully processed by the ROM,
+all MAIN memory will be erased. NOTE: This command is not supported
+on MSPM0C* family of devices.
+@end deffn
+
+@deffn {TCL proc} {mspm0_factory_reset}
+Sends the factory reset command to the SEC-AP mailbox and then performs
+an nRST toggle. Once the command has been fully processed by the ROM,
+all MAIN memory will be erased and NONMAIN will be reset to its default
+values.
+@end deffn
+
 @end deffn
 
 @deffn {Flash Driver} {niietcm4}
