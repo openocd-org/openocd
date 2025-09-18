@@ -53,8 +53,6 @@ struct rtos_reg {
 	uint32_t number;
 	uint32_t size;
 	uint8_t value[16];
-	/* WARNING: rtos_get_gdb_reg() relies on the fact that value is the last
-	 * element of this struct. Any new fields should be added *before* value. */
 };
 
 struct rtos_type {

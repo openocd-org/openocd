@@ -503,6 +503,26 @@ int rtos_thread_packet(struct connection *connection, char const *packet, int pa
 	return GDB_THREAD_PACKET_NOT_CONSUMED;
 }
 
+static int rtos_put_gdb_reg(struct connection *connection,
+		uint8_t *reg_value, unsigned int reg_size)
+{
+	unsigned int reg_bytes = DIV_ROUND_UP(reg_size, 8);
+	unsigned int num_bytes = reg_bytes * 2 + 1; // for '\0'
+
+	char *hex = malloc(num_bytes);
+	if (!hex) {
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
+	}
+
+	size_t len = hexify(hex, reg_value, reg_bytes, num_bytes);
+
+	gdb_put_packet(connection, hex, len);
+	free(hex);
+
+	return ERROR_OK;
+}
+
 static int rtos_put_gdb_reg_list(struct connection *connection,
 		struct rtos_reg *reg_list, int num_regs)
 {
@@ -555,32 +575,19 @@ int rtos_get_gdb_reg(struct connection *connection, int reg_num)
 				return retval;
 			}
 
-			/* Create a reg_list with one register that can
-			 * accommodate the full size of the one we just got the
-			 * value for. To do that we allocate extra space off the
-			 * end of the struct, relying on the fact that
-			 * rtos_reg.value is the last element in the struct. */
-			reg_list = calloc(1, sizeof(*reg_list) + DIV_ROUND_UP(reg_size, 8));
-			if (!reg_list) {
-				free(reg_value);
-				LOG_ERROR("Failed to allocated reg_list for %d-byte register.",
-					  reg_size);
-				return ERROR_FAIL;
-			}
-			reg_list[0].number = reg_num;
-			reg_list[0].size = reg_size;
-			memcpy(&reg_list[0].value, reg_value, DIV_ROUND_UP(reg_size, 8));
+			retval = rtos_put_gdb_reg(connection, reg_value, reg_size);
+
 			free(reg_value);
-			num_regs = 1;
-		} else {
-			retval = target->rtos->type->get_thread_reg_list(target->rtos,
+			return retval;
+		}
+
+		retval = target->rtos->type->get_thread_reg_list(target->rtos,
 					current_threadid,
 					&reg_list,
 					&num_regs);
-			if (retval != ERROR_OK) {
-				LOG_ERROR("RTOS: failed to get register list");
-				return retval;
-			}
+		if (retval != ERROR_OK) {
+			LOG_ERROR("RTOS: failed to get register list");
+			return retval;
 		}
 
 		for (int i = 0; i < num_regs; ++i) {
