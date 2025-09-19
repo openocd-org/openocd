@@ -26,6 +26,10 @@ namespace eval testing_helpers {
 		}
 	}
 
+	proc check_generic_error script {
+		tailcall check_for_error 1 {} $script
+	}
+
 	proc check_invalid_arg script {
 		tailcall check_for_error -603 {} $script
 	}
@@ -50,8 +54,8 @@ namespace eval testing_helpers {
 			Was expecting '$pattern'."
 	}
 
-	namespace export check_invalid_arg check_syntax_err check_overflow_err \
-		check_underflow_err check_matches
+	namespace export check_generic_error check_invalid_arg check_syntax_err \
+		check_overflow_err check_underflow_err check_matches
 }
 
 namespace eval jtag_dummy_testing {
@@ -67,7 +71,6 @@ namespace eval jtag_dummy_testing {
 		for {set i 0} {$i < $ntaps} {incr i} {
 			jtag newtap "tap$i" tap -irlen 1
 		}
-		init
 		dummy update_context
 		dummy_set_default_handlers
 
