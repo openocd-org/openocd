@@ -2041,6 +2041,15 @@ int cortex_m_unset_breakpoint(struct target *target, struct breakpoint *breakpoi
 
 int cortex_m_add_breakpoint(struct target *target, struct breakpoint *breakpoint)
 {
+	/*
+	 * GDB packets Z0 and z0 provide the 'kind' parameter that is target-specific
+	 * and typically indicates the size in bytes of the breakpoint.
+	 * But for 32-bit Thumb mode (Thumb-2) breakpoint, GDB provides 'kind = 3' to
+	 * be used to derive the length information. See:
+	 * https://sourceware.org/gdb/current/onlinedocs/gdb.html/ARM-Breakpoint-Kinds.html
+	 * Since there isn't a four byte Thumb-2 breakpoint instruction, always use
+	 * the two bytes breakpoint instruction.
+	 */
 	if (breakpoint->length == 3) {
 		LOG_TARGET_DEBUG(target, "Using a two byte breakpoint for 32bit Thumb-2 request");
 		breakpoint->length = 2;
