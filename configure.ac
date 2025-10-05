@@ -69,6 +69,7 @@ AC_CHECK_HEADERS([netdb.h])
 AC_CHECK_HEADERS([poll.h])
 AC_CHECK_HEADERS([strings.h])
 AC_CHECK_HEADERS([sys/ioctl.h])
+AC_CHECK_HEADERS([sys/mman.h])
 AC_CHECK_HEADERS([sys/param.h])
 AC_CHECK_HEADERS([sys/select.h])
 AC_CHECK_HEADERS([sys/stat.h])
@@ -632,12 +633,14 @@ PROCESS_ADAPTERS([HIDAPI_USB1_ADAPTERS], ["x$use_hidapi" = "xyes" -a "x$use_libu
 PROCESS_ADAPTERS([LIBFTDI_ADAPTERS], ["x$use_libftdi" = "xyes"], [libftdi])
 PROCESS_ADAPTERS([LIBFTDI_USB1_ADAPTERS], ["x$use_libftdi" = "xyes" -a "x$use_libusb1" = "xyes"], [libftdi and libusb-1.x])
 PROCESS_ADAPTERS([LIBGPIOD_ADAPTERS], ["x$use_libgpiod" = "xyes"], [Linux libgpiod])
-PROCESS_ADAPTERS([DMEM_ADAPTER], ["x$is_linux" = "xyes"], [Linux /dev/mem])
+PROCESS_ADAPTERS([DMEM_ADAPTER], ["x$is_linux" = "xyes" -a "x$ac_cv_header_sys_mman_h" = "xyes"], [Linux /dev/mem])
 PROCESS_ADAPTERS([SYSFSGPIO_ADAPTER], ["x$is_linux" = "xyes"], [Linux sysfs])
 PROCESS_ADAPTERS([REMOTE_BITBANG_ADAPTER], [true], [unused])
 PROCESS_ADAPTERS([CMSIS_DAP_TCP_ADAPTER], [true], [unused])
 PROCESS_ADAPTERS([LIBJAYLINK_ADAPTERS], ["x$use_internal_libjaylink" = "xyes" -o "x$use_libjaylink" = "xyes"], [libjaylink-0.2])
-PROCESS_ADAPTERS([XVC_ADAPTERS], ["x$is_linux" = "xyes" -a "x$ac_cv_header_linux_pci_h" = "xyes"], [Linux build])
+PROCESS_ADAPTERS([XVC_ADAPTERS],
+        ["x$is_linux" = "xyes" -a "x$ac_cv_header_linux_pci_h" = "xyes" -a "x$ac_cv_header_sys_mman_h" = "xyes"],
+        [Linux build with headers linux/pci.h and sys/mman.h])
 PROCESS_ADAPTERS([SERIAL_PORT_ADAPTERS], ["x$can_build_buspirate" = "xyes"],
                                          [internal error: validation should happen beforehand])
 PROCESS_ADAPTERS([PARALLEL_PORT_ADAPTER], [true], [unused])
@@ -649,8 +652,8 @@ PROCESS_ADAPTERS([JTAG_VPI_ADAPTER], [true], [unused])
 PROCESS_ADAPTERS([RSHIM_ADAPTER], ["x$can_build_rshim" = "xyes"],
                                   [internal error: validation should happen beforehand])
 PROCESS_ADAPTERS([AMTJTAGACCEL_ADAPTER], [true], [unused])
-PROCESS_ADAPTERS([HOST_ARM_BITBANG_ADAPTERS], [true], [unused])
-PROCESS_ADAPTERS([HOST_ARM_OR_AARCH64_BITBANG_ADAPTERS], [true], [unused])
+PROCESS_ADAPTERS([HOST_ARM_BITBANG_ADAPTERS], ["x$ac_cv_header_sys_mman_h" = "xyes"], [header sys/mman.h])
+PROCESS_ADAPTERS([HOST_ARM_OR_AARCH64_BITBANG_ADAPTERS], ["x$ac_cv_header_sys_mman_h" = "xyes"], [header sys/mman.h])
 PROCESS_ADAPTERS([DUMMY_ADAPTER], [true], [unused])
 
 AS_IF([test "x$enable_linuxgpiod" != "xno"], [
