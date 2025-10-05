@@ -301,15 +301,15 @@ AS_IF([test "x$debug_malloc" = "xyes" -a "x$have_glibc" = "xyes"], [
 ])
 
 m4_define([AC_ARG_ADAPTERS], [
-  m4_foreach([adapterTuple], [$1],
-	[AC_ARG_ENABLE(ADAPTER_OPT([adapterTuple]),
-		AS_HELP_STRING([--enable-ADAPTER_OPT([adapterTuple])[[[=yes/no/auto]]]],
-			[Enable building support for the ]ADAPTER_DESC([adapterTuple])[ (default is $2)]),
+  m4_foreach([adapter_driver], [$1],
+	[AC_ARG_ENABLE(ADAPTER_OPT([adapter_driver]),
+		AS_HELP_STRING([--enable-ADAPTER_OPT([adapter_driver])[[[=yes/no/auto]]]],
+			[Enable building support for the ]ADAPTER_DESC([adapter_driver])[ (default is $2)]),
 		[case "${enableval}" in
 			yes|no|auto) ;;
-			*) AC_MSG_ERROR([Option --enable-ADAPTER_OPT([adapterTuple]) has invalid value "${enableval}".]) ;;
+			*) AC_MSG_ERROR([Option --enable-ADAPTER_OPT([adapter_driver]) has invalid value "${enableval}".]) ;;
 			esac],
-		[ADAPTER_VAR([adapterTuple])=$2])
+		[ADAPTER_VAR([adapter_driver])=$2])
   ])
 ])
 
@@ -607,23 +607,24 @@ PKG_CHECK_MODULES([LIBJAYLINK], [libjaylink >= 0.2],
 # Arg $3: What prerequisites are missing, to be shown in an error message
 #         if an adapter was requested but cannot be enabled.
 m4_define([PROCESS_ADAPTERS], [
-  m4_foreach([adapterTuple], [$1], [
+  m4_foreach([adapter_driver], [$1], [
 	AS_IF([test $2], [
-		AS_IF([test "x$ADAPTER_VAR([adapterTuple])" != "xno"], [
-			AC_DEFINE([BUILD_]ADAPTER_SYM([adapterTuple]), [1],
-			          [1 if you want the ]ADAPTER_DESC([adapterTuple]).)
+		AS_IF([test "x$ADAPTER_VAR([adapter_driver])" != "xno"], [
+			AC_DEFINE([BUILD_]ADAPTER_SYM([adapter_driver]), [1],
+			          [1 if you want the ]ADAPTER_DESC([adapter_driver]).)
 		], [
-			AC_DEFINE([BUILD_]ADAPTER_SYM([adapterTuple]), [0],
-			          [0 if you do not want the ]ADAPTER_DESC([adapterTuple]).)
+			AC_DEFINE([BUILD_]ADAPTER_SYM([adapter_driver]), [0],
+			          [0 if you do not want the ]ADAPTER_DESC([adapter_driver]).)
 		])
 	], [
-		AS_IF([test "x$ADAPTER_VAR([adapterTuple])" = "xyes"], [
-			AC_MSG_ERROR([$3 is required for [adapterTuple] "ADAPTER_DESC([adapterTuple])".])
+		AS_IF([test "x$ADAPTER_VAR([adapter_driver])" = "xyes"], [
+			AC_MSG_ERROR([$3 is required for [adapter_driver] "ADAPTER_DESC([adapter_driver])".])
 		])
-		ADAPTER_VAR([adapterTuple])=no
-		AC_DEFINE([BUILD_]ADAPTER_SYM([adapterTuple]), [0], [0 if you do not want the ]ADAPTER_DESC([adapterTuple]).)
+		ADAPTER_VAR([adapter_driver])=no
+		AC_DEFINE([BUILD_]ADAPTER_SYM([adapter_driver]), [0],
+                  [0 if you do not want the ]ADAPTER_DESC([adapter_driver]).)
 	])
-	AM_CONDITIONAL(ADAPTER_SYM([adapterTuple]), [test "x$ADAPTER_VAR([adapterTuple])" != "xno"])
+	AM_CONDITIONAL(ADAPTER_SYM([adapter_driver]), [test "x$ADAPTER_VAR([adapter_driver])" != "xno"])
   ])
 ])
 
@@ -838,7 +839,7 @@ echo
 echo
 echo OpenOCD configuration summary
 echo ---------------------------------------------------
-m4_foreach([adapterTuple], [USB1_ADAPTERS,
+m4_foreach([adapter_driver], [USB1_ADAPTERS,
 	HIDAPI_ADAPTERS, HIDAPI_USB1_ADAPTERS, LIBFTDI_ADAPTERS,
 	LIBFTDI_USB1_ADAPTERS,
 	LIBGPIOD_ADAPTERS,
@@ -860,8 +861,8 @@ m4_foreach([adapterTuple], [USB1_ADAPTERS,
 	DUMMY_ADAPTER,
 	OPTIONAL_LIBRARIES,
 	COVERAGE],
-	[s=m4_format(["%-49s"], ADAPTER_DESC([adapterTuple]))
-	AS_CASE([$ADAPTER_VAR([adapterTuple])],
+	[s=m4_format(["%-49s"], ADAPTER_DESC([adapter_driver]))
+	AS_CASE([$ADAPTER_VAR([adapter_driver])],
 		[auto], [
 			echo "$s"yes '(auto)'
 		],
@@ -873,8 +874,8 @@ m4_foreach([adapterTuple], [USB1_ADAPTERS,
 		],
 		[
 			AC_MSG_ERROR(m4_normalize([
-				Error in [adapterTuple] "ADAPTER_ARG([adapterTuple])": Variable "ADAPTER_VAR([adapterTuple])"
-				has invalid value "$ADAPTER_VAR([adapterTuple])".]))
+				Error in [adapter_driver] "ADAPTER_ARG([adapter_driver])": Variable "ADAPTER_VAR([adapter_driver])"
+				has invalid value "$ADAPTER_VAR([adapter_driver])".]))
 	])
 ])
 echo
