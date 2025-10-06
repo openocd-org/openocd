@@ -161,7 +161,8 @@ static int remove_connection(struct service *service, struct connection *connect
 	/* find connection */
 	while ((c = *p)) {
 		if (c->fd == connection->fd) {
-			service->connection_closed(c);
+			if (service->connection_closed)
+				service->connection_closed(c);
 			if (service->type == CONNECTION_TCP)
 				close_socket(c->fd);
 			else if (service->type == CONNECTION_PIPE) {
@@ -190,8 +191,13 @@ static int remove_connection(struct service *service, struct connection *connect
 
 static void free_service(struct service *c)
 {
+	if (c->type == CONNECTION_PIPE && c->fd != -1)
+		close(c->fd);
+	if (c->service_dtor)
+		c->service_dtor(c);
 	free(c->name);
 	free(c->port);
+	free(c->priv);
 	free(c);
 }
 
@@ -214,6 +220,7 @@ int add_service(const struct service_driver *driver, const char *port,
 	c->input = driver->input_handler;
 	c->connection_closed = driver->connection_closed_handler;
 	c->keep_client_alive = driver->keep_client_alive_handler;
+	c->service_dtor = driver->service_dtor_handler;
 	c->priv = priv;
 	c->next = NULL;
 	long portnumber;
@@ -390,18 +397,7 @@ static int remove_services(void)
 		struct service *next = c->next;
 
 		remove_connections(c);
-
-		free(c->name);
-
-		if (c->type == CONNECTION_PIPE) {
-			if (c->fd != -1)
-				close(c->fd);
-		}
-		free(c->port);
-		free(c->priv);
-		/* delete service */
-		free(c);
-
+		free_service(c);
 		/* remember the last service for unlinking */
 		c = next;
 	}

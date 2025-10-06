@@ -1800,13 +1800,12 @@ static int semihosting_service_input_handler(struct connection *connection)
 	return ERROR_OK;
 }
 
-static int semihosting_service_connection_closed_handler(struct connection *connection)
+static void semihosting_service_dtor_handler(struct service *service)
 {
-	struct semihosting_tcp_service *service = connection->service->priv;
-	if (service)
-		free(service->name);
+	struct semihosting_tcp_service *service_priv = service->priv;
+	if (service_priv)
+		free(service_priv->name);
 
-	return ERROR_OK;
 }
 
 static void semihosting_tcp_close_cnx(struct semihosting *semihosting)
@@ -1825,7 +1824,8 @@ static const struct service_driver semihosting_service_driver = {
 	.new_connection_during_keep_alive_handler = NULL,
 	.new_connection_handler = semihosting_service_new_connection_handler,
 	.input_handler = semihosting_service_input_handler,
-	.connection_closed_handler = semihosting_service_connection_closed_handler,
+	.service_dtor_handler = semihosting_service_dtor_handler,
+	.connection_closed_handler = NULL,
 	.keep_client_alive_handler = NULL,
 };
 

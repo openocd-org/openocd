@@ -58,6 +58,7 @@ struct service_driver {
 	int (*new_connection_handler)(struct connection *connection);
 	/** callback to handle incoming data */
 	int (*input_handler)(struct connection *connection);
+	void (*service_dtor_handler)(struct service *service);
 	/** callback to tear down the connection */
 	int (*connection_closed_handler)(struct connection *connection);
 	/** called periodically to send keep-alive messages on the connection */
@@ -76,6 +77,7 @@ struct service {
 	int (*new_connection_during_keep_alive)(struct connection *connection);
 	int (*new_connection)(struct connection *connection);
 	int (*input)(struct connection *connection);
+	void (*service_dtor)(struct service *service);
 	int (*connection_closed)(struct connection *connection);
 	void (*keep_client_alive)(struct connection *connection);
 	void *priv;
