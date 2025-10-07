@@ -5838,6 +5838,9 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 			"When off, users need to take care of memory coherency themselves, for example by using "
 			"`riscv exec_progbuf` to execute fence or CMO instructions."
 	},
+	{
+		.chain = smp_command_handlers
+	},
 	COMMAND_REGISTRATION_DONE
 };
 
@@ -5869,9 +5872,6 @@ static const struct command_registration riscv_command_handlers[] = {
 		.help = "ARM Command Group",
 		.usage = "",
 		.chain = semihosting_common_handlers
-	},
-	{
-		.chain = smp_command_handlers
 	},
 	COMMAND_REGISTRATION_DONE
 };
