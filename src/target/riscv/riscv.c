@@ -4210,9 +4210,15 @@ static int riscv_openocd_step_impl(struct target *target, bool current,
 
 	RISCV_INFO(r);
 	bool *wps_to_enable = calloc(r->trigger_count, sizeof(*wps_to_enable));
+	if (!wps_to_enable) {
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
+	}
+
 	if (disable_watchpoints(target, wps_to_enable) != ERROR_OK) {
 		LOG_TARGET_ERROR(target, "Failed to temporarily disable "
 				"watchpoints before single-step.");
+		free(wps_to_enable);
 		return ERROR_FAIL;
 	}
 
@@ -4256,6 +4262,8 @@ _exit:
 		LOG_TARGET_ERROR(target, "Failed to re-enable watchpoints "
 				"after single-step.");
 	}
+
+	free(wps_to_enable);
 
 	if (breakpoint && (riscv_add_breakpoint(target, breakpoint) != ERROR_OK)) {
 		success = false;
