@@ -1669,14 +1669,23 @@ static int remove_trigger(struct target *target, int unique_id)
 
 	bool done = false;
 	for (unsigned int i = 0; i < r->trigger_count; i++) {
-		if (r->trigger_unique_id[i] == unique_id) {
-			riscv_reg_set(target, GDB_REGNO_TSELECT, i);
-			riscv_reg_set(target, GDB_REGNO_TDATA1, 0);
-			r->trigger_unique_id[i] = -1;
-			LOG_TARGET_DEBUG(target, "Stop using resource %d for bp %d",
-				i, unique_id);
-			done = true;
+		if (r->trigger_unique_id[i] != unique_id)
+			continue;
+		done = false;
+		result = riscv_reg_set(target, GDB_REGNO_TSELECT, i);
+		if (result == ERROR_OK)
+			result = riscv_reg_set(target, GDB_REGNO_TDATA1, 0);
+		if (result != ERROR_OK) {
+			LOG_TARGET_ERROR(target,
+					"Could not free resource %u for bp %d. "
+					"Target is in a potentially unrecoverable state!",
+					i, unique_id);
+			return ERROR_FAIL;
 		}
+		r->trigger_unique_id[i] = -1;
+		LOG_TARGET_DEBUG(target, "Stop using resource %u for bp %d",
+				i, unique_id);
+		done = true;
 	}
 	if (!done) {
 		LOG_TARGET_ERROR(target,
@@ -1684,7 +1693,14 @@ static int remove_trigger(struct target *target, int unique_id)
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
-	riscv_reg_set(target, GDB_REGNO_TSELECT, tselect);
+	result = riscv_reg_set(target, GDB_REGNO_TSELECT, tselect);
+	if (result != ERROR_OK) {
+		LOG_TARGET_ERROR(target,
+				"Could not restore tselect after bp %d removal. "
+				"Target is in a potentially unrecoverable state!",
+				unique_id);
+		return ERROR_FAIL;
+	}
 
 	return ERROR_OK;
 }
@@ -1713,6 +1729,8 @@ int riscv_remove_breakpoint(struct target *target,
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
+	/* FIXME: we should clear this flag even if remove_trigger fails for cases
+	 * when all HW resources from Trigger Module were de-allocated */
 	breakpoint->is_set = false;
 
 	return ERROR_OK;
@@ -1763,6 +1781,8 @@ int riscv_remove_watchpoint(struct target *target,
 	int result = remove_trigger(target, trigger.unique_id);
 	if (result != ERROR_OK)
 		return result;
+	/* FIXME: we should clear this flag even if remove_trigger fails for cases
+	 * when all HW resources from Trigger Module were de-allocated */
 	watchpoint->is_set = false;
 
 	return ERROR_OK;
