@@ -4473,7 +4473,6 @@ static int parse_reg_ranges_impl(struct list_head *ranges, char *args,
 			}
 		} else {
 			LOG_ERROR("Invalid argument '%s'.", arg);
-			free(args);
 			return ERROR_COMMAND_SYNTAX_ERROR;
 		}
 
