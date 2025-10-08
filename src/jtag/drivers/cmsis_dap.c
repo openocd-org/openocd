@@ -37,7 +37,8 @@
 #include <target/cortex_m.h>
 
 #include "cmsis_dap.h"
-#include "libusb_helper.h"
+
+#define TIMEOUT_MS	6000
 
 /* Create a dummy backend for 'backend' command if real one does not build */
 #if BUILD_CMSIS_DAP_USB == 0
@@ -363,12 +364,12 @@ static int cmsis_dap_xfer(struct cmsis_dap *dap, int txlen)
 	}
 
 	uint8_t current_cmd = dap->command[0];
-	int retval = dap->backend->write(dap, txlen, LIBUSB_TIMEOUT_MS);
+	int retval = dap->backend->write(dap, txlen, TIMEOUT_MS);
 	if (retval < 0)
 		return retval;
 
 	/* get reply */
-	retval = dap->backend->read(dap, LIBUSB_TIMEOUT_MS, CMSIS_DAP_BLOCKING);
+	retval = dap->backend->read(dap, TIMEOUT_MS, CMSIS_DAP_BLOCKING);
 	if (retval < 0)
 		return retval;
 
@@ -872,7 +873,7 @@ static void cmsis_dap_swd_write_from_queue(struct cmsis_dap *dap)
 		}
 	}
 
-	int retval = dap->backend->write(dap, idx, LIBUSB_TIMEOUT_MS);
+	int retval = dap->backend->write(dap, idx, TIMEOUT_MS);
 	if (retval < 0) {
 		queued_retval = retval;
 		goto skip;
@@ -913,7 +914,7 @@ static void cmsis_dap_swd_read_process(struct cmsis_dap *dap, enum cmsis_dap_blo
 	}
 
 	/* get reply */
-	retval = dap->backend->read(dap, LIBUSB_TIMEOUT_MS, blocking);
+	retval = dap->backend->read(dap, TIMEOUT_MS, blocking);
 	bool timeout = (retval == ERROR_TIMEOUT_REACHED || retval == 0);
 	if (timeout && blocking == CMSIS_DAP_NON_BLOCKING)
 		return;
