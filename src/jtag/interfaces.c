@@ -62,7 +62,7 @@ struct adapter_driver *adapter_drivers[] = {
 #if BUILD_CH347 == 1
 		&ch347_adapter_driver,
 #endif
-#if BUILD_CMSIS_DAP_USB == 1 || BUILD_CMSIS_DAP_HID == 1
+#if BUILD_CMSIS_DAP_USB == 1 || BUILD_CMSIS_DAP_HID == 1 || BUILD_CMSIS_DAP_TCP == 1
 		&cmsis_dap_adapter_driver,
 #endif
 #if BUILD_DMEM == 1
