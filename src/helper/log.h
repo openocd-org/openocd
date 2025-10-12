@@ -15,6 +15,7 @@
 #define OPENOCD_HELPER_LOG_H
 
 #include <helper/command.h>
+#include <helper/compiler.h>
 
 /* To achieve C99 printf compatibility in MinGW, gnu_printf should be
  * used for __attribute__((format( ... ))), with GCC v4.4 or later
@@ -86,9 +87,9 @@ int log_add_callback(log_callback_fn fn, void *priv);
 int log_remove_callback(log_callback_fn fn, void *priv);
 
 char *alloc_vprintf(const char *fmt, va_list ap)
-	__attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 1, 0)));
+	__attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 1, 0))) __nonnull((1));
 char *alloc_printf(const char *fmt, ...)
-	__attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 1, 2)));
+	__attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 1, 2))) __nonnull((1));
 
 const char *find_nonprint_char(const char *buf, unsigned int buf_len);
 

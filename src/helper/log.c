@@ -354,6 +354,8 @@ char *alloc_vprintf(const char *fmt, va_list ap)
 	int len;
 	char *string;
 
+	assert(fmt);
+
 	/* determine the length of the buffer needed */
 	va_copy(ap_copy, ap);
 	len = vsnprintf(NULL, 0, fmt, ap_copy);
