@@ -111,7 +111,7 @@ int armv7m_identify_cache(struct target *target)
 		clidr, cache->loc);
 
 	// retrieve all available inner caches
-	uint32_t d_u_ccsidr[8], i_ccsidr[8];
+	uint32_t d_u_ccsidr[8] = {0}, i_ccsidr[8] = {0};
 	for (unsigned int cl = 0; cl < cache->loc; cl++) {
 		unsigned int ctype = FIELD_GET(CLIDR_CTYPE_MASK(cl + 1), clidr);
 
