@@ -10,6 +10,7 @@
 #endif
 
 #include <helper/binarybuffer.h>
+#include <helper/bits.h>
 #include <helper/command.h>
 #include <helper/fileio.h>
 #include <helper/log.h>
@@ -17,8 +18,6 @@
 #include <target/target.h>
 
 #include "esirisc.h"
-
-#define BIT_MASK(x)			((1 << (x)) - 1)
 
 /* Control Fields */
 #define CONTROL_ST			(1<<0)					/* Start */
@@ -483,7 +482,7 @@ static int esirisc_trace_analyze_simple(struct command_invocation *cmd, uint8_t 
 	struct target *target = get_current_target(cmd->ctx);
 	struct esirisc_common *esirisc = target_to_esirisc(target);
 	struct esirisc_trace *trace_info = &esirisc->trace_info;
-	const uint32_t end_of_trace = BIT_MASK(trace_info->pc_bits) << 1;
+	const uint32_t end_of_trace = GENMASK(trace_info->pc_bits, 1);
 	const uint32_t num_bits = size * 8;
 	int retval;
 
