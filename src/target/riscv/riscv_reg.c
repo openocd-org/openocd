@@ -586,7 +586,11 @@ static int resize_reg(const struct target *target, uint32_t regno, bool exist,
 	reg->size = size;
 	reg->exist = exist;
 	if (reg->exist) {
+#ifdef ENABLE_UB_WORKAROUNDS
+		reg->value = calloc(1, DIV_ROUND_UP(reg->size, 8));
+#else
 		reg->value = malloc(DIV_ROUND_UP(reg->size, 8));
+#endif
 		if (!reg->value) {
 			LOG_ERROR("Failed to allocate memory.");
 			return ERROR_FAIL;
