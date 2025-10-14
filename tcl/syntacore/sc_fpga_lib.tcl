@@ -191,6 +191,13 @@ namespace eval _SC_INTERNALS {
         }
     }
 
+    proc sc_lib_require_disabled_background_poll {} {
+      set poll_output [poll]
+      if {[string first "background polling: off" $poll_output] == -1} {
+        return -code error "background polling must be disabled"
+      }
+    }
+
     variable FPGA_LIB_BUSY_DURATION 3
 
     proc sc_lib_riscv_csr_impl {csr_num value write xlen} {
@@ -366,6 +373,7 @@ proc sc_fpga_set_busy_duration {value} {
 }
 
 proc sc_fpga_riscv_csr_read {csr_num {xlen 64}} {
+    _SC_INTERNALS::sc_lib_require_disabled_background_poll
     _SC_INTERNALS::sc_lib_require_halted_and_check_csr $csr_num
 
     _SC_INTERNALS::sc_lib_riscv_csr_impl $csr_num 0 0 $xlen
@@ -381,6 +389,7 @@ proc sc_fpga_riscv_csr_read {csr_num {xlen 64}} {
 }
 
 proc sc_fpga_riscv_csr_write {csr_num value {xlen 64}} {
+    _SC_INTERNALS::sc_lib_require_disabled_background_poll
     _SC_INTERNALS::sc_lib_require_halted_and_check_csr $csr_num
 
     set DATA_0 0x04
