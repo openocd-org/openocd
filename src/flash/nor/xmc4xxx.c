@@ -231,12 +231,12 @@ struct xmc4xxx_command_seq {
 };
 
 /* Sector capacities.  See section 8 of xmc4x00_rm */
-static const unsigned int sector_capacity_8[8] = {
-	16, 16, 16, 16, 16, 16, 16, 128
+static const unsigned int sector_capacity_9[9] = {
+	16, 16, 16, 16, 16, 16, 16, 16, 128
 };
 
-static const unsigned int sector_capacity_9[9] = {
-	16, 16, 16, 16, 16, 16, 16, 128, 256
+static const unsigned int sector_capacity_10[10] = {
+	16, 16, 16, 16, 16, 16, 16, 16, 128, 256
 };
 
 static const unsigned int sector_capacity_12[12] = {
@@ -272,11 +272,11 @@ static int xmc4xxx_load_bank_layout(struct flash_bank *bank)
 	LOG_DEBUG("%u sectors", bank->num_sectors);
 
 	switch (bank->num_sectors) {
-	case 8:
-		capacity = sector_capacity_8;
-		break;
 	case 9:
 		capacity = sector_capacity_9;
+		break;
+	case 10:
+		capacity = sector_capacity_10;
 		break;
 	case 12:
 		capacity = sector_capacity_12;
@@ -361,11 +361,11 @@ static int xmc4xxx_probe(struct flash_bank *bank)
 	 * we understand the type of controller we're dealing with */
 	switch (flash_id) {
 	case FLASH_ID_XMC4100_4200:
-		bank->num_sectors = 8;
+		bank->num_sectors = 9;
 		LOG_DEBUG("XMC4xxx: XMC4100/4200 detected.");
 		break;
 	case FLASH_ID_XMC4400:
-		bank->num_sectors = 9;
+		bank->num_sectors = 10;
 		LOG_DEBUG("XMC4xxx: XMC4400 detected.");
 		break;
 	case FLASH_ID_XMC4500:
