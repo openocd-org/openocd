@@ -2323,7 +2323,7 @@ static int prep_for_vector_access(struct target *target,
 	if (target->state != TARGET_HALTED) {
 		LOG_TARGET_ERROR(target,
 				"Unable to access vector register: target not halted");
-		return ERROR_FAIL;
+		return ERROR_TARGET_NOT_HALTED;
 	}
 	if (prep_for_register_access(target, orig_mstatus, GDB_REGNO_VL) != ERROR_OK)
 		return ERROR_FAIL;
@@ -5476,7 +5476,7 @@ static int riscv013_step_or_resume_current_hart(struct target *target,
 {
 	if (target->state != TARGET_HALTED) {
 		LOG_TARGET_ERROR(target, "Hart is not halted!");
-		return ERROR_FAIL;
+		return ERROR_TARGET_NOT_HALTED;
 	}
 
 	LOG_TARGET_DEBUG(target, "resuming (operation=%s)",
