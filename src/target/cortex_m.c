@@ -2887,7 +2887,7 @@ int cortex_m_examine(struct target *target)
 		if (armv7m->fp_feature != FPV5_MVE_F && armv7m->fp_feature != FPV5_MVE_I)
 			armv7m->arm.core_cache->reg_list[ARMV8M_VPR].exist = false;
 
-		if (cortex_m->core_info->arch == ARM_ARCH_V8M) {
+		if (armv7m->arm.arch == ARM_ARCH_V8M) {
 			bool cm_has_tz = cortex_m_has_tz(target);
 			bool main_ext = cortex_m_main_extension(target, cpuid);
 			bool baseline = !main_ext;
@@ -2908,6 +2908,11 @@ int cortex_m_examine(struct target *target)
 					armv7m->arm.core_cache->reg_list[ARMV8M_PSPLIM_NS].exist = false;
 					armv7m->arm.core_cache->reg_list[ARMV8M_MSPLIM].exist = false;
 					armv7m->arm.core_cache->reg_list[ARMV8M_PSPLIM].exist = false;
+
+					armv7m->arm.core_cache->reg_list[ARMV8M_BASEPRI_S].exist = false;
+					armv7m->arm.core_cache->reg_list[ARMV8M_FAULTMASK_S].exist = false;
+					armv7m->arm.core_cache->reg_list[ARMV8M_BASEPRI_NS].exist = false;
+					armv7m->arm.core_cache->reg_list[ARMV8M_FAULTMASK_NS].exist = false;
 				} else {
 					/* There is no separate regsel for msplim/psplim of ARMV8M mainline
 					with the security extension that would point to correct alias
@@ -2917,6 +2922,11 @@ int cortex_m_examine(struct target *target)
 					armv7m->arm.core_cache->reg_list[ARMV8M_PSPLIM].exist = false;
 				}
 			}
+
+			if (baseline) {
+				armv7m->arm.core_cache->reg_list[ARMV7M_BASEPRI].exist = false;
+				armv7m->arm.core_cache->reg_list[ARMV7M_FAULTMASK].exist = false;
+			}
 		} else {
 			/* Security extension and stack limit checking introduced in ARMV8M */
 			for (size_t idx = ARMV8M_TZ_FIRST_REG; idx <= ARMV8M_TZ_LAST_REG; idx++)
@@ -2924,6 +2934,11 @@ int cortex_m_examine(struct target *target)
 
 			armv7m->arm.core_cache->reg_list[ARMV8M_MSPLIM].exist = false;
 			armv7m->arm.core_cache->reg_list[ARMV8M_PSPLIM].exist = false;
+
+			if (armv7m->arm.arch == ARM_ARCH_V6M) {
+				armv7m->arm.core_cache->reg_list[ARMV7M_BASEPRI].exist = false;
+				armv7m->arm.core_cache->reg_list[ARMV7M_FAULTMASK].exist = false;
+			}
 		}
 
 		if (!armv7m->is_hla_target) {
