@@ -1220,8 +1220,6 @@ static int arm11_examine(struct target *target)
 		CHECK_RETVAL(etm_setup(target));
 	}
 
-	target_set_examined(target);
-
 	return ERROR_OK;
 }
 

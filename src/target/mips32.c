@@ -734,8 +734,6 @@ int mips32_examine(struct target *target)
 	struct mips32_common *mips32 = target_to_mips32(target);
 
 	if (!target_was_examined(target)) {
-		target_set_examined(target);
-
 		/* we will configure later */
 		mips32->bp_scanned = 0;
 		mips32->num_inst_bpoints = 0;

@@ -1747,8 +1747,6 @@ static int stm8_examine(struct target *target)
 			}
 		}
 
-		target_set_examined(target);
-
 		return ERROR_OK;
 	}
 

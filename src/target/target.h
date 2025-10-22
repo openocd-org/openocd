@@ -450,8 +450,10 @@ static inline bool target_active_polled(const struct target *target)
 	return target->active_polled;
 }
 
-/** Sets the @c examined and @c active_polled flags for the given target. */
-/** Use in target->type->examine() after one-time setup is done. */
+/** Sets the @c examined and @c active_polled flags for the given target.
+ *  Not necessary to call it in target->type->examine() methods,
+ *  the target infrastructure calls it after successful return
+ *  from this method. */
 static inline void target_set_examined(struct target *target)
 {
 	target->active_polled = true;

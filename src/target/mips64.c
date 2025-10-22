@@ -479,8 +479,6 @@ int mips64_examine(struct target *target)
 	mips64->num_inst_bpoints = 0;
 	mips64->num_inst_bpoints_avail = 0;
 
-	target_set_examined(target);
-
 	return ERROR_OK;
 }
 

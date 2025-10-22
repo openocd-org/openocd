@@ -1679,8 +1679,6 @@ static int esirisc_examine(struct target *target)
 			}
 		}
 
-		target_set_examined(target);
-
 		LOG_TARGET_INFO(target, "%d bit, %d registers, %s%s%s",
 				esirisc->num_bits, esirisc->num_regs,
 				target_endianness(target),

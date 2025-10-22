@@ -143,7 +143,6 @@ static int mem_ap_examine(struct target *target)
 				return ERROR_FAIL;
 			}
 		}
-		target_set_examined(target);
 		target->state = TARGET_UNKNOWN;
 		target->debug_reason = DBG_REASON_UNDEFINED;
 		return mem_ap_init(mem_ap->ap);

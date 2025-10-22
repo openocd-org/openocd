@@ -748,8 +748,6 @@ static int arc_examine(struct target *target)
 
 		/* Read BCRs and configure optional registers. */
 		CHECK_RETVAL(arc_configure(target));
-
-		target_set_examined(target);
 	}
 
 	return ERROR_OK;

@@ -671,7 +671,6 @@ static inline void target_reset_active_polled(struct target *target)
 
 static int default_examine(struct target *target)
 {
-	target_set_examined(target);
 	return ERROR_OK;
 }
 
