@@ -112,6 +112,12 @@ struct target_type {
 	*/
 
 	/**
+	 * Returns true if target memory is read to read/write.
+	 * Do @b not call this function
+	 * directly, use target_memory_ready() instead.
+	 */
+	bool (*memory_ready)(struct target *target);
+	/**
 	 * Target memory read callback.  Do @b not call this function
 	 * directly, use target_read_memory() instead.
 	 */

@@ -1244,15 +1244,23 @@ int target_run_read_async_algorithm(struct target *target,
 	return retval;
 }
 
+bool target_memory_ready(struct target *target)
+{
+	if (target->type->memory_ready)
+		return target->type->memory_ready(target);
+
+	return target_was_examined(target);
+}
+
 int target_read_memory(struct target *target,
 		target_addr_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
-	if (!target_was_examined(target)) {
-		LOG_ERROR("Target not examined yet");
+	if (!target_memory_ready(target)) {
+		LOG_TARGET_ERROR(target, "Memory not ready");
 		return ERROR_FAIL;
 	}
 	if (!target->type->read_memory) {
-		LOG_ERROR("Target %s doesn't support read_memory", target_name(target));
+		LOG_TARGET_ERROR(target, "doesn't support read_memory");
 		return ERROR_FAIL;
 	}
 	return target->type->read_memory(target, address, size, count, buffer);
@@ -1261,12 +1269,12 @@ int target_read_memory(struct target *target,
 int target_read_phys_memory(struct target *target,
 		target_addr_t address, uint32_t size, uint32_t count, uint8_t *buffer)
 {
-	if (!target_was_examined(target)) {
-		LOG_ERROR("Target not examined yet");
+	if (!target_memory_ready(target)) {
+		LOG_TARGET_ERROR(target, "Memory not ready");
 		return ERROR_FAIL;
 	}
 	if (!target->type->read_phys_memory) {
-		LOG_ERROR("Target %s doesn't support read_phys_memory", target_name(target));
+		LOG_TARGET_ERROR(target, "doesn't support read_phys_memory");
 		return ERROR_FAIL;
 	}
 	return target->type->read_phys_memory(target, address, size, count, buffer);
@@ -1275,12 +1283,12 @@ int target_read_phys_memory(struct target *target,
 int target_write_memory(struct target *target,
 		target_addr_t address, uint32_t size, uint32_t count, const uint8_t *buffer)
 {
-	if (!target_was_examined(target)) {
-		LOG_ERROR("Target not examined yet");
+	if (!target_memory_ready(target)) {
+		LOG_TARGET_ERROR(target, "Memory not ready");
 		return ERROR_FAIL;
 	}
 	if (!target->type->write_memory) {
-		LOG_ERROR("Target %s doesn't support write_memory", target_name(target));
+		LOG_TARGET_ERROR(target, "doesn't support write_memory");
 		return ERROR_FAIL;
 	}
 	return target->type->write_memory(target, address, size, count, buffer);
@@ -1289,12 +1297,12 @@ int target_write_memory(struct target *target,
 int target_write_phys_memory(struct target *target,
 		target_addr_t address, uint32_t size, uint32_t count, const uint8_t *buffer)
 {
-	if (!target_was_examined(target)) {
-		LOG_ERROR("Target not examined yet");
+	if (!target_memory_ready(target)) {
+		LOG_TARGET_ERROR(target, "Memory not ready");
 		return ERROR_FAIL;
 	}
 	if (!target->type->write_phys_memory) {
-		LOG_ERROR("Target %s doesn't support write_phys_memory", target_name(target));
+		LOG_TARGET_ERROR(target, "doesn't support write_phys_memory");
 		return ERROR_FAIL;
 	}
 	return target->type->write_phys_memory(target, address, size, count, buffer);
@@ -2353,8 +2361,8 @@ int target_write_buffer(struct target *target, target_addr_t address, uint32_t s
 	LOG_DEBUG("writing buffer of %" PRIu32 " byte at " TARGET_ADDR_FMT,
 			  size, address);
 
-	if (!target_was_examined(target)) {
-		LOG_ERROR("Target not examined yet");
+	if (!target_memory_ready(target)) {
+		LOG_TARGET_ERROR(target, "Memory not ready");
 		return ERROR_FAIL;
 	}
 
@@ -2418,8 +2426,8 @@ int target_read_buffer(struct target *target, target_addr_t address, uint32_t si
 	LOG_DEBUG("reading buffer of %" PRIu32 " byte at " TARGET_ADDR_FMT,
 			  size, address);
 
-	if (!target_was_examined(target)) {
-		LOG_ERROR("Target not examined yet");
+	if (!target_memory_ready(target)) {
+		LOG_TARGET_ERROR(target, "Memory not ready");
 		return ERROR_FAIL;
 	}
 
@@ -2522,10 +2530,6 @@ int target_blank_check_memory(struct target *target,
 int target_read_u64(struct target *target, target_addr_t address, uint64_t *value)
 {
 	uint8_t value_buf[8];
-	if (!target_was_examined(target)) {
-		LOG_ERROR("Target not examined yet");
-		return ERROR_FAIL;
-	}
 
 	int retval = target_read_memory(target, address, 8, 1, value_buf);
 
@@ -2546,10 +2550,6 @@ int target_read_u64(struct target *target, target_addr_t address, uint64_t *valu
 int target_read_u32(struct target *target, target_addr_t address, uint32_t *value)
 {
 	uint8_t value_buf[4];
-	if (!target_was_examined(target)) {
-		LOG_ERROR("Target not examined yet");
-		return ERROR_FAIL;
-	}
 
 	int retval = target_read_memory(target, address, 4, 1, value_buf);
 
@@ -2570,10 +2570,6 @@ int target_read_u32(struct target *target, target_addr_t address, uint32_t *valu
 int target_read_u16(struct target *target, target_addr_t address, uint16_t *value)
 {
 	uint8_t value_buf[2];
-	if (!target_was_examined(target)) {
-		LOG_ERROR("Target not examined yet");
-		return ERROR_FAIL;
-	}
 
 	int retval = target_read_memory(target, address, 2, 1, value_buf);
 
@@ -2593,11 +2589,6 @@ int target_read_u16(struct target *target, target_addr_t address, uint16_t *valu
 
 int target_read_u8(struct target *target, target_addr_t address, uint8_t *value)
 {
-	if (!target_was_examined(target)) {
-		LOG_ERROR("Target not examined yet");
-		return ERROR_FAIL;
-	}
-
 	int retval = target_read_memory(target, address, 1, 1, value);
 
 	if (retval == ERROR_OK) {
@@ -2617,10 +2608,6 @@ int target_write_u64(struct target *target, target_addr_t address, uint64_t valu
 {
 	int retval;
 	uint8_t value_buf[8];
-	if (!target_was_examined(target)) {
-		LOG_ERROR("Target not examined yet");
-		return ERROR_FAIL;
-	}
 
 	LOG_DEBUG("address: " TARGET_ADDR_FMT ", value: 0x%16.16" PRIx64,
 			  address,
@@ -2638,10 +2625,6 @@ int target_write_u32(struct target *target, target_addr_t address, uint32_t valu
 {
 	int retval;
 	uint8_t value_buf[4];
-	if (!target_was_examined(target)) {
-		LOG_ERROR("Target not examined yet");
-		return ERROR_FAIL;
-	}
 
 	LOG_DEBUG("address: " TARGET_ADDR_FMT ", value: 0x%8.8" PRIx32,
 			  address,
@@ -2659,10 +2642,6 @@ int target_write_u16(struct target *target, target_addr_t address, uint16_t valu
 {
 	int retval;
 	uint8_t value_buf[2];
-	if (!target_was_examined(target)) {
-		LOG_ERROR("Target not examined yet");
-		return ERROR_FAIL;
-	}
 
 	LOG_DEBUG("address: " TARGET_ADDR_FMT ", value: 0x%8.8" PRIx16,
 			  address,
@@ -2679,10 +2658,6 @@ int target_write_u16(struct target *target, target_addr_t address, uint16_t valu
 int target_write_u8(struct target *target, target_addr_t address, uint8_t value)
 {
 	int retval;
-	if (!target_was_examined(target)) {
-		LOG_ERROR("Target not examined yet");
-		return ERROR_FAIL;
-	}
 
 	LOG_DEBUG("address: " TARGET_ADDR_FMT ", value: 0x%2.2" PRIx8,
 			  address, value);
@@ -2698,10 +2673,6 @@ int target_write_phys_u64(struct target *target, target_addr_t address, uint64_t
 {
 	int retval;
 	uint8_t value_buf[8];
-	if (!target_was_examined(target)) {
-		LOG_ERROR("Target not examined yet");
-		return ERROR_FAIL;
-	}
 
 	LOG_DEBUG("address: " TARGET_ADDR_FMT ", value: 0x%16.16" PRIx64,
 			  address,
@@ -2719,10 +2690,6 @@ int target_write_phys_u32(struct target *target, target_addr_t address, uint32_t
 {
 	int retval;
 	uint8_t value_buf[4];
-	if (!target_was_examined(target)) {
-		LOG_ERROR("Target not examined yet");
-		return ERROR_FAIL;
-	}
 
 	LOG_DEBUG("address: " TARGET_ADDR_FMT ", value: 0x%8.8" PRIx32,
 			  address,
@@ -2740,10 +2707,6 @@ int target_write_phys_u16(struct target *target, target_addr_t address, uint16_t
 {
 	int retval;
 	uint8_t value_buf[2];
-	if (!target_was_examined(target)) {
-		LOG_ERROR("Target not examined yet");
-		return ERROR_FAIL;
-	}
 
 	LOG_DEBUG("address: " TARGET_ADDR_FMT ", value: 0x%8.8" PRIx16,
 			  address,
@@ -2760,10 +2723,6 @@ int target_write_phys_u16(struct target *target, target_addr_t address, uint16_t
 int target_write_phys_u8(struct target *target, target_addr_t address, uint8_t value)
 {
 	int retval;
-	if (!target_was_examined(target)) {
-		LOG_ERROR("Target not examined yet");
-		return ERROR_FAIL;
-	}
 
 	LOG_DEBUG("address: " TARGET_ADDR_FMT ", value: 0x%2.2" PRIx8,
 			  address, value);

@@ -591,6 +591,15 @@ int target_run_read_async_algorithm(struct target *target,
 		void *arch_info);
 
 /**
+ * Returns true if target memory is ready to read/write.
+ *
+ * This routine is a wrapper for target->type->memory_ready.
+ * If the target specific check is not implemented,
+ * returns target_was_examined()
+ */
+bool target_memory_ready(struct target *target);
+
+/**
  * Read @a count items of @a size bytes from the memory of @a target at
  * the @a address given.
  *
