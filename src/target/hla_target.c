@@ -619,6 +619,11 @@ static int adapter_write_memory(struct target *target, target_addr_t address,
 	return adapter->layout->api->write_mem(adapter->handle, address, size, count, buffer);
 }
 
+static bool adapter_memory_ready(struct target *target)
+{
+	return true;
+}
+
 static const struct command_registration hla_command_handlers[] = {
 	{
 		.chain = arm_command_handlers,
@@ -661,6 +666,7 @@ struct target_type hla_target = {
 	.get_gdb_arch = arm_get_gdb_arch,
 	.get_gdb_reg_list = armv7m_get_gdb_reg_list,
 
+	.memory_ready = adapter_memory_ready,
 	.read_memory = adapter_read_memory,
 	.write_memory = adapter_write_memory,
 	.checksum_memory = armv7m_checksum_memory,

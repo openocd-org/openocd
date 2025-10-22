@@ -2297,6 +2297,13 @@ void cortex_m_enable_watchpoints(struct target *target)
 	}
 }
 
+static bool cortex_m_memory_ready(struct target *target)
+{
+	struct armv7m_common *armv7m = target_to_armv7m(target);
+
+	return armv7m->debug_ap;
+}
+
 static int cortex_m_read_memory(struct target *target, target_addr_t address,
 	uint32_t size, uint32_t count, uint8_t *buffer)
 {
@@ -2799,8 +2806,6 @@ int cortex_m_examine(struct target *target)
 	}
 
 	if (!target_was_examined(target)) {
-		target_set_examined(target);
-
 		/* Read from Device Identification Registers */
 		retval = target_read_u32(target, CPUID, &cpuid);
 		if (retval != ERROR_OK)
@@ -3461,6 +3466,7 @@ struct target_type cortexm_target = {
 	.get_gdb_arch = arm_get_gdb_arch,
 	.get_gdb_reg_list = armv7m_get_gdb_reg_list,
 
+	.memory_ready = cortex_m_memory_ready,
 	.read_memory = cortex_m_read_memory,
 	.write_memory = cortex_m_write_memory,
 	.checksum_memory = armv7m_checksum_memory,
