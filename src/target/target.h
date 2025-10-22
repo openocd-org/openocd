@@ -126,12 +126,19 @@ struct target {
 	bool defer_examine;
 
 	/**
-	 * Indicates whether this target has been examined.
+	 * Indicates whether this target has been examined,
+	 * remembers the last result of examine call.
 	 *
 	 * Do @b not access this field directly, use target_was_examined()
 	 * or target_set_examined().
 	 */
 	bool examined;
+	/**
+	 * The flag is set after a successful examine call.
+	 * It remains set forever or in the case of defer examine
+	 * gets reset by reset command.
+	 */
+	bool active_polled;
 
 	/**
 	 * true if the  target is currently running a downloaded
@@ -428,16 +435,26 @@ const char *target_type_name(const struct target *target);
  */
 int target_examine_one(struct target *target);
 
-/** @returns @c true if target_set_examined() has been called. */
+/** @returns @c true if target_set_examined() has been called.
+ *  The returned value reflects the last examination result. */
 static inline bool target_was_examined(const struct target *target)
 {
 	return target->examined;
 }
 
-/** Sets the @c examined flag for the given target. */
+/** @returns @c true if target_set_examined() has been called.
+ *  The flag remains set forever or in the case of defer examine
+ *  gets reset by reset command */
+static inline bool target_active_polled(const struct target *target)
+{
+	return target->active_polled;
+}
+
+/** Sets the @c examined and @c active_polled flags for the given target. */
 /** Use in target->type->examine() after one-time setup is done. */
 static inline void target_set_examined(struct target *target)
 {
+	target->active_polled = true;
 	target->examined = true;
 }
 

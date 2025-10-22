@@ -658,11 +658,15 @@ static int no_mmu(struct target *target, bool *enabled)
 
 /**
  * Reset the @c examined flag for the given target.
- * Pure paranoia -- targets are zeroed on allocation.
  */
 static inline void target_reset_examined(struct target *target)
 {
 	target->examined = false;
+}
+
+static inline void target_reset_active_polled(struct target *target)
+{
+	target->active_polled = false;
 }
 
 static int default_examine(struct target *target)
@@ -1495,6 +1499,7 @@ static int target_init_one(struct command_context *cmd_ctx,
 		struct target *target)
 {
 	target_reset_examined(target);
+	target_reset_active_polled(target);
 
 	struct target_type *type = target->type;
 	if (!type->examine)
@@ -2922,7 +2927,7 @@ static int handle_target(void *priv)
 			is_jtag_poll_safe() && target;
 			target = target->next) {
 
-		if (!target_was_examined(target))
+		if (!target_active_polled(target))
 			continue;
 
 		if (!target->tap->enabled)
@@ -2955,10 +2960,7 @@ static int handle_target(void *priv)
 				LOG_TARGET_ERROR(target, "Polling failed, trying to reexamine");
 				target_reset_examined(target);
 				retval = target_examine_one(target);
-				/* Target examination could have failed due to unstable connection,
-				 * but we set the examined flag anyway to repoll it later */
 				if (retval != ERROR_OK) {
-					target_set_examined(target);
 					LOG_TARGET_ERROR(target, "Examination failed, GDB will be halted. Polling again in %dms",
 						 target->backoff.times * polling_interval);
 					return retval;
@@ -5349,8 +5351,10 @@ COMMAND_HANDLER(handle_target_reset)
 	/* do the assert */
 	if (n->value == NVP_ASSERT) {
 		int retval = target->type->assert_reset(target);
-		if (target->defer_examine)
+		if (target->defer_examine) {
 			target_reset_examined(target);
+			target_reset_active_polled(target);
+		}
 		return retval;
 	}
 
