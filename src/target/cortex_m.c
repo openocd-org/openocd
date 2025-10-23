@@ -1900,7 +1900,6 @@ int cortex_m_set_breakpoint(struct target *target, struct breakpoint *breakpoint
 	int retval;
 	unsigned int fp_num = 0;
 	struct cortex_m_common *cortex_m = target_to_cm(target);
-	struct cortex_m_fp_comparator *comparator_list = cortex_m->fp_comparator_list;
 
 	if (breakpoint->is_set) {
 		LOG_TARGET_WARNING(target, "breakpoint (BPID: %" PRIu32 ") already set", breakpoint->unique_id);
@@ -1909,6 +1908,12 @@ int cortex_m_set_breakpoint(struct target *target, struct breakpoint *breakpoint
 
 	if (breakpoint->type == BKPT_HARD) {
 		uint32_t fpcr_value;
+		struct cortex_m_fp_comparator *comparator_list = cortex_m->fp_comparator_list;
+		if (!comparator_list) {
+			LOG_TARGET_ERROR(target, "No comparator list. Not examined?");
+			return ERROR_FAIL;
+		}
+
 		while (comparator_list[fp_num].used && (fp_num < cortex_m->fp_num_code))
 			fp_num++;
 		if (fp_num >= cortex_m->fp_num_code) {
@@ -1997,7 +2002,6 @@ int cortex_m_unset_breakpoint(struct target *target, struct breakpoint *breakpoi
 {
 	int retval;
 	struct cortex_m_common *cortex_m = target_to_cm(target);
-	struct cortex_m_fp_comparator *comparator_list = cortex_m->fp_comparator_list;
 
 	if (!breakpoint->is_set) {
 		LOG_TARGET_WARNING(target, "breakpoint not set");
@@ -2017,6 +2021,13 @@ int cortex_m_unset_breakpoint(struct target *target, struct breakpoint *breakpoi
 			LOG_TARGET_DEBUG(target, "Invalid FP Comparator number in breakpoint");
 			return ERROR_OK;
 		}
+
+		struct cortex_m_fp_comparator *comparator_list = cortex_m->fp_comparator_list;
+		if (!comparator_list) {
+			LOG_TARGET_ERROR(target, "No comparator list. Not examined?");
+			return ERROR_FAIL;
+		}
+
 		comparator_list[fp_num].used = false;
 		comparator_list[fp_num].fpcr_value = 0;
 		target_write_u32(target, comparator_list[fp_num].fpcr_address,
