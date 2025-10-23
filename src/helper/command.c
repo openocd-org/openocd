@@ -674,12 +674,13 @@ static COMMAND_HELPER(command_help_show_list, bool show_help, const char *cmd_ma
 
 #define HELP_LINE_WIDTH(_n) (int)(76 - (2 * _n))
 
-static void command_help_show_indent(unsigned int n)
+static void command_help_show_indent(struct command_invocation *cmd, unsigned int n)
 {
 	for (unsigned int i = 0; i < n; i++)
-		LOG_USER_N("  ");
+		command_print_sameline(cmd, "  ");
 }
-static void command_help_show_wrap(const char *str, unsigned int n, unsigned int n2)
+static void command_help_show_wrap(struct command_invocation *cmd,
+	const char *str, unsigned int n, unsigned int n2)
 {
 	const char *cp = str, *last = str;
 	while (*cp) {
@@ -692,8 +693,8 @@ static void command_help_show_wrap(const char *str, unsigned int n, unsigned int
 		} while ((next - last < HELP_LINE_WIDTH(n)) && *next != '\0');
 		if (next - last < HELP_LINE_WIDTH(n))
 			cp = next;
-		command_help_show_indent(n);
-		LOG_USER("%.*s", (int)(cp - last), last);
+		command_help_show_indent(cmd, n);
+		command_print(cmd, "%.*s", (int)(cp - last), last);
 		last = cp + 1;
 		n = n2;
 	}
@@ -715,10 +716,10 @@ static COMMAND_HELPER(command_help_show, struct help_entry *c,
 	if (is_match) {
 		if (c->usage && strlen(c->usage) > 0) {
 			char *msg = alloc_printf("%s %s", c->cmd_name, c->usage);
-			command_help_show_wrap(msg, n, n + 5);
+			command_help_show_wrap(CMD, msg, n, n + 5);
 			free(msg);
 		} else {
-			command_help_show_wrap(c->cmd_name, n, n + 5);
+			command_help_show_wrap(CMD, c->cmd_name, n, n + 5);
 		}
 	}
 
@@ -752,7 +753,7 @@ static COMMAND_HELPER(command_help_show, struct help_entry *c,
 			return ERROR_FAIL;
 		}
 
-		command_help_show_wrap(msg, n + 3, n + 3);
+		command_help_show_wrap(CMD, msg, n + 3, n + 3);
 		free(msg);
 	}
 
