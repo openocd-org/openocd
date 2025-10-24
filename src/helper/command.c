@@ -474,6 +474,11 @@ static int jim_exec_command(Jim_Interp *interp, struct command_context *context,
 	if (retval == ERROR_COMMAND_CLOSE_CONNECTION)
 		return JIM_EXIT;
 
+	Jim_Obj *error_code = Jim_NewListObj(context->interp, NULL, 0);
+	Jim_ListAppendElement(context->interp, error_code, Jim_NewStringObj(context->interp, "OpenOCD", -1));
+	Jim_ListAppendElement(context->interp, error_code, Jim_NewIntObj(context->interp, retval));
+	Jim_SetGlobalVariableStr(context->interp, "errorCode", error_code);
+
 	return JIM_ERR;
 }
 

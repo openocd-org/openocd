@@ -8,17 +8,22 @@ namespace eval testing_helpers {
 	}
 
 	proc check_for_error {expctd_code msg_ptrn script} {
+		set ::errorCode NONE
 		set code [catch {uplevel $script} msg]
 		set expanded_script [uplevel subst \"$script\"]
-		if {!$code} {
+		if {$code == 0} {
 			test_failure \
 				"'$expanded_script' finished successfully. \
 				Was expecting an error."
 		}
-		if {$expctd_code ne "" && $code != $expctd_code} {
+		if {$code != 1} {
 			test_failure \
-				"'$expanded_script' returned unexpected error code $code. \
-				Was expecting $expctd_code. Error message: '$msg'"
+				"'$expanded_script' returned unexpected error code $code"
+		}
+		if {$expctd_code ne "" && ([lindex $::errorCode 0] ne "OpenOCD" || [lindex $::errorCode 1] != $expctd_code)} {
+			test_failure \
+				"'$expanded_script' returned unexpected error code '$::errorCode'. \
+				Was expecting 'OpenOCD $expctd_code'. Error message: '$msg'"
 		}
 		if {$msg_ptrn ne "" && ![regexp -- $msg_ptrn $msg]} {
 			test_failure \
@@ -32,7 +37,7 @@ namespace eval testing_helpers {
 	}
 
 	proc check_syntax_err script {
-		tailcall check_for_error 1 {} $script
+		tailcall check_for_error -601 {} $script
 	}
 
 	proc check_matches {pattern script} {
