@@ -444,8 +444,8 @@ static int jim_exec_command(Jim_Interp *interp, struct command_context *context,
 
 	int retval = c->handler(&cmd);
 	if (retval == ERROR_COMMAND_SYNTAX_ERROR) {
-		/* Print help for command */
-		command_run_linef(context, "usage %s", words[0]);
+		// Print command syntax
+		Jim_EvalObjPrefix(context->interp, Jim_NewStringObj(context->interp, "usage", -1), 1, argv);
 	} else if (retval == ERROR_COMMAND_CLOSE_CONNECTION) {
 		/* just fall through for a shutdown request */
 	} else {
