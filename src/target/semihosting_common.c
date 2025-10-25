@@ -24,8 +24,10 @@
  * instruction trapped by the debugger.
  *
  * Details can be found in
- * "Semihosting for AArch32 and AArch64, Release 2.0"
- * https://static.docs.arm.com/100863/0200/semihosting.pdf
+ * "Semihosting for AArch32 and AArch64, 2025Q1"
+ * https://github.com/ARM-software/abi-aa/releases/download/2025Q1/semihosting.pdf
+ * and in
+ * https://developer.arm.com/documentation/dui0203/latest/semihosting
  * from ARM Ltd.
  */
 

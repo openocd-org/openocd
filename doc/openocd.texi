@@ -1193,9 +1193,10 @@ monitor mode debug, only "halt mode" debug.}
 @cindex ARM semihosting
 When linked with a special runtime library provided with many
 toolchains@footnote{See chapter 8 "Semihosting" in
-@uref{http://infocenter.arm.com/help/topic/com.arm.doc.dui0203i/DUI0203I_rvct_developer_guide.pdf,
-ARM DUI 0203I}, the "RealView Compilation Tools Developer Guide".
-The CodeSourcery EABI toolchain also includes a semihosting library.},
+@uref{https://developer.arm.com/documentation/dui0203/latest/semihosting,
+ARM DUI 0203}.
+A semihosting library if available in newlib/libgloss, in U-Boot,
+in the CodeSourcery EABI toolchain, and others.},
 your target code can use I/O facilities on the debug host. That library
 provides a small set of system calls which are handled by OpenOCD.
 It can let the debugger provide your system console and a file system,

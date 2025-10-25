@@ -19,8 +19,10 @@
 
 /*
  * According to:
- * "Semihosting for AArch32 and AArch64, Release 2.0"
- * https://static.docs.arm.com/100863/0200/semihosting.pdf
+ * "Semihosting for AArch32 and AArch64, 2025Q1"
+ * https://github.com/ARM-software/abi-aa/releases/download/2025Q1/semihosting.pdf
+ * and to:
+ * https://developer.arm.com/documentation/dui0203/latest/semihosting/about-semihosting/the-semihosting-interface
  * from ARM Ltd.
  *
  * The available semihosting operation numbers passed in R0 are allocated

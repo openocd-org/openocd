@@ -22,7 +22,11 @@
  * facilities on the host computer. The target application must be linked
  * against a library that forwards operation requests by using the SVC
  * instruction trapped at the Supervisor Call vector by the debugger.
- * Details can be found in chapter 8 of DUI0203I_rvct_developer_guide.pdf
+ * Details can be found in
+ * "Semihosting for AArch32 and AArch64, 2025Q1"
+ * https://github.com/ARM-software/abi-aa/releases/download/2025Q1/semihosting.pdf
+ * and in
+ * https://developer.arm.com/documentation/dui0203/latest/semihosting
  * from ARM Ltd.
  */
 
