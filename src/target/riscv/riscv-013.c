@@ -4875,7 +4875,8 @@ static int write_memory_progbuf_teardown(struct target *target)
  * failed write.
  */
 static int write_memory_progbuf_handle_busy(struct target *target,
-		target_addr_t *address_p, uint32_t size, const uint8_t *buffer)
+		target_addr_t *address_p, target_addr_t end_address, uint32_t size,
+		const uint8_t *buffer)
 {
 	int res = riscv013_clear_abstract_error(target);
 	if (res != ERROR_OK)
@@ -4891,8 +4892,12 @@ static int write_memory_progbuf_handle_busy(struct target *target,
 	if (register_read_direct(target, &address_on_target, GDB_REGNO_S0) != ERROR_OK)
 		return ERROR_FAIL;
 	const uint8_t * const curr_buff = buffer + (address_on_target - *address_p);
-	LOG_TARGET_DEBUG(target, "Restarting from 0x%" TARGET_PRIxADDR, *address_p);
 	*address_p = address_on_target;
+	if (*address_p == end_address) {
+		LOG_TARGET_DEBUG(target, "Got busy while reading after reading the last element");
+		return ERROR_OK;
+	}
+	LOG_TARGET_DEBUG(target, "Restarting from 0x%" TARGET_PRIxADDR, *address_p);
 	/* This restores the pipeline and ensures one item gets reliably written */
 	return write_memory_progbuf_startup(target, address_p, curr_buff, size);
 }
@@ -4970,7 +4975,8 @@ static int write_memory_progbuf_run_batch(struct target *target, struct riscv_ba
 		/* TODO: If dmi busy is encountered, the address of the last
 		 * successful write can be deduced by analysing the batch.
 		 */
-		return write_memory_progbuf_handle_busy(target, address_p, size, buffer);
+		return write_memory_progbuf_handle_busy(target, address_p, end_address,
+				size, buffer);
 	}
 	LOG_TARGET_ERROR(target, "Error when writing memory, abstractcs=0x%" PRIx32,
 			abstractcs);
