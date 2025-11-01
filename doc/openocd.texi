@@ -630,7 +630,7 @@ emulation model of target hardware.
 This is deprecated from Linux v5.3; prefer using @b{linuxgpiod}.
 
 @item @b{esp_usb_jtag}
-@* A JTAG driver to communicate with builtin debug modules of Espressif ESP32-C3 and ESP32-S3 chips using OpenOCD.
+@* A JTAG driver to communicate with builtin debug modules of Espressif ESP32-C3, ESP32-C6, ESP32-H2 and ESP32-S3 chips using OpenOCD.
 
 @item @b{ch347}
 @* A JTAG driver that works with the WCH CH347F and CH347T chips.
@@ -3768,7 +3768,7 @@ buspirate led 1
 @end deffn
 
 @deffn {Interface Driver} {esp_usb_jtag}
-Espressif JTAG driver to communicate with ESP32-C3, ESP32-S3 chips and ESP USB Bridge board using OpenOCD.
+Espressif JTAG driver to communicate with ESP32-C3, ESP32-C6, ESP32-H2 and ESP32-S3 chips and ESP USB Bridge board using OpenOCD.
 These chips have built-in JTAG circuitry and can be debugged without any additional hardware.
 Only an USB cable connected to the D+/D- pins is necessary.
 
@@ -5146,6 +5146,10 @@ The current implementation supports eSi-32xx cores.
 @item @code{esp32} -- this is an Espressif SoC with dual Xtensa cores.
 @item @code{esp32s2} -- this is an Espressif SoC with single Xtensa core.
 @item @code{esp32s3} -- this is an Espressif SoC with dual Xtensa cores.
+@item @code{esp32c2} -- this is an Espressif SoC with single RISC-V core.
+@item @code{esp32c3} -- this is an Espressif SoC with single RISC-V core.
+@item @code{esp32c6} -- this is an Espressif SoC with single RISC-V core.
+@item @code{esp32h2} -- this is an Espressif SoC with single RISC-V core.
 @item @code{fa526} -- resembles arm920 (w/o Thumb).
 @item @code{feroceon} -- resembles arm926.
 @item @code{hla_target} -- a Cortex-M alternative to work with HL adapters like ST-Link.
