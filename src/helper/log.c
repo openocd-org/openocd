@@ -364,7 +364,8 @@ char *alloc_vprintf(const char *fmt, va_list ap)
 	/* allocate and make room for terminating zero. */
 	/* FIXME: The old version always allocated at least one byte extra and
 	 * other code depend on that. They should be probably be fixed, but for
-	 * now reserve the extra byte. */
+	 * now reserve the extra byte. Apparently the last user of such hack is
+	 * log_vprintf_lf() that adds a trailing newline. */
 	string = malloc(len + 2);
 	if (!string)
 		return NULL;
