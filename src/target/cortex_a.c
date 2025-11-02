@@ -760,7 +760,7 @@ static int cortex_a_poll(struct target *target)
 	if (DSCR_RUN_MODE(dscr) == (DSCR_CORE_HALTED | DSCR_CORE_RESTARTED)) {
 		if (prev_target_state != TARGET_HALTED) {
 			/* We have a halting debug event */
-			LOG_DEBUG("Target halted");
+			LOG_TARGET_DEBUG(target, "Target halted");
 			target->state = TARGET_HALTED;
 
 			retval = cortex_a_debug_entry(target);
@@ -808,7 +808,7 @@ static int cortex_a_halt(struct target *target)
 	retval = cortex_a_wait_dscr_bits(target, DSCR_CORE_HALTED,
 			DSCR_CORE_HALTED, &dscr);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("Error waiting for halt");
+		LOG_TARGET_ERROR(target, "Error waiting for halt");
 		return retval;
 	}
 
@@ -871,13 +871,13 @@ static int cortex_a_internal_restore(struct target *target, bool current,
 		resume_pc |= 0x1;
 		break;
 	case ARM_STATE_JAZELLE:
-		LOG_ERROR("How do I resume into Jazelle state??");
+		LOG_TARGET_ERROR(target, "How do I resume into Jazelle state??");
 		return ERROR_FAIL;
 	case ARM_STATE_AARCH64:
-		LOG_ERROR("Shouldn't be in AARCH64 state");
+		LOG_TARGET_ERROR(target, "Shouldn't be in AARCH64 state");
 		return ERROR_FAIL;
 	}
-	LOG_DEBUG("resume pc = 0x%08" PRIx32, resume_pc);
+	LOG_TARGET_DEBUG(target, "resume pc = 0x%08" PRIx32, resume_pc);
 	buf_set_u32(arm->pc->value, 0, 32, resume_pc);
 	arm->pc->dirty = true;
 	arm->pc->valid = true;
@@ -935,7 +935,7 @@ static int cortex_a_internal_restart(struct target *target)
 		return retval;
 
 	if ((dscr & DSCR_INSTR_COMP) == 0)
-		LOG_ERROR("DSCR InstrCompl must be set before leaving debug!");
+		LOG_TARGET_ERROR(target, "DSCR InstrCompl must be set before leaving debug!");
 
 	retval = mem_ap_write_atomic_u32(armv7a->debug_ap,
 			armv7a->debug_base + CPUDBG_DSCR, dscr & ~DSCR_ITR_EN);
@@ -952,7 +952,7 @@ static int cortex_a_internal_restart(struct target *target)
 	retval = cortex_a_wait_dscr_bits(target, DSCR_CORE_RESTARTED,
 			DSCR_CORE_RESTARTED, &dscr);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("Error waiting for resume");
+		LOG_TARGET_ERROR(target, "Error waiting for resume");
 		return retval;
 	}
 
@@ -1010,11 +1010,11 @@ static int cortex_a_resume(struct target *target, bool current,
 	if (!debug_execution) {
 		target->state = TARGET_RUNNING;
 		target_call_event_callbacks(target, TARGET_EVENT_RESUMED);
-		LOG_DEBUG("target resumed at " TARGET_ADDR_FMT, address);
+		LOG_TARGET_DEBUG(target, "target resumed at " TARGET_ADDR_FMT, address);
 	} else {
 		target->state = TARGET_DEBUG_RUNNING;
 		target_call_event_callbacks(target, TARGET_EVENT_DEBUG_RESUMED);
-		LOG_DEBUG("target debug resumed at " TARGET_ADDR_FMT, address);
+		LOG_TARGET_DEBUG(target, "target debug resumed at " TARGET_ADDR_FMT, address);
 	}
 
 	return ERROR_OK;
@@ -1028,7 +1028,7 @@ static int cortex_a_debug_entry(struct target *target)
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 	struct arm *arm = &armv7a->arm;
 
-	LOG_DEBUG("dscr = 0x%08" PRIx32, cortex_a->cpudbg_dscr);
+	LOG_TARGET_DEBUG(target, "dscr = 0x%08" PRIx32, cortex_a->cpudbg_dscr);
 
 	/* REVISIT surely we should not re-read DSCR !! */
 	retval = mem_ap_read_atomic_u32(armv7a->debug_ap,
@@ -1112,7 +1112,8 @@ static int cortex_a_post_debug_entry(struct target *target)
 			&cortex_a->cp15_control_reg);
 	if (retval != ERROR_OK)
 		return retval;
-	LOG_DEBUG("cp15_control_reg: %8.8" PRIx32, cortex_a->cp15_control_reg);
+	LOG_TARGET_DEBUG(target, "cp15_control_reg: %8.8" PRIx32,
+					 cortex_a->cp15_control_reg);
 	cortex_a->cp15_control_reg_curr = cortex_a->cp15_control_reg;
 
 	if (!armv7a->is_armv7r)
@@ -1303,7 +1304,7 @@ static int cortex_a_restore_context(struct target *target, bool bpwp)
 {
 	struct armv7a_common *armv7a = target_to_armv7a(target);
 
-	LOG_DEBUG(" ");
+	LOG_TARGET_DEBUG(target, " ");
 
 	if (armv7a->pre_restore_context)
 		armv7a->pre_restore_context(target);
