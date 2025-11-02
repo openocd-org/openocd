@@ -1064,7 +1064,8 @@ void arm_dpm_report_dscr(struct arm_dpm *dpm, uint32_t dscr)
 		target->debug_reason = DBG_REASON_DBGRQ;
 		break;
 	case DSCR_ENTRY_BREAKPOINT:	/* HW breakpoint */
-	case DSCR_ENTRY_BKPT_INSTR:	/* vector catch */
+	case DSCR_ENTRY_BKPT_INSTR: /* SW BKPT */
+	case DSCR_ENTRY_VECT_CATCH:	/* vector catch */
 		target->debug_reason = DBG_REASON_BREAKPOINT;
 		break;
 	case DSCR_ENTRY_IMPRECISE_WATCHPT:	/* asynch watchpoint */
