@@ -3869,7 +3869,7 @@ device configuration, this function may be blocked out. Typical behavior
 observed in such cases is a firewall exception report on the security
 controller and armv8 processor reporting a system error.
 
-See @file{tcl/board/ti/am625_swd_native.cfg} for a sample configuration
+See @file{tcl/board/ti/am625-self-hosted.cfg} for a sample configuration
 file.
 
 @deffn {Command} {dmem info}
