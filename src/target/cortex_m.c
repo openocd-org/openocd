@@ -3007,10 +3007,12 @@ int cortex_m_examine(struct target *target)
 			cortex_m->fp_num_code,
 			cortex_m->dwt_num_comp);
 
-		retval = armv7m_identify_cache(target);
-		if (retval != ERROR_OK) {
-			LOG_ERROR("Cannot detect cache");
-			return retval;
+		if (!armv7m->is_hla_target) {
+			retval = armv7m_identify_cache(target);
+			if (retval != ERROR_OK) {
+				LOG_ERROR("Cannot detect cache");
+				return retval;
+			}
 		}
 	}
 
