@@ -691,8 +691,6 @@ struct reg_cache *arm_build_reg_cache(struct target *target, struct arm *arm)
 			&& arm->core_type != ARM_CORE_TYPE_VIRT_EXT)
 			continue;
 
-		/* REVISIT handle Cortex-M, which only shadows R13/SP */
-
 		reg_arch_info[i].num = arm_core_regs[i].cookie;
 		reg_arch_info[i].mode = arm_core_regs[i].mode;
 		reg_arch_info[i].target = target;
@@ -705,9 +703,6 @@ struct reg_cache *arm_build_reg_cache(struct target *target, struct arm *arm)
 		reg_list[i].type = &arm_reg_type;
 		reg_list[i].arch_info = &reg_arch_info[i];
 		reg_list[i].exist = true;
-
-		/* This really depends on the calling convention in use */
-		reg_list[i].caller_save = false;
 
 		/* Registers data type, as used by GDB target description */
 		reg_list[i].reg_data_type = malloc(sizeof(struct reg_data_type));
@@ -729,9 +724,16 @@ struct reg_cache *arm_build_reg_cache(struct target *target, struct arm *arm)
 		if (reg_list[i].number <= 15 || reg_list[i].number == 25) {
 			reg_list[i].feature->name = "org.gnu.gdb.arm.core";
 			reg_list[i].group = "general";
+			/* Registers which should be preserved across GDB inferior function calls.
+			 * Avoid saving banked registers as GDB (version 16.2 in time of writing)
+			 * does not take the current mode into account and messes the value
+			 * by restoring both the not banked register and the banked alias of it
+			 * in the current mode. */
+			reg_list[i].caller_save = true;
 		} else {
 			reg_list[i].feature->name = "net.sourceforge.openocd.banked";
 			reg_list[i].group = "banked";
+			reg_list[i].caller_save = false;
 		}
 
 		cache->num_regs++;
@@ -751,7 +753,8 @@ struct reg_cache *arm_build_reg_cache(struct target *target, struct arm *arm)
 		reg_list[i].arch_info = &reg_arch_info[i];
 		reg_list[i].exist = true;
 
-		reg_list[i].caller_save = false;
+		/* Mark d0 - d31 and fpscr as save-restore for GDB */
+		reg_list[i].caller_save = true;
 
 		reg_list[i].reg_data_type = malloc(sizeof(struct reg_data_type));
 		reg_list[i].reg_data_type->type = arm_vfp_v3_regs[j].type;
