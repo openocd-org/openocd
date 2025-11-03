@@ -38,7 +38,7 @@ e.g.:
 
 ```
 openocd -f interface/ftdi/jtagkey2.cfg -c "transport select jtag" \
-        -f target/ti_calypso.cfg
+        -f target/ti/calypso.cfg
 ```
 
 ```

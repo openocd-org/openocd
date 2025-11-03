@@ -1771,10 +1771,10 @@ There are more complex examples too, with chips that have
 multiple TAPs. Ones worth looking at include:
 
 @itemize
-@item @file{target/omap3530.cfg} -- with disabled ARM and DSP,
+@item @file{target/ti/omap3530.cfg} -- with disabled ARM and DSP,
 plus a JRC to enable them
 @item @file{target/str912.cfg} -- with flash, CPU, and boundary scan
-@item @file{target/ti_dm355.cfg} -- with ETM, ARM, and JRC (this JRC
+@item @file{target/ti/dm355.cfg} -- with ETM, ARM, and JRC (this JRC
 is not currently used)
 @end itemize
 
