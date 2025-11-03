@@ -629,6 +629,20 @@ int watchpoint_hit(struct target *target, enum watchpoint_rw *rw,
 	struct watchpoint *hit_watchpoint;
 
 	retval = target_hit_watchpoint(target, &hit_watchpoint);
+	if (retval == ERROR_NOT_IMPLEMENTED
+			&& target->debug_reason == DBG_REASON_WATCHPOINT) {
+		// Handle the trivial case: only one watchpoint is set
+		unsigned int cnt = 0;
+		struct watchpoint *wp = target->watchpoints;
+		while (wp) {
+			cnt++;
+			wp = wp->next;
+		}
+		if (cnt == 1) {
+			retval = ERROR_OK;
+			hit_watchpoint = target->watchpoints;
+		}
+	}
 	if (retval != ERROR_OK)
 		return ERROR_FAIL;
 

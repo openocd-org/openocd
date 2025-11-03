@@ -1360,9 +1360,9 @@ int target_hit_watchpoint(struct target *target,
 
 	if (!target->type->hit_watchpoint) {
 		/* For backward compatible, if hit_watchpoint is not implemented,
-		 * return ERROR_FAIL such that gdb_server will not take the nonsense
+		 * return error such that gdb_server will not take the nonsense
 		 * information. */
-		return ERROR_FAIL;
+		return ERROR_NOT_IMPLEMENTED;
 	}
 
 	return target->type->hit_watchpoint(target, hit_watchpoint);
