@@ -54,6 +54,7 @@
 #include <helper/bits.h>
 #include <helper/nvp.h>
 #include <helper/time_support.h>
+#include <helper/align.h>
 
 static int cortex_a_poll(struct target *target);
 static int cortex_a_debug_entry(struct target *target);
@@ -1341,6 +1342,14 @@ static int cortex_a_set_breakpoint(struct target *target,
 			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 		}
 		breakpoint_hw_set(breakpoint, brp_i);
+		if (breakpoint->length == 3) {
+			/* Thumb-2 breakpoint: fixup to length 4 if word aligned,
+			 * set byte mask for length 2 if unaligned */
+			if (IS_ALIGNED(breakpoint->address, 4))
+				breakpoint->length = 4;
+			else
+				breakpoint->length = 2;
+		}
 		if (breakpoint->length == 2)
 			byte_addr_select = (3 << (breakpoint->address & 0x02));
 		control = ((matchmode & 0x7) << 20)
