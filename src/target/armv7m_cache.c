@@ -68,7 +68,7 @@ static struct armv7m_cache_size decode_ccsidr(uint32_t ccsidr)
 	return size;
 }
 
-int armv7m_identify_cache(struct target *target)
+static int armv7m_identify_cache_internal(struct target *target)
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
 	struct armv7m_cache_common *cache = &armv7m->armv7m_cache;
@@ -191,6 +191,54 @@ int armv7m_identify_cache(struct target *target)
 	return ERROR_OK;
 }
 
+/*
+ * On Cortex-M7 only, when the CPU is kept in reset, several registers of the
+ * System Control Space (SCS) are not accessible and return bus error.
+ * The list of accessible registers is:
+ * - 0xE000ED00
+ * - 0xE000ED30
+ * - 0xE000EDF0 ... 0xE000EEFC
+ * - 0xE000EF40 ... 0xE000EF48
+ * - 0xE000EFD0 ... 0xE000EFFC
+ * This makes impossible detecting the cache during the reset.
+ * Use a deferred mechanism to detect the cache during polling or when the
+ * Cortex-M7 halts.
+ */
+int armv7m_identify_cache(struct target *target)
+{
+	struct cortex_m_common *cortex_m = target_to_cm(target);
+	struct armv7m_common *armv7m = target_to_armv7m(target);
+	struct armv7m_cache_common *cache = &armv7m->armv7m_cache;
+
+	if (cache->info_valid)
+		return ERROR_OK;
+
+	if (cortex_m->core_info->impl_part == CORTEX_M7_PARTNO
+			&& cortex_m->dcb_dhcsr & S_RESET_ST) {
+		cache->defer_identification = true;
+		return ERROR_OK;
+	}
+
+	return armv7m_identify_cache_internal(target);
+}
+
+int armv7m_deferred_identify_cache(struct target *target)
+{
+	struct armv7m_common *armv7m = target_to_armv7m(target);
+	struct armv7m_cache_common *cache = &armv7m->armv7m_cache;
+
+	if (cache->info_valid || !cache->defer_identification)
+		return ERROR_OK;
+
+	int retval = armv7m_identify_cache_internal(target);
+	if (retval != ERROR_OK)
+		return retval;
+
+	cache->defer_identification = false;
+
+	return ERROR_OK;
+}
+
 int armv7m_d_cache_flush(struct target *target, uint32_t address,
 	unsigned int length)
 {
@@ -248,6 +296,11 @@ int armv7m_handle_cache_info_command(struct command_invocation *cmd,
 	if (!target_was_examined(target)) {
 		command_print(cmd, "Target not examined yet");
 		return ERROR_FAIL;
+	}
+
+	if (cache->defer_identification) {
+		command_print(cmd, "Cache not detected yet");
+		return ERROR_OK;
 	}
 
 	if (!cache->info_valid) {

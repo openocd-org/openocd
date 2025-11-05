@@ -38,6 +38,7 @@ struct armv7m_arch_cache {
 // common cache information
 struct armv7m_cache_common {
 	bool info_valid;
+	bool defer_identification;
 	bool has_i_cache;
 	bool has_d_u_cache;
 	unsigned int loc;					// level of coherency
@@ -47,6 +48,7 @@ struct armv7m_cache_common {
 };
 
 int armv7m_identify_cache(struct target *target);
+int armv7m_deferred_identify_cache(struct target *target);
 int armv7m_d_cache_flush(struct target *target, uint32_t address,
 	unsigned int length);
 int armv7m_i_cache_inval(struct target *target, uint32_t address,

@@ -876,6 +876,10 @@ static int cortex_m_debug_entry(struct target *target)
 	}
 
 	// read caches state
+	retval = armv7m_deferred_identify_cache(target);
+	if (retval != ERROR_OK)
+		return retval;
+
 	uint32_t ccr = 0;
 	if (armv7m->armv7m_cache.info_valid) {
 		retval = mem_ap_read_u32(armv7m->debug_ap, CCR, &ccr);
@@ -1018,6 +1022,10 @@ static int cortex_m_poll_one(struct target *target)
 
 		/* S_RESET_ST was expected (in a reset command). Continue processing
 		 * to quickly get out of TARGET_RESET state */
+	} else {
+		retval = armv7m_deferred_identify_cache(target);
+		if (retval != ERROR_OK)
+			return retval;
 	}
 
 	if (target->state == TARGET_RESET) {
@@ -2952,6 +2960,18 @@ int cortex_m_examine(struct target *target)
 		if (retval != ERROR_OK)
 			return retval;
 
+		/*
+		 * Use a safe value of sticky S_RESET_ST for cache detection, before
+		 * clearing it below.
+		 */
+		if (!armv7m->is_hla_target) {
+			retval = armv7m_identify_cache(target);
+			if (retval != ERROR_OK) {
+				LOG_ERROR("Cannot detect cache");
+				return retval;
+			}
+		}
+
 		/*  Don't cumulate sticky S_RESET_ST at the very first read of DHCSR
 		 *  as S_RESET_ST may indicate a reset that happened long time ago
 		 *  (most probably the power-on reset before OpenOCD was started).
@@ -3021,14 +3041,6 @@ int cortex_m_examine(struct target *target)
 		LOG_TARGET_INFO(target, "target has %d breakpoints, %d watchpoints",
 			cortex_m->fp_num_code,
 			cortex_m->dwt_num_comp);
-
-		if (!armv7m->is_hla_target) {
-			retval = armv7m_identify_cache(target);
-			if (retval != ERROR_OK) {
-				LOG_ERROR("Cannot detect cache");
-				return retval;
-			}
-		}
 	}
 
 	return ERROR_OK;
