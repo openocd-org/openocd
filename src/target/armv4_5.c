@@ -355,6 +355,7 @@ static const struct {
 	/* These exist only when the Virtualization Extensions is present */
 	[42] = { .name = "sp_hyp", .cookie = 13, .mode = ARM_MODE_HYP, .gdb_index = 51, },
 	[43] = { .name = "spsr_hyp", .cookie = 16, .mode = ARM_MODE_HYP, .gdb_index = 52, },
+	// .gdb_index numbering continues by ARM_VFP_V3_D0
 };
 
 static const struct {

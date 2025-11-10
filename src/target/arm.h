@@ -108,7 +108,8 @@ enum arm_mode {
 
 /* VFPv3 internal register numbers mapping to d0:31 */
 enum {
-	ARM_VFP_V3_D0 = 51,
+	ARM_VFP_V3_D0 = 53,
+	// numbering should not overlap with e.g. armv4_5.c arm_core_regs .gdb_index
 	ARM_VFP_V3_D1,
 	ARM_VFP_V3_D2,
 	ARM_VFP_V3_D3,
