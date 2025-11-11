@@ -957,8 +957,8 @@ COMMAND_HANDLER(adapter_gpio_config_handler)
 
 	int gpio_idx = get_gpio_index(CMD_ARGV[0]);
 	if (gpio_idx == -1) {
-		LOG_ERROR("adapter has no gpio named %s", CMD_ARGV[0]);
-		return ERROR_COMMAND_SYNTAX_ERROR;
+		command_print(CMD, "adapter has no gpio named %s", CMD_ARGV[0]);
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
 	if (CMD_ARGC == 1) {
@@ -1077,9 +1077,9 @@ COMMAND_HANDLER(adapter_gpio_config_handler)
 			}
 		}
 
-		LOG_ERROR("illegal option for adapter %s %s: %s",
+		command_print(CMD, "illegal option for adapter %s %s: %s",
 				CMD_NAME, gpio_map[gpio_idx].name, CMD_ARGV[i]);
-		return ERROR_COMMAND_SYNTAX_ERROR;
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
 	/* Force swdio_dir init state to be compatible with swdio init state */
