@@ -11,6 +11,8 @@
 #include <stdint.h>
 
 #include "helper/types.h"
+#include "helper/command.h"
+#include "image.h"
 
 struct target;
 
@@ -67,6 +69,9 @@ static inline void breakpoint_hw_set(struct breakpoint *breakpoint, unsigned int
 	breakpoint->is_set = true;
 	breakpoint->number = hw_number;
 }
+
+COMMAND_HELPER(detect_breakpoints_in_section, struct target *target,
+		struct imagesection section);
 
 int watchpoint_add(struct target *target,
 		target_addr_t address, unsigned int length,

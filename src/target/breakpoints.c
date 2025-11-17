@@ -37,6 +37,23 @@ static const char * const watchpoint_rw_strings[] = {
 /* monotonic counter/id-number for breakpoints and watch points */
 static int bpwp_unique_id;
 
+COMMAND_HELPER(detect_breakpoints_in_section, struct target *target,
+		struct imagesection section)
+{
+	target_addr_t start = section.base_address;
+	uint32_t length = section.size;
+	bool found_breakpoint = false;
+
+	for (struct breakpoint *bp = target->breakpoints; bp; bp = bp->next)
+		if (is_memory_regions_overlap(start, length, bp->address, bp->length)) {
+			found_breakpoint = true;
+			command_print(cmd, "conflicting breakpoint at address: "
+					TARGET_ADDR_FMT, bp->address);
+		}
+
+	return found_breakpoint ? ERROR_FAIL : ERROR_OK;
+}
+
 static int breakpoint_add_internal(struct target *target,
 	target_addr_t address,
 	unsigned int length,

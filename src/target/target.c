@@ -3658,6 +3658,10 @@ COMMAND_HANDLER(handle_load_image_command)
 	image_size = 0x0;
 	retval = ERROR_OK;
 	for (unsigned int i = 0; i < image.num_sections; i++) {
+		retval = CALL_COMMAND_HANDLER(detect_breakpoints_in_section, target, image.sections[i]);
+		if (retval != ERROR_OK)
+			return retval;
+
 		buffer = malloc(image.sections[i].size);
 		if (!buffer) {
 			command_print(CMD,
@@ -6369,8 +6373,19 @@ COMMAND_HANDLER(handle_fast_load_command)
 	int64_t ms = timeval_ms();
 	int size = 0;
 	int retval = ERROR_OK;
+
+	struct target *target = get_current_target(CMD_CTX);
 	for (i = 0; i < fastload_num; i++) {
-		struct target *target = get_current_target(CMD_CTX);
+		struct imagesection section = {
+			.base_address = fastload[i].address,
+			.size = fastload[i].length,
+		};
+		retval = CALL_COMMAND_HANDLER(detect_breakpoints_in_section, target, section);
+		if (retval != ERROR_OK)
+			return retval;
+	}
+
+	for (i = 0; i < fastload_num; i++) {
 		command_print(CMD, "Write to 0x%08x, length 0x%08x",
 					  (unsigned int)(fastload[i].address),
 					  (unsigned int)(fastload[i].length));
