@@ -2475,45 +2475,32 @@ static int target_read_buffer_default(struct target *target, target_addr_t addre
 
 int target_checksum_memory(struct target *target, target_addr_t address, uint32_t size, uint32_t *crc)
 {
-	uint8_t *buffer;
 	int retval;
-	uint32_t i;
-	uint32_t checksum = 0;
 	if (!target_was_examined(target)) {
 		LOG_ERROR("Target not examined yet");
 		return ERROR_FAIL;
 	}
-	if (!target->type->checksum_memory) {
-		LOG_ERROR("Target %s doesn't support checksum_memory", target_name(target));
+
+	if (target->type->checksum_memory) {
+		retval = target->type->checksum_memory(target, address, size, crc);
+		if (retval == ERROR_OK)
+			return ERROR_OK;
+	} else {
+		LOG_TARGET_INFO(target, "doesn't support fast checksum_memory, using slow read memory");
+	}
+
+	uint8_t *buffer = malloc(size);
+	if (!buffer) {
+		LOG_ERROR("error allocating buffer for section (%" PRIu32 " bytes)", size);
 		return ERROR_FAIL;
 	}
 
-	retval = target->type->checksum_memory(target, address, size, &checksum);
-	if (retval != ERROR_OK) {
-		buffer = malloc(size);
-		if (!buffer) {
-			LOG_ERROR("error allocating buffer for section (%" PRIu32 " bytes)", size);
-			return ERROR_COMMAND_SYNTAX_ERROR;
-		}
-		retval = target_read_buffer(target, address, size, buffer);
-		if (retval != ERROR_OK) {
-			free(buffer);
-			return retval;
-		}
+	retval = target_read_buffer(target, address, size, buffer);
 
-		/* convert to target endianness */
-		for (i = 0; i < (size/sizeof(uint32_t)); i++) {
-			uint32_t target_data;
-			target_data = target_buffer_get_u32(target, &buffer[i*sizeof(uint32_t)]);
-			target_buffer_set_u32(target, &buffer[i*sizeof(uint32_t)], target_data);
-		}
+	if (retval == ERROR_OK)
+		retval = image_calculate_checksum(buffer, size, crc);
 
-		retval = image_calculate_checksum(buffer, size, &checksum);
-		free(buffer);
-	}
-
-	*crc = checksum;
-
+	free(buffer);
 	return retval;
 }
 
