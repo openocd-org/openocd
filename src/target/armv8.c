@@ -1855,7 +1855,12 @@ struct reg_cache *armv8_build_reg_cache(struct target *target)
 		reg_list[i].group = armv8_regs[i].group;
 		reg_list[i].number = i;
 		reg_list[i].exist = true;
-		reg_list[i].caller_save = true;	/* gdb defaults to true */
+
+		/* Registers which should be preserved across GDB inferior function calls.
+		 * Avoid saving ELx banked registers as a standard function should
+		 * not change them and higher EL registers are not accessible
+		 * in lower EL modes. */
+		reg_list[i].caller_save = i < ARMV8_ELR_EL1;
 
 		feature = calloc(1, sizeof(struct reg_feature));
 		if (feature) {
