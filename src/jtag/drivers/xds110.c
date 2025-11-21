@@ -373,6 +373,9 @@ static bool usb_connect(void)
 					/* If we fall though to here, we don't want this device */
 					libusb_close(dev);
 					dev = NULL;
+				} else {
+					const char *err_msg = libusb_error_name(result);
+					LOG_ERROR("libusb_open(): %s", err_msg);
 				}
 			}
 		}
