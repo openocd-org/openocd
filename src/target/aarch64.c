@@ -39,7 +39,7 @@ struct aarch64_private_config {
 	struct arm_cti *cti;
 };
 
-static int aarch64_poll(struct target *target);
+static int aarch64_poll_smp(struct target *target, bool smp);
 static int aarch64_debug_entry(struct target *target);
 static int aarch64_restore_context(struct target *target, bool bpwp);
 static int aarch64_set_breakpoint(struct target *target,
@@ -469,7 +469,7 @@ static int aarch64_halt_smp(struct target *target, bool exc_target)
 	return retval;
 }
 
-static int update_halt_gdb(struct target *target, enum target_debug_reason debug_reason)
+static int aarch64_update_halt_gdb(struct target *target, enum target_debug_reason debug_reason)
 {
 	struct target *gdb_target = NULL;
 	struct target_list *head;
@@ -498,15 +498,15 @@ static int update_halt_gdb(struct target *target, enum target_debug_reason debug
 		if (curr == gdb_target)
 			continue;
 
-		/* avoid recursion in aarch64_poll() */
-		curr->smp = 0;
-		aarch64_poll(curr);
-		curr->smp = 1;
+		const bool smp = false;
+		aarch64_poll_smp(curr, smp);
 	}
 
 	/* after all targets were updated, poll the gdb serving target */
-	if (gdb_target && gdb_target != target)
-		aarch64_poll(gdb_target);
+	if (gdb_target && gdb_target != target) {
+		const bool smp = false;
+		aarch64_poll_smp(gdb_target, smp);
+	}
 
 	return ERROR_OK;
 }
@@ -515,7 +515,7 @@ static int update_halt_gdb(struct target *target, enum target_debug_reason debug
  * Aarch64 Run control
  */
 
-static int aarch64_poll(struct target *target)
+static int aarch64_poll_smp(struct target *target, bool smp)
 {
 	struct armv8_common *armv8 = target_to_armv8(target);
 	enum target_state prev_target_state;
@@ -550,8 +550,8 @@ static int aarch64_poll(struct target *target)
 			if (retval != ERROR_OK)
 				return retval;
 
-			if (target->smp)
-				update_halt_gdb(target, debug_reason);
+			if (smp)
+				aarch64_update_halt_gdb(target, debug_reason);
 
 			if (arm_semihosting(target, &retval) != 0)
 				return retval;
@@ -576,6 +576,11 @@ static int aarch64_poll(struct target *target)
 	}
 
 	return retval;
+}
+
+static int aarch64_poll(struct target *target)
+{
+	return aarch64_poll_smp(target, target->smp != 0);
 }
 
 static int aarch64_halt(struct target *target)
