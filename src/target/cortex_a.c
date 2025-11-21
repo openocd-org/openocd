@@ -968,7 +968,7 @@ static int cortex_a_internal_restart(struct target *target)
 
 static int cortex_a_restore_smp(struct target *target, bool handle_breakpoints)
 {
-	int retval = 0;
+	int retval = ERROR_OK;
 	struct target_list *head;
 	target_addr_t address;
 
@@ -977,9 +977,17 @@ static int cortex_a_restore_smp(struct target *target, bool handle_breakpoints)
 		if ((curr != target) && (curr->state != TARGET_RUNNING)
 			&& target_was_examined(curr)) {
 			/*  resume current address , not in step mode */
-			retval += cortex_a_internal_restore(curr, true, &address,
+			int retval2 = cortex_a_internal_restore(curr, true, &address,
 					handle_breakpoints, false);
-			retval += cortex_a_internal_restart(curr);
+
+			if (retval2 == ERROR_OK)
+				retval2 = cortex_a_internal_restart(curr);
+
+			if (retval2 == ERROR_OK)
+				target_call_event_callbacks(curr, TARGET_EVENT_RESUMED);
+
+			if (retval == ERROR_OK)
+				retval = retval2;	// save the first error
 		}
 	}
 	return retval;
