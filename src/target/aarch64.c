@@ -955,6 +955,8 @@ static int aarch64_resume(struct target *target, bool current,
 				}
 
 				if (curr->state != TARGET_RUNNING) {
+					struct armv8_common *curr_armv8 = target_to_armv8(curr);
+					curr_armv8->last_run_control_op = ARMV8_RUNCONTROL_RESUME;
 					curr->state = TARGET_RUNNING;
 					curr->debug_reason = DBG_REASON_NOTHALTED;
 					target_call_event_callbacks(curr, TARGET_EVENT_RESUMED);
