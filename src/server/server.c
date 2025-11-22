@@ -378,7 +378,6 @@ int remove_service(const char *name, const char *port)
 			if (tmp->type != CONNECTION_STDINOUT)
 				close_socket(tmp->fd);
 
-			free(tmp->priv);
 			free_service(tmp);
 
 			return ERROR_OK;
