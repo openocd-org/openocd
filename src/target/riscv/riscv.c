@@ -493,6 +493,8 @@ static struct riscv_private_config *alloc_default_riscv_private_config(void)
 	for (unsigned int i = 0; i < ARRAY_SIZE(config->dcsr_ebreak_fields); ++i)
 		config->dcsr_ebreak_fields[i] = true;
 
+	config->detect_misa = true;
+
 	return config;
 }
 
@@ -627,12 +629,14 @@ static int jim_report_ebreak_config(const struct riscv_private_config *config,
 enum riscv_cfg_opts {
 	RISCV_CFG_EBREAK,
 	RISCV_CFG_CETRIG,
+	RISCV_CFG_DETECT_MISA,
 	RISCV_CFG_INVALID = -1
 };
 
 static struct jim_nvp nvp_config_opts[] = {
 	{ .name = "-ebreak", .value = RISCV_CFG_EBREAK },
 	{ .name = "-cetrig", .value = RISCV_CFG_CETRIG },
+	{ .name = "-detect-misa", .value = RISCV_CFG_DETECT_MISA },
 	{ .name = NULL, .value = RISCV_CFG_INVALID }
 };
 
@@ -681,6 +685,20 @@ static int riscv_jim_configure(struct target *target,
 		} else {
 			Jim_SetResultString(goi->interp,
 				jim_nvp_value2name_simple(nvp_on_off_opts, config->dcsr_cetrig)->name, -1);
+		}
+		break;
+	case RISCV_CFG_DETECT_MISA:
+		if (goi->is_configure) {
+			struct jim_nvp *opt_nvp;
+			e = jim_getopt_nvp(goi, nvp_on_off_opts, &opt_nvp);
+			if (e != JIM_OK) {
+				jim_getopt_nvp_unknown(goi, nvp_on_off_opts, /*hadprefix*/ true);
+				return e;
+			}
+			config->detect_misa = opt_nvp->value;
+		} else {
+			Jim_SetResultString(goi->interp,
+				jim_nvp_value2name_simple(nvp_on_off_opts, config->detect_misa)->name, -1);
 		}
 		break;
 	default:
@@ -869,6 +887,7 @@ static unsigned int count_trailing_ones(riscv_reg_t reg)
 
 static int set_trigger(struct target *target, unsigned int idx, riscv_reg_t tdata1, riscv_reg_t tdata2)
 {
+	int ret;
 	RISCV_INFO(r);
 	assert(r->reserved_triggers);
 	assert(idx < r->trigger_count);
@@ -880,40 +899,93 @@ static int set_trigger(struct target *target, unsigned int idx, riscv_reg_t tdat
 
 	riscv_reg_t tdata1_rb, tdata2_rb;
 	// Select which trigger to use
-	if (riscv_reg_set(target, GDB_REGNO_TSELECT, idx) != ERROR_OK)
-		return ERROR_FAIL;
+	ret = riscv_reg_set(target, GDB_REGNO_TSELECT, idx);
+	if (ret != ERROR_OK)
+		return ret;
 
 	// Disable the trigger by writing 0 to it
-	if (riscv_reg_set(target, GDB_REGNO_TDATA1, 0) != ERROR_OK)
-		return ERROR_FAIL;
+	ret = riscv_reg_set(target, GDB_REGNO_TDATA1, 0);
+	if (ret != ERROR_OK)
+		return ret;
 
 	// Set trigger data for tdata2 (and tdata3 if it was supported)
-	if (riscv_reg_set(target, GDB_REGNO_TDATA2, tdata2) != ERROR_OK)
-		return ERROR_FAIL;
+	ret = riscv_reg_set(target, GDB_REGNO_TDATA2, tdata2);
+	if (ret != ERROR_OK)
+		return ret;
 
 	// Set trigger data for tdata1
-	if (riscv_reg_set(target, GDB_REGNO_TDATA1, tdata1) != ERROR_OK)
-		return ERROR_FAIL;
+	ret = riscv_reg_set(target, GDB_REGNO_TDATA1, tdata1);
+	if (ret != ERROR_OK)
+		return ret;
 
 	// Read back tdata1, tdata2, (tdata3), and check if the configuration is supported
-	if (riscv_reg_get(target, &tdata1_rb, GDB_REGNO_TDATA1) != ERROR_OK)
-		return ERROR_FAIL;
-	if (riscv_reg_get(target, &tdata2_rb, GDB_REGNO_TDATA2) != ERROR_OK)
-		return ERROR_FAIL;
+	ret = riscv_reg_get(target, &tdata1_rb, GDB_REGNO_TDATA1);
+	if (ret != ERROR_OK)
+		return ret;
+	ret = riscv_reg_get(target, &tdata2_rb, GDB_REGNO_TDATA2);
+	if (ret != ERROR_OK)
+		return ret;
 
-	const uint32_t type = get_field(tdata1, CSR_TDATA1_TYPE(riscv_xlen(target)));
-	const bool is_mcontrol = type == CSR_TDATA1_TYPE_MCONTROL;
 
-	/* Determine if tdata1 supports what we need.
-	 * For mcontrol triggers, we don't care about
-	 * the value in the read-only "maskmax" field.
+	/* TODO: tdata1_ignore_mask should be a target config parameter with a value
+	 * for each trigger type. For now, if the execution mode is disabled, include
+	 * the corresponding bit into tdata1_ignore_mask.
 	 */
-	const riscv_reg_t tdata1_ignore_mask = is_mcontrol ? CSR_MCONTROL_MASKMAX(riscv_xlen(target)) : 0;
+	riscv_reg_t tdata1_ignore_mask = 0;
+	bool misa_s, misa_u, misa_h;
+	ret = riscv_extension_enabled(target, 'S', &misa_s);
+	if (ret != ERROR_OK)
+		return ret;
+	ret = riscv_extension_enabled(target, 'U', &misa_u);
+	if (ret != ERROR_OK)
+		return ret;
+	ret = riscv_extension_enabled(target, 'H', &misa_h);
+	if (ret != ERROR_OK)
+		return ret;
+
+	uint32_t type = get_field(tdata1, CSR_TDATA1_TYPE(riscv_xlen(target)));
+	switch (type) {
+	case CSR_TDATA1_TYPE_MCONTROL:
+		/* For mcontrol triggers, we don't care about
+		 * the value in the read-only "maskmax" field.
+		 */
+		tdata1_ignore_mask |= CSR_MCONTROL_MASKMAX(riscv_xlen(target));
+		tdata1_ignore_mask |= !misa_s ? CSR_MCONTROL_S : 0;
+		tdata1_ignore_mask |= !misa_u ? CSR_MCONTROL_U : 0;
+		break;
+	case CSR_TDATA1_TYPE_MCONTROL6:
+		tdata1_ignore_mask |= !misa_s ? CSR_MCONTROL6_S : 0;
+		tdata1_ignore_mask |= !misa_u ? CSR_MCONTROL6_U : 0;
+		tdata1_ignore_mask |= !(misa_h && misa_s) ? CSR_MCONTROL6_VS : 0;
+		tdata1_ignore_mask |= !(misa_h && misa_u) ? CSR_MCONTROL6_VU : 0;
+		break;
+	case CSR_TDATA1_TYPE_ICOUNT:
+		tdata1_ignore_mask |= !misa_s ? CSR_ICOUNT_S : 0;
+		tdata1_ignore_mask |= !misa_u ? CSR_ICOUNT_U : 0;
+		tdata1_ignore_mask |= !(misa_h && misa_s) ? CSR_ICOUNT_VS : 0;
+		tdata1_ignore_mask |= !(misa_h && misa_u) ? CSR_ICOUNT_VU : 0;
+		break;
+	case CSR_TDATA1_TYPE_ITRIGGER:
+		tdata1_ignore_mask |= !misa_s ? CSR_ITRIGGER_S : 0;
+		tdata1_ignore_mask |= !misa_u ? CSR_ITRIGGER_U : 0;
+		tdata1_ignore_mask |= !(misa_h && misa_s) ? CSR_ITRIGGER_VS : 0;
+		tdata1_ignore_mask |= !(misa_h && misa_u) ? CSR_ITRIGGER_VU : 0;
+		break;
+	case CSR_TDATA1_TYPE_ETRIGGER:
+		tdata1_ignore_mask |= !misa_s ? CSR_ETRIGGER_S : 0;
+		tdata1_ignore_mask |= !misa_u ? CSR_ETRIGGER_U : 0;
+		tdata1_ignore_mask |= !(misa_h && misa_s) ? CSR_ETRIGGER_VS : 0;
+		tdata1_ignore_mask |= !(misa_h && misa_u) ? CSR_ETRIGGER_VU : 0;
+		break;
+	}
+
+	/* Determine if tdata1 supports what we need. */
 	const bool tdata1_config_denied = (tdata1 & ~tdata1_ignore_mask) != (tdata1_rb & ~tdata1_ignore_mask);
 
 	/* Determine if tdata1.maxmask is sufficient
 	 * (only relevant for mcontrol triggers and NAPOT match type)
 	 */
+	const bool is_mcontrol = type == CSR_TDATA1_TYPE_MCONTROL;
 	bool unsupported_napot_range = false;
 	riscv_reg_t maskmax_value = 0;
 	if (!tdata1_config_denied) {
@@ -945,8 +1017,9 @@ static int set_trigger(struct target *target, unsigned int idx, riscv_reg_t tdat
 				"The requested NAPOT match range (tdata2=0x%" PRIx64 ") exceeds maskmax_value=0x%" PRIx64,
 				tdata2, maskmax_value);
 
-		if (riscv_reg_set(target, GDB_REGNO_TDATA1, 0) != ERROR_OK)
-			return ERROR_FAIL;
+		ret = riscv_reg_set(target, GDB_REGNO_TDATA1, 0);
+		if (ret != ERROR_OK)
+			return ret;
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
@@ -6272,9 +6345,8 @@ static int riscv_step_rtos_hart(struct target *target)
 	return ERROR_OK;
 }
 
-bool riscv_supports_extension(const struct target *target, char letter)
+static bool misa_check_extension(riscv_reg_t misa, char letter)
 {
-	RISCV_INFO(r);
 	unsigned int num;
 	if (letter >= 'a' && letter <= 'z')
 		num = letter - 'a';
@@ -6282,7 +6354,25 @@ bool riscv_supports_extension(const struct target *target, char letter)
 		num = letter - 'A';
 	else
 		return false;
-	return r->misa & BIT(num);
+
+	return misa & BIT(num);
+}
+
+int riscv_extension_enabled(struct target *target, char letter, bool *is_enabled)
+{
+	riscv_reg_t misa;
+	int retval = riscv_reg_get(target, &misa, GDB_REGNO_MISA);
+	if (retval != ERROR_OK)
+		return retval;
+	*is_enabled = misa_check_extension(misa, letter);
+	return ERROR_OK;
+}
+
+bool riscv_supports_extension(const struct target *target, char letter)
+{
+	RISCV_INFO(r);
+
+	return misa_check_extension(r->misa, letter);
 }
 
 unsigned int riscv_xlen(const struct target *target)

@@ -184,11 +184,9 @@ unsigned int mxl_to_xlen(enum misa_mxl mxl)
 	return 0;
 }
 
-static int check_misa_mxl(const struct target *target)
+static int check_misa_mxl(const struct target *target, riscv_reg_t misa)
 {
-	RISCV_INFO(r);
-
-	if (r->misa == 0) {
+	if (misa == 0) {
 		LOG_TARGET_WARNING(target, "'misa' register is read as zero."
 				"OpenOCD will not be able to determine some hart's capabilities.");
 		return ERROR_OK;
@@ -197,7 +195,7 @@ static int check_misa_mxl(const struct target *target)
 	assert(dxlen <= sizeof(riscv_reg_t) * CHAR_BIT);
 	assert(dxlen >= 2);
 	const riscv_reg_t misa_mxl_mask = (riscv_reg_t)0x3 << (dxlen - 2);
-	const unsigned int mxl = get_field(r->misa, misa_mxl_mask);
+	const unsigned int mxl = get_field(misa, misa_mxl_mask);
 	if (mxl == MISA_MXL_INVALID) {
 		/* This is not an error!
 		 * Imagine the platform that:
@@ -223,7 +221,7 @@ static int check_misa_mxl(const struct target *target)
 		 */
 		LOG_TARGET_WARNING(target, "Detected DXLEN (%u) does not match "
 				"MXLEN: misa.mxl == 0, misa == 0x%" PRIx64 ".",
-				dxlen, r->misa);
+				dxlen, misa);
 		return ERROR_OK;
 	}
 	const unsigned int mxlen = mxl_to_xlen(mxl);
@@ -246,7 +244,31 @@ static int check_misa_mxl(const struct target *target)
 
 	/* Display this as early as possible to help people who are using
 	 * really slow simulators. */
-	LOG_TARGET_DEBUG(target, " XLEN=%d, misa=0x%" PRIx64, riscv_xlen(target), r->misa);
+	LOG_TARGET_DEBUG(target, " XLEN=%d, misa=0x%" PRIx64, riscv_xlen(target), misa);
+
+	return ERROR_OK;
+}
+
+static int misa_detect_extensions(struct target *target, riscv_reg_t *misa)
+{
+	riscv_reg_t misa_extensions_mask = (riscv_reg_t)GENMASK(24, 0);
+	riscv_reg_t misa_enabled = set_field(*misa, misa_extensions_mask, misa_extensions_mask);
+	int retval = riscv_reg_set(target, GDB_REGNO_MISA, misa_enabled);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = riscv_reg_get(target, &misa_enabled, GDB_REGNO_MISA);
+	if (retval != ERROR_OK)
+		return retval;
+
+	if (*misa != misa_enabled) {
+		LOG_TARGET_DEBUG(target, "Detected misa=0x%" PRIx64 "does not equal to "
+				"origin misa=0x%" PRIx64, misa_enabled, *misa);
+		retval = riscv_reg_set(target, GDB_REGNO_MISA, *misa);
+		if (retval != ERROR_OK)
+			return retval;
+		*misa = misa_enabled;
+	}
 	return ERROR_OK;
 }
 
@@ -258,10 +280,25 @@ static int examine_misa(struct target *target)
 	if (res != ERROR_OK)
 		return res;
 
-	res = riscv_reg_get(target, &r->misa, GDB_REGNO_MISA);
+	riscv_reg_t misa;
+	res = riscv_reg_get(target, &misa, GDB_REGNO_MISA);
 	if (res != ERROR_OK)
 		return res;
-	return check_misa_mxl(target);
+
+	res = check_misa_mxl(target, misa);
+	if (res != ERROR_OK)
+		return res;
+
+	struct riscv_private_config *config = target->private_config;
+	if (config->detect_misa) {
+		res = misa_detect_extensions(target, &misa);
+		if (res != ERROR_OK)
+			return res;
+	}
+
+	r->misa = misa;
+
+	return ERROR_OK;
 }
 
 static int examine_mtopi(struct target *target)
