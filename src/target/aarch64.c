@@ -2682,16 +2682,18 @@ static int aarch64_examine_first(struct target *target)
 
 	retval = mem_ap_read_u32(armv8->debug_ap,
 			armv8->debug_base + CPUV8_DBG_MEMFEATURE0, &tmp0);
-	retval += mem_ap_read_u32(armv8->debug_ap,
-			armv8->debug_base + CPUV8_DBG_MEMFEATURE0 + 4, &tmp1);
+	if (retval == ERROR_OK)
+		retval = mem_ap_read_u32(armv8->debug_ap,
+						armv8->debug_base + CPUV8_DBG_MEMFEATURE0 + 4, &tmp1);
 	if (retval != ERROR_OK) {
 		LOG_DEBUG("Examine %s failed", "Memory Model Type");
 		return retval;
 	}
 	retval = mem_ap_read_u32(armv8->debug_ap,
 			armv8->debug_base + CPUV8_DBG_DBGFEATURE0, &tmp2);
-	retval += mem_ap_read_u32(armv8->debug_ap,
-			armv8->debug_base + CPUV8_DBG_DBGFEATURE0 + 4, &tmp3);
+	if (retval == ERROR_OK)
+		retval = mem_ap_read_u32(armv8->debug_ap,
+						armv8->debug_base + CPUV8_DBG_DBGFEATURE0 + 4, &tmp3);
 	if (retval != ERROR_OK) {
 		LOG_DEBUG("Examine %s failed", "ID_AA64DFR0_EL1");
 		return retval;
