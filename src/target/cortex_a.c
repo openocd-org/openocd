@@ -664,18 +664,22 @@ static struct target *get_cortex_a(struct target *target, int32_t coreid)
 	}
 	return target;
 }
+
 static int cortex_a_halt(struct target *target);
 
 static int cortex_a_halt_smp(struct target *target)
 {
-	int retval = 0;
+	int retval = ERROR_OK;
 	struct target_list *head;
 
 	foreach_smp_target(head, target->smp_targets) {
 		struct target *curr = head->target;
 		if ((curr != target) && (curr->state != TARGET_HALTED)
-			&& target_was_examined(curr))
-			retval += cortex_a_halt(curr);
+				&& target_was_examined(curr)) {
+			int retval1 = cortex_a_halt(curr);
+			if (retval == ERROR_OK)
+				retval = retval1;	// save the first error and continue loop
+		}
 	}
 	return retval;
 }
@@ -685,12 +689,12 @@ static int update_halt_gdb(struct target *target)
 	struct target *gdb_target = NULL;
 	struct target_list *head;
 	struct target *curr;
-	int retval = 0;
+	int retval = ERROR_OK;
 
 	if (target->gdb_service && target->gdb_service->core[0] == -1) {
 		target->gdb_service->target = target;
 		target->gdb_service->core[0] = target->coreid;
-		retval += cortex_a_halt_smp(target);
+		retval = cortex_a_halt_smp(target);
 	}
 
 	if (target->gdb_service)
