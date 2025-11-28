@@ -47,7 +47,7 @@ proc find {filename} {
 		return $t
 	}
 
-	foreach vendor {nordic ti sifive st} {
+	foreach vendor {gigadevice nordic sifive st ti} {
 		# - path/to/a/certain/config_file
 		# replaced either with
 		# - path/to/a/certain/${vendor}/config_file
