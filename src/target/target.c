@@ -1433,6 +1433,11 @@ int target_step(struct target *target,
 {
 	int retval;
 
+	if (!target_was_examined(target)) {
+		LOG_TARGET_ERROR(target, "not examined");
+		return ERROR_TARGET_NOT_EXAMINED;
+	}
+
 	target_call_event_callbacks(target, TARGET_EVENT_STEP_START);
 
 	retval = target->type->step(target, current, address, handle_breakpoints);
@@ -4687,6 +4692,10 @@ COMMAND_HANDLER(handle_target_get_reg)
 	const int length = Jim_ListLength(CMD_CTX->interp, next_argv);
 
 	const struct target *target = get_current_target(CMD_CTX);
+	if (target->state != TARGET_HALTED) {
+		command_print(CMD, "Error: [%s] not halted", target_name(target));
+		return ERROR_TARGET_NOT_HALTED;
+	}
 
 	for (int i = 0; i < length; i++) {
 		Jim_Obj *elem = Jim_ListGetIndex(CMD_CTX->interp, next_argv, i);
@@ -4747,6 +4756,11 @@ COMMAND_HANDLER(handle_set_reg_command)
 
 	const struct target *target = get_current_target(CMD_CTX);
 	assert(target);
+	if (target->state != TARGET_HALTED) {
+		command_print(CMD, "Error: [%s] not halted", target_name(target));
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
 
 	for (unsigned int i = 0; i < length; i += 2) {
 		const char *reg_name = Jim_String(dict[i]);
