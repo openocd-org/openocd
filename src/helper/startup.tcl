@@ -31,9 +31,17 @@ proc find {filename} {
 
 	# - path/to/a/certain/vendor_config_file
 	# - path/to/a/certain/vendor-config_file
-	# replaced with
+	# replaced either with
 	# - path/to/a/certain/vendor/config_file
+	# or
+	# - path/to/a/certain/vendor/config-file
 	regsub {([/\\])([^/\\_-]*)[_-]([^/\\]*$)} $filename "\\1\\2\\1\\3" f
+	if {[catch {_find_internal $f} t]==0} {
+		echo "WARNING: '$filename' is deprecated, use '$f' instead"
+		return $t
+	}
+	regsub {([/\\])([^/\\_]*)_([^/\\]*$)} $f "\\1\\2-\\3" f
+	regsub {([/\\])([^/\\_]*)_([^/\\]*$)} $f "\\1\\2-\\3" f
 	if {[catch {_find_internal $f} t]==0} {
 		echo "WARNING: '$filename' is deprecated, use '$f' instead"
 		return $t
@@ -41,9 +49,17 @@ proc find {filename} {
 
 	foreach vendor {nordic ti sifive st} {
 		# - path/to/a/certain/config_file
-		# replaced with
+		# replaced either with
 		# - path/to/a/certain/${vendor}/config_file
+		# or
+		# - path/to/a/certain/${vendor}/config-file
 		regsub {([/\\])([^/\\]*$)} $filename "\\1$vendor\\1\\2" f
+		if {[catch {_find_internal $f} t]==0} {
+			echo "WARNING: '$filename' is deprecated, use '$f' instead"
+			return $t
+		}
+		regsub {([/\\])([^/\\_]*)_([^/\\]*$)} $f "\\1\\2-\\3" f
+		regsub {([/\\])([^/\\_]*)_([^/\\]*$)} $f "\\1\\2-\\3" f
 		if {[catch {_find_internal $f} t]==0} {
 			echo "WARNING: '$filename' is deprecated, use '$f' instead"
 			return $t
