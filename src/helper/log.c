@@ -53,13 +53,14 @@ static int64_t last_time;
 
 static int64_t start;
 
-static const char * const log_strings[6] = {
+static const char * const log_strings[7] = {
 	"User : ",
 	"Error: ",
 	"Warn : ",	/* want a space after each colon, all same width, colons aligned */
 	"Info : ",
 	"Debug: ",
-	"Debug: "
+	"Debug: ",
+	"Debug: ",  /* corresponds to LOG_LVL_DEBUG_USB */
 };
 
 static int count;
@@ -212,7 +213,7 @@ COMMAND_HANDLER(handle_debug_level_command)
 	} else if (CMD_ARGC == 1) {
 		int new_level;
 		COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], new_level);
-		if ((new_level > LOG_LVL_DEBUG_IO) || (new_level < LOG_LVL_SILENT)) {
+		if (new_level > LOG_LVL_DEBUG_USB || new_level < LOG_LVL_SILENT) {
 			command_print(CMD, "level must be between %d and %d", LOG_LVL_SILENT, LOG_LVL_DEBUG_IO);
 			return ERROR_COMMAND_ARGUMENT_INVALID;
 		}

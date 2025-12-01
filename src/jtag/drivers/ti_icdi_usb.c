@@ -126,17 +126,17 @@ static int icdi_send_packet(void *handle, int len)
 
 	len += sprintf(&h->write_buffer[len], PACKET_END "%02x", cksum);
 
-#ifdef _DEBUG_USB_COMMS_
-	char buffer[50];
-	char ch = h->write_buffer[1];
-	if (ch == 'x' || ch == 'X')
-		LOG_DEBUG("writing packet: <binary>");
-	else {
-		memcpy(buffer, h->write_buffer, len >= 50 ? 50-1 : len);
-		buffer[len] = 0;
-		LOG_DEBUG("writing packet: %s", buffer);
+	if (LOG_LEVEL_IS(LOG_LVL_DEBUG_USB)) {
+		char buffer[50];
+		char ch = h->write_buffer[1];
+		if (ch == 'x' || ch == 'X') {
+			LOG_DEBUG_USB("writing packet: <binary>");
+		} else {
+			memcpy(buffer, h->write_buffer, len >= 50 ? 50 - 1 : len);
+			buffer[len] = 0;
+			LOG_DEBUG_USB("writing packet: %s", buffer);
+		}
 	}
-#endif
 
 	while (1) {
 
@@ -155,9 +155,7 @@ static int icdi_send_packet(void *handle, int len)
 			return ERROR_FAIL;
 		}
 
-#ifdef _DEBUG_USB_COMMS_
-		LOG_DEBUG("received reply: '%c' : count %d", h->read_buffer[0], transferred);
-#endif
+		LOG_DEBUG_USB("received reply: '%c' : count %d", h->read_buffer[0], transferred);
 
 		if (h->read_buffer[0] == '-') {
 			LOG_DEBUG("Resending packet %d", ++retry);
@@ -182,9 +180,7 @@ static int icdi_send_packet(void *handle, int len)
 		result = libusb_bulk_transfer(h->usb_dev, ICDI_READ_ENDPOINT, (unsigned char *)h->read_buffer + h->read_count,
 				h->max_packet - h->read_count, &transferred, ICDI_READ_TIMEOUT);
 
-#ifdef _DEBUG_USB_COMMS_
-		LOG_DEBUG("received data: count %d", transferred);
-#endif
+		LOG_DEBUG_USB("received data: count %d", transferred);
 
 		/* check for errors but retry for timeout */
 		if (result != 0) {

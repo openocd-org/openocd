@@ -2175,12 +2175,10 @@ static int ulink_init(void)
 			ulink_handle = NULL;
 			return ERROR_FAIL;
 		}
-#ifdef _DEBUG_USB_COMMS_
 		else {
 			/* Successfully received Bulk IN packet -> continue */
-			LOG_INFO("Recovered from lost Bulk IN packet");
+			LOG_DEBUG_USB("Recovered from lost Bulk IN packet");
 		}
-#endif
 	}
 	ulink_clear_queue(ulink_handle);
 

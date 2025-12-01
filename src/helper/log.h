@@ -37,6 +37,9 @@
  * LOG_LVL_INFO - state information, etc.
  * LOG_LVL_DEBUG - debug statements, execution trace
  * LOG_LVL_DEBUG_IO - verbose debug, low-level I/O trace
+ * LOG_LVL_DEBUG_USB - verbose USB trace
+ *                     In the past this corresponded to build configuration options
+					   --enable-verbose and --enable-verbose-usb-comms.
  */
 enum log_levels {
 	LOG_LVL_SILENT = -3,
@@ -47,6 +50,7 @@ enum log_levels {
 	LOG_LVL_INFO = 2,
 	LOG_LVL_DEBUG = 3,
 	LOG_LVL_DEBUG_IO = 4,
+	LOG_LVL_DEBUG_USB = 5,
 };
 
 void log_printf(enum log_levels level, const char *file, unsigned int line,
@@ -99,6 +103,8 @@ extern int debug_level;
  * Matters on feeble CPUs for DEBUG/INFO statements that are involved frequently */
 
 #define LOG_LEVEL_IS(FOO)  ((debug_level) >= (FOO))
+
+#define LOG_DEBUG_USB(expr, ...) LOG_CUSTOM_LEVEL(LOG_LVL_DEBUG_USB, expr, ##__VA_ARGS__)
 
 #define LOG_DEBUG_IO(expr ...) \
 	do { \

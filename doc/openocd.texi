@@ -9566,7 +9566,8 @@ Level 0 is error messages only;
 level 1 adds warnings;
 level 2 adds informational messages;
 level 3 adds debugging messages;
-and level 4 adds verbose low-level debug messages.
+level 4 adds verbose low-level debug messages;
+and level 5 adds USB communication messages.
 The default is level 2, but that can be overridden on
 the command line along with the location of that log
 file (which is normally the server's standard output).

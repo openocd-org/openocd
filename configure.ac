@@ -268,27 +268,6 @@ AS_IF([test "x$enable_gcov" = "xyes"], [
   AC_DEFINE([USE_GCOV], [0], [0 to leave coverage collection disabled.])
 ])
 
-# set default for debug_usb_comms, overridden by following options
-debug_usb_comms=no
-
-AC_ARG_ENABLE([verbose],
-  AS_HELP_STRING([--enable-verbose],
-      [Enable verbose JTAG I/O messages (for debugging).]),
-  [
-  debug_usb_comms=$enableval
-  ], [])
-
-AC_ARG_ENABLE([verbose_usb_comms],
-  AS_HELP_STRING([--enable-verbose-usb-comms],
-      [Enable verbose USB communication messages (for debugging)]),
-  [debug_usb_comms=$enableval], [])
-
-AC_MSG_CHECKING([whether to enable verbose USB communication messages]);
-AC_MSG_RESULT([$debug_usb_comms])
-AS_IF([test "x$debug_usb_comms" = "xyes"], [
-  AC_DEFINE([_DEBUG_USB_COMMS_],[1], [Print verbose USB communication messages])
-])
-
 debug_malloc=no
 AC_ARG_ENABLE([malloc_logging],
   AS_HELP_STRING([--enable-malloc-logging],

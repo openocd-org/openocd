@@ -119,8 +119,6 @@ static const uint16_t cy7c65215_pids[] = {0x0007, 0};
 
 static unsigned int ep_in, ep_out;
 
-#ifdef _DEBUG_USB_COMMS_
-
 #define DEBUG_TYPE_READ     0
 #define DEBUG_TYPE_WRITE    1
 #define DEBUG_TYPE_OCD_READ 2
@@ -129,6 +127,9 @@ static unsigned int ep_in, ep_out;
 #define LINE_LEN  16
 static void openjtag_debug_buffer(uint8_t *buffer, int length, uint8_t type)
 {
+	if (!LOG_LEVEL_IS(LOG_LVL_DEBUG_USB))
+		return;
+
 	char line[128];
 	char s[4];
 	int i;
@@ -149,7 +150,7 @@ static void openjtag_debug_buffer(uint8_t *buffer, int length, uint8_t type)
 		break;
 	}
 
-	LOG_DEBUG("%s", line);
+	LOG_DEBUG_USB("%s", line);
 
 	for (i = 0; i < length; i += LINE_LEN) {
 		switch (type) {
@@ -171,12 +172,10 @@ static void openjtag_debug_buffer(uint8_t *buffer, int length, uint8_t type)
 			sprintf(s, " %02x", buffer[j]);
 			strcat(line, s);
 		}
-		LOG_DEBUG("%s", line);
+		LOG_DEBUG_USB("%s", line);
 	}
 
 }
-
-#endif
 
 static int8_t openjtag_get_tap_state(int8_t state)
 {
@@ -207,9 +206,8 @@ static int openjtag_buf_write_standard(
 	uint8_t *buf, int size, uint32_t *bytes_written)
 {
 	int retval;
-#ifdef _DEBUG_USB_COMMS_
+
 	openjtag_debug_buffer(buf, size, DEBUG_TYPE_WRITE);
-#endif
 
 	retval = ftdi_write_data(&ftdic, buf, size);
 	if (retval < 0) {
@@ -228,9 +226,7 @@ static int openjtag_buf_write_cy7c65215(
 {
 	int ret;
 
-#ifdef _DEBUG_USB_COMMS_
 	openjtag_debug_buffer(buf, size, DEBUG_TYPE_WRITE);
-#endif
 
 	if (size == 0) {
 		*bytes_written = 0;
@@ -287,9 +283,7 @@ static int openjtag_buf_read_standard(
 		*bytes_read += retval;
 	}
 
-#ifdef _DEBUG_USB_COMMS_
 	openjtag_debug_buffer(buf, *bytes_read, DEBUG_TYPE_READ);
-#endif
 
 	return ERROR_OK;
 }
@@ -320,9 +314,7 @@ static int openjtag_buf_read_cy7c65215(
 	*bytes_read = ret;
 
 out:
-#ifdef _DEBUG_USB_COMMS_
 	openjtag_debug_buffer(buf, *bytes_read, DEBUG_TYPE_READ);
-#endif
 
 	return ERROR_OK;
 }
@@ -585,10 +577,9 @@ static int openjtag_execute_tap_queue(void)
 				count++;
 			}
 
-#ifdef _DEBUG_USB_COMMS_
 			openjtag_debug_buffer(buffer,
 				DIV_ROUND_UP(openjtag_scan_result_buffer[res_count].bits, 8), DEBUG_TYPE_OCD_READ);
-#endif
+
 			jtag_read_buffer(buffer, openjtag_scan_result_buffer[res_count].command);
 
 			free(openjtag_scan_result_buffer[res_count].buffer);
@@ -725,9 +716,8 @@ static void openjtag_execute_scan(struct jtag_command *cmd)
 	tap_set_end_state(cmd->cmd.scan->end_state);
 	scan_size = jtag_build_buffer(cmd->cmd.scan, &buffer);
 
-#ifdef _DEBUG_USB_COMMS_
 	openjtag_debug_buffer(buffer, (scan_size + 7) / 8, DEBUG_TYPE_BUFFER);
-#endif
+
 	/* set state */
 	old_state = tap_get_end_state();
 	openjtag_set_state(cmd->cmd.scan->ir_scan ? TAP_IRSHIFT : TAP_DRSHIFT);

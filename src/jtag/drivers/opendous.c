@@ -134,10 +134,7 @@ static int opendous_usb_read(struct opendous_jtag *opendous_jtag);
 
 /* helper functions */
 static int opendous_get_version_info(void);
-
-#ifdef _DEBUG_USB_COMMS_
 static void opendous_debug_buffer(uint8_t *buffer, int length);
-#endif
 
 static struct opendous_jtag *opendous_jtag_handle;
 
@@ -282,9 +279,8 @@ static int opendous_execute_queue(struct jtag_command *cmd_queue)
 			scan_size = jtag_build_buffer(cmd->cmd.scan, &buffer);
 			LOG_DEBUG_IO("scan input, length = %d", scan_size);
 
-#ifdef _DEBUG_USB_COMMS_
 			opendous_debug_buffer(buffer, (scan_size + 7) / 8);
-#endif
+
 			type = jtag_scan_type(cmd->cmd.scan);
 			opendous_scan(cmd->cmd.scan->ir_scan, type, buffer, scan_size, cmd->cmd.scan);
 			break;
@@ -604,10 +600,7 @@ int opendous_tap_execute(void)
 	int byte_length;
 	int i, j;
 	int result;
-
-#ifdef _DEBUG_USB_COMMS_
 	int byte_length_out;
-#endif
 
 	if (tap_length > 0) {
 
@@ -615,10 +608,8 @@ int opendous_tap_execute(void)
 		/* LOG_INFO("OPENDOUS tap execute %d",tap_length); */
 		byte_length = (tap_length + 3) / 4;
 
-#ifdef _DEBUG_USB_COMMS_
 		byte_length_out = (tap_length + 7) / 8;
-		LOG_DEBUG("opendous is sending %d bytes", byte_length);
-#endif
+		LOG_DEBUG_USB("opendous is sending %d bytes", byte_length);
 
 		for (j = 0, i = 0; j <  byte_length;) {
 
@@ -647,10 +638,8 @@ int opendous_tap_execute(void)
 			j += transmit;
 		}
 
-#ifdef _DEBUG_USB_COMMS_
-		LOG_DEBUG("opendous tap result %d", byte_length_out);
+		LOG_DEBUG_USB("opendous tap result %d", byte_length_out);
 		opendous_debug_buffer(tdo_buffer, byte_length_out);
-#endif
 
 		/* LOG_INFO("eStick tap execute %d",tap_length); */
 		for (i = 0; i < pending_scan_results_length; i++) {
@@ -666,9 +655,7 @@ int opendous_tap_execute(void)
 
 			LOG_DEBUG_IO("pending scan result, length = %d", length);
 
-#ifdef _DEBUG_USB_COMMS_
 			opendous_debug_buffer(buffer, byte_length_out);
-#endif
 
 			if (jtag_read_buffer(buffer, command) != ERROR_OK) {
 				opendous_tap_init();
@@ -739,9 +726,8 @@ int opendous_usb_write(struct opendous_jtag *opendous_jtag, int out_length)
 		return -1;
 	}
 
-#ifdef _DEBUG_USB_COMMS_
-	LOG_DEBUG("USB write begin");
-#endif
+	LOG_DEBUG_USB("USB write begin");
+
 	if (opendous_probe->CONTROL_TRANSFER) {
 		result = jtag_libusb_control_transfer(opendous_jtag->usb_handle,
 			LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE | LIBUSB_ENDPOINT_OUT,
@@ -754,15 +740,13 @@ int opendous_usb_write(struct opendous_jtag *opendous_jtag, int out_length)
 		jtag_libusb_bulk_write(opendous_jtag->usb_handle, OPENDOUS_WRITE_ENDPOINT,
 			(char *)usb_out_buffer, out_length, OPENDOUS_USB_TIMEOUT, &result);
 	}
-#ifdef _DEBUG_USB_COMMS_
-	LOG_DEBUG("USB write end: %d bytes", result);
-#endif
+
+	LOG_DEBUG_USB("USB write end: %d bytes", result);
 
 	LOG_DEBUG_IO("opendous_usb_write, out_length = %d, result = %d", out_length, result);
 
-#ifdef _DEBUG_USB_COMMS_
 	opendous_debug_buffer(usb_out_buffer, out_length);
-#endif
+
 	return result;
 }
 
@@ -771,9 +755,8 @@ int opendous_usb_read(struct opendous_jtag *opendous_jtag)
 {
 	int transferred;
 
-#ifdef _DEBUG_USB_COMMS_
-	LOG_DEBUG("USB read begin");
-#endif
+	LOG_DEBUG_USB("USB read begin");
+
 	int result;
 	if (opendous_probe->CONTROL_TRANSFER) {
 		result = jtag_libusb_control_transfer(opendous_jtag->usb_handle,
@@ -787,29 +770,29 @@ int opendous_usb_read(struct opendous_jtag *opendous_jtag)
 		jtag_libusb_bulk_read(opendous_jtag->usb_handle, OPENDOUS_READ_ENDPOINT,
 			(char *)usb_in_buffer, OPENDOUS_IN_BUFFER_SIZE, OPENDOUS_USB_TIMEOUT, &result);
 	}
-#ifdef _DEBUG_USB_COMMS_
-	LOG_DEBUG("USB read end: %d bytes", result);
-#endif
+
+	LOG_DEBUG_USB("USB read end: %d bytes", result);
+
 	LOG_DEBUG_IO("opendous_usb_read, result = %d", result);
 
-#ifdef _DEBUG_USB_COMMS_
 	opendous_debug_buffer(usb_in_buffer, result);
-#endif
+
 	return result;
 }
 
-#ifdef _DEBUG_USB_COMMS_
 #define BYTES_PER_LINE  16
 
 void opendous_debug_buffer(uint8_t *buffer, int length)
 {
+	if (!LOG_LEVEL_IS(LOG_LVL_DEBUG_USB))
+		return;
+
 	char line[8 + 3 * BYTES_PER_LINE + 1];
 
 	for (int i = 0; i < length; i += BYTES_PER_LINE) {
 		int n = snprintf(line, 9, "%04x", i);
 		for (int j = i; j < i + BYTES_PER_LINE && j < length; j++)
 			n += snprintf(line + n, 4, " %02x", buffer[j]);
-		LOG_DEBUG("%s", line);
+		LOG_DEBUG_USB("%s", line);
 	}
 }
-#endif

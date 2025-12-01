@@ -76,9 +76,7 @@ static int armjtagew_usb_read(struct armjtagew *armjtagew, int exp_in_length);
 /* helper functions */
 static int armjtagew_get_version_info(void);
 
-#ifdef _DEBUG_USB_COMMS_
 static void armjtagew_debug_buffer(uint8_t *buffer, int length);
-#endif
 
 static struct armjtagew *armjtagew_handle;
 
@@ -127,9 +125,8 @@ static int armjtagew_execute_queue(struct jtag_command *cmd_queue)
 			scan_size = jtag_build_buffer(cmd->cmd.scan, &buffer);
 			LOG_DEBUG_IO("scan input, length = %d", scan_size);
 
-#ifdef _DEBUG_USB_COMMS_
 			armjtagew_debug_buffer(buffer, (scan_size + 7) / 8);
-#endif
+
 			type = jtag_scan_type(cmd->cmd.scan);
 			armjtagew_scan(cmd->cmd.scan->ir_scan,
 					type, buffer,
@@ -641,9 +638,7 @@ static int armjtagew_tap_execute(void)
 
 				LOG_DEBUG_IO("pending scan result, length = %d", length);
 
-#ifdef _DEBUG_USB_COMMS_
 				armjtagew_debug_buffer(buffer, byte_length);
-#endif
 
 				if (jtag_read_buffer(buffer, command) != ERROR_OK) {
 					armjtagew_tap_init();
@@ -743,9 +738,8 @@ static int armjtagew_usb_write(struct armjtagew *armjtagew, int out_length)
 
 	LOG_DEBUG_IO("armjtagew_usb_write, out_length = %d, result = %d", out_length, result);
 
-#ifdef _DEBUG_USB_COMMS_
 	armjtagew_debug_buffer(usb_out_buffer, out_length);
-#endif
+
 	if (result != ERROR_OK)
 		return -1;
 	return transferred;
@@ -760,29 +754,29 @@ static int armjtagew_usb_read(struct armjtagew *armjtagew, int exp_in_length)
 
 	LOG_DEBUG_IO("armjtagew_usb_read, result = %d", result);
 
-#ifdef _DEBUG_USB_COMMS_
 	armjtagew_debug_buffer(usb_in_buffer, result);
-#endif
+
 	if (result != ERROR_OK)
 		return -1;
 	return transferred;
 }
 
-#ifdef _DEBUG_USB_COMMS_
 #define BYTES_PER_LINE  16
 
 static void armjtagew_debug_buffer(uint8_t *buffer, int length)
 {
+	if (!LOG_LEVEL_IS(LOG_LVL_DEBUG_USB))
+		return;
+
 	char line[8 + 3 * BYTES_PER_LINE + 1];
 
 	for (int i = 0; i < length; i += BYTES_PER_LINE) {
 		int n = snprintf(line, 9, "%04x", i);
 		for (int j = i; j < i + BYTES_PER_LINE && j < length; j++)
 			n += snprintf(line + n, 4, " %02x", buffer[j]);
-		LOG_DEBUG("%s", line);
+		LOG_DEBUG_USB("%s", line);
 
 		/* Prevent GDB timeout (writing to log might take some time) */
 		keep_alive();
 	}
 }
-#endif
