@@ -278,13 +278,21 @@ COMMAND_HANDLER(handle_flash_erase_address_command)
 	if (retval == ERROR_OK)
 		retval = flash_erase_address_range(target, do_pad, address, length);
 
-	if (retval == ERROR_OK && duration_measure(&bench) == ERROR_OK) {
+	if (retval == ERROR_FLASH_OPER_UNSUPPORTED) {
+		command_print(CMD, "erase operation is not supported");
+		return retval;
+	} else if (retval != ERROR_OK) {
+		command_print(CMD, "erase operation failed");
+		return retval;
+	}
+
+	if (duration_measure(&bench) == ERROR_OK) {
 		command_print(CMD, "erased address " TARGET_ADDR_FMT " (length %" PRIu32 ")"
 			" in %fs (%0.3f KiB/s)", address, length,
 			duration_elapsed(&bench), duration_kbps(&bench, length));
 	}
 
-	return retval;
+	return ERROR_OK;
 }
 
 COMMAND_HANDLER(handle_flash_erase_command)
@@ -332,16 +340,21 @@ COMMAND_HANDLER(handle_flash_erase_command)
 
 	retval = flash_driver_erase(p, first, last);
 
-	if (retval == ERROR_OK && duration_measure(&bench) == ERROR_OK) {
+	if (retval == ERROR_FLASH_OPER_UNSUPPORTED) {
+		command_print(CMD, "erase operation is not supported");
+		return retval;
+	} else if (retval != ERROR_OK) {
+		command_print(CMD, "failed to erase sectors");
+		return retval;
+	}
+
+	if (duration_measure(&bench) == ERROR_OK) {
 		command_print(CMD, "erased sectors %" PRIu32 " "
 			"through %" PRIu32 " on flash bank %u "
 			"in %fs", first, last, p->bank_number, duration_elapsed(&bench));
 	}
 
-	if (retval != ERROR_OK)
-		command_print(CMD, "failed to erase sectors");
-
-	return retval;
+	return ERROR_OK;
 }
 
 COMMAND_HANDLER(handle_flash_protect_command)

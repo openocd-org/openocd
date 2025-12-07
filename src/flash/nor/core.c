@@ -29,13 +29,7 @@ static struct flash_bank *flash_banks;
 int flash_driver_erase(struct flash_bank *bank, unsigned int first,
 		unsigned int last)
 {
-	int retval;
-
-	retval = bank->driver->erase(bank, first, last);
-	if (retval != ERROR_OK)
-		LOG_ERROR("failed erasing sectors %u to %u", first, last);
-
-	return retval;
+	return bank->driver->erase(bank, first, last);
 }
 
 int flash_driver_protect(struct flash_bank *bank, int set, unsigned int first,

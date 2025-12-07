@@ -3654,8 +3654,12 @@ static int gdb_v_packet(struct connection *connection,
 		target_call_event_callbacks(target,
 			TARGET_EVENT_GDB_FLASH_ERASE_END);
 
-		/* perform erase */
-		if (result != ERROR_OK) {
+		/* Perform erase.
+		 * If the driver does not support erase, we silently ignore it.
+		 * This is expected for non-flash NVM which does not require an erase
+		 * operation before programming.
+		 */
+		if (result != ERROR_OK && result != ERROR_FLASH_OPER_UNSUPPORTED) {
 			/* GDB doesn't evaluate the actual error number returned,
 			 * treat a failed erase as an I/O error
 			 */
