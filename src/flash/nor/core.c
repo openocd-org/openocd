@@ -468,19 +468,22 @@ static int flash_iterate_address_range_inner(struct target *target,
 	if (retval != ERROR_OK)
 		return retval;
 
-	if (c->size == 0 || c->num_sectors == 0) {
+	if (c->size == 0) {
 		LOG_ERROR("Bank is invalid");
 		return ERROR_FLASH_BANK_INVALID;
 	}
 
-	if (length == 0) {
-		/* special case, erase whole bank when length is zero */
+	if (length == 0 || c->sectors == 0) {
+		/*
+		 * Special case, erase whole bank when length is zero or the
+		 * bank has no sectors.
+		 */
 		if (addr != c->base) {
 			LOG_ERROR("Whole bank access must start at beginning of bank.");
 			return ERROR_FLASH_DST_BREAKS_ALIGNMENT;
 		}
 
-		return callback(c, 0, c->num_sectors - 1);
+		return callback(c, 0, (c->num_sectors == 0) ? 0 : c->num_sectors - 1);
 	}
 
 	/* check whether it all fits in this bank */

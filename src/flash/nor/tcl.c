@@ -302,23 +302,29 @@ COMMAND_HANDLER(handle_flash_erase_command)
 	if (retval != ERROR_OK)
 		return retval;
 
-	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], first);
-	if (strcmp(CMD_ARGV[2], "last") == 0)
-		last = p->num_sectors - 1;
-	else
-		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], last);
+	if (p->num_sectors == 0) {
+		LOG_INFO("bank has no sectors, ignoring specified sectors");
+		first = 0;
+		last = 0;
+	} else {
+		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], first);
+		if (strcmp(CMD_ARGV[2], "last") == 0)
+			last = p->num_sectors - 1;
+		else
+			COMMAND_PARSE_NUMBER(u32, CMD_ARGV[2], last);
 
-	if (!(first <= last)) {
-		command_print(CMD, "ERROR: "
-			"first sector must be <= last");
-		return ERROR_FAIL;
-	}
+		if (!(first <= last)) {
+			command_print(CMD, "ERROR: "
+				"first sector must be <= last");
+			return ERROR_FAIL;
+		}
 
-	if (!(last <= (p->num_sectors - 1))) {
-		command_print(CMD, "ERROR: "
-			"last sector must be <= %u",
-			p->num_sectors - 1);
-		return ERROR_FAIL;
+		if (!(last <= (p->num_sectors - 1))) {
+			command_print(CMD, "ERROR: "
+				"last sector must be <= %u",
+				p->num_sectors - 1);
+			return ERROR_FAIL;
+		}
 	}
 
 	struct duration bench;
