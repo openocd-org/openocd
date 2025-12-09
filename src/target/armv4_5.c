@@ -1638,8 +1638,10 @@ int arm_checksum_memory(struct target *target,
 		retval = target_write_u32(target,
 				crc_algorithm->address + i * sizeof(uint32_t),
 				le_to_h_u32(&arm_crc_code_le[i * 4]));
-		if (retval != ERROR_OK)
-			goto cleanup;
+		if (retval != ERROR_OK) {
+			target_free_working_area(target, crc_algorithm);
+			return retval;
+		}
 	}
 
 	arm_algo.common_magic = ARM_COMMON_MAGIC;
@@ -1672,7 +1674,6 @@ int arm_checksum_memory(struct target *target,
 	destroy_reg_param(&reg_params[0]);
 	destroy_reg_param(&reg_params[1]);
 
-cleanup:
 	target_free_working_area(target, crc_algorithm);
 
 	return retval;
@@ -1719,8 +1720,10 @@ int arm_blank_check_memory(struct target *target,
 				check_algorithm->address
 				+ i * sizeof(uint32_t),
 				le_to_h_u32(&check_code_le[i * 4]));
-		if (retval != ERROR_OK)
-			goto cleanup;
+		if (retval != ERROR_OK) {
+			target_free_working_area(target, check_algorithm);
+			return retval;
+		}
 	}
 
 	arm_algo.common_magic = ARM_COMMON_MAGIC;
@@ -1752,7 +1755,6 @@ int arm_blank_check_memory(struct target *target,
 	destroy_reg_param(&reg_params[1]);
 	destroy_reg_param(&reg_params[2]);
 
-cleanup:
 	target_free_working_area(target, check_algorithm);
 
 	if (retval != ERROR_OK)
