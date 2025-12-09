@@ -1769,7 +1769,6 @@ static int cortex_a_set_watchpoint(struct target *target, struct watchpoint *wat
 	uint32_t address;
 	uint8_t address_mask;
 	uint8_t byte_address_select;
-	uint8_t load_store_access_control = 0x3;
 	struct cortex_a_common *cortex_a = target_to_cortex_a(target);
 	struct armv7a_common *armv7a = &cortex_a->armv7a_common;
 	struct cortex_a_wrp *wrp_list = cortex_a->wrp_list;
@@ -1826,6 +1825,22 @@ static int cortex_a_set_watchpoint(struct target *target, struct watchpoint *wat
 		address_mask = ilog2(watchpoint->length);
 		break;
 	}
+
+	uint8_t load_store_access_control;
+	switch (watchpoint->rw) {
+	case WPT_READ:
+		load_store_access_control = 1;
+		break;
+	case WPT_WRITE:
+		load_store_access_control = 2;
+		break;
+	case WPT_ACCESS:
+		load_store_access_control = 3;
+		break;
+	default:
+		LOG_ERROR("BUG: watchpoint->rw neither read, write nor access");
+		return ERROR_FAIL;
+	};
 
 	watchpoint_set(watchpoint, wrp_i);
 	control = (address_mask << 24) |
