@@ -5422,6 +5422,8 @@ static int riscv013_invalidate_cached_progbuf(struct target *target)
 
 static int riscv013_execute_progbuf(struct target *target, uint32_t *cmderr)
 {
+	if (dm013_select_target(target) != ERROR_OK)
+		return ERROR_FAIL;
 	uint32_t run_program = 0;
 	run_program = set_field(run_program, AC_ACCESS_REGISTER_AARSIZE, 2);
 	run_program = set_field(run_program, AC_ACCESS_REGISTER_POSTEXEC, 1);
