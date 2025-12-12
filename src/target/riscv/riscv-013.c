@@ -3001,15 +3001,7 @@ static int deassert_reset(struct target *target)
 					get_field(dmstatus, DM_DMSTATUS_ALLHAVERESET) ? "true" : "false");
 			return ERROR_TIMEOUT_REACHED;
 		}
-		/* Certain debug modules, like the one in GD32VF103
-		 * MCUs, violate the specification's requirement that
-		 * each hart is in "exactly one of four states" and,
-		 * during reset, report harts as both unavailable and
-		 * halted/running. To work around this, we check for
-		 * the absence of the unavailable state rather than
-		 * the presence of any other state. */
-	} while (get_field(dmstatus, DM_DMSTATUS_ALLUNAVAIL) &&
-			!get_field(dmstatus, DM_DMSTATUS_ALLHAVERESET));
+	} while (!get_field(dmstatus, DM_DMSTATUS_ALLHAVERESET));
 
 	riscv_scan_set_delay(&info->learned_delays, RISCV_DELAY_BASE,
 			orig_base_delay);
