@@ -153,9 +153,10 @@ void log_printf(enum log_levels level,
 	char *string;
 	va_list ap;
 
-	count++;
 	if (level > debug_level)
 		return;
+
+	count++;
 
 	va_start(ap, format);
 
@@ -173,10 +174,10 @@ void log_vprintf_lf(enum log_levels level, const char *file, unsigned int line,
 {
 	char *tmp;
 
-	count++;
-
 	if (level > debug_level)
 		return;
+
+	count++;
 
 	tmp = alloc_vprintf(format, args);
 
