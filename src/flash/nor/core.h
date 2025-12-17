@@ -116,6 +116,17 @@ struct flash_bank {
 	unsigned int num_sectors;
 	/** Array of sectors, allocated and initialized by the flash driver */
 	struct flash_sector *sectors;
+	/**
+	 * Indication of erasure status: 0 = not erased, 1 = erased,
+	 * other = unknown.  Set by @c flash_driver::erase_check only.
+	 *
+	 * Use this only if the flash bank has no sectors.
+	 *
+	 * This information must be considered stale immediately.
+	 * Don't set it in flash_driver::erase or a device mass_erase
+	 * Don't clear it in flash_driver::write
+	 */
+	int is_erased;
 
 	/**
 	 * The number of protection blocks in this bank. This value

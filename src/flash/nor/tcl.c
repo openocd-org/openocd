@@ -221,6 +221,9 @@ COMMAND_HANDLER(handle_flash_erase_check_command)
 			erase_state);
 	}
 
+	if (p->num_sectors == 0)
+		blank = (p->is_erased == 1);
+
 	if (blank)
 		command_print(CMD, "\tBank is erased");
 	return retval;

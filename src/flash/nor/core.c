@@ -373,6 +373,68 @@ done:
 	return retval;
 }
 
+static int flash_blank_check_no_sectors_fast(struct flash_bank *bank)
+{
+	struct target_memory_check_block check_block;
+
+	check_block.address = bank->base;
+	check_block.size = bank->size;
+	// Erase state unknown.
+	check_block.result = UINT32_MAX;
+
+	unsigned int checked;
+	int retval = target_blank_check_memory(bank->target, &check_block, 1,
+		bank->erased_value, &checked);
+
+	if (retval != ERROR_OK)
+		return retval;
+
+	bank->is_erased = check_block.result;
+
+	return ERROR_OK;
+}
+
+static int flash_blank_check_no_sectors(struct flash_bank *bank)
+{
+	struct target *target = bank->target;
+	const uint32_t buffer_size = 1024;
+	uint8_t buffer[buffer_size];
+
+	if (bank->target->state != TARGET_HALTED) {
+		LOG_ERROR("Target not halted");
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	int retval = flash_blank_check_no_sectors_fast(bank);
+	if (retval == ERROR_OK)
+		return retval;
+
+	LOG_WARNING("Fast erase check failed, running slow fallback");
+
+	bank->is_erased = -1;
+
+	for (uint32_t offset = 0; offset < bank->size; offset += buffer_size) {
+		uint32_t chunk_size = MIN(buffer_size, bank->size - offset);
+
+		retval = target_read_buffer(target, bank->base + offset,
+			chunk_size, buffer);
+
+		if (retval != ERROR_OK)
+			return retval;
+
+		for (uint32_t i = 0; i < chunk_size; i++) {
+			if (buffer[i] != bank->erased_value) {
+				bank->is_erased = 0;
+				return ERROR_OK;
+			}
+		}
+	}
+
+	bank->is_erased = 1;
+
+	return ERROR_OK;
+}
+
 int default_flash_blank_check(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
@@ -382,6 +444,9 @@ int default_flash_blank_check(struct flash_bank *bank)
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
+
+	if (bank->num_sectors == 0)
+		return flash_blank_check_no_sectors(bank);
 
 	struct target_memory_check_block *block_array;
 	block_array = malloc(bank->num_sectors * sizeof(struct target_memory_check_block));
