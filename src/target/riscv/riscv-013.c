@@ -3152,6 +3152,105 @@ static int execute_autofence(struct target *target)
 	return ERROR_FAIL;
 }
 
+#define CACHE_LINE_SIZE     64
+
+static int flush_cache(struct target *target, target_addr_t address, uint32_t size)
+{
+	int ret = dm013_select_target(target);
+	if (ret != ERROR_OK)
+		return ret;
+
+	ret = riscv013_reg_save(target, GDB_REGNO_S0);
+	if (ret != ERROR_OK)
+		return ret;
+
+	struct riscv_program program;
+
+	if (has_sufficient_progbuf(target, 3)) {
+		riscv_program_init(&program, target);
+		ret = riscv_program_insert(&program, cbo_flush(GDB_REGNO_S0));
+		if (ret != ERROR_OK)
+			return ret;
+
+		ret = riscv_program_addi(&program, GDB_REGNO_S0, GDB_REGNO_S0, CACHE_LINE_SIZE);
+		if (ret != ERROR_OK)
+			return ret;
+
+		ret = riscv_program_ebreak(&program);
+		if (ret != ERROR_OK)
+			return ret;
+
+		ret = riscv_program_write(&program);
+		if (ret != ERROR_OK)
+			return ret;
+
+		ret = register_write_direct(target, GDB_REGNO_S0, address);
+		if (ret != ERROR_OK)
+			return ret;
+
+		target_addr_t next_addr = address;
+		target_addr_t end_addr = address + size;
+		while (next_addr < end_addr) {
+			uint32_t cmderr;
+			ret = riscv013_execute_progbuf(target, &cmderr);
+			if (ret != ERROR_OK) {
+				if (cmderr != DM_ABSTRACTCS_CMDERR_EXCEPTION) {
+					LOG_TARGET_ERROR(target, "Unexpected error during cbo.flush execution");
+					return ret;
+				}
+				LOG_TARGET_DEBUG(target, "Unable to execute cbo.flush");
+			}
+			next_addr += CACHE_LINE_SIZE;
+		}
+
+		LOG_TARGET_DEBUG(target, "Successfully executed cbo.flush");
+		return ERROR_OK;
+	}
+
+	if (has_sufficient_progbuf(target, 2)) {
+		riscv_program_init(&program, target);
+		ret = riscv_program_insert(&program, cbo_flush(GDB_REGNO_S0));
+		if (ret != ERROR_OK)
+			return ret;
+
+		ret = riscv_program_ebreak(&program);
+		if (ret != ERROR_OK)
+			return ret;
+
+		ret = riscv_program_write(&program);
+		if (ret != ERROR_OK)
+			return ret;
+
+		target_addr_t next_addr = address;
+		target_addr_t end_addr = address + size;
+		while (next_addr < end_addr) {
+			ret = register_write_direct(target, GDB_REGNO_S0, next_addr);
+			if (ret != ERROR_OK)
+				return ret;
+
+			uint32_t cmderr;
+			ret = riscv013_execute_progbuf(target, &cmderr);
+			if (ret != ERROR_OK) {
+				if (cmderr != DM_ABSTRACTCS_CMDERR_EXCEPTION) {
+					LOG_TARGET_ERROR(target, "Unexpected error during cbo.flush execution");
+					return ret;
+				}
+				LOG_TARGET_DEBUG(target, "Unable to execute cbo.flush");
+			}
+			next_addr += CACHE_LINE_SIZE;
+		}
+
+		LOG_TARGET_DEBUG(target, "Successfully executed cbo.flush");
+		return ERROR_OK;
+	}
+
+	/*
+	 * Note: No need to log here if progbuf is insufficient, examine()
+	 * already checks and logs (!has_sufficient_progbuf(target, 2)).
+	 */
+	return ERROR_FAIL;
+}
+
 static void log_memory_access128(target_addr_t address, uint64_t value_h,
 		uint64_t value_l, bool is_read)
 {
@@ -3672,6 +3771,8 @@ enum mem_access_result_type {
 			SKIPPED, "skipped (dm target select failed)") \
 	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_SKIPPED_FENCE_EXEC_FAILED, \
 			SKIPPED, "skipped (fence execution failed)") \
+	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_SKIPPED_FLUSH_CACHE_FAILED, \
+			SKIPPED, "skipped (flush cache execution failed)") \
 	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_SKIPPED_SYSBUS_ACCESS_FAILED, \
 			SKIPPED, "skipped (sysbus access failed)") \
 	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_SKIPPED_REG_SAVE_FAILED, \
@@ -4649,15 +4750,30 @@ access_memory_sysbus(struct target *target, const struct riscv_mem_access_args a
 	int ret = ERROR_FAIL;
 	const bool is_read = riscv_mem_access_is_read(args);
 	const uint64_t sbver = get_field(info->sbcs, DM_SBCS_SBVERSION);
-	if (sbver == 0) {
-		ret = is_read ? read_memory_bus_v0(target, args) :
-				write_memory_bus_v0(target, args);
-	} else if (sbver == 1) {
-		ret = is_read ? read_memory_bus_v1(target, args) :
-				write_memory_bus_v1(target, args);
-	} else {
+	if (sbver > DM_SBCS_SBVERSION_1_0) {
 		LOG_TARGET_ERROR(target, "Unknown system bus version: %" PRIu64, sbver);
 		return mem_access_result(MEM_ACCESS_SKIPPED_UNKNOWN_SYSBUS_VERSION);
+	}
+
+	if (is_read) {
+		ret = (sbver == DM_SBCS_SBVERSION_LEGACY) ?
+			read_memory_bus_v0(target, args) :
+			read_memory_bus_v1(target, args);
+	} else {
+		struct riscv_private_config *config = riscv_private_config(target);
+		if (config->sba_flush_cache) {
+			ret = flush_cache(target, args.address, args.count * args.size);
+			if (ret != ERROR_OK)
+				return mem_access_result(MEM_ACCESS_SKIPPED_FLUSH_CACHE_FAILED);
+
+			ret = execute_autofence(target);
+			if (ret != ERROR_OK)
+				return mem_access_result(MEM_ACCESS_SKIPPED_FENCE_EXEC_FAILED);
+		}
+
+		ret = (sbver == DM_SBCS_SBVERSION_LEGACY) ?
+			write_memory_bus_v0(target, args) :
+			write_memory_bus_v1(target, args);
 	}
 
 	return mem_access_result(ret == ERROR_OK ?

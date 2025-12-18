@@ -12015,6 +12015,16 @@ should detect all supported misa extensions. Defaults to @option{on}.
 @end itemize
 @end itemize
 
+@itemize
+@item @code{-sba-flush-cache} @option{off}|@option{on} -- determines whether
+OpenOCD will automatically execute RISC-V CMO instructions (@var{cbo.flush})
+when write memory via RISC-V Debug System Bus interface. Defaults to @option{off}.
+
+@itemize
+@item @code{cget} returns the currently configured state for @code{-sba-flush-cache}.
+@end itemize
+@end itemize
+
 @subsection RISC-V Debug Configuration Commands
 
 @deffn {Command} {riscv dump_sample_buf} [base64]

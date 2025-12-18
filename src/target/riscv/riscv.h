@@ -410,6 +410,7 @@ struct riscv_private_config {
 	bool dcsr_ebreak_fields[N_RISCV_MODE];
 	bool dcsr_cetrig;
 	bool detect_misa;
+	bool sba_flush_cache;
 };
 
 static inline struct riscv_private_config

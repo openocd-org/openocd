@@ -446,4 +446,11 @@ static uint32_t vslide1down_vx(unsigned int vd, unsigned int vs2,
 	return (vm ? (1u << 25) : 0u) | inst_rs2(vs2) | inst_rs1(rs1) | inst_rd(vd) | MATCH_VSLIDE1DOWN_VX;
 }
 
+static inline uint32_t cbo_flush(unsigned int rs1)
+{
+	assert(rs1 <= MAX_GPR_NUM);
+
+	return MATCH_CBO_FLUSH | inst_rs1(rs1);
+}
+
 #endif /* OPENOCD_TARGET_RISCV_OPCODES_H */
