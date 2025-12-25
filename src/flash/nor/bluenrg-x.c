@@ -87,6 +87,16 @@ static const struct flash_ctrl_priv_data flash_priv_data_lpf = {
 	.part_name = "STM32WB09 (BLUENRG-LPF)",
 };
 
+static const struct flash_ctrl_priv_data flash_priv_data_spirit3 = {
+	.die_id_reg = 0x40000000,
+	.jtag_idcode_reg = 0x40000004,
+	.flash_base = 0x10040000,
+	.flash_regs_base = 0x40001000,
+	.flash_page_size = 2048,
+	.jtag_idcode = 0x02027041,
+	.part_name = "STM32WL33 (SPIRIT3)",
+};
+
 struct bluenrgx_flash_bank {
 	bool probed;
 	uint32_t die_id;
@@ -98,7 +108,8 @@ static const struct flash_ctrl_priv_data *flash_ctrl[] = {
 	&flash_priv_data_2,
 	&flash_priv_data_lp,
 	&flash_priv_data_lps,
-	&flash_priv_data_lpf
+	&flash_priv_data_lpf,
+	&flash_priv_data_spirit3
 };
 
 /* flash_bank bluenrg-x 0 0 0 0 <target#> */
@@ -476,7 +487,8 @@ static int bluenrgx_probe(struct flash_bank *bank)
 		return retval;
 
 	if (idcode != flash_priv_data_lp.jtag_idcode && idcode != flash_priv_data_lps.jtag_idcode
-			&& idcode != flash_priv_data_lpf.jtag_idcode) {
+			&& idcode != flash_priv_data_lpf.jtag_idcode
+			&& idcode != flash_priv_data_spirit3.jtag_idcode) {
 		retval = target_read_u32(bank->target, BLUENRG2_JTAG_REG, &idcode);
 		if (retval != ERROR_OK)
 			return retval;
