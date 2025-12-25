@@ -336,6 +336,10 @@ static int default_flash_mem_blank_check(struct flash_bank *bank)
 	}
 
 	uint8_t *buffer = malloc(buffer_size);
+	if (!buffer) {
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
+	}
 
 	for (unsigned int i = 0; i < bank->num_sectors; i++) {
 		uint32_t j;
@@ -382,8 +386,10 @@ int default_flash_blank_check(struct flash_bank *bank)
 
 	struct target_memory_check_block *block_array;
 	block_array = malloc(bank->num_sectors * sizeof(struct target_memory_check_block));
-	if (!block_array)
+	if (!block_array) {
+		LOG_WARNING("Running slow fallback erase check - limited host memory available");
 		return default_flash_mem_blank_check(bank);
+	}
 
 	for (unsigned int i = 0; i < bank->num_sectors; i++) {
 		block_array[i].address = bank->base + bank->sectors[i].offset;
@@ -413,9 +419,9 @@ int default_flash_blank_check(struct flash_bank *bank)
 		retval = ERROR_OK;
 	} else {
 		if (retval == ERROR_NOT_IMPLEMENTED)
-			LOG_USER("Running slow fallback erase check");
+			LOG_DEBUG("Running slow fallback erase check");
 		else
-			LOG_USER("Running slow fallback erase check - add working memory");
+			LOG_WARNING("Running slow fallback erase check - add working memory");
 
 		retval = default_flash_mem_blank_check(bank);
 	}
@@ -729,10 +735,24 @@ int flash_write_unlock_verify(struct target *target, struct image *image,
 	unsigned int section;
 	uint32_t section_offset;
 	struct flash_bank *c;
-	int *padding;
 
 	section = 0;
 	section_offset = 0;
+
+	/* allocate padding array */
+	int *padding = calloc(image->num_sections, sizeof(*padding));
+
+	/* This fn requires all sections to be in ascending order of addresses,
+	 * whereas an image can have sections out of order. */
+	struct imagesection **sections = malloc(sizeof(struct imagesection *) *
+			image->num_sections);
+
+	if (!padding || !sections) {
+		LOG_ERROR("Out of memory");
+		free(padding);
+		free(sections);
+		return ERROR_FAIL;
+	}
 
 	if (written)
 		*written = 0;
@@ -743,14 +763,6 @@ int flash_write_unlock_verify(struct target *target, struct image *image,
 
 		flash_set_dirty();
 	}
-
-	/* allocate padding array */
-	padding = calloc(image->num_sections, sizeof(*padding));
-
-	/* This fn requires all sections to be in ascending order of addresses,
-	 * whereas an image can have sections out of order. */
-	struct imagesection **sections = malloc(sizeof(struct imagesection *) *
-			image->num_sections);
 
 	for (unsigned int i = 0; i < image->num_sections; i++)
 		sections[i] = &image->sections[i];
