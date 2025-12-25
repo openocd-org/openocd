@@ -563,4 +563,5 @@ const struct flash_driver bluenrgx_flash = {
 	.protect_check = NULL,
 	.auto_probe = bluenrgx_auto_probe,
 	.info = bluenrgx_get_info,
+	.free_driver_priv = default_flash_free_driver_priv,
 };
