@@ -287,7 +287,7 @@ struct stm32l4_wrp {
 };
 
 /* human readable list of families this drivers supports (sorted alphabetically) */
-static const char *device_families = "STM32C0/G0/G4/L4/L4+/L5/U0/U3/U5/WB/WL";
+static const char *device_families = "STM32C0/G0/G4/L4/L4+/L5/U0/U3/U5/WB/WBA/WL";
 
 static const struct stm32l4_rev stm32l47_l48xx_revs[] = {
 	{ 0x1000, "1" }, { 0x1001, "2" }, { 0x1003, "3" }, { 0x1007, "4" }
@@ -398,6 +398,10 @@ static const struct stm32l4_rev stm32u5f_u5gxx_revs[] = {
 
 static const struct stm32l4_rev stm32wba5x_revs[] = {
 	{ 0x1000, "A" },
+};
+
+static const struct stm32l4_rev stm32wba6x_revs[] = {
+	{ 0x1000, "A" }, { 0x1001, "Z" },
 };
 
 static const struct stm32l4_rev stm32wb1xx_revs[] = {
@@ -756,6 +760,19 @@ static const struct stm32l4_part_info stm32l4_parts[] = {
 	  .flash_regs_base       = 0x40022000,
 	  .fsize_addr            = 0x0FF907A0,
 	  .otp_base              = 0x0BF90000,
+	  .otp_size              = 512,
+	},
+	{
+	  .id                    = DEVID_STM32WBA6X,
+	  .revs                  = stm32wba6x_revs,
+	  .num_revs              = ARRAY_SIZE(stm32wba6x_revs),
+	  .device_str            = "STM32WBA6x",
+	  .max_flash_size_kb     = 2048,
+	  .flags                 = F_HAS_DUAL_BANK | F_QUAD_WORD_PROG | F_HAS_TZ
+								| F_HAS_L5_FLASH_REGS | F_WRP_HAS_LOCK,
+	  .flash_regs_base       = 0x40022000,
+	  .fsize_addr            = 0x0BFA07A0,
+	  .otp_base              = 0x0BFA0000,
 	  .otp_size              = 512,
 	},
 	{
@@ -2210,10 +2227,21 @@ static int stm32l4_probe(struct flash_bank *bank)
 		}
 		break;
 	case DEVID_STM32WBA5X:
-		/* single bank flash */
+	case DEVID_STM32WBA6X:
+		/* according to RM0493 Rev 7, Chapter 7.3.1
+		 * WBA5xx have 8K page size and are always
+		 *  single bank.
+		 * According to RM0515 Rev 4, Chapter 7.3.1
+		 * WBA6xx have 8K page size and are always
+		 * DUAL BANK
+		 */
 		page_size_kb = 8;
 		num_pages = flash_size_kb / page_size_kb;
 		stm32l4_info->bank1_sectors = num_pages;
+		if (stm32l4_info->optr & FLASH_U5_DUALBANK) {
+			stm32l4_info->dual_bank_mode = true;
+			stm32l4_info->bank1_sectors = num_pages / 2;
+		}
 		break;
 	case DEVID_STM32WB5XX:
 	case DEVID_STM32WB3XX:
