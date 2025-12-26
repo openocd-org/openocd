@@ -755,7 +755,7 @@ static const struct stm32l4_part_info stm32l4_parts[] = {
 								| F_WRP_HAS_LOCK,
 	  .flash_regs_base       = 0x40022000,
 	  .fsize_addr            = 0x0FF907A0,
-	  .otp_base              = 0x0FF90000,
+	  .otp_base              = 0x0BF90000,
 	  .otp_size              = 512,
 	},
 	{
