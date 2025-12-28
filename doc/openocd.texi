@@ -13209,6 +13209,18 @@ If your device/vendor is not supported you have to use the first variant.
 
 @end deffn
 
+@deffn {Command} {ipdbg names}
+List the known IPDBG hubs with their name.
+@end deffn
+
+
+@deffn {Command} {ipdbg services}
+List the active services, as a Tcl list of dicts with keys
+@option{hub}, @option{port}, @option{tool} and @option{state}
+(@option{listening} or @option{connected}).
+@end deffn
+
+
 @deffn {Command} {$hub_name start} @option{-tool @var{number}} @option{-port @var{number}}
 Starts a IPDBG JTAG-Host server. The remaining arguments can be specified in any order.
 
@@ -13259,10 +13271,15 @@ The maximum possible queue size is 1024 which is also the default.
 @end deffn
 
 @example
-bitbang.ibdbghub queuing -size 32
+bitbang.ipdbghub queuing -size 32
 @end example
 Send a maximum of 32 transfers to the queue before executing them.
 
+@deffn {Command} {$hub_name services}
+List the active services, as a Tcl list of dicts with keys
+@option{port}, @option{tool} and @option{state}
+(@option{listening} or @option{connected}).
+@end deffn
 
 @node Utility Commands
 @chapter Utility Commands

@@ -6,6 +6,7 @@
 #endif
 
 #include <helper/bits.h>
+#include <helper/tcl-common.h>
 #include <helper/time_support.h>
 #include <jtag/jtag.h>
 #include <server/server.h>
@@ -923,6 +924,28 @@ COMMAND_HANDLER(handle_ipdbg_cfg_queuing_command)
 	return CALL_COMMAND_HANDLER(ipdbg_config_queuing, hub, size);
 }
 
+COMMAND_HANDLER(handle_ipdbg_hub_services_command)
+{
+	struct ipdbg_service *service;
+	struct ipdbg_hub *hub = CMD_DATA;
+
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	for (service = ipdbg_first_service; service; service = service->next) {
+		if (hub == service->hub) {
+			command_print(CMD, "{");
+			command_print(CMD, " port %u", service->port);
+			command_print(CMD, " tool %u", service->tool);
+			command_print(CMD, " state %s",
+				service->connection.closed ? "listening" : "connected");
+			command_print(CMD, "}");
+		}
+	}
+
+	return ERROR_OK;
+}
+
 static const struct command_registration ipdbg_hub_subcommand_handlers[] = {
 	{
 		.name = "start",
@@ -940,8 +963,14 @@ static const struct command_registration ipdbg_hub_subcommand_handlers[] = {
 		.name = "queuing",
 		.handler = handle_ipdbg_cfg_queuing_command,
 		.mode = COMMAND_ANY,
-		.help = "configures queuing between IPDBG Host and Hub.",
+		.help = "Configures queuing between IPDBG Host and Hub.",
 		.usage = "-size size",
+	}, {
+		.name = "services",
+		.handler = handle_ipdbg_hub_services_command,
+		.mode = COMMAND_ANY,
+		.help = "List services of IPDBG Hub",
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -1115,6 +1144,48 @@ COMMAND_HANDLER(handle_ipdbg_create_hub_command)
 	return ipdbg_create_hub(tap, user_instruction, data_register_length, virtual_ir, hub_name, cmd);
 }
 
+COMMAND_HANDLER(handle_ipdbg_names_command)
+{
+	struct ipdbg_hub *hub;
+
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	for (hub = ipdbg_first_hub; hub; hub = hub->next)
+		command_print(CMD, "%s", hub->name);
+
+	return ERROR_OK;
+}
+
+COMMAND_HANDLER(handle_ipdbg_services_command)
+{
+	struct ipdbg_service *service;
+
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	for (service = ipdbg_first_service; service; service = service->next) {
+		struct ipdbg_hub *hub = service->hub;
+		if (hub) {
+			char *escaped_name = tcl_escape_alloc(CMD_CTX->interp, hub->name);
+			if (!escaped_name) {
+				command_print(CMD, "Unable to escape Tcl string");
+				return ERROR_FAIL;
+			}
+			command_print(CMD, "{");
+			command_print(CMD, " hub %s", escaped_name);
+			command_print(CMD, " port %u", service->port);
+			command_print(CMD, " tool %u", service->tool);
+			command_print(CMD, " state %s",
+				service->connection.closed ? "listening" : "connected");
+			command_print(CMD, "}");
+			free(escaped_name);
+		}
+	}
+
+	return ERROR_OK;
+}
+
 static const struct command_registration ipdbg_config_command_handlers[] = {
 	{
 		.name = "create-hub",
@@ -1123,6 +1194,18 @@ static const struct command_registration ipdbg_config_command_handlers[] = {
 		.help = "create a IPDBG Hub",
 		.usage = "name.ipdbghub (-tap device.tap -ir ir_value [dr_length] |"
 			" -pld name.pld [user]) [-vir [vir_value [length [instr_code]]]]",
+	}, {
+		.name = "names",
+		.mode = COMMAND_ANY,
+		.handler = handle_ipdbg_names_command,
+		.help = "list all created IPDBG Hubs",
+		.usage = "",
+	}, {
+		.name = "services",
+		.mode = COMMAND_ANY,
+		.handler = handle_ipdbg_services_command,
+		.help = "list all services",
+		.usage = "",
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -1137,6 +1220,7 @@ static const struct command_registration ipdbg_command_handlers[] = {
 	},
 	COMMAND_REGISTRATION_DONE
 };
+
 int ipdbg_register_commands(struct command_context *cmd_ctx)
 {
 	return register_commands(cmd_ctx, NULL, ipdbg_command_handlers);
