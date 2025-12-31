@@ -758,7 +758,7 @@ static const struct stm32l4_part_info stm32l4_parts[] = {
 	  .flags                 = F_QUAD_WORD_PROG | F_HAS_TZ | F_HAS_L5_FLASH_REGS
 								| F_WRP_HAS_LOCK,
 	  .flash_regs_base       = 0x40022000,
-	  .fsize_addr            = 0x0FF907A0,
+	  .fsize_addr            = 0x0BF907A0,
 	  .otp_base              = 0x0BF90000,
 	  .otp_size              = 512,
 	},
