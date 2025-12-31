@@ -751,7 +751,8 @@ static const struct stm32l4_part_info stm32l4_parts[] = {
 	  .num_revs              = ARRAY_SIZE(stm32wba5x_revs),
 	  .device_str            = "STM32WBA5x",
 	  .max_flash_size_kb     = 1024,
-	  .flags                 = F_QUAD_WORD_PROG | F_HAS_TZ | F_HAS_L5_FLASH_REGS,
+	  .flags                 = F_QUAD_WORD_PROG | F_HAS_TZ | F_HAS_L5_FLASH_REGS
+								| F_WRP_HAS_LOCK,
 	  .flash_regs_base       = 0x40022000,
 	  .fsize_addr            = 0x0FF907A0,
 	  .otp_base              = 0x0FF90000,
