@@ -192,7 +192,7 @@ COMMAND_HANDLER(handle_flash_erase_check_command)
 		command_print(CMD, "successfully checked erase state");
 	else {
 		command_print(CMD,
-			"unknown error when checking erase state of flash bank #%s at "
+			"Error: checking erase state of flash bank #%s at "
 			TARGET_ADDR_FMT,
 			CMD_ARGV[0],
 			p->base);
