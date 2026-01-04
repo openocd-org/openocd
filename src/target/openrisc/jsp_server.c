@@ -195,10 +195,19 @@ static const struct service_driver jsp_service_driver = {
 int jsp_init(struct or1k_jtag *jtag_info, char *banner)
 {
 	struct jsp_service *jsp_service = malloc(sizeof(struct jsp_service));
+	if (!jsp_service) {
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
+	}
+
 	jsp_service->banner = banner;
 	jsp_service->jtag_info = jtag_info;
 
-	return add_service(&jsp_service_driver, jsp_port, 1, jsp_service);
+	int retval = add_service(&jsp_service_driver, jsp_port, 1, jsp_service);
+	if (retval != ERROR_OK)
+		free(jsp_service);
+
+	return retval;
 }
 
 COMMAND_HANDLER(handle_jsp_port_command)
