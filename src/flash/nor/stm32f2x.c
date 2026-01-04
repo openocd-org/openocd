@@ -250,6 +250,10 @@ FLASH_BANK_COMMAND_HANDLER(stm32x_flash_bank_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	stm32x_info = malloc(sizeof(struct stm32x_flash_bank));
+	if (!stm32x_info) {
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
+	}
 	bank->driver_priv = stm32x_info;
 
 	stm32x_info->probed = false;
