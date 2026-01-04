@@ -208,7 +208,11 @@ int add_service(const struct service_driver *driver, const char *port,
 	struct hostent *hp;
 	int so_reuseaddr_option = 1;
 
-	c = malloc(sizeof(struct service));
+	c = calloc(1, sizeof(*c));
+	if (!c) {
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
+	}
 
 	c->name = strdup(driver->name);
 	c->port = strdup(port);
@@ -223,6 +227,12 @@ int add_service(const struct service_driver *driver, const char *port,
 	c->service_dtor = driver->service_dtor_handler;
 	c->priv = priv;
 	c->next = NULL;
+
+	if (!c->name || !c->port) {
+		LOG_ERROR("Out of memory");
+		goto error;
+	}
+
 	long portnumber;
 	if (strcmp(c->port, "pipe") == 0)
 		c->type = CONNECTION_STDINOUT;
@@ -242,8 +252,7 @@ int add_service(const struct service_driver *driver, const char *port,
 		c->fd = socket(AF_INET, SOCK_STREAM, 0);
 		if (c->fd == -1) {
 			LOG_ERROR("error creating socket: %s", strerror(errno));
-			free_service(c);
-			return ERROR_FAIL;
+			goto error;
 		}
 
 		setsockopt(c->fd,
@@ -264,8 +273,7 @@ int add_service(const struct service_driver *driver, const char *port,
 			if (!hp) {
 				LOG_ERROR("couldn't resolve bindto address: %s", bindto_name);
 				close_socket(c->fd);
-				free_service(c);
-				return ERROR_FAIL;
+				goto error;
 			}
 			memcpy(&c->sin.sin_addr, hp->h_addr_list[0], hp->h_length);
 		}
@@ -274,8 +282,7 @@ int add_service(const struct service_driver *driver, const char *port,
 		if (bind(c->fd, (struct sockaddr *)&c->sin, sizeof(c->sin)) == -1) {
 			LOG_ERROR("couldn't bind %s to socket on port %d: %s", c->name, c->portnumber, strerror(errno));
 			close_socket(c->fd);
-			free_service(c);
-			return ERROR_FAIL;
+			goto error;
 		}
 
 #ifndef _WIN32
@@ -294,8 +301,7 @@ int add_service(const struct service_driver *driver, const char *port,
 		if (listen(c->fd, 1) == -1) {
 			LOG_ERROR("couldn't listen on socket: %s", strerror(errno));
 			close_socket(c->fd);
-			free_service(c);
-			return ERROR_FAIL;
+			goto error;
 		}
 
 		struct sockaddr_in addr_in;
@@ -323,15 +329,13 @@ int add_service(const struct service_driver *driver, const char *port,
 		/* we currently do not support named pipes under win32
 		 * so exit openocd for now */
 		LOG_ERROR("Named pipes currently not supported under this os");
-		free_service(c);
-		return ERROR_FAIL;
+		goto error;
 #else
 		/* Pipe we're reading from */
 		c->fd = open(c->port, O_RDONLY | O_NONBLOCK);
 		if (c->fd == -1) {
 			LOG_ERROR("could not open %s", c->port);
-			free_service(c);
-			return ERROR_FAIL;
+			goto error;
 		}
 #endif
 	}
@@ -342,6 +346,14 @@ int add_service(const struct service_driver *driver, const char *port,
 	*p = c;
 
 	return ERROR_OK;
+
+error:
+	// Only free() what has been locally allocated
+	free(c->port);
+	free(c->name);
+	free(c);
+
+	return ERROR_FAIL;
 }
 
 static void remove_connections(struct service *service)
