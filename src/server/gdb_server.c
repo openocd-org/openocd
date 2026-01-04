@@ -3881,12 +3881,11 @@ static const struct service_driver gdb_service_driver = {
 
 static int gdb_target_start(struct target *target, const char *port)
 {
-	struct gdb_service *gdb_service;
-	int ret;
-	gdb_service = malloc(sizeof(struct gdb_service));
-
-	if (!gdb_service)
-		return -ENOMEM;
+	struct gdb_service *gdb_service = malloc(sizeof(struct gdb_service));
+	if (!gdb_service) {
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
+	}
 
 	LOG_TARGET_INFO(target, "starting gdb server on %s", port);
 
@@ -3895,17 +3894,22 @@ static int gdb_target_start(struct target *target, const char *port)
 	gdb_service->core[1] = -1;
 	target->gdb_service = gdb_service;
 
-	ret = add_service(&gdb_service_driver, port, target->gdb_max_connections, gdb_service);
-	/* initialize all targets gdb service with the same pointer */
-	{
-		struct target_list *head;
-		foreach_smp_target(head, target->smp_targets) {
-			struct target *curr = head->target;
-			if (curr != target)
-				curr->gdb_service = gdb_service;
-		}
+	int retval = add_service(&gdb_service_driver, port,
+			target->gdb_max_connections, gdb_service);
+	if (retval != ERROR_OK) {
+		free(gdb_service);
+		return retval;
 	}
-	return ret;
+
+	/* initialize all targets gdb service with the same pointer */
+	struct target_list *head;
+	foreach_smp_target(head, target->smp_targets) {
+		struct target *curr = head->target;
+		if (curr != target)
+			curr->gdb_service = gdb_service;
+	}
+
+	return ERROR_OK;
 }
 
 static int gdb_target_add_one(struct target *target)
