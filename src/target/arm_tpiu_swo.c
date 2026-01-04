@@ -739,6 +739,7 @@ COMMAND_HANDLER(handle_arm_tpiu_swo_enable)
 				CONNECTION_LIMIT_UNLIMITED, priv);
 			if (retval != ERROR_OK) {
 				command_print(CMD, "Can't configure trace TCP port %s", &obj->out_filename[1]);
+				free(priv);
 				return retval;
 			}
 		} else if (strcmp(obj->out_filename, "-")) {
