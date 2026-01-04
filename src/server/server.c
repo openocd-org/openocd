@@ -193,6 +193,8 @@ static void free_service(struct service *c)
 {
 	if (c->type == CONNECTION_PIPE && c->fd != -1)
 		close(c->fd);
+	if (c->type == CONNECTION_TCP && c->fd != -1)
+		close_socket(c->fd);
 	if (c->service_dtor)
 		c->service_dtor(c);
 	free(c->name);
