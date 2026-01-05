@@ -9529,7 +9529,12 @@ port is 6666.
 @section Server Commands
 
 @deffn {Command} {exit}
-Exits the current telnet session.
+Exits the current telnet or Tcl session but the OpenOCD process remains running.
+This command should only be used in telnet or Tcl sessions (and not directly
+in Tcl scripts).
+
+Note: To terminate the whole OpenOCD process, use the
+@command{shutdown} command instead.
 @end deffn
 
 @deffn {Command} {help} [string]

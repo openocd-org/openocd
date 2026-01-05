@@ -519,6 +519,7 @@ static int telnet_exec_line(struct connection *connection)
 	t_con->prompt_visible = true;
 
 	if (retval == ERROR_COMMAND_CLOSE_CONNECTION)
+		/* "shutdown" or "exit" executed. */
 		return ERROR_SERVER_REMOTE_CLOSED;
 
 	/* the prompt is always placed at the line beginning */
@@ -967,14 +968,14 @@ int telnet_init(char *banner)
 	return ERROR_OK;
 }
 
+bool telnet_is_from_telnet_session(struct command_context *cmd_ctx)
+{
+	return cmd_ctx->output_handler == telnet_output;
+}
+
 COMMAND_HANDLER(handle_telnet_port_command)
 {
 	return CALL_COMMAND_HANDLER(server_pipe_command, &telnet_port);
-}
-
-COMMAND_HANDLER(handle_exit_command)
-{
-	return ERROR_COMMAND_CLOSE_CONNECTION;
 }
 
 static const struct command_registration telnet_subcommand_handlers[] = {
@@ -991,13 +992,6 @@ static const struct command_registration telnet_subcommand_handlers[] = {
 };
 
 static const struct command_registration telnet_command_handlers[] = {
-	{
-		.name = "exit",
-		.handler = handle_exit_command,
-		.mode = COMMAND_ANY,
-		.usage = "",
-		.help = "exit telnet session",
-	},
 	{
 		.name = "telnet",
 		.chain = telnet_subcommand_handlers,

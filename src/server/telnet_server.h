@@ -54,5 +54,6 @@ struct telnet_service {
 int telnet_init(char *banner);
 int telnet_register_commands(struct command_context *command_context);
 void telnet_service_free(void);
+bool telnet_is_from_telnet_session(struct command_context *cmd_ctx);
 
 #endif /* OPENOCD_SERVER_TELNET_SERVER_H */
