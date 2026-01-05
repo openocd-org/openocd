@@ -275,7 +275,8 @@ static struct command_context *setup_command_handler(Jim_Interp *interp)
 	return cmd_ctx;
 }
 
-/** OpenOCD runtime meat that can become single-thread in future. It parse
+/**
+ * OpenOCD runtime meat that can become single-thread in future. It parses
  * commandline, reads configuration, sets up the target and starts server loop.
  * Commandline arguments are passed into this function from openocd_main().
  */
@@ -291,6 +292,8 @@ static int openocd_thread(int argc, char *argv[], struct command_context *cmd_ct
 
 	ret = parse_config_file(cmd_ctx);
 	if (ret == ERROR_COMMAND_CLOSE_CONNECTION) {
+		/* Shutdown command encountered while processing the initial
+		 * commands/scripts. */
 		server_quit(); /* gdb server may be initialized by -c init */
 		return ERROR_OK;
 	} else if (ret != ERROR_OK) {
@@ -310,14 +313,10 @@ static int openocd_thread(int argc, char *argv[], struct command_context *cmd_ct
 		}
 	}
 
-	ret = server_loop(cmd_ctx);
+	server_loop(cmd_ctx);
 
-	int last_signal = server_quit();
-	if (last_signal != ERROR_OK)
-		return last_signal;
+	server_quit();
 
-	if (ret != ERROR_OK)
-		return ERROR_FAIL;
 	return ERROR_OK;
 }
 
@@ -326,8 +325,6 @@ static int openocd_thread(int argc, char *argv[], struct command_context *cmd_ct
  * application will have it's own implementation of main(). */
 int openocd_main(int argc, char *argv[])
 {
-	int ret;
-
 	/* initialize commandline interface */
 	struct command_context *cmd_ctx;
 
@@ -349,7 +346,7 @@ int openocd_main(int argc, char *argv[])
 	server_host_os_entry();
 
 	/* Start the executable meat that can evolve into thread in future. */
-	ret = openocd_thread(argc, argv, cmd_ctx);
+	int ret = openocd_thread(argc, argv, cmd_ctx);
 
 	flash_free_all_banks();
 	gdb_service_free();
@@ -382,10 +379,17 @@ int openocd_main(int argc, char *argv[])
 	__gcov_dump();
 #endif
 
-	if (ret == ERROR_FAIL)
+	if (ret != ERROR_OK) {
+		/* An error occurred before the server could be fully started.
+		 * For example during the processing of initial commands/scripts. */
 		return EXIT_FAILURE;
-	else if (ret != ERROR_OK)
-		exit_on_signal(ret);
+	}
 
-	return ret;
+	// Otherwise check the shutdown reason of the server
+	if (server_terminated_by_signal())
+		// Server terminated by a signal.
+		return exit_on_signal(server_get_last_signal_number());
+
+	// Server terminated by shutdown command.
+	return server_get_exit_status_code();
 }

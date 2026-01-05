@@ -93,13 +93,16 @@ int server_host_os_close(void);
 
 int server_preinit(void);
 int server_init(struct command_context *cmd_ctx);
-int server_quit(void);
+void server_quit(void);
 void server_free(void);
-void exit_on_signal(int sig);
+int exit_on_signal(int sig);
 
 void server_keep_clients_alive(void);
 
-int server_loop(struct command_context *command_context);
+void server_loop(struct command_context *command_context);
+bool server_terminated_by_signal(void);
+int server_get_last_signal_number(void);
+uint8_t server_get_exit_status_code(void);
 
 int server_register_commands(struct command_context *context);
 

@@ -9585,16 +9585,28 @@ Useful in connection with script files
 (@command{script} command and @command{target_name} configuration).
 @end deffn
 
-@deffn {Command} {shutdown} [@option{error}]
-Close the OpenOCD server, disconnecting all clients (GDB, telnet,
-other). If option @option{error} is used, OpenOCD will return a
-non-zero exit code to the parent process.
+@deffn {Command} {shutdown} [@option{error} | exit_status_code]
+Close the OpenOCD server, disconnecting all clients (GDB, telnet and
+others). Then the OpenOCD process quits.
+
+The optional argument to @command{shutdown} allows to specify a concrete
+exit status for the OpenOCD process. If omitted, exit status zero
+will be used (denoting successful execution).
+
+Command @command{shutdown error} is a synonym for @command{shutdown 1}
+for backward compatibility with older OpenOCD versions.
+
+"Exit status" (also referred to as "exit code" or "exit value") is an integer
+number in the range 0 - 255 which denotes whether a process exited successfully
+or whether an error occurred. Zero exit status means success whereas non-zero
+value denotes an error. The exit status can be obtained and inspected by
+the parent process (for instance via @command{$?} in a shell command line).
 
 If user types CTRL-C or kills OpenOCD, the command @command{shutdown}
-will be automatically executed to cause OpenOCD to exit.
+will also be automatically executed to cause OpenOCD to exit.
 
-It is possible to specify, in the Tcl list @var{pre_shutdown_commands} , a
-set of commands to be automatically executed before @command{shutdown} , e.g.:
+It is possible to specify, in the Tcl list @var{pre_shutdown_commands}, a
+set of commands to be automatically executed before @command{shutdown}, e.g.:
 @example
 lappend pre_shutdown_commands @{echo "Goodbye, my friend ..."@}
 lappend pre_shutdown_commands @{echo "see you soon !"@}

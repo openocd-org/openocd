@@ -35,8 +35,6 @@
 #include <netinet/tcp.h>
 #endif
 
-static struct service *services;
-
 enum shutdown_reason {
 	CONTINUE_MAIN_LOOP,			/* stay in main event loop */
 	SHUTDOWN_REQUESTED,			/* set by shutdown command; exit the event loop and quit the debugger */
@@ -44,9 +42,15 @@ enum shutdown_reason {
 	SHUTDOWN_WITH_SIGNAL_CODE	/* set by sig_handler; exec shutdown then exit with signal as return code */
 };
 
+static struct service *services;
+
 static volatile sig_atomic_t shutdown_openocd = CONTINUE_MAIN_LOOP;
-/* store received signal to exit application by killing ourselves */
+/* Received signal number, later used to kill ourselves.
+ * Only relevant for SHUTDOWN_WITH_SIGNAL_CODE. */
 static volatile sig_atomic_t last_signal;
+/* Exit status to use. Only relevant for SHUTDOWN_REQUESTED
+ * or SHUTDOWN_WITH_ERROR_CODE. */
+static uint8_t openocd_exit_status_code;
 
 /* set the polling period to 100ms */
 static int polling_period = 100;
@@ -428,7 +432,7 @@ void server_keep_clients_alive(void)
 				s->keep_client_alive(c);
 }
 
-int server_loop(struct command_context *command_context)
+void server_loop(struct command_context *command_context)
 {
 	struct service *service;
 
@@ -503,7 +507,9 @@ int server_loop(struct command_context *command_context)
 				FD_ZERO(&read_fds);
 			else {
 				LOG_ERROR("error during select: %s", strerror(errno));
-				return ERROR_FAIL;
+				shutdown_openocd = SHUTDOWN_WITH_ERROR_CODE;
+				openocd_exit_status_code = EXIT_FAILURE;
+				return;
 			}
 #else
 
@@ -511,7 +517,9 @@ int server_loop(struct command_context *command_context)
 				FD_ZERO(&read_fds);
 			else {
 				LOG_ERROR("error during select: %s", strerror(errno));
-				return ERROR_FAIL;
+				shutdown_openocd = SHUTDOWN_WITH_ERROR_CODE;
+				openocd_exit_status_code = EXIT_FAILURE;
+				return;
 			}
 #endif
 		}
@@ -601,11 +609,33 @@ int server_loop(struct command_context *command_context)
 #endif
 	}
 
+	assert(shutdown_openocd == SHUTDOWN_REQUESTED ||
+		shutdown_openocd == SHUTDOWN_WITH_ERROR_CODE ||
+		shutdown_openocd == SHUTDOWN_WITH_SIGNAL_CODE);
+
 	/* when quit for signal or CTRL-C, run (eventually user implemented) "shutdown" */
 	if (shutdown_openocd == SHUTDOWN_WITH_SIGNAL_CODE)
 		command_run_line(command_context, "shutdown");
+}
 
-	return shutdown_openocd == SHUTDOWN_WITH_ERROR_CODE ? ERROR_FAIL : ERROR_OK;
+bool server_terminated_by_signal(void)
+{
+	return shutdown_openocd == SHUTDOWN_WITH_SIGNAL_CODE;
+}
+
+int server_get_last_signal_number(void)
+{
+	/* This value is only meaningful if the shutdown reason is signal.
+	 * The caller should check the shutdown reason first. */
+	assert(server_terminated_by_signal());
+
+	return last_signal;
+}
+
+uint8_t server_get_exit_status_code(void)
+{
+	assert(!server_terminated_by_signal());
+	return openocd_exit_status_code;
 }
 
 static void sig_handler(int sig)
@@ -704,19 +734,14 @@ int server_init(struct command_context *cmd_ctx)
 	return ERROR_OK;
 }
 
-int server_quit(void)
+void server_quit(void)
 {
 	remove_services();
 	target_quit();
 
 #ifdef _WIN32
 	SetConsoleCtrlHandler(control_handler, FALSE);
-
-	return ERROR_OK;
 #endif
-
-	/* return signal number so we can kill ourselves */
-	return last_signal;
 }
 
 void server_free(void)
@@ -729,12 +754,16 @@ void server_free(void)
 	free(bindto_name);
 }
 
-void exit_on_signal(int sig)
+int exit_on_signal(int sig)
 {
 #ifndef _WIN32
-	/* bring back default system handler and kill yourself */
+	// *nix: Bring back the default system handler and kill self
 	signal(sig, SIG_DFL);
-	kill(getpid(), sig);
+	kill(getpid(), sig); /* does not return */
+	__builtin_unreachable();
+#else
+	// On Windows, simply use the signal number as the exit code
+	return sig;
 #endif
 }
 
@@ -766,18 +795,35 @@ bool openocd_is_shutdown_pending(void)
 /* tell the server we want to shut down */
 COMMAND_HANDLER(handle_shutdown_command)
 {
+	if (CMD_ARGC > 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
 	LOG_USER("shutdown command invoked");
 
-	shutdown_openocd = SHUTDOWN_REQUESTED;
+	if (CMD_ARGC == 0) {
+		/* When "shutdown" (without parameters) is auto-executed
+		 * as a result of a signal, keep the alredy-set shutdown reason
+		 * unchanged. */
+		if (shutdown_openocd != SHUTDOWN_WITH_SIGNAL_CODE) {
+			// Default exit code is zero (success)
+			shutdown_openocd = SHUTDOWN_REQUESTED;
+			openocd_exit_status_code = 0;
+		}
+	} else {
+		uint8_t code;
+		if (strcmp(CMD_ARGV[0], "error") == 0) {
+			/* "shutdown error" is a synonym of "shutdown 1"
+			 * for backward compatibility. */
+			code = 1;
+		} else {
+			COMMAND_PARSE_NUMBER(u8, CMD_ARGV[0], code);
+		}
+
+		shutdown_openocd = (code == 0) ? SHUTDOWN_REQUESTED : SHUTDOWN_WITH_ERROR_CODE;
+		openocd_exit_status_code = code;
+	}
 
 	command_run_line(CMD_CTX, "_run_pre_shutdown_commands");
-
-	if (CMD_ARGC == 1) {
-		if (!strcmp(CMD_ARGV[0], "error")) {
-			shutdown_openocd = SHUTDOWN_WITH_ERROR_CODE;
-			return ERROR_FAIL;
-		}
-	}
 
 	return ERROR_COMMAND_CLOSE_CONNECTION;
 }
@@ -832,8 +878,8 @@ static const struct command_registration server_command_handlers[] = {
 		.name = "shutdown",
 		.handler = &handle_shutdown_command,
 		.mode = COMMAND_ANY,
-		.usage = "",
-		.help = "shut the server down",
+		.usage = "['error'|exit_code]",
+		.help = "shut down OpenOCD process",
 	},
 	{
 		.name = "exit",
