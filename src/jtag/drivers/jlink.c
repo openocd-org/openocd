@@ -504,7 +504,7 @@ static int jaylink_log_handler(const struct jaylink_context *ctx,
 		tmp = LOG_LVL_DEBUG;
 		break;
 	case JAYLINK_LOG_LEVEL_DEBUG_IO:
-		tmp = LOG_LVL_DEBUG_IO;
+		tmp = LOG_LVL_DEBUG_USB;
 		break;
 	default:
 		tmp = LOG_LVL_WARNING;
