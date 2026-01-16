@@ -1460,7 +1460,7 @@ COMMAND_HANDLER(handle_flash_list)
 	for (struct flash_bank *p = flash_bank_list(); p; p = p->next) {
 		command_print(CMD,
 			"{\n"
-			"    name       %s\n"
+			"    name       {%s}\n"
 			"    driver     %s\n"
 			"    base       " TARGET_ADDR_FMT "\n"
 			"    size       0x%" PRIx32 "\n"
