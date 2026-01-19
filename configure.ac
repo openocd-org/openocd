@@ -56,15 +56,9 @@ AC_CHECK_TYPE([Elf64_Ehdr],
 	AC_DEFINE([HAVE_ELF64], [1], [Define to 1 if the system has the type 'Elf64_Ehdr'.]),
 	[], [[#include <elf.h>]])
 
-AC_MSG_CHECKING([for glibc])
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <features.h>]], [[int v = __GLIBC__;return 0;]])],
-	[have_glibc=yes], [have_glibc=no])
-AC_MSG_RESULT($have_glibc)
-
 AC_CHECK_HEADERS([fcntl.h])
 AC_CHECK_HEADERS([linux/pci.h])
 AC_CHECK_HEADERS([linux/spi/spidev.h])
-AC_CHECK_HEADERS([malloc.h])
 AC_CHECK_HEADERS([netdb.h])
 AC_CHECK_HEADERS([poll.h])
 AC_CHECK_HEADERS([strings.h])
@@ -102,6 +96,8 @@ AC_CHECK_FUNCS([strnlen])
 AC_CHECK_FUNCS([gettimeofday])
 AC_CHECK_FUNCS([usleep])
 AC_CHECK_FUNCS([realpath])
+AC_CHECK_FUNCS([mallinfo],  [has_at_least_one_mallinfo=yes])
+AC_CHECK_FUNCS([mallinfo2], [has_at_least_one_mallinfo=yes])
 
 # guess-rev.sh only exists in the repository, not in the released archives
 AC_MSG_CHECKING([whether to build a release])
@@ -276,7 +272,10 @@ AC_ARG_ENABLE([malloc_logging],
 
 AC_MSG_CHECKING([whether to enable malloc free space logging]);
 AC_MSG_RESULT([$debug_malloc])
-AS_IF([test "x$debug_malloc" = "xyes" -a "x$have_glibc" = "xyes"], [
+AS_IF([test "x$debug_malloc" = "xyes"], [
+	AS_IF([test "x$has_at_least_one_mallinfo" != "xyes"], [
+		AC_MSG_ERROR([Option --enable-malloc-logging needs a libc with mallinfo or mallinfo2.])
+	])
   AC_DEFINE([_DEBUG_FREE_SPACE_],[1], [Include malloc free space in logging])
 ])
 
