@@ -51,6 +51,75 @@ After OpenOCD startup, connect GDB with
     (gdb) target extended-remote localhost:3333
 
 
+# Installing OpenOCD
+
+The easiest way to install OpenOCD is through your operating system's package
+manager.
+
+- Debian / Ubuntu
+
+  ```sh
+  sudo apt install openocd
+  ```
+
+- Fedora
+
+  ```sh
+  sudo dnf install openocd
+  ```
+
+- macOS (via Homebrew)
+
+  ```sh
+  brew install open-ocd
+  ```
+
+- Windows (via MSYS2)
+
+  ```sh
+  pacman -S mingw-w64-x86_64-openocd
+  ```
+
+These packages are often more stable than the bleeding-edge Git mainline, where
+active development happens.
+"Packagers" create binary releases of OpenOCD after the developers publish new
+source code releases.
+Older OpenOCD versions are not suitable for diagnosing issues in the current
+release.
+Users should stay in touch with their distribution maintainers or interface
+vendors to ensure that appropriate updates are provided regularly.
+
+If you use one of these binary packages, you must contact the Packager for
+support or for newer binary versions.
+The OpenOCD developers do not provide direct support for packaged binaries.
+
+## A Note to OpenOCD Packagers
+
+You are a PACKAGER of OpenOCD if you:
+
+- Sell dongles and include pre-built binaries;
+- Supply tools or IDEs (a development solution integrating OpenOCD);
+- Build packages (e.g. RPM or DEB files for a GNU/Linux distribution).
+
+As a PACKAGER, you will experience first reports of most issues.
+When you fix those problems for your users, your solution may help
+prevent hundreds (if not thousands) of other questions from other users.
+
+If something does not work for you, please work to inform the OpenOCD
+developers know how to improve the system or documentation to avoid
+future problems, and follow-up to help us ensure the issue will be fully
+resolved in our future releases.
+
+That said, the OpenOCD developers would also like you to follow a few
+suggestions:
+
+- Send patches, including config files, upstream, participate in the
+  discussions;
+- Enable all the options OpenOCD supports, even those unrelated to your
+  particular hardware;
+- Use "ftdi" interface adapter driver for the FTDI-based devices.
+
+
 # OpenOCD Documentation
 
 In addition to the in-tree documentation, the latest manuals may be
@@ -134,55 +203,6 @@ S3C24xx, S3C6400, SiM3x, SiFive Freedom E, Stellaris, ST BlueNRG, STM32,
 STM32 QUAD/OCTO-SPI for Flash/FRAM/EEPROM, STMSMI, STR7x, STR9x, SWM050,
 TI CC13xx, TI CC26xx, TI CC32xx, TI MSP432, Winner Micro w600, Xilinx XCF,
 XMC1xxx, XMC4xxx.
-
-
-# Installing OpenOCD
-
-## A Note to OpenOCD Users
-
-If you would rather be working "with" OpenOCD rather than "on" it, your
-operating system or JTAG interface supplier may provide binaries for
-you in a convenient-enough package.
-
-Such packages may be more stable than git mainline, where
-bleeding-edge development takes place. These "Packagers" produce
-binary releases of OpenOCD after the developers produces new "release"
-versions of the source code. Previous versions of OpenOCD cannot be
-used to diagnose problems with the current release, so users are
-encouraged to keep in contact with their distribution package
-maintainers or interface vendors to ensure suitable upgrades appear
-regularly.
-
-Users of these binary versions of OpenOCD must contact their Packager to
-ask for support or newer versions of the binaries; the OpenOCD
-developers do not support packages directly.
-
-## A Note to OpenOCD Packagers
-
-You are a PACKAGER of OpenOCD if you:
-
-- Sell dongles and include pre-built binaries;
-- Supply tools or IDEs (a development solution integrating OpenOCD);
-- Build packages (e.g. RPM or DEB files for a GNU/Linux distribution).
-
-As a PACKAGER, you will experience first reports of most issues.
-When you fix those problems for your users, your solution may help
-prevent hundreds (if not thousands) of other questions from other users.
-
-If something does not work for you, please work to inform the OpenOCD
-developers know how to improve the system or documentation to avoid
-future problems, and follow-up to help us ensure the issue will be fully
-resolved in our future releases.
-
-That said, the OpenOCD developers would also like you to follow a few
-suggestions:
-
-- Send patches, including config files, upstream, participate in the
-  discussions;
-- Enable all the options OpenOCD supports, even those unrelated to your
-  particular hardware;
-- Use "ftdi" interface adapter driver for the FTDI-based devices.
-
 
 # Building OpenOCD
 
