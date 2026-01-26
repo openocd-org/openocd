@@ -1,4 +1,8 @@
-# Building OpenOCD for macOS
+# OpenOCD for macOS
+
+This README contains instructions that are specific to macOS.
+
+## Building
 
 There are a few prerequisites you will need first:
 
@@ -20,20 +24,34 @@ manually from the sources.
 
 With Homebrew you can either run:
 
-    brew install [--HEAD] openocd (where optional --HEAD asks brew to
-                                 install the current Git version)
+```sh
+brew install [--HEAD] open-ocd
+```
 
-or
+Where ``--HEAD`` asks ``brew`` to install the current Git version instead of the
+lastest release.
 
-    brew install libtool automake libusb [hidapi] [libftdi] (to install the needed dependencies and then proceed with the
-     manual building procedure)
+You can also run:
+
+```sh
+brew install libtool automake libusb [hidapi] [libftdi]
+```
+
+to install the needed dependencies and then proceed with the manual building
+procedure.
 
 For building with MacPorts you need to run:
 
-    sudo port install libtool automake autoconf pkgconfig libusb [libftdi1]
+```sh
+sudo port install libtool automake autoconf pkgconfig libusb [libftdi1]
+```
 
 You should also specify LDFLAGS and CPPFLAGS to allow `configure` to use
-MacPorts' libraries, so run configure like this: `LDFLAGS=-L/opt/local/lib CPPFLAGS=-I/opt/local/include ./configure [options]`
+MacPorts' libraries, so run configure like this:
+
+```sh
+LDFLAGS=-L/opt/local/lib CPPFLAGS=-I/opt/local/include ./configure [options]
+```
 
 See [README](README.md) for the generic building instructions.
 
@@ -41,10 +59,14 @@ If you're using a USB adapter and have a driver kext matched to it,
 you will need to unload it prior to running OpenOCD. E.g. with Apple
 driver (OS X 10.9 or later) for FTDI run:
 
-    sudo kextunload -b com.apple.driver.AppleUSBFTDI
+```sh
+sudo kextunload -b com.apple.driver.AppleUSBFTDI
+```
 
 for FTDI vendor driver use:
 
-    sudo kextunload FTDIUSBSerialDriver.kext
+```sh
+sudo kextunload FTDIUSBSerialDriver.kext
+```
 
 To learn more on the topic please refer to the official libusb FAQ: <https://github.com/libusb/libusb/wiki/FAQ>
