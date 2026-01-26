@@ -2339,7 +2339,7 @@ static int try_set_vsew(struct target *target, unsigned int *debug_vsew)
 
 static int prep_for_vector_access(struct target *target,
 		riscv_reg_t *orig_mstatus, riscv_reg_t *orig_vtype, riscv_reg_t *orig_vl,
-		unsigned int *debug_vl, unsigned int *debug_vsew)
+		riscv_reg_t *orig_vstart, unsigned int *debug_vl, unsigned int *debug_vsew)
 {
 	assert(orig_mstatus);
 	assert(orig_vtype);
@@ -2356,12 +2356,15 @@ static int prep_for_vector_access(struct target *target,
 	if (prep_for_register_access(target, orig_mstatus, GDB_REGNO_VL) != ERROR_OK)
 		return ERROR_FAIL;
 
-	/* Save vtype and vl. */
+	/* Save original vstart, vtype and vl values for later restoration */
+	if (riscv_reg_get(target, orig_vstart, GDB_REGNO_VSTART) != ERROR_OK)
+		return ERROR_FAIL;
 	if (riscv_reg_get(target, orig_vtype, GDB_REGNO_VTYPE) != ERROR_OK)
 		return ERROR_FAIL;
 	if (riscv_reg_get(target, orig_vl, GDB_REGNO_VL) != ERROR_OK)
 		return ERROR_FAIL;
-
+	/* Note: vstart may be non-zero at this point. Updating vsew (via VTYPE)
+	 * reset vstart to 0. */
 	if (try_set_vsew(target, debug_vsew) != ERROR_OK)
 		return ERROR_FAIL;
 	/* Set the number of elements to be updated with results from a vector
@@ -2372,12 +2375,14 @@ static int prep_for_vector_access(struct target *target,
 }
 
 static int cleanup_after_vector_access(struct target *target,
-		riscv_reg_t mstatus, riscv_reg_t vtype, riscv_reg_t vl)
+		riscv_reg_t mstatus, riscv_reg_t vtype, riscv_reg_t vl, riscv_reg_t vstart)
 {
-	/* Restore vtype and vl. */
+	/* Restore vtype, vl and vstart. */
 	if (riscv_reg_write(target, GDB_REGNO_VTYPE, vtype) != ERROR_OK)
 		return ERROR_FAIL;
 	if (riscv_reg_write(target, GDB_REGNO_VL, vl) != ERROR_OK)
+		return ERROR_FAIL;
+	if (riscv_reg_write(target, GDB_REGNO_VSTART, vstart) != ERROR_OK)
 		return ERROR_FAIL;
 	return cleanup_after_register_access(target, mstatus, GDB_REGNO_VL);
 }
@@ -2390,10 +2395,10 @@ int riscv013_get_register_buf(struct target *target, uint8_t *value,
 	if (dm013_select_target(target) != ERROR_OK)
 		return ERROR_FAIL;
 
-	riscv_reg_t mstatus, vtype, vl;
+	riscv_reg_t mstatus, vtype, vl, vstart;
 	unsigned int debug_vl, debug_vsew;
 
-	if (prep_for_vector_access(target, &mstatus, &vtype, &vl,
+	if (prep_for_vector_access(target, &mstatus, &vtype, &vl, &vstart,
 				&debug_vl, &debug_vsew) != ERROR_OK)
 		return ERROR_FAIL;
 
@@ -2431,7 +2436,7 @@ int riscv013_get_register_buf(struct target *target, uint8_t *value,
 		}
 	}
 
-	if (cleanup_after_vector_access(target, mstatus, vtype, vl) != ERROR_OK)
+	if (cleanup_after_vector_access(target, mstatus, vtype, vl, vstart) != ERROR_OK)
 		return ERROR_FAIL;
 
 	return result;
@@ -2445,10 +2450,10 @@ int riscv013_set_register_buf(struct target *target, enum gdb_regno regno,
 	if (dm013_select_target(target) != ERROR_OK)
 		return ERROR_FAIL;
 
-	riscv_reg_t mstatus, vtype, vl;
+	riscv_reg_t mstatus, vtype, vl, vstart;
 	unsigned int debug_vl, debug_vsew;
 
-	if (prep_for_vector_access(target, &mstatus, &vtype, &vl,
+	if (prep_for_vector_access(target, &mstatus, &vtype, &vl, &vstart,
 				&debug_vl, &debug_vsew) != ERROR_OK)
 		return ERROR_FAIL;
 
@@ -2470,7 +2475,7 @@ int riscv013_set_register_buf(struct target *target, enum gdb_regno regno,
 			break;
 	}
 
-	if (cleanup_after_vector_access(target, mstatus, vtype, vl) != ERROR_OK)
+	if (cleanup_after_vector_access(target, mstatus, vtype, vl, vstart) != ERROR_OK)
 		return ERROR_FAIL;
 
 	return result;
