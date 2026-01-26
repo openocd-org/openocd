@@ -1,4 +1,8 @@
-# Building OpenOCD for Windows
+# OpenOCD for Windows
+
+This README contains instructions that are specific to Windows.
+
+## Building
 
 You can build OpenOCD for Windows natively with either MinGW-w64/MSYS
 or Cygwin (plain MinGW might work with `--disable-werror` but is not
@@ -9,7 +13,7 @@ host. See [README](README.md) for the generic instructions.
 Also, the MSYS2 project provides both ready-made binaries and an easy
 way to self-compile from their software repository out of the box.
 
-# USB adapters
+## USB adapters
 
 For the adapters that use a HID-based protocol, e.g. CMSIS-DAP, you do
 not need to perform any additional configuration.
