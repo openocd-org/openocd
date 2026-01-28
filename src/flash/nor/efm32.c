@@ -1137,7 +1137,7 @@ static int efm32_protect_check(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-static int get_efm32_info(struct flash_bank *bank, struct command_invocation *cmd)
+static int efm32_get_info(struct flash_bank *bank, struct command_invocation *cmd)
 {
 	struct efm32_flash_chip *efm32_info = bank->driver_priv;
 	int ret;
@@ -1224,6 +1224,6 @@ const struct flash_driver efm32_flash = {
 	.auto_probe         = efm32_auto_probe,
 	.erase_check        = default_flash_blank_check,
 	.protect_check      = efm32_protect_check,
-	.info               = get_efm32_info,
+	.info               = efm32_get_info,
 	.free_driver_priv   = efm32_free_driver_priv,
 };
