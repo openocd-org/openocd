@@ -85,7 +85,7 @@ enum efm32_bank_index {
 	EFM32_N_BANKS
 };
 
-static int efm32x_get_bank_index(target_addr_t base)
+static int efm32_get_bank_index(target_addr_t base)
 {
 	switch (base) {
 	case EFM32_FLASH_BASE:
@@ -124,7 +124,7 @@ struct efm32_info {
 	uint16_t page_size;
 };
 
-struct efm32x_flash_chip {
+struct efm32_flash_chip {
 	struct efm32_info info;
 	bool probed[EFM32_N_BANKS];
 	uint32_t lb_page[LOCKWORDS_SZ / 4];
@@ -195,132 +195,132 @@ static const struct efm32_family_data efm32_families[] = {
 
 const struct flash_driver efm32_flash;
 
-static int efm32x_priv_write(struct flash_bank *bank, const uint8_t *buffer,
+static int efm32_priv_write(struct flash_bank *bank, const uint8_t *buffer,
 			    uint32_t addr, uint32_t count);
 
-static int efm32x_write_only_lockbits(struct flash_bank *bank);
+static int efm32_write_only_lockbits(struct flash_bank *bank);
 
-static int efm32x_get_flash_size(struct flash_bank *bank, uint16_t *flash_sz)
+static int efm32_get_flash_size(struct flash_bank *bank, uint16_t *flash_sz)
 {
 	return target_read_u16(bank->target, EFM32_MSC_DI_FLASH_SZ, flash_sz);
 }
 
-static int efm32x_get_ram_size(struct flash_bank *bank, uint16_t *ram_sz)
+static int efm32_get_ram_size(struct flash_bank *bank, uint16_t *ram_sz)
 {
 	return target_read_u16(bank->target, EFM32_MSC_DI_RAM_SZ, ram_sz);
 }
 
-static int efm32x_get_part_num(struct flash_bank *bank, uint16_t *pnum)
+static int efm32_get_part_num(struct flash_bank *bank, uint16_t *pnum)
 {
 	return target_read_u16(bank->target, EFM32_MSC_DI_PART_NUM, pnum);
 }
 
-static int efm32x_get_part_family(struct flash_bank *bank, uint8_t *pfamily)
+static int efm32_get_part_family(struct flash_bank *bank, uint8_t *pfamily)
 {
 	return target_read_u8(bank->target, EFM32_MSC_DI_PART_FAMILY, pfamily);
 }
 
-static int efm32x_get_prod_rev(struct flash_bank *bank, uint8_t *prev)
+static int efm32_get_prod_rev(struct flash_bank *bank, uint8_t *prev)
 {
 	return target_read_u8(bank->target, EFM32_MSC_DI_PROD_REV, prev);
 }
 
-static int efm32x_read_reg_u32(struct flash_bank *bank, target_addr_t offset,
+static int efm32_read_reg_u32(struct flash_bank *bank, target_addr_t offset,
 			      uint32_t *value)
 {
-	struct efm32x_flash_chip *efm32x_info = bank->driver_priv;
-	uint32_t base = efm32x_info->reg_base;
+	struct efm32_flash_chip *efm32_info = bank->driver_priv;
+	uint32_t base = efm32_info->reg_base;
 
 	return target_read_u32(bank->target, base + offset, value);
 }
 
-static int efm32x_write_reg_u32(struct flash_bank *bank, target_addr_t offset,
+static int efm32_write_reg_u32(struct flash_bank *bank, target_addr_t offset,
 			       uint32_t value)
 {
-	struct efm32x_flash_chip *efm32x_info = bank->driver_priv;
-	uint32_t base = efm32x_info->reg_base;
+	struct efm32_flash_chip *efm32_info = bank->driver_priv;
+	uint32_t base = efm32_info->reg_base;
 
 	return target_write_u32(bank->target, base + offset, value);
 }
 
-static int efm32x_read_info(struct flash_bank *bank)
+static int efm32_read_info(struct flash_bank *bank)
 {
 	int ret;
-	struct efm32x_flash_chip *efm32x_info = bank->driver_priv;
-	struct efm32_info *efm32_info = &efm32x_info->info;
+	struct efm32_flash_chip *efm32_info = bank->driver_priv;
+	struct efm32_info *efm32_mcu_info = &efm32_info->info;
 
-	memset(efm32_info, 0, sizeof(struct efm32_info));
+	memset(efm32_mcu_info, 0, sizeof(struct efm32_info));
 
-	ret = efm32x_get_flash_size(bank, &efm32_info->flash_sz_kib);
+	ret = efm32_get_flash_size(bank, &efm32_mcu_info->flash_sz_kib);
 	if (ret != ERROR_OK)
 		return ret;
 
-	ret = efm32x_get_ram_size(bank, &efm32_info->ram_sz_kib);
+	ret = efm32_get_ram_size(bank, &efm32_mcu_info->ram_sz_kib);
 	if (ret != ERROR_OK)
 		return ret;
 
-	ret = efm32x_get_part_num(bank, &efm32_info->part_num);
+	ret = efm32_get_part_num(bank, &efm32_mcu_info->part_num);
 	if (ret != ERROR_OK)
 		return ret;
 
-	ret = efm32x_get_part_family(bank, &efm32_info->part_family);
+	ret = efm32_get_part_family(bank, &efm32_mcu_info->part_family);
 	if (ret != ERROR_OK)
 		return ret;
 
-	ret = efm32x_get_prod_rev(bank, &efm32_info->prod_rev);
+	ret = efm32_get_prod_rev(bank, &efm32_mcu_info->prod_rev);
 	if (ret != ERROR_OK)
 		return ret;
 
 	for (size_t i = 0; i < ARRAY_SIZE(efm32_families); i++) {
-		if (efm32_families[i].family_id == efm32_info->part_family)
-			efm32_info->family_data = &efm32_families[i];
+		if (efm32_families[i].family_id == efm32_mcu_info->part_family)
+			efm32_mcu_info->family_data = &efm32_families[i];
 	}
 
-	if (!efm32_info->family_data) {
-		LOG_ERROR("Unknown MCU family %d", efm32_info->part_family);
+	if (!efm32_mcu_info->family_data) {
+		LOG_ERROR("Unknown MCU family %d", efm32_mcu_info->part_family);
 		return ERROR_FAIL;
 	}
 
-	switch (efm32_info->family_data->series) {
+	switch (efm32_mcu_info->family_data->series) {
 	case 0:
-		efm32x_info->reg_base = EFM32_MSC_REGBASE;
-		efm32x_info->reg_lock = EFM32_MSC_REG_LOCK;
+		efm32_info->reg_base = EFM32_MSC_REGBASE;
+		efm32_info->reg_lock = EFM32_MSC_REG_LOCK;
 		break;
 	case 1:
-		efm32x_info->reg_base = EFM32_MSC_REGBASE_SERIES1;
-		efm32x_info->reg_lock = EFM32_MSC_REG_LOCK_SERIES1;
+		efm32_info->reg_base = EFM32_MSC_REGBASE_SERIES1;
+		efm32_info->reg_lock = EFM32_MSC_REG_LOCK_SERIES1;
 		break;
 	}
 
-	if (efm32_info->family_data->msc_regbase != 0)
-		efm32x_info->reg_base = efm32_info->family_data->msc_regbase;
+	if (efm32_mcu_info->family_data->msc_regbase != 0)
+		efm32_info->reg_base = efm32_mcu_info->family_data->msc_regbase;
 
-	if (efm32_info->family_data->page_size != 0) {
-		efm32_info->page_size = efm32_info->family_data->page_size;
+	if (efm32_mcu_info->family_data->page_size != 0) {
+		efm32_mcu_info->page_size = efm32_mcu_info->family_data->page_size;
 	} else {
 		uint8_t pg_size = 0;
 		ret = target_read_u8(bank->target, EFM32_MSC_DI_PAGE_SIZE, &pg_size);
 		if (ret != ERROR_OK)
 			return ret;
 
-		efm32_info->page_size = BIT((pg_size + 10) & 0xff);
+		efm32_mcu_info->page_size = BIT((pg_size + 10) & 0xff);
 
-		if (efm32_info->part_family == EFM_FAMILY_ID_GIANT_GECKO ||
-				efm32_info->part_family == EFM_FAMILY_ID_LEOPARD_GECKO) {
+		if (efm32_mcu_info->part_family == EFM_FAMILY_ID_GIANT_GECKO ||
+				efm32_mcu_info->part_family == EFM_FAMILY_ID_LEOPARD_GECKO) {
 			/* Giant or Leopard Gecko */
-			if (efm32_info->prod_rev < 18) {
+			if (efm32_mcu_info->prod_rev < 18) {
 				/* EFM32 GG/LG errata: MEM_INFO_PAGE_SIZE is invalid
 				   for MCUs with PROD_REV < 18 */
-				if (efm32_info->flash_sz_kib < 512)
-					efm32_info->page_size = 2048;
+				if (efm32_mcu_info->flash_sz_kib < 512)
+					efm32_mcu_info->page_size = 2048;
 				else
-					efm32_info->page_size = 4096;
+					efm32_mcu_info->page_size = 4096;
 			}
 		}
 
-		if (efm32_info->page_size != 2048 &&
-		    efm32_info->page_size != 4096) {
-			LOG_ERROR("Invalid page size %u", efm32_info->page_size);
+		if (efm32_mcu_info->page_size != 2048 &&
+		    efm32_mcu_info->page_size != 4096) {
+			LOG_ERROR("Invalid page size %u", efm32_mcu_info->page_size);
 			return ERROR_FAIL;
 		}
 	}
@@ -329,14 +329,14 @@ static int efm32x_read_info(struct flash_bank *bank)
 }
 
 /* flash bank efm32 <base> <size> 0 0 <target#> */
-FLASH_BANK_COMMAND_HANDLER(efm32x_flash_bank_command)
+FLASH_BANK_COMMAND_HANDLER(efm32_flash_bank_command)
 {
-	struct efm32x_flash_chip *efm32x_info = NULL;
+	struct efm32_flash_chip *efm32_info = NULL;
 
 	if (CMD_ARGC < 6)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	int bank_index = efm32x_get_bank_index(bank->base);
+	int bank_index = efm32_get_bank_index(bank->base);
 	if (bank_index < 0) {
 		LOG_ERROR("Flash bank with base address %" PRIx32 " is not supported",
 			(uint32_t)bank->base);
@@ -348,20 +348,20 @@ FLASH_BANK_COMMAND_HANDLER(efm32x_flash_bank_command)
 		if (bank_iter->driver == &efm32_flash
 			&& bank_iter->target == bank->target
 			&& bank->driver_priv) {
-			efm32x_info = bank->driver_priv;
+			efm32_info = bank->driver_priv;
 			break;
 		}
 	}
 
-	if (!efm32x_info) {
+	if (!efm32_info) {
 		/* target not matched, make a new one */
-		efm32x_info = calloc(1, sizeof(struct efm32x_flash_chip));
+		efm32_info = calloc(1, sizeof(struct efm32_flash_chip));
 
-		memset(efm32x_info->lb_page, 0xff, LOCKWORDS_SZ);
+		memset(efm32_info->lb_page, 0xff, LOCKWORDS_SZ);
 	}
 
-	++efm32x_info->refcount;
-	bank->driver_priv = efm32x_info;
+	++efm32_info->refcount;
+	bank->driver_priv = efm32_info;
 
 	return ERROR_OK;
 }
@@ -370,31 +370,31 @@ FLASH_BANK_COMMAND_HANDLER(efm32x_flash_bank_command)
  * Remove flash structure corresponding to this bank, if and only if it's not
  * used by any others
  */
-static void efm32x_free_driver_priv(struct flash_bank *bank)
+static void efm32_free_driver_priv(struct flash_bank *bank)
 {
-	struct efm32x_flash_chip *efm32x_info = bank->driver_priv;
+	struct efm32_flash_chip *efm32_info = bank->driver_priv;
 
-	if (efm32x_info) {
+	if (efm32_info) {
 		/* Use ref count to determine if it can be freed; scanning bank
 		 * list doesn't work, because this function can be called after
 		 * some banks in the list have been already destroyed.
 		 */
-		--efm32x_info->refcount;
-		if (efm32x_info->refcount == 0) {
-			free(efm32x_info);
+		--efm32_info->refcount;
+		if (efm32_info->refcount == 0) {
+			free(efm32_info);
 			bank->driver_priv = NULL;
 		}
 	}
 }
 
 /* set or reset given bits in a register */
-static int efm32x_set_reg_bits(struct flash_bank *bank, uint32_t reg,
+static int efm32_set_reg_bits(struct flash_bank *bank, uint32_t reg,
 			      uint32_t bitmask, int set)
 {
 	int ret = 0;
 	uint32_t reg_val = 0;
 
-	ret = efm32x_read_reg_u32(bank, reg, &reg_val);
+	ret = efm32_read_reg_u32(bank, reg, &reg_val);
 	if (ret != ERROR_OK)
 		return ret;
 
@@ -403,31 +403,31 @@ static int efm32x_set_reg_bits(struct flash_bank *bank, uint32_t reg,
 	else
 		reg_val &= ~bitmask;
 
-	return efm32x_write_reg_u32(bank, reg, reg_val);
+	return efm32_write_reg_u32(bank, reg, reg_val);
 }
 
-static int efm32x_set_wren(struct flash_bank *bank, int write_enable)
+static int efm32_set_wren(struct flash_bank *bank, int write_enable)
 {
-	return efm32x_set_reg_bits(bank, EFM32_MSC_REG_WRITECTRL,
+	return efm32_set_reg_bits(bank, EFM32_MSC_REG_WRITECTRL,
 				  EFM32_MSC_WRITECTRL_WREN_MASK, write_enable);
 }
 
-static int efm32x_msc_lock(struct flash_bank *bank, int lock)
+static int efm32_msc_lock(struct flash_bank *bank, int lock)
 {
-	struct efm32x_flash_chip *efm32x_info = bank->driver_priv;
+	struct efm32_flash_chip *efm32_info = bank->driver_priv;
 
-	return efm32x_write_reg_u32(bank, efm32x_info->reg_lock,
+	return efm32_write_reg_u32(bank, efm32_info->reg_lock,
 		(lock ? 0 : EFM32_MSC_LOCK_LOCKKEY));
 }
 
-static int efm32x_wait_status(struct flash_bank *bank, int timeout,
+static int efm32_wait_status(struct flash_bank *bank, int timeout,
 			     uint32_t wait_mask, int wait_for_set)
 {
 	int ret = 0;
 	uint32_t status = 0;
 
 	while (1) {
-		ret = efm32x_read_reg_u32(bank, EFM32_MSC_REG_STATUS, &status);
+		ret = efm32_read_reg_u32(bank, EFM32_MSC_REG_STATUS, &status);
 		if (ret != ERROR_OK)
 			break;
 
@@ -452,7 +452,7 @@ static int efm32x_wait_status(struct flash_bank *bank, int timeout,
 	return ret;
 }
 
-static int efm32x_erase_page(struct flash_bank *bank, uint32_t addr)
+static int efm32_erase_page(struct flash_bank *bank, uint32_t addr)
 {
 	/* this function DOES NOT set WREN; must be set already */
 	/* 1. write address to ADDRB
@@ -466,16 +466,16 @@ static int efm32x_erase_page(struct flash_bank *bank, uint32_t addr)
 
 	LOG_DEBUG("erasing flash page at 0x%08" PRIx32, addr);
 
-	ret = efm32x_write_reg_u32(bank, EFM32_MSC_REG_ADDRB, addr);
+	ret = efm32_write_reg_u32(bank, EFM32_MSC_REG_ADDRB, addr);
 	if (ret != ERROR_OK)
 		return ret;
 
-	ret = efm32x_set_reg_bits(bank, EFM32_MSC_REG_WRITECMD,
+	ret = efm32_set_reg_bits(bank, EFM32_MSC_REG_WRITECMD,
 				 EFM32_MSC_WRITECMD_LADDRIM_MASK, 1);
 	if (ret != ERROR_OK)
 		return ret;
 
-	ret = efm32x_read_reg_u32(bank, EFM32_MSC_REG_STATUS, &status);
+	ret = efm32_read_reg_u32(bank, EFM32_MSC_REG_STATUS, &status);
 	if (ret != ERROR_OK)
 		return ret;
 
@@ -489,16 +489,16 @@ static int efm32x_erase_page(struct flash_bank *bank, uint32_t addr)
 		return ERROR_FAIL;
 	}
 
-	ret = efm32x_set_reg_bits(bank, EFM32_MSC_REG_WRITECMD,
+	ret = efm32_set_reg_bits(bank, EFM32_MSC_REG_WRITECMD,
 				 EFM32_MSC_WRITECMD_ERASEPAGE_MASK, 1);
 	if (ret != ERROR_OK)
 		return ret;
 
-	return efm32x_wait_status(bank, EFM32_FLASH_ERASE_TMO,
+	return efm32_wait_status(bank, EFM32_FLASH_ERASE_TMO,
 				 EFM32_MSC_STATUS_BUSY_MASK, 0);
 }
 
-static int efm32x_erase(struct flash_bank *bank, unsigned int first,
+static int efm32_erase(struct flash_bank *bank, unsigned int first,
 		       unsigned int last)
 {
 	struct target *target = bank->target;
@@ -509,26 +509,26 @@ static int efm32x_erase(struct flash_bank *bank, unsigned int first,
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	efm32x_msc_lock(bank, 0);
-	ret = efm32x_set_wren(bank, 1);
+	efm32_msc_lock(bank, 0);
+	ret = efm32_set_wren(bank, 1);
 	if (ret != ERROR_OK) {
 		LOG_ERROR("Failed to enable MSC write");
 		return ret;
 	}
 
 	for (unsigned int i = first; i <= last; i++) {
-		ret = efm32x_erase_page(bank, bank->base + bank->sectors[i].offset);
+		ret = efm32_erase_page(bank, bank->base + bank->sectors[i].offset);
 		if (ret != ERROR_OK)
 			LOG_ERROR("Failed to erase page %d", i);
 	}
 
-	ret = efm32x_set_wren(bank, 0);
-	efm32x_msc_lock(bank, 1);
+	ret = efm32_set_wren(bank, 0);
+	efm32_msc_lock(bank, 1);
 	if (ret != ERROR_OK)
 		return ret;
 
 	if (bank->base == EFM32_MSC_LOCK_BITS) {
-		ret = efm32x_write_only_lockbits(bank);
+		ret = efm32_write_only_lockbits(bank);
 		if (ret != ERROR_OK)
 			LOG_ERROR("Failed to restore lockbits after erase");
 	}
@@ -536,9 +536,9 @@ static int efm32x_erase(struct flash_bank *bank, unsigned int first,
 	return ret;
 }
 
-static int efm32x_read_lock_data(struct flash_bank *bank)
+static int efm32_read_lock_data(struct flash_bank *bank)
 {
-	struct efm32x_flash_chip *efm32x_info = bank->driver_priv;
+	struct efm32_flash_chip *efm32_info = bank->driver_priv;
 	struct target *target = bank->target;
 	int data_size = 0;
 	uint32_t *ptr = NULL;
@@ -549,7 +549,7 @@ static int efm32x_read_lock_data(struct flash_bank *bank)
 	/* calculate the number of 32-bit words to read (one lock bit per sector) */
 	data_size = (bank->num_sectors + 31) / 32;
 
-	ptr = efm32x_info->lb_page;
+	ptr = efm32_info->lb_page;
 
 	for (int i = 0; i < data_size; i++, ptr++) {
 		ret = target_read_u32(target, EFM32_MSC_LOCK_BITS + i * 4, ptr);
@@ -562,7 +562,7 @@ static int efm32x_read_lock_data(struct flash_bank *bank)
 	/* also, read ULW, DLW, MLW, ALW and CLW words */
 
 	/* ULW, word 126 */
-	ptr = efm32x_info->lb_page + 126;
+	ptr = efm32_info->lb_page + 126;
 	ret = target_read_u32(target, EFM32_MSC_LOCK_BITS + 126 * 4, ptr);
 	if (ret != ERROR_OK) {
 		LOG_ERROR("Failed to read ULW");
@@ -570,7 +570,7 @@ static int efm32x_read_lock_data(struct flash_bank *bank)
 	}
 
 	/* DLW, word 127 */
-	ptr = efm32x_info->lb_page + 127;
+	ptr = efm32_info->lb_page + 127;
 	ret = target_read_u32(target, EFM32_MSC_LOCK_BITS + 127 * 4, ptr);
 	if (ret != ERROR_OK) {
 		LOG_ERROR("Failed to read DLW");
@@ -578,7 +578,7 @@ static int efm32x_read_lock_data(struct flash_bank *bank)
 	}
 
 	/* MLW, word 125, present in GG, LG, PG, JG, EFR32 */
-	ptr = efm32x_info->lb_page + 125;
+	ptr = efm32_info->lb_page + 125;
 	ret = target_read_u32(target, EFM32_MSC_LOCK_BITS + 125 * 4, ptr);
 	if (ret != ERROR_OK) {
 		LOG_ERROR("Failed to read MLW");
@@ -586,7 +586,7 @@ static int efm32x_read_lock_data(struct flash_bank *bank)
 	}
 
 	/* ALW, word 124, present in GG, LG, PG, JG, EFR32 */
-	ptr = efm32x_info->lb_page + 124;
+	ptr = efm32_info->lb_page + 124;
 	ret = target_read_u32(target, EFM32_MSC_LOCK_BITS + 124 * 4, ptr);
 	if (ret != ERROR_OK) {
 		LOG_ERROR("Failed to read ALW");
@@ -594,7 +594,7 @@ static int efm32x_read_lock_data(struct flash_bank *bank)
 	}
 
 	/* CLW1, word 123, present in EFR32 */
-	ptr = efm32x_info->lb_page + 123;
+	ptr = efm32_info->lb_page + 123;
 	ret = target_read_u32(target, EFM32_MSC_LOCK_BITS + 123 * 4, ptr);
 	if (ret != ERROR_OK) {
 		LOG_ERROR("Failed to read CLW1");
@@ -602,7 +602,7 @@ static int efm32x_read_lock_data(struct flash_bank *bank)
 	}
 
 	/* CLW0, word 122, present in GG, LG, PG, JG, EFR32 */
-	ptr = efm32x_info->lb_page + 122;
+	ptr = efm32_info->lb_page + 122;
 	ret = target_read_u32(target, EFM32_MSC_LOCK_BITS + 122 * 4, ptr);
 	if (ret != ERROR_OK) {
 		LOG_ERROR("Failed to read CLW0");
@@ -612,22 +612,22 @@ static int efm32x_read_lock_data(struct flash_bank *bank)
 	return ERROR_OK;
 }
 
-static int efm32x_write_only_lockbits(struct flash_bank *bank)
+static int efm32_write_only_lockbits(struct flash_bank *bank)
 {
-	struct efm32x_flash_chip *efm32x_info = bank->driver_priv;
+	struct efm32_flash_chip *efm32_info = bank->driver_priv;
 
-	return efm32x_priv_write(bank, (uint8_t *)efm32x_info->lb_page,
+	return efm32_priv_write(bank, (uint8_t *)efm32_info->lb_page,
 				EFM32_MSC_LOCK_BITS, LOCKWORDS_SZ);
 }
 
-static int efm32x_write_lock_data(struct flash_bank *bank)
+static int efm32_write_lock_data(struct flash_bank *bank)
 {
-	struct efm32x_flash_chip *efm32x_info = bank->driver_priv;
+	struct efm32_flash_chip *efm32_info = bank->driver_priv;
 	int ret = 0;
 
 	/* Preserve any data written to the high portion of the lockbits page */
-	assert(efm32x_info->info.page_size >= LOCKWORDS_SZ);
-	uint32_t extra_bytes = efm32x_info->info.page_size - LOCKWORDS_SZ;
+	assert(efm32_info->info.page_size >= LOCKWORDS_SZ);
+	uint32_t extra_bytes = efm32_info->info.page_size - LOCKWORDS_SZ;
 	uint8_t *extra_data = NULL;
 
 	if (extra_bytes) {
@@ -642,7 +642,7 @@ static int efm32x_write_lock_data(struct flash_bank *bank)
 		}
 	}
 
-	ret = efm32x_erase_page(bank, EFM32_MSC_LOCK_BITS);
+	ret = efm32_erase_page(bank, EFM32_MSC_LOCK_BITS);
 	if (ret != ERROR_OK) {
 		LOG_ERROR("Failed to erase LB page");
 		if (extra_data)
@@ -651,7 +651,7 @@ static int efm32x_write_lock_data(struct flash_bank *bank)
 	}
 
 	if (extra_data) {
-		ret = efm32x_priv_write(bank, extra_data,
+		ret = efm32_priv_write(bank, extra_data,
 				       EFM32_MSC_LOCK_BITS_EXTRA,
 				       extra_bytes);
 		free(extra_data);
@@ -661,26 +661,26 @@ static int efm32x_write_lock_data(struct flash_bank *bank)
 		}
 	}
 
-	return efm32x_write_only_lockbits(bank);
+	return efm32_write_only_lockbits(bank);
 }
 
-static int efm32x_get_page_lock(struct flash_bank *bank, size_t page)
+static int efm32_get_page_lock(struct flash_bank *bank, size_t page)
 {
-	struct efm32x_flash_chip *efm32x_info = bank->driver_priv;
+	struct efm32_flash_chip *efm32_info = bank->driver_priv;
 	uint32_t dw = 0;
 	uint32_t mask = 0;
 
 	switch (bank->base) {
 	case EFM32_FLASH_BASE:
-		dw = efm32x_info->lb_page[page >> 5];
+		dw = efm32_info->lb_page[page >> 5];
 		mask = BIT(page & 0x1f);
 		break;
 	case EFM32_MSC_USER_DATA:
-		dw = efm32x_info->lb_page[126];
+		dw = efm32_info->lb_page[126];
 		mask = BIT(0);
 		break;
 	case EFM32_MSC_LOCK_BITS:
-		dw = efm32x_info->lb_page[126];
+		dw = efm32_info->lb_page[126];
 		mask = BIT(1);
 		break;
 	}
@@ -688,16 +688,16 @@ static int efm32x_get_page_lock(struct flash_bank *bank, size_t page)
 	return (dw & mask) ? 0 : 1;
 }
 
-static int efm32x_set_page_lock(struct flash_bank *bank, size_t page, int set)
+static int efm32_set_page_lock(struct flash_bank *bank, size_t page, int set)
 {
-	struct efm32x_flash_chip *efm32x_info = bank->driver_priv;
+	struct efm32_flash_chip *efm32_info = bank->driver_priv;
 
 	if (bank->base != EFM32_FLASH_BASE) {
 		LOG_ERROR("Locking user and lockbits pages is not supported yet");
 		return ERROR_FAIL;
 	}
 
-	uint32_t *dw = &efm32x_info->lb_page[page >> 5];
+	uint32_t *dw = &efm32_info->lb_page[page >> 5];
 	uint32_t mask = 0;
 
 	mask = BIT(page & 0x1f);
@@ -710,7 +710,7 @@ static int efm32x_set_page_lock(struct flash_bank *bank, size_t page, int set)
 	return ERROR_OK;
 }
 
-static int efm32x_protect(struct flash_bank *bank, int set, unsigned int first,
+static int efm32_protect(struct flash_bank *bank, int set, unsigned int first,
 			 unsigned int last)
 {
 	struct target *target = bank->target;
@@ -722,14 +722,14 @@ static int efm32x_protect(struct flash_bank *bank, int set, unsigned int first,
 	}
 
 	for (unsigned int i = first; i <= last; i++) {
-		ret = efm32x_set_page_lock(bank, i, set);
+		ret = efm32_set_page_lock(bank, i, set);
 		if (ret != ERROR_OK) {
 			LOG_ERROR("Failed to set lock on page %d", i);
 			return ret;
 		}
 	}
 
-	ret = efm32x_write_lock_data(bank);
+	ret = efm32_write_lock_data(bank);
 	if (ret != ERROR_OK) {
 		LOG_ERROR("Failed to write LB page");
 		return ret;
@@ -738,7 +738,7 @@ static int efm32x_protect(struct flash_bank *bank, int set, unsigned int first,
 	return ERROR_OK;
 }
 
-static int efm32x_write_block(struct flash_bank *bank, const uint8_t *buf,
+static int efm32_write_block(struct flash_bank *bank, const uint8_t *buf,
 			     uint32_t address, uint32_t count)
 {
 	struct target *target = bank->target;
@@ -747,11 +747,11 @@ static int efm32x_write_block(struct flash_bank *bank, const uint8_t *buf,
 	struct working_area *source;
 	struct reg_param reg_params[5];
 	struct armv7m_algorithm armv7m_info;
-	struct efm32x_flash_chip *efm32x_info = bank->driver_priv;
+	struct efm32_flash_chip *efm32_info = bank->driver_priv;
 	int ret = ERROR_OK;
 
 	/* see contrib/loaders/flash/efm32.S for src */
-	static const uint8_t efm32x_flash_write_code[] = {
+	static const uint8_t efm32_flash_write_code[] = {
 		/* #define EFM32_MSC_WRITECTRL_OFFSET      0x008 */
 		/* #define EFM32_MSC_WRITECMD_OFFSET       0x00c */
 		/* #define EFM32_MSC_ADDRB_OFFSET          0x010 */
@@ -819,15 +819,15 @@ static int efm32x_write_block(struct flash_bank *bank, const uint8_t *buf,
 	};
 
 	/* flash write code */
-	if (target_alloc_working_area(target, sizeof(efm32x_flash_write_code),
+	if (target_alloc_working_area(target, sizeof(efm32_flash_write_code),
 				      &write_algorithm) != ERROR_OK) {
 		LOG_WARNING("no working area available, can't do block memory writes");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
 
 	ret = target_write_buffer(target, write_algorithm->address,
-				  sizeof(efm32x_flash_write_code),
-				  efm32x_flash_write_code);
+				  sizeof(efm32_flash_write_code),
+				  efm32_flash_write_code);
 	if (ret != ERROR_OK)
 		return ret;
 
@@ -851,7 +851,7 @@ static int efm32x_write_block(struct flash_bank *bank, const uint8_t *buf,
 	init_reg_param(&reg_params[3], "r3", 32, PARAM_OUT);	/* buffer end */
 	init_reg_param(&reg_params[4], "r4", 32, PARAM_IN_OUT);	/* target address */
 
-	buf_set_u32(reg_params[0].value, 0, 32, efm32x_info->reg_base);
+	buf_set_u32(reg_params[0].value, 0, 32, efm32_info->reg_base);
 	buf_set_u32(reg_params[1].value, 0, 32, count);
 	buf_set_u32(reg_params[2].value, 0, 32, source->address);
 	buf_set_u32(reg_params[3].value, 0, 32, source->address + source->size);
@@ -894,7 +894,7 @@ static int efm32x_write_block(struct flash_bank *bank, const uint8_t *buf,
 	return ret;
 }
 
-static int efm32x_write_word(struct flash_bank *bank, uint32_t addr,
+static int efm32_write_word(struct flash_bank *bank, uint32_t addr,
 			    uint32_t val)
 {
 	/* this function DOES NOT set WREN; must be set already */
@@ -916,16 +916,16 @@ static int efm32x_write_word(struct flash_bank *bank, uint32_t addr,
 	/* if not called, GDB errors will be reported during large writes */
 	keep_alive();
 
-	ret = efm32x_write_reg_u32(bank, EFM32_MSC_REG_ADDRB, addr);
+	ret = efm32_write_reg_u32(bank, EFM32_MSC_REG_ADDRB, addr);
 	if (ret != ERROR_OK)
 		return ret;
 
-	ret = efm32x_set_reg_bits(bank, EFM32_MSC_REG_WRITECMD,
+	ret = efm32_set_reg_bits(bank, EFM32_MSC_REG_WRITECMD,
 				 EFM32_MSC_WRITECMD_LADDRIM_MASK, 1);
 	if (ret != ERROR_OK)
 		return ret;
 
-	ret = efm32x_read_reg_u32(bank, EFM32_MSC_REG_STATUS, &status);
+	ret = efm32_read_reg_u32(bank, EFM32_MSC_REG_STATUS, &status);
 	if (ret != ERROR_OK)
 		return ret;
 
@@ -939,27 +939,27 @@ static int efm32x_write_word(struct flash_bank *bank, uint32_t addr,
 		return ERROR_FAIL;
 	}
 
-	ret = efm32x_wait_status(bank, EFM32_FLASH_WDATAREADY_TMO,
+	ret = efm32_wait_status(bank, EFM32_FLASH_WDATAREADY_TMO,
 				EFM32_MSC_STATUS_WDATAREADY_MASK, 1);
 	if (ret != ERROR_OK) {
 		LOG_ERROR("Wait for WDATAREADY failed");
 		return ret;
 	}
 
-	ret = efm32x_write_reg_u32(bank, EFM32_MSC_REG_WDATA, val);
+	ret = efm32_write_reg_u32(bank, EFM32_MSC_REG_WDATA, val);
 	if (ret != ERROR_OK) {
 		LOG_ERROR("WDATA write failed");
 		return ret;
 	}
 
-	ret = efm32x_write_reg_u32(bank, EFM32_MSC_REG_WRITECMD,
+	ret = efm32_write_reg_u32(bank, EFM32_MSC_REG_WRITECMD,
 				  EFM32_MSC_WRITECMD_WRITEONCE_MASK);
 	if (ret != ERROR_OK) {
 		LOG_ERROR("WRITECMD write failed");
 		return ret;
 	}
 
-	ret = efm32x_wait_status(bank, EFM32_FLASH_WRITE_TMO,
+	ret = efm32_wait_status(bank, EFM32_FLASH_WRITE_TMO,
 				EFM32_MSC_STATUS_BUSY_MASK, 0);
 	if (ret != ERROR_OK) {
 		LOG_ERROR("Wait for BUSY failed");
@@ -969,7 +969,7 @@ static int efm32x_write_word(struct flash_bank *bank, uint32_t addr,
 	return ERROR_OK;
 }
 
-static int efm32x_priv_write(struct flash_bank *bank, const uint8_t *buffer,
+static int efm32_priv_write(struct flash_bank *bank, const uint8_t *buffer,
 			    uint32_t addr, uint32_t count)
 {
 	struct target *target = bank->target;
@@ -1003,13 +1003,13 @@ static int efm32x_priv_write(struct flash_bank *bank, const uint8_t *buffer,
 	int retval, retval2;
 
 	/* unlock flash registers */
-	efm32x_msc_lock(bank, 0);
-	retval = efm32x_set_wren(bank, 1);
+	efm32_msc_lock(bank, 0);
+	retval = efm32_set_wren(bank, 1);
 	if (retval != ERROR_OK)
 		goto cleanup;
 
 	/* try using a block write */
-	retval = efm32x_write_block(bank, buffer, addr, words_remaining);
+	retval = efm32_write_block(bank, buffer, addr, words_remaining);
 
 	if (retval == ERROR_TARGET_RESOURCE_NOT_AVAILABLE) {
 		/* if block write failed (no sufficient working area),
@@ -1020,7 +1020,7 @@ static int efm32x_priv_write(struct flash_bank *bank, const uint8_t *buffer,
 			uint32_t value;
 			memcpy(&value, buffer, sizeof(uint32_t));
 
-			retval = efm32x_write_word(bank, addr, value);
+			retval = efm32_write_word(bank, addr, value);
 			if (retval != ERROR_OK)
 				goto reset_pg_and_lock;
 
@@ -1031,8 +1031,8 @@ static int efm32x_priv_write(struct flash_bank *bank, const uint8_t *buffer,
 	}
 
 reset_pg_and_lock:
-	retval2 = efm32x_set_wren(bank, 0);
-	efm32x_msc_lock(bank, 1);
+	retval2 = efm32_set_wren(bank, 0);
+	efm32_msc_lock(bank, 1);
 	if (retval == ERROR_OK)
 		retval = retval2;
 
@@ -1041,29 +1041,29 @@ cleanup:
 	return retval;
 }
 
-static int efm32x_write(struct flash_bank *bank, const uint8_t *buffer,
+static int efm32_write(struct flash_bank *bank, const uint8_t *buffer,
 		       uint32_t offset, uint32_t count)
 {
 	if (bank->base == EFM32_MSC_LOCK_BITS && offset < LOCKWORDS_SZ) {
 		LOG_ERROR("Cannot write to lock words");
 		return ERROR_FAIL;
 	}
-	return efm32x_priv_write(bank, buffer, bank->base + offset, count);
+	return efm32_priv_write(bank, buffer, bank->base + offset, count);
 }
 
-static int efm32x_probe(struct flash_bank *bank)
+static int efm32_probe(struct flash_bank *bank)
 {
-	struct efm32x_flash_chip *efm32x_info = bank->driver_priv;
-	struct efm32_info *efm32_mcu_info = &efm32x_info->info;
+	struct efm32_flash_chip *efm32_info = bank->driver_priv;
+	struct efm32_info *efm32_mcu_info = &efm32_info->info;
 	int ret;
-	int bank_index = efm32x_get_bank_index(bank->base);
+	int bank_index = efm32_get_bank_index(bank->base);
 
 	assert(bank_index >= 0);
 
-	efm32x_info->probed[bank_index] = false;
-	memset(efm32x_info->lb_page, 0xff, LOCKWORDS_SZ);
+	efm32_info->probed[bank_index] = false;
+	memset(efm32_info->lb_page, 0xff, LOCKWORDS_SZ);
 
-	ret = efm32x_read_info(bank);
+	ret = efm32_read_info(bank);
 	if (ret != ERROR_OK)
 		return ret;
 
@@ -1081,7 +1081,7 @@ static int efm32x_probe(struct flash_bank *bank)
 		bank->num_sectors = efm32_mcu_info->flash_sz_kib * 1024 / efm32_mcu_info->page_size;
 		assert(bank->num_sectors > 0);
 
-		ret = efm32x_read_lock_data(bank);
+		ret = efm32_read_lock_data(bank);
 		if (ret != ERROR_OK) {
 			LOG_ERROR("Failed to read LB data");
 			return ret;
@@ -1096,24 +1096,24 @@ static int efm32x_probe(struct flash_bank *bank)
 	if (!bank->sectors)
 		return ERROR_FAIL;
 
-	efm32x_info->probed[bank_index] = true;
+	efm32_info->probed[bank_index] = true;
 
 	return ERROR_OK;
 }
 
-static int efm32x_auto_probe(struct flash_bank *bank)
+static int efm32_auto_probe(struct flash_bank *bank)
 {
-	struct efm32x_flash_chip *efm32x_info = bank->driver_priv;
-	int bank_index = efm32x_get_bank_index(bank->base);
+	struct efm32_flash_chip *efm32_info = bank->driver_priv;
+	int bank_index = efm32_get_bank_index(bank->base);
 
 	assert(bank_index >= 0);
 
-	if (efm32x_info->probed[bank_index])
+	if (efm32_info->probed[bank_index])
 		return ERROR_OK;
-	return efm32x_probe(bank);
+	return efm32_probe(bank);
 }
 
-static int efm32x_protect_check(struct flash_bank *bank)
+static int efm32_protect_check(struct flash_bank *bank)
 {
 	struct target *target = bank->target;
 	int ret = 0;
@@ -1123,7 +1123,7 @@ static int efm32x_protect_check(struct flash_bank *bank)
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	ret = efm32x_read_lock_data(bank);
+	ret = efm32_read_lock_data(bank);
 	if (ret != ERROR_OK) {
 		LOG_ERROR("Failed to read LB data");
 		return ret;
@@ -1132,29 +1132,29 @@ static int efm32x_protect_check(struct flash_bank *bank)
 	assert(bank->sectors);
 
 	for (unsigned int i = 0; i < bank->num_sectors; i++)
-		bank->sectors[i].is_protected = efm32x_get_page_lock(bank, i);
+		bank->sectors[i].is_protected = efm32_get_page_lock(bank, i);
 
 	return ERROR_OK;
 }
 
-static int get_efm32x_info(struct flash_bank *bank, struct command_invocation *cmd)
+static int get_efm32_info(struct flash_bank *bank, struct command_invocation *cmd)
 {
-	struct efm32x_flash_chip *efm32x_info = bank->driver_priv;
+	struct efm32_flash_chip *efm32_info = bank->driver_priv;
 	int ret;
 
-	ret = efm32x_read_info(bank);
+	ret = efm32_read_info(bank);
 	if (ret != ERROR_OK) {
 		LOG_ERROR("Failed to read EFM32 info");
 		return ret;
 	}
 
 	command_print_sameline(cmd, "%s Gecko, rev %d",
-			       efm32x_info->info.family_data->name,
-			       efm32x_info->info.prod_rev);
+			       efm32_info->info.family_data->name,
+			       efm32_info->info.prod_rev);
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(efm32x_handle_debuglock_command)
+COMMAND_HANDLER(efm32_handle_debuglock_command)
 {
 	struct target *target = NULL;
 
@@ -1166,7 +1166,7 @@ COMMAND_HANDLER(efm32x_handle_debuglock_command)
 	if (retval != ERROR_OK)
 		return retval;
 
-	struct efm32x_flash_chip *efm32x_info = bank->driver_priv;
+	struct efm32_flash_chip *efm32_info = bank->driver_priv;
 
 	target = bank->target;
 
@@ -1176,24 +1176,24 @@ COMMAND_HANDLER(efm32x_handle_debuglock_command)
 	}
 
 	uint32_t *ptr;
-	ptr = efm32x_info->lb_page + 127;
+	ptr = efm32_info->lb_page + 127;
 	*ptr = 0;
 
-	retval = efm32x_write_lock_data(bank);
+	retval = efm32_write_lock_data(bank);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Failed to write LB page");
 		return retval;
 	}
 
-	command_print(CMD, "efm32x debug interface locked, reset the device to apply");
+	command_print(CMD, "efm32 debug interface locked, reset the device to apply");
 
 	return ERROR_OK;
 }
 
-static const struct command_registration efm32x_exec_command_handlers[] = {
+static const struct command_registration efm32_exec_command_handlers[] = {
 	{
 		.name = "debuglock",
-		.handler = efm32x_handle_debuglock_command,
+		.handler = efm32_handle_debuglock_command,
 		.mode = COMMAND_EXEC,
 		.usage = "bank_id",
 		.help = "Lock the debug interface of the device.",
@@ -1201,29 +1201,29 @@ static const struct command_registration efm32x_exec_command_handlers[] = {
 	COMMAND_REGISTRATION_DONE
 };
 
-static const struct command_registration efm32x_command_handlers[] = {
+static const struct command_registration efm32_command_handlers[] = {
 	{
 		.name = "efm32",
 		.mode = COMMAND_ANY,
 		.help = "efm32 flash command group",
 		.usage = "",
-		.chain = efm32x_exec_command_handlers,
+		.chain = efm32_exec_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE
 };
 
 const struct flash_driver efm32_flash = {
 	.name               = "efm32",
-	.commands           = efm32x_command_handlers,
-	.flash_bank_command = efm32x_flash_bank_command,
-	.erase              = efm32x_erase,
-	.protect            = efm32x_protect,
-	.write              = efm32x_write,
+	.commands           = efm32_command_handlers,
+	.flash_bank_command = efm32_flash_bank_command,
+	.erase              = efm32_erase,
+	.protect            = efm32_protect,
+	.write              = efm32_write,
 	.read               = default_flash_read,
-	.probe              = efm32x_probe,
-	.auto_probe         = efm32x_auto_probe,
+	.probe              = efm32_probe,
+	.auto_probe         = efm32_auto_probe,
 	.erase_check        = default_flash_blank_check,
-	.protect_check      = efm32x_protect_check,
-	.info               = get_efm32x_info,
-	.free_driver_priv   = efm32x_free_driver_priv,
+	.protect_check      = efm32_protect_check,
+	.info               = get_efm32_info,
+	.free_driver_priv   = efm32_free_driver_priv,
 };
