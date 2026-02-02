@@ -20,6 +20,9 @@
 struct flash_device {
 	const char *name;
 	uint8_t read_cmd;
+	uint8_t dread_cmd;
+	uint8_t dread_mode;
+	uint8_t dread_dclk;
 	uint8_t qread_cmd;
 	uint8_t pprog_cmd;
 	uint8_t erase_cmd;

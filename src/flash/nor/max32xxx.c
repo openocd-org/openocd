@@ -2,7 +2,7 @@
 
 /***************************************************************************
  *   Copyright (C) 2016 by Maxim Integrated                                *
- *   Copyright (C) 2025 Analog Devices, Inc.                               *
+ *   Copyright (C) 2025-2026 Analog Devices, Inc.                          *
  ***************************************************************************/
 
 #ifdef HAVE_CONFIG_H
@@ -10,6 +10,7 @@
 #endif
 
 #include "imp.h"
+#include "max32xxx_options.h"
 #include <helper/binarybuffer.h>
 #include <target/algorithm.h>
 #include <target/armv7m.h>
@@ -78,14 +79,6 @@
 #define ARM_PID_DEFAULT_CM3		0x0000B4C3
 #define ARM_PID_DEFAULT_CM4		0x0000B4C4
 #define MAX326XX_ID				0x0000004D
-
-#define OPTIONS_128             0x01 // Perform 128 bit flash writes
-#define OPTIONS_ENC             0x02 // Encrypt the flash contents
-#define OPTIONS_AUTH            0x04 // Authenticate the flash contents
-#define OPTIONS_COUNT           0x08 // Add counter values to authentication
-#define OPTIONS_INTER           0x10 // Interleave the authentication and count values
-#define OPTIONS_RELATIVE_XOR    0x20 // Only XOR the offset of the address when encrypting
-#define OPTIONS_KEYSIZE         0x40 // Use a 256 bit KEY
 
 static int max32xxx_mass_erase(struct flash_bank *bank);
 

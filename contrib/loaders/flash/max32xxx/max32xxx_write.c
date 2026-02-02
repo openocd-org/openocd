@@ -2,7 +2,7 @@
 
 /***************************************************************************
  *   Copyright (C) 2015 by Maxim Integrated                                *
- *   Copyright (C) 2025 Analog Devices, Inc.                               *
+ *   Copyright (C) 2025-2026 Analog Devices, Inc.                          *
  ***************************************************************************/
 
 /***** Includes *****/
@@ -13,7 +13,7 @@
 #include "tpu_regs.h"
 #include "gcr_regs.h"
 #include "flc_regs.h"
-#include "algo_options.h"
+#include "../../../../src/flash/nor/max32xxx_options.h"
 
 #ifdef ALGO_TEST
 #include <stdio.h>

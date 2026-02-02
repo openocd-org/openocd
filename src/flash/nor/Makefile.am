@@ -45,6 +45,7 @@ NOR_DRIVERS = \
 	%D%/lpc2900.c \
 	%D%/lpcspifi.c \
 	%D%/max32xxx.c \
+	%D%/max32xxx_qspi.c \
 	%D%/mdr.c \
 	%D%/msp432.c \
 	%D%/mspm0.c \
@@ -98,6 +99,8 @@ NORHEADERS = \
 	%D%/driver.h \
 	%D%/dw-spi-helper.h \
 	%D%/imp.h \
+	%D%/max32xxx_options.h \
+	%D%/max32xxx_qspi_common_defs.h \
 	%D%/non_cfi.h \
 	%D%/ocl.h \
 	%D%/sfdp.h \

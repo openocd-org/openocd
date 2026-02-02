@@ -6634,6 +6634,30 @@ flash bank $_FLASHNAME mrvlqspi 0x0 0 0 0 $_TARGETNAME 0x46010000
 
 @end deffn
 
+@deffn {Flash Driver} {max32xxx_qspi}
+@cindex Maxim Integrated MAX32xxx QSPI Interface
+@cindex QuadSPI
+@cindex max32xxx_qspi
+Driver for QSPI flash controller found on Maxim Integrated MAX32xxx series
+microcontrollers (now part of Analog Devices). Supports flash devices with
+memory-mapped read access and automatic device detection via SFDP.
+
+@example
+flash bank $_FLASHNAME max32xxx_qspi 0x8000000 0x0800000 0 0 $_TARGETNAME 0x0
+@end example
+
+@deffn {Command} {max32xxx_qspi reset_deassert} bank_id
+Complete QSPI setup by configuring the controller for memory-mapped operation.
+This is the final step that enables cache, sets read modes, configures security
+options, and prepares the flash for normal access.
+@end deffn
+
+@deffn {Command} {max32xxx_qspi mass_erase} bank_id
+Mass erase entire flash device (if supported by device).
+@end deffn
+
+@end deffn
+
 @deffn {Flash Driver} {ath79}
 @cindex Atheros ath79 SPI driver
 @cindex ath79

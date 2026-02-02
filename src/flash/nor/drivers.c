@@ -54,6 +54,7 @@ static const struct flash_driver * const flash_drivers[] = {
 	&lpc2900_flash,
 	&lpcspifi_flash,
 	&max32xxx_flash,
+	&max32xxx_qspi_flash,
 	&mdr_flash,
 	&mrvlqspi_flash,
 	&msp432_flash,
