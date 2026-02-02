@@ -16,8 +16,17 @@
  *   Copyright (C) 2014 Nemui Trinomius                                    *
  *   nemuisan_kawausogasuki@live.jp                                        *
  *                                                                         *
+ *   Copyright (C) 2021 Michael Teichgräber                                *
+ *   mteichgraeber@gmx.de                                                  *
+ *                                                                         *
  *   Copyright (C) 2021 Doug Brunner                                       *
  *   doug.a.brunner@gmail.com                                              *
+ *                                                                         *
+ *   Copyright (C) 2022 Mikrodust AB                                       *
+ *   henrik.persson@mikrodust.com                                          *
+ *                                                                         *
+ *   Copyright (c) 2026 Silicon Laboratories Inc.                          *
+ *   jerome.pouiller@silabs.com                                            *
  ***************************************************************************/
 
 #ifdef HAVE_CONFIG_H
