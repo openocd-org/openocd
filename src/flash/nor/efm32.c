@@ -333,8 +333,6 @@ static int efm32_read_info(struct flash_bank *bank)
 /* flash bank efm32 <base> <size> 0 0 <target#> */
 FLASH_BANK_COMMAND_HANDLER(efm32_flash_bank_command)
 {
-	struct efm32_flash_chip *efm32_info = NULL;
-
 	if (CMD_ARGC < 6)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
@@ -346,10 +344,13 @@ FLASH_BANK_COMMAND_HANDLER(efm32_flash_bank_command)
 	}
 
 	/* look for an existing flash structure matching target */
-	for (struct flash_bank *bank_iter = flash_bank_list(); bank_iter; bank_iter = bank_iter->next) {
-		if (bank_iter->driver == &efm32_flash
-			&& bank_iter->target == bank->target
-			&& bank->driver_priv) {
+	struct efm32_flash_chip *efm32_info = NULL;
+	for (struct flash_bank *bank_iter = flash_bank_list();
+	     bank_iter;
+	     bank_iter = bank_iter->next) {
+		if (bank_iter->driver == &efm32_flash &&
+		    bank_iter->target == bank->target &&
+		    bank->driver_priv) {
 			efm32_info = bank->driver_priv;
 			break;
 		}
@@ -625,13 +626,13 @@ static int efm32_write_only_lockbits(struct flash_bank *bank)
 static int efm32_write_lock_data(struct flash_bank *bank)
 {
 	struct efm32_flash_chip *efm32_info = bank->driver_priv;
-	int ret = 0;
 
 	/* Preserve any data written to the high portion of the lockbits page */
 	assert(efm32_info->info.page_size >= LOCKWORDS_SZ);
+
 	uint32_t extra_bytes = efm32_info->info.page_size - LOCKWORDS_SZ;
 	uint8_t *extra_data = NULL;
-
+	int ret;
 	if (extra_bytes) {
 		extra_data = malloc(extra_bytes);
 		ret = target_read_buffer(bank->target,
@@ -700,10 +701,7 @@ static int efm32_set_page_lock(struct flash_bank *bank, size_t page, int set)
 	}
 
 	uint32_t *dw = &efm32_info->lb_page[page >> 5];
-	uint32_t mask = 0;
-
-	mask = BIT(page & 0x1f);
-
+	uint32_t mask = BIT(page & 0x1f);
 	if (!set)
 		*dw |= mask;
 	else
@@ -1158,33 +1156,29 @@ static int efm32_get_info(struct flash_bank *bank, struct command_invocation *cm
 
 COMMAND_HANDLER(efm32_handle_debuglock_command)
 {
-	struct target *target = NULL;
-
 	if (CMD_ARGC < 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	struct flash_bank *bank;
-	int retval = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
-	if (retval != ERROR_OK)
-		return retval;
+	int ret = CALL_COMMAND_HANDLER(flash_command_get_bank, 0, &bank);
+	if (ret != ERROR_OK)
+		return ret;
 
 	struct efm32_flash_chip *efm32_info = bank->driver_priv;
-
-	target = bank->target;
+	struct target *target = bank->target;
 
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	uint32_t *ptr;
-	ptr = efm32_info->lb_page + 127;
+	uint32_t *ptr = efm32_info->lb_page + 127;
 	*ptr = 0;
 
-	retval = efm32_write_lock_data(bank);
-	if (retval != ERROR_OK) {
+	ret = efm32_write_lock_data(bank);
+	if (ret != ERROR_OK) {
 		LOG_ERROR("Failed to write LB page");
-		return retval;
+		return ret;
 	}
 
 	command_print(CMD, "efm32 debug interface locked, reset the device to apply");
