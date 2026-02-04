@@ -36,7 +36,8 @@
  */
 #define EFM32_FLASH_OPERATION_TIMEOUT   100
 
-#define EFM32_FLASH_BASE                0
+#define EFM32_FLASH_BASE_V1             0x00000000
+#define EFM32_FLASH_BASE_V2             0x08000000
 
 /* size in bytes, not words; must fit all Gecko devices */
 #define LOCKWORDS_SZ                    512
@@ -117,7 +118,8 @@ enum efm32_bank_index {
 static int efm32_get_bank_index(target_addr_t base)
 {
 	switch (base) {
-	case EFM32_FLASH_BASE:
+	case EFM32_FLASH_BASE_V1:
+	case EFM32_FLASH_BASE_V2:
 		return EFM32_BANK_INDEX_MAIN;
 	case EFM32_MSC_USER_DATA:
 		return EFM32_BANK_INDEX_USER_DATA;
@@ -732,7 +734,8 @@ static int efm32_get_page_lock(struct flash_bank *bank, size_t page)
 	uint32_t mask = 0;
 
 	switch (bank->base) {
-	case EFM32_FLASH_BASE:
+	case EFM32_FLASH_BASE_V1:
+	case EFM32_FLASH_BASE_V2:
 		dw = efm32_info->lb_page[page >> 5];
 		mask = BIT(page & 0x1f);
 		break;
@@ -753,7 +756,8 @@ static int efm32_set_page_lock(struct flash_bank *bank, size_t page, int set)
 {
 	struct efm32_flash_chip *efm32_info = bank->driver_priv;
 
-	if (bank->base != EFM32_FLASH_BASE) {
+	if (bank->base != EFM32_FLASH_BASE_V1 &&
+	    bank->base != EFM32_FLASH_BASE_V2) {
 		LOG_ERROR("Locking user and lockbits pages is not supported yet");
 		return ERROR_FAIL;
 	}
@@ -1162,6 +1166,7 @@ static int efm32_probe(struct flash_bank *bank)
 {
 	struct efm32_flash_chip *efm32_info = bank->driver_priv;
 	struct efm32_info *efm32_mcu_info = &efm32_info->info;
+	uint32_t base_address = EFM32_FLASH_BASE_V2;
 	int bank_index = efm32_get_bank_index(bank->base);
 	char strbuf[256];
 	int ret;
@@ -1175,6 +1180,12 @@ static int efm32_probe(struct flash_bank *bank)
 	if (ret != ERROR_OK)
 		return ret;
 
+	if (efm32_mcu_info->family_data->series == 0 ||
+	    efm32_mcu_info->family_data->series == 1 ||
+	    FIELD_GET(EFM32_DI_PARTINFO_FAMILY_MASK, efm32_mcu_info->part_info) == 21 ||
+	    FIELD_GET(EFM32_DI_PARTINFO_FAMILY_MASK, efm32_mcu_info->part_info) == 22)
+		base_address = EFM32_FLASH_BASE_V1;
+
 	LOG_INFO("detected part: %s",
 		 efm32_get_str_identifier(efm32_mcu_info, strbuf, sizeof(strbuf)));
 	LOG_INFO("flash size = %d KiB", efm32_mcu_info->flash_sz_kib);
@@ -1185,7 +1196,7 @@ static int efm32_probe(struct flash_bank *bank)
 	free(bank->sectors);
 	bank->sectors = NULL;
 
-	if (bank->base == EFM32_FLASH_BASE) {
+	if (bank->base == base_address) {
 		bank->num_sectors = efm32_mcu_info->flash_sz_kib * 1024 / efm32_mcu_info->page_size;
 		assert(bank->num_sectors > 0);
 	} else {
