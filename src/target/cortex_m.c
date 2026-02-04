@@ -2775,10 +2775,12 @@ int cortex_m_security_restore(struct target *target, struct cortex_m_saved_secur
 static int cortex_m_find_mem_ap(struct adiv5_dap *swjdp,
 		struct adiv5_ap **debug_ap)
 {
-	if (dap_find_get_ap(swjdp, AP_TYPE_AHB3_AP, debug_ap) == ERROR_OK)
-		return ERROR_OK;
+	const enum ap_type types[] = {
+		AP_TYPE_AHB3_AP,
+		AP_TYPE_AHB5_AP
+	};
 
-	return dap_find_get_ap(swjdp, AP_TYPE_AHB5_AP, debug_ap);
+	return dap_find_by_types_get_ap(swjdp, types, ARRAY_SIZE(types), debug_ap);
 }
 
 int cortex_m_examine(struct target *target)

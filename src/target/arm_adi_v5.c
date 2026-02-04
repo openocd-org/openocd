@@ -1112,13 +1112,17 @@ bool is_ap_num_valid(struct adiv5_dap *dap, uint64_t ap_num)
  * This function checks the ID for each access port to find the requested Access Port type
  * It also calls dap_get_ap() to increment the AP refcount
  */
-int dap_find_get_ap(struct adiv5_dap *dap, enum ap_type type_to_find, struct adiv5_ap **ap_out)
+int dap_find_by_types_get_ap(struct adiv5_dap *dap,
+	const enum ap_type *types_to_find, unsigned int num_types,
+	struct adiv5_ap **ap_out)
 {
 	if (is_adiv6(dap)) {
 		/* TODO: scan the ROM table and detect the AP available */
 		LOG_DEBUG("On ADIv6 we cannot scan all the possible AP");
 		return ERROR_FAIL;
 	}
+
+	assert(num_types > 0);
 
 	/* Maximum AP number is 255 since the SELECT register is 8 bits */
 	for (unsigned int ap_num = 0; ap_num <= DP_APSEL_MAX; ap_num++) {
@@ -1140,18 +1144,39 @@ int dap_find_get_ap(struct adiv5_dap *dap, enum ap_type type_to_find, struct adi
 		/* Reading register for a non-existent AP should not cause an error,
 		 * but just to be sure, try to continue searching if an error does happen.
 		 */
-		if (retval == ERROR_OK && (id_val & AP_TYPE_MASK) == type_to_find) {
-			LOG_DEBUG("Found %s at AP index: %d (IDR=0x%08" PRIX32 ")",
-						ap_type_to_description(type_to_find),
+		if (retval == ERROR_OK) {
+			for (unsigned int i = 0; i < num_types; i++) {
+				if ((id_val & AP_TYPE_MASK) == types_to_find[i]) {
+					LOG_DEBUG("Found %s at AP index: %d (IDR=0x%08" PRIX32 ")",
+						ap_type_to_description(types_to_find[i]),
 						ap_num, id_val);
 
-			*ap_out = ap;
-			return ERROR_OK;
+					*ap_out = ap;
+					return ERROR_OK;
+				}
+			}
 		}
 		dap_put_ap(ap);
 	}
 
-	LOG_DEBUG("No %s found", ap_type_to_description(type_to_find));
+	char *types_str = NULL;
+	for (unsigned int i = 0; i < num_types; i++) {
+		if (!types_str) {
+			types_str = strdup(ap_type_to_description(types_to_find[i]));
+		} else {
+			char *next_str = alloc_printf("%s, %s", types_str,
+					ap_type_to_description(types_to_find[i]));
+			free(types_str);
+			types_str = next_str;
+		}
+		if (!types_str) {
+			LOG_ERROR("No memory");
+			return ERROR_FAIL;
+		}
+	}
+	LOG_DEBUG("No %s found", types_str);
+	free(types_str);
+
 	return ERROR_FAIL;
 }
 

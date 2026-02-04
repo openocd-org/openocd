@@ -738,10 +738,21 @@ int adiv6_dap_read_baseptr(struct command_invocation *cmd, struct adiv5_dap *dap
 /* test if ap_num is valid, based on current knowledge of dap */
 bool is_ap_num_valid(struct adiv5_dap *dap, uint64_t ap_num);
 
-/* Probe Access Ports to find a particular type. Increment AP refcount */
-int dap_find_get_ap(struct adiv5_dap *dap,
-			enum ap_type type_to_find,
+/* Probe Access Ports to find any type from array.
+ * Increment AP refcount */
+int dap_find_by_types_get_ap(struct adiv5_dap *dap,
+			const enum ap_type *types_to_find,
+			unsigned int num_types,
 			struct adiv5_ap **ap_out);
+
+/* Probe Access Ports to find a particular type. Increment AP refcount */
+static inline int dap_find_get_ap(struct adiv5_dap *dap,
+			enum ap_type type_to_find,
+			struct adiv5_ap **ap_out)
+{
+	const enum ap_type types[1] = { type_to_find };
+	return dap_find_by_types_get_ap(dap, types, 1, ap_out);
+}
 
 /* Return AP with specified ap_num. Increment AP refcount */
 struct adiv5_ap *dap_get_ap(struct adiv5_dap *dap, uint64_t ap_num);
