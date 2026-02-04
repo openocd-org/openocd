@@ -26,6 +26,7 @@
 
 #include "imp.h"
 #include <helper/binarybuffer.h>
+#include <helper/time_support.h>
 #include <target/algorithm.h>
 #include <target/armv7m.h>
 #include <target/cortex_m.h>
@@ -33,9 +34,10 @@
 #define EFM_FAMILY_ID_GIANT_GECKO       72
 #define EFM_FAMILY_ID_LEOPARD_GECKO     74
 
-#define EFM32_FLASH_ERASE_TMO           100
-#define EFM32_FLASH_WDATAREADY_TMO      100
-#define EFM32_FLASH_WRITE_TMO           100
+/* Datasheet specifies ~22ms for page erase on first chip generation. 100ms
+ * provides reasonable margin.
+ */
+#define EFM32_FLASH_OPERATION_TIMEOUT   100
 
 #define EFM32_FLASH_BASE                0
 
@@ -420,25 +422,25 @@ static int efm32_msc_lock(struct flash_bank *bank, int lock)
 		(lock ? 0 : EFM32_MSC_LOCK_LOCKKEY));
 }
 
-static int efm32_wait_status(struct flash_bank *bank, int timeout,
-			     uint32_t wait_mask, int wait_for_set)
+static int efm32_wait_status(struct flash_bank *bank, int timeout_ms,
+			     uint32_t wait_mask, bool wait_for_set)
 {
-	int ret = 0;
+	int64_t start_ms = timeval_ms();
 	uint32_t status = 0;
 
 	while (1) {
-		ret = efm32_read_reg_u32(bank, EFM32_MSC_REG_STATUS, &status);
+		int ret = efm32_read_reg_u32(bank, EFM32_MSC_REG_STATUS, &status);
 		if (ret != ERROR_OK)
-			break;
+			return ret;
 
 		LOG_DEBUG("status: 0x%" PRIx32, status);
 
-		if ((status & wait_mask) == 0 && wait_for_set == 0)
+		if (!(status & wait_mask) && !wait_for_set)
 			break;
-		else if ((status & wait_mask) != 0 && wait_for_set)
+		if ((status & wait_mask) && wait_for_set)
 			break;
 
-		if (timeout-- <= 0) {
+		if (timeval_ms() - start_ms > timeout_ms) {
 			LOG_ERROR("timed out waiting for MSC status");
 			return ERROR_FAIL;
 		}
@@ -449,7 +451,7 @@ static int efm32_wait_status(struct flash_bank *bank, int timeout,
 	if (status & EFM32_MSC_STATUS_ERASEABORTED_MASK)
 		LOG_WARNING("page erase was aborted");
 
-	return ret;
+	return ERROR_OK;
 }
 
 static int efm32_erase_page(struct flash_bank *bank, uint32_t addr)
@@ -494,8 +496,8 @@ static int efm32_erase_page(struct flash_bank *bank, uint32_t addr)
 	if (ret != ERROR_OK)
 		return ret;
 
-	return efm32_wait_status(bank, EFM32_FLASH_ERASE_TMO,
-				 EFM32_MSC_STATUS_BUSY_MASK, 0);
+	return efm32_wait_status(bank, EFM32_FLASH_OPERATION_TIMEOUT,
+				 EFM32_MSC_STATUS_BUSY_MASK, false);
 }
 
 static int efm32_erase(struct flash_bank *bank, unsigned int first,
@@ -939,8 +941,8 @@ static int efm32_write_word(struct flash_bank *bank, uint32_t addr,
 		return ERROR_FAIL;
 	}
 
-	ret = efm32_wait_status(bank, EFM32_FLASH_WDATAREADY_TMO,
-				EFM32_MSC_STATUS_WDATAREADY_MASK, 1);
+	ret = efm32_wait_status(bank, EFM32_FLASH_OPERATION_TIMEOUT,
+				EFM32_MSC_STATUS_WDATAREADY_MASK, true);
 	if (ret != ERROR_OK) {
 		LOG_ERROR("Wait for WDATAREADY failed");
 		return ret;
@@ -959,8 +961,8 @@ static int efm32_write_word(struct flash_bank *bank, uint32_t addr,
 		return ret;
 	}
 
-	ret = efm32_wait_status(bank, EFM32_FLASH_WRITE_TMO,
-				EFM32_MSC_STATUS_BUSY_MASK, 0);
+	ret = efm32_wait_status(bank, EFM32_FLASH_OPERATION_TIMEOUT,
+				EFM32_MSC_STATUS_BUSY_MASK, false);
 	if (ret != ERROR_OK) {
 		LOG_ERROR("Wait for BUSY failed");
 		return ret;
