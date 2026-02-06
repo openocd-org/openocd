@@ -720,12 +720,22 @@ static int efm32_set_page_lock(struct flash_bank *bank, size_t page, int set)
 static int efm32_protect(struct flash_bank *bank, int set, unsigned int first,
 			 unsigned int last)
 {
+	struct efm32_flash_chip *efm32_info = bank->driver_priv;
 	struct target *target = bank->target;
 	int ret = 0;
+
+	if (efm32_info->info.family_data->series == 2)
+		return ERROR_FLASH_OPER_UNSUPPORTED;
 
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	ret = efm32_read_lock_data(bank);
+	if (ret != ERROR_OK) {
+		LOG_ERROR("Failed to read LB data");
+		return ret;
 	}
 
 	for (unsigned int i = first; i <= last; i++) {
@@ -1123,12 +1133,6 @@ static int efm32_probe(struct flash_bank *bank)
 	if (bank->base == EFM32_FLASH_BASE) {
 		bank->num_sectors = efm32_mcu_info->flash_sz_kib * 1024 / efm32_mcu_info->page_size;
 		assert(bank->num_sectors > 0);
-
-		ret = efm32_read_lock_data(bank);
-		if (ret != ERROR_OK) {
-			LOG_ERROR("Failed to read LB data");
-			return ret;
-		}
 	} else {
 		bank->num_sectors = 1;
 	}
@@ -1158,8 +1162,12 @@ static int efm32_auto_probe(struct flash_bank *bank)
 
 static int efm32_protect_check(struct flash_bank *bank)
 {
+	struct efm32_flash_chip *efm32_info = bank->driver_priv;
 	struct target *target = bank->target;
 	int ret = 0;
+
+	if (efm32_info->info.family_data->series == 2)
+		return ERROR_FLASH_OPER_UNSUPPORTED;
 
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
