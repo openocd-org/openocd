@@ -154,15 +154,15 @@ USB-based, parallel port-based, and other standalone boxes that run
 OpenOCD internally. @xref{Debug Adapter Hardware}.
 
 @b{GDB Debug:} It allows ARM7 (ARM7TDMI and ARM720t), ARM9 (ARM920T,
-ARM922T, ARM926EJ--S, ARM966E--S), XScale (PXA25x, IXP42x), Cortex-M3
-(Stellaris LM3, STMicroelectronics STM32 and Energy Micro EFM32) and
+ARM922T, ARM926EJ--S, ARM966E--S), XScale (PXA25x, IXP42x), Cortex-M
+(Stellaris LM3, STMicroelectronics STM32 and Silicon Labs EFM32/EFR32) and
 Intel Quark (x10xx) based cores to be debugged via the GDB protocol.
 
 @b{Flash Programming:} Flash writing is supported for external
 CFI-compatible NOR flashes (Intel and AMD/Spansion command set) and several
 internal flashes (LPC1700, LPC1800, LPC2000, LPC4300, AT91SAM7, AT91SAM3U,
-STR7x, STR9x, LM3, STM32x and EFM32). Preliminary support for various NAND flash
-controllers (LPC3180, Orion, S3C24xx, more) is included.
+STR7x, STR9x, LM3, STM32x and EFM32/EFR32). Preliminary support for various NAND
+flash controllers (LPC3180, Orion, S3C24xx, more) is included.
 
 @section OpenOCD Web Site
 
@@ -7214,25 +7214,25 @@ flash bank $_FLASHNAME cc3220sf 0 0 0 0 $_TARGETNAME
 @end deffn
 
 @deffn {Flash Driver} {efm32}
-All members of the EFM32/EFR32 microcontroller family from Energy Micro (now Silicon Labs)
-include internal flash and use Arm Cortex-M3 or Cortex-M4 cores. The driver automatically
-recognizes a number of these chips using the chip identification register, and
-autoconfigures itself.
+All members of the EFM32/EFR32 microcontroller family from Silicon Labs (former
+Energy Micro) include internal flash and use Arm Cortex-M3, Cortex-M4 or
+Cortex-M33 cores. The driver automatically recognizes a number of these chips
+using the chip identification register, and autoconfigures itself.
 @example
-flash bank $_FLASHNAME efm32 0 0 0 0 $_TARGETNAME
+flash bank $_FLASHNAME efm32 0x80000000 0 0 0 $_TARGETNAME
 @end example
 It supports writing to the user data page, as well as the portion of the lockbits page
-past 512 bytes on chips with larger page sizes. The latter is used by the SiLabs
-bootloader/AppLoader system for encryption keys. Setting protection on these pages is
-currently not supported.
+past 512 bytes on chips with larger page sizes. The latter is used by the
+Silicon Labs bootloader/AppLoader system for encryption keys. Setting protection
+on these pages is currently not supported.
 @example
 flash bank userdata.flash efm32 0x0FE00000 0 0 0 $_TARGETNAME
 flash bank lockbits.flash efm32 0x0FE04000 0 0 0 $_TARGETNAME
 @end example
 
-A special feature of efm32 controllers is that it is possible to completely disable the
-debug interface by writing the correct values to the 'Debug Lock Word'. OpenOCD supports
-this via the following command:
+A special feature of Silicon Labs Series 0/1 controllers is that it is possible
+to completely disable the debug interface by writing the correct values to the
+'Debug Lock Word'. OpenOCD supports this via the following command:
 @example
 efm32 debuglock num
 @end example
