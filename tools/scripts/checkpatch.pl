@@ -3932,6 +3932,12 @@ sub process {
 # more than $tabsize must use tabs.
 		if ($rawline =~ /^\+\s* \t\s*\S/ ||
 		    $rawline =~ /^\+\s*        \s*/) {
+			# OpenOCD specific: Begin: fix check on $tabsize
+			# Do nothing in this default upstream case
+		}
+		if ($rawline =~ /^\+\s* \t\s*\S/ ||
+		    $rawline =~ /^\+\s* {$tabsize}\s*/) {
+			# OpenOCD specific: End
 			my $herevet = "$here\n" . cat_vet($rawline) . "\n";
 			$rpt_cleaners = 1;
 			if (ERROR("CODE_INDENT",
