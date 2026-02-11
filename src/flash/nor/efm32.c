@@ -63,6 +63,8 @@ struct efm32_dev_info_addr {
 #define EFM32_DI_PARTINFO_FAMILY_MASK     0x00ff0000
 #define EFM32_DI_PARTINFO_TYPE_MASK       0x3f000000
 	target_addr_t part_info;
+#define EFM32_DI_PARTINFO_PAGE_SZ_MASK    0x000000ff
+#define EFM32_DI_PARTINFO_PAGE_SZ_UD_MASK 0x0000ff00
 	target_addr_t page_size;
 	target_addr_t flash_sz;
 	target_addr_t ram_sz;
@@ -108,6 +110,7 @@ struct efm32_msc_offset {
 	target_addr_t off_writecmd;
 	target_addr_t off_addrb;
 	target_addr_t off_wdata;
+	target_addr_t off_userdatasize;
 
 #define EFM32_MSC_STATUS_BUSY_MASK           0x0001
 #define EFM32_MSC_STATUS_LOCKED_MASK         0x0002
@@ -139,6 +142,7 @@ static const struct efm32_msc_offset efm32_msc_offset[] = {
 		.off_wdata     = 0x0018,
 		.off_status    = 0x001c,
 		.off_lock      = 0x003c,
+		.off_userdatasize = 0x0000, // Does not exist in Series 0/1
 		.flash_write_code = efm32_flash_write_code_s0_s1,
 		.flash_write_code_len = sizeof(efm32_flash_write_code_s0_s1),
 	},
@@ -149,6 +153,7 @@ static const struct efm32_msc_offset efm32_msc_offset[] = {
 		.off_wdata     = 0x0018,
 		.off_status    = 0x001c,
 		.off_lock      = 0x0040,
+		.off_userdatasize = 0x0000, // Does not exist in Series 0/1
 		.flash_write_code = efm32_flash_write_code_s0_s1,
 		.flash_write_code_len = sizeof(efm32_flash_write_code_s0_s1),
 	},
@@ -159,6 +164,7 @@ static const struct efm32_msc_offset efm32_msc_offset[] = {
 		.off_wdata     = 0x0018,
 		.off_status    = 0x001c,
 		.off_lock      = 0x003c,
+		.off_userdatasize = 0x0034,
 		.flash_write_code = efm32_flash_write_code_s2,
 		.flash_write_code_len = sizeof(efm32_flash_write_code_s2),
 	},
@@ -197,7 +203,6 @@ struct efm32_family_data {
 
 	// Page size in bytes, or 0 to read from msc_di->page_size
 	int page_size;
-
 };
 
 struct efm32_info {
@@ -210,6 +215,7 @@ struct efm32_info {
 	uint16_t flash_sz_kib;
 	uint16_t ram_sz_kib;
 	uint16_t page_size;
+	uint16_t page_size_ud;
 };
 
 struct efm32_flash_chip {
@@ -311,20 +317,20 @@ static int efm32_read_info(struct flash_bank *bank)
 {
 	struct efm32_flash_chip *efm32_info = bank->driver_priv;
 	struct efm32_info *efm32_mcu_info = &efm32_info->info;
-	uint8_t tmp;
 	int ret;
 
 	memset(efm32_mcu_info, 0, sizeof(struct efm32_info));
 
-	ret = target_read_u8(bank->target, EFM32_DI_PART_FAMILY, &tmp);
+	uint8_t val8;
+	ret = target_read_u8(bank->target, EFM32_DI_PART_FAMILY, &val8);
 	if (ret != ERROR_OK)
 		return ret;
 	for (size_t i = 0; i < ARRAY_SIZE(efm32_families); i++) {
-		if (efm32_families[i].part_id == tmp)
+		if (efm32_families[i].part_id == val8)
 			efm32_mcu_info->family_data = &efm32_families[i];
 	}
 	if (!efm32_mcu_info->family_data) {
-		LOG_ERROR("Unknown MCU family %d", tmp);
+		LOG_ERROR("Unknown MCU family %d", val8);
 		return ERROR_FAIL;
 	}
 
@@ -363,6 +369,7 @@ static int efm32_read_info(struct flash_bank *bank)
 	if (ret != ERROR_OK)
 		return ret;
 
+	efm32_mcu_info->page_size_ud = 0;
 	if (efm32_mcu_info->family_data->page_size != 0) {
 		efm32_mcu_info->page_size = efm32_mcu_info->family_data->page_size;
 	} else if ((efm32_mcu_info->family_data->part_id == 72 ||
@@ -376,14 +383,20 @@ static int efm32_read_info(struct flash_bank *bank)
 		else
 			efm32_mcu_info->page_size = 4096;
 	} else {
-		ret = target_read_u8(bank->target,
+		uint32_t val32;
+		ret = target_read_u32(bank->target,
 							 efm32_mcu_info->di_addr->page_size,
-							 &tmp);
+							 &val32);
 		if (ret != ERROR_OK)
 			return ret;
 
-		efm32_mcu_info->page_size = BIT(tmp) * 1024;
+		efm32_mcu_info->page_size = BIT(FIELD_GET(EFM32_DI_PARTINFO_PAGE_SZ_MASK, val32)) * 1024;
+		if (efm32_mcu_info->family_data->series == 2)
+			efm32_mcu_info->page_size_ud = FIELD_GET(EFM32_DI_PARTINFO_PAGE_SZ_UD_MASK, val32) * 1024;
 	}
+	if (!efm32_mcu_info->page_size_ud)
+		efm32_mcu_info->page_size_ud = efm32_mcu_info->page_size;
+
 	if (efm32_mcu_info->page_size !=  512 &&
 		efm32_mcu_info->page_size != 1024 &&
 		efm32_mcu_info->page_size != 2048 &&
@@ -1172,8 +1185,8 @@ static int efm32_probe(struct flash_bank *bank)
 {
 	struct efm32_flash_chip *efm32_info = bank->driver_priv;
 	struct efm32_info *efm32_mcu_info = &efm32_info->info;
-	uint32_t base_address = EFM32_FLASH_BASE_V2;
 	int bank_index = efm32_get_bank_index(bank->base);
+	uint32_t base_address = EFM32_FLASH_BASE_V2;
 	char strbuf[256];
 	int ret;
 
@@ -1202,16 +1215,32 @@ static int efm32_probe(struct flash_bank *bank)
 	free(bank->sectors);
 	bank->sectors = NULL;
 
-	if (bank->base == base_address) {
-		bank->num_sectors = efm32_mcu_info->flash_sz_kib * 1024 / efm32_mcu_info->page_size;
+	uint32_t page_size;
+	if (bank->base == base_address) { /* main flash */
+		page_size = efm32_mcu_info->page_size;
+		bank->num_sectors = efm32_mcu_info->flash_sz_kib * 1024 / page_size;
 		assert(bank->num_sectors > 0);
-	} else {
+	} else if (efm32_info->info.family_data->series != 2) {
+		page_size = efm32_mcu_info->page_size_ud;
 		bank->num_sectors = 1;
+	} else {
+		ret = efm32_msc_clock_enable(bank);
+		if (ret != ERROR_OK)
+			return ret;
+
+		uint32_t userdatasize;
+		ret = efm32_read_reg_u32(bank,
+								 efm32_info->info.msc_offset->off_userdatasize,
+								 &userdatasize);
+		if (ret != ERROR_OK) {
+			LOG_ERROR("Failed to read page size");
+			return ret;
+		}
+		page_size = efm32_mcu_info->page_size_ud;
+		bank->num_sectors = (userdatasize * 256) / page_size;
 	}
-	bank->size = bank->num_sectors * efm32_mcu_info->page_size;
-	bank->sectors = alloc_block_array(0,
-									  efm32_mcu_info->page_size,
-									  bank->num_sectors);
+	bank->size = bank->num_sectors * page_size;
+	bank->sectors = alloc_block_array(0, page_size, bank->num_sectors);
 	if (!bank->sectors)
 		return ERROR_FAIL;
 
