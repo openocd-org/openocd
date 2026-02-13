@@ -3753,18 +3753,30 @@ static int gdb_input_inner(struct connection *connection)
 					break;
 
 				case 'j':
-					/* DEPRECATED */
-					/* packet supported only by smp target i.e cortex_a.c*/
-					/* handle smp packet replying coreid played to gbd */
-					gdb_read_smp_packet(connection, packet, packet_size);
+					if (strncmp(packet, "jc", 2) == 0) {
+						/* DEPRECATED */
+						/* packet supported only by smp target i.e cortex_a.c*/
+						/* handle smp packet replying coreid played to gbd */
+						gdb_read_smp_packet(connection, packet, packet_size);
+					} else {
+						/* ignore unknown packets */
+						LOG_DEBUG("ignoring 0x%2.2x packet", packet[0]);
+						retval = gdb_put_packet(connection, "", 0);
+					}
 					break;
 
 				case 'J':
-					/* DEPRECATED */
-					/* packet supported only by smp target i.e cortex_a.c */
-					/* handle smp packet setting coreid to be played at next
-					 * resume to gdb */
-					gdb_write_smp_packet(connection, packet, packet_size);
+					if (strncmp(packet, "jc", 2) == 0) {
+						/* DEPRECATED */
+						/* packet supported only by smp target i.e cortex_a.c */
+						/* handle smp packet setting coreid to be played at next
+						* resume to gdb */
+						gdb_read_smp_packet(connection, packet, packet_size);
+					} else {
+						/* ignore unknown packets */
+						LOG_DEBUG("ignoring 0x%2.2x packet", packet[0]);
+						retval = gdb_put_packet(connection, "", 0);
+					}
 					break;
 
 				case 'F':
