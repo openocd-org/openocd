@@ -62,6 +62,28 @@ static void log_forward(const char *file, unsigned int line, const char *functio
 	}
 }
 
+// whitespace + SIZE_MAX + zero termination
+#define MEM_STR_LEN (1 + 21 + 1)
+static void get_free_memory_space(char *s)
+{
+#if defined(HAVE_MALLINFO2)
+	if (LOG_LEVEL_IS(LOG_LVL_DEBUG_MALLOC)) {
+		struct mallinfo2 info = mallinfo2();
+		snprintf(s, MEM_STR_LEN, " %zu", info.fordblks);
+		return;
+	}
+#elif defined(HAVE_MALLINFO)
+	if (LOG_LEVEL_IS(LOG_LVL_DEBUG_MALLOC)) {
+		struct mallinfo info = mallinfo();
+		snprintf(s, MEM_STR_LEN, " %d", info.fordblks);
+		return;
+	}
+#endif
+
+	// empty string
+	*s = 0;
+}
+
 /* The log_puts() serves two somewhat different goals:
  *
  * - logging
@@ -102,34 +124,12 @@ static void log_puts(enum log_levels level,
 		/* print with count and time information */
 		int64_t t = timeval_ms() - start;
 
-#if defined(HAVE_MALLINFO) || defined(HAVE_MALLINFO2)
-		const int should_use_mallinfo = LOG_LEVEL_IS(LOG_LVL_DEBUG_MALLOC);
+		char free_memory[MEM_STR_LEN];
+		get_free_memory_space(free_memory);
 
-		if (should_use_mallinfo) {
-#ifdef HAVE_MALLINFO2
-			struct mallinfo2 info = mallinfo2();
-#else
-			struct mallinfo info = mallinfo();
-#endif
-
-			fprintf(log_output, "%s%u %" PRId64 " %s:%d %s()"
-#ifdef HAVE_MALLINFO2
-					" %zu"
-#else
-					" %d"
-#endif
-					": %s", log_strings[level + 1], count, t, file, line, function,
-					info.fordblks,
-					string);
-		}
-#else
-		const int should_use_mallinfo = 0;
-#endif
-		if (!should_use_mallinfo) {
-			fprintf(log_output, "%s%u %" PRId64 " %s:%d %s()"
-					": %s", log_strings[level + 1], count, t, file, line, function,
-					string);
-		}
+		fprintf(log_output, "%s%u %" PRId64 " %s:%d %s()%s: %s",
+			log_strings[level + 1], count, t, file, line, function,
+			free_memory, string);
 	} else {
 		/* if we are using gdb through pipes then we do not want any output
 		 * to the pipe otherwise we get repeated strings */
