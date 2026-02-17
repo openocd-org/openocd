@@ -262,6 +262,7 @@ Optional development script checkpatch needs:
 - perl
 - python
 - python-ply
+- pymarkdownlnt
 
 ### Compiling OpenOCD
 
