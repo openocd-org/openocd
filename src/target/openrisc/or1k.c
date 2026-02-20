@@ -1124,8 +1124,6 @@ static int or1k_examine(struct target *target)
 
 	if (!target_was_examined(target)) {
 
-		target_set_examined(target);
-
 		int running;
 
 		int retval = du_core->or1k_is_cpu_running(&or1k->jtag, &running);
