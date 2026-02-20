@@ -915,8 +915,6 @@ static int dsp563xx_examine(struct target *target)
 	}
 
 	if (!target_was_examined(target)) {
-		target_set_examined(target);
-
 		/* examine core and chip derivate number */
 		chip = (target->tap->idcode>>12) & 0x3ff;
 		/* core number 0 means DSP563XX */
