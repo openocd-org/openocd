@@ -2672,7 +2672,6 @@ int arm7_9_examine(struct target *target)
 					&arm7_9->jtag_info,
 					arm7_9->arm.etm);
 
-		target_set_examined(target);
 	}
 
 	retval = embeddedice_setup(target);
