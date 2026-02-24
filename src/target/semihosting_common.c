@@ -1857,7 +1857,7 @@ COMMAND_HANDLER(handle_common_semihosting_command)
 			return ERROR_FAIL;
 		}
 
-		if (semihosting && semihosting->setup(target, is_active) != ERROR_OK) {
+		if (semihosting->setup(target, is_active) != ERROR_OK) {
 			LOG_ERROR("Failed to Configure semihosting");
 			return ERROR_FAIL;
 		}
