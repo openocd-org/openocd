@@ -19,6 +19,7 @@
 static struct dsp5680xx_common dsp5680xx_context;
 
 #define _E "DSP5680XX_ERROR:%d\nAt:%s:%d:%s"
+#define err_log(c, m) LOG_ERROR(_E, c, __func__, __LINE__, m)
 #define err_check(r, c, m) if (r != ERROR_OK) {LOG_ERROR(_E, c, __func__, __LINE__, m); return r; }
 #define err_check_propagate(retval) if (retval != ERROR_OK) return retval;
 #define DEBUG_MSG "Debug mode be enabled to read mem."
@@ -116,10 +117,9 @@ static int dsp5680xx_irscan(struct target *target, uint32_t *d_in,
 
 	uint16_t tap_ir_len = DSP5680XX_JTAG_MASTER_TAP_IRLEN;
 
-	if (!target->tap) {
-		retval = ERROR_FAIL;
-		err_check(retval, DSP5680XX_ERROR_JTAG_INVALID_TAP,
-			  "Invalid tap");
+	if (!target || !target->tap) {
+		err_log(DSP5680XX_ERROR_JTAG_INVALID_TAP, "Invalid tap");
+		return ERROR_FAIL;
 	}
 	if (ir_len != target->tap->ir_length) {
 		if (target->tap->enabled) {
@@ -579,9 +579,9 @@ static int switch_tap(struct target *target, struct jtag_tap *master_tap,
 	if (!core_tap) {
 		core_tap = jtag_tap_by_string("dsp568013.cpu");
 		if (!core_tap) {
-			retval = ERROR_FAIL;
-			err_check(retval, DSP5680XX_ERROR_JTAG_TAP_FIND_CORE,
+			err_log(DSP5680XX_ERROR_JTAG_TAP_FIND_CORE,
 				  "Failed to get core tap.");
+			return ERROR_FAIL;
 		}
 	}
 
@@ -727,9 +727,9 @@ static int eonce_enter_debug_mode(struct target *target,
 	}
 	tap_cpu = jtag_tap_by_string("dsp568013.cpu");
 	if (!tap_cpu) {
-		retval = ERROR_FAIL;
-		err_check(retval, DSP5680XX_ERROR_JTAG_TAP_FIND_CORE,
+		err_log(DSP5680XX_ERROR_JTAG_TAP_FIND_CORE,
 			  "Failed to get master tap.");
+		return ERROR_FAIL;
 	}
 	/* Enable master tap */
 	tap_chp->enabled = true;
@@ -2222,9 +2222,9 @@ int dsp5680xx_f_lock(struct target *target)
 	}
 	tap_cpu = jtag_tap_by_string("dsp568013.cpu");
 	if (!tap_cpu) {
-		retval = ERROR_FAIL;
-		err_check(retval, DSP5680XX_ERROR_JTAG_TAP_ENABLE_CORE,
+		err_log(DSP5680XX_ERROR_JTAG_TAP_ENABLE_CORE,
 			  "Failed to get master tap.");
+		return ERROR_FAIL;
 	}
 	target->state = TARGET_RUNNING;
 	dsp5680xx_context.debug_mode_enabled = false;
@@ -2237,8 +2237,9 @@ int dsp5680xx_f_lock(struct target *target)
 static int dsp5680xx_step(struct target *target, bool current, target_addr_t address,
 		bool handle_breakpoints)
 {
-	err_check(ERROR_FAIL, DSP5680XX_ERROR_NOT_IMPLEMENTED_STEP,
+	err_log(DSP5680XX_ERROR_NOT_IMPLEMENTED_STEP,
 		  "Not implemented yet.");
+	return ERROR_FAIL;
 }
 
 /** Holds methods for dsp5680xx targets. */
