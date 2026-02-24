@@ -451,7 +451,7 @@ static struct bitq_interface presto_bitq = {
 
 static int presto_adapter_khz(int khz, int *jtag_speed)
 {
-	if (khz < 0) {
+	if (khz <= 0) {
 		*jtag_speed = 0;
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	}
