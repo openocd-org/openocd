@@ -94,12 +94,13 @@ static int hwthread_update_threads(struct rtos *rtos)
 	struct target_list *head;
 	struct target *target;
 	int64_t current_thread = 0;
-	int64_t current_threadid = rtos->current_threadid; /* thread selected by GDB */
+	int64_t current_threadid;
 	enum target_debug_reason current_reason = DBG_REASON_UNDEFINED;
 
 	if (!rtos)
 		return -1;
 
+	current_threadid = rtos->current_threadid; /* thread selected by GDB */
 	target = rtos->target;
 
 	/* wipe out previous thread details if any */
