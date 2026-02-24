@@ -138,10 +138,10 @@ static int gatemate_read_cfg_file(struct gatemate_bit_file *bit_file, const char
 
 static int gatemate_read_file(struct gatemate_bit_file *bit_file, const char *filename)
 {
-	memset(bit_file, 0, sizeof(struct gatemate_bit_file));
-
 	if (!filename || !bit_file)
 		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	memset(bit_file, 0, sizeof(struct gatemate_bit_file));
 
 	/* check if binary .bit or ascii .cfg */
 	const char *file_suffix_pos = strrchr(filename, '.');
