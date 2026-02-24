@@ -21,7 +21,7 @@ void nand_device_add(struct nand_device *c)
 {
 	if (nand_devices) {
 		struct nand_device *p = nand_devices;
-		while (p && p->next)
+		while (p->next)
 			p = p->next;
 		p->next = c;
 	} else
