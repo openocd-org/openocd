@@ -970,7 +970,7 @@ COMMAND_HANDLER(adapter_gpio_config_handler)
 	while (i < CMD_ARGC) {
 		LOG_DEBUG("Processing %s", CMD_ARGV[i]);
 
-		if (isdigit(*CMD_ARGV[i])) {
+		if (isdigit((unsigned char)*CMD_ARGV[i])) {
 			COMMAND_PARSE_NUMBER(uint, CMD_ARGV[i], gpio_config->gpio_num);
 			++i;
 			continue;

@@ -82,7 +82,8 @@ static int efinix_read_bit_file(struct raw_bit_file *bit_file, const char *filen
 			return ERROR_PLD_FILE_LOAD_FAILED;
 		}
 
-		if (!isxdigit(buffer[0]) || !isxdigit(buffer[1])) {
+		if (!isxdigit((unsigned char)buffer[0]) ||
+				!isxdigit((unsigned char)buffer[1])) {
 			fclose(input_file);
 			free(bit_file->data);
 			bit_file->data = NULL;

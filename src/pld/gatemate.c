@@ -57,7 +57,8 @@ static int gatemate_read_cfg_line(struct gatemate_bit_file *bit_file, const char
 		} else if (line_buffer[idx] == 0) {
 			break;
 		} else if (idx + 1 < nread) {
-			if (isxdigit(line_buffer[idx]) && isxdigit(line_buffer[idx + 1])) {
+			if (isxdigit((unsigned char)line_buffer[idx]) &&
+					isxdigit((unsigned char)line_buffer[idx + 1])) {
 				uint8_t byte;
 				unhexify(&byte, line_buffer + idx, 2);
 				int retval = gatemate_add_byte_to_bitfile(bit_file, byte);

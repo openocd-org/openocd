@@ -4380,7 +4380,7 @@ static bool parse_csr_address(const char *reg_address_str, unsigned int *reg_add
 {
 	*reg_addr = -1;
 	/* skip initial spaces */
-	while (isspace(reg_address_str[0]))
+	while (isspace((unsigned char)reg_address_str[0]))
 		++reg_address_str;
 	/* try to detect if string starts with 0x or 0X */
 	bool is_hex_address = strncmp(reg_address_str, "0x", 2) == 0 ||
