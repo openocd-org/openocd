@@ -75,7 +75,11 @@ static void get_free_memory_space(char *s)
 #elif defined(HAVE_MALLINFO)
 	if (LOG_LEVEL_IS(LOG_LVL_DEBUG_MALLOC)) {
 		struct mallinfo info = mallinfo();
+#if IS_CYGWIN
+		snprintf(s, MEM_STR_LEN, " %zu", info.fordblks);
+#else
 		snprintf(s, MEM_STR_LEN, " %d", info.fordblks);
+#endif
 		return;
 	}
 #endif
