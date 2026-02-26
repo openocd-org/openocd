@@ -893,41 +893,35 @@ static int efm32_write_block(struct flash_bank *bank, const uint8_t *buf,
 {
 	struct efm32_flash_chip *efm32_info = bank->driver_priv;
 	struct target *target = bank->target;
-	uint32_t buffer_size = 16384;
-	struct working_area *write_algorithm;
-	struct working_area *source;
-	struct reg_param reg_params[5];
-	struct armv7m_algorithm armv7m_info;
-	int ret = ERROR_OK;
+	struct working_area *write_algorithm, *source;
+	int ret;
 
 	/* flash write code */
-	if (target_alloc_working_area(target,
-								  efm32_info->info.msc_offset->flash_write_code_len,
-								  &write_algorithm) != ERROR_OK) {
+	ret = target_alloc_working_area(target,
+									efm32_info->info.msc_offset->flash_write_code_len,
+									&write_algorithm);
+	if (ret) {
 		LOG_WARNING("no working area available, can't do block memory writes");
 		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
-
 	ret = target_write_buffer(target, write_algorithm->address,
 							  efm32_info->info.msc_offset->flash_write_code_len,
 							  efm32_info->info.msc_offset->flash_write_code);
-	if (ret != ERROR_OK)
+	if (ret)
 		return ret;
 
 	/* memory buffer */
-	while (target_alloc_working_area_try(target, buffer_size, &source) != ERROR_OK) {
-		buffer_size /= 2;
-		buffer_size &= ~3UL; /* Make sure it's 4 byte aligned */
-		if (buffer_size <= 256) {
-			/* we already allocated the writing code, but failed to get a
-			 * buffer, free the algorithm */
-			target_free_working_area(target, write_algorithm);
-
-			LOG_WARNING("no large enough working area available, can't do block memory writes");
-			return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
-		}
+	uint32_t buffer_size = target_get_working_area_avail(target);
+	if (buffer_size <= 256) {
+		LOG_WARNING("no large enough working area available, can't do block memory writes");
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
 	}
+	buffer_size = MIN(buffer_size, 16 * 1024);
+	ret = target_alloc_working_area(target, buffer_size, &source);
+	if (ret)
+		return ret;
 
+	struct reg_param reg_params[5];
 	init_reg_param(&reg_params[0], "r0", 32, PARAM_IN_OUT);	/* flash base (in), status (out) */
 	init_reg_param(&reg_params[1], "r1", 32, PARAM_OUT);	/* count (word-32bit) */
 	init_reg_param(&reg_params[2], "r2", 32, PARAM_OUT);	/* buffer start */
@@ -940,9 +934,10 @@ static int efm32_write_block(struct flash_bank *bank, const uint8_t *buf,
 	buf_set_u32(reg_params[3].value, 0, 32, source->address + source->size);
 	buf_set_u32(reg_params[4].value, 0, 32, address);
 
-	armv7m_info.common_magic = ARMV7M_COMMON_MAGIC;
-	armv7m_info.core_mode = ARM_MODE_THREAD;
-
+	struct armv7m_algorithm armv7m_info = {
+		.common_magic = ARMV7M_COMMON_MAGIC,
+		.core_mode = ARM_MODE_THREAD,
+	};
 	ret = target_run_flash_async_algorithm(target, buf, count, 4,
 										   0, NULL,
 										   5, reg_params,
