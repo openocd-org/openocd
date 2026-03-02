@@ -26,7 +26,9 @@ write tck tms tdi
 	Set the value of tck, tms, and tdi.
 
 reset trst srst
-	Set the value of trst, srst.
+	Set the value of trst, srst. A value of 1 here means to assert
+    the reset. Since both resets are active-low that means
+    0 = drive high, 1 = drive low.
 
 swdio_drive
 	Set the output enable of the bidirectional swdio (tms) pin
