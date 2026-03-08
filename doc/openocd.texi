@@ -6840,6 +6840,70 @@ the flash.
 @end deffn
 @end deffn
 
+@deffn {Flash Driver} {am13}
+@cindex am13
+@cindex AM13E230X
+All Texas Instruments AM13E230X ARM Cortex-M33 microcontrollers include
+internal flash. The @var{am13} flash driver probes the device by reading
+the JTAGIDCODE (DID) register and the SRAMFLASH info register to
+determine the flash and SRAM sizes automatically.
+
+Two flash regions are supported:
+
+@itemize @bullet
+@item @b{MAIN} flash: starts at address @code{0x00000000}; size is
+auto-detected (typically 256 KB or 512 KB in 2 KB sectors).
+@item @b{NONMAIN} flash: starts at address @code{0x60100000}; sector 0 of each
+bank's NONMAIN region (NM0, at @code{0x60100000} and @code{0x60101000}) is
+BCR-protected and skipped by OpenOCD. The reprogrammable sectors are NM1 of
+each bank (@code{0x60100800} and @code{0x60101800}); size is
+@math{num_banks * 4096} bytes.
+@end itemize
+
+@b{Write strategy}: the driver loads a ping-pong flash loader algorithm
+into SRAM at @code{0x20000000} for fast sector-at-a-time writes.  If
+the working area is unavailable (e.g., a RAM-resident application
+occupies SRAM) the driver falls back to slower word-by-word direct
+register writes. The working area @b{must} be configured at
+@code{0x20000000}; this is the default in @file{target/ti/am13e230x.cfg}.
+
+@b{Erase}: performed directly through the NVMNW flash controller
+registers from the debug probe. The GSC flash semaphore is acquired
+before each erase operation and released on completion.
+
+@b{Note}: the flash controller auto-protects after every flash
+operation. OpenOCD automatically un-protects the required sectors
+before each erase or write and does not expose separate protect
+commands.
+
+@b{Example} --- typical @file{flash bank} declarations (already included
+in @file{target/ti/am13e230x.cfg}):
+
+@example
+flash bank $_FLASHNAME.main    am13 0x00000000 0 0 0 $_TARGETNAME
+flash bank $_FLASHNAME.nonmain am13 0x60100000 0 0 0 $_TARGETNAME
+@end example
+
+@b{To erase and program MAIN flash}:
+
+@example
+halt
+flash erase_sector 0 0 last
+flash write_image firmware.bin 0x0
+reset run
+@end example
+
+@b{To erase and program NONMAIN flash} (BANK1 NM1, user application storage):
+
+@example
+halt
+flash erase_sector 1 3 3
+flash write_image nonmain.bin 0x60101800
+reset run
+@end example
+
+@end deffn
+
 @deffn {Flash Driver} {artery}
 @cindex artery
 This driver supports Artery Technology devices from the following series:
