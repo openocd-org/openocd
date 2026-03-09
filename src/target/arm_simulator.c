@@ -27,25 +27,31 @@ static uint32_t arm_shift(uint8_t shift, uint32_t rm,
 	shift_amount &= 0xff;
 
 	if (shift == 0x0) {	/* LSL */
-		if ((shift_amount > 0) && (shift_amount <= 32)) {
+		if (shift_amount > 0 && shift_amount < 32) {
 			return_value = rm << shift_amount;
 			*carry = rm >> (32 - shift_amount);
+		} else if (shift_amount == 32) {
+			return_value = 0x0;
+			*carry = rm & 0x1;
 		} else if (shift_amount > 32) {
 			return_value = 0x0;
 			*carry = 0x0;
 		} else /* (shift_amount == 0) */
 			return_value = rm;
 	} else if (shift == 0x1) {	/* LSR */
-		if ((shift_amount > 0) && (shift_amount <= 32)) {
+		if (shift_amount > 0 && shift_amount < 32) {
 			return_value = rm >> shift_amount;
 			*carry = (rm >> (shift_amount - 1)) & 1;
+		} else if (shift_amount == 32) {
+			return_value = 0x0;
+			*carry = (rm >> 31) & 0x1;
 		} else if (shift_amount > 32) {
 			return_value = 0x0;
 			*carry = 0x0;
 		} else /* (shift_amount == 0) */
 			return_value = rm;
 	} else if (shift == 0x2) {	/* ASR */
-		if ((shift_amount > 0) && (shift_amount <= 32)) {
+		if (shift_amount > 0 && shift_amount < 32) {
 			/* C right shifts of unsigned values are guaranteed to
 			 * be logical (shift in zeroes); simulate an arithmetic
 			 * shift (shift in signed-bit) by adding the sign bit
@@ -54,7 +60,7 @@ static uint32_t arm_shift(uint8_t shift, uint32_t rm,
 			return_value = rm >> shift_amount;
 			if (rm & 0x80000000)
 				return_value |= 0xffffffff << (32 - shift_amount);
-		} else if (shift_amount > 32) {
+		} else if (shift_amount >= 32) {
 			if (rm & 0x80000000) {
 				return_value = 0xffffffff;
 				*carry = 0x1;
