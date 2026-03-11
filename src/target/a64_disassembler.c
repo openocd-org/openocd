@@ -13,7 +13,7 @@
 #include "target.h"
 #include "a64_disassembler.h"
 
-#if HAVE_CAPSTONE
+#ifdef HAVE_CAPSTONE
 
 #include <capstone.h>
 

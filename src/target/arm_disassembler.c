@@ -15,7 +15,7 @@
 #include "arm_disassembler.h"
 #include <helper/log.h>
 
-#if HAVE_CAPSTONE
+#ifdef HAVE_CAPSTONE
 #include <capstone.h>
 #endif
 
@@ -3019,7 +3019,7 @@ int arm_access_size(struct arm_instruction *instruction)
 	}
 }
 
-#if HAVE_CAPSTONE
+#ifdef HAVE_CAPSTONE
 static void print_opcode(struct command_invocation *cmd, const cs_insn *insn)
 {
 	uint32_t opcode = 0;

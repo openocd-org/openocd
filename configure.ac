@@ -527,10 +527,6 @@ AS_IF([test "x$enable_capstone" != xno], [
 	])
 ])
 
-AS_IF([test "x$enable_capstone" == xno], [
-	AC_DEFINE([HAVE_CAPSTONE], [0], [0 if you don't have Capstone disassembly framework.])
-])
-
 for hidapi_lib in hidapi hidapi-hidraw hidapi-libusb; do
 	PKG_CHECK_MODULES([HIDAPI],[$hidapi_lib],[
 		use_hidapi=yes

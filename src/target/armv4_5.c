@@ -952,7 +952,7 @@ COMMAND_HANDLER(handle_arm_core_state_command)
 
 COMMAND_HANDLER(handle_arm_disassemble_command)
 {
-#if HAVE_CAPSTONE
+#ifdef HAVE_CAPSTONE
 	struct target *target = get_current_target(CMD_CTX);
 
 	if (!target) {
