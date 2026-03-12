@@ -2347,11 +2347,6 @@ static int access_memory(struct target *target, const struct riscv_mem_access_ar
 	return read_memory(target, args);
 }
 
-static int arch_state(struct target *target)
-{
-	return ERROR_OK;
-}
-
 static COMMAND_HELPER(riscv011_print_info, struct target *target)
 {
 	/* Abstract description. */
@@ -2472,6 +2467,4 @@ struct target_type riscv011_target = {
 
 	.assert_reset = assert_reset,
 	.deassert_reset = deassert_reset,
-
-	.arch_state = arch_state,
 };

@@ -3573,11 +3573,7 @@ static int riscv_arch_state(struct target *target)
 			target_name(target),
 			debug_reason_name(target),
 			semihosting_active ? " Semihosting is active." : "");
-	struct target_type *tt = get_target_type(target);
-	if (!tt)
-		return ERROR_FAIL;
-	assert(tt->arch_state);
-	return tt->arch_state(target);
+	return ERROR_OK;
 }
 
 /* Algorithm must end with a software breakpoint instruction. */
