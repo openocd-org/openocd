@@ -164,6 +164,18 @@ int win_select(int max_fd, fd_set *rfds, fd_set *wfds, fd_set *efds, struct time
 
 #endif	/* _WIN32 */
 
+/* Socket descriptor is unsigned on Windows.
+ * Add a cast to prevent sign mismatch warnings (-Wsign-compare). */
+#ifdef _WIN32
+#define OCD_FD_SET(fd, set) FD_SET((SOCKET)(fd), (set))
+#define OCD_FD_CLR(fd, set) FD_CLR((SOCKET)(fd), (set))
+#define OCD_FD_ISSET(fd, set) FD_ISSET((SOCKET)(fd), (set))
+#else
+#define OCD_FD_SET(fd, set) FD_SET((fd), (set))
+#define OCD_FD_CLR(fd, set) FD_CLR((fd), (set))
+#define OCD_FD_ISSET(fd, set) FD_ISSET((fd), (set))
+#endif
+
 /* generic socket functions for Windows and Posix */
 static inline int write_socket(int handle, const void *buffer, unsigned int count)
 {

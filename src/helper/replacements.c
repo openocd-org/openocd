@@ -19,6 +19,7 @@
 #define IN_REPLACEMENTS_C
 #include "replacements.h"
 
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -126,6 +127,12 @@ char *strndup(const char *s, size_t n)
 #endif
 
 #ifdef _WIN32
+
+static bool safe_fd_isset(int fd, fd_set *set)
+{
+	return set && OCD_FD_ISSET(fd, set);
+}
+
 int win_select(int max_fd, fd_set *rfds, fd_set *wfds, fd_set *efds, struct timeval *tv)
 {
 	DWORD ms_total, limit;
@@ -137,8 +144,6 @@ int win_select(int max_fd, fd_set *rfds, fd_set *wfds, fd_set *efds, struct time
 	int sock_max_fd = -1;
 	struct timeval tvslice;
 	int retcode;
-
-#define SAFE_FD_ISSET(fd, set)  (set && FD_ISSET(fd, set))
 
 	/* calculate how long we need to wait in milliseconds */
 	if (!tv)
@@ -169,17 +174,17 @@ int win_select(int max_fd, fd_set *rfds, fd_set *wfds, fd_set *efds, struct time
 
 	/* build an array of handles for non-sockets */
 	for (i = 0; i < max_fd; i++) {
-		if (SAFE_FD_ISSET(i, rfds) || SAFE_FD_ISSET(i, wfds) || SAFE_FD_ISSET(i, efds)) {
+		if (safe_fd_isset(i, rfds) || safe_fd_isset(i, wfds) || safe_fd_isset(i, efds)) {
 			intptr_t handle = (intptr_t) _get_osfhandle(i);
 			handles[n_handles] = (HANDLE)handle;
 			if (handles[n_handles] == INVALID_HANDLE_VALUE) {
 				/* socket */
-				if (SAFE_FD_ISSET(i, rfds))
-					FD_SET(i, &sock_read);
-				if (SAFE_FD_ISSET(i, wfds))
-					FD_SET(i, &sock_write);
-				if (SAFE_FD_ISSET(i, efds))
-					FD_SET(i, &sock_except);
+				if (safe_fd_isset(i, rfds))
+					OCD_FD_SET(i, &sock_read);
+				if (safe_fd_isset(i, wfds))
+					OCD_FD_SET(i, &sock_write);
+				if (safe_fd_isset(i, efds))
+					OCD_FD_SET(i, &sock_except);
 				if (i > sock_max_fd)
 					sock_max_fd = i;
 			} else {
@@ -242,7 +247,7 @@ int win_select(int max_fd, fd_set *rfds, fd_set *wfds, fd_set *efds, struct time
 					retcode = 0;
 				for (i = 0; i < n_handles; i++) {
 					if (WaitForSingleObject(handles[i], 0) == WAIT_OBJECT_0) {
-						if (SAFE_FD_ISSET(handle_slot_to_fd[i], rfds)) {
+						if (safe_fd_isset(handle_slot_to_fd[i], rfds)) {
 							DWORD bytes;
 							intptr_t handle = (intptr_t) _get_osfhandle(
 									handle_slot_to_fd[i]);
@@ -251,20 +256,20 @@ int win_select(int max_fd, fd_set *rfds, fd_set *wfds, fd_set *efds, struct time
 								    NULL, &bytes, NULL)) {
 								/* check to see if gdb pipe has data available */
 								if (bytes) {
-									FD_SET(handle_slot_to_fd[i], &aread);
+									OCD_FD_SET(handle_slot_to_fd[i], &aread);
 									retcode++;
 								}
 							} else {
-								FD_SET(handle_slot_to_fd[i], &aread);
+								OCD_FD_SET(handle_slot_to_fd[i], &aread);
 								retcode++;
 							}
 						}
-						if (SAFE_FD_ISSET(handle_slot_to_fd[i], wfds)) {
-							FD_SET(handle_slot_to_fd[i], &awrite);
+						if (safe_fd_isset(handle_slot_to_fd[i], wfds)) {
+							OCD_FD_SET(handle_slot_to_fd[i], &awrite);
 							retcode++;
 						}
-						if (SAFE_FD_ISSET(handle_slot_to_fd[i], efds)) {
-							FD_SET(handle_slot_to_fd[i], &aexcept);
+						if (safe_fd_isset(handle_slot_to_fd[i], efds)) {
+							OCD_FD_SET(handle_slot_to_fd[i], &aexcept);
 							retcode++;
 						}
 					}

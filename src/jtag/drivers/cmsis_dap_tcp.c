@@ -283,7 +283,7 @@ static int peekall_socket(int handle, void *buffer, unsigned int count,
 		// Blocking wait.
 		fd_set rfds;
 		FD_ZERO(&rfds);
-		FD_SET(handle, &rfds);
+		OCD_FD_SET(handle, &rfds);
 
 		struct timeval tv;
 		tv.tv_sec  = timeout_ms / 1000;

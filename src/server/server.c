@@ -457,7 +457,7 @@ int server_loop(struct command_context *command_context)
 		for (service = services; service; service = service->next) {
 			if (service->fd != -1) {
 				/* listen for new connections */
-				FD_SET(service->fd, &read_fds);
+				OCD_FD_SET(service->fd, &read_fds);
 
 				if (service->fd > fd_max)
 					fd_max = service->fd;
@@ -468,7 +468,7 @@ int server_loop(struct command_context *command_context)
 
 				for (c = service->connections; c; c = c->next) {
 					/* check for activity on the connection */
-					FD_SET(c->fd, &read_fds);
+					OCD_FD_SET(c->fd, &read_fds);
 					if (c->fd > fd_max)
 						fd_max = c->fd;
 				}
@@ -546,7 +546,7 @@ int server_loop(struct command_context *command_context)
 		for (service = services; service; service = service->next) {
 			/* handle new connections on listeners */
 			if ((service->fd != -1)
-				&& (FD_ISSET(service->fd, &read_fds))) {
+				&& (OCD_FD_ISSET(service->fd, &read_fds))) {
 				if (service->max_connections != 0)
 					add_connection(service, command_context);
 				else {
@@ -570,7 +570,7 @@ int server_loop(struct command_context *command_context)
 				struct connection *c;
 
 				for (c = service->connections; c; ) {
-					if ((c->fd >= 0 && FD_ISSET(c->fd, &read_fds)) || c->input_pending) {
+					if ((c->fd >= 0 && OCD_FD_ISSET(c->fd, &read_fds)) || c->input_pending) {
 						retval = service->input(c);
 						if (retval != ERROR_OK) {
 							struct connection *next = c->next;

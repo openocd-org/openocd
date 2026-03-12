@@ -220,7 +220,7 @@ static int check_pending(struct connection *connection,
 	}
 
 	FD_ZERO(&read_fds);
-	FD_SET(connection->fd, &read_fds);
+	OCD_FD_SET(connection->fd, &read_fds);
 
 	tv.tv_sec = timeout_s;
 	tv.tv_usec = 0;
@@ -233,7 +233,7 @@ static int check_pending(struct connection *connection,
 		else
 			return ERROR_OK;
 	}
-	*got_data = FD_ISSET(connection->fd, &read_fds) != 0;
+	*got_data = OCD_FD_ISSET(connection->fd, &read_fds) != 0;
 	return ERROR_OK;
 }
 
