@@ -605,7 +605,7 @@ static bool fm4_name_match(const char *s, const char *pattern)
 		if (!pattern[i])
 			return true;
 		/* Use x as wildcard */
-		if (pattern[i] != 'x' && tolower(s[i]) != tolower(pattern[i]))
+		if (pattern[i] != 'x' && tolower((unsigned char)s[i]) != tolower((unsigned char)pattern[i]))
 			return false;
 		i++;
 	}
