@@ -89,6 +89,7 @@
 
 /* Supported device IDs */
 #define DEVID_STM32L47_L48XX	0x415
+#define DEVID_STM32U3B_U3CXX	0x42A
 #define DEVID_STM32L43_L44XX	0x435
 #define DEVID_STM32C01XX		0x443
 #define DEVID_STM32C05XX        0x44C
