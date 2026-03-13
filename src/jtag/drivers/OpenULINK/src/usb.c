@@ -118,7 +118,7 @@ __code struct usb_string_descriptor *__code en_string_descriptors[4] = {
 	&strConfigDescr
 };
 
-void sudav_isr(void) __interrupt SUDAV_ISR
+void sudav_isr(void) __interrupt(SUDAV_ISR)
 {
 	CLEAR_IRQ();
 
@@ -128,39 +128,39 @@ void sudav_isr(void) __interrupt SUDAV_ISR
 	EP0CS |= HSNAK;
 }
 
-void sof_isr(void)      __interrupt SOF_ISR
+void sof_isr(void)      __interrupt(SOF_ISR)
 {
 }
-void sutok_isr(void)    __interrupt SUTOK_ISR
+void sutok_isr(void)    __interrupt(SUTOK_ISR)
 {
 }
-void suspend_isr(void)  __interrupt SUSPEND_ISR
+void suspend_isr(void)  __interrupt(SUSPEND_ISR)
 {
 }
-void usbreset_isr(void) __interrupt USBRESET_ISR
+void usbreset_isr(void) __interrupt(USBRESET_ISR)
 {
 }
-void ibn_isr(void)      __interrupt IBN_ISR
+void ibn_isr(void)      __interrupt(IBN_ISR)
 {
 }
 
-void ep0in_isr(void)    __interrupt EP0IN_ISR
+void ep0in_isr(void)    __interrupt(EP0IN_ISR)
 {
 }
-void ep0out_isr(void)   __interrupt EP0OUT_ISR
+void ep0out_isr(void)   __interrupt(EP0OUT_ISR)
 {
 }
-void ep1in_isr(void)    __interrupt EP1IN_ISR
+void ep1in_isr(void)    __interrupt(EP1IN_ISR)
 {
 }
-void ep1out_isr(void)   __interrupt EP1OUT_ISR
+void ep1out_isr(void)   __interrupt(EP1OUT_ISR)
 {
 }
 
 /**
  * EP2 IN: called after the transfer from uC->Host has finished: we sent data
  */
-void ep2in_isr(void)    __interrupt EP2IN_ISR
+void ep2in_isr(void)    __interrupt(EP2IN_ISR)
 {
 	EP2_in = 1;
 
@@ -171,7 +171,7 @@ void ep2in_isr(void)    __interrupt EP2IN_ISR
 /**
  * EP2 OUT: called after the transfer from Host->uC has finished: we got data
  */
-void ep2out_isr(void)   __interrupt EP2OUT_ISR
+void ep2out_isr(void)   __interrupt(EP2OUT_ISR)
 {
 	EP2_out = 1;
 
@@ -179,34 +179,34 @@ void ep2out_isr(void)   __interrupt EP2OUT_ISR
 	OUT07IRQ = OUT2IR;	/* Clear OUT2 IRQ */
 }
 
-void ep3in_isr(void)    __interrupt EP3IN_ISR
+void ep3in_isr(void)    __interrupt(EP3IN_ISR)
 {
 }
-void ep3out_isr(void)   __interrupt EP3OUT_ISR
+void ep3out_isr(void)   __interrupt(EP3OUT_ISR)
 {
 }
-void ep4in_isr(void)    __interrupt EP4IN_ISR
+void ep4in_isr(void)    __interrupt(EP4IN_ISR)
 {
 }
-void ep4out_isr(void)   __interrupt EP4OUT_ISR
+void ep4out_isr(void)   __interrupt(EP4OUT_ISR)
 {
 }
-void ep5in_isr(void)    __interrupt EP5IN_ISR
+void ep5in_isr(void)    __interrupt(EP5IN_ISR)
 {
 }
-void ep5out_isr(void)   __interrupt EP5OUT_ISR
+void ep5out_isr(void)   __interrupt(EP5OUT_ISR)
 {
 }
-void ep6in_isr(void)    __interrupt EP6IN_ISR
+void ep6in_isr(void)    __interrupt(EP6IN_ISR)
 {
 }
-void ep6out_isr(void)   __interrupt EP6OUT_ISR
+void ep6out_isr(void)   __interrupt(EP6OUT_ISR)
 {
 }
-void ep7in_isr(void)    __interrupt EP7IN_ISR
+void ep7in_isr(void)    __interrupt(EP7IN_ISR)
 {
 }
-void ep7out_isr(void)   __interrupt EP7OUT_ISR
+void ep7out_isr(void)   __interrupt(EP7OUT_ISR)
 {
 }
 

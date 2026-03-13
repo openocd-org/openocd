@@ -11,7 +11,7 @@
 #include "usb.h"
 #include "protocol.h"
 
-extern void sudav_isr(void)    __interrupt SUDAV_ISR;
+extern void sudav_isr(void)    __interrupt(SUDAV_ISR);
 extern void sof_isr(void)      __interrupt;
 extern void sutok_isr(void)    __interrupt;
 extern void suspend_isr(void)  __interrupt;
