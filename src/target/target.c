@@ -37,6 +37,7 @@
 #include <helper/time_support.h>
 #include <jtag/jtag.h>
 #include <flash/nor/core.h>
+#include <target/oocd_capstone.h>
 
 #include "target.h"
 #include "target_type.h"
@@ -2360,6 +2361,20 @@ int target_profiling_default(struct target *target, uint32_t *samples,
 
 	*num_samples = sample_count;
 	return retval;
+}
+
+static int target_insn_set(struct command_invocation *cmd, struct target *target,
+						   const char **insn_set)
+{
+	if (target->type->insn_set)
+		return target->type->insn_set(cmd, target, insn_set);
+
+	command_print(cmd, "Instruction-set detection not implemented on target %s",
+				  target_name(target));
+	command_print(cmd, "Change target or specify one of the instruction set:");
+	oocd_cs_list_insn_types(cmd);
+
+	return ERROR_NOT_IMPLEMENTED;
 }
 
 /* Single aligned words are guaranteed to use 16 or 32 bit access
@@ -5499,6 +5514,36 @@ COMMAND_HANDLER(handle_target_invoke_event)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(handle_target_disassemble)
+{
+	struct target *target = get_current_target(CMD_CTX);
+
+	if (CMD_ARGC < 1 || CMD_ARGC > 3)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	if (CMD_ARGC == 1 && !strcmp("list", CMD_ARGV[0]))
+		return oocd_cs_list_insn_types(CMD);
+
+	target_addr_t address;
+	COMMAND_PARSE_ADDRESS(CMD_ARGV[0], address);
+
+	unsigned int count = 1;
+	if (CMD_ARGC > 1)
+		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[1], count);
+
+	const char *insn_set;
+	if (CMD_ARGC > 2) {
+		insn_set = CMD_ARGV[2];
+	} else {
+		int retval = target_insn_set(CMD, target, &insn_set);
+		if (retval != ERROR_OK)
+			return retval;
+		LOG_TARGET_DEBUG(target, "instruction set \"%s\"", insn_set);
+	}
+
+	return oocd_cs_disassemble(CMD, target, address, count, insn_set);
+}
+
 static const struct command_registration target_instance_command_handlers[] = {
 	{
 		.name = "configure",
@@ -5681,6 +5726,13 @@ static const struct command_registration target_instance_command_handlers[] = {
 		.handler = handle_target_invoke_event,
 		.help = "invoke handler for specified event",
 		.usage = "event_name",
+	},
+	{
+		.name = "disassemble",
+		.mode = COMMAND_EXEC,
+		.handler = handle_target_disassemble,
+		.help = "disassemble instructions",
+		.usage = "list | address [count [instruction_set]]",
 	},
 	COMMAND_REGISTRATION_DONE
 };
@@ -6735,6 +6787,13 @@ static const struct command_registration target_exec_command_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.help = "Test the target's memory access functions",
 		.usage = "size",
+	},
+	{
+		.name = "disassemble",
+		.mode = COMMAND_EXEC,
+		.handler = handle_target_disassemble,
+		.help = "disassemble instructions",
+		.usage = "list | address [count [instruction_set]]",
 	},
 
 	COMMAND_REGISTRATION_DONE

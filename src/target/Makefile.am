@@ -34,6 +34,7 @@ noinst_LTLIBRARIES += %D%/libtarget.la
 if HAVE_CAPSTONE
 %C%_libtarget_la_CPPFLAGS += $(CAPSTONE_CFLAGS)
 %C%_libtarget_la_LIBADD += $(CAPSTONE_LIBS)
+%C%_libtarget_la_SOURCES += %D%/oocd_capstone.c
 endif
 
 TARGET_CORE_SRC = \
@@ -237,7 +238,8 @@ ARC_SRC = \
 	%D%/arc_cmd.h \
 	%D%/arc_jtag.h \
 	%D%/arc_mem.h \
-	%D%/rtt.h
+	%D%/rtt.h \
+	%D%/oocd_capstone.h
 
 include %D%/openrisc/Makefile.am
 include %D%/riscv/Makefile.am

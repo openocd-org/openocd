@@ -5649,6 +5649,20 @@ Otherwise, or if the optional @var{phys} flag is specified,
 If @var{count} is specified, fills that many units of consecutive address.
 @end deffn
 
+@deffn {Command} {$target_name disassemble} address [count [instruction_set]]
+@deffnx {Command} {$target_name disassemble} list
+This command requires Capstone library installed.
+
+Disassembles @var{count} instructions starting at @var{address}.
+If @var{count} is not specified, a single instruction is disassembled.
+
+It uses the target @var{$target_name} to read the instructions from memory,
+then disassemble them using either the instruction set detected on the same
+target or the one provided with @var{instruction_set}.
+
+With parameter @var{list} it dumps the list of supported instruction set.
+@end deffn
+
 @anchor{targetevents}
 @section Target Events
 @cindex target events
