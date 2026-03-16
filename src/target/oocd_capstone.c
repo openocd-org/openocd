@@ -29,6 +29,7 @@ static struct {
 } all_archs[] = {
 	{ "arm", CS_ARCH_ARM, CS_MODE_ARM },
 	{ "arm64", CS_ARCH_ARM64, CS_MODE_LITTLE_ENDIAN },
+	{ "cortexm", CS_ARCH_ARM, CS_MODE_ARM | CS_MODE_THUMB | CS_MODE_MCLASS },
 	{ "thumb", CS_ARCH_ARM, CS_MODE_ARM | CS_MODE_THUMB },
 };
 

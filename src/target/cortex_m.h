@@ -400,6 +400,8 @@ void cortex_m_enable_watchpoints(struct target *target);
 void cortex_m_deinit_target(struct target *target);
 int cortex_m_profiling(struct target *target, uint32_t *samples,
 	uint32_t max_num_samples, uint32_t *num_samples, uint32_t seconds);
+int cortex_m_insn_set(struct command_invocation *cmd, struct target *target,
+	const char **insn_set);
 
 /**
  * Forces Cortex-M core to the basic secure context with SAU and MPU off

@@ -3198,6 +3198,15 @@ static int cortex_m_target_create(struct target *target)
 	return ERROR_OK;
 }
 
+int cortex_m_insn_set(struct command_invocation *cmd, struct target *target,
+	const char **insn_set)
+{
+	// string match in target/oocd_capstone.c
+	*insn_set = "cortexm";
+
+	return ERROR_OK;
+}
+
 /*--------------------------------------------------------------------------*/
 
 static int cortex_m_verify_pointer(struct command_invocation *cmd,
@@ -3503,4 +3512,6 @@ struct target_type cortexm_target = {
 	.deinit_target = cortex_m_deinit_target,
 
 	.profiling = cortex_m_profiling,
+
+	.insn_set = cortex_m_insn_set,
 };

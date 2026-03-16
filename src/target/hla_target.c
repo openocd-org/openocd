@@ -681,4 +681,6 @@ struct target_type hla_target = {
 	.add_watchpoint = cortex_m_add_watchpoint,
 	.remove_watchpoint = cortex_m_remove_watchpoint,
 	.profiling = cortex_m_profiling,
+
+	.insn_set = cortex_m_insn_set,
 };
