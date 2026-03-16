@@ -10516,24 +10516,6 @@ The target may later be resumed in the currently set core_state.
 that is not currently supported in OpenOCD.)
 @end deffn
 
-@deffn {Command} {arm disassemble} address [count [@option{thumb}]]
-@cindex disassemble
-Disassembles @var{count} instructions starting at @var{address}.
-If @var{count} is not specified, a single instruction is disassembled.
-If @option{thumb} is specified, or the low bit of the address is set,
-Thumb2 (mixed 16/32-bit) instructions are used;
-else ARM (32-bit) instructions are used.
-(Processors may also support the Jazelle state, but
-those instructions are not currently understood by OpenOCD.)
-
-Note that all Thumb instructions are Thumb2 instructions,
-so older processors (without Thumb2 support) will still
-see correct disassembly of Thumb code.
-Also, ThumbEE opcodes are the same as Thumb2,
-with a handful of exceptions.
-ThumbEE disassembly currently has no explicit support.
-@end deffn
-
 @deffn {Command} {arm mcr} pX op1 CRn CRm op2 value
 Write @var{value} to a coprocessor @var{pX} register
 passing parameters @var{CRn},

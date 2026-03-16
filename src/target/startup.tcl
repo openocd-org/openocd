@@ -295,6 +295,12 @@ proc "mips_m4k smp_off" {args} {
 	eval mips_m4k smp off $args
 }
 
+lappend _telnet_autocomplete_skip "arm disassemble"
+proc "arm disassemble" {args} {
+	echo "DEPRECATED! use 'disassemble $args'"
+	eval disassemble $args
+}
+
 lappend _telnet_autocomplete_skip _post_init_target_cortex_a_cache_auto
 proc _post_init_target_cortex_a_cache_auto {} {
 	set cortex_a_found 0

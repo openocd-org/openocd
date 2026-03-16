@@ -25,7 +25,6 @@
 #include "target_request.h"
 #include "target_type.h"
 #include "arm_adi_v5.h"
-#include "arm_disassembler.h"
 #include "register.h"
 #include "arm_opcodes.h"
 #include "arm_semihosting.h"

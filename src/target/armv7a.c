@@ -14,7 +14,6 @@
 
 #include "armv7a.h"
 #include "armv7a_mmu.h"
-#include "arm_disassembler.h"
 
 #include "register.h"
 #include <helper/binarybuffer.h>

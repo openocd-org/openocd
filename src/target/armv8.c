@@ -14,7 +14,6 @@
 #include <helper/replacements.h>
 
 #include "armv8.h"
-#include "arm_disassembler.h"
 
 #include "register.h"
 #include <helper/binarybuffer.h>

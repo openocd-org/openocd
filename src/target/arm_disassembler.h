@@ -187,10 +187,6 @@ int arm_evaluate_opcode(uint32_t opcode, uint32_t address,
 int thumb_evaluate_opcode(uint16_t opcode, uint32_t address,
 		struct arm_instruction *instruction);
 int arm_access_size(struct arm_instruction *instruction);
-#ifdef HAVE_CAPSTONE
-int arm_disassemble(struct command_invocation *cmd, struct target *target,
-		target_addr_t address, size_t count, bool thumb_mode);
-#endif
 
 #define COND(opcode) (arm_condition_strings[(opcode & 0xf0000000) >> 28])
 
