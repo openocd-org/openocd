@@ -330,4 +330,7 @@ void arm_set_cpsr(struct arm *arm, uint32_t cpsr);
 struct reg *arm_reg_current(struct arm *arm, unsigned int regnum);
 struct reg *armv8_reg_current(struct arm *arm, unsigned int regnum);
 
+int armv4_5_insn_set(struct command_invocation *cmd, struct target *target,
+		const char **insn_set);
+
 #endif /* OPENOCD_TARGET_ARM_H */

@@ -826,4 +826,6 @@ struct target_type arm926ejs_target = {
 
 	.read_phys_memory = arm926ejs_read_phys_memory,
 	.write_phys_memory = arm926ejs_write_phys_memory,
+
+	.insn_set = armv4_5_insn_set,
 };

@@ -3734,5 +3734,7 @@ struct target_type xscale_target = {
 	.deinit_target = xscale_deinit_target,
 
 	.virt2phys = xscale_virt2phys,
-	.mmu = xscale_mmu
+	.mmu = xscale_mmu,
+
+	.insn_set = armv4_5_insn_set,
 };

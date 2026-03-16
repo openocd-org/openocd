@@ -1840,3 +1840,35 @@ int arm_init_arch_info(struct target *target, struct arm *arm)
 
 	return ERROR_OK;
 }
+
+int armv4_5_insn_set(struct command_invocation *cmd, struct target *target,
+	const char **insn_set)
+{
+	struct arm *arm = target_to_arm(target);
+
+	if (target->state != TARGET_HALTED) {
+		command_print(cmd, "[%s] not halted", target_name(target));
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	switch (arm->core_state) {
+	case ARM_STATE_ARM:
+		if (target->endianness == TARGET_BIG_ENDIAN)
+			*insn_set = "armbe";
+		else
+			*insn_set = "arm";
+		break;
+
+	case ARM_STATE_THUMB:
+	case ARM_STATE_THUMB_EE:
+		*insn_set = "thumb";
+		break;
+
+	default:
+		command_print(cmd, "[%s] unknown core_state %d", target_name(target),
+					  arm->core_state);
+		return ERROR_FAIL;
+	}
+
+	return ERROR_OK;
+}

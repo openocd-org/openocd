@@ -3506,6 +3506,8 @@ struct target_type cortexa_target = {
 	.write_phys_memory = cortex_a_write_phys_memory,
 	.mmu = cortex_a_mmu,
 	.virt2phys = cortex_a_virt2phys,
+
+	.insn_set = armv4_5_insn_set,
 };
 
 static const struct command_registration cortex_r4_exec_command_handlers[] = {
@@ -3578,4 +3580,6 @@ struct target_type cortexr4_target = {
 	.init_target = cortex_a_init_target,
 	.examine = cortex_a_examine,
 	.deinit_target = cortex_a_deinit_target,
+
+	.insn_set = armv4_5_insn_set,
 };

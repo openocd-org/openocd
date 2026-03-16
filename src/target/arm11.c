@@ -1368,4 +1368,6 @@ struct target_type arm11_target = {
 	.init_target = arm11_init_target,
 	.deinit_target = arm11_deinit_target,
 	.examine = arm11_examine,
+
+	.insn_set = armv4_5_insn_set,
 };

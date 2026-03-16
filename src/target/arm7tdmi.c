@@ -719,4 +719,6 @@ struct target_type arm7tdmi_target = {
 	.deinit_target = arm7tdmi_deinit_target,
 	.examine = arm7_9_examine,
 	.check_reset = arm7_9_check_reset,
+
+	.insn_set = armv4_5_insn_set,
 };

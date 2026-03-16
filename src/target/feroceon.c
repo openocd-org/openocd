@@ -725,6 +725,8 @@ struct target_type feroceon_target = {
 	.init_target = feroceon_init_target,
 	.deinit_target = feroceon_deinit_target,
 	.examine = feroceon_examine,
+
+	.insn_set = armv4_5_insn_set,
 };
 
 struct target_type dragonite_target = {
@@ -763,4 +765,6 @@ struct target_type dragonite_target = {
 	.target_create = dragonite_target_create,
 	.init_target = feroceon_init_target,
 	.examine = feroceon_examine,
+
+	.insn_set = armv4_5_insn_set,
 };
