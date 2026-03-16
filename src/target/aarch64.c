@@ -11,7 +11,6 @@
 
 #include "breakpoints.h"
 #include "aarch64.h"
-#include "a64_disassembler.h"
 #include "register.h"
 #include "target_request.h"
 #include "target_type.h"
@@ -2947,6 +2946,45 @@ static int aarch64_virt2phys(struct target *target, target_addr_t virt,
 	return armv8_mmu_translate_va_pa(target, virt, phys, 1);
 }
 
+static int aarch64_insn_set(struct command_invocation *cmd,
+	struct target *target, const char **insn_set)
+{
+	if (target->state != TARGET_HALTED) {
+		command_print(cmd, "[%s] not halted", target_name(target));
+		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	struct arm *arm = target_to_arm(target);
+
+	switch (arm->core_state) {
+	case ARM_STATE_AARCH64:
+		if (target->endianness == TARGET_BIG_ENDIAN)
+			*insn_set = "arm64be";
+		else
+			*insn_set = "arm64";
+		break;
+
+	case ARM_STATE_ARM:
+		if (target->endianness == TARGET_BIG_ENDIAN)
+			*insn_set = "armbe";
+		else
+			*insn_set = "arm";
+		break;
+
+	case ARM_STATE_THUMB:
+	case ARM_STATE_THUMB_EE:
+		*insn_set = "thumb";
+		break;
+
+	default:
+		command_print(cmd, "[%s] unknown core_state %d", target_name(target),
+					  arm->core_state);
+		return ERROR_FAIL;
+	}
+
+	return ERROR_OK;
+}
+
 /*
  * private target configuration items
  */
@@ -3054,39 +3092,6 @@ COMMAND_HANDLER(aarch64_handle_dbginit_command)
 	}
 
 	return aarch64_init_debug_access(target);
-}
-
-COMMAND_HANDLER(aarch64_handle_disassemble_command)
-{
-	struct target *target = get_current_target(CMD_CTX);
-
-	if (!target) {
-		LOG_ERROR("No target selected");
-		return ERROR_FAIL;
-	}
-
-	struct aarch64_common *aarch64 = target_to_aarch64(target);
-
-	if (aarch64->common_magic != AARCH64_COMMON_MAGIC) {
-		command_print(CMD, "current target isn't an AArch64");
-		return ERROR_FAIL;
-	}
-
-	int count = 1;
-	target_addr_t address;
-
-	switch (CMD_ARGC) {
-	case 2:
-		COMMAND_PARSE_NUMBER(int, CMD_ARGV[1], count);
-	/* FALL THROUGH */
-	case 1:
-		COMMAND_PARSE_ADDRESS(CMD_ARGV[0], address);
-		break;
-	default:
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-
-	return a64_disassemble(CMD, target, address, count);
 }
 
 COMMAND_HANDLER(aarch64_mask_interrupts_command)
@@ -3236,13 +3241,6 @@ static const struct command_registration aarch64_exec_command_handlers[] = {
 		.usage = "",
 	},
 	{
-		.name = "disassemble",
-		.handler = aarch64_handle_disassemble_command,
-		.mode = COMMAND_EXEC,
-		.help = "Disassemble instructions",
-		.usage = "address [count]",
-	},
-	{
 		.name = "maskisr",
 		.handler = aarch64_mask_interrupts_command,
 		.mode = COMMAND_ANY,
@@ -3331,6 +3329,8 @@ struct target_type aarch64_target = {
 	.write_phys_memory = aarch64_write_phys_memory,
 	.mmu = aarch64_mmu,
 	.virt2phys = aarch64_virt2phys,
+
+	.insn_set = aarch64_insn_set,
 };
 
 struct target_type armv8r_target = {
@@ -3367,4 +3367,6 @@ struct target_type armv8r_target = {
 	.init_target = aarch64_init_target,
 	.deinit_target = aarch64_deinit_target,
 	.examine = aarch64_examine,
+
+	.insn_set = aarch64_insn_set,
 };

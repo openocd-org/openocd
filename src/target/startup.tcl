@@ -301,6 +301,12 @@ proc "arm disassemble" {args} {
 	eval disassemble $args
 }
 
+lappend _telnet_autocomplete_skip "aarch64 disassemble"
+proc "aarch64 disassemble" {args} {
+	echo "DEPRECATED! use 'disassemble $args' not 'aarch64 disassemble $args'"
+	eval disassemble $args
+}
+
 lappend _telnet_autocomplete_skip _post_init_target_cortex_a_cache_auto
 proc _post_init_target_cortex_a_cache_auto {} {
 	set cortex_a_found 0

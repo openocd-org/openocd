@@ -89,7 +89,6 @@ ARMV8_SRC = \
 	%D%/armv8_dpm.c \
 	%D%/armv8_opcodes.c \
 	%D%/aarch64.c \
-	%D%/a64_disassembler.c \
 	%D%/armv8.c \
 	%D%/armv8_cache.c
 
@@ -166,7 +165,6 @@ ARC_SRC = \
 	%D%/armv7a_cache_l2x.h \
 	%D%/armv7a_mmu.h \
 	%D%/arm_disassembler.h \
-	%D%/a64_disassembler.h \
 	%D%/arm_opcodes.h \
 	%D%/arm_simulator.h \
 	%D%/arm_semihosting.h \
