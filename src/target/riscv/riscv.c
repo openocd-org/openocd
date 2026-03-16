@@ -5923,6 +5923,31 @@ static unsigned int riscv_data_bits(struct target *target)
 	return riscv_xlen(target);
 }
 
+static int riscv_insn_set(struct command_invocation *cmd,
+	struct target *target, const char **insn_set)
+{
+	if (!target_was_examined(target)) {
+		command_print(cmd, "[%s] target not examined yet", target_name(target));
+		return ERROR_TARGET_NOT_EXAMINED;
+	}
+
+	switch (riscv_xlen(target)) {
+	case 32:
+		*insn_set = "riscv32";
+		break;
+
+	case 64:
+		*insn_set = "riscv64";
+		break;
+
+	default:
+		command_print(cmd, "[%s] unsupported instruction set", target_name(target));
+		return ERROR_FAIL;
+	}
+
+	return ERROR_OK;
+}
+
 struct target_type riscv_target = {
 	.name = "riscv",
 
@@ -5970,7 +5995,9 @@ struct target_type riscv_target = {
 	.commands = riscv_command_handlers,
 
 	.address_bits = riscv_xlen_nonconst,
-	.data_bits = riscv_data_bits
+	.data_bits = riscv_data_bits,
+
+	.insn_set = riscv_insn_set,
 };
 
 /*** RISC-V Interface ***/
