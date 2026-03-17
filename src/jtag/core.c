@@ -115,8 +115,6 @@ struct jtag_event_callback {
 /* callbacks to inform high-level handlers about JTAG state changes */
 static struct jtag_event_callback *jtag_event_callbacks;
 
-extern struct adapter_driver *adapter_driver;
-
 void jtag_set_flush_queue_sleep(int ms)
 {
 	jtag_flush_queue_sleep = ms;

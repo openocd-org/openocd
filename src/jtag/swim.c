@@ -12,12 +12,11 @@
 #include "config.h"
 #endif
 
+#include "adapter.h"
 #include "interface.h"
 #include "swim.h"
 #include <helper/command.h>
 #include <transport/transport.h>
-
-extern struct adapter_driver *adapter_driver;
 
 int swim_system_reset(void)
 {

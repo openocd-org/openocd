@@ -16,11 +16,10 @@
 #include "helper/list.h"
 #include "helper/command.h"
 #include "transport/transport.h"
+#include "jtag/adapter.h"
 #include "jtag/interface.h"
 
 static OOCD_LIST_HEAD(all_dap);
-
-extern struct adapter_driver *adapter_driver;
 
 /* DAP command support */
 struct arm_dap_object {

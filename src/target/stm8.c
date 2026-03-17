@@ -13,6 +13,7 @@
 #include <helper/log.h>
 #include "target.h"
 #include "target_type.h"
+#include "jtag/adapter.h"
 #include "jtag/interface.h"
 #include "jtag/jtag.h"
 #include "jtag/swim.h"
@@ -33,7 +34,6 @@ static void stm8_enable_watchpoints(struct target *target);
 static int stm8_unset_watchpoint(struct target *target,
 		struct watchpoint *watchpoint);
 static int (*adapter_speed)(int speed);
-extern struct adapter_driver *adapter_driver;
 
 static const struct {
 	unsigned int id;
