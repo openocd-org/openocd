@@ -141,6 +141,7 @@ struct sockaddr_un {
 #endif
 
 #if IS_MINGW == 1
+#if defined(__x86_64__) || defined(__i386__)
 static inline unsigned char inb(unsigned short int port)
 {
 	unsigned char _v;
@@ -152,6 +153,7 @@ static inline void outb(unsigned char value, unsigned short int port)
 {
 	__asm__ __volatile__ ("outb %b0,%w1" : : "a" (value), "Nd" (port));
 }
+#endif
 
 /* mingw does not have ffs, so use gcc builtin types */
 #define ffs __builtin_ffs
