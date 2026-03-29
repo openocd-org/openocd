@@ -145,11 +145,6 @@ static int fill_buffer(struct target *target, uint32_t addr, uint8_t *buffer)
 
 }
 
-static uint32_t get_buffer(struct target *target, const uint8_t *buffer)
-{
-	return target_buffer_get_u32(target, buffer);
-}
-
 static int linux_os_thread_reg_list(struct rtos *rtos,
 	int64_t thread_id, struct rtos_reg **reg_list, int *num_regs)
 {
@@ -268,7 +263,7 @@ int fill_task_pid(struct target *target, struct threads *t)
 	int retval = fill_buffer(target, pid_addr, buffer);
 
 	if (retval == ERROR_OK) {
-		uint32_t val = get_buffer(target, buffer);
+		uint32_t val = target_buffer_get_u32(target, buffer);
 		t->pid = val;
 	} else
 		LOG_ERROR("fill_task_pid: unable to read memory");
@@ -287,7 +282,7 @@ static int fill_task(struct target *target, struct threads *t)
 	retval = fill_buffer(target, t->base_addr, buffer);
 
 	if (retval == ERROR_OK) {
-		uint32_t val = get_buffer(target, buffer);
+		uint32_t val = target_buffer_get_u32(target, buffer);
 		t->state = val;
 	} else
 		LOG_ERROR("fill_task: unable to read memory");
@@ -295,7 +290,7 @@ static int fill_task(struct target *target, struct threads *t)
 	retval = fill_buffer(target, pid_addr, buffer);
 
 	if (retval == ERROR_OK) {
-		uint32_t val = get_buffer(target, buffer);
+		uint32_t val = target_buffer_get_u32(target, buffer);
 		t->pid = val;
 	} else
 		LOG_ERROR("fill task: unable to read memory");
@@ -303,7 +298,7 @@ static int fill_task(struct target *target, struct threads *t)
 	retval = fill_buffer(target, on_cpu, buffer);
 
 	if (retval == ERROR_OK) {
-		uint32_t val = get_buffer(target, buffer);
+		uint32_t val = target_buffer_get_u32(target, buffer);
 		t->oncpu = val;
 	} else
 		LOG_ERROR("fill task: unable to read memory");
@@ -311,14 +306,14 @@ static int fill_task(struct target *target, struct threads *t)
 	retval = fill_buffer(target, mem_addr, buffer);
 
 	if (retval == ERROR_OK) {
-		uint32_t val = get_buffer(target, buffer);
+		uint32_t val = target_buffer_get_u32(target, buffer);
 
 		if (val != 0) {
 			uint32_t asid_addr = val + MM_CTX;
 			retval = fill_buffer(target, asid_addr, buffer);
 
 			if (retval == ERROR_OK) {
-				val = get_buffer(target, buffer);
+				val = target_buffer_get_u32(target, buffer);
 				t->asid = val;
 			} else
 				LOG_ERROR
@@ -412,18 +407,18 @@ static int get_current(struct target *target, int create)
 			reg_list[13]->type->get(reg_list[13]);
 
 		buf = reg_list[13]->value;
-		val = get_buffer(target, buf);
+		val = target_buffer_get_u32(target, buf);
 		ti_addr = (val & 0xffffe000);
 		uint32_t ts_addr = ti_addr + 0xc;
 		retval = fill_buffer(target, ts_addr, buffer);
 
 		if (retval == ERROR_OK) {
-			uint32_t TS = get_buffer(target, buffer);
+			uint32_t TS = target_buffer_get_u32(target, buffer);
 			uint32_t cpu, on_cpu = TS + ONCPU;
 			retval = fill_buffer(target, on_cpu, buffer);
 
 			if (retval == ERROR_OK) {
-				/*uint32_t cpu = get_buffer(target, buffer);*/
+				/*uint32_t cpu = target_buffer_get_u32(target, buffer);*/
 				struct current_thread *ct =
 					linux_os->current_threads;
 				cpu = head->target->coreid;
@@ -492,7 +487,7 @@ retry:
 		retval = fill_buffer(target, stack, buffer);
 
 		if (retval == ERROR_OK)
-			thread_info_addr = get_buffer(target, buffer);
+			thread_info_addr = target_buffer_get_u32(target, buffer);
 		else
 			LOG_ERROR("cpu_context: unable to read memory");
 
@@ -504,7 +499,7 @@ retry:
 	retval = fill_buffer(target, preempt_count_addr, buffer);
 
 	if (retval == ERROR_OK)
-		context->preempt_count = get_buffer(target, buffer);
+		context->preempt_count = target_buffer_get_u32(target, buffer);
 	else {
 		if (*thread_info_addr_old != 0xdeadbeef) {
 			LOG_ERROR
@@ -568,7 +563,7 @@ static uint32_t next_task(struct target *target, struct threads *t)
 	int retval = fill_buffer(target, next_addr, buffer);
 
 	if (retval == ERROR_OK) {
-		uint32_t val = get_buffer(target, buffer);
+		uint32_t val = target_buffer_get_u32(target, buffer);
 		val = val - NEXT;
 		free(buffer);
 		return val;
