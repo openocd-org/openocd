@@ -659,8 +659,6 @@ static int ecos_stack_layout_cortexm(struct rtos *rtos,
 static int ecos_stack_layout_arm(struct rtos *rtos, struct ecos_params *param,
 		int64_t stack_ptr, const struct rtos_register_stacking **si)
 {
-	int retval = ERROR_OK;
-
 	if (!param->stacking_info && ecos_value(rtos, ECOS_VAL_ARM_REGSIZE)) {
 		/* When OpenOCD is extended to allow FPU registers to be returned from a
 		 * stacked thread context we can check:
@@ -695,7 +693,7 @@ static int ecos_stack_layout_arm(struct rtos *rtos, struct ecos_params *param,
 	if (si)
 		*si = param->stacking_info;
 
-	return retval;
+	return ERROR_OK;
 }
 
 /* We see this function called on a new connection, it looks like before and

@@ -440,7 +440,6 @@ static int aducm360_write_modified(struct flash_bank *bank,
 		uint32_t count)
 {
 	uint32_t		value;
-	int				res = ERROR_OK;
 	uint32_t        i, j, a, d;
 	struct target   *target = bank->target;
 
@@ -464,7 +463,7 @@ static int aducm360_write_modified(struct flash_bank *bank,
 	}
 	aducm360_set_write_enable(target, 0);
 
-	return res;
+	return ERROR_OK;
 }
 
 /* ----------------------------------------------------------------------- */

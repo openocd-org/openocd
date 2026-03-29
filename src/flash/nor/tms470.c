@@ -490,7 +490,6 @@ static int tms470_flash_initialize_internal_state_machine(struct flash_bank *ban
 	uint32_t fmmac2, fmmac1, fmmaxep, k, delay, glbctrl, sysclk;
 	struct target *target = bank->target;
 	struct tms470_flash_bank *tms470_info = bank->driver_priv;
-	int result = ERROR_OK;
 
 	/*
 	 * Select the desired bank to be programmed by writing BANK[2:0] of
@@ -613,7 +612,7 @@ static int tms470_flash_initialize_internal_state_machine(struct flash_bank *ban
 	target_write_u32(target, 0xFFE8A054, delay * 5400);
 	LOG_DEBUG("set fmewidth = 0x%04" PRIx32, delay * 5400);
 
-	return result;
+	return ERROR_OK;
 }
 
 /* ---------------------------------------------------------------------- */
