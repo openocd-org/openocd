@@ -22,12 +22,7 @@ static struct dsp5680xx_common dsp5680xx_context;
 #define err_log(c, m) LOG_ERROR(_E, c, __func__, __LINE__, m)
 #define err_check(r, c, m) if (r != ERROR_OK) {LOG_ERROR(_E, c, __func__, __LINE__, m); return r; }
 #define DEBUG_MSG "Debug mode be enabled to read mem."
-#define DEBUG_FAIL { err_check(ERROR_FAIL, DSP5680XX_ERROR_NOT_IN_DEBUG, DEBUG_MSG) }
-#define CHECK_DBG if (!dsp5680xx_context.debug_mode_enabled) DEBUG_FAIL
 #define HALT_MSG "Target must be halted."
-#define HALT_FAIL { err_check(ERROR_FAIL, DSP5680XX_ERROR_TARGET_RUNNING, HALT_MSG) }
-#define CHECK_HALT(target) if (target->state != TARGET_HALTED) HALT_FAIL
-#define check_halt_and_debug(target) { CHECK_HALT(target); CHECK_DBG; }
 
 static int dsp5680xx_execute_queue(void)
 {
@@ -490,7 +485,10 @@ static int core_rx_lower_data(struct target *target, uint8_t *data_read)
 
 static int core_move_value_to_pc(struct target *target, uint32_t value)
 {
-	check_halt_and_debug(target);
+	if (target->state != TARGET_HALTED)
+		err_check(ERROR_FAIL, DSP5680XX_ERROR_TARGET_RUNNING, HALT_MSG)
+	if (!dsp5680xx_context.debug_mode_enabled)
+		err_check(ERROR_FAIL, DSP5680XX_ERROR_NOT_IN_DEBUG, DEBUG_MSG)
 	int retval;
 
 	retval =
@@ -1211,7 +1209,10 @@ static int dsp5680xx_read(struct target *t, target_addr_t a, uint32_t size,
 
 	uint8_t *buffer = buf;
 
-	check_halt_and_debug(target);
+	if (target->state != TARGET_HALTED)
+		err_check(ERROR_FAIL, DSP5680XX_ERROR_TARGET_RUNNING, HALT_MSG)
+	if (!dsp5680xx_context.debug_mode_enabled)
+		err_check(ERROR_FAIL, DSP5680XX_ERROR_NOT_IN_DEBUG, DEBUG_MSG)
 
 	int retval = ERROR_OK;
 
@@ -1472,7 +1473,10 @@ static int dsp5680xx_write(struct target *target, target_addr_t a, uint32_t size
 
 	uint8_t const *buffer = b;
 
-	check_halt_and_debug(target);
+	if (target->state != TARGET_HALTED)
+		err_check(ERROR_FAIL, DSP5680XX_ERROR_TARGET_RUNNING, HALT_MSG)
+	if (!dsp5680xx_context.debug_mode_enabled)
+		err_check(ERROR_FAIL, DSP5680XX_ERROR_NOT_IN_DEBUG, DEBUG_MSG)
 
 	int retval = 0;
 
@@ -1507,7 +1511,10 @@ static int dsp5680xx_write(struct target *target, target_addr_t a, uint32_t size
 static int dsp5680xx_write_buffer(struct target *t, target_addr_t a, uint32_t size,
 				  const uint8_t *b)
 {
-	check_halt_and_debug(t);
+	if (t->state != TARGET_HALTED)
+		err_check(ERROR_FAIL, DSP5680XX_ERROR_TARGET_RUNNING, HALT_MSG)
+	if (!dsp5680xx_context.debug_mode_enabled)
+		err_check(ERROR_FAIL, DSP5680XX_ERROR_NOT_IN_DEBUG, DEBUG_MSG)
 	return dsp5680xx_write(t, a, 1, size, b);
 }
 
@@ -1524,7 +1531,11 @@ static int dsp5680xx_write_buffer(struct target *t, target_addr_t a, uint32_t si
 static int dsp5680xx_read_buffer(struct target *target, target_addr_t address, uint32_t size,
 				 uint8_t *buffer)
 {
-	check_halt_and_debug(target);
+	if (target->state != TARGET_HALTED)
+		err_check(ERROR_FAIL, DSP5680XX_ERROR_TARGET_RUNNING, HALT_MSG)
+	if (!dsp5680xx_context.debug_mode_enabled)
+		err_check(ERROR_FAIL, DSP5680XX_ERROR_NOT_IN_DEBUG, DEBUG_MSG)
+
 	/* The "/2" solves the byte/word addressing issue.*/
 	return dsp5680xx_read(target, address, 2, size / 2, buffer);
 }
@@ -1633,7 +1644,10 @@ int dsp5680xx_f_protect_check(struct target *target, uint16_t *protected)
 {
 	int retval;
 
-	check_halt_and_debug(target);
+	if (target->state != TARGET_HALTED)
+		err_check(ERROR_FAIL, DSP5680XX_ERROR_TARGET_RUNNING, HALT_MSG)
+	if (!dsp5680xx_context.debug_mode_enabled)
+		err_check(ERROR_FAIL, DSP5680XX_ERROR_NOT_IN_DEBUG, DEBUG_MSG)
 	if (!protected) {
 		const char *msg = "NULL pointer not valid.";
 
