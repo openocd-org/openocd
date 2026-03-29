@@ -25,9 +25,7 @@ static struct dsp5680xx_common dsp5680xx_context;
 
 static int dsp5680xx_execute_queue(void)
 {
-	int retval;
-
-	retval = jtag_execute_queue();
+	int retval = jtag_execute_queue();
 	return retval;
 }
 
@@ -36,14 +34,12 @@ static int dsp5680xx_execute_queue(void)
  */
 static int reset_jtag(void)
 {
-	int retval;
-
 	enum tap_state states[2];
 
 	const char *cp = "RESET";
 
 	states[0] = tap_state_by_name(cp);
-	retval = jtag_add_statemove(states[0]);
+	int retval = jtag_add_statemove(states[0]);
 	if (retval != ERROR_OK)
 		return retval;
 	retval = jtag_execute_queue();
@@ -147,12 +143,9 @@ static int dsp5680xx_jtag_status(struct target *target, uint8_t *status)
 {
 	uint32_t read_from_ir;
 
-	uint32_t instr;
+	uint32_t instr = JTAG_INSTR_ENABLE_ONCE;
 
-	int retval;
-
-	instr = JTAG_INSTR_ENABLE_ONCE;
-	retval =
+	int retval =
 		dsp5680xx_irscan(target, &instr, &read_from_ir,
 				 DSP5680XX_JTAG_CORE_TAP_IRLEN);
 	if (retval != ERROR_OK)
@@ -184,9 +177,7 @@ static uint32_t data_read_dummy;
 static int jtag_data_write(struct target *target, uint32_t instr, int num_bits,
 			   uint32_t *data_read)
 {
-	int retval;
-
-	retval =
+	int retval =
 		dsp5680xx_drscan(target, (uint8_t *) &instr,
 				 (uint8_t *) &data_read_dummy, num_bits);
 	if (retval != ERROR_OK)
@@ -217,13 +208,11 @@ static int eonce_instruction_exec_single(struct target *target, uint8_t instr,
 					 uint8_t rw, uint8_t go, uint8_t ex,
 					 uint8_t *eonce_status)
 {
-	int retval;
-
 	uint32_t dr_out_tmp;
 
 	uint8_t instr_with_flags = instr | (rw << 7) | (go << 6) | (ex << 5);
 
-	retval = jtag_data_write(target, instr_with_flags, 8, &dr_out_tmp);
+	int retval = jtag_data_write(target, instr_with_flags, 8, &dr_out_tmp);
 	if (retval != ERROR_OK)
 		return retval;
 	if (eonce_status)
@@ -240,9 +229,7 @@ static int eonce_instruction_exec_single(struct target *target, uint8_t instr,
 /* Executes one word DSP instruction */
 static int dsp5680xx_exe1(struct target *target, uint16_t opcode)
 {
-	int retval;
-
-	retval = eonce_instruction_exec_single(target, 0x04, 0, 1, 0, NULL);
+	int retval = eonce_instruction_exec_single(target, 0x04, 0, 1, 0, NULL);
 	if (retval != ERROR_OK)
 		return retval;
 	retval = jtag_data_write16(target, opcode, NULL);
@@ -253,9 +240,7 @@ static int dsp5680xx_exe1(struct target *target, uint16_t opcode)
 static int dsp5680xx_exe2(struct target *target, uint16_t opcode1,
 			  uint16_t opcode2)
 {
-	int retval;
-
-	retval = eonce_instruction_exec_single(target, 0x04, 0, 0, 0, NULL);
+	int retval = eonce_instruction_exec_single(target, 0x04, 0, 0, 0, NULL);
 	if (retval != ERROR_OK)
 		return retval;
 	retval = jtag_data_write16(target, opcode1, NULL);
@@ -272,9 +257,7 @@ static int dsp5680xx_exe2(struct target *target, uint16_t opcode1,
 static int dsp5680xx_exe3(struct target *target, uint16_t opcode1,
 			  uint16_t opcode2, uint16_t opcode3)
 {
-	int retval;
-
-	retval = eonce_instruction_exec_single(target, 0x04, 0, 0, 0, NULL);
+	int retval = eonce_instruction_exec_single(target, 0x04, 0, 0, 0, NULL);
 	if (retval != ERROR_OK)
 		return retval;
 	retval = jtag_data_write16(target, opcode1, NULL);
@@ -309,9 +292,7 @@ static int dsp5680xx_exe3(struct target *target, uint16_t opcode1,
 static int core_tx_upper_data(struct target *target, uint16_t data,
 			      uint32_t *eonce_status_low)
 {
-	int retval;
-
-	retval =
+	int retval =
 		eonce_instruction_exec_single(target, DSP5680XX_ONCE_ORX1, 0, 0, 0,
 					      NULL);
 	if (retval != ERROR_OK)
@@ -333,9 +314,7 @@ static int core_tx_upper_data(struct target *target, uint16_t data,
  */
 static int core_rx_upper_data(struct target *target, uint8_t *data_read)
 {
-	int retval;
-
-	retval =
+	int retval =
 		eonce_instruction_exec_single(target, DSP5680XX_ONCE_OTX1, 1, 0, 0,
 					      NULL);
 	if (retval != ERROR_OK)
@@ -352,9 +331,7 @@ static int core_rx_upper_data(struct target *target, uint8_t *data_read)
  */
 static int core_rx_lower_data(struct target *target, uint8_t *data_read)
 {
-	int retval;
-
-	retval =
+	int retval =
 		eonce_instruction_exec_single(target, DSP5680XX_ONCE_OTX, 1, 0, 0,
 					      NULL);
 	if (retval != ERROR_OK)
@@ -492,9 +469,8 @@ static int core_move_value_to_pc(struct target *target, uint32_t value)
 		err_log(DSP5680XX_ERROR_NOT_IN_DEBUG, DEBUG_MSG);
 		return ERROR_FAIL;
 	}
-	int retval;
 
-	retval =
+	int retval =
 		dsp5680xx_exe_generic(target, 3, 0xE71E, value & 0xffff,
 				      value >> 16);
 	return retval;
@@ -502,9 +478,7 @@ static int core_move_value_to_pc(struct target *target, uint32_t value)
 
 static int eonce_load_tx_rx_to_r0(struct target *target)
 {
-	int retval;
-
-	retval =
+	int retval =
 		core_move_long_to_r0(target,
 				     ((MC568013_EONCE_TX_RX_ADDR) +
 				      (MC568013_EONCE_OBASE_ADDR << 16)));
@@ -513,9 +487,7 @@ static int eonce_load_tx_rx_to_r0(struct target *target)
 
 static int core_load_tx_rx_high_addr_to_r0(struct target *target)
 {
-	int retval = 0;
-
-	retval =
+	int retval =
 		core_move_long_to_r0(target,
 				     ((MC568013_EONCE_TX1_RX1_HIGH_ADDR) +
 				      (MC568013_EONCE_OBASE_ADDR << 16)));
@@ -526,11 +498,9 @@ static int dsp5680xx_read_core_reg(struct target *target, uint8_t reg_addr,
 				   uint16_t *data_read)
 {
 	/* TODO implement a general version of this which matches what openocd uses. */
-	int retval;
-
 	uint32_t dummy_data_to_shift_into_dr;
 
-	retval = eonce_instruction_exec_single(target, reg_addr, 1, 0, 0, NULL);
+	int retval = eonce_instruction_exec_single(target, reg_addr, 1, 0, 0, NULL);
 	if (retval != ERROR_OK)
 		return retval;
 	retval =
@@ -544,9 +514,7 @@ static int dsp5680xx_read_core_reg(struct target *target, uint8_t reg_addr,
 
 static int eonce_read_status_reg(struct target *target, uint16_t *data)
 {
-	int retval;
-
-	retval = dsp5680xx_read_core_reg(target, DSP5680XX_ONCE_OSR, data);
+	int retval = dsp5680xx_read_core_reg(target, DSP5680XX_ONCE_OSR, data);
 	return retval;
 }
 
@@ -560,9 +528,7 @@ static int eonce_read_status_reg(struct target *target, uint16_t *data)
  */
 static int eonce_exit_debug_mode(struct target *target, uint8_t *eonce_status)
 {
-	int retval;
-
-	retval =
+	int retval =
 		eonce_instruction_exec_single(target, 0x1F, 0, 0, 1, eonce_status);
 	return retval;
 }
@@ -651,14 +617,12 @@ static int switch_tap(struct target *target, struct jtag_tap *master_tap,
 static int eonce_enter_debug_mode_without_reset(struct target *target,
 						uint16_t *eonce_status)
 {
-	int retval;
-
 	uint32_t instr = JTAG_INSTR_DEBUG_REQUEST;
 
 	uint32_t ir_out;	/* not used, just to make jtag happy.*/
 
 	/* Debug request #1 */
-	retval =
+	int retval =
 		dsp5680xx_irscan(target, &instr, &ir_out,
 				 DSP5680XX_JTAG_CORE_TAP_IRLEN);
 	if (retval != ERROR_OK)
@@ -715,8 +679,6 @@ static int eonce_enter_debug_mode_without_reset(struct target *target,
 static int eonce_enter_debug_mode(struct target *target,
 				  uint16_t *eonce_status)
 {
-	int retval = ERROR_OK;
-
 	uint32_t instr = JTAG_INSTR_DEBUG_REQUEST;
 
 	uint32_t ir_out;	/* not used, just to make jtag happy. */
@@ -726,21 +688,17 @@ static int eonce_enter_debug_mode(struct target *target,
 	uint16_t read_16;
 
 	/* First try the easy way */
-	retval = eonce_enter_debug_mode_without_reset(target, eonce_status);
+	int retval = eonce_enter_debug_mode_without_reset(target, eonce_status);
 	if (retval == ERROR_OK)
 		return retval;
 
-	struct jtag_tap *tap_chp;
-
-	struct jtag_tap *tap_cpu;
-
-	tap_chp = jtag_tap_by_string("dsp568013.chp");
+	struct jtag_tap *tap_chp = jtag_tap_by_string("dsp568013.chp");
 	if (!tap_chp) {
 		err_log(DSP5680XX_ERROR_JTAG_TAP_FIND_MASTER,
 			  "Failed to get master tap.");
 		return ERROR_FAIL;
 	}
-	tap_cpu = jtag_tap_by_string("dsp568013.cpu");
+	struct jtag_tap *tap_cpu = jtag_tap_by_string("dsp568013.cpu");
 	if (!tap_cpu) {
 		err_log(DSP5680XX_ERROR_JTAG_TAP_FIND_CORE,
 			  "Failed to get master tap.");
@@ -861,9 +819,7 @@ static int eonce_pc_store(struct target *target)
 {
 	uint8_t tmp[2];
 
-	int retval;
-
-	retval = core_move_pc_to_r4(target);
+	int retval = core_move_pc_to_r4(target);
 	if (retval != ERROR_OK)
 		return retval;
 	retval = core_move_r4_to_y(target);
@@ -923,8 +879,6 @@ static int dsp5680xx_deassert_reset(struct target *target)
 
 static int dsp5680xx_halt(struct target *target)
 {
-	int retval;
-
 	uint16_t eonce_status = 0xbeef;
 
 	if ((target->state == TARGET_HALTED)
@@ -936,7 +890,7 @@ static int dsp5680xx_halt(struct target *target)
 			LOG_USER
 				("Target already halted, re attempting to enter debug mode.");
 	}
-	retval = eonce_enter_debug_mode(target, &eonce_status);
+	int retval = eonce_enter_debug_mode(target, &eonce_status);
 	if (retval != ERROR_OK)
 		return retval;
 	retval = eonce_pc_store(target);
@@ -950,15 +904,13 @@ static int dsp5680xx_halt(struct target *target)
 
 static int dsp5680xx_poll(struct target *target)
 {
-	int retval;
-
 	uint8_t jtag_status;
 
 	uint8_t eonce_status;
 
 	uint16_t read_tmp;
 
-	retval = dsp5680xx_jtag_status(target, &jtag_status);
+	int retval = dsp5680xx_jtag_status(target, &jtag_status);
 	if (retval != ERROR_OK)
 		return retval;
 	if (jtag_status == JTAG_STATUS_DEBUG)
@@ -1129,9 +1081,7 @@ static int dsp5680xx_read_16_single(struct target *t, uint32_t a,
 
 	uint32_t address = a;
 
-	int retval;
-
-	retval = core_move_long_to_r0(target, address);
+	int retval = core_move_long_to_r0(target, address);
 	if (retval != ERROR_OK)
 		return retval;
 	if (r_pmem)
@@ -1162,11 +1112,9 @@ static int dsp5680xx_read_32_single(struct target *t, uint32_t a,
 
 	uint32_t address = a;
 
-	int retval;
-
 	address = (address & 0xFFFFF);
 	/* Get data to an intermediate register */
-	retval = core_move_long_to_r0(target, address);
+	int retval = core_move_long_to_r0(target, address);
 	if (retval != ERROR_OK)
 		return retval;
 	if (r_pmem) {
@@ -1221,11 +1169,9 @@ static int dsp5680xx_read(struct target *t, target_addr_t a, uint32_t size,
 		return ERROR_FAIL;
 	}
 
-	int retval = ERROR_OK;
-
 	int pmem = 1;
 
-	retval = dsp5680xx_convert_address(&address, &pmem);
+	int retval = dsp5680xx_convert_address(&address, &pmem);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -1277,9 +1223,7 @@ static int dsp5680xx_write_16_single(struct target *t, uint32_t a,
 
 	uint32_t address = a;
 
-	int retval = 0;
-
-	retval = core_move_long_to_r0(target, address);
+	int retval = core_move_long_to_r0(target, address);
 	if (retval != ERROR_OK)
 		return retval;
 	if (w_pmem) {
@@ -1304,9 +1248,7 @@ static int dsp5680xx_write_32_single(struct target *t, uint32_t a,
 
 	uint32_t address = a;
 
-	int retval = ERROR_OK;
-
-	retval = core_move_long_to_r0(target, address);
+	int retval = core_move_long_to_r0(target, address);
 	if (retval != ERROR_OK)
 		return retval;
 	retval = core_move_long_to_y(target, data);
@@ -1489,11 +1431,9 @@ static int dsp5680xx_write(struct target *target, target_addr_t a, uint32_t size
 		return ERROR_FAIL;
 	}
 
-	int retval = 0;
-
 	int p_mem = 1;
 
-	retval = dsp5680xx_convert_address(&address, &p_mem);
+	int retval = dsp5680xx_convert_address(&address, &p_mem);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -1648,9 +1588,7 @@ static int dsp5680xx_f_sim_reset(struct target *target)
 static int dsp5680xx_soft_reset_halt(struct target *target)
 {
 	/* TODO is this what this function is expected to do...? */
-	int retval;
-
-	retval = dsp5680xx_halt(target);
+	int retval = dsp5680xx_halt(target);
 	if (retval != ERROR_OK)
 		return retval;
 	retval = dsp5680xx_f_sim_reset(target);
@@ -1659,8 +1597,6 @@ static int dsp5680xx_soft_reset_halt(struct target *target)
 
 int dsp5680xx_f_protect_check(struct target *target, uint16_t *protected)
 {
-	int retval;
-
 	if (target->state != TARGET_HALTED) {
 		err_log(DSP5680XX_ERROR_TARGET_RUNNING, HALT_MSG);
 		return ERROR_FAIL;
@@ -1675,7 +1611,7 @@ int dsp5680xx_f_protect_check(struct target *target, uint16_t *protected)
 		err_log(DSP5680XX_ERROR_PROTECT_CHECK_INVALID_ARGS, msg);
 		return ERROR_FAIL;
 	}
-	retval =
+	int retval =
 		dsp5680xx_read_16_single(target, HFM_BASE_ADDR | HFM_PROT,
 					 (uint8_t *) protected, 0);
 	return retval;
@@ -1698,9 +1634,8 @@ static int dsp5680xx_f_ex(struct target *target, uint16_t c, uint32_t address, u
 			  uint16_t *hfm_ustat, int pmem)
 {
 	uint32_t command = c;
-	int retval;
 
-	retval = core_load_tx_rx_high_addr_to_r0(target);
+	int retval = core_load_tx_rx_high_addr_to_r0(target);
 	if (retval != ERROR_OK)
 		return retval;
 	retval = core_move_long_to_r2(target, HFM_BASE_ADDR);
@@ -1825,9 +1760,7 @@ static int set_fm_ck_div(struct target *target)
 {
 	uint8_t i[2];
 
-	int retval;
-
-	retval = core_move_long_to_r2(target, HFM_BASE_ADDR);
+	int retval = core_move_long_to_r2(target, HFM_BASE_ADDR);
 	if (retval != ERROR_OK)
 		return retval;
 	retval = core_load_tx_rx_high_addr_to_r0(target);
@@ -1961,11 +1894,9 @@ int dsp5680xx_f_erase_check(struct target *target, uint8_t *erased,
  */
 static int erase_sector(struct target *target, int sector, uint16_t *hfm_ustat)
 {
-	int retval;
-
 	uint32_t tmp = HFM_FLASH_BASE_ADDR + sector * HFM_SECTOR_SIZE / 2;
 
-	retval = dsp5680xx_f_ex(target, HFM_PAGE_ERASE, tmp, 0, hfm_ustat, 1);
+	int retval = dsp5680xx_f_ex(target, HFM_PAGE_ERASE, tmp, 0, hfm_ustat, 1);
 	return retval;
 }
 
@@ -1979,9 +1910,7 @@ static int erase_sector(struct target *target, int sector, uint16_t *hfm_ustat)
  */
 static int mass_erase(struct target *target, uint16_t *hfm_ustat)
 {
-	int retval;
-
-	retval = dsp5680xx_f_ex(target, HFM_MASS_ERASE, 0, 0, hfm_ustat, 1);
+	int retval = dsp5680xx_f_ex(target, HFM_MASS_ERASE, 0, 0, hfm_ustat, 1);
 	return retval;
 }
 
@@ -2241,32 +2170,24 @@ int dsp5680xx_f_wr(struct target *t, const uint8_t *b, uint32_t a, uint32_t coun
 
 int dsp5680xx_f_unlock(struct target *target)
 {
-	int retval = ERROR_OK;
-
 	uint16_t eonce_status;
-
-	uint32_t instr;
 
 	uint32_t ir_out;
 
-	struct jtag_tap *tap_chp;
-
-	struct jtag_tap *tap_cpu;
-
-	tap_chp = jtag_tap_by_string("dsp568013.chp");
+	struct jtag_tap *tap_chp = jtag_tap_by_string("dsp568013.chp");
 	if (!tap_chp) {
 		err_log(DSP5680XX_ERROR_JTAG_TAP_ENABLE_MASTER,
 			  "Failed to get master tap.");
 		return ERROR_FAIL;
 	}
-	tap_cpu = jtag_tap_by_string("dsp568013.cpu");
+	struct jtag_tap *tap_cpu = jtag_tap_by_string("dsp568013.cpu");
 	if (!tap_cpu) {
 		err_log(DSP5680XX_ERROR_JTAG_TAP_ENABLE_CORE,
 			  "Failed to get master tap.");
 		return ERROR_FAIL;
 	}
 
-	retval = eonce_enter_debug_mode_without_reset(target, &eonce_status);
+	int retval = eonce_enter_debug_mode_without_reset(target, &eonce_status);
 	if (retval == ERROR_OK)
 		LOG_WARNING("Memory was not locked.");
 
@@ -2287,7 +2208,7 @@ int dsp5680xx_f_unlock(struct target *target)
 	if (retval != ERROR_OK)
 		return retval;
 
-	instr = JTAG_INSTR_DEBUG_REQUEST;
+	uint32_t instr = JTAG_INSTR_DEBUG_REQUEST;
 	retval =
 		dsp5680xx_irscan(target, &instr, &ir_out,
 				 DSP5680XX_JTAG_CORE_TAP_IRLEN);
@@ -2356,13 +2277,8 @@ int dsp5680xx_f_unlock(struct target *target)
 
 int dsp5680xx_f_lock(struct target *target)
 {
-	int retval;
-
-	struct jtag_tap *tap_chp;
-
-	struct jtag_tap *tap_cpu;
 	uint16_t lock_word = HFM_LOCK_FLASH;
-	retval = dsp5680xx_f_wr(target, (uint8_t *)&lock_word, HFM_LOCK_ADDR_L, 2, 1);
+	int retval = dsp5680xx_f_wr(target, (uint8_t *)&lock_word, HFM_LOCK_ADDR_L, 2, 1);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -2379,13 +2295,13 @@ int dsp5680xx_f_lock(struct target *target)
 	jtag_add_reset(0, 0);
 	jtag_add_sleep(TIME_DIV_FREESCALE * 300 * 1000);
 
-	tap_chp = jtag_tap_by_string("dsp568013.chp");
+	struct jtag_tap *tap_chp = jtag_tap_by_string("dsp568013.chp");
 	if (!tap_chp) {
 		err_log(DSP5680XX_ERROR_JTAG_TAP_ENABLE_MASTER,
 			  "Failed to get master tap.");
 		return ERROR_FAIL;
 	}
-	tap_cpu = jtag_tap_by_string("dsp568013.cpu");
+	struct jtag_tap *tap_cpu = jtag_tap_by_string("dsp568013.cpu");
 	if (!tap_cpu) {
 		err_log(DSP5680XX_ERROR_JTAG_TAP_ENABLE_CORE,
 			  "Failed to get master tap.");
