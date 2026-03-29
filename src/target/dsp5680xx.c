@@ -2068,7 +2068,7 @@ int dsp5680xx_f_wr(struct target *t, const uint8_t *b, uint32_t a, uint32_t coun
 	retval = core_move_long_to_r3(target, address); /* Destination address to r3 */
 	if (retval != ERROR_OK)
 		return retval;
-	core_load_tx_rx_high_addr_to_r0(target); /* TX/RX reg address to r0 */
+	retval = core_load_tx_rx_high_addr_to_r0(target); /* TX/RX reg address to r0 */
 	if (retval != ERROR_OK)
 		return retval;
 	retval = core_move_long_to_r2(target, HFM_BASE_ADDR); /* FM base address to r2 */
