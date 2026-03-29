@@ -1800,9 +1800,7 @@ static int find_sfdp_dummy(struct flash_bank *bank, int len)
 
 err:
 	/* Abort operation */
-	retval = stmqspi_abort(bank);
-
-	return retval;
+	return stmqspi_abort(bank);
 }
 
 /* Read SFDP parameter block */

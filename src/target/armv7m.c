@@ -243,7 +243,6 @@ const char *armv7m_exception_string(int number)
 
 static int armv7m_get_core_reg(struct reg *reg)
 {
-	int retval;
 	struct arm_reg *armv7m_reg = reg->arch_info;
 	struct target *target = armv7m_reg->target;
 	struct arm *arm = target_to_arm(target);
@@ -251,9 +250,7 @@ static int armv7m_get_core_reg(struct reg *reg)
 	if (target->state != TARGET_HALTED)
 		return ERROR_TARGET_NOT_HALTED;
 
-	retval = arm->read_core_reg(target, reg, reg->number, arm->core_mode);
-
-	return retval;
+	return arm->read_core_reg(target, reg, reg->number, arm->core_mode);
 }
 
 static int armv7m_set_core_reg(struct reg *reg, uint8_t *buf)
@@ -651,9 +648,7 @@ int armv7m_start_algorithm(struct target *target,
 	/* save previous core mode */
 	armv7m_algorithm_info->core_mode = core_mode;
 
-	retval = target_resume(target, false, entry_point, true, true);
-
-	return retval;
+	return target_resume(target, false, entry_point, true, true);
 }
 
 /** Waits for an algorithm in the target. */

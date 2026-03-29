@@ -69,10 +69,7 @@
 
 static float _tomhz(uint32_t freq_hz)
 {
-	float f;
-
-	f = ((float)(freq_hz)) / 1000000.0;
-	return f;
+	return ((float)freq_hz) / 1000000.0;
 }
 
 /* How the chip is configured. */

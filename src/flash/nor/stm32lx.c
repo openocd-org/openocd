@@ -1076,10 +1076,8 @@ static int stm32lx_enable_write_half_page(struct flash_bank *bank)
 		return retval;
 
 	reg32 |= FLASH_PECR__PROG;
-	retval = target_write_u32(target, stm32lx_info->flash_base + FLASH_PECR,
+	return target_write_u32(target, stm32lx_info->flash_base + FLASH_PECR,
 			reg32);
-
-	return retval;
 }
 
 static int stm32lx_lock_program_memory(struct flash_bank *bank)

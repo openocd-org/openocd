@@ -250,15 +250,12 @@ static int at91sam9_read_block_data(struct nand_device *nand, uint8_t *data, int
 {
 	struct at91sam9_nand *info = nand->controller_priv;
 	struct arm_nand_data *io = &info->io;
-	int status;
 
 	if (!at91sam9_halted(nand->target, "read block"))
 		return ERROR_NAND_OPERATION_FAILED;
 
 	io->chunk_size = nand->page_size;
-	status = arm_nandread(io, data, size);
-
-	return status;
+	return arm_nandread(io, data, size);
 }
 
 /**
@@ -274,15 +271,12 @@ static int at91sam9_write_block_data(struct nand_device *nand, uint8_t *data, in
 {
 	struct at91sam9_nand *info = nand->controller_priv;
 	struct arm_nand_data *io = &info->io;
-	int status;
 
 	if (!at91sam9_halted(nand->target, "write block"))
 		return ERROR_NAND_OPERATION_FAILED;
 
 	io->chunk_size = nand->page_size;
-	status = arm_nandwrite(io, data, size);
-
-	return status;
+	return arm_nandwrite(io, data, size);
 }
 
 /**
@@ -469,9 +463,7 @@ static int at91sam9_write_page(struct nand_device *nand, uint32_t page,
 		return retval;
 	}
 
-	retval = nand_write_finish(nand);
-
-	return retval;
+	return nand_write_finish(nand);
 }
 
 /**

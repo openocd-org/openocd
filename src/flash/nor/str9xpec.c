@@ -171,7 +171,6 @@ static int str9xpec_isc_disable(struct flash_bank *bank)
 static int str9xpec_read_config(struct flash_bank *bank)
 {
 	struct scan_field field;
-	uint8_t status;
 	struct jtag_tap *tap;
 
 	struct str9xpec_flash_controller *str9xpec_info = bank->driver_priv;
@@ -190,9 +189,7 @@ static int str9xpec_read_config(struct flash_bank *bank)
 	jtag_add_dr_scan(tap, 1, &field, TAP_IDLE);
 	jtag_execute_queue();
 
-	status = str9xpec_isc_status(tap);
-
-	return status;
+	return str9xpec_isc_status(tap);
 }
 
 static int str9xpec_build_block_list(struct flash_bank *bank)
@@ -487,11 +484,7 @@ static int str9xpec_lock_device(struct flash_bank *bank)
 
 static int str9xpec_unlock_device(struct flash_bank *bank)
 {
-	uint8_t status;
-
-	status = str9xpec_erase_area(bank, 0, 255);
-
-	return status;
+	return str9xpec_erase_area(bank, 0, 255);
 }
 
 static int str9xpec_protect(struct flash_bank *bank, int set,

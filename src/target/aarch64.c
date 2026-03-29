@@ -282,12 +282,9 @@ static int aarch64_dap_write_memap_register_u32(struct target *target,
 	target_addr_t address,
 	uint32_t value)
 {
-	int retval;
 	struct armv8_common *armv8 = target_to_armv8(target);
 
-	retval = mem_ap_write_atomic_u32(armv8->debug_ap, address, value);
-
-	return retval;
+	return mem_ap_write_atomic_u32(armv8->debug_ap, address, value);
 }
 
 static int aarch64_dpm_setup(struct aarch64_common *a8, uint64_t debug)

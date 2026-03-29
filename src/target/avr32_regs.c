@@ -31,10 +31,7 @@ static int avr32_jtag_read_reg(struct avr32_jtag *jtag_info, int reg,
 			return retval;
 	} while (!(dcsr & OCDREG_DCSR_CPUD));
 
-	retval = avr32_jtag_nexus_read(jtag_info,
-			AVR32_OCDREG_DCCPU, val);
-
-	return retval;
+	return avr32_jtag_nexus_read(jtag_info, AVR32_OCDREG_DCCPU, val);
 }
 
 static int avr32_jtag_write_reg(struct avr32_jtag *jtag_info, int reg,
@@ -75,9 +72,7 @@ int avr32_jtag_read_regs(struct avr32_jtag *jtag_info, uint32_t *regs)
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = avr32_jtag_read_reg(jtag_info, 0, regs + AVR32_REG_SR);
-
-	return retval;
+	return avr32_jtag_read_reg(jtag_info, 0, regs + AVR32_REG_SR);
 }
 
 int avr32_jtag_write_regs(struct avr32_jtag *jtag_info, uint32_t *regs)

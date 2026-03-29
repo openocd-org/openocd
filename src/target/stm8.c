@@ -584,7 +584,6 @@ static int stm8_write_regs(struct target *target, uint32_t regs[])
 
 static int stm8_get_core_reg(struct reg *reg)
 {
-	int retval;
 	struct stm8_core_reg *stm8_reg = reg->arch_info;
 	struct target *target = stm8_reg->target;
 	struct stm8_common *stm8 = target_to_stm8(target);
@@ -592,9 +591,7 @@ static int stm8_get_core_reg(struct reg *reg)
 	if (target->state != TARGET_HALTED)
 		return ERROR_TARGET_NOT_HALTED;
 
-	retval = stm8->read_core_reg(target, stm8_reg->num);
-
-	return retval;
+	return stm8->read_core_reg(target, stm8_reg->num);
 }
 
 static int stm8_set_core_reg(struct reg *reg, uint8_t *buf)

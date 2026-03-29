@@ -421,9 +421,7 @@ static int gowin_load_to_sram(struct pld_device *pld_device, const char *filenam
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = jtag_execute_queue();
-
-	return retval;
+	return jtag_execute_queue();
 }
 
 static int gowin_read_register_command(struct pld_device *pld_device, uint32_t cmd, uint32_t *value)

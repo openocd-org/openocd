@@ -445,11 +445,10 @@ static int lpcspifi_erase(struct flash_bank *bank, unsigned int first,
 		" Will use bulk erase instead of sector-by-sector erase.");
 		retval = lpcspifi_bulk_erase(bank);
 
-		if (retval == ERROR_OK) {
-			retval = lpcspifi_set_hw_mode(bank);
-			return retval;
-		} else
-			LOG_WARNING("Bulk flash erase failed. Falling back to sector-by-sector erase.");
+		if (retval == ERROR_OK)
+			return lpcspifi_set_hw_mode(bank);
+
+		LOG_WARNING("Bulk flash erase failed. Falling back to sector-by-sector erase.");
 	}
 
 	if (lpcspifi_info->dev->erase_cmd == 0x00)
@@ -554,9 +553,7 @@ static int lpcspifi_erase(struct flash_bank *bank, unsigned int first,
 	destroy_reg_param(&reg_params[2]);
 	destroy_reg_param(&reg_params[3]);
 
-	retval = lpcspifi_set_hw_mode(bank);
-
-	return retval;
+	return lpcspifi_set_hw_mode(bank);
 }
 
 static int lpcspifi_protect(struct flash_bank *bank, int set,
@@ -749,8 +746,7 @@ static int lpcspifi_write(struct flash_bank *bank, const uint8_t *buffer,
 	destroy_reg_param(&reg_params[4]);
 
 	/* Switch to HW mode before return to prompt */
-	retval = lpcspifi_set_hw_mode(bank);
-	return retval;
+	return lpcspifi_set_hw_mode(bank);
 }
 
 /* Return ID of flash device */

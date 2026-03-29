@@ -686,8 +686,7 @@ retry_full_write:
 			bus_error_retries++;
 			if (bus_error_retries > MAX_BUS_ERRORS) {
 				LOG_ERROR("Max WB bus errors reached during burst read");
-				retval = ERROR_FAIL;
-				return retval;
+				return ERROR_FAIL;
 			}
 
 			/* Don't call retry_do(), a JTAG reset won't help a WB bus error */

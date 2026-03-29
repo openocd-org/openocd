@@ -559,12 +559,8 @@ static int samv_read_standard_page(struct target *target,
 
 static int samv_read_user_signature(struct target *target, uint8_t *buf)
 {
-	int r;
-
-	r = samv_efc_read_sequence(target, SAMV_EFC_FCMD_STUS, SAMV_EFC_FCMD_SPUS,
-			buf, SAMV_PAGE_SIZE);
-
-	return r;
+	return samv_efc_read_sequence(target, SAMV_EFC_FCMD_STUS,
+			SAMV_EFC_FCMD_SPUS, buf, SAMV_PAGE_SIZE);
 }
 
 static int samv_page_read(struct target *target,

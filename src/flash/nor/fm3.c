@@ -309,8 +309,7 @@ static int fm3_erase(struct flash_bank *bank, unsigned int first,
 					write_algorithm->address, 0, 100000, &armv7m_info);
 			if (retval != ERROR_OK) {
 				LOG_ERROR("Error executing flash erase programming algorithm");
-				retval = ERROR_FLASH_OPERATION_FAILED;
-				return retval;
+				return ERROR_FLASH_OPERATION_FAILED;
 			}
 
 			retval = fm3_busy_wait(target, offset, 500);
@@ -329,9 +328,8 @@ static int fm3_erase(struct flash_bank *bank, unsigned int first,
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = target_read_u32(target, 0x40000000, &u32_dummy_read); /* dummy read of FASZR */
-
-	return retval;
+	// dummy read of FASZR
+	return target_read_u32(target, 0x40000000, &u32_dummy_read);
 }
 
 static int fm3_write_block(struct flash_bank *bank, const uint8_t *buffer,
@@ -907,8 +905,7 @@ static int fm3_chip_erase(struct flash_bank *bank)
 			write_algorithm->address, 0, 100000, &armv7m_info);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Error executing flash erase programming algorithm");
-		retval = ERROR_FLASH_OPERATION_FAILED;
-		return retval;
+		return ERROR_FLASH_OPERATION_FAILED;
 	}
 
 	target_free_working_area(target, write_algorithm);
@@ -925,9 +922,8 @@ static int fm3_chip_erase(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = target_read_u32(target, 0x40000000, &u32_dummy_read); /* dummy read of FASZR */
-
-	return retval;
+	// dummy read of FASZR
+	return target_read_u32(target, 0x40000000, &u32_dummy_read);
 }
 
 COMMAND_HANDLER(fm3_handle_chip_erase_command)

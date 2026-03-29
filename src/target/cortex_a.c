@@ -452,12 +452,8 @@ static int cortex_a_instr_write_data_r0(struct arm_dpm *dpm,
 		return retval;
 
 	/* then the opcode, taking data from R0 */
-	retval = cortex_a_exec_opcode(
-			a->armv7a_common.arm.target,
-			opcode,
-			&dscr);
-
-	return retval;
+	return cortex_a_exec_opcode(a->armv7a_common.arm.target, opcode,
+				&dscr);
 }
 
 static int cortex_a_instr_write_data_r0_r1(struct arm_dpm *dpm,
@@ -476,10 +472,8 @@ static int cortex_a_instr_write_data_r0_r1(struct arm_dpm *dpm,
 		return retval;
 
 	/* then the opcode, taking data from R0, R1 */
-	retval = cortex_a_exec_opcode(a->armv7a_common.arm.target,
-			opcode,
-			&dscr);
-	return retval;
+	return cortex_a_exec_opcode(a->armv7a_common.arm.target, opcode,
+				&dscr);
 }
 
 static int cortex_a_instr_cpsr_sync(struct arm_dpm *dpm)
@@ -603,9 +597,7 @@ static int cortex_a_bpwp_enable(struct arm_dpm *dpm, unsigned int index_t,
 			vr, addr);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = mem_ap_write_atomic_u32(a->armv7a_common.debug_ap,
-			cr, control);
-	return retval;
+	return mem_ap_write_atomic_u32(a->armv7a_common.debug_ap, cr, control);
 }
 
 static int cortex_a_bpwp_disable(struct arm_dpm *dpm, unsigned int index_t)
@@ -1185,9 +1177,8 @@ static int cortex_a_set_dscr_bits(struct target *target,
 	dscr |= value & bit_mask;
 
 	/* write new DSCR */
-	retval = mem_ap_write_atomic_u32(armv7a->debug_ap,
-			armv7a->debug_base + CPUDBG_DSCR, dscr);
-	return retval;
+	return mem_ap_write_atomic_u32(armv7a->debug_ap,
+				armv7a->debug_base + CPUDBG_DSCR, dscr);
 }
 
 /*

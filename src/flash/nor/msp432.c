@@ -199,9 +199,7 @@ static int msp432_exec_cmd(struct target *target, struct msp432_algo_params
 		return retval;
 
 	/* Write out command to target memory */
-	retval = target_write_u32(target, ALGO_FLASH_COMMAND_ADDR, command);
-
-	return retval;
+	return target_write_u32(target, ALGO_FLASH_COMMAND_ADDR, command);
 }
 
 static int msp432_wait_return_code(struct target *target)
@@ -393,9 +391,7 @@ static int msp432_init(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = msp432_wait_return_code(target);
-
-	return retval;
+	return msp432_wait_return_code(target);
 }
 
 static int msp432_quit(struct flash_bank *bank)

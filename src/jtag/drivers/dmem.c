@@ -102,13 +102,9 @@ static void dmem_emu_set_ap_reg(uint32_t addr, uint32_t val)
 
 static uint32_t dmem_emu_get_ap_reg(uint32_t addr)
 {
-	uint32_t val;
-
 	addr &= ~ARM_APB_PADDR31;
 
-	val = *(volatile uint32_t *)((uintptr_t)dmem_emu_virt_base_addr + addr);
-
-	return val;
+	return *(volatile uint32_t *)((uintptr_t)dmem_emu_virt_base_addr + addr);
 }
 
 static int dmem_emu_ap_q_read(unsigned int ap_idx, unsigned int reg, uint32_t *data)

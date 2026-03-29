@@ -381,9 +381,7 @@ static int ipdbg_shift_vir(struct ipdbg_hub *hub)
 	ipdbg_init_scan_field(hub->scratch_memory.fields, NULL,
 		hub->virtual_ir->length, hub->scratch_memory.vir_out_val);
 	jtag_add_dr_scan(tap, 1, hub->scratch_memory.fields, TAP_IDLE);
-	retval = jtag_execute_queue();
-
-	return retval;
+	return jtag_execute_queue();
 }
 
 static int ipdbg_shift_data(struct ipdbg_hub *hub, uint32_t dn_data, uint32_t *up_data)

@@ -56,10 +56,8 @@ static int arm_code_to_working_area(struct target *target,
 	target_buffer_set_u32_array(target, code_buf, code_size / 4, code);
 
 	/* copy code to work area */
-	retval = target_write_memory(target, (*area)->address,
+	return target_write_memory(target, (*area)->address,
 			4, code_size / 4, code_buf);
-
-	return retval;
 }
 
 /**
@@ -282,7 +280,5 @@ int arm_nandread(struct arm_nand_data *nand, uint8_t *data, uint32_t size)
 	destroy_reg_param(&reg_params[2]);
 
 	/* read from work area to the host's memory */
-	retval = target_read_buffer(target, target_buf, size, data);
-
-	return retval;
+	return target_read_buffer(target, target_buf, size, data);
 }

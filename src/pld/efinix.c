@@ -200,9 +200,7 @@ static int efinix_load(struct pld_device *pld_device, const char *filename)
 
 	/* entering RUN/TEST for 100 cycles */
 	jtag_add_runtest(RUNTEST_FINISH_CYCLES, TAP_IDLE);
-	retval = jtag_execute_queue();
-
-	return retval;
+	return jtag_execute_queue();
 }
 
 static int efinix_get_ipdbg_hub(int user_num, struct pld_device *pld_device, struct pld_ipdbg_hub *hub)

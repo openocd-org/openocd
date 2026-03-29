@@ -1157,9 +1157,7 @@ static unsigned char buspirate_jtag_command(int fd,
 /* TODO add support for WIN32 and others ! */
 static int buspirate_serial_open(char *port)
 {
-	int fd;
-	fd = open(buspirate_port, O_RDWR | O_NOCTTY | O_NDELAY);
-	return fd;
+	return open(buspirate_port, O_RDWR | O_NOCTTY | O_NDELAY);
 }
 
 

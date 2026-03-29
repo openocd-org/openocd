@@ -147,10 +147,7 @@ static int fill_buffer(struct target *target, uint32_t addr, uint8_t *buffer)
 
 static uint32_t get_buffer(struct target *target, const uint8_t *buffer)
 {
-	uint32_t value = 0;
-	const uint8_t *value_ptr = buffer;
-	value = target_buffer_get_u32(target, value_ptr);
-	return value;
+	return target_buffer_get_u32(target, buffer);
 }
 
 static int linux_os_thread_reg_list(struct rtos *rtos,

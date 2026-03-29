@@ -157,8 +157,7 @@ static int arm720t_disable_mmu_caches(struct target *target,
 	if (d_u_cache || i_cache)
 		cp15_control &= ~0x4U;
 
-	retval = arm720t_write_cp15(target, 0xee010f10, cp15_control);
-	return retval;
+	return arm720t_write_cp15(target, 0xee010f10, cp15_control);
 }
 
 static int arm720t_enable_mmu_caches(struct target *target,
@@ -181,8 +180,7 @@ static int arm720t_enable_mmu_caches(struct target *target,
 	if (d_u_cache || i_cache)
 		cp15_control |= 0x4U;
 
-	retval = arm720t_write_cp15(target, 0xee010f10, cp15_control);
-	return retval;
+	return arm720t_write_cp15(target, 0xee010f10, cp15_control);
 }
 
 static int arm720t_post_debug_entry(struct target *target)
@@ -211,8 +209,7 @@ static int arm720t_post_debug_entry(struct target *target)
 	retval = arm720t_read_cp15(target, 0xee160f10, &arm720t->far_reg);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = jtag_execute_queue();
-	return retval;
+	return jtag_execute_queue();
 }
 
 static void arm720t_pre_restore_context(struct target *target)

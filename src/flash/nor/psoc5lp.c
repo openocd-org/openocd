@@ -237,8 +237,7 @@ static int psoc5lp_get_device_id(struct target *target, uint32_t *id)
 	retval = target_read_u32(target, PANTHER_DEVICE_ID, id); /* dummy read */
 	if (retval != ERROR_OK)
 		return retval;
-	retval = target_read_u32(target, PANTHER_DEVICE_ID, id);
-	return retval;
+	return target_read_u32(target, PANTHER_DEVICE_ID, id);
 }
 
 static int psoc5lp_find_device(struct target *target,
@@ -297,8 +296,7 @@ static int psoc5lp_spc_write_opcode(struct target *target, uint8_t opcode)
 	retval = target_write_u8(target, SPC_CPU_DATA, SPC_KEY2 + opcode);
 	if (retval != ERROR_OK)
 		return retval;
-	retval = target_write_u8(target, SPC_CPU_DATA, opcode);
-	return retval;
+	return target_write_u8(target, SPC_CPU_DATA, opcode);
 }
 
 static void psoc5lp_spc_write_opcode_buffer(struct target *target,

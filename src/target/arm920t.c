@@ -363,8 +363,7 @@ int arm920t_disable_mmu_caches(struct target *target, int mmu,
 	if (i_cache)
 		cp15_control &= ~0x1000U;
 
-	retval = arm920t_write_cp15_physical(target, CP15PHYS_CTRL, cp15_control);
-	return retval;
+	return arm920t_write_cp15_physical(target, CP15PHYS_CTRL, cp15_control);
 }
 
 /* EXPORTED to FA256 */
@@ -391,8 +390,7 @@ int arm920t_enable_mmu_caches(struct target *target, int mmu,
 	if (i_cache)
 		cp15_control |= 0x1000U;
 
-	retval = arm920t_write_cp15_physical(target, CP15PHYS_CTRL, cp15_control);
-	return retval;
+	return arm920t_write_cp15_physical(target, CP15PHYS_CTRL, cp15_control);
 }
 
 /* EXPORTED to FA256 */
@@ -556,11 +554,7 @@ static int arm920_virt2phys(struct target *target,
 int arm920t_read_memory(struct target *target, target_addr_t address,
 	uint32_t size, uint32_t count, uint8_t *buffer)
 {
-	int retval;
-
-	retval = arm7_9_read_memory(target, address, size, count, buffer);
-
-	return retval;
+	return arm7_9_read_memory(target, address, size, count, buffer);
 }
 
 

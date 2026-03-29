@@ -224,7 +224,6 @@ static int reg_type2size(enum reg_type type)
 
 static int mips64_get_core_reg(struct reg *reg)
 {
-	int retval;
 	struct mips64_core_reg *mips64_reg = reg->arch_info;
 	struct target *target = mips64_reg->target;
 	struct mips64_common *mips64_target = target->arch_info;
@@ -232,9 +231,7 @@ static int mips64_get_core_reg(struct reg *reg)
 	if (target->state != TARGET_HALTED)
 		return ERROR_TARGET_NOT_HALTED;
 
-	retval = mips64_target->read_core_reg(target, mips64_reg->num);
-
-	return retval;
+	return mips64_target->read_core_reg(target, mips64_reg->num);
 }
 
 static int mips64_set_core_reg(struct reg *reg, uint8_t *buf)

@@ -67,8 +67,7 @@ static int swm050_write(struct flash_bank *bank, const uint8_t *buffer, uint32_t
 
 	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
-		retval = ERROR_TARGET_NOT_HALTED;
-		return retval;
+		return ERROR_TARGET_NOT_HALTED;
 	}
 
 	/* Perform write */

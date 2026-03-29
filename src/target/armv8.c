@@ -1923,13 +1923,10 @@ struct reg_cache *armv8_build_reg_cache(struct target *target)
 
 struct reg *armv8_reg_current(struct arm *arm, unsigned int regnum)
 {
-	struct reg *r;
-
 	if (regnum > (ARMV8_LAST_REG - 1))
 		return NULL;
 
-	r = arm->core_cache->reg_list + regnum;
-	return r;
+	return arm->core_cache->reg_list + regnum;
 }
 
 static void armv8_free_cache(struct reg_cache *cache, bool regs32)
@@ -2073,7 +2070,6 @@ int armv8_set_dbgreg_bits(struct armv8_common *armv8, unsigned int reg, unsigned
 	tmp |= value & mask;
 
 	/* write new value */
-	retval = mem_ap_write_atomic_u32(armv8->debug_ap,
+	return mem_ap_write_atomic_u32(armv8->debug_ap,
 			armv8->debug_base + reg, tmp);
-	return retval;
 }

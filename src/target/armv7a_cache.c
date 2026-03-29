@@ -108,8 +108,7 @@ static int armv7a_l1_d_cache_clean_inval_all(struct target *target)
 		armv7a_l1_d_cache_flush_level(dpm, &cache->arch[cl].d_u_size, cl);
 	}
 
-	retval = dpm->finish(dpm);
-	return retval;
+	return dpm->finish(dpm);
 
 done:
 	LOG_ERROR("clean invalidate failed");

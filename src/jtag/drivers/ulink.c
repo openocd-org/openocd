@@ -2220,8 +2220,6 @@ static int ulink_quit(void)
  */
 COMMAND_HANDLER(ulink_download_firmware_handler)
 {
-	int ret;
-
 	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
@@ -2229,10 +2227,8 @@ COMMAND_HANDLER(ulink_download_firmware_handler)
 	LOG_INFO("Downloading ULINK firmware image %s", CMD_ARGV[0]);
 
 	/* Download firmware image in CMD_ARGV[0] */
-	ret = ulink_load_firmware_and_renumerate(&ulink_handle, CMD_ARGV[0],
+	return ulink_load_firmware_and_renumerate(&ulink_handle, CMD_ARGV[0],
 			ULINK_RENUMERATION_DELAY);
-
-	return ret;
 }
 
 /*************************** Command Registration **************************/

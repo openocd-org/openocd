@@ -868,9 +868,7 @@ COMMAND_HANDLER(psoc6_handle_mass_erase_command)
 	if (hr != ERROR_OK)
 		return hr;
 
-	hr = psoc6_erase(bank, 0, bank->num_sectors - 1);
-
-	return hr;
+	return psoc6_erase(bank, 0, bank->num_sectors - 1);
 }
 
 /** ***********************************************************************************************

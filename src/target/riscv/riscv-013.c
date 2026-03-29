@@ -447,9 +447,7 @@ static int increase_dmi_busy_delay(struct target *target)
 	if (res != ERROR_OK)
 		return res;
 
-	res = riscv_scan_increase_delay(&info->learned_delays,
-			RISCV_DELAY_BASE);
-	return res;
+	return riscv_scan_increase_delay(&info->learned_delays, RISCV_DELAY_BASE);
 }
 
 static void reset_learned_delays(struct target *target)

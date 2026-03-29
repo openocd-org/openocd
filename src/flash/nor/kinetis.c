@@ -1224,7 +1224,6 @@ static int kinetis_disable_wdog(struct kinetis_chip *k_chip)
 
 COMMAND_HANDLER(kinetis_disable_wdog_handler)
 {
-	int result;
 	struct target *target = get_current_target(CMD_CTX);
 	struct kinetis_chip *k_chip = kinetis_get_chip(target);
 
@@ -1234,8 +1233,7 @@ COMMAND_HANDLER(kinetis_disable_wdog_handler)
 	if (CMD_ARGC > 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	result = kinetis_disable_wdog(k_chip);
-	return result;
+	return kinetis_disable_wdog(k_chip);
 }
 
 
@@ -1589,8 +1587,7 @@ static int kinetis_read_pmstat(struct kinetis_chip *k_chip, uint8_t *pmstat)
 
 	switch (k_chip->sysmodectrlr_type) {
 	case KINETIS_SMC:
-		result = target_read_u8(target, SMC_PMSTAT, pmstat);
-		return result;
+		return target_read_u8(target, SMC_PMSTAT, pmstat);
 
 	case KINETIS_SMC32:
 		result = target_read_u32(target, SMC32_PMSTAT, &stat32);

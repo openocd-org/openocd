@@ -657,26 +657,18 @@ static bool xds_execute(uint32_t out_length, uint32_t in_length,
 
 static bool xds_connect(void)
 {
-	bool success;
-
 	xds110.write_payload[0] = XDS_CONNECT;
 
-	success = xds_execute(XDS_OUT_LEN, XDS_IN_LEN, DEFAULT_ATTEMPTS,
+	return xds_execute(XDS_OUT_LEN, XDS_IN_LEN, DEFAULT_ATTEMPTS,
 				DEFAULT_TIMEOUT);
-
-	return success;
 }
 
 static bool xds_disconnect(void)
 {
-	bool success;
-
 	xds110.write_payload[0] = XDS_DISCONNECT;
 
-	success = xds_execute(XDS_OUT_LEN, XDS_IN_LEN, DEFAULT_ATTEMPTS,
+	return xds_execute(XDS_OUT_LEN, XDS_IN_LEN, DEFAULT_ATTEMPTS,
 				DEFAULT_TIMEOUT);
-
-	return success;
 }
 
 static bool xds_version(uint32_t *firmware_id, uint16_t *hardware_id)
@@ -705,48 +697,36 @@ static bool xds_set_tck_delay(uint32_t delay)
 {
 	uint8_t *delay_pntr = &xds110.write_payload[XDS_OUT_LEN + 0]; /* 32-bits */
 
-	bool success;
-
 	xds110.write_payload[0] = XDS_SET_TCK;
 
 	xds110_set_u32(delay_pntr, delay);
 
-	success = xds_execute(XDS_OUT_LEN + 4, XDS_IN_LEN, DEFAULT_ATTEMPTS,
+	return xds_execute(XDS_OUT_LEN + 4, XDS_IN_LEN, DEFAULT_ATTEMPTS,
 				DEFAULT_TIMEOUT);
-
-	return success;
 }
 
 static bool xds_set_trst(uint8_t trst)
 {
 	uint8_t *trst_pntr = &xds110.write_payload[XDS_OUT_LEN + 0]; /* 8-bits */
 
-	bool success;
-
 	xds110.write_payload[0] = XDS_SET_TRST;
 
 	*trst_pntr = trst;
 
-	success = xds_execute(XDS_OUT_LEN + 1, XDS_IN_LEN, DEFAULT_ATTEMPTS,
+	return xds_execute(XDS_OUT_LEN + 1, XDS_IN_LEN, DEFAULT_ATTEMPTS,
 				DEFAULT_TIMEOUT);
-
-	return success;
 }
 
 static bool xds_cycle_tck(uint32_t count)
 {
 	uint8_t *count_pntr = &xds110.write_payload[XDS_OUT_LEN + 0]; /* 32-bits */
 
-	bool success;
-
 	xds110.write_payload[0] = XDS_CYCLE_TCK;
 
 	xds110_set_u32(count_pntr, count);
 
-	success = xds_execute(XDS_OUT_LEN + 4, XDS_IN_LEN, DEFAULT_ATTEMPTS,
+	return xds_execute(XDS_OUT_LEN + 4, XDS_IN_LEN, DEFAULT_ATTEMPTS,
 				DEFAULT_TIMEOUT);
-
-	return success;
 }
 
 static bool xds_goto_state(uint32_t state)
@@ -754,17 +734,13 @@ static bool xds_goto_state(uint32_t state)
 	uint8_t *state_pntr = &xds110.write_payload[XDS_OUT_LEN + 0]; /* 32-bits */
 	uint8_t *transit_pntr = &xds110.write_payload[XDS_OUT_LEN+4]; /* 32-bits */
 
-	bool success;
-
 	xds110.write_payload[0] = XDS_GOTO_STATE;
 
 	xds110_set_u32(state_pntr, state);
 	xds110_set_u32(transit_pntr, XDS_JTAG_TRANSIT_QUICKEST);
 
-	success = xds_execute(XDS_OUT_LEN+8, XDS_IN_LEN, DEFAULT_ATTEMPTS,
+	return xds_execute(XDS_OUT_LEN + 8, XDS_IN_LEN, DEFAULT_ATTEMPTS,
 				DEFAULT_TIMEOUT);
-
-	return success;
 }
 
 static bool xds_jtag_scan(uint32_t shift_state, uint16_t shift_bits,
@@ -817,16 +793,12 @@ static bool xds_set_srst(uint8_t srst)
 {
 	uint8_t *srst_pntr = &xds110.write_payload[XDS_OUT_LEN + 0]; /* 8-bits */
 
-	bool success;
-
 	xds110.write_payload[0] = XDS_SET_SRST;
 
 	*srst_pntr = srst;
 
-	success = xds_execute(XDS_OUT_LEN + 1, XDS_IN_LEN, DEFAULT_ATTEMPTS,
+	return xds_execute(XDS_OUT_LEN + 1, XDS_IN_LEN, DEFAULT_ATTEMPTS,
 				DEFAULT_TIMEOUT);
-
-	return success;
 }
 
 static bool cmapi_connect(uint32_t *idcode)
@@ -850,38 +822,26 @@ static bool cmapi_connect(uint32_t *idcode)
 
 static bool cmapi_disconnect(void)
 {
-	bool success;
-
 	xds110.write_payload[0] = CMAPI_DISCONNECT;
 
-	success = xds_execute(XDS_OUT_LEN, XDS_IN_LEN, DEFAULT_ATTEMPTS,
+	return xds_execute(XDS_OUT_LEN, XDS_IN_LEN, DEFAULT_ATTEMPTS,
 				DEFAULT_TIMEOUT);
-
-	return success;
 }
 
 static bool cmapi_acquire(void)
 {
-	bool success;
-
 	xds110.write_payload[0] = CMAPI_ACQUIRE;
 
-	success = xds_execute(XDS_OUT_LEN, XDS_IN_LEN, DEFAULT_ATTEMPTS,
+	return xds_execute(XDS_OUT_LEN, XDS_IN_LEN, DEFAULT_ATTEMPTS,
 				DEFAULT_TIMEOUT);
-
-	return success;
 }
 
 static bool cmapi_release(void)
 {
-	bool success;
-
 	xds110.write_payload[0] = CMAPI_RELEASE;
 
-	success = xds_execute(XDS_OUT_LEN, XDS_IN_LEN, DEFAULT_ATTEMPTS,
+	return xds_execute(XDS_OUT_LEN, XDS_IN_LEN, DEFAULT_ATTEMPTS,
 				DEFAULT_TIMEOUT);
-
-	return success;
 }
 
 static bool cmapi_read_dap_reg(uint32_t type, uint32_t ap_num,
@@ -919,8 +879,6 @@ static bool cmapi_write_dap_reg(uint32_t type, uint32_t ap_num,
 	uint8_t *address_pntr = &xds110.write_payload[XDS_OUT_LEN + 2]; /* 8-bits */
 	uint8_t *value_pntr = &xds110.write_payload[XDS_OUT_LEN + 3]; /* 32-bits */
 
-	bool success;
-
 	if (!value)
 		return false;
 
@@ -931,62 +889,44 @@ static bool cmapi_write_dap_reg(uint32_t type, uint32_t ap_num,
 	*address_pntr = (uint8_t)(address & 0xff);
 	xds110_set_u32(value_pntr, *value);
 
-	success = xds_execute(XDS_OUT_LEN + 7, XDS_IN_LEN, DEFAULT_ATTEMPTS,
+	return xds_execute(XDS_OUT_LEN + 7, XDS_IN_LEN, DEFAULT_ATTEMPTS,
 				DEFAULT_TIMEOUT);
-
-	return success;
 }
 
 static bool swd_connect(void)
 {
-	bool success;
-
 	xds110.write_payload[0] = SWD_CONNECT;
 
-	success = xds_execute(XDS_OUT_LEN, XDS_IN_LEN, DEFAULT_ATTEMPTS,
+	return xds_execute(XDS_OUT_LEN, XDS_IN_LEN, DEFAULT_ATTEMPTS,
 				DEFAULT_TIMEOUT);
-
-	return success;
 }
 
 static bool swd_disconnect(void)
 {
-	bool success;
-
 	xds110.write_payload[0] = SWD_DISCONNECT;
 
-	success = xds_execute(XDS_OUT_LEN, XDS_IN_LEN, DEFAULT_ATTEMPTS,
+	return xds_execute(XDS_OUT_LEN, XDS_IN_LEN, DEFAULT_ATTEMPTS,
 				DEFAULT_TIMEOUT);
-
-	return success;
 }
 
 static bool cjtag_connect(uint32_t format)
 {
 	uint8_t *format_pntr = &xds110.write_payload[XDS_OUT_LEN + 0]; /* 32-bits */
 
-	bool success;
-
 	xds110.write_payload[0] = CJTAG_CONNECT;
 
 	xds110_set_u32(format_pntr, format);
 
-	success = xds_execute(XDS_OUT_LEN + 4, XDS_IN_LEN, DEFAULT_ATTEMPTS,
+	return xds_execute(XDS_OUT_LEN + 4, XDS_IN_LEN, DEFAULT_ATTEMPTS,
 				DEFAULT_TIMEOUT);
-
-	return success;
 }
 
 static bool cjtag_disconnect(void)
 {
-	bool success;
-
 	xds110.write_payload[0] = CJTAG_DISCONNECT;
 
-	success = xds_execute(XDS_OUT_LEN, XDS_IN_LEN, DEFAULT_ATTEMPTS,
+	return xds_execute(XDS_OUT_LEN, XDS_IN_LEN, DEFAULT_ATTEMPTS,
 				DEFAULT_TIMEOUT);
-
-	return success;
 }
 
 static bool xds_set_supply(uint32_t voltage)
@@ -994,17 +934,13 @@ static bool xds_set_supply(uint32_t voltage)
 	uint8_t *volts_pntr = &xds110.write_payload[XDS_OUT_LEN + 0]; /* 32-bits */
 	uint8_t *source_pntr = &xds110.write_payload[XDS_OUT_LEN + 4]; /* 8-bits */
 
-	bool success;
-
 	xds110.write_payload[0] = XDS_SET_SUPPLY;
 
 	xds110_set_u32(volts_pntr, voltage);
 	*source_pntr = (uint8_t)(voltage != 0 ? 1 : 0);
 
-	success = xds_execute(XDS_OUT_LEN + 5, XDS_IN_LEN, DEFAULT_ATTEMPTS,
+	return xds_execute(XDS_OUT_LEN + 5, XDS_IN_LEN, DEFAULT_ATTEMPTS,
 				DEFAULT_TIMEOUT);
-
-	return success;
 }
 
 static bool ocd_dap_request(uint8_t *dap_requests, uint32_t request_size,
@@ -1062,8 +998,6 @@ static bool ocd_pathmove(uint32_t num_states, uint8_t *path)
 	uint8_t *num_pntr = &xds110.write_payload[XDS_OUT_LEN + 0]; /* 32-bits */
 	uint8_t *path_pntr = &xds110.write_payload[XDS_OUT_LEN + 4];
 
-	bool success;
-
 	if (!path)
 		return false;
 
@@ -1073,10 +1007,8 @@ static bool ocd_pathmove(uint32_t num_states, uint8_t *path)
 
 	memcpy((void *)path_pntr, (void *)path, num_states);
 
-	success = xds_execute(XDS_OUT_LEN + 4 + num_states, XDS_IN_LEN,
+	return xds_execute(XDS_OUT_LEN + 4 + num_states, XDS_IN_LEN,
 				DEFAULT_ATTEMPTS, DEFAULT_TIMEOUT);
-
-	return success;
 }
 
 /***************************************************************************

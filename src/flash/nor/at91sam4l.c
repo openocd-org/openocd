@@ -185,9 +185,7 @@ static int sam4l_flash_command(struct target *target, uint8_t cmd, int page)
 	if (err != 0)
 		LOG_ERROR("%s got error status 0x%08" PRIx32, __func__, err);
 
-	res = sam4l_flash_wait_until_ready(target);
-
-	return res;
+	return sam4l_flash_wait_until_ready(target);
 }
 
 FLASH_BANK_COMMAND_HANDLER(sam4l_flash_bank_command)
@@ -505,9 +503,7 @@ static int sam4l_write_page(struct sam4l_info *chip, struct target *target,
 	res = sam4l_flash_command(target, SAM4L_FCMD_EP, -1);
 	if (res != ERROR_OK)
 		return res;
-	res = sam4l_flash_command(target, SAM4L_FCMD_WP, -1);
-
-	return res;
+	return sam4l_flash_command(target, SAM4L_FCMD_WP, -1);
 }
 
 /* Write partial contents into page-aligned 'address' on the Flash from host

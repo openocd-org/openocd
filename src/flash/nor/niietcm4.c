@@ -1165,10 +1165,8 @@ static int niietcm4_erase(struct flash_bank *bank, unsigned int first,
 		return ERROR_TARGET_NOT_HALTED;
 	}
 
-	if ((first == 0) && (last == (bank->num_sectors - 1))) {
-		retval = niietcm4_mass_erase(bank);
-		return retval;
-	}
+	if (first == 0 && last == (bank->num_sectors - 1))
+		return niietcm4_mass_erase(bank);
 
 	/* chose between main bootflash and info bootflash */
 	uint32_t flash_cmd, flash_addr;

@@ -2525,8 +2525,7 @@ COMMAND_HANDLER(stm32l4_handle_option_write_command)
 				"INFO: a reset or power cycle is required "
 				"for the new settings to take effect.", bank->driver->name);
 
-	retval = stm32l4_write_option(bank, reg_offset, value, mask);
-	return retval;
+	return stm32l4_write_option(bank, reg_offset, value, mask);
 }
 
 COMMAND_HANDLER(stm32l4_handle_trustzone_command)

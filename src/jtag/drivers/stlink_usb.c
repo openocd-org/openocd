@@ -2303,16 +2303,13 @@ static int stlink_usb_reset(void *handle)
 /** */
 static int stlink_usb_run(void *handle)
 {
-	int res;
 	struct stlink_usb_handle *h = handle;
 
 	assert(handle);
 
-	if (h->version.jtag_api != STLINK_JTAG_API_V1) {
-		res = stlink_usb_write_debug_reg(handle, DCB_DHCSR, DBGKEY|C_DEBUGEN);
-
-		return res;
-	}
+	if (h->version.jtag_api != STLINK_JTAG_API_V1)
+		return stlink_usb_write_debug_reg(handle, DCB_DHCSR,
+					DBGKEY | C_DEBUGEN);
 
 	stlink_usb_init_buffer(handle, h->rx_ep, 2);
 
@@ -2325,16 +2322,13 @@ static int stlink_usb_run(void *handle)
 /** */
 static int stlink_usb_halt(void *handle)
 {
-	int res;
 	struct stlink_usb_handle *h = handle;
 
 	assert(handle);
 
-	if (h->version.jtag_api != STLINK_JTAG_API_V1) {
-		res = stlink_usb_write_debug_reg(handle, DCB_DHCSR, DBGKEY|C_HALT|C_DEBUGEN);
-
-		return res;
-	}
+	if (h->version.jtag_api != STLINK_JTAG_API_V1)
+		return stlink_usb_write_debug_reg(handle, DCB_DHCSR,
+					DBGKEY | C_HALT | C_DEBUGEN);
 
 	stlink_usb_init_buffer(handle, h->rx_ep, 2);
 
@@ -4285,8 +4279,6 @@ static int stlink_dap_dp_read(struct adiv5_dap *dap, unsigned int reg, uint32_t 
 /** */
 static int stlink_dap_dp_write(struct adiv5_dap *dap, unsigned int reg, uint32_t data)
 {
-	int retval;
-
 	if (!(stlink_dap_handle->version.flags & STLINK_F_HAS_DPBANKSEL))
 		if (reg & 0x000000F0) {
 			LOG_ERROR("Banked DP registers not supported in current STLink FW");
@@ -4303,9 +4295,8 @@ static int stlink_dap_dp_write(struct adiv5_dap *dap, unsigned int reg, uint32_t
 	if (reg == DP_CTRL_STAT)
 		data &= ~CORUNDETECT;
 
-	retval = stlink_write_dap_register(stlink_dap_handle,
+	return stlink_write_dap_register(stlink_dap_handle,
 				STLINK_DEBUG_PORT_ACCESS, reg, data);
-	return retval;
 }
 
 /** */

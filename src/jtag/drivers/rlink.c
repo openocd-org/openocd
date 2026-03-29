@@ -432,14 +432,8 @@ static int dtc_start_download(void)
 		return usb_err;
 
 	/* wait for completion */
-	usb_err = jtag_libusb_bulk_read(
-			hdev, USB_EP1IN_ADDR,
-			(char *)&ep2txr, 1,
-			LIBUSB_TIMEOUT_MS,
-			&transferred
-			);
-
-	return usb_err;
+	return jtag_libusb_bulk_read(hdev, USB_EP1IN_ADDR, (char *)&ep2txr, 1,
+				     LIBUSB_TIMEOUT_MS, &transferred);
 }
 
 static int dtc_run_download(
@@ -807,8 +801,7 @@ static int tap_state_queue_run(void)
 
 		tap_state_queue.buffer >>= 1;
 	}
-	retval = tap_state_queue_init();
-	return retval;
+	return tap_state_queue_init();
 }
 
 static int tap_state_queue_append(uint8_t tms)

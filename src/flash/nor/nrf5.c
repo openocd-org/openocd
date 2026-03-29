@@ -796,8 +796,8 @@ static int nrf5_read_ficr_more_info(struct nrf5_info *chip)
 	if (res != ERROR_OK)
 		return res;
 
-	res = target_read_u32(target, ficr_base + ficr_offsets->info_flash, &chip->ficr_info.flash);
-	return res;
+	return target_read_u32(target, ficr_base + ficr_offsets->info_flash,
+				&chip->ficr_info.flash);
 }
 
 /* nRF51 series only */
@@ -1121,8 +1121,7 @@ static int nrf5_erase_page(struct flash_bank *bank,
 		return res;
 	}
 
-	res = nrf5_wait_for_nvmc(chip);
-	return res;
+	return nrf5_wait_for_nvmc(chip);
 }
 
 /* Start a low level flash write for the specified region */

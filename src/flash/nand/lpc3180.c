@@ -88,7 +88,6 @@ static float lpc3180_cycle_time(struct nand_device *nand)
 	int sysclk;
 	int hclk;
 	int hclk_pll;
-	float cycle;
 
 	/* calculate timings */
 
@@ -119,9 +118,7 @@ static float lpc3180_cycle_time(struct nand_device *nand)
 
 	LOG_DEBUG("LPC3180 HCLK currently clocked at %i kHz", hclk);
 
-	cycle = (1.0 / hclk) * 1000000.0;
-
-	return cycle;
+	return (1.0 / hclk) * 1000000.0;
 }
 
 static int lpc3180_init(struct nand_device *nand)
