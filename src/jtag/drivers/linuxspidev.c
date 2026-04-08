@@ -64,6 +64,11 @@
 // Number of bits per SPI exchange
 #define SPI_BITS 8
 
+/* Some transactions such as the JTAG to SWD transitions take extra space.
+ * Ensure queue buffers are always large enough to guarantee that these
+ * transactions can occur */
+#define MIN_QUEUE_BYTES 64
+
 // Time in uS after the last bit of transfer before deselecting the device
 #define SPI_DESELECT_DELAY 0
 
@@ -255,6 +260,11 @@ static int spidev_alloc_queue(unsigned int new_queue_entries)
 
 	unsigned int new_queue_buf_size =
 		(new_queue_entries * (SWD_OP_BYTES + AP_DELAY_BYTES)) + END_IDLE_BYTES;
+	if (new_queue_buf_size < MIN_QUEUE_BYTES) {
+		LOG_INFO("Increasing queue buffer size from %u to minimum %u bytes",
+			new_queue_buf_size, MIN_QUEUE_BYTES);
+		new_queue_buf_size = MIN_QUEUE_BYTES;
+	}
 
 	queue_infos = realloc(queue_infos, sizeof(struct queue_info) * new_queue_entries);
 	if (!queue_infos)
