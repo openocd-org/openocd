@@ -40,5 +40,6 @@ static inline struct target *get_target_from_connection(struct connection *conne
 
 #define ERROR_GDB_BUFFER_TOO_SMALL (-800)
 #define ERROR_GDB_TIMEOUT (-801)
+#define ERROR_GDB_INVALID_PACKET_LEN (-802)
 
 #endif /* OPENOCD_SERVER_GDB_SERVER_H */

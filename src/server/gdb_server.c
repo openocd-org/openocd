@@ -1546,42 +1546,40 @@ static int gdb_error(struct connection *connection, int retval)
 	return ERROR_OK;
 }
 
-static int gdb_read_memory_packet(struct connection *connection,
-		char const *packet, int packet_size)
+static int parse_packet_addr_len(char const *packet, uint64_t *addr, uint32_t *len)
 {
-	struct target *target = get_available_target_from_connection(connection);
 	char *separator;
-	uint64_t addr = 0;
-	uint32_t len = 0;
-
-	uint8_t *buffer;
-	char *hex_buffer;
-
-	int retval = ERROR_OK;
 
 	/* skip command character */
 	packet++;
 
-	addr = strtoull(packet, &separator, 16);
+	*addr = strtoull(packet, &separator, 16);
 
 	if (*separator != ',') {
 		LOG_ERROR("incomplete read memory packet received, dropping connection");
 		return ERROR_SERVER_REMOTE_CLOSED;
 	}
 
-	len = strtoul(separator + 1, NULL, 16);
-
-	if (!len) {
+	errno = 0;
+	long signed_len = strtol(separator + 1, NULL, 16);
+	if (errno == ERANGE || signed_len < 0 || (unsigned long)signed_len > UINT32_MAX) {
 		LOG_WARNING("invalid read memory packet received (len == 0)");
-		gdb_put_packet(connection, "", 0);
-		return ERROR_OK;
+		return ERROR_GDB_INVALID_PACKET_LEN;
 	}
 
-	buffer = malloc(len);
+	*len = (uint32_t)signed_len;
+
+	return ERROR_OK;
+}
+
+static int gdb_read_memory(struct connection *connection,
+		uint8_t *buffer, uint64_t addr, uint32_t len)
+{
+	struct target *target = get_available_target_from_connection(connection);
 
 	LOG_DEBUG("addr: 0x%16.16" PRIx64 ", len: 0x%8.8" PRIx32, addr, len);
 
-	retval = ERROR_NOT_IMPLEMENTED;
+	int retval = ERROR_NOT_IMPLEMENTED;
 	if (target->rtos)
 		retval = rtos_read_buffer(target, addr, len, buffer);
 	if (retval == ERROR_NOT_IMPLEMENTED)
@@ -1605,8 +1603,44 @@ static int gdb_read_memory_packet(struct connection *connection,
 		retval = ERROR_OK;
 	}
 
+	return retval;
+}
+
+static int gdb_read_memory_packet(struct connection *connection,
+		char const *packet, int packet_size)
+{
+	uint64_t addr;
+	uint32_t len;
+
+	uint8_t *buffer;
+	char *hex_buffer;
+
+	int retval = parse_packet_addr_len(packet, &addr, &len);
+
+	if (retval == ERROR_GDB_INVALID_PACKET_LEN) {
+		gdb_put_packet(connection, "", 0);
+		return ERROR_OK;
+	}
+	if (retval != ERROR_OK)
+		return retval;
+
+	buffer = malloc(len);
+	if (!buffer) {
+		LOG_ERROR("Unable to allocate memory");
+		gdb_send_error(connection, 01);
+		return ERROR_OK;
+	}
+
+	retval = gdb_read_memory(connection, buffer, addr, len);
+
 	if (retval == ERROR_OK) {
 		hex_buffer = malloc(len * 2 + 1);
+		if (!hex_buffer) {
+			LOG_ERROR("Unable to allocate memory for hex buffer");
+			gdb_send_error(connection, 01);
+			free(buffer);
+			return ERROR_OK;
+		}
 
 		size_t pkt_len = hexify(hex_buffer, buffer, len, len * 2 + 1);
 
@@ -1616,6 +1650,81 @@ static int gdb_read_memory_packet(struct connection *connection,
 	} else
 		retval = gdb_error(connection, retval);
 
+	free(buffer);
+
+	return retval;
+}
+
+static size_t escape_binary_data(const uint8_t *data, char *out, size_t data_len)
+{
+	assert(out);
+
+	size_t out_pos = 1;
+	out[0] = 'b';
+
+	for (size_t i = 0; i < data_len; ++i) {
+		uint8_t c = data[i];
+		/* See the logic for escaping binary data here:
+		 * https://sourceware.org/gdb/current/onlinedocs/gdb.html/Overview.html#Binary-Data */
+		if (c == 0x23 || c == 0x24 || c == 0x7d || c == 0x2a) {
+			out[out_pos++] = 0x7d;
+			out[out_pos++] = c ^ 0x20;
+		} else {
+			out[out_pos++] = c;
+		}
+	}
+
+	return out_pos;
+}
+
+static int gdb_read_memory_packet_binary(struct connection *connection,
+		char const *packet, int packet_size)
+{
+	uint64_t addr;
+	uint32_t len;
+
+	int retval = parse_packet_addr_len(packet, &addr, &len);
+
+	if (retval == ERROR_GDB_INVALID_PACKET_LEN) {
+		gdb_put_packet(connection, "", 0);
+		return ERROR_OK;
+	}
+	if (retval != ERROR_OK)
+		return retval;
+
+	uint8_t *buffer = malloc(len);
+	if (!buffer) {
+		LOG_ERROR("Unable to allocate memory");
+		gdb_send_error(connection, 01);
+		return ERROR_OK;
+	}
+
+	retval = gdb_read_memory(connection, buffer, addr, len);
+	if (retval != ERROR_OK) {
+		retval = gdb_error(connection, retval);
+		goto cleanup;
+	}
+
+	/* len * 2 : each byte may need escaping → 2 bytes max per input byte
+	* +1 : for 'b' prefix
+	* +1 : for null terminator */
+	char *out_buffer = malloc(len * 2 + 1 + 1);
+	if (!out_buffer) {
+		LOG_ERROR("Unable to allocate memory for output buffer");
+		gdb_send_error(connection, 01);
+		goto cleanup;
+	}
+	size_t pkt_len = escape_binary_data(buffer, out_buffer, len);
+	if (pkt_len < len || INT_MAX <= pkt_len) {
+		LOG_ERROR("Escape binary data failed: invalid output length %zu "
+				"(input: %" PRIu32 ", max: %d)", pkt_len, len, INT_MAX);
+		gdb_send_error(connection, ERANGE);
+	} else {
+		retval = gdb_put_packet(connection, out_buffer, pkt_len);
+	}
+
+	free(out_buffer);
+cleanup:
 	free(buffer);
 
 	return retval;
@@ -2958,7 +3067,13 @@ static int gdb_query_packet(struct connection *connection,
 			&buffer,
 			&pos,
 			&size,
-			"PacketSize=%x;qXfer:memory-map:read%c;qXfer:features:read%c;qXfer:threads:read+;QStartNoAckMode+;vContSupported+",
+			"PacketSize=%x;"
+			"QStartNoAckMode+;"
+			"binary-upload+;"
+			"qXfer:features:read%c;"
+			"qXfer:memory-map:read%c;"
+			"qXfer:threads:read+;"
+			"vContSupported+",
 			GDB_BUFFER_SIZE,
 			(gdb_use_memory_map && (flash_get_bank_count() > 0)) ? '+' : '-',
 			gdb_target_desc_supported ? '+' : '-');
@@ -3749,6 +3864,11 @@ static int gdb_input_inner(struct connection *connection)
 				case 'X':
 					gdb_con->output_flag = GDB_OUTPUT_NOTIF;
 					retval = gdb_write_memory_binary_packet(connection, packet, packet_size);
+					gdb_con->output_flag = GDB_OUTPUT_NO;
+					break;
+				case 'x':
+					gdb_con->output_flag = GDB_OUTPUT_NOTIF;
+					retval = gdb_read_memory_packet_binary(connection, packet, packet_size);
 					gdb_con->output_flag = GDB_OUTPUT_NO;
 					break;
 				case 'k':
