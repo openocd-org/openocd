@@ -21,8 +21,11 @@
 /* Control block size in bytes. */
 #define RTT_CB_SIZE		(RTT_CB_MAX_ID_LENGTH + 2 * sizeof(uint32_t))
 
-/* Channel structure size in bytes. */
-#define RTT_CHANNEL_SIZE	24
+/* Channel structure size in bytes (32-bit architecture). */
+#define RTT_CHANNEL_SIZE_32	24
+
+/* Channel structure size in bytes (64-bit architecture). */
+#define RTT_CHANNEL_SIZE_64	32
 
 /* Minimal channel buffer size in bytes. */
 #define RTT_CHANNEL_BUFFER_MIN_SIZE	2
@@ -44,9 +47,9 @@ struct rtt_channel {
 	/** Channel structure address on the target. */
 	target_addr_t address;
 	/** Channel name address on the target. */
-	uint32_t name_addr;
+	target_addr_t name_addr;
 	/** Buffer address on the target. */
-	uint32_t buffer_addr;
+	target_addr_t buffer_addr;
 	/** Channel buffer size in bytes. */
 	uint32_t size;
 	/**  Write position within the buffer in bytes. */

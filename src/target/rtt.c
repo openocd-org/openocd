@@ -18,32 +18,74 @@
 
 #include "target.h"
 
+// Offsets for RTT control block parameters.
+struct rtt_control_params {
+	unsigned int channel_size;
+	unsigned int buffer_addr_offset;
+	unsigned int size_offset;
+	unsigned int write_pos_offset;
+	unsigned int read_pos_offset;
+	unsigned int flags_offset;
+};
+
+// Offsets for 32-bit architecture.
+static const struct rtt_control_params rtt_params_32 = {
+	.channel_size    = RTT_CHANNEL_SIZE_32,
+	.buffer_addr_offset = 4,
+	.size_offset        = 8,
+	.write_pos_offset   = 12,
+	.read_pos_offset    = 16,
+	.flags_offset       = 20
+};
+
+// Offsets for 64-bit architecture.
+static const struct rtt_control_params rtt_params_64 = {
+	.channel_size    = RTT_CHANNEL_SIZE_64,
+	.buffer_addr_offset = 8,
+	.size_offset        = 16,
+	.write_pos_offset   = 20,
+	.read_pos_offset    = 24,
+	.flags_offset       = 28
+};
+
+static const struct rtt_control_params *get_rtt_params(struct target *target)
+{
+	if (target_address_bits(target) == 64)
+		return &rtt_params_64;
+	return &rtt_params_32;
+}
+
 static int read_rtt_channel(struct target *target,
 		const struct rtt_control *ctrl, unsigned int channel_index,
 		enum rtt_channel_type type, struct rtt_channel *channel)
 {
 	int ret;
-	uint8_t buf[RTT_CHANNEL_SIZE];
+	uint8_t buf[RTT_CHANNEL_SIZE_64];
 	target_addr_t address;
+	const struct rtt_control_params *params = get_rtt_params(target);
 
-	address = ctrl->address + RTT_CB_SIZE + (channel_index * RTT_CHANNEL_SIZE);
+	address = ctrl->address + RTT_CB_SIZE + (channel_index * params->channel_size);
 
 	if (type == RTT_CHANNEL_TYPE_DOWN)
-		address += ctrl->num_up_channels * RTT_CHANNEL_SIZE;
+		address += ctrl->num_up_channels * params->channel_size;
 
-	ret = target_read_buffer(target, address, RTT_CHANNEL_SIZE, buf);
+	ret = target_read_buffer(target, address, params->channel_size, buf);
 
 	if (ret != ERROR_OK)
 		return ret;
 
 	channel->address = address;
-	channel->name_addr = target_buffer_get_u32(target, buf + 0);
-	channel->buffer_addr = target_buffer_get_u32(target, buf + 4);
-	channel->size = target_buffer_get_u32(target, buf + 8);
-	channel->write_pos = target_buffer_get_u32(target, buf + 12);
-	channel->read_pos = target_buffer_get_u32(target, buf + 16);
-	channel->flags = target_buffer_get_u32(target, buf + 20);
-
+	if (target_address_bits(target) == 64) {
+		channel->name_addr = target_buffer_get_u64(target, buf + 0);
+		channel->buffer_addr = target_buffer_get_u64(target, buf + params->buffer_addr_offset);
+	} else {
+		channel->name_addr = target_buffer_get_u32(target, buf + 0);
+		channel->buffer_addr = target_buffer_get_u32(target, buf + params->buffer_addr_offset);
+	}
+	channel->size = target_buffer_get_u32(target, buf + params->size_offset);
+	channel->write_pos = target_buffer_get_u32(target, buf + params->write_pos_offset);
+	channel->read_pos = target_buffer_get_u32(target, buf + params->read_pos_offset);
+	channel->flags = target_buffer_get_u32(target, buf + params->flags_offset);
 	return ERROR_OK;
 }
 
@@ -157,7 +199,8 @@ static int write_to_channel(struct target *target,
 			return ret;
 	}
 
-	ret = target_write_u32(target, channel->address + 12,
+	const struct rtt_control_params *params = get_rtt_params(target);
+	ret = target_write_u32(target, channel->address + params->write_pos_offset,
 		(channel->write_pos + len) % channel->size);
 
 	if (ret != ERROR_OK)
@@ -349,7 +392,8 @@ static int read_from_channel(struct target *target,
 	}
 
 	if (len > 0) {
-		ret = target_write_u32(target, channel->address + 16,
+		const struct rtt_control_params *params = get_rtt_params(target);
+		ret = target_write_u32(target, channel->address + params->read_pos_offset,
 			(channel->read_pos + len) % channel->size);
 
 		if (ret != ERROR_OK)
