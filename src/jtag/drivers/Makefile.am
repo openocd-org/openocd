@@ -213,6 +213,9 @@ endif
 if CH347
 DRIVERFILES += %D%/ch347.c
 endif
+if CKLINK
+DRIVERFILES += %D%/cklink.c
+endif
 if XVC
 DRIVERFILES += %D%/xvc.c
 endif

@@ -2617,6 +2617,22 @@ ch347 device_desc "EasyDevKit"
 @end deffn
 @end deffn
 
+@deffn {Interface Driver} {cklink}
+Driver for the T-Head CK-Link Lite V2 JTAG probe and Bouffalo Lab
+BL616/BL702 clones, including the built-in debugger on Bouffalo BL618
+evaluation boards. Communication is over USB bulk endpoints using a
+T-Head DebugServer-compatible framed command protocol.
+
+The driver only supports JTAG transport and a single-TAP chain. The
+probe runs at a fixed clock; @command{adapter speed} requests are
+accepted but ignored (with a one-time warning). @command{JTAG_TMS} and
+@command{JTAG_PATHMOVE} are not supported by this probe's protocol.
+
+By default the driver matches 0x42bf/0xb210 (Bouffalo) and
+0x32bf/0xb210 (T-Head). The built-in list can be overridden via
+@command{adapter usb vid_pid}.
+@end deffn
+
 @deffn {Interface Driver} {cmsis-dap}
 ARM CMSIS-DAP compliant based adapter v1 (USB HID based)
 or v2 (USB bulk or TCP/IP).
