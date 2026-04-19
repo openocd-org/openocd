@@ -125,7 +125,7 @@ static int xvc_flush(void)
 	if (!xvc_used_bits) {
 		// Nothing to send, so we don't expect any bit back either.
 		last_used_bits = 0;
-		LOG_DEBUG("XVC flush: no bits to flush");
+		LOG_DEBUG_IO("XVC flush: no bits to flush");
 		return ERROR_OK;
 	}
 
@@ -149,8 +149,8 @@ static int xvc_flush(void)
 	memcpy(xvc_send_buf + cp_offset, xvc_tdi_buf, number_of_bytes);
 	cp_offset += number_of_bytes;
 	// Updates the number of bytes used.
-	LOG_DEBUG("XVC flush: cp_offset: %zu", cp_offset);
-	LOG_DEBUG("XVC flush: used_bits: %d", xvc_used_bits);
+	LOG_DEBUG_IO("XVC flush: cp_offset: %zu", cp_offset);
+	LOG_DEBUG_IO("XVC flush: used_bits: %d", xvc_used_bits);
 
 	int written = write_socket(xvc_fd, xvc_send_buf, cp_offset);
 	if (written != (int)cp_offset) {
