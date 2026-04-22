@@ -1183,6 +1183,12 @@ proc "hla_stlink_backend" {args} {
 	eval hla stlink_backend $args
 }
 
+lappend _telnet_autocomplete_skip "st-link vid_pid"
+proc "st-link vid_pid" {args} {
+	echo "DEPRECATED! use 'adapter usb vid_pid', not 'st-link vid_pid'"
+    eval adapter usb vid_pid $args
+}
+
 lappend _telnet_autocomplete_skip "kitprog_init_acquire_psoc"
 proc "kitprog_init_acquire_psoc" {} {
 	echo "DEPRECATED! use 'kitprog init_acquire_psoc', not 'kitprog_init_acquire_psoc'"

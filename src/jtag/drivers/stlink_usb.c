@@ -3406,7 +3406,7 @@ static int stlink_usb_usb_open(void *handle, struct hl_interface_param *param)
 	  in order to become operational.
 	 */
 	do {
-		if (jtag_libusb_open(param->vid, param->pid, NULL,
+		if (jtag_libusb_open(adapter_usb_get_vids(), adapter_usb_get_pids(), NULL,
 				&h->usb_backend_priv.fd, stlink_usb_get_alternate_serial) != ERROR_OK) {
 			LOG_ERROR("open failed");
 			return ERROR_FAIL;
@@ -3740,9 +3740,9 @@ static int stlink_open(struct hl_interface_param *param, enum stlink_mode mode, 
 
 	h->st_mode = mode;
 
-	for (unsigned int i = 0; param->vid[i]; i++) {
+	for (unsigned int i = 0; adapter_usb_get_vids()[i]; i++) {
 		LOG_DEBUG("transport: %d vid: 0x%04x pid: 0x%04x serial: %s",
-			  h->st_mode, param->vid[i], param->pid[i],
+			  h->st_mode, adapter_usb_get_vids()[i], adapter_usb_get_pids()[i],
 			  adapter_get_required_serial() ? adapter_get_required_serial() : "");
 	}
 
@@ -4985,31 +4985,6 @@ static int stlink_dap_trace_read(uint8_t *buf, size_t *size)
 }
 
 /** */
-COMMAND_HANDLER(stlink_dap_vid_pid)
-{
-	unsigned int i, max_usb_ids = HLA_MAX_USB_IDS;
-
-	if (CMD_ARGC > max_usb_ids * 2) {
-		LOG_WARNING("ignoring extra IDs in vid_pid "
-			"(maximum is %d pairs)", max_usb_ids);
-		CMD_ARGC = max_usb_ids * 2;
-	}
-	if (CMD_ARGC < 2 || (CMD_ARGC & 1)) {
-		LOG_WARNING("incomplete vid_pid configuration directive");
-		return ERROR_COMMAND_SYNTAX_ERROR;
-	}
-	for (i = 0; i < CMD_ARGC; i += 2) {
-		COMMAND_PARSE_NUMBER(u16, CMD_ARGV[i], stlink_dap_param.vid[i / 2]);
-		COMMAND_PARSE_NUMBER(u16, CMD_ARGV[i + 1], stlink_dap_param.pid[i / 2]);
-	}
-
-	/* null termination */
-	stlink_dap_param.vid[i / 2] = stlink_dap_param.pid[i / 2] = 0;
-
-	return ERROR_OK;
-}
-
-/** */
 COMMAND_HANDLER(stlink_dap_backend_command)
 {
 	/* default values */
@@ -5074,13 +5049,6 @@ COMMAND_HANDLER(stlink_dap_cmd_command)
 
 /** */
 static const struct command_registration stlink_dap_subcommand_handlers[] = {
-	{
-		.name = "vid_pid",
-		.handler = stlink_dap_vid_pid,
-		.mode = COMMAND_CONFIG,
-		.help = "USB VID and PID of the adapter",
-		.usage = "(vid pid)+",
-	},
 	{
 		.name = "backend",
 		.handler = &stlink_dap_backend_command,

@@ -3413,10 +3413,6 @@ ST-LINK server software module}.
 @emph{Note:} ST-Link TCP server does not support the SWIM transport.
 @end deffn
 
-@deffn {Config Command} {st-link vid_pid} [vid pid]+
-Pairs of vendor IDs and product IDs of the device.
-@end deffn
-
 @deffn {Command} {st-link cmd} rx_n (tx_byte)+
 Sends an arbitrary command composed by the sequence of bytes @var{tx_byte}
 and receives @var{rx_n} bytes.
