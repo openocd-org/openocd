@@ -32,6 +32,7 @@
 #include "config.h"
 #endif
 
+#include <jtag/adapter.h>
 #include <jtag/interface.h>
 #include <jtag/commands.h>
 #include "libusb_helper.h"
@@ -74,8 +75,8 @@ enum openjtag_tap_state {
 #include "libftdi_helper.h"
 
 /* OpenJTAG vid/pid */
-static uint16_t openjtag_vid = 0x0403;
-static uint16_t openjtag_pid = 0x6001;
+static uint16_t openjtag_vids[] = {0x0403, 0};
+static uint16_t openjtag_pids[] = {0x6001, 0};
 
 static char *openjtag_device_desc;
 
@@ -387,10 +388,20 @@ static int openjtag_init_standard(void)
 	if (ftdi_init(&ftdic) < 0)
 		return ERROR_JTAG_INIT_FAILED;
 
-	/* context, vendor id, product id, description, serial id */
-	if (ftdi_usb_open_desc(&ftdic, openjtag_vid, openjtag_pid, openjtag_device_desc, NULL) < 0) {
-		LOG_ERROR("unable to open ftdi device: %s", ftdic.error_str);
-		return ERROR_JTAG_INIT_FAILED;
+	const uint16_t *vids = openjtag_vids;
+	const uint16_t *pids = openjtag_pids;
+
+	if (adapter_usb_get_vids()[0] != 0) {
+		vids = adapter_usb_get_vids();
+		pids = adapter_usb_get_pids();
+	}
+
+	for (unsigned int i = 0; vids[i] != 0; i++) {
+		/* context, vendor id, product id, description, serial id */
+		if (ftdi_usb_open_desc(&ftdic, vids[i], pids[i], openjtag_device_desc, NULL) < 0) {
+			LOG_ERROR("unable to open ftdi device: %s", ftdic.error_str);
+			return ERROR_JTAG_INIT_FAILED;
+		}
 	}
 
 	if (ftdi_usb_reset(&ftdic) < 0) {
@@ -868,17 +879,6 @@ COMMAND_HANDLER(openjtag_handle_variant_command)
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(openjtag_handle_vid_pid_command)
-{
-	if (CMD_ARGC != 2)
-		return ERROR_COMMAND_SYNTAX_ERROR;
-
-	COMMAND_PARSE_NUMBER(u16, CMD_ARGV[0], openjtag_vid);
-	COMMAND_PARSE_NUMBER(u16, CMD_ARGV[1], openjtag_pid);
-
-	return ERROR_OK;
-}
-
 static const struct command_registration openjtag_subcommand_handlers[] = {
 	{
 		.name = "device_desc",
@@ -893,13 +893,6 @@ static const struct command_registration openjtag_subcommand_handlers[] = {
 		.mode = COMMAND_CONFIG,
 		.help = "set the OpenJTAG variant",
 		.usage = "variant-string",
-	},
-	{
-		.name = "vid_pid",
-		.handler = openjtag_handle_vid_pid_command,
-		.mode = COMMAND_CONFIG,
-		.help = "USB VID and PID of the adapter",
-		.usage = "vid pid",
 	},
 	COMMAND_REGISTRATION_DONE
 };
