@@ -65,7 +65,7 @@ enum cmsis_dap_blocking {
 
 struct cmsis_dap_backend {
 	const char *name;
-	int (*open)(struct cmsis_dap *dap, uint16_t vids[], uint16_t pids[], const char *serial);
+	int (*open)(struct cmsis_dap *dap, const uint16_t vids[], const uint16_t pids[], const char *serial);
 	void (*close)(struct cmsis_dap *dap);
 	int (*read)(struct cmsis_dap *dap, int transfer_timeout_ms,
 				enum cmsis_dap_blocking blocking);

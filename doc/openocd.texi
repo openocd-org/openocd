@@ -2621,15 +2621,6 @@ ch347 device_desc "EasyDevKit"
 ARM CMSIS-DAP compliant based adapter v1 (USB HID based)
 or v2 (USB bulk or TCP/IP).
 
-@deffn {Config Command} {cmsis-dap vid_pid} [vid pid]+
-The vendor ID and product ID of the CMSIS-DAP device. If not specified
-the driver will attempt to auto detect the CMSIS-DAP device.
-Currently, up to eight [@var{vid}, @var{pid}] pairs may be given, e.g.
-@example
-cmsis-dap vid_pid 0xc251 0xf001 0x0d28 0x0204
-@end example
-@end deffn
-
 @deffn {Config Command} {cmsis-dap backend} [@option{auto}|@option{usb_bulk}|@option{hid}|@option{tcp}]
 Specifies how to communicate with the adapter:
 

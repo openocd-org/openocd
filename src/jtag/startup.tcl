@@ -1155,8 +1155,8 @@ proc "cmsis_dap_backend" {backend} {
 
 lappend _telnet_autocomplete_skip "cmsis_dap_vid_pid"
 proc "cmsis_dap_vid_pid" {args} {
-	echo "DEPRECATED! use 'cmsis-dap vid_pid', not 'cmsis_dap_vid_pid'"
-	eval cmsis-dap vid_pid $args
+	echo "DEPRECATED! use 'adapter usb vid_pid', not 'cmsis_dap_vid_pid'"
+	eval adapter usb vid_pid $args
 }
 
 lappend _telnet_autocomplete_skip "cmsis_dap_usb"

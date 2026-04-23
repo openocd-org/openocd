@@ -113,8 +113,8 @@ static int cmsis_dap_tcp_alloc(struct cmsis_dap *dap, unsigned int pkt_sz);
 static void cmsis_dap_tcp_free(struct cmsis_dap *dap);
 
 static int cmsis_dap_tcp_open(struct cmsis_dap *dap,
-		uint16_t vids[] __attribute__((unused)),
-		uint16_t pids[] __attribute__((unused)),
+		const uint16_t vids[] __attribute__((unused)),
+		const uint16_t pids[] __attribute__((unused)),
 		const char *serial __attribute__((unused)))
 {
 	// Skip the open if the user has not provided a hostname.

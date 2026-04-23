@@ -78,10 +78,6 @@ static const struct cmsis_dap_backend *const cmsis_dap_backends[] = {
  * PID 0x0204: MBED CMSIS-DAP
  */
 
-#define MAX_USB_IDS 8
-/* vid = pid = 0 marks the end of the list */
-static uint16_t cmsis_dap_vid[MAX_USB_IDS + 1] = { 0 };
-static uint16_t cmsis_dap_pid[MAX_USB_IDS + 1] = { 0 };
 static int cmsis_dap_backend = -1;
 static bool swd_mode;
 static bool cmsis_dap_quirk_mode;  /* enable expensive workarounds */
@@ -283,7 +279,8 @@ static int cmsis_dap_open(void)
 		/* Use forced backend */
 		backend = cmsis_dap_backends[cmsis_dap_backend];
 		if (backend->open)
-			retval = backend->open(dap, cmsis_dap_vid, cmsis_dap_pid, adapter_get_required_serial());
+			retval = backend->open(dap, adapter_usb_get_vids(),
+				adapter_usb_get_pids(), adapter_get_required_serial());
 		else
 			LOG_ERROR("Requested CMSIS-DAP backend is disabled by configure");
 
@@ -294,7 +291,7 @@ static int cmsis_dap_open(void)
 			if (!backend->open)
 				continue;
 
-			retval = backend->open(dap, cmsis_dap_vid, cmsis_dap_pid, adapter_get_required_serial());
+			retval = backend->open(dap, adapter_usb_get_vids(), adapter_usb_get_pids(), adapter_get_required_serial());
 			if (retval == ERROR_OK)
 				break;
 		}
@@ -2184,36 +2181,6 @@ COMMAND_HANDLER(cmsis_dap_handle_cmd_command)
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(cmsis_dap_handle_vid_pid_command)
-{
-	if (CMD_ARGC > MAX_USB_IDS * 2) {
-		LOG_WARNING("ignoring extra IDs in cmsis-dap vid_pid "
-			"(maximum is %d pairs)", MAX_USB_IDS);
-		CMD_ARGC = MAX_USB_IDS * 2;
-	}
-	if (CMD_ARGC < 2 || (CMD_ARGC & 1)) {
-		LOG_WARNING("incomplete cmsis-dap vid_pid configuration directive");
-		if (CMD_ARGC < 2)
-			return ERROR_COMMAND_SYNTAX_ERROR;
-		/* remove the incomplete trailing id */
-		CMD_ARGC -= 1;
-	}
-
-	unsigned int i;
-	for (i = 0; i < CMD_ARGC; i += 2) {
-		COMMAND_PARSE_NUMBER(u16, CMD_ARGV[i], cmsis_dap_vid[i >> 1]);
-		COMMAND_PARSE_NUMBER(u16, CMD_ARGV[i + 1], cmsis_dap_pid[i >> 1]);
-	}
-
-	/*
-	 * Explicitly terminate, in case there are multiples instances of
-	 * cmsis_dap_vid_pid.
-	 */
-	cmsis_dap_vid[i >> 1] = cmsis_dap_pid[i >> 1] = 0;
-
-	return ERROR_OK;
-}
-
 COMMAND_HANDLER(cmsis_dap_handle_backend_command)
 {
 	if (CMD_ARGC != 1)
@@ -2271,13 +2238,6 @@ static const struct command_registration cmsis_dap_subcommand_handlers[] = {
 		.mode = COMMAND_EXEC,
 		.usage = "",
 		.help = "issue cmsis-dap command",
-	},
-	{
-		.name = "vid_pid",
-		.handler = &cmsis_dap_handle_vid_pid_command,
-		.mode = COMMAND_CONFIG,
-		.help = "the vendor ID and product ID of the CMSIS-DAP device",
-		.usage = "(vid pid)*",
 	},
 	{
 		.name = "backend",
