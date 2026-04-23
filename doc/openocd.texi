@@ -2914,11 +2914,6 @@ FT232R
 These interfaces have several commands, used to configure the driver
 before initializing the JTAG scan chain:
 
-@deffn {Config Command} {ft232r vid_pid} @var{vid} @var{pid}
-The vendor ID and product ID of the adapter. If not specified, default
-0x0403:0x6001 is used.
-@end deffn
-
 @deffn {Config Command} {ft232r jtag_nums} @var{tck} @var{tms} @var{tdi} @var{tdo}
 Set four JTAG GPIO numbers at once.
 If not specified, default 0 3 1 2 or TXD CTS RXD RTS is used.

@@ -58,8 +58,10 @@
 
 #define FT232R_BUF_SIZE_EXTRA	4096
 
-static uint16_t ft232r_vid = 0x0403; /* FTDI */
-static uint16_t ft232r_pid = 0x6001; /* FT232R */
+// Default VID/PID pair for FTDI FT232R.
+static uint16_t ft232r_vids[] = {0x0403, 0};
+static uint16_t ft232r_pids[] = {0x6001, 0};
+
 static struct libusb_device_handle *adapter;
 
 static uint8_t *ft232r_output;
@@ -244,12 +246,24 @@ static int ft232r_speed(int divisor)
 
 static int ft232r_init(void)
 {
-	uint16_t avids[] = {ft232r_vid, 0};
-	uint16_t apids[] = {ft232r_pid, 0};
-	if (jtag_libusb_open(avids, apids, NULL, &adapter, NULL)) {
+	const uint16_t *vids = ft232r_vids;
+	const uint16_t *pids = ft232r_pids;
+
+	if (adapter_usb_get_vids()[0] != 0) {
+		vids = adapter_usb_get_vids();
+		pids = adapter_usb_get_pids();
+	}
+
+	if (jtag_libusb_open(vids, pids, NULL, &adapter, NULL)) {
+		char usb_vid_pid_str[256] = {0};
+		for (unsigned int i = 0; vids[i] != 0; i++)
+			snprintf(usb_vid_pid_str + strlen(usb_vid_pid_str),
+				sizeof(usb_vid_pid_str) - strlen(usb_vid_pid_str),
+				"%04x:%04x ", vids[i], pids[i]);
+
 		const char *ft232r_serial_desc = adapter_get_required_serial();
-		LOG_ERROR("ft232r not found: vid=%04x, pid=%04x, serial=%s\n",
-			ft232r_vid, ft232r_pid, (!ft232r_serial_desc) ? "[any]" : ft232r_serial_desc);
+		LOG_ERROR("ft232r not found: serial=%s, vid/pid=%s\n",
+			(!ft232r_serial_desc) ? "[any]" : ft232r_serial_desc, usb_vid_pid_str);
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
@@ -383,22 +397,6 @@ static int ft232r_bit_name_to_number(const char *name)
 		if (strcasecmp(name, ft232r_bit_name_array[i]) == 0)
 			return i;
 	return -1;
-}
-
-COMMAND_HANDLER(ft232r_handle_vid_pid_command)
-{
-	if (CMD_ARGC > 2) {
-		LOG_WARNING("ignoring extra IDs in ft232r_vid_pid "
-					"(maximum is 1 pair)");
-		CMD_ARGC = 2;
-	}
-	if (CMD_ARGC == 2) {
-		COMMAND_PARSE_NUMBER(u16, CMD_ARGV[0], ft232r_vid);
-		COMMAND_PARSE_NUMBER(u16, CMD_ARGV[1], ft232r_pid);
-	} else
-		LOG_WARNING("incomplete ft232r_vid_pid configuration");
-
-	return ERROR_OK;
 }
 
 COMMAND_HANDLER(ft232r_handle_jtag_nums_command)
@@ -541,13 +539,6 @@ COMMAND_HANDLER(ft232r_handle_restore_serial_command)
 }
 
 static const struct command_registration ft232r_subcommand_handlers[] = {
-	{
-		.name = "vid_pid",
-		.handler = ft232r_handle_vid_pid_command,
-		.mode = COMMAND_CONFIG,
-		.help = "USB VID and PID of the adapter",
-		.usage = "vid pid",
-	},
 	{
 		.name = "jtag_nums",
 		.handler = ft232r_handle_jtag_nums_command,

@@ -846,8 +846,14 @@ proc ft232r_serial_desc args {
 
 lappend _telnet_autocomplete_skip ft232r_vid_pid
 proc ft232r_vid_pid args {
-	echo "DEPRECATED! use 'ft232r vid_pid' not 'ft232r_vid_pid'"
-	eval ft232r vid_pid $args
+	echo "DEPRECATED! use 'adapter usb vid_pid' not 'ft232r_vid_pid'"
+	eval adapter usb vid_pid $args
+}
+
+lappend _telnet_autocomplete_skip "ft232r vid_pid"
+proc "ft232r vid_pid" args {
+	echo "DEPRECATED! use 'adapter usb vid_pid' not 'ft232r vid_pid'"
+	eval adapter usb vid_pid $args
 }
 
 lappend _telnet_autocomplete_skip ft232r_jtag_nums
