@@ -3779,13 +3779,6 @@ espusbjtag setio 0 1 0 1 0
 @end example
 @end deffn
 
-@deffn {Config Command} {espusbjtag vid_pid} vid_pid
-Set vendor ID and product ID for the ESP usb jtag driver
-@example
-espusbjtag vid_pid 0x303a 0x1001
-@end example
-@end deffn
-
 @deffn {Config Command} {espusbjtag caps_descriptor} caps_descriptor
 Set the jtag descriptor to read capabilities of ESP usb jtag driver
 @example

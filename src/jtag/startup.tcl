@@ -241,6 +241,13 @@ proc  interface_list args {
 	eval adapter list $args
 }
 
+lappend _telnet_autocomplete_skip "espusbjtag vid_pid"
+proc "espusbjtag vid_pid" args {
+	echo "DEPRECATED! use 'adapter usb vid_pid' not 'espusbjtag vid_pid'"
+	eval adapter usb vid_pid $args
+}
+
+
 lappend _telnet_autocomplete_skip ftdi_location
 proc ftdi_location args {
 	echo "DEPRECATED! use 'adapter usb location' not 'ftdi_location'"
