@@ -2607,15 +2607,6 @@ command @ref{adapter gpio, @command{adapter gpio led}}.
 
 This driver has these driver-specific command:
 
-@deffn {Config Command} {ch347 vid_pid} [vid pid]+
-The vendor ID and product ID of the CH347F or CH347T device in mode 3. If not specified
-the driver will use vendor ID 0x1a86 and product ID 0x55dd.
-Currently, up to four [@var{vid}, @var{pid}] pairs may be given, e.g.
-@example
-ch347 vid_pid 0x1a86 0x55dd 0x1a86 0x55de
-@end example
-@end deffn
-
 @deffn {Config Command} {ch347 device_desc} description
 If specified connect to a device which exactly has this product description
 string. If not specified the first found device with the correct vendor

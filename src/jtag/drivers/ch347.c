@@ -255,8 +255,6 @@ static bool swd_mode;
 static uint16_t default_ch347_vids[] = {DEFAULT_VENDOR_ID, DEFAULT_VENDOR_ID, DEFAULT_VENDOR_ID, 0};
 static uint16_t default_ch347_pids[] = {DEFAULT_CH347T_PRODUCT_ID,
 	DEFAULT_CH347F_PRODUCT_ID, DEFAULT_OTHER_PRODUCT_ID, 0};
-static uint16_t custom_ch347_vids[] = {0, 0, 0, 0};
-static uint16_t custom_ch347_pids[] = {0, 0, 0, 0};
 static char *ch347_device_desc;
 static uint8_t ch347_activity_led_gpio_pin = 0xFF;
 static bool ch347_activity_led_active_high;
@@ -1420,8 +1418,13 @@ static int ch347_execute_queue(struct jtag_command *cmd_queue)
  */
 static int ch347_open_device(void)
 {
-	const uint16_t *ch347_vids = custom_ch347_vids[0] != 0 ? custom_ch347_vids : default_ch347_vids;
-	const uint16_t *ch347_pids = custom_ch347_pids[0] != 0 ? custom_ch347_pids : default_ch347_pids;
+	const uint16_t *ch347_vids = default_ch347_vids;
+	const uint16_t *ch347_pids = default_ch347_pids;
+
+	if (adapter_usb_get_vids()[0] != 0) {
+		ch347_vids = adapter_usb_get_vids();
+		ch347_pids = adapter_usb_get_pids();
+	}
 
 	int retval = jtag_libusb_open(ch347_vids, ch347_pids, ch347_device_desc, &ch347_handle, NULL);
 	if (retval != ERROR_OK)	{
@@ -1774,24 +1777,6 @@ static int ch347_speed_get_index(int khz, int *speed_idx)
 }
 
 /**
- * @brief The command handler for setting the device usb vid/pid
- *
- * @return ERROR_OK at success; ERROR_COMMAND_SYNTAX_ERROR otherwise
- */
-COMMAND_HANDLER(ch347_handle_vid_pid_command)
-{
-	if (CMD_ARGC < 2)
-		return ERROR_COMMAND_SYNTAX_ERROR;
-
-	for (int i = 0; i < (int)(MIN(CMD_ARGC, ARRAY_SIZE(custom_ch347_pids))); i += 2) {
-		COMMAND_PARSE_NUMBER(u16, CMD_ARGV[i], custom_ch347_vids[i / 2]);
-		COMMAND_PARSE_NUMBER(u16, CMD_ARGV[i + 1], custom_ch347_pids[i / 2]);
-	}
-
-	return ERROR_OK;
-}
-
-/**
  * @brief The command handler for setting the device description that should be found
  *
  * @return ERROR_OK at success; ERROR_COMMAND_SYNTAX_ERROR otherwise
@@ -1807,13 +1792,6 @@ COMMAND_HANDLER(ch347_handle_device_desc_command)
 }
 
 static const struct command_registration ch347_subcommand_handlers[] = {
-	{
-		.name = "vid_pid",
-		.handler = &ch347_handle_vid_pid_command,
-		.mode = COMMAND_CONFIG,
-		.help = "the vendor ID and product ID of the CH347 device",
-		.usage = "(vid pid)*",
-	},
 	{
 		.name = "device_desc",
 		.handler = &ch347_handle_device_desc_command,
