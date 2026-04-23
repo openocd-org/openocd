@@ -2764,14 +2764,6 @@ signal. The following output buffer configurations are supported:
 These interfaces have several commands, used to configure the driver
 before initializing the JTAG scan chain:
 
-@deffn {Config Command} {ftdi vid_pid} [vid pid]+
-The vendor ID and product ID of the adapter. Up to eight
-[@var{vid}, @var{pid}] pairs may be given, e.g.
-@example
-ftdi vid_pid 0x0403 0xcff8 0x15ba 0x0003
-@end example
-@end deffn
-
 @deffn {Config Command} {ftdi device_desc} description
 Provides the USB device description (the @emph{iProduct string})
 of the adapter. If not specified, the device description is ignored

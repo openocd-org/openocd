@@ -313,8 +313,14 @@ proc ftdi_get_signal args {
 
 lappend _telnet_autocomplete_skip ftdi_vid_pid
 proc ftdi_vid_pid args {
-	echo "DEPRECATED! use 'ftdi vid_pid' not 'ftdi_vid_pid'"
-	eval ftdi vid_pid $args
+	echo "DEPRECATED! use 'adapter usb vid_pid' not 'ftdi_vid_pid'"
+	eval adapter usb vid_pid $args
+}
+
+lappend _telnet_autocomplete_skip "ftdi vid_pid"
+proc "ftdi vid_pid" args {
+	echo "DEPRECATED! use 'adapter usb vid_pid' not 'ftdi vid_pid'"
+	eval adapter usb vid_pid $args
 }
 
 lappend _telnet_autocomplete_skip ftdi_tdo_sample_edge
