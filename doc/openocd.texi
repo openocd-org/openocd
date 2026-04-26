@@ -2996,22 +2996,25 @@ remote_bitbang host mysocket
 
 @deffn {Interface Driver} {usb_blaster}
 USB JTAG/USB-Blaster compatibles over one of the userspace libraries
-for FTDI chips. These interfaces have several commands, used to
-configure the driver before initializing the JTAG scan chain:
+for FTDI chips.
 
-@deffn {Config Command} {usb_blaster vid_pid} vid pid
-The vendor ID and product ID of the FTDI FT245 device. If not specified,
-default values are used.
-Currently, only one @var{vid}, @var{pid} pair may be given, e.g. for
-Altera USB-Blaster (default):
+Use @command{adapter usb vid_pid} to specify the vendor and product ID of the
+FT245 device. If not specified, default values are used.
+
+For example, Altera USB-Blaster (default):
 @example
-usb_blaster vid_pid 0x09FB 0x6001
+adapter usb vid_pid 0x09FB 0x6001
 @end example
 The following VID/PID is for Kolja Waschk's USB JTAG:
 @example
-usb_blaster vid_pid 0x16C0 0x06AD
+adapter usb vid_pid 0x16C0 0x06AD
 @end example
-@end deffn
+
+Note that the second VID/PID pair passed to @command{adapter usb vid_pid} is
+used to detect uninitialized devices.
+
+This driver has several commands, used for configuration before initializing the
+JTAG scan chain:
 
 @deffn {Command} {usb_blaster pin} (@option{pin6}|@option{pin8}) (@option{0}|@option{1}|@option{s}|@option{t})
 Sets the state or function of the unused GPIO pins on USB-Blasters

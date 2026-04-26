@@ -823,8 +823,14 @@ proc usb_blaster_device_desc args {
 
 lappend _telnet_autocomplete_skip usb_blaster_vid_pid
 proc usb_blaster_vid_pid args {
-	echo "DEPRECATED! use 'usb_blaster vid_pid' not 'usb_blaster_vid_pid'"
-	eval usb_blaster vid_pid $args
+	echo "DEPRECATED! use 'adapter usb vid_pid' not 'usb_blaster_vid_pid'"
+	eval adapter usb vid_pid $args
+}
+
+lappend _telnet_autocomplete_skip "usb_blaster vid_pid"
+proc "usb_blaster vid_pid" args {
+	echo "DEPRECATED! use 'adapter usb vid_pid' not 'usb_blaster vid_pid'"
+	eval adapter usb vid_pid $args
 }
 
 lappend _telnet_autocomplete_skip usb_blaster_lowlevel_driver
