@@ -2609,17 +2609,6 @@ mitigates the problem.
 
 The driver supports activity LED through the generic
 command @ref{adapter gpio, @command{adapter gpio led}}.
-
-This driver has these driver-specific command:
-
-@deffn {Config Command} {ch347 device_desc} description
-If specified connect to a device which exactly has this product description
-string. If not specified the first found device with the correct vendor
-and product ID will be connected.
-@example
-ch347 device_desc "EasyDevKit"
-@end example
-@end deffn
 @end deffn
 
 @deffn {Interface Driver} {cklink}
