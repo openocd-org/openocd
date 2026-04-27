@@ -89,7 +89,6 @@
 #define JTAG_MODE_ALT (LSB_FIRST | NEG_EDGE_IN | NEG_EDGE_OUT)
 #define SWD_MODE (LSB_FIRST | POS_EDGE_IN | NEG_EDGE_OUT)
 
-static char *ftdi_device_desc;
 static uint8_t ftdi_channel;
 static uint8_t ftdi_jtag_mode = JTAG_MODE;
 
@@ -735,7 +734,7 @@ static int ftdi_initialize(void)
 	}
 
 	mpsse_ctx = mpsse_open(adapter_usb_get_vids(), adapter_usb_get_pids(),
-		ftdi_device_desc, adapter_get_required_serial(),
+		adapter_usb_get_product_name(), adapter_get_required_serial(),
 		adapter_usb_get_location(), ftdi_channel);
 	if (!mpsse_ctx)
 		return ERROR_JTAG_INIT_FAILED;
@@ -790,8 +789,6 @@ static int ftdi_quit(void)
 		free(sig);
 		sig = next;
 	}
-
-	free(ftdi_device_desc);
 
 	free(swd_cmd_queue);
 
@@ -1078,18 +1075,6 @@ static void cjtag_reset_online_activate(void)
 }
 #endif /* #if BUILD_FTDI_CJTAG == 1 */
 
-COMMAND_HANDLER(ftdi_handle_device_desc_command)
-{
-	if (CMD_ARGC == 1) {
-		free(ftdi_device_desc);
-		ftdi_device_desc = strdup(CMD_ARGV[0]);
-	} else {
-		LOG_ERROR("expected exactly one argument to ftdi device_desc <description>");
-	}
-
-	return ERROR_OK;
-}
-
 COMMAND_HANDLER(ftdi_handle_channel_command)
 {
 	if (CMD_ARGC == 1)
@@ -1286,13 +1271,6 @@ COMMAND_HANDLER(ftdi_handle_jscan3_mode_command)
 #endif
 
 static const struct command_registration ftdi_subcommand_handlers[] = {
-	{
-		.name = "device_desc",
-		.handler = &ftdi_handle_device_desc_command,
-		.mode = COMMAND_CONFIG,
-		.help = "set the USB device description of the FTDI device",
-		.usage = "description_string",
-	},
 	{
 		.name = "channel",
 		.handler = &ftdi_handle_channel_command,

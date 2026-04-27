@@ -276,10 +276,16 @@ proc "hla newtap" {args} {
 	eval swj_newdap $args
 }
 
+lappend _telnet_autocomplete_skip "ftdi device_desc"
+proc "ftdi device_desc" args {
+	echo "DEPRECATED! use 'adapter usb product_name' not 'ftdi device_desc'"
+	eval adapter usb product_name $args
+}
+
 lappend _telnet_autocomplete_skip ftdi_device_desc
 proc ftdi_device_desc args {
-	echo "DEPRECATED! use 'ftdi device_desc' not 'ftdi_device_desc'"
-	eval ftdi device_desc $args
+	echo "DEPRECATED! use 'adapter usb product_name' not 'ftdi_device_desc'"
+	eval adapter usb product_name $args
 }
 
 lappend _telnet_autocomplete_skip ftdi_serial

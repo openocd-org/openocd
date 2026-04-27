@@ -2767,12 +2767,6 @@ signal. The following output buffer configurations are supported:
 These interfaces have several commands, used to configure the driver
 before initializing the JTAG scan chain:
 
-@deffn {Config Command} {ftdi device_desc} description
-Provides the USB device description (the @emph{iProduct string})
-of the adapter. If not specified, the device description is ignored
-during device selection.
-@end deffn
-
 @deffn {Config Command} {ftdi channel} channel
 Selects the channel of the FTDI device to use for MPSSE operations. Most
 adapters use the default, channel 0, but there are exceptions.
