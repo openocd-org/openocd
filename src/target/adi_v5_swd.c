@@ -700,7 +700,7 @@ static const struct command_registration swd_commands[] = {
 		.help = "declare a new SWD DAP",
 		.usage = "basename dap_type ['-irlen' count] "
 			"['-enable'|'-disable'] "
-			"['-expected_id' number] "
+			"['-expected-id' number] "
 			"['-ignore-version'] "
 			"['-ignore-bypass'] "
 			"['-ircapture' number] "

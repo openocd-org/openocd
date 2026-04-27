@@ -62,7 +62,7 @@ static const struct command_registration dapdirect_jtag_subcommand_handlers[] = 
 		.help = "declare a new TAP",
 		.usage = "basename tap_type '-irlen' count "
 			"['-enable'|'-disable'] "
-			"['-expected_id' number] "
+			"['-expected-id' number] "
 			"['-ignore-version'] "
 			"['-ignore-bypass'] "
 			"['-ircapture' number] "
@@ -154,7 +154,7 @@ static const struct command_registration dapdirect_swd_subcommand_handlers[] = {
 		.help = "declare a new SWD DAP",
 		.usage = "basename dap_type ['-irlen' count] "
 			"['-enable'|'-disable'] "
-			"['-expected_id' number] "
+			"['-expected-id' number] "
 			"['-ignore-version'] "
 			"['-ignore-bypass'] "
 			"['-ircapture' number] "

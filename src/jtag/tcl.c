@@ -719,7 +719,7 @@ static const struct command_registration jtag_subcommand_handlers[] = {
 			"and appends it to the scan chain.",
 		.usage = "basename tap_type '-irlen' count "
 			"['-enable'|'-disable'] "
-			"['-expected_id' number] "
+			"['-expected-id' number] "
 			"['-ignore-version'] "
 			"['-ignore-bypass'] "
 			"['-ircapture' number] "
