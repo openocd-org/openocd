@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 /*
- * Copyright (c) 2024 HPMicro
+ * Copyright (c) 2024,2026 HPMicro
  */
 
 #include "hpm_romapi.h"
@@ -13,7 +13,8 @@
 #define XPI_USE_PORT_A_MASK (0)
 #define XPI_USE_PORT_SHIFT (0x8)
 
-#define ROMAPI_SUPPORTS_HYBRIDXPI() (ROM_API_TABLE_ROOT->xpi_nor_driver_if->version >= 0x56010300)
+#define ROMAPI_SUPPORTS_HYBRIDXPI() (((ROM_API_TABLE_ROOT->xpi_nor_driver_if->version >= 0x56010300)) \
+		&& (ROM_API_TABLE_ROOT->xpi_nor_driver_if->enable_hybrid_xpi))
 
 struct hpm_flash_info_t {
 	uint32_t total_sz_in_bytes;
