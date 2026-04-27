@@ -3647,11 +3647,6 @@ Currently valid @var{variant} values include:
 (see @uref{http://www.cypress.com/?rID=82870}).
 @end itemize
 @end deffn
-
-@deffn {Config Command} {openjtag device_desc} string
-The USB device description string of the adapter.
-This value is only used with the standard variant.
-@end deffn
 @end deffn
 
 

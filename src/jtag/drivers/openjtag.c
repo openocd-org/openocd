@@ -78,8 +78,6 @@ enum openjtag_tap_state {
 static uint16_t openjtag_vids[] = {0x0403, 0};
 static uint16_t openjtag_pids[] = {0x6001, 0};
 
-static char *openjtag_device_desc;
-
 static struct ftdi_context ftdic;
 
 #define OPENJTAG_BUFFER_SIZE        504
@@ -378,11 +376,13 @@ static int openjtag_init_standard(void)
 {
 	uint8_t latency_timer;
 
+	const char *usb_product_name = adapter_usb_get_product_name();
+
 	/* Open by device description */
-	if (!openjtag_device_desc) {
-		LOG_WARNING("no openjtag device description specified, "
+	if (!usb_product_name) {
+		LOG_WARNING("no openjtag USB product name specified, "
 				"using default 'Open JTAG Project'");
-		openjtag_device_desc = "Open JTAG Project";
+		usb_product_name = "Open JTAG Project";
 	}
 
 	if (ftdi_init(&ftdic) < 0)
@@ -398,7 +398,7 @@ static int openjtag_init_standard(void)
 
 	for (unsigned int i = 0; vids[i] != 0; i++) {
 		/* context, vendor id, product id, description, serial id */
-		if (ftdi_usb_open_desc(&ftdic, vids[i], pids[i], openjtag_device_desc, NULL) < 0) {
+		if (ftdi_usb_open_desc(&ftdic, vids[i], pids[i], usb_product_name, NULL) < 0) {
 			LOG_ERROR("unable to open ftdi device: %s", ftdic.error_str);
 			return ERROR_JTAG_INIT_FAILED;
 		}
@@ -850,16 +850,6 @@ static int openjtag_khz(int khz, int *jtag_speed)
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(openjtag_handle_device_desc_command)
-{
-	if (CMD_ARGC == 1)
-		openjtag_device_desc = strdup(CMD_ARGV[0]);
-	else
-		LOG_ERROR("require exactly one argument to "
-				  "openjtag_device_desc <description>");
-	return ERROR_OK;
-}
-
 COMMAND_HANDLER(openjtag_handle_variant_command)
 {
 	if (CMD_ARGC == 1) {
@@ -880,13 +870,6 @@ COMMAND_HANDLER(openjtag_handle_variant_command)
 }
 
 static const struct command_registration openjtag_subcommand_handlers[] = {
-	{
-		.name = "device_desc",
-		.handler = openjtag_handle_device_desc_command,
-		.mode = COMMAND_CONFIG,
-		.help = "set the USB device description of the OpenJTAG",
-		.usage = "description-string",
-	},
 	{
 		.name = "variant",
 		.handler = openjtag_handle_variant_command,

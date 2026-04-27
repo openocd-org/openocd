@@ -355,9 +355,15 @@ proc remote_bitbang_port args {
 }
 
 lappend _telnet_autocomplete_skip openjtag_device_desc
+proc "openjtag device_desc" args {
+	echo "DEPRECATED! use 'adapter usb product_name' not 'openjtag device_desc'"
+	eval adapter usb product_name $args
+}
+
+lappend _telnet_autocomplete_skip openjtag_device_desc
 proc openjtag_device_desc args {
-	echo "DEPRECATED! use 'openjtag device_desc' not 'openjtag_device_desc'"
-	eval openjtag device_desc $args
+	echo "DEPRECATED! use 'adapter usb product_name' not 'openjtag_device_desc'"
+	eval adapter usb product_name $args
 }
 
 lappend _telnet_autocomplete_skip openjtag_variant
