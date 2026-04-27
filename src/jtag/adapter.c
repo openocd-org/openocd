@@ -45,6 +45,7 @@ static struct {
 	// vid = pid = 0 marks the end of the list.
 	uint16_t usb_vids[MAX_USB_IDS + 1];
 	uint16_t usb_pids[MAX_USB_IDS + 1];
+	char *product_name;
 	char *serial;
 	enum adapter_clk_mode clock_mode;
 	int speed_khz;
@@ -201,6 +202,7 @@ int adapter_quit(void)
 
 	free(adapter_config.serial);
 	free(adapter_config.usb_location);
+	free(adapter_config.product_name);
 
 	struct jtag_tap *t = jtag_all_taps();
 	while (t) {
@@ -343,6 +345,11 @@ const uint16_t *adapter_usb_get_pids(void)
 const char *adapter_usb_get_location(void)
 {
 	return adapter_config.usb_location;
+}
+
+const char *adapter_usb_get_product_name(void)
+{
+	return adapter_config.product_name;
 }
 
 bool adapter_usb_location_equal(uint8_t dev_bus, uint8_t *port_path, size_t path_len)
@@ -1145,6 +1152,20 @@ COMMAND_HANDLER(handle_usb_vid_pid_command)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(handle_usb_product_name_command)
+{
+	if (CMD_ARGC != 1)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	free(adapter_config.product_name);
+	adapter_config.product_name = NULL;
+
+	if (*CMD_ARGV[0])
+		adapter_config.product_name = strdup(CMD_ARGV[0]);
+
+	return ERROR_OK;
+}
+
 static const struct command_registration adapter_usb_command_handlers[] = {
 	{
 		.name = "vid_pid",
@@ -1152,6 +1173,13 @@ static const struct command_registration adapter_usb_command_handlers[] = {
 		.mode = COMMAND_CONFIG,
 		.help = "set the USB VID and PID of the USB device",
 		.usage = "(vid pid)*",
+	},
+	{
+		.name = "product_name",
+		.handler = &handle_usb_product_name_command,
+		.mode = COMMAND_CONFIG,
+		.help = "set the USB product name of the USB device",
+		.usage = "name",
 	},
 #ifdef HAVE_LIBUSB_GET_PORT_NUMBERS
 	{

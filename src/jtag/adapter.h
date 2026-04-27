@@ -92,6 +92,9 @@ bool is_adapter_initialized(void);
 /** @returns USB location string set with command 'adapter usb location' */
 const char *adapter_usb_get_location(void);
 
+/** @returns USB product name set with command 'adapter usb product_name' */
+const char *adapter_usb_get_product_name(void);
+
 /** @returns true if USB location string is "<dev_bus>-<port_path[0]>[.<port_path[1]>[...]]" */
 bool adapter_usb_location_equal(uint8_t dev_bus, uint8_t *port_path, size_t path_len);
 
