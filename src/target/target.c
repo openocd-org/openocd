@@ -2807,10 +2807,10 @@ COMMAND_HANDLER(handle_targets_command)
 	return retval;
 }
 
-/* every 300ms we check for reset & powerdropout and issue a "reset halt" if so. */
+/* every polling_interval we check for reset & powerdropout */
 
-static int power_dropout;
-static int srst_asserted;
+static int sensed_power_dropout;
+static int sensed_srst_asserted;
 
 static int run_power_restore;
 static int run_power_dropout;
@@ -2822,29 +2822,29 @@ static int sense_handler(void)
 	static int prev_srst_asserted;
 	static int prev_power_dropout;
 
-	int retval = jtag_power_dropout(&power_dropout);
+	int retval = jtag_power_dropout(&sensed_power_dropout);
 	if (retval != ERROR_OK)
 		return retval;
 
 	int power_restored;
-	power_restored = prev_power_dropout && !power_dropout;
+	power_restored = prev_power_dropout && !sensed_power_dropout;
 	if (power_restored)
 		run_power_restore = 1;
 
 	int64_t current = timeval_ms();
 	static int64_t last_power;
 	bool wait_more = last_power + 2000 > current;
-	if (power_dropout && !wait_more) {
+	if (sensed_power_dropout && !wait_more) {
 		run_power_dropout = 1;
 		last_power = current;
 	}
 
-	retval = jtag_srst_asserted(&srst_asserted);
+	retval = jtag_srst_asserted(&sensed_srst_asserted);
 	if (retval != ERROR_OK)
 		return retval;
 
 	int srst_deasserted;
-	srst_deasserted = prev_srst_asserted && !srst_asserted;
+	srst_deasserted = prev_srst_asserted && !sensed_srst_asserted;
 
 	static int64_t last_srst;
 	wait_more = last_srst + 2000 > current;
@@ -2853,11 +2853,11 @@ static int sense_handler(void)
 		last_srst = current;
 	}
 
-	if (!prev_srst_asserted && srst_asserted)
+	if (!prev_srst_asserted && sensed_srst_asserted)
 		run_srst_asserted = 1;
 
-	prev_srst_asserted = srst_asserted;
-	prev_power_dropout = power_dropout;
+	prev_srst_asserted = sensed_srst_asserted;
+	prev_power_dropout = sensed_power_dropout;
 
 	if (srst_deasserted || power_restored) {
 		/* Other than logging the event we can't do anything here.
@@ -2937,7 +2937,7 @@ static int handle_target(void *priv)
 		recursive = 0;
 	}
 
-	if (power_dropout || srst_asserted)
+	if (sensed_power_dropout || sensed_srst_asserted)
 		return ERROR_OK;
 
 	int retval = ERROR_OK;
