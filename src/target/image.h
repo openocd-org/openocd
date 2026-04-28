@@ -91,6 +91,7 @@ struct image_mot {
 	uint8_t *buffer;
 };
 
+const char *image_type_name(enum image_type type);
 int image_open(struct image *image, const char *url, const char *type_string);
 int image_read_section(struct image *image, int section, target_addr_t offset,
 		uint32_t size, uint8_t *buffer, size_t *size_read);

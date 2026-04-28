@@ -24,6 +24,7 @@
 #include "image.h"
 #include "target.h"
 #include <helper/log.h>
+#include <helper/nvp.h>
 #include <server/server.h>
 
 /* convert ELF header field to host endianness */
@@ -94,29 +95,34 @@ static int autodetect_image_type(struct image *image, const char *url)
 	return ERROR_OK;
 }
 
+static const struct nvp image_type_names[] = {
+	{ .name = "bin", .value = IMAGE_BINARY },
+	{ .name = "ihex", .value = IMAGE_IHEX },
+	{ .name = "mem", .value = IMAGE_MEMORY },
+	{ .name = "elf", .value = IMAGE_ELF },
+	{ .name = "s19", .value = IMAGE_SRECORD },
+	{ .name = "build", .value = IMAGE_BUILDER },
+	{ .name = NULL, .value = -1 },
+};
+
+const char *image_type_name(enum image_type type)
+{
+	return nvp_value2name(image_type_names, type)->name;
+}
+
 static int identify_image_type(struct image *image, const char *type_string, const char *url)
 {
 	if (type_string) {
-		if (!strcmp(type_string, "bin")) {
-			image->type = IMAGE_BINARY;
-		} else if (!strcmp(type_string, "ihex")) {
-			image->type = IMAGE_IHEX;
-		} else if (!strcmp(type_string, "elf")) {
-			image->type = IMAGE_ELF;
-		} else if (!strcmp(type_string, "mem")) {
-			image->type = IMAGE_MEMORY;
-		} else if (!strcmp(type_string, "s19")) {
-			image->type = IMAGE_SRECORD;
-		} else if (!strcmp(type_string, "build")) {
-			image->type = IMAGE_BUILDER;
-		} else {
-			LOG_ERROR("Unknown image type: %s, use one of: bin, ihex, elf, mem, s19, build", type_string);
-			return ERROR_IMAGE_TYPE_UNKNOWN;
+		const struct nvp *n = nvp_name2value(image_type_names, type_string);
+		if (n->name) {
+			image->type = (enum image_type)n->value;
+			return ERROR_OK;
 		}
-	} else
-		return autodetect_image_type(image, url);
 
-	return ERROR_OK;
+		LOG_ERROR("Unknown image type: %s, use one of: bin, ihex, elf, mem, s19, build", type_string);
+		return ERROR_IMAGE_TYPE_UNKNOWN;
+	}
+	return autodetect_image_type(image, url);
 }
 
 static int image_ihex_buffer_complete_inner(struct image *image,
