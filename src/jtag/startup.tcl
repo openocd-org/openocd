@@ -1186,8 +1186,8 @@ proc "hla_device_desc" {desc} {
 
 lappend _telnet_autocomplete_skip "hla_vid_pid"
 proc "hla_vid_pid" {args} {
-	echo "DEPRECATED! use 'hla vid_pid', not 'hla_vid_pid'"
-	eval hla vid_pid $args
+	echo "DEPRECATED! use 'adapter usb vid_pid', not 'hla_vid_pid'"
+	eval adapter usb vid_pid $args
 }
 
 lappend _telnet_autocomplete_skip "hla_command"

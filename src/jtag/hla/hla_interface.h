@@ -21,10 +21,6 @@ enum e_hl_transports;
 struct hl_interface_param {
 	/** */
 	const char *device_desc;
-	/** List of recognised VIDs */
-	uint16_t vid[HLA_MAX_USB_IDS + 1];
-	/** List of recognised PIDs */
-	uint16_t pid[HLA_MAX_USB_IDS + 1];
 	/** */
 	enum hl_transports transport;
 	/** */

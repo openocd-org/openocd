@@ -3642,8 +3642,9 @@ static int stlink_tcp_open(void *handle, struct hl_interface_param *param)
 		stlink_used = h->tcp_backend_priv.recv_buf[44];
 
 		/* check the vid:pid */
-		for (int i = 0; param->vid[i]; i++) {
-			if (param->vid[i] == h->vid && param->pid[i] == h->pid) {
+		for (unsigned int i = 0; adapter_usb_get_vids()[i]; i++) {
+			if (h->vid == adapter_usb_get_vids()[i] &&
+					h->pid == adapter_usb_get_pids()[i]) {
 				stlink_id_matched = true;
 				break;
 			}

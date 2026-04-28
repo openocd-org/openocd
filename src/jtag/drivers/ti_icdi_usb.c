@@ -665,13 +665,14 @@ static int icdi_usb_open(struct hl_interface_param *param, void **fd)
 		return ERROR_FAIL;
 	}
 
-	for (uint8_t i = 0; param->vid[i] && param->pid[i]; ++i)
-		LOG_DEBUG("transport: %d vid: 0x%04x pid: 0x%04x serial: %s", param->transport,
-			param->vid[i], param->pid[i], adapter_get_required_serial() ? adapter_get_required_serial() : "");
+	for (unsigned int i = 0; adapter_usb_get_vids()[i]; ++i)
+		LOG_DEBUG("transport: %d vid: 0x%04x pid: 0x%04x serial: %s",
+			param->transport, adapter_usb_get_vids()[i], adapter_usb_get_pids()[i],
+			adapter_get_required_serial() ? adapter_get_required_serial() : "");
 
 	/* TI (Stellaris) ICDI provides its serial number in the USB descriptor;
 	   no need to provide a callback here. */
-	jtag_libusb_open(param->vid, param->pid, NULL, &h->usb_dev, NULL);
+	jtag_libusb_open(adapter_usb_get_vids(), adapter_usb_get_pids(), NULL, &h->usb_dev, NULL);
 
 	if (!h->usb_dev) {
 		LOG_ERROR("open failed");

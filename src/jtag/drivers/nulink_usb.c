@@ -1030,7 +1030,7 @@ static int nulink_usb_open(struct hl_interface_param *param, void **fd)
 	if (param->transport != HL_TRANSPORT_SWD)
 		return TARGET_UNKNOWN;
 
-	if (!param->vid[0] && !param->pid[0]) {
+	if (!adapter_usb_get_vids()[0] && !adapter_usb_get_pids()[0]) {
 		LOG_ERROR("Missing vid/pid");
 		return ERROR_FAIL;
 	}
@@ -1068,8 +1068,9 @@ static int nulink_usb_open(struct hl_interface_param *param, void **fd)
 	while (cur_dev) {
 		bool found = false;
 
-		for (unsigned int i = 0; param->vid[i] || param->pid[i]; i++) {
-			if (param->vid[i] == cur_dev->vendor_id && param->pid[i] == cur_dev->product_id) {
+		for (unsigned int i = 0; adapter_usb_get_vids()[i] != 0; i++) {
+			if (cur_dev->vendor_id == adapter_usb_get_vids()[i] &&
+					cur_dev->product_id == adapter_usb_get_pids()[i]) {
 				found = true;
 				break;
 			}

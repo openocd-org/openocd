@@ -3330,10 +3330,6 @@ Currently Not Supported.
 Specifies the adapter layout to use.
 @end deffn
 
-@deffn {Config Command} {hla vid_pid} [vid pid]+
-Pairs of vendor IDs and product IDs of the device.
-@end deffn
-
 @deffn {Config Command} {hla stlink_backend} (usb | tcp [port])
 @emph{ST-Link only:} Choose between 'exclusive' USB communication (the default backend) or
 'shared' mode using ST-Link TCP server (the default port is 7184).
