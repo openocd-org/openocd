@@ -146,18 +146,15 @@ static bool jtag_poll_en = true;
 bool is_jtag_poll_safe(void)
 {
 	/* Polling can be disabled explicitly with set_enabled(false).
-	 * It can also be masked with mask().
-	 * It is also implicitly disabled while TRST is active and
-	 * while SRST is gating the JTAG clock.
-	 */
-	if (!jtag_poll_en)
+	 * It can also be masked with mask(). */
+	if (!jtag_poll_en || !jtag_poll)
 		return false;
 
-	if (!transport_is_jtag())
-		return jtag_poll;
-
-	if (!jtag_poll || jtag_trst != 0)
+	/* On JTAG transport it is also implicitly disabled while TRST is active */
+	if (transport_is_jtag() && jtag_trst)
 		return false;
+
+	/* On any transport while SRST is gating the JTAG clock or other debug HW */
 	return jtag_srst == 0 || (jtag_reset_config & RESET_SRST_NO_GATING);
 }
 

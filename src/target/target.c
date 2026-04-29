@@ -2937,6 +2937,8 @@ static int handle_target(void *priv)
 		recursive = 0;
 	}
 
+	/* FIXME: sensed SRST state should be treated similarly as
+	 * active SRST control and honour reset config RESET_SRST_NO_GATING */
 	if (sensed_power_dropout || sensed_srst_asserted)
 		return ERROR_OK;
 
