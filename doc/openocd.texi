@@ -3872,6 +3872,10 @@ This implementation is XVC protocol 1.0/1.1 compatible. However, 'mrd' and 'mwr'
 extensions introduced in version 1.1 are not supported. Refer to:
 @url{https://github.com/Xilinx/XilinxVirtualCable} for protocol specification.
 
+An implementation of XVC server to gpiod is available in
+@url{https://pypi.org/project/xvc-gpiod}
+and is suitable for testing this driver.
+
 Example configuration:
 
 @example
