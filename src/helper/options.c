@@ -151,7 +151,7 @@ static char *find_relative_path(const char *from, const char *to)
 	while (from[0] != '\0') {
 		if (from[0] != '/')
 			i++;
-		char *next = strchr(from, '/');
+		const char *next = strchr(from, '/');
 		if (!next)
 			break;
 		from = next + 1;

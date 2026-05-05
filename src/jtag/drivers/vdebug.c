@@ -1215,12 +1215,14 @@ static int vdebug_dap_run(struct adiv5_dap *dap)
 
 COMMAND_HANDLER(vdebug_set_server)
 {
-	if ((CMD_ARGC != 1) || !strchr(CMD_ARGV[0], ':'))
+	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
-
-	char *pchar = strchr(CMD_ARGV[0], ':');
-	*pchar = '\0';
-	strncpy(vdc.server_name, CMD_ARGV[0], sizeof(vdc.server_name) - 1);
+	const char *pchar = strchr(CMD_ARGV[0], ':');
+	if (!pchar)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	size_t len = MIN((uintptr_t)pchar - (uintptr_t)CMD_ARGV[0], sizeof(vdc.server_name) - 1);
+	memcpy(vdc.server_name, CMD_ARGV[0], len);
+	vdc.server_name[len] = '\0';
 	int port = atoi(++pchar);
 	if (port < 0 || port > UINT16_MAX) {
 		LOG_ERROR("invalid port number %d specified", port);
