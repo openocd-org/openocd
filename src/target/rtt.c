@@ -339,14 +339,17 @@ int target_rtt_read_channel_info(struct target *target,
 		return ret;
 	}
 
+	info->size = channel.size;
+	info->flags = channel.flags;
+
+	if (!channel_is_active(&channel))
+		return ERROR_OK;
+
 	ret = read_channel_name(target, channel.name_addr, info->name,
 		info->name_length);
 
 	if (ret != ERROR_OK)
 		return ret;
-
-	info->size = channel.size;
-	info->flags = channel.flags;
 
 	return ERROR_OK;
 }
