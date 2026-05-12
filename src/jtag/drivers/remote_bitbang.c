@@ -21,9 +21,6 @@
 #include <jtag/interface.h>
 #include "bitbang.h"
 
-/* arbitrary limit on host name length: */
-#define REMOTE_BITBANG_HOST_MAX 255
-
 static char *remote_bitbang_host;
 static char *remote_bitbang_port;
 
