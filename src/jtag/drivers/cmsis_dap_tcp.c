@@ -119,7 +119,7 @@ static int cmsis_dap_tcp_open(struct cmsis_dap *dap,
 {
 	// Skip the open if the user has not provided a hostname.
 	if (!cmsis_dap_tcp_host) {
-		LOG_DEBUG("No TCP hostname, skipping open.");
+		LOG_ERROR("The hostname or IP address of the CMSIS-DAP adapter must be specified");
 		return ERROR_FAIL;
 	}
 
