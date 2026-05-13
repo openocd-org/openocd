@@ -3699,6 +3699,23 @@ Specifies the TCP/IP address of the SystemVerilog DPI server interface.
 @end deffn
 @end deffn
 
+@deffn {Interface Driver} {jtag_vpi}
+A JTAG driver acting as a client for the JTAG VPI server interface.
+
+@deffn {Config Command} {jtag_vpi set_address} address
+Specifies the TCP/IP address of the JTAG VPI server.
+@end deffn
+
+@deffn {Config Command} {jtag_vpi set_port} port
+Specifies the TCP/IP port number of the JTAG VPI server.
+@end deffn
+
+@deffn {Config Command} {jtag_vpi stop_sim_on_exit} (@option{on}|@option{off})
+Specifies whether simulation stop command shall be sent before OpenOCD exits.
+The default is @option{off}.
+@end deffn
+@end deffn
+
 
 @deffn {Interface Driver} {buspirate}
 
