@@ -3695,7 +3695,7 @@ Specifies the TCP/IP port number of the SystemVerilog DPI server interface.
 @end deffn
 
 @deffn {Config Command} {jtag_dpi set_address} address
-Specifies the TCP/IP address of the SystemVerilog DPI server interface.
+Specifies the hostname or IP address of the SystemVerilog DPI server interface.
 @end deffn
 @end deffn
 

@@ -16,6 +16,9 @@
 #endif
 
 #include <jtag/interface.h>
+#ifdef HAVE_NETDB_H
+#include <netdb.h>
+#endif
 #ifdef HAVE_ARPA_INET_H
 #include <arpa/inet.h>
 #endif
@@ -31,7 +34,6 @@ static uint16_t server_port = SERVER_PORT;
 static char *server_address;
 
 static int sockfd;
-static struct sockaddr_in serv_addr;
 
 static uint8_t *last_ir_buf;
 static int last_ir_num_bits;
@@ -264,18 +266,6 @@ static int jtag_dpi_execute_queue(struct jtag_command *cmd_queue)
 
 static int jtag_dpi_init(void)
 {
-	sockfd = socket(AF_INET, SOCK_STREAM, 0);
-	if (sockfd < 0) {
-		LOG_ERROR("socket: %s, function %s, file %s, line %d",
-			strerror(errno), __func__, __FILE__, __LINE__);
-		return ERROR_FAIL;
-	}
-
-	memset(&serv_addr, 0, sizeof(serv_addr));
-
-	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_port = htons(server_port);
-
 	if (!server_address) {
 		server_address = strdup(SERVER_ADDRESS);
 		if (!server_address) {
@@ -285,25 +275,64 @@ static int jtag_dpi_init(void)
 		}
 	}
 
-	serv_addr.sin_addr.s_addr = inet_addr(server_address);
+	const struct addrinfo hints = {
+		.ai_family = AF_UNSPEC,
+		.ai_socktype = SOCK_STREAM
+	};
 
-	if (serv_addr.sin_addr.s_addr == INADDR_NONE) {
-		LOG_ERROR("inet_addr error occurred");
+	char port_str[5 + 1];
+	snprintf(port_str, sizeof(port_str), "%" PRIu16, server_port);
+
+	struct addrinfo *result;
+	int ret = getaddrinfo(server_address, port_str, &hints, &result);
+
+	if (ret != 0) {
+		LOG_ERROR("getaddrinfo: %s", gai_strerror(ret));
 		return ERROR_FAIL;
 	}
 
-	if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
+	struct addrinfo *rp;
+	for (rp = result; rp ; rp = rp->ai_next) {
+		sockfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+		if (sockfd == -1)
+			continue;
+
+		if (connect(sockfd, rp->ai_addr, rp->ai_addrlen) != -1)
+			break;
+
 		close(sockfd);
-		LOG_ERROR("Can't connect to %s : %" PRIu16, server_address, server_port);
+	}
+
+	if (!rp) {
+		LOG_ERROR("Can't connect to %s : %" PRIu16, server_address,
+			server_port);
+		freeaddrinfo(result);
 		return ERROR_FAIL;
 	}
-	if (serv_addr.sin_addr.s_addr == htonl(INADDR_LOOPBACK)) {
+
+	bool is_loopback = false;
+	if (rp->ai_family == AF_INET) {
+		struct sockaddr_in sa;
+		memcpy(&sa, rp->ai_addr, sizeof(sa));
+		is_loopback = (sa.sin_addr.s_addr == htonl(INADDR_LOOPBACK));
+	} else if (rp->ai_family == AF_INET6) {
+		struct sockaddr_in6 sa;
+		memcpy(&sa, rp->ai_addr, sizeof(sa));
+		is_loopback = IN6_IS_ADDR_LOOPBACK(&sa.sin6_addr);
+	}
+
+	if (is_loopback) {
+		LOG_DEBUG("Enabling TCP_NODELAY to enhance the speed of local connections");
+
 		/* This increases performance dramatically for local
 		* connections, which is the most likely arrangement
 		* for a DPI connection. */
 		int flag = 1;
-		setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(int));
+		setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (char *)&flag,
+			sizeof(int));
 	}
+
+	freeaddrinfo(result);
 
 	LOG_INFO("Connection to %s : %" PRIu16 " succeed", server_address, server_port);
 
@@ -372,7 +401,7 @@ static const struct command_registration jtag_dpi_subcommand_handlers[] = {
 		.name = "set_address",
 		.handler = &jtag_dpi_set_address,
 		.mode = COMMAND_CONFIG,
-		.help = "set the address of the DPI server",
+		.help = "set the hostname or IP address of the DPI server",
 		.usage = "[address]",
 	},
 	COMMAND_REGISTRATION_DONE
