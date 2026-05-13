@@ -3703,7 +3703,7 @@ Specifies the TCP/IP address of the SystemVerilog DPI server interface.
 A JTAG driver acting as a client for the JTAG VPI server interface.
 
 @deffn {Config Command} {jtag_vpi set_address} address
-Specifies the TCP/IP address of the JTAG VPI server.
+Specifies the hostname or IP address of the JTAG VPI server.
 @end deffn
 
 @deffn {Config Command} {jtag_vpi set_port} port

@@ -14,6 +14,9 @@
 #endif
 
 #include <jtag/interface.h>
+#ifdef HAVE_NETDB_H
+#include <netdb.h>
+#endif
 #ifdef HAVE_ARPA_INET_H
 #include <arpa/inet.h>
 #endif
@@ -39,14 +42,13 @@
 #define CMD_STOP_SIMU		4
 
 /* jtag_vpi server port and address to connect to */
-static int server_port = DEFAULT_SERVER_PORT;
+static uint16_t server_port = DEFAULT_SERVER_PORT;
 static char *server_address;
 
 /* Send CMD_STOP_SIMU to server when OpenOCD exits? */
 static bool stop_sim_on_exit;
 
 static int sockfd;
-static struct sockaddr_in serv_addr;
 
 /* One jtag_vpi "packet" as sent over a TCP channel. */
 struct vpi_cmd {
@@ -524,43 +526,70 @@ static int jtag_vpi_execute_queue(struct jtag_command *cmd_queue)
 
 static int jtag_vpi_init(void)
 {
-	int flag = 1;
-
-	sockfd = socket(AF_INET, SOCK_STREAM, 0);
-	if (sockfd < 0) {
-		LOG_ERROR("jtag_vpi: Could not create client socket");
-		return ERROR_FAIL;
-	}
-
-	memset(&serv_addr, 0, sizeof(serv_addr));
-
-	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_port = htons(server_port);
-
 	if (!server_address)
 		server_address = strdup(DEFAULT_SERVER_ADDRESS);
 
-	serv_addr.sin_addr.s_addr = inet_addr(server_address);
+	const struct addrinfo hints = {
+		.ai_family = AF_UNSPEC,
+		.ai_socktype = SOCK_STREAM
+	};
 
-	if (serv_addr.sin_addr.s_addr == INADDR_NONE) {
-		LOG_ERROR("jtag_vpi: inet_addr error occurred");
+	char port_str[5 + 1];
+	snprintf(port_str, sizeof(port_str), "%" PRIu16, server_port);
+
+	struct addrinfo *result;
+	int ret = getaddrinfo(server_address, port_str, &hints, &result);
+
+	if (ret != 0) {
+		LOG_ERROR("getaddrinfo: %s", gai_strerror(ret));
 		return ERROR_FAIL;
 	}
 
-	if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
+	struct addrinfo *rp;
+	for (rp = result; rp ; rp = rp->ai_next) {
+		sockfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+		if (sockfd == -1)
+			continue;
+
+		if (connect(sockfd, rp->ai_addr, rp->ai_addrlen) != -1)
+			break;
+
 		close(sockfd);
-		LOG_ERROR("jtag_vpi: Can't connect to %s : %u", server_address, server_port);
-		return ERROR_COMMAND_CLOSE_CONNECTION;
 	}
 
-	if (serv_addr.sin_addr.s_addr == htonl(INADDR_LOOPBACK)) {
+	if (!rp) {
+		LOG_ERROR("jtag_vpi: Can't connect to %s : %" PRIu16,
+			server_address, server_port);
+		freeaddrinfo(result);
+		return ERROR_FAIL;
+	}
+
+	bool is_loopback = false;
+	if (rp->ai_family == AF_INET) {
+		struct sockaddr_in sa;
+		memcpy(&sa, rp->ai_addr, sizeof(sa));
+		is_loopback = (sa.sin_addr.s_addr == htonl(INADDR_LOOPBACK));
+	} else if (rp->ai_family == AF_INET6) {
+		struct sockaddr_in6 sa;
+		memcpy(&sa, rp->ai_addr, sizeof(sa));
+		is_loopback = IN6_IS_ADDR_LOOPBACK(&sa.sin6_addr);
+	}
+
+	if (is_loopback) {
 		/* This increases performance dramatically for local
-		 * connections, which is the most likely arrangement
-		 * for a VPI connection. */
-		setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(int));
+		* connections, which is the most likely arrangement
+		* for a VPI connection. */
+		LOG_DEBUG("Enabling TCP_NODELAY to enhance the speed of local connections");
+
+		int flag = 1;
+		setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (char *)&flag,
+			sizeof(int));
 	}
 
-	LOG_INFO("jtag_vpi: Connection to %s : %u successful", server_address, server_port);
+	freeaddrinfo(result);
+
+	LOG_INFO("jtag_vpi: Connection to %s : %" PRIu16 " successful",
+		server_address, server_port);
 
 	return ERROR_OK;
 }
@@ -594,8 +623,8 @@ COMMAND_HANDLER(jtag_vpi_set_port)
 	if (CMD_ARGC == 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	COMMAND_PARSE_NUMBER(int, CMD_ARGV[0], server_port);
-	LOG_INFO("jtag_vpi: server port set to %u", server_port);
+	COMMAND_PARSE_NUMBER(u16, CMD_ARGV[0], server_port);
+	LOG_INFO("jtag_vpi: server port set to %" PRIu16, server_port);
 
 	return ERROR_OK;
 }
@@ -634,7 +663,7 @@ static const struct command_registration jtag_vpi_subcommand_handlers[] = {
 		.name = "set_address",
 		.handler = &jtag_vpi_set_address,
 		.mode = COMMAND_CONFIG,
-		.help = "set the IP address of the jtag_vpi server (default: 127.0.0.1)",
+		.help = "set the hostname or IP address of the jtag_vpi server (default: 127.0.0.1)",
 		.usage = "ipv4_addr",
 	},
 	{
