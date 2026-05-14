@@ -1453,6 +1453,12 @@ static int ch347_open_device(void)
 		return retval;
 	}
 
+	// Fix for CH347F on ARM64
+	// Force set configuration 1 (required on some ARM64 platforms)
+	retval = libusb_set_configuration(ch347_handle, 1);
+	if (retval != LIBUSB_SUCCESS && retval != LIBUSB_ERROR_BUSY)
+		LOG_WARNING("CH347 set_configuration failed: %s", libusb_error_name(retval));
+
 	// CH347T / CH347F detection
 	// if we can claim interface 4 we found a CH347F chip; if we can claim interface 2 we found CH347T chip
 	retval = libusb_claim_interface(ch347_handle, CH347F_MPHSI_INTERFACE);
