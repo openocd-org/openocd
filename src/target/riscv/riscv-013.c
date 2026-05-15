@@ -8,7 +8,6 @@
 #include <assert.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <time.h>
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -622,7 +621,7 @@ static int wait_for_idle(struct target *target, uint32_t *abstractcs)
 		return ERROR_FAIL;
 	}
 
-	time_t start = time(NULL);
+	int64_t then = timeval_ms() + 1000 * riscv_get_command_timeout_sec();
 	do {
 		if (dm_read(target, abstractcs, DM_ABSTRACTCS) != ERROR_OK) {
 			/* We couldn't read abstractcs. For safety, overwrite the output value to
@@ -637,7 +636,7 @@ static int wait_for_idle(struct target *target, uint32_t *abstractcs)
 			dm->abstract_cmd_maybe_busy = false;
 			return ERROR_OK;
 		}
-	} while ((time(NULL) - start) < riscv_get_command_timeout_sec());
+	} while (timeval_ms() < then);
 
 	LOG_TARGET_ERROR(target,
 		"Timed out after %ds waiting for busy to go low (abstractcs=0x%" PRIx32 "). "
@@ -1658,7 +1657,7 @@ static int register_read_direct(struct target *target, riscv_reg_t *value,
 
 static int wait_for_authbusy(struct target *target, uint32_t *dmstatus)
 {
-	time_t start = time(NULL);
+	int64_t then = timeval_ms() + 1000 * riscv_get_command_timeout_sec();
 	while (1) {
 		uint32_t value;
 		if (dmstatus_read(target, &value, false) != ERROR_OK)
@@ -1667,7 +1666,7 @@ static int wait_for_authbusy(struct target *target, uint32_t *dmstatus)
 			*dmstatus = value;
 		if (!get_field(value, DM_DMSTATUS_AUTHBUSY))
 			break;
-		if (time(NULL) - start > riscv_get_command_timeout_sec()) {
+		if (timeval_ms() > then) {
 			LOG_TARGET_ERROR(target, "Timed out after %ds waiting for authbusy to go low (dmstatus=0x%x). "
 					"Increase the timeout with riscv set_command_timeout_sec.",
 					riscv_get_command_timeout_sec(),
@@ -1857,14 +1856,14 @@ static int reset_dm(struct target *target)
 		if (result != ERROR_OK)
 			return result;
 
-		const time_t start = time(NULL);
+		int64_t then = timeval_ms() + 1000 * riscv_get_command_timeout_sec();
 		LOG_TARGET_DEBUG(target, "Waiting for the DM to acknowledge reset.");
 		do {
 			result = dm_read(target, &dmcontrol, DM_DMCONTROL);
 			if (result != ERROR_OK)
 				return result;
 
-			if (time(NULL) - start > riscv_get_command_timeout_sec()) {
+			if (timeval_ms() > then) {
 				LOG_TARGET_ERROR(target, "DM didn't acknowledge reset in %d s. "
 						"Increase the timeout with 'riscv set_command_timeout_sec'.",
 						riscv_get_command_timeout_sec());
@@ -1879,14 +1878,14 @@ static int reset_dm(struct target *target)
 	if (result != ERROR_OK)
 		return result;
 
-	const time_t start = time(NULL);
+	int64_t then = timeval_ms() + 1000 * riscv_get_command_timeout_sec();
 	LOG_TARGET_DEBUG(target, "Waiting for the DM to come out of reset.");
 	do {
 		result = dm_read(target, &dmcontrol, DM_DMCONTROL);
 		if (result != ERROR_OK)
 			return result;
 
-		if (time(NULL) - start > riscv_get_command_timeout_sec()) {
+		if (timeval_ms() > then) {
 			LOG_TARGET_ERROR(target, "Debug Module did not become active in %d s. "
 					"Increase the timeout with 'riscv set_command_timeout_sec'.",
 					riscv_get_command_timeout_sec());
@@ -2540,7 +2539,7 @@ static int batch_run_timeout(struct target *target, struct riscv_batch *batch)
 	riscv_batch_add_nop(batch);
 
 	size_t finished_scans = 0;
-	const time_t start = time(NULL);
+	int64_t then = timeval_ms() + 1000 * riscv_get_command_timeout_sec();
 	const unsigned int old_base_delay = riscv_scan_get_delay(&info->learned_delays,
 			RISCV_DELAY_BASE);
 	int result;
@@ -2563,7 +2562,7 @@ static int batch_run_timeout(struct target *target, struct riscv_batch *batch)
 		result = increase_dmi_busy_delay(target);
 		if (result != ERROR_OK)
 			return result;
-	} while (time(NULL) - start < riscv_get_command_timeout_sec());
+	} while (timeval_ms() < then);
 
 	assert(result == ERROR_OK);
 	assert(riscv_batch_was_batch_busy(batch));
@@ -2983,14 +2982,14 @@ static int deassert_reset(struct target *target)
 	uint32_t dmstatus;
 	const unsigned int orig_base_delay = riscv_scan_get_delay(&info->learned_delays,
 			RISCV_DELAY_BASE);
-	time_t start = time(NULL);
+	int64_t then = timeval_ms() + 1000 * riscv_get_command_timeout_sec();
 	LOG_TARGET_DEBUG(target, "Waiting for hart to come out of reset.");
 	do {
 		result = dmstatus_read(target, &dmstatus, true);
 		if (result != ERROR_OK)
 			return result;
 
-		if (time(NULL) - start > riscv_get_command_timeout_sec()) {
+		if (timeval_ms() > then) {
 			LOG_TARGET_ERROR(target, "Hart didn't leave reset in %ds; "
 					"dmstatus=0x%x (allunavail=%s, allhavereset=%s); "
 					"Increase the timeout with riscv set_command_timeout_sec.",
@@ -3176,13 +3175,13 @@ static target_addr_t sb_read_address(struct target *target)
 
 static int read_sbcs_nonbusy(struct target *target, uint32_t *sbcs)
 {
-	time_t start = time(NULL);
+	int64_t then = timeval_ms() + 1000 * riscv_get_command_timeout_sec();
 	while (1) {
 		if (dm_read(target, sbcs, DM_SBCS) != ERROR_OK)
 			return ERROR_FAIL;
 		if (!get_field(*sbcs, DM_SBCS_SBBUSY))
 			return ERROR_OK;
-		if (time(NULL) - start > riscv_get_command_timeout_sec()) {
+		if (timeval_ms() > then) {
 			LOG_TARGET_ERROR(target, "Timed out after %ds waiting for sbbusy to go low (sbcs=0x%x). "
 					"Increase the timeout with riscv set_command_timeout_sec.",
 					riscv_get_command_timeout_sec(), *sbcs);

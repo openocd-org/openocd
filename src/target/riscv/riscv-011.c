@@ -7,7 +7,6 @@
 
 #include <assert.h>
 #include <stdlib.h>
-#include <time.h>
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -724,7 +723,7 @@ static int read_bits(struct target *target, bits_t *result)
 
 static int wait_for_debugint_clear(struct target *target, bool ignore_first)
 {
-	time_t start = time(NULL);
+	int64_t then = timeval_ms() + 1000 * riscv_get_command_timeout_sec();
 	if (ignore_first) {
 		/* Throw away the results of the first read, since they'll contain the
 		 * result of the read that happened just before debugint was set.
@@ -742,7 +741,7 @@ static int wait_for_debugint_clear(struct target *target, bool ignore_first)
 
 		if (!bits.interrupt)
 			return ERROR_OK;
-		if (time(NULL) - start > riscv_get_command_timeout_sec()) {
+		if (timeval_ms() > then) {
 			LOG_ERROR("Timed out waiting for debug int to clear."
 				  "Increase timeout with riscv set_command_timeout_sec.");
 			return ERROR_FAIL;
@@ -1022,14 +1021,14 @@ static void dram_write_jump(struct target *target, unsigned int index,
 
 static int wait_for_state(struct target *target, enum target_state state)
 {
-	time_t start = time(NULL);
+	int64_t then = timeval_ms() + 1000 * riscv_get_command_timeout_sec();
 	while (1) {
 		int result = riscv011_poll(target);
 		if (result != ERROR_OK)
 			return result;
 		if (target->state == state)
 			return ERROR_OK;
-		if (time(NULL) - start > riscv_get_command_timeout_sec()) {
+		if (timeval_ms() > then) {
 			LOG_ERROR("Timed out waiting for state %d. "
 				  "Increase timeout with riscv set_command_timeout_sec.", state);
 			return ERROR_FAIL;
@@ -1189,14 +1188,14 @@ static int full_step(struct target *target, bool announce)
 	int result = execute_resume(target, true);
 	if (result != ERROR_OK)
 		return result;
-	time_t start = time(NULL);
+	int64_t then = timeval_ms() + 1000 * riscv_get_command_timeout_sec();
 	while (1) {
 		result = poll_target(target, announce);
 		if (result != ERROR_OK)
 			return result;
 		if (target->state != TARGET_DEBUG_RUNNING)
 			break;
-		if (time(NULL) - start > riscv_get_command_timeout_sec()) {
+		if (timeval_ms() > then) {
 			LOG_ERROR("Timed out waiting for step to complete."
 					"Increase timeout with riscv set_command_timeout_sec");
 			return ERROR_FAIL;
@@ -2369,12 +2368,12 @@ static COMMAND_HELPER(riscv011_print_info, struct target *target)
 
 static int wait_for_authbusy(struct target *target)
 {
-	time_t start = time(NULL);
+	int64_t then = timeval_ms() + 1000 * riscv_get_command_timeout_sec();
 	while (1) {
 		uint32_t dminfo = dbus_read(target, DMINFO);
 		if (!get_field(dminfo, DMINFO_AUTHBUSY))
 			break;
-		if (time(NULL) - start > riscv_get_command_timeout_sec()) {
+		if (timeval_ms() > then) {
 			LOG_ERROR("Timed out after %ds waiting for authbusy to go low (dminfo=0x%x). "
 					"Increase the timeout with riscv set_command_timeout_sec.",
 					riscv_get_command_timeout_sec(),
