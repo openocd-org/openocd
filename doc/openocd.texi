@@ -6803,6 +6803,10 @@ This driver supports Artery Technology devices from the following series:
 @item AT32WB415
 @end itemize
 
+Some Holtek HT32F4 devices (e.g. the HT32F49153 and HT32F49163) use a
+flash memory controller that is register-compatible with the Artery AT32F423
+and are therefore programmed by this driver.
+
 Devices with dual-bank flash memory are currently not supported.
 Also, access to user data in the user system data (USD) area is not supported.
 

@@ -132,6 +132,10 @@ ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="f139", MODE="660", GROUP="plugdev", 
 # Cypress KitProg in CMSIS-DAP mode
 ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="f138", MODE="660", GROUP="plugdev", TAG+="uaccess"
 
+# Holtek e-Link32 Pro/Lite
+ATTRS{idVendor}=="04d9", ATTRS{idProduct}=="802f", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="04d9", ATTRS{idProduct}=="8052", MODE="660", GROUP="plugdev", TAG+="uaccess"
+
 # Infineon DAP miniWiggler v3
 ATTRS{idVendor}=="058b", ATTRS{idProduct}=="0043", MODE="660", GROUP="plugdev", TAG+="uaccess"
 
