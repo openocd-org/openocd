@@ -4331,6 +4331,12 @@ COMMAND_HANDLER(handle_profile_command)
 		return retval;
 	}
 
+	if (!num_of_samples) {
+		command_print(CMD, "Wrote no samples");
+		free(samples);
+		return ERROR_OK;
+	}
+
 	if (with_range) {
 		uint32_t num_filtered_samples = 0;
 		for (uint32_t in = 0; in < num_of_samples; ++in) {
@@ -4342,19 +4348,21 @@ COMMAND_HANDLER(handle_profile_command)
 		if (duration_ms < 1)
 			duration_ms = 0;
 		num_of_samples = num_filtered_samples;
+
+		if (!num_of_samples) {
+			command_print(CMD, "Wrote no samples in the requested range");
+			free(samples);
+			return ERROR_OK;
+		}
 	}
 
-	if (num_of_samples) {
-		qsort(samples, num_of_samples, sizeof(samples[0]), compare_pc32);
+	qsort(samples, num_of_samples, sizeof(samples[0]), compare_pc32);
 
-		write_gmon(samples, num_of_samples, CMD_ARGV[1], target, duration_ms);
-		command_print(CMD, "Wrote %s", CMD_ARGV[1]);
-	} else {
-		command_print(CMD, "Wrote no samples");
-	}
+	write_gmon(samples, num_of_samples, CMD_ARGV[1], target, duration_ms);
+	command_print(CMD, "Wrote %s", CMD_ARGV[1]);
 
 	free(samples);
-	return retval;
+	return ERROR_OK;
 }
 
 COMMAND_HANDLER(handle_target_read_memory)
