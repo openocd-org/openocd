@@ -4256,8 +4256,8 @@ static void write_gmon_hist(FILE *f, const uint32_t *samples, uint32_t sample_nu
 	bool saturated_once = false;
 	for (uint32_t i = 0, bidx = 0; bidx < address_space; bidx += sizeof(UNIT)) {
 		uint32_t val = i;
-		uint32_t bmax = min + bidx;
-		while (i < sample_num && samples[i] <= bmax)
+		uint32_t bmax = min + bidx + sizeof(UNIT);
+		while (i < sample_num && samples[i] < bmax)
 			++i;
 		val = i - val;
 
