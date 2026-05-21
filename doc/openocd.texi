@@ -2371,6 +2371,11 @@ MMU: disabled, D-Cache: disabled, I-Cache: enabled
 @end example
 @end deffn
 
+@deffn {Command} {poll_interval} [milliseconds]
+Set the polling interval of target's state.
+With no parameter, it prints out the current value of polling interval.
+@end deffn
+
 @node Debug Adapter Configuration
 @chapter Debug Adapter Configuration
 @cindex config file, interface

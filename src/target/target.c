@@ -120,7 +120,7 @@ static struct target_timer_callback *target_timer_callbacks;
 static int64_t target_timer_next_event_value;
 static OOCD_LIST_HEAD(target_reset_callback_list);
 static OOCD_LIST_HEAD(target_trace_callback_list);
-static const unsigned int polling_interval = TARGET_DEFAULT_POLLING_INTERVAL;
+static unsigned int polling_interval = TARGET_DEFAULT_POLLING_INTERVAL;
 static OOCD_LIST_HEAD(empty_smp_targets);
 
 enum nvp_assert {
@@ -1686,6 +1686,18 @@ int target_register_trace_callback(int (*callback)(struct target *target,
 	return ERROR_OK;
 }
 
+static int target_timer_callback_set_period(struct target_timer_callback *cb, unsigned int time_ms)
+{
+	if (!cb)
+		return ERROR_FAIL;
+
+	cb->time_ms = time_ms;
+	cb->when = timeval_ms() + time_ms;
+	target_timer_next_event_value = MIN(target_timer_next_event_value, cb->when);
+
+	return ERROR_OK;
+}
+
 int target_register_timer_callback(int (*callback)(void *priv),
 		unsigned int time_ms, enum target_timer_type type, void *priv)
 {
@@ -1703,16 +1715,12 @@ int target_register_timer_callback(int (*callback)(void *priv),
 	(*callbacks_p) = malloc(sizeof(struct target_timer_callback));
 	(*callbacks_p)->callback = callback;
 	(*callbacks_p)->type = type;
-	(*callbacks_p)->time_ms = time_ms;
 	(*callbacks_p)->removed = false;
-
-	(*callbacks_p)->when = timeval_ms() + time_ms;
-	target_timer_next_event_value = MIN(target_timer_next_event_value, (*callbacks_p)->when);
 
 	(*callbacks_p)->priv = priv;
 	(*callbacks_p)->next = NULL;
 
-	return ERROR_OK;
+	return target_timer_callback_set_period(*callbacks_p, time_ms);
 }
 
 int target_unregister_event_callback(int (*callback)(struct target *target,
@@ -1776,17 +1784,30 @@ int target_unregister_trace_callback(int (*callback)(struct target *target,
 	return ERROR_OK;
 }
 
+static struct target_timer_callback *target_find_timer_callback(int (*callback)(void *priv),
+		void *priv)
+{
+	if (!callback)
+		return NULL;
+
+	for (struct target_timer_callback *c = target_timer_callbacks;
+	     c; c = c->next) {
+		if (c->callback == callback && c->priv == priv)
+			return c;
+	}
+
+	return NULL;
+}
+
 int target_unregister_timer_callback(int (*callback)(void *priv), void *priv)
 {
 	if (!callback)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	for (struct target_timer_callback *c = target_timer_callbacks;
-	     c; c = c->next) {
-		if ((c->callback == callback) && (c->priv == priv)) {
-			c->removed = true;
-			return ERROR_OK;
-		}
+	struct target_timer_callback *cb = target_find_timer_callback(callback, priv);
+	if (cb) {
+		cb->removed = true;
+		return ERROR_OK;
 	}
 
 	return ERROR_FAIL;
@@ -3157,6 +3178,36 @@ COMMAND_HANDLER(handle_poll_command)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	return retval;
+}
+
+COMMAND_HANDLER(handle_poll_interval_command)
+{
+	int retval;
+	unsigned int ms;
+
+	switch (CMD_ARGC) {
+	case 0:
+		command_print(CMD, "%d", polling_interval);
+		break;
+	case 1:
+		retval = parse_uint(CMD_ARGV[0], &ms);
+		if (retval != ERROR_OK)
+			return ERROR_COMMAND_ARGUMENT_INVALID;
+
+		/* If the timer callback has been registered, update the timer callback period */
+		struct target_timer_callback *cb = target_find_timer_callback(&handle_target, CMD_CTX->interp);
+		if (cb) {
+			retval = target_timer_callback_set_period(cb, ms);
+			if (retval != ERROR_OK)
+				return retval;
+		}
+		polling_interval = ms;
+		break;
+	default:
+		return ERROR_COMMAND_SYNTAX_ERROR;
+	}
+
+	return ERROR_OK;
 }
 
 COMMAND_HANDLER(handle_wait_halt_command)
@@ -6289,6 +6340,13 @@ static const struct command_registration target_command_handlers[] = {
 		.help = "configure target",
 		.chain = target_subcommand_handlers,
 		.usage = "",
+	},
+	{
+		.name = "poll_interval",
+		.handler = handle_poll_interval_command,
+		.mode = COMMAND_ANY,
+		.help = "print or set the target state polling interval",
+		.usage = "[milliseconds]",
 	},
 	COMMAND_REGISTRATION_DONE
 };
