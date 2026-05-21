@@ -151,11 +151,11 @@ bool is_jtag_poll_safe(void)
 		return false;
 
 	/* On JTAG transport it is also implicitly disabled while TRST is active */
-	if (transport_is_jtag() && jtag_trst)
+	if (transport_is_jtag() && jtag_trst == 1)
 		return false;
 
 	/* On any transport while SRST is gating the JTAG clock or other debug HW */
-	return jtag_srst == 0 || (jtag_reset_config & RESET_SRST_NO_GATING);
+	return jtag_srst != 1 || (jtag_reset_config & RESET_SRST_NO_GATING);
 }
 
 bool jtag_poll_get_enabled(void)
