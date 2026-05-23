@@ -355,8 +355,10 @@ int bitbang_execute_queue(struct jtag_command *cmd_queue)
 				tap_state_name(cmd->cmd.scan->end_state));
 			type = jtag_scan_type(cmd->cmd.scan);
 			if (bitbang_scan(cmd->cmd.scan->ir_scan, type, buffer,
-						scan_size) != ERROR_OK)
+						scan_size) != ERROR_OK) {
+				free(buffer);
 				return ERROR_FAIL;
+			}
 			if (jtag_read_buffer(buffer, cmd->cmd.scan) != ERROR_OK)
 				retval = ERROR_JTAG_QUEUE_FAILED;
 			free(buffer);
