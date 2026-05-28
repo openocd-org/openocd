@@ -10,6 +10,7 @@
 
 #include <helper/log.h>
 
+#include "smp.h"
 #include "target.h"
 #include "target_type.h"
 #include "hello.h"
@@ -21,6 +22,9 @@ static const struct command_registration testee_command_handlers[] = {
 		.help = "testee target commands",
 		.chain = hello_command_handlers,
 		.usage = "",
+	},
+	{
+		.chain = smp_command_handlers,
 	},
 	COMMAND_REGISTRATION_DONE
 };
