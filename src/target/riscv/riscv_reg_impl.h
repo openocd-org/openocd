@@ -203,7 +203,6 @@ static inline bool riscv_reg_impl_gdb_regno_cacheable(enum gdb_regno regno,
 	case GDB_REGNO_VTYPE:
 	case GDB_REGNO_MISA:
 	case GDB_REGNO_DCSR:
-	case GDB_REGNO_DSCRATCH0:
 	case GDB_REGNO_MEPC:
 	case GDB_REGNO_SATP:
 		/*
@@ -215,6 +214,8 @@ static inline bool riscv_reg_impl_gdb_regno_cacheable(enum gdb_regno regno,
 	case GDB_REGNO_TSELECT:	/* I think this should be above, but then it doesn't work. */
 	case GDB_REGNO_TDATA1:	/* Changes value when tselect is changed. */
 	case GDB_REGNO_TDATA2:  /* Changes value when tselect is changed. */
+	case GDB_REGNO_DSCRATCH0: /* Dscratch* need not retain value between abstract commands. */
+	case GDB_REGNO_DSCRATCH1:
 	default:
 		return false;
 	}
