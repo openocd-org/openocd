@@ -77,6 +77,20 @@
 #define SYSCTL_BASE                     0x400AF000
 #define SYSCTL_SECCFG_SECSTATUS         (SYSCTL_BASE + 0x00003048)
 
+/*
+ * SYSCTL SOCLOCK MCLKCFG register (offset 0x1104 from SYSCTL_BASE).
+ * Used for the FLASH_ERR_01 workaround: accessing FACTORYREGION while MCLK
+ * is sourced from HSCLK (SYSPLL/HFXT, implying MCLK > 32 MHz) with flash
+ * wait-state 2 active causes a hard fault on MSPM0G devices.  The flash
+ * controller enforces its wait-state timing for all AHB masters, including
+ * the DAP AHB-AP used by OpenOCD.  Temporarily switching MCLK to SYSOSC
+ * (≤ 32 MHz on all MSPM0 variants) before reading FACTORYREGION avoids this.
+ */
+#define SYSCTL_MCLKCFG                  (SYSCTL_BASE + 0x00001104)
+#define SYSCTL_MCLKCFG_USEHSCLK        BIT(16)
+#define SYSCTL_MCLKCFG_FLASHWAIT_MASK  GENMASK(11, 8)
+#define SYSCTL_MCLKCFG_FLASHWAIT_2     (2U << 8)
+
 /* TI manufacturer ID */
 #define TI_MANUFACTURER_ID              0x17
 
@@ -474,30 +488,94 @@ static int mspm0_read_part_info(struct flash_bank *bank)
 	struct target *target = bank->target;
 	const struct mspm0_family_info *minfo = NULL;
 
+	/*
+	 * FLASH_ERR_01 workaround: on MSPM0G devices the flash controller
+	 * rejects any bus-master access to FACTORYREGION when MCLK is sourced
+	 * from HSCLK (SYSPLL/HFXT) and flash wait-state 2 is active
+	 * (required for MCLK > 32 MHz).  This applies to DAP AHB-AP reads too,
+	 * not just CPU accesses.  If both conditions are true, temporarily
+	 * switch MCLK back to SYSOSC (≤ 32 MHz on every MSPM0 variant) for the
+	 * FACTORYREGION reads and restore afterwards.  The SYSCTL_MCLKCFG write
+	 * does not take place on L/C parts: USEHSCLK is never set there because
+	 * those cores do not exceed 32 MHz.
+	 */
+	uint32_t saved_mclkcfg = 0;
+	bool mclk_switched = false;
+	uint32_t mclkcfg;
+	int retval = target_read_u32(target, SYSCTL_MCLKCFG, &mclkcfg);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("Failed to read SYSCTL_MCLKCFG to check FLASH_ERR_01");
+		return retval;
+	}
+
+	if ((mclkcfg & SYSCTL_MCLKCFG_USEHSCLK) &&
+		((mclkcfg & SYSCTL_MCLKCFG_FLASHWAIT_MASK) == SYSCTL_MCLKCFG_FLASHWAIT_2)) {
+		saved_mclkcfg = mclkcfg;
+		retval = target_write_u32(target, SYSCTL_MCLKCFG,
+				mclkcfg & ~SYSCTL_MCLKCFG_USEHSCLK);
+		if (retval == ERROR_OK) {
+			mclk_switched = true;
+			/*
+			 * Read back MCLKCFG to flush the write, then add an
+			 * explicit delay to allow the MCLK source mux to fully
+			 * settle on SYSOSC before the flash controller timing is
+			 * used for FACTORYREGION accesses.
+			 */
+			uint32_t dummy;
+			retval = target_read_u32(target, SYSCTL_MCLKCFG, &dummy);
+			if (retval != ERROR_OK) {
+				LOG_ERROR("MSPM0: FLASH_ERR_01 workaround: "
+					"readback flush failed");
+				goto restore_mclk;
+			}
+			alive_sleep(1);
+			LOG_DEBUG("MSPM0: FLASH_ERR_01 workaround ACTIVE: "
+				"Lowering MCLK before FACTORYREGION read");
+		} else {
+			LOG_ERROR("MSPM0: FLASH_ERR_01 workaround: "
+				"could not lower MCLK before FACTORYREGION read");
+		}
+	}
+
 	/* Read and parse chip identification and flash version register */
 	uint32_t did;
-	int retval = target_read_u32(target, MSPM0_DID, &did);
+	retval = target_read_u32(target, MSPM0_DID, &did);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Failed to read device ID");
-		return retval;
+		goto restore_mclk;
 	}
 	retval = target_read_u32(target, MSPM0_TRACEID, &mspm0_info->traceid);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Failed to read trace ID");
-		return retval;
+		goto restore_mclk;
 	}
 	uint32_t userid;
 	retval = target_read_u32(target, MSPM0_USERID, &userid);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Failed to read user ID");
-		return retval;
+		goto restore_mclk;
 	}
 	uint32_t flashram;
 	retval = target_read_u32(target, MSPM0_SRAMFLASH, &flashram);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Failed to read sramflash register");
-		return retval;
+		goto restore_mclk;
 	}
+
+restore_mclk:
+	if (mclk_switched) {
+		int retval2 = target_write_u32(target, SYSCTL_MCLKCFG, saved_mclkcfg);
+		if (retval2 != ERROR_OK) {
+			LOG_ERROR("MSPM0: FLASH_ERR_01 workaround: "
+				"could not restore MCLK after FACTORYREGION read");
+			return retval2;
+		}
+		LOG_DEBUG("MSPM0: FLASH_ERR_01 workaround: "
+			"restored MCLK after FACTORYREGION read");
+	}
+	if (retval != ERROR_OK)
+		return retval;
+
 	uint32_t flashdesc;
 	retval = target_read_u32(target, FCTL_REG_DESC, &flashdesc);
 	if (retval != ERROR_OK) {
@@ -1157,6 +1235,19 @@ static int mspm0_probe(struct flash_bank *bank)
 		mspm0_info->protect_reg_count = 1;
 		break;
 	case MSPM0_FLASH_BASE_MAIN:
+		if (!mspm0_info->main_flash_size_kb) {
+			/*
+			 * FACTORYREGION was unreadable when this bank was probed
+			 * (e.g. device not yet halted, MCLK still at HSCLK on
+			 * first examine).  Clear did so the next auto_probe call
+			 * re-runs mspm0_read_part_info with the target in a known
+			 * state.
+			 */
+			LOG_WARNING("MSPM0: main flash size is 0 — "
+				"FACTORYREGION data incomplete, scheduling re-probe");
+			mspm0_info->did = 0;
+			return ERROR_FLASH_BANK_NOT_PROBED;
+		}
 		bank->size = (mspm0_info->main_flash_size_kb * 1024);
 		bank->num_sectors = bank->size / mspm0_info->sector_size;
 		/*
