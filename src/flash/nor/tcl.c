@@ -1442,8 +1442,7 @@ COMMAND_HANDLER(handle_flash_banks_command)
 	if (CMD_ARGC != 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	unsigned int n = 0;
-	for (struct flash_bank *p = flash_bank_list(); p; p = p->next, n++) {
+	for (struct flash_bank *p = flash_bank_list(); p; p = p->next) {
 		command_print(CMD, "#%d : %s (%s) at " TARGET_ADDR_FMT ", size 0x%8.8" PRIx32 ", "
 			"buswidth %u, chipwidth %u", p->bank_number,
 			p->name, p->driver->name, p->base, p->size,
