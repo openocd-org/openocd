@@ -426,6 +426,19 @@ static void gdb_log_outgoing_packet(struct connection *connection, const char *p
 			gdb_connection->unique_index, packet_len, packet_buf, checksum);
 }
 
+static void gdb_log_outgoing_async_notif(struct connection *connection, const char *buf,
+	unsigned int len)
+{
+	if (!LOG_LEVEL_IS(LOG_LVL_DEBUG))
+		return;
+
+	struct target *target = get_target_from_connection(connection);
+	struct gdb_connection *gdb_connection = connection->priv;
+
+	LOG_TARGET_DEBUG(target, "{%d} sending packet: %.*s",
+		gdb_connection->unique_index, len, buf);
+}
+
 static int gdb_put_packet_inner(struct connection *connection,
 		const char *buffer, int len)
 {
@@ -3873,6 +3886,7 @@ static void gdb_async_notif(struct connection *connection)
 	LOG_DEBUG("sending packet '%s'", buf);
 #endif
 
+	gdb_log_outgoing_async_notif(connection, buf, len);
 	gdb_write(connection, buf, len);
 }
 
