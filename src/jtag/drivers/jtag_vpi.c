@@ -386,11 +386,8 @@ static int jtag_vpi_clock_tms(int tms)
  */
 static int jtag_vpi_scan(struct scan_command *cmd)
 {
-	int scan_bits;
 	uint8_t *buf = NULL;
 	int retval = ERROR_OK;
-
-	scan_bits = jtag_build_buffer(cmd, &buf);
 
 	if (cmd->ir_scan) {
 		retval = jtag_vpi_state_move(TAP_IRSHIFT);
@@ -402,14 +399,20 @@ static int jtag_vpi_scan(struct scan_command *cmd)
 			return retval;
 	}
 
+	int scan_bits = jtag_build_buffer(cmd, &buf);
+
 	if (cmd->end_state == TAP_DRSHIFT) {
 		retval = jtag_vpi_queue_tdi(buf, scan_bits, NO_TAP_SHIFT);
-		if (retval != ERROR_OK)
+		if (retval != ERROR_OK) {
+			free(buf);
 			return retval;
+		}
 	} else {
 		retval = jtag_vpi_queue_tdi(buf, scan_bits, TAP_SHIFT);
-		if (retval != ERROR_OK)
+		if (retval != ERROR_OK) {
+			free(buf);
 			return retval;
+		}
 	}
 
 	if (cmd->end_state != TAP_DRSHIFT) {
@@ -418,8 +421,10 @@ static int jtag_vpi_scan(struct scan_command *cmd)
 		 * forward to a stable IRPAUSE or DRPAUSE.
 		 */
 		retval = jtag_vpi_clock_tms(0);
-		if (retval != ERROR_OK)
+		if (retval != ERROR_OK) {
+			free(buf);
 			return retval;
+		}
 
 		if (cmd->ir_scan)
 			tap_set_state(TAP_IRPAUSE);
@@ -428,8 +433,10 @@ static int jtag_vpi_scan(struct scan_command *cmd)
 	}
 
 	retval = jtag_read_buffer(buf, cmd);
-	if (retval != ERROR_OK)
+	if (retval != ERROR_OK) {
+		free(buf);
 		return retval;
+	}
 
 	free(buf);
 
