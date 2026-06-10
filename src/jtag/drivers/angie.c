@@ -830,11 +830,15 @@ static int angie_jtag_execute_scan(struct angie *device,
 			tdi = 1;
 		// write tdi and tms twice in tck=0 and tck=1
 		ret = angie_buffer_append(device, 0, tms, tdi);
-		if (ret != ERROR_OK)
+		if (ret != ERROR_OK) {
+			free(buffer);
 			return ret;
+		}
 		ret = angie_buffer_append(device, 1, tms, tdi);
-		if (ret != ERROR_OK)
+		if (ret != ERROR_OK) {
+			free(buffer);
 			return ret;
+		}
 	}
 
 	angie_set_end_state(cmd->end_state);
@@ -845,8 +849,10 @@ static int angie_jtag_execute_scan(struct angie *device,
 		 * and move directly to the end state.
 		 */
 		ret = angie_state_move(device, 1);
-		if (ret != ERROR_OK)
+		if (ret != ERROR_OK) {
+			free(buffer);
 			return ret;
+		}
 	}
 
 	if (jtag_scan_type(cmd) != SCAN_OUT) {
