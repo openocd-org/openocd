@@ -1232,7 +1232,7 @@ static int scratch_reserve(struct target *target,
 		/* Align. */
 		scratch->hart_address = (scratch->hart_address + alignment - 1) & ~(alignment - 1);
 
-		if ((size_bytes + scratch->hart_address - info->dataaddr + 3) / 4 >=
+		if ((size_bytes + scratch->hart_address - info->dataaddr + 3) / 4 <=
 				info->datasize) {
 			scratch->memory_space = SPACE_DM_DATA;
 			scratch->debug_address = (scratch->hart_address - info->dataaddr) / 4;
@@ -1249,7 +1249,7 @@ static int scratch_reserve(struct target *target,
 	scratch->hart_address = (info->progbuf_address + program_size + alignment - 1) &
 		~(alignment - 1);
 	if ((info->progbuf_writable == YNM_YES) &&
-			((size_bytes + scratch->hart_address - info->progbuf_address + 3) / 4 >=
+			((size_bytes + scratch->hart_address - info->progbuf_address + 3) / 4 <=
 			info->progbufsize)) {
 		scratch->memory_space = SPACE_DMI_PROGBUF;
 		scratch->debug_address = (scratch->hart_address - info->progbuf_address) / 4;
