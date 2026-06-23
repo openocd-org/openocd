@@ -46,13 +46,8 @@ riscv_scan_delay_class_name(enum riscv_scan_delay_class delay_class)
 }
 
 /* The scan delay values are passed to "jtag_add_runtest()", which accepts an
- * "int".  Therefore, the passed value should be no greater than "INT_MAX".
- *
- * Since the resulting delay value can be a sum of two individual delays,
- * individual delays are limited to "INT_MAX / 2" to prevent overflow of the
- * final sum.
+ * "unsigned int".
  */
-#define RISCV_SCAN_DELAY_MAX (INT_MAX / 2)
 
 struct riscv_scan_delays {
 	unsigned int base_delay;
@@ -82,7 +77,6 @@ riscv_scan_get_delay(const struct riscv_scan_delays *delays,
 static inline void riscv_scan_set_delay(struct riscv_scan_delays *delays,
 		enum riscv_scan_delay_class delay_class, unsigned int delay)
 {
-	assert(delay <= RISCV_SCAN_DELAY_MAX);
 	LOG_DEBUG("%s delay is set to %u.",
 			riscv_scan_delay_class_name(delay_class), delay);
 	switch (delay_class) {
@@ -107,12 +101,8 @@ static inline int riscv_scan_increase_delay(struct riscv_scan_delays *delays,
 {
 	const unsigned int delay = riscv_scan_get_delay(delays, delay_class);
 	const unsigned int delay_step = delay / 10 + 1;
-	if (delay > RISCV_SCAN_DELAY_MAX - delay_step) {
-		/* It's not clear if this issue actually occurs in real
-		 * use-cases, so stick with a simple solution until the
-		 * first bug report.
-		 */
-		LOG_ERROR("Delay for %s (%d) is not increased anymore (maximum was reached).",
+	if (delay + delay_step < delay) {
+		LOG_ERROR("Delay for %s (%u) is not increased anymore (maximum was reached).",
 				riscv_scan_delay_class_name(delay_class), delay);
 		return ERROR_FAIL;
 	}
