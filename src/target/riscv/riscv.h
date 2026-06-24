@@ -17,7 +17,6 @@ struct riscv_program;
 
 #define RISCV_COMMON_MAGIC	0x52495356U
 
-#define RISCV_MAX_HARTS  ((int)BIT(20))
 #define RISCV_MAX_TRIGGERS 32
 #define RISCV_MAX_HWBPS 16
 #define RISCV_MAX_DMS 100

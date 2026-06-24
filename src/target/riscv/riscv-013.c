@@ -1972,9 +1972,8 @@ static int examine_dm(struct target *target)
 		get_field(dmcontrol, DM_DMCONTROL_HARTSELLO);
 
 	/* Before doing anything else we must first enumerate the harts. */
-	const int max_hart_count = MIN(RISCV_MAX_HARTS, hartsel + 1);
 	if (dm->hart_count < 0) {
-		for (int i = 0; i < max_hart_count; ++i) {
+		for (uint32_t i = 0; i <= hartsel; ++i) {
 			/* TODO: This is extremely similar to
 			 * riscv013_get_hart_state().
 			 * It would be best to reuse the code.
@@ -2086,6 +2085,14 @@ static int examine(struct target *target)
 	int result = examine_dm(target);
 	if (result != ERROR_OK)
 		return result;
+
+	dm013_info_t *dm = get_dm(target);
+	if (target->coreid >= dm->hart_count) {
+		LOG_TARGET_ERROR(target, "Hart index %d is too large. The maximum"
+			" index for this Debug Module is %d",
+			target->coreid, dm->hart_count - 1);
+		return ERROR_FAIL;
+	}
 
 	result = dm013_select_target(target);
 	if (result != ERROR_OK)
