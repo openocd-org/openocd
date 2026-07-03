@@ -755,14 +755,17 @@ static int aarch64_do_restart_one(struct target *target, enum restart_mode mode)
 	if (mode == RESTART_SYNC) {
 		int64_t then = timeval_ms();
 		for (;;) {
+			uint32_t prsr;
 			int resumed;
 			/*
-			 * if PRSR.SDR is set now, the target did restart, even
-			 * if it's now already halted again (e.g. due to breakpoint)
+			 * If PRSR.SDR is set now, the target did restart, even
+			 * if it's now already halted again (e.g. due to breakpoint).
+			 * Some systems do not reliably latch SDR for this CTI resume,
+			 * so also accept PRSR.HALT clearing as proof of resume.
 			 */
 			retval = aarch64_check_state_one(target,
-						PRSR_SDR, PRSR_SDR, &resumed, NULL);
-			if (retval != ERROR_OK || resumed)
+						PRSR_SDR, PRSR_SDR, &resumed, &prsr);
+			if (retval != ERROR_OK || resumed || !(prsr & PRSR_HALT))
 				break;
 
 			if (timeval_ms() > then + 1000) {
