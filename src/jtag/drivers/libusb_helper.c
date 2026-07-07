@@ -25,7 +25,7 @@
 static struct libusb_context *jtag_libusb_context; /**< Libusb context **/
 static struct libusb_device **devs; /**< The usb device list **/
 
-static int jtag_libusb_error(int err)
+int jtag_libusb_error(int err)
 {
 	switch (err) {
 	case LIBUSB_SUCCESS:

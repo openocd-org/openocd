@@ -80,6 +80,9 @@ struct adapter_driver *adapter_drivers[] = {
 #if BUILD_ESP_USB_JTAG == 1
 		&esp_usb_adapter_driver,
 #endif
+#if BUILD_EUD == 1
+		&eud_adapter_driver,
+#endif
 #if BUILD_FT232R == 1
 		&ft232r_adapter_driver,
 #endif

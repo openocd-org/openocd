@@ -30,6 +30,7 @@
 typedef char * (*adapter_get_alternate_serial_fn)(struct libusb_device_handle *device,
 		struct libusb_device_descriptor *dev_desc);
 
+int jtag_libusb_error(int err);
 bool jtag_libusb_match_ids(struct libusb_device_descriptor *dev_desc,
 		const uint16_t vids[], const uint16_t pids[]);
 int jtag_libusb_open(const uint16_t vids[], const uint16_t pids[],

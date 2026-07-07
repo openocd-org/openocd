@@ -16,6 +16,7 @@ OpenOCD gerrit, as explained in HACKING.
 The dumps are organized in subfolders corresponding to OpenOCD drivers:
 - cmsis_dap;
 - esp_usb_jtag;
+- eud;
 - ft232r;
 - ftdi;
 - icdi;

@@ -111,6 +111,9 @@ endif
 if ESP_USB_JTAG
 DRIVERFILES += %D%/esp_usb_jtag.c
 endif
+if EUD
+DRIVERFILES += %D%/eud.c
+endif
 if USBPROG
 DRIVERFILES += %D%/usbprog.c
 endif

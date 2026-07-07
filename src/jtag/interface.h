@@ -386,6 +386,7 @@ extern struct adapter_driver dmem_dap_adapter_driver;
 extern struct adapter_driver dummy_adapter_driver;
 extern struct adapter_driver ep93xx_adapter_driver;
 extern struct adapter_driver esp_usb_adapter_driver;
+extern struct adapter_driver eud_adapter_driver;
 extern struct adapter_driver ft232r_adapter_driver;
 extern struct adapter_driver ftdi_adapter_driver;
 extern struct adapter_driver gw16012_adapter_driver;

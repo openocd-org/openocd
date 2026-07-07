@@ -639,6 +639,9 @@ This is deprecated from Linux v5.3; prefer using @b{linuxgpiod}.
 @* A JTAG driver that works with the WCH CH347F and CH347T chips.
 When using the CH347T, it must be configured to operate in mode 3 (UART + JTAG).
 
+@item @b{eud}
+@* An SWD driver to communicate with the built-in Embedded USB Debugger block found on various Qualcomm SoCs.
+
 @end itemize
 
 @node About Jim Tcl
@@ -3913,6 +3916,18 @@ Specifies the hostname of the remote debugger or UNIX socket to connect to.
 Specifies the port of the remote process to connect to.
 '0' is a special case where UNIX sockets are used.
 @end deffn
+
+@end deffn
+
+@deffn {Interface Driver} {eud}
+The EUD (Embedded USB Debugger) is a multi-function debug IP found on a
+plethora of Qualcomm SoCs. When enabled and put into debug mode (the
+other mode being bypass), it hijacks a USB port of the device and
+exposes a USB hub on it, with a number of debug devices (control,
+ATB trace, JTAG, SWD and COM port).
+
+This OpenOCD driver configures the SWD sub-device to allow debugging
+over that protocol.
 
 @end deffn
 

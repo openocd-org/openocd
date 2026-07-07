@@ -139,6 +139,13 @@ ATTRS{idVendor}=="04d9", ATTRS{idProduct}=="8052", MODE="660", GROUP="plugdev", 
 # Infineon DAP miniWiggler v3
 ATTRS{idVendor}=="058b", ATTRS{idProduct}=="0043", MODE="660", GROUP="plugdev", TAG+="uaccess"
 
+# Qualcomm Embedded USB Debugger (EUD)
+ATTRS{idVendor}=="05c6", ATTRS{idProduct}=="9501", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="05c6", ATTRS{idProduct}=="9502", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="05c6", ATTRS{idProduct}=="9503", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="05c6", ATTRS{idProduct}=="9504", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="05c6", ATTRS{idProduct}=="9505", MODE="660", GROUP="plugdev", TAG+="uaccess"
+
 # Hitex LPC1768-Stick
 ATTRS{idVendor}=="0640", ATTRS{idProduct}=="0026", MODE="660", GROUP="plugdev", TAG+="uaccess"
 
