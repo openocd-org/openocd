@@ -17,4 +17,22 @@
 #include "config.h"
 #endif
 
+#include <assert.h>
+#include <string.h>
+
 #include <helper/tcl-common.h>
+
+char *tcl_escape_alloc(Jim_Interp *interp, const char *s)
+{
+	assert(s);
+
+	Jim_Obj *o1 = Jim_NewStringObj(interp, s, -1);
+	Jim_Obj *o2 = Jim_NewListObj(interp, &o1, 1);
+	Jim_IncrRefCount(o2);
+
+	char *out = strdup(Jim_String(o2));
+
+	Jim_DecrRefCount(interp, o2);
+
+	return out;
+}
