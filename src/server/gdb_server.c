@@ -27,6 +27,7 @@
 #include "config.h"
 #endif
 
+#include <helper/tcl-common.h>
 #include <target/breakpoints.h>
 #include <target/target_request.h>
 #include <target/register.h>
@@ -3913,6 +3914,20 @@ static void gdb_keep_client_alive(struct connection *connection)
 	}
 }
 
+static COMMAND_HELPER(gdb_service_info, const struct service *service)
+{
+	struct gdb_service *gdb_service = service->priv;
+
+	char *cmd_name = tcl_escape_alloc(CMD_CTX->interp, gdb_service->target->cmd_name);
+	if (!cmd_name) {
+		LOG_ERROR("Unable to escape Tcl string");
+		return ERROR_FAIL;
+	}
+	command_print(cmd, "    target %s", cmd_name);
+	free(cmd_name);
+	return ERROR_OK;
+}
+
 static const struct service_driver gdb_service_driver = {
 	.name = "gdb",
 	.new_connection_during_keep_alive_handler = NULL,
@@ -3920,6 +3935,7 @@ static const struct service_driver gdb_service_driver = {
 	.input_handler = gdb_input,
 	.connection_closed_handler = gdb_connection_closed,
 	.keep_client_alive_handler = gdb_keep_client_alive,
+	.service_info_handler = gdb_service_info,
 };
 
 static int gdb_target_start(struct target *target, const char *port)

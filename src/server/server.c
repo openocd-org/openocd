@@ -16,6 +16,7 @@
 #endif
 
 #include "server.h"
+#include <helper/tcl-common.h>
 #include <helper/time_support.h>
 #include <target/target.h>
 #include <target/target_request.h>
@@ -231,6 +232,7 @@ int add_service(const struct service_driver *driver, const char *port,
 	c->connection_closed = driver->connection_closed_handler;
 	c->keep_client_alive = driver->keep_client_alive_handler;
 	c->service_dtor = driver->service_dtor_handler;
+	c->service_info = driver->service_info_handler;
 	c->priv = priv;
 	c->next = NULL;
 
@@ -873,6 +875,51 @@ COMMAND_HANDLER(handle_bindto_command)
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(handle_services_command)
+{
+	if (CMD_ARGC != 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	for (const struct service *s = services; s; s = s->next) {
+		command_print(CMD, "{");
+
+		/* Escape the name in case it contains special characters. */
+		char *escaped_name = tcl_escape_alloc(CMD_CTX->interp, s->name);
+		if (!escaped_name) {
+			command_print(CMD, "Unable to escape Tcl string");
+			return ERROR_FAIL;
+		}
+		command_print(CMD, "    name %s", escaped_name);
+		free(escaped_name);
+
+		struct sockaddr_in addr_in;
+		addr_in.sin_port = 0;
+		socklen_t addr_in_size = sizeof(addr_in);
+		/* If it's a TCP connection and they specified port 0 try to get the real port. */
+		if (s->type == CONNECTION_TCP &&
+			s->portnumber == 0 &&
+			getsockname(s->fd, (struct sockaddr *)&addr_in, &addr_in_size) == 0) {
+			command_print(CMD, "    port %hu", ntohs(addr_in.sin_port));
+		} else {
+			/* Need to escape port because it could be a FIFO path which is
+			 * allowed to contain basically any character. */
+			char *escaped_port = tcl_escape_alloc(CMD_CTX->interp, s->port);
+			if (!escaped_port) {
+				command_print(CMD, "Unable to escape Tcl string");
+				return ERROR_FAIL;
+			}
+			command_print(CMD, "    port %s", escaped_port);
+			free(escaped_port);
+		}
+
+		if (s->service_info)
+			CALL_COMMAND_HANDLER(s->service_info, s);
+
+		command_print(CMD, "}");
+	}
+	return ERROR_OK;
+}
+
 static const struct command_registration server_command_handlers[] = {
 	{
 		.name = "shutdown",
@@ -902,6 +949,13 @@ static const struct command_registration server_command_handlers[] = {
 		.usage = "[name]",
 		.help = "Specify address by name on which to listen for "
 			"incoming TCP/IP connections",
+	},
+	{
+		.name = "services",
+		.handler = &handle_services_command,
+		.mode = COMMAND_ANY,
+		.usage = "",
+		.help = "return information about running services"
 	},
 	COMMAND_REGISTRATION_DONE
 };
