@@ -66,6 +66,9 @@ char *find_file(const char *file)
 	char const *mode = "r";
 	char *full_path;
 
+	if (!file || strlen(file) == 0)
+		return NULL;
+
 	/* Check absolute and relative to current working dir first.
 	 * This keeps full_path reporting belowing working. */
 	full_path = alloc_printf("%s", file);
