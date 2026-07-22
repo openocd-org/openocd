@@ -238,6 +238,20 @@ static inline int socket_recv_timeout(int fd, unsigned long timeout_msec)
 #endif
 }
 
+static inline int socket_send_timeout(int fd, unsigned long timeout_msec)
+{
+#ifdef _WIN32
+	DWORD timeout = timeout_msec;
+	return setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, (const char *)&timeout,
+			sizeof(timeout));
+#else
+	struct timeval tv;
+	tv.tv_sec = timeout_msec / 1000;
+	tv.tv_usec = (timeout_msec % 1000) * 1000;
+	return setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, (const char *)&tv, sizeof(tv));
+#endif
+}
+
 #ifndef HAVE_ELF_H
 
 typedef uint32_t Elf32_Addr;

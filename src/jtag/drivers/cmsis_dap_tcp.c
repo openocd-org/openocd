@@ -52,7 +52,9 @@
 #include "helper/log.h"
 #include "helper/replacements.h"
 #include "helper/system.h"
+#include "helper/time_support.h"
 #include "cmsis_dap.h"
+#include "server/server.h"
 
 #define STRINGIFY(x) #x
 
@@ -101,6 +103,14 @@ struct __attribute__((packed)) cmsis_dap_tcp_packet_hdr {
 
 struct cmsis_dap_backend_data {
 	int sockfd;
+	bool socket_closed;
+
+	// Region of dap->packet_buffer used to accumulate socket reads.
+	uint8_t *read_buffer;
+
+	unsigned int read_buffer_size;		// read_buffer capacity
+	unsigned int read_buffer_len;		// number of bytes buffered
+	unsigned int read_buffer_consumed;	// number to be discarded
 };
 
 static char *cmsis_dap_tcp_host;
@@ -111,6 +121,29 @@ static int cmsis_dap_tcp_min_timeout_ms = DEFAULT_MIN_TIMEOUT_MS;
 static void cmsis_dap_tcp_close(struct cmsis_dap *dap);
 static int cmsis_dap_tcp_alloc(struct cmsis_dap *dap, unsigned int pkt_sz);
 static void cmsis_dap_tcp_free(struct cmsis_dap *dap);
+
+// True if the peer is definitely gone (socket closed / aborted / reset).
+static bool is_socket_error_fatal(void)
+{
+#ifdef _WIN32
+	switch (WSAGetLastError()) {
+	case WSAECONNRESET:
+	case WSAECONNABORTED:
+		return true;
+	default:
+		return false;
+	}
+#else
+	switch (errno) {
+	case ECONNRESET:
+	case ECONNABORTED:
+	case EPIPE:
+		return true;
+	default:
+		return false;
+	}
+#endif
+}
 
 static int cmsis_dap_tcp_open(struct cmsis_dap *dap,
 		const uint16_t vids[] __attribute__((unused)),
@@ -130,6 +163,7 @@ static int cmsis_dap_tcp_open(struct cmsis_dap *dap,
 		LOG_ERROR("CMSIS-DAP: unable to allocate memory");
 		return ERROR_FAIL;
 	}
+	dap->bdata->socket_closed = false;
 
 	struct addrinfo hints = {
 		.ai_family = AF_UNSPEC,
@@ -206,112 +240,18 @@ static void cmsis_dap_tcp_close(struct cmsis_dap *dap)
 	cmsis_dap_tcp_free(dap);
 }
 
-static int socket_bytes_available(int sock, unsigned int *out_avail)
-{
-#ifdef _WIN32
-	u_long avail = 0;
-	if (ioctlsocket((SOCKET)sock, FIONREAD, &avail) == SOCKET_ERROR)
-		return -1;
-#else
-	int avail = 0;
-	if (ioctl(sock, FIONREAD, &avail) < 0)
-		return -1;
-#endif
-	*out_avail = avail;
-	return 0;
-}
-
-static inline int readall_socket(int handle, void *buffer, unsigned int count)
-{
-	// Return after all count bytes available, or timeout, or error.
-	return recv(handle, buffer, count, MSG_WAITALL);
-}
-
-static int peekall_socket(int handle, void *buffer, unsigned int count,
-		enum cmsis_dap_blocking blocking, unsigned int timeout_ms)
-{
-	/* Windows doesn't support MSG_PEEK in combination with MSG_WAITALL:
-	 *	 return recv(handle, buffer, count, MSG_PEEK | MSG_WAITALL);
-	 *
-	 * So, use this method instead which should work for Windows and others.
-	 *
-	 * Data remains unread on the socket until recv() is called later without
-	 * the MSG_PEEK flag. Return after all count bytes available, or timeout,
-	 * or error.
-	 */
-
-	if (count == 0)
-		return 0;
-
-	while (true) {
-		int ret;
-		unsigned int avail;
-		if (socket_bytes_available(handle, &avail) < 0)
-			return -1;
-
-		if (avail >= count) {
-			ret = recv(handle, (char *)buffer, (int)count, MSG_PEEK);
-			if (ret < 0) {
-#ifdef _WIN32
-				int err = WSAGetLastError();
-				if (err == WSAEINTR)
-					continue;
-				if (err == WSAEWOULDBLOCK)
-					return -1;
-#else
-				if (errno == EINTR)
-					continue;
-				if (errno == EAGAIN || errno == EWOULDBLOCK)
-					return -1;	// Timeout or nonblocking.
-#endif
-			}
-			return ret; // 0: Closed, <0: Other error, >0 Success.
-		}
-
-		// Not enough data available.
-		if (blocking == CMSIS_DAP_NON_BLOCKING) {
-#ifdef _WIN32
-			WSASetLastError(WSAEWOULDBLOCK);
-#else
-			errno = EAGAIN;
-#endif
-			return -1;
-		}
-
-		// Blocking wait.
-		fd_set rfds;
-		FD_ZERO(&rfds);
-		OCD_FD_SET(handle, &rfds);
-
-		struct timeval tv;
-		tv.tv_sec  = timeout_ms / 1000;
-		tv.tv_usec = (timeout_ms % 1000) * 1000;
-
-		ret = select(handle + 1, &rfds, NULL, NULL, &tv);
-		if (ret > 0)
-			continue;		// Readable
-
-		if (ret == 0) {		// Timeout
-#ifdef _WIN32
-			WSASetLastError(WSAEWOULDBLOCK);
-#else
-			errno = EAGAIN;
-#endif
-			return -1;
-		}
-
-		// Error
-#ifndef _WIN32
-		if (errno == EINTR)
-			continue;
-#endif
-		return ret;
-	}
-}
-
 static int cmsis_dap_tcp_read(struct cmsis_dap *dap, int transfer_timeout_ms,
 							  enum cmsis_dap_blocking blocking)
 {
+	if (dap->bdata->socket_closed)
+		return ERROR_FAIL;
+
+	/* Sometimes the CMSIS-DAP driver requests a very short timeout that it
+	 * expects may time out. In that case, we won't print an error message.
+	 */
+	bool timeout_expected = (transfer_timeout_ms <= CMSIS_DAP_TIMEOUT_SHORT_MS) ?
+		true : false;
+
 	int wait_ms = (blocking == CMSIS_DAP_NON_BLOCKING) ? 0 :
 		transfer_timeout_ms;
 	if (wait_ms) {
@@ -324,6 +264,7 @@ static int cmsis_dap_tcp_read(struct cmsis_dap *dap, int transfer_timeout_ms,
 			LOG_DEBUG_IO("CMSIS-DAP: extending timeout to %d msec", wait_ms);
 		}
 	}
+	int64_t deadline = timeval_ms() + wait_ms;
 	socket_recv_timeout(dap->bdata->sockfd, wait_ms);
 
 	if (blocking == CMSIS_DAP_NON_BLOCKING)
@@ -331,78 +272,113 @@ static int cmsis_dap_tcp_read(struct cmsis_dap *dap, int transfer_timeout_ms,
 	else
 		socket_block(dap->bdata->sockfd);
 
-	// Peek at the header first to find the length.
-	int retval = peekall_socket(dap->bdata->sockfd, dap->packet_buffer,
-			HEADER_SIZE, blocking, wait_ms);
-	LOG_DEBUG_IO("Reading header returned %d", retval);
-	if (retval == 0) {
-		LOG_DEBUG_IO("CMSIS-DAP: tcp timeout reached 1");
-		return ERROR_TIMEOUT_REACHED;
-	} else if (retval == -1) {
-		if (errno == EAGAIN || errno == EWOULDBLOCK) {
-			if (blocking == CMSIS_DAP_NON_BLOCKING)
-				return ERROR_TIMEOUT_REACHED;
+	// Discard any previously consumed packet.
+	if (dap->bdata->read_buffer_consumed) {
+		unsigned int remaining = dap->bdata->read_buffer_len - dap->bdata->read_buffer_consumed;
+		if (remaining)
+			memmove(dap->bdata->read_buffer,
+					dap->bdata->read_buffer + dap->bdata->read_buffer_consumed,
+					remaining);
+		dap->bdata->read_buffer_len = remaining;
+		dap->bdata->read_buffer_consumed = 0;
+	}
 
-			LOG_DEBUG_IO("CMSIS-DAP: tcp timeout reached 2. timeout = %d msec",
-					wait_ms);
-			return ERROR_TIMEOUT_REACHED;
+	while (true) {
+		// Header available?
+		if (dap->bdata->read_buffer_len >= HEADER_SIZE) {
+			struct cmsis_dap_tcp_packet_hdr header;
+			header.signature = le_to_h_u32(dap->bdata->read_buffer + HEADER_SIGNATURE_OFFSET);
+			header.length = le_to_h_u16(dap->bdata->read_buffer + HEADER_LENGTH_OFFSET);
+			header.packet_type = dap->bdata->read_buffer[HEADER_PACKET_TYPE_OFFSET];
+			header.reserved = dap->bdata->read_buffer[HEADER_RESERVED_OFFSET];
+
+			if (header.signature != DAP_PKT_HDR_SIGNATURE) {
+				LOG_ERROR("CMSIS-DAP: Unrecognized packet signature 0x%08x",
+						header.signature);
+				dap->bdata->read_buffer_len = 0; // Discard buffer
+				return ERROR_FAIL;
+			} else if (header.packet_type != DAP_PKT_TYPE_RESPONSE) {
+				LOG_ERROR("CMSIS-DAP: Unrecognized packet type 0x%02x",
+						header.packet_type);
+				dap->bdata->read_buffer_len = 0;
+				return ERROR_FAIL;
+			} else if (header.length + HEADER_SIZE > dap->bdata->read_buffer_size) {
+				LOG_ERROR("CMSIS-DAP: Packet length %d too large to fit.",
+						header.length);
+				dap->bdata->read_buffer_len = 0;
+				return ERROR_FAIL;
+			}
+
+			// Complete packet available?
+			unsigned int total_len = HEADER_SIZE + header.length;
+			if (dap->bdata->read_buffer_len >= total_len) {
+				dap->bdata->read_buffer_consumed = total_len;
+				LOG_DEBUG_IO("Read %u bytes (%u payload)", total_len, (unsigned int)header.length);
+				return (int)total_len;
+			}
 		}
 
-		LOG_ERROR("CMSIS-DAP: error reading header");
-		log_socket_error("peek_socket");
-		return ERROR_FAIL;
-	} else if (retval != HEADER_SIZE) {
-		LOG_ERROR("CMSIS-DAP: short header read");
-		log_socket_error("peek_socket header short read");
-		return ERROR_FAIL;
-	}
+		// Update timeout and accumulate from the socket into read_buffer.
+		if (blocking == CMSIS_DAP_BLOCKING) {
+			int64_t remaining = deadline - timeval_ms();
+			if (remaining <= 0) {
+				if (timeout_expected)
+					LOG_DEBUG_IO("CMSIS-DAP: TCP read timed out");
+				else
+					LOG_ERROR("CMSIS-DAP: TCP read timed out");
+				return ERROR_TIMEOUT_REACHED;
+			}
+			socket_recv_timeout(dap->bdata->sockfd, (unsigned long)remaining);
+		}
 
-	struct cmsis_dap_tcp_packet_hdr header;
-	header.signature = le_to_h_u32(dap->packet_buffer +
-			HEADER_SIGNATURE_OFFSET);
-	header.length = le_to_h_u16(dap->packet_buffer + HEADER_LENGTH_OFFSET);
-	header.packet_type = dap->packet_buffer[HEADER_PACKET_TYPE_OFFSET];
-	header.reserved = dap->packet_buffer[HEADER_RESERVED_OFFSET];
+		unsigned int space = dap->bdata->read_buffer_size - dap->bdata->read_buffer_len;
+		int ret = read_socket(dap->bdata->sockfd,
+				(char *)(dap->bdata->read_buffer + dap->bdata->read_buffer_len), space);
 
-	if (header.signature != DAP_PKT_HDR_SIGNATURE) {
-		LOG_ERROR("CMSIS-DAP: Unrecognized packet signature 0x%08x",
-				header.signature);
-		return ERROR_FAIL;
-	} else if (header.packet_type != DAP_PKT_TYPE_RESPONSE) {
-		LOG_ERROR("CMSIS-DAP: Unrecognized packet type 0x%02x",
-				header.packet_type);
-		return ERROR_FAIL;
-	} else if (header.length + HEADER_SIZE > dap->packet_buffer_size) {
-		LOG_ERROR("CMSIS-DAP: Packet length %d too large to fit.",
-				header.length);
-		return ERROR_FAIL;
-	}
-
-	// Read the complete packet.
-	int read_len = HEADER_SIZE + header.length;
-	LOG_DEBUG_IO("Reading %d bytes (%d payload)...", read_len, header.length);
-	retval = readall_socket(dap->bdata->sockfd, dap->packet_buffer, read_len);
-
-	if (retval == 0) {
-		LOG_DEBUG_IO("CMSIS-DAP: tcp timeout reached 3");
-		return ERROR_TIMEOUT_REACHED;
-	} else if (retval == -1) {
+		if (ret > 0) {
+			dap->bdata->read_buffer_len += ret;
+			continue;
+		} else if (ret == 0) {
+			LOG_ERROR("CMSIS-DAP: connection closed by peer");
+			dap->bdata->socket_closed = true;
+			return ERROR_FAIL;
+		}
+		// ret < 0
+#ifdef _WIN32
+		int err = WSAGetLastError();
+		if (err == WSAEINTR)
+			continue;
+		if (err == WSAEWOULDBLOCK || err == WSAETIMEDOUT) {
+			if (blocking == CMSIS_DAP_BLOCKING && !timeout_expected)
+				LOG_ERROR("CMSIS-DAP: TCP read timed out");
+			else
+				LOG_DEBUG_IO("CMSIS-DAP: TCP read timed out");
+			return ERROR_TIMEOUT_REACHED;
+		}
+#else
+		if (errno == EINTR)
+			continue;
+		if (errno == EAGAIN || errno == EWOULDBLOCK || errno == ETIMEDOUT) {
+			if (blocking == CMSIS_DAP_BLOCKING && !timeout_expected)
+				LOG_ERROR("CMSIS-DAP: TCP read timed out");
+			else
+				LOG_DEBUG_IO("CMSIS-DAP: TCP read timed out");
+			return ERROR_TIMEOUT_REACHED;
+		}
+#endif
+		if (is_socket_error_fatal())
+			dap->bdata->socket_closed = true;
 		LOG_ERROR("CMSIS-DAP: error reading data");
 		log_socket_error("read_socket");
 		return ERROR_FAIL;
-	} else if (retval != read_len) {
-		LOG_ERROR("CMSIS-DAP: short read. retval = %d. read_len = %d. "
-				"blocking = %s. wait_ms = %d", retval, read_len,
-				(blocking == CMSIS_DAP_NON_BLOCKING) ? "yes" : "no", wait_ms);
-		log_socket_error("read_socket short read");
-		return ERROR_FAIL;
 	}
-	return retval;
 }
 
-static int cmsis_dap_tcp_write(struct cmsis_dap *dap, int txlen,
-		int timeout_ms __attribute__((unused)))
+static int cmsis_dap_tcp_write(struct cmsis_dap *dap, int txlen, int timeout_ms)
 {
+	if (dap->bdata->socket_closed)
+		return ERROR_FAIL;
+
 	const unsigned int len = txlen + HEADER_SIZE;
 	if (len > dap->packet_buffer_size) {
 		LOG_ERROR("CMSIS-DAP: Packet length %d exceeds TCP buffer size!", len);
@@ -410,16 +386,29 @@ static int cmsis_dap_tcp_write(struct cmsis_dap *dap, int txlen,
 	}
 
 	/* Set the header values. */
-	h_u32_to_le(dap->packet_buffer + HEADER_SIGNATURE_OFFSET,
-			DAP_PKT_HDR_SIGNATURE);
+	h_u32_to_le(dap->packet_buffer + HEADER_SIGNATURE_OFFSET, DAP_PKT_HDR_SIGNATURE);
 	h_u16_to_le(dap->packet_buffer + HEADER_LENGTH_OFFSET, txlen);
 	dap->packet_buffer[HEADER_PACKET_TYPE_OFFSET] = DAP_PKT_TYPE_REQUEST;
 	dap->packet_buffer[HEADER_RESERVED_OFFSET] = 0;
+
+	// Timeout to prevent hang due to a dead peer.
+	socket_block(dap->bdata->sockfd);
+	socket_send_timeout(dap->bdata->sockfd, timeout_ms);
 
 	/* write data to device */
 	LOG_DEBUG_IO("Writing %d bytes (%d payload)", len, txlen);
 	int retval = write_socket(dap->bdata->sockfd, dap->packet_buffer, len);
 	if (retval < 0) {
+		bool would_block;
+#ifdef _WIN32
+		would_block = (WSAGetLastError() == WSAEWOULDBLOCK);
+#else
+		would_block = (errno == EAGAIN || errno == EWOULDBLOCK);
+#endif
+		if (would_block)
+			LOG_ERROR("CMSIS-DAP: TCP write timed out");
+		else if (is_socket_error_fatal())
+			dap->bdata->socket_closed = true;
 		log_socket_error("write_socket");
 		return ERROR_FAIL;
 	} else if (retval != (int)len) {
@@ -434,19 +423,28 @@ static int cmsis_dap_tcp_alloc(struct cmsis_dap *dap, unsigned int pkt_sz)
 {
 	// Reserve space for the packet header.
 	unsigned int packet_buffer_size = pkt_sz + HEADER_SIZE;
-	uint8_t *buf = malloc(packet_buffer_size);
+
+	// Allocate separate regions for command (write) and response (read).
+	uint8_t *buf = malloc(2 * packet_buffer_size);
 	if (!buf) {
 		LOG_ERROR("CMSIS-DAP: unable to allocate CMSIS-DAP packet buffer");
 		return ERROR_FAIL;
 	}
 
+	// Command buffer in the first half of dap->packet_buffer.
 	dap->packet_buffer = buf;
 	dap->packet_size = pkt_sz;
 	dap->packet_usable_size = pkt_sz;
 	dap->packet_buffer_size = packet_buffer_size;
-
 	dap->command = dap->packet_buffer + HEADER_SIZE;
-	dap->response = dap->packet_buffer + HEADER_SIZE;
+
+	// Response buffer in the second half of dap->packet_buffer.
+	dap->bdata->read_buffer = dap->packet_buffer + packet_buffer_size;
+	dap->bdata->read_buffer_size = packet_buffer_size;
+	dap->bdata->read_buffer_len = 0;
+	dap->bdata->read_buffer_consumed = 0;
+	dap->response = dap->bdata->read_buffer + HEADER_SIZE;
+
 	return ERROR_OK;
 }
 

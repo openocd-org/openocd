@@ -336,7 +336,8 @@ static void cmsis_dap_flush_read(struct cmsis_dap *dap)
 	 * USB close/open so we need to flush up to 64 old packets
 	 * to be sure all buffers are empty */
 	for (i = 0; i < 64; i++) {
-		int retval = dap->backend->read(dap, 10, CMSIS_DAP_BLOCKING);
+		int retval = dap->backend->read(dap, CMSIS_DAP_TIMEOUT_SHORT_MS,
+				CMSIS_DAP_BLOCKING);
 		if (retval == ERROR_TIMEOUT_REACHED)
 			break;
 	}
@@ -353,7 +354,8 @@ static int cmsis_dap_xfer(struct cmsis_dap *dap, int txlen)
 	if (dap->pending_fifo_block_count) {
 		LOG_ERROR("pending %u blocks, flushing", dap->pending_fifo_block_count);
 		while (dap->pending_fifo_block_count) {
-			dap->backend->read(dap, 10, CMSIS_DAP_BLOCKING);
+			dap->backend->read(dap, CMSIS_DAP_TIMEOUT_SHORT_MS,
+					CMSIS_DAP_BLOCKING);
 			dap->pending_fifo_block_count--;
 		}
 		dap->pending_fifo_put_idx = 0;
@@ -900,7 +902,8 @@ static void cmsis_dap_swd_read_process(struct cmsis_dap *dap, enum cmsis_dap_blo
 
 	if (queued_retval != ERROR_OK) {
 		/* keep reading blocks until the pipeline is empty */
-		retval = dap->backend->read(dap, 10, CMSIS_DAP_BLOCKING);
+		retval = dap->backend->read(dap, CMSIS_DAP_TIMEOUT_SHORT_MS,
+				CMSIS_DAP_BLOCKING);
 		if (retval == ERROR_TIMEOUT_REACHED || retval == 0) {
 			/* timeout means that we flushed the pipeline,
 			 * we can safely discard remaining pending requests */
