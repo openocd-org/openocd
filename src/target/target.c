@@ -2240,7 +2240,8 @@ static void free_smp_target_list(struct list_head *smp_targets)
 	struct target_list *head, *tmp;
 	list_for_each_entry_safe(head, tmp, smp_targets, lh) {
 		list_del(&head->lh);
-		head->target->smp = 0;
+		head->target->smp = false;
+		head->target->smp_id = 0;
 		head->target->smp_targets = &empty_smp_targets;
 		free(head);
 	}
@@ -6116,7 +6117,8 @@ COMMAND_HANDLER(handle_target_smp)
 	}
 	foreach_smp_target(curr, lh) {
 		struct target *target = curr->target;
-		target->smp = smp_group;
+		target->smp = true;
+		target->smp_id = smp_group;
 		target->smp_targets = lh;
 	}
 	smp_group++;

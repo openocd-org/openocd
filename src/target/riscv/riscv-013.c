@@ -1805,11 +1805,11 @@ static int halt_set_dcsr_config(struct target *target)
 	/* Add it back to the halt group. */
 	if (info->haltgroup_supported) {
 		bool supported;
-		if (set_group(target, &supported, target->smp, HALT_GROUP) != ERROR_OK)
+		if (set_group(target, &supported, target->smp_id, HALT_GROUP) != ERROR_OK)
 			return ERROR_FAIL;
 		if (!supported)
 			LOG_TARGET_ERROR(target, "Couldn't place hart back in halt group %d. "
-						 "Some harts may be unexpectedly halted.", target->smp);
+						 "Some harts may be unexpectedly halted.", target->smp_id);
 	}
 
 	return result;
@@ -2206,14 +2206,14 @@ static int examine(struct target *target)
 	}
 
 	if (target->smp) {
-		if (set_group(target, &info->haltgroup_supported, target->smp, HALT_GROUP) != ERROR_OK)
+		if (set_group(target, &info->haltgroup_supported, target->smp_id, HALT_GROUP) != ERROR_OK)
 			return ERROR_FAIL;
 		if (info->haltgroup_supported)
 			LOG_TARGET_INFO(target, "Core %d made part of halt group %d.", info->index,
-					target->smp);
+					target->smp_id);
 		else
 			LOG_TARGET_INFO(target, "Core %d could not be made part of halt group %d.",
-					info->index, target->smp);
+					info->index, target->smp_id);
 	}
 
 	/* Some regression suites rely on seeing 'Examined RISC-V core' to know

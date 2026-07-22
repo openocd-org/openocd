@@ -106,14 +106,14 @@ COMMAND_HANDLER(default_handle_smp_command)
 
 	if (!strcmp(CMD_ARGV[0], "on")) {
 		foreach_smp_target(head, target->smp_targets)
-			head->target->smp = 1;
+			head->target->smp = true;
 
 		return ERROR_OK;
 	}
 
 	if (!strcmp(CMD_ARGV[0], "off")) {
 		foreach_smp_target(head, target->smp_targets)
-			head->target->smp = 0;
+			head->target->smp = false;
 
 		/* fixes the target display to the debugger */
 		if (!list_empty(target->smp_targets) && target->gdb_service)

@@ -715,9 +715,9 @@ static int update_halt_gdb(struct target *target)
 			continue;
 
 		/* avoid recursion in cortex_a_poll() */
-		curr->smp = 0;
+		curr->smp = false;
 		cortex_a_poll(curr);
-		curr->smp = 1;
+		curr->smp = true;
 	}
 
 	/* after all targets were updated, poll the gdb serving target */
