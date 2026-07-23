@@ -761,7 +761,7 @@ int exit_on_signal(int sig)
 #ifndef _WIN32
 	// *nix: Bring back the default system handler and kill self
 	signal(sig, SIG_DFL);
-	kill(getpid(), sig); /* does not return */
+	raise(sig); /* does not return */
 	__builtin_unreachable();
 #else
 	// On Windows, simply use the signal number as the exit code
