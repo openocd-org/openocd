@@ -20,6 +20,8 @@
 #define SRST_BIT	32
 #define VCC_BIT		64
 
+#define EP93XX_DELAY_US 10000
+
 #include <sys/mman.h>
 
 static uint8_t output_value;
@@ -36,8 +38,6 @@ static int ep93xx_reset(int trst, int srst);
 
 static int ep93xx_init(void);
 static int ep93xx_quit(void);
-
-static struct timespec ep93xx_zzzz;
 
 static struct jtag_interface ep93xx_interface = {
 	.supported = DEBUG_CAP_TMS_SEQ,
@@ -85,7 +85,7 @@ static int ep93xx_write(int tck, int tms, int tdi)
 		output_value &= ~TDI_BIT;
 
 	*gpio_data_register = output_value;
-	nanosleep(&ep93xx_zzzz, NULL);
+	usleep(EP93XX_DELAY_US);
 
 	return ERROR_OK;
 }
@@ -104,7 +104,7 @@ static int ep93xx_reset(int trst, int srst)
 		output_value &= ~SRST_BIT;
 
 	*gpio_data_register = output_value;
-	nanosleep(&ep93xx_zzzz, NULL);
+	usleep(EP93XX_DELAY_US);
 
 	return ERROR_OK;
 }
@@ -132,9 +132,6 @@ static int ep93xx_init(void)
 	int ret;
 
 	bitbang_interface = &ep93xx_bitbang;
-
-	ep93xx_zzzz.tv_sec = 0;
-	ep93xx_zzzz.tv_nsec = 10000000;
 
 	dev_mem_fd = open("/dev/mem", O_RDWR | O_SYNC);
 	if (dev_mem_fd < 0) {
@@ -189,7 +186,7 @@ static int ep93xx_init(void)
 	 */
 	output_value = TMS_BIT | TRST_BIT | SRST_BIT | VCC_BIT;
 	*gpio_data_register = output_value;
-	nanosleep(&ep93xx_zzzz, NULL);
+	usleep(EP93XX_DELAY_US);
 
 	/*
 	 * Configure the direction register.  1 = output, 0 = input.
@@ -197,7 +194,7 @@ static int ep93xx_init(void)
 	*gpio_data_direction_register =
 		TDI_BIT | TCK_BIT | TMS_BIT | TRST_BIT | SRST_BIT | VCC_BIT;
 
-	nanosleep(&ep93xx_zzzz, NULL);
+	usleep(EP93XX_DELAY_US);
 	return ERROR_OK;
 }
 
