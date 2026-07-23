@@ -110,8 +110,8 @@ static inline int countbits(uint32_t b)
 /**
  * nand_correct_data - Detect and correct a 1 bit error for 256 byte block
  */
-int nand_correct_data(struct nand_device *nand, u_char *dat,
-		u_char *read_ecc, u_char *calc_ecc)
+int nand_correct_data(struct nand_device *nand, uint8_t *dat,
+		uint8_t *read_ecc, uint8_t *calc_ecc)
 {
 	uint8_t s0, s1, s2;
 
