@@ -5,12 +5,12 @@
  * spec, but SiFive made some silicon that uses it.
  */
 
-#include <assert.h>
-#include <stdlib.h>
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
+#include <assert.h>
+#include <stdlib.h>
 
 #include "riscv-011.h"
 
