@@ -123,19 +123,6 @@ static void free_reg_names(struct target *target)
 	free_custom_register_names(target);
 }
 
-static char *init_reg_name(const char *name)
-{
-	const int size_buf = strlen(name) + 1;
-
-	char * const buf = calloc(size_buf, sizeof(char));
-	if (!buf) {
-		LOG_ERROR("Failed to allocate memory for a register name.");
-		return NULL;
-	}
-	strcpy(buf, name);
-	return buf;
-}
-
 static void init_custom_csr_names(const struct target *target)
 {
 	RISCV_INFO(info);
@@ -149,23 +136,10 @@ static void init_custom_csr_names(const struct target *target)
 		assert(regno <= GDB_REGNO_CSR4095);
 		if (info->reg_names[regno])
 			return;
-		info->reg_names[regno] = init_reg_name(entry->name);
+		info->reg_names[regno] = strdup(entry->name);
+		if (!info->reg_names[regno])
+			LOG_ERROR("Failed to allocate memory for a register name");
 	}
-}
-
-static char *init_reg_name_with_prefix(const char *name_prefix,
-	unsigned int num)
-{
-	const int size_buf = snprintf(NULL, 0, "%s%d", name_prefix, num) + 1;
-
-	char * const buf = calloc(size_buf, sizeof(char));
-	if (!buf) {
-		LOG_ERROR("Failed to allocate memory for a register name.");
-		return NULL;
-	}
-	int result = snprintf(buf, size_buf, "%s%d", name_prefix, num);
-	assert(result > 0 && result <= (size_buf - 1));
-	return buf;
 }
 
 const char *riscv_reg_gdb_regno_name(const struct target *target, enum gdb_regno regno)
@@ -186,17 +160,23 @@ const char *riscv_reg_gdb_regno_name(const struct target *target, enum gdb_regno
 	if (default_reg_names[regno])
 		return default_reg_names[regno];
 	if (regno <= GDB_REGNO_XPR31) {
-		info->reg_names[regno] = init_reg_name_with_prefix("x", regno - GDB_REGNO_ZERO);
+		info->reg_names[regno] = alloc_printf("x%d", regno - GDB_REGNO_ZERO);
+		if (!info->reg_names[regno])
+			LOG_ERROR("Failed to allocate memory for a register name");
 		return info->reg_names[regno];
 	}
 	if (regno <= GDB_REGNO_V31 && regno >= GDB_REGNO_V0) {
-		info->reg_names[regno] = init_reg_name_with_prefix("v", regno - GDB_REGNO_V0);
+		info->reg_names[regno] = alloc_printf("v%d", regno - GDB_REGNO_V0);
+		if (!info->reg_names[regno])
+			LOG_ERROR("Failed to allocate memory for a register name");
 		return info->reg_names[regno];
 	}
 	if (regno >= GDB_REGNO_CSR0 && regno <= GDB_REGNO_CSR4095) {
 		init_custom_csr_names(target);
 		if (!info->reg_names[regno])
-			info->reg_names[regno] = init_reg_name_with_prefix("csr", regno - GDB_REGNO_CSR0);
+			info->reg_names[regno] = alloc_printf("csr%d", regno - GDB_REGNO_CSR0);
+		if (!info->reg_names[regno])
+			LOG_ERROR("Failed to allocate memory for a register name");
 		return info->reg_names[regno];
 	}
 	assert(!"Encountered uninitialized entry in reg_names table");
@@ -662,13 +642,15 @@ static int init_custom_register_names(struct list_head *expose_custom,
 	list_for_each_entry(range, expose_custom, list) {
 		for (unsigned int custom_number = range->low; custom_number <= range->high; ++custom_number) {
 			if (range->name)
-				reg_names[next_custom_reg_index] = init_reg_name(range->name);
+				reg_names[next_custom_reg_index] = strdup(range->name);
 			else
 				reg_names[next_custom_reg_index] =
-					init_reg_name_with_prefix("custom", custom_number);
+					alloc_printf("custom%d", custom_number);
 
-			if (!reg_names[next_custom_reg_index])
+			if (!reg_names[next_custom_reg_index]) {
+				LOG_ERROR("Failed to allocate memory for a register name");
 				return ERROR_FAIL;
+			}
 			++next_custom_reg_index;
 		}
 	}
