@@ -139,11 +139,6 @@ typedef struct {
 	bool abstract_cmd_maybe_busy;
 } dm013_info_t;
 
-typedef struct {
-	struct list_head list;
-	struct target *target;
-} target_list_t;
-
 struct ac_cache {
 	uint32_t *commands;
 	size_t size;
@@ -309,8 +304,8 @@ static dm013_info_t *get_dm(struct target *target)
 	}
 
 	info->dm = dm;
-	target_list_t *target_entry;
-	list_for_each_entry(target_entry, &dm->target_list, list) {
+	struct target_list *target_entry;
+	list_for_each_entry(target_entry, &dm->target_list, lh) {
 		if (target_entry->target == target)
 			return dm;
 	}
@@ -320,7 +315,7 @@ static dm013_info_t *get_dm(struct target *target)
 		return NULL;
 	}
 	target_entry->target = target;
-	list_add(&target_entry->list, &dm->target_list);
+	list_add(&target_entry->lh, &dm->target_list);
 
 	return dm;
 }
@@ -332,10 +327,10 @@ static void riscv013_dm_free(struct target *target)
 	if (!dm)
 		return;
 
-	target_list_t *target_entry;
-	list_for_each_entry(target_entry, &dm->target_list, list) {
+	struct target_list *target_entry;
+	list_for_each_entry(target_entry, &dm->target_list, lh) {
 		if (target_entry->target == target) {
-			list_del(&target_entry->list);
+			list_del(&target_entry->lh);
 			free(target_entry);
 			break;
 		}
@@ -2245,8 +2240,8 @@ static int riscv013_authdata_write(struct target *target, uint32_t value, unsign
 		dm013_info_t *dm = get_dm(target);
 		if (!dm)
 			return ERROR_FAIL;
-		target_list_t *entry;
-		list_for_each_entry(entry, &dm->target_list, list) {
+		struct target_list *entry;
+		list_for_each_entry(entry, &dm->target_list, lh) {
 			if (target_examine_one(entry->target) != ERROR_OK)
 				result = ERROR_FAIL;
 		}
@@ -5221,10 +5216,10 @@ static int select_prepped_harts(struct target *target)
 	if (!hawindow)
 		return ERROR_FAIL;
 
-	target_list_t *entry;
+	struct target_list *entry;
 	unsigned int total_selected = 0;
 	unsigned int selected_index = 0;
-	list_for_each_entry(entry, &dm->target_list, list) {
+	list_for_each_entry(entry, &dm->target_list, lh) {
 		struct target *t = entry->target;
 		struct riscv_info *info = riscv_info(t);
 		riscv013_info_t *info_013 = get_info(t);
@@ -5319,8 +5314,8 @@ static int riscv013_halt_go(struct target *target)
 	dm_write(target, DM_DMCONTROL, dmcontrol);
 
 	if (dm->current_hartid == HART_INDEX_MULTIPLE) {
-		target_list_t *entry;
-		list_for_each_entry(entry, &dm->target_list, list) {
+		struct target_list *entry;
+		list_for_each_entry(entry, &dm->target_list, lh) {
 			struct target *t = entry->target;
 			uint32_t t_dmstatus;
 			if (get_field(dmstatus, DM_DMSTATUS_ALLHALTED) ||
