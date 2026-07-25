@@ -6364,6 +6364,15 @@ int riscv_enumerate_triggers(struct target *target)
 			return ERROR_FAIL;
 	}
 
+	if (t == ARRAY_SIZE(r->trigger_tinfo)) {
+		result = check_if_trigger_exists(target, t);
+		if (result == ERROR_FAIL)
+			return ERROR_FAIL;
+		if (result == ERROR_OK)
+			LOG_TARGET_WARNING(target, "Target has more than %zu triggers; ignoring remaining triggers",
+					ARRAY_SIZE(r->trigger_tinfo));
+	}
+
 	if (riscv_reg_set(target, GDB_REGNO_TSELECT, orig_tselect) != ERROR_OK)
 		return ERROR_FAIL;
 
