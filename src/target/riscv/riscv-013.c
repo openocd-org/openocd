@@ -2087,11 +2087,22 @@ static int examine(struct target *target)
 		return result;
 
 	dm013_info_t *dm = get_dm(target);
+	assert(dm);
 	if (target->coreid >= dm->hart_count) {
 		LOG_TARGET_ERROR(target, "Hart index %d is too large. The maximum"
 			" index for this Debug Module is %d",
 			target->coreid, dm->hart_count - 1);
 		return ERROR_FAIL;
+	}
+
+	struct target_list *entry;
+	list_for_each_entry(entry, &dm->target_list, lh) {
+		struct target *t = entry->target;
+		if (target != t && target->coreid == t->coreid) {
+			LOG_TARGET_ERROR(target, "Hart index %d is already used by target '%s' in DM list",
+					target->coreid, target_name(t));
+			return ERROR_FAIL;
+		}
 	}
 
 	result = dm013_select_target(target);
