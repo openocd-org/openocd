@@ -2761,8 +2761,8 @@ static int sample_memory_bus_v1(struct target *target,
 		const uint32_t sbcs_read_op = riscv_batch_get_dmi_read_op(batch, sbcs_read_index);
 		if (sbcs_read_op == DTM_DMI_OP_BUSY) {
 			result = increase_dmi_busy_delay(target);
+			riscv_batch_free(batch);
 			if (result != ERROR_OK) {
-				riscv_batch_free(batch);
 				return result;
 			}
 			continue;
