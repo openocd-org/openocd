@@ -3021,59 +3021,121 @@ static int riscv_target_resume(struct target *target, bool current,
 			debug_execution, false);
 }
 
-static int riscv_effective_privilege_mode(struct target *target, int *v_mode, int *effective_mode)
+static const char *riscv_priv_mode_to_str(enum riscv_priv_mode mode)
 {
+	switch (mode) {
+	case RISCV_MODE_M:
+		return "M";
+	case RISCV_MODE_S:
+		return "S";
+	case RISCV_MODE_U:
+		return "U";
+	case RISCV_MODE_VS:
+		return "VS";
+	case RISCV_MODE_VU:
+		return "VU";
+	case N_RISCV_MODE:
+		break;
+	}
+	assert(false && "Unknown privilege mode");
+	return "?";
+}
+
+static bool riscv_priv_mode_is_guest(enum riscv_priv_mode mode)
+{
+	return mode == RISCV_MODE_VS || mode == RISCV_MODE_VU;
+}
+
+static int riscv_effective_privilege_mode(struct target *target, enum riscv_priv_mode *mode)
+{
+	assert(target);
+	assert(mode);
+
 	riscv_reg_t priv;
 	if (riscv_reg_get(target, &priv, GDB_REGNO_PRIV) != ERROR_OK) {
 		LOG_TARGET_ERROR(target, "Failed to read priv register.");
 		return ERROR_FAIL;
 	}
-	*v_mode = get_field(priv, VIRT_PRIV_V);
 
-	riscv_reg_t mstatus;
-	if (riscv_reg_get(target, &mstatus, GDB_REGNO_MSTATUS) != ERROR_OK) {
+	unsigned int dcsr_prv = get_field(priv, VIRT_PRIV_PRV);
+	bool halted_in_m = dcsr_prv == PRV_M;
+
+	/* MPRV only applies in Machine mode, so below it mstatus says nothing
+	 * about the mode an access runs in. */
+	riscv_reg_t mstatus = 0;
+	if (halted_in_m
+			&& riscv_reg_get(target, &mstatus, GDB_REGNO_MSTATUS) != ERROR_OK) {
 		LOG_TARGET_ERROR(target, "Failed to read mstatus register.");
 		return ERROR_FAIL;
 	}
 
-	if (get_field(mstatus, MSTATUS_MPRV))
-		*effective_mode = get_field(mstatus, MSTATUS_MPP);
-	else
-		*effective_mode = get_field(priv, VIRT_PRIV_PRV);
+	bool mprv = halted_in_m && get_field(mstatus, MSTATUS_MPRV);
+	unsigned int prv = mprv ? get_field(mstatus, MSTATUS_MPP) : dcsr_prv;
 
-	LOG_TARGET_DEBUG(target, "Effective mode=%d; v=%d", *effective_mode, *v_mode);
+	/* MPV is ignored where MPP names Machine mode, so v is not read there. */
+	if (prv == PRV_M) {
+		*mode = RISCV_MODE_M;
+		LOG_TARGET_DEBUG(target, "Effective privilege mode: %s", riscv_priv_mode_to_str(*mode));
+		return ERROR_OK;
+	}
 
+	bool v = false;
+	if (!mprv) {
+		v = get_field(priv, VIRT_PRIV_V);
+	} else if (!riscv_supports_extension(target, 'H')) {
+		v = false;
+	} else if (riscv_xlen(target) != 32) {
+		v = get_field(mstatus, MSTATUS_MPV);
+	} else {
+		riscv_reg_t mstatush;
+		if (riscv_reg_get(target, &mstatush, GDB_REGNO_MSTATUSH) != ERROR_OK) {
+			LOG_TARGET_ERROR(target, "Failed to read mstatush register");
+			return ERROR_FAIL;
+		}
+		v = get_field(mstatush, MSTATUSH_MPV);
+	}
+
+	if (prv == PRV_S) {
+		*mode = v ? RISCV_MODE_VS : RISCV_MODE_S;
+	} else if (prv == PRV_U) {
+		*mode = v ? RISCV_MODE_VU : RISCV_MODE_U;
+	} else {
+		LOG_TARGET_ERROR(target, "Hart reports a reserved privilege mode %u in %s, "
+				"which is a hardware bug", prv, mprv ? "mstatus.MPP" : "dcsr.prv");
+		return ERROR_FAIL;
+	}
+
+	LOG_TARGET_DEBUG(target, "Effective privilege mode: %s", riscv_priv_mode_to_str(*mode));
 	return ERROR_OK;
 }
 
 static int riscv_mmu(struct target *target, bool *enabled)
 {
+	assert(target);
+	assert(enabled);
+
 	*enabled = false;
 
 	if (!riscv_virt2phys_mode_is_sw(target))
 		return ERROR_OK;
 
-	/* Don't use MMU in explicit or effective M (machine) mode */
-	riscv_reg_t priv;
-	if (riscv_reg_get(target, &priv, GDB_REGNO_PRIV) != ERROR_OK) {
-		LOG_TARGET_ERROR(target, "Failed to read priv register.");
+	enum riscv_priv_mode mode = RISCV_MODE_M;
+	if (riscv_effective_privilege_mode(target, &mode) != ERROR_OK)
 		return ERROR_FAIL;
-	}
 
-	int effective_mode;
-	int v_mode;
-	if (riscv_effective_privilege_mode(target, &v_mode, &effective_mode) != ERROR_OK)
-		return ERROR_FAIL;
+	if (mode == RISCV_MODE_M) {
+		LOG_TARGET_DEBUG(target, "SATP/MMU ignored in Machine mode");
+		return ERROR_OK;
+	}
 
 	unsigned int xlen = riscv_xlen(target);
 
-	if (v_mode) {
+	if (riscv_priv_mode_is_guest(mode)) {
 		/* In VU or VS mode, MMU is considered enabled when
 		 * either hgatp or vsatp mode is not OFF */
 		riscv_reg_t vsatp;
 		if (riscv_reg_get(target, &vsatp, GDB_REGNO_VSATP) != ERROR_OK) {
-			LOG_TARGET_ERROR(target, "Failed to read vsatp register; priv=0x%" PRIx64,
-					priv);
+			LOG_TARGET_ERROR(target, "Failed to read vsatp register");
 			return ERROR_FAIL;
 		}
 		/* vsatp is identical to satp, so we can use the satp macros. */
@@ -3085,8 +3147,7 @@ static int riscv_mmu(struct target *target, bool *enabled)
 
 		riscv_reg_t hgatp;
 		if (riscv_reg_get(target, &hgatp, GDB_REGNO_HGATP) != ERROR_OK) {
-			LOG_TARGET_ERROR(target, "Failed to read hgatp register; priv=0x%" PRIx64,
-					priv);
+			LOG_TARGET_ERROR(target, "Failed to read hgatp register");
 			return ERROR_FAIL;
 		}
 		if (get_field(hgatp, RISCV_HGATP_MODE(xlen)) != HGATP_MODE_OFF) {
@@ -3096,12 +3157,6 @@ static int riscv_mmu(struct target *target, bool *enabled)
 			LOG_TARGET_DEBUG(target, "No V-mode address translation enabled.");
 		}
 
-		return ERROR_OK;
-	}
-
-	/* Don't use MMU in explicit or effective M (machine) mode */
-	if (effective_mode == PRV_M) {
-		LOG_TARGET_DEBUG(target, "SATP/MMU ignored in Machine mode.");
 		return ERROR_OK;
 	}
 
@@ -3341,13 +3396,11 @@ static int riscv_virt2phys(struct target *target, target_addr_t virtual, target_
 		return ERROR_OK;
 	}
 
-	riscv_reg_t priv;
-	if (riscv_reg_get(target, &priv, GDB_REGNO_PRIV) != ERROR_OK) {
-		LOG_TARGET_ERROR(target, "Failed to read priv register.");
+	enum riscv_priv_mode mode = RISCV_MODE_M;
+	if (riscv_effective_privilege_mode(target, &mode) != ERROR_OK)
 		return ERROR_FAIL;
-	}
 
-	if (priv & VIRT_PRIV_V)
+	if (riscv_priv_mode_is_guest(mode))
 		return riscv_virt2phys_v(target, virtual, physical);
 
 	riscv_reg_t satp_value;
