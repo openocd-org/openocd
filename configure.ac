@@ -482,6 +482,8 @@ AS_IF([test "x$build_gw16012" = "xyes"], [
   AC_DEFINE([BUILD_GW16012], [0], [0 if you don't want the Gateworks GW16012 driver.])
 ])
 
+jimtcl_gcc_warnings=""
+
 AS_IF([test "x$use_internal_jimtcl" = "xyes"], [
   AS_IF([test -f "$srcdir/jimtcl/configure"], [
     AS_IF([test "x$use_internal_jimtcl_maintainer" = "xyes"], [
@@ -490,16 +492,32 @@ AS_IF([test "x$use_internal_jimtcl" = "xyes"], [
       jimtcl_config_options="--disable-install-jim --with-ext=json --minimal --disable-ssl"
     ])
     AX_CONFIG_SUBDIR_OPTION([jimtcl], [$jimtcl_config_options])
+
+    # For jimtcl 0.84 repeated declaration bug
+    AS_IF([test $(grep --count "^JIM_EXPORT int Jim_CreateCommand" $srcdir/jimtcl/jim.h) = 2], [
+      jimtcl_gcc_warnings="$jimtcl_gcc_warnings -Wno-redundant-decls"
+    ])
   ], [
     AC_MSG_ERROR([jimtcl not found, run git submodule init and git submodule update.])
   ])
 ], [
   PKG_CHECK_MODULES([JIMTCL], [jimtcl >= 0.79], [
       have_jimtcl_pkg_config=yes
+
+      # For jimtcl 0.84 repeated declaration bug
+      PKG_CHECK_EXISTS([jimtcl = 0.84], [
+        jimtcl_gcc_warnings="$jimtcl_gcc_warnings -Wno-redundant-decls"
+      ])
     ], [
       have_jimtcl_pkg_config=no
       AC_CHECK_HEADER([jim.h], [], [
         AC_MSG_ERROR([jimtcl is required but not found via pkg-config and system includes])
+      ])
+
+      # For jimtcl 0.84 repeated declaration bug
+      path_jim_h=$(echo '#include <jim.h>' | gcc -E -H - 2>&1 | sed -n '/^\. .*jim\.h/{s/.* //;p}')
+      AS_IF([test $(grep --count "^JIM_EXPORT int Jim_CreateCommand" $path_jim_h) = 2], [
+        jimtcl_gcc_warnings="$jimtcl_gcc_warnings -Wno-redundant-decls"
       ])
   ])
 ])
@@ -764,6 +782,7 @@ AS_IF([test "x${gcc_wextra}" = "xyes"], [
   GCC_WARNINGS="${GCC_WARNINGS} -Wpointer-arith"
   GCC_WARNINGS="${GCC_WARNINGS} -Wundef"
   GCC_WARNINGS="${GCC_WARNINGS} -Wsign-compare"
+  GCC_WARNINGS="${GCC_WARNINGS} $jimtcl_gcc_warnings"
 ])
 AS_IF([test "x${gcc_werror}" = "xyes"], [
   GCC_WARNINGS="${GCC_WARNINGS} -Werror"
