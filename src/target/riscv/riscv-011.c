@@ -27,6 +27,7 @@
 #include "riscv-011_reg.h"
 #include "gdb_regs.h"
 #include "field_helpers.h"
+#include <helper/bits.h>
 
 /**
  * Since almost everything can be accomplish by scanning the dbus register, all
@@ -82,6 +83,16 @@ static int handle_halt(struct target *target, bool announce);
 #define CSR_BPCONTROL_M			(1<<6)
 #define CSR_BPCONTROL_BPMATCH	(0xf<<7)
 #define CSR_BPCONTROL_BPACTION	(0xff<<11)
+
+/*
+ * dcsr field masks from debug version 0.11. The regenerated encoding.h
+ * matches the Debug Spec 1.0 dcsr layout and no longer defines these fields.
+ * The 0.11 backend still needs the older layout, so keep them locally.
+ */
+#define DCSR_NDRESET		BIT(29)
+#define DCSR_FULLRESET		BIT(28)
+#define DCSR_EBREAKH		BIT(14)
+#define DCSR_HALT		BIT(3)
 
 #define DEBUG_ROM_START		0x800
 #define DEBUG_ROM_RESUME	(DEBUG_ROM_START + 4)
