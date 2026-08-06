@@ -3889,6 +3889,17 @@ Set the emulated address and address window size. Both of these
 parameters must be aligned to page size.
 @end deffn
 
+@deffn {Interface Driver} {rshim}
+
+rshim is a user-space host driver and management interface for
+NVIDIA (formerly Mellanox) BlueField DPUs and SoCs.
+It enables direct access to the Arm Debug Access Port (DAP) on BlueField devices.
+
+@deffn {Config Command} {rshim device} device_path
+Set the rshim device path (default: /dev/rshim0/rshim).
+@end deffn
+@end deffn
+
 @deffn {Interface Driver} {xvc}
 This driver implements bitbang mode of JTAG devices
 using Xilinx Virtual Cable messages over TCP/IP.
