@@ -985,6 +985,8 @@ COMMAND_HANDLER(jlink_usb_command)
 	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
+	LOG_WARNING("DEPRECATED! Using the USB address is deprecated, use the serial number instead");
+
 	unsigned int tmp;
 	COMMAND_PARSE_NUMBER(uint, CMD_ARGV[0], tmp);
 

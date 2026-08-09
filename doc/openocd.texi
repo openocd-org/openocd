@@ -3147,6 +3147,8 @@ The following example shows how to read 4 bytes from the EMUCOM channel 0x0:
 @end example
 @end deffn
 @deffn {Config Command} {jlink usb} <@option{0} to @option{3}>
+@b{Note:} This command is deprecated and will be removed in the future.
+
 Set the USB address of the interface, in case more than one adapter is connected
 to the host. If not specified, USB addresses are not considered. Device
 selection via USB address is not always unambiguous. It is recommended to use
