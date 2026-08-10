@@ -2617,6 +2617,27 @@ mitigates the problem.
 
 The driver supports activity LED through the generic
 command @ref{adapter gpio, @command{adapter gpio led}}.
+
+In SWD mode the TRST pin is not needed as a JTAG signal, so the driver drives
+it as a GPIO to provide SRST. TRST is pin 9 on both chips, but has a different
+GPIO number: GPIO5 on the CH347T and GPIO3 on the CH347F. Use
+@ref{adapter gpio, @command{adapter gpio srst}} to select a different GPIO or
+to change the polarity. SRST is not available in JTAG mode, where the pin
+carries TRST.
+
+Not every GPIO can be used, because the GPIO's share their pins with the
+interface signals. Only GPIO3 to GPIO6 are free on the CH347T, and GPIO0 to
+GPIO3 on the CH347F, where GPIO4 to GPIO7 are TCK, TDO, TDI and TMS. Note that
+GPIO3 of the CH347F is TRST, so it is only free when TRST is unused.
+
+SRST and the activity LED cannot share a GPIO. If both are assigned to the
+same pin, SRST gets disabled.
+
+The SRST GPIO follows the drive mode of @ref{reset_config,,@command{reset_config}}.
+The default is open drain, which the driver emulates by switching the pin to an
+input instead of driving it to the inactive level, so the reset line needs a
+pull-up. Use @command{reset_config srst_push_pull} if it has none.
+
 @end deffn
 
 @deffn {Interface Driver} {cklink}
