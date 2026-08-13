@@ -111,7 +111,9 @@ start:
     /* Clear APP_CPU boot address */
     movi a4, DPORT_APPCPU_CTRL_D_REG
     s32i.n a5, a4, 0
-    /* Clear APP_CPU clock gating */
+    /* Set APP_CPU clock gating
+       otherwise APP_CPU with debug module will be reset by SW at startup
+       and breakpoints set just after reset will be lost */
     movi a4, DPORT_APPCPU_CTRL_B_REG
     movi a3, DPORT_APPCPU_CLKGATE_EN
     s32i.n a3, a4, 0

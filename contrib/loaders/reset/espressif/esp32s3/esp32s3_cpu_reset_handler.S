@@ -118,15 +118,19 @@ start:
     /* Clear APP_CPU boot address */
     movi a4, SYSTEM_CORE_1_CONTROL_1_REG
     s32i.n a5, a4, 0
-    /* Clear APP_CPU clock gating */
+    /* Set APP_CPU clock gating */
     movi a4, SYSTEM_CORE_1_CONTROL_0_REG
     movi a3, SYSTEM_CONTROL_CORE_1_CLKGATE_EN
     s32i.n a3, a4, 0
-    /* Set and clear APP_CPU reset */
+    /* Set APP_CPU reset */
     movi a4, SYSTEM_CORE_1_CONTROL_0_REG
     movi a3, SYSTEM_CONTROL_CORE_1_RESETING
     s32i.n a3, a4, 0
-    s32i.n a5, a4, 0
+    /* Clear APP_CPU reset and
+       set APP_CPU clock gating otherwise APP_CPU will be reset by SW at startup
+       and breakpoints set just after reset will be lost */
+    movi a3, SYSTEM_CONTROL_CORE_1_CLKGATE_EN
+    s32i.n a3, a4, 0
     /* Restore the reset vector to ROM */
     movi a4, RTC_CNTL_RESET_STATE_REG
     movi a3, RTC_CNTL_RESET_STATE_DEF
