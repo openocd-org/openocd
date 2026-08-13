@@ -1304,6 +1304,7 @@ static int scratch_read64(struct target *target, scratch_mem_t *scratch,
 			uint8_t buffer[8] = {0};
 			const struct riscv_mem_access_args args = {
 				.address = scratch->debug_address,
+				.mode = RISCV_MODE_M,
 				.read_buffer = buffer,
 				.size = 4,
 				.count = 2,
@@ -1346,6 +1347,7 @@ static int scratch_write64(struct target *target, scratch_mem_t *scratch,
 			};
 			const struct riscv_mem_access_args args = {
 				.address = scratch->debug_address,
+				.mode = RISCV_MODE_M,
 				.write_buffer = buffer,
 				.size = 4,
 				.count = 2,
@@ -3255,13 +3257,13 @@ static int read_sbcs_nonbusy(struct target *target, uint32_t *sbcs)
 
 /* TODO: return struct mem_access_result */
 static int modify_privilege_for_virt2phys_mode(struct target *target, riscv_reg_t *mstatus, riscv_reg_t *mstatus_old,
-		riscv_reg_t *dcsr, riscv_reg_t *dcsr_old)
+		riscv_reg_t *dcsr, riscv_reg_t *dcsr_old, enum riscv_priv_mode mode)
 {
 	assert(mstatus);
 	assert(mstatus_old);
 	assert(dcsr);
 	assert(dcsr_old);
-	if (!riscv_virt2phys_mode_is_hw(target))
+	if (mode == RISCV_MODE_M)
 		return ERROR_OK;
 
 	/* Read and save DCSR */
@@ -3303,9 +3305,6 @@ static int modify_privilege_for_virt2phys_mode(struct target *target, riscv_reg_
 static int restore_privilege_from_virt2phys_mode(struct target *target, riscv_reg_t mstatus, riscv_reg_t mstatus_old,
 		riscv_reg_t dcsr, riscv_reg_t dcsr_old)
 {
-	if (!riscv_virt2phys_mode_is_hw(target))
-		return ERROR_OK;
-
 	/* Restore MSTATUS */
 	if (mstatus != mstatus_old &&
 			riscv_reg_set(target, GDB_REGNO_MSTATUS, mstatus_old) != ERROR_OK)
@@ -3627,6 +3626,8 @@ enum mem_access_result_type {
 			SKIPPED, "skipped (abstract command argument write failed)") \
 	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_SKIPPED_PRIV_MOD_FAILED, \
 			SKIPPED, "skipped (privilege modification failed)") \
+	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_SKIPPED_NO_HW_TRANSLATION, \
+			SKIPPED, "skipped (backend cannot translate a virtual address)") \
 	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_FAILED, FAILED, "failed") \
 	MEM_ACCESS_RESULT_HANDLER(MEM_ACCESS_FAILED_DM_ACCESS_FAILED, \
 			FAILED, "failed (DM register access failed)") \
@@ -3778,6 +3779,12 @@ mem_should_skip_sysbus(struct target *target, const struct riscv_mem_access_args
 	const bool is_read = riscv_mem_access_is_read(args);
 	const char *const access_type = is_read ? "read" : "write";
 
+	if (args.mode != RISCV_MODE_M) {
+		LOG_TARGET_DEBUG(target, "Skipping mem %s via system bus - "
+				"no hardware address translation for a virtual address", access_type);
+		return mem_access_result(MEM_ACCESS_SKIPPED_NO_HW_TRANSLATION);
+	}
+
 	if (!sba_supports_access(target, args.size)) {
 		LOG_TARGET_DEBUG(target, "Skipping mem %s via system bus - "
 				"unsupported size.", access_type);
@@ -3809,6 +3816,12 @@ mem_should_skip_abstract(struct target *target, const struct riscv_mem_access_ar
 
 	const bool is_read = riscv_mem_access_is_read(args);
 	const char *const access_type = is_read ? "read" : "write";
+	if (args.mode != RISCV_MODE_M) {
+		/* Temporary, until aamvirtual support lands. */
+		LOG_TARGET_DEBUG(target, "Skipping mem %s via abstract access - "
+				"virtual access (aamvirtual) not implemented yet", access_type);
+		return mem_access_result(MEM_ACCESS_SKIPPED_NO_HW_TRANSLATION);
+	}
 	if (args.size > 8) {
 		/* TODO: Add 128b support if it's ever used. Involves modifying
 				 read/write_abstract_arg() to work on two 64b values. */
@@ -4545,7 +4558,7 @@ access_memory_progbuf(struct target *target, const struct riscv_mem_access_args 
 	riscv_reg_t dcsr = 0;
 	riscv_reg_t dcsr_old = 0;
 	if (modify_privilege_for_virt2phys_mode(target,
-			&mstatus, &mstatus_old, &dcsr, &dcsr_old) != ERROR_OK)
+			&mstatus, &mstatus_old, &dcsr, &dcsr_old, args.mode) != ERROR_OK)
 		return mem_access_result(MEM_ACCESS_SKIPPED_PRIV_MOD_FAILED);
 
 	struct mem_access_result result = is_read ?
@@ -4618,6 +4631,10 @@ riscv013_access_memory(struct target *target, const struct riscv_mem_access_args
 
 	const bool is_read = riscv_mem_access_is_read(args);
 	const char *const access_type = is_read ? "read" : "write";
+	LOG_TARGET_DEBUG(target, "Memory %s: addr=0x%" TARGET_PRIxADDR
+			" (%s), size=%" PRIu32 ", count=%" PRIu32 ", increment=%" PRIu32,
+			access_type, args.address, args.mode == RISCV_MODE_M ? "physical" : "virtual",
+			args.size, args.count, args.increment);
 	if (!is_read && args.increment != args.size) {
 		LOG_TARGET_ERROR(target, "Write increment size has to be equal to element size");
 		return ERROR_NOT_IMPLEMENTED;

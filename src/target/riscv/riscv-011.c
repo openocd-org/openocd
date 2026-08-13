@@ -2341,6 +2341,13 @@ static int access_memory(struct target *target, const struct riscv_mem_access_ar
 {
 	assert(riscv_mem_access_is_valid(args));
 	const bool is_write = riscv_mem_access_is_write(args);
+
+	if (args.mode != RISCV_MODE_M) {
+		LOG_TARGET_ERROR(target, "Memory %s: hardware address translation is not "
+				"supported for RISC-V Debug Spec v0.11 targets", is_write ? "write" : "read");
+		return ERROR_FAIL;
+	}
+
 	if (is_write)
 		return write_memory(target, args);
 	return read_memory(target, args);

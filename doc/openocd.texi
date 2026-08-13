@@ -12069,6 +12069,8 @@ dump_sample_buf}.
 Quickly read count words of the given size from address. This can be useful
 to read out a buffer that's memory-mapped to be accessed through a single
 address, or to sample a changing value in a memory-mapped device.
+
+The address is physical.
 @end deffn
 
 @deffn {Command} {riscv info}

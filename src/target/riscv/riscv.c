@@ -142,18 +142,24 @@ struct tdata1_cache {
 	struct list_head elem_tdata1;
 };
 
-bool riscv_virt2phys_mode_is_hw(const struct target *target)
+static bool riscv_virt2phys_mode_is_hw(const struct target *target)
 {
 	assert(target);
 	RISCV_INFO(r);
 	return r->virt2phys_mode == RISCV_VIRT2PHYS_MODE_HW;
 }
 
-bool riscv_virt2phys_mode_is_sw(const struct target *target)
+static bool riscv_virt2phys_mode_is_sw(const struct target *target)
 {
 	assert(target);
 	RISCV_INFO(r);
 	return r->virt2phys_mode == RISCV_VIRT2PHYS_MODE_SW;
+}
+
+static bool riscv_virt2phys_mode_is_off(const struct target *target)
+{
+	assert(target);
+	return riscv_info(target)->virt2phys_mode == RISCV_VIRT2PHYS_MODE_OFF;
 }
 
 const char *riscv_virt2phys_mode_to_str(enum riscv_virt2phys_mode mode)
@@ -3109,19 +3115,13 @@ static int riscv_effective_privilege_mode(struct target *target, enum riscv_priv
 	return ERROR_OK;
 }
 
-static int riscv_mmu(struct target *target, bool *enabled)
+static int riscv_mmu_impl(struct target *target,
+		enum riscv_priv_mode mode, bool *enabled)
 {
 	assert(target);
 	assert(enabled);
 
 	*enabled = false;
-
-	if (!riscv_virt2phys_mode_is_sw(target))
-		return ERROR_OK;
-
-	enum riscv_priv_mode mode = RISCV_MODE_M;
-	if (riscv_effective_privilege_mode(target, &mode) != ERROR_OK)
-		return ERROR_FAIL;
 
 	if (mode == RISCV_MODE_M) {
 		LOG_TARGET_DEBUG(target, "SATP/MMU ignored in Machine mode");
@@ -3177,6 +3177,23 @@ static int riscv_mmu(struct target *target, bool *enabled)
 	return ERROR_OK;
 }
 
+static int riscv_mmu(struct target *target, bool *enabled)
+{
+	assert(target);
+	assert(enabled);
+
+	*enabled = false;
+
+	if (!riscv_virt2phys_mode_is_sw(target))
+		return ERROR_OK;
+
+	enum riscv_priv_mode mode = RISCV_MODE_M;
+	if (riscv_effective_privilege_mode(target, &mode) != ERROR_OK)
+		return ERROR_FAIL;
+
+	return riscv_mmu_impl(target, mode, enabled);
+}
+
 /* Translate address from virtual to physical, using info and ppn.
  * If extra_info is non-NULL, then translate page table accesses for the primary
  * translation using extra_info and extra_ppn. */
@@ -3220,6 +3237,7 @@ static int riscv_address_translate(struct target *target,
 		assert(info->pte_shift <= 3);
 		const struct riscv_mem_access_args args = {
 			.address = pte_address,
+			.mode = RISCV_MODE_M,
 			.read_buffer = buffer,
 			.size = 4,
 			.increment = 4,
@@ -3387,18 +3405,26 @@ static int riscv_virt2phys_v(struct target *target, target_addr_t virtual, targe
 
 static int riscv_virt2phys(struct target *target, target_addr_t virtual, target_addr_t *physical)
 {
-	bool enabled;
-	if (riscv_mmu(target, &enabled) != ERROR_OK)
-		return ERROR_FAIL;
-	if (!enabled) {
+	/* TODO: translate the address in the other modes as well. */
+	if (!riscv_virt2phys_mode_is_sw(target)) {
 		*physical = virtual;
-		LOG_TARGET_DEBUG(target, "MMU is disabled. 0x%" TARGET_PRIxADDR " -> 0x%" TARGET_PRIxADDR, virtual, *physical);
+		LOG_TARGET_DEBUG(target, "Address translation is off. 0x%" TARGET_PRIxADDR
+				" -> 0x%" TARGET_PRIxADDR, virtual, *physical);
 		return ERROR_OK;
 	}
 
 	enum riscv_priv_mode mode = RISCV_MODE_M;
 	if (riscv_effective_privilege_mode(target, &mode) != ERROR_OK)
 		return ERROR_FAIL;
+
+	bool enabled = false;
+	if (riscv_mmu_impl(target, mode, &enabled) != ERROR_OK)
+		return ERROR_FAIL;
+	if (!enabled) {
+		*physical = virtual;
+		LOG_TARGET_DEBUG(target, "MMU is disabled. 0x%" TARGET_PRIxADDR " -> 0x%" TARGET_PRIxADDR, virtual, *physical);
+		return ERROR_OK;
+	}
 
 	if (riscv_priv_mode_is_guest(mode))
 		return riscv_virt2phys_v(target, virtual, physical);
@@ -3461,6 +3487,7 @@ static int riscv_read_phys_memory(struct target *target, target_addr_t phys_addr
 {
 	const struct riscv_mem_access_args args = {
 		.address = phys_address,
+		.mode = RISCV_MODE_M,
 		.read_buffer = buffer,
 		.size = size,
 		.count = count,
@@ -3475,6 +3502,7 @@ static int riscv_write_phys_memory(struct target *target, target_addr_t phys_add
 {
 	const struct riscv_mem_access_args args = {
 		.address = phys_address,
+		.mode = RISCV_MODE_M,
 		.write_buffer = buffer,
 		.size = size,
 		.count = count,
@@ -3485,7 +3513,7 @@ static int riscv_write_phys_memory(struct target *target, target_addr_t phys_add
 	return r->access_memory(target, args);
 }
 
-static int riscv_rw_memory(struct target *target, const struct riscv_mem_access_args args)
+static int riscv_rw_memory(struct target *target, struct riscv_mem_access_args args)
 {
 	assert(riscv_mem_access_is_valid(args));
 
@@ -3496,12 +3524,34 @@ static int riscv_rw_memory(struct target *target, const struct riscv_mem_access_
 		return ERROR_OK;
 	}
 
-	bool mmu_enabled;
-	int result = riscv_mmu(target, &mmu_enabled);
+	struct riscv_info *r = riscv_info(target);
+
+	args.mode = RISCV_MODE_M;
+
+	if (riscv_virt2phys_mode_is_off(target))
+		return r->access_memory(target, args);
+
+	enum riscv_priv_mode mode = RISCV_MODE_M;
+	if (riscv_effective_privilege_mode(target, &mode) != ERROR_OK)
+		return ERROR_FAIL;
+
+	if (riscv_virt2phys_mode_is_hw(target)) {
+		if (riscv_priv_mode_is_guest(mode)) {
+			LOG_TARGET_ERROR(target, "Cannot translate a guest access in "
+					"hardware: OpenOCD does not set mstatus.MPV yet. "
+					"Use 'riscv virt2phys_mode sw'.");
+			return ERROR_FAIL;
+		}
+
+		args.mode = mode;
+		return r->access_memory(target, args);
+	}
+
+	bool mmu_enabled = false;
+	int result = riscv_mmu_impl(target, mode, &mmu_enabled);
 	if (result != ERROR_OK)
 		return result;
 
-	RISCV_INFO(r);
 	if (!mmu_enabled)
 		return r->access_memory(target, args);
 
@@ -5350,6 +5400,7 @@ COMMAND_HANDLER(handle_repeat_read)
 	}
 	const struct riscv_mem_access_args args = {
 		.address = address,
+		.mode = RISCV_MODE_M,
 		.read_buffer = buffer,
 		.size = size,
 		.count = count,
@@ -5746,7 +5797,7 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.handler = handle_repeat_read,
 		.mode = COMMAND_ANY,
 		.usage = "count address [size=4]",
-		.help = "Repeatedly read the value at address."
+		.help = "Repeatedly read the value at the given physical address."
 	},
 	{
 		.name = "set_command_timeout_sec",
