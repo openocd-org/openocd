@@ -12120,6 +12120,7 @@ read the respective entries). This is the default mode.
 (Virtual memory access will fail with an error if the hardware doesn't
 support the necessary functionality.)
 @item @option{off} - Virtual addresses are not translated (identity mapping is assumed).
+An access in this mode behaves exactly like an explicitly physical one.
 @end itemize
 Returns current translation mode if called without arguments.
 @end deffn

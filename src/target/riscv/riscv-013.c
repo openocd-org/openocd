@@ -3319,23 +3319,22 @@ static int modify_privilege_progbuf(struct target *target, riscv_reg_t *mstatus,
 	assert(mstatush_old);
 	assert(dcsr);
 	assert(dcsr_old);
-	if (mode == RISCV_MODE_M)
-		return ERROR_OK;
 
 	if (riscv_reg_get(target, dcsr, GDB_REGNO_DCSR) != ERROR_OK)
 		return ERROR_FAIL;
 	*dcsr_old = *dcsr;
 
-	if (set_mpp_mpv(target, mstatus, mstatus_old, mstatush, mstatush_old, mode) != ERROR_OK)
-		return ERROR_FAIL;
-
-	*dcsr = set_field(*dcsr, CSR_DCSR_MPRVEN, CSR_DCSR_MPRVEN_ENABLED);
+	*dcsr = set_field(*dcsr, CSR_DCSR_MPRVEN, mode == RISCV_MODE_M ?
+			CSR_DCSR_MPRVEN_DISABLED : CSR_DCSR_MPRVEN_ENABLED);
 
 	if (*dcsr != *dcsr_old &&
 			riscv_reg_set(target, GDB_REGNO_DCSR, *dcsr) != ERROR_OK)
 		return ERROR_FAIL;
 
-	return ERROR_OK;
+	if (mode == RISCV_MODE_M)
+		return ERROR_OK;
+
+	return set_mpp_mpv(target, mstatus, mstatus_old, mstatush, mstatush_old, mode);
 }
 
 static int restore_privilege_progbuf(struct target *target, riscv_reg_t mstatus, riscv_reg_t mstatus_old,
