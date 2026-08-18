@@ -376,6 +376,23 @@ struct riscv_info {
 	bool autofence;
 };
 
+static inline riscv_reg_t riscv_priv_mode_to_prv(enum riscv_priv_mode mode)
+{
+	switch (mode) {
+	case RISCV_MODE_M:
+		return PRV_M;
+	case RISCV_MODE_S:
+	case RISCV_MODE_VS:
+		return PRV_S;
+	case RISCV_MODE_U:
+	case RISCV_MODE_VU:
+		return PRV_U;
+	default:
+		assert(false);
+		return PRV_M;
+	}
+}
+
 struct riscv_private_config {
 	bool dcsr_ebreak_fields[N_RISCV_MODE];
 	bool dcsr_cetrig;

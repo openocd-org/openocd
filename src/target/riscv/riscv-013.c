@@ -3255,46 +3255,82 @@ static int read_sbcs_nonbusy(struct target *target, uint32_t *sbcs)
 	}
 }
 
+static int set_mpp_mpv(struct target *target, riscv_reg_t *mstatus,
+		riscv_reg_t *mstatus_old, riscv_reg_t *mstatush,
+		riscv_reg_t *mstatush_old, enum riscv_priv_mode mode)
+{
+	assert(mstatus);
+	assert(mstatus_old);
+	assert(mstatush);
+	assert(mstatush_old);
+
+	if (riscv_reg_get(target, mstatus, GDB_REGNO_MSTATUS) != ERROR_OK)
+		return ERROR_FAIL;
+	*mstatus_old = *mstatus;
+
+	*mstatus = set_field(*mstatus, MSTATUS_MPRV, 1);
+	*mstatus = set_field(*mstatus, MSTATUS_MPP, riscv_priv_mode_to_prv(mode));
+
+	/* The caller refuses a guest access, so MPV is cleared. */
+	if (riscv_supports_extension(target, 'H')) {
+		if (riscv_xlen(target) == 32) {
+			if (riscv_reg_get(target, mstatush, GDB_REGNO_MSTATUSH) != ERROR_OK)
+				return ERROR_FAIL;
+			*mstatush_old = *mstatush;
+			*mstatush = set_field(*mstatush, MSTATUSH_MPV, 0);
+		} else {
+			*mstatus = set_field(*mstatus, MSTATUS_MPV, 0);
+		}
+	}
+
+	if (*mstatus != *mstatus_old &&
+			riscv_reg_set(target, GDB_REGNO_MSTATUS, *mstatus) != ERROR_OK)
+		return ERROR_FAIL;
+
+	if (*mstatush != *mstatush_old &&
+			riscv_reg_set(target, GDB_REGNO_MSTATUSH, *mstatush) != ERROR_OK)
+		return ERROR_FAIL;
+
+	return ERROR_OK;
+}
+
+static int restore_mpp_mpv(struct target *target, riscv_reg_t mstatus,
+		riscv_reg_t mstatus_old, riscv_reg_t mstatush, riscv_reg_t mstatush_old)
+{
+	if (mstatus != mstatus_old &&
+			riscv_reg_set(target, GDB_REGNO_MSTATUS, mstatus_old) != ERROR_OK)
+		return ERROR_FAIL;
+
+	if (mstatush != mstatush_old &&
+			riscv_reg_set(target, GDB_REGNO_MSTATUSH, mstatush_old) != ERROR_OK)
+		return ERROR_FAIL;
+
+	return ERROR_OK;
+}
+
 /* TODO: return struct mem_access_result */
-static int modify_privilege_for_virt2phys_mode(struct target *target, riscv_reg_t *mstatus, riscv_reg_t *mstatus_old,
+static int modify_privilege_progbuf(struct target *target, riscv_reg_t *mstatus,
+		riscv_reg_t *mstatus_old, riscv_reg_t *mstatush, riscv_reg_t *mstatush_old,
 		riscv_reg_t *dcsr, riscv_reg_t *dcsr_old, enum riscv_priv_mode mode)
 {
 	assert(mstatus);
 	assert(mstatus_old);
+	assert(mstatush);
+	assert(mstatush_old);
 	assert(dcsr);
 	assert(dcsr_old);
 	if (mode == RISCV_MODE_M)
 		return ERROR_OK;
 
-	/* Read and save DCSR */
 	if (riscv_reg_get(target, dcsr, GDB_REGNO_DCSR) != ERROR_OK)
 		return ERROR_FAIL;
 	*dcsr_old = *dcsr;
 
-	/* Read and save MSTATUS */
-	if (riscv_reg_get(target, mstatus, GDB_REGNO_MSTATUS) != ERROR_OK)
-		return ERROR_FAIL;
-	*mstatus_old = *mstatus;
-
-	/* If we come from m-mode with mprv set, we want to keep mpp */
-	if (get_field(*dcsr, CSR_DCSR_PRV) == PRV_M)
-		return ERROR_OK;
-
-	/* mstatus.mpp <- dcsr.prv */
-	*mstatus = set_field(*mstatus, MSTATUS_MPP, get_field(*dcsr, CSR_DCSR_PRV));
-
-	/* mstatus.mprv <- 1 */
-	*mstatus = set_field(*mstatus, MSTATUS_MPRV, 1);
-
-	/* Write MSTATUS */
-	if (*mstatus != *mstatus_old &&
-			riscv_reg_set(target, GDB_REGNO_MSTATUS, *mstatus) != ERROR_OK)
+	if (set_mpp_mpv(target, mstatus, mstatus_old, mstatush, mstatush_old, mode) != ERROR_OK)
 		return ERROR_FAIL;
 
-	/* dcsr.mprven <- 1 */
 	*dcsr = set_field(*dcsr, CSR_DCSR_MPRVEN, CSR_DCSR_MPRVEN_ENABLED);
 
-	/* Write DCSR */
 	if (*dcsr != *dcsr_old &&
 			riscv_reg_set(target, GDB_REGNO_DCSR, *dcsr) != ERROR_OK)
 		return ERROR_FAIL;
@@ -3302,15 +3338,12 @@ static int modify_privilege_for_virt2phys_mode(struct target *target, riscv_reg_
 	return ERROR_OK;
 }
 
-static int restore_privilege_from_virt2phys_mode(struct target *target, riscv_reg_t mstatus, riscv_reg_t mstatus_old,
-		riscv_reg_t dcsr, riscv_reg_t dcsr_old)
+static int restore_privilege_progbuf(struct target *target, riscv_reg_t mstatus, riscv_reg_t mstatus_old,
+		riscv_reg_t mstatush, riscv_reg_t mstatush_old, riscv_reg_t dcsr, riscv_reg_t dcsr_old)
 {
-	/* Restore MSTATUS */
-	if (mstatus != mstatus_old &&
-			riscv_reg_set(target, GDB_REGNO_MSTATUS, mstatus_old) != ERROR_OK)
+	if (restore_mpp_mpv(target, mstatus, mstatus_old, mstatush, mstatush_old) != ERROR_OK)
 		return ERROR_FAIL;
 
-	/* Restore DCSR */
 	if (dcsr != dcsr_old &&
 			riscv_reg_set(target, GDB_REGNO_DCSR, dcsr_old) != ERROR_OK)
 		return ERROR_FAIL;
@@ -4555,18 +4588,20 @@ access_memory_progbuf(struct target *target, const struct riscv_mem_access_args 
 
 	riscv_reg_t mstatus = 0;
 	riscv_reg_t mstatus_old = 0;
+	riscv_reg_t mstatush = 0;
+	riscv_reg_t mstatush_old = 0;
 	riscv_reg_t dcsr = 0;
 	riscv_reg_t dcsr_old = 0;
-	if (modify_privilege_for_virt2phys_mode(target,
-			&mstatus, &mstatus_old, &dcsr, &dcsr_old, args.mode) != ERROR_OK)
+	if (modify_privilege_progbuf(target, &mstatus, &mstatus_old, &mstatush,
+			&mstatush_old, &dcsr, &dcsr_old, args.mode) != ERROR_OK)
 		return mem_access_result(MEM_ACCESS_SKIPPED_PRIV_MOD_FAILED);
 
 	struct mem_access_result result = is_read ?
 			read_memory_progbuf(target, args) :
 			write_memory_progbuf(target, args);
 
-	if (restore_privilege_from_virt2phys_mode(target,
-			mstatus, mstatus_old, dcsr, dcsr_old) != ERROR_OK)
+	if (restore_privilege_progbuf(target, mstatus, mstatus_old,
+			mstatush, mstatush_old, dcsr, dcsr_old) != ERROR_OK)
 		return mem_access_result(MEM_ACCESS_FAILED_PRIV_MOD_FAILED);
 
 	return result;
