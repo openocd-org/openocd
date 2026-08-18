@@ -246,21 +246,7 @@ struct jtag_tap *jtag_tap_by_string(const char *s)
 		t = t->next_tap;
 	}
 
-	/* no tap found by name, so try to parse the name as a number */
-	unsigned int n;
-	if (parse_uint(s, &n) != ERROR_OK)
-		return NULL;
-
-	/* FIXME remove this numeric fallback code late June 2010, along
-	 * with all info in the User's Guide that TAPs have numeric IDs.
-	 * Also update "scan_chain" output to not display the numbers.
-	 */
-	t = jtag_tap_by_position(n);
-	if (t)
-		LOG_WARNING("Specify TAP '%s' by name, not number %u",
-			t->dotted_name, n);
-
-	return t;
+	return NULL;
 }
 
 struct jtag_tap *jtag_tap_next_enabled(struct jtag_tap *p)
