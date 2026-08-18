@@ -3297,15 +3297,25 @@ static int set_mpp_mpv(struct target *target, riscv_reg_t *mstatus,
 static int restore_mpp_mpv(struct target *target, riscv_reg_t mstatus,
 		riscv_reg_t mstatus_old, riscv_reg_t mstatush, riscv_reg_t mstatush_old)
 {
-	if (mstatus != mstatus_old &&
-			riscv_reg_set(target, GDB_REGNO_MSTATUS, mstatus_old) != ERROR_OK)
-		return ERROR_FAIL;
+	int result = ERROR_OK;
 
-	if (mstatush != mstatush_old &&
-			riscv_reg_set(target, GDB_REGNO_MSTATUSH, mstatush_old) != ERROR_OK)
-		return ERROR_FAIL;
+	if (mstatus != mstatus_old) {
+		int retval = riscv_reg_set(target, GDB_REGNO_MSTATUS, mstatus_old);
+		if (retval != ERROR_OK)
+			result = retval;
+	}
 
-	return ERROR_OK;
+	if (mstatush != mstatush_old) {
+		int retval = riscv_reg_set(target, GDB_REGNO_MSTATUSH, mstatush_old);
+		if (retval != ERROR_OK && result == ERROR_OK)
+			result = retval;
+	}
+
+	if (result != ERROR_OK)
+		LOG_TARGET_ERROR(target, "Failed to restore mstatus; the hart is left "
+				"with a modified privilege state.");
+
+	return result;
 }
 
 /* TODO: return struct mem_access_result */
@@ -3340,14 +3350,15 @@ static int modify_privilege_progbuf(struct target *target, riscv_reg_t *mstatus,
 static int restore_privilege_progbuf(struct target *target, riscv_reg_t mstatus, riscv_reg_t mstatus_old,
 		riscv_reg_t mstatush, riscv_reg_t mstatush_old, riscv_reg_t dcsr, riscv_reg_t dcsr_old)
 {
-	if (restore_mpp_mpv(target, mstatus, mstatus_old, mstatush, mstatush_old) != ERROR_OK)
-		return ERROR_FAIL;
+	int result = restore_mpp_mpv(target, mstatus, mstatus_old, mstatush, mstatush_old);
 
-	if (dcsr != dcsr_old &&
-			riscv_reg_set(target, GDB_REGNO_DCSR, dcsr_old) != ERROR_OK)
-		return ERROR_FAIL;
+	if (dcsr != dcsr_old) {
+		int retval = riscv_reg_set(target, GDB_REGNO_DCSR, dcsr_old);
+		if (retval != ERROR_OK && result == ERROR_OK)
+			result = retval;
+	}
 
-	return ERROR_OK;
+	return result;
 }
 
 static int read_memory_bus_v0(struct target *target, const struct riscv_mem_access_args args)
@@ -4591,13 +4602,14 @@ access_memory_progbuf(struct target *target, const struct riscv_mem_access_args 
 	riscv_reg_t mstatush_old = 0;
 	riscv_reg_t dcsr = 0;
 	riscv_reg_t dcsr_old = 0;
+	struct mem_access_result result = mem_access_result(MEM_ACCESS_SKIPPED_PRIV_MOD_FAILED);
 	if (modify_privilege_progbuf(target, &mstatus, &mstatus_old, &mstatush,
-			&mstatush_old, &dcsr, &dcsr_old, args.mode) != ERROR_OK)
-		return mem_access_result(MEM_ACCESS_SKIPPED_PRIV_MOD_FAILED);
-
-	struct mem_access_result result = is_read ?
-			read_memory_progbuf(target, args) :
-			write_memory_progbuf(target, args);
+			&mstatush_old, &dcsr, &dcsr_old, args.mode) == ERROR_OK) {
+		if (is_read)
+			result = read_memory_progbuf(target, args);
+		else
+			result = write_memory_progbuf(target, args);
+	}
 
 	if (restore_privilege_progbuf(target, mstatus, mstatus_old,
 			mstatush, mstatush_old, dcsr, dcsr_old) != ERROR_OK)
