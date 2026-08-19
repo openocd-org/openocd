@@ -2538,11 +2538,17 @@ COMMAND_HANDLER(stm32l4_handle_option_write_command)
 	if (CMD_ARGC > 3)
 		COMMAND_PARSE_NUMBER(u32, CMD_ARGV[3], mask);
 
-	command_print(CMD, "%s Option written.\n"
-				"INFO: a reset or power cycle is required "
-				"for the new settings to take effect.", bank->driver->name);
+	retval = stm32l4_write_option(bank, reg_offset, value, mask);
 
-	return stm32l4_write_option(bank, reg_offset, value, mask);
+	if (retval == ERROR_OK) {
+		command_print(CMD, "%s Option written.\n"
+					"INFO: a reset or power cycle is required "
+					"for the new settings to take effect", bank->driver->name);
+	} else {
+		command_print(CMD, "Failed to write %s option", bank->driver->name);
+	}
+
+	return retval;
 }
 
 COMMAND_HANDLER(stm32l4_handle_trustzone_command)
