@@ -793,6 +793,10 @@ static int xtensa_write_dirty_registers(struct target *target)
 							j - XT_REG_IDX_AR0,
 							buf_get_u32(reg_list[j].value, 0, 32));
 				}
+			} else if (reg_list[i].dirty) {
+				memcpy(reg_list[j].value, reg_list[i].value, sizeof(xtensa_reg_val_t));
+			} else if (reg_list[j].dirty) {
+				memcpy(reg_list[i].value, reg_list[j].value, sizeof(xtensa_reg_val_t));
 			}
 		}
 	}
@@ -2739,6 +2743,12 @@ int xtensa_start_algorithm(struct target *target,
 	if (target->state != TARGET_HALTED) {
 		LOG_WARNING("Target not halted!");
 		return ERROR_TARGET_NOT_HALTED;
+	}
+
+	retval = xtensa_write_dirty_registers(target);
+	if (retval != ERROR_OK) {
+		LOG_ERROR("Failed to write dirty regs (%d)", retval);
+		return retval;
 	}
 
 	for (unsigned int i = 0; i < xtensa->core_cache->num_regs; i++) {
