@@ -4928,7 +4928,7 @@ instead of "@option{-tap} @var{dotted.name}" when the target is created.
 The @command{dap} command group supports the following sub-commands:
 
 @anchor{dap_create}
-@deffn {Command} {dap create} dap_name @option{-chain-position} dotted.name configparams...
+@deffn {Command} {dap create} dap_name @option{-tap} dotted.name configparams...
 Declare a DAP instance named @var{dap_name} linked to the JTAG tap
 @var{dotted.name}. This also creates a new command (@command{dap_name})
 which is used for various purposes including additional configuration.
@@ -5287,7 +5287,7 @@ to be much more board-specific.
 The key steps you use might look something like this
 
 @example
-dap create mychip.dap -chain-position mychip.cpu
+dap create mychip.dap -tap mychip.cpu
 target create MyTarget cortex_m -dap mychip.dap
 MyTarget configure -work-area-phys 0x08000 -work-area-size 8096
 MyTarget configure -event reset-deassert-pre @{ jtag_rclk 5 @}

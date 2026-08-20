@@ -179,6 +179,7 @@ int dap_cleanup_all(void)
 
 enum dap_cfg_param {
 	CFG_CHAIN_POSITION,
+	CFG_TAP,
 	CFG_IGNORE_SYSPWRUPACK,
 	CFG_DP_ID,
 	CFG_INSTANCE_ID,
@@ -188,6 +189,7 @@ enum dap_cfg_param {
 
 static const struct jim_nvp nvp_config_opts[] = {
 	{ .name = "-chain-position",     .value = CFG_CHAIN_POSITION },
+	{ .name = "-tap",                .value = CFG_TAP },
 	{ .name = "-ignore-syspwrupack", .value = CFG_IGNORE_SYSPWRUPACK },
 	{ .name = "-dp-id",              .value = CFG_DP_ID },
 	{ .name = "-instance-id",        .value = CFG_INSTANCE_ID },
@@ -211,7 +213,11 @@ static int dap_configure(struct jim_getopt_info *goi, struct arm_dap_object *dap
 			return e;
 		}
 		switch (n->value) {
-		case CFG_CHAIN_POSITION: {
+		case CFG_CHAIN_POSITION:
+			LOG_WARNING("[%s] DEPRECATED! '-chain-position' will be removed in the future, use '-tap' instead",
+				dap->name);
+			/* fallthrough */
+		case CFG_TAP: {
 			Jim_Obj *o_t;
 			e = jim_getopt_obj(goi, &o_t);
 			if (e != JIM_OK)
@@ -220,7 +226,7 @@ static int dap_configure(struct jim_getopt_info *goi, struct arm_dap_object *dap
 			struct jtag_tap *tap;
 			tap = jtag_tap_by_jim_obj(goi->interp, o_t);
 			if (!tap) {
-				Jim_SetResultString(goi->interp, "-chain-position is invalid", -1);
+				Jim_SetResultString(goi->interp, "-tap is invalid", -1);
 				return JIM_ERR;
 			}
 			dap->dap.tap = tap;
@@ -374,7 +380,7 @@ COMMAND_HANDLER(handle_dap_create)
 	}
 
 	if (!dap->dap.tap) {
-		command_print(CMD, "-chain-position required when creating DAP");
+		command_print(CMD, "-tap required when creating DAP");
 		goto err;
 	}
 
@@ -489,7 +495,7 @@ static const struct command_registration dap_subcommand_handlers[] = {
 		.name = "create",
 		.mode = COMMAND_ANY,
 		.handler = handle_dap_create,
-		.usage = "name '-chain-position' name",
+		.usage = "name '-tap' name",
 		.help = "Creates a new DAP instance",
 	},
 	{
