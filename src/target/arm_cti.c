@@ -553,7 +553,7 @@ static const struct command_registration cti_subcommand_handlers[] = {
 		.name = "create",
 		.mode = COMMAND_ANY,
 		.handler = handle_cti_create,
-		.usage = "name '-chain-position' name [options ...]",
+		.usage = "name cti_name -dap dap_name -ap-num apn -baseaddr base_address [options ...]",
 		.help = "Creates a new CTI object",
 	},
 	{
