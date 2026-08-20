@@ -9411,12 +9411,12 @@ SPI flash connected to the FPGA to store the bitstream (@xref{jtagspi} for detai
 
 They are referenced by the name which was given when the pld was created or
 the number shown by the @command{pld devices} command.
-New PLDs are defined by @command{pld create pld_name driver_name -chain-position tap_name [driver_options]}.
+New PLDs are defined by @command{pld create pld_name driver_name -tap tap_name [driver_options]}.
 
-@deffn {Config Command} {pld create} pld_name driver_name -chain-position tap_name [driver_options]
+@deffn {Config Command} {pld create} pld_name driver_name -tap tap_name [driver_options]
 Creates a new PLD device, supported by driver @var{driver_name},
 assigning @var{pld_name} for further reference.
-@code{-chain-position} @var{tap_name} names the TAP
+@code{-tap} @var{tap_name} names the TAP
 used to access this target.
 The driver may make use of any @var{driver_options} to configure its behavior.
 @end deffn
@@ -9531,7 +9531,7 @@ from a '.sof' file with @verb{|quartus_cpf -c blinker.sof blinker.rbf|}
 
 Creates a new PLD device, an FPGA of the Cyclone III family, using the TAP named @verb{|cycloneiii.tap|}:
 @example
-pld create cycloneiii.pld intel -chain-position cycloneiii.tap -family cycloneiii
+pld create cycloneiii.pld intel -tap cycloneiii.tap -family cycloneiii
 @end example
 
 @deffn {Command} {intel set_bscan} pld_name len

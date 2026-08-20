@@ -1237,12 +1237,12 @@ proc "pld device" {driver tap_name {opt 0}} {
 	echo "DEPRECATED! use 'pld create ...', not 'pld device ...'"
 	if {[string is integer -strict $opt]} {
 		if {$opt == 0} {
-			eval pld create [lindex [split $tap_name .] 0].pld $driver -chain-position $tap_name
+			eval pld create [lindex [split $tap_name .] 0].pld $driver -tap $tap_name
 		} else {
-			eval pld create [lindex [split $tap_name .] 0].pld $driver -chain-position $tap_name -no_jstart
+			eval pld create [lindex [split $tap_name .] 0].pld $driver -tap $tap_name -no_jstart
 		}
 	} else {
-		eval pld create [lindex [split $tap_name .] 0].pld $driver -chain-position $tap_name -family $opt
+		eval pld create [lindex [split $tap_name .] 0].pld $driver -tap $tap_name -family $opt
 	}
 }
 

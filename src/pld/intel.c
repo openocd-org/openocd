@@ -291,7 +291,10 @@ PLD_CREATE_COMMAND_HANDLER(intel_pld_create_command)
 	if (CMD_ARGC != 6)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
-	if (strcmp(CMD_ARGV[2], "-chain-position") != 0)
+	if (!strcmp(CMD_ARGV[2], "-chain-position"))
+		LOG_WARNING("[%s] DEPRECATED! '-chain-position' will be removed in the future, use '-tap' instead",
+			CMD_ARGV[0]);
+	else if (strcmp(CMD_ARGV[2], "-tap") != 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
 	struct jtag_tap *tap = jtag_tap_by_string(CMD_ARGV[3]);
