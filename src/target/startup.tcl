@@ -64,7 +64,7 @@ proc ocd_process_reset_inner { MODE } {
 
 	# Examine all targets on enabled taps.
 	foreach t $targets {
-		if {![using_jtag] || [jtag tapisenabled [$t cget -chain-position]]} {
+		if {![using_jtag] || [jtag tapisenabled [$t cget -tap]]} {
 			$t invoke-event examine-start
 			set err [catch "$t arp_examine allow-defer"]
 			if { $err } {
@@ -82,7 +82,7 @@ proc ocd_process_reset_inner { MODE } {
 	}
 	foreach t $targets {
 		# C code needs to know if we expect to 'halt'
-		if {![using_jtag] || [jtag tapisenabled [$t cget -chain-position]]} {
+		if {![using_jtag] || [jtag tapisenabled [$t cget -tap]]} {
 			$t arp_reset assert $halt
 		}
 	}
@@ -97,7 +97,7 @@ proc ocd_process_reset_inner { MODE } {
 	}
 	foreach t $targets {
 		# Again, de-assert code needs to know if we 'halt'
-		if {![using_jtag] || [jtag tapisenabled [$t cget -chain-position]]} {
+		if {![using_jtag] || [jtag tapisenabled [$t cget -tap]]} {
 			$t arp_reset deassert $halt
 		}
 	}
@@ -110,7 +110,7 @@ proc ocd_process_reset_inner { MODE } {
 	# first executing any instructions.
 	if { $halt } {
 		foreach t $targets {
-			if {[using_jtag] && ![jtag tapisenabled [$t cget -chain-position]]} {
+			if {[using_jtag] && ![jtag tapisenabled [$t cget -tap]]} {
 				continue
 			}
 
@@ -151,7 +151,7 @@ proc ocd_process_reset_inner { MODE } {
 	#Pass 2 - if needed "init"
 	if { $MODE == "init" } {
 		foreach t $targets {
-			if {[using_jtag] && ![jtag tapisenabled [$t cget -chain-position]]} {
+			if {[using_jtag] && ![jtag tapisenabled [$t cget -tap]]} {
 				continue
 			}
 

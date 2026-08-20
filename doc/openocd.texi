@@ -1737,7 +1737,7 @@ use it later on when defining debug targets:
 
 @example
 set _TARGETNAME $_CHIPNAME.cpu
-target create $_TARGETNAME arm7tdmi -chain-position $_TARGETNAME
+target create $_TARGETNAME arm7tdmi -tap $_TARGETNAME
 @end example
 
 @subsection Adding TAPs to the Scan Chain
@@ -1795,7 +1795,7 @@ to little endian, and this chip doesn't support changing that.
 
 @example
 set _TARGETNAME $_CHIPNAME.cpu
-target create $_TARGETNAME arm7tdmi -chain-position $_TARGETNAME
+target create $_TARGETNAME arm7tdmi -tap $_TARGETNAME
 @end example
 
 Work areas are small RAM areas associated with CPU targets.
@@ -1817,9 +1817,9 @@ After setting targets, you can define a list of targets working in SMP.
 @example
 set _TARGETNAME_1 $_CHIPNAME.cpu1
 set _TARGETNAME_2 $_CHIPNAME.cpu2
-target create $_TARGETNAME_1 cortex_a -chain-position $_CHIPNAME.dap \
+target create $_TARGETNAME_1 cortex_a -tap $_CHIPNAME.dap \
 -coreid 0 -dbgbase $_DAP_DBG1
-target create $_TARGETNAME_2 cortex_a -chain-position $_CHIPNAME.dap \
+target create $_TARGETNAME_2 cortex_a -tap $_CHIPNAME.dap \
 -coreid 1 -dbgbase $_DAP_DBG2
 #define 2 targets working in smp.
 target smp $_CHIPNAME.cpu2 $_CHIPNAME.cpu1
@@ -4029,7 +4029,7 @@ The concept of TAPs does not fit in the protocol since SWIM does not implement
 a scan chain. Nevertheless, the current SW model of OpenOCD requires defining a
 virtual SWIM TAP through the command @command{swim newtap basename tap_type}.
 The TAP definition must precede the target definition command
-@command{target create target_name stm8 -chain-position basename.tap_type}.
+@command{target create target_name stm8 -tap basename.tap_type}.
 
 @anchor{jtagspeed}
 @section JTAG Speed
@@ -4923,7 +4923,7 @@ Since OpenOCD version 0.11.0, the Debug Access Port (DAP) is
 no longer implicitly created together with the target. It must be
 explicitly declared using the @command{dap create} command. For all ARMv6-M, ARMv7
 and ARMv8 targets, the option "@option{-dap} @var{dap_name}" has to be used
-instead of "@option{-chain-position} @var{dotted.name}" when the target is created.
+instead of "@option{-tap} @var{dotted.name}" when the target is created.
 
 The @command{dap} command group supports the following sub-commands:
 
@@ -5331,7 +5331,7 @@ purposes including additional configuration.
 @item @var{target_name} ... is the name of the debug target.
 By convention this should be the same as the @emph{dotted.name}
 of the TAP associated with this target, which must be specified here
-using the @code{-chain-position @var{dotted.name}} configparam.
+using the @code{-tap @var{dotted.name}} configparam.
 
 This name is also used to create the target object command,
 referred to here as @command{$target_name},
@@ -5341,7 +5341,7 @@ and in other places the target needs to be identified.
 @command{$target_name configure} are permitted.
 If the target is big-endian, set it here with @code{-endian big}.
 
-You @emph{must} set the @code{-chain-position @var{dotted.name}} or
+You @emph{must} set the @code{-tap @var{dotted.name}} or
 @code{-dap @var{dap_name}} here.
 @end itemize
 @end deffn
@@ -5358,7 +5358,7 @@ and changing its endianness.
 
 @itemize @bullet
 
-@item @code{-chain-position} @var{dotted.name} -- names the TAP
+@item @code{-tap} @var{dotted.name} -- names the TAP
 used to access this target.
 
 @item @code{-dap} @var{dap_name} -- names the DAP used to access
@@ -6367,7 +6367,7 @@ command, see below.
 For the bitstreams generated from @file{xilinx_bscan_spi.py} this is the
 @var{USER1} instruction.
 @example
-target create $_TARGETNAME testee -chain-position $_CHIPNAME.tap
+target create $_TARGETNAME testee -tap $_CHIPNAME.tap
 set _USER1_INSTR_CODE 0x02
 flash bank $_FLASHNAME jtagspi 0x0 0 0 0 \
            $_TARGETNAME $_USER1_INSTR_CODE
@@ -6379,7 +6379,7 @@ given during creation of the pld device.
 Pld device names are shown by the @command{pld devices} command.
 
 @example
-target create $_TARGETNAME testee -chain-position $_CHIPNAME.tap
+target create $_TARGETNAME testee -tap $_CHIPNAME.tap
 set _JTAGSPI_CHAIN_ID $_CHIPNAME.pld
 flash bank $_FLASHNAME jtagspi 0x0 0 0 0 \
            $_TARGETNAME -pld $_JTAGSPI_CHAIN_ID
@@ -13950,7 +13950,7 @@ The ``jtag device'' commands would thus be in the order shown below. Note:
 @item jtag newtap stm32  cpu -irlen ...
 @item jtag newtap stm32  bs  -irlen ...
 @item # Create the debug target and say where it is
-@item target create stm32.cpu -chain-position stm32.cpu ...
+@item target create stm32.cpu -tap stm32.cpu ...
 @end itemize
 
 

@@ -4899,6 +4899,7 @@ enum target_cfg_param {
 	TCFG_ENDIAN,
 	TCFG_COREID,
 	TCFG_CHAIN_POSITION,
+	TCFG_TAP,
 	TCFG_DBGBASE,
 	TCFG_RTOS,
 	TCFG_DEFER_EXAMINE,
@@ -4916,6 +4917,7 @@ static struct nvp nvp_config_opts[] = {
 	{ .name = "-endian",           .value = TCFG_ENDIAN },
 	{ .name = "-coreid",           .value = TCFG_COREID },
 	{ .name = "-chain-position",   .value = TCFG_CHAIN_POSITION },
+	{ .name = "-tap",              .value = TCFG_TAP },
 	{ .name = "-dbgbase",          .value = TCFG_DBGBASE },
 	{ .name = "-rtos",             .value = TCFG_RTOS },
 	{ .name = "-defer-examine",    .value = TCFG_DEFER_EXAMINE },
@@ -5181,9 +5183,12 @@ static COMMAND_HELPER(target_configure, struct target *target, unsigned int inde
 			break;
 
 		case TCFG_CHAIN_POSITION:
+			LOG_TARGET_WARNING(target, "DEPRECATED! '-chain-position' will be removed in the future, use '-tap' instead");
+			/* fallthrough */
+		case TCFG_TAP:
 			if (is_configure) {
 				if (target->has_dap) {
-					command_print(CMD, "target requires -dap parameter instead of -chain-position!");
+					command_print(CMD, "target requires -dap parameter instead of -tap");
 					return ERROR_COMMAND_ARGUMENT_INVALID;
 				}
 
@@ -5926,7 +5931,7 @@ COMMAND_HANDLER(handle_target_create)
 			}
 		} else {
 			if (!target->tap_configured) {
-				command_print(CMD, "-chain-position ?name? required when creating target");
+				command_print(CMD, "-tap ?name? required when creating target");
 				retval = ERROR_COMMAND_ARGUMENT_INVALID;
 			}
 		}

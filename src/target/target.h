@@ -188,7 +188,7 @@ struct target {
 	bool has_dap;						/* set to true if target has ADIv5 support */
 	bool dap_configured;				/* set to true if ADIv5 DAP is configured */
 	bool tap_configured;				/* set to true if JTAG tap has been configured
-										 * through -chain-position */
+										 * through -tap */
 
 	struct rtos *rtos;					/* Instance of Real Time Operating System support */
 	bool rtos_auto_detect;				/* A flag that indicates that the RTOS has been specified as "auto"

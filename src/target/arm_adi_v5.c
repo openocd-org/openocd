@@ -2506,7 +2506,7 @@ int adiv5_jim_configure_ext(struct target *target, struct jim_getopt_info *goi,
 		if (target->tap_configured) {
 			pc->dap = NULL;
 			Jim_SetResultString(goi->interp,
-				"-chain-position and -dap configparams are mutually exclusive!", -1);
+				"-tap and -dap configparams are mutually exclusive", -1);
 			return JIM_ERR;
 		}
 		target->tap = pc->dap->tap;
