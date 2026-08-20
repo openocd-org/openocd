@@ -39,6 +39,7 @@ struct cmsis_dap {
 	uint8_t *packet_buffer;
 	uint8_t *command;
 	uint8_t *response;
+	unsigned int response_size;
 
 	/* DP/AP register r/w operation counters used for checking the packet size
 	 * that would result from the queue run */
