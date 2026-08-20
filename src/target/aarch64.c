@@ -2921,6 +2921,7 @@ static void aarch64_deinit_target(struct target *target)
 		dap_put_ap(armv8->debug_ap);
 
 	armv8_free_reg_cache(target);
+	free(aarch64->wp_list);
 	free(aarch64->brp_list);
 	free(dpm->dbp);
 	free(dpm->dwp);
