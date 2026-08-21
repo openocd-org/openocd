@@ -479,6 +479,12 @@ static int cmsis_dap_cmd_dap_info(uint8_t info, uint8_t **data)
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
+	unsigned int info_size = cmsis_dap_handle->response[1];
+	if (2 + info_size > cmsis_dap_handle->response_size) {
+		LOG_ERROR("CMSIS-DAP CMD_INFO payload (size %u) does not fit into response (size %u)",
+				  info_size, cmsis_dap_handle->response_size);
+		return ERROR_JTAG_DEVICE_ERROR;
+	}
 	*data = &cmsis_dap_handle->response[1];
 
 	return ERROR_OK;
@@ -1163,7 +1169,7 @@ static int cmsis_dap_get_serial_info(void)
 		return retval;
 
 	if (data[0]) /* strlen */
-		LOG_INFO("CMSIS-DAP: Serial# = %s", &data[1]);
+		LOG_INFO("CMSIS-DAP: Serial# = %.*s", data[0], &data[1]);
 
 	return ERROR_OK;
 }
@@ -1178,7 +1184,7 @@ static int cmsis_dap_get_version_info(void)
 		return retval;
 
 	if (data[0]) /* strlen */
-		LOG_INFO("CMSIS-DAP: FW Version = %s", &data[1]);
+		LOG_INFO("CMSIS-DAP: FW Version = %.*s", data[0], &data[1]);
 
 	return ERROR_OK;
 }
