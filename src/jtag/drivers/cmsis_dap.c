@@ -785,11 +785,23 @@ static int cmsis_dap_cmd_dap_swo_data(
 		return ERROR_JTAG_DEVICE_ERROR;
 	}
 
-	*trace_status = cmsis_dap_handle->response[1];
-	*trace_count = le_to_h_u16(&cmsis_dap_handle->response[2]);
+	size_t count = le_to_h_u16(&cmsis_dap_handle->response[2]);
+	if (count > max_trace_count) {
+		LOG_WARNING("CMSIS-DAP: CMD_SWO_Data returned more %zu than requested %zu",
+					count, max_trace_count);
+		count = max_trace_count;
+	}
+	if (4 + count > cmsis_dap_handle->response_size) {
+		LOG_ERROR("CMSIS-DAP: CMD_SWO_Data payload (size %zu) does not fit into response (size %u)",
+				  count, cmsis_dap_handle->response_size);
+		return ERROR_JTAG_DEVICE_ERROR;
+	}
 
-	if (*trace_count > 0)
-		memcpy(data, &cmsis_dap_handle->response[4], *trace_count);
+	*trace_status = cmsis_dap_handle->response[1];
+	*trace_count = count;
+
+	if (count > 0)
+		memcpy(data, &cmsis_dap_handle->response[4], count);
 
 	return ERROR_OK;
 }
