@@ -160,7 +160,7 @@ static int jsp_input(struct connection *connection)
 			break;
 		default:
 			LOG_ERROR("unknown telnet state");
-			exit(-1);
+			return ERROR_FAIL;
 		}
 
 		bytes_read--;

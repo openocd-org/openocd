@@ -1441,7 +1441,8 @@ static int target_fill_io(struct target *target,
 		target_buf[0] = (b & 0x0ff);
 		break;
 	default:
-		exit(-1);
+		LOG_ERROR("Unsupported data size %u", data_size);
+		return ERROR_FAIL;
 	}
 	return x86_32_common_write_io(target, address, data_size, target_buf);
 }
