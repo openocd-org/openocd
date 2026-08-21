@@ -908,6 +908,34 @@ skip:
 	block->transfer_count = 0;
 }
 
+static unsigned int cmsis_dap_tfer_cmd_size(unsigned int write_count,
+							unsigned int read_count, bool block_tfer)
+{
+	unsigned int size;
+	if (block_tfer) {
+		size = 5;						/* DAP_TransferBlock header */
+		size += write_count * 4;		/* data */
+	} else {
+		size = 3;						/* DAP_Transfer header */
+		size += write_count * (1 + 4);	/* DAP register + data */
+		size += read_count;				/* DAP register */
+	}
+	return size;
+}
+
+static unsigned int cmsis_dap_tfer_resp_size(unsigned int write_count,
+							unsigned int read_count, bool block_tfer)
+{
+	unsigned int size;
+	if (block_tfer)
+		size = 4;						/* DAP_TransferBlock response header */
+	else
+		size = 3;						/* DAP_Transfer response header */
+
+	size += read_count * 4;				/* data */
+	return size;
+}
+
 static void cmsis_dap_swd_read_process(struct cmsis_dap *dap, enum cmsis_dap_blocking blocking)
 {
 	int retval;
@@ -951,10 +979,21 @@ static void cmsis_dap_swd_read_process(struct cmsis_dap *dap, enum cmsis_dap_blo
 
 	uint8_t *resp = dap->response;
 	if (resp[0] != block->command) {
-		LOG_ERROR("CMSIS-DAP command mismatch. Expected 0x%x received 0x%" PRIx8,
-			block->command, resp[0]);
+		LOG_ERROR("CMSIS-DAP command mismatch. Expected 0x%" PRIx8
+				  "	received 0x%" PRIx8, block->command, resp[0]);
 		cmsis_dap_swd_cancel_transfers(dap);
 		queued_retval = ERROR_FAIL;
+		return;
+	}
+
+	unsigned int resp_size = retval;
+	bool block_cmd = (block->command == CMD_DAP_TFER_BLOCK);
+	unsigned int expect_hdr_size = cmsis_dap_tfer_resp_size(0, 0, block_cmd);
+	if (resp_size < expect_hdr_size) {
+		LOG_ERROR("CMSIS-DAP too short response: expected header %u, got %u",
+				  expect_hdr_size, resp_size);
+		cmsis_dap_swd_cancel_transfers(dap);
+		queued_retval = ERROR_JTAG_DEVICE_ERROR;
 		return;
 	}
 
@@ -997,6 +1036,13 @@ static void cmsis_dap_swd_read_process(struct cmsis_dap *dap, enum cmsis_dap_blo
 		struct pending_transfer_result *transfer = &(block->transfers[i]);
 		if (transfer->cmd & SWD_CMD_RNW) {
 			static uint32_t last_read;
+			if (idx + 4 > resp_size) {
+				LOG_ERROR("CMSIS-DAP too short response: expected at least %u, got %u",
+						  idx + 4, resp_size);
+				cmsis_dap_swd_cancel_transfers(dap);
+				queued_retval = ERROR_JTAG_DEVICE_ERROR;
+				return;
+			}
 			uint32_t data = le_to_h_u32(&resp[idx]);
 			uint32_t tmp = data;
 			idx += 4;
@@ -1041,34 +1087,6 @@ static int cmsis_dap_swd_run_queue(void)
 	queued_retval = ERROR_OK;
 
 	return retval;
-}
-
-static unsigned int cmsis_dap_tfer_cmd_size(unsigned int write_count,
-							unsigned int read_count, bool block_tfer)
-{
-	unsigned int size;
-	if (block_tfer) {
-		size = 5;						/* DAP_TransferBlock header */
-		size += write_count * 4;		/* data */
-	} else {
-		size = 3;						/* DAP_Transfer header */
-		size += write_count * (1 + 4);	/* DAP register + data */
-		size += read_count;				/* DAP register */
-	}
-	return size;
-}
-
-static unsigned int cmsis_dap_tfer_resp_size(unsigned int write_count,
-							unsigned int read_count, bool block_tfer)
-{
-	unsigned int size;
-	if (block_tfer)
-		size = 4;						/* DAP_TransferBlock response header */
-	else
-		size = 3;						/* DAP_Transfer response header */
-
-	size += read_count * 4;				/* data */
-	return size;
 }
 
 static void cmsis_dap_swd_queue_cmd(uint8_t cmd, uint32_t *dst, uint32_t data)
