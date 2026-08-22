@@ -2088,13 +2088,19 @@ int target_alloc_working_area_try(struct target *target, uint32_t size, struct w
 	if (target->backup_working_area) {
 		if (!c->backup) {
 			c->backup = malloc(c->size);
-			if (!c->backup)
+			if (!c->backup) {
+				LOG_TARGET_ERROR(target, "No memory for working area backup");
+				target_merge_working_areas(target);
 				return ERROR_FAIL;
+			}
 		}
 
 		int retval = target_read_memory(target, c->address, 4, c->size / 4, c->backup);
-		if (retval != ERROR_OK)
+		if (retval != ERROR_OK) {
+			LOG_TARGET_ERROR(target, "Working area backup failed");
+			target_merge_working_areas(target);
 			return retval;
+		}
 	}
 
 	/* mark as used, and return the new (reused) area */
