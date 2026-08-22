@@ -2128,15 +2128,17 @@ int target_alloc_working_area(struct target *target, uint32_t size, struct worki
 
 static int target_restore_working_area(struct target *target, struct working_area *area)
 {
-	int retval = ERROR_OK;
+	if (!target->backup_working_area || !area->backup)
+		return ERROR_OK;
 
-	if (target->backup_working_area && area->backup) {
-		retval = target_write_memory(target, area->address, 4, area->size / 4, area->backup);
-		if (retval != ERROR_OK)
-			LOG_ERROR("failed to restore %" PRIu32 " bytes of working area at address " TARGET_ADDR_FMT,
-					area->size, area->address);
+	int retval = target_write_memory(target, area->address, 4,
+									 area->size / 4, area->backup);
+	if (retval != ERROR_OK) {
+		LOG_TARGET_ERROR(target, "failed to restore %" PRIu32
+						 " bytes of working area at address " TARGET_ADDR_FMT,
+						 area->size, area->address);
+		LOG_TARGET_INFO(target, "'resume' would fail, reset the target");
 	}
-
 	return retval;
 }
 
