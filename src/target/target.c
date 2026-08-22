@@ -2143,7 +2143,7 @@ static int target_restore_working_area(struct target *target, struct working_are
 }
 
 /* Restore the area's backup memory, if any, and return the area to the allocation pool */
-static int target_free_working_area_restore(struct target *target, struct working_area *area, int restore)
+static int target_free_working_area_restore(struct target *target, struct working_area *area, bool restore)
 {
 	if (!area || area->free)
 		return ERROR_OK;
@@ -2173,13 +2173,13 @@ static int target_free_working_area_restore(struct target *target, struct workin
 
 int target_free_working_area(struct target *target, struct working_area *area)
 {
-	return target_free_working_area_restore(target, area, 1);
+	return target_free_working_area_restore(target, area, true);
 }
 
 /* free resources and restore memory, if restoring memory fails,
  * free up resources anyway
  */
-static void target_free_all_working_areas_restore(struct target *target, int restore)
+static void target_free_all_working_areas_restore(struct target *target, bool restore)
 {
 	struct working_area *c = target->working_areas;
 
@@ -2205,7 +2205,7 @@ static void target_free_all_working_areas_restore(struct target *target, int res
 
 void target_free_all_working_areas(struct target *target)
 {
-	target_free_all_working_areas_restore(target, 1);
+	target_free_all_working_areas_restore(target, true);
 
 	/* Now we have none or only one working area marked as free */
 	if (target->working_areas) {
@@ -5446,7 +5446,7 @@ COMMAND_HANDLER(handle_target_reset)
 	/* determine if we should halt or not. */
 	target->reset_halt = (a != 0);
 	/* When this happens - all workareas are invalid. */
-	target_free_all_working_areas_restore(target, 0);
+	target_free_all_working_areas_restore(target, false);
 
 	/* do the assert */
 	if (n->value == NVP_ASSERT) {
