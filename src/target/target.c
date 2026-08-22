@@ -2149,12 +2149,8 @@ static int target_free_working_area_restore(struct target *target, struct workin
 		return ERROR_OK;
 
 	int retval = ERROR_OK;
-	if (restore) {
+	if (restore)
 		retval = target_restore_working_area(target, area);
-		/* REVISIT: Perhaps the area should be freed even if restoring fails. */
-		if (retval != ERROR_OK)
-			return retval;
-	}
 
 	area->free = true;
 
