@@ -737,6 +737,15 @@ static int ublast_scan(struct scan_command *cmd)
 static void ublast_usleep(int us)
 {
 	LOG_DEBUG_IO("%s(us=%d)",  __func__, us);
+	/*
+	 * A JTAG_SLEEP is meant to keep the TAP in its current stable state
+	 * for the given amount of time (e.g. SVF "RUNTEST ... SEC" flash
+	 * programming pulses). Flush the queued bit-bang bytes first,
+	 * otherwise the sleep would happen before the queued TCK cycles and
+	 * state moves are actually driven on the pins, and the required
+	 * dwell time in the stable state would be lost.
+	 */
+	ublast_flush_buffer();
 	jtag_sleep(us);
 }
 
