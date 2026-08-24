@@ -1,0 +1,17 @@
+A set of old tests were present in this folder.
+They have not been updated since around 2014 and have become outdated and not
+functional:
+- They use the 'ft2232' adapter driver, which was removed in 2016.
+- They rely on obsolete commands such as 'telnet_port', 'interface', and
+  'jtag_speed'.
+- They target old and hard-to-find boards and targets such as 'STR710'.
+
+These tests were kept for a long time because they might still be useful as
+examples.
+However, with a modern testing framework taking shape, and to avoid
+confusion, these obsolete files have been removed.
+
+If you want to restore them from git history, try the commands below:
+
+	sha1=$(git log --diff-filter=A --format=%H -- testing/obsoleted-tests.txt)
+	git diff --diff-filter=D --name-only -z ${sha1}^ ${sha1} | xargs -0 -r git checkout ${sha1}^ --
