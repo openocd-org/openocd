@@ -1209,6 +1209,11 @@ static int angie_jtag_execute_queue(struct jtag_command *cmd_queue)
 				return retval;
 			break;
 		case JTAG_SLEEP:
+			/* Although most of cmd types are flushed immediately some scans could be
+			 * in the buffer so flush now to ensure the sleep in correct state */
+			retval = angie_buffer_flush(device);
+			if (retval != ERROR_OK)
+				return retval;
 			LOG_DEBUG_IO("sleep %" PRIu32, cmd->cmd.sleep->us);
 			jtag_sleep(cmd->cmd.sleep->us);
 			break;
