@@ -513,7 +513,7 @@ static int eud_swd_run_queue(void)
 		}
 
 		uint8_t ack = status & 0x07;
-		if (swd_cmd_returns_ack(transfer->cmd) && ack != SWD_ACK_OK && ack != 0) {
+		if (swd_cmd_returns_ack(transfer->cmd) && ack != SWD_ACK_OK) {
 			LOG_DEBUG("SWD ack not OK: %u status 0x%08" PRIx32, i, status);
 			retval = swd_ack_to_error_code(ack);
 			goto out;
