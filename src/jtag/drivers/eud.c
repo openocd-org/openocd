@@ -99,6 +99,18 @@
 #define SWD_CMD_TIMING_WAIT_35_IF_ERR	BIT(18)
 #define SWD_CMD_TIMING_RESERVED	GENMASK(31, 19)
 #define EUD_SWD_CMD_STATUS			7
+ // Reading the status clears cmd_cntr and the error flags, so every queue
+ // flush needs a status of its own
+ // The ack[2:0] the DAP returned for the last command processed
+#define SWD_CMD_STATUS_ACK		GENMASK(2, 0)
+ // Set once the SWD Peripheral has exhausted its ACK.WAIT retries
+#define SWD_CMD_STATUS_WAIT_TIMEOUT	BIT(3)
+ // Set when a DAP response does not match the parity bit it came with
+#define SWD_CMD_STATUS_PARITY_ERR	BIT(4)
+ // The number of SWD R/W commands the peripheral got through. An error flag
+ // stops it on the offending command, but an ack that is merely not OK does
+ // not, so it bounds a failure rather than pinpointing it
+#define SWD_CMD_STATUS_CMD_CNTR		GENMASK(31, 16)
 #define EUD_SWD_CMD_PERIPH_RST		8
 
 struct eud_device {
@@ -598,9 +610,32 @@ static int eud_swd_flush_queue(void)
 		goto out;
 	}
 
-	uint8_t ack = status & 0x07;
+	/*
+	 * The ack belongs to the last command the peripheral processed and a
+	 * sticky DAP error makes every command after the first bad one fail
+	 * too, so a failure can only be attributed to the queue, not to a
+	 * transfer within it. Report how far the queue got instead.
+	 */
+	uint32_t processed = FIELD_GET(SWD_CMD_STATUS_CMD_CNTR, status);
+	uint8_t ack = FIELD_GET(SWD_CMD_STATUS_ACK, status);
+
+	if (status & SWD_CMD_STATUS_PARITY_ERR) {
+		LOG_ERROR("SWD parity error after %" PRIu32 " of %u transfers (status 0x%08" PRIx32 ")",
+				processed, count, status);
+		retval = ERROR_SWD_FAIL;
+		goto out;
+	}
+
+	if (status & SWD_CMD_STATUS_WAIT_TIMEOUT) {
+		LOG_DEBUG("SWD out of ACK.WAIT retries after %" PRIu32 " of %u transfers (status 0x%08" PRIx32 ")",
+				processed, count, status);
+		retval = ERROR_WAIT;
+		goto out;
+	}
+
 	if (ack != SWD_ACK_OK) {
-		LOG_DEBUG("SWD ack not OK: status 0x%08" PRIx32, status);
+		LOG_DEBUG("SWD ack=%u after %" PRIu32 " of %u transfers (status 0x%08" PRIx32 ")",
+				ack, processed, count, status);
 		retval = swd_ack_to_error_code(ack);
 		goto out;
 	}
