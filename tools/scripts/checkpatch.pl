@@ -628,7 +628,7 @@ our $logFunctions = qr{(?x:
 } # !$OpenOCD
 # OpenOCD specific: Begin: list log functions
 our $logFunctions = qr{(?x:
-	LOG_(?:TARGET_|)(?:DEBUG_IO|DEBUG|INFO|WARNING|ERROR|USER|USER_N|OUTPUT)
+	LOG_(?:TARGET_|)(?:DEBUG_IO|DEBUG|INFO|WARNING|ERROR|USER|USER_N|OUTPUT|CUSTOM_LEVEL)
 )};
 # OpenOCD specific: End
 
