@@ -173,6 +173,19 @@ riscv_mem_access_is_write(const struct riscv_mem_access_args args)
 	return !args.read_buffer && args.write_buffer;
 }
 
+/**
+ * Architecture info for RISC-V algorithms. Required by
+ * riscv_start_algorithm() / riscv_wait_algorithm() so saved context can
+ * persist while the algorithm runs. Callers must set common_magic to
+ * RISCV_COMMON_MAGIC.
+ */
+struct riscv_algorithm {
+	unsigned int common_magic;
+	riscv_reg_t saved_gpr[32];
+	riscv_reg_t saved_pc;
+	riscv_reg_t saved_mstatus;
+};
+
 
 struct riscv_info {
 	unsigned int common_magic;

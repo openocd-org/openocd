@@ -3779,12 +3779,16 @@ static int riscv_arch_state(struct target *target)
 }
 
 /* Algorithm must end with a software breakpoint instruction. */
-static int riscv_run_algorithm(struct target *target, int num_mem_params,
+static int riscv_start_algorithm(struct target *target, int num_mem_params,
 		struct mem_param *mem_params, int num_reg_params,
 		struct reg_param *reg_params, target_addr_t entry_point,
-		target_addr_t exit_point, unsigned int timeout_ms, void *arch_info)
+		target_addr_t exit_point, void *arch_info)
 {
-	RISCV_INFO(info);
+	struct riscv_algorithm *algorithm_info = arch_info;
+	if (!algorithm_info || algorithm_info->common_magic != RISCV_COMMON_MAGIC) {
+		LOG_TARGET_ERROR(target, "current target isn't a RISC-V target");
+		return ERROR_TARGET_INVALID;
+	}
 
 	if (target->state != TARGET_HALTED) {
 		LOG_TARGET_ERROR(target, "not halted (run target algo)");
@@ -3808,10 +3812,9 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 	struct reg *reg_pc = register_get_by_name(target->reg_cache, "pc", true);
 	if (!reg_pc || reg_pc->type->get(reg_pc) != ERROR_OK)
 		return ERROR_FAIL;
-	uint64_t saved_pc = buf_get_u64(reg_pc->value, 0, reg_pc->size);
-	LOG_TARGET_DEBUG(target, "saved_pc=0x%" PRIx64, saved_pc);
+	algorithm_info->saved_pc = buf_get_u64(reg_pc->value, 0, reg_pc->size);
+	LOG_TARGET_DEBUG(target, "saved_pc=0x%" PRIx64, algorithm_info->saved_pc);
 
-	uint64_t saved_regs[32];
 	for (int i = 0; i < num_reg_params; i++) {
 		LOG_TARGET_DEBUG(target, "save %s", reg_params[i].reg_name);
 		struct reg *r = register_get_by_name(target->reg_cache, reg_params[i].reg_name, false);
@@ -3833,7 +3836,7 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 
 		if (r->type->get(r) != ERROR_OK)
 			return ERROR_FAIL;
-		saved_regs[r->number] = buf_get_u64(r->value, 0, r->size);
+		algorithm_info->saved_gpr[r->number] = buf_get_u64(r->value, 0, r->size);
 
 		if (reg_params[i].direction == PARAM_OUT || reg_params[i].direction == PARAM_IN_OUT) {
 			if (r->type->set(r, reg_params[i].value) != ERROR_OK)
@@ -3842,18 +3845,30 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 	}
 
 	/* Disable Interrupts before attempting to run the algorithm. */
-	riscv_reg_t current_mstatus;
-	if (riscv_interrupts_disable(target, &current_mstatus) != ERROR_OK)
+	if (riscv_interrupts_disable(target, &algorithm_info->saved_mstatus) != ERROR_OK)
 		return ERROR_FAIL;
 
 	/* Run algorithm */
 	LOG_TARGET_DEBUG(target, "resume at 0x%" TARGET_PRIxADDR, entry_point);
-	if (riscv_resume(target, false, entry_point, false, true, true) != ERROR_OK)
-		return ERROR_FAIL;
+	return riscv_resume(target, false, entry_point, false, true, true);
+}
+
+static int riscv_wait_algorithm(struct target *target,
+		int num_mem_params, struct mem_param *mem_params,
+		int num_reg_params, struct reg_param *reg_params,
+		target_addr_t exit_point, unsigned int timeout_ms,
+		void *arch_info)
+{
+	RISCV_INFO(info);
+	struct riscv_algorithm *algorithm_info = arch_info;
+	if (!algorithm_info || algorithm_info->common_magic != RISCV_COMMON_MAGIC) {
+		LOG_TARGET_ERROR(target, "current target isn't a RISC-V target");
+		return ERROR_TARGET_INVALID;
+	}
 
 	int64_t start = timeval_ms();
 	while (target->state != TARGET_HALTED) {
-		LOG_TARGET_DEBUG(target, "poll()");
+		LOG_TARGET_DEBUG_IO(target, "poll()");
 		int64_t now = timeval_ms();
 		if (now - start > timeout_ms) {
 			LOG_TARGET_ERROR(target, "Algorithm timed out after %" PRId64 " ms.", now - start);
@@ -3891,22 +3906,23 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 	/* if (riscv_select_current_hart(target) != ERROR_OK)
 		return ERROR_FAIL; */
 
-	if (reg_pc->type->get(reg_pc) != ERROR_OK)
+	struct reg *reg_pc = register_get_by_name(target->reg_cache, "pc", true);
+	if (!reg_pc || reg_pc->type->get(reg_pc) != ERROR_OK)
 		return ERROR_FAIL;
 	uint64_t final_pc = buf_get_u64(reg_pc->value, 0, reg_pc->size);
 	if (exit_point && final_pc != exit_point) {
 		LOG_TARGET_ERROR(target, "PC ended up at 0x%" PRIx64 " instead of 0x%"
 				TARGET_PRIxADDR, final_pc, exit_point);
-		return ERROR_FAIL;
+		return ERROR_TARGET_ALGO_EXIT;
 	}
 
 	/* Restore Interrupts */
-	if (riscv_interrupts_restore(target, current_mstatus) != ERROR_OK)
+	if (riscv_interrupts_restore(target, algorithm_info->saved_mstatus) != ERROR_OK)
 		return ERROR_FAIL;
 
 	/* Restore registers */
 	uint8_t buf[8] = { 0 };
-	buf_set_u64(buf, 0, info->xlen, saved_pc);
+	buf_set_u64(buf, 0, info->xlen, algorithm_info->saved_pc);
 	if (reg_pc->type->set(reg_pc, buf) != ERROR_OK)
 		return ERROR_FAIL;
 
@@ -3922,7 +3938,7 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 		}
 		LOG_TARGET_DEBUG(target, "restore %s", reg_params[i].reg_name);
 		struct reg *r = register_get_by_name(target->reg_cache, reg_params[i].reg_name, false);
-		buf_set_u64(buf, 0, info->xlen, saved_regs[r->number]);
+		buf_set_u64(buf, 0, info->xlen, algorithm_info->saved_gpr[r->number]);
 		if (r->type->set(r, buf) != ERROR_OK) {
 			LOG_TARGET_ERROR(target, "set(%s) failed", r->name);
 			return ERROR_FAIL;
@@ -3945,6 +3961,34 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 	}
 
 	return ERROR_OK;
+}
+
+static int riscv_run_algorithm(struct target *target, int num_mem_params,
+		struct mem_param *mem_params, int num_reg_params,
+		struct reg_param *reg_params, target_addr_t entry_point,
+		target_addr_t exit_point, unsigned int timeout_ms, void *arch_info)
+{
+	struct riscv_algorithm algorithm_info;
+	if (!arch_info) {
+		algorithm_info.common_magic = RISCV_COMMON_MAGIC;
+		arch_info = &algorithm_info;
+	}
+
+	int retval = riscv_start_algorithm(target,
+			num_mem_params, mem_params,
+			num_reg_params, reg_params,
+			entry_point, exit_point,
+			arch_info);
+
+	if (retval == ERROR_OK) {
+		retval = riscv_wait_algorithm(target,
+				num_mem_params, mem_params,
+				num_reg_params, reg_params,
+				exit_point, timeout_ms,
+				arch_info);
+	}
+
+	return retval;
 }
 
 static int riscv_checksum_memory(struct target *target,
@@ -6231,6 +6275,8 @@ struct target_type riscv_target = {
 	.arch_state = riscv_arch_state,
 
 	.run_algorithm = riscv_run_algorithm,
+	.start_algorithm = riscv_start_algorithm,
+	.wait_algorithm = riscv_wait_algorithm,
 
 	.commands = riscv_command_handlers,
 
