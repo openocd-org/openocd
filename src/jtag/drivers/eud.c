@@ -42,6 +42,7 @@
  */
 #define EUD_SWD_QUEUE_TRAILER_SIZE		2
 #define EUD_SWD_STATUS_SIZE				4
+#define EUD_SWD_DITMS_OUT_SIZE			5
 
 #define EUD_CTL_CMD_CTLOUT_SET			7
 #define EUD_CTL_CMD_CTLOUT_CLR			8
@@ -453,14 +454,14 @@ static int eud_swd_init(void)
 	return eud_swd_prepare();
 }
 
-static int eud_swd_flush_queue(void);
+static int eud_swd_flush_queue(uint32_t min_idle_clk);
 
 static unsigned int eud_swd_transfer_out_size(const struct eud_swd_transfer *transfer)
 {
 	unsigned int size = transfer->cmd & SWD_CMD_RNW ? 1 : 5;
 
 	if (transfer->ap_delay_clk)
-		size += 5;
+		size += EUD_SWD_DITMS_OUT_SIZE;
 
 	return size;
 }
@@ -487,6 +488,8 @@ static int eud_swd_queue_transfer(uint8_t cmd, uint32_t value,
 	unsigned int transfer_out = eud_swd_transfer_out_size(&transfer);
 	unsigned int transfer_in = eud_swd_transfer_in_size(&transfer);
 	bool returns_ack = swd_cmd_returns_ack(cmd);
+	/* Reserve a DITMS for trailing idle clocks if this transfer has no AP delay. */
+	unsigned int last_pad = ap_delay_clk ? 0 : EUD_SWD_DITMS_OUT_SIZE;
 
 	/*
 	 * Run whatever is already queued if this transfer would not fit in
@@ -496,9 +499,9 @@ static int eud_swd_queue_transfer(uint8_t cmd, uint32_t value,
 	 */
 	if (eud_queue_len &&
 			(!returns_ack ||
-			 eud_queue_out_len + transfer_out + EUD_SWD_QUEUE_TRAILER_SIZE > EUD_SWD_BUFFER_SIZE ||
+			 eud_queue_out_len + transfer_out + last_pad + EUD_SWD_QUEUE_TRAILER_SIZE > EUD_SWD_BUFFER_SIZE ||
 			 eud_queue_in_len + transfer_in + EUD_SWD_STATUS_SIZE > EUD_SWD_BUFFER_SIZE)) {
-		int retval = eud_swd_flush_queue();
+		int retval = eud_swd_flush_queue(0);
 		if (retval != ERROR_OK)
 			return retval;
 	}
@@ -507,8 +510,13 @@ static int eud_swd_queue_transfer(uint8_t cmd, uint32_t value,
 	eud_queue_out_len += transfer_out;
 	eud_queue_in_len += transfer_in;
 
+	/*
+	 * If a TARGETSEL write happens to be the last transaction,
+	 * run_queue() can't pad it after this flush. Add the 8 idle clock
+	 * cycle wait to handle the pessimistic case.
+	 */
 	if (!returns_ack)
-		return eud_swd_flush_queue();
+		return eud_swd_flush_queue(8);
 
 	return ERROR_OK;
 }
@@ -525,7 +533,7 @@ static int eud_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay_clk)
 	return eud_swd_queue_transfer(cmd, value, NULL, ap_delay_clk);
 }
 
-static int eud_swd_flush_queue(void)
+static int eud_swd_flush_queue(uint32_t min_idle_clk)
 {
 	uint8_t out[EUD_SWD_BUFFER_SIZE];
 	uint8_t in[EUD_SWD_BUFFER_SIZE];
@@ -536,6 +544,11 @@ static int eud_swd_flush_queue(void)
 	for (unsigned int i = 0; i < count; i++) {
 		const struct eud_swd_transfer *transfer = &eud_queue[i];
 		uint8_t eud_cmd = (transfer->cmd | SWD_CMD_START | SWD_CMD_PARK) & ~SWD_CMD_STOP;
+		/* Use the last transfer's AP delay for any required trailing idle clocks. */
+		uint32_t delay_clk = transfer->ap_delay_clk;
+
+		if (i == count - 1 && delay_clk < min_idle_clk)
+			delay_clk = min_idle_clk;
 
 		LOG_DEBUG_IO("%s %s reg %x %" PRIx32,
 				transfer->cmd & SWD_CMD_APNDP ? "AP" : "DP",
@@ -551,10 +564,10 @@ static int eud_swd_flush_queue(void)
 			out_len += 4;
 		}
 
-		if (transfer->ap_delay_clk) {
+		if (delay_clk) {
 			out[out_len++] = EUD_SWD_CMD_DITMS;
 			h_u32_to_le(&out[out_len],
-					FIELD_PREP(SWD_CMD_DITMS_COUNT, transfer->ap_delay_clk - 1));
+					FIELD_PREP(SWD_CMD_DITMS_COUNT, delay_clk - 1));
 			out_len += 4;
 		}
 	}
@@ -654,7 +667,11 @@ static int eud_swd_run_queue(void)
 	if (!eud_queue_len)
 		return ERROR_OK;
 
-	return eud_swd_flush_queue();
+	/*
+	 * ADI requires a transaction to be followed by another transaction or at
+	 * least 8 idle cycles so that data is clocked through the AP.
+	 */
+	return eud_swd_flush_queue(8);
 }
 
 static int eud_init(void)
