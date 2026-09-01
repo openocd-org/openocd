@@ -162,7 +162,7 @@ int xtensa_dm_queue_enable(struct xtensa_debug_module *dm)
 int xtensa_dm_queue_reg_read(struct xtensa_debug_module *dm, enum xtensa_dm_reg reg, uint8_t *value)
 {
 	if (reg >= XDMREG_NUM) {
-		LOG_ERROR("Invalid DBG reg ID %d!", reg);
+		LOG_ERROR("Invalid DBG reg ID %d", reg);
 		return ERROR_FAIL;
 	}
 	if (dm->dap)
@@ -181,7 +181,7 @@ int xtensa_dm_queue_reg_read(struct xtensa_debug_module *dm, enum xtensa_dm_reg 
 int xtensa_dm_queue_reg_write(struct xtensa_debug_module *dm, enum xtensa_dm_reg reg, uint32_t value)
 {
 	if (reg >= XDMREG_NUM) {
-		LOG_ERROR("Invalid DBG reg ID %d!", reg);
+		LOG_ERROR("Invalid DBG reg ID %d", reg);
 		return ERROR_FAIL;
 	}
 	if (dm->dap)
@@ -200,7 +200,7 @@ int xtensa_dm_queue_pwr_reg_read(struct xtensa_debug_module *dm,
 	uint32_t clear)
 {
 	if (reg >= XDMREG_PWRNUM) {
-		LOG_ERROR("Invalid PWR reg ID %d!", reg);
+		LOG_ERROR("Invalid PWR reg ID %d", reg);
 		return ERROR_FAIL;
 	}
 	if (dm->dap) {
@@ -226,7 +226,7 @@ int xtensa_dm_queue_pwr_reg_write(struct xtensa_debug_module *dm,
 	uint32_t data)
 {
 	if (reg >= XDMREG_PWRNUM) {
-		LOG_ERROR("Invalid PWR reg ID %d!", reg);
+		LOG_ERROR("Invalid PWR reg ID %d", reg);
 		return ERROR_FAIL;
 	}
 	if (dm->dap) {
@@ -379,7 +379,7 @@ int xtensa_dm_trace_stop(struct xtensa_debug_module *dm, bool pto_enable)
 		return res;
 
 	if (trace_status.stat & TRAXSTAT_TRACT) {
-		LOG_ERROR("Failed to stop tracing (0x%x)!", trace_status.stat);
+		LOG_ERROR("Failed to stop tracing (0x%x)", trace_status.stat);
 		return ERROR_FAIL;
 	}
 	return ERROR_OK;

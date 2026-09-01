@@ -109,13 +109,13 @@ static int xtensa_chip_target_create(struct target *target)
 
 	struct xtensa_chip_common *xtensa_chip = calloc(1, sizeof(struct xtensa_chip_common));
 	if (!xtensa_chip) {
-		LOG_ERROR("Failed to alloc chip-level memory!");
+		LOG_ERROR("Failed to alloc chip-level memory");
 		return ERROR_FAIL;
 	}
 
 	int ret = xtensa_chip_init_arch_info(target, xtensa_chip, &xtensa_chip_dm_cfg);
 	if (ret != ERROR_OK) {
-		LOG_ERROR("Failed to init arch info!");
+		LOG_ERROR("Failed to init arch info");
 		free(xtensa_chip);
 		return ret;
 	}

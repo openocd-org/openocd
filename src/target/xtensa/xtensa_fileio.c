@@ -23,7 +23,7 @@ int xtensa_fileio_init(struct target *target)
 	char *idmem = malloc(XTENSA_SYSCALL_LEN_MAX + 1);
 	target->fileio_info = malloc(sizeof(struct gdb_fileio_info));
 	if (!idmem || !target->fileio_info) {
-		LOG_TARGET_ERROR(target, "Out of memory!");
+		LOG_TARGET_ERROR(target, "Out of memory");
 		free(idmem);
 		free(target->fileio_info);
 		return ERROR_FAIL;
@@ -55,7 +55,7 @@ int xtensa_fileio_detect_proc(struct target *target)
 		1,
 		(uint8_t *)brk_insn_buf);
 	if (retval != ERROR_OK) {
-		LOG_ERROR("Failed to read break instruction!");
+		LOG_ERROR("Failed to read break instruction");
 		return ERROR_FAIL;
 	}
 	if (buf_get_u32(brk_insn_buf, 0, 32) != XTENSA_SYSCALL(xtensa))
