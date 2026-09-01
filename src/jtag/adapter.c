@@ -92,6 +92,10 @@ static void sync_adapter_reset_with_gpios(void)
 		adapter_config.gpios[ADAPTER_GPIO_IDX_SRST].drive = ADAPTER_GPIO_DRIVE_MODE_PUSH_PULL;
 	else
 		adapter_config.gpios[ADAPTER_GPIO_IDX_SRST].drive = ADAPTER_GPIO_DRIVE_MODE_OPEN_DRAIN;
+	if ((cfg & RESET_CNCT_UNDER_SRST) && (cfg & RESET_SRST_NO_GATING))
+		adapter_config.gpios[ADAPTER_GPIO_IDX_SRST].init_state = ADAPTER_GPIO_INIT_STATE_ACTIVE;
+	else
+		adapter_config.gpios[ADAPTER_GPIO_IDX_SRST].init_state = ADAPTER_GPIO_INIT_STATE_INACTIVE;
 	if (cfg & RESET_TRST_OPEN_DRAIN)
 		adapter_config.gpios[ADAPTER_GPIO_IDX_TRST].drive = ADAPTER_GPIO_DRIVE_MODE_OPEN_DRAIN;
 	else
