@@ -38,7 +38,7 @@
 
 /**
  * @file
- * Holds support for accessing JTAG-specific mechanisms from TCl scripts.
+ * Holds support for accessing JTAG-specific mechanisms from Tcl scripts.
  */
 
 static const struct nvp nvp_jtag_tap_event[] = {

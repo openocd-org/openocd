@@ -21,7 +21,7 @@
 
 /**
  * @file
- * Holds support for configuring debug adapters from TCl scripts.
+ * Holds support for configuring debug adapters from Tcl scripts.
  */
 
 struct adapter_driver *adapter_driver;
