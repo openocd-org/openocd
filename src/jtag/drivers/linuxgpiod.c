@@ -707,6 +707,11 @@ static int linuxgpiod_init(void)
 	 * by adapter.c and "adapter gpio" command.
 	 */
 
+	/* Initialize SRST first to avoid signal conflict in
+	 * connect_assert_srst mode */
+	if (helper_get_line(ADAPTER_GPIO_IDX_SRST) != ERROR_OK)
+		goto out_error;
+
 	if (transport_is_jtag()) {
 		if (!linuxgpiod_jtag_mode_possible()) {
 			LOG_ERROR("Require tck, tms, tdi and tdo gpios for JTAG mode");
@@ -748,8 +753,7 @@ static int linuxgpiod_init(void)
 			goto out_error;
 	}
 
-	if (helper_get_line(ADAPTER_GPIO_IDX_SRST) != ERROR_OK
-			|| helper_get_line(ADAPTER_GPIO_IDX_LED) != ERROR_OK)
+	if (helper_get_line(ADAPTER_GPIO_IDX_LED) != ERROR_OK)
 		goto out_error;
 
 	return ERROR_OK;

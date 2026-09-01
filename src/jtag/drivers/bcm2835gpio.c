@@ -555,6 +555,11 @@ LOG_INFO("pads conf set to %08x", pads_base[BCM2835_PADS_GPIO_0_27_OFFSET]);
 	/* Configure JTAG/SWD signals. Default directions and initial states are handled
 	 * by adapter.c and "adapter gpio" command.
 	 */
+
+	/* Initialize SRST first to avoid signal conflict in
+	 * connect_assert_srst mode */
+	initialize_gpio(ADAPTER_GPIO_IDX_SRST);
+
 	if (transport_is_jtag()) {
 		initialize_gpio(ADAPTER_GPIO_IDX_TDO);
 		initialize_gpio(ADAPTER_GPIO_IDX_TDI);
@@ -636,7 +641,6 @@ LOG_INFO("pads conf set to %08x", pads_base[BCM2835_PADS_GPIO_0_27_OFFSET]);
 		}
 	}
 
-	initialize_gpio(ADAPTER_GPIO_IDX_SRST);
 	initialize_gpio(ADAPTER_GPIO_IDX_LED);
 
 	bitbang_interface = bcm2835gpio_bitbang;

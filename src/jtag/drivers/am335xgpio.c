@@ -427,6 +427,11 @@ static int am335xgpio_init(void)
 	/* Configure JTAG/SWD signals. Default directions and initial states are handled
 	 * by adapter.c and "adapter gpio" command.
 	 */
+
+	/* Initialize SRST first to avoid signal conflict in
+	 * connect_assert_srst mode */
+	initialize_gpio(ADAPTER_GPIO_IDX_SRST);
+
 	if (transport_is_jtag()) {
 		initialize_gpio(ADAPTER_GPIO_IDX_TDO);
 		initialize_gpio(ADAPTER_GPIO_IDX_TDI);
@@ -453,7 +458,6 @@ static int am335xgpio_init(void)
 		initialize_gpio(ADAPTER_GPIO_IDX_SWCLK);
 	}
 
-	initialize_gpio(ADAPTER_GPIO_IDX_SRST);
 	initialize_gpio(ADAPTER_GPIO_IDX_LED);
 
 	return ERROR_OK;
