@@ -135,6 +135,9 @@ struct flash_driver {
 	 * "bank->base + offset", while the physical address is
 	 * dependent upon current target MMU mappings.
 	 *
+	 * If the flash does not need device specific read processing,
+	 * set method to NULL and default_flash_read() will be used.
+	 *
 	 * @param bank The bank to read.
 	 * @param buffer The data bytes read.
 	 * @param offset The offset into the chip to read.

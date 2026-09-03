@@ -106,7 +106,10 @@ int flash_driver_read(struct flash_bank *bank,
 
 	LOG_DEBUG("call flash_driver_read()");
 
-	retval = bank->driver->read(bank, buffer, offset, count);
+	if (bank->driver->read)
+		retval = bank->driver->read(bank, buffer, offset, count);
+	else
+		retval = default_flash_read(bank, buffer, offset, count);
 	if (retval != ERROR_OK) {
 		LOG_ERROR(
 			"error reading to flash at address " TARGET_ADDR_FMT
