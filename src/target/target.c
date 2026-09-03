@@ -6222,6 +6222,8 @@ COMMAND_HANDLER(handle_fast_load_image_command)
 	target_addr_t min_address = 0;
 	target_addr_t max_address = -1;
 
+	LOG_WARNING("DEPRECATED! command 'fast_load_image' will be removed in the future, use 'load_image' or 'write_memory' instead");
+
 	struct image image;
 
 	int retval = CALL_COMMAND_HANDLER(parse_load_image_command,
@@ -6318,6 +6320,8 @@ COMMAND_HANDLER(handle_fast_load_image_command)
 
 COMMAND_HANDLER(handle_fast_load_command)
 {
+	LOG_WARNING("DEPRECATED! command 'fast_load' will be removed in the future, use 'load_image' or 'write_memory' instead");
+
 	if (CMD_ARGC > 0)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 	if (!fastload) {
