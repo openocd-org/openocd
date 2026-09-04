@@ -951,19 +951,19 @@ static const struct command_registration ipdbg_hub_subcommand_handlers[] = {
 		.name = "start",
 		.mode = COMMAND_EXEC,
 		.handler = handle_ipdbg_start_command,
-		.help = "Starts a IPDBG Host server.",
+		.help = "Starts a IPDBG Host server",
 		.usage = "-tool number -port port"
 	}, {
 		.name = "stop",
 		.mode = COMMAND_EXEC,
 		.handler = handle_ipdbg_stop_command,
-		.help = "Stops a IPDBG Host server.",
+		.help = "Stops a IPDBG Host server",
 		.usage = "-tool number"
 	}, {
 		.name = "queuing",
 		.handler = handle_ipdbg_cfg_queuing_command,
 		.mode = COMMAND_ANY,
-		.help = "Configures queuing between IPDBG Host and Hub.",
+		.help = "configures queuing between IPDBG Host and Hub",
 		.usage = "-size size",
 	}, {
 		.name = "services",
@@ -990,7 +990,7 @@ static int ipdbg_register_hub_command(struct ipdbg_hub *hub, struct command_invo
 		{
 			.name = hub->name,
 			.mode = COMMAND_EXEC,
-			.help = "IPDBG Hub command group.",
+			.help = "IPDBG Hub command group",
 			.usage = "",
 			.chain = ipdbg_hub_subcommand_handlers
 		},
@@ -1214,7 +1214,7 @@ static const struct command_registration ipdbg_command_handlers[] = {
 	{
 		.name = "ipdbg",
 		.mode = COMMAND_ANY,
-		.help = "IPDBG Hub/Host commands.",
+		.help = "IPDBG Hub/Host commands",
 		.usage = "",
 		.chain = ipdbg_config_command_handlers,
 	},
