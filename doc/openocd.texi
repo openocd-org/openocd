@@ -9802,6 +9802,20 @@ interface only. If your network environment is safe, @code{bindto
 0.0.0.0} can be used to cover all available interfaces.
 @end deffn
 
+@deffn {Command} {services}
+Return a Tcl list containing information about running services.
+Each list element is a Tcl dict containing all the information of a
+single service.
+@example
+> services
+@{
+    name gdb
+    port 53811
+    target tap.cpu
+@}
+@end example
+@end deffn
+
 @anchor{targetstatehandling}
 @section Target State handling
 @cindex reset
