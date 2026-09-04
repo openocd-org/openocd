@@ -346,7 +346,9 @@ static void riscv013_dm_free(struct target *target)
 static struct riscv_debug_reg_ctx get_riscv_debug_reg_ctx(const struct target *target)
 {
 	if (!target_was_examined(target)) {
-		const struct riscv_debug_reg_ctx default_context = {0};
+		const struct riscv_debug_reg_ctx default_context = {
+			.XLEN = { 0 }
+		};
 		return default_context;
 	}
 
