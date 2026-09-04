@@ -30,6 +30,10 @@
 #include <target/armv7m.h>
 #include <target/cortex_m.h>
 
+/* Nuvoton NuMicro Flash Version */
+#define NUMICRO_M0_FLASH_VERSION  0x40003FFC
+#define NUMICRO_M0_FLASH_FMC2017  0x20171011   /* This version's FMC_BA should be 0x4000C000 */
+
 /* Nuvoton NuMicro register locations */
 #define NUMICRO_SYS_BASE        0x50000000
 #define NUMICRO_SYS_WRPROT      0x50000100
@@ -557,6 +561,32 @@ static uint32_t m_page_size = NUMICRO_PAGESIZE;
 static uint32_t m_address_bias_offset;
 
 /* Private methods */
+static bool numicro_is_m0_fmc2017(struct target *target)
+{
+	uint32_t fmc_version;
+	int retval = ERROR_OK;
+
+	retval = target_read_u32(target, NUMICRO_M0_FLASH_VERSION, &fmc_version);
+	if (retval != ERROR_OK) {
+		LOG_WARNING("Could not read the value of NUMICRO_M0_FLASH_VERSION");
+		return false;
+	}
+
+	uint32_t offset = 0x0;
+	bool is_m0_fmc2017 = false;
+
+	if (fmc_version == NUMICRO_M0_FLASH_FMC2017) {
+		offset = 0x10000000;
+		is_m0_fmc2017 = true;
+	}
+
+	LOG_DEBUG("This NuMicro M0 chip's FMC_BA is %0x08x (NUMICRO_M0_FLASH_VERSION: 0x%" PRIx32 ").",
+			  NUMICRO_FLASH_BASE - offset,
+			  fmc_version);
+
+	return is_m0_fmc2017;
+}
+
 static int numicro_get_arm_arch(struct target *target)
 {
 	struct armv7m_common *armv7m = target_to_armv7m(target);
@@ -568,7 +598,10 @@ static int numicro_get_arm_arch(struct target *target)
 	} else {
 		LOG_DEBUG("NuMicro arm architecture: armv6m\n");
 		m_page_size = NUMICRO_PAGESIZE;
-		m_address_bias_offset = 0x0;
+		if (numicro_is_m0_fmc2017(target))
+			m_address_bias_offset = 0x10000000;
+		else
+			m_address_bias_offset = 0x0;
 	}
 
 	return ERROR_OK;
