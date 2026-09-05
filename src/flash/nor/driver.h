@@ -179,6 +179,9 @@ struct flash_driver {
 	 * checks and then set the @c flash_sector::is_erased field
 	 * for each of the flash banks's sectors.
 	 *
+	 * If the flash does not need device specific erase_check
+	 * set method to NULL and default_flash_blank_check() will be used.
+	 *
 	 * @param bank The bank to check
 	 * @returns ERROR_OK if successful; otherwise, an error code.
 	 */

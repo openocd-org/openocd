@@ -187,10 +187,13 @@ COMMAND_HANDLER(handle_flash_erase_check_command)
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = p->driver->erase_check(p);
-	if (retval == ERROR_OK)
+	if (p->driver->erase_check)
+		retval = p->driver->erase_check(p);
+	else
+		retval = default_flash_blank_check(p);
+	if (retval == ERROR_OK) {
 		command_print(CMD, "successfully checked erase state");
-	else {
+	} else {
 		command_print(CMD,
 			"Error: checking erase state of flash bank #%s at "
 			TARGET_ADDR_FMT,
