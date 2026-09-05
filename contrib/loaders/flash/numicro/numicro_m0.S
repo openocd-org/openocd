@@ -7,67 +7,58 @@
  *   Copyright (C) 2017 Zale Yu                                            *
  *   CYYU@nuvoton.com                                                      *
  *                                                                         *
- *   Copyright (C) 2022 Jian-Hong Pan                                      *
+ *   Copyright (C) 2022-2026 Jian-Hong Pan                                 *
  *   chienhung.pan@gmail.com                                               *
  ***************************************************************************/
 
 	.text
+	.syntax unified
 	.cpu cortex-m0
 	.thumb
 
 	/* Params:
-	 * r0 - workarea buffer / result
-	 * r1 - target address
+	 * r0 - workarea buffer pointer / return result
+	 * r1 - target flash address
 	 * r2 - wordcount
+	 * r3 - FMC / ISP register base address (0x5000C000 or 0x4000C000)
+	 *
 	 * Clobbered:
 	 * r4 - tmp
 	 * r5 - tmp
-	 * r6 - tmp
-	 * r7 - tmp
 	 */
 
-.L1:
-	/* for(register uint32_t i=0;i<wcount;i++){ */
-	mov	r4, r0
-	mov	r3, #0
-.L2:
-	sub	r5, r1, r0
-	add	r7, r4, r5
-	cmp	r3, r2
-	beq	.L7
-.L4:
-	/* NUMICRO_FLASH_ISPADR = faddr; */
-	ldr	r6, .L8
-	str	r7, [r6]
-	/* NUMICRO_FLASH_ISPDAT = *pLW; */
-	ldmia	r4!, {r7}
-	ldr	r5, .L8+4
-	str	r7, [r5]
-	/* faddr += 4; */
-	/* pLW++; */
-	/*  Trigger write action  */
-	/* NUMICRO_FLASH_ISPTRG = ISPTRG_ISPGO; */
-	ldr	r5, .L8+8
-	mov	r6, #1
-	str	r6, [r5]
-.L3:
-	/* while((NUMICRO_FLASH_ISPTRG & ISPTRG_ISPGO) == ISPTRG_ISPGO){}; */
-	ldr	r7, [r5]
-	lsl	r7, r7, #31
-	bmi	.L3
+	.thumb_func
+	.global _start
+_start:
+.L_loop:
+	cmp	r2, #0
+	beq	.L_done
 
-	add	r3, r3, #1
-	b	.L2
-.L7:
-	/* return (NUMICRO_FLASH_ISPCON & ISPCON_ISPFF); */
-	ldr	r3, .L8+12
-	ldr	r0, [r3]
-	mov	r1, #64
-	and	r0, r1
-.L9:
+	/* NUMICRO_FLASH_ISPADR (offset 0x04) = faddr */
+	str	r1, [r3, #4]
+
+	/* NUMICRO_FLASH_ISPDAT (offset 0x08) = *pLW++ */
+	ldmia	r0!, {r5}
+	str	r5, [r3, #8]
+
+	/* NUMICRO_FLASH_ISPTRG (offset 0x10) = ISPTRG_ISPGO (1) */
+	movs	r4, #1
+	str	r4, [r3, #16]
+
+.L_busy_wait:
+	/* while ((NUMICRO_FLASH_ISPTRG & ISPTRG_ISPGO) == ISPTRG_ISPGO) */
+	ldr	r5, [r3, #16]
+	lsls	r5, r5, #31
+	bmi	.L_busy_wait
+
+	adds	r1, r1, #4
+	subs	r2, r2, #1
+	b	.L_loop
+
+.L_done:
+	/* return (NUMICRO_FLASH_ISPCON & ISPCON_ISPFF) */
+	ldr	r0, [r3, #0]
+	movs	r4, #64
+	ands	r0, r4
+
 	bkpt	#0
-.L8:
-	.word	0x5000C004
-	.word	0x5000C008
-	.word	0x5000C010
-	.word	0x5000C000
