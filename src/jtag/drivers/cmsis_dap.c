@@ -1694,12 +1694,22 @@ static int cmsis_dap_flush(void)
 #endif
 
 	/* copy scan results into client buffers */
+	unsigned int resp_size = cmsis_dap_handle->response_size;
 	for (int i = 0; i < pending_scan_result_count; ++i) {
 		struct pending_scan_result *scan = &pending_scan_results[i];
 		LOG_DEBUG_IO("Copying pending_scan_result %d/%d: %d bits from byte %d -> buffer + %d bits",
-			i, pending_scan_result_count, scan->length, scan->first + 2, scan->buffer_offset);
+			i, pending_scan_result_count, scan->length,
+			2 + scan->first, scan->buffer_offset);
+
+		unsigned int scan_bytes = DIV_ROUND_UP(scan->length, 8);
+		if (2 + scan->first + scan_bytes > resp_size) {
+			LOG_ERROR("CMSIS-DAP too short response: expected at least %u, got %u",
+					  2 + scan->first + scan_bytes, resp_size);
+			retval = ERROR_JTAG_DEVICE_ERROR;
+			break;
+		}
 #ifdef CMSIS_DAP_JTAG_DEBUG
-		for (uint32_t b = 0; b < DIV_ROUND_UP(scan->length, 8); ++b)
+		for (uint32_t b = 0; b < scan_bytes; ++b)
 			printf("%02X ", resp[2+scan->first+b]);
 		printf("\n");
 #endif
