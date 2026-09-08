@@ -57,6 +57,7 @@ NOR_DRIVERS = \
 	%D%/nrf5.c \
 	%D%/numicro.c \
 	%D%/ocl.c \
+	%D%/pac55xx.c \
 	%D%/pic32mx.c \
 	%D%/psoc4.c \
 	%D%/psoc5lp.c \

@@ -8083,6 +8083,14 @@ flash bank $_FLASHNAME ocl 0 0 0 0 $_TARGETNAME
 @end example
 @end deffn
 
+@deffn {Flash Driver} {pac55xx}
+Supports the PAC55XX series from Qorvo.
+
+@example
+flash bank $_FLASHNAME pac55xx 0 0 0 0 $_TARGETNAME
+@end example
+@end deffn
+
 @deffn {Flash Driver} {pic32mx}
 The PIC32MX microcontrollers are based on the MIPS 4K cores,
 and integrate flash memory.
