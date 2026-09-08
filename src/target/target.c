@@ -3939,6 +3939,37 @@ COMMAND_HANDLER(handle_test_image_command)
 	return CALL_COMMAND_HANDLER(handle_verify_image_command_internal, IMAGE_TEST);
 }
 
+COMMAND_HANDLER(handle_calculate_checksum_command)
+{
+	if (CMD_ARGC != 2)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	struct target *target = get_current_target_or_null(CMD_CTX);
+
+	if (!target) {
+		command_print(CMD, "no target selected");
+		return ERROR_FAIL;
+	}
+
+	target_addr_t address;
+	COMMAND_PARSE_ADDRESS(CMD_ARGV[0], address);
+
+	uint32_t length;
+	COMMAND_PARSE_NUMBER(u32, CMD_ARGV[1], length);
+
+	uint32_t checksum;
+	int retval = target_checksum_memory(target, address, length, &checksum);
+
+	if (retval != ERROR_OK) {
+		command_print(CMD, "checksum calculation failed");
+		return retval;
+	}
+
+	command_print(CMD, "0x%" PRIx32, checksum);
+
+	return ERROR_OK;
+}
+
 static int handle_bp_command_list(struct command_invocation *cmd)
 {
 	struct target *target = get_current_target(cmd->ctx);
@@ -5708,6 +5739,12 @@ static const struct command_registration target_instance_command_handlers[] = {
 		.usage = "address width data ['phys']",
 	},
 	{
+		.name = "calculate_checksum",
+		.handler = handle_calculate_checksum_command,
+		.mode = COMMAND_EXEC,
+		.usage = "address size",
+	},
+	{
 		.name = "eventlist",
 		.handler = handle_target_event_list,
 		.mode = COMMAND_EXEC,
@@ -6840,6 +6877,12 @@ static const struct command_registration target_exec_command_handlers[] = {
 		.handler = handle_target_write_memory,
 		.help = "Write Tcl list of 8/16/32/64 bit numbers to target memory",
 		.usage = "address width data ['phys']",
+	},
+	{
+		.name = "calculate_checksum",
+		.handler = handle_calculate_checksum_command,
+		.mode = COMMAND_EXEC,
+		.usage = "address size",
 	},
 	{
 		.name = "debug_reason",

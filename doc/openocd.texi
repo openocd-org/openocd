@@ -5605,6 +5605,36 @@ read_memory 0x20000000 32 2
 @end example
 @end deffn
 
+@anchor{target_calculate_checksum}
+@deffn {Command} {$target_name calculate_checksum} address size
+Calculates the checksum of the memory region starting at @var{address} with a
+length of @var{size}.
+
+The checksum algorithm uses a 32-bit cyclic redundancy check (CRC) with the
+polynomial @code{0x04c11db7} and an initial seed of @code{0xffffffff}. There is
+no input or output reflection, and the XOR output mask is @code{0x00000000}.
+
+If available, the checksum is calculated on the target device using a loader
+function executed in the working area. This accelerates the calculation and
+avoids transferring the memory contents to the host.
+
+For example, to calculate the checksum of 1 KiB starting at address
+@code{0x08000000}, use the following command:
+@example
+calculate_checksum 0x08000000 1024
+0x4fae1a88
+@end example
+
+In Python, for example, the checksum for verification can be calculated as
+follows:
+@example
+from crccheck.crc import Crc32Mpeg2
+
+data = b'deadbeef'
+checksum = Crc32Mpeg2.calc(data, initvalue=0xffffffff)
+@end example
+@end deffn
+
 @deffn {Command} {$target_name cget} queryparm
 Each configuration parameter accepted by
 @command{$target_name configure}
@@ -10338,6 +10368,13 @@ Add or replace usage text on the given @var{command_name}.
 Returns current time since the Epoch in ms
 (See: @url{https://en.wikipedia.org/wiki/Epoch_(computing)}).
 Useful to compute delays in Tcl.
+@end deffn
+
+@deffn {Command} {calculate_checksum} address size
+Calculates the checksum of the memory region starting at @var{address} with a
+length of @var{size}.
+
+@xref{target_calculate_checksum,, $target_name calculate_checksum} for more details.
 @end deffn
 
 @node Architecture and Core Commands
