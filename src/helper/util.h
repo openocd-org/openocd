@@ -7,6 +7,8 @@
 #ifndef OPENOCD_HELPER_UTIL_H
 #define OPENOCD_HELPER_UTIL_H
 
+#include "types.h"
+
 struct command_context;
 
 int util_init(struct command_context *cmd_ctx);
