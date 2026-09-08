@@ -4354,21 +4354,42 @@ COMMAND_HANDLER(riscv_set_reset_timeout_sec)
 	return ERROR_OK;
 }
 
-COMMAND_HANDLER(riscv_set_mem_access)
+COMMAND_HANDLER(riscv_mem_access)
 {
 	struct target *target = get_current_target(CMD_CTX);
 	RISCV_INFO(r);
-	int progbuf_cnt = 0;
-	int sysbus_cnt = 0;
-	int abstract_cnt = 0;
 
-	if (CMD_ARGC < 1 || CMD_ARGC > RISCV_MEM_ACCESS_MAX_METHODS_NUM) {
-		command_print(CMD, "Command takes 1 to %d parameters",
-				RISCV_MEM_ACCESS_MAX_METHODS_NUM);
-		return ERROR_COMMAND_ARGUMENT_INVALID;
+	if (CMD_ARGC == 0) {
+		for (unsigned int i = 0; i < r->num_enabled_mem_access_methods; i++) {
+			if (i > 0)
+				command_print_sameline(CMD, " ");
+
+			switch (r->mem_access_methods[i]) {
+			case RISCV_MEM_ACCESS_PROGBUF:
+				command_print_sameline(CMD, "progbuf");
+				break;
+			case RISCV_MEM_ACCESS_SYSBUS:
+				command_print_sameline(CMD, "sysbus");
+				break;
+			case RISCV_MEM_ACCESS_ABSTRACT:
+				command_print_sameline(CMD, "abstract");
+				break;
+			default:
+				command_print(CMD, "BUG: invalid memory access type");
+				return ERROR_FAIL;
+			}
+		}
+		return ERROR_OK;
 	}
 
-	/* Check argument validity */
+	if (CMD_ARGC > RISCV_MEM_ACCESS_MAX_METHODS_NUM)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	unsigned int progbuf_cnt = 0;
+	unsigned int sysbus_cnt = 0;
+	unsigned int abstract_cnt = 0;
+
+	// Check argument validity.
 	for (unsigned int i = 0; i < CMD_ARGC; i++) {
 		if (strcmp("progbuf", CMD_ARGV[i]) == 0) {
 			progbuf_cnt++;
@@ -4377,17 +4398,17 @@ COMMAND_HANDLER(riscv_set_mem_access)
 		} else if (strcmp("abstract", CMD_ARGV[i]) == 0) {
 			abstract_cnt++;
 		} else {
-			LOG_ERROR("Unknown argument '%s'. "
-				"Must be one of: 'progbuf', 'sysbus' or 'abstract'.", CMD_ARGV[i]);
-			return ERROR_COMMAND_SYNTAX_ERROR;
+			command_print(CMD, "unknown method '%s', "
+				"must be one of: 'progbuf', 'sysbus' or 'abstract'", CMD_ARGV[i]);
+			return ERROR_COMMAND_ARGUMENT_INVALID;
 		}
 	}
 	if (progbuf_cnt > 1 || sysbus_cnt > 1 || abstract_cnt > 1) {
-		LOG_ERROR("Syntax error - duplicate arguments to `riscv set_mem_access`.");
-		return ERROR_COMMAND_SYNTAX_ERROR;
+		command_print(CMD, "duplicate memory access methods");
+		return ERROR_COMMAND_ARGUMENT_INVALID;
 	}
 
-	/* Args are valid, store them */
+	// Arguments are valid, store them.
 	r->num_enabled_mem_access_methods = CMD_ARGC;
 	for (unsigned int i = 0; i < CMD_ARGC; i++) {
 		if (strcmp("progbuf", CMD_ARGV[i]) == 0)
@@ -4398,13 +4419,22 @@ COMMAND_HANDLER(riscv_set_mem_access)
 			r->mem_access_methods[i] = RISCV_MEM_ACCESS_ABSTRACT;
 	}
 
-	/* Reset warning flags */
+	// Reset warning flags.
 	for (size_t i = 0; i < RISCV_MEM_ACCESS_MAX_METHODS_NUM; ++i)
 		r->mem_access_warn[i] = true;
 
 	return ERROR_OK;
 }
 
+COMMAND_HANDLER(riscv_set_mem_access)
+{
+	LOG_WARNING("DEPRECATED! use 'mem_access' not 'set_mem_access'");
+
+	if (CMD_ARGC == 0)
+		return ERROR_COMMAND_SYNTAX_ERROR;
+
+	return CALL_COMMAND_HANDLER(riscv_mem_access);
+}
 
 static bool parse_csr_address(const char *reg_address_str, unsigned int *reg_addr)
 {
@@ -5684,7 +5714,14 @@ static const struct command_registration riscv_exec_command_handlers[] = {
 		.handler = riscv_set_mem_access,
 		.mode = COMMAND_ANY,
 		.usage = "method1 [method2] [method3]",
-		.help = "Set which memory access methods shall be used and in which order "
+		.help = "DEPRECATED: Use 'riscv mem_access' instead."
+	},
+	{
+		.name = "mem_access",
+		.handler = riscv_mem_access,
+		.mode = COMMAND_ANY,
+		.usage = "[method1 [method2 [method3]]]",
+		.help = "Configure which memory access methods shall be used and in which order "
 			"of priority. Method can be one of: 'progbuf', 'sysbus' or 'abstract'."
 	},
 	{

@@ -12060,9 +12060,11 @@ Set the wall-clock timeout (in seconds) for individual commands. The default
 should work fine for all but the slowest targets (eg. simulators).
 @end deffn
 
-@deffn {Command} {riscv set_mem_access} method1 [method2] [method3]
+@deffn {Command} {riscv mem_access} [method1 [method2 [method3]]]
 Specify which RISC-V memory access method(s) shall be used, and in which order
 of priority. At least one method must be specified.
+
+With no parameter, this command displays the configured memory access method(s).
 
 Available methods are:
 @itemize
