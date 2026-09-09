@@ -10461,7 +10461,12 @@ Serial Wire Output (SWO), such as ARM Cortex-M0, or where semihosting is not
 applicable because of real-time constraints.
 
 @quotation Note
-The current implementation supports only single target devices.
+The current implementation supports only single-target Arm Cortex-M and RISC-V
+devices.
+
+RTT functionality on a RISC-V target depends on the supported memory access
+methods.
+@xref{riscv_mem_access,,riscv mem_access} for further details.
 @end quotation
 
 The data transfer between host and target device is organized through
@@ -12292,6 +12297,7 @@ Set the wall-clock timeout (in seconds) for individual commands. The default
 should work fine for all but the slowest targets (eg. simulators).
 @end deffn
 
+@anchor{riscv_mem_access}
 @deffn {Command} {riscv mem_access} [method1 [method2 [method3]]]
 Specify which RISC-V memory access method(s) shall be used, and in which order
 of priority. At least one method must be specified.
