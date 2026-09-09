@@ -649,7 +649,7 @@ static int flash_iterate_address_range_inner(struct target *target,
  */
 static int flash_iterate_address_range(struct target *target,
 	char *pad_reason, target_addr_t addr, uint32_t length,
-	bool iterate_protect_blocks,
+	bool iterate_protect_blocks, bool skip_banks_without_erase,
 	int (*callback)(struct flash_bank *bank, unsigned int first,
 		unsigned int last))
 {
@@ -668,12 +668,17 @@ static int flash_iterate_address_range(struct target *target,
 			LOG_DEBUG("iterating over more than one flash bank.");
 			cur_length = c->base + c->size - addr;
 		}
-		retval = flash_iterate_address_range_inner(target,
-				pad_reason, addr, cur_length,
-				iterate_protect_blocks,
-				callback);
-		if (retval != ERROR_OK)
-			break;
+		if (skip_banks_without_erase && !c->driver->erase) {
+			LOG_DEBUG("bank %s does not support erase, skipped",
+					  c->name);
+		} else {
+			retval = flash_iterate_address_range_inner(target,
+					pad_reason, addr, cur_length,
+					iterate_protect_blocks,
+					callback);
+			if (retval != ERROR_OK)
+				break;
+		}
 
 		length -= cur_length;
 		addr += cur_length;
@@ -683,10 +688,11 @@ static int flash_iterate_address_range(struct target *target,
 }
 
 int flash_erase_address_range(struct target *target,
-	bool pad, target_addr_t addr, uint32_t length)
+	bool pad, target_addr_t addr, uint32_t length, bool skip_banks_without_erase)
 {
 	return flash_iterate_address_range(target, pad ? "erase" : NULL,
-		addr, length, false, &flash_driver_erase);
+							addr, length, false /* iterate_protect_blocks */,
+							skip_banks_without_erase,  &flash_driver_erase);
 }
 
 static int flash_driver_unprotect(struct flash_bank *bank, unsigned int first,
@@ -703,7 +709,9 @@ int flash_unlock_address_range(struct target *target, target_addr_t addr,
 	 * and doesn't restore it.
 	 */
 	return flash_iterate_address_range(target, "unprotect",
-		addr, length, true, &flash_driver_unprotect);
+							addr, length, true /* iterate_protect_blocks */,
+							false /* skip_banks_without_erase */,
+							&flash_driver_unprotect);
 }
 
 static int compare_section(const void *a, const void *b)
@@ -1035,7 +1043,9 @@ int flash_write_unlock_verify(struct target *target, struct image *image,
 			if (erase) {
 				/* calculate and erase sectors */
 				retval = flash_erase_address_range(target,
-						true, run_address, run_size);
+											true /* pad */,
+											run_address, run_size,
+											true /* skip_banks_without_erase */);
 			}
 		}
 

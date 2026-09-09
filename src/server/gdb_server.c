@@ -3647,8 +3647,8 @@ static int gdb_v_packet(struct connection *connection,
 		 * end to be "block" aligned ... if padding is ever needed,
 		 * GDB will have become dangerously confused.
 		 */
-		result = flash_erase_address_range(target, false, addr,
-			length);
+		result = flash_erase_address_range(target, false, /* pad */
+						addr, length, true /* skip_banks_without_erase */);
 
 		/* perform any target specific operations after the erase */
 		target_call_event_callbacks(target,

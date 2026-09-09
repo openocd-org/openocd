@@ -6168,7 +6168,9 @@ explicitly as @option{bin} (binary), @option{ihex} (Intel hex),
 @option{elf} (ELF file), @option{s19} (Motorola s19).
 @option{mem}, or @option{builder}.
 The relevant flash sectors will be erased prior to programming
-if the @option{erase} parameter is given. If @option{unlock} is
+if the @option{erase} parameter is given. @option{erase}
+is silently ignored for banks without erase support.
+If @option{unlock} is
 provided, then the flash banks are unlocked before erase and
 program. The flash bank to use is inferred from the address of
 each image section.

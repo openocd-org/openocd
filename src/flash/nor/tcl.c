@@ -279,7 +279,8 @@ COMMAND_HANDLER(handle_flash_erase_address_command)
 		retval = flash_unlock_address_range(target, address, length);
 
 	if (retval == ERROR_OK)
-		retval = flash_erase_address_range(target, do_pad, address, length);
+		retval = flash_erase_address_range(target, do_pad, address, length,
+										false /* skip_banks_without_erase */);
 
 	if (retval == ERROR_FLASH_OPER_UNSUPPORTED) {
 		command_print(CMD, "erase operation is not supported");

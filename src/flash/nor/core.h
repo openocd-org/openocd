@@ -149,10 +149,12 @@ int flash_register_commands(struct command_context *cmd_ctx);
  * The range @a addr to @a addr + @a length - 1 must be strictly
  * sector aligned, unless @a pad is true.  Setting @a pad true extends
  * the range, at beginning and/or end, if needed for sector alignment.
+ * @a skip_banks_without_erase silently skip banks which driver has
+ * no erase method defined.
  * @returns ERROR_OK if successful; otherwise, an error code.
  */
 int flash_erase_address_range(struct target *target,
-		bool pad, target_addr_t addr, uint32_t length);
+		bool pad, target_addr_t addr, uint32_t length, bool skip_banks_without_erase);
 
 int flash_unlock_address_range(struct target *target, target_addr_t addr,
 		uint32_t length);
