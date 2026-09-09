@@ -325,12 +325,6 @@ error:
 	return ERROR_OK;
 }
 
-static int nrf54_erase(struct flash_bank *bank, unsigned int first,
-		unsigned int last)
-{
-	return ERROR_FLASH_OPER_UNSUPPORTED;
-}
-
 FLASH_BANK_COMMAND_HANDLER(nrf54_flash_bank_command)
 {
 	if (bank->base != NRF54_RRAM_BASE_ADDR) {
@@ -366,7 +360,6 @@ const struct flash_driver nrf54_flash = {
 	.commands = nrf54_command_handlers,
 	.flash_bank_command = nrf54_flash_bank_command,
 	.info = nrf54_info,
-	.erase = nrf54_erase,
 	.write = nrf54_write,
 	.read = default_flash_read,
 	.probe = nrf54_probe,

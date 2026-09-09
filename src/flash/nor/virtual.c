@@ -101,6 +101,9 @@ static int virtual_erase(struct flash_bank *bank, unsigned int first,
 	if (!master_bank)
 		return ERROR_FLASH_OPERATION_FAILED;
 
+	if (!master_bank->driver->erase)
+		return ERROR_FLASH_OPER_UNSUPPORTED;
+
 	/* call master handler */
 	return master_bank->driver->erase(master_bank, first, last);
 }

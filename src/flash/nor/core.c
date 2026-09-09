@@ -29,6 +29,11 @@ static struct flash_bank *flash_banks;
 int flash_driver_erase(struct flash_bank *bank, unsigned int first,
 		unsigned int last)
 {
+	if (!bank->driver->erase) {
+		// do not log error here to allow silently skip auto-erase
+		return ERROR_FLASH_OPER_UNSUPPORTED;
+	}
+
 	return bank->driver->erase(bank, first, last);
 }
 

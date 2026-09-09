@@ -88,6 +88,9 @@ struct flash_driver {
 	 * called, the flash driver should erase the specified sectors
 	 * using whatever means are at its disposal.
 	 *
+	 * If the memory is a non-volatile RAM or other type which
+	 * does not need to be erased before write, set method to NULL.
+	 *
 	 * @param bank The bank of flash to be erased.
 	 * @param first The number of the first sector to erase, typically 0.
 	 * @param last The number of the last sector to erase, typically N-1.
