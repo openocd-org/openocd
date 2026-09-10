@@ -1568,7 +1568,7 @@ static void cmsis_dap_execute_sleep(struct jtag_command *cmd)
 /* Set TMS high for five TCK clocks, to move the TAP to the Test-Logic-Reset state */
 static int cmsis_dap_execute_tlr_reset(struct jtag_command *cmd)
 {
-	LOG_INFO("cmsis-dap JTAG TLR_RESET");
+	LOG_DEBUG("cmsis-dap JTAG TLR_RESET");
 	uint8_t seq = 0xff;
 
 	int retval = cmsis_dap_cmd_dap_swj_sequence(8, &seq);
