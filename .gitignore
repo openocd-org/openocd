@@ -104,6 +104,9 @@ GPATH
 GRTAGS
 GTAGS
 
+# Qt Creator's clangd index cache
+.qtc_clangd
+
 # checkpatch script files
 .checkpatch-camelcase.*
 
