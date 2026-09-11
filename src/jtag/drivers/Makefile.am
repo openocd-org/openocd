@@ -228,6 +228,7 @@ DRIVERHEADERS = \
 	%D%/bitq.h \
 	%D%/libftdi_helper.h \
 	%D%/libusb_helper.h \
+	%D%/linuxgpiod.h \
 	%D%/cmsis_dap.h \
 	%D%/minidriver_imp.h \
 	%D%/mpsse.h \
