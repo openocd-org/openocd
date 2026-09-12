@@ -106,6 +106,7 @@ static uint8_t *queue_tx_buf;
 static uint8_t *queue_rx_buf;
 static uint8_t *tx_flip_buf;
 
+static int spidev_quit(void);
 static int spidev_swd_switch_seq(enum swd_special_seq seq);
 static int spidev_swd_write_reg(uint8_t cmd, uint32_t value, uint32_t ap_delay_clk);
 
@@ -299,7 +300,7 @@ static int spidev_init(void)
 	spi_fd = open(spi_path, O_RDWR);
 	if (spi_fd < 0) {
 		LOG_ERROR("Failed to open SPI port at %s", spi_path);
-		return ERROR_JTAG_INIT_FAILED;
+		goto out_error;
 	}
 
 	int ret;
@@ -310,7 +311,7 @@ static int spidev_init(void)
 	// Linux pre 3.15 does not support MODE32, use 8-bit ioctl
 	if (spi_mode & ~0xff) {
 		LOG_ERROR("SPI mode 0x%" PRIx32 ", system permits 8 bits only", spi_mode);
-		return ERROR_JTAG_INIT_FAILED;
+		goto out_error;
 	}
 
 	uint8_t mode = (uint8_t)spi_mode;
@@ -318,7 +319,7 @@ static int spidev_init(void)
 #endif
 	if (ret == -1) {
 		LOG_ERROR("Failed to set SPI mode 0x%" PRIx32, spi_mode);
-		return ERROR_JTAG_INIT_FAILED;
+		goto out_error;
 	}
 
 	// Set SPI bits per word.
@@ -326,7 +327,7 @@ static int spidev_init(void)
 	ret = ioctl(spi_fd, SPI_IOC_WR_BITS_PER_WORD, &spi_bits);
 	if (ret == -1) {
 		LOG_ERROR("Failed to set SPI %" PRIu8 " bits per transfer", spi_bits);
-		return ERROR_JTAG_INIT_FAILED;
+		goto out_error;
 	}
 
 	LOG_INFO("Opened SPI device at %s in mode 0x%" PRIx32 " with %" PRIu8 " bits ",
@@ -335,10 +336,15 @@ static int spidev_init(void)
 	if (max_queue_entries == 0) {
 		ret = spidev_alloc_queue(MAX_QUEUE_ENTRIES);
 		if (ret != ERROR_OK)
-			return ERROR_JTAG_INIT_FAILED;
+			goto out_error;
 	}
 
 	return ERROR_OK;
+
+out_error:
+	spidev_quit();
+
+	return ERROR_JTAG_INIT_FAILED;
 }
 
 static int spidev_quit(void)
