@@ -3661,6 +3661,9 @@ target requests a wait as all queued transactions will need to be exchanged
 before spidev can see the wait request.
 @end deffn
 
+If built with linuxgpiod driver, optional SRST signal can be configured
+with generic command @ref{adapter gpio, @command{adapter gpio}}.
+
 See @file{tcl/interface/spidev_example.cfg} for a sample configuration file.
 
 Electrical connections:

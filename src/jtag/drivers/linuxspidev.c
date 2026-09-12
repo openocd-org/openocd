@@ -57,6 +57,10 @@
 #include <jtag/interface.h>
 #include <jtag/commands.h>
 
+#if BUILD_LINUXGPIOD
+#include "linuxgpiod.h"
+#endif
+
 // Number of bits per SPI exchange
 #define SPI_BITS 8
 
@@ -296,6 +300,13 @@ static int spidev_init(void)
 		return ERROR_JTAG_INIT_FAILED;
 	}
 
+	int ret;
+#if BUILD_LINUXGPIOD
+	ret = linuxgpiod_helper_get_line(ADAPTER_GPIO_IDX_SRST);
+	if (ret != ERROR_OK)
+		goto out_error;
+#endif
+
 	// Open SPI device.
 	spi_fd = open(spi_path, O_RDWR);
 	if (spi_fd < 0) {
@@ -303,7 +314,6 @@ static int spidev_init(void)
 		goto out_error;
 	}
 
-	int ret;
 	// Set SPI mode.
 #ifdef SPI_IOC_WR_MODE32
 	ret = ioctl(spi_fd, SPI_IOC_WR_MODE32, &spi_mode);
@@ -350,6 +360,10 @@ out_error:
 static int spidev_quit(void)
 {
 	spidev_free_queue();
+
+#if BUILD_LINUXGPIOD
+	linuxgpiod_quit();
+#endif
 
 	if (spi_fd < 0)
 		return ERROR_OK;
@@ -637,6 +651,9 @@ struct adapter_driver linuxspidev_adapter_driver = {
 	.speed = spidev_speed,
 	.khz = spidev_khz,
 	.speed_div = spidev_speed_div,
+#if BUILD_LINUXGPIOD
+	.reset = linuxgpiod_reset,
+#endif
 
 	.swd_ops = &spidev_swd,
 };
