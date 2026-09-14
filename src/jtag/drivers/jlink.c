@@ -77,7 +77,6 @@ static struct device_config config;
 static struct device_config tmp_config;
 
 /* Queue command functions */
-static int jlink_end_state(enum tap_state state);
 static int jlink_state_move(void);
 static int jlink_path_move(unsigned int num_states, enum tap_state *path);
 static int jlink_stableclocks(unsigned int num_cycles);
@@ -125,7 +124,7 @@ static int jlink_execute_runtest(struct jtag_command *cmd)
 	LOG_DEBUG_IO("runtest %i cycles, end in %i", cmd->cmd.runtest->num_cycles,
 		cmd->cmd.runtest->end_state);
 
-	int retval = jlink_end_state(cmd->cmd.runtest->end_state);
+	int retval = tap_set_end_state_stable(cmd->cmd.runtest->end_state);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -136,7 +135,7 @@ static int jlink_execute_statemove(struct jtag_command *cmd)
 {
 	LOG_DEBUG_IO("statemove end in %i", cmd->cmd.statemove->end_state);
 
-	int retval = jlink_end_state(cmd->cmd.statemove->end_state);
+	int retval = tap_set_end_state_stable(cmd->cmd.statemove->end_state);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -172,7 +171,7 @@ static int jlink_execute_scan(struct jtag_command *cmd)
 	int retval;
 	if (cmd->cmd.scan->ir_scan) {
 		if (tap_get_state() != TAP_IRSHIFT) {
-			retval = jlink_end_state(TAP_IRSHIFT);
+			retval = tap_set_end_state_stable(TAP_IRSHIFT);
 			if (retval != ERROR_OK)
 				return retval;
 			retval = jlink_state_move();
@@ -181,7 +180,7 @@ static int jlink_execute_scan(struct jtag_command *cmd)
 		}
 	} else {
 		if (tap_get_state() != TAP_DRSHIFT) {
-			retval = jlink_end_state(TAP_DRSHIFT);
+			retval = tap_set_end_state_stable(TAP_DRSHIFT);
 			if (retval != ERROR_OK)
 				return retval;
 			retval = jlink_state_move();
@@ -190,7 +189,7 @@ static int jlink_execute_scan(struct jtag_command *cmd)
 		}
 	}
 
-	retval = jlink_end_state(cmd->cmd.scan->end_state);
+	retval = tap_set_end_state_stable(cmd->cmd.scan->end_state);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -259,7 +258,7 @@ static int jlink_execute_scan(struct jtag_command *cmd)
 	}
 
 	if (tap_get_state() != tap_get_end_state()) {
-		retval = jlink_end_state(tap_get_end_state());
+		retval = tap_set_end_state_stable(tap_get_end_state());
 		if (retval != ERROR_OK)
 			return retval;
 		retval = jlink_state_move();
@@ -920,17 +919,6 @@ static int jlink_quit(void)
 /***************************************************************************/
 /* Queue command implementations */
 
-static int jlink_end_state(enum tap_state state)
-{
-	if (!tap_is_state_stable(state)) {
-		LOG_ERROR("BUG: %i is not a valid end state", state);
-		return ERROR_JTAG_NOT_STABLE_STATE;
-	}
-
-	tap_set_end_state(state);
-	return ERROR_OK;
-}
-
 /* Goes to the end state. */
 static int jlink_state_move(void)
 {
@@ -992,7 +980,7 @@ static int jlink_runtest(unsigned int num_cycles)
 
 	/* Only do a state_move when we're not already in IDLE. */
 	if (tap_get_state() != TAP_IDLE) {
-		int retval = jlink_end_state(TAP_IDLE);
+		int retval = tap_set_end_state_stable(TAP_IDLE);
 		if (retval != ERROR_OK)
 			return retval;
 		retval = jlink_state_move();
@@ -1006,7 +994,7 @@ static int jlink_runtest(unsigned int num_cycles)
 		return retval;
 
 	/* Finish in end_state. */
-	retval = jlink_end_state(saved_end_state);
+	retval = tap_set_end_state_stable(saved_end_state);
 	if (retval != ERROR_OK)
 		return retval;
 

@@ -74,6 +74,11 @@ enum tap_state tap_get_state(void);
 void tap_set_end_state(enum tap_state new_end_state);
 
 /**
+ * Similar as tap_set_end_state(), checks new_end_state is stable.
+ * @returns ERROR_JTAG_NOT_STABLE_STATE if the state is not stable. */
+int tap_set_end_state_stable(enum tap_state new_end_state);
+
+/**
  * For more information, @see tap_set_end_state
  * @return enum tap_state - The state the TAPs should be in at completion of the current TAP operation.
  */

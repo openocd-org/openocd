@@ -53,6 +53,17 @@ void tap_set_end_state(enum tap_state new_end_state)
 	end_state_follower = new_end_state;
 }
 
+int tap_set_end_state_stable(enum tap_state new_end_state)
+{
+	if (!tap_is_state_stable(new_end_state)) {
+		LOG_ERROR("BUG: %i is not a valid end state", new_end_state);
+		return ERROR_JTAG_NOT_STABLE_STATE;
+	}
+
+	tap_set_end_state(new_end_state);
+	return ERROR_OK;
+}
+
 enum tap_state tap_get_end_state(void)
 {
 	return end_state_follower;

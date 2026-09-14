@@ -1577,18 +1577,6 @@ static int cmsis_dap_execute_tlr_reset(struct jtag_command *cmd)
 	return retval;
 }
 
-/* Set new end state */
-static int cmsis_dap_end_state(enum tap_state state)
-{
-	if (!tap_is_state_stable(state)) {
-		LOG_ERROR("BUG: %i is not a valid end state", state);
-		return ERROR_JTAG_NOT_STABLE_STATE;
-	}
-
-	tap_set_end_state(state);
-	return ERROR_OK;
-}
-
 #ifdef SPRINT_BINARY
 static void sprint_binary(char *s, const uint8_t *buf, unsigned int offset, unsigned int len)
 {
@@ -1857,7 +1845,7 @@ static int cmsis_dap_execute_scan(struct jtag_command *cmd)
 	int retval;
 	if (cmd->cmd.scan->ir_scan) {
 		if (tap_get_state() != TAP_IRSHIFT) {
-			retval = cmsis_dap_end_state(TAP_IRSHIFT);
+			retval = tap_set_end_state_stable(TAP_IRSHIFT);
 			if (retval != ERROR_OK)
 				return retval;
 
@@ -1867,7 +1855,7 @@ static int cmsis_dap_execute_scan(struct jtag_command *cmd)
 		}
 	} else {
 		if (tap_get_state() != TAP_DRSHIFT) {
-			retval = cmsis_dap_end_state(TAP_DRSHIFT);
+			retval = tap_set_end_state_stable(TAP_DRSHIFT);
 			if (retval != ERROR_OK)
 				return retval;
 
@@ -1877,7 +1865,7 @@ static int cmsis_dap_execute_scan(struct jtag_command *cmd)
 		}
 	}
 
-	retval = cmsis_dap_end_state(cmd->cmd.scan->end_state);
+	retval = tap_set_end_state_stable(cmd->cmd.scan->end_state);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -1948,7 +1936,7 @@ static int cmsis_dap_execute_scan(struct jtag_command *cmd)
 	}
 
 	if (tap_get_state() != tap_get_end_state()) {
-		retval = cmsis_dap_end_state(tap_get_end_state());
+		retval = tap_set_end_state_stable(tap_get_end_state());
 		if (retval != ERROR_OK)
 			return retval;
 
@@ -1986,7 +1974,7 @@ static int cmsis_dap_pathmove(int num_states, enum tap_state *path)
 		tap_set_state(path[i]);
 	}
 
-	return cmsis_dap_end_state(tap_get_state());
+	return tap_set_end_state_stable(tap_get_state());
 }
 
 static int cmsis_dap_execute_pathmove(struct jtag_command *cmd)
@@ -2019,7 +2007,7 @@ static int cmsis_dap_runtest(unsigned int num_cycles)
 
 	/* Only do a state_move when we're not already in IDLE. */
 	if (tap_get_state() != TAP_IDLE) {
-		retval = cmsis_dap_end_state(TAP_IDLE);
+		retval = tap_set_end_state_stable(TAP_IDLE);
 		if (retval != ERROR_OK)
 			return retval;
 
@@ -2032,7 +2020,7 @@ static int cmsis_dap_runtest(unsigned int num_cycles)
 		return retval;
 
 	/* Finish in end_state. */
-	retval = cmsis_dap_end_state(saved_end_state);
+	retval = tap_set_end_state_stable(saved_end_state);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -2050,7 +2038,7 @@ static int cmsis_dap_execute_runtest(struct jtag_command *cmd)
 	LOG_DEBUG_IO("runtest %u cycles, end in %i", cmd->cmd.runtest->num_cycles,
 		      cmd->cmd.runtest->end_state);
 
-	int retval = cmsis_dap_end_state(cmd->cmd.runtest->end_state);
+	int retval = tap_set_end_state_stable(cmd->cmd.runtest->end_state);
 	if (retval != ERROR_OK)
 		return retval;
 
