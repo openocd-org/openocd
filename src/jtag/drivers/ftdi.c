@@ -365,17 +365,7 @@ static int ftdi_khz(int khz, int *jtag_speed)
 	return ERROR_OK;
 }
 
-static void ftdi_end_state(enum tap_state state)
-{
-	if (tap_is_state_stable(state))
-		tap_set_end_state(state);
-	else {
-		LOG_ERROR("BUG: %s is not a stable end state", tap_state_name(state));
-		exit(-1);
-	}
-}
-
-static void ftdi_execute_runtest(struct jtag_command *cmd)
+static int ftdi_execute_runtest(struct jtag_command *cmd)
 {
 	uint8_t zero = 0;
 
@@ -395,7 +385,9 @@ static void ftdi_execute_runtest(struct jtag_command *cmd)
 		i -= this_len;
 	}
 
-	ftdi_end_state(cmd->cmd.runtest->end_state);
+	int retval = tap_set_end_state_stable(cmd->cmd.runtest->end_state);
+	if (retval != ERROR_OK)
+		return retval;
 
 	if (tap_get_state() != tap_get_end_state())
 		move_to_state(tap_get_end_state());
@@ -403,25 +395,30 @@ static void ftdi_execute_runtest(struct jtag_command *cmd)
 	LOG_DEBUG_IO("runtest: %u, end in %s",
 		cmd->cmd.runtest->num_cycles,
 		tap_state_name(tap_get_end_state()));
+	return ERROR_OK;
 }
 
-static void ftdi_execute_statemove(struct jtag_command *cmd)
+static int ftdi_execute_statemove(struct jtag_command *cmd)
 {
 	LOG_DEBUG_IO("statemove end in %s",
 		tap_state_name(cmd->cmd.statemove->end_state));
 
-	ftdi_end_state(cmd->cmd.statemove->end_state);
+	int retval = tap_set_end_state_stable(cmd->cmd.statemove->end_state);
+	if (retval != ERROR_OK)
+		return retval;
 
 	/* shortest-path move to desired end state */
 	if (tap_get_state() != tap_get_end_state() || tap_get_end_state() == TAP_RESET)
 		move_to_state(tap_get_end_state());
+
+	return ERROR_OK;
 }
 
 /**
  * Clock a bunch of TMS (or SWDIO) transitions, to change the JTAG
  * (or SWD) state machine. REVISIT: Not the best method, perhaps.
  */
-static void ftdi_execute_tms(struct jtag_command *cmd)
+static int ftdi_execute_tms(struct jtag_command *cmd)
 {
 	LOG_DEBUG_IO("TMS: %u bits", cmd->cmd.tms->num_bits);
 
@@ -432,9 +429,10 @@ static void ftdi_execute_tms(struct jtag_command *cmd)
 		cmd->cmd.tms->num_bits,
 		false,
 		ftdi_jtag_mode);
+	return ERROR_OK;
 }
 
-static void ftdi_execute_pathmove(struct jtag_command *cmd)
+static int ftdi_execute_pathmove(struct jtag_command *cmd)
 {
 	enum tap_state *path = cmd->cmd.pathmove->path;
 	unsigned int num_states  = cmd->cmd.pathmove->num_states;
@@ -466,7 +464,7 @@ static void ftdi_execute_pathmove(struct jtag_command *cmd)
 				"TAP state transition",
 				tap_state_name(tap_get_state()),
 				tap_state_name(path[state_count]));
-			exit(-1);
+			return ERROR_JTAG_TRANSITION_INVALID;
 		}
 
 		tap_set_state(path[state_count]);
@@ -483,9 +481,10 @@ static void ftdi_execute_pathmove(struct jtag_command *cmd)
 		}
 	}
 	tap_set_end_state(tap_get_state());
+	return ERROR_OK;
 }
 
-static void ftdi_execute_scan(struct jtag_command *cmd)
+static int ftdi_execute_scan(struct jtag_command *cmd)
 {
 	LOG_DEBUG_IO("%s type:%d", cmd->cmd.scan->ir_scan ? "IRSCAN" : "DRSCAN",
 		jtag_scan_type(cmd->cmd.scan));
@@ -499,7 +498,7 @@ static void ftdi_execute_scan(struct jtag_command *cmd)
 
 	if (!cmd->cmd.scan->num_fields) {
 		LOG_DEBUG_IO("empty scan, doing nothing");
-		return;
+		return ERROR_OK;
 	}
 
 	if (cmd->cmd.scan->ir_scan) {
@@ -510,7 +509,9 @@ static void ftdi_execute_scan(struct jtag_command *cmd)
 			move_to_state(TAP_DRSHIFT);
 	}
 
-	ftdi_end_state(cmd->cmd.scan->end_state);
+	int retval = tap_set_end_state_stable(cmd->cmd.scan->end_state);
+	if (retval != ERROR_OK)
+		return retval;
 
 	struct scan_field *field = cmd->cmd.scan->fields;
 	unsigned int scan_size = 0;
@@ -585,6 +586,7 @@ static void ftdi_execute_scan(struct jtag_command *cmd)
 	LOG_DEBUG_IO("%s scan, %i bits, end in %s",
 		(cmd->cmd.scan->ir_scan) ? "IR" : "DR", scan_size,
 		tap_state_name(tap_get_end_state()));
+	return ERROR_OK;
 }
 
 static int ftdi_reset(int trst, int srst)
@@ -625,18 +627,21 @@ static int ftdi_reset(int trst, int srst)
 	return mpsse_flush(mpsse_ctx);
 }
 
-static void ftdi_execute_sleep(struct jtag_command *cmd)
+static int ftdi_execute_sleep(struct jtag_command *cmd)
 {
 	LOG_DEBUG_IO("sleep %" PRIu32, cmd->cmd.sleep->us);
 
-	mpsse_flush(mpsse_ctx);
+	int retval = mpsse_flush(mpsse_ctx);
+	if (retval != ERROR_OK)
+		return retval;
 	jtag_sleep(cmd->cmd.sleep->us);
 	LOG_DEBUG_IO("sleep %" PRIu32 " usec while in %s",
 		cmd->cmd.sleep->us,
 		tap_state_name(tap_get_state()));
+	return ERROR_OK;
 }
 
-static void ftdi_execute_stableclocks(struct jtag_command *cmd)
+static int ftdi_execute_stableclocks(struct jtag_command *cmd)
 {
 	/* this is only allowed while in a stable state.  A check for a stable
 	 * state was done in jtag_add_clocks()
@@ -658,44 +663,38 @@ static void ftdi_execute_stableclocks(struct jtag_command *cmd)
 	LOG_DEBUG_IO("clocks %u while in %s",
 		cmd->cmd.stableclocks->num_cycles,
 		tap_state_name(tap_get_state()));
+	return ERROR_OK;
 }
 
-static void ftdi_execute_command(struct jtag_command *cmd)
+static int ftdi_execute_command(struct jtag_command *cmd)
 {
 	switch (cmd->type) {
 #if BUILD_FTDI_CJTAG == 1
 	case JTAG_RESET:
 		if (cmd->cmd.reset->trst)
 			cjtag_reset_online_activate(); /* put the target (back) into selected cJTAG mode */
-		break;
+		return ERROR_OK;
 #endif
 	case JTAG_RUNTEST:
-		ftdi_execute_runtest(cmd);
-		break;
+		return ftdi_execute_runtest(cmd);
 	case JTAG_TLR_RESET:
 #if BUILD_FTDI_CJTAG == 1
 		cjtag_reset_online_activate(); /* put the target (back) into selected cJTAG mode */
 #endif
-		ftdi_execute_statemove(cmd);
-		break;
+		return ftdi_execute_statemove(cmd);
 	case JTAG_PATHMOVE:
-		ftdi_execute_pathmove(cmd);
-		break;
+		return ftdi_execute_pathmove(cmd);
 	case JTAG_SCAN:
-		ftdi_execute_scan(cmd);
-		break;
+		return ftdi_execute_scan(cmd);
 	case JTAG_SLEEP:
-		ftdi_execute_sleep(cmd);
-		break;
+		return ftdi_execute_sleep(cmd);
 	case JTAG_STABLECLOCKS:
-		ftdi_execute_stableclocks(cmd);
-		break;
+		return ftdi_execute_stableclocks(cmd);
 	case JTAG_TMS:
-		ftdi_execute_tms(cmd);
-		break;
+		return ftdi_execute_tms(cmd);
 	default:
 		LOG_ERROR("BUG: unknown JTAG command type encountered: %d", cmd->type);
-		break;
+		return ERROR_JTAG_QUEUE_FAILED;
 	}
 }
 
@@ -706,19 +705,24 @@ static int ftdi_execute_queue(struct jtag_command *cmd_queue)
 	if (led)
 		ftdi_set_signal(led, '1');
 
+	int retval = ERROR_OK;
 	for (struct jtag_command *cmd = cmd_queue; cmd; cmd = cmd->next) {
 		/* fill the write buffer with the desired command */
-		ftdi_execute_command(cmd);
+		retval = ftdi_execute_command(cmd);
+		if (retval != ERROR_OK)
+			break;
 	}
 
 	if (led)
 		ftdi_set_signal(led, '0');
 
-	int retval = mpsse_flush(mpsse_ctx);
-	if (retval != ERROR_OK)
-		LOG_ERROR("error while flushing MPSSE queue: %d", retval);
+	int retval2 = mpsse_flush(mpsse_ctx);
+	if (retval2 != ERROR_OK)
+		LOG_ERROR("error while flushing MPSSE queue: %d", retval2);
 
-	return retval;
+	if (retval != ERROR_OK)
+		return retval;
+	return retval2;
 }
 
 static int ftdi_initialize(void)
