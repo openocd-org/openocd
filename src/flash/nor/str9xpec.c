@@ -286,12 +286,13 @@ FLASH_BANK_COMMAND_HANDLER(str9xpec_flash_bank_command)
 	if (retval != ERROR_OK) {
 		free(bank->driver_priv);
 		bank->driver_priv = NULL;
+		return retval;
 	}
 
 	/* clear option byte register */
 	buf_set_u32(str9xpec_info->options, 0, 64, 0);
 
-	return retval;
+	return ERROR_OK;
 }
 
 static int str9xpec_blank_check(struct flash_bank *bank, unsigned int first,
