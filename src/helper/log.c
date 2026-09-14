@@ -524,13 +524,16 @@ void log_socket_error(const char *socket_desc)
 }
 
 /**
- * Find the first non-printable character in the char buffer, return a pointer to it.
- * If no such character exists, return NULL.
+ * Find the first character that must not be dumped to a terminal, return a
+ * pointer to it.  If no such character exists, return NULL.  Tab, LF and CR
+ * count as printable here - they occur in legitimate GDB payloads.
  */
 const char *find_nonprint_char(const char *buf, unsigned int buf_len)
 {
 	for (unsigned int i = 0; i < buf_len; i++) {
-		if (!isprint((unsigned char)buf[i]))
+		const unsigned char c = (unsigned char)buf[i];
+
+		if (!isprint(c) && c != '\t' && c != '\n' && c != '\r')
 			return buf + i;
 	}
 	return NULL;
