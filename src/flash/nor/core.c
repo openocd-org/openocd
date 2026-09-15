@@ -329,12 +329,10 @@ int get_flash_bank_by_addr(struct target *target,
 
 static int default_flash_mem_blank_check(struct flash_bank *bank)
 {
-	struct target *target = bank->target;
 	const int buffer_size = 1024;
-	uint32_t n_bytes;
-	int retval = ERROR_OK;
+	struct target *target = bank->target;
 
-	if (bank->target->state != TARGET_HALTED) {
+	if (target->state != TARGET_HALTED) {
 		LOG_ERROR("Target not halted");
 		return ERROR_TARGET_NOT_HALTED;
 	}
@@ -346,36 +344,44 @@ static int default_flash_mem_blank_check(struct flash_bank *bank)
 	}
 
 	for (unsigned int i = 0; i < bank->num_sectors; i++) {
-		uint32_t j;
 		bank->sectors[i].is_erased = 1;
 
-		for (j = 0; j < bank->sectors[i].size; j += buffer_size) {
+		for (uint32_t j = 0; j < bank->sectors[i].size; j += buffer_size) {
 			uint32_t chunk;
 			chunk = buffer_size;
 			if (chunk > (bank->sectors[i].size - j))
 				chunk = (bank->sectors[i].size - j);
 
-			retval = target_read_memory(target,
-					bank->base + bank->sectors[i].offset + j,
-					4,
-					chunk/4,
-					buffer);
-			if (retval != ERROR_OK)
-				goto done;
+			int retval = target_read_buffer(target,
+				bank->base + bank->sectors[i].offset + j,
+				chunk, buffer);
 
-			for (n_bytes = 0; n_bytes < chunk; n_bytes++) {
+			/* A sector that cannot be read cannot be classified.
+			 * Mark it 'unknown' and continue with the next sector
+			 * rather than failing the whole check.
+			 */
+			if (retval != ERROR_OK) {
+				LOG_WARNING("Failed to check erase state on sector %u, "
+					"continuing on next sector", i);
+				bank->sectors[i].is_erased = -1;
+				break;
+			}
+
+			for (uint32_t n_bytes = 0; n_bytes < chunk; n_bytes++) {
 				if (buffer[n_bytes] != bank->erased_value) {
 					bank->sectors[i].is_erased = 0;
 					break;
 				}
 			}
+
+			if (bank->sectors[i].is_erased == 0)
+				break;
 		}
 	}
 
-done:
 	free(buffer);
 
-	return retval;
+	return ERROR_OK;
 }
 
 static int flash_blank_check_no_sectors_fast(struct flash_bank *bank)

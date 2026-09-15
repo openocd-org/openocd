@@ -178,7 +178,6 @@ COMMAND_HANDLER(handle_flash_probe_command)
 
 COMMAND_HANDLER(handle_flash_erase_check_command)
 {
-	bool blank = true;
 	if (CMD_ARGC != 1)
 		return ERROR_COMMAND_SYNTAX_ERROR;
 
@@ -191,16 +190,17 @@ COMMAND_HANDLER(handle_flash_erase_check_command)
 		retval = p->driver->erase_check(p);
 	else
 		retval = default_flash_blank_check(p);
-	if (retval == ERROR_OK) {
-		command_print(CMD, "successfully checked erase state");
-	} else {
+
+	if (retval != ERROR_OK) {
 		command_print(CMD,
-			"Error: checking erase state of flash bank #%s at "
-			TARGET_ADDR_FMT,
+			"checking erase state of flash bank #%s at "
+			TARGET_ADDR_FMT " failed",
 			CMD_ARGV[0],
 			p->base);
+		return retval;
 	}
 
+	bool blank = true;
 	for (unsigned int j = 0; j < p->num_sectors; j++) {
 		char *erase_state;
 
