@@ -827,12 +827,6 @@ proc buspirate_port args {
 	eval buspirate port $args
 }
 
-lappend _telnet_autocomplete_skip usb_blaster_device_desc
-proc usb_blaster_device_desc args {
-	echo "DEPRECATED! use 'usb_blaster device_desc' not 'usb_blaster_device_desc'"
-	eval usb_blaster device_desc $args
-}
-
 lappend _telnet_autocomplete_skip usb_blaster_vid_pid
 proc usb_blaster_vid_pid args {
 	echo "DEPRECATED! use 'adapter usb vid_pid' not 'usb_blaster_vid_pid'"
