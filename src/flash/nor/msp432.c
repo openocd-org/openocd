@@ -1018,12 +1018,6 @@ static int msp432_info(struct flash_bank *bank, struct command_invocation *cmd)
 	return ERROR_OK;
 }
 
-static int msp432_protect_check(struct flash_bank *bank)
-{
-	/* Added to suppress warning, not needed for MSP432 flash */
-	return ERROR_OK;
-}
-
 static void msp432_flash_free_driver_priv(struct flash_bank *bank)
 {
 	bool is_main = bank->base == FLASH_BASE;
@@ -1076,7 +1070,6 @@ const struct flash_driver msp432_flash = {
 	.probe = msp432_probe,
 	.auto_probe = msp432_auto_probe,
 	.erase_check = default_flash_blank_check,
-	.protect_check = msp432_protect_check,
 	.info = msp432_info,
 	.free_driver_priv = msp432_flash_free_driver_priv,
 };

@@ -845,13 +845,13 @@ static int sh_qspi_auto_probe(struct flash_bank *bank)
 
 static int sh_qspi_flash_blank_check(struct flash_bank *bank)
 {
-	/* Not implemented */
-	return ERROR_OK;
+	LOG_ERROR("erase check is not implemented");
+	return ERROR_NOT_IMPLEMENTED;
 }
 
 static int sh_qspi_protect_check(struct flash_bank *bank)
 {
-	/* Not implemented */
+	/* Nothing to do. Protection is only handled in SW */
 	return ERROR_OK;
 }
 

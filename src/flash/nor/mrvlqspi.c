@@ -899,8 +899,8 @@ static int mrvlqspi_auto_probe(struct flash_bank *bank)
 
 static int mrvlqspi_flash_erase_check(struct flash_bank *bank)
 {
-	/* Not implemented yet */
-	return ERROR_OK;
+	LOG_ERROR("erase check is not implemented");
+	return ERROR_NOT_IMPLEMENTED;
 }
 
 static int mrvlqspi_get_info(struct flash_bank *bank, struct command_invocation *cmd)
