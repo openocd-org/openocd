@@ -26,7 +26,7 @@
  * @file
  * Implements various ARM DPM operations using architectural debug registers.
  * These routines layer over core-specific communication methods to cope with
- * implementation differences between cores like ARM1136 and Cortex-A8.
+ * implementation differences between cores like ARM1136 and AArch64.
  *
  * The "Debug Programmers' Model" (DPM) for ARMv6 and ARMv7 is defined by
  * Part C (Debug Architecture) of the ARM Architecture Reference Manual,

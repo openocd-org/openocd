@@ -1300,7 +1300,7 @@ static int aarch64_restore_context(struct target *target, bool bpwp)
 }
 
 /*
- * Cortex-A8 Breakpoint and watchpoint functions
+ * AArch64 Breakpoint and watchpoint functions
  */
 
 /* Setup hardware Breakpoint Register Pair */
@@ -1954,7 +1954,7 @@ static int aarch64_hit_watchpoint(struct target *target,
 }
 
 /*
- * Cortex-A8 Reset functions
+ * AArch64 Reset functions
  */
 
 static int aarch64_enable_reset_catch(struct target *target, bool enable)
@@ -2832,7 +2832,7 @@ static int aarch64_examine(struct target *target)
 }
 
 /*
- *	Cortex-A8 target creation and initialization
+ *	AArch64 target creation and initialization
  */
 
 static int aarch64_init_target(struct command_context *cmd_ctx,
