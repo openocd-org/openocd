@@ -411,6 +411,8 @@ struct riscv_private_config {
 	bool dcsr_cetrig;
 	bool detect_misa;
 	bool sba_flush_cache;
+	unsigned int halt_group;
+	unsigned int resume_group;
 };
 
 static inline struct riscv_private_config

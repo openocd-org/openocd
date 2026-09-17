@@ -627,11 +627,33 @@ static int jim_report_ebreak_config(const struct riscv_private_config *config,
 	return JIM_OK;
 }
 
+static int riscv_jim_configure_group(struct jim_getopt_info *goi,
+		unsigned int *group)
+{
+	if (goi->is_configure) {
+		jim_wide group_num;
+		int e = jim_getopt_wide(goi, &group_num);
+		if (e != JIM_OK)
+			return e;
+		if (group_num < 0 || group_num > 31) {
+			Jim_SetResultString(goi->interp,
+				"Invalid group number (must be 0-31)!", -1);
+			return JIM_ERR;
+		}
+		*group = group_num;
+	} else {
+		Jim_SetResult(goi->interp, Jim_NewIntObj(goi->interp, *group));
+	}
+	return JIM_OK;
+}
+
 enum riscv_cfg_opts {
 	RISCV_CFG_EBREAK,
 	RISCV_CFG_CETRIG,
 	RISCV_CFG_DETECT_MISA,
 	RISCV_CFG_SBA_FLUSH_CACHE,
+	RISCV_CFG_HALT_GROUP,
+	RISCV_CFG_RESUME_GROUP,
 	RISCV_CFG_INVALID = -1
 };
 
@@ -640,6 +662,8 @@ static struct jim_nvp nvp_config_opts[] = {
 	{ .name = "-cetrig", .value = RISCV_CFG_CETRIG },
 	{ .name = "-detect-misa", .value = RISCV_CFG_DETECT_MISA },
 	{ .name = "-sba-flush-cache", .value = RISCV_CFG_SBA_FLUSH_CACHE },
+	{ .name = "-halt-group", .value = RISCV_CFG_HALT_GROUP },
+	{ .name = "-resume-group", .value = RISCV_CFG_RESUME_GROUP },
 	{ .name = NULL, .value = RISCV_CFG_INVALID }
 };
 
@@ -718,6 +742,11 @@ static int riscv_jim_configure(struct target *target,
 				jim_nvp_value2name_simple(nvp_on_off_opts, config->sba_flush_cache)->name, -1);
 		}
 		break;
+	case RISCV_CFG_HALT_GROUP:
+		return riscv_jim_configure_group(goi, &config->halt_group);
+	case RISCV_CFG_RESUME_GROUP:
+		LOG_TARGET_WARNING(target, "resume group may lead to unexpected behavior, please use with caution");
+		return riscv_jim_configure_group(goi, &config->resume_group);
 	default:
 		assert(false && "'jim_getopt_nvp' should have returned an error.");
 	}

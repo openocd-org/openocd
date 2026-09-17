@@ -67,12 +67,12 @@ static int riscv013_access_memory(struct target *target, const struct riscv_mem_
 static bool riscv013_get_impebreak(const struct target *target);
 static unsigned int riscv013_get_progbufsize(const struct target *target);
 
-enum grouptype {
-	HALT_GROUP,
-	RESUME_GROUP
+enum group_type {
+	HALT_GROUP = DM_DMCS2_GROUPTYPE_HALT,
+	RESUME_GROUP = DM_DMCS2_GROUPTYPE_RESUME
 };
-static int set_group(struct target *target, bool *supported, unsigned int group,
-		enum grouptype grouptype);
+static int set_hart_group(struct target *target, enum group_type group_type,
+		unsigned int group);
 
 /**
  * Since almost everything can be accomplish by scanning the dbus register, all
@@ -248,9 +248,6 @@ typedef struct {
 	/* When false, we need to configure certain bits in the dcsr register.
 	 * To do that, we may momentarily halt the target, if necessary. */
 	bool dcsr_register_is_set;
-
-	/* This hart was placed into a halt group in examine(). */
-	bool haltgroup_supported;
 } riscv013_info_t;
 
 static OOCD_LIST_HEAD(dm_list);
@@ -1758,7 +1755,7 @@ static int set_dcsr_config(struct target *target, bool step)
 static int halt_set_dcsr_config(struct target *target)
 {
 	RISCV_INFO(r);
-	RISCV013_INFO(info);
+	struct riscv_private_config *config = riscv_private_config(target);
 	LOG_TARGET_DEBUG(target, "Halt to set dcsr config");
 
 	/* Remove this hart from the halt group.  This won't work on all targets
@@ -1784,16 +1781,17 @@ static int halt_set_dcsr_config(struct target *target)
 	 */
 
 
-	if (info->haltgroup_supported) {
-		bool supported;
-		if (set_group(target, &supported, 0, HALT_GROUP) != ERROR_OK)
-			return ERROR_FAIL;
-		if (!supported)
-			LOG_TARGET_ERROR(target, "Couldn't place hart in halt group 0. "
-						 "Some harts may be unexpectedly halted.");
+	int result;
+
+	if (config->halt_group) {
+		result = set_hart_group(target, HALT_GROUP, 0);
+		if (result == ERROR_TARGET_RESOURCE_NOT_AVAILABLE)
+			LOG_TARGET_ERROR(target, "Some harts may be unexpectedly halted");
+		else if (result != ERROR_OK)
+			return result;
 	}
 
-	int result = ERROR_OK;
+	result = ERROR_OK;
 
 	r->prepped = true;
 	if (riscv013_halt_go(target) != ERROR_OK ||
@@ -1806,13 +1804,10 @@ static int halt_set_dcsr_config(struct target *target)
 	}
 
 	/* Add it back to the halt group. */
-	if (info->haltgroup_supported) {
-		bool supported;
-		if (set_group(target, &supported, target->smp_id, HALT_GROUP) != ERROR_OK)
-			return ERROR_FAIL;
-		if (!supported)
-			LOG_TARGET_ERROR(target, "Couldn't place hart back in halt group %d. "
-						 "Some harts may be unexpectedly halted.", target->smp_id);
+	if (config->halt_group) {
+		result = set_hart_group(target, HALT_GROUP, config->halt_group);
+		if (result != ERROR_OK)
+			return result;
 	}
 
 	return result;
@@ -1838,20 +1833,33 @@ static void deinit_target(struct target *target)
 	info->version_specific = NULL;
 }
 
-static int set_group(struct target *target, bool *supported, unsigned int group,
-		enum grouptype grouptype)
+static int set_hart_group(struct target *target, enum group_type group_type,
+		unsigned int group)
 {
-	uint32_t write_val = DM_DMCS2_HGWRITE;
 	assert(group <= 31);
+
+	int result = dm013_select_target(target);
+	if (result != ERROR_OK)
+		return result;
+
+	uint32_t write_val = DM_DMCS2_HGWRITE;
+	write_val = set_field(write_val, DM_DMCS2_HGSELECT, DM_DMCS2_HGSELECT_HARTS);
+	write_val = set_field(write_val, DM_DMCS2_GROUPTYPE, group_type);
 	write_val = set_field(write_val, DM_DMCS2_GROUP, group);
-	write_val = set_field(write_val, DM_DMCS2_GROUPTYPE, (grouptype == HALT_GROUP) ? 0 : 1);
-	if (dm_write(target, DM_DMCS2, write_val) != ERROR_OK)
-		return ERROR_FAIL;
+	result = dm_write(target, DM_DMCS2, write_val);
+	if (result != ERROR_OK)
+		return result;
 	uint32_t read_val;
-	if (dm_read(target, &read_val, DM_DMCS2) != ERROR_OK)
-		return ERROR_FAIL;
-	if (supported)
-		*supported = (get_field(read_val, DM_DMCS2_GROUP) == group);
+	result = dm_read(target, &read_val, DM_DMCS2);
+	if (result != ERROR_OK)
+		return result;
+
+	if (get_field(read_val, DM_DMCS2_GROUPTYPE) != group_type ||
+			get_field(read_val, DM_DMCS2_GROUP) != group) {
+		LOG_TARGET_ERROR(target, "Hart %" PRId32 " could not be made part of %s group %u",
+				target->coreid, (group_type == HALT_GROUP) ? "halt" : "resume", group);
+		return ERROR_TARGET_RESOURCE_NOT_AVAILABLE;
+	}
 	return ERROR_OK;
 }
 
@@ -2208,15 +2216,20 @@ static int examine(struct target *target)
 		target->debug_reason = DBG_REASON_UNDEFINED;
 	}
 
-	if (target->smp) {
-		if (set_group(target, &info->haltgroup_supported, target->smp_id, HALT_GROUP) != ERROR_OK)
-			return ERROR_FAIL;
-		if (info->haltgroup_supported)
-			LOG_TARGET_INFO(target, "Core %d made part of halt group %d.", info->index,
-					target->smp_id);
-		else
-			LOG_TARGET_INFO(target, "Core %d could not be made part of halt group %d.",
-					info->index, target->smp_id);
+	struct riscv_private_config *config = riscv_private_config(target);
+	if (config->halt_group) {
+		result = set_hart_group(target, HALT_GROUP, config->halt_group);
+		if (result != ERROR_OK)
+			return result;
+		LOG_TARGET_INFO(target, "Hart %u made part of halt group %u", info->index,
+				config->halt_group);
+	}
+	if (config->resume_group) {
+		result = set_hart_group(target, RESUME_GROUP, config->resume_group);
+		if (result != ERROR_OK)
+			return result;
+		LOG_TARGET_INFO(target, "Hart %u made part of resume group %u", info->index,
+				config->resume_group);
 	}
 
 	/* Some regression suites rely on seeing 'Examined RISC-V core' to know
