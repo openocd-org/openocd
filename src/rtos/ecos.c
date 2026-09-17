@@ -473,66 +473,6 @@ static symbol_address_t ecos_value(struct rtos *rtos, unsigned int idx)
 	return 0;
 }
 
-#define XMLENTRY(_c, _s) { .xc = (_c), .rs = (_s), .rlen = (sizeof(_s) - 1) }
-
-static const struct {
-	char xc;
-	const char *rs;
-	size_t rlen;
-} xmlchars[] = {
-	XMLENTRY('<', "&lt;"),
-	XMLENTRY('&', "&amp;"),
-	XMLENTRY('>', "&gt;"),
-	XMLENTRY('\'', "&apos;"),
-	XMLENTRY('"', "&quot;")
-};
-
-/** Escape any XML reserved characters in a string. */
-static bool ecos_escape_string(const char *raw, char *out, size_t limit)
-{
-	static const char *tokens = "<&>\'\"";
-	bool escaped = false;
-
-	if (!out || !limit)
-		return false;
-
-	(void)memset(out, '\0', limit);
-
-	while (raw && *raw && limit) {
-		size_t lok = strcspn(raw, tokens);
-		if (lok) {
-			size_t tocopy;
-			tocopy = ((limit < lok) ? limit : lok);
-			(void)memcpy(out, raw, tocopy);
-			limit -= tocopy;
-			out += tocopy;
-			raw += lok;
-			continue;
-		}
-
-		const char *fidx = strchr(tokens, *raw);
-		if (!fidx) {
-			/* Should never happen assuming xmlchars
-			 * vector and tokens string match. */
-			LOG_ERROR("eCos: Unexpected XML char %c", *raw);
-			continue;
-		}
-
-		uint32_t cidx = (fidx - tokens);
-		size_t tocopy = xmlchars[cidx].rlen;
-		if (limit < tocopy)
-			break;
-
-		escaped = true;
-		(void)memcpy(out, xmlchars[cidx].rs, tocopy);
-		limit -= tocopy;
-		out += tocopy;
-		raw++;
-	}
-
-	return escaped;
-}
-
 static int ecos_check_app_info(struct rtos *rtos, struct ecos_params *param)
 {
 	if (!rtos || !param)
@@ -872,26 +812,8 @@ static int ecos_update_threads(struct rtos *rtos)
 		}
 		tmp_str[ECOS_THREAD_NAME_STR_SIZE-1] = '\x00';
 
-		/* Since eCos can have arbitrary C string names we can sometimes
-		 * get an internal warning from GDB about "not well-formed
-		 * (invalid token)" since the XML post-processing done by GDB on
-		 * the OpenOCD returned response containing the thread strings
-		 * is not escaped. For example the eCos kernel testsuite
-		 * application tm_basic uses the thread name "<<NULL>>" which
-		 * will trigger this failure unless escaped. */
-		if (tmp_str[0] == '\x00') {
+		if (tmp_str[0] == '\x00')
 			snprintf(tmp_str, ECOS_THREAD_NAME_STR_SIZE, "NoName:[0x%08" PRIX32 "]", thread_index);
-		} else {
-			/* The following is a workaround to avoid any issues
-			 * from arbitrary eCos thread names causing GDB/OpenOCD
-			 * issues. We limit the escaped thread name passed to
-			 * GDB to the same length as the un-escaped just to
-			 * avoid overly long strings. */
-			char esc_str[ECOS_THREAD_NAME_STR_SIZE];
-			bool escaped = ecos_escape_string(tmp_str, esc_str, sizeof(esc_str));
-			if (escaped)
-				strcpy(tmp_str, esc_str);
-		}
 
 		rtos->thread_details[tasks_found].thread_name_str =
 			malloc(strlen(tmp_str)+1);

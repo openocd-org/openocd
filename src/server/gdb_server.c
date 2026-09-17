@@ -2021,6 +2021,61 @@ static __attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 5, 6))) void xml_printf(
 	}
 }
 
+/* Escape the XML reserved characters and replace every byte that is not
+ * printable ASCII with '?'.
+ *
+ * Strings taken from target memory (e.g. RTOS thread names) or from the
+ * configuration must not be able to produce a malformed XML document: GDB
+ * discards such a document in its entirety, not just the offending element.
+ */
+static char *xml_escape_string(int *retval, const char *str)
+{
+	if (*retval != ERROR_OK)
+		return NULL;
+
+	/* Worst case every character expands to "&quot;" or "&apos;". */
+	char *out = malloc(strlen(str) * 6 + 1);
+	if (!out) {
+		*retval = ERROR_SERVER_REMOTE_CLOSED;
+		return NULL;
+	}
+
+	char *o = out;
+	for (const char *i = str; *i; i++) {
+		const char *esc;
+
+		switch (*i) {
+		case '&':
+			esc = "&amp;";
+			break;
+		case '<':
+			esc = "&lt;";
+			break;
+		case '>':
+			esc = "&gt;";
+			break;
+		case '"':
+			esc = "&quot;";
+			break;
+		case '\'':
+			esc = "&apos;";
+			break;
+		default:
+			/* Anything outside printable ASCII, including control
+			 * characters and non-ASCII bytes, is not guaranteed to
+			 * be valid XML character data. */
+			*o++ = (*i >= 0x20 && *i < 0x7f) ? *i : '?';
+			continue;
+		}
+
+		while (*esc)
+			*o++ = *esc++;
+	}
+	*o = '\0';
+
+	return out;
+}
+
 static int decode_xfer_read(char const *buf, char **annex, int *ofs, unsigned int *len)
 {
 	/* Locate the annex. */
@@ -2310,10 +2365,15 @@ static int gdb_generate_reg_type_description(struct target *target,
 								num_arch_defined_types);
 		}
 		/* <vector id="id" type="type" count="count"/> */
+		char *id = xml_escape_string(&retval, type->id);
+		char *type_id = xml_escape_string(&retval, type->reg_type_vector->type->id);
+
 		xml_printf(&retval, tdesc, pos, size,
 				"<vector id=\"%s\" type=\"%s\" count=\"%" PRIu32 "\"/>\n",
-				type->id, type->reg_type_vector->type->id,
-				type->reg_type_vector->count);
+				id, type_id, type->reg_type_vector->count);
+
+		free(id);
+		free(type_id);
 
 	} else if (type->type_class == REG_TYPE_CLASS_UNION) {
 		struct reg_data_type_union_field *field;
@@ -2333,15 +2393,25 @@ static int gdb_generate_reg_type_description(struct target *target,
 		/* <union id="id">
 		 *  <field name="name" type="type"/> ...
 		 * </union> */
+		char *id = xml_escape_string(&retval, type->id);
+
 		xml_printf(&retval, tdesc, pos, size,
 				"<union id=\"%s\">\n",
-				type->id);
+				id);
+
+		free(id);
 
 		field = type->reg_type_union->fields;
 		while (field) {
+			char *name = xml_escape_string(&retval, field->name);
+			char *type_id = xml_escape_string(&retval, field->type->id);
+
 			xml_printf(&retval, tdesc, pos, size,
 					"<field name=\"%s\" type=\"%s\"/>\n",
-					field->name, field->type->id);
+					name, type_id);
+
+			free(name);
+			free(type_id);
 
 			field = field->next;
 		}
@@ -2357,14 +2427,23 @@ static int gdb_generate_reg_type_description(struct target *target,
 			/* <struct id="id" size="size">
 			 *  <field name="name" start="start" end="end"/> ...
 			 * </struct> */
+			char *id = xml_escape_string(&retval, type->id);
+
 			xml_printf(&retval, tdesc, pos, size,
 					"<struct id=\"%s\" size=\"%" PRIu32 "\">\n",
-					type->id, type->reg_type_struct->size);
+					id, type->reg_type_struct->size);
+
+			free(id);
+
 			while (field) {
+				char *name = xml_escape_string(&retval, field->name);
+
 				xml_printf(&retval, tdesc, pos, size,
 						"<field name=\"%s\" start=\"%" PRIu32 "\" end=\"%" PRIu32 "\" type=\"%s\" />\n",
-						field->name, field->bitfield->start, field->bitfield->end,
+						name, field->bitfield->start, field->bitfield->end,
 						gdb_get_reg_type_name(field->bitfield->type));
+
+				free(name);
 
 				field = field->next;
 			}
@@ -2383,13 +2462,24 @@ static int gdb_generate_reg_type_description(struct target *target,
 			/* <struct id="id">
 			 *  <field name="name" type="type"/> ...
 			 * </struct> */
+			char *id = xml_escape_string(&retval, type->id);
+
 			xml_printf(&retval, tdesc, pos, size,
 					"<struct id=\"%s\">\n",
-					type->id);
+					id);
+
+			free(id);
+
 			while (field) {
+				char *name = xml_escape_string(&retval, field->name);
+				char *type_id = xml_escape_string(&retval, field->type->id);
+
 				xml_printf(&retval, tdesc, pos, size,
 						"<field name=\"%s\" type=\"%s\"/>\n",
-						field->name, field->type->id);
+						name, type_id);
+
+				free(name);
+				free(type_id);
 
 				field = field->next;
 			}
@@ -2402,17 +2492,25 @@ static int gdb_generate_reg_type_description(struct target *target,
 		/* <flags id="id" size="size">
 		 *  <field name="name" start="start" end="end"/> ...
 		 * </flags> */
+		char *id = xml_escape_string(&retval, type->id);
+
 		xml_printf(&retval, tdesc, pos, size,
 				"<flags id=\"%s\" size=\"%" PRIu32 "\">\n",
-				type->id, type->reg_type_flags->size);
+				id, type->reg_type_flags->size);
+
+		free(id);
 
 		struct reg_data_type_flags_field *field;
 		field = type->reg_type_flags->fields;
 		while (field) {
+			char *name = xml_escape_string(&retval, field->name);
+
 			xml_printf(&retval, tdesc, pos, size,
 					"<field name=\"%s\" start=\"%" PRIu32 "\" end=\"%" PRIu32 "\" type=\"%s\" />\n",
-					field->name, field->bitfield->start, field->bitfield->end,
+					name, field->bitfield->start, field->bitfield->end,
 					gdb_get_reg_type_name(field->bitfield->type));
+
+			free(name);
 
 			field = field->next;
 		}
@@ -2640,9 +2738,14 @@ static int gdb_generate_target_description(struct target *target, char **tdesc_o
 			int num_arch_defined_types = 0;
 
 			arch_defined_types = calloc(1, sizeof(char *));
+
+			char *feature_name = xml_escape_string(&retval, features[current_feature]);
+
 			xml_printf(&retval, &tdesc, &pos, &size,
 					"<feature name=\"%s\">\n",
-					features[current_feature]);
+					feature_name);
+
+			free(feature_name);
 
 			int i;
 			for (i = 0; i < reg_list_size; i++) {
@@ -2676,8 +2779,11 @@ static int gdb_generate_target_description(struct target *target, char **tdesc_o
 					type_str = "int";
 				}
 
+				char *reg_name = xml_escape_string(&retval, reg_list[i]->name);
+				char *reg_type = xml_escape_string(&retval, type_str);
+
 				xml_printf(&retval, &tdesc, &pos, &size,
-						"<reg name=\"%s\"", reg_list[i]->name);
+						"<reg name=\"%s\"", reg_name);
 				xml_printf(&retval, &tdesc, &pos, &size,
 						" bitsize=\"%" PRIu32 "\"", reg_list[i]->size);
 				xml_printf(&retval, &tdesc, &pos, &size,
@@ -2690,11 +2796,19 @@ static int gdb_generate_target_description(struct target *target, char **tdesc_o
 							" save-restore=\"no\"");
 
 				xml_printf(&retval, &tdesc, &pos, &size,
-						" type=\"%s\"", type_str);
+						" type=\"%s\"", reg_type);
 
-				if (reg_list[i]->group)
+				free(reg_name);
+				free(reg_type);
+
+				if (reg_list[i]->group) {
+					char *reg_group = xml_escape_string(&retval, reg_list[i]->group);
+
 					xml_printf(&retval, &tdesc, &pos, &size,
-							" group=\"%s\"", reg_list[i]->group);
+							" group=\"%s\"", reg_group);
+
+					free(reg_group);
+				}
 
 				xml_printf(&retval, &tdesc, &pos, &size,
 						"/>\n");
@@ -2841,26 +2955,39 @@ static int gdb_generate_thread_list(struct target *target, char **thread_list_ou
 			if (!thread_detail->exists)
 				continue;
 
+			/* The strings below are read from the target, so they
+			 * must be escaped before being put in the XML. */
+			char *name = NULL;
+			char *extra_info = NULL;
+
 			if (thread_detail->thread_name_str)
+				name = xml_escape_string(&retval, thread_detail->thread_name_str);
+
+			if (thread_detail->extra_info_str)
+				extra_info = xml_escape_string(&retval, thread_detail->extra_info_str);
+
+			if (name)
 				xml_printf(&retval, &thread_list, &pos, &size,
 					   "<thread id=\"%" PRIx64 "\" name=\"%s\">",
-					   thread_detail->threadid,
-					   thread_detail->thread_name_str);
+					   thread_detail->threadid, name);
 			else
 				xml_printf(&retval, &thread_list, &pos, &size,
 					   "<thread id=\"%" PRIx64 "\">", thread_detail->threadid);
 
-			if (thread_detail->thread_name_str)
+			if (name)
 				xml_printf(&retval, &thread_list, &pos, &size,
-					   "Name: %s", thread_detail->thread_name_str);
+					   "Name: %s", name);
 
-			if (thread_detail->extra_info_str) {
-				if (thread_detail->thread_name_str)
+			if (extra_info) {
+				if (name)
 					xml_printf(&retval, &thread_list, &pos, &size,
 						   ", ");
 				xml_printf(&retval, &thread_list, &pos, &size,
-					   "%s", thread_detail->extra_info_str);
+					   "%s", extra_info);
 			}
+
+			free(name);
+			free(extra_info);
 
 			xml_printf(&retval, &thread_list, &pos, &size,
 				   "</thread>\n");
