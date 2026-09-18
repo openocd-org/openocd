@@ -69,6 +69,8 @@
 #define TCK_L	0
 #define TRST_H BIT(5)
 #define TRST_L 0
+#define SRST_H BIT(6)
+#define SRST_L 0
 #define LED_ON 1
 #define LED_OFF	0
 #define GPIO_CNT	8 // the CH347 has 8 GPIO's
@@ -103,7 +105,7 @@
 #define UCMDPKT_DATA_MAX_BYTES_USBHS	507
 #define USBC_PACKET_USBHS	512 // Maximum data length per packet at USB high speed
 #define CH347_CMD_HEADER	3 // Protocol header length (1 byte command type + 2 bytes data length)
-#define CH347_CMD_INIT_READ_LEN	1 // for JTAG_INIT/SWD_INIT we have only one data byte
+#define CH347_CMD_INIT_READ_LEN	1 // JTAG_INIT/SWD_INIT/PIN_SET read one data byte
 // if we send 9 in the init command we get the STANDARD mode or LARGER_PACK mode flag
 #define CH347_CMD_INIT_GET_MODE_CLOCK_INDEX_VALUE 9
 // No more bits are allowed per CH347_CMD_JTAG_BIT_OP command; this should be dividable by 8
@@ -118,6 +120,7 @@
 #define CH347_CMD_JTAG_BIT_OP_RD	0xD2 // JTAG interface pin bit control and read commands
 #define CH347_CMD_JTAG_DATA_SHIFT	0xD3 // JTAG interface data shift command
 #define CH347_CMD_JTAG_DATA_SHIFT_RD	0xD4 // JTAG interface data shift and read command
+#define CH347_CMD_PIN_SET	0xE2 // set pin functions (CH347F)
 // for a single command these amount of data can be read at max
 #define CH347_SINGLE_CMD_MAX_READ	MAX(GPIO_CNT, CH347_CMD_INIT_READ_LEN)
 
@@ -216,6 +219,7 @@ struct ch347_info {
 	int tdi_pin;
 	int tck_pin;
 	int trst_pin;
+	int srst_pin;
 
 	enum ch347_variant chip_variant; // ch347_variant for explanation
 	// if true then we can't us the bytewise commands	due to a bug of the chip; depends on BYTEWISE_MODE_VERSION
@@ -271,6 +275,10 @@ static bool ch347_activity_led_active_high;
 // GPIO driving SRST in SWD mode, defaults to the otherwise unused TRST pin
 static uint8_t ch347_srst_gpio_pin = 0xFF;
 static bool ch347_srst_active_high;
+/* Set after the CH347F dedicated SRST output is enabled and its pin byte
+ * has been transmitted. JTAG pin bytes carry bit 6 only then. SWD leaves
+ * this clear. */
+static bool ch347_dedicated_srst_enabled;
 static struct ch347_info ch347;
 static struct libusb_device_handle *ch347_handle;
 
@@ -278,7 +286,8 @@ static struct libusb_device_handle *ch347_handle;
 	need to be send as single command and need a read after write */
 static inline bool ch347_is_single_cmd_type(uint8_t type)
 {
-	return type == CH347_CMD_GPIO || type == CH347_CMD_JTAG_INIT || type == CH347_CMD_SWD_INIT;
+	return type == CH347_CMD_GPIO || type == CH347_CMD_JTAG_INIT || type == CH347_CMD_SWD_INIT ||
+		type == CH347_CMD_PIN_SET;
 }
 
 static void log_buf_dump(const uint8_t *data, unsigned int size, bool recv)
@@ -468,7 +477,8 @@ static void ch347_cmd_calc_reads(struct ch347_cmd *cmd)
 		break;
 	case CH347_CMD_JTAG_INIT:
 	case CH347_CMD_SWD_INIT:
-		// for JTAG_INIT/SWD_INIT the amount is fixed
+	case CH347_CMD_PIN_SET:
+		// for JTAG_INIT/SWD_INIT/PIN_SET the amount is fixed
 		cmd->read_len = CH347_CMD_INIT_READ_LEN;
 		break;
 	case CH347_CMD_JTAG_BIT_OP_RD:
@@ -572,6 +582,7 @@ static int ch347_read_scan(uint8_t *decoded_buf, int decoded_buf_len, int raw_re
 		case CH347_CMD_GPIO:
 		case CH347_CMD_JTAG_INIT:
 		case CH347_CMD_SWD_INIT:
+		case CH347_CMD_PIN_SET:
 		case CH347_CMD_JTAG_DATA_SHIFT_RD:
 			// for all bytewise commands: copy the data bytes
 			memcpy(&decoded_buf[decoded_buf_idx], &read_buf[rd_idx], data_len);
@@ -924,7 +935,12 @@ static int ch347_scratchpad_add_byte(uint8_t byte)
  */
 static int ch347_scratchpad_add_pin_byte(void)
 {
-	return ch347_scratchpad_add_byte(ch347.tms_pin | ch347.tdi_pin | ch347.tck_pin | ch347.trst_pin);
+	uint8_t pins = ch347.tms_pin | ch347.tdi_pin | ch347.tck_pin | ch347.trst_pin;
+
+	if (ch347_dedicated_srst_enabled)
+		pins |= ch347.srst_pin;
+
+	return ch347_scratchpad_add_byte(pins);
 }
 
 /**
@@ -962,6 +978,68 @@ static int ch347_scratchpad_add_bytes(uint8_t *bytes, int count)
 	}
 
 	return ERROR_OK;
+}
+
+/* Drive SRST low at init only when the target is connected under reset.
+ * srst_nogate is required as well: without it, JTAG is gated while SRST
+ * is asserted. */
+static bool ch347_dedicated_srst_assert_at_init(void)
+{
+	enum reset_types cfg = jtag_get_reset_config();
+
+	return (cfg & (RESET_CNCT_UNDER_SRST | RESET_SRST_NO_GATING))
+		== (RESET_CNCT_UNDER_SRST | RESET_SRST_NO_GATING);
+}
+
+/**
+ * @brief Enable the dedicated SRST output on CH347F devices.
+ *
+ * The 0xE2 command and its payload come from WCH's fork, commit 4fd5026aabb6
+ * ("feat: Add CH347F SRST configuration"):
+ * https://github.com/WCHSoftGroup/ch347/commit/4fd5026aabb62b941317b5d156d0eeaef4c43108
+ * That packet is {0xe2, 0x08, 0x00, 0x00, 0x81, ...}. The command queue adds
+ * the command and the length, so only the eight payload bytes are sent here.
+ * Bit 0 of the second payload byte selects the mode: 0x81 enables it and
+ * 0x80 disables it. Disabling does not tristate pin 8, so 0x80 is never sent.
+ *
+ * The byte read back from PIN_SET has no documented meaning, so it is logged
+ * and does not decide whether initialization succeeded.
+ *
+ * Pin 8 strongly drives low after the adapter powers up. PIN_SET only selects
+ * the dedicated output; the following JTAG pin byte sets the level. WCH drives
+ * it high here. It stays low only when reset_config sets both
+ * connect_assert_srst and srst_nogate.
+ *
+ * @return ERROR_OK on success, or the original error code when the command
+ * cannot be transmitted
+ */
+static int ch347_srst_enable(void)
+{
+	int retval = ch347_cmd_start_next(CH347_CMD_PIN_SET);
+	if (retval != ERROR_OK)
+		return retval;
+
+	uint8_t cmd_data[] = {0x00, 0x81, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+	retval = ch347_scratchpad_add_bytes(cmd_data, ARRAY_SIZE(cmd_data));
+	if (retval != ERROR_OK)
+		return retval;
+
+	uint8_t init_result;
+	retval = ch347_single_read_get_byte(0, &init_result);
+	if (retval != ERROR_OK)
+		return retval;
+
+	LOG_DEBUG("CH347F PIN_SET result %02" PRIx8, init_result);
+
+	ch347.srst_pin = ch347_dedicated_srst_assert_at_init() ? SRST_L : SRST_H;
+	/* The pin byte merges bit 6 only while this flag is set. */
+	ch347_dedicated_srst_enabled = true;
+	retval = ch347_cmd_start_next(CH347_CMD_JTAG_BIT_OP);
+	if (retval == ERROR_OK)
+		retval = ch347_scratchpad_add_pin_byte();
+	if (retval == ERROR_OK)
+		retval = ch347_cmd_transmit_queue();
+	return retval;
 }
 
 /**
@@ -1376,20 +1454,49 @@ static int ch347_activity_led_set(int led_state)
 }
 
 /**
+ * @brief Warn once when the dedicated CH347F SRST cannot follow reset_config.
+ *
+ * Pin 8 is push-pull. Open-drain and open-source are not emulated.
+ * 'reset_config none' still leaves the drive mode at open drain, so warn
+ * only when SRST is actually configured.
+ */
+static void ch347_warn_dedicated_srst_drive(void)
+{
+	static bool warned;
+	enum adapter_gpio_drive_mode drive =
+		adapter_gpio_get_config()[ADAPTER_GPIO_IDX_SRST].drive;
+
+	if (warned || !(jtag_get_reset_config() & RESET_HAS_SRST))
+		return;
+	if (drive == ADAPTER_GPIO_DRIVE_MODE_PUSH_PULL)
+		return;
+
+	warned = true;
+	LOG_WARNING("CH347F dedicated SRST is push-pull and ignores "
+		"the reset_config drive mode; use 'reset_config srst_push_pull'");
+}
+
+/**
  * @brief Control (assert/deassert) the signals SRST and TRST on the interface.
  *
  * In SWD mode TRST is not used as a JTAG signal, so the pin is driven as a
- * GPIO to provide SRST. In JTAG mode the pin is TRST and SRST is unavailable.
+ * GPIO to provide SRST. In JTAG mode CH347T has no SRST. The CH347F dedicated
+ * output is enabled at JTAG init, including when reset_config does not include
+ * SRST, because pin 8 drives strong low after adapter power-up. It is
+ * active-low and push-pull; it ignores 'adapter gpio srst' polarity and the
+ * 'reset_config' drive mode. There is no command here to return pin 8 to Hi-Z.
  *
  * The SRST GPIO follows the drive mode configured with 'reset_config'.
  *
  * @param trst 1 to assert TRST, 0 to deassert TRST.
  * @param srst 1 to assert SRST, 0 to deassert SRST.
- * @return ERROR_FAIL for asserting SRST in JTAG mode.
- * ERROR_OK for assert/deassert in JTAG mode for TRST and in SWD mode for SRST
+ * @return ERROR_FAIL when asserting SRST in JTAG mode on a non-CH347F
+ * (CH347T or another variant). ERROR_OK for TRST in JTAG mode, SRST on the
+ * CH347F dedicated output, and SRST in SWD mode.
  */
 static int ch347_reset(int trst, int srst)
 {
+	int retval;
 	LOG_DEBUG_IO("reset trst: %i srst %i", trst, srst);
 
 	if (swd_mode) {
@@ -1417,16 +1524,20 @@ static int ch347_reset(int trst, int srst)
 		return ch347_gpio_cmd(ch347_srst_gpio_pin, value, &state);
 	}
 
-	if (srst) {
+	if (srst && !ch347_dedicated_srst_enabled) {
 		LOG_ERROR("Asserting SRST not supported");
 		return ERROR_FAIL;
 	}
 
-	int retval = ch347_cmd_start_next(CH347_CMD_JTAG_BIT_OP);
+	retval = ch347_cmd_start_next(CH347_CMD_JTAG_BIT_OP);
 	if (retval != ERROR_OK)
 		return retval;
 
 	ch347.trst_pin = trst ? TRST_L : TRST_H;
+	if (ch347_dedicated_srst_enabled) {
+		ch347_warn_dedicated_srst_drive();
+		ch347.srst_pin = srst ? SRST_L : SRST_H;
+	}
 	retval = ch347_scratchpad_add_pin_byte();
 	if (retval != ERROR_OK)
 		return retval;
@@ -1968,14 +2079,34 @@ static int ch347_init(void)
 	ch347.tms_pin = TMS_H;
 	ch347.tdi_pin = TDI_L;
 	ch347.trst_pin = TRST_H;
+	ch347.srst_pin = SRST_H;
+	ch347_dedicated_srst_enabled = false;
 	INIT_LIST_HEAD(&ch347.cmd_queue);
 	INIT_LIST_HEAD(&ch347.scan_queue);
 
+	/* Static initial pack_size is STANDARD_PACK (0), which would look already
+	 * probed. max_len stays 0 until the probe, and PIN_SET uses this queue. */
 	ch347.pack_size = UNSET;
 
 	ch347_configure_activity_led(&adapter_gpio_get_config()[ADAPTER_GPIO_IDX_LED]);
 
 	if (!swd_mode) {
+		/* Pin 8 drives strong low after adapter power-up. On CH347F, enable the
+		 * dedicated SRST output and release it, even when reset_config
+		 * does not include SRST. Leave it asserted only for connect_assert_srst
+		 * together with srst_nogate. */
+		if (ch347.chip_variant == CH347F) {
+			retval = ch347_init_pack_size();
+			if (retval != ERROR_OK)
+				return retval;
+
+			retval = ch347_srst_enable();
+			if (retval != ERROR_OK) {
+				LOG_ERROR("CH347F dedicated SRST enable failed");
+				return retval;
+			}
+			ch347_warn_dedicated_srst_drive();
+		}
 		tap_set_state(TAP_RESET);
 	} else {
 		ch347_configure_srst_gpio(&adapter_gpio_get_config()[ADAPTER_GPIO_IDX_SRST]);
