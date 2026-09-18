@@ -135,16 +135,24 @@ static char *find_relative_path(const char *from, const char *to)
 
 	/* Skip common /-separated parts of from and to */
 	i = 0;
-	for (size_t n = 0; from[n] == to[n]; n++) {
-		if (from[n] == '\0') {
-			i = n;
+	for (size_t n = 0; ; n++) {
+		if (!from[n] || !to[n]) {
+			/* one path ended: common only if the other ends or continues with '/' */
+			if ((!from[n] || from[n] == '/') && (!to[n] || to[n] == '/'))
+				i = n;
 			break;
 		}
+		if (from[n] != to[n])
+			break;
 		if (from[n] == '/')
 			i = n + 1;
 	}
 	from += i;
 	to += i;
+	if (*from == '/')
+		from++;
+	if (*to == '/')
+		to++;
 
 	/* Count number of /-separated non-empty parts of from */
 	i = 0;
@@ -162,6 +170,9 @@ static char *find_relative_path(const char *from, const char *to)
 	relpath[0] = '\0';
 	for (size_t n = 0; n < i; n++)
 		strcat(relpath, "../");
+	size_t len = strlen(relpath);
+	if (!*to && len)
+		relpath[len - 1] = '\0';
 	strcat(relpath, to);
 
 	return relpath;
