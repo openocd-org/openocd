@@ -10374,7 +10374,7 @@ Useful to compute delays in Tcl.
 Calculates the checksum of the memory region starting at @var{address} with a
 length of @var{size}.
 
-@xref{target_calculate_checksum,, $target_name calculate_checksum} for more details.
+@xref{target_calculate_checksum,, $target_name calculate_checksum}, for more details.
 @end deffn
 
 @node Architecture and Core Commands
