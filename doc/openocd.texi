@@ -9569,8 +9569,8 @@ loading the bitstream. While required for Series2, Series3, and Series6, it
 breaks bitstream loading on Series7.
 
 @example
-openocd -f board/digilent_zedboard.cfg -c "init" \
-	-c "pld load 0 zedboard_bitstream.bit"
+openocd -f board/digilent/zedboard.cfg -c "init" \
+	-c "pld load zynq_pl.pld zedboard_bitstream.bit"
 @end example
 
 
