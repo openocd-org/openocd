@@ -3075,8 +3075,8 @@ static int gdb_query_packet(struct connection *connection,
 			"qXfer:threads:read+;"
 			"vContSupported+",
 			GDB_BUFFER_SIZE,
-			(gdb_use_memory_map && (flash_get_bank_count() > 0)) ? '+' : '-',
-			gdb_target_desc_supported ? '+' : '-');
+			gdb_target_desc_supported ? '+' : '-',
+			(gdb_use_memory_map && (flash_get_bank_count() > 0)) ? '+' : '-');
 
 		if (retval != ERROR_OK) {
 			gdb_send_error(connection, 01);
