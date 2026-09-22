@@ -1230,21 +1230,21 @@ static const struct command_registration flash_exec_command_handlers[] = {
 		.name = "probe",
 		.handler = handle_flash_probe_command,
 		.mode = COMMAND_EXEC,
-		.usage = "bank_id",
+		.usage = "(bank_name|num)",
 		.help = "Identify a flash bank.",
 	},
 	{
 		.name = "info",
 		.handler = handle_flash_info_command,
 		.mode = COMMAND_EXEC,
-		.usage = "bank_id ['sectors']",
+		.usage = "(bank_name|num) ['sectors']",
 		.help = "Print information about a flash bank.",
 	},
 	{
 		.name = "erase_check",
 		.handler = handle_flash_erase_check_command,
 		.mode = COMMAND_EXEC,
-		.usage = "bank_id",
+		.usage = "(bank_name|num)",
 		.help = "Check erase state of all blocks in a "
 			"flash bank.",
 	},
@@ -1252,7 +1252,7 @@ static const struct command_registration flash_exec_command_handlers[] = {
 		.name = "erase_sector",
 		.handler = handle_flash_erase_command,
 		.mode = COMMAND_EXEC,
-		.usage = "bank_id first_sector_num (last_sector_num|'last')",
+		.usage = "(bank_name|num) first_sector_num (last_sector_num|'last')",
 		.help = "Erase a range of sectors in a flash bank.",
 	},
 	{
@@ -1358,7 +1358,7 @@ static const struct command_registration flash_exec_command_handlers[] = {
 		.name = "read_bank",
 		.handler = handle_flash_read_bank_command,
 		.mode = COMMAND_EXEC,
-		.usage = "bank_id filename [offset [length]]",
+		.usage = "(bank_name|num) filename [offset [length]]",
 		.help = "Read binary data from flash bank to file. Allow optional "
 			"offset from beginning of the bank (defaults to zero).",
 	},
@@ -1366,7 +1366,7 @@ static const struct command_registration flash_exec_command_handlers[] = {
 		.name = "verify_bank",
 		.handler = handle_flash_verify_bank_command,
 		.mode = COMMAND_EXEC,
-		.usage = "bank_id filename [offset]",
+		.usage = "(bank_name|num) filename [offset]",
 		.help = "Compare the contents of a file with the contents of the "
 			"flash bank. Allow optional offset from beginning of the bank "
 			"(defaults to zero).",
@@ -1375,7 +1375,7 @@ static const struct command_registration flash_exec_command_handlers[] = {
 		.name = "protect",
 		.handler = handle_flash_protect_command,
 		.mode = COMMAND_EXEC,
-		.usage = "bank_id first_block [last_block|'last'] "
+		.usage = "(bank_name|num) first_block [last_block|'last'] "
 			"('on'|'off')",
 		.help = "Turn protection on or off for a range of protection "
 			"blocks or sectors in a given flash bank. "
@@ -1385,7 +1385,7 @@ static const struct command_registration flash_exec_command_handlers[] = {
 		.name = "padded_value",
 		.handler = handle_flash_padded_value_command,
 		.mode = COMMAND_EXEC,
-		.usage = "bank_id value",
+		.usage = "(bank_name|num) value",
 		.help = "Set default flash padded value",
 	},
 	COMMAND_REGISTRATION_DONE
@@ -1528,7 +1528,7 @@ static const struct command_registration flash_config_command_handlers[] = {
 		.name = "bank",
 		.handler = handle_flash_bank_command,
 		.mode = COMMAND_CONFIG,
-		.usage = "bank_id driver_name base_address size_bytes "
+		.usage = "bank_name driver_name base_address size_bytes "
 			"chip_width_bytes bus_width_bytes target "
 			"[driver_options ...]",
 		.help = "Define a new bank with the given name, "

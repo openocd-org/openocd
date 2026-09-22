@@ -411,28 +411,28 @@ static const struct command_registration nand_exec_command_handlers[] = {
 		.name = "probe",
 		.handler = handle_nand_probe_command,
 		.mode = COMMAND_EXEC,
-		.usage = "bank_id",
+		.usage = "(bank_name|num)",
 		.help = "identify NAND flash device",
 	},
 	{
 		.name = "check_bad_blocks",
 		.handler = handle_nand_check_bad_blocks_command,
 		.mode = COMMAND_EXEC,
-		.usage = "bank_id [offset length]",
+		.usage = "(bank_name|num) [offset length]",
 		.help = "check all or part of NAND flash device for bad blocks",
 	},
 	{
 		.name = "erase",
 		.handler = handle_nand_erase_command,
 		.mode = COMMAND_EXEC,
-		.usage = "bank_id [offset length]",
+		.usage = "(bank_name|num) [offset length]",
 		.help = "erase all or subset of blocks on NAND flash device",
 	},
 	{
 		.name = "dump",
 		.handler = handle_nand_dump_command,
 		.mode = COMMAND_EXEC,
-		.usage = "bank_id filename offset length "
+		.usage = "(bank_name|num) filename offset length "
 			"['oob_raw'|'oob_only']",
 		.help = "dump from NAND flash device",
 	},
@@ -440,7 +440,7 @@ static const struct command_registration nand_exec_command_handlers[] = {
 		.name = "verify",
 		.handler = handle_nand_verify_command,
 		.mode = COMMAND_EXEC,
-		.usage = "bank_id filename offset "
+		.usage = "(bank_name|num) filename offset "
 			"['oob_raw'|'oob_only'|'oob_softecc'|'oob_softecc_kw']",
 		.help = "verify NAND flash device",
 	},
@@ -448,7 +448,7 @@ static const struct command_registration nand_exec_command_handlers[] = {
 		.name = "write",
 		.handler = handle_nand_write_command,
 		.mode = COMMAND_EXEC,
-		.usage = "bank_id filename offset "
+		.usage = "(bank_name|num) filename offset "
 			"['oob_raw'|'oob_only'|'oob_softecc'|'oob_softecc_kw']",
 		.help = "write to NAND flash device",
 	},
@@ -456,7 +456,7 @@ static const struct command_registration nand_exec_command_handlers[] = {
 		.name = "raw_access",
 		.handler = handle_nand_raw_access_command,
 		.mode = COMMAND_EXEC,
-		.usage = "bank_id ['enable'|'disable']",
+		.usage = "(bank_name|num) ['enable'|'disable']",
 		.help = "raw access to NAND flash device",
 	},
 	COMMAND_REGISTRATION_DONE
@@ -579,7 +579,7 @@ static const struct command_registration nand_config_command_handlers[] = {
 		.handler = &handle_nand_device_command,
 		.mode = COMMAND_CONFIG,
 		.help = "defines a new NAND bank",
-		.usage = "bank_id driver target [driver_options ...]",
+		.usage = "bank_name driver target [driver_options ...]",
 	},
 	{
 		.name = "drivers",

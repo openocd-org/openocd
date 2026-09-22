@@ -1441,6 +1441,7 @@ The most complex task of a board config file is creating such a
 Define those handlers last, after you verify the rest of the board
 configuration works.
 
+@anchor{multipletargetconfig}
 @subsection Communication Between Config files
 
 In addition to target-specific utility code, another way that
@@ -5960,7 +5961,7 @@ board by (re)installing working boot firmware.
 @section Flash Configuration Commands
 @cindex flash configuration
 
-@deffn {Config Command} {flash bank} name driver base size chip_width bus_width target [driver_options]
+@deffn {Config Command} {flash bank} bank_name driver base size chip_width bus_width target [driver_options]
 Configures a flash bank which provides persistent storage
 for addresses from @math{base} to @math{base + size - 1}.
 These banks will often be visible to GDB through the target's memory map.
@@ -5968,8 +5969,8 @@ In some cases, configuring a flash bank will activate extra commands;
 see the driver-specific documentation.
 
 @itemize @bullet
-@item @var{name} ... may be used to reference the flash bank
-in other flash commands. A number is also available.
+@item @var{bank_name} ... may be used to reference the flash bank
+in other flash commands.
 @item @var{driver} ... identifies the controller driver
 associated with the flash bank being declared.
 This is usually @code{cfi} for external flash, or else
@@ -6009,14 +6010,35 @@ declared using @command{flash bank}, numbered from zero.
 This returned list can be manipulated easily from within scripts.
 @end deffn
 
-@deffn {Command} {flash probe} num
-Identify the flash, or validate the parameters of the configured flash. Operation
-depends on the flash type.
-The @var{num} parameter is a value shown by @command{flash banks}.
-Most flash commands will implicitly @emph{autoprobe} the bank;
-flash drivers can distinguish between probing and autoprobing,
-but most don't bother.
+@deffn {Command} {flash probe} (bank_name|num)
+Identify the flash, or validate the parameters of the configured flash.
+Operation depends on the flash type.
+Most flash commands will implicitly @emph{autoprobe} the bank
+if has not been probed.
+On the other hand @command{flash probe} should clear the values remembered
+from the pervious probe and start over identifying and validating.
+Specify the bank by the full @var{bank_name}.
+Alternatively use the @var{num} parameter, see details below.
 @end deffn
+
+@anchor{flashbanknamenum}
+@section Specifying NOR and NAND Flash Banks
+Lot of flash/nand commands and driver specific commands use
+the first parameter @var{(bank_name|num)} to select
+a flash bank. The simplified @var{bank_id} in the driver specific
+commands description has the same meaning.
+@var{bank_name} is the name given in @command{flash bank} configuration
+command.
+Alternatively select a bank by @var{num}, the index shown by
+@command{flash banks} or @command{nand list}, or a zero based
+index of a @command{flash list} item.
+Use the @var{num} form as a shortcut in manually issued commands.
+
+In Tcl scripts, mainly in target config files, strongly prefer
+the full @var{bank_name} form. Be aware @var{num} gets renumbered
+when more than one target configuration is used to debug
+multiple SoCs on one JTAG chain or using multidrop SWD.
+@xref{multipletargetconfig,,Communication Between Config files}.
 
 @section Preparing a Target before Flash Programming
 
@@ -6071,13 +6093,12 @@ Examples include CFI flash such as ``Intel Advanced Bootblock flash'',
 and AT91SAM7 on-chip flash.
 @xref{flashprotect,,flash protect}.
 
-@deffn {Command} {flash erase_sector} num first last
-Erase sectors in bank @var{num}, starting at sector @var{first}
-up to and including @var{last}.
+@deffn {Command} {flash erase_sector} (bank_name|num) first last
+Erase sectors in bank @var{bank_name} or in bank with @var{num} index,
+starting at sector @var{first} up to and including @var{last}.
 Sector numbering starts at 0.
 Providing a @var{last} sector of @option{last}
 specifies "to the end of the flash bank".
-The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
 @deffn {Command} {flash erase_address} [@option{pad}] [@option{unlock}] address length
@@ -6142,26 +6163,27 @@ flash read_memory 0x08000000 32 2
 @end example
 @end deffn
 
-@deffn {Command} {flash write_bank} num filename [offset]
-Write the binary @file{filename} to flash bank @var{num},
+@deffn {Command} {flash write_bank} (bank_name|num) filename [offset]
+Write the binary @file{filename} to flash bank @var{bank_name}
+or bank with @var{num} index,
 starting at @var{offset} bytes from the beginning of the bank. If @var{offset}
 is omitted, start at the beginning of the flash bank.
 The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
-@deffn {Command} {flash read_bank} num filename [offset [length]]
-Read @var{length} bytes from the flash bank @var{num} starting at @var{offset}
+@deffn {Command} {flash read_bank} (bank_name|num) filename [offset [length]]
+Read @var{length} bytes from the flash bank @var{bank_name}
+or bank with @var{num} index, starting at @var{offset}
 and write the contents to the binary @file{filename}. If @var{offset} is
 omitted, start at the beginning of the flash bank. If @var{length} is omitted,
 read the remaining bytes from the flash bank.
-The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
-@deffn {Command} {flash verify_bank} num filename [offset]
+@deffn {Command} {flash verify_bank} (bank_name|num) filename [offset]
 Compare the contents of the binary file @var{filename} with the contents of the
-flash bank @var{num} starting at @var{offset}. If @var{offset} is omitted,
+flash bank @var{bank_name}or bank with @var{num} index,
+starting at @var{offset}. If @var{offset} is omitted,
 start at the beginning of the flash bank. Fail if the contents do not match.
-The @var{num} parameter is a value shown by @command{flash banks}.
 @end deffn
 
 @deffn {Command} {flash write_image} [erase] [unlock] filename [offset] [type]
@@ -6218,35 +6240,34 @@ check for successful programming.
 @section Other Flash commands
 @cindex flash protection
 
-@deffn {Command} {flash erase_check} num
-Check erase state of sectors in flash bank @var{num},
-and display that status.
-The @var{num} parameter is a value shown by @command{flash banks}.
+@deffn {Command} {flash erase_check} (bank_name|num)
+Check erase state of sectors in flash @var{bank_name} or bank with
+@var{num} index and display that status.
 @end deffn
 
-@deffn {Command} {flash info} num [sectors]
-Print info about flash bank @var{num}, a list of protection blocks
-and their status. Use @option{sectors} to show a list of sectors instead.
+@deffn {Command} {flash info} (bank_name|num) [sectors]
+Print info about flash bank @var{bank_name} or bank with @var{num}
+index, a list of protection blocks and their status.
+Use @option{sectors} to show a list of sectors instead.
 
-The @var{num} parameter is a value shown by @command{flash banks}.
 This command will first query the hardware, it does not print cached
 and possibly stale information.
 @end deffn
 
 @anchor{flashprotect}
-@deffn {Command} {flash protect} num first last (@option{on}|@option{off})
+@deffn {Command} {flash protect} (bank_name|num) first last (@option{on}|@option{off})
 Enable (@option{on}) or disable (@option{off}) protection of flash blocks
-in flash bank @var{num}, starting at protection block @var{first}
+in flash bank @var{bank_name} or bank with @var{num} index,
+starting at protection block @var{first}
 and continuing up to and including @var{last}.
 Providing a @var{last} block of @option{last}
 specifies "to the end of the flash bank".
-The @var{num} parameter is a value shown by @command{flash banks}.
 The protection block is usually identical to a flash sector.
 Some devices may utilize a protection block distinct from flash sector.
 See @command{flash info} for a list of protection blocks.
 @end deffn
 
-@deffn {Command} {flash padded_value} num value
+@deffn {Command} {flash padded_value} (bank_name|num) value
 Sets the default value used for padding any image sections, This should
 normally match the flash bank erased value. If not specified by this
 command or the flash driver then it defaults to 0xff.
@@ -9159,7 +9180,7 @@ NAND chips must be declared in configuration scripts,
 plus some additional configuration that's done after
 OpenOCD has initialized.
 
-@deffn {Config Command} {nand device} name driver target [configparams...]
+@deffn {Config Command} {nand device} bank_name driver target [configparams...]
 Declares a NAND device, which can be read and written to
 after it has been configured through @command{nand probe}.
 In OpenOCD, devices are single chips; this is unlike some
@@ -9173,8 +9194,8 @@ initialization has completed. Use it in board specific
 configuration files, not interactively.
 
 @itemize @bullet
-@item @var{name} ... may be used to reference the NAND bank
-in most other NAND commands. A number is also available.
+@item @var{bank_name} ... may be used to reference the NAND bank
+in most other NAND commands.
 @item @var{driver} ... identifies the NAND controller driver
 associated with the NAND device being declared.
 @xref{nanddriverlist,,NAND Driver List}.
@@ -9201,21 +9222,22 @@ Note that un-probed devices show no details.
 @end example
 @end deffn
 
-@deffn {Command} {nand probe} num
+@deffn {Command} {nand probe} (bank_name|num)
 Probes the specified device to determine key characteristics
 like its page and block sizes, and how many blocks it has.
-The @var{num} parameter is the value shown by @command{nand list}.
 You must (successfully) probe a device before you can use
 it with most other NAND commands.
+Specify the bank by the full @var{bank_name}.
+Alternatively use the @var{num} parameter.
+@xref{flashbanknamenum,,Specifying NOR and NAND Flash Banks}.
 @end deffn
 
 @subsection Erasing, Reading, Writing to NAND Flash
 
-@deffn {Command} {nand dump} num filename offset length [oob_option]
+@deffn {Command} {nand dump} (bank_name|num) filename offset length [oob_option]
 @cindex NAND reading
 Reads binary data from the NAND device and writes it to the file,
 starting at the specified offset.
-The @var{num} parameter is the value shown by @command{nand list}.
 
 Use a complete path name for @var{filename}, so you don't depend
 on the directory used to start the OpenOCD server.
@@ -9248,7 +9270,7 @@ spare areas associated with each data page.
 @end itemize
 @end deffn
 
-@deffn {Command} {nand erase} num [offset length]
+@deffn {Command} {nand erase} (bank_name|num) [offset length]
 @cindex NAND erasing
 @cindex NAND programming
 Erases blocks on the specified NAND device, starting at the
@@ -9257,7 +9279,6 @@ Both of those values must be exact multiples of the device's
 block size, and the region they specify must fit entirely in the chip.
 If those parameters are not specified,
 the whole NAND chip will be erased.
-The @var{num} parameter is the value shown by @command{nand list}.
 
 @b{NOTE:} This command will try to erase bad blocks, when told
 to do so, which will probably invalidate the manufacturer's bad
@@ -9266,13 +9287,12 @@ For the remainder of the current server session, @command{nand info}
 will still report that the block ``is'' bad.
 @end deffn
 
-@deffn {Command} {nand write} num filename offset [option...]
+@deffn {Command} {nand write} (bank_name|num) filename offset [option...]
 @cindex NAND writing
 @cindex NAND programming
 Writes binary data from the file into the specified NAND device,
 starting at the specified offset. Those pages should already
 have been erased; you can't change zero bits to one bits.
-The @var{num} parameter is the value shown by @command{nand list}.
 
 Use a complete path name for @var{filename}, so you don't depend
 on the directory used to start the OpenOCD server.
@@ -9325,12 +9345,11 @@ the underlying driver from applying hardware ECC.
 @end itemize
 @end deffn
 
-@deffn {Command} {nand verify} num filename offset [option...]
+@deffn {Command} {nand verify} (bank_name|num) filename offset [option...]
 @cindex NAND verification
 @cindex NAND programming
 Verify the binary data in the file has been programmed to the
 specified NAND device, starting at the specified offset.
-The @var{num} parameter is the value shown by @command{nand list}.
 
 Use a complete path name for @var{filename}, so you don't depend
 on the directory used to start the OpenOCD server.
@@ -9354,30 +9373,27 @@ be removed in a future release.
 @subsection Other NAND commands
 @cindex NAND other commands
 
-@deffn {Command} {nand check_bad_blocks} num [offset length]
+@deffn {Command} {nand check_bad_blocks} (bank_name|num) [offset length]
 Checks for manufacturer bad block markers on the specified NAND
 device. If no parameters are provided, checks the whole
 device; otherwise, starts at the specified @var{offset} and
 continues for @var{length} bytes.
 Both of those values must be exact multiples of the device's
 block size, and the region they specify must fit entirely in the chip.
-The @var{num} parameter is the value shown by @command{nand list}.
 
 @b{NOTE:} Before using this command you should force raw access
 with @command{nand raw_access enable} to ensure that the underlying
 driver will not try to apply hardware ECC.
 @end deffn
 
-@deffn {Command} {nand info} num
-The @var{num} parameter is the value shown by @command{nand list}.
+@deffn {Command} {nand info} (bank_name|num)
 This prints the one-line summary from "nand list", plus for
 devices which have been probed this also prints any known
 status for each block.
 @end deffn
 
-@deffn {Command} {nand raw_access} num (@option{enable}|@option{disable})
+@deffn {Command} {nand raw_access} (bank_name|num) (@option{enable}|@option{disable})
 Sets or clears an flag affecting how page I/O is done.
-The @var{num} parameter is the value shown by @command{nand list}.
 
 This flag is cleared (disabled) by default, but changing that
 value won't affect all NAND devices. The key factor is whether
