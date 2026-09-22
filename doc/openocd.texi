@@ -13735,7 +13735,7 @@ By "low-level", we mean commands that a human would typically not
 invoke directly.
 
 @itemize
-@item @b{flash banks} <@var{driver}> <@var{base}> <@var{size}> <@var{chip_width}> <@var{bus_width}> <@var{target}> [@option{driver options} ...]
+@item @b{flash banks}
 
 Return information about the flash banks
 
