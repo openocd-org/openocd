@@ -7584,8 +7584,9 @@ command completes.
 @deffn {Command} {kinetis nvm_partition}
 For FlexNVM devices only (KxxDX, KxxFX and S32K1xx).
 Command shows or sets data flash or EEPROM backup size in kilobytes,
-sets two EEPROM blocks sizes in bytes and enables/disables loading
-of EEPROM contents to FlexRAM during reset.
+sets two EEPROM blocks sizes in bytes, enables/disables loading
+of EEPROM contents to FlexRAM during reset and, on S32K1xx devices with
+CSEc, sets the number of CSEc keys (0, 5, 10 or 20).
 
 For details see device reference manual, Flash Memory Module,
 Program Partition command.
@@ -7616,6 +7617,14 @@ only. Use @command{kinetis mdm mass_erase} to clear an existing partition. Set
 reset:
 @example
 kinetis nvm_partition eebkp 32 2048
+@end example
+
+Same with space for 20 CSEc keys. Once keys are allocated, mass erase
+is blocked until the CSEc debug authentication (CMD_DBG_CHAL, CMD_DBG_AUTH)
+has removed them. The authentication is derived from the MASTER_ECU_KEY,
+so load a MASTER_ECU_KEY to be able to erase the device again:
+@example
+kinetis nvm_partition eebkp 32 1024 1024 on 20
 @end example
 @end deffn
 

@@ -253,6 +253,8 @@
 #define KINETIS_SDID_S32K_DERIVATE_KXX6	0x00600000
 #define KINETIS_SDID_S32K_DERIVATE_KXX8	0x00800000
 
+#define KINETIS_SDID_S32K_FEATURE_CSEC	0x00000080
+
 struct kinetis_flash_bank {
 	struct kinetis_chip *k_chip;
 	bool probed;
@@ -3181,6 +3183,7 @@ COMMAND_HANDLER(kinetis_nvm_partition)
 	uint8_t ee_size_code = 0x3f;
 	uint8_t flex_nvm_partition_code = 0;
 	uint8_t ee_split = 3;
+	uint8_t csec_key_size = 0;
 	struct target *target = get_current_target(CMD_CTX);
 	struct kinetis_chip *k_chip;
 	uint32_t sim_fcfg1;
@@ -3290,6 +3293,49 @@ COMMAND_HANDLER(kinetis_nvm_partition)
 	if (enable)
 		load_flex_ram = 0;
 
+	if (CMD_ARGC >= 6) {
+		unsigned int csec_keys;
+
+		COMMAND_PARSE_NUMBER(uint, CMD_ARGV[5], csec_keys);
+		switch (csec_keys) {
+		case 0:
+			csec_key_size = 0;
+			break;
+		case 5:
+			csec_key_size = 1;
+			break;
+		case 10:
+			csec_key_size = 2;
+			break;
+		case 20:
+			csec_key_size = 3;
+			break;
+		default:
+			LOG_ERROR("Number of CSEc keys must be 0, 5, 10 or 20");
+			return ERROR_COMMAND_ARGUMENT_INVALID;
+		}
+	}
+
+	if (csec_key_size) {
+		if (k_chip->chip_type != KINETIS_CT_S32K) {
+			LOG_ERROR("CSEc keys not supported on this device");
+			return ERROR_COMMAND_ARGUMENT_INVALID;
+		}
+		if (!k_chip->probed) {
+			result = kinetis_probe_chip_s32k(k_chip);
+			if (result != ERROR_OK)
+				return result;
+		}
+		if (!(k_chip->sim_sdid & KINETIS_SDID_S32K_FEATURE_CSEC)) {
+			LOG_ERROR("CSEc keys not supported on this device");
+			return ERROR_COMMAND_ARGUMENT_INVALID;
+		}
+		if (ee1 + ee2 == 0 || load_flex_ram) {
+			LOG_ERROR("CSEc keys require EEPROM with FlexRAM loading during reset");
+			return ERROR_COMMAND_ARGUMENT_INVALID;
+		}
+	}
+
 	/* S32K1xx has no EEPROM split and rejects the command if split bits are set */
 	if (k_chip->chip_type == KINETIS_CT_S32K)
 		ee_size_code &= 0x0f;
@@ -3306,7 +3352,7 @@ COMMAND_HANDLER(kinetis_nvm_partition)
 	if (result != ERROR_OK)
 		return result;
 
-	result = kinetis_ftfx_command(target, FTFX_CMD_PGMPART, load_flex_ram,
+	result = kinetis_ftfx_command(target, FTFX_CMD_PGMPART, load_flex_ram | csec_key_size << 16,
 				      ee_size_code, flex_nvm_partition_code, 0, 0,
 				      0, 0, 0, 0,  NULL);
 	if (result != ERROR_OK)
@@ -3426,8 +3472,9 @@ static const struct command_registration kinetis_exec_command_handlers[] = {
 		.name = "nvm_partition",
 		.mode = COMMAND_EXEC,
 		.help = "Show/set data flash or EEPROM backup size in kilobytes,"
-			" set two EEPROM sizes in bytes and FlexRAM loading during reset",
-		.usage = "('info'|'dataflash' size|'eebkp' size) [eesize1 eesize2] ['on'|'off']",
+			" set two EEPROM sizes in bytes, FlexRAM loading during reset"
+			" and number of CSEc keys",
+		.usage = "('info'|'dataflash' size|'eebkp' size) [eesize1 eesize2] ['on'|'off'] [csec_keys]",
 		.handler = kinetis_nvm_partition,
 	},
 	{
