@@ -7574,8 +7574,7 @@ command completes.
 @end deffn
 
 @deffn {Command} {kinetis nvm_partition}
-For FlexNVM devices only (KxxDX and KxxFX).
-Not supported (yet) on S32K1 devices.
+For FlexNVM devices only (KxxDX, KxxFX and S32K1xx).
 Command shows or sets data flash or EEPROM backup size in kilobytes,
 sets two EEPROM blocks sizes in bytes and enables/disables loading
 of EEPROM contents to FlexRAM during reset.
@@ -7601,6 +7600,14 @@ Set 16 KB EEPROM backup, rest of FlexNVM is a data flash. EEPROM has two blocks
 of 1024 bytes and its contents is not loaded to FlexRAM during reset:
 @example
 kinetis nvm_partition eebkp 16 1024 1024 off
+@end example
+
+S32K1xx devices have a single EEPROM block, so specify the total EEPROM size
+only. Use @command{kinetis mdm mass_erase} to clear an existing partition. Set
+32 KB EEPROM backup (no data flash) with 2 KB EEPROM, loaded to FlexRAM during
+reset:
+@example
+kinetis nvm_partition eebkp 32 2048
 @end example
 @end deffn
 

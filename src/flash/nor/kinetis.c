@@ -3186,9 +3186,8 @@ COMMAND_HANDLER(kinetis_nvm_partition)
 	uint32_t sim_fcfg1;
 
 	k_chip = kinetis_get_chip(target);
-
-	if (k_chip->chip_type == KINETIS_CT_S32K) {
-		LOG_ERROR("NVM partition not supported on S32K1xx (yet).");
+	if (!k_chip) {
+		command_print(CMD, "[%s] is not a Kinetis chip", target_name(target));
 		return ERROR_FAIL;
 	}
 
@@ -3204,10 +3203,6 @@ COMMAND_HANDLER(kinetis_nvm_partition)
 	}
 	switch (sz_type) {
 	case SHOW_INFO:
-		if (!k_chip) {
-			LOG_ERROR("Chip not probed.");
-			return ERROR_FAIL;
-		}
 		result = target_read_u32(target, k_chip->sim_base + SIM_FCFG1_OFFSET, &sim_fcfg1);
 		if (result != ERROR_OK)
 			return result;
@@ -3273,6 +3268,11 @@ COMMAND_HANDLER(kinetis_nvm_partition)
 			}
 		}
 
+		if (k_chip->chip_type == KINETIS_CT_S32K && ee1 != ee2) {
+			LOG_ERROR("S32K1xx EEPROM cannot be split into two blocks");
+			return ERROR_COMMAND_ARGUMENT_INVALID;
+		}
+
 		if (ee1 * 3 == ee2)
 			ee_split = 1;
 		else if (ee1 * 7 == ee2)
@@ -3289,6 +3289,10 @@ COMMAND_HANDLER(kinetis_nvm_partition)
 		COMMAND_PARSE_ON_OFF(CMD_ARGV[4], enable);
 	if (enable)
 		load_flex_ram = 0;
+
+	/* S32K1xx has no EEPROM split and rejects the command if split bits are set */
+	if (k_chip->chip_type == KINETIS_CT_S32K)
+		ee_size_code &= 0x0f;
 
 	LOG_INFO("DEPART 0x%" PRIx8 ", EEPROM size code 0x%" PRIx8,
 		 flex_nvm_partition_code, ee_size_code);
@@ -3310,13 +3314,11 @@ COMMAND_HANDLER(kinetis_nvm_partition)
 
 	command_print(CMD, "FlexNVM partition set. Please reset MCU.");
 
-	if (k_chip) {
-		first_nvm_bank = k_chip->num_pflash_blocks;
-		num_blocks = k_chip->num_pflash_blocks + k_chip->num_nvm_blocks;
-		for (bank_idx = first_nvm_bank; bank_idx < num_blocks; bank_idx++)
-			k_chip->banks[bank_idx].probed = false;	/* re-probe before next use */
-		k_chip->probed = false;
-	}
+	first_nvm_bank = k_chip->num_pflash_blocks;
+	num_blocks = k_chip->num_pflash_blocks + k_chip->num_nvm_blocks;
+	for (bank_idx = first_nvm_bank; bank_idx < num_blocks; bank_idx++)
+		k_chip->banks[bank_idx].probed = false;	/* re-probe before next use */
+	k_chip->probed = false;
 
 	command_print(CMD, "FlexNVM banks will be re-probed to set new data flash size.");
 	return ERROR_OK;
