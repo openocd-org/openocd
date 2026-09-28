@@ -275,6 +275,11 @@ struct kinetis_flash_bank {
 
 #define KINETIS_MAX_BANKS 4u
 
+enum kinetis_chip_type {
+	KINETIS_CT_KINETIS = 0,
+	KINETIS_CT_S32K,
+};
+
 struct kinetis_chip {
 	struct target *target;
 	bool probed;
@@ -298,10 +303,7 @@ struct kinetis_chip {
 	uint32_t progr_accel_ram;
 	uint32_t sim_base;
 
-	enum {
-	      CT_KINETIS = 0,
-	      CT_S32K,
-	} chip_type;
+	enum kinetis_chip_type chip_type;
 
 	enum {
 		FS_PROGRAM_SECTOR = 1,
@@ -901,6 +903,13 @@ static struct kinetis_chip *kinetis_get_chip(struct target *target)
 	return NULL;
 }
 
+static uint8_t kinetis_fcfg1_depart(enum kinetis_chip_type chip_type, uint32_t sim_fcfg1)
+{
+	unsigned int shift = chip_type == KINETIS_CT_S32K ? 12 : 8;
+
+	return (sim_fcfg1 >> shift) & 0x0f;
+}
+
 static int kinetis_chip_options(struct kinetis_chip *k_chip, int argc, const char *argv[])
 {
 	for (int i = 0; i < argc; i++) {
@@ -908,7 +917,7 @@ static int kinetis_chip_options(struct kinetis_chip *k_chip, int argc, const cha
 			if (i + 1 < argc)
 				k_chip->sim_base = strtoul(argv[++i], NULL, 0);
 		} else if (strcmp(argv[i], "-s32k") == 0) {
-			k_chip->chip_type = CT_S32K;
+			k_chip->chip_type = KINETIS_CT_S32K;
 		} else
 			LOG_ERROR("Unsupported flash bank option %s", argv[i]);
 	}
@@ -1174,7 +1183,7 @@ static int kinetis_disable_wdog(struct kinetis_chip *k_chip)
 
 	if (!k_chip->probed) {
 		switch (k_chip->chip_type) {
-		case CT_S32K:
+		case KINETIS_CT_S32K:
 			retval = kinetis_probe_chip_s32k(k_chip);
 			break;
 		default:
@@ -2234,7 +2243,18 @@ static int kinetis_probe_chip_s32k(struct kinetis_chip *k_chip)
 	fcfg1_eesize = (k_chip->sim_fcfg1 >> 16) & 0x0f;
 	if (fcfg1_eesize <= 9)
 		ee_size = (16 << (10 - fcfg1_eesize));
-	if ((fcfg1_depart & 0x8) == 0) {
+	if (fcfg1_depart == 0xf) {
+		/* Default value. On most S32K1xx, this means FlexNVM is not partitioned. But on S32K148, this
+		   can be valid (and mean 512KB DFlash / 0KB EEPROM backup) _if_ a PGMPART has been previously
+		   launched. We can't distinguish this, so there we treat it as a valid value. */
+		if (generation == 1 && subseries == 4 && derivate == 8) {
+			LOG_WARNING("DEPART 0b1111 on S32K148: assuming 512 KiB DFlash. This is only valid if a PGMPART"
+				" has been previously launched. Use DEPART 0b0000 to avoid this warning.");
+			k_chip->dflash_size = k_chip->nvm_size;
+		} else {
+			k_chip->dflash_size = 0;
+		}
+	} else if ((fcfg1_depart & 0x8) == 0) {
 		/* Binary 0xxx values encode the amount reserved for EEPROM emulation. */
 		if (fcfg1_depart)
 			k_chip->dflash_size = k_chip->nvm_size - (4096 << fcfg1_depart);
@@ -2920,7 +2940,7 @@ static int kinetis_probe(struct flash_bank *bank)
 
 	if (!k_chip->probed) {
 		switch (k_chip->chip_type) {
-		case CT_S32K:
+		case KINETIS_CT_S32K:
 			result = kinetis_probe_chip_s32k(k_chip);
 			break;
 		default:
@@ -2998,7 +3018,7 @@ static int kinetis_probe(struct flash_bank *bank)
 	}
 
 	/* S32K1xx does not implement FCFG2 register. Skip checks. */
-	if (k_chip->chip_type != CT_S32K) {
+	if (k_chip->chip_type != KINETIS_CT_S32K) {
 		fcfg2_pflsh = (uint8_t)((k_chip->sim_fcfg2 >> 23) & 0x01);
 		fcfg2_maxaddr0 = (uint8_t)((k_chip->sim_fcfg2 >> 24) & 0x7f);
 		fcfg2_maxaddr1 = (uint8_t)((k_chip->sim_fcfg2 >> 16) & 0x7f);
@@ -3102,7 +3122,7 @@ static int kinetis_blank_check(struct flash_bank *bank)
 		uint8_t ftfx_fstat;
 
 		if (use_block_cmd && k_bank->flash_class == FC_FLEX_NVM) {
-			uint8_t fcfg1_depart = (uint8_t)((k_chip->sim_fcfg1 >> 8) & 0x0f);
+			uint8_t fcfg1_depart = kinetis_fcfg1_depart(k_chip->chip_type, k_chip->sim_fcfg1);
 			/* block operation cannot be used on FlexNVM when EEPROM backup partition is set */
 			if (fcfg1_depart != 0xf && fcfg1_depart != 0)
 				use_block_cmd = false;
@@ -3167,7 +3187,7 @@ COMMAND_HANDLER(kinetis_nvm_partition)
 
 	k_chip = kinetis_get_chip(target);
 
-	if (k_chip->chip_type == CT_S32K) {
+	if (k_chip->chip_type == KINETIS_CT_S32K) {
 		LOG_ERROR("NVM partition not supported on S32K1xx (yet).");
 		return ERROR_FAIL;
 	}
@@ -3192,7 +3212,7 @@ COMMAND_HANDLER(kinetis_nvm_partition)
 		if (result != ERROR_OK)
 			return result;
 
-		flex_nvm_partition_code = (uint8_t)((sim_fcfg1 >> 8) & 0x0f);
+		flex_nvm_partition_code = kinetis_fcfg1_depart(k_chip->chip_type, sim_fcfg1);
 		switch (flex_nvm_partition_code) {
 		case 0:
 			command_print(CMD, "No EEPROM backup, data flash only");
