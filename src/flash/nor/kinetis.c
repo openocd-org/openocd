@@ -2121,6 +2121,7 @@ static int kinetis_probe_chip_s32k(struct kinetis_chip *k_chip)
 	k_chip->progr_accel_ram = FLEXRAM;
 	k_chip->flash_support = FS_PROGRAM_PHRASE | FS_PROGRAM_SECTOR;
 	k_chip->watchdog_type = KINETIS_WDOG32_KE1X;
+	k_chip->sysmodectrlr_type = KINETIS_SMC32;
 
 	if (k_chip->sim_base == 0)
 		k_chip->sim_base = SIM_BASE;
