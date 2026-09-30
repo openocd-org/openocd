@@ -45,7 +45,7 @@ all: $(OBJS) $(PROJECT).elf $(PROJECT).bin $(PROJECT).lst $(PROJECT).inc
 	$(BIN2C) < $< > $@
 
 clean:
-	@-rm -f *.o *.elf *.lst *.bin *.inc
+	@-rm -f *.o *.elf *.lst *.bin *.map
 
 .PHONY:	all clean
 
