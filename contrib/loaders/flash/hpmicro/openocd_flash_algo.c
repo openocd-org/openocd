@@ -8,6 +8,7 @@
 
 #define CSR_MCACHE_CTL (0x7CA)
 #define HPM_MCACHE_CTL_DC_EN_MASK  (0x2UL)
+#define CSR_MSTATUS_FS_MASK (0x6000UL)
 
 #define XPI_USE_PORT_B_MASK (0x100)
 #define XPI_USE_PORT_A_MASK (0)
@@ -43,12 +44,17 @@ __attribute__ ((section(".flash_algo.text"))) uint32_t flash_init(uint32_t flash
 		uint32_t opt0, uint32_t opt1, uint32_t xpi_base_addr)
 {
 	uint32_t i = 0;
+	uint32_t fs = CSR_MSTATUS_FS_MASK;
 	struct xpi_nor_config_option_t cfg_option;
 	hpm_stat_t stat = status_success;
 
 	xpi_base = (uint32_t *)xpi_base_addr;
 	if (xpi_inited)
 		return stat;
+
+	/* enable FPU */
+	__asm volatile("csrrs %0, mstatus, %0" : "+r"(fs));
+	__asm volatile("fscsr zero");
 
 	__asm volatile("csrc %0, %1" : : "i"(CSR_MCACHE_CTL), "r"(HPM_MCACHE_CTL_DC_EN_MASK));
 	for (i = 0; i < sizeof(cfg_option); i++)

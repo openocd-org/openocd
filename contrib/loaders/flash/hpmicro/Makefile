@@ -15,9 +15,10 @@ LDSCRIPT=linker.ld
 
 OPT=-O3
 
-ASFLAGS=
-CFLAGS=$(OPT) -fomit-frame-pointer -Wall
-LDFLAGS=-nostartfiles -T$(LDSCRIPT) -Wl,-Map=$(PROJECT).map -static -Wl,--gc-sections
+ARCH_FLAGS=-march=rv32imafc_zicsr_zifencei -mabi=ilp32f
+ASFLAGS=$(ARCH_FLAGS)
+CFLAGS=$(OPT) -fomit-frame-pointer -Wall $(ARCH_FLAGS)
+LDFLAGS=$(ARCH_FLAGS) -nostartfiles -T$(LDSCRIPT) -Wl,-Map=$(PROJECT).map -static -Wl,--gc-sections
 OBJS=$(ASRC:.S=.o) $(SRC:.c=.o)
 
 SRC=openocd_flash_algo.c
