@@ -1709,7 +1709,8 @@ static int ch347_open_device(void)
 		strcpy(serial_number, "(unknown)");
 	}
 
-	LOG_INFO("CH347 %s from vendor %s with serial number %s found. (Chip version=%X.%2X, Firmware=0x%02X)",
+	LOG_INFO("CH347%c %s from vendor %s with serial number %s found. (Chip version=%X.%02X, Firmware=0x%02X)",
+		ch347.chip_variant == CH347T ? 'T' : ch347.chip_variant == CH347F ? 'F' : '?',
 		product,
 		manufacturer,
 		serial_number,
