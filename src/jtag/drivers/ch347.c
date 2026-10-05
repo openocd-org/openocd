@@ -1967,23 +1967,13 @@ static int ch347_speed_get_index(int khz, int *speed_idx)
 		ch347_standard_pack_clock_speeds : ch347_larger_pack_clock_speeds;
 	int length = ch347.pack_size == STANDARD_PACK ?
 		ARRAY_SIZE(ch347_standard_pack_clock_speeds) : ARRAY_SIZE(ch347_larger_pack_clock_speeds);
-	int idx = -1;
-	int lower_bound = 0;
 	// find the suitable speed index
-	for (int i = 0; i < length; i++) {
-		if (khz >= lower_bound && khz <= speeds[i]) {
-			idx = i;
-			break;
-		}
-		lower_bound = speeds[i];
-	}
-	// too high! => use max possible speed
-	if (idx == -1) {
-		LOG_INFO("Speed %d kHz is higher than highest speed of %d kHz. Using %d khz!",
-			khz, speeds[length - 1], speeds[length - 1]);
-		idx = length - 1;
-	} else if (speeds[idx] != khz) {
-		LOG_INFO("Requested speed of %d kHz is not possible. Using the next higher speed of %d kHz!",
+	int idx = length - 1;
+	while (idx > 0 && speeds[idx] > khz)
+		idx--;
+
+	if (speeds[idx] > khz) {
+		LOG_WARNING("Requested speed of %d kHz is not possible. Using %d kHz",
 			khz, speeds[idx]);
 	}
 	*speed_idx = idx;
