@@ -1921,9 +1921,9 @@ static int ch347_init_pack_size(void)
 }
 
 /**
- * @brief returns the speed in kHz by the give speed index
+ * @brief returns the speed in kHz for the given speed index
  *
- * @param speed_idx CH347 speed index
+ * @param speed_idx CH347 speed index (JTAG) or clock divisor (SWD)
  * @param khz Output of the speed in kHz
  * @return ERROR_OK on success
  */
@@ -1947,10 +1947,12 @@ static int ch347_speed_get(int speed_idx, int *khz)
 }
 
 /**
- * @brief multiplies the input speed by 1000
+ * @brief converts the requested speed to a CH347 speed index
+ *
+ * If possible, selects the highest supported speed not exceeding the requested one.
  *
  * @param khz Speed in kHz
- * @param speed_idx CH347 speed index
+ * @param speed_idx Output of the CH347 speed index (JTAG) or clock divisor (SWD)
  * @return ERROR_OK at success; ERROR_FAIL if khz is zero
  */
 static int ch347_speed_get_index(int khz, int *speed_idx)
@@ -1972,7 +1974,7 @@ static int ch347_speed_get_index(int khz, int *speed_idx)
 		return ERROR_OK;
 	}
 
-	// when checking with speed index 9 we can see if the device supports STANDARD_PACK or LARGER_PACK mode
+	// the available clock speeds depend on STANDARD_PACK or LARGER_PACK mode support
 	int retval = ch347_init_pack_size();
 	if (retval != ERROR_OK)
 		return retval;
