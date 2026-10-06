@@ -3266,13 +3266,13 @@ COMMAND_HANDLER(kinetis_nvm_partition)
 			if (ee1 + ee2 == (16u << 10) >> log2)
 				break;
 			if (ee1 + ee2 > (16u << 10) >> log2 || log2 >= 9) {
-				LOG_ERROR("Unsupported EEPROM size");
+				command_print(CMD, "Unsupported EEPROM size");
 				return ERROR_FLASH_OPERATION_FAILED;
 			}
 		}
 
 		if (k_chip->chip_type == KINETIS_CT_S32K && ee1 != ee2) {
-			LOG_ERROR("S32K1xx EEPROM cannot be split into two blocks");
+			command_print(CMD, "S32K1xx EEPROM cannot be split into two blocks");
 			return ERROR_COMMAND_ARGUMENT_INVALID;
 		}
 
@@ -3281,7 +3281,7 @@ COMMAND_HANDLER(kinetis_nvm_partition)
 		else if (ee1 * 7 == ee2)
 			ee_split = 0;
 		else if (ee1 != ee2) {
-			LOG_ERROR("Unsupported EEPROM sizes ratio");
+			command_print(CMD, "Unsupported EEPROM sizes ratio");
 			return ERROR_FLASH_OPERATION_FAILED;
 		}
 
@@ -3311,14 +3311,14 @@ COMMAND_HANDLER(kinetis_nvm_partition)
 			csec_key_size = 3;
 			break;
 		default:
-			LOG_ERROR("Number of CSEc keys must be 0, 5, 10 or 20");
+			command_print(CMD, "Number of CSEc keys must be 0, 5, 10 or 20");
 			return ERROR_COMMAND_ARGUMENT_INVALID;
 		}
 	}
 
 	if (csec_key_size) {
 		if (k_chip->chip_type != KINETIS_CT_S32K) {
-			LOG_ERROR("CSEc keys not supported on this device");
+			command_print(CMD, "CSEc keys not supported on this device");
 			return ERROR_COMMAND_ARGUMENT_INVALID;
 		}
 		if (!k_chip->probed) {
@@ -3327,11 +3327,11 @@ COMMAND_HANDLER(kinetis_nvm_partition)
 				return result;
 		}
 		if (!(k_chip->sim_sdid & KINETIS_SDID_S32K_FEATURE_CSEC)) {
-			LOG_ERROR("CSEc keys not supported on this device");
+			command_print(CMD, "CSEc keys not supported on this device");
 			return ERROR_COMMAND_ARGUMENT_INVALID;
 		}
 		if (ee1 + ee2 == 0 || load_flex_ram) {
-			LOG_ERROR("CSEc keys require EEPROM with FlexRAM loading during reset");
+			command_print(CMD, "CSEc keys require EEPROM with FlexRAM loading during reset");
 			return ERROR_COMMAND_ARGUMENT_INVALID;
 		}
 	}
