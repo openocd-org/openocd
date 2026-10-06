@@ -752,7 +752,7 @@ static COMMAND_HELPER(command_help_show, struct help_entry *c,
 
 		/* Normal commands are runtime-only; highlight exceptions */
 		if (mode != COMMAND_EXEC) {
-			const char *stage_msg = "";
+			const char *stage_msg;
 
 			switch (mode) {
 			case COMMAND_CONFIG:
