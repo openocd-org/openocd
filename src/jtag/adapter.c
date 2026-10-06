@@ -874,9 +874,9 @@ static COMMAND_HELPER(helper_adapter_gpio_print_config, enum adapter_gpio_config
 {
 	struct adapter_gpio_config *gpio_config = &adapter_config.gpios[gpio_idx];
 	const char *active_state = gpio_config->active_low ? "low" : "high";
-	const char *dir = "";
+	const char *dir;
 	const char *drive = "";
-	const char *pull = "";
+	const char *pull;
 	const char *init_state = "";
 	const char *exit_state = "";
 
@@ -894,6 +894,9 @@ static COMMAND_HELPER(helper_adapter_gpio_print_config, enum adapter_gpio_config
 		break;
 	case ADAPTER_GPIO_DIRECTION_BIDIRECTIONAL:
 		dir = "bidirectional";
+		break;
+	default:
+		dir = "";
 		break;
 	}
 
@@ -920,6 +923,9 @@ static COMMAND_HELPER(helper_adapter_gpio_print_config, enum adapter_gpio_config
 		break;
 	case ADAPTER_GPIO_PULL_DOWN:
 		pull = ", pull-down";
+		break;
+	default:
+		pull = "";
 		break;
 	}
 
