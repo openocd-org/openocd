@@ -3917,6 +3917,7 @@ protected using other SoC mechanisms.
 Set the emulated address and address window size. Both of these
 parameters must be aligned to page size.
 @end deffn
+@end deffn
 
 @deffn {Interface Driver} {rshim}
 
@@ -3946,7 +3947,6 @@ Example configuration:
 xvc host 192.168.3.192
 xvc port 5000
 @end example
-@end deffn
 
 @deffn {Config Command} {xvc host} @var{hostname}
 Specifies the hostname of the remote debugger or UNIX socket to connect to.
