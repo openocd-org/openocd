@@ -1985,11 +1985,9 @@ static int gdb_breakpoint_watchpoint_packet(struct connection *connection,
 /* print out a string and allocate more space as needed,
  * mainly used for XML at this point
  */
-static __attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 5, 6))) void xml_printf(int *retval,
-		char **xml, int *pos, int *size, const char *fmt, ...)
+static __attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 4, 5))) int xml_printf(char **xml,
+		int *pos, int *size, const char *fmt, ...)
 {
-	if (*retval != ERROR_OK)
-		return;
 	int first = 1;
 
 	for (;; ) {
@@ -2002,8 +2000,8 @@ static __attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 5, 6))) void xml_printf(
 			*xml = realloc(*xml, *size);
 			if (!*xml) {
 				free(t);
-				*retval = ERROR_SERVER_REMOTE_CLOSED;
-				return;
+				LOG_ERROR("Out of memory");
+				return ERROR_FAIL;
 			}
 		}
 
@@ -2014,7 +2012,7 @@ static __attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 5, 6))) void xml_printf(
 		va_end(ap);
 		if ((ret > 0) && ((ret + 1) < *size - *pos)) {
 			*pos += ret;
-			return;
+			return ERROR_OK;
 		}
 		/* there was just enough or not enough space, allocate more. */
 		first = 0;
@@ -2027,20 +2025,20 @@ static __attribute__ ((format (PRINTF_ATTRIBUTE_FORMAT, 5, 6))) void xml_printf(
  * Strings taken from target memory (e.g. RTOS thread names) or from the
  * configuration must not be able to produce a malformed XML document: GDB
  * discards such a document in its entirety, not just the offending element.
+ *
+ * On success the escaped string is returned in *out and must be freed by the
+ * caller. On failure *out is set to NULL.
  */
-static char *xml_escape_string(int *retval, const char *str)
+static int xml_escape_string(const char *str, char **out)
 {
-	if (*retval != ERROR_OK)
-		return NULL;
-
 	/* Worst case every character expands to "&quot;" or "&apos;". */
-	char *out = malloc(strlen(str) * 6 + 1);
-	if (!out) {
-		*retval = ERROR_SERVER_REMOTE_CLOSED;
-		return NULL;
+	*out = malloc(strlen(str) * 6 + 1);
+	if (!*out) {
+		LOG_ERROR("Out of memory");
+		return ERROR_FAIL;
 	}
 
-	char *o = out;
+	char *o = *out;
 	for (const char *i = str; *i; i++) {
 		const char *esc;
 
@@ -2073,7 +2071,7 @@ static char *xml_escape_string(int *retval, const char *str)
 	}
 	*o = '\0';
 
-	return out;
+	return ERROR_OK;
 }
 
 static int decode_xfer_read(char const *buf, char **annex, int *ofs, unsigned int *len)
@@ -2133,7 +2131,8 @@ static int gdb_memory_map(struct connection *connection,
 	int size = 0;
 	int pos = 0;
 	int retval = ERROR_OK;
-	struct flash_bank **banks;
+	struct flash_bank **banks = NULL;
+	char *t = NULL;
 	int offset;
 	int length;
 	char *separator;
@@ -2146,24 +2145,28 @@ static int gdb_memory_map(struct connection *connection,
 	offset = strtoul(packet, &separator, 16);
 	length = strtoul(separator + 1, &separator, 16);
 
-	xml_printf(&retval, &xml, &pos, &size, "<memory-map>\n");
+	retval = xml_printf(&xml, &pos, &size, "<memory-map>\n");
+	if (retval != ERROR_OK)
+		goto error;
 
 	/* Sort banks in ascending order.  We need to report non-flash
 	 * memory as ram (or rather read/write) by default for GDB, since
 	 * it has no concept of non-cacheable read/write memory (i/o etc).
 	 */
 	banks = malloc(sizeof(struct flash_bank *)*flash_get_bank_count());
+	if (!banks) {
+		LOG_ERROR("Out of memory");
+		retval = ERROR_FAIL;
+		goto error;
+	}
 
 	for (unsigned int i = 0; i < flash_get_bank_count(); i++) {
 		p = get_flash_bank_by_num_noprobe(i);
 		if (p->target != target)
 			continue;
 		retval = get_flash_bank_by_num(i, &p);
-		if (retval != ERROR_OK) {
-			free(banks);
-			gdb_error(connection, retval);
-			return retval;
-		}
+		if (retval != ERROR_OK)
+			goto error;
 		banks[target_flash_banks++] = p;
 	}
 
@@ -2176,25 +2179,32 @@ static int gdb_memory_map(struct connection *connection,
 
 		p = banks[i];
 
-		if (ram_start < p->base)
-			xml_printf(&retval, &xml, &pos, &size,
+		if (ram_start < p->base) {
+			retval = xml_printf(&xml, &pos, &size,
 				"<memory type=\"ram\" start=\"" TARGET_ADDR_FMT "\" "
 				"length=\"" TARGET_ADDR_FMT "\"/>\n",
 				ram_start, p->base - ram_start);
+			if (retval != ERROR_OK)
+				goto error;
+		}
 
 		if (p->read_only) {
-			xml_printf(&retval, &xml, &pos, &size,
+			retval = xml_printf(&xml, &pos, &size,
 				"<memory type=\"rom\" start=\"" TARGET_ADDR_FMT "\" "
 				"length=\"0x%x\"/>\n",
 				p->base, p->size);
+			if (retval != ERROR_OK)
+				goto error;
 		} else {
 			if (p->num_sectors == 0) {
-				xml_printf(&retval, &xml, &pos, &size,
+				retval = xml_printf(&xml, &pos, &size,
 					"<memory type=\"flash\" "
 						"start=\"" TARGET_ADDR_FMT "\" "
 						"length=\"0x%x\">"
 						"<property name=\"blocksize\">0x%x</property>\n"
 					"</memory>\n", p->base, p->size, p->size);
+				if (retval != ERROR_OK)
+					goto error;
 			}
 
 			/* Report adjacent groups of same-size sectors.  So for
@@ -2215,10 +2225,12 @@ static int gdb_memory_map(struct connection *connection,
 					}
 					target_addr_t start;
 					start = p->base + p->sectors[j].offset;
-					xml_printf(&retval, &xml, &pos, &size,
+					retval = xml_printf(&xml, &pos, &size,
 						"<memory type=\"flash\" "
 						"start=\"" TARGET_ADDR_FMT "\" ",
 						start);
+					if (retval != ERROR_OK)
+						goto error;
 					sector_size = p->sectors[j].size;
 					group_len = sector_size;
 				} else {
@@ -2234,13 +2246,15 @@ static int gdb_memory_map(struct connection *connection,
 						&& p->sectors[j + 1].offset + p->sectors[j + 1].size <= p->size)
 					continue;
 
-				xml_printf(&retval, &xml, &pos, &size,
+				retval = xml_printf(&xml, &pos, &size,
 					"length=\"0x%x\">\n"
 					"<property name=\"blocksize\">"
 					"0x%x</property>\n"
 					"</memory>\n",
 					group_len,
 					sector_size);
+				if (retval != ERROR_OK)
+					goto error;
 				sector_size = 0;
 			}
 		}
@@ -2248,28 +2262,33 @@ static int gdb_memory_map(struct connection *connection,
 		ram_start = p->base + p->size;
 	}
 
-	if (ram_start != 0)
-		xml_printf(&retval, &xml, &pos, &size,
+	if (ram_start != 0) {
+		retval = xml_printf(&xml, &pos, &size,
 			"<memory type=\"ram\" start=\"" TARGET_ADDR_FMT "\" "
 			"length=\"" TARGET_ADDR_FMT "\"/>\n",
 			ram_start, target_address_max(target) - ram_start + 1);
+		if (retval != ERROR_OK)
+			goto error;
+	}
 	/* ELSE a flash chip could be at the very end of the address space, in
 	 * which case ram_start will be precisely 0 */
 
 	free(banks);
+	banks = NULL;
 
-	xml_printf(&retval, &xml, &pos, &size, "</memory-map>\n");
-
-	if (retval != ERROR_OK) {
-		free(xml);
-		gdb_error(connection, retval);
-		return retval;
-	}
+	retval = xml_printf(&xml, &pos, &size, "</memory-map>\n");
+	if (retval != ERROR_OK)
+		goto error;
 
 	if (offset + length > pos)
 		length = pos - offset;
 
-	char *t = malloc(length + 1);
+	t = malloc(length + 1);
+	if (!t) {
+		LOG_ERROR("Out of memory");
+		retval = ERROR_FAIL;
+		goto error;
+	}
 	t[0] = 'l';
 	memcpy(t + 1, xml + offset, length);
 	gdb_put_packet(connection, t, length + 1);
@@ -2277,6 +2296,12 @@ static int gdb_memory_map(struct connection *connection,
 	free(t);
 	free(xml);
 	return ERROR_OK;
+
+error:
+	free(banks);
+	free(xml);
+	gdb_error(connection, retval);
+	return retval;
 }
 
 static const char *gdb_get_reg_type_name(enum reg_type type)
@@ -2354,26 +2379,36 @@ static int gdb_generate_reg_type_description(struct target *target,
 		char const **arch_defined_types_list[], int *num_arch_defined_types)
 {
 	int retval = ERROR_OK;
+	char *id = NULL;
+	char *name = NULL;
+	char *type_id = NULL;
 
 	if (type->type_class == REG_TYPE_CLASS_VECTOR) {
 		struct reg_data_type *data_type = type->reg_type_vector->type;
 		if (data_type->type == REG_TYPE_ARCH_DEFINED) {
 			if (lookup_add_arch_defined_types(arch_defined_types_list, data_type->id,
-							num_arch_defined_types))
-				gdb_generate_reg_type_description(target, tdesc, pos, size, data_type,
+							num_arch_defined_types)) {
+				retval = gdb_generate_reg_type_description(target, tdesc, pos, size, data_type,
 								arch_defined_types_list,
 								num_arch_defined_types);
+				if (retval != ERROR_OK)
+					goto error;
+			}
 		}
 		/* <vector id="id" type="type" count="count"/> */
-		char *id = xml_escape_string(&retval, type->id);
-		char *type_id = xml_escape_string(&retval, type->reg_type_vector->type->id);
+		retval = xml_escape_string(type->id, &id);
+		if (retval != ERROR_OK)
+			goto error;
 
-		xml_printf(&retval, tdesc, pos, size,
+		retval = xml_escape_string(type->reg_type_vector->type->id, &type_id);
+		if (retval != ERROR_OK)
+			goto error;
+
+		retval = xml_printf(tdesc, pos, size,
 				"<vector id=\"%s\" type=\"%s\" count=\"%" PRIu32 "\"/>\n",
 				id, type_id, type->reg_type_vector->count);
-
-		free(id);
-		free(type_id);
+		if (retval != ERROR_OK)
+			goto error;
 
 	} else if (type->type_class == REG_TYPE_CLASS_UNION) {
 		struct reg_data_type_union_field *field;
@@ -2382,10 +2417,13 @@ static int gdb_generate_reg_type_description(struct target *target,
 			struct reg_data_type *data_type = field->type;
 			if (data_type->type == REG_TYPE_ARCH_DEFINED) {
 				if (lookup_add_arch_defined_types(arch_defined_types_list, data_type->id,
-								num_arch_defined_types))
-					gdb_generate_reg_type_description(target, tdesc, pos, size, data_type,
+								num_arch_defined_types)) {
+					retval = gdb_generate_reg_type_description(target, tdesc, pos, size, data_type,
 									arch_defined_types_list,
 									num_arch_defined_types);
+					if (retval != ERROR_OK)
+						goto error;
+				}
 			}
 
 			field = field->next;
@@ -2393,31 +2431,44 @@ static int gdb_generate_reg_type_description(struct target *target,
 		/* <union id="id">
 		 *  <field name="name" type="type"/> ...
 		 * </union> */
-		char *id = xml_escape_string(&retval, type->id);
+		retval = xml_escape_string(type->id, &id);
+		if (retval != ERROR_OK)
+			goto error;
 
-		xml_printf(&retval, tdesc, pos, size,
+		retval = xml_printf(tdesc, pos, size,
 				"<union id=\"%s\">\n",
 				id);
-
-		free(id);
+		if (retval != ERROR_OK)
+			goto error;
 
 		field = type->reg_type_union->fields;
 		while (field) {
-			char *name = xml_escape_string(&retval, field->name);
-			char *type_id = xml_escape_string(&retval, field->type->id);
+			retval = xml_escape_string(field->name, &name);
+			if (retval != ERROR_OK)
+				goto error;
 
-			xml_printf(&retval, tdesc, pos, size,
+			retval = xml_escape_string(field->type->id, &type_id);
+			if (retval != ERROR_OK)
+				goto error;
+
+			retval = xml_printf(tdesc, pos, size,
 					"<field name=\"%s\" type=\"%s\"/>\n",
 					name, type_id);
+			if (retval != ERROR_OK)
+				goto error;
 
 			free(name);
+			name = NULL;
 			free(type_id);
+			type_id = NULL;
 
 			field = field->next;
 		}
 
-		xml_printf(&retval, tdesc, pos, size,
+		retval = xml_printf(tdesc, pos, size,
 				"</union>\n");
+		if (retval != ERROR_OK)
+			goto error;
 
 	} else if (type->type_class == REG_TYPE_CLASS_STRUCT) {
 		struct reg_data_type_struct_field *field;
@@ -2427,23 +2478,30 @@ static int gdb_generate_reg_type_description(struct target *target,
 			/* <struct id="id" size="size">
 			 *  <field name="name" start="start" end="end"/> ...
 			 * </struct> */
-			char *id = xml_escape_string(&retval, type->id);
+			retval = xml_escape_string(type->id, &id);
+			if (retval != ERROR_OK)
+				goto error;
 
-			xml_printf(&retval, tdesc, pos, size,
+			retval = xml_printf(tdesc, pos, size,
 					"<struct id=\"%s\" size=\"%" PRIu32 "\">\n",
 					id, type->reg_type_struct->size);
-
-			free(id);
+			if (retval != ERROR_OK)
+				goto error;
 
 			while (field) {
-				char *name = xml_escape_string(&retval, field->name);
+				retval = xml_escape_string(field->name, &name);
+				if (retval != ERROR_OK)
+					goto error;
 
-				xml_printf(&retval, tdesc, pos, size,
+				retval = xml_printf(tdesc, pos, size,
 						"<field name=\"%s\" start=\"%" PRIu32 "\" end=\"%" PRIu32 "\" type=\"%s\" />\n",
 						name, field->bitfield->start, field->bitfield->end,
 						gdb_get_reg_type_name(field->bitfield->type));
+				if (retval != ERROR_OK)
+					goto error;
 
 				free(name);
+				name = NULL;
 
 				field = field->next;
 			}
@@ -2452,75 +2510,105 @@ static int gdb_generate_reg_type_description(struct target *target,
 				struct reg_data_type *data_type = field->type;
 				if (data_type->type == REG_TYPE_ARCH_DEFINED) {
 					if (lookup_add_arch_defined_types(arch_defined_types_list, data_type->id,
-									num_arch_defined_types))
-						gdb_generate_reg_type_description(target, tdesc, pos, size, data_type,
+									num_arch_defined_types)) {
+						retval = gdb_generate_reg_type_description(target, tdesc, pos, size, data_type,
 										arch_defined_types_list,
 										num_arch_defined_types);
+						if (retval != ERROR_OK)
+							goto error;
+					}
 				}
 			}
 
 			/* <struct id="id">
 			 *  <field name="name" type="type"/> ...
 			 * </struct> */
-			char *id = xml_escape_string(&retval, type->id);
+			retval = xml_escape_string(type->id, &id);
+			if (retval != ERROR_OK)
+				goto error;
 
-			xml_printf(&retval, tdesc, pos, size,
+			retval = xml_printf(tdesc, pos, size,
 					"<struct id=\"%s\">\n",
 					id);
-
-			free(id);
+			if (retval != ERROR_OK)
+				goto error;
 
 			while (field) {
-				char *name = xml_escape_string(&retval, field->name);
-				char *type_id = xml_escape_string(&retval, field->type->id);
+				retval = xml_escape_string(field->name, &name);
+				if (retval != ERROR_OK)
+					goto error;
 
-				xml_printf(&retval, tdesc, pos, size,
+				retval = xml_escape_string(field->type->id, &type_id);
+				if (retval != ERROR_OK)
+					goto error;
+
+				retval = xml_printf(tdesc, pos, size,
 						"<field name=\"%s\" type=\"%s\"/>\n",
 						name, type_id);
+				if (retval != ERROR_OK)
+					goto error;
 
 				free(name);
+				name = NULL;
 				free(type_id);
+				type_id = NULL;
 
 				field = field->next;
 			}
 		}
 
-		xml_printf(&retval, tdesc, pos, size,
+		retval = xml_printf(tdesc, pos, size,
 				"</struct>\n");
+		if (retval != ERROR_OK)
+			goto error;
 
 	} else if (type->type_class == REG_TYPE_CLASS_FLAGS) {
 		/* <flags id="id" size="size">
 		 *  <field name="name" start="start" end="end"/> ...
 		 * </flags> */
-		char *id = xml_escape_string(&retval, type->id);
+		retval = xml_escape_string(type->id, &id);
+		if (retval != ERROR_OK)
+			goto error;
 
-		xml_printf(&retval, tdesc, pos, size,
+		retval = xml_printf(tdesc, pos, size,
 				"<flags id=\"%s\" size=\"%" PRIu32 "\">\n",
 				id, type->reg_type_flags->size);
-
-		free(id);
+		if (retval != ERROR_OK)
+			goto error;
 
 		struct reg_data_type_flags_field *field;
 		field = type->reg_type_flags->fields;
 		while (field) {
-			char *name = xml_escape_string(&retval, field->name);
+			retval = xml_escape_string(field->name, &name);
+			if (retval != ERROR_OK)
+				goto error;
 
-			xml_printf(&retval, tdesc, pos, size,
+			retval = xml_printf(tdesc, pos, size,
 					"<field name=\"%s\" start=\"%" PRIu32 "\" end=\"%" PRIu32 "\" type=\"%s\" />\n",
 					name, field->bitfield->start, field->bitfield->end,
 					gdb_get_reg_type_name(field->bitfield->type));
+			if (retval != ERROR_OK)
+				goto error;
 
 			free(name);
+			name = NULL;
 
 			field = field->next;
 		}
 
-		xml_printf(&retval, tdesc, pos, size,
+		retval = xml_printf(tdesc, pos, size,
 				"</flags>\n");
+		if (retval != ERROR_OK)
+			goto error;
 
 	}
 
-	return ERROR_OK;
+error:
+	free(id);
+	free(name);
+	free(type_id);
+
+	return retval;
 }
 
 /* Get a list of available target registers features. feature_list must
@@ -2688,8 +2776,13 @@ static int gdb_generate_target_description(struct target *target, char **tdesc_o
 	int reg_list_size;
 	char const *architecture;
 	char const **features = NULL;
+	char const **arch_defined_types = NULL;
 	int feature_list_size = 0;
 	char *tdesc = NULL;
+	char *feature_name = NULL;
+	char *reg_name = NULL;
+	char *reg_type = NULL;
+	char *reg_group = NULL;
 	int pos = 0;
 	int size = 0;
 
@@ -2720,32 +2813,46 @@ static int gdb_generate_target_description(struct target *target, char **tdesc_o
 	/* If we found some features associated with registers, create sections */
 	int current_feature = 0;
 
-	xml_printf(&retval, &tdesc, &pos, &size,
+	retval = xml_printf(&tdesc, &pos, &size,
 			"<?xml version=\"1.0\"?>\n"
 			"<!DOCTYPE target SYSTEM \"gdb-target.dtd\">\n"
 			"<target version=\"1.0\">\n");
+	if (retval != ERROR_OK)
+		goto error;
 
 	/* generate architecture element if supported by target */
 	architecture = target_get_gdb_arch(target);
-	if (architecture)
-		xml_printf(&retval, &tdesc, &pos, &size,
+	if (architecture) {
+		retval = xml_printf(&tdesc, &pos, &size,
 				"<architecture>%s</architecture>\n", architecture);
+		if (retval != ERROR_OK)
+			goto error;
+	}
 
 	/* generate target description according to register list */
 	if (features) {
 		while (features[current_feature]) {
-			char const **arch_defined_types = NULL;
 			int num_arch_defined_types = 0;
 
 			arch_defined_types = calloc(1, sizeof(char *));
+			if (!arch_defined_types) {
+				LOG_ERROR("Out of memory");
+				retval = ERROR_FAIL;
+				goto error;
+			}
 
-			char *feature_name = xml_escape_string(&retval, features[current_feature]);
+			retval = xml_escape_string(features[current_feature], &feature_name);
+			if (retval != ERROR_OK)
+				goto error;
 
-			xml_printf(&retval, &tdesc, &pos, &size,
+			retval = xml_printf(&tdesc, &pos, &size,
 					"<feature name=\"%s\">\n",
 					feature_name);
+			if (retval != ERROR_OK)
+				goto error;
 
 			free(feature_name);
+			feature_name = NULL;
 
 			int i;
 			for (i = 0; i < reg_list_size; i++) {
@@ -2762,11 +2869,14 @@ static int gdb_generate_target_description(struct target *target, char **tdesc_o
 						/* generate <type... first, if there are architecture-defined types. */
 						if (lookup_add_arch_defined_types(&arch_defined_types,
 										reg_list[i]->reg_data_type->id,
-										&num_arch_defined_types))
-							gdb_generate_reg_type_description(target, &tdesc, &pos, &size,
+										&num_arch_defined_types)) {
+							retval = gdb_generate_reg_type_description(target, &tdesc, &pos, &size,
 											reg_list[i]->reg_data_type,
 											&arch_defined_types,
 											&num_arch_defined_types);
+							if (retval != ERROR_OK)
+								goto error;
+						}
 
 						type_str = reg_list[i]->reg_data_type->id;
 					} else {
@@ -2779,55 +2889,90 @@ static int gdb_generate_target_description(struct target *target, char **tdesc_o
 					type_str = "int";
 				}
 
-				char *reg_name = xml_escape_string(&retval, reg_list[i]->name);
-				char *reg_type = xml_escape_string(&retval, type_str);
+				retval = xml_escape_string(reg_list[i]->name, &reg_name);
+				if (retval != ERROR_OK)
+					goto error;
 
-				xml_printf(&retval, &tdesc, &pos, &size,
+				retval = xml_escape_string(type_str, &reg_type);
+				if (retval != ERROR_OK)
+					goto error;
+
+				retval = xml_printf(&tdesc, &pos, &size,
 						"<reg name=\"%s\"", reg_name);
-				xml_printf(&retval, &tdesc, &pos, &size,
+				if (retval != ERROR_OK)
+					goto error;
+
+				retval = xml_printf(&tdesc, &pos, &size,
 						" bitsize=\"%" PRIu32 "\"", reg_list[i]->size);
-				xml_printf(&retval, &tdesc, &pos, &size,
+				if (retval != ERROR_OK)
+					goto error;
+
+				retval = xml_printf(&tdesc, &pos, &size,
 						" regnum=\"%" PRIu32 "\"", reg_list[i]->number);
+				if (retval != ERROR_OK)
+					goto error;
+
 				if (reg_list[i]->caller_save)
-					xml_printf(&retval, &tdesc, &pos, &size,
+					retval = xml_printf(&tdesc, &pos, &size,
 							" save-restore=\"yes\"");
 				else
-					xml_printf(&retval, &tdesc, &pos, &size,
+					retval = xml_printf(&tdesc, &pos, &size,
 							" save-restore=\"no\"");
+				if (retval != ERROR_OK)
+					goto error;
 
-				xml_printf(&retval, &tdesc, &pos, &size,
+				retval = xml_printf(&tdesc, &pos, &size,
 						" type=\"%s\"", reg_type);
+				if (retval != ERROR_OK)
+					goto error;
 
 				free(reg_name);
+				reg_name = NULL;
 				free(reg_type);
+				reg_type = NULL;
 
 				if (reg_list[i]->group) {
-					char *reg_group = xml_escape_string(&retval, reg_list[i]->group);
+					retval = xml_escape_string(reg_list[i]->group, &reg_group);
+					if (retval != ERROR_OK)
+						goto error;
 
-					xml_printf(&retval, &tdesc, &pos, &size,
+					retval = xml_printf(&tdesc, &pos, &size,
 							" group=\"%s\"", reg_group);
+					if (retval != ERROR_OK)
+						goto error;
 
 					free(reg_group);
+					reg_group = NULL;
 				}
 
-				xml_printf(&retval, &tdesc, &pos, &size,
+				retval = xml_printf(&tdesc, &pos, &size,
 						"/>\n");
+				if (retval != ERROR_OK)
+					goto error;
 			}
 
-			xml_printf(&retval, &tdesc, &pos, &size,
+			retval = xml_printf(&tdesc, &pos, &size,
 					"</feature>\n");
+			if (retval != ERROR_OK)
+				goto error;
 
 			current_feature++;
 			free(arch_defined_types);
+			arch_defined_types = NULL;
 		}
 	}
 
-	xml_printf(&retval, &tdesc, &pos, &size,
+	retval = xml_printf(&tdesc, &pos, &size,
 			"</target>\n");
 
 error:
 	free(features);
 	free(reg_list);
+	free(arch_defined_types);
+	free(feature_name);
+	free(reg_name);
+	free(reg_type);
+	free(reg_group);
 
 	if (retval == ERROR_OK)
 		*tdesc_out = tdesc;
@@ -2941,12 +3086,16 @@ static int gdb_generate_thread_list(struct target *target, char **thread_list_ou
 	struct rtos *rtos = target->rtos;
 	int retval = ERROR_OK;
 	char *thread_list = NULL;
+	char *name = NULL;
+	char *extra_info = NULL;
 	int pos = 0;
 	int size = 0;
 
-	xml_printf(&retval, &thread_list, &pos, &size,
+	retval = xml_printf(&thread_list, &pos, &size,
 		   "<?xml version=\"1.0\"?>\n"
 		   "<threads>\n");
+	if (retval != ERROR_OK)
+		goto error;
 
 	if (rtos) {
 		for (int i = 0; i < rtos->thread_count; i++) {
@@ -2957,45 +3106,66 @@ static int gdb_generate_thread_list(struct target *target, char **thread_list_ou
 
 			/* The strings below are read from the target, so they
 			 * must be escaped before being put in the XML. */
-			char *name = NULL;
-			char *extra_info = NULL;
+			if (thread_detail->thread_name_str) {
+				retval = xml_escape_string(thread_detail->thread_name_str, &name);
+				if (retval != ERROR_OK)
+					goto error;
+			}
 
-			if (thread_detail->thread_name_str)
-				name = xml_escape_string(&retval, thread_detail->thread_name_str);
-
-			if (thread_detail->extra_info_str)
-				extra_info = xml_escape_string(&retval, thread_detail->extra_info_str);
+			if (thread_detail->extra_info_str) {
+				retval = xml_escape_string(thread_detail->extra_info_str, &extra_info);
+				if (retval != ERROR_OK)
+					goto error;
+			}
 
 			if (name)
-				xml_printf(&retval, &thread_list, &pos, &size,
+				retval = xml_printf(&thread_list, &pos, &size,
 					   "<thread id=\"%" PRIx64 "\" name=\"%s\">",
 					   thread_detail->threadid, name);
 			else
-				xml_printf(&retval, &thread_list, &pos, &size,
+				retval = xml_printf(&thread_list, &pos, &size,
 					   "<thread id=\"%" PRIx64 "\">", thread_detail->threadid);
+			if (retval != ERROR_OK)
+				goto error;
 
-			if (name)
-				xml_printf(&retval, &thread_list, &pos, &size,
+			if (name) {
+				retval = xml_printf(&thread_list, &pos, &size,
 					   "Name: %s", name);
+				if (retval != ERROR_OK)
+					goto error;
+			}
 
 			if (extra_info) {
-				if (name)
-					xml_printf(&retval, &thread_list, &pos, &size,
+				if (name) {
+					retval = xml_printf(&thread_list, &pos, &size,
 						   ", ");
-				xml_printf(&retval, &thread_list, &pos, &size,
+					if (retval != ERROR_OK)
+						goto error;
+				}
+				retval = xml_printf(&thread_list, &pos, &size,
 					   "%s", extra_info);
+				if (retval != ERROR_OK)
+					goto error;
 			}
 
 			free(name);
+			name = NULL;
 			free(extra_info);
+			extra_info = NULL;
 
-			xml_printf(&retval, &thread_list, &pos, &size,
+			retval = xml_printf(&thread_list, &pos, &size,
 				   "</thread>\n");
+			if (retval != ERROR_OK)
+				goto error;
 		}
 	}
 
-	xml_printf(&retval, &thread_list, &pos, &size,
+	retval = xml_printf(&thread_list, &pos, &size,
 		   "</threads>\n");
+
+error:
+	free(name);
+	free(extra_info);
 
 	if (retval == ERROR_OK)
 		*thread_list_out = thread_list;
@@ -3190,8 +3360,7 @@ static int gdb_query_packet(struct connection *connection,
 			gdb_target_desc_supported = false;
 		}
 
-		xml_printf(&retval,
-			&buffer,
+		retval = xml_printf(&buffer,
 			&pos,
 			&size,
 			"PacketSize=%x;"
