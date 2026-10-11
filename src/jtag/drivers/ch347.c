@@ -220,6 +220,7 @@ struct ch347_info {
 	bool swclk_5mhz_supported;
 	bool cmd_gpio_allowed;
 	unsigned int srst_default_gpio, trst_default_gpio;
+	bool led_is_on;
 	bool led_log_once;
 	uint8_t bit_op_log_once;
 
@@ -1651,8 +1652,13 @@ static void ch347_activity_led_set(bool led_state, bool flush_now)
 {
 	uint8_t gpios[GPIO_CNT] = { 0 };
 	uint8_t bit_op = 0;
+
 	ch347_set_gpio(ADAPTER_GPIO_IDX_LED, led_state, gpios, &bit_op);
-	ch347_gpios_update(gpios, bit_op, flush_now);
+	int retval = ch347_gpios_update(gpios, bit_op, flush_now);
+	if (retval != ERROR_OK)
+		ch347.led_is_on = false;
+	else
+		ch347.led_is_on = led_state;
 }
 
 /**
@@ -2486,6 +2492,11 @@ static int ch347_swd_run_queue_inner(void)
 		goto skip;
 	}
 
+	/* CMD_GPIO or CMD_JTAG_BIT_OP can take place before CMD_SWD
+	 * in the same USB packet */
+	if (!ch347.led_is_on)
+		ch347_activity_led_set(true, false);
+
 	ch347_swd_context.queued_retval = ch347_swd_queue_flush();
 	if (ch347_swd_context.queued_retval != ERROR_OK) {
 		LOG_ERROR("CH347 usb write/read failed");
@@ -2611,7 +2622,14 @@ static int ch347_swd_run_queue(void)
 	if (retval != ERROR_OK)
 		return retval;
 
-	return ch347_swd_run_queue_inner();
+	retval = ch347_swd_run_queue_inner();
+
+	/* CMD_GPIO or CMD_JTAG_BIT_OP cannot follow CMD_SWD in the same
+	 * USB packet. Flush the queue first then send eventual LED off
+	 * in a separate USB packet */
+	ch347_activity_led_set(false, true);
+
+	return retval;
 }
 
 static int ch347_swd_queue_cmd(uint8_t cmd, uint32_t *dst, uint32_t data, uint32_t ap_delay_clk)
