@@ -71,23 +71,14 @@
 #define TRST_L 0
 #define SRST_H BIT(6)
 #define SRST_L 0
-#define LED_ON 1
-#define LED_OFF	0
+
 #define GPIO_CNT	8 // the CH347 has 8 GPIO's
-/* mask which GPIO's are available in mode 3 of the CH347T: only GPIO3 (Pin11 / SCL),
-	GPIO4 (Pin15 / ACT), GPIO5 (Pin9 / TRST) and GPIO6 (Pin2 / CTS1) are possible */
-#define CH347T_USABLE_GPIOS	0x78
-/* On the CH347F the GPIO's share the pins with the interface signals: GPIO0 (Pin17),
-	GPIO1 (Pin18), GPIO2 (Pin10), GPIO3 (Pin9 / TRST), GPIO4 (Pin23 / TCK + SWDCLK),
-	GPIO5 (Pin24 / TDO), GPIO6 (Pin25 / TDI), GPIO7 (Pin26 / TMS + SWDIO). GPIO4 to GPIO7
-	always carry a signal of the JTAG or SWD interface, so only GPIO0 to GPIO3 are left.
-	GPIO3 is TRST, which is not a SWD signal. */
-#define CH347F_USABLE_GPIOS	0x0F
-/* In SWD mode the TRST pin is unused as a JTAG signal, so it can drive SRST through the GPIO
-	command. TRST is Pin9 on both chips, but has a different GPIO number: GPIO5 on CH347T,
-	GPIO3 on CH347F. */
+// SRST pin can be configured as CH347F_SRST_FAKE_GPIO
+#define GPIO_CNT_EXT (GPIO_CNT + 1)
+#define CH347F_SRST_FAKE_GPIO GPIO_CNT
 #define CH347T_TRST_GPIO	5
 #define CH347F_TRST_GPIO	3
+
 /* For GPIO command: always set bits 7 and 6 for GPIO enable
 	bits 5 and 4 for pin direction output bit 3 is the data bit */
 #define GPIO_SET_L	(BIT(4) | BIT(5) | BIT(6) | BIT(7)) // value for setting a GPIO to low
@@ -227,6 +218,10 @@ struct ch347_info {
 	enum pack_size pack_size; // see: pack_size for explanation
 	int max_len; // in STANDARD_PACK or bitwise mode we can send only one USBC_PACKET_USBHS sized package
 	bool swclk_5mhz_supported;
+	bool cmd_gpio_allowed;
+	unsigned int srst_default_gpio, trst_default_gpio;
+	bool led_log_once;
+	uint8_t bit_op_log_once;
 
 	// a "scratchpad" where we record all bytes for one command
 	uint8_t scratchpad_cmd_type; // command type
@@ -270,17 +265,34 @@ static bool swd_mode;
 static uint16_t default_ch347_vids[] = {DEFAULT_VENDOR_ID, DEFAULT_VENDOR_ID, DEFAULT_VENDOR_ID, 0};
 static uint16_t default_ch347_pids[] = {DEFAULT_CH347T_PRODUCT_ID,
 	DEFAULT_CH347F_PRODUCT_ID, DEFAULT_OTHER_PRODUCT_ID, 0};
-static uint8_t ch347_activity_led_gpio_pin = 0xFF;
-static bool ch347_activity_led_active_high;
-// GPIO driving SRST in SWD mode, defaults to the otherwise unused TRST pin
-static uint8_t ch347_srst_gpio_pin = 0xFF;
-static bool ch347_srst_active_high;
+
 /* Set after the CH347F dedicated SRST output is enabled and its pin byte
  * has been transmitted. JTAG pin bytes carry bit 6 only then. SWD leaves
  * this clear. */
 static bool ch347_dedicated_srst_enabled;
 static struct ch347_info ch347;
 static struct libusb_device_handle *ch347_handle;
+
+struct ch347_bit_op {
+	uint8_t bit;
+	bool jtag_use, swd_use;
+	int *ptr;
+};
+static const struct ch347_bit_op ch347t_gpio_to_bit_op[GPIO_CNT_EXT] = {
+	[0] = { .bit = TCK_H, .jtag_use = true, .swd_use = true, .ptr = &ch347.tck_pin },
+	[1] = { .jtag_use = true },
+	[2] = { .bit = TMS_H, .jtag_use = true, .swd_use = true, .ptr = &ch347.tms_pin },
+	[CH347T_TRST_GPIO] = { .bit = TRST_H, .ptr = &ch347.trst_pin }, // GPIO 5
+};
+
+static const struct ch347_bit_op ch347f_gpio_to_bit_op[GPIO_CNT_EXT] = {
+	[CH347F_TRST_GPIO] = { .bit = TRST_H, .ptr = &ch347.trst_pin }, // GPIO 3
+	[4] = { .bit = TCK_H, .jtag_use = true, .swd_use = true, .ptr = &ch347.tck_pin },
+	[5] = { .jtag_use = true },
+	[6] = { .bit = TDI_H, .jtag_use = true, .ptr = &ch347.tdi_pin },
+	[7] = { .bit = TMS_H, .jtag_use = true, .swd_use = true, .ptr = &ch347.tms_pin },
+	[CH347F_SRST_FAKE_GPIO] = { .bit = SRST_H, .ptr = &ch347.srst_pin},
+};
 
 /* there are "single" commands. These commands can't be chained together and
 	need to be send as single command and need a read after write */
@@ -995,17 +1007,6 @@ static int ch347_scratchpad_add_bytes(uint8_t *bytes, int count)
 	return ERROR_OK;
 }
 
-/* Drive SRST low at init only when the target is connected under reset.
- * srst_nogate is required as well: without it, JTAG is gated while SRST
- * is asserted. */
-static bool ch347_dedicated_srst_assert_at_init(void)
-{
-	enum reset_types cfg = jtag_get_reset_config();
-
-	return (cfg & (RESET_CNCT_UNDER_SRST | RESET_SRST_NO_GATING))
-		== (RESET_CNCT_UNDER_SRST | RESET_SRST_NO_GATING);
-}
-
 /**
  * @brief Enable the dedicated SRST output on CH347F devices.
  *
@@ -1021,9 +1022,7 @@ static bool ch347_dedicated_srst_assert_at_init(void)
  * and does not decide whether initialization succeeded.
  *
  * Pin 8 strongly drives low after the adapter powers up. PIN_SET only selects
- * the dedicated output; the following JTAG pin byte sets the level. WCH drives
- * it high here. It stays low only when reset_config sets both
- * connect_assert_srst and srst_nogate.
+ * the dedicated output; a JTAG pin byte should follow to set the level.
  *
  * @return ERROR_OK on success, or the original error code when the command
  * cannot be transmitted
@@ -1046,15 +1045,8 @@ static int ch347_srst_enable(void)
 
 	LOG_DEBUG("CH347F PIN_SET result %02" PRIx8, init_result);
 
-	ch347.srst_pin = ch347_dedicated_srst_assert_at_init() ? SRST_L : SRST_H;
-	/* The pin byte merges bit 6 only while this flag is set. */
 	ch347_dedicated_srst_enabled = true;
-	retval = ch347_cmd_start_next(CH347_CMD_JTAG_BIT_OP);
-	if (retval == ERROR_OK)
-		retval = ch347_scratchpad_add_pin_byte();
-	if (retval == ERROR_OK)
-		retval = ch347_cmd_transmit_queue();
-	return retval;
+	return ERROR_OK;
 }
 
 /**
@@ -1357,47 +1349,13 @@ static int ch347_scratchpad_add_scan(struct scan_command *cmd)
 }
 
 /**
- * @brief Mask of the GPIO's that don't collide with an interface signal
+ * @brief GPIO number of the TRST pin
  *
- * @return mask with a bit set for every usable GPIO
+ * @return GPIO number of the TRST pin of the chip variant
  */
-static uint8_t ch347_usable_gpios(void)
+static inline unsigned int ch347_trst_gpio(void)
 {
-	return ch347.chip_variant == CH347F ? CH347F_USABLE_GPIOS : CH347T_USABLE_GPIOS;
-}
-
-/**
- * @brief Sends a GPIO command for a single pin and returns the pin state
- * that the device reports back
- *
- * Only the byte of the addressed pin is filled in, all other bytes stay zero.
- * A zero byte means "not enabled" for the device, so the other pins keep
- * their configuration.
- *
- * @param gpio GPIO bit number 0-7
- * @param value byte for this pin, one of GPIO_SET_L, GPIO_SET_H, GPIO_SET_INPUT
- * @param state returns the byte the device reports for this pin; BIT(6) is the pin level
- * @return ERROR_OK at success
- */
-static int ch347_gpio_cmd(unsigned int gpio, uint8_t value, uint8_t *state)
-{
-	if (gpio >= GPIO_CNT) {
-		LOG_ERROR("GPIO %u out of range", gpio);
-		return ERROR_FAIL;
-	}
-
-	int retval = ch347_cmd_start_next(CH347_CMD_GPIO);
-	if (retval != ERROR_OK)
-		return retval;
-
-	uint8_t gpios[GPIO_CNT];
-	memset(gpios, 0, GPIO_CNT);
-	gpios[gpio] = value;
-	retval = ch347_scratchpad_add_bytes(gpios, GPIO_CNT);
-	if (retval != ERROR_OK)
-		return retval;
-
-	return ch347_single_read_get_byte(gpio, state);
+	return ch347.chip_variant == CH347F ? CH347F_TRST_GPIO : CH347T_TRST_GPIO;
 }
 
 /**
@@ -1425,141 +1383,234 @@ static uint8_t ch347_gpio_drive_value(bool level, enum adapter_gpio_drive_mode d
 	return level ? GPIO_SET_H : GPIO_SET_L;
 }
 
-/**
- * @brief Sets a GPIO bit
- *
- * @param gpio GPIO bit number 0-7
- * @param data true for high; false for low
- * @return ERROR_OK at success
- */
-static int ch347_gpio_set(int gpio, bool data)
+static int ch347_check_gpio_unique(enum adapter_gpio_config_index gpio_idx,
+								   unsigned int *gpios_used)
 {
-	/* always set bits 7 and 6 for GPIO enable
-		bits 5 and 4 for pin direction output
-		bit 3 is the data bit */
-	uint8_t state;
-	int retval = ch347_gpio_cmd(gpio, data ? GPIO_SET_H : GPIO_SET_L, &state);
-	if (retval != ERROR_OK)
-		return retval;
+	const struct adapter_gpio_config *gpio_config = &adapter_gpio_get_config()[gpio_idx];
+	if (gpio_config->gpio_num == ADAPTER_GPIO_NOT_SET)
+		return ERROR_OK;
 
-	// check in the read if the bit is set/cleared correctly
-	if ((bool)(state & BIT(6)) != data) {
-		LOG_ERROR("Output not set.");
+	if (gpio_config->gpio_num >= GPIO_CNT_EXT)
+		return ERROR_OK;	// invalid GPIO num will be reported later
+
+	if (BIT(gpio_config->gpio_num) & *gpios_used) {
+		LOG_ERROR("%s GPIO %u already used",
+				  adapter_gpio_get_name(gpio_idx),
+				  gpio_config->gpio_num);
 		return ERROR_FAIL;
 	}
 
+	*gpios_used |= BIT(gpio_config->gpio_num);
 	return ERROR_OK;
+}
+
+static unsigned int ch347_get_gpio_num_or_default(enum adapter_gpio_config_index gpio_idx)
+{
+	const struct adapter_gpio_config *gpio_config = &adapter_gpio_get_config()[gpio_idx];
+	if (gpio_config->gpio_num == ADAPTER_GPIO_NOT_SET) {
+		if (gpio_idx == ADAPTER_GPIO_IDX_SRST)
+			return ch347.srst_default_gpio;
+
+		if (gpio_idx == ADAPTER_GPIO_IDX_TRST)
+			return ch347.trst_default_gpio;
+	}
+	return gpio_config->gpio_num;
+}
+
+static int ch347_set_gpio(enum adapter_gpio_config_index gpio_idx, bool active,
+						   uint8_t *gpios_data, uint8_t *bit_op)
+{
+	const struct adapter_gpio_config *gpio_config = &adapter_gpio_get_config()[gpio_idx];
+	unsigned int gpio_num = ch347_get_gpio_num_or_default(gpio_idx);
+	const struct ch347_bit_op *gpio_to_bit_op = ch347.chip_variant == CH347F ?
+					ch347f_gpio_to_bit_op : ch347t_gpio_to_bit_op;
+	bool value = active ^ gpio_config->active_low;
+	uint8_t gpio_val = ch347_gpio_drive_value(value, gpio_config->drive);
+
+	/* Using both CH347_CMD_GPIO and CH347_CMD_JTAG_BIT_OP is tricky
+	 * but the only way to use GPIO capabilities (simulated open-drain)
+	 * together with JTAG and/or with the CH347F dedicated SRST pin.
+	 *
+	 * CH347T Chip version=2.41 does not support CH347_CMD_GPIO at all
+	 * - GPIO support blocked by cmd_gpio_allowed = false.
+	 *
+	 * CH347T Chip version=4.41 honours CH347_CMD_GPIO setting
+	 * to input and prevents CH347_CMD_JTAG_BIT_OP from changing the same
+	 * pin to output. Pin previously set by CH347_CMD_GPIO to output
+	 * gets updated by CH347_CMD_JTAG_BIT_OP.
+	 *
+	 * CH347T Chip version=5.44 and CH347F Chip version=1.20:
+	 * The pin previously set by CH347_CMD_GPIO to input works as open-drain
+	 * with respect to CH347_CMD_JTAG_BIT_OP. Bit op setting to L propagates
+	 * low level to the pin, setting to H switches the pin to Hi-Z.
+	 * Pin previously set by CH347_CMD_GPIO to output gets updated
+	 * by CH347_CMD_JTAG_BIT_OP.
+	 *
+	 * It means for all pins controlled by both CH347_CMD_JTAG_BIT_OP
+	 * and CH347_CMD_GPIO: the bit keeping the pin state
+	 * for CH347_CMD_JTAG_BIT_OP must follow CH347_CMD_GPIO output state
+	 * and must be set to H if GPIO is set to input. */
+	if (gpio_num < GPIO_CNT && ch347.cmd_gpio_allowed) {
+		gpios_data[gpio_num] = gpio_val;
+
+		// set the corresponding bit for CH347_CMD_JTAG_BIT_OP
+		if (gpio_to_bit_op[gpio_num].ptr) {
+			if (gpio_val == GPIO_SET_INPUT)
+				value = true;	/* input setting by CH347_CMD_GPIO keeps
+								 * precedence while CH347_CMD_JTAG_BIT_OP
+								 * sets the same pin to output H */
+			*gpio_to_bit_op[gpio_num].ptr = value ? gpio_to_bit_op[gpio_num].bit : 0;
+		}
+
+		return ERROR_OK;
+	}
+
+	if (gpio_num < GPIO_CNT_EXT) {
+		if (gpio_to_bit_op[gpio_num].ptr) {
+			*gpio_to_bit_op[gpio_num].ptr = value ? gpio_to_bit_op[gpio_num].bit : 0;
+			*bit_op |= gpio_to_bit_op[gpio_num].bit;
+
+			if (gpio_val == GPIO_SET_INPUT && gpio_to_bit_op[gpio_num].bit & ~ch347.bit_op_log_once) {
+				LOG_WARNING("%s drive mode ignored, GPIO %u is push-pull only",
+							adapter_gpio_get_name(gpio_idx),
+							gpio_num);
+				ch347.bit_op_log_once |= gpio_to_bit_op[gpio_num].bit;
+			}
+			return ERROR_OK;
+		}
+	}
+
+	// Settings failed, reaction is GPIO specific
+	if (gpio_idx == ADAPTER_GPIO_IDX_LED) {
+		if (gpio_num == ADAPTER_GPIO_NOT_SET)
+			return ERROR_OK;
+		else if (ch347.led_log_once)
+			return ERROR_FAIL;
+
+		ch347.led_log_once = true;
+	} else if (!active) {
+		return ERROR_OK;
+	}
+	if (gpio_num == ADAPTER_GPIO_NOT_SET)
+		LOG_ERROR("%s GPIO not configured", adapter_gpio_get_name(gpio_idx));
+	else if (gpio_num < GPIO_CNT && !ch347.cmd_gpio_allowed)
+		LOG_ERROR("Too old CH347 version, %s GPIO configuration not supported",
+				adapter_gpio_get_name(gpio_idx));
+	else
+		LOG_ERROR("%s GPIO configuration invalid", adapter_gpio_get_name(gpio_idx));
+
+	return ERROR_FAIL;
+}
+
+static int ch347_init_gpio(enum adapter_gpio_config_index gpio_idx,
+							uint8_t *gpios_data, uint8_t *bit_op)
+{
+	const struct adapter_gpio_config *gpio_config = &adapter_gpio_get_config()[gpio_idx];
+	if (gpio_config->init_state == ADAPTER_GPIO_INIT_STATE_INPUT) {
+		unsigned int gpio_num = ch347_get_gpio_num_or_default(gpio_idx);
+		if (gpio_num < GPIO_CNT && ch347.cmd_gpio_allowed) {
+			gpios_data[gpio_num] = GPIO_SET_INPUT;
+			return ERROR_OK;
+		}
+		LOG_WARNING("Cannot set %s GPIO to initial input state",
+					adapter_gpio_get_name(gpio_idx));
+	}
+	bool active = gpio_config->init_state == ADAPTER_GPIO_INIT_STATE_ACTIVE;
+	return ch347_set_gpio(gpio_idx, active, gpios_data, bit_op);
+}
+
+static int ch347_exit_gpio(enum adapter_gpio_config_index gpio_idx,
+							uint8_t *gpios_data, uint8_t *bit_op)
+{
+	const struct adapter_gpio_config *gpio_config = &adapter_gpio_get_config()[gpio_idx];
+	if (gpio_config->exit_state == ADAPTER_GPIO_EXIT_STATE_NO_CHANGE)
+		return ERROR_OK;
+
+	if (gpio_config->exit_state == ADAPTER_GPIO_EXIT_STATE_INPUT) {
+		unsigned int gpio_num = ch347_get_gpio_num_or_default(gpio_idx);
+		if (gpio_num < GPIO_CNT && ch347.cmd_gpio_allowed) {
+			gpios_data[gpio_num] = GPIO_SET_INPUT;
+			return ERROR_OK;
+		}
+		LOG_WARNING("Cannot set %s GPIO to exit input state",
+					adapter_gpio_get_name(gpio_idx));
+	}
+	bool active = gpio_config->exit_state == ADAPTER_GPIO_EXIT_STATE_ACTIVE;
+	return ch347_set_gpio(gpio_idx, active, gpios_data, bit_op);
+}
+
+/**
+ * @brief Update GPIOS or JTAG_BIT_OP controlled outputs
+ * Avoid failing on the first error - the second part may succeed
+ *
+ * @return ERROR_OK at success or the first error
+ */
+static int ch347_gpios_update(uint8_t *gpios_data, bool bit_op, bool flush_now)
+{
+	int retval1 = ERROR_OK;
+	if (bit_op) {
+		retval1 = ch347_cmd_start_next(CH347_CMD_JTAG_BIT_OP);
+		if (retval1 == ERROR_OK)
+			retval1 = ch347_scratchpad_add_pin_byte();
+	}
+
+	unsigned int i;
+	for (i = 0; i < GPIO_CNT; i++)
+		if (gpios_data[i])
+			break;
+
+	bool any_gpio_set = i < GPIO_CNT;
+	int retval2 = ERROR_OK;
+	if (any_gpio_set) {
+		retval2 = ch347_cmd_start_next(CH347_CMD_GPIO);
+		if (retval2 == ERROR_OK)
+			retval2 = ch347_scratchpad_add_bytes(gpios_data, GPIO_CNT);
+	}
+	if (retval1 == ERROR_OK)
+		retval1 = retval2;
+
+	if (flush_now && (bit_op || any_gpio_set))
+		retval2 = ch347_cmd_transmit_queue();
+
+	return retval1 == ERROR_OK ? retval2 : retval1;
 }
 
 /**
  * @brief Turn the activity LED on or off
- *
- * @param led_state LED_ON or LED_OFF
- * @return ERROR_OK at success or if pin is not configured
+ * Errors are intentionally ignored.
  */
-static int ch347_activity_led_set(int led_state)
+static void ch347_activity_led_set(bool led_state, bool flush_now)
 {
-	if (ch347_activity_led_gpio_pin != 0xFF)
-		return ch347_gpio_set(ch347_activity_led_gpio_pin, ch347_activity_led_active_high ? led_state : 1 - led_state);
-
-	// not configured => also OK
-	return ERROR_OK;
-}
-
-/**
- * @brief Warn once when the dedicated CH347F SRST cannot follow reset_config.
- *
- * Pin 8 is push-pull. Open-drain and open-source are not emulated.
- * 'reset_config none' still leaves the drive mode at open drain, so warn
- * only when SRST is actually configured.
- */
-static void ch347_warn_dedicated_srst_drive(void)
-{
-	static bool warned;
-	enum adapter_gpio_drive_mode drive =
-		adapter_gpio_get_config()[ADAPTER_GPIO_IDX_SRST].drive;
-
-	if (warned || !(jtag_get_reset_config() & RESET_HAS_SRST))
-		return;
-	if (drive == ADAPTER_GPIO_DRIVE_MODE_PUSH_PULL)
-		return;
-
-	warned = true;
-	LOG_WARNING("CH347F dedicated SRST is push-pull and ignores "
-		"the reset_config drive mode; use 'reset_config srst_push_pull'");
+	uint8_t gpios[GPIO_CNT] = { 0 };
+	uint8_t bit_op = 0;
+	ch347_set_gpio(ADAPTER_GPIO_IDX_LED, led_state, gpios, &bit_op);
+	ch347_gpios_update(gpios, bit_op, flush_now);
 }
 
 /**
  * @brief Control (assert/deassert) the signals SRST and TRST on the interface.
  *
- * In SWD mode TRST is not used as a JTAG signal, so the pin is driven as a
- * GPIO to provide SRST. In JTAG mode CH347T has no SRST. The CH347F dedicated
- * output is enabled at JTAG init, including when reset_config does not include
- * SRST, because pin 8 drives strong low after adapter power-up. It is
- * active-low and push-pull; it ignores 'adapter gpio srst' polarity and the
- * 'reset_config' drive mode. There is no command here to return pin 8 to Hi-Z.
- *
- * The SRST GPIO follows the drive mode configured with 'reset_config'.
+ * Employs 'adapter gpio' configuration for both signals.
+ * Avoid failing on the first error - the second part may succeed
  *
  * @param trst 1 to assert TRST, 0 to deassert TRST.
  * @param srst 1 to assert SRST, 0 to deassert SRST.
- * @return ERROR_FAIL when asserting SRST in JTAG mode on a non-CH347F
- * (CH347T or another variant). ERROR_OK for TRST in JTAG mode, SRST on the
- * CH347F dedicated output, and SRST in SWD mode.
+ * @return error code propagated from CH347_CMD_JTAG_BIT_OP or CH347_CMD_GPIO
+ * or ERROR_OK
  */
 static int ch347_reset(int trst, int srst)
 {
-	int retval;
 	LOG_DEBUG_IO("reset trst: %i srst %i", trst, srst);
 
-	if (swd_mode) {
-		if (trst)
-			LOG_WARNING("Asserting TRST not supported in SWD mode!");
+	uint8_t gpios[GPIO_CNT] = { 0 };
+	uint8_t bit_op = 0;
+	int retval1 = ch347_set_gpio(ADAPTER_GPIO_IDX_SRST, srst, gpios, &bit_op);
+	int retval2 = ch347_set_gpio(ADAPTER_GPIO_IDX_TRST, trst, gpios, &bit_op);
+	if (retval1 == ERROR_OK)
+		retval1 = retval2;
 
-		if (ch347_srst_gpio_pin == 0xFF) {
-			if (srst) {
-				LOG_ERROR("Asserting SRST not supported: no usable GPIO configured");
-				return ERROR_FAIL;
-			}
-			return ERROR_OK;
-		}
-
-		/* Honour the drive mode of 'reset_config'. It defaults to open drain,
-			which releases the pin instead of driving the inactive level, so the
-			target can keep the line low on its own.
-			Don't verify the readback: it reports the pin level, and the target
-			is free to hold the reset line low itself, e.g. while it is in a
-			watchdog reset loop. */
-		bool level = srst ? ch347_srst_active_high : !ch347_srst_active_high;
-		uint8_t value = ch347_gpio_drive_value(level,
-			adapter_gpio_get_config()[ADAPTER_GPIO_IDX_SRST].drive);
-		uint8_t state;
-		return ch347_gpio_cmd(ch347_srst_gpio_pin, value, &state);
-	}
-
-	if (srst && !ch347_dedicated_srst_enabled) {
-		LOG_ERROR("Asserting SRST not supported");
-		return ERROR_FAIL;
-	}
-
-	retval = ch347_cmd_start_next(CH347_CMD_JTAG_BIT_OP);
-	if (retval != ERROR_OK)
-		return retval;
-
-	ch347.trst_pin = trst ? TRST_L : TRST_H;
-	if (ch347_dedicated_srst_enabled) {
-		ch347_warn_dedicated_srst_drive();
-		ch347.srst_pin = srst ? SRST_L : SRST_H;
-	}
-	retval = ch347_scratchpad_add_pin_byte();
-	if (retval != ERROR_OK)
-		return retval;
-
-	retval = ch347_scratchpad_add_idle_clock();
-	if (retval != ERROR_OK)
-		return retval;
-
-	return ch347_cmd_transmit_queue();
+	retval2 = ch347_gpios_update(gpios, bit_op, true);
+	return retval1 != ERROR_OK ? retval1 : retval2;
 }
 
 /**
@@ -1584,10 +1635,9 @@ static int ch347_sleep(int us)
 static int ch347_execute_queue(struct jtag_command *cmd_queue)
 {
 	struct jtag_command *cmd = cmd_queue;
+	int retval = ERROR_OK;
 
-	int retval = ch347_activity_led_set(LED_ON);
-	if (retval != ERROR_OK)
-		return retval;
+	ch347_activity_led_set(true, false);
 
 	while (retval == ERROR_OK && cmd) {
 		switch (cmd->type) {
@@ -1621,14 +1671,13 @@ static int ch347_execute_queue(struct jtag_command *cmd_queue)
 		cmd = cmd->next;
 	}
 
+	ch347_activity_led_set(false, false);
+
 	if (retval != ERROR_OK)
 		return retval;
 
 	retval = ch347_cmd_transmit_queue();
-	if (retval != ERROR_OK)
-		return retval;
-
-	return ch347_activity_led_set(LED_OFF);
+	return retval;
 }
 
 /**
@@ -1731,16 +1780,20 @@ static int ch347_open_device(void)
 		ch347_device_descriptor.bcdDevice & 0xFF,
 		firmware_version);
 
-	if (ch347.chip_variant == CH347T && ch347_device_descriptor.bcdDevice < BYTEWISE_MODE_VERSION) {
-		LOG_INFO("CH347T old version of the chip, JTAG only working in bitwise mode. For bytewise mode at least version %X.%X is needed.",
-			(BYTEWISE_MODE_VERSION >> 8) & 0xFF,
-			BYTEWISE_MODE_VERSION & 0xFF);
-		ch347.use_bitwise_mode = true;
-	} else {
-		ch347.use_bitwise_mode = false;
-	}
+	ch347.use_bitwise_mode = false;
+	ch347.cmd_gpio_allowed = true;
 
 	if (ch347.chip_variant == CH347T) {
+		if (ch347_device_descriptor.bcdDevice < BYTEWISE_MODE_VERSION) {
+			ch347.use_bitwise_mode = true;
+			LOG_INFO("CH347T old version of the chip, JTAG only working in bitwise mode. For bytewise mode at least version %X.%X is needed.",
+				(BYTEWISE_MODE_VERSION >> 8) & 0xFF,
+				BYTEWISE_MODE_VERSION & 0xFF);
+		}
+
+		if (ch347_device_descriptor.bcdDevice < 0x441)
+			ch347.cmd_gpio_allowed = false;
+
 		if (swd_mode) {
 			ch347.swclk_5mhz_supported = ch347_device_descriptor.bcdDevice >= 0x544;
 
@@ -1774,11 +1827,17 @@ static int ch347_open_device(void)
  */
 static int ch347_quit(void)
 {
-	// on close set the LED on, because the state without JTAG is on
-	ch347_activity_led_set(LED_ON);
-	int retval = ch347_cmd_transmit_queue();
+	int retval;
+	uint8_t gpios[GPIO_CNT] = { 0 };
+	uint8_t bit_op = 0;
+	ch347_exit_gpio(ADAPTER_GPIO_IDX_SRST, gpios, &bit_op);
+	ch347_exit_gpio(ADAPTER_GPIO_IDX_TRST, gpios, &bit_op);
+	ch347_exit_gpio(ADAPTER_GPIO_IDX_LED, gpios, &bit_op);
+
+	retval = ch347_gpios_update(gpios, bit_op, true);
+
 	jtag_libusb_close(ch347_handle);
-	LOG_DEBUG_IO("CH347 close");
+	LOG_DEBUG("CH347 close");
 	return retval;
 }
 
@@ -2007,64 +2066,6 @@ static const struct command_registration ch347_command_handlers[] = {
 };
 
 /**
- * @brief Configure which GPIO pin is used as the activity LED.
- *
- * Updates the global activity LED GPIO pin and polarity settings
- * based on the provided configuration. If the given GPIO is not
- * usable, the function returns without making changes.
- *
- * @param led_config Pointer to the GPIO configuration structure for the LED pin
- */
-static void ch347_configure_activity_led(const struct adapter_gpio_config *led_config)
-{
-	uint8_t gpio = led_config->gpio_num;
-	if (gpio >= GPIO_CNT || (BIT(gpio) & ch347_usable_gpios()) == 0)
-		return;
-
-	ch347_activity_led_gpio_pin = gpio;
-	ch347_activity_led_active_high = !led_config->active_low;
-}
-
-/**
- * @brief Configure which GPIO pin drives SRST in SWD mode.
- *
- * Defaults to the TRST pin, which is unused in SWD mode. A different pin can
- * be selected with 'adapter gpio srst'. If the configured GPIO is not usable
- * or is already taken by the activity LED, SRST gets disabled.
- *
- * Must be called after ch347_configure_activity_led().
- *
- * @param srst_config Pointer to the GPIO configuration structure for the SRST pin
- */
-static void ch347_configure_srst_gpio(const struct adapter_gpio_config *srst_config)
-{
-	ch347_srst_active_high = !srst_config->active_low;
-
-	unsigned int gpio;
-	if (srst_config->gpio_num == ADAPTER_GPIO_NOT_SET) {
-		// the TRST pin is free in SWD mode, so use it by default
-		gpio = ch347.chip_variant == CH347F ? CH347F_TRST_GPIO : CH347T_TRST_GPIO;
-	} else {
-		gpio = srst_config->gpio_num;
-		if (gpio >= GPIO_CNT || (BIT(gpio) & ch347_usable_gpios()) == 0) {
-			LOG_ERROR("GPIO %u can't be used for SRST, disabling SRST", gpio);
-			ch347_srst_gpio_pin = 0xFF;
-			return;
-		}
-	}
-
-	/* Driving the same pin from two functions would let the LED activity
-		toggle the reset line, so refuse to share it. */
-	if (gpio == ch347_activity_led_gpio_pin) {
-		LOG_ERROR("GPIO %u is already used as the activity LED, disabling SRST", gpio);
-		ch347_srst_gpio_pin = 0xFF;
-		return;
-	}
-
-	ch347_srst_gpio_pin = gpio;
-}
-
-/**
  * @brief CH347 Initialization function
  *
  * @return ERROR_OK on success
@@ -2078,11 +2079,17 @@ static int ch347_init(void)
 		return retval;
 	}
 
-	LOG_DEBUG_IO("CH347 open success");
+	LOG_DEBUG("CH347 open success");
 
-	// CH347 JTAG init
-	ch347.tck_pin = TCK_L;
-	ch347.tms_pin = TMS_H;
+	if (swd_mode) {
+		/* Keep idle SWCLK and SWDIO state if CH347_CMD_JTAG_BIT_OP
+		 * is used for SRST handling */
+		ch347.tck_pin = TCK_H;
+		ch347.tms_pin = TMS_L;
+	} else {
+		ch347.tck_pin = TCK_L;
+		ch347.tms_pin = TMS_H;
+	}
 	ch347.tdi_pin = TDI_L;
 	ch347.trst_pin = TRST_H;
 	ch347.srst_pin = SRST_H;
@@ -2090,40 +2097,64 @@ static int ch347_init(void)
 	INIT_LIST_HEAD(&ch347.cmd_queue);
 	INIT_LIST_HEAD(&ch347.scan_queue);
 
+	unsigned int gpios_used = 0;
+	const struct ch347_bit_op *gpio_to_bit_op = ch347.chip_variant == CH347F
+				? ch347f_gpio_to_bit_op : ch347t_gpio_to_bit_op;
+
+	for (unsigned int i = 0; i < GPIO_CNT_EXT; i++) {
+		if (swd_mode ? gpio_to_bit_op[i].swd_use : gpio_to_bit_op[i].jtag_use)
+			gpios_used |= BIT(i);
+	}
+
+	retval = ch347_check_gpio_unique(ADAPTER_GPIO_IDX_SRST, &gpios_used);
+	if (retval == ERROR_OK)
+		retval = ch347_check_gpio_unique(ADAPTER_GPIO_IDX_TRST, &gpios_used);
+	if (retval == ERROR_OK)
+		retval = ch347_check_gpio_unique(ADAPTER_GPIO_IDX_LED, &gpios_used);
+	if (retval != ERROR_OK)
+		return retval;
+
+	ch347.trst_default_gpio = ch347_trst_gpio();
+	if (gpios_used & BIT(ch347.trst_default_gpio))
+		ch347.trst_default_gpio = ADAPTER_GPIO_NOT_SET;
+
+	ch347.srst_default_gpio = ADAPTER_GPIO_NOT_SET;
+	if (ch347.chip_variant == CH347F
+			&& (gpios_used & BIT(CH347F_SRST_FAKE_GPIO)) == 0)
+		ch347.srst_default_gpio = CH347F_SRST_FAKE_GPIO;
+
 	/* Static initial pack_size is STANDARD_PACK (0), which would look already
 	 * probed. max_len stays 0 until the probe, and PIN_SET uses this queue. */
 	ch347.pack_size = UNSET;
+	retval = ch347_init_pack_size();
+	if (retval != ERROR_OK)
+		return retval;
 
-	ch347_configure_activity_led(&adapter_gpio_get_config()[ADAPTER_GPIO_IDX_LED]);
+	uint8_t gpios[GPIO_CNT] = { 0 };
+	uint8_t bit_op = 0;
+	ch347_init_gpio(ADAPTER_GPIO_IDX_SRST, gpios, &bit_op);
+	ch347_init_gpio(ADAPTER_GPIO_IDX_TRST, gpios, &bit_op);
+	ch347_init_gpio(ADAPTER_GPIO_IDX_LED, gpios, &bit_op);
 
-	if (!swd_mode) {
-		/* Pin 8 drives strong low after adapter power-up. On CH347F, enable the
-		 * dedicated SRST output and release it, even when reset_config
-		 * does not include SRST. Leave it asserted only for connect_assert_srst
-		 * together with srst_nogate. */
-		if (ch347.chip_variant == CH347F) {
-			retval = ch347_init_pack_size();
-			if (retval != ERROR_OK)
-				return retval;
-
-			retval = ch347_srst_enable();
-			if (retval != ERROR_OK) {
-				LOG_ERROR("CH347F dedicated SRST enable failed");
-				return retval;
-			}
-			ch347_warn_dedicated_srst_drive();
+	if (bit_op & SRST_H) {
+		retval = ch347_srst_enable();
+		if (retval != ERROR_OK) {
+			LOG_WARNING("CH347F dedicated SRST enable failed");
+			// Do not fail adapter init, partial functionality possible
 		}
-		tap_set_state(TAP_RESET);
-	} else {
-		ch347_configure_srst_gpio(&adapter_gpio_get_config()[ADAPTER_GPIO_IDX_SRST]);
-
-		retval = ch347_init_pack_size();
-		if (retval != ERROR_OK)
-			return retval;
-
-		retval = ch347_swd_init_cmd(1);
 	}
-	return retval;
+
+	retval = ch347_gpios_update(gpios, bit_op, true);
+	if (retval != ERROR_OK) {
+		LOG_WARNING("CH347 initial GPIO setting failed");
+		// Do not fail adapter init, partial functionality possible
+	}
+
+	if (swd_mode)
+		return ch347_swd_init_cmd(1);
+
+	tap_set_state(TAP_RESET);
+	return ERROR_OK;
 }
 
 /**
