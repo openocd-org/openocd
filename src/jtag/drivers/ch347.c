@@ -674,6 +674,15 @@ static int ch347_scan_data_to_fields(uint8_t *decoded_buf, int decoded_buf_len)
 	return ERROR_OK;
 }
 
+static void ch347_scan_queue_free(void)
+{
+	while (!list_empty(&ch347.scan_queue)) {
+		struct ch347_scan *scan = list_first_entry(&ch347.scan_queue, struct ch347_scan, queue);
+		list_del(&scan->queue);
+		free(scan);
+	}
+}
+
 /**
  * @brief Sends the write buffer via libusb
  * and if LARGER_PACK mode is active read also data back
@@ -684,8 +693,10 @@ static int ch347_cmd_transmit_queue(void)
 {
 	// queue last command
 	int retval = ch347_cmd_from_scratchpad();
-	if (retval != ERROR_OK)
+	if (retval != ERROR_OK) {
+		ch347_scan_queue_free();
 		return retval;
+	}
 
 	// nothing to do! => done here
 	if (list_empty(&ch347.cmd_queue))
@@ -706,6 +717,7 @@ static int ch347_cmd_transmit_queue(void)
 		decoded_buf = malloc(decoded_buf_len);
 		if (!decoded_buf) {
 			LOG_ERROR("malloc failed");
+			ch347_scan_queue_free();
 			return ERROR_FAIL;
 		}
 	}
@@ -731,6 +743,7 @@ static int ch347_cmd_transmit_queue(void)
 		if (!last_cmd || bytes_to_write == 0) {
 			LOG_ERROR("Nothing to send!");
 			free(decoded_buf);
+			ch347_scan_queue_free();
 			return ERROR_FAIL;
 		}
 
@@ -739,6 +752,7 @@ static int ch347_cmd_transmit_queue(void)
 		if (!write_buf) {
 			LOG_ERROR("malloc failed");
 			free(decoded_buf);
+			ch347_scan_queue_free();
 			return ERROR_FAIL;
 		}
 
@@ -775,6 +789,7 @@ static int ch347_cmd_transmit_queue(void)
 		free(write_buf);
 		if (retval != ERROR_OK)	{
 			free(decoded_buf);
+			ch347_scan_queue_free();
 			return retval;
 		}
 
@@ -792,6 +807,7 @@ static int ch347_cmd_transmit_queue(void)
 
 		if (retval != ERROR_OK) {
 			free(decoded_buf);
+			ch347_scan_queue_free();
 			return retval;
 		}
 	}
