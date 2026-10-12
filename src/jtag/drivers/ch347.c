@@ -627,7 +627,7 @@ static int ch347_scan_data_to_fields(uint8_t *decoded_buf, int decoded_buf_len)
 	list_for_each_entry_safe(scan, tmp, &ch347.scan_queue, queue) {
 		for (int i = 0; i < scan->fields_len; i++) {
 			int num_bits = scan->fields[i].num_bits;
-			LOG_DEBUG("fields[%d].in_value[%d], read from bit offset: %d", i, num_bits, bit_offset);
+			LOG_DEBUG_IO("fields[%d].in_value[%d], read from bit offset: %d", i, num_bits, bit_offset);
 			// only if we need the value
 			if (scan->fields[i].in_value) {
 				uint8_t *capture_buf = malloc(DIV_ROUND_UP(num_bits, 8));
@@ -646,8 +646,7 @@ static int ch347_scan_data_to_fields(uint8_t *decoded_buf, int decoded_buf_len)
 				buf_cpy(captured, scan->fields[i].in_value, num_bits);
 				free(capture_buf);
 			} else {
-				if (LOG_LEVEL_IS(LOG_LVL_DEBUG_IO))
-					LOG_DEBUG_IO("field skipped");
+				LOG_DEBUG_IO("field skipped");
 			}
 			bit_offset += num_bits;
 		}
@@ -663,7 +662,7 @@ static int ch347_scan_data_to_fields(uint8_t *decoded_buf, int decoded_buf_len)
 	// if not all bytes are transferred: put the rest into single_read buffer
 	if (byte_offset < decoded_buf_len) {
 		ch347.singe_read_len = decoded_buf_len - byte_offset;
-		LOG_DEBUG("single read of %d bytes", ch347.singe_read_len);
+		LOG_DEBUG_IO("single read of %d bytes", ch347.singe_read_len);
 		if (ch347.singe_read_len > CH347_SINGLE_CMD_MAX_READ) {
 			LOG_ERROR("Can't read more than %d bytes for a single command!", CH347_SINGLE_CMD_MAX_READ);
 			ch347.singe_read_len = CH347_SINGLE_CMD_MAX_READ;
