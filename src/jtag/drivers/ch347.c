@@ -113,7 +113,7 @@
 #define CH347_CMD_JTAG_DATA_SHIFT_RD	0xD4 // JTAG interface data shift and read command
 #define CH347_CMD_PIN_SET	0xE2 // set pin functions (CH347F)
 // for a single command these amount of data can be read at max
-#define CH347_SINGLE_CMD_MAX_READ	MAX(GPIO_CNT, CH347_CMD_INIT_READ_LEN)
+#define CH347_SINGLE_CMD_MAX_READ	MAX(2 * GPIO_CNT, CH347_CMD_INIT_READ_LEN)
 
 // for SWD
 #define CH347_CMD_SWD_INIT	0xE5 // SWD Interface Initialization Command
@@ -298,8 +298,15 @@ static const struct ch347_bit_op ch347f_gpio_to_bit_op[GPIO_CNT_EXT] = {
 	need to be send as single command and need a read after write */
 static inline bool ch347_is_single_cmd_type(uint8_t type)
 {
-	return type == CH347_CMD_GPIO || type == CH347_CMD_JTAG_INIT || type == CH347_CMD_SWD_INIT ||
-		type == CH347_CMD_PIN_SET;
+	return type == CH347_CMD_JTAG_INIT || type == CH347_CMD_SWD_INIT
+			|| type == CH347_CMD_PIN_SET;
+}
+
+/* The commands with variable data size can be concatenated in the scratchpad */
+static inline bool ch347_cmd_has_variable_data_size(uint8_t type)
+{
+	return type == CH347_CMD_JTAG_BIT_OP || type == CH347_CMD_JTAG_BIT_OP_RD
+			|| type == CH347_CMD_JTAG_DATA_SHIFT || type == CH347_CMD_JTAG_DATA_SHIFT_RD;
 }
 
 static void log_buf_dump(const uint8_t *data, unsigned int size, bool recv)
@@ -415,7 +422,8 @@ static int ch347_write_data(uint8_t *data, int *length)
 		int retval = jtag_libusb_bulk_write(ch347_handle, CH347_EPOUT, (char *)&data[i],
 			write_len, USB_WRITE_TIMEOUT, &transferred);
 		if (retval != ERROR_OK) {
-			LOG_ERROR("CH347 write fail");
+			LOG_ERROR("CH347 write fail (size %d)", write_len);
+			log_buf_dump(data, *length, false);
 			*length = 0;
 			return retval;
 		}
@@ -592,6 +600,8 @@ static int ch347_read_scan(uint8_t *decoded_buf, int decoded_buf_len, int raw_re
 
 		switch (type) {
 		case CH347_CMD_GPIO:
+			rd_idx += data_len;
+			break;
 		case CH347_CMD_JTAG_INIT:
 		case CH347_CMD_SWD_INIT:
 		case CH347_CMD_PIN_SET:
@@ -718,8 +728,8 @@ static int ch347_cmd_transmit_queue(void)
 	int decoded_buf_len = 0;
 	list_for_each_entry(cmd, &ch347.cmd_queue, queue)
 		if (cmd->read_len > 0)
-			decoded_buf_len += ch347_is_single_cmd_type(cmd->type) ?
-				cmd->read_len : DIV_ROUND_UP(cmd->tdo_bit_count, 8);
+			decoded_buf_len += ch347_cmd_has_variable_data_size(cmd->type) ?
+				DIV_ROUND_UP(cmd->tdo_bit_count, 8) : cmd->read_len;
 
 	// create the buffer for all decoded bytes
 	uint8_t *decoded_buf = NULL;
@@ -738,12 +748,15 @@ static int ch347_cmd_transmit_queue(void)
 		int total_len = 0;
 		int total_tdo_count = 0;
 		int bytes_to_write = 0;
+		int max_len = ch347.max_len;
 
 		list_for_each_entry(cmd, &ch347.cmd_queue, queue) {
 			total_len += CH347_CMD_HEADER + cmd->write_data_len;
 			total_tdo_count += cmd->tdo_bit_count;
+			if (cmd->type == CH347_CMD_GPIO)
+				max_len = USBC_PACKET_USBHS;
 			// don't exceed max length or max TDO bit count
-			if (total_len >= ch347.max_len || total_tdo_count >= HW_TDO_BUF_SIZE)
+			if (total_len >= max_len || total_tdo_count >= HW_TDO_BUF_SIZE)
 				break;
 			// remember the last cmd to send and bytes to send
 			last_cmd = cmd;
@@ -782,8 +795,10 @@ static int ch347_cmd_transmit_queue(void)
 			// need to read something back?
 			if (cmd->read_len > 0) {
 				bytes_to_read += CH347_CMD_HEADER + cmd->read_len;
-				current_decoded_buf_len += ch347_is_single_cmd_type(cmd->type) ?
-					cmd->read_len : DIV_ROUND_UP(cmd->tdo_bit_count, 8);
+				if (ch347_is_single_cmd_type(cmd->type))
+					current_decoded_buf_len += cmd->read_len;
+				else if (ch347_cmd_has_variable_data_size(cmd->type))
+					current_decoded_buf_len += DIV_ROUND_UP(cmd->tdo_bit_count, 8);
 			}
 
 			// cmd data no longer needed
@@ -841,9 +856,9 @@ static int ch347_cmd_transmit_queue(void)
  */
 static int ch347_cmd_start_next(uint8_t type)
 {
-	// different command type or non chainable command? (GPIO commands can't be concat)
+	// different command type or non chainable command?
 	uint8_t prev_type = ch347.scratchpad_cmd_type;
-	if (prev_type != type || ch347_is_single_cmd_type(type)) {
+	if (prev_type != type || !ch347_cmd_has_variable_data_size(type)) {
 		// something written in the scratchpad? => store it as command
 		if (prev_type != 0 && ch347.scratchpad_idx > 0) {
 			int retval = ch347_cmd_from_scratchpad();
@@ -851,7 +866,7 @@ static int ch347_cmd_start_next(uint8_t type)
 				return retval;
 
 			/* if the last queued command is not chainable we should send it immediately
-				because e.g. the GPIO command can't be combined with any other command */
+				because e.g. the init commands can't be combined with any other command */
 			if (ch347_is_single_cmd_type(prev_type)) {
 				retval = ch347_cmd_transmit_queue();
 				if (retval != ERROR_OK)
@@ -859,7 +874,7 @@ static int ch347_cmd_start_next(uint8_t type)
 			}
 		}
 
-		/* before we can send non chainable command ("single" like GPIO command) we should send all
+		/* before we can send non chainable command we should send all
 			other commands because we can't send it together with other commands */
 		if (ch347_is_single_cmd_type(type)) {
 			int retval = ch347_cmd_transmit_queue();
