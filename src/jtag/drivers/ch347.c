@@ -112,8 +112,6 @@
 #define CH347_CMD_JTAG_DATA_SHIFT	0xD3 // JTAG interface data shift command
 #define CH347_CMD_JTAG_DATA_SHIFT_RD	0xD4 // JTAG interface data shift and read command
 #define CH347_CMD_PIN_SET	0xE2 // set pin functions (CH347F)
-// for a single command these amount of data can be read at max
-#define CH347_SINGLE_CMD_MAX_READ	MAX(2 * GPIO_CNT, CH347_CMD_INIT_READ_LEN)
 
 // for SWD
 #define CH347_CMD_SWD_INIT	0xE5 // SWD Interface Initialization Command
@@ -232,9 +230,11 @@ struct ch347_info {
 	struct list_head cmd_queue;
 	// all data input scan fields are queued here
 	struct list_head scan_queue;
-	// read buffer for the single commands like CH347_CMD_GPIO and CH347_CMD_JTAG_INIT
-	uint8_t single_read[CH347_SINGLE_CMD_MAX_READ];
-	int singe_read_len; // data length in single_read
+	// read buffer for the single commands like CH347_CMD_JTAG_INIT
+	uint8_t init_result_buf[CH347_CMD_INIT_READ_LEN];
+	int init_result_len;
+	// GPIO status returned by CH347_CMD_GPIO
+	uint8_t gpio_status_buf[GPIO_CNT];
 };
 
 struct ch347_swd_io {
@@ -586,41 +586,55 @@ static int ch347_read_scan(uint8_t *decoded_buf, int decoded_buf_len, int raw_re
 		unsigned int type = read_buf[rd_idx++];
 		uint16_t data_len = le_to_h_u16(&read_buf[rd_idx]);
 		rd_idx += 2;
-		if (decoded_buf_idx > decoded_buf_len) {
-			LOG_ERROR("CH347 decoded_buf too small");
-			free(read_buf);
-			return ERROR_FAIL;
-		}
-
-		// nothing to decode? Only read to make the CH347 happy!
-		if (!decoded_buf) {
-			rd_idx += data_len;
-			continue;
-		}
 
 		switch (type) {
-		case CH347_CMD_GPIO:
-			rd_idx += data_len;
-			break;
 		case CH347_CMD_JTAG_INIT:
 		case CH347_CMD_SWD_INIT:
 		case CH347_CMD_PIN_SET:
+			if (data_len != CH347_CMD_INIT_READ_LEN) {
+				LOG_ERROR("CH347 unexpected returned data length from init CMD");
+				free(read_buf);
+				return ERROR_FAIL;
+			}
+			memcpy(ch347.init_result_buf, &read_buf[rd_idx], data_len);
+			ch347.init_result_len = data_len;
+			rd_idx += data_len;
+			break;
+		case CH347_CMD_GPIO:
+			if (data_len != GPIO_CNT) {
+				LOG_ERROR("CH347 unexpected returned data length from CMD GPIO");
+				free(read_buf);
+				return ERROR_FAIL;
+			}
+			memcpy(ch347.gpio_status_buf, &read_buf[rd_idx], data_len);
+			rd_idx += data_len;
+			break;
 		case CH347_CMD_JTAG_DATA_SHIFT_RD:
-			// for all bytewise commands: copy the data bytes
+			// for bytewise commands: copy the data bytes
+			if (!decoded_buf || decoded_buf_idx + data_len > decoded_buf_len) {
+				LOG_ERROR("CH347 no decoded_buf or too small");
+				free(read_buf);
+				return ERROR_FAIL;
+			}
 			memcpy(&decoded_buf[decoded_buf_idx], &read_buf[rd_idx], data_len);
 			decoded_buf_idx += data_len;
 			rd_idx += data_len;
 			break;
 		case CH347_CMD_JTAG_BIT_OP_RD:
 			// for CH347_CMD_JTAG_BIT_OP_RD we need to copy bit by bit
+			if (!decoded_buf || decoded_buf_idx + DIV_ROUND_UP(data_len, 8) > decoded_buf_len) {
+				LOG_ERROR("CH347 no decoded_buf or too small");
+				free(read_buf);
+				return ERROR_FAIL;
+			}
 			for (int i = 0; i < data_len; i++) {
 				if (read_buf[rd_idx + i] & BIT(0))
 					decoded_buf[decoded_buf_idx + i / 8] |= BIT(i % 8);
 				else
 					decoded_buf[decoded_buf_idx + i / 8] &= ~(BIT(i % 8));
 			}
-			rd_idx += data_len;
 			decoded_buf_idx += DIV_ROUND_UP(data_len, 8);
+			rd_idx += data_len;
 			break;
 		default:
 			LOG_ERROR("CH347 read command fail");
@@ -681,16 +695,8 @@ static int ch347_scan_data_to_fields(uint8_t *decoded_buf, int decoded_buf_len)
 		bit_offset = byte_offset * 8;
 	}
 
-	// if not all bytes are transferred: put the rest into single_read buffer
-	if (byte_offset < decoded_buf_len) {
-		ch347.singe_read_len = decoded_buf_len - byte_offset;
-		LOG_DEBUG_IO("single read of %d bytes", ch347.singe_read_len);
-		if (ch347.singe_read_len > CH347_SINGLE_CMD_MAX_READ) {
-			LOG_ERROR("Can't read more than %d bytes for a single command!", CH347_SINGLE_CMD_MAX_READ);
-			ch347.singe_read_len = CH347_SINGLE_CMD_MAX_READ;
-		}
-		memcpy(ch347.single_read, &decoded_buf[byte_offset], ch347.singe_read_len);
-	}
+	if (byte_offset < decoded_buf_len)
+		LOG_DEBUG("decoded %d of %d bytes", byte_offset, decoded_buf_len);
 
 	return ERROR_OK;
 }
@@ -727,9 +733,8 @@ static int ch347_cmd_transmit_queue(void)
 	struct ch347_cmd *cmd;
 	int decoded_buf_len = 0;
 	list_for_each_entry(cmd, &ch347.cmd_queue, queue)
-		if (cmd->read_len > 0)
-			decoded_buf_len += ch347_cmd_has_variable_data_size(cmd->type) ?
-				DIV_ROUND_UP(cmd->tdo_bit_count, 8) : cmd->read_len;
+		if (cmd->read_len > 0 && ch347_cmd_has_variable_data_size(cmd->type))
+			decoded_buf_len += DIV_ROUND_UP(cmd->tdo_bit_count, 8);
 
 	// create the buffer for all decoded bytes
 	uint8_t *decoded_buf = NULL;
@@ -795,9 +800,7 @@ static int ch347_cmd_transmit_queue(void)
 			// need to read something back?
 			if (cmd->read_len > 0) {
 				bytes_to_read += CH347_CMD_HEADER + cmd->read_len;
-				if (ch347_is_single_cmd_type(cmd->type))
-					current_decoded_buf_len += cmd->read_len;
-				else if (ch347_cmd_has_variable_data_size(cmd->type))
+				if (ch347_cmd_has_variable_data_size(cmd->type))
 					current_decoded_buf_len += DIV_ROUND_UP(cmd->tdo_bit_count, 8);
 			}
 
@@ -840,7 +843,7 @@ static int ch347_cmd_transmit_queue(void)
 
 	// something decoded from the data read back from CH347?
 	if (decoded_buf) {
-		// put the decoded data into the scan fields or single_read buffer
+		// put the decoded data into the scan fields
 		retval = ch347_scan_data_to_fields(decoded_buf, decoded_buf_len);
 		free(decoded_buf);
 	}
@@ -915,22 +918,22 @@ static int ch347_scan_queue_fields(struct scan_field *scan_fields, int scan_fiel
  * @brief Function executes the single command and deliver one byte from the buffer
  * that's read back from USB
  *
- * @param read_buf_idx index of the byte that should be returned
- * @param byte returns byte at index or if index is out of range the first byte
+ * @param byte returns result byte
  * @return ERROR_OK at success
  */
-static int ch347_single_read_get_byte(int read_buf_idx, uint8_t *byte)
+static int ch347_single_read_get_byte(uint8_t *byte)
 {
+	ch347.init_result_len = 0;
 	int retval = ch347_cmd_transmit_queue();
 	if (retval != ERROR_OK)
 		return retval;
 
-	if (read_buf_idx > CH347_SINGLE_CMD_MAX_READ || read_buf_idx < 0) {
-		LOG_ERROR("read_buf_idx out of range");
+	if (ch347.init_result_len < 1) {
+		LOG_ERROR("no init cmd result");
 		return ERROR_FAIL;
 	}
 
-	*byte = ch347.single_read[read_buf_idx];
+	*byte = ch347.init_result_buf[0];
 	return ERROR_OK;
 }
 
@@ -1054,7 +1057,7 @@ static int ch347_srst_enable(void)
 		return retval;
 
 	uint8_t init_result;
-	retval = ch347_single_read_get_byte(0, &init_result);
+	retval = ch347_single_read_get_byte(&init_result);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -1888,7 +1891,7 @@ static int ch347_adapter_init(uint8_t clock_index, bool *supports_larger_pack_mo
 	}
 
 	uint8_t mode;
-	retval = ch347_single_read_get_byte(0, &mode);
+	retval = ch347_single_read_get_byte(&mode);
 	if (retval != ERROR_OK)
 		return retval;
 
@@ -1943,7 +1946,7 @@ static int ch347_swd_init_cmd(uint8_t clock_divisor)
 			But how can we decide if SWD init was successfully executed?
 			Return an error code if init was failed */
 	uint8_t init_result = 0;
-	retval = ch347_single_read_get_byte(0, &init_result);
+	retval = ch347_single_read_get_byte(&init_result);
 	LOG_DEBUG("SWD init clk div %" PRIu8 ", result %02" PRIx8,
 			  clock_divisor, init_result);
 	ch347_swd_context.clk_divisor = clock_divisor;
