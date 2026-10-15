@@ -254,7 +254,6 @@ struct ch347_swd_context {
 	int send_len;
 	int recv_len;
 	int need_recv_len;
-	int queued_retval;
 	int sent_cmd_count;
 	unsigned int clk_divisor;
 	unsigned int total_swd_clk;
@@ -2249,7 +2248,6 @@ static int ch347_swd_init(void)
 	INIT_LIST_HEAD(&ch347_swd_context.send_cmd_head);
 	INIT_LIST_HEAD(&ch347_swd_context.free_cmd_head);
 
-	ch347_swd_context.queued_retval = ERROR_OK;
 	ch347_swd_context.send_len = 0;
 	ch347_swd_context.need_recv_len = 0;
 	struct ch347_swd_io *pswd_io = ch347_swd_context.ch347_cmd_buf;
@@ -2463,7 +2461,6 @@ static int ch347_swd_send_idle(uint32_t ap_delay_clk)
 			pswd_io = ch347_get_one_swd_io();
 			if (!pswd_io) {
 				LOG_ERROR("ch347 SWD queue not empty after ch347_swd_run_queue");
-				ch347_swd_context.queued_retval = ERROR_FAIL;
 				return ERROR_FAIL;
 			}
 		}
@@ -2487,18 +2484,14 @@ static int ch347_swd_send_idle(uint32_t ap_delay_clk)
 static int ch347_swd_run_queue_inner(void)
 {
 	LOG_DEBUG_IO("Executing %u queued transactions", ch347_swd_context.sent_cmd_count);
-	if (ch347_swd_context.queued_retval != ERROR_OK) {
-		LOG_DEBUG_IO("Skipping due to previous errors: %d", ch347_swd_context.queued_retval);
-		goto skip;
-	}
 
 	/* CMD_GPIO or CMD_JTAG_BIT_OP can take place before CMD_SWD
 	 * in the same USB packet */
 	if (!ch347.led_is_on)
 		ch347_activity_led_set(true, false);
 
-	ch347_swd_context.queued_retval = ch347_swd_queue_flush();
-	if (ch347_swd_context.queued_retval != ERROR_OK) {
+	int retval = ch347_swd_queue_flush();
+	if (retval != ERROR_OK) {
 		LOG_ERROR("CH347 usb write/read failed");
 		goto skip;
 	}
@@ -2513,8 +2506,8 @@ static int ch347_swd_run_queue_inner(void)
 		pswd_io = list_entry(pos, struct ch347_swd_io, list_entry);
 		if (pswd_io->usb_cmd == CH347_CMD_SWD_SEQ_W) {
 			if (recv_buf[recv_len++] != CH347_CMD_SWD_SEQ_W) {
-				ch347_swd_context.queued_retval = ERROR_FAIL;
 				LOG_ERROR("CH347 usb write/read failed - not CH347_CMD_SWD_SEQ_W");
+				retval = ERROR_FAIL;
 				goto skip;
 			}
 		} else { // read/write Reg
@@ -2542,21 +2535,21 @@ static int ch347_swd_run_queue_inner(void)
 									data);
 
 					if (ack != SWD_ACK_OK && check_ack) {
-						ch347_swd_context.queued_retval = swd_ack_to_error_code(ack);
+						retval = swd_ack_to_error_code(ack);
 						goto skip;
 					}
 
 					uint32_t parity = buf_get_u32(&recv_buf[recv_len], 32, 1);
 					if (parity != (uint32_t)parity_u32(data)) {
 						LOG_ERROR("SWD Read data parity mismatch");
-						ch347_swd_context.queued_retval = ERROR_FAIL;
+						retval = ERROR_SWD_FAIL;
 						goto skip;
 					}
 
 					if (pswd_io->dst)
 						*pswd_io->dst = data;
 				} else {
-					ch347_swd_context.queued_retval = ERROR_FAIL;
+					retval = ERROR_FAIL;
 					LOG_ERROR("CH347 usb write/read failed - not SWD_CMD_RNW");
 					goto skip;
 				}
@@ -2580,11 +2573,11 @@ static int ch347_swd_run_queue_inner(void)
 								 pswd_io->value);
 
 				if (ack != SWD_ACK_OK && check_ack) {
-					ch347_swd_context.queued_retval = swd_ack_to_error_code(ack);
+					retval = swd_ack_to_error_code(ack);
 					goto skip;
 				}
 			} else {
-				ch347_swd_context.queued_retval = ERROR_FAIL;
+				retval = ERROR_FAIL;
 				LOG_ERROR("CH347 usb write/read failed recv_len = %d", recv_len);
 				goto skip;
 			}
@@ -2609,8 +2602,6 @@ skip:
 	ch347_swd_context.recv_len = 0;
 	ch347_swd_context.sent_cmd_count = 0;
 	ch347_swd_context.total_swd_clk = 0;
-	int retval = ch347_swd_context.queued_retval;
-	ch347_swd_context.queued_retval = ERROR_OK;
 	return retval;
 }
 
@@ -2665,7 +2656,6 @@ static int ch347_swd_queue_cmd(uint8_t cmd, uint32_t *dst, uint32_t data, uint32
 		pswd_io = ch347_get_one_swd_io();
 		if (!pswd_io) {
 			LOG_ERROR("ch347 SWD queue not empty after ch347_swd_run_queue");
-			ch347_swd_context.queued_retval = ERROR_FAIL;
 			return ERROR_FAIL;
 		}
 	}
