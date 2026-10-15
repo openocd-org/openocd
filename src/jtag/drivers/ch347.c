@@ -93,6 +93,7 @@
 // Don't send more than this amount of bytes via libusb in one packet. Also that is the limit for LARGER_PACK mode.
 #define LARGER_PACK_MAX_SIZE	51200
 // The data length contained in each command packet	during USB high-speed operation
+// REVISIT: could be USBC_PACKET_USBHS - CH347_CMD_HEADER ?
 #define UCMDPKT_DATA_MAX_BYTES_USBHS	507
 #define USBC_PACKET_USBHS	512 // Maximum data length per packet at USB high speed
 #define CH347_CMD_HEADER	3 // Protocol header length (1 byte command type + 2 bytes data length)
@@ -121,8 +122,8 @@
 #define CH347_CMD_SWD_REG_R	0xA2 // SWD Interface read  reg
 #define CH347_MAX_PROCESSING_US 7000 // max time in us for packet processing
 			  // USB hosts disconnect the adapter if SWD processing takes more!
-#define CH347_MAX_SEND_BUF	USBC_PACKET_USBHS
-#define CH347_MAX_RECV_BUF	USBC_PACKET_USBHS
+#define CH347_MAX_SEND_BUF	UCMDPKT_DATA_MAX_BYTES_USBHS
+#define CH347_MAX_RECV_BUF	(USBC_PACKET_USBHS - CH347_CMD_HEADER)
 #define CH347_MAX_CMD_BUF	128
 #define CH347_SWD_CLOCK_MAX 5000
 #define CH347_SWD_CLOCK_BASE 1000
@@ -302,7 +303,8 @@ static inline bool ch347_is_single_cmd_type(uint8_t type)
 			|| type == CH347_CMD_PIN_SET;
 }
 
-/* The commands with variable data size can be concatenated in the scratchpad */
+/* The commands with variable data size can be concatenated in the scratchpad
+ * and split if the scratchpad overflows */
 static inline bool ch347_cmd_has_variable_data_size(uint8_t type)
 {
 	return type == CH347_CMD_JTAG_BIT_OP || type == CH347_CMD_JTAG_BIT_OP_RD
@@ -495,6 +497,9 @@ static void ch347_cmd_calc_reads(struct ch347_cmd *cmd)
 		// for GPIO we need to read back the same amount of data that we had send
 		cmd->read_len = cmd->write_data_len;
 		break;
+	case CH347_CMD_SWD:
+		cmd->read_len = ch347_swd_context.need_recv_len;
+		break;
 	case CH347_CMD_JTAG_INIT:
 	case CH347_CMD_SWD_INIT:
 	case CH347_CMD_PIN_SET:
@@ -634,6 +639,16 @@ static int ch347_read_scan(uint8_t *decoded_buf, int decoded_buf_len, int raw_re
 					decoded_buf[decoded_buf_idx + i / 8] &= ~(BIT(i % 8));
 			}
 			decoded_buf_idx += DIV_ROUND_UP(data_len, 8);
+			rd_idx += data_len;
+			break;
+		case CH347_CMD_SWD:
+			if (data_len > sizeof(ch347_swd_context.recv_buf)) {
+				LOG_ERROR("CH347 SWD recv buf too small");
+				free(read_buf);
+				return ERROR_FAIL;
+			}
+			memcpy(ch347_swd_context.recv_buf, &read_buf[rd_idx], data_len);
+			ch347_swd_context.recv_len = data_len;
 			rd_idx += data_len;
 			break;
 		default:
@@ -1002,6 +1017,14 @@ static int ch347_scratchpad_add_bytes(uint8_t *bytes, int count)
 {
 	if (ch347.scratchpad_cmd_type == 0) {
 		LOG_ERROR("call ch347_next_cmd first!");
+		return ERROR_FAIL;
+	}
+
+	if (!ch347_cmd_has_variable_data_size(ch347.scratchpad_cmd_type)
+		&& count > UCMDPKT_DATA_MAX_BYTES_USBHS - ch347.scratchpad_idx) {
+		LOG_ERROR("BUG: CH347 command 0x%02" PRIx8
+				  " is not variable data size type and payload is too long",
+				  ch347.scratchpad_cmd_type);
 		return ERROR_FAIL;
 	}
 
@@ -2190,10 +2213,8 @@ static int ch347_swd_init(void)
 	INIT_LIST_HEAD(&ch347_swd_context.free_cmd_head);
 
 	ch347_swd_context.queued_retval = ERROR_OK;
-	// 0XE8 + 2byte len + N byte cmds
-	ch347_swd_context.send_len = CH347_CMD_HEADER;
-	// 0XE8 + 2byte len + N byte ack + data
-	ch347_swd_context.need_recv_len = CH347_CMD_HEADER;
+	ch347_swd_context.send_len = 0;
+	ch347_swd_context.need_recv_len = 0;
 	struct ch347_swd_io *pswd_io = ch347_swd_context.ch347_cmd_buf;
 	for (int i = 0; i < CH347_MAX_CMD_BUF; i++, pswd_io++) {
 		INIT_LIST_HEAD(&pswd_io->list_entry);
@@ -2219,27 +2240,21 @@ static struct ch347_swd_io *ch347_get_one_swd_io(void)
 
 static int ch347_swd_queue_flush(void)
 {
-	int length = ch347_swd_context.send_len;
-	ch347_swd_context.send_buf[0] = CH347_CMD_SWD;
-	h_u16_to_le(&ch347_swd_context.send_buf[1], length - CH347_CMD_HEADER);
-	int retval = ch347_write_data(ch347_swd_context.send_buf, &length);
-	if (retval != ERROR_OK) {
-		ch347_swd_context.queued_retval = retval;
-		LOG_DEBUG("CH347WriteData error");
-		return retval;
-	}
-
 	ch347_swd_context.recv_len = 0;
-	length = ch347_swd_context.need_recv_len;
-	retval = ch347_read_data(&ch347_swd_context.recv_buf[ch347_swd_context.recv_len], &length);
-	if (retval != ERROR_OK) {
-		ch347_swd_context.queued_retval = retval;
-		LOG_DEBUG("CH347ReadData error");
-		return retval;
-	}
 
-	ch347_swd_context.recv_len += length;
-	if (ch347_swd_context.need_recv_len > ch347_swd_context.recv_len) {
+	int retval = ch347_cmd_start_next(CH347_CMD_SWD);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = ch347_scratchpad_add_bytes(ch347_swd_context.send_buf, ch347_swd_context.send_len);
+	if (retval != ERROR_OK)
+		return retval;
+
+	retval = ch347_cmd_transmit_queue();
+	if (retval != ERROR_OK)
+		return retval;
+
+	if (ch347_swd_context.recv_len < ch347_swd_context.need_recv_len) {
 		LOG_ERROR("write/read failed %d %d",
 			  ch347_swd_context.recv_len,
 			  ch347_swd_context.need_recv_len);
@@ -2440,30 +2455,14 @@ static int ch347_swd_run_queue_inner(void)
 		goto skip;
 	}
 
-	int retval = ch347_swd_queue_flush();
-	if (retval != ERROR_OK)
-		return retval;
-
+	ch347_swd_context.queued_retval = ch347_swd_queue_flush();
 	if (ch347_swd_context.queued_retval != ERROR_OK) {
-		LOG_ERROR("CH347 usb write/read failed - queued_retval");
+		LOG_ERROR("CH347 usb write/read failed");
 		goto skip;
 	}
+
 	uint8_t *recv_buf = ch347_swd_context.recv_buf;
 	int recv_len = 0;
-	if (recv_buf[recv_len++] != CH347_CMD_SWD) { // 0XE8
-		ch347_swd_context.queued_retval = ERROR_FAIL;
-		LOG_ERROR("CH347 usb write/read failed - not CH347_CMD_SWD");
-		goto skip;
-	}
-
-	int cmds_len = le_to_h_u16(&recv_buf[recv_len]);
-	recv_len += 2; // cmds_len
-	if ((cmds_len + CH347_CMD_HEADER) > ch347_swd_context.recv_len) {
-		ch347_swd_context.queued_retval = ERROR_FAIL;
-		LOG_ERROR("CH347 usb write/read failed - too long");
-		goto skip;
-	}
-
 	struct list_head *tmp;
 	struct list_head *pos;
 	struct ch347_swd_io *pswd_io;
@@ -2563,14 +2562,12 @@ skip:
 		}
 	}
 
-	// 0xE8 + 2byte len
-	ch347_swd_context.send_len = CH347_CMD_HEADER;
-	// 0xE8 + 2byte len
-	ch347_swd_context.need_recv_len = CH347_CMD_HEADER;
+	ch347_swd_context.send_len = 0;
+	ch347_swd_context.need_recv_len = 0;
 	ch347_swd_context.recv_len = 0;
 	ch347_swd_context.sent_cmd_count = 0;
 	ch347_swd_context.total_swd_clk = 0;
-	retval = ch347_swd_context.queued_retval;
+	int retval = ch347_swd_context.queued_retval;
 	ch347_swd_context.queued_retval = ERROR_OK;
 	return retval;
 }
