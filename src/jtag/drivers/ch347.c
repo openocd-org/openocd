@@ -52,6 +52,7 @@
 #include <helper/replacements.h>
 #include <helper/list.h>
 #include <helper/binarybuffer.h>
+#include <helper/align.h>
 #include "libusb_helper.h"
 
 // system includes
@@ -446,19 +447,22 @@ static int ch347_write_data(uint8_t *data, int *length)
 
 /**
  * @brief reads data from the CH347 via libusb driver
+ * See https://libusb.sourceforge.io/api-1.0/libusb_packetoverflow.html
+ * for explanation of avoiding LIBUSB_TRANSFER_OVERFLOW
  *
- * @param data Point to the data buffer
- * @param length Data length in and out
+ * @param data	Point to the data buffer
+ * @param buf_length Maximal length, aligned up to USB packet size
+ * @param length Minimal requested data length in and real read length out
  * @return ERROR_OK at success
  */
-static int ch347_read_data(uint8_t *data, int *length)
+static int ch347_read_data(uint8_t *data, int buf_length, int *length)
 {
-	int read_len = *length;
-	int i = 0;
-	int transferred = 0;
+	int done = 0;
 
-	while (true) {
-		int retval = jtag_libusb_bulk_read(ch347_handle, CH347_EPIN, (char *)&data[i],
+	do {
+		int transferred = 0;
+		int read_len = buf_length - done;
+		int retval = jtag_libusb_bulk_read(ch347_handle, CH347_EPIN, (char *)&data[done],
 			read_len, USB_READ_TIMEOUT, &transferred);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("CH347 read fail");
@@ -466,18 +470,15 @@ static int ch347_read_data(uint8_t *data, int *length)
 			return retval;
 		}
 
-		i += transferred;
-		if (i >= *length)
-			break;
-		read_len = *length - i;
-	}
+		done += transferred;
+	} while (done < *length);
 
 	if (LOG_LEVEL_IS(LOG_LVL_DEBUG_IO)) {
-		LOG_DEBUG_IO("size=%d, buf=", i);
-		log_buf_dump(data, i, true);
+		LOG_DEBUG_IO("size=%d, buf=", done);
+		log_buf_dump(data, done, true);
 	}
 
-	*length = i;
+	*length = done;
 	return ERROR_OK;
 }
 
@@ -571,14 +572,15 @@ static int ch347_cmd_from_scratchpad(void)
  */
 static int ch347_read_scan(uint8_t *decoded_buf, int decoded_buf_len, int raw_read_len)
 {
-	int read_len = raw_read_len;
-	uint8_t *read_buf = malloc(read_len);
+	int read_bf_len = ALIGN_UP(raw_read_len, USBC_PACKET_USBHS);
+	uint8_t *read_buf = malloc(read_bf_len);
 	if (!read_buf) {
 		LOG_ERROR("malloc failed");
 		return ERROR_FAIL;
 	}
 
-	int retval = ch347_read_data(read_buf, &read_len);
+	int read_len = raw_read_len;
+	int retval = ch347_read_data(read_buf, read_bf_len, &read_len);
 	if (retval != ERROR_OK)	{
 		free(read_buf);
 		return retval;
