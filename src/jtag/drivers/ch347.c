@@ -1084,15 +1084,13 @@ static int ch347_scratchpad_add_clock_tms(bool tms)
  */
 static int ch347_scratchpad_add_stableclocks(int count)
 {
-	if (ch347.scratchpad_cmd_type == 0) {
-		int retval = ch347_cmd_start_next(CH347_CMD_JTAG_BIT_OP);
-		if (retval != ERROR_OK)
-			return retval;
-	}
+	int retval = ch347_cmd_start_next(CH347_CMD_JTAG_BIT_OP);
+	if (retval != ERROR_OK)
+		return retval;
 
 	bool tms = ch347.tms_pin == TMS_H;
 	for (int i = 0; i < count; i++) {
-		int retval = ch347_scratchpad_add_clock_tms(tms);
+		retval = ch347_scratchpad_add_clock_tms(tms);
 		if (retval != ERROR_OK)
 			return retval;
 	}
