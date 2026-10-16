@@ -75,8 +75,8 @@ enum openjtag_tap_state {
 #include "libftdi_helper.h"
 
 /* OpenJTAG vid/pid */
-static uint16_t openjtag_vids[] = {0x0403, 0};
-static uint16_t openjtag_pids[] = {0x6001, 0};
+static const uint16_t openjtag_vids[] = {0x0403, 0};
+static const uint16_t openjtag_pids[] = {0x6001, 0};
 
 static struct ftdi_context ftdic;
 

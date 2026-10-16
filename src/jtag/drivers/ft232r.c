@@ -59,8 +59,8 @@
 #define FT232R_BUF_SIZE_EXTRA	4096
 
 // Default VID/PID pair for FTDI FT232R.
-static uint16_t ft232r_vids[] = {0x0403, 0};
-static uint16_t ft232r_pids[] = {0x6001, 0};
+static const uint16_t ft232r_vids[] = {0x0403, 0};
+static const uint16_t ft232r_pids[] = {0x6001, 0};
 
 static struct libusb_device_handle *adapter;
 
