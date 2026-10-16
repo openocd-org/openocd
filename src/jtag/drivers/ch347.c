@@ -264,8 +264,9 @@ struct ch347_swd_context {
 
 static struct ch347_swd_context ch347_swd_context;
 static bool swd_mode;
-static uint16_t default_ch347_vids[] = {DEFAULT_VENDOR_ID, DEFAULT_VENDOR_ID, DEFAULT_VENDOR_ID, 0};
-static uint16_t default_ch347_pids[] = {DEFAULT_CH347T_PRODUCT_ID,
+
+static const uint16_t default_ch347_vids[] = {DEFAULT_VENDOR_ID, DEFAULT_VENDOR_ID, DEFAULT_VENDOR_ID, 0};
+static const uint16_t default_ch347_pids[] = {DEFAULT_CH347T_PRODUCT_ID,
 	DEFAULT_CH347F_PRODUCT_ID, DEFAULT_OTHER_PRODUCT_ID, 0};
 
 /* Set after the CH347F dedicated SRST output is enabled and its pin byte
