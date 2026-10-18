@@ -718,10 +718,26 @@ static int ch347_scan_data_to_fields(uint8_t *decoded_buf, int decoded_buf_len)
 	return ERROR_OK;
 }
 
-static void ch347_scan_queue_free(void)
+/**
+ * @brief Drops everything queued but not transmitted yet: the scratchpad,
+ * the command queue and the scan fields waiting for data.
+ * Used in error paths, so stale commands are not sent with the next queue
+ * and stale scan fields (owned by the already freed jtag_command queue)
+ * are not filled in later.
+ */
+static void ch347_queues_discard(void)
 {
-	struct ch347_scan *scan, *tmp;
+	struct ch347_cmd *cmd, *tmp_cmd;
+	list_for_each_entry_safe(cmd, tmp_cmd, &ch347.cmd_queue, queue) {
+		list_del(&cmd->queue);
+		free(cmd->write_data);
+		free(cmd);
+	}
 
+	ch347.scratchpad_cmd_type = 0;
+	ch347.scratchpad_idx = 0;
+
+	struct ch347_scan *scan, *tmp;
 	list_for_each_entry_safe(scan, tmp, &ch347.scan_queue, queue) {
 		list_del(&scan->queue);
 		free(scan);
@@ -734,14 +750,12 @@ static void ch347_scan_queue_free(void)
  *
  * @return ERROR_OK at success
  */
-static int ch347_cmd_transmit_queue(void)
+static int ch347_cmd_transmit_queue_inner(void)
 {
 	// queue last command
 	int retval = ch347_cmd_from_scratchpad();
-	if (retval != ERROR_OK) {
-		ch347_scan_queue_free();
+	if (retval != ERROR_OK)
 		return retval;
-	}
 
 	// nothing to do! => done here
 	if (list_empty(&ch347.cmd_queue))
@@ -761,7 +775,6 @@ static int ch347_cmd_transmit_queue(void)
 		decoded_buf = malloc(decoded_buf_len);
 		if (!decoded_buf) {
 			LOG_ERROR("malloc failed");
-			ch347_scan_queue_free();
 			return ERROR_FAIL;
 		}
 	}
@@ -790,7 +803,6 @@ static int ch347_cmd_transmit_queue(void)
 		if (!last_cmd || bytes_to_write == 0) {
 			LOG_ERROR("Nothing to send!");
 			free(decoded_buf);
-			ch347_scan_queue_free();
 			return ERROR_FAIL;
 		}
 
@@ -799,7 +811,6 @@ static int ch347_cmd_transmit_queue(void)
 		if (!write_buf) {
 			LOG_ERROR("malloc failed");
 			free(decoded_buf);
-			ch347_scan_queue_free();
 			return ERROR_FAIL;
 		}
 
@@ -836,7 +847,6 @@ static int ch347_cmd_transmit_queue(void)
 		free(write_buf);
 		if (retval != ERROR_OK)	{
 			free(decoded_buf);
-			ch347_scan_queue_free();
 			return retval;
 		}
 
@@ -854,7 +864,6 @@ static int ch347_cmd_transmit_queue(void)
 
 		if (retval != ERROR_OK) {
 			free(decoded_buf);
-			ch347_scan_queue_free();
 			return retval;
 		}
 	}
@@ -865,6 +874,21 @@ static int ch347_cmd_transmit_queue(void)
 		retval = ch347_scan_data_to_fields(decoded_buf, decoded_buf_len);
 		free(decoded_buf);
 	}
+
+	return retval;
+}
+
+/**
+ * @brief Sends all queued commands and puts the data read back into the scan
+ * fields. On error, everything not transmitted yet is discarded
+ *
+ * @return ERROR_OK at success
+ */
+static int ch347_cmd_transmit_queue(void)
+{
+	int retval = ch347_cmd_transmit_queue_inner();
+	if (retval != ERROR_OK)
+		ch347_queues_discard();
 
 	return retval;
 }
@@ -1715,6 +1739,10 @@ static int ch347_execute_queue(struct jtag_command *cmd_queue)
 		cmd = cmd->next;
 	}
 
+	/* drop the partially queued commands, the LED off goes with the next queue */
+	if (retval != ERROR_OK)
+		ch347_queues_discard();
+
 	ch347_activity_led_set(false, false);
 
 	if (retval != ERROR_OK)
@@ -2246,12 +2274,12 @@ static int ch347_swd_queue_flush(void)
 	ch347_swd_context.recv_len = 0;
 
 	int retval = ch347_cmd_start_next(CH347_CMD_SWD);
-	if (retval != ERROR_OK)
+	if (retval == ERROR_OK)
+		retval = ch347_scratchpad_add_bytes(ch347_swd_context.send_buf, ch347_swd_context.send_len);
+	if (retval != ERROR_OK) {
+		ch347_queues_discard();
 		return retval;
-
-	retval = ch347_scratchpad_add_bytes(ch347_swd_context.send_buf, ch347_swd_context.send_len);
-	if (retval != ERROR_OK)
-		return retval;
+	}
 
 	retval = ch347_cmd_transmit_queue();
 	if (retval != ERROR_OK)
