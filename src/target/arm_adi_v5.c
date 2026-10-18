@@ -655,13 +655,14 @@ static int mem_ap_read(struct adiv5_ap *ap, uint8_t *buffer, uint32_t size, uint
 		if (retval != ERROR_OK)
 			break;
 
-
 		unsigned int drw_ops = DIV_ROUND_UP(this_size, 4);
 		while (drw_ops--) {
 			retval = dap_queue_ap_read(ap, MEM_AP_REG_DRW(dap), read_ptr++);
 			if (retval != ERROR_OK)
 				break;
 		}
+		if (retval != ERROR_OK)
+			break;
 
 		nbytes -= this_size;
 		if (addrinc)
