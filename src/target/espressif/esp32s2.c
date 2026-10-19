@@ -529,7 +529,6 @@ struct target_type esp32s2_target = {
 	.get_gdb_arch = xtensa_get_gdb_arch,
 	.get_gdb_reg_list = xtensa_get_gdb_reg_list,
 
-	.run_algorithm = xtensa_run_algorithm,
 	.start_algorithm = xtensa_start_algorithm,
 	.wait_algorithm = xtensa_wait_algorithm,
 

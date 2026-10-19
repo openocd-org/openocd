@@ -3975,28 +3975,6 @@ static int riscv_wait_algorithm(struct target *target,
 	return ERROR_OK;
 }
 
-static int riscv_run_algorithm(struct target *target, int num_mem_params,
-		struct mem_param *mem_params, int num_reg_params,
-		struct reg_param *reg_params, target_addr_t entry_point,
-		target_addr_t exit_point, unsigned int timeout_ms, void *arch_info)
-{
-	int retval = riscv_start_algorithm(target,
-			num_mem_params, mem_params,
-			num_reg_params, reg_params,
-			entry_point, exit_point,
-			arch_info);
-
-	if (retval == ERROR_OK) {
-		retval = riscv_wait_algorithm(target,
-				num_mem_params, mem_params,
-				num_reg_params, reg_params,
-				exit_point, timeout_ms,
-				arch_info);
-	}
-
-	return retval;
-}
-
 static int riscv_checksum_memory(struct target *target,
 		target_addr_t address, uint32_t count,
 		uint32_t *checksum)
@@ -6293,7 +6271,6 @@ struct target_type riscv_target = {
 
 	.arch_state = riscv_arch_state,
 
-	.run_algorithm = riscv_run_algorithm,
 	.start_algorithm = riscv_start_algorithm,
 	.wait_algorithm = riscv_wait_algorithm,
 

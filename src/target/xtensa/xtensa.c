@@ -2737,7 +2737,7 @@ int xtensa_start_algorithm(struct target *target,
 	bool usr_ps = false;
 	uint32_t newps;
 
-	/* NOTE: xtensa_run_algorithm requires that each algorithm uses a software breakpoint
+	/* NOTE: running an algorithm requires that each algorithm uses a software breakpoint
 	 * at the exit point */
 
 	if (target->state != TARGET_HALTED) {
@@ -2833,7 +2833,7 @@ int xtensa_wait_algorithm(struct target *target,
 	int retval = ERROR_OK;
 	xtensa_reg_val_t pc;
 
-	/* NOTE: xtensa_run_algorithm requires that each algorithm uses a software breakpoint
+	/* NOTE: running an algorithm requires that each algorithm uses a software breakpoint
 	 * at the exit point */
 
 	retval = target_wait_state(target, TARGET_HALTED, timeout_ms);
@@ -2926,29 +2926,6 @@ int xtensa_wait_algorithm(struct target *target,
 	retval = xtensa_write_dirty_registers(target);
 	if (retval != ERROR_OK)
 		LOG_ERROR("Failed to write dirty regs (%d)", retval);
-
-	return retval;
-}
-
-int xtensa_run_algorithm(struct target *target,
-	int num_mem_params, struct mem_param *mem_params,
-	int num_reg_params, struct reg_param *reg_params,
-	target_addr_t entry_point, target_addr_t exit_point,
-	unsigned int timeout_ms, void *arch_info)
-{
-	int retval = xtensa_start_algorithm(target,
-		num_mem_params, mem_params,
-		num_reg_params, reg_params,
-		entry_point, exit_point,
-		arch_info);
-
-	if (retval == ERROR_OK) {
-		retval = xtensa_wait_algorithm(target,
-			num_mem_params, mem_params,
-			num_reg_params, reg_params,
-			exit_point, timeout_ms,
-			arch_info);
-	}
 
 	return retval;
 }

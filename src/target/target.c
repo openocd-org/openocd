@@ -797,17 +797,30 @@ int target_run_algorithm(struct target *target,
 		retval = ERROR_TARGET_NOT_EXAMINED;
 		goto done;
 	}
-	if (!target->type->run_algorithm) {
+	if (!target->type->run_algorithm &&
+			!(target->type->start_algorithm && target->type->wait_algorithm)) {
 		LOG_ERROR("Target type '%s' does not support %s",
 				target_type_name(target), __func__);
 		goto done;
 	}
 
 	target->running_alg = true;
-	retval = target->type->run_algorithm(target,
-			num_mem_params, mem_params,
-			num_reg_params, reg_param,
-			entry_point, exit_point, timeout_ms, arch_info);
+	if (target->type->run_algorithm) {
+		retval = target->type->run_algorithm(target,
+				num_mem_params, mem_params,
+				num_reg_params, reg_param,
+				entry_point, exit_point, timeout_ms, arch_info);
+	} else {
+		retval = target->type->start_algorithm(target,
+				num_mem_params, mem_params,
+				num_reg_params, reg_param,
+				entry_point, exit_point, arch_info);
+		if (retval == ERROR_OK)
+			retval = target->type->wait_algorithm(target,
+					num_mem_params, mem_params,
+					num_reg_params, reg_param,
+					exit_point, timeout_ms, arch_info);
+	}
 	target->running_alg = false;
 
 done:

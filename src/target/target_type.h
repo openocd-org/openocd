@@ -182,8 +182,11 @@ struct target_type {
 	int (*hit_watchpoint)(struct target *target, struct watchpoint **hit_watchpoint);
 
 	/**
-	 * Target algorithm support.  Do @b not call this method directly,
+	 * Target algorithm support.  Do @b not call these methods directly,
 	 * use target_run_algorithm() instead.
+	 *
+	 * run_algorithm may be NULL when both start_algorithm and
+	 * wait_algorithm are set. target_run_algorithm() then calls those.
 	 */
 	int (*run_algorithm)(struct target *target, int num_mem_params,
 			struct mem_param *mem_params, int num_reg_params,

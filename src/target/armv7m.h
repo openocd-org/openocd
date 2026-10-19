@@ -323,12 +323,6 @@ int armv7m_get_gdb_reg_list(struct target *target,
 
 int armv7m_init_arch_info(struct target *target, struct armv7m_common *armv7m);
 
-int armv7m_run_algorithm(struct target *target,
-		int num_mem_params, struct mem_param *mem_params,
-		int num_reg_params, struct reg_param *reg_params,
-		target_addr_t entry_point, target_addr_t exit_point,
-		unsigned int timeout_ms, void *arch_info);
-
 int armv7m_start_algorithm(struct target *target,
 		int num_mem_params, struct mem_param *mem_params,
 		int num_reg_params, struct reg_param *reg_params,

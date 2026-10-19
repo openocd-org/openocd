@@ -419,11 +419,6 @@ int xtensa_wait_algorithm(struct target *target,
 	int num_reg_params, struct reg_param *reg_params,
 	target_addr_t exit_point, unsigned int timeout_ms,
 	void *arch_info);
-int xtensa_run_algorithm(struct target *target,
-	int num_mem_params, struct mem_param *mem_params,
-	int num_reg_params, struct reg_param *reg_params,
-	target_addr_t entry_point, target_addr_t exit_point,
-	unsigned int timeout_ms, void *arch_info);
 void xtensa_set_permissive_mode(struct target *target, bool state);
 const char *xtensa_get_gdb_arch(const struct target *target);
 int xtensa_gdb_query_custom(struct target *target, const char *packet, char **response_p);

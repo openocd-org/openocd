@@ -513,31 +513,6 @@ int armv7m_get_gdb_reg_list(struct target *target, struct reg **reg_list[],
 	return ERROR_OK;
 }
 
-/** Runs a Thumb algorithm in the target. */
-int armv7m_run_algorithm(struct target *target,
-	int num_mem_params, struct mem_param *mem_params,
-	int num_reg_params, struct reg_param *reg_params,
-	target_addr_t entry_point, target_addr_t exit_point,
-	unsigned int timeout_ms, void *arch_info)
-{
-	int retval;
-
-	retval = armv7m_start_algorithm(target,
-			num_mem_params, mem_params,
-			num_reg_params, reg_params,
-			entry_point, exit_point,
-			arch_info);
-
-	if (retval == ERROR_OK)
-		retval = armv7m_wait_algorithm(target,
-				num_mem_params, mem_params,
-				num_reg_params, reg_params,
-				exit_point, timeout_ms,
-				arch_info);
-
-	return retval;
-}
-
 /** Starts a Thumb algorithm in the target. */
 int armv7m_start_algorithm(struct target *target,
 	int num_mem_params, struct mem_param *mem_params,
@@ -550,7 +525,7 @@ int armv7m_start_algorithm(struct target *target,
 	enum arm_mode core_mode = armv7m->arm.core_mode;
 	int retval = ERROR_OK;
 
-	/* NOTE: armv7m_run_algorithm requires that each algorithm uses a software breakpoint
+	/* NOTE: running an algorithm requires that each algorithm uses a software breakpoint
 	 * at the exit point */
 
 	if (armv7m_algorithm_info->common_magic != ARMV7M_COMMON_MAGIC) {
@@ -662,7 +637,7 @@ int armv7m_wait_algorithm(struct target *target,
 	struct armv7m_algorithm *armv7m_algorithm_info = arch_info;
 	int retval = ERROR_OK;
 
-	/* NOTE: armv7m_run_algorithm requires that each algorithm uses a software breakpoint
+	/* NOTE: running an algorithm requires that each algorithm uses a software breakpoint
 	 * at the exit point */
 
 	if (armv7m_algorithm_info->common_magic != ARMV7M_COMMON_MAGIC) {
