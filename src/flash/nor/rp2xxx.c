@@ -8,6 +8,7 @@
 #include <helper/binarybuffer.h>
 #include <target/algorithm.h>
 #include <target/armv7m.h>
+#include <target/riscv/riscv.h>
 #include "spi.h"
 #include "sfdp.h"
 #include <target/cortex_m.h>
@@ -568,12 +569,15 @@ static int rp2xxx_call_rom_func_batch(struct target *target, struct rp2xxx_flash
 		);
 	} else {
 		// Presumed RISC-V -- there is no RISCV_COMMON_MAGIC on older OpenOCD
+		struct riscv_algorithm algorithm_info = {
+			.common_magic = RISCV_COMMON_MAGIC,
+		};
 		err = target_run_algorithm(target,
 			0, NULL,          /* No memory arguments */
 			0, NULL,          /* No register arguments */
 			algo_start_addr, algo_end_addr,
 			algo_timeout_ms,
-			NULL              /* Currently no RISC-V-specific algorithm info */
+			&algorithm_info
 		);
 	}
 	if (err != ERROR_OK) {

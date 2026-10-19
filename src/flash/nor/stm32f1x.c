@@ -21,6 +21,7 @@
 #include <helper/binarybuffer.h>
 #include <target/algorithm.h>
 #include <target/cortex_m.h>
+#include <target/riscv/riscv.h>
 
 /* stm32x register locations */
 
@@ -605,12 +606,16 @@ static int stm32x_write_block_riscv(struct flash_bank *bank, const uint8_t *buff
 		buf_set_u32(reg_params[2].value, 0, 32, source->address);
 		buf_set_u32(reg_params[3].value, 0, 32, address);
 
+		struct riscv_algorithm algorithm_info = {
+			.common_magic = RISCV_COMMON_MAGIC,
+		};
+
 		retval = target_run_algorithm(target,
 				0, NULL,
 				ARRAY_SIZE(reg_params), reg_params,
 				write_algorithm->address,
 				write_algorithm->address + sizeof(gd32vf103_flash_write_code) - 4,
-				10000, NULL);
+				10000, &algorithm_info);
 
 		if (retval != ERROR_OK) {
 			LOG_ERROR("Failed to execute algorithm at 0x%" TARGET_PRIxADDR ": %d",

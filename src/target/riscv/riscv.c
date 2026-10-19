@@ -3964,12 +3964,6 @@ static int riscv_run_algorithm(struct target *target, int num_mem_params,
 		struct reg_param *reg_params, target_addr_t entry_point,
 		target_addr_t exit_point, unsigned int timeout_ms, void *arch_info)
 {
-	struct riscv_algorithm algorithm_info;
-	if (!arch_info) {
-		algorithm_info.common_magic = RISCV_COMMON_MAGIC;
-		arch_info = &algorithm_info;
-	}
-
 	int retval = riscv_start_algorithm(target,
 			num_mem_params, mem_params,
 			num_reg_params, reg_params,
@@ -4050,13 +4044,17 @@ static int riscv_checksum_memory(struct target *target,
 	buf_set_u64(reg_params[0].value, 0, xlen, address);
 	buf_set_u64(reg_params[1].value, 0, xlen, count);
 
+	struct riscv_algorithm algorithm_info = {
+		.common_magic = RISCV_COMMON_MAGIC,
+	};
+
 	/* 20 second timeout/megabyte */
 	unsigned int timeout = 20000 * (1 + (count / (1024 * 1024)));
 
 	retval = target_run_algorithm(target, 0, NULL, 2, reg_params,
 			crc_algorithm->address,
 			0,	/* Leave exit point unspecified because we don't know. */
-			timeout, NULL);
+			timeout, &algorithm_info);
 
 	if (retval == ERROR_OK)
 		*checksum = buf_get_u32(reg_params[0].value, 0, 32);

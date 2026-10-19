@@ -563,6 +563,9 @@ static int fespi_write(struct flash_bank *bank, const uint8_t *buffer,
 
 	if (algorithm_wa) {
 		struct reg_param reg_params[6];
+		struct riscv_algorithm algorithm_info = {
+			.common_magic = RISCV_COMMON_MAGIC,
+		};
 		init_reg_param(&reg_params[0], "a0", xlen, PARAM_IN_OUT);
 		init_reg_param(&reg_params[1], "a1", xlen, PARAM_OUT);
 		init_reg_param(&reg_params[2], "a2", xlen, PARAM_OUT);
@@ -595,7 +598,8 @@ static int fespi_write(struct flash_bank *bank, const uint8_t *buffer,
 					buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5]);
 			retval = target_run_algorithm(target, 0, NULL,
 					ARRAY_SIZE(reg_params), reg_params,
-					algorithm_wa->address, 0, cur_count * 2, NULL);
+					algorithm_wa->address, 0, cur_count * 2,
+					&algorithm_info);
 			if (retval != ERROR_OK) {
 				LOG_ERROR("Failed to execute algorithm at " TARGET_ADDR_FMT ": %d",
 						algorithm_wa->address, retval);

@@ -13,6 +13,7 @@
 #include <target/algorithm.h>
 #include <target/image.h>
 #include "target/riscv/program.h"
+#include "target/riscv/riscv.h"
 
 #include "../../../contrib/loaders/flash/hpmicro/hpm_xpi_flash.h"
 static uint8_t flash_algo[] = {
@@ -58,8 +59,11 @@ static int hpm_xpi_run_algo_flash_init(struct flash_bank *bank,
 	buf_set_u64(reg_params[3].value, 0, xlen, xpi_priv->opt1);
 	buf_set_u64(reg_params[4].value, 0, xlen, xpi_priv->io_base);
 	buf_set_u64(reg_params[5].value, 0, xlen, algo_entry + FLASH_INIT + 4);
+	struct riscv_algorithm algorithm_info = {
+		.common_magic = RISCV_COMMON_MAGIC,
+	};
 	int retval = target_run_algorithm(target, 0, NULL, ARRAY_SIZE(reg_params), reg_params,
-			algo_entry, algo_entry + FLASH_INIT + 4, TYPICAL_TIMEOUT_IN_MS, NULL);
+			algo_entry, algo_entry + FLASH_INIT + 4, TYPICAL_TIMEOUT_IN_MS, &algorithm_info);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Failed to execute run algorithm: %d", retval);
 		goto err;
@@ -140,8 +144,12 @@ static int hpm_xpi_probe(struct flash_bank *bank)
 	buf_set_u64(reg_params[1].value, 0, xlen, data_wa->address);
 	buf_set_u64(reg_params[2].value, 0, xlen, wa->address + FLASH_GET_INFO + 4);
 
+	struct riscv_algorithm algorithm_info = {
+		.common_magic = RISCV_COMMON_MAGIC,
+	};
 	retval = target_run_algorithm(target, 0, NULL, ARRAY_SIZE(reg_params), reg_params,
-			wa->address + FLASH_GET_INFO, wa->address + FLASH_GET_INFO + 4, TYPICAL_TIMEOUT_IN_MS, NULL);
+			wa->address + FLASH_GET_INFO, wa->address + FLASH_GET_INFO + 4, TYPICAL_TIMEOUT_IN_MS,
+			&algorithm_info);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Failed to run algorithm at: %d", retval);
 		goto err;
@@ -250,6 +258,9 @@ static int hpm_xpi_write(struct flash_bank *bank, const uint8_t *buffer,
 
 	int xlen = riscv_xlen(target);
 	struct reg_param reg_params[4];
+	struct riscv_algorithm algorithm_info = {
+		.common_magic = RISCV_COMMON_MAGIC,
+	};
 	init_reg_param(&reg_params[0], "a0", xlen, PARAM_IN_OUT);
 	init_reg_param(&reg_params[1], "a1", xlen, PARAM_OUT);
 	init_reg_param(&reg_params[2], "a2", xlen, PARAM_OUT);
@@ -269,7 +280,8 @@ static int hpm_xpi_write(struct flash_bank *bank, const uint8_t *buffer,
 		buf_set_u32(reg_params[3].value, 0, xlen, trans_size);
 
 		retval = target_run_algorithm(target, 0, NULL, 4, reg_params,
-				wa->address + FLASH_PROGRAM, wa->address + FLASH_PROGRAM + 4, TIMEOUT_IN_MS, NULL);
+				wa->address + FLASH_PROGRAM, wa->address + FLASH_PROGRAM + 4, TIMEOUT_IN_MS,
+				&algorithm_info);
 		if (retval != ERROR_OK) {
 			LOG_ERROR("Failed to execute algorithm at 0x%" TARGET_PRIxADDR ": %d", wa->address, retval);
 			goto err;
@@ -340,9 +352,12 @@ static int hpm_xpi_erase(struct flash_bank *bank, unsigned int first, unsigned i
 	buf_set_u32(reg_params[1].value, 0, xlen, first * bank->sectors[0].size);
 	buf_set_u32(reg_params[2].value, 0, xlen, (last - first + 1) * bank->sectors[0].size);
 
+	struct riscv_algorithm algorithm_info = {
+		.common_magic = RISCV_COMMON_MAGIC,
+	};
 	retval = target_run_algorithm(target, 0, NULL, ARRAY_SIZE(reg_params), reg_params,
 			wa->address + FLASH_ERASE, wa->address + FLASH_ERASE + 4,
-			SECTOR_ERASE_TIMEOUT_IN_MS * (last - first + 1), NULL);
+			SECTOR_ERASE_TIMEOUT_IN_MS * (last - first + 1), &algorithm_info);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Failed to execute algorithm at 0x%" TARGET_PRIxADDR ": %d", wa->address, retval);
 		goto err;
@@ -399,8 +414,12 @@ static int hpm_xpi_erase_chip(struct flash_bank *bank)
 	init_reg_param(&reg_params[0], "a0", xlen, PARAM_IN_OUT);
 	buf_set_u64(reg_params[0].value, 0, xlen, bank->base);
 
+	struct riscv_algorithm algorithm_info = {
+		.common_magic = RISCV_COMMON_MAGIC,
+	};
 	retval = target_run_algorithm(target, 0, NULL, ARRAY_SIZE(reg_params), reg_params,
-			wa->address + FLASH_ERASE_CHIP, wa->address + FLASH_ERASE_CHIP + 4, ERASE_CHIP_TIMEOUT_IN_MS, NULL);
+			wa->address + FLASH_ERASE_CHIP, wa->address + FLASH_ERASE_CHIP + 4,
+			ERASE_CHIP_TIMEOUT_IN_MS, &algorithm_info);
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Failed to execute algorithm at 0x%" TARGET_PRIxADDR ": %d", wa->address, retval);
 		goto err;

@@ -15,6 +15,7 @@
 #include "spi.h"
 #include "target/riscv/opcodes.h"
 #include "target/riscv/gdb_regs.h"
+#include "target/riscv/riscv.h"
 
 /*
  * Flash bank driver for Bouffalo chips with BL602-like flash controller
@@ -163,12 +164,15 @@ static int bl602_call_func(struct target *target, uint32_t func_addr,
 	buf_set_u32(reg_params[n_reg_params].value, 0, 32, trampoline_algorithm->address);
 	n_reg_params++;
 
+	struct riscv_algorithm algorithm_info = {
+		.common_magic = RISCV_COMMON_MAGIC,
+	};
 	retval = target_run_algorithm(target,
 			0, NULL,
 			n_reg_params, reg_params,
 			func_addr,
 			trampoline_algorithm->address,
-			timeout_ms, NULL);
+			timeout_ms, &algorithm_info);
 
 	if (retval != ERROR_OK) {
 		LOG_ERROR("Failed to execute algorithm at 0x%" TARGET_PRIxADDR ": %d",
