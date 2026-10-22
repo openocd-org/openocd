@@ -186,6 +186,9 @@ COMMAND_HANDLER(handle_flash_erase_check_command)
 	if (retval != ERROR_OK)
 		return retval;
 
+	struct duration bench;
+	duration_start(&bench);
+
 	if (p->driver->erase_check)
 		retval = p->driver->erase_check(p);
 	else
@@ -199,6 +202,10 @@ COMMAND_HANDLER(handle_flash_erase_check_command)
 			p->base);
 		return retval;
 	}
+
+	if (duration_measure(&bench) == ERROR_OK)
+		command_print(CMD, "checked erase state in %fs (%0.3f KiB/s)",
+			duration_elapsed(&bench), duration_kbps(&bench, p->size));
 
 	bool blank = true;
 	for (unsigned int j = 0; j < p->num_sectors; j++) {
