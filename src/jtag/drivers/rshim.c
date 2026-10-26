@@ -479,23 +479,6 @@ static int rshim_dap_reset(int req_trst, int req_srst)
 	return ERROR_OK;
 }
 
-static int rshim_dap_speed(int speed)
-{
-	return ERROR_OK;
-}
-
-static int rshim_dap_khz(int khz, int *jtag_speed)
-{
-	*jtag_speed = khz;
-	return ERROR_OK;
-}
-
-static int rshim_dap_speed_div(int speed, int *khz)
-{
-	*khz = speed;
-	return ERROR_OK;
-}
-
 /* DAP operations. */
 static const struct dap_ops rshim_dap_ops = {
 	.connect = rshim_connect,
@@ -517,9 +500,6 @@ struct adapter_driver rshim_dap_adapter_driver = {
 	.init = rshim_dap_init,
 	.quit = rshim_dap_quit,
 	.reset = rshim_dap_reset,
-	.speed = rshim_dap_speed,
-	.khz = rshim_dap_khz,
-	.speed_div = rshim_dap_speed_div,
 
 	.dap_swd_ops = &rshim_dap_ops,
 };

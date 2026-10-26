@@ -572,23 +572,6 @@ static int dmem_dap_reset(int req_trst, int req_srst)
 	return ERROR_OK;
 }
 
-static int dmem_dap_speed(int speed)
-{
-	return ERROR_OK;
-}
-
-static int dmem_dap_khz(int khz, int *jtag_speed)
-{
-	*jtag_speed = khz;
-	return ERROR_OK;
-}
-
-static int dmem_dap_speed_div(int speed, int *khz)
-{
-	*khz = speed;
-	return ERROR_OK;
-}
-
 /* DAP operations. */
 static const struct dap_ops dmem_dap_ops = {
 	.connect = dmem_connect,
@@ -609,9 +592,6 @@ struct adapter_driver dmem_dap_adapter_driver = {
 	.init = dmem_dap_init,
 	.quit = dmem_dap_quit,
 	.reset = dmem_dap_reset,
-	.speed = dmem_dap_speed,
-	.khz = dmem_dap_khz,
-	.speed_div = dmem_dap_speed_div,
 
 	.dap_swd_ops = &dmem_dap_ops,
 };

@@ -1306,67 +1306,6 @@ exit:
 	return ret;
 }
 
-/**
- * Angie set speed method
- *
- * @return ERROR_OK on success, negative error code otherwise
- */
-static int angie_speed(int divisor)
-{
-	int baud = (divisor == 0) ? 3000000 :
-		(divisor == 1) ? 2000000 :
-		3000000 / divisor;
-	LOG_DEBUG("angie speed(%d) rate %d bits/sec", divisor, baud);
-
-	return ERROR_OK;
-}
-
-/**
- * Angie set khz method
- *
- * @param khz
- * @param divisor returned to caller
- * @return ERROR_OK on success, negative error code otherwise
- */
-static int angie_khz(int khz, int *divisor)
-{
-	if (khz == 0) {
-		LOG_DEBUG("RCLK not supported");
-		return ERROR_FAIL;
-	}
-
-	// Calculate frequency divisor.
-	if (khz > 2500) {
-		*divisor = 0;		// Special case: 3 MHz
-	} else if (khz > 1700) {
-		*divisor = 1;		// Special case: 2 MHz
-	} else {
-		*divisor = (2 * 3000 / khz + 1) / 2;
-		if (*divisor > 0x3FFF)
-			*divisor = 0x3FFF;
-	}
-	return ERROR_OK;
-}
-
-/**
- * Angie set speed div
- *
- * @param divisor
- * @param khz returned to caller
- * @return ERROR_OK on success, negative error code otherwise
- */
-static int angie_speed_div(int divisor, int *khz)
-{
-	// Maximum 3 Mbaud for bit bang mode
-	if (divisor == 0)
-		*khz = 30000;
-	else if (divisor == 1)
-		*khz = 20000;
-	else
-		*khz = 30000 / divisor;
-	return ERROR_OK;
-}
-
 static struct jtag_interface angie_interface = {
 	.supported = DEBUG_CAP_TMS_SEQ,
 	.execute_queue = angie_jtag_execute_queue,
@@ -1379,9 +1318,6 @@ struct adapter_driver angie_adapter_driver = {
 
 	.init = angie_init,
 	.quit = angie_quit,
-	.speed = angie_speed,
-	.khz = angie_khz,
-	.speed_div = angie_speed_div,
 
 	.jtag_ops = &angie_interface,
 };
