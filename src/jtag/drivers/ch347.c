@@ -1160,12 +1160,20 @@ static int ch347_scratchpad_add_stableclocks(int count)
 }
 
 /**
- * @brief Function to ensure that the clock is in a low state
+ * @brief Return TCK to its low idle level, if it isn't there already.
+ * Does not generate a clock cycle.
  *
  * @return ERROR_OK at success
  */
-static int ch347_scratchpad_add_idle_clock(void)
+static int ch347_scratchpad_add_tck_idle(void)
 {
+	if (ch347.tck_pin == TCK_L)
+		return ERROR_OK;
+
+	int retval = ch347_cmd_start_next(CH347_CMD_JTAG_BIT_OP);
+	if (retval != ERROR_OK)
+		return retval;
+
 	ch347.tck_pin = TCK_L;
 	return ch347_scratchpad_add_pin_byte();
 }
@@ -1192,7 +1200,7 @@ static int ch347_scratchpad_add_tms_change(const uint8_t *tms_value, int step, i
 			return retval;
 	}
 
-	return ch347_scratchpad_add_idle_clock();
+	return ERROR_OK;
 }
 
 /**
@@ -1225,7 +1233,7 @@ static int ch347_scratchpad_add_move_path(struct pathmove_command *cmd)
 		tap_set_state(cmd->path[i]);
 	}
 
-	return ch347_scratchpad_add_idle_clock();
+	return ERROR_OK;
 }
 
 /**
@@ -1284,8 +1292,13 @@ static int ch347_scratchpad_add_write_read(struct scan_command *cmd, uint8_t *bi
 
 	// if we need to send bytes
 	if (byte_count > 0) {
+		// a byte shift started with TCK high corrupts the scan
+		int retval = ch347_scratchpad_add_tck_idle();
+		if (retval != ERROR_OK)
+			return retval;
+
 		// start the next cmd and copy the data out bytes to it
-		int retval = ch347_cmd_start_next(is_read ? CH347_CMD_JTAG_DATA_SHIFT_RD : CH347_CMD_JTAG_DATA_SHIFT);
+		retval = ch347_cmd_start_next(is_read ? CH347_CMD_JTAG_DATA_SHIFT_RD : CH347_CMD_JTAG_DATA_SHIFT);
 		if (retval != ERROR_OK)
 			return retval;
 
@@ -1336,11 +1349,6 @@ static int ch347_scratchpad_add_write_read(struct scan_command *cmd, uint8_t *bi
 				return retval;
 		}
 	}
-
-	// one TCK_L after the last bit
-	retval = ch347_scratchpad_add_idle_clock();
-	if (retval != ERROR_OK)
-		return retval;
 
 	// if read is involved we need to queue the scan fields
 	if (is_read)
@@ -1696,7 +1704,9 @@ static int ch347_reset(int trst, int srst)
 static int ch347_sleep(int us)
 {
 	LOG_DEBUG_IO("us=%d", us);
-	int retval = ch347_cmd_transmit_queue();
+	int retval = ch347_scratchpad_add_tck_idle();
+	if (retval == ERROR_OK)
+		retval = ch347_cmd_transmit_queue();
 	jtag_sleep(us);
 	return retval;
 }
@@ -1744,6 +1754,9 @@ static int ch347_execute_queue(struct jtag_command *cmd_queue)
 
 		cmd = cmd->next;
 	}
+
+	if (retval == ERROR_OK)
+		retval = ch347_scratchpad_add_tck_idle();
 
 	/* drop the partially queued commands, the LED off goes with the next queue */
 	if (retval != ERROR_OK)
