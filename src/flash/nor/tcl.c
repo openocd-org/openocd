@@ -610,10 +610,10 @@ COMMAND_HANDLER(handle_flash_fill_command)
 
 	if (padding_at_start) {
 		memset(buffer, bank->default_padded_value, padding_at_start);
-		LOG_WARNING("Start address " TARGET_ADDR_FMT
+		LOG_INFO("Start address " TARGET_ADDR_FMT
 			" breaks the required alignment of flash bank %s",
 			address, bank->name);
-		LOG_WARNING("Padding %" PRIu32 " bytes from " TARGET_ADDR_FMT,
+		LOG_INFO("Padding %" PRIu32 " bytes from " TARGET_ADDR_FMT,
 		    padding_at_start, aligned_start);
 	}
 
@@ -948,10 +948,10 @@ COMMAND_HANDLER(handle_flash_write_bank_command)
 
 	if (padding_at_start) {
 		memset(buffer, bank->default_padded_value, padding_at_start);
-		LOG_WARNING("Start offset 0x%08" PRIx32
+		LOG_INFO("Start offset 0x%08" PRIx32
 			" breaks the required alignment of flash bank %s",
 			offset, bank->name);
-		LOG_WARNING("Padding %" PRIu32 " bytes from " TARGET_ADDR_FMT,
+		LOG_INFO("Padding %" PRIu32 " bytes from " TARGET_ADDR_FMT,
 		    padding_at_start, aligned_start);
 	}
 
