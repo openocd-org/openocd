@@ -76,6 +76,7 @@ extern const struct flash_device flash_devices[];
 #define SPIFLASH_READ_MID		0xAF /* Read Flash Identification, multi-io */
 #define SPIFLASH_READ_STATUS	0x05 /* Read Status Register */
 #define SPIFLASH_WRITE_ENABLE	0x06 /* Write Enable */
+#define SPIFLASH_WRITE_DISABLE	0x04 /* Write Disable */
 #define SPIFLASH_PAGE_PROGRAM	0x02 /* Page Program */
 #define SPIFLASH_FAST_READ		0x0B /* Fast Read */
 #define SPIFLASH_READ			0x03 /* Normal Read */

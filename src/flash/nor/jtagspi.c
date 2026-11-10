@@ -525,28 +525,45 @@ static int jtagspi_read_status(struct flash_bank *bank, uint32_t *status)
 	return err;
 }
 
-static int jtagspi_wait(struct flash_bank *bank, int timeout_ms)
+static int jtagspi_wait_check_we(struct flash_bank *bank, int timeout_ms)
 {
 	int64_t t0 = timeval_ms();
 	int64_t dt;
+	uint32_t status = (uint32_t)-1;
 
 	do {
 		dt = timeval_ms() - t0;
 
-		uint32_t status = (uint32_t)-1;
 		int retval = jtagspi_read_status(bank, &status);
 		if (retval != ERROR_OK)
 			return retval;
 
 		if ((status & SPIFLASH_BSY_BIT) == 0) {
 			LOG_DEBUG("waited %" PRId64 " ms", dt);
-			return ERROR_OK;
+			break;
 		}
 		alive_sleep(1);
 	} while (dt <= timeout_ms);
 
-	LOG_ERROR("timeout, device still busy");
-	return ERROR_FAIL;
+	if (status & SPIFLASH_BSY_BIT) {
+		LOG_ERROR("timeout, device still busy");
+		return ERROR_FAIL;
+	}
+
+	/* The write enable latch is cleared by the flash when a program or
+	 * erase operation completes. If it is still set, the device did not
+	 * execute the command (e.g. it was sent with an address length the
+	 * device does not accept) or the operation failed. The status
+	 * register has just been read to poll BUSY, so the check is free. */
+	if (status & SPIFLASH_WE_BIT) {
+		LOG_ERROR("flash did not execute the operation, WEL is still set");
+		/* drop the pending write enable so that the next command is not
+		 * misled by a stale latch */
+		jtagspi_cmd(bank, SPIFLASH_WRITE_DISABLE, NULL, 0, NULL, 0);
+		return ERROR_FLASH_OPERATION_FAILED;
+	}
+
+	return ERROR_OK;
 }
 
 static int jtagspi_write_enable(struct flash_bank *bank)
@@ -582,7 +599,7 @@ static int jtagspi_bulk_erase(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = jtagspi_wait(bank, bank->num_sectors * JTAGSPI_MAX_TIMEOUT);
+	retval = jtagspi_wait_check_we(bank, bank->num_sectors * JTAGSPI_MAX_TIMEOUT);
 	LOG_INFO("took %" PRId64 " ms", timeval_ms() - t0);
 	return retval;
 }
@@ -616,7 +633,7 @@ static int jtagspi_sector_erase(struct flash_bank *bank, unsigned int sector)
 	if (retval != ERROR_OK)
 		return retval;
 
-	retval = jtagspi_wait(bank, JTAGSPI_MAX_TIMEOUT);
+	retval = jtagspi_wait_check_we(bank, JTAGSPI_MAX_TIMEOUT);
 	LOG_INFO("sector %u took %" PRId64 " ms", sector, timeval_ms() - t0);
 	return retval;
 }
@@ -737,7 +754,7 @@ static int jtagspi_page_write(struct flash_bank *bank, const uint8_t *buffer, ui
 		addr_len, (uint8_t *) buffer, count);
 	if (retval != ERROR_OK)
 		return retval;
-	return jtagspi_wait(bank, JTAGSPI_MAX_TIMEOUT);
+	return jtagspi_wait_check_we(bank, JTAGSPI_MAX_TIMEOUT);
 }
 
 static int jtagspi_write(struct flash_bank *bank, const uint8_t *buffer, uint32_t offset, uint32_t count)
