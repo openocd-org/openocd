@@ -720,8 +720,9 @@ static int ch347_scan_data_to_fields(uint8_t *decoded_buf, int decoded_buf_len)
 
 static void ch347_scan_queue_free(void)
 {
-	while (!list_empty(&ch347.scan_queue)) {
-		struct ch347_scan *scan = list_first_entry(&ch347.scan_queue, struct ch347_scan, queue);
+	struct ch347_scan *scan, *tmp;
+
+	list_for_each_entry_safe(scan, tmp, &ch347.scan_queue, queue) {
 		list_del(&scan->queue);
 		free(scan);
 	}
