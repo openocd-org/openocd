@@ -382,9 +382,6 @@ struct adiv5_dap {
 	 */
 	bool select_dpbanksel_valid;
 
-	/* information about current pending SWjDP-AHBAP transaction */
-	uint8_t  ack;
-
 	/**
 	 * Holds the pointer to the destination word for the last queued read,
 	 * for use with posted AP read sequence optimization.
